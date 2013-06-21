@@ -2,7 +2,7 @@
 //  author       : Marco Gazerro <gazerro@open2b.com>
 //  initial date : 13/08/2006
 //
-// date : 30/01/2013
+// date : 24/04/2013
 //
 // Copyright (c) 2002-2013 Open2b Software Snc. All Rights Reserved.
 //
@@ -127,6 +127,10 @@ func (this *Reader) Close() {
 	this.Length = 0
 	this.parents = nil
 	return
+}
+
+func (this *Reader) String() string {
+	return fmt.Sprintf("%s [%s] (%d, %d)", kindName[this.Kind], kindName[this.EndKind], this.Index, this.Index+this.Length-1)
 }
 
 var re = regexp.MustCompile(`({|}|<!--\s*(\.(?:if|for|show|end)|#include|Template(?:Begin|End)Editable)(?:\s+([\s\S]*?)\s*)?-->|<(\/)?([sS][cC][rR][iI][pP][tT]|[sS][tT][yY][lL][eE])(?:\s[^>]*?)?(\/)?>)`)
@@ -259,7 +263,7 @@ MATCH:
 	}
 
 	this.match.success = success
-	this.match.index = this.Index + this.Length + index
+	this.match.index = this.Index + this.Length + p + index
 	this.match.length = length
 	this.match.kind = kind
 	this.match.endKind = endKind
@@ -281,6 +285,8 @@ const (
 	For
 	End
 )
+
+var kindName = []string{"None", "Region", "Include", "Text", "Translate", "Show", "If", "For", "End"}
 
 type Reader struct {
 	Index     int

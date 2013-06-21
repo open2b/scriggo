@@ -2,7 +2,7 @@
 //  author       : Marco Gazerro <gazerro@open2b.com>
 //  initial date : 19/02/2009
 //
-// date : 28/01/2013
+// date : 24/04/2013
 //
 // Copyright (c) 2002-2013 Open2b Software Snc. All Rights Reserved.
 //
@@ -309,21 +309,19 @@ func (parser *Parser) parseSource(source []byte, instance *Instance, currentPath
 			parents = newParents
 
 		case Translate:
-			nodes = []Node{{kind, "", nil}}
-			// unshift @parents, $[]Node[0]
-			var newParents = make([]*Node, len(parents)+1)
-			newParents[0] = &(nodes[0])
-			copy(newParents[1:], parents)
-			parents = newParents
+			parent.Children = append(parent.Children, Node{kind, "", nil})
+			parents = append(parents, nil)
+			copy(parents[1:], parents[0:len(parents)-1])
+			parents[0] = &(parent.Children[len(parent.Children)-1])
+			continue
 
 		default:
 			// if, for or show
-			nodes = []Node{{kind, string(bytes.ToLower(value)), nil}}
-			// unshift @parents, $[]Node[0]
-			var newParents = make([]*Node, len(parents)+1)
-			newParents[0] = &(nodes[0])
-			copy(newParents[1:], parents)
-			parents = newParents
+			parent.Children = append(parent.Children, Node{kind, string(bytes.ToLower(value)), nil})
+			parents = append(parents, nil)
+			copy(parents[1:], parents[0:len(parents)-1])
+			parents[0] = &(parent.Children[len(parent.Children)-1])
+			continue
 
 		}
 
