@@ -1,0 +1,49 @@
+
+Operand       = BasicLit | identifier | MethodExpr | "(" Expression ")" .
+BasicLit      = int_lit | decimal_lit | string_lit .
+
+identifier    = letter { letter | unicode_digit } .
+letter        = unicode_letter | "_" .
+
+decimal_lit   = decimals "." [ decimals ] | "." decimals .
+decimals      = decimal_digit { decimal_digit } .
+
+string_lit             = raw_string_lit | interpreted_string_lit .
+raw_string_lit         = "`" { unicode_char | newline } "`" .
+interpreted_string_lit = `"` { unicode_value } `"` .
+
+unicode_value    = unicode_char | little_u_value | big_u_value | escaped_char .
+little_u_value   = `\` "u" hex_digit hex_digit hex_digit hex_digit .
+big_u_value      = `\` "U" hex_digit hex_digit hex_digit hex_digit
+                           hex_digit hex_digit hex_digit hex_digit .
+
+MethodExpr    = identifier "." identifier .
+
+Expression = UnaryExpr | Expression binary_op Expression .
+UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
+
+PrimaryExpr = Operand | PrimaryExpr ( Selector | Index | Arguments ) .
+Selector       = "." identifier .
+Index          = "[" Expression "]" .
+Arguments      = "(" [ Expression { "," Expression } ] ")" .
+
+unicode_char   = /* an arbitrary Unicode code point except newline */ .
+unicode_letter = /* a Unicode code point classified as "Letter" */ .
+unicode_digit  = /* a Unicode code point classified as "Number, decimal digit" */ .
+
+int_lit       = ( "1" … "9" ) { decimal_digit } .
+
+escaped_char     = `\` ( "a" | "b" | "f" | "n" | "r" | "t" | "v" | `\` | `"` ) .
+
+newline        = /* the Unicode code point U+000A */ .
+
+decimal_digit = "0" … "9" .
+
+hex_digit     = "0" … "9" | "A" … "F" | "a" … "f" .
+
+unary_op   = "+" | "-" | "!"
+
+binary_op   = "||" | "&&" | bool_op | add_op | mul_op .
+bool_op     = "==" | "!=" | "<" | "<=" | ">" | ">=" .
+add_op      = "+" | "-" .
+mul_op      = "*" | "/" | "%" .

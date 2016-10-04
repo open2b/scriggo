@@ -1,10 +1,5 @@
 //
-//  author       : Marco Gazerro <gazerro@open2b.com>
-//  initial date : 19/02/2009
-//
-// date : 24/04/2013
-//
-// Copyright (c) 2002-2013 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
@@ -12,352 +7,436 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"html"
-	"io/ioutil"
-	"os"
-	"path"
-	"regexp"
+	"io"
 	"strings"
+
+	"open2b/template/ast"
 )
 
-var _ = fmt.Sprint("")
+// ReadFunc è chiamata dal metodo Parse per leggere il testo di un path.
+// Non viene mai chiamata per più di una volta per uno stesso path.
+type ReadFunc func(path string) (io.Reader, error)
 
-func NewParser(root string, filter func([]byte) ([]byte, bool)) *Parser {
-	return &Parser{root, filter, map[string][]Node{}}
-}
+// TransformFunc applica delle trasformazioni ad un albero non espanso.
+type TransformFunc func(tree *ast.Tree, path string) error
 
-// Esegue il parsing della pagina di template a root+path e ritorna l'albero dei nodi
-func (parser *Parser) Parse(path string) ([]Node, error) {
-
-	path = path[1:]
-
-	// TODO: togliere il carattere BOM e validare Unicode
-	source, err := ioutil.ReadFile(parser.root + path)
+// Parse esegue il parsing del testo letto da text e ne restituisce l'albero
+// non espanso. Per avere invece l'albero espanso utilizzare il metodo Parse.
+func Parse(text io.Reader) (*ast.Tree, error) {
+	var buf bytes.Buffer
+	var err = readBufferAll(text, &buf)
 	if err != nil {
 		return nil, err
 	}
-	if len(source) == 0 {
-		return []Node{{Text, "", nil}}, nil
+	return parse(buf.Bytes())
+}
+
+// Parser è un parser.
+type Parser struct {
+	read      ReadFunc
+	transform TransformFunc
+	trees     map[string]*ast.Tree
+	buf       *bytes.Buffer
+}
+
+// NewParser crea una nuovo parser. I sorgenti dei template sono letti
+// tramite la funzione read.
+func NewParser(read ReadFunc) *Parser {
+	return &Parser{
+		read:  read,
+		trees: map[string]*ast.Tree{},
+		buf:   &bytes.Buffer{},
+	}
+}
+
+// Parse ritorna l'albero espanso di path il quale deve essere assoluto. Legge
+// il sorgente tramite la funzione read ed espande i nodi Extend, Region e
+// Include se presenti.
+func (p *Parser) Parse(path string) (*ast.Tree, error) {
+
+	// path deve essere valido e assoluto
+	if !isValidFilePath(path) {
+		return nil, fmt.Errorf("template: invalid path %q", path)
+	}
+	if path[0] != '/' {
+		return nil, fmt.Errorf("template: path %q is not absolute", path)
 	}
 
-	instance, err := parser.GetInstance(source)
+	// base per i path relativi
+	var base = path[:strings.LastIndexByte(path, '/')+1]
+
+	tree, err := p.tree(path)
 	if err != nil {
-		if e, ok := err.(*Error); ok {
-			e.File = parser.root + path
-		}
 		return nil, err
 	}
 
-	var page []Node
+	// determina il path di extend se presente
+	var extend = getExtend(tree)
 
-	if instance != nil {
-		source = nil
-		instance.File = path
-		var dwtPath = parser.root + instance.Template
-		// TODO: togliere il carattere BOM e validare Unicode
-		var dwtSource, err = ioutil.ReadFile(dwtPath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, &Error{"Dwt file '" + instance.Template + "' doesn't exist", parser.root + path, instance.Index, instance.Length}
-			} else {
-				return nil, err
+	// determina l'albero da visitare e le eventuali regions
+	var root = tree
+	var regions map[string]*ast.Region
+
+	if extend != nil {
+		regions = map[string]*ast.Region{}
+		for _, node := range tree.Nodes {
+			if n, ok := node.(*ast.Region); ok {
+				regions[n.Name] = n
 			}
 		}
-		page, err = parser.parseSource(dwtSource, instance, "", false)
+		root, err = p.tree(extend.Path)
 		if err != nil {
-			if e, ok := err.(*Error); ok && e.File == "" {
-				e.File = dwtPath
+			return nil, err
+		}
+		// root non deve contenere extend
+		if ex := getExtend(root); ex != nil {
+			return nil, fmt.Errorf("template: extended document can not contains extend at %q", path, ex.Pos())
+		}
+		// espande le region
+		for _, node := range root.Nodes {
+			if n, ok := node.(*ast.Region); ok {
+				if regions == nil {
+					n.Nodes = []ast.Node{}
+				} else if region, ok := regions[n.Name]; ok {
+					n.Nodes = region.Nodes
+				} else {
+					n.Nodes = []ast.Node{}
+				}
+			}
+		}
+	}
+
+	// espande gli includes
+	err = p.expandIncludes(root, base)
+	if err != nil {
+		return nil, err
+	}
+
+	return root, nil
+}
+
+// tree restituisce l'albero non espanso relativo a path il quale deve essere
+// assoluto.
+func (p *Parser) tree(path string) (*ast.Tree, error) {
+	tree, ok := p.trees[path]
+	if !ok {
+		text, err := p.read(path)
+		if err != nil {
+			return nil, err
+		}
+		defer p.buf.Reset()
+		err = readBufferAll(text, p.buf)
+		if err != nil {
+			return nil, err
+		}
+		tree, err = parse(p.buf.Bytes())
+		if err != nil {
+			if e, ok := err.(*SyntaxError); ok {
+				e.path = path
 			}
 			return nil, err
 		}
-	} else {
-		page, err = parser.parseSource(source, nil, "", false)
-		if err != nil {
-			if e, ok := err.(*Error); ok && e.File == "" {
-				e.File = parser.root + path
-			}
-			return nil, err
-		}
+		p.trees[path] = tree
 	}
-
-	return page, nil
+	return ast.CloneTree(tree), nil
 }
 
-var instanceBeginReg = regexp.MustCompile(`<!--\s*InstanceBegin(\s[^>]*?)?-->`)
-var instanceEndReg = regexp.MustCompile(`<!--\s*InstanceEnd(?:\s[^>]*?)-->`)
-var htmlTagReg = regexp.MustCompile(`<html[\s>]`)
-var templateParameterReg = regexp.MustCompile(`\stemplate="(.*?)"`)
-var isLockedReg = regexp.MustCompile(`\scodeOutsideHTMLIsLocked="(.*?)"`)
-var docTypeReg = regexp.MustCompile(`^\s*(?:<!DOCTYPE .*?>)?\s*(?:<html\s[\s\S]*?>)?\s*$`)
-var editableReg = regexp.MustCompile(`<!--\s*InstanceBeginEditable\s+name="([\s\S]*?)"\s*--(>[\s\S]*?)<!--\s*InstanceEndEditable\s*-->`)
-
-func (parser *Parser) GetInstance(source []byte) (*Instance, error) {
-
-	var loc = instanceBeginReg.FindSubmatchIndex(source)
-	if loc == nil {
-		return nil, nil
-	}
-
-	var index = loc[0]
-	var length = loc[1] - loc[0]
-	var previous = source[:index]
-	var parameters = source[loc[1*2]:loc[1*2+1]]
-	var parametersIndex = loc[1*2]
-
-	if htmlTagReg.Match(previous) {
-		return nil, nil
-	}
-
-	//
-	// template
-
-	var template string
-	var templateIndex, templateLength int
-	{
-		var loc = templateParameterReg.FindIndex(parameters)
-		if loc == nil {
-			return nil, &Error{"Missing attribute 'template'", "", index, length}
-		}
-		template = string(parameters[loc[0]+11 : loc[1]-1])
-
-		templateIndex = parametersIndex + loc[0] + 1
-		templateLength = loc[1] - loc[0] - 1
-
-		if template == "" {
-			return nil, &Error{"Missing Dwt file name", "", templateIndex, templateLength}
-		}
-		if !strings.HasSuffix(template, ".dwt") {
-			return nil, &Error{"Dwt file extension must be '.dwt'", "", templateIndex, templateLength}
-		}
-		if strings.Contains(template, "..") {
-			return nil, &Error{"Dwt file name can't contain '..'", "", templateIndex, templateLength}
-		}
-		if strings.ContainsRune(template, '\\') {
-			return nil, &Error{"Dwt file name can't contain '\\'", "", templateIndex, templateLength}
+// expandIncludes espande gli include nel nodo node utilizzando base come
+// base per i path relativi.
+func (p *Parser) expandIncludes(node ast.Node, base string) error {
+	var nodes = []ast.Node{node}
+	for len(nodes) > 0 {
+		var node = nodes[len(nodes)-1]
+		nodes = nodes[:len(nodes)-1]
+		switch n := node.(type) {
+		case *ast.For:
+			nodes = append(nodes, n.Nodes...)
+		case *ast.If:
+			nodes = append(nodes, n.Nodes...)
+		case *ast.Include:
+			var path = n.Path
+			if path[0] != '/' {
+				path = base + path
+			}
+			include, err := p.tree(path)
+			if err != nil {
+				return err
+			}
+			// base per i path relativi
+			var ba = path[:strings.LastIndexByte(path, '/')+1]
+			for _, in := range include.Nodes {
+				err = p.expandIncludes(in, ba)
+				if err != nil {
+					return err
+				}
+			}
+			n.Nodes = include.Nodes
 		}
 	}
-
-	//
-	// codeOutsideHTMLIsLocked
-
-	{
-		var loc = isLockedReg.FindIndex(parameters)
-		if loc == nil {
-			return nil, &Error{"Missing attribute 'codeOutsideHTMLIsLocked'", "", index, length}
-		}
-
-		var islocked = string(parameters[loc[0]+26 : loc[1]-1])
-
-		if islocked != "" && islocked != "true" && islocked != "false" {
-			var index = parametersIndex + loc[0] + 1
-			var length = loc[1] - loc[0] - 1
-			return nil, &Error{"codeOutsideHTMLIsLocked can only be empty, 'true' or 'false'", "", index, length}
-		}
-	}
-
-	if !docTypeReg.Match(previous) {
-		return nil, &Error{"InstanceBegin can only follow tags '<DOCTYPE>' and '<html>'", "", index, length}
-	}
-
-	if !instanceEndReg.Match(source) {
-		return nil, &Error{"Can't find 'InstanceEnd'", "", index, length}
-	}
-
-	//
-	// regions
-
-	var regions = map[string]RegionBlock{}
-	for _, loc := range editableReg.FindAllSubmatchIndex(source, -1) {
-		if loc[1*2] == -1 {
-			return nil, &Error{"Region name is empty", "", loc[0], loc[1]}
-		}
-		var name = string(source[loc[1*2]:loc[1*2+1]])
-		if _, ok := regions[name]; ok {
-			return nil, &Error{"Region '" + name + "' is already defined", "", loc[0], loc[2*2] + 1 - loc[0]}
-		}
-		regions[name] = RegionBlock{index, source[loc[2*2]+1 : loc[2*2+1]]}
-	}
-
-	return &Instance{"", templateIndex, templateLength, template, regions}, nil
+	return nil
 }
 
-//
-// Private Methods
-//
+// parse esegue il parsing del testo text e ne restituisce l'albero non espanso.
+func parse(text []byte) (*ast.Tree, error) {
 
-func (parser *Parser) parseSource(source []byte, instance *Instance, currentPath string, skipFilter bool) ([]Node, error) {
+	// crea il lexer
+	var lex = newLexer(text)
 
-	if currentPath == "" {
-		currentPath = "/"
-	}
+	// albero risultato del parsing
+	var tree = ast.NewTree(nil)
 
-	var reader = NewReader(source)
+	// antenati dalla radice fino al genitore
+	var ancestors = []ast.Node{tree}
 
-	var parents = []*Node{{None, "", nil}}
+	// legge tutti i token
+	for tok := range lex.tokens {
 
-	for reader.Read() {
+		// il genitore è sempre l'ultimo antenato
+		parent := ancestors[len(ancestors)-1]
 
-		var kind = reader.Kind
+		switch tok.typ {
 
-		if kind == End {
-			parents = parents[1:]
-			continue
-		}
+		// EOF
+		case tokenEOF:
+			break
 
-		var err error
-		var nodes []Node
-		var parent = parents[0]
-		var value = reader.Value()
+		// Text
+		case tokenText:
+			addChild(parent, ast.NewText(tok.pos, string(tok.txt)))
 
-		// se il padre è Show o Region ...
-		if parent.Kind == Show || parent.Kind == Region {
-			// ... se non è testo...
-			if kind != Text {
-				// ... torna un errore
-				return nil, &Error{"Tags are not allowed in 'show' and 'region'", "", reader.Index, reader.Length}
-			}
-			// ...altrimenti lo scarta
-			continue
-		}
+		// {%
+		case tokenStartStatement:
 
-		// se il padre è 'translate' ...
-		if parent.Kind == Translate {
-			if kind != Text {
-				return nil, &Error{"Tags are non allowed between '{' and '}'", "", reader.Index, reader.Length}
-			}
-			// ... lo prende come nome dell'espressione da tradurre
-			var name = html.UnescapeString(string(value))
-			if strings.ContainsAny(name, "=~") {
-				return nil, &Error{"Characters '//', '=' and '~' are not allowed between '{' and '}'", "", reader.Index, reader.Length}
-			}
-			name = strings.TrimSpace(name)
-			//$name =~ s/\s+/ /g;   TODO!!!!
-			parent.Value = strings.ToLower(name)
-			continue
-		}
+			var node ast.Node
 
-		switch kind {
+			var pos = tok.pos
+			var ctx = tok.ctx
 
-		case Text:
-			if parser.filter != nil && !skipFilter {
-				var filteredValue, reParse = parser.filter(value)
-				if reParse {
-					nodes, err = parser.parseSource(filteredValue, instance, currentPath, true)
-					if err != nil {
-						return nil, err
-					}
-				}
-			}
-			if len(nodes) == 0 {
-				nodes = []Node{{Text, string(value), nil}}
+			var ok bool
+			tok, ok = <-lex.tokens
+			if !ok {
+				return nil, lex.err
 			}
 
-		case Include:
-			var fileName = path.Clean(string(value))
-			var filePath = fileName
-			if rune(filePath[0]) != '/' {
-				filePath = currentPath + fileName
-			}
+			switch tok.typ {
 
-			if _, ok := parser.includes[filePath]; !ok {
-				var fullPath = path.Join(parser.root, filePath[1:])
-				source, err = ioutil.ReadFile(fullPath)
+			// for
+			case tokenFor:
+				expr, tok, err := parseExpr(lex)
 				if err != nil {
-					if os.IsNotExist(err) {
-						return nil, &Error{"Include file doesn't exist", "", reader.Index, reader.Length}
-					} else {
-						return nil, &Error{"Can't read included file", "", reader.Index, reader.Length}
-					}
-				}
-				var children []Node
-				if len(source) > 0 {
-					children, err = parser.parseSource(source, nil, path.Dir(filePath)+"/", false)
-					if err != nil {
-						return nil, err
-					}
-				}
-				parser.includes[filePath] = children
-			}
-
-			if _, ok := parser.includes[filePath]; ok {
-				var pathName = filePath
-				//$pathName    =~ s/\\/\//g;
-				nodes = []Node{{Include, pathName, parser.includes[filePath]}}
-			}
-
-		case Region:
-			if instance == nil {
-				return nil, &Error{"Regions are not allowed in this context", "", reader.Index, reader.Length}
-			}
-
-			if region, ok := instance.Regions[string(value)]; ok {
-				children, err := parser.parseSource(region.content, nil, "", false)
-				if err != nil {
-					if e, ok := err.(Error); ok {
-						e.File = instance.File
-						e.Index += region.index
-					}
 					return nil, err
 				}
-				nodes = []Node{{Region, "", children}}
+				if expr == nil {
+					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewFor(pos, expr, nil)
+				addChild(parent, node)
+				ancestors = append(ancestors, node)
+
+			// if
+			case tokenIf:
+				expr, tok, err := parseExpr(lex)
+				if err != nil {
+					return nil, err
+				}
+				if expr == nil {
+					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewIf(pos, expr, nil)
+				addChild(parent, node)
+				ancestors = append(ancestors, node)
+
+			// show
+			case tokenShow:
+				expr, tok, err := parseExpr(lex)
+				if err != nil {
+					return nil, err
+				}
+				if expr == nil {
+					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewShow(pos, expr, nil, parserContext(ctx))
+				addChild(parent, node)
+				ancestors = append(ancestors, node)
+
+			// extend
+			case tokenExtend:
+				path, err := parsePath(lex)
+				if err != nil {
+					return nil, err
+				}
+				tok, ok := <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewExtend(pos, path)
+				addChild(parent, node)
+
+			// region
+			case tokenRegion:
+				name, err := parseString(lex)
+				if err != nil {
+					return nil, err
+				}
+				if name == "" {
+					return nil, fmt.Errorf("region name can not be empty at %d", pos)
+				}
+				tok, ok := <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewRegion(pos, name, nil)
+				addChild(parent, node)
+				ancestors = append(ancestors, node)
+
+			// include
+			case tokenInclude:
+				path, err := parsePath(lex)
+				if err != nil {
+					return nil, err
+				}
+				tok, ok := <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				node = ast.NewInclude(pos, path, nil)
+				addChild(parent, node)
+
+			// // snippet
+			// case tokenSnippet:
+			// 	expr, tok, err := parseSnippetName(lex)
+			// 	if err != nil {
+			// 		return nil, err
+			// 	}
+			// 	node = ast.NewSnippet(pos, prefix, name)
+
+			// end
+			case tokenEnd:
+				tok, ok := <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				if len(ancestors) == 1 {
+					return nil, fmt.Errorf("unexpected end statement at %d", pos)
+				}
+				ancestors = ancestors[:len(ancestors)-1]
+
+			default:
+				return nil, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or end at %d", tok, tok.pos)
+
 			}
 
-			// unshift parents
-			var newParents = make([]*Node, len(parents)+1)
-			newParents[0] = &Node{Region, string(value), nil}
-			copy(newParents[1:], parents)
-			parents = newParents
-
-		case Translate:
-			parent.Children = append(parent.Children, Node{kind, "", nil})
-			parents = append(parents, nil)
-			copy(parents[1:], parents[0:len(parents)-1])
-			parents[0] = &(parent.Children[len(parent.Children)-1])
-			continue
+		// {{ }}
+		case tokenStartShow:
+			expr, tok2, err := parseExpr(lex)
+			if err != nil {
+				return nil, err
+			}
+			if expr == nil {
+				return nil, fmt.Errorf("expecting expression at %d", tok2.pos)
+			}
+			if tok2.typ != tokenEndShow {
+				return nil, fmt.Errorf("unexpected %s, expecting }} at %d", tok2, tok2.pos)
+			}
+			var node = ast.NewShow(tok.pos, expr, nil, parserContext(tok.ctx))
+			addChild(parent, node)
 
 		default:
-			// if, for or show
-			parent.Children = append(parent.Children, Node{kind, string(bytes.ToLower(value)), nil})
-			parents = append(parents, nil)
-			copy(parents[1:], parents[0:len(parents)-1])
-			parents[0] = &(parent.Children[len(parent.Children)-1])
-			continue
+			return nil, fmt.Errorf("unexpected %s at %d", tok, tok.pos)
 
 		}
 
-		// aggiunge i nodi come figli del nodo padre
-		parent.Children = append(parent.Children, nodes...)
-
 	}
 
-	if reader.Error != nil {
-		return nil, reader.Error
+	if lex.err != nil {
+		return nil, lex.err
 	}
 
-	return parents[0].Children, nil
+	return tree, nil
 }
 
-type Parser struct {
-	root     string
-	filter   func([]byte) ([]byte, bool)
-	includes map[string][]Node
+// readBufferAll copia nel buffer buf tutti i bytes letti da r.
+func readBufferAll(r io.Reader, buf *bytes.Buffer) (err error) {
+	defer func() {
+		// converte il panic ErrTooLarge in un errore da ritornare
+		if e := recover(); e != nil {
+			if e2, ok := e.(error); ok && e2 == bytes.ErrTooLarge {
+				err = e2
+			} else {
+				panic(e)
+			}
+		}
+	}()
+	_, err = buf.ReadFrom(r)
+	return err
 }
 
-type Node struct {
-	Kind     Kind
-	Value    string
-	Children []Node
+func addChild(parent ast.Node, node ast.Node) {
+	switch n := parent.(type) {
+	case *ast.Tree:
+		n.Nodes = append(n.Nodes, node)
+	case *ast.Show:
+		n.Text = node.(*ast.Text)
+	case *ast.Region:
+		n.Nodes = append(n.Nodes, node)
+	case *ast.Include:
+		n.Nodes = append(n.Nodes, node)
+	case *ast.For:
+		n.Nodes = append(n.Nodes, node)
+	case *ast.If:
+		n.Nodes = append(n.Nodes, node)
+	}
 }
 
-type RegionBlock struct {
-	index   int
-	content []byte
+func parserContext(ctx context) ast.Context {
+	switch ctx {
+	case contextHTML:
+		return ast.ContextHTML
+	case contextAttribute:
+		return ast.ContextAttribute
+	case contextScript:
+		return ast.ContextScript
+	case contextStyle:
+		return ast.ContextScript
+	default:
+		panic("invalid context type")
+	}
 }
 
-type Instance struct {
-	File     string
-	Index    int
-	Length   int
-	Template string
-	Regions  map[string]RegionBlock
+// getExtend ritorna il nodo Extend di un albero.
+// Se il nodo non è presente ritorna nil.
+func getExtend(tree *ast.Tree) *ast.Extend {
+	if len(tree.Nodes) == 0 {
+		return nil
+	}
+	if node, ok := tree.Nodes[0].(*ast.Extend); ok {
+		return node
+	}
+	if len(tree.Nodes) > 1 {
+		if node, ok := tree.Nodes[1].(*ast.Extend); ok {
+			return node
+		}
+	}
+	return nil
 }
