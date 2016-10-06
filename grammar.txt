@@ -17,6 +17,9 @@ little_u_value   = `\` "u" hex_digit hex_digit hex_digit hex_digit .
 big_u_value      = `\` "U" hex_digit hex_digit hex_digit hex_digit
                            hex_digit hex_digit hex_digit hex_digit .
 
+VarDecl = "var" identifier "=" Expression .
+Assignment = identifier "=" Expression .
+
 MethodExpr    = identifier "." identifier .
 
 Expression = UnaryExpr | Expression binary_op Expression .

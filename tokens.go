@@ -41,6 +41,8 @@ const (
 	tokenEndStatement                // %}
 	tokenStartShow                   // {{
 	tokenEndShow                     // }}
+	tokenVar                         // var
+	tokenAssignment                  // =
 	tokenFor                         // for
 	tokenIf                          // if
 	tokenExtend                      // extend

@@ -220,6 +220,46 @@ func parse(text []byte) (*ast.Tree, error) {
 
 			switch tok.typ {
 
+			// var or identifier
+			case tokenVar, tokenIdentifier:
+				var isVar = tok.typ == tokenVar
+				if isVar {
+					// identifier
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenIdentifier {
+						return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+					}
+				}
+				var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
+				// assignment
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenAssignment {
+					return nil, fmt.Errorf("unexpected %s, expecting assignment at %d", tok, tok.pos)
+				}
+				// expression
+				expr, tok, err := parseExpr(lex)
+				if err != nil {
+					return nil, err
+				}
+				if expr == nil {
+					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+				}
+				if isVar {
+					node = ast.NewVar(pos, ident, expr)
+				} else {
+					node = ast.NewAssignment(pos, ident, expr)
+				}
+				addChild(parent, node)
+
 			// for
 			case tokenFor:
 				expr, tok, err := parseExpr(lex)

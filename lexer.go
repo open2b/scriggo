@@ -240,14 +240,11 @@ LOOP:
 			l.lexNumber()
 			endLineAsSemicolon = true
 		case '=':
-			if len(l.src) == 1 {
-				return l.errorf("unexpected EOF")
+			if len(l.src) == 1 || l.src[1] != '=' {
+				l.emit(tokenAssignment, 1)
+			} else {
+				l.emit(tokenEqual, 2)
 			}
-			if l.src[1] != '=' {
-				c, _ := utf8.DecodeRune(l.src[1:])
-				return l.errorf("unexpected %c, expecting =", c)
-			}
-			l.emit(tokenEqual, 2)
 			endLineAsSemicolon = false
 		case '+':
 			l.emit(tokenAddition, 1)
@@ -379,6 +376,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		p += s
 	}
 	switch string(l.src[0:p]) {
+	case "var":
+		l.emit(tokenVar, p)
 	case "for":
 		l.emit(tokenFor, p)
 	case "if":

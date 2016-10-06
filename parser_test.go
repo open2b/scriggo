@@ -113,6 +113,10 @@ var treeTests = []struct {
 		ast.NewShow(0, ast.NewIdentifier(2, "a"), nil, ast.ContextHTML), ast.NewText(5, "b")})},
 	{"a{{b}}c", ast.NewTree([]ast.Node{
 		ast.NewText(0, "a"), ast.NewShow(1, ast.NewIdentifier(3, "b"), nil, ast.ContextHTML), ast.NewText(6, "c")})},
+	{"{% var a = 1 %}", ast.NewTree([]ast.Node{
+		ast.NewVar(0, ast.NewIdentifier(8, "a"), ast.NewInt32(12, 1))})},
+	{"{% a = 2 %}", ast.NewTree([]ast.Node{
+		ast.NewAssignment(0, ast.NewIdentifier(4, "a"), ast.NewInt32(8, 2))})},
 	{"{% show a %}{% end %}", ast.NewTree([]ast.Node{
 		ast.NewShow(0, ast.NewIdentifier(8, "a"), nil, ast.ContextHTML)})},
 	{"{% show a %}b{% end %}", ast.NewTree([]ast.Node{

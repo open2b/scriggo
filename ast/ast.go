@@ -81,6 +81,28 @@ func NewText(pos int, text string) *Text {
 	return &Text{position(pos), text}
 }
 
+// Var rappresenta uno statement {% var identifier = expression %}
+type Var struct {
+	position             // posizione nel sorgente.
+	Ident    *Identifier // identificatore.
+	Expr     Expression  // espressione assegnata.
+}
+
+func NewVar(pos int, ident *Identifier, expr Expression) *Var {
+	return &Var{position(pos), ident, expr}
+}
+
+// Assignment rappresenta uno statement {% identifier = expression %}.
+type Assignment struct {
+	position             // posizione nel sorgente.
+	Ident    *Identifier // identificatore.
+	Expr     Expression  // espressione assegnata.
+}
+
+func NewAssignment(pos int, ident *Identifier, expr Expression) *Assignment {
+	return &Assignment{position(pos), ident, expr}
+}
+
 // For rappresenta uno statement {% for ... %}.
 type For struct {
 	position            // posizione nel sorgente.
