@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
@@ -61,9 +61,7 @@ const (
 	tokenRightBrackets               // ]
 	tokenComma                       // ,
 	tokenSemicolon                   // ;
-	tokenDecimal                     // 12.895
-	tokenInt32                       // 81
-	tokenInt64                       // 81
+	tokenNumber                      // 12.895
 	tokenEqual                       // ==
 	tokenNotEqual                    // !=
 	tokenNot                         // !
@@ -104,9 +102,7 @@ var tokenString = map[tokenType]string{
 	tokenRightBrackets:     "]",
 	tokenComma:             ",",
 	tokenSemicolon:         ";",
-	tokenDecimal:           "decimal",
-	tokenInt32:             "integer",
-	tokenInt64:             "integer",
+	tokenNumber:            "number",
 	tokenEqual:             "==",
 	tokenNotEqual:          "!=",
 	tokenNot:               "!",

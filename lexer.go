@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
@@ -10,9 +10,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
-
-const maxInt32 = 1<<31 - 1
-const maxInt64 = 1<<63 - 1
 
 type SyntaxError struct {
 	path string
@@ -401,8 +398,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	return false
 }
 
-// lexNumber legge un int, int64 o decimal sapendo che src inizia
-// con '0'..'9' o '.'.
+// lexNumber legge un number sapendo che src inizia con '0'..'9' o '.'.
 func (l *lexer) lexNumber() {
 	// si ferma solo se un carattere non può essere parte del numero
 	// oppure se il numero non è rappresentabile
@@ -419,34 +415,11 @@ func (l *lexer) lexNumber() {
 		}
 		p++
 	}
-	if hasDot {
-		if p > 29 {
-			l.errorf("constant %s overflows decimal", l.src[0:p])
-			return
-		}
-		l.emit(tokenDecimal, p)
-	} else {
-		var n, m int64
-		const cutoff = maxInt64/10 + 1
-		for i := 0; i < p; i++ {
-			if n >= cutoff {
-				l.errorf("constant %s overflows int64", l.src[0:p])
-				return
-			}
-			n *= 10
-			m = n + int64(l.src[i]-'0')
-			if m < n || m > maxInt64 {
-				l.errorf("constant %s overflows int64", l.src[0:p])
-				return
-			}
-			n = m
-		}
-		if n <= maxInt32 {
-			l.emit(tokenInt32, p)
-		} else {
-			l.emit(tokenInt64, p)
-		}
+	if p > 29 {
+		l.errorf("constant %s overflows decimal", l.src[0:p])
+		return
 	}
+	l.emit(tokenNumber, p)
 	return
 }
 

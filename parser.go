@@ -1,186 +1,24 @@
 //
-// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
 
 import (
-	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"open2b/template/ast"
 )
 
-// ReadFunc è chiamata dal metodo Parse per leggere il testo di un path.
-// Non viene mai chiamata per più di una volta per uno stesso path.
-type ReadFunc func(path string) (io.Reader, error)
-
-// TransformFunc applica delle trasformazioni ad un albero non espanso.
-type TransformFunc func(tree *ast.Tree, path string) error
-
-// Parse esegue il parsing del testo letto da text e ne restituisce l'albero
-// non espanso. Per avere invece l'albero espanso utilizzare il metodo Parse.
-func Parse(text io.Reader) (*ast.Tree, error) {
-	var buf bytes.Buffer
-	var err = readBufferAll(text, &buf)
-	if err != nil {
-		return nil, err
-	}
-	return parse(buf.Bytes())
-}
-
-// Parser è un parser.
-type Parser struct {
-	read      ReadFunc
-	transform TransformFunc
-	trees     map[string]*ast.Tree
-	buf       *bytes.Buffer
-}
-
-// NewParser crea una nuovo parser. I sorgenti dei template sono letti
-// tramite la funzione read.
-func NewParser(read ReadFunc) *Parser {
-	return &Parser{
-		read:  read,
-		trees: map[string]*ast.Tree{},
-		buf:   &bytes.Buffer{},
-	}
-}
-
-// Parse ritorna l'albero espanso di path il quale deve essere assoluto. Legge
-// il sorgente tramite la funzione read ed espande i nodi Extend, Region e
-// Include se presenti.
-func (p *Parser) Parse(path string) (*ast.Tree, error) {
-
-	// path deve essere valido e assoluto
-	if !isValidFilePath(path) {
-		return nil, fmt.Errorf("template: invalid path %q", path)
-	}
-	if path[0] != '/' {
-		return nil, fmt.Errorf("template: path %q is not absolute", path)
-	}
-
-	// base per i path relativi
-	var base = path[:strings.LastIndexByte(path, '/')+1]
-
-	tree, err := p.tree(path)
-	if err != nil {
-		return nil, err
-	}
-
-	// determina il path di extend se presente
-	var extend = getExtend(tree)
-
-	// determina l'albero da visitare e le eventuali regions
-	var root = tree
-	var regions map[string]*ast.Region
-
-	if extend != nil {
-		regions = map[string]*ast.Region{}
-		for _, node := range tree.Nodes {
-			if n, ok := node.(*ast.Region); ok {
-				regions[n.Name] = n
-			}
-		}
-		root, err = p.tree(extend.Path)
-		if err != nil {
-			return nil, err
-		}
-		// root non deve contenere extend
-		if ex := getExtend(root); ex != nil {
-			return nil, fmt.Errorf("template: extended document can not contains extend at %q", path, ex.Pos())
-		}
-		// espande le region
-		for _, node := range root.Nodes {
-			if n, ok := node.(*ast.Region); ok {
-				if regions == nil {
-					n.Nodes = []ast.Node{}
-				} else if region, ok := regions[n.Name]; ok {
-					n.Nodes = region.Nodes
-				} else {
-					n.Nodes = []ast.Node{}
-				}
-			}
-		}
-	}
-
-	// espande gli includes
-	err = p.expandIncludes(root, base)
-	if err != nil {
-		return nil, err
-	}
-
-	return root, nil
-}
-
-// tree restituisce l'albero non espanso relativo a path il quale deve essere
-// assoluto.
-func (p *Parser) tree(path string) (*ast.Tree, error) {
-	tree, ok := p.trees[path]
-	if !ok {
-		text, err := p.read(path)
-		if err != nil {
-			return nil, err
-		}
-		defer p.buf.Reset()
-		err = readBufferAll(text, p.buf)
-		if err != nil {
-			return nil, err
-		}
-		tree, err = parse(p.buf.Bytes())
-		if err != nil {
-			if e, ok := err.(*SyntaxError); ok {
-				e.path = path
-			}
-			return nil, err
-		}
-		p.trees[path] = tree
-	}
-	return ast.CloneTree(tree), nil
-}
-
-// expandIncludes espande gli include nel nodo node utilizzando base come
-// base per i path relativi.
-func (p *Parser) expandIncludes(node ast.Node, base string) error {
-	var nodes = []ast.Node{node}
-	for len(nodes) > 0 {
-		var node = nodes[len(nodes)-1]
-		nodes = nodes[:len(nodes)-1]
-		switch n := node.(type) {
-		case *ast.For:
-			nodes = append(nodes, n.Nodes...)
-		case *ast.If:
-			nodes = append(nodes, n.Nodes...)
-		case *ast.Include:
-			var path = n.Path
-			if path[0] != '/' {
-				path = base + path
-			}
-			include, err := p.tree(path)
-			if err != nil {
-				return err
-			}
-			// base per i path relativi
-			var ba = path[:strings.LastIndexByte(path, '/')+1]
-			for _, in := range include.Nodes {
-				err = p.expandIncludes(in, ba)
-				if err != nil {
-					return err
-				}
-			}
-			n.Nodes = include.Nodes
-		}
-	}
-	return nil
-}
-
-// parse esegue il parsing del testo text e ne restituisce l'albero non espanso.
-func parse(text []byte) (*ast.Tree, error) {
+// Parse esegue il parsing di src e ne restituisce l'albero non espanso.
+func Parse(src []byte) (*ast.Tree, error) {
 
 	// crea il lexer
-	var lex = newLexer(text)
+	var lex = newLexer(src)
 
 	// albero risultato del parsing
 	var tree = ast.NewTree(nil)
@@ -321,7 +159,7 @@ func parse(text []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
-				node = ast.NewExtend(pos, path)
+				node = ast.NewExtend(pos, path, nil)
 				addChild(parent, node)
 
 			// region
@@ -416,20 +254,149 @@ func parse(text []byte) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// readBufferAll copia nel buffer buf tutti i bytes letti da r.
-func readBufferAll(r io.Reader, buf *bytes.Buffer) (err error) {
-	defer func() {
-		// converte il panic ErrTooLarge in un errore da ritornare
-		if e := recover(); e != nil {
-			if e2, ok := e.(error); ok && e2 == bytes.ErrTooLarge {
-				err = e2
-			} else {
-				panic(e)
+// ReadFunc ritorna un albero dato il path.
+type ReadFunc func(path string) (*ast.Tree, error)
+
+// FileReader fornisce una ReadFunc che legge i sorgenti dai
+// file nella directory dir.
+func FileReader(dir string) ReadFunc {
+	return func(path string) (*ast.Tree, error) {
+		src, err := ioutil.ReadFile(filepath.Join(dir, path))
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, nil
+			}
+			return nil, err
+		}
+		return Parse(src)
+	}
+}
+
+// CacheReader restituisce una ReadFunc che mantiene in cache
+// gli alberi letti con read.
+func CacheReader(read ReadFunc) ReadFunc {
+	var trees = map[string]*ast.Tree{}
+	return func(path string) (*ast.Tree, error) {
+		var err error
+		tree, ok := trees[path]
+		if !ok {
+			tree, err = read(path)
+			if err != nil && tree != nil {
+				trees[path] = tree
 			}
 		}
-	}()
-	_, err = buf.ReadFrom(r)
-	return err
+		return tree, err
+	}
+}
+
+type Parser struct {
+	read ReadFunc
+}
+
+func NewParser(read ReadFunc) *Parser {
+	return &Parser{read}
+}
+
+// Parse ritorna l'albero espanso di path il quale deve essere assoluto.
+// Legge l'albero tramite la funzione read ed espande i nodi Extend e
+// Include se presenti.
+func (p *Parser) Parse(path string) (*ast.Tree, error) {
+
+	var err error
+
+	// path deve essere valido e assoluto
+	if !isValidFilePath(path) {
+		return nil, fmt.Errorf("template: invalid path %q", path)
+	}
+	if path[0] != '/' {
+		return nil, fmt.Errorf("template: path %q is not absolute", path)
+	}
+
+	// pulisce path rimuovendo ".."
+	path, err = toAbsolutePath(path[:1], path[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := p.read(path)
+	if err != nil {
+		return nil, err
+	}
+	if tree == nil {
+		return nil, fmt.Errorf("template: path %q does not exist", path)
+	}
+
+	var dir = path[:strings.LastIndexByte(path, '/')+1]
+
+	// determina il nodo extend se presente
+	var extend = getExtendNode(tree)
+
+	if extend != nil && extend.Tree == nil {
+		path, err := toAbsolutePath(dir, extend.Path)
+		if err != nil {
+			return nil, err
+		}
+		tr, err := p.read(path)
+		if err != nil {
+			return nil, err
+		}
+		// verifica che l'albero di extend non contenga a sua volta extend
+		if ex := getExtendNode(tr); ex != nil {
+			return nil, fmt.Errorf("template: extended document contains extend at %q", ex.Pos())
+		}
+		// espande gli includes
+		var d = path[:strings.LastIndexByte(path, '/')+1]
+		err = p.expandIncludes(tr.Nodes, d)
+		if err != nil {
+			return nil, err
+		}
+		extend.Tree = tr
+	}
+
+	// espande gli includes
+	err = p.expandIncludes(tree.Nodes, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
+}
+
+// expandIncludes espande gli include dell'albero tree chiamando read
+// e anteponendo dir al path passato come argomento.
+func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
+	var err error
+	for _, node := range nodes {
+		switch n := node.(type) {
+		case *ast.For:
+			p.expandIncludes(n.Nodes, dir)
+		case *ast.If:
+			p.expandIncludes(n.Nodes, dir)
+		case *ast.Region:
+			p.expandIncludes(n.Nodes, dir)
+		case *ast.Include:
+			if n.Tree == nil {
+				var path = n.Path
+				if path[0] != '/' {
+					path, err = toAbsolutePath(dir, path)
+					if err != nil {
+						return err
+					}
+				}
+				include, err := p.read(path)
+				if err != nil {
+					return err
+				}
+				var d = path[:strings.LastIndexByte(path, '/')+1]
+				err = p.expandIncludes(include.Nodes, d)
+				if err != nil {
+					return err
+				}
+				n.Tree = include
+			}
+		}
+	}
+	return nil
 }
 
 func addChild(parent ast.Node, node ast.Node) {
@@ -439,8 +406,6 @@ func addChild(parent ast.Node, node ast.Node) {
 	case *ast.Show:
 		n.Text = node.(*ast.Text)
 	case *ast.Region:
-		n.Nodes = append(n.Nodes, node)
-	case *ast.Include:
 		n.Nodes = append(n.Nodes, node)
 	case *ast.For:
 		n.Nodes = append(n.Nodes, node)
@@ -464,9 +429,9 @@ func parserContext(ctx context) ast.Context {
 	}
 }
 
-// getExtend ritorna il nodo Extend di un albero.
+// getExtendNode ritorna il nodo Extend di un albero.
 // Se il nodo non è presente ritorna nil.
-func getExtend(tree *ast.Tree) *ast.Extend {
+func getExtendNode(tree *ast.Tree) *ast.Extend {
 	if len(tree.Nodes) == 0 {
 		return nil
 	}

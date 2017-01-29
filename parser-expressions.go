@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
@@ -7,96 +7,108 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"strings"
+	"strconv"
 
 	"open2b/decimal"
 	"open2b/template/ast"
 )
 
-// expressionTree è utilizzato per mantenere il tree di una espressione
-// durante il parsing.
-// I nodi intermedi dell'albero sono gli operatori e le foglie gli operandi.
-// path contiene gli operatori dalla root discendendo fino all'ultimo
-// operatore parsato.
-// Il seguente tree:
+// Il risultato del parsing di una espressione è un albero i cui nodi
+// intermedi sono operatori e le foglie operandi. Ad esempio:
 //
 //                op1
 //              /     \
 //            op2     op3
-//           /   \   /  \
-//          a     b c
+//           /   \     |
+//          a     b    c
 //
-// può essere rappresentato:
+// Durante la costruzione dell'albero, la foglia più a destra, invece di
+// essere un operando, è un operatore:
 //
-//           op1----op3--
-//            |      |
-//           op2--b  c
-//            |
-//            a
+//                op1
+//              /     \
+//            op2     op3
+//           /   \
+//          a     b
 //
-// dove path sarà [ op1, op3 ]
+// L'operazione di aggiunta di un operatore all'albero si chiama innesto
+// e avviene sempre lungo il percorso, chiamato semplicemente path, che
+// parte dalla radice e arriva all'operatore foglia. Nel precedente
+// esempio path è [ op1, op3 ].
+//
+// Un operatore unario è innestato come figlio dell'operatore foglia:
+//
+//                op1
+//              /     \
+//            op2     op3     path = [ op1, op3, op4 ]
+//           /   \     |
+//          a     b   op4
+//
+// Per determinare dove innestare un operatore non unario, si percorre
+// path dall'operatore foglia alla radice e ci si ferma quando si trova
+// o un operatore con precedenza minore o si raggiunge la radice.
+// Ad esempio innestando op5 con precedenza maggiore di op1 e minore o
+// uguale a op3 e op4 si ottine l'albero:
+//
+//                op1
+//              /     \
+//            op2     op5     path = [ op1, op5 ]
+//           /   \   /
+//          a     b op3
+//                   |
+//                  op4
+//                   |
+//                   c
+//
+// Se op5 avesse avuto precedenza minore di op1:
+//
+//                    op5
+//                  /
+//                op1
+//              /     \
+//            op2     op3     path = [ op5 ]
+//           /   \     |
+//          a     b   op4
+//                     |
+//                     c
+//
+// Se op5 avesse avuto presendenza maggiore di op4:
+//
+//                op1
+//              /     \
+//            op2     op3     path = [ op1, op3, op4, op5 ]
+//           /   \     |
+//          a     b   op4
+//                     |
+//                    op5
+//                   /
+//                  c
 //
 
-// add aggiunge un operatore unario ( ad esempio "!" ) oppure un operando
-// e un operatore binario ( ad esempio "a+" ) al tree.
-// L'operatore viene aggiunto nella posizione in path in base alla sua
-// precedenza. Partendo dall'ultimo operatore in path si risale il tree
-// fino a trovare il primo operatore con precedenza minore e lo si
-// aggiunge dopo di questo.
-// Nel precedente tree di esempio se si aggiunge la coppia (d, op4)
-// tra op1 e op3, il tree diventa:
-//
-//           op1----op4--
-//            |      |
-//           op2--b op3--d
-//            |      |
-//            a      c
-//
-// e path diventa [ op1, op4 ].
-// Si fa notare che gli operatori unari hanno precedenza massima e
-// pertanto vengono sempre aggiunti in testa a path. Ad esempio
-// aggiungendo l'operatore unario op5:
-//
-//           op1----op4----op5--
-//            |      |
-//           op2--b op3--d
-//            |      |
-//            a      c
-//
-// e path diventa [ op1, op4, op5 ].
-// Se l'operatore da aggiungere ha precendenza mimore di tutti gli
-// altri operatori in path allora diventerà la nuova root e anche
-// l'unico operatore in path. Ad esempio aggiungendo (e,op6):
-//
-//           op6--
-//            |
-//           op1----op4----op5--e
-//            |      |
-//           op2--b op3--d
-//            |      |
-//            a      c
-//
-// e path diventa [ op6 ].
-//
-// Una parentesi aperta si comporta come operatore a maggior precedenza
-// quando viene aggiunto e a minore precedenza quando viene confrontato
-// con i successivi operatori aggiunti.
-//
-
-// Legge prima un token, se è un operatore allora lo aggiunge al tree,
-// se è un operando allora legge l'operatore successivo e gli aggiunge
-// assieme al tree.
-// Ad esempio l'espressione -a * ( b + c ) < d || !e
-// viene letta come "-", "a*", "b*", "c)", "<", "d||", "!", "e " e aggiunta
-// in questo ordine al tree.
-// Al termine del parsing il primo operatore di tree sarà la root
-// dell'espressione parsata.
-
-// parseExpr esegue il parsing di una espressione e ne ritorna il tree e
-// l'ultimo token letto che non è parte dell'espressione ritornata.
+// parseExpr esegue il parsing di una espressione e ritorna l'albero
+// dell'espressione e l'ultimo token letto che non è parte.
 func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 
+	// un albero di una espressione ha come nodi intermedi gli operatori,
+	// unari o binari, e come foglie gli operandi.
+	//
+	// una delle foglie, durante la costruzione dell'albero, invece di un
+	// operando sarà un operatore. A questo operatore foglia gli mancherà
+	// la sua unica espressione se unario o l'espressione di destra se
+	// binario. Conclusa la costruzione, tutte le foglie saranno operandi.
+
+	// path è il percorso nell'albero dall'operatore radice fino
+	// all'operatore foglia. path alla fine conterrà solo un operatore
+	// che sarà la radice dell'albero dell'espressione.
 	var path []ast.Operator
+
+	// ad ogni ciclo della costruzione dell'albero dell'espressione, viene
+	// letto o un operatore unario oppure una coppia operando e operatore
+	// binario. Per ultimo verrà letto un operando.
+	//
+	// ad esempio l'espressione "-a * ( b + c ) < d || !e" viene letta
+	// come "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
+	//
 
 	for {
 
@@ -110,8 +122,9 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 
 		switch tok.typ {
 		case tokenLeftParenthesis: // ( e )
-			var pos = tok.pos
-			var err error
+			// richiama ricorsivamente parseExpr per parsare l'espressione
+			// tra parentesi per poi trattarla come singolo operando.
+			// le parentesi non saranno presenti nell'albero dell'espressione.
 			expr, tok, err := parseExpr(lex)
 			if err != nil {
 				return nil, nil, err
@@ -122,18 +135,29 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 			if tok.typ != tokenRightParenthesis {
 				return nil, nil, fmt.Errorf("unexpected %s, expecting ) at %d", tok, tok.pos)
 			}
-			operand = ast.NewParentesis(pos, expr)
+			operand = expr
 		case
 			tokenAddition,    // +e
 			tokenSubtraction, // -e
 			tokenNot:         // !e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
-		case tokenInt32: // 5
-			operand = parseInt32Node(tok)
-		case tokenInt64: // 5
-			operand = parseInt64Node(tok)
-		case tokenDecimal: // 5.3
-			operand = parseDecimalNode(tok)
+		case tokenNumber: // 5.3
+			operand = parseNumberNode(tok)
+			// cambia il segno del numero e rimuove l'operatore dall'albero
+			// se il numero è preceduto dall'operatore unario "-"
+			if len(path) > 0 {
+				if op, ok := path[len(path)-1].(*ast.UnaryOperator); ok {
+					if op.Op == ast.OperatorSubtraction {
+						switch n := operand.(type) {
+						case *ast.Int:
+							operand = ast.NewInt(op.Pos(), -n.Value)
+						case *ast.Decimal:
+							operand = ast.NewDecimal(op.Pos(), n.Value.Opposite())
+						}
+						path = path[:len(path)-1]
+					}
+				}
+			}
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
@@ -154,8 +178,7 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 			}
 
 			switch tok.typ {
-			case tokenLeftParenthesis:
-				// e(...)
+			case tokenLeftParenthesis: // e(...)
 				var pos = tok.pos
 				var args = []ast.Expression{}
 				for {
@@ -226,63 +249,84 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 						return nil, nil, lex.err
 					}
 				}
-				if path == nil {
+				if len(path) == 0 {
 					// si può ritornare direttamente
 					return operand, &tok, nil
 				}
-				// aggiunge l'operando come figlio dell'ultimo operatore in path
-				switch last := path[len(path)-1].(type) {
+				// aggiunge l'operando come figlio dell'operatore foglia
+				switch leef := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
-					last.Expr = operand
+					leef.Expr = operand
 				case *ast.BinaryOperator:
-					last.Expr2 = operand
+					leef.Expr2 = operand
 				}
 				return path[0], &tok, nil
 			}
 
 		}
 
-		// aggiunge operator a path. Per determinare la posizione
-		// in cui aggiungerlo, parte dal fondo e risale fino a che
-		// non incontra un operatore con precedenza minore.
+		// aggiunge operator all'albero dell'espressione
 
-		var p int
-		for p = len(path); p > 0; p-- {
-			if path[p-1].Precedence() < operator.Precedence() {
-				break
-			}
-		}
+		switch op := operator.(type) {
 
-		// se sopra c'è un altro operatore...
-		if p > 0 {
-			// ...diventa il genitore di operator
-			switch parent := path[p-1].(type) {
-			case *ast.UnaryOperator:
-				parent.Expr = operator
-			case *ast.BinaryOperator:
-				parent.Expr2 = operator
+		case *ast.UnaryOperator:
+			// gli operatori unari ("!", "+", "-", "()"), siccome hanno
+			// precedenza maggiore di tutti gli altri operatori, diventano
+			// il nuovo operatore foglia dell'albero.
+
+			if len(path) > 0 {
+				// operator diventa figlio dell'operatore foglia
+				switch leef := path[len(path)-1].(type) {
+				case *ast.UnaryOperator:
+					leef.Expr = op
+				case *ast.BinaryOperator:
+					leef.Expr2 = op
+				}
 			}
-		}
-		// se sotto c'è un altro operatore...
-		if p < len(path) {
-			// ...diventa il figlio di operator
-			if op, ok := operator.(*ast.BinaryOperator); ok {
+			// operator diventa il nuovo operatore foglia
+			path = append(path, op)
+
+		case *ast.BinaryOperator:
+			// per gli operatori binari ("*", "/", "+", "-", "<", ">", ...)
+			// si parte dall'operatore foglia (ultimo operatore di path) e
+			// si sale verso la radice (primo operatore di path) fermandosi
+			// quando o si trova un operatore con precedenza minore o si
+			// raggiunge la radice.
+
+			// p sarà la posizione in path in cui aggiungere operator
+			var p = len(path)
+			for p > 0 && op.Precedence() <= path[p-1].Precedence() {
+				p--
+			}
+			if p > 0 {
+				// operator diventa figlio dell'operatore con precedenza
+				// minore trovato risalendo path
+				switch o := path[p-1].(type) {
+				case *ast.UnaryOperator:
+					o.Expr = op
+				case *ast.BinaryOperator:
+					o.Expr2 = op
+				}
+			}
+			if p < len(path) {
+				// operand diventa figlio dell'operatore
+				// in path attualmente in posizione p
+				switch o := path[p].(type) {
+				case *ast.UnaryOperator:
+					o.Expr = operand
+				case *ast.BinaryOperator:
+					o.Expr2 = operand
+				}
+				// operator diventa il nuovo operatore foglia
 				op.Expr1 = path[p]
-			}
-			switch child := path[p].(type) {
-			case *ast.UnaryOperator:
-				child.Expr = operand
-			case *ast.BinaryOperator:
-				child.Expr2 = operand
-			}
-			path[p] = operator
-			path = path[0 : p+1]
-		} else {
-			// ...altrimenti operator viene aggiunto in fondo
-			if op, ok := operator.(*ast.BinaryOperator); ok {
+				path[p] = op
+				path = path[0 : p+1]
+			} else {
+				// operator diventa il nuovo operatore foglia
 				op.Expr1 = operand
+				path = append(path, op)
 			}
-			path = append(path, operator)
+
 		}
 
 	}
@@ -328,23 +372,11 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 	return ast.NewIdentifier(tok.pos, string(tok.txt))
 }
 
-func parseInt32Node(tok token) *ast.Int32 {
-	var n int
-	for _, c := range tok.txt {
-		n = n*10 + int(c-'0')
+func parseNumberNode(tok token) ast.Expression {
+	n, err := strconv.ParseInt(string(tok.txt), 10, strconv.IntSize)
+	if err == nil {
+		return ast.NewInt(tok.pos, int(n))
 	}
-	return ast.NewInt32(tok.pos, int32(n))
-}
-
-func parseInt64Node(tok token) *ast.Int64 {
-	var n int64
-	for _, c := range tok.txt {
-		n = n*10 + int64(c-'0')
-	}
-	return ast.NewInt64(tok.pos, n)
-}
-
-func parseDecimalNode(tok token) *ast.Decimal {
 	return ast.NewDecimal(tok.pos, decimal.String(string(tok.txt)))
 }
 
@@ -422,119 +454,4 @@ func parseString(lex *lexer) (string, error) {
 		return "", fmt.Errorf("unexpected %s, expecting string at %d", tok, tok.pos)
 	}
 	return unquoteString(tok.txt), nil
-}
-
-func parsePath(lex *lexer) (string, error) {
-	var tok, ok = <-lex.tokens
-	if !ok {
-		return "", lex.err
-	}
-	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		return "", fmt.Errorf("unexpected %s, expecting string at %d", tok, tok.pos)
-	}
-	var path = unquoteString(tok.txt)
-	if !isValidFilePath(path) {
-		return "", fmt.Errorf("invalid include path %q at %d", path, tok.pos)
-	}
-	return path, nil
-}
-
-func isValidDirName(name string) bool {
-	// deve essere lungo almeno un carattere e meno di 256
-	if name == "" || len(name) >= 256 {
-		return false
-	}
-	// non deve essere '.' e non deve contenere '..'
-	if name == "." || strings.Contains(name, "..") {
-		return false
-	}
-	// il primo e ultimo carattere non devono essere spazi
-	if name[0] == ' ' || name[len(name)-1] == ' ' {
-		return false
-	}
-	// non deve contenere caratteri speciali
-	for _, c := range name {
-		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
-			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
-			c == '\x7c' || c == '\x7f' {
-			return false
-		}
-	}
-	// non deve essere un nome riservato per Window
-	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:4] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:4] == "lpt" && '0' <= name[3] && name[3] <= '9') {
-		if len(name) == 4 || name[4] == '.' {
-			return false
-		}
-	}
-	return true
-}
-
-func isValidFileName(name string) bool {
-	// deve essere lungo almeno 3 caratteri e meno di 256
-	if len(name) <= 2 || len(name) >= 256 {
-		return false
-	}
-	// deve essere presente uno e un solo punto e
-	// non deve essere ne il primo e ne l'ultimo carattere
-	var dot = strings.IndexByte(name, '.')
-	if dot <= 0 || dot == len(name)-1 {
-		return false
-	}
-	name = strings.ToLower(name)
-	var ext = name[dot+1:]
-	if strings.IndexByte(ext, '.') >= 0 {
-		return false
-	}
-	// il primo e ultimo carattere non devono essere spazi
-	if name[0] == ' ' || name[len(name)-1] == ' ' {
-		return false
-	}
-	// non deve contenere caratteri speciali
-	for _, c := range name {
-		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
-			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
-			c == '\x7c' || c == '\x7f' {
-			return false
-		}
-	}
-	// non deve essere un nome riservato per Window
-	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:4] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:4] == "lpt" && '0' <= name[3] && name[3] <= '9') {
-		if len(name) == 4 || name[4] == '.' {
-			return false
-		}
-	}
-	return true
-}
-
-// isValidFilePath indica se path è valido per essere
-// usato come path in include ed extend.
-// Sono path validi: '/a', '/a/a', 'a', 'a/a', 'a.a'.
-// Sono path non validi: '', '/', 'a/', '../a'.
-func isValidFilePath(path string) bool {
-	// deve avere almeno un caratteri e non terminare con '/'
-	if len(path) < 1 || path[len(path)-1] == '/' {
-		return false
-	}
-	// splitta il path nei vari nomi
-	var names = strings.Split(path, "/")
-	// i primi nomi devono essere delle directory
-	for i, name := range names[:len(names)-1] {
-		// se il primo nome è vuoto...
-		if i == 0 && name == "" {
-			// ...allora path inizia con '/'
-			continue
-		}
-		if !isValidDirName(name) {
-			return false
-		}
-	}
-	// l'ultimo nome deve essere un file
-	if !isValidFileName(names[len(names)-1]) {
-		return false
-	}
-	return true
 }

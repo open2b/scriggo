@@ -1,10 +1,12 @@
 //
-// Copyright (c) 2016 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
 package ast
 
 import (
+	"fmt"
+
 	"open2b/decimal"
 )
 
@@ -147,10 +149,11 @@ func NewShow(pos int, expr Expression, text *Text, ctx Context) *Show {
 type Extend struct {
 	position        // posizione nel sorgente.
 	Path     string // path del file da estendere.
+	Tree     *Tree  // albero del file esteso.
 }
 
-func NewExtend(pos int, path string) *Extend {
-	return &Extend{position(pos), path}
+func NewExtend(pos int, path string, tree *Tree) *Extend {
+	return &Extend{position(pos), path, tree}
 }
 
 // Region rappresenta uno statement {% region ... %}.
@@ -171,14 +174,11 @@ func NewRegion(pos int, name string, nodes []Node) *Region {
 type Include struct {
 	position        // posizione nel sorgente.
 	Path     string // path del file da includere.
-	Nodes    []Node // nodi del file incluso.
+	Tree     *Tree  // albero del file incluso.
 }
 
-func NewInclude(pos int, path string, nodes []Node) *Include {
-	if nodes == nil {
-		nodes = []Node{}
-	}
-	return &Include{position(pos), path, nodes}
+func NewInclude(pos int, path string, tree *Tree) *Include {
+	return &Include{position(pos), path, tree}
 }
 
 // Snippet rappresenta uno statement {% snippet ... %}.
@@ -202,24 +202,14 @@ func NewParentesis(pos int, expr Expression) *Parentesis {
 	return &Parentesis{position(pos), expression{}, expr}
 }
 
-type Int32 struct {
+type Int struct {
 	position // posizione nel sorgente.
 	expression
-	Value int32 // valore.
+	Value int // valore.
 }
 
-func NewInt32(pos int, value int32) *Int32 {
-	return &Int32{position(pos), expression{}, value}
-}
-
-type Int64 struct {
-	position // posizione nel sorgente.
-	expression
-	Value int64 // valore.
-}
-
-func NewInt64(pos int, value int64) *Int64 {
-	return &Int64{position(pos), expression{}, value}
+func NewInt(pos int, value int) *Int {
+	return &Int{position(pos), expression{}, value}
 }
 
 type Decimal struct {
@@ -364,31 +354,35 @@ func CloneNode(node Node) Node {
 		}
 		return NewShow(int(n.position), CloneExpression(n.Expr), text, n.Context)
 	case *If:
-		var nodes = make([]Node, 0, len(n.Nodes))
-		for _, n2 := range n.Nodes {
-			nodes = append(nodes, CloneNode(n2))
+		var nodes = make([]Node, len(n.Nodes))
+		for i, n2 := range n.Nodes {
+			nodes[i] = CloneNode(n2)
 		}
 		return NewIf(int(n.position), CloneExpression(n.Expr), nodes)
 	case *For:
-		var nodes = make([]Node, 0, len(n.Nodes))
-		for _, n2 := range n.Nodes {
-			nodes = append(nodes, CloneNode(n2))
+		var nodes = make([]Node, len(n.Nodes))
+		for i, n2 := range n.Nodes {
+			nodes[i] = CloneNode(n2)
 		}
 		return NewFor(int(n.position), CloneExpression(n.Expr), nodes)
 	case *Extend:
-		return NewExtend(int(n.position), n.Path)
+		var tree *Tree
+		if n.Tree != nil {
+			tree = CloneTree(n.Tree)
+		}
+		return NewExtend(int(n.position), n.Path, tree)
 	case *Region:
-		var nodes = make([]Node, 0, len(n.Nodes))
-		for _, n2 := range n.Nodes {
-			nodes = append(nodes, CloneNode(n2))
+		var nodes = make([]Node, len(n.Nodes))
+		for i, n2 := range n.Nodes {
+			nodes[i] = CloneNode(n2)
 		}
 		return NewRegion(int(n.position), n.Name, nodes)
 	case *Include:
-		var nodes = make([]Node, 0, len(n.Nodes))
-		for _, n2 := range n.Nodes {
-			nodes = append(nodes, CloneNode(n2))
+		var tree *Tree
+		if tree != nil {
+			tree = CloneTree(n.Tree)
 		}
-		return NewInclude(int(n.position), n.Path, nodes)
+		return NewInclude(int(n.position), n.Path, tree)
 	case Expression:
 		return CloneExpression(n)
 	default:
@@ -400,10 +394,8 @@ func CloneExpression(expr Expression) Expression {
 	switch e := expr.(type) {
 	case *Parentesis:
 		return NewParentesis(int(e.position), CloneExpression(e.Expr))
-	case *Int32:
-		return NewInt32(int(e.position), e.Value)
-	case *Int64:
-		return NewInt64(int(e.position), e.Value)
+	case *Int:
+		return NewInt(int(e.position), e.Value)
 	case *Decimal:
 		return NewDecimal(int(e.position), e.Value)
 	case *String:
@@ -422,7 +414,9 @@ func CloneExpression(expr Expression) Expression {
 		return NewCall(int(e.position), CloneExpression(e.Func), args)
 	case *Index:
 		return NewIndex(int(e.position), CloneExpression(e.Expr), CloneExpression(e.Index))
+	case *Selector:
+		return NewSelector(int(e.position), CloneExpression(e.Expr), string(e.Ident))
 	default:
-		panic("unexpected node type")
+		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}
 }
