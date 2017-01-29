@@ -377,6 +377,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenVar, p)
 	case "for":
 		l.emit(tokenFor, p)
+	case "in":
+		l.emit(tokenIn, p)
 	case "if":
 		l.emit(tokenIf, p)
 	case "extend":

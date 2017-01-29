@@ -124,8 +124,10 @@ var treeTests = []struct {
 		ast.NewShow(0, ast.NewIdentifier(8, "a"), nil, ast.ContextHTML)})},
 	{"{% show a %}b{% end %}", ast.NewTree([]ast.Node{
 		ast.NewShow(0, ast.NewIdentifier(8, "a"), ast.NewText(12, "b"), ast.ContextHTML)})},
-	{"{% for a %}b{% end %}", ast.NewTree([]ast.Node{
-		ast.NewFor(0, ast.NewIdentifier(7, "a"), []ast.Node{ast.NewText(11, "b")})})},
+	{"{% for v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(0,
+		nil, ast.NewIdentifier(7, "v"), ast.NewIdentifier(12, "e"), []ast.Node{ast.NewText(16, "b")})})},
+	{"{% for i, v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(0,
+		ast.NewIdentifier(7, "i"), ast.NewIdentifier(10, "v"), ast.NewIdentifier(15, "e"), []ast.Node{ast.NewText(16, "b")})})},
 	{"{% if a %}b{% end %}", ast.NewTree([]ast.Node{
 		ast.NewIf(0, ast.NewIdentifier(6, "a"), []ast.Node{ast.NewText(10, "b")})})},
 	{"{% extend \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewExtend(0, "/a.b", nil)})},

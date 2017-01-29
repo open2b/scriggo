@@ -100,6 +100,47 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// for
 			case tokenFor:
+				var index, ident *ast.Identifier
+				// index
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenIdentifier {
+					return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+				}
+				index = ast.NewIdentifier(tok.pos, string(tok.txt))
+				// "," or "in"
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				switch tok.typ {
+				case tokenComma:
+					// syntax: for index, ident in expr
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenIdentifier {
+						return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+					}
+					ident = ast.NewIdentifier(tok.pos, string(tok.txt))
+					// "in"
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenIn {
+						return nil, fmt.Errorf("unexpected %s, expecting \"in\" at %d", tok, tok.pos)
+					}
+				case tokenIn:
+					// syntax: for ident in expr
+					ident = index
+					index = nil
+				default:
+					return nil, fmt.Errorf("unexpected %s, expecting comma or \"in\" at %d", tok, tok.pos)
+				}
 				expr, tok, err := parseExpr(lex)
 				if err != nil {
 					return nil, err
@@ -110,7 +151,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
-				node = ast.NewFor(pos, expr, nil)
+				node = ast.NewFor(pos, index, ident, expr, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 

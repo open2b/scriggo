@@ -44,6 +44,7 @@ const (
 	tokenVar                         // var
 	tokenAssignment                  // =
 	tokenFor                         // for
+	tokenIn                          // in
 	tokenIf                          // if
 	tokenExtend                      // extend
 	tokenInclude                     // include

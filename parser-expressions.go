@@ -45,7 +45,7 @@ import (
 //          a     b   op4
 //
 // Per determinare dove innestare un operatore non unario, si percorre
-// path dall'operatore foglia alla radice e ci si ferma quando si trova
+// path dall'operatore foglia alla radice fermandosi quando si trova
 // o un operatore con precedenza minore o si raggiunge la radice.
 // Ad esempio innestando op5 con precedenza maggiore di op1 e minore o
 // uguale a op3 e op4 si ottine l'albero:
@@ -60,7 +60,7 @@ import (
 //                   |
 //                   c
 //
-// Se op5 avesse avuto precedenza minore di op1:
+// Se op5 avesse precedenza minore o uguale di op1:
 //
 //                    op5
 //                  /
@@ -72,7 +72,7 @@ import (
 //                     |
 //                     c
 //
-// Se op5 avesse avuto presendenza maggiore di op4:
+// Se op5 avesse presendenza maggiore di op4:
 //
 //                op1
 //              /     \
@@ -87,7 +87,7 @@ import (
 
 // parseExpr esegue il parsing di una espressione e ritorna l'albero
 // dell'espressione e l'ultimo token letto che non è parte.
-func parseExpr(lex *lexer) (ast.Expression, *token, error) {
+func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 	// un albero di una espressione ha come nodi intermedi gli operatori,
 	// unari o binari, e come foglie gli operandi.
@@ -114,7 +114,7 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 
 		tok, ok := <-lex.tokens
 		if !ok {
-			return nil, nil, lex.err
+			return nil, token{}, lex.err
 		}
 
 		var operand ast.Expression
@@ -127,13 +127,13 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 			// le parentesi non saranno presenti nell'albero dell'espressione.
 			expr, tok, err := parseExpr(lex)
 			if err != nil {
-				return nil, nil, err
+				return nil, token{}, err
 			}
 			if expr == nil {
-				return nil, nil, fmt.Errorf("unexpected %s, expecting expression at %d", tok, tok.pos)
+				return nil, token{}, fmt.Errorf("unexpected %s, expecting expression at %d", tok, tok.pos)
 			}
 			if tok.typ != tokenRightParenthesis {
-				return nil, nil, fmt.Errorf("unexpected %s, expecting ) at %d", tok, tok.pos)
+				return nil, token{}, fmt.Errorf("unexpected %s, expecting ) at %d", tok, tok.pos)
 			}
 			operand = expr
 		case
@@ -165,16 +165,16 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 		case tokenIdentifier: // a
 			operand = parseIdentifierNode(tok)
 		case tokenSemicolon:
-			return nil, nil, fmt.Errorf("unexpected semicolon or newline, expecting expression at %d", tok.pos)
+			return nil, token{}, fmt.Errorf("unexpected semicolon or newline, expecting expression at %d", tok.pos)
 		default:
-			return nil, &tok, nil
+			return nil, tok, nil
 		}
 
 		for operator == nil {
 
 			tok, ok = <-lex.tokens
 			if !ok {
-				return nil, nil, lex.err
+				return nil, token{}, lex.err
 			}
 
 			switch tok.typ {
@@ -184,15 +184,15 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 				for {
 					arg, tok, err := parseExpr(lex)
 					if err != nil {
-						return nil, nil, err
+						return nil, token{}, err
 					}
 					if arg == nil {
 						if tok.typ != tokenRightParenthesis {
-							return nil, nil, fmt.Errorf("unexpected %s, expecting expression or ) at %d", tok, tok.pos)
+							return nil, token{}, fmt.Errorf("unexpected %s, expecting expression or ) at %d", tok, tok.pos)
 						}
 					} else {
 						if tok.typ != tokenComma && tok.typ != tokenRightParenthesis {
-							return nil, nil, fmt.Errorf("unexpected %s, expecting comma or ) at %d", tok, tok.pos)
+							return nil, token{}, fmt.Errorf("unexpected %s, expecting comma or ) at %d", tok, tok.pos)
 						}
 						args = append(args, arg)
 					}
@@ -205,23 +205,23 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 				pos := tok.pos
 				index, tok, err := parseExpr(lex)
 				if err != nil {
-					return nil, nil, err
+					return nil, token{}, err
 				}
 				if tok.typ != tokenRightBrackets {
-					return nil, nil, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+					return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
 				}
 				if index == nil {
-					return nil, nil, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
+					return nil, token{}, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
 				}
 				operand = ast.NewIndex(pos, operand, index)
 			case tokenPeriod: // e.
 				pos := tok.pos
 				tok, ok = <-lex.tokens
 				if !ok {
-					return nil, nil, lex.err
+					return nil, token{}, lex.err
 				}
 				if tok.typ != tokenIdentifier {
-					return nil, nil, fmt.Errorf("unexpected %s, expecting name at %d", tok, tok.pos)
+					return nil, token{}, fmt.Errorf("unexpected %s, expecting name at %d", tok, tok.pos)
 				}
 				operand = ast.NewSelector(pos, operand, string(tok.txt))
 			case
@@ -240,18 +240,18 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 				tokenModulo:         // e %
 				operator = ast.NewBinaryOperator(tok.pos, operatorType(tok.typ), nil, nil)
 			case tokenEOF:
-				return nil, nil, fmt.Errorf("unexpected EOF, expecting expression")
+				return nil, token{}, fmt.Errorf("unexpected EOF, expecting expression")
 			default:
 				if tok.typ == tokenSemicolon {
 					// salta ";" e legge il successivo token
 					tok, ok = <-lex.tokens
 					if !ok {
-						return nil, nil, lex.err
+						return nil, token{}, lex.err
 					}
 				}
 				if len(path) == 0 {
 					// si può ritornare direttamente
-					return operand, &tok, nil
+					return operand, tok, nil
 				}
 				// aggiunge l'operando come figlio dell'operatore foglia
 				switch leef := path[len(path)-1].(type) {
@@ -260,7 +260,7 @@ func parseExpr(lex *lexer) (ast.Expression, *token, error) {
 				case *ast.BinaryOperator:
 					leef.Expr2 = operand
 				}
-				return path[0], &tok, nil
+				return path[0], tok, nil
 			}
 
 		}

@@ -107,16 +107,18 @@ func NewAssignment(pos int, ident *Identifier, expr Expression) *Assignment {
 
 // For rappresenta uno statement {% for ... %}.
 type For struct {
-	position            // posizione nel sorgente.
-	Expr     Expression // espressione che valutata restituisce la lista degli elementi.
-	Nodes    []Node     // nodi da eseguire per ogni elemento della lista.
+	position             // posizione nel sorgente.
+	Index    *Identifier // indice
+	Ident    *Identifier // identificatore
+	Expr     Expression  // espressione che valutata restituisce la lista degli elementi.
+	Nodes    []Node      // nodi da eseguire per ogni elemento della lista.
 }
 
-func NewFor(pos int, expr Expression, nodes []Node) *For {
+func NewFor(pos int, index, ident *Identifier, expr Expression, nodes []Node) *For {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &For{position(pos), expr, nodes}
+	return &For{position(pos), index, ident, expr, nodes}
 }
 
 // If rappresenta uno statement {% if ... %}.
@@ -364,7 +366,14 @@ func CloneNode(node Node) Node {
 		for i, n2 := range n.Nodes {
 			nodes[i] = CloneNode(n2)
 		}
-		return NewFor(int(n.position), CloneExpression(n.Expr), nodes)
+		var index, ident *Identifier
+		if n.Index != nil {
+			index = NewIdentifier(int(n.Index.position), n.Index.Name)
+		}
+		if n.Ident != nil {
+			ident = NewIdentifier(int(n.Ident.position), n.Ident.Name)
+		}
+		return NewFor(int(n.position), index, ident, CloneExpression(n.Expr), nodes)
 	case *Extend:
 		var tree *Tree
 		if n.Tree != nil {
