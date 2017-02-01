@@ -324,6 +324,18 @@ func NewIndex(pos int, expr Expression, index Expression) *Index {
 	return &Index{position(pos), expression{}, expr, index}
 }
 
+type Slice struct {
+	position // posizione nel sorgente.
+	expression
+	Expr Expression // espressione.
+	Low  Expression // low bound.
+	High Expression // high bound.
+}
+
+func NewSlice(pos int, expr, low, high Expression) *Slice {
+	return &Slice{position(pos), expression{}, expr, low, high}
+}
+
 type Selector struct {
 	position // posizione nel sorgente.
 	expression

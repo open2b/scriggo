@@ -60,6 +60,7 @@ const (
 	tokenRightParenthesis            // )
 	tokenLeftBrackets                // [
 	tokenRightBrackets               // ]
+	tokenColon                       // :
 	tokenComma                       // ,
 	tokenSemicolon                   // ;
 	tokenNumber                      // 12.895
@@ -101,6 +102,7 @@ var tokenString = map[tokenType]string{
 	tokenRightParenthesis:  ")",
 	tokenLeftBrackets:      "[",
 	tokenRightBrackets:     "]",
+	tokenColon:             ":",
 	tokenComma:             ",",
 	tokenSemicolon:         ";",
 	tokenNumber:            "number",

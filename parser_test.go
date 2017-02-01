@@ -53,6 +53,10 @@ var exprTests = []struct {
 	{"a(1)", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{ast.NewInt(2, 1)})},
 	{"a(1,2)", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{ast.NewInt(2, 1), ast.NewInt(4, 2)})},
 	{"a[1]", ast.NewIndex(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1))},
+	{"a[:]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), nil, nil)},
+	{"a[:2]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), nil, ast.NewInt(3, 2))},
+	{"a[1:]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1), nil)},
+	{"a[1:2]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1), ast.NewInt(4, 2))},
 	{"a.b", ast.NewSelector(1, ast.NewIdentifier(0, "a"), "b")},
 	{"1+2+3", ast.NewBinaryOperator(3, ast.OperatorAddition,
 		ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(4, 3))},
@@ -231,6 +235,16 @@ func TestPages(t *testing.T) {
 }
 
 func equals(n1, n2 ast.Node, p int) error {
+	if n1 == nil && n2 == nil {
+		return nil
+	}
+	if (n1 == nil) != (n2 == nil) {
+		if n1 == nil {
+			return fmt.Errorf("unexpected node nil, expecting %#v", n2)
+		} else {
+			return fmt.Errorf("unexpected node %#v, expecting nil", n1)
+		}
+	}
 	if n1.Pos()-p != n2.Pos() {
 		return fmt.Errorf("unexpected position %d, expecting %d", n1.Pos()-p, n2.Pos())
 	}
@@ -338,6 +352,23 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 		err = equals(nn1.Index, nn2.Index, p)
+		if err != nil {
+			return err
+		}
+	case *ast.Slice:
+		nn2, ok := n2.(*ast.Slice)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+		}
+		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Low, nn2.Low, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.High, nn2.High, p)
 		if err != nil {
 			return err
 		}

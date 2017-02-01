@@ -201,19 +201,31 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					}
 				}
 				operand = ast.NewCall(pos, operand, args)
-			case tokenLeftBrackets: // e[...]
+			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				index, tok, err := parseExpr(lex)
 				if err != nil {
 					return nil, token{}, err
 				}
-				if tok.typ != tokenRightBrackets {
-					return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+				if tok.typ == tokenColon {
+					low := index
+					high, tok, err := parseExpr(lex)
+					if err != nil {
+						return nil, token{}, err
+					}
+					if tok.typ != tokenRightBrackets {
+						return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+					}
+					operand = ast.NewSlice(pos, operand, low, high)
+				} else {
+					if tok.typ != tokenRightBrackets {
+						return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+					}
+					if index == nil {
+						return nil, token{}, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
+					}
+					operand = ast.NewIndex(pos, operand, index)
 				}
-				if index == nil {
-					return nil, token{}, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
-				}
-				operand = ast.NewIndex(pos, operand, index)
 			case tokenPeriod: // e.
 				pos := tok.pos
 				tok, ok = <-lex.tokens

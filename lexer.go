@@ -314,6 +314,9 @@ LOOP:
 		case ']':
 			l.emit(tokenRightBrackets, 1)
 			endLineAsSemicolon = true
+		case ':':
+			l.emit(tokenColon, 1)
+			endLineAsSemicolon = false
 		case '}':
 			if len(l.src) > 1 && l.src[1] == '}' {
 				break LOOP

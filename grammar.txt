@@ -25,9 +25,10 @@ MethodExpr    = identifier "." identifier .
 Expression = UnaryExpr | Expression binary_op Expression .
 UnaryExpr  = PrimaryExpr | unary_op UnaryExpr .
 
-PrimaryExpr = Operand | PrimaryExpr ( Selector | Index | Arguments ) .
+PrimaryExpr = Operand | PrimaryExpr ( Selector | Index | Slice | Arguments ) .
 Selector       = "." identifier .
 Index          = "[" Expression "]" .
+Slice          = "[" [ Expression ] ":" [ Expression ] "]" .
 Arguments      = "(" [ Expression { "," Expression } ] ")" .
 
 unicode_char   = /* an arbitrary Unicode code point except newline */ .
