@@ -6,6 +6,7 @@ package ast
 
 import (
 	"fmt"
+	"strconv"
 
 	"open2b/decimal"
 )
@@ -28,6 +29,10 @@ const (
 	OperatorDivision                           // /
 	OperatorModulo                             // %
 )
+
+func (op OperatorType) String() string {
+	return []string{"==", "!=", "!", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
+}
 
 // Context indica il contesto in cui si trova un nodo Show.
 type Context int
@@ -54,6 +59,7 @@ func (p position) Pos() int {
 type Expression interface {
 	Node
 	isexpr()
+	String() string
 }
 
 type expression struct{}
@@ -204,6 +210,10 @@ func NewParentesis(pos int, expr Expression) *Parentesis {
 	return &Parentesis{position(pos), expression{}, expr}
 }
 
+func (n *Parentesis) String() string {
+	return "(" + n.Expr.String() + ")"
+}
+
 type Int struct {
 	position // posizione nel sorgente.
 	expression
@@ -212,6 +222,10 @@ type Int struct {
 
 func NewInt(pos int, value int) *Int {
 	return &Int{position(pos), expression{}, value}
+}
+
+func (n *Int) String() string {
+	return strconv.Itoa(n.Value)
 }
 
 type Decimal struct {
@@ -224,6 +238,10 @@ func NewDecimal(pos int, value decimal.Dec) *Decimal {
 	return &Decimal{position(pos), expression{}, value}
 }
 
+func (n *Decimal) String() string {
+	return n.Value.String()
+}
+
 type String struct {
 	position // posizione nel sorgente.
 	expression
@@ -234,6 +252,10 @@ func NewString(pos int, text string) *String {
 	return &String{position(pos), expression{}, text}
 }
 
+func (n *String) String() string {
+	return strconv.Quote(n.Text)
+}
+
 type Identifier struct {
 	position // posizione nel sorgente.
 	expression
@@ -242,6 +264,10 @@ type Identifier struct {
 
 func NewIdentifier(pos int, name string) *Identifier {
 	return &Identifier{position(pos), expression{}, name}
+}
+
+func (n *Identifier) String() string {
+	return n.Name
 }
 
 type Operator interface {
@@ -259,6 +285,16 @@ type UnaryOperator struct {
 
 func NewUnaryOperator(pos int, op OperatorType, expr Expression) *UnaryOperator {
 	return &UnaryOperator{position(pos), expression{}, op, expr}
+}
+
+func (n *UnaryOperator) String() string {
+	s := n.Op.String()
+	if e, ok := n.Expr.(Operator); ok && e.Precedence() <= n.Precedence() {
+		s += "(" + n.Expr.String() + ")"
+	} else {
+		s += n.Expr.String()
+	}
+	return s
 }
 
 func (n *UnaryOperator) Operator() OperatorType {
@@ -279,6 +315,22 @@ type BinaryOperator struct {
 
 func NewBinaryOperator(pos int, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
 	return &BinaryOperator{position(pos), expression{}, op, expr1, expr2}
+}
+
+func (n *BinaryOperator) String() string {
+	var s string
+	if e, ok := n.Expr1.(Operator); ok && e.Precedence() <= n.Precedence() {
+		s += "(" + n.Expr1.String() + ")"
+	} else {
+		s += n.Expr1.String()
+	}
+	s += n.Op.String()
+	if e, ok := n.Expr2.(Operator); ok && e.Precedence() <= n.Precedence() {
+		s += "(" + n.Expr2.String() + ")"
+	} else {
+		s += n.Expr2.String()
+	}
+	return s
 }
 
 func (n *BinaryOperator) Operator() OperatorType {
@@ -313,6 +365,18 @@ func NewCall(pos int, fun Expression, args []Expression) *Call {
 	return &Call{position(pos), expression{}, fun, args}
 }
 
+func (n *Call) String() string {
+	s := n.Func.String() + "("
+	for i, arg := range n.Args {
+		s += arg.String()
+		if i < len(n.Args)-1 {
+			s += ","
+		}
+	}
+	s += ")"
+	return s
+}
+
 type Index struct {
 	position // posizione nel sorgente.
 	expression
@@ -322,6 +386,10 @@ type Index struct {
 
 func NewIndex(pos int, expr Expression, index Expression) *Index {
 	return &Index{position(pos), expression{}, expr, index}
+}
+
+func (n *Index) String() string {
+	return n.Expr.String() + "[" + n.Index.String() + "]"
 }
 
 type Slice struct {
@@ -336,6 +404,19 @@ func NewSlice(pos int, expr, low, high Expression) *Slice {
 	return &Slice{position(pos), expression{}, expr, low, high}
 }
 
+func (n *Slice) String() string {
+	s := n.Expr.String() + "["
+	if n.Low != nil {
+		s += n.Low.String()
+	}
+	s += ":"
+	if n.High != nil {
+		s += n.High.String()
+	}
+	s += "]"
+	return s
+}
+
 type Selector struct {
 	position // posizione nel sorgente.
 	expression
@@ -345,6 +426,10 @@ type Selector struct {
 
 func NewSelector(pos int, expr Expression, ident string) *Selector {
 	return &Selector{position(pos), expression{}, expr, ident}
+}
+
+func (n *Selector) String() string {
+	return n.Expr.String() + "." + n.Ident
 }
 
 func CloneTree(tree *Tree) *Tree {
