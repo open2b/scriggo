@@ -154,12 +154,11 @@ func NewIf(pos *Position, expr Expression, nodes []Node) *If {
 type Show struct {
 	*Position            // posizione nel sorgente.
 	Expr      Expression // espressione che valutata restituisce il testo da mostrare.
-	Text      *Text      // testo esemplificativo.
 	Context
 }
 
-func NewShow(pos *Position, expr Expression, text *Text, ctx Context) *Show {
-	return &Show{pos, expr, text, ctx}
+func NewShow(pos *Position, expr Expression, ctx Context) *Show {
+	return &Show{pos, expr, ctx}
 }
 
 // Extend rappresenta uno statement {% extend ... %}.
@@ -456,11 +455,7 @@ func CloneNode(node Node) Node {
 	case *Text:
 		return NewText(ClonePosition(n.Position), n.Text)
 	case *Show:
-		var text *Text
-		if n.Text != nil {
-			text = NewText(ClonePosition(n.Text.Position), n.Text.Text)
-		}
-		return NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), text, n.Context)
+		return NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *If:
 		var nodes = make([]Node, len(n.Nodes))
 		for i, n2 := range n.Nodes {
