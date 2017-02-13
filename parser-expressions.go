@@ -98,8 +98,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 	// binario. Conclusa la costruzione, tutte le foglie saranno operandi.
 
 	// path è il percorso nell'albero dall'operatore radice fino
-	// all'operatore foglia. path alla fine conterrà solo un operatore
-	// che sarà la radice dell'albero dell'espressione.
+	// all'operatore foglia.
 	var path []ast.Operator
 
 	// ad ogni ciclo della costruzione dell'albero dell'espressione, viene
@@ -125,6 +124,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			// richiama ricorsivamente parseExpr per parsare l'espressione
 			// tra parentesi per poi trattarla come singolo operando.
 			// le parentesi non saranno presenti nell'albero dell'espressione.
+			pos := tok.pos
 			expr, tok, err := parseExpr(lex)
 			if err != nil {
 				return nil, token{}, err
@@ -136,6 +136,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				return nil, token{}, fmt.Errorf("unexpected %s, expecting ) at %d", tok, tok.pos)
 			}
 			operand = expr
+			operand.Pos().Start = pos.Start
+			operand.Pos().End = tok.pos.End
 		case
 			tokenAddition,    // +e
 			tokenSubtraction, // -e
@@ -143,16 +145,18 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case tokenNumber: // 5.3
 			operand = parseNumberNode(tok)
-			// cambia il segno del numero e rimuove l'operatore dall'albero
 			// se il numero è preceduto dall'operatore unario "-"
+			// cambia il segno del numero e rimuove l'operatore dall'albero
 			if len(path) > 0 {
 				if op, ok := path[len(path)-1].(*ast.UnaryOperator); ok {
 					if op.Op == ast.OperatorSubtraction {
+						pos := op.Pos()
+						pos.End = operand.Pos().End
 						switch n := operand.(type) {
 						case *ast.Int:
-							operand = ast.NewInt(op.Pos(), -n.Value)
+							operand = ast.NewInt(pos, -n.Value)
 						case *ast.Decimal:
-							operand = ast.NewDecimal(op.Pos(), n.Value.Opposite())
+							operand = ast.NewDecimal(pos, n.Value.Opposite())
 						}
 						path = path[:len(path)-1]
 					}
@@ -179,7 +183,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 			switch tok.typ {
 			case tokenLeftParenthesis: // e(...)
-				var pos = tok.pos
+				pos := tok.pos
+				pos.Start = operand.Pos().Start
 				var args = []ast.Expression{}
 				for {
 					arg, tok, err := parseExpr(lex)
@@ -197,12 +202,14 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 						args = append(args, arg)
 					}
 					if tok.typ == tokenRightParenthesis {
+						pos.End = tok.pos.End
 						break
 					}
 				}
 				operand = ast.NewCall(pos, operand, args)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
+				pos.Start = operand.Pos().Start
 				index, tok, err := parseExpr(lex)
 				if err != nil {
 					return nil, token{}, err
@@ -216,6 +223,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					if tok.typ != tokenRightBrackets {
 						return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
 					}
+					pos.End = tok.pos.End
 					operand = ast.NewSlice(pos, operand, low, high)
 				} else {
 					if tok.typ != tokenRightBrackets {
@@ -224,10 +232,12 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					if index == nil {
 						return nil, token{}, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
 					}
+					pos.End = tok.pos.End
 					operand = ast.NewIndex(pos, operand, index)
 				}
 			case tokenPeriod: // e.
 				pos := tok.pos
+				pos.Start = operand.Pos().Start
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, token{}, lex.err
@@ -235,6 +245,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				if tok.typ != tokenIdentifier {
 					return nil, token{}, fmt.Errorf("unexpected %s, expecting name at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				operand = ast.NewSelector(pos, operand, string(tok.txt))
 			case
 				tokenEqual,          // e ==
@@ -272,6 +283,17 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				case *ast.BinaryOperator:
 					leef.Expr2 = operand
 				}
+				// imposta End per tutti gli operatori in path
+				end := operand.Pos().End
+				for _, op := range path {
+					switch o := op.(type) {
+					case *ast.UnaryOperator:
+						o.Position.End = end
+					case *ast.BinaryOperator:
+						o.Position.End = end
+					}
+				}
+				// ritorna la radice dell'albero dell'espressione
 				return path[0], tok, nil
 			}
 
@@ -305,6 +327,16 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			// quando o si trova un operatore con precedenza minore o si
 			// raggiunge la radice.
 
+			// imposta start per tutti gli operatori unari alla fine di path
+			start := operand.Pos().Start
+			for i := len(path) - 1; i >= 0; i-- {
+				if o, ok := path[i].(*ast.UnaryOperator); ok {
+					o.Position.Start = start
+				} else {
+					break
+				}
+			}
+
 			// p sarà la posizione in path in cui aggiungere operator
 			var p = len(path)
 			for p > 0 && op.Precedence() <= path[p-1].Precedence() {
@@ -329,13 +361,25 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				case *ast.BinaryOperator:
 					o.Expr2 = operand
 				}
+				// imposta End per tutti gli operatori in path
+				// da p in poi
+				for i := p; i < len(path); i++ {
+					switch o := path[i].(type) {
+					case *ast.UnaryOperator:
+						o.Position.End = operand.Pos().End
+					case *ast.BinaryOperator:
+						o.Position.End = operand.Pos().End
+					}
+				}
 				// operator diventa il nuovo operatore foglia
 				op.Expr1 = path[p]
+				op.Position.Start = path[p].Pos().Start
 				path[p] = op
 				path = path[0 : p+1]
 			} else {
 				// operator diventa il nuovo operatore foglia
 				op.Expr1 = operand
+				op.Position.Start = operand.Pos().Start
 				path = append(path, op)
 			}
 

@@ -6,6 +6,8 @@ package template
 
 import (
 	"fmt"
+
+	"open2b/template/ast"
 )
 
 // context indica il contesto in cui si trova un nodo Show.
@@ -132,10 +134,10 @@ func (tt tokenType) String() string {
 
 // informazioni su un token da restituire
 type token struct {
-	typ tokenType // tipo
-	pos int       // posizione nel buffer in byte
-	txt []byte    // testo del token
-	ctx context   // contesto
+	typ tokenType     // tipo
+	pos *ast.Position // posizione nel buffer
+	txt []byte        // testo del token
+	ctx context       // contesto
 }
 
 // String ritorna la stringa che rappresenta il token.

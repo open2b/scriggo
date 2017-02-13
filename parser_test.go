@@ -11,100 +11,106 @@ import (
 	"open2b/template/ast"
 )
 
+func p(line, column, start, end int) *ast.Position {
+	return &ast.Position{line, column, start, end}
+}
+
 var exprTests = []struct {
 	src  string
 	node ast.Node
 }{
-	{"_", ast.NewIdentifier(0, "_")},
-	{"a", ast.NewIdentifier(0, "a")},
-	{"a5", ast.NewIdentifier(0, "a5")},
-	{"_a", ast.NewIdentifier(0, "_a")},
-	{"_5", ast.NewIdentifier(0, "_5")},
-	{"0", ast.NewInt(0, 0)},
-	{"3", ast.NewInt(0, 3)},
-	{"2147483647", ast.NewInt(0, 2147483647)},
-	{"-2147483648", ast.NewInt(0, -2147483648)},
-	{"\"\"", ast.NewString(0, "")},
-	{"\"a\"", ast.NewString(0, "a")},
-	{`"\t"`, ast.NewString(0, "\t")},
-	{`"\a\b\f\n\r\t\v\\\""`, ast.NewString(0, "\a\b\f\n\r\t\v\\\"")},
-	{"``", ast.NewString(0, "")},
-	{"`\\t`", ast.NewString(0, "\\t")},
-	{"!a", ast.NewUnaryOperator(0, ast.OperatorNot, ast.NewIdentifier(1, "a"))},
-	{"1+2", ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1-2", ast.NewBinaryOperator(1, ast.OperatorSubtraction, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1*2", ast.NewBinaryOperator(1, ast.OperatorMultiplication, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1/2", ast.NewBinaryOperator(1, ast.OperatorDivision, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1%2", ast.NewBinaryOperator(1, ast.OperatorModulo, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1==2", ast.NewBinaryOperator(1, ast.OperatorEqual, ast.NewInt(0, 1), ast.NewInt(3, 2))},
-	{"1!=2", ast.NewBinaryOperator(1, ast.OperatorNotEqual, ast.NewInt(0, 1), ast.NewInt(3, 2))},
-	{"1<2", ast.NewBinaryOperator(1, ast.OperatorLess, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1<=2", ast.NewBinaryOperator(1, ast.OperatorLessOrEqual, ast.NewInt(0, 1), ast.NewInt(3, 2))},
-	{"1>2", ast.NewBinaryOperator(1, ast.OperatorGreater, ast.NewInt(0, 1), ast.NewInt(2, 2))},
-	{"1>=2", ast.NewBinaryOperator(1, ast.OperatorGreaterOrEqual, ast.NewInt(0, 1), ast.NewInt(3, 2))},
-	{"a&&b", ast.NewBinaryOperator(1, ast.OperatorAnd, ast.NewIdentifier(0, "a"), ast.NewIdentifier(3, "b"))},
-	{"a||b", ast.NewBinaryOperator(1, ast.OperatorOr, ast.NewIdentifier(0, "a"), ast.NewIdentifier(3, "b"))},
-	{"1+-2", ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, -2))},
-	{"1+-2", ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, -2))},
-	{"1+-(2)", ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1),
-		ast.NewUnaryOperator(2, ast.OperatorSubtraction, ast.NewInt(4, 2)))},
-	{"(a)", ast.NewIdentifier(1, "a")},
-	{"a()", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{})},
-	{"a(1)", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{ast.NewInt(2, 1)})},
-	{"a(1,2)", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{ast.NewInt(2, 1), ast.NewInt(4, 2)})},
-	{"a[1]", ast.NewIndex(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1))},
-	{"a[:]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), nil, nil)},
-	{"a[:2]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), nil, ast.NewInt(3, 2))},
-	{"a[1:]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1), nil)},
-	{"a[1:2]", ast.NewSlice(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1), ast.NewInt(4, 2))},
-	{"a.b", ast.NewSelector(1, ast.NewIdentifier(0, "a"), "b")},
-	{"1+2+3", ast.NewBinaryOperator(3, ast.OperatorAddition,
-		ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(4, 3))},
-	{"1-2-3", ast.NewBinaryOperator(3, ast.OperatorSubtraction,
-		ast.NewBinaryOperator(1, ast.OperatorSubtraction, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(4, 3))},
-	{"1*2*3", ast.NewBinaryOperator(3, ast.OperatorMultiplication,
-		ast.NewBinaryOperator(1, ast.OperatorMultiplication, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(4, 3))},
-	{"1+2*3", ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1),
-		ast.NewBinaryOperator(3, ast.OperatorMultiplication, ast.NewInt(2, 2), ast.NewInt(4, 3)))},
-	{"1-2/3", ast.NewBinaryOperator(1, ast.OperatorSubtraction, ast.NewInt(0, 1),
-		ast.NewBinaryOperator(3, ast.OperatorDivision, ast.NewInt(2, 2), ast.NewInt(4, 3)))},
-	{"1*2+3", ast.NewBinaryOperator(3, ast.OperatorAddition,
-		ast.NewBinaryOperator(1, ast.OperatorMultiplication, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(4, 3))},
-	{"1==2+3", ast.NewBinaryOperator(1, ast.OperatorEqual, ast.NewInt(0, 1),
-		ast.NewBinaryOperator(4, ast.OperatorAddition, ast.NewInt(3, 2), ast.NewInt(5, 3)))},
-	{"1+2==3", ast.NewBinaryOperator(3, ast.OperatorEqual,
-		ast.NewBinaryOperator(1, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(2, 2)), ast.NewInt(5, 3))},
-	{"(1+2)*3", ast.NewBinaryOperator(5, ast.OperatorMultiplication, ast.NewBinaryOperator(2,
-		ast.OperatorAddition, ast.NewInt(1, 1), ast.NewInt(3, 2)), ast.NewInt(6, 3))},
-	{"1*(2+3)", ast.NewBinaryOperator(1, ast.OperatorMultiplication, ast.NewInt(0, 1),
-		ast.NewBinaryOperator(4, ast.OperatorAddition, ast.NewInt(3, 2), ast.NewInt(5, 3)))},
-	{"(1*((2)+3))", ast.NewBinaryOperator(2, ast.OperatorMultiplication, ast.NewInt(1, 1),
-		ast.NewBinaryOperator(7, ast.OperatorAddition, ast.NewInt(5, 2), ast.NewInt(8, 3)))},
-	{"a()*1", ast.NewBinaryOperator(3, ast.OperatorMultiplication,
-		ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{}), ast.NewInt(4, 1))},
-	{"1*a()", ast.NewBinaryOperator(1, ast.OperatorMultiplication,
-		ast.NewInt(0, 1), ast.NewCall(3, ast.NewIdentifier(2, "a"), []ast.Expression{}))},
-	{"a[1]*2", ast.NewBinaryOperator(4, ast.OperatorMultiplication,
-		ast.NewIndex(1, ast.NewIdentifier(0, "a"), ast.NewInt(2, 1)), ast.NewInt(5, 2))},
-	{"1*a[2]", ast.NewBinaryOperator(1, ast.OperatorMultiplication,
-		ast.NewInt(0, 1), ast.NewIndex(3, ast.NewIdentifier(2, "a"), ast.NewInt(4, 2)))},
-	{"a[1+2]", ast.NewIndex(1, ast.NewIdentifier(0, "a"),
-		ast.NewBinaryOperator(3, ast.OperatorAddition, ast.NewInt(2, 1), ast.NewInt(4, 2)))},
-	{"a[b(1)]", ast.NewIndex(1, ast.NewIdentifier(0, "a"), ast.NewCall(3,
-		ast.NewIdentifier(2, "b"), []ast.Expression{ast.NewInt(4, 1)}))},
-	{"a(b[1])", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{
-		ast.NewIndex(3, ast.NewIdentifier(2, "b"), ast.NewInt(4, 1))})},
-	{"a.b*c", ast.NewBinaryOperator(3, ast.OperatorMultiplication, ast.NewSelector(1, ast.NewIdentifier(0, "a"), "b"),
-		ast.NewIdentifier(4, "c"))},
-	{"a*b.c", ast.NewBinaryOperator(1, ast.OperatorMultiplication, ast.NewIdentifier(0, "a"),
-		ast.NewSelector(3, ast.NewIdentifier(2, "b"), "c"))},
-	{"a.b(c)", ast.NewCall(3, ast.NewSelector(1, ast.NewIdentifier(0, "a"), "b"), []ast.Expression{ast.NewIdentifier(4, "c")})},
-	{"1\t+\n2", ast.NewBinaryOperator(2, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(4, 2))},
-	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(4, ast.OperatorAddition, ast.NewInt(0, 1), ast.NewInt(11, 2))},
-	{"a(\n\t1\t,\n2\t)", ast.NewCall(1, ast.NewIdentifier(0, "a"), []ast.Expression{ast.NewInt(4, 1), ast.NewInt(8, 2)})},
-	{"a\t\r ()", ast.NewCall(4, ast.NewIdentifier(0, "a"), []ast.Expression{})},
-	{"a[\n\t1\t]", ast.NewIndex(1, ast.NewIdentifier(0, "a"), ast.NewInt(4, 1))},
-	{"a\t\r [1]", ast.NewIndex(4, ast.NewIdentifier(0, "a"), ast.NewInt(5, 1))},
+	{"_", ast.NewIdentifier(p(1, 1, 0, 0), "_")},
+	{"a", ast.NewIdentifier(p(1, 1, 0, 0), "a")},
+	{"a5", ast.NewIdentifier(p(1, 1, 0, 1), "a5")},
+	{"_a", ast.NewIdentifier(p(1, 1, 0, 1), "_a")},
+	{"_5", ast.NewIdentifier(p(1, 1, 0, 1), "_5")},
+	{"0", ast.NewInt(p(1, 1, 0, 0), 0)},
+	{"3", ast.NewInt(p(1, 1, 0, 0), 3)},
+	{"2147483647", ast.NewInt(p(1, 1, 0, 9), 2147483647)},
+	{"-2147483648", ast.NewInt(p(1, 1, 0, 10), -2147483648)},
+	{"\"\"", ast.NewString(p(1, 1, 0, 1), "")},
+	{"\"a\"", ast.NewString(p(1, 1, 0, 2), "a")},
+	{`"\t"`, ast.NewString(p(1, 1, 0, 3), "\t")},
+	{`"\a\b\f\n\r\t\v\\\""`, ast.NewString(p(1, 1, 0, 19), "\a\b\f\n\r\t\v\\\"")},
+	{"``", ast.NewString(p(1, 1, 0, 1), "")},
+	{"`\\t`", ast.NewString(p(1, 1, 0, 3), "\\t")},
+	{"!a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorNot, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"1+2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1-2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorSubtraction, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1*2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1/2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorDivision, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1%2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorModulo, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1==2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorEqual, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 4, 3, 3), 2))},
+	{"1!=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorNotEqual, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 4, 3, 3), 2))},
+	{"1<2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorLess, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1<=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorLessOrEqual, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 4, 3, 3), 2))},
+	{"1>2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorGreater, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
+	{"1>=2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorGreaterOrEqual, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 4, 3, 3), 2))},
+	{"a&&b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAnd, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
+	{"a||b", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorOr, ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 3), "b"))},
+	{"1+-2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 3), -2))},
+	{"1+-(2)", ast.NewBinaryOperator(p(1, 2, 0, 5), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewUnaryOperator(p(1, 3, 2, 5), ast.OperatorSubtraction, ast.NewInt(p(1, 5, 3, 5), 2)))},
+	{"(a)", ast.NewIdentifier(p(1, 2, 0, 2), "a")},
+	{"a()", ast.NewCall(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{})},
+	{"a(1)", ast.NewCall(p(1, 2, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{ast.NewInt(p(1, 3, 2, 2), 1)})},
+	{"a(1,2)", ast.NewCall(p(1, 2, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		[]ast.Expression{ast.NewInt(p(1, 3, 2, 2), 1), ast.NewInt(p(1, 5, 4, 4), 2)})},
+	{"a[1]", ast.NewIndex(p(1, 2, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 3, 2, 2), 1))},
+	{"a[:]", ast.NewSlice(p(1, 2, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "a"), nil, nil)},
+	{"a[:2]", ast.NewSlice(p(1, 2, 0, 4), ast.NewIdentifier(p(1, 1, 0, 0), "a"), nil, ast.NewInt(p(1, 4, 3, 3), 2))},
+	{"a[1:]", ast.NewSlice(p(1, 2, 0, 4), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 3, 2, 2), 1), nil)},
+	{"a[1:2]", ast.NewSlice(p(1, 2, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 3, 2, 2), 1), ast.NewInt(p(1, 5, 4, 4), 2))},
+	{"a.b", ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
+	{"1+2+3", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorAddition, ast.NewBinaryOperator(p(1, 2, 0, 2),
+		ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2)), ast.NewInt(p(1, 5, 4, 4), 3))},
+	{"1-2-3", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorSubtraction, ast.NewBinaryOperator(p(1, 2, 0, 2),
+		ast.OperatorSubtraction, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2)), ast.NewInt(p(1, 5, 4, 4), 3))},
+	{"1*2*3", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorMultiplication, ast.NewBinaryOperator(p(1, 2, 0, 2),
+		ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2)), ast.NewInt(p(1, 5, 4, 4), 3))},
+	{"1+2*3", ast.NewBinaryOperator(p(1, 2, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewBinaryOperator(p(1, 4, 2, 4), ast.OperatorMultiplication, ast.NewInt(p(1, 3, 2, 2), 2), ast.NewInt(p(1, 5, 4, 4), 3)))},
+	{"1-2/3", ast.NewBinaryOperator(p(1, 2, 0, 4), ast.OperatorSubtraction, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewBinaryOperator(p(1, 4, 2, 4), ast.OperatorDivision, ast.NewInt(p(1, 3, 2, 2), 2), ast.NewInt(p(1, 5, 4, 4), 3)))},
+	{"1*2+3", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorAddition, ast.NewBinaryOperator(p(1, 2, 0, 2),
+		ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2)), ast.NewInt(p(1, 5, 4, 4), 3))},
+	{"1==2+3", ast.NewBinaryOperator(p(1, 2, 0, 5), ast.OperatorEqual, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewBinaryOperator(p(1, 5, 3, 5), ast.OperatorAddition, ast.NewInt(p(1, 4, 3, 3), 2), ast.NewInt(p(1, 6, 5, 5), 3)))},
+	{"1+2==3", ast.NewBinaryOperator(p(1, 4, 0, 5), ast.OperatorEqual, ast.NewBinaryOperator(p(1, 2, 0, 2),
+		ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2)), ast.NewInt(p(1, 6, 5, 5), 3))},
+	{"(1+2)*3", ast.NewBinaryOperator(p(1, 6, 0, 6), ast.OperatorMultiplication, ast.NewBinaryOperator(p(1, 3, 0, 4),
+		ast.OperatorAddition, ast.NewInt(p(1, 2, 1, 1), 1), ast.NewInt(p(1, 4, 3, 3), 2)), ast.NewInt(p(1, 7, 6, 6), 3))},
+	{"1*(2+3)", ast.NewBinaryOperator(p(1, 2, 0, 6), ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewBinaryOperator(p(1, 5, 2, 6), ast.OperatorAddition, ast.NewInt(p(1, 4, 3, 3), 2), ast.NewInt(p(1, 6, 5, 5), 3)))},
+	{"(1*((2)+3))", ast.NewBinaryOperator(p(1, 3, 0, 10), ast.OperatorMultiplication, ast.NewInt(p(1, 2, 1, 1), 1),
+		ast.NewBinaryOperator(p(1, 8, 3, 9), ast.OperatorAddition, ast.NewInt(p(1, 6, 4, 6), 2), ast.NewInt(p(1, 9, 8, 8), 3)))},
+	{"a()*1", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorMultiplication,
+		ast.NewCall(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{}), ast.NewInt(p(1, 5, 4, 4), 1))},
+	{"1*a()", ast.NewBinaryOperator(p(1, 2, 0, 4), ast.OperatorMultiplication,
+		ast.NewInt(p(1, 1, 0, 0), 1), ast.NewCall(p(1, 4, 2, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), []ast.Expression{}))},
+	{"a[1]*2", ast.NewBinaryOperator(p(1, 5, 0, 5), ast.OperatorMultiplication, ast.NewIndex(p(1, 2, 0, 3),
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 3, 2, 2), 1)), ast.NewInt(p(1, 6, 5, 5), 2))},
+	{"1*a[2]", ast.NewBinaryOperator(p(1, 2, 0, 5), ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), 1),
+		ast.NewIndex(p(1, 4, 2, 5), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.NewInt(p(1, 5, 4, 4), 2)))},
+	{"a[1+2]", ast.NewIndex(p(1, 2, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewBinaryOperator(p(1, 4, 2, 4), ast.OperatorAddition, ast.NewInt(p(1, 3, 2, 2), 1), ast.NewInt(p(1, 5, 4, 4), 2)))},
+	{"a[b(1)]", ast.NewIndex(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewCall(p(1, 4, 2, 5),
+		ast.NewIdentifier(p(1, 3, 2, 2), "b"), []ast.Expression{ast.NewInt(p(1, 5, 4, 4), 1)}))},
+	{"a(b[1])", ast.NewCall(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{
+		ast.NewIndex(p(1, 4, 2, 5), ast.NewIdentifier(p(1, 3, 2, 2), "b"), ast.NewInt(p(1, 5, 4, 4), 1))})},
+	{"a.b*c", ast.NewBinaryOperator(p(1, 4, 0, 4), ast.OperatorMultiplication, ast.NewSelector(p(1, 2, 0, 2),
+		ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b"), ast.NewIdentifier(p(1, 5, 4, 4), "c"))},
+	{"a*b.c", ast.NewBinaryOperator(p(1, 2, 0, 4), ast.OperatorMultiplication, ast.NewIdentifier(p(1, 1, 0, 0), "a"),
+		ast.NewSelector(p(1, 4, 2, 4), ast.NewIdentifier(p(1, 3, 2, 2), "b"), "c"))},
+	{"a.b(c)", ast.NewCall(p(1, 4, 0, 5), ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b"),
+		[]ast.Expression{ast.NewIdentifier(p(1, 5, 4, 4), "c")})},
+	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(2, 1, 4, 4), 2))},
+	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(3, 4, 11, 11), 2))},
+	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{
+		ast.NewInt(p(2, 2, 4, 4), 1), ast.NewInt(p(3, 1, 8, 8), 2)})},
+	{"a\t\r ()", ast.NewCall(p(1, 5, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{})},
+	{"a[\n\t1\t]", ast.NewIndex(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(2, 2, 4, 4), 1))},
+	{"a\t\r [1]", ast.NewIndex(p(1, 5, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 6, 5, 5), 1))},
 }
 
 var treeTests = []struct {
@@ -112,32 +118,34 @@ var treeTests = []struct {
 	node ast.Node
 }{
 	{"", ast.NewTree(nil)},
-	{"a", ast.NewTree([]ast.Node{ast.NewText(0, "a")})},
-	{"{{a}}", ast.NewTree([]ast.Node{ast.NewShow(0, ast.NewIdentifier(2, "a"), nil, ast.ContextHTML)})},
+	{"a", ast.NewTree([]ast.Node{ast.NewText(p(1, 1, 0, 0), "a")})},
+	{"{{a}}", ast.NewTree([]ast.Node{ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)})},
 	{"a{{b}}", ast.NewTree([]ast.Node{
-		ast.NewText(0, "a"), ast.NewShow(1, ast.NewIdentifier(3, "b"), nil, ast.ContextHTML)})},
+		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML)})},
 	{"{{a}}b", ast.NewTree([]ast.Node{
-		ast.NewShow(0, ast.NewIdentifier(2, "a"), nil, ast.ContextHTML), ast.NewText(5, "b")})},
+		ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), "b")})},
 	{"a{{b}}c", ast.NewTree([]ast.Node{
-		ast.NewText(0, "a"), ast.NewShow(1, ast.NewIdentifier(3, "b"), nil, ast.ContextHTML), ast.NewText(6, "c")})},
+		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
+		ast.NewText(p(1, 7, 6, 6), "c")})},
 	{"{% var a = 1 %}", ast.NewTree([]ast.Node{
-		ast.NewVar(0, ast.NewIdentifier(8, "a"), ast.NewInt(12, 1))})},
+		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))})},
 	{"{% a = 2 %}", ast.NewTree([]ast.Node{
-		ast.NewAssignment(0, ast.NewIdentifier(4, "a"), ast.NewInt(8, 2))})},
+		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2))})},
 	{"{% show a %}{% end %}", ast.NewTree([]ast.Node{
-		ast.NewShow(0, ast.NewIdentifier(8, "a"), nil, ast.ContextHTML)})},
+		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
 	{"{% show a %}b{% end %}", ast.NewTree([]ast.Node{
-		ast.NewShow(0, ast.NewIdentifier(8, "a"), ast.NewText(12, "b"), ast.ContextHTML)})},
-	{"{% for v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(0,
-		nil, ast.NewIdentifier(7, "v"), ast.NewIdentifier(12, "e"), []ast.Node{ast.NewText(16, "b")})})},
-	{"{% for i, v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(0,
-		ast.NewIdentifier(7, "i"), ast.NewIdentifier(10, "v"), ast.NewIdentifier(15, "e"), []ast.Node{ast.NewText(16, "b")})})},
+		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
+	{"{% for v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(p(1, 1, 0, 15),
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
+	{"{% for i, v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(p(1, 1, 0, 18),
+		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
+		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
 	{"{% if a %}b{% end %}", ast.NewTree([]ast.Node{
-		ast.NewIf(0, ast.NewIdentifier(6, "a"), []ast.Node{ast.NewText(10, "b")})})},
-	{"{% extend \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewExtend(0, "/a.b", nil)})},
-	{"{% include \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewInclude(0, "/a.b", nil)})},
+		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")})})},
+	{"{% extend \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
+	{"{% include \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
 	{"{% region \"a\" %}b{% end %}", ast.NewTree([]ast.Node{
-		ast.NewRegion(0, "a", []ast.Node{ast.NewText(16, "b")})})},
+		ast.NewRegion(p(1, 1, 0, 15), "a", []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 }
 
 var pageTests = map[string]struct {
@@ -147,23 +155,23 @@ var pageTests = map[string]struct {
 	"/simple.html": {
 		"<!DOCTYPE html>\n<html>\n<head><title>{{ title }}</title></head>\n<body>{{ content }}</body>\n</html>",
 		ast.NewTree([]ast.Node{
-			ast.NewText(0, "<!DOCTYPE html>\n<html>\n<head><title>"),
-			ast.NewShow(36, ast.NewIdentifier(39, "title"), nil, ast.ContextHTML),
-			ast.NewText(47, "</title></head>\n<body>"),
-			ast.NewShow(69, ast.NewIdentifier(72, "content"), nil, ast.ContextHTML),
-			ast.NewText(82, "</body>\n</html>"),
+			ast.NewText(p(1, 1, 0, 35), "<!DOCTYPE html>\n<html>\n<head><title>"),
+			ast.NewShow(p(3, 14, 36, 46), ast.NewIdentifier(p(3, 17, 39, 43), "title"), ast.ContextHTML),
+			ast.NewText(p(3, 25, 47, 68), "</title></head>\n<body>"),
+			ast.NewShow(p(4, 7, 69, 81), ast.NewIdentifier(p(4, 10, 72, 78), "content"), ast.ContextHTML),
+			ast.NewText(p(4, 20, 82, 96), "</body>\n</html>"),
 		}),
 	},
 	"/simple2.html": {
 		"<!DOCTYPE html>\n<html>\n<body>{% include \"/include2.html\" %}</body>\n</html>",
 		ast.NewTree([]ast.Node{
-			ast.NewText(0, "<!DOCTYPE html>\n<html>\n<body>"),
-			ast.NewInclude(29, "/include2.html", ast.NewTree([]ast.Node{
-				ast.NewText(0, "<div>"),
-				ast.NewShow(5, ast.NewIdentifier(8, "content"), nil, ast.ContextHTML),
-				ast.NewText(18, "</div>"),
+			ast.NewText(p(1, 1, 0, 28), "<!DOCTYPE html>\n<html>\n<body>"),
+			ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.NewTree([]ast.Node{
+				ast.NewText(p(1, 1, 0, 4), "<div>"),
+				ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
+				ast.NewText(p(1, 19, 18, 23), "</div>"),
 			})),
-			ast.NewText(59, "</body>\n</html>"),
+			ast.NewText(p(3, 37, 59, 73), "</body>\n</html>"),
 		}),
 	},
 	"/include2.inc": {
@@ -213,8 +221,8 @@ func readFunc(path string) (*ast.Tree, error) {
 func TestPages(t *testing.T) {
 	// simple.html
 	var parser = NewParser(readFunc)
-	var p = pageTests["/simple.html"]
-	var tree, err = parser.Parse("/simple.html")
+	p := pageTests["/simple.html"]
+	tree, err := parser.Parse("/simple.html")
 	if err != nil {
 		t.Errorf("source: %q, %s\n", p.src, err)
 	}
@@ -245,8 +253,25 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected node %#v, expecting nil", n1)
 		}
 	}
-	if n1.Pos()-p != n2.Pos() {
-		return fmt.Errorf("unexpected position %d, expecting %d", n1.Pos()-p, n2.Pos())
+	var pos1 = n1.Pos()
+	var pos2 = n2.Pos()
+	if pos1.Line != pos2.Line {
+		return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
+	}
+	if pos1.Line == 1 {
+		if pos1.Column-p != pos2.Column {
+			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column-p, pos2.Column)
+		}
+	} else {
+		if pos1.Column != pos2.Column {
+			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
+		}
+	}
+	if pos1.Start-p != pos2.Start {
+		return fmt.Errorf("unexpected start %d, expecting %d", pos1.Start-p, pos2.Start)
+	}
+	if pos1.End-p != pos2.End {
+		return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
 	}
 	switch nn1 := n1.(type) {
 	case *ast.Tree:
@@ -380,18 +405,6 @@ func equals(n1, n2 ast.Node, p int) error {
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
 			return err
-		}
-		if nn1.Text == nil && nn2.Text != nil {
-			return fmt.Errorf("unexpected nil, expecting %#v", nn2)
-		}
-		if nn1.Text != nil && nn2.Text == nil {
-			return fmt.Errorf("unexpected %#v, expecting nil", nn1)
-		}
-		if nn1.Text != nil && nn2.Text != nil {
-			err = equals(nn1.Text, nn2.Text, p)
-			if err != nil {
-				return err
-			}
 		}
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %d, expecting %d", nn1.Context, nn2.Context)

@@ -6,6 +6,8 @@ package template
 
 import (
 	"testing"
+
+	"open2b/template/ast"
 )
 
 var typeTests = map[string][]tokenType{
@@ -95,7 +97,33 @@ var contextTests = map[string][]context{
 	"<style></style>":             {contextHTML},
 	"<script>{{a}}</script>{{a}}": {contextHTML, contextScript, contextScript, contextScript, contextHTML, contextHTML, contextHTML, contextHTML},
 	"<style>{{a}}</style>{{a}}":   {contextHTML, contextStyle, contextStyle, contextStyle, contextHTML, contextHTML, contextHTML, contextHTML},
-	//"<a class=\"{{c}}\"></a>": {contextHTML, contextAttribute, contextAttribute, contextAttribute, contextHTML},
+	//"<a class=\"{{c}}\"></a>":     {contextHTML, contextAttribute, contextAttribute, contextAttribute, contextHTML},
+}
+
+var positionTests = []struct {
+	src string
+	pos []ast.Position
+}{
+	{"a", []ast.Position{
+		{1, 1, 0, 0}}},
+	{"\n", []ast.Position{
+		{1, 1, 0, 0}}},
+	{"{{a}}", []ast.Position{
+		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}}},
+	{"\n{{a}}", []ast.Position{
+		{1, 1, 0, 0},
+		{2, 1, 1, 2}, {2, 3, 3, 3}, {2, 4, 4, 5}}},
+	{"{{a.b}}", []ast.Position{
+		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 3}, {1, 5, 4, 4}, {1, 6, 5, 6}}},
+	{"{{1\t+\n2}}", []ast.Position{
+		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 5, 4, 4}, {2, 1, 6, 6}, {2, 2, 7, 8}}},
+	{"{{a}}\n{{b}}", []ast.Position{
+		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}, {1, 6, 5, 5},
+		{2, 1, 6, 7}, {2, 3, 8, 8}, {2, 4, 9, 10}}},
+	{"{{a}}\n<b\nc=\"{{a}}\">\n{{a}}", []ast.Position{
+		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}, {1, 6, 5, 11},
+		{3, 4, 12, 13}, {3, 6, 14, 14}, {3, 7, 15, 16}, {3, 9, 17, 19},
+		{4, 1, 20, 21}, {4, 3, 22, 22}, {4, 4, 23, 24}}},
 }
 
 func TestLexerTypes(t *testing.T) {
@@ -150,6 +178,42 @@ CONTEXTS:
 		}
 		if i < len(contexts) {
 			t.Errorf("source: %q, meno contexts\n", source)
+		}
+	}
+}
+
+func TestPositions(t *testing.T) {
+	for _, test := range positionTests {
+		var lex = newLexer([]byte(test.src))
+		var i int
+		for tok := range lex.tokens {
+			if tok.typ == tokenEOF {
+				break
+			}
+			pos := test.pos[i]
+			if tok.pos.Line != pos.Line {
+				t.Errorf("source: %q, token: %s, unexpected line %d, expecting %d\n",
+					test.src, tok.String(), tok.pos.Line, pos.Line)
+			}
+			if tok.pos.Column != pos.Column {
+				t.Errorf("source: %q, token: %s, unexpected column %d, expecting %d\n",
+					test.src, tok.String(), tok.pos.Column, pos.Column)
+			}
+			if tok.pos.Start != pos.Start {
+				t.Errorf("source: %q, token: %s, unexpected start %d, expecting %d\n",
+					test.src, tok.String(), tok.pos.Start, pos.Start)
+			}
+			if tok.pos.End != pos.End {
+				t.Errorf("source: %q, token: %s, unexpected end %d, expecting %d\n",
+					test.src, tok.String(), tok.pos.End, pos.End)
+			}
+			i++
+		}
+		if lex.err != nil {
+			t.Errorf("source: %q, error %s\n", test.src, lex.err)
+		}
+		if i < len(test.pos) {
+			t.Errorf("source: %q, meno lines\n", test.src)
 		}
 	}
 }

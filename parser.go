@@ -91,6 +91,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				if isVar {
 					node = ast.NewVar(pos, ident, expr)
 				} else {
@@ -151,6 +152,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				node = ast.NewFor(pos, index, ident, expr, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
@@ -167,6 +169,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				node = ast.NewIf(pos, expr, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
@@ -183,7 +186,8 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
-				node = ast.NewShow(pos, expr, nil, parserContext(ctx))
+				pos.End = tok.pos.End
+				node = ast.NewShow(pos, expr, parserContext(ctx))
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 
@@ -200,6 +204,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				node = ast.NewExtend(pos, path, nil)
 				addChild(parent, node)
 
@@ -219,6 +224,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				node = ast.NewRegion(pos, name, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
@@ -236,6 +242,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if tok.typ != tokenEndStatement {
 					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
 				}
+				pos.End = tok.pos.End
 				node = ast.NewInclude(pos, path, nil)
 				addChild(parent, node)
 
@@ -278,7 +285,8 @@ func Parse(src []byte) (*ast.Tree, error) {
 			if tok2.typ != tokenEndShow {
 				return nil, fmt.Errorf("unexpected %s, expecting }} at %d", tok2, tok2.pos)
 			}
-			var node = ast.NewShow(tok.pos, expr, nil, parserContext(tok.ctx))
+			tok.pos.End = tok2.pos.End
+			var node = ast.NewShow(tok.pos, expr, parserContext(tok.ctx))
 			addChild(parent, node)
 
 		default:
@@ -444,8 +452,6 @@ func addChild(parent ast.Node, node ast.Node) {
 	switch n := parent.(type) {
 	case *ast.Tree:
 		n.Nodes = append(n.Nodes, node)
-	case *ast.Show:
-		n.Text = node.(*ast.Text)
 	case *ast.Region:
 		n.Nodes = append(n.Nodes, node)
 	case *ast.For:
