@@ -46,14 +46,23 @@ const (
 
 // Node è un elemento del tree.
 type Node interface {
-	Pos() int // posizione in byte del nodo nel sorgente originale
+	Pos() *Position // posizione del nodo nel sorgente originale
 }
 
-// position è una posizione in bytes di un nodo nel sorgente.
-type position int
+// Position è una posizione di un nodo nel sorgente.
+type Position struct {
+	Line   int // linea a partire da 1
+	Column int // colonna in caratteri a partire da 1
+	Start  int // indice del primo byte
+	End    int // indice dell'ultimo byte
+}
 
-func (p position) Pos() int {
-	return int(p)
+func (p *Position) Pos() *Position {
+	return p
+}
+
+func (p *Position) String() string {
+	return "line " + strconv.Itoa(p.Line) + " column " + strconv.Itoa(p.Column)
 }
 
 type Expression interface {
@@ -68,7 +77,7 @@ func (e expression) isexpr() {}
 
 // Tree rappresenta un albero parsato.
 type Tree struct {
-	position
+	*Position
 	Nodes []Node // nodi di primo livello dell'albero.
 }
 
@@ -76,138 +85,138 @@ func NewTree(nodes []Node) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &Tree{position(0), nodes}
+	return &Tree{&Position{1, 1, 0, 0}, nodes}
 }
 
 // Text rappresenta un testo
 type Text struct {
-	position        // posizione nel sorgente.
-	Text     string // testo.
+	*Position        // posizione nel sorgente.
+	Text      string // testo.
 }
 
-func NewText(pos int, text string) *Text {
-	return &Text{position(pos), text}
+func NewText(pos *Position, text string) *Text {
+	return &Text{pos, text}
 }
 
 // Var rappresenta uno statement {% var identifier = expression %}
 type Var struct {
-	position             // posizione nel sorgente.
-	Ident    *Identifier // identificatore.
-	Expr     Expression  // espressione assegnata.
+	*Position             // posizione nel sorgente.
+	Ident     *Identifier // identificatore.
+	Expr      Expression  // espressione assegnata.
 }
 
-func NewVar(pos int, ident *Identifier, expr Expression) *Var {
-	return &Var{position(pos), ident, expr}
+func NewVar(pos *Position, ident *Identifier, expr Expression) *Var {
+	return &Var{pos, ident, expr}
 }
 
 // Assignment rappresenta uno statement {% identifier = expression %}.
 type Assignment struct {
-	position             // posizione nel sorgente.
-	Ident    *Identifier // identificatore.
-	Expr     Expression  // espressione assegnata.
+	*Position             // posizione nel sorgente.
+	Ident     *Identifier // identificatore.
+	Expr      Expression  // espressione assegnata.
 }
 
-func NewAssignment(pos int, ident *Identifier, expr Expression) *Assignment {
-	return &Assignment{position(pos), ident, expr}
+func NewAssignment(pos *Position, ident *Identifier, expr Expression) *Assignment {
+	return &Assignment{pos, ident, expr}
 }
 
 // For rappresenta uno statement {% for ... %}.
 type For struct {
-	position             // posizione nel sorgente.
-	Index    *Identifier // indice
-	Ident    *Identifier // identificatore
-	Expr     Expression  // espressione che valutata restituisce la lista degli elementi.
-	Nodes    []Node      // nodi da eseguire per ogni elemento della lista.
+	*Position             // posizione nel sorgente.
+	Index     *Identifier // indice.
+	Ident     *Identifier // identificatore.
+	Expr      Expression  // espressione che valutata restituisce la lista degli elementi.
+	Nodes     []Node      // nodi da eseguire per ogni elemento della lista.
 }
 
-func NewFor(pos int, index, ident *Identifier, expr Expression, nodes []Node) *For {
+func NewFor(pos *Position, index, ident *Identifier, expr Expression, nodes []Node) *For {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &For{position(pos), index, ident, expr, nodes}
+	return &For{pos, index, ident, expr, nodes}
 }
 
 // If rappresenta uno statement {% if ... %}.
 type If struct {
-	position            // posizione nel sorgente.
-	Expr     Expression // espressione che valutata restituisce true o false.
-	Nodes    []Node     // nodi da eseguire se l'espressione è valutata a vero.
+	*Position            // posizione nel sorgente.
+	Expr      Expression // espressione che valutata restituisce true o false.
+	Nodes     []Node     // nodi da eseguire se l'espressione è valutata a vero.
 }
 
-func NewIf(pos int, expr Expression, nodes []Node) *If {
+func NewIf(pos *Position, expr Expression, nodes []Node) *If {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &If{position(pos), expr, nodes}
+	return &If{pos, expr, nodes}
 }
 
-// Show rappresenta uno statement {% show ... %} o {{ ... }}.
+// Show rappresenta uno statement {% show ... %} {% end %} o {{ ... }}.
 type Show struct {
-	position            // posizione nel sorgente.
-	Expr     Expression // espressione che valutata restituisce il testo da mostrare.
-	Text     *Text      // testo esemplificativo
+	*Position            // posizione nel sorgente.
+	Expr      Expression // espressione che valutata restituisce il testo da mostrare.
+	Text      *Text      // testo esemplificativo.
 	Context
 }
 
-func NewShow(pos int, expr Expression, text *Text, ctx Context) *Show {
-	return &Show{position(pos), expr, text, ctx}
+func NewShow(pos *Position, expr Expression, text *Text, ctx Context) *Show {
+	return &Show{pos, expr, text, ctx}
 }
 
 // Extend rappresenta uno statement {% extend ... %}.
 type Extend struct {
-	position        // posizione nel sorgente.
-	Path     string // path del file da estendere.
-	Tree     *Tree  // albero del file esteso.
+	*Position        // posizione nel sorgente.
+	Path      string // path del file da estendere.
+	Tree      *Tree  // albero del file esteso.
 }
 
-func NewExtend(pos int, path string, tree *Tree) *Extend {
-	return &Extend{position(pos), path, tree}
+func NewExtend(pos *Position, path string, tree *Tree) *Extend {
+	return &Extend{pos, path, tree}
 }
 
 // Region rappresenta uno statement {% region ... %}.
 type Region struct {
-	position        // posizione nel sorgente.
-	Name     string // name.
-	Nodes    []Node // nodi facenti parte della region.
+	*Position        // posizione nel sorgente.
+	Name      string // name.
+	Nodes     []Node // nodi facenti parte della region.
 }
 
-func NewRegion(pos int, name string, nodes []Node) *Region {
+func NewRegion(pos *Position, name string, nodes []Node) *Region {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &Region{position(pos), name, nodes}
+	return &Region{pos, name, nodes}
 }
 
 // Include rappresenta uno statement {% include ... %}.
 type Include struct {
-	position        // posizione nel sorgente.
-	Path     string // path del file da includere.
-	Tree     *Tree  // albero del file incluso.
+	*Position        // posizione nel sorgente.
+	Path      string // path del file da includere.
+	Tree      *Tree  // albero del file incluso.
 }
 
-func NewInclude(pos int, path string, tree *Tree) *Include {
-	return &Include{position(pos), path, tree}
+func NewInclude(pos *Position, path string, tree *Tree) *Include {
+	return &Include{pos, path, tree}
 }
 
 // Snippet rappresenta uno statement {% snippet ... %}.
 type Snippet struct {
-	position        // posizione nel sorgente.
-	Prefix   string // prefisso, vuoto se non è presente.
-	Name     string // nome.
+	*Position        // posizione nel sorgente.
+	Prefix    string // prefisso, vuoto se non è presente.
+	Name      string // nome.
 }
 
-func NewSnippet(pos int, prefix, name string) *Snippet {
-	return &Snippet{position(pos), prefix, name}
+func NewSnippet(pos *Position, prefix, name string) *Snippet {
+	return &Snippet{pos, prefix, name}
 }
 
 type Parentesis struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Expr Expression // espressione.
 }
 
-func NewParentesis(pos int, expr Expression) *Parentesis {
-	return &Parentesis{position(pos), expression{}, expr}
+func NewParentesis(pos *Position, expr Expression) *Parentesis {
+	return &Parentesis{pos, expression{}, expr}
 }
 
 func (n *Parentesis) String() string {
@@ -215,13 +224,13 @@ func (n *Parentesis) String() string {
 }
 
 type Int struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Value int // valore.
 }
 
-func NewInt(pos int, value int) *Int {
-	return &Int{position(pos), expression{}, value}
+func NewInt(pos *Position, value int) *Int {
+	return &Int{pos, expression{}, value}
 }
 
 func (n *Int) String() string {
@@ -229,13 +238,13 @@ func (n *Int) String() string {
 }
 
 type Decimal struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Value decimal.Dec // valore.
 }
 
-func NewDecimal(pos int, value decimal.Dec) *Decimal {
-	return &Decimal{position(pos), expression{}, value}
+func NewDecimal(pos *Position, value decimal.Dec) *Decimal {
+	return &Decimal{pos, expression{}, value}
 }
 
 func (n *Decimal) String() string {
@@ -243,13 +252,13 @@ func (n *Decimal) String() string {
 }
 
 type String struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Text string // espressione.
 }
 
-func NewString(pos int, text string) *String {
-	return &String{position(pos), expression{}, text}
+func NewString(pos *Position, text string) *String {
+	return &String{pos, expression{}, text}
 }
 
 func (n *String) String() string {
@@ -257,13 +266,13 @@ func (n *String) String() string {
 }
 
 type Identifier struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Name string // nome.
 }
 
-func NewIdentifier(pos int, name string) *Identifier {
-	return &Identifier{position(pos), expression{}, name}
+func NewIdentifier(pos *Position, name string) *Identifier {
+	return &Identifier{pos, expression{}, name}
 }
 
 func (n *Identifier) String() string {
@@ -277,14 +286,14 @@ type Operator interface {
 }
 
 type UnaryOperator struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Op   OperatorType // operatore.
 	Expr Expression   // espressione.
 }
 
-func NewUnaryOperator(pos int, op OperatorType, expr Expression) *UnaryOperator {
-	return &UnaryOperator{position(pos), expression{}, op, expr}
+func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
+	return &UnaryOperator{pos, expression{}, op, expr}
 }
 
 func (n *UnaryOperator) String() string {
@@ -306,15 +315,15 @@ func (n *UnaryOperator) Precedence() int {
 }
 
 type BinaryOperator struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Op    OperatorType // operatore.
 	Expr1 Expression   // prima espressione.
 	Expr2 Expression   // seconda espressione.
 }
 
-func NewBinaryOperator(pos int, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
-	return &BinaryOperator{position(pos), expression{}, op, expr1, expr2}
+func NewBinaryOperator(pos *Position, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
+	return &BinaryOperator{pos, expression{}, op, expr1, expr2}
 }
 
 func (n *BinaryOperator) String() string {
@@ -355,14 +364,14 @@ func (n *BinaryOperator) Precedence() int {
 }
 
 type Call struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Func Expression   // funzione.
 	Args []Expression // parametri.
 }
 
-func NewCall(pos int, fun Expression, args []Expression) *Call {
-	return &Call{position(pos), expression{}, fun, args}
+func NewCall(pos *Position, fun Expression, args []Expression) *Call {
+	return &Call{pos, expression{}, fun, args}
 }
 
 func (n *Call) String() string {
@@ -378,14 +387,14 @@ func (n *Call) String() string {
 }
 
 type Index struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Expr  Expression // espressione.
 	Index Expression // index.
 }
 
-func NewIndex(pos int, expr Expression, index Expression) *Index {
-	return &Index{position(pos), expression{}, expr, index}
+func NewIndex(pos *Position, expr Expression, index Expression) *Index {
+	return &Index{pos, expression{}, expr, index}
 }
 
 func (n *Index) String() string {
@@ -393,15 +402,15 @@ func (n *Index) String() string {
 }
 
 type Slice struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Expr Expression // espressione.
 	Low  Expression // low bound.
 	High Expression // high bound.
 }
 
-func NewSlice(pos int, expr, low, high Expression) *Slice {
-	return &Slice{position(pos), expression{}, expr, low, high}
+func NewSlice(pos *Position, expr, low, high Expression) *Slice {
+	return &Slice{pos, expression{}, expr, low, high}
 }
 
 func (n *Slice) String() string {
@@ -418,14 +427,14 @@ func (n *Slice) String() string {
 }
 
 type Selector struct {
-	position // posizione nel sorgente.
+	*Position // posizione nel sorgente.
 	expression
 	Expr  Expression // espressione.
 	Ident string     // identificatore.
 }
 
-func NewSelector(pos int, expr Expression, ident string) *Selector {
-	return &Selector{position(pos), expression{}, expr, ident}
+func NewSelector(pos *Position, expr Expression, ident string) *Selector {
+	return &Selector{pos, expression{}, expr, ident}
 }
 
 func (n *Selector) String() string {
@@ -445,19 +454,19 @@ func CloneNode(node Node) Node {
 		}
 		return NewTree(nn)
 	case *Text:
-		return NewText(int(n.position), n.Text)
+		return NewText(ClonePosition(n.Position), n.Text)
 	case *Show:
 		var text *Text
 		if n.Text != nil {
-			text = NewText(int(n.Text.position), n.Text.Text)
+			text = NewText(ClonePosition(n.Text.Position), n.Text.Text)
 		}
-		return NewShow(int(n.position), CloneExpression(n.Expr), text, n.Context)
+		return NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), text, n.Context)
 	case *If:
 		var nodes = make([]Node, len(n.Nodes))
 		for i, n2 := range n.Nodes {
 			nodes[i] = CloneNode(n2)
 		}
-		return NewIf(int(n.position), CloneExpression(n.Expr), nodes)
+		return NewIf(ClonePosition(n.Position), CloneExpression(n.Expr), nodes)
 	case *For:
 		var nodes = make([]Node, len(n.Nodes))
 		for i, n2 := range n.Nodes {
@@ -465,64 +474,68 @@ func CloneNode(node Node) Node {
 		}
 		var index, ident *Identifier
 		if n.Index != nil {
-			index = NewIdentifier(int(n.Index.position), n.Index.Name)
+			index = NewIdentifier(ClonePosition(n.Index.Position), n.Index.Name)
 		}
 		if n.Ident != nil {
-			ident = NewIdentifier(int(n.Ident.position), n.Ident.Name)
+			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
-		return NewFor(int(n.position), index, ident, CloneExpression(n.Expr), nodes)
+		return NewFor(ClonePosition(n.Position), index, ident, CloneExpression(n.Expr), nodes)
 	case *Extend:
 		var tree *Tree
 		if n.Tree != nil {
 			tree = CloneTree(n.Tree)
 		}
-		return NewExtend(int(n.position), n.Path, tree)
+		return NewExtend(ClonePosition(n.Position), n.Path, tree)
 	case *Region:
 		var nodes = make([]Node, len(n.Nodes))
 		for i, n2 := range n.Nodes {
 			nodes[i] = CloneNode(n2)
 		}
-		return NewRegion(int(n.position), n.Name, nodes)
+		return NewRegion(ClonePosition(n.Position), n.Name, nodes)
 	case *Include:
 		var tree *Tree
 		if tree != nil {
 			tree = CloneTree(n.Tree)
 		}
-		return NewInclude(int(n.position), n.Path, tree)
+		return NewInclude(ClonePosition(n.Position), n.Path, tree)
 	case Expression:
 		return CloneExpression(n)
 	default:
-		panic("unexpected node type")
+		panic(fmt.Sprintf("unexpected node type %#v", node))
 	}
 }
 
 func CloneExpression(expr Expression) Expression {
 	switch e := expr.(type) {
 	case *Parentesis:
-		return NewParentesis(int(e.position), CloneExpression(e.Expr))
+		return NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
 	case *Int:
-		return NewInt(int(e.position), e.Value)
+		return NewInt(ClonePosition(e.Position), e.Value)
 	case *Decimal:
-		return NewDecimal(int(e.position), e.Value)
+		return NewDecimal(ClonePosition(e.Position), e.Value)
 	case *String:
-		return NewString(int(e.position), e.Text)
+		return NewString(ClonePosition(e.Position), e.Text)
 	case *Identifier:
-		return NewIdentifier(int(e.position), e.Name)
+		return NewIdentifier(ClonePosition(e.Position), e.Name)
 	case *UnaryOperator:
-		return NewUnaryOperator(int(e.position), e.Op, CloneExpression(e.Expr))
+		return NewUnaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr))
 	case *BinaryOperator:
-		return NewBinaryOperator(int(e.position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
+		return NewBinaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
 	case *Call:
 		var args = make([]Expression, 0, len(e.Args))
 		for _, arg := range e.Args {
 			args = append(args, CloneExpression(arg))
 		}
-		return NewCall(int(e.position), CloneExpression(e.Func), args)
+		return NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args)
 	case *Index:
-		return NewIndex(int(e.position), CloneExpression(e.Expr), CloneExpression(e.Index))
+		return NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *Selector:
-		return NewSelector(int(e.position), CloneExpression(e.Expr), string(e.Ident))
+		return NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), string(e.Ident))
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}
+}
+
+func ClonePosition(pos *Position) *Position {
+	return &Position{pos.Line, pos.Column, pos.Start, pos.End}
 }
