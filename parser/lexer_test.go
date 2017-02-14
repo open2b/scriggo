@@ -2,7 +2,7 @@
 // Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
-package template
+package parser
 
 import (
 	"testing"
