@@ -61,7 +61,7 @@ func (p *Position) Pos() *Position {
 	return p
 }
 
-func (p *Position) String() string {
+func (p Position) String() string {
 	return "line " + strconv.Itoa(p.Line) + " column " + strconv.Itoa(p.Column)
 }
 
@@ -78,14 +78,15 @@ func (e expression) isexpr() {}
 // Tree rappresenta un albero parsato.
 type Tree struct {
 	*Position
+	Path  string // path dell'albero.
 	Nodes []Node // nodi di primo livello dell'albero.
 }
 
-func NewTree(nodes []Node) *Tree {
+func NewTree(path string, nodes []Node) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &Tree{&Position{1, 1, 0, 0}, nodes}
+	return &Tree{&Position{1, 1, 0, 0}, path, nodes}
 }
 
 // Text rappresenta un testo
@@ -451,7 +452,7 @@ func CloneNode(node Node) Node {
 		for _, n := range n.Nodes {
 			nn = append(nn, CloneNode(n))
 		}
-		return NewTree(nn)
+		return NewTree(n.Path, nn)
 	case *Text:
 		return NewText(ClonePosition(n.Position), n.Text)
 	case *Show:

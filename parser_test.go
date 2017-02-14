@@ -117,34 +117,34 @@ var treeTests = []struct {
 	src  string
 	node ast.Node
 }{
-	{"", ast.NewTree(nil)},
-	{"a", ast.NewTree([]ast.Node{ast.NewText(p(1, 1, 0, 0), "a")})},
-	{"{{a}}", ast.NewTree([]ast.Node{ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)})},
-	{"a{{b}}", ast.NewTree([]ast.Node{
+	{"", ast.NewTree("", nil)},
+	{"a", ast.NewTree("", []ast.Node{ast.NewText(p(1, 1, 0, 0), "a")})},
+	{"{{a}}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)})},
+	{"a{{b}}", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML)})},
-	{"{{a}}b", ast.NewTree([]ast.Node{
+	{"{{a}}b", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), "b")})},
-	{"a{{b}}c", ast.NewTree([]ast.Node{
+	{"a{{b}}c", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
 		ast.NewText(p(1, 7, 6, 6), "c")})},
-	{"{% var a = 1 %}", ast.NewTree([]ast.Node{
+	{"{% var a = 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))})},
-	{"{% a = 2 %}", ast.NewTree([]ast.Node{
+	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2))})},
-	{"{% show a %}{% end %}", ast.NewTree([]ast.Node{
+	{"{% show a %}{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
-	{"{% show a %}b{% end %}", ast.NewTree([]ast.Node{
+	{"{% show a %}b{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
-	{"{% for v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(p(1, 1, 0, 15),
+	{"{% for v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
-	{"{% for i, v in e %}b{% end %}", ast.NewTree([]ast.Node{ast.NewFor(p(1, 1, 0, 18),
+	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
 		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
-	{"{% if a %}b{% end %}", ast.NewTree([]ast.Node{
+	{"{% if a %}b{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")})})},
-	{"{% extend \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
-	{"{% include \"/a.b\" %}", ast.NewTree([]ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
-	{"{% region \"a\" %}b{% end %}", ast.NewTree([]ast.Node{
+	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
+	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
+	{"{% region \"a\" %}b{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewRegion(p(1, 1, 0, 15), "a", []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 }
 
@@ -154,7 +154,7 @@ var pageTests = map[string]struct {
 }{
 	"/simple.html": {
 		"<!DOCTYPE html>\n<html>\n<head><title>{{ title }}</title></head>\n<body>{{ content }}</body>\n</html>",
-		ast.NewTree([]ast.Node{
+		ast.NewTree("", []ast.Node{
 			ast.NewText(p(1, 1, 0, 35), "<!DOCTYPE html>\n<html>\n<head><title>"),
 			ast.NewShow(p(3, 14, 36, 46), ast.NewIdentifier(p(3, 17, 39, 43), "title"), ast.ContextHTML),
 			ast.NewText(p(3, 25, 47, 68), "</title></head>\n<body>"),
@@ -164,9 +164,9 @@ var pageTests = map[string]struct {
 	},
 	"/simple2.html": {
 		"<!DOCTYPE html>\n<html>\n<body>{% include \"/include2.html\" %}</body>\n</html>",
-		ast.NewTree([]ast.Node{
+		ast.NewTree("", []ast.Node{
 			ast.NewText(p(1, 1, 0, 28), "<!DOCTYPE html>\n<html>\n<body>"),
-			ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.NewTree([]ast.Node{
+			ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 4), "<div>"),
 				ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 				ast.NewText(p(1, 19, 18, 23), "</div>"),
@@ -220,7 +220,7 @@ func readFunc(path string) (*ast.Tree, error) {
 
 func TestPages(t *testing.T) {
 	// simple.html
-	var parser = NewParser(readFunc)
+	parser := NewParser(readFunc)
 	p := pageTests["/simple.html"]
 	tree, err := parser.Parse("/simple.html")
 	if err != nil {

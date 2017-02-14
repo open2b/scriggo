@@ -21,7 +21,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 	var lex = newLexer(src)
 
 	// albero risultato del parsing
-	var tree = ast.NewTree(nil)
+	var tree = ast.NewTree("", nil)
 
 	// antenati dalla radice fino al genitore
 	var ancestors = []ast.Node{tree}
@@ -317,7 +317,12 @@ func FileReader(dir string) ReadFunc {
 			}
 			return nil, err
 		}
-		return Parse(src)
+		tree, err := Parse(src)
+		if err != nil {
+			return nil, err
+		}
+		tree.Path = path
+		return tree, nil
 	}
 }
 
