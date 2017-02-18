@@ -460,6 +460,9 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 				if err != nil {
 					return err
 				}
+				if include == nil {
+					return &Error{"", *(n.Pos()), fmt.Errorf("include does not exist")}
+				}
 				var d = path[:strings.LastIndexByte(path, '/')+1]
 				err = p.expandIncludes(include.Nodes, d)
 				if err != nil {
