@@ -14,6 +14,16 @@ import (
 	"open2b/template/ast"
 )
 
+type Error struct {
+	Path string
+	Pos  ast.Position
+	Err  error
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("template: %s at %q %s", e.Err, e.Path, e.Pos)
+}
+
 // Parse esegue il parsing di src e ne restituisce l'albero non espanso.
 func Parse(src []byte) (*ast.Tree, error) {
 
@@ -68,7 +78,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, lex.err
 					}
 					if tok.typ != tokenIdentifier {
-						return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 					}
 				}
 				var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
@@ -78,7 +88,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenAssignment {
-					return nil, fmt.Errorf("unexpected %s, expecting assignment at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment", tok)}
 				}
 				// expression
 				expr, tok, err := parseExpr(lex)
@@ -86,10 +96,10 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, err
 				}
 				if expr == nil {
-					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				if isVar {
@@ -108,7 +118,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenIdentifier {
-					return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
 				index = ast.NewIdentifier(tok.pos, string(tok.txt))
 				// "," or "in"
@@ -124,7 +134,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, lex.err
 					}
 					if tok.typ != tokenIdentifier {
-						return nil, fmt.Errorf("unexpected %s, expecting identifier at %d", tok, tok.pos)
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 					}
 					ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 					// "in"
@@ -133,24 +143,24 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, lex.err
 					}
 					if tok.typ != tokenIn {
-						return nil, fmt.Errorf("unexpected %s, expecting \"in\" at %d", tok, tok.pos)
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting \"in\"", tok)}
 					}
 				case tokenIn:
 					// syntax: for ident in expr
 					ident = index
 					index = nil
 				default:
-					return nil, fmt.Errorf("unexpected %s, expecting comma or \"in\" at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or \"in\"", tok)}
 				}
 				expr, tok, err := parseExpr(lex)
 				if err != nil {
 					return nil, err
 				}
 				if expr == nil {
-					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewFor(pos, index, ident, expr, nil)
@@ -164,10 +174,10 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, err
 				}
 				if expr == nil {
-					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewIf(pos, expr, nil)
@@ -181,10 +191,10 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, err
 				}
 				if expr == nil {
-					return nil, fmt.Errorf("expecting expression at %d", tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%} at %d", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewShow(pos, expr, parserContext(ctx))
@@ -202,7 +212,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewExtend(pos, path, nil)
@@ -215,14 +225,14 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, err
 				}
 				if name == "" {
-					return nil, fmt.Errorf("region name can not be empty at %d", pos)
+					return nil, &Error{"", *pos, fmt.Errorf("region name can not be empty")}
 				}
 				tok, ok := <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewRegion(pos, name, nil)
@@ -240,7 +250,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewInclude(pos, path, nil)
@@ -261,15 +271,15 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, fmt.Errorf("unexpected %s, expecting %%} at %d", tok, tok.pos)
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				if len(ancestors) == 1 {
-					return nil, fmt.Errorf("unexpected end statement at %d", pos)
+					return nil, &Error{"", *pos, fmt.Errorf("unexpected end statement")}
 				}
 				ancestors = ancestors[:len(ancestors)-1]
 
 			default:
-				return nil, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or end at %d", tok, tok.pos)
+				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or end", tok)}
 
 			}
 
@@ -280,17 +290,17 @@ func Parse(src []byte) (*ast.Tree, error) {
 				return nil, err
 			}
 			if expr == nil {
-				return nil, fmt.Errorf("expecting expression at %d", tok2.pos)
+				return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 			}
 			if tok2.typ != tokenEndShow {
-				return nil, fmt.Errorf("unexpected %s, expecting }} at %d", tok2, tok2.pos)
+				return nil, &Error{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 			}
 			tok.pos.End = tok2.pos.End
 			var node = ast.NewShow(tok.pos, expr, parserContext(tok.ctx))
 			addChild(parent, node)
 
 		default:
-			return nil, fmt.Errorf("unexpected %s at %d", tok, tok.pos)
+			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 
 		}
 
@@ -319,6 +329,9 @@ func FileReader(dir string) ReadFunc {
 		}
 		tree, err := Parse(src)
 		if err != nil {
+			if err2, ok := err.(*Error); ok {
+				err2.Path = path
+			}
 			return nil, err
 		}
 		tree.Path = path
@@ -396,12 +409,15 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		}
 		// verifica che l'albero di extend non contenga a sua volta extend
 		if ex := getExtendNode(tr); ex != nil {
-			return nil, fmt.Errorf("template: extended document contains extend at %q", ex.Pos())
+			return nil, &Error{"", *(ex.Pos()), fmt.Errorf("extended document contains extend")}
 		}
 		// espande gli includes
 		var d = path[:strings.LastIndexByte(path, '/')+1]
 		err = p.expandIncludes(tr.Nodes, d)
 		if err != nil {
+			if err2, ok := err.(*Error); ok {
+				err2.Path = extend.Path
+			}
 			return nil, err
 		}
 		extend.Tree = tr
@@ -410,6 +426,9 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	// espande gli includes
 	err = p.expandIncludes(tree.Nodes, dir)
 	if err != nil {
+		if err2, ok := err.(*Error); ok {
+			err2.Path = path
+		}
 		return nil, err
 	}
 

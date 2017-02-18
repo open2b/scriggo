@@ -130,10 +130,10 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				return nil, token{}, err
 			}
 			if expr == nil {
-				return nil, token{}, fmt.Errorf("unexpected %s, expecting expression at %d", tok, tok.pos)
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 			}
 			if tok.typ != tokenRightParenthesis {
-				return nil, token{}, fmt.Errorf("unexpected %s, expecting ) at %d", tok, tok.pos)
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)}
 			}
 			operand = expr
 			operand.Pos().Start = pos.Start
@@ -169,7 +169,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 		case tokenIdentifier: // a
 			operand = parseIdentifierNode(tok)
 		case tokenSemicolon:
-			return nil, token{}, fmt.Errorf("unexpected semicolon or newline, expecting expression at %d", tok.pos)
+			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon or newline, expecting expression")}
 		default:
 			return nil, tok, nil
 		}
@@ -193,11 +193,11 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					}
 					if arg == nil {
 						if tok.typ != tokenRightParenthesis {
-							return nil, token{}, fmt.Errorf("unexpected %s, expecting expression or ) at %d", tok, tok.pos)
+							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
 						}
 					} else {
 						if tok.typ != tokenComma && tok.typ != tokenRightParenthesis {
-							return nil, token{}, fmt.Errorf("unexpected %s, expecting comma or ) at %d", tok, tok.pos)
+							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or )", tok)}
 						}
 						args = append(args, arg)
 					}
@@ -221,16 +221,16 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 						return nil, token{}, err
 					}
 					if tok.typ != tokenRightBrackets {
-						return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)}
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewSlice(pos, operand, low, high)
 				} else {
 					if tok.typ != tokenRightBrackets {
-						return nil, token{}, fmt.Errorf("unexpected %s, expecting ] at %d", tok, tok.pos)
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)}
 					}
 					if index == nil {
-						return nil, token{}, fmt.Errorf("unexpected ], expecting expression at %d", tok.pos)
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected ], expecting expression")}
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewIndex(pos, operand, index)
@@ -243,7 +243,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					return nil, token{}, lex.err
 				}
 				if tok.typ != tokenIdentifier {
-					return nil, token{}, fmt.Errorf("unexpected %s, expecting name at %d", tok, tok.pos)
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)}
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewSelector(pos, operand, string(tok.txt))
@@ -263,7 +263,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				tokenModulo:         // e %
 				operator = ast.NewBinaryOperator(tok.pos, operatorType(tok.typ), nil, nil)
 			case tokenEOF:
-				return nil, token{}, fmt.Errorf("unexpected EOF, expecting expression")
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting expression")}
 			default:
 				if tok.typ == tokenSemicolon {
 					// salta ";" e legge il successivo token
@@ -507,7 +507,7 @@ func parseString(lex *lexer) (string, error) {
 		return "", lex.err
 	}
 	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		return "", fmt.Errorf("unexpected %s, expecting string at %d", tok, tok.pos)
+		return "", &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
 	}
 	return unquoteString(tok.txt), nil
 }
