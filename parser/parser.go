@@ -2,6 +2,8 @@
 // Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
+// Package parser fornisce i metodi per parsare i sorgenti dei
+// templates e ritornarne gli alberi.
 package parser
 
 import (

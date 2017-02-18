@@ -2,6 +2,7 @@
 // Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
+// Package ast dichiara i tipi usati per definire gli alberi dei template.
 package ast
 
 import (

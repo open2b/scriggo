@@ -16,9 +16,9 @@ type Template struct {
 	parser *parser.Parser
 }
 
-// New ritorna un template i cui file sono nella directory dir.
-// Se cache è true allora un file viene letto e messo in cache
-// alla sua prima esecuzione e non sarà più riletto.
+// New ritorna un template i cui file vengono letti dalla directory dir.
+// Se cache è true i file vengono letti e parsati una sola volta al
+// momento della loro prima esecuzione.
 func New(dir string, cache bool) *Template {
 	r := parser.FileReader(dir)
 	if cache {
@@ -27,9 +27,9 @@ func New(dir string, cache bool) *Template {
 	return &Template{r, parser.NewParser(r)}
 }
 
-// Execute esegue un file del template al percorso path all'interno
-// di dir e scrive il risualtato su out.
-// Le variabili in vars saranno definite nell'ambiente di esecuzione.
+// Execute esegue il file del template con il path indicato, relativo
+// alla directory del template, e scrive il risultato su out.
+// Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 func (t *Template) Execute(out io.Writer, path string, vars map[string]interface{}) error {
 	tree, err := t.parser.Parse(path)
 	if err != nil {

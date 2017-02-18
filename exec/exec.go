@@ -2,6 +2,7 @@
 // Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
 //
 
+// Package exec fornisce i metodi per eseguire gli alberi dei template.
 package exec
 
 import (
@@ -37,13 +38,25 @@ type Env struct {
 	catch func(e *Error) error
 }
 
-func NewEnv(tree *ast.Tree, err func(e *Error) error) *Env {
+// NewEnv ritorna un ambiente di esecuzione per l'albero tree.
+// La funzione catch gestisce il comportamento in caso di errore.
+//
+// Quando si verifica un errore di esecuzione, viene chiamata
+// la funzione catch con argomento l'errore. Se catch ritorna
+// un errore diverso da nil allora l'esecuzione si interrompe e
+// l'errore ritornato viene a sua volta ritornato dal metodo Execute.
+//
+// Se catch è nil allora in caso di errore l'esecuzione si interrompe
+// ed il metodo Execute ritorna l'errore.
+func NewEnv(tree *ast.Tree, catch func(err *Error) error) *Env {
 	if tree == nil {
 		panic("template: tree is nil")
 	}
 	return &Env{tree, err}
 }
 
+// Execute esegue l'albero tree e scrive il risultato su out.
+// Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 	if wr == nil {
 		return errors.New("template: wr is nil")
@@ -83,6 +96,7 @@ func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 	return nil
 }
 
+// state rappresenta lo stato di esecuzione di un albero.
 type state struct {
 	path     string
 	vars     []map[string]interface{}
@@ -90,6 +104,7 @@ type state struct {
 	treepath string
 }
 
+// errorf costruisce e ritorna un errore di esecuzione.
 func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
 	var err = &Error{
