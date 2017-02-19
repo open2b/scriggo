@@ -415,7 +415,13 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	var extend = getExtendNode(tree)
 
 	if extend != nil && extend.Tree == nil {
-		path, err := toAbsolutePath(dir, extend.Path)
+		if extend.Path[0] == '/' {
+			// pulisce il path rimuovendo ".."
+			path, err = toAbsolutePath("/", extend.Path[1:])
+		} else {
+			// determina il path assoluto
+			path, err = toAbsolutePath(dir, extend.Path)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -423,9 +429,12 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		if err != nil {
 			return nil, err
 		}
+		if tr == nil {
+			return nil, &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", path)}
+		}
 		// verifica che l'albero di extend non contenga a sua volta extend
 		if ex := getExtendNode(tr); ex != nil {
-			return nil, &Error{"", *(ex.Pos()), fmt.Errorf("extended document contains extend")}
+			return nil, &Error{tree.Path, *(ex.Pos()), fmt.Errorf("extend document contains extend")}
 		}
 		// verifica se è stato espanso
 		tr.Lock()
@@ -487,7 +496,7 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 					return err
 				}
 				if include == nil {
-					return &Error{"", *(n.Pos()), fmt.Errorf("include does not exist")}
+					return &Error{"", *(n.Pos()), fmt.Errorf("include path %q does not exist", path)}
 				}
 				// se non è espanso lo espande
 				include.Lock()
