@@ -197,7 +197,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%} at %d", tok)}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
 				node = ast.NewShow(pos, expr, parserContext(ctx))

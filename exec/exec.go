@@ -109,8 +109,13 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 	var pos = node.Pos()
 	var err = &Error{
 		Path: s.path,
-		Pos:  ast.Position{pos.Line, pos.Column, pos.Start, pos.End},
-		Err:  fmt.Errorf(format, args...),
+		Pos: ast.Position{
+			Line:   pos.Line,
+			Column: pos.Column,
+			Start:  pos.Start,
+			End:    pos.End,
+		},
+		Err: fmt.Errorf(format, args...),
 	}
 	if s.catch != nil {
 		err2 := s.catch(err)
@@ -728,7 +733,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 	case ast.OperatorModulo:
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T % %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -758,7 +763,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Module(e2)
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T % %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
 
 	}
 

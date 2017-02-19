@@ -76,10 +76,14 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 		ctx = contextHTML
 	}
 	start := len(l.text) - len(l.src)
-	pos := &ast.Position{line, column, start, start + length - 1}
 	l.tokens <- token{
 		typ: typ,
-		pos: pos,
+		pos: &ast.Position{
+			Line:   line,
+			Column: column,
+			Start:  start,
+			End:    start + length - 1,
+		},
 		txt: txt,
 		ctx: ctx,
 	}
