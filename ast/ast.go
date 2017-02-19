@@ -8,6 +8,7 @@ package ast
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	"open2b/decimal"
 )
@@ -79,15 +80,22 @@ func (e expression) isexpr() {}
 // Tree rappresenta un albero parsato.
 type Tree struct {
 	*Position
-	Path  string // path dell'albero.
-	Nodes []Node // nodi di primo livello dell'albero.
+	Path       string // path dell'albero.
+	Nodes      []Node // nodi di primo livello dell'albero.
+	IsExpanded bool   // indica se l'albero è stato espanso.
+	sync.Mutex        // mutex utilizzato durante l'espansione dell'albero.
 }
 
 func NewTree(path string, nodes []Node) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &Tree{&Position{1, 1, 0, 0}, path, nodes}
+	tree := &Tree{
+		Position: &Position{1, 1, 0, 0},
+		Path:     path,
+		Nodes:    nodes,
+	}
+	return tree
 }
 
 // Text rappresenta un testo

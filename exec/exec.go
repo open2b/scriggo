@@ -52,7 +52,7 @@ func NewEnv(tree *ast.Tree, catch func(err *Error) error) *Env {
 	if tree == nil {
 		panic("template: tree is nil")
 	}
-	return &Env{tree, err}
+	return &Env{tree, catch}
 }
 
 // Execute esegue l'albero tree e scrive il risultato su out.

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"open2b/template/ast"
 )
@@ -345,13 +346,18 @@ func FileReader(dir string) ReadFunc {
 // gli alberi letti con read.
 func CacheReader(read ReadFunc) ReadFunc {
 	var trees = map[string]*ast.Tree{}
+	var mux sync.Mutex
 	return func(path string) (*ast.Tree, error) {
 		var err error
+		mux.Lock()
 		tree, ok := trees[path]
+		mux.Unlock()
 		if !ok {
 			tree, err = read(path)
 			if err != nil && tree != nil {
+				mux.Lock()
 				trees[path] = tree
+				mux.Unlock()
 			}
 		}
 		return tree, err
@@ -395,6 +401,14 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return nil, fmt.Errorf("template: path %q does not exist", path)
 	}
 
+	tree.Lock()
+	defer tree.Unlock()
+
+	// verifica se è già stato espanso
+	if tree.IsExpanded {
+		return tree, nil
+	}
+
 	var dir = path[:strings.LastIndexByte(path, '/')+1]
 
 	// determina il nodo extend se presente
@@ -413,9 +427,17 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		if ex := getExtendNode(tr); ex != nil {
 			return nil, &Error{"", *(ex.Pos()), fmt.Errorf("extended document contains extend")}
 		}
-		// espande gli includes
-		var d = path[:strings.LastIndexByte(path, '/')+1]
-		err = p.expandIncludes(tr.Nodes, d)
+		// verifica se è stato espanso
+		tr.Lock()
+		if !tr.IsExpanded {
+			// espande gli includes
+			var d = path[:strings.LastIndexByte(path, '/')+1]
+			err = p.expandIncludes(tr.Nodes, d)
+			if err == nil {
+				tr.IsExpanded = true
+			}
+		}
+		tr.Unlock()
 		if err != nil {
 			if err2, ok := err.(*Error); ok {
 				err2.Path = extend.Path
@@ -433,6 +455,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
+
+	tree.IsExpanded = true
 
 	return tree, nil
 }
@@ -465,8 +489,13 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 				if include == nil {
 					return &Error{"", *(n.Pos()), fmt.Errorf("include does not exist")}
 				}
-				var d = path[:strings.LastIndexByte(path, '/')+1]
-				err = p.expandIncludes(include.Nodes, d)
+				// se non è espanso lo espande
+				include.Lock()
+				if !include.IsExpanded {
+					var d = path[:strings.LastIndexByte(path, '/')+1]
+					err = p.expandIncludes(include.Nodes, d)
+				}
+				include.Unlock()
 				if err != nil {
 					return err
 				}
