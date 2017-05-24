@@ -5,12 +5,16 @@
 package template
 
 import (
+	"errors"
 	"io"
 	"sync"
 
 	"open2b/template/exec"
 	"open2b/template/parser"
 )
+
+// ErrNotExist è ritornato da Execute quando il path non esiste.
+var ErrNotExist = errors.New("template: path does not exist")
 
 type Template struct {
 	read   parser.ReadFunc
@@ -41,6 +45,9 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 		// senza cache
 		tree, err := t.parser.Parse(path)
 		if err != nil {
+			if err == parser.ErrNotExist {
+				return ErrNotExist
+			}
 			return err
 		}
 		env = exec.NewEnv(tree, nil)
@@ -53,6 +60,9 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 			// parsa l'albero di path e crea l'ambiente
 			tree, err := t.parser.Parse(path)
 			if err != nil {
+				if err == parser.ErrNotExist {
+					return ErrNotExist
+				}
 				return err
 			}
 			env = exec.NewEnv(tree, nil)

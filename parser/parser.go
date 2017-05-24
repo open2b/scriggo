@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,9 @@ import (
 
 	"open2b/template/ast"
 )
+
+// ErrNotExist è ritornato dal metodo Parse quando il path non esiste.
+var ErrNotExist = errors.New("template/parser: path does not exist")
 
 type Error struct {
 	Path string
@@ -398,7 +402,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return nil, err
 	}
 	if tree == nil {
-		return nil, fmt.Errorf("template: path %q does not exist", path)
+		return nil, ErrNotExist
 	}
 
 	tree.Lock()
