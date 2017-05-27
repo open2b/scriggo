@@ -13,8 +13,13 @@ import (
 	"open2b/template/parser"
 )
 
-// ErrNotExist è ritornato da Execute quando il path non esiste.
-var ErrNotExist = errors.New("template: path does not exist")
+var (
+	// ErrInvalid è ritornato da Execute quando il parametro path non è valido.
+	ErrInvalid = errors.New("template: invalid argument")
+
+	// ErrNotExist è ritornato da Execute quando il path non esiste.
+	ErrNotExist = errors.New("template: path does not exist")
+)
 
 type Template struct {
 	read   parser.ReadFunc
@@ -45,10 +50,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 		// senza cache
 		tree, err := t.parser.Parse(path)
 		if err != nil {
-			if err == parser.ErrNotExist {
-				return ErrNotExist
-			}
-			return err
+			return convertError(err)
 		}
 		env = exec.NewEnv(tree, nil)
 	} else {
@@ -60,10 +62,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 			// parsa l'albero di path e crea l'ambiente
 			tree, err := t.parser.Parse(path)
 			if err != nil {
-				if err == parser.ErrNotExist {
-					return ErrNotExist
-				}
-				return err
+				return convertError(err)
 			}
 			env = exec.NewEnv(tree, nil)
 			t.Lock()
@@ -72,4 +71,14 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 		}
 	}
 	return env.Execute(out, vars)
+}
+
+func convertError(err error) error {
+	if err == parser.ErrInvalid {
+		return ErrInvalid
+	}
+	if err == parser.ErrNotExist {
+		return ErrNotExist
+	}
+	return err
 }

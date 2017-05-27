@@ -18,8 +18,13 @@ import (
 	"open2b/template/ast"
 )
 
-// ErrNotExist è ritornato dal metodo Parse e da una ReadFunc quando il path non esiste.
-var ErrNotExist = errors.New("template/parser: path does not exist")
+var (
+	// ErrInvalid è ritornato dal metodo Parse quando il parametro path non è valido.
+	ErrInvalid = errors.New("template/parser: invalid argument")
+
+	// ErrNotExist è ritornato dal metodo Parse e da una ReadFunc quando il path non esiste.
+	ErrNotExist = errors.New("template/parser: path does not exist")
+)
 
 type Error struct {
 	Path string
@@ -385,11 +390,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	var err error
 
 	// path deve essere valido e assoluto
-	if !isValidFilePath(path) {
-		return nil, fmt.Errorf("template: invalid path %q", path)
-	}
-	if path[0] != '/' {
-		return nil, fmt.Errorf("template: path %q is not absolute", path)
+	if !isValidFilePath(path) || path[0] != '/' {
+		return nil, ErrInvalid
 	}
 
 	// pulisce path rimuovendo ".."
