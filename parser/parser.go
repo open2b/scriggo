@@ -18,7 +18,7 @@ import (
 	"open2b/template/ast"
 )
 
-// ErrNotExist è ritornato dal metodo Parse quando il path non esiste.
+// ErrNotExist è ritornato dal metodo Parse e da una ReadFunc quando il path non esiste.
 var ErrNotExist = errors.New("template/parser: path does not exist")
 
 type Error struct {
@@ -321,6 +321,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 }
 
 // ReadFunc ritorna un albero dato il path.
+// Se path non esiste ritorna l'errore ErrNotExist.
 type ReadFunc func(path string) (*ast.Tree, error)
 
 // FileReader fornisce una ReadFunc che legge i sorgenti dai
@@ -330,7 +331,7 @@ func FileReader(dir string) ReadFunc {
 		src, err := ioutil.ReadFile(filepath.Join(dir, path))
 		if err != nil {
 			if os.IsNotExist(err) {
-				return nil, nil
+				return nil, ErrNotExist
 			}
 			return nil, err
 		}
@@ -358,7 +359,7 @@ func CacheReader(read ReadFunc) ReadFunc {
 		mux.Unlock()
 		if !ok {
 			tree, err = read(path)
-			if err != nil && tree != nil {
+			if err != nil {
 				mux.Lock()
 				trees[path] = tree
 				mux.Unlock()
@@ -401,9 +402,6 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tree == nil {
-		return nil, ErrNotExist
-	}
 
 	tree.Lock()
 	defer tree.Unlock()
@@ -432,10 +430,10 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		}
 		tr, err := p.read(exPath)
 		if err != nil {
+			if err == ErrNotExist {
+				err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
+			}
 			return nil, err
-		}
-		if tr == nil {
-			return nil, &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
 		}
 		// verifica che l'albero di extend non contenga a sua volta extend
 		if ex := getExtendNode(tr); ex != nil {
@@ -498,10 +496,10 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 				}
 				include, err := p.read(path)
 				if err != nil {
+					if err == ErrNotExist {
+						err = &Error{"", *(n.Pos()), fmt.Errorf("include path %q does not exist", path)}
+					}
 					return err
-				}
-				if include == nil {
-					return &Error{"", *(n.Pos()), fmt.Errorf("include path %q does not exist", path)}
 				}
 				// se non è espanso lo espande
 				include.Lock()
