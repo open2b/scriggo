@@ -419,22 +419,23 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	var extend = getExtendNode(tree)
 
 	if extend != nil && extend.Tree == nil {
+		var exPath string
 		if extend.Path[0] == '/' {
 			// pulisce il path rimuovendo ".."
-			path, err = toAbsolutePath("/", extend.Path[1:])
+			exPath, err = toAbsolutePath("/", extend.Path[1:])
 		} else {
 			// determina il path assoluto
-			path, err = toAbsolutePath(dir, extend.Path)
+			exPath, err = toAbsolutePath(dir, extend.Path)
 		}
 		if err != nil {
 			return nil, err
 		}
-		tr, err := p.read(path)
+		tr, err := p.read(exPath)
 		if err != nil {
 			return nil, err
 		}
 		if tr == nil {
-			return nil, &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", path)}
+			return nil, &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
 		}
 		// verifica che l'albero di extend non contenga a sua volta extend
 		if ex := getExtendNode(tr); ex != nil {
@@ -444,7 +445,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		tr.Lock()
 		if !tr.IsExpanded {
 			// espande gli includes
-			var d = path[:strings.LastIndexByte(path, '/')+1]
+			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
 			err = p.expandIncludes(tr.Nodes, d)
 			if err == nil {
 				tr.IsExpanded = true
@@ -452,8 +453,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		}
 		tr.Unlock()
 		if err != nil {
-			if err2, ok := err.(*Error); ok {
-				err2.Path = extend.Path
+			if err2, ok := err.(*Error); ok && err2.Path == "" {
+				err2.Path = exPath
 			}
 			return nil, err
 		}
@@ -463,7 +464,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	// espande gli includes
 	err = p.expandIncludes(tree.Nodes, dir)
 	if err != nil {
-		if err2, ok := err.(*Error); ok {
+		if err2, ok := err.(*Error); ok && err2.Path == "" {
 			err2.Path = path
 		}
 		return nil, err
@@ -481,11 +482,11 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 	for _, node := range nodes {
 		switch n := node.(type) {
 		case *ast.For:
-			p.expandIncludes(n.Nodes, dir)
+			err = p.expandIncludes(n.Nodes, dir)
 		case *ast.If:
-			p.expandIncludes(n.Nodes, dir)
+			err = p.expandIncludes(n.Nodes, dir)
 		case *ast.Region:
-			p.expandIncludes(n.Nodes, dir)
+			err = p.expandIncludes(n.Nodes, dir)
 		case *ast.Include:
 			if n.Tree == nil {
 				var path = n.Path
@@ -510,10 +511,18 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 				}
 				include.Unlock()
 				if err != nil {
+					if err2, ok := err.(*Error); ok {
+						if strings.HasSuffix(err2.Error(), "does not exist") {
+							err2.Path = path
+						}
+					}
 					return err
 				}
 				n.Tree = include
 			}
+		}
+		if err != nil {
+			return err
 		}
 	}
 	return nil
