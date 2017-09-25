@@ -50,25 +50,6 @@ func toAbsolutePath(dir, path string) (string, error) {
 	return string(b), nil
 }
 
-// isValidAbsDir indica se path è un path di directory assoluto.
-func isValidAbsFilePath(path string) bool {
-	if path == "/" {
-		return true
-	}
-	// path deve iniziare e terminare con '/'
-	if path == "" || path[0] != '/' || path[len(path)-1] == '/' {
-		return false
-	}
-	// le componenti del path devono essere directory
-	var dirs = strings.Split(path, "/")
-	for _, dir := range dirs[1 : len(dirs)-1] {
-		if !isValidDirName(dir) {
-			return false
-		}
-	}
-	return true
-}
-
 func isValidDirName(name string) bool {
 	// deve essere lungo almeno un carattere e meno di 256
 	if name == "" || len(name) >= 256 {
@@ -91,9 +72,10 @@ func isValidDirName(name string) bool {
 		}
 	}
 	// non deve essere un nome riservato per Window
+	name = strings.ToLower(name)
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:4] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:4] == "lpt" && '0' <= name[3] && name[3] <= '9') {
+		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
+		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
 		if len(name) == 4 || name[4] == '.' {
 			return false
 		}
@@ -131,8 +113,8 @@ func isValidFileName(name string) bool {
 	}
 	// non deve essere un nome riservato per Window
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:4] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:4] == "lpt" && '0' <= name[3] && name[3] <= '9') {
+		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
+		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
 		if len(name) == 4 || name[4] == '.' {
 			return false
 		}
@@ -162,8 +144,5 @@ func isValidFilePath(path string) bool {
 		}
 	}
 	// l'ultimo nome deve essere un file
-	if !isValidFileName(names[len(names)-1]) {
-		return false
-	}
-	return true
+	return isValidFileName(names[len(names)-1])
 }

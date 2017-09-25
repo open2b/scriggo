@@ -535,7 +535,7 @@ func CloneExpression(expr Expression) Expression {
 	case *Index:
 		return NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *Selector:
-		return NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), string(e.Ident))
+		return NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}

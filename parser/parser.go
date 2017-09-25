@@ -58,7 +58,6 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 		// EOF
 		case tokenEOF:
-			break
 
 		// Text
 		case tokenText:
@@ -71,6 +70,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			var pos = tok.pos
 			var ctx = tok.ctx
+
+			var err error
+			var expr ast.Expression
 
 			var ok bool
 			tok, ok = <-lex.tokens
@@ -103,7 +105,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment", tok)}
 				}
 				// expression
-				expr, tok, err := parseExpr(lex)
+				expr, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, err
 				}
@@ -164,7 +166,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				default:
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or \"in\"", tok)}
 				}
-				expr, tok, err := parseExpr(lex)
+				expr, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, err
 				}
@@ -181,7 +183,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// if
 			case tokenIf:
-				expr, tok, err := parseExpr(lex)
+				expr, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, err
 				}
@@ -198,7 +200,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// show
 			case tokenShow:
-				expr, tok, err := parseExpr(lex)
+				expr, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, err
 				}
@@ -219,7 +221,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if err != nil {
 					return nil, err
 				}
-				tok, ok := <-lex.tokens
+				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
@@ -239,7 +241,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if name == "" {
 					return nil, &Error{"", *pos, fmt.Errorf("region name can not be empty")}
 				}
-				tok, ok := <-lex.tokens
+				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
@@ -257,7 +259,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if err != nil {
 					return nil, err
 				}
-				tok, ok := <-lex.tokens
+				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
@@ -278,7 +280,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// end
 			case tokenEnd:
-				tok, ok := <-lex.tokens
+				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
@@ -430,7 +432,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tr, err := p.read(exPath)
+		var tr *ast.Tree
+		tr, err = p.read(exPath)
 		if err != nil {
 			if err == ErrNotExist {
 				err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
@@ -496,7 +499,8 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 						return err
 					}
 				}
-				include, err := p.read(path)
+				var include *ast.Tree
+				include, err = p.read(path)
 				if err != nil {
 					if err == ErrNotExist {
 						err = &Error{"", *(n.Pos()), fmt.Errorf("include path %q does not exist", path)}

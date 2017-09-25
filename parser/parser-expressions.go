@@ -89,6 +89,8 @@ import (
 // dell'espressione e l'ultimo token letto che non è parte.
 func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
+	var err error
+
 	// un albero di una espressione ha come nodi intermedi gli operatori,
 	// unari o binari, e come foglie gli operandi.
 	//
@@ -125,7 +127,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			// tra parentesi per poi trattarla come singolo operando.
 			// le parentesi non saranno presenti nell'albero dell'espressione.
 			pos := tok.pos
-			expr, tok, err := parseExpr(lex)
+			var expr ast.Expression
+			expr, tok, err = parseExpr(lex)
 			if err != nil {
 				return nil, token{}, err
 			}
@@ -148,7 +151,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			// se il numero è preceduto dall'operatore unario "-"
 			// cambia il segno del numero e rimuove l'operatore dall'albero
 			if len(path) > 0 {
-				if op, ok := path[len(path)-1].(*ast.UnaryOperator); ok {
+				var op *ast.UnaryOperator
+				if op, ok = path[len(path)-1].(*ast.UnaryOperator); ok {
 					if op.Op == ast.OperatorSubtraction {
 						pos := op.Pos()
 						pos.End = operand.Pos().End
@@ -187,7 +191,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				pos.Start = operand.Pos().Start
 				var args = []ast.Expression{}
 				for {
-					arg, tok, err := parseExpr(lex)
+					var arg ast.Expression
+					arg, tok, err = parseExpr(lex)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -210,13 +215,15 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				index, tok, err := parseExpr(lex)
+				var index ast.Expression
+				index, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, token{}, err
 				}
 				if tok.typ == tokenColon {
 					low := index
-					high, tok, err := parseExpr(lex)
+					var high ast.Expression
+					high, tok, err = parseExpr(lex)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -492,7 +499,7 @@ func unquoteString(s []byte) string {
 				}
 				i += n
 			}
-			i += 1
+			i++
 		} else {
 			cc = append(cc, s[i])
 		}

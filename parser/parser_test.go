@@ -183,7 +183,7 @@ var pageTests = map[string]struct {
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
 		var lex = newLexer([]byte("{{" + expr.src + "}}"))
-		_ = <-lex.tokens
+		<-lex.tokens
 		node, tok, err := parseExpr(lex)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
@@ -249,9 +249,8 @@ func equals(n1, n2 ast.Node, p int) error {
 	if (n1 == nil) != (n2 == nil) {
 		if n1 == nil {
 			return fmt.Errorf("unexpected node nil, expecting %#v", n2)
-		} else {
-			return fmt.Errorf("unexpected node %#v, expecting nil", n1)
 		}
+		return fmt.Errorf("unexpected node %#v, expecting nil", n1)
 	}
 	var pos1 = n1.Pos()
 	var pos2 = n2.Pos()

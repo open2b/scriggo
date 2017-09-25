@@ -17,7 +17,6 @@ type SyntaxError struct {
 	path string
 	str  string
 	pos  int
-	len  int
 }
 
 func (e *SyntaxError) Error() string {
@@ -156,8 +155,6 @@ LOOP:
 	l.ctx = 0
 
 	close(l.tokens)
-
-	return
 }
 
 // readHTML legge un tag HTML sapendo che src inizia con '<'
@@ -510,7 +507,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 // lexNumber legge un number sapendo che src inizia con '0'..'9' o '.'.
 func (l *lexer) lexNumber() {
 	// si ferma solo se un carattere non può essere parte del numero
-	// oppure se il numero non è rappresentabile
 	hasDot := l.src[0] == '.'
 	p := 1
 	for p < len(l.src) {
@@ -524,30 +520,8 @@ func (l *lexer) lexNumber() {
 		}
 		p++
 	}
-	if p > 29 {
-		l.errorf("constant %s overflows decimal", l.src[0:p])
-		return
-	}
 	l.emit(tokenNumber, p)
 	l.column += p
-	return
-}
-
-// lexString legge una stringa "..." o `...` sapendo che src non inizia
-// con spazi.
-func (l *lexer) lexString() error {
-	if len(l.src) == 0 {
-		return l.errorf("unexpected EOF, expecting string")
-	}
-	switch l.src[0] {
-	case '"':
-		return l.lexInterpretedString()
-	case '`':
-		return l.lexRawString()
-	default:
-		c, _ := utf8.DecodeRune(l.src)
-		return l.errorf("unexpected %c, expecting string", c)
-	}
 }
 
 // lexInterpretedString legge una stringa "..." sapendo che src inizia con '"'.
@@ -579,7 +553,7 @@ LOOP:
 				}
 				for i := 0; i < n; i++ {
 					c = l.src[p+2+i]
-					if (c < 0 || 9 < c) && (c < 'A' || 'F' < c) && (c < 'a' || 'f' < c) {
+					if (c < '0' || '9' < c) && (c < 'A' || 'F' < c) && (c < 'a' || 'f' < c) {
 						l.src = l.src[p:]
 						return l.errorf("invalid hex digit in string literal")
 					}
@@ -603,7 +577,7 @@ LOOP:
 				return l.errorf("invalid byte in string literal")
 			}
 			p += s
-			cols += 1
+			cols++
 		}
 	}
 	l.emit(tokenInterpretedString, p+1)

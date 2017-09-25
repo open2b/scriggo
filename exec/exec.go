@@ -145,7 +145,8 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 
 		case *ast.Show:
 
-			expr, err := s.eval(node.Expr)
+			var expr interface{}
+			expr, err = s.eval(node.Expr)
 			if err != nil {
 				return err
 			}
@@ -206,7 +207,8 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			if len(node.Nodes) == 0 {
 				continue
 			}
-			expr, err := s.eval(node.Expr)
+			var expr interface{}
+			expr, err = s.eval(node.Expr)
 			if err != nil {
 				return err
 			}
@@ -232,7 +234,8 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			}
 			ident := node.Ident.Name
 
-			expr, err := s.eval(node.Expr)
+			var expr interface{}
+			expr, err = s.eval(node.Expr)
 			if err != nil {
 				return err
 			}
