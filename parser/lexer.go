@@ -539,7 +539,7 @@ LOOP:
 		case '"':
 			break LOOP
 		case '\\':
-			if len(l.src) < p+3 {
+			if p+1 == len(l.src) {
 				return l.errorf("not closed string literal")
 			}
 			switch c := l.src[p+1]; c {
@@ -548,7 +548,7 @@ LOOP:
 				if c == 'U' {
 					n = 8
 				}
-				if p+2+n < len(l.src) {
+				if p+1+n >= len(l.src) {
 					return l.errorf("not closed string literal")
 				}
 				for i := 0; i < n; i++ {
