@@ -55,7 +55,7 @@ func NewEnv(tree *ast.Tree, catch func(err *Error) error) *Env {
 	return &Env{tree, catch}
 }
 
-// Execute esegue l'albero tree e scrive il risultato su out.
+// Execute esegue l'albero tree e scrive il risultato su wr.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 	if wr == nil {
@@ -219,8 +219,8 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 						return err
 					}
 				}
-			} else if expr != nil {
-				panic(fmt.Errorf("non-bool %s (type %T) used as if condition", node.Expr, node.Expr))
+			} else {
+				return fmt.Errorf("non-bool %s (type %T) used as if condition", node.Expr, node.Expr)
 			}
 
 		case *ast.For:
@@ -432,55 +432,67 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 	switch node.Op {
 
 	case ast.OperatorEqual:
-		if expr1 == nil {
-			return expr2 == nil
-		}
-		if expr2 == nil {
-			return expr1 == nil
-		}
-		switch e1 := expr1.(type) {
-		case bool:
-			if e2, ok := expr2.(bool); ok {
-				return e1 == e2
+		if expr1 == nil || expr2 == nil {
+			defer func() {
+				if recover() != nil {
+					panic(s.errorf(node, "invalid operation: %T == %T", expr1, expr2))
+				}
+			}()
+			if expr2 == nil {
+				return reflect.ValueOf(expr1).IsNil()
 			}
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 == e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 == e2
-			}
-		case decimal.Dec:
-			if e2, ok := expr2.(decimal.Dec); ok {
-				return e1.ComparedTo(e2) == 0
+			return reflect.ValueOf(expr2).IsNil()
+		} else {
+			switch e1 := expr1.(type) {
+			case bool:
+				if e2, ok := expr2.(bool); ok {
+					return e1 == e2
+				}
+			case string:
+				if e2, ok := expr2.(string); ok {
+					return e1 == e2
+				}
+			case int:
+				if e2, ok := expr2.(int); ok {
+					return e1 == e2
+				}
+			case decimal.Dec:
+				if e2, ok := expr2.(decimal.Dec); ok {
+					return e1.ComparedTo(e2) == 0
+				}
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T == %T", expr1, expr2))
 
 	case ast.OperatorNotEqual:
-		if expr1 == nil {
-			return expr2 != nil
-		}
-		if expr2 == nil {
-			return expr1 != nil
-		}
-		switch e1 := expr1.(type) {
-		case bool:
-			if e2, ok := expr2.(bool); ok {
-				return e1 != e2
+		if expr1 == nil || expr2 == nil {
+			defer func() {
+				if recover() != nil {
+					panic(s.errorf(node, "invalid operation: %T != %T", expr1, expr2))
+				}
+			}()
+			if expr2 == nil {
+				return !reflect.ValueOf(expr1).IsNil()
 			}
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 != e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 != e2
-			}
-		case decimal.Dec:
-			if e2, ok := expr2.(decimal.Dec); ok {
-				return e1.ComparedTo(e2) != 0
+			return !reflect.ValueOf(expr2).IsNil()
+		} else {
+			switch e1 := expr1.(type) {
+			case bool:
+				if e2, ok := expr2.(bool); ok {
+					return e1 != e2
+				}
+			case string:
+				if e2, ok := expr2.(string); ok {
+					return e1 != e2
+				}
+			case int:
+				if e2, ok := expr2.(int); ok {
+					return e1 != e2
+				}
+			case decimal.Dec:
+				if e2, ok := expr2.(decimal.Dec); ok {
+					return e1.ComparedTo(e2) != 0
+				}
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T != %T", expr1, expr2))
@@ -774,11 +786,14 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 }
 
 func (s *state) evalSelector(node *ast.Selector) interface{} {
-	var e = reflect.ValueOf(s.evalExpression(node.Expr))
-	if e.Kind() == reflect.Map {
-		return e.MapIndex(reflect.ValueOf(node.Ident)).Interface()
+	v := s.evalExpression(node.Expr)
+	if v2, ok := v.(map[string]interface{}); ok {
+		if v3, ok := v2[node.Ident]; ok && v3 != nil {
+			return v3
+		}
+		panic(s.errorf(node, "field %q does not exist", node.Ident))
 	}
-	return nil
+	panic(s.errorf(node, "type %T cannot have fields", v))
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
@@ -866,7 +881,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
-		if v, ok := s.vars[i][node.Name]; ok {
+		if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
 			if v == errValue {
 				panic(v)
 			}

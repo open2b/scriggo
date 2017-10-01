@@ -14,6 +14,7 @@ import (
 )
 
 var builtin = map[string]interface{}{
+	"nil":       nil,
 	"true":      true,
 	"false":     false,
 	"len":       _len,

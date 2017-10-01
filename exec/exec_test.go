@@ -88,6 +88,20 @@ var execExprTests = []struct {
 	{"a[2:2]", "", map[string]interface{}{"a": "xz€"}},
 	{"a[2:1]", "", map[string]interface{}{"a": "xz€"}},
 
+	// ==, !=
+	{"true == true", "true", nil},
+	{"false == false", "true", nil},
+	{"true == false", "false", nil},
+	{"false == true", "false", nil},
+	{"true != true", "false", nil},
+	{"false != false", "false", nil},
+	{"true != false", "true", nil},
+	{"false != true", "true", nil},
+	{"a == nil", "true", map[string]interface{}{"a": map[string]interface{}(nil)}},
+	{"a != nil", "false", map[string]interface{}{"a": map[string]interface{}(nil)}},
+	{"nil == a", "true", map[string]interface{}{"a": map[string]interface{}(nil)}},
+	{"nil != a", "false", map[string]interface{}{"a": map[string]interface{}(nil)}},
+
 	// len
 	{"len()", "0", nil},
 	{"len(``)", "0", nil},
@@ -98,7 +112,7 @@ var execExprTests = []struct {
 
 	// join
 	{"join()", "", nil},
-	{"join(a, ``)", "", map[string]interface{}{"a": nil}},
+	{"join(a, ``)", "", map[string]interface{}{"a": []string(nil)}},
 	{"join(a, ``)", "", map[string]interface{}{"a": []string{}}},
 	{"join(a, ``)", "a", map[string]interface{}{"a": []string{"a"}}},
 	{"join(a, ``)", "ab", map[string]interface{}{"a": []string{"a", "b"}}},
