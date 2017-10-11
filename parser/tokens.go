@@ -14,18 +14,15 @@ import (
 type context int
 
 const (
-	contextHTML      context = iota // codice HTML
-	contextAttribute                // valore di un attributo
-	contextScript                   // script
-	contextStyle                    // stile
+	contextHTML   context = iota // codice HTML
+	contextScript                // script
+	contextStyle                 // stile
 )
 
 func (ctx context) String() string {
 	switch ctx {
 	case contextHTML:
 		return "HTML"
-	case contextAttribute:
-		return "Attribute"
 	case contextScript:
 		return "Script"
 	case contextStyle:

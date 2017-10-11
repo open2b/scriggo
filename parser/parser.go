@@ -549,8 +549,6 @@ func parserContext(ctx context) ast.Context {
 	switch ctx {
 	case contextHTML:
 		return ast.ContextHTML
-	case contextAttribute:
-		return ast.ContextAttribute
 	case contextScript:
 		return ast.ContextScript
 	case contextStyle:

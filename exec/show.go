@@ -6,7 +6,6 @@ package exec
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -68,10 +67,6 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 	_, err := io.WriteString(wr, s)
 
 	return err
-}
-
-func showInAttributeContext(wr io.Writer, expr interface{}) error {
-	return errors.New("Attribute context is not supported")
 }
 
 func showInScriptContext(wr io.Writer, expr interface{}) error {

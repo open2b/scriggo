@@ -40,10 +40,9 @@ func (op OperatorType) String() string {
 type Context int
 
 const (
-	ContextHTML      Context = iota // codice HTML
-	ContextAttribute                // valore di un attributo
-	ContextScript                   // script
-	ContextStyle                    // stile
+	ContextHTML   Context = iota // codice HTML
+	ContextScript                // script
+	ContextStyle                 // stile
 )
 
 // Node è un elemento del tree.

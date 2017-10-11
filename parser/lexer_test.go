@@ -103,7 +103,6 @@ var contextTests = map[string][]context{
 	"<style></style>":             {contextHTML},
 	"<script>{{a}}</script>{{a}}": {contextHTML, contextScript, contextScript, contextScript, contextHTML, contextHTML, contextHTML, contextHTML},
 	"<style>{{a}}</style>{{a}}":   {contextHTML, contextStyle, contextStyle, contextStyle, contextHTML, contextHTML, contextHTML, contextHTML},
-	//"<a class=\"{{c}}\"></a>":     {contextHTML, contextAttribute, contextAttribute, contextAttribute, contextHTML},
 }
 
 var positionTests = []struct {
