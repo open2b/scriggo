@@ -11,7 +11,6 @@ import (
 	"io"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"open2b/decimal"
 	"open2b/template/ast"
@@ -151,53 +150,13 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				return err
 			}
 
-			var s string
-			switch e := expr.(type) {
-			case string:
-				s = e
-			case int:
-				s = strconv.Itoa(e)
-			case decimal.Dec:
-				s = e.String()
-				i := len(s) - 1
-				for i > 0 && s[i] == '0' {
-					i--
-				}
-				if s[i] == '.' {
-					s = s[:i]
-				} else {
-					s = s[:i+1]
-				}
-			case bool:
-				if e {
-					s = "true"
-				} else {
-					s = "false"
-				}
-			case []string:
-				s = strings.Join(e, ", ")
-			case []int:
-				buf := make([]string, len(e))
-				for i, n := range e {
-					buf[i] = strconv.Itoa(n)
-				}
-				s = strings.Join(buf, ", ")
-			case []bool:
-				buf := make([]string, len(e))
-				for i, b := range e {
-					if b {
-						buf[i] = "true"
-					} else {
-						buf[i] = "false"
-					}
-				}
-				s = strings.Join(buf, ", ")
-			default:
-				if str, ok := e.(fmt.Stringer); ok {
-					s = str.String()
-				}
+			switch node.Context {
+			case ast.ContextHTML:
+				err = showInHTMLContext(wr, expr)
+			case ast.ContextScript:
+				err = showInScriptContext(wr, expr)
 			}
-			_, err = io.WriteString(wr, s)
+
 			if err != nil {
 				return err
 			}
