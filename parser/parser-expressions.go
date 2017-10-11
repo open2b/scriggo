@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"unicode/utf8"
 
 	"open2b/decimal"
 	"open2b/template/ast"
@@ -486,17 +487,22 @@ func unquoteString(s []byte) string {
 				if s[i+1] == 'U' {
 					n = 8
 				}
+				var r uint32
 				for j := 0; j < n; j++ {
+					r = r * 16
 					var c = s[i+j+2]
 					switch {
 					case '0' <= c && c <= '9':
-						cc = append(cc, c-'0')
+						r += uint32(c - '0')
 					case 'a' <= c && c <= 'f':
-						cc = append(cc, c-'a'+10)
+						r += uint32(c - 'a' + 10)
 					case 'A' <= c && c <= 'F':
-						cc = append(cc, c-'A'+10)
+						r += uint32(c - 'A' + 10)
 					}
 				}
+				p := [4]byte{}
+				j := utf8.EncodeRune(p[:], rune(r))
+				cc = append(cc, p[:j]...)
 				i += n
 			}
 			i++

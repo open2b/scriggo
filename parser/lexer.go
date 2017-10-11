@@ -551,12 +551,25 @@ LOOP:
 				if p+1+n >= len(l.src) {
 					return l.errorf("not closed string literal")
 				}
+				var r uint32
 				for i := 0; i < n; i++ {
+					r = r * 16
 					c = l.src[p+2+i]
-					if (c < '0' || '9' < c) && (c < 'A' || 'F' < c) && (c < 'a' || 'f' < c) {
+					switch {
+					case '0' <= c && c <= '9':
+						r += uint32(c - '0')
+					case 'a' <= c && c <= 'f':
+						r += uint32(c - 'a' + 10)
+					case 'A' <= c && c <= 'F':
+						r += uint32(c - 'A' + 10)
+					default:
 						l.src = l.src[p:]
 						return l.errorf("invalid hex digit in string literal")
 					}
+				}
+				if 0xD800 <= r && r < 0xE000 || r > '\U0010FFFF' {
+					l.src = l.src[p:]
+					return l.errorf("escape sequence is invalid Unicode code point")
 				}
 				p += 2 + n
 				cols += 2 + n
