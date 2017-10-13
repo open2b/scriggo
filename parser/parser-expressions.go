@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"unicode"
 	"unicode/utf8"
 
 	"open2b/decimal"
@@ -253,8 +254,12 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				if tok.typ != tokenIdentifier {
 					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)}
 				}
+				ident := string(tok.txt)
+				if fc, _ := utf8.DecodeRuneInString(ident); !unicode.Is(unicode.Lu, fc) {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported field or method %s", ident)}
+				}
 				pos.End = tok.pos.End
-				operand = ast.NewSelector(pos, operand, string(tok.txt))
+				operand = ast.NewSelector(pos, operand, ident)
 			case
 				tokenEqual,          // e ==
 				tokenNotEqual,       // e !=
