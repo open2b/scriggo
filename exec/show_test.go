@@ -6,20 +6,25 @@ package exec
 
 import (
 	"bytes"
+	"html"
 	"testing"
 
 	"open2b/template/parser"
 )
 
 var htmlContextTests = []struct {
-	src  string
+	src  interface{}
 	res  string
 	vars map[string]interface{}
 }{
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
-	{`"<a>"`, "<a>", nil},
-	{`"<div></div>"`, "<div></div>", nil},
+	{`"<a>"`, html.EscapeString("<a>"), nil},
+	{`"<div></div>"`, html.EscapeString("<div></div>"), nil},
+	{`a`, html.EscapeString("<a>"), map[string]interface{}{"a": "<a>"}},
+	{`d`, html.EscapeString("<div></div>"), map[string]interface{}{"d": "<div></div>"}},
+	{`a`, "<a>", map[string]interface{}{"a": HTML("<a>")}},
+	{`d`, "<div></div>", map[string]interface{}{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -39,7 +44,14 @@ var htmlContextTests = []struct {
 
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
-		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
+		var src string
+		switch s := expr.src.(type) {
+		case string:
+			src = s
+		case HTML:
+			src = string(s)
+		}
+		var tree, err = parser.Parse([]byte("{{" + src + "}}"))
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

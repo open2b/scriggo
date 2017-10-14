@@ -13,6 +13,8 @@ import (
 	"open2b/template/parser"
 )
 
+type HTML = exec.HTML
+
 var (
 	// ErrInvalid è ritornato da Execute quando il parametro path non è valido.
 	ErrInvalid = errors.New("template: invalid argument")

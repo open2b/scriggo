@@ -34,7 +34,6 @@ var execExprTests = []struct {
 	{"_", "5", map[string]interface{}{"_": 5}},
 	{"true", "_true_", map[string]interface{}{"true": "_true_"}},
 	{"false", "_false_", map[string]interface{}{"false": "_false_"}},
-	{"2 + 3", "5", nil},
 	{"2 - 3", "-1", nil},
 	{"2 * 3", "6", nil},
 	{"2 / 3", "0.6666666666666666666666666667", nil},
@@ -105,6 +104,26 @@ var execExprTests = []struct {
 	{"a != nil", "false", map[string]interface{}{"a": map[string]interface{}(nil)}},
 	{"nil == a", "true", map[string]interface{}{"a": map[string]interface{}(nil)}},
 	{"nil != a", "false", map[string]interface{}{"a": map[string]interface{}(nil)}},
+	{`a == "a"`, "true", map[string]interface{}{"a": "a"}},
+	{`a == "a"`, "true", map[string]interface{}{"a": HTML("a")}},
+	{`a != "b"`, "true", map[string]interface{}{"a": "a"}},
+	{`a != "b"`, "true", map[string]interface{}{"a": HTML("a")}},
+	{`a == "<a>"`, "true", map[string]interface{}{"a": "<a>"}},
+	{`a == "<a>"`, "true", map[string]interface{}{"a": HTML("<a>")}},
+	{`a != "<b>"`, "false", map[string]interface{}{"a": "<b>"}},
+	{`a != "<b>"`, "false", map[string]interface{}{"a": HTML("<b>")}},
+
+	// +
+	{"2 + 3", "5", nil},
+	{`"a" + "b"`, "ab", nil},
+	{`a + "b"`, "ab", map[string]interface{}{"a": "a"}},
+	{`a + "b"`, "ab", map[string]interface{}{"a": HTML("a")}},
+	{`a + "b"`, "&lt;a&gt;b", map[string]interface{}{"a": "<a>"}},
+	{`a + "b"`, "<a>b", map[string]interface{}{"a": HTML("<a>")}},
+	{`a + "<b>"`, "&lt;a&gt;&lt;b&gt;", map[string]interface{}{"a": "<a>"}},
+	{`a + "<b>"`, "<a>&lt;b&gt;", map[string]interface{}{"a": HTML("<a>")}},
+	{"a + b", "&lt;a&gt;&lt;b&gt;", map[string]interface{}{"a": "<a>", "b": "<b>"}},
+	{"a + b", "<a><b>", map[string]interface{}{"a": HTML("<a>"), "b": HTML("<b>")}},
 
 	// len
 	{"len()", "0", nil},
@@ -113,6 +132,9 @@ var execExprTests = []struct {
 	{"len(`abc`)", "3", nil},
 	{"len(`€`)", "1", nil},
 	{"len(`€`)", "1", nil},
+	{"len(a)", "1", map[string]interface{}{"a": "a"}},
+	{"len(a)", "3", map[string]interface{}{"a": "<a>"}},
+	{"len(a)", "3", map[string]interface{}{"a": HTML("<a>")}},
 
 	// join
 	{"join()", "", nil},

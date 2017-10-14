@@ -51,6 +51,11 @@ func _len(v interface{}) int {
 			return len(s)
 		}
 		return utf8.RuneCountInString(s)
+	case HTML:
+		if len(string(s)) <= 1 {
+			return len(string(s))
+		}
+		return utf8.RuneCountInString(string(s))
 	case int:
 		return 0
 	case bool:
@@ -58,6 +63,8 @@ func _len(v interface{}) int {
 	case []int:
 		return len(s)
 	case []string:
+		return len(s)
+	case []HTML:
 		return len(s)
 	case []bool:
 		return len(s)

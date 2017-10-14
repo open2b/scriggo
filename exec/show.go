@@ -7,6 +7,7 @@ package exec
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"io"
 	"strconv"
 	"strings"
@@ -20,7 +21,9 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 
 	switch e := expr.(type) {
 	case string:
-		s = e
+		s = html.EscapeString(e)
+	case HTML:
+		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Dec:
@@ -41,7 +44,17 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 			s = "false"
 		}
 	case []string:
-		s = strings.Join(e, ", ")
+		st := make([]string, len(e))
+		for i, v := range e {
+			st[i] = html.EscapeString(v)
+		}
+		s = strings.Join(st, ", ")
+	case []HTML:
+		st := make([]string, len(e))
+		for i, h := range e {
+			st[i] = string(h)
+		}
+		s = strings.Join(st, ", ")
 	case []int:
 		buf := make([]string, len(e))
 		for i, n := range e {
@@ -79,6 +92,8 @@ func toJavaScriptValue(expr interface{}) string {
 	switch e := expr.(type) {
 	case string:
 		return toJavaScriptString(e)
+	case HTML:
+		return toJavaScriptString(string(e))
 	case int:
 		return strconv.Itoa(e)
 	case decimal.Dec:
@@ -108,6 +123,18 @@ func toJavaScriptValue(expr interface{}) string {
 				s += ","
 			}
 			s += toJavaScriptString(t)
+		}
+		return "[" + s + "]"
+	case []HTML:
+		if e == nil {
+			return "null"
+		}
+		var s string
+		for i, t := range e {
+			if i > 0 {
+				s += ","
+			}
+			s += toJavaScriptString(string(t))
 		}
 		return "[" + s + "]"
 	case []int:
