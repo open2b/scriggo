@@ -582,16 +582,11 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		}
 		switch e1 := expr1.(type) {
 		case string:
-			switch e2 := expr2.(type) {
-			case string:
+			if e2, ok := expr2.(string); ok {
 				return e1 + e2
-			case int:
-				return e1 + strconv.Itoa(e2)
 			}
 		case int:
 			switch e2 := expr2.(type) {
-			case string:
-				return strconv.Itoa(e1) + e2
 			case int:
 				s := e1 + e2
 				if e1 > 0 && e2 > 0 && s < 0 || e1 < 0 && e2 < 0 && s > 0 {
@@ -603,8 +598,6 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			}
 		case decimal.Dec:
 			switch e2 := expr2.(type) {
-			case string:
-				return e1.String() + e2
 			case int:
 				return e1.Plus(decimal.Int(e2))
 			case decimal.Dec:
