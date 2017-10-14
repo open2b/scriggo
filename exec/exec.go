@@ -739,9 +739,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 func (s *state) evalSelector(node *ast.Selector) interface{} {
 	v := s.evalExpression(node.Expr)
+	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok && v3 != nil {
 			return v3
+		}
+		panic(s.errorf(node, "field %q does not exist", node.Ident))
+	}
+	// struct
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Struct {
+		v2 := rv.FieldByName(node.Ident)
+		if v2.IsValid() {
+			return v2.Interface()
 		}
 		panic(s.errorf(node, "field %q does not exist", node.Ident))
 	}

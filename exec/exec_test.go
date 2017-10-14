@@ -88,6 +88,10 @@ var execExprTests = []struct {
 	{"a[2:2]", "", map[string]interface{}{"a": "xz€"}},
 	{"a[2:1]", "", map[string]interface{}{"a": "xz€"}},
 
+	// selectors
+	{"a.B", "b", map[string]interface{}{"a": map[string]interface{}{"B": "b"}}},
+	{"a.B", "b", map[string]interface{}{"a": struct{ B string }{B: "b"}}},
+
 	// ==, !=
 	{"true == true", "true", nil},
 	{"false == false", "true", nil},
