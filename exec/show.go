@@ -22,8 +22,8 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 	switch e := expr.(type) {
 	case string:
 		s = html.EscapeString(e)
-	case HTML:
-		s = string(e)
+	case HTMLer:
+		s = e.HTML()
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Dec:
@@ -49,10 +49,10 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 			st[i] = html.EscapeString(v)
 		}
 		s = strings.Join(st, ", ")
-	case []HTML:
+	case []HTMLer:
 		st := make([]string, len(e))
 		for i, h := range e {
-			st[i] = string(h)
+			st[i] = h.HTML()
 		}
 		s = strings.Join(st, ", ")
 	case []int:
@@ -92,8 +92,8 @@ func toJavaScriptValue(expr interface{}) string {
 	switch e := expr.(type) {
 	case string:
 		return toJavaScriptString(e)
-	case HTML:
-		return toJavaScriptString(string(e))
+	case HTMLer:
+		return toJavaScriptString(e.HTML())
 	case int:
 		return strconv.Itoa(e)
 	case decimal.Dec:
@@ -125,7 +125,7 @@ func toJavaScriptValue(expr interface{}) string {
 			s += toJavaScriptString(t)
 		}
 		return "[" + s + "]"
-	case []HTML:
+	case []HTMLer:
 		if e == nil {
 			return "null"
 		}
@@ -134,7 +134,7 @@ func toJavaScriptValue(expr interface{}) string {
 			if i > 0 {
 				s += ","
 			}
-			s += toJavaScriptString(string(t))
+			s += toJavaScriptString(t.HTML())
 		}
 		return "[" + s + "]"
 	case []int:

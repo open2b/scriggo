@@ -48,8 +48,8 @@ func TestHTMLContext(t *testing.T) {
 		switch s := expr.src.(type) {
 		case string:
 			src = s
-		case HTML:
-			src = string(s)
+		case HTMLer:
+			src = s.HTML()
 		}
 		var tree, err = parser.Parse([]byte("{{" + src + "}}"))
 		if err != nil {
