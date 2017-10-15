@@ -622,7 +622,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			switch e2 := expr2.(type) {
 			case int:
 				s := e1 + e2
-				if e1 > 0 && e2 > 0 && s < 0 || e1 < 0 && e2 < 0 && s > 0 {
+				if e1 > 0 && e2 > 0 && s < 0 || e1 < 0 && e2 < 0 && s >= 0 {
 					return decimal.Int(e1).Plus(decimal.Int(e2))
 				}
 				return s
