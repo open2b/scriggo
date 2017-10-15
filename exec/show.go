@@ -15,6 +15,14 @@ import (
 	"open2b/decimal"
 )
 
+// HTMLer è implementato da qualsiasi valore che ha metodo HTML,
+// il quale definisce il formato HTML per questo valore.
+// I valori che implementano HTMLer vengono mostrati nel contesto
+// HTML senza essere sottoposti ad escape.
+type HTMLer interface {
+	HTML() string
+}
+
 func showInHTMLContext(wr io.Writer, expr interface{}) error {
 
 	var s string
@@ -22,6 +30,8 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 	switch e := expr.(type) {
 	case string:
 		s = html.EscapeString(e)
+	case HTML:
+		s = string(e)
 	case HTMLer:
 		s = e.HTML()
 	case int:
@@ -44,6 +54,12 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 		st := make([]string, len(e))
 		for i, v := range e {
 			st[i] = html.EscapeString(v)
+		}
+		s = strings.Join(st, ", ")
+	case []HTML:
+		st := make([]string, len(e))
+		for i, h := range e {
+			st[i] = string(h)
 		}
 		s = strings.Join(st, ", ")
 	case []HTMLer:
@@ -89,6 +105,8 @@ func toJavaScriptValue(expr interface{}) string {
 	switch e := expr.(type) {
 	case string:
 		return toJavaScriptString(e)
+	case HTML:
+		return toJavaScriptString(string(e))
 	case HTMLer:
 		return toJavaScriptString(e.HTML())
 	case int:
@@ -119,6 +137,18 @@ func toJavaScriptValue(expr interface{}) string {
 				s += ","
 			}
 			s += toJavaScriptString(t)
+		}
+		return "[" + s + "]"
+	case []HTML:
+		if e == nil {
+			return "null"
+		}
+		var s string
+		for i, t := range e {
+			if i > 0 {
+				s += ","
+			}
+			s += toJavaScriptString(string(t))
 		}
 		return "[" + s + "]"
 	case []HTMLer:

@@ -17,21 +17,10 @@ import (
 	"open2b/template/ast"
 )
 
-// HTMLer è implementato da qualsiasi valore che ha metodo HTML,
-// il quale definisce il formato HTML per questo valore.
-// I valori che implementano HTMLer vengono mostrati nel contesto
-// HTML senza essere sottoposti ad escape.
-type HTMLer interface {
-	HTML() string
-}
-
-// HTML implementa il metodo HTML per un valore di tipo string.
-// Viene usato per le stringhe che contengono codice HTML.
+// HTML viene usato per le stringhe che contengono codice HTML
+// affinché show non le sottoponga ad escape.
+// Nelle espressioni si comporta come una stringa.
 type HTML string
-
-func (html HTML) HTML() string {
-	return string(html)
-}
 
 const maxUint = ^uint(0)
 const maxInt = int(maxUint >> 1)
@@ -608,15 +597,15 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			switch e2 := expr2.(type) {
 			case string:
 				return e1 + e2
-			case HTMLer:
-				return HTML(html.EscapeString(e1) + e2.HTML())
+			case HTML:
+				return HTML(html.EscapeString(e1) + string(e2))
 			}
-		case HTMLer:
+		case HTML:
 			switch e2 := expr2.(type) {
 			case string:
-				return HTML(e1.HTML() + html.EscapeString(e2))
-			case HTMLer:
-				return HTML(e1.HTML() + e2.HTML())
+				return HTML(string(e1) + html.EscapeString(e2))
+			case HTML:
+				return HTML(string(e1) + string(e2))
 			}
 		case int:
 			switch e2 := expr2.(type) {
@@ -940,8 +929,8 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 				switch v := arg.(type) {
 				case string:
 					a = v
-				case HTMLer:
-					a = v.HTML()
+				case HTML:
+					a = string(v)
 				default:
 					if arg == nil {
 						panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
@@ -981,14 +970,14 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	return vals[0].Interface()
 }
 
-// htmlToStringType ritorna e1 e e2 con tipo string se implementano HTMLer.
-// Se non implementano HTMLer vengono ritornate invariate.
+// htmlToStringType ritorna e1 e e2 con tipo string al posto di HTML.
+// Se non hanno tipo HTML vengono ritornate invariate.
 func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
-	if e, ok := e1.(HTMLer); ok {
-		e1 = e.HTML()
+	if e, ok := e1.(HTML); ok {
+		e1 = string(e)
 	}
-	if e, ok := e2.(HTMLer); ok {
-		e2 = e.HTML()
+	if e, ok := e2.(HTML); ok {
+		e2 = string(e)
 	}
 	return e1, e2
 }
