@@ -28,14 +28,11 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 		s = strconv.Itoa(e)
 	case decimal.Dec:
 		s = e.String()
-		i := len(s) - 1
-		for i > 0 && s[i] == '0' {
-			i--
-		}
-		if s[i] == '.' {
-			s = s[:i]
-		} else {
-			s = s[:i+1]
+		if strings.Contains(s, ".") {
+			s = strings.TrimRight(s, "0")
+			if s[len(s)-1] == '.' {
+				s = s[:len(s)-1]
+			}
 		}
 	case bool:
 		if e {
@@ -98,14 +95,13 @@ func toJavaScriptValue(expr interface{}) string {
 		return strconv.Itoa(e)
 	case decimal.Dec:
 		s := e.String()
-		i := len(s) - 1
-		for i > 0 && s[i] == '0' {
-			i--
+		if strings.Contains(s, ".") {
+			s = strings.TrimRight(s, "0")
+			if s[len(s)-1] == '.' {
+				s = s[:len(s)-1]
+			}
 		}
-		if s[i] == '.' {
-			return s[:i]
-		}
-		return s[:i+1]
+		return s
 	case bool:
 		if e {
 			return "true"
