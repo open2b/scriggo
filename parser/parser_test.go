@@ -6,10 +6,24 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
+	"open2b/decimal"
 	"open2b/template/ast"
 )
+
+const maxUint = ^uint(0)
+const maxInt = int(maxUint >> 1)
+const minInt = -maxInt - 1
+
+var maxIntStr = strconv.Itoa(maxInt)
+var minIntStr = strconv.Itoa(minInt)
+
+var oneDecimal = decimal.Int(1)
+
+var maxIntPlusOneStr = decimal.Int(maxInt).Plus(oneDecimal).String()
+var minIntMinusOneStr = decimal.Int(minInt).Minus(oneDecimal).String()
 
 func p(line, column, start, end int) *ast.Position {
 	return &ast.Position{line, column, start, end}
@@ -26,8 +40,11 @@ var exprTests = []struct {
 	{"_5", ast.NewIdentifier(p(1, 1, 0, 1), "_5")},
 	{"0", ast.NewInt(p(1, 1, 0, 0), 0)},
 	{"3", ast.NewInt(p(1, 1, 0, 0), 3)},
-	{"2147483647", ast.NewInt(p(1, 1, 0, 9), 2147483647)},
-	{"-2147483648", ast.NewInt(p(1, 1, 0, 10), -2147483648)},
+	{maxIntStr, ast.NewInt(p(1, 1, 0, len(maxIntStr)-1), maxInt)},
+	{minIntStr, ast.NewInt(p(1, 1, 0, len(minIntStr)-1), minInt)},
+	{maxIntPlusOneStr, ast.NewDecimal(p(1, 1, 0, len(maxIntPlusOneStr)-1), decimal.String(maxIntPlusOneStr))},
+	{minIntMinusOneStr, ast.NewDecimal(p(1, 1, 0, len(minIntMinusOneStr)-1), decimal.String(minIntMinusOneStr))},
+	{"433937734937734969526500969526500", ast.NewDecimal(p(1, 1, 0, 32), decimal.String("433937734937734969526500969526500"))},
 	{"\"\"", ast.NewString(p(1, 1, 0, 1), "")},
 	{"\"a\"", ast.NewString(p(1, 1, 0, 2), "a")},
 	{`"\t"`, ast.NewString(p(1, 1, 0, 3), "\t")},
@@ -308,6 +325,14 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		if nn1.Value != nn2.Value {
 			return fmt.Errorf("unexpected %d, expecting %d", nn1.Value, nn2.Value)
+		}
+	case *ast.Decimal:
+		nn2, ok := n2.(*ast.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Value.ComparedTo(nn2.Value) != 0 {
+			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value.String(), nn2.Value.String())
 		}
 	case *ast.String:
 		nn2, ok := n2.(*ast.String)
