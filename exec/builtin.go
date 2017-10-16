@@ -152,8 +152,8 @@ func _trimSpace(s string) string {
 }
 
 // _html is the builtin function "html"
-func _html(v interface{}) HTML {
-	return HTML(interfaceToHTML(v))
+func _html(s string) HTML {
+	return HTML(s)
 }
 
 // _min is the builtin function "min"

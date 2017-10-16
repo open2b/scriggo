@@ -228,11 +228,10 @@ var execExprTests = []struct {
 	{"trimSpace(` a b  `)", "a b", nil},
 
 	// html
-	{"html(nil)", "", nil},
 	{"html(``)", "", nil},
 	{"html(`a`)", "a", nil},
-	{"html(`<a>`)", "&lt;a&gt;", nil},
-	{"html(a)", "&lt;a&gt;", map[string]interface{}{"a": "<a>"}},
+	{"html(`<a>`)", "<a>", nil},
+	{"html(a)", "<a>", map[string]interface{}{"a": "<a>"}},
 	{"html(a)", "<a>", map[string]interface{}{"a": HTML("<a>")}},
 
 	// min
