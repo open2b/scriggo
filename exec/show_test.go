@@ -17,6 +17,7 @@ var htmlContextTests = []struct {
 	res  string
 	vars map[string]interface{}
 }{
+	{`nil`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
 	{`"<a>"`, html.EscapeString("<a>"), nil},
@@ -76,6 +77,7 @@ var scriptContextTests = []struct {
 	res  string
 	vars map[string]interface{}
 }{
+	{`nil`, `null`, nil},
 	{`""`, `""`, nil},
 	{`"a"`, `"a"`, nil},
 	{`"<a>"`, `"\x3ca\x3e"`, nil},

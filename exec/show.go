@@ -25,6 +25,10 @@ type HTMLer interface {
 
 func interfaceToHTML(expr interface{}) string {
 
+	if expr == nil {
+		return ""
+	}
+
 	var s string
 
 	switch e := expr.(type) {
@@ -94,6 +98,10 @@ func interfaceToHTML(expr interface{}) string {
 }
 
 func interfaceToScript(expr interface{}) string {
+
+	if expr == nil {
+		return "null"
+	}
 
 	switch e := expr.(type) {
 	case string:
