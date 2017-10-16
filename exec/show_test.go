@@ -98,9 +98,27 @@ var javaScriptContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
+	{`a`, "null", map[string]interface{}{"a": []int(nil)}},
 	{`a`, "[0,1,2,3,4,5]", map[string]interface{}{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "[-2,-1,0,1,2]", map[string]interface{}{"a": []int{-2, -1, 0, 1, 2}}},
+	{`a`, "null", map[string]interface{}{"a": []bool(nil)}},
 	{`a`, "[true,false,true]", map[string]interface{}{"a": []bool{true, false, true}}},
+	{`a`, "null", map[string]interface{}{"a": (*struct{})(nil)}},
+	{`a`, "{}", map[string]interface{}{"a": &struct{}{}}},
+	{`a`, `{}`, map[string]interface{}{"a": &struct{ a int }{a: 5}}},
+	{`a`, `{"A":5}`, map[string]interface{}{"a": &struct{ A int }{A: 5}}},
+	{`a`, `{"A":5,"B":null}`, map[string]interface{}{"a": &struct {
+		A int
+		B *struct{}
+	}{A: 5, B: nil}}},
+	{`a`, `{"A":5,"B":{}}`, map[string]interface{}{"a": &struct {
+		A int
+		B *struct{}
+	}{A: 5, B: &struct{}{}}}},
+	{`a`, `{"A":5,"B":{"C":"C"}}`, map[string]interface{}{"a": &struct {
+		A int
+		B *struct{ C string }
+	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 }
 
 func TestJavaScriptContext(t *testing.T) {
