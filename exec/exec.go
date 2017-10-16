@@ -156,13 +156,15 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				return err
 			}
 
+			var str string
 			switch node.Context {
 			case ast.ContextHTML:
-				err = showInHTMLContext(wr, expr)
+				str = interfaceToHTML(expr)
 			case ast.ContextScript:
-				err = showInScriptContext(wr, expr)
+				str = interfaceToScript(expr)
 			}
 
+			_, err := io.WriteString(wr, str)
 			if err != nil {
 				return err
 			}

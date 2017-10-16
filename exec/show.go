@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"html"
-	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -24,7 +23,7 @@ type HTMLer interface {
 	HTML() string
 }
 
-func showInHTMLContext(wr io.Writer, expr interface{}) error {
+func interfaceToHTML(expr interface{}) string {
 
 	var s string
 
@@ -91,25 +90,18 @@ func showInHTMLContext(wr io.Writer, expr interface{}) error {
 		}
 	}
 
-	_, err := io.WriteString(wr, s)
-
-	return err
+	return s
 }
 
-func showInScriptContext(wr io.Writer, expr interface{}) error {
-	_, err := io.WriteString(wr, interfaceToJavaScript(expr))
-	return err
-}
-
-func interfaceToJavaScript(expr interface{}) string {
+func interfaceToScript(expr interface{}) string {
 
 	switch e := expr.(type) {
 	case string:
-		return stringToJavaScript(e)
+		return stringToScript(e)
 	case HTML:
-		return stringToJavaScript(string(e))
+		return stringToScript(string(e))
 	case HTMLer:
-		return stringToJavaScript(e.HTML())
+		return stringToScript(e.HTML())
 	case int:
 		return strconv.Itoa(e)
 	case decimal.Dec:
@@ -127,7 +119,7 @@ func interfaceToJavaScript(expr interface{}) string {
 		}
 		return "false"
 	case map[string]interface{}:
-		return mapToJavaScript(e)
+		return mapToScript(e)
 	case []string:
 		if e == nil {
 			return "null"
@@ -137,7 +129,7 @@ func interfaceToJavaScript(expr interface{}) string {
 			if i > 0 {
 				s += ","
 			}
-			s += stringToJavaScript(t)
+			s += stringToScript(t)
 		}
 		return "[" + s + "]"
 	case []HTML:
@@ -149,7 +141,7 @@ func interfaceToJavaScript(expr interface{}) string {
 			if i > 0 {
 				s += ","
 			}
-			s += stringToJavaScript(string(t))
+			s += stringToScript(string(t))
 		}
 		return "[" + s + "]"
 	case []int:
@@ -183,7 +175,7 @@ func interfaceToJavaScript(expr interface{}) string {
 		}
 		buf := make([]string, len(e))
 		for i, v := range e {
-			buf[i] = mapToJavaScript(v)
+			buf[i] = mapToScript(v)
 		}
 		return "[" + strings.Join(buf, ",") + "]"
 	default:
@@ -202,13 +194,13 @@ func interfaceToJavaScript(expr interface{}) string {
 					if i > 0 {
 						s += ","
 					}
-					s += interfaceToJavaScript(v.Index(i).Interface())
+					s += interfaceToScript(v.Index(i).Interface())
 				}
 				return s + "]"
 			}
 			return "[]"
 		case reflect.Struct:
-			return structToJavaScript(v.Type(), v)
+			return structToScript(v.Type(), v)
 		case reflect.Ptr:
 			t := v.Type().Elem()
 			if t.Kind() != reflect.Struct {
@@ -218,7 +210,7 @@ func interfaceToJavaScript(expr interface{}) string {
 			if !v.IsValid() {
 				return "null"
 			}
-			return structToJavaScript(t, v)
+			return structToScript(t, v)
 		}
 	}
 
@@ -227,7 +219,7 @@ func interfaceToJavaScript(expr interface{}) string {
 
 const hex = "0123456789abcdef"
 
-func stringToJavaScript(s string) string {
+func stringToScript(s string) string {
 	if len(s) == 0 {
 		return "\"\""
 	}
@@ -261,7 +253,7 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(t reflect.Type, v reflect.Value) string {
+func structToScript(t reflect.Type, v reflect.Value) string {
 	var s string
 	n := v.NumField()
 	for i := 0; i < n; i++ {
@@ -269,13 +261,13 @@ func structToJavaScript(t reflect.Type, v reflect.Value) string {
 			s += ","
 		}
 		if f := t.Field(i); f.PkgPath == "" {
-			s += stringToJavaScript(f.Name) + ":" + interfaceToJavaScript(v.Field(i).Interface())
+			s += stringToScript(f.Name) + ":" + interfaceToScript(v.Field(i).Interface())
 		}
 	}
 	return "{" + s + "}"
 }
 
-func mapToJavaScript(e map[string]interface{}) string {
+func mapToScript(e map[string]interface{}) string {
 	if e == nil {
 		return "null"
 	}
@@ -284,7 +276,7 @@ func mapToJavaScript(e map[string]interface{}) string {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(k) + ":" + interfaceToJavaScript(v)
+		s += stringToScript(k) + ":" + interfaceToScript(v)
 	}
 	return "{" + s + "}"
 }

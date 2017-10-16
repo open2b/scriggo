@@ -71,7 +71,7 @@ func TestHTMLContext(t *testing.T) {
 	}
 }
 
-var javaScriptContextTests = []struct {
+var scriptContextTests = []struct {
 	src  string
 	res  string
 	vars map[string]interface{}
@@ -121,8 +121,8 @@ var javaScriptContextTests = []struct {
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 }
 
-func TestJavaScriptContext(t *testing.T) {
-	for _, expr := range javaScriptContextTests {
+func TestScriptContext(t *testing.T) {
+	for _, expr := range scriptContextTests {
 		var tree, err = parser.Parse([]byte("<script>{{" + expr.src + "}}</script>"))
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
