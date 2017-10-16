@@ -30,6 +30,7 @@ var builtin = map[string]interface{}{
 	"toLower":   _toLower,
 	"toUpper":   _toUpper,
 	"trimSpace": _trimSpace,
+	"html":      _html,
 	"min":       _min,
 	"max":       _max,
 	"abs":       _abs,
@@ -148,6 +149,11 @@ func _toUpper(s string) string {
 // _trimSpace is the builtin function "trimSpace"
 func _trimSpace(s string) string {
 	return strings.TrimSpace(s)
+}
+
+// _html is the builtin function "html"
+func _html(v interface{}) HTML {
+	return HTML(interfaceToHTML(v))
 }
 
 // _min is the builtin function "min"
