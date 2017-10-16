@@ -108,8 +108,6 @@ func interfaceToScript(expr interface{}) string {
 		return stringToScript(e)
 	case HTML:
 		return stringToScript(string(e))
-	case HTMLer:
-		return stringToScript(e.HTML())
 	case int:
 		return strconv.Itoa(e)
 	case decimal.Dec:
