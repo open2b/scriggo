@@ -223,7 +223,7 @@ func interfaceToScript(expr interface{}) string {
 	return ""
 }
 
-const hex = "0123456789abcdef"
+const hexchars = "0123456789abcdef"
 
 func stringToScript(s string) string {
 	if len(s) == 0 {
@@ -249,8 +249,8 @@ func stringToScript(s string) string {
 		default:
 			if 0 <= r && r <= 31 || r == '<' || r == '>' || r == '&' {
 				b.WriteString("\\x")
-				b.WriteByte(hex[r>>4])
-				b.WriteByte(hex[r&0xF])
+				b.WriteByte(hexchars[r>>4])
+				b.WriteByte(hexchars[r&0xF])
 			} else {
 				b.WriteRune(r)
 			}

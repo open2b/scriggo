@@ -962,6 +962,16 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 			} else {
 				args[i] = reflect.Zero(in)
 			}
+		case reflect.Func:
+			var arg interface{}
+			if i < len(node.Args) {
+				arg = s.evalExpression(node.Args[i])
+			}
+			if arg == nil {
+				args[i] = reflect.Zero(in)
+			} else {
+				args[i] = reflect.ValueOf(arg)
+			}
 		default:
 			panic("unsupported call argument type")
 		}

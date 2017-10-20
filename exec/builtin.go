@@ -5,41 +5,171 @@
 package exec
 
 import (
+	"crypto/hmac"
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"hash"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"open2b/decimal"
 )
 
 var builtin = map[string]interface{}{
-	"nil":       nil,
-	"true":      true,
-	"false":     false,
-	"len":       _len,
-	"join":      _join,
-	"contains":  _contains,
-	"hasPrefix": _hasPrefix,
-	"hasSuffix": _hasSuffix,
-	"index":     _index,
-	"lastIndex": _lastIndex,
-	"repeat":    _repeat,
-	"replace":   _replace,
-	"split":     _split,
-	"toLower":   _toLower,
-	"toUpper":   _toUpper,
-	"trimSpace": _trimSpace,
-	"html":      _html,
-	"min":       _min,
-	"max":       _max,
-	"abs":       _abs,
-	"round":     _round,
-	"int":       _int,
+	"nil":   nil,
+	"true":  true,
+	"false": false,
+	"len":   _len,
+
+	"abs":        _abs,
+	"contains":   _contains,
+	"hasPrefix":  _hasPrefix,
+	"hasSuffix":  _hasSuffix,
+	"hmac":       _hmac,
+	"html":       _html,
+	"index":      _index,
+	"indexAny":   _indexAny,
+	"int":        _int,
+	"join":       _join,
+	"lastIndex":  _lastIndex,
+	"max":        _max,
+	"md5":        _md5,
+	"min":        _min,
+	"repeat":     _repeat,
+	"replace":    _replace,
+	"round":      _round,
+	"sha1":       _sha1,
+	"sha256":     _sha256,
+	"split":      _split,
+	"splitAfter": _splitAfter,
+	"title":      _title,
+	"toLower":    _toLower,
+	"toTitle":    _toTitle,
+	"toUpper":    _toUpper,
+	"trim":       _trim,
+	"trimLeft":   _trimLeft,
+	"trimPrefix": _trimPrefix,
+	"trimRight":  _trimRight,
+	"trimSuffix": _trimSuffix,
 }
 
 var decimalMaxInt = decimal.Int(maxInt)
 var decimalMinInt = decimal.Int(minInt)
+
+// _abs is the builtin function "abs"
+func _abs(n interface{}) interface{} {
+	switch nn := n.(type) {
+	case int:
+		if nn < 0 {
+			if nn == minInt {
+				return decimal.Int(nn).Opposite()
+			}
+			return -nn
+		}
+		return nn
+	case decimal.Dec:
+		if nn.IsNegative() {
+			return nn.Opposite()
+		}
+		return nn
+	}
+	return 0
+}
+
+// _contains is the builtin function "contains"
+func _contains(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+
+// _hasPrefix is the builtin function "hasPrefix"
+func _hasPrefix(s, prefix string) bool {
+	return strings.HasPrefix(s, prefix)
+}
+
+// _hasSuffix is the builtin function "hasSuffix"
+func _hasSuffix(s, suffix string) bool {
+	return strings.HasSuffix(s, suffix)
+}
+
+// _hmac is the builtin function "hmac"
+func _hmac(hasher, message, key string) string {
+	var h func() hash.Hash
+	switch hasher {
+	case "MD5":
+		h = md5.New
+	case "SHA-1":
+		h = sha1.New
+	case "SHA-256":
+		h = sha256.New
+	default:
+		panic("unknown hash function")
+	}
+	mac := hmac.New(h, []byte(key))
+	io.WriteString(mac, message)
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// _html is the builtin function "html"
+func _html(s string) HTML {
+	return HTML(s)
+}
+
+// _index is the builtin function "index"
+func _index(s, substr string) int {
+	n := strings.Index(s, substr)
+	if n <= 1 {
+		return n
+	}
+	return utf8.RuneCountInString(s[0:n])
+}
+
+// _indexAny is the builtin function "indexAny"
+func _indexAny(s, chars string) int {
+	n := strings.IndexAny(s, chars)
+	if n <= 1 {
+		return n
+	}
+	return utf8.RuneCountInString(s[0:n])
+}
+
+// _int is the builtin function "int"
+func _int(n interface{}) interface{} {
+	if n == nil {
+		panic("missing parameter")
+	}
+	switch nn := n.(type) {
+	case int:
+		return n
+	case decimal.Dec:
+		nn = nn.Rounded(0, "Down")
+		if nn.ComparedTo(decimalMinInt) <= 0 && nn.ComparedTo(decimalMaxInt) > 0 {
+			return maxInt
+		}
+		return nn
+	}
+	panic("not number parameter")
+}
+
+// _join is the builtin function "join"
+func _join(a []string, sep string) string {
+	return strings.Join(a, sep)
+}
+
+// _lastIndex is the builtin function "lastIndex"
+func _lastIndex(s, sep string) int {
+	n := strings.LastIndex(s, sep)
+	if n <= 1 {
+		return n
+	}
+	return utf8.RuneCountInString(s[0:n])
+}
 
 // _len is the builtin function "len"
 func _len(v interface{}) int {
@@ -80,80 +210,51 @@ func _len(v interface{}) int {
 	return 0
 }
 
-// _join is the builtin function "join"
-func _join(a []string, sep string) string {
-	return strings.Join(a, sep)
-}
-
-// _contains is the builtin function "contains"
-func _contains(s, substr string) bool {
-	return strings.Contains(s, substr)
-}
-
-// _hasPrefix is the builtin function "hasPrefix"
-func _hasPrefix(s, prefix string) bool {
-	return strings.HasPrefix(s, prefix)
-}
-
-// _hasSuffix is the builtin function "hasSuffix"
-func _hasSuffix(s, suffix string) bool {
-	return strings.HasSuffix(s, suffix)
-}
-
-// _index is the builtin function "index"
-func _index(s, sep string) int {
-	b := strings.Index(s, sep)
-	if b <= 0 {
-		return b
+// _max is the builtin function "max"
+func _max(a, b interface{}) interface{} {
+	if a == nil || b == nil {
+		return 0
 	}
-	c := 0
-	for i := range s {
-		if i == b {
-			return c
+	switch aa := a.(type) {
+	case int:
+		switch bb := b.(type) {
+		case int:
+			if aa > bb {
+				return a
+			}
+			return b
+		case decimal.Dec:
+			if bb.ComparedTo(decimal.Int(aa)) > 0 {
+				return a
+			}
+			return b
+		default:
+			return 0
 		}
-		c++
+	case decimal.Dec:
+		switch bb := b.(type) {
+		case int:
+			if aa.ComparedTo(decimal.Int(bb)) > 0 {
+				return b
+			}
+			return a
+		case decimal.Dec:
+			if aa.ComparedTo(bb) < 0 {
+				return b
+			}
+			return a
+		default:
+			return 0
+		}
 	}
-	return -1
+	return 0
 }
 
-// _lastIndex is the builtin function "lastIndex"
-func _lastIndex(s, sep string) int {
-	return strings.LastIndex(s, sep)
-}
-
-// _repeat is the builtin function "repeat"
-func _repeat(s string, count int) string {
-	return strings.Repeat(s, count)
-}
-
-// _replace is the builtin function "replace"
-func _replace(s, old, new string) string {
-	return strings.Replace(s, old, new, -1)
-}
-
-// _split is the builtin function "split"
-func _split(s, sep string) []string {
-	return strings.Split(s, sep)
-}
-
-// _toLower is the builtin function "toLower"
-func _toLower(s string) string {
-	return strings.ToLower(s)
-}
-
-// _toUpper is the builtin function "toUpper"
-func _toUpper(s string) string {
-	return strings.ToUpper(s)
-}
-
-// _trimSpace is the builtin function "trimSpace"
-func _trimSpace(s string) string {
-	return strings.TrimSpace(s)
-}
-
-// _html is the builtin function "html"
-func _html(s string) HTML {
-	return HTML(s)
+// _md5 is the builtin function "md5"
+func _md5(s string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(s))
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // _min is the builtin function "min"
@@ -185,46 +286,6 @@ func _min(a, b interface{}) interface{} {
 			}
 			return a
 		case decimal.Dec:
-			if aa.ComparedTo(bb) < 0 {
-				return b
-			}
-			return a
-		default:
-			return 0
-		}
-	}
-	return 0
-}
-
-// _max is the builtin function "max"
-func _max(a, b interface{}) interface{} {
-	if a == nil || b == nil {
-		return 0
-	}
-	switch aa := a.(type) {
-	case int:
-		switch bb := b.(type) {
-		case int:
-			if aa > bb {
-				return a
-			}
-			return b
-		case decimal.Dec:
-			if bb.ComparedTo(decimal.Int(aa)) > 0 {
-				return a
-			}
-			return b
-		default:
-			return 0
-		}
-	case decimal.Dec:
-		switch bb := b.(type) {
-		case int:
-			if aa.ComparedTo(decimal.Int(bb)) > 0 {
-				return b
-			}
-			return a
-		case decimal.Dec:
 			if aa.ComparedTo(bb) > 0 {
 				return b
 			}
@@ -236,24 +297,14 @@ func _max(a, b interface{}) interface{} {
 	return 0
 }
 
-// _abs is the builtin function "abs"
-func _abs(n interface{}) interface{} {
-	switch nn := n.(type) {
-	case int:
-		if nn < 0 {
-			if nn == minInt {
-				return decimal.Int(nn).Opposite()
-			}
-			return -nn
-		}
-		return nn
-	case decimal.Dec:
-		if nn.IsNegative() {
-			return nn.Opposite()
-		}
-		return nn
-	}
-	return 0
+// _repeat is the builtin function "repeat"
+func _repeat(s string, count int) string {
+	return strings.Repeat(s, count)
+}
+
+// _replace is the builtin function "replace"
+func _replace(s, old, new string) string {
+	return strings.Replace(s, old, new, -1)
 }
 
 // _round is the builtin function "round"
@@ -284,20 +335,108 @@ func _round(n interface{}, d int, mode string) interface{} {
 	return 0
 }
 
-// _int is the builtin function "int"
-func _int(n interface{}) interface{} {
-	if n == nil {
-		return 0
-	}
-	switch nn := n.(type) {
-	case int:
-		return n
-	case decimal.Dec:
-		nn = nn.Rounded(0, "Down")
-		if nn.ComparedTo(decimalMinInt) <= 0 && nn.ComparedTo(decimalMaxInt) > 0 {
-			return maxInt
+// _sha1 is the builtin function "sha1"
+func _sha1(s string) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(s))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+// _sha256 is the builtin function "sha256"
+func _sha256(s string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(s))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+// _split is the builtin function "split"
+func _split(s, sep string, n interface{}) []string {
+	n2 := -1
+	if n != nil {
+		var ok bool
+		n2, ok = n.(int)
+		if !ok {
+			panic("not int parameter")
 		}
-		return nn
 	}
-	return 0
+	return strings.SplitN(s, sep, n2)
+}
+
+// _splitAfter is the builtin function "splitAfter"
+func _splitAfter(s, sep string, n interface{}) []string {
+	n2 := -1
+	if n != nil {
+		var ok bool
+		n2, ok = n.(int)
+		if !ok {
+			panic("not int parameter")
+		}
+	}
+	return strings.SplitAfterN(s, sep, n2)
+}
+
+// _title is the builtin function "title"
+func _title(s string) string {
+	return strings.Title(s)
+}
+
+// _toLower is the builtin function "toLower"
+func _toLower(s string) string {
+	return strings.ToLower(s)
+}
+
+// _toTitle is the builtin function "toTitle"
+func _toTitle(s string) string {
+	return strings.ToTitle(s)
+}
+
+// _toUpper is the builtin function "toUpper"
+func _toUpper(s string) string {
+	return strings.ToUpper(s)
+}
+
+// _trim is the builtin function "trim"
+func _trim(s string, cutset interface{}) string {
+	if cutset == nil {
+		return strings.TrimSpace(s)
+	}
+	if cut, ok := cutset.(string); ok {
+		return strings.Trim(s, cut)
+	} else {
+		panic("not string parameter")
+	}
+}
+
+// _trimLeft is the builtin function "trimLeft"
+func _trimLeft(s string, cutset interface{}) string {
+	if cutset == nil {
+		return strings.TrimLeftFunc(s, func(r rune) bool { return unicode.IsSpace(r) })
+	}
+	if cut, ok := cutset.(string); ok {
+		return strings.TrimLeft(s, cut)
+	} else {
+		panic("not string parameter")
+	}
+}
+
+// _trimRight is the builtin function "trimRight"
+func _trimRight(s string, cutset interface{}) string {
+	if cutset == nil {
+		return strings.TrimRightFunc(s, func(r rune) bool { return unicode.IsSpace(r) })
+	}
+	if cut, ok := cutset.(string); ok {
+		return strings.TrimRight(s, cut)
+	} else {
+		panic("not string parameter")
+	}
+}
+
+// _trimPrefix is the builtin function "trimPrefix"
+func _trimPrefix(s, prefix string) string {
+	return strings.TrimPrefix(s, prefix)
+}
+
+// _trimSuffix is the builtin function "trimSuffix"
+func _trimSuffix(s, suffix string) string {
+	return strings.TrimPrefix(s, suffix)
 }
