@@ -97,14 +97,20 @@ func NewTree(path string, nodes []Node) *Tree {
 	return tree
 }
 
+type TextCut struct {
+	Left  int
+	Right int
+}
+
 // Text rappresenta un testo
 type Text struct {
-	*Position        // posizione nel sorgente.
-	Text      string // testo.
+	*Position         // posizione nel sorgente.
+	Text      string  // testo.
+	Cut       TextCut // taglio.
 }
 
 func NewText(pos *Position, text string) *Text {
-	return &Text{pos, text}
+	return &Text{pos, text, TextCut{0, len(text)}}
 }
 
 // Var rappresenta uno statement {% var identifier = expression %}

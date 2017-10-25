@@ -143,7 +143,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 
 		case *ast.Text:
 
-			_, err = io.WriteString(wr, node.Text)
+			_, err = io.WriteString(wr, node.Text[node.Cut.Left:node.Cut.Right])
 			if err != nil {
 				return err
 			}

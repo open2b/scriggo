@@ -84,6 +84,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 			End:    start + length - 1,
 		},
 		txt: txt,
+		lin: l.line,
 		ctx: ctx,
 	}
 	l.src = l.src[length:]

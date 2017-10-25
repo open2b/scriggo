@@ -48,8 +48,39 @@ func Parse(src []byte) (*ast.Tree, error) {
 	// antenati dalla radice fino al genitore
 	var ancestors = []ast.Node{tree}
 
+	// linea corrente
+	var line = 0
+
+	// primo nodo Text della linea corrente
+	var firstText *ast.Text
+
+	// indica se è presente un token nella linea corrente per cui sarebbe
+	// possibile tagliare gli spazi iniziali e finali
+	var cutSpacesToken bool
+
+	// numero di token, non Text, nella linea corrente
+	var tokensInLine = 0
+
+	// last byte index
+	var end = len(src) - 1
+
 	// legge tutti i token
 	for tok := range lex.tokens {
+
+		var text *ast.Text
+		if tok.typ == tokenText {
+			text = ast.NewText(tok.pos, string(tok.txt))
+		}
+
+		if line < tok.lin || tok.pos.End == end {
+			if cutSpacesToken && tokensInLine == 1 {
+				cutSpaces(firstText, text)
+			}
+			line = tok.lin
+			firstText = text
+			cutSpacesToken = false
+			tokensInLine = 0
+		}
 
 		// il genitore è sempre l'ultimo antenato
 		parent := ancestors[len(ancestors)-1]
@@ -61,10 +92,12 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 		// Text
 		case tokenText:
-			addChild(parent, ast.NewText(tok.pos, string(tok.txt)))
+			addChild(parent, text)
 
 		// {%
 		case tokenStartStatement:
+
+			tokensInLine++
 
 			var node ast.Node
 
@@ -122,6 +155,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					node = ast.NewAssignment(pos, ident, expr)
 				}
 				addChild(parent, node)
+				cutSpacesToken = true
 
 			// for
 			case tokenFor:
@@ -180,6 +214,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				node = ast.NewFor(pos, index, ident, expr, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
+				cutSpacesToken = true
 
 			// if
 			case tokenIf:
@@ -197,6 +232,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				node = ast.NewIf(pos, expr, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
+				cutSpacesToken = true
 
 			// show
 			case tokenShow:
@@ -214,6 +250,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				node = ast.NewShow(pos, expr, parserContext(ctx))
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
+				cutSpacesToken = true
 
 			// extend
 			case tokenExtend:
@@ -252,6 +289,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				node = ast.NewRegion(pos, name, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
+				cutSpacesToken = true
 
 			// include
 			case tokenInclude:
@@ -269,6 +307,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				pos.End = tok.pos.End
 				node = ast.NewInclude(pos, path, nil)
 				addChild(parent, node)
+				cutSpacesToken = true
 
 			// // snippet
 			// case tokenSnippet:
@@ -291,6 +330,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *pos, fmt.Errorf("unexpected end statement")}
 				}
 				ancestors = ancestors[:len(ancestors)-1]
+				cutSpacesToken = true
 
 			default:
 				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or end", tok)}
@@ -299,6 +339,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 		// {{ }}
 		case tokenStartShow:
+			tokensInLine++
 			expr, tok2, err := parseExpr(lex)
 			if err != nil {
 				return nil, err
@@ -573,4 +614,56 @@ func getExtendNode(tree *ast.Tree) *ast.Extend {
 		}
 	}
 	return nil
+}
+
+// cutSpaces taglia gli spazi iniziali e finali da una linea dove first e last
+// sono rispettivamente il nodo Text iniziale e finale.
+func cutSpaces(first, last *ast.Text) {
+	var firstCut int
+	if first != nil {
+		// perché gli spazi possano essere tagliati, first.Text deve contenere
+		// solo ' ' e '\t', oppure dopo l'ultimo '\n' deve contenere solo ' ' e '\t'.
+		txt := first.Text
+		for i := len(txt) - 1; i >= 0; i-- {
+			c := txt[i]
+			if c == '\n' {
+				firstCut = i + 1
+				break
+			}
+			if c == '\r' {
+				// '\n' può essere seguito da '\r'
+				if i > 0 && txt[i-1] == '\n' {
+					firstCut = i + 1
+					break
+				}
+				return
+			}
+			if c != ' ' && c != '\t' {
+				return
+			}
+		}
+	}
+	if last != nil {
+		// perché gli spazi possano essere tagliati, last.Text deve contenere
+		// solo ' ' e '\t', oppure prima del primo '\n' deve contenere solo ' ' e '\t'.
+		txt := last.Text
+		var lastCut = len(txt)
+		for i := 0; i < len(txt); i++ {
+			c := txt[i]
+			if c == '\n' {
+				lastCut = i + 1
+				if i+1 < len(txt) && txt[i+1] == '\r' {
+					lastCut++
+				}
+				break
+			}
+			if c != ' ' && c != '\t' {
+				return
+			}
+		}
+		last.Cut.Left = lastCut
+	}
+	if first != nil {
+		first.Cut.Right = firstCut
+	}
 }
