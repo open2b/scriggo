@@ -81,12 +81,17 @@ const (
 )
 
 var tokenString = map[tokenType]string{
+	tokenText:              "text",
 	tokenStartStatement:    "{%",
 	tokenEndStatement:      "%}",
 	tokenStartShow:         "{{",
+	tokenVar:               "var",
+	tokenAssignment:        "=",
 	tokenEndShow:           "}}",
 	tokenFor:               "for",
+	tokenIn:                "in",
 	tokenIf:                "if",
+	tokenElse:              "else",
 	tokenExtend:            "extend",
 	tokenInclude:           "include",
 	tokenShow:              "show",
