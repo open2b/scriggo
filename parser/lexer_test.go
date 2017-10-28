@@ -30,6 +30,7 @@ var typeTests = map[string][]tokenType{
 	"{%\tend\n%}":                                      {tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{% end %}":                                        {tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{% if a %}":                                       {tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement},
+	"{% else %}":                                       {tokenStartStatement, tokenElse, tokenEndStatement},
 	"{% extend \"\" %}":                                {tokenStartStatement, tokenExtend, tokenInterpretedString, tokenEndStatement},
 	"{% region \"\" %}":                                {tokenStartStatement, tokenRegion, tokenInterpretedString, tokenEndStatement},
 	"{% include \"\" %}":                               {tokenStartStatement, tokenInclude, tokenInterpretedString, tokenEndStatement},

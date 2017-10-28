@@ -229,9 +229,26 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewIf(pos, expr, nil)
+				node = ast.NewIf(pos, expr, nil, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
+				cutSpacesToken = true
+
+			// else
+			case tokenElse:
+				parent := ancestors[len(ancestors)-1]
+				if p, ok := parent.(*ast.If); ok && p.Else == nil {
+					p.Else = []ast.Node{}
+				} else {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end, for, if, show or include", tok)}
+				}
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				}
 				cutSpacesToken = true
 
 			// show
@@ -552,7 +569,10 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 		case *ast.For:
 			err = p.expandIncludes(n.Nodes, dir)
 		case *ast.If:
-			err = p.expandIncludes(n.Nodes, dir)
+			err = p.expandIncludes(n.Then, dir)
+			if err == nil {
+				err = p.expandIncludes(n.Else, dir)
+			}
 		case *ast.Region:
 			err = p.expandIncludes(n.Nodes, dir)
 		case *ast.Include:
@@ -606,7 +626,11 @@ func addChild(parent ast.Node, node ast.Node) {
 	case *ast.For:
 		n.Nodes = append(n.Nodes, node)
 	case *ast.If:
-		n.Nodes = append(n.Nodes, node)
+		if n.Else == nil {
+			n.Then = append(n.Then, node)
+		} else {
+			n.Else = append(n.Else, node)
+		}
 	}
 }
 

@@ -45,6 +45,7 @@ const (
 	tokenFor                         // for
 	tokenIn                          // in
 	tokenIf                          // if
+	tokenElse                        // else
 	tokenExtend                      // extend
 	tokenInclude                     // include
 	tokenShow                        // show

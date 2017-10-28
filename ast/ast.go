@@ -155,14 +155,15 @@ func NewFor(pos *Position, index, ident *Identifier, expr Expression, nodes []No
 type If struct {
 	*Position            // posizione nel sorgente.
 	Expr      Expression // espressione che valutata restituisce true o false.
-	Nodes     []Node     // nodi da eseguire se l'espressione è valutata a vero.
+	Then      []Node     // nodi da eseguire se l'espressione è valutata a vero.
+	Else      []Node     // nodi da eseguire se l'espressione è valutata a falso.
 }
 
-func NewIf(pos *Position, expr Expression, nodes []Node) *If {
-	if nodes == nil {
-		nodes = []Node{}
+func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
+	if then == nil {
+		then = []Node{}
 	}
-	return &If{pos, expr, nodes}
+	return &If{pos, expr, then, els}
 }
 
 // Show rappresenta uno statement {% show ... %} {% end %} o {{ ... }}.
@@ -472,11 +473,18 @@ func CloneNode(node Node) Node {
 	case *Show:
 		return NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *If:
-		var nodes = make([]Node, len(n.Nodes))
-		for i, n2 := range n.Nodes {
-			nodes[i] = CloneNode(n2)
+		var then = make([]Node, len(n.Then))
+		for i, n2 := range n.Then {
+			then[i] = CloneNode(n2)
 		}
-		return NewIf(ClonePosition(n.Position), CloneExpression(n.Expr), nodes)
+		var els []Node
+		if n.Else != nil {
+			els = make([]Node, len(n.Else))
+			for i, n2 := range n.Else {
+				els[i] = CloneNode(n2)
+			}
+		}
+		return NewIf(ClonePosition(n.Position), CloneExpression(n.Expr), then, els)
 	case *For:
 		var nodes = make([]Node, len(n.Nodes))
 		for i, n2 := range n.Nodes {

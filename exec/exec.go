@@ -171,7 +171,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 
 		case *ast.If:
 
-			if len(node.Nodes) == 0 {
+			if len(node.Then) == 0 && len(node.Else) == 0 {
 				continue
 			}
 			var expr interface{}
@@ -181,10 +181,16 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			}
 			if c, ok := expr.(bool); ok {
 				if c {
-					err = s.execute(wr, node.Nodes, nil)
-					if err != nil {
-						return err
+					if len(node.Then) > 0 {
+						err = s.execute(wr, node.Then, nil)
 					}
+				} else {
+					if len(node.Else) > 0 {
+						err = s.execute(wr, node.Else, nil)
+					}
+				}
+				if err != nil {
+					return err
 				}
 			} else {
 				return fmt.Errorf("non-bool %s (type %T) used as if condition", node.Expr, node.Expr)

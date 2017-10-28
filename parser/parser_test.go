@@ -155,14 +155,18 @@ var treeTests = []struct {
 		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")})})},
+		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")}, nil)})},
+	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"),
+			[]ast.Node{ast.NewText(p(1, 11, 10, 10), "b")},
+			[]ast.Node{ast.NewText(p(1, 22, 21, 21), "c")})})},
 	{"{% if a %}\nb{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), "b")})})},
+		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), "b")}, nil)})},
 	{"{% if a %}\nb\n{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), "b\n")})})},
+		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), "b\n")}, nil)})},
 	{"  {% if a %} \nb\n  {% end %} \t", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 1), ""),
-		ast.NewIf(p(1, 3, 2, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), "b\n")}),
+		ast.NewIf(p(1, 3, 2, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), "b\n")}, nil),
 		ast.NewText(p(3, 12, 27, 28), "")})},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
@@ -457,13 +461,30 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		if len(nn1.Nodes) != len(nn2.Nodes) {
-			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Nodes), len(nn2.Nodes))
+		if len(nn1.Then) != len(nn2.Then) {
+			return fmt.Errorf("unexpected then nodes len %d, expecting %d", len(nn1.Then), len(nn2.Then))
 		}
-		for i, node := range nn1.Nodes {
-			err := equals(node, nn2.Nodes[i], p)
+		for i, node := range nn1.Then {
+			err := equals(node, nn2.Then[i], p)
 			if err != nil {
 				return err
+			}
+		}
+		if nn1.Else == nil && nn2.Else != nil {
+			return fmt.Errorf("unexpected else nil, expecting not nil")
+		}
+		if nn1.Else != nil && nn2.Else == nil {
+			return fmt.Errorf("unexpected else not nil, expecting nil")
+		}
+		if nn1.Else != nil {
+			if len(nn1.Else) != len(nn2.Else) {
+				return fmt.Errorf("unexpected else nodes len %d, expecting %d", len(nn1.Else), len(nn2.Else))
+			}
+			for i, node := range nn1.Else {
+				err := equals(node, nn2.Else[i], p)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	case *ast.For:
