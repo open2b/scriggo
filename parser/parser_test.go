@@ -145,16 +145,16 @@ var treeTests = []struct {
 		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))})},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2))})},
-	{"{% show a %}{% end %}", ast.NewTree("", []ast.Node{
+	{"{% show a %}{% end show %}", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
 	{"{% show a %}b{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
-	{"{% for v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
 		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
-	{"{% if a %}b{% end %}", ast.NewTree("", []ast.Node{
+	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")})})},
 	{"{% if a %}\nb{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), "b")})})},
@@ -166,7 +166,7 @@ var treeTests = []struct {
 		ast.NewText(p(3, 12, 27, 28), "")})},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
-	{"{% region \"a\" %}b{% end %}", ast.NewTree("", []ast.Node{
+	{"{% region \"a\" %}b{% end region %}", ast.NewTree("", []ast.Node{
 		ast.NewRegion(p(1, 1, 0, 15), "a", []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 }
 

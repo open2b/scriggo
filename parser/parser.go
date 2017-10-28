@@ -324,10 +324,34 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
-				}
-				if len(ancestors) == 1 {
-					return nil, &Error{"", *pos, fmt.Errorf("unexpected end statement")}
+					parent := ancestors[len(ancestors)-1]
+					switch parent.(type) {
+					case *ast.For:
+						if tok.typ != tokenFor {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)}
+						}
+					case *ast.If:
+						if tok.typ != tokenIf {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+						}
+					case *ast.Show:
+						if tok.typ != tokenShow {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting show or %%}", tok)}
+						}
+					case *ast.Region:
+						if tok.typ != tokenRegion {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting region or %%}", tok)}
+						}
+					default:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or %%}", tok)}
+					}
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenEndStatement {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+					}
 				}
 				ancestors = ancestors[:len(ancestors)-1]
 				cutSpacesToken = true
