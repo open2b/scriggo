@@ -154,6 +154,12 @@ var treeTests = []struct {
 	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
 		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
+	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"),
+		[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})})},
+	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"),
+		[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})})},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")}, nil)})},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{

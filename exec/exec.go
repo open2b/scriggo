@@ -38,6 +38,14 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("template: %s at %q %s", e.Err, e.Path, e.Pos)
 }
 
+// errBreak è ritornato dall'esecuzione dello statement "break".
+// Viene gestito dallo statement "for" più interno.
+var errBreak = errors.New("break is not in a loop")
+
+// errContinue è ritornato dall'esecuzione dello statement "break".
+// Viene gestito dallo statement "for" più interno.
+var errContinue = errors.New("continue is not in a loop")
+
 type Env struct {
 	tree  *ast.Tree
 	catch func(e *Error) error
@@ -240,10 +248,22 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				s.vars[len(s.vars)-1] = vars
 				err = s.execute(wr, node.Nodes, nil)
 				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err == errContinue {
+						continue
+					}
 					return err
 				}
 			}
 			s.vars = s.vars[:len(s.vars)-1]
+
+		case *ast.Break:
+			return errBreak
+
+		case *ast.Continue:
+			return errContinue
 
 		case *ast.Var:
 

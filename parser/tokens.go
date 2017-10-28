@@ -44,6 +44,8 @@ const (
 	tokenAssignment                  // =
 	tokenFor                         // for
 	tokenIn                          // in
+	tokenBreak                       // break
+	tokenContinue                    // continue
 	tokenIf                          // if
 	tokenElse                        // else
 	tokenExtend                      // extend
@@ -90,6 +92,8 @@ var tokenString = map[tokenType]string{
 	tokenEndShow:           "}}",
 	tokenFor:               "for",
 	tokenIn:                "in",
+	tokenBreak:             "break",
+	tokenContinue:          "continue",
 	tokenIf:                "if",
 	tokenElse:              "else",
 	tokenExtend:            "extend",

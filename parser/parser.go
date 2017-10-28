@@ -216,6 +216,52 @@ func Parse(src []byte) (*ast.Tree, error) {
 				ancestors = append(ancestors, node)
 				cutSpacesToken = true
 
+			// break
+			case tokenBreak:
+				var loop bool
+				for i := len(ancestors) - 1; i > 0; i-- {
+					if _, loop = ancestors[i].(*ast.For); loop {
+						break
+					}
+				}
+				if !loop {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("break is not in a loop")}
+				}
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				}
+				pos.End = tok.pos.End
+				node = ast.NewBreak(pos)
+				addChild(parent, node)
+				cutSpacesToken = true
+
+			// continue
+			case tokenContinue:
+				var loop bool
+				for i := len(ancestors) - 1; i > 0; i-- {
+					if _, loop = ancestors[i].(*ast.For); loop {
+						break
+					}
+				}
+				if !loop {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("continue is not in a loop")}
+				}
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				}
+				pos.End = tok.pos.End
+				node = ast.NewContinue(pos)
+				addChild(parent, node)
+				cutSpacesToken = true
+
 			// if
 			case tokenIf:
 				expr, tok, err = parseExpr(lex)

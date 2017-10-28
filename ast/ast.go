@@ -151,6 +151,24 @@ func NewFor(pos *Position, index, ident *Identifier, expr Expression, nodes []No
 	return &For{pos, index, ident, expr, nodes}
 }
 
+// Break rappresenta uno statement {% break %}.
+type Break struct {
+	*Position // posizione nel sorgente.
+}
+
+func NewBreak(pos *Position) *Break {
+	return &Break{pos}
+}
+
+// Continue rappresenta uno statement {% continue %}.
+type Continue struct {
+	*Position // posizione nel sorgente.
+}
+
+func NewContinue(pos *Position) *Continue {
+	return &Continue{pos}
+}
+
 // If rappresenta uno statement {% if ... %}.
 type If struct {
 	*Position            // posizione nel sorgente.
@@ -487,6 +505,10 @@ func CloneNode(node Node) Node {
 			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
 		return NewFor(ClonePosition(n.Position), index, ident, CloneExpression(n.Expr), nodes)
+	case *Break:
+		return NewBreak(ClonePosition(n.Position))
+	case *Continue:
+		return NewContinue(ClonePosition(n.Position))
 	case *Extend:
 		var tree *Tree
 		if n.Tree != nil {

@@ -476,6 +476,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		cols++
 	}
 	switch string(l.src[0:p]) {
+	case "break":
+		l.emit(tokenBreak, p)
+	case "continue":
+		l.emit(tokenContinue, p)
 	case "else":
 		l.emit(tokenElse, p)
 	case "end":

@@ -146,6 +146,10 @@ var execStmtTests = []struct {
 		map[string]interface{}{"products": []string{"a", "b", "c"}}},
 	{"{% for i, p in products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",
 		map[string]interface{}{"products": []string{"a", "b", "c"}}},
+	{"{% for p in products %}a{% break %}b\n{% end %}", "a",
+		map[string]interface{}{"products": []string{"a", "b", "c"}}},
+	{"{% for p in products %}a{% continue %}b\n{% end %}", "aaa",
+		map[string]interface{}{"products": []string{"a", "b", "c"}}},
 }
 
 func TestExecExpressions(t *testing.T) {
