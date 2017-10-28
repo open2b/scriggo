@@ -494,8 +494,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenShow, p)
 	case "region":
 		l.emit(tokenRegion, p)
-	case "snippet":
-		l.emit(tokenSnippet, p)
 	case "end":
 		l.emit(tokenEnd, p)
 	default:

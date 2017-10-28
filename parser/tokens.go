@@ -50,7 +50,6 @@ const (
 	tokenInclude                     // include
 	tokenShow                        // show
 	tokenRegion                      // region
-	tokenSnippet                     // snippet
 	tokenEnd                         // end
 	tokenInterpretedString           // "..."
 	tokenRawString                   // `...`
@@ -92,7 +91,6 @@ var tokenString = map[tokenType]string{
 	tokenInclude:           "include",
 	tokenShow:              "show",
 	tokenRegion:            "region",
-	tokenSnippet:           "snippet",
 	tokenEnd:               "end",
 	tokenInterpretedString: "string",
 	tokenRawString:         "string",

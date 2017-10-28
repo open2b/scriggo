@@ -326,14 +326,6 @@ func Parse(src []byte) (*ast.Tree, error) {
 				addChild(parent, node)
 				cutSpacesToken = true
 
-			// // snippet
-			// case tokenSnippet:
-			// 	expr, tok, err := parseSnippetName(lex)
-			// 	if err != nil {
-			// 		return nil, err
-			// 	}
-			// 	node = ast.NewSnippet(pos, prefix, name)
-
 			// end
 			case tokenEnd:
 				tok, ok = <-lex.tokens

@@ -213,17 +213,6 @@ func NewInclude(pos *Position, path string, tree *Tree) *Include {
 	return &Include{pos, path, tree}
 }
 
-// Snippet rappresenta uno statement {% snippet ... %}.
-type Snippet struct {
-	*Position        // posizione nel sorgente.
-	Prefix    string // prefisso, vuoto se non è presente.
-	Name      string // nome.
-}
-
-func NewSnippet(pos *Position, prefix, name string) *Snippet {
-	return &Snippet{pos, prefix, name}
-}
-
 type Parentesis struct {
 	*Position // posizione nel sorgente.
 	expression
