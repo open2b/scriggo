@@ -231,6 +231,15 @@ func NewInclude(pos *Position, path string, tree *Tree) *Include {
 	return &Include{pos, path, tree}
 }
 
+type Comment struct {
+	*Position        // posizione nel sorgente.
+	Text      string // testo del commento.
+}
+
+func NewComment(pos *Position, text string) *Comment {
+	return &Comment{pos, text}
+}
+
 type Parentesis struct {
 	*Position // posizione nel sorgente.
 	expression
@@ -527,6 +536,8 @@ func CloneNode(node Node) Node {
 			tree = CloneTree(n.Tree)
 		}
 		return NewInclude(ClonePosition(n.Position), n.Path, tree)
+	case *Comment:
+		return NewComment(ClonePosition(n.Position), n.Text)
 	case Expression:
 		return CloneExpression(n)
 	default:

@@ -433,6 +433,13 @@ func Parse(src []byte) (*ast.Tree, error) {
 			var node = ast.NewShow(tok.pos, expr, parserContext(tok.ctx))
 			addChild(parent, node)
 
+		// comment
+		case tokenComment:
+			tokensInLine++
+			var node = ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
+			addChild(parent, node)
+			cutSpacesToken = true
+
 		default:
 			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 

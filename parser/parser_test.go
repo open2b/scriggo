@@ -178,6 +178,7 @@ var treeTests = []struct {
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
 	{"{% region \"a\" %}b{% end region %}", ast.NewTree("", []ast.Node{
 		ast.NewRegion(p(1, 1, 0, 15), "a", []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
+	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
 }
 
 var pageTests = map[string]struct {

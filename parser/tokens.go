@@ -53,6 +53,7 @@ const (
 	tokenShow                        // show
 	tokenRegion                      // region
 	tokenEnd                         // end
+	tokenComment                     // comment
 	tokenInterpretedString           // "..."
 	tokenRawString                   // `...`
 	tokenIdentifier                  // customerName
@@ -101,6 +102,7 @@ var tokenString = map[tokenType]string{
 	tokenShow:              "show",
 	tokenRegion:            "region",
 	tokenEnd:               "end",
+	tokenComment:           "comment",
 	tokenInterpretedString: "string",
 	tokenRawString:         "string",
 	tokenIdentifier:        "identifier",

@@ -13,6 +13,8 @@ import (
 	"open2b/template/ast"
 )
 
+var nl = []byte("\n")
+
 type SyntaxError struct {
 	path string
 	str  string
@@ -122,6 +124,20 @@ LOOP:
 					l.emitAtLineColumn(lin, col, tokenText, p)
 				}
 				err := l.lexStatement()
+				if err != nil {
+					l.src = nil
+					l.err = err
+					break LOOP
+				}
+				p = 0
+				lin = l.line
+				col = l.column
+				continue
+			case '#':
+				if p > 0 {
+					l.emitAtLineColumn(lin, col, tokenText, p)
+				}
+				err := l.lexComment()
 				if err != nil {
 					l.src = nil
 					l.err = err
@@ -270,6 +286,26 @@ func (l *lexer) lexStatement() error {
 	}
 	l.emit(tokenEndStatement, 2)
 	l.column += 2
+	return nil
+}
+
+// lexComment emette il token di un commento sapendo che src inizia con '{#'.
+func (l *lexer) lexComment() error {
+	p := bytes.Index(l.src[2:], []byte("#}"))
+	if p == -1 {
+		return l.errorf("unexpected EOF, expecting #}")
+	}
+	line := l.line
+	column := l.column
+	l.column += 2
+	for i := 2; i < p+2; i++ {
+		if l.src[i] == '\n' {
+			l.newline()
+		} else {
+			l.column++
+		}
+	}
+	l.emitAtLineColumn(line, column, tokenComment, p+4)
 	return nil
 }
 
