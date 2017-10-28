@@ -476,26 +476,26 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		cols++
 	}
 	switch string(l.src[0:p]) {
-	case "var":
-		l.emit(tokenVar, p)
-	case "for":
-		l.emit(tokenFor, p)
-	case "in":
-		l.emit(tokenIn, p)
-	case "if":
-		l.emit(tokenIf, p)
 	case "else":
 		l.emit(tokenElse, p)
-	case "extend":
-		l.emit(tokenExtend, p)
-	case "include":
-		l.emit(tokenInclude, p)
-	case "show":
-		l.emit(tokenShow, p)
-	case "region":
-		l.emit(tokenRegion, p)
 	case "end":
 		l.emit(tokenEnd, p)
+	case "extend":
+		l.emit(tokenExtend, p)
+	case "for":
+		l.emit(tokenFor, p)
+	case "if":
+		l.emit(tokenIf, p)
+	case "in":
+		l.emit(tokenIn, p)
+	case "include":
+		l.emit(tokenInclude, p)
+	case "region":
+		l.emit(tokenRegion, p)
+	case "show":
+		l.emit(tokenShow, p)
+	case "var":
+		l.emit(tokenVar, p)
 	default:
 		l.emit(tokenIdentifier, p)
 		l.column += cols
