@@ -14,12 +14,11 @@ import (
 	"hash"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/decimal"
+	"open2b/template/types"
 )
 
 var builtin = map[string]interface{}{
@@ -60,27 +59,12 @@ var builtin = map[string]interface{}{
 	"trimSuffix": _trimSuffix,
 }
 
-var decimalMaxInt = decimal.Int(maxInt)
-var decimalMinInt = decimal.Int(minInt)
-
 // _abs is the builtin function "abs"
-func _abs(n interface{}) interface{} {
-	switch nn := n.(type) {
-	case int:
-		if nn < 0 {
-			if nn == minInt {
-				return decimal.Int(nn).Opposite()
-			}
-			return -nn
-		}
-		return nn
-	case decimal.Dec:
-		if nn.IsNegative() {
-			return nn.Opposite()
-		}
-		return nn
+func _abs(n types.Number) types.Number {
+	if n.Compared(zero) < 0 {
+		return n.Opposite()
 	}
-	return 0
+	return n
 }
 
 // _contains is the builtin function "contains"
@@ -140,21 +124,8 @@ func _indexAny(s, chars string) int {
 }
 
 // _int is the builtin function "int"
-func _int(n interface{}) interface{} {
-	if n == nil {
-		panic("missing parameter")
-	}
-	switch nn := n.(type) {
-	case int:
-		return n
-	case decimal.Dec:
-		nn = nn.Rounded(0, "Down")
-		if nn.ComparedTo(decimalMinInt) <= 0 && nn.ComparedTo(decimalMaxInt) > 0 {
-			return maxInt
-		}
-		return nn
-	}
-	panic("not number parameter")
+func _int(n types.Number) types.Number {
+	return n.Rounded(0, "Down")
 }
 
 // _join is the builtin function "join"
@@ -211,43 +182,11 @@ func _len(v interface{}) int {
 }
 
 // _max is the builtin function "max"
-func _max(a, b interface{}) interface{} {
-	if a == nil || b == nil {
-		return 0
+func _max(a, b types.Number) types.Number {
+	if a.Compared(b) < 0 {
+		return b
 	}
-	switch aa := a.(type) {
-	case int:
-		switch bb := b.(type) {
-		case int:
-			if aa > bb {
-				return a
-			}
-			return b
-		case decimal.Dec:
-			if bb.ComparedTo(decimal.Int(aa)) > 0 {
-				return a
-			}
-			return b
-		default:
-			return 0
-		}
-	case decimal.Dec:
-		switch bb := b.(type) {
-		case int:
-			if aa.ComparedTo(decimal.Int(bb)) > 0 {
-				return b
-			}
-			return a
-		case decimal.Dec:
-			if aa.ComparedTo(bb) < 0 {
-				return b
-			}
-			return a
-		default:
-			return 0
-		}
-	}
-	return 0
+	return a
 }
 
 // _md5 is the builtin function "md5"
@@ -258,43 +197,11 @@ func _md5(s string) string {
 }
 
 // _min is the builtin function "min"
-func _min(a, b interface{}) interface{} {
-	if a == nil || b == nil {
-		return 0
+func _min(a, b types.Number) types.Number {
+	if a.Compared(b) > 0 {
+		return b
 	}
-	switch aa := a.(type) {
-	case int:
-		switch bb := b.(type) {
-		case int:
-			if aa < bb {
-				return a
-			}
-			return b
-		case decimal.Dec:
-			if bb.ComparedTo(decimal.Int(aa)) < 0 {
-				return a
-			}
-			return b
-		default:
-			return 0
-		}
-	case decimal.Dec:
-		switch bb := b.(type) {
-		case int:
-			if aa.ComparedTo(decimal.Int(bb)) < 0 {
-				return b
-			}
-			return a
-		case decimal.Dec:
-			if aa.ComparedTo(bb) > 0 {
-				return b
-			}
-			return a
-		default:
-			return 0
-		}
-	}
-	return 0
+	return a
 }
 
 // _repeat is the builtin function "repeat"
@@ -308,31 +215,18 @@ func _replace(s, old, new string) string {
 }
 
 // _round is the builtin function "round"
-func _round(n interface{}, d int, mode string) interface{} {
-	if n == nil || d < 0 {
-		return 0
+func _round(n types.Number, d int, mode string) types.Number {
+	if d < 0 {
+		return zero
 	}
 	switch mode {
 	case "Down", "HalfDown", "HalfEven", "HalfUp":
 	case "":
 		mode = "HalfUp"
 	default:
-		return 0
+		return zero
 	}
-	switch nn := n.(type) {
-	case int:
-		return n
-	case decimal.Dec:
-		nn = nn.Rounded(d, mode)
-		if d == 0 && nn.Digits() == 0 {
-			if nn.ComparedTo(decimalMinInt) <= 0 && nn.ComparedTo(decimalMaxInt) > 0 {
-				var i, _ = strconv.Atoi(nn.String())
-				return i
-			}
-		}
-		return nn
-	}
-	return 0
+	return n.Rounded(d, mode)
 }
 
 // _sha1 is the builtin function "sha1"

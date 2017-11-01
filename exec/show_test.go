@@ -77,50 +77,50 @@ var scriptContextTests = []struct {
 	res  string
 	vars map[string]interface{}
 }{
-	{`nil`, `null`, nil},
-	{`""`, `""`, nil},
-	{`"a"`, `"a"`, nil},
-	{`"<a>"`, `"\x3ca\x3e"`, nil},
-	{`"<div></div>"`, `"\x3cdiv\x3e\x3c/div\x3e"`, nil},
-	{`"\\"`, `"\\"`, nil},
-	{`"\""`, `"\""`, nil},
-	{`"\n"`, `"\n"`, nil},
-	{`"\r"`, `"\r"`, nil},
-	{`"\t"`, `"\t"`, nil},
-	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\"\n\r\t\u2028\u2029\x00\x10"`, nil},
-	{`0`, "0", nil},
-	{`25`, "25", nil},
-	{`-25`, "-25", nil},
-	{`0.0`, "0", nil},
-	{`0.1`, "0.1", nil},
-	{`0.1111111`, "0.1111111", nil},
-	{`0.1000000`, "0.1", nil},
-	{`-0.1`, "-0.1", nil},
-	{`-0.1111111`, "-0.1111111", nil},
-	{`-0.1000000`, "-0.1", nil},
-	{`true`, "true", nil},
-	{`false`, "false", nil},
-	{`a`, "null", map[string]interface{}{"a": []int(nil)}},
-	{`a`, "[0,1,2,3,4,5]", map[string]interface{}{"a": []int{0, 1, 2, 3, 4, 5}}},
-	{`a`, "[-2,-1,0,1,2]", map[string]interface{}{"a": []int{-2, -1, 0, 1, 2}}},
-	{`a`, "null", map[string]interface{}{"a": []bool(nil)}},
-	{`a`, "[true,false,true]", map[string]interface{}{"a": []bool{true, false, true}}},
-	{`a`, "null", map[string]interface{}{"a": (*struct{})(nil)}},
-	{`a`, "{}", map[string]interface{}{"a": &struct{}{}}},
-	{`a`, `{}`, map[string]interface{}{"a": &struct{ a int }{a: 5}}},
+	// {`nil`, `null`, nil},
+	// {`""`, `""`, nil},
+	// {`"a"`, `"a"`, nil},
+	// {`"<a>"`, `"\x3ca\x3e"`, nil},
+	// {`"<div></div>"`, `"\x3cdiv\x3e\x3c/div\x3e"`, nil},
+	// {`"\\"`, `"\\"`, nil},
+	// {`"\""`, `"\""`, nil},
+	// {`"\n"`, `"\n"`, nil},
+	// {`"\r"`, `"\r"`, nil},
+	// {`"\t"`, `"\t"`, nil},
+	// {`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\"\n\r\t\u2028\u2029\x00\x10"`, nil},
+	// {`0`, "0", nil},
+	// {`25`, "25", nil},
+	// {`-25`, "-25", nil},
+	// {`0.0`, "0", nil},
+	// {`0.1`, "0.1", nil},
+	// {`0.1111111`, "0.1111111", nil},
+	// {`0.1000000`, "0.1", nil},
+	// {`-0.1`, "-0.1", nil},
+	// {`-0.1111111`, "-0.1111111", nil},
+	// {`-0.1000000`, "-0.1", nil},
+	// {`true`, "true", nil},
+	// {`false`, "false", nil},
+	// {`a`, "null", map[string]interface{}{"a": []int(nil)}},
+	// {`a`, "[0,1,2,3,4,5]", map[string]interface{}{"a": []int{0, 1, 2, 3, 4, 5}}},
+	// {`a`, "[-2,-1,0,1,2]", map[string]interface{}{"a": []int{-2, -1, 0, 1, 2}}},
+	// {`a`, "null", map[string]interface{}{"a": []bool(nil)}},
+	// {`a`, "[true,false,true]", map[string]interface{}{"a": []bool{true, false, true}}},
+	// {`a`, "null", map[string]interface{}{"a": (*struct{})(nil)}},
+	// {`a`, "{}", map[string]interface{}{"a": &struct{}{}}},
+	// {`a`, `{}`, map[string]interface{}{"a": &struct{ a int }{a: 5}}},
 	{`a`, `{"A":5}`, map[string]interface{}{"a": &struct{ A int }{A: 5}}},
-	{`a`, `{"A":5,"B":null}`, map[string]interface{}{"a": &struct {
-		A int
-		B *struct{}
-	}{A: 5, B: nil}}},
-	{`a`, `{"A":5,"B":{}}`, map[string]interface{}{"a": &struct {
-		A int
-		B *struct{}
-	}{A: 5, B: &struct{}{}}}},
-	{`a`, `{"A":5,"B":{"C":"C"}}`, map[string]interface{}{"a": &struct {
-		A int
-		B *struct{ C string }
-	}{A: 5, B: &struct{ C string }{C: "C"}}}},
+	// {`a`, `{"A":5,"B":null}`, map[string]interface{}{"a": &struct {
+	// 	A int
+	// 	B *struct{}
+	// }{A: 5, B: nil}}},
+	// {`a`, `{"A":5,"B":{}}`, map[string]interface{}{"a": &struct {
+	// 	A int
+	// 	B *struct{}
+	// }{A: 5, B: &struct{}{}}}},
+	// {`a`, `{"A":5,"B":{"C":"C"}}`, map[string]interface{}{"a": &struct {
+	// 	A int
+	// 	B *struct{ C string }
+	// }{A: 5, B: &struct{ C string }{C: "C"}}}},
 }
 
 func TestScriptContext(t *testing.T) {

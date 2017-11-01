@@ -7,12 +7,11 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/decimal"
 	"open2b/template/ast"
+	"open2b/template/types"
 )
 
 // Il risultato del parsing di una espressione è un albero i cui nodi
@@ -437,17 +436,13 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 // eventualmente preceduto da un operatore unario "-" con posizione neg.
 func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 	p := tok.pos
-	t := string(tok.txt)
+	s := string(tok.txt)
 	if neg != nil {
 		p = neg
 		p.End = tok.pos.End
-		t = "-" + t
+		s = "-" + s
 	}
-	n, err := strconv.ParseInt(t, 10, strconv.IntSize)
-	if err == nil {
-		return ast.NewInt(p, int(n))
-	}
-	return ast.NewDecimal(p, decimal.String(t))
+	return ast.NewNumber(p, types.NewNumberString(s))
 }
 
 func parseStringNode(tok token) *ast.String {

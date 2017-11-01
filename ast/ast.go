@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"sync"
 
-	"open2b/decimal"
+	"open2b/template/types"
 )
 
 type OperatorType int
@@ -254,31 +254,17 @@ func (n *Parentesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
-type Int struct {
+type Number struct {
 	*Position // posizione nel sorgente.
 	expression
-	Value int // valore.
+	Value types.Number // valore.
 }
 
-func NewInt(pos *Position, value int) *Int {
-	return &Int{pos, expression{}, value}
+func NewNumber(pos *Position, value types.Number) *Number {
+	return &Number{pos, expression{}, value}
 }
 
-func (n *Int) String() string {
-	return strconv.Itoa(n.Value)
-}
-
-type Decimal struct {
-	*Position // posizione nel sorgente.
-	expression
-	Value decimal.Dec // valore.
-}
-
-func NewDecimal(pos *Position, value decimal.Dec) *Decimal {
-	return &Decimal{pos, expression{}, value}
-}
-
-func (n *Decimal) String() string {
+func (n *Number) String() string {
 	return n.Value.String()
 }
 
@@ -549,10 +535,8 @@ func CloneExpression(expr Expression) Expression {
 	switch e := expr.(type) {
 	case *Parentesis:
 		return NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
-	case *Int:
-		return NewInt(ClonePosition(e.Position), e.Value)
-	case *Decimal:
-		return NewDecimal(ClonePosition(e.Position), e.Value)
+	case *Number:
+		return NewNumber(ClonePosition(e.Position), e.Value)
 	case *String:
 		return NewString(ClonePosition(e.Position), e.Text)
 	case *Identifier:

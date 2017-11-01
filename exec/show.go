@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"open2b/decimal"
+	"open2b/template/types"
 )
 
 // HTMLer è implementato da qualsiasi valore che ha metodo HTML,
@@ -38,16 +38,6 @@ func interfaceToHTML(expr interface{}) string {
 		s = html.EscapeString(e)
 	case HTML:
 		s = string(e)
-	case int:
-		s = strconv.Itoa(e)
-	case decimal.Dec:
-		s = e.String()
-		if strings.Contains(s, ".") {
-			s = strings.TrimRight(s, "0")
-			if s[len(s)-1] == '.' {
-				s = s[:len(s)-1]
-			}
-		}
 	case Stringer:
 		s = e.String()
 	case bool:
@@ -112,15 +102,8 @@ func interfaceToScript(expr interface{}) string {
 		return stringToScript(string(e))
 	case int:
 		return strconv.Itoa(e)
-	case decimal.Dec:
-		s := e.String()
-		if strings.Contains(s, ".") {
-			s = strings.TrimRight(s, "0")
-			if s[len(s)-1] == '.' {
-				s = s[:len(s)-1]
-			}
-		}
-		return s
+	case types.Number:
+		return e.String()
 	case bool:
 		if e {
 			return "true"
