@@ -32,12 +32,12 @@ func interfaceToHTML(expr interface{}) string {
 	var s string
 
 	switch e := expr.(type) {
+	case HTMLer:
+		s = e.HTML()
 	case string:
 		s = html.EscapeString(e)
 	case HTML:
 		s = string(e)
-	case HTMLer:
-		s = e.HTML()
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Dec:
@@ -48,6 +48,8 @@ func interfaceToHTML(expr interface{}) string {
 				s = s[:len(s)-1]
 			}
 		}
+	case Stringer:
+		s = e.String()
 	case bool:
 		if e {
 			s = "true"

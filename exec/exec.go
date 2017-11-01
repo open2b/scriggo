@@ -22,6 +22,16 @@ import (
 // Nelle espressioni si comporta come una stringa.
 type HTML string
 
+// Stringer è implementato da qualsiasi valore che si comporta come una stringa.
+type Stringer interface {
+	String() string
+}
+
+// Numberer è implementato da qualsiasi valore che si comporta come un numero.
+type Numberer interface {
+	Number() interface{}
+}
+
 const maxUint = ^uint(0)
 const maxInt = int(maxUint >> 1)
 const minInt = -maxInt - 1
@@ -45,6 +55,9 @@ var errBreak = errors.New("break is not in a loop")
 // errContinue è ritornato dall'esecuzione dello statement "break".
 // Viene gestito dallo statement "for" più interno.
 var errContinue = errors.New("continue is not in a loop")
+
+var stringType = reflect.TypeOf("")
+var intType = reflect.TypeOf(0)
 
 type Env struct {
 	tree  *ast.Tree
@@ -388,7 +401,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 // evalUnaryOperator valuta un operatore unario e ne ritorna il valore.
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	var e = s.evalExpression(node.Expr)
+	var e = asBasic(s.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
 		if b, ok := e.(bool); ok {
@@ -419,8 +432,8 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
-	var expr1 = s.evalExpression(node.Expr1)
-	var expr2 = s.evalExpression(node.Expr2)
+	var expr1 = asBasic(s.evalExpression(node.Expr1))
+	var expr2 = asBasic(s.evalExpression(node.Expr2))
 
 	switch node.Op {
 
@@ -788,7 +801,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 }
 
 func (s *state) evalSelector(node *ast.Selector) interface{} {
-	v := s.evalExpression(node.Expr)
+	v := asBasic(s.evalExpression(node.Expr))
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok && v3 != nil {
@@ -823,7 +836,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
-	index, ok := s.evalExpression(node.Index).(int)
+	index, ok := asBasic(s.evalExpression(node.Index)).(int)
 	if !ok {
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
@@ -953,11 +966,15 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.Int:
 			var a = 0
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
+				arg := asBasic(s.evalExpression(node.Args[i]))
+				if arg == nil {
+					panic(s.errorf(node, "cannot use nil as type int in argument to function %s", node.Func))
+				}
 				a, ok = arg.(int)
 				if !ok {
-					if arg == nil {
-						panic(s.errorf(node, "cannot use nil as type int in argument to function %s", node.Func))
+					rv := reflect.ValueOf(arg)
+					if rv.Type().ConvertibleTo(intType) {
+						a = int(rv.Int())
 					} else {
 						panic(s.errorf(node, "cannot use %#v (type %T) as type int in argument to function %s", arg, arg, node.Func))
 					}
@@ -967,15 +984,15 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.String:
 			var a = ""
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
-				switch v := arg.(type) {
-				case string:
-					a = v
-				case HTML:
-					a = string(v)
-				default:
-					if arg == nil {
-						panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
+				arg := asBasic(s.evalExpression(node.Args[i]))
+				if arg == nil {
+					panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
+				}
+				a, ok = arg.(string)
+				if !ok {
+					rv := reflect.ValueOf(arg)
+					if rv.Type().ConvertibleTo(stringType) {
+						a = rv.String()
 					} else {
 						panic(s.errorf(node, "cannot use %#v (type %T) as type string in argument to function %s", arg, arg, node.Func))
 					}
@@ -1069,4 +1086,35 @@ func getExtendNode(tree *ast.Tree) *ast.Extend {
 		}
 	}
 	return nil
+}
+
+func asBasic(v interface{}) interface{} {
+	if v == nil {
+		return v
+	}
+	switch vv := v.(type) {
+	case string:
+		return v
+	case HTML:
+		return v
+	case int:
+		return v
+	case decimal.Dec:
+		return v
+	case bool:
+		return v
+	case Stringer:
+		return vv.String()
+	case Numberer:
+		return vv.Number()
+	default:
+		rv := reflect.ValueOf(v)
+		rt := rv.Type()
+		if rt.ConvertibleTo(stringType) {
+			return rv.String()
+		} else if rt.ConvertibleTo(intType) {
+			return rv.Int()
+		}
+	}
+	return v
 }
