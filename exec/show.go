@@ -6,7 +6,6 @@ package exec
 
 import (
 	"bytes"
-	"fmt"
 	"html"
 	"reflect"
 	"strconv"
@@ -38,7 +37,7 @@ func interfaceToHTML(expr interface{}) string {
 		s = html.EscapeString(e)
 	case HTML:
 		s = string(e)
-	case Stringer:
+	case types.Number:
 		s = e.String()
 	case bool:
 		if e {
@@ -80,10 +79,6 @@ func interfaceToHTML(expr interface{}) string {
 			}
 		}
 		s = strings.Join(buf, ", ")
-	default:
-		if str, ok := e.(fmt.Stringer); ok {
-			s = str.String()
-		}
 	}
 
 	return s
