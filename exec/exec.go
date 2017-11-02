@@ -22,8 +22,6 @@ import (
 // Nelle espressioni si comporta come una stringa.
 type HTML string
 
-var errValue = errors.New("error value")
-
 type Error struct {
 	Path string
 	Pos  ast.Position
@@ -49,25 +47,15 @@ var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
 
 type Env struct {
-	tree  *ast.Tree
-	catch func(e *Error) error
+	tree *ast.Tree
 }
 
 // NewEnv ritorna un ambiente di esecuzione per l'albero tree.
-// La funzione catch gestisce il comportamento in caso di errore.
-//
-// Quando si verifica un errore di esecuzione, viene chiamata
-// la funzione catch con argomento l'errore. Se catch ritorna
-// un errore diverso da nil allora l'esecuzione si interrompe e
-// l'errore ritornato viene a sua volta ritornato dal metodo Execute.
-//
-// Se catch è nil allora in caso di errore l'esecuzione si interrompe
-// ed il metodo Execute ritorna l'errore.
-func NewEnv(tree *ast.Tree, catch func(err *Error) error) *Env {
+func NewEnv(tree *ast.Tree) *Env {
 	if tree == nil {
 		panic("template: tree is nil")
 	}
-	return &Env{tree, catch}
+	return &Env{tree}
 }
 
 // Execute esegue l'albero tree e scrive il risultato su wr.
@@ -78,7 +66,6 @@ func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 	}
 	s := state{
 		vars:     []map[string]interface{}{builtin, vars, {}},
-		catch:    env.catch,
 		treepath: env.tree.Path,
 	}
 	var err error
@@ -100,22 +87,13 @@ func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 		s.path = extend.Path
 		err = s.execute(wr, extend.Tree.Nodes, regions)
 	}
-	if err != nil {
-		if env.catch != nil {
-			if err2, ok := err.(*Error); ok {
-				err = env.catch(err2)
-			}
-		}
-		return err
-	}
-	return nil
+	return err
 }
 
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
 	path     string
 	vars     []map[string]interface{}
-	catch    func(e *Error) error
 	treepath string
 }
 
@@ -131,13 +109,6 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 			End:    pos.End,
 		},
 		Err: fmt.Errorf(format, args...),
-	}
-	if s.catch != nil {
-		err2 := s.catch(err)
-		if err2 == nil {
-			err2 = errValue
-		}
-		return err2
 	}
 	return err
 }
@@ -335,24 +306,16 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 }
 
 // eval valuta una espressione ritornandone il valore.
-//
-// Se si verifica un errore, chiama s.catch con parametro l'errore.
-// Se questa ritorna nil allora ritorna l'errore come valore della
-// valutazione, altrimenti ritorna nil e l'errore ritornato da s.catch.
 func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		if e, ok := r.(error); ok {
-	// 			if e == errValue {
-	// 				value = errValue
-	// 			} else {
-	// 				err = e
-	// 			}
-	// 		} else {
-	// 			panic(r)
-	// 		}
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				panic(r)
+			}
+		}
+	}()
 	return s.evalExpression(exp), nil
 }
 
@@ -762,9 +725,6 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-			if v == errValue {
-				panic(v)
-			}
 			if n, ok := v.(int); ok {
 				v = types.NewNumberInt(n)
 			}

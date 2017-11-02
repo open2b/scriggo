@@ -54,7 +54,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 		if err != nil {
 			return convertError(err)
 		}
-		env = exec.NewEnv(tree, nil)
+		env = exec.NewEnv(tree)
 	} else {
 		// con cache
 		t.RLock()
@@ -66,7 +66,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 			if err != nil {
 				return convertError(err)
 			}
-			env = exec.NewEnv(tree, nil)
+			env = exec.NewEnv(tree)
 			t.Lock()
 			t.envs[path] = env
 			t.Unlock()
