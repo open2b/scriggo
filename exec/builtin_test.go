@@ -246,12 +246,25 @@ var execBuiltinTests = []struct {
 	{"trim(` a b  `)", "a b", nil},
 }
 
-var execBuiltinShuffleTests = []struct {
+var execRandomBuiltinTests = []struct {
 	src  string
 	seed int64
 	res  string
 	vars map[string]interface{}
 }{
+	// rand
+	{"rand(0)", 1, "5577006791947779410", nil},
+	{"rand(0)", 2, "1543039099823358511", nil},
+	{"rand(1)", 1, "0", nil},
+	{"rand(1)", 2, "0", nil},
+	{"rand(2)", 1, "1", nil},
+	{"rand(2)", 2, "0", nil},
+	{"rand(100)", 1, "81", nil},
+	{"rand(100)", 2, "86", nil},
+	{"rand(100)", 3, "8", nil},
+	{"rand(100)", 4, "29", nil},
+
+	// shuffle
 	{"shuffle(s)", 1, "", map[string]interface{}{"s": []int{}}},
 	{"shuffle(s)", 1, "1", map[string]interface{}{"s": []int{1}}},
 	{"shuffle(s)", 1, "1, 2", map[string]interface{}{"s": []int{1, 2}}},
@@ -285,8 +298,8 @@ func TestExecBuiltin(t *testing.T) {
 	}
 }
 
-func TestExecBuiltinShuffle(t *testing.T) {
-	for _, expr := range execBuiltinShuffleTests {
+func TestExecRandomBuiltin(t *testing.T) {
+	for _, expr := range execRandomBuiltinTests {
 		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)

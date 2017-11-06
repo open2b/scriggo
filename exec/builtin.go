@@ -50,6 +50,7 @@ var builtins = map[string]interface{}{
 	"max":        _max,
 	"md5":        _md5,
 	"min":        _min,
+	"rand":       _rand,
 	"repeat":     _repeat,
 	"replace":    _replace,
 	"round":      _round,
@@ -217,6 +218,23 @@ func _min(a, b types.Number) types.Number {
 // _number is the builtin function "number"
 func _number(n types.Number) types.Number {
 	return n
+}
+
+// _rand is the builtin function "rand"
+func _rand(n int) types.Number {
+	// seed
+	seed := time.Now().UTC().UnixNano()
+	if testSeed >= 0 {
+		seed = testSeed
+	}
+	r := rand.New(rand.NewSource(seed))
+	var rn int
+	if n > 0 {
+		rn = r.Intn(n)
+	} else {
+		rn = r.Int()
+	}
+	return types.NewNumberInt(rn)
 }
 
 // _repeat is the builtin function "repeat"
