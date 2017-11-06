@@ -21,7 +21,7 @@ import (
 	"open2b/template/types"
 )
 
-var builtin = map[string]interface{}{
+var builtins = map[string]interface{}{
 	"nil":    nil,
 	"true":   true,
 	"false":  false,

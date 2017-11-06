@@ -46,7 +46,7 @@ func New(dir string, cache bool) *Template {
 // Execute esegue il file del template con il path indicato, relativo
 // alla directory del template, e scrive il risultato su out.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
-func (t *Template) Execute(out io.Writer, path string, vars map[string]interface{}) error {
+func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	var env *exec.Env
 	if t.envs == nil {
 		// senza cache
@@ -54,7 +54,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 		if err != nil {
 			return convertError(err)
 		}
-		env = exec.NewEnv(tree)
+		env = exec.NewEnv(tree, "")
 	} else {
 		// con cache
 		t.RLock()
@@ -66,7 +66,7 @@ func (t *Template) Execute(out io.Writer, path string, vars map[string]interface
 			if err != nil {
 				return convertError(err)
 			}
-			env = exec.NewEnv(tree)
+			env = exec.NewEnv(tree, "")
 			t.Lock()
 			t.envs[path] = env
 			t.Unlock()

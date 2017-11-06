@@ -12,6 +12,8 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"strings"
+	"unicode"
 
 	"open2b/template/ast"
 	"open2b/template/types"
@@ -57,25 +59,66 @@ var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
 
 type Env struct {
-	tree *ast.Tree
+	tree    *ast.Tree
+	version string
 }
 
 // NewEnv ritorna un ambiente di esecuzione per l'albero tree.
-func NewEnv(tree *ast.Tree) *Env {
+func NewEnv(tree *ast.Tree, version string) *Env {
 	if tree == nil {
 		panic("template: tree is nil")
 	}
-	return &Env{tree}
+	return &Env{tree, version}
 }
 
 // Execute esegue l'albero tree e scrive il risultato su wr.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
-func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
+func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 	if wr == nil {
 		return errors.New("template: wr is nil")
 	}
+	var globals map[string]interface{}
+	switch v := vars.(type) {
+	case map[string]interface{}:
+		globals = v
+	case reflect.Value:
+		globals = v.Interface().(map[string]interface{})
+	default:
+		rv := reflect.ValueOf(vars)
+		switch rv.Kind() {
+		case reflect.Struct:
+			globals = map[string]interface{}{}
+			rt := rv.Type()
+			nf := rv.NumField()
+			for i := 0; i < nf; i++ {
+				field := rt.Field(i)
+				value := rv.Field(i).Interface()
+				var name string
+				var version string
+				if tag, ok := field.Tag.Lookup("template"); ok {
+					name, version = parseVarTag(tag)
+					if name == "" {
+						return fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
+					}
+					if version != "" && version != env.version {
+						continue
+					}
+				}
+				if name == "" {
+					name = field.Name
+				}
+				globals[name] = value
+			}
+		case reflect.Map:
+			m := reflect.TypeOf(map[string]interface{}{})
+			vv := rv.Convert(m).Interface()
+			globals = vv.(map[string]interface{})
+		default:
+			return errors.New("template/exec: unsupported vars type")
+		}
+	}
 	s := state{
-		vars:     []map[string]interface{}{builtin, vars, {}},
+		vars:     []map[string]interface{}{builtins, globals, {}},
 		treepath: env.tree.Path,
 	}
 	var err error
@@ -85,7 +128,7 @@ func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 		err = s.execute(wr, env.tree.Nodes, nil)
 	} else {
 		if extend.Tree == nil {
-			return errors.New("template: extend node is not expanded")
+			return errors.New("template/exec: extend node is not expanded")
 		}
 		// legge le region
 		regions := map[string]*ast.Region{}
@@ -98,6 +141,32 @@ func (env *Env) Execute(wr io.Writer, vars map[string]interface{}) error {
 		err = s.execute(wr, extend.Tree.Nodes, regions)
 	}
 	return err
+}
+
+// parseVarTag esegue il parsing del tag di un campo di una struct che funge
+// da variabile. Ne ritorna il nome e la versione.
+func parseVarTag(tag string) (string, string) {
+	sp := strings.SplitN(tag, ",", 2)
+	if len(sp) == 0 {
+		return "", ""
+	}
+	name := sp[0]
+	if name == "" {
+		return "", ""
+	}
+	for _, r := range name {
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return "", ""
+		}
+	}
+	var version string
+	if len(sp) == 2 {
+		version = sp[1]
+		if version == "" {
+			return "", ""
+		}
+	}
+	return name, version
 }
 
 // state rappresenta lo stato di esecuzione di un albero.

@@ -254,7 +254,7 @@ func TestExecBuiltin(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		var env = NewEnv(tree)
+		var env = NewEnv(tree, "")
 		err = env.Execute(b, expr.vars)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
