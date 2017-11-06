@@ -22,6 +22,16 @@ import (
 // Nelle espressioni si comporta come una stringa.
 type HTML string
 
+// Stringer è implementato da qualsiasi valore che si comporta come una stringa.
+type Stringer interface {
+	String() string
+}
+
+// Numberer è implementato da qualsiasi valore che si comporta come un numero.
+type Numberer interface {
+	Number() types.Number
+}
+
 type Error struct {
 	Path string
 	Pos  ast.Position
@@ -140,7 +150,14 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			var str string
 			switch node.Context {
 			case ast.ContextHTML:
-				str = interfaceToHTML(expr)
+				if e, ok := expr.(io.WriterTo); ok {
+					_, err = e.WriteTo(wr)
+					if err != nil {
+						return err
+					}
+				} else {
+					str = interfaceToHTML(expr)
+				}
 			case ast.ContextScript:
 				str = interfaceToScript(expr)
 			}
@@ -351,7 +368,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 // evalUnaryOperator valuta un operatore unario e ne ritorna il valore.
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	var e = s.evalExpression(node.Expr)
+	var e = asBasic(s.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
 		if b, ok := e.(bool); ok {
@@ -376,8 +393,8 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
-	var expr1 = s.evalExpression(node.Expr1)
-	var expr2 = s.evalExpression(node.Expr2)
+	var expr1 = asBasic(s.evalExpression(node.Expr1))
+	var expr2 = asBasic(s.evalExpression(node.Expr2))
 
 	switch node.Op {
 
@@ -601,7 +618,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 }
 
 func (s *state) evalSelector(node *ast.Selector) interface{} {
-	v := s.evalExpression(node.Expr)
+	v := asBasic(s.evalExpression(node.Expr))
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok && v3 != nil {
@@ -636,7 +653,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
-	n, ok := s.evalExpression(node.Index).(types.Number)
+	n, ok := asBasic(s.evalExpression(node.Index)).(types.Number)
 	if !ok {
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
@@ -755,7 +772,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		if in == numberType {
 			var a = zero
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
+				arg := asBasic(s.evalExpression(node.Args[i]))
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type number in argument to function %s", node.Func))
 				}
@@ -785,7 +802,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.Int:
 			var a = 0
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
+				arg := asBasic(s.evalExpression(node.Args[i]))
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type number in argument to function %s", node.Func))
 				}
@@ -803,17 +820,18 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.String:
 			var a = ""
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
+				arg := asBasic(s.evalExpression(node.Args[i]))
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
 				}
-				switch v := arg.(type) {
-				case string:
-					a = v
-				case HTML:
-					a = string(v)
-				default:
-					panic(s.errorf(node, "cannot use %#v (type %T) as type string in argument to function %s", arg, arg, node.Func))
+				a, ok = arg.(string)
+				if !ok {
+					rv := reflect.ValueOf(arg)
+					if rv.Type().ConvertibleTo(stringType) {
+						a = rv.String()
+					} else {
+						panic(s.errorf(node, "cannot use %#v (type %T) as type string in argument to function %s", arg, arg, node.Func))
+					}
 				}
 			}
 			args[i] = reflect.ValueOf(a)
@@ -909,4 +927,33 @@ func getExtendNode(tree *ast.Tree) *ast.Extend {
 		}
 	}
 	return nil
+}
+
+func asBasic(v interface{}) interface{} {
+	if v == nil {
+		return v
+	}
+	switch vv := v.(type) {
+	case string:
+		return v
+	case HTML:
+		return v
+	case types.Number:
+		return v
+	case bool:
+		return v
+	case Stringer:
+		return vv.String()
+	case Numberer:
+		return vv.Number()
+	default:
+		rv := reflect.ValueOf(v)
+		rt := rv.Type()
+		if rt.ConvertibleTo(stringType) {
+			return rv.String()
+		} else if rt.ConvertibleTo(intType) {
+			return rv.Int()
+		}
+	}
+	return v
 }

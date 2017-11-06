@@ -6,6 +6,7 @@ package exec
 
 import (
 	"bytes"
+	"fmt"
 	"html"
 	"reflect"
 	"strconv"
@@ -13,14 +14,6 @@ import (
 
 	"open2b/template/types"
 )
-
-// HTMLer è implementato da qualsiasi valore che ha metodo HTML,
-// il quale definisce il formato HTML per questo valore.
-// I valori che implementano HTMLer vengono mostrati nel contesto
-// HTML senza essere sottoposti ad escape.
-type HTMLer interface {
-	HTML() string
-}
 
 func interfaceToHTML(expr interface{}) string {
 
@@ -31,13 +24,11 @@ func interfaceToHTML(expr interface{}) string {
 	var s string
 
 	switch e := expr.(type) {
-	case HTMLer:
-		s = e.HTML()
 	case string:
 		s = html.EscapeString(e)
 	case HTML:
 		s = string(e)
-	case types.Number:
+	case Stringer:
 		s = e.String()
 	case bool:
 		if e {
@@ -57,12 +48,6 @@ func interfaceToHTML(expr interface{}) string {
 			st[i] = string(h)
 		}
 		s = strings.Join(st, ", ")
-	case []HTMLer:
-		st := make([]string, len(e))
-		for i, h := range e {
-			st[i] = h.HTML()
-		}
-		s = strings.Join(st, ", ")
 	case []int:
 		buf := make([]string, len(e))
 		for i, n := range e {
@@ -79,6 +64,10 @@ func interfaceToHTML(expr interface{}) string {
 			}
 		}
 		s = strings.Join(buf, ", ")
+	default:
+		if str, ok := e.(fmt.Stringer); ok {
+			s = str.String()
+		}
 	}
 
 	return s

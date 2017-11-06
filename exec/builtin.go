@@ -22,10 +22,12 @@ import (
 )
 
 var builtin = map[string]interface{}{
-	"nil":   nil,
-	"true":  true,
-	"false": false,
-	"len":   _len,
+	"nil":    nil,
+	"true":   true,
+	"false":  false,
+	"len":    _len,
+	"string": _string,
+	"number": _number,
 
 	"abs":        _abs,
 	"contains":   _contains,
@@ -204,6 +206,11 @@ func _min(a, b types.Number) types.Number {
 	return a
 }
 
+// _number is the builtin function "number"
+func _number(n types.Number) types.Number {
+	return n
+}
+
 // _repeat is the builtin function "repeat"
 func _repeat(s string, count int) string {
 	return strings.Repeat(s, count)
@@ -267,6 +274,11 @@ func _splitAfter(s, sep string, n interface{}) []string {
 		}
 	}
 	return strings.SplitAfterN(s, sep, n2)
+}
+
+// _string is the builtin function "string"
+func _string(s string) string {
+	return s
 }
 
 // _title is the builtin function "title"
