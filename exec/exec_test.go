@@ -6,6 +6,7 @@ package exec
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"open2b/template/parser"
@@ -154,6 +155,50 @@ var execStmtTests = []struct {
 	{"a{# comment #}b", "ab", nil},
 }
 
+type mapStringToInterface map[string]interface{}
+
+var execConvertVars = []struct {
+	vars interface{}
+	res  map[string]interface{}
+}{
+	{
+		nil,
+		map[string]interface{}{},
+	},
+	{
+		map[string]interface{}{"a": 1, "b": "s"},
+		map[string]interface{}{"a": 1, "b": "s"},
+	},
+	{
+		reflect.ValueOf(map[string]interface{}{"a": 1, "b": "s"}),
+		map[string]interface{}{"a": 1, "b": "s"},
+	},
+	{
+		mapStringToInterface{"a": 1, "b": "s"},
+		map[string]interface{}{"a": 1, "b": "s"},
+	},
+	{
+		reflect.ValueOf(mapStringToInterface{"a": 1, "b": "s"}),
+		map[string]interface{}{"a": 1, "b": "s"},
+	},
+	{
+		struct {
+			A int    `template:"a"`
+			B string `template:"b"`
+			C bool
+		}{A: 1, B: "s", C: true},
+		map[string]interface{}{"a": 1, "b": "s", "C": true},
+	},
+	{
+		reflect.ValueOf(struct {
+			A int    `template:"a"`
+			B string `template:"b"`
+			C bool
+		}{A: 1, B: "s", C: true}),
+		map[string]interface{}{"a": 1, "b": "s", "C": true},
+	},
+}
+
 func TestExecExpressions(t *testing.T) {
 	for _, expr := range execExprTests {
 		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
@@ -192,6 +237,19 @@ func TestExecStatements(t *testing.T) {
 		var res = b.String()
 		if res != stmt.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
+		}
+	}
+}
+
+func TestConvertVars(t *testing.T) {
+	for _, p := range execConvertVars {
+		res, err := convertVars(p.vars, "")
+		if err != nil {
+			t.Errorf("vars: %#v, %q\n", p.vars, err)
+			continue
+		}
+		if !reflect.DeepEqual(res, p.res) {
+			t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.vars, res, p.res)
 		}
 	}
 }

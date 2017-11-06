@@ -49,55 +49,30 @@ func NewEnv(tree *ast.Tree, version string) *Env {
 
 // Execute esegue l'albero tree e scrive il risultato su wr.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
+//
+// vars può:
+//
+//   - avere map[string]interface{} come underlying type
+//   - essere una struct
+//   - essere un reflect.Value il cui valore concreto soddisfa uno dei precedenti
+//   - essere nil
+//
 func (env *Env) Execute(wr io.Writer, vars interface{}) error {
+
 	if wr == nil {
-		return errors.New("template: wr is nil")
+		return errors.New("template/exec: wr is nil")
 	}
-	var globals map[string]interface{}
-	switch v := vars.(type) {
-	case map[string]interface{}:
-		globals = v
-	case reflect.Value:
-		globals = v.Interface().(map[string]interface{})
-	default:
-		rv := reflect.ValueOf(vars)
-		switch rv.Kind() {
-		case reflect.Struct:
-			globals = map[string]interface{}{}
-			rt := rv.Type()
-			nf := rv.NumField()
-			for i := 0; i < nf; i++ {
-				field := rt.Field(i)
-				value := rv.Field(i).Interface()
-				var name string
-				var version string
-				if tag, ok := field.Tag.Lookup("template"); ok {
-					name, version = parseVarTag(tag)
-					if name == "" {
-						return fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
-					}
-					if version != "" && version != env.version {
-						continue
-					}
-				}
-				if name == "" {
-					name = field.Name
-				}
-				globals[name] = value
-			}
-		case reflect.Map:
-			m := reflect.TypeOf(map[string]interface{}{})
-			vv := rv.Convert(m).Interface()
-			globals = vv.(map[string]interface{})
-		default:
-			return errors.New("template/exec: unsupported vars type")
-		}
+
+	globals, err := convertVars(vars, env.version)
+	if err != nil {
+		return err
 	}
+
 	s := state{
 		vars:     []map[string]interface{}{builtins, globals, {}},
 		treepath: env.tree.Path,
 	}
-	var err error
+
 	extend := getExtendNode(env.tree)
 	if extend == nil {
 		s.path = env.tree.Path
@@ -116,7 +91,67 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 		s.path = extend.Path
 		err = s.execute(wr, extend.Tree.Nodes, regions)
 	}
+
 	return err
+}
+
+var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
+
+// convertVars converte vars in un map[string]interface{}.
+func convertVars(vars interface{}, version string) (map[string]interface{}, error) {
+
+	if vars == nil {
+		return map[string]interface{}{}, nil
+	}
+
+	var rv reflect.Value
+	if rv, ok := vars.(reflect.Value); ok {
+		vars = rv.Interface()
+	}
+
+	if v, ok := vars.(map[string]interface{}); ok {
+		return v, nil
+	}
+
+	if !rv.IsValid() {
+		rv = reflect.ValueOf(vars)
+	}
+	rt := rv.Type()
+
+	switch rv.Kind() {
+	case reflect.Map:
+		if !rt.ConvertibleTo(mapStringToInterfaceType) {
+			return nil, fmt.Errorf("template/exec: unsupported vars type")
+		}
+		m := rv.Convert(mapStringToInterfaceType).Interface()
+		return m.(map[string]interface{}), nil
+	case reflect.Struct:
+		globals := map[string]interface{}{}
+		nf := rv.NumField()
+		for i := 0; i < nf; i++ {
+			field := rt.Field(i)
+			value := rv.Field(i).Interface()
+			var name string
+			var ver string
+			if tag, ok := field.Tag.Lookup("template"); ok {
+				name, ver = parseVarTag(tag)
+				if name == "" {
+					return nil, fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
+				}
+				if ver != "" && ver != version {
+					continue
+				}
+			}
+			if name == "" {
+				name = field.Name
+			}
+			globals[name] = value
+		}
+		return globals, nil
+	default:
+		return nil, errors.New("template/exec: unsupported vars type")
+	}
+
 }
 
 // parseVarTag esegue il parsing del tag di un campo di una struct che funge
