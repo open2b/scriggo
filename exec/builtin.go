@@ -11,15 +11,22 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"hash"
 	"io"
+	"math/rand"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"open2b/template/types"
 )
+
+var testSeed int64 = -1
+
+var errNoSlice = errors.New("no slice")
 
 var builtins = map[string]interface{}{
 	"nil":    nil,
@@ -48,6 +55,7 @@ var builtins = map[string]interface{}{
 	"round":      _round,
 	"sha1":       _sha1,
 	"sha256":     _sha256,
+	"shuffle":    _shuffle,
 	"split":      _split,
 	"splitAfter": _splitAfter,
 	"title":      _title,
@@ -248,6 +256,37 @@ func _sha256(s string) string {
 	hasher := sha256.New()
 	hasher.Write([]byte(s))
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+// _shuffle is the builtin function "shuffle"
+func _shuffle(s interface{}) interface{} {
+	if s == nil {
+		return nil
+	}
+	rv := reflect.ValueOf(s)
+	if rv.Kind() != reflect.Slice {
+		panic(errNoSlice)
+	}
+	l := rv.Len()
+	if l < 2 {
+		return s
+	}
+	// seed
+	seed := time.Now().UTC().UnixNano()
+	if testSeed >= 0 {
+		seed = testSeed
+	}
+	r := rand.New(rand.NewSource(seed))
+	// swap
+	rv2 := reflect.MakeSlice(rv.Type(), l, l)
+	reflect.Copy(rv2, rv)
+	s2 := rv2.Interface()
+	swap := reflect.Swapper(s2)
+	for i := l - 1; i >= 0; i-- {
+		j := r.Intn(i + 1)
+		swap(i, j)
+	}
+	return s2
 }
 
 // _split is the builtin function "split"

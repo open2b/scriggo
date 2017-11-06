@@ -246,6 +246,24 @@ var execBuiltinTests = []struct {
 	{"trim(` a b  `)", "a b", nil},
 }
 
+var execBuiltinShuffleTests = []struct {
+	src  string
+	seed int64
+	res  string
+	vars map[string]interface{}
+}{
+	{"shuffle(s)", 1, "", map[string]interface{}{"s": []int{}}},
+	{"shuffle(s)", 1, "1", map[string]interface{}{"s": []int{1}}},
+	{"shuffle(s)", 1, "1, 2", map[string]interface{}{"s": []int{1, 2}}},
+	{"shuffle(s)", 2, "2, 1", map[string]interface{}{"s": []int{1, 2}}},
+	{"shuffle(s)", 1, "1, 2, 3", map[string]interface{}{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 2, "3, 1, 2", map[string]interface{}{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 3, "1, 3, 2", map[string]interface{}{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 1, "a, b, c", map[string]interface{}{"s": []string{"a", "b", "c"}}},
+	{"shuffle(s)", 2, "c, a, b", map[string]interface{}{"s": []string{"a", "b", "c"}}},
+	{"shuffle(s)", 3, "a, c, b", map[string]interface{}{"s": []string{"a", "b", "c"}}},
+}
+
 func TestExecBuiltin(t *testing.T) {
 	for _, expr := range execBuiltinTests {
 		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
@@ -255,6 +273,28 @@ func TestExecBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		var env = NewEnv(tree, "")
+		err = env.Execute(b, expr.vars)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
+func TestExecBuiltinShuffle(t *testing.T) {
+	for _, expr := range execBuiltinShuffleTests {
+		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		var env = NewEnv(tree, "")
+		testSeed = expr.seed
 		err = env.Execute(b, expr.vars)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
