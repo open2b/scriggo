@@ -18,7 +18,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"open2b/template/types"
@@ -28,6 +27,8 @@ var testSeed int64 = -1
 
 var errNoSlice = errors.New("no slice")
 
+const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
+
 var builtins = map[string]interface{}{
 	"nil":    nil,
 	"true":   true,
@@ -36,6 +37,7 @@ var builtins = map[string]interface{}{
 	"string": _string,
 	"number": _number,
 
+	"abbreviate": _abbreviate,
 	"abs":        _abs,
 	"contains":   _contains,
 	"hasPrefix":  _hasPrefix,
@@ -68,6 +70,26 @@ var builtins = map[string]interface{}{
 	"trimPrefix": _trimPrefix,
 	"trimRight":  _trimRight,
 	"trimSuffix": _trimSuffix,
+}
+
+// _abbreviate is the builtin function "abbreviate"
+func _abbreviate(s string, n int) string {
+	s = strings.TrimRight(s, spaces)
+	if len(s) <= n {
+		return s
+	}
+	if n < 3 {
+		return ""
+	}
+	if p := strings.LastIndexAny(s[:n-2], spaces); p > 0 {
+		s = strings.TrimRight(s[:p], spaces)
+	} else {
+		s = ""
+	}
+	if l := len(s) - 1; l >= 0 && (s[l] == '.' || s[l] == ',') {
+		s = s[:l]
+	}
+	return s + "..."
 }
 
 // _abs is the builtin function "abs"
@@ -373,7 +395,7 @@ func _trim(s string, cutset interface{}) string {
 // _trimLeft is the builtin function "trimLeft"
 func _trimLeft(s string, cutset interface{}) string {
 	if cutset == nil {
-		return strings.TrimLeftFunc(s, func(r rune) bool { return unicode.IsSpace(r) })
+		return strings.TrimLeft(s, spaces)
 	}
 	if cut, ok := cutset.(string); ok {
 		return strings.TrimLeft(s, cut)
@@ -385,7 +407,7 @@ func _trimLeft(s string, cutset interface{}) string {
 // _trimRight is the builtin function "trimRight"
 func _trimRight(s string, cutset interface{}) string {
 	if cutset == nil {
-		return strings.TrimRightFunc(s, func(r rune) bool { return unicode.IsSpace(r) })
+		return strings.TrimRight(s, spaces)
 	}
 	if cut, ok := cutset.(string); ok {
 		return strings.TrimRight(s, cut)

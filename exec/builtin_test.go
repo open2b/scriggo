@@ -17,6 +17,22 @@ var execBuiltinTests = []struct {
 	vars map[string]interface{}
 }{
 
+	// abbreviate
+	{"abbreviate(``,0)", "", nil},
+	{"abbreviate(`abc`,0)", "", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,28)", "Lorem ipsum dolor sit amet.", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,27)", "Lorem ipsum dolor sit amet.", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,26)", "Lorem ipsum dolor sit...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,10)", "Lorem...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,8)", "Lorem...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,7)", "...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,6)", "...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,5)", "...", nil},
+	{"abbreviate(`Lorem ipsum dolor sit amet.`,4)", "...", nil},
+	{"abbreviate(`Lorem ipsum d`,12)", "Lorem...", nil},
+	{"abbreviate(`Lorem. Ipsum.`,9)", "Lorem...", nil},
+	{"abbreviate(`Lorem, ipsum.`,9)", "Lorem...", nil},
+
 	// abs
 	{"abs()", "0", nil},
 	{"abs(0)", "0", nil},
