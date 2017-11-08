@@ -48,6 +48,12 @@ func Parse(src []byte) (*ast.Tree, error) {
 	// antenati dalla radice fino al genitore
 	var ancestors = []ast.Node{tree}
 
+	// indica se è stato esteso
+	var isExtended = false
+
+	// indica  se ci trova in una region
+	var isInRegion = false
+
 	// linea corrente
 	var line = 0
 
@@ -299,6 +305,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// show
 			case tokenShow:
+				if isExtended && !isInRegion {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
+				}
 				expr, tok, err = parseExpr(lex)
 				if err != nil {
 					return nil, err
@@ -317,6 +326,14 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// extend
 			case tokenExtend:
+				if isExtended {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("extend already exists")}
+				}
+				if len(tree.Nodes) > 0 {
+					if _, ok := tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extend can only be the first statement")}
+					}
+				}
 				path, err := parsePath(lex)
 				if err != nil {
 					return nil, err
@@ -331,15 +348,23 @@ func Parse(src []byte) (*ast.Tree, error) {
 				pos.End = tok.pos.End
 				node = ast.NewExtend(pos, path, nil)
 				addChild(parent, node)
+				isExtended = true
 
 			// region
 			case tokenRegion:
+				if isExtended && len(ancestors) > 1 {
+					if _, ok := ancestors[len(ancestors)-1].(*ast.Include); ok {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting EOF", tok)}
+					} else {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end", tok)}
+					}
+				}
 				name, err := parseString(lex)
 				if err != nil {
 					return nil, err
 				}
 				if name == "" {
-					return nil, &Error{"", *pos, fmt.Errorf("region name can not be empty")}
+					return nil, &Error{"", *pos, fmt.Errorf("region has no name")}
 				}
 				tok, ok = <-lex.tokens
 				if !ok {
@@ -351,11 +376,17 @@ func Parse(src []byte) (*ast.Tree, error) {
 				pos.End = tok.pos.End
 				node = ast.NewRegion(pos, name, nil)
 				addChild(parent, node)
-				ancestors = append(ancestors, node)
+				if isExtended {
+					ancestors = append(ancestors, node)
+					isInRegion = true
+				}
 				cutSpacesToken = true
 
 			// include
 			case tokenInclude:
+				if isExtended && !isInRegion {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("include statement outside region")}
+				}
 				path, err := parsePath(lex)
 				if err != nil {
 					return nil, err
@@ -378,8 +409,8 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if !ok {
 					return nil, lex.err
 				}
+				parent := ancestors[len(ancestors)-1]
 				if tok.typ != tokenEndStatement {
-					parent := ancestors[len(ancestors)-1]
 					switch parent.(type) {
 					case *ast.For:
 						if tok.typ != tokenFor {
@@ -408,6 +439,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
 				}
+				if _, ok := parent.(*ast.Region); ok {
+					isInRegion = false
+				}
 				ancestors = ancestors[:len(ancestors)-1]
 				cutSpacesToken = true
 
@@ -418,6 +452,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 		// {{ }}
 		case tokenStartShow:
+			if isExtended && !isInRegion {
+				return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
+			}
 			tokensInLine++
 			expr, tok2, err := parseExpr(lex)
 			if err != nil {

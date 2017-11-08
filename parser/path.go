@@ -21,7 +21,7 @@ func parsePath(lex *lexer) (string, error) {
 	}
 	var path = unquoteString(tok.txt)
 	if !isValidFilePath(path) {
-		return "", fmt.Errorf("invalid include path %q at %d", path, tok.pos)
+		return "", fmt.Errorf("invalid include path %q at %s", path, tok.pos)
 	}
 	return path, nil
 }

@@ -183,8 +183,10 @@ var treeTests = []struct {
 		ast.NewText(p(3, 12, 27, 28), "")})},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
-	{"{% region \"a\" %}b{% end region %}", ast.NewTree("", []ast.Node{
-		ast.NewRegion(p(1, 1, 0, 15), "a", []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
+	{"{% extend \"a.e\" %}{% region \"b\" %}c{% end region %}", ast.NewTree("", []ast.Node{
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 33), "b",
+			[]ast.Node{ast.NewText(p(1, 35, 34, 34), "c")})})},
+	{"{% region \"a\" %}", ast.NewTree("", []ast.Node{ast.NewRegion(p(1, 1, 0, 15), "a", nil)})},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
 }
 

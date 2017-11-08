@@ -454,11 +454,13 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
-		if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-			if n, ok := v.(int); ok {
-				v = types.NewNumberInt(n)
+		if s.vars[i] != nil {
+			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
+				if n, ok := v.(int); ok {
+					v = types.NewNumberInt(n)
+				}
+				return v
 			}
-			return v
 		}
 	}
 	panic(s.errorf(node, "undefined: %s", node.Name))
