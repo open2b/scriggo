@@ -81,7 +81,21 @@ func _abbreviate(s string, n int) string {
 	if n < 3 {
 		return ""
 	}
-	if p := strings.LastIndexAny(s[:n-2], spaces); p > 0 {
+	p := 0
+	n2 := 0
+	for i := range s {
+		switch p {
+		case n - 2:
+			n2 = i
+		case n:
+			break
+		}
+		p++
+	}
+	if p < n {
+		return s
+	}
+	if p = strings.LastIndexAny(s[:n2], spaces); p > 0 {
 		s = strings.TrimRight(s[:p], spaces)
 	} else {
 		s = ""
