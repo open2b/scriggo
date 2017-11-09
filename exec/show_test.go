@@ -15,17 +15,17 @@ import (
 var htmlContextTests = []struct {
 	src  interface{}
 	res  string
-	vars map[string]interface{}
+	vars scope
 }{
 	{`nil`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
 	{`"<a>"`, html.EscapeString("<a>"), nil},
 	{`"<div></div>"`, html.EscapeString("<div></div>"), nil},
-	{`a`, html.EscapeString("<a>"), map[string]interface{}{"a": "<a>"}},
-	{`d`, html.EscapeString("<div></div>"), map[string]interface{}{"d": "<div></div>"}},
-	{`a`, "<a>", map[string]interface{}{"a": HTML("<a>")}},
-	{`d`, "<div></div>", map[string]interface{}{"d": HTML("<div></div>")}},
+	{`a`, html.EscapeString("<a>"), scope{"a": "<a>"}},
+	{`d`, html.EscapeString("<div></div>"), scope{"d": "<div></div>"}},
+	{`a`, "<a>", scope{"a": HTML("<a>")}},
+	{`d`, "<div></div>", scope{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -39,9 +39,9 @@ var htmlContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
-	{`a`, "0, 1, 2, 3, 4, 5", map[string]interface{}{"a": []int{0, 1, 2, 3, 4, 5}}},
-	{`a`, "-2, -1, 0, 1, 2", map[string]interface{}{"a": []int{-2, -1, 0, 1, 2}}},
-	{`a`, "true, false, true", map[string]interface{}{"a": []bool{true, false, true}}},
+	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
+	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
+	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
 }
 
 func TestHTMLContext(t *testing.T) {
@@ -75,7 +75,7 @@ func TestHTMLContext(t *testing.T) {
 var scriptContextTests = []struct {
 	src  string
 	res  string
-	vars map[string]interface{}
+	vars scope
 }{
 	// {`nil`, `null`, nil},
 	// {`""`, `""`, nil},
@@ -100,24 +100,24 @@ var scriptContextTests = []struct {
 	// {`-0.1000000`, "-0.1", nil},
 	// {`true`, "true", nil},
 	// {`false`, "false", nil},
-	// {`a`, "null", map[string]interface{}{"a": []int(nil)}},
-	// {`a`, "[0,1,2,3,4,5]", map[string]interface{}{"a": []int{0, 1, 2, 3, 4, 5}}},
-	// {`a`, "[-2,-1,0,1,2]", map[string]interface{}{"a": []int{-2, -1, 0, 1, 2}}},
-	// {`a`, "null", map[string]interface{}{"a": []bool(nil)}},
-	// {`a`, "[true,false,true]", map[string]interface{}{"a": []bool{true, false, true}}},
-	// {`a`, "null", map[string]interface{}{"a": (*struct{})(nil)}},
-	// {`a`, "{}", map[string]interface{}{"a": &struct{}{}}},
-	// {`a`, `{}`, map[string]interface{}{"a": &struct{ a int }{a: 5}}},
-	{`a`, `{"A":5}`, map[string]interface{}{"a": &struct{ A int }{A: 5}}},
-	// {`a`, `{"A":5,"B":null}`, map[string]interface{}{"a": &struct {
+	// {`a`, "null", scope{"a": []int(nil)}},
+	// {`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
+	// {`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
+	// {`a`, "null", scope{"a": []bool(nil)}},
+	// {`a`, "[true,false,true]", scope{"a": []bool{true, false, true}}},
+	// {`a`, "null", scope{"a": (*struct{})(nil)}},
+	// {`a`, "{}", scope{"a": &struct{}{}}},
+	// {`a`, `{}`, scope{"a": &struct{ a int }{a: 5}}},
+	{`a`, `{"A":5}`, scope{"a": &struct{ A int }{A: 5}}},
+	// {`a`, `{"A":5,"B":null}`, scope{"a": &struct {
 	// 	A int
 	// 	B *struct{}
 	// }{A: 5, B: nil}}},
-	// {`a`, `{"A":5,"B":{}}`, map[string]interface{}{"a": &struct {
+	// {`a`, `{"A":5,"B":{}}`, scope{"a": &struct {
 	// 	A int
 	// 	B *struct{}
 	// }{A: 5, B: &struct{}{}}}},
-	// {`a`, `{"A":5,"B":{"C":"C"}}`, map[string]interface{}{"a": &struct {
+	// {`a`, `{"A":5,"B":{"C":"C"}}`, scope{"a": &struct {
 	// 	A int
 	// 	B *struct{ C string }
 	// }{A: 5, B: &struct{ C string }{C: "C"}}}},

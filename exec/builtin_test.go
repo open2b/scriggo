@@ -14,7 +14,7 @@ import (
 var execBuiltinTests = []struct {
 	src  string
 	res  string
-	vars map[string]interface{}
+	vars scope
 }{
 
 	// abbreviate
@@ -80,8 +80,8 @@ var execBuiltinTests = []struct {
 	{"html(``)", "", nil},
 	{"html(`a`)", "a", nil},
 	{"html(`<a>`)", "<a>", nil},
-	{"html(a)", "<a>", map[string]interface{}{"a": "<a>"}},
-	{"html(a)", "<a>", map[string]interface{}{"a": HTML("<a>")}},
+	{"html(a)", "<a>", scope{"a": "<a>"}},
+	{"html(a)", "<a>", scope{"a": HTML("<a>")}},
 
 	// index
 	{"index(``,``)", "0", nil},
@@ -117,11 +117,11 @@ var execBuiltinTests = []struct {
 	{"int(3.56)", "3", nil},
 
 	// join
-	{"join(a, ``)", "", map[string]interface{}{"a": []string(nil)}},
-	{"join(a, ``)", "", map[string]interface{}{"a": []string{}}},
-	{"join(a, ``)", "a", map[string]interface{}{"a": []string{"a"}}},
-	{"join(a, ``)", "ab", map[string]interface{}{"a": []string{"a", "b"}}},
-	{"join(a, `,`)", "a,b,c", map[string]interface{}{"a": []string{"a", "b", "c"}}},
+	{"join(a, ``)", "", scope{"a": []string(nil)}},
+	{"join(a, ``)", "", scope{"a": []string{}}},
+	{"join(a, ``)", "a", scope{"a": []string{"a"}}},
+	{"join(a, ``)", "ab", scope{"a": []string{"a", "b"}}},
+	{"join(a, `,`)", "a,b,c", scope{"a": []string{"a", "b", "c"}}},
 
 	// lastIndex
 	{"lastIndex(``,``)", "0", nil},
@@ -266,7 +266,7 @@ var execRandomBuiltinTests = []struct {
 	src  string
 	seed int64
 	res  string
-	vars map[string]interface{}
+	vars scope
 }{
 	// rand
 	{"rand(0)", 1, "5577006791947779410", nil},
@@ -281,16 +281,16 @@ var execRandomBuiltinTests = []struct {
 	{"rand(100)", 4, "29", nil},
 
 	// shuffle
-	{"shuffle(s)", 1, "", map[string]interface{}{"s": []int{}}},
-	{"shuffle(s)", 1, "1", map[string]interface{}{"s": []int{1}}},
-	{"shuffle(s)", 1, "1, 2", map[string]interface{}{"s": []int{1, 2}}},
-	{"shuffle(s)", 2, "2, 1", map[string]interface{}{"s": []int{1, 2}}},
-	{"shuffle(s)", 1, "1, 2, 3", map[string]interface{}{"s": []int{1, 2, 3}}},
-	{"shuffle(s)", 2, "3, 1, 2", map[string]interface{}{"s": []int{1, 2, 3}}},
-	{"shuffle(s)", 3, "1, 3, 2", map[string]interface{}{"s": []int{1, 2, 3}}},
-	{"shuffle(s)", 1, "a, b, c", map[string]interface{}{"s": []string{"a", "b", "c"}}},
-	{"shuffle(s)", 2, "c, a, b", map[string]interface{}{"s": []string{"a", "b", "c"}}},
-	{"shuffle(s)", 3, "a, c, b", map[string]interface{}{"s": []string{"a", "b", "c"}}},
+	{"shuffle(s)", 1, "", scope{"s": []int{}}},
+	{"shuffle(s)", 1, "1", scope{"s": []int{1}}},
+	{"shuffle(s)", 1, "1, 2", scope{"s": []int{1, 2}}},
+	{"shuffle(s)", 2, "2, 1", scope{"s": []int{1, 2}}},
+	{"shuffle(s)", 1, "1, 2, 3", scope{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 2, "3, 1, 2", scope{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 3, "1, 3, 2", scope{"s": []int{1, 2, 3}}},
+	{"shuffle(s)", 1, "a, b, c", scope{"s": []string{"a", "b", "c"}}},
+	{"shuffle(s)", 2, "c, a, b", scope{"s": []string{"a", "b", "c"}}},
+	{"shuffle(s)", 3, "a, c, b", scope{"s": []string{"a", "b", "c"}}},
 }
 
 func TestExecBuiltin(t *testing.T) {

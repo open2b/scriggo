@@ -34,6 +34,11 @@ var errBreak = errors.New("break is not in a loop")
 // Viene gestito dallo statement "for" più interno.
 var errContinue = errors.New("continue is not in a loop")
 
+// scope di variabili
+type scope map[string]interface{}
+
+var scopeType = reflect.TypeOf(scope{})
+
 type Env struct {
 	tree    *ast.Tree
 	version string
@@ -63,14 +68,14 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 		return errors.New("template/exec: wr is nil")
 	}
 
-	globals, err := convertVars(vars, env.version)
+	globals, err := varsToScope(vars, env.version)
 	if err != nil {
 		return err
 	}
 
 	s := state{
 		path:     env.tree.Path,
-		vars:     []map[string]interface{}{builtins, globals, nil},
+		vars:     []scope{builtins, globals, nil},
 		treepath: env.tree.Path,
 	}
 
@@ -104,13 +109,11 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 	return err
 }
 
-var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
-
-// convertVars converte vars in un map[string]interface{}.
-func convertVars(vars interface{}, version string) (map[string]interface{}, error) {
+// varsToScope converte delle variabili in uno scope.
+func varsToScope(vars interface{}, version string) (scope, error) {
 
 	if vars == nil {
-		return map[string]interface{}{}, nil
+		return scope{}, nil
 	}
 
 	var rv reflect.Value
@@ -119,7 +122,7 @@ func convertVars(vars interface{}, version string) (map[string]interface{}, erro
 	}
 
 	if v, ok := vars.(map[string]interface{}); ok {
-		return v, nil
+		return scope(v), nil
 	}
 
 	if !rv.IsValid() {
@@ -129,13 +132,13 @@ func convertVars(vars interface{}, version string) (map[string]interface{}, erro
 
 	switch rv.Kind() {
 	case reflect.Map:
-		if !rt.ConvertibleTo(mapStringToInterfaceType) {
+		if !rt.ConvertibleTo(scopeType) {
 			return nil, fmt.Errorf("template/exec: unsupported vars type")
 		}
-		m := rv.Convert(mapStringToInterfaceType).Interface()
-		return m.(map[string]interface{}), nil
+		m := rv.Convert(scopeType).Interface()
+		return m.(scope), nil
 	case reflect.Struct:
-		globals := map[string]interface{}{}
+		globals := scope{}
 		nf := rv.NumField()
 		for i := 0; i < nf; i++ {
 			field := rt.Field(i)
@@ -192,8 +195,8 @@ func parseVarTag(tag string) (string, string) {
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
 	path        string
-	vars        []map[string]interface{}
-	regionScope map[string]interface{}
+	vars        []scope
+	regionScope scope
 	treepath    string
 }
 
@@ -325,7 +328,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 
 			s.vars = append(s.vars, nil)
 			for i, v := range list {
-				vars := map[string]interface{}{ident: v}
+				vars := scope{ident: v}
 				if index != "" {
 					vars[index] = i
 				}
@@ -352,7 +355,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 		case *ast.Var:
 
 			if s.vars[len(s.vars)-1] == nil {
-				s.vars[len(s.vars)-1] = map[string]interface{}{}
+				s.vars[len(s.vars)-1] = scope{}
 			}
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
