@@ -316,43 +316,79 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				// syntax: for ident in expr
 				// syntax: for index, ident in expr
 
-				av := reflect.ValueOf(expr)
-				if !av.IsValid() {
-					continue
-				}
-
-				var list []interface{}
-				if av.Kind() == reflect.Slice {
-					if av.Len() == 0 {
-						continue
-					}
-					list = make([]interface{}, av.Len())
-					for i := 0; i < len(list); i++ {
-						list[i] = av.Index(i).Interface()
-					}
-				} else {
-					list = []interface{}{av.Interface()}
-				}
-
-				s.vars = append(s.vars, nil)
-				for i, v := range list {
+				setScope := func(i int, v interface{}) {
 					vars := scope{ident: v}
 					if index != "" {
 						vars[index] = i
 					}
 					s.vars[len(s.vars)-1] = vars
-					err = s.execute(wr, node.Nodes, nil)
-					if err != nil {
-						if err == errBreak {
-							break
-						}
-						if err == errContinue {
-							continue
-						}
-						return err
-					}
 				}
-				s.vars = s.vars[:len(s.vars)-1]
+
+				switch vv := expr.(type) {
+				case string:
+					size := len(vv)
+					if size == 0 {
+						continue
+					}
+					s.vars = append(s.vars, nil)
+					i := 0
+					for _, v := range vv {
+						setScope(i, string(v))
+						err = s.execute(wr, node.Nodes, nil)
+						if err != nil {
+							if err == errBreak {
+								break
+							}
+							if err != errContinue {
+								return err
+							}
+						}
+						i++
+					}
+					s.vars = s.vars[:len(s.vars)-1]
+				case []string:
+					size := len(vv)
+					if size == 0 {
+						continue
+					}
+					s.vars = append(s.vars, nil)
+					for i := 0; i < size; i++ {
+						setScope(i, vv[i])
+						err = s.execute(wr, node.Nodes, nil)
+						if err != nil {
+							if err == errBreak {
+								break
+							}
+							if err != errContinue {
+								return err
+							}
+						}
+					}
+					s.vars = s.vars[:len(s.vars)-1]
+				default:
+					av := reflect.ValueOf(expr)
+					if !av.IsValid() || av.Kind() != reflect.Slice {
+						continue
+					}
+					size := av.Len()
+					if size == 0 {
+						continue
+					}
+					s.vars = append(s.vars, nil)
+					for i := 0; i < size; i++ {
+						setScope(i, av.Index(i).Interface())
+						err = s.execute(wr, node.Nodes, nil)
+						if err != nil {
+							if err == errBreak {
+								break
+							}
+							if err != errContinue {
+								return err
+							}
+						}
+					}
+					s.vars = s.vars[:len(s.vars)-1]
+				}
 
 			} else {
 				// syntax: for index in expr..expr

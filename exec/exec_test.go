@@ -155,6 +155,9 @@ var execStmtTests = []struct {
 	{"{% for i in 5..1 %}{{ i }}{% end %}", "54321", nil},
 	{"{% for i in 0..0 %}{{ i }}{% end %}", "0", nil},
 	{"{% for i in -10..-5 %}{{ i }}{% end %}", "-10-9-8-7-6-5", nil},
+	{"{% for c in \"\" %}{{ c }}{% end %}", "", nil},
+	{"{% for c in \"a\" %}({{ c }}){% end %}", "(a)", nil},
+	{"{% for c in \"aÈc\" %}({{ c }}){% end %}", "(a)(È)(c)", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 }
