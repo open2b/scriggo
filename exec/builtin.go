@@ -55,6 +55,7 @@ var builtins = map[string]interface{}{
 	"rand":       _rand,
 	"repeat":     _repeat,
 	"replace":    _replace,
+	"reverse":    _reverse,
 	"round":      _round,
 	"sha1":       _sha1,
 	"sha256":     _sha256,
@@ -281,6 +282,30 @@ func _repeat(s string, count int) string {
 // _replace is the builtin function "replace"
 func _replace(s, old, new string) string {
 	return strings.Replace(s, old, new, -1)
+}
+
+// _reverse is the builtin function "reverse"
+func _reverse(s interface{}) interface{} {
+	if s == nil {
+		return s
+	}
+	rv := reflect.ValueOf(s)
+	if rv.Kind() != reflect.Slice {
+		panic(errNoSlice)
+	}
+	l := rv.Len()
+	if l <= 1 {
+		return s
+	}
+	rt := reflect.TypeOf(s)
+	rvc := reflect.MakeSlice(rt, l, l)
+	reflect.Copy(rvc, rv)
+	sc := rvc.Interface()
+	swap := reflect.Swapper(sc)
+	for i, j := 0, l-1; i < j; i, j = i+1, j-1 {
+		swap(i, j)
+	}
+	return sc
 }
 
 // _round is the builtin function "round"

@@ -185,6 +185,14 @@ var execBuiltinTests = []struct {
 	{"replace(`abc`, `b`, `€`)", "a€c", nil},
 	{"replace(`abcbcba`, `b`, `e`)", "aececea", nil},
 
+	// reverse
+	{"reverse()", "", nil},
+	{"reverse(s)", "", scope{"s": []int(nil)}},
+	{"reverse(s)", "", scope{"s": []int{}}},
+	{"reverse(s)", "1", scope{"s": []int{1}}},
+	{"reverse(s)", "2, 1", scope{"s": []int{1, 2}}},
+	{"reverse(s)", "3, 2, 1", scope{"s": []int{1, 2, 3}}},
+
 	// round
 	{"round()", "0", nil},
 	{"round(0)", "0", nil},
