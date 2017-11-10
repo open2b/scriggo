@@ -151,13 +151,17 @@ var execStmtTests = []struct {
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for p in products %}a{% continue %}b\n{% end %}", "aaa",
 		scope{"products": []string{"a", "b", "c"}}},
+	{"{% for i in 1..5 %}{{ i }}{% end %}", "12345", nil},
+	{"{% for i in 5..1 %}{{ i }}{% end %}", "54321", nil},
+	{"{% for i in 0..0 %}{{ i }}{% end %}", "0", nil},
+	{"{% for i in -10..-5 %}{{ i }}{% end %}", "-10-9-8-7-6-5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 }
 
 type mapStringToInterface map[string]interface{}
 
-var execConvertVars = []struct {
+var execVarsToScope = []struct {
 	vars interface{}
 	res  scope
 }{
@@ -241,9 +245,9 @@ func TestExecStatements(t *testing.T) {
 	}
 }
 
-func TestConvertVars(t *testing.T) {
-	for _, p := range execConvertVars {
-		res, err := convertVars(p.vars, "")
+func TestVarsToScope(t *testing.T) {
+	for _, p := range execVarsToScope {
+		res, err := varsToScope(p.vars, "")
 		if err != nil {
 			t.Errorf("vars: %#v, %q\n", p.vars, err)
 			continue

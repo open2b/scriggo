@@ -338,6 +338,10 @@ LOOP:
 			if '0' <= l.src[1] && l.src[1] <= '9' {
 				l.lexNumber()
 				endLineAsSemicolon = true
+			} else if l.src[1] == '.' {
+				l.emit(tokenRange, 2)
+				l.column += 2
+				endLineAsSemicolon = false
 			} else {
 				l.emit(tokenPeriod, 1)
 				l.column++
@@ -553,6 +557,10 @@ func (l *lexer) lexNumber() {
 	for p < len(l.src) {
 		if l.src[p] == '.' {
 			if hasDot {
+				if l.src[p-1] == '.' {
+					// il punto è parte di un token range
+					p--
+				}
 				break
 			}
 			hasDot = true

@@ -140,15 +140,16 @@ type For struct {
 	*Position             // posizione nel sorgente.
 	Index     *Identifier // indice.
 	Ident     *Identifier // identificatore.
-	Expr      Expression  // espressione che valutata restituisce la lista degli elementi.
+	Expr1     Expression  // espressione sinistra del range o slice su cui iterare
+	Expr2     Expression  // espressione destra del range
 	Nodes     []Node      // nodi da eseguire per ogni elemento della lista.
 }
 
-func NewFor(pos *Position, index, ident *Identifier, expr Expression, nodes []Node) *For {
+func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, nodes []Node) *For {
 	if nodes == nil {
 		nodes = []Node{}
 	}
-	return &For{pos, index, ident, expr, nodes}
+	return &For{pos, index, ident, expr1, expr2, nodes}
 }
 
 // Break rappresenta uno statement {% break %}.
@@ -499,7 +500,11 @@ func CloneNode(node Node) Node {
 		if n.Ident != nil {
 			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
-		return NewFor(ClonePosition(n.Position), index, ident, CloneExpression(n.Expr), nodes)
+		var expr2 Expression
+		if n.Expr2 != nil {
+			expr2 = CloneExpression(n.Expr2)
+		}
+		return NewFor(ClonePosition(n.Position), index, ident, CloneExpression(n.Expr1), expr2, nodes)
 	case *Break:
 		return NewBreak(ClonePosition(n.Position))
 	case *Continue:

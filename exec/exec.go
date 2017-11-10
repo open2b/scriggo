@@ -14,6 +14,7 @@ import (
 	"unicode"
 
 	"open2b/template/ast"
+	"open2b/template/types"
 )
 
 type Error struct {
@@ -300,51 +301,110 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			if node.Index != nil {
 				index = node.Index.Name
 			}
-			ident := node.Ident.Name
+			ident := ""
+			if node.Ident != nil {
+				ident = node.Ident.Name
+			}
 
 			var expr interface{}
-			expr, err = s.eval(node.Expr)
+			expr, err = s.eval(node.Expr1)
 			if err != nil {
 				return err
 			}
 
-			av := reflect.ValueOf(expr)
-			if !av.IsValid() {
-				continue
-			}
+			if node.Expr2 == nil {
+				// syntax: for ident in expr
+				// syntax: for index, ident in expr
 
-			var list []interface{}
-			if av.Kind() == reflect.Slice {
-				if av.Len() == 0 {
+				av := reflect.ValueOf(expr)
+				if !av.IsValid() {
 					continue
 				}
-				list = make([]interface{}, av.Len())
-				for i := 0; i < len(list); i++ {
-					list[i] = av.Index(i).Interface()
-				}
-			} else {
-				list = []interface{}{av.Interface()}
-			}
 
-			s.vars = append(s.vars, nil)
-			for i, v := range list {
-				vars := scope{ident: v}
-				if index != "" {
-					vars[index] = i
-				}
-				s.vars[len(s.vars)-1] = vars
-				err = s.execute(wr, node.Nodes, nil)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err == errContinue {
+				var list []interface{}
+				if av.Kind() == reflect.Slice {
+					if av.Len() == 0 {
 						continue
 					}
+					list = make([]interface{}, av.Len())
+					for i := 0; i < len(list); i++ {
+						list[i] = av.Index(i).Interface()
+					}
+				} else {
+					list = []interface{}{av.Interface()}
+				}
+
+				s.vars = append(s.vars, nil)
+				for i, v := range list {
+					vars := scope{ident: v}
+					if index != "" {
+						vars[index] = i
+					}
+					s.vars[len(s.vars)-1] = vars
+					err = s.execute(wr, node.Nodes, nil)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						if err == errContinue {
+							continue
+						}
+						return err
+					}
+				}
+				s.vars = s.vars[:len(s.vars)-1]
+
+			} else {
+				// syntax: for index in expr..expr
+
+				expr2, err := s.eval(node.Expr2)
+				if err != nil {
 					return err
 				}
+
+				var n1, n2 int
+				{
+					nn1, ok := expr.(types.Number)
+					if ok {
+						n1, ok = nn1.Int()
+					}
+					if !ok {
+						return s.errorf(node, "left range value is not a integer")
+					}
+					nn2, ok := expr2.(types.Number)
+					if ok {
+						n2, ok = nn2.Int()
+					}
+					if !ok {
+						return s.errorf(node, "right range value is not a integer")
+					}
+				}
+
+				step := 1
+				if n2 < n1 {
+					step = -1
+				}
+
+				s.vars = append(s.vars, nil)
+				for i := n1; ; i += step {
+					s.vars[len(s.vars)-1] = scope{index: i}
+					err = s.execute(wr, node.Nodes, nil)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						if err == errContinue {
+							continue
+						}
+						return err
+					}
+					if i == n2 {
+						break
+					}
+				}
+				s.vars = s.vars[:len(s.vars)-1]
+
 			}
-			s.vars = s.vars[:len(s.vars)-1]
 
 		case *ast.Break:
 			return errBreak

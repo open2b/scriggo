@@ -157,15 +157,15 @@ var treeTests = []struct {
 	{"{% show a %}b{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
-		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"),
+		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"), nil,
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), "b")})})},
 	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"),
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
 		[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})})},
 	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"),
+		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
 		[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})})},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), "b")}, nil)})},
@@ -500,7 +500,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
 		}
-		err := equals(nn1.Expr, nn2.Expr, p)
+		err := equals(nn1.Expr1, nn2.Expr1, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Expr2, nn2.Expr2, p)
 		if err != nil {
 			return err
 		}
