@@ -424,6 +424,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// end
 			case tokenEnd:
+				if len(ancestors) == 1 {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+				}
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
@@ -447,8 +450,6 @@ func Parse(src []byte) (*ast.Tree, error) {
 						if tok.typ != tokenRegion {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting region or %%}", tok)}
 						}
-					default:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or %%}", tok)}
 					}
 					tok, ok = <-lex.tokens
 					if !ok {
