@@ -254,7 +254,7 @@ func (l *lexer) readHTML(src []byte) int {
 
 // lexShow emette i token di show sapendo che src inizia con '{{'.
 func (l *lexer) lexShow() error {
-	l.emit(tokenStartShow, 2)
+	l.emit(tokenStartValue, 2)
 	l.column += 2
 	err := l.lexCode()
 	if err != nil {
@@ -266,7 +266,7 @@ func (l *lexer) lexShow() error {
 	if l.src[0] != '}' || l.src[1] != '}' {
 		return l.errorf("unexpected %s, expecting }}", l.src[:2])
 	}
-	l.emit(tokenEndShow, 2)
+	l.emit(tokenEndValue, 2)
 	l.column += 2
 	return nil
 }

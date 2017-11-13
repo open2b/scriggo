@@ -185,40 +185,42 @@ func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
 	return &If{pos, expr, then, els}
 }
 
-// Show rappresenta uno statement {% show ... %} {% end %} o {{ ... }}.
+// Region rappresenta uno statement {% region ... %}.
+type Region struct {
+	*Position                // posizione nel sorgente.
+	Ident      *Identifier   // nome.
+	Parameters []*Identifier // parametri.
+	Body       []Node        // corpo.
+}
+
+func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body []Node) *Region {
+	if body == nil {
+		body = []Node{}
+	}
+	return &Region{pos, ident, parameters, body}
+}
+
+// Show rappresenta uno statement {% show ... %}
 type Show struct {
-	*Position            // posizione nel sorgente.
-	Expr      Expression // espressione che valutata restituisce il testo da mostrare.
+	*Position              // posizione nel sorgente.
+	Ident     *Identifier  // nome della region.
+	Arguments []Expression // argomenti.
 	Context
 }
 
-func NewShow(pos *Position, expr Expression, ctx Context) *Show {
-	return &Show{pos, expr, ctx}
+func NewShow(pos *Position, ident *Identifier, arguments []Expression, ctx Context) *Show {
+	return &Show{pos, ident, arguments, ctx}
 }
 
-// Extend rappresenta uno statement {% extend ... %}.
-type Extend struct {
-	*Position        // posizione nel sorgente.
-	Path      string // path del file da estendere.
-	Tree      *Tree  // albero del file esteso.
+// Value rappresenta uno statement {{ ... }}
+type Value struct {
+	*Position            // posizione nel sorgente.
+	Expr      Expression // espressione che valutata restituisce il valore da mostrare.
+	Context
 }
 
-func NewExtend(pos *Position, path string, tree *Tree) *Extend {
-	return &Extend{pos, path, tree}
-}
-
-// Region rappresenta uno statement {% region ... %}.
-type Region struct {
-	*Position        // posizione nel sorgente.
-	Name      string // name.
-	Nodes     []Node // nodi facenti parte della region.
-}
-
-func NewRegion(pos *Position, name string, nodes []Node) *Region {
-	if nodes == nil {
-		nodes = []Node{}
-	}
-	return &Region{pos, name, nodes}
+func NewValue(pos *Position, expr Expression, ctx Context) *Value {
+	return &Value{pos, expr, ctx}
 }
 
 // Include rappresenta uno statement {% include ... %}.
@@ -230,6 +232,17 @@ type Include struct {
 
 func NewInclude(pos *Position, path string, tree *Tree) *Include {
 	return &Include{pos, path, tree}
+}
+
+// Extend rappresenta uno statement {% extend ... %}.
+type Extend struct {
+	*Position        // posizione nel sorgente.
+	Path      string // path del file da estendere.
+	Tree      *Tree  // albero del file esteso.
+}
+
+func NewExtend(pos *Position, path string, tree *Tree) *Extend {
+	return &Extend{pos, path, tree}
 }
 
 type Comment struct {
@@ -473,8 +486,8 @@ func CloneNode(node Node) Node {
 		return NewTree(n.Path, nn)
 	case *Text:
 		return NewText(ClonePosition(n.Position), n.Text)
-	case *Show:
-		return NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+	case *Value:
+		return NewValue(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *If:
 		var then = make([]Node, len(n.Then))
 		for i, n2 := range n.Then {
@@ -516,11 +529,29 @@ func CloneNode(node Node) Node {
 		}
 		return NewExtend(ClonePosition(n.Position), n.Path, tree)
 	case *Region:
-		var nodes = make([]Node, len(n.Nodes))
-		for i, n2 := range n.Nodes {
-			nodes[i] = CloneNode(n2)
+		var ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		var parameters []*Identifier
+		if n.Parameters != nil {
+			parameters = make([]*Identifier, len(n.Parameters))
+			for i, p := range n.Parameters {
+				parameters[i] = NewIdentifier(ClonePosition(p.Position), p.Name)
+			}
 		}
-		return NewRegion(ClonePosition(n.Position), n.Name, nodes)
+		var body = make([]Node, len(n.Body))
+		for i, n2 := range n.Body {
+			body[i] = CloneNode(n2)
+		}
+		return NewRegion(ClonePosition(n.Position), ident, parameters, body)
+	case *Show:
+		var ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		var arguments []Expression
+		if n.Arguments != nil {
+			arguments = make([]Expression, len(n.Arguments))
+			for i, a := range n.Arguments {
+				arguments[i] = CloneExpression(a)
+			}
+		}
+		return NewShow(ClonePosition(n.Position), ident, arguments, n.Context)
 	case *Include:
 		var tree *Tree
 		if tree != nil {

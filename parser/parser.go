@@ -327,20 +327,52 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if isExtended && !isInRegion {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
 				}
-				expr, tok, err = parseExpr(lex)
-				if err != nil {
-					return nil, err
+				// ident
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
 				}
-				if expr == nil {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+				if tok.typ != tokenIdentifier {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
-				if tok.typ != tokenEndStatement {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				ident := ast.NewIdentifier(tok.pos, string(tok.txt))
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				var arguments []ast.Expression
+				if tok.typ == tokenLeftParenthesis {
+					// arguments
+					arguments = []ast.Expression{}
+					for {
+						expr, tok, err = parseExpr(lex)
+						if err != nil {
+							return nil, err
+						}
+						if expr == nil {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+						}
+						arguments = append(arguments, expr)
+						if tok.typ == tokenRightParenthesis {
+							break
+						}
+						if tok.typ != tokenComma {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
+						}
+					}
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenEndStatement {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+					}
+				} else if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewShow(pos, expr, parserContext(ctx))
+				node = ast.NewShow(pos, ident, arguments, parserContext(ctx))
 				addChild(parent, node)
-				ancestors = append(ancestors, node)
 				cutSpacesToken = true
 
 			// extend
@@ -371,35 +403,69 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 			// region
 			case tokenRegion:
-				if isExtended && len(ancestors) > 1 {
-					if _, ok := ancestors[len(ancestors)-1].(*ast.Include); ok {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting EOF", tok)}
-					} else {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end", tok)}
+				for i := len(ancestors) - 1; i > 0; i-- {
+					switch ancestors[i].(type) {
+					case *ast.For:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)}
+					case *ast.If:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)}
+					case *ast.Region:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end region", tok)}
 					}
 				}
-				name, err := parseString(lex)
-				if err != nil {
-					return nil, err
-				}
-				if name == "" {
-					return nil, &Error{"", *pos, fmt.Errorf("region has no name")}
-				}
+				// ident
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
-				if tok.typ != tokenEndStatement {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				if tok.typ != tokenIdentifier {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+				}
+				ident := ast.NewIdentifier(tok.pos, string(tok.txt))
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				var parameters []*ast.Identifier
+				if tok.typ == tokenLeftParenthesis {
+					// parameters
+					parameters = []*ast.Identifier{}
+					for {
+						tok, ok = <-lex.tokens
+						if !ok {
+							return nil, lex.err
+						}
+						if tok.typ != tokenIdentifier {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+						}
+						parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
+						tok, ok = <-lex.tokens
+						if !ok {
+							return nil, lex.err
+						}
+						if tok.typ == tokenRightParenthesis {
+							break
+						}
+						if tok.typ != tokenComma {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
+						}
+					}
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenEndStatement {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+					}
+				} else if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewRegion(pos, name, nil)
+				node = ast.NewRegion(pos, ident, parameters, nil)
 				addChild(parent, node)
-				if isExtended {
-					ancestors = append(ancestors, node)
-					isInRegion = true
-				}
+				ancestors = append(ancestors, node)
 				cutSpacesToken = true
+				isInRegion = true
 
 			// include
 			case tokenInclude:
@@ -471,9 +537,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 			}
 
 		// {{ }}
-		case tokenStartShow:
+		case tokenStartValue:
 			if isExtended && !isInRegion {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
+				return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside region")}
 			}
 			tokensInLine++
 			expr, tok2, err := parseExpr(lex)
@@ -483,11 +549,11 @@ func Parse(src []byte) (*ast.Tree, error) {
 			if expr == nil {
 				return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 			}
-			if tok2.typ != tokenEndShow {
+			if tok2.typ != tokenEndValue {
 				return nil, &Error{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 			}
 			tok.pos.End = tok2.pos.End
-			var node = ast.NewShow(tok.pos, expr, parserContext(tok.ctx))
+			var node = ast.NewValue(tok.pos, expr, parserContext(tok.ctx))
 			addChild(parent, node)
 
 		// comment
@@ -676,7 +742,7 @@ func (p *Parser) expandIncludes(nodes []ast.Node, dir string) error {
 				err = p.expandIncludes(n.Else, dir)
 			}
 		case *ast.Region:
-			err = p.expandIncludes(n.Nodes, dir)
+			err = p.expandIncludes(n.Body, dir)
 		case *ast.Include:
 			if n.Tree == nil {
 				var path = n.Path
@@ -724,7 +790,7 @@ func addChild(parent ast.Node, node ast.Node) {
 	case *ast.Tree:
 		n.Nodes = append(n.Nodes, node)
 	case *ast.Region:
-		n.Nodes = append(n.Nodes, node)
+		n.Body = append(n.Body, node)
 	case *ast.For:
 		n.Nodes = append(n.Nodes, node)
 	case *ast.If:

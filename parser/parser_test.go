@@ -140,22 +140,23 @@ var treeTests = []struct {
 }{
 	{"", ast.NewTree("", nil)},
 	{"a", ast.NewTree("", []ast.Node{ast.NewText(p(1, 1, 0, 0), "a")})},
-	{"{{a}}", ast.NewTree("", []ast.Node{ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)})},
+	{"{{a}}", ast.NewTree("", []ast.Node{ast.NewValue(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML)})},
 	{"a{{b}}", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML)})},
+		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewValue(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML)})},
 	{"{{a}}b", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), "b")})},
+		ast.NewValue(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 2), "a"), ast.ContextHTML), ast.NewText(p(1, 6, 5, 5), "b")})},
 	{"a{{b}}c", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewShow(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
+		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewValue(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
 		ast.NewText(p(1, 7, 6, 6), "c")})},
 	{"{% var a = 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewNumber(p(1, 13, 11, 11), n1))})},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewNumber(p(1, 8, 7, 7), n2))})},
-	{"{% show a %}{% end show %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
-	{"{% show a %}b{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextHTML)})},
+	{"{% show a %}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)})},
+	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
+		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
+			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)})},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
@@ -183,10 +184,13 @@ var treeTests = []struct {
 		ast.NewText(p(3, 12, 27, 28), "")})},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
-	{"{% extend \"a.e\" %}{% region \"b\" %}c{% end region %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 33), "b",
-			[]ast.Node{ast.NewText(p(1, 35, 34, 34), "c")})})},
-	{"{% region \"a\" %}", ast.NewTree("", []ast.Node{ast.NewRegion(p(1, 1, 0, 15), "a", nil)})},
+	{"{% extend \"a.e\" %}{% region b %}c{% end region %}", ast.NewTree("", []ast.Node{
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
+	{"{% extend \"a.e\" %}{% region b(c,d) %}{% end region %}", ast.NewTree("", []ast.Node{
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			[]ast.Expression{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
+			[]ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
 }
 
@@ -198,9 +202,9 @@ var pageTests = map[string]struct {
 		"<!DOCTYPE html>\n<html>\n<head><title>{{ title }}</title></head>\n<body>{{ content }}</body>\n</html>",
 		ast.NewTree("", []ast.Node{
 			ast.NewText(p(1, 1, 0, 35), "<!DOCTYPE html>\n<html>\n<head><title>"),
-			ast.NewShow(p(3, 14, 36, 46), ast.NewIdentifier(p(3, 17, 39, 43), "title"), ast.ContextHTML),
+			ast.NewValue(p(3, 14, 36, 46), ast.NewIdentifier(p(3, 17, 39, 43), "title"), ast.ContextHTML),
 			ast.NewText(p(3, 25, 47, 68), "</title></head>\n<body>"),
-			ast.NewShow(p(4, 7, 69, 81), ast.NewIdentifier(p(4, 10, 72, 78), "content"), ast.ContextHTML),
+			ast.NewValue(p(4, 7, 69, 81), ast.NewIdentifier(p(4, 10, 72, 78), "content"), ast.ContextHTML),
 			ast.NewText(p(4, 20, 82, 96), "</body>\n</html>"),
 		}),
 	},
@@ -210,7 +214,7 @@ var pageTests = map[string]struct {
 			ast.NewText(p(1, 1, 0, 28), "<!DOCTYPE html>\n<html>\n<body>"),
 			ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 4), "<div>"),
-				ast.NewShow(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
+				ast.NewValue(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 				ast.NewText(p(1, 19, 18, 23), "</div>"),
 			})),
 			ast.NewText(p(3, 37, 59, 73), "</body>\n</html>"),
@@ -448,8 +452,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-	case *ast.Show:
-		nn2, ok := n2.(*ast.Show)
+	case *ast.Value:
+		nn2, ok := n2.(*ast.Value)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
 		}
@@ -522,14 +526,24 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
 		}
-		if nn1.Name != nn2.Name {
-			return fmt.Errorf("unexpected %q, expecting %q", nn1.Name, nn2.Name)
+		err := equals(nn1.Ident, nn2.Ident, p)
+		if err != nil {
+			return err
 		}
-		if len(nn1.Nodes) != len(nn2.Nodes) {
-			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Nodes), len(nn2.Nodes))
+		if len(nn1.Parameters) != len(nn2.Parameters) {
+			return fmt.Errorf("unexpected arguments len %d, expecting %d", len(nn1.Parameters), len(nn2.Parameters))
 		}
-		for i, node := range nn1.Nodes {
-			err := equals(node, nn2.Nodes[i], p)
+		for i, parameter := range nn1.Parameters {
+			err := equals(parameter, nn2.Parameters[i], p)
+			if err != nil {
+				return err
+			}
+		}
+		if len(nn1.Body) != len(nn2.Body) {
+			return fmt.Errorf("unexpected body len %d, expecting %d", len(nn1.Body), len(nn2.Body))
+		}
+		for i, node := range nn1.Body {
+			err := equals(node, nn2.Body[i], p)
 			if err != nil {
 				return err
 			}

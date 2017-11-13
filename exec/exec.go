@@ -76,35 +76,25 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 
 	s := state{
 		path:     env.tree.Path,
-		vars:     []scope{builtins, globals, nil},
+		vars:     []scope{builtins, globals, {}},
+		regions:  map[string]region{},
 		treepath: env.tree.Path,
 	}
 
 	extend := getExtendNode(env.tree)
 	if extend == nil {
-		err = s.execute(wr, env.tree.Nodes, nil)
+		err = s.execute(wr, env.tree.Nodes)
 	} else {
 		if extend.Tree == nil {
 			return errors.New("template/exec: extend node is not expanded")
 		}
-		// legge le region
-		regions := map[string]*ast.Region{}
-		for _, node := range env.tree.Nodes {
-			if r, ok := node.(*ast.Region); ok {
-				regions[r.Name] = r
-			}
-		}
-		if len(regions) > 0 {
-			// determina lo scope per le regions
-			err = s.execute(nil, env.tree.Nodes, nil)
-			if err != nil {
-				return err
-			}
-			s.regionScope = s.vars[2]
-			s.vars[2] = nil
+		err = s.execute(nil, env.tree.Nodes)
+		if err != nil {
+			return err
 		}
 		s.path = extend.Path
-		err = s.execute(wr, extend.Tree.Nodes, regions)
+		s.vars = []scope{builtins, globals, {}}
+		err = s.execute(wr, extend.Tree.Nodes)
 	}
 
 	return err
@@ -193,12 +183,18 @@ func parseVarTag(tag string) (string, string) {
 	return name, version
 }
 
+// region definisce una region con le variabili definite nel suo scope
+type region struct {
+	node *ast.Region
+	vars []scope
+}
+
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
-	path        string
-	vars        []scope
-	regionScope scope
-	treepath    string
+	path     string
+	vars     []scope
+	regions  map[string]region
+	treepath string
 }
 
 // errorf costruisce e ritorna un errore di esecuzione.
@@ -218,7 +214,7 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 }
 
 // execute esegue i nodi nodes.
-func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.Region) error {
+func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 	var err error
 
@@ -235,7 +231,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				}
 			}
 
-		case *ast.Show:
+		case *ast.Value:
 
 			var expr interface{}
 			expr, err = s.eval(node.Expr)
@@ -280,11 +276,11 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			s.vars = append(s.vars, nil)
 			if c {
 				if len(node.Then) > 0 {
-					err = s.execute(wr, node.Then, nil)
+					err = s.execute(wr, node.Then)
 				}
 			} else {
 				if len(node.Else) > 0 {
-					err = s.execute(wr, node.Else, nil)
+					err = s.execute(wr, node.Else)
 				}
 			}
 			s.vars = s.vars[:len(s.vars)-1]
@@ -334,7 +330,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 					i := 0
 					for _, v := range vv {
 						setScope(i, string(v))
-						err = s.execute(wr, node.Nodes, nil)
+						err = s.execute(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -354,7 +350,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, vv[i])
-						err = s.execute(wr, node.Nodes, nil)
+						err = s.execute(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -377,7 +373,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, av.Index(i).Interface())
-						err = s.execute(wr, node.Nodes, nil)
+						err = s.execute(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -424,7 +420,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				s.vars = append(s.vars, nil)
 				for i := n1; ; i += step {
 					s.vars[len(s.vars)-1] = scope{index: i}
-					err = s.execute(wr, node.Nodes, nil)
+					err = s.execute(wr, node.Nodes)
 					if err != nil {
 						if err == errBreak {
 							break
@@ -448,6 +444,20 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 		case *ast.Continue:
 			return errContinue
 
+		case *ast.Region:
+			if wr != nil {
+				return s.errorf(node.Ident, "regions not allowed", node.Pos())
+			}
+			var name = node.Ident.Name
+			if region, ok := s.regions[name]; ok {
+				return s.errorf(node.Ident, "region %s redeclared in this block\n\tprevious declaration at ",
+					name, region.node.Pos())
+			}
+			s.regions[name] = region{
+				node: node,
+				vars: s.vars[0:3],
+			}
+
 		case *ast.Var:
 
 			if s.vars[len(s.vars)-1] == nil {
@@ -456,7 +466,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
 			if _, ok := vars[name]; ok {
-				return s.errorf(node, "variable %q already declared in this block: %#v", name, vars)
+				return s.errorf(node.Ident, "var %s redeclared in this block", name)
 			}
 			vars[name], err = s.eval(node.Expr)
 			if err != nil {
@@ -487,25 +497,61 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 				}
 			}
 			if !found {
-				return s.errorf(node, "variable %s not declared: %v", name, s.vars)
+				return s.errorf(node, "variable %s not declared", name)
 			}
 
-		case *ast.Region:
+		case *ast.Show:
 
-			if regions != nil {
-				region := regions[node.Name]
-				if region != nil {
-					path := s.path
-					s.path = s.treepath
-					s.vars = append(s.vars, s.regionScope, nil)
-					err = s.execute(wr, region.Nodes, nil)
-					if err != nil {
-						return err
+			name := node.Ident.Name
+			reg, ok := s.regions[name]
+			if !ok {
+				return s.errorf(node, "undefined: %s", name)
+			}
+			haveSize := len(node.Arguments)
+			wantSize := len(reg.node.Parameters)
+			if haveSize != wantSize {
+				have := "("
+				for i := 0; i < haveSize; i++ {
+					if i > 0 {
+						have += ","
 					}
-					s.vars = s.vars[:len(s.vars)-2]
-					s.path = path
+					if i < wantSize {
+						have += reg.node.Parameters[i].Name
+					} else {
+						have += "?"
+					}
+				}
+				have += ")"
+				want := "("
+				for i, p := range reg.node.Parameters {
+					if i > 0 {
+						want += ","
+					}
+					want += p.Name
+				}
+				want += ")"
+				if haveSize < wantSize {
+					return s.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+				}
+				return s.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+			}
+			var arguments = scope{}
+			for i, argument := range node.Arguments {
+				arguments[reg.node.Parameters[i].Name], err = s.eval(argument)
+				if err != nil {
+					return err
 				}
 			}
+			vars := s.vars
+			path := s.path
+			s.path = s.treepath
+			s.vars = append(reg.vars, arguments)
+			err = s.execute(wr, reg.node.Body)
+			if err != nil {
+				return err
+			}
+			s.vars = vars
+			s.path = path
 
 		case *ast.Include:
 
@@ -514,7 +560,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node, regions map[string]*ast.
 			}
 			path := s.path
 			s.path = node.Path
-			err = s.execute(wr, node.Tree.Nodes, nil)
+			err = s.execute(wr, node.Tree.Nodes)
 			if err != nil {
 				return err
 			}

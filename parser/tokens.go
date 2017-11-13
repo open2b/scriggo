@@ -38,8 +38,8 @@ const (
 	tokenText              tokenType = iota
 	tokenStartStatement              // {%
 	tokenEndStatement                // %}
-	tokenStartShow                   // {{
-	tokenEndShow                     // }}
+	tokenStartValue                  // {{
+	tokenEndValue                    // }}
 	tokenVar                         // var
 	tokenAssignment                  // =
 	tokenFor                         // for
@@ -88,10 +88,10 @@ var tokenString = map[tokenType]string{
 	tokenText:              "text",
 	tokenStartStatement:    "{%",
 	tokenEndStatement:      "%}",
-	tokenStartShow:         "{{",
+	tokenStartValue:        "{{",
 	tokenVar:               "var",
 	tokenAssignment:        "=",
-	tokenEndShow:           "}}",
+	tokenEndValue:          "}}",
 	tokenFor:               "for",
 	tokenIn:                "in",
 	tokenBreak:             "break",
