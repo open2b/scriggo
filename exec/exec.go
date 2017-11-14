@@ -77,7 +77,7 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 	s := state{
 		path:     env.tree.Path,
 		vars:     []scope{builtins, globals, {}},
-		regions:  map[string]region{},
+		regions:  map[string]map[string]region{"": {}},
 		treepath: env.tree.Path,
 	}
 
@@ -193,7 +193,7 @@ type region struct {
 type state struct {
 	path     string
 	vars     []scope
-	regions  map[string]region
+	regions  map[string]map[string]region
 	treepath string
 }
 
@@ -449,11 +449,11 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				return s.errorf(node.Ident, "regions not allowed", node.Pos())
 			}
 			var name = node.Ident.Name
-			if region, ok := s.regions[name]; ok {
-				return s.errorf(node.Ident, "region %s redeclared in this block\n\tprevious declaration at ",
+			if region, ok := s.regions[""][name]; ok {
+				return s.errorf(node.Ident, "region %s redeclared in this file\n\tprevious declaration at ",
 					name, region.node.Pos())
 			}
-			s.regions[name] = region{
+			s.regions[""][name] = region{
 				node: node,
 				vars: s.vars[0:3],
 			}
@@ -502,10 +502,25 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 		case *ast.Show:
 
-			name := node.Ident.Name
-			reg, ok := s.regions[name]
-			if !ok {
-				return s.errorf(node, "undefined: %s", name)
+			var reg region
+			var name string
+			if node.Import != nil {
+				regions, ok := s.regions[node.Import.Name]
+				if !ok {
+					return s.errorf(node.Import, "import %s not declared", node.Import.Name)
+				}
+				reg, ok = regions[node.Region.Name]
+				if !ok {
+					return s.errorf(node.Region, "region %s not declared in import %s", node.Region.Name, node.Import.Name)
+				}
+				name = node.Import.Name + "." + node.Region.Name
+			} else {
+				var ok bool
+				reg, ok = s.regions[""][node.Region.Name]
+				if !ok {
+					return s.errorf(node.Region, "region %s not declared", node.Region.Name)
+				}
+				name = node.Region.Name
 			}
 			haveSize := len(node.Arguments)
 			wantSize := len(reg.node.Parameters)
@@ -552,6 +567,35 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			}
 			s.vars = vars
 			s.path = path
+
+		case *ast.Import:
+
+			if node.Tree == nil {
+				return s.errorf(node, "import node is not expanded")
+			}
+			var name string
+			if node.Ident == nil {
+				var ok bool
+				name, ok = ast.GetImportName(node.Path)
+				if !ok {
+					return s.errorf(node, "%q cannot be used as import name", name)
+				}
+			} else {
+				name = node.Ident.Name
+			}
+			if _, ok := s.regions[name]; ok {
+				return s.errorf(node, "%s redeclared in this file", name)
+			}
+			st := state{
+				path:    node.Path,
+				vars:    []scope{s.vars[0], s.vars[1], {}},
+				regions: map[string]map[string]region{"": {}},
+			}
+			err = st.execute(nil, node.Tree.Nodes)
+			if err != nil {
+				return err
+			}
+			s.regions[name] = st.regions[""]
 
 		case *ast.Include:
 

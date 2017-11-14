@@ -49,6 +49,7 @@ const (
 	tokenIf                          // if
 	tokenElse                        // else
 	tokenExtend                      // extend
+	tokenImport                      // import
 	tokenInclude                     // include
 	tokenShow                        // show
 	tokenRegion                      // region
@@ -99,6 +100,7 @@ var tokenString = map[tokenType]string{
 	tokenIf:                "if",
 	tokenElse:              "else",
 	tokenExtend:            "extend",
+	tokenImport:            "import",
 	tokenInclude:           "include",
 	tokenShow:              "show",
 	tokenRegion:            "region",

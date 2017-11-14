@@ -8,7 +8,9 @@ package ast
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
+	"unicode"
 
 	"open2b/template/types"
 )
@@ -203,13 +205,14 @@ func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body 
 // Show rappresenta uno statement {% show ... %}
 type Show struct {
 	*Position              // posizione nel sorgente.
-	Ident     *Identifier  // nome della region.
+	Import    *Identifier  // nome dell'import.
+	Region    *Identifier  // nome della region.
 	Arguments []Expression // argomenti.
 	Context
 }
 
-func NewShow(pos *Position, ident *Identifier, arguments []Expression, ctx Context) *Show {
-	return &Show{pos, ident, arguments, ctx}
+func NewShow(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *Show {
+	return &Show{pos, impor, region, arguments, ctx}
 }
 
 // Value rappresenta uno statement {{ ... }}
@@ -243,6 +246,18 @@ type Extend struct {
 
 func NewExtend(pos *Position, path string, tree *Tree) *Extend {
 	return &Extend{pos, path, tree}
+}
+
+// Import rappresenta uno statement {% import ... %}.
+type Import struct {
+	*Position             // posizione nel sorgente.
+	Ident     *Identifier // identificatore.
+	Path      string      // path del file da importato.
+	Tree      *Tree       // albero del file importato.
+}
+
+func NewImport(pos *Position, ident *Identifier, path string, tree *Tree) *Import {
+	return &Import{pos, ident, path, tree}
 }
 
 type Comment struct {
@@ -543,7 +558,11 @@ func CloneNode(node Node) Node {
 		}
 		return NewRegion(ClonePosition(n.Position), ident, parameters, body)
 	case *Show:
-		var ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		var impor *Identifier
+		if n.Import != nil {
+			impor = NewIdentifier(ClonePosition(n.Import.Position), n.Import.Name)
+		}
+		var region = NewIdentifier(ClonePosition(n.Region.Position), n.Region.Name)
 		var arguments []Expression
 		if n.Arguments != nil {
 			arguments = make([]Expression, len(n.Arguments))
@@ -551,7 +570,17 @@ func CloneNode(node Node) Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return NewShow(ClonePosition(n.Position), ident, arguments, n.Context)
+		return NewShow(ClonePosition(n.Position), impor, region, arguments, n.Context)
+	case *Import:
+		var ident *Identifier
+		if n.Ident != nil {
+			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		}
+		var tree *Tree
+		if n.Tree != nil {
+			tree = CloneTree(n.Tree)
+		}
+		return NewImport(ClonePosition(n.Position), ident, n.Path, tree)
 	case *Include:
 		var tree *Tree
 		if tree != nil {
@@ -598,4 +627,27 @@ func CloneExpression(expr Expression) Expression {
 
 func ClonePosition(pos *Position) *Position {
 	return &Position{pos.Line, pos.Column, pos.Start, pos.End}
+}
+
+// GetImportName ritorna il nome di un import dal suo path.
+func GetImportName(path string) (string, bool) {
+	var ident string
+	s := strings.LastIndex(path, "/")
+	e := strings.LastIndex(path, ".")
+	if s >= 0 {
+		ident = path[s+1 : e]
+	} else {
+		ident = path[:e]
+	}
+	for _, r := range ident {
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return ident, false
+		}
+	}
+	switch ident {
+	case "break", "continue", "else", "end", "extend", "for", "if",
+		"import", "in", "include", "region", "show", "var":
+		return ident, false
+	}
+	return ident, true
 }

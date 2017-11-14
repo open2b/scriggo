@@ -530,6 +530,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenFor, p)
 	case "if":
 		l.emit(tokenIf, p)
+	case "import":
+		l.emit(tokenImport, p)
 	case "in":
 		l.emit(tokenIn, p)
 	case "include":
