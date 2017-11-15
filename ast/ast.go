@@ -202,8 +202,8 @@ func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body 
 	return &Region{pos, ident, parameters, body}
 }
 
-// Show rappresenta uno statement {% show ... %}
-type Show struct {
+// ShowRegion rappresenta uno statement {% show <region> %}
+type ShowRegion struct {
 	*Position              // posizione nel sorgente.
 	Import    *Identifier  // nome dell'import.
 	Region    *Identifier  // nome della region.
@@ -211,8 +211,20 @@ type Show struct {
 	Context
 }
 
-func NewShow(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *Show {
-	return &Show{pos, impor, region, arguments, ctx}
+func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *ShowRegion {
+	return &ShowRegion{pos, impor, region, arguments, ctx}
+}
+
+// ShowPath rappresenta uno statement {% show <path> %}.
+type ShowPath struct {
+	*Position        // posizione nel sorgente.
+	Path      string // path del sorgente da mostrare.
+	Tree      *Tree  // albero del sorgente.
+	Context
+}
+
+func NewShowPath(pos *Position, path string, tree *Tree, ctx Context) *ShowPath {
+	return &ShowPath{pos, path, tree, ctx}
 }
 
 // Value rappresenta uno statement {{ ... }}
@@ -224,17 +236,6 @@ type Value struct {
 
 func NewValue(pos *Position, expr Expression, ctx Context) *Value {
 	return &Value{pos, expr, ctx}
-}
-
-// Include rappresenta uno statement {% include ... %}.
-type Include struct {
-	*Position        // posizione nel sorgente.
-	Path      string // path del file da includere.
-	Tree      *Tree  // albero del file incluso.
-}
-
-func NewInclude(pos *Position, path string, tree *Tree) *Include {
-	return &Include{pos, path, tree}
 }
 
 // Extend rappresenta uno statement {% extend ... %}.
@@ -557,7 +558,7 @@ func CloneNode(node Node) Node {
 			body[i] = CloneNode(n2)
 		}
 		return NewRegion(ClonePosition(n.Position), ident, parameters, body)
-	case *Show:
+	case *ShowRegion:
 		var impor *Identifier
 		if n.Import != nil {
 			impor = NewIdentifier(ClonePosition(n.Import.Position), n.Import.Name)
@@ -570,7 +571,7 @@ func CloneNode(node Node) Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return NewShow(ClonePosition(n.Position), impor, region, arguments, n.Context)
+		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments, n.Context)
 	case *Import:
 		var ident *Identifier
 		if n.Ident != nil {
@@ -581,12 +582,12 @@ func CloneNode(node Node) Node {
 			tree = CloneTree(n.Tree)
 		}
 		return NewImport(ClonePosition(n.Position), ident, n.Path, tree)
-	case *Include:
+	case *ShowPath:
 		var tree *Tree
 		if tree != nil {
 			tree = CloneTree(n.Tree)
 		}
-		return NewInclude(ClonePosition(n.Position), n.Path, tree)
+		return NewShowPath(ClonePosition(n.Position), n.Path, tree, n.Context)
 	case *Comment:
 		return NewComment(ClonePosition(n.Position), n.Text)
 	case Expression:
@@ -645,8 +646,8 @@ func GetImportName(path string) (string, bool) {
 		}
 	}
 	switch ident {
-	case "break", "continue", "else", "end", "extend", "for", "if",
-		"import", "in", "include", "region", "show", "var":
+	case "break", "continue", "else", "end", "extend", "for",
+		"if", "import", "in", "region", "show", "var":
 		return ident, false
 	}
 	return ident, true

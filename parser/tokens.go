@@ -50,7 +50,6 @@ const (
 	tokenElse                        // else
 	tokenExtend                      // extend
 	tokenImport                      // import
-	tokenInclude                     // include
 	tokenShow                        // show
 	tokenRegion                      // region
 	tokenEnd                         // end
@@ -101,7 +100,6 @@ var tokenString = map[tokenType]string{
 	tokenElse:              "else",
 	tokenExtend:            "extend",
 	tokenImport:            "import",
-	tokenInclude:           "include",
 	tokenShow:              "show",
 	tokenRegion:            "region",
 	tokenEnd:               "end",

@@ -500,7 +500,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				return s.errorf(node, "variable %s not declared", name)
 			}
 
-		case *ast.Show:
+		case *ast.ShowRegion:
 
 			var reg region
 			var name string
@@ -597,10 +597,10 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			}
 			s.regions[name] = st.regions[""]
 
-		case *ast.Include:
+		case *ast.ShowPath:
 
 			if node.Tree == nil {
-				return s.errorf(node, "include node is not expanded")
+				return s.errorf(node, "tree node is not expanded")
 			}
 			path := s.path
 			s.path = node.Path

@@ -153,9 +153,9 @@ var treeTests = []struct {
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewNumber(p(1, 8, 7, 7), n2))})},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)})},
+		ast.NewShowRegion(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)})},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
-		ast.NewShow(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
+		ast.NewShowRegion(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)})},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
@@ -183,14 +183,14 @@ var treeTests = []struct {
 		ast.NewIf(p(1, 3, 2, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), "b\n")}, nil),
 		ast.NewText(p(3, 12, 27, 28), "")})},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", nil)})},
-	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", nil)})},
+	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", nil, ast.ContextHTML)})},
 	{"{% extend \"a.e\" %}{% region b %}c{% end region %}", ast.NewTree("", []ast.Node{
 		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
 			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
-	{"{% extend \"a.e\" %}{% region b(c,d) %}{% end region %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			[]ast.Expression{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
-			[]ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
+	{"{% extend \"a.e\" %}{% region b(c,d) %}txt{% end region %}", ast.NewTree("", []ast.Node{
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", nil), ast.NewRegion(p(1, 19, 18, 36), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			[]*ast.Identifier{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
+			[]ast.Node{ast.NewText(p(1, 38, 37, 39), "txt")})})},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
 }
 
@@ -209,15 +209,15 @@ var pageTests = map[string]struct {
 		}),
 	},
 	"/simple2.html": {
-		"<!DOCTYPE html>\n<html>\n<body>{% include \"/include2.html\" %}</body>\n</html>",
+		"<!DOCTYPE html>\n<html>\n<body>{% show \"/include2.html\" %}</body>\n</html>",
 		ast.NewTree("", []ast.Node{
 			ast.NewText(p(1, 1, 0, 28), "<!DOCTYPE html>\n<html>\n<body>"),
-			ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.NewTree("", []ast.Node{
+			ast.NewShowPath(p(3, 7, 29, 55), "/include2.html", ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 4), "<div>"),
 				ast.NewValue(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 				ast.NewText(p(1, 19, 18, 23), "</div>"),
-			})),
-			ast.NewText(p(3, 37, 59, 73), "</body>\n</html>"),
+			}), ast.ContextHTML),
+			ast.NewText(p(3, 34, 56, 70), "</body>\n</html>"),
 		}),
 	},
 	"/include2.inc": {

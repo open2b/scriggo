@@ -10,22 +10,6 @@ import (
 	"strings"
 )
 
-// parsePath ritorna il path letto dal lexer lex.
-func parsePath(lex *lexer) (string, error) {
-	var tok, ok = <-lex.tokens
-	if !ok {
-		return "", lex.err
-	}
-	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		return "", fmt.Errorf("unexpected %s, expecting string at %d", tok, tok.pos)
-	}
-	var path = unquoteString(tok.txt)
-	if !isValidFilePath(path) {
-		return "", fmt.Errorf("invalid include path %q at %s", path, tok.pos)
-	}
-	return path, nil
-}
-
 // toAbsolutePath unisce dir con path per ottenere un path assoluto.
 // dir deve essere assoluto e path relativo. I parametri non vengono
 // validati però viene ritornato errore se il path risultante è
@@ -122,7 +106,7 @@ func isValidFileName(name string) bool {
 	return true
 }
 
-// isValidFilePath indica se path è valido come path di un include o extend.
+// isValidFilePath indica se path è valido come path di un include o show path.
 // Sono path validi: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
 // Sono path non validi: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
