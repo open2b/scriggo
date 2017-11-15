@@ -206,6 +206,25 @@ var execBuiltinTests = []struct {
 	{"sha256(``)", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
 	{"sha256(`hello world!`)", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
 
+	// sort
+	{"sort()", "", nil},
+	{"sort(nil)", "", nil},
+	{"sort(s1)", "", scope{"s1": []int{}}},
+	{"sort(s2)", "1", scope{"s2": []int{1}}},
+	{"sort(s3)", "1, 2", scope{"s3": []int{1, 2}}},
+	{"sort(s4)", "1, 2", scope{"s4": []int{2, 1}}},
+	{"sort(s5)", "1, 2, 3", scope{"s5": []int{3, 1, 2}}},
+	{"sort(s6)", "a", scope{"s6": []string{"a"}}},
+	{"sort(s7)", "a, b", scope{"s7": []string{"b", "a"}}},
+	{"sort(s8)", "a, b, c", scope{"s8": []string{"b", "a", "c"}}},
+	{"sort(s9)", "false, true, true", scope{"s9": []bool{true, false, true}}},
+	{"sort(s10,`N`)[0].N", "3", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s10,`N`)[1].N", "5", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s10,`N`)[2].N", "7", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s11,`S`)[0].S", "a", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sort(s11,`S`)[1].S", "b", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sort(s11,`S`)[2].S", "c", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+
 	// split
 	{"split()", "", nil},
 	{"split(``, ``)", "", nil},

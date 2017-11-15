@@ -16,8 +16,10 @@ import (
 	"io"
 	"math/rand"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"open2b/template/types"
@@ -60,6 +62,7 @@ var builtins = map[string]interface{}{
 	"sha1":       _sha1,
 	"sha256":     _sha256,
 	"shuffle":    _shuffle,
+	"sort":       _sort,
 	"split":      _split,
 	"splitAfter": _splitAfter,
 	"title":      _title,
@@ -365,6 +368,112 @@ func _shuffle(s interface{}) interface{} {
 		j := r.Intn(i + 1)
 		swap(i, j)
 	}
+	return s2
+}
+
+// _sort is the builtin function "sort"
+func _sort(slice interface{}, field string) interface{} {
+	if field != "" {
+		r, _ := utf8.DecodeRuneInString(field)
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			panic("invalid field")
+		}
+	}
+	if slice == nil {
+		return slice
+	}
+	// no reflect
+	switch s := slice.(type) {
+	case []string:
+		if len(s) <= 1 {
+			return s
+		}
+		s2 := make([]string, len(s))
+		copy(s2, s)
+		sort.Strings(s2)
+		return s2
+	case []int:
+		if len(s) <= 1 {
+			return s
+		}
+		s2 := make([]int, len(s))
+		copy(s2, s)
+		sort.Ints(s2)
+		return s2
+	case []bool:
+		if len(s) <= 1 {
+			return s
+		}
+		s2 := make([]bool, len(s))
+		copy(s2, s)
+		sort.Slice(s2, func(i, j int) bool { return !s2[i] })
+		return s2
+	}
+	// reflect
+	if field == "" {
+		panic("missing field")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			panic("unsortable")
+		}
+	}()
+	rv := reflect.ValueOf(slice)
+	size := rv.Len()
+	values := make([]interface{}, size)
+	for i := 0; i < size; i++ {
+		v := rv.Index(i)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		values[i] = v.FieldByName(field).Interface()
+	}
+	var value interface{}
+	if len(values) > 0 {
+		value = values[0]
+	} else {
+		value = reflect.Zero(rv.Type()).Interface()
+	}
+	var f func(int, int) bool
+	switch value.(type) {
+	case Stringer:
+		if size <= 1 {
+			return slice
+		}
+		vv := make([]string, size)
+		for i := 0; i < size; i++ {
+			vv[i] = values[i].(Stringer).String()
+		}
+		f = func(i, j int) bool { return vv[i] < vv[j] }
+	case Numberer:
+		if size <= 1 {
+			return slice
+		}
+		vv := make([]types.Number, size)
+		for i := 0; i < size; i++ {
+			vv[i] = values[i].(Numberer).Number()
+		}
+		f = func(i, j int) bool { return vv[i].Compared(vv[j]) < 0 }
+	case string:
+		if size <= 1 {
+			return slice
+		}
+		f = func(i, j int) bool { return values[i].(string) < values[j].(string) }
+	case int:
+		if size <= 1 {
+			return slice
+		}
+		f = func(i, j int) bool { return values[i].(int) < values[j].(int) }
+	case bool:
+		if size <= 1 {
+			return slice
+		}
+		f = func(i, j int) bool { return !values[i].(bool) }
+	}
+	rv2 := reflect.MakeSlice(rv.Type(), size, size)
+	reflect.Copy(rv2, rv)
+	s2 := rv2.Interface()
+	sort.Slice(s2, f)
 	return s2
 }
 

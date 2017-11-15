@@ -30,6 +30,8 @@ func interfaceToHTML(expr interface{}) string {
 		s = string(e)
 	case Stringer:
 		s = e.String()
+	case int:
+		s = strconv.Itoa(e)
 	case bool:
 		if e {
 			s = "true"
