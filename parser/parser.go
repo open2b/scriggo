@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 )
@@ -333,6 +335,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ == tokenIdentifier {
+					// show <region>
 					region := ast.NewIdentifier(tok.pos, string(tok.txt))
 					tok, ok = <-lex.tokens
 					if !ok {
@@ -350,6 +353,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 						}
 						impor = region
 						region = ast.NewIdentifier(tok.pos, string(tok.txt))
+						if fc, _ := utf8.DecodeRuneInString(region.Name); !unicode.Is(unicode.Lu, fc) {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported region %s", region.Name)}
+						}
 						tok, ok = <-lex.tokens
 						if !ok {
 							return nil, lex.err
@@ -389,6 +395,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					pos.End = tok.pos.End
 					node = ast.NewShowRegion(pos, impor, region, arguments, parserContext(ctx))
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
+					// show <path>
 					var path = unquoteString(tok.txt)
 					if !isValidFilePath(path) {
 						return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
