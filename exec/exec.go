@@ -271,7 +271,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			}
 			c, ok := expr.(bool)
 			if !ok {
-				return s.errorf(node, "non-bool %s (type %T) used as if condition", node.Expr, node.Expr)
+				return s.errorf(node, "non-bool %s (type %T) used as if condition", node.Expr, expr)
 			}
 			s.vars = append(s.vars, nil)
 			if c {
