@@ -602,13 +602,15 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			if node.Tree == nil {
 				return s.errorf(node, "tree node is not expanded")
 			}
-			path := s.path
-			s.path = node.Path
-			err = s.execute(wr, node.Tree.Nodes)
+			st := state{
+				path:    node.Path,
+				vars:    []scope{s.vars[0], s.vars[1], {}},
+				regions: map[string]map[string]region{"": {}},
+			}
+			err = st.execute(wr, node.Tree.Nodes)
 			if err != nil {
 				return err
 			}
-			s.path = path
 
 		}
 	}
