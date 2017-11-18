@@ -65,7 +65,7 @@ func (p *Position) Pos() *Position {
 }
 
 func (p Position) String() string {
-	return "line " + strconv.Itoa(p.Line) + " column " + strconv.Itoa(p.Column)
+	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
 
 type Expression interface {

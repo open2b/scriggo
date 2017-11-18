@@ -24,7 +24,7 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("template: %s at %q %s", e.Err, e.Path, e.Pos)
+	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
 // errBreak è ritornato dall'esecuzione dello statement "break".
