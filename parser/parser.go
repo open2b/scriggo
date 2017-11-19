@@ -408,7 +408,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 					}
 					pos.End = tok.pos.End
-					node = ast.NewShowPath(pos, path, nil, parserContext(ctx))
+					node = ast.NewShowPath(pos, path, parserContext(ctx))
 				} else {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier o string", tok)}
 				}
@@ -444,7 +444,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewExtend(pos, path, nil)
+				node = ast.NewExtend(pos, path)
 				addChild(parent, node)
 				isExtended = true
 
@@ -493,7 +493,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewImport(pos, ident, path, nil)
+				node = ast.NewImport(pos, ident, path)
 				addChild(parent, node)
 				cutSpacesToken = true
 
@@ -736,12 +736,21 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return tree, nil
 	}
 
-	var dir = path[:strings.LastIndexByte(path, '/')+1]
+	var dir = path[:strings.LastIndex(path, "/")+1]
+
+	// espande i sotto alberi
+	err = p.expand(tree.Nodes, dir, nil)
+	if err != nil {
+		if err2, ok := err.(*Error); ok && err2.Path == "" {
+			err2.Path = path
+		}
+		return nil, err
+	}
 
 	// determina il nodo extend se presente
 	var extend = getExtendNode(tree)
 
-	if extend != nil && extend.Tree == nil {
+	if extend != nil && extend.Ref.Tree == nil {
 		var exPath string
 		if extend.Path[0] == '/' {
 			// pulisce il path rimuovendo ".."
@@ -768,9 +777,18 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		// verifica se è stato espanso
 		tr.Lock()
 		if !tr.IsExpanded {
+			// legge le region exportate
+			var regions []expandedRegion
+			for _, node := range tree.Nodes {
+				if region, ok := node.(*ast.Region); ok {
+					if c, _ := utf8.DecodeRuneInString(region.Ident.Name); unicode.Is(unicode.Lu, c) {
+						regions = append(regions, expandedRegion{nil, region})
+					}
+				}
+			}
 			// espande gli i sotto alberi
 			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
-			err = p.expandSubTrees(tr.Nodes, d)
+			err = p.expand(tr.Nodes, d, regions)
 			if err == nil {
 				tr.IsExpanded = true
 			}
@@ -782,16 +800,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 			}
 			return nil, err
 		}
-		extend.Tree = tr
-	}
-
-	// espande i sotto alberi
-	err = p.expandSubTrees(tree.Nodes, dir)
-	if err != nil {
-		if err2, ok := err.(*Error); ok && err2.Path == "" {
-			err2.Path = path
-		}
-		return nil, err
+		extend.Ref.Tree = tr
 	}
 
 	tree.IsExpanded = true
@@ -799,40 +808,158 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// expandSubTrees espande i nodi Import e ShowPath dell'albero tree
+type expandedRegion struct {
+	imp *ast.Import
+	reg *ast.Region
+}
+
+// expand espande i nodi Import e ShowPath dell'albero tree
 // chiamando read e anteponendo dir al path passato come argomento.
-func (p *Parser) expandSubTrees(nodes []ast.Node, dir string) error {
-	var err error
+func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) error {
+
 	for _, node := range nodes {
+
 		switch n := node.(type) {
+
 		case *ast.For:
-			err = p.expandSubTrees(n.Nodes, dir)
-		case *ast.If:
-			err = p.expandSubTrees(n.Then, dir)
-			if err == nil {
-				err = p.expandSubTrees(n.Else, dir)
+
+			err := p.expand(n.Nodes, dir, regions)
+			if err != nil {
+				return err
 			}
+
+		case *ast.If:
+
+			err := p.expand(n.Then, dir, regions)
+			if err != nil {
+				return err
+			}
+			err = p.expand(n.Else, dir, regions)
+			if err != nil {
+				return err
+			}
+
 		case *ast.Region:
-			err = p.expandSubTrees(n.Body, dir)
+
+			for _, r := range regions {
+				if (r.imp == nil || r.imp.Ident == nil) && r.reg.Ident.Name == n.Ident.Name {
+					return &Error{"", *(n.Pos()), fmt.Errorf("region %s already defined at %s", n.Ident.Name, r.imp.Pos())}
+				}
+			}
+			regions = append(regions, expandedRegion{nil, n})
+
+		case *ast.ShowRegion:
+
+			for _, r := range regions {
+				var found = n.Region.Name == r.reg.Ident.Name && (n.Import == nil && (r.imp == nil || r.imp.Ident == nil) ||
+					n.Import != nil && r.imp != nil && r.imp.Ident != nil && n.Import.Name == r.imp.Ident.Name)
+				if found {
+					n.Ref.Import = r.imp
+					n.Ref.Region = r.reg
+					break
+				}
+			}
+			if n.Ref.Region == nil {
+				return &Error{"", *(n.Pos()), fmt.Errorf("region %s not declared", n.Region.Name)}
+			}
+			haveSize := len(n.Arguments)
+			wantSize := len(n.Ref.Region.Parameters)
+			if haveSize != wantSize {
+				have := "("
+				for i := 0; i < haveSize; i++ {
+					if i > 0 {
+						have += ","
+					}
+					if i < wantSize {
+						have += n.Ref.Region.Parameters[i].Name
+					} else {
+						have += "?"
+					}
+				}
+				have += ")"
+				want := "("
+				for i, p := range n.Ref.Region.Parameters {
+					if i > 0 {
+						want += ","
+					}
+					want += p.Name
+				}
+				want += ")"
+				name := n.Region.Name
+				if n.Import != nil {
+					name = n.Import.Name + " " + name
+				}
+				if haveSize < wantSize {
+					return &Error{"", *(n.Pos()), fmt.Errorf("not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)}
+				}
+				return &Error{"", *(n.Pos()), fmt.Errorf("too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)}
+			}
+
 		case *ast.Import:
-			if n.Tree == nil {
-				n.Tree, err = p.expandSubTree(dir, n.Path)
+
+			if n.Ident != nil {
+				for _, r := range regions {
+					if r.imp != nil && r.imp.Ident != nil && r.imp.Ident.Name == n.Ident.Name {
+						return &Error{"", *(n.Pos()), fmt.Errorf("%s redeclared in this file", n.Ident.Name)}
+					}
+				}
+			}
+			var err error
+			n.Ref.Tree, err = p.expandSubTree(dir, n.Path)
+			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", n.Path)}
 				}
+				return err
 			}
+			exRegions := map[string]*ast.Region{}
+			for _, node := range n.Ref.Tree.Nodes {
+				if region, ok := node.(*ast.Region); ok {
+					name := region.Ident.Name
+					if c, _ := utf8.DecodeRuneInString(region.Ident.Name); unicode.Is(unicode.Lu, c) {
+						exRegions[name] = region
+					}
+				}
+			}
+			if n.Ident == nil {
+				for _, r2 := range regions {
+					if (r2.imp == nil || r2.imp.Ident == nil) && exRegions[r2.reg.Ident.Name] != nil {
+						pos := r2.reg.Pos()
+						if r2.imp != nil {
+							pos = r2.imp.Pos()
+						}
+						err = &Error{"", *(n.Pos()), fmt.Errorf("region %s already defined at %s", r2.reg.Ident.Name, pos)}
+					}
+				}
+			}
+			for _, r := range exRegions {
+				regions = append(regions, expandedRegion{n, r})
+			}
+
 		case *ast.ShowPath:
-			if n.Tree == nil {
-				n.Tree, err = p.expandSubTree(dir, n.Path)
+
+			var err error
+			n.Ref.Tree, err = p.expandSubTree(dir, n.Path)
+			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("showed path %q does not exist", n.Path)}
 				}
+				return err
+			}
+
+		}
+
+	}
+
+	for _, node := range nodes {
+		if region, ok := node.(*ast.Region); ok {
+			err := p.expand(region.Body, dir, regions)
+			if err != nil {
+				return err
 			}
 		}
-		if err != nil {
-			return err
-		}
 	}
+
 	return nil
 }
 
@@ -844,18 +971,18 @@ func (p *Parser) expandSubTree(dir, path string) (*ast.Tree, error) {
 			return nil, err
 		}
 	}
-	var subtree *ast.Tree
-	subtree, err = p.read(path)
+	var tree *ast.Tree
+	tree, err = p.read(path)
 	if err != nil {
 		return nil, err
 	}
 	// se non è espanso lo espande
-	subtree.Lock()
-	if !subtree.IsExpanded {
+	tree.Lock()
+	if !tree.IsExpanded {
 		var d = path[:strings.LastIndexByte(path, '/')+1]
-		err = p.expandSubTrees(subtree.Nodes, d)
+		err = p.expand(tree.Nodes, d, nil)
 	}
-	subtree.Unlock()
+	tree.Unlock()
 	if err != nil {
 		if err2, ok := err.(*Error); ok {
 			if strings.HasSuffix(err2.Error(), "does not exist") {
@@ -864,7 +991,7 @@ func (p *Parser) expandSubTree(dir, path string) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-	return subtree, nil
+	return tree, nil
 }
 
 func addChild(parent ast.Node, node ast.Node) {

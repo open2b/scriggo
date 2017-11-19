@@ -75,26 +75,26 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 	}
 
 	s := state{
-		path:     env.tree.Path,
-		vars:     []scope{builtins, globals, {}},
-		regions:  map[string]map[string]region{"": {}},
-		treepath: env.tree.Path,
+		scope: map[string]scope{},
+		path:  env.tree.Path,
+		vars:  []scope{builtins, globals, {}},
 	}
 
 	extend := getExtendNode(env.tree)
 	if extend == nil {
 		err = s.execute(wr, env.tree.Nodes)
 	} else {
-		if extend.Tree == nil {
+		if extend.Ref.Tree == nil {
 			return errors.New("template/exec: extend node is not expanded")
 		}
+		s.scope[s.path] = s.vars[2]
 		err = s.execute(nil, env.tree.Nodes)
 		if err != nil {
 			return err
 		}
 		s.path = extend.Path
 		s.vars = []scope{builtins, globals, {}}
-		err = s.execute(wr, extend.Tree.Nodes)
+		err = s.execute(wr, extend.Ref.Tree.Nodes)
 	}
 
 	return err
@@ -183,18 +183,11 @@ func parseVarTag(tag string) (string, string) {
 	return name, version
 }
 
-// region definisce una region con le variabili definite nel suo scope
-type region struct {
-	node *ast.Region
-	vars []scope
-}
-
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
-	path     string
-	vars     []scope
-	regions  map[string]map[string]region
-	treepath string
+	scope map[string]scope
+	path  string
+	vars  []scope
 }
 
 // errorf costruisce e ritorna un errore di esecuzione.
@@ -448,15 +441,6 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			if wr != nil {
 				return s.errorf(node.Ident, "regions not allowed", node.Pos())
 			}
-			var name = node.Ident.Name
-			if region, ok := s.regions[""][name]; ok {
-				return s.errorf(node.Ident, "region %s redeclared in this file\n\tprevious declaration at ",
-					name, region.node.Pos())
-			}
-			s.regions[""][name] = region{
-				node: node,
-				vars: s.vars[0:3],
-			}
 
 		case *ast.Var:
 
@@ -502,112 +486,53 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 		case *ast.ShowRegion:
 
-			var reg region
-			var name string
-			if node.Import != nil {
-				regions, ok := s.regions[node.Import.Name]
-				if !ok {
-					return s.errorf(node.Import, "import %s not declared", node.Import.Name)
-				}
-				reg, ok = regions[node.Region.Name]
-				if !ok {
-					return s.errorf(node.Region, "region %s not declared in import %s", node.Region.Name, node.Import.Name)
-				}
-				name = node.Import.Name + "." + node.Region.Name
-			} else {
-				var ok bool
-				reg, ok = s.regions[""][node.Region.Name]
-				if !ok {
-					return s.errorf(node.Region, "region %s not declared", node.Region.Name)
-				}
-				name = node.Region.Name
-			}
-			haveSize := len(node.Arguments)
-			wantSize := len(reg.node.Parameters)
-			if haveSize != wantSize {
-				have := "("
-				for i := 0; i < haveSize; i++ {
-					if i > 0 {
-						have += ","
-					}
-					if i < wantSize {
-						have += reg.node.Parameters[i].Name
-					} else {
-						have += "?"
-					}
-				}
-				have += ")"
-				want := "("
-				for i, p := range reg.node.Parameters {
-					if i > 0 {
-						want += ","
-					}
-					want += p.Name
-				}
-				want += ")"
-				if haveSize < wantSize {
-					return s.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-				}
-				return s.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-			}
+			var region = node.Ref.Region
 			var arguments = scope{}
 			for i, argument := range node.Arguments {
-				arguments[reg.node.Parameters[i].Name], err = s.eval(argument)
+				arguments[region.Parameters[i].Name], err = s.eval(argument)
 				if err != nil {
 					return err
 				}
 			}
-			vars := s.vars
+
 			path := s.path
-			s.path = s.treepath
-			s.vars = append(reg.vars, arguments)
-			err = s.execute(wr, reg.node.Body)
+			if node.Ref.Import != nil {
+				path = node.Ref.Import.Ref.Tree.Path
+			}
+			st := state{
+				scope: s.scope,
+				path:  path,
+				vars:  []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
+			}
+			err = st.execute(wr, region.Body)
 			if err != nil {
 				return err
 			}
-			s.vars = vars
-			s.path = path
 
 		case *ast.Import:
 
-			if node.Tree == nil {
-				return s.errorf(node, "import node is not expanded")
-			}
-			var name string
-			if node.Ident == nil {
-				var ok bool
-				name, ok = ast.GetImportName(node.Path)
-				if !ok {
-					return s.errorf(node, "%q cannot be used as import name", name)
+			path := node.Ref.Tree.Path
+			if _, ok := s.scope[path]; !ok {
+				st := state{
+					scope: s.scope,
+					path:  path,
+					vars:  []scope{s.vars[0], s.vars[1], {}},
 				}
-			} else {
-				name = node.Ident.Name
+				err = st.execute(nil, node.Ref.Tree.Nodes)
+				if err != nil {
+					return err
+				}
+				s.scope[path] = s.vars[2]
 			}
-			if _, ok := s.regions[name]; ok {
-				return s.errorf(node, "%s redeclared in this file", name)
-			}
-			st := state{
-				path:    node.Path,
-				vars:    []scope{s.vars[0], s.vars[1], {}},
-				regions: map[string]map[string]region{"": {}},
-			}
-			err = st.execute(nil, node.Tree.Nodes)
-			if err != nil {
-				return err
-			}
-			s.regions[name] = st.regions[""]
 
 		case *ast.ShowPath:
 
-			if node.Tree == nil {
-				return s.errorf(node, "tree node is not expanded")
-			}
 			st := state{
-				path:    node.Path,
-				vars:    []scope{s.vars[0], s.vars[1], {}},
-				regions: map[string]map[string]region{"": {}},
+				scope: s.scope,
+				path:  node.Ref.Tree.Path,
+				vars:  []scope{s.vars[0], s.vars[1], {}},
 			}
-			err = st.execute(wr, node.Tree.Nodes)
+			err = st.execute(wr, node.Ref.Tree.Nodes)
 			if err != nil {
 				return err
 			}

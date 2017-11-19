@@ -208,23 +208,29 @@ type ShowRegion struct {
 	Import    *Identifier  // nome dell'import.
 	Region    *Identifier  // nome della region.
 	Arguments []Expression // argomenti.
+	Ref       struct {
+		Import *Import
+		Region *Region
+	}
 	Context
 }
 
 func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *ShowRegion {
-	return &ShowRegion{pos, impor, region, arguments, ctx}
+	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments, Context: ctx}
 }
 
 // ShowPath rappresenta uno statement {% show <path> %}.
 type ShowPath struct {
 	*Position        // posizione nel sorgente.
 	Path      string // path del sorgente da mostrare.
-	Tree      *Tree  // albero del sorgente.
+	Ref       struct {
+		Tree *Tree
+	}
 	Context
 }
 
-func NewShowPath(pos *Position, path string, tree *Tree, ctx Context) *ShowPath {
-	return &ShowPath{pos, path, tree, ctx}
+func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
+	return &ShowPath{Position: pos, Path: path, Context: ctx}
 }
 
 // Value rappresenta uno statement {{ ... }}
@@ -242,11 +248,13 @@ func NewValue(pos *Position, expr Expression, ctx Context) *Value {
 type Extend struct {
 	*Position        // posizione nel sorgente.
 	Path      string // path del file da estendere.
-	Tree      *Tree  // albero del file esteso.
+	Ref       struct {
+		Tree *Tree // albero del file esteso.
+	}
 }
 
-func NewExtend(pos *Position, path string, tree *Tree) *Extend {
-	return &Extend{pos, path, tree}
+func NewExtend(pos *Position, path string) *Extend {
+	return &Extend{Position: pos, Path: path}
 }
 
 // Import rappresenta uno statement {% import ... %}.
@@ -254,11 +262,13 @@ type Import struct {
 	*Position             // posizione nel sorgente.
 	Ident     *Identifier // identificatore.
 	Path      string      // path del file da importato.
-	Tree      *Tree       // albero del file importato.
+	Ref       struct {
+		Tree *Tree // albero del file importato.
+	}
 }
 
-func NewImport(pos *Position, ident *Identifier, path string, tree *Tree) *Import {
-	return &Import{pos, ident, path, tree}
+func NewImport(pos *Position, ident *Identifier, path string) *Import {
+	return &Import{Position: pos, Ident: ident, Path: path}
 }
 
 type Comment struct {
@@ -539,11 +549,11 @@ func CloneNode(node Node) Node {
 	case *Continue:
 		return NewContinue(ClonePosition(n.Position))
 	case *Extend:
-		var tree *Tree
-		if n.Tree != nil {
-			tree = CloneTree(n.Tree)
+		extend := NewExtend(ClonePosition(n.Position), n.Path)
+		if n.Ref.Tree != nil {
+			extend.Ref.Tree = CloneTree(n.Ref.Tree)
 		}
-		return NewExtend(ClonePosition(n.Position), n.Path, tree)
+		return extend
 	case *Region:
 		var ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		var parameters []*Identifier
@@ -577,17 +587,17 @@ func CloneNode(node Node) Node {
 		if n.Ident != nil {
 			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
-		var tree *Tree
-		if n.Tree != nil {
-			tree = CloneTree(n.Tree)
+		imp := NewImport(ClonePosition(n.Position), ident, n.Path)
+		if n.Ref.Tree != nil {
+			imp.Ref.Tree = CloneTree(n.Ref.Tree)
 		}
-		return NewImport(ClonePosition(n.Position), ident, n.Path, tree)
+		return imp
 	case *ShowPath:
-		var tree *Tree
-		if tree != nil {
-			tree = CloneTree(n.Tree)
+		sp := NewShowPath(ClonePosition(n.Position), n.Path, n.Context)
+		if n.Ref.Tree != nil {
+			sp.Ref.Tree = CloneTree(n.Ref.Tree)
 		}
-		return NewShowPath(ClonePosition(n.Position), n.Path, tree, n.Context)
+		return sp
 	case *Comment:
 		return NewComment(ClonePosition(n.Position), n.Text)
 	case Expression:
