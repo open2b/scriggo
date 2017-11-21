@@ -749,10 +749,12 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return tree, nil
 	}
 
+	pp := newParsing(path, p.reader)
+
 	var dir = path[:strings.LastIndex(path, "/")+1]
 
 	// espande i sotto alberi
-	err = p.expand(tree.Nodes, dir, nil)
+	err = pp.expand(tree.Nodes, dir, nil)
 	if err != nil {
 		if err2, ok := err.(*Error); ok && err2.Path == "" {
 			err2.Path = path
@@ -801,7 +803,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 			}
 			// espande gli i sotto alberi
 			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
-			err = p.expand(tr.Nodes, d, regions)
+			err = pp.expand(tr.Nodes, d, regions)
 			if err == nil {
 				tr.IsExpanded = true
 			}
@@ -821,14 +823,57 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	return tree, nil
 }
 
+type parsing struct {
+	reader Reader
+	paths  []string
+}
+
+func newParsing(path string, r Reader) *parsing {
+	if _, ok := r.(*CacheReader); !ok {
+		r = NewCacheReader(r)
+	}
+	return &parsing{r, []string{path}}
+}
+
 type expandedRegion struct {
 	imp *ast.Import
 	reg *ast.Region
 }
 
+func (pp *parsing) expandTree(dir, path string) (*ast.Tree, error) {
+	var err error
+	if path[0] != '/' {
+		path, err = toAbsolutePath(dir, path)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var tree *ast.Tree
+	tree, err = pp.reader.Read(path)
+	if err != nil {
+		return nil, err
+	}
+	// se non è espanso lo espande
+	tree.Lock()
+	if !tree.IsExpanded {
+		var d = path[:strings.LastIndexByte(path, '/')+1]
+		err = pp.expand(tree.Nodes, d, nil)
+	}
+	tree.Unlock()
+	if err != nil {
+		if err2, ok := err.(*Error); ok {
+			if strings.HasSuffix(err2.Error(), "does not exist") {
+				err2.Path = path
+			}
+		}
+		return nil, err
+	}
+	return tree, nil
+}
+
 // expand espande i nodi Import e ShowPath dell'albero tree
 // chiamando read e anteponendo dir al path passato come argomento.
-func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) error {
+func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion) error {
 
 	for _, node := range nodes {
 
@@ -836,18 +881,18 @@ func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) 
 
 		case *ast.For:
 
-			err := p.expand(n.Nodes, dir, regions)
+			err := pp.expand(n.Nodes, dir, regions)
 			if err != nil {
 				return err
 			}
 
 		case *ast.If:
 
-			err := p.expand(n.Then, dir, regions)
+			err := pp.expand(n.Then, dir, regions)
 			if err != nil {
 				return err
 			}
-			err = p.expand(n.Else, dir, regions)
+			err = pp.expand(n.Else, dir, regions)
 			if err != nil {
 				return err
 			}
@@ -918,7 +963,7 @@ func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) 
 				}
 			}
 			var err error
-			n.Ref.Tree, err = p.expandSubTree(dir, n.Path)
+			n.Ref.Tree, err = pp.expandTree(dir, n.Path)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", n.Path)}
@@ -952,7 +997,7 @@ func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) 
 		case *ast.ShowPath:
 
 			var err error
-			n.Ref.Tree, err = p.expandSubTree(dir, n.Path)
+			n.Ref.Tree, err = pp.expandTree(dir, n.Path)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("showed path %q does not exist", n.Path)}
@@ -966,7 +1011,7 @@ func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) 
 
 	for _, node := range nodes {
 		if region, ok := node.(*ast.Region); ok {
-			err := p.expand(region.Body, dir, regions)
+			err := pp.expand(region.Body, dir, regions)
 			if err != nil {
 				return err
 			}
@@ -974,37 +1019,6 @@ func (p *Parser) expand(nodes []ast.Node, dir string, regions []expandedRegion) 
 	}
 
 	return nil
-}
-
-func (p *Parser) expandSubTree(dir, path string) (*ast.Tree, error) {
-	var err error
-	if path[0] != '/' {
-		path, err = toAbsolutePath(dir, path)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var tree *ast.Tree
-	tree, err = p.reader.Read(path)
-	if err != nil {
-		return nil, err
-	}
-	// se non è espanso lo espande
-	tree.Lock()
-	if !tree.IsExpanded {
-		var d = path[:strings.LastIndexByte(path, '/')+1]
-		err = p.expand(tree.Nodes, d, nil)
-	}
-	tree.Unlock()
-	if err != nil {
-		if err2, ok := err.(*Error); ok {
-			if strings.HasSuffix(err2.Error(), "does not exist") {
-				err2.Path = path
-			}
-		}
-		return nil, err
-	}
-	return tree, nil
 }
 
 func addChild(parent ast.Node, node ast.Node) {
