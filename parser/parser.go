@@ -648,66 +648,79 @@ func Parse(src []byte) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// ReadFunc ritorna un albero dato il path.
-// Se path non esiste ritorna l'errore ErrNotExist.
-type ReadFunc func(path string) (*ast.Tree, error)
+// Reader definisce un tipo che consente di leggere i sorgenti di un template.
+type Reader interface {
+	Read(path string) (*ast.Tree, error)
+}
 
-// FileReader fornisce una ReadFunc che legge i sorgenti dai
-// file nella directory dir.
-func FileReader(dir string) ReadFunc {
-	return func(path string) (*ast.Tree, error) {
-		src, err := ioutil.ReadFile(filepath.Join(dir, path))
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil, ErrNotExist
-			}
-			return nil, err
+// DirReader implementa un Reader che legge i sorgenti
+// di un template dai file in una directory.
+type DirReader string
+
+// Read implementa il metodo Read del Reader.
+func (dir DirReader) Read(path string) (*ast.Tree, error) {
+	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrNotExist
 		}
-		tree, err := Parse(src)
-		if err != nil {
-			if err2, ok := err.(*Error); ok {
-				err2.Path = path
-			}
-			return nil, err
+		return nil, err
+	}
+	tree, err := Parse(src)
+	if err != nil {
+		if err2, ok := err.(*Error); ok {
+			err2.Path = path
 		}
-		tree.Path = path
-		return tree, nil
+		return nil, err
+	}
+	tree.Path = path
+	return tree, nil
+}
+
+// CacheReader implementa un Reader che legge e mette in una cache
+// i sorgenti del template letti da un altro reader.
+type CacheReader struct {
+	reader Reader
+	trees  map[string]*ast.Tree
+	sync.Mutex
+}
+
+// NewCacheReader ritorna un CacheReader che legge i sorgenti dal reader r.
+func NewCacheReader(r Reader) *CacheReader {
+	return &CacheReader{
+		reader: r,
+		trees:  map[string]*ast.Tree{},
 	}
 }
 
-// CacheReader restituisce una ReadFunc che mantiene in cache
-// gli alberi letti con read.
-func CacheReader(read ReadFunc) ReadFunc {
-	var trees = map[string]*ast.Tree{}
-	var mux sync.Mutex
-	return func(path string) (*ast.Tree, error) {
-		var err error
-		mux.Lock()
-		tree, ok := trees[path]
-		mux.Unlock()
-		if !ok {
-			tree, err = read(path)
-			if err != nil {
-				mux.Lock()
-				trees[path] = tree
-				mux.Unlock()
-			}
+// Read implementa il metodo Read del Reader.
+func (r *CacheReader) Read(path string) (*ast.Tree, error) {
+	var err error
+	r.Lock()
+	tree, ok := r.trees[path]
+	r.Unlock()
+	if !ok {
+		tree, err = r.reader.Read(path)
+		if err == nil {
+			r.Lock()
+			r.trees[path] = tree
+			r.Unlock()
 		}
-		return tree, err
 	}
+	return tree, err
 }
 
 type Parser struct {
-	read ReadFunc
+	reader Reader
 }
 
-func NewParser(read ReadFunc) *Parser {
-	return &Parser{read}
+func NewParser(r Reader) *Parser {
+	return &Parser{r}
 }
 
-// Parse ritorna l'albero espanso di path il quale deve essere assoluto.
-// Legge l'albero tramite la funzione read ed espande i nodi Extend e
-// ShowPath se presenti.
+// Parse legge il sorgente in path, tramite il reader, espande i nodi Extend,
+// Import e ShowPath se presenti per poi ritornare l'albero espanso.
+// path deve essere assoluto.
 func (p *Parser) Parse(path string) (*ast.Tree, error) {
 
 	var err error
@@ -723,7 +736,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	tree, err := p.read(path)
+	tree, err := p.reader.Read(path)
 	if err != nil {
 		return nil, err
 	}
@@ -763,7 +776,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 			return nil, err
 		}
 		var tr *ast.Tree
-		tr, err = p.read(exPath)
+		tr, err = p.reader.Read(exPath)
 		if err != nil {
 			if err == ErrNotExist {
 				err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
@@ -972,7 +985,7 @@ func (p *Parser) expandSubTree(dir, path string) (*ast.Tree, error) {
 		}
 	}
 	var tree *ast.Tree
-	tree, err = p.read(path)
+	tree, err = p.reader.Read(path)
 	if err != nil {
 		return nil, err
 	}

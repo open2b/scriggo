@@ -24,7 +24,7 @@ var (
 )
 
 type Template struct {
-	read   parser.ReadFunc
+	reader parser.Reader
 	parser *parser.Parser
 	envs   map[string]*exec.Env
 	sync.RWMutex
@@ -35,12 +35,12 @@ type Template struct {
 // momento della loro prima esecuzione.
 func New(dir string, cache bool) *Template {
 	var envs map[string]*exec.Env
-	r := parser.FileReader(dir)
+	var r parser.Reader = parser.DirReader(dir)
 	if cache {
 		envs = map[string]*exec.Env{}
-		r = parser.CacheReader(r)
+		r = parser.NewCacheReader(r)
 	}
-	return &Template{read: r, parser: parser.NewParser(r), envs: envs}
+	return &Template{reader: r, parser: parser.NewParser(r), envs: envs}
 }
 
 // Execute esegue il file del template con il path indicato, relativo

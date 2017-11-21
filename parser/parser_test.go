@@ -267,13 +267,19 @@ func TestTrees(t *testing.T) {
 	}
 }
 
+type testsReader map[string]struct {
+	src  string
+	tree *ast.Tree
+}
+
+func (tests testsReader) Read(path string) (*ast.Tree, error) {
+	return Parse([]byte(tests[path].src))
+}
+
 func TestPages(t *testing.T) {
 	tests := pageTests()
-	readFunc := func(path string) (*ast.Tree, error) {
-		return Parse([]byte(tests[path].src))
-	}
 	// simple.html
-	parser := NewParser(readFunc)
+	parser := NewParser(testsReader(tests))
 	p := tests["/simple.html"]
 	tree, err := parser.Parse("/simple.html")
 	if err != nil {
