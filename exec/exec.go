@@ -56,12 +56,13 @@ func NewEnv(tree *ast.Tree, version string) *Env {
 // Execute esegue l'albero tree e scrive il risultato su wr.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 //
-// vars può:
+// vars può essere:
 //
-//   - avere map[string]interface{} come underlying type
-//   - essere una struct
-//   - essere un reflect.Value il cui valore concreto soddisfa uno dei precedenti
-//   - essere nil
+//   - un map con chiave di tipo string
+//   - un tipo con underlying type uno dei tipi map precedenti
+//   - una struct o puntatore a struct
+//   - un reflect.Value il cui valore concreto soddisfa uno dei precedenti
+//   - nil
 //
 func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 
