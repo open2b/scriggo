@@ -75,6 +75,8 @@ func interfaceToHTML(expr interface{}) string {
 	return s
 }
 
+var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
+
 func interfaceToScript(expr interface{}) string {
 
 	if expr == nil {
@@ -178,6 +180,11 @@ func interfaceToScript(expr interface{}) string {
 			return "[]"
 		case reflect.Struct:
 			return structToScript(v.Type(), v)
+		case reflect.Map:
+			if !v.Type().ConvertibleTo(mapStringToInterfaceType) {
+				return "null"
+			}
+			return interfaceToScript(v.Convert(mapStringToInterfaceType).Interface())
 		case reflect.Ptr:
 			t := v.Type().Elem()
 			if t.Kind() != reflect.Struct {
