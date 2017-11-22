@@ -162,8 +162,6 @@ var execStmtTests = []struct {
 	{"a{# comment #}b", "ab", nil},
 }
 
-type mapStringToInterface map[string]interface{}
-
 var execVarsToScope = []struct {
 	vars interface{}
 	res  scope
@@ -181,15 +179,31 @@ var execVarsToScope = []struct {
 		scope{"a": 1, "b": "s"},
 	},
 	{
-		mapStringToInterface{"a": 1, "b": "s"},
+		map[string]interface{}{"a": 1, "b": "s"},
 		scope{"a": 1, "b": "s"},
 	},
 	{
-		reflect.ValueOf(mapStringToInterface{"a": 1, "b": "s"}),
+		map[string]string{"a": "t", "b": "s"},
+		scope{"a": "t", "b": "s"},
+	},
+	{
+		map[string]int{"a": 1, "b": 2},
+		scope{"a": 1, "b": 2},
+	},
+	{
+		reflect.ValueOf(map[string]interface{}{"a": 1, "b": "s"}),
 		scope{"a": 1, "b": "s"},
 	},
 	{
 		struct {
+			A int    `template:"a"`
+			B string `template:"b"`
+			C bool
+		}{A: 1, B: "s", C: true},
+		scope{"a": 1, "b": "s", "C": true},
+	},
+	{
+		&struct {
 			A int    `template:"a"`
 			B string `template:"b"`
 			C bool

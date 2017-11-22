@@ -123,11 +123,17 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 
 	switch rv.Kind() {
 	case reflect.Map:
-		if !rt.ConvertibleTo(scopeType) {
-			return nil, fmt.Errorf("template/exec: unsupported vars type")
+		if rt.ConvertibleTo(scopeType) {
+			m := rv.Convert(scopeType).Interface()
+			return m.(scope), nil
 		}
-		m := rv.Convert(scopeType).Interface()
-		return m.(scope), nil
+		if rt.Key().Kind() == reflect.String {
+			s := scope{}
+			for _, kv := range rv.MapKeys() {
+				s[kv.String()] = rv.MapIndex(kv).Interface()
+			}
+			return s, nil
+		}
 	case reflect.Struct:
 		globals := scope{}
 		nf := rv.NumField()
@@ -151,10 +157,14 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 			globals[name] = value
 		}
 		return globals, nil
-	default:
-		return nil, errors.New("template/exec: unsupported vars type")
+	case reflect.Ptr:
+		elem := rv.Type().Elem()
+		if elem.Kind() == reflect.Struct {
+			return varsToScope(reflect.Indirect(rv), version)
+		}
 	}
 
+	return nil, errors.New("template/exec: unsupported vars type")
 }
 
 // parseVarTag esegue il parsing del tag di un campo di una struct che funge

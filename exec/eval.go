@@ -343,10 +343,14 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 	kind := rv.Kind()
 	switch kind {
 	case reflect.Map:
-		if !rv.Type().ConvertibleTo(scopeType) {
-			panic(s.errorf(node, "unsupported vars type"))
+		if rv.Type().Key().Kind() == reflect.String {
+			v := rv.MapIndex(reflect.ValueOf(node.Ident))
+			if !v.IsValid() {
+				panic(s.errorf(node, "field %q does not exist", node.Ident))
+			}
+			return v.Interface()
 		}
-		return rv.MapIndex(reflect.ValueOf(node.Ident)).Interface()
+		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
 		v2 := rv.FieldByName(node.Ident)
 		if v2.IsValid() {
