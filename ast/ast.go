@@ -8,9 +8,7 @@ package ast
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
-	"unicode"
 
 	"open2b/template/types"
 )
@@ -638,27 +636,4 @@ func CloneExpression(expr Expression) Expression {
 
 func ClonePosition(pos *Position) *Position {
 	return &Position{pos.Line, pos.Column, pos.Start, pos.End}
-}
-
-// GetImportName ritorna il nome di un import dal suo path.
-func GetImportName(path string) (string, bool) {
-	var ident string
-	s := strings.LastIndex(path, "/")
-	e := strings.LastIndex(path, ".")
-	if s >= 0 {
-		ident = path[s+1 : e]
-	} else {
-		ident = path[:e]
-	}
-	for _, r := range ident {
-		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return ident, false
-		}
-	}
-	switch ident {
-	case "break", "continue", "else", "end", "extend", "for",
-		"if", "import", "in", "region", "show", "var":
-		return ident, false
-	}
-	return ident, true
 }

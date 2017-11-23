@@ -479,12 +479,6 @@ func Parse(src []byte) (*ast.Tree, error) {
 				if !isValidFilePath(path) {
 					return nil, fmt.Errorf("invalid import path %q at %s", path, tok.pos)
 				}
-				if ident == nil {
-					name, ok := ast.GetImportName(path)
-					if !ok {
-						return nil, fmt.Errorf("%q cannot be used as import ident at %s", name, tok.pos)
-					}
-				}
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
