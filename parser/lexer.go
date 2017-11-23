@@ -186,7 +186,7 @@ func (l *lexer) readHTML(src []byte) int {
 	case contextHTML:
 		if src[1] == 's' {
 			if prefix(src, []byte("<script")) {
-				if len(src) > 7 && (src[8] == '>' || isSpace(src[8]) || src[8] == '{') {
+				if len(src) > 7 && (src[7] == '>' || isSpace(src[7]) || src[7] == '{') {
 					l.ctx = contextScript
 				}
 				l.column += 7
