@@ -7,7 +7,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"unicode"
 	"unicode/utf8"
 
 	"open2b/template/ast"
@@ -246,9 +245,6 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)}
 				}
 				ident := string(tok.txt)
-				if fc, _ := utf8.DecodeRuneInString(ident); !unicode.Is(unicode.Lu, fc) {
-					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported field or method %s", ident)}
-				}
 				pos.End = tok.pos.End
 				operand = ast.NewSelector(pos, operand, ident)
 			case
