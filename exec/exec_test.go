@@ -114,6 +114,20 @@ var execExprTests = []struct {
 	{`a != "<b>"`, "false", scope{"a": "<b>"}},
 	{`a != "<b>"`, "false", scope{"a": HTML("<b>")}},
 
+	// &&
+	{"true && true", "true", nil},
+	{"true && false", "false", nil},
+	{"false && true", "false", nil},
+	{"false && false", "false", nil},
+	{"false && 0/a == 0", "false", scope{"a": 0}},
+
+	// ||
+	{"true || true", "true", nil},
+	{"true || false", "true", nil},
+	{"false || true", "true", nil},
+	{"false || false", "false", nil},
+	{"true || 0/a == 0", "true", scope{"a": 0}},
+
 	// +
 	{"2 + 3", "5", nil},
 	{`"a" + "b"`, "ab", nil},
