@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strings"
-	"unicode"
 
 	"open2b/template/ast"
 	"open2b/template/types"
@@ -76,9 +74,10 @@ func (env *Env) Execute(wr io.Writer, vars interface{}) error {
 	}
 
 	s := state{
-		scope: map[string]scope{},
-		path:  env.tree.Path,
-		vars:  []scope{builtins, globals, {}},
+		scope:   map[string]scope{},
+		path:    env.tree.Path,
+		vars:    []scope{builtins, globals, {}},
+		version: env.version,
 	}
 
 	extend := getExtendNode(env.tree)
@@ -168,37 +167,12 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 	return nil, errors.New("template/exec: unsupported vars type")
 }
 
-// parseVarTag esegue il parsing del tag di un campo di una struct che funge
-// da variabile. Ne ritorna il nome e la versione.
-func parseVarTag(tag string) (string, string) {
-	sp := strings.SplitN(tag, ",", 2)
-	if len(sp) == 0 {
-		return "", ""
-	}
-	name := sp[0]
-	if name == "" {
-		return "", ""
-	}
-	for _, r := range name {
-		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return "", ""
-		}
-	}
-	var version string
-	if len(sp) == 2 {
-		version = sp[1]
-		if version == "" {
-			return "", ""
-		}
-	}
-	return name, version
-}
-
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
-	scope map[string]scope
-	path  string
-	vars  []scope
+	scope   map[string]scope
+	path    string
+	vars    []scope
+	version string
 }
 
 // errorf costruisce e ritorna un errore di esecuzione.
@@ -511,9 +485,10 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				path = node.Ref.Import.Ref.Tree.Path
 			}
 			st := state{
-				scope: s.scope,
-				path:  path,
-				vars:  []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
+				scope:   s.scope,
+				path:    path,
+				vars:    []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
+				version: s.version,
 			}
 			err = st.execute(wr, region.Body)
 			if err != nil {
@@ -525,9 +500,10 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			path := node.Ref.Tree.Path
 			if _, ok := s.scope[path]; !ok {
 				st := state{
-					scope: s.scope,
-					path:  path,
-					vars:  []scope{s.vars[0], s.vars[1], {}},
+					scope:   s.scope,
+					path:    path,
+					vars:    []scope{s.vars[0], s.vars[1], {}},
+					version: s.version,
 				}
 				err = st.execute(nil, node.Ref.Tree.Nodes)
 				if err != nil {
@@ -539,9 +515,10 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 		case *ast.ShowPath:
 
 			st := state{
-				scope: s.scope,
-				path:  node.Ref.Tree.Path,
-				vars:  []scope{s.vars[0], s.vars[1], {}},
+				scope:   s.scope,
+				path:    node.Ref.Tree.Path,
+				vars:    []scope{s.vars[0], s.vars[1], {}},
+				version: s.version,
 			}
 			err = st.execute(wr, node.Ref.Tree.Nodes)
 			if err != nil {

@@ -89,8 +89,15 @@ var execExprTests = []struct {
 	{"a[2:1]", "", scope{"a": "xz€"}},
 
 	// selectors
+	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},
 	{"a.B", "b", scope{"a": map[string]interface{}{"B": "b"}}},
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
+	{"a.b", "b", scope{"a": struct {
+		B string `template:"b"`
+	}{B: "b"}}},
+	{"a.b", "b", scope{"a": struct {
+		C string `template:"b"`
+	}{C: "b"}}},
 
 	// ==, !=
 	{"true == true", "true", nil},

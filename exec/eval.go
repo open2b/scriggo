@@ -372,23 +372,28 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 		}
 		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
-		v2 := rv.FieldByName(node.Ident)
-		if v2.IsValid() {
-			return v2.Interface()
+		value, err := getStructField(rv, node.Ident, s.version)
+		if err != nil {
+			if err == errFieldNotExist {
+				err = s.errorf(node, "field %q does not exist", node.Ident)
+			}
+			panic(err)
 		}
-		panic(s.errorf(node, "field %q does not exist", node.Ident))
+		return value
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
 			if rv.IsNil() {
 				return rv.Interface()
-			} else {
-				v2 := reflect.Indirect(rv).FieldByName(node.Ident)
-				if v2.IsValid() {
-					return v2.Interface()
-				}
-				panic(s.errorf(node, "field %q does not exist", node.Ident))
 			}
+			value, err := getStructField(reflect.Indirect(rv), node.Ident, s.version)
+			if err != nil {
+				if err == errFieldNotExist {
+					err = s.errorf(node, "field %q does not exist", node.Ident)
+				}
+				panic(err)
+			}
+			return value
 		}
 	}
 	panic(s.errorf(node, "type %T cannot have fields", v))
