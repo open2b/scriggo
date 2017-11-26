@@ -38,6 +38,12 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
+type CycleError string
+
+func (e CycleError) Error() string {
+	return fmt.Sprintf("cycle not allowed\n%s", string(e))
+}
+
 // Parse esegue il parsing di src e ne restituisce l'albero non espanso.
 func Parse(src []byte) (*ast.Tree, error) {
 
@@ -752,6 +758,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	if err != nil {
 		if err2, ok := err.(*Error); ok && err2.Path == "" {
 			err2.Path = path
+		} else if err2, ok := err.(CycleError); ok {
+			err = CycleError(path + "\n\t" + string(err2))
 		}
 		return nil, err
 	}
@@ -786,6 +794,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		// verifica se è stato espanso
 		tr.Lock()
 		if !tr.IsExpanded {
+			pp.paths = append(pp.paths, exPath)
 			// legge le region exportate
 			var regions []expandedRegion
 			for _, node := range tree.Nodes {
@@ -806,6 +815,8 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		if err != nil {
 			if err2, ok := err.(*Error); ok && err2.Path == "" {
 				err2.Path = exPath
+			} else if err2, ok := err.(CycleError); ok {
+				err = CycleError(fmt.Sprintf("%s\n\textends %s\n\t%s", path, exPath, string(err2)))
 			}
 			return nil, err
 		}
@@ -842,6 +853,13 @@ func (pp *parsing) expandTree(dir, path string) (*ast.Tree, error) {
 			return nil, err
 		}
 	}
+	// verifica che non ci siano cicli
+	for _, p := range pp.paths {
+		if p == path {
+			return nil, CycleError(path)
+		}
+	}
+	pp.paths = append(pp.paths, path)
 	var tree *ast.Tree
 	tree, err = pp.reader.Read(path)
 	if err != nil {
@@ -859,9 +877,12 @@ func (pp *parsing) expandTree(dir, path string) (*ast.Tree, error) {
 			if strings.HasSuffix(err2.Error(), "does not exist") {
 				err2.Path = path
 			}
+		} else if err2, ok := err.(CycleError); ok {
+			err = CycleError(path + "\n\t" + string(err2))
 		}
 		return nil, err
 	}
+	pp.paths = pp.paths[:len(pp.paths)-1]
 	return tree, nil
 }
 
@@ -961,6 +982,8 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", n.Path)}
+				} else if err2, ok := err.(CycleError); ok {
+					err = CycleError("imports " + string(err2))
 				}
 				return err
 			}
@@ -995,6 +1018,8 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("showed path %q does not exist", n.Path)}
+				} else if err2, ok := err.(CycleError); ok {
+					err = CycleError("shows " + string(err2))
 				}
 				return err
 			}
