@@ -207,6 +207,7 @@ type ShowRegion struct {
 	Region    *Identifier  // nome della region.
 	Arguments []Expression // argomenti.
 	Ref       struct {
+		Extend *Extend
 		Import *Import
 		Region *Region
 	}

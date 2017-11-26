@@ -481,7 +481,9 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			}
 
 			path := s.path
-			if node.Ref.Import != nil {
+			if node.Ref.Extend != nil {
+				// TODO
+			} else if node.Ref.Import != nil {
 				path = node.Ref.Import.Ref.Tree.Path
 			}
 			st := state{

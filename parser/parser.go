@@ -799,7 +799,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 			for _, node := range tree.Nodes {
 				if region, ok := node.(*ast.Region); ok {
 					if c, _ := utf8.DecodeRuneInString(region.Ident.Name); unicode.Is(unicode.Lu, c) {
-						regions = append(regions, expandedRegion{path, nil, region})
+						regions = append(regions, expandedRegion{path, extend, nil, region})
 					}
 				}
 			}
@@ -846,6 +846,7 @@ func (pp *parsing) path() string {
 
 type expandedRegion struct {
 	path string
+	ext  *ast.Extend
 	imp  *ast.Import
 	reg  *ast.Region
 }
@@ -934,7 +935,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 					return &Error{pp.path(), *(n.Pos()), fmt.Errorf("region %s redeclared\n\tprevious declaration %s", n.Ident.Name, at)}
 				}
 			}
-			regions = append(regions, expandedRegion{pp.path(), nil, n})
+			regions = append(regions, expandedRegion{pp.path(), nil, nil, n})
 
 		case *ast.ShowRegion:
 
@@ -942,6 +943,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 				var found = n.Region.Name == r.reg.Ident.Name && (n.Import == nil && (r.imp == nil || r.imp.Ident == nil) ||
 					n.Import != nil && r.imp != nil && r.imp.Ident != nil && n.Import.Name == r.imp.Ident.Name)
 				if found {
+					n.Ref.Extend = r.ext
 					n.Ref.Import = r.imp
 					n.Ref.Region = r.reg
 					break
@@ -1025,7 +1027,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 				}
 			}
 			for _, r := range exRegions {
-				regions = append(regions, expandedRegion{n.Path, n, r})
+				regions = append(regions, expandedRegion{n.Path, nil, n, r})
 			}
 
 		case *ast.ShowPath:
