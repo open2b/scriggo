@@ -35,7 +35,7 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
-	return fmt.Sprintf("template: %s at %q %s", e.Err, e.Path, e.Pos)
+	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
 // Parse esegue il parsing di src e ne restituisce l'albero non espanso.
