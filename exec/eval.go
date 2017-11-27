@@ -646,13 +646,15 @@ func asBasic(v interface{}) interface{} {
 		return vv.String()
 	case Numberer:
 		return vv.Number()
+	case int:
+		return types.NewNumberInt(vv)
 	default:
 		rv := reflect.ValueOf(v)
 		rt := rv.Type()
-		if rt.ConvertibleTo(stringType) {
-			return rv.String()
-		} else if rt.ConvertibleTo(intType) {
+		if rt.ConvertibleTo(intType) {
 			return rv.Int()
+		} else if rt.ConvertibleTo(stringType) {
+			return rv.String()
 		}
 	}
 	return v
