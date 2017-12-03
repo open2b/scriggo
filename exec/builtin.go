@@ -22,7 +22,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/types"
+	"github.com/shopspring/decimal"
 )
 
 var testSeed int64 = -1
@@ -32,12 +32,12 @@ var errNoSlice = errors.New("no slice")
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
 var builtins = map[string]interface{}{
-	"nil":    nil,
-	"true":   true,
-	"false":  false,
-	"len":    _len,
-	"string": _string,
-	"number": _number,
+	"nil":     nil,
+	"true":    true,
+	"false":   false,
+	"len":     _len,
+	"string":  _string,
+	"decimal": _decimal,
 
 	"abbreviate": _abbreviate,
 	"abs":        _abs,
@@ -111,11 +111,11 @@ func _abbreviate(s string, n int) string {
 }
 
 // _abs is the builtin function "abs"
-func _abs(n types.Number) types.Number {
-	if n.Compared(zero) < 0 {
-		return n.Opposite()
+func _abs(d decimal.Decimal) decimal.Decimal {
+	if d.Cmp(zero) < 0 {
+		return d.Neg()
 	}
-	return n
+	return d
 }
 
 // _contains is the builtin function "contains"
@@ -175,8 +175,8 @@ func _indexAny(s, chars string) int {
 }
 
 // _int is the builtin function "int"
-func _int(n types.Number) types.Number {
-	return n.Rounded(0, "Down")
+func _int(d decimal.Decimal) decimal.Decimal {
+	return d.Truncate(0)
 }
 
 // _join is the builtin function "join"
@@ -233,8 +233,8 @@ func _len(v interface{}) int {
 }
 
 // _max is the builtin function "max"
-func _max(a, b types.Number) types.Number {
-	if a.Compared(b) < 0 {
+func _max(a, b decimal.Decimal) decimal.Decimal {
+	if a.Cmp(b) < 0 {
 		return b
 	}
 	return a
@@ -248,20 +248,20 @@ func _md5(s string) string {
 }
 
 // _min is the builtin function "min"
-func _min(a, b types.Number) types.Number {
-	if a.Compared(b) > 0 {
+func _min(a, b decimal.Decimal) decimal.Decimal {
+	if a.Cmp(b) > 0 {
 		return b
 	}
 	return a
 }
 
-// _number is the builtin function "number"
-func _number(n types.Number) types.Number {
-	return n
+// _decimal is the builtin function "decimal"
+func _decimal(d decimal.Decimal) decimal.Decimal {
+	return d
 }
 
 // _rand is the builtin function "rand"
-func _rand(n int) types.Number {
+func _rand(d int) decimal.Decimal {
 	// seed
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
@@ -269,12 +269,12 @@ func _rand(n int) types.Number {
 	}
 	r := rand.New(rand.NewSource(seed))
 	var rn int
-	if n > 0 {
-		rn = r.Intn(n)
+	if d > 0 {
+		rn = r.Intn(d)
 	} else {
 		rn = r.Int()
 	}
-	return types.NewNumberInt(rn)
+	return decimal.New(int64(rn), 0)
 }
 
 // _repeat is the builtin function "repeat"
@@ -312,18 +312,8 @@ func _reverse(s interface{}) interface{} {
 }
 
 // _round is the builtin function "round"
-func _round(n types.Number, d int, mode string) types.Number {
-	if d < 0 {
-		return zero
-	}
-	switch mode {
-	case "Down", "HalfDown", "HalfEven", "HalfUp":
-	case "":
-		mode = "HalfUp"
-	default:
-		return zero
-	}
-	return n.Rounded(d, mode)
+func _round(d decimal.Decimal, places int) decimal.Decimal {
+	return d.Round(int32(places))
 }
 
 // _sha1 is the builtin function "sha1"
@@ -445,15 +435,15 @@ func _sort(slice interface{}, field string) interface{} {
 			vv[i] = values[i].(Stringer).String()
 		}
 		f = func(i, j int) bool { return vv[i] < vv[j] }
-	case Numberer:
+	case Decimaler:
 		if size <= 1 {
 			return slice
 		}
-		vv := make([]types.Number, size)
+		vv := make([]decimal.Decimal, size)
 		for i := 0; i < size; i++ {
-			vv[i] = values[i].(Numberer).Number()
+			vv[i] = values[i].(Decimaler).Decimal()
 		}
-		f = func(i, j int) bool { return vv[i].Compared(vv[j]) < 0 }
+		f = func(i, j int) bool { return vv[i].Cmp(vv[j]) < 0 }
 	case string:
 		if size <= 1 {
 			return slice

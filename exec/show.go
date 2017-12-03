@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"open2b/template/types"
+	"github.com/shopspring/decimal"
 )
 
 func interfaceToHTML(expr interface{}) string {
@@ -90,7 +90,7 @@ func interfaceToScript(expr interface{}) string {
 		return stringToScript(string(e))
 	case int:
 		return strconv.Itoa(e)
-	case types.Number:
+	case decimal.Decimal:
 		return e.String()
 	case bool:
 		if e {

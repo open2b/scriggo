@@ -66,7 +66,7 @@ const (
 	tokenComma                       // ,
 	tokenSemicolon                   // ;
 	tokenRange                       // ..
-	tokenNumber                      // 12.895
+	tokenDecimal                     // 12.895
 	tokenEqual                       // ==
 	tokenNotEqual                    // !=
 	tokenNot                         // !
@@ -116,7 +116,7 @@ var tokenString = map[tokenType]string{
 	tokenComma:             ",",
 	tokenSemicolon:         ";",
 	tokenRange:             "..",
-	tokenNumber:            "number",
+	tokenDecimal:           "decimal",
 	tokenEqual:             "==",
 	tokenNotEqual:          "!=",
 	tokenNot:               "!",

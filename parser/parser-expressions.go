@@ -10,7 +10,8 @@ import (
 	"unicode/utf8"
 
 	"open2b/template/ast"
-	"open2b/template/types"
+
+	"github.com/shopspring/decimal"
 )
 
 // Il risultato del parsing di una espressione è un albero i cui nodi
@@ -146,7 +147,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			tokenSubtraction, // -e
 			tokenNot:         // !e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
-		case tokenNumber: // 5.3
+		case tokenDecimal: // 5.3
 			// se il numero è preceduto dall'operatore unario "-"
 			// cambia il segno del numero e rimuove l'operatore dall'albero
 			var pos *ast.Position
@@ -157,7 +158,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					path = path[:len(path)-1]
 				}
 			}
-			operand = parseNumberNode(tok, pos)
+			operand = parseDecimalNode(tok, pos)
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
@@ -428,9 +429,9 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 	return ast.NewIdentifier(tok.pos, string(tok.txt))
 }
 
-// parseNumberNode ritorna un nodo Expression da un token numero,
+// parseDecimalNode ritorna un nodo Expression da un token decimale,
 // eventualmente preceduto da un operatore unario "-" con posizione neg.
-func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
+func parseDecimalNode(tok token, neg *ast.Position) ast.Expression {
 	p := tok.pos
 	s := string(tok.txt)
 	if neg != nil {
@@ -438,7 +439,8 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		p.End = tok.pos.End
 		s = "-" + s
 	}
-	return ast.NewNumber(p, types.NewNumberString(s))
+	d, _ := decimal.NewFromString(s)
+	return ast.NewDecimal(p, d)
 }
 
 func parseStringNode(tok token) *ast.String {

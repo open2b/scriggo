@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"sync"
 
-	"open2b/template/types"
+	"github.com/shopspring/decimal"
 )
 
 type OperatorType int
@@ -293,17 +293,17 @@ func (n *Parentesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
-type Number struct {
+type Decimal struct {
 	*Position // posizione nel sorgente.
 	expression
-	Value types.Number // valore.
+	Value decimal.Decimal // valore.
 }
 
-func NewNumber(pos *Position, value types.Number) *Number {
-	return &Number{pos, expression{}, value}
+func NewDecimal(pos *Position, value decimal.Decimal) *Decimal {
+	return &Decimal{pos, expression{}, value}
 }
 
-func (n *Number) String() string {
+func (n *Decimal) String() string {
 	return n.Value.String()
 }
 
@@ -610,8 +610,8 @@ func CloneExpression(expr Expression) Expression {
 	switch e := expr.(type) {
 	case *Parentesis:
 		return NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
-	case *Number:
-		return NewNumber(ClonePosition(e.Position), e.Value)
+	case *Decimal:
+		return NewDecimal(ClonePosition(e.Position), e.Value)
 	case *String:
 		return NewString(ClonePosition(e.Position), e.Text)
 	case *Identifier:
