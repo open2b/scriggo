@@ -570,11 +570,7 @@ func (l *lexer) lexNumber() {
 		}
 		p++
 	}
-	if hasDot {
-		l.emit(tokenDecimal, p)
-	} else {
-		l.emit(tokenInt, p)
-	}
+	l.emit(tokenNumber, p)
 	l.column += p
 }
 

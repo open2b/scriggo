@@ -149,8 +149,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			tokenNot:         // !e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
-			tokenInt,     // 536
-			tokenDecimal: // 12.895
+			tokenNumber: // 12.895
 			// se il numero è preceduto dall'operatore unario "-"
 			// cambia il segno del numero e rimuove l'operatore dall'albero
 			var pos *ast.Position
@@ -161,7 +160,10 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					path = path[:len(path)-1]
 				}
 			}
-			operand = parseNumberNode(tok, pos)
+			operand, err = parseNumberNode(tok, pos)
+			if err != nil {
+				return nil, token{}, err
+			}
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
@@ -434,7 +436,7 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 
 // parseNumberNode ritorna un nodo Expression da un token intero o decimale,
 // eventualmente preceduto da un operatore unario "-" con posizione neg.
-func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
+func parseNumberNode(tok token, neg *ast.Position) (ast.Expression, error) {
 	p := tok.pos
 	s := string(tok.txt)
 	if neg != nil {
@@ -442,13 +444,15 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		p.End = tok.pos.End
 		s = "-" + s
 	}
-	if tok.typ == tokenInt {
-		n, _ := strconv.Atoi(s)
-		return ast.NewInt(p, n)
-	} else {
-		d, _ := decimal.NewFromString(s)
-		return ast.NewDecimal(p, d)
+	if bytes.IndexByte(tok.txt, '.') == -1 {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, &Error{"", *tok.pos, fmt.Errorf("constant %s overflows int", s)}
+		}
+		return ast.NewInt(p, n), nil
 	}
+	d, _ := decimal.NewFromString(s)
+	return ast.NewDecimal(p, d), nil
 }
 
 func parseStringNode(tok token) *ast.String {
