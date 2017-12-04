@@ -293,6 +293,20 @@ func (n *Parentesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
+type Int struct {
+	*Position // posizione nel sorgente.
+	expression
+	Value int // valore.
+}
+
+func NewInt(pos *Position, value int) *Int {
+	return &Int{pos, expression{}, value}
+}
+
+func (n *Int) String() string {
+	return strconv.Itoa(n.Value)
+}
+
 type Decimal struct {
 	*Position // posizione nel sorgente.
 	expression
@@ -610,6 +624,8 @@ func CloneExpression(expr Expression) Expression {
 	switch e := expr.(type) {
 	case *Parentesis:
 		return NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
+	case *Int:
+		return NewInt(ClonePosition(e.Position), e.Value)
 	case *Decimal:
 		return NewDecimal(ClonePosition(e.Position), e.Value)
 	case *String:

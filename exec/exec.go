@@ -12,8 +12,6 @@ import (
 	"reflect"
 
 	"open2b/template/ast"
-
-	"github.com/shopspring/decimal"
 )
 
 type Error struct {
@@ -373,22 +371,13 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 					return err
 				}
 
-				var n1, n2 int
-				{
-					nn1, ok := expr.(decimal.Decimal)
-					if !ok {
-						return s.errorf(node, "left range value is not a integer")
-					}
-					if n1, ok = decimalToInt(nn1); !ok {
-						return s.errorf(node, "left range value is not a integer")
-					}
-					nn2, ok := expr2.(decimal.Decimal)
-					if !ok {
-						return s.errorf(node, "right range value is not a integer")
-					}
-					if n2, ok = decimalToInt(nn2); !ok {
-						return s.errorf(node, "right range value is not a integer")
-					}
+				n1, ok := expr.(int)
+				if !ok {
+					return s.errorf(node, "left range value is not a integer")
+				}
+				n2, ok := expr2.(int)
+				if !ok {
+					return s.errorf(node, "right range value is not a integer")
 				}
 
 				step := 1

@@ -336,7 +336,7 @@ LOOP:
 				return l.errorf("unexpected EOF")
 			}
 			if '0' <= l.src[1] && l.src[1] <= '9' {
-				l.lexDecimal()
+				l.lexNumber()
 				endLineAsSemicolon = true
 			} else if l.src[1] == '.' {
 				l.emit(tokenRange, 2)
@@ -348,7 +348,7 @@ LOOP:
 				endLineAsSemicolon = false
 			}
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			l.lexDecimal()
+			l.lexNumber()
 			endLineAsSemicolon = true
 		case '=':
 			if len(l.src) == 1 || l.src[1] != '=' {
@@ -549,9 +549,9 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	return false
 }
 
-// lexDecimal legge un decimale sapendo che src inizia con '0'..'9' o '.'.
-func (l *lexer) lexDecimal() {
-	// si ferma solo se un carattere non può essere parte del decimale
+// lexNumber legge un numero (int o decimal) sapendo che src inizia con '0'..'9' o '.'.
+func (l *lexer) lexNumber() {
+	// si ferma solo se un carattere non può essere parte del numero
 	hasDot := l.src[0] == '.'
 	p := 1
 	for p < len(l.src) {
@@ -560,6 +560,7 @@ func (l *lexer) lexDecimal() {
 				if l.src[p-1] == '.' {
 					// il punto è parte di un token range
 					p--
+					hasDot = false
 				}
 				break
 			}
@@ -569,7 +570,11 @@ func (l *lexer) lexDecimal() {
 		}
 		p++
 	}
-	l.emit(tokenDecimal, p)
+	if hasDot {
+		l.emit(tokenDecimal, p)
+	} else {
+		l.emit(tokenInt, p)
+	}
 	l.column += p
 }
 

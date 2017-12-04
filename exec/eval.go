@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html"
 	"reflect"
-	"strconv"
 
 	"open2b/template/ast"
 
@@ -32,6 +31,7 @@ type Decimaler interface {
 
 var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
+var boolType = reflect.TypeOf(false)
 
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
@@ -56,6 +56,8 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 	switch e := expr.(type) {
 	case *ast.String:
 		return e.Text
+	case *ast.Int:
+		return e.Value
 	case *ast.Decimal:
 		return e.Value
 	case *ast.Parentesis:
@@ -90,11 +92,17 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		}
 		panic(s.errorf(node, "invalid operation: ! %T", e))
 	case ast.OperatorAddition:
+		if _, ok := e.(int); ok {
+			return e
+		}
 		if _, ok := e.(decimal.Decimal); ok {
 			return e
 		}
 		panic(s.errorf(node, "invalid operation: + %T", e))
 	case ast.OperatorSubtraction:
+		if n, ok := e.(int); ok {
+			return -n
+		}
 		if n, ok := e.(decimal.Decimal); ok {
 			return n.Neg()
 		}
@@ -134,9 +142,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				if e2, ok := expr2.(string); ok {
 					return e1 == e2
 				}
+			case int:
+				if e2, ok := expr2.(int); ok {
+					return e1 == e2
+				}
+				if e2, ok := expr2.(decimal.Decimal); ok {
+					return decimal.New(int64(e1), 0).Cmp(e2) == 0
+				}
 			case decimal.Decimal:
 				if e2, ok := expr2.(decimal.Decimal); ok {
 					return e1.Equal(e2)
+				}
+				if e2, ok := expr2.(int); ok {
+					return e1.Cmp(decimal.New(int64(e2), 0)) == 0
 				}
 			}
 		}
@@ -165,9 +183,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				if e2, ok := expr2.(string); ok {
 					return e1 != e2
 				}
+			case int:
+				if e2, ok := expr2.(int); ok {
+					return e1 != e2
+				}
+				if e2, ok := expr2.(decimal.Decimal); ok {
+					return decimal.New(int64(e1), 0).Cmp(e2) != 0
+				}
 			case decimal.Decimal:
 				if e2, ok := expr2.(decimal.Decimal); ok {
 					return !e1.Equal(e2)
+				}
+				if e2, ok := expr2.(int); ok {
+					return e1.Cmp(decimal.New(int64(e2), 0)) != 0
 				}
 			}
 		}
@@ -184,9 +212,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(string); ok {
 				return e1 < e2
 			}
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 < e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Cmp(e2) < 0
+			}
 		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Cmp(e2) < 0
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Cmp(decimal.New(int64(e2), 0)) < 0
 			}
 		}
 		panic(fmt.Sprintf("invalid operation: %T < %T", expr1, expr2))
@@ -202,9 +240,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(string); ok {
 				return e1 <= e2
 			}
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 <= e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Cmp(e2) <= 0
+			}
 		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Cmp(e2) <= 0
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Cmp(decimal.New(int64(e2), 0)) <= 0
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T <= %T", expr1, expr2))
@@ -220,9 +268,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(string); ok {
 				return e1 > e2
 			}
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 > e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Cmp(e2) > 0
+			}
 		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Cmp(e2) > 0
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Cmp(decimal.New(int64(e2), 0)) > 0
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T > %T", expr1, expr2))
@@ -238,9 +296,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(string); ok {
 				return e1 >= e2
 			}
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 >= e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Cmp(e2) >= 0
+			}
 		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Cmp(e2) >= 0
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Cmp(decimal.New(int64(e2), 0)) >= 0
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T >= %T", expr1, expr2))
@@ -291,9 +359,19 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			case HTML:
 				return HTML(string(e1) + string(e2))
 			}
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 + e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Add(e2)
+			}
 		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Add(e2)
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Add(decimal.New(int64(e2), 0))
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T + %T", expr1, expr2))
@@ -303,9 +381,20 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
 		}
-		if e1, ok := expr1.(decimal.Decimal); ok {
+		switch e1 := expr1.(type) {
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 - e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Sub(e2)
+			}
+		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Sub(e2)
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Sub(decimal.New(int64(e2), 0))
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
@@ -315,9 +404,20 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
 		}
-		if e1, ok := expr1.(decimal.Decimal); ok {
+		switch e1 := expr1.(type) {
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 * e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Mul(e2)
+			}
+		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Mul(e2)
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Mul(decimal.New(int64(e2), 0))
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
@@ -327,9 +427,20 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
 		}
-		if e1, ok := expr1.(decimal.Decimal); ok {
+		switch e1 := expr1.(type) {
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 / e2
+			}
 			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.DivRound(e2, 28)
+				return decimal.New(int64(e1), 0).DivRound(e2, 20)
+			}
+		case decimal.Decimal:
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return e1.DivRound(e2, 20)
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
@@ -339,9 +450,20 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
 		}
-		if e1, ok := expr1.(decimal.Decimal); ok {
+		switch e1 := expr1.(type) {
+		case int:
+			if e2, ok := expr2.(int); ok {
+				return e1 % e2
+			}
+			if e2, ok := expr2.(decimal.Decimal); ok {
+				return decimal.New(int64(e1), 0).Mod(e2)
+			}
+		case decimal.Decimal:
 			if e2, ok := expr2.(decimal.Decimal); ok {
 				return e1.Mod(e2)
+			}
+			if e2, ok := expr2.(int); ok {
+				return e1.Mod(decimal.New(int64(e2), 0))
 			}
 		}
 		panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
@@ -401,13 +523,9 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
-	d, ok := asBasic(s.evalExpression(node.Index)).(decimal.Decimal)
+	index, ok := asBasic(s.evalExpression(node.Index)).(int)
 	if !ok {
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
-	}
-	index, ok := decimalToInt(d)
-	if !ok {
-		panic(s.errorf(node, "non-integer slice index %s", d))
 	}
 	var e = reflect.ValueOf(s.evalExpression(node.Expr))
 	if e.Kind() == reflect.Slice {
@@ -430,15 +548,24 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 }
 
 func (s *state) evalSlice(node *ast.Slice) interface{} {
+	var ok bool
 	var l, h int
 	if node.Low != nil {
-		l = toInt(s.evalExpression(node.Low))
+		n := asBasic(s.evalExpression(node.Low))
+		l, ok = n.(int)
+		if !ok {
+			panic(s.errorf(node, "invalid slice index %s (type %T)", n, n))
+		}
 		if l < 0 {
 			l = 0
 		}
 	}
 	if node.High != nil {
-		h = toInt(s.evalExpression(node.High))
+		n := asBasic(s.evalExpression(node.High))
+		h, ok = n.(int)
+		if !ok {
+			panic(s.errorf(node, "invalid slice index %s (type %T)", n, n))
+		}
 		if h < 0 {
 			h = 0
 		}
@@ -491,9 +618,6 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-				if d, ok := v.(int); ok {
-					v = decimal.New(int64(d), 0)
-				}
 				return v
 			}
 		}
@@ -526,8 +650,12 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type decimal in argument to function %s", node.Func))
 				}
-				a, ok = arg.(decimal.Decimal)
-				if !ok {
+				switch ar := arg.(type) {
+				case decimal.Decimal:
+					a = ar
+				case int:
+					a = decimal.New(int64(ar), 0)
+				default:
 					panic(s.errorf(node, "cannot use %#v (type %T) as type decimal in argument to function %s", arg, arg, node.Func))
 				}
 			}
@@ -554,16 +682,11 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 			if i < len(node.Args) {
 				arg := asBasic(s.evalExpression(node.Args[i]))
 				if arg == nil {
-					panic(s.errorf(node, "cannot use nil as type decimal in argument to function %s", node.Func))
+					panic(s.errorf(node, "cannot use nil as type int in argument to function %s", node.Func))
 				}
-				var d decimal.Decimal
-				d, ok = arg.(decimal.Decimal)
+				a, ok = arg.(int)
 				if !ok {
-					panic(s.errorf(node, "cannot use %#v (type %T) as type decimal in argument to function %s", arg, arg, node.Func))
-				}
-				a, ok = decimalToInt(d)
-				if !ok {
-					panic(s.errorf(node, "cannot use %s as integer in argument to function %s", d, node.Func))
+					panic(s.errorf(node, "cannot use %#v (type %T) as type int in argument to function %s", arg, arg, node.Func))
 				}
 			}
 			args[i] = reflect.ValueOf(a)
@@ -630,6 +753,8 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	return v
 }
 
+// asBasic ritorna v convertito ad un tipo base se convertibile
+// altrimenti ritorna v invariato.
 func asBasic(v interface{}) interface{} {
 	if v == nil {
 		return v
@@ -639,6 +764,8 @@ func asBasic(v interface{}) interface{} {
 		return v
 	case HTML:
 		return v
+	case int:
+		return vv
 	case decimal.Decimal:
 		return v
 	case bool:
@@ -647,15 +774,15 @@ func asBasic(v interface{}) interface{} {
 		return vv.String()
 	case Decimaler:
 		return vv.Decimal()
-	case int:
-		return decimal.New(int64(vv), 0)
 	default:
 		rv := reflect.ValueOf(v)
 		rt := rv.Type()
-		if rt.ConvertibleTo(intType) {
-			return rv.Int()
-		} else if rt.ConvertibleTo(stringType) {
+		if rt.ConvertibleTo(stringType) {
 			return rv.String()
+		} else if rt.ConvertibleTo(intType) {
+			return decimal.New(int64(rv.Int()), 0)
+		} else if rt.ConvertibleTo(boolType) {
+			return rv.Bool()
 		}
 	}
 	return v
@@ -671,37 +798,4 @@ func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 		e2 = string(e)
 	}
 	return e1, e2
-}
-
-func toInt(v interface{}) int {
-	switch d := v.(type) {
-	case int:
-		return d
-	case decimal.Decimal:
-		i, ok := decimalToInt(d)
-		if !ok {
-			return 0
-		}
-		return i
-	case string:
-		i, err := strconv.Atoi(d)
-		if err != nil {
-			return 0
-		}
-		return i
-	}
-	return 0
-}
-
-const maxUint = ^uint(0)
-
-var maxInt = decimal.New(int64(maxUint>>1), 0)
-var minInt = maxInt.Neg().Sub(decimal.New(1, 0))
-
-// decimalToInt returns the decimal d as int.
-func decimalToInt(d decimal.Decimal) (int, bool) {
-	if !d.Truncate(0).Equal(d) || d.Cmp(minInt) < 0 || d.Cmp(maxInt) > 0 {
-		return 0, false
-	}
-	return int(d.IntPart()), true
 }
