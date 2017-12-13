@@ -1112,7 +1112,8 @@ func cutSpaces(first, last *ast.Text) {
 	var firstCut int
 	if first != nil {
 		// perché gli spazi possano essere tagliati, first.Text deve contenere
-		// solo ' ' e '\t', oppure dopo l'ultimo '\n' deve contenere solo ' ' e '\t'.
+		// solo ' ', '\t' e '\r', oppure dopo l'ultimo '\n' deve contenere solo
+		// ' ', '\t' e '\r'.
 		txt := first.Text
 		for i := len(txt) - 1; i >= 0; i-- {
 			c := txt[i]
@@ -1120,34 +1121,24 @@ func cutSpaces(first, last *ast.Text) {
 				firstCut = i + 1
 				break
 			}
-			if c == '\r' {
-				// '\n' può essere seguito da '\r'
-				if i > 0 && txt[i-1] == '\n' {
-					firstCut = i + 1
-					break
-				}
-				return
-			}
-			if c != ' ' && c != '\t' {
+			if c != ' ' && c != '\t' && c != '\r' {
 				return
 			}
 		}
 	}
 	if last != nil {
 		// perché gli spazi possano essere tagliati, last.Text deve contenere
-		// solo ' ' e '\t', oppure prima del primo '\n' deve contenere solo ' ' e '\t'.
+		// solo ' ', '\t' e '\r', oppure prima del primo '\n' deve contenere solo
+		// ' ', '\t' e '\r'.
 		txt := last.Text
 		var lastCut = len(txt)
 		for i := 0; i < len(txt); i++ {
 			c := txt[i]
 			if c == '\n' {
 				lastCut = i + 1
-				if i+1 < len(txt) && txt[i+1] == '\r' {
-					lastCut++
-				}
 				break
 			}
-			if c != ' ' && c != '\t' {
+			if c != ' ' && c != '\t' && c != '\r' {
 				return
 			}
 		}
