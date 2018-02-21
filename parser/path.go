@@ -56,7 +56,7 @@ func isValidDirName(name string) bool {
 			return false
 		}
 	}
-	// non deve essere un nome riservato per Window
+	// non deve essere un nome riservato per Windows
 	name = strings.ToLower(name)
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
@@ -97,7 +97,7 @@ func isValidFileName(name string) bool {
 			return false
 		}
 	}
-	// non deve essere un nome riservato per Window
+	// non deve essere un nome riservato per Windows
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
 		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
