@@ -48,7 +48,7 @@ func isValidDirName(name string) bool {
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// non deve contenere caratteri speciali
+	// non deve contenere i caratteri da NUL a US e i caratteri " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
 			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
@@ -89,7 +89,7 @@ func isValidFileName(name string) bool {
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// non deve contenere caratteri speciali
+	// non deve contenere i caratteri da NUL a US e i caratteri " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
 			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
