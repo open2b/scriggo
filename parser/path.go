@@ -113,7 +113,7 @@ func isValidFileName(name string) bool {
 // Sono path non validi: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
 	// deve avere almeno un carattere e non terminare con '/'
-	if utf8.RuneCountInString(path) < 1 || path[len(path)-1] == '/' {
+	if path == "" || path[len(path)-1] == '/' {
 		return false
 	}
 	// splitta il path nei vari nomi
