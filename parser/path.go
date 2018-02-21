@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // toAbsolutePath unisce dir con path per ottenere un path assoluto.
@@ -36,7 +37,7 @@ func toAbsolutePath(dir, path string) (string, error) {
 
 func isValidDirName(name string) bool {
 	// deve essere lungo almeno un carattere e meno di 256
-	if name == "" || len(name) >= 256 {
+	if name == "" || utf8.RuneCountInString(name) >= 256 {
 		return false
 	}
 	// non deve essere '.' e non deve contenere '..'
@@ -69,7 +70,8 @@ func isValidDirName(name string) bool {
 
 func isValidFileName(name string) bool {
 	// deve essere lungo almeno 3 caratteri e meno di 256
-	if len(name) <= 2 || len(name) >= 256 {
+	var length = utf8.RuneCountInString(name)
+	if length <= 2 || length >= 256 {
 		return false
 	}
 	// il primo e ne l'ultimo carattere non possono essere un punto
@@ -111,7 +113,7 @@ func isValidFileName(name string) bool {
 // Sono path non validi: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
 	// deve avere almeno un carattere e non terminare con '/'
-	if len(path) < 1 || path[len(path)-1] == '/' {
+	if utf8.RuneCountInString(path) < 1 || path[len(path)-1] == '/' {
 		return false
 	}
 	// splitta il path nei vari nomi
