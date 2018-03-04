@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package template
@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 
+	"open2b/template/ast"
 	"open2b/template/exec"
 	"open2b/template/parser"
 )
@@ -26,7 +27,7 @@ var (
 type Template struct {
 	reader parser.Reader
 	parser *parser.Parser
-	envs   map[string]*exec.Env
+	trees  map[string]*ast.Tree
 	sync.RWMutex
 }
 
@@ -34,45 +35,44 @@ type Template struct {
 // Se cache è true i file vengono letti e parsati una sola volta al
 // momento della loro prima esecuzione.
 func New(dir string, cache bool) *Template {
-	var envs map[string]*exec.Env
+	var trees map[string]*ast.Tree
 	var r parser.Reader = parser.DirReader(dir)
 	if cache {
-		envs = map[string]*exec.Env{}
+		trees = map[string]*ast.Tree{}
 		r = parser.NewCacheReader(r)
 	}
-	return &Template{reader: r, parser: parser.NewParser(r), envs: envs}
+	return &Template{reader: r, parser: parser.NewParser(r), trees: trees}
 }
 
 // Execute esegue il file del template con il path indicato, relativo
 // alla directory del template, e scrive il risultato su out.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
-	var env *exec.Env
-	if t.envs == nil {
+	var err error
+	var tree *ast.Tree
+	if t.trees == nil {
 		// senza cache
-		tree, err := t.parser.Parse(path)
+		tree, err = t.parser.Parse(path)
 		if err != nil {
 			return convertError(err)
 		}
-		env = exec.NewEnv(tree, "")
 	} else {
 		// con cache
 		t.RLock()
-		env = t.envs[path]
+		tree = t.trees[path]
 		t.RUnlock()
-		if env == nil {
+		if tree == nil {
 			// parsa l'albero di path e crea l'ambiente
-			tree, err := t.parser.Parse(path)
+			tree, err = t.parser.Parse(path)
 			if err != nil {
 				return convertError(err)
 			}
-			env = exec.NewEnv(tree, "")
 			t.Lock()
-			t.envs[path] = env
+			t.trees[path] = tree
 			t.Unlock()
 		}
 	}
-	return env.Execute(out, vars)
+	return exec.Execute(out, tree, "", vars)
 }
 
 func convertError(err error) error {

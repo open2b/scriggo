@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 // Package exec fornisce i metodi per eseguire gli alberi dei template.
@@ -37,19 +37,6 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
-type Env struct {
-	tree    *ast.Tree
-	version string
-}
-
-// NewEnv ritorna un ambiente di esecuzione per l'albero tree.
-func NewEnv(tree *ast.Tree, version string) *Env {
-	if tree == nil {
-		panic("template: tree is nil")
-	}
-	return &Env{tree, version}
-}
-
 // Execute esegue l'albero tree e scrive il risultato su wr.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 //
@@ -61,33 +48,36 @@ func NewEnv(tree *ast.Tree, version string) *Env {
 //   - un reflect.Value il cui valore concreto soddisfa uno dei precedenti
 //   - nil
 //
-func (env *Env) Execute(wr io.Writer, vars interface{}) error {
+func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}) error {
 
 	if wr == nil {
 		return errors.New("template/exec: wr is nil")
 	}
+	if tree == nil {
+		return errors.New("template/exec: tree is nil")
+	}
 
-	globals, err := varsToScope(vars, env.version)
+	globals, err := varsToScope(vars, version)
 	if err != nil {
 		return err
 	}
 
 	s := state{
 		scope:   map[string]scope{},
-		path:    env.tree.Path,
+		path:    tree.Path,
 		vars:    []scope{builtins, globals, {}},
-		version: env.version,
+		version: version,
 	}
 
-	extend := getExtendNode(env.tree)
+	extend := getExtendNode(tree)
 	if extend == nil {
-		err = s.execute(wr, env.tree.Nodes)
+		err = s.execute(wr, tree.Nodes)
 	} else {
 		if extend.Ref.Tree == nil {
 			return errors.New("template/exec: extend node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
-		err = s.execute(nil, env.tree.Nodes)
+		err = s.execute(nil, tree.Nodes)
 		if err != nil {
 			return err
 		}

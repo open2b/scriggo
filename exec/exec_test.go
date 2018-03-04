@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package exec
@@ -250,8 +250,7 @@ func TestExecExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		var env = NewEnv(tree, "")
-		err = env.Execute(b, expr.vars)
+		err = Execute(b, tree, "", expr.vars)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -271,8 +270,7 @@ func TestExecStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		var env = NewEnv(tree, "")
-		err = env.Execute(b, stmt.vars)
+		err = Execute(b, tree, "", stmt.vars)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
