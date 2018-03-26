@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package parser
@@ -203,15 +203,7 @@ func (l *lexer) readHTML(src []byte) int {
 		}
 		if src[1] == '!' {
 			var p = 1
-			if prefix(src, []byte("<!--")) {
-				// salta il commento
-				var i = bytes.Index(src[4:], []byte("-->"))
-				if i < 0 {
-					p = len(src)
-				} else {
-					p = i + 7
-				}
-			} else if prefix(src, []byte("<![CDATA[")) {
+			if prefix(src, []byte("<![CDATA[")) {
 				// salta la sezione CDATA
 				var i = bytes.Index(src[9:], []byte("]]>"))
 				if i < 0 {
