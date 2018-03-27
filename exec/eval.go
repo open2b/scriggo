@@ -541,6 +541,7 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 			if p == index {
 				return string(c)
 			}
+			p++
 		}
 		return nil
 	}
