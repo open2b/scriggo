@@ -619,7 +619,7 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-				return v
+				return asBasic(v)
 			}
 		}
 	}
@@ -767,6 +767,8 @@ func asBasic(v interface{}) interface{} {
 		return v
 	case int:
 		return vv
+	case float64:
+		return decimal.NewFromFloat(vv)
 	case decimal.Decimal:
 		return v
 	case bool:
