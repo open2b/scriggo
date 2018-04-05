@@ -103,6 +103,9 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 		// EOF
 		case tokenEOF:
+			if len(ancestors) > 1 {
+				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
+			}
 
 		// Text
 		case tokenText:
