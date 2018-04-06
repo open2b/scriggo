@@ -307,17 +307,17 @@ func (n *Int) String() string {
 	return strconv.Itoa(n.Value)
 }
 
-type Decimal struct {
+type Number struct {
 	*Position // posizione nel sorgente.
 	expression
 	Value decimal.Decimal // valore.
 }
 
-func NewDecimal(pos *Position, value decimal.Decimal) *Decimal {
-	return &Decimal{pos, expression{}, value}
+func NewNumber(pos *Position, value decimal.Decimal) *Number {
+	return &Number{pos, expression{}, value}
 }
 
-func (n *Decimal) String() string {
+func (n *Number) String() string {
 	return n.Value.String()
 }
 
@@ -626,8 +626,8 @@ func CloneExpression(expr Expression) Expression {
 		return NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
 	case *Int:
 		return NewInt(ClonePosition(e.Position), e.Value)
-	case *Decimal:
-		return NewDecimal(ClonePosition(e.Position), e.Value)
+	case *Number:
+		return NewNumber(ClonePosition(e.Position), e.Value)
 	case *String:
 		return NewString(ClonePosition(e.Position), e.Text)
 	case *Identifier:

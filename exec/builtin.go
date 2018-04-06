@@ -435,13 +435,13 @@ func _sort(slice interface{}, field string) interface{} {
 			vv[i] = values[i].(Stringer).String()
 		}
 		f = func(i, j int) bool { return vv[i] < vv[j] }
-	case Decimaler:
+	case Numberer:
 		if size <= 1 {
 			return slice
 		}
 		vv := make([]decimal.Decimal, size)
 		for i := 0; i < size; i++ {
-			vv[i] = values[i].(Decimaler).Decimal()
+			vv[i] = values[i].(Numberer).Number()
 		}
 		f = func(i, j int) bool { return vv[i].Cmp(vv[j]) < 0 }
 	case string:

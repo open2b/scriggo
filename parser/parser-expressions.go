@@ -452,7 +452,7 @@ func parseNumberNode(tok token, neg *ast.Position) (ast.Expression, error) {
 		return ast.NewInt(p, n), nil
 	}
 	d, _ := decimal.NewFromString(s)
-	return ast.NewDecimal(p, d), nil
+	return ast.NewNumber(p, d), nil
 }
 
 func parseStringNode(tok token) *ast.String {

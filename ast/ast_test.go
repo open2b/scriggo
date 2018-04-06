@@ -10,17 +10,17 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var n1 = NewDecimal(nil, decimal.New(1, 0))
-var n2 = NewDecimal(nil, decimal.New(2, 0))
-var n3 = NewDecimal(nil, decimal.New(3, 0))
-var n5 = NewDecimal(nil, decimal.New(5, 0))
+var n1 = NewNumber(nil, decimal.New(1, 0))
+var n2 = NewNumber(nil, decimal.New(2, 0))
+var n3 = NewNumber(nil, decimal.New(3, 0))
+var n5 = NewNumber(nil, decimal.New(5, 0))
 
 var expressionStringTests = []struct {
 	str  string
 	expr Expression
 }{
 	{"1", n1},
-	{"3.59", NewDecimal(nil, decimal.NewFromFloat(3.59))},
+	{"3.59", NewNumber(nil, decimal.NewFromFloat(3.59))},
 	{`"abc"`, NewString(nil, "abc")},
 	{"\"a\\tb\"", NewString(nil, "a\tb")},
 	{"x", NewIdentifier(nil, "x")},

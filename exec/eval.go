@@ -24,9 +24,9 @@ type Stringer interface {
 	String() string
 }
 
-// Decimaler è implementato da qualsiasi valore che si comporta come un decimale.
-type Decimaler interface {
-	Decimal() decimal.Decimal
+// Numberer è implementato da qualsiasi valore che si comporta come un numero.
+type Numberer interface {
+	Number() decimal.Decimal
 }
 
 var stringType = reflect.TypeOf("")
@@ -58,7 +58,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 		return e.Text
 	case *ast.Int:
 		return e.Value
-	case *ast.Decimal:
+	case *ast.Number:
 		return e.Value
 	case *ast.Parentesis:
 		return s.evalExpression(e.Expr)
@@ -775,8 +775,8 @@ func asBasic(v interface{}) interface{} {
 		return v
 	case Stringer:
 		return vv.String()
-	case Decimaler:
-		return vv.Decimal()
+	case Numberer:
+		return vv.Number()
 	default:
 		rv := reflect.ValueOf(v)
 		rt := rv.Type()

@@ -374,8 +374,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Value != nn2.Value {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value, nn2.Value)
 		}
-	case *ast.Decimal:
-		nn2, ok := n2.(*ast.Decimal)
+	case *ast.Number:
+		nn2, ok := n2.(*ast.Number)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
