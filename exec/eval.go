@@ -31,6 +31,7 @@ type Numberer interface {
 
 var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
+var float64Type = reflect.TypeOf(0.0)
 var boolType = reflect.TypeOf(false)
 
 var zero = decimal.New(0, 0)
@@ -619,7 +620,42 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-				return asBasic(v)
+				if v != nil {
+					switch vv := v.(type) {
+					// string
+					case string:
+						return v
+					case HTML:
+						return v
+					case Stringer:
+						return vv.String()
+					// number
+					case int:
+						return vv
+					case float64:
+						return decimal.NewFromFloat(vv)
+					case decimal.Decimal:
+						return v
+					case Numberer:
+						return vv.Number()
+					// bool
+					case bool:
+						return v
+					default:
+						rv := reflect.ValueOf(v)
+						rt := rv.Type()
+						if rt.ConvertibleTo(stringType) {
+							return rv.String()
+						} else if rt.ConvertibleTo(intType) {
+							return rv.Int()
+						} else if rt.ConvertibleTo(float64Type) {
+							return decimal.NewFromFloat(rv.Float())
+						} else if rt.ConvertibleTo(boolType) {
+							return rv.Bool()
+						}
+					}
+				}
+				return v
 			}
 		}
 	}
@@ -647,7 +683,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		if in == decimalType {
 			var a = zero
 			if i < len(node.Args) {
-				arg := asBasic(s.evalExpression(node.Args[i]))
+				arg := s.evalExpression(node.Args[i])
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type decimal in argument to function %s", node.Func))
 				}
@@ -681,7 +717,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.Int:
 			var a = 0
 			if i < len(node.Args) {
-				arg := asBasic(s.evalExpression(node.Args[i]))
+				arg := s.evalExpression(node.Args[i])
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type int in argument to function %s", node.Func))
 				}
@@ -694,7 +730,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.String:
 			var a = ""
 			if i < len(node.Args) {
-				arg := asBasic(s.evalExpression(node.Args[i]))
+				arg := s.evalExpression(node.Args[i])
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
 				}
@@ -751,43 +787,6 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		v = decimal.New(int64(d), 0)
 	}
 
-	return v
-}
-
-// asBasic ritorna v convertito ad un tipo base se convertibile
-// altrimenti ritorna v invariato.
-func asBasic(v interface{}) interface{} {
-	if v == nil {
-		return v
-	}
-	switch vv := v.(type) {
-	case string:
-		return v
-	case HTML:
-		return v
-	case int:
-		return vv
-	case float64:
-		return decimal.NewFromFloat(vv)
-	case decimal.Decimal:
-		return v
-	case bool:
-		return v
-	case Stringer:
-		return vv.String()
-	case Numberer:
-		return vv.Number()
-	default:
-		rv := reflect.ValueOf(v)
-		rt := rv.Type()
-		if rt.ConvertibleTo(stringType) {
-			return rv.String()
-		} else if rt.ConvertibleTo(intType) {
-			return decimal.New(int64(rv.Int()), 0)
-		} else if rt.ConvertibleTo(boolType) {
-			return rv.Bool()
-		}
-	}
 	return v
 }
 
