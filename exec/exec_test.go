@@ -91,6 +91,7 @@ var execExprTests = []struct {
 	{"a[1:10]", "z€", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
 	{"a[2:1]", "", scope{"a": "xz€"}},
+	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
 
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},

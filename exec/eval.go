@@ -14,6 +14,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const maxInt = int64(^uint(0) >> 1)
+
 // HTML viene usato per le stringhe che contengono codice HTML
 // affinché show non le sottoponga ad escape.
 // Nelle espressioni si comporta come una stringa.
@@ -524,22 +526,34 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
-	index, ok := s.evalExpression(node.Index).(int)
-	if !ok {
+	var i int
+	switch index := s.evalExpression(node.Index).(type) {
+	case int:
+		i = index
+	case decimal.Decimal:
+		p := index.IntPart()
+		if p > maxInt || !decimal.New(p, 0).Equal(index) {
+			panic(s.errorf(node, "non-integer slice index %s", node.Index))
+		}
+		if p < 0 {
+			panic(s.errorf(node, "invalid slice index %s (index must be non-negative)", node.Index))
+		}
+		i = int(p)
+	default:
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
 	var e = reflect.ValueOf(s.evalExpression(node.Expr))
 	if e.Kind() == reflect.Slice {
-		if index < 0 || e.Len() <= index {
+		if i < 0 || e.Len() <= i {
 			return nil
 		}
-		return e.Index(index).Interface()
+		return e.Index(i).Interface()
 	}
 	if e.Kind() == reflect.String {
 		var s = e.Interface().(string)
 		var p = 0
 		for _, c := range s {
-			if p == index {
+			if p == i {
 				return string(c)
 			}
 			p++
