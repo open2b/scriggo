@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 // Package parser fornisce i metodi per parsare i sorgenti dei
@@ -44,11 +44,11 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// Parse esegue il parsing di src e ne restituisce l'albero non espanso.
-func Parse(src []byte) (*ast.Tree, error) {
+// Parse parsa src nel contesto ctx e ne restituisce l'albero non espanso.
+func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	// crea il lexer
-	var lex = newLexer(src)
+	var lex = newLexer(src, ctx)
 
 	// albero risultato del parsing
 	var tree = ast.NewTree("", nil)
@@ -119,7 +119,6 @@ func Parse(src []byte) (*ast.Tree, error) {
 			var node ast.Node
 
 			var pos = tok.pos
-			var ctx = tok.ctx
 
 			var err error
 			var expr ast.Expression
@@ -402,7 +401,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 					}
 					pos.End = tok.pos.End
-					node = ast.NewShowRegion(pos, impor, region, arguments, parserContext(ctx))
+					node = ast.NewShowRegion(pos, impor, region, arguments)
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 					// show <path>
 					var path = unquoteString(tok.txt)
@@ -417,7 +416,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 					}
 					pos.End = tok.pos.End
-					node = ast.NewShowPath(pos, path, parserContext(ctx))
+					node = ast.NewShowPath(pos, path, tok.ctx)
 				} else {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier o string", tok)}
 				}
@@ -453,7 +452,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewExtend(pos, path)
+				node = ast.NewExtend(pos, path, tok.ctx)
 				addChild(parent, node)
 				isExtended = true
 
@@ -496,7 +495,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewImport(pos, ident, path)
+				node = ast.NewImport(pos, ident, path, tok.ctx)
 				addChild(parent, node)
 				cutSpacesToken = true
 
@@ -627,7 +626,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 				return nil, &Error{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 			}
 			tok.pos.End = tok2.pos.End
-			var node = ast.NewValue(tok.pos, expr, parserContext(tok.ctx))
+			var node = ast.NewValue(tok.pos, expr, tok.ctx)
 			addChild(parent, node)
 
 		// comment
@@ -653,7 +652,7 @@ func Parse(src []byte) (*ast.Tree, error) {
 
 // Reader definisce un tipo che consente di leggere i sorgenti di un template.
 type Reader interface {
-	Read(path string) (*ast.Tree, error)
+	Read(path string, ctx ast.Context) (*ast.Tree, error)
 }
 
 // DirReader implementa un Reader che legge i sorgenti
@@ -661,7 +660,7 @@ type Reader interface {
 type DirReader string
 
 // Read implementa il metodo Read del Reader.
-func (dir DirReader) Read(path string) (*ast.Tree, error) {
+func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -669,7 +668,7 @@ func (dir DirReader) Read(path string) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-	tree, err := Parse(src)
+	tree, err := Parse(src, ctx)
 	if err != nil {
 		if err2, ok := err.(*Error); ok {
 			err2.Path = path
@@ -684,29 +683,36 @@ func (dir DirReader) Read(path string) (*ast.Tree, error) {
 // i sorgenti del template letti da un altro reader.
 type CacheReader struct {
 	reader Reader
-	trees  map[string]*ast.Tree
+	trees  map[cacheReaderEntry]*ast.Tree
 	sync.Mutex
+}
+
+// cacheReaderEntry implementa una entry di CacheReader.
+type cacheReaderEntry struct {
+	path string
+	ctx  ast.Context
 }
 
 // NewCacheReader ritorna un CacheReader che legge i sorgenti dal reader r.
 func NewCacheReader(r Reader) *CacheReader {
 	return &CacheReader{
 		reader: r,
-		trees:  map[string]*ast.Tree{},
+		trees:  map[cacheReaderEntry]*ast.Tree{},
 	}
 }
 
 // Read implementa il metodo Read del Reader.
-func (r *CacheReader) Read(path string) (*ast.Tree, error) {
+func (r *CacheReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
+	var entry = cacheReaderEntry{path, ctx}
 	r.Lock()
-	tree, ok := r.trees[path]
+	tree, ok := r.trees[entry]
 	r.Unlock()
 	if !ok {
-		tree, err = r.reader.Read(path)
+		tree, err = r.reader.Read(path, ctx)
 		if err == nil {
 			r.Lock()
-			r.trees[path] = tree
+			r.trees[entry] = tree
 			r.Unlock()
 		}
 	}
@@ -721,10 +727,10 @@ func NewParser(r Reader) *Parser {
 	return &Parser{r}
 }
 
-// Parse legge il sorgente in path, tramite il reader, espande i nodi Extend,
+// Parse legge il sorgente in path, tramite il reader, nel contesto ctx, espande i nodi Extend,
 // Import e ShowPath se presenti per poi ritornare l'albero espanso.
 // path deve essere assoluto.
-func (p *Parser) Parse(path string) (*ast.Tree, error) {
+func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	var err error
 
@@ -739,7 +745,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	tree, err := p.reader.Read(path)
+	tree, err := p.reader.Read(path, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -783,7 +789,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 			return nil, err
 		}
 		var tr *ast.Tree
-		tr, err = p.reader.Read(exPath)
+		tr, err = p.reader.Read(exPath, extend.Context)
 		if err != nil {
 			if err == ErrNotExist {
 				err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
@@ -854,7 +860,7 @@ type expandedRegion struct {
 	reg  *ast.Region
 }
 
-func (pp *parsing) expandTree(dir, path string) (*ast.Tree, error) {
+func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
 	if path[0] != '/' {
 		path, err = toAbsolutePath(dir, path)
@@ -870,7 +876,7 @@ func (pp *parsing) expandTree(dir, path string) (*ast.Tree, error) {
 	}
 	pp.paths = append(pp.paths, path)
 	var tree *ast.Tree
-	tree, err = pp.reader.Read(path)
+	tree, err = pp.reader.Read(path, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -998,7 +1004,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 				}
 			}
 			var err error
-			n.Ref.Tree, err = pp.expandTree(dir, n.Path)
+			n.Ref.Tree, err = pp.expandTree(dir, n.Path, n.Context)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", n.Path)}
@@ -1036,7 +1042,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 		case *ast.ShowPath:
 
 			var err error
-			n.Ref.Tree, err = pp.expandTree(dir, n.Path)
+			n.Ref.Tree, err = pp.expandTree(dir, n.Path, n.Context)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("showed path %q does not exist", n.Path)}
@@ -1076,19 +1082,6 @@ func addChild(parent ast.Node, node ast.Node) {
 		} else {
 			n.Else = append(n.Else, node)
 		}
-	}
-}
-
-func parserContext(ctx context) ast.Context {
-	switch ctx {
-	case contextHTML:
-		return ast.ContextHTML
-	case contextScript:
-		return ast.ContextScript
-	case contextStyle:
-		return ast.ContextScript
-	default:
-		panic("invalid context type")
 	}
 }
 

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package parser
@@ -9,27 +9,6 @@ import (
 
 	"open2b/template/ast"
 )
-
-// context indica il contesto in cui si trova un nodo Show.
-type context int
-
-const (
-	contextHTML   context = iota // codice HTML
-	contextScript                // script
-	contextStyle                 // stile
-)
-
-func (ctx context) String() string {
-	switch ctx {
-	case contextHTML:
-		return "HTML"
-	case contextScript:
-		return "Script"
-	case contextStyle:
-		return "Style"
-	}
-	panic("invalid context")
-}
 
 // tipo di token.
 type tokenType int
@@ -146,7 +125,7 @@ type token struct {
 	typ tokenType     // tipo
 	pos *ast.Position // posizione nel buffer
 	txt []byte        // testo del token
-	ctx context       // contesto
+	ctx ast.Context   // contesto
 	lin int           // linea del lexer quando è stato emesso il token
 }
 

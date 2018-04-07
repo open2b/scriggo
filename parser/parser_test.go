@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package parser
@@ -155,10 +155,10 @@ var treeTests = []struct {
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2))})},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShowRegion(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)})},
+		ast.NewShowRegion(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil)})},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowRegion(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)})},
+			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")})})},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), "b")})})},
 	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
@@ -184,13 +184,13 @@ var treeTests = []struct {
 		ast.NewText(p(1, 1, 0, 1), ""),
 		ast.NewIf(p(1, 3, 2, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), "b\n")}, nil),
 		ast.NewText(p(3, 12, 27, 28), "")})},
-	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b")})},
+	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", ast.ContextHTML)})},
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)})},
 	{"{% extend \"a.e\" %}{% region b %}c{% end region %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e"), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
 			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
 	{"{% extend \"a.e\" %}{% region b(c,d) %}txt{% end region %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e"), ast.NewRegion(p(1, 19, 18, 36), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewRegion(p(1, 19, 18, 36), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
 			[]ast.Node{ast.NewText(p(1, 38, 37, 39), "txt")})})},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
@@ -237,7 +237,7 @@ func pageTests() map[string]struct {
 
 func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
-		var lex = newLexer([]byte("{{" + expr.src + "}}"))
+		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		<-lex.tokens
 		node, tok, err := parseExpr(lex)
 		if err != nil {
@@ -257,7 +257,7 @@ func TestExpressions(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := Parse([]byte(tree.src))
+		node, err := Parse([]byte(tree.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -274,8 +274,8 @@ type testsReader map[string]struct {
 	tree *ast.Tree
 }
 
-func (tests testsReader) Read(path string) (*ast.Tree, error) {
-	return Parse([]byte(tests[path].src))
+func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+	return Parse([]byte(tests[path].src), ctx)
 }
 
 func TestPages(t *testing.T) {
@@ -283,7 +283,7 @@ func TestPages(t *testing.T) {
 	// simple.html
 	parser := NewParser(testsReader(tests))
 	p := tests["/simple.html"]
-	tree, err := parser.Parse("/simple.html")
+	tree, err := parser.Parse("/simple.html", ast.ContextHTML)
 	if err != nil {
 		t.Errorf("source: %q, %s\n", p.src, err)
 	}
@@ -293,7 +293,7 @@ func TestPages(t *testing.T) {
 	}
 	// simple2.html
 	p = tests["/simple2.html"]
-	tree, err = parser.Parse("/simple2.html")
+	tree, err = parser.Parse("/simple2.html", ast.ContextHTML)
 	if err != nil {
 		t.Errorf("source: %q, %s\n", p.src, err)
 	}
@@ -485,7 +485,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			return err
 		}
 		if nn1.Context != nn2.Context {
-			return fmt.Errorf("unexpected context %d, expecting %d", nn1.Context, nn2.Context)
+			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
 	case *ast.If:
 		nn2, ok := n2.(*ast.If)

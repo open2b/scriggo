@@ -24,6 +24,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
+type WriterTo interface {
+	WriteTo(w io.Writer, ctx ast.Context) (n int, err error)
+}
+
 // errBreak è ritornato dall'esecuzione dello statement "break".
 // Viene gestito dallo statement "for" più interno.
 var errBreak = errors.New("break is not in a loop")
@@ -206,24 +210,33 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				return err
 			}
 
-			var str string
-			switch node.Context {
-			case ast.ContextHTML:
-				if e, ok := expr.(io.WriterTo); ok {
-					_, err = e.WriteTo(wr)
-					if err != nil {
-						return err
-					}
-				} else {
-					str = interfaceToHTML(expr)
-				}
-			case ast.ContextScript:
-				str = interfaceToScript(expr)
-			}
+			if e, ok := expr.(WriterTo); ok {
 
-			_, err := io.WriteString(wr, str)
-			if err != nil {
-				return err
+				_, err = e.WriteTo(wr, node.Context)
+				if err != nil {
+					return err
+				}
+
+			} else {
+
+				var str string
+				switch node.Context {
+				case ast.ContextText:
+					str = interfaceToText(expr)
+				case ast.ContextHTML:
+					str = interfaceToHTML(expr)
+				case ast.ContextCSS:
+					str = interfaceToCSS(expr)
+				case ast.ContextJavaScript:
+					str = interfaceToJavaScript(expr)
+				default:
+					panic("template/exec: unknown context")
+				}
+				_, err = io.WriteString(wr, str)
+				if err != nil {
+					return err
+				}
+
 			}
 
 		case *ast.If:

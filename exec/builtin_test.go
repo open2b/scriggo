@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"testing"
 
+	"open2b/template/ast"
 	"open2b/template/parser"
 )
 
@@ -322,7 +323,7 @@ var execRandomBuiltinTests = []struct {
 
 func TestExecBuiltin(t *testing.T) {
 	for _, expr := range execBuiltinTests {
-		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
+		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -342,7 +343,7 @@ func TestExecBuiltin(t *testing.T) {
 
 func TestExecRandomBuiltin(t *testing.T) {
 	for _, expr := range execRandomBuiltinTests {
-		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
+		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

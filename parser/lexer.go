@@ -14,6 +14,8 @@ import (
 )
 
 var nl = []byte("\n")
+var cdataStart = []byte("<![CDATA[")
+var cdataEnd = []byte("]]>")
 
 type SyntaxError struct {
 	path string
@@ -27,24 +29,24 @@ func (e *SyntaxError) Error() string {
 
 // lexer mantiene lo stato dello scanner.
 type lexer struct {
-	text   []byte     // testo su cui viene eseguita la scansine
-	src    []byte     // slice del testo utilizzata durante la scansione
-	line   int        // linea corrente a partire da 1
-	column int        // colonna corente a partire da 1
-	ctx    context    // contesto corrente utilizzato durante la scansione
-	tokens chan token // tokens, viene chiuso alla fine della scansione
-	err    error      // errore, al termine della scansione indica se c'è stato un errore
+	text   []byte      // testo su cui viene eseguita la scansine
+	src    []byte      // slice del testo utilizzata durante la scansione
+	line   int         // linea corrente a partire da 1
+	column int         // colonna corente a partire da 1
+	ctx    ast.Context // contesto corrente utilizzato durante la scansione
+	tokens chan token  // tokens, viene chiuso alla fine della scansione
+	err    error       // errore, al termine della scansione indica se c'è stato un errore
 }
 
 // newLexer crea un nuovo lexer.
-func newLexer(text []byte) *lexer {
+func newLexer(text []byte, ctx ast.Context) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
 		text:   text,
 		src:    text,
 		line:   1,
 		column: 1,
-		ctx:    contextHTML,
+		ctx:    ctx,
 		tokens: tokens}
 	go lex.scan()
 	return lex
@@ -74,7 +76,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	}
 	ctx := l.ctx
 	if typ == tokenText {
-		ctx = contextHTML
+		ctx = ast.ContextHTML
 	}
 	start := len(l.text) - len(l.src)
 	l.tokens <- token{
@@ -103,7 +105,8 @@ func (l *lexer) scan() {
 
 LOOP:
 	for p < len(l.src) {
-		if l.src[p] == '{' && p+1 < len(l.src) {
+		c := l.src[p]
+		if c == '{' && p+1 < len(l.src) {
 			switch l.src[p+1] {
 			case '{':
 				if p > 0 {
@@ -149,17 +152,79 @@ LOOP:
 				continue
 			}
 		}
-		switch l.src[p] {
-		case '<':
-			p += l.readHTML(l.src[p:])
-		case '\n':
+		if c == '\n' {
 			p++
 			l.newline()
-		default:
+			continue
+		}
+		if c == '<' && l.ctx != ast.ContextText {
+			switch l.ctx {
+			case ast.ContextHTML:
+				// <style>
+				if p+6 < len(l.src) && isCSS(l.src[p+1:p+6]) && (l.src[p+6] == '>' || isSpace(l.src[p+6])) {
+					l.ctx = ast.ContextCSS
+					p += 6
+					l.column += 6
+					continue
+				}
+				// <script>
+				if p+7 < len(l.src) && isJavaScript(l.src[p+1:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
+					l.ctx = ast.ContextJavaScript
+					p += 7
+					l.column += 7
+					continue
+				}
+			case ast.ContextCSS:
+				// </style>
+				if p+7 < len(l.src) && l.src[p+1] == '/' && isCSS(l.src[p+2:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
+					l.ctx = ast.ContextHTML
+					p += 7
+					l.column += 7
+					continue
+				}
+			case ast.ContextJavaScript:
+				// </script>
+				if p+8 < len(l.src) && l.src[p+1] == '/' && isJavaScript(l.src[p+2:p+8]) && (l.src[p+8] == '>' || isSpace(l.src[p+8])) {
+					l.ctx = ast.ContextHTML
+					p += 8
+					l.column += 8
+					continue
+				}
+			}
+			// <![CDATA[...]]>
+			if p+11 < len(l.src) && l.src[p+1] == '!' {
+				if bytes.HasPrefix(l.src, cdataStart) {
+					// salta la sezione CDATA
+					p += 9
+					l.column += 9
+					var t = bytes.Index(l.src[p:], cdataEnd)
+					if t < 0 {
+						t = len(l.src)
+					}
+					for p < t {
+						c := l.src[p]
+						if c == '\n' {
+							l.newline()
+						} else if c < 128 {
+							p++
+							l.column++
+						} else {
+							_, s := utf8.DecodeRune(l.src[p:])
+							p += s
+							l.column++
+						}
+					}
+					continue
+				}
+			}
+		}
+		if c < 128 {
+			p += 1
+		} else {
 			_, s := utf8.DecodeRune(l.src[p:])
 			p += s
-			l.column++
 		}
+		l.column++
 	}
 
 	if len(l.src) > 0 {
@@ -174,74 +239,26 @@ LOOP:
 	close(l.tokens)
 }
 
-// readHTML legge un tag HTML sapendo che src inizia con '<'
-// e ritorna il numero di bytes letti compreso '<'.
-// Se necessario cambia il contesto del lexer.
-func (l *lexer) readHTML(src []byte) int {
-	if len(src) < 2 {
-		l.column++
-		return 1
+func isJavaScript(s []byte) bool {
+	if len(s) < 6 {
+		return false
 	}
-	switch l.ctx {
-	case contextHTML:
-		if src[1] == 's' {
-			if prefix(src, []byte("<script")) {
-				if len(src) > 7 && (src[7] == '>' || isSpace(src[7]) || src[7] == '{') {
-					l.ctx = contextScript
-				}
-				l.column += 7
-				return 7
-			}
-			if prefix(src, []byte("<style")) {
-				if len(src) > 6 && (src[7] == '>' || isSpace(src[7]) || src[7] == '{') {
-					l.ctx = contextStyle
+	if (s[0] == 's' || s[0] == 'S') && (s[1] == 'c' || s[1] == 'C') && (s[2] == 'r' || s[2] == 'R') &&
+		(s[3] == 'i' || s[3] == 'I') && (s[4] == 'p' || s[4] == 'P') && (s[5] == 't' || s[5] == 'T') {
+		return true
+	}
+	return false
+}
 
-				}
-				l.column += 6
-				return 6
-			}
-		}
-		if src[1] == '!' {
-			var p = 1
-			if prefix(src, []byte("<![CDATA[")) {
-				// salta la sezione CDATA
-				var i = bytes.Index(src[9:], []byte("]]>"))
-				if i < 0 {
-					p = len(src)
-				} else {
-					p = i + 12
-				}
-			}
-			// aggiorna la linea e la colonna corrente
-			i := 1
-			for i < p {
-				r, s := utf8.DecodeRune(src[i:p])
-				if r == '\n' {
-					l.newline()
-				} else {
-					l.column++
-				}
-				i += s
-			}
-			return p
-		}
-	case contextStyle:
-		if src[1] == '/' && prefix(src, []byte("</style>")) {
-			l.ctx = contextHTML
-			l.column += 8
-			return 8
-		}
-	case contextScript:
-		if src[1] == '/' && prefix(src, []byte("</script>")) {
-			l.ctx = contextHTML
-			l.column += 9
-			return 9
-		}
-	default:
-		panic("Unknown context")
+func isCSS(s []byte) bool {
+	if len(s) < 5 {
+		return false
 	}
-	l.column++
-	return 1
+	if (s[0] == 's' || s[0] == 'S') && (s[1] == 't' || s[1] == 'T') && (s[2] == 'y' || s[2] == 'Y') &&
+		(s[3] == 'l' || s[3] == 'L') && (s[4] == 'e' || s[4] == 'E') {
+		return true
+	}
+	return false
 }
 
 // lexShow emette i token di show sapendo che src inizia con '{{'.

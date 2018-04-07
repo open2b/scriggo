@@ -15,6 +15,14 @@ import (
 )
 
 type HTML = exec.HTML
+type Context = ast.Context
+
+const (
+	ContextText Context = iota
+	ContextHTML
+	ContextCSS
+	ContextJavaScript
+)
 
 var (
 	// ErrInvalid è ritornato da Execute quando il parametro path non è valido.
@@ -47,12 +55,26 @@ func New(dir string, cache bool) *Template {
 // Execute esegue il file del template con il path indicato, relativo
 // alla directory del template, e scrive il risultato su out.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
+//
+// Il contesto dipende dall'estensione del file, HTML per ".html", CSS per ".css",
+// JavaScript per ".js", Text in tutti gli altri casi.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
+	var ctx ast.Context
+	switch ext(path) {
+	case "html":
+		ctx = ast.ContextHTML
+	case "css":
+		ctx = ast.ContextCSS
+	case "js":
+		ctx = ast.ContextJavaScript
+	default:
+		ctx = ast.ContextText
+	}
 	var err error
 	var tree *ast.Tree
 	if t.trees == nil {
 		// senza cache
-		tree, err = t.parser.Parse(path)
+		tree, err = t.parser.Parse(path, ctx)
 		if err != nil {
 			return convertError(err)
 		}
@@ -63,7 +85,7 @@ func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 		t.RUnlock()
 		if tree == nil {
 			// parsa l'albero di path e crea l'ambiente
-			tree, err = t.parser.Parse(path)
+			tree, err = t.parser.Parse(path, ctx)
 			if err != nil {
 				return convertError(err)
 			}
@@ -83,4 +105,14 @@ func convertError(err error) error {
 		return ErrNotExist
 	}
 	return err
+}
+
+// ext ritorna l'estensione di path.
+func ext(path string) string {
+	for i := len(path) - 1; i >= 0 && path[i] != '/'; i-- {
+		if path[i] == '.' {
+			return path[i+1:]
+		}
+	}
+	return ""
 }

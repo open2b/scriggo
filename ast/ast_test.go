@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package ast

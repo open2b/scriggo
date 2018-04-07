@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 package parser
@@ -99,13 +99,13 @@ var typeTests = map[string][]tokenType{
 		tokenMultiplication, tokenNumber, tokenEndValue},
 }
 
-var contextTests = map[string][]context{
-	`a`:                           {contextHTML},
-	`{{a}}`:                       {contextHTML, contextHTML, contextHTML},
-	"<script></script>":           {contextHTML},
-	"<style></style>":             {contextHTML},
-	"<script>{{a}}</script>{{a}}": {contextHTML, contextScript, contextScript, contextScript, contextHTML, contextHTML, contextHTML, contextHTML},
-	"<style>{{a}}</style>{{a}}":   {contextHTML, contextStyle, contextStyle, contextStyle, contextHTML, contextHTML, contextHTML, contextHTML},
+var contextTests = map[string][]ast.Context{
+	`a`:                           {ast.ContextHTML},
+	`{{a}}`:                       {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<script></script>":           {ast.ContextHTML},
+	"<style></style>":             {ast.ContextHTML},
+	"<script>{{a}}</script>{{a}}": {ast.ContextHTML, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<style>{{a}}</style>{{a}}":   {ast.ContextHTML, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 }
 
 var positionTests = []struct {
@@ -137,7 +137,7 @@ var positionTests = []struct {
 func TestLexerTypes(t *testing.T) {
 TYPES:
 	for source, types := range typeTests {
-		var lex = newLexer([]byte(source))
+		var lex = newLexer([]byte(source), ast.ContextText)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {
@@ -165,7 +165,7 @@ TYPES:
 func TestLexerContexts(t *testing.T) {
 CONTEXTS:
 	for source, contexts := range contextTests {
-		var lex = newLexer([]byte(source))
+		var lex = newLexer([]byte(source), ast.ContextHTML)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {
@@ -192,7 +192,7 @@ CONTEXTS:
 
 func TestPositions(t *testing.T) {
 	for _, test := range positionTests {
-		var lex = newLexer([]byte(test.src))
+		var lex = newLexer([]byte(test.src), ast.ContextHTML)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {

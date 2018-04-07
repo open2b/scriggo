@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017 Open2b Software Snc. All Rights Reserved.
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
 // Package ast dichiara i tipi usati per definire gli alberi dei template.
@@ -40,10 +40,25 @@ func (op OperatorType) String() string {
 type Context int
 
 const (
-	ContextHTML   Context = iota // codice HTML
-	ContextScript                // script
-	ContextStyle                 // stile
+	ContextText Context = iota
+	ContextHTML
+	ContextCSS
+	ContextJavaScript
 )
+
+func (ctx Context) String() string {
+	switch ctx {
+	case ContextText:
+		return "Text"
+	case ContextHTML:
+		return "HTML"
+	case ContextCSS:
+		return "CSS"
+	case ContextJavaScript:
+		return "JavaScript"
+	}
+	panic("invalid context")
+}
 
 // Node è un elemento del tree.
 type Node interface {
@@ -211,21 +226,20 @@ type ShowRegion struct {
 		Import *Import
 		Region *Region
 	}
-	Context
 }
 
-func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *ShowRegion {
-	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments, Context: ctx}
+func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression) *ShowRegion {
+	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments}
 }
 
 // ShowPath rappresenta uno statement {% show <path> %}.
 type ShowPath struct {
-	*Position        // posizione nel sorgente.
-	Path      string // path del sorgente da mostrare.
+	*Position         // posizione nel sorgente.
+	Path      string  // path del sorgente da mostrare.
+	Context   Context // contesto.
 	Ref       struct {
 		Tree *Tree
 	}
-	Context
 }
 
 func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
@@ -236,7 +250,7 @@ func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
 type Value struct {
 	*Position            // posizione nel sorgente.
 	Expr      Expression // espressione che valutata restituisce il valore da mostrare.
-	Context
+	Context   Context    // contesto.
 }
 
 func NewValue(pos *Position, expr Expression, ctx Context) *Value {
@@ -245,15 +259,16 @@ func NewValue(pos *Position, expr Expression, ctx Context) *Value {
 
 // Extend rappresenta uno statement {% extend ... %}.
 type Extend struct {
-	*Position        // posizione nel sorgente.
-	Path      string // path del file da estendere.
+	*Position         // posizione nel sorgente.
+	Path      string  // path del file da estendere.
+	Context   Context // contesto.
 	Ref       struct {
 		Tree *Tree // albero del file esteso.
 	}
 }
 
-func NewExtend(pos *Position, path string) *Extend {
-	return &Extend{Position: pos, Path: path}
+func NewExtend(pos *Position, path string, ctx Context) *Extend {
+	return &Extend{Position: pos, Path: path, Context: ctx}
 }
 
 // Import rappresenta uno statement {% import ... %}.
@@ -261,13 +276,14 @@ type Import struct {
 	*Position             // posizione nel sorgente.
 	Ident     *Identifier // identificatore.
 	Path      string      // path del file da importato.
+	Context   Context     // contesto.
 	Ref       struct {
 		Tree *Tree // albero del file importato.
 	}
 }
 
-func NewImport(pos *Position, ident *Identifier, path string) *Import {
-	return &Import{Position: pos, Ident: ident, Path: path}
+func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
+	return &Import{Position: pos, Ident: ident, Path: path, Context: ctx}
 }
 
 type Comment struct {
@@ -562,7 +578,7 @@ func CloneNode(node Node) Node {
 	case *Continue:
 		return NewContinue(ClonePosition(n.Position))
 	case *Extend:
-		extend := NewExtend(ClonePosition(n.Position), n.Path)
+		extend := NewExtend(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Ref.Tree != nil {
 			extend.Ref.Tree = CloneTree(n.Ref.Tree)
 		}
@@ -594,13 +610,13 @@ func CloneNode(node Node) Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments, n.Context)
+		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments)
 	case *Import:
 		var ident *Identifier
 		if n.Ident != nil {
 			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
-		imp := NewImport(ClonePosition(n.Position), ident, n.Path)
+		imp := NewImport(ClonePosition(n.Position), ident, n.Path, n.Context)
 		if n.Ref.Tree != nil {
 			imp.Ref.Tree = CloneTree(n.Ref.Tree)
 		}

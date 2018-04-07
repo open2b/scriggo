@@ -9,6 +9,7 @@ import (
 	"html"
 	"testing"
 
+	"open2b/template/ast"
 	"open2b/template/parser"
 )
 
@@ -53,7 +54,7 @@ func TestHTMLContext(t *testing.T) {
 		case HTML:
 			src = string(s)
 		}
-		var tree, err = parser.Parse([]byte("{{" + src + "}}"))
+		var tree, err = parser.Parse([]byte("{{"+src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -76,55 +77,55 @@ var scriptContextTests = []struct {
 	res  string
 	vars scope
 }{
-	// {`nil`, `null`, nil},
-	// {`""`, `""`, nil},
-	// {`"a"`, `"a"`, nil},
-	// {`"<a>"`, `"\x3ca\x3e"`, nil},
-	// {`"<div></div>"`, `"\x3cdiv\x3e\x3c/div\x3e"`, nil},
-	// {`"\\"`, `"\\"`, nil},
-	// {`"\""`, `"\""`, nil},
-	// {`"\n"`, `"\n"`, nil},
-	// {`"\r"`, `"\r"`, nil},
-	// {`"\t"`, `"\t"`, nil},
-	// {`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\"\n\r\t\u2028\u2029\x00\x10"`, nil},
-	// {`0`, "0", nil},
-	// {`25`, "25", nil},
-	// {`-25`, "-25", nil},
-	// {`0.0`, "0", nil},
-	// {`0.1`, "0.1", nil},
-	// {`0.1111111`, "0.1111111", nil},
-	// {`0.1000000`, "0.1", nil},
-	// {`-0.1`, "-0.1", nil},
-	// {`-0.1111111`, "-0.1111111", nil},
-	// {`-0.1000000`, "-0.1", nil},
-	// {`true`, "true", nil},
-	// {`false`, "false", nil},
-	// {`a`, "null", scope{"a": []int(nil)}},
-	// {`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
-	// {`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
-	// {`a`, "null", scope{"a": []bool(nil)}},
-	// {`a`, "[true,false,true]", scope{"a": []bool{true, false, true}}},
-	// {`a`, "null", scope{"a": (*struct{})(nil)}},
-	// {`a`, "{}", scope{"a": &struct{}{}}},
-	// {`a`, `{}`, scope{"a": &struct{ a int }{a: 5}}},
+	{`nil`, `null`, nil},
+	{`""`, `""`, nil},
+	{`"a"`, `"a"`, nil},
+	{`"<a>"`, `"\x3ca\x3e"`, nil},
+	{`"<div></div>"`, `"\x3cdiv\x3e\x3c/div\x3e"`, nil},
+	{`"\\"`, `"\\"`, nil},
+	{`"\""`, `"\""`, nil},
+	{`"\n"`, `"\n"`, nil},
+	{`"\r"`, `"\r"`, nil},
+	{`"\t"`, `"\t"`, nil},
+	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `"\\\"\n\r\t\u2028\u2029\x00\x10"`, nil},
+	{`0`, "0", nil},
+	{`25`, "25", nil},
+	{`-25`, "-25", nil},
+	{`0.0`, "0", nil},
+	{`0.1`, "0.1", nil},
+	{`0.1111111`, "0.1111111", nil},
+	{`0.1000000`, "0.1", nil},
+	{`-0.1`, "-0.1", nil},
+	{`-0.1111111`, "-0.1111111", nil},
+	{`-0.1000000`, "-0.1", nil},
+	{`true`, "true", nil},
+	{`false`, "false", nil},
+	{`a`, "null", scope{"a": []int(nil)}},
+	{`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
+	{`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
+	{`a`, "null", scope{"a": []bool(nil)}},
+	{`a`, "[true,false,true]", scope{"a": []bool{true, false, true}}},
+	{`a`, "null", scope{"a": (*struct{})(nil)}},
+	{`a`, "{}", scope{"a": &struct{}{}}},
+	{`a`, `{}`, scope{"a": &struct{ a int }{a: 5}}},
 	{`a`, `{"A":5}`, scope{"a": &struct{ A int }{A: 5}}},
-	// {`a`, `{"A":5,"B":null}`, scope{"a": &struct {
-	// 	A int
-	// 	B *struct{}
-	// }{A: 5, B: nil}}},
-	// {`a`, `{"A":5,"B":{}}`, scope{"a": &struct {
-	// 	A int
-	// 	B *struct{}
-	// }{A: 5, B: &struct{}{}}}},
-	// {`a`, `{"A":5,"B":{"C":"C"}}`, scope{"a": &struct {
-	// 	A int
-	// 	B *struct{ C string }
-	// }{A: 5, B: &struct{ C string }{C: "C"}}}},
+	{`a`, `{"A":5,"B":null}`, scope{"a": &struct {
+		A int
+		B *struct{}
+	}{A: 5, B: nil}}},
+	{`a`, `{"A":5,"B":{}}`, scope{"a": &struct {
+		A int
+		B *struct{}
+	}{A: 5, B: &struct{}{}}}},
+	{`a`, `{"A":5,"B":{"C":"C"}}`, scope{"a": &struct {
+		A int
+		B *struct{ C string }
+	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 }
 
-func TestScriptContext(t *testing.T) {
+func TestJavaScriptContext(t *testing.T) {
 	for _, expr := range scriptContextTests {
-		var tree, err = parser.Parse([]byte("<script>{{" + expr.src + "}}</script>"))
+		var tree, err = parser.Parse([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

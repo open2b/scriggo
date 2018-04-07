@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"open2b/template/ast"
 	"open2b/template/parser"
 )
 
@@ -248,7 +249,7 @@ var execVarsToScope = []struct {
 
 func TestExecExpressions(t *testing.T) {
 	for _, expr := range execExprTests {
-		var tree, err = parser.Parse([]byte("{{" + expr.src + "}}"))
+		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -268,7 +269,7 @@ func TestExecExpressions(t *testing.T) {
 
 func TestExecStatements(t *testing.T) {
 	for _, stmt := range execStmtTests {
-		var tree, err = parser.Parse([]byte(stmt.src))
+		var tree, err = parser.Parse([]byte(stmt.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
