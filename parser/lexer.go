@@ -103,6 +103,8 @@ func (l *lexer) scan() {
 	lin := l.line   // linea del token
 	col := l.column // colonna del token
 
+	initialContext := l.ctx // contesto iniziale
+
 LOOP:
 	for p < len(l.src) {
 		c := l.src[p]
@@ -157,7 +159,7 @@ LOOP:
 			l.newline()
 			continue
 		}
-		if c == '<' && l.ctx != ast.ContextText {
+		if c == '<' && initialContext == ast.ContextHTML {
 			switch l.ctx {
 			case ast.ContextHTML:
 				// <style>
