@@ -99,13 +99,26 @@ var typeTests = map[string][]tokenType{
 		tokenMultiplication, tokenNumber, tokenEndValue},
 }
 
-var contextTests = map[string][]ast.Context{
-	`a`:                           {ast.ContextHTML},
-	`{{a}}`:                       {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-	"<script></script>":           {ast.ContextHTML},
-	"<style></style>":             {ast.ContextHTML},
-	"<script>{{a}}</script>{{a}}": {ast.ContextHTML, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-	"<style>{{a}}</style>{{a}}":   {ast.ContextHTML, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+var contextTextTests = map[string]int{
+	`a`:                             1,
+	`{{a}}`:                         3,
+	"<script></script>":             1,
+	"<style></style>":               1,
+	"<script>s{{a}}t</script>{{a}}": 8,
+	"<style>s{{a}}t</style>{{a}}":   8,
+}
+
+var contextHTMLTests = map[string][]ast.Context{
+	`a`:                               {ast.ContextText},
+	`{{a}}`:                           {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<script></script>":               {ast.ContextText},
+	"<style></style>":                 {ast.ContextText},
+	"<script>s{{a}}</script>{{a}}":    {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<style>s{{a}}</style>{{a}}":      {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	`<style>s{{show "a"}}t</style>`:   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+	`<script>s{{show "a"}}t</script>`: {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+	`<style a="b">{{1}}</style>`:      {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+	`<script a="b">{{1}}</script>`:    {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 }
 
 var positionTests = []struct {
@@ -157,14 +170,38 @@ TYPES:
 			t.Errorf("source: %q, error %s\n", source, lex.err)
 		}
 		if i < len(types) {
-			t.Errorf("source: %q, meno types\n", source)
+			t.Errorf("source: %q, less types\n", source)
 		}
 	}
 }
 
-func TestLexerContexts(t *testing.T) {
+func TestLexerTextContexts(t *testing.T) {
 CONTEXTS:
-	for source, contexts := range contextTests {
+	for source, count := range contextTextTests {
+		var lex = newLexer([]byte(source), ast.ContextText)
+		var i int
+		for tok := range lex.tokens {
+			if tok.typ == tokenEOF {
+				break
+			}
+			if tok.ctx != ast.ContextText {
+				t.Errorf("source: %q, for %s unexpected %s, expecting Text\n", source, tok, tok.ctx)
+				continue CONTEXTS
+			}
+			i++
+		}
+		if lex.err != nil {
+			t.Errorf("source: %q, error %s\n", source, lex.err)
+		}
+		if i < count {
+			t.Errorf("source: %q, less contexts\n", source)
+		}
+	}
+}
+
+func TestLexerHTMLContexts(t *testing.T) {
+CONTEXTS:
+	for source, contexts := range contextHTMLTests {
 		var lex = newLexer([]byte(source), ast.ContextHTML)
 		var i int
 		for tok := range lex.tokens {
@@ -185,7 +222,7 @@ CONTEXTS:
 			t.Errorf("source: %q, error %s\n", source, lex.err)
 		}
 		if i < len(contexts) {
-			t.Errorf("source: %q, meno contexts\n", source)
+			t.Errorf("source: %q, less contexts\n", source)
 		}
 	}
 }
@@ -221,7 +258,7 @@ func TestPositions(t *testing.T) {
 			t.Errorf("source: %q, error %s\n", test.src, lex.err)
 		}
 		if i < len(test.pos) {
-			t.Errorf("source: %q, meno lines\n", test.src)
+			t.Errorf("source: %q, less lines\n", test.src)
 		}
 	}
 }

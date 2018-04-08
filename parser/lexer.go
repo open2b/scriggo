@@ -76,7 +76,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	}
 	ctx := l.ctx
 	if typ == tokenText {
-		ctx = ast.ContextHTML
+		ctx = ast.ContextText
 	}
 	start := len(l.text) - len(l.src)
 	l.tokens <- token{
