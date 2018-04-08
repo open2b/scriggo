@@ -109,16 +109,18 @@ var contextTextTests = map[string]int{
 }
 
 var contextHTMLTests = map[string][]ast.Context{
-	`a`:                               {ast.ContextText},
-	`{{a}}`:                           {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-	"<script></script>":               {ast.ContextText},
-	"<style></style>":                 {ast.ContextText},
-	"<script>s{{a}}</script>{{a}}":    {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-	"<style>s{{a}}</style>{{a}}":      {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-	`<style>s{{show "a"}}t</style>`:   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
-	`<script>s{{show "a"}}t</script>`: {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
-	`<style a="b">{{1}}</style>`:      {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
-	`<script a="b">{{1}}</script>`:    {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+	`a`:                                        {ast.ContextText},
+	`{{a}}`:                                    {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<script></script>":                        {ast.ContextText},
+	"<style></style>":                          {ast.ContextText},
+	"<script>s{{a}}</script>{{a}}":             {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	"<style>s{{a}}</style>{{a}}":               {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+	`<style>s{{show "a"}}t</style>`:            {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+	`<script>s{{show "a"}}t</script>`:          {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+	`<style a="b">{{1}}</style>`:               {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+	`<script a="b">{{1}}</script>`:             {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+	`<![CDATA[<script>{{1}}</script>]]>`:       {ast.ContextText},
+	`a<![CDATA[<script>{{1}}</script>]]>{{2}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 }
 
 var positionTests = []struct {
@@ -145,6 +147,8 @@ var positionTests = []struct {
 		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}, {1, 6, 5, 11},
 		{3, 4, 12, 13}, {3, 6, 14, 14}, {3, 7, 15, 16}, {3, 9, 17, 19},
 		{4, 1, 20, 21}, {4, 3, 22, 22}, {4, 4, 23, 24}}},
+	{"a<![CDATA[a\nb]]>b{{a}}", []ast.Position{
+		{1, 1, 0, 16}, {2, 6, 17, 18}, {2, 8, 19, 19}, {2, 9, 20, 21}}},
 }
 
 func TestLexerTypes(t *testing.T) {

@@ -193,7 +193,7 @@ LOOP:
 			}
 			// <![CDATA[...]]>
 			if p+11 < len(l.src) && l.src[p+1] == '!' {
-				if bytes.HasPrefix(l.src, cdataStart) {
+				if bytes.HasPrefix(l.src[p:], cdataStart) {
 					// salta la sezione CDATA
 					p += 9
 					l.column += 9
