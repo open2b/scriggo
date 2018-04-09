@@ -636,13 +636,6 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
 				if v != nil {
 					switch vv := v.(type) {
-					// string
-					case string:
-						return v
-					case HTML:
-						return v
-					case Stringer:
-						return vv.String()
 					// number
 					case int:
 						return vv
@@ -652,6 +645,13 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 						return v
 					case Numberer:
 						return vv.Number()
+					// string
+					case string:
+						return v
+					case HTML:
+						return v
+					case Stringer:
+						return vv.String()
 					// bool
 					case bool:
 						return v
