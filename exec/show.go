@@ -25,7 +25,7 @@ func interfaceToText(expr interface{}) string {
 
 	switch e := expr.(type) {
 	case string:
-		s = s
+		s = e
 	case HTML:
 		s = string(e)
 	case int:
