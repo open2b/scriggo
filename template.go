@@ -16,6 +16,15 @@ import (
 
 type HTML = exec.HTML
 
+type Context = ast.Context
+
+const (
+	ContextText Context = iota
+	ContextHTML
+	ContextCSS
+	ContextJavaScript
+)
+
 var (
 	// ErrInvalid è ritornato da Execute quando il parametro path non è valido.
 	ErrInvalid = errors.New("template: invalid argument")
