@@ -481,7 +481,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok && v3 != nil {
-			return v3
+			return asBase(v3)
 		}
 		panic(s.errorf(node, "field %q does not exist", node.Ident))
 	}
@@ -494,7 +494,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			if !v.IsValid() {
 				panic(s.errorf(node, "field %q does not exist", node.Ident))
 			}
-			return v.Interface()
+			return asBase(v.Interface())
 		}
 		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
@@ -505,12 +505,12 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			}
 			panic(err)
 		}
-		return value
+		return asBase(value)
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
 			if rv.IsNil() {
-				return rv.Interface()
+				return asBase(rv.Interface())
 			}
 			value, err := getStructField(reflect.Indirect(rv), node.Ident, s.version)
 			if err != nil {
@@ -519,7 +519,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 				}
 				panic(err)
 			}
-			return value
+			return asBase(value)
 		}
 	}
 	panic(s.errorf(node, "type %T cannot have fields", v))
@@ -634,42 +634,7 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
-				if v != nil {
-					switch vv := v.(type) {
-					// number
-					case int:
-						return vv
-					case float64:
-						return decimal.NewFromFloat(vv)
-					case decimal.Decimal:
-						return v
-					case Numberer:
-						return vv.Number()
-					// string
-					case string:
-						return v
-					case HTML:
-						return v
-					case Stringer:
-						return vv.String()
-					// bool
-					case bool:
-						return v
-					default:
-						rv := reflect.ValueOf(v)
-						rt := rv.Type()
-						if rt.ConvertibleTo(stringType) {
-							return rv.String()
-						} else if rt.ConvertibleTo(intType) {
-							return rv.Int()
-						} else if rt.ConvertibleTo(float64Type) {
-							return decimal.NewFromFloat(rv.Float())
-						} else if rt.ConvertibleTo(boolType) {
-							return rv.Bool()
-						}
-					}
-				}
-				return v
+				return asBase(v)
 			}
 		}
 	}
@@ -814,4 +779,43 @@ func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 		e2 = string(e)
 	}
 	return e1, e2
+}
+
+func asBase(v interface{}) interface{} {
+	if v != nil {
+		switch vv := v.(type) {
+		// number
+		case int:
+			return vv
+		case float64:
+			return decimal.NewFromFloat(vv)
+		case decimal.Decimal:
+			return v
+		case Numberer:
+			return vv.Number()
+		// string
+		case string:
+			return v
+		case HTML:
+			return v
+		case Stringer:
+			return vv.String()
+		// bool
+		case bool:
+			return v
+		default:
+			rv := reflect.ValueOf(v)
+			rt := rv.Type()
+			if rt.ConvertibleTo(stringType) {
+				return rv.String()
+			} else if rt.ConvertibleTo(intType) {
+				return rv.Int()
+			} else if rt.ConvertibleTo(float64Type) {
+				return decimal.NewFromFloat(rv.Float())
+			} else if rt.ConvertibleTo(boolType) {
+				return rv.Bool()
+			}
+		}
+	}
+	return v
 }
