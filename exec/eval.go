@@ -16,6 +16,8 @@ import (
 
 const maxInt = int64(^uint(0) >> 1)
 
+var varNil = (*struct{})(nil)
+
 // HTML viene usato per le stringhe che contengono codice HTML
 // affinché show non le sottoponga ad escape.
 // Nelle espressioni si comporta come una stringa.
@@ -480,7 +482,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 	v := s.evalExpression(node.Expr)
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
-		if v3, ok := v2[node.Ident]; ok && v3 != nil {
+		if v3, ok := v2[node.Ident]; ok {
 			return asBase(v3)
 		}
 		panic(s.errorf(node, "field %q does not exist", node.Ident))
@@ -542,7 +544,13 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	default:
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
-	var e = reflect.ValueOf(s.evalExpression(node.Expr))
+	var v = s.evalExpression(node.Expr)
+	if v == nil {
+		panic(s.errorf(node.Expr, "use of untyped nil"))
+	} else if v == varNil {
+		panic(s.errorf(node, "index out of range"))
+	}
+	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
 		if i < 0 || e.Len() <= i {
 			return nil
@@ -586,7 +594,13 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 			h = 0
 		}
 	}
-	var e = reflect.ValueOf(s.evalExpression(node.Expr))
+	var v = s.evalExpression(node.Expr)
+	if v == nil {
+		panic(s.errorf(node.Expr, "use of untyped nil"))
+	} else if v == varNil {
+		panic(s.errorf(node, "slice bounds out of range"))
+	}
+	var e = reflect.ValueOf(v)
 	switch e.Kind() {
 	case reflect.Slice:
 		if node.High == nil || h > e.Len() {
@@ -633,7 +647,10 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
-			if v, ok := s.vars[i][node.Name]; ok && (i == 0 || v != nil) {
+			if v, ok := s.vars[i][node.Name]; ok {
+				if i == 0 {
+					return v
+				}
 				return asBase(v)
 			}
 		}
@@ -782,39 +799,40 @@ func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 }
 
 func asBase(v interface{}) interface{} {
-	if v != nil {
-		switch vv := v.(type) {
-		// number
-		case int:
-			return vv
-		case float64:
-			return decimal.NewFromFloat(vv)
-		case decimal.Decimal:
-			return v
-		case Numberer:
-			return vv.Number()
-		// string
-		case string:
-			return v
-		case HTML:
-			return v
-		case Stringer:
-			return vv.String()
-		// bool
-		case bool:
-			return v
-		default:
-			rv := reflect.ValueOf(v)
-			rt := rv.Type()
-			if rt.ConvertibleTo(stringType) {
-				return rv.String()
-			} else if rt.ConvertibleTo(intType) {
-				return rv.Int()
-			} else if rt.ConvertibleTo(float64Type) {
-				return decimal.NewFromFloat(rv.Float())
-			} else if rt.ConvertibleTo(boolType) {
-				return rv.Bool()
-			}
+	if v == nil {
+		return varNil
+	}
+	switch vv := v.(type) {
+	// number
+	case int:
+		return vv
+	case float64:
+		return decimal.NewFromFloat(vv)
+	case decimal.Decimal:
+		return v
+	case Numberer:
+		return vv.Number()
+	// string
+	case string:
+		return v
+	case HTML:
+		return v
+	case Stringer:
+		return vv.String()
+	// bool
+	case bool:
+		return v
+	default:
+		rv := reflect.ValueOf(v)
+		rt := rv.Type()
+		if rt.ConvertibleTo(stringType) {
+			return rv.String()
+		} else if rt.ConvertibleTo(intType) {
+			return rv.Int()
+		} else if rt.ConvertibleTo(float64Type) {
+			return decimal.NewFromFloat(rv.Float())
+		} else if rt.ConvertibleTo(boolType) {
+			return rv.Bool()
 		}
 	}
 	return v
