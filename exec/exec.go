@@ -128,26 +128,53 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 			return s, nil
 		}
 	case reflect.Struct:
+		type st struct {
+			rt reflect.Type
+			rv reflect.Value
+		}
 		globals := scope{}
-		nf := rv.NumField()
-		for i := 0; i < nf; i++ {
-			field := rt.Field(i)
-			value := rv.Field(i).Interface()
-			var name string
-			var ver string
-			if tag, ok := field.Tag.Lookup("template"); ok {
-				name, ver = parseVarTag(tag)
-				if name == "" {
-					return nil, fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
-				}
-				if ver != "" && ver != version {
+		structs := []st{{rt, rv}}
+		var s st
+		for len(structs) > 0 {
+			s, structs = structs[0], structs[1:]
+			nf := s.rv.NumField()
+			for i := 0; i < nf; i++ {
+				field := s.rt.Field(i)
+				if field.PkgPath != "" {
 					continue
 				}
+				if field.Anonymous {
+					switch field.Type.Kind() {
+					case reflect.Ptr:
+						elem := field.Type.Elem()
+						if elem.Kind() == reflect.Struct {
+							value := reflect.Indirect(s.rv.Field(i))
+							structs = append(structs, st{elem, value})
+						}
+					case reflect.Struct:
+						structs = append(structs, st{field.Type, s.rv.Field(i)})
+					}
+					continue
+				}
+				value := s.rv.Field(i).Interface()
+				var name string
+				var ver string
+				if tag, ok := field.Tag.Lookup("template"); ok {
+					name, ver = parseVarTag(tag)
+					if name == "" {
+						return nil, fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
+					}
+					if ver != "" && ver != version {
+						continue
+					}
+				}
+				if name == "" {
+					name = field.Name
+				}
+				if _, ok := globals[name]; !ok {
+					globals[name] = value
+				}
 			}
-			if name == "" {
-				name = field.Name
-			}
-			globals[name] = value
 		}
 		return globals, nil
 	case reflect.Ptr:
@@ -171,6 +198,9 @@ type state struct {
 // errorf costruisce e ritorna un errore di esecuzione.
 func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
+	if pos == nil {
+		return fmt.Errorf(format, args...)
+	}
 	var err = &Error{
 		Path: s.path,
 		Pos: ast.Position{
