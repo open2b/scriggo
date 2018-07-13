@@ -259,6 +259,8 @@ func interfaceToJavaScript(expr interface{}) string {
 				return "null"
 			}
 			return structToJavaScript(t, v)
+		default:
+			return "undefined"
 		}
 	}
 
