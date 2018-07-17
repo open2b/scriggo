@@ -17,6 +17,7 @@ import (
 type fieldNameVersion struct {
 	name    string
 	version string
+	index   int
 }
 
 // structs mantiene l'associazione tra i nomi dei campi di una struct,
@@ -39,9 +40,12 @@ func getStructField(st reflect.Value, name, version string) (interface{}, error)
 		structs.Lock()
 		if fields, ok = structs.fields[typ]; !ok {
 			n := typ.NumField()
-			fields = make([]fieldNameVersion, n)
+			fields = make([]fieldNameVersion, 0, n)
 			for i := 0; i < n; i++ {
 				fieldType := typ.Field(i)
+				if fieldType.PkgPath != "" {
+					continue
+				}
 				if tag, ok := fieldType.Tag.Lookup("template"); ok {
 					var field fieldNameVersion
 					field.name, field.version = parseVarTag(tag)
@@ -49,18 +53,19 @@ func getStructField(st reflect.Value, name, version string) (interface{}, error)
 						structs.Unlock()
 						panic(fmt.Errorf("template/exec: invalid tag of field %q", fieldType.Name))
 					}
-					fields[i] = field
+					field.index = i
+					fields = append(fields, field)
 				} else {
-					fields[i] = fieldNameVersion{fieldType.Name, ""}
+					fields = append(fields, fieldNameVersion{fieldType.Name, "", i})
 				}
 			}
 			structs.fields[typ] = fields
 		}
 		structs.Unlock()
 	}
-	for i, field := range fields {
+	for _, field := range fields {
 		if field.name == name && (field.version == "" || field.version == version) {
-			return st.Field(i).Interface(), nil
+			return st.Field(field.index).Interface(), nil
 		}
 	}
 	return nil, errFieldNotExist
