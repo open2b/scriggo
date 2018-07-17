@@ -242,6 +242,12 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 			if e, ok := expr.(WriterTo); ok {
 
+				defer func() {
+					if e := recover(); e != nil {
+						panic(s.errorf(node, "%s", e))
+					}
+				}()
+
 				_, err = e.WriteTo(wr, node.Context)
 				if err != nil {
 					return err
