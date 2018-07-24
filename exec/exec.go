@@ -148,8 +148,10 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 					case reflect.Ptr:
 						elem := field.Type.Elem()
 						if elem.Kind() == reflect.Struct {
-							value := reflect.Indirect(s.rv.Field(i))
-							structs = append(structs, st{elem, value})
+							if ptr := s.rv.Field(i); !ptr.IsNil() {
+								value := reflect.Indirect(ptr)
+								structs = append(structs, st{elem, value})
+							}
 						}
 					case reflect.Struct:
 						structs = append(structs, st{field.Type, s.rv.Field(i)})
