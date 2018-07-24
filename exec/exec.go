@@ -455,7 +455,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 		case *ast.Region:
 			if wr != nil {
-				return s.errorf(node.Ident, "regions not allowed", node.Pos())
+				return s.errorf(node.Ident, "regions not allowed")
 			}
 
 		case *ast.Var:
