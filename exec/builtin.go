@@ -15,6 +15,7 @@ import (
 	"hash"
 	"io"
 	"math/rand"
+	"net/url"
 	"reflect"
 	"sort"
 	"strings"
@@ -39,41 +40,42 @@ var builtins = map[string]interface{}{
 	"string":  _string,
 	"decimal": _decimal,
 
-	"abbreviate": _abbreviate,
-	"abs":        _abs,
-	"contains":   _contains,
-	"hasPrefix":  _hasPrefix,
-	"hasSuffix":  _hasSuffix,
-	"hmac":       _hmac,
-	"html":       _html,
-	"index":      _index,
-	"indexAny":   _indexAny,
-	"int":        _int,
-	"join":       _join,
-	"lastIndex":  _lastIndex,
-	"max":        _max,
-	"md5":        _md5,
-	"min":        _min,
-	"rand":       _rand,
-	"repeat":     _repeat,
-	"replace":    _replace,
-	"reverse":    _reverse,
-	"round":      _round,
-	"sha1":       _sha1,
-	"sha256":     _sha256,
-	"shuffle":    _shuffle,
-	"sort":       _sort,
-	"split":      _split,
-	"splitAfter": _splitAfter,
-	"title":      _title,
-	"toLower":    _toLower,
-	"toTitle":    _toTitle,
-	"toUpper":    _toUpper,
-	"trim":       _trim,
-	"trimLeft":   _trimLeft,
-	"trimPrefix": _trimPrefix,
-	"trimRight":  _trimRight,
-	"trimSuffix": _trimSuffix,
+	"abbreviate":  _abbreviate,
+	"abs":         _abs,
+	"contains":    _contains,
+	"hasPrefix":   _hasPrefix,
+	"hasSuffix":   _hasSuffix,
+	"hmac":        _hmac,
+	"html":        _html,
+	"index":       _index,
+	"indexAny":    _indexAny,
+	"int":         _int,
+	"join":        _join,
+	"lastIndex":   _lastIndex,
+	"max":         _max,
+	"md5":         _md5,
+	"min":         _min,
+	"rand":        _rand,
+	"repeat":      _repeat,
+	"replace":     _replace,
+	"reverse":     _reverse,
+	"round":       _round,
+	"sha1":        _sha1,
+	"sha256":      _sha256,
+	"shuffle":     _shuffle,
+	"sort":        _sort,
+	"split":       _split,
+	"splitAfter":  _splitAfter,
+	"queryEscape": _queryEscape,
+	"title":       _title,
+	"toLower":     _toLower,
+	"toTitle":     _toTitle,
+	"toUpper":     _toUpper,
+	"trim":        _trim,
+	"trimLeft":    _trimLeft,
+	"trimPrefix":  _trimPrefix,
+	"trimRight":   _trimRight,
+	"trimSuffix":  _trimSuffix,
 }
 
 // _abbreviate is the builtin function "abbreviate"
@@ -258,6 +260,11 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 // _decimal is the builtin function "decimal"
 func _decimal(d decimal.Decimal) decimal.Decimal {
 	return d
+}
+
+// _queryEscape is the builtin function "queryEscape"
+func _queryEscape(s string) string {
+	return url.QueryEscape(s)
 }
 
 // _rand is the builtin function "rand"
