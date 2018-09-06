@@ -7,11 +7,27 @@ package exec
 import (
 	"bytes"
 	"html"
+	"io"
+	"strconv"
 	"testing"
 
 	"open2b/template/ast"
 	"open2b/template/parser"
+
+	dec "github.com/shopspring/decimal"
 )
+
+type T struct {
+	v int
+}
+
+func (t T) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+	return io.WriteString(w, "t: "+strconv.Itoa(t.v))
+}
+
+func (t T) Number() dec.Decimal {
+	return dec.New(int64(t.v), 0)
+}
 
 var htmlContextTests = []struct {
 	src  interface{}
@@ -43,6 +59,7 @@ var htmlContextTests = []struct {
 	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
 	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
+	{`a`, "t: 1", scope{"a": T{1}}},
 }
 
 func TestHTMLContext(t *testing.T) {
