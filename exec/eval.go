@@ -580,20 +580,23 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 		n := s.evalExpression(node.Low)
 		l, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node, "invalid slice index %s (type %T)", n, n))
+			panic(s.errorf(node.Low, "invalid slice index %s (type %T)", node.Low, n))
 		}
 		if l < 0 {
-			l = 0
+			panic(s.errorf(node.Low, "invalid slice index %s (index must be non-negative)", node.Low))
 		}
 	}
 	if node.High != nil {
 		n := s.evalExpression(node.High)
 		h, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node, "invalid slice index %s (type %T)", n, n))
+			panic(s.errorf(node.High, "invalid slice index %s (type %T)", node.High, n))
 		}
 		if h < 0 {
-			h = 0
+			panic(s.errorf(node.High, "invalid slice index %s (index must be non-negative)", node.High))
+		}
+		if l > h {
+			panic(s.errorf(node.Low, "invalid slice index: %d > %d", l, h))
 		}
 	}
 	var v = s.evalExpression(node.Expr)
@@ -603,47 +606,47 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 		panic(s.errorf(node, "slice bounds out of range"))
 	}
 	var e = reflect.ValueOf(v)
-	switch e.Kind() {
-	case reflect.Slice:
-		if node.High == nil || h > e.Len() {
+	if e.Kind() == reflect.Slice {
+		if node.High == nil {
 			h = e.Len()
-		}
-		if h <= l {
-			return nil
+		} else if h > e.Len() {
+			panic(s.errorf(node.High, "slice bounds out of range"))
 		}
 		return e.Slice(l, h).Interface()
-	case reflect.String:
-		s := e.String()
-		if node.High == nil || h > len(s) {
-			h = len(s)
-		}
-		if h <= l {
-			return ""
-		}
-		if l == 0 && h == len(s) {
-			return s
-		}
+	}
+	if e.Kind() == reflect.String {
+		str := e.String()
 		i := 0
-		lb, hb := 0, len(s)
-		for ib := range s {
+		lb, hb := -1, -1
+		for ib := range str {
 			if i == l {
 				lb = ib
-				if h == len(s) {
+				if node.High == nil {
+					hb = len(str)
 					break
 				}
 			}
-			if i == h {
+			if i >= l && i == h {
 				hb = ib
 				break
 			}
 			i++
 		}
-		if lb == 0 && hb == len(s) {
-			return s
+		if lb == -1 {
+			panic(s.errorf(node.Low, "slice bounds out of range"))
 		}
-		return s[lb:hb]
+		if hb == -1 {
+			if i < h {
+				panic(s.errorf(node.High, "slice bounds out of range"))
+			}
+			hb = len(str)
+		}
+		if lb == 0 && hb == len(str) {
+			return str
+		}
+		return str[lb:hb]
 	}
-	return nil
+	panic(s.errorf(node, "cannot slice %s (type %T)", node.Expr, v))
 }
 
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {

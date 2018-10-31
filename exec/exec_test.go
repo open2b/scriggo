@@ -73,10 +73,7 @@ var execExprTests = []struct {
 	{"a[1:2]", "y", scope{"a": []string{"x", "y", "z"}}},
 	{"a[1:3]", "y, z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[0:3]", "x, y, z", scope{"a": []string{"x", "y", "z"}}},
-	{"a[-1:1]", "x", scope{"a": []string{"x", "y", "z"}}},
-	{"a[1:10]", "y, z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[2:2]", "", scope{"a": []string{"x", "y", "z"}}},
-	{"a[2:1]", "", scope{"a": []string{"x", "y", "z"}}},
 	{"a[0]", "x", scope{"a": "x€z"}},
 	{"a[1]", "€", scope{"a": "x€z"}},
 	{"a[2]", "z", scope{"a": "x€z"}},
@@ -88,10 +85,7 @@ var execExprTests = []struct {
 	{"a[0:3]", "x€z", scope{"a": "x€z"}},
 	{"a[1:]", "xz", scope{"a": "€xz"}},
 	{"a[:2]", "xz", scope{"a": "xz€"}},
-	{"a[-1:1]", "x", scope{"a": "xz€"}},
-	{"a[1:10]", "z€", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
-	{"a[2:1]", "", scope{"a": "xz€"}},
 	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
 
 	// selectors
