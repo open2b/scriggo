@@ -17,7 +17,6 @@ var execBuiltinTests = []struct {
 	res  string
 	vars scope
 }{
-
 	// abbreviate
 	{"abbreviate(``,0)", "", nil},
 	{"abbreviate(`abc`,0)", "", nil},
