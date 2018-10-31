@@ -36,6 +36,7 @@ var (
 type Template struct {
 	reader parser.Reader
 	parser *parser.Parser
+	errorHandler func(error) bool
 	trees  map[string]*ast.Tree
 	sync.RWMutex
 }
@@ -95,7 +96,11 @@ func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 			t.Unlock()
 		}
 	}
-	return exec.Execute(out, tree, "", vars)
+	return exec.Execute(out, tree, "", vars, t.errorHandler)
+}
+
+func (t *Template) SetErrorHandler(h func(error) bool) {
+	t.errorHandler = h
 }
 
 func convertError(err error) error {

@@ -52,7 +52,7 @@ var scopeType = reflect.TypeOf(scope{})
 //   - un reflect.Value il cui valore concreto soddisfa uno dei precedenti
 //   - nil
 //
-func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}) error {
+func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h func(error) bool) error {
 
 	if wr == nil {
 		return errors.New("template/exec: wr is nil")
@@ -66,11 +66,16 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}) err
 		return err
 	}
 
+	if h == nil {
+		h = func(err error) bool { return false }
+	}
+
 	s := state{
-		scope:   map[string]scope{},
-		path:    tree.Path,
-		vars:    []scope{builtins, globals, {}},
-		version: version,
+		scope:       map[string]scope{},
+		path:        tree.Path,
+		vars:        []scope{builtins, globals, {}},
+		version:     version,
+		handleError: h,
 	}
 
 	extend := getExtendNode(tree)
@@ -191,10 +196,11 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 
 // state rappresenta lo stato di esecuzione di un albero.
 type state struct {
-	scope   map[string]scope
-	path    string
-	vars    []scope
-	version string
+	scope       map[string]scope
+	path        string
+	vars        []scope
+	version     string
+	handleError func(error) bool
 }
 
 // errorf costruisce e ritorna un errore di esecuzione.
@@ -221,6 +227,7 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 	var err error
 
+Nodes:
 	for _, n := range nodes {
 
 		switch node := n.(type) {
@@ -239,6 +246,9 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			var expr interface{}
 			expr, err = s.eval(node.Expr)
 			if err != nil {
+				if s.handleError(err) {
+					continue
+				}
 				return err
 			}
 
@@ -279,38 +289,41 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 		case *ast.If:
 
-			if len(node.Then) == 0 && len(node.Else) == 0 {
-				continue
-			}
 			var expr interface{}
 			expr, err = s.eval(node.Expr)
 			if err != nil {
-				return err
+				if !s.handleError(err) {
+					return err
+				}
+				expr = false
 			}
 			c, ok := expr.(bool)
 			if !ok {
-				return s.errorf(node, "non-bool %s (type %T) used as if condition", node.Expr, expr)
+				err = s.errorf(node, "non-bool %s (type %T) used as if condition", node.Expr, expr)
+				if !s.handleError(err) {
+					return err
+				}
 			}
-			s.vars = append(s.vars, nil)
 			if c {
 				if len(node.Then) > 0 {
+					s.vars = append(s.vars, nil)
 					err = s.execute(wr, node.Then)
+					s.vars = s.vars[:len(s.vars)-1]
+					if err != nil {
+						return err
+					}
 				}
-			} else {
-				if len(node.Else) > 0 {
-					err = s.execute(wr, node.Else)
+			} else if len(node.Else) > 0 {
+				s.vars = append(s.vars, nil)
+				err = s.execute(wr, node.Else)
+				s.vars = s.vars[:len(s.vars)-1]
+				if err != nil {
+					return err
 				}
-			}
-			s.vars = s.vars[:len(s.vars)-1]
-			if err != nil {
-				return err
 			}
 
 		case *ast.For:
 
-			if len(node.Nodes) == 0 {
-				continue
-			}
 			index := ""
 			if node.Index != nil {
 				index = node.Index.Name
@@ -323,7 +336,14 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			var expr interface{}
 			expr, err = s.eval(node.Expr1)
 			if err != nil {
+				if s.handleError(err) {
+					continue
+				}
 				return err
+			}
+
+			if len(node.Nodes) == 0 {
+				continue
 			}
 
 			if node.Expr2 == nil {
@@ -382,7 +402,11 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				default:
 					av := reflect.ValueOf(expr)
 					if !av.IsValid() || av.Kind() != reflect.Slice {
-						continue
+						err = s.errorf(node, "cannot range over %s (type %T)", node.Expr1, expr)
+						if s.handleError(err) {
+							continue
+						}
+						return err
 					}
 					size := av.Len()
 					if size == 0 {
@@ -409,16 +433,27 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 				expr2, err := s.eval(node.Expr2)
 				if err != nil {
+					if s.handleError(err) {
+						continue
+					}
 					return err
 				}
 
 				n1, ok := expr.(int)
 				if !ok {
-					return s.errorf(node, "left range value is not a integer")
+					err = s.errorf(node, "left range value is not a integer")
+					if s.handleError(err) {
+						continue
+					}
+					return err
 				}
 				n2, ok := expr2.(int)
 				if !ok {
-					return s.errorf(node, "right range value is not a integer")
+					err = s.errorf(node, "right range value is not a integer")
+					if s.handleError(err) {
+						continue
+					}
+					return err
 				}
 
 				step := 1
@@ -466,12 +501,20 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
 			if _, ok := vars[name]; ok {
-				return s.errorf(node.Ident, "var %s redeclared in this block", name)
-			}
-			vars[name], err = s.eval(node.Expr)
-			if err != nil {
+				err = s.errorf(node.Ident, "var %s redeclared in this block", name)
+				if s.handleError(err) {
+					continue
+				}
 				return err
 			}
+			v, err := s.eval(node.Expr)
+			if err != nil {
+				if s.handleError(err) {
+					continue
+				}
+				return err
+			}
+			vars[name] = v
 
 		case *ast.Assignment:
 
@@ -481,23 +524,35 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 				vars := s.vars[i]
 				if vars != nil {
 					if _, ok := vars[name]; ok {
+						found = true
 						if i < 2 {
 							if i == 0 && name == "len" {
-								return s.errorf(node, "use of builtin len not in function call")
+								err = s.errorf(node, "use of builtin len not in function call")
+							} else {
+								err = fmt.Errorf("cannot assign to %s", name)
 							}
-							return fmt.Errorf("cannot assign to %s", name)
-						}
-						vars[name], err = s.eval(node.Expr)
-						if err != nil {
+							if s.handleError(err) {
+								continue Nodes
+							}
 							return err
 						}
-						found = true
+						v, err := s.eval(node.Expr)
+						if err != nil {
+							if s.handleError(err) {
+								continue Nodes
+							}
+							return err
+						}
+						vars[name] = v
 						break
 					}
 				}
 			}
 			if !found {
-				return s.errorf(node, "variable %s not declared", name)
+				err = s.errorf(node, "variable %s not declared", name)
+				if !s.handleError(err) {
+					return err
+				}
 			}
 
 		case *ast.ShowRegion:
@@ -507,6 +562,9 @@ func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 			for i, argument := range node.Arguments {
 				arguments[region.Parameters[i].Name], err = s.eval(argument)
 				if err != nil {
+					if s.handleError(err) {
+						continue Nodes
+					}
 					return err
 				}
 			}

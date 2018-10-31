@@ -249,7 +249,7 @@ func TestExecExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars)
+		err = Execute(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -269,7 +269,7 @@ func TestExecStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", stmt.vars)
+		err = Execute(b, tree, "", stmt.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue

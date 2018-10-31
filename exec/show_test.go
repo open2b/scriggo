@@ -77,7 +77,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars)
+		err = Execute(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -148,7 +148,7 @@ func TestJavaScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars)
+		err = Execute(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

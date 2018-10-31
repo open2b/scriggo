@@ -329,7 +329,7 @@ func TestExecBuiltin(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars)
+		err = Execute(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -350,7 +350,7 @@ func TestExecRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = Execute(b, tree, "", expr.vars)
+		err = Execute(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
