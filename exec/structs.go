@@ -27,7 +27,7 @@ var structs = struct {
 	sync.RWMutex
 }{map[reflect.Type][]fieldNameVersion{}, sync.RWMutex{}}
 
-var errFieldNotExist = errors.New("field does not exists")
+var errFieldNotExist = errors.New("field does not exist")
 
 // getStructField ritorna il valore del field di nome name della struct st.
 // Se il field non esiste ritorna l'errore errFieldNotExist.
