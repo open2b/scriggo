@@ -490,7 +490,10 @@ Nodes:
 
 		case *ast.Region:
 			if wr != nil {
-				return s.errorf(node.Ident, "regions not allowed")
+				err = s.errorf(node.Ident, "regions not allowed")
+				if !s.handleError(err) {
+					return err
+				}
 			}
 
 		case *ast.Var:
