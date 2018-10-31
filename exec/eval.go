@@ -544,6 +544,9 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	default:
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
+	if i < 0 {
+		panic(s.errorf(node, "invalid slice index %d (index must be non-negative)", i))
+	}
 	var v = s.evalExpression(node.Expr)
 	if v == nil {
 		panic(s.errorf(node.Expr, "use of untyped nil"))
@@ -552,23 +555,22 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	}
 	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
-		if i < 0 || e.Len() <= i {
-			return nil
+		if i >= e.Len() {
+			panic(s.errorf(node, "index out of range"))
 		}
 		return e.Index(i).Interface()
 	}
 	if e.Kind() == reflect.String {
-		var s = e.Interface().(string)
 		var p = 0
-		for _, c := range s {
+		for _, c := range e.Interface().(string) {
 			if p == i {
 				return string(c)
 			}
 			p++
 		}
-		return nil
+		panic(s.errorf(node, "index out of range"))
 	}
-	return nil
+	panic(s.errorf(node, "invalid operation: %s (type %T does not support indexing)", node, v))
 }
 
 func (s *state) evalSlice(node *ast.Slice) interface{} {
