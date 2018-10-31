@@ -576,10 +576,11 @@ Nodes:
 				path = node.Ref.Import.Ref.Tree.Path
 			}
 			st := state{
-				scope:   s.scope,
-				path:    path,
-				vars:    []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
-				version: s.version,
+				scope:       s.scope,
+				path:        path,
+				vars:        []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
+				version:     s.version,
+				handleError: s.handleError,
 			}
 			err = st.execute(wr, region.Body)
 			if err != nil {
@@ -591,10 +592,11 @@ Nodes:
 			path := node.Ref.Tree.Path
 			if _, ok := s.scope[path]; !ok {
 				st := state{
-					scope:   s.scope,
-					path:    path,
-					vars:    []scope{s.vars[0], s.vars[1], {}},
-					version: s.version,
+					scope:       s.scope,
+					path:        path,
+					vars:        []scope{s.vars[0], s.vars[1], {}},
+					version:     s.version,
+					handleError: s.handleError,
 				}
 				err = st.execute(nil, node.Ref.Tree.Nodes)
 				if err != nil {
@@ -606,10 +608,11 @@ Nodes:
 		case *ast.ShowPath:
 
 			st := state{
-				scope:   s.scope,
-				path:    node.Ref.Tree.Path,
-				vars:    []scope{s.vars[0], s.vars[1], {}},
-				version: s.version,
+				scope:       s.scope,
+				path:        node.Ref.Tree.Path,
+				vars:        []scope{s.vars[0], s.vars[1], {}},
+				version:     s.version,
+				handleError: s.handleError,
 			}
 			err = st.execute(wr, node.Ref.Tree.Nodes)
 			if err != nil {
