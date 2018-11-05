@@ -128,6 +128,10 @@ func NewText(pos *Position, text string) *Text {
 	return &Text{pos, text, TextCut{0, len(text)}}
 }
 
+func (t Text) String() string {
+	return t.Text
+}
+
 // Var rappresenta uno statement {% var identifier = expression %}
 type Var struct {
 	*Position             // posizione nel sorgente.
@@ -139,6 +143,10 @@ func NewVar(pos *Position, ident *Identifier, expr Expression) *Var {
 	return &Var{pos, ident, expr}
 }
 
+func (v Var) String() string {
+	return fmt.Sprintf("{%% var %v = %v %%}", v.Ident, v.Expr)
+}
+
 // Assignment rappresenta uno statement {% identifier = expression %}.
 type Assignment struct {
 	*Position             // posizione nel sorgente.
@@ -148,6 +156,10 @@ type Assignment struct {
 
 func NewAssignment(pos *Position, ident *Identifier, expr Expression) *Assignment {
 	return &Assignment{pos, ident, expr}
+}
+
+func (a Assignment) String() string {
+	return fmt.Sprintf("{%% %v = %v %%}", a.Ident, a.Expr)
 }
 
 // For rappresenta uno statement {% for ... %}.
@@ -257,6 +269,10 @@ func NewValue(pos *Position, expr Expression, ctx Context) *Value {
 	return &Value{pos, expr, ctx}
 }
 
+func (v Value) String() string {
+	return fmt.Sprintf("{{ %v }}", v.Expr)
+}
+
 // Extend rappresenta uno statement {% extend ... %}.
 type Extend struct {
 	*Position         // posizione nel sorgente.
@@ -269,6 +285,10 @@ type Extend struct {
 
 func NewExtend(pos *Position, path string, ctx Context) *Extend {
 	return &Extend{Position: pos, Path: path, Context: ctx}
+}
+
+func (e Extend) String() string {
+	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
 }
 
 // Import rappresenta uno statement {% import ... %}.
@@ -284,6 +304,14 @@ type Import struct {
 
 func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
 	return &Import{Position: pos, Ident: ident, Path: path, Context: ctx}
+}
+
+func (i Import) String() string {
+	if i.Ident == nil {
+		return fmt.Sprintf("{%% import %v %%}", strconv.Quote(i.Path))
+	}
+
+	return fmt.Sprintf("{%% import %v %v %%}", i.Ident, strconv.Quote(i.Path))
 }
 
 type Comment struct {
@@ -419,7 +447,7 @@ func (n *BinaryOperator) String() string {
 	} else {
 		s += n.Expr1.String()
 	}
-	s += n.Op.String()
+	s += " " + n.Op.String() + " "
 	if e, ok := n.Expr2.(Operator); ok && e.Precedence() <= n.Precedence() {
 		s += "(" + n.Expr2.String() + ")"
 	} else {
@@ -465,7 +493,7 @@ func (n *Call) String() string {
 	for i, arg := range n.Args {
 		s += arg.String()
 		if i < len(n.Args)-1 {
-			s += ","
+			s += ", "
 		}
 	}
 	s += ")"
