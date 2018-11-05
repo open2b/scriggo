@@ -87,7 +87,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 // evalUnaryOperator valuta un operatore unario e ne ritorna il valore.
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	var e = s.evalExpression(node.Expr)
+	var e = asBase(s.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
 		if b, ok := e.(bool); ok {
@@ -118,12 +118,12 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 // In caso di errore chiama panic con l'errore come parametro.
 func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
-	expr1 := s.evalExpression(node.Expr1)
+	expr1 := asBase(s.evalExpression(node.Expr1))
 
 	switch node.Op {
 
 	case ast.OperatorEqual:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
@@ -164,7 +164,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T == %T", expr1, expr2))
 
 	case ast.OperatorNotEqual:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
@@ -205,7 +205,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T != %T", expr1, expr2))
 
 	case ast.OperatorLess:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T < %T", expr1, expr2))
 		}
@@ -233,7 +233,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(fmt.Sprintf("invalid operation: %T < %T", expr1, expr2))
 
 	case ast.OperatorLessOrEqual:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T <= %T", expr1, expr2))
 		}
@@ -261,7 +261,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T <= %T", expr1, expr2))
 
 	case ast.OperatorGreater:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T > %T", expr1, expr2))
 		}
@@ -289,7 +289,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T > %T", expr1, expr2))
 
 	case ast.OperatorGreaterOrEqual:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T >= %T", expr1, expr2))
 		}
@@ -321,7 +321,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if !e1 {
 				return false
 			}
-			expr2 := s.evalExpression(node.Expr2)
+			expr2 := asBase(s.evalExpression(node.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 && e2
 			}
@@ -334,7 +334,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e1 {
 				return true
 			}
-			expr2 := s.evalExpression(node.Expr2)
+			expr2 := asBase(s.evalExpression(node.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 || e2
 			}
@@ -343,7 +343,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T || ...", expr1))
 
 	case ast.OperatorAddition:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T + %T", expr1, expr2))
 		}
@@ -380,7 +380,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T + %T", expr1, expr2))
 
 	case ast.OperatorSubtraction:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
 		}
@@ -403,7 +403,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
 
 	case ast.OperatorMultiplication:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
 		}
@@ -426,7 +426,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
 
 	case ast.OperatorDivision:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
 		}
@@ -449,7 +449,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
 
 	case ast.OperatorModulo:
-		expr2 := s.evalExpression(node.Expr2)
+		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
 		}
@@ -481,7 +481,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
-			return asBase(v3)
+			return v3
 		}
 		panic(s.errorf(node, "field %q does not exist", node.Ident))
 	}
@@ -494,7 +494,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			if !v.IsValid() {
 				panic(s.errorf(node, "field %q does not exist", node.Ident))
 			}
-			return asBase(v.Interface())
+			return v.Interface()
 		}
 		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
@@ -505,12 +505,12 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			}
 			panic(err)
 		}
-		return asBase(value)
+		return value
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
 			if rv.IsNil() {
-				return asBase(rv.Interface())
+				return rv.Interface()
 			}
 			value, err := getStructField(reflect.Indirect(rv), node.Ident, s.version)
 			if err != nil {
@@ -519,7 +519,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 				}
 				panic(err)
 			}
-			return asBase(value)
+			return value
 		}
 	}
 	panic(s.errorf(node, "type %T cannot have fields", v))
@@ -527,7 +527,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
 	var i int
-	switch index := s.evalExpression(node.Index).(type) {
+	switch index := asBase(s.evalExpression(node.Index)).(type) {
 	case int:
 		i = index
 	case decimal.Decimal:
@@ -545,7 +545,7 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	if i < 0 {
 		panic(s.errorf(node, "invalid slice index %d (index must be non-negative)", i))
 	}
-	var v = s.evalExpression(node.Expr)
+	var v = asBase(s.evalExpression(node.Expr))
 	if v == nil {
 		if s.isUntypedNil(node.Expr) {
 			panic(s.errorf(node.Expr, "use of untyped nil"))
@@ -599,7 +599,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 			panic(s.errorf(node.Low, "invalid slice index: %d > %d", l, h))
 		}
 	}
-	var v = s.evalExpression(node.Expr)
+	var v = asBase(s.evalExpression(node.Expr))
 	if v == nil {
 		if s.isUntypedNil(node.Expr) {
 			panic(s.errorf(node.Expr, "use of untyped nil"))

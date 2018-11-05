@@ -6,12 +6,40 @@ package exec
 
 import (
 	"bytes"
+	"io"
+	"strconv"
 	"reflect"
 	"testing"
 
 	"open2b/template/ast"
 	"open2b/template/parser"
+
+	dec "github.com/shopspring/decimal"
 )
+
+type aNumber struct {
+	v int
+}
+
+func (n aNumber) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
+}
+
+func (n aNumber) Number() dec.Decimal {
+	return dec.New(int64(n.v), 0)
+}
+
+type aString struct {
+	v string
+}
+
+func (s aString) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+	return io.WriteString(w, "t: "+s.v)
+}
+
+func (s aString) String() string {
+	return s.v
+}
 
 var execExprTests = []struct {
 	src  string
@@ -77,6 +105,8 @@ var execExprTests = []struct {
 	{"a[0]", "x", scope{"a": "x€z"}},
 	{"a[1]", "€", scope{"a": "x€z"}},
 	{"a[2]", "z", scope{"a": "x€z"}},
+	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
+	{`a[1]`, "b", scope{"a": aString{"abc"}}},
 	{"a[:]", "x€z", scope{"a": "x€z"}},
 	{"a[1:]", "€z", scope{"a": "x€z"}},
 	{"a[:2]", "x€", scope{"a": "x€z"}},
@@ -86,7 +116,7 @@ var execExprTests = []struct {
 	{"a[1:]", "xz", scope{"a": "€xz"}},
 	{"a[:2]", "xz", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
-	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
+	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
 
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},
