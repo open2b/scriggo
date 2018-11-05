@@ -93,7 +93,7 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		if b, ok := e.(bool); ok {
 			return !b
 		}
-		panic(s.errorf(node, "invalid operation: ! %T", e))
+		panic(s.errorf(node, "invalid operation: ! %s", typeof(e)))
 	case ast.OperatorAddition:
 		if _, ok := e.(int); ok {
 			return e
@@ -101,7 +101,7 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		if _, ok := e.(decimal.Decimal); ok {
 			return e
 		}
-		panic(s.errorf(node, "invalid operation: + %T", e))
+		panic(s.errorf(node, "invalid operation: + %s", typeof(e)))
 	case ast.OperatorSubtraction:
 		if n, ok := e.(int); ok {
 			return -n
@@ -109,7 +109,7 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		if n, ok := e.(decimal.Decimal); ok {
 			return n.Neg()
 		}
-		panic(s.errorf(node, "invalid operation: - %T", e))
+		panic(s.errorf(node, "invalid operation: - %s", typeof(e)))
 	}
 	panic("Unknown Unary Operator")
 }
@@ -127,7 +127,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
-					panic(s.errorf(node, "invalid operation: %T == %T", expr1, expr2))
+					panic(s.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
 				}
 			}()
 			if expr2 == nil {
@@ -161,14 +161,14 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				}
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T == %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorNotEqual:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
-					panic(s.errorf(node, "invalid operation: %T != %T", expr1, expr2))
+					panic(s.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
 				}
 			}()
 			if expr2 == nil {
@@ -202,12 +202,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				}
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T != %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorLess:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T < %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -230,12 +230,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) < 0
 			}
 		}
-		panic(fmt.Sprintf("invalid operation: %T < %T", expr1, expr2))
+		panic(fmt.Sprintf("invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorLessOrEqual:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T <= %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -258,12 +258,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) <= 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T <= %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorGreater:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T > %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -286,12 +286,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) > 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T > %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorGreaterOrEqual:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T >= %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -314,7 +314,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) >= 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T >= %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorAnd:
 		if e1, ok := expr1.(bool); ok {
@@ -325,9 +325,9 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(bool); ok {
 				return e1 && e2
 			}
-			panic(s.errorf(node, "invalid operation: %T && %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s && %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(s.errorf(node, "invalid operation: %T && ...", expr1))
+		panic(s.errorf(node, "invalid operation: %s && ...", typeof(expr1)))
 
 	case ast.OperatorOr:
 		if e1, ok := expr1.(bool); ok {
@@ -338,14 +338,14 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			if e2, ok := expr2.(bool); ok {
 				return e1 || e2
 			}
-			panic(s.errorf(node, "invalid operation: %T || %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s || %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(s.errorf(node, "invalid operation: %T || ...", expr1))
+		panic(s.errorf(node, "invalid operation: %s || ...", typeof(expr1)))
 
 	case ast.OperatorAddition:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T + %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case string:
@@ -377,12 +377,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Add(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T + %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorSubtraction:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -400,12 +400,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Sub(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T - %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorMultiplication:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -423,12 +423,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Mul(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T * %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorDivision:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -446,12 +446,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T / %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorModulo:
 		expr2 := asBase(s.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
+			panic(s.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -469,7 +469,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Mod(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %T %% %T", expr1, expr2))
+		panic(s.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 
 	}
 
@@ -513,7 +513,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			return value
 		}
 	}
-	panic(s.errorf(node, "type %T cannot have fields", v))
+	panic(s.errorf(node, "type %s cannot have fields", typeof(v)))
 }
 
 func (s *state) evalIndex(node *ast.Index) interface{} {
@@ -561,7 +561,7 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 		}
 		panic(s.errorf(node, "index out of range"))
 	}
-	panic(s.errorf(node, "invalid operation: %s (type %T does not support indexing)", node, v))
+	panic(s.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
 func (s *state) evalSlice(node *ast.Slice) interface{} {
@@ -571,7 +571,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 		n := s.evalExpression(node.Low)
 		l, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node.Low, "invalid slice index %s (type %T)", node.Low, n))
+			panic(s.errorf(node.Low, "invalid slice index %s (type %s)", node.Low, typeof(n)))
 		}
 		if l < 0 {
 			panic(s.errorf(node.Low, "invalid slice index %s (index must be non-negative)", node.Low))
@@ -581,7 +581,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 		n := s.evalExpression(node.High)
 		h, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node.High, "invalid slice index %s (type %T)", node.High, n))
+			panic(s.errorf(node.High, "invalid slice index %s (type %s)", node.High, typeof(n)))
 		}
 		if h < 0 {
 			panic(s.errorf(node.High, "invalid slice index %s (index must be non-negative)", node.High))
@@ -639,7 +639,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 		}
 		return str[lb:hb]
 	}
-	panic(s.errorf(node, "cannot slice %s (type %T)", node.Expr, v))
+	panic(s.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }
 
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
@@ -658,11 +658,11 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	var f = s.evalExpression(node.Func)
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
-		panic(s.errorf(node, "cannot call non-function %s (type %T)", node.Func, f))
+		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
 	}
 	var typ = fun.Type()
 	if typ.Kind() != reflect.Func {
-		panic(s.errorf(node, "cannot call non-function %s (type %T)", node.Func, f))
+		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
 	}
 
 	var numIn = typ.NumIn()
@@ -684,7 +684,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 				case int:
 					a = decimal.New(int64(ar), 0)
 				default:
-					panic(s.errorf(node, "cannot use %#v (type %T) as type decimal in argument to function %s", arg, arg, node.Func))
+					panic(s.errorf(node, "cannot use %#v (type %s) as type decimal in argument to function %s", arg, typeof(arg), node.Func))
 				}
 			}
 			args[i] = reflect.ValueOf(a)
@@ -700,7 +700,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 					if arg == nil {
 						panic(s.errorf(node, "cannot use nil as type bool in argument to function %s", node.Func))
 					} else {
-						panic(s.errorf(node, "cannot use %#v (type %T) as type bool in argument to function %s", arg, arg, node.Func))
+						panic(s.errorf(node, "cannot use %#v (type %s) as type bool in argument to function %s", arg, typeof(arg), node.Func))
 					}
 				}
 			}
@@ -714,7 +714,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 				}
 				a, ok = arg.(int)
 				if !ok {
-					panic(s.errorf(node, "cannot use %#v (type %T) as type int in argument to function %s", arg, arg, node.Func))
+					panic(s.errorf(node, "cannot use %#v (type %s) as type int in argument to function %s", arg, typeof(arg), node.Func))
 				}
 			}
 			args[i] = reflect.ValueOf(a)
@@ -731,7 +731,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 					if rv.Type().ConvertibleTo(stringType) {
 						a = rv.String()
 					} else {
-						panic(s.errorf(node, "cannot use %#v (type %T) as type string in argument to function %s", arg, arg, node.Func))
+						panic(s.errorf(node, "cannot use %#v (type %s) as type string in argument to function %s", arg, typeof(arg), node.Func))
 					}
 				}
 			}
@@ -848,4 +848,29 @@ func asBase(v interface{}) interface{} {
 		}
 	}
 	return v
+}
+
+func typeof(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	v = asBase(v)
+	switch v.(type) {
+	case int, decimal.Decimal:
+		return "number"
+	case string, HTML:
+		return "string"
+	case bool:
+		return "bool"
+	default:
+		rv := reflect.ValueOf(v)
+		rt := rv.Type()
+		switch rt.Kind() {
+		case reflect.Slice:
+			return "slice"
+		case reflect.Map, reflect.Ptr:
+			return "struct"
+		}
+	}
+	return fmt.Sprintf("(%T)", v)
 }

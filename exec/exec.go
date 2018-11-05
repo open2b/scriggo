@@ -299,7 +299,7 @@ Nodes:
 			}
 			c, ok := expr.(bool)
 			if !ok {
-				err = s.errorf(node, "non-bool %s (type %T) used as if condition", node.Expr, expr)
+				err = s.errorf(node, "non-bool %s (type %s) used as if condition", node.Expr, typeof(expr))
 				if !s.handleError(err) {
 					return err
 				}
@@ -402,7 +402,7 @@ Nodes:
 				default:
 					av := reflect.ValueOf(expr)
 					if !av.IsValid() || av.Kind() != reflect.Slice {
-						err = s.errorf(node, "cannot range over %s (type %T)", node.Expr1, expr)
+						err = s.errorf(node, "cannot range over %s (type %s)", node.Expr1, typeof(expr))
 						if s.handleError(err) {
 							continue
 						}
