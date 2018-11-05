@@ -16,8 +16,6 @@ import (
 
 const maxInt = int64(^uint(0) >> 1)
 
-var varNil = (*struct{})(nil)
-
 // HTML viene usato per le stringhe che contengono codice HTML
 // affinché show non le sottoponga ad escape.
 // Nelle espressioni si comporta come una stringa.
@@ -549,9 +547,11 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	}
 	var v = s.evalExpression(node.Expr)
 	if v == nil {
-		panic(s.errorf(node.Expr, "use of untyped nil"))
-	} else if v == varNil {
-		panic(s.errorf(node, "index out of range"))
+		if s.isUntypedNil(node.Expr) {
+			panic(s.errorf(node.Expr, "use of untyped nil"))
+		} else {
+			panic(s.errorf(node, "index out of range"))
+		}
 	}
 	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
@@ -601,9 +601,11 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 	}
 	var v = s.evalExpression(node.Expr)
 	if v == nil {
-		panic(s.errorf(node.Expr, "use of untyped nil"))
-	} else if v == varNil {
-		panic(s.errorf(node, "slice bounds out of range"))
+		if s.isUntypedNil(node.Expr) {
+			panic(s.errorf(node.Expr, "use of untyped nil"))
+		} else {
+			panic(s.errorf(node, "slice bounds out of range"))
+		}
 	}
 	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
@@ -653,10 +655,7 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok {
-				if i == 0 {
-					return v
-				}
-				return asBase(v)
+				return v
 			}
 		}
 	}
@@ -791,6 +790,23 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	return v
 }
 
+// isUntypedNil indica se expr è un untyped nil.
+func (s *state) isUntypedNil(expr ast.Expression) bool {
+	if n, ok := expr.(*ast.Identifier); ok {
+		if n.Name != "nil" {
+			return false
+		}
+		for i := len(s.vars) - 1; i >= 0; i-- {
+			if s.vars[i] != nil {
+				if _, ok := s.vars[i]["nil"]; ok {
+					return i == 0
+				}
+			}
+		}
+	}
+	return false
+}
+
 // htmlToStringType ritorna e1 e e2 con tipo string al posto di HTML.
 // Se non hanno tipo HTML vengono ritornate invariate.
 func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
@@ -805,7 +821,7 @@ func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 
 func asBase(v interface{}) interface{} {
 	if v == nil {
-		return varNil
+		return nil
 	}
 	switch vv := v.(type) {
 	// number
