@@ -32,6 +32,16 @@ var errFieldNotExist = errors.New("field does not exist")
 // getStructField ritorna il valore del field di nome name della struct st.
 // Se il field non esiste ritorna l'errore errFieldNotExist.
 func getStructField(st reflect.Value, name, version string) (interface{}, error) {
+	for _, field := range getStructFields(st) {
+		if field.name == name && (field.version == "" || field.version == version) {
+			return st.Field(field.index).Interface(), nil
+		}
+	}
+	return nil, errFieldNotExist
+}
+
+// getStructFields ritorna i fields della struct st.
+func getStructFields(st reflect.Value) []fieldNameVersion {
 	typ := st.Type()
 	structs.RLock()
 	fields, ok := structs.fields[typ]
@@ -63,12 +73,7 @@ func getStructField(st reflect.Value, name, version string) (interface{}, error)
 		}
 		structs.Unlock()
 	}
-	for _, field := range fields {
-		if field.name == name && (field.version == "" || field.version == version) {
-			return st.Field(field.index).Interface(), nil
-		}
-	}
-	return nil, errFieldNotExist
+	return fields
 }
 
 // parseVarTag esegue il parsing del tag di un campo di una struct che funge

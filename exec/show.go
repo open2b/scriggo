@@ -305,14 +305,11 @@ func stringToJavaScript(s string) string {
 
 func structToJavaScript(t reflect.Type, v reflect.Value) string {
 	var s string
-	n := v.NumField()
-	for i := 0; i < n; i++ {
+	for _, field := range getStructFields(v) {
 		if len(s) > 0 {
 			s += ","
 		}
-		if f := t.Field(i); f.PkgPath == "" {
-			s += stringToJavaScript(f.Name) + ":" + interfaceToJavaScript(v.Field(i).Interface())
-		}
+		s += stringToJavaScript(field.name) + ":" + interfaceToJavaScript(v.Field(field.index).Interface())
 	}
 	return "{" + s + "}"
 }
