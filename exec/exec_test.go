@@ -121,11 +121,11 @@ var execExprTests = []struct {
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},
 	{"a.B", "b", scope{"a": map[string]interface{}{"B": "b"}}},
-	{"a.B", "b", scope{"a": &struct{ B string }{B: "b"}}},
-	{"a.b", "b", scope{"a": &struct {
+	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
+	{"a.b", "b", scope{"a": struct {
 		B string `template:"b"`
 	}{B: "b"}}},
-	{"a.b", "b", scope{"a": &struct {
+	{"a.b", "b", scope{"a": struct {
 		C string `template:"b"`
 	}{C: "b"}}},
 

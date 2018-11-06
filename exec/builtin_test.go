@@ -218,12 +218,12 @@ var execBuiltinTests = []struct {
 	{"sort(s7)", "a, b", scope{"s7": []string{"b", "a"}}},
 	{"sort(s8)", "a, b, c", scope{"s8": []string{"b", "a", "c"}}},
 	{"sort(s9)", "false, true, true", scope{"s9": []bool{true, false, true}}},
-	{"sort(s10,`N`)[0].N", "3", scope{"s10": []*struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s10,`N`)[1].N", "5", scope{"s10": []*struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s10,`N`)[2].N", "7", scope{"s10": []*struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s11,`S`)[0].S", "a", scope{"s11": []*struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sort(s11,`S`)[1].S", "b", scope{"s11": []*struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sort(s11,`S`)[2].S", "c", scope{"s11": []*struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sort(s10,`N`)[0].N", "3", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s10,`N`)[1].N", "5", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s10,`N`)[2].N", "7", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sort(s11,`S`)[0].S", "a", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sort(s11,`S`)[1].S", "b", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sort(s11,`S`)[2].S", "c", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
 
 	// split
 	{"split()", "", nil},
