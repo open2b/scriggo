@@ -477,7 +477,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 }
 
 func (s *state) evalSelector(node *ast.Selector) interface{} {
-	v := s.evalExpression(node.Expr)
+	v := asBase(s.evalExpression(node.Expr))
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
