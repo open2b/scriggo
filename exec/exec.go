@@ -272,13 +272,13 @@ Nodes:
 				var str string
 				switch node.Context {
 				case ast.ContextText:
-					str = interfaceToText(expr)
+					str = interfaceToText(expr, s.version)
 				case ast.ContextHTML:
-					str = interfaceToHTML(expr)
+					str = interfaceToHTML(expr, s.version)
 				case ast.ContextCSS:
-					str = interfaceToCSS(expr)
+					str = interfaceToCSS(expr, s.version)
 				case ast.ContextJavaScript:
-					str = interfaceToJavaScript(expr)
+					str = interfaceToJavaScript(expr, s.version)
 				default:
 					panic("template/exec: unknown context")
 				}

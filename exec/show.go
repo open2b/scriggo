@@ -15,7 +15,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func interfaceToText(expr interface{}) string {
+func interfaceToText(expr interface{}, version string) string {
 
 	if expr == nil {
 		return ""
@@ -75,7 +75,7 @@ func interfaceToText(expr interface{}) string {
 	return s
 }
 
-func interfaceToHTML(expr interface{}) string {
+func interfaceToHTML(expr interface{}, version string) string {
 
 	if expr == nil {
 		return ""
@@ -135,13 +135,13 @@ func interfaceToHTML(expr interface{}) string {
 	return s
 }
 
-func interfaceToCSS(expr interface{}) string {
-	return interfaceToText(expr)
+func interfaceToCSS(expr interface{}, version string) string {
+	return interfaceToText(expr, version)
 }
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-func interfaceToJavaScript(expr interface{}) string {
+func interfaceToJavaScript(expr interface{}, version string) string {
 
 	if expr == nil {
 		return "null"
@@ -162,7 +162,7 @@ func interfaceToJavaScript(expr interface{}) string {
 		}
 		return "false"
 	case map[string]interface{}:
-		return mapToJavaScript(e)
+		return mapToJavaScript(e, version)
 	case []string:
 		if e == nil {
 			return "null"
@@ -218,7 +218,7 @@ func interfaceToJavaScript(expr interface{}) string {
 		}
 		buf := make([]string, len(e))
 		for i, v := range e {
-			buf[i] = mapToJavaScript(v)
+			buf[i] = mapToJavaScript(v, version)
 		}
 		return "[" + strings.Join(buf, ",") + "]"
 	default:
@@ -237,18 +237,18 @@ func interfaceToJavaScript(expr interface{}) string {
 					if i > 0 {
 						s += ","
 					}
-					s += interfaceToJavaScript(v.Index(i).Interface())
+					s += interfaceToJavaScript(v.Index(i).Interface(), version)
 				}
 				return s + "]"
 			}
 			return "[]"
 		case reflect.Struct:
-			return structToJavaScript(v.Type(), v)
+			return structToJavaScript(v.Type(), v, version)
 		case reflect.Map:
 			if !v.Type().ConvertibleTo(mapStringToInterfaceType) {
 				return "null"
 			}
-			return interfaceToJavaScript(v.Convert(mapStringToInterfaceType).Interface())
+			return interfaceToJavaScript(v.Convert(mapStringToInterfaceType).Interface(), version)
 		case reflect.Ptr:
 			t := v.Type().Elem()
 			if t.Kind() != reflect.Struct {
@@ -258,7 +258,7 @@ func interfaceToJavaScript(expr interface{}) string {
 			if !v.IsValid() {
 				return "null"
 			}
-			return structToJavaScript(t, v)
+			return structToJavaScript(t, v, version)
 		default:
 			return "undefined"
 		}
@@ -303,18 +303,20 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(t reflect.Type, v reflect.Value) string {
+func structToJavaScript(t reflect.Type, v reflect.Value, version string) string {
 	var s string
 	for _, field := range getStructFields(v) {
-		if len(s) > 0 {
-			s += ","
+		if field.version == "" || field.version == version {
+			if len(s) > 0 {
+				s += ","
+			}
+			s += stringToJavaScript(field.name) + ":" + interfaceToJavaScript(v.Field(field.index).Interface(), version)
 		}
-		s += stringToJavaScript(field.name) + ":" + interfaceToJavaScript(v.Field(field.index).Interface())
 	}
 	return "{" + s + "}"
 }
 
-func mapToJavaScript(e map[string]interface{}) string {
+func mapToJavaScript(e map[string]interface{}, version string) string {
 	if e == nil {
 		return "null"
 	}
@@ -323,7 +325,7 @@ func mapToJavaScript(e map[string]interface{}) string {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(k) + ":" + interfaceToJavaScript(v)
+		s += stringToJavaScript(k) + ":" + interfaceToJavaScript(v, version)
 	}
 	return "{" + s + "}"
 }
