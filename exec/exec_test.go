@@ -6,8 +6,10 @@ package exec
 
 import (
 	"bytes"
+	"io/ioutil"
 	"io"
 	"strconv"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -321,5 +323,32 @@ func TestVarsToScope(t *testing.T) {
 		if !reflect.DeepEqual(res, p.res) {
 			t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.vars, res, p.res)
 		}
+	}
+}
+
+type WriteToError struct{}
+func (wr WriteToError) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+	return 0, errors.New("WriteTo error")
+}
+
+type WriteToPanic struct{}
+func (wr WriteToPanic) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+	panic("WriteTo panic")
+}
+
+func TestWriteToErrors(t *testing.T) {
+	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
+	err := Execute(ioutil.Discard, tree, "", scope{"a": WriteToError{}}, nil)
+	if err == nil {
+		t.Errorf("expecting not nil error\n")
+	} else if err.Error() != "WriteTo error" {
+		t.Errorf("unexpected error %q, expecting 'WriteTo error'\n", err)
+	}
+	tree = ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
+	err = Execute(ioutil.Discard, tree, "", scope{"a": WriteToPanic{}}, nil)
+	if err == nil {
+		t.Errorf("expecting not nil error\n")
+	} else if err.Error() != "WriteTo panic" {
+		t.Errorf("unexpected error %q, expecting 'WriteTo panic'\n", err)
 	}
 }

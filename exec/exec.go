@@ -254,13 +254,15 @@ Nodes:
 
 			if e, ok := expr.(WriterTo); ok {
 
-				defer func() {
-					if e := recover(); e != nil {
-						panic(s.errorf(node, "%s", e))
-					}
+				err = func() (err error) {
+					defer func() {
+						if e := recover(); e != nil {
+							err = s.errorf(node, "%s", e)
+						}
+					}()
+					_, err = e.WriteTo(wr, node.Context)
+					return err
 				}()
-
-				_, err = e.WriteTo(wr, node.Context)
 				if err != nil {
 					return err
 				}
