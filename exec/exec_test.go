@@ -344,7 +344,7 @@ func TestWriteToErrors(t *testing.T) {
 	} else if err.Error() != "WriteTo error" {
 		t.Errorf("unexpected error %q, expecting 'WriteTo error'\n", err)
 	}
-	tree = ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
+
 	err = Execute(ioutil.Discard, tree, "", scope{"a": WriteToPanic{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
