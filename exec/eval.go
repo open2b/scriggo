@@ -789,7 +789,15 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		}
 	}
 
-	var vals = fun.Call(args)
+	vals := func() []reflect.Value {
+		defer func() {
+			if e := recover(); e != nil {
+				panic(s.errorf(node.Func, "%s", e))
+			}
+		}()
+		return fun.Call(args)
+	}()
+
 	v := vals[0].Interface()
 
 	if d, ok := v.(int); ok {
