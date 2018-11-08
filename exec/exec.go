@@ -252,41 +252,9 @@ Nodes:
 				return err
 			}
 
-			if e, ok := expr.(WriterTo); ok {
-
-				err = func() (err error) {
-					defer func() {
-						if e := recover(); e != nil {
-							err = s.errorf(node, "%s", e)
-						}
-					}()
-					_, err = e.WriteTo(wr, node.Context)
-					return err
-				}()
-				if err != nil {
-					return err
-				}
-
-			} else {
-
-				var str string
-				switch node.Context {
-				case ast.ContextText:
-					str = interfaceToText(expr, s.version)
-				case ast.ContextHTML:
-					str = interfaceToHTML(expr, s.version)
-				case ast.ContextCSS:
-					str = interfaceToCSS(expr, s.version)
-				case ast.ContextJavaScript:
-					str = interfaceToJavaScript(expr, s.version)
-				default:
-					panic("template/exec: unknown context")
-				}
-				_, err = io.WriteString(wr, str)
-				if err != nil {
-					return err
-				}
-
+			err = s.writeTo(wr, expr, node)
+			if err != nil {
+				return err
 			}
 
 		case *ast.If:

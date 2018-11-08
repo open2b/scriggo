@@ -6,19 +6,70 @@ package exec
 
 import (
 	"bytes"
-	"fmt"
 	"html"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"open2b/template/ast"
+
 	"github.com/shopspring/decimal"
 )
 
-func interfaceToText(expr interface{}, version string) string {
+func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value) error {
+
+	if e, ok := expr.(WriterTo); ok {
+
+		err := func() (err error) {
+			defer func() {
+				if e := recover(); e != nil {
+					err = s.errorf(node, "%s", e)
+				}
+			}()
+			_, err = e.WriteTo(wr, node.Context)
+			return err
+		}()
+		if err != nil {
+			return err
+		}
+
+	} else {
+
+		var ok = true
+		var str string
+		switch node.Context {
+		case ast.ContextText:
+			str, ok = interfaceToText(asBase(expr), s.version)
+		case ast.ContextHTML:
+			str, ok = interfaceToHTML(asBase(expr), s.version)
+		case ast.ContextCSS:
+			str, ok = interfaceToCSS(asBase(expr), s.version)
+		case ast.ContextJavaScript:
+			str, ok = interfaceToJavaScript(asBase(expr), s.version)
+		default:
+			panic("template/exec: unknown context")
+		}
+		if !ok {
+			err := s.errorf(node.Expr, "wrong type %s in value", typeof(expr))
+			if !s.handleError(err) {
+				return err
+			}
+		}
+		_, err := io.WriteString(wr, str)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+func interfaceToText(expr interface{}, version string) (string, bool) {
 
 	if expr == nil {
-		return ""
+		return "", true
 	}
 
 	var s string
@@ -33,52 +84,36 @@ func interfaceToText(expr interface{}, version string) string {
 	case decimal.Decimal:
 		s = e.String()
 	case bool:
+		s = "false"
 		if e {
 			s = "true"
-		} else {
-			s = "false"
 		}
-	case []string:
-		st := make([]string, len(e))
-		for i, v := range e {
-			st[i] = v
-		}
-		s = strings.Join(st, ", ")
-	case []HTML:
-		st := make([]string, len(e))
-		for i, h := range e {
-			st[i] = string(h)
-		}
-		s = strings.Join(st, ", ")
-	case []int:
-		buf := make([]string, len(e))
-		for i, n := range e {
-			buf[i] = strconv.Itoa(n)
-		}
-		s = strings.Join(buf, ", ")
-	case []bool:
-		buf := make([]string, len(e))
-		for i, b := range e {
-			if b {
-				buf[i] = "true"
-			} else {
-				buf[i] = "false"
-			}
-		}
-		s = strings.Join(buf, ", ")
 	default:
-		if str, ok := e.(fmt.Stringer); ok {
-			s = str.String()
+		rv := reflect.ValueOf(expr)
+		if !rv.IsValid() || rv.Kind() != reflect.Slice {
+			return "", false
 		}
+		if rv.IsNil() || rv.Len() == 0 {
+			return "", true
+		}
+		buf := make([]string, rv.Len())
+		for i := 0; i < len(buf); i++ {
+			str, ok := interfaceToText(rv.Index(i).Interface(), version)
+			if !ok {
+				return "", false
+			}
+			buf[i] = str
+		}
+		s = strings.Join(buf, ", ")
 	}
 
-	return s
+	return s, true
 }
 
-func interfaceToHTML(expr interface{}, version string) string {
+func interfaceToHTML(expr interface{}, version string) (string, bool) {
 
 	if expr == nil {
-		return ""
+		return "", true
 	}
 
 	var s string
@@ -93,178 +128,110 @@ func interfaceToHTML(expr interface{}, version string) string {
 	case decimal.Decimal:
 		s = e.String()
 	case bool:
+		s = "false"
 		if e {
 			s = "true"
-		} else {
-			s = "false"
 		}
-	case []string:
-		st := make([]string, len(e))
-		for i, v := range e {
-			st[i] = html.EscapeString(v)
-		}
-		s = strings.Join(st, ", ")
-	case []HTML:
-		st := make([]string, len(e))
-		for i, h := range e {
-			st[i] = string(h)
-		}
-		s = strings.Join(st, ", ")
-	case []int:
-		buf := make([]string, len(e))
-		for i, n := range e {
-			buf[i] = strconv.Itoa(n)
-		}
-		s = strings.Join(buf, ", ")
-	case []bool:
-		buf := make([]string, len(e))
-		for i, b := range e {
-			if b {
-				buf[i] = "true"
-			} else {
-				buf[i] = "false"
-			}
-		}
-		s = strings.Join(buf, ", ")
 	default:
-		if str, ok := e.(fmt.Stringer); ok {
-			s = html.EscapeString(str.String())
+		rv := reflect.ValueOf(expr)
+		if !rv.IsValid() || rv.Kind() != reflect.Slice {
+			return "", false
 		}
+		if rv.IsNil() || rv.Len() == 0 {
+			return "", true
+		}
+		buf := make([]string, rv.Len())
+		for i := 0; i < len(buf); i++ {
+			str, ok := interfaceToHTML(rv.Index(i).Interface(), version)
+			if !ok {
+				return "", false
+			}
+			buf[i] = str
+		}
+		s = strings.Join(buf, ", ")
 	}
 
-	return s
+	return s, true
 }
 
-func interfaceToCSS(expr interface{}, version string) string {
+func interfaceToCSS(expr interface{}, version string) (string, bool) {
 	return interfaceToText(expr, version)
 }
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-func interfaceToJavaScript(expr interface{}, version string) string {
+func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
 
 	if expr == nil {
-		return "null"
+		return "null", true
 	}
 
 	switch e := expr.(type) {
 	case string:
-		return stringToJavaScript(e)
+		return stringToJavaScript(e), true
 	case HTML:
-		return stringToJavaScript(string(e))
+		return stringToJavaScript(string(e)), true
 	case int:
-		return strconv.Itoa(e)
+		return strconv.Itoa(e), true
 	case decimal.Decimal:
-		return e.String()
+		return e.String(), true
 	case bool:
 		if e {
-			return "true"
+			return "true", true
 		}
-		return "false"
-	case map[string]interface{}:
-		return mapToJavaScript(e, version)
-	case []string:
-		if e == nil {
-			return "null"
-		}
-		var s string
-		for i, t := range e {
-			if i > 0 {
-				s += ","
-			}
-			s += stringToJavaScript(t)
-		}
-		return "[" + s + "]"
-	case []HTML:
-		if e == nil {
-			return "null"
-		}
-		var s string
-		for i, t := range e {
-			if i > 0 {
-				s += ","
-			}
-			s += stringToJavaScript(string(t))
-		}
-		return "[" + s + "]"
-	case []int:
-		if e == nil {
-			return "null"
-		}
-		var s string
-		for i, n := range e {
-			if i > 0 {
-				s += ","
-			}
-			s += strconv.Itoa(n)
-		}
-		return "[" + s + "]"
-	case []bool:
-		if e == nil {
-			return "null"
-		}
-		buf := make([]string, len(e))
-		for i, b := range e {
-			if b {
-				buf[i] = "true"
-			} else {
-				buf[i] = "false"
-			}
-		}
-		return "[" + strings.Join(buf, ",") + "]"
-	case []map[string]interface{}:
-		if e == nil {
-			return "null"
-		}
-		buf := make([]string, len(e))
-		for i, v := range e {
-			buf[i] = mapToJavaScript(v, version)
-		}
-		return "[" + strings.Join(buf, ",") + "]"
+		return "false", true
 	default:
-		v := reflect.ValueOf(e)
-		if !v.IsValid() {
-			return ""
+		rv := reflect.ValueOf(expr)
+		if !rv.IsValid() {
+			return "undefined", false
 		}
-		switch v.Kind() {
+		switch rv.Kind() {
 		case reflect.Slice:
-			if v.IsNil() {
-				return "null"
+			if rv.IsNil() {
+				return "null", true
 			}
-			if l := v.Len(); l > 0 {
-				s := "["
-				for i := 0; i < l; i++ {
-					if i > 0 {
-						s += ","
-					}
-					s += interfaceToJavaScript(v.Index(i).Interface(), version)
+			if rv.Len() == 0 {
+				return "[]", true
+			}
+			s := "["
+			for i := 0; i < rv.Len(); i++ {
+				if i > 0 {
+					s += ","
 				}
-				return s + "]"
+				s2, ok := interfaceToJavaScript(rv.Index(i).Interface(), version)
+				if !ok {
+					return "", false
+				}
+				s += s2
 			}
-			return "[]"
+			return s + "]", true
 		case reflect.Struct:
-			return structToJavaScript(v.Type(), v, version)
+			return structToJavaScript(rv.Type(), rv, version)
 		case reflect.Map:
-			if !v.Type().ConvertibleTo(mapStringToInterfaceType) {
-				return "null"
+			if rv.IsNil() {
+				return "null", true
 			}
-			return interfaceToJavaScript(v.Convert(mapStringToInterfaceType).Interface(), version)
+			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
+				return "undefined", false
+			}
+			return mapToJavaScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}), version)
 		case reflect.Ptr:
-			t := v.Type().Elem()
-			if t.Kind() != reflect.Struct {
-				return ""
+			if rv.IsNil() {
+				return "null", true
 			}
-			v = v.Elem()
-			if !v.IsValid() {
-				return "null"
+			rt := rv.Type().Elem()
+			if rt.Kind() != reflect.Struct {
+				return "undefined", false
 			}
-			return structToJavaScript(t, v, version)
-		default:
-			return "undefined"
+			rv = rv.Elem()
+			if !rv.IsValid() {
+				return "undefined", false
+			}
+			return structToJavaScript(rt, rv, version)
 		}
 	}
 
-	return ""
+	return "undefined", false
 }
 
 const hexchars = "0123456789abcdef"
@@ -303,29 +270,39 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(t reflect.Type, v reflect.Value, version string) string {
+func structToJavaScript(t reflect.Type, v reflect.Value, version string) (string, bool) {
 	var s string
 	for _, field := range getStructFields(v) {
 		if field.version == "" || field.version == version {
 			if len(s) > 0 {
 				s += ","
 			}
-			s += stringToJavaScript(field.name) + ":" + interfaceToJavaScript(v.Field(field.index).Interface(), version)
+			s += stringToJavaScript(field.name) + ":"
+			s2, ok := interfaceToJavaScript(v.Field(field.index).Interface(), version)
+			if !ok {
+				return "undefined", false
+			}
+			s += s2
 		}
 	}
-	return "{" + s + "}"
+	return "{" + s + "}", true
 }
 
-func mapToJavaScript(e map[string]interface{}, version string) string {
+func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 	if e == nil {
-		return "null"
+		return "null", true
 	}
 	var s string
 	for k, v := range e {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(k) + ":" + interfaceToJavaScript(v, version)
+		s += stringToJavaScript(k) + ":"
+		s2, ok := interfaceToJavaScript(v, version)
+		if !ok {
+			return "undefined", false
+		}
+		s += s2
 	}
-	return "{" + s + "}"
+	return "{" + s + "}", true
 }
