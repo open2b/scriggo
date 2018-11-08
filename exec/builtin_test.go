@@ -6,6 +6,7 @@ package exec
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"open2b/template/ast"
@@ -337,6 +338,23 @@ func TestExecBuiltin(t *testing.T) {
 		if res != expr.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
 		}
+	}
+}
+
+func TestExecErrorfBuiltin(t *testing.T) {
+	src := "\n\n   {{ errorf(`error %s %d`, `a`, 5) }}"
+	var tree, err = parser.Parse([]byte(src), ast.ContextHTML)
+	if err != nil {
+		t.Errorf("source: %q, %s\n", src, err)
+		return
+	}
+	err = Execute(ioutil.Discard, tree, "", nil, nil)
+	if err == nil {
+		t.Errorf("source: %q, expecting error\n", src)
+		return
+	}
+	if e := ":3:7: error a 5"; err.Error() != e {
+		t.Errorf("source: %q, unexpected error %q, expecting error %q\n", src, err.Error(), e)
 	}
 }
 

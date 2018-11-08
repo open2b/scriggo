@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"math/rand"
@@ -43,6 +44,7 @@ var builtins = map[string]interface{}{
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
 	"contains":    _contains,
+	"errorf":      _errorf,
 	"hasPrefix":   _hasPrefix,
 	"hasSuffix":   _hasSuffix,
 	"hmac":        _hmac,
@@ -123,6 +125,11 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 // _contains is the builtin function "contains"
 func _contains(s, substr string) bool {
 	return strings.Contains(s, substr)
+}
+
+// _errorf is the builtin function "errorf"
+func _errorf(format string, a ...interface{}) {
+	panic(fmt.Errorf(format, a...))
 }
 
 // _hasPrefix is the builtin function "hasPrefix"
