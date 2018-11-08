@@ -675,11 +675,20 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	}
 
 	var numIn = typ.NumIn()
-	var args = make([]reflect.Value, numIn)
+	var numArgs = numIn
+	if typ.IsVariadic() && numIn < len(node.Args) {
+		numArgs = len(node.Args)
+	}
+	var args = make([]reflect.Value, numArgs)
 
-	for i := 0; i < numIn; i++ {
+	for i := 0; i < len(args); i++ {
 		var ok bool
-		var in = typ.In(i)
+		var in reflect.Type
+		if typ.IsVariadic() && i >= numIn-1 {
+			in = typ.In(numIn - 1).Elem()
+		} else {
+			in = typ.In(i)
+		}
 		if in == decimalType {
 			var a = zero
 			if i < len(node.Args) {
