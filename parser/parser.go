@@ -740,7 +740,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 
 	// pulisce path rimuovendo ".."
-	path, err = toAbsolutePath(path[:1], path[1:])
+	path, err = toAbsolutePath("/", path[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -812,7 +812,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 					}
 				}
 			}
-			// espande gli i sotto alberi
+			// espande i sotto alberi
 			pp.paths = append(pp.paths, exPath)
 			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
 			err = pp.expand(tr.Nodes, d, regions)
@@ -862,11 +862,15 @@ type expandedRegion struct {
 
 func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
-	if path[0] != '/' {
+	if path[0] == '/' {
+		// pulisce il path rimuovendo ".."
+		path, err = toAbsolutePath("/", path[1:])
+	} else {
+		// determina il path assoluto
 		path, err = toAbsolutePath(dir, path)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 	// verifica che non ci siano cicli
 	for _, p := range pp.paths {
