@@ -8,7 +8,6 @@ package ast
 import (
 	"fmt"
 	"strconv"
-	"sync"
 
 	"github.com/shopspring/decimal"
 )
@@ -97,7 +96,6 @@ type Tree struct {
 	Path       string // path dell'albero.
 	Nodes      []Node // nodi di primo livello dell'albero.
 	IsExpanded bool   // indica se l'albero è stato espanso.
-	sync.Mutex        // mutex utilizzato durante l'espansione dell'albero.
 }
 
 func NewTree(path string, nodes []Node) *Tree {

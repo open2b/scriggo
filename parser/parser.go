@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -648,10 +649,11 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 type Parser struct {
 	reader Reader
+	sync.Mutex
 }
 
 func NewParser(r Reader) *Parser {
-	return &Parser{r}
+	return &Parser{reader: r}
 }
 
 // Parse legge il sorgente in path, tramite il reader, nel contesto ctx, espande i nodi Extend,
@@ -677,8 +679,8 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	tree.Lock()
-	defer tree.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	// verifica se è già stato espanso
 	if tree.IsExpanded {
@@ -728,7 +730,6 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			return nil, &Error{tree.Path, *(ex.Pos()), fmt.Errorf("extend document contains extend")}
 		}
 		// verifica se è stato espanso
-		tr.Lock()
 		if !tr.IsExpanded {
 			// legge le region exportate
 			var regions []expandedRegion
@@ -747,7 +748,6 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 				tr.IsExpanded = true
 			}
 		}
-		tr.Unlock()
 		if err != nil {
 			if err2, ok := err.(*Error); ok && err2.Path == "" {
 				err2.Path = exPath
@@ -812,12 +812,10 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 		return nil, err
 	}
 	// se non è espanso lo espande
-	tree.Lock()
 	if !tree.IsExpanded {
 		var d = path[:strings.LastIndexByte(path, '/')+1]
 		err = pp.expand(tree.Nodes, d, nil)
 	}
-	tree.Unlock()
 	if err != nil {
 		if err2, ok := err.(*Error); ok {
 			if strings.HasSuffix(err2.Error(), "does not exist") {
