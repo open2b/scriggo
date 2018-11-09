@@ -90,7 +90,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 		if err != nil {
 			return err
 		}
-		s.path = extend.Path
+		s.path = extend.Ref.Tree.Path
 		s.vars = []scope{builtins, globals, {}}
 		err = s.execute(wr, extend.Ref.Tree.Nodes)
 	}
