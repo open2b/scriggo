@@ -567,7 +567,7 @@ Nodes:
 				st := state{
 					scope:       s.scope,
 					path:        path,
-					vars:        []scope{s.vars[0], s.vars[1], {}},
+					vars:        []scope{s.vars[0], s.vars[1], nil},
 					version:     s.version,
 					handleError: s.handleError,
 				}
@@ -575,19 +575,21 @@ Nodes:
 				if err != nil {
 					return err
 				}
-				s.scope[path] = s.vars[2]
+				s.scope[path] = st.vars[2]
 			}
 
 		case *ast.ShowPath:
 
+			s.vars = append(s.vars, nil)
 			st := state{
 				scope:       s.scope,
 				path:        node.Ref.Tree.Path,
-				vars:        []scope{s.vars[0], s.vars[1], {}},
+				vars:        s.vars,
 				version:     s.version,
 				handleError: s.handleError,
 			}
 			err = st.execute(wr, node.Ref.Tree.Nodes)
+			s.vars = s.vars[:len(s.vars)-1]
 			if err != nil {
 				return err
 			}
