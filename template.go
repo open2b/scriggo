@@ -34,7 +34,6 @@ var (
 )
 
 type Template struct {
-	reader parser.Reader
 	parser *parser.Parser
 	errorHandler func(error) bool
 	trees  map[string]*ast.Tree
@@ -51,7 +50,7 @@ func New(dir string, cache bool) *Template {
 		trees = map[string]*ast.Tree{}
 		r = parser.NewCacheReader(r)
 	}
-	return &Template{reader: r, parser: parser.NewParser(r), trees: trees}
+	return &Template{parser: parser.NewParser(r), trees: trees}
 }
 
 // Execute esegue il file del template con il path indicato, relativo
