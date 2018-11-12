@@ -43,11 +43,11 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	var tree *ast.Tree
 	switch n := node.(type) {
 	case *ast.Import:
-		tree = n.Ref.Tree
+		tree = n.Tree
 	case *ast.Extend:
-		tree = n.Ref.Tree
+		tree = n.Tree
 	case *ast.ShowPath:
-		tree = n.Ref.Tree
+		tree = n.Tree
 	default:
 		// Nessun riferimento da aggiungere, prosegue senza fare niente.
 	}
