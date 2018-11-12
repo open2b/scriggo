@@ -231,11 +231,6 @@ type ShowRegion struct {
 	Import    *Identifier  // nome dell'import.
 	Region    *Identifier  // nome della region.
 	Arguments []Expression // argomenti.
-	Ref       struct {
-		Extend *Extend
-		Import *Import
-		Region *Region
-	}
 }
 
 func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression) *ShowRegion {
@@ -247,9 +242,7 @@ type ShowPath struct {
 	*Position         // posizione nel sorgente.
 	Path      string  // path del sorgente da mostrare.
 	Context   Context // contesto.
-	Ref       struct {
-		Tree *Tree
-	}
+	Tree      *Tree   // albero esteso di <path>.
 }
 
 func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
@@ -276,9 +269,7 @@ type Extend struct {
 	*Position         // posizione nel sorgente.
 	Path      string  // path del file da estendere.
 	Context   Context // contesto.
-	Ref       struct {
-		Tree *Tree // albero del file esteso.
-	}
+	Tree      *Tree   // albero esteso di extend.
 }
 
 func NewExtend(pos *Position, path string, ctx Context) *Extend {
@@ -295,9 +286,7 @@ type Import struct {
 	Ident     *Identifier // identificatore.
 	Path      string      // path del file da importato.
 	Context   Context     // contesto.
-	Ref       struct {
-		Tree *Tree // albero del file importato.
-	}
+	Tree      *Tree       // albero esteso di import.
 }
 
 func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
@@ -605,8 +594,8 @@ func CloneNode(node Node) Node {
 		return NewContinue(ClonePosition(n.Position))
 	case *Extend:
 		extend := NewExtend(ClonePosition(n.Position), n.Path, n.Context)
-		if n.Ref.Tree != nil {
-			extend.Ref.Tree = CloneTree(n.Ref.Tree)
+		if n.Tree != nil {
+			extend.Tree = CloneTree(n.Tree)
 		}
 		return extend
 	case *Region:
@@ -643,14 +632,14 @@ func CloneNode(node Node) Node {
 			ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
 		imp := NewImport(ClonePosition(n.Position), ident, n.Path, n.Context)
-		if n.Ref.Tree != nil {
-			imp.Ref.Tree = CloneTree(n.Ref.Tree)
+		if n.Tree != nil {
+			imp.Tree = CloneTree(n.Tree)
 		}
 		return imp
 	case *ShowPath:
 		sp := NewShowPath(ClonePosition(n.Position), n.Path, n.Context)
-		if n.Ref.Tree != nil {
-			sp.Ref.Tree = CloneTree(n.Ref.Tree)
+		if n.Tree != nil {
+			sp.Tree = CloneTree(n.Tree)
 		}
 		return sp
 	case *Comment:

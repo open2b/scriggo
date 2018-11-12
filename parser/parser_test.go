@@ -201,7 +201,7 @@ func pageTests() map[string]struct {
 	tree *ast.Tree
 } {
 	var showPath = ast.NewShowPath(p(3, 7, 29, 55), "/include2.html", ast.ContextHTML)
-	showPath.Ref.Tree = ast.NewTree("", []ast.Node{
+	showPath.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), "<div>"),
 		ast.NewValue(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 		ast.NewText(p(1, 19, 18, 23), "</div>"),

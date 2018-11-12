@@ -85,7 +85,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 	if extend == nil {
 		err = s.execute(wr, tree.Nodes)
 	} else {
-		if extend.Ref.Tree == nil {
+		if extend.Tree == nil {
 			return errors.New("template/exec: extend node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
@@ -93,7 +93,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 		if err != nil {
 			return err
 		}
-		s.path = extend.Ref.Tree.Path
+		s.path = extend.Tree.Path
 		vars := scope{}
 		for name, v := range s.vars[2] {
 			if r, ok := v.(region); ok {
@@ -104,7 +104,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.execute(wr, extend.Ref.Tree.Nodes)
+		err = s.execute(wr, extend.Tree.Nodes)
 	}
 
 	return err
@@ -569,7 +569,7 @@ Nodes:
 
 			name := node.Region.Name
 			if node.Import != nil {
-				name = node.Import.Name+"."+name
+				name = node.Import.Name + "." + name
 			}
 			var r region
 			if v, ok := s.variable(name); ok {
@@ -648,7 +648,7 @@ Nodes:
 
 		case *ast.Import:
 
-			path := node.Ref.Tree.Path
+			path := node.Tree.Path
 			if _, ok := s.scope[path]; !ok {
 				st := &state{
 					scope:       s.scope,
@@ -657,7 +657,7 @@ Nodes:
 					version:     s.version,
 					handleError: s.handleError,
 				}
-				err = st.execute(nil, node.Ref.Tree.Nodes)
+				err = st.execute(nil, node.Tree.Nodes)
 				if err != nil {
 					return err
 				}
@@ -681,12 +681,12 @@ Nodes:
 			s.vars = append(s.vars, nil)
 			st := &state{
 				scope:       s.scope,
-				path:        node.Ref.Tree.Path,
+				path:        node.Tree.Path,
 				vars:        s.vars,
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.execute(wr, node.Ref.Tree.Nodes)
+			err = st.execute(wr, node.Tree.Nodes)
 			s.vars = s.vars[:len(s.vars)-1]
 			if err != nil {
 				return err

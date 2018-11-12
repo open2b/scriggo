@@ -705,7 +705,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	// determina il nodo extend se presente
 	var extend = getExtendNode(tree)
 
-	if extend != nil && extend.Ref.Tree == nil {
+	if extend != nil && extend.Tree == nil {
 		var exPath string
 		if extend.Path[0] == '/' {
 			// pulisce il path rimuovendo ".."
@@ -747,7 +747,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			}
 			return nil, err
 		}
-		extend.Ref.Tree = tr
+		extend.Tree = tr
 	}
 
 	tree.IsExpanded = true
@@ -843,7 +843,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string) error {
 		case *ast.Import:
 
 			var err error
-			n.Ref.Tree, err = pp.expandTree(dir, n.Path, n.Context)
+			n.Tree, err = pp.expandTree(dir, n.Path, n.Context)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", n.Path)}
@@ -862,7 +862,7 @@ func (pp *parsing) expand(nodes []ast.Node, dir string) error {
 		case *ast.ShowPath:
 
 			var err error
-			n.Ref.Tree, err = pp.expandTree(dir, n.Path, n.Context)
+			n.Tree, err = pp.expandTree(dir, n.Path, n.Context)
 			if err != nil {
 				if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("showed path %q does not exist", n.Path)}
