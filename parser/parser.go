@@ -692,7 +692,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	var dir = path[:strings.LastIndex(path, "/")+1]
 
 	// espande i sotto alberi
-	err = pp.expand(tree.Nodes, dir, nil)
+	err = pp.expand(tree.Nodes, dir)
 	if err != nil {
 		if err2, ok := err.(*Error); ok && err2.Path == "" {
 			err2.Path = path
@@ -731,19 +731,10 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 		// verifica se è stato espanso
 		if !tr.IsExpanded {
-			// legge le region exportate
-			var regions []expandedRegion
-			for _, node := range tree.Nodes {
-				if region, ok := node.(*ast.Region); ok {
-					if c, _ := utf8.DecodeRuneInString(region.Ident.Name); unicode.Is(unicode.Lu, c) {
-						regions = append(regions, expandedRegion{path, extend, nil, region})
-					}
-				}
-			}
 			// espande i sotto alberi
 			pp.paths = append(pp.paths, exPath)
 			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
-			err = pp.expand(tr.Nodes, d, regions)
+			err = pp.expand(tr.Nodes, d)
 			if err == nil {
 				tr.IsExpanded = true
 			}
@@ -780,13 +771,6 @@ func (pp *parsing) path() string {
 	return pp.paths[len(pp.paths)-1]
 }
 
-type expandedRegion struct {
-	path string
-	ext  *ast.Extend
-	imp  *ast.Import
-	reg  *ast.Region
-}
-
 func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
 	if path[0] == '/' {
@@ -814,7 +798,7 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 	// se non è espanso lo espande
 	if !tree.IsExpanded {
 		var d = path[:strings.LastIndexByte(path, '/')+1]
-		err = pp.expand(tree.Nodes, d, nil)
+		err = pp.expand(tree.Nodes, d)
 	}
 	if err != nil {
 		if err2, ok := err.(*Error); ok {
@@ -832,7 +816,7 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 
 // expand espande i nodi Import e ShowPath dell'albero tree
 // chiamando read e anteponendo dir al path passato come argomento.
-func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion) error {
+func (pp *parsing) expand(nodes []ast.Node, dir string) error {
 
 	for _, node := range nodes {
 
@@ -840,98 +824,24 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 
 		case *ast.For:
 
-			err := pp.expand(n.Nodes, dir, regions)
+			err := pp.expand(n.Nodes, dir)
 			if err != nil {
 				return err
 			}
 
 		case *ast.If:
 
-			err := pp.expand(n.Then, dir, regions)
+			err := pp.expand(n.Then, dir)
 			if err != nil {
 				return err
 			}
-			err = pp.expand(n.Else, dir, regions)
+			err = pp.expand(n.Else, dir)
 			if err != nil {
 				return err
-			}
-
-		case *ast.Region:
-
-			for _, r := range regions {
-				if (r.imp == nil || r.imp.Ident == nil) && r.reg.Ident.Name == n.Ident.Name {
-					var at string
-					if r.imp == nil {
-						if r.path == pp.path() {
-							at = fmt.Sprintf("at %s:%s", r.path, r.reg.Pos())
-						} else {
-							at = fmt.Sprintf("during expand at %s:%s", pp.path(), r.reg.Pos())
-						}
-					} else {
-						at = fmt.Sprintf("during import at %s:%s", r.imp.Ref.Tree.Path, r.reg.Pos())
-					}
-					return &Error{pp.path(), *(n.Pos()), fmt.Errorf("region %s redeclared\n\tprevious declaration %s", n.Ident.Name, at)}
-				}
-			}
-			regions = append(regions, expandedRegion{pp.path(), nil, nil, n})
-
-		case *ast.ShowRegion:
-
-			for _, r := range regions {
-				var found = n.Region.Name == r.reg.Ident.Name && (n.Import == nil && (r.imp == nil || r.imp.Ident == nil) ||
-					n.Import != nil && r.imp != nil && r.imp.Ident != nil && n.Import.Name == r.imp.Ident.Name)
-				if found {
-					n.Ref.Extend = r.ext
-					n.Ref.Import = r.imp
-					n.Ref.Region = r.reg
-					break
-				}
-			}
-			if n.Ref.Region == nil {
-				return &Error{"", *(n.Pos()), fmt.Errorf("region %s not declared", n.Region.Name)}
-			}
-			haveSize := len(n.Arguments)
-			wantSize := len(n.Ref.Region.Parameters)
-			if haveSize != wantSize {
-				have := "("
-				for i := 0; i < haveSize; i++ {
-					if i > 0 {
-						have += ","
-					}
-					if i < wantSize {
-						have += n.Ref.Region.Parameters[i].Name
-					} else {
-						have += "?"
-					}
-				}
-				have += ")"
-				want := "("
-				for i, p := range n.Ref.Region.Parameters {
-					if i > 0 {
-						want += ","
-					}
-					want += p.Name
-				}
-				want += ")"
-				name := n.Region.Name
-				if n.Import != nil {
-					name = n.Import.Name + " " + name
-				}
-				if haveSize < wantSize {
-					return &Error{"", *(n.Pos()), fmt.Errorf("not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)}
-				}
-				return &Error{"", *(n.Pos()), fmt.Errorf("too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)}
 			}
 
 		case *ast.Import:
 
-			if n.Ident != nil {
-				for _, r := range regions {
-					if r.imp != nil && r.imp.Ident != nil && r.imp.Ident.Name == n.Ident.Name {
-						return &Error{"", *(n.Pos()), fmt.Errorf("%s redeclared in this file", n.Ident.Name)}
-					}
-				}
-			}
 			var err error
 			n.Ref.Tree, err = pp.expandTree(dir, n.Path, n.Context)
 			if err != nil {
@@ -942,30 +852,11 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 				}
 				return err
 			}
-			exRegions := map[string]*ast.Region{}
-			for _, node := range n.Ref.Tree.Nodes {
-				if region, ok := node.(*ast.Region); ok {
-					name := region.Ident.Name
-					if c, _ := utf8.DecodeRuneInString(region.Ident.Name); unicode.Is(unicode.Lu, c) {
-						exRegions[name] = region
-					}
-				}
-			}
-			if n.Ident == nil {
-				for _, r2 := range regions {
-					if (r2.imp == nil || r2.imp.Ident == nil) && exRegions[r2.reg.Ident.Name] != nil {
-						var at string
-						if r2.imp == nil {
-							at = fmt.Sprintf("during expand at %s:%s", r2.path, r2.reg.Pos())
-						} else {
-							at = fmt.Sprintf("during import at %s:%s", r2.imp.Ref.Tree.Path, r2.reg.Pos())
-						}
-						return &Error{"", *(n.Pos()), fmt.Errorf("region %s redeclared\n\tprevious declaration %s", r2.reg.Ident.Name, at)}
-					}
-				}
-			}
-			for _, r := range exRegions {
-				regions = append(regions, expandedRegion{n.Path, nil, n, r})
+
+		case *ast.Region:
+			err := pp.expand(n.Body, dir)
+			if err != nil {
+				return err
 			}
 
 		case *ast.ShowPath:
@@ -983,15 +874,6 @@ func (pp *parsing) expand(nodes []ast.Node, dir string, regions []expandedRegion
 
 		}
 
-	}
-
-	for _, node := range nodes {
-		if region, ok := node.(*ast.Region); ok {
-			err := pp.expand(region.Body, dir, regions)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

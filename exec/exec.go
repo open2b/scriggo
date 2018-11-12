@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 )
@@ -91,7 +94,16 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 			return err
 		}
 		s.path = extend.Ref.Tree.Path
-		s.vars = []scope{builtins, globals, {}}
+		vars := scope{}
+		for name, v := range s.vars[2] {
+			if r, ok := v.(region); ok {
+				fc, _ := utf8.DecodeRuneInString(name)
+				if unicode.Is(unicode.Lu, fc) && !strings.Contains(name, ".") {
+					vars[name] = r
+				}
+			}
+		}
+		s.vars = []scope{builtins, globals, vars}
 		err = s.execute(wr, extend.Ref.Tree.Nodes)
 	}
 
@@ -192,6 +204,12 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 	}
 
 	return nil, errors.New("template/exec: unsupported vars type")
+}
+
+// region rappresenta una region in uno scope.
+type region struct {
+	path string
+	node *ast.Region
 }
 
 // state rappresenta lo stato di esecuzione di un albero.
@@ -465,6 +483,20 @@ Nodes:
 					return err
 				}
 			}
+			name := node.Ident.Name
+			if v, ok := s.variable(name); ok {
+				if r, ok := v.(region); ok {
+					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+						name, r.path, r.node.Pos())
+				} else {
+					err = s.errorf(node.Ident, "%s redeclared in this file", name)
+				}
+				if s.handleError(err) {
+					continue
+				}
+				return err
+			}
+			s.vars[2][name] = region{s.path, node}
 
 		case *ast.Var:
 
@@ -473,8 +505,13 @@ Nodes:
 			}
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
-			if _, ok := vars[name]; ok {
-				err = s.errorf(node.Ident, "var %s redeclared in this block", name)
+			if v, ok := vars[name]; ok {
+				if r, ok := v.(region); ok {
+					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+						name, r.path, r.node.Pos())
+				} else {
+					err = s.errorf(node.Ident, "%s redeclared in this block", name)
+				}
 				if s.handleError(err) {
 					continue
 				}
@@ -496,9 +533,8 @@ Nodes:
 			for i := len(s.vars) - 1; i >= 0; i-- {
 				vars := s.vars[i]
 				if vars != nil {
-					if _, ok := vars[name]; ok {
-						found = true
-						if i < 2 {
+					if v, ok := vars[name]; ok {
+						if _, ok := v.(region); ok || i < 2 {
 							if i == 0 && name == "len" {
 								err = s.errorf(node, "use of builtin len not in function call")
 							} else {
@@ -517,6 +553,7 @@ Nodes:
 							return err
 						}
 						vars[name] = v
+						found = true
 						break
 					}
 				}
@@ -530,10 +567,66 @@ Nodes:
 
 		case *ast.ShowRegion:
 
-			var region = node.Ref.Region
+			name := node.Region.Name
+			if node.Import != nil {
+				name = node.Import.Name+"."+name
+			}
+			var r region
+			if v, ok := s.variable(name); ok {
+				if r, ok = v.(region); !ok {
+					err = s.errorf(node, "cannot show non-region %s (type %t)", name, typeof(v))
+				}
+			} else {
+				err = s.errorf(node, "region %s not declared", name)
+			}
+			if err != nil {
+				if s.handleError(err) {
+					continue
+				}
+				return err
+			}
+
+			haveSize := len(node.Arguments)
+			wantSize := len(r.node.Parameters)
+			if haveSize != wantSize {
+				have := "("
+				for i := 0; i < haveSize; i++ {
+					if i > 0 {
+						have += ","
+					}
+					if i < wantSize {
+						have += r.node.Parameters[i].Name
+					} else {
+						have += "?"
+					}
+				}
+				have += ")"
+				want := "("
+				for i, p := range r.node.Parameters {
+					if i > 0 {
+						want += ","
+					}
+					want += p.Name
+				}
+				want += ")"
+				name := node.Region.Name
+				if node.Import != nil {
+					name = node.Import.Name + " " + name
+				}
+				if haveSize < wantSize {
+					err = s.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+				} else {
+					err = s.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+				}
+				if s.handleError(err) {
+					continue
+				}
+				return err
+			}
+
 			var arguments = scope{}
 			for i, argument := range node.Arguments {
-				arguments[region.Parameters[i].Name], err = s.eval(argument)
+				arguments[r.node.Parameters[i].Name], err = s.eval(argument)
 				if err != nil {
 					if s.handleError(err) {
 						continue Nodes
@@ -541,21 +634,14 @@ Nodes:
 					return err
 				}
 			}
-
-			path := s.path
-			if node.Ref.Extend != nil {
-				// TODO
-			} else if node.Ref.Import != nil {
-				path = node.Ref.Import.Ref.Tree.Path
-			}
 			st := &state{
 				scope:       s.scope,
-				path:        path,
-				vars:        []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
+				path:        r.path,
+				vars:        []scope{s.vars[0], s.vars[1], s.scope[r.path], arguments},
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.execute(wr, region.Body)
+			err = st.execute(wr, r.node.Body)
 			if err != nil {
 				return err
 			}
@@ -567,7 +653,7 @@ Nodes:
 				st := &state{
 					scope:       s.scope,
 					path:        path,
-					vars:        []scope{s.vars[0], s.vars[1], nil},
+					vars:        []scope{s.vars[0], s.vars[1], {}},
 					version:     s.version,
 					handleError: s.handleError,
 				}
@@ -576,6 +662,18 @@ Nodes:
 					return err
 				}
 				s.scope[path] = st.vars[2]
+				for name, r := range st.vars[2] {
+					if _, ok := r.(region); !ok {
+						continue
+					}
+					if strings.Index(name, ".") > 0 {
+						continue
+					}
+					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+						continue
+					}
+					s.vars[2][name] = r
+				}
 			}
 
 		case *ast.ShowPath:

@@ -824,6 +824,17 @@ func (s *state) isUntypedNil(expr ast.Expression) bool {
 	return false
 }
 
+func (s *state) variable(name string) (interface{}, bool) {
+	for i := len(s.vars) - 1; i >= 0; i-- {
+		if s.vars[i] != nil {
+			if v, ok := s.vars[i][name]; ok {
+				return v, true
+			}
+		}
+	}
+	return nil, false
+}
+
 // htmlToStringType ritorna e1 e e2 con tipo string al posto di HTML.
 // Se non hanno tipo HTML vengono ritornate invariate.
 func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
