@@ -70,7 +70,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 		h = func(err error) bool { return false }
 	}
 
-	s := state{
+	s := &state{
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
@@ -548,7 +548,7 @@ Nodes:
 			} else if node.Ref.Import != nil {
 				path = node.Ref.Import.Ref.Tree.Path
 			}
-			st := state{
+			st := &state{
 				scope:       s.scope,
 				path:        path,
 				vars:        []scope{s.vars[0], s.vars[1], s.scope[path], arguments},
@@ -564,7 +564,7 @@ Nodes:
 
 			path := node.Ref.Tree.Path
 			if _, ok := s.scope[path]; !ok {
-				st := state{
+				st := &state{
 					scope:       s.scope,
 					path:        path,
 					vars:        []scope{s.vars[0], s.vars[1], nil},
@@ -581,7 +581,7 @@ Nodes:
 		case *ast.ShowPath:
 
 			s.vars = append(s.vars, nil)
-			st := state{
+			st := &state{
 				scope:       s.scope,
 				path:        node.Ref.Tree.Path,
 				vars:        s.vars,
