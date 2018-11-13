@@ -14,9 +14,6 @@ import (
 
 type HTML = exec.HTML
 
-// viene fatto l'aliasing di Context e vengono ridefinite le costanti in quanto
-// deve essere possibile definire una interfaccia exec.WriterTo solo importando
-// il package "template" e non necessariamente anche "exec".
 type Context = ast.Context
 
 const (
@@ -34,45 +31,58 @@ var (
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-type Template struct {
-	parser       *parser.Parser
-	errorHandler func(error) bool
+type ExecError []error
+
+func (ee ExecError) Error() string {
+	var s string
+	for _, e := range ee {
+		if s != "" {
+			s += "\n"
+		}
+		s += e.Error()
+	}
+	return s
 }
 
-// New ritorna un template i cui file vengono letti dalla directory dir.
-// Il parametro cache è deprecato.
-func New(dir string, cache bool) *Template {
+type Template struct {
+	parser *parser.Parser
+	ctx    ast.Context
+}
+
+// New ritorna un template i cui file vengono letti dalla directory dir
+// e parsati nel contesto ctx.
+func New(dir string, ctx Context) *Template {
 	var r parser.Reader = parser.DirReader(dir)
-	return &Template{parser: parser.NewParser(r)}
+	return &Template{parser: parser.NewParser(r), ctx: ctx}
 }
 
 // Execute esegue il file del template con il path indicato, relativo
 // alla directory del template, e scrive il risultato su out.
 // Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
 //
-// Il contesto dipende dall'estensione del file, HTML per ".html", CSS per ".css",
-// JavaScript per ".js", Text in tutti gli altri casi.
+// In caso di errore durante l'esecuzione, questa continua ugualmente per
+// poi ritornare un ExecError con tutti gli errori che si sono verificati.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
-	var ctx ast.Context
-	switch ext(path) {
-	case "html":
-		ctx = ast.ContextHTML
-	case "css":
-		ctx = ast.ContextCSS
-	case "js":
-		ctx = ast.ContextJavaScript
-	default:
-		ctx = ast.ContextText
-	}
-	tree, err := t.parser.Parse(path, ctx)
+	tree, err := t.parser.Parse(path, t.ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return exec.Execute(out, tree, "", vars, t.errorHandler)
-}
-
-func (t *Template) SetErrorHandler(h func(error) bool) {
-	t.errorHandler = h
+	var errors []error
+	err = exec.Execute(out, tree, "", vars, func(err error) bool {
+		if errors == nil {
+			errors = []error{err}
+		} else {
+			errors = append(errors, err)
+		}
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	if errors != nil {
+		return ExecError(errors)
+	}
+	return nil
 }
 
 func convertError(err error) error {
@@ -83,14 +93,4 @@ func convertError(err error) error {
 		return ErrNotExist
 	}
 	return err
-}
-
-// ext ritorna l'estensione di path.
-func ext(path string) string {
-	for i := len(path) - 1; i >= 0 && path[i] != '/'; i-- {
-		if path[i] == '.' {
-			return path[i+1:]
-		}
-	}
-	return ""
 }
