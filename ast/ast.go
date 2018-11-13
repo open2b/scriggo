@@ -2,7 +2,7 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-// Package ast dichiara i tipi usati per definire gli alberi dei template.
+// Package ast declares the types used to define the template trees.
 package ast
 
 import (
@@ -35,7 +35,7 @@ func (op OperatorType) String() string {
 	return []string{"==", "!=", "!", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
 }
 
-// Context indica il contesto in cui si trova un nodo Show.
+// Context indicates the context in which a Show node is located.
 type Context int
 
 const (
@@ -59,17 +59,17 @@ func (ctx Context) String() string {
 	panic("invalid context")
 }
 
-// Node è un elemento del tree.
+// Node is an element of the tree.
 type Node interface {
-	Pos() *Position // posizione del nodo nel sorgente originale
+	Pos() *Position // node position in the original source
 }
 
-// Position è una posizione di un nodo nel sorgente.
+// Position is a position of a node in the source.
 type Position struct {
-	Line   int // linea a partire da 1
-	Column int // colonna in caratteri a partire da 1
-	Start  int // indice del primo byte
-	End    int // indice dell'ultimo byte
+	Line   int // line starting from 1
+	Column int // column in characters starting from 1
+	Start  int // index of the first byte
+	End    int // index of the last byte
 }
 
 func (p *Position) Pos() *Position {
@@ -90,11 +90,11 @@ type expression struct{}
 
 func (e expression) isexpr() {}
 
-// Tree rappresenta un albero parsato.
+// Tree represents a parsed tree.
 type Tree struct {
 	*Position
-	Path       string // path dell'albero.
-	Nodes      []Node // nodi di primo livello dell'albero.
+	Path       string // path of the tree.
+	Nodes      []Node // nodes of the first level of the tree.
 }
 
 func NewTree(path string, nodes []Node) *Tree {
@@ -114,9 +114,9 @@ type TextCut struct {
 	Right int
 }
 
-// Text rappresenta un testo
+// Text represents a text.
 type Text struct {
-	*Position         // posizione nel sorgente.
+	*Position         // position in the source.
 	Text      string  // testo.
 	Cut       TextCut // taglio.
 }
@@ -129,9 +129,9 @@ func (t Text) String() string {
 	return t.Text
 }
 
-// Var rappresenta uno statement {% var identifier = expression %}
+// Var represents a statement {% var identifier = expression%}.
 type Var struct {
-	*Position             // posizione nel sorgente.
+	*Position             // position in the source.
 	Ident     *Identifier // identificatore.
 	Expr      Expression  // espressione assegnata.
 }
@@ -144,9 +144,9 @@ func (v Var) String() string {
 	return fmt.Sprintf("{%% var %v = %v %%}", v.Ident, v.Expr)
 }
 
-// Assignment rappresenta uno statement {% identifier = expression %}.
+// Assignment represents a statement {% identifier = expression%}.
 type Assignment struct {
-	*Position             // posizione nel sorgente.
+	*Position             // position in the source.
 	Ident     *Identifier // identificatore.
 	Expr      Expression  // espressione assegnata.
 }
@@ -159,14 +159,14 @@ func (a Assignment) String() string {
 	return fmt.Sprintf("{%% %v = %v %%}", a.Ident, a.Expr)
 }
 
-// For rappresenta uno statement {% for ... %}.
+// For represents a statement {% for ...%}.
 type For struct {
-	*Position             // posizione nel sorgente.
-	Index     *Identifier // indice.
-	Ident     *Identifier // identificatore.
-	Expr1     Expression  // espressione sinistra del range o slice su cui iterare
-	Expr2     Expression  // espressione destra del range
-	Nodes     []Node      // nodi da eseguire per ogni elemento della lista.
+	*Position             // position in the source.
+	Index     *Identifier // index.
+	Ident     *Identifier // identifier.
+	Expr1     Expression  // left expression of the range or slice on which to iterate.
+	Expr2     Expression  // right expression of the range.
+	Nodes     []Node      // nodes to be executed for each element of the list.
 }
 
 func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, nodes []Node) *For {
@@ -176,30 +176,30 @@ func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, no
 	return &For{pos, index, ident, expr1, expr2, nodes}
 }
 
-// Break rappresenta uno statement {% break %}.
+// Break represents a statement {% break%}.
 type Break struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 }
 
 func NewBreak(pos *Position) *Break {
 	return &Break{pos}
 }
 
-// Continue rappresenta uno statement {% continue %}.
+// Continue represents a statement {% continue%}.
 type Continue struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 }
 
 func NewContinue(pos *Position) *Continue {
 	return &Continue{pos}
 }
 
-// If rappresenta uno statement {% if ... %}.
+// If represents a statement {% if ...%}.
 type If struct {
-	*Position            // posizione nel sorgente.
-	Expr      Expression // espressione che valutata restituisce true o false.
-	Then      []Node     // nodi da eseguire se l'espressione è valutata a vero.
-	Else      []Node     // nodi da eseguire se l'espressione è valutata a falso.
+	*Position            // position in the source.
+	Expr      Expression // expression that once evaluated returns true or false.
+	Then      []Node     // nodes to run if the expression is evaluated to true.
+	Else      []Node     // nodes to run if the expression is evaluated to false.
 }
 
 func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
@@ -209,12 +209,12 @@ func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
 	return &If{pos, expr, then, els}
 }
 
-// Region rappresenta uno statement {% region ... %}.
+// Region represents a statement {% region ...%}.
 type Region struct {
-	*Position                // posizione nel sorgente.
-	Ident      *Identifier   // nome.
-	Parameters []*Identifier // parametri.
-	Body       []Node        // corpo.
+	*Position                // position in the source.
+	Ident      *Identifier   // name.
+	Parameters []*Identifier // parameters.
+	Body       []Node        // body.
 }
 
 func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body []Node) *Region {
@@ -224,35 +224,35 @@ func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body 
 	return &Region{pos, ident, parameters, body}
 }
 
-// ShowRegion rappresenta uno statement {% show <region> %}
+// ShowRegion represents a statement {% show <region>%}.
 type ShowRegion struct {
-	*Position              // posizione nel sorgente.
-	Import    *Identifier  // nome dell'import.
-	Region    *Identifier  // nome della region.
-	Arguments []Expression // argomenti.
+	*Position              // position in the source.
+	Import    *Identifier  // name of the import.
+	Region    *Identifier  // name of the region.
+	Arguments []Expression // arguments.
 }
 
 func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression) *ShowRegion {
 	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments}
 }
 
-// ShowPath rappresenta uno statement {% show <path> %}.
+// ShowPath represents a statement {% show <path>%}.
 type ShowPath struct {
-	*Position         // posizione nel sorgente.
-	Path      string  // path del sorgente da mostrare.
-	Context   Context // contesto.
-	Tree      *Tree   // albero esteso di <path>.
+	*Position         // position in the source.
+	Path      string  // path of the source to show.
+	Context   Context // context.
+	Tree      *Tree   // extended tree of <path>.
 }
 
 func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
 	return &ShowPath{Position: pos, Path: path, Context: ctx}
 }
 
-// Value rappresenta uno statement {{ ... }}
+// Value represents a statement {{...}}.
 type Value struct {
-	*Position            // posizione nel sorgente.
-	Expr      Expression // espressione che valutata restituisce il valore da mostrare.
-	Context   Context    // contesto.
+	*Position            // position in the source.
+	Expr      Expression // expression that once evaluated returns the value to show.
+	Context   Context    // context.
 }
 
 func NewValue(pos *Position, expr Expression, ctx Context) *Value {
@@ -263,9 +263,9 @@ func (v Value) String() string {
 	return fmt.Sprintf("{{ %v }}", v.Expr)
 }
 
-// Extend rappresenta uno statement {% extend ... %}.
+// Extend represents a statement {% extend ...%}.
 type Extend struct {
-	*Position         // posizione nel sorgente.
+	*Position         // position in the source.
 	Path      string  // path del file da estendere.
 	Context   Context // contesto.
 	Tree      *Tree   // albero esteso di extend.
@@ -279,9 +279,9 @@ func (e Extend) String() string {
 	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
 }
 
-// Import rappresenta uno statement {% import ... %}.
+// Import represents a statement {% import ...%}.
 type Import struct {
-	*Position             // posizione nel sorgente.
+	*Position             // position in the source.
 	Ident     *Identifier // identificatore.
 	Path      string      // path del file da importato.
 	Context   Context     // contesto.
@@ -301,8 +301,8 @@ func (i Import) String() string {
 }
 
 type Comment struct {
-	*Position        // posizione nel sorgente.
-	Text      string // testo del commento.
+	*Position        // position in the source.
+	Text      string // comment text.
 }
 
 func NewComment(pos *Position, text string) *Comment {
@@ -310,9 +310,9 @@ func NewComment(pos *Position, text string) *Comment {
 }
 
 type Parentesis struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Expr Expression // espressione.
+	Expr Expression // expression.
 }
 
 func NewParentesis(pos *Position, expr Expression) *Parentesis {
@@ -324,9 +324,9 @@ func (n *Parentesis) String() string {
 }
 
 type Int struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Value int // valore.
+	Value int // value.
 }
 
 func NewInt(pos *Position, value int) *Int {
@@ -338,7 +338,7 @@ func (n *Int) String() string {
 }
 
 type Number struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
 	Value decimal.Decimal // valore.
 }
@@ -352,9 +352,9 @@ func (n *Number) String() string {
 }
 
 type String struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Text string // espressione.
+	Text string // expression.
 }
 
 func NewString(pos *Position, text string) *String {
@@ -366,7 +366,7 @@ func (n *String) String() string {
 }
 
 type Identifier struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
 	Name string // nome.
 }
@@ -386,10 +386,10 @@ type Operator interface {
 }
 
 type UnaryOperator struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Op   OperatorType // operatore.
-	Expr Expression   // espressione.
+	Op   OperatorType // operator.
+	Expr Expression   // expression.
 }
 
 func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
@@ -415,11 +415,11 @@ func (n *UnaryOperator) Precedence() int {
 }
 
 type BinaryOperator struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Op    OperatorType // operatore.
-	Expr1 Expression   // prima espressione.
-	Expr2 Expression   // seconda espressione.
+	Op    OperatorType // operator.
+	Expr1 Expression   // first expression.
+	Expr2 Expression   // second expression.
 }
 
 func NewBinaryOperator(pos *Position, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
@@ -464,10 +464,10 @@ func (n *BinaryOperator) Precedence() int {
 }
 
 type Call struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Func Expression   // funzione.
-	Args []Expression // parametri.
+	Func Expression   // function.
+	Args []Expression // arguments.
 }
 
 func NewCall(pos *Position, fun Expression, args []Expression) *Call {
@@ -487,9 +487,9 @@ func (n *Call) String() string {
 }
 
 type Index struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Expr  Expression // espressione.
+	Expr  Expression // expression.
 	Index Expression // index.
 }
 
@@ -502,9 +502,9 @@ func (n *Index) String() string {
 }
 
 type Slice struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Expr Expression // espressione.
+	Expr Expression // expression.
 	Low  Expression // low bound.
 	High Expression // high bound.
 }
@@ -527,10 +527,10 @@ func (n *Slice) String() string {
 }
 
 type Selector struct {
-	*Position // posizione nel sorgente.
+	*Position // position in the source.
 	expression
-	Expr  Expression // espressione.
-	Ident string     // identificatore.
+	Expr  Expression // expression.
+	Ident string     // identifier.
 }
 
 func NewSelector(pos *Position, expr Expression, ident string) *Selector {

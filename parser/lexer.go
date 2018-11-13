@@ -27,18 +27,18 @@ func (e *SyntaxError) Error() string {
 	return fmt.Sprintf("template: %s at %q position %d", e.str, e.path, e.pos)
 }
 
-// lexer mantiene lo stato dello scanner.
+// lexer maintains the scanner status.
 type lexer struct {
-	text   []byte      // testo su cui viene eseguita la scansine
-	src    []byte      // slice del testo utilizzata durante la scansione
-	line   int         // linea corrente a partire da 1
-	column int         // colonna corente a partire da 1
-	ctx    ast.Context // contesto corrente utilizzato durante la scansione
-	tokens chan token  // tokens, viene chiuso alla fine della scansione
-	err    error       // errore, al termine della scansione indica se c'è stato un errore
+	text   []byte      // text on which the scans are performed
+	src    []byte      // slice of the text used during the scan
+	line   int         // current line starting from 1
+	column int         // current column starting from 1
+	ctx    ast.Context // current context used during the scan
+	tokens chan token  // tokens, is closed at the end of the scan
+	err    error       // error, at the end of the scan indicates if there was an error
 }
 
-// newLexer crea un nuovo lexer.
+// newLexer creates a new lexer.
 func newLexer(text []byte, ctx ast.Context) *lexer {
 	tokens := make(chan token, 20)
 	lex := &lexer{
@@ -61,14 +61,14 @@ func (l *lexer) errorf(format string, args ...interface{}) *SyntaxError {
 	return &SyntaxError{str: fmt.Sprintf(format, args...), pos: len(l.text) - len(l.src)}
 }
 
-// emit emette alla linea corrente e colonna corrente un token
-// di tipo typ e lunghezza length.
+// emit emits a token of type typ and length length to the current line and
+// current column.
 func (l *lexer) emit(typ tokenType, length int) {
 	l.emitAtLineColumn(l.line, l.column, typ, length)
 }
 
-// emitAtLineColumn emette alla linea line e colonna column un token
-// di tipo typ e lunghezza length.
+// emitAtLineColumn emits a token of type typ and length length to the line
+// line and column column.
 func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	var txt []byte
 	if typ != tokenEOF {
@@ -94,16 +94,17 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	l.src = l.src[length:]
 }
 
-// scan esegue la scansione del testo mettendo i token sul canale tokens.
-// In caso di errore mette l'errore in err, chiude il canale ed esce.
+// scan scans the text by placing the tokens on the tokens channel.
+// In the event of an error, it puts the error in err, closes the channel
+// and exits.
 func (l *lexer) scan() {
 
-	p := 0 // lunghezza del token in bytes
+	p := 0 // token length in bytes
 
-	lin := l.line   // linea del token
-	col := l.column // colonna del token
+	lin := l.line   // token line
+	col := l.column // token column
 
-	initialContext := l.ctx // contesto iniziale
+	initialContext := l.ctx // initial context
 
 LOOP:
 	for p < len(l.src) {
@@ -196,7 +197,7 @@ LOOP:
 			// <![CDATA[...]]>
 			if p+11 < len(l.src) && l.src[p+1] == '!' {
 				if bytes.HasPrefix(l.src[p:], cdataStart) {
-					// salta la sezione CDATA
+					// skip the CDATA section
 					p += 9
 					l.column += 9
 					var t = bytes.Index(l.src[p:], cdataEnd)
@@ -263,7 +264,7 @@ func isCSS(s []byte) bool {
 	return false
 }
 
-// lexShow emette i token di show sapendo che src inizia con '{{'.
+// lexShow emits tokens knowing that src starts with '{{'.
 func (l *lexer) lexShow() error {
 	l.emit(tokenStartValue, 2)
 	l.column += 2
@@ -282,7 +283,7 @@ func (l *lexer) lexShow() error {
 	return nil
 }
 
-// lexStatement emette i token di uno statement sapendo che src inizia con '{%'.
+// lexStatement emits tokens of a statement knowing that src starts with '{%'.
 func (l *lexer) lexStatement() error {
 	l.emit(tokenStartStatement, 2)
 	l.column += 2
@@ -300,7 +301,7 @@ func (l *lexer) lexStatement() error {
 	return nil
 }
 
-// lexComment emette il token di un commento sapendo che src inizia con '{#'.
+// lexComment emits a comment token knowing that src starts with '{#'.
 func (l *lexer) lexComment() error {
 	p := bytes.Index(l.src[2:], []byte("#}"))
 	if p == -1 {
@@ -320,12 +321,12 @@ func (l *lexer) lexComment() error {
 	return nil
 }
 
-// lexCode emette i token di codice.
+// lexCode emits code tokens.
 func (l *lexer) lexCode() error {
 	if len(l.src) == 0 {
 		return nil
 	}
-	// endLineAsSemicolon indica se "\n" deve essere trattato come ";"
+	// endLineAsSemicolon indicates if "\ n" should be treated as ";"
 	var endLineAsSemicolon = false
 LOOP:
 	for len(l.src) > 0 {
@@ -506,16 +507,16 @@ func prefix(s, prefix []byte) bool {
 	return bytes.HasPrefix(s, prefix)
 }
 
-// isSpace indica se s è uno spazio.
+// isSpace indicates if s is a space.
 func isSpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r'
 }
 
-// lexIdentifierOrKeyword legge un identificatore o una keyword
-// sapendo che src inizia con un carattere di s byte.
+// lexIdentifierOrKeyword reads an identifier or keyword knowing that
+// src starts with a s byte character.
 func (l *lexer) lexIdentifierOrKeyword(s int) bool {
-	// si ferma solo quando un carattere
-	// non può essere parte dell'identificatore o keyword
+	// it stops only when a character can not be part
+	// of the identifier or keyword
 	cols := 1
 	p := s
 	for p < len(l.src) {
@@ -560,16 +561,17 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	return false
 }
 
-// lexNumber legge un numero (int o decimal) sapendo che src inizia con '0'..'9' o '.'.
+// lexNumber reads a number (int or decimal) knowing that src starts with
+// '0' .. '9' or '.'.
 func (l *lexer) lexNumber() {
-	// si ferma solo se un carattere non può essere parte del numero
+	// it stops only if a character can not be part of the number
 	hasDot := l.src[0] == '.'
 	p := 1
 	for p < len(l.src) {
 		if l.src[p] == '.' {
 			if hasDot {
 				if l.src[p-1] == '.' {
-					// il punto è parte di un token range
+					// the point is part of a token range
 					p--
 					hasDot = false
 				}
@@ -585,10 +587,10 @@ func (l *lexer) lexNumber() {
 	l.column += p
 }
 
-// lexInterpretedString legge una stringa "..." sapendo che src inizia con '"'.
+// lexInterpretedString reads a string "..." knowing that src starts with '"'.
 func (l *lexer) lexInterpretedString() error {
-	// si ferma quando trova il carattere '"' e ritorna errore
-	// quando trova un carattere Unicode che non è valido in una stringa
+	// it stops when it finds the '' 'character and returns an error when
+	// it finds a Unicode character that is not valid in a string
 	cols := 1
 	p := 1
 LOOP:
@@ -659,10 +661,10 @@ LOOP:
 	return nil
 }
 
-// lexRawString legge una stringa `...` sapendo che src inizia con '`'.
+// lexRawString reads a string `...` knowing that src starts with `` '.
 func (l *lexer) lexRawString() error {
-	// si ferma quando trova il carattere '`' e ritorna errore
-	// quando trova un carattere unicode non valido in una stringa
+	// it stops when it finds the '`' character and returns an error
+	// when it finds an invalid unicode character in a string
 	lin := l.line
 	col := l.column
 	p := 1

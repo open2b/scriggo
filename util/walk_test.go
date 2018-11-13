@@ -74,8 +74,8 @@ func TestWalk(t *testing.T) {
 		}
 	}
 
-	// Test individuale per le parentesi, in quanto queste vengono rimosse
-	// dal parser (non possono quindi essere inserite nella lista di test precedente).
+	// Individual test for brackets, as these are removed from the parser
+	// (they can not therefore be included in the previous test list).
 	var visitor2 TestVisitor
 	var pos *ast.Position = &ast.Position{1, 1, 0, 0}
 	var parTree *ast.Parentesis = ast.NewParentesis(pos, ast.NewIdentifier(pos, "a"))

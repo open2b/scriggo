@@ -24,12 +24,12 @@ func (e errVisitor) Error() string {
 	return e.err.Error()
 }
 
-// Visit elabora un nodo di un albero, scrivendo su un Writer
-// la rappresentazione del nodo stesso correttamente indentata.
-// Il metodo Visit viene chiamato dalla funzione Walk.
+// Visit elaborates a node of a tree, writing on a Writer the representation
+// of the same node correctly indented. The Visit method is called by the Walk
+// function.
 func (d *dumper) Visit(node ast.Node) Visitor {
 
-	// Gestione della chiamata v.Visit(nil) effettuata da Walk.
+	// Management of the v.Visit (nil) call made by Walk.
 	if node == nil {
 		d.indentLevel-- // Risale l'albero.
 		return nil
@@ -37,9 +37,10 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 
 	d.indentLevel++
 
-	// Nel caso in cui node contenga un riferimento
-	// ad un altro albero (ovvero node è di tipo Import, Extend, ShowPath), aggiunge il riferimento
-	// alla lista externalReferences per visitare i nodi con una chiamata ricorsiva della Dump.
+	// In the case where node contains a reference to another tree (ie node is
+	// of type Import, Extend, ShowPath), it adds the reference to the
+	// externalReferences list to visit the nodes with a recursive call of the
+	// Dump.
 	var tree *ast.Tree
 	switch n := node.(type) {
 	case *ast.Import:
@@ -49,13 +50,13 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	case *ast.ShowPath:
 		tree = n.Tree
 	default:
-		// Nessun riferimento da aggiungere, prosegue senza fare niente.
+		// No reference to add, it continues without doing anything.
 	}
 	if tree != nil {
 		d.externalReferences = append(d.externalReferences, tree)
 	}
 
-	// Se il nodo è di tipo Tree, lo scrive e ritorna senza fare altro.
+	// If the node is of type Tree, it writes it and returns without doing anything else.
 	if n, ok := node.(*ast.Tree); ok {
 		_, err := fmt.Fprintf(d.output, "\nTree: %v:%v\n", strconv.Quote(n.Path), n.Position)
 		if err != nil {
@@ -64,9 +65,8 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 		return d
 	}
 
-	// Cerca la rappresentazione come stringa di node.
-	// Se il caso non è qui definito, viene utilizzata la conversione
-	// a stringa di default del nodo.
+	// Look for the representation as a node string. If the case is not defined
+	// here, the default string conversion of the node is used.
 	var text string
 	switch n := node.(type) {
 	case *ast.Text:
@@ -81,7 +81,7 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 		text = fmt.Sprintf("%v", node)
 	}
 
-	// Inserisce il giusto livello di indentazione.
+	// Inserts the right level of indentation.
 	for i := 0; i < d.indentLevel; i++ {
 		_, err := fmt.Fprint(d.output, "│    ")
 		if err != nil {
@@ -89,7 +89,7 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 		}
 	}
 
-	// Determina il tipo rimuovendo il prefisso "*ast."
+	// Determines the type by removing the prefix "*ast."
 	typeStr := fmt.Sprintf("%T", node)[5:]
 
 	posStr := node.Pos().String()
@@ -102,11 +102,10 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	return d
 }
 
-// Dump scrive su w il dump dell'albero.
-// Nel caso in cui l'albero sia nil, la funzione interrompe l'esecuzione
-// restituendo un errore diverso da nil.
-// Nel caso in cui l'albero non sia esteso, la funzione conclude la sua
-// esecuzione dopo aver scritto l'albero di base restituendo un errore non nil.
+// Dump writes the tree dump on w. In the case where the tree is nil,
+// the function stops execution by returning an error other than nil.
+// In case the tree is not extended, the function ends its execution
+// after writing the base tree, returning a non-nil error.
 func Dump(w io.Writer, node ast.Node) (err error) {
 
 	defer func() {
@@ -126,7 +125,7 @@ func Dump(w io.Writer, node ast.Node) (err error) {
 	d := dumper{w, -1, []*ast.Tree{}}
 	Walk(&d, node)
 
-	// Scrive gli alberi che sono stati dichiarati come riferimenti esterni.
+	// Writes trees that have been declared as external references.
 	for _, tree := range d.externalReferences {
 		Dump(w, tree)
 	}

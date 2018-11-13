@@ -13,15 +13,15 @@ import (
 	"unicode"
 )
 
-// fieldNameVersion rappresenta il nome e la versione di un campo di una struct.
+// fieldNameVersion represents the name and version of a field in a struct.
 type fieldNameVersion struct {
 	name    string
 	version string
 	index   int
 }
 
-// structs mantiene l'associazione tra i nomi dei campi di una struct,
-// come sono chiamati nel template, e l'indice del campo nella struct.
+// structs maintains the association between the field names of a struct,
+// as they are called in the template, and the field index in the struct.
 var structs = struct {
 	fields map[reflect.Type][]fieldNameVersion
 	sync.RWMutex
@@ -29,8 +29,8 @@ var structs = struct {
 
 var errFieldNotExist = errors.New("field does not exist")
 
-// getStructField ritorna il valore del field di nome name della struct st.
-// Se il field non esiste ritorna l'errore errFieldNotExist.
+// getStructField returns the value of the field named name of the struct st.
+// If the field does not exist, the errFieldNotExist error returns.
 func getStructField(st reflect.Value, name, version string) (interface{}, error) {
 	for _, field := range getStructFields(st) {
 		if field.name == name && (field.version == "" || field.version == version) {
@@ -40,7 +40,7 @@ func getStructField(st reflect.Value, name, version string) (interface{}, error)
 	return nil, errFieldNotExist
 }
 
-// getStructFields ritorna i fields della struct st.
+// getStructFields returns the fields of the struct st.
 func getStructFields(st reflect.Value) []fieldNameVersion {
 	typ := st.Type()
 	structs.RLock()
@@ -76,8 +76,8 @@ func getStructFields(st reflect.Value) []fieldNameVersion {
 	return fields
 }
 
-// parseVarTag esegue il parsing del tag di un campo di una struct che funge
-// da variabile. Ne ritorna il nome e la versione.
+// parseVarTag parses the tag of a field of a struct that acts as a variable.
+// It returns the name and version.
 func parseVarTag(tag string) (string, string) {
 	sp := strings.SplitN(tag, ",", 2)
 	if len(sp) == 0 {

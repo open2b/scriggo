@@ -31,12 +31,12 @@ type WriterTo interface {
 	WriteTo(w io.Writer, ctx ast.Context) (n int, err error)
 }
 
-// errBreak è ritornato dall'esecuzione dello statement "break".
-// Viene gestito dallo statement "for" più interno.
+// errBreak returned from executing the "break" statement.
+// It is managed by the innermost "for" statement.
 var errBreak = errors.New("break is not in a loop")
 
-// errContinue è ritornato dall'esecuzione dello statement "break".
-// Viene gestito dallo statement "for" più interno.
+// errContinue is returned from the execution of the "break" statement.
+// It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
 // scope di variabili
@@ -44,15 +44,15 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
-// Execute esegue l'albero tree e scrive il risultato su wr.
-// Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
+// Execute runs the tree tree and writes the result to wr.
+// The variables in vars are defined in the environment during execution.
 //
-// vars può essere:
+// vars can be:
 //
-//   - un map con chiave di tipo string
-//   - un tipo con underlying type uno dei tipi map precedenti
-//   - una struct o puntatore a struct
-//   - un reflect.Value il cui valore concreto soddisfa uno dei precedenti
+//   - a map with a key of type string
+//   - a type with underlying type one of the previous map types
+//   - a struct or pointer to struct
+//   - a reflect.Value whose concrete value meets one of the previous ones
 //   - nil
 //
 func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h func(error) bool) error {
@@ -110,7 +110,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 	return err
 }
 
-// varsToScope converte delle variabili in uno scope.
+// varsToScope converts variables into a scope.
 func varsToScope(vars interface{}, version string) (scope, error) {
 
 	if vars == nil {
@@ -206,13 +206,13 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 	return nil, errors.New("template/exec: unsupported vars type")
 }
 
-// region rappresenta una region in uno scope.
+// region represents a region in a scope.
 type region struct {
 	path string
 	node *ast.Region
 }
 
-// state rappresenta lo stato di esecuzione di un albero.
+// state represents the state of execution of a tree.
 type state struct {
 	scope       map[string]scope
 	path        string
@@ -221,7 +221,7 @@ type state struct {
 	handleError func(error) bool
 }
 
-// errorf costruisce e ritorna un errore di esecuzione.
+// errorf builds and returns an execution error.
 func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
 	if pos == nil {
@@ -240,7 +240,7 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 	return err
 }
 
-// execute esegue i nodi nodes.
+// execute executes nodes.
 func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
 
 	var err error
@@ -698,8 +698,8 @@ Nodes:
 	return nil
 }
 
-// getExtendNode ritorna il nodo Extend di un albero.
-// Se il nodo non è presente ritorna nil.
+// getExtendNode returns the Extend node of a tree.
+// If the node is not present, returns nil.
 func getExtendNode(tree *ast.Tree) *ast.Extend {
 	if len(tree.Nodes) == 0 {
 		return nil

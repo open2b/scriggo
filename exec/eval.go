@@ -16,17 +16,16 @@ import (
 
 const maxInt = int64(^uint(0) >> 1)
 
-// HTML viene usato per le stringhe che contengono codice HTML
-// affinché show non le sottoponga ad escape.
-// Nelle espressioni si comporta come una stringa.
+// HTML is used for strings that contain HTML so that the show does
+// not escape them. In expressions it behaves like a string.
 type HTML string
 
-// Stringer è implementato da qualsiasi valore che si comporta come una stringa.
+// Stringer is implemented by any value that behaves like a string.
 type Stringer interface {
 	String() string
 }
 
-// Numberer è implementato da qualsiasi valore che si comporta come un numero.
+// Numberer is implemented by any value that behaves like a number.
 type Numberer interface {
 	Number() decimal.Decimal
 }
@@ -39,7 +38,7 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
-// eval valuta una espressione ritornandone il valore.
+// eval evaluates an expression by returning its value.
 func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -53,8 +52,8 @@ func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
 	return s.evalExpression(exp), nil
 }
 
-// evalExpression valuta una espressione ritornandone il valore.
-// In caso di errore chiama panic con l'errore come parametro.
+// evalExpression evaluates an expression and returns its value.
+// In the event of an error, call panic with the error as a parameter.
 func (s *state) evalExpression(expr ast.Expression) interface{} {
 	switch e := expr.(type) {
 	case *ast.String:
@@ -84,8 +83,8 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 	}
 }
 
-// evalUnaryOperator valuta un operatore unario e ne ritorna il valore.
-// In caso di errore chiama panic con l'errore come parametro.
+// evalUnaryOperator evaluates a unary operator and returns its value.
+// In the event of an error, call panic with the error as a parameter.
 func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var e = asBase(s.evalExpression(node.Expr))
 	switch node.Op {
@@ -114,8 +113,8 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	panic("Unknown Unary Operator")
 }
 
-// evalBinaryOperator valuta un operatore binario e ne ritorna il valore.
-// In caso di errore chiama panic con l'errore come parametro.
+// evalBinaryOperator evaluates a binary operator and returns its value.
+// In the event of an error, call panic with the error as a parameter.
 func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 	expr1 := asBase(s.evalExpression(node.Expr1))
@@ -807,7 +806,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	return v
 }
 
-// isUntypedNil indica se expr è un untyped nil.
+// isUntypedNil indicates if expr is an untyped nil.
 func (s *state) isUntypedNil(expr ast.Expression) bool {
 	if n, ok := expr.(*ast.Identifier); ok {
 		if n.Name != "nil" {
@@ -835,8 +834,8 @@ func (s *state) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-// htmlToStringType ritorna e1 e e2 con tipo string al posto di HTML.
-// Se non hanno tipo HTML vengono ritornate invariate.
+// htmlToStringType returns e1 and e2 with type string instead of HTML.
+// If they do not have HTML type they are returned unchanged.
 func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 	if e, ok := e1.(HTML); ok {
 		e1 = string(e)

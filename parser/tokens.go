@@ -10,7 +10,7 @@ import (
 	"open2b/template/ast"
 )
 
-// tipo di token.
+// token type.
 type tokenType int
 
 const (
@@ -120,16 +120,16 @@ func (tt tokenType) String() string {
 	panic("invalid token type")
 }
 
-// informazioni su un token da restituire
+// information about a token to return
 type token struct {
-	typ tokenType     // tipo
-	pos *ast.Position // posizione nel buffer
-	txt []byte        // testo del token
-	ctx ast.Context   // contesto
-	lin int           // linea del lexer quando è stato emesso il token
+	typ tokenType     // type
+	pos *ast.Position // position in the buffer
+	txt []byte        // token text
+	ctx ast.Context   // context
+	lin int           // line of the lexer when the token was issued
 }
 
-// String ritorna la stringa che rappresenta il token.
+// String returns the string that represents the token.
 func (tok token) String() string {
 	if tok.typ == tokenText {
 		return fmt.Sprintf("%q", tok.txt)

@@ -12,19 +12,19 @@ import (
 	"open2b/template/ast"
 )
 
-// Reader definisce un tipo che consente di leggere i sorgenti di un template.
+// Reader defines a type that lets you read the source of a template.
 //
-// Read deve ritornare sempre un nuovo albero in quanto il chiamante può
-// modificare l'albero ritornato.
+// Read must always return a new tree because the caller can modify
+// the returned tree.
 type Reader interface {
 	Read(path string, ctx ast.Context) (*ast.Tree, error)
 }
 
-// DirReader implementa un Reader che legge i sorgenti
-// di un template dai file in una directory.
+// DirReader implements a Reader that reads the source of a template
+// from files in a directory.
 type DirReader string
 
-// Read implementa il metodo Read del Reader.
+// Read implements the Read method of the Reader.
 func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
 	if err != nil {

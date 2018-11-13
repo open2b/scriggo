@@ -11,10 +11,9 @@ import (
 	"unicode/utf8"
 )
 
-// toAbsolutePath unisce dir con path per ottenere un path assoluto.
-// dir deve essere assoluto e path relativo. I parametri non vengono
-// validati però viene ritornato errore se il path risultante è
-// fuori dalla root "/".
+// toAbsolutePath combines dir with path to obtain an absolute path.
+// dir must be absolute and relative path. The parameters are not validated,
+// but an error is returned if the resulting path is outside the root "/".
 func toAbsolutePath(dir, path string) (string, error) {
 	if !strings.Contains(path, "..") {
 		return dir + path, nil
@@ -36,19 +35,20 @@ func toAbsolutePath(dir, path string) (string, error) {
 }
 
 func isValidDirName(name string) bool {
-	// deve essere lungo almeno un carattere e meno di 256
+	// must be at least one character long and less than 256
 	if name == "" || utf8.RuneCountInString(name) >= 256 {
 		return false
 	}
-	// non deve essere '.' e non deve contenere '..'
+	// should not be '.' and must not contain '..'
 	if name == "." || strings.Contains(name, "..") {
 		return false
 	}
-	// il primo e ultimo carattere non devono essere spazi
+	// the first and last character should not be spaces
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// non deve contenere i caratteri da NUL a US e i caratteri " * / : < > ? \ | DEL
+	// must not contain characters from NUL to US and the characters
+	// " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
 			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
@@ -56,7 +56,7 @@ func isValidDirName(name string) bool {
 			return false
 		}
 	}
-	// non deve essere un nome riservato per Windows
+	// it does not have to be a reserved name for Windows
 	name = strings.ToLower(name)
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
@@ -69,27 +69,28 @@ func isValidDirName(name string) bool {
 }
 
 func isValidFileName(name string) bool {
-	// deve essere lungo almeno 3 caratteri e meno di 256
+	// it must be at least 3 characters long and less than 256
 	var length = utf8.RuneCountInString(name)
 	if length <= 2 || length >= 256 {
 		return false
 	}
-	// il primo e ne l'ultimo carattere non possono essere un punto
+	// the first and the last character can not be a point
 	if name[0] == '.' || name[len(name)-1] == '.' {
 		return false
 	}
-	// deve essere presente l'estensione
+	// the extension must be present
 	var dot = strings.LastIndexByte(name, '.')
 	name = strings.ToLower(name)
 	var ext = name[dot+1:]
 	if strings.IndexByte(ext, '.') >= 0 {
 		return false
 	}
-	// il primo e ultimo carattere non devono essere spazi
+	// the first and last character should not be spaces
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// non deve contenere i caratteri da NUL a US e i caratteri " * / : < > ? \ | DEL
+	// must not contain characters from NUL to US and characters
+	// " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
 			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
@@ -97,7 +98,7 @@ func isValidFileName(name string) bool {
 			return false
 		}
 	}
-	// non deve essere un nome riservato per Windows
+	// it does not have to be a reserved name for Windows
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
 		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
@@ -108,27 +109,27 @@ func isValidFileName(name string) bool {
 	return true
 }
 
-// isValidFilePath indica se path è valido come path di un include o show path.
-// Sono path validi: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
-// Sono path non validi: '', '/', 'a/', '..', 'a/..'.
+// isValidFilePath indicates whether path is valid as an include or show path.
+// They are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
+// These are invalid paths: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
-	// deve avere almeno un carattere e non terminare con '/'
+	// must have at least one character and do not end with '/'
 	if path == "" || path[len(path)-1] == '/' {
 		return false
 	}
-	// splitta il path nei vari nomi
+	// splits the path in the various names
 	var names = strings.Split(path, "/")
-	// i primi nomi devono essere delle directory o '..'
+	// the first names must be directories or '..'
 	for i, name := range names[:len(names)-1] {
-		// se il primo nome è vuoto...
+		// if the first name is empty...
 		if i == 0 && name == "" {
-			// ...allora path inizia con '/'
+			// ...then path starts with '/'
 			continue
 		}
 		if name != ".." && !isValidDirName(name) {
 			return false
 		}
 	}
-	// l'ultimo nome deve essere un file
+	// the last name must be a file
 	return isValidFileName(names[len(names)-1])
 }

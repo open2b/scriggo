@@ -25,16 +25,15 @@ const (
 )
 
 var (
-	// ErrInvalid è ritornato da Execute quando il parametro path non è valido.
+	// ErrInvalid is returned from Execute when the path parameter is not valid.
 	ErrInvalid = errors.New("template: invalid argument")
 
-	// ErrNotExist è ritornato da Execute quando il path non esiste.
+	// ErrNotExist is returned from Execute when the path does not exist.
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-// Un valore ExecErrors è ritornato da Execute quando si verificano uno o più
-// errori di esecuzione. Riporta tutti gli errori di esecuzione nell'ordine
-// in cui si sono verificati.
+// An ExecErrors value is returned from Execute when one or more execution
+// errors occur. Reports all execution errors in the order in which they occurred.
 type ExecErrors []*ExecError
 
 func (ee ExecErrors) Error() string {
@@ -55,19 +54,19 @@ type Template struct {
 	ctx    ast.Context
 }
 
-// New ritorna un template i cui file vengono letti dalla directory dir
-// e parsati nel contesto ctx.
+// New returns a template whose files are read from the dir directory and
+// parsed in the ctx context.
 func New(dir string, ctx Context) *Template {
 	var r = parser.DirReader(dir)
 	return &Template{parser: parser.NewParser(r), ctx: ctx}
 }
 
-// Execute esegue il file del template con il path indicato, relativo
-// alla directory del template, e scrive il risultato su out.
-// Le variabili in vars sono definite nell'ambiente durante l'esecuzione.
+// Execute executes the template file with the specified path, relative to
+// the template directory, and writes the result to out. The variables in
+// vars are defined in the environment during execution.
 //
-// In caso di errore durante l'esecuzione, questa continua ugualmente per
-// poi ritornare un ExecError con tutti gli errori che si sono verificati.
+// In the event of an error during execution, it continues in the same way
+// and then returns an ExecError with all errors that have occurred.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	tree, err := t.parser.Parse(path, t.ctx)
 	if err != nil {

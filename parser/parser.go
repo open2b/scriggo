@@ -18,10 +18,10 @@ import (
 )
 
 var (
-	// ErrInvalid è ritornato dal metodo Parse quando il parametro path non è valido.
+	// ErrInvalid is returned from the Parse method when the path parameter is not valid.
 	ErrInvalid = errors.New("template/parser: invalid argument")
 
-	// ErrNotExist è ritornato dal metodo Parse e da una ReadFunc quando il path non esiste.
+	// ErrNotExist is returned from the Parse method and from a ReadFunc when the path does not exist.
 	ErrNotExist = errors.New("template/parser: path does not exist")
 )
 
@@ -41,41 +41,41 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// Parse parsa src nel contesto ctx e ne restituisce l'albero non espanso.
+// Parse parses src in the context ctc and returns the unexpanded tree.
 func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
-	// crea il lexer
+	// create the lexer
 	var lex = newLexer(src, ctx)
 
-	// albero risultato del parsing
+	// tree result of the parsing
 	var tree = ast.NewTree("", nil)
 
-	// antenati dalla radice fino al genitore
+	// ancestors from the root up to the parent
 	var ancestors = []ast.Node{tree}
 
-	// indica se è stato esteso
+	// indicates if it has been extended
 	var isExtended = false
 
-	// indica  se ci trova in una region
+	// indicates if he is in a region
 	var isInRegion = false
 
-	// linea corrente
+	// current line
 	var line = 0
 
-	// primo nodo Text della linea corrente
+	// first Text node of the current line
 	var firstText *ast.Text
 
-	// indica se è presente un token nella linea corrente per cui sarebbe
-	// possibile tagliare gli spazi iniziali e finali
+	// indicates if there is a token in the current line for which it would
+	// be possible to cut the initial and final spaces
 	var cutSpacesToken bool
 
-	// numero di token, non Text, nella linea corrente
+	// number of tokens, not Text, in the current line
 	var tokensInLine = 0
 
-	// last byte index
+	// index of the last byte
 	var end = len(src) - 1
 
-	// legge tutti i token
+	// read all the tokens
 	for tok := range lex.tokens {
 
 		var text *ast.Text
@@ -93,7 +93,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 			tokensInLine = 0
 		}
 
-		// il genitore è sempre l'ultimo antenato
+		// the parent is always the last ancestor
 		parent := ancestors[len(ancestors)-1]
 
 		switch tok.typ {
@@ -647,7 +647,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// treeCacheEntry implementa una entry della cache dei tree.
+// treeCacheEntry implements a tree cache entry.
 type treeCacheEntry struct {
 	path string
 	ctx  ast.Context
@@ -666,19 +666,20 @@ func NewParser(r Reader) *Parser {
 	}
 }
 
-// Parse legge il sorgente in path, tramite il reader, nel contesto ctx, espande i nodi Extend,
-// Import e ShowPath se presenti per poi ritornare l'albero espanso.
-// path deve essere assoluto.
+// Parse reads the source in path, through the reader, in the ctx context,
+// expands the Extend, Import and ShowPath nodes if present and then returns
+// the expanded tree.
+// path must be absolute.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	var err error
 
-	// path deve essere valido e assoluto
+	// path must be valid and absolute
 	if !isValidFilePath(path) || path[0] != '/' {
 		return nil, ErrInvalid
 	}
 
-	// pulisce path rimuovendo ".."
+	// clean path by removing ".."
 	path, err = toAbsolutePath("/", path[1:])
 	if err != nil {
 		return nil, err
@@ -687,7 +688,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	// verifica se è già stato parsato
+	// check if it has already been parsed
 	if tree, ok := p.trees[treeCacheEntry{path, ctx}]; ok {
 		return tree, nil
 	}
@@ -701,7 +702,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	var dir = path[:strings.LastIndex(path, "/")+1]
 
-	// espande i sotto alberi
+	// expands the sub trees
 	err = pp.expand(tree.Nodes, dir)
 	if err != nil {
 		if err2, ok := err.(*Error); ok && err2.Path == "" {
@@ -712,23 +713,23 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	// determina il nodo extend se presente
+	// determines the extend node if present
 	var extend = getExtendNode(tree)
 
 	if extend != nil && extend.Tree == nil {
 		var exPath string
 		if extend.Path[0] == '/' {
-			// pulisce il path rimuovendo ".."
+			// clean the path by removing ".."
 			exPath, err = toAbsolutePath("/", extend.Path[1:])
 		} else {
-			// determina il path assoluto
+			// determines the absolute path
 			exPath, err = toAbsolutePath(dir, extend.Path)
 		}
 		if err != nil {
 			return nil, err
 		}
 		var tr *ast.Tree
-		// verifica se è già stato parsato
+		// check if it has already been parsed
 		tr, ok := p.trees[treeCacheEntry{exPath, ctx}]
 		if !ok {
 			tr, err = p.reader.Read(exPath, extend.Context)
@@ -738,7 +739,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 				}
 				return nil, err
 			}
-			// espande l'albero
+			// expands the tree
 			pp.paths = append(pp.paths, exPath)
 			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
 			err = pp.expand(tr.Nodes, d)
@@ -752,7 +753,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			}
 			p.trees[treeCacheEntry{exPath, ctx}] = tr
 		}
-		// verifica che l'albero di extend non contenga a sua volta extend
+		// verifies that the extend tree does not in turn extend
 		if ex := getExtendNode(tr); ex != nil {
 			return nil, &Error{tree.Path, *(ex.Pos()), fmt.Errorf("extend document contains extend")}
 		}
@@ -780,16 +781,16 @@ func (pp *parsing) path() string {
 func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
 	if path[0] == '/' {
-		// pulisce il path rimuovendo ".."
+		// clean the path by removing ".."
 		path, err = toAbsolutePath("/", path[1:])
 	} else {
-		// determina il path assoluto
+		// determines the absolute path
 		path, err = toAbsolutePath(dir, path)
 	}
 	if err != nil {
 		return nil, err
 	}
-	// verifica che non ci siano cicli
+	// verify that there are no cycles
 	for _, p := range pp.paths {
 		if p == path {
 			return nil, CycleError(path)
@@ -819,8 +820,8 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 	return tree, nil
 }
 
-// expand espande i nodi Import e ShowPath dell'albero tree
-// chiamando read e anteponendo dir al path passato come argomento.
+// expand expands the Import and ShowPath nodes of the tree tree by calling
+// read and prefixing the path passed as an argument.
 func (pp *parsing) expand(nodes []ast.Node, dir string) error {
 
 	for _, node := range nodes {
@@ -901,8 +902,8 @@ func addChild(parent ast.Node, node ast.Node) {
 	}
 }
 
-// getExtendNode ritorna il nodo Extend di un albero.
-// Se il nodo non è presente ritorna nil.
+// getExtendNode returns the Extend node of a tree.
+// If the node is not present, return nil.
 func getExtendNode(tree *ast.Tree) *ast.Extend {
 	if len(tree.Nodes) == 0 {
 		return nil
@@ -918,14 +919,13 @@ func getExtendNode(tree *ast.Tree) *ast.Extend {
 	return nil
 }
 
-// cutSpaces taglia gli spazi iniziali e finali da una linea dove first e last
-// sono rispettivamente il nodo Text iniziale e finale.
+// cutSpaces cuts the leading and trailing spaces from a line where first and
+// last are respectively the initial and final Text node.
 func cutSpaces(first, last *ast.Text) {
 	var firstCut int
 	if first != nil {
-		// perché gli spazi possano essere tagliati, first.Text deve contenere
-		// solo ' ', '\t' e '\r', oppure dopo l'ultimo '\n' deve contenere solo
-		// ' ', '\t' e '\r'.
+		// so that spaces can be cut, first.Text must only contain '', '\t' and '\r',
+		// or after the last '\n' must only contain '', '\t' and '\r'.
 		txt := first.Text
 		for i := len(txt) - 1; i >= 0; i-- {
 			c := txt[i]
@@ -939,9 +939,8 @@ func cutSpaces(first, last *ast.Text) {
 		}
 	}
 	if last != nil {
-		// perché gli spazi possano essere tagliati, last.Text deve contenere
-		// solo ' ', '\t' e '\r', oppure prima del primo '\n' deve contenere solo
-		// ' ', '\t' e '\r'.
+		// so that the spaces can be cut, last.Text must contain only '', '\t' and '\r',
+		// or before the first '\n' must only contain '', '\t' and '\r'.
 		txt := last.Text
 		var lastCut = len(txt)
 		for i := 0; i < len(txt); i++ {
