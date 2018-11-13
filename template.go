@@ -57,7 +57,7 @@ type Template struct {
 // New ritorna un template i cui file vengono letti dalla directory dir
 // e parsati nel contesto ctx.
 func New(dir string, ctx Context) *Template {
-	var r parser.Reader = parser.DirReader(dir)
+	var r = parser.DirReader(dir)
 	return &Template{parser: parser.NewParser(r), ctx: ctx}
 }
 
