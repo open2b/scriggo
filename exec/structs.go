@@ -30,7 +30,7 @@ var structs = struct {
 var errFieldNotExist = errors.New("field does not exist")
 
 // getStructField returns the value of the field named name of the struct st.
-// If the field does not exist, the errFieldNotExist error returns.
+// If the field does not exist, the errFieldNotExist error is returned.
 func getStructField(st reflect.Value, name, version string) (interface{}, error) {
 	for _, field := range getStructFields(st) {
 		if field.name == name && (field.version == "" || field.version == version) {

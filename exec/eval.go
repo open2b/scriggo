@@ -53,7 +53,7 @@ func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
 }
 
 // evalExpression evaluates an expression and returns its value.
-// In the event of an error, call panic with the error as a parameter.
+// In the event of an error, calls panic with the error as parameter.
 func (s *state) evalExpression(expr ast.Expression) interface{} {
 	switch e := expr.(type) {
 	case *ast.String:
@@ -84,7 +84,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 }
 
 // evalUnaryOperator evaluates a unary operator and returns its value.
-// In the event of an error, call panic with the error as a parameter.
+// On error it calls panic with the error as parameter.
 func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var e = asBase(s.evalExpression(node.Expr))
 	switch node.Op {
@@ -114,7 +114,7 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
-// In the event of an error, call panic with the error as a parameter.
+// On error it calls panic with the error as parameter.
 func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 	expr1 := asBase(s.evalExpression(node.Expr1))

@@ -65,8 +65,8 @@ func New(dir string, ctx Context) *Template {
 // the template directory, and writes the result to out. The variables in
 // vars are defined in the environment during execution.
 //
-// In the event of an error during execution, it continues in the same way
-// and then returns an ExecError with all errors that have occurred.
+// In the event of an error during execution, it continues and then returns
+// an ExecError with all errors that have occurred.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	tree, err := t.parser.Parse(path, t.ctx)
 	if err != nil {

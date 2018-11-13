@@ -197,7 +197,7 @@ LOOP:
 			// <![CDATA[...]]>
 			if p+11 < len(l.src) && l.src[p+1] == '!' {
 				if bytes.HasPrefix(l.src[p:], cdataStart) {
-					// skip the CDATA section
+					// skips the CDATA section
 					p += 9
 					l.column += 9
 					var t = bytes.Index(l.src[p:], cdataEnd)
@@ -326,7 +326,7 @@ func (l *lexer) lexCode() error {
 	if len(l.src) == 0 {
 		return nil
 	}
-	// endLineAsSemicolon indicates if "\ n" should be treated as ";"
+	// endLineAsSemicolon indicates if "\n" should be treated as ";"
 	var endLineAsSemicolon = false
 LOOP:
 	for len(l.src) > 0 {
@@ -513,9 +513,9 @@ func isSpace(s byte) bool {
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that
-// src starts with a s byte character.
+// src starts with a character with a length of s bytes.
 func (l *lexer) lexIdentifierOrKeyword(s int) bool {
-	// it stops only when a character can not be part
+	// stops only when a character can not be part
 	// of the identifier or keyword
 	cols := 1
 	p := s
@@ -562,7 +562,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 }
 
 // lexNumber reads a number (int or decimal) knowing that src starts with
-// '0' .. '9' or '.'.
+// '0'..'9' or '.'.
 func (l *lexer) lexNumber() {
 	// it stops only if a character can not be part of the number
 	hasDot := l.src[0] == '.'
@@ -589,7 +589,7 @@ func (l *lexer) lexNumber() {
 
 // lexInterpretedString reads a string "..." knowing that src starts with '"'.
 func (l *lexer) lexInterpretedString() error {
-	// it stops when it finds the '' 'character and returns an error when
+	// stops when it finds the '"' character and returns an error when
 	// it finds a Unicode character that is not valid in a string
 	cols := 1
 	p := 1
@@ -661,10 +661,10 @@ LOOP:
 	return nil
 }
 
-// lexRawString reads a string `...` knowing that src starts with `` '.
+// lexRawString reads a string `...` knowing that src starts with '`'.
 func (l *lexer) lexRawString() error {
-	// it stops when it finds the '`' character and returns an error
-	// when it finds an invalid unicode character in a string
+	// stops when it finds the '`' character and returns an error
+	// when it finds an invalid Unicode character in a string
 	lin := l.line
 	col := l.column
 	p := 1

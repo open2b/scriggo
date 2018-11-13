@@ -126,7 +126,7 @@ type token struct {
 	pos *ast.Position // position in the buffer
 	txt []byte        // token text
 	ctx ast.Context   // context
-	lin int           // line of the lexer when the token was issued
+	lin int           // line of the lexer when the token was emitted
 }
 
 // String returns the string that represents the token.

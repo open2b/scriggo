@@ -129,7 +129,7 @@ func (t Text) String() string {
 	return t.Text
 }
 
-// Var represents a statement {% var identifier = expression%}.
+// Var represents a statement {% var identifier = expression %}.
 type Var struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identificatore.
@@ -144,7 +144,7 @@ func (v Var) String() string {
 	return fmt.Sprintf("{%% var %v = %v %%}", v.Ident, v.Expr)
 }
 
-// Assignment represents a statement {% identifier = expression%}.
+// Assignment represents a statement {% identifier = expression %}.
 type Assignment struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identificatore.
@@ -159,7 +159,7 @@ func (a Assignment) String() string {
 	return fmt.Sprintf("{%% %v = %v %%}", a.Ident, a.Expr)
 }
 
-// For represents a statement {% for ...%}.
+// For represents a statement {% for ... %}.
 type For struct {
 	*Position             // position in the source.
 	Index     *Identifier // index.
@@ -176,7 +176,7 @@ func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, no
 	return &For{pos, index, ident, expr1, expr2, nodes}
 }
 
-// Break represents a statement {% break%}.
+// Break represents a statement {% break %}.
 type Break struct {
 	*Position // position in the source.
 }
@@ -185,7 +185,7 @@ func NewBreak(pos *Position) *Break {
 	return &Break{pos}
 }
 
-// Continue represents a statement {% continue%}.
+// Continue represents a statement {% continue %}.
 type Continue struct {
 	*Position // position in the source.
 }
@@ -194,7 +194,7 @@ func NewContinue(pos *Position) *Continue {
 	return &Continue{pos}
 }
 
-// If represents a statement {% if ...%}.
+// If represents a statement {% if ... %}.
 type If struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns true or false.
@@ -209,7 +209,7 @@ func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
 	return &If{pos, expr, then, els}
 }
 
-// Region represents a statement {% region ...%}.
+// Region represents a statement {% region ... %}.
 type Region struct {
 	*Position                // position in the source.
 	Ident      *Identifier   // name.
@@ -224,7 +224,7 @@ func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body 
 	return &Region{pos, ident, parameters, body}
 }
 
-// ShowRegion represents a statement {% show <region>%}.
+// ShowRegion represents a statement {% show <region> %}.
 type ShowRegion struct {
 	*Position              // position in the source.
 	Import    *Identifier  // name of the import.
@@ -236,7 +236,7 @@ func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Express
 	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments}
 }
 
-// ShowPath represents a statement {% show <path>%}.
+// ShowPath represents a statement {% show <path> %}.
 type ShowPath struct {
 	*Position         // position in the source.
 	Path      string  // path of the source to show.
@@ -263,7 +263,7 @@ func (v Value) String() string {
 	return fmt.Sprintf("{{ %v }}", v.Expr)
 }
 
-// Extend represents a statement {% extend ...%}.
+// Extend represents a statement {% extend ... %}.
 type Extend struct {
 	*Position         // position in the source.
 	Path      string  // path del file da estendere.
@@ -279,7 +279,7 @@ func (e Extend) String() string {
 	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
 }
 
-// Import represents a statement {% import ...%}.
+// Import represents a statement {% import ... %}.
 type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identificatore.

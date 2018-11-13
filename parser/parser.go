@@ -41,7 +41,7 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// Parse parses src in the context ctc and returns the unexpanded tree.
+// Parse parses src in the context ctx and returns the unexpanded tree.
 func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	// create the lexer
@@ -666,7 +666,7 @@ func NewParser(r Reader) *Parser {
 	}
 }
 
-// Parse reads the source in path, through the reader, in the ctx context,
+// Parse reads the source in path, with the reader, in the ctx context,
 // expands the Extend, Import and ShowPath nodes if present and then returns
 // the expanded tree.
 // path must be absolute.
@@ -679,7 +679,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, ErrInvalid
 	}
 
-	// clean path by removing ".."
+	// cleans path by removing ".."
 	path, err = toAbsolutePath("/", path[1:])
 	if err != nil {
 		return nil, err
@@ -688,7 +688,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	// check if it has already been parsed
+	// checks if it has already been parsed
 	if tree, ok := p.trees[treeCacheEntry{path, ctx}]; ok {
 		return tree, nil
 	}
@@ -719,7 +719,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	if extend != nil && extend.Tree == nil {
 		var exPath string
 		if extend.Path[0] == '/' {
-			// clean the path by removing ".."
+			// cleans the path by removing ".."
 			exPath, err = toAbsolutePath("/", extend.Path[1:])
 		} else {
 			// determines the absolute path
@@ -729,7 +729,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			return nil, err
 		}
 		var tr *ast.Tree
-		// check if it has already been parsed
+		// checks if it has already been parsed
 		tr, ok := p.trees[treeCacheEntry{exPath, ctx}]
 		if !ok {
 			tr, err = p.reader.Read(exPath, extend.Context)
@@ -753,7 +753,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			}
 			p.trees[treeCacheEntry{exPath, ctx}] = tr
 		}
-		// verifies that the extend tree does not in turn extend
+		// verifies that the extend tree does not also contain extend
 		if ex := getExtendNode(tr); ex != nil {
 			return nil, &Error{tree.Path, *(ex.Pos()), fmt.Errorf("extend document contains extend")}
 		}
@@ -781,7 +781,7 @@ func (pp *parsing) path() string {
 func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, error) {
 	var err error
 	if path[0] == '/' {
-		// clean the path by removing ".."
+		// cleans the path by removing ".."
 		path, err = toAbsolutePath("/", path[1:])
 	} else {
 		// determines the absolute path
@@ -790,7 +790,7 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 	if err != nil {
 		return nil, err
 	}
-	// verify that there are no cycles
+	// verifies that there are no cycles
 	for _, p := range pp.paths {
 		if p == path {
 			return nil, CycleError(path)
@@ -820,8 +820,8 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 	return tree, nil
 }
 
-// expand expands the Import and ShowPath nodes of the tree tree by calling
-// read and prefixing the path passed as an argument.
+// expand expands the Import and ShowPath nodes of the tree by calling
+// read and prefixing the path passed as an argument with dir.
 func (pp *parsing) expand(nodes []ast.Node, dir string) error {
 
 	for _, node := range nodes {
