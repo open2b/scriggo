@@ -95,7 +95,6 @@ type Tree struct {
 	*Position
 	Path       string // path dell'albero.
 	Nodes      []Node // nodi di primo livello dell'albero.
-	IsExpanded bool   // indica se l'albero è stato espanso.
 }
 
 func NewTree(path string, nodes []Node) *Tree {

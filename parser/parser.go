@@ -647,13 +647,23 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
+// treeCacheEntry implementa una entry della cache dei tree.
+type treeCacheEntry struct {
+	path string
+	ctx  ast.Context
+}
+
 type Parser struct {
 	reader Reader
+	trees  map[treeCacheEntry]*ast.Tree
 	sync.Mutex
 }
 
 func NewParser(r Reader) *Parser {
-	return &Parser{reader: r}
+	return &Parser{
+		reader: r,
+		trees:  map[treeCacheEntry]*ast.Tree{},
+	}
 }
 
 // Parse legge il sorgente in path, tramite il reader, nel contesto ctx, espande i nodi Extend,
@@ -682,12 +692,12 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	p.Lock()
 	defer p.Unlock()
 
-	// verifica se è già stato espanso
-	if tree.IsExpanded {
+	// verifica se è già stato parsato
+	if tree, ok := p.trees[treeCacheEntry{path, ctx}]; ok {
 		return tree, nil
 	}
 
-	pp := newParsing(path, p.reader)
+	pp := newParsing(p, path)
 
 	var dir = path[:strings.LastIndex(path, "/")+1]
 
@@ -718,53 +728,49 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 			return nil, err
 		}
 		var tr *ast.Tree
-		tr, err = p.reader.Read(exPath, extend.Context)
-		if err != nil {
-			if err == ErrNotExist {
-				err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
+		// verifica se è già stato parsato
+		tr, ok := p.trees[treeCacheEntry{exPath, ctx}]
+		if !ok {
+			tr, err = p.reader.Read(exPath, extend.Context)
+			if err != nil {
+				if err == ErrNotExist {
+					err = &Error{tree.Path, *(extend.Pos()), fmt.Errorf("extend path %q does not exist", exPath)}
+				}
+				return nil, err
 			}
-			return nil, err
+			// espande l'albero
+			pp.paths = append(pp.paths, exPath)
+			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
+			err = pp.expand(tr.Nodes, d)
+			if err != nil {
+				if err2, ok := err.(*Error); ok && err2.Path == "" {
+					err2.Path = exPath
+				} else if err2, ok := err.(CycleError); ok {
+					err = CycleError(fmt.Sprintf("%s\n\textends %s\n\t%s", path, exPath, string(err2)))
+				}
+				return nil, err
+			}
+			p.trees[treeCacheEntry{exPath, ctx}] = tr
 		}
 		// verifica che l'albero di extend non contenga a sua volta extend
 		if ex := getExtendNode(tr); ex != nil {
 			return nil, &Error{tree.Path, *(ex.Pos()), fmt.Errorf("extend document contains extend")}
 		}
-		// verifica se è stato espanso
-		if !tr.IsExpanded {
-			// espande i sotto alberi
-			pp.paths = append(pp.paths, exPath)
-			var d = exPath[:strings.LastIndexByte(exPath, '/')+1]
-			err = pp.expand(tr.Nodes, d)
-			if err == nil {
-				tr.IsExpanded = true
-			}
-		}
-		if err != nil {
-			if err2, ok := err.(*Error); ok && err2.Path == "" {
-				err2.Path = exPath
-			} else if err2, ok := err.(CycleError); ok {
-				err = CycleError(fmt.Sprintf("%s\n\textends %s\n\t%s", path, exPath, string(err2)))
-			}
-			return nil, err
-		}
 		extend.Tree = tr
 	}
 
-	tree.IsExpanded = true
+	p.trees[treeCacheEntry{path, ctx}] = tree
 
 	return tree, nil
 }
 
 type parsing struct {
-	reader Reader
+	parser *Parser
 	paths  []string
 }
 
-func newParsing(path string, r Reader) *parsing {
-	if _, ok := r.(*CacheReader); !ok {
-		r = NewCacheReader(r)
-	}
-	return &parsing{r, []string{path}}
+func newParsing(parser *Parser, path string) *parsing {
+	return &parsing{parser, []string{path}}
 }
 
 func (pp *parsing) path() string {
@@ -790,25 +796,24 @@ func (pp *parsing) expandTree(dir, path string, ctx ast.Context) (*ast.Tree, err
 		}
 	}
 	pp.paths = append(pp.paths, path)
-	var tree *ast.Tree
-	tree, err = pp.reader.Read(path, ctx)
-	if err != nil {
-		return nil, err
-	}
-	// se non è espanso lo espande
-	if !tree.IsExpanded {
+	tree, ok := pp.parser.trees[treeCacheEntry{path, ctx}]
+	if !ok {
+		tree, err = pp.parser.reader.Read(path, ctx)
+		if err != nil {
+			return nil, err
+		}
 		var d = path[:strings.LastIndexByte(path, '/')+1]
 		err = pp.expand(tree.Nodes, d)
-	}
-	if err != nil {
-		if err2, ok := err.(*Error); ok {
-			if strings.HasSuffix(err2.Error(), "does not exist") {
-				err2.Path = path
+		if err != nil {
+			if err2, ok := err.(*Error); ok {
+				if strings.HasSuffix(err2.Error(), "does not exist") {
+					err2.Path = path
+				}
+			} else if err2, ok := err.(CycleError); ok {
+				err = CycleError(path + "\n\t" + string(err2))
 			}
-		} else if err2, ok := err.(CycleError); ok {
-			err = CycleError(path + "\n\t" + string(err2))
+			return nil, err
 		}
-		return nil, err
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
 	return tree, nil
