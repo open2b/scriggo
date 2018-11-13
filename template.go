@@ -31,9 +31,12 @@ var (
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-type ExecError []error
+// Un valore ExecErrors è ritornato da Execute quando si verificano uno o più
+// errori di esecuzione. Riporta tutti gli errori di esecuzione nell'ordine
+// in cui si sono verificati.
+type ExecErrors []*ExecError
 
-func (ee ExecError) Error() string {
+func (ee ExecErrors) Error() string {
 	var s string
 	for _, e := range ee {
 		if s != "" {
@@ -43,6 +46,8 @@ func (ee ExecError) Error() string {
 	}
 	return s
 }
+
+type ExecError = exec.Error
 
 type Template struct {
 	parser *parser.Parser
@@ -67,20 +72,23 @@ func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	if err != nil {
 		return convertError(err)
 	}
-	var errors []error
+	var errors ExecErrors
 	err = exec.Execute(out, tree, "", vars, func(err error) bool {
-		if errors == nil {
-			errors = []error{err}
-		} else {
-			errors = append(errors, err)
+		if e, ok := err.(*ExecError); ok {
+			if errors == nil {
+				errors = ExecErrors{e}
+			} else {
+				errors = append(errors, e)
+			}
+			return true
 		}
-		return true
+		return false
 	})
 	if err != nil {
 		return err
 	}
 	if errors != nil {
-		return ExecError(errors)
+		return errors
 	}
 	return nil
 }
