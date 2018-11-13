@@ -684,17 +684,17 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	tree, err := p.reader.Read(path, ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	p.Lock()
 	defer p.Unlock()
 
 	// verifica se è già stato parsato
 	if tree, ok := p.trees[treeCacheEntry{path, ctx}]; ok {
 		return tree, nil
+	}
+
+	tree, err := p.reader.Read(path, ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	pp := newParsing(p, path)
