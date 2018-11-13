@@ -14,6 +14,9 @@ import (
 
 type HTML = exec.HTML
 
+// viene fatto l'aliasing di Context e vengono ridefinite le costanti in quanto
+// deve essere possibile definire una interfaccia exec.WriterTo solo importando
+// il package "template" e non necessariamente anche "exec".
 type Context = ast.Context
 
 const (
