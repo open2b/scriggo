@@ -74,25 +74,7 @@ func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	if err != nil {
 		return convertError(err)
 	}
-	var errors ExecErrors
-	err = exec.Execute(out, tree, "", vars, func(err error) bool {
-		if e, ok := err.(*ExecError); ok {
-			if errors == nil {
-				errors = ExecErrors{e}
-			} else {
-				errors = append(errors, e)
-			}
-			return true
-		}
-		return false
-	})
-	if err != nil {
-		return err
-	}
-	if errors != nil {
-		return errors
-	}
-	return nil
+	return execute(out, tree, vars)
 }
 
 // ExecuteString executes the template source src, in context ctx, and writes
@@ -106,8 +88,14 @@ func ExecuteString(out io.Writer, src string, ctx Context, vars interface{}) err
 	if err != nil {
 		return convertError(err)
 	}
+	return execute(out, tree, vars)
+}
+
+// execute executes tree and write the result to out. The variables in
+// vars are defined in the environment during execution.
+func execute(out io.Writer, tree *ast.Tree, vars interface{}) error {
 	var errors ExecErrors
-	err = exec.Execute(out, tree, "", vars, func(err error) bool {
+	err := exec.Execute(out, tree, "", vars, func(err error) bool {
 		if e, ok := err.(*ExecError); ok {
 			if errors == nil {
 				errors = ExecErrors{e}
