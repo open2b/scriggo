@@ -2,7 +2,7 @@
 // Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"bytes"
@@ -48,7 +48,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value) error {
 		case ast.ContextJavaScript:
 			str, ok = interfaceToJavaScript(asBase(expr), s.version)
 		default:
-			panic("template/exec: unknown context")
+			panic("template/renderer: unknown context")
 		}
 		if !ok {
 			err := s.errorf(node.Expr, "wrong type %s in value", typeof(expr))

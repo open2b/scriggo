@@ -2,9 +2,9 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-// Package exec implements methods to execute an expanded tree
+// Package renderer implements methods to render an expanded tree
 // of a template file.
-package exec
+package renderer
 
 import (
 	"errors"
@@ -32,11 +32,11 @@ type WriterTo interface {
 	WriteTo(w io.Writer, ctx ast.Context) (n int, err error)
 }
 
-// errBreak returned from executing the "break" statement.
+// errBreak returned from rendering the "break" statement.
 // It is managed by the innermost "for" statement.
 var errBreak = errors.New("break is not in a loop")
 
-// errContinue is returned from the execution of the "break" statement.
+// errContinue is returned from the rendering of the "break" statement.
 // It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
@@ -45,8 +45,8 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
-// Execute runs the tree tree and writes the result to wr.
-// The variables in vars are defined in the environment during execution.
+// Render runs the tree tree and writes the result to wr.
+// The variables in vars are defined in the environment during rendering.
 //
 // vars can be:
 //
@@ -56,13 +56,13 @@ var scopeType = reflect.TypeOf(scope{})
 //   - a reflect.Value whose concrete value meets one of the previous ones
 //   - nil
 //
-func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h func(error) bool) error {
+func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h func(error) bool) error {
 
 	if wr == nil {
-		return errors.New("template/exec: wr is nil")
+		return errors.New("template/renderer: wr is nil")
 	}
 	if tree == nil {
-		return errors.New("template/exec: tree is nil")
+		return errors.New("template/renderer: tree is nil")
 	}
 
 	globals, err := varsToScope(vars, version)
@@ -84,13 +84,13 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 
 	extend := getExtendNode(tree)
 	if extend == nil {
-		err = s.execute(wr, tree.Nodes)
+		err = s.render(wr, tree.Nodes)
 	} else {
 		if extend.Tree == nil {
-			return errors.New("template/exec: extend node is not expanded")
+			return errors.New("template/renderer: extend node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
-		err = s.execute(nil, tree.Nodes)
+		err = s.render(nil, tree.Nodes)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func Execute(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h f
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.execute(wr, extend.Tree.Nodes)
+		err = s.render(wr, extend.Tree.Nodes)
 	}
 
 	return err
@@ -182,7 +182,7 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 				if tag, ok := field.Tag.Lookup("template"); ok {
 					name, ver = parseVarTag(tag)
 					if name == "" {
-						return nil, fmt.Errorf("template/exec: invalid tag of field %q", field.Name)
+						return nil, fmt.Errorf("template/renderer: invalid tag of field %q", field.Name)
 					}
 					if ver != "" && ver != version {
 						continue
@@ -204,7 +204,7 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 		}
 	}
 
-	return nil, errors.New("template/exec: unsupported vars type")
+	return nil, errors.New("template/renderer: unsupported vars type")
 }
 
 // region represents a region in a scope.
@@ -213,7 +213,7 @@ type region struct {
 	node *ast.Region
 }
 
-// state represents the state of execution of a tree.
+// state represents the state of rendering of a tree.
 type state struct {
 	scope       map[string]scope
 	path        string
@@ -222,7 +222,7 @@ type state struct {
 	handleError func(error) bool
 }
 
-// errorf builds and returns an execution error.
+// errorf builds and returns an rendering error.
 func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
 	if pos == nil {
@@ -241,8 +241,8 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 	return err
 }
 
-// execute executes nodes.
-func (s *state) execute(wr io.Writer, nodes []ast.Node) error {
+// render renders nodes.
+func (s *state) render(wr io.Writer, nodes []ast.Node) error {
 
 	var err error
 
@@ -296,7 +296,7 @@ Nodes:
 			if c {
 				if len(node.Then) > 0 {
 					s.vars = append(s.vars, nil)
-					err = s.execute(wr, node.Then)
+					err = s.render(wr, node.Then)
 					s.vars = s.vars[:len(s.vars)-1]
 					if err != nil {
 						return err
@@ -304,7 +304,7 @@ Nodes:
 				}
 			} else if len(node.Else) > 0 {
 				s.vars = append(s.vars, nil)
-				err = s.execute(wr, node.Else)
+				err = s.render(wr, node.Else)
 				s.vars = s.vars[:len(s.vars)-1]
 				if err != nil {
 					return err
@@ -357,7 +357,7 @@ Nodes:
 					i := 0
 					for _, v := range vv {
 						setScope(i, string(v))
-						err = s.execute(wr, node.Nodes)
+						err = s.render(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -377,7 +377,7 @@ Nodes:
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, vv[i])
-						err = s.execute(wr, node.Nodes)
+						err = s.render(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -404,7 +404,7 @@ Nodes:
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, av.Index(i).Interface())
-						err = s.execute(wr, node.Nodes)
+						err = s.render(wr, node.Nodes)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -453,7 +453,7 @@ Nodes:
 				s.vars = append(s.vars, nil)
 				for i := n1; ; i += step {
 					s.vars[len(s.vars)-1] = scope{index: i}
-					err = s.execute(wr, node.Nodes)
+					err = s.render(wr, node.Nodes)
 					if err != nil {
 						if err == errBreak {
 							break
@@ -642,7 +642,7 @@ Nodes:
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.execute(wr, r.node.Body)
+			err = st.render(wr, r.node.Body)
 			if err != nil {
 				return err
 			}
@@ -658,7 +658,7 @@ Nodes:
 					version:     s.version,
 					handleError: s.handleError,
 				}
-				err = st.execute(nil, node.Tree.Nodes)
+				err = st.render(nil, node.Tree.Nodes)
 				if err != nil {
 					return err
 				}
@@ -687,7 +687,7 @@ Nodes:
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.execute(wr, node.Tree.Nodes)
+			err = st.render(wr, node.Tree.Nodes)
 			s.vars = s.vars[:len(s.vars)-1]
 			if err != nil {
 				return err

@@ -2,7 +2,7 @@
 // Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ func (s aString) String() string {
 	return s.v
 }
 
-var execExprTests = []struct {
+var rendererExprTests = []struct {
 	src  string
 	res  string
 	vars scope
@@ -191,7 +191,7 @@ var execExprTests = []struct {
 	{"len(a)", "3", scope{"a": HTML("<a>")}},
 }
 
-var execStmtTests = []struct {
+var rendererStmtTests = []struct {
 	src  string
 	res  string
 	vars scope
@@ -215,7 +215,7 @@ var execStmtTests = []struct {
 	{"a{# comment #}b", "ab", nil},
 }
 
-var execVarsToScope = []struct {
+var rendererVarsToScope = []struct {
 	vars interface{}
 	res  scope
 }{
@@ -273,15 +273,15 @@ var execVarsToScope = []struct {
 	},
 }
 
-func TestExecExpressions(t *testing.T) {
-	for _, expr := range execExprTests {
+func TestRenderExpressions(t *testing.T) {
+	for _, expr := range rendererExprTests {
 		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -293,15 +293,15 @@ func TestExecExpressions(t *testing.T) {
 	}
 }
 
-func TestExecStatements(t *testing.T) {
-	for _, stmt := range execStmtTests {
+func TestRenderStatements(t *testing.T) {
+	for _, stmt := range rendererStmtTests {
 		var tree, err = parser.Parse([]byte(stmt.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", stmt.vars, nil)
+		err = Render(b, tree, "", stmt.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -314,7 +314,7 @@ func TestExecStatements(t *testing.T) {
 }
 
 func TestVarsToScope(t *testing.T) {
-	for _, p := range execVarsToScope {
+	for _, p := range rendererVarsToScope {
 		res, err := varsToScope(p.vars, "")
 		if err != nil {
 			t.Errorf("vars: %#v, %q\n", p.vars, err)
@@ -338,14 +338,14 @@ func (wr WriteToPanic) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
 
 func TestWriteToErrors(t *testing.T) {
 	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
-	err := Execute(ioutil.Discard, tree, "", scope{"a": WriteToError{}}, nil)
+	err := Render(ioutil.Discard, tree, "", scope{"a": WriteToError{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "WriteTo error" {
 		t.Errorf("unexpected error %q, expecting 'WriteTo error'\n", err)
 	}
 
-	err = Execute(ioutil.Discard, tree, "", scope{"a": WriteToPanic{}}, nil)
+	err = Render(ioutil.Discard, tree, "", scope{"a": WriteToPanic{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "WriteTo panic" {

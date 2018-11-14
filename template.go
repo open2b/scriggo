@@ -3,7 +3,7 @@
 //
 
 // Package template implements high level methods e functions to parse
-// and execute a template.
+// and render a template.
 package template
 
 import (
@@ -11,11 +11,11 @@ import (
 	"io"
 
 	"open2b/template/ast"
-	"open2b/template/exec"
 	"open2b/template/parser"
+	"open2b/template/renderer"
 )
 
-type HTML = exec.HTML
+type HTML = renderer.HTML
 
 type Context = ast.Context
 
@@ -27,18 +27,18 @@ const (
 )
 
 var (
-	// ErrInvalid is returned from Execute when the path parameter is not valid.
+	// ErrInvalid is returned from Render when the path parameter is not valid.
 	ErrInvalid = errors.New("template: invalid argument")
 
-	// ErrNotExist is returned from Execute when the path does not exist.
+	// ErrNotExist is returned from Render when the path does not exist.
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-// An ExecErrors value is returned from Execute when one or more execution
-// errors occur. Reports all execution errors in the order in which they occurred.
-type ExecErrors []*ExecError
+// A RenderErrors value is returned from Render when one or more rendering
+// errors occur. Reports all rendering errors in the order in which they occurred.
+type RenderErrors []*RenderError
 
-func (ee ExecErrors) Error() string {
+func (ee RenderErrors) Error() string {
 	var s string
 	for _, e := range ee {
 		if s != "" {
@@ -49,7 +49,7 @@ func (ee ExecErrors) Error() string {
 	return s
 }
 
-type ExecError = exec.Error
+type RenderError = renderer.Error
 
 type Template struct {
 	parser *parser.Parser
@@ -63,42 +63,42 @@ func New(dir string, ctx Context) *Template {
 	return &Template{parser: parser.NewParser(r), ctx: ctx}
 }
 
-// Execute executes the template file with the specified path, relative to
+// Render renders the template file with the specified path, relative to
 // the template directory, and writes the result to out. The variables in
-// vars are defined in the environment during execution.
+// vars are defined in the environment during rendering.
 //
-// In the event of an error during execution, it continues and then returns
-// an ExecErrors with all errors that have occurred.
-func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
+// In the event of an error during rendering, it continues and then returns
+// an RenderErrors with all errors that have occurred.
+func (t *Template) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := t.parser.Parse(path, t.ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return execute(out, tree, vars)
+	return render(out, tree, vars)
 }
 
-// ExecuteString executes the template source src, in context ctx, and writes
+// RenderString renders the template source src, in context ctx, and writes
 // the result to out. The variables in vars are defined in the environment
-// during execution.
+// during rendering.
 //
-// In the event of an error during execution, it continues and then returns
-// an ExecErrors with all errors that have occurred.
-func ExecuteString(out io.Writer, src string, ctx Context, vars interface{}) error {
+// In the event of an error during rendering, it continues and then returns
+// an RenderErrors with all errors that have occurred.
+func RenderString(out io.Writer, src string, ctx Context, vars interface{}) error {
 	tree, err := parser.Parse([]byte(src), ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return execute(out, tree, vars)
+	return render(out, tree, vars)
 }
 
-// execute executes tree and write the result to out. The variables in
-// vars are defined in the environment during execution.
-func execute(out io.Writer, tree *ast.Tree, vars interface{}) error {
-	var errors ExecErrors
-	err := exec.Execute(out, tree, "", vars, func(err error) bool {
-		if e, ok := err.(*ExecError); ok {
+// render renders tree and write the result to out. The variables in
+// vars are defined in the environment during rendering.
+func render(out io.Writer, tree *ast.Tree, vars interface{}) error {
+	var errors RenderErrors
+	err := renderer.Render(out, tree, "", vars, func(err error) bool {
+		if e, ok := err.(*RenderError); ok {
 			if errors == nil {
-				errors = ExecErrors{e}
+				errors = RenderErrors{e}
 			} else {
 				errors = append(errors, e)
 			}

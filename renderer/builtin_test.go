@@ -2,7 +2,7 @@
 // Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"open2b/template/parser"
 )
 
-var execBuiltinTests = []struct {
+var rendererBuiltinTests = []struct {
 	src  string
 	res  string
 	vars scope
@@ -290,7 +290,7 @@ var execBuiltinTests = []struct {
 	{"trim(` a b  `)", "a b", nil},
 }
 
-var execRandomBuiltinTests = []struct {
+var rendererRandomBuiltinTests = []struct {
 	src  string
 	seed int64
 	res  string
@@ -321,15 +321,15 @@ var execRandomBuiltinTests = []struct {
 	{"shuffle(s)", 3, "a, c, b", scope{"s": []string{"a", "b", "c"}}},
 }
 
-func TestExecBuiltin(t *testing.T) {
-	for _, expr := range execBuiltinTests {
+func TestRenderBuiltin(t *testing.T) {
+	for _, expr := range rendererBuiltinTests {
 		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -341,14 +341,14 @@ func TestExecBuiltin(t *testing.T) {
 	}
 }
 
-func TestExecErrorfBuiltin(t *testing.T) {
+func TestRenderErrorfBuiltin(t *testing.T) {
 	src := "\n\n   {{ errorf(`error %s %d`, `a`, 5) }}"
 	var tree, err = parser.Parse([]byte(src), ast.ContextHTML)
 	if err != nil {
 		t.Errorf("source: %q, %s\n", src, err)
 		return
 	}
-	err = Execute(ioutil.Discard, tree, "", nil, nil)
+	err = Render(ioutil.Discard, tree, "", nil, nil)
 	if err == nil {
 		t.Errorf("source: %q, expecting error\n", src)
 		return
@@ -358,8 +358,8 @@ func TestExecErrorfBuiltin(t *testing.T) {
 	}
 }
 
-func TestExecRandomBuiltin(t *testing.T) {
-	for _, expr := range execRandomBuiltinTests {
+func TestRenderRandomBuiltin(t *testing.T) {
+	for _, expr := range rendererRandomBuiltinTests {
 		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
@@ -367,7 +367,7 @@ func TestExecRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = Execute(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

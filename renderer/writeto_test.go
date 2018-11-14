@@ -2,7 +2,7 @@
 // Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"bytes"
@@ -64,7 +64,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -135,7 +135,7 @@ func TestJavaScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Execute(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, "", expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

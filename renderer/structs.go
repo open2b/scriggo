@@ -2,7 +2,7 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"errors"
@@ -61,7 +61,7 @@ func getStructFields(st reflect.Value) []fieldNameVersion {
 					field.name, field.version = parseVarTag(tag)
 					if field.name == "" {
 						structs.Unlock()
-						panic(fmt.Errorf("template/exec: invalid tag of field %q", fieldType.Name))
+						panic(fmt.Errorf("template/renderer: invalid tag of field %q", fieldType.Name))
 					}
 					field.index = i
 					fields = append(fields, field)

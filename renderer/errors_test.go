@@ -2,7 +2,7 @@
 // Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-package exec
+package renderer
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ func TestErrors(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		var e error
-		err = Execute(b, tree, "", expr.vars, func(err error) bool {
+		err = Render(b, tree, "", expr.vars, func(err error) bool {
 			e = err
 			t.Log(err)
 			return true

@@ -166,7 +166,7 @@ type For struct {
 	Ident     *Identifier // identifier.
 	Expr1     Expression  // left expression of the range or slice on which to iterate.
 	Expr2     Expression  // right expression of the range.
-	Nodes     []Node      // nodes to be executed for each element of the list.
+	Nodes     []Node      // nodes of the body.
 }
 
 func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, nodes []Node) *For {
