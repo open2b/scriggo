@@ -2,8 +2,8 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-// Package template implements an high level method to parse and execute
-// template pages.
+// Package template implements high level methods e functions to parse
+// and execute a template.
 package template
 
 import (
@@ -68,9 +68,41 @@ func New(dir string, ctx Context) *Template {
 // vars are defined in the environment during execution.
 //
 // In the event of an error during execution, it continues and then returns
-// an ExecError with all errors that have occurred.
+// an ExecErrors with all errors that have occurred.
 func (t *Template) Execute(out io.Writer, path string, vars interface{}) error {
 	tree, err := t.parser.Parse(path, t.ctx)
+	if err != nil {
+		return convertError(err)
+	}
+	var errors ExecErrors
+	err = exec.Execute(out, tree, "", vars, func(err error) bool {
+		if e, ok := err.(*ExecError); ok {
+			if errors == nil {
+				errors = ExecErrors{e}
+			} else {
+				errors = append(errors, e)
+			}
+			return true
+		}
+		return false
+	})
+	if err != nil {
+		return err
+	}
+	if errors != nil {
+		return errors
+	}
+	return nil
+}
+
+// ExecuteString executes the template source src, in context ctx, and writes
+// the result to out. The variables in vars are defined in the environment
+// during execution.
+//
+// In the event of an error during execution, it continues and then returns
+// an ExecErrors with all errors that have occurred.
+func ExecuteString(out io.Writer, src string, ctx Context, vars interface{}) error {
+	tree, err := parser.Parse([]byte(src), ctx)
 	if err != nil {
 		return convertError(err)
 	}
