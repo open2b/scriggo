@@ -93,8 +93,8 @@ func (e expression) isexpr() {}
 // Tree represents a parsed tree.
 type Tree struct {
 	*Position
-	Path       string // path of the tree.
-	Nodes      []Node // nodes of the first level of the tree.
+	Path  string // path of the tree.
+	Nodes []Node // nodes of the first level of the tree.
 }
 
 func NewTree(path string, nodes []Node) *Tree {
@@ -117,8 +117,8 @@ type TextCut struct {
 // Text represents a text.
 type Text struct {
 	*Position         // position in the source.
-	Text      string  // testo.
-	Cut       TextCut // taglio.
+	Text      string  // text.
+	Cut       TextCut // cut.
 }
 
 func NewText(pos *Position, text string) *Text {
@@ -132,8 +132,8 @@ func (t Text) String() string {
 // Var represents a statement {% var identifier = expression %}.
 type Var struct {
 	*Position             // position in the source.
-	Ident     *Identifier // identificatore.
-	Expr      Expression  // espressione assegnata.
+	Ident     *Identifier // identifier.
+	Expr      Expression  // assigned expression..
 }
 
 func NewVar(pos *Position, ident *Identifier, expr Expression) *Var {
@@ -147,8 +147,8 @@ func (v Var) String() string {
 // Assignment represents a statement {% identifier = expression %}.
 type Assignment struct {
 	*Position             // position in the source.
-	Ident     *Identifier // identificatore.
-	Expr      Expression  // espressione assegnata.
+	Ident     *Identifier // identifier.
+	Expr      Expression  // assigned expression..
 }
 
 func NewAssignment(pos *Position, ident *Identifier, expr Expression) *Assignment {
@@ -266,9 +266,9 @@ func (v Value) String() string {
 // Extend represents a statement {% extend ... %}.
 type Extend struct {
 	*Position         // position in the source.
-	Path      string  // path del file da estendere.
-	Context   Context // contesto.
-	Tree      *Tree   // albero esteso di extend.
+	Path      string  // path to the file to extend.
+	Context   Context // context.
+	Tree      *Tree   // extended tree of extend.
 }
 
 func NewExtend(pos *Position, path string, ctx Context) *Extend {
@@ -282,10 +282,10 @@ func (e Extend) String() string {
 // Import represents a statement {% import ... %}.
 type Import struct {
 	*Position             // position in the source.
-	Ident     *Identifier // identificatore.
-	Path      string      // path del file da importato.
-	Context   Context     // contesto.
-	Tree      *Tree       // albero esteso di import.
+	Ident     *Identifier // identifier.
+	Path      string      // path of the imported file.
+	Context   Context     // context.
+	Tree      *Tree       // extended tree of import.
 }
 
 func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
@@ -340,7 +340,7 @@ func (n *Int) String() string {
 type Number struct {
 	*Position // position in the source.
 	expression
-	Value decimal.Decimal // valore.
+	Value decimal.Decimal // value.
 }
 
 func NewNumber(pos *Position, value decimal.Decimal) *Number {
@@ -368,7 +368,7 @@ func (n *String) String() string {
 type Identifier struct {
 	*Position // position in the source.
 	expression
-	Name string // nome.
+	Name string // name.
 }
 
 func NewIdentifier(pos *Position, name string) *Identifier {
