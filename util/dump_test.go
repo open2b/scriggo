@@ -1,3 +1,7 @@
+//
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
+//
+
 package util_test
 
 import (

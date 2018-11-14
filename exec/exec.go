@@ -2,7 +2,8 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-// Package exec fornisce i metodi per eseguire gli alberi dei template.
+// Package exec implements methods to execute an expanded tree
+// of a template file.
 package exec
 
 import (

@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
+//
+
+// Package util implements methods to walk and dump a tree.
 package util
 
 import (

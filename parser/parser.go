@@ -2,8 +2,8 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
-// Package parser fornisce i metodi per parsare i sorgenti dei
-// templates e ritornarne gli alberi.
+// Package parser implements methods to parse a template file and
+// expand a parsed tree.
 package parser
 
 import (

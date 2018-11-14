@@ -2,6 +2,8 @@
 // Copyright (c) 2016-2018 Open2b Software Snc. All Rights Reserved.
 //
 
+// Package template implements an high level method to parse and execute
+// template pages.
 package template
 
 import (
