@@ -26,7 +26,7 @@ type treeCacheEntry struct {
 // get returns a tree and true if the tree exists in cache.
 //
 // If the tree does not exist it returns false and in this
-// case a call to done must be made
+// case a call to done must be made.
 func (c *cache) get(path string, ctx ast.Context) (*ast.Tree, bool) {
 	entry := treeCacheEntry{path, ctx}
 	c.Lock()
