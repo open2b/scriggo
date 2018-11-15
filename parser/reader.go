@@ -40,6 +40,5 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-	tree.Path = path
 	return tree, nil
 }

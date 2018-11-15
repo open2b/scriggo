@@ -731,6 +731,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	if err != nil {
 		return nil, err
 	}
+	tree.Path = path
 
 	// expands the nodes
 	pp.paths = append(pp.paths, path)
