@@ -155,11 +155,6 @@ LOOP:
 				continue
 			}
 		}
-		if c == '\n' {
-			p++
-			l.newline()
-			continue
-		}
 		if c == '<' && initialContext == ast.ContextHTML {
 			switch l.ctx {
 			case ast.ContextHTML:
@@ -206,17 +201,10 @@ LOOP:
 					} else {
 						t = p + i + 2
 					}
-					for p < t {
-						c := l.src[p]
-						if c == '\n' {
-							p++
+					for ; p < t; p++ {
+						if c := l.src[p]; c == '\n' {
 							l.newline()
-						} else if c < 128 {
-							p++
-							l.column++
-						} else {
-							_, s := utf8.DecodeRune(l.src[p:])
-							p += s
+						} else if isStartChar(c) {
 							l.column++
 						}
 					}
@@ -224,13 +212,13 @@ LOOP:
 				}
 			}
 		}
-		if c < 128 {
-			p += 1
-		} else {
-			_, s := utf8.DecodeRune(l.src[p:])
-			p += s
+		if c == '\n' {
+			l.newline()
+		} else if isStartChar(c) {
+			l.column++
 		}
-		l.column++
+		p += 1
+
 	}
 
 	if len(l.src) > 0 {
@@ -313,17 +301,12 @@ func (l *lexer) lexComment() error {
 	line := l.line
 	column := l.column
 	l.column += 4
-	var s int
-	for i := 2; i < p+2; i += s {
-		switch c := l.src[i]; {
-		case c == '\n':
+	for i := 2; i < p+2; i++ {
+		if c := l.src[i]; c == '\n' {
 			l.newline()
-		case c < 128:
-			s = 1
-		default:
-			_, s = utf8.DecodeRune(l.src[i:])
+		} else if isStartChar(c) {
+			l.column++
 		}
-		l.column++
 	}
 	l.emitAtLineColumn(line, column, tokenComment, p+4)
 	return nil
@@ -514,6 +497,11 @@ LOOP:
 // isSpace indicates if s is a space.
 func isSpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r'
+}
+
+// isStartChar indicates if b is the first byte of an UTF-8 encoded character.
+func isStartChar(b byte) bool {
+	return b < 128 || 191 < b
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that
