@@ -503,10 +503,6 @@ LOOP:
 	return nil
 }
 
-func prefix(s, prefix []byte) bool {
-	return bytes.HasPrefix(s, prefix)
-}
-
 // isSpace indicates if s is a space.
 func isSpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r'
