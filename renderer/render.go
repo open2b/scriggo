@@ -575,7 +575,7 @@ Nodes:
 			var r region
 			if v, ok := s.variable(name); ok {
 				if r, ok = v.(region); !ok {
-					err = s.errorf(node, "cannot show non-region %s (type %t)", name, typeof(v))
+					err = s.errorf(node, "cannot show non-region %s (type %s)", name, typeof(v))
 				}
 			} else {
 				err = s.errorf(node, "region %s not declared", name)
