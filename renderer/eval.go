@@ -738,18 +738,17 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.String:
 			var a = ""
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
+				arg := asBase(s.evalExpression(node.Args[i]))
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
 				}
-				a, ok = arg.(string)
-				if !ok {
-					rv := reflect.ValueOf(arg)
-					if rv.Type().ConvertibleTo(stringType) {
-						a = rv.String()
-					} else {
-						panic(s.errorf(node, "cannot use %#v (type %s) as type string in argument to function %s", arg, typeof(arg), node.Func))
-					}
+				switch v := arg.(type) {
+				case string:
+					a = v
+				case HTML:
+					a = string(v)
+				default:
+					panic(s.errorf(node, "cannot use %#v (type %s) as type string in argument to function %s", arg, typeof(arg), node.Func))
 				}
 			}
 			args[i] = reflect.ValueOf(a)
