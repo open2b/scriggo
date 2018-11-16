@@ -200,13 +200,16 @@ LOOP:
 					// skips the CDATA section
 					p += 9
 					l.column += 9
-					var t = bytes.Index(l.src[p:], cdataEnd)
-					if t < 0 {
+					var t int
+					if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
 						t = len(l.src)
+					} else {
+						t = p + i + 2
 					}
 					for p < t {
 						c := l.src[p]
 						if c == '\n' {
+							p++
 							l.newline()
 						} else if c < 128 {
 							p++
