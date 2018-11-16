@@ -309,13 +309,18 @@ func (l *lexer) lexComment() error {
 	}
 	line := l.line
 	column := l.column
-	l.column += 2
-	for i := 2; i < p+2; i++ {
-		if l.src[i] == '\n' {
+	l.column += 4
+	var s int
+	for i := 2; i < p+2; i += s {
+		switch c := l.src[i]; {
+		case c == '\n':
 			l.newline()
-		} else {
-			l.column++
+		case c < 128:
+			s = 1
+		default:
+			_, s = utf8.DecodeRune(l.src[i:])
 		}
+		l.column++
 	}
 	l.emitAtLineColumn(line, column, tokenComment, p+4)
 	return nil
