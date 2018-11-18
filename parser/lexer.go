@@ -34,6 +34,8 @@ type lexer struct {
 	line   int         // current line starting from 1
 	column int         // current column starting from 1
 	ctx    ast.Context // current context used during the scan
+	tag    string      // current tag
+	attr   string      // current attribute
 	tokens chan token  // tokens, is closed at the end of the scan
 	err    error       // error, at the end of the scan indicates if there was an error
 }
@@ -94,6 +96,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 		txt: txt,
 		lin: l.line,
 		ctx: ctx,
+		tag: l.tag,
+		att: l.attr,
 	}
 	if length > 0 {
 		l.src = l.src[length:]
@@ -110,7 +114,6 @@ func (l *lexer) scan() {
 	lin := l.line   // token line
 	col := l.column // token column
 
-	var tag string
 	var quote = byte(0)
 	var emittedURL bool
 
@@ -165,13 +168,12 @@ LOOP:
 				continue
 			}
 		}
-		if tag != "" && quote == 0 && isAlpha(c) {
+		if l.tag != "" && quote == 0 && isAlpha(c) {
 			// check if it is an attribute
-			var attr string
-			attr, p = l.scanAttribute(p)
-			if attr != "" {
+			l.attr, p = l.scanAttribute(p)
+			if l.attr != "" {
 				quote = l.src[p-1]
-				if containsURL(tag, attr) {
+				if containsURL(l.tag, l.attr) {
 					l.emitAtLineColumn(lin, col, tokenText, p)
 					l.ctx = ast.ContextAttribute
 					l.emit(tokenStartURL, 0)
@@ -201,6 +203,7 @@ LOOP:
 			p++
 			l.column++
 			l.ctx = ast.ContextHTML
+			l.attr = ""
 			continue
 		}
 
@@ -218,7 +221,7 @@ LOOP:
 			switch l.ctx {
 
 			case ast.ContextHTML:
-				if tag == "" {
+				if l.tag == "" {
 					if c == '<' {
 						// <![CDATA[...]]>
 						if p+10 < len(l.src) && l.src[p] == '!' {
@@ -243,17 +246,17 @@ LOOP:
 							}
 						}
 						// start tag
-						tag, p = l.scanTag(p)
+						l.tag, p = l.scanTag(p)
 					}
 				} else if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// end tag
-					switch tag {
+					switch l.tag {
 					case "script":
 						l.ctx = ast.ContextJavaScript
 					case "style":
 						l.ctx = ast.ContextCSS
 					}
-					tag = ""
+					l.tag = ""
 					quote = 0
 				}
 

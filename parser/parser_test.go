@@ -151,7 +151,7 @@ var treeTests = []struct {
 		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewValue(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
 		ast.NewText(p(1, 7, 6, 6), "c")})},
 	{ "<a href=\"/{{ a }}/b\">", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 18), []ast.Node{
+		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 18), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), "/"),
 			ast.NewValue(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextAttribute),
 			ast.NewText(p(1, 18, 17, 18), "/b"),
@@ -159,7 +159,7 @@ var treeTests = []struct {
 		ast.NewText(p(1, 20, 19, 20), "\">"),
 	})},
 	{ "<a href=\"\n\">", ast.NewTree("", []ast.Node{
-		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 9), []ast.Node{
+		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 9), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), "\n"),
 		}),
 		ast.NewText(p(2, 1, 10, 11), "\">"),
@@ -376,6 +376,12 @@ func equals(n1, n2 ast.Node, p int) error {
 		nn2, ok := n2.(*ast.URL)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Tag != nn2.Tag {
+			return fmt.Errorf("unexpected tag %q, expecting %q", nn1.Tag, nn2.Tag)
+		}
+		if nn1.Attribute != nn2.Attribute {
+			return fmt.Errorf("unexpected attribute %q, expecting %q", nn1.Attribute, nn2.Attribute)
 		}
 		if len(nn1.Value) != len(nn2.Value) {
 			return fmt.Errorf("unexpected value nodes len %d, expecting %d", len(nn1.Value), len(nn2.Value))

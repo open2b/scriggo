@@ -135,11 +135,13 @@ func (t Text) String() string {
 // URL represents an URL.
 type URL struct {
 	*Position        // position in the source.
+	Tag       string // tag (in lowercase).
+	Attribute string // attribute (in lowercase).
 	Value     []Node // value nodes.
 }
 
-func NewURL(pos *Position, value []Node) *URL {
-	return &URL{pos, value}
+func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
+	return &URL{pos, tag, attribute, value}
 }
 
 // Var represents a statement {% var identifier = expression %}.
@@ -573,7 +575,7 @@ func CloneNode(node Node) Node {
 		for i, n2 := range n.Value {
 			value[i] = CloneNode(n2)
 		}
-		return NewURL(ClonePosition(n.Position), value)
+		return NewURL(ClonePosition(n.Position), n.Tag, n.Attribute, value)
 	case *Value:
 		return NewValue(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *If:

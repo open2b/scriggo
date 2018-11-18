@@ -109,7 +109,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 		// StartURL
 		case tokenStartURL:
-			node := ast.NewURL(tok.pos, nil)
+			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
 			addChild(parent, node)
 			ancestors = append(ancestors, node)
 
