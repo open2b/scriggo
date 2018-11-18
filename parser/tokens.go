@@ -15,6 +15,8 @@ type tokenType int
 
 const (
 	tokenText              tokenType = iota
+	tokenStartURL                    // start url
+	tokenEndURL                      // and url
 	tokenStartStatement              // {%
 	tokenEndStatement                // %}
 	tokenStartValue                  // {{
@@ -65,6 +67,8 @@ const (
 
 var tokenString = map[tokenType]string{
 	tokenText:              "text",
+	tokenStartURL:          "start url",
+	tokenEndURL:            "end url",
 	tokenStartStatement:    "{%",
 	tokenEndStatement:      "%}",
 	tokenStartValue:        "{{",
@@ -126,6 +130,9 @@ type token struct {
 	pos *ast.Position // position in the buffer
 	txt []byte        // token text
 	ctx ast.Context   // context
+	tag string        // tag name
+	att string        // attribute
+	url bool          // indicates if it is in a URL
 	lin int           // line of the lexer when the token was emitted
 }
 

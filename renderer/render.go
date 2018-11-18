@@ -260,6 +260,14 @@ Nodes:
 				}
 			}
 
+		case *ast.URL:
+			if len(node.Value) > 0 {
+				err = s.render(wr, node.Value)
+				if err != nil {
+					return err
+				}
+			}
+
 		case *ast.Value:
 
 			var expr interface{}

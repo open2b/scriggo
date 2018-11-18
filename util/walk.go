@@ -45,6 +45,11 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
+	case *ast.URL:
+		for _, child := range n.Value {
+			Walk(v, child)
+		}
+
 	case *ast.Var:
 		Walk(v, n.Expr)
 

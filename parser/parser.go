@@ -107,6 +107,18 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 		case tokenText:
 			addChild(parent, text)
 
+		// StartURL
+		case tokenStartURL:
+			node := ast.NewURL(tok.pos, nil)
+			addChild(parent, node)
+			ancestors = append(ancestors, node)
+
+		// EndURL
+		case tokenEndURL:
+			pos := ancestors[len(ancestors)-1].Pos()
+			pos.End = tok.pos.End -1
+			ancestors = ancestors[:len(ancestors)-1]
+
 		// {%
 		case tokenStartStatement:
 
@@ -843,6 +855,8 @@ func addChild(parent ast.Node, node ast.Node) {
 	switch n := parent.(type) {
 	case *ast.Tree:
 		n.Nodes = append(n.Nodes, node)
+	case *ast.URL:
+		n.Value = append(n.Value, node)
 	case *ast.Region:
 		n.Body = append(n.Body, node)
 	case *ast.For:
@@ -853,6 +867,8 @@ func addChild(parent ast.Node, node ast.Node) {
 		} else {
 			n.Else = append(n.Else, node)
 		}
+	default:
+		panic("template/parser: unexpected parent node")
 	}
 }
 

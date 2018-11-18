@@ -25,6 +25,7 @@ type Context = ast.Context
 const (
 	ContextText Context = iota
 	ContextHTML
+	ContextAttribute
 	ContextCSS
 	ContextJavaScript
 )

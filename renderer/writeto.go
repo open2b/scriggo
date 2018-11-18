@@ -43,6 +43,8 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value) error {
 			str, ok = interfaceToText(asBase(expr), s.version)
 		case ast.ContextHTML:
 			str, ok = interfaceToHTML(asBase(expr), s.version)
+		case ast.ContextAttribute:
+			str, ok = interfaceToAttribute(asBase(expr), s.version)
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr), s.version)
 		case ast.ContextJavaScript:
@@ -143,6 +145,50 @@ func interfaceToHTML(expr interface{}, version string) (string, bool) {
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
 			str, ok := interfaceToHTML(rv.Index(i).Interface(), version)
+			if !ok {
+				return "", false
+			}
+			buf[i] = str
+		}
+		s = strings.Join(buf, ", ")
+	}
+
+	return s, true
+}
+
+func interfaceToAttribute(expr interface{}, version string) (string, bool) {
+
+	if expr == nil {
+		return "", true
+	}
+
+	var s string
+
+	switch e := expr.(type) {
+	case string:
+		s = html.EscapeString(e)
+	case HTML:
+		s = html.EscapeString(string(e))
+	case int:
+		s = strconv.Itoa(e)
+	case decimal.Decimal:
+		s = e.String()
+	case bool:
+		s = "false"
+		if e {
+			s = "true"
+		}
+	default:
+		rv := reflect.ValueOf(expr)
+		if !rv.IsValid() || rv.Kind() != reflect.Slice {
+			return "", false
+		}
+		if rv.IsNil() || rv.Len() == 0 {
+			return "", true
+		}
+		buf := make([]string, rv.Len())
+		for i := 0; i < len(buf); i++ {
+			str, ok := interfaceToAttribute(rv.Index(i).Interface(), version)
 			if !ok {
 				return "", false
 			}

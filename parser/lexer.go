@@ -71,7 +71,7 @@ func (l *lexer) emit(typ tokenType, length int) {
 // line and column column.
 func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	var txt []byte
-	if typ != tokenEOF {
+	if length > 0 {
 		txt = l.src[0:length]
 	}
 	ctx := l.ctx
@@ -79,19 +79,25 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 		ctx = ast.ContextText
 	}
 	start := len(l.text) - len(l.src)
+	end := start + length -1
+	if length == 0 {
+		end = start
+	}
 	l.tokens <- token{
 		typ: typ,
 		pos: &ast.Position{
 			Line:   line,
 			Column: column,
 			Start:  start,
-			End:    start + length - 1,
+			End:    end,
 		},
 		txt: txt,
 		lin: l.line,
 		ctx: ctx,
 	}
-	l.src = l.src[length:]
+	if length > 0 {
+		l.src = l.src[length:]
+	}
 }
 
 // scan scans the text by placing the tokens on the tokens channel.
@@ -103,6 +109,10 @@ func (l *lexer) scan() {
 
 	lin := l.line   // token line
 	col := l.column // token column
+
+	var tag string
+	var quote = byte(0)
+	var emittedURL bool
 
 	initialContext := l.ctx // initial context
 
@@ -155,70 +165,116 @@ LOOP:
 				continue
 			}
 		}
-		if c == '<' && initialContext == ast.ContextHTML {
-			switch l.ctx {
-			case ast.ContextHTML:
-				// <style>
-				if p+6 < len(l.src) && isCSS(l.src[p+1:p+6]) && (l.src[p+6] == '>' || isSpace(l.src[p+6])) {
-					l.ctx = ast.ContextCSS
-					p += 6
-					l.column += 6
-					continue
-				}
-				// <script>
-				if p+7 < len(l.src) && isJavaScript(l.src[p+1:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
-					l.ctx = ast.ContextJavaScript
-					p += 7
-					l.column += 7
-					continue
-				}
-			case ast.ContextCSS:
-				// </style>
-				if p+7 < len(l.src) && l.src[p+1] == '/' && isCSS(l.src[p+2:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
-					l.ctx = ast.ContextHTML
-					p += 7
-					l.column += 7
-					continue
-				}
-			case ast.ContextJavaScript:
-				// </script>
-				if p+8 < len(l.src) && l.src[p+1] == '/' && isJavaScript(l.src[p+2:p+8]) && (l.src[p+8] == '>' || isSpace(l.src[p+8])) {
-					l.ctx = ast.ContextHTML
-					p += 8
-					l.column += 8
-					continue
+		if tag != "" && quote == 0 && isAlpha(c) {
+			// check if it is an attribute
+			var attr string
+			attr, p = l.scanAttribute(p)
+			if attr != "" {
+				quote = l.src[p-1]
+				if containsURL(tag, attr) {
+					l.emitAtLineColumn(lin, col, tokenText, p)
+					l.ctx = ast.ContextAttribute
+					l.emit(tokenStartURL, 0)
+					emittedURL = true
+					p = 0
+					lin = l.line
+					col = l.column
+				} else {
+					l.ctx = ast.ContextAttribute
 				}
 			}
-			// <![CDATA[...]]>
-			if p+11 < len(l.src) && l.src[p+1] == '!' {
-				if bytes.HasPrefix(l.src[p:], cdataStart) {
-					// skips the CDATA section
-					p += 9
-					l.column += 9
-					var t int
-					if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
-						t = len(l.src)
-					} else {
-						t = p + i + 2
-					}
-					for ; p < t; p++ {
-						if c := l.src[p]; c == '\n' {
-							l.newline()
-						} else if isStartChar(c) {
-							l.column++
-						}
-					}
-					continue
-				}
-			}
+			continue
 		}
+		if quote != 0 && c == quote {
+			// end attribute
+			quote = 0
+			if emittedURL {
+				if p > 0 {
+					l.emitAtLineColumn(lin, col, tokenText, p)
+				}
+				l.emit(tokenEndURL, 0)
+				emittedURL = false
+				p = 0
+				lin = l.line
+				col = l.column
+			}
+			p++
+			l.column++
+			l.ctx = ast.ContextHTML
+			continue
+		}
+
+		p++
 		if c == '\n' {
 			l.newline()
-		} else if isStartChar(c) {
+			continue
+		}
+		if isStartChar(c) {
 			l.column++
 		}
-		p += 1
 
+		if initialContext == ast.ContextHTML {
+
+			switch l.ctx {
+
+			case ast.ContextHTML:
+				if tag == "" {
+					if c == '<' {
+						// <![CDATA[...]]>
+						if p+10 < len(l.src) && l.src[p] == '!' {
+							if bytes.HasPrefix(l.src[p-1:], cdataStart) {
+								// skips the CDATA section
+								p += 8
+								l.column += 8
+								var t int
+								if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
+									t = len(l.src)
+								} else {
+									t = p + i + 2
+								}
+								for ; p < t; p++ {
+									if c := l.src[p]; c == '\n' {
+										l.newline()
+									} else if isStartChar(c) {
+										l.column++
+									}
+								}
+								continue
+							}
+						}
+						// start tag
+						tag, p = l.scanTag(p)
+					}
+				} else if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
+					// end tag
+					switch tag {
+					case "script":
+						l.ctx = ast.ContextJavaScript
+					case "style":
+						l.ctx = ast.ContextCSS
+					}
+					tag = ""
+					quote = 0
+				}
+
+			case ast.ContextCSS:
+				// </style>
+				if c == '<' && p+6 < len(l.src) && l.src[p] == '/' && isStyle(l.src[p+1:p+6]) && (l.src[p+6] == '>' || isSpace(l.src[p+6])) {
+					l.ctx = ast.ContextHTML
+					p += 6
+					l.column += 6
+				}
+
+			case ast.ContextJavaScript:
+				// </script>
+				if c == '<' && p+7 < len(l.src) && l.src[p] == '/' && isScript(l.src[p+1:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
+					l.ctx = ast.ContextHTML
+					p += 7
+					l.column += 7
+				}
+
+			}
+		}
 	}
 
 	if len(l.src) > 0 {
@@ -233,7 +289,108 @@ LOOP:
 	close(l.tokens)
 }
 
-func isJavaScript(s []byte) bool {
+func containsURL(tag string, attr string) bool {
+	switch tag {
+	case "a":
+		return attr == "href"
+	case "img":
+		return attr == "src"
+	case "script", "style":
+		return attr == "src"
+	case "form":
+		return attr == "action"
+	}
+	return false
+}
+
+// scanTag scans a tag name from src starting from position p
+// and returns the tag and the next position.
+//
+// For example, if l.src[p:] is `script src="...`, it returns
+// "script" and p+6.
+func (l *lexer) scanTag(p int) (string, int) {
+	s := p
+	for ; p < len(l.src); p++ {
+		c := l.src[p]
+		if isAlpha(c) {
+			l.column++
+		} else if isDigit(c) {
+			l.column++
+			if p == s {
+				return "", p + 1
+			}
+		} else if c == '>' || c == '/' || isASCIISpace(c) {
+			break
+		} else if c == '\n' {
+			l.newline()
+		} else {
+			return "", p
+		}
+	}
+	return string(bytes.ToLower(l.src[s:p])), p
+}
+
+// scanAttribute scans a tag attribute from src starting from position p.
+// Returns the attribute name, the quote character and the next position.
+func (l *lexer) scanAttribute(p int) (string, int) {
+	// reads attribute name
+	s := p
+	for ; p < len(l.src); p++ {
+		if c := l.src[p]; !isAlpha(c) {
+			if !isSpace(c) && c != '=' {
+				return "", p
+			}
+			break
+		}
+		l.column++
+	}
+	if p == len(l.src) {
+		return "", p
+	}
+	name := string(bytes.ToLower(l.src[s:p]))
+	// reads =
+	for ; p < len(l.src); p++ {
+		c := l.src[p]
+		if !isSpace(c) {
+			if c != '=' {
+				return "", p
+			}
+			p++
+			l.column++
+			break
+		}
+		if c == '\n' {
+			l.newline()
+		} else {
+			l.column++
+		}
+	}
+	if p == len(l.src) {
+		return "", p
+	}
+	// reads quote
+	for ; p < len(l.src); p++ {
+		c := l.src[p]
+		if !isSpace(c) {
+			if c != '"' && c != '\'' {
+				return "", p
+			}
+			break
+		}
+		if c == '\n' {
+			l.newline()
+		} else {
+			l.column++
+		}
+	}
+	if p == len(l.src) {
+		return "", p
+	}
+	l.column++
+	return name, p + 1
+}
+
+func isScript(s []byte) bool {
 	if len(s) < 6 {
 		return false
 	}
@@ -244,7 +401,7 @@ func isJavaScript(s []byte) bool {
 	return false
 }
 
-func isCSS(s []byte) bool {
+func isStyle(s []byte) bool {
 	if len(s) < 5 {
 		return false
 	}
@@ -502,6 +659,20 @@ func isSpace(s byte) bool {
 // isStartChar indicates if b is the first byte of an UTF-8 encoded character.
 func isStartChar(b byte) bool {
 	return b < 128 || 191 < b
+}
+
+func isASCIISpace(s byte) bool {
+	return s == ' ' || s == '\t' || s == '\n' || s == '\r' || s == '\f'
+}
+
+// isAlpha indicates if s is ASCII alpha.
+func isAlpha(s byte) bool {
+	return 'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z'
+}
+
+// isDigit indicates if s is ASCII digit.
+func isDigit(s byte) bool {
+	return '0' <= s && s <= '9'
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that

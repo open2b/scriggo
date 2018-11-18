@@ -41,6 +41,7 @@ type Context int
 const (
 	ContextText Context = iota
 	ContextHTML
+	ContextAttribute
 	ContextCSS
 	ContextJavaScript
 )
@@ -51,6 +52,8 @@ func (ctx Context) String() string {
 		return "Text"
 	case ContextHTML:
 		return "HTML"
+	case ContextAttribute:
+		return "Attribute"
 	case ContextCSS:
 		return "CSS"
 	case ContextJavaScript:
@@ -127,6 +130,16 @@ func NewText(pos *Position, text string) *Text {
 
 func (t Text) String() string {
 	return t.Text
+}
+
+// URL represents an URL.
+type URL struct {
+	*Position        // position in the source.
+	Value     []Node // value nodes.
+}
+
+func NewURL(pos *Position, value []Node) *URL {
+	return &URL{pos, value}
 }
 
 // Var represents a statement {% var identifier = expression %}.
@@ -555,6 +568,12 @@ func CloneNode(node Node) Node {
 		return NewTree(n.Path, nn)
 	case *Text:
 		return NewText(ClonePosition(n.Position), n.Text)
+	case *URL:
+		var value = make([]Node, len(n.Value))
+		for i, n2 := range n.Value {
+			value[i] = CloneNode(n2)
+		}
+		return NewURL(ClonePosition(n.Position), value)
 	case *Value:
 		return NewValue(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *If:

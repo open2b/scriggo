@@ -11,90 +11,90 @@ import (
 )
 
 var typeTests = map[string][]tokenType{
-	``:                                                 {},
-	`a`:                                                {tokenText},
-	`{`:                                                {tokenText},
-	`}`:                                                {tokenText},
-	`{{a}}`:                                            {tokenStartValue, tokenIdentifier, tokenEndValue},
-	`{{ a }}`:                                          {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{\ta\n}}":                                        {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
-	"{{\na\t}}":                                        {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{\na;\t}}":                                       {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
-	"{% var a = 1 %}":                                  {tokenStartStatement, tokenVar, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
-	"{% a = 2 %}":                                      {tokenStartStatement, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
-	"{%for()%}":                                        {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenEndStatement},
-	"{%\tfor()\n%}":                                    {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenEndStatement},
-	"{%\tfor a%}":                                      {tokenStartStatement, tokenFor, tokenIdentifier, tokenEndStatement},
-	"{% for a;\n\t%}":                                  {tokenStartStatement, tokenFor, tokenIdentifier, tokenSemicolon, tokenEndStatement},
-	"{%end%}":                                          {tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{%\tend\n%}":                                      {tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{% end %}":                                        {tokenStartStatement, tokenEnd, tokenEndStatement},
-	"{% break %}":                                      {tokenStartStatement, tokenBreak, tokenEndStatement},
-	"{% continue %}":                                   {tokenStartStatement, tokenContinue, tokenEndStatement},
-	"{% if a %}":                                       {tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement},
-	"{% else %}":                                       {tokenStartStatement, tokenElse, tokenEndStatement},
-	"{% extend \"\" %}":                                {tokenStartStatement, tokenExtend, tokenInterpretedString, tokenEndStatement},
-	"{% region \"\" %}":                                {tokenStartStatement, tokenRegion, tokenInterpretedString, tokenEndStatement},
-	"{% show \"\" %}":                                  {tokenStartStatement, tokenShow, tokenInterpretedString, tokenEndStatement},
-	"{# comment #}":                                    {tokenComment},
-	`a{{b}}c`:                                          {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	`{{a}}c`:                                           {tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	`{{a}}\n`:                                          {tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	`{{a}}{{b}}`:                                       {tokenStartValue, tokenIdentifier, tokenEndValue, tokenStartValue, tokenIdentifier, tokenEndValue},
-	"<script></script>":                                {tokenText},
-	"<style></style>":                                  {tokenText},
-	"<script>{{a}}</script>":                           {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	"<style>{{a}}</style>":                             {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	"<a class=\"{{c}}\"></a>":                          {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
-	"{{ _ }}":                                          {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{ __ }}":                                         {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{ _a }}":                                         {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{ a5 }}":                                         {tokenStartValue, tokenIdentifier, tokenEndValue},
-	"{{ 3 }}":                                          {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ -3 }}":                                         {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
-	"{{ +3 }}":                                         {tokenStartValue, tokenAddition, tokenNumber, tokenEndValue},
-	"{{ 0 }}":                                          {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ 2147483647 }}":                                 {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ -2147483648 }}":                                {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
-	"{{ .0 }}":                                         {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ 0. }}":                                         {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ 0.0 }}":                                        {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ 2147483647.2147483647 }}":                      {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ -2147483647.2147483647 }}":                     {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
+	``:                             {},
+	`a`:                            {tokenText},
+	`{`:                            {tokenText},
+	`}`:                            {tokenText},
+	`{{a}}`:                        {tokenStartValue, tokenIdentifier, tokenEndValue},
+	`{{ a }}`:                      {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{\ta\n}}":                    {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
+	"{{\na\t}}":                    {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{\na;\t}}":                   {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
+	"{% var a = 1 %}":              {tokenStartStatement, tokenVar, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
+	"{% a = 2 %}":                  {tokenStartStatement, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
+	"{%for()%}":                    {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenEndStatement},
+	"{%\tfor()\n%}":                {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenEndStatement},
+	"{%\tfor a%}":                  {tokenStartStatement, tokenFor, tokenIdentifier, tokenEndStatement},
+	"{% for a;\n\t%}":              {tokenStartStatement, tokenFor, tokenIdentifier, tokenSemicolon, tokenEndStatement},
+	"{%end%}":                      {tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{%\tend\n%}":                  {tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% end %}":                    {tokenStartStatement, tokenEnd, tokenEndStatement},
+	"{% break %}":                  {tokenStartStatement, tokenBreak, tokenEndStatement},
+	"{% continue %}":               {tokenStartStatement, tokenContinue, tokenEndStatement},
+	"{% if a %}":                   {tokenStartStatement, tokenIf, tokenIdentifier, tokenEndStatement},
+	"{% else %}":                   {tokenStartStatement, tokenElse, tokenEndStatement},
+	"{% extend \"\" %}":            {tokenStartStatement, tokenExtend, tokenInterpretedString, tokenEndStatement},
+	"{% region \"\" %}":            {tokenStartStatement, tokenRegion, tokenInterpretedString, tokenEndStatement},
+	"{% show \"\" %}":              {tokenStartStatement, tokenShow, tokenInterpretedString, tokenEndStatement},
+	"{# comment #}":                {tokenComment},
+	`a{{b}}c`:                      {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	`{{a}}c`:                       {tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	`{{a}}\n`:                      {tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	`{{a}}{{b}}`:                   {tokenStartValue, tokenIdentifier, tokenEndValue, tokenStartValue, tokenIdentifier, tokenEndValue},
+	"<script></script>":            {tokenText},
+	"<style></style>":              {tokenText},
+	"<script>{{a}}</script>":       {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	"<style>{{a}}</style>":         {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	"<a class=\"{{c}}\"></a>":      {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},
+	"{{ _ }}":                      {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{ __ }}":                     {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{ _a }}":                     {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{ a5 }}":                     {tokenStartValue, tokenIdentifier, tokenEndValue},
+	"{{ 3 }}":                      {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ -3 }}":                     {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
+	"{{ +3 }}":                     {tokenStartValue, tokenAddition, tokenNumber, tokenEndValue},
+	"{{ 0 }}":                      {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ 2147483647 }}":             {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ -2147483648 }}":            {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
+	"{{ .0 }}":                     {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ 0. }}":                     {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ 0.0 }}":                    {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ 2147483647.2147483647 }}":  {tokenStartValue, tokenNumber, tokenEndValue},
+	"{{ -2147483647.2147483647 }}": {tokenStartValue, tokenSubtraction, tokenNumber, tokenEndValue},
 	"{{ 2147483647.2147483647214748364721474836472 }}": {tokenStartValue, tokenNumber, tokenEndValue},
-	"{{ a + b }}":                                      {tokenStartValue, tokenIdentifier, tokenAddition, tokenIdentifier, tokenEndValue},
-	"{{ a - b }}":                                      {tokenStartValue, tokenIdentifier, tokenSubtraction, tokenIdentifier, tokenEndValue},
-	"{{ a * b }}":                                      {tokenStartValue, tokenIdentifier, tokenMultiplication, tokenIdentifier, tokenEndValue},
-	"{{ a / b }}":                                      {tokenStartValue, tokenIdentifier, tokenDivision, tokenIdentifier, tokenEndValue},
-	"{{ a % b }}":                                      {tokenStartValue, tokenIdentifier, tokenModulo, tokenIdentifier, tokenEndValue},
-	"{{ ( a ) }}":                                      {tokenStartValue, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenEndValue},
-	"{{ a == b }}":                                     {tokenStartValue, tokenIdentifier, tokenEqual, tokenIdentifier, tokenEndValue},
-	"{{ a != b }}":                                     {tokenStartValue, tokenIdentifier, tokenNotEqual, tokenIdentifier, tokenEndValue},
-	"{{ a && b }}":                                     {tokenStartValue, tokenIdentifier, tokenAnd, tokenIdentifier, tokenEndValue},
-	"{{ a || b }}":                                     {tokenStartValue, tokenIdentifier, tokenOr, tokenIdentifier, tokenEndValue},
-	"{{ a < b }}":                                      {tokenStartValue, tokenIdentifier, tokenLess, tokenIdentifier, tokenEndValue},
-	"{{ a <= b }}":                                     {tokenStartValue, tokenIdentifier, tokenLessOrEqual, tokenIdentifier, tokenEndValue},
-	"{{ a > b }}":                                      {tokenStartValue, tokenIdentifier, tokenGreater, tokenIdentifier, tokenEndValue},
-	"{{ a >= b }}":                                     {tokenStartValue, tokenIdentifier, tokenGreaterOrEqual, tokenIdentifier, tokenEndValue},
-	"{{ !a }}":                                         {tokenStartValue, tokenNot, tokenIdentifier, tokenEndValue},
-	"{{ a[5] }}":                                       {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenRightBrackets, tokenEndValue},
-	"{{ a[:] }}":                                       {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenRightBrackets, tokenEndValue},
-	"{{ a[:8] }}":                                      {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenNumber, tokenRightBrackets, tokenEndValue},
-	"{{ a[3:] }}":                                      {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenColon, tokenRightBrackets, tokenEndValue},
-	"{{ a[3:8] }}":                                     {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenColon, tokenNumber, tokenRightBrackets, tokenEndValue},
-	"{{ a() }}":                                        {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenEndValue},
-	"{{ a(1) }}":                                       {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenNumber, tokenRightParenthesis, tokenEndValue},
-	"{{ a(1,2) }}":                                     {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenNumber, tokenComma, tokenNumber, tokenRightParenthesis, tokenEndValue},
-	"{{ a.b }}":                                        {tokenStartValue, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenEndValue},
-	"{{ \"\" }}":                                       {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\u09AF\" }}":                                {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\u09af\" }}":                                {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\U00008a9e\" }}":                            {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\U0010FFFF\" }}":                            {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\t\" }}":                                    {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ \"\\u3C2E\\\"\" }}":                            {tokenStartValue, tokenInterpretedString, tokenEndValue},
-	"{{ `` }}":                                         {tokenStartValue, tokenRawString, tokenEndValue},
-	"{{ `\\t` }}":                                      {tokenStartValue, tokenRawString, tokenEndValue},
+	"{{ a + b }}":           {tokenStartValue, tokenIdentifier, tokenAddition, tokenIdentifier, tokenEndValue},
+	"{{ a - b }}":           {tokenStartValue, tokenIdentifier, tokenSubtraction, tokenIdentifier, tokenEndValue},
+	"{{ a * b }}":           {tokenStartValue, tokenIdentifier, tokenMultiplication, tokenIdentifier, tokenEndValue},
+	"{{ a / b }}":           {tokenStartValue, tokenIdentifier, tokenDivision, tokenIdentifier, tokenEndValue},
+	"{{ a % b }}":           {tokenStartValue, tokenIdentifier, tokenModulo, tokenIdentifier, tokenEndValue},
+	"{{ ( a ) }}":           {tokenStartValue, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenEndValue},
+	"{{ a == b }}":          {tokenStartValue, tokenIdentifier, tokenEqual, tokenIdentifier, tokenEndValue},
+	"{{ a != b }}":          {tokenStartValue, tokenIdentifier, tokenNotEqual, tokenIdentifier, tokenEndValue},
+	"{{ a && b }}":          {tokenStartValue, tokenIdentifier, tokenAnd, tokenIdentifier, tokenEndValue},
+	"{{ a || b }}":          {tokenStartValue, tokenIdentifier, tokenOr, tokenIdentifier, tokenEndValue},
+	"{{ a < b }}":           {tokenStartValue, tokenIdentifier, tokenLess, tokenIdentifier, tokenEndValue},
+	"{{ a <= b }}":          {tokenStartValue, tokenIdentifier, tokenLessOrEqual, tokenIdentifier, tokenEndValue},
+	"{{ a > b }}":           {tokenStartValue, tokenIdentifier, tokenGreater, tokenIdentifier, tokenEndValue},
+	"{{ a >= b }}":          {tokenStartValue, tokenIdentifier, tokenGreaterOrEqual, tokenIdentifier, tokenEndValue},
+	"{{ !a }}":              {tokenStartValue, tokenNot, tokenIdentifier, tokenEndValue},
+	"{{ a[5] }}":            {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenRightBrackets, tokenEndValue},
+	"{{ a[:] }}":            {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenRightBrackets, tokenEndValue},
+	"{{ a[:8] }}":           {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenNumber, tokenRightBrackets, tokenEndValue},
+	"{{ a[3:] }}":           {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenColon, tokenRightBrackets, tokenEndValue},
+	"{{ a[3:8] }}":          {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenColon, tokenNumber, tokenRightBrackets, tokenEndValue},
+	"{{ a() }}":             {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenEndValue},
+	"{{ a(1) }}":            {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenNumber, tokenRightParenthesis, tokenEndValue},
+	"{{ a(1,2) }}":          {tokenStartValue, tokenIdentifier, tokenLeftParenthesis, tokenNumber, tokenComma, tokenNumber, tokenRightParenthesis, tokenEndValue},
+	"{{ a.b }}":             {tokenStartValue, tokenIdentifier, tokenPeriod, tokenIdentifier, tokenEndValue},
+	"{{ \"\" }}":            {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\u09AF\" }}":     {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\u09af\" }}":     {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\U00008a9e\" }}": {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\U0010FFFF\" }}": {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\t\" }}":         {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ \"\\u3C2E\\\"\" }}": {tokenStartValue, tokenInterpretedString, tokenEndValue},
+	"{{ `` }}":              {tokenStartValue, tokenRawString, tokenEndValue},
+	"{{ `\\t` }}":           {tokenStartValue, tokenRawString, tokenEndValue},
 	"{{ ( 1 + 2 ) * 3 }}": {tokenStartValue, tokenLeftParenthesis, tokenNumber, tokenAddition, tokenNumber, tokenRightParenthesis,
 		tokenMultiplication, tokenNumber, tokenEndValue},
 }
@@ -117,10 +117,19 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<style>s{{a}}</style>{{a}}":               {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style>s{{show "a"}}t</style>`:            {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
 		`<script>s{{show "a"}}t</script>`:          {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+		`<style a="{{b}}"></style>`:                {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<style a="b">{{1}}</style>`:               {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
+		`<script a="{{b}}"></script>`:              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<script a="b">{{1}}</script>`:             {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 		`<![CDATA[<script>{{1}}</script>]]>`:       {ast.ContextText},
 		`a<![CDATA[<script>{{1}}</script>]]>{{2}}`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<a href="">`:                              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<A Href="">`:                              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a href=''>`:                              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a href="{{ u }}">`:                       {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a href="a{{ p }}">`:                      {ast.ContextText, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a href="{% if a %}b{% end %}">`:          {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a class="{{ a }}">`:                      {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
@@ -170,6 +179,47 @@ var positionTests = []struct {
 		{1, 1, 0, 0}, {1, 2, 1, 7}, {1, 9, 8, 8}}},
 	{"a{# 本 #}b", []ast.Position{
 		{1, 1, 0, 0}, {1, 2, 1, 9}, {1, 9, 10, 10}}},
+}
+
+var scanTagTests = []struct {
+	src    string
+	tag    string
+	p      int
+	line   int
+	column int
+}{
+	{"a ", "a", 1, 1, 2},
+	{"img\n", "img", 3, 1, 4},
+	{"href\t", "href", 4, 1, 5},
+	{"a", "a", 1, 1, 2},
+	{"a5 ", "a5", 2, 1, 3},
+	{" ", "", 0, 1, 1},
+	{"\n", "", 0, 1, 1},
+	{"5 ", "", 1, 1, 2},
+	{" a", "", 0, 1, 1},
+}
+
+var scanAttributeTests = []struct {
+	src    string
+	attr   string
+	quote  byte
+	p      int
+	line   int
+	column int
+}{
+	{"href=\"h", "href", '"', 6, 1, 7},
+	{"href='h", "href", '\'', 6, 1, 7},
+	{"src = \"h", "src", '"', 7, 1, 8},
+	{"src\n= \"h", "src", '"', 7, 2, 4},
+	{"src =\n\"h", "src", '"', 7, 2, 2},
+	{"a='h", "a", '\'', 3, 1, 4},
+	{"src=h", "", 0, 4, 1, 5},
+	{"src=\n\th", "", 0, 6, 2, 2},
+	{"src", "", 0, 3, 1, 4},
+	{"src=", "", 0, 4, 1, 5},
+	{"src ", "", 0, 4, 1, 5},
+	{"s5c='", "", 0, 1, 1, 2},
+	{"5c='", "", 0, 0, 1, 1},
 }
 
 func TestLexerTypes(t *testing.T) {
@@ -262,6 +312,61 @@ func TestPositions(t *testing.T) {
 		}
 		if i < len(test.pos) {
 			t.Errorf("source: %q, less lines\n", test.src)
+		}
+	}
+}
+
+func TestLexerReadTag(t *testing.T) {
+	for _, test := range scanTagTests {
+		src := []byte(test.src)
+		var l = &lexer{
+			text:   src,
+			src:    src,
+			line:   1,
+			column: 1,
+			ctx:    ast.ContextHTML,
+		}
+		tag, p := l.scanTag(0)
+		if tag != test.tag {
+			t.Errorf("source: %q, unexpected tag %q, expecting %q\n", test.src, tag, test.tag)
+		}
+		if p != test.p {
+			t.Errorf("source: %q, unexpected position %d, expecting %d\n", test.src, p, test.p)
+		}
+		if l.line != test.line {
+			t.Errorf("source: %q, unexpected line %d, expecting %d\n", test.src, l.line, test.line)
+		}
+		if l.column != test.column {
+			t.Errorf("source: %q, unexpected column %d, expecting %d\n", test.src, l.column, test.column)
+		}
+	}
+}
+
+func TestLexerReadAttribute(t *testing.T) {
+	for _, test := range scanAttributeTests {
+		src := []byte(test.src)
+		var l = &lexer{
+			text:   src,
+			src:    src,
+			line:   1,
+			column: 1,
+			ctx:    ast.ContextHTML,
+		}
+		attr, p := l.scanAttribute(0)
+		if attr != test.attr {
+			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
+		}
+		if attr != "" && l.src[p-1] != test.quote {
+			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
+		}
+		if p != test.p {
+			t.Errorf("source: %q, unexpected position %d, expecting %d\n", test.src, p, test.p)
+		}
+		if l.line != test.line {
+			t.Errorf("source: %q, unexpected line %d, expecting %d\n", test.src, l.line, test.line)
+		}
+		if l.column != test.column {
+			t.Errorf("source: %q, unexpected column %d, expecting %d\n", test.src, l.column, test.column)
 		}
 	}
 }
