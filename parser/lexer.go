@@ -79,7 +79,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 		ctx = ast.ContextText
 	}
 	start := len(l.text) - len(l.src)
-	end := start + length -1
+	end := start + length - 1
 	if length == 0 {
 		end = start
 	}
@@ -289,16 +289,41 @@ LOOP:
 	close(l.tokens)
 }
 
+// containsURL indicates if the attribute attr in tag contains an URL
+// or a comma-separated list of URL.
+//
+// See: https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table
 func containsURL(tag string, attr string) bool {
-	switch tag {
-	case "a":
-		return attr == "href"
-	case "img":
-		return attr == "src"
-	case "script", "style":
-		return attr == "src"
-	case "form":
-		return attr == "action"
+	switch attr {
+	case "action":
+		return tag == "form"
+	case "cite":
+		switch tag {
+		case "blockquote", "del", "ins", "q":
+			return true
+		}
+	case "data":
+		return tag == "object"
+	case "formaction":
+		return attr == "button" || attr == "input"
+	case "href":
+		switch tag {
+		case "a", "area", "link", "base":
+			return true
+		}
+	case "longdesc":
+		return tag == "img"
+	case "manifest":
+		return tag == "html"
+	case "poster":
+		return tag == "video"
+	case "src":
+		switch tag {
+		case "audio", "embed", "iframe", "img", "input", "script", "source", "track", "video":
+			return true
+		}
+	case "srcset":
+		return tag == "img" || tag == "source"
 	}
 	return false
 }
