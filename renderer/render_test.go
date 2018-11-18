@@ -6,11 +6,11 @@ package renderer
 
 import (
 	"bytes"
-	"io/ioutil"
-	"io"
-	"strconv"
 	"errors"
+	"io"
+	"io/ioutil"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"open2b/template/ast"
@@ -327,11 +327,13 @@ func TestVarsToScope(t *testing.T) {
 }
 
 type WriteToError struct{}
+
 func (wr WriteToError) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
 	return 0, errors.New("WriteTo error")
 }
 
 type WriteToPanic struct{}
+
 func (wr WriteToPanic) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
 	panic("WriteTo panic")
 }
