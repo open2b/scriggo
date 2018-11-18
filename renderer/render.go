@@ -40,7 +40,7 @@ var errBreak = errors.New("break is not in a loop")
 // It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
-// scope di variabili
+// variables scope
 type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
