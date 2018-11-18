@@ -330,8 +330,10 @@ func (l *lexer) scanTag(p int) (string, int) {
 	return string(bytes.ToLower(l.src[s:p])), p
 }
 
-// scanAttribute scans a tag attribute from src starting from position p.
-// Returns the attribute name, the quote character and the next position.
+// scanAttribute scans an attribute from src starting from position p
+// and returns the attribute name and the next position.
+//
+// For example, if l.src[p:] is `src="...`, it returns "src" and p+5.
 func (l *lexer) scanAttribute(p int) (string, int) {
 	// reads attribute name
 	s := p
