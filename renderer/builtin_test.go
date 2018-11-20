@@ -151,6 +151,14 @@ var rendererBuiltinTests = []struct {
 	{"max(7.5, -5.5)", "7.5", nil},
 	{"max(0.0000000000000000000000000000001, 0.0000000000000000000000000000002)", "0.0000000000000000000000000000002", nil},
 
+	// number
+	{"number(0)", "0", nil},
+	{"number(5)", "5", nil},
+	{"number(-7)", "-7", nil},
+	{"number(5.5)", "5.5", nil},
+	{"number(5.50)", "5.5", nil},
+	{"number(0.00)", "0", nil},
+
 	// md5
 	{"md5(``)", "d41d8cd98f00b204e9800998ecf8427e", nil},
 	{"md5(`hello world!`)", "fc3ff98e8c6a0d3087d515c0473f8677", nil},

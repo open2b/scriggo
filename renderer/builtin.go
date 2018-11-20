@@ -34,12 +34,12 @@ var errNoSlice = errors.New("no slice")
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
 var builtins = map[string]interface{}{
-	"nil":     nil,
-	"true":    true,
-	"false":   false,
-	"len":     _len,
-	"string":  _string,
-	"decimal": _decimal,
+	"nil":    nil,
+	"true":   true,
+	"false":  false,
+	"len":    _len,
+	"string": _string,
+	"number": _number,
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
@@ -264,8 +264,8 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 	return a
 }
 
-// _decimal is the builtin function "decimal".
-func _decimal(d decimal.Decimal) decimal.Decimal {
+// _number is the builtin function "number".
+func _number(d decimal.Decimal) decimal.Decimal {
 	return d
 }
 
