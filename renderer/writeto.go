@@ -174,7 +174,7 @@ func interfaceToAttribute(expr interface{}, version string, urlstate *urlState) 
 	case HTML:
 		s = string(e)
 		if urlstate == nil {
-			s = html.EscapeString(string(e))
+			s = html.EscapeString(html.UnescapeString(string(e)))
 		}
 	case int:
 		s = strconv.Itoa(e)
