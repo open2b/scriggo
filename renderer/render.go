@@ -84,13 +84,13 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 
 	extend := getExtendNode(tree)
 	if extend == nil {
-		err = s.render(wr, tree.Nodes)
+		err = s.render(wr, tree.Nodes, nil)
 	} else {
 		if extend.Tree == nil {
 			return errors.New("template/renderer: extend node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
-		err = s.render(nil, tree.Nodes)
+		err = s.render(nil, tree.Nodes, nil)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.render(wr, extend.Tree.Nodes)
+		err = s.render(wr, extend.Tree.Nodes, nil)
 	}
 
 	return err
@@ -222,6 +222,13 @@ type state struct {
 	handleError func(error) bool
 }
 
+type urlState struct {
+	path   bool
+	query  bool
+	isSet bool
+	addAmp bool
+}
+
 // errorf builds and returns an rendering error.
 func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
@@ -242,7 +249,7 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 }
 
 // render renders nodes.
-func (s *state) render(wr io.Writer, nodes []ast.Node) error {
+func (s *state) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
 	var err error
 
@@ -254,15 +261,42 @@ Nodes:
 		case *ast.Text:
 
 			if wr != nil {
-				_, err = io.WriteString(wr, node.Text[node.Cut.Left:node.Cut.Right])
+				text := node.Text[node.Cut.Left:node.Cut.Right]
+				if text == "" {
+					continue
+				}
+				if urlstate != nil {
+					if !urlstate.query {
+						if strings.ContainsAny(text, "?#") {
+							if text[0] == '?' && !urlstate.path {
+								if urlstate.addAmp {
+									_, err = io.WriteString(wr, "&amp;")
+									if err != nil {
+										return err
+									}
+								}
+								text = text[1:]
+							}
+							urlstate.path = false
+							urlstate.query = true
+						}
+						if urlstate.isSet && strings.ContainsAny(text, ",") {
+							urlstate.path = true
+							urlstate.query = false
+						}
+					}
+				}
+				_, err = io.WriteString(wr, text)
 				if err != nil {
 					return err
 				}
 			}
 
 		case *ast.URL:
+
 			if len(node.Value) > 0 {
-				err = s.render(wr, node.Value)
+				isSet := node.Attribute == "srcset"
+				err = s.render(wr, node.Value, &urlState{true, false, isSet, false})
 				if err != nil {
 					return err
 				}
@@ -279,7 +313,7 @@ Nodes:
 				return err
 			}
 
-			err = s.writeTo(wr, expr, node)
+			err = s.writeTo(wr, expr, node, urlstate)
 			if err != nil {
 				return err
 			}
@@ -304,7 +338,7 @@ Nodes:
 			if c {
 				if len(node.Then) > 0 {
 					s.vars = append(s.vars, nil)
-					err = s.render(wr, node.Then)
+					err = s.render(wr, node.Then, urlstate)
 					s.vars = s.vars[:len(s.vars)-1]
 					if err != nil {
 						return err
@@ -312,7 +346,7 @@ Nodes:
 				}
 			} else if len(node.Else) > 0 {
 				s.vars = append(s.vars, nil)
-				err = s.render(wr, node.Else)
+				err = s.render(wr, node.Else, urlstate)
 				s.vars = s.vars[:len(s.vars)-1]
 				if err != nil {
 					return err
@@ -365,7 +399,7 @@ Nodes:
 					i := 0
 					for _, v := range vv {
 						setScope(i, string(v))
-						err = s.render(wr, node.Nodes)
+						err = s.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -385,7 +419,7 @@ Nodes:
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, vv[i])
-						err = s.render(wr, node.Nodes)
+						err = s.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -412,7 +446,7 @@ Nodes:
 					s.vars = append(s.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, av.Index(i).Interface())
-						err = s.render(wr, node.Nodes)
+						err = s.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -461,7 +495,7 @@ Nodes:
 				s.vars = append(s.vars, nil)
 				for i := n1; ; i += step {
 					s.vars[len(s.vars)-1] = scope{index: i}
-					err = s.render(wr, node.Nodes)
+					err = s.render(wr, node.Nodes, urlstate)
 					if err != nil {
 						if err == errBreak {
 							break
@@ -650,7 +684,7 @@ Nodes:
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.render(wr, r.node.Body)
+			err = st.render(wr, r.node.Body, nil)
 			if err != nil {
 				return err
 			}
@@ -666,7 +700,7 @@ Nodes:
 					version:     s.version,
 					handleError: s.handleError,
 				}
-				err = st.render(nil, node.Tree.Nodes)
+				err = st.render(nil, node.Tree.Nodes, nil)
 				if err != nil {
 					return err
 				}
@@ -695,7 +729,7 @@ Nodes:
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.render(wr, node.Tree.Nodes)
+			err = st.render(wr, node.Tree.Nodes, nil)
 			s.vars = s.vars[:len(s.vars)-1]
 			if err != nil {
 				return err

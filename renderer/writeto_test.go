@@ -76,6 +76,131 @@ func TestHTMLContext(t *testing.T) {
 	}
 }
 
+var attrContextTests = []struct {
+	src  interface{}
+	res  string
+	vars scope
+}{
+	{`nil`, "", nil},
+	{`""`, "", nil},
+	{`"a"`, "a", nil},
+	{`"<a>"`, html.EscapeString("<a>"), nil},
+	{`"<div></div>"`, html.EscapeString("<div></div>"), nil},
+	{`a`, html.EscapeString("<a>"), scope{"a": "<a>"}},
+	{`d`, html.EscapeString("<div></div>"), scope{"d": "<div></div>"}},
+	{`a`, html.EscapeString("<a>"), scope{"a": HTML("<a>")}},
+	{`d`, html.EscapeString("<div></div>"), scope{"d": HTML("<div></div>")}},
+	{`0`, "0", nil},
+	{`25`, "25", nil},
+	{`-25`, "-25", nil},
+	{`0.0`, "0", nil},
+	{`0.1`, "0.1", nil},
+	{`0.01`, "0.01", nil},
+	{`0.1111111`, "0.1111111", nil},
+	{`0.1000000`, "0.1", nil},
+	{`-0.1`, "-0.1", nil},
+	{`-0.1111111`, "-0.1111111", nil},
+	{`-0.1000000`, "-0.1", nil},
+	{`true`, "true", nil},
+	{`false`, "false", nil},
+	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
+	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
+	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
+	{`a`, "t: 1", scope{"a": aNumber{1}}},
+	{`a + 0`, "1", scope{"a": aNumber{1}}},
+	{`a`, "t: a", scope{"a": aString{"a"}}},
+	{`a + ""`, "a", scope{"a": aString{"a"}}},
+}
+
+func TestAttributeContext(t *testing.T) {
+	for _, expr := range attrContextTests {
+		var src string
+		switch s := expr.src.(type) {
+		case string:
+			src = s
+		case HTML:
+			src = string(s)
+		}
+		var tree, err = parser.Parse([]byte("{{"+src+"}}"), ast.ContextAttribute)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = Render(b, tree, "", expr.vars, nil)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
+var urlContextTests = []struct {
+	src  interface{}
+	res  string
+	vars scope
+}{
+	{`<a href="">`, `<a href="">`, nil},
+	{`<a href="abc">`, `<a href="abc">`, nil},
+	{`<a href="本">`, `<a href="本">`, nil},
+	{`<a href="{{b}}">`, `<a href="b">`, scope{"b": "b"}},
+	{`<a href="http://s/{{a}}/">`, `<a href="http://s/a%c3%a0%e6%9c%ac/">`, scope{"a": "aà本"}},
+	{`<a href="{{a}}{{b}}">`, `<a href="a%e6%9c%ac">`, scope{"a": "a", "b":"本"}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="a?b=%3D">`, scope{"a": "a", "b":"="}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="=?b=%3D">`, scope{"a": "=", "b":"="}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="p?b=%3D">`, scope{"a": "p?", "b":"="}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="p?&amp;b=%3D">`, scope{"a": "p?&", "b":"="}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="p?q&amp;b=%3D">`, scope{"a": "p?q", "b":"="}},
+	{`<a href="{{a}}?b={{b}}">`, `<a href="?b=%3D">`, scope{"a": "?", "b":"="}},
+	{`<a href="{{a}}?b={{b}}&c={{c}}">`, `<a href="/a/b/c?b=%3D&c=6">`, scope{"a": "/a/b/c", "b":"=", "c" : "6"}},
+	{`<a href="{{a}}?b={{b}}&amp;c={{c}}">`, `<a href="/a/b/c?b=%3D&amp;c=6">`, scope{"a": "/a/b/c", "b":"=", "c" : "6"}},
+	{`<a href="{{a}}?{{b}}">`, `<a href="?">`, scope{"a": "", "b":""}},
+	{`<a href="?{{b}}">`, `<a href="?b">`, scope{"b":"b"}},
+	{`<a href="?{{b}}">`, `<a href="?%3D">`, scope{"b":"="}},
+	{`<a href="#">`, `<a href="#">`, nil},
+	{`<a href="#{{b}}">`, `<a href="#%3D">`, scope{"b":"="}},
+	{`<a href="{{a}}#{{b}}">`, `<a href="=#%3D">`, scope{"a": "=", "b":"="}},
+	{`<a href="{{a}}?{{b}}#{{c}}">`, `<a href="=?%3D#%3D">`, scope{"a": "=", "b":"=", "c" : "="}},
+	{`<a href="{{a}}?b=6#{{c}}">`, `<a href="=?b=6#%3D">`, scope{"a": "=", "c":"="}},
+	{`<a href="{{a}}?{{b}}">`, `<a href=",?%2C">`, scope{"a": ",", "b":","}},
+	{`<img srcset="{{a}} 1024w, {{b}} 640w,{{c}} 320w">`, `<img srcset="large.jpg 1024w, medium.jpg 640w,small.jpg 320w">`, scope{"a": "large.jpg", "b":"medium.jpg", "c" : "small.jpg"}},
+	{`<img srcset="{{a}} 1024w, {{b}} 640w">`, `<img srcset="large.jpg?s=1024 1024w, medium.jpg 640w">`, scope{"a": "large.jpg?s=1024", "b":"medium.jpg"}},
+	{`<img srcset="{{a}} 1024w, {{b}} 640w">`, `<img srcset="large.jpg?s=1024 1024w, medium=.jpg 640w">`, scope{"a": "large.jpg?s=1024", "b":"medium=.jpg"}},
+	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="=">`, scope{"a": "=", "t":true}},
+	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="?%3D">`, scope{"a": "=", "t":false}},
+}
+
+func TestURLContext(t *testing.T) {
+	for _, expr := range urlContextTests {
+		var src string
+		switch s := expr.src.(type) {
+		case string:
+			src = s
+		case HTML:
+			src = string(s)
+		}
+		var tree, err = parser.Parse([]byte(src), ast.ContextHTML)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = Render(b, tree, "", expr.vars, nil)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
 var scriptContextTests = []struct {
 	src  string
 	res  string

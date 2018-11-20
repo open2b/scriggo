@@ -6,8 +6,10 @@ package renderer
 
 import (
 	"bytes"
+	"fmt"
 	"html"
 	"io"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -17,7 +19,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value) error {
+func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstate *urlState) error {
 
 	if e, ok := expr.(WriterTo); ok {
 
@@ -44,7 +46,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value) error {
 		case ast.ContextHTML:
 			str, ok = interfaceToHTML(asBase(expr), s.version)
 		case ast.ContextAttribute:
-			str, ok = interfaceToAttribute(asBase(expr), s.version)
+			str, ok = interfaceToAttribute(asBase(expr), s.version, urlstate)
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr), s.version)
 		case ast.ContextJavaScript:
@@ -156,7 +158,7 @@ func interfaceToHTML(expr interface{}, version string) (string, bool) {
 	return s, true
 }
 
-func interfaceToAttribute(expr interface{}, version string) (string, bool) {
+func interfaceToAttribute(expr interface{}, version string, urlstate *urlState) (string, bool) {
 
 	if expr == nil {
 		return "", true
@@ -166,9 +168,15 @@ func interfaceToAttribute(expr interface{}, version string) (string, bool) {
 
 	switch e := expr.(type) {
 	case string:
-		s = html.EscapeString(e)
+		s = e
+		if urlstate == nil {
+			s = html.EscapeString(e)
+		}
 	case HTML:
-		s = html.EscapeString(string(e))
+		s = string(e)
+		if urlstate == nil {
+			s = html.EscapeString(string(e))
+		}
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
@@ -188,13 +196,32 @@ func interfaceToAttribute(expr interface{}, version string) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToAttribute(rv.Index(i).Interface(), version)
+			str, ok := interfaceToAttribute(rv.Index(i).Interface(), version, urlstate)
 			if !ok {
 				return "", false
 			}
 			buf[i] = str
 		}
 		s = strings.Join(buf, ", ")
+	}
+
+	if s == "" {
+		return "", true
+	}
+
+	if urlstate != nil {
+		switch {
+		case urlstate.path:
+			if strings.Contains(s, "?") {
+				urlstate.path = false
+				urlstate.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
+			}
+			s = pathEscape(s)
+		case urlstate.query:
+			s = queryEscape(s)
+		default:
+			return "", false
+		}
 	}
 
 	return s, true
@@ -351,4 +378,64 @@ func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 		s += s2
 	}
 	return "{" + s + "}", true
+}
+
+// pathEscape escapes the string s so it can be placed inside a URL path.
+// Note that url.PathEscape escapes also the slash.
+func pathEscape(s string) string {
+	fmt.Printf("path escape: %q\n", s)
+	more := 0
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z') {
+			switch c {
+			case '!', '#', '$', '*', ',', '-', '.', '/', ';', '=', '?', '@', '[', ']', '_':
+			case '&', '+':
+				more += 4
+			default:
+				more += 2
+			}
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	b := make([]byte, len(s)+more)
+	for i, j := 0, 0; i < len(s); i++ {
+		c := s[i]
+		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' {
+			b[j] = c
+			j++
+			continue
+		}
+		switch c {
+		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+			b[j] = c
+			j++
+		case '&':
+			b[j] = '&'
+			b[j+1] = 'a'
+			b[j+2] = 'm'
+			b[j+3] = 'p'
+			b[j+4] = ';'
+			j += 5
+		case '+':
+			b[j] = '&'
+			b[j+1] = '#'
+			b[j+2] = '4'
+			b[j+3] = '3'
+			b[j+4] = ';'
+			j += 5
+		default:
+			b[j] = '%'
+			b[j+1] = hexchars[c>>4]
+			b[j+2] = hexchars[c&0xF]
+			j += 3
+		}
+	}
+	return string(b)
+}
+
+// queryEscape escapes the string s so it can be placed inside a URL query.
+func queryEscape(s string) string {
+	return url.QueryEscape(s)
 }
