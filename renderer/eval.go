@@ -822,6 +822,7 @@ func (s *state) isUntypedNil(expr ast.Expression) bool {
 	return false
 }
 
+// variable returns the value of the variable name in state s.
 func (s *state) variable(name string) (interface{}, bool) {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {

@@ -36,19 +36,19 @@ func toAbsolutePath(dir, path string) (string, error) {
 }
 
 func isValidDirName(name string) bool {
-	// must be at least one character long and less than 256
+	// Must be at least one character long and less than 256.
 	if name == "" || utf8.RuneCountInString(name) >= 256 {
 		return false
 	}
-	// should not be '.' and must not contain '..'
+	// Should not be '.' and must not contain '..'.
 	if name == "." || strings.Contains(name, "..") {
 		return false
 	}
-	// first and last character should not be spaces
+	// First and last character should not be spaces.
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// must not contain characters from NUL to US and the characters
+	// Must not contain characters from NUL to US and the characters
 	// " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
@@ -57,7 +57,7 @@ func isValidDirName(name string) bool {
 			return false
 		}
 	}
-	// does not have to be a reserved name for Windows
+	// Does not have to be a reserved name for Windows.
 	name = strings.ToLower(name)
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
@@ -70,27 +70,27 @@ func isValidDirName(name string) bool {
 }
 
 func isValidFileName(name string) bool {
-	// must be at least 3 characters long and less than 256
+	// Must be at least 3 characters long and less than 256.
 	var length = utf8.RuneCountInString(name)
 	if length <= 2 || length >= 256 {
 		return false
 	}
-	// first and the last character can not be a point
+	// First and the last character can not be a point.
 	if name[0] == '.' || name[len(name)-1] == '.' {
 		return false
 	}
-	// extension must be present
+	// Extension must be present.
 	var dot = strings.LastIndexByte(name, '.')
 	name = strings.ToLower(name)
 	var ext = name[dot+1:]
 	if strings.IndexByte(ext, '.') >= 0 {
 		return false
 	}
-	// first and last character should not be spaces
+	// First and last character should not be spaces.
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// must not contain characters from NUL to US and characters
+	// Must not contain characters from NUL to US and characters
 	// " * / : < > ? \ | DEL
 	for _, c := range name {
 		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
@@ -99,7 +99,7 @@ func isValidFileName(name string) bool {
 			return false
 		}
 	}
-	// does not have to be a reserved name for Windows
+	// Does not have to be a reserved name for Windows.
 	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
 		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
 		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
@@ -114,23 +114,22 @@ func isValidFileName(name string) bool {
 // They are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
 // These are invalid paths: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
-	// must have at least one character and do not end with '/'
+	// Must have at least one character and do not end with '/'.
 	if path == "" || path[len(path)-1] == '/' {
 		return false
 	}
-	// splits the path in the various names
+	// Splits the path in the various names.
 	var names = strings.Split(path, "/")
-	// first names must be directories or '..'
+	// First names must be directories or '..'.
 	for i, name := range names[:len(names)-1] {
-		// if the first name is empty...
+		// If the first name is empty, path starts with '/'.
 		if i == 0 && name == "" {
-			// ...then path starts with '/'
 			continue
 		}
 		if name != ".." && !isValidDirName(name) {
 			return false
 		}
 	}
-	// last name must be a file
+	// Last name must be a file.
 	return isValidFileName(names[len(names)-1])
 }

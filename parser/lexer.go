@@ -169,7 +169,7 @@ LOOP:
 			}
 		}
 		if l.tag != "" && quote == 0 && isAlpha(c) {
-			// check if it is an attribute
+			// Checks if it is an attribute.
 			l.attr, p = l.scanAttribute(p)
 			if l.attr != "" {
 				quote = l.src[p-1]
@@ -188,7 +188,7 @@ LOOP:
 			continue
 		}
 		if quote != 0 && c == quote {
-			// end attribute
+			// End attribute.
 			quote = 0
 			if emittedURL {
 				if p > 0 {
@@ -226,7 +226,7 @@ LOOP:
 						// <![CDATA[...]]>
 						if p+10 < len(l.src) && l.src[p] == '!' {
 							if bytes.HasPrefix(l.src[p-1:], cdataStart) {
-								// skips the CDATA section
+								// Skips the CDATA section.
 								p += 8
 								l.column += 8
 								var t int
@@ -245,11 +245,11 @@ LOOP:
 								continue
 							}
 						}
-						// start tag
+						// Start tag.
 						l.tag, p = l.scanTag(p)
 					}
 				} else if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
-					// end tag
+					// End tag.
 					switch l.tag {
 					case "script":
 						l.ctx = ast.ContextJavaScript
@@ -295,7 +295,7 @@ LOOP:
 // containsURL indicates if the attribute attr in tag contains an URL
 // or a comma-separated list of URL.
 //
-// See: https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table
+// See https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table.
 func containsURL(tag string, attr string) bool {
 	switch attr {
 	case "action":
@@ -363,7 +363,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 //
 // For example, if l.src[p:] is `src="...`, it returns "src" and p+5.
 func (l *lexer) scanAttribute(p int) (string, int) {
-	// reads attribute name
+	// Reads attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
 		if c := l.src[p]; !isAlpha(c) {
@@ -378,7 +378,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		return "", p
 	}
 	name := string(bytes.ToLower(l.src[s:p]))
-	// reads =
+	// Reads '='.
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
 		if !isSpace(c) {
@@ -398,7 +398,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	if p == len(l.src) {
 		return "", p
 	}
-	// reads quote
+	// Reads quote.
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
 		if !isSpace(c) {
@@ -504,7 +504,7 @@ func (l *lexer) lexCode() error {
 	if len(l.src) == 0 {
 		return nil
 	}
-	// endLineAsSemicolon indicates if "\n" should be treated as ";"
+	// endLineAsSemicolon indicates if "\n" should be treated as ";".
 	var endLineAsSemicolon = false
 LOOP:
 	for len(l.src) > 0 {
@@ -708,8 +708,8 @@ func isDigit(s byte) bool {
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that
 // src starts with a character with a length of s bytes.
 func (l *lexer) lexIdentifierOrKeyword(s int) bool {
-	// stops only when a character can not be part
-	// of the identifier or keyword
+	// Stops only when a character can not be part
+	// of the identifier or keyword.
 	cols := 1
 	p := s
 	for p < len(l.src) {
@@ -757,14 +757,14 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 // lexNumber reads a number (int or decimal) knowing that src starts with
 // '0'..'9' or '.'.
 func (l *lexer) lexNumber() {
-	// it stops only if a character can not be part of the number
+	// Stops only if a character can not be part of the number.
 	hasDot := l.src[0] == '.'
 	p := 1
 	for p < len(l.src) {
 		if l.src[p] == '.' {
 			if hasDot {
 				if l.src[p-1] == '.' {
-					// the point is part of a token range
+					// The point is part of a token range.
 					p--
 					hasDot = false
 				}
@@ -782,8 +782,8 @@ func (l *lexer) lexNumber() {
 
 // lexInterpretedString reads a string "..." knowing that src starts with '"'.
 func (l *lexer) lexInterpretedString() error {
-	// stops when it finds the '"' character and returns an error when
-	// it finds a Unicode character that is not valid in a string
+	// Stops when it finds the '"' character and returns an error when
+	// it finds a Unicode character that is not valid in a string.
 	cols := 1
 	p := 1
 LOOP:
@@ -856,8 +856,8 @@ LOOP:
 
 // lexRawString reads a string `...` knowing that src starts with '`'.
 func (l *lexer) lexRawString() error {
-	// stops when it finds the '`' character and returns an error
-	// when it finds an invalid Unicode character in a string
+	// Stops when it finds the '`' character and returns an error
+	// when it finds an invalid Unicode character in a string.
 	lin := l.line
 	col := l.column
 	p := 1

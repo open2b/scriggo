@@ -43,38 +43,38 @@ func (e CycleError) Error() string {
 // Parse parses src in the context ctx and returns the unexpanded tree.
 func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
-	// create the lexer
+	// Create the lexer.
 	var lex = newLexer(src, ctx)
 
-	// tree result of the parsing
+	// Tree result of the parsing.
 	var tree = ast.NewTree("", nil)
 
-	// ancestors from the root up to the parent
+	// Ancestors from the root up to the parent.
 	var ancestors = []ast.Node{tree}
 
-	// indicates if it has been extended
+	// Indicates if it has been extended.
 	var isExtended = false
 
-	// indicates if he is in a region
+	// Indicates if he is in a region.
 	var isInRegion = false
 
-	// current line
+	// Current line.
 	var line = 0
 
-	// first Text node of the current line
+	// First Text node of the current line.
 	var firstText *ast.Text
 
-	// indicates if there is a token in the current line for which it would
-	// be possible to cut the initial and final spaces
+	// Indicates if there is a token in the current line for which it would
+	// be possible to cut the initial and final spaces.
 	var cutSpacesToken bool
 
-	// number of tokens, not Text, in the current line
+	// Number of tokens, not Text, in the current line.
 	var tokensInLine = 0
 
-	// index of the last byte
+	// Index of the last byte.
 	var end = len(src) - 1
 
-	// read all the tokens
+	// Read all the tokens.
 	for tok := range lex.tokens {
 
 		var text *ast.Text
@@ -92,7 +92,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 			tokensInLine = 0
 		}
 
-		// the parent is always the last ancestor
+		// The parent is always the last ancestor.
 		parent := ancestors[len(ancestors)-1]
 
 		switch tok.typ {
@@ -201,7 +201,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				var comma token
 				switch tok.typ {
 				case tokenComma:
-					// syntax: for index, ident in expr
+					// Syntax: for index, ident in expr
 					comma = tok
 					tok, ok = <-lex.tokens
 					if !ok {
@@ -220,8 +220,8 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting \"in\"", tok)}
 					}
 				case tokenIn:
-					// syntax: for ident in expr
-					// syntax: for index in expr..expr
+					// Syntax: for ident in expr
+					// Syntax: for index in expr..expr
 				default:
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or \"in\"", tok)}
 				}
@@ -234,7 +234,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				}
 				var expr2 ast.Expression
 				if tok.typ == tokenRange {
-					// syntax: for index in expr..expr
+					// Syntax: for index in expr..expr
 					if ident != nil {
 						return nil, &Error{"", *comma.pos, fmt.Errorf("unexpected %s, expecting \"in\"", comma)}
 					}
@@ -246,7 +246,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 					}
 				} else if ident == nil {
-					// syntax: for ident in expr
+					// Syntax: for ident in expr
 					ident = index
 					index = nil
 				}
@@ -677,11 +677,11 @@ func NewParser(r Reader) *Parser {
 // Parse can be called concurrently by more goroutine.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
-	// path must be absolute
+	// Path must be absolute.
 	if path == "" || path[0] != '/' {
 		return nil, ErrInvalid
 	}
-	// cleans the path by removing ".."
+	// Cleans the path by removing "..".
 	path, err := toAbsolutePath("/", path[1:])
 	if err != nil {
 		return nil, err
@@ -733,7 +733,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 	}
 
-	// checks if it has already been parsed
+	// Checks if it has already been parsed.
 	if tree, ok := pp.trees.get(path, ctx); ok {
 		return tree, nil
 	}
@@ -745,7 +745,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 	tree.Path = path
 
-	// expands the nodes
+	// Expands the nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes, ctx)
 	if err != nil {
@@ -756,7 +756,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
-	// adds the tree to the cache
+	// Adds the tree to the cache.
 	pp.trees.add(path, ctx, tree)
 
 	return tree, nil
@@ -877,7 +877,7 @@ func addChild(parent ast.Node, node ast.Node) {
 func cutSpaces(first, last *ast.Text) {
 	var firstCut int
 	if first != nil {
-		// so that spaces can be cut, first.Text must only contain '', '\t' and '\r',
+		// So that spaces can be cut, first.Text must only contain '', '\t' and '\r',
 		// or after the last '\n' must only contain '', '\t' and '\r'.
 		txt := first.Text
 		for i := len(txt) - 1; i >= 0; i-- {
@@ -892,7 +892,7 @@ func cutSpaces(first, last *ast.Text) {
 		}
 	}
 	if last != nil {
-		// so that the spaces can be cut, last.Text must contain only '', '\t' and '\r',
+		// So that the spaces can be cut, last.Text must contain only '', '\t' and '\r',
 		// or before the first '\n' must only contain '', '\t' and '\r'.
 		txt := last.Text
 		var lastCut = len(txt)

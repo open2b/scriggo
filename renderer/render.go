@@ -40,7 +40,7 @@ var errBreak = errors.New("break is not in a loop")
 // It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
-// variables scope
+// Variables scope.
 type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
@@ -222,10 +222,11 @@ type state struct {
 	handleError func(error) bool
 }
 
+// urlState represents the state of rendering an URL.
 type urlState struct {
 	path   bool
 	query  bool
-	isSet bool
+	isSet  bool
 	addAmp bool
 }
 
@@ -378,8 +379,8 @@ Nodes:
 			}
 
 			if node.Expr2 == nil {
-				// syntax: for ident in expr
-				// syntax: for index, ident in expr
+				// Syntax: for ident in expr
+				// Syntax: for index, ident in expr
 
 				setScope := func(i int, v interface{}) {
 					vars := scope{ident: v}
@@ -460,7 +461,7 @@ Nodes:
 				}
 
 			} else {
-				// syntax: for index in expr..expr
+				// Syntax: for index in expr..expr
 
 				expr2, err := s.eval(node.Expr2)
 				if err != nil {

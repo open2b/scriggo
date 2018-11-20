@@ -93,10 +93,10 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 	var err error
 
-	// a tree of an expression has, as intermediate nodes, the operators,
+	// A tree of an expression has, as intermediate nodes, the operators,
 	// unary or binary, and as leaves the operands.
 	//
-	// one of the leaves, during the building of the tree, instead of
+	// One of the leaves, during the building of the tree, instead of
 	// an operand will be an operator. This leaf operator will miss his
 	// unique expression if unary or the right-hand expression if binary.
 	// Once the building is complete, all the leaves will be operands.
@@ -105,11 +105,11 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 	// operator.
 	var path []ast.Operator
 
-	// at each cycle of the expression tree building, either an unary
+	// At each cycle of the expression tree building, either an unary
 	// operator or a pair operand and binary operator is read. Finally an
 	// operand will be read.
 	//
-	// for example the expression "-a * ( b + c ) < d || !e" is read as
+	// For example the expression "-a * ( b + c ) < d || !e" is read as
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
@@ -125,9 +125,9 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 		switch tok.typ {
 		case tokenLeftParenthesis: // ( e )
-			// recursively calls parseExpr to parse the expression in
+			// Recursively calls parseExpr to parse the expression in
 			// parenthesis and then treats it as a single operand.
-			// the parenthesis will not be present in the expression tree.
+			// The parenthesis will not be present in the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
 			expr, tok, err = parseExpr(lex)
@@ -150,8 +150,8 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenNumber: // 12.895
-			// if the number is preceded by the unary operator "-" it changes
-			// the sign of the number and removes the operator from the tree
+			// If the number is preceded by the unary operator "-" it changes
+			// the sign of the number and removes the operator from the tree.
 			var pos *ast.Position
 			if len(path) > 0 {
 				var op *ast.UnaryOperator
@@ -272,24 +272,24 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting expression")}
 			default:
 				if tok.typ == tokenSemicolon {
-					// skips ";" and read the next token
+					// Skips ";" and read the next token.
 					tok, ok = <-lex.tokens
 					if !ok {
 						return nil, token{}, lex.err
 					}
 				}
 				if len(path) == 0 {
-					// it is possible to return directly
+					// It is possible to return directly.
 					return operand, tok, nil
 				}
-				// adds the operand as a child of the leaf operator
+				// Adds the operand as a child of the leaf operator.
 				switch leef := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
 					leef.Expr = operand
 				case *ast.BinaryOperator:
 					leef.Expr2 = operand
 				}
-				// set End for all the operators in path
+				// Set End for all the operators in path.
 				end := operand.Pos().End
 				for _, op := range path {
 					switch o := op.(type) {
@@ -299,23 +299,23 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 						o.Position.End = end
 					}
 				}
-				// returns the root of the expression tree
+				// Returns the root of the expression tree.
 				return path[0], tok, nil
 			}
 
 		}
 
-		// adds operator to the expression tree
+		// Adds operator to the expression tree.
 
 		switch op := operator.(type) {
 
 		case *ast.UnaryOperator:
-			// unary operators ("!", "+", "-", "()"), as they have higher
+			// Unary operators ("!", "+", "-", "()"), as they have higher
 			// precedence than all other operators, become the new leaf
 			// operator of the tree.
 
 			if len(path) > 0 {
-				// operator becomes a child of the leaf operator
+				// Operator becomes a child of the leaf operator.
 				switch leef := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
 					leef.Expr = op
@@ -323,16 +323,16 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					leef.Expr2 = op
 				}
 			}
-			// operator becomes the new leaf operator
+			// Operator becomes the new leaf operator.
 			path = append(path, op)
 
 		case *ast.BinaryOperator:
-			// for binary operators ("*", "/", "+", "-", "<", ">", ...) it starts
+			// For binary operators ("*", "/", "+", "-", "<", ">", ...) it starts
 			// from the leaf operator (last operator of path) and climb towards the
 			// root (first path operator) stopping when either an operator with
 			// lower precedence is found or the root is reached.
 
-			// sets start for all unary operators at the end of path
+			// Sets start for all unary operators at the end of path.
 			start := operand.Pos().Start
 			for i := len(path) - 1; i >= 0; i-- {
 				if o, ok := path[i].(*ast.UnaryOperator); ok {
@@ -342,14 +342,14 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 
-			// p will be the position in path in which to add operator
+			// p will be the position in path in which to add operator.
 			var p = len(path)
 			for p > 0 && op.Precedence() <= path[p-1].Precedence() {
 				p--
 			}
 			if p > 0 {
 				// operator becomes the child of the operator with minor
-				// precedence found going up path
+				// precedence found going up path.
 				switch o := path[p-1].(type) {
 				case *ast.UnaryOperator:
 					o.Expr = op
@@ -359,14 +359,14 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			}
 			if p < len(path) {
 				// operand becomes the child of the operator in path
-				// currently in position p
+				// currently in position p.
 				switch o := path[p].(type) {
 				case *ast.UnaryOperator:
 					o.Expr = operand
 				case *ast.BinaryOperator:
 					o.Expr2 = operand
 				}
-				// sets End for all operators in the path from p onwards
+				// Sets End for all operators in the path from p onwards.
 				for i := p; i < len(path); i++ {
 					switch o := path[i].(type) {
 					case *ast.UnaryOperator:
@@ -375,13 +375,13 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 						o.Position.End = operand.Pos().End
 					}
 				}
-				// operator becomes the new leaf operator
+				// operator becomes the new leaf operator.
 				op.Expr1 = path[p]
 				op.Position.Start = path[p].Pos().Start
 				path[p] = op
 				path = path[0 : p+1]
 			} else {
-				// operator becomes the new leaf operator
+				// operator becomes the new leaf operator.
 				op.Expr1 = operand
 				op.Position.Start = operand.Pos().Start
 				path = append(path, op)

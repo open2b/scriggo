@@ -10,7 +10,7 @@ import (
 	"open2b/template/ast"
 )
 
-// token type.
+// Token type.
 type tokenType int
 
 const (
@@ -124,7 +124,7 @@ func (tt tokenType) String() string {
 	panic("invalid token type")
 }
 
-// information about a token to return
+// Information about a token to return.
 type token struct {
 	typ tokenType     // type
 	pos *ast.Position // position in the buffer

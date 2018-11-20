@@ -80,7 +80,7 @@ var builtins = map[string]interface{}{
 	"trimSuffix":  _trimSuffix,
 }
 
-// _abbreviate is the builtin function "abbreviate"
+// _abbreviate is the builtin function "abbreviate".
 func _abbreviate(s string, n int) string {
 	s = strings.TrimRight(s, spaces)
 	if len(s) <= n {
@@ -114,7 +114,7 @@ func _abbreviate(s string, n int) string {
 	return s + "..."
 }
 
-// _abs is the builtin function "abs"
+// _abs is the builtin function "abs".
 func _abs(d decimal.Decimal) decimal.Decimal {
 	if d.Cmp(zero) < 0 {
 		return d.Neg()
@@ -122,27 +122,27 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 	return d
 }
 
-// _contains is the builtin function "contains"
+// _contains is the builtin function "contains".
 func _contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
 
-// _errorf is the builtin function "errorf"
+// _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) {
 	panic(fmt.Errorf(format, a...))
 }
 
-// _hasPrefix is the builtin function "hasPrefix"
+// _hasPrefix is the builtin function "hasPrefix".
 func _hasPrefix(s, prefix string) bool {
 	return strings.HasPrefix(s, prefix)
 }
 
-// _hasSuffix is the builtin function "hasSuffix"
+// _hasSuffix is the builtin function "hasSuffix".
 func _hasSuffix(s, suffix string) bool {
 	return strings.HasSuffix(s, suffix)
 }
 
-// _hmac is the builtin function "hmac"
+// _hmac is the builtin function "hmac".
 func _hmac(hasher, message, key string) string {
 	var h func() hash.Hash
 	switch hasher {
@@ -160,12 +160,12 @@ func _hmac(hasher, message, key string) string {
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// _html is the builtin function "html"
+// _html is the builtin function "html".
 func _html(s string) HTML {
 	return HTML(s)
 }
 
-// _index is the builtin function "index"
+// _index is the builtin function "index".
 func _index(s, substr string) int {
 	n := strings.Index(s, substr)
 	if n <= 1 {
@@ -174,7 +174,7 @@ func _index(s, substr string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _indexAny is the builtin function "indexAny"
+// _indexAny is the builtin function "indexAny".
 func _indexAny(s, chars string) int {
 	n := strings.IndexAny(s, chars)
 	if n <= 1 {
@@ -183,17 +183,17 @@ func _indexAny(s, chars string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _int is the builtin function "int"
+// _int is the builtin function "int".
 func _int(d decimal.Decimal) decimal.Decimal {
 	return d.Truncate(0)
 }
 
-// _join is the builtin function "join"
+// _join is the builtin function "join".
 func _join(a []string, sep string) string {
 	return strings.Join(a, sep)
 }
 
-// _lastIndex is the builtin function "lastIndex"
+// _lastIndex is the builtin function "lastIndex".
 func _lastIndex(s, sep string) int {
 	n := strings.LastIndex(s, sep)
 	if n <= 1 {
@@ -202,7 +202,7 @@ func _lastIndex(s, sep string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _len is the builtin function "len"
+// _len is the builtin function "len".
 func _len(v interface{}) int {
 	if v == nil {
 		return 0
@@ -241,7 +241,7 @@ func _len(v interface{}) int {
 	return 0
 }
 
-// _max is the builtin function "max"
+// _max is the builtin function "max".
 func _max(a, b decimal.Decimal) decimal.Decimal {
 	if a.Cmp(b) < 0 {
 		return b
@@ -249,14 +249,14 @@ func _max(a, b decimal.Decimal) decimal.Decimal {
 	return a
 }
 
-// _md5 is the builtin function "md5"
+// _md5 is the builtin function "md5".
 func _md5(s string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(s))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// _min is the builtin function "min"
+// _min is the builtin function "min".
 func _min(a, b decimal.Decimal) decimal.Decimal {
 	if a.Cmp(b) > 0 {
 		return b
@@ -264,17 +264,17 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 	return a
 }
 
-// _decimal is the builtin function "decimal"
+// _decimal is the builtin function "decimal".
 func _decimal(d decimal.Decimal) decimal.Decimal {
 	return d
 }
 
-// _queryEscape is the builtin function "queryEscape"
+// _queryEscape is the builtin function "queryEscape".
 func _queryEscape(s string) string {
 	return url.QueryEscape(s)
 }
 
-// _rand is the builtin function "rand"
+// _rand is the builtin function "rand".
 func _rand(d int) decimal.Decimal {
 	// seed
 	seed := time.Now().UTC().UnixNano()
@@ -291,17 +291,17 @@ func _rand(d int) decimal.Decimal {
 	return decimal.New(int64(rn), 0)
 }
 
-// _repeat is the builtin function "repeat"
+// _repeat is the builtin function "repeat".
 func _repeat(s string, count int) string {
 	return strings.Repeat(s, count)
 }
 
-// _replace is the builtin function "replace"
+// _replace is the builtin function "replace".
 func _replace(s, old, new string) string {
 	return strings.Replace(s, old, new, -1)
 }
 
-// _reverse is the builtin function "reverse"
+// _reverse is the builtin function "reverse".
 func _reverse(s interface{}) interface{} {
 	if s == nil {
 		return s
@@ -325,26 +325,26 @@ func _reverse(s interface{}) interface{} {
 	return sc
 }
 
-// _round is the builtin function "round"
+// _round is the builtin function "round".
 func _round(d decimal.Decimal, places int) decimal.Decimal {
 	return d.Round(int32(places))
 }
 
-// _sha1 is the builtin function "sha1"
+// _sha1 is the builtin function "sha1".
 func _sha1(s string) string {
 	hasher := sha1.New()
 	hasher.Write([]byte(s))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// _sha256 is the builtin function "sha256"
+// _sha256 is the builtin function "sha256".
 func _sha256(s string) string {
 	hasher := sha256.New()
 	hasher.Write([]byte(s))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// _shuffle is the builtin function "shuffle"
+// _shuffle is the builtin function "shuffle".
 func _shuffle(s interface{}) interface{} {
 	if s == nil {
 		return nil
@@ -357,13 +357,13 @@ func _shuffle(s interface{}) interface{} {
 	if l < 2 {
 		return s
 	}
-	// seed
+	// Seed.
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
 		seed = testSeed
 	}
 	r := rand.New(rand.NewSource(seed))
-	// swap
+	// Swap.
 	rv2 := reflect.MakeSlice(rv.Type(), l, l)
 	reflect.Copy(rv2, rv)
 	s2 := rv2.Interface()
@@ -375,7 +375,7 @@ func _shuffle(s interface{}) interface{} {
 	return s2
 }
 
-// _sort is the builtin function "sort"
+// _sort is the builtin function "sort".
 func _sort(slice interface{}, field string) interface{} {
 	if field != "" {
 		r, _ := utf8.DecodeRuneInString(field)
@@ -481,7 +481,7 @@ func _sort(slice interface{}, field string) interface{} {
 	return s2
 }
 
-// _split is the builtin function "split"
+// _split is the builtin function "split".
 func _split(s, sep string, n interface{}) []string {
 	n2 := -1
 	if n != nil {
@@ -494,7 +494,7 @@ func _split(s, sep string, n interface{}) []string {
 	return strings.SplitN(s, sep, n2)
 }
 
-// _splitAfter is the builtin function "splitAfter"
+// _splitAfter is the builtin function "splitAfter".
 func _splitAfter(s, sep string, n interface{}) []string {
 	n2 := -1
 	if n != nil {
@@ -507,32 +507,32 @@ func _splitAfter(s, sep string, n interface{}) []string {
 	return strings.SplitAfterN(s, sep, n2)
 }
 
-// _string is the builtin function "string"
+// _string is the builtin function "string".
 func _string(s string) string {
 	return s
 }
 
-// _title is the builtin function "title"
+// _title is the builtin function "title".
 func _title(s string) string {
 	return strings.Title(s)
 }
 
-// _toLower is the builtin function "toLower"
+// _toLower is the builtin function "toLower".
 func _toLower(s string) string {
 	return strings.ToLower(s)
 }
 
-// _toTitle is the builtin function "toTitle"
+// _toTitle is the builtin function "toTitle".
 func _toTitle(s string) string {
 	return strings.ToTitle(s)
 }
 
-// _toUpper is the builtin function "toUpper"
+// _toUpper is the builtin function "toUpper".
 func _toUpper(s string) string {
 	return strings.ToUpper(s)
 }
 
-// _trim is the builtin function "trim"
+// _trim is the builtin function "trim".
 func _trim(s string, cutset interface{}) string {
 	if cutset == nil {
 		return strings.TrimSpace(s)
@@ -544,7 +544,7 @@ func _trim(s string, cutset interface{}) string {
 	}
 }
 
-// _trimLeft is the builtin function "trimLeft"
+// _trimLeft is the builtin function "trimLeft".
 func _trimLeft(s string, cutset interface{}) string {
 	if cutset == nil {
 		return strings.TrimLeft(s, spaces)
@@ -556,7 +556,7 @@ func _trimLeft(s string, cutset interface{}) string {
 	}
 }
 
-// _trimRight is the builtin function "trimRight"
+// _trimRight is the builtin function "trimRight".
 func _trimRight(s string, cutset interface{}) string {
 	if cutset == nil {
 		return strings.TrimRight(s, spaces)
@@ -568,12 +568,12 @@ func _trimRight(s string, cutset interface{}) string {
 	}
 }
 
-// _trimPrefix is the builtin function "trimPrefix"
+// _trimPrefix is the builtin function "trimPrefix".
 func _trimPrefix(s, prefix string) string {
 	return strings.TrimPrefix(s, prefix)
 }
 
-// _trimSuffix is the builtin function "trimSuffix"
+// _trimSuffix is the builtin function "trimSuffix".
 func _trimSuffix(s, suffix string) string {
 	return strings.TrimPrefix(s, suffix)
 }
