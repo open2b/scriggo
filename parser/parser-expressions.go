@@ -521,15 +521,3 @@ func unquoteString(s []byte) string {
 	}
 	return string(cc)
 }
-
-// parseString parses a string and returns the expression.
-func parseString(lex *lexer) (string, error) {
-	var tok, ok = <-lex.tokens
-	if !ok {
-		return "", lex.err
-	}
-	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		return "", &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
-	}
-	return unquoteString(tok.txt), nil
-}
