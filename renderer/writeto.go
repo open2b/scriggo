@@ -6,7 +6,6 @@ package renderer
 
 import (
 	"bytes"
-	"fmt"
 	"html"
 	"io"
 	"net/url"
@@ -383,7 +382,6 @@ func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 // pathEscape escapes the string s so it can be placed inside a URL path.
 // Note that url.PathEscape escapes also the slash.
 func pathEscape(s string) string {
-	fmt.Printf("path escape: %q\n", s)
 	more := 0
 	for i := 0; i < len(s); i++ {
 		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z') {
