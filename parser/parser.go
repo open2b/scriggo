@@ -116,7 +116,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 		// EndURL
 		case tokenEndURL:
 			pos := ancestors[len(ancestors)-1].Pos()
-			pos.End = tok.pos.End -1
+			pos.End = tok.pos.End - 1
 			ancestors = ancestors[:len(ancestors)-1]
 
 		// {%
