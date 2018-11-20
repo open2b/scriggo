@@ -363,7 +363,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 //
 // For example, if l.src[p:] is `src="...`, it returns "src" and p+5.
 func (l *lexer) scanAttribute(p int) (string, int) {
-	// Reads attribute name.
+	// Reads the attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
 		if c := l.src[p]; !isAlpha(c) {
@@ -398,7 +398,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	if p == len(l.src) {
 		return "", p
 	}
-	// Reads quote.
+	// Reads the quote.
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
 		if !isSpace(c) {

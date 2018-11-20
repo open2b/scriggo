@@ -74,7 +74,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	// Index of the last byte.
 	var end = len(src) - 1
 
-	// Read all the tokens.
+	// Reads all the tokens.
 	for tok := range lex.tokens {
 
 		var text *ast.Text

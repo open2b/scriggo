@@ -125,9 +125,9 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 		switch tok.typ {
 		case tokenLeftParenthesis: // ( e )
-			// Recursively calls parseExpr to parse the expression in
+			// Calls parseExpr recursively to parse the expression in
 			// parenthesis and then treats it as a single operand.
-			// The parenthesis will not be present in the expression tree.
+			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
 			expr, tok, err = parseExpr(lex)
@@ -289,7 +289,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				case *ast.BinaryOperator:
 					leef.Expr2 = operand
 				}
-				// Set End for all the operators in path.
+				// Sets End for all the operators in path.
 				end := operand.Pos().End
 				for _, op := range path {
 					switch o := op.(type) {
