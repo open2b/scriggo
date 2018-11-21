@@ -345,6 +345,9 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				if isExtended && !isInRegion {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
 				}
+				if tok.ctx == ast.ContextAttribute {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
+				}
 				// region or path
 				tok, ok = <-lex.tokens
 				if !ok {
@@ -441,6 +444,16 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend can only be the first statement")}
 					}
 				}
+				if tok.ctx != ctx {
+					switch tok.ctx {
+					case ast.ContextAttribute:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside an attribute value")}
+					case ast.ContextJavaScript:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a script tag")}
+					case ast.ContextCSS:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a style tag")}
+					}
+				}
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
@@ -466,6 +479,16 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// import
 			case tokenImport:
+				if tok.ctx != ctx {
+					switch tok.ctx {
+					case ast.ContextAttribute:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside an attribute value")}
+					case ast.ContextJavaScript:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside a script tag")}
+					case ast.ContextCSS:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside a style tag")}
+					}
+				}
 				for i := len(ancestors) - 1; i > 0; i-- {
 					switch ancestors[i].(type) {
 					case *ast.For:
@@ -509,6 +532,9 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// region
 			case tokenRegion:
+				if tok.ctx == ast.ContextAttribute {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("region inside an attribute value")}
+				}
 				for i := len(ancestors) - 1; i > 0; i-- {
 					switch ancestors[i].(type) {
 					case *ast.For:
