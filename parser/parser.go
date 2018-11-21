@@ -574,7 +574,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// end
 			case tokenEnd:
-				if len(ancestors) == 1 {
+				if _, ok = parent.(*ast.URL); ok || len(ancestors) == 1 {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 				}
 				tok, ok = <-lex.tokens
