@@ -49,6 +49,7 @@ var exprTests = []struct {
 	{"\"a\"", ast.NewString(p(1, 1, 0, 2), "a")},
 	{`"\t"`, ast.NewString(p(1, 1, 0, 3), "\t")},
 	{`"\a\b\f\n\r\t\v\\\""`, ast.NewString(p(1, 1, 0, 19), "\a\b\f\n\r\t\v\\\"")},
+	{"\"\uFFFD\"", ast.NewString(p(1, 1, 0, 4), "\uFFFD")},
 	{`"\u0000"`, ast.NewString(p(1, 1, 0, 7), "\u0000")},
 	{`"\u0012"`, ast.NewString(p(1, 1, 0, 7), "\u0012")},
 	{`"\u1234"`, ast.NewString(p(1, 1, 0, 7), "\u1234")},
@@ -57,6 +58,7 @@ var exprTests = []struct {
 	{`"\U0010FFFF"`, ast.NewString(p(1, 1, 0, 11), "\U0010FFFF")},
 	{"``", ast.NewString(p(1, 1, 0, 1), "")},
 	{"`\\t`", ast.NewString(p(1, 1, 0, 3), "\\t")},
+	{"`\uFFFD`", ast.NewString(p(1, 1, 0, 4), "\uFFFD")},
 	{"!a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorNot, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"1+2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
 	{"1-2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorSubtraction, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(1, 3, 2, 2), 2))},
@@ -150,7 +152,7 @@ var treeTests = []struct {
 	{"a{{b}}c", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 0), "a"), ast.NewValue(p(1, 2, 1, 5), ast.NewIdentifier(p(1, 4, 3, 3), "b"), ast.ContextHTML),
 		ast.NewText(p(1, 7, 6, 6), "c")})},
-	{ "<a href=\"/{{ a }}/b\">", ast.NewTree("", []ast.Node{
+	{"<a href=\"/{{ a }}/b\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 18), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), "/"),
 			ast.NewValue(p(1, 11, 10, 16), ast.NewIdentifier(p(1, 14, 13, 13), "a"), ast.ContextAttribute),
@@ -158,7 +160,7 @@ var treeTests = []struct {
 		}),
 		ast.NewText(p(1, 20, 19, 20), "\">"),
 	})},
-	{ "<a href=\"\n\">", ast.NewTree("", []ast.Node{
+	{"<a href=\"\n\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 8), "<a href=\""), ast.NewURL(p(1, 10, 9, 9), "a", "href", []ast.Node{
 			ast.NewText(p(1, 10, 9, 9), "\n"),
 		}),

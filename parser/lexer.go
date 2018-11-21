@@ -841,7 +841,7 @@ LOOP:
 			return l.errorf("invalid new line in string literal")
 		default:
 			r, s := utf8.DecodeRune(l.src[p:])
-			if r == utf8.RuneError {
+			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
 				return l.errorf("invalid byte in string literal")
 			}
@@ -874,7 +874,7 @@ STRING:
 			l.newline()
 		default:
 			r, s := utf8.DecodeRune(l.src[p:])
-			if r == utf8.RuneError {
+			if r == utf8.RuneError && s == 1 {
 				l.src = l.src[p:]
 				return l.errorf("invalid byte in string literal")
 			}
