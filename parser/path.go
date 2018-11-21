@@ -48,25 +48,7 @@ func isValidDirName(name string) bool {
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// Must not contain characters from NUL to US and the characters
-	// " * / : < > ? \ | DEL
-	for _, c := range name {
-		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
-			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
-			c == '\x7c' || c == '\x7f' {
-			return false
-		}
-	}
-	// Does not have to be a reserved name for Windows.
-	name = strings.ToLower(name)
-	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
-		if len(name) == 4 || name[4] == '.' {
-			return false
-		}
-	}
-	return true
+	return !isWindowsReservedName(name)
 }
 
 func isValidFileName(name string) bool {
@@ -80,8 +62,8 @@ func isValidFileName(name string) bool {
 		return false
 	}
 	// Extension must be present.
-	var dot = strings.LastIndexByte(name, '.')
 	name = strings.ToLower(name)
+	var dot = strings.LastIndexByte(name, '.')
 	var ext = name[dot+1:]
 	if strings.IndexByte(ext, '.') >= 0 {
 		return false
@@ -90,24 +72,42 @@ func isValidFileName(name string) bool {
 	if name[0] == ' ' || name[len(name)-1] == ' ' {
 		return false
 	}
-	// Must not contain characters from NUL to US and characters
-	// " * / : < > ? \ | DEL
+	return !isWindowsReservedName(name)
+}
+
+// isWindowsReservedName indicates if name is a reserved file name on Windows.
+// See https://docs.microsoft.com/en-us/windows/desktop/fileio/naming-a-file
+func isWindowsReservedName(name string) bool {
 	for _, c := range name {
-		if ('\x00' <= c && c <= '\x1f') || c == '\x22' || c == '\x2a' || c == '\x2f' ||
-			c == '\x3a' || c == '\x3c' || c == '\x3e' || c == '\x3f' || c == '\x5c' ||
-			c == '\x7c' || c == '\x7f' {
-			return false
+		if '\x00' <= c && c <= '\x1f' {
+			return true
 		}
 	}
-	// Does not have to be a reserved name for Windows.
-	if name == "con" || name == "prn" || name == "aux" || name == "nul" ||
-		(len(name) > 3 && name[0:3] == "com" && '0' <= name[3] && name[3] <= '9') ||
-		(len(name) > 3 && name[0:3] == "lpt" && '0' <= name[3] && name[3] <= '9') {
-		if len(name) == 4 || name[4] == '.' {
-			return false
+	if strings.ContainsAny(name, "\x22\x2a\x2f\x3a\x3c\x3e\x3f\x5c\x7c\x7f") {
+		return true
+	}
+	switch name {
+	case "con", "prn", "aux", "nul",
+		"com0", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
+		"com9", "lpt0", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7",
+		"lpt8", "lpt9":
+		return true
+	}
+	if len(name) >= 4 {
+		switch name[0:4] {
+		case "con.", "prn.", "aux.", "nul.":
+			return true
+		}
+		if len(name) >= 5 {
+			switch name[0:5] {
+			case "com0.", "com1.", "com2.", "com3.", "com4.", "com5.", "com6.",
+				"com7.", "com8.", "com9.", "lpt0.", "lpt1.", "lpt2.", "lpt3.",
+				"lpt4.", "lpt5.", "lpt6.", "lpt7.", "lpt8.", "lpt9.":
+				return true
+			}
 		}
 	}
-	return true
+	return false
 }
 
 // isValidFilePath indicates whether path is valid as an include or show path.
