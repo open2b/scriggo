@@ -325,7 +325,6 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// else
 			case tokenElse:
-				parent := ancestors[len(ancestors)-1]
 				if p, ok := parent.(*ast.If); ok && p.Else == nil {
 					p.Else = []ast.Node{}
 				} else {
@@ -582,7 +581,6 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				if !ok {
 					return nil, lex.err
 				}
-				parent := ancestors[len(ancestors)-1]
 				if tok.typ != tokenEndStatement {
 					switch parent.(type) {
 					case *ast.For:
