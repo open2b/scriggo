@@ -617,7 +617,12 @@ Nodes:
 			}
 			var r region
 			if v, ok := s.variable(name); ok {
-				if r, ok = v.(region); !ok {
+				if r, ok = v.(region); ok {
+					if node.Context != r.node.Context {
+						err = s.errorf(node, "region %s is defined in a different context (%s)",
+							name, r.node.Context)
+					}
+				} else {
 					err = s.errorf(node, "cannot show non-region %s (type %s)", name, typeof(v))
 				}
 			} else {

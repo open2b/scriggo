@@ -412,7 +412,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 					}
 					pos.End = tok.pos.End
-					node = ast.NewShowRegion(pos, impor, region, arguments)
+					node = ast.NewShowRegion(pos, impor, region, arguments, tok.ctx)
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 					// show <path>
 					var path = unquoteString(tok.txt)
@@ -593,7 +593,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewRegion(pos, ident, parameters, nil)
+				node = ast.NewRegion(pos, ident, parameters, nil, tok.ctx)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 				cutSpacesToken = true

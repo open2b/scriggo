@@ -230,13 +230,14 @@ type Region struct {
 	Ident      *Identifier   // name.
 	Parameters []*Identifier // parameters.
 	Body       []Node        // body.
+	Context    Context       // context.
 }
 
-func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body []Node) *Region {
+func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, ctx Context) *Region {
 	if body == nil {
 		body = []Node{}
 	}
-	return &Region{pos, ident, parameters, body}
+	return &Region{pos, ident, parameters, body, ctx}
 }
 
 // ShowRegion represents a statement {% show <region> %}.
@@ -245,10 +246,11 @@ type ShowRegion struct {
 	Import    *Identifier  // name of the import.
 	Region    *Identifier  // name of the region.
 	Arguments []Expression // arguments.
+	Context   Context      // context.
 }
 
-func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression) *ShowRegion {
-	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments}
+func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *ShowRegion {
+	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments, Context: ctx}
 }
 
 // ShowPath represents a statement {% show <path> %}.
@@ -631,7 +633,7 @@ func CloneNode(node Node) Node {
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		return NewRegion(ClonePosition(n.Position), ident, parameters, body)
+		return NewRegion(ClonePosition(n.Position), ident, parameters, body, n.Context)
 	case *ShowRegion:
 		var impor *Identifier
 		if n.Import != nil {
@@ -645,7 +647,7 @@ func CloneNode(node Node) Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments)
+		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments, n.Context)
 	case *Import:
 		var ident *Identifier
 		if n.Ident != nil {
