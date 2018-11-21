@@ -32,12 +32,13 @@ func (c *cache) get(path string, ctx ast.Context) (*ast.Tree, bool) {
 	c.Lock()
 	t, ok := c.trees[entry]
 	if !ok {
-		if wait, ok := c.waits[entry]; ok {
+		var wait *sync.WaitGroup
+		if wait, ok = c.waits[entry]; ok {
 			c.Unlock()
 			wait.Wait()
 			return c.get(path, ctx)
 		}
-		wait := &sync.WaitGroup{}
+		wait = &sync.WaitGroup{}
 		wait.Add(1)
 		if c.waits == nil {
 			c.waits = map[treeCacheEntry]*sync.WaitGroup{entry: wait}

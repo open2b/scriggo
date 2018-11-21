@@ -325,7 +325,8 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// else
 			case tokenElse:
-				if p, ok := parent.(*ast.If); ok && p.Else == nil {
+				var p *ast.If
+				if p, ok = parent.(*ast.If); ok && p.Else == nil {
 					p.Else = []ast.Node{}
 				} else {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end, for, if or show", tok)}
@@ -436,7 +437,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("extend already exists")}
 				}
 				if len(tree.Nodes) > 0 {
-					if _, ok := tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
+					if _, ok = tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend can only be the first statement")}
 					}
 				}

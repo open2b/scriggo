@@ -236,7 +236,7 @@ LOOP:
 									t = p + i + 2
 								}
 								for ; p < t; p++ {
-									if c := l.src[p]; c == '\n' {
+									if c = l.src[p]; c == '\n' {
 										l.newline()
 									} else if isStartChar(c) {
 										l.column++
