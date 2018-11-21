@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"html"
 	"io"
-	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -380,7 +379,7 @@ func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 }
 
 // pathEscape escapes the string s so it can be placed inside a URL path.
-// Note that url.PathEscape escapes also the slash.
+// Note that url.PathEscape escapes '/' as '%2F' and not as '/'.
 func pathEscape(s string) string {
 	more := 0
 	for i := 0; i < len(s); i++ {
@@ -434,6 +433,31 @@ func pathEscape(s string) string {
 }
 
 // queryEscape escapes the string s so it can be placed inside a URL query.
+// Note that url.QueryEscape escapes ' ' as '+' and not as '%20'.
 func queryEscape(s string) string {
-	return url.QueryEscape(s)
+	more := 0
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
+			c == '-' || c == '.' || c == '_') {
+			more += 2
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	b := make([]byte, len(s)+more)
+	for i, j := 0, 0; i < len(s); i++ {
+		c := s[i]
+		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
+			c == '-' || c == '.' || c == '_' {
+			b[j] = c
+			j++
+		} else {
+			b[j] = '%'
+			b[j+1] = hexchars[c>>4]
+			b[j+2] = hexchars[c&0xF]
+			j += 3
+		}
+	}
+	return string(b)
 }
