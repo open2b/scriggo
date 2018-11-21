@@ -766,7 +766,6 @@ func (l *lexer) lexNumber() {
 				if l.src[p-1] == '.' {
 					// The point is part of a token range.
 					p--
-					hasDot = false
 				}
 				break
 			}

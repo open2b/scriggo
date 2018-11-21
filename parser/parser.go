@@ -441,7 +441,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend can only be the first statement")}
 					}
 				}
-				var tok, ok = <-lex.tokens
+				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
