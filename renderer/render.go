@@ -252,8 +252,6 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 // render renders nodes.
 func (s *state) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
-	var err error
-
 Nodes:
 	for _, n := range nodes {
 
@@ -271,7 +269,7 @@ Nodes:
 						if strings.ContainsAny(text, "?#") {
 							if text[0] == '?' && !urlstate.path {
 								if urlstate.addAmp {
-									_, err = io.WriteString(wr, "&amp;")
+									_, err := io.WriteString(wr, "&amp;")
 									if err != nil {
 										return err
 									}
@@ -287,7 +285,7 @@ Nodes:
 						}
 					}
 				}
-				_, err = io.WriteString(wr, text)
+				_, err := io.WriteString(wr, text)
 				if err != nil {
 					return err
 				}
@@ -297,7 +295,7 @@ Nodes:
 
 			if len(node.Value) > 0 {
 				isSet := node.Attribute == "srcset"
-				err = s.render(wr, node.Value, &urlState{true, false, isSet, false})
+				err := s.render(wr, node.Value, &urlState{true, false, isSet, false})
 				if err != nil {
 					return err
 				}
@@ -305,8 +303,7 @@ Nodes:
 
 		case *ast.Value:
 
-			var expr interface{}
-			expr, err = s.eval(node.Expr)
+			expr, err := s.eval(node.Expr)
 			if err != nil {
 				if s.handleError(err) {
 					continue
@@ -321,8 +318,7 @@ Nodes:
 
 		case *ast.If:
 
-			var expr interface{}
-			expr, err = s.eval(node.Expr)
+			expr, err := s.eval(node.Expr)
 			if err != nil {
 				if !s.handleError(err) {
 					return err
@@ -365,8 +361,7 @@ Nodes:
 				ident = node.Ident.Name
 			}
 
-			var expr interface{}
-			expr, err = s.eval(node.Expr1)
+			expr, err := s.eval(node.Expr1)
 			if err != nil {
 				if s.handleError(err) {
 					continue
@@ -522,13 +517,14 @@ Nodes:
 
 		case *ast.Macro:
 			if wr != nil {
-				err = s.errorf(node.Ident, "macros not allowed")
+				err := s.errorf(node.Ident, "macros not allowed")
 				if !s.handleError(err) {
 					return err
 				}
 			}
 			name := node.Ident.Name
 			if v, ok := s.variable(name); ok {
+				var err error
 				if m, ok := v.(macro); ok {
 					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
 						name, m.path, m.node.Pos())
@@ -550,6 +546,7 @@ Nodes:
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
 			if v, ok := vars[name]; ok {
+				var err error
 				if m, ok := v.(macro); ok {
 					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
 						name, m.path, m.node.Pos())
@@ -578,6 +575,7 @@ Nodes:
 				vars := s.vars[i]
 				if vars != nil {
 					if v, ok := vars[name]; ok {
+						var err error
 						if _, ok := v.(macro); ok || i < 2 {
 							if i == 0 && name == "len" {
 								err = s.errorf(node, "use of builtin len not in function call")
@@ -589,7 +587,7 @@ Nodes:
 							}
 							return err
 						}
-						v, err := s.eval(node.Expr)
+						v, err = s.eval(node.Expr)
 						if err != nil {
 							if s.handleError(err) {
 								continue Nodes
@@ -603,7 +601,7 @@ Nodes:
 				}
 			}
 			if !found {
-				err = s.errorf(node, "variable %s not declared", name)
+				err := s.errorf(node, "variable %s not declared", name)
 				if !s.handleError(err) {
 					return err
 				}
@@ -616,6 +614,7 @@ Nodes:
 				name = node.Import.Name + "." + name
 			}
 			var m macro
+			var err error
 			if v, ok := s.variable(name); ok {
 				if m, ok = v.(macro); ok {
 					if node.Context != m.node.Context {
@@ -706,7 +705,7 @@ Nodes:
 					version:     s.version,
 					handleError: s.handleError,
 				}
-				err = st.render(nil, node.Tree.Nodes, nil)
+				err := st.render(nil, node.Tree.Nodes, nil)
 				if err != nil {
 					return err
 				}
@@ -735,7 +734,7 @@ Nodes:
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.render(wr, node.Tree.Nodes, nil)
+			err := st.render(wr, node.Tree.Nodes, nil)
 			s.vars = s.vars[:len(s.vars)-1]
 			if err != nil {
 				return err
