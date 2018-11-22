@@ -699,10 +699,13 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		} else {
 			in = typ.In(i)
 		}
+		var arg interface{}
+		if i < len(node.Args) {
+			arg = asBase(s.evalExpression(node.Args[i]))
+		}
 		if in == decimalType {
 			var a = zero
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type decimal in argument to function %s", node.Func))
 				}
@@ -722,7 +725,6 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.Bool:
 			var a = false
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
 				a, ok = arg.(bool)
 				if !ok {
 					if arg == nil {
@@ -736,7 +738,6 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.Int:
 			var a = 0
 			if i < len(node.Args) {
-				arg := s.evalExpression(node.Args[i])
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type int in argument to function %s", node.Func))
 				}
@@ -749,7 +750,6 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		case reflect.String:
 			var a = ""
 			if i < len(node.Args) {
-				arg := asBase(s.evalExpression(node.Args[i]))
 				if arg == nil {
 					panic(s.errorf(node, "cannot use nil as type string in argument to function %s", node.Func))
 				}
@@ -764,30 +764,18 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 			}
 			args[i] = reflect.ValueOf(a)
 		case reflect.Interface:
-			var arg interface{}
-			if i < len(node.Args) {
-				arg = s.evalExpression(node.Args[i])
-			}
 			if arg == nil {
 				args[i] = reflect.Zero(in)
 			} else {
 				args[i] = reflect.ValueOf(arg)
 			}
 		case reflect.Slice:
-			var arg interface{}
-			if i < len(node.Args) {
-				arg = s.evalExpression(node.Args[i])
-			}
 			if in == reflect.TypeOf(arg) {
 				args[i] = reflect.ValueOf(arg)
 			} else {
 				args[i] = reflect.Zero(in)
 			}
 		case reflect.Func:
-			var arg interface{}
-			if i < len(node.Args) {
-				arg = s.evalExpression(node.Args[i])
-			}
 			if arg == nil {
 				args[i] = reflect.Zero(in)
 			} else {

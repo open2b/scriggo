@@ -189,6 +189,7 @@ var rendererExprTests = []struct {
 	{"len(a)", "1", scope{"a": "a"}},
 	{"len(a)", "3", scope{"a": "<a>"}},
 	{"len(a)", "3", scope{"a": HTML("<a>")}},
+	{"len(a)", "3", scope{"a": aString{"xz€"}}},
 }
 
 var rendererStmtTests = []struct {
