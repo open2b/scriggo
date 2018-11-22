@@ -654,6 +654,9 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if v, ok := s.vars[i][node.Name]; ok {
+				if i == 0 && node.Name == "len" {
+					panic(s.errorf(node, "use of builtin len not in function call"))
+				}
 				return v
 			}
 		}
@@ -663,7 +666,15 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 
 func (s *state) evalCall(node *ast.Call) interface{} {
 
-	var f = s.evalExpression(node.Func)
+	var f interface{}
+	if id, ok := node.Func.(*ast.Identifier); ok {
+		f, ok = s.variable(id.Name)
+		if !ok {
+			panic(s.errorf(node, "undefined: %s", id.Name))
+		}
+	} else {
+		f = s.evalExpression(node.Func)
+	}
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
 		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
