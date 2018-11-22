@@ -357,7 +357,7 @@ func TestLexerReadAttribute(t *testing.T) {
 			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
 		}
 		if attr != "" && l.src[p-1] != test.quote {
-			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
+			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p-1]), string(test.quote))
 		}
 		if p != test.p {
 			t.Errorf("source: %q, unexpected position %d, expecting %d\n", test.src, p, test.p)
