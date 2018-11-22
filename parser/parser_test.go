@@ -353,7 +353,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Tree:
 		nn2, ok := n2.(*ast.Tree)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if len(nn1.Nodes) != len(nn2.Nodes) {
 			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Nodes), len(nn2.Nodes))
@@ -421,7 +421,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.String:
 		nn2, ok := n2.(*ast.String)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Text != nn2.Text {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Text, nn2.Text)
@@ -429,7 +429,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Parentesis:
 		nn2, ok := n2.(*ast.Parentesis)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -438,7 +438,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.UnaryOperator:
 		nn2, ok := n2.(*ast.UnaryOperator)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Op != nn2.Op {
 			return fmt.Errorf("unexpected operator %d, expecting %d", nn1.Op, nn2.Op)
@@ -450,7 +450,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.BinaryOperator:
 		nn2, ok := n2.(*ast.BinaryOperator)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		if nn1.Op != nn2.Op {
 			return fmt.Errorf("unexpected operator %d, expecting %d", nn1.Op, nn2.Op)
@@ -466,7 +466,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Call:
 		nn2, ok := n2.(*ast.Call)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Func, nn2.Func, p)
 		if err != nil {
@@ -484,7 +484,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Index:
 		nn2, ok := n2.(*ast.Index)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -497,7 +497,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Slice:
 		nn2, ok := n2.(*ast.Slice)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -514,7 +514,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Value:
 		nn2, ok := n2.(*ast.Value)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -526,7 +526,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.If:
 		nn2, ok := n2.(*ast.If)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr, nn2.Expr, p)
 		if err != nil {
@@ -561,7 +561,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.For:
 		nn2, ok := n2.(*ast.For)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Expr1, nn2.Expr1, p)
 		if err != nil {
@@ -583,7 +583,7 @@ func equals(n1, n2 ast.Node, p int) error {
 	case *ast.Region:
 		nn2, ok := n2.(*ast.Region)
 		if !ok {
-			return fmt.Errorf("unexpected %#v, expecting %#v", nn1, nn2)
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Ident, nn2.Ident, p)
 		if err != nil {
