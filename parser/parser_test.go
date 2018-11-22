@@ -204,11 +204,11 @@ var treeTests = []struct {
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)})},
 	{"{% extend \"a.e\" %}{% region b %}c{% end region %}", ast.NewTree("", []ast.Node{
 		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewRegion(p(1, 19, 18, 31), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), "c")})})},
+			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), "c")}, ast.ContextHTML)})},
 	{"{% extend \"a.e\" %}{% region b(c,d) %}txt{% end region %}", ast.NewTree("", []ast.Node{
 		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewRegion(p(1, 19, 18, 36), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
-			[]ast.Node{ast.NewText(p(1, 38, 37, 39), "txt")})})},
+			[]ast.Node{ast.NewText(p(1, 38, 37, 39), "txt")}, ast.ContextHTML)})},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")})},
 }
 
