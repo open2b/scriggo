@@ -670,7 +670,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	if id, ok := node.Func.(*ast.Identifier); ok {
 		f, ok = s.variable(id.Name)
 		if !ok {
-			panic(s.errorf(node, "undefined: %s", id.Name))
+			panic(s.errorf(id, "undefined: %s", id.Name))
 		}
 	} else {
 		f = s.evalExpression(node.Func)
