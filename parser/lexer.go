@@ -168,7 +168,7 @@ LOOP:
 				continue
 			}
 		}
-		if l.tag != "" && quote == 0 && isAlpha(c) {
+		if l.tag != "" && quote == 0 && !isASCIISpace(c) && c != '/' && c != '>' {
 			// Checks if it is an attribute.
 			l.attr, p = l.scanAttribute(p)
 			if l.attr != "" {
@@ -366,11 +366,22 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	// Reads the attribute name.
 	s := p
 	for ; p < len(l.src); p++ {
-		if c := l.src[p]; !isAlpha(c) {
-			if !isSpace(c) && c != '=' {
+		c := l.src[p]
+		if isASCIISpace(c) || c == '=' {
+			break
+		}
+		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == 0x7F {
+			return "", p
+		}
+		if c >= 0x80 {
+			r, size := utf8.DecodeRune(l.src[p:])
+			if r == utf8.RuneError && size == 1 {
 				return "", p
 			}
-			break
+			if 0x7F <= r && r <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, r) {
+				return "", p
+			}
+			p += size - 1
 		}
 		l.column++
 	}
@@ -381,7 +392,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	// Reads '='.
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if !isSpace(c) {
+		if !isASCIISpace(c) {
 			if c != '=' {
 				return "", p
 			}
@@ -401,7 +412,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	// Reads the quote.
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if !isSpace(c) {
+		if !isASCIISpace(c) {
 			if c != '"' && c != '\'' {
 				return "", p
 			}
