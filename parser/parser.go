@@ -55,8 +55,8 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	// Indicates if it has been extended.
 	var isExtended = false
 
-	// Indicates if he is in a region.
-	var isInRegion = false
+	// Indicates if he is in a macro.
+	var isInMacro = false
 
 	// Current line.
 	var line = 0
@@ -342,20 +342,20 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// show
 			case tokenShow:
-				if isExtended && !isInRegion {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside region")}
+				if isExtended && !isInMacro {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside macro")}
 				}
 				if tok.ctx == ast.ContextAttribute {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
 				}
-				// region or path
+				// macro or path
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
 				if tok.typ == tokenIdentifier {
-					// show <region>
-					region := ast.NewIdentifier(tok.pos, string(tok.txt))
+					// show <macro>
+					macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 					tok, ok = <-lex.tokens
 					if !ok {
 						return nil, lex.err
@@ -370,10 +370,10 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						if tok.typ != tokenIdentifier {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 						}
-						impor = region
-						region = ast.NewIdentifier(tok.pos, string(tok.txt))
-						if fc, _ := utf8.DecodeRuneInString(region.Name); !unicode.Is(unicode.Lu, fc) {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported region %s", region.Name)}
+						impor = macro
+						macro = ast.NewIdentifier(tok.pos, string(tok.txt))
+						if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)}
 						}
 						tok, ok = <-lex.tokens
 						if !ok {
@@ -412,7 +412,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 					}
 					pos.End = tok.pos.End
-					node = ast.NewShowRegion(pos, impor, region, arguments, tok.ctx)
+					node = ast.NewShowMacro(pos, impor, macro, arguments, tok.ctx)
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 					// show <path>
 					var path = unquoteString(tok.txt)
@@ -495,8 +495,8 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)}
 					case *ast.If:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)}
-					case *ast.Region:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end region", tok)}
+					case *ast.Macro:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)}
 					}
 				}
 				tok, ok = <-lex.tokens
@@ -530,10 +530,10 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				addChild(parent, node)
 				cutSpacesToken = true
 
-			// region
-			case tokenRegion:
+			// macro
+			case tokenMacro:
 				if tok.ctx == ast.ContextAttribute {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("region inside an attribute value")}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("macro inside an attribute value")}
 				}
 				for i := len(ancestors) - 1; i > 0; i-- {
 					switch ancestors[i].(type) {
@@ -541,8 +541,8 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)}
 					case *ast.If:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)}
-					case *ast.Region:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end region", tok)}
+					case *ast.Macro:
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)}
 					}
 				}
 				// ident
@@ -593,11 +593,11 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewRegion(pos, ident, parameters, nil, tok.ctx)
+				node = ast.NewMacro(pos, ident, parameters, nil, tok.ctx)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 				cutSpacesToken = true
-				isInRegion = true
+				isInMacro = true
 
 			// end
 			case tokenEnd:
@@ -618,9 +618,9 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						if tok.typ != tokenIf {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
 						}
-					case *ast.Region:
-						if tok.typ != tokenRegion {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting region or %%}", tok)}
+					case *ast.Macro:
+						if tok.typ != tokenMacro {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)}
 						}
 					}
 					tok, ok = <-lex.tokens
@@ -631,21 +631,21 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
 				}
-				if _, ok := parent.(*ast.Region); ok {
-					isInRegion = false
+				if _, ok := parent.(*ast.Macro); ok {
+					isInMacro = false
 				}
 				ancestors = ancestors[:len(ancestors)-1]
 				cutSpacesToken = true
 
 			default:
-				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, region or end", tok)}
+				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, macro or end", tok)}
 
 			}
 
 		// {{ }}
 		case tokenStartValue:
-			if isExtended && !isInRegion {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside region")}
+			if isExtended && !isInMacro {
+				return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 			}
 			tokensInLine++
 			expr, tok2, err := parseExpr(lex)
@@ -812,7 +812,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Region:
+		case *ast.Macro:
 			err := pp.expand(n.Body, ctx)
 			if err != nil {
 				return err
@@ -882,7 +882,7 @@ func addChild(parent ast.Node, node ast.Node) {
 		n.Nodes = append(n.Nodes, node)
 	case *ast.URL:
 		n.Value = append(n.Value, node)
-	case *ast.Region:
+	case *ast.Macro:
 		n.Body = append(n.Body, node)
 	case *ast.For:
 		n.Nodes = append(n.Nodes, node)

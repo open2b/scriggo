@@ -224,8 +224,8 @@ func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
 	return &If{pos, expr, then, els}
 }
 
-// Region represents a statement {% region ... %}.
-type Region struct {
+// Macro represents a statement {% macro ... %}.
+type Macro struct {
 	*Position                // position in the source.
 	Ident      *Identifier   // name.
 	Parameters []*Identifier // parameters.
@@ -233,24 +233,24 @@ type Region struct {
 	Context    Context       // context.
 }
 
-func NewRegion(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, ctx Context) *Region {
+func NewMacro(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, ctx Context) *Macro {
 	if body == nil {
 		body = []Node{}
 	}
-	return &Region{pos, ident, parameters, body, ctx}
+	return &Macro{pos, ident, parameters, body, ctx}
 }
 
-// ShowRegion represents a statement {% show <region> %}.
-type ShowRegion struct {
+// ShowMacro represents a statement {% show <macro> %}.
+type ShowMacro struct {
 	*Position              // position in the source.
 	Import    *Identifier  // name of the import.
-	Region    *Identifier  // name of the region.
+	Macro     *Identifier  // name of the macro.
 	Arguments []Expression // arguments.
 	Context   Context      // context.
 }
 
-func NewShowRegion(pos *Position, impor, region *Identifier, arguments []Expression, ctx Context) *ShowRegion {
-	return &ShowRegion{Position: pos, Import: impor, Region: region, Arguments: arguments, Context: ctx}
+func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expression, ctx Context) *ShowMacro {
+	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Arguments: arguments, Context: ctx}
 }
 
 // ShowPath represents a statement {% show <path> %}.
@@ -620,7 +620,7 @@ func CloneNode(node Node) Node {
 			extend.Tree = CloneTree(n.Tree)
 		}
 		return extend
-	case *Region:
+	case *Macro:
 		var ident = NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		var parameters []*Identifier
 		if n.Parameters != nil {
@@ -633,13 +633,13 @@ func CloneNode(node Node) Node {
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		return NewRegion(ClonePosition(n.Position), ident, parameters, body, n.Context)
-	case *ShowRegion:
+		return NewMacro(ClonePosition(n.Position), ident, parameters, body, n.Context)
+	case *ShowMacro:
 		var impor *Identifier
 		if n.Import != nil {
 			impor = NewIdentifier(ClonePosition(n.Import.Position), n.Import.Name)
 		}
-		var region = NewIdentifier(ClonePosition(n.Region.Position), n.Region.Name)
+		var macro = NewIdentifier(ClonePosition(n.Macro.Position), n.Macro.Name)
 		var arguments []Expression
 		if n.Arguments != nil {
 			arguments = make([]Expression, len(n.Arguments))
@@ -647,7 +647,7 @@ func CloneNode(node Node) Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return NewShowRegion(ClonePosition(n.Position), impor, region, arguments, n.Context)
+		return NewShowMacro(ClonePosition(n.Position), impor, macro, arguments, n.Context)
 	case *Import:
 		var ident *Identifier
 		if n.Ident != nil {

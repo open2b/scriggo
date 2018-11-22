@@ -32,7 +32,7 @@ const (
 	tokenExtend                      // extend
 	tokenImport                      // import
 	tokenShow                        // show
-	tokenRegion                      // region
+	tokenMacro                       // macro
 	tokenEnd                         // end
 	tokenComment                     // comment
 	tokenInterpretedString           // "..."
@@ -84,7 +84,7 @@ var tokenString = map[tokenType]string{
 	tokenExtend:            "extend",
 	tokenImport:            "import",
 	tokenShow:              "show",
-	tokenRegion:            "region",
+	tokenMacro:             "macro",
 	tokenEnd:               "end",
 	tokenComment:           "comment",
 	tokenInterpretedString: "string",

@@ -97,7 +97,7 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 		s.path = extend.Tree.Path
 		vars := scope{}
 		for name, v := range s.vars[2] {
-			if r, ok := v.(region); ok {
+			if r, ok := v.(macro); ok {
 				fc, _ := utf8.DecodeRuneInString(name)
 				if unicode.Is(unicode.Lu, fc) && !strings.Contains(name, ".") {
 					vars[name] = r
@@ -207,10 +207,10 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 	return nil, errors.New("template/renderer: unsupported vars type")
 }
 
-// region represents a region in a scope.
-type region struct {
+// macro represents a macro in a scope.
+type macro struct {
 	path string
-	node *ast.Region
+	node *ast.Macro
 }
 
 // state represents the state of rendering of a tree.
@@ -520,18 +520,18 @@ Nodes:
 		case *ast.Continue:
 			return errContinue
 
-		case *ast.Region:
+		case *ast.Macro:
 			if wr != nil {
-				err = s.errorf(node.Ident, "regions not allowed")
+				err = s.errorf(node.Ident, "macros not allowed")
 				if !s.handleError(err) {
 					return err
 				}
 			}
 			name := node.Ident.Name
 			if v, ok := s.variable(name); ok {
-				if r, ok := v.(region); ok {
+				if m, ok := v.(macro); ok {
 					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
-						name, r.path, r.node.Pos())
+						name, m.path, m.node.Pos())
 				} else {
 					err = s.errorf(node.Ident, "%s redeclared in this file", name)
 				}
@@ -540,7 +540,7 @@ Nodes:
 				}
 				return err
 			}
-			s.vars[2][name] = region{s.path, node}
+			s.vars[2][name] = macro{s.path, node}
 
 		case *ast.Var:
 
@@ -550,9 +550,9 @@ Nodes:
 			var vars = s.vars[len(s.vars)-1]
 			var name = node.Ident.Name
 			if v, ok := vars[name]; ok {
-				if r, ok := v.(region); ok {
+				if m, ok := v.(macro); ok {
 					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
-						name, r.path, r.node.Pos())
+						name, m.path, m.node.Pos())
 				} else {
 					err = s.errorf(node.Ident, "%s redeclared in this block", name)
 				}
@@ -578,7 +578,7 @@ Nodes:
 				vars := s.vars[i]
 				if vars != nil {
 					if v, ok := vars[name]; ok {
-						if _, ok := v.(region); ok || i < 2 {
+						if _, ok := v.(macro); ok || i < 2 {
 							if i == 0 && name == "len" {
 								err = s.errorf(node, "use of builtin len not in function call")
 							} else {
@@ -609,24 +609,24 @@ Nodes:
 				}
 			}
 
-		case *ast.ShowRegion:
+		case *ast.ShowMacro:
 
-			name := node.Region.Name
+			name := node.Macro.Name
 			if node.Import != nil {
 				name = node.Import.Name + "." + name
 			}
-			var r region
+			var m macro
 			if v, ok := s.variable(name); ok {
-				if r, ok = v.(region); ok {
-					if node.Context != r.node.Context {
-						err = s.errorf(node, "region %s is defined in a different context (%s)",
-							name, r.node.Context)
+				if m, ok = v.(macro); ok {
+					if node.Context != m.node.Context {
+						err = s.errorf(node, "macro %s is defined in a different context (%s)",
+							name, m.node.Context)
 					}
 				} else {
-					err = s.errorf(node, "cannot show non-region %s (type %s)", name, typeof(v))
+					err = s.errorf(node, "cannot show non-macro %s (type %s)", name, typeof(v))
 				}
 			} else {
-				err = s.errorf(node, "region %s not declared", name)
+				err = s.errorf(node, "macro %s not declared", name)
 			}
 			if err != nil {
 				if s.handleError(err) {
@@ -636,7 +636,7 @@ Nodes:
 			}
 
 			haveSize := len(node.Arguments)
-			wantSize := len(r.node.Parameters)
+			wantSize := len(m.node.Parameters)
 			if haveSize != wantSize {
 				have := "("
 				for i := 0; i < haveSize; i++ {
@@ -644,21 +644,21 @@ Nodes:
 						have += ","
 					}
 					if i < wantSize {
-						have += r.node.Parameters[i].Name
+						have += m.node.Parameters[i].Name
 					} else {
 						have += "?"
 					}
 				}
 				have += ")"
 				want := "("
-				for i, p := range r.node.Parameters {
+				for i, p := range m.node.Parameters {
 					if i > 0 {
 						want += ","
 					}
 					want += p.Name
 				}
 				want += ")"
-				name := node.Region.Name
+				name := node.Macro.Name
 				if node.Import != nil {
 					name = node.Import.Name + " " + name
 				}
@@ -675,7 +675,7 @@ Nodes:
 
 			var arguments = scope{}
 			for i, argument := range node.Arguments {
-				arguments[r.node.Parameters[i].Name], err = s.eval(argument)
+				arguments[m.node.Parameters[i].Name], err = s.eval(argument)
 				if err != nil {
 					if s.handleError(err) {
 						continue Nodes
@@ -685,12 +685,12 @@ Nodes:
 			}
 			st := &state{
 				scope:       s.scope,
-				path:        r.path,
-				vars:        []scope{s.vars[0], s.vars[1], s.scope[r.path], arguments},
+				path:        m.path,
+				vars:        []scope{s.vars[0], s.vars[1], s.scope[m.path], arguments},
 				version:     s.version,
 				handleError: s.handleError,
 			}
-			err = st.render(wr, r.node.Body, nil)
+			err = st.render(wr, m.node.Body, nil)
 			if err != nil {
 				return err
 			}
@@ -711,8 +711,8 @@ Nodes:
 					return err
 				}
 				s.scope[path] = st.vars[2]
-				for name, r := range st.vars[2] {
-					if _, ok := r.(region); !ok {
+				for name, m := range st.vars[2] {
+					if _, ok := m.(macro); !ok {
 						continue
 					}
 					if strings.Index(name, ".") > 0 {
@@ -721,7 +721,7 @@ Nodes:
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						continue
 					}
-					s.vars[2][name] = r
+					s.vars[2][name] = m
 				}
 			}
 

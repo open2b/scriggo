@@ -77,7 +77,7 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
-	case *ast.Region:
+	case *ast.Macro:
 		for _, child := range n.Body {
 			Walk(v, child)
 		}
@@ -126,7 +126,7 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Number:
 	case *ast.Identifier:
 	case *ast.String:
-	case *ast.ShowRegion:
+	case *ast.ShowMacro:
 	case *ast.Comment:
 	case *ast.Break:
 	case *ast.Continue:
