@@ -166,9 +166,21 @@ var treeTests = []struct {
 		}),
 		ast.NewText(p(2, 1, 10, 11), "\">"),
 	})},
+	{"<div {{ a }}>", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 4), "<div "), ast.NewValue(p(1, 6, 5, 11),
+			ast.NewIdentifier(p(1, 9, 8, 8), "a"), ast.ContextTag), ast.NewText(p(1, 13, 12, 12), ">"),
+	})},
+	{"<div{{ a }}>", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 3), "<div"), ast.NewValue(p(1, 5, 4, 10),
+			ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.ContextTag), ast.NewText(p(1, 12, 11, 11), ">"),
+	})},
 	{"<div 本=\"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 9), "<div 本=\""), ast.NewValue(p(1, 9, 10, 20),
 			ast.NewIdentifier(p(1, 12, 13, 17), "class"), ast.ContextAttribute), ast.NewText(p(1, 20, 21, 22), "\">"),
+	})},
+	{"<div \"{{ class }}\">", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 5), "<div \""), ast.NewValue(p(1, 7, 6, 16),
+			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextAttribute), ast.NewText(p(1, 18, 17, 18), "\">"),
 	})},
 	{"{% var a = 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))})},

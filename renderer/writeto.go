@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 
@@ -43,6 +45,8 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 			str, ok = interfaceToText(asBase(expr), s.version)
 		case ast.ContextHTML:
 			str, ok = interfaceToHTML(asBase(expr), s.version)
+		case ast.ContextTag:
+			str, ok = interfaceToTag(asBase(expr), s.version)
 		case ast.ContextAttribute:
 			str, ok = interfaceToAttribute(asBase(expr), s.version, urlstate)
 		case ast.ContextCSS:
@@ -153,6 +157,33 @@ func interfaceToHTML(expr interface{}, version string) (string, bool) {
 		s = strings.Join(buf, ", ")
 	}
 
+	return s, true
+}
+
+func interfaceToTag(expr interface{}, version string) (string, bool) {
+	// TODO(marco): return a more explanatory error
+	s, ok := interfaceToText(expr, version)
+	if !ok {
+		return "", false
+	}
+	i := 0
+	for j, c := range s {
+		if c == utf8.RuneError && j == i+1 {
+			return "", false
+		}
+		if 0x00 <= c && c <= 0x1F {
+			return "", false
+		}
+		const DEL = 0x7F
+		switch c {
+		case '"', '\'', '>', '/', '=', DEL:
+			return "", false
+		}
+		if 0x7F <= c && c <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, c) {
+			return "", false
+		}
+		i = j
+	}
 	return s, true
 }
 

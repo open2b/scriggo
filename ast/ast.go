@@ -41,6 +41,7 @@ type Context int
 const (
 	ContextText Context = iota
 	ContextHTML
+	ContextTag
 	ContextAttribute
 	ContextCSS
 	ContextJavaScript
@@ -52,6 +53,8 @@ func (ctx Context) String() string {
 		return "Text"
 	case ContextHTML:
 		return "HTML"
+	case ContextTag:
+		return "Tag"
 	case ContextAttribute:
 		return "Attribute"
 	case ContextCSS:

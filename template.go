@@ -23,11 +23,12 @@ type HTML = renderer.HTML
 type Context = ast.Context
 
 const (
-	ContextText Context = iota
-	ContextHTML
-	ContextAttribute
-	ContextCSS
-	ContextJavaScript
+	ContextText       = ast.ContextText
+	ContextHTML       = ast.ContextHTML
+	ContextTag        = ast.ContextTag
+	ContextAttribute  = ast.ContextAttribute
+	ContextCSS        = ast.ContextCSS
+	ContextJavaScript = ast.ContextJavaScript
 )
 
 var (

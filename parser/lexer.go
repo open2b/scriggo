@@ -168,13 +168,13 @@ LOOP:
 				continue
 			}
 		}
-		if l.tag != "" && quote == 0 && !isASCIISpace(c) && c != '/' && c != '>' {
-			// Checks if it is an attribute.
-			l.attr, p = l.scanAttribute(p)
-			if l.attr != "" {
-				quote = l.src[p-1]
+		if l.ctx == ast.ContextTag {
+			if c == '"' || c == '\'' {
+				// Start Attribute
+				quote = c
 				if containsURL(l.tag, l.attr) {
-					l.emitAtLineColumn(lin, col, tokenText, p)
+					l.emitAtLineColumn(lin, col, tokenText, p+1)
+					l.column++
 					l.ctx = ast.ContextAttribute
 					l.emit(tokenStartURL, 0)
 					emittedURL = true
@@ -183,11 +183,20 @@ LOOP:
 					col = l.column
 				} else {
 					l.ctx = ast.ContextAttribute
+					p++
+					l.column++
+				}
+				continue
+			}
+			if !isASCIISpace(c) && c != '/' && c != '>' {
+				// Checks if it is an attribute.
+				l.attr, p = l.scanAttribute(p)
+				if l.attr != "" {
+					continue
 				}
 			}
-			continue
 		}
-		if quote != 0 && c == quote {
+		if l.ctx == ast.ContextAttribute && c == quote {
 			// End attribute.
 			quote = 0
 			if emittedURL {
@@ -202,7 +211,7 @@ LOOP:
 			}
 			p++
 			l.column++
-			l.ctx = ast.ContextHTML
+			l.ctx = ast.ContextTag
 			l.attr = ""
 			continue
 		}
@@ -221,40 +230,48 @@ LOOP:
 			switch l.ctx {
 
 			case ast.ContextHTML:
-				if l.tag == "" {
-					if c == '<' {
-						// <![CDATA[...]]>
-						if p+10 < len(l.src) && l.src[p] == '!' {
-							if bytes.HasPrefix(l.src[p-1:], cdataStart) {
-								// Skips the CDATA section.
-								p += 8
-								l.column += 8
-								var t int
-								if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
-									t = len(l.src)
-								} else {
-									t = p + i + 2
-								}
-								for ; p < t; p++ {
-									if c = l.src[p]; c == '\n' {
-										l.newline()
-									} else if isStartChar(c) {
-										l.column++
-									}
-								}
-								continue
+
+				if c == '<' {
+					// <![CDATA[...]]>
+					if p+10 < len(l.src) && l.src[p] == '!' {
+						if bytes.HasPrefix(l.src[p-1:], cdataStart) {
+							// Skips the CDATA section.
+							p += 8
+							l.column += 8
+							var t int
+							if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
+								t = len(l.src)
+							} else {
+								t = p + i + 2
 							}
+							for ; p < t; p++ {
+								if c = l.src[p]; c == '\n' {
+									l.newline()
+								} else if isStartChar(c) {
+									l.column++
+								}
+							}
+							continue
 						}
-						// Start tag.
-						l.tag, p = l.scanTag(p)
 					}
-				} else if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
+					// Start tag.
+					l.tag, p = l.scanTag(p)
+					if l.tag != "" {
+						l.ctx = ast.ContextTag
+					}
+				}
+
+			case ast.ContextTag:
+
+				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
 					// End tag.
 					switch l.tag {
 					case "script":
 						l.ctx = ast.ContextJavaScript
 					case "style":
 						l.ctx = ast.ContextCSS
+					default:
+						l.ctx = ast.ContextHTML
 					}
 					l.tag = ""
 					quote = 0
@@ -347,7 +364,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 			if p == s {
 				return "", p + 1
 			}
-		} else if c == '>' || c == '/' || isASCIISpace(c) {
+		} else if c == '>' || c == '/' || c == '{' || isASCIISpace(c) {
 			break
 		} else if c == '\n' {
 			l.newline()
@@ -385,7 +402,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		}
 		l.column++
 	}
-	if p == len(l.src) {
+	if p == s || p == len(l.src) {
 		return "", p
 	}
 	name := string(bytes.ToLower(l.src[s:p]))
@@ -427,8 +444,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	if p == len(l.src) {
 		return "", p
 	}
-	l.column++
-	return name, p + 1
+	return name, p
 }
 
 func isScript(s []byte) bool {

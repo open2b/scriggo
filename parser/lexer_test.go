@@ -123,6 +123,11 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script a="b">{{1}}</script>`:                 {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 		`<![CDATA[<script>{{1}}</script>]]>`:           {ast.ContextText},
 		`a<![CDATA[<script>{{1}}</script>]]>{{2}}`:     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<div {{ attr }}>`:                             {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<div {{ attr }} {{ attr }}>`:                  {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<div{{ attr }}>`:                              {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<div {{ attr }}="45">`:                        {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
+		`<div "{{ v }}">`:                              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href="">`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<A Href="">`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href=''>`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
@@ -209,22 +214,22 @@ var scanAttributeTests = []struct {
 	line   int
 	column int
 }{
-	{"href=\"h", "href", '"', 6, 1, 7},
-	{"href='h", "href", '\'', 6, 1, 7},
-	{"src = \"h", "src", '"', 7, 1, 8},
-	{"src\n= \"h", "src", '"', 7, 2, 4},
-	{"src =\n\"h", "src", '"', 7, 2, 2},
-	{"src\t\t=\n\"h", "src", '"', 8, 2, 2},
-	{"a='h", "a", '\'', 3, 1, 4},
+	{"href=\"h", "href", '"', 5, 1, 6},
+	{"href='h", "href", '\'', 5, 1, 6},
+	{"src = \"h", "src", '"', 6, 1, 7},
+	{"src\n= \"h", "src", '"', 6, 2, 3},
+	{"src =\n\"h", "src", '"', 6, 2, 1},
+	{"src\t\t=\n\"h", "src", '"', 7, 2, 1},
+	{"a='h", "a", '\'', 2, 1, 3},
 	{"src=h", "", 0, 4, 1, 5},
 	{"src=\n\th", "", 0, 6, 2, 2},
 	{"src", "", 0, 3, 1, 4},
 	{"src=", "", 0, 4, 1, 5},
 	{"src ", "", 0, 4, 1, 5},
-	{"s5c='h", "s5c", '\'', 5, 1, 6},
-	{"本='h", "本", '\'', 5, 1, 4},
-	{"a本-€本b='h", "a本-€本b", '\'', 14, 1, 9},
-	{"5c=\"", "5c", '"', 4, 1, 5},
+	{"s5c='h", "s5c", '\'', 4, 1, 5},
+	{"本='h", "本", '\'', 4, 1, 3},
+	{"a本-€本b='h", "a本-€本b", '\'', 13, 1, 8},
+	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
 func TestLexerTypes(t *testing.T) {
@@ -361,8 +366,8 @@ func TestLexerReadAttribute(t *testing.T) {
 		if attr != test.attr {
 			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
 		}
-		if attr != "" && l.src[p-1] != test.quote {
-			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p-1]), string(test.quote))
+		if attr != "" && l.src[p] != test.quote {
+			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
 		}
 		if p != test.p {
 			t.Errorf("source: %q, unexpected position %d, expecting %d\n", test.src, p, test.p)

@@ -176,6 +176,7 @@ var urlContextTests = []struct {
 	{`<img srcset="{{a}} 1024w, {{b}} 640w">`, `<img srcset="large.jpg?s=1024 1024w, medium=.jpg 640w">`, scope{"a": "large.jpg?s=1024", "b": "medium=.jpg"}},
 	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="=">`, scope{"a": "=", "t": true}},
 	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="?%3d">`, scope{"a": "=", "t": false}},
+	{`<input {{ a }}>`, `<input disabled>`, scope{"a": "disabled"}},
 }
 
 func TestURLContext(t *testing.T) {
