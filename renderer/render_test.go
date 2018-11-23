@@ -180,7 +180,6 @@ var rendererExprTests = []struct {
 	{"a + b", "<a><b>", scope{"a": HTML("<a>"), "b": HTML("<b>")}},
 
 	// len
-	{"len()", "0", nil},
 	{"len(``)", "0", nil},
 	{"len(`a`)", "1", nil},
 	{"len(`abc`)", "3", nil},
@@ -190,6 +189,10 @@ var rendererExprTests = []struct {
 	{"len(a)", "3", scope{"a": "<a>"}},
 	{"len(a)", "3", scope{"a": HTML("<a>")}},
 	{"len(a)", "3", scope{"a": aString{"xz€"}}},
+	{"len(a)", "3", scope{"a": []int{1,2,3}}},
+	{"len(a)", "2", scope{"a": []string{"a","b"}}},
+	{"len(a)", "4", scope{"a": []interface{}{"a",2,3, 4}}},
+	{"len(a)", "0", scope{"a": []int(nil)}},
 }
 
 var rendererStmtTests = []struct {

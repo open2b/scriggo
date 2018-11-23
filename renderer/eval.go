@@ -666,6 +666,8 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 
 func (s *state) evalCall(node *ast.Call) interface{} {
 
+	// TODO(marco): optimize the call to "len" by not using reflection
+
 	var f interface{}
 	if id, ok := node.Func.(*ast.Identifier); ok {
 		f, ok = s.variable(id.Name)

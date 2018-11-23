@@ -205,7 +205,8 @@ func _lastIndex(s, sep string) int {
 // _len is the builtin function "len".
 func _len(v interface{}) int {
 	if v == nil {
-		return 0
+		// TODO(marco): returns a different error for "len(nil)"
+		panic(fmt.Sprintf("missing argument to len: len()"))
 	}
 	switch s := v.(type) {
 	case string:
@@ -218,11 +219,10 @@ func _len(v interface{}) int {
 			return len(string(s))
 		}
 		return utf8.RuneCountInString(string(s))
-	case int:
-		return 0
-	case bool:
 		return 0
 	case []int:
+		return len(s)
+	case []decimal.Decimal:
 		return len(s)
 	case []string:
 		return len(s)
@@ -238,8 +238,10 @@ func _len(v interface{}) int {
 			return rv.Len()
 		}
 	}
-	return 0
+	// TODO(marco): report the argument in the error as in Go
+	panic(fmt.Sprintf("invalid argument (type %s) for len", typeof(v)))
 }
+
 
 // _max is the builtin function "max".
 func _max(a, b decimal.Decimal) decimal.Decimal {
