@@ -242,7 +242,6 @@ func _len(v interface{}) int {
 	panic(fmt.Sprintf("invalid argument (type %s) for len", typeof(v)))
 }
 
-
 // _max is the builtin function "max".
 func _max(a, b decimal.Decimal) decimal.Decimal {
 	if a.Cmp(b) < 0 {
