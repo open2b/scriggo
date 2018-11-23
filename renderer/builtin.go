@@ -204,10 +204,6 @@ func _lastIndex(s, sep string) int {
 
 // _len is the builtin function "len".
 func _len(v interface{}) int {
-	if v == nil {
-		// TODO(marco): returns a different error for "len(nil)"
-		panic(fmt.Sprintf("missing argument to len: len()"))
-	}
 	switch s := v.(type) {
 	case string:
 		if len(s) <= 1 {
@@ -238,8 +234,7 @@ func _len(v interface{}) int {
 			return rv.Len()
 		}
 	}
-	// TODO(marco): report the argument in the error as in Go
-	panic(fmt.Sprintf("invalid argument (type %s) for len", typeof(v)))
+	return -1
 }
 
 // _max is the builtin function "max".

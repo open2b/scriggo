@@ -546,7 +546,7 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	}
 	var v = asBase(s.evalExpression(node.Expr))
 	if v == nil {
-		if s.isUntypedNil(node.Expr) {
+		if s.isBuiltin("nil", node.Expr) {
 			panic(s.errorf(node.Expr, "use of untyped nil"))
 		} else {
 			panic(s.errorf(node, "index out of range"))
@@ -600,7 +600,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 	}
 	var v = asBase(s.evalExpression(node.Expr))
 	if v == nil {
-		if s.isUntypedNil(node.Expr) {
+		if s.isBuiltin("nil", node.Expr) {
 			panic(s.errorf(node.Expr, "use of untyped nil"))
 		} else {
 			panic(s.errorf(node, "slice bounds out of range"))
@@ -653,10 +653,10 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
+			if i == 0 && node.Name == "len" {
+				panic(s.errorf(node, "use of builtin len not in function call"))
+			}
 			if v, ok := s.vars[i][node.Name]; ok {
-				if i == 0 && node.Name == "len" {
-					panic(s.errorf(node, "use of builtin len not in function call"))
-				}
 				return v
 			}
 		}
@@ -666,17 +666,26 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 
 func (s *state) evalCall(node *ast.Call) interface{} {
 
-	// TODO(marco): optimize the call to "len" by not using reflection
-
-	var f interface{}
-	if id, ok := node.Func.(*ast.Identifier); ok {
-		f, ok = s.variable(id.Name)
-		if !ok {
-			panic(s.errorf(id, "undefined: %s", id.Name))
+	if s.isBuiltin("len", node.Func) {
+		if len(node.Args) == 0 {
+			panic(s.errorf(node, "missing argument to len: len()"))
 		}
-	} else {
-		f = s.evalExpression(node.Func)
+		if len(node.Args) > 1 {
+			panic(s.errorf(node, "too many arguments to len: %s", node))
+		}
+		if id, ok := node.Args[0].(*ast.Identifier); ok && id.Name == "nil" && s.isBuiltin("nil", id) {
+			panic(s.errorf(node, "use of untyped nil"))
+		}
+		arg := asBase(s.evalExpression(node.Args[0]))
+		length := _len(arg)
+		if length == -1 {
+			panic(s.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg)))
+		}
+		return length
 	}
+
+	var f = s.evalExpression(node.Func)
+
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
 		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
@@ -806,15 +815,15 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	return v
 }
 
-// isUntypedNil indicates if expr is an untyped nil.
-func (s *state) isUntypedNil(expr ast.Expression) bool {
+// isBuiltin indicates if expr is the builtin with the given name.
+func (s *state) isBuiltin(name string, expr ast.Expression) bool {
 	if n, ok := expr.(*ast.Identifier); ok {
-		if n.Name != "nil" {
+		if n.Name != name {
 			return false
 		}
 		for i := len(s.vars) - 1; i >= 0; i-- {
 			if s.vars[i] != nil {
-				if _, ok := s.vars[i]["nil"]; ok {
+				if _, ok := s.vars[i][name]; ok {
 					return i == 0
 				}
 			}
