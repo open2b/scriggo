@@ -283,11 +283,11 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					return operand, tok, nil
 				}
 				// Adds the operand as a child of the leaf operator.
-				switch leef := path[len(path)-1].(type) {
+				switch leaf := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
-					leef.Expr = operand
+					leaf.Expr = operand
 				case *ast.BinaryOperator:
-					leef.Expr2 = operand
+					leaf.Expr2 = operand
 				}
 				// Sets End for all the operators in path.
 				end := operand.Pos().End
@@ -316,11 +316,11 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 			if len(path) > 0 {
 				// Operator becomes a child of the leaf operator.
-				switch leef := path[len(path)-1].(type) {
+				switch leaf := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
-					leef.Expr = op
+					leaf.Expr = op
 				case *ast.BinaryOperator:
-					leef.Expr2 = op
+					leaf.Expr2 = op
 				}
 			}
 			// Operator becomes the new leaf operator.
