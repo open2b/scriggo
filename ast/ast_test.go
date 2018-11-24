@@ -1,6 +1,8 @@
-//
-// Copyright (c) 2017-2018 Open2b Software Snc. All Rights Reserved.
-//
+// Copyright (c) 2018 Open2b Software Snc. All rights reserved.
+// https://www.open2b.com
+
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
 package ast
 
