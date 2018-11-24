@@ -13,6 +13,30 @@ import (
 	"unicode/utf8"
 )
 
+// isValidFilePath indicates whether path is valid as an include or show path.
+// These are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
+// These are invalid paths: '', '/', 'a/', '..', 'a/..'.
+func isValidFilePath(path string) bool {
+	// Must have at least one character and do not end with '/'.
+	if path == "" || path[len(path)-1] == '/' {
+		return false
+	}
+	// Splits the path in the various names.
+	var names = strings.Split(path, "/")
+	// First names must be directories or '..'.
+	for i, name := range names[:len(names)-1] {
+		// If the first name is empty, path starts with '/'.
+		if i == 0 && name == "" {
+			continue
+		}
+		if name != ".." && !isValidDirName(name) {
+			return false
+		}
+	}
+	// Last name must be a file.
+	return isValidFileName(names[len(names)-1])
+}
+
 // toAbsolutePath combines dir with path to obtain an absolute path.
 // dir must be absolute and path must be relative. The parameters are not
 // validated, but an error is returned if the resulting path is outside
@@ -110,28 +134,4 @@ func isWindowsReservedName(name string) bool {
 		}
 	}
 	return false
-}
-
-// isValidFilePath indicates whether path is valid as an include or show path.
-// These are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
-// These are invalid paths: '', '/', 'a/', '..', 'a/..'.
-func isValidFilePath(path string) bool {
-	// Must have at least one character and do not end with '/'.
-	if path == "" || path[len(path)-1] == '/' {
-		return false
-	}
-	// Splits the path in the various names.
-	var names = strings.Split(path, "/")
-	// First names must be directories or '..'.
-	for i, name := range names[:len(names)-1] {
-		// If the first name is empty, path starts with '/'.
-		if i == 0 && name == "" {
-			continue
-		}
-		if name != ".." && !isValidDirName(name) {
-			return false
-		}
-	}
-	// Last name must be a file.
-	return isValidFileName(names[len(names)-1])
 }
