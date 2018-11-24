@@ -174,7 +174,7 @@ func interfaceToTag(expr interface{}, version string) (string, bool) {
 			return "", false
 		}
 		const DEL = 0x7F
-		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == '=' || c == DEL ||
+		if c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == '=' || c == DEL ||
 			0x7F <= c && c <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, c) {
 			return "", false
 		}

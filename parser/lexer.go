@@ -390,7 +390,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 			break
 		}
 		const DEL = 0x7F
-		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == DEL {
+		if c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == DEL {
 			return "", p
 		}
 		if c >= 0x80 {
