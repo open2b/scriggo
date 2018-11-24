@@ -133,7 +133,7 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Break:
 	case *ast.Continue:
 	case *ast.Text:
-		// Niente da fare
+		// Nothing to do
 
 	default:
 		panic(fmt.Sprintf("No cases were defined for type %T on function Walk", n))
