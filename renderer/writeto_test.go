@@ -237,6 +237,8 @@ var scriptContextTests = []struct {
 	{`-0.1000000`, "-0.1", nil},
 	{`true`, "true", nil},
 	{`false`, "false", nil},
+	{`a`, `"a"`, scope{"a": "a"}},
+	{`a`, `"\x3c\x3e\""`, scope{"a": "<>\""}},
 	{`a`, "null", scope{"a": []int(nil)}},
 	{`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
