@@ -79,7 +79,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 	case *ast.Selector:
 		return s.evalSelector(e)
 	default:
-		panic(s.errorf(expr, "unexprected node type %#v", expr))
+		panic(s.errorf(expr, "unexpected node type %#v", expr))
 	}
 }
 
