@@ -387,7 +387,8 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 		if isASCIISpace(c) || c == '=' {
 			break
 		}
-		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == 0x7F {
+		const DEL = 0x7F
+		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == DEL {
 			return "", p
 		}
 		if c >= 0x80 {

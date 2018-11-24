@@ -171,15 +171,9 @@ func interfaceToTag(expr interface{}, version string) (string, bool) {
 		if c == utf8.RuneError && j == i+1 {
 			return "", false
 		}
-		if 0x00 <= c && c <= 0x1F {
-			return "", false
-		}
 		const DEL = 0x7F
-		switch c {
-		case '"', '\'', '>', '/', '=', DEL:
-			return "", false
-		}
-		if 0x7F <= c && c <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, c) {
+		if 0x00 <= c && c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == '=' || c == DEL ||
+			0x7F <= c && c <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, c) {
 			return "", false
 		}
 		i = j
