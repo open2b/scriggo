@@ -25,6 +25,10 @@ var errorTests = []struct {
 	{`{% for a in false..10 %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
 	{`{% for a in 1..false %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
 	{`{{ "5" + 5 }}{{ "ok" }}`, `ok`, nil},
+	{`{% if len() >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
+	{`{% if len(nil) >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
+	{`{% if len("a", "b") >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
+	{`{% nil = 5 %}{{ "ok" }}`, `ok`, nil},
 }
 
 func TestErrors(t *testing.T) {
