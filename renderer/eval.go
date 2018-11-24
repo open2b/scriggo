@@ -799,7 +799,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		}
 	}
 
-	vals := func() []reflect.Value {
+	values := func() []reflect.Value {
 		defer func() {
 			if e := recover(); e != nil {
 				panic(s.errorf(node.Func, "%s", e))
@@ -808,7 +808,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		return fun.Call(args)
 	}()
 
-	v := vals[0].Interface()
+	v := values[0].Interface()
 
 	if d, ok := v.(int); ok {
 		v = decimal.New(int64(d), 0)
