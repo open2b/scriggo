@@ -673,7 +673,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		if len(node.Args) > 1 {
 			panic(s.errorf(node, "too many arguments to len: %s", node))
 		}
-		if id, ok := node.Args[0].(*ast.Identifier); ok && id.Name == "nil" && s.isBuiltin("nil", id) {
+		if s.isBuiltin("nil", node.Args[0]) {
 			panic(s.errorf(node, "use of untyped nil"))
 		}
 		arg := asBase(s.evalExpression(node.Args[0]))
