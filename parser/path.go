@@ -14,8 +14,8 @@ import (
 )
 
 // isValidFilePath indicates whether path is valid as an include or show path.
-// These are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
-// These are invalid paths: '', '/', 'a/', '..', 'a/..'.
+// These are valid paths: "/a.a", "/a/a.a", "a.a", "a/a.a", "../a.a", "a/../a.a".
+// These are invalid paths: "", "/", "a", "aa" "aa.", "a/", "..", "a/..".
 func isValidFilePath(path string) bool {
 	// Must have at least one character and do not end with '/'.
 	if path == "" || path[len(path)-1] == '/' {
@@ -104,13 +104,16 @@ func isValidFileName(name string) bool {
 // isWindowsReservedName indicates if name is a reserved file name on Windows.
 // See https://docs.microsoft.com/en-us/windows/desktop/fileio/naming-a-file
 func isWindowsReservedName(name string) bool {
-	for _, c := range name {
-		if '\x00' <= c && c <= '\x1f' {
+	const DEL = '\x7f'
+	for i := 0; i < len(name); i++ {
+		switch c := name[i]; c {
+		case '"', '*', '/', ':', '<', '>', '?', '\\', '|', DEL:
 			return true
+		default:
+			if c <= '\x1f' {
+				return true
+			}
 		}
-	}
-	if strings.ContainsAny(name, "\x22\x2a\x2f\x3a\x3c\x3e\x3f\x5c\x7c\x7f") {
-		return true
 	}
 	switch name {
 	case "con", "prn", "aux", "nul",
