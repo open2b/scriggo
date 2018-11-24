@@ -113,7 +113,7 @@ func isWindowsReservedName(name string) bool {
 }
 
 // isValidFilePath indicates whether path is valid as an include or show path.
-// They are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
+// These are valid paths: '/a', '/a/a', 'a', 'a/a', 'a.a', '../a', 'a/../b'.
 // These are invalid paths: '', '/', 'a/', '..', 'a/..'.
 func isValidFilePath(path string) bool {
 	// Must have at least one character and do not end with '/'.
