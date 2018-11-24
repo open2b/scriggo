@@ -410,13 +410,13 @@ func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 }
 
 // pathEscape escapes the string s so it can be placed inside a URL path.
-// Note that url.PathEscape escapes '/' as '%2F' and not as '/'.
+// Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
 func pathEscape(s string) string {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z') {
 			switch c {
-			case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+			case ' ', '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
 			case '&', '+':
 				more += 4
 			default:
@@ -436,7 +436,7 @@ func pathEscape(s string) string {
 			continue
 		}
 		switch c {
-		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+		case ' ', '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
 			b[j] = c
 			j++
 		case '&':

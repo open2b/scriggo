@@ -151,6 +151,7 @@ var urlContextTests = []struct {
 	{`<a href="{{b}}">`, `<a href="b">`, scope{"b": "b"}},
 	{`<a href="{{b}}">`, `<a href="/">`, scope{"b": "/"}},
 	{`<a href="{{b}}">`, `<a href="http://www.site.com/">`, scope{"b": "http://www.site.com/"}},
+	{`<a href="{{b}}">`, `<a href=" http://www.site.com/ ">`, scope{"b": " http://www.site.com/ "}},
 	{`<a href="http://s/{{a}}/">`, `<a href="http://s/a%c3%a0%e6%9c%ac/">`, scope{"a": "aà本"}},
 	{`<a href="{{a}}{{b}}">`, `<a href="a%e6%9c%ac">`, scope{"a": "a", "b": "本"}},
 	{`<a href="{{a}}?b={{b}}">`, `<a href="a?b=%20">`, scope{"a": "a", "b": " "}},
