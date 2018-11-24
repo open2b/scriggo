@@ -356,7 +356,7 @@ func stringToJavaScript(s string) string {
 		case '\u2029':
 			b.WriteString("\\u2029")
 		default:
-			if 0 <= r && r <= 31 || r == '<' || r == '>' || r == '&' {
+			if r <= 31 || r == '<' || r == '>' || r == '&' {
 				b.WriteString("\\x")
 				b.WriteByte(hexchars[r>>4])
 				b.WriteByte(hexchars[r&0xF])
