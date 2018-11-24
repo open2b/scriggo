@@ -35,7 +35,10 @@ func ExampleDump() {
 		}
 
 		var buf bytes.Buffer
-		util.Dump(&buf, tree)
+		err = util.Dump(&buf, tree)
+		if err != nil {
+			panic(err)
+		}
 		got := buf.String()
 
 		fmt.Print(got)
