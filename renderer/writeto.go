@@ -304,7 +304,7 @@ func interfaceToJavaScript(expr interface{}) (string, bool) {
 			}
 			return s + "]", true
 		case reflect.Struct:
-			return structToJavaScript(rv.Type(), rv)
+			return structToJavaScript(rv)
 		case reflect.Map:
 			if rv.IsNil() {
 				return "null", true
@@ -325,7 +325,7 @@ func interfaceToJavaScript(expr interface{}) (string, bool) {
 			if !rv.IsValid() {
 				return "undefined", false
 			}
-			return structToJavaScript(rt, rv)
+			return structToJavaScript(rv)
 		}
 	}
 
@@ -368,7 +368,7 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(t reflect.Type, v reflect.Value) (string, bool) {
+func structToJavaScript(v reflect.Value) (string, bool) {
 	var s string
 	for _, field := range getStructFields(v) {
 		if len(s) > 0 {
