@@ -7,7 +7,6 @@
 package renderer
 
 import (
-	"bytes"
 	"html"
 	"io"
 	"reflect"
@@ -56,6 +55,8 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 			str, ok = interfaceToCSS(asBase(expr))
 		case ast.ContextScript:
 			str, ok = interfaceToScript(asBase(expr))
+		case ast.ContextScriptString:
+			str, ok = interfaceToScriptString(asBase(expr))
 		default:
 			panic("template/renderer: unknown context")
 		}
@@ -267,9 +268,9 @@ func interfaceToScript(expr interface{}) (string, bool) {
 
 	switch e := expr.(type) {
 	case string:
-		return stringToScript(e), true
+		return "\"" + stringToScript(e) + "\"", true
 	case HTML:
-		return stringToScript(string(e)), true
+		return "\"" + stringToScript(string(e)) + "\"", true
 	case int:
 		return strconv.Itoa(e), true
 	case decimal.Decimal:
@@ -333,19 +334,41 @@ func interfaceToScript(expr interface{}) (string, bool) {
 	return "undefined", false
 }
 
+func interfaceToScriptString(expr interface{}) (string, bool) {
+
+	if expr == nil {
+		return "", false
+	}
+
+	switch e := expr.(type) {
+	case string:
+		return stringToScript(e), true
+	case HTML:
+		return stringToScript(string(e)), true
+	case int:
+		return strconv.Itoa(e), true
+	case decimal.Decimal:
+		return e.String(), true
+	}
+
+	return "", false
+}
+
 const hexchars = "0123456789abcdef"
 
 func stringToScript(s string) string {
 	if len(s) == 0 {
-		return "\"\""
+		return ""
 	}
-	var b bytes.Buffer
+	var b strings.Builder
 	for _, r := range s {
 		switch r {
 		case '\\':
 			b.WriteString("\\\\")
 		case '"':
 			b.WriteString("\\\"")
+		case '\'':
+			b.WriteString("\\'")
 		case '\n':
 			b.WriteString("\\n")
 		case '\r':
@@ -366,7 +389,7 @@ func stringToScript(s string) string {
 			}
 		}
 	}
-	return "\"" + b.String() + "\""
+	return b.String()
 }
 
 func structToScript(v reflect.Value) (string, bool) {
@@ -376,7 +399,7 @@ func structToScript(v reflect.Value) (string, bool) {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToScript(name) + ":"
+		s += "\"" + stringToScript(name) + "\":"
 		s2, ok := interfaceToScript(v.Field(fields.indexOf[name]).Interface())
 		if !ok {
 			return "undefined", false

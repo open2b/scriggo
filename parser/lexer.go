@@ -221,17 +221,12 @@ LOOP:
 					l.ctx = ast.ContextHTML
 				}
 				l.tag = ""
-				if c == '>' {
+				if c == '/' {
 					p++
 					l.column++
-				} else {
-					p += 2
-					l.column += 2
 				}
 				quote = 0
-				continue
-			}
-			if c == '"' || c == '\'' {
+			} else if c == '"' || c == '\'' {
 				// Start attribute value.
 				quote = c
 				if containsURL(l.tag, l.attr) {
@@ -243,12 +238,9 @@ LOOP:
 					p = 0
 					lin = l.line
 					col = l.column
-				} else {
-					l.ctx = ast.ContextAttribute
-					p++
-					l.column++
+					continue
 				}
-				continue
+				l.ctx = ast.ContextAttribute
 			}
 			if !isASCIISpace(c) {
 				// Checks if it is an attribute.
@@ -272,33 +264,45 @@ LOOP:
 					lin = l.line
 					col = l.column
 				}
-				p++
-				l.column++
 				l.ctx = ast.ContextTag
 				l.attr = ""
-				continue
 			}
 
 		case ast.ContextScript:
-			if initialContext == ast.ContextHTML {
+			if initialContext == ast.ContextHTML && c == '<' && isEndScript(l.src[p:]) {
 				// </script>
-				if c == '<' && p+8 < len(l.src) && l.src[p+1] == '/' && isScript(l.src[p+2:p+8]) && (l.src[p+8] == '>' || isSpace(l.src[p+8])) {
+				l.ctx = ast.ContextHTML
+				p += 7
+				l.column += 7
+			} else if c == '"' || c == '\'' {
+				l.ctx = ast.ContextScriptString
+				quote = c
+			}
+
+		case ast.ContextScriptString:
+			switch c {
+			case '\\':
+				if p+1 < len(l.src) && l.src[p+1] == quote {
+					p++
+					l.column++
+				}
+			case quote:
+				l.ctx = ast.ContextScript
+				quote = 0
+			case '<':
+				if isEndScript(l.src[p:]) {
 					l.ctx = ast.ContextHTML
-					p += 8
-					l.column += 8
-					continue
+					p += 7
+					l.column += 7
 				}
 			}
 
 		case ast.ContextCSS:
-			if initialContext == ast.ContextHTML {
+			if initialContext == ast.ContextHTML && c == '<' && isEndStyle(l.src[p:]) {
 				// </style>
-				if c == '<' && p+7 < len(l.src) && l.src[p+1] == '/' && isStyle(l.src[p+2:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
-					l.ctx = ast.ContextHTML
-					p += 7
-					l.column += 7
-					continue
-				}
+				l.ctx = ast.ContextHTML
+				p += 6
+				l.column += 6
 			}
 		}
 
@@ -464,26 +468,17 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	return name, p
 }
 
-func isScript(s []byte) bool {
-	if len(s) < 6 {
-		return false
-	}
-	if (s[0] == 's' || s[0] == 'S') && (s[1] == 'c' || s[1] == 'C') && (s[2] == 'r' || s[2] == 'R') &&
-		(s[3] == 'i' || s[3] == 'I') && (s[4] == 'p' || s[4] == 'P') && (s[5] == 't' || s[5] == 'T') {
-		return true
-	}
-	return false
+func isEndScript(s []byte) bool {
+	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
+		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
+		(s[5] == 'i' || s[5] == 'I') && (s[6] == 'p' || s[6] == 'P') && (s[7] == 't' || s[7] == 'T')
 }
 
-func isStyle(s []byte) bool {
-	if len(s) < 5 {
-		return false
-	}
-	if (s[0] == 's' || s[0] == 'S') && (s[1] == 't' || s[1] == 'T') && (s[2] == 'y' || s[2] == 'Y') &&
-		(s[3] == 'l' || s[3] == 'L') && (s[4] == 'e' || s[4] == 'E') {
-		return true
-	}
-	return false
+func isEndStyle(s []byte) bool {
+	// </style>
+	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
+		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
+		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[5] == 'E')
 }
 
 // lexShow emits tokens knowing that src starts with '{{'.

@@ -47,6 +47,7 @@ const (
 	ContextAttribute
 	ContextCSS
 	ContextScript
+	ContextScriptString
 )
 
 func (ctx Context) String() string {
@@ -63,6 +64,8 @@ func (ctx Context) String() string {
 		return "CSS"
 	case ContextScript:
 		return "Script"
+	case ContextScriptString:
+		return "ScriptString"
 	}
 	panic("invalid context")
 }

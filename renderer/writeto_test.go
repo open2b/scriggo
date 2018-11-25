@@ -281,3 +281,46 @@ func TestScriptContext(t *testing.T) {
 		}
 	}
 }
+
+var scriptStringContextTests = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	{`""`, ``, nil},
+	{`"a"`, `a`, nil},
+	{`"<a>"`, `\x3ca\x3e`, nil},
+	{`"\\"`, `\\`, nil},
+	{`"\""`, `\"`, nil},
+	{`"'"`, `\'`, nil},
+	{`"\n"`, `\n`, nil},
+	{`"\r"`, `\r`, nil},
+	{`"\t"`, `\t`, nil},
+	{`"\\\"\n\r\t\u2028\u2029\u0000\u0010"`, `\\\"\n\r\t\u2028\u2029\x00\x10`, nil},
+	{`25`, "25", nil},
+	{`0.1`, "0.1", nil},
+	{`a`, `a`, scope{"a": "a"}},
+	{`a`, `\x3c\x3e\"`, scope{"a": "<>\""}},
+}
+
+func TestScriptStringContext(t *testing.T) {
+	for _, q := range []string{"\"", "'"} {
+		for _, expr := range scriptStringContextTests {
+			var tree, err = parser.Parse([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
+			if err != nil {
+				t.Errorf("source: %q, %s\n", expr.src, err)
+				continue
+			}
+			var b = &bytes.Buffer{}
+			err = Render(b, tree, expr.vars, nil)
+			if err != nil {
+				t.Errorf("source: %q, %s\n", expr.src, err)
+				continue
+			}
+			var res = b.String()
+			if len(res) < 19 || res[9:len(res)-10] != expr.res {
+				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+			}
+		}
+	}
+}

@@ -149,12 +149,22 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS},
 	},
 	ast.ContextScript: {
-		`a`:                             {ast.ContextText},
-		`{{a}}`:                         {ast.ContextScript, ast.ContextScript, ast.ContextScript},
-		"<script></script>":             {ast.ContextText},
-		"<style></style>":               {ast.ContextText},
-		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
-		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		`a`:                                 {ast.ContextText},
+		`{{a}}`:                             {ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		"<script></script>":                 {ast.ContextText},
+		"<style></style>":                   {ast.ContextText},
+		"<script>s{{a}}t</script>{{a}}":     {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		"<style>s{{a}}t</style>{{a}}":       {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		`<script>{{a}}"{{a}}"</script>`:     {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
+		`<script>"{{a}}"{{a}}</script>`:     {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
+		`<script>{{a}}'{{a}}'</script>`:     {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
+		`<script>'{{a}}'{{a}}</script>`:     {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
+		`<script>'</script>'{{a}}</script>`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script>"</script>"{{a}}</script>`: {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+	},
+	ast.ContextScriptString: {
+		`a`:       {ast.ContextText},
+		`a{{a}}a`: {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
 	},
 }
 
