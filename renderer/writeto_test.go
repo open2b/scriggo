@@ -331,6 +331,9 @@ var cssStringContextTests = []struct {
 	vars scope
 }{
 	{`""`, ``, nil},
+	{`"\u0000"`, `\0`, nil},
+	{`"\u000F"`, `\f`, nil},
+	{`"\u001F"`, `\1f`, nil},
 	{`"a"`, `a`, nil},
 	{`"<a>"`, `\3c a\3e`, nil},
 	{`"\\"`, `\`, nil},

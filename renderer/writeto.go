@@ -315,8 +315,10 @@ func stringToCSS(s string) string {
 		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
 			more += 2
 		default:
-			if c <= 0x1F {
+			if c <= 0x0F {
 				more += 1
+			} else if c <= 0x1F {
+				more += 2
 			}
 		}
 	}
@@ -338,10 +340,15 @@ func stringToCSS(s string) string {
 			b[j+2] = hexchars[c&0xF]
 			j += 3
 		default:
-			if c <= 0x1F {
+			if c <= 0x0F {
 				b[j] = '\\'
 				b[j+1] = hexchars[c&0xF]
 				j += 2
+			} else if c <= 0x1F {
+				b[j] = '\\'
+				b[j+1] = hexchars[c>>4]
+				b[j+2] = hexchars[c&0xF]
+				j += 3
 			} else {
 				b[j] = c
 				j++
