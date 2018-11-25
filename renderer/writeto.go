@@ -370,12 +370,13 @@ func stringToJavaScript(s string) string {
 
 func structToJavaScript(v reflect.Value) (string, bool) {
 	var s string
-	for _, field := range getStructFields(v) {
+	fields := getStructFields(v)
+	for _, name := range fields.names {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(field.name) + ":"
-		s2, ok := interfaceToJavaScript(v.Field(field.index).Interface())
+		s += stringToJavaScript(name) + ":"
+		s2, ok := interfaceToJavaScript(v.Field(fields.indexOf[name]).Interface())
 		if !ok {
 			return "undefined", false
 		}

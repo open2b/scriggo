@@ -7,6 +7,7 @@
 package renderer
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"reflect"
@@ -39,6 +40,8 @@ var boolType = reflect.TypeOf(false)
 
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
+
+var errFieldNotExist = errors.New("field does not exist")
 
 // eval evaluates an expression by returning its value.
 func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
@@ -499,28 +502,26 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 		}
 		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
-		value, err := getStructField(rv, node.Ident)
-		if err != nil {
-			if err == errFieldNotExist {
-				err = s.errorf(node, "field %q does not exist", node.Ident)
-			}
-			panic(err)
+		st := reflect.Indirect(rv)
+		fields := getStructFields(st)
+		index, ok := fields.indexOf[node.Ident]
+		if !ok {
+			panic(s.errorf(node, "field %q does not exist", node.Ident))
 		}
-		return value
+		return st.Field(index).Interface()
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
 			if rv.IsNil() {
 				return rv.Interface()
 			}
-			value, err := getStructField(reflect.Indirect(rv), node.Ident)
-			if err != nil {
-				if err == errFieldNotExist {
-					err = s.errorf(node, "field %q does not exist", node.Ident)
-				}
-				panic(err)
+			st := reflect.Indirect(rv)
+			fields := getStructFields(st)
+			index, ok := fields.indexOf[node.Ident]
+			if !ok {
+				panic(s.errorf(node, "field %q does not exist", node.Ident))
 			}
-			return value
+			return st.Field(index).Interface()
 		}
 	}
 	panic(s.errorf(node, "type %s cannot have fields", typeof(v)))
