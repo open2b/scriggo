@@ -268,6 +268,36 @@ LOOP:
 				l.attr = ""
 			}
 
+		case ast.ContextCSS:
+			if initialContext == ast.ContextHTML && c == '<' && isEndStyle(l.src[p:]) {
+				// </style>
+				l.ctx = ast.ContextHTML
+				p += 6
+				l.column += 6
+			} else if c == '"' || c == '\'' {
+				l.ctx = ast.ContextCSSString
+				quote = c
+			}
+
+		case ast.ContextCSSString:
+			switch c {
+			case '\\':
+				if p+1 < len(l.src) && l.src[p+1] == quote {
+					p++
+					l.column++
+				}
+			case quote:
+				l.ctx = ast.ContextCSS
+				quote = 0
+			case '<':
+				if isEndStyle(l.src[p:]) {
+					l.ctx = ast.ContextHTML
+					quote = 0
+					p += 6
+					l.column += 6
+				}
+			}
+
 		case ast.ContextScript:
 			if initialContext == ast.ContextHTML && c == '<' && isEndScript(l.src[p:]) {
 				// </script>
@@ -297,13 +327,6 @@ LOOP:
 				}
 			}
 
-		case ast.ContextCSS:
-			if initialContext == ast.ContextHTML && c == '<' && isEndStyle(l.src[p:]) {
-				// </style>
-				l.ctx = ast.ContextHTML
-				p += 6
-				l.column += 6
-			}
 		}
 
 		p++

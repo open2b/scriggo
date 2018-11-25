@@ -53,6 +53,8 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 			str, ok = interfaceToAttribute(asBase(expr), urlstate)
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr))
+		case ast.ContextCSSString:
+			str, ok = interfaceToCSSString(asBase(expr))
 		case ast.ContextScript:
 			str, ok = interfaceToScript(asBase(expr))
 		case ast.ContextScriptString:
@@ -255,7 +257,98 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 }
 
 func interfaceToCSS(expr interface{}) (string, bool) {
-	return interfaceToText(expr)
+
+	if expr == nil {
+		return "", false
+	}
+
+	switch e := expr.(type) {
+	case string:
+		return "\"" + stringToCSS(e) + "\"", true
+	case HTML:
+		return "\"" + stringToCSS(string(e)) + "\"", true
+	case int:
+		return strconv.Itoa(e), true
+	case decimal.Decimal:
+		return e.String(), true
+	}
+
+	return "", false
+}
+
+func interfaceToCSSString(expr interface{}) (string, bool) {
+
+	if expr == nil {
+		return "", false
+	}
+
+	switch e := expr.(type) {
+	case string:
+		return stringToCSS(e), true
+	case HTML:
+		return stringToCSS(string(e)), true
+	case int:
+		return strconv.Itoa(e), true
+	case decimal.Decimal:
+		return e.String(), true
+	}
+
+	return "", false
+}
+
+func prefixWithSpace(c byte) bool {
+	switch c {
+	case '\t', '\n', '\f', '\r', ' ':
+		return true
+	}
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'b' || 'A' <= c && c <= 'B'
+}
+
+func stringToCSS(s string) string {
+	more := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if i > 0 && s[i-1] != '\\' && prefixWithSpace(c) {
+			more++
+		}
+		switch c {
+		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
+			more += 2
+		default:
+			if c <= 0x1F {
+				more += 1
+			}
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	b := make([]byte, len(s)+more)
+	j := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if i > 0 && s[i-1] != '\\' && prefixWithSpace(c) {
+			b[j] = ' '
+			j++
+		}
+		switch c {
+		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
+			b[j] = '\\'
+			b[j+1] = hexchars[c>>4]
+			b[j+2] = hexchars[c&0xF]
+			j += 3
+		default:
+			if c <= 0x1F {
+				b[j] = '\\'
+				b[j+1] = hexchars[c&0xF]
+				j += 2
+			} else {
+				b[j] = c
+				j++
+			}
+		}
+	}
+	return string(b)
 }
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})

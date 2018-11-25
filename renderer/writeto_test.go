@@ -324,3 +324,45 @@ func TestScriptStringContext(t *testing.T) {
 		}
 	}
 }
+
+var cssStringContextTests = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	{`""`, ``, nil},
+	{`"a"`, `a`, nil},
+	{`"<a>"`, `\3c a\3e`, nil},
+	{`"\\"`, `\`, nil},
+	{`"\""`, `\22`, nil},
+	{`"'"`, `\27`, nil},
+	{`"\n"`, `\a`, nil},
+	{`"\r"`, `\d`, nil},
+	{`"\t"`, `\9`, nil},
+	{`25`, "25", nil},
+	{`0.1`, "0.1", nil},
+	{`a`, `a`, scope{"a": "a"}},
+	{`a`, `\3c\3e\22`, scope{"a": "<>\""}},
+}
+
+func TestCSSStringContext(t *testing.T) {
+	for _, q := range []string{"\"", "'"} {
+		for _, expr := range cssStringContextTests {
+			var tree, err = parser.Parse([]byte("<style>"+q+"{{"+expr.src+"}}"+q+"</style>"), ast.ContextHTML)
+			if err != nil {
+				t.Errorf("source: %q, %s\n", expr.src, err)
+				continue
+			}
+			var b = &bytes.Buffer{}
+			err = Render(b, tree, expr.vars, nil)
+			if err != nil {
+				t.Errorf("source: %q, %s\n", expr.src, err)
+				continue
+			}
+			var res = b.String()
+			if len(res) < 17 || res[8:len(res)-9] != expr.res {
+				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+			}
+		}
+	}
+}
