@@ -287,7 +287,7 @@ func TestRenderExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Render(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -307,7 +307,7 @@ func TestRenderStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Render(b, tree, "", stmt.vars, nil)
+		err = Render(b, tree, stmt.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -321,7 +321,7 @@ func TestRenderStatements(t *testing.T) {
 
 func TestVarsToScope(t *testing.T) {
 	for _, p := range rendererVarsToScope {
-		res, err := varsToScope(p.vars, "")
+		res, err := varsToScope(p.vars)
 		if err != nil {
 			t.Errorf("vars: %#v, %q\n", p.vars, err)
 			continue
@@ -346,14 +346,14 @@ func (wr WriteToPanic) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
 
 func TestWriteToErrors(t *testing.T) {
 	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
-	err := Render(ioutil.Discard, tree, "", scope{"a": WriteToError{}}, nil)
+	err := Render(ioutil.Discard, tree, scope{"a": WriteToError{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "WriteTo error" {
 		t.Errorf("unexpected error %q, expecting 'WriteTo error'\n", err)
 	}
 
-	err = Render(ioutil.Discard, tree, "", scope{"a": WriteToPanic{}}, nil)
+	err = Render(ioutil.Discard, tree, scope{"a": WriteToPanic{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "WriteTo panic" {

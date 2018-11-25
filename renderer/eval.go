@@ -499,7 +499,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 		}
 		panic(s.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
-		value, err := getStructField(rv, node.Ident, s.version)
+		value, err := getStructField(rv, node.Ident)
 		if err != nil {
 			if err == errFieldNotExist {
 				err = s.errorf(node, "field %q does not exist", node.Ident)
@@ -513,7 +513,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 			if rv.IsNil() {
 				return rv.Interface()
 			}
-			value, err := getStructField(reflect.Indirect(rv), node.Ident, s.version)
+			value, err := getStructField(reflect.Indirect(rv), node.Ident)
 			if err != nil {
 				if err == errFieldNotExist {
 					err = s.errorf(node, "field %q does not exist", node.Ident)

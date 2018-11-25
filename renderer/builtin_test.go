@@ -339,7 +339,7 @@ func TestRenderBuiltin(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Render(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -358,7 +358,7 @@ func TestRenderErrorfBuiltin(t *testing.T) {
 		t.Errorf("source: %q, %s\n", src, err)
 		return
 	}
-	err = Render(ioutil.Discard, tree, "", nil, nil)
+	err = Render(ioutil.Discard, tree, nil, nil)
 	if err == nil {
 		t.Errorf("source: %q, expecting error\n", src)
 		return
@@ -377,7 +377,7 @@ func TestRenderRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = Render(b, tree, "", expr.vars, nil)
+		err = Render(b, tree, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

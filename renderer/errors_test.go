@@ -42,7 +42,7 @@ func TestErrors(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		var e error
-		err = Render(b, tree, "", expr.vars, func(err error) bool {
+		err = Render(b, tree, expr.vars, func(err error) bool {
 			e = err
 			t.Log(err)
 			return true

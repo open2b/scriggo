@@ -58,7 +58,7 @@ var scopeType = reflect.TypeOf(scope{})
 //   - a reflect.Value whose concrete value meets one of the previous ones
 //   - nil
 //
-func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h func(error) bool) error {
+func Render(wr io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) error {
 
 	if wr == nil {
 		return errors.New("template/renderer: wr is nil")
@@ -67,7 +67,7 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 		return errors.New("template/renderer: tree is nil")
 	}
 
-	globals, err := varsToScope(vars, version)
+	globals, err := varsToScope(vars)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,6 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
-		version:     version,
 		handleError: h,
 	}
 
@@ -114,7 +113,7 @@ func Render(wr io.Writer, tree *ast.Tree, version string, vars interface{}, h fu
 }
 
 // varsToScope converts variables into a scope.
-func varsToScope(vars interface{}, version string) (scope, error) {
+func varsToScope(vars interface{}) (scope, error) {
 
 	if vars == nil {
 		return scope{}, nil
@@ -180,14 +179,10 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 				}
 				value := s.rv.Field(i).Interface()
 				var name string
-				var ver string
 				if tag, ok := field.Tag.Lookup("template"); ok {
-					name, ver = parseVarTag(tag)
+					name = parseVarTag(tag)
 					if name == "" {
 						return nil, fmt.Errorf("template/renderer: invalid tag of field %q", field.Name)
-					}
-					if ver != "" && ver != version {
-						continue
 					}
 				}
 				if name == "" {
@@ -202,7 +197,7 @@ func varsToScope(vars interface{}, version string) (scope, error) {
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
-			return varsToScope(reflect.Indirect(rv), version)
+			return varsToScope(reflect.Indirect(rv))
 		}
 	}
 
@@ -220,7 +215,6 @@ type state struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
-	version     string
 	handleError func(error) bool
 }
 
@@ -688,7 +682,6 @@ Nodes:
 				scope:       s.scope,
 				path:        m.path,
 				vars:        []scope{s.vars[0], s.vars[1], s.scope[m.path], arguments},
-				version:     s.version,
 				handleError: s.handleError,
 			}
 			err = st.render(wr, m.node.Body, nil)
@@ -704,7 +697,6 @@ Nodes:
 					scope:       s.scope,
 					path:        path,
 					vars:        []scope{s.vars[0], s.vars[1], {}},
-					version:     s.version,
 					handleError: s.handleError,
 				}
 				err := st.render(nil, node.Tree.Nodes, nil)
@@ -733,7 +725,6 @@ Nodes:
 				scope:       s.scope,
 				path:        node.Tree.Path,
 				vars:        s.vars,
-				version:     s.version,
 				handleError: s.handleError,
 			}
 			err := st.render(wr, node.Tree.Nodes, nil)

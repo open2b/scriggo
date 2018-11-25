@@ -44,17 +44,17 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 		var str string
 		switch node.Context {
 		case ast.ContextText:
-			str, ok = interfaceToText(asBase(expr), s.version)
+			str, ok = interfaceToText(asBase(expr))
 		case ast.ContextHTML:
-			str, ok = interfaceToHTML(asBase(expr), s.version)
+			str, ok = interfaceToHTML(asBase(expr))
 		case ast.ContextTag:
-			str, ok = interfaceToTag(asBase(expr), s.version)
+			str, ok = interfaceToTag(asBase(expr))
 		case ast.ContextAttribute:
-			str, ok = interfaceToAttribute(asBase(expr), s.version, urlstate)
+			str, ok = interfaceToAttribute(asBase(expr), urlstate)
 		case ast.ContextCSS:
-			str, ok = interfaceToCSS(asBase(expr), s.version)
+			str, ok = interfaceToCSS(asBase(expr))
 		case ast.ContextJavaScript:
-			str, ok = interfaceToJavaScript(asBase(expr), s.version)
+			str, ok = interfaceToJavaScript(asBase(expr))
 		default:
 			panic("template/renderer: unknown context")
 		}
@@ -74,7 +74,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 	return nil
 }
 
-func interfaceToText(expr interface{}, version string) (string, bool) {
+func interfaceToText(expr interface{}) (string, bool) {
 
 	if expr == nil {
 		return "", true
@@ -106,7 +106,7 @@ func interfaceToText(expr interface{}, version string) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToText(rv.Index(i).Interface(), version)
+			str, ok := interfaceToText(rv.Index(i).Interface())
 			if !ok {
 				return "", false
 			}
@@ -118,7 +118,7 @@ func interfaceToText(expr interface{}, version string) (string, bool) {
 	return s, true
 }
 
-func interfaceToHTML(expr interface{}, version string) (string, bool) {
+func interfaceToHTML(expr interface{}) (string, bool) {
 
 	if expr == nil {
 		return "", true
@@ -150,7 +150,7 @@ func interfaceToHTML(expr interface{}, version string) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToHTML(rv.Index(i).Interface(), version)
+			str, ok := interfaceToHTML(rv.Index(i).Interface())
 			if !ok {
 				return "", false
 			}
@@ -162,9 +162,9 @@ func interfaceToHTML(expr interface{}, version string) (string, bool) {
 	return s, true
 }
 
-func interfaceToTag(expr interface{}, version string) (string, bool) {
+func interfaceToTag(expr interface{}) (string, bool) {
 	// TODO(marco): return a more explanatory error
-	s, ok := interfaceToText(expr, version)
+	s, ok := interfaceToText(expr)
 	if !ok {
 		return "", false
 	}
@@ -183,7 +183,7 @@ func interfaceToTag(expr interface{}, version string) (string, bool) {
 	return s, true
 }
 
-func interfaceToAttribute(expr interface{}, version string, urlstate *urlState) (string, bool) {
+func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 
 	if expr == nil {
 		return "", true
@@ -221,7 +221,7 @@ func interfaceToAttribute(expr interface{}, version string, urlstate *urlState) 
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToAttribute(rv.Index(i).Interface(), version, urlstate)
+			str, ok := interfaceToAttribute(rv.Index(i).Interface(), urlstate)
 			if !ok {
 				return "", false
 			}
@@ -252,13 +252,13 @@ func interfaceToAttribute(expr interface{}, version string, urlstate *urlState) 
 	return s, true
 }
 
-func interfaceToCSS(expr interface{}, version string) (string, bool) {
-	return interfaceToText(expr, version)
+func interfaceToCSS(expr interface{}) (string, bool) {
+	return interfaceToText(expr)
 }
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
+func interfaceToJavaScript(expr interface{}) (string, bool) {
 
 	if expr == nil {
 		return "null", true
@@ -296,7 +296,7 @@ func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
 				if i > 0 {
 					s += ","
 				}
-				s2, ok := interfaceToJavaScript(rv.Index(i).Interface(), version)
+				s2, ok := interfaceToJavaScript(rv.Index(i).Interface())
 				if !ok {
 					return "", false
 				}
@@ -304,7 +304,7 @@ func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
 			}
 			return s + "]", true
 		case reflect.Struct:
-			return structToJavaScript(rv.Type(), rv, version)
+			return structToJavaScript(rv.Type(), rv)
 		case reflect.Map:
 			if rv.IsNil() {
 				return "null", true
@@ -312,7 +312,7 @@ func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
 			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
 				return "undefined", false
 			}
-			return mapToJavaScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}), version)
+			return mapToJavaScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
 		case reflect.Ptr:
 			if rv.IsNil() {
 				return "null", true
@@ -325,7 +325,7 @@ func interfaceToJavaScript(expr interface{}, version string) (string, bool) {
 			if !rv.IsValid() {
 				return "undefined", false
 			}
-			return structToJavaScript(rt, rv, version)
+			return structToJavaScript(rt, rv)
 		}
 	}
 
@@ -368,25 +368,23 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(t reflect.Type, v reflect.Value, version string) (string, bool) {
+func structToJavaScript(t reflect.Type, v reflect.Value) (string, bool) {
 	var s string
 	for _, field := range getStructFields(v) {
-		if field.version == "" || field.version == version {
-			if len(s) > 0 {
-				s += ","
-			}
-			s += stringToJavaScript(field.name) + ":"
-			s2, ok := interfaceToJavaScript(v.Field(field.index).Interface(), version)
-			if !ok {
-				return "undefined", false
-			}
-			s += s2
+		if len(s) > 0 {
+			s += ","
 		}
+		s += stringToJavaScript(field.name) + ":"
+		s2, ok := interfaceToJavaScript(v.Field(field.index).Interface())
+		if !ok {
+			return "undefined", false
+		}
+		s += s2
 	}
 	return "{" + s + "}", true
 }
 
-func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
+func mapToJavaScript(e map[string]interface{}) (string, bool) {
 	if e == nil {
 		return "null", true
 	}
@@ -396,7 +394,7 @@ func mapToJavaScript(e map[string]interface{}, version string) (string, bool) {
 			s += ","
 		}
 		s += stringToJavaScript(k) + ":"
-		s2, ok := interfaceToJavaScript(v, version)
+		s2, ok := interfaceToJavaScript(v)
 		if !ok {
 			return "undefined", false
 		}

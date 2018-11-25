@@ -102,7 +102,7 @@ func RenderString(out io.Writer, src string, ctx Context, vars interface{}) erro
 // vars are defined in the environment during rendering.
 func render(out io.Writer, tree *ast.Tree, vars interface{}) error {
 	var errors RenderErrors
-	err := renderer.Render(out, tree, "", vars, func(err error) bool {
+	err := renderer.Render(out, tree, vars, func(err error) bool {
 		if e, ok := err.(*RenderError); ok {
 			if errors == nil {
 				errors = RenderErrors{e}
