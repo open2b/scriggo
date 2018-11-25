@@ -123,7 +123,9 @@ func (l *lexer) scan() {
 
 LOOP:
 	for p < len(l.src) {
+
 		c := l.src[p]
+
 		if c == '{' && p+1 < len(l.src) {
 			switch l.src[p+1] {
 			case '{':
@@ -170,9 +172,67 @@ LOOP:
 				continue
 			}
 		}
-		if l.ctx == ast.ContextTag {
+
+		switch l.ctx {
+
+		case ast.ContextHTML:
+			if c == '<' {
+				// <![CDATA[...]]>
+				if p+8 < len(l.src) && l.src[p+1] == '!' {
+					if bytes.HasPrefix(l.src[p:], cdataStart) {
+						// Skips the CDATA section.
+						p += 6
+						l.column += 6
+						var t int
+						if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
+							t = len(l.src)
+						} else {
+							t = p + i + 2
+						}
+						for ; p < t; p++ {
+							if c = l.src[p]; c == '\n' {
+								l.newline()
+							} else if isStartChar(c) {
+								l.column++
+							}
+						}
+						continue
+					}
+				}
+				// Start tag.
+				p++
+				l.column++
+				l.tag, p = l.scanTag(p)
+				if l.tag != "" {
+					l.ctx = ast.ContextTag
+				}
+				continue
+			}
+
+		case ast.ContextTag:
+			if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
+				// End tag.
+				switch l.tag {
+				case "script":
+					l.ctx = ast.ContextJavaScript
+				case "style":
+					l.ctx = ast.ContextCSS
+				default:
+					l.ctx = ast.ContextHTML
+				}
+				l.tag = ""
+				if c == '>' {
+					p++
+					l.column++
+				} else {
+					p += 2
+					l.column += 2
+				}
+				quote = 0
+				continue
+			}
 			if c == '"' || c == '\'' {
-				// Start Attribute
+				// Start attribute value.
 				quote = c
 				if containsURL(l.tag, l.attr) {
 					l.emitAtLineColumn(lin, col, tokenText, p+1)
@@ -190,32 +250,56 @@ LOOP:
 				}
 				continue
 			}
-			if !isASCIISpace(c) && c != '/' && c != '>' {
+			if !isASCIISpace(c) {
 				// Checks if it is an attribute.
 				l.attr, p = l.scanAttribute(p)
 				if l.attr != "" {
 					continue
 				}
 			}
-		}
-		if l.ctx == ast.ContextAttribute && c == quote {
-			// End attribute.
-			quote = 0
-			if emittedURL {
-				if p > 0 {
-					l.emitAtLineColumn(lin, col, tokenText, p)
+
+		case ast.ContextAttribute:
+			if c == quote {
+				// End attribute.
+				quote = 0
+				if emittedURL {
+					if p > 0 {
+						l.emitAtLineColumn(lin, col, tokenText, p)
+					}
+					l.emit(tokenEndURL, 0)
+					emittedURL = false
+					p = 0
+					lin = l.line
+					col = l.column
 				}
-				l.emit(tokenEndURL, 0)
-				emittedURL = false
-				p = 0
-				lin = l.line
-				col = l.column
+				p++
+				l.column++
+				l.ctx = ast.ContextTag
+				l.attr = ""
+				continue
 			}
-			p++
-			l.column++
-			l.ctx = ast.ContextTag
-			l.attr = ""
-			continue
+
+		case ast.ContextJavaScript:
+			if initialContext == ast.ContextHTML {
+				// </script>
+				if c == '<' && p+8 < len(l.src) && l.src[p+1] == '/' && isScript(l.src[p+2:p+8]) && (l.src[p+8] == '>' || isSpace(l.src[p+8])) {
+					l.ctx = ast.ContextHTML
+					p += 8
+					l.column += 8
+					continue
+				}
+			}
+
+		case ast.ContextCSS:
+			if initialContext == ast.ContextHTML {
+				// </style>
+				if c == '<' && p+7 < len(l.src) && l.src[p+1] == '/' && isStyle(l.src[p+2:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
+					l.ctx = ast.ContextHTML
+					p += 7
+					l.column += 7
+					continue
+				}
+			}
 		}
 
 		p++
@@ -227,76 +311,6 @@ LOOP:
 			l.column++
 		}
 
-		if initialContext == ast.ContextHTML {
-
-			switch l.ctx {
-
-			case ast.ContextHTML:
-
-				if c == '<' {
-					// <![CDATA[...]]>
-					if p+10 < len(l.src) && l.src[p] == '!' {
-						if bytes.HasPrefix(l.src[p-1:], cdataStart) {
-							// Skips the CDATA section.
-							p += 8
-							l.column += 8
-							var t int
-							if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
-								t = len(l.src)
-							} else {
-								t = p + i + 2
-							}
-							for ; p < t; p++ {
-								if c = l.src[p]; c == '\n' {
-									l.newline()
-								} else if isStartChar(c) {
-									l.column++
-								}
-							}
-							continue
-						}
-					}
-					// Start tag.
-					l.tag, p = l.scanTag(p)
-					if l.tag != "" {
-						l.ctx = ast.ContextTag
-					}
-				}
-
-			case ast.ContextTag:
-
-				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
-					// End tag.
-					switch l.tag {
-					case "script":
-						l.ctx = ast.ContextJavaScript
-					case "style":
-						l.ctx = ast.ContextCSS
-					default:
-						l.ctx = ast.ContextHTML
-					}
-					l.tag = ""
-					quote = 0
-				}
-
-			case ast.ContextCSS:
-				// </style>
-				if c == '<' && p+6 < len(l.src) && l.src[p] == '/' && isStyle(l.src[p+1:p+6]) && (l.src[p+6] == '>' || isSpace(l.src[p+6])) {
-					l.ctx = ast.ContextHTML
-					p += 6
-					l.column += 6
-				}
-
-			case ast.ContextJavaScript:
-				// </script>
-				if c == '<' && p+7 < len(l.src) && l.src[p] == '/' && isScript(l.src[p+1:p+7]) && (l.src[p+7] == '>' || isSpace(l.src[p+7])) {
-					l.ctx = ast.ContextHTML
-					p += 7
-					l.column += 7
-				}
-
-			}
-		}
 	}
 
 	if len(l.src) > 0 {
