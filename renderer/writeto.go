@@ -55,7 +55,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr))
 		case ast.ContextScript:
-			str, ok = interfaceToJavaScript(asBase(expr))
+			str, ok = interfaceToScript(asBase(expr))
 		default:
 			panic("template/renderer: unknown context")
 		}
@@ -259,7 +259,7 @@ func interfaceToCSS(expr interface{}) (string, bool) {
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-func interfaceToJavaScript(expr interface{}) (string, bool) {
+func interfaceToScript(expr interface{}) (string, bool) {
 
 	if expr == nil {
 		return "null", true
@@ -297,7 +297,7 @@ func interfaceToJavaScript(expr interface{}) (string, bool) {
 				if i > 0 {
 					s += ","
 				}
-				s2, ok := interfaceToJavaScript(rv.Index(i).Interface())
+				s2, ok := interfaceToScript(rv.Index(i).Interface())
 				if !ok {
 					return "", false
 				}
@@ -377,7 +377,7 @@ func structToJavaScript(v reflect.Value) (string, bool) {
 			s += ","
 		}
 		s += stringToJavaScript(name) + ":"
-		s2, ok := interfaceToJavaScript(v.Field(fields.indexOf[name]).Interface())
+		s2, ok := interfaceToScript(v.Field(fields.indexOf[name]).Interface())
 		if !ok {
 			return "undefined", false
 		}
@@ -401,7 +401,7 @@ func mapToJavaScript(e map[string]interface{}) (string, bool) {
 			s += ","
 		}
 		s += stringToJavaScript(n) + ":"
-		s2, ok := interfaceToJavaScript(e[n])
+		s2, ok := interfaceToScript(e[n])
 		if !ok {
 			return "undefined", false
 		}
