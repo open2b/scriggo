@@ -46,7 +46,7 @@ const (
 	ContextTag
 	ContextAttribute
 	ContextCSS
-	ContextJavaScript
+	ContextScript
 )
 
 func (ctx Context) String() string {
@@ -61,8 +61,8 @@ func (ctx Context) String() string {
 		return "Attribute"
 	case ContextCSS:
 		return "CSS"
-	case ContextJavaScript:
-		return "JavaScript"
+	case ContextScript:
+		return "Script"
 	}
 	panic("invalid context")
 }

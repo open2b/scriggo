@@ -54,7 +54,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 			str, ok = interfaceToAttribute(asBase(expr), urlstate)
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr))
-		case ast.ContextJavaScript:
+		case ast.ContextScript:
 			str, ok = interfaceToJavaScript(asBase(expr))
 		default:
 			panic("template/renderer: unknown context")

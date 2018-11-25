@@ -450,7 +450,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					switch tok.ctx {
 					case ast.ContextAttribute:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside an attribute value")}
-					case ast.ContextJavaScript:
+					case ast.ContextScript:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a script tag")}
 					case ast.ContextCSS:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a style tag")}
@@ -485,7 +485,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					switch tok.ctx {
 					case ast.ContextAttribute:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside an attribute value")}
-					case ast.ContextJavaScript:
+					case ast.ContextScript:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside a script tag")}
 					case ast.ContextCSS:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside a style tag")}

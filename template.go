@@ -30,7 +30,7 @@ const (
 	ContextTag        = ast.ContextTag
 	ContextAttribute  = ast.ContextAttribute
 	ContextCSS        = ast.ContextCSS
-	ContextJavaScript = ast.ContextJavaScript
+	ContextJavaScript = ast.ContextScript
 )
 
 var (

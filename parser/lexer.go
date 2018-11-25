@@ -214,7 +214,7 @@ LOOP:
 				// End tag.
 				switch l.tag {
 				case "script":
-					l.ctx = ast.ContextJavaScript
+					l.ctx = ast.ContextScript
 				case "style":
 					l.ctx = ast.ContextCSS
 				default:
@@ -279,7 +279,7 @@ LOOP:
 				continue
 			}
 
-		case ast.ContextJavaScript:
+		case ast.ContextScript:
 			if initialContext == ast.ContextHTML {
 				// </script>
 				if c == '<' && p+8 < len(l.src) && l.src[p+1] == '/' && isScript(l.src[p+2:p+8]) && (l.src[p+8] == '>' || isSpace(l.src[p+8])) {
