@@ -11,6 +11,7 @@ import (
 	"html"
 	"io"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -390,12 +391,17 @@ func mapToJavaScript(e map[string]interface{}) (string, bool) {
 		return "null", true
 	}
 	var s string
-	for k, v := range e {
+	names := make([]string, 0, len(e))
+	for name := range e {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, n := range names {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(k) + ":"
-		s2, ok := interfaceToJavaScript(v)
+		s += stringToJavaScript(n) + ":"
+		s2, ok := interfaceToJavaScript(e[n])
 		if !ok {
 			return "undefined", false
 		}
