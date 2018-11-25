@@ -267,9 +267,9 @@ func interfaceToScript(expr interface{}) (string, bool) {
 
 	switch e := expr.(type) {
 	case string:
-		return stringToJavaScript(e), true
+		return stringToScript(e), true
 	case HTML:
-		return stringToJavaScript(string(e)), true
+		return stringToScript(string(e)), true
 	case int:
 		return strconv.Itoa(e), true
 	case decimal.Decimal:
@@ -305,7 +305,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			}
 			return s + "]", true
 		case reflect.Struct:
-			return structToJavaScript(rv)
+			return structToScript(rv)
 		case reflect.Map:
 			if rv.IsNil() {
 				return "null", true
@@ -313,7 +313,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
 				return "undefined", false
 			}
-			return mapToJavaScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
+			return mapToScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
 		case reflect.Ptr:
 			if rv.IsNil() {
 				return "null", true
@@ -326,7 +326,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			if !rv.IsValid() {
 				return "undefined", false
 			}
-			return structToJavaScript(rv)
+			return structToScript(rv)
 		}
 	}
 
@@ -335,7 +335,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 
 const hexchars = "0123456789abcdef"
 
-func stringToJavaScript(s string) string {
+func stringToScript(s string) string {
 	if len(s) == 0 {
 		return "\"\""
 	}
@@ -369,14 +369,14 @@ func stringToJavaScript(s string) string {
 	return "\"" + b.String() + "\""
 }
 
-func structToJavaScript(v reflect.Value) (string, bool) {
+func structToScript(v reflect.Value) (string, bool) {
 	var s string
 	fields := getStructFields(v)
 	for _, name := range fields.names {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(name) + ":"
+		s += stringToScript(name) + ":"
 		s2, ok := interfaceToScript(v.Field(fields.indexOf[name]).Interface())
 		if !ok {
 			return "undefined", false
@@ -386,7 +386,7 @@ func structToJavaScript(v reflect.Value) (string, bool) {
 	return "{" + s + "}", true
 }
 
-func mapToJavaScript(e map[string]interface{}) (string, bool) {
+func mapToScript(e map[string]interface{}) (string, bool) {
 	if e == nil {
 		return "null", true
 	}
@@ -400,7 +400,7 @@ func mapToJavaScript(e map[string]interface{}) (string, bool) {
 		if len(s) > 0 {
 			s += ","
 		}
-		s += stringToJavaScript(n) + ":"
+		s += stringToScript(n) + ":"
 		s2, ok := interfaceToScript(e[n])
 		if !ok {
 			return "undefined", false

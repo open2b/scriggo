@@ -262,7 +262,7 @@ var scriptContextTests = []struct {
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
 }
 
-func TestJavaScriptContext(t *testing.T) {
+func TestScriptContext(t *testing.T) {
 	for _, expr := range scriptContextTests {
 		var tree, err = parser.Parse([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
 		if err != nil {
