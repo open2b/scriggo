@@ -119,7 +119,7 @@ func (l *lexer) scan() {
 	var quote = byte(0)
 	var emittedURL bool
 
-	initialContext := l.ctx // initial context
+	isHTML := l.ctx == ast.ContextHTML
 
 LOOP:
 	for p < len(l.src) {
@@ -269,11 +269,11 @@ LOOP:
 			}
 
 		case ast.ContextCSS:
-			if initialContext == ast.ContextHTML && c == '<' && isEndStyle(l.src[p:]) {
+			if isHTML && c == '<' && isEndStyle(l.src[p:]) {
 				// </style>
 				l.ctx = ast.ContextHTML
-				p += 6
-				l.column += 6
+				p += 7
+				l.column += 7
 			} else if c == '"' || c == '\'' {
 				l.ctx = ast.ContextCSSString
 				quote = c
@@ -290,20 +290,20 @@ LOOP:
 				l.ctx = ast.ContextCSS
 				quote = 0
 			case '<':
-				if isEndStyle(l.src[p:]) {
+				if isHTML && isEndStyle(l.src[p:]) {
 					l.ctx = ast.ContextHTML
 					quote = 0
-					p += 6
-					l.column += 6
+					p += 7
+					l.column += 7
 				}
 			}
 
 		case ast.ContextScript:
-			if initialContext == ast.ContextHTML && c == '<' && isEndScript(l.src[p:]) {
+			if isHTML && c == '<' && isEndScript(l.src[p:]) {
 				// </script>
 				l.ctx = ast.ContextHTML
-				p += 7
-				l.column += 7
+				p += 8
+				l.column += 8
 			} else if c == '"' || c == '\'' {
 				l.ctx = ast.ContextScriptString
 				quote = c
@@ -320,10 +320,11 @@ LOOP:
 				l.ctx = ast.ContextScript
 				quote = 0
 			case '<':
-				if isEndScript(l.src[p:]) {
+				if isHTML && isEndScript(l.src[p:]) {
 					l.ctx = ast.ContextHTML
-					p += 7
-					l.column += 7
+					quote = 0
+					p += 8
+					l.column += 8
 				}
 			}
 
@@ -491,17 +492,18 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	return name, p
 }
 
+// isEndStyle indicates if s starts with an end tag "style".
+func isEndStyle(s []byte) bool {
+	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
+		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
+		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[6] == 'E')
+}
+
+// isEndScript indicates if s starts with an end tag "script".
 func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
 		(s[5] == 'i' || s[5] == 'I') && (s[6] == 'p' || s[6] == 'P') && (s[7] == 't' || s[7] == 'T')
-}
-
-func isEndStyle(s []byte) bool {
-	// </style>
-	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
-		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
-		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[5] == 'E')
 }
 
 // lexShow emits tokens knowing that src starts with '{{'.
