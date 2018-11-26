@@ -45,6 +45,12 @@ func (e CycleError) Error() string {
 // Parse parses src in the context ctx and returns the unexpanded tree.
 func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
+	switch ctx {
+	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
+	default:
+		return nil, errors.New("template/parser: invalid context. Valid contexts are Text, HTML, CSS and Script")
+	}
+
 	// Create the lexer.
 	var lex = newLexer(src, ctx)
 
