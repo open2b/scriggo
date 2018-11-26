@@ -109,9 +109,9 @@ var attrContextTests = []struct {
 	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
 	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
-	{`a`, "t: 1", scope{"a": aNumber{1}}},
+	{`a`, "1", scope{"a": aNumber{1}}},
 	{`a + 0`, "1", scope{"a": aNumber{1}}},
-	{`a`, "t: a", scope{"a": aString{"a"}}},
+	{`a`, "a", scope{"a": aString{"a"}}},
 	{`a + ""`, "a", scope{"a": aString{"a"}}},
 }
 
@@ -124,7 +124,7 @@ func TestAttributeContext(t *testing.T) {
 		case HTML:
 			src = string(s)
 		}
-		var tree, err = parser.Parse([]byte("{{"+src+"}}"), ast.ContextAttribute)
+		var tree, err = parser.Parse([]byte(`<z x="{{`+src+`}}">`), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -136,8 +136,8 @@ func TestAttributeContext(t *testing.T) {
 			continue
 		}
 		var res = b.String()
-		if res != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		if res[6:len(res)-2] != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[6:len(res)-2], expr.res)
 		}
 	}
 }
