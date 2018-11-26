@@ -31,7 +31,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 					err = s.errorf(node, "%s", e)
 				}
 			}()
-			_, err = e.WriteTo(wr, node.Context)
+			_, err = e.WriteTo(wr)
 			return err
 		}()
 		if err != nil {

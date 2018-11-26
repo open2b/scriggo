@@ -25,7 +25,7 @@ type aNumber struct {
 	v int
 }
 
-func (n aNumber) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+func (n aNumber) WriteTo(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
 }
 
@@ -37,7 +37,7 @@ type aString struct {
 	v string
 }
 
-func (s aString) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+func (s aString) WriteTo(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+s.v)
 }
 
@@ -334,13 +334,13 @@ func TestVarsToScope(t *testing.T) {
 
 type WriteToError struct{}
 
-func (wr WriteToError) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+func (wr WriteToError) WriteTo(w io.Writer) (int, error) {
 	return 0, errors.New("WriteTo error")
 }
 
 type WriteToPanic struct{}
 
-func (wr WriteToPanic) WriteTo(w io.Writer, ctx ast.Context) (int, error) {
+func (wr WriteToPanic) WriteTo(w io.Writer) (int, error) {
 	panic("WriteTo panic")
 }
 

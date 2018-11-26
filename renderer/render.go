@@ -31,7 +31,7 @@ func (e *Error) Error() string {
 }
 
 type WriterTo interface {
-	WriteTo(w io.Writer, ctx ast.Context) (n int, err error)
+	WriteTo(w io.Writer) (n int, err error)
 }
 
 // errBreak returned from rendering the "break" statement.
