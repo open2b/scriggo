@@ -19,20 +19,16 @@ import (
 
 type HTML = renderer.HTML
 
-// Does an alias of Context and the constants are redefined because it must be
+// Makes an alias of Context and redefines the constants because it must be
 // possible to define a renderer.WriterTo interface only by importing the
 // "template" package and not necessarily also "renderer".
 type Context = ast.Context
 
 const (
-	ContextText         = ast.ContextText
-	ContextHTML         = ast.ContextHTML
-	ContextTag          = ast.ContextTag
-	ContextAttribute    = ast.ContextAttribute
-	ContextCSS          = ast.ContextCSS
-	ContextCSSString    = ast.ContextCSSString
-	ContextScript       = ast.ContextScript
-	ContextScriptString = ast.ContextScriptString
+	ContextText   = ast.ContextText
+	ContextHTML   = ast.ContextHTML
+	ContextCSS    = ast.ContextCSS
+	ContextScript = ast.ContextScript
 )
 
 var (
