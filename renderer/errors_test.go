@@ -12,6 +12,8 @@ import (
 
 	"open2b/template/ast"
 	"open2b/template/parser"
+
+	"github.com/shopspring/decimal"
 )
 
 var errorTests = []struct {
@@ -31,7 +33,11 @@ var errorTests = []struct {
 	{`{% if len(nil) >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% if len("a", "b") >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% nil = 5 %}{{ "ok" }}`, `ok`, nil},
+	{`{{ f(nil) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(s string) string { return "no" }}},
 	{`{{ f(1) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func() string { return "no" }}},
+	{`{{ f(1, 2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(i int) string { return "no" }}},
+	{`{{ f(2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(s string) string { return "no" }}},
+	{`{{ f("2") }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(n decimal.Decimal) string { return "no" }}},
 }
 
 func TestErrors(t *testing.T) {
