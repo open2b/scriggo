@@ -107,11 +107,12 @@ func (e expression) isexpr() {}
 // Tree represents a parsed tree.
 type Tree struct {
 	*Position
-	Path  string // path of the tree.
-	Nodes []Node // nodes of the first level of the tree.
+	Path    string  // path of the tree.
+	Nodes   []Node  // nodes of the first level of the tree.
+	Context Context // context.
 }
 
-func NewTree(path string, nodes []Node) *Tree {
+func NewTree(path string, nodes []Node, ctx Context) *Tree {
 	if nodes == nil {
 		nodes = []Node{}
 	}
@@ -119,6 +120,7 @@ func NewTree(path string, nodes []Node) *Tree {
 		Position: &Position{1, 1, 0, 0},
 		Path:     path,
 		Nodes:    nodes,
+		Context:  ctx,
 	}
 	return tree
 }
@@ -580,7 +582,7 @@ func CloneNode(node Node) Node {
 		for _, n := range n.Nodes {
 			nn = append(nn, CloneNode(n))
 		}
-		return NewTree(n.Path, nn)
+		return NewTree(n.Path, nn, n.Context)
 	case *Text:
 		return NewText(ClonePosition(n.Position), n.Text)
 	case *URL:

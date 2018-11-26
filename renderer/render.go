@@ -80,6 +80,7 @@ func Render(wr io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) 
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
+		treeContext: tree.Context,
 		handleError: h,
 	}
 
@@ -215,6 +216,7 @@ type state struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
+	treeContext ast.Context
 	handleError func(error) bool
 }
 
@@ -682,6 +684,7 @@ Nodes:
 				scope:       s.scope,
 				path:        m.path,
 				vars:        []scope{s.vars[0], s.vars[1], s.scope[m.path], arguments},
+				treeContext: s.treeContext,
 				handleError: s.handleError,
 			}
 			err = st.render(wr, m.node.Body, nil)
@@ -697,6 +700,7 @@ Nodes:
 					scope:       s.scope,
 					path:        path,
 					vars:        []scope{s.vars[0], s.vars[1], {}},
+					treeContext: s.treeContext,
 					handleError: s.handleError,
 				}
 				err := st.render(nil, node.Tree.Nodes, nil)
@@ -725,6 +729,7 @@ Nodes:
 				scope:       s.scope,
 				path:        node.Tree.Path,
 				vars:        s.vars,
+				treeContext: s.treeContext,
 				handleError: s.handleError,
 			}
 			err := st.render(wr, node.Tree.Nodes, nil)

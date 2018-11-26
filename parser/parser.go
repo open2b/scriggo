@@ -49,7 +49,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	var lex = newLexer(src, ctx)
 
 	// Tree result of the parsing.
-	var tree = ast.NewTree("", nil)
+	var tree = ast.NewTree("", nil, ctx)
 
 	// Ancestors from the root up to the parent.
 	var ancestors = []ast.Node{tree}

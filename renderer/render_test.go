@@ -345,7 +345,7 @@ func (wr WriteToPanic) WriteTo(w io.Writer) (int, error) {
 }
 
 func TestWriteToErrors(t *testing.T) {
-	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)})
+	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)}, ast.ContextHTML)
 	err := Render(ioutil.Discard, tree, scope{"a": WriteToError{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")

@@ -23,7 +23,7 @@ import (
 
 func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstate *urlState) error {
 
-	if e, ok := expr.(WriterTo); ok {
+	if e, ok := expr.(WriterTo); ok && node.Context == s.treeContext {
 
 		err := func() (err error) {
 			defer func() {

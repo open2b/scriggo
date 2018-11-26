@@ -16,7 +16,7 @@ import (
 func TestCache(t *testing.T) {
 
 	path := "/index.html"
-	tree := ast.NewTree(path, nil)
+	tree := ast.NewTree(path, nil, ast.ContextHTML)
 	ctx := ast.ContextHTML
 
 	c := cache{}
