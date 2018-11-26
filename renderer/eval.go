@@ -700,8 +700,12 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 
 	var numIn = typ.NumIn()
 	var numArgs = numIn
-	if typ.IsVariadic() && numIn < len(node.Args) {
-		numArgs = len(node.Args)
+	if len(node.Args) > numIn {
+		if typ.IsVariadic() {
+			numArgs = len(node.Args)
+		} else {
+			panic(s.errorf(node, "too many arguments in call to %s", node.Func))
+		}
 	}
 	var args = make([]reflect.Value, numArgs)
 

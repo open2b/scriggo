@@ -31,6 +31,7 @@ var errorTests = []struct {
 	{`{% if len(nil) >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% if len("a", "b") >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% nil = 5 %}{{ "ok" }}`, `ok`, nil},
+	{`{{ f(1) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func() string { return "no" }}},
 }
 
 func TestErrors(t *testing.T) {
