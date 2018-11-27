@@ -87,7 +87,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 		var text *ast.Text
 		if tok.typ == tokenText {
-			text = ast.NewText(tok.pos, string(tok.txt))
+			text = ast.NewText(tok.pos, tok.txt)
 		}
 
 		if line < tok.lin || tok.pos.End == end {

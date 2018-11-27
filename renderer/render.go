@@ -9,6 +9,7 @@
 package renderer
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -259,12 +260,12 @@ Nodes:
 
 			if wr != nil {
 				text := node.Text[node.Cut.Left:node.Cut.Right]
-				if text == "" {
+				if len(text) == 0 {
 					continue
 				}
 				if urlstate != nil {
 					if !urlstate.query {
-						if strings.ContainsAny(text, "?#") {
+						if bytes.ContainsAny(text, "?#") {
 							if text[0] == '?' && !urlstate.path {
 								if urlstate.addAmp {
 									_, err := io.WriteString(wr, "&amp;")
@@ -277,13 +278,13 @@ Nodes:
 							urlstate.path = false
 							urlstate.query = true
 						}
-						if urlstate.isSet && strings.ContainsAny(text, ",") {
+						if urlstate.isSet && bytes.ContainsAny(text, ",") {
 							urlstate.path = true
 							urlstate.query = false
 						}
 					}
 				}
-				_, err := io.WriteString(wr, text)
+				_, err := wr.Write(text)
 				if err != nil {
 					return err
 				}

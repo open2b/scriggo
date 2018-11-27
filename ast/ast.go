@@ -133,16 +133,16 @@ type TextCut struct {
 // Text represents a text.
 type Text struct {
 	*Position         // position in the source.
-	Text      string  // text.
+	Text      []byte  // text.
 	Cut       TextCut // cut.
 }
 
-func NewText(pos *Position, text string) *Text {
+func NewText(pos *Position, text []byte) *Text {
 	return &Text{pos, text, TextCut{0, len(text)}}
 }
 
 func (t Text) String() string {
-	return t.Text
+	return string(t.Text)
 }
 
 // URL represents an URL.
@@ -584,7 +584,12 @@ func CloneNode(node Node) Node {
 		}
 		return NewTree(n.Path, nn, n.Context)
 	case *Text:
-		return NewText(ClonePosition(n.Position), n.Text)
+		var text []byte
+		if n.Text != nil {
+			text = make([]byte, len(n.Text))
+			copy(text, n.Text)
+		}
+		return NewText(ClonePosition(n.Position), text)
 	case *URL:
 		var value = make([]Node, len(n.Value))
 		for i, n2 := range n.Value {

@@ -77,8 +77,8 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	var text string
 	switch n := node.(type) {
 	case *ast.Text:
-		text = n.Text
-		if len(text) > 30 {
+		text = string(n.Text)
+		if len(n.Text) > 30 {
 			text = open2b.Truncate(text, 30) + "..."
 		}
 		text = strconv.Quote(text)
