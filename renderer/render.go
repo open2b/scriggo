@@ -259,10 +259,10 @@ Nodes:
 		case *ast.Text:
 
 			if wr != nil {
-				text := node.Text[node.Cut.Left:node.Cut.Right]
-				if len(text) == 0 {
+				if node.Cut.Left == node.Cut.Right {
 					continue
 				}
+				text := node.Text[node.Cut.Left:node.Cut.Right]
 				if urlstate != nil {
 					if !urlstate.query {
 						if bytes.ContainsAny(text, "?#") {
@@ -278,7 +278,7 @@ Nodes:
 							urlstate.path = false
 							urlstate.query = true
 						}
-						if urlstate.isSet && bytes.ContainsAny(text, ",") {
+						if urlstate.isSet && bytes.IndexByte(text, ',') >= 0 {
 							urlstate.path = true
 							urlstate.query = false
 						}
