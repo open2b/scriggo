@@ -639,7 +639,7 @@ Nodes:
 				have := "("
 				for i := 0; i < haveSize; i++ {
 					if i > 0 {
-						have += ","
+						have += ", "
 					}
 					if i < wantSize {
 						have += m.node.Parameters[i].Name
@@ -651,7 +651,7 @@ Nodes:
 				want := "("
 				for i, p := range m.node.Parameters {
 					if i > 0 {
-						want += ","
+						want += ", "
 					}
 					want += p.Name
 				}
