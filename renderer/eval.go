@@ -703,7 +703,27 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		if typ.IsVariadic() {
 			numArgs = len(node.Args)
 		} else {
-			panic(s.errorf(node, "too many arguments in call to %s", node.Func))
+			have := "("
+			for i, arg := range node.Args {
+				if i > 0 {
+					have += ", "
+				}
+				have += typeof(s.evalExpression(arg))
+			}
+			have += ")"
+			want := "("
+			for i := 0; i < numIn; i++ {
+				if i > 0 {
+					want += ", "
+				}
+				if in := typ.In(i); in.Kind() == reflect.Interface {
+					want += "any"
+				} else {
+					want += typeof(reflect.Zero(in).Interface())
+				}
+			}
+			want += ")"
+			panic(s.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
 		}
 	}
 	var args = make([]reflect.Value, numArgs)
@@ -715,6 +735,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		} else {
 			in = typ.In(i)
 		}
+		inKind := in.Kind()
 		var arg interface{}
 		if i < len(node.Args) {
 			arg = asBase(s.evalExpression(node.Args[i]))
@@ -722,30 +743,27 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		if arg == nil {
 			if i < len(node.Args) {
 				if in == decimalType {
-					panic(s.errorf(node, "cannot use nil as type number in argument to function %s", node.Func))
+					panic(s.errorf(node, "cannot use nil as type number in argument to %s", node.Func))
 				}
-				switch in.Kind() {
+				switch inKind {
 				case reflect.Bool, reflect.Int, reflect.String:
-					panic(s.errorf(node, "cannot use nil as type %s in argument to function %s", typeof(reflect.Zero(in)), node.Func))
+					wantType := typeof(reflect.Zero(in).Interface())
+					panic(s.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func))
 				}
 			}
-			if in == decimalType {
-				args[i] = reflect.ValueOf(zero)
-			} else {
-				args[i] = reflect.Zero(in)
-			}
+			args[i] = reflect.Zero(in)
 		} else {
 			if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(int); ok && in == decimalType {
 				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
-			} else if html, ok := arg.(HTML); ok && in.Kind() == reflect.String {
+			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
 				args[i] = reflect.ValueOf(string(html))
 			} else if reflect.TypeOf(arg).AssignableTo(in) {
 				args[i] = reflect.ValueOf(arg)
 			} else {
-				expectedType := typeof(reflect.Zero(in))
-				panic(s.errorf(node, "cannot use %#v (type %s) as type %s in argument to function %s", arg, typeof(arg), expectedType, node.Func))
+				expectedType := typeof(reflect.Zero(in).Interface())
+				panic(s.errorf(node, "cannot use %#v (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
 			}
 		}
 	}
@@ -851,7 +869,7 @@ func asBase(v interface{}) interface{} {
 
 func typeof(v interface{}) string {
 	if v == nil {
-		return ""
+		return "nil"
 	}
 	v = asBase(v)
 	switch v.(type) {

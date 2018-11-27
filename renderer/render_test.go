@@ -181,20 +181,17 @@ var rendererExprTests = []struct {
 	{"a + b", "&lt;a&gt;&lt;b&gt;", scope{"a": "<a>", "b": "<b>"}},
 	{"a + b", "<a><b>", scope{"a": HTML("<a>"), "b": HTML("<b>")}},
 
-	// len
-	{"len(``)", "0", nil},
-	{"len(`a`)", "1", nil},
-	{"len(`abc`)", "3", nil},
-	{"len(`€`)", "1", nil},
-	{"len(`€`)", "1", nil},
-	{"len(a)", "1", scope{"a": "a"}},
-	{"len(a)", "3", scope{"a": "<a>"}},
-	{"len(a)", "3", scope{"a": HTML("<a>")}},
-	{"len(a)", "3", scope{"a": aString{"xz€"}}},
-	{"len(a)", "3", scope{"a": []int{1, 2, 3}}},
-	{"len(a)", "2", scope{"a": []string{"a", "b"}}},
-	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
-	{"len(a)", "0", scope{"a": []int(nil)}},
+	// call
+	{"f()", "ok", scope{"f": func() string { return "ok" }}},
+	{"f(5)", "5", scope{"f": func(i int) int { return i }}},
+	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
+	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
+	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
+	{"f(5)", "5", scope{"f": func(v interface{}) interface{} { return v }}},
+	{"f(`a`)", "a", scope{"f": func(v interface{}) interface{} { return v }}},
+	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
+	{"f(true)", "true", scope{"f": func(v interface{}) interface{} { return v }}},
+	{"f(nil)", "", scope{"f": func(v interface{}) interface{} { return v }}},
 }
 
 var rendererStmtTests = []struct {

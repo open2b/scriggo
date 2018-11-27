@@ -139,6 +139,21 @@ var rendererBuiltinTests = []struct {
 	{"lastIndex(`ab€acb€`,`b€`)", "5", nil},
 	{"lastIndex(`ab€acb€`,`bc`)", "-1", nil},
 
+	// len
+	{"len(``)", "0", nil},
+	{"len(`a`)", "1", nil},
+	{"len(`abc`)", "3", nil},
+	{"len(`€`)", "1", nil},
+	{"len(`€`)", "1", nil},
+	{"len(a)", "1", scope{"a": "a"}},
+	{"len(a)", "3", scope{"a": "<a>"}},
+	{"len(a)", "3", scope{"a": HTML("<a>")}},
+	{"len(a)", "3", scope{"a": aString{"xz€"}}},
+	{"len(a)", "3", scope{"a": []int{1, 2, 3}}},
+	{"len(a)", "2", scope{"a": []string{"a", "b"}}},
+	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
+	{"len(a)", "0", scope{"a": []int(nil)}},
+
 	// max
 	{"max(0, 0)", "0", nil},
 	{"max(5, 0)", "5", nil},
