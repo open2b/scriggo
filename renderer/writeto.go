@@ -132,7 +132,7 @@ func interfaceToHTML(expr interface{}) (string, bool) {
 
 	switch e := expr.(type) {
 	case string:
-		s = html.EscapeString(e)
+		s = htmlEscape(e)
 	case HTML:
 		s = string(e)
 	case int:
@@ -199,12 +199,12 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 	case string:
 		s = e
 		if urlstate == nil {
-			s = html.EscapeString(e)
+			s = htmlEscape(e)
 		}
 	case HTML:
 		s = string(e)
 		if urlstate == nil {
-			s = html.EscapeString(html.UnescapeString(string(e)))
+			s = htmlEscape(html.UnescapeString(string(e)))
 		}
 	case int:
 		s = strconv.Itoa(e)

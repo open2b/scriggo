@@ -10,6 +10,58 @@ import "strings"
 
 const hexchars = "0123456789abcdef"
 
+// htmlEscape escapes the string s so it can be places inside HTML.
+func htmlEscape(s string) string {
+	more := 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '<', '>':
+			more += 3
+		case '&', '\'', '"':
+			more += 4
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	b := make([]byte, len(s)+more)
+	for i, j := 0, 0; i < len(s); i++ {
+
+		switch c := s[i]; c {
+		case '<', '>':
+			b[j] = '&'
+			b[j+1] = 'l'
+			if c == '>' {
+				b[j+1] = 'g'
+			}
+			b[j+2] = 't'
+			b[j+3] = ';'
+			j += 4
+		case '&':
+			b[j] = '&'
+			b[j+1] = 'a'
+			b[j+2] = 'm'
+			b[j+3] = 'p'
+			b[j+4] = ';'
+			j += 5
+		case '\'', '"':
+			b[j] = '&'
+			b[j+1] = '#'
+			b[j+2] = '3'
+			b[j+3] = '9'
+			if c == '"' {
+				b[j+3] = '4'
+			}
+			b[j+4] = ';'
+			j += 5
+		default:
+			b[j] = c
+			j++
+		}
+	}
+	return string(b)
+}
+
 // prefixWithSpace indicates if the byte c, in a CSS string, must be preceded
 // by a space when an escape sequence precedes it.
 func prefixWithSpace(c byte) bool {
@@ -47,9 +99,8 @@ MORE:
 		return s
 	}
 	b := make([]byte, len(s)+more)
-	j := 0
 ESCAPE:
-	for i := 0; i < len(s); i++ {
+	for i, j := 0, 0; i < len(s); i++ {
 		c := s[i]
 		switch c {
 		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':

@@ -8,7 +8,6 @@ package renderer
 
 import (
 	"bytes"
-	"html"
 	"testing"
 
 	"open2b/template/ast"
@@ -23,10 +22,11 @@ var htmlContextTests = []struct {
 	{`nil`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
-	{`"<a>"`, html.EscapeString("<a>"), nil},
-	{`"<div></div>"`, html.EscapeString("<div></div>"), nil},
-	{`a`, html.EscapeString("<a>"), scope{"a": "<a>"}},
-	{`d`, html.EscapeString("<div></div>"), scope{"d": "<div></div>"}},
+	{`"<a>"`, "&lt;a&gt;", nil},
+	{`"<div></div>"`, "&lt;div&gt;&lt;/div&gt;", nil},
+	{`a`, "&lt;a&gt;", scope{"a": "<a>"}},
+	{`a`, "&#34;ab&#39;cd&#34;", scope{"a": "\"ab'cd\""}},
+	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": "<div></div>"}},
 	{`a`, "<a>", scope{"a": HTML("<a>")}},
 	{`d`, "<div></div>", scope{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
@@ -86,7 +86,7 @@ var attrContextTests = []struct {
 	{`nil`, "", nil},
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
-	{`"<a>"`, html.EscapeString("<a>"), nil},
+	{`"<a>"`, "&lt;a&gt;", nil},
 	{`"<div></div>"`, "&lt;div&gt;&lt;/div&gt;", nil},
 	{`a`, "&lt;a&gt;", scope{"a": "<a>"}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": "<div></div>"}},

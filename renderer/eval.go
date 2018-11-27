@@ -9,7 +9,6 @@ package renderer
 import (
 	"errors"
 	"fmt"
-	"html"
 	"reflect"
 
 	"open2b/template/ast"
@@ -357,12 +356,12 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			case string:
 				return e1 + e2
 			case HTML:
-				return HTML(html.EscapeString(e1) + string(e2))
+				return HTML(htmlEscape(e1) + string(e2))
 			}
 		case HTML:
 			switch e2 := expr2.(type) {
 			case string:
-				return HTML(string(e1) + html.EscapeString(e2))
+				return HTML(string(e1) + htmlEscape(e2))
 			case HTML:
 				return HTML(string(e1) + string(e2))
 			}
