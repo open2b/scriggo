@@ -739,12 +739,10 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(int); ok && in == decimalType {
 				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
-			} else if reflect.TypeOf(arg).AssignableTo(in) {
-				args[i] = reflect.ValueOf(arg)
-			} else if d, ok := arg.(int); ok && in == decimalType {
-				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
 			} else if html, ok := arg.(HTML); ok && in.Kind() == reflect.String {
 				args[i] = reflect.ValueOf(string(html))
+			} else if reflect.TypeOf(arg).AssignableTo(in) {
+				args[i] = reflect.ValueOf(arg)
 			} else {
 				expectedType := typeof(reflect.Zero(in))
 				panic(s.errorf(node, "cannot use %#v (type %s) as type %s in argument to function %s", arg, typeof(arg), expectedType, node.Func))
