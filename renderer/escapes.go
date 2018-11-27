@@ -24,11 +24,9 @@ func prefixWithSpace(c byte) bool {
 // string with single or double quotes.
 func cssStringEscape(s string) string {
 	more := 0
+MORE:
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if i > 0 && s[i-1] != '\\' && prefixWithSpace(c) {
-			more++
-		}
 		switch c {
 		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
 			more += 2
@@ -37,7 +35,12 @@ func cssStringEscape(s string) string {
 				more += 1
 			} else if c <= 0x1F {
 				more += 2
+			} else {
+				continue MORE
 			}
+		}
+		if c != '\\' && (i == len(s)-1 || prefixWithSpace(s[i+1])) {
+			more++
 		}
 	}
 	if more == 0 {
@@ -45,12 +48,9 @@ func cssStringEscape(s string) string {
 	}
 	b := make([]byte, len(s)+more)
 	j := 0
+ESCAPE:
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if i > 0 && s[i-1] != '\\' && prefixWithSpace(c) {
-			b[j] = ' '
-			j++
-		}
 		switch c {
 		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
 			b[j] = '\\'
@@ -70,7 +70,12 @@ func cssStringEscape(s string) string {
 			} else {
 				b[j] = c
 				j++
+				continue ESCAPE
 			}
+		}
+		if c != '\\' && (i == len(s)-1 || prefixWithSpace(s[i+1])) {
+			b[j] = ' '
+			j++
 		}
 	}
 	return string(b)

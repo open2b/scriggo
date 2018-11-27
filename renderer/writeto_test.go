@@ -331,21 +331,21 @@ var cssStringContextTests = []struct {
 	vars scope
 }{
 	{`""`, ``, nil},
-	{`"\u0000"`, `\0`, nil},
-	{`"\u000F"`, `\f`, nil},
-	{`"\u001F"`, `\1f`, nil},
+	{`"\u0000"`, `\0 `, nil},
+	{`"\u000F"`, `\f `, nil},
+	{`"\u001F"`, `\1f `, nil},
 	{`"a"`, `a`, nil},
-	{`"<a>"`, `\3c a\3e`, nil},
+	{`"<a>"`, `\3c a\3e `, nil},
 	{`"\\"`, `\`, nil},
-	{`"\""`, `\22`, nil},
-	{`"'"`, `\27`, nil},
-	{`"\n"`, `\a`, nil},
-	{`"\r"`, `\d`, nil},
-	{`"\t"`, `\9`, nil},
+	{`"\""`, `\22 `, nil},
+	{`"'"`, `\27 `, nil},
+	{`"\n"`, `\a `, nil},
+	{`"\r"`, `\d `, nil},
+	{`"\t"`, `\9 `, nil},
 	{`25`, "25", nil},
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, scope{"a": "a"}},
-	{`a`, `\3c\3e\22`, scope{"a": "<>\""}},
+	{`a`, `\3c\3e\22 `, scope{"a": "<>\""}},
 }
 
 func TestCSSStringContext(t *testing.T) {
