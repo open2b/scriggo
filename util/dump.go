@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"open2b"
 	"strconv"
 
 	"open2b/template/ast"
@@ -77,9 +76,10 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	var text string
 	switch n := node.(type) {
 	case *ast.Text:
-		text = string(n.Text)
 		if len(n.Text) > 30 {
-			text = open2b.Truncate(text, 30) + "..."
+			text = string(truncate(n.Text, 30)) + "..."
+		} else {
+			text = string(n.Text)
 		}
 		text = strconv.Quote(text)
 	case *ast.If:
@@ -138,4 +138,20 @@ func Dump(w io.Writer, node ast.Node) (err error) {
 	}
 
 	return nil
+}
+
+func truncate(b []byte, maxRunes int) []byte {
+	if maxRunes < 0 {
+		panic("template/util: maxRunes can not be negative")
+	}
+	if len(b) > maxRunes {
+		var n = 1
+		for pos, _ := range b {
+			if n > maxRunes {
+				return b[:pos]
+			}
+			n++
+		}
+	}
+	return b
 }
