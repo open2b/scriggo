@@ -19,9 +19,8 @@ import (
 
 type HTML = renderer.HTML
 
-// Makes an alias of Context and redefines the constants because it must be
-// possible to define a renderer.WriterTo interface only by importing the
-// "template" package and not necessarily also "renderer".
+// Makes an alias of Context and redefines the constants so it's not
+// necessary to import the package "renderer".
 type Context = ast.Context
 
 const (
