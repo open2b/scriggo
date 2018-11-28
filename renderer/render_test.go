@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"open2b/template/ast"
@@ -184,6 +185,8 @@ var rendererExprTests = []struct {
 	// call
 	{"f()", "ok", scope{"f": func() string { return "ok" }}},
 	{"f(5)", "5", scope{"f": func(i int) int { return i }}},
+	{"f(5.4)", "5.4", scope{"f": func(n dec.Decimal) dec.Decimal { return n }}},
+	{"f(5)", "5", scope{"f": func(n dec.Decimal) dec.Decimal { return n }}},
 	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
 	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
@@ -192,6 +195,9 @@ var rendererExprTests = []struct {
 	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(v interface{}) interface{} { return v }}},
 	{"f(nil)", "", scope{"f": func(v interface{}) interface{} { return v }}},
+	{"f(`a`)", "a", scope{"f": func(s ...string) string { return strings.Join(s, ",") }}},
+	{"f(`a`,`b`)", "a,b", scope{"f": func(s ...string) string { return strings.Join(s, ",") }}},
+	{"f(5, `a`,`b`)", "5 a,b", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
 }
 
 var rendererStmtTests = []struct {

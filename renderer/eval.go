@@ -17,6 +17,7 @@ import (
 )
 
 const maxInt = int64(^uint(0) >> 1)
+const minInt = -maxInt - 1
 
 // HTML is used for strings that contain HTML so that the show does
 // not escape them. In expressions it behaves like a string.
@@ -755,6 +756,12 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 		} else {
 			if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
+			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
+				p := d.IntPart()
+				if p < minInt || maxInt < p || !decimal.New(p, 0).Equal(d) {
+					panic(s.errorf(node.Args[i], "number %s truncated to integer", d))
+				}
+				args[i] = reflect.ValueOf(int(p))
 			} else if d, ok := arg.(int); ok && in == decimalType {
 				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
 			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
