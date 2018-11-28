@@ -225,7 +225,6 @@ LOOP:
 					p++
 					l.column++
 				}
-				quote = 0
 			} else if c == '"' || c == '\'' {
 				// Start attribute value.
 				quote = c
@@ -241,11 +240,11 @@ LOOP:
 					continue
 				}
 				l.ctx = ast.ContextAttribute
-			}
-			if !isASCIISpace(c) {
+			} else if !isASCIISpace(c) {
 				// Checks if it is an attribute.
-				l.attr, p = l.scanAttribute(p)
-				if l.attr != "" {
+				var next int
+				if l.attr, next = l.scanAttribute(p); next > p {
+					p = next
 					continue
 				}
 			}

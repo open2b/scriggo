@@ -153,6 +153,7 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<script>'{{a}}'{{a}}</script>`:                {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
 		`<script>'</script>'{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script>"</script>"{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
+		`<script async></script>{{ "a" }}`:             {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 	},
 	ast.ContextCSS: {
 		`a`:                             {ast.ContextText},
