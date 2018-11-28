@@ -19,6 +19,8 @@ import (
 	"unicode/utf8"
 
 	"open2b/template/ast"
+
+	"github.com/shopspring/decimal"
 )
 
 type Error struct {
@@ -465,17 +467,32 @@ Nodes:
 					return err
 				}
 
-				n1, ok := expr.(int)
-				if !ok {
-					err = s.errorf(node, "left range value is not a integer")
+				var n1 int
+				switch n := expr.(type) {
+				case int:
+					n1 = n
+				case decimal.Decimal:
+					n1, err = s.decimalToInt(node.Expr1, n)
+				default:
+					err = s.errorf(node, "non-integer for range %s", node.Expr1)
+				}
+				if err != nil {
 					if s.handleError(err) {
 						continue
 					}
 					return err
 				}
-				n2, ok := expr2.(int)
-				if !ok {
-					err = s.errorf(node, "right range value is not a integer")
+
+				var n2 int
+				switch n := expr2.(type) {
+				case int:
+					n2 = n
+				case decimal.Decimal:
+					n2, err = s.decimalToInt(node.Expr2, n)
+				default:
+					err = s.errorf(node, "non-integer for range %s", node.Expr2)
+				}
+				if err != nil {
 					if s.handleError(err) {
 						continue
 					}

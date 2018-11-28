@@ -16,8 +16,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const maxInt = int64(^uint(0) >> 1)
-const minInt = -maxInt - 1
+var maxInt = decimal.New(int64(^uint(0)>>1), 0)
+var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
 
 // HTML is used for strings that contain HTML so that the show does
 // not escape them. In expressions it behaves like a string.
@@ -533,14 +533,14 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	case int:
 		i = index
 	case decimal.Decimal:
-		p := index.IntPart()
-		if p > maxInt || !decimal.New(p, 0).Equal(index) {
-			panic(s.errorf(node, "non-integer slice index %s", node.Index))
+		var err error
+		i, err = s.decimalToInt(node, index)
+		if err != nil {
+			panic(err)
 		}
-		if p < 0 {
+		if i < 0 {
 			panic(s.errorf(node, "invalid slice index %s (index must be non-negative)", node.Index))
 		}
-		i = int(p)
 	default:
 		panic(s.errorf(node, "non-integer slice index %s", node.Index))
 	}
@@ -757,11 +757,11 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 			if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
-				p := d.IntPart()
-				if p < minInt || maxInt < p || !decimal.New(p, 0).Equal(d) {
-					panic(s.errorf(node.Args[i], "number %s truncated to integer", d))
+				n, err := s.decimalToInt(node.Args[i], d)
+				if err != nil {
+					panic(err)
 				}
-				args[i] = reflect.ValueOf(int(p))
+				args[i] = reflect.ValueOf(n)
 			} else if d, ok := arg.(int); ok && in == decimalType {
 				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
 			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
@@ -820,6 +820,17 @@ func (s *state) variable(name string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (s *state) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
+	if d.LessThan(minInt) || maxInt.LessThan(d) {
+		return 0, s.errorf(node, "number %s overflows int", d)
+	}
+	p := d.IntPart()
+	if !decimal.New(p, 0).Equal(d) {
+		return 0, s.errorf(node, "number %s truncated to integer", d)
+	}
+	return int(p), nil
 }
 
 // htmlToStringType returns e1 and e2 with type string instead of HTML.
