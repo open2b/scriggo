@@ -236,6 +236,7 @@ func _len(v interface{}) int {
 			return rv.Len()
 		}
 	}
+	// Returning -1 the method evalCall will return an invalid argument error.
 	return -1
 }
 
