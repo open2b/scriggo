@@ -700,8 +700,9 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 
 	var numIn = typ.NumIn()
 	var numArgs = numIn
+	var isVariadic = typ.IsVariadic()
 	if len(node.Args) > numIn {
-		if typ.IsVariadic() {
+		if isVariadic {
 			numArgs = len(node.Args)
 		} else {
 			have := "("
@@ -729,13 +730,16 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	}
 	var args = make([]reflect.Value, numArgs)
 
+	var lastIn = numIn - 1
+	var in reflect.Type
+
 	for i := 0; i < len(args); i++ {
-		var in reflect.Type
-		if typ.IsVariadic() && i >= numIn-1 {
-			in = typ.In(numIn - 1).Elem()
-		} else {
+		if i < lastIn || !isVariadic {
 			in = typ.In(i)
+		} else if i == lastIn {
+			in = typ.In(lastIn).Elem()
 		}
+
 		inKind := in.Kind()
 		var arg interface{}
 		if i < len(node.Args) {
