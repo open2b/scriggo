@@ -419,9 +419,13 @@ func (l *lexer) scanTag(p int) (string, int) {
 }
 
 // scanAttribute scans an attribute from src starting from position p
-// and returns the attribute name and the next position.
+// and returns the attribute name and the next position to scan.
 //
-// For example, if l.src[p:] is `src="...`, it returns "src" and p+5.
+// If l.src[p:] is
+//    - `src="a"` it returns "src" and p+4
+//    - `src>` it returns "" and p+3
+//    - `src img` it returns "" and p+4.
+//    - `,` it returns "" and p.
 func (l *lexer) scanAttribute(p int) (string, int) {
 	// Reads the attribute name.
 	s := p
