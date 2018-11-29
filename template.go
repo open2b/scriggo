@@ -21,6 +21,7 @@ type HTML = renderer.HTML
 
 // Makes an alias of Context and redefines the constants so it's not
 // necessary to import the package "renderer".
+
 type Context = ast.Context
 
 const (

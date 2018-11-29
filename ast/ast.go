@@ -95,8 +95,8 @@ func (p Position) String() string {
 }
 
 type Expression interface {
-	Node
 	isexpr()
+	Node
 	String() string
 }
 
@@ -176,7 +176,7 @@ func (v Var) String() string {
 type Assignment struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
-	Expr      Expression  // assigned expression..
+	Expr      Expression  // assigned expression.
 }
 
 func NewAssignment(pos *Position, ident *Identifier, expr Expression) *Assignment {
@@ -340,13 +340,13 @@ func NewComment(pos *Position, text string) *Comment {
 }
 
 type Parentesis struct {
-	*Position // position in the source.
 	expression
-	Expr Expression // expression.
+	*Position            // position in the source.
+	Expr      Expression // expression.
 }
 
 func NewParentesis(pos *Position, expr Expression) *Parentesis {
-	return &Parentesis{pos, expression{}, expr}
+	return &Parentesis{expression{}, pos, expr}
 }
 
 func (n *Parentesis) String() string {
@@ -354,13 +354,13 @@ func (n *Parentesis) String() string {
 }
 
 type Int struct {
-	*Position // position in the source.
 	expression
-	Value int // value.
+	*Position     // position in the source.
+	Value     int // value.
 }
 
 func NewInt(pos *Position, value int) *Int {
-	return &Int{pos, expression{}, value}
+	return &Int{expression{}, pos, value}
 }
 
 func (n *Int) String() string {
@@ -368,13 +368,13 @@ func (n *Int) String() string {
 }
 
 type Number struct {
-	*Position // position in the source.
 	expression
-	Value decimal.Decimal // value.
+	*Position                 // position in the source.
+	Value     decimal.Decimal // value.
 }
 
 func NewNumber(pos *Position, value decimal.Decimal) *Number {
-	return &Number{pos, expression{}, value}
+	return &Number{expression{}, pos, value}
 }
 
 func (n *Number) String() string {
@@ -382,13 +382,13 @@ func (n *Number) String() string {
 }
 
 type String struct {
-	*Position // position in the source.
 	expression
-	Text string // expression.
+	*Position        // position in the source.
+	Text      string // expression.
 }
 
 func NewString(pos *Position, text string) *String {
-	return &String{pos, expression{}, text}
+	return &String{expression{}, pos, text}
 }
 
 func (n *String) String() string {
@@ -396,13 +396,13 @@ func (n *String) String() string {
 }
 
 type Identifier struct {
-	*Position // position in the source.
 	expression
-	Name string // name.
+	*Position        // position in the source.
+	Name      string // name.
 }
 
 func NewIdentifier(pos *Position, name string) *Identifier {
-	return &Identifier{pos, expression{}, name}
+	return &Identifier{expression{}, pos, name}
 }
 
 func (n *Identifier) String() string {
@@ -416,14 +416,14 @@ type Operator interface {
 }
 
 type UnaryOperator struct {
-	*Position // position in the source.
 	expression
-	Op   OperatorType // operator.
-	Expr Expression   // expression.
+	*Position              // position in the source.
+	Op        OperatorType // operator.
+	Expr      Expression   // expression.
 }
 
 func NewUnaryOperator(pos *Position, op OperatorType, expr Expression) *UnaryOperator {
-	return &UnaryOperator{pos, expression{}, op, expr}
+	return &UnaryOperator{expression{}, pos, op, expr}
 }
 
 func (n *UnaryOperator) String() string {
@@ -445,15 +445,15 @@ func (n *UnaryOperator) Precedence() int {
 }
 
 type BinaryOperator struct {
-	*Position // position in the source.
 	expression
-	Op    OperatorType // operator.
-	Expr1 Expression   // first expression.
-	Expr2 Expression   // second expression.
+	*Position              // position in the source.
+	Op        OperatorType // operator.
+	Expr1     Expression   // first expression.
+	Expr2     Expression   // second expression.
 }
 
 func NewBinaryOperator(pos *Position, op OperatorType, expr1, expr2 Expression) *BinaryOperator {
-	return &BinaryOperator{pos, expression{}, op, expr1, expr2}
+	return &BinaryOperator{expression{}, pos, op, expr1, expr2}
 }
 
 func (n *BinaryOperator) String() string {
@@ -494,14 +494,14 @@ func (n *BinaryOperator) Precedence() int {
 }
 
 type Call struct {
-	*Position // position in the source.
 	expression
-	Func Expression   // function.
-	Args []Expression // arguments.
+	*Position              // position in the source.
+	Func      Expression   // function.
+	Args      []Expression // arguments.
 }
 
 func NewCall(pos *Position, fun Expression, args []Expression) *Call {
-	return &Call{pos, expression{}, fun, args}
+	return &Call{expression{}, pos, fun, args}
 }
 
 func (n *Call) String() string {
@@ -517,14 +517,14 @@ func (n *Call) String() string {
 }
 
 type Index struct {
-	*Position // position in the source.
 	expression
-	Expr  Expression // expression.
-	Index Expression // index.
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Index     Expression // index.
 }
 
 func NewIndex(pos *Position, expr Expression, index Expression) *Index {
-	return &Index{pos, expression{}, expr, index}
+	return &Index{expression{}, pos, expr, index}
 }
 
 func (n *Index) String() string {
@@ -532,15 +532,15 @@ func (n *Index) String() string {
 }
 
 type Slice struct {
-	*Position // position in the source.
 	expression
-	Expr Expression // expression.
-	Low  Expression // low bound.
-	High Expression // high bound.
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Low       Expression // low bound.
+	High      Expression // high bound.
 }
 
 func NewSlice(pos *Position, expr, low, high Expression) *Slice {
-	return &Slice{pos, expression{}, expr, low, high}
+	return &Slice{expression{}, pos, expr, low, high}
 }
 
 func (n *Slice) String() string {
@@ -557,14 +557,14 @@ func (n *Slice) String() string {
 }
 
 type Selector struct {
-	*Position // position in the source.
 	expression
-	Expr  Expression // expression.
-	Ident string     // identifier.
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Ident     string     // identifier.
 }
 
 func NewSelector(pos *Position, expr Expression, ident string) *Selector {
-	return &Selector{pos, expression{}, expr, ident}
+	return &Selector{expression{}, pos, expr, ident}
 }
 
 func (n *Selector) String() string {
