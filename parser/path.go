@@ -13,10 +13,10 @@ import (
 	"unicode/utf8"
 )
 
-// isValidFilePath indicates whether path is valid as an include or show path.
+// ValidPath indicates whether path is valid as an extend, import and show path.
 // These are valid paths: "/a.a", "/a/a.a", "a.a", "a/a.a", "../a.a", "a/../a.a".
 // These are invalid paths: "", "/", "a", "aa" "aa.", "a/", "..", "a/..".
-func isValidFilePath(path string) bool {
+func ValidPath(path string) bool {
 	// Must have at least one character and do not end with '/'.
 	if path == "" || path[len(path)-1] == '/' {
 		return false
@@ -29,12 +29,12 @@ func isValidFilePath(path string) bool {
 		if i == 0 && name == "" {
 			continue
 		}
-		if name != ".." && !isValidDirName(name) {
+		if name != ".." && !validDirName(name) {
 			return false
 		}
 	}
 	// Last name must be a file.
-	return isValidFileName(names[len(names)-1])
+	return validFileName(names[len(names)-1])
 }
 
 // toAbsolutePath combines dir with path to obtain an absolute path.
@@ -61,7 +61,7 @@ func toAbsolutePath(dir, path string) (string, error) {
 	return string(b), nil
 }
 
-func isValidDirName(name string) bool {
+func validDirName(name string) bool {
 	// Must be at least one character long and less than 256.
 	if name == "" || utf8.RuneCountInString(name) >= 256 {
 		return false
@@ -77,7 +77,7 @@ func isValidDirName(name string) bool {
 	return !isWindowsReservedName(name)
 }
 
-func isValidFileName(name string) bool {
+func validFileName(name string) bool {
 	// Must be at least 3 characters long and less than 256.
 	var length = utf8.RuneCountInString(name)
 	if length <= 2 || length >= 256 {

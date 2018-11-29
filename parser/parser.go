@@ -424,7 +424,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 					// show <path>
 					var path = unquoteString(tok.txt)
-					if !isValidFilePath(path) {
+					if !ValidPath(path) {
 						return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
 					}
 					tok, ok = <-lex.tokens
@@ -470,7 +470,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
 				}
 				var path = unquoteString(tok.txt)
-				if !isValidFilePath(path) {
+				if !ValidPath(path) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("invalid extend path %q", path)}
 				}
 				tok, ok = <-lex.tokens
@@ -523,7 +523,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos)
 				}
 				var path = unquoteString(tok.txt)
-				if !isValidFilePath(path) {
+				if !ValidPath(path) {
 					return nil, fmt.Errorf("invalid import path %q at %s", path, tok.pos)
 				}
 				tok, ok = <-lex.tokens

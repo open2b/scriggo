@@ -29,12 +29,12 @@ var invalidFilePaths = []string{"", "/", "a/", ".", "..", "...", ".aa", "a/a..",
 
 func TestValidFilePath(t *testing.T) {
 	for _, p := range validFilePaths {
-		if !isValidFilePath(p) {
+		if !ValidPath(p) {
 			t.Errorf("path: %q, expected valid, but invalid\n", p)
 		}
 	}
 	for _, p := range invalidFilePaths {
-		if isValidFilePath(p) {
+		if ValidPath(p) {
 			t.Errorf("path: %q, expected invalid, but valid\n", p)
 		}
 	}
