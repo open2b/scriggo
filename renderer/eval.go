@@ -699,41 +699,45 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 	}
 
 	var numIn = typ.NumIn()
-	var numArgs = numIn
 	var isVariadic = typ.IsVariadic()
-	if len(node.Args) > numIn {
-		if isVariadic {
-			numArgs = len(node.Args)
+
+	if (!isVariadic && len(node.Args) != numIn) || (isVariadic && len(node.Args) < numIn-1) {
+		have := "("
+		for i, arg := range node.Args {
+			if i > 0 {
+				have += ", "
+			}
+			have += typeof(s.evalExpression(arg))
+		}
+		have += ")"
+		want := "("
+		for i := 0; i < numIn; i++ {
+			if i > 0 {
+				want += ", "
+			}
+			if i == numIn-1 && isVariadic {
+				want += "..."
+			}
+			if in := typ.In(i); in.Kind() == reflect.Interface {
+				want += "any"
+			} else {
+				want += typeof(reflect.Zero(in).Interface())
+			}
+		}
+		want += ")"
+		if len(node.Args) < numIn {
+			panic(s.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
 		} else {
-			have := "("
-			for i, arg := range node.Args {
-				if i > 0 {
-					have += ", "
-				}
-				have += typeof(s.evalExpression(arg))
-			}
-			have += ")"
-			want := "("
-			for i := 0; i < numIn; i++ {
-				if i > 0 {
-					want += ", "
-				}
-				if in := typ.In(i); in.Kind() == reflect.Interface {
-					want += "any"
-				} else {
-					want += typeof(reflect.Zero(in).Interface())
-				}
-			}
-			want += ")"
 			panic(s.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
 		}
 	}
-	var args = make([]reflect.Value, numArgs)
+
+	var args = make([]reflect.Value, len(node.Args))
 
 	var lastIn = numIn - 1
 	var in reflect.Type
 
-	for i := 0; i < len(args); i++ {
+	for i := 0; i < len(node.Args); i++ {
 		if i < lastIn || !isVariadic {
 			in = typ.In(i)
 		} else if i == lastIn {

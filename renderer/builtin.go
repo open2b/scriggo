@@ -68,8 +68,9 @@ var builtins = map[string]interface{}{
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,
 	"sort":        _sort,
+	"sortBy":      _sortBy,
 	"split":       _split,
-	"splitAfter":  _splitAfter,
+	"splitN":      _splitN,
 	"queryEscape": _queryEscape,
 	"title":       _title,
 	"toLower":     _toLower,
@@ -375,13 +376,7 @@ func _shuffle(s interface{}) interface{} {
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}, field string) interface{} {
-	if field != "" {
-		r, _ := utf8.DecodeRuneInString(field)
-		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			panic("invalid field")
-		}
-	}
+func _sort(slice interface{}) interface{} {
 	if slice == nil {
 		return slice
 	}
@@ -412,13 +407,21 @@ func _sort(slice interface{}, field string) interface{} {
 		sort.Slice(s2, func(i, j int) bool { return !s2[i] })
 		return s2
 	}
-	// reflect
-	if field == "" {
-		panic("missing field")
+	panic("no slice of string, int or bool")
+}
+
+// _sortBy is the builtin function "sortBy".
+func _sortBy(slice interface{}, field string) interface{} {
+	r, _ := utf8.DecodeRuneInString(field)
+	if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+		panic("invalid field")
+	}
+	if slice == nil {
+		return slice
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			panic("unsortable")
+			panic("call of sortBy on a no-struct value")
 		}
 	}()
 	rv := reflect.ValueOf(slice)
@@ -429,7 +432,11 @@ func _sort(slice interface{}, field string) interface{} {
 		if v.Kind() == reflect.Ptr {
 			v = v.Elem()
 		}
-		values[i] = v.FieldByName(field).Interface()
+		fv := v.FieldByName(field)
+		if !fv.IsValid() {
+			panic(fmt.Sprintf("type struct has no field or method %s", field))
+		}
+		values[i] = fv.Interface()
 	}
 	var value interface{}
 	if len(values) > 0 {
@@ -481,29 +488,13 @@ func _sort(slice interface{}, field string) interface{} {
 }
 
 // _split is the builtin function "split".
-func _split(s, sep string, n interface{}) []string {
-	n2 := -1
-	if n != nil {
-		var ok bool
-		n2, ok = n.(int)
-		if !ok {
-			panic("not int parameter")
-		}
-	}
-	return strings.SplitN(s, sep, n2)
+func _split(s, sep string) []string {
+	return strings.Split(s, sep)
 }
 
-// _splitAfter is the builtin function "splitAfter".
-func _splitAfter(s, sep string, n interface{}) []string {
-	n2 := -1
-	if n != nil {
-		var ok bool
-		n2, ok = n.(int)
-		if !ok {
-			panic("not int parameter")
-		}
-	}
-	return strings.SplitAfterN(s, sep, n2)
+// _splitN is the builtin function "splitN".
+func _splitN(s, sep string, n int) []string {
+	return strings.SplitN(s, sep, n)
 }
 
 // _string is the builtin function "string".
@@ -532,39 +523,18 @@ func _toUpper(s string) string {
 }
 
 // _trim is the builtin function "trim".
-func _trim(s string, cutset interface{}) string {
-	if cutset == nil {
-		return strings.TrimSpace(s)
-	}
-	if cut, ok := cutset.(string); ok {
-		return strings.Trim(s, cut)
-	} else {
-		panic("not string parameter")
-	}
+func _trim(s string, cutset string) string {
+	return strings.Trim(s, cutset)
 }
 
 // _trimLeft is the builtin function "trimLeft".
-func _trimLeft(s string, cutset interface{}) string {
-	if cutset == nil {
-		return strings.TrimLeft(s, spaces)
-	}
-	if cut, ok := cutset.(string); ok {
-		return strings.TrimLeft(s, cut)
-	} else {
-		panic("not string parameter")
-	}
+func _trimLeft(s string, cutset string) string {
+	return strings.TrimLeft(s, cutset)
 }
 
 // _trimRight is the builtin function "trimRight".
-func _trimRight(s string, cutset interface{}) string {
-	if cutset == nil {
-		return strings.TrimRight(s, spaces)
-	}
-	if cut, ok := cutset.(string); ok {
-		return strings.TrimRight(s, cut)
-	} else {
-		panic("not string parameter")
-	}
+func _trimRight(s string, cutset string) string {
+	return strings.TrimRight(s, cutset)
 }
 
 // _trimPrefix is the builtin function "trimPrefix".

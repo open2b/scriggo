@@ -37,7 +37,6 @@ var rendererBuiltinTests = []struct {
 	{"abbreviate(`Lorem, ipsum.`,9)", "Lorem...", nil},
 
 	// abs
-	{"abs()", "0", nil},
 	{"abs(0)", "0", nil},
 	{"abs(1)", "1", nil},
 	{"abs(-1)", "1", nil},
@@ -45,21 +44,18 @@ var rendererBuiltinTests = []struct {
 	{"abs(-3.56)", "3.56", nil},
 
 	// contains
-	{"contains()", "true", nil},
 	{"contains(``,``)", "true", nil},
 	{"contains(`a`,``)", "true", nil},
 	{"contains(`abc`,`b`)", "true", nil},
 	{"contains(`abc`,`e`)", "false", nil},
 
 	// hasPrefix
-	{"hasPrefix()", "true", nil},
 	{"hasPrefix(``,``)", "true", nil},
 	{"hasPrefix(`a`,``)", "true", nil},
 	{"hasPrefix(`abc`,`a`)", "true", nil},
 	{"hasPrefix(`abc`,`b`)", "false", nil},
 
 	// hasSuffix
-	{"hasSuffix()", "true", nil},
 	{"hasSuffix(``,``)", "true", nil},
 	{"hasSuffix(`a`,``)", "true", nil},
 	{"hasSuffix(`abc`,`c`)", "true", nil},
@@ -195,7 +191,6 @@ var rendererBuiltinTests = []struct {
 	{"min(0.0000000000000000000000000000001, 0.0000000000000000000000000000002)", "0.0000000000000000000000000000001", nil},
 
 	// repeat
-	{"repeat(``, 0)", "", nil},
 	{"repeat(`a`, 0)", "", nil},
 	{"repeat(`a`, 1)", "a", nil},
 	{"repeat(`a`, 5)", "aaaaa", nil},
@@ -203,16 +198,12 @@ var rendererBuiltinTests = []struct {
 	{"repeat(`€€`, 3)", "€€€€€€", nil},
 
 	// replace
-	{"replace()", "", nil},
-	{"replace(``)", "", nil},
-	{"replace(``, ``)", "", nil},
 	{"replace(``, ``, ``)", "", nil},
 	{"replace(`abc`, `b`, `e`)", "aec", nil},
 	{"replace(`abc`, `b`, `€`)", "a€c", nil},
 	{"replace(`abcbcba`, `b`, `e`)", "aececea", nil},
 
 	// reverse
-	{"reverse()", "", nil},
 	{"reverse(s)", "", scope{"s": []int(nil)}},
 	{"reverse(s)", "", scope{"s": []int{}}},
 	{"reverse(s)", "1", scope{"s": []int{1}}},
@@ -220,8 +211,7 @@ var rendererBuiltinTests = []struct {
 	{"reverse(s)", "3, 2, 1", scope{"s": []int{1, 2, 3}}},
 
 	// round
-	{"round()", "0", nil},
-	{"round(0)", "0", nil},
+	{"round(0, 0)", "0", nil},
 	{"round(5.3752, 2)", "5.38", nil},
 
 	// sha1
@@ -233,7 +223,6 @@ var rendererBuiltinTests = []struct {
 	{"sha256(`hello world!`)", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
 
 	// sort
-	{"sort()", "", nil},
 	{"sort(nil)", "", nil},
 	{"sort(s1)", "", scope{"s1": []int{}}},
 	{"sort(s2)", "1", scope{"s2": []int{1}}},
@@ -244,31 +233,29 @@ var rendererBuiltinTests = []struct {
 	{"sort(s7)", "a, b", scope{"s7": []string{"b", "a"}}},
 	{"sort(s8)", "a, b, c", scope{"s8": []string{"b", "a", "c"}}},
 	{"sort(s9)", "false, true, true", scope{"s9": []bool{true, false, true}}},
-	{"sort(s10,`N`)[0].N", "3", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s10,`N`)[1].N", "5", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s10,`N`)[2].N", "7", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sort(s11,`S`)[0].S", "a", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sort(s11,`S`)[1].S", "b", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sort(s11,`S`)[2].S", "c", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+
+	// sortBy
+	{"sortBy(s10,`N`)[0].N", "3", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sortBy(s10,`N`)[1].N", "5", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sortBy(s10,`N`)[2].N", "7", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
+	{"sortBy(s11,`S`)[0].S", "a", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sortBy(s11,`S`)[1].S", "b", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
+	{"sortBy(s11,`S`)[2].S", "c", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
 
 	// split
-	{"split()", "", nil},
 	{"split(``, ``)", "", nil},
 	{"split(`a`, ``)", "a", nil},
 	{"split(`ab`, ``)", "a, b", nil},
 	{"split(`a,b,c`, `,`)", "a, b, c", nil},
 	{"split(`a,b,c,`, `,`)", "a, b, c, ", nil},
 
-	// splitAfter
-	{"splitAfter()", "", nil},
-	{"splitAfter(``, ``)", "", nil},
-	{"splitAfter(`a`, ``)", "a", nil},
-	{"splitAfter(`ab`, ``)", "a, b", nil},
-	{"splitAfter(`a,b,c`, `,`)", "a,, b,, c", nil},
-	{"splitAfter(`a,b,c,`, `,`)", "a,, b,, c,, ", nil},
+	// splitN
+	{"splitN(``, ``, 0)", "", nil},
+	{"splitN(`a`, ``, 0)", "", nil},
+	{"splitN(`ab`, ``, 1)", "ab", nil},
+	{"splitN(`a,b,c`, `,`, 2)", "a, b,c", nil},
 
 	// title
-	{"title()", "", nil},
 	{"title(``)", "", nil},
 	{"title(`a`)", "A", nil},
 	{"title(`5`)", "5", nil},
@@ -278,7 +265,6 @@ var rendererBuiltinTests = []struct {
 	{"title(`ab cd`)", "Ab Cd", nil},
 
 	// toLower
-	{"toLower()", "", nil},
 	{"toLower(``)", "", nil},
 	{"toLower(`a`)", "a", nil},
 	{"toLower(`A`)", "a", nil},
@@ -287,7 +273,6 @@ var rendererBuiltinTests = []struct {
 	{"toLower(`èÈ`)", "èè", nil},
 
 	// toTitle
-	{"toTitle()", "", nil},
 	{"toTitle(``)", "", nil},
 	{"toTitle(`a`)", "A", nil},
 	{"toTitle(`5`)", "5", nil},
@@ -297,7 +282,6 @@ var rendererBuiltinTests = []struct {
 	{"toTitle(`ab cd`)", "AB CD", nil},
 
 	// toUpper
-	{"toUpper()", "", nil},
 	{"toUpper(``)", "", nil},
 	{"toUpper(`A`)", "A", nil},
 	{"toUpper(`a`)", "A", nil},
@@ -306,13 +290,14 @@ var rendererBuiltinTests = []struct {
 	{"toUpper(`Èè`)", "ÈÈ", nil},
 
 	// trim
-	{"trim()", "", nil},
-	{"trim(``)", "", nil},
-	{"trim(` `)", "", nil},
-	{"trim(` a`)", "a", nil},
-	{"trim(`a `)", "a", nil},
-	{"trim(` a `)", "a", nil},
-	{"trim(` a b  `)", "a b", nil},
+	{"trim(``, ``)", "", nil},
+	{"trim(` `, ``)", " ", nil},
+	{"trim(` a`, ` `)", "a", nil},
+	{"trim(`a `, ` `)", "a", nil},
+	{"trim(` a `, ` `)", "a", nil},
+	{"trim(` a b  `, ` `)", "a b", nil},
+	{"trim(`a bb`, `b`)", "a ", nil},
+	{"trim(`bb a`, `b`)", " a", nil},
 }
 
 var rendererRandomBuiltinTests = []struct {
