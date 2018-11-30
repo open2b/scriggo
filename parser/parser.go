@@ -19,10 +19,13 @@ import (
 )
 
 var (
-	// ErrInvalid is returned from the Parse method when the path parameter is not valid.
-	ErrInvalid = errors.New("template/parser: invalid argument")
 
-	// ErrNotExist is returned from the Parse method and from a ReadFunc when the path does not exist.
+	// ErrInvalidPath is returned from the Parse method when the path parameter
+	// is not valid.
+	ErrInvalidPath = errors.New("template/parser: invalid path")
+
+	// ErrNotExist is returned from the Parse method and from a ReadFunc when
+	// the path does not exist.
 	ErrNotExist = errors.New("template/parser: path does not exist")
 )
 
@@ -424,7 +427,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
 					// show <path>
 					var path = unquoteString(tok.txt)
-					if !ValidPath(path) {
+					if !validPath(path) {
 						return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
 					}
 					tok, ok = <-lex.tokens
@@ -470,7 +473,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
 				}
 				var path = unquoteString(tok.txt)
-				if !ValidPath(path) {
+				if !validPath(path) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("invalid extend path %q", path)}
 				}
 				tok, ok = <-lex.tokens
@@ -523,7 +526,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos)
 				}
 				var path = unquoteString(tok.txt)
-				if !ValidPath(path) {
+				if !validPath(path) {
 					return nil, fmt.Errorf("invalid import path %q at %s", path, tok.pos)
 				}
 				tok, ok = <-lex.tokens
@@ -712,7 +715,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" || path[0] != '/' {
-		return nil, ErrInvalid
+		return nil, ErrInvalidPath
 	}
 	// Cleans the path by removing "..".
 	path, err := toAbsolutePath("/", path[1:])
@@ -837,7 +840,9 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 			}
 			n.Tree, err = pp.parsePath(absPath, n.Context)
 			if err != nil {
-				if err == ErrNotExist {
+				if err == ErrInvalidPath {
+					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+				} else if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("extend path %q does not exist", absPath)}
 				} else if err2, ok := err.(CycleError); ok {
 					err = CycleError("imports " + string(err2))
@@ -853,7 +858,9 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 			}
 			n.Tree, err = pp.parsePath(absPath, n.Context)
 			if err != nil {
-				if err == ErrNotExist {
+				if err == ErrInvalidPath {
+					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+				} else if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", absPath)}
 				} else if err2, ok := err.(CycleError); ok {
 					err = CycleError("imports " + string(err2))
@@ -869,7 +876,9 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 			}
 			n.Tree, err = pp.parsePath(absPath, n.Context)
 			if err != nil {
-				if err == ErrNotExist {
+				if err == ErrInvalidPath {
+					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+				} else if err == ErrNotExist {
 					err = &Error{"", *(n.Pos()), fmt.Errorf("show path %q does not exist", absPath)}
 				} else if err2, ok := err.(CycleError); ok {
 					err = CycleError("shows " + string(err2))

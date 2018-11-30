@@ -32,8 +32,8 @@ const (
 )
 
 var (
-	// ErrInvalid is returned from Render when the path parameter is not valid.
-	ErrInvalid = errors.New("template: invalid argument")
+	// ErrInvalidPath is returned from Render when the path parameter is not valid.
+	ErrInvalidPath = errors.New("template: invalid path")
 
 	// ErrNotExist is returned from Render when the path does not exist.
 	ErrNotExist = errors.New("template: path does not exist")
@@ -121,8 +121,8 @@ func render(out io.Writer, tree *ast.Tree, vars interface{}) error {
 }
 
 func convertError(err error) error {
-	if err == parser.ErrInvalid {
-		return ErrInvalid
+	if err == parser.ErrInvalidPath {
+		return ErrInvalidPath
 	}
 	if err == parser.ErrNotExist {
 		return ErrNotExist

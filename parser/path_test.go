@@ -6,35 +6,21 @@
 
 package parser
 
-import (
-	"testing"
-)
+import "testing"
 
-const long255chars = "È1234567890123456789012345678901234567890123456789012" +
-	"È123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
-	"È123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789.a"
+var validPaths = []string{"a", "/a", "a/b", "/a/b", "../a", "a/../a", ".", "..."}
 
-const long256chars = "È12345678901234567890123456789012345678901234567890123" +
-	"È123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" +
-	"È123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789.a"
+var invalidPaths = []string{"\xf0", "", "..", "/", "a/", "//", "a//", "//a",
+	"/..", "a/.."}
 
-var validFilePaths = []string{"/a.b", "/a/a.b", "a.b", "a/a.b", "../a.b", "a/../a.b", long255chars}
-
-var invalidFilePaths = []string{"", "/", "a/", ".", "..", "...", ".aa", "a/a..", "a/ab.", "./abc",
-	" ", " abc", "abc ", "a\x00b.c", "a\x1fb.c", "a\"b.c", "a*ab.c", "a:b.c", "a<b.c",
-	"a>b.c", "a?b.c", "a\\b.c", "a|b.c", "a\x7fb.c", "/con/ab.c", "/prn/ab.c", "/aux/ab.c", "/nul/ab.c",
-	"com0/ab.c", "com9/ab.c", "lpt0/ab.c", "lpt9/ab.c", "con.a", "prn.a", "aux.a", "nul.a", "com0.a", "com9.a",
-	"lpt0.a", "lpt9.a", long256chars,
-}
-
-func TestValidFilePath(t *testing.T) {
-	for _, p := range validFilePaths {
-		if !ValidPath(p) {
+func TestValidPath(t *testing.T) {
+	for _, p := range validPaths {
+		if !validPath(p) {
 			t.Errorf("path: %q, expected valid, but invalid\n", p)
 		}
 	}
-	for _, p := range invalidFilePaths {
-		if ValidPath(p) {
+	for _, p := range invalidPaths {
+		if validPath(p) {
 			t.Errorf("path: %q, expected invalid, but valid\n", p)
 		}
 	}

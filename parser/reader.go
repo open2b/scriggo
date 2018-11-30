@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 )
@@ -34,6 +36,12 @@ type DirReader string
 
 // Read implements the Read method of the Reader.
 func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+	if !ValidDirReaderPath(path) {
+		return nil, ErrInvalidPath
+	}
+	if path[0] != '/' {
+		return nil, errors.New("template/parser: path for reader must be absolute")
+	}
 	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -66,6 +74,12 @@ var testReader func(io.Reader) io.Reader
 func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if dir.Max < 0 {
 		return nil, errors.New("template/parser: negative max size")
+	}
+	if !ValidDirReaderPath(path) {
+		return nil, ErrInvalidPath
+	}
+	if path[0] != '/' {
+		return nil, errors.New("template/parser: path for reader must be absolute")
 	}
 	// Opens the file.
 	f, err := os.Open(filepath.Join(dir.Dir, path))
@@ -140,4 +154,83 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		}
 	}
 	return tree, err
+}
+
+// ValidDirReaderPath indicates whether path is valid as path for DirReader
+// and DirLimitedReader.
+func ValidDirReaderPath(path string) bool {
+	// Must be a valid path
+	if !validPath(path) {
+		return false
+	}
+	// Splits the path in the various names.
+	var names = strings.Split(path, "/")
+	last := len(names) - 1
+	for i, name := range names {
+		// If the first name is empty, path starts with '/'.
+		if i == 0 && name == "" {
+			continue
+		}
+		if i < last && name == ".." {
+			continue
+		}
+		// Cannot be long less than 256 characters.
+		if utf8.RuneCountInString(name) >= 256 {
+			return false
+		}
+		// Cannot be '.' and cannot contain '..'.
+		if name == "." || strings.Contains(name, "..") {
+			return false
+		}
+		// First and last character cannot be spaces.
+		if name[0] == ' ' || name[len(name)-1] == ' ' {
+			return false
+		}
+		// First and the last character cannot be a point.
+		if name[0] == '.' || name[len(name)-1] == '.' {
+			return false
+		}
+		if isWindowsReservedName(name) {
+			return false
+		}
+	}
+	return true
+}
+
+// isWindowsReservedName indicates if name is a reserved file name on Windows.
+// See https://docs.microsoft.com/en-us/windows/desktop/fileio/naming-a-file
+func isWindowsReservedName(name string) bool {
+	const DEL = '\x7f'
+	for i := 0; i < len(name); i++ {
+		switch c := name[i]; c {
+		case '"', '*', '/', ':', '<', '>', '?', '\\', '|', DEL:
+			return true
+		default:
+			if c <= '\x1f' {
+				return true
+			}
+		}
+	}
+	switch name {
+	case "con", "prn", "aux", "nul",
+		"com0", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
+		"com9", "lpt0", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7",
+		"lpt8", "lpt9":
+		return true
+	}
+	if len(name) >= 4 {
+		switch name[0:4] {
+		case "con.", "prn.", "aux.", "nul.":
+			return true
+		}
+		if len(name) >= 5 {
+			switch name[0:5] {
+			case "com0.", "com1.", "com2.", "com3.", "com4.", "com5.", "com6.",
+				"com7.", "com8.", "com9.", "lpt0.", "lpt1.", "lpt2.", "lpt3.",
+				"lpt4.", "lpt5.", "lpt6.", "lpt7.", "lpt8.", "lpt9.":
+				return true
+			}
+		}
+	}
+	return false
 }
