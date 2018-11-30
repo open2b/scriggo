@@ -570,6 +570,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				var parameters []*ast.Identifier
+				var ellipsesPos *ast.Position
 				if tok.typ == tokenLeftParenthesis {
 					// parameters
 					parameters = []*ast.Identifier{}
@@ -581,10 +582,20 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 						if tok.typ != tokenIdentifier {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 						}
+						if ellipsesPos != nil {
+							return nil, &Error{"", *ellipsesPos, fmt.Errorf("can only use ... with final parameter in list")}
+						}
 						parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
 						tok, ok = <-lex.tokens
 						if !ok {
 							return nil, lex.err
+						}
+						if tok.typ == tokenEllipses {
+							ellipsesPos = tok.pos
+							tok, ok = <-lex.tokens
+							if !ok {
+								return nil, lex.err
+							}
 						}
 						if tok.typ == tokenRightParenthesis {
 							break
@@ -604,7 +615,7 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewMacro(pos, ident, parameters, nil, tok.ctx)
+				node = ast.NewMacro(pos, ident, parameters, nil, ellipsesPos != nil, tok.ctx)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 				cutSpacesToken = true

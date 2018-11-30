@@ -243,14 +243,15 @@ type Macro struct {
 	Ident      *Identifier   // name.
 	Parameters []*Identifier // parameters.
 	Body       []Node        // body.
+	IsVariadic bool          // indicates if it is variadic.
 	Context    Context       // context.
 }
 
-func NewMacro(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, ctx Context) *Macro {
+func NewMacro(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, isVariadic bool, ctx Context) *Macro {
 	if body == nil {
 		body = []Node{}
 	}
-	return &Macro{pos, ident, parameters, body, ctx}
+	return &Macro{pos, ident, parameters, body, isVariadic, ctx}
 }
 
 // ShowMacro represents a statement {% show <macro> %}.
@@ -651,7 +652,7 @@ func CloneNode(node Node) Node {
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		return NewMacro(ClonePosition(n.Position), ident, parameters, body, n.Context)
+		return NewMacro(ClonePosition(n.Position), ident, parameters, body, n.IsVariadic, n.Context)
 	case *ShowMacro:
 		var impor *Identifier
 		if n.Import != nil {

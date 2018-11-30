@@ -596,8 +596,13 @@ LOOP:
 				l.lexNumber()
 				endLineAsSemicolon = true
 			} else if l.src[1] == '.' {
-				l.emit(tokenRange, 2)
-				l.column += 2
+				if len(l.src) > 2 && l.src[2] == '.' {
+					l.emit(tokenEllipses, 3)
+					l.column += 3
+				} else {
+					l.emit(tokenRange, 2)
+					l.column += 2
+				}
 				endLineAsSemicolon = false
 			} else {
 				l.emit(tokenPeriod, 1)

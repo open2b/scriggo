@@ -100,12 +100,20 @@ var treeTests = []struct {
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extend \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 30), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
-			nil, []ast.Node{ast.NewText(p(1, 32, 31, 31), []byte("c"))}, ast.ContextHTML)}, ast.ContextHTML)},
+			nil, []ast.Node{ast.NewText(p(1, 32, 31, 31), []byte("c"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extend \"a.e\" %}{% macro b(c,d) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 35), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 30, 29, 29), "c"), ast.NewIdentifier(p(1, 32, 31, 31), "d")},
-			[]ast.Node{ast.NewText(p(1, 37, 36, 38), []byte("txt"))}, ast.ContextHTML)}, ast.ContextHTML)},
+			[]ast.Node{ast.NewText(p(1, 37, 36, 38), []byte("txt"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.ContextHTML)},
+	{"{% macro a(b) %}c{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewMacro(p(1, 1, 0, 15), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b")},
+			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("c"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% macro a(b, c...) %}d{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewMacro(p(1, 1, 0, 21), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b"), ast.NewIdentifier(p(1, 15, 14, 14), "c")},
+			[]ast.Node{ast.NewText(p(1, 23, 22, 22), []byte("d"))}, true, ast.ContextHTML)}, ast.ContextHTML)},
 }
 
 func pageTests() map[string]struct {
@@ -482,6 +490,9 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+		if nn1.IsVariadic != nn2.IsVariadic {
+			return fmt.Errorf("unexpected is variadic %t, expecting %t", nn1.IsVariadic, nn2.IsVariadic)
 		}
 	}
 	return nil

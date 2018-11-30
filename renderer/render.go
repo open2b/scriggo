@@ -650,9 +650,11 @@ Nodes:
 				return err
 			}
 
+			isVariadic := m.node.IsVariadic
+
 			haveSize := len(node.Arguments)
 			wantSize := len(m.node.Parameters)
-			if haveSize != wantSize {
+			if (!isVariadic && haveSize != wantSize) || (isVariadic && haveSize < wantSize-1) {
 				have := "("
 				for i := 0; i < haveSize; i++ {
 					if i > 0 {
@@ -671,6 +673,9 @@ Nodes:
 						want += ", "
 					}
 					want += p.Name
+					if i == wantSize-1 && isVariadic {
+						want += "..."
+					}
 				}
 				want += ")"
 				name := node.Macro.Name
@@ -688,14 +693,24 @@ Nodes:
 				return err
 			}
 
+			var last = wantSize - 1
 			var arguments = scope{}
+			var parameters = m.node.Parameters
+			if isVariadic {
+				arguments[parameters[last].Name] = make([]interface{}, haveSize-wantSize+1)
+			}
 			for i, argument := range node.Arguments {
-				arguments[m.node.Parameters[i].Name], err = s.eval(argument)
+				arg, err := s.eval(argument)
 				if err != nil {
 					if s.handleError(err) {
 						continue Nodes
 					}
 					return err
+				}
+				if isVariadic && i >= last {
+					arguments[parameters[last].Name].([]interface{})[i-wantSize+1] = arg
+				} else {
+					arguments[parameters[i].Name] = arg
 				}
 			}
 			st := &state{

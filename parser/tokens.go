@@ -37,8 +37,8 @@ const (
 	tokenMacro                       // macro
 	tokenEnd                         // end
 	tokenComment                     // comment
-	tokenInterpretedString           // "..."
-	tokenRawString                   // `...`
+	tokenInterpretedString           // "abc"
+	tokenRawString                   // `abc`
 	tokenIdentifier                  // customerName
 	tokenPeriod                      // .
 	tokenLeftParenthesis             // (
@@ -49,6 +49,7 @@ const (
 	tokenComma                       // ,
 	tokenSemicolon                   // ;
 	tokenRange                       // ..
+	tokenEllipses                    // ...
 	tokenNumber                      // 12.895
 	tokenEqual                       // ==
 	tokenNotEqual                    // !=
@@ -101,6 +102,7 @@ var tokenString = map[tokenType]string{
 	tokenComma:             ",",
 	tokenSemicolon:         ";",
 	tokenRange:             "..",
+	tokenEllipses:          "...",
 	tokenNumber:            "number",
 	tokenEqual:             "==",
 	tokenNotEqual:          "!=",
