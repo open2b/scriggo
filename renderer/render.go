@@ -697,7 +697,11 @@ Nodes:
 			var arguments = scope{}
 			var parameters = m.node.Parameters
 			if isVariadic {
-				arguments[parameters[last].Name] = make([]interface{}, haveSize-wantSize+1)
+				if length := haveSize - wantSize + 1; length == 0 {
+					arguments[parameters[last].Name] = []interface{}(nil)
+				} else {
+					arguments[parameters[last].Name] = make([]interface{}, length)
+				}
 			}
 			for i, argument := range node.Arguments {
 				arg, err := s.eval(argument)
