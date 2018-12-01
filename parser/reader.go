@@ -13,14 +13,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"open2b/template/ast"
 )
-
-// ErrFileTooLarge is returned from DirLimitedReader's Read when the file
-// to read is too large.
-var ErrFileTooLarge = errors.New("template/parser: file too large")
 
 // Reader defines a type that lets you read the source of a template.
 //
@@ -59,22 +56,37 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// DirReader implements a Reader that reads the source of a template
-// from files in a directory up to a maximum size. If the file has
-// a size greater then Max returns the error ErrFileTooLarge.
+// DirLimitedReader implements a Reader that reads the source of a template
+// from files in a directory limiting the maximum file size and the total
+// bytes read from all files.
+// It can be used concurrently.
 type DirLimitedReader struct {
-	Dir string
-	Max int
+	dir       string
+	maxFile   int
+	remaining int
+	mutex     sync.Mutex
+}
+
+// NewDirLimitedReader returns a DirLimitedReader that reads the file from
+// directory dir limiting the file size to maxFile bytes and the total bytes
+// read from all files to maxTotal.
+// It panics if maxFile or maxTotal are negative.
+func NewDirLimitedReader(dir string, maxFile, maxTotal int) *DirLimitedReader {
+	if maxFile < 0 {
+		panic("template/parser: negative max file")
+	}
+	if maxTotal < 0 {
+		panic("template/parser: negative max total")
+	}
+	return &DirLimitedReader{dir, maxFile, maxTotal, sync.Mutex{}}
 }
 
 // testReader is set only for testing.
 var testReader func(io.Reader) io.Reader
 
 // Read implements the Read method of the Reader.
-func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
-	if dir.Max < 0 {
-		return nil, errors.New("template/parser: negative max size")
-	}
+// If a limit is exceeded it returns the error ErrReadTooLarge.
+func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
 	}
@@ -82,7 +94,7 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		return nil, errors.New("template/parser: path for reader must be absolute")
 	}
 	// Opens the file.
-	f, err := os.Open(filepath.Join(dir.Dir, path))
+	f, err := os.Open(filepath.Join(dr.dir, path))
 	if err != nil {
 		if os.IsNotExist(err) {
 			err = ErrNotExist
@@ -90,18 +102,25 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		return nil, err
 	}
 	defer f.Close()
+	// Maximum number of byte to read.
+	max := dr.maxFile
+	dr.mutex.Lock()
+	if max > dr.remaining {
+		max = dr.remaining
+	}
+	dr.mutex.Unlock()
 	// Tries to gets the file size.
 	var size int64
 	if fi, err := f.Stat(); err == nil {
 		size = fi.Size()
-		if size > int64(dir.Max) {
-			return nil, ErrFileTooLarge
+		if size > int64(max) {
+			return nil, ErrReadTooLarge
 		}
 	}
 	err = nil
 	if size == 0 {
 		// File size is zero or it has failed to read the size.
-		size = int64(dir.Max)
+		size = int64(max)
 		if size > 512 {
 			size = 512
 		}
@@ -114,13 +133,13 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 	// Reads the source from the file.
 	n := 0
 	src := make([]byte, size)
-	for n < dir.Max && err == nil {
+	for n < max && err == nil {
 		if n == len(src) {
 			// Grows the buffer.
 			old := src
 			size = int64(len(old)) * 2
-			if size > int64(dir.Max) {
-				size = int64(dir.Max)
+			if size > int64(max) {
+				size = int64(max)
 			}
 			src = make([]byte, size)
 			copy(src, old)
@@ -136,7 +155,7 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		// Expects 0 and EOF from next read.
 		if nn, err2 := r.Read(make([]byte, 1)); nn != 0 || err2 != io.EOF {
 			if nn != 0 {
-				return nil, ErrFileTooLarge
+				return nil, ErrReadTooLarge
 			} else if err2 != nil {
 				return nil, err2
 			}
@@ -152,7 +171,14 @@ func (dir DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		if err2, ok := err.(*Error); ok {
 			err2.Path = path
 		}
+		return nil, err
 	}
+	dr.mutex.Lock()
+	defer dr.mutex.Unlock()
+	if n > dr.remaining {
+		return nil, ErrReadTooLarge
+	}
+	dr.remaining -= n
 	return tree, err
 }
 

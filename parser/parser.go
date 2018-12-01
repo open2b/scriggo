@@ -19,7 +19,6 @@ import (
 )
 
 var (
-
 	// ErrInvalidPath is returned from the Parse method when the path parameter
 	// is not valid.
 	ErrInvalidPath = errors.New("template/parser: invalid path")
@@ -27,6 +26,10 @@ var (
 	// ErrNotExist is returned from the Parse method and from a ReadFunc when
 	// the path does not exist.
 	ErrNotExist = errors.New("template/parser: path does not exist")
+
+	// ErrReadTooLarge is returned from the method Read of DirLimitedReader
+	// when a limit is exceeded.
+	ErrReadTooLarge = errors.New("template/parser: read too large")
 )
 
 type Error struct {

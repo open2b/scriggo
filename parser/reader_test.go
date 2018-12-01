@@ -63,20 +63,20 @@ func TestDirLimitedReader(t *testing.T) {
 				}
 			}
 			testReader = file.read
-			dir := DirLimitedReader{filepath.Dir(f.Name()), file.max}
+			dir := NewDirLimitedReader(filepath.Dir(f.Name()), file.max, file.max)
 			_, err = dir.Read("/"+filepath.Base(f.Name()), ast.ContextText)
 			if file.size <= file.max {
-				if err == ErrFileTooLarge {
-					t.Errorf("unexpected error %q", ErrFileTooLarge)
+				if err == ErrReadTooLarge {
+					t.Errorf("unexpected error %q", ErrReadTooLarge)
 				} else if err != nil {
 					t.Fatal(err)
 				}
 			} else {
-				if err != ErrFileTooLarge {
+				if err != ErrReadTooLarge {
 					if err == nil {
-						t.Errorf("unexpected no error, expecting error %q", ErrFileTooLarge)
+						t.Errorf("unexpected no error, expecting error %q", ErrReadTooLarge)
 					} else {
-						t.Errorf("unexpected error %q, expecting %q", err, ErrFileTooLarge)
+						t.Errorf("unexpected error %q, expecting %q", err, ErrReadTooLarge)
 					}
 				}
 			}
