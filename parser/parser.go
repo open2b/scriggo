@@ -722,17 +722,20 @@ func NewParser(r Reader) *Parser {
 
 // Parse reads the source in path, with the reader, in the ctx context,
 // expands the Extend, Import and ShowPath nodes if present and then returns
-// the expanded tree. path must be absolute.
+// the expanded tree.
 //
 // Parse can be called concurrently by more goroutine.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
-	if path == "" || path[0] != '/' {
+	if path == "" {
 		return nil, ErrInvalidPath
 	}
+	if path[0] == '/' {
+		path = path[1:]
+	}
 	// Cleans the path by removing "..".
-	path, err := toAbsolutePath("/", path[1:])
+	path, err := toAbsolutePath("/", path)
 	if err != nil {
 		return nil, err
 	}
