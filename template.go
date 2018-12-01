@@ -4,8 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package template implements high level methods e functions to parse
-// and render a template.
 package template
 
 import (
@@ -17,13 +15,21 @@ import (
 	"open2b/template/renderer"
 )
 
+// HTML encapsulates a string containing an HTML code that have to be rendered
+// without escape. It should be used with context HTML.
+//
+//   // example:
+//   vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
 type HTML = renderer.HTML
 
 // Makes an alias of Context and redefines the constants so it's not
 // necessary to import the package "renderer".
 
+// Context indicates the type of source that has to be rendered and controls
+// how to escape the resulting value of the statement {{ expr }}.
 type Context = ast.Context
 
+//
 const (
 	ContextText   = ast.ContextText
 	ContextHTML   = ast.ContextHTML
@@ -56,13 +62,16 @@ func (ee RenderErrors) Error() string {
 
 type RenderError = renderer.Error
 
+// Template allows to render files located with same context and located in a
+// directory. Files are read and parsed at the first rendering so subsequent
+// renderings are fast to execute.
 type Template struct {
 	parser *parser.Parser
 	ctx    ast.Context
 }
 
-// New returns a template whose files are read from the dir directory and
-// parsed in the ctx context.
+// New returns a template whose files are read from the template directory
+// dir and parsed in the context ctx.
 func New(dir string, ctx Context) *Template {
 	var r = parser.DirReader(dir)
 	return &Template{parser: parser.NewParser(r), ctx: ctx}
@@ -73,7 +82,9 @@ func New(dir string, ctx Context) *Template {
 // vars are defined in the environment during rendering.
 //
 // In the event of an error during rendering, it continues and then returns
-// an RenderErrors with all errors that have occurred.
+// a RenderErrors error with all errors that have occurred.
+//
+// It is safe to call Render concurrently by more goroutines.
 func (t *Template) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := t.parser.Parse(path, t.ctx)
 	if err != nil {
@@ -86,8 +97,13 @@ func (t *Template) Render(out io.Writer, path string, vars interface{}) error {
 // the result to out. The variables in vars are defined in the environment
 // during rendering.
 //
+// Statements "extend", "import" and "show <path>" cannot be used with
+// RenderString, use Render instead.
+//
 // In the event of an error during rendering, it continues and then returns
-// an RenderErrors with all errors that have occurred.
+// a RenderErrors error with all errors that have occurred.
+//
+// It is safe to call RenderString concurrently by more goroutines.
 func RenderString(out io.Writer, src string, ctx Context, vars interface{}) error {
 	tree, err := parser.Parse([]byte(src), ctx)
 	if err != nil {
