@@ -44,7 +44,7 @@
 //
 //   // Creates a reader to read from a directory with control of files size.
 //   maxSize := 1024 * 1204
-//   reader := NewDirLimitedReader("./template/", maxSize, maxSize * 10)
+//   reader := parser.NewDirLimitedReader("./template/", maxSize, maxSize * 10)
 //
 //   // Creates a parses that read the files from the reader.
 //   p := parser.New(reader)
