@@ -182,6 +182,25 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 	return tree, err
 }
 
+// MapReader implements a Reader where template sources are read from a map.
+// Map keys are the paths.
+type MapReader map[string][]byte
+
+// Read implements the Read method of the Reader.
+func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+	src, ok := r[path]
+	if !ok {
+		return nil, ErrNotExist
+	}
+	tree, err := Parse(src, ctx)
+	if err != nil {
+		if e, ok := err.(*Error); ok {
+			e.Path = path
+		}
+	}
+	return tree, err
+}
+
 // ValidDirReaderPath indicates whether path is valid as path for DirReader
 // and DirLimitedReader.
 func ValidDirReaderPath(path string) bool {
