@@ -157,7 +157,7 @@ func pageTests() map[string]struct {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := Parse([]byte(tree.src), ast.ContextHTML)
+		node, err := ParseSource([]byte(tree.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -175,7 +175,7 @@ type testsReader map[string]struct {
 }
 
 func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
-	return Parse([]byte(tests[path].src), ctx)
+	return ParseSource([]byte(tests[path].src), ctx)
 }
 
 func TestPages(t *testing.T) {

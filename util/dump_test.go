@@ -29,7 +29,7 @@ func ExampleDump() {
 	}
 
 	for _, c := range stringCases {
-		tree, err := parser.Parse([]byte(c), ast.ContextHTML)
+		tree, err := parser.ParseSource([]byte(c), ast.ContextHTML)
 		if err != nil {
 			panic(err)
 		}

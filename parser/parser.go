@@ -48,8 +48,9 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// Parse parses src in the context ctx and returns the unexpanded tree.
-func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
+// ParseSource parses src in the context ctx and returns a tree.
+// Nodes Extend, Include and ShowPath are not expanded.
+func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
@@ -708,11 +709,16 @@ func Parse(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
+// Parser implements a parser that reads the tree from a reader and expands
+// the nodes Extend, Import and ShowPath.
+// The trees are cached so only one call per path is made to the reader.
+// Parser can be used concurrently by more goroutine.
 type Parser struct {
 	reader Reader
 	trees  *cache
 }
 
+// NewParser creates a new Parser that reads the trees from the reader r.
 func NewParser(r Reader) *Parser {
 	return &Parser{
 		reader: r,
@@ -721,8 +727,7 @@ func NewParser(r Reader) *Parser {
 }
 
 // Parse reads the source in path, with the reader, in the ctx context,
-// expands the Extend, Import and ShowPath nodes if present and then returns
-// the expanded tree.
+// expands the nodes Extend, Import and ShowPath and returns the expanded tree.
 //
 // Parse can be called concurrently by more goroutine.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {

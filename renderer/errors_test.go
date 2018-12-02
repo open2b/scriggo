@@ -42,7 +42,7 @@ var errorTests = []struct {
 
 func TestErrors(t *testing.T) {
 	for _, expr := range errorTests {
-		var tree, err = parser.Parse([]byte(expr.src), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

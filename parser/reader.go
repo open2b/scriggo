@@ -42,7 +42,7 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-	tree, err := Parse(src, ctx)
+	tree, err := ParseSource(src, ctx)
 	if err != nil {
 		if e, ok := err.(*Error); ok {
 			if path[0] == '/' {
@@ -163,7 +163,7 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 		return nil, err
 	}
 	// Parses the tree.
-	tree, err := Parse(src[:n], ctx)
+	tree, err := ParseSource(src[:n], ctx)
 	if err != nil {
 		if e, ok := err.(*Error); ok {
 			if path[0] == '/' {
@@ -199,7 +199,7 @@ func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ok {
 		return nil, ErrNotExist
 	}
-	tree, err := Parse(src, ctx)
+	tree, err := ParseSource(src, ctx)
 	if err != nil {
 		if e, ok := err.(*Error); ok {
 			e.Path = "/" + path

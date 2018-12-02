@@ -333,7 +333,7 @@ var rendererRandomBuiltinTests = []struct {
 
 func TestRenderBuiltin(t *testing.T) {
 	for _, expr := range rendererBuiltinTests {
-		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -353,7 +353,7 @@ func TestRenderBuiltin(t *testing.T) {
 
 func TestRenderErrorfBuiltin(t *testing.T) {
 	src := "\n\n   {{ errorf(`error %s %d`, `a`, 5) }}"
-	var tree, err = parser.Parse([]byte(src), ast.ContextHTML)
+	var tree, err = parser.ParseSource([]byte(src), ast.ContextHTML)
 	if err != nil {
 		t.Errorf("source: %q, %s\n", src, err)
 		return
@@ -370,7 +370,7 @@ func TestRenderErrorfBuiltin(t *testing.T) {
 
 func TestRenderRandomBuiltin(t *testing.T) {
 	for _, expr := range rendererRandomBuiltinTests {
-		var tree, err = parser.Parse([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

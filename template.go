@@ -138,7 +138,7 @@ func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
 //
 // It is safe to call Render concurrently by more goroutines.
 func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
-	tree, err := parser.Parse(src, ctx)
+	tree, err := parser.ParseSource(src, ctx)
 	if err != nil {
 		return convertError(err)
 	}
@@ -157,7 +157,7 @@ func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
 //
 // It is safe to call RenderString concurrently by more goroutines.
 func RenderString(out io.Writer, src string, ctx Context, vars interface{}) error {
-	tree, err := parser.Parse([]byte(src), ctx)
+	tree, err := parser.ParseSource([]byte(src), ctx)
 	if err != nil {
 		return convertError(err)
 	}

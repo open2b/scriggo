@@ -60,7 +60,7 @@ func TestHTMLContext(t *testing.T) {
 		case HTML:
 			src = string(s)
 		}
-		var tree, err = parser.Parse([]byte("{{"+src+"}}"), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte("{{"+src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -124,7 +124,7 @@ func TestAttributeContext(t *testing.T) {
 		case HTML:
 			src = string(s)
 		}
-		var tree, err = parser.Parse([]byte(`<z x="{{`+src+`}}">`), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte(`<z x="{{`+src+`}}">`), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -191,7 +191,7 @@ func TestURLContext(t *testing.T) {
 		case HTML:
 			src = string(s)
 		}
-		var tree, err = parser.Parse([]byte(src), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte(src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -264,7 +264,7 @@ var scriptContextTests = []struct {
 
 func TestScriptContext(t *testing.T) {
 	for _, expr := range scriptContextTests {
-		var tree, err = parser.Parse([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -306,7 +306,7 @@ var scriptStringContextTests = []struct {
 func TestScriptStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range scriptStringContextTests {
-			var tree, err = parser.Parse([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
+			var tree, err = parser.ParseSource([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -351,7 +351,7 @@ var cssStringContextTests = []struct {
 func TestCSSStringContext(t *testing.T) {
 	for _, q := range []string{"\"", "'"} {
 		for _, expr := range cssStringContextTests {
-			var tree, err = parser.Parse([]byte("<style>"+q+"{{"+expr.src+"}}"+q+"</style>"), ast.ContextHTML)
+			var tree, err = parser.ParseSource([]byte("<style>"+q+"{{"+expr.src+"}}"+q+"</style>"), ast.ContextHTML)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
