@@ -18,8 +18,9 @@ import (
 // HTML encapsulates a string containing an HTML code that have to be rendered
 // without escape. It should be used with context HTML.
 //
-//   // example:
-//   vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
+//  // example:
+//  vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
+//
 type HTML = renderer.HTML
 
 // Makes an alias of Context and redefines the constants so it's not
@@ -29,7 +30,6 @@ type HTML = renderer.HTML
 // how to escape the resulting value of the statement {{ expr }}.
 type Context = ast.Context
 
-//
 const (
 	ContextText   = ast.ContextText
 	ContextHTML   = ast.ContextHTML
@@ -38,10 +38,12 @@ const (
 )
 
 var (
-	// ErrInvalidPath is returned from Render when the path parameter is not valid.
+	// ErrInvalidPath is returned from a Render method when the path parameter
+	// is not valid.
 	ErrInvalidPath = errors.New("template: invalid path")
 
-	// ErrNotExist is returned from Render when the path does not exist.
+	// ErrNotExist is returned from a Render method when the path does not
+	// exist.
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
@@ -62,19 +64,19 @@ func (ee RenderErrors) Error() string {
 
 type RenderError = renderer.Error
 
-// Template allows to render files located with same context and located in a
-// directory. Files are read and parsed at the first rendering so subsequent
-// renderings are fast to execute.
-type Template struct {
+// Dir allows to render files located in a directory with the same context.
+// Files are read and parsed the first time that are rendered. Subsequents
+// renderings are faster to execute.
+type Dir struct {
 	parser *parser.Parser
 	ctx    ast.Context
 }
 
-// New returns a template whose files are read from the template directory
-// dir and parsed in the context ctx.
-func New(dir string, ctx Context) *Template {
+// NewDir returns a Dir that render files located in the directory dir in the
+// context ctx.
+func NewDir(dir string, ctx Context) *Dir {
 	var r = parser.DirReader(dir)
-	return &Template{parser: parser.NewParser(r), ctx: ctx}
+	return &Dir{parser: parser.NewParser(r), ctx: ctx}
 }
 
 // Render renders the template file with the specified path, relative to
@@ -85,8 +87,58 @@ func New(dir string, ctx Context) *Template {
 // a RenderErrors error with all errors that have occurred.
 //
 // It is safe to call Render concurrently by more goroutines.
-func (t *Template) Render(out io.Writer, path string, vars interface{}) error {
-	tree, err := t.parser.Parse(path, t.ctx)
+func (d *Dir) Render(out io.Writer, path string, vars interface{}) error {
+	tree, err := d.parser.Parse(path, d.ctx)
+	if err != nil {
+		return convertError(err)
+	}
+	return render(out, tree, vars)
+}
+
+// Map allows to render sources as values of a map with the same context.
+// Files are read and parsed the first time that are rendered. Subsequents
+// renderings are faster to execute.
+type Map struct {
+	parser *parser.Parser
+	ctx    ast.Context
+}
+
+// NewMap returns a Map that render sources as values of a map in the context
+// ctx.
+func NewMap(sources map[string][]byte, ctx Context) *Map {
+	var r = parser.MapReader(sources)
+	return &Map{parser: parser.NewParser(r), ctx: ctx}
+}
+
+// Render renders the template source with the specified path and writes the
+// result to out. The variables in vars are defined in the environment during
+// rendering.
+//
+// In the event of an error during rendering, it continues and then returns
+// a RenderErrors error with all errors that have occurred.
+//
+// It is safe to call Render concurrently by more goroutines.
+func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
+	tree, err := d.parser.Parse(path, d.ctx)
+	if err != nil {
+		return convertError(err)
+	}
+	return render(out, tree, vars)
+}
+
+// Render renders the template source src, in context ctx, and writes
+// the result to out. The variables in vars are defined in the environment
+// during rendering.
+//
+// Statements "extend", "import" and "show <path>" cannot be used with
+// Render, use the method Render of Dir and Map instead.
+//
+// In the event of an error during rendering, it continues and then returns
+// a RenderErrors error with all errors that have occurred.
+//
+// It is safe to call Render concurrently by more goroutines.
+func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
+	tree, err := parser.Parse(src, ctx)
 	if err != nil {
 		return convertError(err)
 	}
@@ -98,7 +150,7 @@ func (t *Template) Render(out io.Writer, path string, vars interface{}) error {
 // during rendering.
 //
 // Statements "extend", "import" and "show <path>" cannot be used with
-// RenderString, use Render instead.
+// RenderString, use the method Render of Dir and Map instead.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.

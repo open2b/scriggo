@@ -8,58 +8,70 @@
 // and JavaScript files.
 //
 //
-//    {% import conv "converter.html" %}
-//    <html>
-//    <body>
+//  {% import conv "converter.html" %}
+//  <html>
+//  <body>
 //      {% show "header.html" %}
 //      <ul>
-//        {% for p in products %}
-//        <li>{{ p.Name }}: € {{ conv.Convert(p.Price, "EUR") }}</li>
-//        {% end for %}
+//          {% for p in products %}
+//          <li>{{ p.Name }}: € {{ conv.Convert(p.Price, "EUR") }}</li>
+//          {% end for %}
 //      </ul>
-//    </body>
-//    </html>`
+//  </body>
+//  </html>
 //
-// Function RenderString renders a template source in a string:
+// Functions Render and RenderString render a template source in a []byte or
+// string value respectively:
 //
-//   src := "{% for i, p in products %}{{ i }}. {{ p.name }}{% end %}"
-//   err = template.RenderString(w, src, template.ContextText, vars)
+//  src := []byte("{% for i, p in products %}{{ i }}. {{ p.name }}{% end %}")
+//  err = template.Render(w, src, template.ContextText, vars)
 //
-// Method Render renders a template with files located in a directory:
+// Method Render of Dir renders template sources in files located in a directory:
 //
-//   t := template.New("./template/", template.ContextHTML)
-//   err := t.Render(w, "/index.html", vars)
+//  d := template.NewDir("./template/", template.ContextHTML)
+//  err := d.Render(w, "index.html", vars)
 //
-// Advanced functionalities
+// Method Render of Map renders template sources in map values with keys as
+// paths:
 //
-// Package template implements only basic functionalities. For more
-// control on how to read template files, build template trees and render
-// a tree use instead the sub-packages ast, parser and renderer.
+//  sources := map[string][]byte{
+//      "header.csv": []byte("Name"),
+//      "names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+//  }
+//  m := template.NewMap(sources, template.ContextText)
+//  err := m.Render(w, "names.csv", vars)
 //
-//   import (
-//       "open2b/template/ast"
-//       "open2b/template/parser"
-//       "open2b/template/renderer"
-//   )
+// Advanced Usage
 //
-//   // Creates a reader to read from a directory with control of files size.
-//   maxSize := 1024 * 1204
-//   reader := parser.NewDirLimitedReader("./template/", maxSize, maxSize * 10)
+// Package template is for a basic usage. For an advanced usage see instead
+// the sub-packages ast, parser and renderer.
 //
-//   // Creates a parses that read the files from the reader.
-//   p := parser.New(reader)
+//  // Advanced usage example.
 //
-//   // Parses a file and get the resulted tree expanded with extended
-//   // and included files.
-//   tree, err := p.Parse("/index.html", ast.ContextHTML)
-//   if err != nil {
-//       log.Fatalf("parsing error: %s", err)
-//   }
+//  import (
+//      "open2b/template/ast"
+//      "open2b/template/parser"
+//      "open2b/template/renderer"
+//  )
 //
-//   // Renders the tree.
-//   err = renderer.Render(w, tree, vars, func(err error) bool {
-//       log.Printf("rendering error: %s\n", err)
-//       returns true
-//   })
+//  // Creates a reader to read from a directory with control of files size.
+//  maxSize := 1024 * 1204
+//  reader := parser.NewDirLimitedReader("./template/", maxSize, maxSize * 10)
+//
+//  // Creates a parses that read the files from the reader.
+//  p := parser.New(reader)
+//
+//  // Parses a file and get the resulted tree expanded with extended
+//  // and included files.
+//  tree, err := p.Parse("index.html", ast.ContextHTML)
+//  if err != nil {
+//      log.Fatalf("parsing error: %s", err)
+//  }
+//
+//  // Renders the parsed tree.
+//  err = renderer.Render(w, tree, vars, func(err error) bool {
+//      log.Printf("rendering error: %s\n", err)
+//      return true
+//  })
 //
 package template
