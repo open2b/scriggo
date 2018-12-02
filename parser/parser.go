@@ -52,8 +52,8 @@ func (e CycleError) Error() string {
 }
 
 // ParseSource parses src in the context ctx and returns a tree. Nodes Extend,
-// Import and ShowPath are not expanded (the field Tree is nil), to get an
-// expanded tree call the method Parse of Parser instead.
+// Import and ShowPath will not be expanded (the field Tree will be nil), to
+// get an expanded tree call the method Parse of Parser instead.
 func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	switch ctx {
