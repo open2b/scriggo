@@ -19,16 +19,6 @@ var nl = []byte("\n")
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
 
-type SyntaxError struct {
-	path string
-	str  string
-	pos  int
-}
-
-func (e *SyntaxError) Error() string {
-	return fmt.Sprintf("template: %s at %q position %d", e.str, e.path, e.pos)
-}
-
 // lexer maintains the scanner status.
 type lexer struct {
 	text   []byte      // text on which the scans are performed
@@ -61,8 +51,17 @@ func (l *lexer) newline() {
 	l.column = 1
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) *SyntaxError {
-	return &SyntaxError{str: fmt.Sprintf(format, args...), pos: len(l.text) - len(l.src)}
+func (l *lexer) errorf(format string, args ...interface{}) *Error {
+	return &Error{
+		Path: "",
+		Pos: ast.Position{
+			Line:   l.line,
+			Column: l.column,
+			Start:  len(l.text) - len(l.src),
+			End:    len(l.text) - len(l.src),
+		},
+		Err: fmt.Errorf(format, args...),
+	}
 }
 
 // emit emits a token of type typ and length length to the current line and
