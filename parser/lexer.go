@@ -15,7 +15,6 @@ import (
 	"open2b/template/ast"
 )
 
-var nl = []byte("\n")
 var cdataStart = []byte("<![CDATA[")
 var cdataEnd = []byte("]]>")
 
