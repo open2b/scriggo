@@ -32,6 +32,8 @@ var (
 	ErrReadTooLarge = errors.New("template/parser: read too large")
 )
 
+// Error records a parsing error with the path and the position where the
+// error occurred.
 type Error struct {
 	Path string
 	Pos  ast.Position
@@ -42,6 +44,7 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
+// CycleError implements an error indicating the presence of a cycle.
 type CycleError string
 
 func (e CycleError) Error() string {
@@ -711,14 +714,15 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 // Parser implements a parser that reads the tree from a reader and expands
 // the nodes Extend, Import and ShowPath.
-// The trees are cached so only one call per path is made to the reader.
+// The trees are cached so only one call per combination of path and context
+// is made to the reader.
 // Parser can be used concurrently by more goroutine.
 type Parser struct {
 	reader Reader
 	trees  *cache
 }
 
-// NewParser creates a new Parser that reads the trees from the reader r.
+// NewParser returns a new Parser that reads the trees from the reader r.
 func NewParser(r Reader) *Parser {
 	return &Parser{
 		reader: r,

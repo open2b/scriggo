@@ -20,8 +20,8 @@ import (
 
 // Reader defines a type that lets you read the source of a template.
 //
-// Read must always return a new tree because the caller can modify
-// the returned tree.
+// Read must always return a new tree for each call because the caller can
+// modify the returned tree.
 type Reader interface {
 	Read(path string, ctx ast.Context) (*ast.Tree, error)
 }
@@ -30,7 +30,7 @@ type Reader interface {
 // from files in a directory.
 type DirReader string
 
-// Read implements the Read method of the Reader.
+// Read implements the Read method of Reader.
 func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
@@ -84,7 +84,7 @@ func NewDirLimitedReader(dir string, maxFile, maxTotal int) *DirLimitedReader {
 // testReader is set only for testing.
 var testReader func(io.Reader) io.Reader
 
-// Read implements the Read method of the Reader.
+// Read implements the Read method of Reader.
 // If a limit is exceeded it returns the error ErrReadTooLarge.
 func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ValidDirReaderPath(path) {
@@ -187,7 +187,7 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 // Map keys are the paths.
 type MapReader map[string][]byte
 
-// Read implements the Read method of the Reader.
+// Read implements the Read method of Reader.
 func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !validPath(path) {
 		return nil, ErrInvalidPath
