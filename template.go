@@ -16,7 +16,7 @@ import (
 )
 
 // HTML encapsulates a string containing an HTML code that have to be rendered
-// without escape. It should be used with context HTML.
+// without escape.
 //
 //  // example:
 //  vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}

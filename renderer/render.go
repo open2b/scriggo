@@ -4,8 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package renderer implements methods to render an expanded tree
-// of a template file.
 package renderer
 
 import (
@@ -23,6 +21,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Error records a rendering error with the path and the position where
+// the error occurred.
 type Error struct {
 	Path string
 	Pos  ast.Position
@@ -33,6 +33,26 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
+// WriterTo can be implemented by the types of variables. For the statement
+// {{ expr }}, if the value resulting from the evaluation of expr has a type
+// that implements WriterTo, the method WriteTo on that value is called to
+// render the statement.
+//
+// WriteTo is called only if the context in witch the statement is rendered
+// is the same context of the tree (the context passed as argument to
+// Parse and ParseSource and assigned to the field Context of the tree).
+//
+// For example if this source is parsed in context HTML:
+//
+//  <a href="{{ expr }}">{{ expr }}</a>
+//  <script>var b = {{ expr }};</script>
+//
+// the first statement has context Attribute, the second has context HTML and
+// the third has context Script, so WriteTo would only be called on the second
+// statement.
+//
+// WriteTo returns the number of bytes written to w and any error
+// encountered during the write.
 type WriterTo interface {
 	WriteTo(w io.Writer) (n int, err error)
 }
@@ -50,21 +70,27 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
-// Render runs the tree tree and writes the result to wr.
-// The variables in vars are defined in the environment during rendering.
+// Render renders tree and writes the result to w. The variables in vars are
+// defined in the environment during rendering.
+//
+// If a parser.Error or renderer.Error occurs, Render calls h passing the error
+// as argument. If h returns false, Render stops and returns the error
+// occurred. If h returns true, Render continues. If h is nil, Render behaves
+// as h had returned false. Other errors, such as writing errors, are returned
+// immediately without calling h.
 //
 // vars can be:
 //
-//   - a map with a key of type string
-//   - a type with underlying type one of the previous map types
-//   - a struct or pointer to struct
-//   - a reflect.Value whose concrete value meets one of the previous ones
-//   - nil
+//   * nil
+//   * a map with a key of type string
+//   * a type with underlying type one of the previous map types
+//   * a struct or pointer to struct
+//   * a reflect.Value whose concrete value meets one of the previous ones
 //
-func Render(wr io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) error {
+func Render(w io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) error {
 
-	if wr == nil {
-		return errors.New("template/renderer: wr is nil")
+	if w == nil {
+		return errors.New("template/renderer: w is nil")
 	}
 	if tree == nil {
 		return errors.New("template/renderer: tree is nil")
@@ -89,7 +115,7 @@ func Render(wr io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) 
 
 	extend := getExtendNode(tree)
 	if extend == nil {
-		err = s.render(wr, tree.Nodes, nil)
+		err = s.render(w, tree.Nodes, nil)
 	} else {
 		if extend.Tree == nil {
 			return errors.New("template/renderer: extend node is not expanded")
@@ -110,7 +136,7 @@ func Render(wr io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) 
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.render(wr, extend.Tree.Nodes, nil)
+		err = s.render(w, extend.Tree.Nodes, nil)
 	}
 
 	return err

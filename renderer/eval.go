@@ -19,8 +19,12 @@ import (
 var maxInt = decimal.New(int64(^uint(0)>>1), 0)
 var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
 
-// HTML is used for strings that contain HTML so that the show does
-// not escape them. In expressions it behaves like a string.
+// HTML encapsulates a string containing an HTML code that have to be rendered
+// without escape.
+//
+//  // example:
+//  vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
+//
 type HTML string
 
 // Stringer is implemented by any value that behaves like a string.
@@ -28,7 +32,7 @@ type Stringer interface {
 	String() string
 }
 
-// Numberer is implemented by any value that behaves like a number.
+// Numberer is implemented by any variable value that behaves like a number.
 type Numberer interface {
 	Number() decimal.Decimal
 }
