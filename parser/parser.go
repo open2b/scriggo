@@ -51,8 +51,9 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// ParseSource parses src in the context ctx and returns a tree.
-// Nodes Extend, Include and ShowPath are not expanded.
+// ParseSource parses src in the context ctx and returns a tree. Nodes Extend,
+// Import and ShowPath are not expanded (the field Tree is nil), to get an
+// expanded tree call the method Parse of Parser instead.
 func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	switch ctx {

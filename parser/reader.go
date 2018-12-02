@@ -19,15 +19,19 @@ import (
 )
 
 // Reader defines a type that lets you read the source of a template.
-//
 // Read must always return a new tree for each call because the caller can
 // modify the returned tree.
+//
+// Implementations of Reader should  use the function ParseSource to parse
+// the source and get the corresponding tree.
 type Reader interface {
 	Read(path string, ctx ast.Context) (*ast.Tree, error)
 }
 
 // DirReader implements a Reader that reads the source of a template
 // from files in a directory.
+//
+// Instead use DirLimitedReader if you want to limit the size of files.
 type DirReader string
 
 // Read implements the Read method of Reader.
@@ -59,7 +63,11 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 // DirLimitedReader implements a Reader that reads the source of a template
 // from files in a directory limiting the maximum file size and the total
 // bytes read from all files.
-// It can be used concurrently.
+//
+// Use DirLimitedReader, instead of DirReader, when you do not have control
+// of file sizes. Note that a Parser reads a path with a specific context
+// only once, so DirLimitedReader can be passed to a Parser to prevent it
+// from allocating too much memory.
 type DirLimitedReader struct {
 	dir       string
 	maxFile   int
