@@ -7,7 +7,6 @@
 package parser
 
 import (
-	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -36,9 +35,6 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
 	}
-	if path[0] != '/' {
-		return nil, errors.New("template/parser: path for reader must be absolute")
-	}
 	src, err := ioutil.ReadFile(filepath.Join(string(dir), path))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -48,8 +44,12 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 	tree, err := Parse(src, ctx)
 	if err != nil {
-		if err2, ok := err.(*Error); ok {
-			err2.Path = path
+		if e, ok := err.(*Error); ok {
+			if path[0] == '/' {
+				e.Path = path
+			} else {
+				e.Path = "/" + path
+			}
 		}
 		return nil, err
 	}
@@ -89,9 +89,6 @@ var testReader func(io.Reader) io.Reader
 func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
-	}
-	if path[0] != '/' {
-		return nil, errors.New("template/parser: path for reader must be absolute")
 	}
 	// Opens the file.
 	f, err := os.Open(filepath.Join(dr.dir, path))
@@ -168,8 +165,12 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 	// Parses the tree.
 	tree, err := Parse(src[:n], ctx)
 	if err != nil {
-		if err2, ok := err.(*Error); ok {
-			err2.Path = path
+		if e, ok := err.(*Error); ok {
+			if path[0] == '/' {
+				e.Path = path
+			} else {
+				e.Path = "/" + path
+			}
 		}
 		return nil, err
 	}
@@ -188,6 +189,12 @@ type MapReader map[string][]byte
 
 // Read implements the Read method of the Reader.
 func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+	if !validPath(path) {
+		return nil, ErrInvalidPath
+	}
+	if path[0] == '/' {
+		path = path[1:]
+	}
 	src, ok := r[path]
 	if !ok {
 		return nil, ErrNotExist
@@ -195,7 +202,7 @@ func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	tree, err := Parse(src, ctx)
 	if err != nil {
 		if e, ok := err.(*Error); ok {
-			e.Path = path
+			e.Path = "/" + path
 		}
 	}
 	return tree, err
