@@ -71,8 +71,7 @@
 //  any:      the interface{} type
 //
 // If a value has a type that implements Renderer, the method Render will be
-// called when the value have to be written to the writer w. See the
-// documentation for Renderer.
+// called when the value have to be rendered. See the Renderer documentation.
 //
 // If a value has a map type, their keys will be the names of the fields of
 // the template struct.

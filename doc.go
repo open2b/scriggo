@@ -63,13 +63,13 @@
 //
 //  // Parses a file and get the resulted tree expanded with extended
 //  // and included files.
-//  tree, err := p.Parse("index.html", ast.ContextHTML)
+//  tree, err := p.ParseSource("index.html", ast.ContextHTML)
 //  if err != nil {
 //      log.Fatalf("parsing error: %s", err)
 //  }
 //
 //  // Renders the parsed tree.
-//  err = renderer.Render(w, tree, vars, func(err error) bool {
+//  err = renderer.RenderTree(w, tree, vars, func(err error) bool {
 //      log.Printf("rendering error: %s\n", err)
 //      return true
 //  })
