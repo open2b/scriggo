@@ -798,7 +798,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 					reflect.Complex128,
 					reflect.Ptr,
 					reflect.UnsafePointer:
-					panic(fmt.Errorf("cannot use type %s as parameter for a global function", inKind))
+					panic(fmt.Errorf("cannot use %s as function parameter type", inKind))
 				}
 				expectedType := typeof(reflect.Zero(in).Interface())
 				panic(s.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
@@ -917,7 +917,7 @@ func asBase(v interface{}) interface{} {
 	case Numberer:
 		return vv.Number()
 	case complex64, complex128, uintptr:
-		panic(fmt.Errorf("cannot use type %T for global values", vv))
+		panic(fmt.Errorf("cannot use %T as implementation type", vv))
 	// string
 	case string:
 		return v
