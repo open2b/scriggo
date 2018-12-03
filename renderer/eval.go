@@ -9,7 +9,9 @@ package renderer
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
+	"strconv"
 
 	"open2b/template/ast"
 
@@ -781,8 +783,25 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 			} else if reflect.TypeOf(arg).AssignableTo(in) {
 				args[i] = reflect.ValueOf(arg)
 			} else {
+				switch inKind {
+				case reflect.Int8,
+					reflect.Int16,
+					reflect.Int32,
+					reflect.Int64,
+					reflect.Uint,
+					reflect.Uint8,
+					reflect.Uint16,
+					reflect.Uint32,
+					reflect.Uint64,
+					reflect.Uintptr,
+					reflect.Complex64,
+					reflect.Complex128,
+					reflect.Ptr,
+					reflect.UnsafePointer:
+					panic(fmt.Errorf("cannot use type %s as parameter for a global function", inKind))
+				}
 				expectedType := typeof(reflect.Zero(in).Interface())
-				panic(s.errorf(node, "cannot use %#v (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
+				panic(s.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
 			}
 		}
 	}
@@ -865,12 +884,40 @@ func asBase(v interface{}) interface{} {
 	// number
 	case int:
 		return vv
+	case uint:
+		return decimal.NewFromBigInt(new(big.Int).SetUint64(uint64(vv)), 0)
+	case int8:
+		return int(vv)
+	case int16:
+		return int(vv)
+	case int32:
+		return int(vv)
+	case int64:
+		if strconv.IntSize == 32 {
+			return decimal.New(vv, 0)
+		}
+		return int(vv)
+	case uint8:
+		return int(vv)
+	case uint16:
+		return int(vv)
+	case uint32:
+		if strconv.IntSize == 32 {
+			return decimal.New(int64(vv), 0)
+		}
+		return int(vv)
+	case uint64:
+		return decimal.NewFromBigInt(new(big.Int).SetUint64(vv), 0)
+	case float32:
+		return decimal.NewFromFloat32(vv)
 	case float64:
 		return decimal.NewFromFloat(vv)
 	case decimal.Decimal:
 		return v
 	case Numberer:
 		return vv.Number()
+	case complex64, complex128, uintptr:
+		panic(fmt.Errorf("cannot use type %T for global values", vv))
 	// string
 	case string:
 		return v

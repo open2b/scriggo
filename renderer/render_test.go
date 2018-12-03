@@ -200,6 +200,30 @@ var rendererExprTests = []struct {
 	{"f(`a`, `b`)", "a,b", scope{"f": func(s ...string) string { return strings.Join(s, ",") }}},
 	{"f(5)", "5 ", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
 	{"f(5, `a`, `b`)", "5 a,b", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
+
+	// number types
+	{"1+a", "3", scope{"a": int(2)}},
+	{"1+a", "3", scope{"a": int8(2)}},
+	{"1+a", "3", scope{"a": int16(2)}},
+	{"1+a", "3", scope{"a": int32(2)}},
+	{"1+a", "3", scope{"a": int64(2)}},
+	{"1+a", "3", scope{"a": uint8(2)}},
+	{"1+a", "3", scope{"a": uint16(2)}},
+	{"1+a", "3", scope{"a": uint32(2)}},
+	{"1+a", "3", scope{"a": uint64(2)}},
+	{"1+a", "3.5", scope{"a": float32(2.5)}},
+	{"1+a", "3.5", scope{"a": float64(2.5)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int8(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int16(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int32(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int64(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint8(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint16(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint32(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint64(2)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float32(2.0)}},
+	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float64(2.0)}},
 }
 
 var rendererStmtTests = []struct {
