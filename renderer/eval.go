@@ -797,7 +797,9 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 					reflect.Complex64,
 					reflect.Complex128,
 					reflect.Ptr,
-					reflect.UnsafePointer:
+					reflect.UnsafePointer,
+					reflect.Float32,
+					reflect.Float64:
 					panic(fmt.Errorf("cannot use %s as function parameter type", inKind))
 				}
 				expectedType := typeof(reflect.Zero(in).Interface())
