@@ -6,15 +6,16 @@
 
 // Package renderer implements methods to render template trees.
 //
-// To render a tree use the function Render, where w is the writer where to
-// write the result and vars declares the global variables that will be
+// To render a tree use the function RenderTree, where w is the writer where
+// to write the result and vars declares the global variables that will be
 // defined during rendering:
 //
-//  err := renderer.Render(w, path, vars, h)
+//  err := renderer.RenderTree(w, tree, vars, h)
 //
 // Global Variables
 //
-// Global variables are defined by the vars parameter of Render. vars can be:
+// Global variables are defined by the vars parameter of RenderTree.
+// vars can be:
 //
 //   * nil
 //   * a map with a key of type string
@@ -69,16 +70,16 @@
 //
 //  any:      the interface{} type
 //
-// If a value has a type that implements renderer.WriterTo, the method WriteTo
-// will be called when the value have to be written to the writer w. See the
-// documentation of renderer.WriterTo.
+// If a value has a type that implements Renderer, the method Render will be
+// called when the value have to be written to the writer w. See the
+// documentation for Renderer.
 //
-// If a value has a map type, their keys will be the names of the fields of the
-// template struct.
+// If a value has a map type, their keys will be the names of the fields of
+// the template struct.
 //
 // If a value has type pointer to a struct, the names of the exported fields
-// of the struct will be the field names of the template struct. If an exported
-// field has the tag "template" the field name is defined by the tag as for the
-// vars.
+// of the struct will be the field names of the template struct. If an
+// exported field has the tag "template" the field name is defined by the tag
+// as for the vars.
 //
 package renderer

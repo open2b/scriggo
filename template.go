@@ -47,8 +47,9 @@ var (
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-// A RenderErrors value is returned from Render when one or more rendering
-// errors occur. Reports all rendering errors in the order in which they occurred.
+// A RenderErrors value is returned from a Render method when one or more
+// rendering errors occur. Reports all rendering errors in the order in which
+// they occurred.
 type RenderErrors []*RenderError
 
 func (ee RenderErrors) Error() string {
@@ -79,14 +80,14 @@ func NewDir(dir string, ctx Context) *Dir {
 	return &Dir{parser: parser.NewParser(r), ctx: ctx}
 }
 
-// Render renders the template file with the specified path, relative to
-// the template directory, and writes the result to out. The variables in
-// vars are defined in the environment during rendering.
+// RenderTree renders the template file with the specified path, relative to
+// the template directory, and writes the result to out. The variables in vars
+// are defined in the environment during rendering.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
 //
-// It is safe to call Render concurrently by more goroutines.
+// It is safe to call RenderTree concurrently by more goroutines.
 func (d *Dir) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := d.parser.Parse(path, d.ctx)
 	if err != nil {
@@ -110,14 +111,14 @@ func NewMap(sources map[string][]byte, ctx Context) *Map {
 	return &Map{parser: parser.NewParser(r), ctx: ctx}
 }
 
-// Render renders the template source with the specified path and writes the
-// result to out. The variables in vars are defined in the environment during
-// rendering.
+// RenderTree renders the template source with the specified path and writes
+// the result to out. The variables in vars are defined in the environment
+// during rendering.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
 //
-// It is safe to call Render concurrently by more goroutines.
+// It is safe to call RenderTree concurrently by more goroutines.
 func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := d.parser.Parse(path, d.ctx)
 	if err != nil {
@@ -126,17 +127,17 @@ func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
 	return render(out, tree, vars)
 }
 
-// Render renders the template source src, in context ctx, and writes
+// RenderTree renders the template source src, in context ctx, and writes
 // the result to out. The variables in vars are defined in the environment
 // during rendering.
 //
 // Statements "extend", "import" and "show <path>" cannot be used with
-// Render, use the method Render of Dir and Map instead.
+// RenderTree, use the method RenderTree of Dir and Map instead.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
 //
-// It is safe to call Render concurrently by more goroutines.
+// It is safe to call RenderTree concurrently by more goroutines.
 func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
 	tree, err := parser.ParseSource(src, ctx)
 	if err != nil {
@@ -150,7 +151,7 @@ func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
 // during rendering.
 //
 // Statements "extend", "import" and "show <path>" cannot be used with
-// RenderString, use the method Render of Dir and Map instead.
+// RenderString, use the method RenderTree of Dir and Map instead.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
@@ -167,13 +168,13 @@ func RenderString(out io.Writer, src string, ctx Context, vars interface{}) erro
 // render renders tree and write the result to out. The variables in
 // vars are defined in the environment during rendering.
 func render(out io.Writer, tree *ast.Tree, vars interface{}) error {
-	var errors RenderErrors
-	err := renderer.Render(out, tree, vars, func(err error) bool {
+	var errs RenderErrors
+	err := renderer.RenderTree(out, tree, vars, func(err error) bool {
 		if e, ok := err.(*RenderError); ok {
-			if errors == nil {
-				errors = RenderErrors{e}
+			if errs == nil {
+				errs = RenderErrors{e}
 			} else {
-				errors = append(errors, e)
+				errs = append(errs, e)
 			}
 			return true
 		}
@@ -182,8 +183,8 @@ func render(out io.Writer, tree *ast.Tree, vars interface{}) error {
 	if err != nil {
 		return err
 	}
-	if errors != nil {
-		return errors
+	if errs != nil {
+		return errs
 	}
 	return nil
 }

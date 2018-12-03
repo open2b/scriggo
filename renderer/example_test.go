@@ -26,7 +26,7 @@ func ExampleRender() {
 
 	vars := map[string]string{"title": "The Catcher in the Rye"}
 
-	err = renderer.Render(os.Stdout, tree, vars, nil)
+	err = renderer.RenderTree(os.Stdout, tree, vars, nil)
 	if err != nil {
 		log.Fatalf("rendering error: %s", err)
 	}
@@ -44,7 +44,7 @@ func ExampleRender_2() {
 
 	vars := map[string]string{"title": "The Catcher in the Rye"}
 
-	err = renderer.Render(os.Stdout, tree, vars, func(err error) bool {
+	err = renderer.RenderTree(os.Stdout, tree, vars, func(err error) bool {
 		log.Printf("rendering error: %s\n", err)
 		return true
 	})

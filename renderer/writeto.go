@@ -23,7 +23,7 @@ import (
 
 func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstate *urlState) error {
 
-	if e, ok := expr.(WriterTo); ok && node.Context == s.treeContext {
+	if e, ok := expr.(Renderer); ok && node.Context == s.treeContext {
 
 		err := func() (err error) {
 			defer func() {
@@ -31,7 +31,7 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 					err = s.errorf(node, "%s", e)
 				}
 			}()
-			_, err = e.WriteTo(wr)
+			_, err = e.Render(wr)
 			return err
 		}()
 		if err != nil {

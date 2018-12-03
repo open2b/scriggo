@@ -26,7 +26,7 @@ type aNumber struct {
 	v int
 }
 
-func (n aNumber) WriteTo(w io.Writer) (int, error) {
+func (n aNumber) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
 }
 
@@ -38,7 +38,7 @@ type aString struct {
 	v string
 }
 
-func (s aString) WriteTo(w io.Writer) (int, error) {
+func (s aString) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+s.v)
 }
 
@@ -316,7 +316,7 @@ func TestRenderExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Render(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -336,7 +336,7 @@ func TestRenderStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = Render(b, tree, stmt.vars, nil)
+		err = RenderTree(b, tree, stmt.vars, nil)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -361,31 +361,31 @@ func TestVarsToScope(t *testing.T) {
 	}
 }
 
-type WriteToError struct{}
+type RenderError struct{}
 
-func (wr WriteToError) WriteTo(w io.Writer) (int, error) {
-	return 0, errors.New("WriteTo error")
+func (wr RenderError) Render(w io.Writer) (int, error) {
+	return 0, errors.New("RenderTree error")
 }
 
-type WriteToPanic struct{}
+type RenderPanic struct{}
 
-func (wr WriteToPanic) WriteTo(w io.Writer) (int, error) {
-	panic("WriteTo panic")
+func (wr RenderPanic) Render(w io.Writer) (int, error) {
+	panic("RenderTree panic")
 }
 
-func TestWriteToErrors(t *testing.T) {
+func TestRenderErrors(t *testing.T) {
 	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)}, ast.ContextHTML)
-	err := Render(ioutil.Discard, tree, scope{"a": WriteToError{}}, nil)
+	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
-	} else if err.Error() != "WriteTo error" {
-		t.Errorf("unexpected error %q, expecting 'WriteTo error'\n", err)
+	} else if err.Error() != "RenderTree error" {
+		t.Errorf("unexpected error %q, expecting 'RenderTree error'\n", err)
 	}
 
-	err = Render(ioutil.Discard, tree, scope{"a": WriteToPanic{}}, nil)
+	err = RenderTree(ioutil.Discard, tree, scope{"a": RenderPanic{}}, nil)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
-	} else if err.Error() != "WriteTo panic" {
-		t.Errorf("unexpected error %q, expecting 'WriteTo panic'\n", err)
+	} else if err.Error() != "RenderTree panic" {
+		t.Errorf("unexpected error %q, expecting 'RenderTree panic'\n", err)
 	}
 }
