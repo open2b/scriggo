@@ -218,7 +218,6 @@ func _len(v interface{}) int {
 			return len(string(s))
 		}
 		return utf8.RuneCountInString(string(s))
-		return 0
 	case []int:
 		return len(s)
 	case []decimal.Decimal:
