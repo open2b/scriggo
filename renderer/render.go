@@ -79,14 +79,6 @@ var scopeType = reflect.TypeOf(scope{})
 // as h had returned false. Other errors, such as writing errors, are returned
 // immediately without calling h.
 //
-// vars can be:
-//
-//   * nil
-//   * a map with a key of type string
-//   * a type with underlying type one of the previous map types
-//   * a struct or pointer to struct
-//   * a reflect.Value whose concrete value meets one of the previous ones
-//
 func Render(w io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) error {
 
 	if w == nil {

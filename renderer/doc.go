@@ -48,29 +48,29 @@
 // Each template type is implemented with a type of Go. The following are the
 // template types and their implementation types in Go:
 //
-//  bool:     the bool type and any other type convertible to bool
+//  bool:     the bool type
 //
-//  string:   the types string, renderer.HTML, the types convertible to string
-//            and the types implementing the interface Stringer
+//  string:   the types string, renderer.HTML and the types implementing the
+//            interface renderer.Stringer
 //
-//  number:   the types int, float64, decimal.Decimal (github.com/shopspring/decimal),
-//            the types convertible to int and float64 and the types
-//            implementing the interface Numberer
+//  number:   all integer and floating-point types (excluding uintptr),
+//            decimal.Decimal [github.com/shopspring/decimal] and the types
+//            implementing the interface renderer.Numberer
 //
-//  struct:   a type struct pointer, a type map with keys of type string
+//  struct:   a struct pointer type, a map type with keys of type string
 //            and the types convertible to these types
 //
 //  slice:    a slice type
 //
-//  function: a function type with parameters and return types the other
-//            implementation types
+//  function: a function type with only one return value. As numeric parameter
+//            types, only int and decimal.Decimal can be used.
 //
 // If a value has a type that implements renderer.WriterTo, the method WriteTo
 // will be called when the value have to be written to the writer w. See the
 // documentation of renderer.WriterTo.
 //
-// If a value has type map[string]interface{}, their keys will be the names of
-// the fields of the template struct.
+// If a value has a map type, their keys will be the names of the fields of the
+// template struct.
 //
 // If a value has type pointer to a struct, the names of the exported fields
 // of the struct will be the field names of the template struct. If an exported
