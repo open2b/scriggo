@@ -57,6 +57,8 @@
 //            decimal.Decimal [github.com/shopspring/decimal] and the types
 //            implementing the interface renderer.Numberer
 //
+//  int:      the int type
+//
 //  struct:   a struct pointer type, a map type with keys of type string
 //            and the types convertible to these types
 //
