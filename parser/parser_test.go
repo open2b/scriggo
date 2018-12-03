@@ -181,7 +181,7 @@ func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 func TestPages(t *testing.T) {
 	tests := pageTests()
 	// simple.html
-	parser := NewParser(testsReader(tests))
+	parser := New(testsReader(tests))
 	p := tests["/simple.html"]
 	tree, err := parser.Parse("/simple.html", ast.ContextHTML)
 	if err != nil {

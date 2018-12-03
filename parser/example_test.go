@@ -8,7 +8,6 @@ package parser_test
 
 import (
 	"log"
-	"open2b/template"
 
 	"open2b/template/ast"
 	"open2b/template/parser"
@@ -34,7 +33,7 @@ func ExampleParseSource() {
 func ExampleParser_Parse() {
 
 	r := parser.DirReader("./template/")
-	p := parser.NewParser(r)
+	p := parser.New(r)
 
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {

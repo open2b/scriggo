@@ -723,8 +723,8 @@ type Parser struct {
 	trees  *cache
 }
 
-// NewParser returns a new Parser that reads the trees from the reader r.
-func NewParser(r Reader) *Parser {
+// New returns a new Parser that reads the trees from the reader r.
+func New(r Reader) *Parser {
 	return &Parser{
 		reader: r,
 		trees:  &cache{},

@@ -86,7 +86,7 @@ type Dir struct {
 // context ctx.
 func NewDir(dir string, ctx Context) *Dir {
 	var r = parser.DirReader(dir)
-	return &Dir{parser: parser.NewParser(r), ctx: ctx}
+	return &Dir{parser: parser.New(r), ctx: ctx}
 }
 
 // RenderTree renders the template file with the specified path, relative to
@@ -117,17 +117,17 @@ type Map struct {
 // ctx.
 func NewMap(sources map[string][]byte, ctx Context) *Map {
 	var r = parser.MapReader(sources)
-	return &Map{parser: parser.NewParser(r), ctx: ctx}
+	return &Map{parser: parser.New(r), ctx: ctx}
 }
 
-// RenderTree renders the template source with the specified path and writes
+// Render renders the template source with the specified path and writes
 // the result to out. The variables in vars are defined in the environment
 // during rendering.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
 //
-// It is safe to call RenderTree concurrently by more goroutines.
+// It is safe to call Render concurrently by more goroutines.
 func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := d.parser.Parse(path, d.ctx)
 	if err != nil {
@@ -136,17 +136,17 @@ func (d *Map) Render(out io.Writer, path string, vars interface{}) error {
 	return render(out, tree, vars)
 }
 
-// RenderTree renders the template source src, in context ctx, and writes
+// Render renders the template source src, in context ctx, and writes
 // the result to out. The variables in vars are defined in the environment
 // during rendering.
 //
 // Statements "extend", "import" and "show <path>" cannot be used with
-// RenderTree, use the method RenderTree of Dir and Map instead.
+// Render, use the method Render of Dir or Map instead.
 //
 // In the event of an error during rendering, it continues and then returns
 // a RenderErrors error with all errors that have occurred.
 //
-// It is safe to call RenderTree concurrently by more goroutines.
+// It is safe to call Render concurrently by more goroutines.
 func Render(out io.Writer, src []byte, ctx Context, vars interface{}) error {
 	tree, err := parser.ParseSource(src, ctx)
 	if err != nil {

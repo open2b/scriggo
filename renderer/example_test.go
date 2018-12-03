@@ -17,7 +17,7 @@ import (
 
 func ExampleRender() {
 
-	p := parser.NewParser(parser.DirReader("/home/salinger/book/"))
+	p := parser.New(parser.DirReader("/home/salinger/book/"))
 
 	tree, err := p.Parse("cover.html", ast.ContextHTML)
 	if err != nil {
@@ -35,7 +35,7 @@ func ExampleRender() {
 
 func ExampleRender_2() {
 
-	p := parser.NewParser(parser.DirReader("/home/salinger/book/"))
+	p := parser.New(parser.DirReader("/home/salinger/book/"))
 
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {
