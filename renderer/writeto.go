@@ -133,8 +133,6 @@ func interfaceToHTML(expr interface{}) (string, bool) {
 	switch e := expr.(type) {
 	case string:
 		s = htmlEscape(e)
-	case HTML:
-		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Decimal:

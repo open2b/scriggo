@@ -9,6 +9,7 @@ package renderer
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -21,13 +22,26 @@ import (
 var maxInt = decimal.New(int64(^uint(0)>>1), 0)
 var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
 
-// HTML encapsulates a string containing an HTML code that have to be rendered
-// without escape.
+// HTML is a Renderer that encapsulates a string containing an HTML code that
+// have to be rendered without escape.
 //
-//  // example:
-//  vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
+// HTML values are safe to use in concatenation. An HTML value concatenated
+// with a string become an HTML value with only the string escaped.
+//
+//  // For example, defining the variables "going" and "where" as:
+//
+//  vars := map[string]interface{}{
+//      "going": renderer.HTML("<a href="/">going</a>"),
+//      "where": " >> here & there",
+//  }
+//
+//  // {{ going + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
 //
 type HTML string
+
+func (s HTML) Render(w io.Writer) (int, error) {
+	return io.WriteString(w, string(s))
+}
 
 // Stringer is implemented by any value that behaves like a string.
 type Stringer interface {
