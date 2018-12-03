@@ -63,7 +63,9 @@
 //  slice:    a slice type
 //
 //  function: a function type with only one return value. As numeric parameter
-//            types, only int and decimal.Decimal can be used.
+//            types, only int and decimal.Decimal can be used
+//
+//  any:      the interface{} type
 //
 // If a value has a type that implements renderer.WriterTo, the method WriteTo
 // will be called when the value have to be written to the writer w. See the
