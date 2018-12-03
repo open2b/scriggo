@@ -15,11 +15,20 @@ import (
 	"open2b/template/renderer"
 )
 
-// HTML encapsulates a string containing an HTML code that have to be rendered
-// without escape.
+// HTML encapsulates a string containing an HTML code that have to be
+// rendered without escape.
 //
-//  // example:
-//  vars := map[string]interface{}{"link": template.HTML("<a href="/">go</a>")}
+// HTML values are safe to use in concatenation. An HTML value concatenated
+// with a string become an HTML value with only the string escaped.
+//
+//  // For example, defining the variables "going" and "where" as:
+//
+//  vars := map[string]interface{}{
+//      "going": template.HTML("<a href="/">going</a>"),
+//      "where": " >> here & there",
+//  }
+//
+//  // {{ going + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
 //
 type HTML = renderer.HTML
 
