@@ -61,9 +61,14 @@ type Renderer interface {
 	Render(out io.Writer, path string, vars interface{}, h ErrorHandle) error
 }
 
-// ErrorHandle is a function called during the rendering when an error occurs.
-// The function receives the error and returns false if the rendering must be terminated or true
-
+// ErrorHandle is an error handler called when an error occurs during a
+// rendering. The function receives the error and if it returns true the
+// rendering continues otherwise it will stop and return the error.
+//
+// An error handler is called only on errors due to the template author as
+// syntax, type and non-existent paths in the template sources. If another
+// type of error occurs, the render returns the error found without calling
+// the error handler.
 type ErrorHandle func(err error) bool
 
 // DirRenderer allows to render files located in a directory with the same
