@@ -29,50 +29,51 @@ const (
 )
 
 var (
-	// ErrInvalidPath is returned from the Render method of Renderer when the
-	// path parameter is not valid.
+	// ErrInvalidPath is returned from a rendering function of method when the
+	// path argument is not valid.
 	ErrInvalidPath = errors.New("template: invalid path")
 
-	// ErrNotExist is returned from the Render method of Renderer when the
-	// path does not exist.
+	// ErrNotExist is returned from a rendering function of method when the
+	// path passed as argument does not exist.
 	ErrNotExist = errors.New("template: path does not exist")
 )
 
-//// A Errors value is returned from a Render method when one or more rendering
-//// errors occur. Reports all rendering errors in the order in which they
-//// occurred.
-//type Errors []*Error
+// Errors is an error that can be returned after a rendering and contains all
+// errors on expressions and statements execution that has occurred during the
+// rendering of the template.
 //
-//func (ee Errors) Error() string {
-//	var s string
-//	for _, e := range ee {
-//		if s != "" {
-//			s += "\n"
-//		}
-//		s += e.Error()
-//	}
-//	return s
-//}
-
-
-// Renderer is the interface that is implemented by types that render template sources given a path.
+// If the argument errs of a rendering function or method is true, these
+// types of errors do not stop the execution. If no other type of error has
+// occurred, at the end, an Errors value is returned with all errors on
+// expressions and statements execution that have occurred.
 //
-type Renderer interface {
-	Render(out io.Writer, path string, vars interface{}, h ErrorHandle) error
+// Syntax errors, not-existing paths, write errors and invalid global
+// variable definitions are all types of errors that always stop rendering.
+//
+// Operations on wrong types, out of bound on a slice, too few arguments in
+// function calls are all types of errors that do not stop the execution if
+// the argument errs is true.
+type Errors []error
+
+func (errs Errors) Error() string {
+	var s string
+	for _, err := range []error(errs) {
+		if s != "" {
+			s += "\n"
+		}
+		s += err.Error()
+	}
+	return s
 }
 
-// ErrorHandle is an error handler called when an error occurs during a
-// rendering. The function receives the error and if it returns true the
-// rendering continues otherwise it will stop and return the error.
-//
-// An error handler is called only on errors due to the template author as
-// syntax, type and non-existent paths in the template sources. If another
-// type of error occurs, the render returns the error found without calling
-// the error handler.
-type ErrorHandle func(err error) bool
+// Renderer is the interface that is implemented by types that render template
+// sources given a path.
+type Renderer interface {
+	Render(out io.Writer, path string, vars interface{}, errs bool) error
+}
 
 // DirRenderer allows to render files located in a directory with the same
-// context. Files are read and parsed the first time that are rendered.
+// context. Files are read and parsed only the first time that are rendered.
 // Subsequents renderings are faster to execute.
 type DirRenderer struct {
 	parser *parser.Parser
@@ -88,21 +89,22 @@ func NewDirRenderer(dir string, ctx Context) *DirRenderer {
 
 // Render renders the template file with the specified path, relative to the
 // template directory, and writes the result to out. The variables in vars are
-// defined in the environment during rendering. In the event of an error
-// during rendering, Render calls h to handle the error. If h il nil, Render
-// stops and returns the error.
+// defined as global variables.
+//
+// If errs is true, errors on expressions and statements execution do not
+// stop the rendering. See the type Errors for more details.
 //
 // It is safe to call Render concurrently by more goroutines.
-func (d *DirRenderer) Render(out io.Writer, path string, vars interface{}, h ErrorHandle) error {
+func (d *DirRenderer) Render(out io.Writer, path string, vars interface{}, errs bool) error {
 	tree, err := d.parser.Parse(path, d.ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return RenderTree(out, tree, vars, h)
+	return RenderTree(out, tree, vars, errs)
 }
 
 // MapRenderer allows to render sources as values of a map with the same
-// context. Files are read and parsed the first time that are rendered.
+// context. Sources are parsed only the first time that are rendered.
 // Subsequents renderings are faster to execute.
 type MapRenderer struct {
 	parser *parser.Parser
@@ -117,36 +119,37 @@ func NewMapRenderer(sources map[string][]byte, ctx Context) *MapRenderer {
 }
 
 // Render renders the template source with the specified path and writes
-// the result to out. The variables in vars are defined in the environment
-// during rendering. In the event of an error during rendering, Render calls
-// h to handle the error. If h il nil, Render stops and returns the error.
+// the result to out. The variables in vars are defined as global variables.
+//
+// If errs is true, errors on expressions and statements execution do not
+// stop the rendering. See the type Errors for more details.
 //
 // It is safe to call Render concurrently by more goroutines.
-func (d *MapRenderer) Render(out io.Writer, path string, vars interface{}, h ErrorHandle) error {
+func (d *MapRenderer) Render(out io.Writer, path string, vars interface{}, errs bool) error {
 	tree, err := d.parser.Parse(path, d.ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return RenderTree(out, tree, vars, h)
+	return RenderTree(out, tree, vars, errs)
 }
 
 // RenderSource renders the template source src, in context ctx, and writes
-// the result to out. The variables in vars are defined in the environment
-// during rendering. In the event of an error during rendering, RenderSource
-// calls h to handle the error. If h il nil, RenderSource stops and returns
-// the error.
+// the result to out. The variables in vars are defined as global variables.
+//
+// If errs is true, errors on expressions and statements execution do not
+// stop the rendering. See the type Errors for more details.
 //
 // Statements "extend", "import" and "show <path>" cannot be used with
 // RenderSource, use the function RenderTree or the method Render of a
 // Renderer, as DirRenderer and MapRenderer, instead.
 //
 // It is safe to call RenderSource concurrently by more goroutines.
-func RenderSource(out io.Writer, src []byte, ctx Context, vars interface{}, h ErrorHandle) error {
+func RenderSource(out io.Writer, src []byte, ctx Context, vars interface{}, errs bool) error {
 	tree, err := parser.ParseSource(src, ctx)
 	if err != nil {
 		return convertError(err)
 	}
-	return RenderTree(out, tree, vars, h)
+	return RenderTree(out, tree, vars, errs)
 }
 
 func convertError(err error) error {

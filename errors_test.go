@@ -48,22 +48,21 @@ func TestErrors(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		var e error
-		err = RenderTree(b, tree, expr.vars, func(err error) bool {
-			e = err
-			t.Log(err)
-			return true
-		})
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
+		err = RenderTree(b, tree, expr.vars, true)
+		if err == nil {
+			t.Errorf("source: %q, expecting error\n", expr.src)
 			continue
 		}
-		if e == nil {
-			t.Errorf("source: %q, expecting error\n", expr.src)
-		}
-		var res = b.String()
-		if res != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		if errs, ok := err.(Errors); ok {
+			if len(errs) > 1 {
+				t.Errorf("source: %q, unexpected %d errors, expecting 1 error\n", expr.src, len(errs))
+				continue
+			}
+			if res := b.String(); res != expr.res {
+				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+			}
+		} else {
+			t.Errorf("source: %q, %s\n", expr.src, err)
 		}
 	}
 }

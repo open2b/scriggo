@@ -29,18 +29,17 @@ type Error struct {
 	Err  error
 }
 
-func (e *Error) Error() string {
-	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
+func (err *Error) Error() string {
+	return fmt.Sprintf("%s:%s: %s", err.Path, err.Pos, err.Err)
 }
 
-// ValueRenderer can be implemented by the values of variables. For the statement
-// {{ expr }}, if the value resulting from the evaluation of expr has a type
-// that implements Renderer, the method RenderTree on that value is called to
-// render the statement.
+// ValueRenderer can be implemented by the values of variables. When a value
+// have to be rendered, if the value implements ValueRender its Render method
+// is called.
 //
-// RenderTree is called only if the context in witch the statement is rendered
-// is the same context of the tree (the context passed as argument to
-// Parse and ParseSource and assigned to the field Context of the tree).
+// Render on the value is called only if the context in witch the statement
+// is rendered is the same context passed as argument to a renderer function
+// or method.
 //
 // For example if this source is parsed in context HTML:
 //
@@ -48,13 +47,13 @@ func (e *Error) Error() string {
 //  <script>var b = {{ expr }};</script>
 //
 // the first statement has context Attribute, the second has context HTML and
-// the third has context Script, so RenderTree would only be called on the
-// second statement.
+// the third has context Script, so Render would only be called on the second
+// statement.
 //
-// Render returns the number of bytes written to w and any error encountered
+// Render returns the number of bytes written to out and any error encountered
 // during the write.
 type ValueRenderer interface {
-	Render(w io.Writer) (n int, err error)
+	Render(out io.Writer) (n int, err error)
 }
 
 // errBreak returned from rendering the "break" statement.
@@ -70,17 +69,22 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
+func stopOnError(err error) bool {
+	return false
+}
+
 // RenderTree renders tree and writes the result to out. The variables in vars
-// are defined in the environment during rendering. In the event of an error
-// during rendering, RenderTree calls h to handle the error. If h il nil,
-// RenderTree stops and returns the error.
+// are defined as global variables.
 //
-// If you have template sources instead or you don't want to deal with trees,
-// use the function RenderSource or the Render method of a Renderer as
-// DirRenderer and MapRenderer.
+// If errs is true, errors on expressions and statements execution do not
+// stop the rendering. See the type Errors for more details.
+//
+// If you have template sources instead or you do not want to deal directly
+// with trees, use the function RenderSource or the Render method of a
+// Renderer as DirRenderer and MapRenderer.
 //
 // It is safe to call RenderTree concurrently by more goroutines.
-func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, h ErrorHandle) error {
+func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, errs bool) error {
 
 	if out == nil {
 		return errors.New("template/renderer: w is nil")
@@ -94,16 +98,20 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, h ErrorHandle) 
 		return err
 	}
 
-	if h == nil {
-		h = func(err error) bool { return false }
-	}
-
 	s := &state{
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
 		treeContext: tree.Context,
-		handleError: h,
+		handleError: stopOnError,
+	}
+
+	var noStopErrors []error
+	if errs {
+		s.handleError = func(err error) bool {
+			noStopErrors = append(noStopErrors, err)
+			return true
+		}
 	}
 
 	extend := getExtendNode(tree)
@@ -130,6 +138,10 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, h ErrorHandle) 
 		}
 		s.vars = []scope{builtins, globals, vars}
 		err = s.render(out, extend.Tree.Nodes, nil)
+	}
+
+	if err == nil && noStopErrors != nil {
+		err = Errors(noStopErrors)
 	}
 
 	return err

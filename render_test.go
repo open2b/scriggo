@@ -316,7 +316,7 @@ func TestRenderExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -336,7 +336,7 @@ func TestRenderStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, stmt.vars, nil)
+		err = RenderTree(b, tree, stmt.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -375,14 +375,14 @@ func (wr RenderPanic) Render(w io.Writer) (int, error) {
 
 func TestRenderErrors(t *testing.T) {
 	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)}, ast.ContextHTML)
-	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, nil)
+	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, false)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "RenderTree error" {
 		t.Errorf("unexpected error %q, expecting 'RenderTree error'\n", err)
 	}
 
-	err = RenderTree(ioutil.Discard, tree, scope{"a": RenderPanic{}}, nil)
+	err = RenderTree(ioutil.Discard, tree, scope{"a": RenderPanic{}}, false)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "RenderTree panic" {

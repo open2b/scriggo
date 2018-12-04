@@ -66,7 +66,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -130,7 +130,7 @@ func TestAttributeContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -197,7 +197,7 @@ func TestURLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -270,7 +270,7 @@ func TestScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, nil)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -312,7 +312,7 @@ func TestScriptStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.vars, nil)
+			err = RenderTree(b, tree, expr.vars, false)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -357,7 +357,7 @@ func TestCSSStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.vars, nil)
+			err = RenderTree(b, tree, expr.vars, false)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
