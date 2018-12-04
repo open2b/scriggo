@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package renderer
+package template
 
 import (
 	"bytes"
@@ -33,7 +33,7 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
-// Renderer can be implemented by the types of variables. For the statement
+// ValueRenderer can be implemented by the values of variables. For the statement
 // {{ expr }}, if the value resulting from the evaluation of expr has a type
 // that implements Renderer, the method RenderTree on that value is called to
 // render the statement.
@@ -51,9 +51,9 @@ func (e *Error) Error() string {
 // the third has context Script, so RenderTree would only be called on the
 // second statement.
 //
-// RenderTree returns the number of bytes written to w and any error
-// encountered during the write.
-type Renderer interface {
+// Render returns the number of bytes written to w and any error encountered
+// during the write.
+type ValueRenderer interface {
 	Render(w io.Writer) (n int, err error)
 }
 
@@ -70,18 +70,19 @@ type scope map[string]interface{}
 
 var scopeType = reflect.TypeOf(scope{})
 
-// RenderTree renders tree and writes the result to w. The variables in vars are
-// defined in the environment during rendering.
+// RenderTree renders tree and writes the result to out. The variables in vars
+// are defined in the environment during rendering. In the event of an error
+// during rendering, RenderTree calls h to handle the error. If h il nil,
+// RenderTree stops and returns the error.
 //
-// If a parser.Error or renderer.Error occurs, RenderTree calls h passing the
-// error as argument. If h returns false, RenderTree stops and returns the
-// error occurred. If h returns true, RenderTree continues. If h is nil,
-// RenderTree behaves as h had returned false. Other errors, such as writing
-// errors, are returned immediately without calling h.
+// If you have template sources instead or you don't want to deal with trees,
+// use the function RenderSource or the Render method of a Renderer as
+// DirRenderer and MapRenderer.
 //
-func RenderTree(w io.Writer, tree *ast.Tree, vars interface{}, h func(error) bool) error {
+// It is safe to call RenderTree concurrently by more goroutines.
+func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, h ErrorHandle) error {
 
-	if w == nil {
+	if out == nil {
 		return errors.New("template/renderer: w is nil")
 	}
 	if tree == nil {
@@ -107,7 +108,7 @@ func RenderTree(w io.Writer, tree *ast.Tree, vars interface{}, h func(error) boo
 
 	extend := getExtendNode(tree)
 	if extend == nil {
-		err = s.render(w, tree.Nodes, nil)
+		err = s.render(out, tree.Nodes, nil)
 	} else {
 		if extend.Tree == nil {
 			return errors.New("template/renderer: extend node is not expanded")
@@ -128,7 +129,7 @@ func RenderTree(w io.Writer, tree *ast.Tree, vars interface{}, h func(error) boo
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.render(w, extend.Tree.Nodes, nil)
+		err = s.render(out, extend.Tree.Nodes, nil)
 	}
 
 	return err

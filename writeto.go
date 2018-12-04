@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package renderer
+package template
 
 import (
 	"html"
@@ -23,7 +23,7 @@ import (
 
 func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstate *urlState) error {
 
-	if e, ok := expr.(Renderer); ok && node.Context == s.treeContext {
+	if e, ok := expr.(ValueRenderer); ok && node.Context == s.treeContext {
 
 		err := func() (err error) {
 			defer func() {

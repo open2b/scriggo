@@ -7,7 +7,6 @@
 // Package template implements a template engine for Go for text, HTML, CSS
 // and JavaScript files.
 //
-//
 //  {% import conv "converter.html" %}
 //  <html>
 //  <body>
@@ -41,37 +40,72 @@
 //  m := template.NewMap(sources, template.ContextText)
 //  err := m.Render(w, "names.csv", vars)
 //
-// Advanced Usage
+// Variables
 //
-// Package template is for a basic usage. For an advanced usage see instead
-// the sub-packages ast, parser and renderer.
+// Variables are defined by the vars parameter of RenderTree. vars can be:
 //
-//  // Advanced usage example.
+//   * nil
+//   * a map with a key of type string
+//   * a type with underlying type one of the previous map types
+//   * a struct or pointer to struct
+//   * a reflect.Value whose concrete value meets one of the previous ones
 //
-//  import (
-//      "open2b/template/ast"
-//      "open2b/template/parser"
-//      "open2b/template/renderer"
-//  )
+// If vars is a map or have type with underlying type a map, the map keys that
+// are valid identifier names in Go and their values will be names and values
+// of the global variables.
 //
-//  // Creates a reader to read from a directory with control of files size.
-//  maxSize := 1024 * 1204
-//  reader := parser.NewDirLimitedReader("./template/", maxSize, maxSize * 10)
+// If vars is a struct or pointer to a struct, the names of the exported
+// fields of the struct will be names and values of the global variables.
+// If an exported field has the tag "template" the variable name is defined
+// by the tag.
 //
-//  // Creates a parses that read the files from the reader.
-//  p := parser.New(reader)
+// For example, if vars has type:
 //
-//  // Parses a file and get the resulted tree expanded with extended
-//  // and included files.
-//  tree, err := p.ParseSource("index.html", ast.ContextHTML)
-//  if err != nil {
-//      log.Fatalf("parsing error: %s", err)
+//  struct {
+//      Name          string `template:"name"`
+//      StockQuantity int    `template:"stock"`
 //  }
 //
-//  // Renders the parsed tree.
-//  err = renderer.RenderTree(w, tree, vars, func(err error) bool {
-//      log.Printf("rendering error: %s\n", err)
-//      return true
-//  })
+// The global variables will be "name" and "stock".
+//
+// If vars is nil, there will be no global variables besides the builtin
+// variables.
+//
+// Types
+//
+// Each template type is implemented with a type of Go. The following are the
+// template types and their implementation types in Go:
+//
+//  bool:     the bool type
+//
+//  string:   the types string, renderer.HTML and the types implementing the
+//            interface renderer.Stringer
+//
+//  number:   all integer and floating-point types (excluding uintptr),
+//            decimal.Decimal [github.com/shopspring/decimal] and the types
+//            implementing the interface renderer.Numberer
+//
+//  int:      the int type
+//
+//  struct:   a struct pointer type, a map type with keys of type string
+//            and the types convertible to these types
+//
+//  slice:    a slice type
+//
+//  function: a function type with only one return value. As numeric parameter
+//            types, only int and decimal.Decimal can be used
+//
+//  any:      the interface{} type
+//
+// If a value has a type that implements Renderer, the method Render will be
+// called when the value have to be rendered. See the Renderer documentation.
+//
+// If a value has a map type, their keys will be the names of the fields of
+// the template struct.
+//
+// If a value has type pointer to a struct, the names of the exported fields
+// of the struct will be the field names of the template struct. If an
+// exported field has the tag "template" the field name is defined by the tag
+// as for the vars.
 //
 package template

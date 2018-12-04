@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package renderer
+package template
 
 import (
 	"errors"
@@ -22,8 +22,8 @@ import (
 var maxInt = decimal.New(int64(^uint(0)>>1), 0)
 var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
 
-// HTML is a Renderer that encapsulates a string containing an HTML code that
-// have to be rendered without escape.
+// HTML is a ValueRenderer that encapsulates a string containing an HTML code
+// that have to be rendered without escape.
 //
 // HTML values are safe to use in concatenation. An HTML value concatenated
 // with a string become an HTML value with only the string escaped.

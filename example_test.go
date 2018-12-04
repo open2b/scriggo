@@ -11,62 +11,51 @@ import (
 	"os"
 
 	"open2b/template"
+	"open2b/template/ast"
+	"open2b/template/parser"
 )
 
-func ExampleRender() {
-
+func ExampleRenderSource() {
 	type Product struct {
 		Name  string
 		Price float32
 	}
-
-	src := []byte(`
-  {% for i, p in products %}
-  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
-  {% end %}`)
 
 	vars := map[string]interface{}{
 		"products": []Product{
 			{Name: "Shirt", Price: 12.99},
 			{Name: "Jacket", Price: 37.49},
 		},
-	}
-
-	err := template.Render(os.Stdout, src, template.ContextText, vars)
-	if err != nil {
-		log.Printf("errors: %s\n", err)
-	}
-
-}
-
-func ExampleRenderString() {
-
-	type Product struct {
-		Name  string
-		Price float32
 	}
 
 	src := `
-  {% for i, p in products %}
-  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
-  {% end %}`
+ {% for i, p in products %}
+ {{ i }}. {{ p.Name }}: $ {{ p.Price }}
+ {% end %}`
 
-	vars := map[string]interface{}{
-		"products": []Product{
-			{Name: "Shirt", Price: 12.99},
-			{Name: "Jacket", Price: 37.49},
-		},
-	}
-
-	err := template.RenderString(os.Stdout, src, template.ContextText, vars)
+	err := template.RenderSource(os.Stdout, []byte(src), template.ContextText, vars, nil)
 	if err != nil {
-		log.Printf("errors: %s\n", err)
+		log.Printf("error: %s\n", err)
 	}
-
 }
 
-func ExampleDir_Render() {
+func ExampleRenderTree() {
+	p := parser.New(parser.DirReader("/home/salinger/book/"))
 
+	tree, err := p.Parse("cover.html", ast.ContextHTML)
+	if err != nil {
+		log.Fatalf("parsing error: %s", err)
+	}
+
+	vars := map[string]string{"title": "The Catcher in the Rye"}
+
+	err = template.RenderTree(os.Stdout, tree, vars, nil)
+	if err != nil {
+		log.Fatalf("rendering error: %s", err)
+	}
+}
+
+func ExampleDirRenderer_Render() {
 	type Product struct {
 		Name  string
 		Price float32
@@ -79,17 +68,15 @@ func ExampleDir_Render() {
 		},
 	}
 
-	d := template.NewDir("./template/", template.ContextHTML)
+	r := template.NewDirRenderer("./template/", template.ContextHTML)
 
-	err := d.Render(os.Stderr, "index.html", vars)
+	err := r.Render(os.Stderr, "index.html", vars, nil)
 	if err != nil {
-		log.Printf("errors: %s\n", err)
+		log.Printf("error: %s\n", err)
 	}
-
 }
 
-func ExampleMap_Render() {
-
+func ExampleMapRenderer_Render() {
 	sources := map[string][]byte{
 		"header.csv": []byte("Name"),
 		"names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
@@ -99,11 +86,10 @@ func ExampleMap_Render() {
 		"names": []string{"Robert", "Mary", "Karen", "William", "Michelle"},
 	}
 
-	m := template.NewMap(sources, template.ContextText)
+	r := template.NewMapRenderer(sources, template.ContextText)
 
-	err := m.Render(os.Stderr, "names.csv", vars)
+	err := r.Render(os.Stderr, "names.csv", vars, nil)
 	if err != nil {
-		log.Printf("errors: %s\n", err)
+		log.Printf("error: %s\n", err)
 	}
-
 }
