@@ -74,17 +74,16 @@ func stopOnError(err error) bool {
 }
 
 // RenderTree renders tree and writes the result to out. The variables in vars
-// are defined as global variables.
-//
-// If errs is true, errors on expressions and statements execution do not
-// stop the rendering. See the type Errors for more details.
+// are defined as global variables. If strict is true, even errors on
+// expressions and statements execution stop the rendering. See the type
+// Errors for more details.
 //
 // If you have template sources instead or you do not want to deal directly
 // with trees, use the function RenderSource or the Render method of a
 // Renderer as DirRenderer and MapRenderer.
 //
 // It is safe to call RenderTree concurrently by more goroutines.
-func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, errs bool) error {
+func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
 	if out == nil {
 		return errors.New("template/renderer: w is nil")
@@ -103,13 +102,14 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, errs bool) erro
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
 		treeContext: tree.Context,
-		handleError: stopOnError,
 	}
 
-	var noStopErrors []error
-	if errs {
+	var noStrictErrors []error
+	if strict {
+		s.handleError = stopOnError
+	} else {
 		s.handleError = func(err error) bool {
-			noStopErrors = append(noStopErrors, err)
+			noStrictErrors = append(noStrictErrors, err)
 			return true
 		}
 	}
@@ -140,8 +140,8 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, errs bool) erro
 		err = s.render(out, extend.Tree.Nodes, nil)
 	}
 
-	if err == nil && noStopErrors != nil {
-		err = Errors(noStopErrors)
+	if err == nil && noStrictErrors != nil {
+		err = Errors(noStrictErrors)
 	}
 
 	return err

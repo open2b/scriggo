@@ -48,7 +48,7 @@ func TestErrors(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.vars, false)
 		if err == nil {
 			t.Errorf("source: %q, expecting error\n", expr.src)
 			continue
