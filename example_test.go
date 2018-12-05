@@ -33,7 +33,7 @@ func ExampleRenderSource() {
  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
  {% end %}`
 
-	err := template.RenderSource(os.Stdout, []byte(src), template.ContextText, vars, false)
+	err := template.RenderSource(os.Stdout, []byte(src), vars, false, template.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}

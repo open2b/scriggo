@@ -142,7 +142,7 @@ func (mr *MapRenderer) Render(out io.Writer, path string, vars interface{}) erro
 // Renderer, as DirRenderer and MapRenderer, instead.
 //
 // It is safe to call RenderSource concurrently by more goroutines.
-func RenderSource(out io.Writer, src []byte, ctx Context, vars interface{}, errs bool) error {
+func RenderSource(out io.Writer, src []byte, vars interface{}, errs bool, ctx Context) error {
 	tree, err := parser.ParseSource(src, ctx)
 	if err != nil {
 		return convertError(err)
