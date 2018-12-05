@@ -19,10 +19,10 @@ import (
 type Context int
 
 const (
-	ContextText   = Context(ast.ContextText)
-	ContextHTML   = Context(ast.ContextHTML)
-	ContextCSS    = Context(ast.ContextCSS)
-	ContextScript = Context(ast.ContextScript)
+	ContextText   Context = Context(ast.ContextText)
+	ContextHTML   Context = Context(ast.ContextHTML)
+	ContextCSS    Context = Context(ast.ContextCSS)
+	ContextScript Context = Context(ast.ContextScript)
 )
 
 var (
