@@ -32,10 +32,10 @@ var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
 //
 //  vars := map[string]interface{}{
 //      "going": renderer.HTML("<a href="/">going</a>"),
-//      "where": " >> here & there",
+//      "where": ">> here & there",
 //  }
 //
-//  // {{ going + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
+//  // {{ going + " " + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
 //
 type HTML string
 

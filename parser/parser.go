@@ -4,8 +4,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package parser implements methods to parse a template file and
-// expand a parsed tree.
+// Package parser implements methods to parse a template source and expand a
+// parsed tree.
 package parser
 
 import (
@@ -19,16 +19,16 @@ import (
 )
 
 var (
-	// ErrInvalidPath is returned from the Parse method when the path parameter
-	// is not valid.
+	// ErrInvalidPath can be returned from the Parse method and a Reader when
+	// the path argument is not valid.
 	ErrInvalidPath = errors.New("template/parser: invalid path")
 
-	// ErrNotExist is returned from the Parse method and from a ReadFunc when
-	// the path does not exist.
+	// ErrNotExist can be returned from the Parse method and a Reader when the
+	// path does not exist.
 	ErrNotExist = errors.New("template/parser: path does not exist")
 
-	// ErrReadTooLarge is returned from the method Read of DirLimitedReader
-	// when a limit is exceeded.
+	// ErrReadTooLarge can be returned from a DirLimitedReader when a limit is
+	// exceeded.
 	ErrReadTooLarge = errors.New("template/parser: read too large")
 )
 
@@ -52,8 +52,8 @@ func (e CycleError) Error() string {
 }
 
 // ParseSource parses src in the context ctx and returns a tree. Nodes Extend,
-// Import and ShowPath will not be expanded (the field Tree will be nil), to
-// get an expanded tree call the method Parse of Parser instead.
+// Import and ShowPath will not be expanded (the field Tree will be nil). To
+// get an expanded tree call the method Parse of a Parser instead.
 func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	switch ctx {
@@ -591,7 +591,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 						}
 						if ellipsesPos != nil {
-							return nil, &Error{"", *ellipsesPos, fmt.Errorf("can only use ... with final parameter in list")}
+							return nil, &Error{"", *ellipsesPos, fmt.Errorf("cannot use ... with non-final parameter")}
 						}
 						parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
 						tok, ok = <-lex.tokens
@@ -713,11 +713,15 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// Parser implements a parser that reads the tree from a reader and expands
-// the nodes Extend, Import and ShowPath.
-// The trees are cached so only one call per combination of path and context
-// is made to the reader.
-// Parser can be used concurrently by more goroutine.
+// Parser implements a parser that reads the tree from a Reader and expands
+// the nodes Extend, Import and ShowPath. The trees are cached so only one
+// call per combination of path and context is made to the reader even if
+// several goroutines parse the same paths at the same time.
+//
+// Returned trees can only be transformed if the parser is no longer used,
+// because it would be the cached trees to be transformed and a data race can
+// occur. In case, use ast.Clone to create a clone of the tree and then
+// transform the clone.
 type Parser struct {
 	reader Reader
 	trees  *cache

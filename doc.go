@@ -46,13 +46,13 @@
 //
 //   * nil
 //   * a map with a key of type string
-//   * a type with underlying type one of the previous map types
+//   * a type with underlying type a map with a key of type string
 //   * a struct or pointer to struct
 //   * a reflect.Value whose concrete value meets one of the previous ones
 //
 // If vars is a map or have type with underlying type a map, the map keys that
 // are valid identifier names in Go and their values will be names and values
-// of the global variables.
+// of variables.
 //
 // If vars is a struct or pointer to a struct, the names of the exported
 // fields of the struct will be names and values of the global variables.
@@ -66,7 +66,7 @@
 //      StockQuantity int    `template:"stock"`
 //  }
 //
-// The global variables will be "name" and "stock".
+// The variables will be "name" and "stock".
 //
 // If vars is nil, there will be no global variables besides the builtin
 // variables.

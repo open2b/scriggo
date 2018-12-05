@@ -37,9 +37,9 @@ func (err *Error) Error() string {
 // have to be rendered, if the value implements ValueRender its Render method
 // is called.
 //
-// Render on the value is called only if the context in witch the statement
-// is rendered is the same context passed as argument to a renderer function
-// or method.
+// The method Render on a value is called only if the context in which the
+// statement is rendered is the same context passed as argument to the
+// renderer function or method.
 //
 // For example if this source is parsed in context HTML:
 //
