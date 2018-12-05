@@ -8,7 +8,9 @@ package parser_test
 
 import (
 	"log"
+	"os"
 
+	"open2b/template"
 	"open2b/template/ast"
 	"open2b/template/parser"
 )
@@ -28,6 +30,11 @@ func ExampleParseSource() {
 		log.Printf("parsing error: %s\n", err)
 	}
 
+	err = template.RenderTree(os.Stdout, tree, nil, false)
+	if err != nil {
+		log.Printf("rendering error: %s\n", err)
+	}
+
 }
 
 func ExampleParser_Parse() {
@@ -38,6 +45,11 @@ func ExampleParser_Parse() {
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {
 		log.Printf("parsing error: %s\n", err)
+	}
+
+	err = template.RenderTree(os.Stdout, tree, nil, false)
+	if err != nil {
+		log.Printf("rendering error: %s\n", err)
 	}
 
 }
@@ -54,6 +66,11 @@ func ExampleMapReader() {
 		log.Printf("error: %s\n", err)
 	}
 
+	err = template.RenderTree(os.Stdout, tree, nil, false)
+	if err != nil {
+		log.Printf("rendering error: %s\n", err)
+	}
+
 }
 
 func ExampleDirReader() {
@@ -62,6 +79,11 @@ func ExampleDirReader() {
 	// "template/".
 
 	r := parser.DirReader("template/")
+
+	_, err := r.Read("index.html", ast.ContextHTML)
+	if err != nil {
+		log.Printf("error: %s\n", err)
+	}
 
 }
 
@@ -72,5 +94,10 @@ func ExampleNewDirLimitedReader() {
 	// is larger than 50 KB or if all the read files exceed 256 KB.
 
 	r := parser.NewDirLimitedReader("template/", 50*1024, 256*1204)
+
+	_, err := r.Read("very-large-file.csv", ast.ContextText)
+	if err != nil {
+		log.Printf("error: %s\n", err)
+	}
 
 }
