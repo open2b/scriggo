@@ -88,7 +88,8 @@
 //
 // Variables
 //
-// Variables are defined by the vars parameter of RenderTree. vars can be:
+// Variables, available during the rendering of the template, are defined by
+// the vars parameter of a rendering function or method. vars can be:
 //
 //   * nil
 //   * a map with a key of type string
