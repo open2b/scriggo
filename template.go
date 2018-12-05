@@ -14,18 +14,15 @@ import (
 	"open2b/template/parser"
 )
 
-// Makes an alias of Context and redefines the constants so it's not
-// necessary to import the package "renderer".
-
 // Context indicates the type of source that has to be rendered and controls
 // how to escape the values to render.
-type Context = ast.Context
+type Context int
 
 const (
-	ContextText   Context = ast.ContextText
-	ContextHTML   Context = ast.ContextHTML
-	ContextCSS    Context = ast.ContextCSS
-	ContextScript Context = ast.ContextScript
+	ContextText   = Context(ast.ContextText)
+	ContextHTML   = Context(ast.ContextHTML)
+	ContextCSS    = Context(ast.ContextCSS)
+	ContextScript = Context(ast.ContextScript)
 )
 
 var (
@@ -86,7 +83,7 @@ type DirRenderer struct {
 // execution do not stop the rendering. See the type Errors for more details.
 func NewDirRenderer(dir string, errs bool, ctx Context) *DirRenderer {
 	var r = parser.DirReader(dir)
-	return &DirRenderer{parser: parser.New(r), errs: errs, ctx: ctx}
+	return &DirRenderer{parser: parser.New(r), errs: errs, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template file with the specified path, relative to the
@@ -116,7 +113,7 @@ type MapRenderer struct {
 // execution do not stop the rendering. See the type Errors for more details.
 func NewMapRenderer(sources map[string][]byte, errs bool, ctx Context) *MapRenderer {
 	var r = parser.MapReader(sources)
-	return &MapRenderer{parser: parser.New(r), errs: errs, ctx: ctx}
+	return &MapRenderer{parser: parser.New(r), errs: errs, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template source with the specified path and writes
@@ -143,7 +140,7 @@ func (mr *MapRenderer) Render(out io.Writer, path string, vars interface{}) erro
 //
 // It is safe to call RenderSource concurrently by more goroutines.
 func RenderSource(out io.Writer, src []byte, vars interface{}, errs bool, ctx Context) error {
-	tree, err := parser.ParseSource(src, ctx)
+	tree, err := parser.ParseSource(src, ast.Context(ctx))
 	if err != nil {
 		return convertError(err)
 	}
