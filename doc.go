@@ -19,7 +19,7 @@
 //  </body>
 //  </html>
 //
-// Usage samples
+// Common usage examples
 //
 // Render template files:
 //
@@ -32,6 +32,8 @@
 // Render a source:
 //
 //  err := template.RenderSource(os.Stdout, []byte(`{{ a + b }}`), vars)
+//
+// Advanced usage examples
 //
 // Get a template tree from files:
 //
@@ -53,7 +55,7 @@
 //
 //  import "open2b/template/parser"
 //
-//  tree, err := parser.ParseSource([]byte(`{{ a + b }}`), ast.Context.Text)
+//  tree, err := parser.ParseSource([]byte(`{{ a + b }}`), ast.ContextText)
 //
 // Parse, transform and render a tree:
 //
