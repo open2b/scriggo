@@ -18,12 +18,12 @@ import (
 	"open2b/template/ast"
 )
 
-// Reader defines a type that lets you read the source of a template.
-// Read must always return a new tree for each call because the caller can
-// modify the returned tree.
+// Reader defines a type that lets you gets a template tree give a path.
+// The returned tree can be transformed because Reader returns always a new
+// tree for each call to Read.
 //
-// Implementations of Reader should use the function ParseSource to parse
-// the source and get the corresponding tree.
+// Implementations of Reader can use the function ParseSource to parse a
+// source and get the corresponding tree.
 type Reader interface {
 	Read(path string, ctx ast.Context) (*ast.Tree, error)
 }
@@ -214,6 +214,31 @@ func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 	}
 	return tree, err
+}
+
+// TransformReader is a Reader that reads a tree from another Reader,
+// transforms it and returns the transformed tree.
+type TransformReader struct {
+	reader    Reader
+	transform func(tree *ast.Tree) (*ast.Tree, error)
+}
+
+// NewTransformReader returns a TransformReader that reads a tree from r,
+// transforms the tree with t and returns the transformed tree.
+func NewTransformReader(r Reader, t func(tree *ast.Tree) (*ast.Tree, error)) *TransformReader {
+	return &TransformReader{
+		reader:    r,
+		transform: t,
+	}
+}
+
+// Read implements the Read function of the Reader.
+func (tr *TransformReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+	tree, err := tr.reader.Read(path, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return tr.transform(tree)
 }
 
 // ValidDirReaderPath indicates whether path is valid as path for DirReader
