@@ -15,22 +15,6 @@ import (
 	"open2b/template/parser"
 )
 
-//func ExampleErrorRecorder() {
-//	r := template.NewDirRenderer("./template/", template.ContextHTML)
-//
-//	vars := map[string]string{"title": "The Catcher in the Rye"}
-//
-//	errs := template.ErrorRecorder{}
-//
-//	err := r.Render(os.Stderr, "cover.html", vars, errs.Handler())
-//	if err != nil {
-//		log.Printf("error: %s\n", err)
-//	}
-//	for i, err := range errs.Errors() {
-//		log.Printf("error %d: %s\n", i, err)
-//	}
-//}
-
 func ExampleRenderSource() {
 	type Product struct {
 		Name  string
