@@ -68,9 +68,9 @@ func ExampleDirRenderer() {
 		},
 	}
 
-	r := template.NewDirRenderer("./template/", template.ContextHTML)
+	r := template.NewDirRenderer("./template/", false, template.ContextHTML)
 
-	err := r.Render(os.Stderr, "index.html", vars, false)
+	err := r.Render(os.Stderr, "index.html", vars)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
@@ -86,9 +86,9 @@ func ExampleMapRenderer() {
 		"names": []string{"Robert", "Mary", "Karen", "William", "Michelle"},
 	}
 
-	r := template.NewMapRenderer(sources, template.ContextText)
+	r := template.NewMapRenderer(sources, false, template.ContextText)
 
-	err := r.Render(os.Stderr, "names.csv", vars, false)
+	err := r.Render(os.Stderr, "names.csv", vars)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
