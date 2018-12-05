@@ -78,8 +78,10 @@
 //
 //  bool:     the bool type
 //
-//  string:   the types string, renderer.HTML and the types implementing the
-//            interface renderer.Stringer
+//  string:   the types string and the types implementing the interface
+//            renderer.Stringer
+//
+//  html:     the type renderer.HTML
 //
 //  number:   all integer and floating-point types (excluding uintptr),
 //            decimal.Decimal [github.com/shopspring/decimal] and the types
