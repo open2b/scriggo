@@ -19,26 +19,72 @@
 //  </body>
 //  </html>
 //
-// Functions Render and RenderString render a template source in a []byte or
-// string value respectively:
+// Usage samples
 //
-//  src := []byte("{% for i, p in products %}{{ i }}. {{ p.name }}{% end %}")
-//  err = template.Render(w, src, template.ContextText, vars)
+// Render template files:
 //
-// Method Render of Dir renders template sources in files located in a directory:
+//  // Creates a renderer that reads template sources from a directory.
+//  r := template.NewDirRenderer("template/", false, template.ContextHTML)
 //
-//  d := template.NewDir("./template/", template.ContextHTML)
-//  err := d.Render(w, "index.html", vars)
+//  // Renders a file with variables vars.
+//  err := r.Render(os.Stdout, "page.html", vars)
 //
-// Method Render of Map renders template sources in map values with keys as
-// paths:
+// Render a source:
 //
-//  sources := map[string][]byte{
-//      "header.csv": []byte("Name"),
-//      "names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+//  err := template.RenderSource(os.Stdout, []byte(`{{ a + b }}`), vars)
+//
+// Get a template tree from files:
+//
+//  import (
+//      "open2b/template/ast"
+//      "open2b/template/parser"
+//  )
+//
+//  // Creates a reader that read the sources from a directory.
+//  r := parser.DirReader("template/")
+//
+//  // Creates a parser.
+//  p := parser.New(r)
+//
+//  // Parses a path and gets the corresponding tree.
+//  tree, err := p.Parse("page.html", ast.ContextHTML)
+//
+// Gets a tree from a source:
+//
+//  import "open2b/template/parser"
+//
+//  tree, err := parser.ParseSource([]byte(`{{ a + b }}`), ast.Context.Text)
+//
+// Parse, transform and render a tree:
+//
+//  import (
+//      "open2b/template/ast"
+//      "open2b/template/parser"
+//  )
+//
+//  // Defines the transformation function.
+//  transform := func(tree *ast.Tree) (*ast.Tree, err) {
+//      ...
 //  }
-//  m := template.NewMap(sources, template.ContextText)
-//  err := m.Render(w, "names.csv", vars)
+//
+//  // Creates a transformer that reads the files from a directory.
+//  tr := parser.NewTransformerReader(parser.DirReader("template/"), transform)
+//
+//  // Creates a parser.
+//  p := parser.New(tr)
+//
+//  // Parses the files transforming the resulting tree.
+//  tree, err := p.Parse("page.html", ast.ContextHTML)
+//
+//  // Renders the tree.
+//  err := template.RenderTree(os.Stdout, tree, vars)
+//
+// Read sources from files limiting sizes:
+//
+//  import "open2b/template/parser"
+//
+//  // Creates a reader that limit file sizes to 50K and total bytes read to 1M.
+//  r := parser.NewDirLimitedReader("template/", 50 * 1024, 1024 * 1024)
 //
 // Variables
 //
