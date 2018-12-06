@@ -21,6 +21,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var maxInt = decimal.New(int64(^uint(0)>>1), 0)
+var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
+
 // Error records a rendering error with the path and the position where
 // the error occurred.
 type Error struct {
@@ -41,198 +44,8 @@ var errBreak = errors.New("break is not in a loop")
 // It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
-// Variables scope.
-type scope map[string]interface{}
-
-var scopeType = reflect.TypeOf(scope{})
-
-func stopOnError(err error) bool {
-	return false
-}
-
-// RenderTree renders tree and writes the result to out. The variables in vars
-// are defined as global variables. If strict is true, even errors on
-// expressions and statements execution stop the rendering. See the type
-// Errors for more details.
-//
-// If you have template sources instead or you do not want to deal directly
-// with trees, use the function RenderSource or the Render method of a
-// Renderer as DirRenderer and MapRenderer.
-//
-// It is safe to call RenderTree concurrently by more goroutines.
-func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
-
-	if out == nil {
-		return errors.New("template: w is nil")
-	}
-	if tree == nil {
-		return errors.New("template: tree is nil")
-	}
-
-	globals, err := varsToScope(vars)
-	if err != nil {
-		return err
-	}
-
-	s := &state{
-		scope:       map[string]scope{},
-		path:        tree.Path,
-		vars:        []scope{builtins, globals, {}},
-		treeContext: tree.Context,
-	}
-
-	var errs []*Error
-	if strict {
-		s.handleError = stopOnError
-	} else {
-		s.handleError = func(err error) bool {
-			if e, ok := err.(*Error); ok {
-				for _, ex := range errs {
-					if e.Path == ex.Path && e.Pos.Line == ex.Pos.Line &&
-						e.Pos.Column == ex.Pos.Column && e.Err.Error() == ex.Err.Error() {
-						return true
-					}
-				}
-				errs = append(errs, e)
-				return true
-			}
-			return false
-		}
-	}
-
-	extend := getExtendNode(tree)
-	if extend == nil {
-		err = s.render(out, tree.Nodes, nil)
-	} else {
-		if extend.Tree == nil {
-			return errors.New("template: extend node is not expanded")
-		}
-		s.scope[s.path] = s.vars[2]
-		err = s.render(nil, tree.Nodes, nil)
-		if err != nil {
-			return err
-		}
-		s.path = extend.Tree.Path
-		vars := scope{}
-		for name, v := range s.vars[2] {
-			if r, ok := v.(macro); ok {
-				fc, _ := utf8.DecodeRuneInString(name)
-				if unicode.Is(unicode.Lu, fc) && !strings.Contains(name, ".") {
-					vars[name] = r
-				}
-			}
-		}
-		s.vars = []scope{builtins, globals, vars}
-		err = s.render(out, extend.Tree.Nodes, nil)
-	}
-
-	if err == nil && errs != nil {
-		err = Errors(errs)
-	}
-
-	return err
-}
-
-// varsToScope converts variables into a scope.
-func varsToScope(vars interface{}) (scope, error) {
-
-	if vars == nil {
-		return scope{}, nil
-	}
-
-	var rv reflect.Value
-	if rv, ok := vars.(reflect.Value); ok {
-		vars = rv.Interface()
-	}
-
-	if v, ok := vars.(map[string]interface{}); ok {
-		return scope(v), nil
-	}
-
-	if !rv.IsValid() {
-		rv = reflect.ValueOf(vars)
-	}
-	rt := rv.Type()
-
-	switch rv.Kind() {
-	case reflect.Map:
-		if rt.ConvertibleTo(scopeType) {
-			m := rv.Convert(scopeType).Interface()
-			return m.(scope), nil
-		}
-		if rt.Key().Kind() == reflect.String {
-			s := scope{}
-			for _, kv := range rv.MapKeys() {
-				s[kv.String()] = rv.MapIndex(kv).Interface()
-			}
-			return s, nil
-		}
-	case reflect.Struct:
-		type st struct {
-			rt reflect.Type
-			rv reflect.Value
-		}
-		globals := scope{}
-		structs := []st{{rt, rv}}
-		var s st
-		for len(structs) > 0 {
-			s, structs = structs[0], structs[1:]
-			nf := s.rv.NumField()
-			for i := 0; i < nf; i++ {
-				field := s.rt.Field(i)
-				if field.PkgPath != "" {
-					continue
-				}
-				if field.Anonymous {
-					switch field.Type.Kind() {
-					case reflect.Ptr:
-						elem := field.Type.Elem()
-						if elem.Kind() == reflect.Struct {
-							if ptr := s.rv.Field(i); !ptr.IsNil() {
-								value := reflect.Indirect(ptr)
-								structs = append(structs, st{elem, value})
-							}
-						}
-					case reflect.Struct:
-						structs = append(structs, st{field.Type, s.rv.Field(i)})
-					}
-					continue
-				}
-				value := s.rv.Field(i).Interface()
-				var name string
-				if tag, ok := field.Tag.Lookup("template"); ok {
-					name = parseVarTag(tag)
-					if name == "" {
-						return nil, fmt.Errorf("template: invalid tag of field %q", field.Name)
-					}
-				}
-				if name == "" {
-					name = field.Name
-				}
-				if _, ok := globals[name]; !ok {
-					globals[name] = value
-				}
-			}
-		}
-		return globals, nil
-	case reflect.Ptr:
-		elem := rv.Type().Elem()
-		if elem.Kind() == reflect.Struct {
-			return varsToScope(reflect.Indirect(rv))
-		}
-	}
-
-	return nil, errors.New("template: unsupported vars type")
-}
-
-// macro represents a macro in a scope.
-type macro struct {
-	path string
-	node *ast.Macro
-}
-
-// state represents the state of rendering of a tree.
-type state struct {
+// rendering represents the state of a tree rendering.
+type rendering struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
@@ -240,7 +53,18 @@ type state struct {
 	handleError func(error) bool
 }
 
-// urlState represents the state of rendering an URL.
+// variables scope.
+type scope map[string]interface{}
+
+var scopeType = reflect.TypeOf(scope{})
+
+// macro represents a macro in a scope.
+type macro struct {
+	path string
+	node *ast.Macro
+}
+
+// urlState represents the rendering of rendering an URL.
 type urlState struct {
 	path   bool
 	query  bool
@@ -249,7 +73,7 @@ type urlState struct {
 }
 
 // errorf builds and returns an rendering error.
-func (s *state) errorf(node ast.Node, format string, args ...interface{}) error {
+func (s *rendering) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
 	if pos == nil {
 		return fmt.Errorf(format, args...)
@@ -268,7 +92,7 @@ func (s *state) errorf(node ast.Node, format string, args ...interface{}) error 
 }
 
 // render renders nodes.
-func (s *state) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
+func (s *rendering) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
 Nodes:
 	for _, n := range nodes {
@@ -734,7 +558,7 @@ Nodes:
 					arguments[parameters[i].Name] = arg
 				}
 			}
-			st := &state{
+			st := &rendering{
 				scope:       s.scope,
 				path:        m.path,
 				vars:        []scope{s.vars[0], s.vars[1], s.scope[m.path], arguments},
@@ -750,7 +574,7 @@ Nodes:
 
 			path := node.Tree.Path
 			if _, ok := s.scope[path]; !ok {
-				st := &state{
+				st := &rendering{
 					scope:       s.scope,
 					path:        path,
 					vars:        []scope{s.vars[0], s.vars[1], {}},
@@ -779,7 +603,7 @@ Nodes:
 		case *ast.ShowPath:
 
 			s.vars = append(s.vars, nil)
-			st := &state{
+			st := &rendering{
 				scope:       s.scope,
 				path:        node.Tree.Path,
 				vars:        s.vars,
@@ -798,19 +622,50 @@ Nodes:
 	return nil
 }
 
-// getExtendNode returns the Extend node of a tree.
-// If the node is not present, returns nil.
-func getExtendNode(tree *ast.Tree) *ast.Extend {
-	if len(tree.Nodes) == 0 {
-		return nil
-	}
-	if node, ok := tree.Nodes[0].(*ast.Extend); ok {
-		return node
-	}
-	if len(tree.Nodes) > 1 {
-		if node, ok := tree.Nodes[1].(*ast.Extend); ok {
-			return node
+// variable returns the value of the variable name in rendering s.
+func (s *rendering) variable(name string) (interface{}, bool) {
+	for i := len(s.vars) - 1; i >= 0; i-- {
+		if s.vars[i] != nil {
+			if v, ok := s.vars[i][name]; ok {
+				return v, true
+			}
 		}
 	}
-	return nil
+	return nil, false
+}
+
+func (s *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
+	if d.LessThan(minInt) || maxInt.LessThan(d) {
+		return 0, s.errorf(node, "number %s overflows int", d)
+	}
+	p := d.IntPart()
+	if !decimal.New(p, 0).Equal(d) {
+		return 0, s.errorf(node, "number %s truncated to integer", d)
+	}
+	return int(p), nil
+}
+
+func typeof(v interface{}) string {
+	if v == nil {
+		return "nil"
+	}
+	v = asBase(v)
+	switch v.(type) {
+	case int, decimal.Decimal:
+		return "number"
+	case string, HTML:
+		return "string"
+	case bool:
+		return "bool"
+	default:
+		rv := reflect.ValueOf(v)
+		rt := rv.Type()
+		switch rt.Kind() {
+		case reflect.Slice:
+			return "slice"
+		case reflect.Map, reflect.Ptr:
+			return "struct"
+		}
+	}
+	return fmt.Sprintf("(%T)", v)
 }

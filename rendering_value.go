@@ -9,14 +9,13 @@ package template
 import (
 	"html"
 	"io"
+	"open2b/template/ast"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"open2b/template/ast"
 
 	"github.com/shopspring/decimal"
 )
@@ -44,9 +43,40 @@ type ValueRenderer interface {
 	Render(out io.Writer) (n int, err error)
 }
 
+// HTML is a ValueRenderer that encapsulates a string containing an HTML code
+// that have to be rendered without escape.
+//
+// HTML values are safe to use in concatenation. An HTML value concatenated
+// with a string become an HTML value with only the string escaped.
+//
+//  // For example, defining the variables "going" and "where" as:
+//
+//  vars := map[string]interface{}{
+//      "going": renderer.HTML("<a href="/">going</a>"),
+//      "where": ">> here & there",
+//  }
+//
+//  // {{ going + " " + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
+//
+type HTML string
+
+// Stringer is implemented by any value that behaves like a string.
+type Stringer interface {
+	String() string
+}
+
+// Numberer is implemented by any variable value that behaves like a number.
+type Numberer interface {
+	Number() decimal.Decimal
+}
+
+func (s HTML) Render(w io.Writer) (int, error) {
+	return io.WriteString(w, string(s))
+}
+
 // renderValue renders value in the context of node and as a URL is urlstate
 // is not nil.
-func (s *state) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
+func (s *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
 
 	if e, ok := value.(ValueRenderer); ok && node.Context == s.treeContext {
 

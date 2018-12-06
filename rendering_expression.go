@@ -7,51 +7,18 @@
 package template
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
+	"sync"
+	"unicode"
 
 	"open2b/template/ast"
 
 	"github.com/shopspring/decimal"
 )
-
-var maxInt = decimal.New(int64(^uint(0)>>1), 0)
-var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
-
-// HTML is a ValueRenderer that encapsulates a string containing an HTML code
-// that have to be rendered without escape.
-//
-// HTML values are safe to use in concatenation. An HTML value concatenated
-// with a string become an HTML value with only the string escaped.
-//
-//  // For example, defining the variables "going" and "where" as:
-//
-//  vars := map[string]interface{}{
-//      "going": renderer.HTML("<a href="/">going</a>"),
-//      "where": ">> here & there",
-//  }
-//
-//  // {{ going + " " + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
-//
-type HTML string
-
-func (s HTML) Render(w io.Writer) (int, error) {
-	return io.WriteString(w, string(s))
-}
-
-// Stringer is implemented by any value that behaves like a string.
-type Stringer interface {
-	String() string
-}
-
-// Numberer is implemented by any variable value that behaves like a number.
-type Numberer interface {
-	Number() decimal.Decimal
-}
 
 var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
@@ -61,10 +28,8 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
-var errFieldNotExist = errors.New("field does not exist")
-
 // eval evaluates an expression by returning its value.
-func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
+func (s *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -79,7 +44,7 @@ func (s *state) eval(exp ast.Expression) (value interface{}, err error) {
 
 // evalExpression evaluates an expression and returns its value.
 // In the event of an error, calls panic with the error as parameter.
-func (s *state) evalExpression(expr ast.Expression) interface{} {
+func (s *rendering) evalExpression(expr ast.Expression) interface{} {
 	switch e := expr.(type) {
 	case *ast.String:
 		return e.Text
@@ -110,7 +75,7 @@ func (s *state) evalExpression(expr ast.Expression) interface{} {
 
 // evalUnaryOperator evaluates a unary operator and returns its value.
 // On error it calls panic with the error as parameter.
-func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
+func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var e = asBase(s.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
@@ -140,7 +105,7 @@ func (s *state) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
 // On error it calls panic with the error as parameter.
-func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
+func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 	expr1 := asBase(s.evalExpression(node.Expr1))
 
@@ -500,7 +465,7 @@ func (s *state) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 	panic("unknown binary operator")
 }
 
-func (s *state) evalSelector(node *ast.Selector) interface{} {
+func (s *rendering) evalSelector(node *ast.Selector) interface{} {
 	v := asBase(s.evalExpression(node.Expr))
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
@@ -547,7 +512,7 @@ func (s *state) evalSelector(node *ast.Selector) interface{} {
 	panic(s.errorf(node, "type %s cannot have fields", typeof(v)))
 }
 
-func (s *state) evalIndex(node *ast.Index) interface{} {
+func (s *rendering) evalIndex(node *ast.Index) interface{} {
 	var i int
 	switch index := asBase(s.evalExpression(node.Index)).(type) {
 	case int:
@@ -595,7 +560,7 @@ func (s *state) evalIndex(node *ast.Index) interface{} {
 	panic(s.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
-func (s *state) evalSlice(node *ast.Slice) interface{} {
+func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 	var ok bool
 	var l, h int
 	if node.Low != nil {
@@ -673,7 +638,7 @@ func (s *state) evalSlice(node *ast.Slice) interface{} {
 	panic(s.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }
 
-func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
+func (s *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
 			if i == 0 && node.Name == "len" {
@@ -687,7 +652,7 @@ func (s *state) evalIdentifier(node *ast.Identifier) interface{} {
 	panic(s.errorf(node, "undefined: %s", node.Name))
 }
 
-func (s *state) evalCall(node *ast.Call) interface{} {
+func (s *rendering) evalCall(node *ast.Call) interface{} {
 
 	if s.isBuiltin("len", node.Func) {
 		if len(node.Args) == 0 {
@@ -841,7 +806,7 @@ func (s *state) evalCall(node *ast.Call) interface{} {
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.
-func (s *state) isBuiltin(name string, expr ast.Expression) bool {
+func (s *rendering) isBuiltin(name string, expr ast.Expression) bool {
 	if n, ok := expr.(*ast.Identifier); ok {
 		if n.Name != name {
 			return false
@@ -855,29 +820,6 @@ func (s *state) isBuiltin(name string, expr ast.Expression) bool {
 		}
 	}
 	return false
-}
-
-// variable returns the value of the variable name in state s.
-func (s *state) variable(name string) (interface{}, bool) {
-	for i := len(s.vars) - 1; i >= 0; i-- {
-		if s.vars[i] != nil {
-			if v, ok := s.vars[i][name]; ok {
-				return v, true
-			}
-		}
-	}
-	return nil, false
-}
-
-func (s *state) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
-	if d.LessThan(minInt) || maxInt.LessThan(d) {
-		return 0, s.errorf(node, "number %s overflows int", d)
-	}
-	p := d.IntPart()
-	if !decimal.New(p, 0).Equal(d) {
-		return 0, s.errorf(node, "number %s truncated to integer", d)
-	}
-	return int(p), nil
 }
 
 // htmlToStringType returns e1 and e2 with type string instead of HTML.
@@ -960,27 +902,71 @@ func asBase(v interface{}) interface{} {
 	return v
 }
 
-func typeof(v interface{}) string {
-	if v == nil {
-		return "nil"
+// structFields represents the fields of a struct.
+type structFields struct {
+	names   []string
+	indexOf map[string]int
+}
+
+// structs maintains the association between the field names of a struct,
+// as they are called in the template, and the field index in the struct.
+var structs = struct {
+	fields map[reflect.Type]structFields
+	sync.RWMutex
+}{map[reflect.Type]structFields{}, sync.RWMutex{}}
+
+// getStructFields returns the fields of the struct st.
+func getStructFields(st reflect.Value) structFields {
+	typ := st.Type()
+	structs.RLock()
+	fields, ok := structs.fields[typ]
+	structs.RUnlock()
+	if !ok {
+		structs.Lock()
+		if fields, ok = structs.fields[typ]; !ok {
+			fields = structFields{
+				names:   []string{},
+				indexOf: map[string]int{},
+			}
+			n := typ.NumField()
+			for i := 0; i < n; i++ {
+				fieldType := typ.Field(i)
+				if fieldType.PkgPath != "" {
+					continue
+				}
+				name := fieldType.Name
+				if tag, ok := fieldType.Tag.Lookup("template"); ok {
+					name = parseVarTag(tag)
+					if name == "" {
+						structs.Unlock()
+						panic(fmt.Errorf("template: invalid tag of field %q", fieldType.Name))
+					}
+				}
+				fields.names = append(fields.names, name)
+				fields.indexOf[name] = i
+			}
+			structs.fields[typ] = fields
+		}
+		structs.Unlock()
 	}
-	v = asBase(v)
-	switch v.(type) {
-	case int, decimal.Decimal:
-		return "number"
-	case string, HTML:
-		return "string"
-	case bool:
-		return "bool"
-	default:
-		rv := reflect.ValueOf(v)
-		rt := rv.Type()
-		switch rt.Kind() {
-		case reflect.Slice:
-			return "slice"
-		case reflect.Map, reflect.Ptr:
-			return "struct"
+	return fields
+}
+
+// parseVarTag parses the tag of a field of a struct that acts as a variable
+// and returns the name.
+func parseVarTag(tag string) string {
+	sp := strings.SplitN(tag, ",", 2)
+	if len(sp) == 0 {
+		return ""
+	}
+	name := sp[0]
+	if name == "" {
+		return ""
+	}
+	for _, r := range name {
+		if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return ""
 		}
 	}
-	return fmt.Sprintf("(%T)", v)
+	return name
 }

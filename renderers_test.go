@@ -19,7 +19,7 @@ import (
 	"open2b/template/ast"
 	"open2b/template/parser"
 
-	dec "github.com/shopspring/decimal"
+	"github.com/shopspring/decimal"
 )
 
 type aNumber struct {
@@ -30,8 +30,8 @@ func (n aNumber) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
 }
 
-func (n aNumber) Number() dec.Decimal {
-	return dec.New(int64(n.v), 0)
+func (n aNumber) Number() decimal.Decimal {
+	return decimal.New(int64(n.v), 0)
 }
 
 type aString struct {
@@ -185,8 +185,8 @@ var rendererExprTests = []struct {
 	// call
 	{"f()", "ok", scope{"f": func() string { return "ok" }}},
 	{"f(5)", "5", scope{"f": func(i int) int { return i }}},
-	{"f(5.4)", "5.4", scope{"f": func(n dec.Decimal) dec.Decimal { return n }}},
-	{"f(5)", "5", scope{"f": func(n dec.Decimal) dec.Decimal { return n }}},
+	{"f(5.4)", "5.4", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
+	{"f(5)", "5", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
 	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
 	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
