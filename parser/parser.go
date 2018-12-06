@@ -720,7 +720,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 //
 // Returned trees can only be transformed if the parser is no longer used,
 // because it would be the cached trees to be transformed and a data race can
-// occur. In case, use ast.Clone to create a clone of the tree and then
+// occur. In case, use astutil.Clone to create a clone of the tree and then
 // transform the clone.
 type Parser struct {
 	reader Reader

@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package util_test
+package astutil_test
 
 import (
 	"bytes"
 	"fmt"
 
 	"open2b/template/ast"
+	"open2b/template/ast/astutil"
 	"open2b/template/parser"
-	"open2b/template/util"
 )
 
 func ExampleDump() {
@@ -35,7 +35,7 @@ func ExampleDump() {
 		}
 
 		var buf bytes.Buffer
-		err = util.Dump(&buf, tree)
+		err = astutil.Dump(&buf, tree)
 		if err != nil {
 			panic(err)
 		}

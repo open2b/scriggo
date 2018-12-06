@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file.
 
 // Package util implements methods to walk and dump a tree.
-package util
+package astutil
 
 import (
 	"errors"
