@@ -30,8 +30,9 @@ func htmlEscape(s string) string {
 		switch c := s[i]; c {
 		case '<', '>':
 			b[j] = '&'
-			b[j+1] = 'l'
-			if c == '>' {
+			if c == '<' {
+				b[j+1] = 'l'
+			} else {
 				b[j+1] = 'g'
 			}
 			b[j+2] = 't'
@@ -44,14 +45,68 @@ func htmlEscape(s string) string {
 			b[j+3] = 'p'
 			b[j+4] = ';'
 			j += 5
-		case '\'', '"':
+		case '"', '\'':
 			b[j] = '&'
 			b[j+1] = '#'
 			b[j+2] = '3'
-			b[j+3] = '9'
 			if c == '"' {
 				b[j+3] = '4'
+			} else {
+				b[j+3] = '9'
 			}
+			b[j+4] = ';'
+			j += 5
+		default:
+			b[j] = c
+			j++
+		}
+	}
+	return string(b)
+}
+
+// attributeEscape escapes the string s so it can be places inside an HTML
+// attribute value. unquoted indicates if the attribute value is unquoted.
+func attributeEscape(s string, unquoted bool) string {
+	if !unquoted {
+		return htmlEscape(s)
+	}
+	more := 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '<', '>':
+			more += 3
+		case '&', '\t', '\n', '\r', '\x0C', ' ', '"', '\'', '=', '`':
+			more += 4
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	b := make([]byte, len(s)+more)
+	for i, j := 0, 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '<', '>':
+			b[j] = '&'
+			if c == '<' {
+				b[j+1] = 'l'
+			} else {
+				b[j+1] = 'g'
+			}
+			b[j+2] = 't'
+			b[j+3] = ';'
+			j += 4
+		case '&':
+			b[j] = '&'
+			b[j+1] = 'a'
+			b[j+2] = 'm'
+			b[j+3] = 'p'
+			b[j+4] = ';'
+			j += 5
+		case '\t', '\n', '\r', '\x0C', ' ', '"', '\'', '=', '`':
+			b[j] = '&'
+			b[j+1] = '#'
+			b[j+2] = c/10 + 48
+			b[j+3] = c%10 + 48
 			b[j+4] = ';'
 			j += 5
 		default:
@@ -170,16 +225,23 @@ func scriptStringEscape(s string) string {
 	return b.String()
 }
 
-// pathEscape escapes the string s so it can be placed inside a URL path.
+// pathEscape escapes the string s so it can be placed inside an attribute
+// value as URL path. unquoted indicates if the attribute value is unquoted.
+//
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
-func pathEscape(s string) string {
+func pathEscape(s string, unquoted bool) string {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z') {
 			switch c {
-			case ' ', '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+			case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+				// no escape
 			case '&', '+':
 				more += 4
+			case ' ':
+				if unquoted {
+					more += 4
+				}
 			default:
 				more += 2
 			}
@@ -197,7 +259,7 @@ func pathEscape(s string) string {
 			continue
 		}
 		switch c {
-		case ' ', '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
+		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
 			b[j] = c
 			j++
 		case '&':
@@ -214,6 +276,18 @@ func pathEscape(s string) string {
 			b[j+3] = '3'
 			b[j+4] = ';'
 			j += 5
+		case ' ':
+			if unquoted {
+				b[j] = '&'
+				b[j+1] = '#'
+				b[j+2] = '3'
+				b[j+3] = '2'
+				b[j+4] = ';'
+				j += 5
+			} else {
+				b[j] = c
+				j++
+			}
 		default:
 			b[j] = '%'
 			b[j+1] = hexchars[c>>4]
@@ -225,6 +299,7 @@ func pathEscape(s string) string {
 }
 
 // queryEscape escapes the string s so it can be placed inside a URL query.
+//
 // Note that url.QueryEscape escapes ' ' as '+' and not as '%20'.
 func queryEscape(s string) string {
 	more := 0

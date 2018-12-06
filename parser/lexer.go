@@ -223,32 +223,46 @@ LOOP:
 					p++
 					l.column++
 				}
-			} else if c == '"' || c == '\'' {
-				// Start attribute value.
-				quote = c
-				if containsURL(l.tag, l.attr) {
-					l.emitAtLineColumn(lin, col, tokenText, p+1)
-					l.column++
-					l.ctx = ast.ContextAttribute
-					l.emit(tokenStartURL, 0)
-					emittedURL = true
-					p = 0
-					lin = l.line
-					col = l.column
-					continue
-				}
-				l.ctx = ast.ContextAttribute
 			} else if !isASCIISpace(c) {
 				// Checks if it is an attribute.
 				var next int
 				if l.attr, next = l.scanAttribute(p); next > p {
 					p = next
+					if l.attr != "" && p < len(l.src) {
+						// Start attribute value.
+						if c := l.src[p]; c == '"' || c == '\'' {
+							quote = c
+							p++
+							l.column++
+						}
+						if containsURL(l.tag, l.attr) {
+							l.emitAtLineColumn(lin, col, tokenText, p)
+							if quote == 0 {
+								l.ctx = ast.ContextUnquotedAttribute
+							} else {
+								l.ctx = ast.ContextAttribute
+							}
+							l.emit(tokenStartURL, 0)
+							emittedURL = true
+							p = 0
+							lin = l.line
+							col = l.column
+							continue
+						} else {
+							if quote == 0 {
+								l.ctx = ast.ContextUnquotedAttribute
+							} else {
+								l.ctx = ast.ContextAttribute
+							}
+						}
+					}
 					continue
 				}
 			}
 
-		case ast.ContextAttribute:
-			if c == quote {
+		case ast.ContextAttribute, ast.ContextUnquotedAttribute:
+			if l.ctx == ast.ContextAttribute && c == quote ||
+				l.ctx == ast.ContextUnquotedAttribute && (c == '>' || isASCIISpace(c)) {
 				// End attribute.
 				quote = 0
 				if emittedURL {
@@ -421,6 +435,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 //
 // If l.src[p:] is
 //    - `src="a"` it returns "src" and p+4
+//    - `src=a` it returns "src" and p+4
 //    - `src>` it returns "" and p+3
 //    - `src img` it returns "" and p+4.
 //    - `,` it returns "" and p.
@@ -429,7 +444,7 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	s := p
 	for ; p < len(l.src); p++ {
 		c := l.src[p]
-		if isASCIISpace(c) || c == '=' {
+		if c == '=' || isASCIISpace(c) {
 			break
 		}
 		const DEL = 0x7F
@@ -454,19 +469,18 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	name := string(bytes.ToLower(l.src[s:p]))
 	// Reads '='.
 	for ; p < len(l.src); p++ {
-		c := l.src[p]
-		if !isASCIISpace(c) {
-			if c != '=' {
-				return "", p
-			}
+		if c := l.src[p]; c == '=' {
 			p++
 			l.column++
 			break
-		}
-		if c == '\n' {
-			l.newline()
+		} else if isASCIISpace(c) {
+			if c == '\n' {
+				l.newline()
+			} else {
+				l.column++
+			}
 		} else {
-			l.column++
+			return "", p
 		}
 	}
 	if p == len(l.src) {
@@ -474,17 +488,16 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	}
 	// Reads the quote.
 	for ; p < len(l.src); p++ {
-		c := l.src[p]
-		if !isASCIISpace(c) {
-			if c != '"' && c != '\'' {
-				return "", p
+		if c := l.src[p]; c == '>' {
+			return "", p
+		} else if isASCIISpace(c) {
+			if c == '\n' {
+				l.newline()
+			} else {
+				l.column++
 			}
-			break
-		}
-		if c == '\n' {
-			l.newline()
 		} else {
-			l.column++
+			break
 		}
 	}
 	if p == len(l.src) {

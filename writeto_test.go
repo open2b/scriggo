@@ -78,7 +78,7 @@ func TestHTMLContext(t *testing.T) {
 	}
 }
 
-var attrContextTests = []struct {
+var attributeContextTests = []struct {
 	src  interface{}
 	res  string
 	vars scope
@@ -116,7 +116,7 @@ var attrContextTests = []struct {
 }
 
 func TestAttributeContext(t *testing.T) {
-	for _, expr := range attrContextTests {
+	for _, expr := range attributeContextTests {
 		var src string
 		switch s := expr.src.(type) {
 		case string:
@@ -138,6 +138,44 @@ func TestAttributeContext(t *testing.T) {
 		var res = b.String()
 		if res[6:len(res)-2] != expr.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[6:len(res)-2], expr.res)
+		}
+	}
+}
+
+var unquotedAttributeContextTests = []struct {
+	src  interface{}
+	res  string
+	vars scope
+}{
+	{`a`, "&#32;a&#32;", scope{"a": " a "}},
+	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", scope{"a": "\t\n\r\x0C a=`"}},
+	{`a`, "0,&#32;1,&#32;2", scope{"a": []int{0, 1, 2}}},
+}
+
+func TestUnquotedAttributeContext(t *testing.T) {
+	for _, expr := range unquotedAttributeContextTests {
+		var src string
+
+		switch s := expr.src.(type) {
+		case string:
+			src = s
+		case HTML:
+			src = string(s)
+		}
+		var tree, err = parser.ParseSource([]byte(`<z x={{`+src+`}}>`), ast.ContextHTML)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = RenderTree(b, tree, expr.vars, false)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res[5:len(res)-1] != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[5:len(res)-1], expr.res)
 		}
 	}
 }
@@ -180,6 +218,10 @@ var urlContextTests = []struct {
 	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="=">`, scope{"a": "=", "t": true}},
 	{`<a href="{% if t %}{{ a }}{% else %}?{{ a }}{% end %}">`, `<a href="?%3d">`, scope{"a": "=", "t": false}},
 	{`<input {{ a }}>`, `<input disabled>`, scope{"a": "disabled"}},
+	{`<a href={{b}}>`, `<a href=b>`, scope{"b": "b"}},
+	{`<a href={{b}}>`, `<a href=&#32;b&#32;>`, scope{"b": " b "}},
+	{`<a href= {{b}} >`, `<a href= &#32;b&#32; >`, scope{"b": " b "}},
+	{`<a href= {{b}} >`, `<a href= %09%0a%0d%0c&#32;b=%60 >`, scope{"b": "\t\n\r\x0C b=`"}},
 }
 
 func TestURLContext(t *testing.T) {

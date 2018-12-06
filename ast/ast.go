@@ -45,6 +45,7 @@ const (
 	ContextHTML
 	ContextTag
 	ContextAttribute
+	ContextUnquotedAttribute
 	ContextCSS
 	ContextCSSString
 	ContextScript
@@ -61,6 +62,8 @@ func (ctx Context) String() string {
 		return "Tag"
 	case ContextAttribute:
 		return "Attribute"
+	case ContextUnquotedAttribute:
+		return "UnquotedAttribute"
 	case ContextCSS:
 		return "CSS"
 	case ContextCSSString:

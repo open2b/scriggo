@@ -364,7 +364,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				if isExtended && !isInMacro {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement outside macro")}
 				}
-				if tok.ctx == ast.ContextAttribute {
+				if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
 				}
 				// macro or path
@@ -465,7 +465,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				}
 				if tok.ctx != ctx {
 					switch tok.ctx {
-					case ast.ContextAttribute:
+					case ast.ContextAttribute, ast.ContextUnquotedAttribute:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside an attribute value")}
 					case ast.ContextScript:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a script tag")}
@@ -500,7 +500,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 			case tokenImport:
 				if tok.ctx != ctx {
 					switch tok.ctx {
-					case ast.ContextAttribute:
+					case ast.ContextAttribute, ast.ContextUnquotedAttribute:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside an attribute value")}
 					case ast.ContextScript:
 						return nil, &Error{"", *tok.pos, fmt.Errorf("import inside a script tag")}
@@ -551,7 +551,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// macro
 			case tokenMacro:
-				if tok.ctx == ast.ContextAttribute {
+				if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("macro inside an attribute value")}
 				}
 				for i := len(ancestors) - 1; i > 0; i-- {

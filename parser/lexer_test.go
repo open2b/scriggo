@@ -131,11 +131,12 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<div {{ attr }} {{ attr }}>`:                  {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
 		`<div{{ attr }}>`:                              {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
 		`<div {{ attr }}="45">`:                        {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
-		`<div "{{ v }}">`:                              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<div "{{ v }}">`:                              {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
 		`<a href="">`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<A Href="">`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href=''>`:                                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href="{{ u }}">`:                           {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
+		`<a href={{ u }}>`:                             {ast.ContextText, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextUnquotedAttribute, ast.ContextText},
 		`<a href="a{{ p }}">`:                          {ast.ContextText, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a href="{% if a %}b{% end %}">`:              {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<a class="{{ a }}">`:                          {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
@@ -202,6 +203,8 @@ var positionTests = []struct {
 	{"{{a}}\n{{b}}", []ast.Position{
 		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}, {1, 6, 5, 5},
 		{2, 1, 6, 7}, {2, 3, 8, 8}, {2, 4, 9, 10}}},
+	{"<b c=\n{{\na}}>", []ast.Position{
+		{1, 1, 0, 5}, {2, 1, 6, 7}, {3, 1, 9, 9}, {3, 2, 10, 11}, {3, 4, 12, 12}}},
 	{"{{a}}\n<b\nc=\"{{a}}\">\n{{a}}", []ast.Position{
 		{1, 1, 0, 1}, {1, 3, 2, 2}, {1, 4, 3, 4}, {1, 6, 5, 11},
 		{3, 4, 12, 13}, {3, 6, 14, 14}, {3, 7, 15, 16}, {3, 9, 17, 19},
@@ -247,8 +250,11 @@ var scanAttributeTests = []struct {
 	{"src =\n\"h", "src", '"', 6, 2, 1},
 	{"src\t\t=\n\"h", "src", '"', 7, 2, 1},
 	{"a='h", "a", '\'', 2, 1, 3},
-	{"src=h", "", 0, 4, 1, 5},
-	{"src=\n\th", "", 0, 6, 2, 2},
+	{"src=h", "src", 0, 4, 1, 5},
+	{"src=\n\th", "src", 0, 6, 2, 2},
+	{"src=/a/b", "src", 0, 4, 1, 5},
+	{"src=>", "", 0, 4, 1, 5},
+	{"src=/>", "src", 0, 4, 1, 5},
 	{"src", "", 0, 3, 1, 4},
 	{"src=", "", 0, 4, 1, 5},
 	{"src ", "", 0, 4, 1, 5},
@@ -392,7 +398,7 @@ func TestLexerReadAttribute(t *testing.T) {
 		if attr != test.attr {
 			t.Errorf("source: %q, unexpected attribute %q, expecting %q\n", test.src, attr, test.attr)
 		}
-		if attr != "" && l.src[p] != test.quote {
+		if attr != "" && test.quote != 0 && l.src[p] != test.quote {
 			t.Errorf("source: %q, unexpected quote %q, expecting %q\n", test.src, string(l.src[p]), string(test.quote))
 		}
 		if p != test.p {

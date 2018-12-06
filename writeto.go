@@ -50,7 +50,9 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 		case ast.ContextTag:
 			str, ok = interfaceToTag(asBase(expr))
 		case ast.ContextAttribute:
-			str, ok = interfaceToAttribute(asBase(expr), urlstate)
+			str, ok = interfaceToAttribute(asBase(expr), urlstate, false)
+		case ast.ContextUnquotedAttribute:
+			str, ok = interfaceToAttribute(asBase(expr), urlstate, true)
 		case ast.ContextCSS:
 			str, ok = interfaceToCSS(asBase(expr))
 		case ast.ContextCSSString:
@@ -185,7 +187,7 @@ func interfaceToTag(expr interface{}) (string, bool) {
 	return s, true
 }
 
-func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
+func interfaceToAttribute(expr interface{}, urlstate *urlState, unquoted bool) (string, bool) {
 
 	if expr == nil {
 		return "", true
@@ -197,12 +199,12 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 	case string:
 		s = e
 		if urlstate == nil {
-			s = htmlEscape(e)
+			s = attributeEscape(e, unquoted)
 		}
 	case HTML:
 		s = string(e)
 		if urlstate == nil {
-			s = htmlEscape(html.UnescapeString(string(e)))
+			s = attributeEscape(html.UnescapeString(string(e)), unquoted)
 		}
 	case int:
 		s = strconv.Itoa(e)
@@ -223,13 +225,17 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToAttribute(rv.Index(i).Interface(), urlstate)
+			str, ok := interfaceToAttribute(rv.Index(i).Interface(), urlstate, unquoted)
 			if !ok {
 				return "", false
 			}
 			buf[i] = str
 		}
-		s = strings.Join(buf, ", ")
+		if unquoted {
+			s = strings.Join(buf, ",&#32;")
+		} else {
+			s = strings.Join(buf, ", ")
+		}
 	}
 
 	if s == "" {
@@ -243,7 +249,7 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState) (string, bool) {
 				urlstate.path = false
 				urlstate.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 			}
-			s = pathEscape(s)
+			s = pathEscape(s, unquoted)
 		case urlstate.query:
 			s = queryEscape(s)
 		default:

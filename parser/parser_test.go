@@ -58,9 +58,17 @@ var treeTests = []struct {
 		ast.NewText(p(1, 1, 0, 9), []byte("<div 本=\"")), ast.NewValue(p(1, 9, 10, 20),
 			ast.NewIdentifier(p(1, 12, 13, 17), "class"), ast.ContextAttribute), ast.NewText(p(1, 20, 21, 22), []byte("\">")),
 	}, ast.ContextHTML)},
+	{"<div a=/{{ class }}\"{{ class }}>", ast.NewTree("", []ast.Node{
+		ast.NewText(p(1, 1, 0, 7), []byte("<div a=/")), ast.NewValue(p(1, 9, 8, 18),
+			ast.NewIdentifier(p(1, 12, 11, 15), "class"), ast.ContextUnquotedAttribute),
+		ast.NewText(p(1, 20, 19, 19), []byte("\"")),
+		ast.NewValue(p(1, 21, 20, 30),
+			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
+		ast.NewText(p(1, 32, 31, 31), []byte(">")),
+	}, ast.ContextHTML)},
 	{"<div \"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 5), []byte("<div \"")), ast.NewValue(p(1, 7, 6, 16),
-			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextAttribute), ast.NewText(p(1, 18, 17, 18), []byte("\">")),
+			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">")),
 	}, ast.ContextHTML)},
 	{"{% var a = 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))}, ast.ContextHTML)},
