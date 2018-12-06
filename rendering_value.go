@@ -9,13 +9,14 @@ package template
 import (
 	"html"
 	"io"
-	"open2b/template/ast"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"open2b/template/ast"
 
 	"github.com/shopspring/decimal"
 )
