@@ -66,6 +66,30 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
 		ast.NewText(p(1, 32, 31, 31), []byte(">")),
 	}, ast.ContextHTML)},
+	{"{% for article in articles %}\n<div>{{ article.title }}</div>{% end %}",
+		ast.NewTree("articles.txt", []ast.Node{
+			ast.NewFor(
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 68},
+				nil,
+				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
+				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+				nil,
+				[]ast.Node{
+					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("<div>")),
+					ast.NewValue(
+						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
+						ast.NewSelector(
+							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
+							ast.NewIdentifier(
+								&ast.Position{Line: 2, Column: 9, Start: 38, End: 44},
+								"article",
+							),
+							"title"),
+						ast.ContextHTML),
+					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>")),
+				},
+			),
+		}, ast.ContextHTML)},
 	{"<div \"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 5), []byte("<div \"")), ast.NewValue(p(1, 7, 6, 16),
 			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">")),
@@ -79,47 +103,47 @@ var treeTests = []struct {
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 29),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("b"))})}, ast.ContextHTML)},
-	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 18),
+	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 28),
 		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"), nil,
 		[]ast.Node{ast.NewText(p(1, 20, 19, 19), []byte("b"))})}, ast.ContextHTML)},
-	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 35),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
 		[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})}, ast.ContextHTML)},
-	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 15),
+	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 38),
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
 		[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})}, ast.ContextHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"))}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 22), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"))}, nil)}, ast.ContextHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"),
+		ast.NewIf(p(1, 1, 0, 30), ast.NewIdentifier(p(1, 7, 6, 6), "a"),
 			[]ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"))},
 			[]ast.Node{ast.NewText(p(1, 22, 21, 21), []byte("c"))})}, ast.ContextHTML)},
 	{"{% if a %}\nb{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), []byte("b"))}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 20), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), []byte("b"))}, nil)}, ast.ContextHTML)},
 	{"{% if a %}\nb\n{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), []byte("b\n"))}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 21), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), []byte("b\n"))}, nil)}, ast.ContextHTML)},
 	{"  {% if a %} \nb\n  {% end %} \t", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 1), []byte{}),
-		ast.NewIf(p(1, 3, 2, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte("b\n"))}, nil),
+		ast.NewIf(p(1, 3, 2, 26), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte("b\n"))}, nil),
 		ast.NewText(p(3, 12, 27, 28), []byte{})}, ast.ContextHTML)},
 	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extend \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 30), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 46), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
 			nil, []ast.Node{ast.NewText(p(1, 32, 31, 31), []byte("c"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extend \"a.e\" %}{% macro b(c,d) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 35), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
+		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 53), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 30, 29, 29), "c"), ast.NewIdentifier(p(1, 32, 31, 31), "d")},
 			[]ast.Node{ast.NewText(p(1, 37, 36, 38), []byte("txt"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.ContextHTML)},
 	{"{% macro a(b) %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 15), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+		ast.NewMacro(p(1, 1, 0, 31), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b")},
 			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("c"))}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% macro a(b, c...) %}d{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 21), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+		ast.NewMacro(p(1, 1, 0, 37), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b"), ast.NewIdentifier(p(1, 15, 14, 14), "c")},
 			[]ast.Node{ast.NewText(p(1, 23, 22, 22), []byte("d"))}, true, ast.ContextHTML)}, ast.ContextHTML)},
 }

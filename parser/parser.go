@@ -639,20 +639,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, lex.err
 				}
 				if tok.typ != tokenEndStatement {
-					switch parent.(type) {
-					case *ast.For:
-						if tok.typ != tokenFor {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)}
-						}
-					case *ast.If:
-						if tok.typ != tokenIf {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
-						}
-					case *ast.Macro:
-						if tok.typ != tokenMacro {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)}
-						}
-					}
+					tokparent := tok
 					tok, ok = <-lex.tokens
 					if !ok {
 						return nil, lex.err
@@ -660,7 +647,22 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					if tok.typ != tokenEndStatement {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
+					switch parent.(type) {
+					case *ast.For:
+						if tokparent.typ != tokenFor {
+							return nil, &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)}
+						}
+					case *ast.If:
+						if tokparent.typ != tokenIf {
+							return nil, &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+						}
+					case *ast.Macro:
+						if tokparent.typ != tokenMacro {
+							return nil, &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)}
+						}
+					}
 				}
+				parent.Pos().End = tok.pos.End
 				if _, ok := parent.(*ast.Macro); ok {
 					isInMacro = false
 				}
