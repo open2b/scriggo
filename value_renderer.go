@@ -21,9 +21,34 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstate *urlState) error {
+// ValueRenderer can be implemented by the values of variables. When a value
+// have to be rendered, if the value implements ValueRender its Render method
+// is called.
+//
+// The method Render on a value is called only if the context in which the
+// statement is rendered is the same context passed as argument to the
+// renderer function or method.
+//
+// For example if this source is parsed in context HTML:
+//
+//  <a href="{{ expr }}">{{ expr }}</a>
+//  <script>var b = {{ expr }};</script>
+//
+// the first statement has context Attribute, the second has context HTML and
+// the third has context Script, so Render would only be called on the second
+// statement.
+//
+// Render returns the number of bytes written to out and any error encountered
+// during the write.
+type ValueRenderer interface {
+	Render(out io.Writer) (n int, err error)
+}
 
-	if e, ok := expr.(ValueRenderer); ok && node.Context == s.treeContext {
+// renderValue renders value in the context of node and as a URL is urlstate
+// is not nil.
+func (s *state) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
+
+	if e, ok := value.(ValueRenderer); ok && node.Context == s.treeContext {
 
 		err := func() (err error) {
 			defer func() {
@@ -44,28 +69,28 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 		var str string
 		switch node.Context {
 		case ast.ContextText:
-			str, ok = interfaceToText(asBase(expr))
+			str, ok = renderInText(asBase(value))
 		case ast.ContextHTML:
-			str, ok = interfaceToHTML(asBase(expr))
+			str, ok = renderInHTML(asBase(value))
 		case ast.ContextTag:
-			str, ok = interfaceToTag(asBase(expr))
+			str, ok = renderInTag(asBase(value))
 		case ast.ContextAttribute:
-			str, ok = interfaceToAttribute(asBase(expr), urlstate, false)
+			str, ok = renderInAttribute(asBase(value), urlstate, false)
 		case ast.ContextUnquotedAttribute:
-			str, ok = interfaceToAttribute(asBase(expr), urlstate, true)
+			str, ok = renderInAttribute(asBase(value), urlstate, true)
 		case ast.ContextCSS:
-			str, ok = interfaceToCSS(asBase(expr))
+			str, ok = renderInCSS(asBase(value))
 		case ast.ContextCSSString:
-			str, ok = interfaceToCSSString(asBase(expr))
+			str, ok = renderInCSSString(asBase(value))
 		case ast.ContextScript:
-			str, ok = interfaceToScript(asBase(expr))
+			str, ok = renderInScript(asBase(value))
 		case ast.ContextScriptString:
-			str, ok = interfaceToScriptString(asBase(expr))
+			str, ok = renderInScriptString(asBase(value))
 		default:
-			panic("template/renderer: unknown context")
+			panic("template: unknown context")
 		}
 		if !ok {
-			err := s.errorf(node.Expr, "wrong type %s in value", typeof(expr))
+			err := s.errorf(node.Expr, "wrong type %s in value", typeof(value))
 			if !s.handleError(err) {
 				return err
 			}
@@ -80,15 +105,16 @@ func (s *state) writeTo(wr io.Writer, expr interface{}, node *ast.Value, urlstat
 	return nil
 }
 
-func interfaceToText(expr interface{}) (string, bool) {
+// renderInText renders value in the Text context.
+func renderInText(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", true
 	}
 
 	var s string
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		s = e
 	case HTML:
@@ -103,7 +129,7 @@ func interfaceToText(expr interface{}) (string, bool) {
 			s = "true"
 		}
 	default:
-		rv := reflect.ValueOf(expr)
+		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return "", false
 		}
@@ -112,7 +138,7 @@ func interfaceToText(expr interface{}) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToText(rv.Index(i).Interface())
+			str, ok := renderInText(rv.Index(i).Interface())
 			if !ok {
 				return "", false
 			}
@@ -124,15 +150,16 @@ func interfaceToText(expr interface{}) (string, bool) {
 	return s, true
 }
 
-func interfaceToHTML(expr interface{}) (string, bool) {
+// renderInHTML renders value in HTML context.
+func renderInHTML(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", true
 	}
 
 	var s string
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		s = htmlEscape(e)
 	case int:
@@ -145,7 +172,7 @@ func interfaceToHTML(expr interface{}) (string, bool) {
 			s = "true"
 		}
 	default:
-		rv := reflect.ValueOf(expr)
+		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return "", false
 		}
@@ -154,7 +181,7 @@ func interfaceToHTML(expr interface{}) (string, bool) {
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToHTML(rv.Index(i).Interface())
+			str, ok := renderInHTML(rv.Index(i).Interface())
 			if !ok {
 				return "", false
 			}
@@ -166,9 +193,10 @@ func interfaceToHTML(expr interface{}) (string, bool) {
 	return s, true
 }
 
-func interfaceToTag(expr interface{}) (string, bool) {
+// renderInTag renders value in Tag context.
+func renderInTag(value interface{}) (string, bool) {
 	// TODO(marco): return a more explanatory error
-	s, ok := interfaceToText(expr)
+	s, ok := renderInText(value)
 	if !ok {
 		return "", false
 	}
@@ -187,15 +215,17 @@ func interfaceToTag(expr interface{}) (string, bool) {
 	return s, true
 }
 
-func interfaceToAttribute(expr interface{}, urlstate *urlState, unquoted bool) (string, bool) {
+// renderInAttribute renders value in Attribute context, as URL is urlstate is
+// not nil and quoted or unquoted depending on unquoted value.
+func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", true
 	}
 
 	var s string
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		s = e
 		if urlstate == nil {
@@ -216,7 +246,7 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState, unquoted bool) (
 			s = "true"
 		}
 	default:
-		rv := reflect.ValueOf(expr)
+		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return "", false
 		}
@@ -225,7 +255,7 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState, unquoted bool) (
 		}
 		buf := make([]string, rv.Len())
 		for i := 0; i < len(buf); i++ {
-			str, ok := interfaceToAttribute(rv.Index(i).Interface(), urlstate, unquoted)
+			str, ok := renderInAttribute(rv.Index(i).Interface(), urlstate, unquoted)
 			if !ok {
 				return "", false
 			}
@@ -260,13 +290,14 @@ func interfaceToAttribute(expr interface{}, urlstate *urlState, unquoted bool) (
 	return s, true
 }
 
-func interfaceToCSS(expr interface{}) (string, bool) {
+// renderInCSS renders value in CSS context.
+func renderInCSS(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", false
 	}
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		return "\"" + cssStringEscape(e) + "\"", true
 	case HTML:
@@ -280,13 +311,14 @@ func interfaceToCSS(expr interface{}) (string, bool) {
 	return "", false
 }
 
-func interfaceToCSSString(expr interface{}) (string, bool) {
+// renderInCSSString renders value in CSSString context.
+func renderInCSSString(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", false
 	}
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		return cssStringEscape(e), true
 	case HTML:
@@ -302,13 +334,14 @@ func interfaceToCSSString(expr interface{}) (string, bool) {
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-func interfaceToScript(expr interface{}) (string, bool) {
+// renderInScript renders value in Script context.
+func renderInScript(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "null", true
 	}
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		return "\"" + scriptStringEscape(e) + "\"", true
 	case HTML:
@@ -323,7 +356,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 		}
 		return "false", true
 	default:
-		rv := reflect.ValueOf(expr)
+		rv := reflect.ValueOf(value)
 		if !rv.IsValid() {
 			return "undefined", false
 		}
@@ -340,7 +373,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 				if i > 0 {
 					s += ","
 				}
-				s2, ok := interfaceToScript(rv.Index(i).Interface())
+				s2, ok := renderInScript(rv.Index(i).Interface())
 				if !ok {
 					return "", false
 				}
@@ -348,7 +381,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			}
 			return s + "]", true
 		case reflect.Struct:
-			return structToScript(rv)
+			return renderValueAsScriptObject(rv)
 		case reflect.Map:
 			if rv.IsNil() {
 				return "null", true
@@ -356,7 +389,7 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
 				return "undefined", false
 			}
-			return mapToScript(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
+			return renderMapAsScriptObject(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
 		case reflect.Ptr:
 			if rv.IsNil() {
 				return "null", true
@@ -369,20 +402,21 @@ func interfaceToScript(expr interface{}) (string, bool) {
 			if !rv.IsValid() {
 				return "undefined", false
 			}
-			return structToScript(rv)
+			return renderValueAsScriptObject(rv)
 		}
 	}
 
 	return "undefined", false
 }
 
-func interfaceToScriptString(expr interface{}) (string, bool) {
+// renderInScriptString renders value in ScriptString context.
+func renderInScriptString(value interface{}) (string, bool) {
 
-	if expr == nil {
+	if value == nil {
 		return "", false
 	}
 
-	switch e := expr.(type) {
+	switch e := value.(type) {
 	case string:
 		return scriptStringEscape(e), true
 	case HTML:
@@ -396,15 +430,17 @@ func interfaceToScriptString(expr interface{}) (string, bool) {
 	return "", false
 }
 
-func structToScript(v reflect.Value) (string, bool) {
+// renderValueAsScriptObject returns value as a JavaScript object or undefined
+// if it is not possible.
+func renderValueAsScriptObject(value reflect.Value) (string, bool) {
 	var s string
-	fields := getStructFields(v)
+	fields := getStructFields(value)
 	for _, name := range fields.names {
 		if len(s) > 0 {
 			s += ","
 		}
 		s += "\"" + scriptStringEscape(name) + "\":"
-		s2, ok := interfaceToScript(v.Field(fields.indexOf[name]).Interface())
+		s2, ok := renderInScript(value.Field(fields.indexOf[name]).Interface())
 		if !ok {
 			return "undefined", false
 		}
@@ -413,7 +449,9 @@ func structToScript(v reflect.Value) (string, bool) {
 	return "{" + s + "}", true
 }
 
-func mapToScript(e map[string]interface{}) (string, bool) {
+// renderMapAsScriptObject returns value as a JavaScript object or undefined
+// if it is not possible.
+func renderMapAsScriptObject(e map[string]interface{}) (string, bool) {
 	if e == nil {
 		return "null", true
 	}
@@ -428,7 +466,7 @@ func mapToScript(e map[string]interface{}) (string, bool) {
 			s += ","
 		}
 		s += scriptStringEscape(n) + ":"
-		s2, ok := interfaceToScript(e[n])
+		s2, ok := renderInScript(e[n])
 		if !ok {
 			return "undefined", false
 		}

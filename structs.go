@@ -51,7 +51,7 @@ func getStructFields(st reflect.Value) structFields {
 					name = parseVarTag(tag)
 					if name == "" {
 						structs.Unlock()
-						panic(fmt.Errorf("template/renderer: invalid tag of field %q", fieldType.Name))
+						panic(fmt.Errorf("template: invalid tag of field %q", fieldType.Name))
 					}
 				}
 				fields.names = append(fields.names, name)

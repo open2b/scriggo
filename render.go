@@ -33,29 +33,6 @@ func (err *Error) Error() string {
 	return fmt.Sprintf("%s:%s: %s", err.Path, err.Pos, err.Err)
 }
 
-// ValueRenderer can be implemented by the values of variables. When a value
-// have to be rendered, if the value implements ValueRender its Render method
-// is called.
-//
-// The method Render on a value is called only if the context in which the
-// statement is rendered is the same context passed as argument to the
-// renderer function or method.
-//
-// For example if this source is parsed in context HTML:
-//
-//  <a href="{{ expr }}">{{ expr }}</a>
-//  <script>var b = {{ expr }};</script>
-//
-// the first statement has context Attribute, the second has context HTML and
-// the third has context Script, so Render would only be called on the second
-// statement.
-//
-// Render returns the number of bytes written to out and any error encountered
-// during the write.
-type ValueRenderer interface {
-	Render(out io.Writer) (n int, err error)
-}
-
 // errBreak returned from rendering the "break" statement.
 // It is managed by the innermost "for" statement.
 var errBreak = errors.New("break is not in a loop")
@@ -86,10 +63,10 @@ func stopOnError(err error) bool {
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
 	if out == nil {
-		return errors.New("template/renderer: w is nil")
+		return errors.New("template: w is nil")
 	}
 	if tree == nil {
-		return errors.New("template/renderer: tree is nil")
+		return errors.New("template: tree is nil")
 	}
 
 	globals, err := varsToScope(vars)
@@ -128,7 +105,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		err = s.render(out, tree.Nodes, nil)
 	} else {
 		if extend.Tree == nil {
-			return errors.New("template/renderer: extend node is not expanded")
+			return errors.New("template: extend node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
 		err = s.render(nil, tree.Nodes, nil)
@@ -226,7 +203,7 @@ func varsToScope(vars interface{}) (scope, error) {
 				if tag, ok := field.Tag.Lookup("template"); ok {
 					name = parseVarTag(tag)
 					if name == "" {
-						return nil, fmt.Errorf("template/renderer: invalid tag of field %q", field.Name)
+						return nil, fmt.Errorf("template: invalid tag of field %q", field.Name)
 					}
 				}
 				if name == "" {
@@ -245,7 +222,7 @@ func varsToScope(vars interface{}) (scope, error) {
 		}
 	}
 
-	return nil, errors.New("template/renderer: unsupported vars type")
+	return nil, errors.New("template: unsupported vars type")
 }
 
 // macro represents a macro in a scope.
@@ -352,7 +329,7 @@ Nodes:
 				return err
 			}
 
-			err = s.writeTo(wr, expr, node, urlstate)
+			err = s.renderValue(wr, expr, node, urlstate)
 			if err != nil {
 				return err
 			}
