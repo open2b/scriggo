@@ -5,6 +5,39 @@
 // license that can be found in the LICENSE file.
 
 // Package ast declares the types used to define the template trees.
+//
+// For example, the source in an "articles.html" file:
+//
+//    {% for article in articles %}
+//    <div>{{ article.title }}</div>
+//    {% end %}
+//
+// is represented with the tree:
+//
+// 		ast.NewTree("articles.txt", []ast.Node{
+//			ast.NewFor(
+//				&ast.Position{Line: 1, Column: 1, Start: 0, End: 68},
+//				nil,
+//				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
+//				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+//				nil,
+//				[]ast.Node{
+//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("<div>")),
+//					ast.NewValue(
+//						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
+//						ast.NewSelector(
+//							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
+//							ast.NewIdentifier(
+//								&ast.Position{Line: 2, Column: 9, Start: 38, End: 44},
+//								"article",
+//							),
+//							"title"),
+//						ast.ContextHTML),
+//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>")),
+//				},
+//			),
+//		}, ast.ContextHTML)
+//
 package ast
 
 import (
@@ -14,6 +47,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// OperatorType represents an operator type in an unary and binary expression.
 type OperatorType int
 
 const (
@@ -37,7 +71,7 @@ func (op OperatorType) String() string {
 	return []string{"==", "!=", "!", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
 }
 
-// Context indicates the context in which a Show node is located.
+// Context indicates the context in which a value statement must be valuated.
 type Context int
 
 const (
@@ -97,6 +131,7 @@ func (p Position) String() string {
 	return strconv.Itoa(p.Line) + ":" + strconv.Itoa(p.Column)
 }
 
+// Expression node represents an expression.
 type Expression interface {
 	isexpr()
 	Node
@@ -107,7 +142,7 @@ type expression struct{}
 
 func (e expression) isexpr() {}
 
-// Tree represents a parsed tree.
+// Tree node represents a tree.
 type Tree struct {
 	*Position
 	Path    string  // path of the tree.
@@ -128,12 +163,14 @@ func NewTree(path string, nodes []Node, ctx Context) *Tree {
 	return tree
 }
 
+// TextCut, in a Text node, indicates how many bytes must be cut from the text
+// before rendering the Text node.
 type TextCut struct {
 	Left  int
 	Right int
 }
 
-// Text represents a text.
+// Text node represents a text in the source.
 type Text struct {
 	*Position         // position in the source.
 	Text      []byte  // text.
@@ -148,7 +185,8 @@ func (t Text) String() string {
 	return string(t.Text)
 }
 
-// URL represents an URL.
+// URL node represents an URL in an attribute value. Value nodes that are
+// children of an URL node are rendered accordingly.
 type URL struct {
 	*Position        // position in the source.
 	Tag       string // tag (in lowercase).
@@ -160,7 +198,7 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 	return &URL{pos, tag, attribute, value}
 }
 
-// Var represents a statement {% var identifier = expression %}.
+// Var node represents a statement {% var identifier = expression %}.
 type Var struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
@@ -175,7 +213,7 @@ func (v Var) String() string {
 	return fmt.Sprintf("{%% var %v = %v %%}", v.Ident, v.Expr)
 }
 
-// Assignment represents a statement {% identifier = expression %}.
+// Assignment node represents a statement {% identifier = expression %}.
 type Assignment struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
@@ -190,7 +228,7 @@ func (a Assignment) String() string {
 	return fmt.Sprintf("{%% %v = %v %%}", a.Ident, a.Expr)
 }
 
-// For represents a statement {% for ... %}.
+// For node represents a statement {% for ... %}.
 type For struct {
 	*Position             // position in the source.
 	Index     *Identifier // index.
@@ -207,7 +245,7 @@ func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, no
 	return &For{pos, index, ident, expr1, expr2, nodes}
 }
 
-// Break represents a statement {% break %}.
+// Break node represents a statement {% break %}.
 type Break struct {
 	*Position // position in the source.
 }
@@ -216,7 +254,7 @@ func NewBreak(pos *Position) *Break {
 	return &Break{pos}
 }
 
-// Continue represents a statement {% continue %}.
+// Continue node represents a statement {% continue %}.
 type Continue struct {
 	*Position // position in the source.
 }
@@ -225,7 +263,7 @@ func NewContinue(pos *Position) *Continue {
 	return &Continue{pos}
 }
 
-// If represents a statement {% if ... %}.
+// If node represents a statement {% if ... %}.
 type If struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns true or false.
@@ -240,7 +278,7 @@ func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
 	return &If{pos, expr, then, els}
 }
 
-// Macro represents a statement {% macro ... %}.
+// Macro node represents a statement {% macro ... %}.
 type Macro struct {
 	*Position                // position in the source.
 	Ident      *Identifier   // name.
@@ -257,7 +295,7 @@ func NewMacro(pos *Position, ident *Identifier, parameters []*Identifier, body [
 	return &Macro{pos, ident, parameters, body, isVariadic, ctx}
 }
 
-// ShowMacro represents a statement {% show <macro> %}.
+// ShowMacro node represents a statement {% show <macro> %}.
 type ShowMacro struct {
 	*Position              // position in the source.
 	Import    *Identifier  // name of the import.
@@ -270,7 +308,7 @@ func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expressio
 	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Arguments: arguments, Context: ctx}
 }
 
-// ShowPath represents a statement {% show <path> %}.
+// ShowPath node represents a statement {% show <path> %}.
 type ShowPath struct {
 	*Position         // position in the source.
 	Path      string  // path of the source to show.
@@ -282,7 +320,7 @@ func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
 	return &ShowPath{Position: pos, Path: path, Context: ctx}
 }
 
-// Value represents a statement {{...}}.
+// Value node represents a statement {{ ... }}.
 type Value struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns the value to show.
@@ -297,7 +335,7 @@ func (v Value) String() string {
 	return fmt.Sprintf("{{ %v }}", v.Expr)
 }
 
-// Extend represents a statement {% extend ... %}.
+// Extend node represents a statement {% extend ... %}.
 type Extend struct {
 	*Position         // position in the source.
 	Path      string  // path to the file to extend.
@@ -313,7 +351,7 @@ func (e Extend) String() string {
 	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
 }
 
-// Import represents a statement {% import ... %}.
+// Import node represents a statement {% import ... %}.
 type Import struct {
 	*Position             // position in the source.
 	Ident     *Identifier // identifier.
@@ -334,6 +372,7 @@ func (i Import) String() string {
 	return fmt.Sprintf("{%% import %v %v %%}", i.Ident, strconv.Quote(i.Path))
 }
 
+// Comment node represents a statement {# ... #}.
 type Comment struct {
 	*Position        // position in the source.
 	Text      string // comment text.
@@ -343,6 +382,7 @@ func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
 
+// Parentesis node represents a parenthesized expression.
 type Parentesis struct {
 	expression
 	*Position            // position in the source.
@@ -357,6 +397,7 @@ func (n *Parentesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
+// Int node represents an integer expression.
 type Int struct {
 	expression
 	*Position     // position in the source.
@@ -371,6 +412,7 @@ func (n *Int) String() string {
 	return strconv.Itoa(n.Value)
 }
 
+// Number node represents a decimal number expression.
 type Number struct {
 	expression
 	*Position                 // position in the source.
@@ -385,10 +427,12 @@ func (n *Number) String() string {
 	return n.Value.String()
 }
 
+// String node represents a string expression, a sequence of UTF8 encoded
+// characters.
 type String struct {
 	expression
 	*Position        // position in the source.
-	Text      string // expression.
+	Text      string // text.
 }
 
 func NewString(pos *Position, text string) *String {
@@ -399,6 +443,7 @@ func (n *String) String() string {
 	return strconv.Quote(n.Text)
 }
 
+// Identifier node represents an identifier expression.
 type Identifier struct {
 	expression
 	*Position        // position in the source.
@@ -413,12 +458,15 @@ func (n *Identifier) String() string {
 	return n.Name
 }
 
+// Operator represents an operator expression. It is implemented by
+// the nodes UnaryOperator and BinaryOperator.
 type Operator interface {
 	Expression
 	Operator() OperatorType
 	Precedence() int
 }
 
+// UnaryOperator node represents an unary operator expression.
 type UnaryOperator struct {
 	expression
 	*Position              // position in the source.
@@ -440,14 +488,18 @@ func (n *UnaryOperator) String() string {
 	return s
 }
 
+// Operator returns the operator type of the expression.
 func (n *UnaryOperator) Operator() OperatorType {
 	return n.Op
 }
 
+// Precedence returns a number that represents the precedence of the
+// expression.
 func (n *UnaryOperator) Precedence() int {
 	return 6
 }
 
+// BinaryOperator node represents a binary operator expression.
 type BinaryOperator struct {
 	expression
 	*Position              // position in the source.
@@ -476,10 +528,13 @@ func (n *BinaryOperator) String() string {
 	return s
 }
 
+// Operator returns the operator type of the expression.
 func (n *BinaryOperator) Operator() OperatorType {
 	return n.Op
 }
 
+// Precedence returns a number that represents the precedence of the
+// expression.
 func (n *BinaryOperator) Precedence() int {
 	switch n.Op {
 	case OperatorMultiplication, OperatorDivision, OperatorModulo:
@@ -497,6 +552,7 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
+// Call node represents a function call expression.
 type Call struct {
 	expression
 	*Position              // position in the source.
@@ -520,6 +576,7 @@ func (n *Call) String() string {
 	return s
 }
 
+// Index node represents an index expression.
 type Index struct {
 	expression
 	*Position            // position in the source.
@@ -535,6 +592,7 @@ func (n *Index) String() string {
 	return n.Expr.String() + "[" + n.Index.String() + "]"
 }
 
+// Slice node represents a slice expression.
 type Slice struct {
 	expression
 	*Position            // position in the source.
@@ -560,6 +618,7 @@ func (n *Slice) String() string {
 	return s
 }
 
+// Selector node represents a selector expression.
 type Selector struct {
 	expression
 	*Position            // position in the source.
