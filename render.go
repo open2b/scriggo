@@ -613,7 +613,7 @@ Nodes:
 							if i == 0 && name == "len" {
 								err = s.errorf(node, "use of builtin len not in function call")
 							} else {
-								err = fmt.Errorf("cannot assign to %s", name)
+								err = s.errorf(node, "cannot assign to %s", name)
 							}
 							if s.handleError(err) {
 								continue Nodes
