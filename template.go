@@ -50,11 +50,11 @@ var (
 // Operations on wrong types, out of bound on a slice, too few arguments in
 // function calls are all types of errors that stop the execution only if
 // strict is true.
-type Errors []error
+type Errors []*Error
 
 func (errs Errors) Error() string {
 	var s string
-	for _, err := range []error(errs) {
+	for _, err := range errs {
 		if s != "" {
 			s += "\n"
 		}

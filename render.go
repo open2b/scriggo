@@ -104,13 +104,22 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		treeContext: tree.Context,
 	}
 
-	var noStrictErrors []error
+	var errs []*Error
 	if strict {
 		s.handleError = stopOnError
 	} else {
 		s.handleError = func(err error) bool {
-			noStrictErrors = append(noStrictErrors, err)
-			return true
+			if e, ok := err.(*Error); ok {
+				for _, ex := range errs {
+					if e.Path == ex.Path && e.Pos.Line == ex.Pos.Line &&
+						e.Pos.Column == ex.Pos.Column && e.Err.Error() == ex.Err.Error() {
+						return true
+					}
+				}
+				errs = append(errs, e)
+				return true
+			}
+			return false
 		}
 	}
 
@@ -140,8 +149,8 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		err = s.render(out, extend.Tree.Nodes, nil)
 	}
 
-	if err == nil && noStrictErrors != nil {
-		err = Errors(noStrictErrors)
+	if err == nil && errs != nil {
+		err = Errors(errs)
 	}
 
 	return err
