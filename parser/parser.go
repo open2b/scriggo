@@ -98,7 +98,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 		var text *ast.Text
 		if tok.typ == tokenText {
-			text = ast.NewText(tok.pos, tok.txt)
+			text = ast.NewText(tok.pos, tok.txt, ast.TextCut{})
 		}
 
 		if line < tok.lin || tok.pos.End == end {
@@ -985,6 +985,6 @@ func cutSpaces(first, last *ast.Text) {
 		last.Cut.Left = lastCut
 	}
 	if first != nil {
-		first.Cut.Right = firstCut
+		first.Cut.Right = len(first.Text) - firstCut
 	}
 }

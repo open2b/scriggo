@@ -22,7 +22,7 @@
 //				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
 //				nil,
 //				[]ast.Node{
-//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("<div>")),
+//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.TextCut{1,0}),
 //					ast.NewValue(
 //						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
 //						ast.NewSelector(
@@ -33,7 +33,7 @@
 //							),
 //							"title"),
 //						ast.ContextHTML),
-//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>")),
+//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>"), ast.TextCut{}),
 //				},
 //			),
 //		}, ast.ContextHTML)
@@ -177,8 +177,8 @@ type Text struct {
 	Cut       TextCut // cut.
 }
 
-func NewText(pos *Position, text []byte) *Text {
-	return &Text{pos, text, TextCut{0, len(text)}}
+func NewText(pos *Position, text []byte, cut TextCut) *Text {
+	return &Text{pos, text, cut}
 }
 
 func (t Text) String() string {

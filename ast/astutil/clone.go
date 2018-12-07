@@ -32,7 +32,7 @@ func CloneNode(node ast.Node) ast.Node {
 			text = make([]byte, len(n.Text))
 			copy(text, n.Text)
 		}
-		return ast.NewText(ClonePosition(n.Position), text)
+		return ast.NewText(ClonePosition(n.Position), text, n.Cut)
 	case *ast.URL:
 		var value = make([]ast.Node, len(n.Value))
 		for i, n2 := range n.Value {

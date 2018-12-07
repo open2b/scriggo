@@ -102,10 +102,10 @@ Nodes:
 		case *ast.Text:
 
 			if wr != nil {
-				if node.Cut.Left == node.Cut.Right {
+				if len(node.Text)-node.Cut.Left-node.Cut.Right == 0 {
 					continue
 				}
-				text := node.Text[node.Cut.Left:node.Cut.Right]
+				text := node.Text[node.Cut.Left : len(node.Text)-node.Cut.Right]
 				if urlstate != nil {
 					if !urlstate.query {
 						if bytes.ContainsAny(text, "?#") {
