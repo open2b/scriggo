@@ -926,7 +926,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 	return nil
 }
 
-// addChild add node as child of parent.
+// addChild adds node as child of parent.
 func addChild(parent ast.Node, node ast.Node) {
 	switch n := parent.(type) {
 	case *ast.Tree:

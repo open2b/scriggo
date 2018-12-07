@@ -129,7 +129,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 		switch tok.typ {
 		case tokenLeftParenthesis: // ( e )
 			// Calls parseExpr recursively to parse the expression in
-			// parenthesis and then manage it as a single operand.
+			// parenthesis and then handles it as a single operand.
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
@@ -346,7 +346,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 
-			// p will be the position in the path where to add the operator.
+			// p is the position in the path where to add the operator.
 			var p = len(path)
 			for p > 0 && op.Precedence() <= path[p-1].Precedence() {
 				p--
@@ -439,7 +439,7 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 }
 
 // parseNumberNode returns an Expression node from an integer or decimal token,
-// possibly preceded by a unary operator "-" with neg position.
+// possibly preceded by an unary operator "-" with neg position.
 func parseNumberNode(tok token, neg *ast.Position) (ast.Expression, error) {
 	p := tok.pos
 	s := string(tok.txt)
