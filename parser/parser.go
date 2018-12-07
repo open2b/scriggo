@@ -98,7 +98,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 		var text *ast.Text
 		if tok.typ == tokenText {
-			text = ast.NewText(tok.pos, tok.txt, ast.TextCut{})
+			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
 		}
 
 		if line < tok.lin || tok.pos.End == end {

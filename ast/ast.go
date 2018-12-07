@@ -22,7 +22,7 @@
 //				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
 //				nil,
 //				[]ast.Node{
-//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.TextCut{1,0}),
+//					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1,0}),
 //					ast.NewValue(
 //						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
 //						ast.NewSelector(
@@ -33,7 +33,7 @@
 //							),
 //							"title"),
 //						ast.ContextHTML),
-//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>"), ast.TextCut{}),
+//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>"), ast.Cut{})),
 //				},
 //			),
 //		}, ast.ContextHTML)
@@ -163,21 +163,21 @@ func NewTree(path string, nodes []Node, ctx Context) *Tree {
 	return tree
 }
 
-// TextCut, in a Text node, indicates how many bytes must be cut from the text
-// before rendering the Text node.
-type TextCut struct {
+// Cut, in a Text node, indicates how many bytes must be cut from the left and
+// the right of the text before rendering the Text node.
+type Cut struct {
 	Left  int
 	Right int
 }
 
 // Text node represents a text in the source.
 type Text struct {
-	*Position         // position in the source.
-	Text      []byte  // text.
-	Cut       TextCut // cut.
+	*Position        // position in the source.
+	Text      []byte // text.
+	Cut       Cut    // cut.
 }
 
-func NewText(pos *Position, text []byte, cut TextCut) *Text {
+func NewText(pos *Position, text []byte, cut Cut) *Text {
 	return &Text{pos, text, cut}
 }
 
