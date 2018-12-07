@@ -16,7 +16,7 @@
 //
 // 		ast.NewTree("articles.txt", []ast.Node{
 //			ast.NewFor(
-//				&ast.Position{Line: 1, Column: 1, Start: 0, End: 68},
+//				&ast.Position{Line: 1, Column: 1, Start: 0, End: 69},
 //				nil,
 //				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
 //				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
@@ -33,7 +33,7 @@
 //							),
 //							"title"),
 //						ast.ContextHTML),
-//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>"), ast.Cut{})),
+//					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{})),
 //				},
 //			),
 //		}, ast.ContextHTML)

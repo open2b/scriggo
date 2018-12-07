@@ -66,10 +66,10 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
 		ast.NewText(p(1, 32, 31, 31), []byte(">"), ast.Cut{}),
 	}, ast.ContextHTML)},
-	{"{% for article in articles %}\n<div>{{ article.title }}</div>{% end %}",
+	{"{% for article in articles %}\n<div>{{ article.title }}</div>\n{% end %}",
 		ast.NewTree("articles.txt", []ast.Node{
 			ast.NewFor(
-				&ast.Position{Line: 1, Column: 1, Start: 0, End: 68},
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 69},
 				nil,
 				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
 				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
@@ -86,7 +86,7 @@ var treeTests = []struct {
 							),
 							"title"),
 						ast.ContextHTML),
-					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 59}, []byte("</div>"), ast.Cut{}),
+					ast.NewText(&ast.Position{Line: 2, Column: 25, Start: 54, End: 60}, []byte("</div>\n"), ast.Cut{}),
 				},
 			),
 		}, ast.ContextHTML)},
