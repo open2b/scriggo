@@ -86,7 +86,7 @@ func NewDirRenderer(dir string, strict bool, ctx Context) *DirRenderer {
 // template directory, and writes the result to out. The variables in vars are
 // defined as global variables.
 //
-// It is safe to call Render concurrently by more goroutines.
+// Render is safe for concurrent use.
 func (dr *DirRenderer) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := dr.parser.Parse(path, dr.ctx)
 	if err != nil {
@@ -115,7 +115,7 @@ func NewMapRenderer(sources map[string][]byte, strict bool, ctx Context) *MapRen
 // Render renders the template source with the specified path and writes
 // the result to out. The variables in vars are defined as global variables.
 //
-// It is safe to call Render concurrently by more goroutines.
+// Render is safe for concurrent use.
 func (mr *MapRenderer) Render(out io.Writer, path string, vars interface{}) error {
 	tree, err := mr.parser.Parse(path, mr.ctx)
 	if err != nil {
@@ -143,7 +143,7 @@ var (
 // RenderSource, use the function RenderTree or the method Render of a
 // Renderer, as DirRenderer and MapRenderer, instead.
 //
-// It is safe to call RenderSource concurrently by more goroutines.
+// RenderSource is safe for concurrent use.
 func RenderSource(out io.Writer, src []byte, vars interface{}, strict bool, ctx Context) error {
 	tree, err := parser.ParseSource(src, ast.Context(ctx))
 	if err != nil {
@@ -165,7 +165,7 @@ func stopOnError(err error) bool {
 // with trees, use the function RenderSource or the Render method of a
 // Renderer as DirRenderer and MapRenderer.
 //
-// It is safe to call RenderTree concurrently by more goroutines.
+// RenderTree is safe for concurrent use.
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
 	if out == nil {

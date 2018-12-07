@@ -17,8 +17,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// The result of parsing an expression is a tree whose intermediate
-// nodes are operators and leaves are operands. For example:
+// The result of the parsing of an expression is a tree whose intermediate
+// nodes are operators and the leaves are operands. For example:
 //
 //                op1
 //              /     \
@@ -26,8 +26,8 @@ import (
 //           /   \     |
 //          a     b    c
 //
-// During the construction of the tree, the rightmost leaf, instead of
-// being an operand, is an operator:
+// While the tree is being built, the rightmost leaf is not an operand but an
+// operator:
 //
 //                op1
 //              /     \
@@ -35,10 +35,9 @@ import (
 //           /   \
 //          a     b
 //
-// The operation of adding an operator to the tree is called grafting and
-// always takes place along the path, called simply path, which starts from
-// the root and arrives at the leaf operator. In the previous example path
-// is [op1, op3].
+// Adding an operator to the tree is called grafting and it takes place along
+// the path that starts from the root and ends at the leaf operator. In the
+// previous example path is [op1, op3].
 //
 // A unary operator is grafted as a child of the leaf operator:
 //
@@ -48,11 +47,12 @@ import (
 //           /   \     |
 //          a     b   op4
 //
-// To determine where to grab a non-unary operator, you run path from the
-// leaf operator to the root, stopping when it is either an operator with
-// lower precedence or reaching the root. For example, grafting op5 with
-// precedence greater than op1 and less than or equal to op3 and op4 obtain
-// the tree:
+// To identify where to graft a non-unary operator in the tree, starts from
+// the leaf operator and goes up to the root, stopping if an operator with a
+// lower precedence is found.
+//
+// If op5 has an higher precedence than op1 and lower or equal precedence than
+// op3 and op4, the tree will be:
 //
 //                op1
 //              /     \
@@ -64,7 +64,7 @@ import (
 //                   |
 //                   c
 //
-// If op5 had precedence less than or equal to op1:
+// If op5 has a lower or equal precedence then op1:
 //
 //                    op5
 //                  /
@@ -76,7 +76,7 @@ import (
 //                     |
 //                     c
 //
-// If op5 had a precedence greater than op4:
+// If op5 has an higher precedence than op4:
 //
 //                op1
 //              /     \
@@ -89,29 +89,30 @@ import (
 //                  c
 //
 
-// parseExpr parses an expression and returns the expression tree and
-// the last read token that is not a part.
+// parseExpr parses an expression and returns its tree and the last read token
+// that does not belong to the expression.
 func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 	var err error
 
-	// A tree of an expression has, as intermediate nodes, the operators,
-	// unary or binary, and as leaves the operands.
+	// Intermediate nodes of an expression tree are unary or binary operators
+	// and the leaves are operands.
 	//
-	// One of the leaves, during the building of the tree, instead of
-	// an operand will be an operator. This leaf operator will miss his
-	// unique expression if unary or the right-hand expression if binary.
-	// Once the building is complete, all the leaves will be operands.
+	// Only during the building of the tree, one of the leaves is an operator
+	// and its expression is missing (right expression if the operator is
+	// binary).
+	//
+	// When the tree building is complete, all the leaves are operands.
 
-	// path is the path in the tree from the root operator to the leaf
-	// operator.
+	// path is the tree path that starts from the root operator and ends with
+	// the leaf operator.
 	var path []ast.Operator
 
-	// At each cycle of the expression tree building, either an unary
-	// operator or a pair operand and binary operator is read. Finally an
-	// operand will be read.
+	// In each iteration of the expression tree building, either an unary
+	// operator or a pair operand and binary operator is read. The last to be
+	// read is an operator.
 	//
-	// For example the expression "-a * ( b + c ) < d || !e" is read as
+	// For example, the expression "-a * ( b + c ) < d || !e" is read as
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
@@ -128,7 +129,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 		switch tok.typ {
 		case tokenLeftParenthesis: // ( e )
 			// Calls parseExpr recursively to parse the expression in
-			// parenthesis and then treats it as a single operand.
+			// parenthesis and then manage it as a single operand.
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
@@ -152,8 +153,9 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenNumber: // 12.895
-			// If the number is preceded by the unary operator "-" it changes
-			// the sign of the number and removes the operator from the tree.
+			// If the number is preceded by the unary operator "-", the sign
+			// of the number is changed and the operator is removed from the
+			// tree.
 			var pos *ast.Position
 			if len(path) > 0 {
 				var op *ast.UnaryOperator
@@ -281,7 +283,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					}
 				}
 				if len(path) == 0 {
-					// It is possible to return directly.
+					// Returns the operand.
 					return operand, tok, nil
 				}
 				// Adds the operand as a child of the leaf operator.
@@ -291,7 +293,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				case *ast.BinaryOperator:
 					leaf.Expr2 = operand
 				}
-				// Sets End for all the operators in path.
+				// Sets the end for all the operators in path.
 				end := operand.Pos().End
 				for _, op := range path {
 					switch o := op.(type) {
@@ -307,14 +309,14 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 		}
 
-		// Adds operator to the expression tree.
+		// Adds the operator to the expression tree.
 
 		switch op := operator.(type) {
 
 		case *ast.UnaryOperator:
-			// Unary operators ("!", "+", "-", "()"), as they have higher
-			// precedence than all other operators, become the new leaf
-			// operator of the tree.
+			// An unary operator ("!", "+", "-", "()") becomes the new leaf
+			// operator as it has an higher precedence than all the other
+			// operators.
 
 			if len(path) > 0 {
 				// Operator becomes a child of the leaf operator.
@@ -329,12 +331,12 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			path = append(path, op)
 
 		case *ast.BinaryOperator:
-			// For binary operators ("*", "/", "+", "-", "<", ">", ...) it starts
-			// from the leaf operator (last operator of path) and climb towards the
-			// root (first path operator) stopping when either an operator with
-			// lower precedence is found or the root is reached.
+			// For a binary operator ("*", "/", "+", "-", "<", ">", ...),
+			// starts from the leaf operator (last operator of the path) and
+			// goes up to the root (first operator of the path) stopping if an
+			// operator with lower precedence is found.
 
-			// Sets start for all unary operators at the end of path.
+			// For all unary operators, sets the start at the end of the path.
 			start := operand.Pos().Start
 			for i := len(path) - 1; i >= 0; i-- {
 				if o, ok := path[i].(*ast.UnaryOperator); ok {
@@ -344,14 +346,14 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 
-			// p will be the position in path in which to add operator.
+			// p will be the position in the path where to add the operator.
 			var p = len(path)
 			for p > 0 && op.Precedence() <= path[p-1].Precedence() {
 				p--
 			}
 			if p > 0 {
-				// operator becomes the child of the operator with minor
-				// precedence found going up path.
+				// operator becomes the child of the operator with lower
+				// precedence found going up the path.
 				switch o := path[p-1].(type) {
 				case *ast.UnaryOperator:
 					o.Expr = op
@@ -360,15 +362,15 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 			if p < len(path) {
-				// operand becomes the child of the operator in path
-				// currently in position p.
+				// operand becomes the child of the operator in the path at
+				// position p.
 				switch o := path[p].(type) {
 				case *ast.UnaryOperator:
 					o.Expr = operand
 				case *ast.BinaryOperator:
 					o.Expr2 = operand
 				}
-				// Sets End for all operators in the path from p onwards.
+				// Sets the end for all the operators in the path from p onwards.
 				for i := p; i < len(path); i++ {
 					switch o := path[i].(type) {
 					case *ast.UnaryOperator:
@@ -395,6 +397,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 
 }
 
+// operatorType returns a operator type from a token type.
 func operatorType(typ tokenType) ast.OperatorType {
 	switch typ {
 	case tokenEqual:
@@ -430,12 +433,13 @@ func operatorType(typ tokenType) ast.OperatorType {
 	}
 }
 
+// parseIdentifierNode returns an Identifier node from a token.
 func parseIdentifierNode(tok token) *ast.Identifier {
 	return ast.NewIdentifier(tok.pos, string(tok.txt))
 }
 
 // parseNumberNode returns an Expression node from an integer or decimal token,
-// possibly preceded by a unary operator "-" with position neg.
+// possibly preceded by a unary operator "-" with neg position.
 func parseNumberNode(tok token, neg *ast.Position) (ast.Expression, error) {
 	p := tok.pos
 	s := string(tok.txt)
@@ -455,10 +459,12 @@ func parseNumberNode(tok token, neg *ast.Position) (ast.Expression, error) {
 	return ast.NewNumber(p, d), nil
 }
 
+// parseStringNode returns a String node from a token.
 func parseStringNode(tok token) *ast.String {
 	return ast.NewString(tok.pos, unquoteString(tok.txt))
 }
 
+// unquoteString returns the characters in s unquoted as string.
 func unquoteString(s []byte) string {
 	if len(s) == 2 {
 		return ""

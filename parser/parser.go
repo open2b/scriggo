@@ -74,7 +74,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	// Indicates if it has been extended.
 	var isExtended = false
 
-	// Indicates if he is in a macro.
+	// Indicates if it is in a macro.
 	var isInMacro = false
 
 	// Current line.
@@ -83,17 +83,17 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	// First Text node of the current line.
 	var firstText *ast.Text
 
-	// Indicates if there is a token in the current line for which it would
-	// be possible to cut the initial and final spaces.
+	// Indicates if there is a token in the current line for which it is
+	// possible to cut leading and trailing spaces.
 	var cutSpacesToken bool
 
-	// Number of tokens, not Text, in the current line.
+	// Number of non-text tokens in the current line.
 	var tokensInLine = 0
 
 	// Index of the last byte.
 	var end = len(src) - 1
 
-	// Reads all the tokens.
+	// Reads the tokens.
 	for tok := range lex.tokens {
 
 		var text *ast.Text
@@ -740,7 +740,7 @@ func New(r Reader) *Parser {
 // Parse reads the source in path, with the reader, in the ctx context,
 // expands the nodes Extend, Import and ShowPath and returns the expanded tree.
 //
-// Parse can be called concurrently by more goroutine.
+// Parse is safe for concurrent use.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
@@ -791,11 +791,11 @@ func (pp *parsing) abs(path string) (string, error) {
 	return path, err
 }
 
-// parsePath parses the file at path in context ctx.
-// path must be absolute and cleared.
+// parsePath parses the file at path in context ctx. path must be absolute and
+// cleared.
 func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 
-	// checks if there is a cycle
+	// Checks if there is a cycle.
 	for _, p := range pp.paths {
 		if p == path {
 			return nil, CycleError(path)
@@ -814,7 +814,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 	tree.Path = path
 
-	// Expands the nodes.
+	// Expands nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes, ctx)
 	if err != nil {
@@ -926,6 +926,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 	return nil
 }
 
+// addChild add node as child of parent.
 func addChild(parent ast.Node, node ast.Node) {
 	switch n := parent.(type) {
 	case *ast.Tree:
@@ -947,8 +948,8 @@ func addChild(parent ast.Node, node ast.Node) {
 	}
 }
 
-// cutSpaces cuts the leading and trailing spaces from a line where first and
-// last are respectively the initial and final Text node.
+// cutSpaces cuts the leading and trailing spaces from a line where the first
+// and last are respectively the initial and final Text node.
 func cutSpaces(first, last *ast.Text) {
 	var firstCut int
 	if first != nil {
