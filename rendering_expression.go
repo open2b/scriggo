@@ -787,14 +787,19 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 		}
 	}
 
-	values := func() []reflect.Value {
-		defer func() {
-			if e := recover(); e != nil {
-				panic(s.errorf(node.Func, "%s", e))
+	values := fun.Call(args)
+
+	if len(values) == 2 {
+		if !values[1].IsNil() {
+			err, ok := values[1].Interface().(error)
+			if !ok {
+				panic("no-error return value")
 			}
-		}()
-		return fun.Call(args)
-	}()
+			panic(s.errorf(node.Func, "%s", err))
+		}
+	} else if len(values) != 1 {
+		panic("wrong number of return values")
+	}
 
 	v := values[0].Interface()
 
