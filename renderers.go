@@ -169,7 +169,7 @@ func stopOnError(err error) bool {
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
 	if out == nil {
-		return errors.New("template: w is nil")
+		return errors.New("template: out is nil")
 	}
 	if tree == nil {
 		return errors.New("template: tree is nil")
