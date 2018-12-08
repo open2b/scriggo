@@ -18,7 +18,7 @@ import (
 func ExampleParseSource() {
 
 	src := []byte(`
-  {% extend "layout.txt" %}
+  {% extends "layout.txt" %}
   {% macro Main %}
       {% for i, p in products %}
       {{ i }}. {{ p.Name }}: $ {{ p.Price }}

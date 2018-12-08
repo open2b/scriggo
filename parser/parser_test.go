@@ -128,15 +128,15 @@ var treeTests = []struct {
 		ast.NewText(p(1, 1, 0, 1), []byte("  "), ast.Cut{0, 2}),
 		ast.NewIf(p(1, 3, 2, 26), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte(" \nb\n  "), ast.Cut{2, 2})}, nil),
 		ast.NewText(p(3, 12, 27, 28), []byte(" \t"), ast.Cut{2, 0})}, ast.ContextHTML)},
-	{"{% extend \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtend(p(1, 1, 0, 18), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% extend \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 46), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
-			nil, []ast.Node{ast.NewText(p(1, 32, 31, 31), []byte("c"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% extend \"a.e\" %}{% macro b(c,d) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtend(p(1, 1, 0, 17), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 19, 18, 53), ast.NewIdentifier(p(1, 28, 27, 27), "b"),
-			[]*ast.Identifier{ast.NewIdentifier(p(1, 30, 29, 29), "c"), ast.NewIdentifier(p(1, 32, 31, 31), "d")},
-			[]ast.Node{ast.NewText(p(1, 37, 36, 38), []byte("txt"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 20, 19, 47), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% extends \"a.e\" %}{% macro b(c,d) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 20, 19, 54), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			[]*ast.Identifier{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
+			[]ast.Node{ast.NewText(p(1, 38, 37, 39), []byte("txt"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.ContextHTML)},
 	{"{% macro a(b) %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewMacro(p(1, 1, 0, 31), ast.NewIdentifier(p(1, 10, 9, 9), "a"),

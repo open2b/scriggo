@@ -51,9 +51,9 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// ParseSource parses src in the context ctx and returns a tree. Nodes Extend,
-// Import and ShowPath will not be expanded (the field Tree will be nil). To
-// get an expanded tree call the method Parse of a Parser instead.
+// ParseSource parses src in the context ctx and returns a tree. Nodes
+// Extends, Import and ShowPath will not be expanded (the field Tree will be
+// nil). To get an expanded tree call the method Parse of a Parser instead.
 func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 	switch ctx {
@@ -453,24 +453,24 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				addChild(parent, node)
 				cutSpacesToken = true
 
-			// extend
-			case tokenExtend:
+			// extends
+			case tokenExtends:
 				if isExtended {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("extend already exists")}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("extends already exists")}
 				}
 				if len(tree.Nodes) > 0 {
 					if _, ok = tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("extend can only be the first statement")}
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extends can only be the first statement")}
 					}
 				}
 				if tok.ctx != ctx {
 					switch tok.ctx {
 					case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside an attribute value")}
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extends inside an attribute value")}
 					case ast.ContextScript:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a script tag")}
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extends inside a script tag")}
 					case ast.ContextCSS:
-						return nil, &Error{"", *tok.pos, fmt.Errorf("extend inside a style tag")}
+						return nil, &Error{"", *tok.pos, fmt.Errorf("extends inside a style tag")}
 					}
 				}
 				tok, ok = <-lex.tokens
@@ -482,7 +482,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				}
 				var path = unquoteString(tok.txt)
 				if !validPath(path) {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("invalid extend path %q", path)}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)}
 				}
 				tok, ok = <-lex.tokens
 				if !ok {
@@ -492,7 +492,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewExtend(pos, path, tok.ctx)
+				node = ast.NewExtends(pos, path, tok.ctx)
 				addChild(parent, node)
 				isExtended = true
 
@@ -670,7 +670,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				cutSpacesToken = true
 
 			default:
-				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extend, macro or end", tok)}
+				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, macro or end", tok)}
 
 			}
 
@@ -716,7 +716,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands
-// the nodes Extend, Import and ShowPath. The trees are cached so only one
+// the nodes Extends, Import and ShowPath. The trees are cached so only one
 // call per combination of path and context is made to the reader even if
 // several goroutines parse the same paths at the same time.
 //
@@ -738,7 +738,7 @@ func New(r Reader) *Parser {
 }
 
 // Parse reads the source in path, with the reader, in the ctx context,
-// expands the nodes Extend, Import and ShowPath and returns the expanded tree.
+// expands the nodes Extends, Import and ShowPath and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
@@ -862,10 +862,10 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Extend:
+		case *ast.Extends:
 
 			if len(pp.paths) > 1 {
-				return &Error{"", *(n.Pos()), fmt.Errorf("extended, imported and showed files can not have extend")}
+				return &Error{"", *(n.Pos()), fmt.Errorf("extended, imported and showed files can not have extends")}
 			}
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
@@ -876,7 +876,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
-					err = &Error{"", *(n.Pos()), fmt.Errorf("extend path %q does not exist", absPath)}
+					err = &Error{"", *(n.Pos()), fmt.Errorf("extends path %q does not exist", absPath)}
 				} else if err2, ok := err.(CycleError); ok {
 					err = CycleError("imports " + string(err2))
 				}

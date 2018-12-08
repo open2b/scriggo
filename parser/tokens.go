@@ -31,7 +31,7 @@ const (
 	tokenContinue                    // continue
 	tokenIf                          // if
 	tokenElse                        // else
-	tokenExtend                      // extend
+	tokenExtends                     // extends
 	tokenImport                      // import
 	tokenShow                        // show
 	tokenMacro                       // macro
@@ -84,7 +84,7 @@ var tokenString = map[tokenType]string{
 	tokenContinue:          "continue",
 	tokenIf:                "if",
 	tokenElse:              "else",
-	tokenExtend:            "extend",
+	tokenExtends:           "extends",
 	tokenImport:            "import",
 	tokenShow:              "show",
 	tokenMacro:             "macro",

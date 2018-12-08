@@ -139,7 +139,7 @@ var (
 // If strict is true, even errors on expressions and statements execution stop
 // the rendering. See the type Errors for more details.
 //
-// Statements "extend", "import" and "show <path>" cannot be used with
+// Statements "extends", "import" and "show <path>" cannot be used with
 // RenderSource, use the function RenderTree or the method Render of a
 // Renderer, as DirRenderer and MapRenderer, instead.
 //
@@ -206,19 +206,19 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		}
 	}
 
-	extend := getExtendNode(tree)
-	if extend == nil {
+	extends := getExtendsNode(tree)
+	if extends == nil {
 		err = s.render(out, tree.Nodes, nil)
 	} else {
-		if extend.Tree == nil {
-			return errors.New("template: extend node is not expanded")
+		if extends.Tree == nil {
+			return errors.New("template: extends node is not expanded")
 		}
 		s.scope[s.path] = s.vars[2]
 		err = s.render(nil, tree.Nodes, nil)
 		if err != nil {
 			return err
 		}
-		s.path = extend.Tree.Path
+		s.path = extends.Tree.Path
 		vars := scope{}
 		for name, v := range s.vars[2] {
 			if r, ok := v.(macro); ok {
@@ -229,7 +229,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 			}
 		}
 		s.vars = []scope{builtins, globals, vars}
-		err = s.render(out, extend.Tree.Nodes, nil)
+		err = s.render(out, extends.Tree.Nodes, nil)
 	}
 
 	if err == nil && errs != nil {
@@ -331,17 +331,17 @@ func varsToScope(vars interface{}) (scope, error) {
 	return nil, errors.New("template: unsupported vars type")
 }
 
-// getExtendNode returns the Extend node of a tree.
+// getExtendsNode returns the Extends node of a tree.
 // If the node is not present, returns nil.
-func getExtendNode(tree *ast.Tree) *ast.Extend {
+func getExtendsNode(tree *ast.Tree) *ast.Extends {
 	if len(tree.Nodes) == 0 {
 		return nil
 	}
-	if node, ok := tree.Nodes[0].(*ast.Extend); ok {
+	if node, ok := tree.Nodes[0].(*ast.Extends); ok {
 		return node
 	}
 	if len(tree.Nodes) > 1 {
-		if node, ok := tree.Nodes[1].(*ast.Extend); ok {
+		if node, ok := tree.Nodes[1].(*ast.Extends); ok {
 			return node
 		}
 	}

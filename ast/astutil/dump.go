@@ -44,14 +44,14 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 	d.indentLevel++
 
 	// In the case where node contains a reference to another tree (ie node is
-	// of type Import, Extend, ShowPath), it adds the reference to the
+	// of type Import, Extends, ShowPath), it adds the reference to the
 	// externalReferences list to visit the nodes with a recursive call of the
 	// Dump.
 	var tree *ast.Tree
 	switch n := node.(type) {
 	case *ast.Import:
 		tree = n.Tree
-	case *ast.Extend:
+	case *ast.Extends:
 		tree = n.Tree
 	case *ast.ShowPath:
 		tree = n.Tree

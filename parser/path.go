@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-// validPath indicates whether path is valid as an extend, import and show path.
+// validPath indicates whether path is valid as an extends, import and show path.
 func validPath(path string) bool {
 	return utf8.ValidString(path) &&
 		path != "" && path != ".." &&

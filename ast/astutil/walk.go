@@ -118,7 +118,7 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Selector:
 		Walk(v, n.Expr)
 
-	case *ast.Extend:
+	case *ast.Extends:
 	case *ast.Import:
 	case *ast.ShowPath:
 		// Nothing to do, visiting the expanded tree is done

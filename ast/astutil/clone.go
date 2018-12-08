@@ -75,8 +75,8 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewBreak(ClonePosition(n.Position))
 	case *ast.Continue:
 		return ast.NewContinue(ClonePosition(n.Position))
-	case *ast.Extend:
-		extend := ast.NewExtend(ClonePosition(n.Position), n.Path, n.Context)
+	case *ast.Extends:
+		extend := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
 			extend.Tree = CloneTree(n.Tree)
 		}

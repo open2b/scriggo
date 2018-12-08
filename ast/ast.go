@@ -335,19 +335,19 @@ func (v Value) String() string {
 	return fmt.Sprintf("{{ %v }}", v.Expr)
 }
 
-// Extend node represents a statement {% extend ... %}.
-type Extend struct {
+// Extends node represents a statement {% extends ... %}.
+type Extends struct {
 	*Position         // position in the source.
 	Path      string  // path to the file to extend.
 	Context   Context // context.
 	Tree      *Tree   // extended tree of extend.
 }
 
-func NewExtend(pos *Position, path string, ctx Context) *Extend {
-	return &Extend{Position: pos, Path: path, Context: ctx}
+func NewExtends(pos *Position, path string, ctx Context) *Extends {
+	return &Extends{Position: pos, Path: path, Context: ctx}
 }
 
-func (e Extend) String() string {
+func (e Extends) String() string {
 	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
 }
 
