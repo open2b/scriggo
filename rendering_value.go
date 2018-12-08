@@ -193,6 +193,8 @@ func renderInHTML(value interface{}) (string, bool) {
 	switch e := value.(type) {
 	case string:
 		s = htmlEscape(e)
+	case HTML:
+		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
