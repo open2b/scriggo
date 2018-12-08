@@ -45,6 +45,7 @@ var builtins = map[string]interface{}{
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
+	"append":      _append,
 	"contains":    strings.Contains,
 	"errorf":      _errorf,
 	"hasPrefix":   strings.HasPrefix,
@@ -67,6 +68,7 @@ var builtins = map[string]interface{}{
 	"sha1":        _sha1,
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,
+	"slice":       _slice,
 	"sort":        _sort,
 	"sortBy":      _sortBy,
 	"split":       strings.Split,
@@ -123,6 +125,102 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 		return d.Neg()
 	}
 	return d
+}
+
+// _append is the builtin function "append".
+func _append(slice interface{}, elems ...interface{}) (interface{}, error) {
+	if slice == nil {
+		return nil, fmt.Errorf("first argument to append must be slice; have untyped nil")
+	}
+	if elems == nil {
+		return slice, nil
+	}
+	var ok bool
+SameType:
+	switch s := slice.(type) {
+	case []string:
+		l := len(s)
+		sr := make([]string, l+len(elems))
+		for i, s := range s {
+			sr[i] = s
+		}
+		for i, vv := range elems {
+			sr[l+i], ok = vv.(string)
+			if !ok {
+				break SameType
+			}
+		}
+		return sr, nil
+	case []HTML:
+		l := len(s)
+		sr := make([]HTML, l+len(elems))
+		for i, s := range s {
+			sr[i] = s
+		}
+		for i, vv := range elems {
+			sr[l+i], ok = vv.(HTML)
+			if !ok {
+				break SameType
+			}
+		}
+		return sr, nil
+	case []int:
+		l := len(s)
+		sr := make([]int, l+len(elems))
+		for i, s := range s {
+			sr[i] = s
+		}
+		for i, vv := range elems {
+			sr[l+i], ok = vv.(int)
+			if !ok {
+				break SameType
+			}
+		}
+		return sr, nil
+	case []decimal.Decimal:
+		l := len(s)
+		sr := make([]decimal.Decimal, l+len(elems))
+		for i, s := range s {
+			sr[i] = s
+		}
+		for i, vv := range elems {
+			sr[l+i], ok = vv.(decimal.Decimal)
+			if !ok {
+				break SameType
+			}
+		}
+		return sr, nil
+	case []bool:
+		l := len(s)
+		sr := make([]bool, l+len(elems))
+		for i, s := range s {
+			sr[i] = s
+		}
+		for i, vv := range elems {
+			sr[l+i], ok = vv.(bool)
+			if !ok {
+				break SameType
+			}
+		}
+		return sr, nil
+	}
+	st := reflect.TypeOf(slice)
+	if st.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("first argument to append must be slice; have %s", typeof(slice))
+	}
+	sv := reflect.ValueOf(slice)
+	l := sv.Len()
+	sr := make([]interface{}, l+len(elems))
+	for i := 0; i < l; i++ {
+		sr[i] = sv.Index(i).Interface()
+	}
+	for i, vv := range elems {
+		if vv == nil {
+			return nil, fmt.Errorf("use of untyped nil in slice")
+		}
+		sr[l+i] = vv
+	}
+	return sr, nil
 }
 
 // _errorf is the builtin function "errorf".
@@ -348,6 +446,76 @@ func _shuffle(s interface{}) (interface{}, error) {
 		swap(i, j)
 	}
 	return s2, nil
+}
+
+// _slice is the builtin function "slice".
+func _slice(elem interface{}, elems ...interface{}) (interface{}, error) {
+	var ok bool
+SameType:
+	switch v := elem.(type) {
+	case string:
+		slice := make([]string, 1+len(elems))
+		slice[0] = v
+		for i, vv := range elems {
+			slice[i+1], ok = vv.(string)
+			if !ok {
+				break SameType
+			}
+		}
+		return slice, nil
+	case HTML:
+		slice := make([]HTML, 1+len(elems))
+		slice[0] = v
+		for i, vv := range elems {
+			slice[i+1], ok = vv.(HTML)
+			if !ok {
+				break SameType
+			}
+		}
+		return slice, nil
+	case int:
+		slice := make([]int, 1+len(elems))
+		slice[0] = v
+		for i, vv := range elems {
+			slice[i+1], ok = vv.(int)
+			if !ok {
+				break SameType
+			}
+		}
+		return slice, nil
+	case decimal.Decimal:
+		slice := make([]decimal.Decimal, 1+len(elems))
+		slice[0] = v
+		for i, vv := range elems {
+			slice[i+1], ok = vv.(decimal.Decimal)
+			if !ok {
+				break SameType
+			}
+		}
+		return slice, nil
+	case bool:
+		slice := make([]bool, 1+len(elems))
+		slice[0] = v
+		for i, vv := range elems {
+			slice[i+1], ok = vv.(bool)
+			if !ok {
+				break SameType
+			}
+		}
+		return slice, nil
+	}
+	if elem == nil {
+		return nil, fmt.Errorf("use of untyped nil in slice")
+	}
+	slice := make([]interface{}, 1+len(elems))
+	slice[0] = elem
+	for i, vv := range elems {
+		if vv == nil {
+			return nil, fmt.Errorf("use of untyped nil in slice")
+		}
+		slice[i+1] = vv
+	}
+	return slice, nil
 }
 
 // _sort is the builtin function "sort".

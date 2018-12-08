@@ -13,6 +13,8 @@ import (
 
 	"open2b/template/ast"
 	"open2b/template/parser"
+
+	"github.com/shopspring/decimal"
 )
 
 var rendererBuiltinTests = []struct {
@@ -42,6 +44,17 @@ var rendererBuiltinTests = []struct {
 	{"abs(-1)", "1", nil},
 	{"abs(3.56)", "3.56", nil},
 	{"abs(-3.56)", "3.56", nil},
+
+	// append
+	{"append(s)", "a, b", map[string]interface{}{"s": []string{"a", "b"}}},
+	{"append(s, v)", "a, b, ", map[string]interface{}{"s": []string{"a", "b"}, "v": []string(nil)}},
+	{"append(s, `a`, `b`)", "a, b", map[string]interface{}{"s": []string(nil)}},
+	{"append(s, `c`, `d`)", "a, b, c, d", map[string]interface{}{"s": []string{"a", "b"}}},
+	{"append(s, html(`<c>`))", "<a>, <b>, <c>", map[string]interface{}{"s": []HTML{"<a>", "<b>"}}},
+	{"append(s, 3, 4)", "1, 2, 3, 4", map[string]interface{}{"s": []int{1, 2}}},
+	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", map[string]interface{}{"s": []decimal.Decimal{decimal.NewFromFloat(1.9), decimal.NewFromFloat(2.32)}}},
+	{"append(s, false, true)", "true, false, false, true", map[string]interface{}{"s": []bool{true, false}}},
+	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", map[string]interface{}{"s": []interface{}{"a", false, 0}}},
 
 	// contains
 	{"contains(``,``)", "true", nil},
@@ -221,6 +234,17 @@ var rendererBuiltinTests = []struct {
 	// sha256
 	{"sha256(``)", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
 	{"sha256(`hello world!`)", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
+
+	// slice
+	{"slice(v)", "", map[string]interface{}{"v": []string(nil)}},
+	{"slice(v, v2)", ", ", map[string]interface{}{"v": []string(nil), "v2": []string(nil)}},
+	{"slice(`a`)", "a", nil},
+	{"slice(`a`, `b`, `c`)", "a, b, c", nil},
+	{"slice(html(`<a>`), html(`<b>`), html(`<c>`))", "<a>, <b>, <c>", nil},
+	{"slice(4, 9, 3)", "4, 9, 3", nil},
+	{"slice(4.2, 9.06, 3.7)", "4.2, 9.06, 3.7", nil},
+	{"slice(false, false, true)", "false, false, true", nil},
+	{"slice(`a`, 8, true, html(`<b>`))", "a, 8, true, <b>", nil},
 
 	// sort
 	{"sort(nil)", "", nil},
