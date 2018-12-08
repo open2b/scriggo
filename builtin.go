@@ -46,6 +46,7 @@ var builtins = map[string]interface{}{
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
 	"append":      _append,
+	"base64":      _base64,
 	"contains":    strings.Contains,
 	"errorf":      _errorf,
 	"hasPrefix":   strings.HasPrefix,
@@ -221,6 +222,11 @@ SameType:
 		sr[l+i] = vv
 	}
 	return sr, nil
+}
+
+// _base64 is the builtin function "base64".
+func _base64(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
 // _errorf is the builtin function "errorf".

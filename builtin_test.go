@@ -56,6 +56,10 @@ var rendererBuiltinTests = []struct {
 	{"append(s, false, true)", "true, false, false, true", map[string]interface{}{"s": []bool{true, false}}},
 	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", map[string]interface{}{"s": []interface{}{"a", false, 0}}},
 
+	// base64
+	{"base64(``)", "", nil},
+	{"base64(`hello world!`)", "aGVsbG8gd29ybGQh", nil},
+
 	// contains
 	{"contains(``,``)", "true", nil},
 	{"contains(`a`,``)", "true", nil},
