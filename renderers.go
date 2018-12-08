@@ -139,7 +139,7 @@ var (
 // If strict is true, even errors on expressions and statements execution stop
 // the rendering. See the type Errors for more details.
 //
-// Statements "extends", "import" and "show <path>" cannot be used with
+// Statements "extends", "import" and "include" cannot be used with
 // RenderSource, use the function RenderTree or the method Render of a
 // Renderer, as DirRenderer and MapRenderer, instead.
 //

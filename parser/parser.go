@@ -52,7 +52,7 @@ func (e CycleError) Error() string {
 }
 
 // ParseSource parses src in the context ctx and returns a tree. Nodes
-// Extends, Import and ShowPath will not be expanded (the field Tree will be
+// Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
 func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
@@ -359,6 +359,38 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				}
 				cutSpacesToken = true
 
+			// include
+			case tokenInclude:
+				if isExtended && !isInMacro {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("include statement outside macro")}
+				}
+				if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")}
+				}
+				// path
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
+				}
+				var path = unquoteString(tok.txt)
+				if !validPath(path) {
+					return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
+				}
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
+				}
+				pos.End = tok.pos.End
+				node = ast.NewInclude(pos, path, tok.ctx)
+				addChild(parent, node)
+				cutSpacesToken = true
+
 			// show
 			case tokenShow:
 				if isExtended && !isInMacro {
@@ -367,89 +399,71 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
 				}
-				// macro or path
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
-				if tok.typ == tokenIdentifier {
-					// show <macro>
-					macro := ast.NewIdentifier(tok.pos, string(tok.txt))
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
-					// import
-					var impor *ast.Identifier
-					if tok.typ == tokenPeriod {
-						tok, ok = <-lex.tokens
-						if !ok {
-							return nil, lex.err
-						}
-						if tok.typ != tokenIdentifier {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
-						}
-						impor = macro
-						macro = ast.NewIdentifier(tok.pos, string(tok.txt))
-						if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)}
-						}
-						tok, ok = <-lex.tokens
-						if !ok {
-							return nil, lex.err
-						}
-					}
-					var arguments []ast.Expression
-					if tok.typ == tokenLeftParenthesis {
-						// arguments
-						arguments = []ast.Expression{}
-						for {
-							expr, tok, err = parseExpr(lex)
-							if err != nil {
-								return nil, err
-							}
-							if expr == nil {
-								return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
-							}
-							arguments = append(arguments, expr)
-							if tok.typ == tokenRightParenthesis {
-								break
-							}
-							if tok.typ != tokenComma {
-								return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
-							}
-						}
-						tok, ok = <-lex.tokens
-						if !ok {
-							return nil, lex.err
-						}
-						if tok.typ != tokenEndStatement {
-							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
-						}
-					}
-					if tok.typ != tokenEndStatement {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
-					}
-					pos.End = tok.pos.End
-					node = ast.NewShowMacro(pos, impor, macro, arguments, tok.ctx)
-				} else if tok.typ == tokenInterpretedString || tok.typ == tokenRawString {
-					// show <path>
-					var path = unquoteString(tok.txt)
-					if !validPath(path) {
-						return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
-					}
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
-					if tok.typ != tokenEndStatement {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
-					}
-					pos.End = tok.pos.End
-					node = ast.NewShowPath(pos, path, tok.ctx)
-				} else {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier o string", tok)}
+				if tok.typ != tokenIdentifier {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
+				macro := ast.NewIdentifier(tok.pos, string(tok.txt))
+				tok, ok = <-lex.tokens
+				if !ok {
+					return nil, lex.err
+				}
+				// import
+				var impor *ast.Identifier
+				if tok.typ == tokenPeriod {
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenIdentifier {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+					}
+					impor = macro
+					macro = ast.NewIdentifier(tok.pos, string(tok.txt))
+					if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)}
+					}
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+				}
+				var arguments []ast.Expression
+				if tok.typ == tokenLeftParenthesis {
+					// arguments
+					arguments = []ast.Expression{}
+					for {
+						expr, tok, err = parseExpr(lex)
+						if err != nil {
+							return nil, err
+						}
+						if expr == nil {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+						}
+						arguments = append(arguments, expr)
+						if tok.typ == tokenRightParenthesis {
+							break
+						}
+						if tok.typ != tokenComma {
+							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
+						}
+					}
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, lex.err
+					}
+					if tok.typ != tokenEndStatement {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+					}
+				}
+				if tok.typ != tokenEndStatement {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
+				}
+				pos.End = tok.pos.End
+				node = ast.NewShowMacro(pos, impor, macro, arguments, tok.ctx)
 				addChild(parent, node)
 				cutSpacesToken = true
 
@@ -670,7 +684,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				cutSpacesToken = true
 
 			default:
-				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, macro or end", tok)}
+				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
 
 			}
 
@@ -716,7 +730,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands
-// the nodes Extends, Import and ShowPath. The trees are cached so only one
+// the nodes Extends, Import and Include. The trees are cached so only one
 // call per combination of path and context is made to the reader even if
 // several goroutines parse the same paths at the same time.
 //
@@ -738,7 +752,7 @@ func New(r Reader) *Parser {
 }
 
 // Parse reads the source in path, with the reader, in the ctx context,
-// expands the nodes Extends, Import and ShowPath and returns the expanded tree.
+// expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
 func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
@@ -865,7 +879,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 		case *ast.Extends:
 
 			if len(pp.paths) > 1 {
-				return &Error{"", *(n.Pos()), fmt.Errorf("extended, imported and showed files can not have extends")}
+				return &Error{"", *(n.Pos()), fmt.Errorf("extended, imported and included paths can not have extends")}
 			}
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
@@ -901,7 +915,7 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.ShowPath:
+		case *ast.Include:
 
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
@@ -912,9 +926,9 @@ func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 				if err == ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
-					err = &Error{"", *(n.Pos()), fmt.Errorf("show path %q does not exist", absPath)}
+					err = &Error{"", *(n.Pos()), fmt.Errorf("included path %q does not exist", absPath)}
 				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("shows " + string(err2))
+					err = CycleError("include " + string(err2))
 				}
 				return err
 			}

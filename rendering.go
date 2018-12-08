@@ -600,7 +600,7 @@ Nodes:
 				}
 			}
 
-		case *ast.ShowPath:
+		case *ast.Include:
 
 			s.vars = append(s.vars, nil)
 			st := &rendering{

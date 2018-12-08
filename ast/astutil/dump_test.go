@@ -21,7 +21,7 @@ func ExampleDump() {
 		"{% var x = 10 %}",
 		"{% for i in 1..12 %} some text, blah blah blah {% end %}",
 		"{% for i in 1..12 %} some very very very very very very very very long text, blah blah blah {% end %}",
-		`{% show "ciao.txt" %}`,
+		`{% include "ciao.txt" %}`,
 		"{{5+6}}",
 		`{% var x = 10 %}`,
 		`{% y = 10 %}`,
@@ -69,7 +69,7 @@ func ExampleDump() {
 	// │    │    Text (1:21) " some very very very very very..."
 
 	// Tree: "":1:1
-	// │    ShowPath (1:1) 1:1
+	// │    Include (1:1) 1:1
 
 	// Tree: "":1:1
 	// │    Value (1:1) {{ 5 + 6 }}

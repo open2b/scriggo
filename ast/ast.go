@@ -308,16 +308,16 @@ func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expressio
 	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Arguments: arguments, Context: ctx}
 }
 
-// ShowPath node represents a statement {% show <path> %}.
-type ShowPath struct {
+// Include node represents a statement {% include <path> %}.
+type Include struct {
 	*Position         // position in the source.
 	Path      string  // path of the source to show.
 	Context   Context // context.
 	Tree      *Tree   // extended tree of <path>.
 }
 
-func NewShowPath(pos *Position, path string, ctx Context) *ShowPath {
-	return &ShowPath{Position: pos, Path: path, Context: ctx}
+func NewInclude(pos *Position, path string, ctx Context) *Include {
+	return &Include{Position: pos, Path: path, Context: ctx}
 }
 
 // Value node represents a statement {{ ... }}.
@@ -348,7 +348,7 @@ func NewExtends(pos *Position, path string, ctx Context) *Extends {
 }
 
 func (e Extends) String() string {
-	return fmt.Sprintf("{%% extend %v %%}", strconv.Quote(e.Path))
+	return fmt.Sprintf("{%% extends %v %%}", strconv.Quote(e.Path))
 }
 
 // Import node represents a statement {% import ... %}.

@@ -10,7 +10,7 @@
 //  {% import conv "converter.html" %}
 //  <html>
 //  <body>
-//      {% show "header.html" %}
+//      {% include "header.html" %}
 //      <ul>
 //          {% for p in products %}
 //          <li>{{ p.Name }}: € {{ conv.Convert(p.Price, "EUR") }}</li>

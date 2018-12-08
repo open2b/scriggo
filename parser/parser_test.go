@@ -129,7 +129,7 @@ var treeTests = []struct {
 		ast.NewIf(p(1, 3, 2, 26), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte(" \nb\n  "), ast.Cut{2, 2})}, nil),
 		ast.NewText(p(3, 12, 27, 28), []byte(" \t"), ast.Cut{2, 0})}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% show \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewShowPath(p(1, 1, 0, 16), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
 		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 20, 19, 47), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
 			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
@@ -152,8 +152,8 @@ func pageTests() map[string]struct {
 	src  string
 	tree *ast.Tree
 } {
-	var showPath = ast.NewShowPath(p(3, 7, 29, 55), "/include2.html", ast.ContextHTML)
-	showPath.Tree = ast.NewTree("", []ast.Node{
+	var include = ast.NewInclude(p(3, 7, 29, 58), "/include2.html", ast.ContextHTML)
+	include.Tree = ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 4), []byte("<div>"), ast.Cut{}),
 		ast.NewValue(p(1, 6, 5, 17), ast.NewIdentifier(p(1, 9, 8, 14), "content"), ast.ContextHTML),
 		ast.NewText(p(1, 19, 18, 23), []byte("</div>"), ast.Cut{}),
@@ -173,11 +173,11 @@ func pageTests() map[string]struct {
 			}, ast.ContextHTML),
 		},
 		"/simple2.html": {
-			"<!DOCTYPE html>\n<html>\n<body>{% show \"/include2.html\" %}</body>\n</html>",
+			"<!DOCTYPE html>\n<html>\n<body>{% include \"/include2.html\" %}</body>\n</html>",
 			ast.NewTree("", []ast.Node{
 				ast.NewText(p(1, 1, 0, 28), []byte("<!DOCTYPE html>\n<html>\n<body>"), ast.Cut{}),
-				showPath,
-				ast.NewText(p(3, 34, 56, 70), []byte("</body>\n</html>"), ast.Cut{}),
+				include,
+				ast.NewText(p(3, 37, 59, 73), []byte("</body>\n</html>"), ast.Cut{}),
 			}, ast.ContextHTML),
 		},
 		"/include2.inc": {

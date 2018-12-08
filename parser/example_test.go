@@ -58,7 +58,7 @@ func ExampleMapReader() {
 
 	r := parser.MapReader(map[string][]byte{
 		"header.csv": []byte("Name"),
-		"names.csv":  []byte("{% show `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
+		"names.csv":  []byte("{% include `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	})
 
 	tree, err := r.Read("names.csv", ast.ContextText)

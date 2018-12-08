@@ -76,11 +76,11 @@ func CloneNode(node ast.Node) ast.Node {
 	case *ast.Continue:
 		return ast.NewContinue(ClonePosition(n.Position))
 	case *ast.Extends:
-		extend := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
+		extends := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
-			extend.Tree = CloneTree(n.Tree)
+			extends.Tree = CloneTree(n.Tree)
 		}
-		return extend
+		return extends
 	case *ast.Macro:
 		var ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		var parameters []*ast.Identifier
@@ -119,8 +119,8 @@ func CloneNode(node ast.Node) ast.Node {
 			imp.Tree = CloneTree(n.Tree)
 		}
 		return imp
-	case *ast.ShowPath:
-		sp := ast.NewShowPath(ClonePosition(n.Position), n.Path, n.Context)
+	case *ast.Include:
+		sp := ast.NewInclude(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
 			sp.Tree = CloneTree(n.Tree)
 		}

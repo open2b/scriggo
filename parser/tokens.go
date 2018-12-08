@@ -33,6 +33,7 @@ const (
 	tokenElse                        // else
 	tokenExtends                     // extends
 	tokenImport                      // import
+	tokenInclude                     // include
 	tokenShow                        // show
 	tokenMacro                       // macro
 	tokenEnd                         // end
@@ -86,6 +87,7 @@ var tokenString = map[tokenType]string{
 	tokenElse:              "else",
 	tokenExtends:           "extends",
 	tokenImport:            "import",
+	tokenInclude:           "include",
 	tokenShow:              "show",
 	tokenMacro:             "macro",
 	tokenEnd:               "end",
