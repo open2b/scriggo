@@ -236,7 +236,10 @@ var rendererBuiltinTests = []struct {
 	{"sha256(`hello world!`)", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
 
 	// slice
+	{"slice()", "", nil},
+	{"len(slice())", "0", nil},
 	{"slice(v)", "", map[string]interface{}{"v": []string(nil)}},
+	{"len(slice(v))", "1", map[string]interface{}{"v": []string(nil)}},
 	{"slice(v, v2)", ", ", map[string]interface{}{"v": []string(nil), "v2": []string(nil)}},
 	{"slice(`a`)", "a", nil},
 	{"slice(`a`, `b`, `c`)", "a, b, c", nil},
