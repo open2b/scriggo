@@ -78,6 +78,10 @@ var rendererBuiltinTests = []struct {
 	{"hasSuffix(`abc`,`c`)", "true", nil},
 	{"hasSuffix(`abc`,`b`)", "false", nil},
 
+	// hex
+	{"hex(``)", "", nil},
+	{"hex(`hello world!`)", "68656c6c6f20776f726c6421", nil},
+
 	// hmac
 	{"hmac(`MD5`, ``, ``)", "dOb3KYqcLRaJNfWMAButiA==", nil},
 	{"hmac(`MD5`, `hello world!`, ``)", "POUE2/xvWDT8UjcXJ4d/hQ==", nil},

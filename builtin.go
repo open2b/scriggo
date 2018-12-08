@@ -51,6 +51,7 @@ var builtins = map[string]interface{}{
 	"errorf":      _errorf,
 	"hasPrefix":   strings.HasPrefix,
 	"hasSuffix":   strings.HasSuffix,
+	"hex":         _hex,
 	"hmac":        _hmac,
 	"html":        _html,
 	"index":       _index,
@@ -232,6 +233,11 @@ func _base64(s string) string {
 // _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) (interface{}, error) {
 	return nil, fmt.Errorf(format, a...)
+}
+
+// _hex is the builtin function "hex".
+func _hex(s string) string {
+	return hex.EncodeToString([]byte(s))
 }
 
 // _hmac is the builtin function "hmac".
