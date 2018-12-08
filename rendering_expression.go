@@ -747,7 +747,9 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 			}
 			args[i] = reflect.Zero(in)
 		} else {
-			if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
+			if inKind == reflect.Interface {
+				args[i] = reflect.ValueOf(arg)
+			} else if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
 				n, err := s.decimalToInt(node.Args[i], d)
