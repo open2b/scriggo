@@ -45,16 +45,16 @@ var builtins = map[string]interface{}{
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
-	"contains":    _contains,
+	"contains":    strings.Contains,
 	"errorf":      _errorf,
-	"hasPrefix":   _hasPrefix,
-	"hasSuffix":   _hasSuffix,
+	"hasPrefix":   strings.HasPrefix,
+	"hasSuffix":   strings.HasSuffix,
 	"hmac":        _hmac,
 	"html":        _html,
 	"index":       _index,
 	"indexAny":    _indexAny,
 	"int":         _int,
-	"join":        _join,
+	"join":        strings.Join,
 	"lastIndex":   _lastIndex,
 	"max":         _max,
 	"md5":         _md5,
@@ -69,18 +69,18 @@ var builtins = map[string]interface{}{
 	"shuffle":     _shuffle,
 	"sort":        _sort,
 	"sortBy":      _sortBy,
-	"split":       _split,
-	"splitN":      _splitN,
-	"queryEscape": _queryEscape,
-	"title":       _title,
-	"toLower":     _toLower,
-	"toTitle":     _toTitle,
-	"toUpper":     _toUpper,
-	"trim":        _trim,
-	"trimLeft":    _trimLeft,
-	"trimPrefix":  _trimPrefix,
-	"trimRight":   _trimRight,
-	"trimSuffix":  _trimSuffix,
+	"split":       strings.Split,
+	"splitN":      strings.SplitN,
+	"queryEscape": url.QueryEscape,
+	"title":       strings.Title,
+	"toLower":     strings.ToLower,
+	"toTitle":     strings.ToTitle,
+	"toUpper":     strings.ToUpper,
+	"trim":        strings.Trim,
+	"trimLeft":    strings.TrimLeft,
+	"trimPrefix":  strings.TrimPrefix,
+	"trimRight":   strings.TrimRight,
+	"trimSuffix":  strings.TrimSuffix,
 }
 
 // _abbreviate is the builtin function "abbreviate".
@@ -125,24 +125,9 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 	return d
 }
 
-// _contains is the builtin function "contains".
-func _contains(s, substr string) bool {
-	return strings.Contains(s, substr)
-}
-
 // _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) (interface{}, error) {
 	return nil, fmt.Errorf(format, a...)
-}
-
-// _hasPrefix is the builtin function "hasPrefix".
-func _hasPrefix(s, prefix string) bool {
-	return strings.HasPrefix(s, prefix)
-}
-
-// _hasSuffix is the builtin function "hasSuffix".
-func _hasSuffix(s, suffix string) bool {
-	return strings.HasSuffix(s, suffix)
 }
 
 // _hmac is the builtin function "hmac".
@@ -190,11 +175,6 @@ func _indexAny(s, chars string) int {
 // _int is the builtin function "int".
 func _int(d decimal.Decimal) decimal.Decimal {
 	return d.Truncate(0)
-}
-
-// _join is the builtin function "join".
-func _join(a []string, sep string) string {
-	return strings.Join(a, sep)
 }
 
 // _lastIndex is the builtin function "lastIndex".
@@ -267,11 +247,6 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 // _number is the builtin function "number".
 func _number(d decimal.Decimal) decimal.Decimal {
 	return d
-}
-
-// _queryEscape is the builtin function "queryEscape".
-func _queryEscape(s string) string {
-	return url.QueryEscape(s)
 }
 
 // _rand is the builtin function "rand".
@@ -487,62 +462,7 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 	return s2, nil
 }
 
-// _split is the builtin function "split".
-func _split(s, sep string) []string {
-	return strings.Split(s, sep)
-}
-
-// _splitN is the builtin function "splitN".
-func _splitN(s, sep string, n int) []string {
-	return strings.SplitN(s, sep, n)
-}
-
 // _string is the builtin function "string".
 func _string(s string) string {
 	return s
-}
-
-// _title is the builtin function "title".
-func _title(s string) string {
-	return strings.Title(s)
-}
-
-// _toLower is the builtin function "toLower".
-func _toLower(s string) string {
-	return strings.ToLower(s)
-}
-
-// _toTitle is the builtin function "toTitle".
-func _toTitle(s string) string {
-	return strings.ToTitle(s)
-}
-
-// _toUpper is the builtin function "toUpper".
-func _toUpper(s string) string {
-	return strings.ToUpper(s)
-}
-
-// _trim is the builtin function "trim".
-func _trim(s string, cutset string) string {
-	return strings.Trim(s, cutset)
-}
-
-// _trimLeft is the builtin function "trimLeft".
-func _trimLeft(s string, cutset string) string {
-	return strings.TrimLeft(s, cutset)
-}
-
-// _trimRight is the builtin function "trimRight".
-func _trimRight(s string, cutset string) string {
-	return strings.TrimRight(s, cutset)
-}
-
-// _trimPrefix is the builtin function "trimPrefix".
-func _trimPrefix(s, prefix string) string {
-	return strings.TrimPrefix(s, prefix)
-}
-
-// _trimSuffix is the builtin function "trimSuffix".
-func _trimSuffix(s, suffix string) string {
-	return strings.TrimPrefix(s, suffix)
 }
