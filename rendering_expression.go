@@ -28,7 +28,7 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
-// eval evaluates an expression by returning its value.
+// eval evaluates an expression and returns its value.
 func (s *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -74,7 +74,7 @@ func (s *rendering) evalExpression(expr ast.Expression) interface{} {
 }
 
 // evalUnaryOperator evaluates a unary operator and returns its value.
-// On error it calls panic with the error as parameter.
+// On error it calls panic with the error as argument.
 func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var e = asBase(s.evalExpression(node.Expr))
 	switch node.Op {
@@ -104,7 +104,7 @@ func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
-// On error it calls panic with the error as parameter.
+// On error it calls panic with the error as argument.
 func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
 	expr1 := asBase(s.evalExpression(node.Expr1))
@@ -465,6 +465,7 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 	panic("unknown binary operator")
 }
 
+// evalSelector evaluates a selector expression and returns its value.
 func (s *rendering) evalSelector(node *ast.Selector) interface{} {
 	v := asBase(s.evalExpression(node.Expr))
 	// map
@@ -512,6 +513,7 @@ func (s *rendering) evalSelector(node *ast.Selector) interface{} {
 	panic(s.errorf(node, "type %s cannot have fields", typeof(v)))
 }
 
+// evalIndex evaluates an index expression and returns its value.
 func (s *rendering) evalIndex(node *ast.Index) interface{} {
 	var i int
 	switch index := asBase(s.evalExpression(node.Index)).(type) {
@@ -560,6 +562,7 @@ func (s *rendering) evalIndex(node *ast.Index) interface{} {
 	panic(s.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
+// evalSlice evaluates a slice expression and returns its value.
 func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 	var ok bool
 	var l, h int
@@ -638,6 +641,7 @@ func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 	panic(s.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }
 
+// evalIdentifier evaluates an identifier expression and returns its value.
 func (s *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(s.vars) - 1; i >= 0; i-- {
 		if s.vars[i] != nil {
@@ -652,6 +656,7 @@ func (s *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 	panic(s.errorf(node, "undefined: %s", node.Name))
 }
 
+// evalCall evaluates a call expression and returns its value.
 func (s *rendering) evalCall(node *ast.Call) interface{} {
 
 	if s.isBuiltin("len", node.Func) {
@@ -841,6 +846,7 @@ func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
 	return e1, e2
 }
 
+// asBase returns the base value of v.
 func asBase(v interface{}) interface{} {
 	if v == nil {
 		return nil
@@ -959,8 +965,7 @@ func getStructFields(st reflect.Value) structFields {
 	return fields
 }
 
-// parseVarTag parses the tag of a field of a struct that acts as a variable
-// and returns the name.
+// parseVarTag parses the tag of a struct field and returns its name.
 func parseVarTag(tag string) string {
 	sp := strings.SplitN(tag, ",", 2)
 	if len(sp) == 0 {

@@ -65,7 +65,7 @@ func htmlEscape(s string) string {
 }
 
 // attributeEscape escapes the string s so it can be places inside an HTML
-// attribute value. unquoted indicates if the attribute value is unquoted.
+// attribute value. unquoted indicates if the attribute is unquoted.
 func attributeEscape(s string, unquoted bool) string {
 	if !unquoted {
 		return htmlEscape(s)
@@ -226,7 +226,7 @@ func scriptStringEscape(s string) string {
 }
 
 // pathEscape escapes the string s so it can be placed inside an attribute
-// value as URL path. unquoted indicates if the attribute value is unquoted.
+// value as URL path. unquoted indicates if the attribute is unquoted.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
 func pathEscape(s string, unquoted bool) string {

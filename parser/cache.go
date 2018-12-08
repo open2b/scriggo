@@ -12,14 +12,14 @@ import (
 	"open2b/template/ast"
 )
 
-// cache implements a cache trees used by the parser.
+// cache implements a trees cache used by the parser.
 type cache struct {
 	trees map[treeCacheEntry]*ast.Tree
 	waits map[treeCacheEntry]*sync.WaitGroup
 	sync.Mutex
 }
 
-// treeCacheEntry implements a tree cache entry.
+// treeCacheEntry implements a trees cache entry.
 type treeCacheEntry struct {
 	path string
 	ctx  ast.Context
@@ -53,6 +53,7 @@ func (c *cache) get(path string, ctx ast.Context) (*ast.Tree, bool) {
 }
 
 // add adds a tree to the cache.
+//
 // Can be called only after a previous call to get has returned false.
 func (c *cache) add(path string, ctx ast.Context, tree *ast.Tree) {
 	entry := treeCacheEntry{path, ctx}

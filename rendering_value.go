@@ -22,7 +22,7 @@ import (
 )
 
 // ValueRenderer can be implemented by the values of variables. When a value
-// have to be rendered, if the value implements ValueRender its Render method
+// have to be rendered, if the value implements ValueRender, its Render method
 // is called.
 //
 // The method Render on a value is called only if the context in which the
@@ -31,8 +31,8 @@ import (
 //
 // For example if this source is parsed in context HTML:
 //
-//  <a href="{{ expr }}">{{ expr }}</a>
-//  <script>var b = {{ expr }};</script>
+//  <a href="{{ expr1 }}">{{ expr2 }}</a>
+//  <script>var b = {{ expr3 }};</script>
 //
 // the first statement has context Attribute, the second has context HTML and
 // the third has context Script, so Render would only be called on the second
@@ -57,7 +57,8 @@ type ValueRenderer interface {
 //      "where": ">> here & there",
 //  }
 //
-//  // {{ going + " " + where }} is rendered as: <a href="/">going</a> &gt;&gt; here &amp; there
+//  // {{ going + " " + where }} is rendered as:
+//  // <a href="/">going</a> &gt;&gt; here &amp; there
 //
 type HTML string
 
@@ -66,7 +67,7 @@ type Stringer interface {
 	String() string
 }
 
-// Numberer is implemented by any variable value that behaves like a number.
+// Numberer is implemented by any value that behaves like a number.
 type Numberer interface {
 	Number() decimal.Decimal
 }
@@ -248,8 +249,8 @@ func renderInTag(value interface{}) (string, bool) {
 	return s, true
 }
 
-// renderInAttribute renders value in Attribute context, as URL is urlstate is
-// not nil and quoted or unquoted depending on unquoted value.
+// renderInAttribute renders value in Attribute context quoted or unquoted
+// depending on unquoted value. Is rendered as an URL if urlstate is not nil.
 func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (string, bool) {
 
 	if value == nil {
@@ -484,13 +485,13 @@ func renderValueAsScriptObject(value reflect.Value) (string, bool) {
 
 // renderMapAsScriptObject returns value as a JavaScript object or undefined
 // if it is not possible.
-func renderMapAsScriptObject(e map[string]interface{}) (string, bool) {
-	if e == nil {
+func renderMapAsScriptObject(value map[string]interface{}) (string, bool) {
+	if value == nil {
 		return "null", true
 	}
 	var s string
-	names := make([]string, 0, len(e))
-	for name := range e {
+	names := make([]string, 0, len(value))
+	for name := range value {
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -499,7 +500,7 @@ func renderMapAsScriptObject(e map[string]interface{}) (string, bool) {
 			s += ","
 		}
 		s += scriptStringEscape(n) + ":"
-		s2, ok := renderInScript(e[n])
+		s2, ok := renderInScript(value[n])
 		if !ok {
 			return "undefined", false
 		}

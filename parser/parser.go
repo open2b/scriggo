@@ -19,15 +19,15 @@ import (
 )
 
 var (
-	// ErrInvalidPath can be returned from the Parse method and a Reader when
-	// the path argument is not valid.
+	// ErrInvalidPath is returned from the Parse method and a Reader when the
+	// path argument is not valid.
 	ErrInvalidPath = errors.New("template/parser: invalid path")
 
-	// ErrNotExist can be returned from the Parse method and a Reader when the
+	// ErrNotExist is returned from the Parse method and a Reader when the
 	// path does not exist.
 	ErrNotExist = errors.New("template/parser: path does not exist")
 
-	// ErrReadTooLarge can be returned from a DirLimitedReader when a limit is
+	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
 	// exceeded.
 	ErrReadTooLarge = errors.New("template/parser: read too large")
 )
@@ -83,11 +83,11 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	// First Text node of the current line.
 	var firstText *ast.Text
 
-	// Indicates if there is a token in the current line for which it is
-	// possible to cut leading and trailing spaces.
+	// Indicates if there is a token in current line for which it is possible
+	// to cut the leading and trailing spaces.
 	var cutSpacesToken bool
 
-	// Number of non-text tokens in the current line.
+	// Number of non-text tokens in current line.
 	var tokensInLine = 0
 
 	// Index of the last byte.
@@ -111,7 +111,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 			tokensInLine = 0
 		}
 
-		// The parent is always the last ancestor.
+		// Parent is always the last ancestor.
 		parent := ancestors[len(ancestors)-1]
 
 		switch tok.typ {
@@ -736,8 +736,8 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 //
 // Returned trees can only be transformed if the parser is no longer used,
 // because it would be the cached trees to be transformed and a data race can
-// occur. In case, use astutil.Clone to create a clone of the tree and then
-// transform the clone.
+// occur. In case, use the function Clone in the astutil package to create a
+// clone of the tree and then transform the clone.
 type Parser struct {
 	reader Reader
 	trees  *cache
@@ -751,7 +751,7 @@ func New(r Reader) *Parser {
 	}
 }
 
-// Parse reads the source in path, with the reader, in the ctx context,
+// Parse reads the source at path, with the reader, in the ctx context,
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
@@ -805,8 +805,8 @@ func (pp *parsing) abs(path string) (string, error) {
 	return path, err
 }
 
-// parsePath parses the file at path in context ctx. path must be absolute and
-// cleared.
+// parsePath parses the source at path in context ctx. path must be absolute
+// and cleared.
 func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	// Checks if there is a cycle.
@@ -828,7 +828,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 	tree.Path = path
 
-	// Expands nodes.
+	// Expands the nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes, ctx)
 	if err != nil {
@@ -845,7 +845,7 @@ func (pp *parsing) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// expand expands the nodes parsing the sub trees in context ctx.
+// expand expands the nodes parsing the sub-trees in context ctx.
 func (pp *parsing) expand(nodes []ast.Node, ctx ast.Context) error {
 
 	for _, node := range nodes {
@@ -962,8 +962,8 @@ func addChild(parent ast.Node, node ast.Node) {
 	}
 }
 
-// cutSpaces cuts the leading and trailing spaces from a line where the first
-// and last are respectively the initial and final Text node.
+// cutSpaces cuts the leading and trailing spaces from a line. first and last
+// are respectively the initial and the final Text node of the line.
 func cutSpaces(first, last *ast.Text) {
 	var firstCut int
 	if first != nil {

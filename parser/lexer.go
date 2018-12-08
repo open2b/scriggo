@@ -28,7 +28,7 @@ type lexer struct {
 	tag    string      // current tag
 	attr   string      // current attribute
 	tokens chan token  // tokens, is closed at the end of the scan
-	err    error       // error, at the end of the scan indicates if there was an error
+	err    error       // error, indicates if there was an error
 }
 
 // newLexer creates a new lexer.
@@ -63,14 +63,14 @@ func (l *lexer) errorf(format string, args ...interface{}) *Error {
 	}
 }
 
-// emit emits a token of type typ and length length to the current line and
-// current column.
+// emit emits a token of type typ and length length at the current line and
+// column.
 func (l *lexer) emit(typ tokenType, length int) {
 	l.emitAtLineColumn(l.line, l.column, typ, length)
 }
 
-// emitAtLineColumn emits a token of type typ and length length to the line
-// line and column column.
+// emitAtLineColumn emits a token of type typ and length length at a specific
+// line and column.
 func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	var txt []byte
 	if length > 0 {
@@ -104,9 +104,8 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	}
 }
 
-// scan scans the text by placing the tokens on the tokens channel.
-// In the event of an error, it puts the error in err, closes the channel
-// and exits.
+// scan scans the text by placing the tokens on the tokens channel. If an
+// error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
 	p := 0 // token length in bytes
@@ -364,8 +363,8 @@ LOOP:
 	close(l.tokens)
 }
 
-// containsURL indicates if the attribute attr in tag contains an URL
-// or a comma-separated list of URL.
+// containsURL indicates if the attribute attr of tag contains an URL or a
+// comma-separated list of URL.
 //
 // See https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table.
 func containsURL(tag string, attr string) bool {
@@ -403,11 +402,11 @@ func containsURL(tag string, attr string) bool {
 	return false
 }
 
-// scanTag scans a tag name from src starting from position p
-// and returns the tag and the next position.
+// scanTag scans a tag name from src starting from position p and returns the
+// tag and the next position.
 //
-// For example, if l.src[p:] is `script src="...`, it returns
-// "script" and p+6.
+// For example, if l.src[p:] is `script src="...`, it returns "script" and
+// p+6.
 func (l *lexer) scanTag(p int) (string, int) {
 	s := p
 	for ; p < len(l.src); p++ {
@@ -430,10 +429,10 @@ func (l *lexer) scanTag(p int) (string, int) {
 	return string(bytes.ToLower(l.src[s:p])), p
 }
 
-// scanAttribute scans an attribute from src starting from position p
-// and returns the attribute name and the next position to scan.
+// scanAttribute scans an attribute from src starting from position p and
+// returns the attribute name and the next position to scan.
 //
-// If l.src[p:] is
+// For example, if l.src[p:] is
 //    - `src="a"` it returns "src" and p+4
 //    - `src=a` it returns "src" and p+4
 //    - `src>` it returns "" and p+3
@@ -506,14 +505,14 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	return name, p
 }
 
-// isEndStyle indicates if s starts with an end tag "style".
+// isEndStyle indicates if s is the start or end of "style" tag.
 func isEndStyle(s []byte) bool {
 	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
 		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[6] == 'E')
 }
 
-// isEndScript indicates if s starts with an end tag "script".
+// isEndScript indicates if s is the start or end of "script" tag.
 func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
@@ -774,6 +773,7 @@ func isStartChar(b byte) bool {
 	return b < 128 || 191 < b
 }
 
+// isASCIISpace indicates if s if a space for the HTML spec.
 func isASCIISpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r' || s == '\f'
 }
@@ -788,8 +788,8 @@ func isDigit(s byte) bool {
 	return '0' <= s && s <= '9'
 }
 
-// lexIdentifierOrKeyword reads an identifier or keyword knowing that
-// src starts with a character with a length of s bytes.
+// lexIdentifierOrKeyword reads an identifier or keyword knowing that src
+// starts with a character with a length of s bytes.
 func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	// Stops only when a character can not be part
 	// of the identifier or keyword.

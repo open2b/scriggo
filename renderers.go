@@ -34,7 +34,7 @@ const (
 // errors on expressions and statements execution that has occurred during the
 // rendering of the template.
 //
-// If the argument strict of a renderer function or Render type constructor is
+// If the strict argument of a renderer function or Render type constructor is
 // true, these types of errors stop the execution. If no other type of error
 // has occurred, at the end, an Errors error is returned with all errors on
 // expressions and statements execution that have occurred.
@@ -161,9 +161,9 @@ func stopOnError(err error) bool {
 // expressions and statements execution stop the rendering. See the type
 // Errors for more details.
 //
-// If you have template sources instead or you do not want to deal directly
-// with trees, use the function RenderSource or the Render method of a
-// Renderer as DirRenderer and MapRenderer.
+// If you have a template source instead of a tree, use the function
+// RenderSource or the Render method of a Renderer as DirRenderer and
+// MapRenderer.
 //
 // RenderTree is safe for concurrent use.
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
