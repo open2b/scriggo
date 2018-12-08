@@ -311,9 +311,9 @@ func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expressio
 // Include node represents a statement {% include <path> %}.
 type Include struct {
 	*Position         // position in the source.
-	Path      string  // path of the source to show.
+	Path      string  // path of the source to include.
 	Context   Context // context.
-	Tree      *Tree   // extended tree of <path>.
+	Tree      *Tree   // expanded tree of <path>.
 }
 
 func NewInclude(pos *Position, path string, ctx Context) *Include {
@@ -340,7 +340,7 @@ type Extends struct {
 	*Position         // position in the source.
 	Path      string  // path to the file to extend.
 	Context   Context // context.
-	Tree      *Tree   // extended tree of extend.
+	Tree      *Tree   // expanded tree of extends.
 }
 
 func NewExtends(pos *Position, path string, ctx Context) *Extends {
@@ -357,7 +357,7 @@ type Import struct {
 	Ident     *Identifier // identifier.
 	Path      string      // path of the imported file.
 	Context   Context     // context.
-	Tree      *Tree       // extended tree of import.
+	Tree      *Tree       // expanded tree of import.
 }
 
 func NewImport(pos *Position, ident *Identifier, path string, ctx Context) *Import {
