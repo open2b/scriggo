@@ -73,13 +73,13 @@ type urlState struct {
 }
 
 // errorf builds and returns an rendering error.
-func (s *rendering) errorf(node ast.Node, format string, args ...interface{}) error {
+func (r *rendering) errorf(node ast.Node, format string, args ...interface{}) error {
 	var pos = node.Pos()
 	if pos == nil {
 		return fmt.Errorf(format, args...)
 	}
 	var err = &Error{
-		Path: s.path,
+		Path: r.path,
 		Pos: ast.Position{
 			Line:   pos.Line,
 			Column: pos.Column,
@@ -92,7 +92,7 @@ func (s *rendering) errorf(node ast.Node, format string, args ...interface{}) er
 }
 
 // render renders nodes.
-func (s *rendering) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
+func (r *rendering) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
 Nodes:
 	for _, n := range nodes {
@@ -137,7 +137,7 @@ Nodes:
 
 			if len(node.Value) > 0 {
 				isSet := node.Attribute == "srcset"
-				err := s.render(wr, node.Value, &urlState{true, false, isSet, false})
+				err := r.render(wr, node.Value, &urlState{true, false, isSet, false})
 				if err != nil {
 					return err
 				}
@@ -145,48 +145,48 @@ Nodes:
 
 		case *ast.Value:
 
-			expr, err := s.eval(node.Expr)
+			expr, err := r.eval(node.Expr)
 			if err != nil {
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
 			}
 
-			err = s.renderValue(wr, expr, node, urlstate)
+			err = r.renderValue(wr, expr, node, urlstate)
 			if err != nil {
 				return err
 			}
 
 		case *ast.If:
 
-			expr, err := s.eval(node.Expr)
+			expr, err := r.eval(node.Expr)
 			if err != nil {
-				if !s.handleError(err) {
+				if !r.handleError(err) {
 					return err
 				}
 				expr = false
 			}
 			c, ok := expr.(bool)
 			if !ok {
-				err = s.errorf(node, "non-bool %s (type %s) used as if condition", node.Expr, typeof(expr))
-				if !s.handleError(err) {
+				err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Expr, typeof(expr))
+				if !r.handleError(err) {
 					return err
 				}
 			}
 			if c {
 				if len(node.Then) > 0 {
-					s.vars = append(s.vars, nil)
-					err = s.render(wr, node.Then, urlstate)
-					s.vars = s.vars[:len(s.vars)-1]
+					r.vars = append(r.vars, nil)
+					err = r.render(wr, node.Then, urlstate)
+					r.vars = r.vars[:len(r.vars)-1]
 					if err != nil {
 						return err
 					}
 				}
 			} else if len(node.Else) > 0 {
-				s.vars = append(s.vars, nil)
-				err = s.render(wr, node.Else, urlstate)
-				s.vars = s.vars[:len(s.vars)-1]
+				r.vars = append(r.vars, nil)
+				err = r.render(wr, node.Else, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					return err
 				}
@@ -203,9 +203,9 @@ Nodes:
 				ident = node.Ident.Name
 			}
 
-			expr, err := s.eval(node.Expr1)
+			expr, err := r.eval(node.Expr1)
 			if err != nil {
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
@@ -224,7 +224,7 @@ Nodes:
 					if index != "" {
 						vars[index] = i
 					}
-					s.vars[len(s.vars)-1] = vars
+					r.vars[len(r.vars)-1] = vars
 				}
 
 				switch vv := expr.(type) {
@@ -233,11 +233,11 @@ Nodes:
 					if size == 0 {
 						continue
 					}
-					s.vars = append(s.vars, nil)
+					r.vars = append(r.vars, nil)
 					i := 0
 					for _, v := range vv {
 						setScope(i, string(v))
-						err = s.render(wr, node.Nodes, urlstate)
+						err = r.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -248,16 +248,16 @@ Nodes:
 						}
 						i++
 					}
-					s.vars = s.vars[:len(s.vars)-1]
+					r.vars = r.vars[:len(r.vars)-1]
 				case []string:
 					size := len(vv)
 					if size == 0 {
 						continue
 					}
-					s.vars = append(s.vars, nil)
+					r.vars = append(r.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, vv[i])
-						err = s.render(wr, node.Nodes, urlstate)
+						err = r.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -267,12 +267,12 @@ Nodes:
 							}
 						}
 					}
-					s.vars = s.vars[:len(s.vars)-1]
+					r.vars = r.vars[:len(r.vars)-1]
 				default:
 					av := reflect.ValueOf(expr)
 					if !av.IsValid() || av.Kind() != reflect.Slice {
-						err = s.errorf(node, "cannot range over %s (type %s)", node.Expr1, typeof(expr))
-						if s.handleError(err) {
+						err = r.errorf(node, "cannot range over %s (type %s)", node.Expr1, typeof(expr))
+						if r.handleError(err) {
 							continue
 						}
 						return err
@@ -281,10 +281,10 @@ Nodes:
 					if size == 0 {
 						continue
 					}
-					s.vars = append(s.vars, nil)
+					r.vars = append(r.vars, nil)
 					for i := 0; i < size; i++ {
 						setScope(i, av.Index(i).Interface())
-						err = s.render(wr, node.Nodes, urlstate)
+						err = r.render(wr, node.Nodes, urlstate)
 						if err != nil {
 							if err == errBreak {
 								break
@@ -294,15 +294,15 @@ Nodes:
 							}
 						}
 					}
-					s.vars = s.vars[:len(s.vars)-1]
+					r.vars = r.vars[:len(r.vars)-1]
 				}
 
 			} else {
 				// Syntax: for index in expr..expr
 
-				expr2, err := s.eval(node.Expr2)
+				expr2, err := r.eval(node.Expr2)
 				if err != nil {
-					if s.handleError(err) {
+					if r.handleError(err) {
 						continue
 					}
 					return err
@@ -313,12 +313,12 @@ Nodes:
 				case int:
 					n1 = n
 				case decimal.Decimal:
-					n1, err = s.decimalToInt(node.Expr1, n)
+					n1, err = r.decimalToInt(node.Expr1, n)
 				default:
-					err = s.errorf(node, "non-integer for range %s", node.Expr1)
+					err = r.errorf(node, "non-integer for range %s", node.Expr1)
 				}
 				if err != nil {
-					if s.handleError(err) {
+					if r.handleError(err) {
 						continue
 					}
 					return err
@@ -329,12 +329,12 @@ Nodes:
 				case int:
 					n2 = n
 				case decimal.Decimal:
-					n2, err = s.decimalToInt(node.Expr2, n)
+					n2, err = r.decimalToInt(node.Expr2, n)
 				default:
-					err = s.errorf(node, "non-integer for range %s", node.Expr2)
+					err = r.errorf(node, "non-integer for range %s", node.Expr2)
 				}
 				if err != nil {
-					if s.handleError(err) {
+					if r.handleError(err) {
 						continue
 					}
 					return err
@@ -345,10 +345,10 @@ Nodes:
 					step = -1
 				}
 
-				s.vars = append(s.vars, nil)
+				r.vars = append(r.vars, nil)
 				for i := n1; ; i += step {
-					s.vars[len(s.vars)-1] = scope{index: i}
-					err = s.render(wr, node.Nodes, urlstate)
+					r.vars[len(r.vars)-1] = scope{index: i}
+					err = r.render(wr, node.Nodes, urlstate)
 					if err != nil {
 						if err == errBreak {
 							break
@@ -362,7 +362,7 @@ Nodes:
 						break
 					}
 				}
-				s.vars = s.vars[:len(s.vars)-1]
+				r.vars = r.vars[:len(r.vars)-1]
 
 			}
 
@@ -374,50 +374,50 @@ Nodes:
 
 		case *ast.Macro:
 			if wr != nil {
-				err := s.errorf(node.Ident, "macros not allowed")
-				if !s.handleError(err) {
+				err := r.errorf(node.Ident, "macros not allowed")
+				if !r.handleError(err) {
 					return err
 				}
 			}
 			name := node.Ident.Name
-			if v, ok := s.variable(name); ok {
+			if v, ok := r.variable(name); ok {
 				var err error
 				if m, ok := v.(macro); ok {
-					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
 						name, m.path, m.node.Pos())
 				} else {
-					err = s.errorf(node.Ident, "%s redeclared in this file", name)
+					err = r.errorf(node.Ident, "%s redeclared in this file", name)
 				}
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
 			}
-			s.vars[2][name] = macro{s.path, node}
+			r.vars[2][name] = macro{r.path, node}
 
 		case *ast.Var:
 
-			if s.vars[len(s.vars)-1] == nil {
-				s.vars[len(s.vars)-1] = scope{}
+			if r.vars[len(r.vars)-1] == nil {
+				r.vars[len(r.vars)-1] = scope{}
 			}
-			var vars = s.vars[len(s.vars)-1]
+			var vars = r.vars[len(r.vars)-1]
 			var name = node.Ident.Name
 			if v, ok := vars[name]; ok {
 				var err error
 				if m, ok := v.(macro); ok {
-					err = s.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
 						name, m.path, m.node.Pos())
 				} else {
-					err = s.errorf(node.Ident, "%s redeclared in this block", name)
+					err = r.errorf(node.Ident, "%s redeclared in this block", name)
 				}
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
 			}
-			v, err := s.eval(node.Expr)
+			v, err := r.eval(node.Expr)
 			if err != nil {
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
@@ -428,25 +428,25 @@ Nodes:
 
 			var found bool
 			var name = node.Ident.Name
-			for i := len(s.vars) - 1; i >= 0; i-- {
-				vars := s.vars[i]
+			for i := len(r.vars) - 1; i >= 0; i-- {
+				vars := r.vars[i]
 				if vars != nil {
 					if v, ok := vars[name]; ok {
 						var err error
 						if _, ok := v.(macro); ok || i < 2 {
 							if i == 0 && name == "len" {
-								err = s.errorf(node, "use of builtin len not in function call")
+								err = r.errorf(node, "use of builtin len not in function call")
 							} else {
-								err = s.errorf(node, "cannot assign to %s", name)
+								err = r.errorf(node, "cannot assign to %s", name)
 							}
-							if s.handleError(err) {
+							if r.handleError(err) {
 								continue Nodes
 							}
 							return err
 						}
-						v, err = s.eval(node.Expr)
+						v, err = r.eval(node.Expr)
 						if err != nil {
-							if s.handleError(err) {
+							if r.handleError(err) {
 								continue Nodes
 							}
 							return err
@@ -458,8 +458,8 @@ Nodes:
 				}
 			}
 			if !found {
-				err := s.errorf(node, "variable %s not declared", name)
-				if !s.handleError(err) {
+				err := r.errorf(node, "variable %s not declared", name)
+				if !r.handleError(err) {
 					return err
 				}
 			}
@@ -472,20 +472,20 @@ Nodes:
 			}
 			var m macro
 			var err error
-			if v, ok := s.variable(name); ok {
+			if v, ok := r.variable(name); ok {
 				if m, ok = v.(macro); ok {
 					if node.Context != m.node.Context {
-						err = s.errorf(node, "macro %s is defined in a different context (%s)",
+						err = r.errorf(node, "macro %s is defined in a different context (%s)",
 							name, m.node.Context)
 					}
 				} else {
-					err = s.errorf(node, "cannot show non-macro %s (type %s)", name, typeof(v))
+					err = r.errorf(node, "cannot show non-macro %s (type %s)", name, typeof(v))
 				}
 			} else {
-				err = s.errorf(node, "macro %s not declared", name)
+				err = r.errorf(node, "macro %s not declared", name)
 			}
 			if err != nil {
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
@@ -524,11 +524,11 @@ Nodes:
 					name = node.Import.Name + " " + name
 				}
 				if haveSize < wantSize {
-					err = s.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+					err = r.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
 				} else {
-					err = s.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+					err = r.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
 				}
-				if s.handleError(err) {
+				if r.handleError(err) {
 					continue
 				}
 				return err
@@ -545,9 +545,9 @@ Nodes:
 				}
 			}
 			for i, argument := range node.Arguments {
-				arg, err := s.eval(argument)
+				arg, err := r.eval(argument)
 				if err != nil {
-					if s.handleError(err) {
+					if r.handleError(err) {
 						continue Nodes
 					}
 					return err
@@ -558,14 +558,14 @@ Nodes:
 					arguments[parameters[i].Name] = arg
 				}
 			}
-			st := &rendering{
-				scope:       s.scope,
+			rn := &rendering{
+				scope:       r.scope,
 				path:        m.path,
-				vars:        []scope{s.vars[0], s.vars[1], s.scope[m.path], arguments},
-				treeContext: s.treeContext,
-				handleError: s.handleError,
+				vars:        []scope{r.vars[0], r.vars[1], r.scope[m.path], arguments},
+				treeContext: r.treeContext,
+				handleError: r.handleError,
 			}
-			err = st.render(wr, m.node.Body, nil)
+			err = rn.render(wr, m.node.Body, nil)
 			if err != nil {
 				return err
 			}
@@ -573,20 +573,20 @@ Nodes:
 		case *ast.Import:
 
 			path := node.Tree.Path
-			if _, ok := s.scope[path]; !ok {
-				st := &rendering{
-					scope:       s.scope,
+			if _, ok := r.scope[path]; !ok {
+				rn := &rendering{
+					scope:       r.scope,
 					path:        path,
-					vars:        []scope{s.vars[0], s.vars[1], {}},
-					treeContext: s.treeContext,
-					handleError: s.handleError,
+					vars:        []scope{r.vars[0], r.vars[1], {}},
+					treeContext: r.treeContext,
+					handleError: r.handleError,
 				}
-				err := st.render(nil, node.Tree.Nodes, nil)
+				err := rn.render(nil, node.Tree.Nodes, nil)
 				if err != nil {
 					return err
 				}
-				s.scope[path] = st.vars[2]
-				for name, m := range st.vars[2] {
+				r.scope[path] = rn.vars[2]
+				for name, m := range rn.vars[2] {
 					if _, ok := m.(macro); !ok {
 						continue
 					}
@@ -596,22 +596,22 @@ Nodes:
 					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
 						continue
 					}
-					s.vars[2][name] = m
+					r.vars[2][name] = m
 				}
 			}
 
 		case *ast.Include:
 
-			s.vars = append(s.vars, nil)
-			st := &rendering{
-				scope:       s.scope,
+			r.vars = append(r.vars, nil)
+			rn := &rendering{
+				scope:       r.scope,
 				path:        node.Tree.Path,
-				vars:        s.vars,
-				treeContext: s.treeContext,
-				handleError: s.handleError,
+				vars:        r.vars,
+				treeContext: r.treeContext,
+				handleError: r.handleError,
 			}
-			err := st.render(wr, node.Tree.Nodes, nil)
-			s.vars = s.vars[:len(s.vars)-1]
+			err := rn.render(wr, node.Tree.Nodes, nil)
+			r.vars = r.vars[:len(r.vars)-1]
 			if err != nil {
 				return err
 			}
@@ -623,10 +623,10 @@ Nodes:
 }
 
 // variable returns the value of the variable name in rendering s.
-func (s *rendering) variable(name string) (interface{}, bool) {
-	for i := len(s.vars) - 1; i >= 0; i-- {
-		if s.vars[i] != nil {
-			if v, ok := s.vars[i][name]; ok {
+func (r *rendering) variable(name string) (interface{}, bool) {
+	for i := len(r.vars) - 1; i >= 0; i-- {
+		if r.vars[i] != nil {
+			if v, ok := r.vars[i][name]; ok {
 				return v, true
 			}
 		}
@@ -634,13 +634,13 @@ func (s *rendering) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func (s *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
+func (r *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
 	if d.LessThan(minInt) || maxInt.LessThan(d) {
-		return 0, s.errorf(node, "number %s overflows int", d)
+		return 0, r.errorf(node, "number %s overflows int", d)
 	}
 	p := d.IntPart()
 	if !decimal.New(p, 0).Equal(d) {
-		return 0, s.errorf(node, "number %s truncated to integer", d)
+		return 0, r.errorf(node, "number %s truncated to integer", d)
 	}
 	return int(p), nil
 }

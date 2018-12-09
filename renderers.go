@@ -180,7 +180,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		return err
 	}
 
-	s := &rendering{
+	r := &rendering{
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
@@ -189,9 +189,9 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 
 	var errs []*Error
 	if strict {
-		s.handleError = stopOnError
+		r.handleError = stopOnError
 	} else {
-		s.handleError = func(err error) bool {
+		r.handleError = func(err error) bool {
 			if e, ok := err.(*Error); ok {
 				for _, ex := range errs {
 					if e.Path == ex.Path && e.Pos.Line == ex.Pos.Line &&
@@ -208,19 +208,19 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 
 	extends := getExtendsNode(tree)
 	if extends == nil {
-		err = s.render(out, tree.Nodes, nil)
+		err = r.render(out, tree.Nodes, nil)
 	} else {
 		if extends.Tree == nil {
 			return errors.New("template: extends node is not expanded")
 		}
-		s.scope[s.path] = s.vars[2]
-		err = s.render(nil, tree.Nodes, nil)
+		r.scope[r.path] = r.vars[2]
+		err = r.render(nil, tree.Nodes, nil)
 		if err != nil {
 			return err
 		}
-		s.path = extends.Tree.Path
+		r.path = extends.Tree.Path
 		vars := scope{}
-		for name, v := range s.vars[2] {
+		for name, v := range r.vars[2] {
 			if r, ok := v.(macro); ok {
 				fc, _ := utf8.DecodeRuneInString(name)
 				if unicode.Is(unicode.Lu, fc) && !strings.Contains(name, ".") {
@@ -228,8 +228,8 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 				}
 			}
 		}
-		s.vars = []scope{builtins, globals, vars}
-		err = s.render(out, extends.Tree.Nodes, nil)
+		r.vars = []scope{builtins, globals, vars}
+		err = r.render(out, extends.Tree.Nodes, nil)
 	}
 
 	if err == nil && errs != nil {

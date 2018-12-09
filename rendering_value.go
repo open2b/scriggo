@@ -78,14 +78,14 @@ func (s HTML) Render(w io.Writer) (int, error) {
 
 // renderValue renders value in the context of node and as a URL is urlstate
 // is not nil.
-func (s *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
+func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
 
-	if e, ok := value.(ValueRenderer); ok && node.Context == s.treeContext {
+	if e, ok := value.(ValueRenderer); ok && node.Context == r.treeContext {
 
 		err := func() (err error) {
 			defer func() {
 				if e := recover(); e != nil {
-					err = s.errorf(node, "%s", e)
+					err = r.errorf(node, "%s", e)
 				}
 			}()
 			_, err = e.Render(wr)
@@ -122,8 +122,8 @@ func (s *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 			panic("template: unknown context")
 		}
 		if !ok {
-			err := s.errorf(node.Expr, "wrong type %s in value", typeof(value))
-			if !s.handleError(err) {
+			err := r.errorf(node.Expr, "wrong type %s in value", typeof(value))
+			if !r.handleError(err) {
 				return err
 			}
 		}

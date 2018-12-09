@@ -29,7 +29,7 @@ var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
 // eval evaluates an expression and returns its value.
-func (s *rendering) eval(exp ast.Expression) (value interface{}, err error) {
+func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -39,12 +39,12 @@ func (s *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 			}
 		}
 	}()
-	return s.evalExpression(exp), nil
+	return r.evalExpression(exp), nil
 }
 
 // evalExpression evaluates an expression and returns its value.
 // In the event of an error, calls panic with the error as parameter.
-func (s *rendering) evalExpression(expr ast.Expression) interface{} {
+func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	switch e := expr.(type) {
 	case *ast.String:
 		return e.Text
@@ -53,36 +53,36 @@ func (s *rendering) evalExpression(expr ast.Expression) interface{} {
 	case *ast.Number:
 		return e.Value
 	case *ast.Parentesis:
-		return s.evalExpression(e.Expr)
+		return r.evalExpression(e.Expr)
 	case *ast.UnaryOperator:
-		return s.evalUnaryOperator(e)
+		return r.evalUnaryOperator(e)
 	case *ast.BinaryOperator:
-		return s.evalBinaryOperator(e)
+		return r.evalBinaryOperator(e)
 	case *ast.Identifier:
-		return s.evalIdentifier(e)
+		return r.evalIdentifier(e)
 	case *ast.Call:
-		return s.evalCall(e)
+		return r.evalCall(e)
 	case *ast.Index:
-		return s.evalIndex(e)
+		return r.evalIndex(e)
 	case *ast.Slice:
-		return s.evalSlice(e)
+		return r.evalSlice(e)
 	case *ast.Selector:
-		return s.evalSelector(e)
+		return r.evalSelector(e)
 	default:
-		panic(s.errorf(expr, "unexpected node type %#v", expr))
+		panic(r.errorf(expr, "unexpected node type %#v", expr))
 	}
 }
 
 // evalUnaryOperator evaluates a unary operator and returns its value.
 // On error it calls panic with the error as argument.
-func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	var e = asBase(s.evalExpression(node.Expr))
+func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
+	var e = asBase(r.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
 		if b, ok := e.(bool); ok {
 			return !b
 		}
-		panic(s.errorf(node, "invalid operation: ! %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: ! %s", typeof(e)))
 	case ast.OperatorAddition:
 		if _, ok := e.(int); ok {
 			return e
@@ -90,7 +90,7 @@ func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		if _, ok := e.(decimal.Decimal); ok {
 			return e
 		}
-		panic(s.errorf(node, "invalid operation: + %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: + %s", typeof(e)))
 	case ast.OperatorSubtraction:
 		if n, ok := e.(int); ok {
 			return -n
@@ -98,25 +98,25 @@ func (s *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		if n, ok := e.(decimal.Decimal); ok {
 			return n.Neg()
 		}
-		panic(s.errorf(node, "invalid operation: - %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: - %s", typeof(e)))
 	}
 	panic("Unknown Unary Operator")
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
 // On error it calls panic with the error as argument.
-func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
+func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 
-	expr1 := asBase(s.evalExpression(node.Expr1))
+	expr1 := asBase(r.evalExpression(node.Expr1))
 
 	switch node.Op {
 
 	case ast.OperatorEqual:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
-					panic(s.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
+					panic(r.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
 				}
 			}()
 			if expr2 == nil {
@@ -150,14 +150,14 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				}
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorNotEqual:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
 			defer func() {
 				if recover() != nil {
-					panic(s.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
+					panic(r.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
 				}
 			}()
 			if expr2 == nil {
@@ -191,12 +191,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				}
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorLess:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -222,9 +222,9 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 		panic(fmt.Sprintf("invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorLessOrEqual:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -247,12 +247,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) <= 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorGreater:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -275,12 +275,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) > 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorGreaterOrEqual:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
 		}
 		expr1, expr2 = htmlToStringType(expr1, expr2)
 		switch e1 := expr1.(type) {
@@ -303,38 +303,38 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Cmp(decimal.New(int64(e2), 0)) >= 0
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorAnd:
 		if e1, ok := expr1.(bool); ok {
 			if !e1 {
 				return false
 			}
-			expr2 := asBase(s.evalExpression(node.Expr2))
+			expr2 := asBase(r.evalExpression(node.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 && e2
 			}
-			panic(s.errorf(node, "invalid operation: %s && %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s && %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(s.errorf(node, "invalid operation: %s && ...", typeof(expr1)))
+		panic(r.errorf(node, "invalid operation: %s && ...", typeof(expr1)))
 
 	case ast.OperatorOr:
 		if e1, ok := expr1.(bool); ok {
 			if e1 {
 				return true
 			}
-			expr2 := asBase(s.evalExpression(node.Expr2))
+			expr2 := asBase(r.evalExpression(node.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 || e2
 			}
-			panic(s.errorf(node, "invalid operation: %s || %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s || %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(s.errorf(node, "invalid operation: %s || ...", typeof(expr1)))
+		panic(r.errorf(node, "invalid operation: %s || ...", typeof(expr1)))
 
 	case ast.OperatorAddition:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case string:
@@ -366,12 +366,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Add(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorSubtraction:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -389,12 +389,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Sub(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorMultiplication:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -412,12 +412,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Mul(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorDivision:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -435,12 +435,12 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorModulo:
-		expr2 := asBase(s.evalExpression(node.Expr2))
+		expr2 := asBase(r.evalExpression(node.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(s.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case int:
@@ -458,7 +458,7 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 				return e1.Mod(decimal.New(int64(e2), 0))
 			}
 		}
-		panic(s.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 
 	}
 
@@ -466,14 +466,14 @@ func (s *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 }
 
 // evalSelector evaluates a selector expression and returns its value.
-func (s *rendering) evalSelector(node *ast.Selector) interface{} {
-	v := asBase(s.evalExpression(node.Expr))
+func (r *rendering) evalSelector(node *ast.Selector) interface{} {
+	v := asBase(r.evalExpression(node.Expr))
 	// map
 	if v2, ok := v.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
 			return v3
 		}
-		panic(s.errorf(node, "field %q does not exist", node.Ident))
+		panic(r.errorf(node, "field %q does not exist", node.Ident))
 	}
 	rv := reflect.ValueOf(v)
 	kind := rv.Kind()
@@ -482,17 +482,17 @@ func (s *rendering) evalSelector(node *ast.Selector) interface{} {
 		if rv.Type().Key().Kind() == reflect.String {
 			v := rv.MapIndex(reflect.ValueOf(node.Ident))
 			if !v.IsValid() {
-				panic(s.errorf(node, "field %q does not exist", node.Ident))
+				panic(r.errorf(node, "field %q does not exist", node.Ident))
 			}
 			return v.Interface()
 		}
-		panic(s.errorf(node, "unsupported vars type"))
+		panic(r.errorf(node, "unsupported vars type"))
 	case reflect.Struct:
 		st := reflect.Indirect(rv)
 		fields := getStructFields(st)
 		index, ok := fields.indexOf[node.Ident]
 		if !ok {
-			panic(s.errorf(node, "field %q does not exist", node.Ident))
+			panic(r.errorf(node, "field %q does not exist", node.Ident))
 		}
 		return st.Field(index).Interface()
 	case reflect.Ptr:
@@ -505,47 +505,47 @@ func (s *rendering) evalSelector(node *ast.Selector) interface{} {
 			fields := getStructFields(st)
 			index, ok := fields.indexOf[node.Ident]
 			if !ok {
-				panic(s.errorf(node, "field %q does not exist", node.Ident))
+				panic(r.errorf(node, "field %q does not exist", node.Ident))
 			}
 			return st.Field(index).Interface()
 		}
 	}
-	panic(s.errorf(node, "type %s cannot have fields", typeof(v)))
+	panic(r.errorf(node, "type %s cannot have fields", typeof(v)))
 }
 
 // evalIndex evaluates an index expression and returns its value.
-func (s *rendering) evalIndex(node *ast.Index) interface{} {
+func (r *rendering) evalIndex(node *ast.Index) interface{} {
 	var i int
-	switch index := asBase(s.evalExpression(node.Index)).(type) {
+	switch index := asBase(r.evalExpression(node.Index)).(type) {
 	case int:
 		i = index
 	case decimal.Decimal:
 		var err error
-		i, err = s.decimalToInt(node, index)
+		i, err = r.decimalToInt(node, index)
 		if err != nil {
 			panic(err)
 		}
 		if i < 0 {
-			panic(s.errorf(node, "invalid slice index %s (index must be non-negative)", node.Index))
+			panic(r.errorf(node, "invalid slice index %s (index must be non-negative)", node.Index))
 		}
 	default:
-		panic(s.errorf(node, "non-integer slice index %s", node.Index))
+		panic(r.errorf(node, "non-integer slice index %s", node.Index))
 	}
 	if i < 0 {
-		panic(s.errorf(node, "invalid slice index %d (index must be non-negative)", i))
+		panic(r.errorf(node, "invalid slice index %d (index must be non-negative)", i))
 	}
-	var v = asBase(s.evalExpression(node.Expr))
+	var v = asBase(r.evalExpression(node.Expr))
 	if v == nil {
-		if s.isBuiltin("nil", node.Expr) {
-			panic(s.errorf(node.Expr, "use of untyped nil"))
+		if r.isBuiltin("nil", node.Expr) {
+			panic(r.errorf(node.Expr, "use of untyped nil"))
 		} else {
-			panic(s.errorf(node, "index out of range"))
+			panic(r.errorf(node, "index out of range"))
 		}
 	}
 	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
 		if i >= e.Len() {
-			panic(s.errorf(node, "index out of range"))
+			panic(r.errorf(node, "index out of range"))
 		}
 		return e.Index(i).Interface()
 	}
@@ -557,44 +557,44 @@ func (s *rendering) evalIndex(node *ast.Index) interface{} {
 			}
 			p++
 		}
-		panic(s.errorf(node, "index out of range"))
+		panic(r.errorf(node, "index out of range"))
 	}
-	panic(s.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
+	panic(r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
 // evalSlice evaluates a slice expression and returns its value.
-func (s *rendering) evalSlice(node *ast.Slice) interface{} {
+func (r *rendering) evalSlice(node *ast.Slice) interface{} {
 	var ok bool
 	var l, h int
 	if node.Low != nil {
-		n := s.evalExpression(node.Low)
+		n := r.evalExpression(node.Low)
 		l, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node.Low, "invalid slice index %s (type %s)", node.Low, typeof(n)))
+			panic(r.errorf(node.Low, "invalid slice index %s (type %s)", node.Low, typeof(n)))
 		}
 		if l < 0 {
-			panic(s.errorf(node.Low, "invalid slice index %s (index must be non-negative)", node.Low))
+			panic(r.errorf(node.Low, "invalid slice index %s (index must be non-negative)", node.Low))
 		}
 	}
 	if node.High != nil {
-		n := s.evalExpression(node.High)
+		n := r.evalExpression(node.High)
 		h, ok = n.(int)
 		if !ok {
-			panic(s.errorf(node.High, "invalid slice index %s (type %s)", node.High, typeof(n)))
+			panic(r.errorf(node.High, "invalid slice index %s (type %s)", node.High, typeof(n)))
 		}
 		if h < 0 {
-			panic(s.errorf(node.High, "invalid slice index %s (index must be non-negative)", node.High))
+			panic(r.errorf(node.High, "invalid slice index %s (index must be non-negative)", node.High))
 		}
 		if l > h {
-			panic(s.errorf(node.Low, "invalid slice index: %d > %d", l, h))
+			panic(r.errorf(node.Low, "invalid slice index: %d > %d", l, h))
 		}
 	}
-	var v = asBase(s.evalExpression(node.Expr))
+	var v = asBase(r.evalExpression(node.Expr))
 	if v == nil {
-		if s.isBuiltin("nil", node.Expr) {
-			panic(s.errorf(node.Expr, "use of untyped nil"))
+		if r.isBuiltin("nil", node.Expr) {
+			panic(r.errorf(node.Expr, "use of untyped nil"))
 		} else {
-			panic(s.errorf(node, "slice bounds out of range"))
+			panic(r.errorf(node, "slice bounds out of range"))
 		}
 	}
 	var e = reflect.ValueOf(v)
@@ -602,7 +602,7 @@ func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 		if node.High == nil {
 			h = e.Len()
 		} else if h > e.Len() {
-			panic(s.errorf(node.High, "slice bounds out of range"))
+			panic(r.errorf(node.High, "slice bounds out of range"))
 		}
 		return e.Slice(l, h).Interface()
 	}
@@ -625,11 +625,11 @@ func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 			i++
 		}
 		if lb == -1 {
-			panic(s.errorf(node.Low, "slice bounds out of range"))
+			panic(r.errorf(node.Low, "slice bounds out of range"))
 		}
 		if hb == -1 {
 			if i < h {
-				panic(s.errorf(node.High, "slice bounds out of range"))
+				panic(r.errorf(node.High, "slice bounds out of range"))
 			}
 			hb = len(str)
 		}
@@ -638,54 +638,54 @@ func (s *rendering) evalSlice(node *ast.Slice) interface{} {
 		}
 		return str[lb:hb]
 	}
-	panic(s.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
+	panic(r.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }
 
 // evalIdentifier evaluates an identifier expression and returns its value.
-func (s *rendering) evalIdentifier(node *ast.Identifier) interface{} {
-	for i := len(s.vars) - 1; i >= 0; i-- {
-		if s.vars[i] != nil {
+func (r *rendering) evalIdentifier(node *ast.Identifier) interface{} {
+	for i := len(r.vars) - 1; i >= 0; i-- {
+		if r.vars[i] != nil {
 			if i == 0 && node.Name == "len" {
-				panic(s.errorf(node, "use of builtin len not in function call"))
+				panic(r.errorf(node, "use of builtin len not in function call"))
 			}
-			if v, ok := s.vars[i][node.Name]; ok {
+			if v, ok := r.vars[i][node.Name]; ok {
 				return v
 			}
 		}
 	}
-	panic(s.errorf(node, "undefined: %s", node.Name))
+	panic(r.errorf(node, "undefined: %s", node.Name))
 }
 
 // evalCall evaluates a call expression and returns its value.
-func (s *rendering) evalCall(node *ast.Call) interface{} {
+func (r *rendering) evalCall(node *ast.Call) interface{} {
 
-	if s.isBuiltin("len", node.Func) {
+	if r.isBuiltin("len", node.Func) {
 		if len(node.Args) == 0 {
-			panic(s.errorf(node, "missing argument to len: len()"))
+			panic(r.errorf(node, "missing argument to len: len()"))
 		}
 		if len(node.Args) > 1 {
-			panic(s.errorf(node, "too many arguments to len: %s", node))
+			panic(r.errorf(node, "too many arguments to len: %s", node))
 		}
-		if s.isBuiltin("nil", node.Args[0]) {
-			panic(s.errorf(node, "use of untyped nil"))
+		if r.isBuiltin("nil", node.Args[0]) {
+			panic(r.errorf(node, "use of untyped nil"))
 		}
-		arg := asBase(s.evalExpression(node.Args[0]))
+		arg := asBase(r.evalExpression(node.Args[0]))
 		length := _len(arg)
 		if length == -1 {
-			panic(s.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg)))
+			panic(r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg)))
 		}
 		return length
 	}
 
-	var f = s.evalExpression(node.Func)
+	var f = r.evalExpression(node.Func)
 
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
-		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
+		panic(r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
 	}
 	var typ = fun.Type()
 	if typ.Kind() != reflect.Func {
-		panic(s.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
+		panic(r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
 	}
 
 	var numIn = typ.NumIn()
@@ -697,7 +697,7 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 			if i > 0 {
 				have += ", "
 			}
-			have += typeof(s.evalExpression(arg))
+			have += typeof(r.evalExpression(arg))
 		}
 		have += ")"
 		want := "("
@@ -716,9 +716,9 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 		}
 		want += ")"
 		if len(node.Args) < numIn {
-			panic(s.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
+			panic(r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
 		} else {
-			panic(s.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
+			panic(r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
 		}
 	}
 
@@ -737,17 +737,17 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 		inKind := in.Kind()
 		var arg interface{}
 		if i < len(node.Args) {
-			arg = asBase(s.evalExpression(node.Args[i]))
+			arg = asBase(r.evalExpression(node.Args[i]))
 		}
 		if arg == nil {
 			if i < len(node.Args) {
 				if in == decimalType {
-					panic(s.errorf(node, "cannot use nil as type number in argument to %s", node.Func))
+					panic(r.errorf(node, "cannot use nil as type number in argument to %s", node.Func))
 				}
 				switch inKind {
 				case reflect.Bool, reflect.Int, reflect.String:
 					wantType := typeof(reflect.Zero(in).Interface())
-					panic(s.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func))
+					panic(r.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func))
 				}
 			}
 			args[i] = reflect.Zero(in)
@@ -757,7 +757,7 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 			} else if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
-				n, err := s.decimalToInt(node.Args[i], d)
+				n, err := r.decimalToInt(node.Args[i], d)
 				if err != nil {
 					panic(err)
 				}
@@ -789,7 +789,7 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 					panic(fmt.Errorf("cannot use %s as function parameter type", inKind))
 				}
 				expectedType := typeof(reflect.Zero(in).Interface())
-				panic(s.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
+				panic(r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
 			}
 		}
 	}
@@ -802,7 +802,7 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 			if !ok {
 				panic("no-error return value")
 			}
-			panic(s.errorf(node.Func, "%s", err))
+			panic(r.errorf(node.Func, "%s", err))
 		}
 	} else if len(values) != 1 {
 		panic("wrong number of return values")
@@ -818,14 +818,14 @@ func (s *rendering) evalCall(node *ast.Call) interface{} {
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.
-func (s *rendering) isBuiltin(name string, expr ast.Expression) bool {
+func (r *rendering) isBuiltin(name string, expr ast.Expression) bool {
 	if n, ok := expr.(*ast.Identifier); ok {
 		if n.Name != name {
 			return false
 		}
-		for i := len(s.vars) - 1; i >= 0; i-- {
-			if s.vars[i] != nil {
-				if _, ok := s.vars[i][name]; ok {
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if _, ok := r.vars[i][name]; ok {
 					return i == 0
 				}
 			}
