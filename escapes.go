@@ -102,10 +102,10 @@ func htmlEscapeString(s string) string {
 }
 
 // attributeEscape escapes the string s, so it can be places inside an HTML
-// attribute value and write it to w. unquoted indicates if the attribute is
-// unquoted.
-func attributeEscape(w stringWriter, s string, unquoted bool) error {
-	if !unquoted {
+// attribute value, and write it to w. quoted indicates if the attribute is
+// quoted.
+func attributeEscape(w stringWriter, s string, quoted bool) error {
+	if quoted {
 		return htmlEscape(w, s)
 	}
 	last := 0
@@ -343,11 +343,11 @@ func scriptStringEscape(w stringWriter, s string) error {
 }
 
 // pathEscape escapes the string s so it can be placed inside an attribute
-// value as URL path, and write it to w. unquoted indicates if the attribute
-// is unquoted.
+// value as URL path, and write it to w. quoted indicates if the attribute
+// is quoted.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
-func pathEscape(w stringWriter, s string, unquoted bool) error {
+func pathEscape(w stringWriter, s string, quoted bool) error {
 	last := 0
 	var buf []byte
 	for i := 0; i < len(s); i++ {
@@ -364,7 +364,7 @@ func pathEscape(w stringWriter, s string, unquoted bool) error {
 		case '+':
 			esc = "&#34;"
 		case ' ':
-			if !unquoted {
+			if quoted {
 				continue
 			}
 			esc = "&#32;"

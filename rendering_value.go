@@ -134,15 +134,15 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 			err = r.renderInTag(w, asBase(value), node)
 		case ast.ContextAttribute:
 			if urlstate == nil {
-				err = r.renderInAttribute(w, asBase(value), node, false)
-			} else {
-				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, false)
-			}
-		case ast.ContextUnquotedAttribute:
-			if urlstate == nil {
 				err = r.renderInAttribute(w, asBase(value), node, true)
 			} else {
 				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, true)
+			}
+		case ast.ContextUnquotedAttribute:
+			if urlstate == nil {
+				err = r.renderInAttribute(w, asBase(value), node, false)
+			} else {
+				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, false)
 			}
 		case ast.ContextCSS:
 			err = r.renderInCSS(w, asBase(value), node)
@@ -290,8 +290,8 @@ func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Val
 }
 
 // renderInAttribute renders value in Attribute context quoted or unquoted
-// depending on unquoted value.
-func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *ast.Value, unquoted bool) error {
+// depending on quoted value.
+func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *ast.Value, quoted bool) error {
 
 	if value == nil {
 		return nil
@@ -301,9 +301,9 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 
 	switch e := value.(type) {
 	case string:
-		return attributeEscape(w, e, unquoted)
+		return attributeEscape(w, e, quoted)
 	case HTML:
-		return attributeEscape(w, html.UnescapeString(string(e)), unquoted)
+		return attributeEscape(w, html.UnescapeString(string(e)), quoted)
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
@@ -324,13 +324,13 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 		for i, l := 0, rv.Len(); i < l; i++ {
 			var err error
 			if i > 0 {
-				if unquoted {
-					_, err = w.WriteString(",&#32;")
-				} else {
+				if quoted {
 					_, err = w.WriteString(", ")
+				} else {
+					_, err = w.WriteString(",&#32;")
 				}
 			}
-			err = r.renderInAttribute(w, rv.Index(i).Interface(), node, unquoted)
+			err = r.renderInAttribute(w, rv.Index(i).Interface(), node, quoted)
 			if err != nil {
 				return err
 			}
@@ -342,9 +342,9 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 	return err
 }
 
-// renderInAttributeURL renders value as an URL in Attribute context quoted or
-// unquoted depending on unquoted value.
-func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node *ast.Value, urlstate *urlState, unquoted bool) error {
+// renderInAttributeURL renders value as an URL in Attribute context, quoted
+// or unquoted depending on quoted value.
+func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node *ast.Value, urlstate *urlState, quoted bool) error {
 
 	if value == nil {
 		return nil
@@ -376,10 +376,10 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 		}
 		for i, l := 0, rv.Len(); i < l; i++ {
 			if i > 0 {
-				if unquoted {
-					s += ",&#32;"
-				} else {
+				if quoted {
 					s += ", "
+				} else {
+					s += ",&#32;"
 				}
 			}
 			switch e := rv.Index(i).Interface().(type) {
@@ -412,7 +412,7 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 			urlstate.path = false
 			urlstate.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
-		return pathEscape(w, s, unquoted)
+		return pathEscape(w, s, quoted)
 	} else if urlstate.query {
 		return queryEscape(w, s)
 	}
