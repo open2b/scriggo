@@ -220,7 +220,6 @@ var cssStringEscapes = []string{
 // cssStringEscape escapes the string s, so it can be places inside a CSS
 // string with single or double quotes, and write it to w.
 func cssStringEscape(w stringWriter, s string) error {
-	println(s)
 	last := 0
 	for i := 0; i < len(s); i++ {
 		var esc string
