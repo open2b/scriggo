@@ -287,18 +287,40 @@ func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (st
 		if rv.IsNil() || rv.Len() == 0 {
 			return "", true
 		}
-		buf := make([]string, rv.Len())
-		for i := 0; i < len(buf); i++ {
-			str, ok := renderInAttribute(rv.Index(i).Interface(), urlstate, unquoted)
-			if !ok {
+		for i, l := 0, rv.Len(); i < l; i++ {
+			if i > 0 {
+				if unquoted {
+					s += ",&#32;"
+				} else {
+					s += ", "
+				}
+			}
+			switch e := rv.Index(i).Interface().(type) {
+			case string:
+				if urlstate == nil {
+					s += attributeEscape(e, unquoted)
+				} else {
+					s += e
+				}
+			case HTML:
+				if urlstate == nil {
+					s += attributeEscape(html.UnescapeString(string(e)), unquoted)
+				} else {
+					s += string(e)
+				}
+			case int:
+				s += strconv.Itoa(e)
+			case decimal.Decimal:
+				s += e.String()
+			case bool:
+				if e {
+					s += "true"
+				} else {
+					s += "false"
+				}
+			default:
 				return "", false
 			}
-			buf[i] = str
-		}
-		if unquoted {
-			s = strings.Join(buf, ",&#32;")
-		} else {
-			s = strings.Join(buf, ", ")
 		}
 	}
 
