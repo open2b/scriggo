@@ -120,6 +120,25 @@
 // If vars is nil, there will be no global variables besides the builtin
 // variables.
 //
+// Functions
+//
+// To define a function in the template, assign a function value to a
+// variable:
+//
+//  vars := map[string]interface{}{
+//      "f" : func (a int, b string) (bool, error) { ... },
+//  }
+//
+// A function can have any number of parameters, can be variadic and must have
+// one or two results. If it has two results, the second must have a type
+// error. Only the first result is returned and the error is treated as an
+// execution error in an expression.
+//
+//  {% var r = f(5, "abc") %}
+//
+// A function must not modify its arguments, which means it must not modify
+// slice elements, struct field values, and map keys and values.
+//
 // Types
 //
 // Each template type is implemented with a type of Go. The following are the
