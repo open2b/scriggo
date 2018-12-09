@@ -246,6 +246,11 @@ var rendererStmtTests = []struct {
 	{"{% for c in \"\" %}{{ c }}{% end %}", "", nil},
 	{"{% for c in \"a\" %}({{ c }}){% end %}", "(a)", nil},
 	{"{% for c in \"aÈc\" %}({{ c }}){% end %}", "(a)(È)(c)", nil},
+	{"{% for c in html(\"<b>\") %}({{ c }}){% end %}", "(<)(b)(>)", nil},
+	{"{% for i in slice(`a`, `b`, `c`) %}{{ i }}{% end %}", "abc", nil},
+	{"{% for i in slice(html(`<`), html(`&`), html(`>`)) %}{{ i }}{% end %}", "<&>", nil},
+	{"{% for i in slice(1, 2, 3, 4, 5) %}{{ i }}{% end %}", "12345", nil},
+	{"{% for i in slice(1.3, 5.8, 2.5) %}{{ i }}{% end %}", "1.35.82.5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 }

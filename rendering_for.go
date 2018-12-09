@@ -81,7 +81,7 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 			r.vars = append(r.vars, nil)
 			i := 0
 			for _, v := range vv {
-				setScope(i, string(v))
+				setScope(i, HTML(string(v)))
 				err = r.render(wr, node.Nodes, urlstate)
 				if err != nil {
 					if err == errBreak {
