@@ -76,6 +76,30 @@ func (s HTML) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, string(s))
 }
 
+type stringWriter interface {
+	Write(b []byte) (int, error)
+	WriteString(s string) (int, error)
+}
+
+type stringWriterWrapper struct {
+	w io.Writer
+}
+
+func (wr stringWriterWrapper) Write(b []byte) (int, error) {
+	return wr.w.Write(b)
+}
+
+func (wr stringWriterWrapper) WriteString(s string) (int, error) {
+	return wr.w.Write([]byte(s))
+}
+
+func newStringWriter(wr io.Writer) stringWriter {
+	if sw, ok := wr.(stringWriter); ok {
+		return sw
+	}
+	return stringWriterWrapper{wr}
+}
+
 // renderValue renders value in the context of node and as a URL is urlstate
 // is not nil.
 func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
@@ -97,38 +121,41 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 
 	} else {
 
-		var ok = true
-		var str string
+		w := newStringWriter(wr)
+
+		var err error
+
 		switch node.Context {
 		case ast.ContextText:
-			str, ok = renderInText(asBase(value))
+			err = r.renderInText(w, asBase(value), node)
 		case ast.ContextHTML:
-			str, ok = renderInHTML(asBase(value))
+			err = r.renderInHTML(w, asBase(value), node)
 		case ast.ContextTag:
-			str, ok = renderInTag(asBase(value))
+			err = r.renderInTag(w, asBase(value), node)
 		case ast.ContextAttribute:
-			str, ok = renderInAttribute(asBase(value), urlstate, false)
+			if urlstate == nil {
+				err = r.renderInAttribute(w, asBase(value), node, false)
+			} else {
+				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, false)
+			}
 		case ast.ContextUnquotedAttribute:
-			str, ok = renderInAttribute(asBase(value), urlstate, true)
+			if urlstate == nil {
+				err = r.renderInAttribute(w, asBase(value), node, true)
+			} else {
+				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, true)
+			}
 		case ast.ContextCSS:
-			str, ok = renderInCSS(asBase(value))
+			err = r.renderInCSS(w, asBase(value), node)
 		case ast.ContextCSSString:
-			str, ok = renderInCSSString(asBase(value))
+			err = r.renderInCSSString(w, asBase(value), node)
 		case ast.ContextScript:
-			str, ok = renderInScript(asBase(value))
+			err = r.renderInScript(w, asBase(value), node)
 		case ast.ContextScriptString:
-			str, ok = renderInScriptString(asBase(value))
+			err = r.renderInScriptString(w, asBase(value), node)
 		default:
 			panic("template: unknown context")
 		}
-		if !ok {
-			err := r.errorf(node.Expr, "wrong type %s in value", typeof(value))
-			if !r.handleError(err) {
-				return err
-			}
-		}
-		_, err := io.WriteString(wr, str)
-		if err != nil {
+		if err != nil && !r.handleError(err) {
 			return err
 		}
 
@@ -138,10 +165,10 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 }
 
 // renderInText renders value in the Text context.
-func renderInText(value interface{}) (string, bool) {
+func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "", true
+		return nil
 	}
 
 	var s string
@@ -163,37 +190,43 @@ func renderInText(value interface{}) (string, bool) {
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
-			return "", false
+			return r.errorf(node, "no-render type %s", typeof(value))
 		}
 		if rv.IsNil() || rv.Len() == 0 {
-			return "", true
+			return nil
 		}
-		buf := make([]string, rv.Len())
-		for i := 0; i < len(buf); i++ {
-			str, ok := renderInText(rv.Index(i).Interface())
-			if !ok {
-				return "", false
+		for i, l := 0, rv.Len(); i < l; i++ {
+			if i > 0 {
+				_, err := w.WriteString(", ")
+				if err != nil {
+					return err
+				}
 			}
-			buf[i] = str
+			err := r.renderInText(w, rv.Index(i).Interface(), node)
+			if err != nil {
+				return err
+			}
 		}
-		s = strings.Join(buf, ", ")
+		return nil
 	}
 
-	return s, true
+	_, err := w.WriteString(s)
+
+	return err
 }
 
 // renderInHTML renders value in HTML context.
-func renderInHTML(value interface{}) (string, bool) {
+func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "", true
+		return nil
 	}
 
 	var s string
 
 	switch e := value.(type) {
 	case string:
-		s = htmlEscape(e)
+		return htmlEscape(w, e)
 	case HTML:
 		s = string(e)
 	case int:
@@ -208,68 +241,69 @@ func renderInHTML(value interface{}) (string, bool) {
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
-			return "", false
+			return r.errorf(node, "no-render type %s", typeof(value))
 		}
 		if rv.IsNil() || rv.Len() == 0 {
-			return "", true
+			return nil
 		}
-		buf := make([]string, rv.Len())
-		for i := 0; i < len(buf); i++ {
-			str, ok := renderInHTML(rv.Index(i).Interface())
-			if !ok {
-				return "", false
+		for i, l := 0, rv.Len(); i < l; i++ {
+			if i > 0 {
+				_, err := w.WriteString(", ")
+				if err != nil {
+					return err
+				}
 			}
-			buf[i] = str
+			err := r.renderInHTML(w, rv.Index(i).Interface(), node)
+			if err != nil {
+				return err
+			}
 		}
-		s = strings.Join(buf, ", ")
+		return nil
 	}
 
-	return s, true
+	_, err := w.WriteString(s)
+
+	return err
 }
 
 // renderInTag renders value in Tag context.
-func renderInTag(value interface{}) (string, bool) {
-	// TODO(marco): return a more explanatory error
-	s, ok := renderInText(value)
-	if !ok {
-		return "", false
+func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Value) error {
+	buf := strings.Builder{}
+	err := r.renderInText(&buf, value, node)
+	if err != nil {
+		return err
 	}
+	s := buf.String()
 	i := 0
 	for j, c := range s {
 		if c == utf8.RuneError && j == i+1 {
-			return "", false
+			return r.errorf(node, "not valid unicode in tag context")
 		}
 		const DEL = 0x7F
 		if c <= 0x1F || c == '"' || c == '\'' || c == '>' || c == '/' || c == '=' || c == DEL ||
 			0x7F <= c && c <= 0x9F || unicode.Is(unicode.Noncharacter_Code_Point, c) {
-			return "", false
+			return r.errorf(node, "not allowed character %s in tag context", string(c))
 		}
-		i = j
 	}
-	return s, true
+	_, err = w.WriteString(s)
+	return err
 }
 
 // renderInAttribute renders value in Attribute context quoted or unquoted
-// depending on unquoted value. Is rendered as an URL if urlstate is not nil.
-func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (string, bool) {
+// depending on unquoted value.
+func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *ast.Value, unquoted bool) error {
 
 	if value == nil {
-		return "", true
+		return nil
 	}
 
 	var s string
 
 	switch e := value.(type) {
 	case string:
-		s = e
-		if urlstate == nil {
-			s = attributeEscape(e, unquoted)
-		}
+		return attributeEscape(w, e, unquoted)
 	case HTML:
-		s = string(e)
-		if urlstate == nil {
-			s = attributeEscape(html.UnescapeString(string(e)), unquoted)
-		}
+		return attributeEscape(w, html.UnescapeString(string(e)), unquoted)
 	case int:
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
@@ -282,10 +316,63 @@ func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (st
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
-			return "", false
+			return r.errorf(node, "no-render type %s", typeof(value))
 		}
 		if rv.IsNil() || rv.Len() == 0 {
-			return "", true
+			return nil
+		}
+		for i, l := 0, rv.Len(); i < l; i++ {
+			var err error
+			if i > 0 {
+				if unquoted {
+					_, err = w.WriteString(",&#32;")
+				} else {
+					_, err = w.WriteString(", ")
+				}
+			}
+			err = r.renderInAttribute(w, rv.Index(i).Interface(), node, unquoted)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err := w.WriteString(s)
+
+	return err
+}
+
+// renderInAttributeURL renders value as an URL in Attribute context quoted or
+// unquoted depending on unquoted value.
+func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node *ast.Value, urlstate *urlState, unquoted bool) error {
+
+	if value == nil {
+		return nil
+	}
+
+	var s string
+
+	switch e := value.(type) {
+	case string:
+		s = e
+	case HTML:
+		s = string(e)
+	case int:
+		s = strconv.Itoa(e)
+	case decimal.Decimal:
+		s = e.String()
+	case bool:
+		s = "false"
+		if e {
+			s = "true"
+		}
+	default:
+		rv := reflect.ValueOf(value)
+		if !rv.IsValid() || rv.Kind() != reflect.Slice {
+			return r.errorf(node, "no-render type %s", typeof(value))
+		}
+		if rv.IsNil() || rv.Len() == 0 {
+			return nil
 		}
 		for i, l := 0, rv.Len(); i < l; i++ {
 			if i > 0 {
@@ -297,17 +384,9 @@ func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (st
 			}
 			switch e := rv.Index(i).Interface().(type) {
 			case string:
-				if urlstate == nil {
-					s += attributeEscape(e, unquoted)
-				} else {
-					s += e
-				}
+				s += e
 			case HTML:
-				if urlstate == nil {
-					s += attributeEscape(html.UnescapeString(string(e)), unquoted)
-				} else {
-					s += string(e)
-				}
+				s += string(e)
 			case int:
 				s += strconv.Itoa(e)
 			case decimal.Decimal:
@@ -319,214 +398,340 @@ func renderInAttribute(value interface{}, urlstate *urlState, unquoted bool) (st
 					s += "false"
 				}
 			default:
-				return "", false
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
 		}
 	}
 
 	if s == "" {
-		return "", true
+		return nil
 	}
 
-	if urlstate != nil {
-		switch {
-		case urlstate.path:
-			if strings.Contains(s, "?") {
-				urlstate.path = false
-				urlstate.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
-			}
-			s = pathEscape(s, unquoted)
-		case urlstate.query:
-			s = queryEscape(s)
-		default:
-			return "", false
+	if urlstate.path {
+		if strings.Contains(s, "?") {
+			urlstate.path = false
+			urlstate.addAmp = s[len(s)-1] != '?' && s[len(s)-1] != '&'
 		}
+		return pathEscape(w, s, unquoted)
+	} else if urlstate.query {
+		return queryEscape(w, s)
 	}
 
-	return s, true
+	// TODO(marco): return the correct error
+	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
 // renderInCSS renders value in CSS context.
-func renderInCSS(value interface{}) (string, bool) {
+func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "", false
+		return r.errorf(node, "no-render type %s", typeof(value))
 	}
+
+	var s string
 
 	switch e := value.(type) {
 	case string:
-		return "\"" + cssStringEscape(e) + "\"", true
+		_, err := w.WriteString(`"`)
+		if err != nil {
+			return err
+		}
+		err = cssStringEscape(w, e)
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString(`"`)
+		return err
 	case HTML:
-		return "\"" + cssStringEscape(string(e)) + "\"", true
+		_, err := w.WriteString(`"`)
+		if err != nil {
+			return err
+		}
+		err = cssStringEscape(w, string(e))
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString(`"`)
+		return err
 	case int:
-		return strconv.Itoa(e), true
+		s = strconv.Itoa(e)
 	case decimal.Decimal:
-		return e.String(), true
+		s = e.String()
+	default:
+		return r.errorf(node, "no-render type %s", typeof(value))
 	}
 
-	return "", false
+	_, err := w.WriteString(s)
+
+	return err
 }
 
 // renderInCSSString renders value in CSSString context.
-func renderInCSSString(value interface{}) (string, bool) {
+func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "", false
+		return r.errorf(node, "no-render type %s", typeof(value))
 	}
+
+	var s string
 
 	switch e := value.(type) {
 	case string:
-		return cssStringEscape(e), true
+		return cssStringEscape(w, e)
 	case HTML:
-		return cssStringEscape(string(e)), true
+		return cssStringEscape(w, string(e))
 	case int:
-		return strconv.Itoa(e), true
+		s = strconv.Itoa(e)
 	case decimal.Decimal:
-		return e.String(), true
+		s = e.String()
+	default:
+		return r.errorf(node, "no-render type %s", typeof(value))
 	}
 
-	return "", false
+	_, err := w.WriteString(s)
+
+	return err
 }
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
 // renderInScript renders value in Script context.
-func renderInScript(value interface{}) (string, bool) {
+func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "null", true
+		_, err := w.WriteString("null")
+		return err
 	}
 
 	switch e := value.(type) {
 	case string:
-		return "\"" + scriptStringEscape(e) + "\"", true
-	case HTML:
-		return "\"" + scriptStringEscape(string(e)) + "\"", true
-	case int:
-		return strconv.Itoa(e), true
-	case decimal.Decimal:
-		return e.String(), true
-	case bool:
-		if e {
-			return "true", true
+		_, err := w.WriteString("\"")
+		if err != nil {
+			return err
 		}
-		return "false", true
+		err = scriptStringEscape(w, e)
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString("\"")
+		return err
+	case HTML:
+		_, err := w.WriteString("\"")
+		if err != nil {
+			return err
+		}
+		err = scriptStringEscape(w, string(e))
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString("\"")
+		return err
+	case int:
+		_, err := w.WriteString(strconv.Itoa(e))
+		return err
+	case decimal.Decimal:
+		_, err := w.WriteString(e.String())
+		return err
+	case bool:
+		s := "false"
+		if e {
+			s = "true"
+		}
+		_, err := w.WriteString(s)
+		return err
 	default:
+		var err error
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() {
-			return "undefined", false
+			_, err = w.WriteString("undefined")
+			if err != nil {
+				return err
+			}
+			return r.errorf(node, "no-render type %s", typeof(value))
 		}
 		switch rv.Kind() {
 		case reflect.Slice:
 			if rv.IsNil() {
-				return "null", true
+				_, err = w.WriteString("null")
+				return err
 			}
 			if rv.Len() == 0 {
-				return "[]", true
+				_, err = w.WriteString("[]")
+				return err
 			}
-			s := "["
+			_, err = w.WriteString("[")
+			if err != nil {
+				return err
+			}
 			for i := 0; i < rv.Len(); i++ {
 				if i > 0 {
-					s += ","
+					_, err = w.WriteString(",")
+					if err != nil {
+						return err
+					}
 				}
-				s2, ok := renderInScript(rv.Index(i).Interface())
-				if !ok {
-					return "", false
+				err = r.renderInScript(w, rv.Index(i).Interface(), node)
+				if err != nil {
+					return err
 				}
-				s += s2
 			}
-			return s + "]", true
+			_, err = w.WriteString("]")
+			return err
 		case reflect.Struct:
-			return renderValueAsScriptObject(rv)
+			return r.renderValueAsScriptObject(w, rv, node)
 		case reflect.Map:
 			if rv.IsNil() {
-				return "null", true
+				_, err = w.WriteString("null")
+				return err
 			}
 			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
-				return "undefined", false
+				_, err = w.WriteString("undefined")
+				if err != nil {
+					return err
+				}
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
-			return renderMapAsScriptObject(rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
+			return r.renderMapAsScriptObject(w, rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}), node)
 		case reflect.Ptr:
 			if rv.IsNil() {
-				return "null", true
+				_, err = w.WriteString("null")
+				return err
 			}
 			rt := rv.Type().Elem()
 			if rt.Kind() != reflect.Struct {
-				return "undefined", false
+				_, err = w.WriteString("undefined")
+				if err != nil {
+					return err
+				}
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
 			rv = rv.Elem()
 			if !rv.IsValid() {
-				return "undefined", false
+				_, err = w.WriteString("undefined")
+				if err != nil {
+					return err
+				}
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
-			return renderValueAsScriptObject(rv)
+			return r.renderValueAsScriptObject(w, rv, node)
 		}
 	}
 
-	return "undefined", false
+	_, err := w.WriteString("undefined")
+	if err != nil {
+		return err
+	}
+	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
 // renderInScriptString renders value in ScriptString context.
-func renderInScriptString(value interface{}) (string, bool) {
+func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node *ast.Value) error {
 
 	if value == nil {
-		return "", false
+		return r.errorf(node, "no-render type %s", typeof(value))
 	}
 
 	switch e := value.(type) {
 	case string:
-		return scriptStringEscape(e), true
+		err := scriptStringEscape(w, e)
+		return err
 	case HTML:
-		return scriptStringEscape(string(e)), true
+		err := scriptStringEscape(w, string(e))
+		return err
 	case int:
-		return strconv.Itoa(e), true
+		_, err := w.WriteString(strconv.Itoa(e))
+		return err
 	case decimal.Decimal:
-		return e.String(), true
+		_, err := w.WriteString(e.String())
+		return err
 	}
 
-	return "", false
+	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
 // renderValueAsScriptObject returns value as a JavaScript object or undefined
 // if it is not possible.
-func renderValueAsScriptObject(value reflect.Value) (string, bool) {
-	var s string
+func (r *rendering) renderValueAsScriptObject(w stringWriter, value reflect.Value, node *ast.Value) error {
+
+	var err error
+
 	fields := getStructFields(value)
-	for _, name := range fields.names {
-		if len(s) > 0 {
-			s += ","
-		}
-		s += "\"" + scriptStringEscape(name) + "\":"
-		s2, ok := renderInScript(value.Field(fields.indexOf[name]).Interface())
-		if !ok {
-			return "undefined", false
-		}
-		s += s2
+
+	if len(fields.names) == 0 {
+		_, err = w.WriteString(`{}`)
+		return err
 	}
-	return "{" + s + "}", true
+
+	for i, name := range fields.names {
+		sep := `,"`
+		if i == 0 {
+			sep = `{"`
+		}
+		_, err = w.WriteString(sep)
+		if err != nil {
+			return err
+		}
+		err = scriptStringEscape(w, name)
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString(`":`)
+		if err != nil {
+			return err
+		}
+		err = r.renderInScript(w, value.Field(fields.indexOf[name]).Interface(), node)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = w.WriteString(`}`)
+
+	return err
 }
 
 // renderMapAsScriptObject returns value as a JavaScript object or undefined
 // if it is not possible.
-func renderMapAsScriptObject(value map[string]interface{}) (string, bool) {
+func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]interface{}, node *ast.Value) error {
+
 	if value == nil {
-		return "null", true
+		_, err := w.WriteString("null")
+		return err
 	}
-	var s string
+
+	_, err := w.WriteString("{")
+	if err != nil {
+		return err
+	}
+
 	names := make([]string, 0, len(value))
 	for name := range value {
 		names = append(names, name)
 	}
 	sort.Strings(names)
-	for _, n := range names {
-		if len(s) > 0 {
-			s += ","
+
+	for i, n := range names {
+		if i > 0 {
+			_, err = w.WriteString(",")
+			if err != nil {
+				return err
+			}
 		}
-		s += scriptStringEscape(n) + ":"
-		s2, ok := renderInScript(value[n])
-		if !ok {
-			return "undefined", false
+		err = scriptStringEscape(w, n)
+		if err != nil {
+			return err
 		}
-		s += s2
+		_, err = w.WriteString(":")
+		if err != nil {
+			return err
+		}
+		err = r.renderInScript(w, value[n], node)
+		if err != nil {
+			return err
+		}
 	}
-	return "{" + s + "}", true
+
+	_, err = w.WriteString("}")
+
+	return err
 }

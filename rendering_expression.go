@@ -342,12 +342,12 @@ func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			case string:
 				return e1 + e2
 			case HTML:
-				return HTML(htmlEscape(e1) + string(e2))
+				return HTML(htmlEscapeString(e1) + string(e2))
 			}
 		case HTML:
 			switch e2 := expr2.(type) {
 			case string:
-				return HTML(string(e1) + htmlEscape(e2))
+				return HTML(string(e1) + htmlEscapeString(e2))
 			case HTML:
 				return HTML(string(e1) + string(e2))
 			}

@@ -378,7 +378,7 @@ var cssStringContextTests = []struct {
 	{`"\u001F"`, `\1f `, nil},
 	{`"a"`, `a`, nil},
 	{`"<a>"`, `\3c a\3e `, nil},
-	{`"\\"`, `\`, nil},
+	{`"\\"`, `\\`, nil},
 	{`"\""`, `\22 `, nil},
 	{`"'"`, `\27 `, nil},
 	{`"\n"`, `\a `, nil},

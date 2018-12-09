@@ -6,12 +6,50 @@
 
 package template
 
-import "strings"
-
 const hexchars = "0123456789abcdef"
 
-// htmlEscape escapes the string s so it can be places inside HTML.
-func htmlEscape(s string) string {
+// htmlEscape escapes the string s, so it can be places inside HTML, and
+// writes it on w.
+func htmlEscape(w stringWriter, s string) error {
+	last := 0
+	for i := 0; i < len(s); i++ {
+		var esc string
+		switch s[i] {
+		case '"':
+			esc = "&#34;"
+		case '\'':
+			esc = "&#39;"
+		case '&':
+			esc = "&amp;"
+		case '<':
+			esc = "&lt;"
+		case '>':
+			esc = "&gt;"
+		default:
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.WriteString(esc)
+		if err != nil {
+			return err
+		}
+		last = i + 1
+	}
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
+// htmlEscapeString escapes the string s so it can be places inside HTML, and
+// returns the escaped string.
+func htmlEscapeString(s string) string {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		switch c := s[i]; c {
@@ -63,57 +101,61 @@ func htmlEscape(s string) string {
 	return string(b)
 }
 
-// attributeEscape escapes the string s so it can be places inside an HTML
-// attribute value. unquoted indicates if the attribute is unquoted.
-func attributeEscape(s string, unquoted bool) string {
+// attributeEscape escapes the string s, so it can be places inside an HTML
+// attribute value and write it to w. unquoted indicates if the attribute is
+// unquoted.
+func attributeEscape(w stringWriter, s string, unquoted bool) error {
 	if !unquoted {
-		return htmlEscape(s)
+		return htmlEscape(w, s)
 	}
-	more := 0
+	last := 0
 	for i := 0; i < len(s); i++ {
-		switch c := s[i]; c {
-		case '<', '>':
-			more += 3
-		case '&', '\t', '\n', '\r', '\x0C', ' ', '"', '\'', '=', '`':
-			more += 4
-		}
-	}
-	if more == 0 {
-		return s
-	}
-	b := make([]byte, len(s)+more)
-	for i, j := 0, 0; i < len(s); i++ {
-		switch c := s[i]; c {
-		case '<', '>':
-			b[j] = '&'
-			if c == '<' {
-				b[j+1] = 'l'
-			} else {
-				b[j+1] = 'g'
-			}
-			b[j+2] = 't'
-			b[j+3] = ';'
-			j += 4
+		var esc string
+		switch s[i] {
+		case '<':
+			esc = "&gt;"
+		case '>':
+			esc = "&lt;"
 		case '&':
-			b[j] = '&'
-			b[j+1] = 'a'
-			b[j+2] = 'm'
-			b[j+3] = 'p'
-			b[j+4] = ';'
-			j += 5
-		case '\t', '\n', '\r', '\x0C', ' ', '"', '\'', '=', '`':
-			b[j] = '&'
-			b[j+1] = '#'
-			b[j+2] = c/10 + 48
-			b[j+3] = c%10 + 48
-			b[j+4] = ';'
-			j += 5
+			esc = "&amp;"
+		case '\t':
+			esc = "&#09;"
+		case '\n':
+			esc = "&#10;"
+		case '\r':
+			esc = "&#13;"
+		case '\x0C':
+			esc = "&#12;"
+		case ' ':
+			esc = "&#32;"
+		case '"':
+			esc = "&#34;"
+		case '\'':
+			esc = "&#39;"
+		case '=':
+			esc = "&#61;"
+		case '`':
+			esc = "&#96;"
 		default:
-			b[j] = c
-			j++
+			continue
 		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.WriteString(esc)
+		if err != nil {
+			return err
+		}
+		last = i + 1
 	}
-	return string(b)
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
 }
 
 // prefixWithSpace indicates if the byte c, in a CSS string, must be preceded
@@ -126,204 +168,272 @@ func prefixWithSpace(c byte) bool {
 	return '0' <= c && c <= '9' || 'a' <= c && c <= 'b' || 'A' <= c && c <= 'B'
 }
 
-// cssStringEscape escapes the string s so it can be places inside a CSS
-// string with single or double quotes.
-func cssStringEscape(s string) string {
-	more := 0
-MORE:
+var cssStringEscapes = []string{
+	0:    `\0`,
+	1:    `\1`,
+	2:    `\2`,
+	3:    `\3`,
+	4:    `\4`,
+	5:    `\5`,
+	6:    `\6`,
+	7:    `\7`,
+	8:    `\8`,
+	'\t': `\9`,
+	'\n': `\a`,
+	11:   `\b`,
+	'\f': `\c`,
+	'\r': `\d`,
+	14:   `\e`,
+	15:   `\f`,
+	16:   `\10`,
+	17:   `\11`,
+	18:   `\12`,
+	19:   `\13`,
+	20:   `\14`,
+	21:   `\15`,
+	22:   `\16`,
+	23:   `\17`,
+	24:   `\18`,
+	25:   `\19`,
+	26:   `\1a`,
+	27:   `\1b`,
+	28:   `\1c`,
+	29:   `\1d`,
+	30:   `\1e`,
+	31:   `\1f`,
+	'"':  `\22`,
+	'&':  `\26`,
+	'\'': `\27`,
+	'(':  `\28`,
+	')':  `\29`,
+	'+':  `\2b`,
+	'/':  `\2f`,
+	':':  `\3a`,
+	';':  `\3b`,
+	'<':  `\3c`,
+	'>':  `\3e`,
+	'\\': `\\`,
+	'{':  `\7b`,
+	'}':  `\7d`,
+}
+
+// cssStringEscape escapes the string s, so it can be places inside a CSS
+// string with single or double quotes, and write it to w.
+func cssStringEscape(w stringWriter, s string) error {
+	println(s)
+	last := 0
 	for i := 0; i < len(s); i++ {
+		var esc string
 		c := s[i]
-		switch c {
-		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
-			more += 2
-		default:
-			if c <= 0x0F {
-				more += 1
-			} else if c <= 0x1F {
-				more += 2
-			} else {
-				continue MORE
+		if int(c) < len(cssStringEscapes) {
+			esc = cssStringEscapes[c]
+		}
+		if esc == "" {
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
 			}
 		}
-		if c != '\\' && (i == len(s)-1 || prefixWithSpace(s[i+1])) {
-			more++
+		_, err := w.WriteString(esc)
+		if err != nil {
+			return err
 		}
-	}
-	if more == 0 {
-		return s
-	}
-	b := make([]byte, len(s)+more)
-ESCAPE:
-	for i, j := 0, 0; i < len(s); i++ {
-		c := s[i]
-		switch c {
-		case '"', '&', '\'', '(', ')', '+', '/', ':', ';', '<', '>', '{', '}':
-			b[j] = '\\'
-			b[j+1] = hexchars[c>>4]
-			b[j+2] = hexchars[c&0xF]
-			j += 3
-		default:
-			if c <= 0x0F {
-				b[j] = '\\'
-				b[j+1] = hexchars[c&0xF]
-				j += 2
-			} else if c <= 0x1F {
-				b[j] = '\\'
-				b[j+1] = hexchars[c>>4]
-				b[j+2] = hexchars[c&0xF]
-				j += 3
-			} else {
-				b[j] = c
-				j++
-				continue ESCAPE
+		if c != '\\' && (i == len(s)-1 || prefixWithSpace(s[i+1])) {
+			_, err = w.WriteString(" ")
+			if err != nil {
+				return err
 			}
 		}
-		if c != '\\' && (i == len(s)-1 || prefixWithSpace(s[i+1])) {
-			b[j] = ' '
-			j++
-		}
+		last = i + 1
 	}
-	return string(b)
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
+}
+
+var scriptStringEscapes = []string{
+	0:    `\x00`,
+	1:    `\x01`,
+	2:    `\x02`,
+	3:    `\x03`,
+	4:    `\x04`,
+	5:    `\x05`,
+	6:    `\x06`,
+	7:    `\x07`,
+	8:    `\x08`,
+	'\t': `\t`,
+	'\n': `\n`,
+	11:   `\x0b`,
+	'\f': `\x0c`,
+	'\r': `\r`,
+	14:   `\x0e`,
+	15:   `\x0f`,
+	16:   `\x10`,
+	17:   `\x11`,
+	18:   `\x12`,
+	19:   `\x13`,
+	20:   `\x14`,
+	21:   `\x15`,
+	22:   `\x16`,
+	23:   `\x17`,
+	24:   `\x18`,
+	25:   `\x19`,
+	26:   `\x1a`,
+	27:   `\x1b`,
+	28:   `\x1c`,
+	29:   `\x1d`,
+	30:   `\x1e`,
+	31:   `\x1f`,
+	'"':  `\"`,
+	'&':  `\x26`,
+	'\'': `\'`,
+	'<':  `\x3c`,
+	'>':  `\x3e`,
+	'\\': `\\`,
 }
 
 // scriptStringEscape escapes the string s so it can be places inside a
-// JavaScript and JSON string with single or double quotes.
-func scriptStringEscape(s string) string {
-	if len(s) == 0 {
-		return ""
-	}
-	var b strings.Builder
-	for _, r := range s {
-		switch r {
-		case '\\':
-			b.WriteString("\\\\")
-		case '"':
-			b.WriteString("\\\"")
-		case '\'':
-			b.WriteString("\\'")
-		case '\n':
-			b.WriteString("\\n")
-		case '\r':
-			b.WriteString("\\r")
-		case '\t':
-			b.WriteString("\\t")
-		case '\u2028':
-			b.WriteString("\\u2028")
-		case '\u2029':
-			b.WriteString("\\u2029")
+// JavaScript and JSON string with single or double quotes, and write it to w.
+func scriptStringEscape(w stringWriter, s string) error {
+	last := 0
+	var buf []byte
+	for i, c := range s {
+		var esc string
+		switch {
+		case int(c) < len(scriptStringEscapes) && scriptStringEscapes[c] != "":
+			esc = scriptStringEscapes[c]
+		case c == '\u2028':
+			esc = `\u2028`
+		case c == '\u2029':
+			esc = `\u2029`
 		default:
-			if r <= 31 || r == '<' || r == '>' || r == '&' {
-				b.WriteString("\\x")
-				b.WriteByte(hexchars[r>>4])
-				b.WriteByte(hexchars[r&0xF])
-			} else {
-				b.WriteRune(r)
+			continue
+		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
 			}
 		}
+		var err error
+		if esc == "" {
+			_, err = w.Write(buf)
+		} else {
+			_, err = w.WriteString(esc)
+		}
+		if err != nil {
+			return err
+		}
+		if c == '\u2028' || c == '\u2029' {
+			last = i + 3
+		} else {
+			last = i + 1
+		}
 	}
-	return b.String()
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
 }
 
 // pathEscape escapes the string s so it can be placed inside an attribute
-// value as URL path. unquoted indicates if the attribute is unquoted.
+// value as URL path, and write it to w. unquoted indicates if the attribute
+// is unquoted.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
-func pathEscape(s string, unquoted bool) string {
-	more := 0
+func pathEscape(w stringWriter, s string, unquoted bool) error {
+	last := 0
+	var buf []byte
 	for i := 0; i < len(s); i++ {
-		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z') {
-			switch c {
-			case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
-				// no escape
-			case '&', '+':
-				more += 4
-			case ' ':
-				if unquoted {
-					more += 4
-				}
-			default:
-				more += 2
-			}
-		}
-	}
-	if more == 0 {
-		return s
-	}
-	b := make([]byte, len(s)+more)
-	for i, j := 0, 0; i < len(s); i++ {
 		c := s[i]
 		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' {
-			b[j] = c
-			j++
 			continue
 		}
+		var esc string
 		switch c {
 		case '!', '#', '$', '*', ',', '-', '.', '/', ':', ';', '=', '?', '@', '[', ']', '_':
-			b[j] = c
-			j++
+			continue
 		case '&':
-			b[j] = '&'
-			b[j+1] = 'a'
-			b[j+2] = 'm'
-			b[j+3] = 'p'
-			b[j+4] = ';'
-			j += 5
+			esc = "&amp;"
 		case '+':
-			b[j] = '&'
-			b[j+1] = '#'
-			b[j+2] = '4'
-			b[j+3] = '3'
-			b[j+4] = ';'
-			j += 5
+			esc = "&#34;"
 		case ' ':
-			if unquoted {
-				b[j] = '&'
-				b[j+1] = '#'
-				b[j+2] = '3'
-				b[j+3] = '2'
-				b[j+4] = ';'
-				j += 5
-			} else {
-				b[j] = c
-				j++
+			if !unquoted {
+				continue
 			}
+			esc = "&#32;"
 		default:
-			b[j] = '%'
-			b[j+1] = hexchars[c>>4]
-			b[j+2] = hexchars[c&0xF]
-			j += 3
+			if buf == nil {
+				buf = make([]byte, 3)
+				buf[0] = '%'
+			}
+			buf[1] = hexchars[c>>4]
+			buf[2] = hexchars[c&0xF]
 		}
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		var err error
+		if esc == "" {
+			_, err = w.Write(buf)
+		} else {
+			_, err = w.WriteString(esc)
+		}
+		if err != nil {
+			return err
+		}
+		last = i + 1
 	}
-	return string(b)
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
 }
 
-// queryEscape escapes the string s so it can be placed inside a URL query.
+// queryEscape escapes the string s, so it can be placed inside a URL query,
+// and write it to w.
 //
 // Note that url.QueryEscape escapes ' ' as '+' and not as '%20'.
-func queryEscape(s string) string {
-	more := 0
+func queryEscape(w stringWriter, s string) error {
+	last := 0
+	var buf []byte
 	for i := 0; i < len(s); i++ {
-		if c := s[i]; !('0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
-			c == '-' || c == '.' || c == '_') {
-			more += 2
-		}
-	}
-	if more == 0 {
-		return s
-	}
-	b := make([]byte, len(s)+more)
-	for i, j := 0, 0; i < len(s); i++ {
 		c := s[i]
 		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
 			c == '-' || c == '.' || c == '_' {
-			b[j] = c
-			j++
-		} else {
-			b[j] = '%'
-			b[j+1] = hexchars[c>>4]
-			b[j+2] = hexchars[c&0xF]
-			j += 3
+			continue
 		}
+		if buf == nil {
+			buf = make([]byte, 3)
+			buf[0] = '%'
+		}
+		buf[1] = hexchars[c>>4]
+		buf[2] = hexchars[c&0xF]
+		if last != i {
+			_, err := w.WriteString(s[last:i])
+			if err != nil {
+				return err
+			}
+		}
+		_, err := w.Write(buf)
+		if err != nil {
+			return err
+		}
+		last = i + 1
 	}
-	return string(b)
+	if last != len(s) {
+		_, err := w.WriteString(s[last:])
+		return err
+	}
+	return nil
 }
