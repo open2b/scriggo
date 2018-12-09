@@ -73,7 +73,85 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 				i++
 			}
 			r.vars = r.vars[:len(r.vars)-1]
+		case HTML:
+			size := len(vv)
+			if size == 0 {
+				return nil
+			}
+			r.vars = append(r.vars, nil)
+			i := 0
+			for _, v := range vv {
+				setScope(i, string(v))
+				err = r.render(wr, node.Nodes, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+				i++
+			}
+			r.vars = r.vars[:len(r.vars)-1]
 		case []string:
+			size := len(vv)
+			if size == 0 {
+				return nil
+			}
+			r.vars = append(r.vars, nil)
+			for i := 0; i < size; i++ {
+				setScope(i, vv[i])
+				err = r.render(wr, node.Nodes, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
+			r.vars = r.vars[:len(r.vars)-1]
+		case []HTML:
+			size := len(vv)
+			if size == 0 {
+				return nil
+			}
+			r.vars = append(r.vars, nil)
+			for i := 0; i < size; i++ {
+				setScope(i, vv[i])
+				err = r.render(wr, node.Nodes, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
+			r.vars = r.vars[:len(r.vars)-1]
+		case []int:
+			size := len(vv)
+			if size == 0 {
+				return nil
+			}
+			r.vars = append(r.vars, nil)
+			for i := 0; i < size; i++ {
+				setScope(i, vv[i])
+				err = r.render(wr, node.Nodes, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
+			r.vars = r.vars[:len(r.vars)-1]
+		case []decimal.Decimal:
 			size := len(vv)
 			if size == 0 {
 				return nil
