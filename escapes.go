@@ -26,7 +26,6 @@ func htmlEscape(s string) string {
 	}
 	b := make([]byte, len(s)+more)
 	for i, j := 0, 0; i < len(s); i++ {
-
 		switch c := s[i]; c {
 		case '<', '>':
 			b[j] = '&'
