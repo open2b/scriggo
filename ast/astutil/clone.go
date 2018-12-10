@@ -165,6 +165,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args)
 	case *ast.Index:
 		return ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
+	case *ast.Slicing:
+		return ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low), CloneExpression(e.High))
 	case *ast.Selector:
 		return ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
 	default:
