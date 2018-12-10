@@ -158,9 +158,9 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		}
 		return ast.NewSlice(ClonePosition(e.Position), elements)
 	case *ast.Call:
-		var args = make([]ast.Expression, 0, len(e.Args))
-		for _, arg := range e.Args {
-			args = append(args, CloneExpression(arg))
+		var args = make([]ast.Expression, len(e.Args))
+		for i, arg := range e.Args {
+			args[i] = CloneExpression(arg)
 		}
 		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args)
 	case *ast.Index:
