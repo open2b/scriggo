@@ -583,6 +583,9 @@ func (l *lexer) lexCode() error {
 	}
 	// endLineAsSemicolon indicates if "\n" should be treated as ";".
 	var endLineAsSemicolon = false
+	// unclosedLeftBraces is the number of left braces lexed without a
+	// corresponding right brace.
+	var unclosedLeftBraces = 0
 LOOP:
 	for len(l.src) > 0 {
 		switch c := l.src[0]; c {
@@ -719,15 +722,26 @@ LOOP:
 			l.emit(tokenRightBrackets, 1)
 			l.column++
 			endLineAsSemicolon = true
+		case '{':
+			l.emit(tokenLeftBraces, 1)
+			l.column++
+			endLineAsSemicolon = false
+			unclosedLeftBraces++
+		case '}':
+			if unclosedLeftBraces > 0 {
+				l.emit(tokenRightBraces, 1)
+				l.column++
+				endLineAsSemicolon = true
+				unclosedLeftBraces--
+			} else if len(l.src) > 1 && l.src[1] == '}' {
+				break LOOP
+			} else {
+				return l.errorf("unexpected }")
+			}
 		case ':':
 			l.emit(tokenColon, 1)
 			l.column++
 			endLineAsSemicolon = false
-		case '}':
-			if len(l.src) > 1 && l.src[1] == '}' {
-				break LOOP
-			}
-			return l.errorf("unexpected }")
 		case ',':
 			l.emit(tokenComma, 1)
 			l.column++

@@ -123,6 +123,22 @@ var rendererExprTests = []struct {
 	{"a[2:2]", "", scope{"a": "xz€"}},
 	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
 
+	// slice
+	{"{}", "", nil},
+	{"len({})", "0", nil},
+	{"{v}", "", map[string]interface{}{"v": []string(nil)}},
+	{"len({v})", "1", map[string]interface{}{"v": []string(nil)}},
+	{"{v, v2}", ", ", map[string]interface{}{"v": []string(nil), "v2": []string(nil)}},
+	{"{`a`}", "a", nil},
+	{"{`a`, `b`, `c`}", "a, b, c", nil},
+	{"{html(`<a>`), html(`<b>`), html(`<c>`)}", "<a>, <b>, <c>", nil},
+	{"{4, 9, 3}", "4, 9, 3", nil},
+	{"{4.2, 9.06, 3.7}", "4.2, 9.06, 3.7", nil},
+	{"{false, false, true}", "false, false, true", nil},
+	{"{`a`, 8, true, html(`<b>`)}", "a, 8, true, <b>", nil},
+	{`{"a",2,3.6,html("<b>")}`, "a, 2, 3.6, <b>", nil},
+	{`{{1,2},"/",{3,4}}`, "1, 2, /, 3, 4", nil},
+
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},
 	{"a.B", "b", scope{"a": map[string]interface{}{"B": "b"}}},
@@ -247,10 +263,10 @@ var rendererStmtTests = []struct {
 	{"{% for c in \"a\" %}({{ c }}){% end %}", "(a)", nil},
 	{"{% for c in \"aÈc\" %}({{ c }}){% end %}", "(a)(È)(c)", nil},
 	{"{% for c in html(\"<b>\") %}({{ c }}){% end %}", "(<)(b)(>)", nil},
-	{"{% for i in slice(`a`, `b`, `c`) %}{{ i }}{% end %}", "abc", nil},
-	{"{% for i in slice(html(`<`), html(`&`), html(`>`)) %}{{ i }}{% end %}", "<&>", nil},
-	{"{% for i in slice(1, 2, 3, 4, 5) %}{{ i }}{% end %}", "12345", nil},
-	{"{% for i in slice(1.3, 5.8, 2.5) %}{{ i }}{% end %}", "1.35.82.5", nil},
+	{"{% for i in { `a`, `b`, `c` } %}{{ i }}{% end %}", "abc", nil},
+	{"{% for i in { html(`<`), html(`&`), html(`>`) } %}{{ i }}{% end %}", "<&>", nil},
+	{"{% for i in {1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
+	{"{% for i in {1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 }

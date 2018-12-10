@@ -97,6 +97,11 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr1)
 		Walk(v, n.Expr2)
 
+	case *ast.Slice:
+		for _, element := range n.Elements {
+			Walk(v, element)
+		}
+
 	case *ast.Call:
 		for _, arg := range n.Args {
 			Walk(v, arg)
@@ -106,7 +111,7 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr)
 		Walk(v, n.Index)
 
-	case *ast.Slice:
+	case *ast.Slicing:
 		Walk(v, n.Expr)
 		if n.Low != nil {
 			Walk(v, n.Low)

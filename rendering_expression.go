@@ -60,12 +60,14 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalBinaryOperator(e)
 	case *ast.Identifier:
 		return r.evalIdentifier(e)
+	case *ast.Slice:
+		return r.evalSlice(e)
 	case *ast.Call:
 		return r.evalCall(e)
 	case *ast.Index:
 		return r.evalIndex(e)
-	case *ast.Slice:
-		return r.evalSlice(e)
+	case *ast.Slicing:
+		return r.evalSlicing(e)
 	case *ast.Selector:
 		return r.evalSelector(e)
 	default:
@@ -465,6 +467,15 @@ func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 	panic("unknown binary operator")
 }
 
+// evalSlice evaluates a slice expression and returns its value.
+func (r *rendering) evalSlice(node *ast.Slice) interface{} {
+	elements := make([]interface{}, len(node.Elements))
+	for i, element := range node.Elements {
+		elements[i] = r.evalExpression(element)
+	}
+	return elements
+}
+
 // evalSelector evaluates a selector expression and returns its value.
 func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 	v := asBase(r.evalExpression(node.Expr))
@@ -562,8 +573,8 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 	panic(r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
-// evalSlice evaluates a slice expression and returns its value.
-func (r *rendering) evalSlice(node *ast.Slice) interface{} {
+// evalSlicing evaluates a slice expression and returns its value.
+func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 	var ok bool
 	var l, h int
 	if node.Low != nil {

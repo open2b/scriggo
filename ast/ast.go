@@ -552,6 +552,29 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
+// Slice node represents a slice expression.
+type Slice struct {
+	expression
+	*Position              // position in the source.
+	Elements  []Expression // elements.
+}
+
+func NewSlice(pos *Position, elements []Expression) *Slice {
+	return &Slice{expression{}, pos, elements}
+}
+
+func (n *Slice) String() string {
+	s := "{"
+	for i, element := range n.Elements {
+		s += element.String()
+		if i < len(n.Elements)-1 {
+			s += ", "
+		}
+	}
+	s += "}"
+	return s
+}
+
 // Call node represents a function call expression.
 type Call struct {
 	expression
@@ -592,8 +615,8 @@ func (n *Index) String() string {
 	return n.Expr.String() + "[" + n.Index.String() + "]"
 }
 
-// Slice node represents a slice expression.
-type Slice struct {
+// Slicing node represents a slicing expression.
+type Slicing struct {
 	expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
@@ -601,11 +624,11 @@ type Slice struct {
 	High      Expression // high bound.
 }
 
-func NewSlice(pos *Position, expr, low, high Expression) *Slice {
-	return &Slice{expression{}, pos, expr, low, high}
+func NewSlicing(pos *Position, expr, low, high Expression) *Slicing {
+	return &Slicing{expression{}, pos, expr, low, high}
 }
 
-func (n *Slice) String() string {
+func (n *Slicing) String() string {
 	s := n.Expr.String() + "["
 	if n.Low != nil {
 		s += n.Low.String()

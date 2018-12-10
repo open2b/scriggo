@@ -381,6 +381,20 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+	case *ast.Slice:
+		nn2, ok := n2.(*ast.Slice)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.Elements) != len(nn2.Elements) {
+			return fmt.Errorf("unexpected elements len %d, expecting %d", len(nn1.Elements), len(nn2.Elements))
+		}
+		for i, arg := range nn1.Elements {
+			err := equals(arg, nn2.Elements[i], p)
+			if err != nil {
+				return err
+			}
+		}
 	case *ast.Call:
 		nn2, ok := n2.(*ast.Call)
 		if !ok {
@@ -412,8 +426,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-	case *ast.Slice:
-		nn2, ok := n2.(*ast.Slice)
+	case *ast.Slicing:
+		nn2, ok := n2.(*ast.Slicing)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

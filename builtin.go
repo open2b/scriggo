@@ -40,12 +40,12 @@ var builtins = map[string]interface{}{
 	"true":   true,
 	"false":  false,
 	"len":    _len,
+	"append": _append,
 	"string": _string,
 	"number": _number,
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
-	"append":      _append,
 	"base64":      _base64,
 	"contains":    strings.Contains,
 	"errorf":      _errorf,
@@ -70,7 +70,6 @@ var builtins = map[string]interface{}{
 	"sha1":        _sha1,
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,
-	"slice":       _slice,
 	"sort":        _sort,
 	"sortBy":      _sortBy,
 	"split":       strings.Split,
@@ -458,71 +457,6 @@ func _shuffle(s interface{}) (interface{}, error) {
 		swap(i, j)
 	}
 	return s2, nil
-}
-
-// _slice is the builtin function "slice".
-func _slice(elems ...interface{}) (interface{}, error) {
-	if elems == nil {
-		return nil, fmt.Errorf("use of untyped nil in slice")
-	}
-	if len(elems) == 0 {
-		return []interface{}(nil), nil
-	}
-	var ok bool
-SameType:
-	switch elems[0].(type) {
-	case string:
-		slice := make([]string, len(elems))
-		for i, vv := range elems {
-			slice[i], ok = vv.(string)
-			if !ok {
-				break SameType
-			}
-		}
-		return slice, nil
-	case HTML:
-		slice := make([]HTML, len(elems))
-		for i, vv := range elems {
-			slice[i], ok = vv.(HTML)
-			if !ok {
-				break SameType
-			}
-		}
-		return slice, nil
-	case int:
-		slice := make([]int, len(elems))
-		for i, vv := range elems {
-			slice[i], ok = vv.(int)
-			if !ok {
-				break SameType
-			}
-		}
-		return slice, nil
-	case decimal.Decimal:
-		slice := make([]decimal.Decimal, len(elems))
-		for i, vv := range elems {
-			slice[i], ok = vv.(decimal.Decimal)
-			if !ok {
-				break SameType
-			}
-		}
-		return slice, nil
-	case bool:
-		slice := make([]bool, len(elems))
-		for i, vv := range elems {
-			slice[i], ok = vv.(bool)
-			if !ok {
-				break SameType
-			}
-		}
-		return slice, nil
-	}
-	for _, vv := range elems {
-		if vv == nil {
-			return nil, fmt.Errorf("use of untyped nil in slice")
-		}
-	}
-	return elems, nil
 }
 
 // _sort is the builtin function "sort".
