@@ -125,6 +125,9 @@ func CloneNode(node ast.Node) ast.Node {
 			sp.Tree = CloneTree(n.Tree)
 		}
 		return sp
+	case *ast.Assignment:
+		ident := ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		return ast.NewAssignment(ClonePosition(n.Position), ident, CloneExpression(n.Expr))
 	case *ast.Comment:
 		return ast.NewComment(ClonePosition(n.Position), n.Text)
 	case ast.Expression:
