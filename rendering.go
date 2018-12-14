@@ -160,27 +160,29 @@ Nodes:
 
 		case *ast.If:
 
+			var c bool
+			var err error
+
 			r.vars = append(r.vars, nil)
 
 			if node.Assignment != nil {
-				err := r.renderAssignment(wr, node.Assignment, urlstate)
+				err = r.renderAssignment(wr, node.Assignment, urlstate)
+			}
+			if err == nil {
+				expr, err := r.eval(node.Condition)
 				if err != nil {
-					return err
+					if !r.handleError(err) {
+						return err
+					}
+					expr = false
 				}
-			}
-
-			expr, err := r.eval(node.Condition)
-			if err != nil {
-				if !r.handleError(err) {
-					return err
-				}
-				expr = false
-			}
-			c, ok := expr.(bool)
-			if !ok {
-				err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Condition, typeof(expr))
-				if !r.handleError(err) {
-					return err
+				var ok bool
+				c, ok = expr.(bool)
+				if !ok {
+					err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Condition, typeof(expr))
+					if !r.handleError(err) {
+						return err
+					}
 				}
 			}
 			if c {
