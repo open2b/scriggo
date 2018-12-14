@@ -434,7 +434,6 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 					return r.errorf(node.Ident2, "%s redeclared\n\tprevious declaration at %s:%s",
 						name2, m.path, m.node.Pos())
 				}
-				return r.errorf(node.Ident2, "%s redeclared in this block", name2)
 			}
 		}
 	} else {
