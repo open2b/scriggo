@@ -437,7 +437,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 							err = r.errorf(node, "cannot assign to %s", name)
 						}
 						if r.handleError(err) {
-							err = nil
+							return nil
 						}
 						return err
 					}
@@ -448,9 +448,10 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		}
 		if !found {
 			err := r.errorf(node, "variable %s not declared", name)
-			if !r.handleError(err) {
-				return err
+			if r.handleError(err) {
+				return nil
 			}
+			return err
 		}
 	}
 
