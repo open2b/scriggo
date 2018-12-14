@@ -83,7 +83,7 @@ func (d *dumper) Visit(node ast.Node) Visitor {
 		}
 		text = strconv.Quote(text)
 	case *ast.If:
-		text = n.Expr.String()
+		text = n.Condition.String()
 	default:
 		text = fmt.Sprintf("%v", node)
 	}

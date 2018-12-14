@@ -247,6 +247,12 @@ var rendererStmtTests = []struct {
 	res  string
 	vars scope
 }{
+	{"{% if true %}ok{% else %}no{% end %}", "ok", nil},
+	{"{% if false %}no{% else %}ok{% end %}", "ok", nil},
+	{"{% if a := true; a %}ok{% else %}no{% end %}", "ok", nil},
+	{"{% if a := false; a %}no{% else %}ok{% end %}", "ok", nil},
+	{"{% a := false %}{% if a = true; a %}ok{% else %}no{% end %}", "ok", nil},
+	{"{% a := true %}{% if a = false; a %}no{% else %}ok{% end %}", "ok", nil},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for i, p in products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",

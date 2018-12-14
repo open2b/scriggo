@@ -115,19 +115,27 @@ var treeTests = []struct {
 		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
 		[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})}, ast.ContextHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 22), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 30), ast.NewIdentifier(p(1, 7, 6, 6), "a"),
+		ast.NewIf(p(1, 1, 0, 30), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"),
 			[]ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})},
 			[]ast.Node{ast.NewText(p(1, 22, 21, 21), []byte("c"), ast.Cut{})})}, ast.ContextHTML)},
 	{"{% if a %}\nb{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 20), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), []byte("\nb"), ast.Cut{1, 0})}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 20), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 11), []byte("\nb"), ast.Cut{1, 0})}, nil)}, ast.ContextHTML)},
 	{"{% if a %}\nb\n{% end %}", ast.NewTree("", []ast.Node{
-		ast.NewIf(p(1, 1, 0, 21), ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), []byte("\nb\n"), ast.Cut{1, 0})}, nil)}, ast.ContextHTML)},
+		ast.NewIf(p(1, 1, 0, 21), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 12), []byte("\nb\n"), ast.Cut{1, 0})}, nil)}, ast.ContextHTML)},
 	{"  {% if a %} \nb\n  {% end %} \t", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 1), []byte("  "), ast.Cut{0, 2}),
-		ast.NewIf(p(1, 3, 2, 26), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte(" \nb\n  "), ast.Cut{2, 2})}, nil),
+		ast.NewIf(p(1, 3, 2, 26), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Node{ast.NewText(p(1, 13, 12, 17), []byte(" \nb\n  "), ast.Cut{2, 2})}, nil),
 		ast.NewText(p(3, 12, 27, 28), []byte(" \t"), ast.Cut{2, 0})}, ast.ContextHTML)},
+	{"{% if a = b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 29),
+			ast.NewAssignment(p(1, 7, 6, 10), ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewIdentifier(p(1, 11, 10, 10), "b"), false),
+			ast.NewIdentifier(p(1, 14, 13, 13), "a"), []ast.Node{ast.NewText(p(1, 18, 17, 17), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
+	{"{% if a := b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 30),
+			ast.NewAssignment(p(1, 7, 6, 11), ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewIdentifier(p(1, 12, 11, 11), "b"), true),
+			ast.NewIdentifier(p(1, 15, 14, 14), "a"), []ast.Node{ast.NewText(p(1, 19, 18, 18), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
@@ -476,7 +484,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Expr, nn2.Expr, p)
+		err := equals(nn1.Condition, nn2.Condition, p)
 		if err != nil {
 			return err
 		}
@@ -504,6 +512,18 @@ func equals(n1, n2 ast.Node, p int) error {
 				if err != nil {
 					return err
 				}
+			}
+		}
+		if nn1.Assignment == nil && nn2.Assignment != nil {
+			return fmt.Errorf("unexpected assignment nil, expecting not nil")
+		}
+		if nn1.Assignment != nil && nn2.Assignment == nil {
+			return fmt.Errorf("unexpected assignment not nil, expecting nil")
+		}
+		if nn1.Assignment != nil {
+			err = equals(nn1.Assignment, nn2.Assignment, p)
+			if err != nil {
+				return err
 			}
 		}
 	case *ast.For:

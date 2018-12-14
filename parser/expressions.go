@@ -300,13 +300,6 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			case tokenEOF:
 				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting expression")}
 			default:
-				if tok.typ == tokenSemicolon {
-					// Skips ";" and read the next token.
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, token{}, lex.err
-					}
-				}
 				if len(path) == 0 {
 					// Returns the operand.
 					return operand, tok, nil

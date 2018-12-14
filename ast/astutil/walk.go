@@ -67,7 +67,7 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.If:
-		Walk(v, n.Expr)
+		Walk(v, n.Condition)
 		for _, child := range n.Then {
 			Walk(v, child)
 		}

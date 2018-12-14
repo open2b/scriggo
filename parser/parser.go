@@ -317,13 +317,30 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, err
 				}
 				if expr == nil {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				}
+				var assignment *ast.Assignment
+				if ident, ok := expr.(*ast.Identifier); ok && tok.typ != tokenEndStatement {
+					assignment, tok, err = parseAssignment(ident, tok, lex)
+					if err != nil {
+						return nil, err
+					}
+					if tok.typ != tokenSemicolon {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+					}
+					expr, tok, err = parseExpr(lex)
+					if err != nil {
+						return nil, err
+					}
+					if expr == nil {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("missing condition in if statement")}
+					}
 				}
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewIf(pos, expr, nil, nil)
+				node = ast.NewIf(pos, assignment, expr, nil, nil)
 				addChild(parent, node)
 				ancestors = append(ancestors, node)
 				cutSpacesToken = true
@@ -713,6 +730,28 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 	}
 
 	return tree, nil
+}
+
+// parseAssignment parses an assignment given the first identifier. It is
+// called from the function parser while parsing assignment and if statements.
+func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignment, token, error) {
+	// assignment or declaration
+	if tok.typ != tokenAssignment && tok.typ != tokenDeclaration {
+		return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment or declaration", tok)}
+	}
+	declaration := tok.typ == tokenDeclaration
+	// expression
+	expr, tok, err := parseExpr(lex)
+	if err != nil {
+		return nil, token{}, err
+	}
+	if expr == nil {
+		return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+	}
+	// position
+	p := ident.Pos()
+	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: expr.Pos().End}
+	return ast.NewAssignment(pos, ident, expr, declaration), tok, nil
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands

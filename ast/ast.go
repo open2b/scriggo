@@ -211,7 +211,10 @@ func NewAssignment(pos *Position, ident *Identifier, expr Expression, declaratio
 }
 
 func (a Assignment) String() string {
-	return fmt.Sprintf("{%% %v = %v %%}", a.Ident, a.Expr)
+	if a.Declaration {
+		return fmt.Sprintf("%v := %v", a.Ident, a.Expr)
+	}
+	return fmt.Sprintf("%v = %v", a.Ident, a.Expr)
 }
 
 // For node represents a statement {% for ... %}.
@@ -251,17 +254,18 @@ func NewContinue(pos *Position) *Continue {
 
 // If node represents a statement {% if ... %}.
 type If struct {
-	*Position            // position in the source.
-	Expr      Expression // expression that once evaluated returns true or false.
-	Then      []Node     // nodes to run if the expression is evaluated to true.
-	Else      []Node     // nodes to run if the expression is evaluated to false.
+	*Position              // position in the source.
+	Assignment *Assignment // assignment.
+	Condition  Expression  // condition that once evaluated returns true or false.
+	Then       []Node      // nodes to run if the expression is evaluated to true.
+	Else       []Node      // nodes to run if the expression is evaluated to false.
 }
 
-func NewIf(pos *Position, expr Expression, then []Node, els []Node) *If {
+func NewIf(pos *Position, assignment *Assignment, cond Expression, then []Node, els []Node) *If {
 	if then == nil {
 		then = []Node{}
 	}
-	return &If{pos, expr, then, els}
+	return &If{pos, assignment, cond, then, els}
 }
 
 // Macro node represents a statement {% macro ... %}.
