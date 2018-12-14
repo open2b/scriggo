@@ -22,7 +22,7 @@ var typeTests = map[string][]tokenType{
 	"{{\ta\n}}":                    {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
 	"{{\na\t}}":                    {tokenStartValue, tokenIdentifier, tokenEndValue},
 	"{{\na;\t}}":                   {tokenStartValue, tokenIdentifier, tokenSemicolon, tokenEndValue},
-	"{% var a = 1 %}":              {tokenStartStatement, tokenVar, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
+	"{% a := 1 %}":                 {tokenStartStatement, tokenIdentifier, tokenDeclaration, tokenNumber, tokenEndStatement},
 	"{% a = 2 %}":                  {tokenStartStatement, tokenIdentifier, tokenAssignment, tokenNumber, tokenEndStatement},
 	"{%for()%}":                    {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenEndStatement},
 	"{%\tfor()\n%}":                {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenEndStatement},

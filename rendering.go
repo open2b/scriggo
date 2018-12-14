@@ -228,74 +228,68 @@ Nodes:
 			}
 			r.vars[2][name] = macro{r.path, node}
 
-		case *ast.Var:
+		case *ast.Assignment:
 
-			if r.vars[len(r.vars)-1] == nil {
-				r.vars[len(r.vars)-1] = scope{}
-			}
-			var vars = r.vars[len(r.vars)-1]
+			var vars scope
 			var name = node.Ident.Name
-			if v, ok := vars[name]; ok {
-				var err error
-				if m, ok := v.(macro); ok {
-					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
-						name, m.path, m.node.Pos())
-				} else {
-					err = r.errorf(node.Ident, "%s redeclared in this block", name)
+
+			if node.Declaration {
+				if r.vars[len(r.vars)-1] == nil {
+					r.vars[len(r.vars)-1] = scope{}
 				}
-				if r.handleError(err) {
-					continue
+				vars = r.vars[len(r.vars)-1]
+				if v, ok := vars[name]; ok {
+					var err error
+					if m, ok := v.(macro); ok {
+						err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+							name, m.path, m.node.Pos())
+					} else {
+						err = r.errorf(node.Ident, "%s redeclared in this block", name)
+					}
+					if r.handleError(err) {
+						continue
+					}
+					return err
 				}
-				return err
+			} else {
+				var found bool
+				for i := len(r.vars) - 1; i >= 0; i-- {
+					vars := r.vars[i]
+					if vars != nil {
+						if v, ok := vars[name]; ok {
+							var err error
+							if _, ok := v.(macro); ok || i < 2 {
+								if i == 0 && name == "len" {
+									err = r.errorf(node, "use of builtin len not in function call")
+								} else {
+									err = r.errorf(node, "cannot assign to %s", name)
+								}
+								if r.handleError(err) {
+									continue Nodes
+								}
+								return err
+							}
+							found = true
+							break
+						}
+					}
+				}
+				if !found {
+					err := r.errorf(node, "variable %s not declared", name)
+					if !r.handleError(err) {
+						return err
+					}
+				}
 			}
+
 			v, err := r.eval(node.Expr)
 			if err != nil {
 				if r.handleError(err) {
-					continue
+					continue Nodes
 				}
 				return err
 			}
 			vars[name] = v
-
-		case *ast.Assignment:
-
-			var found bool
-			var name = node.Ident.Name
-			for i := len(r.vars) - 1; i >= 0; i-- {
-				vars := r.vars[i]
-				if vars != nil {
-					if v, ok := vars[name]; ok {
-						var err error
-						if _, ok := v.(macro); ok || i < 2 {
-							if i == 0 && name == "len" {
-								err = r.errorf(node, "use of builtin len not in function call")
-							} else {
-								err = r.errorf(node, "cannot assign to %s", name)
-							}
-							if r.handleError(err) {
-								continue Nodes
-							}
-							return err
-						}
-						v, err = r.eval(node.Expr)
-						if err != nil {
-							if r.handleError(err) {
-								continue Nodes
-							}
-							return err
-						}
-						vars[name] = v
-						found = true
-						break
-					}
-				}
-			}
-			if !found {
-				err := r.errorf(node, "variable %s not declared", name)
-				if !r.handleError(err) {
-					return err
-				}
-			}
 
 		case *ast.ShowMacro:
 

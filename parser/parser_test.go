@@ -94,10 +94,10 @@ var treeTests = []struct {
 		ast.NewText(p(1, 1, 0, 5), []byte("<div \""), ast.Cut{}), ast.NewValue(p(1, 7, 6, 16),
 			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
 	}, ast.ContextHTML)},
-	{"{% var a = 1 %}", ast.NewTree("", []ast.Node{
-		ast.NewVar(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 13, 11, 11), 1))}, ast.ContextHTML)},
+	{"{% a := 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 9, 8, 8), 1), true)}, ast.ContextHTML)},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2))}, ast.ContextHTML)},
+		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{

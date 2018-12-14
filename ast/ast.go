@@ -198,30 +198,16 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 	return &URL{pos, tag, attribute, value}
 }
 
-// Var node represents a statement {% var identifier = expression %}.
-type Var struct {
-	*Position             // position in the source.
-	Ident     *Identifier // identifier.
-	Expr      Expression  // assigned expression..
-}
-
-func NewVar(pos *Position, ident *Identifier, expr Expression) *Var {
-	return &Var{pos, ident, expr}
-}
-
-func (v Var) String() string {
-	return fmt.Sprintf("{%% var %v = %v %%}", v.Ident, v.Expr)
-}
-
-// Assignment node represents a statement {% identifier = expression %}.
+// Assignment node represents an assignment statement.
 type Assignment struct {
-	*Position             // position in the source.
-	Ident     *Identifier // identifier.
-	Expr      Expression  // assigned expression.
+	*Position               // position in the source.
+	Ident       *Identifier // identifier.
+	Expr        Expression  // assigned expression.
+	Declaration bool        // indicates if it is a declaration.
 }
 
-func NewAssignment(pos *Position, ident *Identifier, expr Expression) *Assignment {
-	return &Assignment{pos, ident, expr}
+func NewAssignment(pos *Position, ident *Identifier, expr Expression, declaration bool) *Assignment {
+	return &Assignment{pos, ident, expr, declaration}
 }
 
 func (a Assignment) String() string {

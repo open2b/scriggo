@@ -739,8 +739,13 @@ LOOP:
 				return l.errorf("unexpected }")
 			}
 		case ':':
-			l.emit(tokenColon, 1)
-			l.column++
+			if len(l.src) > 1 && l.src[1] == '=' {
+				l.emit(tokenDeclaration, 2)
+				l.column += 2
+			} else {
+				l.emit(tokenColon, 1)
+				l.column++
+			}
 			endLineAsSemicolon = false
 		case ',':
 			l.emit(tokenComma, 1)
@@ -842,8 +847,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenMacro, p)
 	case "show":
 		l.emit(tokenShow, p)
-	case "var":
-		l.emit(tokenVar, p)
 	default:
 		l.emit(tokenIdentifier, p)
 		l.column += cols

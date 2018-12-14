@@ -158,28 +158,18 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			switch tok.typ {
 
-			// var or identifier
-			case tokenVar, tokenIdentifier:
-				var isVar = tok.typ == tokenVar
-				if isVar {
-					// identifier
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
-					if tok.typ != tokenIdentifier {
-						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
-					}
-				}
+			// identifier
+			case tokenIdentifier:
 				var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
-				// assignment
+				// assignment or declaration
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
-				if tok.typ != tokenAssignment {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment", tok)}
+				if tok.typ != tokenAssignment && tok.typ != tokenDeclaration {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment or declaration", tok)}
 				}
+				declaration := tok.typ == tokenDeclaration
 				// expression
 				expr, tok, err = parseExpr(lex)
 				if err != nil {
@@ -192,11 +182,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				if isVar {
-					node = ast.NewVar(pos, ident, expr)
-				} else {
-					node = ast.NewAssignment(pos, ident, expr)
-				}
+				node = ast.NewAssignment(pos, ident, expr, declaration)
 				addChild(parent, node)
 				cutSpacesToken = true
 

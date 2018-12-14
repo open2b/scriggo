@@ -52,9 +52,6 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
-	case *ast.Var:
-		Walk(v, n.Expr)
-
 	case *ast.Assignment:
 		Walk(v, n.Expr)
 

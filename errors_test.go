@@ -22,7 +22,7 @@ var errorTests = []struct {
 	vars scope
 }{
 	{`{% len = 5 %}{{ "ok" }}`, `ok`, nil},
-	{`{% var a = "a" %}{% var a = "b" %}{{ "ok" }}`, `ok`, nil},
+	{`{% a := "a" %}{% a := "b" %}{{ "ok" }}`, `ok`, nil},
 	{`{% if "a" == 5 %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
 	{`{% if "a" == 5 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% for a in false %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},

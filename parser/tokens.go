@@ -23,7 +23,7 @@ const (
 	tokenEndStatement                // %}
 	tokenStartValue                  // {{
 	tokenEndValue                    // }}
-	tokenVar                         // var
+	tokenDeclaration                 // :=
 	tokenAssignment                  // =
 	tokenFor                         // for
 	tokenIn                          // in
@@ -78,7 +78,7 @@ var tokenString = map[tokenType]string{
 	tokenStartStatement:    "{%",
 	tokenEndStatement:      "%}",
 	tokenStartValue:        "{{",
-	tokenVar:               "var",
+	tokenDeclaration:       ":=",
 	tokenAssignment:        "=",
 	tokenEndValue:          "}}",
 	tokenFor:               "for",
