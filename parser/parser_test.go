@@ -95,7 +95,7 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
 	}, ast.ContextHTML)},
 	{"{% a := 1 %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 8, 7, 7), "a"), ast.NewInt(p(1, 9, 8, 8), 1), true)}, ast.ContextHTML)},
+		ast.NewAssignment(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 9, 8, 8), 1), true)}, ast.ContextHTML)},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
@@ -412,6 +412,22 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+	case *ast.Assignment:
+		nn2, ok := n2.(*ast.Assignment)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Ident, nn2.Ident, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
+		}
+		if nn1.Declaration != nn2.Declaration {
+			return fmt.Errorf("unexpected declaretion %t, expecting %t", nn1.Declaration, nn2.Declaration)
 		}
 	case *ast.Index:
 		nn2, ok := n2.(*ast.Index)
