@@ -73,10 +73,15 @@ type urlState struct {
 }
 
 // errorf builds and returns an rendering error.
-func (r *rendering) errorf(node ast.Node, format string, args ...interface{}) error {
-	var pos = node.Pos()
-	if pos == nil {
-		return fmt.Errorf(format, args...)
+func (r *rendering) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
+	var pos *ast.Position
+	if node, ok := nodeOrPos.(ast.Node); ok {
+		pos = node.Pos()
+		if pos == nil {
+			return fmt.Errorf(format, args...)
+		}
+	} else {
+		pos = nodeOrPos.(*ast.Position)
 	}
 	var err = &Error{
 		Path: r.path,
@@ -167,6 +172,9 @@ Nodes:
 
 			if node.Assignment != nil {
 				err = r.renderAssignment(wr, node.Assignment, urlstate)
+				if err != nil && !r.handleError(err) {
+					return err
+				}
 			}
 			if err == nil {
 				expr, err := r.eval(node.Condition)
@@ -240,7 +248,7 @@ Nodes:
 		case *ast.Assignment:
 
 			err := r.renderAssignment(wr, node, urlstate)
-			if err != nil {
+			if err != nil && !r.handleError(err) {
 				return err
 			}
 
@@ -405,7 +413,7 @@ Nodes:
 func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstate *urlState) error {
 
 	var vars scope
-	var name = node.Ident.Name
+	name := node.Ident.Name
 
 	if node.Declaration {
 		if r.vars[len(r.vars)-1] == nil {
@@ -413,17 +421,21 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		}
 		vars = r.vars[len(r.vars)-1]
 		if v, ok := vars[name]; ok {
-			var err error
 			if m, ok := v.(macro); ok {
-				err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+				return r.errorf(node.Ident, "%s redeclared\n\tprevious declaration at %s:%s",
 					name, m.path, m.node.Pos())
-			} else {
-				err = r.errorf(node.Ident, "%s redeclared in this block", name)
 			}
-			if r.handleError(err) {
-				err = nil
+			return r.errorf(node.Ident, "%s redeclared in this block", name)
+		}
+		if node.Ident2 != nil {
+			name2 := node.Ident2.Name
+			if v, ok := vars[name2]; ok {
+				if m, ok := v.(macro); ok {
+					return r.errorf(node.Ident2, "%s redeclared\n\tprevious declaration at %s:%s",
+						name2, m.path, m.node.Pos())
+				}
+				return r.errorf(node.Ident2, "%s redeclared in this block", name2)
 			}
-			return err
 		}
 	} else {
 		var found bool
@@ -431,17 +443,11 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 			vars = r.vars[i]
 			if vars != nil {
 				if v, ok := vars[name]; ok {
-					var err error
 					if _, ok := v.(macro); ok || i < 2 {
 						if i == 0 && name == "len" {
-							err = r.errorf(node, "use of builtin len not in function call")
-						} else {
-							err = r.errorf(node, "cannot assign to %s", name)
+							return r.errorf(node.Ident, "use of builtin len not in function call")
 						}
-						if r.handleError(err) {
-							return nil
-						}
-						return err
+						return r.errorf(node.Ident, "cannot assign to %s", name)
 					}
 					found = true
 					break
@@ -449,22 +455,50 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 			}
 		}
 		if !found {
-			err := r.errorf(node, "variable %s not declared", name)
-			if r.handleError(err) {
-				return nil
+			return r.errorf(node, "variable %s not declared", name)
+		}
+		if node.Ident2 != nil {
+			name2 := node.Ident2.Name
+			var found bool
+			for i := len(r.vars) - 1; i >= 0; i-- {
+				vars = r.vars[i]
+				if vars != nil {
+					if v, ok := vars[name2]; ok {
+						if _, ok := v.(macro); ok || i < 2 {
+							if i == 0 && name2 == "len" {
+								return r.errorf(node.Ident2, "use of builtin len not in function call")
+							}
+							return r.errorf(node.Ident2, "cannot assign to %s", name2)
+						}
+						found = true
+						break
+					}
+				}
 			}
-			return err
+			if !found {
+				return r.errorf(node.Ident, "variable %s not declared", name2)
+			}
 		}
 	}
 
-	v, err := r.eval(node.Expr)
-	if err != nil {
-		if r.handleError(err) {
-			err = nil
+	if node.Ident2 == nil {
+		v, err := r.eval(node.Expr)
+		if err != nil {
+			return err
 		}
-		return err
+		vars[name] = v
+	} else {
+		s, ok := node.Expr.(*ast.Selector)
+		if !ok {
+			return r.errorf(node.Ident2, "assignment mismatch: 2 variables but 1 values")
+		}
+		v, ok, err := r.evalSelectorSpecial(s)
+		if err != nil {
+			return err
+		}
+		vars[name] = v
+		vars[node.Ident2.Name] = ok
 	}
-	vars[name] = v
 
 	return nil
 }

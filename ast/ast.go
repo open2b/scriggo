@@ -202,12 +202,13 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 type Assignment struct {
 	*Position               // position in the source.
 	Ident       *Identifier // identifier.
+	Ident2      *Identifier // second identifier.
 	Expr        Expression  // assigned expression.
 	Declaration bool        // indicates if it is a declaration.
 }
 
-func NewAssignment(pos *Position, ident *Identifier, expr Expression, declaration bool) *Assignment {
-	return &Assignment{pos, ident, expr, declaration}
+func NewAssignment(pos *Position, ident, ident2 *Identifier, expr Expression, declaration bool) *Assignment {
+	return &Assignment{pos, ident, ident2, expr, declaration}
 }
 
 func (a Assignment) String() string {

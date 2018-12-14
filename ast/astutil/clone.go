@@ -131,7 +131,11 @@ func CloneNode(node ast.Node) ast.Node {
 		return sp
 	case *ast.Assignment:
 		ident := ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
-		return ast.NewAssignment(ClonePosition(n.Position), ident, CloneExpression(n.Expr), n.Declaration)
+		var ident2 *ast.Identifier
+		if n.Ident2 != nil {
+			ident2 = ast.NewIdentifier(ClonePosition(n.Ident2.Position), n.Ident2.Name)
+		}
+		return ast.NewAssignment(ClonePosition(n.Position), ident, ident2, CloneExpression(n.Expr), n.Declaration)
 	case *ast.Comment:
 		return ast.NewComment(ClonePosition(n.Position), n.Text)
 	case ast.Expression:

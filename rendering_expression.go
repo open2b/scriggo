@@ -524,6 +524,65 @@ func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 	panic(r.errorf(node, "type %s cannot have fields", typeof(v)))
 }
 
+// evalSelectorSpecial evaluates a selector expression and returns its value
+// and true if exists. If it does not exist, evalSelectorSpecial returns nil
+// and false.
+func (r *rendering) evalSelectorSpecial(node *ast.Selector) (val interface{}, ok bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	v := asBase(r.evalExpression(node.Expr))
+	// map
+	if v2, ok := v.(map[string]interface{}); ok {
+		if v3, ok := v2[node.Ident]; ok {
+			return v3, true, nil
+		}
+		return nil, false, nil
+	}
+	rv := reflect.ValueOf(v)
+	kind := rv.Kind()
+	switch kind {
+	case reflect.Map:
+		if rv.Type().Key().Kind() == reflect.String {
+			v := rv.MapIndex(reflect.ValueOf(node.Ident))
+			if !v.IsValid() {
+				return nil, false, nil
+			}
+			return v.Interface(), true, nil
+		}
+		panic(r.errorf(node, "unsupported vars type"))
+	case reflect.Struct:
+		st := reflect.Indirect(rv)
+		fields := getStructFields(st)
+		index, ok := fields.indexOf[node.Ident]
+		if !ok {
+			return nil, false, nil
+		}
+		return st.Field(index).Interface(), true, nil
+	case reflect.Ptr:
+		elem := rv.Type().Elem()
+		if elem.Kind() == reflect.Struct {
+			if rv.IsNil() {
+				return rv.Interface(), true, nil
+			}
+			st := reflect.Indirect(rv)
+			fields := getStructFields(st)
+			index, ok := fields.indexOf[node.Ident]
+			if !ok {
+				return nil, false, nil
+			}
+			return st.Field(index).Interface(), true, nil
+		}
+	}
+	panic(r.errorf(node, "type %s cannot have fields", typeof(v)))
+}
+
 // evalIndex evaluates an index expression and returns its value.
 func (r *rendering) evalIndex(node *ast.Index) interface{} {
 	var i int

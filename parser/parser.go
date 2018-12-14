@@ -161,29 +161,20 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 			// identifier
 			case tokenIdentifier:
 				var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
-				// assignment or declaration
 				tok, ok = <-lex.tokens
 				if !ok {
 					return nil, lex.err
 				}
-				if tok.typ != tokenAssignment && tok.typ != tokenDeclaration {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment or declaration", tok)}
-				}
-				declaration := tok.typ == tokenDeclaration
-				// expression
-				expr, tok, err = parseExpr(lex)
+				assignment, tok, err := parseAssignment(ident, tok, lex)
 				if err != nil {
 					return nil, err
-				}
-				if expr == nil {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
 				pos.End = tok.pos.End
-				node = ast.NewAssignment(pos, ident, expr, declaration)
-				addChild(parent, node)
+				assignment.Position = pos
+				addChild(parent, assignment)
 				cutSpacesToken = true
 
 			// for
@@ -735,6 +726,22 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 // parseAssignment parses an assignment given the first identifier. It is
 // called from the function parser while parsing assignment and if statements.
 func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignment, token, error) {
+	var ident2 *ast.Identifier
+	if tok.typ == tokenComma {
+		var ok bool
+		tok, ok = <-lex.tokens
+		if !ok {
+			return nil, token{}, lex.err
+		}
+		if tok.typ != tokenIdentifier {
+			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting an identifier", tok)}
+		}
+		ident2 = ast.NewIdentifier(tok.pos, string(tok.txt))
+		tok, ok = <-lex.tokens
+		if !ok {
+			return nil, token{}, lex.err
+		}
+	}
 	// assignment or declaration
 	if tok.typ != tokenAssignment && tok.typ != tokenDeclaration {
 		return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting assignment or declaration", tok)}
@@ -751,7 +758,7 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 	// position
 	p := ident.Pos()
 	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: expr.Pos().End}
-	return ast.NewAssignment(pos, ident, expr, declaration), tok, nil
+	return ast.NewAssignment(pos, ident, ident2, expr, declaration), tok, nil
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands
