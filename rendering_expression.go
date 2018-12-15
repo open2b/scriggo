@@ -478,74 +478,29 @@ func (r *rendering) evalSlice(node *ast.Slice) interface{} {
 
 // evalSelector evaluates a selector expression and returns its value.
 func (r *rendering) evalSelector(node *ast.Selector) interface{} {
-	v := asBase(r.evalExpression(node.Expr))
-	// map
-	if v2, ok := v.(map[string]interface{}); ok {
-		if v3, ok := v2[node.Ident]; ok {
-			return v3
-		}
+	value := asBase(r.evalExpression(node.Expr))
+	v, ok, err := r.evalSelectorSpecial(node, value)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
 		panic(r.errorf(node, "field %q does not exist", node.Ident))
 	}
-	rv := reflect.ValueOf(v)
-	kind := rv.Kind()
-	switch kind {
-	case reflect.Map:
-		if rv.Type().Key().Kind() == reflect.String {
-			v := rv.MapIndex(reflect.ValueOf(node.Ident))
-			if !v.IsValid() {
-				panic(r.errorf(node, "field %q does not exist", node.Ident))
-			}
-			return v.Interface()
-		}
-		panic(r.errorf(node, "unsupported vars type"))
-	case reflect.Struct:
-		st := reflect.Indirect(rv)
-		fields := getStructFields(st)
-		index, ok := fields.indexOf[node.Ident]
-		if !ok {
-			panic(r.errorf(node, "field %q does not exist", node.Ident))
-		}
-		return st.Field(index).Interface()
-	case reflect.Ptr:
-		elem := rv.Type().Elem()
-		if elem.Kind() == reflect.Struct {
-			if rv.IsNil() {
-				return rv.Interface()
-			}
-			st := reflect.Indirect(rv)
-			fields := getStructFields(st)
-			index, ok := fields.indexOf[node.Ident]
-			if !ok {
-				panic(r.errorf(node, "field %q does not exist", node.Ident))
-			}
-			return st.Field(index).Interface()
-		}
-	}
-	panic(r.errorf(node, "type %s cannot have fields", typeof(v)))
+	return v
 }
 
-// evalSelectorSpecial evaluates a selector expression and returns its value
-// and true if exists. If it does not exist, evalSelectorSpecial returns nil
-// and false.
-func (r *rendering) evalSelectorSpecial(node *ast.Selector) (val interface{}, ok bool, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	v := asBase(r.evalExpression(node.Expr))
+// evalSelectorSpecial evaluates a selector, given its evaluated expression,
+// and if its identifier exists it returns the value and true, otherwise it
+// returns nil and false.
+func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (interface{}, bool, error) {
 	// map
-	if v2, ok := v.(map[string]interface{}); ok {
+	if v2, ok := value.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
 			return v3, true, nil
 		}
 		return nil, false, nil
 	}
-	rv := reflect.ValueOf(v)
+	rv := reflect.ValueOf(value)
 	kind := rv.Kind()
 	switch kind {
 	case reflect.Map:
@@ -556,7 +511,7 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector) (val interface{}, ok
 			}
 			return v.Interface(), true, nil
 		}
-		panic(r.errorf(node, "unsupported vars type"))
+		return nil, false, r.errorf(node, "unsupported vars type")
 	case reflect.Struct:
 		st := reflect.Indirect(rv)
 		fields := getStructFields(st)
@@ -580,7 +535,115 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector) (val interface{}, ok
 			return st.Field(index).Interface(), true, nil
 		}
 	}
-	panic(r.errorf(node, "type %s cannot have fields", typeof(v)))
+	return nil, false, r.errorf(node, "type %s cannot have fields", typeof(value))
+}
+
+// evalInSpecialAssignment evaluates expr as the expression of a special
+// assignment. expr must be a type assertion, a selector or an identifier.
+func (r *rendering) evalInSpecialAssignment(expr ast.Expression) (interface{}, bool, error) {
+	switch e := expr.(type) {
+	case *ast.TypeAssertion:
+		v, ok, err := r.evalInSpecialAssignment(e.Expr)
+		if err != nil || !ok {
+			return nil, false, err
+		}
+		var typ valuetype
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if i == 0 && e.Type.Name == "len" {
+					return nil, false, r.errorf(e, "use of builtin len not in function call")
+				}
+				if v, ok := r.vars[i][e.Type.Name]; ok {
+					if vt, ok := v.(valuetype); ok {
+						typ = vt
+						break
+					}
+					return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
+				}
+			}
+			if i == 0 {
+				return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
+			}
+		}
+		if hasType(v, typ) {
+			return v, true, nil
+		}
+		return nil, false, nil
+	case *ast.Selector:
+		v, ok, err := r.evalInSpecialAssignment(e.Expr)
+		if err != nil || !ok {
+			return nil, false, err
+		}
+		return r.evalSelectorSpecial(e, v)
+	case *ast.Identifier:
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if i == 0 && e.Name == "len" {
+					return nil, false, r.errorf(e, "use of builtin len not in function call")
+				}
+				if v, ok := r.vars[i][e.Name]; ok {
+					return v, true, nil
+				}
+			}
+		}
+		return nil, false, nil
+	default:
+		v, err := r.eval(expr)
+		if err != nil {
+			return nil, false, err
+		}
+		return v, true, nil
+	}
+}
+
+// hasType indicates if v has type typ.
+func hasType(v interface{}, typ valuetype) bool {
+	if v == nil {
+		return false
+	}
+	switch vv := v.(type) {
+	case string:
+		return typ == builtins["string"]
+	case HTML:
+		return typ == builtins["string"] || typ == builtins["html"]
+	case decimal.Decimal:
+		if typ == builtins["number"] {
+			return true
+		}
+		if typ != builtins["int"] {
+			return false
+		}
+		if vv.LessThan(minInt) || maxInt.LessThan(vv) {
+			return false
+		}
+		p := vv.IntPart()
+		return decimal.New(p, 0).Equal(vv)
+	case int:
+		return typ == builtins["int"] || typ == builtins["number"]
+	case bool:
+		return typ == builtins["bool"]
+	case []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
+		return typ == builtins["slice"]
+	case map[string]interface{}, map[string]string, map[string]HTML,
+		map[string]decimal.Decimal, map[string]int, map[string]bool:
+		return typ == builtins["struct"]
+	}
+	switch typ {
+	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"]:
+		return false
+	}
+	switch rt := reflect.TypeOf(v); rt.Kind() {
+	case reflect.Struct:
+		return typ == builtins["struct"]
+	case reflect.Ptr:
+		if typ != builtins["struct"] {
+			return false
+		}
+		return rt.Elem().Kind() == reflect.Struct
+	case reflect.Slice, reflect.Map:
+		return typ == builtins["slice"]
+	}
+	return false
 }
 
 // evalIndex evaluates an index expression and returns its value.
@@ -749,6 +812,21 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 
 	var f = r.evalExpression(node.Func)
 
+	if typ, ok := f.(valuetype); ok {
+		if len(node.Args) == 0 {
+			panic(r.errorf(node, "missing argument to conversion to %s: %s", typ, node))
+		}
+		if len(node.Args) > 1 {
+			panic(r.errorf(node, "too many arguments to conversion to %s: %s", typ, node))
+		}
+		value := asBase(r.evalExpression(node.Args[0]))
+		v, err := r.convert(value, typ)
+		if err != nil {
+			panic(r.errorf(node.Args[0], "%s", err))
+		}
+		return v
+	}
+
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
 		panic(r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
@@ -885,6 +963,66 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 	}
 
 	return v
+}
+
+// convert converts value to type typ.
+func (r *rendering) convert(value interface{}, typ valuetype) (interface{}, error) {
+	switch typ {
+	case "string":
+		switch v := value.(type) {
+		case string:
+			return value, nil
+		case HTML:
+			return string(v), nil
+		case decimal.Decimal:
+			p := v.IntPart()
+			if decimal.New(p, 0).Equal(v) {
+				return string(int(p)), nil
+			}
+		case int:
+			return string(v), nil
+		case []rune:
+			return string(v), nil
+		}
+	case "html":
+		switch v := value.(type) {
+		case string:
+			return HTML(v), nil
+		case HTML:
+			return v, nil
+		case decimal.Decimal:
+			p := v.IntPart()
+			if decimal.New(p, 0).Equal(v) {
+				return HTML(string(int(p))), nil
+			}
+		case int:
+			return HTML(string(v)), nil
+		case []rune:
+			return string(v), nil
+		}
+	case "number":
+		switch v := value.(type) {
+		case decimal.Decimal:
+			return v, nil
+		case int:
+			return v, nil
+		}
+	case "int":
+		switch v := value.(type) {
+		case decimal.Decimal:
+			return int(v.IntPart()), nil
+		case int:
+			return v, nil
+		}
+	case "slice":
+		switch v := value.(type) {
+		case string:
+			return []rune(v), nil
+		case HTML:
+			return []rune(string(v)), nil
+		}
+	}
+	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", value, typeof(value), typ)
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.

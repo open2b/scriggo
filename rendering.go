@@ -415,6 +415,11 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 	var vars scope
 	name := node.Ident.Name
 
+	name2 := ""
+	if node.Ident2 != nil {
+		name2 = node.Ident2.Name
+	}
+
 	if node.Declaration {
 		if r.vars[len(r.vars)-1] == nil {
 			r.vars[len(r.vars)-1] = scope{}
@@ -427,8 +432,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 			}
 			return r.errorf(node.Ident, "%s redeclared in this block", name)
 		}
-		if node.Ident2 != nil {
-			name2 := node.Ident2.Name
+		if name2 != "" {
 			if v, ok := vars[name2]; ok {
 				if m, ok := v.(macro); ok {
 					return r.errorf(node.Ident2, "%s redeclared\n\tprevious declaration at %s:%s",
@@ -456,8 +460,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		if !found {
 			return r.errorf(node, "variable %s not declared", name)
 		}
-		if node.Ident2 != nil {
-			name2 := node.Ident2.Name
+		if name2 != "" {
 			var found bool
 			for i := len(r.vars) - 1; i >= 0; i-- {
 				vars = r.vars[i]
@@ -480,23 +483,24 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		}
 	}
 
-	if node.Ident2 == nil {
+	if name2 == "" {
 		v, err := r.eval(node.Expr)
 		if err != nil {
 			return err
 		}
 		vars[name] = v
 	} else {
-		s, ok := node.Expr.(*ast.Selector)
-		if !ok {
+		switch node.Expr.(type) {
+		case *ast.TypeAssertion, *ast.Selector, *ast.Identifier:
+		default:
 			return r.errorf(node.Ident2, "assignment mismatch: 2 variables but 1 values")
 		}
-		v, ok, err := r.evalSelectorSpecial(s)
+		v, ok, err := r.evalInSpecialAssignment(node.Expr)
 		if err != nil {
 			return err
 		}
 		vars[name] = v
-		vars[node.Ident2.Name] = ok
+		vars[name2] = ok
 	}
 
 	return nil
@@ -518,11 +522,11 @@ func (r *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) 
 	if d.LessThan(minInt) || maxInt.LessThan(d) {
 		return 0, r.errorf(node, "number %s overflows int", d)
 	}
-	p := d.IntPart()
-	if !decimal.New(p, 0).Equal(d) {
+	p := d.Truncate(0)
+	if !p.Equal(d) {
 		return 0, r.errorf(node, "number %s truncated to integer", d)
 	}
-	return int(p), nil
+	return int(p.IntPart()), nil
 }
 
 func typeof(v interface{}) string {

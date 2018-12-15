@@ -120,6 +120,9 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Selector:
 		Walk(v, n.Expr)
 
+	case *ast.TypeAssertion:
+		Walk(v, n.Expr)
+
 	case *ast.Extends:
 	case *ast.Import:
 	case *ast.Include:

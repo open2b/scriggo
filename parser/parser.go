@@ -755,6 +755,14 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 	if expr == nil {
 		return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
 	}
+	if a, ok := expr.(*ast.TypeAssertion); ok {
+		// type assertion
+		switch a.Expr.(type) {
+		case *ast.Identifier, *ast.Selector:
+		default:
+			return nil, token{}, &Error{"", *(a.Pos()), fmt.Errorf("expecting type assertion on identifier or selector")}
+		}
+	}
 	// position
 	p := ident.Pos()
 	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: expr.Pos().End}

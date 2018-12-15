@@ -35,14 +35,22 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
+type valuetype string
+
 var builtins = map[string]interface{}{
 	"nil":    nil,
 	"true":   true,
 	"false":  false,
 	"len":    _len,
 	"append": _append,
-	"string": _string,
-	"number": _number,
+
+	"string": valuetype("string"),
+	"html":   valuetype("html"),
+	"number": valuetype("number"),
+	"int":    valuetype("int"),
+	"bool":   valuetype("bool"),
+	"struct": valuetype("struct"),
+	"slice":  valuetype("slice"),
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
@@ -53,10 +61,8 @@ var builtins = map[string]interface{}{
 	"hasSuffix":   strings.HasSuffix,
 	"hex":         _hex,
 	"hmac":        _hmac,
-	"html":        _html,
 	"index":       _index,
 	"indexAny":    _indexAny,
-	"int":         _int,
 	"join":        strings.Join,
 	"lastIndex":   _lastIndex,
 	"max":         _max,
@@ -258,11 +264,6 @@ func _hmac(hasher, message, key string) (string, error) {
 	return s, nil
 }
 
-// _html is the builtin function "html".
-func _html(s string) HTML {
-	return HTML(s)
-}
-
 // _index is the builtin function "index".
 func _index(s, substr string) int {
 	n := strings.Index(s, substr)
@@ -279,11 +280,6 @@ func _indexAny(s, chars string) int {
 		return n
 	}
 	return utf8.RuneCountInString(s[0:n])
-}
-
-// _int is the builtin function "int".
-func _int(d decimal.Decimal) decimal.Decimal {
-	return d.Truncate(0)
 }
 
 // _lastIndex is the builtin function "lastIndex".
@@ -351,11 +347,6 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 		return b
 	}
 	return a
-}
-
-// _number is the builtin function "number".
-func _number(d decimal.Decimal) decimal.Decimal {
-	return d
 }
 
 // _rand is the builtin function "rand".
@@ -569,9 +560,4 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 	s2 := rv2.Interface()
 	sort.Slice(s2, f)
 	return s2, nil
-}
-
-// _string is the builtin function "string".
-func _string(s string) string {
-	return s
 }

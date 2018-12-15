@@ -595,6 +595,19 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.IsVariadic != nn2.IsVariadic {
 			return fmt.Errorf("unexpected is variadic %t, expecting %t", nn1.IsVariadic, nn2.IsVariadic)
 		}
+	case *ast.TypeAssertion:
+		nn2, ok := n2.(*ast.TypeAssertion)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

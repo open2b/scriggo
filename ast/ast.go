@@ -647,3 +647,19 @@ func NewSelector(pos *Position, expr Expression, ident string) *Selector {
 func (n *Selector) String() string {
 	return n.Expr.String() + "." + n.Ident
 }
+
+// TypeAssertion node represents a type assertion expression.
+type TypeAssertion struct {
+	expression
+	*Position             // position in the source.
+	Expr      Expression  // expression.
+	Type      *Identifier // type.
+}
+
+func NewTypeAssertion(pos *Position, expr Expression, typ *Identifier) *TypeAssertion {
+	return &TypeAssertion{expression{}, pos, expr, typ}
+}
+
+func (n *TypeAssertion) String() string {
+	return n.Expr.String() + ".(" + n.Type.String() + ")"
+}

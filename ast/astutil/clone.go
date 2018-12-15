@@ -180,6 +180,9 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low), CloneExpression(e.High))
 	case *ast.Selector:
 		return ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
+	case *ast.TypeAssertion:
+		typ := ast.NewIdentifier(ClonePosition(e.Type.Position), e.Type.Name)
+		return ast.NewTypeAssertion(ClonePosition(e.Position), CloneExpression(e.Expr), typ)
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}

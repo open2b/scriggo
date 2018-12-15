@@ -116,6 +116,9 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
+	// typeAssertionParsed indicates if a type assertion has been parsed.
+	typeAssertionParsed := false
+
 	for {
 
 		tok, ok := <-lex.tokens
@@ -205,6 +208,10 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			return nil, tok, nil
 		}
 
+		if typeAssertionParsed {
+			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("type assertion used as operand in expression")}
+		}
+
 		for operator == nil {
 
 			tok, ok = <-lex.tokens
@@ -276,12 +283,35 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 				if !ok {
 					return nil, token{}, lex.err
 				}
-				if tok.typ != tokenIdentifier {
-					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)}
+				switch tok.typ {
+				case tokenIdentifier:
+					// e.ident
+					ident := string(tok.txt)
+					pos.End = tok.pos.End
+					operand = ast.NewSelector(pos, operand, ident)
+				case tokenLeftParenthesis:
+					// e.(type)
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, token{}, lex.err
+					}
+					if tok.typ != tokenIdentifier {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)}
+					}
+					typ := ast.NewIdentifier(tok.pos, string(tok.txt))
+					tok, ok = <-lex.tokens
+					if !ok {
+						return nil, token{}, lex.err
+					}
+					if tok.typ != tokenRightParenthesis {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)}
+					}
+					pos.End = tok.pos.End
+					operand = ast.NewTypeAssertion(pos, operand, typ)
+					typeAssertionParsed = true
+				default:
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name or (", tok)}
 				}
-				ident := string(tok.txt)
-				pos.End = tok.pos.End
-				operand = ast.NewSelector(pos, operand, ident)
 			case
 				tokenEqual,          // e ==
 				tokenNotEqual,       // e !=
