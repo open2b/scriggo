@@ -70,6 +70,8 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalSlicing(e)
 	case *ast.Selector:
 		return r.evalSelector(e)
+	case *ast.TypeAssertion:
+		return r.evalTypeAssertion(e)
 	default:
 		panic(r.errorf(expr, "unexpected node type %#v", expr))
 	}
@@ -536,6 +538,20 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (
 		}
 	}
 	return nil, false, r.errorf(node, "type %s cannot have fields", typeof(value))
+}
+
+// evalTypeAssertion evaluates a type assertion.
+func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
+	val := asBase(r.evalExpression(node.Expr))
+	ide := r.evalIdentifier(node.Type)
+	typ, ok := ide.(valuetype)
+	if !ok {
+		panic(r.errorf(node.Type, "%s is not a type", node.Type.Name))
+	}
+	if !hasType(val, typ) {
+		panic(r.errorf(node.Type, "%s is %s, not %s", val, typeof(val), typ))
+	}
+	return val
 }
 
 // evalInSpecialAssignment evaluates expr as the expression of a special

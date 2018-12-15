@@ -122,6 +122,15 @@ var rendererExprTests = []struct {
 	{"a[:2]", "xz", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
 	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
+	{`a.(string)`, "abc", scope{"a": "abc"}},
+	{`a.(string)`, "<b>", scope{"a": HTML("<b>")}},
+	{`a.(html)`, "<b>", scope{"a": HTML("<b>")}},
+	{`a.(number)`, "5.5", scope{"a": 5.5}},
+	{`a.(number)`, "5", scope{"a": 5}},
+	{`a.(int)`, "5", scope{"a": 5}},
+	{`a.(bool)`, "true", scope{"a": true}},
+	{`a.(struct).B`, "b", scope{"a": struct{ B string }{B: "b"}}},
+	{`a.(slice)`, "1, 2, 3", scope{"a": []int{1, 2, 3}}},
 
 	// slice
 	{"{}", "", nil},

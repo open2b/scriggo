@@ -116,9 +116,6 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
-	// typeAssertionParsed indicates if a type assertion has been parsed.
-	typeAssertionParsed := false
-
 	for {
 
 		tok, ok := <-lex.tokens
@@ -206,10 +203,6 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon or newline, expecting expression")}
 		default:
 			return nil, tok, nil
-		}
-
-		if typeAssertionParsed {
-			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("type assertion used as operand in expression")}
 		}
 
 		for operator == nil {
@@ -308,7 +301,6 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewTypeAssertion(pos, operand, typ)
-					typeAssertionParsed = true
 				default:
 					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name or (", tok)}
 				}
