@@ -704,8 +704,8 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 }
 
 // evalIndexSpecial evaluates an index, given its evaluated expression, and if
-// its identifier exists it returns the value and true, otherwise it returns
-// nil and false.
+// its index exists it returns the value and true, otherwise it returns nil
+// and false.
 func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interface{}, bool, error) {
 	if value == nil {
 		if r.isBuiltin("nil", node.Expr) {
