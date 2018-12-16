@@ -122,36 +122,37 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 	} else {
 
 		w := newStringWriter(wr)
+		value = asBase(value)
 
 		var err error
 
 		switch node.Context {
 		case ast.ContextText:
-			err = r.renderInText(w, asBase(value), node)
+			err = r.renderInText(w, value, node)
 		case ast.ContextHTML:
-			err = r.renderInHTML(w, asBase(value), node)
+			err = r.renderInHTML(w, value, node)
 		case ast.ContextTag:
-			err = r.renderInTag(w, asBase(value), node)
+			err = r.renderInTag(w, value, node)
 		case ast.ContextAttribute:
 			if urlstate == nil {
-				err = r.renderInAttribute(w, asBase(value), node, true)
+				err = r.renderInAttribute(w, value, node, true)
 			} else {
-				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, true)
+				err = r.renderInAttributeURL(w, value, node, urlstate, true)
 			}
 		case ast.ContextUnquotedAttribute:
 			if urlstate == nil {
-				err = r.renderInAttribute(w, asBase(value), node, false)
+				err = r.renderInAttribute(w, value, node, false)
 			} else {
-				err = r.renderInAttributeURL(w, asBase(value), node, urlstate, false)
+				err = r.renderInAttributeURL(w, value, node, urlstate, false)
 			}
 		case ast.ContextCSS:
-			err = r.renderInCSS(w, asBase(value), node)
+			err = r.renderInCSS(w, value, node)
 		case ast.ContextCSSString:
-			err = r.renderInCSSString(w, asBase(value), node)
+			err = r.renderInCSSString(w, value, node)
 		case ast.ContextScript:
-			err = r.renderInScript(w, asBase(value), node)
+			err = r.renderInScript(w, value, node)
 		case ast.ContextScriptString:
-			err = r.renderInScriptString(w, asBase(value), node)
+			err = r.renderInScriptString(w, value, node)
 		default:
 			panic("template: unknown context")
 		}
@@ -577,8 +578,6 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 			}
 			_, err = w.WriteString("]")
 			return err
-		case reflect.Struct:
-			return r.renderValueAsScriptObject(w, rv, node)
 		case reflect.Map:
 			if rv.IsNil() {
 				_, err = w.WriteString("null")
@@ -599,19 +598,11 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 			}
 			rt := rv.Type().Elem()
 			if rt.Kind() != reflect.Struct {
-				_, err = w.WriteString("undefined")
-				if err != nil {
-					return err
-				}
-				return r.errorf(node, "no-render type %s", typeof(value))
+				break
 			}
 			rv = rv.Elem()
 			if !rv.IsValid() {
-				_, err = w.WriteString("undefined")
-				if err != nil {
-					return err
-				}
-				return r.errorf(node, "no-render type %s", typeof(value))
+				break
 			}
 			return r.renderValueAsScriptObject(w, rv, node)
 		}
@@ -649,13 +640,13 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
-// renderValueAsScriptObject returns value as a JavaScript object or undefined
-// if it is not possible.
-func (r *rendering) renderValueAsScriptObject(w stringWriter, value reflect.Value, node *ast.Value) error {
+// renderValueAsScriptObject returns rv as a JavaScript object or undefined if
+// it is not possible.
+func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, node *ast.Value) error {
 
 	var err error
 
-	fields := getStructFields(value)
+	fields := getStructFields(rv)
 
 	if len(fields.names) == 0 {
 		_, err = w.WriteString(`{}`)
@@ -679,7 +670,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, value reflect.Valu
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, value.Field(fields.indexOf[name]).Interface(), node)
+		err = r.renderInScript(w, rv.Field(fields.indexOf[name]).Interface(), node)
 		if err != nil {
 			return err
 		}
