@@ -598,11 +598,19 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 			}
 			rt := rv.Type().Elem()
 			if rt.Kind() != reflect.Struct {
-				break
+				_, err = w.WriteString("undefined")
+				if err != nil {
+					return err
+				}
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
 			rv = rv.Elem()
 			if !rv.IsValid() {
-				break
+				_, err = w.WriteString("undefined")
+				if err != nil {
+					return err
+				}
+				return r.errorf(node, "no-render type %s", typeof(value))
 			}
 			return r.renderValueAsScriptObject(w, rv, node)
 		}
@@ -640,13 +648,13 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
-// renderValueAsScriptObject returns rv as a JavaScript object or undefined if
-// it is not possible.
-func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, node *ast.Value) error {
+// renderValueAsScriptObject returns value as a JavaScript object or undefined
+// if it is not possible.
+func (r *rendering) renderValueAsScriptObject(w stringWriter, value reflect.Value, node *ast.Value) error {
 
 	var err error
 
-	fields := getStructFields(rv)
+	fields := getStructFields(value)
 
 	if len(fields.names) == 0 {
 		_, err = w.WriteString(`{}`)
@@ -670,7 +678,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, rv.Field(fields.indexOf[name]).Interface(), node)
+		err = r.renderInScript(w, value.Field(fields.indexOf[name]).Interface(), node)
 		if err != nil {
 			return err
 		}

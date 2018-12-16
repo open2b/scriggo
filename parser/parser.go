@@ -758,7 +758,7 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 	if a, ok := expr.(*ast.TypeAssertion); ok {
 		// type assertion
 		switch a.Expr.(type) {
-		case *ast.Identifier, *ast.Selector:
+		case *ast.Identifier, *ast.Selector, *ast.Index:
 		default:
 			return nil, token{}, &Error{"", *(a.Pos()), fmt.Errorf("expecting type assertion on identifier or selector")}
 		}

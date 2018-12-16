@@ -162,6 +162,13 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewUnaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr))
 	case *ast.BinaryOperator:
 		return ast.NewBinaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
+	case *ast.Map:
+		var elements = make([]ast.KeyValue, len(e.Elements))
+		for i, element := range e.Elements {
+			elements[i].Key = CloneExpression(element.Key)
+			elements[i].Value = CloneExpression(element.Value)
+		}
+		return ast.NewMap(ClonePosition(e.Position), elements)
 	case *ast.Slice:
 		var elements = make([]ast.Expression, len(e.Elements))
 		for i, element := range e.Elements {

@@ -29,6 +29,7 @@ const (
 	tokenIn                          // in
 	tokenBreak                       // break
 	tokenContinue                    // continue
+	tokenMap                         // map
 	tokenIf                          // if
 	tokenElse                        // else
 	tokenExtends                     // extends
@@ -85,6 +86,7 @@ var tokenString = map[tokenType]string{
 	tokenIn:                "in",
 	tokenBreak:             "break",
 	tokenContinue:          "continue",
+	tokenMap:               "map",
 	tokenIf:                "if",
 	tokenElse:              "else",
 	tokenExtends:           "extends",

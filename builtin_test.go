@@ -174,6 +174,9 @@ var rendererBuiltinTests = []struct {
 	{"len(a)", "2", scope{"a": []string{"a", "b"}}},
 	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
 	{"len(a)", "0", scope{"a": []int(nil)}},
+	{"len(a)", "2", scope{"a": map[string]int{"a": 5, "b": 8}}},
+	{"len(a)", "2", scope{"a": MutableMap{"a": 5, "b": 8}}},
+	{"len(a)", "2", scope{"a": &struct{ A, B int }{A: 5, B: 8}}},
 
 	// max
 	{"max(0, 0)", "0", nil},
@@ -325,6 +328,17 @@ var rendererBuiltinTests = []struct {
 	{"trim(`bb a`, `b`)", " a", nil},
 }
 
+var statementBuiltinTests = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	// delete
+	{"{{ delete(m,`a`) }}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{}}},
+	{"{{ delete(m,`a`) }}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
+	{"{{ delete(m,`b`) }}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
+}
+
 var rendererRandomBuiltinTests = []struct {
 	src  string
 	seed int64
@@ -359,6 +373,26 @@ var rendererRandomBuiltinTests = []struct {
 func TestRenderBuiltin(t *testing.T) {
 	for _, expr := range rendererBuiltinTests {
 		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = RenderTree(b, tree, expr.vars, true)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
+func TestStatementBuiltin(t *testing.T) {
+	for _, expr := range statementBuiltinTests {
+		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

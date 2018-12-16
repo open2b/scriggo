@@ -491,7 +491,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		vars[name] = v
 	} else {
 		switch node.Expr.(type) {
-		case *ast.TypeAssertion, *ast.Selector, *ast.Identifier:
+		case *ast.TypeAssertion, *ast.Selector, *ast.Index, *ast.Identifier:
 		default:
 			return r.errorf(node.Ident2, "assignment mismatch: 2 variables but 1 values")
 		}
@@ -541,14 +541,15 @@ func typeof(v interface{}) string {
 		return "string"
 	case bool:
 		return "bool"
+	case MutableMap:
+		return "map"
 	default:
 		rv := reflect.ValueOf(v)
-		rt := rv.Type()
-		switch rt.Kind() {
+		switch rv.Kind() {
 		case reflect.Slice:
 			return "slice"
 		case reflect.Map, reflect.Ptr:
-			return "struct"
+			return "map"
 		}
 	}
 	return fmt.Sprintf("(%T)", v)

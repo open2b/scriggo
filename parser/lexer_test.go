@@ -105,6 +105,8 @@ var typeTests = map[string][]tokenType{
 	"{{ `\\t` }}":           {tokenStartValue, tokenRawString, tokenEndValue},
 	"{{ ( 1 + 2 ) * 3 }}": {tokenStartValue, tokenLeftParenthesis, tokenNumber, tokenAddition, tokenNumber, tokenRightParenthesis,
 		tokenMultiplication, tokenNumber, tokenEndValue},
+	"{{ map{} }}":       {tokenStartValue, tokenMap, tokenLeftBraces, tokenRightBraces, tokenEndValue},
+	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenNumber, tokenRightBraces, tokenEndValue},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{

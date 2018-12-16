@@ -60,6 +60,8 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalBinaryOperator(e)
 	case *ast.Identifier:
 		return r.evalIdentifier(e)
+	case *ast.Map:
+		return r.evalMap(e)
 	case *ast.Slice:
 		return r.evalSlice(e)
 	case *ast.Call:
@@ -469,6 +471,26 @@ func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 	panic("unknown binary operator")
 }
 
+type MutableMap map[string]interface{}
+
+// evalMap evaluates a map expression and returns its value.
+func (r *rendering) evalMap(node *ast.Map) interface{} {
+	elements := make(MutableMap, len(node.Elements))
+	for _, element := range node.Elements {
+		var key string
+		switch v := asBase(r.evalExpression(element.Key)).(type) {
+		case string:
+			key = v
+		case HTML:
+			key = string(v)
+		default:
+			panic(r.errorf(node, "cannot use %s (type %s) as type string in map key", v, typeof(v)))
+		}
+		elements[key] = r.evalExpression(element.Value)
+	}
+	return elements
+}
+
 // evalSlice evaluates a slice expression and returns its value.
 func (r *rendering) evalSlice(node *ast.Slice) interface{} {
 	elements := make([]interface{}, len(node.Elements))
@@ -591,6 +613,12 @@ func (r *rendering) evalInSpecialAssignment(expr ast.Expression) (interface{}, b
 			return nil, false, err
 		}
 		return r.evalSelectorSpecial(e, v)
+	case *ast.Index:
+		v, ok, err := r.evalInSpecialAssignment(e.Expr)
+		if err != nil || !ok {
+			return nil, false, err
+		}
+		return r.evalIndexSpecial(e, v)
 	case *ast.Identifier:
 		for i := len(r.vars) - 1; i >= 0; i-- {
 			if r.vars[i] != nil {
@@ -641,9 +669,9 @@ func hasType(v interface{}, typ valuetype) bool {
 		return typ == builtins["bool"]
 	case []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
 		return typ == builtins["slice"]
-	case map[string]interface{}, map[string]string, map[string]HTML,
+	case MutableMap, map[string]interface{}, map[string]string, map[string]HTML,
 		map[string]decimal.Decimal, map[string]int, map[string]bool:
-		return typ == builtins["struct"]
+		return typ == builtins["map"]
 	}
 	switch typ {
 	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"]:
@@ -651,7 +679,7 @@ func hasType(v interface{}, typ valuetype) bool {
 	}
 	switch rt := reflect.TypeOf(v); rt.Kind() {
 	case reflect.Ptr:
-		if typ != builtins["struct"] {
+		if typ != builtins["map"] {
 			return false
 		}
 		return rt.Elem().Kind() == reflect.Struct
@@ -663,8 +691,105 @@ func hasType(v interface{}, typ valuetype) bool {
 
 // evalIndex evaluates an index expression and returns its value.
 func (r *rendering) evalIndex(node *ast.Index) interface{} {
+	value := asBase(r.evalExpression(node.Expr))
+	v, ok, err := r.evalIndexSpecial(node, value)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		key := r.stringIndex(node.Index)
+		panic(r.errorf(node, "map %s has no key %q", node, key))
+	}
+	return v
+}
+
+// evalIndexSpecial evaluates an index, given its evaluated expression, and if
+// its identifier exists it returns the value and true, otherwise it returns
+// nil and false.
+func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interface{}, bool, error) {
+	if value == nil {
+		if r.isBuiltin("nil", node.Expr) {
+			return nil, false, r.errorf(node.Expr, "use of untyped nil")
+		} else {
+			return nil, false, r.errorf(node, "index out of range")
+		}
+	}
+	switch vv := value.(type) {
+	case string:
+		i := r.intIndex(node.Index)
+		if i >= len(vv) {
+			return nil, false, r.errorf(node, "index out of range")
+		}
+		p := 0
+		for _, c := range vv {
+			if p == i {
+				return string(c), true, nil
+			}
+			p++
+		}
+		return nil, false, r.errorf(node, "index out of range")
+	case HTML:
+		i := r.intIndex(node.Index)
+		if i >= len(vv) {
+			return nil, false, r.errorf(node, "index out of range")
+		}
+		p := 0
+		for _, c := range vv {
+			if p == i {
+				return string(c), true, nil
+			}
+			p++
+		}
+		return nil, false, r.errorf(node, "index out of range")
+	case MutableMap:
+		i := r.stringIndex(node.Index)
+		if u, ok := vv[i]; ok {
+			return u, true, nil
+		}
+		return nil, false, nil
+	}
+	var rv = reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.String:
+		i := r.intIndex(node.Index)
+		var p = 0
+		for _, c := range rv.Interface().(string) {
+			if p == i {
+				return string(c), true, nil
+			}
+			p++
+		}
+		return nil, false, r.errorf(node, "index out of range")
+	case reflect.Map:
+		key := r.stringIndex(node.Index)
+		val := rv.MapIndex(reflect.ValueOf(key))
+		if !val.IsValid() {
+			return nil, false, nil
+		}
+		return val.Interface(), true, nil
+	case reflect.Slice:
+		i := r.intIndex(node.Index)
+		if i >= rv.Len() {
+			return nil, false, r.errorf(node, "index out of range")
+		}
+		return rv.Index(i).Interface(), true, nil
+	case reflect.Ptr:
+		rv = rv.Elem()
+		fields := getStructFields(rv)
+		key := r.stringIndex(node.Index)
+		i, ok := fields.indexOf[key]
+		if !ok {
+			return nil, false, nil
+		}
+		return rv.Field(i).Interface(), true, nil
+	}
+	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(value))
+}
+
+// intIndex evaluates node as an int index and return the value.
+func (r *rendering) intIndex(node ast.Expression) int {
 	var i int
-	switch index := asBase(r.evalExpression(node.Index)).(type) {
+	switch index := asBase(r.evalExpression(node)).(type) {
 	case int:
 		i = index
 	case decimal.Decimal:
@@ -674,40 +799,27 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 			panic(err)
 		}
 		if i < 0 {
-			panic(r.errorf(node, "invalid slice index %s (index must be non-negative)", node.Index))
+			panic(r.errorf(node, "invalid slice index %s (index must be non-negative)", node))
 		}
 	default:
-		panic(r.errorf(node, "non-integer slice index %s", node.Index))
+		panic(r.errorf(node, "non-integer slice index %s", node))
 	}
 	if i < 0 {
 		panic(r.errorf(node, "invalid slice index %d (index must be non-negative)", i))
 	}
-	var v = asBase(r.evalExpression(node.Expr))
-	if v == nil {
-		if r.isBuiltin("nil", node.Expr) {
-			panic(r.errorf(node.Expr, "use of untyped nil"))
-		} else {
-			panic(r.errorf(node, "index out of range"))
-		}
+	return i
+}
+
+// stringIndex evaluates node as a string index and return the value.
+func (r *rendering) stringIndex(node ast.Expression) string {
+	switch index := asBase(r.evalExpression(node)).(type) {
+	case string:
+		return index
+	case HTML:
+		return string(index)
+	default:
+		panic(r.errorf(node, "cannot use %s (type %s) as type string in map index", index, typeof(index)))
 	}
-	var e = reflect.ValueOf(v)
-	if e.Kind() == reflect.Slice {
-		if i >= e.Len() {
-			panic(r.errorf(node, "index out of range"))
-		}
-		return e.Index(i).Interface()
-	}
-	if e.Kind() == reflect.String {
-		var p = 0
-		for _, c := range e.Interface().(string) {
-			if p == i {
-				return string(c)
-			}
-			p++
-		}
-		panic(r.errorf(node, "index out of range"))
-	}
-	panic(r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v)))
 }
 
 // evalSlicing evaluates a slice expression and returns its value.
@@ -823,6 +935,39 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 			panic(r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg)))
 		}
 		return length
+	}
+
+	if r.isBuiltin("delete", node.Func) {
+		if len(node.Args) == 0 {
+			panic(r.errorf(node, "missing argument to delete"))
+		}
+		if len(node.Args) > 2 {
+			panic(r.errorf(node, "too many arguments to delete"))
+		}
+		arg := asBase(r.evalExpression(node.Args[0]))
+		m, ok := arg.(MutableMap)
+		if !ok {
+			typ := typeof(arg)
+			if typ == "map" {
+				panic(r.errorf(node, "cannot delete from non-mutable map"))
+			} else {
+				panic(r.errorf(node, "first argument to delete must be map; have %s", typ))
+			}
+		}
+		arg2 := asBase(r.evalExpression(node.Args[1]))
+		if r.isBuiltin("nil", node.Args[0]) {
+			panic(r.errorf(node, "cannot use nil as type string in delete"))
+		}
+		var key string
+		if k, ok := arg2.(HTML); ok {
+			key = string(k)
+		} else if k, ok := arg2.(string); ok {
+			key = k
+		} else {
+			panic(r.errorf(node, "cannot use %s (type %s) as type string in delete", arg2, typeof(arg2)))
+		}
+		_delete(m, key)
+		return nil
 	}
 
 	var f = r.evalExpression(node.Func)
@@ -1121,6 +1266,9 @@ func asBase(v interface{}) interface{} {
 		return vv.String()
 	// bool
 	case bool:
+		return v
+	// MutableMap
+	case MutableMap:
 		return v
 	default:
 		rv := reflect.ValueOf(v)

@@ -132,8 +132,16 @@ var exprTests = []struct {
 	{"a.(number)", ast.NewTypeAssertion(p(1, 2, 0, 9), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 8), "number"))},
 	{"a.(int)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "int"))},
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
-	{"a.(struct)", ast.NewTypeAssertion(p(1, 2, 0, 9), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 8), "struct"))},
+	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "map"))},
 	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "slice"))},
+	{"map{}", ast.NewMap(p(1, 1, 0, 4), []ast.KeyValue{})},
+	{"map{`a`:5}", ast.NewMap(p(1, 1, 0, 9), []ast.KeyValue{
+		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)}})},
+	{"map{`a`:5,}", ast.NewMap(p(1, 1, 0, 10), []ast.KeyValue{
+		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)}})},
+	{"map{`a`:5,`b`:7}", ast.NewMap(p(1, 1, 0, 15), []ast.KeyValue{
+		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)},
+		{ast.NewString(p(1, 11, 10, 12), "b"), ast.NewInt(p(1, 15, 14, 14), 7)}})},
 	{"{}", ast.NewSlice(p(1, 1, 0, 1), []ast.Expression{})},
 	{"{5}", ast.NewSlice(p(1, 1, 0, 2), []ast.Expression{ast.NewInt(p(1, 2, 1, 1), 5)})},
 	{"{5,6,7}", ast.NewSlice(p(1, 1, 0, 6), []ast.Expression{ast.NewInt(p(1, 2, 1, 1), 5),

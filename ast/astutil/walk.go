@@ -94,6 +94,12 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr1)
 		Walk(v, n.Expr2)
 
+	case *ast.Map:
+		for _, element := range n.Elements {
+			Walk(v, element.Key)
+			Walk(v, element.Value)
+		}
+
 	case *ast.Slice:
 		for _, element := range n.Elements {
 			Walk(v, element)

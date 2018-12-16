@@ -566,6 +566,35 @@ func (n *Slice) String() string {
 	return s
 }
 
+// KeyValue node represents a key value couple of a map.
+type KeyValue struct {
+	Key   Expression
+	Value Expression
+}
+
+// Map node represents a map expression.
+type Map struct {
+	expression
+	*Position            // position in the source.
+	Elements  []KeyValue // key, value elements.
+}
+
+func NewMap(pos *Position, elements []KeyValue) *Map {
+	return &Map{expression{}, pos, elements}
+}
+
+func (n *Map) String() string {
+	s := "map{"
+	for i, element := range n.Elements {
+		s += element.Key.String() + ": " + element.Value.String()
+		if i < len(n.Elements)-1 {
+			s += ", "
+		}
+	}
+	s += "}"
+	return s
+}
+
 // Call node represents a function call expression.
 type Call struct {
 	expression

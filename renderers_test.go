@@ -129,7 +129,7 @@ var rendererExprTests = []struct {
 	{`a.(number)`, "5", scope{"a": 5}},
 	{`a.(int)`, "5", scope{"a": 5}},
 	{`a.(bool)`, "true", scope{"a": true}},
-	{`a.(struct).B`, "b", scope{"a": &struct{ B string }{B: "b"}}},
+	{`a.(map).B`, "b", scope{"a": &struct{ B string }{B: "b"}}},
 	{`a.(slice)`, "1, 2, 3", scope{"a": []int{1, 2, 3}}},
 
 	// slice
@@ -147,6 +147,11 @@ var rendererExprTests = []struct {
 	{"{`a`, 8, true, html(`<b>`)}", "a, 8, true, <b>", nil},
 	{`{"a",2,3.6,html("<b>")}`, "a, 2, 3.6, <b>", nil},
 	{`{{1,2},"/",{3,4}}`, "1, 2, /, 3, 4", nil},
+
+	// map
+	{"len(map{})", "0", nil},
+	{"map{`a`:5}.a", "5", nil},
+	{"map{`a`:5,``+`a`:7}.a", "7", nil},
 
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},
@@ -271,12 +276,26 @@ var rendererStmtTests = []struct {
 	{"{% if a, ok := b.c.d; a %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": true}}}},
 	{"{% if a, ok := b.c.d; a %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": false}}}},
 	{"{% if a, ok := b.c.d; ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{}}}},
+	{"{% if a, ok := b[`c`]; ok %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
+	{"{% if a, ok := b[`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{}}},
+	{"{% if a, ok := b[`c`]; a %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
+	{"{% if a, ok := b[`d`]; a %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"d": false}}},
+	{"{% if a, ok := b[`c`].d; a %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": true}}}},
+	{"{% if a, ok := b[`c`].d; a %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": false}}}},
+	{"{% if a, ok := b[`c`].d; ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{}}}},
+	{"{% if a, ok := b.c[`d`]; a %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": true}}}},
+	{"{% if a, ok := b.c[`d`]; a %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{"d": false}}}},
+	{"{% if a, ok := b.c[`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{}}}},
+	{"{% if a, ok := b[`c`][`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": map[string]interface{}{}}}},
 	{"{% if a, ok := b.(string); ok %}ok{% else %}no{% end %}", "ok", scope{"b": "abc"}},
 	{"{% if a, ok := b.(string); ok %}no{% else %}ok{% end %}", "ok", scope{"b": 5}},
 	{"{% if a, ok := b.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": 5}},
 	{"{% if a, ok := b.c.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": 5}}},
 	{"{% if a, ok := b.c.(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{}}},
 	{"{% if a, ok := b.c.(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
+	{"{% if a, ok := b[`c`].(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": 5}}},
+	{"{% if a, ok := b[`c`].(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{}}},
+	{"{% if a, ok := b[`c`].(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for i, p in products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",

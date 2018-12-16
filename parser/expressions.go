@@ -146,6 +146,56 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			operand = expr
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
+		case tokenMap: // map{...}
+			pos := tok.pos
+			tok, ok = <-lex.tokens
+			if !ok {
+				return nil, token{}, lex.err
+			}
+			if tok.typ != tokenLeftBraces {
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)}
+			}
+			elements := []ast.KeyValue{}
+			for {
+				var element ast.KeyValue
+				element.Key, tok, err = parseExpr(lex)
+				if err != nil {
+					return nil, token{}, err
+				}
+				if element.Key == nil {
+					if tok.typ != tokenRightBraces {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
+					}
+				} else {
+					if tok.typ != tokenColon {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing key in map literal")}
+					}
+					element.Value, tok, err = parseExpr(lex)
+					if err != nil {
+						return nil, token{}, err
+					}
+					if element.Value == nil {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+					}
+					elements = append(elements, element)
+				}
+				if tok.typ == tokenRightBraces {
+					pos.End = tok.pos.End
+					break
+				}
+			}
+			if len(elements) > 1 {
+				duplicates := map[string]struct{}{}
+				for _, element := range elements {
+					if key, ok := element.Key.(*ast.String); ok {
+						if _, ok := duplicates[key.Text]; ok {
+							return nil, token{}, &Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)}
+						}
+						duplicates[key.Text] = struct{}{}
+					}
+				}
+			}
+			operand = ast.NewMap(pos, elements)
 		case tokenLeftBraces: // {...}
 			pos := tok.pos
 			var elements = []ast.Expression{}
@@ -288,7 +338,7 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 					if !ok {
 						return nil, token{}, lex.err
 					}
-					if tok.typ != tokenIdentifier {
+					if tok.typ != tokenIdentifier && tok.typ != tokenMap {
 						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)}
 					}
 					typ := ast.NewIdentifier(tok.pos, string(tok.txt))

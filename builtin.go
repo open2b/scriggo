@@ -43,13 +43,14 @@ var builtins = map[string]interface{}{
 	"false":  false,
 	"len":    _len,
 	"append": _append,
+	"delete": _delete,
 
 	"string": valuetype("string"),
 	"html":   valuetype("html"),
 	"number": valuetype("number"),
 	"int":    valuetype("int"),
 	"bool":   valuetype("bool"),
-	"struct": valuetype("struct"),
+	"map":    valuetype("map"),
 	"slice":  valuetype("slice"),
 
 	"abbreviate":  _abbreviate,
@@ -235,6 +236,11 @@ func _base64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
+// _delete is the builtin function "delete".
+func _delete(m MutableMap, key string) {
+	delete(m, key)
+}
+
 // _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) (interface{}, error) {
 	return nil, fmt.Errorf(format, a...)
@@ -316,10 +322,18 @@ func _len(v interface{}) int {
 		return len(s)
 	case []interface{}:
 		return len(s)
+	case MutableMap:
+		return len(s)
 	default:
 		var rv = reflect.ValueOf(v)
-		if rv.Kind() == reflect.Slice {
+		switch rv.Kind() {
+		case reflect.Slice:
 			return rv.Len()
+		case reflect.Map:
+			return rv.Len()
+		case reflect.Ptr:
+			fields := getStructFields(rv.Elem())
+			return len(fields.names)
 		}
 	}
 	// Returning -1 the method evalCall will return an invalid argument error.

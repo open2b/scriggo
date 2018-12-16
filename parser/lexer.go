@@ -845,6 +845,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenInclude, p)
 	case "macro":
 		l.emit(tokenMacro, p)
+	case "map":
+		l.emit(tokenMap, p)
 	case "show":
 		l.emit(tokenShow, p)
 	default:
