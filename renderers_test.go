@@ -129,7 +129,7 @@ var rendererExprTests = []struct {
 	{`a.(number)`, "5", scope{"a": 5}},
 	{`a.(int)`, "5", scope{"a": 5}},
 	{`a.(bool)`, "true", scope{"a": true}},
-	{`a.(struct).B`, "b", scope{"a": struct{ B string }{B: "b"}}},
+	{`a.(struct).B`, "b", scope{"a": &struct{ B string }{B: "b"}}},
 	{`a.(slice)`, "1, 2, 3", scope{"a": []int{1, 2, 3}}},
 
 	// slice

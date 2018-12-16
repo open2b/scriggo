@@ -542,7 +542,7 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (
 
 // evalTypeAssertion evaluates a type assertion.
 func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
-	val := asBase(r.evalExpression(node.Expr))
+	val := r.evalExpression(node.Expr)
 	ide := r.evalIdentifier(node.Type)
 	typ, ok := ide.(valuetype)
 	if !ok {
@@ -617,6 +617,7 @@ func hasType(v interface{}, typ valuetype) bool {
 	if v == nil {
 		return false
 	}
+	v = asBase(v)
 	switch vv := v.(type) {
 	case string:
 		return typ == builtins["string"]
@@ -649,8 +650,6 @@ func hasType(v interface{}, typ valuetype) bool {
 		return false
 	}
 	switch rt := reflect.TypeOf(v); rt.Kind() {
-	case reflect.Struct:
-		return typ == builtins["struct"]
 	case reflect.Ptr:
 		if typ != builtins["struct"] {
 			return false
