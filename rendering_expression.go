@@ -559,7 +559,7 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (
 			return st.Field(index).Interface(), true, nil
 		}
 	}
-	return nil, false, r.errorf(node, "type %s cannot have fields", typeof(value))
+	return nil, false, r.errorf(node, "invalid operation: %s (type %s is not map)", node, typeof(value))
 }
 
 // evalTypeAssertion evaluates a type assertion.
