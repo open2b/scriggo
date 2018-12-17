@@ -332,8 +332,9 @@ func _len(v interface{}) int {
 		case reflect.Map:
 			return rv.Len()
 		case reflect.Ptr:
-			fields := getStructFields(rv.Elem())
-			return len(fields.names)
+			if keys := structKeys(rv); keys != nil {
+				return len(keys)
+			}
 		}
 	}
 	// Returning -1 the method evalCall will return an invalid argument error.

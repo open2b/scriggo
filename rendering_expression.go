@@ -525,8 +525,7 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (
 		return nil, false, nil
 	}
 	rv := reflect.ValueOf(value)
-	kind := rv.Kind()
-	switch kind {
+	switch rv.Kind() {
 	case reflect.Map:
 		if rv.Type().Key().Kind() == reflect.String {
 			v := rv.MapIndex(reflect.ValueOf(node.Ident))
@@ -536,28 +535,16 @@ func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (
 			return v.Interface(), true, nil
 		}
 		return nil, false, r.errorf(node, "unsupported vars type")
-	case reflect.Struct:
-		st := reflect.Indirect(rv)
-		fields := getStructFields(st)
-		index, ok := fields.indexOf[node.Ident]
+	case reflect.Struct, reflect.Ptr:
+		keys := structKeys(rv)
+		if keys == nil {
+			return nil, false, r.errorf(node, "unsupported vars type")
+		}
+		sk, ok := keys[node.Ident]
 		if !ok {
 			return nil, false, nil
 		}
-		return st.Field(index).Interface(), true, nil
-	case reflect.Ptr:
-		elem := rv.Type().Elem()
-		if elem.Kind() == reflect.Struct {
-			if rv.IsNil() {
-				return rv.Interface(), true, nil
-			}
-			st := reflect.Indirect(rv)
-			fields := getStructFields(st)
-			index, ok := fields.indexOf[node.Ident]
-			if !ok {
-				return nil, false, nil
-			}
-			return st.Field(index).Interface(), true, nil
-		}
+		return sk.value(rv), true, nil
 	}
 	return nil, false, r.errorf(node, "invalid operation: %s (type %s is not map)", node, typeof(value))
 }
@@ -677,13 +664,12 @@ func hasType(v interface{}, typ valuetype) bool {
 	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"]:
 		return false
 	}
-	switch rt := reflect.TypeOf(v); rt.Kind() {
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Struct, reflect.Map:
+		return typ == builtins["map"]
 	case reflect.Ptr:
-		if typ != builtins["map"] {
-			return false
-		}
-		return rt.Elem().Kind() == reflect.Struct
-	case reflect.Slice, reflect.Map:
+		return typ == builtins["map"] && reflect.Indirect(rv).Kind() == reflect.Struct
+	case reflect.Slice:
 		return typ == builtins["slice"]
 	}
 	return false
@@ -767,21 +753,20 @@ func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interf
 			return nil, false, nil
 		}
 		return val.Interface(), true, nil
+	case reflect.Struct, reflect.Ptr:
+		if keys := structKeys(rv); keys != nil {
+			sk, ok := keys[r.stringIndex(node.Index)]
+			if !ok {
+				return nil, false, nil
+			}
+			return sk.value(rv), true, nil
+		}
 	case reflect.Slice:
 		i := r.intIndex(node.Index)
 		if i >= rv.Len() {
 			return nil, false, r.errorf(node, "index out of range")
 		}
 		return rv.Index(i).Interface(), true, nil
-	case reflect.Ptr:
-		rv = rv.Elem()
-		fields := getStructFields(rv)
-		key := r.stringIndex(node.Index)
-		i, ok := fields.indexOf[key]
-		if !ok {
-			return nil, false, nil
-		}
-		return rv.Field(i).Interface(), true, nil
 	}
 	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(value))
 }
@@ -1286,54 +1271,72 @@ func asBase(v interface{}) interface{} {
 	return v
 }
 
-// structFields represents the fields of a struct.
-type structFields struct {
-	names   []string
-	indexOf map[string]int
-}
-
 // structs maintains the association between the field names of a struct,
 // as they are called in the template, and the field index in the struct.
 var structs = struct {
-	fields map[reflect.Type]structFields
+	keys map[reflect.Type]map[string]structKey
 	sync.RWMutex
-}{map[reflect.Type]structFields{}, sync.RWMutex{}}
+}{map[reflect.Type]map[string]structKey{}, sync.RWMutex{}}
 
-// getStructFields returns the fields of the struct st.
-func getStructFields(st reflect.Value) structFields {
-	typ := st.Type()
-	structs.RLock()
-	fields, ok := structs.fields[typ]
-	structs.RUnlock()
-	if !ok {
-		structs.Lock()
-		if fields, ok = structs.fields[typ]; !ok {
-			fields = structFields{
-				names:   []string{},
-				indexOf: map[string]int{},
-			}
-			n := typ.NumField()
-			for i := 0; i < n; i++ {
-				fieldType := typ.Field(i)
-				if fieldType.PkgPath != "" {
-					continue
-				}
-				name := fieldType.Name
-				if tag, ok := fieldType.Tag.Lookup("template"); ok {
-					name = parseVarTag(tag)
-					if name == "" {
-						structs.Unlock()
-						panic(fmt.Errorf("template: invalid tag of field %q", fieldType.Name))
-					}
-				}
-				fields.names = append(fields.names, name)
-				fields.indexOf[name] = i
-			}
-			structs.fields[typ] = fields
-		}
-		structs.Unlock()
+// structKey represents the fields of a struct.
+type structKey struct {
+	isMethod bool
+	index    int
+}
+
+func (sk structKey) value(st reflect.Value) interface{} {
+	st = reflect.Indirect(st)
+	if sk.isMethod {
+		return st.Method(sk.index).Interface()
 	}
-	return fields
+	return st.Field(sk.index).Interface()
+}
+
+func structKeys(st reflect.Value) map[string]structKey {
+	st = reflect.Indirect(st)
+	if st.Kind() != reflect.Struct {
+		return nil
+	}
+	structs.RLock()
+	keys, ok := structs.keys[st.Type()]
+	structs.RUnlock()
+	if ok {
+		return keys
+	}
+	typ := st.Type()
+	structs.Lock()
+	keys, ok = structs.keys[st.Type()]
+	if ok {
+		structs.Unlock()
+		return keys
+	}
+	keys = map[string]structKey{}
+	n := typ.NumField()
+	for i := 0; i < n; i++ {
+		fieldType := typ.Field(i)
+		if fieldType.PkgPath != "" {
+			continue
+		}
+		name := fieldType.Name
+		if tag, ok := fieldType.Tag.Lookup("template"); ok {
+			name = parseVarTag(tag)
+			if name == "" {
+				structs.Unlock()
+				panic(fmt.Errorf("template: invalid tag of field %q", fieldType.Name))
+			}
+		}
+		keys[name] = structKey{index: i}
+	}
+	n = typ.NumMethod()
+	for i := 0; i < n; i++ {
+		name := typ.Method(i).Name
+		if _, ok := keys[name]; !ok {
+			keys[name] = structKey{index: i, isMethod: true}
+		}
+	}
+	structs.keys[st.Type()] = keys
+	structs.Unlock()
+	return keys
 }
 
 // parseVarTag parses the tag of a struct field and returns its name.

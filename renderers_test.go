@@ -46,6 +46,19 @@ func (s aString) String() string {
 	return s.v
 }
 
+type aMap struct {
+	v string
+	H func() string `template:"G"`
+}
+
+func (s aMap) F() string {
+	return s.v
+}
+
+func (s aMap) G() string {
+	return s.v
+}
+
 var rendererExprTests = []struct {
 	src  string
 	res  string
@@ -230,6 +243,8 @@ var rendererExprTests = []struct {
 	{"f(`a`, `b`)", "a,b", scope{"f": func(s ...string) string { return strings.Join(s, ",") }}},
 	{"f(5)", "5 ", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
 	{"f(5, `a`, `b`)", "5 a,b", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
+	{"s.F()", "a", scope{"s": aMap{v: "a"}}},
+	{"s.G()", "b", scope{"s": aMap{v: "a", H: func() string { return "b" }}}},
 
 	// number types
 	{"1+a", "3", scope{"a": int(2)}},
