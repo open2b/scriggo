@@ -248,7 +248,11 @@ func parseExpr(lex *lexer) (ast.Expression, token, error) {
 			tokenRawString:         // ``
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
-			operand = parseIdentifierNode(tok)
+			ident := parseIdentifierNode(tok)
+			if ident.Name == "_" {
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+			}
+			operand = ident
 		case tokenSemicolon:
 			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon or newline, expecting expression")}
 		default:

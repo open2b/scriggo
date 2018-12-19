@@ -423,6 +423,9 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		vars = r.vars[len(r.vars)-1]
 		var hasNewVariable bool
 		for i, ident := range node.Idents {
+			if ident.Name == "_" {
+				continue
+			}
 			if v, ok := vars[ident.Name]; ok {
 				if m, ok := v.(macro); ok {
 					return r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
@@ -438,6 +441,9 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		}
 	} else {
 		for i, ident := range node.Idents {
+			if ident.Name == "_" {
+				continue
+			}
 			for j := len(r.vars) - 1; j >= 0; j-- {
 				if vars := r.vars[j]; vars != nil {
 					if v, ok := vars[ident.Name]; ok {
@@ -474,21 +480,29 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 		if err != nil {
 			return err
 		}
-		scopes[0][node.Idents[0].Name] = v
+		if scopes[0] != nil {
+			scopes[0][node.Idents[0].Name] = v
+		}
 	case 2:
 		v1, v2, err := r.eval2(node.Expr)
 		if err != nil {
 			return err
 		}
-		scopes[0][node.Idents[0].Name] = v1
-		scopes[1][node.Idents[1].Name] = v2
+		if scopes[0] != nil {
+			scopes[0][node.Idents[0].Name] = v1
+		}
+		if scopes[1] != nil {
+			scopes[1][node.Idents[1].Name] = v2
+		}
 	default:
 		values, err := r.evalN(node.Expr, len(node.Idents))
 		if err != nil {
 			return err
 		}
 		for i, v := range values {
-			scopes[i][node.Idents[i].Name] = v.Interface()
+			if scopes[i] != nil {
+				scopes[i][node.Idents[i].Name] = v.Interface()
+			}
 		}
 	}
 
