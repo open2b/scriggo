@@ -52,6 +52,7 @@ var builtins = map[string]interface{}{
 	"bool":   valuetype("bool"),
 	"map":    valuetype("map"),
 	"slice":  valuetype("slice"),
+	"error":  valuetype("error"),
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,

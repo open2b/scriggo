@@ -532,6 +532,8 @@ func typeof(v interface{}) string {
 		return "bool"
 	case MutableMap:
 		return "map"
+	case error:
+		return "error"
 	default:
 		rv := reflect.ValueOf(v)
 		switch rv.Kind() {

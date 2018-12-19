@@ -661,6 +661,8 @@ func hasType(v interface{}, typ valuetype) bool {
 	case MutableMap, map[string]interface{}, map[string]string, map[string]HTML,
 		map[string]decimal.Decimal, map[string]int, map[string]bool:
 		return typ == builtins["map"]
+	case error:
+		return typ == builtins["error"]
 	}
 	switch typ {
 	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"]:

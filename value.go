@@ -122,7 +122,12 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 	} else {
 
 		w := newStringWriter(wr)
-		value = asBase(value)
+
+		if e, ok := value.(error); ok {
+			value = e.Error()
+		} else {
+			value = asBase(value)
+		}
 
 		var err error
 
