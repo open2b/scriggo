@@ -221,7 +221,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				default:
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or \"in\"", tok)}
 				}
-				expr, tok, err = parseExpr(lex)
+				expr, tok, err = parseExpr(nil, lex)
 				if err != nil {
 					return nil, err
 				}
@@ -234,7 +234,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					if ident != nil {
 						return nil, &Error{"", *comma.pos, fmt.Errorf("unexpected %s, expecting \"in\"", comma)}
 					}
-					expr2, tok, err = parseExpr(lex)
+					expr2, tok, err = parseExpr(nil, lex)
 					if err != nil {
 						return nil, err
 					}
@@ -303,7 +303,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 
 			// if
 			case tokenIf:
-				expr, tok, err = parseExpr(lex)
+				expr, tok, err = parseExpr(nil, lex)
 				if err != nil {
 					return nil, err
 				}
@@ -319,7 +319,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					if tok.typ != tokenSemicolon {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
 					}
-					expr, tok, err = parseExpr(lex)
+					expr, tok, err = parseExpr(nil, lex)
 					if err != nil {
 						return nil, err
 					}
@@ -436,7 +436,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					// arguments
 					arguments = []ast.Expression{}
 					for {
-						expr, tok, err = parseExpr(lex)
+						expr, tok, err = parseExpr(nil, lex)
 						if err != nil {
 							return nil, err
 						}
@@ -697,7 +697,7 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 			}
 			tokensInLine++
-			expr, tok2, err := parseExpr(lex)
+			expr, tok2, err := parseExpr(nil, lex)
 			if err != nil {
 				return nil, err
 			}
@@ -757,7 +757,7 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 	}
 	declaration := tok.typ == tokenDeclaration
 	// expression
-	expr, tok, err := parseExpr(lex)
+	expr, tok, err := parseExpr(nil, lex)
 	if err != nil {
 		return nil, token{}, err
 	}
