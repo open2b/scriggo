@@ -306,11 +306,13 @@ var rendererStmtTests = []struct {
 	{"{% if a, ok := b.(string); ok %}no{% else %}ok{% end %}", "ok", scope{"b": 5}},
 	{"{% if a, ok := b.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": 5}},
 	{"{% if a, ok := b.c.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": 5}}},
-	{"{% if a, ok := b.c.(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{}}},
 	{"{% if a, ok := b.c.(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
 	{"{% if a, ok := b[`c`].(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": map[string]interface{}{"c": 5}}},
-	{"{% if a, ok := b[`c`].(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{}}},
-	{"{% if a, ok := b[`c`].(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": map[string]interface{}{"c": true}}},
+	{"{% a := 5 %}{% if true %}{% a = 7 %}{{ a }}{% end %}", "7", nil},
+	{"{% a := 5 %}{% if true %}{% a := 7 %}{{ a }}{% end %}", "7", nil},
+	{"{% a := 5 %}{% if true %}{% a := 7 %}{% a = 9 %}{{ a }}{% end %}", "9", nil},
+	{"{% a := 5 %}{% if true %}{% a := 7 %}{% a, b := test2(1,2) %}{{ a }}{% end %}", "1", nil},
+	{"{% a := 5 %}{% if true %}{% a, b := test2(7,8) %}{% a, b = test2(1,2) %}{{ a }}{% end %}", "1", nil},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for i, p in products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",
@@ -414,6 +416,9 @@ func TestRenderExpressions(t *testing.T) {
 }
 
 func TestRenderStatements(t *testing.T) {
+	builtins["test2"] = func(a, b int) (int, int) {
+		return a, b
+	}
 	for _, stmt := range rendererStmtTests {
 		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextHTML)
 		if err != nil {

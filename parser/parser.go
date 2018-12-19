@@ -726,8 +726,8 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 // parseAssignment parses an assignment given the first identifier. It is
 // called from the function parser while parsing assignment and if statements.
 func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignment, token, error) {
-	var ident2 *ast.Identifier
-	if tok.typ == tokenComma {
+	idents := []*ast.Identifier{ident}
+	for tok.typ == tokenComma {
 		var ok bool
 		tok, ok = <-lex.tokens
 		if !ok {
@@ -736,7 +736,7 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 		if tok.typ != tokenIdentifier {
 			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting an identifier", tok)}
 		}
-		ident2 = ast.NewIdentifier(tok.pos, string(tok.txt))
+		idents = append(idents, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		tok, ok = <-lex.tokens
 		if !ok {
 			return nil, token{}, lex.err
@@ -766,7 +766,7 @@ func parseAssignment(ident *ast.Identifier, tok token, lex *lexer) (*ast.Assignm
 	// position
 	p := ident.Pos()
 	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: expr.Pos().End}
-	return ast.NewAssignment(pos, ident, ident2, expr, declaration), tok, nil
+	return ast.NewAssignment(pos, idents, expr, declaration), tok, nil
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands

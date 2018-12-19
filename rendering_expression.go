@@ -16,6 +16,7 @@ import (
 	"unicode"
 
 	"open2b/template/ast"
+	"open2b/template/ast/astutil"
 
 	"github.com/shopspring/decimal"
 )
@@ -28,7 +29,7 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
-// eval evaluates an expression and returns its value.
+// eval evaluates expr in a single-value context and returns its value.
 func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -40,6 +41,71 @@ func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 		}
 	}()
 	return r.evalExpression(exp), nil
+}
+
+// eval2 evaluates expr in a two-value context and returns its values.
+func (r *rendering) eval2(expr ast.Expression) (v1, v2 interface{}, err error) {
+	switch e := expr.(type) {
+	case *ast.TypeAssertion:
+		v, err := r.eval(e.Expr)
+		if err != nil {
+			return nil, false, err
+		}
+		var typ valuetype
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if i == 0 && e.Type.Name == "len" {
+					return nil, false, r.errorf(e, "use of builtin len not in function call")
+				}
+				if v, ok := r.vars[i][e.Type.Name]; ok {
+					if vt, ok := v.(valuetype); ok {
+						typ = vt
+						break
+					}
+					return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
+				}
+			}
+			if i == 0 {
+				return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
+			}
+		}
+		if !hasType(v, typ) {
+			return nil, false, nil
+		}
+		return v, true, nil
+	case *ast.Selector:
+		return r.evalSelector2(e)
+	case *ast.Index:
+		return r.evalIndex2(e, 2)
+	case *ast.Call:
+		values, err := r.evalCallN(e, 2)
+		if err != nil {
+			return nil, nil, err
+		}
+		return values[0].Interface(), values[1].Interface(), nil
+	case *ast.Identifier:
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if i == 0 && e.Name == "len" {
+					return nil, false, r.errorf(e, "use of builtin len not in function call")
+				}
+				if v, ok := r.vars[i][e.Name]; ok {
+					return v, true, nil
+				}
+			}
+		}
+		return nil, false, nil
+	}
+	return nil, nil, r.errorf(expr, "assignment mismatch: 2 variables but 1 values")
+}
+
+// evalN evaluates expr in a n-value context, with n > 2, and returns its
+// values.
+func (r *rendering) evalN(expr ast.Expression, n int) ([]reflect.Value, error) {
+	if e, ok := expr.(*ast.Call); ok {
+		return r.evalCallN(e, n)
+	}
+	return nil, r.errorf(expr, "assignment mismatch: %d variables but 1 values", n)
 }
 
 // evalExpression evaluates an expression and returns its value.
@@ -75,7 +141,7 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	case *ast.TypeAssertion:
 		return r.evalTypeAssertion(e)
 	default:
-		panic(r.errorf(expr, "unexpected node type %#v", expr))
+		panic(r.errorf(expr, "unexpected node type %s", typeof(expr)))
 	}
 }
 
@@ -502,8 +568,7 @@ func (r *rendering) evalSlice(node *ast.Slice) interface{} {
 
 // evalSelector evaluates a selector expression and returns its value.
 func (r *rendering) evalSelector(node *ast.Selector) interface{} {
-	value := asBase(r.evalExpression(node.Expr))
-	v, ok, err := r.evalSelectorSpecial(node, value)
+	v, ok, err := r.evalSelector2(node)
 	if err != nil {
 		panic(err)
 	}
@@ -513,10 +578,11 @@ func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 	return v
 }
 
-// evalSelectorSpecial evaluates a selector, given its evaluated expression,
-// and if its identifier exists it returns the value and true, otherwise it
-// returns nil and false.
-func (r *rendering) evalSelectorSpecial(node *ast.Selector, value interface{}) (interface{}, bool, error) {
+// evalSelector2 evaluates a selector in a two-values context. If its
+// identifier exists it returns the value and true, otherwise it returns nil
+// and false.
+func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error) {
+	value := asBase(r.evalExpression(node.Expr))
 	// map
 	if v2, ok := value.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
@@ -561,70 +627,6 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 		panic(r.errorf(node.Type, "%s is %s, not %s", val, typeof(val), typ))
 	}
 	return val
-}
-
-// evalInSpecialAssignment evaluates expr as the expression of a special
-// assignment. expr must be a type assertion, a selector or an identifier.
-func (r *rendering) evalInSpecialAssignment(expr ast.Expression) (interface{}, bool, error) {
-	switch e := expr.(type) {
-	case *ast.TypeAssertion:
-		v, ok, err := r.evalInSpecialAssignment(e.Expr)
-		if err != nil || !ok {
-			return nil, false, err
-		}
-		var typ valuetype
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			if r.vars[i] != nil {
-				if i == 0 && e.Type.Name == "len" {
-					return nil, false, r.errorf(e, "use of builtin len not in function call")
-				}
-				if v, ok := r.vars[i][e.Type.Name]; ok {
-					if vt, ok := v.(valuetype); ok {
-						typ = vt
-						break
-					}
-					return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
-				}
-			}
-			if i == 0 {
-				return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
-			}
-		}
-		if hasType(v, typ) {
-			return v, true, nil
-		}
-		return nil, false, nil
-	case *ast.Selector:
-		v, ok, err := r.evalInSpecialAssignment(e.Expr)
-		if err != nil || !ok {
-			return nil, false, err
-		}
-		return r.evalSelectorSpecial(e, v)
-	case *ast.Index:
-		v, ok, err := r.evalInSpecialAssignment(e.Expr)
-		if err != nil || !ok {
-			return nil, false, err
-		}
-		return r.evalIndexSpecial(e, v)
-	case *ast.Identifier:
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			if r.vars[i] != nil {
-				if i == 0 && e.Name == "len" {
-					return nil, false, r.errorf(e, "use of builtin len not in function call")
-				}
-				if v, ok := r.vars[i][e.Name]; ok {
-					return v, true, nil
-				}
-			}
-		}
-		return nil, false, nil
-	default:
-		v, err := r.eval(expr)
-		if err != nil {
-			return nil, false, err
-		}
-		return v, true, nil
-	}
 }
 
 // hasType indicates if v has type typ.
@@ -675,10 +677,9 @@ func hasType(v interface{}, typ valuetype) bool {
 	return false
 }
 
-// evalIndex evaluates an index expression and returns its value.
+// evalIndex evaluates an index expression in a single context.
 func (r *rendering) evalIndex(node *ast.Index) interface{} {
-	value := asBase(r.evalExpression(node.Expr))
-	v, ok, err := r.evalIndexSpecial(node, value)
+	v, ok, err := r.evalIndex2(node, 1)
 	if err != nil {
 		panic(err)
 	}
@@ -689,10 +690,11 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 	return v
 }
 
-// evalIndexSpecial evaluates an index, given its evaluated expression, and if
-// its index exists it returns the value and true, otherwise it returns nil
-// and false.
-func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interface{}, bool, error) {
+// evalIndex2 evaluates an index expression in a single ( n == 1 ) or
+// two-values ( n == 2 ) context. If its index exists, returns the value and
+// true, otherwise it returns nil and false.
+func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error) {
+	value := asBase(r.evalExpression(node.Expr))
 	if value == nil {
 		if r.isBuiltin("nil", node.Expr) {
 			return nil, false, r.errorf(node.Expr, "use of untyped nil")
@@ -702,6 +704,9 @@ func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interf
 	}
 	switch vv := value.(type) {
 	case string:
+		if n == 2 {
+			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
 		i := r.intIndex(node.Index)
 		if i >= len(vv) {
 			return nil, false, r.errorf(node, "index out of range")
@@ -715,6 +720,9 @@ func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interf
 		}
 		return nil, false, r.errorf(node, "index out of range")
 	case HTML:
+		if n == 2 {
+			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
 		i := r.intIndex(node.Index)
 		if i >= len(vv) {
 			return nil, false, r.errorf(node, "index out of range")
@@ -737,6 +745,9 @@ func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interf
 	var rv = reflect.ValueOf(value)
 	switch rv.Kind() {
 	case reflect.String:
+		if n == 2 {
+			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
 		i := r.intIndex(node.Index)
 		var p = 0
 		for _, c := range rv.Interface().(string) {
@@ -762,6 +773,9 @@ func (r *rendering) evalIndexSpecial(node *ast.Index, value interface{}) (interf
 			return sk.value(rv), true, nil
 		}
 	case reflect.Slice:
+		if n == 2 {
+			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
 		i := r.intIndex(node.Index)
 		if i >= rv.Len() {
 			return nil, false, r.errorf(node, "index out of range")
@@ -901,47 +915,52 @@ func (r *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 	panic(r.errorf(node, "undefined: %s", node.Name))
 }
 
-// evalCall evaluates a call expression and returns its value.
+// evalCall evaluates a call expression in a single-value context. It returns
+// an error if the function
 func (r *rendering) evalCall(node *ast.Call) interface{} {
+	results, err := r.evalCallN(node, 1)
+	if err != nil {
+		panic(err)
+	}
+	return results[0].Interface()
+}
+
+// evalCallN evaluates a call expression in n-values context and returns its
+// values. It returns an error if n > 0 and the function does not return n
+// values.
+func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
 	if r.isBuiltin("len", node.Func) {
-		if len(node.Args) == 0 {
-			panic(r.errorf(node, "missing argument to len: len()"))
-		}
-		if len(node.Args) > 1 {
-			panic(r.errorf(node, "too many arguments to len: %s", node))
-		}
-		if r.isBuiltin("nil", node.Args[0]) {
-			panic(r.errorf(node, "use of untyped nil"))
+		err := r.checkBuiltInParameterCount(node, 1, 1, n)
+		if err != nil {
+			return nil, err
 		}
 		arg := asBase(r.evalExpression(node.Args[0]))
 		length := _len(arg)
 		if length == -1 {
-			panic(r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg)))
+			return nil, r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg))
 		}
-		return length
+		return []reflect.Value{reflect.ValueOf(length)}, nil
 	}
 
 	if r.isBuiltin("delete", node.Func) {
-		if len(node.Args) == 0 {
-			panic(r.errorf(node, "missing argument to delete"))
-		}
-		if len(node.Args) > 2 {
-			panic(r.errorf(node, "too many arguments to delete"))
+		err := r.checkBuiltInParameterCount(node, 2, 0, n)
+		if err != nil {
+			return nil, err
 		}
 		arg := asBase(r.evalExpression(node.Args[0]))
 		m, ok := arg.(MutableMap)
 		if !ok {
 			typ := typeof(arg)
 			if typ == "map" {
-				panic(r.errorf(node, "cannot delete from non-mutable map"))
+				return nil, r.errorf(node, "cannot delete from non-mutable map")
 			} else {
-				panic(r.errorf(node, "first argument to delete must be map; have %s", typ))
+				return nil, r.errorf(node, "first argument to delete must be map; have %s", typ)
 			}
 		}
 		arg2 := asBase(r.evalExpression(node.Args[1]))
 		if r.isBuiltin("nil", node.Args[0]) {
-			panic(r.errorf(node, "cannot use nil as type string in delete"))
+			return nil, r.errorf(node, "cannot use nil as type string in delete")
 		}
 		var key string
 		if k, ok := arg2.(HTML); ok {
@@ -949,36 +968,48 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 		} else if k, ok := arg2.(string); ok {
 			key = k
 		} else {
-			panic(r.errorf(node, "cannot use %s (type %s) as type string in delete", arg2, typeof(arg2)))
+			return nil, r.errorf(node, "cannot use %s (type %s) as type string in delete", arg2, typeof(arg2))
 		}
 		_delete(m, key)
-		return nil
+		return nil, nil
 	}
 
 	var f = r.evalExpression(node.Func)
 
 	if typ, ok := f.(valuetype); ok {
 		if len(node.Args) == 0 {
-			panic(r.errorf(node, "missing argument to conversion to %s: %s", typ, node))
+			return nil, r.errorf(node, "missing argument to conversion to %s: %s", typ, node)
 		}
 		if len(node.Args) > 1 {
-			panic(r.errorf(node, "too many arguments to conversion to %s: %s", typ, node))
+			return nil, r.errorf(node, "too many arguments to conversion to %s: %s", typ, node)
 		}
 		value := asBase(r.evalExpression(node.Args[0]))
 		v, err := r.convert(value, typ)
 		if err != nil {
 			panic(r.errorf(node.Args[0], "%s", err))
 		}
-		return v
+		return []reflect.Value{reflect.ValueOf(v)}, nil
 	}
 
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
-		panic(r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
+		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
 	}
 	var typ = fun.Type()
 	if typ.Kind() != reflect.Func {
-		panic(r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f)))
+		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
+	}
+
+	var numOut = typ.NumOut()
+	switch {
+	case n == 1 && numOut > 1:
+		expr := astutil.CloneExpression(node).(*ast.Call)
+		expr.Args = nil
+		return nil, r.errorf(node, "multiple-value %s in single-value context", expr)
+	case n > 0 && numOut == 0:
+		return nil, r.errorf(node, "%s used as value", node)
+	case n > 0 && n != numOut:
+		return nil, r.errorf(node, "assignment mismatch: %d variables but %d values", n, numOut)
 	}
 
 	var numIn = typ.NumIn()
@@ -1009,9 +1040,9 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 		}
 		want += ")"
 		if len(node.Args) < numIn {
-			panic(r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
+			return nil, r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
 		} else {
-			panic(r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want))
+			return nil, r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
 		}
 	}
 
@@ -1035,12 +1066,12 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 		if arg == nil {
 			if i < len(node.Args) {
 				if in == decimalType {
-					panic(r.errorf(node, "cannot use nil as type number in argument to %s", node.Func))
+					return nil, r.errorf(node, "cannot use nil as type number in argument to %s", node.Func)
 				}
 				switch inKind {
 				case reflect.Bool, reflect.Int, reflect.String:
 					wantType := typeof(reflect.Zero(in).Interface())
-					panic(r.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func))
+					return nil, r.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func)
 				}
 			}
 			args[i] = reflect.Zero(in)
@@ -1079,35 +1110,40 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 					reflect.UnsafePointer,
 					reflect.Float32,
 					reflect.Float64:
-					panic(fmt.Errorf("cannot use %s as function parameter type", inKind))
+					return nil, fmt.Errorf("cannot use %s as function parameter type", inKind)
 				}
 				expectedType := typeof(reflect.Zero(in).Interface())
-				panic(r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func))
+				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func)
 			}
 		}
 	}
 
-	values := fun.Call(args)
-
-	if len(values) == 2 {
-		if !values[1].IsNil() {
-			err, ok := values[1].Interface().(error)
-			if !ok {
-				panic("no-error return value")
+	values, err := func() (_ []reflect.Value, err error) {
+		defer func() {
+			if e := recover(); e != nil {
+				err = r.errorf(node.Func, "%s", e)
 			}
-			panic(r.errorf(node.Func, "%s", err))
-		}
-	} else if len(values) != 1 {
-		panic("wrong number of return values")
+		}()
+		return fun.Call(args), nil
+	}()
+
+	return values, err
+}
+
+func (r *rendering) checkBuiltInParameterCount(node *ast.Call, numIn, numOut, n int) error {
+	if len(node.Args) < numIn {
+		return r.errorf(node, "missing argument to %s: %s", node.Func, node)
 	}
-
-	v := values[0].Interface()
-
-	if d, ok := v.(int); ok {
-		v = decimal.New(int64(d), 0)
+	if len(node.Args) > numIn {
+		return r.errorf(node, "too many arguments to %s: %s", node.Func, node)
 	}
-
-	return v
+	if numOut == 0 && n > 0 {
+		return r.errorf(node, "%s used as value", node)
+	}
+	if n != numOut {
+		return r.errorf(node, "assignment mismatch: %d variables but %d values", n, numOut)
+	}
+	return nil
 }
 
 // convert converts value to type typ.

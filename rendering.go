@@ -412,95 +412,84 @@ Nodes:
 
 func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstate *urlState) error {
 
-	var vars scope
-	name := node.Ident.Name
-
-	name2 := ""
-	if node.Ident2 != nil {
-		name2 = node.Ident2.Name
-	}
+	// scopes contains the scopes of the variables to be assigned.
+	scopes := make([]scope, len(node.Idents))
 
 	if node.Declaration {
+		var vars scope
 		if r.vars[len(r.vars)-1] == nil {
 			r.vars[len(r.vars)-1] = scope{}
 		}
 		vars = r.vars[len(r.vars)-1]
-		if v, ok := vars[name]; ok {
-			if m, ok := v.(macro); ok {
-				return r.errorf(node.Ident, "%s redeclared\n\tprevious declaration at %s:%s",
-					name, m.path, m.node.Pos())
-			}
-			return r.errorf(node.Ident, "%s redeclared in this block", name)
-		}
-		if name2 != "" {
-			if v, ok := vars[name2]; ok {
+		var hasNewVariable bool
+		for i, ident := range node.Idents {
+			if v, ok := vars[ident.Name]; ok {
 				if m, ok := v.(macro); ok {
-					return r.errorf(node.Ident2, "%s redeclared\n\tprevious declaration at %s:%s",
-						name2, m.path, m.node.Pos())
+					return r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
+						ident.Name, m.path, m.node.Pos())
 				}
+			} else {
+				hasNewVariable = true
 			}
+			scopes[i] = vars
+		}
+		if !hasNewVariable {
+			return r.errorf(node, "no new variables on left side of :=")
 		}
 	} else {
-		var found bool
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			vars = r.vars[i]
-			if vars != nil {
-				if v, ok := vars[name]; ok {
-					if _, ok := v.(macro); ok || i < 2 {
-						if i == 0 && name == "len" {
-							return r.errorf(node.Ident, "use of builtin len not in function call")
-						}
-						return r.errorf(node.Ident, "cannot assign to %s", name)
-					}
-					found = true
-					break
-				}
-			}
-		}
-		if !found {
-			return r.errorf(node, "variable %s not declared", name)
-		}
-		if name2 != "" {
-			var found bool
-			for i := len(r.vars) - 1; i >= 0; i-- {
-				vars = r.vars[i]
-				if vars != nil {
-					if v, ok := vars[name2]; ok {
-						if _, ok := v.(macro); ok || i < 2 {
-							if i == 0 && name2 == "len" {
-								return r.errorf(node.Ident2, "use of builtin len not in function call")
+		for i, ident := range node.Idents {
+			for j := len(r.vars) - 1; j >= 0; j-- {
+				if vars := r.vars[j]; vars != nil {
+					if v, ok := vars[ident.Name]; ok {
+						if j == 0 {
+							if vt, ok := v.(valuetype); ok {
+								return r.errorf(ident, "type %s is not an expression", vt)
 							}
-							return r.errorf(node.Ident2, "cannot assign to %s", name2)
+							if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
+								return r.errorf(ident, "use of builtin %s not in function call", ident.Name)
+							}
+							return r.errorf(ident, "cannot assign to %s", ident.Name)
 						}
-						found = true
+						if j == 1 {
+							return r.errorf(ident, "cannot assign to %s", ident.Name)
+						}
+						if m, ok := v.(macro); ok {
+							return r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
+								ident.Name, m.path, m.node.Pos())
+						}
+						scopes[i] = vars
 						break
 					}
 				}
 			}
-			if !found {
-				return r.errorf(node.Ident, "variable %s not declared", name2)
+			if scopes[i] == nil {
+				return r.errorf(node, "variable %s not declared", ident.Name)
 			}
 		}
 	}
 
-	if name2 == "" {
+	switch len(node.Idents) {
+	case 1:
 		v, err := r.eval(node.Expr)
 		if err != nil {
 			return err
 		}
-		vars[name] = v
-	} else {
-		switch node.Expr.(type) {
-		case *ast.TypeAssertion, *ast.Selector, *ast.Index, *ast.Identifier:
-		default:
-			return r.errorf(node.Ident2, "assignment mismatch: 2 variables but 1 values")
-		}
-		v, ok, err := r.evalInSpecialAssignment(node.Expr)
+		scopes[0][node.Idents[0].Name] = v
+	case 2:
+		v1, v2, err := r.eval2(node.Expr)
 		if err != nil {
 			return err
 		}
-		vars[name] = v
-		vars[name2] = ok
+		scopes[0][node.Idents[0].Name] = v1
+		scopes[1][node.Idents[1].Name] = v2
+	default:
+		values, err := r.evalN(node.Expr, len(node.Idents))
+		if err != nil {
+			return err
+		}
+		for i, v := range values {
+			scopes[i][node.Idents[i].Name] = v.Interface()
+		}
 	}
 
 	return nil

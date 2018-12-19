@@ -95,12 +95,12 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
 	}, ast.ContextHTML)},
 	{"{% a := 1 %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 4, 3, 3), "a"), nil,
+		ast.NewAssignment(p(1, 1, 0, 11), []*ast.Identifier{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.NewInt(p(1, 9, 8, 8), 1), true)}, ast.ContextHTML)},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 10), ast.NewIdentifier(p(1, 4, 3, 3), "a"), nil, ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
+		ast.NewAssignment(p(1, 1, 0, 10), []*ast.Identifier{ast.NewIdentifier(p(1, 4, 3, 3), "a")}, ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
 	{"{% a, ok := b.c %}", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 17), ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewIdentifier(p(1, 7, 6, 7), "ok"),
+		ast.NewAssignment(p(1, 1, 0, 17), []*ast.Identifier{ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewIdentifier(p(1, 7, 6, 7), "ok")},
 			ast.NewSelector(p(1, 14, 12, 14),
 				ast.NewIdentifier(p(1, 16, 15, 15), "b"), "c"), true)}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
@@ -135,16 +135,16 @@ var treeTests = []struct {
 		ast.NewText(p(3, 12, 27, 28), []byte(" \t"), ast.Cut{2, 0})}, ast.ContextHTML)},
 	{"{% if a = b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 29),
-			ast.NewAssignment(p(1, 7, 6, 10), ast.NewIdentifier(p(1, 7, 6, 6), "a"), nil, ast.NewIdentifier(p(1, 11, 10, 10), "b"), false),
+			ast.NewAssignment(p(1, 7, 6, 10), []*ast.Identifier{ast.NewIdentifier(p(1, 7, 6, 6), "a")}, ast.NewIdentifier(p(1, 11, 10, 10), "b"), false),
 			ast.NewIdentifier(p(1, 14, 13, 13), "a"), []ast.Node{ast.NewText(p(1, 18, 17, 17), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% if a := b; a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 30),
-			ast.NewAssignment(p(1, 7, 6, 11), ast.NewIdentifier(p(1, 7, 6, 6), "a"), nil, ast.NewIdentifier(p(1, 12, 11, 11), "b"), true),
+			ast.NewAssignment(p(1, 7, 6, 11), []*ast.Identifier{ast.NewIdentifier(p(1, 7, 6, 6), "a")}, ast.NewIdentifier(p(1, 12, 11, 11), "b"), true),
 			ast.NewIdentifier(p(1, 15, 14, 14), "a"), []ast.Node{ast.NewText(p(1, 19, 18, 18), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% if a, ok := b.c; a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 36),
 			ast.NewAssignment(p(1, 7, 6, 17),
-				ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewIdentifier(p(1, 10, 9, 10), "ok"),
+				[]*ast.Identifier{ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewIdentifier(p(1, 10, 9, 10), "ok")},
 				ast.NewSelector(p(1, 17, 15, 17), ast.NewIdentifier(p(1, 16, 15, 15), "b"), "c"), true),
 			ast.NewIdentifier(p(1, 21, 20, 20), "a"), []ast.Node{ast.NewText(p(1, 25, 24, 24), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
@@ -437,19 +437,14 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Ident, nn2.Ident, p)
-		if err != nil {
-			return err
+		if len(nn1.Idents) != len(nn2.Idents) {
+			return fmt.Errorf("unexpected identifiers len %d, expecting %d", len(nn1.Idents), len(nn2.Idents))
 		}
-		if nn1.Ident2 != nil {
-			err := equals(nn1.Ident2, nn2.Ident2, p)
+		for i, ident := range nn1.Idents {
+			err := equals(ident, nn2.Idents[i], p)
 			if err != nil {
 				return err
 			}
-		}
-		err = equals(nn1.Expr, nn2.Expr, p)
-		if err != nil {
-			return err
 		}
 		if nn1.Declaration != nn2.Declaration {
 			return fmt.Errorf("unexpected declaretion %t, expecting %t", nn1.Declaration, nn2.Declaration)

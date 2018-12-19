@@ -200,22 +200,31 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 
 // Assignment node represents an assignment statement.
 type Assignment struct {
-	*Position               // position in the source.
-	Ident       *Identifier // identifier.
-	Ident2      *Identifier // second identifier.
-	Expr        Expression  // assigned expression.
-	Declaration bool        // indicates if it is a declaration.
+	*Position                 // position in the source.
+	Idents      []*Identifier // identifiers.
+	Expr        Expression    // assigned expression.
+	Declaration bool          // indicates if it is a declaration.
 }
 
-func NewAssignment(pos *Position, ident, ident2 *Identifier, expr Expression, declaration bool) *Assignment {
-	return &Assignment{pos, ident, ident2, expr, declaration}
+func NewAssignment(pos *Position, idents []*Identifier, expr Expression, declaration bool) *Assignment {
+	return &Assignment{pos, idents, expr, declaration}
 }
 
 func (a Assignment) String() string {
-	if a.Declaration {
-		return fmt.Sprintf("%v := %v", a.Ident, a.Expr)
+	var s string
+	for i, ident := range a.Idents {
+		if i > 0 {
+			s += ", "
+		}
+		s += ident.Name
 	}
-	return fmt.Sprintf("%v = %v", a.Ident, a.Expr)
+	if a.Declaration {
+		s += ":="
+	} else {
+		s += "="
+	}
+	s += a.Expr.String()
+	return s
 }
 
 // For node represents a statement {% for ... %}.

@@ -136,12 +136,12 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 }
 
 // _append is the builtin function "append".
-func _append(slice interface{}, elems ...interface{}) (interface{}, error) {
+func _append(slice interface{}, elems ...interface{}) interface{} {
 	if slice == nil {
-		return nil, fmt.Errorf("first argument to append must be slice; have untyped nil")
+		panic(fmt.Errorf("first argument to append must be slice; have untyped nil"))
 	}
 	if elems == nil {
-		return slice, nil
+		return slice
 	}
 	var ok bool
 SameType:
@@ -158,7 +158,7 @@ SameType:
 				break SameType
 			}
 		}
-		return sr, nil
+		return sr
 	case []HTML:
 		l := len(s)
 		sr := make([]HTML, l+len(elems))
@@ -171,7 +171,7 @@ SameType:
 				break SameType
 			}
 		}
-		return sr, nil
+		return sr
 	case []int:
 		l := len(s)
 		sr := make([]int, l+len(elems))
@@ -184,7 +184,7 @@ SameType:
 				break SameType
 			}
 		}
-		return sr, nil
+		return sr
 	case []decimal.Decimal:
 		l := len(s)
 		sr := make([]decimal.Decimal, l+len(elems))
@@ -197,7 +197,7 @@ SameType:
 				break SameType
 			}
 		}
-		return sr, nil
+		return sr
 	case []bool:
 		l := len(s)
 		sr := make([]bool, l+len(elems))
@@ -210,11 +210,11 @@ SameType:
 				break SameType
 			}
 		}
-		return sr, nil
+		return sr
 	}
 	st := reflect.TypeOf(slice)
 	if st.Kind() != reflect.Slice {
-		return nil, fmt.Errorf("first argument to append must be slice; have %s", typeof(slice))
+		panic(fmt.Errorf("first argument to append must be slice; have %s", typeof(slice)))
 	}
 	sv := reflect.ValueOf(slice)
 	l := sv.Len()
@@ -224,11 +224,11 @@ SameType:
 	}
 	for i, vv := range elems {
 		if vv == nil {
-			return nil, fmt.Errorf("use of untyped nil in slice")
+			panic(fmt.Errorf("use of untyped nil in slice"))
 		}
 		sr[l+i] = vv
 	}
-	return sr, nil
+	return sr
 }
 
 // _base64 is the builtin function "base64".
@@ -242,8 +242,8 @@ func _delete(m MutableMap, key string) {
 }
 
 // _errorf is the builtin function "errorf".
-func _errorf(format string, a ...interface{}) (interface{}, error) {
-	return nil, fmt.Errorf(format, a...)
+func _errorf(format string, a ...interface{}) {
+	panic(fmt.Errorf(format, a...))
 }
 
 // _hex is the builtin function "hex".
@@ -252,7 +252,7 @@ func _hex(s string) string {
 }
 
 // _hmac is the builtin function "hmac".
-func _hmac(hasher, message, key string) (string, error) {
+func _hmac(hasher, message, key string) string {
 	var h func() hash.Hash
 	switch hasher {
 	case "MD5":
@@ -262,12 +262,12 @@ func _hmac(hasher, message, key string) (string, error) {
 	case "SHA-256":
 		h = sha256.New
 	default:
-		return "", errors.New("unknown hash function")
+		panic(errors.New("unknown hash function"))
 	}
 	mac := hmac.New(h, []byte(key))
 	io.WriteString(mac, message)
 	s := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-	return s, nil
+	return s
 }
 
 // _index is the builtin function "index".
@@ -392,17 +392,17 @@ func _replace(s, old, new string) string {
 }
 
 // _reverse is the builtin function "reverse".
-func _reverse(s interface{}) (interface{}, error) {
+func _reverse(s interface{}) interface{} {
 	if s == nil {
-		return s, nil
+		return s
 	}
 	rv := reflect.ValueOf(s)
 	if rv.Kind() != reflect.Slice {
-		return nil, errNoSlice
+		panic(errNoSlice)
 	}
 	l := rv.Len()
 	if l <= 1 {
-		return s, nil
+		return s
 	}
 	rt := reflect.TypeOf(s)
 	rvc := reflect.MakeSlice(rt, l, l)
@@ -412,7 +412,7 @@ func _reverse(s interface{}) (interface{}, error) {
 	for i, j := 0, l-1; i < j; i, j = i+1, j-1 {
 		swap(i, j)
 	}
-	return sc, nil
+	return sc
 }
 
 // _round is the builtin function "round".
@@ -435,17 +435,17 @@ func _sha256(s string) string {
 }
 
 // _shuffle is the builtin function "shuffle".
-func _shuffle(s interface{}) (interface{}, error) {
+func _shuffle(s interface{}) interface{} {
 	if s == nil {
-		return nil, nil
+		return nil
 	}
 	rv := reflect.ValueOf(s)
 	if rv.Kind() != reflect.Slice {
-		return nil, errNoSlice
+		panic(errNoSlice)
 	}
 	l := rv.Len()
 	if l < 2 {
-		return s, nil
+		return s
 	}
 	// Seed.
 	seed := time.Now().UTC().UnixNano()
@@ -462,56 +462,56 @@ func _shuffle(s interface{}) (interface{}, error) {
 		j := r.Intn(i + 1)
 		swap(i, j)
 	}
-	return s2, nil
+	return s2
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}) (interface{}, error) {
+func _sort(slice interface{}) interface{} {
 	if slice == nil {
-		return slice, nil
+		return slice
 	}
 	// no reflect
 	switch s := slice.(type) {
 	case []string:
 		if len(s) <= 1 {
-			return s, nil
+			return s
 		}
 		s2 := make([]string, len(s))
 		copy(s2, s)
 		sort.Strings(s2)
-		return s2, nil
+		return s2
 	case []int:
 		if len(s) <= 1 {
-			return s, nil
+			return s
 		}
 		s2 := make([]int, len(s))
 		copy(s2, s)
 		sort.Ints(s2)
-		return s2, nil
+		return s2
 	case []bool:
 		if len(s) <= 1 {
-			return s, nil
+			return s
 		}
 		s2 := make([]bool, len(s))
 		copy(s2, s)
 		sort.Slice(s2, func(i, j int) bool { return !s2[i] })
-		return s2, nil
+		return s2
 	}
-	return nil, fmt.Errorf("no slice of string, int or bool")
+	panic(fmt.Errorf("no slice of string, int or bool"))
 }
 
 // _sortBy is the builtin function "sortBy".
-func _sortBy(slice interface{}, field string) (s interface{}, err error) {
+func _sortBy(slice interface{}, field string) interface{} {
 	r, _ := utf8.DecodeRuneInString(field)
 	if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-		return nil, errors.New("invalid field")
+		panic(errors.New("invalid field"))
 	}
 	if slice == nil {
-		return slice, nil
+		return slice
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.New("call of sortBy on a no-struct value")
+			panic(errors.New("call of sortBy on a no-struct value"))
 		}
 	}()
 	rv := reflect.ValueOf(slice)
@@ -524,7 +524,7 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 		}
 		fv := v.FieldByName(field)
 		if !fv.IsValid() {
-			return nil, fmt.Errorf("type struct has no field or method %s", field)
+			panic(fmt.Errorf("type struct has no field or method %s", field))
 		}
 		values[i] = fv.Interface()
 	}
@@ -538,7 +538,7 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 	switch value.(type) {
 	case Stringer:
 		if size <= 1 {
-			return slice, nil
+			return slice
 		}
 		vv := make([]string, size)
 		for i := 0; i < size; i++ {
@@ -547,7 +547,7 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 		f = func(i, j int) bool { return vv[i] < vv[j] }
 	case Numberer:
 		if size <= 1 {
-			return slice, nil
+			return slice
 		}
 		vv := make([]decimal.Decimal, size)
 		for i := 0; i < size; i++ {
@@ -556,17 +556,17 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 		f = func(i, j int) bool { return vv[i].Cmp(vv[j]) < 0 }
 	case string:
 		if size <= 1 {
-			return slice, nil
+			return slice
 		}
 		f = func(i, j int) bool { return values[i].(string) < values[j].(string) }
 	case int:
 		if size <= 1 {
-			return slice, nil
+			return slice
 		}
 		f = func(i, j int) bool { return values[i].(int) < values[j].(int) }
 	case bool:
 		if size <= 1 {
-			return slice, nil
+			return slice
 		}
 		f = func(i, j int) bool { return !values[i].(bool) }
 	}
@@ -574,5 +574,5 @@ func _sortBy(slice interface{}, field string) (s interface{}, err error) {
 	reflect.Copy(rv2, rv)
 	s2 := rv2.Interface()
 	sort.Slice(s2, f)
-	return s2, nil
+	return s2
 }
