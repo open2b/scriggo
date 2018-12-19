@@ -130,11 +130,11 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return sp
 	case *ast.Assignment:
-		idents := make([]*ast.Identifier, len(n.Idents))
-		for i, ident := range n.Idents {
-			idents[i] = ast.NewIdentifier(ClonePosition(ident.Position), ident.Name)
+		variables := make([]ast.Expression, len(n.Variables))
+		for i, v := range n.Variables {
+			variables[i] = CloneExpression(v)
 		}
-		return ast.NewAssignment(ClonePosition(n.Position), idents, CloneExpression(n.Expr), n.Declaration)
+		return ast.NewAssignment(ClonePosition(n.Position), variables, CloneExpression(n.Expr), n.Declaration)
 	case *ast.Comment:
 		return ast.NewComment(ClonePosition(n.Position), n.Text)
 	case ast.Expression:

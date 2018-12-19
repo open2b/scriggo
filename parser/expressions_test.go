@@ -159,7 +159,7 @@ func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
 		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		<-lex.tokens
-		node, tok, err := parseExpr(nil, lex)
+		node, tok, err := parseExpr(token{}, lex)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

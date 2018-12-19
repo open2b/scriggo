@@ -90,9 +90,9 @@ import (
 //
 
 // parseExpr parses an expression and returns its tree and the last read token
-// that does not belong to the expression. firstToken, if not nil, is the
-// first token of the expression.
-func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
+// that does not belong to the expression. tok, if initialized, is the first
+// token of the expression.
+func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 
 	var err error
 
@@ -118,15 +118,12 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 	//
 
 	var ok bool
-	var tok token
 
-	if firstToken == nil {
+	if tok.txt == nil {
 		tok, ok = <-lex.tokens
 		if !ok {
 			return nil, token{}, lex.err
 		}
-	} else {
-		tok = *firstToken
 	}
 
 	for {
@@ -141,7 +138,7 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok, err = parseExpr(nil, lex)
+			expr, tok, err = parseExpr(token{}, lex)
 			if err != nil {
 				return nil, token{}, err
 			}
@@ -166,7 +163,7 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 			elements := []ast.KeyValue{}
 			for {
 				var element ast.KeyValue
-				element.Key, tok, err = parseExpr(nil, lex)
+				element.Key, tok, err = parseExpr(token{}, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -178,7 +175,7 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 					if tok.typ != tokenColon {
 						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing key in map literal")}
 					}
-					element.Value, tok, err = parseExpr(nil, lex)
+					element.Value, tok, err = parseExpr(token{}, lex)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -209,7 +206,7 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 			var elements = []ast.Expression{}
 			for {
 				var element ast.Expression
-				element, tok, err = parseExpr(nil, lex)
+				element, tok, err = parseExpr(token{}, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -281,7 +278,7 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 				var args = []ast.Expression{}
 				for {
 					var arg ast.Expression
-					arg, tok, err = parseExpr(nil, lex)
+					arg, tok, err = parseExpr(token{}, lex)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -305,14 +302,14 @@ func parseExpr(firstToken *token, lex *lexer) (ast.Expression, token, error) {
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok, err = parseExpr(nil, lex)
+				index, tok, err = parseExpr(token{}, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
 				if tok.typ == tokenColon {
 					low := index
 					var high ast.Expression
-					high, tok, err = parseExpr(nil, lex)
+					high, tok, err = parseExpr(token{}, lex)
 					if err != nil {
 						return nil, token{}, err
 					}
