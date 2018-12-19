@@ -299,19 +299,25 @@ func _len(v interface{}) int {
 			return len(string(s))
 		}
 		return utf8.RuneCountInString(string(s))
-	case []int:
+	case MutableSlice:
 		return len(s)
-	case []decimal.Decimal:
+	case []interface{}:
 		return len(s)
 	case []string:
 		return len(s)
 	case []HTML:
 		return len(s)
+	case []int:
+		return len(s)
+	case []decimal.Decimal:
+		return len(s)
 	case []bool:
 		return len(s)
-	case []interface{}:
-		return len(s)
 	case MutableMap:
+		return len(s)
+	case map[string]interface{}:
+		return len(s)
+	case map[string]string:
 		return len(s)
 	default:
 		var rv = reflect.ValueOf(v)
@@ -383,7 +389,7 @@ func _replace(s, old, new string) string {
 // _reverse is the builtin function "reverse".
 func _reverse(s interface{}) interface{} {
 	if s == nil {
-		return s
+		return nil
 	}
 	rv := reflect.ValueOf(s)
 	if rv.Kind() != reflect.Slice {
@@ -424,69 +430,131 @@ func _sha256(s string) string {
 }
 
 // _shuffle is the builtin function "shuffle".
-func _shuffle(s interface{}) interface{} {
+func _shuffle(s interface{}) MutableSlice {
 	if s == nil {
 		return nil
 	}
-	rv := reflect.ValueOf(s)
-	if rv.Kind() != reflect.Slice {
-		panic(errNoSlice)
+	var ms MutableSlice
+	switch m := s.(type) {
+	case MutableSlice:
+		ms = m
+	case []interface{}:
+		ms = make(MutableSlice, len(m))
+		copy(ms, m)
+	default:
+		rv := reflect.ValueOf(s)
+		if rv.Kind() != reflect.Slice {
+			panic(errNoSlice)
+		}
+		l := rv.Len()
+		ms = make(MutableSlice, l)
+		for i := 0; i < l; i++ {
+			ms[i] = rv.Index(i).Interface()
+		}
 	}
-	l := rv.Len()
-	if l < 2 {
-		return s
+	if len(ms) < 2 {
+		return ms
 	}
-	// Seed.
+	// Swap.
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
 		seed = testSeed
 	}
 	r := rand.New(rand.NewSource(seed))
-	// Swap.
-	rv2 := reflect.MakeSlice(rv.Type(), l, l)
-	reflect.Copy(rv2, rv)
-	s2 := rv2.Interface()
-	swap := reflect.Swapper(s2)
-	for i := l - 1; i >= 0; i-- {
+	swap := reflect.Swapper(ms)
+	for i := len(ms) - 1; i >= 0; i-- {
 		j := r.Intn(i + 1)
 		swap(i, j)
 	}
-	return s2
+	return ms
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}) interface{} {
+func _sort(slice interface{}) MutableSlice {
 	if slice == nil {
-		return slice
+		return nil
 	}
 	// no reflect
 	switch s := slice.(type) {
+	case MutableSlice:
+		if len(s) < 2 {
+			return s
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				panic(errors.New("no slice of string, number or bool"))
+			}
+		}()
+		switch s[0].(type) {
+		case string, HTML:
+			sort.Slice(s, func(i, j int) bool {
+				var ok bool
+				var si, sj string
+				if si, ok = s[i].(string); !ok {
+					si = string(s[i].(HTML))
+				}
+				if sj, ok = s[j].(string); !ok {
+					sj = string(s[j].(HTML))
+				}
+				return si < sj
+			})
+			return s
+		case decimal.Decimal, int:
+			sort.Slice(s, func(i, j int) bool {
+				var ok bool
+				var si, sj decimal.Decimal
+				if si, ok = s[i].(decimal.Decimal); !ok {
+					si = decimal.New(int64(s[i].(int)), 0)
+				}
+				if sj, ok = s[j].(decimal.Decimal); !ok {
+					sj = decimal.New(int64(s[j].(int)), 0)
+				}
+				return si.LessThan(sj)
+			})
+			return s
+		case bool:
+			sort.Slice(s, func(i, j int) bool { return !s[i].(bool) })
+			return s
+		}
 	case []string:
-		if len(s) <= 1 {
-			return s
+		ms := make(MutableSlice, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
 		}
-		s2 := make([]string, len(s))
-		copy(s2, s)
-		sort.Strings(s2)
-		return s2
+		sort.Slice(ms, func(i, j int) bool { return ms[i].(string) < ms[j].(string) })
+		return ms
+	case []HTML:
+		ms := make(MutableSlice, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
+		}
+		sort.Slice(ms, func(i, j int) bool { return string(ms[i].(HTML)) < string(ms[j].(HTML)) })
+		return ms
 	case []int:
-		if len(s) <= 1 {
-			return s
+		ms := make(MutableSlice, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
 		}
-		s2 := make([]int, len(s))
-		copy(s2, s)
-		sort.Ints(s2)
-		return s2
+		sort.Slice(ms, func(i, j int) bool { return ms[i].(int) < ms[j].(int) })
+		return ms
+	case []decimal.Decimal:
+		ms := make(MutableSlice, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
+		}
+		sort.Slice(ms, func(i, j int) bool {
+			return ms[i].(decimal.Decimal).LessThan(ms[j].(decimal.Decimal))
+		})
+		return ms
 	case []bool:
-		if len(s) <= 1 {
-			return s
+		ms := make(MutableSlice, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
 		}
-		s2 := make([]bool, len(s))
-		copy(s2, s)
-		sort.Slice(s2, func(i, j int) bool { return !s2[i] })
-		return s2
+		sort.Slice(ms, func(i, j int) bool { return !ms[i].(bool) })
+		return ms
 	}
-	panic(fmt.Errorf("no slice of string, int or bool"))
+	panic(errors.New("no slice of string, number or bool"))
 }
 
 // _sortBy is the builtin function "sortBy".
