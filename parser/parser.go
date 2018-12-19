@@ -400,6 +400,9 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				if tok.typ != tokenIdentifier {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
+				if len(tok.txt) == 1 && tok.txt[0] == '_' {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+				}
 				macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 				tok, ok = <-lex.tokens
 				if !ok {
@@ -414,6 +417,9 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					}
 					if tok.typ != tokenIdentifier {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+					}
+					if len(tok.txt) == 1 && tok.txt[0] == '_' {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
 					}
 					impor = macro
 					macro = ast.NewIdentifier(tok.pos, string(tok.txt))
@@ -579,6 +585,9 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 				}
 				if tok.typ != tokenIdentifier {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+				}
+				if len(tok.txt) == 1 && tok.txt[0] == '_' {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
 				}
 				ident := ast.NewIdentifier(tok.pos, string(tok.txt))
 				tok, ok = <-lex.tokens

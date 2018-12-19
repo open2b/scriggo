@@ -230,6 +230,9 @@ Nodes:
 				}
 			}
 			name := node.Ident.Name
+			if name == "_" {
+				continue
+			}
 			if v, ok := r.variable(name); ok {
 				var err error
 				if m, ok := v.(macro); ok {
@@ -374,17 +377,19 @@ Nodes:
 					return err
 				}
 				r.scope[path] = rn.vars[2]
+				if node.Ident != nil && node.Ident.Name == "_" {
+					continue
+				}
 				for name, m := range rn.vars[2] {
-					if _, ok := m.(macro); !ok {
-						continue
+					if _, ok := m.(macro); ok {
+						if strings.Index(name, ".") > 0 {
+							continue
+						}
+						if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+							continue
+						}
+						r.vars[2][name] = m
 					}
-					if strings.Index(name, ".") > 0 {
-						continue
-					}
-					if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-						continue
-					}
-					r.vars[2][name] = m
 				}
 			}
 
