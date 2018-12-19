@@ -446,6 +446,10 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
+		}
 		if nn1.Declaration != nn2.Declaration {
 			return fmt.Errorf("unexpected declaretion %t, expecting %t", nn1.Declaration, nn2.Declaration)
 		}
