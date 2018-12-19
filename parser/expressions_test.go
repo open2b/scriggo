@@ -26,7 +26,6 @@ var exprTests = []struct {
 	src  string
 	node ast.Node
 }{
-	{"_", ast.NewIdentifier(p(1, 1, 0, 0), "_")},
 	{"a", ast.NewIdentifier(p(1, 1, 0, 0), "a")},
 	{"a5", ast.NewIdentifier(p(1, 1, 0, 1), "a5")},
 	{"_a", ast.NewIdentifier(p(1, 1, 0, 1), "_a")},
