@@ -137,99 +137,87 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 }
 
 // _append is the builtin function "append".
-func _append(slice interface{}, elems ...interface{}) interface{} {
+func _append(slice interface{}, elems ...interface{}) MutableSlice {
 	if slice == nil {
-		panic(fmt.Errorf("first argument to append must be slice; have untyped nil"))
+		panic(fmt.Errorf("first argument to append must be slice; have nil"))
 	}
-	if elems == nil {
-		return slice
-	}
-	var ok bool
-SameType:
 	switch s := slice.(type) {
+	case MutableSlice:
+		return append(s, elems...)
+	case []interface{}:
+		l := len(s)
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
+		}
+		for i, v := range elems {
+			ms[l+i] = v
+		}
+		return ms
 	case []string:
 		l := len(s)
-		sr := make([]string, l+len(elems))
-		for i, s := range s {
-			sr[i] = s
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
 		}
-		for i, vv := range elems {
-			sr[l+i], ok = vv.(string)
-			if !ok {
-				break SameType
-			}
+		for i, v := range elems {
+			ms[l+i] = v
 		}
-		return sr
+		return ms
 	case []HTML:
 		l := len(s)
-		sr := make([]HTML, l+len(elems))
-		for i, s := range s {
-			sr[i] = s
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
 		}
-		for i, vv := range elems {
-			sr[l+i], ok = vv.(HTML)
-			if !ok {
-				break SameType
-			}
+		for i, v := range elems {
+			ms[l+i] = v
 		}
-		return sr
+		return ms
 	case []int:
 		l := len(s)
-		sr := make([]int, l+len(elems))
-		for i, s := range s {
-			sr[i] = s
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
 		}
-		for i, vv := range elems {
-			sr[l+i], ok = vv.(int)
-			if !ok {
-				break SameType
-			}
+		for i, v := range elems {
+			ms[l+i] = v
 		}
-		return sr
+		return ms
 	case []decimal.Decimal:
 		l := len(s)
-		sr := make([]decimal.Decimal, l+len(elems))
-		for i, s := range s {
-			sr[i] = s
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
 		}
-		for i, vv := range elems {
-			sr[l+i], ok = vv.(decimal.Decimal)
-			if !ok {
-				break SameType
-			}
+		for i, v := range elems {
+			ms[l+i] = v
 		}
-		return sr
+		return ms
 	case []bool:
 		l := len(s)
-		sr := make([]bool, l+len(elems))
-		for i, s := range s {
-			sr[i] = s
+		ms := make(MutableSlice, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
 		}
-		for i, vv := range elems {
-			sr[l+i], ok = vv.(bool)
-			if !ok {
-				break SameType
-			}
+		for i, v := range elems {
+			ms[l+i] = v
 		}
-		return sr
-	}
-	st := reflect.TypeOf(slice)
-	if st.Kind() != reflect.Slice {
-		panic(fmt.Errorf("first argument to append must be slice; have %s", typeof(slice)))
+		return ms
 	}
 	sv := reflect.ValueOf(slice)
+	if sv.Kind() != reflect.Slice {
+		panic(fmt.Errorf("first argument to append must be slice; have %s", typeof(slice)))
+	}
 	l := sv.Len()
-	sr := make([]interface{}, l+len(elems))
+	ms := make(MutableSlice, l+len(elems))
 	for i := 0; i < l; i++ {
-		sr[i] = sv.Index(i).Interface()
+		ms[i] = sv.Index(i).Interface()
 	}
-	for i, vv := range elems {
-		if vv == nil {
-			panic(fmt.Errorf("use of untyped nil in slice"))
-		}
-		sr[l+i] = vv
+	for i, v := range elems {
+		ms[l+i] = v
 	}
-	return sr
+	return ms
 }
 
 // _base64 is the builtin function "base64".
