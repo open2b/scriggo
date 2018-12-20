@@ -884,6 +884,14 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			panic(r.errorf(node, "slice bounds out of range"))
 		}
 	}
+	if ms, ok := v.(MutableSlice); ok {
+		if node.High == nil {
+			h = len(ms)
+		} else if h > len(ms) {
+			panic(r.errorf(node.High, "slice bounds out of range"))
+		}
+		return ms[l:h]
+	}
 	var e = reflect.ValueOf(v)
 	if e.Kind() == reflect.Slice {
 		if node.High == nil {
@@ -1318,6 +1326,9 @@ func asBase(v interface{}) interface{} {
 		return v
 	// MutableMap
 	case MutableMap:
+		return v
+	// MutableSlice
+	case MutableSlice:
 		return v
 	default:
 		rv := reflect.ValueOf(v)

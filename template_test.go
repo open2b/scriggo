@@ -323,6 +323,7 @@ var rendererStmtTests = []struct {
 	{"{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
 	{"{% a := 0 %}{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
 	{"{% b := 0 %}{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
+	{"{% s := {1,2,3} %}{% s2 := s[0:2] %}{% s2[0] = 5 %}{{ s2 }}", "5, 2", nil},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for i, p in products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",
