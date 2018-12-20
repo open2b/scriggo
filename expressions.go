@@ -756,6 +756,18 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return u, true, nil
 		}
 		return nil, false, nil
+	case MutableSlice:
+		if n == 2 {
+			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
+		i, err := r.intIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		if i >= len(vv) {
+			return nil, false, r.errorf(node, "index out of range")
+		}
+		return vv[i], true, nil
 	}
 	var rv = reflect.ValueOf(value)
 	switch rv.Kind() {
