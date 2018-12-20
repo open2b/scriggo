@@ -339,6 +339,9 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				case tokenIdentifier:
 					// e.ident
 					ident := string(tok.txt)
+					if ident == "_" {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot refer to blank field")}
+					}
 					pos.End = tok.pos.End
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:
@@ -349,6 +352,9 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 					}
 					if tok.typ != tokenIdentifier && tok.typ != tokenMap {
 						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)}
+					}
+					if len(tok.txt) == 1 && tok.txt[0] == '_' {
+						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
 					}
 					typ := ast.NewIdentifier(tok.pos, string(tok.txt))
 					tok, ok = <-lex.tokens
