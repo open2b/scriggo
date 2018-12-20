@@ -700,35 +700,19 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 // two-values ( n == 2 ) context. If its index exists, returns the value and
 // true, otherwise it returns nil and false.
 func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error) {
-	value := asBase(r.evalExpression(node.Expr))
-	if value == nil {
+	v := asBase(r.evalExpression(node.Expr))
+	if v == nil {
 		if r.isBuiltin("nil", node.Expr) {
 			return nil, false, r.errorf(node.Expr, "use of untyped nil")
 		} else {
 			return nil, false, r.errorf(node, "index out of range")
 		}
 	}
-	switch vv := value.(type) {
+	if vv, ok := v.(HTML); ok {
+		v = string(vv)
+	}
+	switch vv := v.(type) {
 	case string:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
-		i, err := r.intIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if i >= len(vv) {
-			return nil, false, r.errorf(node, "index out of range")
-		}
-		p := 0
-		for _, c := range vv {
-			if p == i {
-				return string(c), true, nil
-			}
-			p++
-		}
-		return nil, false, r.errorf(node, "index out of range")
-	case HTML:
 		if n == 2 {
 			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
 		}
@@ -769,24 +753,8 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return vv[i], true, nil
 	}
-	var rv = reflect.ValueOf(value)
+	var rv = reflect.ValueOf(v)
 	switch rv.Kind() {
-	case reflect.String:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
-		i, err := r.intIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		var p = 0
-		for _, c := range rv.Interface().(string) {
-			if p == i {
-				return string(c), true, nil
-			}
-			p++
-		}
-		return nil, false, r.errorf(node, "index out of range")
 	case reflect.Map:
 		key, err := r.stringIndex(node.Index)
 		if err != nil {
@@ -822,7 +790,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return rv.Index(i).Interface(), true, nil
 	}
-	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(value))
+	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
 }
 
 // intIndex evaluates node as an int index and return the value.
@@ -896,32 +864,18 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			panic(r.errorf(node, "slice bounds out of range"))
 		}
 	}
-	if ms, ok := v.(MutableSlice); ok {
-		if node.High == nil {
-			h = len(ms)
-		} else if h > len(ms) {
-			panic(r.errorf(node.High, "slice bounds out of range"))
-		}
-		return ms[l:h]
+	if vv, ok := v.(HTML); ok {
+		v = string(vv)
 	}
-	var e = reflect.ValueOf(v)
-	if e.Kind() == reflect.Slice {
-		if node.High == nil {
-			h = e.Len()
-		} else if h > e.Len() {
-			panic(r.errorf(node.High, "slice bounds out of range"))
-		}
-		return e.Slice(l, h).Interface()
-	}
-	if e.Kind() == reflect.String {
-		str := e.String()
+	switch vv := v.(type) {
+	case string:
 		i := 0
 		lb, hb := -1, -1
-		for ib := range str {
+		for ib := range vv {
 			if i == l {
 				lb = ib
 				if node.High == nil {
-					hb = len(str)
+					hb = len(vv)
 					break
 				}
 			}
@@ -938,12 +892,28 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			if i < h {
 				panic(r.errorf(node.High, "slice bounds out of range"))
 			}
-			hb = len(str)
+			hb = len(vv)
 		}
-		if lb == 0 && hb == len(str) {
-			return str
+		if lb == 0 && hb == len(vv) {
+			return vv
 		}
-		return str[lb:hb]
+		return vv[lb:hb]
+	case MutableSlice:
+		if node.High == nil {
+			h = len(vv)
+		} else if h > len(vv) {
+			panic(r.errorf(node.High, "slice bounds out of range"))
+		}
+		return vv[l:h]
+	}
+	var e = reflect.ValueOf(v)
+	if e.Kind() == reflect.Slice {
+		if node.High == nil {
+			h = e.Len()
+		} else if h > e.Len() {
+			panic(r.errorf(node.High, "slice bounds out of range"))
+		}
+		return e.Slice(l, h).Interface()
 	}
 	panic(r.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }

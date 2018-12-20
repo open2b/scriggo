@@ -46,6 +46,8 @@ func (s aString) String() string {
 	return s.v
 }
 
+type stringConvertible string
+
 type aMap struct {
 	v string
 	H func() string `template:"G"`
@@ -122,7 +124,9 @@ var rendererExprTests = []struct {
 	{"a[1]", "€", scope{"a": "x€z"}},
 	{"a[2]", "z", scope{"a": "x€z"}},
 	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
+	{"a[1]", "b", scope{"a": HTML("<b>")}},
 	{`a[1]`, "b", scope{"a": aString{"abc"}}},
+	{"a[1]", "b", scope{"a": stringConvertible("abc")}},
 	{"a[:]", "x€z", scope{"a": "x€z"}},
 	{"a[1:]", "€z", scope{"a": "x€z"}},
 	{"a[:2]", "x€", scope{"a": "x€z"}},
@@ -132,7 +136,9 @@ var rendererExprTests = []struct {
 	{"a[1:]", "xz", scope{"a": "€xz"}},
 	{"a[:2]", "xz", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
+	{"a[1:]", "b&gt;", scope{"a": HTML("<b>")}},
 	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
+	{"a[1:]", "z€", scope{"a": stringConvertible("xz€")}},
 	{`a.(string)`, "abc", scope{"a": "abc"}},
 	{`a.(string)`, "<b>", scope{"a": HTML("<b>")}},
 	{`a.(html)`, "<b>", scope{"a": HTML("<b>")}},
