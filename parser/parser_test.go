@@ -99,6 +99,8 @@ var treeTests = []struct {
 			ast.NewInt(p(1, 9, 8, 8), 1), true)}, ast.ContextHTML)},
 	{"{% a = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 10), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")}, ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
+	{"{% _ = 2 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 10), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "_")}, ast.NewInt(p(1, 8, 7, 7), 2), false)}, ast.ContextHTML)},
 	{"{% a.b = 2 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 12), []ast.Expression{ast.NewSelector(p(1, 5, 3, 5), ast.NewIdentifier(p(1, 4, 3, 3), "a"), "b")},
 			ast.NewInt(p(1, 10, 9, 9), 2), false)}, ast.ContextHTML)},

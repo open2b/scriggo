@@ -86,6 +86,7 @@ var typeTests = map[string][]tokenType{
 	"{{ a >= b }}":          {tokenStartValue, tokenIdentifier, tokenGreaterOrEqual, tokenIdentifier, tokenEndValue},
 	"{{ !a }}":              {tokenStartValue, tokenNot, tokenIdentifier, tokenEndValue},
 	"{{ a[5] }}":            {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenRightBrackets, tokenEndValue},
+	"{{ a[\"5\"] }}":        {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenInterpretedString, tokenRightBrackets, tokenEndValue},
 	"{{ a[:] }}":            {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenRightBrackets, tokenEndValue},
 	"{{ a[:8] }}":           {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenColon, tokenNumber, tokenRightBrackets, tokenEndValue},
 	"{{ a[3:] }}":           {tokenStartValue, tokenIdentifier, tokenLeftBrackets, tokenNumber, tokenColon, tokenRightBrackets, tokenEndValue},
