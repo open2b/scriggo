@@ -591,6 +591,29 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 		}
 		return nil, false, nil
 	}
+	switch v := value.(type) {
+	case MutableMap:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]interface{}:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]string:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]HTML:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]decimal.Decimal:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]int:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	case map[string]bool:
+		vv, ok := v[node.Ident]
+		return vv, ok, nil
+	}
 	rv := reflect.ValueOf(value)
 	switch rv.Kind() {
 	case reflect.Map:
@@ -657,7 +680,7 @@ func hasType(v interface{}, typ valuetype) bool {
 		return typ == builtins["int"] || typ == builtins["number"]
 	case bool:
 		return typ == builtins["bool"]
-	case []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
+	case MutableSlice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
 		return typ == builtins["slice"]
 	case MutableMap, map[string]interface{}, map[string]string, map[string]HTML,
 		map[string]decimal.Decimal, map[string]int, map[string]bool:
@@ -666,7 +689,7 @@ func hasType(v interface{}, typ valuetype) bool {
 		return typ == builtins["error"]
 	}
 	switch typ {
-	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"]:
+	case builtins["string"], builtins["html"], builtins["number"], builtins["int"], builtins["bool"], builtins["error"]:
 		return false
 	}
 	switch rv := reflect.ValueOf(v); rv.Kind() {
@@ -708,6 +731,19 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return nil, false, r.errorf(node, "index out of range")
 		}
 	}
+	checkSlice := func(length int) (int, error) {
+		if n == 2 {
+			return 0, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
+		}
+		i, err := r.intIndex(node.Index)
+		if err != nil {
+			return 0, err
+		}
+		if i >= length {
+			return 0, r.errorf(node, "index out of range")
+		}
+		return i, nil
+	}
 	if vv, ok := v.(HTML); ok {
 		v = string(vv)
 	}
@@ -736,20 +772,100 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		if err != nil {
 			return nil, false, err
 		}
+		u, ok := vv[i]
+		return u, ok, nil
+	case map[string]interface{}:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		u, ok := vv[i]
+		return u, ok, nil
+	case map[string]string:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		if u, ok := vv[i]; ok {
+			return u, true, nil
+		}
+		return nil, false, nil
+	case map[string]HTML:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		if u, ok := vv[i]; ok {
+			return u, true, nil
+		}
+		return nil, false, nil
+	case map[string]decimal.Decimal:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		if u, ok := vv[i]; ok {
+			return u, true, nil
+		}
+		return nil, false, nil
+	case map[string]int:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
+		if u, ok := vv[i]; ok {
+			return u, true, nil
+		}
+		return nil, false, nil
+	case map[string]bool:
+		i, err := r.stringIndex(node.Index)
+		if err != nil {
+			return nil, false, err
+		}
 		if u, ok := vv[i]; ok {
 			return u, true, nil
 		}
 		return nil, false, nil
 	case MutableSlice:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
-		i, err := r.intIndex(node.Index)
+		i, err := checkSlice(len(vv))
 		if err != nil {
 			return nil, false, err
 		}
-		if i >= len(vv) {
-			return nil, false, r.errorf(node, "index out of range")
+		return vv[i], true, nil
+	case []interface{}:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []string:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []HTML:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []decimal.Decimal:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []int:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []bool:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
 		}
 		return vv[i], true, nil
 	}
@@ -778,15 +894,9 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return sk.value(rv), true, nil
 		}
 	case reflect.Slice:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
-		i, err := r.intIndex(node.Index)
+		i, err := checkSlice(rv.Len())
 		if err != nil {
 			return nil, false, err
-		}
-		if i >= rv.Len() {
-			return nil, false, r.errorf(node, "index out of range")
 		}
 		return rv.Index(i).Interface(), true, nil
 	}
@@ -864,6 +974,14 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			panic(r.errorf(node, "slice bounds out of range"))
 		}
 	}
+	h2 := func(length int) int {
+		if node.High == nil {
+			h = length
+		} else if h > length {
+			panic(r.errorf(node.High, "slice bounds out of range"))
+		}
+		return h
+	}
 	if vv, ok := v.(HTML); ok {
 		v = string(vv)
 	}
@@ -899,21 +1017,22 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 		}
 		return vv[lb:hb]
 	case MutableSlice:
-		if node.High == nil {
-			h = len(vv)
-		} else if h > len(vv) {
-			panic(r.errorf(node.High, "slice bounds out of range"))
-		}
-		return vv[l:h]
+		return vv[l:h2(len(vv))]
+	case []interface{}:
+		return vv[l:h2(len(vv))]
+	case []string:
+		return vv[l:h2(len(vv))]
+	case []HTML:
+		return vv[l:h2(len(vv))]
+	case []decimal.Decimal:
+		return vv[l:h2(len(vv))]
+	case []int:
+		return vv[l:h2(len(vv))]
+	case []bool:
+		return vv[l:h2(len(vv))]
 	}
-	var e = reflect.ValueOf(v)
-	if e.Kind() == reflect.Slice {
-		if node.High == nil {
-			h = e.Len()
-		} else if h > e.Len() {
-			panic(r.errorf(node.High, "slice bounds out of range"))
-		}
-		return e.Slice(l, h).Interface()
+	if e := reflect.ValueOf(v); e.Kind() == reflect.Slice {
+		return e.Slice(l, h2(e.Len())).Interface()
 	}
 	panic(r.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
 }
