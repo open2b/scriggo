@@ -564,7 +564,7 @@ func NewSlice(pos *Position, elements []Expression) *Slice {
 }
 
 func (n *Slice) String() string {
-	s := "{"
+	s := "slice{"
 	for i, element := range n.Elements {
 		s += element.String()
 		if i < len(n.Elements)-1 {

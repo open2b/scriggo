@@ -201,8 +201,15 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 			operand = ast.NewMap(pos, elements)
-		case tokenLeftBraces: // {...}
+		case tokenSlice: // slice{...}
 			pos := tok.pos
+			tok, ok = <-lex.tokens
+			if !ok {
+				return nil, token{}, lex.err
+			}
+			if tok.typ != tokenLeftBraces {
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)}
+			}
 			var elements = []ast.Expression{}
 			for {
 				var element ast.Expression
@@ -350,7 +357,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 					if !ok {
 						return nil, token{}, lex.err
 					}
-					if tok.typ != tokenIdentifier && tok.typ != tokenMap {
+					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice {
 						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)}
 					}
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {

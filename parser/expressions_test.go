@@ -141,11 +141,11 @@ var exprTests = []struct {
 	{"map{`a`:5,`b`:7}", ast.NewMap(p(1, 1, 0, 15), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)},
 		{ast.NewString(p(1, 11, 10, 12), "b"), ast.NewInt(p(1, 15, 14, 14), 7)}})},
-	{"{}", ast.NewSlice(p(1, 1, 0, 1), []ast.Expression{})},
-	{"{5}", ast.NewSlice(p(1, 1, 0, 2), []ast.Expression{ast.NewInt(p(1, 2, 1, 1), 5)})},
-	{"{5,6,7}", ast.NewSlice(p(1, 1, 0, 6), []ast.Expression{ast.NewInt(p(1, 2, 1, 1), 5),
-		ast.NewInt(p(1, 4, 3, 3), 6), ast.NewInt(p(1, 6, 5, 5), 7)})},
-	{"{{}}", ast.NewSlice(p(1, 1, 0, 3), []ast.Expression{ast.NewSlice(p(1, 2, 1, 2), []ast.Expression{})})},
+	{"slice{}", ast.NewSlice(p(1, 1, 0, 6), []ast.Expression{})},
+	{"slice{5}", ast.NewSlice(p(1, 1, 0, 7), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5)})},
+	{"slice{5,6,7}", ast.NewSlice(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5),
+		ast.NewInt(p(1, 9, 8, 8), 6), ast.NewInt(p(1, 11, 10, 10), 7)})},
+	{"slice{slice{}}", ast.NewSlice(p(1, 1, 0, 13), []ast.Expression{ast.NewSlice(p(1, 7, 6, 12), []ast.Expression{})})},
 	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(2, 1, 4, 4), 2))},
 	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(3, 4, 11, 11), 2))},
 	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{

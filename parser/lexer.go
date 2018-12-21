@@ -849,6 +849,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenMap, p)
 	case "show":
 		l.emit(tokenShow, p)
+	case "slice":
+		l.emit(tokenSlice, p)
 	default:
 		l.emit(tokenIdentifier, p)
 		l.column += cols
