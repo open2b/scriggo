@@ -1340,6 +1340,9 @@ func (r *rendering) convert(value interface{}, typ valuetype) (interface{}, erro
 			return []rune(string(v)), nil
 		}
 	}
+	if value == nil {
+		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
+	}
 	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", value, typeof(value), typ)
 }
 
