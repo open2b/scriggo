@@ -219,9 +219,9 @@ func (a Assignment) String() string {
 		s += v.String()
 	}
 	if a.Declaration {
-		s += ":="
+		s += " := "
 	} else {
-		s += "="
+		s += " = "
 	}
 	s += a.Expr.String()
 	return s
