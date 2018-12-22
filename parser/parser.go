@@ -184,9 +184,9 @@ func ParseSource(src []byte, ctx ast.Context) (*ast.Tree, error) {
 					}
 					expr := expressions[0]
 					if ident, ok := expr.(*ast.Identifier); ok && ident.Name == "_" {
-						return nil, &Error{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")}
-					} else if call, ok := expr.(*ast.Call); !ok {
-						return nil, &Error{"", *(call.Pos()), fmt.Errorf("%s evaluated but not used", expr)}
+						return nil, &Error{"", *(expr.Pos()), fmt.Errorf("cannot use _ as value")}
+					} else if _, ok := expr.(*ast.Call); !ok {
+						return nil, &Error{"", *(expr.Pos()), fmt.Errorf("%s evaluated but not used", expr)}
 					}
 					addChild(parent, expr)
 					cutSpacesToken = true
