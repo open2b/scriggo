@@ -274,16 +274,6 @@ var rendererExprTests = []struct {
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint64(2)}},
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float32(2.0)}},
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float64(2.0)}},
-
-	// conversion
-	{`slice(nil).(slice)`, "", nil},
-	{`slice(nil) == nil`, "true", nil},
-	{`slice(a).(slice)`, "", scope{"a": MutableSlice(nil)}},
-	{`slice(a) == nil`, "true", scope{"a": MutableSlice(nil)}},
-	{`slice(a).(slice)`, "", scope{"a": []int(nil)}},
-	{`slice(a) == nil`, "true", scope{"a": []int(nil)}},
-	{`slice(a).(slice)`, "", scope{"a": []int(nil)}},
-	{`slice(a) != nil`, "true", scope{"a": []int{1, 2}}},
 }
 
 var rendererStmtTests = []struct {
@@ -363,6 +353,24 @@ var rendererStmtTests = []struct {
 	{"{% for i in slice{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
+
+	// conversion
+	{`{% if a, ok := slice(nil).(slice); ok %}ok{% end %}`, "ok", nil},
+	{`{% if slice(nil) == nil %}ok{% end %}`, "ok", nil},
+	{`{% if a, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": MutableSlice(nil)}},
+	{`{% if slice(a) == nil %}ok{% end %}`, "ok", scope{"a": MutableSlice(nil)}},
+	{`{% if a, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
+	{`{% if slice(a) == nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
+	{`{% if a, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
+	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int{1, 2}}},
+	{`{% if a, ok := map(nil).(map); ok %}ok{% end %}`, "ok", nil},
+	{`{% if map(nil) == nil %}ok{% end %}`, "ok", nil},
+	{`{% if a, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": MutableMap(nil)}},
+	{`{% if map(a) == nil %}ok{% end %}`, "ok", scope{"a": MutableMap(nil)}},
+	{`{% if a, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
+	{`{% if map(a) == nil %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
+	{`{% if a, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
+	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int{"b": 2}}},
 }
 
 var rendererVarsToScope = []struct {

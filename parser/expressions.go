@@ -151,58 +151,67 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			operand = expr
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
-		case tokenMap: // map{...}
-			pos := tok.pos
+		case tokenMap: // map{...}, map(...)
+			typeTok := tok
 			tok, ok = <-lex.tokens
 			if !ok {
 				return nil, token{}, lex.err
 			}
-			if tok.typ != tokenLeftBraces {
-				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)}
-			}
-			elements := []ast.KeyValue{}
-			for {
-				var element ast.KeyValue
-				element.Key, tok, err = parseExpr(token{}, lex)
-				if err != nil {
-					return nil, token{}, err
-				}
-				if element.Key == nil {
-					if tok.typ != tokenRightBraces {
-						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
-					}
-				} else {
-					if tok.typ != tokenColon {
-						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing key in map literal")}
-					}
-					element.Value, tok, err = parseExpr(token{}, lex)
+			switch tok.typ {
+			case tokenLeftBraces:
+				// Map definition.
+				elements := []ast.KeyValue{}
+				for {
+					var element ast.KeyValue
+					element.Key, tok, err = parseExpr(token{}, lex)
 					if err != nil {
 						return nil, token{}, err
 					}
-					if element.Value == nil {
-						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
-					}
-					elements = append(elements, element)
-				}
-				if tok.typ == tokenRightBraces {
-					pos.End = tok.pos.End
-					break
-				}
-			}
-			if len(elements) > 1 {
-				duplicates := map[string]struct{}{}
-				for _, element := range elements {
-					if key, ok := element.Key.(*ast.String); ok {
-						if _, ok := duplicates[key.Text]; ok {
-							return nil, token{}, &Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)}
+					if element.Key == nil {
+						if tok.typ != tokenRightBraces {
+							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
 						}
-						duplicates[key.Text] = struct{}{}
+					} else {
+						if tok.typ != tokenColon {
+							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing key in map literal")}
+						}
+						element.Value, tok, err = parseExpr(token{}, lex)
+						if err != nil {
+							return nil, token{}, err
+						}
+						if element.Value == nil {
+							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+						}
+						elements = append(elements, element)
+					}
+					if tok.typ == tokenRightBraces {
+						typeTok.pos.End = tok.pos.End
+						break
 					}
 				}
+				if len(elements) > 1 {
+					duplicates := map[string]struct{}{}
+					for _, element := range elements {
+						if key, ok := element.Key.(*ast.String); ok {
+							if _, ok := duplicates[key.Text]; ok {
+								return nil, token{}, &Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)}
+							}
+							duplicates[key.Text] = struct{}{}
+						}
+					}
+				}
+				operand = ast.NewMap(typeTok.pos, elements)
+			case tokenLeftParenthesis:
+				// Map conversion.
+				operand, err = parseExprConversion(typeTok, lex)
+				if err != nil {
+					return nil, token{}, err
+				}
+			default:
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)}
 			}
-			operand = ast.NewMap(pos, elements)
 		case tokenSlice: // slice{...}, slice(...)
-			pos := tok.pos
+			typeTok := tok
 			tok, ok = <-lex.tokens
 			if !ok {
 				return nil, token{}, lex.err
@@ -217,27 +226,14 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				if tok.typ != tokenRightBraces {
 					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
 				}
-				pos.End = tok.pos.End
-				operand = ast.NewSlice(pos, elements)
+				typeTok.pos.End = tok.pos.End
+				operand = ast.NewSlice(typeTok.pos, elements)
 			case tokenLeftParenthesis:
 				// Slice conversion.
-				elements, tok, err := parseExprList(lex)
+				operand, err = parseExprConversion(typeTok, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
-				if tok.typ != tokenRightParenthesis {
-					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
-				}
-				if len(elements) == 0 {
-					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to slice: slice()")}
-				}
-				if len(elements) > 1 {
-					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to slice: slice(%s)", exprListString(elements))}
-				}
-				ident := ast.NewIdentifier(pos, "slice")
-				pos2 := *pos
-				pos2.End = tok.pos.End
-				operand = ast.NewCall(&pos2, ident, elements)
 			default:
 				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)}
 			}
@@ -538,6 +534,29 @@ func exprListString(elements []ast.Expression) string {
 		s += element.String()
 	}
 	return s
+}
+
+// parseExprConversion parses a conversion expression where tok is the token
+// "map" or "slice".
+func parseExprConversion(tok token, lex *lexer) (ast.Expression, error) {
+	pos := tok.pos
+	ident := ast.NewIdentifier(pos, string(tok.txt))
+	elements, tok, err := parseExprList(lex)
+	if err != nil {
+		return nil, err
+	}
+	if tok.typ != tokenRightParenthesis {
+		return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
+	}
+	if len(elements) == 0 {
+		return nil, &Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to %s: %s()", ident.Name, ident.Name)}
+	}
+	if len(elements) > 1 {
+		return nil, &Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))}
+	}
+	pos2 := *pos
+	pos2.End = tok.pos.End
+	return ast.NewCall(&pos2, ident, elements), nil
 }
 
 // operatorType returns a operator type from a token type.

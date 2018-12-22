@@ -1332,6 +1332,24 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		case int:
 			return v, nil
 		}
+	case "map":
+		if value == nil {
+			return MutableMap(nil), nil
+		}
+		switch v := value.(type) {
+		case MutableMap:
+			return v, nil
+		default:
+			rv := reflect.ValueOf(v)
+			switch rv.Kind() {
+			case reflect.Map, reflect.Struct:
+				return v, nil
+			case reflect.Ptr:
+				if reflect.Indirect(rv).Kind() == reflect.Struct {
+					return v, nil
+				}
+			}
+		}
 	case "slice":
 		if value == nil {
 			return MutableSlice(nil), nil

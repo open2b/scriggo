@@ -141,6 +141,7 @@ var exprTests = []struct {
 	{"map{`a`:5,`b`:7}", ast.NewMap(p(1, 1, 0, 15), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)},
 		{ast.NewString(p(1, 11, 10, 12), "b"), ast.NewInt(p(1, 15, 14, 14), 7)}})},
+	{"map(nil)", ast.NewCall(p(1, 1, 0, 7), ast.NewIdentifier(p(1, 1, 0, 2), "map"), []ast.Expression{ast.NewIdentifier(p(1, 5, 4, 6), "nil")})},
 	{"slice{}", ast.NewSlice(p(1, 1, 0, 6), []ast.Expression{})},
 	{"slice{5}", ast.NewSlice(p(1, 1, 0, 7), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5)})},
 	{"slice{5,6,7}", ast.NewSlice(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5),
