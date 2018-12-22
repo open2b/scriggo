@@ -210,28 +210,14 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			if tok.typ != tokenLeftBraces {
 				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)}
 			}
-			var elements = []ast.Expression{}
-			for {
-				var element ast.Expression
-				element, tok, err = parseExpr(token{}, lex)
-				if err != nil {
-					return nil, token{}, err
-				}
-				if element == nil {
-					if tok.typ != tokenRightBraces {
-						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
-					}
-				} else {
-					if tok.typ != tokenComma && tok.typ != tokenRightBraces {
-						return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or }", tok)}
-					}
-					elements = append(elements, element)
-				}
-				if tok.typ == tokenRightBraces {
-					pos.End = tok.pos.End
-					break
-				}
+			elements, tok, err := parseExprList(lex)
+			if err != nil {
+				return nil, token{}, err
 			}
+			if tok.typ != tokenRightBraces {
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
+			}
+			pos.End = tok.pos.End
 			operand = ast.NewSlice(pos, elements)
 		case
 			tokenAddition,    // +e
@@ -282,28 +268,14 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				var args = []ast.Expression{}
-				for {
-					var arg ast.Expression
-					arg, tok, err = parseExpr(token{}, lex)
-					if err != nil {
-						return nil, token{}, err
-					}
-					if arg == nil {
-						if tok.typ != tokenRightParenthesis {
-							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
-						}
-					} else {
-						if tok.typ != tokenComma && tok.typ != tokenRightParenthesis {
-							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or )", tok)}
-						}
-						args = append(args, arg)
-					}
-					if tok.typ == tokenRightParenthesis {
-						pos.End = tok.pos.End
-						break
-					}
+				args, tok, err := parseExprList(lex)
+				if err != nil {
+					return nil, token{}, err
 				}
+				if tok.typ != tokenRightParenthesis {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
+				}
+				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
@@ -512,6 +484,26 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 
 	}
 
+}
+
+// parseExprList parses a list of expressions separated by a comma and
+// returns the list and the last token read that can not be part of the
+// last expression.
+func parseExprList(lex *lexer) ([]ast.Expression, token, error) {
+	var elements = []ast.Expression{}
+	for {
+		element, tok, err := parseExpr(token{}, lex)
+		if err != nil {
+			return nil, token{}, err
+		}
+		if element == nil {
+			return elements, tok, nil
+		}
+		elements = append(elements, element)
+		if tok.typ != tokenComma {
+			return elements, tok, nil
+		}
+	}
 }
 
 // operatorType returns a operator type from a token type.
