@@ -384,29 +384,28 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			case tokenEOF:
 				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting expression")}
 			default:
-				if len(path) == 0 {
-					// Returns the operand.
-					return operand, tok, nil
-				}
-				// Adds the operand as a child of the leaf operator.
-				switch leaf := path[len(path)-1].(type) {
-				case *ast.UnaryOperator:
-					leaf.Expr = operand
-				case *ast.BinaryOperator:
-					leaf.Expr2 = operand
-				}
-				// Sets the end for all the operators in path.
-				end := operand.Pos().End
-				for _, op := range path {
-					switch o := op.(type) {
+				if len(path) > 0 {
+					// Adds the operand as a child of the leaf operator.
+					switch leaf := path[len(path)-1].(type) {
 					case *ast.UnaryOperator:
-						o.Position.End = end
+						leaf.Expr = operand
 					case *ast.BinaryOperator:
-						o.Position.End = end
+						leaf.Expr2 = operand
 					}
+					// Sets the end for all the operators in path.
+					end := operand.Pos().End
+					for _, op := range path {
+						switch o := op.(type) {
+						case *ast.UnaryOperator:
+							o.Position.End = end
+						case *ast.BinaryOperator:
+							o.Position.End = end
+						}
+					}
+					// The operand is the the root of the expression tree.
+					operand = path[0]
 				}
-				// Returns the root of the expression tree.
-				return path[0], tok, nil
+				return operand, tok, nil
 			}
 
 		}
