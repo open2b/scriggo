@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 	"open2b/template/ast/astutil"
@@ -1299,8 +1300,11 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			}
 		case int:
 			return string(v), nil
-		case []rune:
-			return string(v), nil
+		default:
+			rv := reflect.ValueOf(v)
+			if rv.Kind() == reflect.Slice {
+				return convertSliceToString(rv), nil
+			}
 		}
 	case "html":
 		switch v := value.(type) {
@@ -1315,8 +1319,11 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			}
 		case int:
 			return HTML(string(v)), nil
-		case []rune:
-			return string(v), nil
+		default:
+			rv := reflect.ValueOf(v)
+			if rv.Kind() == reflect.Slice {
+				return HTML(convertSliceToString(rv)), nil
+			}
 		}
 	case "number":
 		switch v := value.(type) {
@@ -1372,6 +1379,34 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
 	}
 	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
+}
+
+// convertSliceToString converts s of type slice to a value of type string.
+func convertSliceToString(s reflect.Value) string {
+	l := s.Len()
+	if l == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.Grow(l)
+	for i := 0; i < l; i++ {
+		element := asBase(s.Index(i).Interface())
+		if element != nil {
+			switch e := element.(type) {
+			case decimal.Decimal:
+				p := e.IntPart()
+				if decimal.New(p, 0).Equal(e) {
+					b.WriteString(string(p))
+					continue
+				}
+			case int:
+				b.WriteString(string(e))
+				continue
+			}
+		}
+		b.WriteRune(utf8.RuneError)
+	}
+	return b.String()
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.
