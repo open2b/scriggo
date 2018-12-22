@@ -274,6 +274,16 @@ var rendererExprTests = []struct {
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint64(2)}},
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float32(2.0)}},
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float64(2.0)}},
+
+	// conversion
+	{`slice(nil).(slice)`, "", nil},
+	{`slice(nil) == nil`, "true", nil},
+	{`slice(a).(slice)`, "", scope{"a": MutableSlice(nil)}},
+	{`slice(a) == nil`, "true", scope{"a": MutableSlice(nil)}},
+	{`slice(a).(slice)`, "", scope{"a": []int(nil)}},
+	{`slice(a) == nil`, "true", scope{"a": []int(nil)}},
+	{`slice(a).(slice)`, "", scope{"a": []int(nil)}},
+	{`slice(a) != nil`, "true", scope{"a": []int{1, 2}}},
 }
 
 var rendererStmtTests = []struct {

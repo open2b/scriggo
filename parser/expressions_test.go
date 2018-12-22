@@ -146,6 +146,7 @@ var exprTests = []struct {
 	{"slice{5,6,7}", ast.NewSlice(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5),
 		ast.NewInt(p(1, 9, 8, 8), 6), ast.NewInt(p(1, 11, 10, 10), 7)})},
 	{"slice{slice{}}", ast.NewSlice(p(1, 1, 0, 13), []ast.Expression{ast.NewSlice(p(1, 7, 6, 12), []ast.Expression{})})},
+	{"slice(nil)", ast.NewCall(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "slice"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
 	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(2, 1, 4, 4), 2))},
 	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(3, 4, 11, 11), 2))},
 	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{

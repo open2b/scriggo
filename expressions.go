@@ -1333,11 +1333,21 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			return v, nil
 		}
 	case "slice":
+		if value == nil {
+			return MutableSlice(nil), nil
+		}
 		switch v := value.(type) {
 		case string:
 			return []rune(v), nil
 		case HTML:
 			return []rune(string(v)), nil
+		case MutableSlice:
+			return v, nil
+		default:
+			rv := reflect.ValueOf(v)
+			if rv.Kind() == reflect.Slice {
+				return v, nil
+			}
 		}
 	}
 	if value == nil {

@@ -201,24 +201,46 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				}
 			}
 			operand = ast.NewMap(pos, elements)
-		case tokenSlice: // slice{...}
+		case tokenSlice: // slice{...}, slice(...)
 			pos := tok.pos
 			tok, ok = <-lex.tokens
 			if !ok {
 				return nil, token{}, lex.err
 			}
-			if tok.typ != tokenLeftBraces {
-				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)}
+			switch tok.typ {
+			case tokenLeftBraces:
+				// Slice definition.
+				elements, tok, err := parseExprList(lex)
+				if err != nil {
+					return nil, token{}, err
+				}
+				if tok.typ != tokenRightBraces {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
+				}
+				pos.End = tok.pos.End
+				operand = ast.NewSlice(pos, elements)
+			case tokenLeftParenthesis:
+				// Slice conversion.
+				elements, tok, err := parseExprList(lex)
+				if err != nil {
+					return nil, token{}, err
+				}
+				if tok.typ != tokenRightParenthesis {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)}
+				}
+				if len(elements) == 0 {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to slice: slice()")}
+				}
+				if len(elements) > 1 {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to slice: slice(%s)", exprListString(elements))}
+				}
+				ident := ast.NewIdentifier(pos, "slice")
+				pos2 := *pos
+				pos2.End = tok.pos.End
+				operand = ast.NewCall(&pos2, ident, elements)
+			default:
+				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)}
 			}
-			elements, tok, err := parseExprList(lex)
-			if err != nil {
-				return nil, token{}, err
-			}
-			if tok.typ != tokenRightBraces {
-				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)}
-			}
-			pos.End = tok.pos.End
-			operand = ast.NewSlice(pos, elements)
 		case
 			tokenAddition,    // +e
 			tokenSubtraction, // -e
@@ -504,6 +526,18 @@ func parseExprList(lex *lexer) ([]ast.Expression, token, error) {
 			return elements, tok, nil
 		}
 	}
+}
+
+// exprListString returns elements as its string representation.
+func exprListString(elements []ast.Expression) string {
+	s := ""
+	for i, element := range elements {
+		if i > 0 {
+			s += ", "
+		}
+		s += element.String()
+	}
+	return s
 }
 
 // operatorType returns a operator type from a token type.
