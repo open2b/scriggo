@@ -409,6 +409,16 @@ Nodes:
 				return err
 			}
 
+		case *ast.Call:
+
+			_, err := r.evalCallN(node, 0)
+			if err != nil {
+				if r.handleError(err) {
+					continue
+				}
+				return err
+			}
+
 		}
 	}
 

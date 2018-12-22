@@ -8,6 +8,7 @@ package template
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"open2b/template/ast"
@@ -340,10 +341,11 @@ var statementBuiltinTests = []struct {
 	res  string
 	vars scope
 }{
+
 	// delete
-	{"{{ delete(m,`a`) }}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{}}},
-	{"{{ delete(m,`a`) }}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
-	{"{{ delete(m,`b`) }}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
+	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
 }
 
 var rendererRandomBuiltinTests = []struct {
@@ -397,42 +399,42 @@ func TestRenderBuiltin(t *testing.T) {
 	}
 }
 
-//func TestStatementBuiltin(t *testing.T) {
-//	for _, expr := range statementBuiltinTests {
-//		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
-//		if err != nil {
-//			t.Errorf("source: %q, %s\n", expr.src, err)
-//			continue
-//		}
-//		var b = &bytes.Buffer{}
-//		err = RenderTree(b, tree, expr.vars, true)
-//		if err != nil {
-//			t.Errorf("source: %q, %s\n", expr.src, err)
-//			continue
-//		}
-//		var res = b.String()
-//		if res != expr.res {
-//			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
-//		}
-//	}
-//}
+func TestStatementBuiltin(t *testing.T) {
+	for _, expr := range statementBuiltinTests {
+		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = RenderTree(b, tree, expr.vars, true)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
 
-//func TestRenderErrorfBuiltin(t *testing.T) {
-//	src := "\n\n   {{ errorf(`error %s %d`, `a`, 5) }}"
-//	var tree, err = parser.ParseSource([]byte(src), ast.ContextHTML)
-//	if err != nil {
-//		t.Errorf("source: %q, %s\n", src, err)
-//		return
-//	}
-//	err = RenderTree(ioutil.Discard, tree, nil, true)
-//	if err == nil {
-//		t.Errorf("source: %q, expecting error\n", src)
-//		return
-//	}
-//	if e := ":3:7: error a 5"; err.Error() != e {
-//		t.Errorf("source: %q, unexpected error %q, expecting error %q\n", src, err.Error(), e)
-//	}
-//}
+func TestRenderErrorfBuiltin(t *testing.T) {
+	src := "\n\n   {% errorf(`error %s %d`, `a`, 5) %}"
+	var tree, err = parser.ParseSource([]byte(src), ast.ContextHTML)
+	if err != nil {
+		t.Errorf("source: %q, %s\n", src, err)
+		return
+	}
+	err = RenderTree(ioutil.Discard, tree, nil, true)
+	if err == nil {
+		t.Errorf("source: %q, expecting error\n", src)
+		return
+	}
+	if e := ":3:7: error a 5"; err.Error() != e {
+		t.Errorf("source: %q, unexpected error %q, expecting error %q\n", src, err.Error(), e)
+	}
+}
 
 func TestRenderRandomBuiltin(t *testing.T) {
 	for _, expr := range rendererRandomBuiltinTests {
