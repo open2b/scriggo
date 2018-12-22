@@ -91,8 +91,9 @@ import (
 
 // parseExpr parses an expression and returns its tree and the last read token
 // that does not belong to the expression. tok, if initialized, is the first
-// token of the expression.
-func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
+// token of the expression. canBeBlank indicates if the parsed expression can
+// be the blank identifier.
+func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token, error) {
 
 	var err error
 
@@ -117,6 +118,11 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
+	// mustBeBlank indicates if the parsed expression must be the blank
+	// identifier. It must be if it can be the blank identifier and the
+	// first token is "_".
+	var mustBeBlank bool
+
 	var ok bool
 
 	if tok.txt == nil {
@@ -138,7 +144,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok, err = parseExpr(token{}, lex)
+			expr, tok, err = parseExpr(token{}, lex, false)
 			if err != nil {
 				return nil, token{}, err
 			}
@@ -163,7 +169,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				elements := []ast.KeyValue{}
 				for {
 					var element ast.KeyValue
-					element.Key, tok, err = parseExpr(token{}, lex)
+					element.Key, tok, err = parseExpr(token{}, lex, false)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -175,7 +181,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 						if tok.typ != tokenColon {
 							return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("missing key in map literal")}
 						}
-						element.Value, tok, err = parseExpr(token{}, lex)
+						element.Value, tok, err = parseExpr(token{}, lex, false)
 						if err != nil {
 							return nil, token{}, err
 						}
@@ -219,7 +225,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			switch tok.typ {
 			case tokenLeftBraces:
 				// Slice definition.
-				elements, tok, err := parseExprList(lex)
+				elements, tok, err := parseExprList(token{}, lex, false)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -266,7 +272,10 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 		case tokenIdentifier: // a
 			ident := parseIdentifierNode(tok)
 			if ident.Name == "_" {
-				return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+				if !canBeBlank {
+					return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+				}
+				mustBeBlank = true
 			}
 			operand = ident
 		case tokenSemicolon:
@@ -274,6 +283,8 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 		default:
 			return nil, tok, nil
 		}
+
+		canBeBlank = false
 
 		for operator == nil {
 
@@ -286,7 +297,7 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok, err := parseExprList(lex)
+				args, tok, err := parseExprList(token{}, lex, false)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -299,14 +310,14 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok, err = parseExpr(token{}, lex)
+				index, tok, err = parseExpr(token{}, lex, false)
 				if err != nil {
 					return nil, token{}, err
 				}
 				if tok.typ == tokenColon {
 					low := index
 					var high ast.Expression
-					high, tok, err = parseExpr(token{}, lex)
+					high, tok, err = parseExpr(token{}, lex, false)
 					if err != nil {
 						return nil, token{}, err
 					}
@@ -404,6 +415,11 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 					}
 					// The operand is the the root of the expression tree.
 					operand = path[0]
+				}
+				if mustBeBlank {
+					if ident, ok := operand.(*ast.Identifier); !ok || ident.Name != "_" {
+						return nil, token{}, &Error{"", *ident.Position, fmt.Errorf("cannot use _ as value")}
+					}
 				}
 				return operand, tok, nil
 			}
@@ -505,21 +521,23 @@ func parseExpr(tok token, lex *lexer) (ast.Expression, token, error) {
 
 // parseExprList parses a list of expressions separated by a comma and
 // returns the list and the last token read that can not be part of the
-// last expression.
-func parseExprList(lex *lexer) ([]ast.Expression, token, error) {
+// last expression. tok, if initialized, is the first token of the expression.
+// canBeBlank indicates if a parsed expression can be the blank identifier.
+func parseExprList(tok token, lex *lexer, allowBlank bool) ([]ast.Expression, token, error) {
 	var elements = []ast.Expression{}
 	for {
-		element, tok, err := parseExpr(token{}, lex)
+		element, tok2, err := parseExpr(tok, lex, allowBlank)
 		if err != nil {
 			return nil, token{}, err
 		}
 		if element == nil {
-			return elements, tok, nil
+			return elements, tok2, nil
 		}
 		elements = append(elements, element)
-		if tok.typ != tokenComma {
-			return elements, tok, nil
+		if tok2.typ != tokenComma {
+			return elements, tok2, nil
 		}
+		tok = token{}
 	}
 }
 
@@ -540,7 +558,7 @@ func exprListString(elements []ast.Expression) string {
 func parseExprConversion(tok token, lex *lexer) (ast.Expression, error) {
 	pos := tok.pos
 	ident := ast.NewIdentifier(pos, string(tok.txt))
-	elements, tok, err := parseExprList(lex)
+	elements, tok, err := parseExprList(token{}, lex, false)
 	if err != nil {
 		return nil, err
 	}
