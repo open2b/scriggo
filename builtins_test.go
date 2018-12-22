@@ -225,10 +225,18 @@ var rendererBuiltinTests = []struct {
 	{"repeat(`€€`, 3)", "€€€€€€", nil},
 
 	// replace
-	{"replace(``, ``, ``)", "", nil},
-	{"replace(`abc`, `b`, `e`)", "aec", nil},
-	{"replace(`abc`, `b`, `€`)", "a€c", nil},
-	{"replace(`abcbcba`, `b`, `e`)", "aececea", nil},
+	{"replace(``, ``, ``, 1)", "", nil},
+	{"replace(`abc`, `b`, `e`, 1)", "aec", nil},
+	{"replace(`abc`, `b`, `€`, 1)", "a€c", nil},
+	{"replace(`abcbcba`, `b`, `e`, 1)", "aecbcba", nil},
+	{"replace(`abcbcba`, `b`, `e`, 2)", "aececba", nil},
+	{"replace(`abcbcba`, `b`, `e`, -1)", "aececea", nil},
+
+	// replaceAll
+	{"replaceAll(``, ``, ``)", "", nil},
+	{"replaceAll(`abc`, `b`, `e`)", "aec", nil},
+	{"replaceAll(`abc`, `b`, `€`)", "a€c", nil},
+	{"replaceAll(`abcbcba`, `b`, `e`)", "aececea", nil},
 
 	// reverse
 	{"reverse(s)", "", scope{"s": []int(nil)}},

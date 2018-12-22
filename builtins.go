@@ -72,7 +72,8 @@ var builtins = map[string]interface{}{
 	"min":         _min,
 	"rand":        _rand,
 	"repeat":      _repeat,
-	"replace":     _replace,
+	"replace":     strings.Replace,
+	"replaceAll":  _replaceAll,
 	"reverse":     _reverse,
 	"round":       _round,
 	"sha1":        _sha1,
@@ -381,8 +382,8 @@ func _repeat(s string, count int) string {
 	return strings.Repeat(s, count)
 }
 
-// _replace is the builtin function "replace".
-func _replace(s, old, new string) string {
+// _replaceAll is the builtin function "replaceAll".
+func _replaceAll(s, old, new string) string {
 	return strings.Replace(s, old, new, -1)
 }
 
