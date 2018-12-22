@@ -1120,8 +1120,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		if len(node.Args) > 1 {
 			return nil, r.errorf(node, "too many arguments to conversion to %s: %s", typ, node)
 		}
-		value := asBase(r.evalExpression(node.Args[0]))
-		v, err := r.convert(value, typ)
+		v, err := r.convert(node.Args[0], typ)
 		if err != nil {
 			panic(r.errorf(node.Args[0], "%s", err))
 		}
@@ -1283,8 +1282,9 @@ func (r *rendering) checkBuiltInParameterCount(node *ast.Call, numIn, numOut, n 
 	return nil
 }
 
-// convert converts value to type typ.
-func (r *rendering) convert(value interface{}, typ valuetype) (interface{}, error) {
+// convert converts the value of expr to type typ.
+func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, error) {
+	value := asBase(r.evalExpression(expr))
 	switch typ {
 	case "string":
 		switch v := value.(type) {
@@ -1343,7 +1343,7 @@ func (r *rendering) convert(value interface{}, typ valuetype) (interface{}, erro
 	if value == nil {
 		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
 	}
-	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", value, typeof(value), typ)
+	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.
