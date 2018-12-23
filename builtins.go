@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -56,6 +57,7 @@ var builtins = map[string]interface{}{
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
+	"atoi":        strconv.Atoi,
 	"base64":      _base64,
 	"contains":    strings.Contains,
 	"errorf":      _errorf,
@@ -65,6 +67,7 @@ var builtins = map[string]interface{}{
 	"hmac":        _hmac,
 	"index":       _index,
 	"indexAny":    _indexAny,
+	"itoa":        strconv.Itoa,
 	"join":        strings.Join,
 	"lastIndex":   _lastIndex,
 	"max":         _max,

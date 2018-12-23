@@ -140,6 +140,11 @@ var rendererBuiltinTests = []struct {
 	{"int(-0.5)", "0", nil},
 	{"int(3.56)", "3", nil},
 
+	// itoa
+	{"itoa(0).(string)", "0", nil},
+	{"itoa(1).(string)", "1", nil},
+	{"itoa(-1).(string)", "-1", nil},
+
 	// join
 	{"join(a, ``)", "", scope{"a": []string(nil)}},
 	{"join(a, ``)", "", scope{"a": []string{}}},
@@ -341,6 +346,12 @@ var statementBuiltinTests = []struct {
 	res  string
 	vars scope
 }{
+
+	// atoi
+	{"{% if n, err := atoi(``); err == nil %}{{ n }}{% else %}error{% end %}", "error", nil},
+	{"{% if n, err := atoi(`0`); err == nil %}{{ n }}{% end %}", "0", nil},
+	{"{% if n, err := atoi(`1`); err == nil %}{{ n }}{% end %}", "1", nil},
+	{"{% if n, err := atoi(`-1`); err == nil %}{{ n }}{% end %}", "-1", nil},
 
 	// delete
 	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{}}},
