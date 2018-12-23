@@ -149,265 +149,90 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 // evalUnaryOperator evaluates a unary operator and returns its value.
 // On error it calls panic with the error as argument.
 func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	var e = asBase(r.evalExpression(node.Expr))
+	var expr = asBase(r.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
-		if b, ok := e.(bool); ok {
+		if b, ok := expr.(bool); ok {
 			return !b
 		}
-		panic(r.errorf(node, "invalid operation: ! %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: ! %s", typeof(expr)))
 	case ast.OperatorAddition:
-		if _, ok := e.(int); ok {
-			return e
+		switch n := expr.(type) {
+		case int:
+			return n
+		case decimal.Decimal:
+			return n
 		}
-		if _, ok := e.(decimal.Decimal); ok {
-			return e
-		}
-		panic(r.errorf(node, "invalid operation: + %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: + %s", typeof(expr)))
 	case ast.OperatorSubtraction:
-		if n, ok := e.(int); ok {
+		switch n := expr.(type) {
+		case int:
 			return -n
-		}
-		if n, ok := e.(decimal.Decimal); ok {
+		case decimal.Decimal:
 			return n.Neg()
 		}
-		panic(r.errorf(node, "invalid operation: - %s", typeof(e)))
+		panic(r.errorf(node, "invalid operation: - %s", typeof(expr)))
 	}
 	panic("Unknown Unary Operator")
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
 // On error it calls panic with the error as argument.
-func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
+func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 
-	expr1 := asBase(r.evalExpression(node.Expr1))
-
-	switch node.Op {
+	switch op.Op {
 
 	case ast.OperatorEqual:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			defer func() {
-				if recover() != nil {
-					panic(r.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
-				}
-			}()
-			if expr2 == nil {
-				return reflect.ValueOf(expr1).IsNil()
-			}
-			return reflect.ValueOf(expr2).IsNil()
-		} else {
-			expr1, expr2 = htmlToStringType(expr1, expr2)
-			switch e1 := expr1.(type) {
-			case bool:
-				if e2, ok := expr2.(bool); ok {
-					return e1 == e2
-				}
-			case string:
-				if e2, ok := expr2.(string); ok {
-					return e1 == e2
-				}
-			case int:
-				if e2, ok := expr2.(int); ok {
-					return e1 == e2
-				}
-				if e2, ok := expr2.(decimal.Decimal); ok {
-					return decimal.New(int64(e1), 0).Cmp(e2) == 0
-				}
-			case decimal.Decimal:
-				if e2, ok := expr2.(decimal.Decimal); ok {
-					return e1.Equal(e2)
-				}
-				if e2, ok := expr2.(int); ok {
-					return e1.Cmp(decimal.New(int64(e2), 0)) == 0
-				}
-			}
-		}
-		panic(r.errorf(node, "invalid operation: %s == %s", typeof(expr1), typeof(expr2)))
+		return r.evalEqual(op)
 
 	case ast.OperatorNotEqual:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			defer func() {
-				if recover() != nil {
-					panic(r.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
-				}
-			}()
-			if expr2 == nil {
-				return !reflect.ValueOf(expr1).IsNil()
-			}
-			return !reflect.ValueOf(expr2).IsNil()
-		} else {
-			expr1, expr2 = htmlToStringType(expr1, expr2)
-			switch e1 := expr1.(type) {
-			case bool:
-				if e2, ok := expr2.(bool); ok {
-					return e1 != e2
-				}
-			case string:
-				if e2, ok := expr2.(string); ok {
-					return e1 != e2
-				}
-			case int:
-				if e2, ok := expr2.(int); ok {
-					return e1 != e2
-				}
-				if e2, ok := expr2.(decimal.Decimal); ok {
-					return decimal.New(int64(e1), 0).Cmp(e2) != 0
-				}
-			case decimal.Decimal:
-				if e2, ok := expr2.(decimal.Decimal); ok {
-					return !e1.Equal(e2)
-				}
-				if e2, ok := expr2.(int); ok {
-					return e1.Cmp(decimal.New(int64(e2), 0)) != 0
-				}
-			}
-		}
-		panic(r.errorf(node, "invalid operation: %s != %s", typeof(expr1), typeof(expr2)))
+		return !r.evalEqual(op)
 
 	case ast.OperatorLess:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
-		}
-		expr1, expr2 = htmlToStringType(expr1, expr2)
-		switch e1 := expr1.(type) {
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 < e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 < e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Cmp(e2) < 0
-			}
-		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.Cmp(e2) < 0
-			}
-			if e2, ok := expr2.(int); ok {
-				return e1.Cmp(decimal.New(int64(e2), 0)) < 0
-			}
-		}
-		panic(fmt.Sprintf("invalid operation: %s < %s", typeof(expr1), typeof(expr2)))
+		return r.evalLess(op)
 
 	case ast.OperatorLessOrEqual:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
-		}
-		expr1, expr2 = htmlToStringType(expr1, expr2)
-		switch e1 := expr1.(type) {
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 <= e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 <= e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Cmp(e2) <= 0
-			}
-		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.Cmp(e2) <= 0
-			}
-			if e2, ok := expr2.(int); ok {
-				return e1.Cmp(decimal.New(int64(e2), 0)) <= 0
-			}
-		}
-		panic(r.errorf(node, "invalid operation: %s <= %s", typeof(expr1), typeof(expr2)))
+		return !r.evalGreater(op)
 
 	case ast.OperatorGreater:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
-		}
-		expr1, expr2 = htmlToStringType(expr1, expr2)
-		switch e1 := expr1.(type) {
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 > e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 > e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Cmp(e2) > 0
-			}
-		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.Cmp(e2) > 0
-			}
-			if e2, ok := expr2.(int); ok {
-				return e1.Cmp(decimal.New(int64(e2), 0)) > 0
-			}
-		}
-		panic(r.errorf(node, "invalid operation: %s > %s", typeof(expr1), typeof(expr2)))
+		return r.evalGreater(op)
 
 	case ast.OperatorGreaterOrEqual:
-		expr2 := asBase(r.evalExpression(node.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
-		}
-		expr1, expr2 = htmlToStringType(expr1, expr2)
-		switch e1 := expr1.(type) {
-		case string:
-			if e2, ok := expr2.(string); ok {
-				return e1 >= e2
-			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 >= e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Cmp(e2) >= 0
-			}
-		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.Cmp(e2) >= 0
-			}
-			if e2, ok := expr2.(int); ok {
-				return e1.Cmp(decimal.New(int64(e2), 0)) >= 0
-			}
-		}
-		panic(r.errorf(node, "invalid operation: %s >= %s", typeof(expr1), typeof(expr2)))
+		return !r.evalLess(op)
 
 	case ast.OperatorAnd:
+		expr1 := asBase(r.evalExpression(op.Expr1))
 		if e1, ok := expr1.(bool); ok {
 			if !e1 {
 				return false
 			}
-			expr2 := asBase(r.evalExpression(node.Expr2))
+			expr2 := asBase(r.evalExpression(op.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 && e2
 			}
-			panic(r.errorf(node, "invalid operation: %s && %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s && %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(r.errorf(node, "invalid operation: %s && ...", typeof(expr1)))
+		panic(r.errorf(op, "invalid operation: %s && ...", typeof(expr1)))
 
 	case ast.OperatorOr:
+		expr1 := asBase(r.evalExpression(op.Expr1))
 		if e1, ok := expr1.(bool); ok {
 			if e1 {
 				return true
 			}
-			expr2 := asBase(r.evalExpression(node.Expr2))
+			expr2 := asBase(r.evalExpression(op.Expr2))
 			if e2, ok := expr2.(bool); ok {
 				return e1 || e2
 			}
-			panic(r.errorf(node, "invalid operation: %s || %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s || %s", typeof(expr1), typeof(expr2)))
 		}
-		panic(r.errorf(node, "invalid operation: %s || ...", typeof(expr1)))
+		panic(r.errorf(op, "invalid operation: %s || ...", typeof(expr1)))
 
 	case ast.OperatorAddition:
-		expr2 := asBase(r.evalExpression(node.Expr2))
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
 		case string:
@@ -424,118 +249,264 @@ func (r *rendering) evalBinaryOperator(node *ast.BinaryOperator) interface{} {
 			case HTML:
 				return HTML(string(e1) + string(e2))
 			}
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 + e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Add(e2)
-			}
 		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
 				return e1.Add(e2)
-			}
-			if e2, ok := expr2.(int); ok {
+			case int:
 				return e1.Add(decimal.New(int64(e2), 0))
 			}
+		case int:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return decimal.New(int64(e1), 0).Add(e2)
+			case int:
+				return e1 + e2
+			}
 		}
-		panic(r.errorf(node, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(op, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorSubtraction:
-		expr2 := asBase(r.evalExpression(node.Expr2))
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 - e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Sub(e2)
-			}
 		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
 				return e1.Sub(e2)
-			}
-			if e2, ok := expr2.(int); ok {
+			case int:
 				return e1.Sub(decimal.New(int64(e2), 0))
 			}
+		case int:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return decimal.New(int64(e1), 0).Sub(e2)
+			case int:
+				return e1 - e2
+			}
 		}
-		panic(r.errorf(node, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(op, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorMultiplication:
-		expr2 := asBase(r.evalExpression(node.Expr2))
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
+		case decimal.Decimal:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return e1.Mul(e2)
+			case int:
+				return e1.Mul(decimal.New(int64(e2), 0))
+			}
 		case int:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return decimal.New(int64(e1), 0).Mul(e2)
+			case int:
+				return e1 * e2
+			}
 			if e2, ok := expr2.(int); ok {
 				return e1 * e2
 			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Mul(e2)
-			}
-		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return e1.Mul(e2)
-			}
-			if e2, ok := expr2.(int); ok {
-				return e1.Mul(decimal.New(int64(e2), 0))
-			}
 		}
-		panic(r.errorf(node, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(op, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorDivision:
-		expr2 := asBase(r.evalExpression(node.Expr2))
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 / e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).DivRound(e2, 20)
-			}
 		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
 				return e1.DivRound(e2, 20)
-			}
-			if e2, ok := expr2.(int); ok {
+			case int:
 				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			}
+		case int:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return decimal.New(int64(e1), 0).DivRound(e2, 20)
+			case int:
+				return e1 / e2
+			}
 		}
-		panic(r.errorf(node, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 
 	case ast.OperatorModulo:
-		expr2 := asBase(r.evalExpression(node.Expr2))
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
 		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
+			panic(r.errorf(op, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 		}
 		switch e1 := expr1.(type) {
-		case int:
-			if e2, ok := expr2.(int); ok {
-				return e1 % e2
-			}
-			if e2, ok := expr2.(decimal.Decimal); ok {
-				return decimal.New(int64(e1), 0).Mod(e2)
-			}
 		case decimal.Decimal:
-			if e2, ok := expr2.(decimal.Decimal); ok {
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
 				return e1.Mod(e2)
-			}
-			if e2, ok := expr2.(int); ok {
+			case int:
 				return e1.Mod(decimal.New(int64(e2), 0))
 			}
+		case int:
+			switch e2 := expr2.(type) {
+			case decimal.Decimal:
+				return decimal.New(int64(e1), 0).Mod(e2)
+			case int:
+				return e1 % e2
+			}
 		}
-		panic(r.errorf(node, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
+		panic(r.errorf(op, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
 
 	}
 
 	panic("unknown binary operator")
+}
+
+// evalEqual evaluates a binary equal operator and returns its value.
+// On error it calls panic with the error as argument.
+func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
+
+	expr1 := asBase(r.evalExpression(op.Expr1))
+	expr2 := asBase(r.evalExpression(op.Expr2))
+
+	switch e1 := expr1.(type) {
+	case string:
+		switch e2 := expr2.(type) {
+		case string:
+			return e1 == e2
+		case HTML:
+			return e1 == string(e2)
+		}
+	case HTML:
+		switch e2 := expr2.(type) {
+		case string:
+			return string(e1) == e2
+		case HTML:
+			return e1 == e2
+		}
+	case decimal.Decimal:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return e1.Equal(e2)
+		case int:
+			return e1.Cmp(decimal.New(int64(e2), 0)) == 0
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return decimal.New(int64(e1), 0).Cmp(e2) == 0
+		case int:
+			return e1 == e2
+		}
+	case bool:
+		if e2, ok := expr2.(bool); ok {
+			return e1 == e2
+		}
+	default:
+		uNil1 := expr1 == nil && r.isBuiltin("nil", op.Expr1)
+		uNil2 := expr2 == nil && r.isBuiltin("nil", op.Expr2)
+		if uNil1 && uNil2 {
+			panic(r.errorf(op, "invalid operation: nil %s nil", op.Op))
+		}
+		if uNil2 && (expr1 == nil || reflect.ValueOf(expr1).IsNil()) {
+			return true
+		}
+		if uNil1 && (expr2 == nil || reflect.ValueOf(expr2).IsNil()) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// evalLess evaluates a binary less operator and returns its value.
+// On error it calls panic with the error as argument.
+func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
+
+	expr1 := asBase(r.evalExpression(op.Expr1))
+	expr2 := asBase(r.evalExpression(op.Expr2))
+
+	switch e1 := expr1.(type) {
+	case string:
+		switch e2 := expr2.(type) {
+		case string:
+			return e1 < e2
+		case HTML:
+			return e1 < string(e2)
+		}
+	case HTML:
+		switch e2 := expr2.(type) {
+		case string:
+			return string(e1) < e2
+		case HTML:
+			return e1 < e2
+		}
+	case decimal.Decimal:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return e1.Cmp(e2) < 0
+		case int:
+			return e1.Cmp(decimal.New(int64(e2), 0)) < 0
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return decimal.New(int64(e1), 0).Cmp(e2) < 0
+		case int:
+			return e1 < e2
+		}
+	}
+
+	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
+}
+
+// evalGreater evaluates a binary greater operator and returns its value.
+// On error it calls panic with the error as argument.
+func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
+
+	expr1 := asBase(r.evalExpression(op.Expr1))
+	expr2 := asBase(r.evalExpression(op.Expr2))
+
+	switch e1 := expr1.(type) {
+	case string:
+		switch e2 := expr2.(type) {
+		case string:
+			return e1 > e2
+		case HTML:
+			return e1 > string(e2)
+		}
+	case HTML:
+		switch e2 := expr2.(type) {
+		case string:
+			return string(e1) > e2
+		case HTML:
+			return e1 > e2
+		}
+	case decimal.Decimal:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return e1.Cmp(e2) > 0
+		case int:
+			return e1.Cmp(decimal.New(int64(e2), 0)) > 0
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case decimal.Decimal:
+			return decimal.New(int64(e1), 0).Cmp(e2) > 0
+		case int:
+			return e1 > e2
+		}
+	}
+
+	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
 }
 
 type MutableMap map[string]interface{}
