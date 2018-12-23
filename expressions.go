@@ -1397,18 +1397,6 @@ func (r *rendering) isBuiltin(name string, expr ast.Expression) bool {
 	return false
 }
 
-// htmlToStringType returns e1 and e2 with type string instead of HTML.
-// If they do not have HTML type they are returned unchanged.
-func htmlToStringType(e1, e2 interface{}) (interface{}, interface{}) {
-	if e, ok := e1.(HTML); ok {
-		e1 = string(e)
-	}
-	if e, ok := e2.(HTML); ok {
-		e2 = string(e)
-	}
-	return e1, e2
-}
-
 // asBase returns the base value of v.
 func asBase(v interface{}) interface{} {
 	if v == nil {
