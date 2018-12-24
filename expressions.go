@@ -237,9 +237,6 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorAddition:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(op, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
-		}
 		switch e1 := expr1.(type) {
 		case string:
 			switch e2 := expr2.(type) {
@@ -279,9 +276,6 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorSubtraction:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(op, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
-		}
 		switch e1 := expr1.(type) {
 		case decimal.Decimal:
 			switch e2 := expr2.(type) {
@@ -307,9 +301,6 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorMultiplication:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(op, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
-		}
 		switch e1 := expr1.(type) {
 		case decimal.Decimal:
 			switch e2 := expr2.(type) {
@@ -338,9 +329,6 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorDivision:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
-		}
 		switch e2 := expr2.(type) {
 		case decimal.Decimal:
 			if e2.IsZero() {
@@ -372,9 +360,6 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorModulo:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		if expr1 == nil || expr2 == nil {
-			panic(r.errorf(op, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
-		}
 		switch e1 := expr1.(type) {
 		case decimal.Decimal:
 			switch e2 := expr2.(type) {
