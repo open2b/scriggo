@@ -383,7 +383,7 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	panic("unknown binary operator")
 }
 
-// evalEqual evaluates a binary equal operator and returns its value.
+// evalEqual evaluates op as a binary equal operator and returns its value.
 // On error it calls panic with the error as argument.
 func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
 
@@ -440,7 +440,7 @@ func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
 	return false
 }
 
-// evalLess evaluates a binary less operator and returns its value.
+// evalLess evaluates op as a binary less operator and returns its value.
 // On error it calls panic with the error as argument.
 func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 
@@ -481,8 +481,8 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
 }
 
-// evalGreater evaluates a binary greater operator and returns its value.
-// On error it calls panic with the error as argument.
+// evalGreater evaluates op as a binary greater operator and returns its
+// value. On error it calls panic with the error as argument.
 func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 
 	expr1 := asBase(r.evalExpression(op.Expr1))
