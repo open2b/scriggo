@@ -21,8 +21,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var maxInt = decimal.New(int64(^uint(0)>>1), 0)
-var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
+var maxIntAsDecimal = decimal.New(maxInt, 0)
+var minIntAsDecimal = decimal.New(minInt, 0)
 
 // Error records a rendering error with the path and the position where
 // the error occurred.
@@ -593,7 +593,7 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 }
 
 func (r *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
-	if d.LessThan(minInt) || maxInt.LessThan(d) {
+	if d.LessThan(minIntAsDecimal) || maxIntAsDecimal.LessThan(d) {
 		return 0, r.errorf(node, "number %s overflows int", d)
 	}
 	p := d.Truncate(0)

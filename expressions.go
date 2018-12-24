@@ -30,6 +30,9 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
+var maxInt = int64(^uint(0) >> 1)
+var minInt = -int64(^uint(0)>>1) - 1
+
 // eval evaluates expr in a single-value context and returns its value.
 func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
@@ -158,18 +161,21 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		panic(r.errorf(node, "invalid operation: ! %s", typeof(expr)))
 	case ast.OperatorAddition:
 		switch n := expr.(type) {
-		case int:
-			return n
 		case decimal.Decimal:
+			return n
+		case int:
 			return n
 		}
 		panic(r.errorf(node, "invalid operation: + %s", typeof(expr)))
 	case ast.OperatorSubtraction:
 		switch n := expr.(type) {
-		case int:
-			return -n
 		case decimal.Decimal:
 			return n.Neg()
+		case int:
+			if int64(n) == minInt {
+				return decimal.New(int64(n), 0).Neg()
+			}
+			return -n
 		}
 		panic(r.errorf(node, "invalid operation: - %s", typeof(expr)))
 	}
@@ -261,7 +267,11 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case decimal.Decimal:
 				return decimal.New(int64(e1), 0).Add(e2)
 			case int:
-				return e1 + e2
+				e := e1 + e2
+				if (e < e1) != (e2 < 0) {
+					return decimal.New(int64(e1), 0).Add(decimal.New(int64(e2), 0))
+				}
+				return e
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
@@ -285,7 +295,11 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case decimal.Decimal:
 				return decimal.New(int64(e1), 0).Sub(e2)
 			case int:
-				return e1 - e2
+				e := e1 - e2
+				if (e < e1) != (e2 > 0) {
+					return decimal.New(int64(e1), 0).Sub(decimal.New(int64(e2), 0))
+				}
+				return e
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
@@ -309,9 +323,13 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case decimal.Decimal:
 				return decimal.New(int64(e1), 0).Mul(e2)
 			case int:
-				return e1 * e2
-			}
-			if e2, ok := expr2.(int); ok {
+				if e1 == 0 || e2 == 0 {
+					return 0
+				}
+				e := e1 * e2
+				if (e < 0) != ((e1 < 0) != (e2 < 0)) || e/e2 != e1 {
+					return decimal.New(int64(e1), 0).Mul(decimal.New(int64(e2), 0))
+				}
 				return e1 * e2
 			}
 		}
@@ -323,20 +341,30 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 		if expr1 == nil || expr2 == nil {
 			panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
 		}
-		switch e1 := expr1.(type) {
+		switch e2 := expr2.(type) {
 		case decimal.Decimal:
-			switch e2 := expr2.(type) {
+			if e2.IsZero() {
+				panic(r.errorf(op, "number divide by zero"))
+			}
+			switch e1 := expr1.(type) {
 			case decimal.Decimal:
 				return e1.DivRound(e2, 20)
 			case int:
-				return e1.DivRound(decimal.New(int64(e2), 0), 20)
+				return decimal.New(int64(e1), 0).DivRound(e2, 20)
 			}
 		case int:
-			switch e2 := expr2.(type) {
+			if e2 == 0 {
+				panic(r.errorf(op, "number divide by zero"))
+			}
+			switch e1 := expr1.(type) {
 			case decimal.Decimal:
-				return decimal.New(int64(e1), 0).DivRound(e2, 20)
+				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			case int:
-				return e1 / e2
+				e := e1 / e2
+				if (e < 0) != ((e1 < 0) != (e2 < 0)) {
+					return decimal.New(int64(e1), 0).DivRound(decimal.New(int64(e2), 0), 20)
+				}
+				return e
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
@@ -643,7 +671,7 @@ func hasType(v interface{}, typ valuetype) bool {
 		if typ != builtins["int"] {
 			return false
 		}
-		if vv.LessThan(minInt) || maxInt.LessThan(vv) {
+		if vv.LessThan(minIntAsDecimal) || maxIntAsDecimal.LessThan(vv) {
 			return false
 		}
 		p := vv.IntPart()
