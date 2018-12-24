@@ -209,7 +209,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token, e
 				operand = ast.NewMap(typeTok.pos, elements)
 			case tokenLeftParenthesis:
 				// Map conversion.
-				operand, err = parseExprConversion(typeTok, lex)
+				operand, err = parseConversionExpr(typeTok, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -236,7 +236,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token, e
 				operand = ast.NewSlice(typeTok.pos, elements)
 			case tokenLeftParenthesis:
 				// Slice conversion.
-				operand, err = parseExprConversion(typeTok, lex)
+				operand, err = parseConversionExpr(typeTok, lex)
 				if err != nil {
 					return nil, token{}, err
 				}
@@ -553,9 +553,9 @@ func exprListString(elements []ast.Expression) string {
 	return s
 }
 
-// parseExprConversion parses a conversion expression where tok is the token
+// parseConversionExpr parses a conversion expression where tok is the token
 // "map" or "slice".
-func parseExprConversion(tok token, lex *lexer) (ast.Expression, error) {
+func parseConversionExpr(tok token, lex *lexer) (ast.Expression, error) {
 	pos := tok.pos
 	ident := ast.NewIdentifier(pos, string(tok.txt))
 	elements, tok, err := parseExprList(token{}, lex, false)
