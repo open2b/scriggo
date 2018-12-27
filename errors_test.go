@@ -26,8 +26,6 @@ var errorTests = []struct {
 	//{`{% if "a" == 5 %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
 	//{`{% if "a" == 5 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% for a in false %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
-	{`{% for a in false..10 %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
-	{`{% for a in 1..false %}{{ "no" }}{% end %}{{ "ok" }}`, `ok`, nil},
 	{`{{ "5" + 5 }}{{ "ok" }}`, `ok`, nil},
 	{`{% if len() >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},
 	{`{% if len(nil) >= 0 %}{{ "no" }}{% else %}{{ "ok" }}{% end %}`, `ok`, nil},

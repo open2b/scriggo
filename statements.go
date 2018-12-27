@@ -171,7 +171,7 @@ Nodes:
 			r.vars = append(r.vars, nil)
 
 			if node.Assignment != nil {
-				err = r.renderAssignment(wr, node.Assignment, urlstate)
+				err = r.renderAssignment(node.Assignment)
 				if err != nil && !r.handleError(err) {
 					return err
 				}
@@ -216,6 +216,13 @@ Nodes:
 				return err
 			}
 
+		case *ast.ForRange:
+
+			err := r.renderFor(wr, node, urlstate)
+			if err != nil {
+				return err
+			}
+
 		case *ast.Break:
 			return errBreak
 
@@ -250,7 +257,7 @@ Nodes:
 
 		case *ast.Assignment:
 
-			err := r.renderAssignment(wr, node, urlstate)
+			err := r.renderAssignment(node)
 			if err != nil && !r.handleError(err) {
 				return err
 			}
@@ -440,7 +447,7 @@ func (addr address) assign(value interface{}) {
 	}
 }
 
-func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstate *urlState) error {
+func (r *rendering) variableAddresses(node *ast.Assignment) ([]address, error) {
 
 	// addresses contains the addresses of the variables to be assigned.
 	addresses := make([]address, len(node.Variables))
@@ -460,7 +467,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 			}
 			if v, ok := vars[ident.Name]; ok {
 				if m, ok := v.(macro); ok {
-					return r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
+					return nil, r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
 						ident.Name, m.path, m.node.Pos())
 				}
 			} else {
@@ -469,7 +476,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 			addresses[i] = address{Map: MutableMap(vars), Key: ident.Name}
 		}
 		if !newVariables {
-			return r.errorf(node, "no new variables on left side of :=")
+			return nil, r.errorf(node, "no new variables on left side of :=")
 		}
 
 	} else {
@@ -485,18 +492,18 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 						if v, ok := vars[variable.Name]; ok {
 							if j == 0 {
 								if vt, ok := v.(valuetype); ok {
-									return r.errorf(variable, "type %s is not an expression", vt)
+									return nil, r.errorf(variable, "type %s is not an expression", vt)
 								}
 								if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
-									return r.errorf(variable, "use of builtin %s not in function call", variable.Name)
+									return nil, r.errorf(variable, "use of builtin %s not in function call", variable.Name)
 								}
-								return r.errorf(variable, "cannot assign to %s", variable.Name)
+								return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
 							}
 							if j == 1 {
-								return r.errorf(variable, "cannot assign to %s", variable.Name)
+								return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
 							}
 							if m, ok := v.(macro); ok {
-								return r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
+								return nil, r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
 									variable.Name, m.path, m.node.Pos())
 							}
 							addresses[i] = address{Map: MutableMap(vars), Key: variable.Name}
@@ -505,52 +512,63 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 					}
 				}
 				if addresses[i].Map == nil {
-					return r.errorf(node, "variable %s not declared", variable.Name)
+					return nil, r.errorf(node, "variable %s not declared", variable.Name)
 				}
 			case *ast.Selector:
 				value, err := r.eval(variable.Expr)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				m, ok := value.(MutableMap)
 				if !ok {
 					typ := typeof(value)
 					if typ == "map" {
-						return r.errorf(variable, "cannot assign to a non-mutable map")
+						return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 					} else {
-						return r.errorf(variable, "cannot assign to %s", variable)
+						return nil, r.errorf(variable, "cannot assign to %s", variable)
 					}
 				}
 				addresses[i] = address{Map: m, Key: variable.Ident}
 			case *ast.Index:
 				value, err := r.eval(variable.Expr)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				switch v := value.(type) {
 				case MutableMap:
 					key, err := r.stringIndex(variable.Index)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					addresses[i] = address{Map: v, Key: key}
 				case MutableSlice:
 					index, err := r.intIndex(variable.Index)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					addresses[i] = address{Slice: v, Index: index}
 				default:
 					switch t := typeof(value); t {
 					case "map", "slice":
-						return r.errorf(variable, "cannot assign to a non-mutable %s", t)
+						return nil, r.errorf(variable, "cannot assign to a non-mutable %s", t)
 					default:
-						return r.errorf(variable, "invalid operation: %s (type %s does not support indexing)", variable, t)
+						return nil, r.errorf(variable, "invalid operation: %s (type %s does not support indexing)", variable, t)
 					}
 				}
 			}
 		}
 
+	}
+
+	return addresses, nil
+}
+
+func (r *rendering) renderAssignment(node *ast.Assignment) error {
+
+	// addresses contains the addresses of the variables to be assigned.
+	addresses, err := r.variableAddresses(node)
+	if err != nil {
+		return err
 	}
 
 	switch len(node.Variables) {
@@ -580,7 +598,7 @@ func (r *rendering) renderAssignment(wr io.Writer, node *ast.Assignment, urlstat
 	return nil
 }
 
-// variable returns the value of the variable name in rendering s.
+// variable returns the value of the variable name in rendering r.
 func (r *rendering) variable(name string) (interface{}, bool) {
 	for i := len(r.vars) - 1; i >= 0; i-- {
 		if r.vars[i] != nil {

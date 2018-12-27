@@ -230,18 +230,32 @@ func (a Assignment) String() string {
 // For node represents a statement {% for ... %}.
 type For struct {
 	*Position             // position in the source.
-	Index     *Identifier // index.
-	Ident     *Identifier // identifier.
-	Expr1     Expression  // left expression of the range or slice on which to iterate.
-	Expr2     Expression  // right expression of the range.
-	Nodes     []Node      // nodes of the body.
+	Init      *Assignment // initialization statement.
+	Condition Expression  // condition expression.
+	Post      *Assignment // post iteration statement.
+	Body      []Node      // nodes of the body.
 }
 
-func NewFor(pos *Position, index, ident *Identifier, expr1, expr2 Expression, nodes []Node) *For {
-	if nodes == nil {
-		nodes = []Node{}
+func NewFor(pos *Position, init *Assignment, condition Expression, post *Assignment, body []Node) *For {
+	if body == nil {
+		body = []Node{}
 	}
-	return &For{pos, index, ident, expr1, expr2, nodes}
+	return &For{pos, init, condition, post, body}
+}
+
+// ForRange node represents statements {% for ... range ... %} and
+// {% for ... in ... %}.
+type ForRange struct {
+	*Position              // position in the source.
+	Assignment *Assignment // assignment.
+	Body       []Node      // nodes of the body.
+}
+
+func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
+	if body == nil {
+		body = []Node{}
+	}
+	return &ForRange{pos, assignment, body}
 }
 
 // Break node represents a statement {% break %}.

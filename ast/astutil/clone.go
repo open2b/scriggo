@@ -59,22 +59,25 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return ast.NewIf(ClonePosition(n.Position), assignment, CloneExpression(n.Condition), then, els)
 	case *ast.For:
-		var nodes = make([]ast.Node, len(n.Nodes))
-		for i, n2 := range n.Nodes {
-			nodes[i] = CloneNode(n2)
+		var body = make([]ast.Node, len(n.Body))
+		for i, n2 := range n.Body {
+			body[i] = CloneNode(n2)
 		}
-		var index, ident *ast.Identifier
-		if n.Index != nil {
-			index = ast.NewIdentifier(ClonePosition(n.Index.Position), n.Index.Name)
+		var init, post *ast.Assignment
+		if n.Init != nil {
+			init = CloneNode(n.Init).(*ast.Assignment)
 		}
-		if n.Ident != nil {
-			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		if n.Post != nil {
+			post = CloneNode(n.Post).(*ast.Assignment)
 		}
-		var expr2 ast.Expression
-		if n.Expr2 != nil {
-			expr2 = CloneExpression(n.Expr2)
+		return ast.NewFor(ClonePosition(n.Position), init, CloneExpression(n.Condition), post, body)
+	case *ast.ForRange:
+		var body = make([]ast.Node, len(n.Body))
+		for i, n2 := range n.Body {
+			body[i] = CloneNode(n2)
 		}
-		return ast.NewFor(ClonePosition(n.Position), index, ident, CloneExpression(n.Expr1), expr2, nodes)
+		assignment := CloneNode(n.Assignment).(*ast.Assignment)
+		return ast.NewForRange(ClonePosition(n.Position), assignment, body)
 	case *ast.Break:
 		return ast.NewBreak(ClonePosition(n.Position))
 	case *ast.Continue:
@@ -146,6 +149,9 @@ func CloneNode(node ast.Node) ast.Node {
 
 // CloneExpression returns a complete copy of expression expr.
 func CloneExpression(expr ast.Expression) ast.Expression {
+	if expr == nil {
+		return nil
+	}
 	switch e := expr.(type) {
 	case *ast.Parentesis:
 		return ast.NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))

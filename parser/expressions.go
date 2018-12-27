@@ -278,8 +278,6 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token, e
 				mustBeBlank = true
 			}
 			operand = ident
-		case tokenSemicolon:
-			return nil, token{}, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon or newline, expecting expression")}
 		default:
 			return nil, tok, nil
 		}

@@ -608,14 +608,9 @@ LOOP:
 			if '0' <= l.src[1] && l.src[1] <= '9' {
 				l.lexNumber()
 				endLineAsSemicolon = true
-			} else if l.src[1] == '.' {
-				if len(l.src) > 2 && l.src[2] == '.' {
-					l.emit(tokenEllipses, 3)
-					l.column += 3
-				} else {
-					l.emit(tokenRange, 2)
-					l.column += 2
-				}
+			} else if l.src[1] == '.' && len(l.src) > 2 && l.src[2] == '.' {
+				l.emit(tokenEllipses, 3)
+				l.column += 3
 				endLineAsSemicolon = false
 			} else {
 				l.emit(tokenPeriod, 1)
@@ -847,6 +842,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenMacro, p)
 	case "map":
 		l.emit(tokenMap, p)
+	case "range":
+		l.emit(tokenRange, p)
 	case "show":
 		l.emit(tokenShow, p)
 	case "slice":

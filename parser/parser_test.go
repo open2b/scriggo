@@ -9,6 +9,7 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"open2b/template/ast"
@@ -66,14 +67,104 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
 		ast.NewText(p(1, 32, 31, 31), []byte(">"), ast.Cut{}),
 	}, ast.ContextHTML)},
+	{"{% for %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 17}, nil, nil, nil, nil),
+		}, ast.ContextHTML)},
+	{"{% for a %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 19},
+				nil, ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "a"), nil,
+				nil),
+		}, ast.ContextHTML)},
+	{"{% for ; ; %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 21},
+				nil, nil, nil, nil),
+		}, ast.ContextHTML)},
+	{"{% for i := 0; ; %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 27},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 12},
+					[]ast.Expression{ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "i")},
+					ast.NewInt(&ast.Position{Line: 1, Column: 13, Start: 12, End: 12}, 0), true),
+				nil, nil, nil),
+		}, ast.ContextHTML)},
+	{"{% for ; true ; %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 26},
+				nil, ast.NewIdentifier(&ast.Position{Line: 1, Column: 10, Start: 9, End: 12}, "true"), nil, nil),
+		}, ast.ContextHTML)},
+	{"{% for i := 0; i < 10; i = i + 1 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 43},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 12},
+					[]ast.Expression{ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "i")},
+					ast.NewInt(&ast.Position{Line: 1, Column: 13, Start: 12, End: 12}, 0), true),
+				ast.NewBinaryOperator(
+					&ast.Position{Line: 1, Column: 18, Start: 15, End: 20},
+					ast.OperatorLess,
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 16, Start: 15, End: 15}, "i"),
+					ast.NewInt(&ast.Position{Line: 1, Column: 20, Start: 19, End: 20}, 10)),
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 24, Start: 23, End: 31},
+					[]ast.Expression{ast.NewIdentifier(&ast.Position{Line: 1, Column: 24, Start: 23, End: 23}, "i")},
+					ast.NewBinaryOperator(
+						&ast.Position{Line: 1, Column: 30, Start: 27, End: 31},
+						ast.OperatorAddition,
+						ast.NewIdentifier(&ast.Position{Line: 1, Column: 28, Start: 27, End: 27}, "i"),
+						ast.NewInt(&ast.Position{Line: 1, Column: 32, Start: 31, End: 31}, 1)),
+					false),
+				nil),
+		}, ast.ContextHTML)},
+	{"{% for article in articles %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 37},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 25}, []ast.Expression{
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "_"),
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article")},
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+					true),
+				nil),
+		}, ast.ContextHTML)},
+	{"{% for range articles %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 32},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 20}, nil,
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 14, Start: 13, End: 20}, "articles"), false),
+				nil),
+		}, ast.ContextHTML)},
+	{"{% for i := range articles %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 37},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 25},
+					[]ast.Expression{ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "i")},
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+					true),
+				nil),
+		}, ast.ContextHTML)},
+	{"{% for i, article := range articles %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(
+				&ast.Position{Line: 1, Column: 1, Start: 0, End: 46},
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 34}, []ast.Expression{
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "i"),
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 11, Start: 10, End: 16}, "article")},
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 28, Start: 27, End: 34}, "articles"),
+					true),
+				nil),
+		}, ast.ContextHTML)},
 	{"{% for article in articles %}\n<div>{{ article.title }}</div>\n{% end %}",
 		ast.NewTree("articles.txt", []ast.Node{
-			ast.NewFor(
+			ast.NewForRange(
 				&ast.Position{Line: 1, Column: 1, Start: 0, End: 69},
-				nil,
-				ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article"),
-				ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
-				nil,
+				ast.NewAssignment(&ast.Position{Line: 1, Column: 8, Start: 7, End: 25}, []ast.Expression{
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 7}, "_"),
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 8, Start: 7, End: 13}, "article")},
+					ast.NewIdentifier(&ast.Position{Line: 1, Column: 19, Start: 18, End: 25}, "articles"),
+					true),
 				[]ast.Node{
 					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1, 0}),
 					ast.NewValue(
@@ -119,17 +210,23 @@ var treeTests = []struct {
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 29),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil, []ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("b"), ast.Cut{})})}, ast.ContextHTML)},
-	{"{% for i, v in e %}b{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 28),
-		ast.NewIdentifier(p(1, 8, 7, 7), "i"), ast.NewIdentifier(p(1, 11, 10, 10), "v"), ast.NewIdentifier(p(1, 16, 15, 15), "e"), nil,
-		[]ast.Node{ast.NewText(p(1, 20, 19, 19), []byte("b"), ast.Cut{})})}, ast.ContextHTML)},
-	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 35),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
-		[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})}, ast.ContextHTML)},
-	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{ast.NewFor(p(1, 1, 0, 38),
-		nil, ast.NewIdentifier(p(1, 8, 7, 7), "v"), ast.NewIdentifier(p(1, 13, 12, 12), "e"), nil,
-		[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})}, ast.ContextHTML)},
+	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
+		ast.NewForRange(p(1, 1, 0, 29), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
+			ast.NewIdentifier(p(1, 8, 7, 7), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
+			ast.NewIdentifier(p(1, 13, 12, 12), "e"), true),
+			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("b"), ast.Cut{})})}, ast.ContextHTML)},
+	{"{% for v in e %}{% break %}{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewForRange(p(1, 1, 0, 35), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
+			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
+			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
+			ast.NewIdentifier(p(1, 13, 12, 12), "e"), true),
+			[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})}, ast.ContextHTML)},
+	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewForRange(p(1, 1, 0, 38), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
+			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
+			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
+			ast.NewIdentifier(p(1, 13, 12, 12), "e"), true),
+			[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})}, ast.ContextHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}, nil)}, ast.ContextHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
@@ -269,8 +366,22 @@ func equals(n1, n2 ast.Node, p int) error {
 	if n1 == nil && n2 == nil {
 		return nil
 	}
-	if (n1 == nil) != (n2 == nil) {
+	if n1 == nil || n2 == nil {
 		if n1 == nil {
+			return fmt.Errorf("unexpected node nil, expecting %#v", n2)
+		}
+		return fmt.Errorf("unexpected node %#v, expecting nil", n1)
+	}
+	rv1 := reflect.ValueOf(n1)
+	rv2 := reflect.ValueOf(n2)
+	if rv1.IsNil() && rv2.IsNil() {
+		if rv1.Type() != rv1.Type() {
+			return fmt.Errorf("unexpected node %#v, expecting %#v", n1, n2)
+		}
+		return nil
+	}
+	if rv1.IsNil() || rv2.IsNil() {
+		if rv1.IsNil() {
 			return fmt.Errorf("unexpected node nil, expecting %#v", n2)
 		}
 		return fmt.Errorf("unexpected node %#v, expecting nil", n1)
@@ -558,19 +669,41 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Expr1, nn2.Expr1, p)
+		err := equals(nn1.Init, nn2.Init, p)
 		if err != nil {
 			return err
 		}
-		err = equals(nn1.Expr2, nn2.Expr2, p)
+		err = equals(nn1.Condition, nn2.Condition, p)
 		if err != nil {
 			return err
 		}
-		if len(nn1.Nodes) != len(nn2.Nodes) {
-			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Nodes), len(nn2.Nodes))
+		err = equals(nn1.Post, nn2.Post, p)
+		if err != nil {
+			return err
 		}
-		for i, node := range nn1.Nodes {
-			err := equals(node, nn2.Nodes[i], p)
+		if len(nn1.Body) != len(nn2.Body) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Body), len(nn2.Body))
+		}
+		for i, node := range nn1.Body {
+			err := equals(node, nn2.Body[i], p)
+			if err != nil {
+				return err
+			}
+		}
+	case *ast.ForRange:
+		nn2, ok := n2.(*ast.ForRange)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Assignment, nn2.Assignment, p)
+		if err != nil {
+			return err
+		}
+		if len(nn1.Body) != len(nn2.Body) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Body), len(nn2.Body))
+		}
+		for i, node := range nn1.Body {
+			err := equals(node, nn2.Body[i], p)
 			if err != nil {
 				return err
 			}

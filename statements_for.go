@@ -16,52 +16,94 @@ import (
 )
 
 // renderFor renders nodes.
-func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) error {
+func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) error {
 
-	index := ""
-	if node.Index != nil {
-		index = node.Index.Name
-	}
-	ident := ""
-	if node.Ident != nil {
-		ident = node.Ident.Name
-	}
+	switch n := node.(type) {
 
-	expr, err := r.eval(node.Expr1)
-	if err != nil {
-		if r.handleError(err) {
-			return nil
+	case *ast.For:
+
+		if n.Post != nil && n.Post.Declaration {
+			return r.errorf(n.Post, "cannot declare in post statement of for loop")
 		}
-		return err
-	}
 
-	if len(node.Nodes) == 0 {
-		return nil
-	}
+		r.vars = append(r.vars, scope{})
 
-	if node.Expr2 == nil {
-		// Syntax: for ident in expr
-		// Syntax: for index, ident in expr
-
-		setScope := func(i int, v interface{}) {
-			vars := scope{ident: v}
-			if index != "" {
-				vars[index] = i
+		if n.Init != nil {
+			err := r.renderAssignment(n.Init)
+			if err != nil {
+				return err
 			}
-			r.vars[len(r.vars)-1] = vars
+		}
+
+		for {
+
+			if n.Condition != nil {
+				cond, err := r.eval(n.Condition)
+				if err != nil {
+					return err
+				}
+				if !cond.(bool) {
+					return nil
+				}
+			}
+
+			err := r.render(wr, n.Body, urlstate)
+			if err != nil {
+				if err == errBreak {
+					break
+				}
+				if err != errContinue {
+					return err
+				}
+			}
+
+			if n.Post != nil {
+				err = r.renderAssignment(n.Post)
+				if err != nil {
+					return err
+				}
+			}
+
+		}
+
+		r.vars = r.vars[:len(r.vars)-1]
+
+	case *ast.ForRange:
+
+		var err error
+
+		// addresses contains the addresses of the variables to be assigned.
+		var addresses []address
+		if len(n.Assignment.Variables) > 0 {
+			r.vars = append(r.vars, scope{})
+			addresses, err = r.variableAddresses(n.Assignment)
+			if err != nil {
+				return err
+			}
+		}
+
+		expr, err := r.eval(n.Assignment.Expr)
+		if err != nil {
+			if r.handleError(err) {
+				return nil
+			}
+			return err
+		}
+
+		if len(n.Body) == 0 {
+			return nil
 		}
 
 		switch vv := expr.(type) {
 		case string:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			i := 0
-			for _, v := range vv {
-				setScope(i, string(v))
-				err = r.render(wr, node.Nodes, urlstate)
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(string(v))
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -70,19 +112,16 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 						return err
 					}
 				}
-				i++
 			}
-			r.vars = r.vars[:len(r.vars)-1]
 		case HTML:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			i := 0
-			for _, v := range vv {
-				setScope(i, HTML(string(v)))
-				err = r.render(wr, node.Nodes, urlstate)
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(HTML(string(v)))
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -91,18 +130,34 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 						return err
 					}
 				}
-				i++
 			}
-			r.vars = r.vars[:len(r.vars)-1]
+		case []MutableSlice:
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
 		case []string:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			for i := 0; i < size; i++ {
-				setScope(i, vv[i])
-				err = r.render(wr, node.Nodes, urlstate)
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -112,16 +167,15 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 					}
 				}
 			}
-			r.vars = r.vars[:len(r.vars)-1]
 		case []HTML:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			for i := 0; i < size; i++ {
-				setScope(i, vv[i])
-				err = r.render(wr, node.Nodes, urlstate)
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -131,35 +185,15 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 					}
 				}
 			}
-			r.vars = r.vars[:len(r.vars)-1]
-		case []int:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			for i := 0; i < size; i++ {
-				setScope(i, vv[i])
-				err = r.render(wr, node.Nodes, urlstate)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err != errContinue {
-						return err
-					}
-				}
-			}
-			r.vars = r.vars[:len(r.vars)-1]
 		case []decimal.Decimal:
-			size := len(vv)
-			if size == 0 {
-				return nil
-			}
-			r.vars = append(r.vars, nil)
-			for i := 0; i < size; i++ {
-				setScope(i, vv[i])
-				err = r.render(wr, node.Nodes, urlstate)
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -169,24 +203,48 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 					}
 				}
 			}
-			r.vars = r.vars[:len(r.vars)-1]
+		case []int:
+			for i, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
 		default:
 			av := reflect.ValueOf(expr)
-			if !av.IsValid() || av.Kind() != reflect.Slice {
-				err = r.errorf(node, "cannot range over %s (type %s)", node.Expr1, typeof(expr))
+			if av.Kind() != reflect.Slice {
+				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
 				if r.handleError(err) {
 					return nil
 				}
 				return err
 			}
-			size := av.Len()
-			if size == 0 {
+			if !av.IsValid() {
 				return nil
 			}
-			r.vars = append(r.vars, nil)
-			for i := 0; i < size; i++ {
-				setScope(i, av.Index(i).Interface())
-				err = r.render(wr, node.Nodes, urlstate)
+			length := av.Len()
+			if length == 0 {
+				return nil
+			}
+			for i := 0; i < length; i++ {
+				if addresses != nil {
+					addresses[0].assign(i)
+					if len(addresses) > 1 {
+						addresses[1].assign(av.Index(i).Interface())
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
 				if err != nil {
 					if err == errBreak {
 						break
@@ -196,76 +254,9 @@ func (r *rendering) renderFor(wr io.Writer, node *ast.For, urlstate *urlState) e
 					}
 				}
 			}
-			r.vars = r.vars[:len(r.vars)-1]
 		}
 
-	} else {
-		// Syntax: for index in expr..expr
-
-		expr2, err := r.eval(node.Expr2)
-		if err != nil {
-			if r.handleError(err) {
-				return nil
-			}
-			return err
-		}
-
-		var n1 int
-		switch n := expr.(type) {
-		case int:
-			n1 = n
-		case decimal.Decimal:
-			n1, err = r.decimalToInt(node.Expr1, n)
-		default:
-			err = r.errorf(node, "non-integer for range %s", node.Expr1)
-		}
-		if err != nil {
-			if r.handleError(err) {
-				return nil
-			}
-			return err
-		}
-
-		var n2 int
-		switch n := expr2.(type) {
-		case int:
-			n2 = n
-		case decimal.Decimal:
-			n2, err = r.decimalToInt(node.Expr2, n)
-		default:
-			err = r.errorf(node, "non-integer for range %s", node.Expr2)
-		}
-		if err != nil {
-			if r.handleError(err) {
-				return nil
-			}
-			return err
-		}
-
-		step := 1
-		if n2 < n1 {
-			step = -1
-		}
-
-		r.vars = append(r.vars, nil)
-		for i := n1; ; i += step {
-			r.vars[len(r.vars)-1] = scope{index: i}
-			err = r.render(wr, node.Nodes, urlstate)
-			if err != nil {
-				if err == errBreak {
-					break
-				}
-				if err == errContinue {
-					continue
-				}
-				return err
-			}
-			if i == n2 {
-				break
-			}
-		}
 		r.vars = r.vars[:len(r.vars)-1]
-
 	}
 
 	return nil

@@ -30,6 +30,8 @@ var typeTests = map[string][]tokenType{
 	"{%\tfor()\n%}":                {tokenStartStatement, tokenFor, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenEndStatement},
 	"{%\tfor a%}":                  {tokenStartStatement, tokenFor, tokenIdentifier, tokenEndStatement},
 	"{% for a;\n\t%}":              {tokenStartStatement, tokenFor, tokenIdentifier, tokenSemicolon, tokenEndStatement},
+	"{% for in %}":                 {tokenStartStatement, tokenFor, tokenIn, tokenEndStatement},
+	"{% for range %}":              {tokenStartStatement, tokenFor, tokenRange, tokenEndStatement},
 	"{%end%}":                      {tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{%\tend\n%}":                  {tokenStartStatement, tokenEnd, tokenEndStatement},
 	"{% end %}":                    {tokenStartStatement, tokenEnd, tokenEndStatement},

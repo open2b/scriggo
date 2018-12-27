@@ -56,13 +56,28 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr)
 
 	case *ast.For:
-		Walk(v, n.Expr1)
-
-		if n.Expr2 != nil {
-			Walk(v, n.Expr2)
+		if n.Init != nil {
+			Walk(v, n.Init)
 		}
 
-		for _, n := range n.Nodes {
+		if n.Condition != nil {
+			Walk(v, n.Condition)
+		}
+
+		if n.Post != nil {
+			Walk(v, n.Post)
+		}
+
+		for _, n := range n.Body {
+			Walk(v, n)
+		}
+
+	case *ast.ForRange:
+		if n.Assignment != nil {
+			Walk(v, n.Assignment)
+		}
+
+		for _, n := range n.Body {
 			Walk(v, n)
 		}
 

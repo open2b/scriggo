@@ -27,6 +27,7 @@ const (
 	tokenAssignment                  // =
 	tokenFor                         // for
 	tokenIn                          // in
+	tokenRange                       // range
 	tokenBreak                       // break
 	tokenContinue                    // continue
 	tokenMap                         // map
@@ -53,7 +54,6 @@ const (
 	tokenColon                       // :
 	tokenComma                       // ,
 	tokenSemicolon                   // ;
-	tokenRange                       // ..
 	tokenEllipses                    // ...
 	tokenNumber                      // 12.895
 	tokenEqual                       // ==
@@ -85,6 +85,7 @@ var tokenString = map[tokenType]string{
 	tokenAssignment:        "=",
 	tokenFor:               "for",
 	tokenIn:                "in",
+	tokenRange:             "range",
 	tokenBreak:             "break",
 	tokenContinue:          "continue",
 	tokenMap:               "map",
@@ -111,7 +112,6 @@ var tokenString = map[tokenType]string{
 	tokenColon:             ":",
 	tokenComma:             "comma",
 	tokenSemicolon:         "semicolon",
-	tokenRange:             "..",
 	tokenEllipses:          "...",
 	tokenNumber:            "number",
 	tokenEqual:             "==",
