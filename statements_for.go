@@ -23,7 +23,11 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 	case *ast.For:
 
 		if n.Post != nil && n.Post.Declaration {
-			return r.errorf(n.Post, "cannot declare in post statement of for loop")
+			err := r.errorf(n.Post, "cannot declare in post statement of for loop")
+			if r.handleError(err) {
+				return nil
+			}
+			return err
 		}
 
 		r.vars = append(r.vars, scope{})
@@ -31,6 +35,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 		if n.Init != nil {
 			err := r.renderAssignment(n.Init)
 			if err != nil {
+				if r.handleError(err) {
+					return nil
+				}
 				return err
 			}
 		}
@@ -40,6 +47,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			if n.Condition != nil {
 				cond, err := r.eval(n.Condition)
 				if err != nil {
+					if r.handleError(err) {
+						return nil
+					}
 					return err
 				}
 				if !cond.(bool) {
@@ -60,6 +70,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			if n.Post != nil {
 				err = r.renderAssignment(n.Post)
 				if err != nil {
+					if r.handleError(err) {
+						return nil
+					}
 					return err
 				}
 			}
