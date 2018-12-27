@@ -161,18 +161,25 @@ func TestExpressions(t *testing.T) {
 	for _, expr := range exprTests {
 		var lex = newLexer([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		<-lex.tokens
-		node, tok, err := parseExpr(token{}, lex, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		if node == nil {
-			t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
-			continue
-		}
-		err = equals(node, expr.node, 2)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-		}
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(*Error); ok {
+						t.Errorf("source: %q, %s\n", expr.src, err)
+					} else {
+						panic(r)
+					}
+				}
+			}()
+			node, tok := parseExpr(token{}, lex, false)
+			if node == nil {
+				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
+			} else {
+				err := equals(node, expr.node, 2)
+				if err != nil {
+					t.Errorf("source: %q, %s\n", expr.src, err)
+				}
+			}
+		}()
 	}
 }
