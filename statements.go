@@ -209,14 +209,7 @@ Nodes:
 
 			r.vars = r.vars[:len(r.vars)-1]
 
-		case *ast.For:
-
-			err := r.renderFor(wr, node, urlstate)
-			if err != nil {
-				return err
-			}
-
-		case *ast.ForRange:
+		case *ast.For, *ast.ForRange:
 
 			err := r.renderFor(wr, node, urlstate)
 			if err != nil {
