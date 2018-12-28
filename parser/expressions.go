@@ -124,10 +124,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 	var ok bool
 
 	if tok.txt == nil {
-		tok, ok = <-lex.tokens
-		if !ok {
-			panic(lex.err)
-		}
+		tok = next(lex)
 	}
 
 	for {
@@ -154,10 +151,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 			operand.Pos().End = tok.pos.End
 		case tokenMap: // map{...}, map(...)
 			typeTok := tok
-			tok, ok = <-lex.tokens
-			if !ok {
-				panic(lex.err)
-			}
+			tok = next(lex)
 			switch tok.typ {
 			case tokenLeftBraces:
 				// Map definition.
@@ -204,10 +198,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 			}
 		case tokenSlice: // slice{...}, slice(...)
 			typeTok := tok
-			tok, ok = <-lex.tokens
-			if !ok {
-				panic(lex.err)
-			}
+			tok = next(lex)
 			switch tok.typ {
 			case tokenLeftBraces:
 				// Slice definition.
@@ -263,10 +254,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 
 		for operator == nil {
 
-			tok, ok = <-lex.tokens
-			if !ok {
-				panic(lex.err)
-			}
+			tok = next(lex)
 
 			switch tok.typ {
 			case tokenLeftParenthesis: // e(...)
@@ -305,10 +293,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 			case tokenPeriod: // e.
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				tok, ok = <-lex.tokens
-				if !ok {
-					panic(lex.err)
-				}
+				tok = next(lex)
 				switch tok.typ {
 				case tokenIdentifier:
 					// e.ident
@@ -320,10 +305,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:
 					// e.(type)
-					tok, ok = <-lex.tokens
-					if !ok {
-						panic(lex.err)
-					}
+					tok = next(lex)
 					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 					}
@@ -331,10 +313,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 						panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
 					typ := ast.NewIdentifier(tok.pos, string(tok.txt))
-					tok, ok = <-lex.tokens
-					if !ok {
-						panic(lex.err)
-					}
+					tok = next(lex)
 					if tok.typ != tokenRightParenthesis {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 					}
@@ -476,10 +455,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 
 		}
 
-		tok, ok = <-lex.tokens
-		if !ok {
-			panic(lex.err)
-		}
+		tok = next(lex)
 
 	}
 

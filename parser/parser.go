@@ -51,6 +51,15 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
+// next returns the next token from the lexer lex. It panics on error.
+func next(lex *lexer) token {
+	tok, ok := <-lex.tokens
+	if !ok {
+		panic(lex.err)
+	}
+	return tok
+}
+
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
@@ -161,10 +170,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 			var expr ast.Expression
 
 			var ok bool
-			tok, ok = <-lex.tokens
-			if !ok {
-				return nil, lex.err
-			}
+			tok = next(lex)
 
 			switch tok.typ {
 
@@ -317,10 +323,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if !loop {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("break is not in a loop")}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
@@ -342,10 +345,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if !loop {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("continue is not in a loop")}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
@@ -393,10 +393,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				} else {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end, for, if or show", tok)}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
@@ -411,10 +408,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")}
 				}
 				// path
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
 				}
@@ -422,10 +416,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if !validPath(path) {
 					return nil, fmt.Errorf("invalid path %q at %s", path, tok.pos)
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
 				}
@@ -442,10 +433,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenIdentifier {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
@@ -453,17 +441,11 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
 				}
 				macro := ast.NewIdentifier(tok.pos, string(tok.txt))
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				// import
 				var impor *ast.Identifier
 				if tok.typ == tokenPeriod {
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 					if tok.typ != tokenIdentifier {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 					}
@@ -475,10 +457,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)}
 					}
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 				}
 				var arguments []ast.Expression
 				if tok.typ == tokenLeftParenthesis {
@@ -497,10 +476,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
 						}
 					}
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 					if tok.typ != tokenEndStatement {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
@@ -533,10 +509,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("extends inside a style tag")}
 					}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
 				}
@@ -544,10 +517,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if !validPath(path) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
@@ -578,17 +548,11 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)}
 					}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				var ident *ast.Identifier
 				if tok.typ == tokenIdentifier {
 					ident = ast.NewIdentifier(tok.pos, string(tok.txt))
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 				}
 				if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
 					return nil, fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos)
@@ -597,10 +561,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if !validPath(path) {
 					return nil, fmt.Errorf("invalid import path %q at %s", path, tok.pos)
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 				}
@@ -625,10 +586,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					}
 				}
 				// ident
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenIdentifier {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 				}
@@ -636,20 +594,14 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
 				}
 				ident := ast.NewIdentifier(tok.pos, string(tok.txt))
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				var parameters []*ast.Identifier
 				var ellipsesPos *ast.Position
 				if tok.typ == tokenLeftParenthesis {
 					// parameters
 					parameters = []*ast.Identifier{}
 					for {
-						tok, ok = <-lex.tokens
-						if !ok {
-							return nil, lex.err
-						}
+						tok = next(lex)
 						if tok.typ != tokenIdentifier {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
 						}
@@ -657,16 +609,10 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 							return nil, &Error{"", *ellipsesPos, fmt.Errorf("cannot use ... with non-final parameter")}
 						}
 						parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
-						tok, ok = <-lex.tokens
-						if !ok {
-							return nil, lex.err
-						}
+						tok = next(lex)
 						if tok.typ == tokenEllipses {
 							ellipsesPos = tok.pos
-							tok, ok = <-lex.tokens
-							if !ok {
-								return nil, lex.err
-							}
+							tok = next(lex)
 						}
 						if tok.typ == tokenRightParenthesis {
 							break
@@ -675,10 +621,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
 						}
 					}
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 					if tok.typ != tokenEndStatement {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
@@ -697,16 +640,10 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if _, ok = parent.(*ast.URL); ok || len(ancestors) == 1 {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 				}
-				tok, ok = <-lex.tokens
-				if !ok {
-					return nil, lex.err
-				}
+				tok = next(lex)
 				if tok.typ != tokenEndStatement {
 					tokparent := tok
-					tok, ok = <-lex.tokens
-					if !ok {
-						return nil, lex.err
-					}
+					tok = next(lex)
 					if tok.typ != tokenEndStatement {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 					}
