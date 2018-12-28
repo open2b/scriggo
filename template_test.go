@@ -61,6 +61,12 @@ func (s aMap) G() string {
 	return s.v
 }
 
+type aStruct struct {
+	a string
+	B string `template:"b"`
+	C string
+}
+
 var rendererExprTests = []struct {
 	src  string
 	res  string
@@ -361,6 +367,10 @@ var rendererStmtTests = []struct {
 	{"{% for _, i := range slice{ html(`<`), html(`&`), html(`>`) } %}{{ i }}{% end %}", "<&>", nil},
 	{"{% for _, i := range slice{1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
 	{"{% for _, i := range slice{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
+	{"{% for k, v := range map{\"a\": 1, \"b\":2} %}{{ k }}:{{ v }},{% end %}", "a:1,b:2,", nil},
+	{"{% for k, v := range map{} %}{{ k }}:{{ v }},{% end %}", "", nil},
+	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{{ sort(s) }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
+	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, k+`:`+v) %}{% end %}{{ sort(s) }}", "C:3, b:2", scope{"m": aStruct{a: "1", B: "2", C: "3"}}},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% i := 0 %}{% c := \"\" %}{% for i, c = range \"ab\" %}({{ c }}){% end %}{{ i }}", "(a)(b)1", nil},

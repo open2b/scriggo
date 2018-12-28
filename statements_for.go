@@ -234,27 +234,12 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		default:
-			av := reflect.ValueOf(expr)
-			if av.Kind() != reflect.Slice {
-				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
-				if r.handleError(err) {
-					return nil
-				}
-				return err
-			}
-			if !av.IsValid() {
-				return nil
-			}
-			length := av.Len()
-			if length == 0 {
-				return nil
-			}
-			for i := 0; i < length; i++ {
+		case MutableMap:
+			for k, v := range vv {
 				if addresses != nil {
-					addresses[0].assign(i)
+					addresses[0].assign(k)
 					if len(addresses) > 1 {
-						addresses[1].assign(av.Index(i).Interface())
+						addresses[1].assign(v)
 					}
 				}
 				err = r.render(wr, n.Body, urlstate)
@@ -266,6 +251,122 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						return err
 					}
 				}
+			}
+		case map[string]interface{}:
+			for k, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(k)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
+		case map[string]string:
+			for k, v := range vv {
+				if addresses != nil {
+					addresses[0].assign(k)
+					if len(addresses) > 1 {
+						addresses[1].assign(v)
+					}
+				}
+				err = r.render(wr, n.Body, urlstate)
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
+				}
+			}
+		default:
+			av := reflect.ValueOf(expr)
+			switch av.Kind() {
+			case reflect.Slice:
+				length := av.Len()
+				for i := 0; i < length; i++ {
+					if addresses != nil {
+						addresses[0].assign(i)
+						if len(addresses) > 1 {
+							addresses[1].assign(av.Index(i).Interface())
+						}
+					}
+					err = r.render(wr, n.Body, urlstate)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						if err != errContinue {
+							return err
+						}
+					}
+				}
+			case reflect.Map:
+				if av.Len() == 0 {
+					return nil
+				}
+				for _, k := range av.MapKeys() {
+					if addresses != nil {
+						addresses[0].assign(k.Interface())
+						if len(addresses) > 1 {
+							v := av.MapIndex(k)
+							if !v.IsValid() {
+								continue
+							}
+							addresses[1].assign(v.Interface())
+						}
+					}
+					err = r.render(wr, n.Body, urlstate)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						if err != errContinue {
+							return err
+						}
+					}
+				}
+			case reflect.Struct, reflect.Ptr:
+				keys := structKeys(av)
+				if keys == nil {
+					err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
+					if r.handleError(err) {
+						return nil
+					}
+					return err
+				}
+				for k, v := range keys {
+					if addresses != nil {
+						addresses[0].assign(k)
+						if len(addresses) > 1 {
+							addresses[1].assign(v.value(av))
+						}
+					}
+					err = r.render(wr, n.Body, urlstate)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						if err != errContinue {
+							return err
+						}
+					}
+				}
+			default:
+				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
+				if r.handleError(err) {
+					return nil
+				}
+				return err
 			}
 		}
 
