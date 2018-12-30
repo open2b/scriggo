@@ -409,9 +409,9 @@ Nodes:
 				return err
 			}
 
-		case *ast.Call:
+		case ast.Expression:
 
-			_, err := r.evalCallN(node, 0)
+			err := r.eval0(node)
 			if err != nil {
 				if r.handleError(err) {
 					continue

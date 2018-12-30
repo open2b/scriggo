@@ -47,6 +47,20 @@ func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	return r.evalExpression(exp), nil
 }
 
+// eval0 evaluates expr in a void context. It returns an error if the
+// expression evaluates to a value.
+func (r *rendering) eval0(expr ast.Expression) error {
+	if e, ok := expr.(*ast.Call); ok {
+		_, err := r.evalCallN(e, 0)
+		return err
+	}
+	_, err := r.eval(expr)
+	if err != nil {
+		return err
+	}
+	return r.errorf(expr, "%s evaluated but not used", expr)
+}
+
 // eval2 evaluates expr in a two-value context and returns its values.
 func (r *rendering) eval2(expr ast.Expression) (v1, v2 interface{}, err error) {
 	switch e := expr.(type) {
