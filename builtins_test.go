@@ -181,7 +181,7 @@ var rendererBuiltinTests = []struct {
 	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
 	{"len(a)", "0", scope{"a": []int(nil)}},
 	{"len(a)", "2", scope{"a": map[string]int{"a": 5, "b": 8}}},
-	{"len(a)", "2", scope{"a": MutableMap{"a": 5, "b": 8}}},
+	{"len(a)", "2", scope{"a": Map{"a": 5, "b": 8}}},
 	{"len(a)", "2", scope{"a": &struct{ A, B int }{A: 5, B: 8}}},
 
 	// max
@@ -355,9 +355,9 @@ var statementBuiltinTests = []struct {
 	{"{% if n, err := atoi(`-1`); err == nil %}{{ n }}{% end %}", "-1", nil},
 
 	// delete
-	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{}}},
-	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
-	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": MutableMap{"a": 6}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{"a": 6}}},
+	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": Map{"a": 6}}},
 }
 
 var rendererRandomBuiltinTests = []struct {

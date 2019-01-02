@@ -141,16 +141,16 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 }
 
 // _append is the builtin function "append".
-func _append(slice interface{}, elems ...interface{}) MutableSlice {
+func _append(slice interface{}, elems ...interface{}) Slice {
 	if slice == nil {
 		panic(fmt.Errorf("first argument to append must be slice; have nil"))
 	}
 	switch s := slice.(type) {
-	case MutableSlice:
+	case Slice:
 		return append(s, elems...)
 	case []interface{}:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -160,7 +160,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		return ms
 	case []string:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -170,7 +170,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		return ms
 	case []HTML:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -180,7 +180,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		return ms
 	case []int:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -190,7 +190,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		return ms
 	case []decimal.Decimal:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -200,7 +200,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		return ms
 	case []bool:
 		l := len(s)
-		ms := make(MutableSlice, l+len(elems))
+		ms := make(Slice, l+len(elems))
 		for i, v := range s {
 			ms[i] = v
 		}
@@ -214,7 +214,7 @@ func _append(slice interface{}, elems ...interface{}) MutableSlice {
 		panic(fmt.Errorf("first argument to append must be slice; have %s", typeof(slice)))
 	}
 	l := sv.Len()
-	ms := make(MutableSlice, l+len(elems))
+	ms := make(Slice, l+len(elems))
 	for i := 0; i < l; i++ {
 		ms[i] = sv.Index(i).Interface()
 	}
@@ -230,7 +230,7 @@ func _base64(s string) string {
 }
 
 // _delete is the builtin function "delete".
-func _delete(m MutableMap, key string) {
+func _delete(m Map, key string) {
 	delete(m, key)
 }
 
@@ -303,7 +303,7 @@ func _len(v interface{}) int {
 			return len(string(s))
 		}
 		return utf8.RuneCountInString(string(s))
-	case MutableSlice:
+	case Slice:
 		return len(s)
 	case []interface{}:
 		return len(s)
@@ -317,7 +317,7 @@ func _len(v interface{}) int {
 		return len(s)
 	case []bool:
 		return len(s)
-	case MutableMap:
+	case Map:
 		return len(s)
 	case map[string]interface{}:
 		return len(s)
@@ -434,16 +434,16 @@ func _sha256(s string) string {
 }
 
 // _shuffle is the builtin function "shuffle".
-func _shuffle(s interface{}) MutableSlice {
+func _shuffle(s interface{}) Slice {
 	if s == nil {
 		return nil
 	}
-	var ms MutableSlice
+	var ms Slice
 	switch m := s.(type) {
-	case MutableSlice:
+	case Slice:
 		ms = m
 	case []interface{}:
-		ms = make(MutableSlice, len(m))
+		ms = make(Slice, len(m))
 		copy(ms, m)
 	default:
 		rv := reflect.ValueOf(s)
@@ -451,7 +451,7 @@ func _shuffle(s interface{}) MutableSlice {
 			panic(errNoSlice)
 		}
 		l := rv.Len()
-		ms = make(MutableSlice, l)
+		ms = make(Slice, l)
 		for i := 0; i < l; i++ {
 			ms[i] = rv.Index(i).Interface()
 		}
@@ -474,13 +474,13 @@ func _shuffle(s interface{}) MutableSlice {
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}) MutableSlice {
+func _sort(slice interface{}) Slice {
 	if slice == nil {
 		return nil
 	}
 	// no reflect
 	switch s := slice.(type) {
-	case MutableSlice:
+	case Slice:
 		if len(s) < 2 {
 			return s
 		}
@@ -521,28 +521,28 @@ func _sort(slice interface{}) MutableSlice {
 			return s
 		}
 	case []string:
-		ms := make(MutableSlice, len(s))
+		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}
 		sort.Slice(ms, func(i, j int) bool { return ms[i].(string) < ms[j].(string) })
 		return ms
 	case []HTML:
-		ms := make(MutableSlice, len(s))
+		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}
 		sort.Slice(ms, func(i, j int) bool { return string(ms[i].(HTML)) < string(ms[j].(HTML)) })
 		return ms
 	case []int:
-		ms := make(MutableSlice, len(s))
+		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}
 		sort.Slice(ms, func(i, j int) bool { return ms[i].(int) < ms[j].(int) })
 		return ms
 	case []decimal.Decimal:
-		ms := make(MutableSlice, len(s))
+		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}
@@ -551,7 +551,7 @@ func _sort(slice interface{}) MutableSlice {
 		})
 		return ms
 	case []bool:
-		ms := make(MutableSlice, len(s))
+		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}

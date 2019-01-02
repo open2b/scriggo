@@ -144,7 +144,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case []MutableSlice:
+		case []Slice:
 			for i, v := range vv {
 				if addresses != nil {
 					addresses[0].assign(i)
@@ -234,7 +234,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case MutableMap:
+		case Map:
 			for k, v := range vv {
 				if addresses != nil {
 					addresses[0].assign(k)

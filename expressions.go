@@ -536,12 +536,12 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
 }
 
-type MutableMap map[string]interface{}
-type MutableSlice []interface{}
+type Map map[string]interface{}
+type Slice []interface{}
 
 // evalMap evaluates a map expression and returns its value.
 func (r *rendering) evalMap(node *ast.Map) interface{} {
-	elements := make(MutableMap, len(node.Elements))
+	elements := make(Map, len(node.Elements))
 	for _, element := range node.Elements {
 		var key string
 		switch v := asBase(r.evalExpression(element.Key)).(type) {
@@ -559,7 +559,7 @@ func (r *rendering) evalMap(node *ast.Map) interface{} {
 
 // evalSlice evaluates a slice expression and returns its value.
 func (r *rendering) evalSlice(node *ast.Slice) interface{} {
-	elements := make(MutableSlice, len(node.Elements))
+	elements := make(Slice, len(node.Elements))
 	for i, element := range node.Elements {
 		elements[i] = r.evalExpression(element)
 	}
@@ -591,7 +591,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 		return nil, false, nil
 	}
 	switch v := value.(type) {
-	case MutableMap:
+	case Map:
 		vv, ok := v[node.Ident]
 		return vv, ok, nil
 	case map[string]interface{}:
@@ -679,9 +679,9 @@ func hasType(v interface{}, typ valuetype) bool {
 		return typ == builtins["int"] || typ == builtins["number"]
 	case bool:
 		return typ == builtins["bool"]
-	case MutableSlice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
+	case Slice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
 		return typ == builtins["slice"]
-	case MutableMap, map[string]interface{}, map[string]string, map[string]HTML,
+	case Map, map[string]interface{}, map[string]string, map[string]HTML,
 		map[string]decimal.Decimal, map[string]int, map[string]bool:
 		return typ == builtins["map"]
 	case error:
@@ -766,7 +766,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			p++
 		}
 		return nil, false, r.errorf(node, "index out of range")
-	case MutableMap:
+	case Map:
 		i, err := r.stringIndex(node.Index)
 		if err != nil {
 			return nil, false, err
@@ -825,7 +825,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return u, true, nil
 		}
 		return nil, false, nil
-	case MutableSlice:
+	case Slice:
 		i, err := checkSlice(len(vv))
 		if err != nil {
 			return nil, false, err
@@ -1015,7 +1015,7 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			return vv
 		}
 		return vv[lb:hb]
-	case MutableSlice:
+	case Slice:
 		return vv[l:h2(len(vv))]
 	case []interface{}:
 		return vv[l:h2(len(vv))]
@@ -1085,7 +1085,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			return nil, err
 		}
 		arg := asBase(r.evalExpression(node.Args[0]))
-		m, ok := arg.(MutableMap)
+		m, ok := arg.(Map)
 		if !ok {
 			typ := typeof(arg)
 			if typ == "map" {
@@ -1339,10 +1339,10 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "map":
 		if value == nil {
-			return MutableMap(nil), nil
+			return Map(nil), nil
 		}
 		switch v := value.(type) {
-		case MutableMap:
+		case Map:
 			return v, nil
 		default:
 			rv := reflect.ValueOf(v)
@@ -1357,14 +1357,14 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "slice":
 		if value == nil {
-			return MutableSlice(nil), nil
+			return Slice(nil), nil
 		}
 		switch v := value.(type) {
 		case string:
 			return []rune(v), nil
 		case HTML:
 			return []rune(string(v)), nil
-		case MutableSlice:
+		case Slice:
 			return v, nil
 		default:
 			rv := reflect.ValueOf(v)
@@ -1477,11 +1477,11 @@ func asBase(v interface{}) interface{} {
 	// bool
 	case bool:
 		return v
-	// MutableMap
-	case MutableMap:
+	// Map
+	case Map:
 		return v
-	// MutableSlice
-	case MutableSlice:
+	// Slice
+	case Slice:
 		return v
 	default:
 		rv := reflect.ValueOf(v)

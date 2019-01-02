@@ -424,9 +424,9 @@ Nodes:
 }
 
 type address struct {
-	Map   MutableMap
+	Map   Map
 	Key   string
-	Slice MutableSlice
+	Slice Slice
 	Index int
 }
 
@@ -464,7 +464,7 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 						return addr, r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
 							variable.Name, m.path, m.node.Pos())
 					}
-					addr = address{Map: MutableMap(vars), Key: variable.Name}
+					addr = address{Map: Map(vars), Key: variable.Name}
 					break
 				}
 			}
@@ -477,7 +477,7 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 		if err != nil {
 			return addr, err
 		}
-		m, ok := value.(MutableMap)
+		m, ok := value.(Map)
 		if !ok {
 			typ := typeof(value)
 			if typ == "map" {
@@ -493,13 +493,13 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 			return addr, err
 		}
 		switch v := value.(type) {
-		case MutableMap:
+		case Map:
 			key, err := r.stringIndex(variable.Index)
 			if err != nil {
 				return addr, err
 			}
 			addr = address{Map: v, Key: key}
-		case MutableSlice:
+		case Slice:
 			index, err := r.intIndex(variable.Index)
 			if err != nil {
 				return addr, err
@@ -543,7 +543,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 			} else {
 				newVariables = true
 			}
-			addresses[i] = address{Map: MutableMap(vars), Key: ident.Name}
+			addresses[i] = address{Map: Map(vars), Key: ident.Name}
 		}
 		if !newVariables {
 			return nil, r.errorf(node, "no new variables on left side of :=")
@@ -685,7 +685,7 @@ func typeof(v interface{}) string {
 		return "string"
 	case bool:
 		return "bool"
-	case MutableMap:
+	case Map:
 		return "map"
 	case error:
 		return "error"
