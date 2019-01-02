@@ -70,6 +70,8 @@ const (
 	tokenMultiplication              // *
 	tokenDivision                    // /
 	tokenModulo                      // %
+	tokenIncrement                   // ++
+	tokenDecrement                   // --
 	tokenEOF                         // eof
 )
 
@@ -128,6 +130,8 @@ var tokenString = map[tokenType]string{
 	tokenMultiplication:    "*",
 	tokenDivision:          "/",
 	tokenModulo:            "%",
+	tokenIncrement:         "++",
+	tokenDecrement:         "--",
 	tokenEOF:               "EOF",
 }
 

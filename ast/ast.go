@@ -67,6 +67,15 @@ const (
 	OperatorModulo                             // %
 )
 
+type AssignmentType int
+
+const (
+	AssignmentSimple      AssignmentType = iota // =
+	AssignmentDeclaration                       // :=
+	AssignmentIncrement                         // ++
+	AssignmentDecrement                         // --
+)
+
 func (op OperatorType) String() string {
 	return []string{"==", "!=", "!", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
 }
@@ -201,16 +210,16 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 // Assignment node represents an assignment statement.
 type Assignment struct {
 	*Position                // position in the source.
-	Variables   []Expression // left hand variables.
-	Expr        Expression   // assigned expression.
-	Declaration bool         // indicates if it is a declaration.
+	Variables []Expression   // left hand variables.
+	Type      AssignmentType // type.
+	Expr      Expression     // assigned expression (nil for increment and decrement).
 }
 
-func NewAssignment(pos *Position, variables []Expression, expr Expression, declaration bool) *Assignment {
-	return &Assignment{pos, variables, expr, declaration}
+func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, expr Expression) *Assignment {
+	return &Assignment{pos, variables, typ, expr}
 }
 
-func (a Assignment) String() string {
+func (a *Assignment) String() string {
 	var s string
 	for i, v := range a.Variables {
 		if i > 0 {
@@ -218,10 +227,15 @@ func (a Assignment) String() string {
 		}
 		s += v.String()
 	}
-	if a.Declaration {
+	switch a.Type {
+	case AssignmentDeclaration:
 		s += " := "
-	} else {
+	case AssignmentSimple:
 		s += " = "
+	case AssignmentIncrement:
+		s += "++"
+	case AssignmentDecrement:
+		s += "--"
 	}
 	s += a.Expr.String()
 	return s

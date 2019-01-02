@@ -151,6 +151,7 @@ var rendererBuiltinTests = []struct {
 	{"join(a, ``)", "a", scope{"a": []string{"a"}}},
 	{"join(a, ``)", "ab", scope{"a": []string{"a", "b"}}},
 	{"join(a, `,`)", "a,b,c", scope{"a": []string{"a", "b", "c"}}},
+	//{"join(slice{`a`, `b`, `c`}, `,`)", "a,b,c", nil},
 
 	// lastIndex
 	{"lastIndex(``,``)", "0", nil},

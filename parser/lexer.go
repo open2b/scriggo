@@ -630,13 +630,25 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '+':
-			l.emit(tokenAddition, 1)
-			l.column++
-			endLineAsSemicolon = false
+			if len(l.src) > 1 && l.src[1] == '+' {
+				l.emit(tokenIncrement, 2)
+				l.column += 2
+				endLineAsSemicolon = true
+			} else {
+				l.emit(tokenAddition, 1)
+				l.column++
+				endLineAsSemicolon = false
+			}
 		case '-':
-			l.emit(tokenSubtraction, 1)
-			l.column++
-			endLineAsSemicolon = false
+			if len(l.src) > 1 && l.src[1] == '-' {
+				l.emit(tokenDecrement, 2)
+				l.column += 2
+				endLineAsSemicolon = true
+			} else {
+				l.emit(tokenSubtraction, 1)
+				l.column++
+				endLineAsSemicolon = false
+			}
 		case '*':
 			l.emit(tokenMultiplication, 1)
 			l.column++

@@ -137,7 +137,7 @@ func CloneNode(node ast.Node) ast.Node {
 		for i, v := range n.Variables {
 			variables[i] = CloneExpression(v)
 		}
-		return ast.NewAssignment(ClonePosition(n.Position), variables, CloneExpression(n.Expr), n.Declaration)
+		return ast.NewAssignment(ClonePosition(n.Position), variables, n.Type, CloneExpression(n.Expr))
 	case *ast.Comment:
 		return ast.NewComment(ClonePosition(n.Position), n.Text)
 	case ast.Expression:

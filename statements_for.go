@@ -22,7 +22,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 
 	case *ast.For:
 
-		if n.Post != nil && n.Post.Declaration {
+		if n.Post != nil && n.Post.Type == ast.AssignmentDeclaration {
 			err := r.errorf(n.Post, "cannot declare in post statement of for loop")
 			if r.handleError(err) {
 				return nil
@@ -89,7 +89,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 		var addresses []address
 		if len(n.Assignment.Variables) > 0 {
 			r.vars = append(r.vars, scope{})
-			addresses, err = r.variableAddresses(n.Assignment)
+			addresses, err = r.addresses(n.Assignment)
 			if err != nil {
 				return err
 			}
