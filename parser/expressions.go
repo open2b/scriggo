@@ -17,6 +17,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var maxInt = decimal.New(int64(^uint(0)>>1), 0)
+var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
+
 // The result of the parsing of an expression is a tree whose intermediate
 // nodes are operators and the leaves are operands. For example:
 //
@@ -567,12 +570,17 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 	}
 	if bytes.IndexByte(tok.txt, '.') == -1 {
 		n, err := strconv.Atoi(s)
-		if err != nil {
-			panic(&Error{"", *tok.pos, fmt.Errorf("constant %s overflows int", s)})
+		if err == nil {
+			return ast.NewInt(p, n)
 		}
-		return ast.NewInt(p, n)
 	}
 	d, _ := decimal.NewFromString(s)
+	if !d.LessThan(minInt) && !maxInt.LessThan(d) {
+		n := d.IntPart()
+		if decimal.New(n, 0).Equal(d) {
+			return ast.NewInt(p, int(n))
+		}
+	}
 	return ast.NewNumber(p, d)
 }
 

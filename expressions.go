@@ -362,11 +362,10 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case decimal.Decimal:
 				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			case int:
-				e := e1 / e2
-				if (e < 0) != ((e1 < 0) != (e2 < 0)) {
-					return decimal.New(int64(e1), 0).DivRound(decimal.New(int64(e2), 0), 20)
+				if e := e1 / e2; (e < 0) == (e1 < 0) != (e2 < 0) && e*e2 == e1 {
+					return e
 				}
-				return e
+				return decimal.New(int64(e1), 0).DivRound(decimal.New(int64(e2), 0), 20)
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
