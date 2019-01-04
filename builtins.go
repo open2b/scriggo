@@ -230,8 +230,8 @@ func _base64(s string) string {
 }
 
 // _delete is the builtin function "delete".
-func _delete(m Map, key string) {
-	delete(m, key)
+func _delete(m Map, key interface{}) {
+	m.Delete(key)
 }
 
 // _errorf is the builtin function "errorf".
@@ -318,7 +318,7 @@ func _len(v interface{}) int {
 	case []bool:
 		return len(s)
 	case Map:
-		return len(s)
+		return s.Len()
 	case map[string]interface{}:
 		return len(s)
 	case map[string]string:

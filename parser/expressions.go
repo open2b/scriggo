@@ -182,13 +182,29 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 					}
 				}
 				if len(elements) > 1 {
-					duplicates := map[string]struct{}{}
+					duplicates := map[interface{}]struct{}{}
 					for _, element := range elements {
-						if key, ok := element.Key.(*ast.String); ok {
+						switch key := element.Key.(type) {
+						case nil:
+							if _, ok := duplicates[nil]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
+							}
+							duplicates[nil] = struct{}{}
+						case *ast.String:
 							if _, ok := duplicates[key.Text]; ok {
 								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
 							}
 							duplicates[key.Text] = struct{}{}
+						case *ast.Number:
+							if _, ok := duplicates[key.Value]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
+							}
+							duplicates[key.Value] = struct{}{}
+						case *ast.Int:
+							if _, ok := duplicates[key.Value]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %d in map literal", key.Value)})
+							}
+							duplicates[key.Value] = struct{}{}
 						}
 					}
 				}

@@ -233,9 +233,10 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						return err
 					}
 				}
+
 			}
 		case Map:
-			for k, v := range vv {
+			vv.Range(func(k, v interface{}) bool {
 				if addresses != nil {
 					addresses[0].assign(k)
 					if len(addresses) > 1 {
@@ -243,13 +244,14 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 				err = r.render(wr, n.Body, urlstate)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err != errContinue {
-						return err
-					}
+				return err == nil
+			})
+			if err != nil {
+				if err == errBreak {
+					break
+				}
+				if err != errContinue {
+					return err
 				}
 			}
 		case map[string]interface{}:

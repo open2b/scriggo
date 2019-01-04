@@ -423,19 +423,39 @@ Nodes:
 	return nil
 }
 
-type address struct {
-	Map   Map
-	Key   string
+type address interface {
+	assign(value interface{})
+}
+
+type blankAddress struct{}
+
+func (addr blankAddress) assign(interface{}) {}
+
+type scopeAddress struct {
+	Scope scope
+	Var   string
+}
+
+func (addr scopeAddress) assign(value interface{}) {
+	addr.Scope[addr.Var] = value
+}
+
+type mapAddress struct {
+	Map Map
+	Key interface{}
+}
+
+func (addr mapAddress) assign(value interface{}) {
+	addr.Map.Store(addr.Key, value)
+}
+
+type sliceAddress struct {
 	Slice Slice
 	Index int
 }
 
-func (addr address) assign(value interface{}) {
-	if addr.Map != nil {
-		addr.Map[addr.Key] = value
-	} else if addr.Slice != nil {
-		addr.Slice[addr.Index] = value
-	}
+func (addr sliceAddress) assign(value interface{}) {
+	addr.Slice[addr.Index] = value
 }
 
 func (r *rendering) address(node ast.Expression) (address, error) {
@@ -443,74 +463,76 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 	switch variable := node.(type) {
 	case *ast.Identifier:
 		if variable.Name == "_" {
-			return addr, nil
+			return blankAddress{}, nil
 		}
 		for j := len(r.vars) - 1; j >= 0; j-- {
 			if vars := r.vars[j]; vars != nil {
 				if v, ok := vars[variable.Name]; ok {
 					if j == 0 {
 						if vt, ok := v.(valuetype); ok {
-							return addr, r.errorf(variable, "type %s is not an expression", vt)
+							return nil, r.errorf(variable, "type %s is not an expression", vt)
 						}
 						if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
-							return addr, r.errorf(variable, "use of builtin %s not in function call", variable.Name)
+							return nil, r.errorf(variable, "use of builtin %s not in function call", variable.Name)
 						}
-						return addr, r.errorf(variable, "cannot assign to %s", variable.Name)
+						return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
 					}
 					if j == 1 {
-						return addr, r.errorf(variable, "cannot assign to %s", variable.Name)
+						return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
 					}
 					if m, ok := v.(macro); ok {
-						return addr, r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
+						return nil, r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
 							variable.Name, m.path, m.node.Pos())
 					}
-					addr = address{Map: Map(vars), Key: variable.Name}
+					addr = scopeAddress{Scope: vars, Var: variable.Name}
 					break
 				}
 			}
 		}
-		if addr.Map == nil {
-			return addr, r.errorf(variable, "variable %s not declared", variable.Name)
+		if addr == nil {
+			return nil, r.errorf(variable, "variable %s not declared", variable.Name)
 		}
 	case *ast.Selector:
 		value, err := r.eval(variable.Expr)
 		if err != nil {
-			return addr, err
+			return nil, err
 		}
 		m, ok := value.(Map)
 		if !ok {
 			typ := typeof(value)
 			if typ == "map" {
-				return addr, r.errorf(variable, "cannot assign to a non-mutable map")
+				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 			} else {
-				return addr, r.errorf(variable, "cannot assign to %s", variable)
+				return nil, r.errorf(variable, "cannot assign to %s", variable)
 			}
 		}
-		addr = address{Map: m, Key: variable.Ident}
+		addr = mapAddress{Map: m, Key: variable.Ident}
 	case *ast.Index:
 		value, err := r.eval(variable.Expr)
 		if err != nil {
-			return addr, err
+			return nil, err
 		}
 		switch v := value.(type) {
 		case Map:
-			key, err := r.stringIndex(variable.Index)
-			if err != nil {
-				return addr, err
+			key := asBase(r.evalExpression(variable.Index))
+			switch key.(type) {
+			case nil, string, HTML, decimal.Decimal, int, bool:
+			default:
+				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
 			}
-			addr = address{Map: v, Key: key}
+			addr = mapAddress{Map: v, Key: key}
 		case Slice:
-			index, err := r.intIndex(variable.Index)
+			index, err := r.sliceIndex(variable.Index)
 			if err != nil {
-				return addr, err
+				return nil, err
 			}
-			addr = address{Slice: v, Index: index}
+			addr = sliceAddress{Slice: v, Index: index}
 		default:
 			switch t := typeof(value); t {
 			case "map", "slice":
-				return addr, r.errorf(variable, "cannot assign to a non-mutable %s", t)
+				return nil, r.errorf(variable, "cannot assign to a non-mutable %s", t)
 			default:
-				return addr, r.errorf(variable, "invalid operation: %s (type %s does not support indexing)", variable, t)
+				return nil, r.errorf(variable, "invalid operation: %s (type %s does not support indexing)", variable, t)
 			}
 		}
 	}
@@ -533,6 +555,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 		for i, variable := range node.Variables {
 			ident := variable.(*ast.Identifier)
 			if ident.Name == "_" {
+				addresses[i] = blankAddress{}
 				continue
 			}
 			if v, ok := vars[ident.Name]; ok {
@@ -543,7 +566,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 			} else {
 				newVariables = true
 			}
-			addresses[i] = address{Map: Map(vars), Key: ident.Name}
+			addresses[i] = scopeAddress{Scope: vars, Var: ident.Name}
 		}
 		if !newVariables {
 			return nil, r.errorf(node, "no new variables on left side of :=")
@@ -679,23 +702,25 @@ func typeof(v interface{}) string {
 	}
 	v = asBase(v)
 	switch v.(type) {
-	case int, decimal.Decimal:
-		return "number"
 	case string, HTML:
 		return "string"
+	case decimal.Decimal, int:
+		return "number"
 	case bool:
 		return "bool"
 	case Map:
 		return "map"
+	case Slice:
+		return "slice"
 	case error:
 		return "error"
 	default:
 		rv := reflect.ValueOf(v)
 		switch rv.Kind() {
+		case reflect.Map, reflect.Struct, reflect.Ptr:
+			return "map"
 		case reflect.Slice:
 			return "slice"
-		case reflect.Map, reflect.Ptr:
-			return "map"
 		}
 	}
 	return fmt.Sprintf("(%T)", v)

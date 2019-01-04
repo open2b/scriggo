@@ -33,6 +33,9 @@ var decimalType = reflect.TypeOf(zero)
 var maxInt = int64(^uint(0) >> 1)
 var minInt = -int64(^uint(0)>>1) - 1
 
+// Slice implements the slice values.
+type Slice []interface{}
+
 // eval evaluates expr in a single-value context and returns its value.
 func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
@@ -535,23 +538,17 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
 }
 
-type Map map[string]interface{}
-type Slice []interface{}
-
 // evalMap evaluates a map expression and returns its value.
 func (r *rendering) evalMap(node *ast.Map) interface{} {
 	elements := make(Map, len(node.Elements))
 	for _, element := range node.Elements {
-		var key string
-		switch v := asBase(r.evalExpression(element.Key)).(type) {
-		case string:
-			key = v
-		case HTML:
-			key = string(v)
+		key := asBase(r.evalExpression(element.Key))
+		switch key.(type) {
+		case nil, string, HTML, decimal.Decimal, int, bool:
 		default:
-			panic(r.errorf(node, "cannot use %s (type %s) as type string in map key", v, typeof(v)))
+			panic(r.errorf(node, "hash of unhashable type %s", typeof(key)))
 		}
-		elements[key] = r.evalExpression(element.Value)
+		elements.Store(key, r.evalExpression(element.Value))
 	}
 	return elements
 }
@@ -591,7 +588,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	}
 	switch v := value.(type) {
 	case Map:
-		vv, ok := v[node.Ident]
+		vv, ok := v.Load(node.Ident)
 		return vv, ok, nil
 	case map[string]interface{}:
 		vv, ok := v[node.Ident]
@@ -708,10 +705,7 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 		panic(err)
 	}
 	if !ok {
-		key, err := r.stringIndex(node.Index)
-		if err != nil {
-			panic(err)
-		}
+		key := asBase(r.evalExpression(node.Index))
 		panic(r.errorf(node, "map %s has no key %q", node, key))
 	}
 	return v
@@ -721,7 +715,10 @@ func (r *rendering) evalIndex(node *ast.Index) interface{} {
 // two-values ( n == 2 ) context. If its index exists, returns the value and
 // true, otherwise it returns nil and false.
 func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error) {
-	v := asBase(r.evalExpression(node.Expr))
+	v, err := r.eval(node.Expr)
+	if err != nil {
+		return nil, false, err
+	}
 	if v == nil {
 		if r.isBuiltin("nil", node.Expr) {
 			return nil, false, r.errorf(node.Expr, "use of untyped nil")
@@ -733,7 +730,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		if n == 2 {
 			return 0, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
 		}
-		i, err := r.intIndex(node.Index)
+		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return 0, err
 		}
@@ -742,6 +739,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return i, nil
 	}
+	v = asBase(v)
 	if vv, ok := v.(HTML); ok {
 		v = string(vv)
 	}
@@ -750,7 +748,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		if n == 2 {
 			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
 		}
-		i, err := r.intIndex(node.Index)
+		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return nil, false, err
 		}
@@ -766,62 +764,54 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return nil, false, r.errorf(node, "index out of range")
 	case Map:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		u, ok := vv[i]
+		u, ok := vv.Load(asBase(r.evalExpression(node.Index)))
 		return u, ok, nil
 	case map[string]interface{}:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
-		u, ok := vv[i]
-		return u, ok, nil
+		return nil, false, nil
 	case map[string]string:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if u, ok := vv[i]; ok {
-			return u, true, nil
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
 		return nil, false, nil
 	case map[string]HTML:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if u, ok := vv[i]; ok {
-			return u, true, nil
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
 		return nil, false, nil
 	case map[string]decimal.Decimal:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if u, ok := vv[i]; ok {
-			return u, true, nil
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
 		return nil, false, nil
 	case map[string]int:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if u, ok := vv[i]; ok {
-			return u, true, nil
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
 		return nil, false, nil
 	case map[string]bool:
-		i, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
-		}
-		if u, ok := vv[i]; ok {
-			return u, true, nil
+		k := asBase(r.evalExpression(node.Index))
+		if s, ok := k.(string); ok {
+			if u, ok := vv[s]; ok {
+				return u, true, nil
+			}
 		}
 		return nil, false, nil
 	case Slice:
@@ -870,26 +860,21 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	var rv = reflect.ValueOf(v)
 	switch rv.Kind() {
 	case reflect.Map:
-		key, err := r.stringIndex(node.Index)
-		if err != nil {
-			return nil, false, err
+		k := asBase(r.evalExpression(node.Index))
+		val := reflect.ValueOf(k)
+		if val.IsValid() && val.Type().AssignableTo(rv.Type().Key()) {
+			return val.Interface(), true, nil
 		}
-		val := rv.MapIndex(reflect.ValueOf(key))
-		if !val.IsValid() {
-			return nil, false, nil
-		}
-		return val.Interface(), true, nil
+		return nil, false, nil
 	case reflect.Struct, reflect.Ptr:
 		if keys := structKeys(rv); keys != nil {
-			key, err := r.stringIndex(node.Index)
-			if err != nil {
-				return nil, false, err
+			k := asBase(r.evalExpression(node.Index))
+			if k, ok := k.(string); ok {
+				if sk, ok := keys[k]; ok {
+					return sk.value(rv), true, nil
+				}
 			}
-			sk, ok := keys[key]
-			if !ok {
-				return nil, false, nil
-			}
-			return sk.value(rv), true, nil
+			return nil, false, nil
 		}
 	case reflect.Slice:
 		i, err := checkSlice(rv.Len())
@@ -901,8 +886,8 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
 }
 
-// intIndex evaluates node as an int index and return the value.
-func (r *rendering) intIndex(node ast.Expression) (int, error) {
+// sliceIndex evaluates node as a slice index and returns the value.
+func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 	var i int
 	switch index := asBase(r.evalExpression(node)).(type) {
 	case int:
@@ -923,18 +908,6 @@ func (r *rendering) intIndex(node ast.Expression) (int, error) {
 		return 0, r.errorf(node, "invalid slice index %d (index must be non-negative)", i)
 	}
 	return i, nil
-}
-
-// stringIndex evaluates node as a string index and return the value.
-func (r *rendering) stringIndex(node ast.Expression) (string, error) {
-	switch index := asBase(r.evalExpression(node)).(type) {
-	case string:
-		return index, nil
-	case HTML:
-		return string(index), nil
-	default:
-		return "", r.errorf(node, "cannot use %s (type %s) as type string in map index", index, typeof(index))
-	}
 }
 
 // evalSlicing evaluates a slice expression and returns its value.
@@ -1093,19 +1066,8 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 				return nil, r.errorf(node, "first argument to delete must be map; have %s", typ)
 			}
 		}
-		arg2 := asBase(r.evalExpression(node.Args[1]))
-		if r.isBuiltin("nil", node.Args[0]) {
-			return nil, r.errorf(node, "cannot use nil as type string in delete")
-		}
-		var key string
-		if k, ok := arg2.(HTML); ok {
-			key = string(k)
-		} else if k, ok := arg2.(string); ok {
-			key = k
-		} else {
-			return nil, r.errorf(node, "cannot use %s (type %s) as type string in delete", arg2, typeof(arg2))
-		}
-		_delete(m, key)
+		k := asBase(r.evalExpression(node.Args[1]))
+		_delete(m, k)
 		return nil, nil
 	}
 
