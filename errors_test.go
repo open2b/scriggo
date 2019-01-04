@@ -36,6 +36,7 @@ var errorTests = []struct {
 	{`{{ f(1, 2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(i int) string { return "no" }}},
 	{`{{ f(2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(s string) string { return "no" }}},
 	{`{{ f("2") }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(n decimal.Decimal) string { return "no" }}},
+	{`{% b := map{map{}: true} %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := map{} %}{% b[map{}] = 5 %}{{ "ok" }}`, `ok`, nil},
 }
 

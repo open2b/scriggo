@@ -358,6 +358,9 @@ var statementBuiltinTests = []struct {
 	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{}}},
 	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{"a": 6}}},
 	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": Map{"a": 6}}},
+	{"{% delete(m,5) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
+	{"{% delete(m,5.0) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
+	{"{% delete(m,map{}) %}ok", "ok", scope{"m": Map{}}},
 }
 
 var rendererRandomBuiltinTests = []struct {
