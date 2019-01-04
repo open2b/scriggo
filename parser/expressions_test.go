@@ -14,10 +14,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var maxInt64, _ = decimal.NewFromString("9223372036854775807")
-var minInt64, _ = decimal.NewFromString("-9223372036854775808")
-var maxInt32Plus1, _ = decimal.NewFromString("2147483648")
-var minInt32Minus1, _ = decimal.NewFromString("-2147483649")
 var maxInt64Plus1, _ = decimal.NewFromString("9223372036854775808")
 var minInt64Minus1, _ = decimal.NewFromString("-9223372036854775809")
 var bigInt, _ = decimal.NewFromString("433937734937734969526500969526500")
@@ -38,9 +34,9 @@ var exprTests = []struct {
 	{"-9223372036854775808", ast.NewInt(p(1, 1, 0, 19), -9223372036854775808)}, // math.MinInt64
 	{"2147483648", ast.NewInt(p(1, 1, 0, 9), 2147483648)},                      // math.MaxInt32 + 1
 	{"-2147483649", ast.NewInt(p(1, 1, 0, 10), -2147483649)},                   // math.MinInt32 - 1
-	//{"9223372036854775808", ast.NewInt(p(1, 1, 0, 18), maxInt64Plus1)},       // math.MaxInt64 + 1
-	//{"-9223372036854775809", ast.NewInt(p(1, 1, 0, 19), minInt64Minus1)},     // math.MinInt64 - 1
-	//{"433937734937734969526500969526500", ast.NewInt(p(1, 1, 0, 32), bigInt)},
+	{"9223372036854775808", ast.NewNumber(p(1, 1, 0, 18), maxInt64Plus1)},      // math.MaxInt64 + 1
+	{"-9223372036854775809", ast.NewNumber(p(1, 1, 0, 19), minInt64Minus1)},    // math.MinInt64 - 1
+	{"433937734937734969526500969526500", ast.NewNumber(p(1, 1, 0, 32), bigInt)},
 	{"\"\"", ast.NewString(p(1, 1, 0, 1), "")},
 	{"\"a\"", ast.NewString(p(1, 1, 0, 2), "a")},
 	{`"\t"`, ast.NewString(p(1, 1, 0, 3), "\t")},
