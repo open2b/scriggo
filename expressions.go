@@ -30,8 +30,8 @@ var boolType = reflect.TypeOf(false)
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
-var maxInt = int64(^uint(0) >> 1)
-var minInt = -int64(^uint(0)>>1) - 1
+const maxInt = int64(^uint(0) >> 1)
+const minInt = -int64(^uint(0)>>1) - 1
 
 // Slice implements the slice values.
 type Slice []interface{}
@@ -338,7 +338,7 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 				if (e < 0) != ((e1 < 0) != (e2 < 0)) || e/e2 != e1 {
 					return decimal.New(int64(e1), 0).Mul(decimal.New(int64(e2), 0))
 				}
-				return e1 * e2
+				return e
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
@@ -365,8 +365,8 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case decimal.Decimal:
 				return e1.DivRound(decimal.New(int64(e2), 0), 20)
 			case int:
-				if e := e1 / e2; (e < 0) == (e1 < 0) != (e2 < 0) && e*e2 == e1 {
-					return e
+				if e1%e2 == 0 && !(e1 == int(minInt) && e2 == -1) {
+					return e1 / e2
 				}
 				return decimal.New(int64(e1), 0).DivRound(decimal.New(int64(e2), 0), 20)
 			}
