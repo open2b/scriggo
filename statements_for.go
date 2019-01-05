@@ -144,7 +144,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case []Slice:
+		case Slice:
 			for i, v := range vv {
 				if addresses != nil {
 					addresses[0].assign(i)
