@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
@@ -1387,15 +1386,18 @@ func (r *rendering) isBuiltin(name string, expr ast.Expression) bool {
 
 // asBase returns the base value of v.
 func asBase(v interface{}) interface{} {
-	if v == nil {
-		return nil
-	}
 	switch vv := v.(type) {
+	// nil
+	case nil:
+		return nil
 	// number
 	case int:
 		return vv
 	case uint:
-		return decimal.NewFromBigInt(new(big.Int).SetUint64(uint64(vv)), 0)
+		if vv > uint(maxInt) {
+			return decimal.NewFromBigInt(new(big.Int).SetUint64(uint64(vv)), 0)
+		}
+		return int(vv)
 	case int8:
 		return int(vv)
 	case int16:
@@ -1403,7 +1405,7 @@ func asBase(v interface{}) interface{} {
 	case int32:
 		return int(vv)
 	case int64:
-		if strconv.IntSize == 32 {
+		if vv < minInt || vv > maxInt {
 			return decimal.New(vv, 0)
 		}
 		return int(vv)
@@ -1412,12 +1414,15 @@ func asBase(v interface{}) interface{} {
 	case uint16:
 		return int(vv)
 	case uint32:
-		if strconv.IntSize == 32 {
+		if int64(vv) > maxInt {
 			return decimal.New(int64(vv), 0)
 		}
 		return int(vv)
 	case uint64:
-		return decimal.NewFromBigInt(new(big.Int).SetUint64(vv), 0)
+		if vv > uint64(maxInt) {
+			return decimal.NewFromBigInt(new(big.Int).SetUint64(vv), 0)
+		}
+		return int(vv)
 	case float32:
 		return decimal.NewFromFloat32(vv)
 	case float64:
@@ -1446,14 +1451,18 @@ func asBase(v interface{}) interface{} {
 		return v
 	default:
 		rv := reflect.ValueOf(v)
-		rt := rv.Type()
-		if rt.ConvertibleTo(stringType) {
+		switch rv.Kind() {
+		case reflect.String:
 			return rv.String()
-		} else if rt.ConvertibleTo(intType) {
-			return rv.Int()
-		} else if rt.ConvertibleTo(float64Type) {
-			return decimal.NewFromFloat(rv.Float())
-		} else if rt.ConvertibleTo(boolType) {
+		case reflect.Int:
+			n := rv.Int()
+			if n < minInt || n > maxInt {
+				return decimal.New(n, 0)
+			}
+			return int(n)
+		case reflect.Float64:
+			return rv.Float()
+		case reflect.Bool:
 			return rv.Bool()
 		}
 	}
