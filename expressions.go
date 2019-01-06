@@ -190,7 +190,7 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		}
 		panic(r.errorf(node, "invalid operation: - %s", typeof(expr)))
 	}
-	panic("Unknown Unary Operator")
+	panic("unknown unary operator")
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
