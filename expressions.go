@@ -637,7 +637,7 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 		panic(r.errorf(node.Type, "%s is not a type", node.Type.Name))
 	}
 	if !hasType(val, typ) {
-		panic(r.errorf(node.Type, "%s is %s, not %s", val, typeof(val), typ))
+		panic(r.errorf(node.Type, "%s is %s, not %s", node.Expr, typeof(val), typ))
 	}
 	return val
 }
@@ -1199,7 +1199,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 					return nil, fmt.Errorf("cannot use %s as function parameter type", inKind)
 				}
 				expectedType := typeof(reflect.Zero(in).Interface())
-				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(arg), expectedType, node.Func)
+				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", node.Args[i], typeof(arg), expectedType, node.Func)
 			}
 		}
 	}
