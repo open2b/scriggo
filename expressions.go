@@ -694,13 +694,9 @@ func hasType(v interface{}, typ valuetype) bool {
 
 // evalIndex evaluates an index expression in a single context.
 func (r *rendering) evalIndex(node *ast.Index) interface{} {
-	v, ok, err := r.evalIndex2(node, 1)
+	v, _, err := r.evalIndex2(node, 1)
 	if err != nil {
 		panic(err)
-	}
-	if !ok {
-		key := asBase(r.evalExpression(node.Index))
-		panic(r.errorf(node, "map %s has no key %q", node, key))
 	}
 	return v
 }
