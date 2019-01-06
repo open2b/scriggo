@@ -27,7 +27,7 @@ var decimalType = reflect.TypeOf(zero)
 const maxInt = int64(^uint(0) >> 1)
 const minInt = -int64(^uint(0)>>1) - 1
 
-// Slice implements the slice values.
+// Slice implements the mutable slice values.
 type Slice []interface{}
 
 // eval evaluates expr in a single-value context and returns its value.

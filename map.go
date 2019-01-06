@@ -15,7 +15,7 @@ import (
 // decimalKey implements a key of type decimal.
 type decimalKey string
 
-// Map implements the map values.
+// Map implements the mutable map values.
 type Map map[interface{}]interface{}
 
 // Delete deletes the value for a key.
