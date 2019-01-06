@@ -599,7 +599,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		switch e := v.(type) {
+		switch e := asBase(v).(type) {
 		case decimal.Decimal:
 			address.assign(e.Add(oneDecimal))
 		case int:
@@ -620,7 +620,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		switch e := v.(type) {
+		switch e := asBase(v).(type) {
 		case decimal.Decimal:
 			address.assign(e.Sub(oneDecimal))
 		case int:

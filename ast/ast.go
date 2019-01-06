@@ -237,7 +237,9 @@ func (a *Assignment) String() string {
 	case AssignmentDecrement:
 		s += "--"
 	}
-	s += a.Expr.String()
+	if a.Expr != nil {
+		s += a.Expr.String()
+	}
 	return s
 }
 
