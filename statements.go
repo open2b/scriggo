@@ -606,8 +606,10 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			} else {
 				address.assign(ee)
 			}
+		case nil:
+			return r.errorf(node, "invalid operation: %s (increment of nil)", node)
 		default:
-			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(node))
+			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
 		}
 	case ast.AssignmentDecrement:
 		address, err := r.address(node.Variables[0])
@@ -627,8 +629,10 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			} else {
 				address.assign(ee)
 			}
+		case nil:
+			return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
 		default:
-			err = r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(node))
+			err = r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
 		}
 	default:
 		switch len(node.Variables) {
