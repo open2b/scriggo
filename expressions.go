@@ -183,7 +183,7 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		case decimal.Decimal:
 			return n.Neg()
 		case int:
-			if int64(n) == minInt {
+			if n == int(minInt) {
 				return decimal.New(int64(n), 0).Neg()
 			}
 			return -n
