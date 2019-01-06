@@ -8,7 +8,7 @@ package template
 
 const hexchars = "0123456789abcdef"
 
-// htmlEscape escapes the string s, so it can be places inside HTML, and
+// htmlEscape escapes the string s, so it can be placed inside HTML, and
 // writes it on w.
 func htmlEscape(w stringWriter, s string) error {
 	last := 0
@@ -47,7 +47,7 @@ func htmlEscape(w stringWriter, s string) error {
 	return nil
 }
 
-// htmlEscapeString escapes the string s so it can be places inside HTML, and
+// htmlEscapeString escapes the string s so it can be placed inside HTML, and
 // returns the escaped string.
 func htmlEscapeString(s string) string {
 	more := 0
@@ -101,7 +101,7 @@ func htmlEscapeString(s string) string {
 	return string(b)
 }
 
-// attributeEscape escapes the string s, so it can be places inside an HTML
+// attributeEscape escapes the string s, so it can be placed inside an HTML
 // attribute value, and write it to w. quoted indicates if the attribute is
 // quoted.
 func attributeEscape(w stringWriter, s string, quoted bool) error {
@@ -217,7 +217,7 @@ var cssStringEscapes = []string{
 	'}':  `\7d`,
 }
 
-// cssStringEscape escapes the string s, so it can be places inside a CSS
+// cssStringEscape escapes the string s, so it can be placed inside a CSS
 // string with single or double quotes, and write it to w.
 func cssStringEscape(w stringWriter, s string) error {
 	last := 0
@@ -296,7 +296,7 @@ var scriptStringEscapes = []string{
 	'\\': `\\`,
 }
 
-// scriptStringEscape escapes the string s so it can be places inside a
+// scriptStringEscape escapes the string s so it can be placed inside a
 // JavaScript and JSON string with single or double quotes, and write it to w.
 func scriptStringEscape(w stringWriter, s string) error {
 	last := 0
