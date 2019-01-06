@@ -171,11 +171,9 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		}
 		panic(r.errorf(node, "invalid operation: ! %s", typeof(expr)))
 	case ast.OperatorAddition:
-		switch n := expr.(type) {
-		case decimal.Decimal:
-			return n
-		case int:
-			return n
+		switch expr.(type) {
+		case decimal.Decimal, int:
+			return expr
 		}
 		panic(r.errorf(node, "invalid operation: + %s", typeof(expr)))
 	case ast.OperatorSubtraction:
