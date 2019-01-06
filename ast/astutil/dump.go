@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Open2b Software Snc. All rights reserved.
+// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 // https://www.open2b.com
 
 // Use of this source code is governed by a BSD-style
