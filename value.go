@@ -208,7 +208,7 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 					return err
 				}
 			}
-			err := r.renderInText(w, rv.Index(i).Interface(), node)
+			err := r.renderInText(w, asBase(rv.Index(i).Interface()), node)
 			if err != nil {
 				return err
 			}
@@ -259,7 +259,7 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 					return err
 				}
 			}
-			err := r.renderInHTML(w, rv.Index(i).Interface(), node)
+			err := r.renderInHTML(w, asBase(rv.Index(i).Interface()), node)
 			if err != nil {
 				return err
 			}
@@ -336,7 +336,7 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 					_, err = w.WriteString(",&#32;")
 				}
 			}
-			err = r.renderInAttribute(w, rv.Index(i).Interface(), node, quoted)
+			err = r.renderInAttribute(w, asBase(rv.Index(i).Interface()), node, quoted)
 			if err != nil {
 				return err
 			}
@@ -388,7 +388,7 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 					s += ",&#32;"
 				}
 			}
-			switch e := rv.Index(i).Interface().(type) {
+			switch e := asBase(rv.Index(i).Interface()).(type) {
 			case string:
 				s += e
 			case HTML:
@@ -576,7 +576,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 						return err
 					}
 				}
-				err = r.renderInScript(w, rv.Index(i).Interface(), node)
+				err = r.renderInScript(w, asBase(rv.Index(i).Interface()), node)
 				if err != nil {
 					return err
 				}
@@ -675,7 +675,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, keys[name].value(rv), node)
+		err = r.renderInScript(w, asBase(keys[name].value(rv)), node)
 		if err != nil {
 			return err
 		}
@@ -721,7 +721,7 @@ func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]int
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, value[n], node)
+		err = r.renderInScript(w, asBase(value[n]), node)
 		if err != nil {
 			return err
 		}
