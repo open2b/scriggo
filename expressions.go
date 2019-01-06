@@ -21,11 +21,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var stringType = reflect.TypeOf("")
-var intType = reflect.TypeOf(0)
-var float64Type = reflect.TypeOf(0.0)
-var boolType = reflect.TypeOf(false)
-
 var zero = decimal.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
 
