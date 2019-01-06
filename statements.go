@@ -499,12 +499,10 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 		}
 		m, ok := value.(Map)
 		if !ok {
-			typ := typeof(value)
-			if typ == "map" {
+			if typeof(value) == "map" {
 				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
-			} else {
-				return nil, r.errorf(variable, "cannot assign to %s", variable)
 			}
+			return nil, r.errorf(variable, "cannot assign to %s", variable)
 		}
 		addr = mapAddress{Map: m, Key: variable.Ident}
 	case *ast.Index:
