@@ -596,10 +596,10 @@ func NewSlice(pos *Position, elements []Expression) *Slice {
 func (n *Slice) String() string {
 	s := "slice{"
 	for i, element := range n.Elements {
-		s += element.String()
-		if i < len(n.Elements)-1 {
+		if i > 0 {
 			s += ", "
 		}
+		s += element.String()
 	}
 	s += "}"
 	return s
@@ -625,10 +625,10 @@ func NewMap(pos *Position, elements []KeyValue) *Map {
 func (n *Map) String() string {
 	s := "map{"
 	for i, element := range n.Elements {
-		s += element.Key.String() + ": " + element.Value.String()
-		if i < len(n.Elements)-1 {
+		if i > 0 {
 			s += ", "
 		}
+		s += element.Key.String() + ": " + element.Value.String()
 	}
 	s += "}"
 	return s
@@ -649,10 +649,10 @@ func NewCall(pos *Position, fun Expression, args []Expression) *Call {
 func (n *Call) String() string {
 	s := n.Func.String() + "("
 	for i, arg := range n.Args {
-		s += arg.String()
-		if i < len(n.Args)-1 {
+		if i > 0 {
 			s += ", "
 		}
+		s += arg.String()
 	}
 	s += ")"
 	return s
