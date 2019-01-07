@@ -367,6 +367,39 @@ func TestScriptStringContext(t *testing.T) {
 	}
 }
 
+var cssContextTests = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	{`""`, `""`, nil},
+	{`"a"`, `"a"`, nil},
+	{`"<a>"`, `"\3c a\3e "`, nil},
+	{`html("<a>")`, `"\3c a\3e "`, nil},
+	{`5`, `5`, nil},
+	{`5.2`, `5.2`, nil},
+}
+
+func TestCSSContext(t *testing.T) {
+	for _, expr := range cssContextTests {
+		var tree, err = parser.ParseSource([]byte("<style>{{"+expr.src+"}}</style>"), ast.ContextHTML)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = RenderTree(b, tree, expr.vars, false)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if len(res) < 15 || res[7:len(res)-8] != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[7:len(res)-8], expr.res)
+		}
+	}
+}
+
 var cssStringContextTests = []struct {
 	src  string
 	res  string
@@ -378,6 +411,7 @@ var cssStringContextTests = []struct {
 	{`"\u001F"`, `\1f `, nil},
 	{`"a"`, `a`, nil},
 	{`"<a>"`, `\3c a\3e `, nil},
+	{`html("<a>")`, `\3c a\3e `, nil},
 	{`"\\"`, `\\`, nil},
 	{`"\""`, `\22 `, nil},
 	{`"'"`, `\27 `, nil},
