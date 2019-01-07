@@ -50,9 +50,11 @@ var builtins = map[string]interface{}{
 	"html":   valuetype("html"),
 	"number": valuetype("number"),
 	"int":    valuetype("int"),
+	"byte":   valuetype("byte"),
 	"bool":   valuetype("bool"),
 	"map":    valuetype("map"),
 	"slice":  valuetype("slice"),
+	"bytes":  valuetype("bytes"),
 	"error":  valuetype("error"),
 
 	"abbreviate":  _abbreviate,
@@ -140,14 +142,38 @@ func _abs(d decimal.Decimal) decimal.Decimal {
 	return d
 }
 
+func toByteInAppend(v interface{}) byte {
+	var b byte
+	var err error
+	switch n := v.(type) {
+	case int:
+		b, err = intToByte(n)
+	case decimal.Decimal:
+		b, err = decimalToByte(n)
+	default:
+		// TODO(marco): error message should have the expression and not the value
+		err = fmt.Errorf("cannot use %v (type %s) as type byte in append", v, typeof(v))
+	}
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 // _append is the builtin function "append".
-func _append(slice interface{}, elems ...interface{}) Slice {
+func _append(slice interface{}, elems ...interface{}) interface{} {
 	if slice == nil {
 		panic(fmt.Errorf("first argument to append must be slice; have nil"))
 	}
 	switch s := slice.(type) {
 	case Slice:
 		return append(s, elems...)
+	case Bytes:
+		bytes := make(Bytes, len(elems))
+		for i, elem := range elems {
+			bytes[i] = toByteInAppend(elem)
+		}
+		return append(s, bytes...)
 	case []interface{}:
 		l := len(s)
 		ms := make(Slice, l+len(elems))
@@ -196,6 +222,16 @@ func _append(slice interface{}, elems ...interface{}) Slice {
 		}
 		for i, v := range elems {
 			ms[l+i] = v
+		}
+		return ms
+	case []byte:
+		l := len(s)
+		ms := make(Bytes, l+len(elems))
+		for i, v := range s {
+			ms[i] = v
+		}
+		for i, v := range elems {
+			ms[l+i] = toByteInAppend(v)
 		}
 		return ms
 	case []bool:
@@ -305,6 +341,8 @@ func _len(v interface{}) int {
 		return utf8.RuneCountInString(string(s))
 	case Slice:
 		return len(s)
+	case Bytes:
+		return len(s)
 	case []interface{}:
 		return len(s)
 	case []string:
@@ -314,6 +352,8 @@ func _len(v interface{}) int {
 	case []int:
 		return len(s)
 	case []decimal.Decimal:
+		return len(s)
+	case []byte:
 		return len(s)
 	case []bool:
 		return len(s)
@@ -474,7 +514,7 @@ func _shuffle(s interface{}) Slice {
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}) Slice {
+func _sort(slice interface{}) interface{} {
 	if slice == nil {
 		return nil
 	}
@@ -520,6 +560,13 @@ func _sort(slice interface{}) Slice {
 			sort.Slice(s, func(i, j int) bool { return !s[i].(bool) })
 			return s
 		}
+	case Bytes:
+		ms := make(Bytes, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
+		}
+		sort.Slice(ms, func(i, j int) bool { return ms[i] < ms[j] })
+		return ms
 	case []string:
 		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
@@ -533,6 +580,13 @@ func _sort(slice interface{}) Slice {
 			ms[i] = s[i]
 		}
 		sort.Slice(ms, func(i, j int) bool { return string(ms[i].(HTML)) < string(ms[j].(HTML)) })
+		return ms
+	case []byte:
+		ms := make([]byte, len(s))
+		for i := 0; i < len(s); i++ {
+			ms[i] = s[i]
+		}
+		sort.Slice(ms, func(i, j int) bool { return ms[i] < ms[j] })
 		return ms
 	case []int:
 		ms := make(Slice, len(s))

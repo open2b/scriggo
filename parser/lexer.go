@@ -832,6 +832,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	switch string(l.src[0:p]) {
 	case "break":
 		l.emit(tokenBreak, p)
+	case "bytes":
+		l.emit(tokenBytes, p)
 	case "continue":
 		l.emit(tokenContinue, p)
 	case "else":

@@ -129,6 +129,7 @@ var exprTests = []struct {
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
 	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "map"))},
 	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "slice"))},
+	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
 	{"map{}", ast.NewMap(p(1, 1, 0, 4), []ast.KeyValue{})},
 	{"map{`a`:5}", ast.NewMap(p(1, 1, 0, 9), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)}})},
@@ -144,6 +145,11 @@ var exprTests = []struct {
 		ast.NewInt(p(1, 9, 8, 8), 6), ast.NewInt(p(1, 11, 10, 10), 7)})},
 	{"slice{slice{}}", ast.NewSlice(p(1, 1, 0, 13), []ast.Expression{ast.NewSlice(p(1, 7, 6, 12), []ast.Expression{})})},
 	{"slice(nil)", ast.NewCall(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "slice"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
+	{"bytes{}", ast.NewBytes(p(1, 1, 0, 6), []ast.Expression{})},
+	{"bytes{5}", ast.NewBytes(p(1, 1, 0, 7), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5)})},
+	{"bytes{5,6,7}", ast.NewBytes(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 5),
+		ast.NewInt(p(1, 9, 8, 8), 6), ast.NewInt(p(1, 11, 10, 10), 7)})},
+	{"bytes(nil)", ast.NewCall(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
 	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(2, 1, 4, 4), 2))},
 	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), 1), ast.NewInt(p(3, 4, 11, 11), 2))},
 	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{

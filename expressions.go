@@ -30,6 +30,9 @@ const minInt = -int64(^uint(0)>>1) - 1
 // Slice implements the mutable slice values.
 type Slice []interface{}
 
+// Bytes implements the mutable bytes values.
+type Bytes []byte
+
 // eval evaluates expr in a single-value context and returns its value.
 func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 	defer func() {
@@ -84,10 +87,14 @@ func (r *rendering) eval2(expr ast.Expression) (v1, v2 interface{}, err error) {
 				return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
 			}
 		}
-		if !hasType(v, typ) {
-			return nil, false, nil
+		ok := hasType(v, typ)
+		if !ok {
+			v = nil
+			if typ == builtins["byte"] {
+				v = 0
+			}
 		}
-		return v, true, nil
+		return v, ok, nil
 	case *ast.Selector:
 		return r.evalSelector2(e)
 	case *ast.Index:
@@ -145,6 +152,8 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalMap(e)
 	case *ast.Slice:
 		return r.evalSlice(e)
+	case *ast.Bytes:
+		return r.evalBytes(e)
 	case *ast.Call:
 		return r.evalCall(e)
 	case *ast.Index:
@@ -554,6 +563,27 @@ func (r *rendering) evalSlice(node *ast.Slice) interface{} {
 	return elements
 }
 
+// evalBytes evaluates a bytes expression and returns its value.
+func (r *rendering) evalBytes(node *ast.Bytes) interface{} {
+	elements := make(Bytes, len(node.Elements))
+	for i, element := range node.Elements {
+		var err error
+		v := asBase(r.evalExpression(element))
+		switch n := v.(type) {
+		case int:
+			elements[i], err = intToByte(n)
+		case decimal.Decimal:
+			elements[i], err = decimalToByte(n)
+		default:
+			err = fmt.Errorf("cannot use %s (type %s) as type byte", element, typeof(v))
+		}
+		if err != nil {
+			panic(r.errorf(node, "%s in bytes literal", err))
+		}
+	}
+	return elements
+}
+
 // evalSelector evaluates a selector expression and returns its value.
 func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 	v, ok, err := r.evalSelector2(node)
@@ -652,26 +682,37 @@ func hasType(v interface{}, typ valuetype) bool {
 	case HTML:
 		return typ == builtins["string"] || typ == builtins["html"]
 	case decimal.Decimal:
-		if typ == builtins["number"] {
+		switch typ {
+		case builtins["number"]:
 			return true
+		case builtins["int"]:
+			if vv.LessThan(decimalMinInt) || decimalMaxInt.LessThan(vv) {
+				return false
+			}
+			p := vv.IntPart()
+			return decimal.New(p, 0).Equal(vv)
+		case builtins["byte"]:
+			if vv.LessThan(decimalMinByte) || decimalMaxByte.LessThan(vv) {
+				return false
+			}
+			p := vv.IntPart()
+			return decimal.New(p, 0).Equal(vv)
 		}
-		if typ != builtins["int"] {
-			return false
-		}
-		if vv.LessThan(minIntAsDecimal) || maxIntAsDecimal.LessThan(vv) {
-			return false
-		}
-		p := vv.IntPart()
-		return decimal.New(p, 0).Equal(vv)
+		return false
 	case int:
+		if typ == builtins["byte"] {
+			return 0 <= vv && vv <= 255
+		}
 		return typ == builtins["int"] || typ == builtins["number"]
 	case bool:
 		return typ == builtins["bool"]
-	case Slice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
-		return typ == builtins["slice"]
 	case Map, map[string]interface{}, map[string]string, map[string]HTML,
 		map[string]decimal.Decimal, map[string]int, map[string]bool:
 		return typ == builtins["map"]
+	case Slice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
+		return typ == builtins["slice"]
+	case Bytes, []byte:
+		return typ == builtins["bytes"]
 	case error:
 		return typ == builtins["error"]
 	}
@@ -808,6 +849,12 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return nil, false, err
 		}
 		return vv[i], true, nil
+	case Bytes:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
 	case []interface{}:
 		i, err := checkSlice(len(vv))
 		if err != nil {
@@ -833,6 +880,12 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return vv[i], true, nil
 	case []int:
+		i, err := checkSlice(len(vv))
+		if err != nil {
+			return nil, false, err
+		}
+		return vv[i], true, nil
+	case []byte:
 		i, err := checkSlice(len(vv))
 		if err != nil {
 			return nil, false, err
@@ -882,9 +935,9 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 		i = index
 	case decimal.Decimal:
 		var err error
-		i, err = r.decimalToInt(node, index)
+		i, err = decimalToInt(index)
 		if err != nil {
-			return 0, err
+			return 0, r.errorf(node, "%s", err)
 		}
 		if i < 0 {
 			return 0, r.errorf(node, "invalid slice index %s (index must be non-negative)", node)
@@ -977,6 +1030,8 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 		return vv[lb:hb]
 	case Slice:
 		return vv[l:h2(len(vv))]
+	case Bytes:
+		return vv[l:h2(len(vv))]
 	case []interface{}:
 		return vv[l:h2(len(vv))]
 	case []string:
@@ -986,6 +1041,8 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 	case []decimal.Decimal:
 		return vv[l:h2(len(vv))]
 	case []int:
+		return vv[l:h2(len(vv))]
+	case []byte:
 		return vv[l:h2(len(vv))]
 	case []bool:
 		return vv[l:h2(len(vv))]
@@ -1165,9 +1222,9 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			} else if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
-				n, err := r.decimalToInt(node.Args[i], d)
+				n, err := decimalToInt(d)
 				if err != nil {
-					panic(err)
+					panic(r.errorf(node.Args[i], "%s", err))
 				}
 				args[i] = reflect.ValueOf(n)
 			} else if d, ok := arg.(int); ok && in == decimalType {
@@ -1247,6 +1304,10 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			}
 		case int:
 			return string(v), nil
+		case Bytes:
+			return string(v), nil
+		case []byte:
+			return string(v), nil
 		default:
 			rv := reflect.ValueOf(v)
 			if rv.Kind() == reflect.Slice {
@@ -1265,6 +1326,10 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				return HTML(string(int(p))), nil
 			}
 		case int:
+			return HTML(string(v)), nil
+		case Bytes:
+			return HTML(string(v)), nil
+		case []byte:
 			return HTML(string(v)), nil
 		default:
 			rv := reflect.ValueOf(v)
@@ -1285,6 +1350,13 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			return int(v.IntPart()), nil
 		case int:
 			return v, nil
+		}
+	case "byte":
+		switch v := value.(type) {
+		case decimal.Decimal:
+			return int(v.Mod(decimal256).IntPart()), nil
+		case int:
+			return v % 256, nil
 		}
 	case "map":
 		if value == nil {
@@ -1318,6 +1390,23 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		default:
 			rv := reflect.ValueOf(v)
 			if rv.Kind() == reflect.Slice {
+				return v, nil
+			}
+		}
+	case "bytes":
+		if value == nil {
+			return Bytes(nil), nil
+		}
+		switch v := value.(type) {
+		case string:
+			return Bytes(v), nil
+		case HTML:
+			return Bytes(string(v)), nil
+		case Bytes:
+			return v, nil
+		default:
+			rt := reflect.TypeOf(v)
+			if rt.Kind() == reflect.Slice && rt.Elem().Kind() == reflect.Uint8 {
 				return v, nil
 			}
 		}
@@ -1437,6 +1526,9 @@ func asBase(v interface{}) interface{} {
 		return v
 	// Slice
 	case Slice:
+		return v
+	// Bytes
+	case Bytes:
 		return v
 	default:
 		rv := reflect.ValueOf(v)

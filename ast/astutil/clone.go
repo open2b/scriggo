@@ -180,6 +180,12 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 			elements[i] = CloneExpression(element)
 		}
 		return ast.NewSlice(ClonePosition(e.Position), elements)
+	case *ast.Bytes:
+		var elements = make([]ast.Expression, len(e.Elements))
+		for i, element := range e.Elements {
+			elements[i] = CloneExpression(element)
+		}
+		return ast.NewBytes(ClonePosition(e.Position), elements)
 	case *ast.Call:
 		var args = make([]ast.Expression, len(e.Args))
 		for i, arg := range e.Args {

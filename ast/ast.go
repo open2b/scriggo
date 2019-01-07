@@ -605,6 +605,29 @@ func (n *Slice) String() string {
 	return s
 }
 
+// Bytes node represents a bytes expression.
+type Bytes struct {
+	expression
+	*Position              // position in the source.
+	Elements  []Expression // elements.
+}
+
+func NewBytes(pos *Position, elements []Expression) *Bytes {
+	return &Bytes{expression{}, pos, elements}
+}
+
+func (n *Bytes) String() string {
+	s := "bytes{"
+	for i, element := range n.Elements {
+		if i > 0 {
+			s += ", "
+		}
+		s += element.String()
+	}
+	s += "}"
+	return s
+}
+
 // KeyValue node represents a key value couple of a map.
 type KeyValue struct {
 	Key   Expression

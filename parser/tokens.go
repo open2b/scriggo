@@ -32,6 +32,7 @@ const (
 	tokenContinue                    // continue
 	tokenMap                         // map
 	tokenSlice                       // slice
+	tokenBytes                       // bytes
 	tokenIf                          // if
 	tokenElse                        // else
 	tokenExtends                     // extends
@@ -92,6 +93,7 @@ var tokenString = map[tokenType]string{
 	tokenContinue:          "continue",
 	tokenMap:               "map",
 	tokenSlice:             "slice",
+	tokenBytes:             "bytes",
 	tokenIf:                "if",
 	tokenElse:              "else",
 	tokenExtends:           "extends",

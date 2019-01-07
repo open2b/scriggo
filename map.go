@@ -69,7 +69,7 @@ func mapKeyImp(key interface{}) (interface{}, bool) {
 	case nil, string, HTML, int, bool:
 		return key, true
 	case decimal.Decimal:
-		if !d.LessThan(minIntAsDecimal) && !maxIntAsDecimal.LessThan(d) {
+		if !d.LessThan(decimalMinInt) && !decimalMaxInt.LessThan(d) {
 			p := d.IntPart()
 			if decimal.New(p, 0).Equal(d) {
 				return int(p), true

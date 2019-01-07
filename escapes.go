@@ -6,6 +6,10 @@
 
 package template
 
+import (
+	"encoding/base64"
+)
+
 const hexchars = "0123456789abcdef"
 
 // htmlEscape escapes the string s, so it can be placed inside HTML, and
@@ -435,4 +439,22 @@ func queryEscape(w stringWriter, s string) error {
 		return err
 	}
 	return nil
+}
+
+// escapeBytes escapes b as Base64, so it can be placed inside JavaScript and
+// CSS, and write it to w. addQuote indicates whether it should add quotes.
+func escapeBytes(w stringWriter, b []byte, addQuote bool) error {
+	if addQuote {
+		_, err := w.WriteString(`"`)
+		if err != nil {
+			return err
+		}
+	}
+	encoder := base64.NewEncoder(base64.StdEncoding, w)
+	_, _ = encoder.Write(b)
+	err := encoder.Close()
+	if addQuote && err == nil {
+		_, err = w.WriteString(`"`)
+	}
+	return err
 }

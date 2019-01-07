@@ -120,6 +120,11 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, element)
 		}
 
+	case *ast.Bytes:
+		for _, element := range n.Elements {
+			Walk(v, element)
+		}
+
 	case *ast.Call:
 		for _, arg := range n.Args {
 			Walk(v, arg)

@@ -59,6 +59,10 @@ var rendererBuiltinTests = []struct {
 	{"append(slice{}, 1)", "1", nil},
 	{"append(slice{1,2,3}, 4)", "1, 2, 3, 4", nil},
 	{"append(slice{1,2,3}, 4, 5, 6)", "1, 2, 3, 4, 5, 6", nil},
+	{"append(bytes{})", "", nil},
+	{"append(bytes{}, 1)", "1", nil},
+	{"append(bytes{1,2,3}, 4)", "1, 2, 3, 4", nil},
+	{"append(bytes{1,2,3}, 4, 5, 6)", "1, 2, 3, 4, 5, 6", nil},
 
 	// base64
 	{"base64(``)", "", nil},

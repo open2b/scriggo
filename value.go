@@ -463,6 +463,10 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Val
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
 		s = e.String()
+	case Bytes:
+		return escapeBytes(w, e, false)
+	case []byte:
+		return escapeBytes(w, e, false)
 	default:
 		return r.errorf(node, "no-render type %s", typeof(value))
 	}
@@ -490,6 +494,10 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 		s = strconv.Itoa(e)
 	case decimal.Decimal:
 		s = e.String()
+	case Bytes:
+		return escapeBytes(w, e, false)
+	case []byte:
+		return escapeBytes(w, e, false)
 	default:
 		return r.errorf(node, "no-render type %s", typeof(value))
 	}
@@ -545,6 +553,10 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		}
 		_, err := w.WriteString(s)
 		return err
+	case Bytes:
+		return escapeBytes(w, e, true)
+	case []byte:
+		return escapeBytes(w, e, true)
 	default:
 		var err error
 		rv := reflect.ValueOf(value)

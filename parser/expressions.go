@@ -233,6 +233,24 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 			default:
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)})
 			}
+		case tokenBytes: // bytes{...}, bytes(...)
+			typeTok := tok
+			tok = next(lex)
+			switch tok.typ {
+			case tokenLeftBraces:
+				// Bytes definition.
+				elements, tok := parseExprList(token{}, lex, false)
+				if tok.typ != tokenRightBraces {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
+				}
+				typeTok.pos.End = tok.pos.End
+				operand = ast.NewBytes(typeTok.pos, elements)
+			case tokenLeftParenthesis:
+				// Bytes conversion.
+				operand = parseConversionExpr(typeTok, lex)
+			default:
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)})
+			}
 		case
 			tokenAddition,    // +e
 			tokenSubtraction, // -e
@@ -325,7 +343,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 				case tokenLeftParenthesis:
 					// e.(type)
 					tok = next(lex)
-					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice {
+					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice && tok.typ != tokenBytes {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 					}
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {

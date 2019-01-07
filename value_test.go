@@ -284,6 +284,8 @@ var scriptContextTests = []struct {
 	{`a`, "null", scope{"a": []int(nil)}},
 	{`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
+	{`a`, `"AAECAwQF"`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	{`a`, `"AAECAwQF"`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 	{`a`, "null", scope{"a": []bool(nil)}},
 	{`a`, "[true,false,true]", scope{"a": []bool{true, false, true}}},
 	{`a`, "null", scope{"a": (*struct{})(nil)}},
@@ -378,6 +380,8 @@ var cssContextTests = []struct {
 	{`html("<a>")`, `"\3c a\3e "`, nil},
 	{`5`, `5`, nil},
 	{`5.2`, `5.2`, nil},
+	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 }
 
 func TestCSSContext(t *testing.T) {
@@ -422,6 +426,8 @@ var cssStringContextTests = []struct {
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, scope{"a": "a"}},
 	{`a`, `\3c\3e\22 `, scope{"a": "<>\""}},
+	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 }
 
 func TestCSSStringContext(t *testing.T) {

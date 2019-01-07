@@ -21,9 +21,12 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-var maxIntAsDecimal = decimal.New(maxInt, 0)
-var minIntAsDecimal = decimal.New(minInt, 0)
-var oneDecimal = decimal.New(1, 0)
+var decimalMaxInt = decimal.New(maxInt, 0)
+var decimalMinInt = decimal.New(minInt, 0)
+var decimalMaxByte = decimal.New(255, 0)
+var decimalMinByte = decimal.New(0, 0)
+var decimal1 = decimal.New(1, 0)
+var decimal256 = decimal.New(256, 0)
 
 // Error records a rendering error with the path and the position where
 // the error occurred.
@@ -424,20 +427,23 @@ Nodes:
 }
 
 type address interface {
-	assign(value interface{})
+	assign(value interface{}) error
 }
 
 type blankAddress struct{}
 
-func (addr blankAddress) assign(interface{}) {}
+func (addr blankAddress) assign(interface{}) error {
+	return nil
+}
 
 type scopeAddress struct {
 	Scope scope
 	Var   string
 }
 
-func (addr scopeAddress) assign(value interface{}) {
+func (addr scopeAddress) assign(value interface{}) error {
 	addr.Scope[addr.Var] = value
+	return nil
 }
 
 type mapAddress struct {
@@ -445,8 +451,9 @@ type mapAddress struct {
 	Key interface{}
 }
 
-func (addr mapAddress) assign(value interface{}) {
+func (addr mapAddress) assign(value interface{}) error {
 	addr.Map.Store(addr.Key, value)
+	return nil
 }
 
 type sliceAddress struct {
@@ -454,46 +461,77 @@ type sliceAddress struct {
 	Index int
 }
 
-func (addr sliceAddress) assign(value interface{}) {
+func (addr sliceAddress) assign(value interface{}) error {
 	addr.Slice[addr.Index] = value
+	return nil
 }
 
-func (r *rendering) address(node ast.Expression) (address, error) {
+type bytesAddress struct {
+	Bytes Bytes
+	Index int
+	Var   ast.Expression
+	Expr  ast.Expression // Expr is nil in multiple assignment.
+}
+
+func (addr bytesAddress) assign(value interface{}) error {
+	if b, ok := value.(byte); ok {
+		addr.Bytes[addr.Index] = b
+		return nil
+	}
+	var b byte
+	var err error
+	switch n := asBase(value).(type) {
+	case int:
+		b, err = intToByte(n)
+	case decimal.Decimal:
+		b, err = decimalToByte(n)
+	default:
+		if addr.Expr == nil {
+			err = fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(n), addr.Var)
+		} else {
+			err = fmt.Errorf("cannot use %s (type %s) as type byte in assignment", addr.Expr, typeof(n))
+		}
+	}
+	addr.Bytes[addr.Index] = b
+	return err
+}
+
+func (r *rendering) address(variable, expression ast.Expression) (address, error) {
 	var addr address
-	switch variable := node.(type) {
+	switch v := variable.(type) {
 	case *ast.Identifier:
-		if variable.Name == "_" {
+		if v.Name == "_" {
 			return blankAddress{}, nil
 		}
 		for j := len(r.vars) - 1; j >= 0; j-- {
 			if vars := r.vars[j]; vars != nil {
-				if v, ok := vars[variable.Name]; ok {
+				if vv, ok := vars[v.Name]; ok {
 					if j == 0 {
-						if vt, ok := v.(valuetype); ok {
+						if vt, ok := vv.(valuetype); ok {
 							return nil, r.errorf(variable, "type %s is not an expression", vt)
 						}
 						if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
-							return nil, r.errorf(variable, "use of builtin %s not in function call", variable.Name)
+							return nil, r.errorf(v, "use of builtin %s not in function call", v.Name)
 						}
-						return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
+						return nil, r.errorf(v, "cannot assign to %s", v.Name)
 					}
 					if j == 1 {
-						return nil, r.errorf(variable, "cannot assign to %s", variable.Name)
+						return nil, r.errorf(v, "cannot assign to %s", v.Name)
 					}
-					if m, ok := v.(macro); ok {
-						return nil, r.errorf(variable, "cannot assign to a macro (macro %s declared at %s:%s)",
-							variable.Name, m.path, m.node.Pos())
+					if m, ok := vv.(macro); ok {
+						return nil, r.errorf(v, "cannot assign to a macro (macro %s declared at %s:%s)",
+							v.Name, m.path, m.node.Pos())
 					}
-					addr = scopeAddress{Scope: vars, Var: variable.Name}
+					addr = scopeAddress{Scope: vars, Var: v.Name}
 					break
 				}
 			}
 		}
 		if addr == nil {
-			return nil, r.errorf(variable, "variable %s not declared", variable.Name)
+			return nil, r.errorf(v, "variable %s not declared", v.Name)
 		}
 	case *ast.Selector:
-		value, err := r.eval(variable.Expr)
+		value, err := r.eval(v.Expr)
 		if err != nil {
 			return nil, err
 		}
@@ -504,33 +542,39 @@ func (r *rendering) address(node ast.Expression) (address, error) {
 			}
 			return nil, r.errorf(variable, "cannot assign to %s", variable)
 		}
-		addr = mapAddress{Map: m, Key: variable.Ident}
+		addr = mapAddress{Map: m, Key: v.Ident}
 	case *ast.Index:
-		value, err := r.eval(variable.Expr)
+		value, err := r.eval(v.Expr)
 		if err != nil {
 			return nil, err
 		}
-		switch v := value.(type) {
+		switch val := value.(type) {
 		case Map:
-			key := asBase(r.evalExpression(variable.Index))
+			key := asBase(r.evalExpression(v.Index))
 			switch key.(type) {
 			case nil, string, HTML, decimal.Decimal, int, bool:
 			default:
 				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
 			}
-			addr = mapAddress{Map: v, Key: key}
+			addr = mapAddress{Map: val, Key: key}
 		case Slice:
-			index, err := r.sliceIndex(variable.Index)
+			index, err := r.sliceIndex(v.Index)
 			if err != nil {
 				return nil, err
 			}
-			addr = sliceAddress{Slice: v, Index: index}
+			addr = sliceAddress{Slice: val, Index: index}
+		case Bytes:
+			index, err := r.sliceIndex(v.Index)
+			if err != nil {
+				return nil, err
+			}
+			addr = bytesAddress{Bytes: val, Index: index, Var: variable, Expr: expression}
 		default:
 			switch t := typeof(value); t {
-			case "map", "slice":
-				return nil, r.errorf(variable, "cannot assign to a non-mutable %s", t)
+			case "map", "slice", "bytes":
+				return nil, r.errorf(v, "cannot assign to a non-mutable %s", t)
 			default:
-				return nil, r.errorf(variable, "invalid operation: %s (type %s does not support indexing)", variable, t)
+				return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, t)
 			}
 		}
 	}
@@ -573,11 +617,15 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 	} else {
 
 		var err error
-		for i, v := range node.Variables {
-			addresses[i], err = r.address(v)
-			if err != nil {
-				return nil, err
+		if len(node.Variables) == 1 {
+			addresses[0], err = r.address(node.Variables[0], node.Expr)
+		} else {
+			for i, variable := range node.Variables {
+				addresses[i], err = r.address(variable, nil)
 			}
+		}
+		if err != nil {
+			return nil, err
 		}
 
 	}
@@ -589,7 +637,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 
 	switch node.Type {
 	case ast.AssignmentIncrement:
-		address, err := r.address(node.Variables[0])
+		address, err := r.address(node.Variables[0], node.Expr)
 		if err != nil {
 			return err
 		}
@@ -597,22 +645,30 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		switch e := asBase(v).(type) {
-		case decimal.Decimal:
-			address.assign(e.Add(oneDecimal))
-		case int:
-			if ee := e + 1; ee < e {
-				address.assign(decimal.New(int64(e), 0).Add(oneDecimal))
-			} else {
-				address.assign(ee)
-			}
-		case nil:
-			return r.errorf(node, "invalid operation: %s (increment of nil)", node)
+		switch e := v.(type) {
+		case byte:
+			err = address.assign(e + 1)
 		default:
-			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
+			switch e := asBase(v).(type) {
+			case int:
+				if ee := e + 1; ee < e {
+					err = address.assign(decimal.New(int64(e), 0).Add(decimal1))
+				} else {
+					err = address.assign(ee)
+				}
+			case decimal.Decimal:
+				err = address.assign(e.Add(decimal1))
+			case nil:
+				err = fmt.Errorf("invalid operation: %s (increment of nil)", node)
+			default:
+				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(v))
+			}
+		}
+		if err != nil {
+			return r.errorf(node, "%s", err)
 		}
 	case ast.AssignmentDecrement:
-		address, err := r.address(node.Variables[0])
+		address, err := r.address(node.Variables[0], node.Expr)
 		if err != nil {
 			return err
 		}
@@ -620,54 +676,66 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		switch e := asBase(v).(type) {
-		case decimal.Decimal:
-			address.assign(e.Sub(oneDecimal))
-		case int:
-			if ee := e - 1; ee > e {
-				address.assign(decimal.New(int64(e), 0).Sub(oneDecimal))
-			} else {
-				address.assign(ee)
-			}
-		case nil:
-			return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
+		switch e := v.(type) {
+		case byte:
+			err = address.assign(e - 1)
 		default:
-			err = r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
+			switch e := asBase(v).(type) {
+			case int:
+				if ee := e - 1; ee > e {
+					err = address.assign(decimal.New(int64(e), 0).Sub(decimal1))
+				} else {
+					err = address.assign(ee)
+				}
+			case decimal.Decimal:
+				err = address.assign(e.Sub(decimal1))
+			case nil:
+				return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
+			default:
+				err = r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
+			}
+		}
+		if err != nil {
+			return r.errorf(node, "%s", err)
 		}
 	default:
+		addresses, err := r.addresses(node)
+		if err != nil {
+			return err
+		}
 		switch len(node.Variables) {
 		case 1:
-			addresses, err := r.addresses(node)
-			if err != nil {
-				return err
-			}
 			v, err := r.eval(node.Expr)
 			if err != nil {
 				return err
 			}
-			addresses[0].assign(v)
-		case 2:
-			addresses, err := r.addresses(node)
+			err = addresses[0].assign(v)
 			if err != nil {
-				return err
+				return r.errorf(node, "%s", err)
 			}
+		case 2:
 			v0, v1, err := r.eval2(node.Expr)
 			if err != nil {
 				return err
 			}
-			addresses[0].assign(v0)
-			addresses[1].assign(v1)
-		default:
-			addresses, err := r.addresses(node)
+			err = addresses[0].assign(v0)
 			if err != nil {
-				return err
+				return r.errorf(node, "%s", err)
 			}
+			err = addresses[1].assign(v1)
+			if err != nil {
+				return r.errorf(node, "%s", err)
+			}
+		default:
 			values, err := r.evalN(node.Expr, len(node.Variables))
 			if err != nil {
 				return err
 			}
 			for i, v := range values {
-				addresses[i].assign(v.Interface())
+				err = addresses[i].assign(v.Interface())
+				if err != nil {
+					return r.errorf(node, "%s", err)
+				}
 			}
 		}
 	}
@@ -687,15 +755,33 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func (r *rendering) decimalToInt(node ast.Node, d decimal.Decimal) (int, error) {
-	if d.LessThan(minIntAsDecimal) || maxIntAsDecimal.LessThan(d) {
-		return 0, r.errorf(node, "number %s overflows int", d)
+func decimalToInt(n decimal.Decimal) (int, error) {
+	if n.LessThan(decimalMinInt) || decimalMaxInt.LessThan(n) {
+		return 0, fmt.Errorf("number %s overflows int", n)
 	}
-	p := d.Truncate(0)
-	if !p.Equal(d) {
-		return 0, r.errorf(node, "number %s truncated to integer", d)
+	p := n.IntPart()
+	if !decimal.New(p, 0).Equal(n) {
+		return 0, fmt.Errorf("number %s truncated to integer", n)
 	}
-	return int(p.IntPart()), nil
+	return int(p), nil
+}
+
+func decimalToByte(n decimal.Decimal) (byte, error) {
+	if n.LessThan(decimalMinByte) || decimalMaxByte.LessThan(n) {
+		return 0, fmt.Errorf("number %s overflows byte", n)
+	}
+	p := n.IntPart()
+	if !decimal.New(p, 0).Equal(n) {
+		return 0, fmt.Errorf("number %s truncated to byte", n)
+	}
+	return byte(p), nil
+}
+
+func intToByte(n int) (byte, error) {
+	if n < 0 || n > 255 {
+		return 0, fmt.Errorf("number %d overflows byte", n)
+	}
+	return byte(n), nil
 }
 
 func typeof(v interface{}) string {
@@ -706,7 +792,7 @@ func typeof(v interface{}) string {
 	switch v.(type) {
 	case string, HTML:
 		return "string"
-	case decimal.Decimal, int:
+	case decimal.Decimal, int, byte:
 		return "number"
 	case bool:
 		return "bool"
@@ -714,14 +800,19 @@ func typeof(v interface{}) string {
 		return "map"
 	case Slice:
 		return "slice"
+	case Bytes:
+		return "bytes"
 	case error:
 		return "error"
 	default:
-		rv := reflect.ValueOf(v)
-		switch rv.Kind() {
+		rt := reflect.TypeOf(v)
+		switch rt.Kind() {
 		case reflect.Map, reflect.Struct, reflect.Ptr:
 			return "map"
 		case reflect.Slice:
+			if rt.Elem().Kind() == reflect.Uint8 {
+				return "bytes"
+			}
 			return "slice"
 		}
 	}
