@@ -835,7 +835,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		p := 0
 		for _, c := range vv {
 			if p == i {
-				return string(c), true, nil
+				return int(c), true, nil
 			}
 			p++
 		}

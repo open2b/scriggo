@@ -256,7 +256,8 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 			tokenNot:         // !e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
-			tokenNumber: // 12.895
+			tokenNumber,      // 12.895
+			tokenRuneLiteral: // '\x3c'
 			// If the number is preceded by the unary operator "-", the sign
 			// of the number is changed and the operator is removed from the
 			// tree.
@@ -590,15 +591,29 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 	return ast.NewIdentifier(tok.pos, string(tok.txt))
 }
 
-// parseNumberNode returns an Expression node from an integer or decimal token,
-// possibly preceded by an unary operator "-" with neg position. It panics on
-// error.
+// parseNumberNode returns an Expression node from an integer, decimal or rune
+// literal token possibly preceded by an unary operator "-" with neg position.
+// It panics on error.
 func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 	p := tok.pos
-	s := string(tok.txt)
 	if neg != nil {
 		p = neg
 		p.End = tok.pos.End
+	}
+	if tok.typ == tokenRuneLiteral {
+		var r rune
+		if len(tok.txt) == 3 {
+			r = rune(tok.txt[1])
+		} else {
+			r, _ = parseEscapedRune(tok.txt[1:])
+		}
+		if neg != nil {
+			r = -r
+		}
+		return ast.NewInt(p, int(r))
+	}
+	s := string(tok.txt)
+	if neg != nil {
 		s = "-" + s
 	}
 	if bytes.IndexByte(tok.txt, '.') == -1 {
@@ -636,54 +651,71 @@ func unquoteString(s []byte) string {
 	var cc = make([]byte, 0, len(s))
 	for i := 1; i < len(s)-1; i++ {
 		if s[i] == '\\' {
-			switch s[i+1] {
-			case 'a':
-				cc = append(cc, '\a')
-			case 'b':
-				cc = append(cc, '\b')
-			case 'f':
-				cc = append(cc, '\f')
-			case 'n':
-				cc = append(cc, '\n')
-			case 'r':
-				cc = append(cc, '\r')
-			case 't':
-				cc = append(cc, '\t')
-			case 'v':
-				cc = append(cc, '\v')
-			case '\\':
-				cc = append(cc, '\\')
-			case '\'':
-				cc = append(cc, '\'')
-			case '"':
-				cc = append(cc, '"')
-			case 'u', 'U':
-				var n = 4
-				if s[i+1] == 'U' {
-					n = 8
-				}
-				var r rune
-				for j := 0; j < n; j++ {
-					r = r * 16
-					var c = s[i+j+2]
-					switch {
-					case '0' <= c && c <= '9':
-						r += rune(c - '0')
-					case 'a' <= c && c <= 'f':
-						r += rune(c - 'a' + 10)
-					case 'A' <= c && c <= 'F':
-						r += rune(c - 'A' + 10)
-					}
-				}
+			r, n := parseEscapedRune(s[i:])
+			if r < utf8.RuneSelf {
+				cc = append(cc, byte(r))
+			} else {
 				p := [4]byte{}
 				j := utf8.EncodeRune(p[:], r)
 				cc = append(cc, p[:j]...)
-				i += n
 			}
-			i++
+			i += n
 		} else {
 			cc = append(cc, s[i])
 		}
 	}
 	return string(cc)
+}
+
+// parseEscapedRune parses an escaped rune sequence starting with '\\' and
+// returns the rune and the length of the parsed sequence.
+func parseEscapedRune(s []byte) (rune, int) {
+	switch s[1] {
+	case 'a':
+		return '\a', 1
+	case 'b':
+		return '\b', 1
+	case 'f':
+		return '\f', 1
+	case 'n':
+		return '\n', 1
+	case 'r':
+		return '\r', 1
+	case 't':
+		return '\t', 1
+	case 'v':
+		return '\v', 1
+	case '\\':
+		return '\\', 1
+	case '\'':
+		return '\'', 1
+	case '"':
+		return '"', 1
+	case 'x', 'u', 'U':
+		var n = 2
+		switch s[1] {
+		case 'u':
+			n = 4
+		case 'U':
+			n = 8
+		}
+		var r rune
+		for j := 2; j < n+2; j++ {
+			r = r * 16
+			c := s[j]
+			switch {
+			case '0' <= c && c <= '9':
+				r += rune(c - '0')
+			case 'a' <= c && c <= 'f':
+				r += rune(c - 'a' + 10)
+			case 'A' <= c && c <= 'F':
+				r += rune(c - 'A' + 10)
+			}
+		}
+		return r, n + 1
+	case '0', '1', '2', '3', '4', '5', '6', '7':
+		r := (s[1]-'0')*64 + (s[2]-'0')*8 + (s[3] - '0')
+		return rune(r), 3
+	}
+	panic("unexpected escaped rune")
 }

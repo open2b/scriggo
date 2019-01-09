@@ -601,6 +601,12 @@ LOOP:
 				return err
 			}
 			endLineAsSemicolon = true
+		case '\'':
+			err := l.lexRuneLiteral()
+			if err != nil {
+				return err
+			}
+			endLineAsSemicolon = true
 		case '.':
 			if len(l.src) == 1 {
 				return l.errorf("unexpected EOF")
@@ -1000,4 +1006,99 @@ STRING:
 	}
 	l.emitAtLineColumn(lin, col, tokenRawString, p+1)
 	return nil
+}
+
+// lexRuneLiteral reads a rune literal '...' knowing that src starts with "'".
+func (l *lexer) lexRuneLiteral() error {
+	// Stops when it finds the "'" character and returns an error when
+	// it finds a Unicode character that is not valid in a rune literal.
+	var p int
+	if len(l.src) == 1 {
+		return l.errorf("invalid character literal (missing closing ')")
+	}
+	switch l.src[1] {
+	case '\\':
+		if len(l.src) == 2 {
+			return l.errorf("invalid character literal (missing closing ')")
+		}
+		switch c := l.src[2]; c {
+		case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'':
+			if p = 3; len(l.src) < p {
+				return l.errorf("invalid character literal (missing closing ')")
+			}
+		case 'x':
+			if p = 5; len(l.src) < p {
+				return l.errorf("invalid character literal (missing closing ')")
+			}
+			for i := 3; i < 5; i++ {
+				if !isHexDigit(l.src[i]) {
+					return l.errorf("non-hex character in escape sequence: " + string(l.src[i]))
+				}
+			}
+		case 'u', 'U':
+			var n = 4
+			if c == 'U' {
+				n = 8
+			}
+			if p = n + 3; len(l.src) < p {
+				return l.errorf("invalid character literal (missing closing ')")
+			}
+			var r uint32
+			for i := 3; i < n+3; i++ {
+				r = r * 16
+				c = l.src[i]
+				switch {
+				case '0' <= c && c <= '9':
+					r += uint32(c - '0')
+				case 'a' <= c && c <= 'f':
+					r += uint32(c - 'a' + 10)
+				case 'A' <= c && c <= 'F':
+					r += uint32(c - 'A' + 10)
+				default:
+					return l.errorf("non-hex character in escape sequence: %s", string(c))
+				}
+			}
+			if 0xD800 <= r && r < 0xE000 || r > '\U0010FFFF' {
+				return l.errorf("escape sequence is invalid Unicode code point")
+			}
+		case '0', '1', '2', '3', '4', '5', '6', '7':
+			if p = 5; len(l.src) < p {
+				return l.errorf("invalid character literal (missing closing ')")
+			}
+			r := rune(c - '0')
+			for i := 3; i < 5; i++ {
+				r = r * 8
+				c = l.src[i]
+				if c < '0' || c > '7' {
+					return l.errorf("non-octal character in escape sequence: %s", string(c))
+				}
+				r += rune(c - '0')
+			}
+			if r > 255 {
+				return l.errorf("octal escape value > 255: %d", r)
+			}
+		default:
+			return l.errorf("invalid escape in string literal")
+		}
+	case '\n':
+		return l.errorf("newline in character literal")
+	case '\'':
+		return l.errorf("empty character literal or unescaped ' in character literal")
+	default:
+		r, s := utf8.DecodeRune(l.src[1:])
+		if r == utf8.RuneError && s == 1 {
+			return l.errorf("invalid UTF-8 encoding")
+		}
+		p = s + 1
+	}
+	if len(l.src) <= p || l.src[p] != '\'' {
+		return l.errorf("invalid character literal (missing closing ')")
+	}
+	l.emit(tokenRuneLiteral, p+1)
+	l.column += p + 1
+	return nil
+}
+
+func isHexDigit(c byte) bool {
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }

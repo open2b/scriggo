@@ -44,6 +44,7 @@ const (
 	tokenComment                     // comment
 	tokenInterpretedString           // "abc"
 	tokenRawString                   // `abc`
+	tokenRuneLiteral                 // 'a'
 	tokenIdentifier                  // customerName
 	tokenPeriod                      // .
 	tokenLeftParenthesis             // (
@@ -105,6 +106,7 @@ var tokenString = map[tokenType]string{
 	tokenComment:           "comment",
 	tokenInterpretedString: "string",
 	tokenRawString:         "string",
+	tokenRuneLiteral:       "rune",
 	tokenIdentifier:        "identifier",
 	tokenPeriod:            ".",
 	tokenLeftParenthesis:   "(",
