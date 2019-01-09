@@ -739,6 +739,12 @@ func hasType(v interface{}, typ valuetype) bool {
 			}
 			_, err := vv.Int64()
 			return err == nil
+		case builtins["rune"]:
+			if vv.Cmp(decimalMinRune) == -1 || decimalMaxRune.Cmp(vv) == -1 {
+				return false
+			}
+			_, err := vv.Int64()
+			return err == nil
 		case builtins["byte"]:
 			if vv.Cmp(decimalMinByte) == -1 || decimalMaxByte.Cmp(vv) == -1 {
 				return false
@@ -748,10 +754,14 @@ func hasType(v interface{}, typ valuetype) bool {
 		}
 		return false
 	case int:
-		if typ == builtins["byte"] {
+		switch typ {
+		case builtins["byte"]:
 			return 0 <= vv && vv <= 255
+		case builtins["rune"]:
+			return -2147483648 <= vv && vv <= 2147483647
+		default:
+			return typ == builtins["int"] || typ == builtins["number"]
 		}
-		return typ == builtins["int"] || typ == builtins["number"]
 	case bool:
 		return typ == builtins["bool"]
 	case Map, map[string]interface{}, map[string]string, map[string]HTML,
@@ -1413,6 +1423,13 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			return i, nil
 		case int:
 			return v, nil
+		}
+	case "rune":
+		switch v := value.(type) {
+		case *apd.Decimal:
+			panic("rune(n) is not implemented for non integer numbers")
+		case int:
+			return int(rune(v)), nil
 		}
 	case "byte":
 		switch v := value.(type) {

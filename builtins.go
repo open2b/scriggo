@@ -50,6 +50,7 @@ var builtins = map[string]interface{}{
 	"html":   valuetype("html"),
 	"number": valuetype("number"),
 	"int":    valuetype("int"),
+	"rune":   valuetype("rune"),
 	"byte":   valuetype("byte"),
 	"bool":   valuetype("bool"),
 	"map":    valuetype("map"),

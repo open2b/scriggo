@@ -23,6 +23,8 @@ import (
 
 var decimalMaxInt = apd.New(maxInt, 0)
 var decimalMinInt = apd.New(minInt, 0)
+var decimalMaxRune = apd.New(2147483647, 0)
+var decimalMinRune = apd.New(-2147483648, 0)
 var decimalMaxByte = apd.New(255, 0)
 var decimalMinByte = apd.New(0, 0)
 var decimal1 = apd.New(1, 0)
