@@ -22,7 +22,7 @@ var expressionStringTests = []struct {
 	expr Expression
 }{
 	{"1", n1},
-	{"3.59", NewNumber(nil, apd.New(0, 0).SetFloat64(3.59))},
+	{"3.59", NewNumber(nil, apd.New(359, -2))},
 	{`"abc"`, NewString(nil, "abc")},
 	{"\"a\\tb\"", NewString(nil, "a\tb")},
 	{"x", NewIdentifier(nil, "x")},
