@@ -1365,6 +1365,19 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		switch v := value.(type) {
 		case Map:
 			return v, nil
+		case Slice:
+			if v == nil {
+				return Map(nil), nil
+			}
+			m := make(Map, len(v))
+			for _, vv := range v {
+				k, ok := mapKeyImp(vv)
+				if !ok {
+					return nil, fmt.Errorf("hash of unhashable type %s", typeof(vv))
+				}
+				m[k] = nil
+			}
+			return m, nil
 		default:
 			rv := reflect.ValueOf(v)
 			switch rv.Kind() {
@@ -1374,6 +1387,21 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				if reflect.Indirect(rv).Kind() == reflect.Struct {
 					return v, nil
 				}
+			case reflect.Slice:
+				if rv.IsNil() {
+					return Map(nil), nil
+				}
+				length := rv.Len()
+				m := make(Map, length)
+				for i := 0; i < length; i++ {
+					vv := rv.Index(i).Interface()
+					k, ok := mapKeyImp(vv)
+					if !ok {
+						return nil, fmt.Errorf("hash of unhashable type %s", typeof(vv))
+					}
+					m[k] = nil
+				}
+				return m, nil
 			}
 		}
 	case "slice":
