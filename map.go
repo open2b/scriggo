@@ -7,6 +7,7 @@
 package template
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/shopspring/decimal"
@@ -55,13 +56,13 @@ func (m Map) Range(f func(key, value interface{}) bool) {
 // Store sets the value for a key.
 func (m Map) Store(key, value interface{}) {
 	if m == nil {
-		panic("assignment to entry in nil map")
+		panic(errors.New("assignment to entry in nil map"))
 	}
 	if k, valid := hashValue(key); valid {
 		m[k] = value
 		return
 	}
-	panic(fmt.Sprintf("hash of unhashable type %T", key))
+	panic(fmt.Errorf("hash of unhashable type %T", key))
 }
 
 func hashValue(key interface{}) (interface{}, bool) {
