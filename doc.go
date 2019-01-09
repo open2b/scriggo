@@ -146,26 +146,30 @@
 //
 //  bool:     the bool type
 //
-//  string:   the types string and the types implementing the interface
+//  string:   the string type and the types implementing the interface
 //            renderer.Stringer
 //
-//  html:     the type renderer.HTML
+//  html:     the type template.HTML
 //
 //  number:   all integer and floating-point types (excluding uintptr),
-//            *apd.Decimal [https://github.com/cockroachdb/apd] and the types
-//            implementing the interface renderer.Numberer
+//            *apd.Decimal [ https://github.com/cockroachdb/apd ] and the
+//            types implementing the interface renderer.Numberer
 //
 //  int:      the int type
 //
-//  struct:   a struct pointer type, a map type with keys of type string
-//            and the types convertible to these types
+//  rune:     the int32 (rune) type
 //
-//  slice:    a slice type
+//  byte:     the uint8 (byte) type
+//
+//  map:      the type template.Map, a struct type, a pointer to struct type
+//            and a map type
+//
+//  slice:    the type template.Slice and a slice type
+//
+//  bytes:    the type template.Bytes and the []byte type
 //
 //  function: a function type with only one return value. As numeric parameter
 //            types, only int and *apd.Decimal can be used
-//
-//  any:      the interface{} type
 //
 // If a value has a type that implements Renderer, the method Render will be
 // called when the value have to be rendered. See the Renderer documentation.
@@ -173,9 +177,9 @@
 // If a value has a map type, their keys will be the names of the fields of
 // the template struct.
 //
-// If a value has type pointer to a struct, the names of the exported fields
-// of the struct will be the field names of the template struct. If an
-// exported field has the tag "template" the field name is defined by the tag
-// as for the vars.
+// If a value has type struct or pointer to a struct, the names of the
+// exported fields of the struct will be the field names of the template
+// struct. If an exported field has the tag "template" the field name is
+// defined by the tag as for the vars.
 //
 package template
