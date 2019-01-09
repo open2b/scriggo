@@ -133,7 +133,7 @@ var rendererExprTests = []struct {
 	{"a[2]", "z", scope{"a": "x€z"}},
 	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[1]", "b", scope{"a": HTML("<b>")}},
-	{"a[0]", "&lt;", scope{"a": HTML("<b>")}},
+	{"a[0]", "<", scope{"a": HTML("<b>")}},
 	{`a[1]`, "b", scope{"a": aString{"abc"}}},
 	{"a[1]", "b", scope{"a": stringConvertible("abc")}},
 	{"a[:]", "x€z", scope{"a": "x€z"}},
@@ -145,7 +145,7 @@ var rendererExprTests = []struct {
 	{"a[1:]", "xz", scope{"a": "€xz"}},
 	{"a[:2]", "xz", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
-	{"a[1:]", "b&gt;", scope{"a": HTML("<b>")}},
+	{"a[1:]", "b>", scope{"a": HTML("<b>")}},
 	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
 	{"a[1:]", "z€", scope{"a": stringConvertible("xz€")}},
 	{`a.(string)`, "abc", scope{"a": "abc"}},
@@ -245,11 +245,11 @@ var rendererExprTests = []struct {
 	{`"a" + "b"`, "ab", nil},
 	{`a + "b"`, "ab", scope{"a": "a"}},
 	{`a + "b"`, "ab", scope{"a": HTML("a")}},
-	{`a + "b"`, "&lt;a&gt;b", scope{"a": "<a>"}},
+	{`a + "b"`, "<a>b", scope{"a": "<a>"}},
 	{`a + "b"`, "<a>b", scope{"a": HTML("<a>")}},
-	{`a + "<b>"`, "&lt;a&gt;&lt;b&gt;", scope{"a": "<a>"}},
+	{`a + "<b>"`, "<a><b>", scope{"a": "<a>"}},
 	{`a + "<b>"`, "<a>&lt;b&gt;", scope{"a": HTML("<a>")}},
-	{"a + b", "&lt;a&gt;&lt;b&gt;", scope{"a": "<a>", "b": "<b>"}},
+	{"a + b", "<a><b>", scope{"a": "<a>", "b": "<b>"}},
 	{"a + b", "<a><b>", scope{"a": HTML("<a>"), "b": HTML("<b>")}},
 
 	// call
@@ -258,11 +258,11 @@ var rendererExprTests = []struct {
 	{"f(5.4)", "5.4", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
 	{"f(5)", "5", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
 	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
-	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
+	{"f(html(`<a>`))", "<a>", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
 	{"f(5)", "5", scope{"f": func(v interface{}) interface{} { return v }}},
 	{"f(`a`)", "a", scope{"f": func(v interface{}) interface{} { return v }}},
-	{"f(html(`<a>`))", "&lt;a&gt;", scope{"f": func(s string) string { return s }}},
+	{"f(html(`<a>`))", "<a>", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(v interface{}) interface{} { return v }}},
 	{"f(nil)", "", scope{"f": func(v interface{}) interface{} { return v }}},
 	{"f()", "", scope{"f": func(s ...string) string { return strings.Join(s, ",") }}},
@@ -413,7 +413,7 @@ var rendererStmtTests = []struct {
 
 	// conversion
 	{`{% if s, ok := string("abc").(string); ok %}{{ s }}{% end %}`, "abc", nil},
-	{`{% if s, ok := string(html("<b>")).(string); ok %}{{ s }}{% end %}`, "&lt;b&gt;", nil},
+	{`{% if s, ok := string(html("<b>")).(string); ok %}{{ s }}{% end %}`, "<b>", nil},
 	{`{% if s, ok := string(87.5+0.5).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88888888888).(string); ok %}{{ s }}{% end %}`, "\uFFFD", nil},
@@ -525,7 +525,7 @@ var rendererVarsToScope = []struct {
 
 func TestRenderExpressions(t *testing.T) {
 	for _, expr := range rendererExprTests {
-		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -548,7 +548,7 @@ func TestRenderStatements(t *testing.T) {
 		return a, b
 	}
 	for _, stmt := range rendererStmtTests {
-		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextHTML)
+		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -592,7 +592,7 @@ func (wr RenderPanic) Render(w io.Writer) (int, error) {
 }
 
 func TestRenderErrors(t *testing.T) {
-	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextHTML)}, ast.ContextHTML)
+	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
 	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, true)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")
