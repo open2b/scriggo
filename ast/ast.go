@@ -651,7 +651,10 @@ func (n *Map) String() string {
 		if i > 0 {
 			s += ", "
 		}
-		s += element.Key.String() + ": " + element.Value.String()
+		s += element.Key.String()
+		if element.Value != nil {
+			s += ": " + element.Value.String()
+		}
 	}
 	s += "}"
 	return s

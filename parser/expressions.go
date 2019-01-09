@@ -167,12 +167,11 @@ func parseExpr(tok token, lex *lexer, canBeBlank bool) (ast.Expression, token) {
 							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
 						}
 					} else {
-						if tok.typ != tokenColon {
-							panic(&Error{"", *tok.pos, fmt.Errorf("missing key in map literal")})
-						}
-						element.Value, tok = parseExpr(token{}, lex, false)
-						if element.Value == nil {
-							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+						if tok.typ == tokenColon {
+							element.Value, tok = parseExpr(token{}, lex, false)
+							if element.Value == nil {
+								panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+							}
 						}
 						elements = append(elements, element)
 					}
