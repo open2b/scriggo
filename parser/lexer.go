@@ -923,17 +923,17 @@ LOOP:
 				if p+1+n >= len(l.src) {
 					return l.errorf("not closed string literal")
 				}
-				var r uint32
+				var r rune
 				for i := 0; i < n; i++ {
 					r = r * 16
 					c = l.src[p+2+i]
 					switch {
 					case '0' <= c && c <= '9':
-						r += uint32(c - '0')
+						r += rune(c - '0')
 					case 'a' <= c && c <= 'f':
-						r += uint32(c - 'a' + 10)
+						r += rune(c - 'a' + 10)
 					case 'A' <= c && c <= 'F':
-						r += uint32(c - 'A' + 10)
+						r += rune(c - 'A' + 10)
 					default:
 						l.src = l.src[p:]
 						return l.errorf("invalid hex digit in string literal")

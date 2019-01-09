@@ -662,21 +662,21 @@ func unquoteString(s []byte) string {
 				if s[i+1] == 'U' {
 					n = 8
 				}
-				var r uint32
+				var r rune
 				for j := 0; j < n; j++ {
 					r = r * 16
 					var c = s[i+j+2]
 					switch {
 					case '0' <= c && c <= '9':
-						r += uint32(c - '0')
+						r += rune(c - '0')
 					case 'a' <= c && c <= 'f':
-						r += uint32(c - 'a' + 10)
+						r += rune(c - 'a' + 10)
 					case 'A' <= c && c <= 'F':
-						r += uint32(c - 'A' + 10)
+						r += rune(c - 'A' + 10)
 					}
 				}
 				p := [4]byte{}
-				j := utf8.EncodeRune(p[:], rune(r))
+				j := utf8.EncodeRune(p[:], r)
 				cc = append(cc, p[:j]...)
 				i += n
 			}
