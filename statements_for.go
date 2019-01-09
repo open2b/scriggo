@@ -12,7 +12,7 @@ import (
 
 	"open2b/template/ast"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 // renderFor renders nodes.
@@ -246,7 +246,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case []decimal.Decimal:
+		case []*apd.Decimal:
 			for i, v := range vv {
 				if addresses != nil {
 					err = addresses[0].assign(i)

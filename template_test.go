@@ -19,7 +19,7 @@ import (
 	"open2b/template/ast"
 	"open2b/template/parser"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 type aNumber struct {
@@ -30,8 +30,8 @@ func (n aNumber) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
 }
 
-func (n aNumber) Number() decimal.Decimal {
-	return decimal.New(int64(n.v), 0)
+func (n aNumber) Number() *apd.Decimal {
+	return apd.New(int64(n.v), 0)
 }
 
 type aString struct {
@@ -67,7 +67,7 @@ type aStruct struct {
 	C string
 }
 
-var largeDecimal, _ = decimal.NewFromString("163095826571306923551828945029")
+var largeDecimal, _, _ = apd.NewFromString("163095826571306923551828945029")
 
 var rendererExprTests = []struct {
 	src  string
@@ -95,10 +95,10 @@ var rendererExprTests = []struct {
 	{"2.2 * 3", "6.6", nil},
 	{"2 * 3.1", "6.2", nil},
 	{"2.0 * 3.1", "6.2", nil},
-	{"2 / 3", "0.66666666666666666667", nil},
-	{"2.0 / 3", "0.66666666666666666667", nil},
-	{"2 / 3.0", "0.66666666666666666667", nil},
-	{"2.0 / 3.0", "0.66666666666666666667", nil},
+	{"2 / 3", "0.66666666666666666666666666666667", nil},
+	{"2.0 / 3", "0.66666666666666666666666666666667", nil},
+	{"2 / 3.0", "0.66666666666666666666666666666667", nil},
+	{"2.0 / 3.0", "0.66666666666666666666666666666667", nil},
 	{"7 % 3", "1", nil},
 	{"7.2 % 3.7", "3.5", nil},
 	{"7 % 3.7", "3.3", nil},
@@ -255,8 +255,8 @@ var rendererExprTests = []struct {
 	// call
 	{"f()", "ok", scope{"f": func() string { return "ok" }}},
 	{"f(5)", "5", scope{"f": func(i int) int { return i }}},
-	{"f(5.4)", "5.4", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
-	{"f(5)", "5", scope{"f": func(n decimal.Decimal) decimal.Decimal { return n }}},
+	{"f(5.4)", "5.4", scope{"f": func(n *apd.Decimal) *apd.Decimal { return n }}},
+	{"f(5)", "5", scope{"f": func(n *apd.Decimal) *apd.Decimal { return n }}},
 	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
 	{"f(html(`<a>`))", "<a>", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
@@ -272,6 +272,7 @@ var rendererExprTests = []struct {
 	{"f(5, `a`, `b`)", "5 a,b", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
 	{"s.F()", "a", scope{"s": aMap{v: "a"}}},
 	{"s.G()", "b", scope{"s": aMap{v: "a", H: func() string { return "b" }}}},
+	{"f(5.2)", "5.2", scope{"f": func(d *apd.Decimal) *apd.Decimal { return d }}},
 
 	// number types
 	{"1+a", "3", scope{"a": int(2)}},

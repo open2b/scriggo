@@ -14,8 +14,16 @@ import (
 	"open2b/template/ast"
 	"open2b/template/parser"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
+
+func floatToDecimal(f float64) *apd.Decimal {
+	d, err := apd.New(0, 0).SetFloat64(f)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
 
 var rendererBuiltinTests = []struct {
 	src  string
@@ -52,7 +60,7 @@ var rendererBuiltinTests = []struct {
 	{"append(s, `c`, `d`)", "a, b, c, d", map[string]interface{}{"s": []string{"a", "b"}}},
 	{"append(s, html(`<c>`))", "<a>, <b>, <c>", map[string]interface{}{"s": []HTML{"<a>", "<b>"}}},
 	{"append(s, 3, 4)", "1, 2, 3, 4", map[string]interface{}{"s": []int{1, 2}}},
-	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", map[string]interface{}{"s": []decimal.Decimal{decimal.NewFromFloat(1.9), decimal.NewFromFloat(2.32)}}},
+	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", map[string]interface{}{"s": []*apd.Decimal{floatToDecimal(1.9), floatToDecimal(2.32)}}},
 	{"append(s, false, true)", "true, false, false, true", map[string]interface{}{"s": []bool{true, false}}},
 	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", map[string]interface{}{"s": []interface{}{"a", false, 0}}},
 	{"append(slice{})", "", nil},

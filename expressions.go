@@ -18,11 +18,14 @@ import (
 	"open2b/template/ast"
 	"open2b/template/ast/astutil"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
-var zero = decimal.New(0, 0)
+var zero = apd.New(0, 0)
 var decimalType = reflect.TypeOf(zero)
+var decimalContext = apd.BaseContext.WithPrecision(decPrecision)
+
+const decPrecision = 32
 
 const maxInt = int64(^uint(0) >> 1)
 const minInt = -int64(^uint(0)>>1) - 1
@@ -181,17 +184,20 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		panic(r.errorf(node, "invalid operation: ! %s", typeof(expr)))
 	case ast.OperatorAddition:
 		switch expr.(type) {
-		case decimal.Decimal, int:
+		case *apd.Decimal:
+			return new(apd.Decimal).Set(expr.(*apd.Decimal))
+		case int:
 			return expr
 		}
 		panic(r.errorf(node, "invalid operation: + %s", typeof(expr)))
 	case ast.OperatorSubtraction:
 		switch n := expr.(type) {
-		case decimal.Decimal:
-			return n.Neg()
+		case *apd.Decimal:
+			return new(apd.Decimal).Neg(n)
 		case int:
 			if n == int(minInt) {
-				return decimal.New(int64(n), 0).Neg()
+				d := apd.New(int64(n), 0)
+				return d.Neg(d)
 			}
 			return -n
 		}
@@ -270,21 +276,30 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 			case HTML:
 				return HTML(string(e1) + string(e2))
 			}
-		case decimal.Decimal:
+		case *apd.Decimal:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return e1.Add(e2)
+			case *apd.Decimal:
+				e := new(apd.Decimal)
+				_, _ = decimalContext.Add(e, e1, e2)
+				return e
 			case int:
-				return e1.Add(decimal.New(int64(e2), 0))
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Add(d2, e1, d2)
+				return d2
 			}
 		case int:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return decimal.New(int64(e1), 0).Add(e2)
+			case *apd.Decimal:
+				d1 := apd.New(int64(e1), 0)
+				_, _ = decimalContext.Add(d1, d1, e2)
+				return d1
 			case int:
 				e := e1 + e2
 				if (e < e1) != (e2 < 0) {
-					return decimal.New(int64(e1), 0).Add(decimal.New(int64(e2), 0))
+					d1 := apd.New(int64(e1), 0)
+					d2 := apd.New(int64(e2), 0)
+					_, _ = decimalContext.Add(d1, d1, d2)
+					return d1
 				}
 				return e
 			}
@@ -295,21 +310,30 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
 		switch e1 := expr1.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return e1.Sub(e2)
+			case *apd.Decimal:
+				e := new(apd.Decimal)
+				_, _ = decimalContext.Sub(e, e1, e2)
+				return e
 			case int:
-				return e1.Sub(decimal.New(int64(e2), 0))
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Sub(d2, e1, d2)
+				return d2
 			}
 		case int:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return decimal.New(int64(e1), 0).Sub(e2)
+			case *apd.Decimal:
+				d1 := apd.New(int64(e1), 0)
+				_, _ = decimalContext.Sub(d1, d1, e2)
+				return d1
 			case int:
 				e := e1 - e2
 				if (e < e1) != (e2 > 0) {
-					return decimal.New(int64(e1), 0).Sub(decimal.New(int64(e2), 0))
+					d1 := apd.New(int64(e1), 0)
+					d2 := apd.New(int64(e2), 0)
+					_, _ = decimalContext.Sub(d1, d1, d2)
+					return d1
 				}
 				return e
 			}
@@ -320,24 +344,33 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
 		switch e1 := expr1.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return e1.Mul(e2)
+			case *apd.Decimal:
+				e := new(apd.Decimal)
+				_, _ = decimalContext.Mul(e, e1, e2)
+				return e
 			case int:
-				return e1.Mul(decimal.New(int64(e2), 0))
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Mul(d2, e1, d2)
+				return d2
 			}
 		case int:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return decimal.New(int64(e1), 0).Mul(e2)
+			case *apd.Decimal:
+				d1 := apd.New(int64(e1), 0)
+				_, _ = decimalContext.Mul(d1, d1, e2)
+				return d1
 			case int:
 				if e1 == 0 || e2 == 0 {
 					return 0
 				}
 				e := e1 * e2
 				if (e < 0) != ((e1 < 0) != (e2 < 0)) || e/e2 != e1 {
-					return decimal.New(int64(e1), 0).Mul(decimal.New(int64(e2), 0))
+					d1 := apd.New(int64(e1), 0)
+					d2 := apd.New(int64(e2), 0)
+					_, _ = decimalContext.Mul(d1, d1, d2)
+					return d1
 				}
 				return e
 			}
@@ -348,28 +381,37 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			if e2.IsZero() {
 				panic(r.errorf(op, "number divide by zero"))
 			}
 			switch e1 := expr1.(type) {
-			case decimal.Decimal:
-				return e1.DivRound(e2, 20)
+			case *apd.Decimal:
+				e := new(apd.Decimal)
+				_, _ = decimalContext.Quo(e, e1, e2)
+				return e
 			case int:
-				return decimal.New(int64(e1), 0).DivRound(e2, 20)
+				d1 := apd.New(int64(e1), 0)
+				_, _ = decimalContext.Quo(d1, d1, e2)
+				return d1
 			}
 		case int:
 			if e2 == 0 {
 				panic(r.errorf(op, "number divide by zero"))
 			}
 			switch e1 := expr1.(type) {
-			case decimal.Decimal:
-				return e1.DivRound(decimal.New(int64(e2), 0), 20)
+			case *apd.Decimal:
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Quo(d2, e1, d2)
+				return d2
 			case int:
 				if e1%e2 == 0 && !(e1 == int(minInt) && e2 == -1) {
 					return e1 / e2
 				}
-				return decimal.New(int64(e1), 0).DivRound(decimal.New(int64(e2), 0), 20)
+				d1 := apd.New(int64(e1), 0)
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Quo(d1, d1, d2)
+				return d1
 			}
 		}
 		panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
@@ -378,17 +420,23 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
 		switch e1 := expr1.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return e1.Mod(e2)
+			case *apd.Decimal:
+				e := new(apd.Decimal)
+				_, _ = decimalContext.Rem(e, e1, e2)
+				return e
 			case int:
-				return e1.Mod(decimal.New(int64(e2), 0))
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Rem(d2, e1, d2)
+				return d2
 			}
 		case int:
 			switch e2 := expr2.(type) {
-			case decimal.Decimal:
-				return decimal.New(int64(e1), 0).Mod(e2)
+			case *apd.Decimal:
+				d1 := apd.New(int64(e1), 0)
+				_, _ = decimalContext.Rem(d1, d1, e2)
+				return d1
 			case int:
 				return e1 % e2
 			}
@@ -422,17 +470,17 @@ func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
 		case HTML:
 			return e1 == e2
 		}
-	case decimal.Decimal:
+	case *apd.Decimal:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
-			return e1.Equal(e2)
+		case *apd.Decimal:
+			return e1.Cmp(e2) == 0
 		case int:
-			return e1.Cmp(decimal.New(int64(e2), 0)) == 0
+			return e1.Cmp(apd.New(int64(e2), 0)) == 0
 		}
 	case int:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
-			return decimal.New(int64(e1), 0).Cmp(e2) == 0
+		case *apd.Decimal:
+			return apd.New(int64(e1), 0).Cmp(e2) == 0
 		case int:
 			return e1 == e2
 		}
@@ -479,17 +527,17 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 		case HTML:
 			return e1 < e2
 		}
-	case decimal.Decimal:
+	case *apd.Decimal:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			return e1.Cmp(e2) < 0
 		case int:
-			return e1.Cmp(decimal.New(int64(e2), 0)) < 0
+			return e1.Cmp(apd.New(int64(e2), 0)) < 0
 		}
 	case int:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
-			return decimal.New(int64(e1), 0).Cmp(e2) < 0
+		case *apd.Decimal:
+			return apd.New(int64(e1), 0).Cmp(e2) < 0
 		case int:
 			return e1 < e2
 		}
@@ -520,17 +568,17 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 		case HTML:
 			return e1 > e2
 		}
-	case decimal.Decimal:
+	case *apd.Decimal:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			return e1.Cmp(e2) > 0
 		case int:
-			return e1.Cmp(decimal.New(int64(e2), 0)) > 0
+			return e1.Cmp(apd.New(int64(e2), 0)) > 0
 		}
 	case int:
 		switch e2 := expr2.(type) {
-		case decimal.Decimal:
-			return decimal.New(int64(e1), 0).Cmp(e2) > 0
+		case *apd.Decimal:
+			return apd.New(int64(e1), 0).Cmp(e2) > 0
 		case int:
 			return e1 > e2
 		}
@@ -545,7 +593,7 @@ func (r *rendering) evalMap(node *ast.Map) interface{} {
 	for _, element := range node.Elements {
 		key := asBase(r.evalExpression(element.Key))
 		switch key.(type) {
-		case nil, string, HTML, decimal.Decimal, int, bool:
+		case nil, string, HTML, *apd.Decimal, int, bool:
 		default:
 			panic(r.errorf(node, "hash of unhashable type %s", typeof(key)))
 		}
@@ -572,7 +620,7 @@ func (r *rendering) evalBytes(node *ast.Bytes) interface{} {
 		switch n := v.(type) {
 		case int:
 			elements[i], err = intToByte(n)
-		case decimal.Decimal:
+		case *apd.Decimal:
 			elements[i], err = decimalToByte(n)
 		default:
 			err = fmt.Errorf("cannot use %s (type %s) as type byte", element, typeof(v))
@@ -621,7 +669,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	case map[string]HTML:
 		vv, ok := v[node.Ident]
 		return vv, ok, nil
-	case map[string]decimal.Decimal:
+	case map[string]*apd.Decimal:
 		vv, ok := v[node.Ident]
 		return vv, ok, nil
 	case map[string]int:
@@ -681,22 +729,22 @@ func hasType(v interface{}, typ valuetype) bool {
 		return typ == builtins["string"]
 	case HTML:
 		return typ == builtins["string"] || typ == builtins["html"]
-	case decimal.Decimal:
+	case *apd.Decimal:
 		switch typ {
 		case builtins["number"]:
 			return true
 		case builtins["int"]:
-			if vv.LessThan(decimalMinInt) || decimalMaxInt.LessThan(vv) {
+			if vv.Cmp(decimalMinInt) == -1 || decimalMaxInt.Cmp(vv) == -1 {
 				return false
 			}
-			p := vv.IntPart()
-			return decimal.New(p, 0).Equal(vv)
+			_, err := vv.Int64()
+			return err == nil
 		case builtins["byte"]:
-			if vv.LessThan(decimalMinByte) || decimalMaxByte.LessThan(vv) {
+			if vv.Cmp(decimalMinByte) == -1 || decimalMaxByte.Cmp(vv) == -1 {
 				return false
 			}
-			p := vv.IntPart()
-			return decimal.New(p, 0).Equal(vv)
+			_, err := vv.Int64()
+			return err == nil
 		}
 		return false
 	case int:
@@ -707,9 +755,9 @@ func hasType(v interface{}, typ valuetype) bool {
 	case bool:
 		return typ == builtins["bool"]
 	case Map, map[string]interface{}, map[string]string, map[string]HTML,
-		map[string]decimal.Decimal, map[string]int, map[string]bool:
+		map[string]*apd.Decimal, map[string]int, map[string]bool:
 		return typ == builtins["map"]
-	case Slice, []interface{}, []string, []HTML, []decimal.Decimal, []int, []bool:
+	case Slice, []interface{}, []string, []HTML, []*apd.Decimal, []int, []bool:
 		return typ == builtins["slice"]
 	case Bytes, []byte:
 		return typ == builtins["bytes"]
@@ -819,7 +867,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			}
 		}
 		return nil, false, nil
-	case map[string]decimal.Decimal:
+	case map[string]*apd.Decimal:
 		k := asBase(r.evalExpression(node.Index))
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
@@ -873,7 +921,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return nil, false, err
 		}
 		return vv[i], true, nil
-	case []decimal.Decimal:
+	case []*apd.Decimal:
 		i, err := checkSlice(len(vv))
 		if err != nil {
 			return nil, false, err
@@ -933,7 +981,7 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 	switch index := asBase(r.evalExpression(node)).(type) {
 	case int:
 		i = index
-	case decimal.Decimal:
+	case *apd.Decimal:
 		var err error
 		i, err = decimalToInt(index)
 		if err != nil {
@@ -1038,7 +1086,7 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 		return vv[l:h2(len(vv))]
 	case []HTML:
 		return vv[l:h2(len(vv))]
-	case []decimal.Decimal:
+	case []*apd.Decimal:
 		return vv[l:h2(len(vv))]
 	case []int:
 		return vv[l:h2(len(vv))]
@@ -1219,22 +1267,26 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		} else {
 			if inKind == reflect.Interface {
 				args[i] = reflect.ValueOf(arg)
-			} else if d, ok := arg.(decimal.Decimal); ok && in == decimalType {
+			} else if d, ok := arg.(*apd.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
-			} else if d, ok := arg.(decimal.Decimal); ok && inKind == reflect.Int {
+			} else if d, ok := arg.(*apd.Decimal); ok && inKind == reflect.Int {
 				n, err := decimalToInt(d)
 				if err != nil {
 					panic(r.errorf(node.Args[i], "%s", err))
 				}
 				args[i] = reflect.ValueOf(n)
 			} else if d, ok := arg.(int); ok && in == decimalType {
-				args[i] = reflect.ValueOf(decimal.New(int64(d), 0))
+				args[i] = reflect.ValueOf(apd.New(int64(d), 0))
 			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
 				args[i] = reflect.ValueOf(string(html))
 			} else if reflect.TypeOf(arg).AssignableTo(in) {
 				args[i] = reflect.ValueOf(arg)
 			} else {
 				switch inKind {
+				case reflect.Ptr:
+					if in != decimalType {
+						return nil, fmt.Errorf("cannot use %s as function parameter type", inKind)
+					}
 				case reflect.Int8,
 					reflect.Int16,
 					reflect.Int32,
@@ -1247,7 +1299,6 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 					reflect.Uintptr,
 					reflect.Complex64,
 					reflect.Complex128,
-					reflect.Ptr,
 					reflect.UnsafePointer,
 					reflect.Float32,
 					reflect.Float64:
@@ -1297,11 +1348,15 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			return value, nil
 		case HTML:
 			return string(v), nil
-		case decimal.Decimal:
-			p := v.IntPart()
-			if decimal.New(p, 0).Equal(v) {
-				return string(int(p)), nil
+		case *apd.Decimal:
+			if v.Cmp(decimalMinInt) == -1 || v.Cmp(decimalMaxInt) == 1 {
+				return utf8.RuneError, nil
 			}
+			p, err := v.Int64()
+			if err != nil {
+				return utf8.RuneError, nil
+			}
+			return string(int(p)), nil
 		case int:
 			return string(v), nil
 		case Bytes:
@@ -1320,11 +1375,15 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			return HTML(v), nil
 		case HTML:
 			return v, nil
-		case decimal.Decimal:
-			p := v.IntPart()
-			if decimal.New(p, 0).Equal(v) {
-				return HTML(string(int(p))), nil
+		case *apd.Decimal:
+			if v.Cmp(decimalMinInt) == -1 || v.Cmp(decimalMaxInt) == 1 {
+				return HTML(utf8.RuneError), nil
 			}
+			p, err := v.Int64()
+			if err != nil {
+				return HTML(utf8.RuneError), nil
+			}
+			return HTML(string(int(p))), nil
 		case int:
 			return HTML(string(v)), nil
 		case Bytes:
@@ -1339,22 +1398,28 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "number":
 		switch v := value.(type) {
-		case decimal.Decimal:
+		case *apd.Decimal:
 			return v, nil
 		case int:
 			return v, nil
 		}
 	case "int":
 		switch v := value.(type) {
-		case decimal.Decimal:
-			return int(v.IntPart()), nil
+		case *apd.Decimal:
+			ctx := decimalContext.WithPrecision(decPrecision)
+			ctx.Rounding = apd.RoundDown
+			ctx.RoundToIntegralValue(v, v)
+			i, _ := v.Int64()
+			return i, nil
 		case int:
 			return v, nil
 		}
 	case "byte":
 		switch v := value.(type) {
-		case decimal.Decimal:
-			return int(v.Mod(decimal256).IntPart()), nil
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Rem(e, v, decimal256)
+			return e.Int64()
 		case int:
 			return v % 256, nil
 		}
@@ -1457,10 +1522,11 @@ func convertSliceToString(s reflect.Value) string {
 		element := asBase(s.Index(i).Interface())
 		if element != nil {
 			switch e := element.(type) {
-			case decimal.Decimal:
-				p := e.IntPart()
-				if decimal.New(p, 0).Equal(e) {
-					b.WriteString(string(p))
+			case *apd.Decimal:
+				p := &apd.Decimal{}
+				apd.BaseContext.WithPrecision(decPrecision).Floor(p, e)
+				if p.Cmp(e) == 0 {
+					b.WriteString(p.String())
 					continue
 				}
 			case int:
@@ -1501,7 +1567,7 @@ func asBase(v interface{}) interface{} {
 		return vv
 	case uint:
 		if vv > uint(maxInt) {
-			return decimal.NewFromBigInt(new(big.Int).SetUint64(uint64(vv)), 0)
+			return apd.NewWithBigInt(new(big.Int).SetUint64(uint64(vv)), 0)
 		}
 		return int(vv)
 	case int8:
@@ -1512,7 +1578,7 @@ func asBase(v interface{}) interface{} {
 		return int(vv)
 	case int64:
 		if vv < minInt || vv > maxInt {
-			return decimal.New(vv, 0)
+			return apd.New(vv, 0)
 		}
 		return int(vv)
 	case uint8:
@@ -1521,19 +1587,23 @@ func asBase(v interface{}) interface{} {
 		return int(vv)
 	case uint32:
 		if int64(vv) > maxInt {
-			return decimal.New(int64(vv), 0)
+			return apd.New(int64(vv), 0)
 		}
 		return int(vv)
 	case uint64:
 		if vv > uint64(maxInt) {
-			return decimal.NewFromBigInt(new(big.Int).SetUint64(vv), 0)
+			return apd.NewWithBigInt(new(big.Int).SetUint64(vv), 0)
 		}
 		return int(vv)
 	case float32:
-		return decimal.NewFromFloat32(vv)
+		d := new(apd.Decimal)
+		_, _ = d.SetFloat64(float64(vv))
+		return d
 	case float64:
-		return decimal.NewFromFloat(vv)
-	case decimal.Decimal:
+		d := new(apd.Decimal)
+		d.SetFloat64(vv)
+		return d
+	case *apd.Decimal:
 		return v
 	case Numberer:
 		return vv.Number()
@@ -1566,7 +1636,7 @@ func asBase(v interface{}) interface{} {
 		case reflect.Int:
 			n := rv.Int()
 			if n < minInt || n > maxInt {
-				return decimal.New(n, 0)
+				return apd.New(n, 0)
 			}
 			return int(n)
 		case reflect.Float64:

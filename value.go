@@ -9,6 +9,7 @@ package template
 import (
 	"html"
 	"io"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -16,9 +17,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"github.com/cockroachdb/apd"
 
-	"github.com/shopspring/decimal"
+	"open2b/template/ast"
 )
 
 // ValueRenderer can be implemented by the values of variables. When a value
@@ -69,7 +70,7 @@ type Stringer interface {
 
 // Numberer is implemented by any value that behaves like a number.
 type Numberer interface {
-	Number() decimal.Decimal
+	Number() *apd.Decimal
 }
 
 func (s HTML) Render(w io.Writer) (int, error) {
@@ -98,6 +99,49 @@ func newStringWriter(wr io.Writer) stringWriter {
 		return sw
 	}
 	return stringWriterWrapper{wr}
+}
+
+// renderDecimal renders the decimal d in the context ctx.
+func (r *rendering) renderDecimal(d *apd.Decimal, ctx ast.Context) string {
+	_, _ = d.Reduce(d)
+	switch ctx {
+	case ast.ContextText:
+		return d.Text('f')
+	case ast.ContextHTML, ast.ContextAttribute:
+		if d.Form == apd.Infinite {
+			if d.Negative {
+				return "-∞"
+			}
+			return "∞"
+		}
+		if d.NumDigits() > 16 {
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Round(e, d)
+			return e.String()
+		}
+		return d.String()
+	case ast.ContextCSS, ast.ContextCSSString:
+		maxInt32 := apd.New(math.MaxInt32, 0)
+		minInt32 := apd.New(math.MinInt32, 0)
+		if d.Cmp(maxInt32) == 1 {
+			d = maxInt32
+		} else if d.Cmp(minInt32) == -1 {
+			d = minInt32
+		}
+		return d.Text('f')
+	case ast.ContextScript, ast.ContextScriptString:
+		switch {
+		case d.Form == apd.NaN:
+			return "NaN"
+		case d.Form == apd.Infinite && !d.Negative:
+			return "Infinity"
+		case d.Form == apd.Infinite && d.Negative:
+			return "-Infinity"
+		}
+		return d.String()
+	default:
+		panic("template: unknown context")
+	}
 }
 
 // renderValue renders value in the context of node and as a URL is urlstate
@@ -186,8 +230,8 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextText)
 	case bool:
 		s = "false"
 		if e {
@@ -237,8 +281,8 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextHTML)
 	case bool:
 		s = "false"
 		if e {
@@ -312,8 +356,8 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 		return attributeEscape(w, html.UnescapeString(string(e)), quoted)
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextAttribute)
 	case bool:
 		s = "false"
 		if e {
@@ -365,8 +409,8 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 		s = string(e)
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextAttribute)
 	case bool:
 		s = "false"
 		if e {
@@ -395,8 +439,8 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 				s += string(e)
 			case int:
 				s += strconv.Itoa(e)
-			case decimal.Decimal:
-				s += e.String()
+			case *apd.Decimal:
+				s += r.renderDecimal(e, ast.ContextAttribute)
 			case bool:
 				if e {
 					s += "true"
@@ -461,8 +505,8 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Val
 		return err
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextCSS)
 	case Bytes:
 		return escapeBytes(w, e, false)
 	case []byte:
@@ -492,8 +536,8 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 		return cssStringEscape(w, string(e))
 	case int:
 		s = strconv.Itoa(e)
-	case decimal.Decimal:
-		s = e.String()
+	case *apd.Decimal:
+		s = r.renderDecimal(e, ast.ContextCSSString)
 	case Bytes:
 		return escapeBytes(w, e, false)
 	case []byte:
@@ -543,8 +587,8 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 	case int:
 		_, err := w.WriteString(strconv.Itoa(e))
 		return err
-	case decimal.Decimal:
-		_, err := w.WriteString(e.String())
+	case *apd.Decimal:
+		_, err := w.WriteString(r.renderDecimal(e, ast.ContextScript))
 		return err
 	case bool:
 		s := "false"
@@ -637,8 +681,8 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 	case int:
 		_, err := w.WriteString(strconv.Itoa(e))
 		return err
-	case decimal.Decimal:
-		_, err := w.WriteString(e.String())
+	case *apd.Decimal:
+		_, err := w.WriteString(r.renderDecimal(e, ast.ContextScriptString))
 		return err
 	}
 

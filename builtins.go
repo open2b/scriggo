@@ -27,7 +27,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 var testSeed int64 = -1
@@ -135,11 +135,8 @@ func _abbreviate(s string, n int) string {
 }
 
 // _abs is the builtin function "abs".
-func _abs(d decimal.Decimal) decimal.Decimal {
-	if d.Cmp(zero) < 0 {
-		return d.Neg()
-	}
-	return d
+func _abs(d *apd.Decimal) *apd.Decimal {
+	return new(apd.Decimal).Abs(d)
 }
 
 func toByteInAppend(v interface{}) byte {
@@ -148,7 +145,7 @@ func toByteInAppend(v interface{}) byte {
 	switch n := v.(type) {
 	case int:
 		b, err = intToByte(n)
-	case decimal.Decimal:
+	case *apd.Decimal:
 		b, err = decimalToByte(n)
 	default:
 		// TODO(marco): error message should have the expression and not the value
@@ -214,7 +211,7 @@ func _append(slice interface{}, elems ...interface{}) interface{} {
 			ms[l+i] = v
 		}
 		return ms
-	case []decimal.Decimal:
+	case []*apd.Decimal:
 		l := len(s)
 		ms := make(Slice, l+len(elems))
 		for i, v := range s {
@@ -351,7 +348,7 @@ func _len(v interface{}) int {
 		return len(s)
 	case []int:
 		return len(s)
-	case []decimal.Decimal:
+	case []*apd.Decimal:
 		return len(s)
 	case []byte:
 		return len(s)
@@ -381,7 +378,7 @@ func _len(v interface{}) int {
 }
 
 // _max is the builtin function "max".
-func _max(a, b decimal.Decimal) decimal.Decimal {
+func _max(a, b *apd.Decimal) *apd.Decimal {
 	if a.Cmp(b) < 0 {
 		return b
 	}
@@ -396,7 +393,7 @@ func _md5(s string) string {
 }
 
 // _min is the builtin function "min".
-func _min(a, b decimal.Decimal) decimal.Decimal {
+func _min(a, b *apd.Decimal) *apd.Decimal {
 	if a.Cmp(b) > 0 {
 		return b
 	}
@@ -404,7 +401,7 @@ func _min(a, b decimal.Decimal) decimal.Decimal {
 }
 
 // _rand is the builtin function "rand".
-func _rand(d int) decimal.Decimal {
+func _rand(d int) *apd.Decimal {
 	// seed
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
@@ -417,7 +414,7 @@ func _rand(d int) decimal.Decimal {
 	} else {
 		rn = r.Int()
 	}
-	return decimal.New(int64(rn), 0)
+	return apd.New(int64(rn), 0)
 }
 
 // _repeat is the builtin function "repeat".
@@ -455,8 +452,10 @@ func _reverse(s interface{}) interface{} {
 }
 
 // _round is the builtin function "round".
-func _round(d decimal.Decimal, places int) decimal.Decimal {
-	return d.Round(int32(places))
+func _round(d *apd.Decimal, places int) *apd.Decimal {
+	r := new(apd.Decimal)
+	apd.BaseContext.WithPrecision(decPrecision).Quantize(r, d, -int32(places))
+	return r
 }
 
 // _sha1 is the builtin function "sha1".
@@ -543,17 +542,17 @@ func _sort(slice interface{}) interface{} {
 				return si < sj
 			})
 			return s
-		case decimal.Decimal, int:
+		case *apd.Decimal, int:
 			sort.Slice(s, func(i, j int) bool {
 				var ok bool
-				var si, sj decimal.Decimal
-				if si, ok = s[i].(decimal.Decimal); !ok {
-					si = decimal.New(int64(s[i].(int)), 0)
+				var si, sj *apd.Decimal
+				if si, ok = s[i].(*apd.Decimal); !ok {
+					si = apd.New(int64(s[i].(int)), 0)
 				}
-				if sj, ok = s[j].(decimal.Decimal); !ok {
-					sj = decimal.New(int64(s[j].(int)), 0)
+				if sj, ok = s[j].(*apd.Decimal); !ok {
+					sj = apd.New(int64(s[j].(int)), 0)
 				}
-				return si.LessThan(sj)
+				return si.Cmp(sj) == -1
 			})
 			return s
 		case bool:
@@ -595,13 +594,13 @@ func _sort(slice interface{}) interface{} {
 		}
 		sort.Slice(ms, func(i, j int) bool { return ms[i].(int) < ms[j].(int) })
 		return ms
-	case []decimal.Decimal:
+	case []*apd.Decimal:
 		ms := make(Slice, len(s))
 		for i := 0; i < len(s); i++ {
 			ms[i] = s[i]
 		}
 		sort.Slice(ms, func(i, j int) bool {
-			return ms[i].(decimal.Decimal).LessThan(ms[j].(decimal.Decimal))
+			return ms[i].(*apd.Decimal).Cmp(ms[j].(*apd.Decimal)) == -1
 		})
 		return ms
 	case []bool:
@@ -664,7 +663,7 @@ func _sortBy(slice interface{}, field string) interface{} {
 		if size <= 1 {
 			return slice
 		}
-		vv := make([]decimal.Decimal, size)
+		vv := make([]*apd.Decimal, size)
 		for i := 0; i < size; i++ {
 			vv[i] = values[i].(Numberer).Number()
 		}

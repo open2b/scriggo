@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 // decimalHash implements a key of type decimal.
@@ -45,7 +45,7 @@ func (m Map) Load(key interface{}) (value interface{}, ok bool) {
 func (m Map) Range(f func(key, value interface{}) bool) {
 	for k, v := range m {
 		if dk, ok := k.(decimalHash); ok {
-			k, _ = decimal.NewFromString(string(dk))
+			k, _, _ = apd.NewFromString(string(dk))
 		}
 		if !f(k, v) {
 			return
@@ -69,11 +69,11 @@ func hashValue(key interface{}) (interface{}, bool) {
 	switch d := key.(type) {
 	case nil, string, HTML, int, bool:
 		return key, true
-	case decimal.Decimal:
-		if !d.LessThan(decimalMinInt) && !decimalMaxInt.LessThan(d) {
-			p := d.IntPart()
-			if decimal.New(p, 0).Equal(d) {
-				return int(p), true
+	case *apd.Decimal:
+		if d.Cmp(decimalMinInt) >= 0 && d.Cmp(decimalMaxInt) <= 0 {
+			i, err := d.Int64()
+			if err == nil {
+				return int(i), true
 			}
 		}
 		return decimalHash(d.String()), true

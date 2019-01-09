@@ -16,17 +16,17 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"github.com/cockroachdb/apd"
 
-	"github.com/shopspring/decimal"
+	"open2b/template/ast"
 )
 
-var decimalMaxInt = decimal.New(maxInt, 0)
-var decimalMinInt = decimal.New(minInt, 0)
-var decimalMaxByte = decimal.New(255, 0)
-var decimalMinByte = decimal.New(0, 0)
-var decimal1 = decimal.New(1, 0)
-var decimal256 = decimal.New(256, 0)
+var decimalMaxInt = apd.New(maxInt, 0)
+var decimalMinInt = apd.New(minInt, 0)
+var decimalMaxByte = apd.New(255, 0)
+var decimalMinByte = apd.New(0, 0)
+var decimal1 = apd.New(1, 0)
+var decimal256 = apd.New(256, 0)
 
 // Error records a rendering error with the path and the position where
 // the error occurred.
@@ -483,7 +483,7 @@ func (addr bytesAddress) assign(value interface{}) error {
 	switch n := asBase(value).(type) {
 	case int:
 		b, err = intToByte(n)
-	case decimal.Decimal:
+	case *apd.Decimal:
 		b, err = decimalToByte(n)
 	default:
 		if addr.Expr == nil {
@@ -552,7 +552,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		case Map:
 			key := asBase(r.evalExpression(v.Index))
 			switch key.(type) {
-			case nil, string, HTML, decimal.Decimal, int, bool:
+			case nil, string, HTML, *apd.Decimal, int, bool:
 			default:
 				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
 			}
@@ -652,12 +652,16 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			switch e := asBase(v).(type) {
 			case int:
 				if ee := e + 1; ee < e {
-					err = address.assign(decimal.New(int64(e), 0).Add(decimal1))
+					d := apd.New(int64(e), 0)
+					_, _ = decimalContext.Add(d, d, decimal1)
+					err = address.assign(d)
 				} else {
 					err = address.assign(ee)
 				}
-			case decimal.Decimal:
-				err = address.assign(e.Add(decimal1))
+			case *apd.Decimal:
+				d := new(apd.Decimal)
+				_, _ = decimalContext.Add(d, e, decimal1)
+				err = address.assign(d)
 			case nil:
 				err = fmt.Errorf("invalid operation: %s (increment of nil)", node)
 			default:
@@ -683,12 +687,16 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			switch e := asBase(v).(type) {
 			case int:
 				if ee := e - 1; ee > e {
-					err = address.assign(decimal.New(int64(e), 0).Sub(decimal1))
+					x := apd.New(int64(e), 0)
+					_, _ = decimalContext.Sub(x, x, decimal1)
+					err = address.assign(x)
 				} else {
 					err = address.assign(ee)
 				}
-			case decimal.Decimal:
-				err = address.assign(e.Sub(decimal1))
+			case *apd.Decimal:
+				x := new(apd.Decimal)
+				_, _ = decimalContext.Sub(x, e, decimal1)
+				err = address.assign(x)
 			case nil:
 				return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
 			default:
@@ -755,23 +763,23 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func decimalToInt(n decimal.Decimal) (int, error) {
-	if n.LessThan(decimalMinInt) || decimalMaxInt.LessThan(n) {
+func decimalToInt(n *apd.Decimal) (int, error) {
+	if n.Cmp(decimalMinInt) == -1 || n.Cmp(decimalMaxInt) == 1 {
 		return 0, fmt.Errorf("number %s overflows int", n)
 	}
-	p := n.IntPart()
-	if !decimal.New(p, 0).Equal(n) {
+	p, err := n.Int64()
+	if err != nil {
 		return 0, fmt.Errorf("number %s truncated to integer", n)
 	}
 	return int(p), nil
 }
 
-func decimalToByte(n decimal.Decimal) (byte, error) {
-	if n.LessThan(decimalMinByte) || decimalMaxByte.LessThan(n) {
+func decimalToByte(n *apd.Decimal) (byte, error) {
+	if n.Cmp(decimalMinByte) == -1 || decimalMaxByte.Cmp(n) == -1 {
 		return 0, fmt.Errorf("number %s overflows byte", n)
 	}
-	p := n.IntPart()
-	if !decimal.New(p, 0).Equal(n) {
+	p, err := n.Int64()
+	if err != nil {
 		return 0, fmt.Errorf("number %s truncated to byte", n)
 	}
 	return byte(p), nil
@@ -792,7 +800,7 @@ func typeof(v interface{}) string {
 	switch v.(type) {
 	case string, HTML:
 		return "string"
-	case decimal.Decimal, int, byte:
+	case *apd.Decimal, int, byte:
 		return "number"
 	case bool:
 		return "bool"

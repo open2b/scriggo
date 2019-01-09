@@ -11,12 +11,12 @@ import (
 
 	"open2b/template/ast"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
-var maxInt64Plus1, _ = decimal.NewFromString("9223372036854775808")
-var minInt64Minus1, _ = decimal.NewFromString("-9223372036854775809")
-var bigInt, _ = decimal.NewFromString("433937734937734969526500969526500")
+var maxInt64Plus1, _, _ = apd.NewFromString("9223372036854775808")
+var minInt64Minus1, _, _ = apd.NewFromString("-9223372036854775809")
+var bigInt, _, _ = apd.NewFromString("433937734937734969526500969526500")
 
 var exprTests = []struct {
 	src  string

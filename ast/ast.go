@@ -44,7 +44,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 // OperatorType represents an operator type in an unary and binary expression.
@@ -445,11 +445,11 @@ func (n *Int) String() string {
 // Number node represents a decimal number expression.
 type Number struct {
 	expression
-	*Position                 // position in the source.
-	Value     decimal.Decimal // value.
+	*Position              // position in the source.
+	Value     *apd.Decimal // value.
 }
 
-func NewNumber(pos *Position, value decimal.Decimal) *Number {
+func NewNumber(pos *Position, value *apd.Decimal) *Number {
 	return &Number{expression{}, pos, value}
 }
 

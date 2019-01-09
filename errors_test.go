@@ -13,7 +13,7 @@ import (
 	"open2b/template/ast"
 	"open2b/template/parser"
 
-	"github.com/shopspring/decimal"
+	"github.com/cockroachdb/apd"
 )
 
 var errorTests = []struct {
@@ -33,7 +33,7 @@ var errorTests = []struct {
 	{`{{ f(1) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func() string { return "no" }}},
 	{`{{ f(1, 2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(i int) string { return "no" }}},
 	{`{{ f(2) }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(s string) string { return "no" }}},
-	{`{{ f("2") }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(n decimal.Decimal) string { return "no" }}},
+	{`{{ f("2") }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(n *apd.Decimal) string { return "no" }}},
 	{`{% b := map{map{}: true} %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := map{} %}{% b[map{}] = 5 %}{{ "ok" }}`, `ok`, nil},
 }

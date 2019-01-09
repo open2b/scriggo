@@ -12,13 +12,13 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"github.com/cockroachdb/apd"
 
-	"github.com/shopspring/decimal"
+	"open2b/template/ast"
 )
 
-var maxInt = decimal.New(int64(^uint(0)>>1), 0)
-var minInt = decimal.New(-int64(^uint(0)>>1)-1, 0)
+var maxInt = apd.New(int64(^uint(0)>>1), 0)
+var minInt = apd.New(-int64(^uint(0)>>1)-1, 0)
 
 // The result of the parsing of an expression is a tree whose intermediate
 // nodes are operators and the leaves are operands. For example:
@@ -607,11 +607,11 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 			return ast.NewInt(p, n)
 		}
 	}
-	d, _ := decimal.NewFromString(s)
-	if !d.LessThan(minInt) && !maxInt.LessThan(d) {
-		n := d.IntPart()
-		if decimal.New(n, 0).Equal(d) {
-			return ast.NewInt(p, int(n))
+	d, _, _ := apd.NewFromString(s)
+	if d.Cmp(minInt) >= 0 && d.Cmp(maxInt) <= 0 {
+		i, err := d.Int64()
+		if err == nil {
+			return ast.NewInt(p, int(i))
 		}
 	}
 	return ast.NewNumber(p, d)

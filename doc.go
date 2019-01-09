@@ -152,7 +152,7 @@
 //  html:     the type renderer.HTML
 //
 //  number:   all integer and floating-point types (excluding uintptr),
-//            decimal.Decimal [github.com/shopspring/decimal] and the types
+//            *apd.Decimal [https://github.com/cockroachdb/apd] and the types
 //            implementing the interface renderer.Numberer
 //
 //  int:      the int type
@@ -163,7 +163,7 @@
 //  slice:    a slice type
 //
 //  function: a function type with only one return value. As numeric parameter
-//            types, only int and decimal.Decimal can be used
+//            types, only int and *apd.Decimal can be used
 //
 //  any:      the interface{} type
 //
