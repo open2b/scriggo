@@ -12,15 +12,15 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// decimalKey implements a key of type decimal.
-type decimalKey string
+// decimalHash implements a key of type decimal.
+type decimalHash string
 
 // Map implements the mutable map values.
 type Map map[interface{}]interface{}
 
 // Delete deletes the value for a key.
 func (m Map) Delete(key interface{}) {
-	if k, valid := mapKeyImp(key); valid {
+	if k, valid := hashValue(key); valid {
 		delete(m, k)
 	}
 }
@@ -33,7 +33,7 @@ func (m Map) Len() int {
 // Load returns the value stored in the map for a key, or nil if no value is
 // present. The ok result indicates whether value was found in the map.
 func (m Map) Load(key interface{}) (value interface{}, ok bool) {
-	if k, valid := mapKeyImp(key); valid {
+	if k, valid := hashValue(key); valid {
 		value, ok = m[k]
 	}
 	return
@@ -43,7 +43,7 @@ func (m Map) Load(key interface{}) (value interface{}, ok bool) {
 // returns false, range stops the iteration.
 func (m Map) Range(f func(key, value interface{}) bool) {
 	for k, v := range m {
-		if dk, ok := k.(decimalKey); ok {
+		if dk, ok := k.(decimalHash); ok {
 			k, _ = decimal.NewFromString(string(dk))
 		}
 		if !f(k, v) {
@@ -57,14 +57,14 @@ func (m Map) Store(key, value interface{}) {
 	if m == nil {
 		panic("assignment to entry in nil map")
 	}
-	if k, valid := mapKeyImp(key); valid {
+	if k, valid := hashValue(key); valid {
 		m[k] = value
 		return
 	}
 	panic(fmt.Sprintf("hash of unhashable type %T", key))
 }
 
-func mapKeyImp(key interface{}) (interface{}, bool) {
+func hashValue(key interface{}) (interface{}, bool) {
 	switch d := key.(type) {
 	case nil, string, HTML, int, bool:
 		return key, true
@@ -75,7 +75,7 @@ func mapKeyImp(key interface{}) (interface{}, bool) {
 				return int(p), true
 			}
 		}
-		return decimalKey(d.String()), true
+		return decimalHash(d.String()), true
 	}
 	return nil, false
 }

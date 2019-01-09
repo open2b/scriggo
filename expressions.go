@@ -1371,7 +1371,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			}
 			m := make(Map, len(v))
 			for _, vv := range v {
-				k, ok := mapKeyImp(vv)
+				k, ok := hashValue(vv)
 				if !ok {
 					return nil, fmt.Errorf("hash of unhashable type %s", typeof(vv))
 				}
@@ -1395,7 +1395,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				m := make(Map, length)
 				for i := 0; i < length; i++ {
 					vv := rv.Index(i).Interface()
-					k, ok := mapKeyImp(vv)
+					k, ok := hashValue(vv)
 					if !ok {
 						return nil, fmt.Errorf("hash of unhashable type %s", typeof(vv))
 					}
