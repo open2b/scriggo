@@ -412,7 +412,9 @@ var rendererStmtTests = []struct {
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 
-	// conversion
+	// conversions
+
+	// string
 	{`{% if s, ok := string("abc").(string); ok %}{{ s }}{% end %}`, "abc", nil},
 	{`{% if s, ok := string(html("<b>")).(string); ok %}{{ s }}{% end %}`, "<b>", nil},
 	{`{% if s, ok := string(87.5+0.5).(string); ok %}{{ s }}{% end %}`, "X", nil},
@@ -426,6 +428,8 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := string(bytes(nil)).(string); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
+
+	// html
 	{`{% if s, ok := html(html("<b>")).(html); ok %}{{ s }}{% end %}`, "<b>", nil},
 	{`{% if s, ok := html("<b>").(html); ok %}{{ s }}{% end %}`, "<b>", nil},
 	{`{% if s, ok := html(87.5+0.5).(html); ok %}{{ s }}{% end %}`, "X", nil},
@@ -435,36 +439,45 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := html(slice{35, 8364}).(html); ok %}{{ s }}{% end %}`, "#€", nil},
 	{`{% if s, ok := html(bytes(nil)).(html); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := html(bytes{97, 226, 130, 172, 98}).(html); ok %}{{ s }}{% end %}`, "a€b", nil},
-	{`{% if s, ok := number(5.5).(number); ok %}{{ s }}{% end %}`, "5.5", nil},
+
+	// number
 	{`{% if s, ok := number(5).(number); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% if s, ok := int(5.5).(int); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := number(5.5).(number); ok %}{{ s }}{% end %}`, "5.5", nil},
+
+	// int
+	{`{% if s, ok := int(0.3).(int); ok %}{{ s }}{% end %}`, "0", nil},
+	{`{% if s, ok := int(1.0003).(int); ok %}{{ s }}{% end %}`, "1", nil},
+	{`{% if s, ok := int(-1.0003).(int); ok %}{{ s }}{% end %}`, "-1", nil},
 	{`{% if s, ok := int(5).(int); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% s := int(2147483647) %}{{ s }}`, "2147483647", nil},
-	{`{% s := int(-2147483648) %}{{ s }}`, "-2147483648", nil},
+	{`{% if s, ok := int(5.5).(int); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := int(-4320.3).(int); ok %}{{ s }}{% end %}`, "-4320", nil},
+	{`{% if s, ok := int(2147483647).(int); ok %}{{ s }}{% end %}`, "2147483647", nil},
+	{`{% if s, ok := int(-2147483648).(int); ok %}{{ s }}{% end %}`, "-2147483648", nil},
 	// TODO (Gianluca): finire di implementare per superare il test
-	// {`{% s := int(9223372036854775817) %}{{ s }}`, "9", nil}, // math.MaxInt64 + 10
-	{`{% s := int(0.3) %}{{ s }}`, "0", nil},
-	{`{% s := int(1.0003) %}{{ s }}`, "1", nil},
-	{`{% s := int(-1.0003) %}{{ s }}`, "-1", nil},
-	{`{% s := int(-4320.3) %}{{ s }}`, "-4320", nil},
+	// {`{% if s, ok := int(9223372036854775817).(int); ok %}{{ s }}{% end %}`, "9", nil}, // math.MaxInt64 + 10
+
+	// rune
+	{`{% if s, ok := rune(0.43).(rune); ok %}{{ s }}{% end %}`, "0", nil},
+	{`{% if s, ok := rune(-2.43).(rune); ok %}{{ s }}{% end %}`, "-2", nil},
 	{`{% if s, ok := rune(5).(rune); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% s := rune(2147483647) %}{{ s }}`, "2147483647", nil},
-	{`{% s := rune(-2147483648) %}{{ s }}`, "-2147483648", nil},
-	{`{% s := rune(2147483648) %}{{ s }}`, "-2147483648", nil},
-	{`{% s := rune(-2147483649) %}{{ s }}`, "2147483647", nil},
-	{`{% s := rune(83027134717649) %}{{ s }}`, "1121918673", nil},
-	{`{% s := rune(27134717830649) %}{{ s }}`, "-885545479", nil},
-	{`{% s := rune(0.43) %}{{ s }}`, "0", nil},
-	{`{% s := rune(-2.43) %}{{ s }}`, "-2", nil},
-	{`{% s := byte(0.43) %}{{ s }}`, "0", nil},
-	{`{% s := byte(-2.43) %}{{ s }}`, "254", nil},
-	{`{% if s, ok := byte(a).(byte); ok %}{{ s }}{% end %}`, "133", scope{"a": largeDecimal}},
-	{`{% if s, ok := byte(5).(byte); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := rune(2147483647).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
+	{`{% if s, ok := rune(2147483648).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
+	{`{% if s, ok := rune(-2147483648).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
+	{`{% if s, ok := rune(-2147483649).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
+	{`{% if s, ok := rune(27134717830649).(rune); ok %}{{ s }}{% end %}`, "-885545479", nil},
+	{`{% if s, ok := rune(83027134717649).(rune); ok %}{{ s }}{% end %}`, "1121918673", nil},
+
+	// byte
+	{`{% if s, ok := byte(0.43).(byte); ok %}{{ s }}{% end %}`, "0", nil},
+	{`{% if s, ok := byte(-2.43).(byte); ok %}{{ s }}{% end %}`, "254", nil},
 	{`{% if s, ok := byte(-4).(byte); ok %}{{ s }}{% end %}`, "", nil},
+	{`{% if s, ok := byte(5).(byte); ok %}{{ s }}{% end %}`, "5", nil},
 	{`{% if s, ok := byte(260).(byte); ok %}{{ s }}{% end %}`, "4", nil},
 	// TODO (Gianluca): anche il byte da problemi con valori negativi "grandi"
-	// {`{% s := byte(-257) %}{{ s }}`, "xxx", nil},
+	// {`{% s, ok := byte(-257).(byte); ok %}{{ s }}{% end %}`, "xxx", nil},
 	{`{% if s, ok := byte(a).(byte); ok %}{{ s }}{% end %}`, "133", scope{"a": largeDecimal}},
+
+	// map
 	{`{% if _, ok := map(nil).(map); ok %}ok{% end %}`, "ok", nil},
 	{`{% if map(nil) == nil %}ok{% end %}`, "ok", nil},
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map(nil)}},
@@ -476,6 +489,8 @@ var rendererStmtTests = []struct {
 	{`{% m := map(a) %}{% keys := slice{} %}{% for range m %}.{% end %}`, ".", scope{"a": Slice{nil, nil, nil}}},
 	{`{% m := map(a) %}{% if m == nil %}ok{% end %}`, "ok", scope{"a": Slice(nil)}},
 	{`{% m := map(a) %}{% if m == nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
+
+	// slice
 	{`{% if _, ok := slice(nil).(slice); ok %}ok{% end %}`, "ok", nil},
 	{`{% if slice(nil) == nil %}ok{% end %}`, "ok", nil},
 	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice(nil)}},
@@ -484,6 +499,8 @@ var rendererStmtTests = []struct {
 	{`{% if slice(a) == nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
 	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int{1, 2}}},
 	{`{% if _, ok := bytes(nil).(bytes); ok %}ok{% end %}`, "ok", nil},
+
+	// bytes
 	{`{% if bytes(nil) == nil %}ok{% end %}`, "ok", nil},
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": Bytes(nil)}},
 	{`{% if bytes(a) == nil %}ok{% end %}`, "ok", scope{"a": Bytes(nil)}},
