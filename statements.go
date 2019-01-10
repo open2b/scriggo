@@ -28,7 +28,18 @@ var decimalMinRune = apd.New(-2147483648, 0)
 var decimalMaxByte = apd.New(255, 0)
 var decimalMinByte = apd.New(0, 0)
 var decimal1 = apd.New(1, 0)
-var decimal256 = apd.New(256, 0)
+var decimalMod8 = apd.New(256, 0)
+var decimalMod32 = apd.New(4294967296, 0)
+
+var decimalModInt *apd.Decimal
+
+func init() {
+	if 18446744073709551615 == uint64(^uint(0)) {
+		decimalModInt, _, _ = apd.NewFromString("18446744073709551616")
+	} else {
+		decimalModInt, _, _ = apd.NewFromString("4294967296")
+	}
+}
 
 // Error records a rendering error with the path and the position where
 // the error occurred.

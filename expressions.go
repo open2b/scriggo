@@ -30,6 +30,13 @@ const decPrecision = 32
 const maxInt = int64(^uint(0) >> 1)
 const minInt = -int64(^uint(0)>>1) - 1
 
+var numberConversionContext *apd.Context
+
+func init() {
+	numberConversionContext = decimalContext.WithPrecision(decPrecision)
+	numberConversionContext.Rounding = apd.RoundDown
+}
+
 // Slice implements the mutable slice values.
 type Slice []interface{}
 
@@ -1416,27 +1423,35 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 	case "int":
 		switch v := value.(type) {
 		case *apd.Decimal:
-			ctx := decimalContext.WithPrecision(decPrecision)
-			ctx.Rounding = apd.RoundDown
-			ctx.RoundToIntegralValue(v, v)
-			i, _ := v.Int64()
-			return i, nil
+			e := new(apd.Decimal)
+			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
+			_, _ = numberConversionContext.Rem(e, e, decimalModInt)
+			i64, _ := e.Int64()
+			// TODO (Gianluca): finire di implementare
+			return int(i64), nil
 		case int:
 			return v, nil
 		}
 	case "rune":
 		switch v := value.(type) {
 		case *apd.Decimal:
-			panic("rune(n) is not implemented for non integer numbers")
+			e := new(apd.Decimal)
+			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
+			_, _ = numberConversionContext.Rem(e, e, decimalMod32)
+			i64, _ := e.Int64()
+			return int(rune(i64)), nil
 		case int:
 			return int(rune(v)), nil
 		}
 	case "byte":
 		switch v := value.(type) {
 		case *apd.Decimal:
+			// TODO (Gianluca): anche il byte da problemi
 			e := new(apd.Decimal)
-			_, _ = decimalContext.Rem(e, v, decimal256)
-			return e.Int64()
+			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
+			_, _ = numberConversionContext.Rem(e, e, decimalMod8)
+			i64, _ := e.Int64()
+			return int(uint8(i64)), nil
 		case int:
 			return v % 256, nil
 		}
