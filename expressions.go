@@ -131,7 +131,7 @@ func (r *rendering) eval2(expr ast.Expression) (v1, v2 interface{}, err error) {
 	return nil, nil, r.errorf(expr, "assignment mismatch: 2 variables but 1 values")
 }
 
-// evalN evaluates expr in a n-value context, with n > 2, and returns its
+// evalN evaluates expr in a n-value context, with n > 1, and returns its
 // values.
 func (r *rendering) evalN(expr ast.Expression, n int) ([]reflect.Value, error) {
 	if e, ok := expr.(*ast.Call); ok {
