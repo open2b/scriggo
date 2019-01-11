@@ -567,7 +567,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Type != nn2.Type {
 			return fmt.Errorf("unexpected assignment type %d, expecting %d", nn1.Type, nn2.Type)
 		}
-		err := equals(nn1.Expr, nn2.Expr, p)
+		err := equals(nn1.Value, nn2.Value, p)
 		if err != nil {
 			return err
 		}

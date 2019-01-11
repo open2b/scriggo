@@ -95,7 +95,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			}
 		}
 
-		expr, err := r.eval(n.Assignment.Expr)
+		value, err := r.eval(n.Assignment.Value)
 		if err != nil {
 			if r.handleError(err) {
 				return nil
@@ -107,7 +107,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			return nil
 		}
 
-		switch vv := expr.(type) {
+		switch vv := value.(type) {
 		case string:
 			for i, v := range vv {
 				if addresses != nil {
@@ -390,7 +390,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 				}
 			}
 		default:
-			av := reflect.ValueOf(expr)
+			av := reflect.ValueOf(value)
 			switch av.Kind() {
 			case reflect.Slice:
 				length := av.Len()
@@ -451,7 +451,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			case reflect.Struct, reflect.Ptr:
 				keys := structKeys(av)
 				if keys == nil {
-					err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
+					err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Value, typeof(value))
 					if r.handleError(err) {
 						return nil
 					}
@@ -481,7 +481,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			default:
-				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Expr, typeof(expr))
+				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Value, typeof(value))
 				if r.handleError(err) {
 					return nil
 				}

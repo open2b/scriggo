@@ -53,7 +53,7 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.Assignment:
-		Walk(v, n.Expr)
+		Walk(v, n.Value)
 
 	case *ast.For:
 		if n.Init != nil {

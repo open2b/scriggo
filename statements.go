@@ -483,7 +483,7 @@ type bytesAddress struct {
 	Bytes Bytes
 	Index int
 	Var   ast.Expression
-	Expr  ast.Expression // Expr is nil in multiple assignment.
+	Expr  ast.Expression // Value is nil in multiple assignment.
 }
 
 func (addr bytesAddress) assign(value interface{}) error {
@@ -631,7 +631,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 
 		var err error
 		if len(node.Variables) == 1 {
-			addresses[0], err = r.address(node.Variables[0], node.Expr)
+			addresses[0], err = r.address(node.Variables[0], node.Value)
 		} else {
 			for i, variable := range node.Variables {
 				addresses[i], err = r.address(variable, nil)
@@ -650,7 +650,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 
 	switch node.Type {
 	case ast.AssignmentIncrement:
-		address, err := r.address(node.Variables[0], node.Expr)
+		address, err := r.address(node.Variables[0], node.Value)
 		if err != nil {
 			return err
 		}
@@ -685,7 +685,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			return r.errorf(node, "%s", err)
 		}
 	case ast.AssignmentDecrement:
-		address, err := r.address(node.Variables[0], node.Expr)
+		address, err := r.address(node.Variables[0], node.Value)
 		if err != nil {
 			return err
 		}
@@ -726,7 +726,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		}
 		switch len(node.Variables) {
 		case 1:
-			v, err := r.eval(node.Expr)
+			v, err := r.eval(node.Value)
 			if err != nil {
 				return err
 			}
@@ -735,7 +735,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return r.errorf(node, "%s", err)
 			}
 		case 2:
-			v0, v1, err := r.eval2(node.Expr)
+			v0, v1, err := r.eval2(node.Value)
 			if err != nil {
 				return err
 			}
@@ -748,7 +748,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return r.errorf(node, "%s", err)
 			}
 		default:
-			values, err := r.evalN(node.Expr, len(node.Variables))
+			values, err := r.evalN(node.Value, len(node.Variables))
 			if err != nil {
 				return err
 			}
