@@ -71,73 +71,109 @@ func (r *rendering) eval0(expr ast.Expression) error {
 	return r.errorf(expr, "%s evaluated but not used", expr)
 }
 
-// eval2 evaluates expr in a two-value context and returns its values.
-func (r *rendering) eval2(expr ast.Expression) (v1, v2 interface{}, err error) {
-	switch e := expr.(type) {
-	case *ast.TypeAssertion:
-		v, err := r.eval(e.Expr)
-		if err != nil {
-			return nil, false, err
-		}
-		var typ valuetype
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			if r.vars[i] != nil {
-				if i == 0 && e.Type.Name == "len" {
-					return nil, false, r.errorf(e, "use of builtin len not in function call")
-				}
-				if v, ok := r.vars[i][e.Type.Name]; ok {
-					if vt, ok := v.(valuetype); ok {
-						typ = vt
-						break
+// eval2 evaluates expr1 and expr2 in a two-value context and returns its
+// values.
+func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err error) {
+	if expr2 == nil {
+		switch e := expr1.(type) {
+		case *ast.TypeAssertion:
+			v, err := r.eval(e.Expr)
+			if err != nil {
+				return nil, false, err
+			}
+			var typ valuetype
+			for i := len(r.vars) - 1; i >= 0; i-- {
+				if r.vars[i] != nil {
+					if i == 0 && e.Type.Name == "len" {
+						return nil, false, r.errorf(e, "use of builtin len not in function call")
 					}
-					return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
+					if v, ok := r.vars[i][e.Type.Name]; ok {
+						if vt, ok := v.(valuetype); ok {
+							typ = vt
+							break
+						}
+						return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
+					}
+				}
+				if i == 0 {
+					return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
 				}
 			}
-			if i == 0 {
-				return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
+			ok := hasType(v, typ)
+			if !ok {
+				v = nil
+				if typ == builtins["byte"] {
+					v = 0
+				}
 			}
-		}
-		ok := hasType(v, typ)
-		if !ok {
-			v = nil
-			if typ == builtins["byte"] {
-				v = 0
+			return v, ok, nil
+		case *ast.Selector:
+			return r.evalSelector2(e)
+		case *ast.Index:
+			return r.evalIndex2(e, 2)
+		case *ast.Call:
+			values, err := r.evalCallN(e, 2)
+			if err != nil {
+				return nil, nil, err
 			}
+			return values[0].Interface(), values[1].Interface(), nil
+		case *ast.Identifier:
+			for i := len(r.vars) - 1; i >= 0; i-- {
+				if r.vars[i] != nil {
+					if i == 0 && e.Name == "len" {
+						return nil, false, r.errorf(e, "use of builtin len not in function call")
+					}
+					if v, ok := r.vars[i][e.Name]; ok {
+						return v, true, nil
+					}
+				}
+			}
+			return nil, false, nil
 		}
-		return v, ok, nil
-	case *ast.Selector:
-		return r.evalSelector2(e)
-	case *ast.Index:
-		return r.evalIndex2(e, 2)
-	case *ast.Call:
-		values, err := r.evalCallN(e, 2)
+		return nil, nil, r.errorf(expr1, "assignment mismatch: 2 variables but 1 values")
+	} else {
+		v1, err := r.eval(expr1)
 		if err != nil {
 			return nil, nil, err
 		}
-		return values[0].Interface(), values[1].Interface(), nil
-	case *ast.Identifier:
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			if r.vars[i] != nil {
-				if i == 0 && e.Name == "len" {
-					return nil, false, r.errorf(e, "use of builtin len not in function call")
-				}
-				if v, ok := r.vars[i][e.Name]; ok {
-					return v, true, nil
-				}
-			}
+		v2, err := r.eval(expr2)
+		if err != nil {
+			return nil, nil, err
 		}
-		return nil, false, nil
+		return v1, v2, nil
 	}
-	return nil, nil, r.errorf(expr, "assignment mismatch: 2 variables but 1 values")
 }
 
-// evalN evaluates expr in a n-value context, with n > 1, and returns its
-// values.
-func (r *rendering) evalN(expr ast.Expression, n int) ([]reflect.Value, error) {
-	if e, ok := expr.(*ast.Call); ok {
-		return r.evalCallN(e, n)
+// evalN evaluates expressions in a n-value context, with n > 0, and returns
+// its values.
+func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, error) {
+	if len(expressions) == 1 && n > 1 {
+		if e, ok := expressions[0].(*ast.Call); ok {
+			vals, err := r.evalCallN(e, n)
+			if err != nil {
+				return nil, err
+			}
+			if len(vals) != n {
+				return nil, r.errorf(expressions[0], "assignment mismatch: %d variables but %d values", n, len(vals))
+			}
+			values := make([]interface{}, len(vals))
+			for i, value := range vals {
+				values[i] = value.Interface()
+			}
+			return values, nil
+		}
+	} else if len(expressions) == n {
+		values := make([]interface{}, len(expressions))
+		for i, expr := range expressions {
+			value, err := r.eval(expr)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = value
+		}
+		return values, nil
 	}
-	return nil, r.errorf(expr, "assignment mismatch: %d variables but 1 values", n)
+	return nil, r.errorf(expressions[0], "assignment mismatch: %d variables but %d values", n, len(expressions))
 }
 
 // evalExpression evaluates an expression and returns its value.
@@ -1415,9 +1451,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "number":
 		switch v := value.(type) {
-		case *apd.Decimal:
-			return v, nil
-		case int:
+		case *apd.Decimal, int:
 			return v, nil
 		}
 	case "int":
@@ -1427,7 +1461,6 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
 			_, _ = numberConversionContext.Rem(e, e, decimalModInt)
 			i64, _ := e.Int64()
-			// TODO (Gianluca): finire di implementare
 			return int(i64), nil
 		case int:
 			return v, nil
@@ -1439,21 +1472,20 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
 			_, _ = numberConversionContext.Rem(e, e, decimalMod32)
 			i64, _ := e.Int64()
-			return int(rune(i64)), nil
+			return int(i64), nil
 		case int:
 			return int(rune(v)), nil
 		}
 	case "byte":
 		switch v := value.(type) {
 		case *apd.Decimal:
-			// TODO (Gianluca): anche il byte da problemi
 			e := new(apd.Decimal)
 			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
 			_, _ = numberConversionContext.Rem(e, e, decimalMod8)
 			i64, _ := e.Int64()
-			return int(uint8(i64)), nil
+			return int(byte(i64)), nil
 		case int:
-			return v % 256, nil
+			return int(byte(v)), nil
 		}
 	case "map":
 		if value == nil {

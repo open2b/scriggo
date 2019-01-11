@@ -53,7 +53,9 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.Assignment:
-		Walk(v, n.Value)
+		for _, child := range n.Values {
+			Walk(v, child)
+		}
 
 	case *ast.For:
 		if n.Init != nil {

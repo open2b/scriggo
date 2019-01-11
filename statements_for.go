@@ -95,7 +95,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			}
 		}
 
-		value, err := r.eval(n.Assignment.Value)
+		value, err := r.eval(n.Assignment.Values[0])
 		if err != nil {
 			if r.handleError(err) {
 				return nil
@@ -451,7 +451,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 			case reflect.Struct, reflect.Ptr:
 				keys := structKeys(av)
 				if keys == nil {
-					err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Value, typeof(value))
+					err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Values[0], typeof(value))
 					if r.handleError(err) {
 						return nil
 					}
@@ -481,7 +481,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			default:
-				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Value, typeof(value))
+				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Values[0], typeof(value))
 				if r.handleError(err) {
 					return nil
 				}

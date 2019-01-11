@@ -631,7 +631,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 
 		var err error
 		if len(node.Variables) == 1 {
-			addresses[0], err = r.address(node.Variables[0], node.Value)
+			addresses[0], err = r.address(node.Variables[0], node.Values[0])
 		} else {
 			for i, variable := range node.Variables {
 				addresses[i], err = r.address(variable, nil)
@@ -726,7 +726,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		}
 		switch len(node.Variables) {
 		case 1:
-			v, err := r.eval(node.Value)
+			v, err := r.eval(node.Values[0])
 			if err != nil {
 				return err
 			}
@@ -735,7 +735,11 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return r.errorf(node, "%s", err)
 			}
 		case 2:
-			v0, v1, err := r.eval2(node.Value)
+			var value1 ast.Expression
+			if len(node.Values) > 1 {
+				value1 = node.Values[1]
+			}
+			v0, v1, err := r.eval2(node.Values[0], value1)
 			if err != nil {
 				return err
 			}
@@ -748,12 +752,12 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return r.errorf(node, "%s", err)
 			}
 		default:
-			values, err := r.evalN(node.Value, len(node.Variables))
+			values, err := r.evalN(node.Values, len(node.Variables))
 			if err != nil {
 				return err
 			}
 			for i, v := range values {
-				err = addresses[i].assign(v.Interface())
+				err = addresses[i].assign(v)
 				if err != nil {
 					return r.errorf(node, "%s", err)
 				}

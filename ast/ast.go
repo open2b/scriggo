@@ -212,11 +212,11 @@ type Assignment struct {
 	*Position                // position in the source.
 	Variables []Expression   // left hand variables.
 	Type      AssignmentType // type.
-	Value     Expression     // assigned value (nil for increment and decrement).
+	Values    []Expression   // assigned values (nil for increment and decrement).
 }
 
-func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, value Expression) *Assignment {
-	return &Assignment{pos, variables, typ, value}
+func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, values []Expression) *Assignment {
+	return &Assignment{pos, variables, typ, values}
 }
 
 func (a *Assignment) String() string {
@@ -237,8 +237,13 @@ func (a *Assignment) String() string {
 	case AssignmentDecrement:
 		s += "--"
 	}
-	if a.Value != nil {
-		s += a.Value.String()
+	if a.Values != nil {
+		for i, value := range a.Values {
+			if i > 0 {
+				s += ", "
+			}
+			s += value.String()
+		}
 	}
 	return s
 }
