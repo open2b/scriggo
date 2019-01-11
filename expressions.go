@@ -44,7 +44,7 @@ type Slice []interface{}
 type Bytes []byte
 
 // eval evaluates expr in a single-value context and returns its value.
-func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
+func (r *rendering) eval(expr ast.Expression) (value interface{}, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -54,7 +54,7 @@ func (r *rendering) eval(exp ast.Expression) (value interface{}, err error) {
 			}
 		}
 	}()
-	return r.evalExpression(exp), nil
+	return r.evalExpression(expr), nil
 }
 
 // eval0 evaluates expr in a void context. It returns an error if the
