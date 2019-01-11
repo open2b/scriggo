@@ -183,6 +183,9 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				switch tok.typ {
 				case tokenIn:
 					// {% for ident in expr %}
+					if len(variables) == 0 {
+						return nil, &Error{"", *(variables[1].Pos()), fmt.Errorf("unexpected in, expected expression")}
+					}
 					if len(variables) > 1 {
 						return nil, &Error{"", *(variables[1].Pos()), fmt.Errorf("expected only one expression")}
 					}
@@ -217,6 +220,9 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					node = ast.NewFor(pos, nil, condition, nil, nil)
 				case tokenRange:
 					// {% for range expr %}
+					if len(variables) > 0 {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected range, expecting := or = or comma")}
+					}
 					p := tok.pos
 					expr, tok = parseExpr(token{}, lex, false)
 					if expr == nil {
