@@ -215,8 +215,8 @@ type Assignment struct {
 	Value     Expression     // assigned value (nil for increment and decrement).
 }
 
-func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, expr Expression) *Assignment {
-	return &Assignment{pos, variables, typ, expr}
+func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, value Expression) *Assignment {
+	return &Assignment{pos, variables, typ, value}
 }
 
 func (a *Assignment) String() string {

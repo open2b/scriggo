@@ -650,7 +650,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 
 	switch node.Type {
 	case ast.AssignmentIncrement:
-		address, err := r.address(node.Variables[0], node.Value)
+		address, err := r.address(node.Variables[0], nil)
 		if err != nil {
 			return err
 		}
@@ -685,7 +685,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			return r.errorf(node, "%s", err)
 		}
 	case ast.AssignmentDecrement:
-		address, err := r.address(node.Variables[0], node.Value)
+		address, err := r.address(node.Variables[0], nil)
 		if err != nil {
 			return err
 		}
