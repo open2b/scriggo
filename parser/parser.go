@@ -336,7 +336,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 			case tokenIf:
 				expressions, tok := parseExprList(token{}, lex, true)
 				if len(expressions) == 0 {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression 2", tok)}
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 				}
 				var assignment *ast.Assignment
 				if len(expressions) > 1 || tok.typ == tokenAssignment || tok.typ == tokenDeclaration {
