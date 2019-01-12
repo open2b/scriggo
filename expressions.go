@@ -662,9 +662,9 @@ func (r *rendering) evalBytes(node *ast.Bytes) interface{} {
 		v := asBase(r.evalExpression(element))
 		switch n := v.(type) {
 		case int:
-			elements[i], err = intToByte(n)
+			elements[i] = byte(n)
 		case *apd.Decimal:
-			elements[i], err = decimalToByte(n)
+			elements[i] = decimalToByte(n)
 		default:
 			err = fmt.Errorf("cannot use %s (type %s) as type byte", element, typeof(v))
 		}
@@ -1035,14 +1035,7 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 	case int:
 		i = index
 	case *apd.Decimal:
-		var err error
-		i, err = decimalToInt(index)
-		if err != nil {
-			return 0, r.errorf(node, "%s", err)
-		}
-		if i < 0 {
-			return 0, r.errorf(node, "invalid slice index %s (index must be non-negative)", node)
-		}
+		i = decimalToInt(index)
 	default:
 		return 0, r.errorf(node, "non-integer slice index %s", node)
 	}
@@ -1323,11 +1316,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			} else if d, ok := arg.(*apd.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
 			} else if d, ok := arg.(*apd.Decimal); ok && inKind == reflect.Int {
-				n, err := decimalToInt(d)
-				if err != nil {
-					panic(r.errorf(node.Args[i], "%s", err))
-				}
-				args[i] = reflect.ValueOf(n)
+				args[i] = reflect.ValueOf(decimalToInt(d))
 			} else if d, ok := arg.(int); ok && in == decimalType {
 				args[i] = reflect.ValueOf(apd.New(int64(d), 0))
 			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
@@ -1457,11 +1446,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 	case "int":
 		switch v := value.(type) {
 		case *apd.Decimal:
-			e := new(apd.Decimal)
-			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
-			_, _ = numberConversionContext.Rem(e, e, decimalModInt)
-			i64, _ := e.Int64()
-			return int(i64), nil
+			return decimalToInt(v), nil
 		case int:
 			return v, nil
 		}
@@ -1479,11 +1464,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 	case "byte":
 		switch v := value.(type) {
 		case *apd.Decimal:
-			e := new(apd.Decimal)
-			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
-			_, _ = numberConversionContext.Rem(e, e, decimalMod8)
-			i64, _ := e.Int64()
-			return int(byte(i64)), nil
+			return int(decimalToByte(v)), nil
 		case int:
 			return int(byte(v)), nil
 		}

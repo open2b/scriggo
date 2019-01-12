@@ -495,9 +495,9 @@ func (addr bytesAddress) assign(value interface{}) error {
 	var err error
 	switch n := asBase(value).(type) {
 	case int:
-		b, err = intToByte(n)
+		b = byte(n)
 	case *apd.Decimal:
-		b, err = decimalToByte(n)
+		b = decimalToByte(n)
 	default:
 		if addr.Expr == nil {
 			err = fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(n), addr.Var)
@@ -780,33 +780,44 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func decimalToInt(n *apd.Decimal) (int, error) {
-	if n.Cmp(decimalMinInt) == -1 || n.Cmp(decimalMaxInt) == 1 {
-		return 0, fmt.Errorf("number %s overflows int", n)
+func decimalToInt(n *apd.Decimal) int {
+	var d *apd.Decimal
+	if n.Exponent == 0 {
+		if n.Cmp(decimalMinInt) < 0 || n.Cmp(decimalMaxInt) > 0 {
+			d = &apd.Decimal{}
+			_, _ = numberConversionContext.Rem(d, n, decimalModInt)
+		} else {
+			d = n
+		}
+	} else {
+		d = &apd.Decimal{}
+		_, _ = numberConversionContext.RoundToIntegralValue(d, n)
+		if d.Cmp(decimalMinInt) < 0 || d.Cmp(decimalMaxInt) > 0 {
+			_, _ = numberConversionContext.Rem(d, d, decimalModInt)
+		}
 	}
-	p, err := n.Int64()
-	if err != nil {
-		return 0, fmt.Errorf("number %s truncated to integer", n)
-	}
-	return int(p), nil
+	p, _ := d.Int64()
+	return int(p)
 }
 
-func decimalToByte(n *apd.Decimal) (byte, error) {
-	if n.Cmp(decimalMinByte) == -1 || decimalMaxByte.Cmp(n) == -1 {
-		return 0, fmt.Errorf("number %s overflows byte", n)
+func decimalToByte(n *apd.Decimal) byte {
+	var d *apd.Decimal
+	if n.Exponent == 0 {
+		if n.Cmp(decimalMinByte) < 0 || n.Cmp(decimalMaxByte) > 0 {
+			d = &apd.Decimal{}
+			_, _ = numberConversionContext.Rem(d, n, decimalMod8)
+		} else {
+			d = n
+		}
+	} else {
+		d = &apd.Decimal{}
+		_, _ = numberConversionContext.RoundToIntegralValue(d, n)
+		if d.Cmp(decimalMinByte) < 0 || d.Cmp(decimalMaxByte) > 0 {
+			_, _ = numberConversionContext.Rem(d, d, decimalMod8)
+		}
 	}
-	p, err := n.Int64()
-	if err != nil {
-		return 0, fmt.Errorf("number %s truncated to byte", n)
-	}
-	return byte(p), nil
-}
-
-func intToByte(n int) (byte, error) {
-	if n < 0 || n > 255 {
-		return 0, fmt.Errorf("number %d overflows byte", n)
-	}
-	return byte(n), nil
+	p, _ := d.Int64()
+	return byte(p)
 }
 
 func typeof(v interface{}) string {

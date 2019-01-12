@@ -145,9 +145,9 @@ func toByteInAppend(v interface{}) byte {
 	var err error
 	switch n := v.(type) {
 	case int:
-		b, err = intToByte(n)
+		b = byte(n)
 	case *apd.Decimal:
-		b, err = decimalToByte(n)
+		b = decimalToByte(n)
 	default:
 		// TODO(marco): error message should have the expression and not the value
 		err = fmt.Errorf("cannot use %v (type %s) as type byte in append", v, typeof(v))
