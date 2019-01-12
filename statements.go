@@ -497,8 +497,10 @@ func typeof(v interface{}) string {
 	}
 	v = asBase(v)
 	switch v.(type) {
-	case string, HTML:
+	case string:
 		return "string"
+	case HTML:
+		return "html"
 	case *apd.Decimal, int, byte:
 		return "number"
 	case bool:
