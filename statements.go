@@ -677,79 +677,7 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 func (r *rendering) renderAssignment(node *ast.Assignment) error {
 
 	switch node.Type {
-	case ast.AssignmentIncrement:
-		address, err := r.address(node.Variables[0], nil)
-		if err != nil {
-			return err
-		}
-		v, ok := address.value()
-		if !ok {
-			_ = address.assign(1)
-			return nil
-		}
-		switch e := v.(type) {
-		case byte:
-			err = address.assign(e + 1)
-		default:
-			switch e := asBase(v).(type) {
-			case int:
-				if ee := e + 1; ee < e {
-					d := apd.New(int64(e), 0)
-					_, _ = decimalContext.Add(d, d, decimal1)
-					err = address.assign(d)
-				} else {
-					err = address.assign(ee)
-				}
-			case *apd.Decimal:
-				d := new(apd.Decimal)
-				_, _ = decimalContext.Add(d, e, decimal1)
-				err = address.assign(d)
-			case nil:
-				err = fmt.Errorf("invalid operation: %s (increment of nil)", node)
-			default:
-				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(v))
-			}
-		}
-		if err != nil {
-			return r.errorf(node, "%s", err)
-		}
-	case ast.AssignmentDecrement:
-		address, err := r.address(node.Variables[0], nil)
-		if err != nil {
-			return err
-		}
-		v, ok := address.value()
-		if !ok {
-			_ = address.assign(-1)
-			return nil
-		}
-		switch e := v.(type) {
-		case byte:
-			err = address.assign(e - 1)
-		default:
-			switch e := asBase(v).(type) {
-			case int:
-				if ee := e - 1; ee > e {
-					d := apd.New(int64(e), 0)
-					_, _ = decimalContext.Sub(d, d, decimal1)
-					err = address.assign(d)
-				} else {
-					err = address.assign(ee)
-				}
-			case *apd.Decimal:
-				d := new(apd.Decimal)
-				_, _ = decimalContext.Sub(d, e, decimal1)
-				err = address.assign(d)
-			case nil:
-				return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
-			default:
-				err = r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(v))
-			}
-		}
-		if err != nil {
-			return r.errorf(node, "%s", err)
-		}
-	default:
+	case ast.AssignmentSimple, ast.AssignmentDeclaration:
 		addresses, err := r.addresses(node)
 		if err != nil {
 			return err
@@ -793,6 +721,141 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				}
 			}
 		}
+	case ast.AssignmentIncrement, ast.AssignmentDecrement:
+		address, err := r.address(node.Variables[0], nil)
+		if err != nil {
+			return err
+		}
+		v, ok := address.value()
+		if !ok {
+			v = 1
+			if node.Type == ast.AssignmentDecrement {
+				v = -1
+			}
+			_ = address.assign(v)
+			return nil
+		}
+		switch e1 := v.(type) {
+		case byte:
+			switch node.Type {
+			case ast.AssignmentIncrement:
+				err = address.assign(e1 + 1)
+			case ast.AssignmentDecrement:
+				err = address.assign(e1 - 1)
+			}
+		default:
+			switch e1 := asBase(v).(type) {
+			case nil:
+				err = fmt.Errorf("cannot assign to nil")
+			case int:
+				switch node.Type {
+				case ast.AssignmentIncrement:
+					if ee := e1 + 1; ee < e1 {
+						d := apd.New(int64(e1), 0)
+						_, _ = decimalContext.Add(d, d, decimal1)
+						err = address.assign(d)
+					} else {
+						err = address.assign(ee)
+					}
+				case ast.AssignmentDecrement:
+					if ee := e1 - 1; ee > e1 {
+						d := apd.New(int64(e1), 0)
+						_, _ = decimalContext.Sub(d, d, decimal1)
+						err = address.assign(d)
+					} else {
+						err = address.assign(ee)
+					}
+				}
+			case *apd.Decimal:
+				switch node.Type {
+				case ast.AssignmentIncrement:
+					d := new(apd.Decimal)
+					_, _ = decimalContext.Add(d, e1, decimal1)
+					err = address.assign(d)
+				case ast.AssignmentDecrement:
+					d := new(apd.Decimal)
+					_, _ = decimalContext.Sub(d, e1, decimal1)
+					err = address.assign(d)
+				}
+			default:
+				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(v))
+			}
+		}
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
+	default:
+		address, err := r.address(node.Variables[0], nil)
+		if err != nil {
+			return err
+		}
+		v2, err := r.eval(node.Values[0])
+		if err != nil {
+			return err
+		}
+		v2 = asBase(v2)
+		v1, ok := address.value()
+		var v interface{}
+		switch node.Type {
+		case ast.AssignmentAddition:
+			if !ok {
+				switch v2.(type) {
+				case int, *apd.Decimal:
+					v1 = 0
+				case string:
+					v1 = ""
+				case HTML:
+					v1 = HTML("")
+				default:
+					err = fmt.Errorf("operator + not defined on %s", typeof(v2))
+				}
+			}
+			v, err = r.evalAddition(v1, v2)
+		case ast.AssignmentSubtraction:
+			if !ok {
+				switch v2.(type) {
+				case int, *apd.Decimal:
+					v1 = 0
+				default:
+					err = fmt.Errorf("operator - not defined on %s", typeof(v2))
+				}
+			}
+			v, err = r.evalSubtraction(v1, v2)
+		case ast.AssignmentMultiplication:
+			if !ok {
+				switch v2.(type) {
+				case int, *apd.Decimal:
+					v1 = 0
+				default:
+					err = fmt.Errorf("operator * not defined on %s", typeof(v2))
+				}
+			}
+			v, err = r.evalMultiplication(v1, v2)
+		case ast.AssignmentDivision:
+			if !ok {
+				switch v2.(type) {
+				case int, *apd.Decimal:
+					v1 = 0
+				default:
+					err = fmt.Errorf("operator / not defined on %s", typeof(v2))
+				}
+			}
+			v, err = r.evalDivision(v1, v2)
+		case ast.AssignmentModulo:
+			if !ok {
+				switch v2.(type) {
+				case int, *apd.Decimal:
+					v1 = 0
+				default:
+					err = fmt.Errorf("operator %% not defined on %s", typeof(v2))
+				}
+			}
+			v, err = r.evalModulo(v1, v2)
+		}
+		if err != nil {
+			return r.errorf(node, "invalid operation: %s (%s)", node, err)
+		}
+		_ = address.assign(v)
 	}
 
 	return nil

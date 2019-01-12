@@ -70,10 +70,15 @@ const (
 type AssignmentType int
 
 const (
-	AssignmentSimple      AssignmentType = iota // =
-	AssignmentDeclaration                       // :=
-	AssignmentIncrement                         // ++
-	AssignmentDecrement                         // --
+	AssignmentSimple         AssignmentType = iota // =
+	AssignmentDeclaration                          // :=
+	AssignmentAddition                             // +=
+	AssignmentSubtraction                          // -=
+	AssignmentMultiplication                       // *=
+	AssignmentDivision                             // /=
+	AssignmentModulo                               // %=
+	AssignmentIncrement                            // --
+	AssignmentDecrement                            // --
 )
 
 func (op OperatorType) String() string {
@@ -228,10 +233,20 @@ func (a *Assignment) String() string {
 		s += v.String()
 	}
 	switch a.Type {
-	case AssignmentDeclaration:
-		s += " := "
 	case AssignmentSimple:
 		s += " = "
+	case AssignmentDeclaration:
+		s += " := "
+	case AssignmentAddition:
+		s += " += "
+	case AssignmentSubtraction:
+		s += " -= "
+	case AssignmentMultiplication:
+		s += " *= "
+	case AssignmentDivision:
+		s += " /= "
+	case AssignmentModulo:
+		s += " %= "
 	case AssignmentIncrement:
 		s += "++"
 	case AssignmentDecrement:

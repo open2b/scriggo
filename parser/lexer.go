@@ -628,7 +628,7 @@ LOOP:
 			endLineAsSemicolon = true
 		case '=':
 			if len(l.src) == 1 || l.src[1] != '=' {
-				l.emit(tokenAssignment, 1)
+				l.emit(tokenSimpleAssignment, 1)
 				l.column++
 			} else {
 				l.emit(tokenEqual, 2)
@@ -636,36 +636,72 @@ LOOP:
 			}
 			endLineAsSemicolon = false
 		case '+':
-			if len(l.src) > 1 && l.src[1] == '+' {
-				l.emit(tokenIncrement, 2)
-				l.column += 2
-				endLineAsSemicolon = true
-			} else {
-				l.emit(tokenAddition, 1)
-				l.column++
-				endLineAsSemicolon = false
+			if len(l.src) > 1 {
+				switch l.src[1] {
+				case '+':
+					l.emit(tokenIncrement, 2)
+					l.column += 2
+					endLineAsSemicolon = true
+					continue LOOP
+				case '=':
+					l.emit(tokenAdditionAssignment, 2)
+					l.column += 2
+					endLineAsSemicolon = false
+					continue LOOP
+				}
 			}
+			l.emit(tokenAddition, 1)
+			l.column++
+			endLineAsSemicolon = false
 		case '-':
-			if len(l.src) > 1 && l.src[1] == '-' {
-				l.emit(tokenDecrement, 2)
+			if len(l.src) > 1 {
+				switch l.src[1] {
+				case '-':
+					l.emit(tokenDecrement, 2)
+					l.column += 2
+					endLineAsSemicolon = true
+					continue LOOP
+				case '=':
+					l.emit(tokenSubtractionAssignment, 2)
+					l.column += 2
+					endLineAsSemicolon = false
+					continue LOOP
+				}
+			}
+			l.emit(tokenSubtraction, 1)
+			l.column++
+			endLineAsSemicolon = false
+		case '*':
+			if len(l.src) > 1 && l.src[1] == '=' {
+				l.emit(tokenMultiplicationAssignment, 2)
 				l.column += 2
-				endLineAsSemicolon = true
+				endLineAsSemicolon = false
 			} else {
-				l.emit(tokenSubtraction, 1)
+				l.emit(tokenMultiplication, 1)
 				l.column++
 				endLineAsSemicolon = false
 			}
-		case '*':
-			l.emit(tokenMultiplication, 1)
-			l.column++
-			endLineAsSemicolon = false
 		case '/':
-			l.emit(tokenDivision, 1)
-			l.column++
-			endLineAsSemicolon = false
+			if len(l.src) > 1 && l.src[1] == '=' {
+				l.emit(tokenDivisionAssignment, 2)
+				l.column += 2
+				endLineAsSemicolon = false
+			} else {
+				l.emit(tokenDivision, 1)
+				l.column++
+				endLineAsSemicolon = false
+			}
 		case '%':
-			if len(l.src) > 1 && l.src[1] == '}' {
-				break LOOP
+			if len(l.src) > 1 {
+				switch l.src[1] {
+				case '}':
+					break LOOP
+				case '=':
+					l.emit(tokenModuloAssignment, 2)
+					l.column += 2
+					endLineAsSemicolon = false
+					continue LOOP
+				}
 			}
 			l.emit(tokenModulo, 1)
 			l.column++

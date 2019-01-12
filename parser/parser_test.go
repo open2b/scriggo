@@ -213,6 +213,21 @@ var treeTests = []struct {
 		ast.NewAssignment(p(1, 1, 0, 17), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewIdentifier(p(1, 7, 6, 7), "ok")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewSelector(p(1, 14, 12, 14),
 				ast.NewIdentifier(p(1, 16, 15, 15), "b"), "c")})}, ast.ContextHTML)},
+	{"{% a += 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
+			ast.AssignmentAddition, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), 1)})}, ast.ContextHTML)},
+	{"{% a -= 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
+			ast.AssignmentSubtraction, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), 1)})}, ast.ContextHTML)},
+	{"{% a *= 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
+			ast.AssignmentMultiplication, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), 1)})}, ast.ContextHTML)},
+	{"{% a /= 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
+			ast.AssignmentDivision, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), 1)})}, ast.ContextHTML)},
+	{"{% a %= 1 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
+			ast.AssignmentModulo, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), 1)})}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{

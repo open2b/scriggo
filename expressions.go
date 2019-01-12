@@ -304,187 +304,47 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	case ast.OperatorAddition:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		switch e1 := expr1.(type) {
-		case string:
-			switch e2 := expr2.(type) {
-			case string:
-				return e1 + e2
-			case HTML:
-				return HTML(htmlEscapeString(e1) + string(e2))
-			}
-		case HTML:
-			switch e2 := expr2.(type) {
-			case string:
-				return HTML(string(e1) + htmlEscapeString(e2))
-			case HTML:
-				return HTML(string(e1) + string(e2))
-			}
-		case *apd.Decimal:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				e := new(apd.Decimal)
-				_, _ = decimalContext.Add(e, e1, e2)
-				return e
-			case int:
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Add(d2, e1, d2)
-				return d2
-			}
-		case int:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				d1 := apd.New(int64(e1), 0)
-				_, _ = decimalContext.Add(d1, d1, e2)
-				return d1
-			case int:
-				e := e1 + e2
-				if (e < e1) != (e2 < 0) {
-					d1 := apd.New(int64(e1), 0)
-					d2 := apd.New(int64(e2), 0)
-					_, _ = decimalContext.Add(d1, d1, d2)
-					return d1
-				}
-				return e
-			}
+		e, err := r.evalAddition(expr1, expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
 		}
-		panic(r.errorf(op, "invalid operation: %s + %s", typeof(expr1), typeof(expr2)))
+		return e
 
 	case ast.OperatorSubtraction:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		switch e1 := expr1.(type) {
-		case *apd.Decimal:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				e := new(apd.Decimal)
-				_, _ = decimalContext.Sub(e, e1, e2)
-				return e
-			case int:
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Sub(d2, e1, d2)
-				return d2
-			}
-		case int:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				d1 := apd.New(int64(e1), 0)
-				_, _ = decimalContext.Sub(d1, d1, e2)
-				return d1
-			case int:
-				e := e1 - e2
-				if (e < e1) != (e2 > 0) {
-					d1 := apd.New(int64(e1), 0)
-					d2 := apd.New(int64(e2), 0)
-					_, _ = decimalContext.Sub(d1, d1, d2)
-					return d1
-				}
-				return e
-			}
+		e, err := r.evalSubtraction(expr1, expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
 		}
-		panic(r.errorf(op, "invalid operation: %s - %s", typeof(expr1), typeof(expr2)))
+		return e
 
 	case ast.OperatorMultiplication:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		switch e1 := expr1.(type) {
-		case *apd.Decimal:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				e := new(apd.Decimal)
-				_, _ = decimalContext.Mul(e, e1, e2)
-				return e
-			case int:
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Mul(d2, e1, d2)
-				return d2
-			}
-		case int:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				d1 := apd.New(int64(e1), 0)
-				_, _ = decimalContext.Mul(d1, d1, e2)
-				return d1
-			case int:
-				if e1 == 0 || e2 == 0 {
-					return 0
-				}
-				e := e1 * e2
-				if (e < 0) != ((e1 < 0) != (e2 < 0)) || e/e2 != e1 {
-					d1 := apd.New(int64(e1), 0)
-					d2 := apd.New(int64(e2), 0)
-					_, _ = decimalContext.Mul(d1, d1, d2)
-					return d1
-				}
-				return e
-			}
+		e, err := r.evalMultiplication(expr1, expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
 		}
-		panic(r.errorf(op, "invalid operation: %s * %s", typeof(expr1), typeof(expr2)))
+		return e
 
 	case ast.OperatorDivision:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		switch e2 := expr2.(type) {
-		case *apd.Decimal:
-			if e2.IsZero() {
-				panic(r.errorf(op, "number divide by zero"))
-			}
-			switch e1 := expr1.(type) {
-			case *apd.Decimal:
-				e := new(apd.Decimal)
-				_, _ = decimalContext.Quo(e, e1, e2)
-				return e
-			case int:
-				d1 := apd.New(int64(e1), 0)
-				_, _ = decimalContext.Quo(d1, d1, e2)
-				return d1
-			}
-		case int:
-			if e2 == 0 {
-				panic(r.errorf(op, "number divide by zero"))
-			}
-			switch e1 := expr1.(type) {
-			case *apd.Decimal:
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Quo(d2, e1, d2)
-				return d2
-			case int:
-				if e1%e2 == 0 && !(e1 == int(minInt) && e2 == -1) {
-					return e1 / e2
-				}
-				d1 := apd.New(int64(e1), 0)
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Quo(d1, d1, d2)
-				return d1
-			}
+		e, err := r.evalDivision(expr1, expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
 		}
-		panic(r.errorf(op, "invalid operation: %s / %s", typeof(expr1), typeof(expr2)))
+		return e
 
 	case ast.OperatorModulo:
 		expr1 := asBase(r.evalExpression(op.Expr1))
 		expr2 := asBase(r.evalExpression(op.Expr2))
-		switch e1 := expr1.(type) {
-		case *apd.Decimal:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				e := new(apd.Decimal)
-				_, _ = decimalContext.Rem(e, e1, e2)
-				return e
-			case int:
-				d2 := apd.New(int64(e2), 0)
-				_, _ = decimalContext.Rem(d2, e1, d2)
-				return d2
-			}
-		case int:
-			switch e2 := expr2.(type) {
-			case *apd.Decimal:
-				d1 := apd.New(int64(e1), 0)
-				_, _ = decimalContext.Rem(d1, d1, e2)
-				return d1
-			case int:
-				return e1 % e2
-			}
+		e, err := r.evalModulo(expr1, expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
 		}
-		panic(r.errorf(op, "invalid operation: %s %% %s", typeof(expr1), typeof(expr2)))
+		return e
 
 	}
 
@@ -628,6 +488,201 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 	}
 
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
+}
+
+// evalAddition adds expr1 and expr2 and returns the result.
+func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) {
+
+	switch e1 := expr1.(type) {
+	case string:
+		switch e2 := expr2.(type) {
+		case string:
+			return e1 + e2, nil
+		case HTML:
+			return HTML(htmlEscapeString(e1) + string(e2)), nil
+		}
+	case HTML:
+		switch e2 := expr2.(type) {
+		case string:
+			return HTML(string(e1) + htmlEscapeString(e2)), nil
+		case HTML:
+			return HTML(string(e1) + string(e2)), nil
+		}
+	case *apd.Decimal:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Add(e, e1, e2)
+			return e, nil
+		case int:
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Add(d2, e1, d2)
+			return d2, nil
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			d1 := apd.New(int64(e1), 0)
+			_, _ = decimalContext.Add(d1, d1, e2)
+			return d1, nil
+		case int:
+			e := e1 + e2
+			if (e < e1) != (e2 < 0) {
+				d1 := apd.New(int64(e1), 0)
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Add(d1, d1, d2)
+				return d1, nil
+			}
+			return e, nil
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
+}
+
+// evalSubtraction subtracts expr1 and expr2 and returns the result.
+func (r *rendering) evalSubtraction(expr1, expr2 interface{}) (interface{}, error) {
+
+	switch e1 := expr1.(type) {
+	case *apd.Decimal:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Sub(e, e1, e2)
+			return e, nil
+		case int:
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Sub(d2, e1, d2)
+			return d2, nil
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			d1 := apd.New(int64(e1), 0)
+			_, _ = decimalContext.Sub(d1, d1, e2)
+			return d1, nil
+		case int:
+			e := e1 - e2
+			if (e < e1) != (e2 > 0) {
+				d1 := apd.New(int64(e1), 0)
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Sub(d1, d1, d2)
+				return d1, nil
+			}
+			return e, nil
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
+}
+
+// evalMultiplication multiplies expr1 and expr2 and returns the result.
+func (r *rendering) evalMultiplication(expr1, expr2 interface{}) (interface{}, error) {
+
+	switch e1 := expr1.(type) {
+	case *apd.Decimal:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Mul(e, e1, e2)
+			return e, nil
+		case int:
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Mul(d2, e1, d2)
+			return d2, nil
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			d1 := apd.New(int64(e1), 0)
+			_, _ = decimalContext.Mul(d1, d1, e2)
+			return d1, nil
+		case int:
+			if e1 == 0 || e2 == 0 {
+				return 0, nil
+			}
+			e := e1 * e2
+			if (e < 0) != ((e1 < 0) != (e2 < 0)) || e/e2 != e1 {
+				d1 := apd.New(int64(e1), 0)
+				d2 := apd.New(int64(e2), 0)
+				_, _ = decimalContext.Mul(d1, d1, d2)
+				return d1, nil
+			}
+			return e, nil
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
+}
+
+// evalDivision divides expr1 and expr2 and returns the result.
+func (r *rendering) evalDivision(expr1, expr2 interface{}) (interface{}, error) {
+
+	switch e2 := expr2.(type) {
+	case *apd.Decimal:
+		if e2.IsZero() {
+			return nil, fmt.Errorf("number divide by zero")
+		}
+		switch e1 := expr1.(type) {
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Quo(e, e1, e2)
+			return e, nil
+		case int:
+			d1 := apd.New(int64(e1), 0)
+			_, _ = decimalContext.Quo(d1, d1, e2)
+			return d1, nil
+		}
+	case int:
+		if e2 == 0 {
+			return nil, fmt.Errorf("number divide by zero")
+		}
+		switch e1 := expr1.(type) {
+		case *apd.Decimal:
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Quo(d2, e1, d2)
+			return d2, nil
+		case int:
+			if e1%e2 == 0 && !(e1 == int(minInt) && e2 == -1) {
+				return e1 / e2, nil
+			}
+			d1 := apd.New(int64(e1), 0)
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Quo(d1, d1, d2)
+			return d1, nil
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
+}
+
+// evalModulo calculates the modulo of expr1 and expr2 and returns the result.
+func (r *rendering) evalModulo(expr1, expr2 interface{}) (interface{}, error) {
+
+	switch e1 := expr1.(type) {
+	case *apd.Decimal:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			e := new(apd.Decimal)
+			_, _ = decimalContext.Rem(e, e1, e2)
+			return e, nil
+		case int:
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Rem(d2, e1, d2)
+			return d2, nil
+		}
+	case int:
+		switch e2 := expr2.(type) {
+		case *apd.Decimal:
+			d1 := apd.New(int64(e1), 0)
+			_, _ = decimalContext.Rem(d1, d1, e2)
+			return d1, nil
+		case int:
+			return e1 % e2, nil
+		}
+	}
+
+	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
 }
 
 // evalMap evaluates a map expression and returns its value.

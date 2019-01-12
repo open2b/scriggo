@@ -232,7 +232,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					assignment := ast.NewAssignment(p, nil, ast.AssignmentSimple, []ast.Expression{expr})
 					pos.End = tok.pos.End
 					node = ast.NewForRange(pos, assignment, nil)
-				case tokenAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
+				case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
 					if len(variables) == 0 {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 					}
@@ -339,7 +339,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 				}
 				var assignment *ast.Assignment
-				if len(expressions) > 1 || tok.typ == tokenAssignment || tok.typ == tokenDeclaration {
+				if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
 					assignment, tok = parseAssignment(expressions, tok, lex)
 					if assignment == nil {
 						return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
@@ -653,8 +653,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				if len(expressions) == 0 {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
 				}
-				if len(expressions) > 1 || tok.typ == tokenAssignment || tok.typ == tokenDeclaration ||
-					tok.typ == tokenIncrement || tok.typ == tokenDecrement {
+				if len(expressions) > 1 || isAssignmentToken(tok) {
 					// Parses assignment.
 					assignment, tok := parseAssignment(expressions, tok, lex)
 					if assignment == nil {
@@ -723,17 +722,8 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 // is no expression, returns nil. tok can be the assignment, declaration,
 // increment or decrement token. It panics on error.
 func parseAssignment(variables []ast.Expression, tok token, lex *lexer) (*ast.Assignment, token) {
-	var typ ast.AssignmentType
-	switch tok.typ {
-	case tokenAssignment:
-		typ = ast.AssignmentSimple
-	case tokenDeclaration:
-		typ = ast.AssignmentDeclaration
-	case tokenIncrement:
-		typ = ast.AssignmentIncrement
-	case tokenDecrement:
-		typ = ast.AssignmentDecrement
-	default:
+	var typ, ok = assignmentType(tok)
+	if !ok {
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
 	}
 	for _, v := range variables {
@@ -752,15 +742,7 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer) (*ast.As
 	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: tok.pos.End}
 	var values []ast.Expression
 	switch typ {
-	case ast.AssignmentIncrement, ast.AssignmentDecrement:
-		if len(variables) > 1 {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
-		}
-		if ident, ok := variables[0].(*ast.Identifier); ok && ident.Name == "_" {
-			panic(&Error{"", *variables[0].Pos(), fmt.Errorf("cannot use _ as value")})
-		}
-		tok = next(lex)
-	default:
+	case ast.AssignmentSimple, ast.AssignmentDeclaration:
 		values, tok = parseExprList(token{}, lex, false)
 		if len(values) == 0 {
 			return nil, tok
@@ -781,6 +763,22 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer) (*ast.As
 			panic(&Error{"", *assignToken.pos, fmt.Errorf("assignment mismatch: %d variables but %d values", len(variables), len(values))})
 		}
 		pos.End = values[len(values)-1].Pos().End
+	default:
+		if len(variables) > 1 {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
+		}
+		if ident, ok := variables[0].(*ast.Identifier); ok && ident.Name == "_" {
+			panic(&Error{"", *variables[0].Pos(), fmt.Errorf("cannot use _ as value")})
+		}
+		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
+			tok = next(lex)
+		} else {
+			values = make([]ast.Expression, 1)
+			values[0], tok = parseExpr(token{}, lex, false)
+			if ident, ok := values[0].(*ast.Identifier); ok && ident.Name == "_" {
+				panic(&Error{"", *values[0].Pos(), fmt.Errorf("cannot use _ as value")})
+			}
+		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok
 }
