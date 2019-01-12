@@ -441,12 +441,17 @@ Nodes:
 
 type address interface {
 	assign(value interface{}) error
+	value() (interface{}, bool)
 }
 
 type blankAddress struct{}
 
 func (addr blankAddress) assign(interface{}) error {
 	return nil
+}
+
+func (addr blankAddress) value() (interface{}, bool) {
+	return nil, false
 }
 
 type scopeAddress struct {
@@ -459,6 +464,11 @@ func (addr scopeAddress) assign(value interface{}) error {
 	return nil
 }
 
+func (addr scopeAddress) value() (interface{}, bool) {
+	v, ok := addr.Scope[addr.Var]
+	return v, ok
+}
+
 type mapAddress struct {
 	Map Map
 	Key interface{}
@@ -469,6 +479,10 @@ func (addr mapAddress) assign(value interface{}) error {
 	return nil
 }
 
+func (addr mapAddress) value() (interface{}, bool) {
+	return addr.Map.Load(addr.Key)
+}
+
 type sliceAddress struct {
 	Slice Slice
 	Index int
@@ -477,6 +491,10 @@ type sliceAddress struct {
 func (addr sliceAddress) assign(value interface{}) error {
 	addr.Slice[addr.Index] = value
 	return nil
+}
+
+func (addr sliceAddress) value() (interface{}, bool) {
+	return addr.Slice[addr.Index], true
 }
 
 type bytesAddress struct {
@@ -507,6 +525,10 @@ func (addr bytesAddress) assign(value interface{}) error {
 	}
 	addr.Bytes[addr.Index] = b
 	return err
+}
+
+func (addr bytesAddress) value() (interface{}, bool) {
+	return addr.Bytes[addr.Index], true
 }
 
 func (r *rendering) address(variable, expression ast.Expression) (address, error) {
@@ -654,9 +676,10 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		v, err := r.eval(node.Variables[0])
-		if err != nil {
-			return err
+		v, ok := address.value()
+		if !ok {
+			_ = address.assign(1)
+			return nil
 		}
 		switch e := v.(type) {
 		case byte:
@@ -689,9 +712,10 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		v, err := r.eval(node.Variables[0])
-		if err != nil {
-			return err
+		v, ok := address.value()
+		if !ok {
+			_ = address.assign(-1)
+			return nil
 		}
 		switch e := v.(type) {
 		case byte:
