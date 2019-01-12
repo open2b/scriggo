@@ -700,16 +700,16 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			switch e := asBase(v).(type) {
 			case int:
 				if ee := e - 1; ee > e {
-					x := apd.New(int64(e), 0)
-					_, _ = decimalContext.Sub(x, x, decimal1)
-					err = address.assign(x)
+					d := apd.New(int64(e), 0)
+					_, _ = decimalContext.Sub(d, d, decimal1)
+					err = address.assign(d)
 				} else {
 					err = address.assign(ee)
 				}
 			case *apd.Decimal:
-				x := new(apd.Decimal)
-				_, _ = decimalContext.Sub(x, e, decimal1)
-				err = address.assign(x)
+				d := new(apd.Decimal)
+				_, _ = decimalContext.Sub(d, e, decimal1)
+				err = address.assign(d)
 			case nil:
 				return r.errorf(node, "invalid operation: %s (decrement of nil)", node)
 			default:
