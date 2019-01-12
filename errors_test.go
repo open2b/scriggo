@@ -36,6 +36,7 @@ var errorTests = []struct {
 	{`{{ f("2") }}{{ "ok" }}`, `ok`, map[string]interface{}{"f": func(n *apd.Decimal) string { return "no" }}},
 	{`{% b := map{map{}: true} %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := map{} %}{% b[map{}] = 5 %}{{ "ok" }}`, `ok`, nil},
+	{`{% b := slice{} %}{% b[3] = 5 %}{{ "ok" }}`, `ok`, nil},
 }
 
 func TestErrors(t *testing.T) {

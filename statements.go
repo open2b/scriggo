@@ -597,11 +597,17 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			if err != nil {
 				return nil, err
 			}
+			if index >= len(val) {
+				return nil, r.errorf(variable, "index out of range")
+			}
 			addr = sliceAddress{Slice: val, Index: index}
 		case Bytes:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
 				return nil, err
+			}
+			if index >= len(val) {
+				return nil, r.errorf(variable, "index out of range")
 			}
 			addr = bytesAddress{Bytes: val, Index: index, Var: variable, Expr: expression}
 		default:
