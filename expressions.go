@@ -1116,7 +1116,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return nil, false, r.errorf(node, "index out of range")
 	case Map:
-		u, ok := vv.Load(asBase(r.evalExpression(node.Index)))
+		u, ok := vv.Load(r.mapIndex(node.Index))
 		if !ok {
 			u = zero{}
 		}
@@ -1271,6 +1271,15 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 		return 0, r.errorf(node, "invalid slice index %d (index must be non-negative)", i)
 	}
 	return i, nil
+}
+
+// mapIndex evaluates node as a map index and returns the value.
+func (r *rendering) mapIndex(node ast.Expression) interface{} {
+	index := asBase(r.evalExpression(node))
+	if _, ok := index.(zero); ok {
+		index = nil
+	}
+	return index
 }
 
 // evalSlicing evaluates a slice expression and returns its value.

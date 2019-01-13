@@ -683,6 +683,8 @@ var rendererStmtTests = []struct {
 	{`{% s["a"] *= s["b"] %}{{ s["a"] }}`, "0", scope{"s": Map{}}},
 	{`{% s["a"] %= s["b"] %}{{ s["a"] }}`, "NaN", scope{"s": Map{}}},
 
+	{`{% b := map{nil:5} %}{{ b[s["a"]] }}`, "5", scope{"s": Map{}}},
+
 	{`{% b := slice{5,6,7} %}{{ b[s["a"]] }}`, "5", scope{"s": Map{}}},
 	{`{% b := slice{5,6,7} %}{{ b[s["a"]:2] }}`, "5, 6", scope{"s": Map{}}},
 	{`{% b := slice{5,6,7} %}{{ b[:s["a"]] }}`, "", scope{"s": Map{}}},
