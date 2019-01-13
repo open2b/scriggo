@@ -501,10 +501,6 @@ var rendererStmtTests = []struct {
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
 	{`{% if map(a) == nil %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
 	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int{"b": 2}}},
-	{`{% m := map(a) %}{% keys := slice{} %}{% for k := range m %}{% keys = append(keys, k) %}{% end %}{{ sort(keys) }}`, "1, 2, 3", scope{"a": []int{1, 3, 2}}},
-	{`{% m := map(a) %}{% keys := slice{} %}{% for range m %}.{% end %}`, ".", scope{"a": Slice{nil, nil, nil}}},
-	{`{% m := map(a) %}{% if m == nil %}ok{% end %}`, "ok", scope{"a": Slice(nil)}},
-	{`{% m := map(a) %}{% if m == nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
 
 	// slice
 	{`{% if _, ok := slice(nil).(slice); ok %}ok{% end %}`, "ok", nil},
