@@ -52,6 +52,7 @@ var htmlContextTests = []struct {
 	{`a + 0`, "1", scope{"a": aNumber{1}}},
 	{`a`, "t: a", scope{"a": aString{"a"}}},
 	{`a + ""`, "a", scope{"a": aString{"a"}}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestHTMLContext(t *testing.T) {
@@ -116,6 +117,7 @@ var attributeContextTests = []struct {
 	{`a + 0`, "1", scope{"a": aNumber{1}}},
 	{`a`, "a", scope{"a": aString{"a"}}},
 	{`a + ""`, "a", scope{"a": aString{"a"}}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestAttributeContext(t *testing.T) {
@@ -153,6 +155,7 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&#32;a&#32;", scope{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", scope{"a": "\t\n\r\x0C a=`"}},
 	{`a`, "0,&#32;1,&#32;2", scope{"a": []int{0, 1, 2}}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
@@ -225,6 +228,7 @@ var urlContextTests = []struct {
 	{`<a href={{b}}>`, `<a href=&#32;b&#32;>`, scope{"b": " b "}},
 	{`<a href= {{b}} >`, `<a href= &#32;b&#32; >`, scope{"b": " b "}},
 	{`<a href= {{b}} >`, `<a href= %09%0a%0d%0c&#32;b=%60 >`, scope{"b": "\t\n\r\x0C b=`"}},
+	{`<a href="{{ s["a"] }}">`, "<a href=\"\">", scope{"s": Map{}}},
 }
 
 func TestURLContext(t *testing.T) {
@@ -307,6 +311,7 @@ var scriptContextTests = []struct {
 		A int
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
+	{`s["a"]`, "undefined", scope{"s": Map{}}},
 }
 
 func TestScriptContext(t *testing.T) {
@@ -348,6 +353,7 @@ var scriptStringContextTests = []struct {
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, scope{"a": "a"}},
 	{`a`, `\x3c\x3e\"`, scope{"a": "<>\""}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestScriptStringContext(t *testing.T) {
@@ -385,6 +391,7 @@ var cssContextTests = []struct {
 	{`5.2`, `5.2`, nil},
 	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestCSSContext(t *testing.T) {
@@ -431,6 +438,7 @@ var cssStringContextTests = []struct {
 	{`a`, `\3c\3e\22 `, scope{"a": "<>\""}},
 	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
+	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestCSSStringContext(t *testing.T) {

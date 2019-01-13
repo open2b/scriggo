@@ -29,6 +29,12 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			if err != nil {
 				return err
 			}
+			if _, ok := v.(zero); ok {
+				v = nil
+				if _, ok := addresses[0].(bytesAddress); ok {
+					v = byte(0)
+				}
+			}
 			err = addresses[0].assign(v)
 			if err != nil {
 				return r.errorf(node, "%s", err)
@@ -41,6 +47,18 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			v0, v1, err := r.eval2(node.Values[0], value1)
 			if err != nil {
 				return err
+			}
+			if _, ok := v0.(zero); ok {
+				v0 = nil
+				if _, ok := addresses[0].(bytesAddress); ok {
+					v0 = byte(0)
+				}
+			}
+			if _, ok := v1.(zero); ok {
+				v1 = nil
+				if _, ok := addresses[1].(bytesAddress); ok {
+					v1 = byte(0)
+				}
 			}
 			err = addresses[0].assign(v0)
 			if err != nil {
@@ -56,6 +74,12 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return err
 			}
 			for i, v := range values {
+				if _, ok := v.(zero); ok {
+					v = nil
+					if _, ok := addresses[i].(bytesAddress); ok {
+						v = byte(0)
+					}
+				}
 				err = addresses[i].assign(v)
 				if err != nil {
 					return r.errorf(node, "%s", err)
@@ -67,40 +91,38 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
-		v, ok := address.value()
-		if !ok {
-			v = 1
-			if node.Type == ast.AssignmentDecrement {
-				v = -1
-			}
-			_ = address.assign(v)
-			return nil
-		}
-		switch e1 := v.(type) {
+		v := address.value()
+		switch e := v.(type) {
 		case byte:
 			switch node.Type {
 			case ast.AssignmentIncrement:
-				err = address.assign(e1 + 1)
+				err = address.assign(e + 1)
 			case ast.AssignmentDecrement:
-				err = address.assign(e1 - 1)
+				err = address.assign(e - 1)
+			}
+		case zero:
+			if node.Type == ast.AssignmentIncrement {
+				_ = address.assign(1)
+			} else {
+				_ = address.assign(-1)
 			}
 		default:
-			switch e1 := asBase(v).(type) {
+			switch e := asBase(v).(type) {
 			case nil:
 				err = fmt.Errorf("cannot assign to nil")
 			case int:
 				switch node.Type {
 				case ast.AssignmentIncrement:
-					if ee := e1 + 1; ee < e1 {
-						d := apd.New(int64(e1), 0)
+					if ee := e + 1; ee < e {
+						d := apd.New(int64(e), 0)
 						_, _ = decimalContext.Add(d, d, decimal1)
 						err = address.assign(d)
 					} else {
 						err = address.assign(ee)
 					}
 				case ast.AssignmentDecrement:
-					if ee := e1 - 1; ee > e1 {
-						d := apd.New(int64(e1), 0)
+					if ee := e - 1; ee > e {
+						d := apd.New(int64(e), 0)
 						_, _ = decimalContext.Sub(d, d, decimal1)
 						err = address.assign(d)
 					} else {
@@ -111,15 +133,15 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				switch node.Type {
 				case ast.AssignmentIncrement:
 					d := new(apd.Decimal)
-					_, _ = decimalContext.Add(d, e1, decimal1)
+					_, _ = decimalContext.Add(d, e, decimal1)
 					err = address.assign(d)
 				case ast.AssignmentDecrement:
 					d := new(apd.Decimal)
-					_, _ = decimalContext.Sub(d, e1, decimal1)
+					_, _ = decimalContext.Sub(d, e, decimal1)
 					err = address.assign(d)
 				}
 			default:
-				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(v))
+				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(e))
 			}
 		}
 		if err != nil {
@@ -130,67 +152,26 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		if err != nil {
 			return err
 		}
+		var v interface{}
+		v1 := address.value()
 		v2, err := r.eval(node.Values[0])
 		if err != nil {
 			return err
 		}
 		v2 = asBase(v2)
-		v1, ok := address.value()
-		var v interface{}
 		switch node.Type {
 		case ast.AssignmentAddition:
-			if !ok {
-				switch v2.(type) {
-				case int, *apd.Decimal:
-					v1 = 0
-				case string:
-					v1 = ""
-				case HTML:
-					v1 = HTML("")
-				default:
-					err = fmt.Errorf("operator + not defined on %s", typeof(v2))
-				}
-			}
 			v, err = r.evalAddition(v1, v2)
-		case ast.AssignmentSubtraction:
-			if !ok {
-				switch v2.(type) {
-				case int, *apd.Decimal:
-					v1 = 0
-				default:
-					err = fmt.Errorf("operator - not defined on %s", typeof(v2))
-				}
+			if _, ok := v.(zero); ok && err == nil {
+				return r.errorf(node, "operands are both untyped zero")
 			}
+		case ast.AssignmentSubtraction:
 			v, err = r.evalSubtraction(v1, v2)
 		case ast.AssignmentMultiplication:
-			if !ok {
-				switch v2.(type) {
-				case int, *apd.Decimal:
-					v1 = 0
-				default:
-					err = fmt.Errorf("operator * not defined on %s", typeof(v2))
-				}
-			}
 			v, err = r.evalMultiplication(v1, v2)
 		case ast.AssignmentDivision:
-			if !ok {
-				switch v2.(type) {
-				case int, *apd.Decimal:
-					v1 = 0
-				default:
-					err = fmt.Errorf("operator / not defined on %s", typeof(v2))
-				}
-			}
 			v, err = r.evalDivision(v1, v2)
 		case ast.AssignmentModulo:
-			if !ok {
-				switch v2.(type) {
-				case int, *apd.Decimal:
-					v1 = 0
-				default:
-					err = fmt.Errorf("operator %% not defined on %s", typeof(v2))
-				}
-			}
 			v, err = r.evalModulo(v1, v2)
 		}
 		if err != nil {
@@ -204,7 +185,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 
 type address interface {
 	assign(value interface{}) error
-	value() (interface{}, bool)
+	value() interface{}
 }
 
 type blankAddress struct{}
@@ -213,8 +194,8 @@ func (addr blankAddress) assign(interface{}) error {
 	return nil
 }
 
-func (addr blankAddress) value() (interface{}, bool) {
-	return nil, false
+func (addr blankAddress) value() interface{} {
+	return nil
 }
 
 type scopeAddress struct {
@@ -227,9 +208,8 @@ func (addr scopeAddress) assign(value interface{}) error {
 	return nil
 }
 
-func (addr scopeAddress) value() (interface{}, bool) {
-	v, ok := addr.Scope[addr.Var]
-	return v, ok
+func (addr scopeAddress) value() interface{} {
+	return addr.Scope[addr.Var]
 }
 
 type mapAddress struct {
@@ -242,8 +222,11 @@ func (addr mapAddress) assign(value interface{}) error {
 	return nil
 }
 
-func (addr mapAddress) value() (interface{}, bool) {
-	return addr.Map.Load(addr.Key)
+func (addr mapAddress) value() interface{} {
+	if value, ok := addr.Map.Load(addr.Key); ok {
+		return value
+	}
+	return zero{}
 }
 
 type sliceAddress struct {
@@ -256,8 +239,8 @@ func (addr sliceAddress) assign(value interface{}) error {
 	return nil
 }
 
-func (addr sliceAddress) value() (interface{}, bool) {
-	return addr.Slice[addr.Index], true
+func (addr sliceAddress) value() interface{} {
+	return addr.Slice[addr.Index]
 }
 
 type bytesAddress struct {
@@ -290,8 +273,8 @@ func (addr bytesAddress) assign(value interface{}) error {
 	return err
 }
 
-func (addr bytesAddress) value() (interface{}, bool) {
-	return addr.Bytes[addr.Index], true
+func (addr bytesAddress) value() interface{} {
+	return addr.Bytes[addr.Index]
 }
 
 func (r *rendering) address(variable, expression ast.Expression) (address, error) {

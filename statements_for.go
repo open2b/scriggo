@@ -52,7 +52,18 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 					return err
 				}
-				if !cond.(bool) {
+				switch v := cond.(type) {
+				case zero:
+					return nil
+				case bool:
+					if !v {
+						return nil
+					}
+				default:
+					err = r.errorf(node, "non-bool %s (type %s) used as if condition", cond, typeof(cond))
+					if !r.handleError(err) {
+						return err
+					}
 					return nil
 				}
 			}
@@ -389,6 +400,8 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
+		case zero:
+			return nil
 		default:
 			av := reflect.ValueOf(value)
 			switch av.Kind() {

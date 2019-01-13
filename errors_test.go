@@ -41,6 +41,13 @@ var errorTests = []struct {
 	{`{% b := map(nil) %}{% b["a"] = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{{ nil() }}{{ "ok" }}`, `ok`, nil},
 	{`{{ f() }}{{ "ok" }}`, "ok", scope{"f": (func() int)(nil)}},
+	{`{{ s["a"] + s["b"] }}ok`, "ok", scope{"s": Map{}}},
+	{`{% s["a"] += s["b"] %}ok`, "ok", scope{"s": Map{}}},
+	{`{{ 2 / s["a"] }}ok`, "ok", scope{"s": Map{}}},
+	{`{{ 2.5 / s["a"] }}ok`, "ok", scope{"s": Map{}}},
+	{`{{ s["a"] / s["b"] }}ok`, "ok", scope{"s": Map{}}},
+	{`{% a := 3 %}{% a /= s["a"] %}ok`, "ok", scope{"s": Map{}}},
+	{`{% s["a"] /= s["b"] %}ok`, "ok", scope{"s": Map{}}},
 }
 
 func TestErrors(t *testing.T) {

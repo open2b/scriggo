@@ -201,9 +201,11 @@ Nodes:
 					}
 					expr = false
 				}
-				var ok bool
-				c, ok = expr.(bool)
-				if !ok {
+				switch v := expr.(type) {
+				case zero:
+				case bool:
+					c = v
+				default:
 					err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Condition, typeof(expr))
 					if !r.handleError(err) {
 						return err
@@ -492,11 +494,10 @@ func decimalToByte(n *apd.Decimal) byte {
 }
 
 func typeof(v interface{}) string {
-	if v == nil {
-		return "nil"
-	}
 	v = asBase(v)
 	switch v.(type) {
+	case nil:
+		return "nil"
 	case string:
 		return "string"
 	case HTML:
@@ -513,6 +514,8 @@ func typeof(v interface{}) string {
 		return "bytes"
 	case error:
 		return "error"
+	case zero:
+		return "untyped zero"
 	default:
 		rt := reflect.TypeOf(v)
 		switch rt.Kind() {
