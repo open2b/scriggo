@@ -1283,6 +1283,9 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
 	var fun = reflect.ValueOf(f)
 	if !fun.IsValid() {
+		if r.isBuiltin("nil", node.Func) {
+			return nil, r.errorf(node, "use of untyped nil")
+		}
 		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
 	}
 	var typ = fun.Type()
