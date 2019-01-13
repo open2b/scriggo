@@ -21,7 +21,7 @@ import (
 	"github.com/cockroachdb/apd"
 )
 
-// zero is the untyped zero
+// zero is the untyped zero.
 type zero struct{}
 
 var decimalType = reflect.TypeOf(&apd.Decimal{})

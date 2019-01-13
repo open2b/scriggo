@@ -521,9 +521,7 @@ var rendererStmtTests = []struct {
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},
 	{`{% if b, ok := bytes(a).(bytes); ok %}{{ b }}{% end %}`, "97, 226, 130, 172, 98", scope{"a": "a€b"}},
 
-	//
-	// zero
-	//
+	// untyped zero
 
 	{`{{ s["a"] }}`, "", scope{"s": Map{}}},
 
