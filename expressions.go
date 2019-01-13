@@ -1288,6 +1288,9 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		}
 		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
 	}
+	if fun.IsNil() {
+		return nil, r.errorf(node, "call of nil function")
+	}
 	var typ = fun.Type()
 	if typ.Kind() != reflect.Func {
 		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))

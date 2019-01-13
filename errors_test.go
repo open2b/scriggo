@@ -40,6 +40,7 @@ var errorTests = []struct {
 	{`{% b := map(nil) %}{% b.a = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := map(nil) %}{% b["a"] = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{{ nil() }}{{ "ok" }}`, `ok`, nil},
+	{`{{ f() }}{{ "ok" }}`, "ok", scope{"f": (func() int)(nil)}},
 }
 
 func TestErrors(t *testing.T) {
