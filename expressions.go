@@ -678,7 +678,13 @@ func (r *rendering) evalModulo(expr1, expr2 interface{}) (interface{}, error) {
 			_, _ = decimalContext.Rem(d1, d1, e2)
 			return d1, nil
 		case int:
-			return e1 % e2, nil
+			if e2 > 0 {
+				return e1 % e2, nil
+			}
+			d1 := apd.New(int64(e1), 0)
+			d2 := apd.New(int64(e2), 0)
+			_, _ = decimalContext.Rem(d1, d1, d2)
+			return d1, nil
 		}
 	}
 
