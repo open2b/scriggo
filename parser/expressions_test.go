@@ -162,14 +162,10 @@ var exprTests = []struct {
 	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "slice"))},
 	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
 	{"map{}", ast.NewMap(p(1, 1, 0, 4), []ast.KeyValue{})},
-	{"map{`a`}", ast.NewMap(p(1, 1, 0, 7), []ast.KeyValue{{ast.NewString(p(1, 5, 4, 6), "a"), nil}})},
 	{"map{`a`:5}", ast.NewMap(p(1, 1, 0, 9), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)}})},
 	{"map{`a`:5,}", ast.NewMap(p(1, 1, 0, 10), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)}})},
-	{"map{`a`,`b`:7}", ast.NewMap(p(1, 1, 0, 13), []ast.KeyValue{
-		{ast.NewString(p(1, 5, 4, 6), "a"), nil},
-		{ast.NewString(p(1, 9, 8, 10), "b"), ast.NewInt(p(1, 13, 12, 12), 7)}})},
 	{"map{`a`:5,`b`:7}", ast.NewMap(p(1, 1, 0, 15), []ast.KeyValue{
 		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), 5)},
 		{ast.NewString(p(1, 11, 10, 12), "b"), ast.NewInt(p(1, 15, 14, 14), 7)}})},
