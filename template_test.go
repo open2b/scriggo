@@ -487,11 +487,10 @@ var rendererStmtTests = []struct {
 	// byte
 	{`{% if s, ok := byte(0.43).(byte); ok %}{{ s }}{% end %}`, "0", nil},
 	{`{% if s, ok := byte(-2.43).(byte); ok %}{{ s }}{% end %}`, "254", nil},
-	{`{% if s, ok := byte(-4).(byte); ok %}{{ s }}{% end %}`, "", nil},
+	{`{% if s, ok := byte(-4).(byte); ok %}{{ s }}{% end %}`, "252", nil},
 	{`{% if s, ok := byte(5).(byte); ok %}{{ s }}{% end %}`, "5", nil},
 	{`{% if s, ok := byte(260).(byte); ok %}{{ s }}{% end %}`, "4", nil},
-	// TODO (Gianluca): anche il byte da problemi con valori negativi "grandi"
-	// {`{% s, ok := byte(-257).(byte); ok %}{{ s }}{% end %}`, "xxx", nil},
+	{`{% if s, ok := byte(-257).(byte); ok %}{{ s }}{% end %}`, "255", nil},
 	{`{% if s, ok := byte(a).(byte); ok %}{{ s }}{% end %}`, "133", scope{"a": largeDecimal}},
 
 	// map
