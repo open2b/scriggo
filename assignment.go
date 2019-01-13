@@ -333,14 +333,18 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		if err != nil {
 			return nil, err
 		}
-		m, ok := value.(Map)
-		if !ok {
+		switch m := value.(type) {
+		case Map:
+			if m == nil {
+				return nil, r.errorf(variable, "assignment to entry in nil map")
+			}
+			addr = mapAddress{Map: m, Key: v.Ident}
+		default:
 			if typeof(value) == "map" {
 				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 			}
 			return nil, r.errorf(variable, "cannot assign to %s", variable)
 		}
-		addr = mapAddress{Map: m, Key: v.Ident}
 	case *ast.Index:
 		value, err := r.eval(v.Expr)
 		if err != nil {
@@ -353,6 +357,9 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			case nil, string, HTML, *apd.Decimal, int, bool:
 			default:
 				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
+			}
+			if val == nil {
+				return nil, r.errorf(variable, "assignment to entry in nil map")
 			}
 			addr = mapAddress{Map: val, Key: key}
 		case Slice:

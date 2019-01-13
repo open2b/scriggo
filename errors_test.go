@@ -37,6 +37,8 @@ var errorTests = []struct {
 	{`{% b := map{map{}: true} %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := map{} %}{% b[map{}] = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := slice{} %}{% b[3] = 5 %}{{ "ok" }}`, `ok`, nil},
+	{`{% b := map(nil) %}{% b.a = 5 %}{{ "ok" }}`, `ok`, nil},
+	{`{% b := map(nil) %}{% b["a"] = 5 %}{{ "ok" }}`, `ok`, nil},
 }
 
 func TestErrors(t *testing.T) {
