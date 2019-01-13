@@ -180,6 +180,8 @@ var rendererExprTests = []struct {
 	{"len(map{})", "0", nil},
 	{"map{`a`:5}.a", "5", nil},
 	{"map{`a`:5,``+`a`:7}.a", "7", nil},
+	{`s["a"]`, "3", scope{"s": map[interface{}]int{"a": 3}}},
+	{`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
 
 	// selectors
 	{"a.b", "b", scope{"a": map[string]interface{}{"b": "b"}}},

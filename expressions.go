@@ -37,6 +37,8 @@ func init() {
 	numberConversionContext.Rounding = apd.RoundDown
 }
 
+var reflectValueNil = reflect.ValueOf(new(interface{})).Elem()
+
 // Slice implements the mutable slice values.
 type Slice []interface{}
 
@@ -1230,9 +1232,14 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	switch rv.Kind() {
 	case reflect.Map:
 		k := asBase(r.evalExpression(node.Index))
-		val := reflect.ValueOf(k)
-		if val.IsValid() && val.Type().AssignableTo(rv.Type().Key()) {
-			return val.Interface(), true, nil
+		mk := reflectValueNil
+		if k != nil {
+			mk = reflect.ValueOf(k)
+		}
+		if mk.Type().AssignableTo(rv.Type().Key()) {
+			if v := rv.MapIndex(mk); v.IsValid() {
+				return v.Interface(), true, nil
+			}
 		}
 		return nil, false, nil
 	case reflect.Struct, reflect.Ptr:
