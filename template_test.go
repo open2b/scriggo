@@ -528,6 +528,13 @@ var rendererStmtTests = []struct {
 	{`{{ s["a"] }}`, "", scope{"s": Map{}}},
 
 	{`{{ !s["a"] }}`, "true", scope{"s": Map{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]interface{}{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]string{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]HTML{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]*apd.Decimal{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]int{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[string]bool{}}},
+	{`{{ !s["a"] }}`, "true", scope{"s": map[interface{}]string{}}},
 
 	{`{{ s["a"] && true }}`, "false", scope{"s": Map{}}},
 	{`{{ s["a"] && false }}`, "false", scope{"s": Map{}}},

@@ -1124,53 +1124,53 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return u, ok, nil
 	case map[string]interface{}:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case map[string]string:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case map[string]HTML:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case map[string]*apd.Decimal:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case map[string]int:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case map[string]bool:
-		k := asBase(r.evalExpression(node.Index))
+		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
 			if u, ok := vv[s]; ok {
 				return u, true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case Slice:
 		i, err := checkSlice(len(vv))
 		if err != nil {
@@ -1241,7 +1241,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return v.Interface(), true, nil
 			}
 		}
-		return nil, false, nil
+		return zero{}, false, nil
 	case reflect.Struct, reflect.Ptr:
 		if keys := structKeys(rv); keys != nil {
 			k := asBase(r.evalExpression(node.Index))
