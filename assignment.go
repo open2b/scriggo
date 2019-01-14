@@ -29,12 +29,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			if err != nil {
 				return err
 			}
-			if _, ok := v.(zero); ok {
-				v = nil
-				if _, ok := addresses[0].(bytesAddress); ok {
-					v = byte(0)
-				}
-			}
 			err = addresses[0].assign(v)
 			if err != nil {
 				return r.errorf(node, "%s", err)
@@ -47,18 +41,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			v0, v1, err := r.eval2(node.Values[0], value1)
 			if err != nil {
 				return err
-			}
-			if _, ok := v0.(zero); ok {
-				v0 = nil
-				if _, ok := addresses[0].(bytesAddress); ok {
-					v0 = byte(0)
-				}
-			}
-			if _, ok := v1.(zero); ok {
-				v1 = nil
-				if _, ok := addresses[1].(bytesAddress); ok {
-					v1 = byte(0)
-				}
 			}
 			err = addresses[0].assign(v0)
 			if err != nil {
@@ -74,12 +56,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				return err
 			}
 			for i, v := range values {
-				if _, ok := v.(zero); ok {
-					v = nil
-					if _, ok := addresses[i].(bytesAddress); ok {
-						v = byte(0)
-					}
-				}
 				err = addresses[i].assign(v)
 				if err != nil {
 					return r.errorf(node, "%s", err)
@@ -204,6 +180,9 @@ type scopeAddress struct {
 }
 
 func (addr scopeAddress) assign(value interface{}) error {
+	if _, ok := value.(zero); ok {
+		value = nil
+	}
 	addr.Scope[addr.Var] = value
 	return nil
 }
@@ -218,6 +197,9 @@ type mapAddress struct {
 }
 
 func (addr mapAddress) assign(value interface{}) error {
+	if _, ok := value.(zero); ok {
+		value = nil
+	}
 	addr.Map.Store(addr.Key, value)
 	return nil
 }
@@ -235,6 +217,9 @@ type sliceAddress struct {
 }
 
 func (addr sliceAddress) assign(value interface{}) error {
+	if _, ok := value.(zero); ok {
+		value = nil
+	}
 	addr.Slice[addr.Index] = value
 	return nil
 }
@@ -262,6 +247,7 @@ func (addr bytesAddress) assign(value interface{}) error {
 		b = byte(n)
 	case *apd.Decimal:
 		b = decimalToByte(n)
+	case zero:
 	default:
 		if addr.Expr == nil {
 			err = fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(n), addr.Var)
