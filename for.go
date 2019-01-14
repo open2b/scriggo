@@ -22,14 +22,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 
 	case *ast.For:
 
-		if n.Post != nil && n.Post.Type == ast.AssignmentDeclaration {
-			err := r.errorf(n.Post, "cannot declare in post statement of for loop")
-			if r.handleError(err) {
-				return nil
-			}
-			return err
-		}
-
 		r.vars = append(r.vars, scope{})
 
 		if n.Init != nil {

@@ -272,9 +272,13 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 						var post *ast.Assignment
 						variables, tok = parseExprList(token{}, lex, true)
 						if len(variables) > 0 {
+							pos := tok.pos
 							post, tok = parseAssignment(variables, tok, lex)
 							if post == nil {
-								return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression ")}
+								return nil, &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+							}
+							if post.Type == ast.AssignmentDeclaration {
+								return nil, &Error{"", *pos, fmt.Errorf("cannot declare in post statement of for loop")}
 							}
 						}
 						pos.End = tok.pos.End
