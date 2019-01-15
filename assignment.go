@@ -305,7 +305,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		switch m := value.(type) {
 		case Map:
 			if m == nil {
-				return nil, r.errorf(variable, "assignment to entry in nil map")
+				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 			}
 			addr = mapAddress{Map: m, Key: v.Ident}
 		default:
@@ -328,13 +328,16 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
 			}
 			if val == nil {
-				return nil, r.errorf(variable, "assignment to entry in nil map")
+				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 			}
 			addr = mapAddress{Map: val, Key: key}
 		case Slice:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
 				return nil, err
+			}
+			if val == nil {
+				return nil, r.errorf(variable, "cannot assign to a non-mutable slice")
 			}
 			if index >= len(val) {
 				return nil, r.errorf(variable, "index out of range")
@@ -344,6 +347,9 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
 				return nil, err
+			}
+			if val == nil {
+				return nil, r.errorf(variable, "cannot assign to a non-mutable bytes")
 			}
 			if index >= len(val) {
 				return nil, r.errorf(variable, "index out of range")

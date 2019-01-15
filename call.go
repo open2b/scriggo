@@ -326,8 +326,9 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "map":
 		switch v := value.(type) {
-		case nil, zero:
-			return Map(nil), nil
+		case nil:
+		case zero:
+			return Map{}, nil
 		case Map:
 			return v, nil
 		default:
@@ -343,8 +344,9 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "slice":
 		switch v := value.(type) {
-		case nil, zero:
-			return Slice(nil), nil
+		case nil:
+		case zero:
+			return Slice{}, nil
 		case string:
 			return []rune(v), nil
 		case HTML:
@@ -359,8 +361,9 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		}
 	case "bytes":
 		switch v := value.(type) {
-		case nil, zero:
-			return Bytes(nil), nil
+		case nil:
+		case zero:
+			return Bytes{}, nil
 		case string:
 			return Bytes(v), nil
 		case HTML:

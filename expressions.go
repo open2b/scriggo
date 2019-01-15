@@ -450,10 +450,10 @@ func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
 		if uNil1 && uNil2 {
 			panic(r.errorf(op, "invalid operation: nil %s nil", op.Op))
 		}
-		if uNil2 && (expr1 == nil || reflect.ValueOf(expr1).IsNil()) {
+		if uNil2 && expr1 == nil {
 			return true
 		}
-		if uNil1 && (expr2 == nil || reflect.ValueOf(expr2).IsNil()) {
+		if uNil1 && expr2 == nil {
 			return true
 		}
 	}

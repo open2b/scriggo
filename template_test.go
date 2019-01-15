@@ -202,10 +202,10 @@ var rendererExprTests = []struct {
 	{"false != false", "false", nil},
 	{"true != false", "true", nil},
 	{"false != true", "true", nil},
-	{"a == nil", "true", scope{"a": scope(nil)}},
-	{"a != nil", "false", scope{"a": scope(nil)}},
-	{"nil == a", "true", scope{"a": scope(nil)}},
-	{"nil != a", "false", scope{"a": scope(nil)}},
+	{"a == nil", "true", scope{"a": nil}},
+	{"a != nil", "false", scope{"a": nil}},
+	{"nil == a", "true", scope{"a": nil}},
+	{"nil != a", "false", scope{"a": nil}},
 	{"a == nil", "false", scope{"a": "b"}},
 	{"a == nil", "false", scope{"a": 5}},
 	{"5 == 5", "true", nil},
@@ -217,16 +217,12 @@ var rendererExprTests = []struct {
 	{`a == "<a>"`, "true", scope{"a": HTML("<a>")}},
 	{`a != "<b>"`, "false", scope{"a": "<b>"}},
 	{`a != "<b>"`, "false", scope{"a": HTML("<b>")}},
-	{"map(nil) == nil", "true", nil},
-	{"map(nil) == 5", "false", nil},
-	{"map(nil) == map(nil)", "false", nil},
 	{"map{} == nil", "false", nil},
 	{"map{} == map{}", "false", nil},
-	{"slice(nil) == nil", "true", nil},
-	{"slice(nil) == 5", "false", nil},
-	{"slice(nil) == slice(nil)", "false", nil},
 	{"slice{} == nil", "false", nil},
 	{"slice{} == slice{}", "false", nil},
+	{"bytes{} == nil", "false", nil},
+	{"bytes{} == bytes{}", "false", nil},
 
 	// &&
 	{"true && true", "true", nil},
@@ -438,12 +434,10 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := string(87.5+0.5).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88888888888).(string); ok %}{{ s }}{% end %}`, "\uFFFD", nil},
-	{`{% if s, ok := string(slice(nil)).(string); ok %}{{ s }}{% end %}`, "", nil},
+	{`{% if s, ok := string(slice{}).(string); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := string(slice{35, 8364}).(string); ok %}{{ s }}{% end %}`, "#€", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "#€", scope{"a": []int{35, 8364}}},
-	{`{% if s, ok := string(bytes(nil)).(string); ok %}{{ s }}{% end %}`, "", nil},
-	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
-	{`{% if s, ok := string(bytes(nil)).(string); ok %}{{ s }}{% end %}`, "", nil},
+	{`{% if s, ok := string(bytes{}).(string); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
 
@@ -484,32 +478,25 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := byte(a).(byte); ok %}{{ s }}{% end %}`, "133", scope{"a": largeDecimal}},
 
 	// map
-	{`{% if _, ok := map(nil).(map); ok %}ok{% end %}`, "ok", nil},
-	{`{% if map(nil) == nil %}ok{% end %}`, "ok", nil},
-	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map(nil)}},
-	{`{% if map(a) == nil %}ok{% end %}`, "ok", scope{"a": Map(nil)}},
+	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map{}}},
+	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": Map{}}},
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
-	{`{% if map(a) == nil %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
+	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
 	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int{"b": 2}}},
 
 	// slice
-	{`{% if _, ok := slice(nil).(slice); ok %}ok{% end %}`, "ok", nil},
-	{`{% if slice(nil) == nil %}ok{% end %}`, "ok", nil},
-	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice(nil)}},
-	{`{% if slice(a) == nil %}ok{% end %}`, "ok", scope{"a": Slice(nil)}},
+	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice{}}},
+	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": Slice{}}},
 	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
-	{`{% if slice(a) == nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
+	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
 	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int{1, 2}}},
-	{`{% if _, ok := bytes(nil).(bytes); ok %}ok{% end %}`, "ok", nil},
 
 	// bytes
-	{`{% if bytes(nil) == nil %}ok{% end %}`, "ok", nil},
-	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": Bytes(nil)}},
-	{`{% if bytes(a) == nil %}ok{% end %}`, "ok", scope{"a": Bytes(nil)}},
+	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": Bytes{}}},
+	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": Bytes{}}},
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
-	{`{% if bytes(a) == nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
+	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},
-	{`{% if b, ok := bytes(a).(bytes); ok %}{{ b }}{% end %}`, "97, 226, 130, 172, 98", scope{"a": "a€b"}},
 
 	// untyped zero
 
@@ -694,8 +681,9 @@ var rendererStmtTests = []struct {
 	{`{{ byte(s["a"]) }}`, "0", scope{"s": Map{}}},
 	{`{% a := string(s["a"]) %}{{ a.(string) == "" }}`, "true", scope{"s": Map{}}},
 	{`{{ bool(s["a"]) }}`, "false", scope{"s": Map{}}},
-	{`{% a := map(s["a"]) %}{{ a.(map) == nil }}`, "true", scope{"s": Map{}}},
-	{`{% a := slice(s["a"]) %}{{ a.(slice) == nil }}`, "true", scope{"s": Map{}}},
+	{`{% a := map(s["a"]) %}{% if _, ok := a.(map); ok && len(a) == 0 %}ok{% end %}`, "ok", scope{"s": Map{}}},
+	{`{% a := slice(s["a"]) %}{% if _, ok := a.(slice); ok && len(a) == 0 %}ok{% end %}`, "ok", scope{"s": Map{}}},
+	{`{% a := bytes(s["a"]) %}{% if _, ok := a.(bytes); ok && len(a) == 0 %}ok{% end %}`, "ok", scope{"s": Map{}}},
 }
 
 var rendererVarsToScope = []struct {
