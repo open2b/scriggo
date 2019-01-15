@@ -257,10 +257,8 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 	switch typ {
 	case "string":
 		switch v := value.(type) {
-		case string:
+		case string, HTML:
 			return value, nil
-		case HTML:
-			return string(v), nil
 		case *apd.Decimal:
 			if v.Cmp(decimalMinInt) == -1 || v.Cmp(decimalMaxInt) == 1 {
 				return utf8.RuneError, nil
@@ -282,35 +280,6 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 			rv := reflect.ValueOf(v)
 			if rv.Kind() == reflect.Slice {
 				return convertSliceToString(rv), nil
-			}
-		}
-	case "html":
-		switch v := value.(type) {
-		case string:
-			return HTML(v), nil
-		case HTML:
-			return v, nil
-		case *apd.Decimal:
-			if v.Cmp(decimalMinInt) == -1 || v.Cmp(decimalMaxInt) == 1 {
-				return HTML(utf8.RuneError), nil
-			}
-			p, err := v.Int64()
-			if err != nil {
-				return HTML(utf8.RuneError), nil
-			}
-			return HTML(string(int(p))), nil
-		case int:
-			return HTML(string(v)), nil
-		case Bytes:
-			return HTML(string(v)), nil
-		case []byte:
-			return HTML(string(v)), nil
-		case zero:
-			return HTML(""), nil
-		default:
-			rv := reflect.ValueOf(v)
-			if rv.Kind() == reflect.Slice {
-				return HTML(convertSliceToString(rv)), nil
 			}
 		}
 	case "number":
@@ -395,7 +364,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		case string:
 			return Bytes(v), nil
 		case HTML:
-			return Bytes(string(v)), nil
+			return Bytes(v), nil
 		case Bytes:
 			return v, nil
 		default:

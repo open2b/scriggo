@@ -47,7 +47,6 @@ var builtins = map[string]interface{}{
 	"delete": _delete,
 
 	"string": valuetype("string"),
-	"html":   valuetype("html"),
 	"number": valuetype("number"),
 	"int":    valuetype("int"),
 	"rune":   valuetype("rune"),
@@ -68,6 +67,7 @@ var builtins = map[string]interface{}{
 	"hasSuffix":   strings.HasSuffix,
 	"hex":         _hex,
 	"hmac":        _hmac,
+	"html":        _html,
 	"index":       _index,
 	"indexAny":    _indexAny,
 	"itoa":        strconv.Itoa,
@@ -300,6 +300,20 @@ func _hmac(hasher, message, key string) string {
 	io.WriteString(mac, message)
 	s := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return s
+}
+
+// _html is the builtin function "html".
+func _html(s interface{}) HTML {
+	switch v := s.(type) {
+	case string:
+		return HTML(v)
+	case HTML:
+		return v
+	default:
+		// TODO (Gianluca): sostituire %? con il nome della variabile che
+		// contiene s.
+		panic(fmt.Errorf("invalid argument %v (type %T) for html", v, s))
+	}
 }
 
 // _index is the builtin function "index".

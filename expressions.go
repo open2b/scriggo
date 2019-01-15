@@ -592,16 +592,16 @@ func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) 
 		case string:
 			return e1 + e2, nil
 		case HTML:
-			return HTML(htmlEscapeString(e1) + string(e2)), nil
+			return e1 + string(e2), nil
 		case zero:
 			return e1, nil
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
 		case string:
-			return HTML(string(e1) + htmlEscapeString(e2)), nil
+			return string(e1) + e2, nil
 		case HTML:
-			return HTML(string(e1) + string(e2)), nil
+			return e1 + e2, nil
 		case zero:
 			return e1, nil
 		}
@@ -992,10 +992,8 @@ func hasType(v interface{}, typ valuetype) bool {
 	switch vv := v.(type) {
 	case nil, zero:
 		return false
-	case string:
+	case string, HTML:
 		return typ == builtins["string"]
-	case HTML:
-		return typ == builtins["string"] || typ == builtins["html"]
 	case *apd.Decimal:
 		switch typ {
 		case builtins["number"]:

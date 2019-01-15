@@ -498,10 +498,8 @@ func typeof(v interface{}) string {
 	switch v.(type) {
 	case nil:
 		return "nil"
-	case string:
+	case string, HTML:
 		return "string"
-	case HTML:
-		return "html"
 	case *apd.Decimal, int, byte:
 		return "number"
 	case bool:

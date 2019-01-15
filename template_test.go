@@ -151,7 +151,6 @@ var rendererExprTests = []struct {
 	{"a[1:]", "z€", scope{"a": stringConvertible("xz€")}},
 	{`a.(string)`, "abc", scope{"a": "abc"}},
 	{`a.(string)`, "<b>", scope{"a": HTML("<b>")}},
-	{`a.(html)`, "<b>", scope{"a": HTML("<b>")}},
 	{`a.(number)`, "5.5", scope{"a": 5.5}},
 	{`a.(number)`, "5", scope{"a": 5}},
 	{`a.(int)`, "5", scope{"a": 5}},
@@ -251,7 +250,7 @@ var rendererExprTests = []struct {
 	{`a + "b"`, "<a>b", scope{"a": "<a>"}},
 	{`a + "b"`, "<a>b", scope{"a": HTML("<a>")}},
 	{`a + "<b>"`, "<a><b>", scope{"a": "<a>"}},
-	{`a + "<b>"`, "<a>&lt;b&gt;", scope{"a": HTML("<a>")}},
+	{`a + "<b>"`, "<a><b>", scope{"a": HTML("<a>")}},
 	{"a + b", "<a><b>", scope{"a": "<a>", "b": "<b>"}},
 	{"a + b", "<a><b>", scope{"a": HTML("<a>"), "b": HTML("<b>")}},
 
@@ -418,7 +417,7 @@ var rendererStmtTests = []struct {
 	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
 	{"{% a := 12 %}{% a += 9 %}{{ a }}", "21", nil},
 	{"{% a := `ab` %}{% a += `c` %}{% if _, ok := a.(string); ok %}{{ a }}{% end %}", "abc", nil},
-	{"{% a := html(`ab`) %}{% a += `c` %}{% if _, ok := a.(html); ok %}{{ a }}{% end %}", "abc", nil},
+	{"{% a := html(`ab`) %}{% a += `c` %}{% if _, ok := a.(string); ok %}{{ a }}{% end %}", "abc", nil},
 	{"{% a := 12 %}{% a -= 3 %}{{ a }}", "9", nil},
 	{"{% a := 12 %}{% a *= 2 %}{{ a }}", "24", nil},
 	{"{% a := 12 %}{% a /= 4 %}{{ a }}", "3", nil},
@@ -447,17 +446,6 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := string(bytes(nil)).(string); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
-
-	// html
-	{`{% if s, ok := html(html("<b>")).(html); ok %}{{ s }}{% end %}`, "<b>", nil},
-	{`{% if s, ok := html("<b>").(html); ok %}{{ s }}{% end %}`, "<b>", nil},
-	{`{% if s, ok := html(87.5+0.5).(html); ok %}{{ s }}{% end %}`, "X", nil},
-	{`{% if s, ok := html(88).(html); ok %}{{ s }}{% end %}`, "X", nil},
-	{`{% if s, ok := html(88888888888).(html); ok %}{{ s }}{% end %}`, "\uFFFD", nil},
-	{`{% if s, ok := html(slice(nil)).(html); ok %}{{ s }}{% end %}`, "", nil},
-	{`{% if s, ok := html(slice{35, 8364}).(html); ok %}{{ s }}{% end %}`, "#€", nil},
-	{`{% if s, ok := html(bytes(nil)).(html); ok %}{{ s }}{% end %}`, "", nil},
-	{`{% if s, ok := html(bytes{97, 226, 130, 172, 98}).(html); ok %}{{ s }}{% end %}`, "a€b", nil},
 
 	// number
 	{`{% if s, ok := number(5).(number); ok %}{{ s }}{% end %}`, "5", nil},
@@ -705,7 +693,6 @@ var rendererStmtTests = []struct {
 	{`{{ rune(s["a"]) }}`, "0", scope{"s": Map{}}},
 	{`{{ byte(s["a"]) }}`, "0", scope{"s": Map{}}},
 	{`{% a := string(s["a"]) %}{{ a.(string) == "" }}`, "true", scope{"s": Map{}}},
-	{`{% a := html(s["a"]) %}{{ a.(html) == html("") }}`, "true", scope{"s": Map{}}},
 	{`{{ bool(s["a"]) }}`, "false", scope{"s": Map{}}},
 	{`{% a := map(s["a"]) %}{{ a.(map) == nil }}`, "true", scope{"s": Map{}}},
 	{`{% a := slice(s["a"]) %}{{ a.(slice) == nil }}`, "true", scope{"s": Map{}}},

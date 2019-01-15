@@ -112,13 +112,6 @@ var rendererBuiltinTests = []struct {
 	{"hmac(`SHA-256`, ``, `secret`)", "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk=", nil},
 	{"hmac(`SHA-256`, `hello world!`, `secret`)", "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q=", nil},
 
-	// html
-	{"html(``)", "", nil},
-	{"html(`a`)", "a", nil},
-	{"html(`<a>`)", "<a>", nil},
-	{"html(a)", "<a>", scope{"a": "<a>"}},
-	{"html(a)", "<a>", scope{"a": HTML("<a>")}},
-
 	// index
 	{"index(``,``)", "0", nil},
 	{"index(`a`,``)", "0", nil},
@@ -354,6 +347,20 @@ var rendererBuiltinTests = []struct {
 	{"trim(`bb a`, `b`)", " a", nil},
 }
 
+var rendererBuiltinTestsInHTMLContext = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	// html
+	{"html(``)", "", nil},
+	{"html(`a`)", "a", nil},
+	{"html(`<a>`)", "<a>", nil},
+	{"html(a)", "<a>", scope{"a": "<a>"}},
+	{"html(a)", "<a>", scope{"a": HTML("<a>")}},
+	{"html(a) + html(b)", "<a><b>", scope{"a": "<a>", "b": "<b>"}},
+}
+
 var statementBuiltinTests = []struct {
 	src  string
 	res  string
@@ -409,6 +416,26 @@ var rendererRandomBuiltinTests = []struct {
 func TestRenderBuiltin(t *testing.T) {
 	for _, expr := range rendererBuiltinTests {
 		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = RenderTree(b, tree, expr.vars, true)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
+func TestRenderBuiltinInHTMLContext(t *testing.T) {
+	for _, expr := range rendererBuiltinTestsInHTMLContext {
+		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
