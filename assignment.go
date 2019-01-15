@@ -321,7 +321,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		}
 		switch val := value.(type) {
 		case Map:
-			key := asBase(r.evalExpression(v.Index))
+			key := r.mapIndex(v.Index)
 			switch key.(type) {
 			case nil, string, HTML, *apd.Decimal, int, bool:
 			default:
