@@ -109,7 +109,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 		if len(n.Body) == 0 {
 			return nil
 		}
-
+		if v, ok := value.(HTML); ok {
+			value = string(v)
+		}
 		switch vv := value.(type) {
 		case string:
 			for i, v := range vv {
@@ -119,31 +121,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						return r.errorf(node, "%s", err)
 					}
 					if len(addresses) > 1 {
-						err = addresses[1].assign(string(v))
-						if err != nil {
-							return r.errorf(node, "%s", err)
-						}
-					}
-				}
-				err = r.render(wr, n.Body, urlstate)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err != errContinue {
-						return err
-					}
-				}
-			}
-		case HTML:
-			for i, v := range vv {
-				if addresses != nil {
-					err = addresses[0].assign(i)
-					if err != nil {
-						return r.errorf(node, "%s", err)
-					}
-					if len(addresses) > 1 {
-						err = addresses[1].assign(HTML(string(v)))
+						err = addresses[1].assign(v)
 						if err != nil {
 							return r.errorf(node, "%s", err)
 						}
