@@ -1537,35 +1537,41 @@ type structKey struct {
 }
 
 func (sk structKey) value(st reflect.Value) interface{} {
-	st = reflect.Indirect(st)
 	if sk.isMethod {
 		return st.Method(sk.index).Interface()
 	}
+	st = reflect.Indirect(st)
 	return st.Field(sk.index).Interface()
 }
 
 func structKeys(st reflect.Value) map[string]structKey {
-	st = reflect.Indirect(st)
-	if st.Kind() != reflect.Struct {
-		return nil
-	}
+	typ := st.Type()
 	structs.RLock()
-	keys, ok := structs.keys[st.Type()]
+	keys, ok := structs.keys[typ]
 	structs.RUnlock()
 	if ok {
 		return keys
 	}
-	typ := st.Type()
+	ityp := typ
+	kind := st.Kind()
+	if kind == reflect.Ptr {
+		st = reflect.Indirect(st)
+		kind = st.Kind()
+		ityp = st.Type()
+	}
+	if kind != reflect.Struct {
+		return nil
+	}
 	structs.Lock()
-	keys, ok = structs.keys[st.Type()]
+	keys, ok = structs.keys[typ]
 	if ok {
 		structs.Unlock()
 		return keys
 	}
 	keys = map[string]structKey{}
-	n := typ.NumField()
+	n := ityp.NumField()
 	for i := 0; i < n; i++ {
-		fieldType := typ.Field(i)
+		fieldType := ityp.Field(i)
 		if fieldType.PkgPath != "" {
 			continue
 		}
@@ -1586,7 +1592,7 @@ func structKeys(st reflect.Value) map[string]structKey {
 			keys[name] = structKey{index: i, isMethod: true}
 		}
 	}
-	structs.keys[st.Type()] = keys
+	structs.keys[typ] = keys
 	structs.Unlock()
 	return keys
 }
