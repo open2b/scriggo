@@ -30,7 +30,7 @@ func (n aNumber) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
 }
 
-func (n aNumber) Number() *apd.Decimal {
+func (n aNumber) Number() Number {
 	return apd.New(int64(n.v), 0)
 }
 
@@ -42,8 +42,8 @@ func (s aString) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, "t: "+s.v)
 }
 
-func (s aString) String() string {
-	return s.v
+func (s aString) String() String {
+	return String(s.v)
 }
 
 type stringConvertible string

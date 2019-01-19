@@ -63,14 +63,22 @@ type ValueRenderer interface {
 //
 type HTML string
 
+// String is the type returned from the String method of the Stringer
+// interface.
+type String string
+
+// Number is the type returned from the Number method of the Stringer
+// interface.
+type Number *apd.Decimal
+
 // Stringer is implemented by any value that behaves like a string.
 type Stringer interface {
-	String() string
+	String() String
 }
 
 // Numberer is implemented by any value that behaves like a number.
 type Numberer interface {
-	Number() *apd.Decimal
+	Number() Number
 }
 
 func (s HTML) Render(w io.Writer) (int, error) {

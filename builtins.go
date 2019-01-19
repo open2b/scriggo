@@ -678,7 +678,7 @@ func _sortBy(slice interface{}, field string) interface{} {
 		}
 		vv := make([]string, size)
 		for i := 0; i < size; i++ {
-			vv[i] = values[i].(Stringer).String()
+			vv[i] = string(values[i].(Stringer).String())
 		}
 		f = func(i, j int) bool { return vv[i] < vv[j] }
 	case Numberer:

@@ -1481,7 +1481,7 @@ func asBase(v interface{}) interface{} {
 	case *apd.Decimal:
 		return v
 	case Numberer:
-		return vv.Number()
+		return (*apd.Decimal)(vv.Number())
 	case complex64, complex128, uintptr:
 		panic(fmt.Errorf("cannot use %T as implementation type", vv))
 	// string
@@ -1490,7 +1490,7 @@ func asBase(v interface{}) interface{} {
 	case HTML:
 		return v
 	case Stringer:
-		return vv.String()
+		return string(vv.String())
 	// bool
 	case bool:
 		return v
