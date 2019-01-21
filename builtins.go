@@ -310,8 +310,8 @@ func _html(s interface{}) HTML {
 	case HTML:
 		return v
 	default:
-		// TODO (Gianluca): sostituire %? con il nome della variabile che
-		// contiene s.
+		// TODO (Gianluca): replace %v with the name of the variable that
+		// contains s.
 		panic(fmt.Errorf("invalid argument %v (type %T) for html", v, s))
 	}
 }

@@ -177,6 +177,256 @@ var treeTests = []struct {
 				},
 			),
 		}, ast.ContextHTML)},
+	{"{% switch x %}{% case 1 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 34),
+				nil,
+				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 15, 14, 25),
+						[]ast.Expression{
+							ast.NewInt(p(1, 23, 22, 22), 1),
+						},
+						nil,
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch x %}{% case 1 %}something{% fallthrough %}{% case 2 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 72),
+				nil,
+				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 15, 14, 25),
+						[]ast.Expression{
+							ast.NewInt(p(1, 23, 22, 22), 1),
+						},
+						[]ast.Node{
+							ast.NewText(p(1, 27, 26, 34), []byte("something"), ast.Cut{}),
+						},
+						true,
+					),
+					ast.NewCase(
+						p(1, 53, 52, 63),
+						[]ast.Expression{
+							ast.NewInt(p(1, 61, 60, 60), 2),
+						},
+						nil,
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch x := 2; x * 4 %}{% case 1 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 46),
+				ast.NewAssignment( // x := 2
+					p(1, 11, 10, 15),
+					[]ast.Expression{ast.NewIdentifier(p(1, 11, 10, 10), "x")},
+					ast.AssignmentDeclaration,
+					[]ast.Expression{ast.NewInt(p(1, 16, 15, 15), 2)},
+				),
+				ast.NewBinaryOperator( // x * 4
+					p(1, 21, 18, 22),
+					ast.OperatorMultiplication,
+					ast.NewIdentifier(p(1, 19, 18, 18), "x"),
+					ast.NewInt(p(1, 23, 22, 22), 4),
+				),
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 27, 26, 37),
+						[]ast.Expression{
+							ast.NewInt(p(1, 35, 34, 34), 1),
+						},
+						nil,
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch %}{% case 1 < 6 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 36),
+				nil,
+				nil,
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 13, 12, 27),
+						[]ast.Expression{
+							ast.NewBinaryOperator( // 1 < 6
+								p(1, 23, 20, 24),
+								ast.OperatorLess,
+								ast.NewInt(p(1, 21, 20, 20), 1),
+								ast.NewInt(p(1, 25, 24, 24), 6),
+							),
+						},
+						nil,
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch %}{% default %}{% break %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 44),
+				nil,
+				nil,
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 13, 12, 24),
+						nil,
+						[]ast.Node{
+							ast.NewBreak(p(1, 26, 25, 35)),
+						},
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch %}{% case 1 < 6, x == sum(2, -3) %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 53),
+				nil,
+				nil,
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 13, 12, 44),
+						[]ast.Expression{
+							ast.NewBinaryOperator( // 1 < 6
+								p(1, 23, 20, 24),
+								ast.OperatorLess,
+								ast.NewInt(p(1, 21, 20, 20), 1),
+								ast.NewInt(p(1, 25, 24, 24), 6),
+							),
+							ast.NewBinaryOperator(p(1, 30, 27, 41), // x == sum(2, 3)
+								ast.OperatorEqual,
+								ast.NewIdentifier(p(1, 28, 27, 27), "x"),
+								ast.NewCall(
+									p(1, 36, 32, 41),
+									ast.NewIdentifier(p(1, 33, 32, 34), "sum"),
+									[]ast.Expression{
+										ast.NewInt(p(1, 37, 36, 36), 2),
+										ast.NewInt(p(1, 40, 39, 40), -3),
+									},
+								),
+							),
+						},
+						nil,
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch x %}{% case 1 %}is one{% case 2 %}is two{% default %}is a number{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewSwitch(
+				p(1, 1, 0, 82),
+				nil,
+				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				[]*ast.Case{
+					ast.NewCase(
+						p(1, 15, 14, 25),
+						[]ast.Expression{
+							ast.NewInt(p(1, 23, 22, 22), 1),
+						},
+						[]ast.Node{
+							ast.NewText(p(1, 27, 26, 31), []byte("is one"), ast.Cut{}),
+						},
+						false,
+					),
+					ast.NewCase(
+						p(1, 33, 32, 43),
+						[]ast.Expression{
+							ast.NewInt(p(1, 41, 40, 40), 2),
+						},
+						[]ast.Node{
+							ast.NewText(p(1, 45, 44, 49), []byte("is two"), ast.Cut{}),
+						},
+						false,
+					),
+					ast.NewCase(
+						p(1, 51, 50, 62),
+						nil,
+						[]ast.Node{
+							ast.NewText(p(1, 64, 63, 73), []byte("is a number"), ast.Cut{}),
+						},
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch x.(type) %}{% case int, float %}is a number{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeSwitch(p(1, 1, 0, 61),
+				nil,
+				ast.NewAssignment(
+					p(1, 12, 10, 17),
+					[]ast.Expression{
+						ast.NewIdentifier(p(1, 12, 10, 17), "_"),
+					},
+					ast.AssignmentSimple,
+					[]ast.Expression{
+						ast.NewTypeAssertion(
+							p(1, 12, 10, 17),
+							ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+							nil,
+						),
+					},
+				),
+				[]*ast.Case{
+					ast.NewCase(p(1, 22, 21, 41),
+						[]ast.Expression{
+							ast.NewIdentifier(p(1, 30, 29, 31), "int"),
+							ast.NewIdentifier(p(1, 35, 34, 38), "float"),
+						},
+						[]ast.Node{
+							ast.NewText(p(1, 43, 42, 52), []byte("is a number"), ast.Cut{}),
+						},
+						false,
+					),
+				},
+			),
+		}, ast.ContextHTML),
+	},
+	{"{% switch v := x.(type) %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeSwitch(p(1, 1, 0, 34),
+				nil,
+				ast.NewAssignment(
+					p(1, 11, 10, 22),
+					[]ast.Expression{
+						ast.NewIdentifier(p(1, 11, 10, 10), "v"),
+					},
+					ast.AssignmentDeclaration,
+					[]ast.Expression{
+						ast.NewTypeAssertion(
+							p(1, 17, 15, 22),
+							ast.NewIdentifier(p(1, 16, 15, 15), "x"),
+							nil,
+						),
+					},
+				),
+				nil,
+			),
+		}, ast.ContextHTML),
+	},
 	{"<div \"{{ class }}\">", ast.NewTree("", []ast.Node{
 		ast.NewText(p(1, 1, 0, 5), []byte("<div \""), ast.Cut{}), ast.NewValue(p(1, 7, 6, 16),
 			ast.NewIdentifier(p(1, 10, 9, 13), "class"), ast.ContextTag), ast.NewText(p(1, 18, 17, 18), []byte("\">"), ast.Cut{}),
@@ -738,6 +988,113 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
+	case *ast.Switch:
+		nn2, ok := n2.(*ast.Switch)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Init != nil && nn2.Init == nil {
+			return fmt.Errorf("unexpected assignment %#v, expecting nil assignment", nn1.Init)
+		}
+		if nn1.Init == nil && nn2.Init != nil {
+			return fmt.Errorf("unexpected nil assignment, expecting assignment %#v", nn2.Init)
+		}
+		if nn1.Expr != nil && nn2.Expr == nil {
+			return fmt.Errorf("unexpected expression %#v, expecting nil", nn1.Expr)
+		}
+		if nn1.Expr == nil && nn2.Expr != nil {
+			return fmt.Errorf("unexpected nil expression, expecting expression %#v", nn2.Expr)
+		}
+		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return fmt.Errorf("expression: %s", err)
+		}
+		err = equals(nn1.Init, nn2.Init, p)
+		if err != nil {
+			return fmt.Errorf("assignment: %s", err)
+		}
+		if nn1.Cases == nil && nn2.Cases != nil {
+			return fmt.Errorf("unexpected nil body, expecting %#v", nn2.Cases)
+		}
+		if nn1.Cases != nil && nn2.Cases == nil {
+			return fmt.Errorf("unexpected body %#v, expecting nil", nn1.Cases)
+		}
+		if len(nn1.Cases) != len(nn2.Cases) {
+			return fmt.Errorf("unexpected body len %d, expecting %d", len(nn1.Cases), len(nn2.Cases))
+		}
+		for i, c := range nn1.Cases {
+			err := equals(c, nn2.Cases[i], p)
+			if err != nil {
+				return fmt.Errorf("case #%d: %s", i+1, err)
+			}
+		}
+
+	case *ast.TypeSwitch:
+		nn2, ok := n2.(*ast.TypeSwitch)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Init != nil && nn2.Init == nil {
+			return fmt.Errorf("unexpected assignment %#v, expecting nil assignment", nn1.Init)
+		}
+		if nn1.Init == nil && nn2.Init != nil {
+			return fmt.Errorf("unexpected nil assignment, expecting assignment %#v", nn2.Init)
+		}
+		if nn1.Assignment != nil && nn2.Assignment == nil {
+			return fmt.Errorf("unexpected expression %#v, expecting nil", nn1.Assignment)
+		}
+		if nn1.Assignment == nil && nn2.Assignment != nil {
+			return fmt.Errorf("unexpected nil expression, expecting expression %#v", nn2.Assignment)
+		}
+		err := equals(nn1.Assignment, nn2.Assignment, p)
+		if err != nil {
+			return fmt.Errorf("expression: %s", err)
+		}
+		err = equals(nn1.Init, nn2.Init, p)
+		if err != nil {
+			return fmt.Errorf("assignment: %s", err)
+		}
+		if nn1.Cases == nil && nn2.Cases != nil {
+			return fmt.Errorf("unexpected nil body, expecting %#v", nn2.Cases)
+		}
+		if nn1.Cases != nil && nn2.Cases == nil {
+			return fmt.Errorf("unexpected body %#v, expecting nil", nn1.Cases)
+		}
+		if len(nn1.Cases) != len(nn2.Cases) {
+			return fmt.Errorf("unexpected body len %d, expecting %d", len(nn1.Cases), len(nn2.Cases))
+		}
+		for i, c := range nn1.Cases {
+			err := equals(c, nn2.Cases[i], p)
+			if err != nil {
+				return fmt.Errorf("case #%d: %s", i+1, err)
+			}
+		}
+
+	case *ast.Case:
+		nn2, ok := n2.(*ast.Case)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.ExprList) != len(nn2.ExprList) {
+			return fmt.Errorf("unexpected expressions nodes len %d, expected %d", len(nn1.ExprList), len(nn2.ExprList))
+		}
+		for i, expr := range nn1.ExprList {
+			err := equals(expr, nn2.ExprList[i], p)
+			if err != nil {
+				return fmt.Errorf("expressions: %s", err)
+			}
+		}
+		if len(nn1.Body) != len(nn2.Body) {
+			return fmt.Errorf("unexpected Body nodes len %d, expected %d", len(nn1.Body), len(nn2.Body))
+		}
+		for i, expr := range nn1.Body {
+			err := equals(expr, nn2.Body[i], p)
+			if err != nil {
+				return fmt.Errorf("Body: %s", err)
+			}
+		}
+
 	case *ast.Macro:
 		nn2, ok := n2.(*ast.Macro)
 		if !ok {

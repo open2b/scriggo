@@ -328,6 +328,45 @@ func NewIf(pos *Position, assignment *Assignment, cond Expression, then []Node, 
 	return &If{pos, assignment, cond, then, els}
 }
 
+// Switch node represents a statement {% switch ... %}.
+type Switch struct {
+	*Position
+	Init  Node
+	Expr  Expression
+	Cases []*Case
+}
+
+// NewSwitch returns a new Switch node.
+func NewSwitch(pos *Position, init Node, expr Expression, cases []*Case) *Switch {
+	return &Switch{pos, init, expr, cases}
+}
+
+// TypeSwitch node represents a statement {% switch ... %} on types.
+type TypeSwitch struct {
+	*Position
+	Init       Node
+	Assignment *Assignment
+	Cases      []*Case
+}
+
+// NewTypeSwitch returns a new TypeSwitch node.
+func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, cases []*Case) *TypeSwitch {
+	return &TypeSwitch{pos, init, assignment, cases}
+}
+
+// Case node represents a statement {% case ... %} or {% default %}.
+type Case struct {
+	*Position
+	ExprList    []Expression
+	Body        []Node
+	Fallthrough bool
+}
+
+// NewCase returns a new Case node.
+func NewCase(pos *Position, expressions []Expression, body []Node, fallThrough bool) *Case {
+	return &Case{pos, expressions, body, fallThrough}
+}
+
 // Macro node represents a statement {% macro ... %}.
 type Macro struct {
 	*Position                // position in the source.
@@ -764,7 +803,7 @@ type TypeAssertion struct {
 	expression
 	*Position             // position in the source.
 	Expr      Expression  // expression.
-	Type      *Identifier // type.
+	Type      *Identifier // type. If nil, is a type switch assertion ".(type)".
 }
 
 func NewTypeAssertion(pos *Position, expr Expression, typ *Identifier) *TypeAssertion {
@@ -772,5 +811,8 @@ func NewTypeAssertion(pos *Position, expr Expression, typ *Identifier) *TypeAsse
 }
 
 func (n *TypeAssertion) String() string {
+	if n.Type == nil {
+		return n.Expr.String() + ".(type)"
+	}
 	return n.Expr.String() + ".(" + n.Type.String() + ")"
 }

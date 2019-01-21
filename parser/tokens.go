@@ -35,6 +35,11 @@ const (
 	tokenRange                              // range
 	tokenBreak                              // break
 	tokenContinue                           // continue
+	tokenSwitch                             // switch
+	tokenCase                               // case
+	tokenDefault                            // default
+	tokenFallthrough                        // fallthrough
+	tokenSwitchType                         // type
 	tokenMap                                // map
 	tokenSlice                              // slice
 	tokenBytes                              // bytes
@@ -102,6 +107,11 @@ var tokenString = map[tokenType]string{
 	tokenRange:                    "range",
 	tokenBreak:                    "break",
 	tokenContinue:                 "continue",
+	tokenSwitch:                   "switch",
+	tokenCase:                     "case",
+	tokenDefault:                  "default",
+	tokenFallthrough:              "fallthrough",
+	tokenSwitchType:               "type",
 	tokenMap:                      "map",
 	tokenSlice:                    "slice",
 	tokenBytes:                    "bytes",

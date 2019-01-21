@@ -55,7 +55,7 @@ func (err *Error) Error() string {
 
 // errBreak returned from rendering the "break" statement.
 // It is managed by the innermost "for" statement.
-var errBreak = errors.New("break is not in a loop")
+var errBreak = errors.New("break is not in a loop or switch")
 
 // errContinue is returned from the rendering of the "break" statement.
 // It is managed by the innermost "for" statement.
@@ -234,6 +234,176 @@ Nodes:
 			if err != nil {
 				return err
 			}
+
+		case *ast.Switch:
+
+			// TODO (Gianluca): handle errors correctly using handleError if
+			// necessary.
+
+			var err error
+			r.vars = append(r.vars, nil)
+
+			if node.Init != nil {
+				switch v := node.Init.(type) {
+				case ast.Expression:
+					_, err = r.eval(v)
+					if err != nil {
+						return err
+					}
+				case *ast.Assignment:
+					err = r.renderAssignment(v)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			r.vars = append(r.vars, nil)
+
+			var conditionValue interface{}
+			if node.Expr == nil {
+				conditionValue = true
+			} else {
+				conditionValue, err = r.eval(node.Expr)
+				conditionValue = asBase(conditionValue)
+				if err != nil {
+					return err
+				}
+			}
+
+			inFallthrough := false
+			for _, c := range node.Cases {
+				// TODO (Gianluca): "default" can occur in any position but must
+				// be evaluated as last case.
+
+				// TODO (Gianluca): init render as true and invert if condition
+				// removing else (if possibile)
+				render := false
+				isDefault := c.ExprList == nil
+				if inFallthrough || isDefault {
+					render = true
+				} else {
+					for _, expr := range c.ExprList {
+						caseExprValue, err := r.eval(expr)
+						conditionValue = asBase(conditionValue)
+						if err != nil {
+							return err
+						}
+						render, err = r.evalEqual(conditionValue, caseExprValue, node.Expr, expr)
+						if err != nil {
+							return err
+						}
+						if render {
+							break
+						}
+					}
+				}
+				if render {
+					err := r.render(wr, c.Body, urlstate)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						return err
+					}
+					if c.Fallthrough {
+						inFallthrough = true
+						continue
+					}
+					r.vars = r.vars[:len(r.vars)-2]
+					return nil
+				}
+			}
+
+			r.vars = r.vars[:len(r.vars)-2]
+
+			return nil
+
+		case *ast.TypeSwitch:
+			// TODO (Gianluca): apply the same changes requested for case
+			// *ast.Switch.
+
+			var err error
+
+			r.vars = append(r.vars, nil)
+
+			if node.Init != nil {
+				switch v := node.Init.(type) {
+				case ast.Expression:
+					_, err = r.eval(v)
+					if err != nil {
+						return err
+					}
+				case *ast.Assignment:
+					err = r.renderAssignment(v)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			ident := node.Assignment.Variables[0].(*ast.Identifier)
+			expr := node.Assignment.Values[0]
+
+			r.vars = append(r.vars, nil)
+
+			var guardvalue interface{}
+
+			// An assignment with a blank identifier is a type
+			// assertion encapsulated within an assignment.
+			if ident.Name == "_" {
+				expr = node.Assignment.Values[0]
+				guardvalue, err = r.eval(expr)
+				if err != nil {
+					return err
+				}
+			} else {
+				err = r.renderAssignment(node.Assignment)
+				if err != nil {
+					return err
+				}
+				guardvalue, _ = r.variable(ident.Name)
+			}
+			guardvalue = asBase(guardvalue)
+			for _, c := range node.Cases {
+				render := false
+				isDefault := c.ExprList == nil
+				if isDefault {
+					render = true
+				} else {
+					for _, expr := range c.ExprList {
+						if !isDefault {
+							caseExprValue, err := r.eval(expr)
+							if err != nil {
+								return err
+							}
+							vt2, ok := caseExprValue.(valuetype)
+							if !ok {
+								return r.errorf(c, "%s (type %s) is not a type", expr, typeof(caseExprValue))
+							}
+							render = hasType(guardvalue, vt2)
+
+						}
+						if render {
+							break
+						}
+					}
+				}
+				if render {
+					err := r.render(wr, c.Body, urlstate)
+					if err != nil {
+						if err == errBreak {
+							break
+						}
+						return err
+					}
+					return nil
+				}
+			}
+
+			r.vars = r.vars[:len(r.vars)-2]
+
+			return nil
 
 		case *ast.Break:
 			return errBreak

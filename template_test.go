@@ -395,6 +395,27 @@ var rendererStmtTests = []struct {
 	{"{% for i := 0; i < 5; i++ %}{{ i }}{% break %}{% end %}", "0", nil},
 	{"{% for i := 0; ; i++ %}{{ i }}{% if i == 4 %}{% break %}{% end %}{% end %}", "01234", nil},
 	{"{% for i := 0; i < 5; i++ %}{{ i }}{% if i == 4 %}{% continue %}{% end %},{% end %}", "0,1,2,3,4", nil},
+	{"{% switch %}{% end %}", "", nil},
+	{"{% switch %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch ; %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% i := 2 %}{% switch i++; %}{% case true %}{{ i }}{% end %}", "3", nil},
+	{"{% switch ; true %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch a := 5; a := a.(type) %}{% case int %}ok{% end %}", "ok", nil},
+	{"{% switch 3 %}{% case 3 %}three{% end %}", "three", nil},
+	{"{% switch 4 + 5 %}{% case 4 %}{% case 9 %}nine{% case 9 %}second nine{% end %}", "nine", nil},
+	{"{% switch x := 1; x + 1 %}{% case 1 %}one{% case 2 %}two{% end %}", "two", nil},
+	{"{% switch %}{% case 4 < 2%}{% case 7 < 10 %}7 < 10{% default %}other{% end %}", "7 < 10", nil},
+	{"{% switch %}{% case 4 < 2%}{% case 7 > 10 %}7 > 10{% default %}other{% end %}", "other", nil},
+	{"{% switch %}{% case true %}ab{% break %}c{% end %}", "ab", nil},
+	{"{% switch %}{% case 1 %}{% end %}", "", nil},
+	{"{% switch a, b := 2, 4; c < d %}{% case true %}{{ a }}{% case false %}{{ b }}{% end %}", "4", scope{"c": 100, "d": 90}},
+	{"{% switch a := 4; %}{% case 3 < 4 %}{{ a }}{% end %}", "4", nil},
+	{"{% switch a.(type) %}{% case string %}is a string{% case int %}is an int{% default %}is something else{% end %}", "is an int", scope{"a": 3}},
+	{"{% switch (a + b).(type) %}{% case string %}{{ a + b }} is a string{% case int %}is an int{% default %}is something else{% end %}", "msgmsg2 is a string", scope{"a": "msg", "b": "msg2"}},
+	{"{% switch x.(type) %}{% case string %}is a string{% default %}is something else{% case int %}is an int{% end %}", "is something else", scope{"x": false}},
+	{"{% switch v := a.(type) %}{% case string %}{{ v }} is a string{% case int %}{{ v }} is an int{% default %}{{ v }} is something else{% end %}", "12 is an int", scope{"a": 12}},
+	{"{% switch %}{% case 4 < 10 %}4 < 10, {% fallthrough %}{% case 4 == 10 %}4 == 10{% end %}", "4 < 10, 4 == 10", nil},
+	{"{% switch a, b := 10, \"hey\"; (a + 20).(type) %}{% case string %}string{% case number %}number, msg: {{ b }}{% default %}def{% end %}", "number, msg: hey", nil},
 	{"{% i := 0 %}{% c := true %}{% for c %}{% i++ %}{{ i }}{% c = i < 5 %}{% end %}", "12345", nil},
 	{"{% i := 0 %}{% for ; ; %}{% i++ %}{{ i }}{% if i == 4 %}{% break %}{% end %},{% end %} {{ i }}", "1,2,3,4 4", nil},
 	{"{% i := 5 %}{% i++ %}{{ i }}", "6", nil},
@@ -454,7 +475,7 @@ var rendererStmtTests = []struct {
 	{`{% if s, ok := int(-4320.3).(int); ok %}{{ s }}{% end %}`, "-4320", nil},
 	{`{% if s, ok := int(2147483647).(int); ok %}{{ s }}{% end %}`, "2147483647", nil},
 	{`{% if s, ok := int(-2147483648).(int); ok %}{{ s }}{% end %}`, "-2147483648", nil},
-	// TODO (Gianluca): finire di implementare per superare il test
+	// TODO (Gianluca): complete the implementation to pass this test
 	// {`{% if s, ok := int(9223372036854775817).(int); ok %}{{ s }}{% end %}`, "9", nil}, // math.MaxInt64 + 10
 
 	// rune

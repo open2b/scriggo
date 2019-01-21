@@ -884,10 +884,16 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenEnd, p)
 	case "extends":
 		l.emit(tokenExtends, p)
+	case "fallthrough":
+		l.emit(tokenFallthrough, p)
 	case "for":
 		l.emit(tokenFor, p)
 	case "if":
 		l.emit(tokenIf, p)
+	case "case":
+		l.emit(tokenCase, p)
+	case "default":
+		l.emit(tokenDefault, p)
 	case "import":
 		l.emit(tokenImport, p)
 	case "in":
@@ -904,6 +910,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenShow, p)
 	case "slice":
 		l.emit(tokenSlice, p)
+	case "switch":
+		l.emit(tokenSwitch, p)
+	case "type":
+		l.emit(tokenSwitchType, p)
 	default:
 		l.emit(tokenIdentifier, p)
 		l.column += cols

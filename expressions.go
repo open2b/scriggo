@@ -263,10 +263,22 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 	switch op.Op {
 
 	case ast.OperatorEqual:
-		return r.evalEqual(op)
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
+		e, err := r.evalEqual(expr1, expr2, op.Expr1, op.Expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
+		}
+		return e
 
 	case ast.OperatorNotEqual:
-		return !r.evalEqual(op)
+		expr1 := asBase(r.evalExpression(op.Expr1))
+		expr2 := asBase(r.evalExpression(op.Expr2))
+		e, err := r.evalEqual(expr1, expr2, op.Expr1, op.Expr2)
+		if err != nil {
+			panic(r.errorf(op, "invalid operation: %s (%s)", op, err))
+		}
+		return !e
 
 	case ast.OperatorLess:
 		return r.evalLess(op)
@@ -381,84 +393,82 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 }
 
 // evalEqual evaluates op as a binary equal operator and returns its value.
-// On error it calls panic with the error as argument.
-func (r *rendering) evalEqual(op *ast.BinaryOperator) bool {
-
-	expr1 := asBase(r.evalExpression(op.Expr1))
-	expr2 := asBase(r.evalExpression(op.Expr2))
+func (r *rendering) evalEqual(expr1, expr2 interface{}, op1, op2 ast.Expression) (bool, error) {
 
 	switch e1 := expr1.(type) {
 	case string:
 		switch e2 := expr2.(type) {
 		case string:
-			return e1 == e2
+			return e1 == e2, nil
 		case HTML:
-			return e1 == string(e2)
+			return e1 == string(e2), nil
 		case zero:
-			return e1 == ""
+			return e1 == "", nil
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
 		case string:
-			return string(e1) == e2
+			return string(e1) == e2, nil
 		case HTML:
-			return e1 == e2
+			return e1 == e2, nil
 		case zero:
-			return e1 == ""
+			return e1 == "", nil
 		}
 	case *apd.Decimal:
 		switch e2 := expr2.(type) {
 		case *apd.Decimal:
-			return e1.Cmp(e2) == 0
+			return e1.Cmp(e2) == 0, nil
 		case int:
-			return e1.Cmp(apd.New(int64(e2), 0)) == 0
+			return e1.Cmp(apd.New(int64(e2), 0)) == 0, nil
 		case zero:
-			return e1.IsZero()
+			return e1.IsZero(), nil
 		}
 	case int:
 		switch e2 := expr2.(type) {
 		case *apd.Decimal:
-			return apd.New(int64(e1), 0).Cmp(e2) == 0
+			return apd.New(int64(e1), 0).Cmp(e2) == 0, nil
 		case int:
-			return e1 == e2
+			return e1 == e2, nil
 		case zero:
-			return e1 == 0
+			return e1 == 0, nil
 		}
 	case bool:
 		switch e2 := expr2.(type) {
 		case bool:
-			return e1 == e2
+			return e1 == e2, nil
 		case zero:
-			return !e1
+			return !e1, nil
 		}
 	case zero:
 		switch e2 := expr2.(type) {
 		case string, HTML:
-			return e2 == ""
+			return e2 == "", nil
 		case *apd.Decimal:
-			return e2.IsZero()
+			return e2.IsZero(), nil
 		case int:
-			return e2 == 0
+			return e2 == 0, nil
 		case bool:
-			return !e2
+			return !e2, nil
 		case zero:
-			return true
+			return true, nil
 		}
 	default:
-		uNil1 := expr1 == nil && r.isBuiltin("nil", op.Expr1)
-		uNil2 := expr2 == nil && r.isBuiltin("nil", op.Expr2)
+		uNil1 := expr1 == nil && r.isBuiltin("nil", op1)
+		uNil2 := expr2 == nil && r.isBuiltin("nil", op2)
 		if uNil1 && uNil2 {
-			panic(r.errorf(op, "invalid operation: nil %s nil", op.Op))
+			// TODO (Gianluca): does not have access to operator.
+			return false, r.errorf(nil, "invalid operation: nil %s nil", "?")
 		}
 		if uNil2 && expr1 == nil {
-			return true
+			return true, nil
 		}
 		if uNil1 && expr2 == nil {
-			return true
+			return true, nil
 		}
+
 	}
 
-	return false
+	return false, nil
 }
 
 // evalLess evaluates op as a binary less operator and returns its value.
@@ -975,6 +985,9 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 // evalTypeAssertion evaluates a type assertion.
 func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	val := r.evalExpression(node.Expr)
+	if node.Type == nil { // .(type) assertion.
+		return val
+	}
 	ide := r.evalIdentifier(node.Type)
 	typ, ok := ide.(valuetype)
 	if !ok {

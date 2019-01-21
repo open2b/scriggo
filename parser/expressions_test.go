@@ -204,7 +204,7 @@ func TestExpressions(t *testing.T) {
 					}
 				}
 			}()
-			node, tok := parseExpr(token{}, lex, false)
+			node, tok := parseExpr(token{}, lex, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 			} else {
