@@ -1616,7 +1616,7 @@ func structKeys(st reflect.Value) map[string]structKey {
 	ityp := typ
 	kind := st.Kind()
 	if kind == reflect.Ptr {
-		st = reflect.Indirect(st)
+		st = st.Elem()
 		kind = st.Kind()
 		ityp = st.Type()
 	}
