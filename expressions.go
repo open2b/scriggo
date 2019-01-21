@@ -20,9 +20,6 @@ import (
 	"github.com/cockroachdb/apd"
 )
 
-// zero is the untyped zero.
-type zero struct{}
-
 var decimalType = reflect.TypeOf(&apd.Decimal{})
 var decimalContext = apd.BaseContext.WithPrecision(decPrecision)
 
@@ -210,19 +207,14 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var expr = asBase(r.evalExpression(node.Expr))
 	switch node.Op {
 	case ast.OperatorNot:
-		switch b := expr.(type) {
-		case bool:
+		if b, ok := expr.(bool); ok {
 			return !b
-		case zero:
-			return true
 		}
 		panic(r.errorf(node, "invalid operation: ! %s", typeof(expr)))
 	case ast.OperatorAddition:
 		switch expr.(type) {
 		case *apd.Decimal, int:
 			return expr
-		case zero:
-			return 0
 		}
 		panic(r.errorf(node, "invalid operation: + %s", typeof(expr)))
 	case ast.OperatorSubtraction:
@@ -235,8 +227,6 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 				return d.Neg(d)
 			}
 			return -n
-		case zero:
-			return 0
 		}
 		panic(r.errorf(node, "invalid operation: - %s", typeof(expr)))
 	}
@@ -288,14 +278,9 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 				return false
 			}
 			expr2 = asBase(r.evalExpression(op.Expr2))
-			switch e2 := expr2.(type) {
-			case bool:
+			if e2, ok := expr2.(bool); ok {
 				return e2
-			case zero:
-				return false
 			}
-		case zero:
-			return false
 		default:
 			panic(r.errorf(op, "operator && not defined on %s", typeof(expr1)))
 		}
@@ -310,19 +295,8 @@ func (r *rendering) evalBinaryOperator(op *ast.BinaryOperator) interface{} {
 				return true
 			}
 			expr2 = asBase(r.evalExpression(op.Expr2))
-			switch e2 := expr2.(type) {
-			case bool:
+			if e2, ok := expr2.(bool); ok {
 				return e2
-			case zero:
-				return false
-			}
-		case zero:
-			expr2 = asBase(r.evalExpression(op.Expr2))
-			switch e2 := expr2.(type) {
-			case bool:
-				return e2
-			case zero:
-				return false
 			}
 		default:
 			panic(r.errorf(op, "operator || not defined on %s", typeof(expr1)))
@@ -389,8 +363,6 @@ func (r *rendering) evalEqual(expr1, expr2 interface{}, op1, op2 ast.Expression)
 			return e1 == e2, nil
 		case HTML:
 			return e1 == string(e2), nil
-		case zero:
-			return e1 == "", nil
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
@@ -398,8 +370,6 @@ func (r *rendering) evalEqual(expr1, expr2 interface{}, op1, op2 ast.Expression)
 			return string(e1) == e2, nil
 		case HTML:
 			return e1 == e2, nil
-		case zero:
-			return e1 == "", nil
 		}
 	case *apd.Decimal:
 		switch e2 := expr2.(type) {
@@ -407,8 +377,6 @@ func (r *rendering) evalEqual(expr1, expr2 interface{}, op1, op2 ast.Expression)
 			return e1.Cmp(e2) == 0, nil
 		case int:
 			return e1.Cmp(apd.New(int64(e2), 0)) == 0, nil
-		case zero:
-			return e1.IsZero(), nil
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -416,28 +384,11 @@ func (r *rendering) evalEqual(expr1, expr2 interface{}, op1, op2 ast.Expression)
 			return apd.New(int64(e1), 0).Cmp(e2) == 0, nil
 		case int:
 			return e1 == e2, nil
-		case zero:
-			return e1 == 0, nil
 		}
 	case bool:
 		switch e2 := expr2.(type) {
 		case bool:
 			return e1 == e2, nil
-		case zero:
-			return !e1, nil
-		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case string, HTML:
-			return e2 == "", nil
-		case *apd.Decimal:
-			return e2.IsZero(), nil
-		case int:
-			return e2 == 0, nil
-		case bool:
-			return !e2, nil
-		case zero:
-			return true, nil
 		}
 	default:
 		uNil1 := expr1 == nil && r.isBuiltin("nil", op1)
@@ -472,8 +423,6 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 			return e1 < e2
 		case HTML:
 			return e1 < string(e2)
-		case zero:
-			return false
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
@@ -481,8 +430,6 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 			return string(e1) < e2
 		case HTML:
 			return e1 < e2
-		case zero:
-			return false
 		}
 	case *apd.Decimal:
 		switch e2 := expr2.(type) {
@@ -490,8 +437,6 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 			return e1.Cmp(e2) < 0
 		case int:
 			return e1.Cmp(apd.New(int64(e2), 0)) < 0
-		case zero:
-			return e1.Sign() == -1
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -499,21 +444,7 @@ func (r *rendering) evalLess(op *ast.BinaryOperator) bool {
 			return apd.New(int64(e1), 0).Cmp(e2) < 0
 		case int:
 			return e1 < e2
-		case zero:
-			return e1 < 0
 		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case string, HTML:
-			return e2 != ""
-		case *apd.Decimal:
-			return e2.Sign() == 1
-		case int:
-			return e2 > 0
-		case zero:
-			return false
-		}
-		panic(r.errorf(op, "operator %s not defined on %s", op.Op, typeof(expr2)))
 	}
 
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
@@ -533,8 +464,6 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 			return e1 > e2
 		case HTML:
 			return e1 > string(e2)
-		case zero:
-			return e1 != ""
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
@@ -542,8 +471,6 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 			return string(e1) > e2
 		case HTML:
 			return e1 > e2
-		case zero:
-			return e1 != ""
 		}
 	case *apd.Decimal:
 		switch e2 := expr2.(type) {
@@ -551,8 +478,6 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 			return e1.Cmp(e2) > 0
 		case int:
 			return e1.Cmp(apd.New(int64(e2), 0)) > 0
-		case zero:
-			return e1.Sign() == 1
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -560,21 +485,7 @@ func (r *rendering) evalGreater(op *ast.BinaryOperator) bool {
 			return apd.New(int64(e1), 0).Cmp(e2) > 0
 		case int:
 			return e1 > e2
-		case zero:
-			return e1 > 0
 		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case string, HTML:
-			return false
-		case *apd.Decimal:
-			return e2.Sign() == -1
-		case int:
-			return e2 < 0
-		case zero:
-			return false
-		}
-		panic(r.errorf(op, "operator %s not defined on %s", op.Op, typeof(expr2)))
 	}
 
 	panic(r.errorf(op, "invalid operation: %s %s %s", typeof(expr1), op.Op, typeof(expr2)))
@@ -590,8 +501,6 @@ func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) 
 			return e1 + e2, nil
 		case HTML:
 			return e1 + string(e2), nil
-		case zero:
-			return e1, nil
 		}
 	case HTML:
 		switch e2 := expr2.(type) {
@@ -599,8 +508,6 @@ func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) 
 			return string(e1) + e2, nil
 		case HTML:
 			return e1 + e2, nil
-		case zero:
-			return e1, nil
 		}
 	case *apd.Decimal:
 		switch e2 := expr2.(type) {
@@ -612,8 +519,6 @@ func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) 
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Add(d2, e1, d2)
 			return d2, nil
-		case zero:
-			return e1, nil
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -630,17 +535,7 @@ func (r *rendering) evalAddition(expr1, expr2 interface{}) (interface{}, error) 
 				return d1, nil
 			}
 			return e, nil
-		case zero:
-			return e1, nil
 		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case string, HTML, *apd.Decimal, int:
-			return e2, nil
-		case zero:
-			return nil, fmt.Errorf("operands are both untyped zero")
-		}
-		return nil, fmt.Errorf("operator + not defined on %s", typeof(expr2))
 	}
 
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
@@ -660,8 +555,6 @@ func (r *rendering) evalSubtraction(expr1, expr2 interface{}) (interface{}, erro
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Sub(d2, e1, d2)
 			return d2, nil
-		case zero:
-			return e1, nil
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -678,24 +571,7 @@ func (r *rendering) evalSubtraction(expr1, expr2 interface{}) (interface{}, erro
 				return d1, nil
 			}
 			return e, nil
-		case zero:
-			return e1, nil
 		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case *apd.Decimal:
-			e := new(apd.Decimal)
-			return e.Neg(e2), nil
-		case int:
-			if e2 == int(minInt) {
-				d := apd.New(int64(e2), 0)
-				return d.Neg(d), nil
-			}
-			return -e2, nil
-		case zero:
-			return 0, nil
-		}
-		return nil, fmt.Errorf("operator - not defined on %s", typeof(expr2))
 	}
 
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
@@ -715,8 +591,6 @@ func (r *rendering) evalMultiplication(expr1, expr2 interface{}) (interface{}, e
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Mul(d2, e1, d2)
 			return d2, nil
-		case zero:
-			return 0, nil
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -736,15 +610,7 @@ func (r *rendering) evalMultiplication(expr1, expr2 interface{}) (interface{}, e
 				return d1, nil
 			}
 			return e, nil
-		case zero:
-			return 0, nil
 		}
-	case zero:
-		switch expr2.(type) {
-		case *apd.Decimal, int, zero:
-			return 0, nil
-		}
-		return nil, fmt.Errorf("operator * not defined on %s", typeof(expr2))
 	}
 
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
@@ -767,8 +633,6 @@ func (r *rendering) evalDivision(expr1, expr2 interface{}) (interface{}, error) 
 			d1 := apd.New(int64(e1), 0)
 			_, _ = decimalContext.Quo(d1, d1, e2)
 			return d1, nil
-		case zero:
-			return r.evalDivision(0, e2)
 		}
 	case int:
 		if e2 == 0 {
@@ -787,17 +651,7 @@ func (r *rendering) evalDivision(expr1, expr2 interface{}) (interface{}, error) 
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Quo(d1, d1, d2)
 			return d1, nil
-		case zero:
-			return r.evalDivision(0, e2)
 		}
-	case zero:
-		switch e1 := expr1.(type) {
-		case *apd.Decimal, int:
-			return r.evalDivision(e1, 0)
-		case zero:
-			return r.evalDivision(0, 0)
-		}
-		return nil, fmt.Errorf("operator / not defined on %s", typeof(expr2))
 	}
 
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
@@ -817,8 +671,6 @@ func (r *rendering) evalModulo(expr1, expr2 interface{}) (interface{}, error) {
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Rem(d2, e1, d2)
 			return d2, nil
-		case zero:
-			return r.evalModulo(e1, 0)
 		}
 	case int:
 		switch e2 := expr2.(type) {
@@ -834,17 +686,7 @@ func (r *rendering) evalModulo(expr1, expr2 interface{}) (interface{}, error) {
 			d2 := apd.New(int64(e2), 0)
 			_, _ = decimalContext.Rem(d1, d1, d2)
 			return d1, nil
-		case zero:
-			return r.evalModulo(e1, 0)
 		}
-	case zero:
-		switch e2 := expr2.(type) {
-		case *apd.Decimal, int:
-			return r.evalModulo(0, e2)
-		case zero:
-			return r.evalModulo(0, 0)
-		}
-		return nil, fmt.Errorf("operator %% not defined on %s", typeof(expr2))
 	}
 
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
@@ -939,8 +781,6 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 			return reflect.Indirect(rv.Elem()).Interface(), true, nil
 		}
 		return v, true, nil
-	case zero:
-		return nil, false, nil
 	}
 	rv := reflect.ValueOf(value)
 	keys := structKeys(rv)
@@ -1018,7 +858,7 @@ func hasType(v interface{}, typ reflect.Type) bool {
 		return reflect.TypeOf(v).Implements(typ)
 	}
 	switch vv := v.(type) {
-	case nil, zero:
+	case nil:
 		return false
 	case string, HTML:
 		return typ == builtins["string"]
@@ -1143,9 +983,6 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		return nil, false, r.errorf(node, "index out of range")
 	case Map:
 		u, ok := vv.Load(r.mapIndex(node.Index))
-		if !ok {
-			u = zero{}
-		}
 		return u, ok, nil
 	case map[string]interface{}:
 		k := r.mapIndex(node.Index)
@@ -1154,7 +991,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return nil, false, nil
 	case map[string]string:
 		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
@@ -1162,7 +999,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return "", false, nil
 	case map[string]HTML:
 		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
@@ -1170,7 +1007,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return HTML(""), false, nil
 	case map[string]*apd.Decimal:
 		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
@@ -1178,7 +1015,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return nil, false, nil
 	case map[string]int:
 		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
@@ -1186,7 +1023,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return 0, false, nil
 	case map[string]bool:
 		k := r.mapIndex(node.Index)
 		if s, ok := k.(string); ok {
@@ -1194,7 +1031,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 				return u, true, nil
 			}
 		}
-		return zero{}, false, nil
+		return false, false, nil
 	case Slice:
 		i, err := checkSlice(len(vv))
 		if err != nil {
@@ -1249,8 +1086,6 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return nil, false, err
 		}
 		return vv[i], true, nil
-	case zero:
-		return nil, false, r.errorf(node, "index out of range")
 	}
 	var rv = reflect.ValueOf(v)
 	switch rv.Kind() {
@@ -1260,12 +1095,13 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		if k != nil {
 			mk = reflect.ValueOf(k)
 		}
-		if mk.Type().AssignableTo(rv.Type().Key()) {
+		rt := rv.Type()
+		if mk.Type().AssignableTo(rt.Key()) {
 			if v := rv.MapIndex(mk); v.IsValid() {
 				return v.Interface(), true, nil
 			}
 		}
-		return zero{}, false, nil
+		return reflect.Zero(rt.Key()).Interface(), false, nil
 	case reflect.Slice:
 		i, err := checkSlice(rv.Len())
 		if err != nil {
@@ -1284,7 +1120,6 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 		i = index
 	case *apd.Decimal:
 		i = decimalToInt(index)
-	case zero:
 	default:
 		return 0, r.errorf(node, "non-integer slice index %s", node)
 	}
@@ -1296,11 +1131,7 @@ func (r *rendering) sliceIndex(node ast.Expression) (int, error) {
 
 // mapIndex evaluates node as a map index and returns the value.
 func (r *rendering) mapIndex(node ast.Expression) interface{} {
-	index := asBase(r.evalExpression(node))
-	if _, ok := index.(zero); ok {
-		index = nil
-	}
-	return index
+	return asBase(r.evalExpression(node))
 }
 
 // evalSlicing evaluates a slice expression and returns its value.
@@ -1314,7 +1145,6 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			if l < 0 {
 				panic(r.errorf(node.Low, "invalid slice index %s (index must be non-negative)", node.Low))
 			}
-		case zero:
 		default:
 			panic(r.errorf(node.Low, "invalid slice index %s (type %s)", node.Low, typeof(n)))
 		}
@@ -1327,7 +1157,6 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 			if h < 0 {
 				panic(r.errorf(node.High, "invalid slice index %s (index must be non-negative)", node.High))
 			}
-		case zero:
 		default:
 			panic(r.errorf(node.High, "invalid slice index %s (type %s)", node.High, typeof(n)))
 		}
@@ -1355,8 +1184,6 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 		v = string(vv)
 	}
 	switch vv := v.(type) {
-	case zero:
-		panic(r.errorf(node.High, "operand is untyped zero"))
 	case string:
 		i := 0
 		lb, hb := -1, -1
@@ -1459,9 +1286,6 @@ func asBase(v interface{}) interface{} {
 	// nil
 	case nil:
 		return nil
-	// zero
-	case zero:
-		return vv
 	// number
 	case int:
 		return vv

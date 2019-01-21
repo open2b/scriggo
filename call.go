@@ -56,8 +56,6 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		case Map:
 			k := asBase(r.evalExpression(node.Args[1]))
 			_delete(m, k)
-		case zero:
-			_ = r.evalExpression(node.Args[1])
 		default:
 			v := reflect.ValueOf(arg)
 			if v.Kind() == reflect.Map {
@@ -98,10 +96,6 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			panic(r.errorf(node.Args[0], "%s", err))
 		}
 		return []reflect.Value{reflect.ValueOf(v)}, nil
-	}
-
-	if _, ok := f.(zero); ok {
-		return nil, r.errorf(node, "call of nil function")
 	}
 
 	var fun = reflect.ValueOf(f)
@@ -195,9 +189,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			}
 			args[i] = reflect.Zero(in)
 		} else {
-			if _, ok := arg.(zero); ok {
-				args[i] = reflect.Zero(in)
-			} else if inKind == reflect.Interface {
+			if inKind == reflect.Interface {
 				args[i] = reflect.ValueOf(arg)
 			} else if d, ok := arg.(*apd.Decimal); ok && in == decimalType {
 				args[i] = reflect.ValueOf(d)
@@ -289,8 +281,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 			return string(v), nil
 		case []byte:
 			return string(v), nil
-		case zero:
-			return "", nil
 		default:
 			rv := reflect.ValueOf(v)
 			if rv.Kind() == reflect.Slice {
@@ -301,8 +291,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 		switch v := value.(type) {
 		case *apd.Decimal, int:
 			return v, nil
-		case zero:
-			return 0, nil
 		}
 	case builtins["int"]:
 		switch v := value.(type) {
@@ -310,8 +298,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 			return decimalToInt(v), nil
 		case int:
 			return v, nil
-		case zero:
-			return 0, nil
 		}
 	case builtins["rune"]:
 		switch v := value.(type) {
@@ -323,8 +309,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 			return int(i64), nil
 		case int:
 			return int(rune(v)), nil
-		case zero:
-			return 0, nil
 		}
 	case builtins["byte"]:
 		switch v := value.(type) {
@@ -332,17 +316,10 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 			return int(decimalToByte(v)), nil
 		case int:
 			return int(byte(v)), nil
-		case zero:
-			return 0, nil
-		}
-	case builtins["bool"]:
-		if _, ok := value.(zero); ok {
-			return false, nil
 		}
 	case builtins["map"]:
 		switch v := value.(type) {
 		case nil:
-		case zero:
 			return Map{}, nil
 		case Map:
 			return v, nil
@@ -360,8 +337,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 	case builtins["slice"]:
 		switch v := value.(type) {
 		case nil:
-		case zero:
-			return Slice{}, nil
 		case string:
 			return []rune(v), nil
 		case HTML:
@@ -377,8 +352,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 	case builtins["bytes"]:
 		switch v := value.(type) {
 		case nil:
-		case zero:
-			return Bytes{}, nil
 		case string:
 			return Bytes(v), nil
 		case HTML:
@@ -394,9 +367,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 	}
 	if value == nil {
 		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
-	}
-	if _, ok := value.(zero); ok {
-		return nil, fmt.Errorf("cannot convert untyped zero to type %s", typ)
 	}
 	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
 }

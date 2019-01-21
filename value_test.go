@@ -311,7 +311,7 @@ var scriptContextTests = []struct {
 		A int
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
-	{`s["a"]`, "undefined", scope{"s": Map{}}},
+	{`s["a"]`, "null", scope{"s": Map{}}},
 }
 
 func TestScriptContext(t *testing.T) {
@@ -353,7 +353,6 @@ var scriptStringContextTests = []struct {
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, scope{"a": "a"}},
 	{`a`, `\x3c\x3e\"`, scope{"a": "<>\""}},
-	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestScriptStringContext(t *testing.T) {
@@ -391,7 +390,6 @@ var cssContextTests = []struct {
 	{`5.2`, `5.2`, nil},
 	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
-	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestCSSContext(t *testing.T) {
@@ -438,7 +436,6 @@ var cssStringContextTests = []struct {
 	{`a`, `\3c\3e\22 `, scope{"a": "<>\""}},
 	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
-	{`s["a"]`, "", scope{"s": Map{}}},
 }
 
 func TestCSSStringContext(t *testing.T) {

@@ -232,7 +232,6 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		s = e
 	case HTML:
@@ -284,7 +283,6 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		return htmlEscape(w, e)
 	case HTML:
@@ -360,7 +358,6 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		return attributeEscape(w, e, quoted)
 	case HTML:
@@ -414,7 +411,6 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		s = e
 	case HTML:
@@ -493,7 +489,6 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Val
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		_, err := w.WriteString(`"`)
 		if err != nil {
@@ -543,7 +538,6 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 	var s string
 
 	switch e := value.(type) {
-	case zero:
 	case string:
 		return cssStringEscape(w, e)
 	case HTML:
@@ -573,9 +567,6 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 	switch e := value.(type) {
 	case nil:
 		_, err := w.WriteString("null")
-		return err
-	case zero:
-		_, err := w.WriteString("undefined")
 		return err
 	case string:
 		_, err := w.WriteString("\"")
@@ -685,8 +676,6 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 	switch e := value.(type) {
 	case nil:
 		return r.errorf(node, "no-render type %s", typeof(value))
-	case zero:
-		return nil
 	case string:
 		err := scriptStringEscape(w, e)
 		return err

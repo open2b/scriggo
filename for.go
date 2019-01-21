@@ -45,8 +45,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					return err
 				}
 				switch v := cond.(type) {
-				case zero:
-					return nil
 				case bool:
 					if !v {
 						return nil
@@ -370,8 +368,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case zero:
-			return nil
 		default:
 			av := reflect.ValueOf(value)
 			switch av.Kind() {

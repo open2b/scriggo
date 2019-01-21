@@ -202,7 +202,6 @@ Nodes:
 					expr = false
 				}
 				switch v := expr.(type) {
-				case zero:
 				case bool:
 					c = v
 				default:
@@ -680,8 +679,6 @@ func typeof(v interface{}) string {
 		return "slice"
 	case Bytes:
 		return "bytes"
-	case zero:
-		return "untyped zero"
 	}
 	return fmt.Sprintf("%T", v)
 }

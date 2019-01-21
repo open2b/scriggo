@@ -167,8 +167,6 @@ func _append(slice interface{}, elems ...interface{}) interface{} {
 		panic(fmt.Errorf("first argument to append must be slice; have nil"))
 	}
 	switch s := slice.(type) {
-	case zero:
-		panic(fmt.Errorf("first argument to append must be slice; have untyped zero"))
 	case Slice:
 		return append(s, elems...)
 	case Bytes:
@@ -270,9 +268,6 @@ func _base64(s string) string {
 
 // _delete is the builtin function "delete".
 func _delete(m Map, key interface{}) {
-	if _, ok := key.(zero); ok {
-		key = nil
-	}
 	m.Delete(key)
 }
 
@@ -349,8 +344,6 @@ func _lastIndex(s, sep string) int {
 // _len is the builtin function "len".
 func _len(v interface{}) int {
 	switch s := v.(type) {
-	case zero:
-		return 0
 	case string:
 		if len(s) <= 1 {
 			return len(s)

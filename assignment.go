@@ -78,12 +78,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			case ast.AssignmentDecrement:
 				err = address.assign(e - 1)
 			}
-		case zero:
-			if node.Type == ast.AssignmentIncrement {
-				_ = address.assign(1)
-			} else {
-				_ = address.assign(-1)
-			}
 		default:
 			switch e := asBase(v).(type) {
 			case nil:
@@ -140,9 +134,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		switch node.Type {
 		case ast.AssignmentAddition:
 			v, err = r.evalAddition(v1, v2)
-			if _, ok := v.(zero); ok && err == nil {
-				return r.errorf(node, "operands are both untyped zero")
-			}
 		case ast.AssignmentSubtraction:
 			v, err = r.evalSubtraction(v1, v2)
 		case ast.AssignmentMultiplication:
@@ -182,9 +173,6 @@ type scopeAddress struct {
 }
 
 func (addr scopeAddress) assign(value interface{}) error {
-	if _, ok := value.(zero); ok {
-		value = nil
-	}
 	addr.Scope[addr.Var] = value
 	return nil
 }
@@ -247,9 +235,6 @@ type mapAddress struct {
 }
 
 func (addr mapAddress) assign(value interface{}) error {
-	if _, ok := value.(zero); ok {
-		value = nil
-	}
 	addr.Map.Store(addr.Key, value)
 	return nil
 }
@@ -258,7 +243,7 @@ func (addr mapAddress) value() interface{} {
 	if value, ok := addr.Map.Load(addr.Key); ok {
 		return value
 	}
-	return zero{}
+	return nil
 }
 
 type goMapAddress struct {
@@ -267,9 +252,6 @@ type goMapAddress struct {
 }
 
 func (addr goMapAddress) assign(value interface{}) error {
-	if _, ok := value.(zero); ok {
-		value = nil
-	}
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
@@ -287,9 +269,6 @@ type sliceAddress struct {
 }
 
 func (addr sliceAddress) assign(value interface{}) error {
-	if _, ok := value.(zero); ok {
-		value = nil
-	}
 	addr.Slice[addr.Index] = value
 	return nil
 }
@@ -331,7 +310,6 @@ func (addr bytesAddress) assign(value interface{}) error {
 		b = byte(n)
 	case *apd.Decimal:
 		b = decimalToByte(n)
-	case zero:
 	default:
 		if addr.Expr == nil {
 			err = fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(n), addr.Var)
