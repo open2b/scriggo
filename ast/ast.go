@@ -801,12 +801,12 @@ func (n *Selector) String() string {
 // TypeAssertion node represents a type assertion expression.
 type TypeAssertion struct {
 	expression
-	*Position             // position in the source.
-	Expr      Expression  // expression.
-	Type      *Identifier // type. If nil, is a type switch assertion ".(type)".
+	*Position            // position in the source.
+	Expr      Expression // expression.
+	Type      Expression // type, is nil if it is a type switch assertion ".(type)".
 }
 
-func NewTypeAssertion(pos *Position, expr Expression, typ *Identifier) *TypeAssertion {
+func NewTypeAssertion(pos *Position, expr Expression, typ Expression) *TypeAssertion {
 	return &TypeAssertion{expression{}, pos, expr, typ}
 }
 

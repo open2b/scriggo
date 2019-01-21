@@ -45,17 +45,20 @@ var builtins = map[string]interface{}{
 	"len":    _len,
 	"append": _append,
 	"delete": _delete,
+	"new":    _new,
 
-	"string": valuetype("string"),
-	"number": valuetype("number"),
-	"int":    valuetype("int"),
-	"rune":   valuetype("rune"),
-	"byte":   valuetype("byte"),
-	"bool":   valuetype("bool"),
-	"map":    valuetype("map"),
-	"slice":  valuetype("slice"),
-	"bytes":  valuetype("bytes"),
-	"error":  valuetype("error"),
+	"string": reflect.TypeOf(""),
+	"number": reflect.TypeOf(Number(nil)),
+	"int":    reflect.TypeOf(0),
+	"rune":   reflect.TypeOf(rune(0)),
+	"byte":   reflect.TypeOf(byte(0)),
+	"bool":   reflect.TypeOf(false),
+	"map":    reflect.TypeOf(Map{}),
+	"slice":  reflect.TypeOf(Slice{}),
+	"bytes":  reflect.TypeOf(Bytes{}),
+	"error":  reflect.TypeOf((*error)(nil)).Elem(),
+
+	"os": _os,
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
@@ -420,6 +423,11 @@ func _min(a, b *apd.Decimal) *apd.Decimal {
 		return b
 	}
 	return a
+}
+
+// _new is the builtin function "new".
+func _new(typ reflect.Type) reflect.Value {
+	return reflect.New(typ)
 }
 
 // _rand is the builtin function "rand".

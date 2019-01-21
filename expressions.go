@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 
 	"open2b/template/ast"
 
@@ -38,6 +39,9 @@ func init() {
 }
 
 var reflectValueNil = reflect.ValueOf(new(interface{})).Elem()
+
+// Package represents a package.
+type Package map[string]interface{}
 
 // Slice implements the mutable slice values.
 type Slice []interface{}
@@ -83,23 +87,9 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 			if err != nil {
 				return nil, false, err
 			}
-			var typ valuetype
-			for i := len(r.vars) - 1; i >= 0; i-- {
-				if r.vars[i] != nil {
-					if i == 0 && e.Type.Name == "len" {
-						return nil, false, r.errorf(e, "use of builtin len not in function call")
-					}
-					if v, ok := r.vars[i][e.Type.Name]; ok {
-						if vt, ok := v.(valuetype); ok {
-							typ = vt
-							break
-						}
-						return nil, false, r.errorf(e.Type, "%s is not a type", e.Type.Name)
-					}
-				}
-				if i == 0 {
-					return nil, false, r.errorf(e.Type, "undefined: %s", e.Type.Name)
-				}
+			typ, err := r.evalType(e.Type)
+			if err != nil {
+				return nil, false, err
 			}
 			ok := hasType(v, typ)
 			if !ok {
@@ -924,7 +914,32 @@ func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 // identifier exists it returns the value and true, otherwise it returns nil
 // and false.
 func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error) {
-	value := asBase(r.evalExpression(node.Expr))
+	value, err := r.eval(node.Expr)
+	if err != nil {
+		return nil, false, err
+	}
+	if pkg, ok := value.(Package); ok {
+		v, ok := pkg[node.Ident]
+		if !ok {
+			if fc, _ := utf8.DecodeRuneInString(node.Ident); !unicode.Is(unicode.Lu, fc) {
+				return nil, false, r.errorf(node, "cannot refer to unexported name %s", node)
+			}
+			return nil, false, r.errorf(node, "undefined: %s", node)
+		}
+		if _, ok := v.(reflect.Type); ok {
+			return nil, false, r.errorf(node, "type %s is not an expression", node)
+		}
+		if reflect.TypeOf(v).Kind() == reflect.Ptr {
+			// Var returns a varAddress instance from a pointer to a value.
+			rv := reflect.ValueOf(v)
+			if rv.Kind() != reflect.Ptr {
+				return nil, false, fmt.Errorf("template: no-pointer value in call to Var")
+			}
+			return reflect.Indirect(rv.Elem()).Interface(), true, nil
+		}
+		return v, true, nil
+	}
+	value = asBase(value)
 	// map
 	if v2, ok := value.(map[string]interface{}); ok {
 		if v3, ok := v2[node.Ident]; ok {
@@ -988,20 +1003,63 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	if node.Type == nil { // .(type) assertion.
 		return val
 	}
-	ide := r.evalIdentifier(node.Type)
-	typ, ok := ide.(valuetype)
-	if !ok {
-		panic(r.errorf(node.Type, "%s is not a type", node.Type.Name))
+	typ, err := r.evalType(node.Type)
+	if err != nil {
+		panic(err)
 	}
 	if !hasType(val, typ) {
-		panic(r.errorf(node.Type, "%s is %s, not %s", node.Expr, typeof(val), typ))
+		panic(r.errorf(node.Type, "%s is %s, not %s", node.Expr, reflect.TypeOf(val), typ))
 	}
 	return val
 }
 
+// evalType evaluates an expression as type.
+func (r *rendering) evalType(expr ast.Expression) (reflect.Type, error) {
+	var value interface{}
+	switch e := expr.(type) {
+	case *ast.Identifier:
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if i == 0 && e.Name == "len" {
+					return nil, r.errorf(e, "use of builtin len not in function call")
+				}
+				if v, ok := r.vars[i][e.Name]; ok {
+					if typ, ok := v.(reflect.Type); ok && i == 0 {
+						return typ, nil
+					}
+					return nil, r.errorf(e, "%s is not a type", expr)
+				}
+			}
+		}
+		return nil, r.errorf(expr, "undefined: %s", expr)
+	case *ast.Selector:
+		if ident, ok := e.Expr.(*ast.Identifier); ok {
+			v2 := r.evalIdentifier(ident)
+			if pkg, ok := v2.(Package); ok {
+				value, ok = pkg[e.Ident]
+				if !ok {
+					if fc, _ := utf8.DecodeRuneInString(e.Ident); !unicode.Is(unicode.Lu, fc) {
+						return nil, r.errorf(expr, "cannot refer to unexported name %s", expr)
+					}
+					return nil, r.errorf(expr, "undefined: %s", expr)
+				}
+				typ, ok := value.(reflect.Type)
+				if !ok {
+					return nil, r.errorf(expr, "%s is not a type", expr)
+				}
+				return typ, nil
+			}
+		}
+	}
+	return nil, r.errorf(expr, "%s is not a type", expr)
+}
+
 // hasType indicates if v has type typ.
-func hasType(v interface{}, typ valuetype) bool {
+func hasType(v interface{}, typ reflect.Type) bool {
 	v = asBase(v)
+	if typ.Kind() == reflect.Interface {
+		return reflect.TypeOf(v).Implements(typ)
+	}
 	switch vv := v.(type) {
 	case nil, zero:
 		return false
@@ -1515,6 +1573,8 @@ func asBase(v interface{}) interface{} {
 		return v
 	// Bytes
 	case Bytes:
+		return v
+	case Package:
 		return v
 	default:
 		rv := reflect.ValueOf(v)

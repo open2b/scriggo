@@ -9,6 +9,8 @@ package template
 import (
 	"fmt"
 	"reflect"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/cockroachdb/apd"
 
@@ -191,6 +193,54 @@ func (addr scopeAddress) value() interface{} {
 	return addr.Scope[addr.Var]
 }
 
+type varAddress struct {
+	Value reflect.Value
+}
+
+func (addr varAddress) assign(value interface{}) error {
+	switch v := value.(type) {
+	case string:
+		addr.Value.SetString(v)
+	case HTML:
+		addr.Value.SetString(string(v))
+	case float32:
+		addr.Value.SetFloat(float64(v))
+	case float64:
+		addr.Value.SetFloat(v)
+	case int:
+		addr.Value.SetInt(int64(v))
+	case int8:
+		addr.Value.SetInt(int64(v))
+	case int16:
+		addr.Value.SetInt(int64(v))
+	case int32:
+		addr.Value.SetInt(int64(v))
+	case int64:
+		addr.Value.SetInt(v)
+	case uint:
+		addr.Value.SetUint(uint64(v))
+	case uint8:
+		addr.Value.SetUint(uint64(v))
+	case uint16:
+		addr.Value.SetUint(uint64(v))
+	case uint32:
+		addr.Value.SetUint(uint64(v))
+	case uint64:
+		addr.Value.SetUint(v)
+	case bool:
+		addr.Value.SetBool(v)
+	case []byte:
+		addr.Value.SetBytes(v)
+	default:
+		addr.Value.Set(reflect.ValueOf(v))
+	}
+	return nil
+}
+
+func (addr varAddress) value() interface{} {
+	return reflect.Indirect(addr.Value).Interface()
+}
+
 type mapAddress struct {
 	Map Map
 	Key interface{}
@@ -302,12 +352,25 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		if err != nil {
 			return nil, err
 		}
-		switch m := value.(type) {
+		switch vv := value.(type) {
 		case Map:
-			if m == nil {
+			if vv == nil {
 				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
 			}
-			addr = mapAddress{Map: m, Key: v.Ident}
+			addr = mapAddress{Map: vv, Key: v.Ident}
+		case Package:
+			vvv, ok := vv[v.Ident]
+			if !ok {
+				if fc, _ := utf8.DecodeRuneInString(v.Ident); !unicode.Is(unicode.Lu, fc) {
+					return nil, r.errorf(variable, "cannot refer to unexported name %s", variable)
+				}
+				return nil, r.errorf(variable, "undefined: %s", variable)
+			}
+			rv := reflect.ValueOf(vvv)
+			if rv.Kind() != reflect.Ptr {
+				return nil, r.errorf(variable, "cannot assign to %s", variable)
+			}
+			addr = varAddress{Value: rv.Elem()}
 		default:
 			if typeof(value) == "map" {
 				return nil, r.errorf(variable, "cannot assign to a non-mutable map")

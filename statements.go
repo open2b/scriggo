@@ -377,7 +377,7 @@ Nodes:
 							if err != nil {
 								return err
 							}
-							vt2, ok := caseExprValue.(valuetype)
+							vt2, ok := caseExprValue.(reflect.Type)
 							if !ok {
 								return r.errorf(c, "%s (type %s) is not a type", expr, typeof(caseExprValue))
 							}

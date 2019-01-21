@@ -346,7 +346,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 					pos.End = tok.pos.End
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:
-					// e.(type)
+					// e.(ident), e.(pkg.ident)
 					tok = next(lex)
 					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice && tok.typ != tokenBytes && tok.typ != tokenSwitchType {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
@@ -354,7 +354,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {
 						panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
-					var typ *ast.Identifier
+					var typ ast.Expression
 					switch tok.typ {
 					case tokenSwitchType:
 						if !canBeSwitchGuard {
@@ -370,6 +370,17 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 						typ = ast.NewIdentifier(tok.pos, string(tok.txt))
 					}
 					tok = next(lex)
+					if tok.typ == tokenPeriod {
+						tok = next(lex)
+						if tok.typ != tokenIdentifier {
+							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+						}
+						if len(tok.txt) == 1 && tok.txt[0] == '_' {
+							panic(&Error{"", *tok.pos, fmt.Errorf("cannot refer to blank field or method")})
+						}
+						typ = ast.NewSelector(typ.Pos(), typ, string(tok.txt))
+						tok = next(lex)
+					}
 					if tok.typ != tokenRightParenthesis {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 					}

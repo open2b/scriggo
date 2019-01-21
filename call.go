@@ -69,9 +69,24 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		return nil, nil
 	}
 
-	var f = r.evalExpression(node.Func)
+	if r.isBuiltin("new", node.Func) {
+		err := r.checkBuiltInParameterCount(node, 1, 1, n)
+		if err != nil {
+			return nil, err
+		}
+		typ, err := r.evalType(node.Args[0])
+		if err != nil {
+			return nil, err
+		}
+		return []reflect.Value{_new(typ)}, nil
+	}
 
-	if typ, ok := f.(valuetype); ok {
+	var f, err = r.eval(node.Func)
+	if err != nil {
+		return nil, err
+	}
+
+	if typ, ok := f.(reflect.Type); ok {
 		if len(node.Args) == 0 {
 			return nil, r.errorf(node, "missing argument to conversion to %s: %s", typ, node)
 		}
@@ -252,10 +267,10 @@ func (r *rendering) checkBuiltInParameterCount(node *ast.Call, numIn, numOut, n 
 }
 
 // convert converts the value of expr to type typ.
-func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, error) {
+func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{}, error) {
 	value := asBase(r.evalExpression(expr))
 	switch typ {
-	case "string":
+	case builtins["string"]:
 		switch v := value.(type) {
 		case string, HTML:
 			return value, nil
@@ -282,14 +297,14 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				return convertSliceToString(rv), nil
 			}
 		}
-	case "number":
+	case builtins["number"]:
 		switch v := value.(type) {
 		case *apd.Decimal, int:
 			return v, nil
 		case zero:
 			return 0, nil
 		}
-	case "int":
+	case builtins["int"]:
 		switch v := value.(type) {
 		case *apd.Decimal:
 			return decimalToInt(v), nil
@@ -298,7 +313,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		case zero:
 			return 0, nil
 		}
-	case "rune":
+	case builtins["rune"]:
 		switch v := value.(type) {
 		case *apd.Decimal:
 			e := new(apd.Decimal)
@@ -311,7 +326,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		case zero:
 			return 0, nil
 		}
-	case "byte":
+	case builtins["byte"]:
 		switch v := value.(type) {
 		case *apd.Decimal:
 			return int(decimalToByte(v)), nil
@@ -320,11 +335,11 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 		case zero:
 			return 0, nil
 		}
-	case "bool":
+	case builtins["bool"]:
 		if _, ok := value.(zero); ok {
 			return false, nil
 		}
-	case "map":
+	case builtins["map"]:
 		switch v := value.(type) {
 		case nil:
 		case zero:
@@ -342,7 +357,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				}
 			}
 		}
-	case "slice":
+	case builtins["slice"]:
 		switch v := value.(type) {
 		case nil:
 		case zero:
@@ -359,7 +374,7 @@ func (r *rendering) convert(expr ast.Expression, typ valuetype) (interface{}, er
 				return v, nil
 			}
 		}
-	case "bytes":
+	case builtins["bytes"]:
 		switch v := value.(type) {
 		case nil:
 		case zero:
