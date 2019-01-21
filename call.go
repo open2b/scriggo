@@ -59,12 +59,12 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		case zero:
 			_ = r.evalExpression(node.Args[1])
 		default:
-			typ := typeof(arg)
-			if typ == "map" {
-				return nil, r.errorf(node, "cannot delete from non-mutable map")
-			} else {
-				return nil, r.errorf(node, "first argument to delete must be map; have %s", typ)
+			v := reflect.ValueOf(arg)
+			if v.Kind() == reflect.Map {
+				k := reflect.ValueOf(asBase(r.evalExpression(node.Args[1])))
+				v.SetMapIndex(k, reflect.Value{})
 			}
+			return nil, r.errorf(node, "first argument to delete must be map; have %s", typeof(arg))
 		}
 		return nil, nil
 	}

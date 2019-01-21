@@ -663,38 +663,25 @@ func decimalToByte(n *apd.Decimal) byte {
 	return byte(p)
 }
 
+// typeof returns the string representation of the type of v.
+// If v is nil returns "nil".
 func typeof(v interface{}) string {
 	v = asBase(v)
 	switch v.(type) {
 	case nil:
 		return "nil"
-	case string, HTML:
+	case HTML:
 		return "string"
 	case *apd.Decimal, int, byte:
 		return "number"
-	case bool:
-		return "bool"
 	case Map:
 		return "map"
 	case Slice:
 		return "slice"
 	case Bytes:
 		return "bytes"
-	case error:
-		return "error"
 	case zero:
 		return "untyped zero"
-	default:
-		rt := reflect.TypeOf(v)
-		switch rt.Kind() {
-		case reflect.Map, reflect.Struct, reflect.Ptr:
-			return "map"
-		case reflect.Slice:
-			if rt.Elem().Kind() == reflect.Uint8 {
-				return "bytes"
-			}
-			return "slice"
-		}
 	}
-	return fmt.Sprintf("(%T)", v)
+	return fmt.Sprintf("%T", v)
 }

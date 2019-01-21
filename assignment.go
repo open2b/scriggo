@@ -261,6 +261,26 @@ func (addr mapAddress) value() interface{} {
 	return zero{}
 }
 
+type goMapAddress struct {
+	Map reflect.Value
+	Key reflect.Value
+}
+
+func (addr goMapAddress) assign(value interface{}) error {
+	if _, ok := value.(zero); ok {
+		value = nil
+	}
+	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
+	return nil
+}
+
+func (addr goMapAddress) value() interface{} {
+	if value := addr.Map.MapIndex(addr.Key); value.IsValid() {
+		return value.Interface()
+	}
+	return reflect.Zero(addr.Map.Type().Elem())
+}
+
 type sliceAddress struct {
 	Slice Slice
 	Index int
@@ -276,6 +296,20 @@ func (addr sliceAddress) assign(value interface{}) error {
 
 func (addr sliceAddress) value() interface{} {
 	return addr.Slice[addr.Index]
+}
+
+type goSliceAddress struct {
+	Slice reflect.Value
+	Index int
+}
+
+func (addr goSliceAddress) assign(value interface{}) error {
+	addr.Slice.Index(addr.Index).Set(reflect.ValueOf(value))
+	return nil
+}
+
+func (addr goSliceAddress) value() interface{} {
+	return addr.Slice.Index(addr.Index).Interface()
 }
 
 type bytesAddress struct {
@@ -354,9 +388,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		}
 		switch vv := value.(type) {
 		case Map:
-			if vv == nil {
-				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
-			}
 			addr = mapAddress{Map: vv, Key: v.Ident}
 		case Package:
 			vvv, ok := vv[v.Ident]
@@ -372,10 +403,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			}
 			addr = varAddress{Value: rv.Elem()}
 		default:
-			if typeof(value) == "map" {
-				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
-			}
-			return nil, r.errorf(variable, "cannot assign to %s", variable)
+			return nil, r.errorf(variable, "%s undefined (type %s has no field or method %s)", variable, typeof(variable), v.Ident)
 		}
 	case *ast.Index:
 		value, err := r.eval(v.Expr)
@@ -390,17 +418,11 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			default:
 				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
 			}
-			if val == nil {
-				return nil, r.errorf(variable, "cannot assign to a non-mutable map")
-			}
 			addr = mapAddress{Map: val, Key: key}
 		case Slice:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
 				return nil, err
-			}
-			if val == nil {
-				return nil, r.errorf(variable, "cannot assign to a non-mutable slice")
 			}
 			if index >= len(val) {
 				return nil, r.errorf(variable, "index out of range")
@@ -419,11 +441,22 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			}
 			addr = bytesAddress{Bytes: val, Index: index, Var: variable, Expr: expression}
 		default:
-			switch t := typeof(value); t {
-			case "map", "slice", "bytes":
-				return nil, r.errorf(v, "cannot assign to a non-mutable %s", t)
+			rv := reflect.ValueOf(value)
+			switch rv.Kind() {
+			case reflect.Map:
+				key := reflect.ValueOf(r.mapIndex(v.Index))
+				addr = goMapAddress{Map: rv, Key: key}
+			case reflect.Slice:
+				index, err := r.sliceIndex(v.Index)
+				if err != nil {
+					return nil, err
+				}
+				if index >= rv.Len() {
+					return nil, r.errorf(variable, "index out of range")
+				}
+				addr = goSliceAddress{Slice: rv, Index: index}
 			default:
-				return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, t)
+				return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, typeof(variable))
 			}
 		}
 	}

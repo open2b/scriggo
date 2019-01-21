@@ -43,7 +43,7 @@ var reflectValueNil = reflect.ValueOf(new(interface{})).Elem()
 // Package represents a package.
 type Package map[string]interface{}
 
-// Slice implements the mutable slice values.
+// Slice implements a value with type "slice".
 type Slice []interface{}
 
 // Bytes implements the mutable bytes values.
@@ -93,10 +93,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 			}
 			ok := hasType(v, typ)
 			if !ok {
-				v = nil
-				if typ == builtins["byte"] {
-					v = 0
-				}
+				v = zeroOf(typ)
 			}
 			return v, ok, nil
 		case *ast.Selector:
@@ -1445,6 +1442,15 @@ func (r *rendering) isBuiltin(name string, expr ast.Expression) bool {
 		}
 	}
 	return false
+}
+
+// zeroOf returns the zero value of the type typ.
+func zeroOf(typ reflect.Type) interface{} {
+	switch typ {
+	case builtins["map"]:
+		return nil
+	}
+	return reflect.Zero(typ)
 }
 
 // asBase returns the base value of v.

@@ -16,7 +16,7 @@ import (
 // decimalHash implements a key of type decimal.
 type decimalHash string
 
-// Map implements the mutable map values.
+// Map implements a value of type "map".
 type Map map[interface{}]interface{}
 
 // Delete deletes the value for a key.
