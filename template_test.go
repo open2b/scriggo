@@ -155,7 +155,7 @@ var rendererExprTests = []struct {
 	{`a.(number)`, "5", scope{"a": 5}},
 	{`a.(int)`, "5", scope{"a": 5}},
 	{`a.(bool)`, "true", scope{"a": true}},
-	{`a.(map).B`, "b", scope{"a": &struct{ B string }{B: "b"}}},
+	{`a.(map).B`, "b", scope{"a": Map{"B": "b"}}},
 	{`a.(slice)`, "1, 2, 3", scope{"a": []int{1, 2, 3}}},
 	{`a.(error)`, "err", scope{"a": errors.New("err")}},
 
@@ -384,7 +384,6 @@ var rendererStmtTests = []struct {
 	{"{% s := slice{} %}{% for k, v := range map{`a`: `1`, `b`: `2`} %}{% s = append(s, k+`:`+v) %}{% end %}{{ sort(s) }}", "a:1, b:2", nil},
 	{"{% for k, v := range map{} %}{{ k }}:{{ v }},{% end %}", "", nil},
 	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{{ sort(s) }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
-	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, k+`:`+v) %}{% end %}{{ sort(s) }}", "C:3, b:2", scope{"m": aStruct{a: "1", B: "2", C: "3"}}},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% i := 0 %}{% c := \"\" %}{% for i, c = range \"ab\" %}({{ c }}){% end %}{{ i }}", "(97)(98)1", nil},

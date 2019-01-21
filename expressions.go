@@ -1115,10 +1115,8 @@ func hasType(v interface{}, typ reflect.Type) bool {
 		return false
 	}
 	switch rv := reflect.ValueOf(v); rv.Kind() {
-	case reflect.Struct, reflect.Map:
+	case reflect.Map:
 		return typ == builtins["map"]
-	case reflect.Ptr:
-		return typ == builtins["map"] && reflect.Indirect(rv).Kind() == reflect.Struct
 	case reflect.Slice:
 		return typ == builtins["slice"]
 	}
@@ -1311,16 +1309,6 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			}
 		}
 		return zero{}, false, nil
-	case reflect.Struct, reflect.Ptr:
-		if keys := structKeys(rv); keys != nil {
-			k := asBase(r.evalExpression(node.Index))
-			if k, ok := k.(string); ok {
-				if sk, ok := keys[k]; ok {
-					return sk.value(rv), true, nil
-				}
-			}
-			return nil, false, nil
-		}
 	case reflect.Slice:
 		i, err := checkSlice(rv.Len())
 		if err != nil {
