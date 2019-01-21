@@ -918,83 +918,43 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
-	if pkg, ok := value.(Package); ok {
-		v, ok := pkg[node.Ident]
+	value = asBase(value)
+	switch v := value.(type) {
+	case Map:
+		vv, ok := v.Load(node.Ident)
+		return vv, ok, nil
+	case Package:
+		vv, ok := v[node.Ident]
 		if !ok {
 			if fc, _ := utf8.DecodeRuneInString(node.Ident); !unicode.Is(unicode.Lu, fc) {
 				return nil, false, r.errorf(node, "cannot refer to unexported name %s", node)
 			}
 			return nil, false, r.errorf(node, "undefined: %s", node)
 		}
-		if _, ok := v.(reflect.Type); ok {
+		if _, ok := vv.(reflect.Type); ok {
 			return nil, false, r.errorf(node, "type %s is not an expression", node)
 		}
-		if reflect.TypeOf(v).Kind() == reflect.Ptr {
-			// Var returns a varAddress instance from a pointer to a value.
-			rv := reflect.ValueOf(v)
+		if reflect.TypeOf(vv).Kind() == reflect.Ptr {
+			rv := reflect.ValueOf(vv)
 			if rv.Kind() != reflect.Ptr {
 				return nil, false, fmt.Errorf("template: no-pointer value in call to Var")
 			}
 			return reflect.Indirect(rv.Elem()).Interface(), true, nil
 		}
 		return v, true, nil
-	}
-	value = asBase(value)
-	// map
-	if v2, ok := value.(map[string]interface{}); ok {
-		if v3, ok := v2[node.Ident]; ok {
-			return v3, true, nil
-		}
-		return nil, false, nil
-	}
-	switch v := value.(type) {
-	case Map:
-		vv, ok := v.Load(node.Ident)
-		return vv, ok, nil
-	case map[string]interface{}:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
-	case map[string]string:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
-	case map[string]HTML:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
-	case map[string]*apd.Decimal:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
-	case map[string]int:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
-	case map[string]bool:
-		vv, ok := v[node.Ident]
-		return vv, ok, nil
 	case zero:
 		return nil, false, nil
 	}
 	rv := reflect.ValueOf(value)
-	switch rv.Kind() {
-	case reflect.Map:
-		if rv.Type().Key().Kind() == reflect.String {
-			v := rv.MapIndex(reflect.ValueOf(node.Ident))
-			if !v.IsValid() {
-				return nil, false, nil
-			}
-			return v.Interface(), true, nil
-		}
-		return nil, false, r.errorf(node, "unsupported vars type")
-	case reflect.Struct, reflect.Ptr:
-		keys := structKeys(rv)
-		if keys == nil {
-			return nil, false, r.errorf(node, "unsupported vars type")
-		}
-		sk, ok := keys[node.Ident]
-		if !ok {
-			return nil, false, nil
-		}
-		return sk.value(rv), true, nil
+	keys := structKeys(rv)
+	if keys == nil {
+		return nil, false, r.errorf(node, "%s undefined (type %s has no field or method %s)", node, typeof(value), node.Ident)
 	}
-	return nil, false, r.errorf(node, "invalid operation: %s (type %s is not map)", node, typeof(value))
+	sk, ok := keys[node.Ident]
+	if !ok {
+		return nil, false, nil
+	}
+	return sk.value(rv), true, nil
 }
 
 // evalTypeAssertion evaluates a type assertion.
