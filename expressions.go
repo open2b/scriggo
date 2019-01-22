@@ -780,7 +780,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 			}
 			return reflect.Indirect(rv.Elem()).Interface(), true, nil
 		}
-		return v, true, nil
+		return vv, true, nil
 	}
 	rv := reflect.ValueOf(value)
 	keys := structKeys(rv)
