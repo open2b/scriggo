@@ -696,6 +696,9 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+		if nn1.Context != nn2.Context {
+			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
+		}
 	case *ast.Text:
 		nn2, ok := n2.(*ast.Text)
 		if !ok {
