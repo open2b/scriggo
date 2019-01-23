@@ -58,7 +58,9 @@ var builtins = map[string]interface{}{
 	"bytes":  reflect.TypeOf(Bytes{}),
 	"error":  reflect.TypeOf((*error)(nil)).Elem(),
 
-	"os": _os,
+	// packages
+	"os":   _os,
+	"time": _time,
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
