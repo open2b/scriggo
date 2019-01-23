@@ -85,6 +85,8 @@ var builtins = map[string]interface{}{
 	"replaceAll":  _replaceAll,
 	"reverse":     _reverse,
 	"round":       _round,
+	"printf":      _printf,
+	"println":     _println,
 	"sha1":        _sha1,
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,
@@ -421,6 +423,16 @@ func _min(a, b *apd.Decimal) *apd.Decimal {
 // _new is the builtin function "new".
 func _new(typ reflect.Type) reflect.Value {
 	return reflect.New(typ)
+}
+
+// _printf is the builtin function "printf".
+func _printf(format string, a ...interface{}) (n int, err error) {
+	return fmt.Printf(format, a...)
+}
+
+// _println is the builtin function "println".
+func _println(a ...interface{}) (n int, err error) {
+	return fmt.Println(a...)
 }
 
 // _rand is the builtin function "rand".
