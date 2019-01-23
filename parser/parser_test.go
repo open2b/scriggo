@@ -1079,11 +1079,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		if len(nn1.ExprList) != len(nn2.ExprList) {
-			return fmt.Errorf("unexpected expressions nodes len %d, expected %d", len(nn1.ExprList), len(nn2.ExprList))
+		if len(nn1.Expressions) != len(nn2.Expressions) {
+			return fmt.Errorf("unexpected expressions nodes len %d, expected %d", len(nn1.Expressions), len(nn2.Expressions))
 		}
-		for i, expr := range nn1.ExprList {
-			err := equals(expr, nn2.ExprList[i], p)
+		for i, expr := range nn1.Expressions {
+			err := equals(expr, nn2.Expressions[i], p)
 			if err != nil {
 				return fmt.Errorf("expressions: %s", err)
 			}

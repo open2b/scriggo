@@ -278,11 +278,11 @@ Nodes:
 				// TODO (Gianluca): init render as true and invert if condition
 				// removing else (if possibile)
 				render := false
-				isDefault := c.ExprList == nil
+				isDefault := c.Expressions == nil
 				if inFallthrough || isDefault {
 					render = true
 				} else {
-					for _, expr := range c.ExprList {
+					for _, expr := range c.Expressions {
 						caseExprValue, err := r.eval(expr)
 						conditionValue = asBase(conditionValue)
 						if err != nil {
@@ -366,11 +366,11 @@ Nodes:
 			guardvalue = asBase(guardvalue)
 			for _, c := range node.Cases {
 				render := false
-				isDefault := c.ExprList == nil
+				isDefault := c.Expressions == nil
 				if isDefault {
 					render = true
 				} else {
-					for _, expr := range c.ExprList {
+					for _, expr := range c.Expressions {
 						if !isDefault {
 							caseExprValue, err := r.eval(expr)
 							if err != nil {

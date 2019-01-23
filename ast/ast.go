@@ -357,7 +357,7 @@ func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, cases []*Ca
 // Case node represents a statement {% case ... %} or {% default %}.
 type Case struct {
 	*Position
-	ExprList    []Expression
+	Expressions []Expression
 	Body        []Node
 	Fallthrough bool
 }

@@ -444,13 +444,13 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				switch s := parent.(type) {
 				case *ast.Switch:
 					for _, c := range s.Cases {
-						if c.ExprList == nil {
+						if c.Expressions == nil {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())}
 						}
 					}
 				case *ast.TypeSwitch:
 					for _, c := range s.Cases {
-						if c.ExprList == nil {
+						if c.Expressions == nil {
 							return nil, &Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())}
 						}
 					}
