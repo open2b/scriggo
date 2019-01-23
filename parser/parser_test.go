@@ -19,6 +19,38 @@ func p(line, column, start, end int) *ast.Position {
 	return &ast.Position{line, column, start, end}
 }
 
+var noneContextTreeTests = []struct {
+	src  string
+	node ast.Node
+}{
+	{"", ast.NewTree("", nil, ast.ContextNone)},
+	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.ContextNone)},
+	{"a := 1", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 5), "a")},
+			ast.AssignmentDeclaration, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), 1)})}, ast.ContextNone)},
+	{"a.b = 2", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 6), []ast.Expression{ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
+			ast.AssignmentSimple, []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 2)})}, ast.ContextNone)},
+	{"if a {\n\tb\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}, nil)}, ast.ContextNone)},
+	{"if a {\t\tb\t}\t", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
+			[]ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}, nil)}, ast.ContextNone)},
+	{"if a {\n\tb\n} else {\n\tc\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")},
+			[]ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")})}, ast.ContextNone)},
+	{"for _, v := range e {\n\tb\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
+			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
+			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.ContextNone)},
+	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, []*ast.Case{
+			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextNone)},
+}
+
 var treeTests = []struct {
 	src  string
 	node ast.Node
@@ -586,6 +618,20 @@ func pageTests() map[string]struct {
 			"<div>{{ content }}</div>",
 			nil,
 		},
+	}
+}
+
+func TestNoneContextTrees(t *testing.T) {
+	for _, tree := range noneContextTreeTests {
+		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", tree.src, err)
+			continue
+		}
+		err = equals(node, tree.node, 0)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", tree.src, err)
+		}
 	}
 }
 

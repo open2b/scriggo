@@ -404,8 +404,6 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 				tokenDivision,       // e /
 				tokenModulo:         // e %
 				operator = ast.NewBinaryOperator(tok.pos, operatorType(tok.typ), nil, nil)
-			case tokenEOF:
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting expression")})
 			default:
 				if len(path) > 0 {
 					// Adds the operand as a child of the leaf operator.

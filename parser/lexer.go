@@ -83,6 +83,9 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 	start := len(l.text) - len(l.src)
 	end := start + length - 1
 	if length == 0 {
+		if typ == tokenSemicolon {
+			start--
+		}
 		end = start
 	}
 	l.tokens <- token{
@@ -108,251 +111,262 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
-	p := 0 // token length in bytes
+	if l.ctx == ast.ContextNone {
 
-	lin := l.line   // token line
-	col := l.column // token column
-
-	var quote = byte(0)
-	var emittedURL bool
-
-	isHTML := l.ctx == ast.ContextHTML
-
-LOOP:
-	for p < len(l.src) {
-
-		c := l.src[p]
-
-		if c == '{' && p+1 < len(l.src) {
-			switch l.src[p+1] {
-			case '{':
-				if p > 0 {
-					l.emitAtLineColumn(lin, col, tokenText, p)
-				}
-				err := l.lexShow()
-				if err != nil {
-					l.src = nil
-					l.err = err
-					break LOOP
-				}
-				p = 0
-				lin = l.line
-				col = l.column
-				continue
-			case '%':
-				if p > 0 {
-					l.emitAtLineColumn(lin, col, tokenText, p)
-				}
-				err := l.lexStatement()
-				if err != nil {
-					l.src = nil
-					l.err = err
-					break LOOP
-				}
-				p = 0
-				lin = l.line
-				col = l.column
-				continue
-			case '#':
-				if p > 0 {
-					l.emitAtLineColumn(lin, col, tokenText, p)
-				}
-				err := l.lexComment()
-				if err != nil {
-					l.src = nil
-					l.err = err
-					break LOOP
-				}
-				p = 0
-				lin = l.line
-				col = l.column
-				continue
-			}
+		err := l.lexCode()
+		if err != nil {
+			l.src = nil
+			l.err = err
 		}
 
-		switch l.ctx {
+	} else {
 
-		case ast.ContextHTML:
-			if c == '<' {
-				// <![CDATA[...]]>
-				if p+8 < len(l.src) && l.src[p+1] == '!' {
-					if bytes.HasPrefix(l.src[p:], cdataStart) {
-						// Skips the CDATA section.
-						p += 6
-						l.column += 6
-						var t int
-						if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
-							t = len(l.src)
-						} else {
-							t = p + i + 2
+		p := 0 // token length in bytes
+
+		lin := l.line   // token line
+		col := l.column // token column
+
+		var quote = byte(0)
+		var emittedURL bool
+
+		isHTML := l.ctx == ast.ContextHTML
+
+	LOOP:
+		for p < len(l.src) {
+
+			c := l.src[p]
+
+			if c == '{' && p+1 < len(l.src) {
+				switch l.src[p+1] {
+				case '{':
+					if p > 0 {
+						l.emitAtLineColumn(lin, col, tokenText, p)
+					}
+					err := l.lexShow()
+					if err != nil {
+						l.src = nil
+						l.err = err
+						break LOOP
+					}
+					p = 0
+					lin = l.line
+					col = l.column
+					continue
+				case '%':
+					if p > 0 {
+						l.emitAtLineColumn(lin, col, tokenText, p)
+					}
+					err := l.lexStatement()
+					if err != nil {
+						l.src = nil
+						l.err = err
+						break LOOP
+					}
+					p = 0
+					lin = l.line
+					col = l.column
+					continue
+				case '#':
+					if p > 0 {
+						l.emitAtLineColumn(lin, col, tokenText, p)
+					}
+					err := l.lexComment()
+					if err != nil {
+						l.src = nil
+						l.err = err
+						break LOOP
+					}
+					p = 0
+					lin = l.line
+					col = l.column
+					continue
+				}
+			}
+
+			switch l.ctx {
+
+			case ast.ContextHTML:
+				if c == '<' {
+					// <![CDATA[...]]>
+					if p+8 < len(l.src) && l.src[p+1] == '!' {
+						if bytes.HasPrefix(l.src[p:], cdataStart) {
+							// Skips the CDATA section.
+							p += 6
+							l.column += 6
+							var t int
+							if i := bytes.Index(l.src[p:], cdataEnd); i < 0 {
+								t = len(l.src)
+							} else {
+								t = p + i + 2
+							}
+							for ; p < t; p++ {
+								if c = l.src[p]; c == '\n' {
+									l.newline()
+								} else if isStartChar(c) {
+									l.column++
+								}
+							}
+							continue
 						}
-						for ; p < t; p++ {
-							if c = l.src[p]; c == '\n' {
-								l.newline()
-							} else if isStartChar(c) {
+					}
+					// Start tag.
+					p++
+					l.column++
+					l.tag, p = l.scanTag(p)
+					if l.tag != "" {
+						l.ctx = ast.ContextTag
+					}
+					continue
+				}
+
+			case ast.ContextTag:
+				if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
+					// End tag.
+					switch l.tag {
+					case "script":
+						l.ctx = ast.ContextScript
+					case "style":
+						l.ctx = ast.ContextCSS
+					default:
+						l.ctx = ast.ContextHTML
+					}
+					l.tag = ""
+					if c == '/' {
+						p++
+						l.column++
+					}
+				} else if !isASCIISpace(c) {
+					// Checks if it is an attribute.
+					var next int
+					if l.attr, next = l.scanAttribute(p); next > p {
+						p = next
+						if l.attr != "" && p < len(l.src) {
+							// Start attribute value.
+							if c := l.src[p]; c == '"' || c == '\'' {
+								quote = c
+								p++
 								l.column++
+							}
+							if containsURL(l.tag, l.attr) {
+								l.emitAtLineColumn(lin, col, tokenText, p)
+								if quote == 0 {
+									l.ctx = ast.ContextUnquotedAttribute
+								} else {
+									l.ctx = ast.ContextAttribute
+								}
+								l.emit(tokenStartURL, 0)
+								emittedURL = true
+								p = 0
+								lin = l.line
+								col = l.column
+								continue
+							} else {
+								if quote == 0 {
+									l.ctx = ast.ContextUnquotedAttribute
+								} else {
+									l.ctx = ast.ContextAttribute
+								}
 							}
 						}
 						continue
 					}
 				}
-				// Start tag.
-				p++
-				l.column++
-				l.tag, p = l.scanTag(p)
-				if l.tag != "" {
-					l.ctx = ast.ContextTag
-				}
-				continue
-			}
 
-		case ast.ContextTag:
-			if c == '>' || c == '/' && p < len(l.src) && l.src[p] == '>' {
-				// End tag.
-				switch l.tag {
-				case "script":
-					l.ctx = ast.ContextScript
-				case "style":
-					l.ctx = ast.ContextCSS
-				default:
-					l.ctx = ast.ContextHTML
-				}
-				l.tag = ""
-				if c == '/' {
-					p++
-					l.column++
-				}
-			} else if !isASCIISpace(c) {
-				// Checks if it is an attribute.
-				var next int
-				if l.attr, next = l.scanAttribute(p); next > p {
-					p = next
-					if l.attr != "" && p < len(l.src) {
-						// Start attribute value.
-						if c := l.src[p]; c == '"' || c == '\'' {
-							quote = c
-							p++
-							l.column++
-						}
-						if containsURL(l.tag, l.attr) {
-							l.emitAtLineColumn(lin, col, tokenText, p)
-							if quote == 0 {
-								l.ctx = ast.ContextUnquotedAttribute
-							} else {
-								l.ctx = ast.ContextAttribute
-							}
-							l.emit(tokenStartURL, 0)
-							emittedURL = true
-							p = 0
-							lin = l.line
-							col = l.column
-							continue
-						} else {
-							if quote == 0 {
-								l.ctx = ast.ContextUnquotedAttribute
-							} else {
-								l.ctx = ast.ContextAttribute
-							}
-						}
-					}
-					continue
-				}
-			}
-
-		case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-			if l.ctx == ast.ContextAttribute && c == quote ||
-				l.ctx == ast.ContextUnquotedAttribute && (c == '>' || isASCIISpace(c)) {
-				// End attribute.
-				quote = 0
-				if emittedURL {
-					if p > 0 {
-						l.emitAtLineColumn(lin, col, tokenText, p)
-					}
-					l.emit(tokenEndURL, 0)
-					emittedURL = false
-					p = 0
-					lin = l.line
-					col = l.column
-				}
-				l.ctx = ast.ContextTag
-				l.attr = ""
-			}
-
-		case ast.ContextCSS:
-			if isHTML && c == '<' && isEndStyle(l.src[p:]) {
-				// </style>
-				l.ctx = ast.ContextHTML
-				p += 7
-				l.column += 7
-			} else if c == '"' || c == '\'' {
-				l.ctx = ast.ContextCSSString
-				quote = c
-			}
-
-		case ast.ContextCSSString:
-			switch c {
-			case '\\':
-				if p+1 < len(l.src) && l.src[p+1] == quote {
-					p++
-					l.column++
-				}
-			case quote:
-				l.ctx = ast.ContextCSS
-				quote = 0
-			case '<':
-				if isHTML && isEndStyle(l.src[p:]) {
-					l.ctx = ast.ContextHTML
+			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
+				if l.ctx == ast.ContextAttribute && c == quote ||
+					l.ctx == ast.ContextUnquotedAttribute && (c == '>' || isASCIISpace(c)) {
+					// End attribute.
 					quote = 0
+					if emittedURL {
+						if p > 0 {
+							l.emitAtLineColumn(lin, col, tokenText, p)
+						}
+						l.emit(tokenEndURL, 0)
+						emittedURL = false
+						p = 0
+						lin = l.line
+						col = l.column
+					}
+					l.ctx = ast.ContextTag
+					l.attr = ""
+				}
+
+			case ast.ContextCSS:
+				if isHTML && c == '<' && isEndStyle(l.src[p:]) {
+					// </style>
+					l.ctx = ast.ContextHTML
 					p += 7
 					l.column += 7
+				} else if c == '"' || c == '\'' {
+					l.ctx = ast.ContextCSSString
+					quote = c
 				}
-			}
 
-		case ast.ContextScript:
-			if isHTML && c == '<' && isEndScript(l.src[p:]) {
-				// </script>
-				l.ctx = ast.ContextHTML
-				p += 8
-				l.column += 8
-			} else if c == '"' || c == '\'' {
-				l.ctx = ast.ContextScriptString
-				quote = c
-			}
-
-		case ast.ContextScriptString:
-			switch c {
-			case '\\':
-				if p+1 < len(l.src) && l.src[p+1] == quote {
-					p++
-					l.column++
-				}
-			case quote:
-				l.ctx = ast.ContextScript
-				quote = 0
-			case '<':
-				if isHTML && isEndScript(l.src[p:]) {
-					l.ctx = ast.ContextHTML
+			case ast.ContextCSSString:
+				switch c {
+				case '\\':
+					if p+1 < len(l.src) && l.src[p+1] == quote {
+						p++
+						l.column++
+					}
+				case quote:
+					l.ctx = ast.ContextCSS
 					quote = 0
+				case '<':
+					if isHTML && isEndStyle(l.src[p:]) {
+						l.ctx = ast.ContextHTML
+						quote = 0
+						p += 7
+						l.column += 7
+					}
+				}
+
+			case ast.ContextScript:
+				if isHTML && c == '<' && isEndScript(l.src[p:]) {
+					// </script>
+					l.ctx = ast.ContextHTML
 					p += 8
 					l.column += 8
+				} else if c == '"' || c == '\'' {
+					l.ctx = ast.ContextScriptString
+					quote = c
 				}
+
+			case ast.ContextScriptString:
+				switch c {
+				case '\\':
+					if p+1 < len(l.src) && l.src[p+1] == quote {
+						p++
+						l.column++
+					}
+				case quote:
+					l.ctx = ast.ContextScript
+					quote = 0
+				case '<':
+					if isHTML && isEndScript(l.src[p:]) {
+						l.ctx = ast.ContextHTML
+						quote = 0
+						p += 8
+						l.column += 8
+					}
+				}
+
+			}
+
+			p++
+			if c == '\n' {
+				l.newline()
+				continue
+			}
+			if isStartChar(c) {
+				l.column++
 			}
 
 		}
 
-		p++
-		if c == '\n' {
-			l.newline()
-			continue
+		if len(l.src) > 0 {
+			l.emitAtLineColumn(lin, col, tokenText, p)
 		}
-		if isStartChar(c) {
-			l.column++
-		}
-
-	}
-
-	if len(l.src) > 0 {
-		l.emitAtLineColumn(lin, col, tokenText, p)
 	}
 
 	l.emit(tokenEOF, 0)
@@ -695,7 +709,9 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '}':
-					break LOOP
+					if l.ctx != ast.ContextNone {
+						break LOOP
+					}
 				case '=':
 					l.emit(tokenModuloAssignment, 2)
 					l.column += 2
@@ -778,11 +794,14 @@ LOOP:
 			unclosedLeftBraces++
 		case '}':
 			if unclosedLeftBraces > 0 {
+				if endLineAsSemicolon && l.ctx == ast.ContextNone {
+					l.emit(tokenSemicolon, 0)
+				}
 				l.emit(tokenRightBraces, 1)
 				l.column++
 				endLineAsSemicolon = true
 				unclosedLeftBraces--
-			} else if len(l.src) > 1 && l.src[1] == '}' {
+			} else if l.ctx != ast.ContextNone && len(l.src) > 1 && l.src[1] == '}' {
 				break LOOP
 			} else {
 				return l.errorf("unexpected }")
@@ -805,12 +824,11 @@ LOOP:
 			l.column++
 		case '\n':
 			if endLineAsSemicolon {
-				l.emit(tokenSemicolon, 1)
+				l.emit(tokenSemicolon, 0)
 				endLineAsSemicolon = false
-			} else {
-				l.src = l.src[1:]
 			}
 			l.newline()
+			l.src = l.src[1:]
 		case ';':
 			l.emit(tokenSemicolon, 1)
 			l.column++
@@ -827,6 +845,9 @@ LOOP:
 				}
 			}
 		}
+	}
+	if endLineAsSemicolon && l.ctx == ast.ContextNone {
+		l.emit(tokenSemicolon, 0)
 	}
 	return nil
 }
@@ -871,13 +892,16 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		p += s
 		cols++
 	}
+	endLineAsSemicolon := false
 	switch string(l.src[0:p]) {
 	case "break":
 		l.emit(tokenBreak, p)
+		endLineAsSemicolon = true
 	case "bytes":
 		l.emit(tokenBytes, p)
 	case "continue":
 		l.emit(tokenContinue, p)
+		endLineAsSemicolon = true
 	case "else":
 		l.emit(tokenElse, p)
 	case "end":
@@ -886,6 +910,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenExtends, p)
 	case "fallthrough":
 		l.emit(tokenFallthrough, p)
+		endLineAsSemicolon = true
 	case "for":
 		l.emit(tokenFor, p)
 	case "if":
@@ -916,11 +941,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenSwitchType, p)
 	default:
 		l.emit(tokenIdentifier, p)
-		l.column += cols
-		return true
+		endLineAsSemicolon = true
 	}
 	l.column += cols
-	return false
+	return endLineAsSemicolon
 }
 
 // lexNumber reads a number (int or decimal) knowing that src starts with

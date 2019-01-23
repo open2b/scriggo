@@ -24,6 +24,7 @@ import (
 type Context int
 
 const (
+	ContextNone   Context = Context(ast.ContextNone)
 	ContextText   Context = Context(ast.ContextText)
 	ContextHTML   Context = Context(ast.ContextHTML)
 	ContextCSS    Context = Context(ast.ContextCSS)

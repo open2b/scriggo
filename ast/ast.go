@@ -89,7 +89,8 @@ func (op OperatorType) String() string {
 type Context int
 
 const (
-	ContextText Context = iota
+	ContextNone Context = iota
+	ContextText
 	ContextHTML
 	ContextTag
 	ContextAttribute
@@ -102,6 +103,8 @@ const (
 
 func (ctx Context) String() string {
 	switch ctx {
+	case ContextNone:
+		return "None"
 	case ContextText:
 		return "Text"
 	case ContextHTML:

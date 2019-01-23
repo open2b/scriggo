@@ -28,7 +28,7 @@ func isTypeGuard(node ast.Node) bool {
 // TODO (Gianluca): instead of returning an error, panic.
 // TODO (Gianluca): instead of using "pos" (*ast.Position), use full token "tok" (token)
 // TODO (Gianluca): change parameters order (final result should be tok token, lex *lexer)
-func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
+func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 
 	// TODO (Gianluca): parsing this line: switch x := 2; x, y := a.(type), b
 	// should fail, cause it's not checking the number of expressions. There
@@ -41,36 +41,41 @@ func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 
 	expressions, tok := parseExprList(token{}, lex, false, true)
 
+	end := tokenLeftBraces
+	if p.ctx != ast.ContextNone {
+		end = tokenEndStatement
+	}
+
 	switch {
 
-	case tok.typ == tokenEndStatement:
+	case tok.typ == end:
 		switch len(expressions) {
 		case 0:
-			// {% switch %}
+			// switch {
 		case 1:
-			// {% switch  x         %}
-			// {% switch  x + 2     %}
-			// {% switch  f(2)      %}
-			// {% switch  x.(type)  %}
+			// switch x {
+			// switch x + 2 {
+			// switch f(2) {
+			// switch x.(type) {
 			afterSemicolon = expressions[0]
 		default:
-			// {% switch  x + 2, y + 1  %}
+			// switch x + 2, y + 1 {
 			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
 		}
 
 	case tok.typ == tokenSemicolon:
 		switch len(expressions) { // # of expressions before ;
 		case 0:
-			// {% switch  ;  x + 2           %}
-			// {% switch  ;                  %}
-			// {% switch  ;  x := a.(type)   %}
-			// {% switch  ;  a.(type)        %}
+			// switch ; x + 2 {
+			// switch ; {
+			// switch ; x := a.(type) {
+			// switch ; a.(type) {
 		case 1:
-			// {% switch f(3)     ;   x       %}
+			// switch f(3); x {
 			beforeSemicolon = expressions[0]
 		default:
-			// {% switch f(), g() ; x + 2    %}
-			// {% switch f(), g() ;          %}
+			// switch f(), g(); x + 2 {
+			// switch f(), g(); {
 			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting := or = or comma")}
 		}
 		if isTypeGuard(beforeSemicolon) {
@@ -80,26 +85,26 @@ func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 		expressions, tok = parseExprList(token{}, lex, false, true)
 		switch len(expressions) { // # of expressions after ;
 		case 0:
-			// {% switch  ;  %}
-			// {% switch f3() ; %}
+			// switch ; {
+			// switch f3(); {
 		case 1:
-			// {% switch   f(3)    ;  x          %}
-			// {% switch           ;  x + 2      %}
-			// {% switch    x + 3  ;  x.(type)   %}
-			// {% switch           ;  x.(type)   %}
+			// switch f(3); x {
+			// switch ; x + 2 {
+			// switch x + 3; x.(type) {
+			// switch ; x.(type) {
 			afterSemicolon = expressions[0]
 		default:
-			// {% switch  x  ;   a, b            %}
-			// {% switch     ;   a, b            %}
-			// {% switch     ;   a, b, c         %}
+			// switch x; a, b {
+			// switch ; a, b {
+			// switch ; a, b, c {
 			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
 		}
 
 	case isAssignmentToken(tok):
-		// {% switch    x := 3;        x               %}
-		// {% switch    x := 3;        x + y           %}
-		// {% switch    x = y.(type)                   %}
-		// {% switch    x := 2;         x = y.(type)   %}
+		// switch x := 3; x {
+		// switch x := 3; x + y {
+		// switch x = y.(type) {
+		// switch x := 2; x = y.(type) {
 		assignment, tok = parseAssignment(expressions, tok, lex, true)
 		switch tok.typ {
 		case tokenSemicolon:
@@ -110,15 +115,15 @@ func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			}
 
 			beforeSemicolon = assignment
-			// {% switch    x := 2;                    %}
-			// {% switch    x := 3;   x                %}
-			// {% switch    x := 3;   x + y            %}
-			// {% switch    x := 2;   x = y.(type)     %}
+			// switch x := 2; {
+			// switch x := 3; x {
+			// switch x := 3; x + y {
+			// switch x := 2; x = y.(type) {
 			expressions, tok = parseExprList(token{}, lex, false, true)
 			if isAssignmentToken(tok) {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:
-				//     switch x := 2; x = y.(type)  {
+				//     switch x := 2; x = y.(type) {
 				assignment, tok = parseAssignment(expressions, tok, lex, true)
 				ta, ok := assignment.Values[0].(*ast.TypeAssertion)
 				// TODO (Gianluca): should error contain the position of the
@@ -137,21 +142,21 @@ func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			} else {
 				switch len(expressions) {
 				case 0:
-					// {% switch x := 2     ;    %}
+					// switch x := 2; {
 				case 1:
-					// {% switch    x := 3  ;   x              %}
-					// {% switch    x := 3  ;   x + y          %}
-					// {% switch    x := 2  ;   y.(type)       %}
+					// switch x := 3; x {
+					// switch x := 3; x + y {
+					// switch x := 2; y.(type) {
 					afterSemicolon = expressions[0]
 				default:
-					// {% switch   x := 2   ;    x + y, y + z  %}
+					// switch x := 2; x + y, y + z {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
 				}
 			}
 
-		case tokenEndStatement:
-			// {% switch   x = y.(type)   %}
-			// {% switch   x := y.(type)  %}
+		case end:
+			// switch x = y.(type) {
+			// switch x := y.(type) {
 			if len(assignment.Values) != 1 {
 				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting expression")}
 			}
@@ -170,7 +175,7 @@ func parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 
 	}
 
-	if tok.typ != tokenEndStatement {
+	if tok.typ != end {
 		return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 	}
 
