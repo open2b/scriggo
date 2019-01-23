@@ -113,6 +113,14 @@ func (r *rendering) errorf(nodeOrPos interface{}, format string, args ...interfa
 	return err
 }
 
+func (r *rendering) renderBlock(wr io.Writer, block *ast.Block, urlstate *urlState) error {
+	var err error
+	r.vars = append(r.vars, nil)
+	err = r.render(wr, block.Nodes, urlstate)
+	r.vars = r.vars[:len(r.vars)-1]
+	return err
+}
+
 // render renders nodes.
 func (r *rendering) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
@@ -212,14 +220,20 @@ Nodes:
 				}
 			}
 			if c {
-				if len(node.Then) > 0 {
-					err = r.render(wr, node.Then, urlstate)
+				if node.Then != nil && len(node.Then.Nodes) > 0 {
+					err = r.render(wr, node.Then.Nodes, urlstate)
 					if err != nil {
 						return err
 					}
 				}
-			} else if len(node.Else) > 0 {
-				err = r.render(wr, node.Else, urlstate)
+			} else if node.Else != nil {
+				var err error
+				switch e := node.Else.(type) {
+				case *ast.If:
+					err = r.render(wr, []ast.Node{e}, urlstate)
+				case *ast.Block:
+					err = r.renderBlock(wr, e, urlstate)
+				}
 				if err != nil {
 					return err
 				}

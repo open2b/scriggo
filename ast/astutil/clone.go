@@ -41,21 +41,27 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewURL(ClonePosition(n.Position), n.Tag, n.Attribute, value)
 	case *ast.Value:
 		return *ast.NewValue(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+	case *ast.Block:
+		var b *ast.Block
+		if n.Nodes != nil {
+			b.Nodes = make([]ast.Node, len(n.Nodes))
+			for i := range n.Nodes {
+				b.Nodes[i] = CloneNode(n.Nodes[i])
+			}
+		}
+		return b
 	case *ast.If:
 		var assignment *ast.Assignment
 		if n.Assignment != nil {
 			assignment = CloneNode(n.Assignment).(*ast.Assignment)
 		}
-		var then = make([]ast.Node, len(n.Then))
-		for i, n2 := range n.Then {
-			then[i] = CloneNode(n2)
+		var then *ast.Block
+		if n.Then != nil {
+			then = CloneNode(n.Then).(*ast.Block)
 		}
-		var els []ast.Node
+		var els ast.Node
 		if n.Else != nil {
-			els = make([]ast.Node, len(n.Else))
-			for i, n2 := range n.Else {
-				els[i] = CloneNode(n2)
-			}
+			els = CloneNode(n.Else)
 		}
 		return ast.NewIf(ClonePosition(n.Position), assignment, CloneExpression(n.Condition), then, els)
 	case *ast.For:

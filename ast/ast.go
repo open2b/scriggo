@@ -215,6 +215,17 @@ func NewURL(pos *Position, tag, attribute string, value []Node) *URL {
 	return &URL{pos, tag, attribute, value}
 }
 
+// Block node represents a block { ... } with his own scope.
+type Block struct {
+	*Position
+	Nodes []Node
+}
+
+// NewBlock returns a new block statement.
+func NewBlock(pos *Position, nodes []Node) *Block {
+	return &Block{pos, nodes}
+}
+
 // Assignment node represents an assignment statement.
 type Assignment struct {
 	*Position                // position in the source.
@@ -320,13 +331,13 @@ type If struct {
 	*Position              // position in the source.
 	Assignment *Assignment // assignment.
 	Condition  Expression  // condition that once evaluated returns true or false.
-	Then       []Node      // nodes to run if the expression is evaluated to true.
-	Else       []Node      // nodes to run if the expression is evaluated to false.
+	Then       *Block      // nodes to run if the expression is evaluated to true.
+	Else       Node        // nodes to run if the expression is evaluated to false. Can be Block or If.
 }
 
-func NewIf(pos *Position, assignment *Assignment, cond Expression, then []Node, els []Node) *If {
+func NewIf(pos *Position, assignment *Assignment, cond Expression, then *Block, els Node) *If {
 	if then == nil {
-		then = []Node{}
+		then = NewBlock(nil, []Node{})
 	}
 	return &If{pos, assignment, cond, then, els}
 }

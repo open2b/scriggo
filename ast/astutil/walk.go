@@ -83,14 +83,18 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, n)
 		}
 
-	case *ast.If:
-		Walk(v, n.Condition)
-		for _, child := range n.Then {
+	case *ast.Block:
+		for _, child := range n.Nodes {
 			Walk(v, child)
 		}
 
-		for _, child := range n.Else {
-			Walk(v, child)
+	case *ast.If:
+		Walk(v, n.Condition)
+		if n.Then != nil {
+			Walk(v, n.Then)
+		}
+		if n.Else != nil {
+			Walk(v, n.Else)
 		}
 
 	case *ast.Macro:

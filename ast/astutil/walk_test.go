@@ -21,7 +21,11 @@ func (tv *TestVisitor) Visit(node ast.Node) Visitor {
 	if node == nil {
 		return nil
 	}
-	tv.Positions = append(tv.Positions, node.Pos().Start)
+	pos := node.Pos()
+	if pos == nil {
+		pos = &ast.Position{}
+	}
+	tv.Positions = append(tv.Positions, pos.Start)
 	_, isIdentifier := node.(*ast.Identifier)
 	_, isString := node.(*ast.String)
 	if isIdentifier || isString {
@@ -42,8 +46,8 @@ func TestWalk(t *testing.T) {
 		{`{% y = 10 %}`, []int{0, 0, 7}},
 		{`{% y = (4 + 5) %}`, []int{0, 0, 7, 8, 12}},
 		{`{{ call(3, 5) }}`, []int{0, 0, 3, 8, 11}},
-		{`{% if 5 > 4 %} some text {% end %}`, []int{0, 0, 6, 6, 10, 14}},
-		{`{% if 5 > 4 %} some text {% else %} some text {% end %}`, []int{0, 0, 6, 6, 10, 14, 35}},
+		{`{% if 5 > 4 %} some text {% end %}`, []int{0, 0, 6, 6, 10, 0, 14}},
+		{`{% if 5 > 4 %} some text {% else %} some text {% end %}`, []int{0, 0, 6, 6, 10, 0, 14, 0, 35}},
 		{`{% for p in ps %} some text {% end %}`, []int{0, 0, 7, 12, 17}},
 		{`{% macro Body %} some text {% end %}`, []int{0, 0, 16}},
 		{`{{ (4+5)*6 }}`, []int{0, 0, 3, 3, 4, 6, 9}},

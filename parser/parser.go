@@ -237,7 +237,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 				}
 				tokensInLine++
-				expr, tok2 := parseExpr(token{}, p.lex, false, false)
+				expr, tok2 := parseExpr(token{}, p.lex, false)
 				if expr == nil {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 				}
@@ -581,6 +581,30 @@ func (p *parsing) parseStatement(tok token) error {
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
 
+	// else
+	case tokenElse:
+		if len(ancestors) < 2 {
+			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+		}
+		if _, ok = ancestors[len(ancestors)-2].(*ast.If); !ok {
+			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")}
+		}
+		// Closes the then block.
+		ancestors = ancestors[:len(ancestors)-1]
+		parent = ancestors[len(ancestors)-1]
+		cutSpacesToken = true
+		tok = next(lex)
+		if tok.typ == tokenEndStatement { // {% else %}
+			elseBlock := ast.NewBlock(nil, nil)
+			addChild(parent, elseBlock)
+			ancestors = append(ancestors, elseBlock)
+			continue
+		}
+		if tok.typ != tokenIf { // {% else if
+			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+		}
+		fallthrough
+
 	// if
 	case tokenIf:
 		expressions, tok := parseExprList(token{}, p.lex, true, false)
@@ -607,23 +631,10 @@ func (p *parsing) parseStatement(tok token) error {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 		}
 		pos.End = tok.pos.End
-		node = ast.NewIf(pos, assignment, expr, nil, nil)
+		then := ast.NewBlock(nil, nil)
+		node = ast.NewIf(pos, assignment, expr, then, nil)
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node)
-		p.cutSpacesToken = true
-
-	// else
-	case tokenElse:
-		var ifpos *ast.If
-		if ifpos, ok = parent.(*ast.If); ok && ifpos.Else == nil {
-			ifpos.Else = []ast.Node{}
-		} else {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end, for, if or show", tok)}
-		}
-		tok = next(p.lex)
-		if (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
-		}
 		p.cutSpacesToken = true
 
 	// include
@@ -884,6 +895,10 @@ func (p *parsing) parseStatement(tok token) error {
 		if _, ok = parent.(*ast.URL); ok || len(p.ancestors) == 1 {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 		}
+		if _, ok = parent.(*ast.Block); ok {
+			ancestors = ancestors[:len(ancestors)-1]
+			parent = ancestors[len(ancestors)-1]
+		}
 		tok = next(p.lex)
 		if tok.typ != tokenEndStatement {
 			tokparent := tok
@@ -911,6 +926,16 @@ func (p *parsing) parseStatement(tok token) error {
 			p.isInMacro = false
 		}
 		p.ancestors = p.ancestors[:len(p.ancestors)-1]
+		parent = ancestors[len(ancestors)-1]
+		for {
+			if _, ok := parent.(*ast.If); ok {
+				parent.Pos().End = tok.pos.End
+				ancestors = ancestors[:len(ancestors)-1]
+				parent = ancestors[len(ancestors)-1]
+				continue
+			}
+			break
+		}
 		p.cutSpacesToken = true
 
 	// expression or assignment
@@ -1139,13 +1164,22 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.If:
 
-			err := pp.expand(n.Then, ctx)
-			if err != nil {
-				return err
-			}
-			err = pp.expand(n.Else, ctx)
-			if err != nil {
-				return err
+			for {
+				err := pp.expand(n.Then.Nodes, ctx)
+				if err != nil {
+					return err
+				}
+				switch e := n.Else.(type) {
+				case *ast.If:
+					n = e
+					continue
+				case *ast.Block:
+					err := pp.expand(e.Nodes, ctx)
+					if err != nil {
+						return err
+					}
+				}
+				break
 			}
 
 		case *ast.For:
@@ -1264,10 +1298,28 @@ func addChild(parent ast.Node, node ast.Node) {
 	case *ast.ForRange:
 		n.Body = append(n.Body, node)
 	case *ast.If:
-		if n.Else == nil {
-			n.Then = append(n.Then, node)
+		if n.Else != nil {
+			panic("child already added to if node")
+		}
+		n.Else = node
+	case *ast.Block:
+		n.Nodes = append(n.Nodes, node)
+	case *ast.Switch:
+		c, ok := node.(*ast.Case)
+		if ok {
+			n.Cases = append(n.Cases, c)
 		} else {
-			n.Else = append(n.Else, node)
+			lastCase := n.Cases[len(n.Cases)-1]
+			lastCase.Body = append(lastCase.Body, node)
+		}
+	case *ast.TypeSwitch:
+		c, ok := node.(*ast.Case)
+		if ok {
+			n.Cases = append(n.Cases, c)
+			return
+		} else {
+			lastCase := n.Cases[len(n.Cases)-1]
+			lastCase.Body = append(lastCase.Body, node)
 		}
 	case *ast.Switch:
 		c, ok := node.(*ast.Case)
