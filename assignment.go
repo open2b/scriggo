@@ -234,7 +234,13 @@ type mapAddress struct {
 	Key interface{}
 }
 
-func (addr mapAddress) assign(value interface{}) error {
+func (addr mapAddress) assign(value interface{}) (err error) {
+	// Catches unhashable keys errors.
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 	addr.Map.Store(addr.Key, value)
 	return nil
 }
@@ -251,7 +257,13 @@ type goMapAddress struct {
 	Key reflect.Value
 }
 
-func (addr goMapAddress) assign(value interface{}) error {
+func (addr goMapAddress) assign(value interface{}) (err error) {
+	// Catches unhashable keys errors.
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
