@@ -33,14 +33,20 @@ var noneContextTreeTests = []struct {
 			ast.AssignmentSimple, []ast.Expression{ast.NewInt(p(1, 7, 6, 6), 2)})}, ast.ContextNone)},
 	{"if a {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			[]ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}, nil)}, ast.ContextNone)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}), nil)}, ast.ContextNone)},
 	{"if a {\t\tb\t}\t", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			[]ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}, nil)}, ast.ContextNone)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}), nil)}, ast.ContextNone)},
 	{"if a {\n\tb\n} else {\n\tc\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			[]ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")},
-			[]ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")})}, ast.ContextNone)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
+			ast.NewBlock(p(3, 8, 17, 22), []ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")}))}, ast.ContextNone)},
+	{"if a {\n\tb\n} else if c {\n\td\n} else {\n\te\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 39), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
+			ast.NewIf(p(3, 8, 20, 42), nil, ast.NewIdentifier(p(3, 11, 20, 20), "c"),
+				ast.NewBlock(p(3, 13, 22, 27), []ast.Node{ast.NewIdentifier(p(4, 2, 25, 25), "d")}),
+				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(5, 2, 37, 37), "e")})))}, ast.ContextNone)},
 	{"for _, v := range e {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},

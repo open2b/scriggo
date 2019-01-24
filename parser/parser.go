@@ -237,7 +237,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 				}
 				tokensInLine++
-				expr, tok2 := parseExpr(token{}, p.lex, false)
+				expr, tok2 := parseExpr(token{}, p.lex, false, false)
 				if expr == nil {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 				}
@@ -301,16 +301,6 @@ func (p *parsing) parseStatement(tok token) error {
 		}
 	}
 
-	if p.ctx == ast.ContextNone && tok.typ == tokenRightBraces {
-		endPos := tok.pos.End
-		tok = next(p.lex)
-		if tok.typ == tokenSemicolon || tok.typ == tokenEOF {
-			parent.Pos().End = endPos
-			p.ancestors = p.ancestors[:len(p.ancestors)-1]
-			return nil
-		}
-	}
-
 	switch tok.typ {
 
 	// for
@@ -346,7 +336,10 @@ func (p *parsing) parseStatement(tok token) error {
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
-		case tokenEndStatement:
+		case tokenLeftBraces, tokenEndStatement:
+			if (p.ctx == ast.ContextNone) != (tok.typ == tokenLeftBraces) {
+				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)}
+			}
 			// Parses statement "for".
 			if len(variables) > 1 {
 				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
@@ -581,27 +574,70 @@ func (p *parsing) parseStatement(tok token) error {
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
 
+	// "}"
+	case tokenRightBraces:
+		if p.ctx != ast.ContextNone {
+			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
+		}
+		if len(p.ancestors) == 1 {
+			return &Error{"", *tok.pos, fmt.Errorf("not opened brace")}
+		}
+		bracesEnd := tok.pos.End
+		parent.Pos().End = bracesEnd
+		p.ancestors = p.ancestors[:len(p.ancestors)-1]
+		parent = p.ancestors[len(p.ancestors)-1]
+		tok = next(p.lex)
+		switch tok.typ {
+		case tokenElse:
+		case tokenSemicolon:
+			for {
+				if _, ok := parent.(*ast.If); ok {
+					parent.Pos().End = bracesEnd
+					p.ancestors = p.ancestors[:len(p.ancestors)-1]
+					parent = p.ancestors[len(p.ancestors)-1]
+				} else {
+					return nil
+				}
+			}
+		case tokenEOF:
+			return nil
+		default:
+			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)}
+		}
+		fallthrough
+
 	// else
 	case tokenElse:
-		if len(ancestors) < 2 {
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+		if p.ctx == ast.ContextNone {
+			if len(p.ancestors) == 1 {
+				return &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+			}
+		} else {
+			// Closes the parent block.
+			if _, ok = parent.(*ast.Block); !ok {
+				return &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+			}
+			p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			parent = p.ancestors[len(p.ancestors)-1]
 		}
-		if _, ok = ancestors[len(ancestors)-2].(*ast.If); !ok {
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")}
+		if _, ok = parent.(*ast.If); !ok {
+			return &Error{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")}
 		}
-		// Closes the then block.
-		ancestors = ancestors[:len(ancestors)-1]
-		parent = ancestors[len(ancestors)-1]
-		cutSpacesToken = true
-		tok = next(lex)
-		if tok.typ == tokenEndStatement { // {% else %}
-			elseBlock := ast.NewBlock(nil, nil)
+		p.cutSpacesToken = true
+		tok = next(p.lex)
+		if p.ctx == ast.ContextNone && tok.typ == tokenLeftBraces || p.ctx != ast.ContextNone && tok.typ == tokenEndStatement {
+			// "else"
+			var blockPos *ast.Position
+			if p.ctx == ast.ContextNone {
+				blockPos = tok.pos
+			}
+			elseBlock := ast.NewBlock(blockPos, nil)
 			addChild(parent, elseBlock)
-			ancestors = append(ancestors, elseBlock)
-			continue
+			p.ancestors = append(p.ancestors, elseBlock)
+			return nil
 		}
-		if tok.typ != tokenIf { // {% else if
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+		if tok.typ != tokenIf { // "else if"
+			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
 		}
 		fallthrough
 
@@ -631,10 +667,14 @@ func (p *parsing) parseStatement(tok token) error {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 		}
 		pos.End = tok.pos.End
-		then := ast.NewBlock(nil, nil)
+		var blockPos *ast.Position
+		if p.ctx == ast.ContextNone {
+			blockPos = tok.pos
+		}
+		then := ast.NewBlock(blockPos, nil)
 		node = ast.NewIf(pos, assignment, expr, then, nil)
 		addChild(parent, node)
-		p.ancestors = append(p.ancestors, node)
+		p.ancestors = append(p.ancestors, node, then)
 		p.cutSpacesToken = true
 
 	// include
@@ -896,8 +936,8 @@ func (p *parsing) parseStatement(tok token) error {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 		}
 		if _, ok = parent.(*ast.Block); ok {
-			ancestors = ancestors[:len(ancestors)-1]
-			parent = ancestors[len(ancestors)-1]
+			p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			parent = p.ancestors[len(p.ancestors)-1]
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenEndStatement {
@@ -922,19 +962,18 @@ func (p *parsing) parseStatement(tok token) error {
 			}
 		}
 		parent.Pos().End = tok.pos.End
-		if _, ok := parent.(*ast.Macro); ok {
-			p.isInMacro = false
-		}
 		p.ancestors = p.ancestors[:len(p.ancestors)-1]
-		parent = ancestors[len(ancestors)-1]
 		for {
+			parent = p.ancestors[len(p.ancestors)-1]
 			if _, ok := parent.(*ast.If); ok {
 				parent.Pos().End = tok.pos.End
-				ancestors = ancestors[:len(ancestors)-1]
-				parent = ancestors[len(ancestors)-1]
+				p.ancestors = p.ancestors[:len(p.ancestors)-1]
 				continue
 			}
 			break
+		}
+		if _, ok := parent.(*ast.Macro); ok {
+			p.isInMacro = false
 		}
 		p.cutSpacesToken = true
 
@@ -1304,23 +1343,6 @@ func addChild(parent ast.Node, node ast.Node) {
 		n.Else = node
 	case *ast.Block:
 		n.Nodes = append(n.Nodes, node)
-	case *ast.Switch:
-		c, ok := node.(*ast.Case)
-		if ok {
-			n.Cases = append(n.Cases, c)
-		} else {
-			lastCase := n.Cases[len(n.Cases)-1]
-			lastCase.Body = append(lastCase.Body, node)
-		}
-	case *ast.TypeSwitch:
-		c, ok := node.(*ast.Case)
-		if ok {
-			n.Cases = append(n.Cases, c)
-			return
-		} else {
-			lastCase := n.Cases[len(n.Cases)-1]
-			lastCase.Body = append(lastCase.Body, node)
-		}
 	case *ast.Switch:
 		c, ok := node.(*ast.Case)
 		if ok {
