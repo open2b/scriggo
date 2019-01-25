@@ -643,6 +643,7 @@ func (p *parsing) parseStatement(tok token) error {
 
 	// if
 	case tokenIf:
+		ifPos := tok.pos
 		expressions, tok := parseExprList(token{}, p.lex, true, false)
 		if len(expressions) == 0 {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
@@ -672,7 +673,10 @@ func (p *parsing) parseStatement(tok token) error {
 			blockPos = tok.pos
 		}
 		then := ast.NewBlock(blockPos, nil)
-		node = ast.NewIf(pos, assignment, expr, then, nil)
+		if _, ok := parent.(*ast.If); !ok {
+			ifPos = pos
+		}
+		node = ast.NewIf(ifPos, assignment, expr, then, nil)
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node, then)
 		p.cutSpacesToken = true

@@ -44,9 +44,9 @@ var noneContextTreeTests = []struct {
 	{"if a {\n\tb\n} else if c {\n\td\n} else {\n\te\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 39), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
 			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
-			ast.NewIf(p(3, 8, 20, 42), nil, ast.NewIdentifier(p(3, 11, 20, 20), "c"),
+			ast.NewIf(p(3, 8, 17, 39), nil, ast.NewIdentifier(p(3, 11, 20, 20), "c"),
 				ast.NewBlock(p(3, 13, 22, 27), []ast.Node{ast.NewIdentifier(p(4, 2, 25, 25), "d")}),
-				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(5, 2, 37, 37), "e")})))}, ast.ContextNone)},
+				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(6, 2, 37, 37), "e")})))}, ast.ContextNone)},
 	{"for _, v := range e {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
@@ -583,7 +583,7 @@ var treeTests = []struct {
 					ast.NewInt(p(1, 11, 10, 11), 10),
 				),
 				ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 16, 15, 23), []byte("x is < 10"), ast.Cut{})}),
-				ast.NewIf(p(1, 25, 24, 80), nil, // else if
+				ast.NewIf(p(1, 33, 32, 80), nil, // else if
 					ast.NewBinaryOperator(
 						p(1, 38, 35, 41),
 						ast.OperatorEqual,
