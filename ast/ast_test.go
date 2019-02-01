@@ -7,22 +7,21 @@
 package ast
 
 import (
+	"math/big"
 	"testing"
-
-	"github.com/cockroachdb/apd"
 )
 
-var n1 = NewNumber(nil, apd.New(1, 0))
-var n2 = NewNumber(nil, apd.New(2, 0))
-var n3 = NewNumber(nil, apd.New(3, 0))
-var n5 = NewNumber(nil, apd.New(5, 0))
+var n1 = NewInt(nil, big.NewInt(1))
+var n2 = NewInt(nil, big.NewInt(2))
+var n3 = NewInt(nil, big.NewInt(3))
+var n5 = NewInt(nil, big.NewInt(5))
 
 var expressionStringTests = []struct {
 	str  string
 	expr Expression
 }{
 	{"1", n1},
-	{"3.59", NewNumber(nil, apd.New(359, -2))},
+	{"3.59", NewFloat(nil, big.NewFloat(3.59))},
 	{`"abc"`, NewString(nil, "abc")},
 	{"\"a\\tb\"", NewString(nil, "a\tb")},
 	{"x", NewIdentifier(nil, "x")},

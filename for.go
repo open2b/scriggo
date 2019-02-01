@@ -11,8 +11,6 @@ import (
 	"reflect"
 
 	"open2b/template/ast"
-
-	"github.com/cockroachdb/apd"
 )
 
 // renderFor renders nodes.
@@ -135,7 +133,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 				}
 			}
-		case Slice:
+		case []interface{}:
 			for i, v := range vv {
 				if addresses != nil {
 					err = addresses[0].assign(i)
@@ -147,24 +145,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						if err != nil {
 							return r.errorf(node, "%s", err)
 						}
-					}
-				}
-				err = r.render(wr, n.Body, urlstate)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err != errContinue {
-						return err
-					}
-				}
-			}
-		case Bytes:
-			for i, v := range vv {
-				if addresses != nil {
-					_ = addresses[0].assign(i)
-					if len(addresses) > 1 {
-						_ = addresses[1].assign(v)
 					}
 				}
 				err = r.render(wr, n.Body, urlstate)
@@ -202,30 +182,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 				}
 			}
 		case []HTML:
-			for i, v := range vv {
-				if addresses != nil {
-					err = addresses[0].assign(i)
-					if err != nil {
-						return r.errorf(node, "%s", err)
-					}
-					if len(addresses) > 1 {
-						err = addresses[1].assign(v)
-						if err != nil {
-							return r.errorf(node, "%s", err)
-						}
-					}
-				}
-				err = r.render(wr, n.Body, urlstate)
-				if err != nil {
-					if err == errBreak {
-						break
-					}
-					if err != errContinue {
-						return err
-					}
-				}
-			}
-		case []*apd.Decimal:
 			for i, v := range vv {
 				if addresses != nil {
 					err = addresses[0].assign(i)
@@ -293,31 +249,30 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 				}
 
 			}
-		case Map:
-			vv.Range(func(k, v interface{}) bool {
+		case map[interface{}]interface{}:
+			for k, v := range vv {
 				if addresses != nil {
 					err = addresses[0].assign(k)
 					if err != nil {
 						err = r.errorf(node, "%s", err)
-						return false
+						return err
 					}
 					if len(addresses) > 1 {
 						err = addresses[1].assign(v)
 						if err != nil {
 							err = r.errorf(node, "%s", err)
-							return false
+							return err
 						}
 					}
 				}
 				err = r.render(wr, n.Body, urlstate)
-				return err == nil
-			})
-			if err != nil {
-				if err == errBreak {
-					break
-				}
-				if err != errContinue {
-					return err
+				if err != nil {
+					if err == errBreak {
+						break
+					}
+					if err != errContinue {
+						return err
+					}
 				}
 			}
 		case map[string]interface{}:

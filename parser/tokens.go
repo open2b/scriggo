@@ -54,7 +54,7 @@ const (
 	tokenComment                            // comment
 	tokenInterpretedString                  // "abc"
 	tokenRawString                          // `abc`
-	tokenRuneLiteral                        // 'a'
+	tokenRune                               // 'a'
 	tokenIdentifier                         // customerName
 	tokenPeriod                             // .
 	tokenLeftParenthesis                    // (
@@ -67,7 +67,8 @@ const (
 	tokenComma                              // ,
 	tokenSemicolon                          // ;
 	tokenEllipses                           // ...
-	tokenNumber                             // 12.895
+	tokenFloat                              // 12.895
+	tokenInt                                // 18
 	tokenEqual                              // ==
 	tokenNotEqual                           // !=
 	tokenNot                                // !
@@ -126,7 +127,7 @@ var tokenString = map[tokenType]string{
 	tokenComment:                  "comment",
 	tokenInterpretedString:        "string",
 	tokenRawString:                "string",
-	tokenRuneLiteral:              "rune",
+	tokenRune:                     "rune",
 	tokenIdentifier:               "identifier",
 	tokenPeriod:                   ".",
 	tokenLeftParenthesis:          "(",
@@ -139,7 +140,8 @@ var tokenString = map[tokenType]string{
 	tokenComma:                    "comma",
 	tokenSemicolon:                "semicolon",
 	tokenEllipses:                 "...",
-	tokenNumber:                   "number",
+	tokenFloat:                    "float",
+	tokenInt:                      "int",
 	tokenEqual:                    "==",
 	tokenNotEqual:                 "!=",
 	tokenNot:                      "!",

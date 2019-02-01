@@ -510,8 +510,8 @@ func (p *parsing) parseStatement(tok token) error {
 					}
 				case *ast.Int:
 					return &Error{"", *tok.pos, fmt.Errorf("%s (type int) is not a type", n)}
-				case *ast.Number:
-					return &Error{"", *tok.pos, fmt.Errorf("%s (type number) is not a type", n)}
+				case *ast.Float:
+					return &Error{"", *tok.pos, fmt.Errorf("%s (type float) is not a type", n)}
 				case *ast.String:
 					return &Error{"", *tok.pos, fmt.Errorf("%s (type string) is not a type", n)}
 				default:

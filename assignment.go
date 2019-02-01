@@ -12,8 +12,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/cockroachdb/apd"
-
 	"open2b/template/ast"
 )
 
@@ -27,7 +25,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		}
 		switch len(node.Variables) {
 		case 1:
-			v, err := r.eval(node.Values[0])
+			v, err := r.eval1(node.Values[0])
 			if err != nil {
 				return err
 			}
@@ -64,60 +62,77 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 				}
 			}
 		}
-	case ast.AssignmentIncrement, ast.AssignmentDecrement:
+	case ast.AssignmentIncrement:
 		address, err := r.address(node.Variables[0], nil)
 		if err != nil {
 			return err
 		}
 		v := address.value()
-		switch e := v.(type) {
-		case byte:
-			switch node.Type {
-			case ast.AssignmentIncrement:
-				err = address.assign(e + 1)
-			case ast.AssignmentDecrement:
-				err = address.assign(e - 1)
-			}
+		switch n := v.(type) {
+		case int:
+			_ = address.assign(n + 1)
+		case int64:
+			_ = address.assign(n + 1)
+		case int32:
+			_ = address.assign(n + 1)
+		case int16:
+			_ = address.assign(n + 1)
+		case int8:
+			_ = address.assign(n + 1)
+		case uint:
+			_ = address.assign(n + 1)
+		case uint64:
+			_ = address.assign(n + 1)
+		case uint32:
+			_ = address.assign(n + 1)
+		case uint16:
+			_ = address.assign(n + 1)
+		case uint8:
+			_ = address.assign(n + 1)
+		case float64:
+			_ = address.assign(n + 1)
+		case float32:
+			_ = address.assign(n + 1)
+		case CustomNumber:
+			n.Inc()
 		default:
-			switch e := asBase(v).(type) {
-			case nil:
-				err = fmt.Errorf("cannot assign to nil")
-			case int:
-				switch node.Type {
-				case ast.AssignmentIncrement:
-					if ee := e + 1; ee < e {
-						d := apd.New(int64(e), 0)
-						_, _ = decimalContext.Add(d, d, decimal1)
-						err = address.assign(d)
-					} else {
-						err = address.assign(ee)
-					}
-				case ast.AssignmentDecrement:
-					if ee := e - 1; ee > e {
-						d := apd.New(int64(e), 0)
-						_, _ = decimalContext.Sub(d, d, decimal1)
-						err = address.assign(d)
-					} else {
-						err = address.assign(ee)
-					}
-				}
-			case *apd.Decimal:
-				switch node.Type {
-				case ast.AssignmentIncrement:
-					d := new(apd.Decimal)
-					_, _ = decimalContext.Add(d, e, decimal1)
-					err = address.assign(d)
-				case ast.AssignmentDecrement:
-					d := new(apd.Decimal)
-					_, _ = decimalContext.Sub(d, e, decimal1)
-					err = address.assign(d)
-				}
-			default:
-				err = fmt.Errorf("invalid operation: %s (non-numeric type %s)", node, typeof(e))
-			}
+			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(n))
 		}
+	case ast.AssignmentDecrement:
+		address, err := r.address(node.Variables[0], nil)
 		if err != nil {
-			return r.errorf(node, "%s", err)
+			return err
+		}
+		v := address.value()
+		switch n := v.(type) {
+		case int:
+			_ = address.assign(n - 1)
+		case int64:
+			_ = address.assign(n - 1)
+		case int32:
+			_ = address.assign(n - 1)
+		case int16:
+			_ = address.assign(n - 1)
+		case int8:
+			_ = address.assign(n - 1)
+		case uint:
+			_ = address.assign(n - 1)
+		case uint64:
+			_ = address.assign(n - 1)
+		case uint32:
+			_ = address.assign(n - 1)
+		case uint16:
+			_ = address.assign(n - 1)
+		case uint8:
+			_ = address.assign(n - 1)
+		case float64:
+			_ = address.assign(n - 1)
+		case float32:
+			_ = address.assign(n - 1)
+		case CustomNumber:
+			n.Dec()
+		default:
+			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(n))
 		}
 	default:
 		address, err := r.address(node.Variables[0], nil)
@@ -126,22 +141,17 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 		}
 		var v interface{}
 		v1 := address.value()
-		v2, err := r.eval(node.Values[0])
-		if err != nil {
-			return err
-		}
-		v2 = asBase(v2)
 		switch node.Type {
 		case ast.AssignmentAddition:
-			v, err = r.evalAddition(v1, v2)
+			v, err = r.evalBinary(v1, ast.OperatorAddition, node.Variables[0], node.Values[0])
 		case ast.AssignmentSubtraction:
-			v, err = r.evalSubtraction(v1, v2)
+			v, err = r.evalBinary(v1, ast.OperatorSubtraction, node.Variables[0], node.Values[0])
 		case ast.AssignmentMultiplication:
-			v, err = r.evalMultiplication(v1, v2)
+			v, err = r.evalBinary(v1, ast.OperatorMultiplication, node.Variables[0], node.Values[0])
 		case ast.AssignmentDivision:
-			v, err = r.evalDivision(v1, v2)
+			v, err = r.evalBinary(v1, ast.OperatorDivision, node.Variables[0], node.Values[0])
 		case ast.AssignmentModulo:
-			v, err = r.evalModulo(v1, v2)
+			v, err = r.evalBinary(v1, ast.OperatorModulo, node.Variables[0], node.Values[0])
 		}
 		if err != nil {
 			return r.errorf(node, "invalid operation: %s (%s)", node, err)
@@ -191,30 +201,30 @@ func (addr varAddress) assign(value interface{}) error {
 		addr.Value.SetString(v)
 	case HTML:
 		addr.Value.SetString(string(v))
-	case float32:
-		addr.Value.SetFloat(float64(v))
-	case float64:
-		addr.Value.SetFloat(v)
 	case int:
-		addr.Value.SetInt(int64(v))
-	case int8:
-		addr.Value.SetInt(int64(v))
-	case int16:
-		addr.Value.SetInt(int64(v))
-	case int32:
 		addr.Value.SetInt(int64(v))
 	case int64:
 		addr.Value.SetInt(v)
+	case int32:
+		addr.Value.SetInt(int64(v))
+	case int16:
+		addr.Value.SetInt(int64(v))
+	case int8:
+		addr.Value.SetInt(int64(v))
 	case uint:
-		addr.Value.SetUint(uint64(v))
-	case uint8:
-		addr.Value.SetUint(uint64(v))
-	case uint16:
-		addr.Value.SetUint(uint64(v))
-	case uint32:
 		addr.Value.SetUint(uint64(v))
 	case uint64:
 		addr.Value.SetUint(v)
+	case uint32:
+		addr.Value.SetUint(uint64(v))
+	case uint16:
+		addr.Value.SetUint(uint64(v))
+	case uint8:
+		addr.Value.SetUint(uint64(v))
+	case float64:
+		addr.Value.SetFloat(v)
+	case float32:
+		addr.Value.SetFloat(float64(v))
 	case bool:
 		addr.Value.SetBool(v)
 	case []byte:
@@ -234,22 +244,14 @@ type mapAddress struct {
 	Key interface{}
 }
 
-func (addr mapAddress) assign(value interface{}) (err error) {
-	// Catches unhashable keys errors.
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
-	addr.Map.Store(addr.Key, value)
+func (addr mapAddress) assign(value interface{}) error {
+	addr.Map[addr.Key] = value
 	return nil
 }
 
 func (addr mapAddress) value() interface{} {
-	if value, ok := addr.Map.Load(addr.Key); ok {
-		return value
-	}
-	return nil
+	value, _ := addr.Map[addr.Key]
+	return value
 }
 
 type goMapAddress struct {
@@ -257,13 +259,7 @@ type goMapAddress struct {
 	Key reflect.Value
 }
 
-func (addr goMapAddress) assign(value interface{}) (err error) {
-	// Catches unhashable keys errors.
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
+func (addr goMapAddress) assign(value interface{}) error {
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
@@ -315,22 +311,10 @@ func (addr bytesAddress) assign(value interface{}) error {
 		addr.Bytes[addr.Index] = b
 		return nil
 	}
-	var b byte
-	var err error
-	switch n := asBase(value).(type) {
-	case int:
-		b = byte(n)
-	case *apd.Decimal:
-		b = decimalToByte(n)
-	default:
-		if addr.Expr == nil {
-			err = fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(n), addr.Var)
-		} else {
-			err = fmt.Errorf("cannot use %s (type %s) as type byte in assignment", addr.Expr, typeof(n))
-		}
+	if addr.Expr == nil {
+		return fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(value), addr.Var)
 	}
-	addr.Bytes[addr.Index] = b
-	return err
+	return fmt.Errorf("cannot use %s (type %s) as type byte in assignment", addr.Expr, typeof(value))
 }
 
 func (addr bytesAddress) value() interface{} {
@@ -348,7 +332,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			if vars := r.vars[j]; vars != nil {
 				if vv, ok := vars[v.Name]; ok {
 					if j == 0 {
-						if vt, ok := vv.(valuetype); ok {
+						if vt, ok := vv.(reflect.Type); ok {
 							return nil, r.errorf(variable, "type %s is not an expression", vt)
 						}
 						if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
@@ -402,11 +386,9 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		}
 		switch val := value.(type) {
 		case Map:
-			key := r.mapIndex(v.Index)
-			switch key.(type) {
-			case nil, string, HTML, *apd.Decimal, int, bool:
-			default:
-				return nil, r.errorf(variable, "hash of unhashable type %s", typeof(key))
+			key, err := r.mapIndex(v.Index)
+			if err != nil {
+				return nil, err
 			}
 			addr = mapAddress{Map: val, Key: key}
 		case Slice:
@@ -434,8 +416,11 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			rv := reflect.ValueOf(value)
 			switch rv.Kind() {
 			case reflect.Map:
-				key := reflect.ValueOf(r.mapIndex(v.Index))
-				addr = goMapAddress{Map: rv, Key: key}
+				key, err := r.mapIndex(v.Index)
+				if err != nil {
+					return nil, err
+				}
+				addr = goMapAddress{Map: rv, Key: reflect.ValueOf(key)}
 			case reflect.Slice:
 				index, err := r.sliceIndex(v.Index)
 				if err != nil {

@@ -38,10 +38,7 @@ var errorTests = []struct {
 	{`{% b := map{} %}{% b[map{}] = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := slice{} %}{% b[3] = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{% b := bytes{} %}{% b[3] = 5 %}{{ "ok" }}`, `ok`, nil},
-	{`{{ map(nil) }}{{ "ok" }}`, `ok`, nil},
-	{`{{ slice(nil) }}{{ "ok" }}`, `ok`, nil},
-	{`{{ bytes(nil) }}{{ "ok" }}`, `ok`, nil},
-	{`{{ nil() }}{{ "ok" }}`, `ok`, nil},
+	{`{% a := nil() %}{{ "ok" }}`, `ok`, nil},
 	{`{{ f() }}{{ "ok" }}`, "ok", scope{"f": (func() int)(nil)}},
 	{`{{ s["a"] + s["b"] }}ok`, "ok", scope{"s": Map{}}},
 	{`{% s["a"] += s["b"] %}ok`, "ok", scope{"s": Map{}}},
@@ -50,6 +47,15 @@ var errorTests = []struct {
 	{`{{ s["a"] / s["b"] }}ok`, "ok", scope{"s": Map{}}},
 	{`{% a := 3 %}{% a /= s["a"] %}ok`, "ok", scope{"s": Map{}}},
 	{`{% s["a"] /= s["b"] %}ok`, "ok", scope{"s": Map{}}},
+	{`{{ 7.0 / 0 }}ok`, "ok", nil},
+	{`{{ 7 / 0.0 }}ok`, "ok", nil},
+	{`{{ 7 % 0 }}ok`, "ok", nil},
+	{`{{ 7.0 % 0 }}ok`, "ok", nil},
+	{`{{ 7 % 0.0 }}ok`, "ok", nil},
+	{`{{ -9223372036854775808 * -1 }}ok`, "ok", nil},                   // math.MinInt64 * -1
+	{`{{ 9223372036854775807 + 9223372036854775807 }}ok`, "ok", nil},   // math.MaxInt64 + math.MaxInt64
+	{`{{ -9223372036854775808 + -9223372036854775808 }}ok`, "ok", nil}, // math.MinInt64 + math.MinInt64
+	{"{% delete(m,map{}) %}ok", "ok", scope{"m": Map{}}},
 }
 
 func TestErrors(t *testing.T) {

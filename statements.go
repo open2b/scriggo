@@ -278,7 +278,6 @@ Nodes:
 				conditionValue = true
 			} else {
 				conditionValue, err = r.eval(node.Expr)
-				conditionValue = asBase(conditionValue)
 				if err != nil {
 					return err
 				}
@@ -297,16 +296,11 @@ Nodes:
 					render = true
 				} else {
 					for _, expr := range c.Expressions {
-						caseExprValue, err := r.eval(expr)
-						conditionValue = asBase(conditionValue)
+						r, err := r.evalBinary(conditionValue, ast.OperatorEqual, node.Expr, expr)
 						if err != nil {
 							return err
 						}
-						render, err = r.evalEqual(conditionValue, caseExprValue, node.Expr, expr)
-						if err != nil {
-							return err
-						}
-						if render {
+						if render = r.(bool); render {
 							break
 						}
 					}
@@ -377,7 +371,6 @@ Nodes:
 				}
 				guardvalue, _ = r.variable(ident.Name)
 			}
-			guardvalue = asBase(guardvalue)
 			for _, c := range node.Cases {
 				render := false
 				isDefault := c.Expressions == nil
@@ -394,8 +387,11 @@ Nodes:
 							if !ok {
 								return r.errorf(c, "%s (type %s) is not a type", expr, typeof(caseExprValue))
 							}
-							render = hasType(guardvalue, vt2)
-
+							render, err = hasType(guardvalue, vt2)
+							if err != nil {
+								// TODO: use r.errorf
+								return err
+							}
 						}
 						if render {
 							break
@@ -636,63 +632,24 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	return nil, false
 }
 
-func decimalToInt(n *apd.Decimal) int {
-	var d *apd.Decimal
-	if n.Exponent == 0 {
-		if n.Cmp(decimalMinInt) < 0 || n.Cmp(decimalMaxInt) > 0 {
-			d = &apd.Decimal{}
-			_, _ = numberConversionContext.Rem(d, n, decimalModInt)
-		} else {
-			d = n
-		}
-	} else {
-		d = &apd.Decimal{}
-		_, _ = numberConversionContext.RoundToIntegralValue(d, n)
-		if d.Cmp(decimalMinInt) < 0 || d.Cmp(decimalMaxInt) > 0 {
-			_, _ = numberConversionContext.Rem(d, d, decimalModInt)
-		}
-	}
-	p, _ := d.Int64()
-	return int(p)
-}
-
-func decimalToByte(n *apd.Decimal) byte {
-	var d *apd.Decimal
-	if n.Exponent == 0 {
-		if n.Cmp(decimalMinByte) < 0 || n.Cmp(decimalMaxByte) > 0 {
-			d = &apd.Decimal{}
-			_, _ = numberConversionContext.Rem(d, n, decimalMod8)
-		} else {
-			d = n
-		}
-	} else {
-		d = &apd.Decimal{}
-		_, _ = numberConversionContext.RoundToIntegralValue(d, n)
-		if d.Cmp(decimalMinByte) < 0 || d.Cmp(decimalMaxByte) > 0 {
-			_, _ = numberConversionContext.Rem(d, d, decimalMod8)
-		}
-	}
-	p, _ := d.Int64()
-	return byte(p)
-}
-
 // typeof returns the string representation of the type of v.
 // If v is nil returns "nil".
 func typeof(v interface{}) string {
-	v = asBase(v)
-	switch v.(type) {
+	switch vv := v.(type) {
 	case nil:
 		return "nil"
 	case HTML:
 		return "string"
-	case *apd.Decimal, int, byte:
-		return "number"
 	case Map:
 		return "map"
 	case Slice:
 		return "slice"
 	case Bytes:
 		return "bytes"
+	case ConstantNumber:
+		return "untyped number"
+	case CustomNumber:
+		return vv.Name()
 	}
 	return fmt.Sprintf("%T", v)
 }

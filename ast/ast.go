@@ -42,9 +42,8 @@ package ast
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
-
-	"github.com/cockroachdb/apd"
 )
 
 // OperatorType represents an operator type in an unary and binary expression.
@@ -500,33 +499,48 @@ func (n *Parentesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
-// Int node represents an integer expression.
-type Int struct {
+// Rune node represents a rune constant.
+type Rune struct {
 	expression
-	*Position     // position in the source.
-	Value     int // value.
+	*Position      // position in the source.
+	Value     rune // value.
 }
 
-func NewInt(pos *Position, value int) *Int {
-	return &Int{expression{}, pos, value}
+func NewRune(pos *Position, value rune) *Rune {
+	return &Rune{expression{}, pos, value}
+}
+
+func (n *Rune) Rune() string {
+	return strconv.QuoteRuneToASCII(n.Value)
+}
+
+// Int node represents an integer constant.
+type Int struct {
+	expression
+	*Position         // position in the source.
+	Value     big.Int // value.
+}
+
+func NewInt(pos *Position, value *big.Int) *Int {
+	return &Int{expression{}, pos, *value}
 }
 
 func (n *Int) String() string {
-	return strconv.Itoa(n.Value)
+	return n.Value.String()
 }
 
-// Number node represents a decimal number expression.
-type Number struct {
+// Float node represents a float constant.
+type Float struct {
 	expression
-	*Position              // position in the source.
-	Value     *apd.Decimal // value.
+	*Position           // position in the source.
+	Value     big.Float // value.
 }
 
-func NewNumber(pos *Position, value *apd.Decimal) *Number {
-	return &Number{expression{}, pos, value}
+func NewFloat(pos *Position, value *big.Float) *Float {
+	return &Float{expression{}, pos, *value}
 }
 
-func (n *Number) String() string {
+func (n *Float) String() string {
 	return n.Value.String()
 }
 

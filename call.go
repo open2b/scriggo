@@ -7,18 +7,15 @@
 package template
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
-	"strings"
-	"unicode/utf8"
 
 	"open2b/template/ast"
 	"open2b/template/ast/astutil"
-
-	"github.com/cockroachdb/apd"
 )
 
-// evalCall evaluates a call expression in a single-value context. It returns
+// evalCall evaluates a call expression in a single-val context. It returns
 // an error if the function
 func (r *rendering) evalCall(node *ast.Call) interface{} {
 	results, err := r.evalCallN(node, 1)
@@ -33,12 +30,14 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 // values.
 func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
+	// TODO(marco): manage the special case f(g(parameters_of_g)).
+
 	if r.isBuiltin("len", node.Func) {
 		err := r.checkBuiltInParameterCount(node, 1, 1, n)
 		if err != nil {
 			return nil, err
 		}
-		arg := asBase(r.evalExpression(node.Args[0]))
+		arg := r.evalExpression(node.Args[0])
 		length := _len(arg)
 		if length == -1 {
 			return nil, r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg))
@@ -51,16 +50,22 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg := asBase(r.evalExpression(node.Args[0]))
+		arg := r.evalExpression(node.Args[0])
 		switch m := arg.(type) {
 		case Map:
-			k := asBase(r.evalExpression(node.Args[1]))
+			k, err := r.mapIndex(node.Args[1])
+			if err != nil {
+				return nil, err
+			}
 			_delete(m, k)
 		default:
 			v := reflect.ValueOf(arg)
 			if v.Kind() == reflect.Map {
-				k := reflect.ValueOf(asBase(r.evalExpression(node.Args[1])))
-				v.SetMapIndex(k, reflect.Value{})
+				k, err := r.mapIndex(node.Args[1])
+				if err != nil {
+					return nil, err
+				}
+				v.SetMapIndex(reflect.ValueOf(k), reflect.Value{})
 			}
 			return nil, r.errorf(node, "first argument to delete must be map; have %s", typeof(arg))
 		}
@@ -77,6 +82,14 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			return nil, err
 		}
 		return []reflect.Value{_new(typ)}, nil
+	}
+
+	if r.isBuiltin("append", node.Func) {
+		slice, err := r._append(node, n)
+		if err != nil {
+			return nil, err
+		}
+		return []reflect.Value{slice}, nil
 	}
 
 	var f, err = r.eval(node.Func)
@@ -134,7 +147,11 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			if i > 0 {
 				have += ", "
 			}
-			have += typeof(r.evalExpression(arg))
+			v, err := r.eval(arg)
+			if err != nil {
+				return nil, err
+			}
+			have += typeof(v)
 		}
 		have += ")"
 		want := "("
@@ -154,9 +171,8 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		want += ")"
 		if len(node.Args) < numIn {
 			return nil, r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
-		} else {
-			return nil, r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
 		}
+		return nil, r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
 	}
 
 	var args = make([]reflect.Value, len(node.Args))
@@ -165,69 +181,51 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 	var in reflect.Type
 
 	for i := 0; i < len(node.Args); i++ {
+
 		if i < lastIn || !isVariadic {
 			in = typ.In(i)
 		} else if i == lastIn {
 			in = typ.In(lastIn).Elem()
 		}
+		kind := in.Kind()
 
-		inKind := in.Kind()
-		var arg interface{}
-		if i < len(node.Args) {
-			arg = asBase(r.evalExpression(node.Args[i]))
+		var arg, err = r.eval(node.Args[i])
+		if err != nil {
+			return nil, err
 		}
-		if arg == nil {
-			if i < len(node.Args) {
-				if in == decimalType {
-					return nil, r.errorf(node, "cannot use nil as type number in argument to %s", node.Func)
-				}
-				switch inKind {
-				case reflect.Bool, reflect.Int, reflect.String:
-					wantType := typeof(reflect.Zero(in).Interface())
-					return nil, r.errorf(node, "cannot use nil as type %s in argument to %s", wantType, node.Func)
-				}
+
+		switch a := arg.(type) {
+		case nil:
+			switch kind {
+			case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+				reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
+			default:
+				return nil, r.errorf(node, "cannot use nil as type %s in argument to %s", in, node.Func)
 			}
+		case HTML:
+			if in != htmlType && in == stringType {
+				arg = string(a)
+			}
+		case ConstantNumber:
+			arg, err = a.ToType(in)
+			if err != nil {
+				if e, ok := err.(errConstantOverflow); ok {
+					return nil, r.errorf(node.Args[i], "%s", e)
+				}
+				return nil, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+			}
+		}
+		if arg != nil && !reflect.TypeOf(arg).AssignableTo(in) {
+			return nil, r.errorf(node.Args[i], "cannot use %s (type %s) as type %s in argument to %s",
+				node.Args[i], typeof(arg), in, node.Func)
+		}
+
+		if arg == nil {
 			args[i] = reflect.Zero(in)
 		} else {
-			if inKind == reflect.Interface {
-				args[i] = reflect.ValueOf(arg)
-			} else if d, ok := arg.(*apd.Decimal); ok && in == decimalType {
-				args[i] = reflect.ValueOf(d)
-			} else if d, ok := arg.(*apd.Decimal); ok && inKind == reflect.Int {
-				args[i] = reflect.ValueOf(decimalToInt(d))
-			} else if d, ok := arg.(int); ok && in == decimalType {
-				args[i] = reflect.ValueOf(apd.New(int64(d), 0))
-			} else if html, ok := arg.(HTML); ok && inKind == reflect.String {
-				args[i] = reflect.ValueOf(string(html))
-			} else if reflect.TypeOf(arg).AssignableTo(in) {
-				args[i] = reflect.ValueOf(arg)
-			} else {
-				switch inKind {
-				case reflect.Ptr:
-					if in != decimalType {
-						return nil, fmt.Errorf("cannot use %s as function parameter type", inKind)
-					}
-				case reflect.Int8,
-					reflect.Int16,
-					reflect.Int32,
-					reflect.Int64,
-					reflect.Uint,
-					reflect.Uint8,
-					reflect.Uint16,
-					reflect.Uint32,
-					reflect.Uint64,
-					reflect.Uintptr,
-					reflect.Complex64,
-					reflect.Complex128,
-					reflect.UnsafePointer,
-					reflect.Float32,
-					reflect.Float64:
-					return nil, fmt.Errorf("cannot use %s as function parameter type", inKind)
-				}
-				expectedType := typeof(reflect.Zero(in).Interface())
-				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in argument to %s", node.Args[i], typeof(arg), expectedType, node.Func)
-			}
+			args[i] = reflect.ValueOf(arg)
 		}
+
 	}
 
 	values, err := func() (_ []reflect.Value, err error) {
@@ -258,144 +256,265 @@ func (r *rendering) checkBuiltInParameterCount(node *ast.Call, numIn, numOut, n 
 	return nil
 }
 
-// convert converts the value of expr to type typ.
+var errCannotConvert = errors.New("cannot convert")
+
+// convert converts the val of expr to type typ.
+//
+// TODO(marco): convert must keep the type aliases, as rune and byte, in error messages.
+// TODO(marco): implements conversions for custom numbers.
 func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{}, error) {
-	value := asBase(r.evalExpression(expr))
+	value := r.evalExpression(expr)
+	converted, err := convert(value, typ)
+	if err != nil {
+		if err == errCannotConvert {
+			if value == nil {
+				err = fmt.Errorf("cannot convert nil to type %s", typ)
+			} else {
+				err = fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
+			}
+		}
+		return nil, err
+	}
+	return converted, nil
+}
+
+// convert converts value to type typ.
+func convert(value interface{}, typ reflect.Type) (interface{}, error) {
+	if n, ok := value.(ConstantNumber); ok {
+		switch typ {
+		case stringType:
+			switch n.typ {
+			case TypeInt, TypeRune:
+				n, err := n.ToInt32()
+				if err != nil {
+					return "\uFFFD", nil
+				}
+				return string(n), nil
+			}
+		case intType:
+			return n.ToInt()
+		case int64Type:
+			return n.ToInt64()
+		case int32Type:
+			return n.ToInt32()
+		case int16Type:
+			return n.ToInt16()
+		case int8Type:
+			return n.ToInt8()
+		case uintType:
+			return n.ToUint()
+		case uint64Type:
+			return n.ToUint64()
+		case uint32Type:
+			return n.ToUint32()
+		case uint16Type:
+			return n.ToUint16()
+		case uint8Type:
+			return n.ToUint8()
+		}
+	}
 	switch typ {
-	case builtins["string"]:
+	case stringType:
 		switch v := value.(type) {
 		case string, HTML:
 			return value, nil
-		case *apd.Decimal:
-			if v.Cmp(decimalMinInt) == -1 || v.Cmp(decimalMaxInt) == 1 {
-				return utf8.RuneError, nil
-			}
-			p, err := v.Int64()
-			if err != nil {
-				return utf8.RuneError, nil
-			}
-			return string(int(p)), nil
 		case int:
 			return string(v), nil
-		case Bytes:
+		case int64:
+			return string(v), nil
+		case int32:
+			return string(v), nil
+		case int16:
+			return string(v), nil
+		case int8:
+			return string(v), nil
+		case uint:
+			return string(v), nil
+		case uint64:
+			return string(v), nil
+		case uint32:
+			return string(v), nil
+		case uint16:
+			return string(v), nil
+		case uint8:
 			return string(v), nil
 		case []byte:
 			return string(v), nil
-		default:
-			rv := reflect.ValueOf(v)
-			if rv.Kind() == reflect.Slice {
-				return convertSliceToString(rv), nil
-			}
+		case []rune:
+			return string(v), nil
 		}
-	case builtins["number"]:
+	case intType:
+		v, err := convert(value, int64Type)
+		if err != nil {
+			return nil, err
+		}
+		return int(v.(int64)), nil
+	case int64Type:
 		switch v := value.(type) {
-		case *apd.Decimal, int:
+		case int64:
 			return v, nil
+		case int32:
+			return int64(v), nil
+		case int16:
+			return int64(v), nil
+		case int8:
+			return int64(v), nil
+		case uint:
+			return int64(v), nil
+		case uint64:
+			return int64(v), nil
+		case uint32:
+			return int64(v), nil
+		case uint16:
+			return int64(v), nil
+		case uint8:
+			return int64(v), nil
+		case float64:
+			return int64(v), nil
+		case float32:
+			return int64(v), nil
 		}
-	case builtins["int"]:
+	case int32Type:
+		v, err := convert(value, int64Type)
+		if err != nil {
+			return nil, err
+		}
+		return int32(v.(int64)), nil
+	case int16Type:
+		v, err := convert(value, int64Type)
+		if err != nil {
+			return nil, err
+		}
+		return int16(v.(int64)), nil
+	case int8Type:
+		v, err := convert(value, int64Type)
+		if err != nil {
+			return nil, err
+		}
+		return int8(v.(int64)), nil
+	case uintType:
+		v, err := convert(value, uint64Type)
+		if err != nil {
+			return nil, err
+		}
+		return uint(v.(uint64)), nil
+	case uint64Type:
 		switch v := value.(type) {
-		case *apd.Decimal:
-			return decimalToInt(v), nil
-		case int:
+		case int64:
+			return uint64(v), nil
+		case int32:
+			return uint64(v), nil
+		case int16:
+			return uint64(v), nil
+		case int8:
+			return uint64(v), nil
+		case uint:
+			return uint64(v), nil
+		case uint64:
 			return v, nil
+		case uint32:
+			return uint64(v), nil
+		case uint16:
+			return uint64(v), nil
+		case uint8:
+			return uint64(v), nil
+		case float64:
+			return uint64(v), nil
+		case float32:
+			return uint64(v), nil
 		}
-	case builtins["rune"]:
+	case uint32Type:
+		v, err := convert(value, uint64Type)
+		if err != nil {
+			return nil, err
+		}
+		return uint32(v.(uint64)), nil
+	case uint16Type:
+		v, err := convert(value, uint64Type)
+		if err != nil {
+			return nil, err
+		}
+		return uint16(v.(uint64)), nil
+	case uint8Type:
+		v, err := convert(value, uint64Type)
+		if err != nil {
+			return nil, err
+		}
+		return uint8(v.(uint64)), nil
+	case float64Type:
 		switch v := value.(type) {
-		case *apd.Decimal:
-			e := new(apd.Decimal)
-			_, _ = numberConversionContext.RoundToIntegralValue(e, v)
-			_, _ = numberConversionContext.Rem(e, e, decimalMod32)
-			i64, _ := e.Int64()
-			return int(i64), nil
 		case int:
-			return int(rune(v)), nil
+			return float64(v), nil
+		case int64:
+			return float64(v), nil
+		case int32:
+			return float64(v), nil
+		case int16:
+			return float64(v), nil
+		case int8:
+			return float64(v), nil
+		case uint:
+			return float64(v), nil
+		case uint64:
+			return float64(v), nil
+		case uint32:
+			return float64(v), nil
+		case uint16:
+			return float64(v), nil
+		case uint8:
+			return float64(v), nil
+		case float32:
+			return float64(v), nil
+		case ConstantNumber:
+			return v.ToFloat64(), nil
 		}
-	case builtins["byte"]:
-		switch v := value.(type) {
-		case *apd.Decimal:
-			return int(decimalToByte(v)), nil
-		case int:
-			return int(byte(v)), nil
+	case float32Type:
+		v, err := convert(value, float64Type)
+		if err != nil {
+			return nil, err
 		}
-	case builtins["map"]:
+		return float32(v.(float64)), nil
+	case bytesType:
 		switch v := value.(type) {
 		case nil:
-			return Map{}, nil
-		case Map:
+			return []byte(nil), nil
+		case string:
+			return []byte(v), nil
+		case HTML:
+			return []byte(v), nil
+		case []byte:
 			return v, nil
-		default:
-			rv := reflect.ValueOf(v)
-			switch rv.Kind() {
-			case reflect.Map, reflect.Struct:
-				return v, nil
-			case reflect.Ptr:
-				if reflect.Indirect(rv).Kind() == reflect.Struct {
-					return v, nil
-				}
-			}
 		}
-	case builtins["slice"]:
+	case runesType:
 		switch v := value.(type) {
 		case nil:
+			return []rune(nil), nil
 		case string:
 			return []rune(v), nil
 		case HTML:
-			return []rune(string(v)), nil
-		case Slice:
+			return []rune(v), nil
+		case []rune:
 			return v, nil
-		default:
-			rv := reflect.ValueOf(v)
-			if rv.Kind() == reflect.Slice {
-				return v, nil
-			}
 		}
-	case builtins["bytes"]:
+	case mapType:
 		switch v := value.(type) {
 		case nil:
-		case string:
-			return Bytes(v), nil
-		case HTML:
-			return Bytes(v), nil
-		case Bytes:
+			return map[interface{}]interface{}(nil), nil
+		case map[interface{}]interface{}:
 			return v, nil
-		default:
-			rt := reflect.TypeOf(v)
-			if rt.Kind() == reflect.Slice && rt.Elem().Kind() == reflect.Uint8 {
-				return v, nil
-			}
+		}
+	case sliceType:
+		switch v := value.(type) {
+		case nil:
+			return []interface{}(nil), nil
+		case []interface{}:
+			return v, nil
+		}
+	default:
+		rv := reflect.ValueOf(value)
+		if rv.Type().ConvertibleTo(typ) {
+			return rv.Convert(typ).Interface(), nil
 		}
 	}
-	if value == nil {
-		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
-	}
-	return nil, fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
-}
-
-// convertSliceToString converts s of type slice to a value of type string.
-func convertSliceToString(s reflect.Value) string {
-	l := s.Len()
-	if l == 0 {
-		return ""
-	}
-	var b strings.Builder
-	b.Grow(l)
-	for i := 0; i < l; i++ {
-		element := asBase(s.Index(i).Interface())
-		if element != nil {
-			switch e := element.(type) {
-			case *apd.Decimal:
-				p := &apd.Decimal{}
-				apd.BaseContext.WithPrecision(decPrecision).Floor(p, e)
-				if p.Cmp(e) == 0 {
-					b.WriteString(p.String())
-					continue
-				}
-			case int:
-				b.WriteString(string(e))
-				continue
-			}
-		}
-		b.WriteRune(utf8.RuneError)
-	}
-	return b.String()
+	return nil, errCannotConvert
 }

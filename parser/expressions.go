@@ -9,7 +9,7 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"strconv"
+	"math/big"
 	"unicode/utf8"
 
 	"github.com/cockroachdb/apd"
@@ -199,14 +199,14 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
 							}
 							duplicates[key.Text] = struct{}{}
-						case *ast.Number:
+						case *ast.Float:
 							if _, ok := duplicates[key.Value]; ok {
 								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
 							}
 							duplicates[key.Value] = struct{}{}
 						case *ast.Int:
 							if _, ok := duplicates[key.Value]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %d in map literal", key.Value)})
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
 							}
 							duplicates[key.Value] = struct{}{}
 						}
@@ -261,8 +261,9 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 			tokenNot:         // !e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
-			tokenNumber,      // 12.895
-			tokenRuneLiteral: // '\x3c'
+			tokenRune,  // '\x3c'
+			tokenInt,   // 18
+			tokenFloat: // 12.895
 			// If the number is preceded by the unary operator "-", the sign
 			// of the number is changed and the operator is removed from the
 			// tree.
@@ -625,7 +626,7 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 	return ast.NewIdentifier(tok.pos, string(tok.txt))
 }
 
-// parseNumberNode returns an Expression node from an integer, decimal or rune
+// parseNumberNode returns an Expression node from an integer, float or rune
 // literal token possibly preceded by an unary operator "-" with neg position.
 // It panics on error.
 func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
@@ -634,7 +635,8 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		p = neg
 		p.End = tok.pos.End
 	}
-	if tok.typ == tokenRuneLiteral {
+	switch tok.typ {
+	case tokenRune:
 		var r rune
 		if len(tok.txt) == 3 {
 			r = rune(tok.txt[1])
@@ -644,26 +646,21 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		if neg != nil {
 			r = -r
 		}
-		return ast.NewInt(p, int(r))
-	}
-	s := string(tok.txt)
-	if neg != nil {
-		s = "-" + s
-	}
-	if bytes.IndexByte(tok.txt, '.') == -1 {
-		n, err := strconv.Atoi(s)
-		if err == nil {
-			return ast.NewInt(p, n)
+		return ast.NewRune(p, r)
+	case tokenInt:
+		n, _ := new(big.Int).SetString(string(tok.txt), 0)
+		if neg != nil {
+			_ = n.Neg(n)
 		}
-	}
-	d, _, _ := apd.NewFromString(s)
-	if d.Cmp(minInt) >= 0 && d.Cmp(maxInt) <= 0 {
-		i, err := d.Int64()
-		if err == nil {
-			return ast.NewInt(p, int(i))
+		return ast.NewInt(p, n)
+	case tokenFloat:
+		n, _ := new(big.Float).SetString(string(tok.txt))
+		if neg != nil {
+			_ = n.Neg(n)
 		}
+		return ast.NewFloat(p, n)
 	}
-	return ast.NewNumber(p, d)
+	panic("unexpected token")
 }
 
 // parseStringNode returns a String node from a token.

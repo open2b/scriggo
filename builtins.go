@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"math"
 	"math/rand"
 	"net/url"
 	"reflect"
@@ -24,10 +25,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
-	"github.com/cockroachdb/apd"
+	"open2b/template/ast"
 )
 
 var testSeed int64 = -1
@@ -36,27 +36,57 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-type valuetype string
+var stringType = reflect.TypeOf("")
+var htmlType = reflect.TypeOf(HTML(""))
+var constantNumberType = reflect.TypeOf(ConstantNumber{})
+var intType = reflect.TypeOf(0)
+var int64Type = reflect.TypeOf(int64(0))
+var int32Type = reflect.TypeOf(int32(0))
+var int16Type = reflect.TypeOf(int16(0))
+var int8Type = reflect.TypeOf(int8(0))
+var uintType = reflect.TypeOf(uint(0))
+var uint64Type = reflect.TypeOf(uint64(0))
+var uint32Type = reflect.TypeOf(uint32(0))
+var uint16Type = reflect.TypeOf(uint16(0))
+var uint8Type = reflect.TypeOf(uint8(0))
+var float64Type = reflect.TypeOf(float64(0))
+var float32Type = reflect.TypeOf(float32(0))
+var boolType = reflect.TypeOf(false)
+var mapType = reflect.TypeOf(map[interface{}]interface{}(nil))
+var sliceType = reflect.TypeOf([]interface{}(nil))
+var bytesType = reflect.TypeOf([]byte(nil))
+var runesType = reflect.TypeOf([]rune(nil))
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 var builtins = map[string]interface{}{
 	"nil":    nil,
 	"true":   true,
 	"false":  false,
 	"len":    _len,
-	"append": _append,
+	"append": nil,
 	"delete": _delete,
 	"new":    _new,
 
-	"string": reflect.TypeOf(""),
-	"number": reflect.TypeOf(Number(nil)),
-	"int":    reflect.TypeOf(0),
-	"rune":   reflect.TypeOf(rune(0)),
-	"byte":   reflect.TypeOf(byte(0)),
-	"bool":   reflect.TypeOf(false),
-	"map":    reflect.TypeOf(Map{}),
-	"slice":  reflect.TypeOf(Slice{}),
-	"bytes":  reflect.TypeOf(Bytes{}),
-	"error":  reflect.TypeOf((*error)(nil)).Elem(),
+	"string":  stringType,
+	"int":     intType,
+	"int64":   int64Type,
+	"int32":   int32Type,
+	"int16":   int16Type,
+	"int8":    int8Type,
+	"uint":    uintType,
+	"uint64":  uint64Type,
+	"uint32":  uint32Type,
+	"uint16":  uint16Type,
+	"uint8":   uint8Type,
+	"float64": float64Type,
+	"float32": float32Type,
+	"rune":    int32Type,
+	"byte":    uint8Type,
+	"bool":    boolType,
+	"map":     mapType,
+	"slice":   sliceType,
+	"bytes":   bytesType,
+	"error":   errorType,
 
 	// packages
 	"os":   _os,
@@ -82,6 +112,7 @@ var builtins = map[string]interface{}{
 	"md5":         _md5,
 	"min":         _min,
 	"rand":        _rand,
+	"randFloat":   _randFloat,
 	"repeat":      _repeat,
 	"replace":     strings.Replace,
 	"replaceAll":  _replaceAll,
@@ -93,7 +124,6 @@ var builtins = map[string]interface{}{
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,
 	"sort":        _sort,
-	"sortBy":      _sortBy,
 	"split":       strings.Split,
 	"splitN":      strings.SplitN,
 	"queryEscape": url.QueryEscape,
@@ -143,126 +173,154 @@ func _abbreviate(s string, n int) string {
 }
 
 // _abs is the builtin function "abs".
-func _abs(d *apd.Decimal) *apd.Decimal {
-	return new(apd.Decimal).Abs(d)
-}
-
-func toByteInAppend(v interface{}) byte {
-	var b byte
-	var err error
-	switch n := v.(type) {
+func _abs(n interface{}) interface{} {
+	switch x := n.(type) {
 	case int:
-		b = byte(n)
-	case *apd.Decimal:
-		b = decimalToByte(n)
+		if x < 0 {
+			n = -x
+		}
+	case int64:
+		if x < 0 {
+			n = -x
+		}
+	case int32:
+		if x < 0 {
+			n = -x
+		}
+	case int16:
+		if x < 0 {
+			n = -x
+		}
+	case int8:
+		if x < 0 {
+			n = -x
+		}
+	case uint, uint64, uint32, uint16, uint8:
+	case float64:
+		if x < 0 {
+			n = -x
+		}
+	case float32:
+		if x < 0 {
+			n = -x
+		}
+	case ConstantNumber:
+		var err error
+		n, err = x.ToTyped()
+		if err != nil {
+			panic(err)
+		}
+		n = _abs(n)
+	case CustomNumber:
+		if x.Cmp(nil) < 0 {
+			n = x.New().Neg(x)
+		}
 	default:
-		// TODO(marco): error message should have the expression and not the value
-		err = fmt.Errorf("cannot use %v (type %s) as type byte in append", v, typeof(v))
+		panic(fmt.Sprintf("non-number argument in abs - %s", typeof(n)))
 	}
-	if err != nil {
-		panic(err)
-	}
-	return b
+	return n
 }
 
 // _append is the builtin function "append".
-func _append(slice interface{}, elems ...interface{}) interface{} {
-	if slice == nil {
-		panic(fmt.Errorf("first argument to append must be slice; have nil"))
+func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
+
+	if len(node.Args) == 0 {
+		return reflect.Value{}, r.errorf(node, "missing arguments to append")
 	}
-	switch s := slice.(type) {
-	case Slice:
-		return append(s, elems...)
-	case Bytes:
-		bytes := make(Bytes, len(elems))
-		for i, elem := range elems {
-			bytes[i] = toByteInAppend(elem)
-		}
-		return append(s, bytes...)
-	case []interface{}:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
-	case []string:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
-	case []HTML:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
-	case []int:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
-	case []*apd.Decimal:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
-	case []byte:
-		l := len(s)
-		ms := make(Bytes, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = toByteInAppend(v)
-		}
-		return ms
-	case []bool:
-		l := len(s)
-		ms := make(Slice, l+len(elems))
-		for i, v := range s {
-			ms[i] = v
-		}
-		for i, v := range elems {
-			ms[l+i] = v
-		}
-		return ms
+	slice, err := r.eval(node.Args[0])
+	if err != nil {
+		return reflect.Value{}, err
 	}
+	if slice == nil && r.isBuiltin("nil", node.Args[0]) {
+		return reflect.Value{}, r.errorf(node, "first argument to append must be typed slice; have untyped nil")
+	}
+	t := reflect.TypeOf(slice)
+	if t.Kind() != reflect.Slice {
+		return reflect.Value{}, r.errorf(node, "first argument to append must be slice; have %s", t)
+	}
+	if n == 0 {
+		return reflect.Value{}, r.errorf(node, "%s evaluated but not used", node)
+	}
+	if n > 1 {
+		return reflect.Value{}, r.errorf(node, "assignment mismatch: %d variables but 1 values", n)
+	}
+
+	m := len(node.Args) - 1
+	if m == 0 {
+		return reflect.ValueOf(slice), nil
+	}
+
+	typ := t.Elem()
+
+	if s, ok := slice.([]interface{}); ok {
+		var s2 []interface{}
+		l, c := len(s), cap(s)
+		p := 0
+		if l+m <= c {
+			s2 = make([]interface{}, m)
+			s = s[:c:c]
+		} else {
+			s2 = make([]interface{}, l+m)
+			copy(s2, s)
+			s = s2
+			p = l
+		}
+		for i := 1; i < len(node.Args); i++ {
+			v, err := r.eval(node.Args[i])
+			if err != nil {
+				return reflect.Value{}, err
+			}
+			if n, ok := v.(ConstantNumber); ok {
+				v, err = n.ToType(typ)
+				if err != nil {
+					if e, ok := err.(errConstantOverflow); ok {
+						return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
+					}
+					return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+				}
+			}
+			s2[p+i-1] = v
+		}
+		if l+m <= c {
+			copy(s[l:], s2)
+		}
+		return reflect.ValueOf(s), nil
+	}
+
 	sv := reflect.ValueOf(slice)
-	if sv.Kind() != reflect.Slice {
-		panic(fmt.Errorf("first argument to append must be slice; have %s", typeof(slice)))
+	var sv2 reflect.Value
+	l, c := sv.Len(), sv.Cap()
+	p := 0
+	if l+n <= c {
+		sv2 = reflect.MakeSlice(t, m, m)
+		sv = sv.Slice3(0, c, c)
+	} else {
+		sv2 = reflect.MakeSlice(t, l+m, l+m)
+		reflect.Copy(sv2, sv)
+		sv = sv2
+		p = l
 	}
-	l := sv.Len()
-	ms := make(Slice, l+len(elems))
-	for i := 0; i < l; i++ {
-		ms[i] = sv.Index(i).Interface()
+	for i := 1; i < len(node.Args); i++ {
+		v, err := r.eval(node.Args[i])
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		if n, ok := v.(ConstantNumber); ok {
+			v, err = n.ToType(typ)
+			if err != nil {
+				if e, ok := err.(errConstantOverflow); ok {
+					return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
+				}
+				return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+			}
+		}
+		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
 	}
-	for i, v := range elems {
-		ms[l+i] = v
+	if l+m <= c {
+		reflect.Copy(sv2.Slice(l, l+m+1), sv2)
 	}
-	return ms
+
+	return sv, nil
 }
 
 // _base64 is the builtin function "base64".
@@ -271,8 +329,40 @@ func _base64(s string) string {
 }
 
 // _delete is the builtin function "delete".
-func _delete(m Map, key interface{}) {
-	m.Delete(key)
+func _delete(m interface{}, key interface{}) {
+	// TODO: gestire il caso delle nil map
+	switch mm := m.(type) {
+	case Map:
+		delete(mm, key)
+	case map[string]string:
+		k, ok := key.(string)
+		if !ok {
+			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
+		}
+		delete(mm, k)
+	case map[string]int:
+		k, ok := key.(string)
+		if !ok {
+			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
+		}
+		delete(mm, k)
+	case map[string]interface{}:
+		k, ok := key.(string)
+		if !ok {
+			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
+		}
+		delete(mm, k)
+	default:
+		rv := reflect.ValueOf(m)
+		if rv.Kind() != reflect.Map {
+			panic(fmt.Sprintf("first argument to delete must be map; have %s", typeof(m)))
+		}
+		k := reflect.ValueOf(key)
+		if k.Type().AssignableTo(rv.Type().Key()) {
+			panic(fmt.Sprintf("cannot use %v (type %s) as type %s in delete", key, typeof(key), rv.Type().Key()))
+		}
+		rv.SetMapIndex(k, reflect.Value{})
+	}
 }
 
 // _errorf is the builtin function "errorf".
@@ -299,7 +389,7 @@ func _hmac(hasher, message, key string) string {
 		panic(errors.New("unknown hash function"))
 	}
 	mac := hmac.New(h, []byte(key))
-	io.WriteString(mac, message)
+	_, _ = io.WriteString(mac, message)
 	s := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return s
 }
@@ -349,19 +439,9 @@ func _lastIndex(s, sep string) int {
 func _len(v interface{}) int {
 	switch s := v.(type) {
 	case string:
-		if len(s) <= 1 {
-			return len(s)
-		}
-		return utf8.RuneCountInString(s)
+		return len(s)
 	case HTML:
-		if len(string(s)) <= 1 {
-			return len(string(s))
-		}
-		return utf8.RuneCountInString(string(s))
-	case Slice:
-		return len(s)
-	case Bytes:
-		return len(s)
+		return len(string(s))
 	case []interface{}:
 		return len(s)
 	case []string:
@@ -370,29 +450,27 @@ func _len(v interface{}) int {
 		return len(s)
 	case []int:
 		return len(s)
-	case []*apd.Decimal:
-		return len(s)
 	case []byte:
 		return len(s)
 	case []bool:
 		return len(s)
 	case Map:
-		return s.Len()
-	case map[string]interface{}:
 		return len(s)
 	case map[string]string:
+		return len(s)
+	case map[string]int:
+		return len(s)
+	case map[string]interface{}:
 		return len(s)
 	default:
 		var rv = reflect.ValueOf(v)
 		switch rv.Kind() {
 		case reflect.Slice:
 			return rv.Len()
+		case reflect.Array:
+			return rv.Len()
 		case reflect.Map:
 			return rv.Len()
-		case reflect.Ptr:
-			if keys := structKeys(rv); keys != nil {
-				return len(keys)
-			}
 		}
 	}
 	// Returning -1 the method evalCall will return an invalid argument error.
@@ -400,11 +478,101 @@ func _len(v interface{}) int {
 }
 
 // _max is the builtin function "max".
-func _max(a, b *apd.Decimal) *apd.Decimal {
-	if a.Cmp(b) < 0 {
-		return b
+func _max(x, y interface{}) interface{} {
+	switch x := x.(type) {
+	case int:
+		if y, ok := y.(int); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case int64:
+		if y, ok := y.(int64); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case int32:
+		if y, ok := y.(int32); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case int16:
+		if y, ok := y.(int16); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case int8:
+		if y, ok := y.(int8); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case uint:
+		if y, ok := y.(uint); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case uint64:
+		if y, ok := y.(uint64); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case uint32:
+		if y, ok := y.(uint32); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case uint16:
+		if y, ok := y.(uint16); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case uint8:
+		if y, ok := y.(uint8); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case float64:
+		if y, ok := y.(float64); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case float32:
+		if y, ok := y.(float32); ok {
+			if x < y {
+				return y
+			}
+			return x
+		}
+	case CustomNumber:
+		if reflect.TypeOf(x) == reflect.TypeOf(y) {
+			if x.Cmp(y.(CustomNumber)) < 0 {
+				return y
+			}
+			return x
+		}
 	}
-	return a
+	panic(fmt.Sprintf("arguments to max have different types: %s and %s", typeof(x), typeof(y)))
 }
 
 // _md5 is the builtin function "md5".
@@ -415,11 +583,101 @@ func _md5(s string) string {
 }
 
 // _min is the builtin function "min".
-func _min(a, b *apd.Decimal) *apd.Decimal {
-	if a.Cmp(b) > 0 {
-		return b
+func _min(x, y interface{}) interface{} {
+	switch x := x.(type) {
+	case int:
+		if y, ok := y.(int); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case int64:
+		if y, ok := y.(int64); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case int32:
+		if y, ok := y.(int32); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case int16:
+		if y, ok := y.(int16); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case int8:
+		if y, ok := y.(int8); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case uint:
+		if y, ok := y.(uint); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case uint64:
+		if y, ok := y.(uint64); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case uint32:
+		if y, ok := y.(uint32); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case uint16:
+		if y, ok := y.(uint16); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case uint8:
+		if y, ok := y.(uint8); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case float64:
+		if y, ok := y.(float64); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case float32:
+		if y, ok := y.(float32); ok {
+			if x < y {
+				return x
+			}
+			return y
+		}
+	case CustomNumber:
+		if reflect.TypeOf(x) == reflect.TypeOf(y) {
+			if x.Cmp(y.(CustomNumber)) < 0 {
+				return x
+			}
+			return y
+		}
 	}
-	return a
+	panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
 }
 
 // _new is the builtin function "new".
@@ -438,20 +696,25 @@ func _println(a ...interface{}) (n int, err error) {
 }
 
 // _rand is the builtin function "rand".
-func _rand(d int) *apd.Decimal {
-	// seed
+func _rand(x int) int {
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
 		seed = testSeed
 	}
 	r := rand.New(rand.NewSource(seed))
-	var rn int
-	if d > 0 {
-		rn = r.Intn(d)
-	} else {
-		rn = r.Int()
+	switch {
+	case x < 0:
+		return r.Int()
+	case x == 0:
+		panic("invalid argument to rand")
+	default:
+		return r.Intn(x)
 	}
-	return apd.New(int64(rn), 0)
+}
+
+// _randFloat is the builtin function "randFloat".
+func _randFloat() float64 {
+	return rand.Float64()
 }
 
 // _repeat is the builtin function "repeat".
@@ -489,10 +752,8 @@ func _reverse(s interface{}) interface{} {
 }
 
 // _round is the builtin function "round".
-func _round(d *apd.Decimal, places int) *apd.Decimal {
-	r := new(apd.Decimal)
-	apd.BaseContext.WithPrecision(decPrecision).Quantize(r, d, -int32(places))
-	return r
+func _round(x float64) float64 {
+	return math.Round(x)
 }
 
 // _sha1 is the builtin function "sha1".
@@ -516,8 +777,6 @@ func _shuffle(s interface{}) Slice {
 	}
 	var ms Slice
 	switch m := s.(type) {
-	case Slice:
-		ms = m
 	case []interface{}:
 		ms = make(Slice, len(m))
 		copy(ms, m)
@@ -550,180 +809,23 @@ func _shuffle(s interface{}) Slice {
 }
 
 // _sort is the builtin function "sort".
-func _sort(slice interface{}) interface{} {
-	if slice == nil {
-		return nil
-	}
+func _sort(slice interface{}) {
 	// no reflect
 	switch s := slice.(type) {
-	case Slice:
-		if len(s) < 2 {
-			return s
-		}
-		defer func() {
-			if r := recover(); r != nil {
-				panic(errors.New("no slice of string, number or bool"))
-			}
-		}()
-		switch s[0].(type) {
-		case string, HTML:
-			sort.Slice(s, func(i, j int) bool {
-				var ok bool
-				var si, sj string
-				if si, ok = s[i].(string); !ok {
-					si = string(s[i].(HTML))
-				}
-				if sj, ok = s[j].(string); !ok {
-					sj = string(s[j].(HTML))
-				}
-				return si < sj
-			})
-			return s
-		case *apd.Decimal, int:
-			sort.Slice(s, func(i, j int) bool {
-				var ok bool
-				var si, sj *apd.Decimal
-				if si, ok = s[i].(*apd.Decimal); !ok {
-					si = apd.New(int64(s[i].(int)), 0)
-				}
-				if sj, ok = s[j].(*apd.Decimal); !ok {
-					sj = apd.New(int64(s[j].(int)), 0)
-				}
-				return si.Cmp(sj) == -1
-			})
-			return s
-		case bool:
-			sort.Slice(s, func(i, j int) bool { return !s[i].(bool) })
-			return s
-		}
-	case Bytes:
-		ms := make(Bytes, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return ms[i] < ms[j] })
-		return ms
+	case nil:
 	case []string:
-		ms := make(Slice, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return ms[i].(string) < ms[j].(string) })
-		return ms
+		sort.Strings(s)
 	case []HTML:
-		ms := make(Slice, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return string(ms[i].(HTML)) < string(ms[j].(HTML)) })
-		return ms
+		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []byte:
-		ms := make([]byte, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return ms[i] < ms[j] })
-		return ms
+		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []int:
-		ms := make(Slice, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return ms[i].(int) < ms[j].(int) })
-		return ms
-	case []*apd.Decimal:
-		ms := make(Slice, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool {
-			return ms[i].(*apd.Decimal).Cmp(ms[j].(*apd.Decimal)) == -1
-		})
-		return ms
+		sort.Ints(s)
+	case []float64:
+		sort.Float64s(s)
 	case []bool:
-		ms := make(Slice, len(s))
-		for i := 0; i < len(s); i++ {
-			ms[i] = s[i]
-		}
-		sort.Slice(ms, func(i, j int) bool { return !ms[i].(bool) })
-		return ms
+		sort.Slice(s, func(i, j int) bool { return !s[i] })
 	}
-	panic(errors.New("no slice of string, number or bool"))
-}
-
-// _sortBy is the builtin function "sortBy".
-func _sortBy(slice interface{}, field string) interface{} {
-	r, _ := utf8.DecodeRuneInString(field)
-	if r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-		panic(errors.New("invalid field"))
-	}
-	if slice == nil {
-		return slice
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			panic(errors.New("call of sortBy on a no-struct value"))
-		}
-	}()
-	rv := reflect.ValueOf(slice)
-	size := rv.Len()
-	values := make([]interface{}, size)
-	for i := 0; i < size; i++ {
-		v := rv.Index(i)
-		if v.Kind() == reflect.Ptr {
-			v = v.Elem()
-		}
-		fv := v.FieldByName(field)
-		if !fv.IsValid() {
-			panic(fmt.Errorf("type struct has no field or method %s", field))
-		}
-		values[i] = fv.Interface()
-	}
-	var value interface{}
-	if len(values) > 0 {
-		value = values[0]
-	} else {
-		value = reflect.Zero(rv.Type()).Interface()
-	}
-	var f func(int, int) bool
-	switch value.(type) {
-	case Stringer:
-		if size <= 1 {
-			return slice
-		}
-		vv := make([]string, size)
-		for i := 0; i < size; i++ {
-			vv[i] = string(values[i].(Stringer).String())
-		}
-		f = func(i, j int) bool { return vv[i] < vv[j] }
-	case Numberer:
-		if size <= 1 {
-			return slice
-		}
-		vv := make([]*apd.Decimal, size)
-		for i := 0; i < size; i++ {
-			vv[i] = values[i].(Numberer).Number()
-		}
-		f = func(i, j int) bool { return vv[i].Cmp(vv[j]) < 0 }
-	case string:
-		if size <= 1 {
-			return slice
-		}
-		f = func(i, j int) bool { return values[i].(string) < values[j].(string) }
-	case int:
-		if size <= 1 {
-			return slice
-		}
-		f = func(i, j int) bool { return values[i].(int) < values[j].(int) }
-	case bool:
-		if size <= 1 {
-			return slice
-		}
-		f = func(i, j int) bool { return !values[i].(bool) }
-	}
-	rv2 := reflect.MakeSlice(rv.Type(), size, size)
-	reflect.Copy(rv2, rv)
-	s2 := rv2.Interface()
-	sort.Slice(s2, f)
-	return s2
+	// reflect
+	sortSlice(slice)
 }

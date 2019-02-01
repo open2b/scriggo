@@ -18,33 +18,7 @@ import (
 
 	"open2b/template/ast"
 	"open2b/template/parser"
-
-	"github.com/cockroachdb/apd"
 )
-
-type aNumber struct {
-	v int
-}
-
-func (n aNumber) Render(w io.Writer) (int, error) {
-	return io.WriteString(w, "t: "+strconv.Itoa(n.v))
-}
-
-func (n aNumber) Number() Number {
-	return apd.New(int64(n.v), 0)
-}
-
-type aString struct {
-	v string
-}
-
-func (s aString) Render(w io.Writer) (int, error) {
-	return io.WriteString(w, "t: "+s.v)
-}
-
-func (s aString) String() String {
-	return String(s.v)
-}
 
 type stringConvertible string
 
@@ -66,8 +40,6 @@ type aStruct struct {
 	B string `template:"b"`
 	C string
 }
-
-var largeDecimal, _, _ = apd.NewFromString("163095826571306923551828945029")
 
 var rendererExprTests = []struct {
 	src  string
@@ -95,32 +67,25 @@ var rendererExprTests = []struct {
 	{"2.2 * 3", "6.6", nil},
 	{"2 * 3.1", "6.2", nil},
 	{"2.0 * 3.1", "6.2", nil},
-	{"2 / 3", "0.66666666666666666666666666666667", nil},
-	{"2.0 / 3", "0.66666666666666666666666666666667", nil},
-	{"2 / 3.0", "0.66666666666666666666666666666667", nil},
-	{"2.0 / 3.0", "0.66666666666666666666666666666667", nil},
+	{"2 / 3", "0", nil},
+	{"2.0 / 3", "0.6666666666666666", nil},
+	{"2 / 3.0", "0.6666666666666666", nil},
+	{"2.0 / 3.0", "0.6666666666666666", nil},
 	{"7 % 3", "1", nil},
-	{"7 % 0", "NaN", nil},
-	{"7.2 % 3.7", "3.5", nil},
-	{"7 % 3.7", "3.3", nil},
-	{"7.2 % 3", "1.2", nil},
 	{"-2147483648 * -1", "2147483648", nil},                   // math.MinInt32 * -1
 	{"-2147483649 * -1", "2147483649", nil},                   // (math.MinInt32-1) * -1
 	{"2147483647 * -1", "-2147483647", nil},                   // math.MaxInt32 * -1
 	{"2147483648 * -1", "-2147483648", nil},                   // (math.MaxInt32+1) * -1
-	{"-9223372036854775808 * -1", "9223372036854775808", nil}, // math.MinInt64 * -1
 	{"9223372036854775807 * -1", "-9223372036854775807", nil}, // math.MaxInt64 * -1
 	{"-2147483648 / -1", "2147483648", nil},                   // math.MinInt32 / -1
 	{"-2147483649 / -1", "2147483649", nil},                   // (math.MinInt32-1) / -1
 	{"2147483647 / -1", "-2147483647", nil},                   // math.MaxInt32 / -1
 	{"2147483648 / -1", "-2147483648", nil},                   // (math.MaxInt32+1) / -1
-	{"-9223372036854775808 / -1", "9223372036854775808", nil}, // math.MinInt64 / -1
 	{"9223372036854775807 / -1", "-9223372036854775807", nil}, // math.MaxInt64 / -1
 	{"2147483647 + 2147483647", "4294967294", nil},            // math.MaxInt32 + math.MaxInt32
 	{"-2147483648 + -2147483648", "-4294967296", nil},         // math.MinInt32 + math.MinInt32
-	{"9223372036854775807 + 9223372036854775807", "18446744073709551614", nil},    // math.MaxInt64 + math.MaxInt64
-	{"-9223372036854775808 + -9223372036854775808", "-18446744073709551616", nil}, // math.MinInt64 + math.MinInt64
-	{"-1 + -2 * 6 / ( 6 - 1 - ( 5 * 3 ) + 2 ) * ( 1 + 2 ) * 3", "12.5", nil},
+	{"-1 + -2 * 6 / ( 6 - 1 - ( 5 * 3 ) + 2 ) * ( 1 + 2 ) * 3", "8", nil},
+	{"-1 + -2 * 6 / ( 6 - 1 - ( 5 * 3 ) + 2.0 ) * ( 1 + 2 ) * 3", "12.5", nil},
 	{"a[1]", "y", scope{"a": []string{"x", "y", "z"}}},
 	{"a[:]", "x, y, z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[1:]", "y, z", scope{"a": []string{"x", "y", "z"}}},
@@ -130,33 +95,41 @@ var rendererExprTests = []struct {
 	{"a[0:3]", "x, y, z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[2:2]", "", scope{"a": []string{"x", "y", "z"}}},
 	{"a[0]", "120", scope{"a": "x€z"}},
-	{"a[1]", "8364", scope{"a": "x€z"}},
-	{"a[2]", "122", scope{"a": "x€z"}},
+	{"a[1]", "226", scope{"a": "x€z"}},
+	{"a[2]", "130", scope{"a": "x€z"}},
 	{"a[2.2/1.1]", "z", scope{"a": []string{"x", "y", "z"}}},
 	{"a[1]", "98", scope{"a": HTML("<b>")}},
 	{"a[0]", "60", scope{"a": HTML("<b>")}},
-	{`a[1]`, "98", scope{"a": aString{"abc"}}},
 	{"a[1]", "98", scope{"a": stringConvertible("abc")}},
 	{"a[:]", "x€z", scope{"a": "x€z"}},
 	{"a[1:]", "€z", scope{"a": "x€z"}},
-	{"a[:2]", "x€", scope{"a": "x€z"}},
-	{"a[1:2]", "€", scope{"a": "x€z"}},
-	{"a[1:3]", "€z", scope{"a": "x€z"}},
-	{"a[0:3]", "x€z", scope{"a": "x€z"}},
-	{"a[1:]", "xz", scope{"a": "€xz"}},
+	{"a[:2]", "x\xe2", scope{"a": "x€z"}},
+	{"a[1:2]", "\xe2", scope{"a": "x€z"}},
+	{"a[1:3]", "\xe2\x82", scope{"a": "x€z"}},
+	{"a[0:3]", "x\xe2\x82", scope{"a": "x€z"}},
+	{"a[1:]", "\x82\xacxz", scope{"a": "€xz"}},
 	{"a[:2]", "xz", scope{"a": "xz€"}},
 	{"a[2:2]", "", scope{"a": "xz€"}},
 	{"a[1:]", "b>", scope{"a": HTML("<b>")}},
-	{`a[1:]`, "z€", scope{"a": aString{"xz€"}}},
-	{"a[1:]", "z€", scope{"a": stringConvertible("xz€")}},
+	//{"a[1:]", "z€", scope{"a": stringConvertible("xz€")}},
 	{`a.(string)`, "abc", scope{"a": "abc"}},
 	{`a.(string)`, "<b>", scope{"a": HTML("<b>")}},
-	{`a.(number)`, "5.5", scope{"a": 5.5}},
-	{`a.(number)`, "5", scope{"a": 5}},
 	{`a.(int)`, "5", scope{"a": 5}},
+	{`a.(int64)`, "5", scope{"a": int64(5)}},
+	{`a.(int32)`, "5", scope{"a": int32(5)}},
+	{`a.(int16)`, "5", scope{"a": int16(5)}},
+	{`a.(int8)`, "5", scope{"a": int8(5)}},
+	{`a.(uint)`, "5", scope{"a": uint(5)}},
+	{`a.(uint64)`, "5", scope{"a": uint64(5)}},
+	{`a.(uint32)`, "5", scope{"a": uint32(5)}},
+	{`a.(uint16)`, "5", scope{"a": uint16(5)}},
+	{`a.(uint8)`, "5", scope{"a": uint8(5)}},
+	{`a.(float64)`, "5.5", scope{"a": 5.5}},
+	{`a.(float32)`, "5.5", scope{"a": float32(5.5)}},
+	{`(5).(int)`, "5", nil},
+	{`(5.5).(float64)`, "5.5", nil},
+	{`'a'.(rune)`, "'a'", nil},
 	{`a.(bool)`, "true", scope{"a": true}},
-	{`a.(map).B`, "b", scope{"a": Map{"B": "b"}}},
-	{`a.(slice)`, "1, 2, 3", scope{"a": []int{1, 2, 3}}},
 	{`a.(error)`, "err", scope{"a": errors.New("err")}},
 
 	// slice
@@ -177,14 +150,10 @@ var rendererExprTests = []struct {
 
 	// map
 	{"len(map{})", "0", nil},
-	{"map{`a`:5}.a", "5", nil},
-	{"map{`a`:5,``+`a`:7}.a", "7", nil},
 	{`s["a"]`, "3", scope{"s": map[interface{}]int{"a": 3}}},
 	{`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
 
 	// selectors
-	{"a.b", "b", scope{"a": Map{"b": "b"}}},
-	{"a.B", "b", scope{"a": Map{"B": "b"}}},
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
 	{"a.b", "b", scope{"a": struct {
 		B string `template:"b"`
@@ -253,8 +222,8 @@ var rendererExprTests = []struct {
 	// call
 	{"f()", "ok", scope{"f": func() string { return "ok" }}},
 	{"f(5)", "5", scope{"f": func(i int) int { return i }}},
-	{"f(5.4)", "5.4", scope{"f": func(n *apd.Decimal) *apd.Decimal { return n }}},
-	{"f(5)", "5", scope{"f": func(n *apd.Decimal) *apd.Decimal { return n }}},
+	{"f(5.4)", "5.4", scope{"f": func(n float64) float64 { return n }}},
+	{"f(5)", "5", scope{"f": func(n int) int { return n }}},
 	{"f(`a`)", "a", scope{"f": func(s string) string { return s }}},
 	{"f(html(`<a>`))", "<a>", scope{"f": func(s string) string { return s }}},
 	{"f(true)", "true", scope{"f": func(t bool) bool { return t }}},
@@ -270,7 +239,7 @@ var rendererExprTests = []struct {
 	{"f(5, `a`, `b`)", "5 a,b", scope{"f": func(i int, s ...string) string { return strconv.Itoa(i) + " " + strings.Join(s, ",") }}},
 	{"s.F()", "a", scope{"s": aMap{v: "a"}}},
 	{"s.G()", "b", scope{"s": aMap{v: "a", H: func() string { return "b" }}}},
-	{"f(5.2)", "5.2", scope{"f": func(d *apd.Decimal) *apd.Decimal { return d }}},
+	{"f(5.2)", "5.2", scope{"f": func(d float64) float64 { return d }}},
 
 	// number types
 	{"1+a", "3", scope{"a": int(2)}},
@@ -285,16 +254,16 @@ var rendererExprTests = []struct {
 	{"1+a", "3.5", scope{"a": float32(2.5)}},
 	{"1+a", "3.5", scope{"a": float64(2.5)}},
 	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int8(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int16(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int32(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": int64(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": byte(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint16(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint32(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": uint64(2)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float32(2.0)}},
-	{"f(a)", "3", scope{"f": func(n int) int { return n + 1 }, "a": float64(2.0)}},
+	{"f(a)", "3", scope{"f": func(n int8) int8 { return n + 1 }, "a": int8(2)}},
+	{"f(a)", "3", scope{"f": func(n int16) int16 { return n + 1 }, "a": int16(2)}},
+	{"f(a)", "3", scope{"f": func(n int32) int32 { return n + 1 }, "a": int32(2)}},
+	{"f(a)", "3", scope{"f": func(n int64) int64 { return n + 1 }, "a": int64(2)}},
+	{"f(a)", "3", scope{"f": func(n uint8) uint8 { return n + 1 }, "a": uint8(2)}},
+	{"f(a)", "3", scope{"f": func(n uint16) uint16 { return n + 1 }, "a": uint16(2)}},
+	{"f(a)", "3", scope{"f": func(n uint32) uint32 { return n + 1 }, "a": uint32(2)}},
+	{"f(a)", "3", scope{"f": func(n uint64) uint64 { return n + 1 }, "a": uint64(2)}},
+	{"f(a)", "3", scope{"f": func(n float32) float32 { return n + 1 }, "a": float32(2.0)}},
+	{"f(a)", "3", scope{"f": func(n float64) float64 { return n + 1 }, "a": float64(2.0)}},
 }
 
 var rendererStmtTests = []struct {
@@ -318,40 +287,22 @@ var rendererStmtTests = []struct {
 	{"{% a, b, c := 1, 2, 3 %}{% if ( a == 1 && b == 2 ) && c == 3 %}ok{% end %}", "ok", nil},
 	{"{% a, b, c, d := 1, 2, 3, 4 %}{% if ( a == 1 && b == 2 ) && ( c == 3 && d == 4 ) %}ok{% end %}", "ok", nil},
 	{"{% a, b := 1, 2 %}{% a, b = b, a %}{% if a == 2 && b == 1 %}ok{% end %}", "ok", nil},
-	{"{% if a, ok := b.c; ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": true}}},
-	{"{% if a, ok := b.d; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{}}},
-	{"{% if a, ok := b.c; a %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": true}}},
-	{"{% if a, ok := b.d; a %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"d": false}}},
-	{"{% if a, ok := b.c.d; a %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": Map{"d": true}}}},
-	{"{% if a, ok := b.c.d; a %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{"d": false}}}},
-	{"{% if a, ok := b.c.d; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{}}}},
 	{"{% if a, ok := b[`c`]; ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": true}}},
 	{"{% if a, ok := b[`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{}}},
 	{"{% if a, ok := b[`c`]; a %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": true}}},
 	{"{% if a, ok := b[`d`]; a %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"d": false}}},
-	{"{% if a, ok := b[`c`].d; a %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": Map{"d": true}}}},
-	{"{% if a, ok := b[`c`].d; a %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{"d": false}}}},
-	{"{% if a, ok := b[`c`].d; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{}}}},
-	{"{% if a, ok := b.c[`d`]; a %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": Map{"d": true}}}},
-	{"{% if a, ok := b.c[`d`]; a %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{"d": false}}}},
-	{"{% if a, ok := b.c[`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{}}}},
 	{"{% if a, ok := b[`c`][`d`]; ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": Map{}}}},
 	{"{% if a, ok := b.(string); ok %}ok{% else %}no{% end %}", "ok", scope{"b": "abc"}},
 	{"{% if a, ok := b.(string); ok %}no{% else %}ok{% end %}", "ok", scope{"b": 5}},
 	{"{% if a, ok := b.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": 5}},
-	{"{% if a, ok := b.c.(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": 5}}},
-	{"{% if a, ok := b.c.(int); ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": true}}},
 	{"{% if a, ok := b[`c`].(int); ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": 5}}},
-	{"{% if a, ok := b.(byte); ok %}ok{% else %}no{% end %}", "ok", scope{"b": 5}},
-	{"{% if a, ok := b.c.(byte); ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": 5}}},
-	{"{% if a, ok := b.c.(byte); ok %}no{% else %}ok{% end %}", "ok", scope{"b": Map{"c": true}}},
-	{"{% if a, ok := b[`c`].(byte); ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": 5}}},
+	{"{% if a, ok := b.(byte); ok %}ok{% else %}no{% end %}", "ok", scope{"b": byte(5)}},
+	{"{% if a, ok := b[`c`].(byte); ok %}ok{% else %}no{% end %}", "ok", scope{"b": Map{"c": byte(5)}}},
 	{"{% b := map{html(`<b>`): true} %}{% if a, ok := b[html(`<b>`)]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% b := map{5.2: true} %}{% if a, ok := b[5.2]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% b := map{5: true} %}{% if a, ok := b[5]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% b := map{true: true} %}{% if a, ok := b[true]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% b := map{nil: true} %}{% if a, ok := b[nil]; ok %}ok{% else %}no{% end %}", "ok", nil},
-	{"{% b := map{} %}{% if a, ok := b[map{}]; ok %}no{% else %}{{ a == nil }}{% end %}", "true", nil},
 	{"{% a := 5 %}{% if true %}{% a = 7 %}{{ a }}{% end %}", "7", nil},
 	{"{% a := 5 %}{% if true %}{% a := 7 %}{{ a }}{% end %}", "7", nil},
 	{"{% a := 5 %}{% if true %}{% a := 7 %}{% a = 9 %}{{ a }}{% end %}", "9", nil},
@@ -362,9 +313,7 @@ var rendererStmtTests = []struct {
 	{"{% a := 3 %}{% _, a = test2(4,5) %}{{ a }}", "5", nil},
 	{"{% a := slice{1,2,3} %}{% a[1] = 5 %}{{ a }}", "1, 5, 3", nil},
 	{"{% a := map{`b`:1} %}{% a[`b`] = 5 %}{{ a[`b`] }}", "5", nil},
-	{"{% a := map{`b`:1} %}{% a.b = 5 %}{{ a.b }}", "5", nil},
 	{"{% a := 0 %}{% a, a = test2(1,2) %}{{ a }}", "2", nil},
-	{"{% a := map{} %}{% a.b, a[`c`] = test2(1,2) %}{{ a.b }},{{ a.c }}", "1,2", nil},
 	{"{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
 	{"{% a := 0 %}{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
 	{"{% b := 0 %}{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
@@ -387,9 +336,9 @@ var rendererStmtTests = []struct {
 	{"{% for _, i := range slice{1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
 	{"{% for _, i := range slice{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
 	{"{% for _, i := range bytes{ 0, 1, 2 } %}{{ i }}{% end %}", "012", nil},
-	{"{% s := slice{} %}{% for k, v := range map{`a`: `1`, `b`: `2`} %}{% s = append(s, k+`:`+v) %}{% end %}{{ sort(s) }}", "a:1, b:2", nil},
+	{"{% s := slice{} %}{% for k, v := range map{`a`: `1`, `b`: `2`} %}{% s = append(s, k+`:`+v) %}{% end %}{% sort(s) %}{{ s }}", "a:1, b:2", nil},
 	{"{% for k, v := range map{} %}{{ k }}:{{ v }},{% end %}", "", nil},
-	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{{ sort(s) }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
+	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{% sort(s) %}{{ s }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% i := 0 %}{% c := \"\" %}{% for i, c = range \"ab\" %}({{ c }}){% end %}{{ i }}", "(97)(98)1", nil},
@@ -420,18 +369,16 @@ var rendererStmtTests = []struct {
 	{"{% switch x.(type) %}{% case string %}is a string{% default %}is something else{% case int %}is an int{% end %}", "is something else", scope{"x": false}},
 	{"{% switch v := a.(type) %}{% case string %}{{ v }} is a string{% case int %}{{ v }} is an int{% default %}{{ v }} is something else{% end %}", "12 is an int", scope{"a": 12}},
 	{"{% switch %}{% case 4 < 10 %}4 < 10, {% fallthrough %}{% case 4 == 10 %}4 == 10{% end %}", "4 < 10, 4 == 10", nil},
-	{"{% switch a, b := 10, \"hey\"; (a + 20).(type) %}{% case string %}string{% case number %}number, msg: {{ b }}{% default %}def{% end %}", "number, msg: hey", nil},
+	{"{% switch a, b := 10, \"hey\"; (a + 20).(type) %}{% case string %}string{% case int %}int, msg: {{ b }}{% default %}def{% end %}", "int, msg: hey", nil},
 	{"{% i := 0 %}{% c := true %}{% for c %}{% i++ %}{{ i }}{% c = i < 5 %}{% end %}", "12345", nil},
 	{"{% i := 0 %}{% for ; ; %}{% i++ %}{{ i }}{% if i == 4 %}{% break %}{% end %},{% end %} {{ i }}", "1,2,3,4 4", nil},
 	{"{% i := 5 %}{% i++ %}{{ i }}", "6", nil},
-	{"{% i := a %}{% i++ %}{{ i }}", "6", scope{"a": aNumber{5}}},
-	{"{% s := map{`a`: 5} %}{% s.a++ %}{{ s.a }}", "6", nil},
+	{"{% s := map{`a`: 5} %}{% s[`a`]++ %}{{ s[`a`] }}", "6", nil},
 	{"{% s := slice{5} %}{% s[0]++ %}{{ s[0] }}", "6", nil},
 	{"{% s := bytes{5} %}{% s[0]++ %}{{ s[0] }}", "6", nil},
 	{"{% s := bytes{255} %}{% s[0]++ %}{{ s[0] }}", "0", nil},
 	{"{% i := 5 %}{% i-- %}{{ i }}", "4", nil},
-	{"{% i := a %}{% i++ %}{{ i }}", "6", scope{"a": aNumber{5}}},
-	{"{% s := map{`a`: 5} %}{% s.a-- %}{{ s.a }}", "4", nil},
+	{"{% s := map{`a`: 5} %}{% s[`a`]-- %}{{ s[`a`] }}", "4", nil},
 	{"{% s := slice{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
@@ -443,10 +390,9 @@ var rendererStmtTests = []struct {
 	{"{% a := 12 %}{% a /= 4 %}{{ a }}", "3", nil},
 	{"{% a := 12 %}{% a %= 5 %}{{ a }}", "2", nil},
 	{"{% a := 12.3 %}{% a += 9.1 %}{{ a }}", "21.4", nil},
-	{"{% a := 12.3 %}{% a -= 3.7 %}{{ a }}", "8.6", nil},
-	{"{% a := 12.3 %}{% a *= 2.1 %}{{ a }}", "25.83", nil},
-	{"{% a := 12.3 %}{% a /= 4.9 %}{{ a }}", "2.5102040816326530612244897959184", nil},
-	{"{% a := 12.3 %}{% a %= 5.3 %}{{ a }}", "1.7", nil},
+	{"{% a := 12.3 %}{% a -= 3.7 %}{{ a }}", "8.600000000000001", nil},
+	{"{% a := 12.3 %}{% a *= 2.1 %}{{ a }}", "25.830000000000002", nil},
+	{"{% a := 12.3 %}{% a /= 4.9 %}{{ a }}", "2.510204081632653", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 
@@ -455,69 +401,49 @@ var rendererStmtTests = []struct {
 	// string
 	{`{% if s, ok := string("abc").(string); ok %}{{ s }}{% end %}`, "abc", nil},
 	{`{% if s, ok := string(html("<b>")).(string); ok %}{{ s }}{% end %}`, "<b>", nil},
-	{`{% if s, ok := string(87.5+0.5).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88).(string); ok %}{{ s }}{% end %}`, "X", nil},
 	{`{% if s, ok := string(88888888888).(string); ok %}{{ s }}{% end %}`, "\uFFFD", nil},
-	{`{% if s, ok := string(slice{}).(string); ok %}{{ s }}{% end %}`, "", nil},
-	{`{% if s, ok := string(slice{35, 8364}).(string); ok %}{{ s }}{% end %}`, "#€", nil},
-	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "#€", scope{"a": []int{35, 8364}}},
+	//{`{% if s, ok := string(slice{}).(string); ok %}{{ s }}{% end %}`, "", nil},
+	//{`{% if s, ok := string(slice{35, 8364}).(string); ok %}{{ s }}{% end %}`, "#€", nil},
+	//{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "#€", scope{"a": []int{35, 8364}}},
 	{`{% if s, ok := string(bytes{}).(string); ok %}{{ s }}{% end %}`, "", nil},
 	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
 
-	// number
-	{`{% if s, ok := number(5).(number); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% if s, ok := number(5.5).(number); ok %}{{ s }}{% end %}`, "5.5", nil},
-
 	// int
-	{`{% if s, ok := int(0.3).(int); ok %}{{ s }}{% end %}`, "0", nil},
-	{`{% if s, ok := int(1.0003).(int); ok %}{{ s }}{% end %}`, "1", nil},
-	{`{% if s, ok := int(-1.0003).(int); ok %}{{ s }}{% end %}`, "-1", nil},
 	{`{% if s, ok := int(5).(int); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% if s, ok := int(5.5).(int); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% if s, ok := int(-4320.3).(int); ok %}{{ s }}{% end %}`, "-4320", nil},
+	{`{% if s, ok := int(5.0).(int); ok %}{{ s }}{% end %}`, "5", nil},
 	{`{% if s, ok := int(2147483647).(int); ok %}{{ s }}{% end %}`, "2147483647", nil},
 	{`{% if s, ok := int(-2147483648).(int); ok %}{{ s }}{% end %}`, "-2147483648", nil},
-	// TODO (Gianluca): complete the implementation to pass this test
-	// {`{% if s, ok := int(9223372036854775817).(int); ok %}{{ s }}{% end %}`, "9", nil}, // math.MaxInt64 + 10
+
+	// float64
+	{`{% if s, ok := float64(5).(float64); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := float64(5.5).(float64); ok %}{{ s }}{% end %}`, "5.5", nil},
+
+	// float32
+	{`{% if s, ok := float32(5).(float32); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := float32(5.5).(float32); ok %}{{ s }}{% end %}`, "5.5", nil},
 
 	// rune
-	{`{% if s, ok := rune(0.43).(rune); ok %}{{ s }}{% end %}`, "0", nil},
-	{`{% if s, ok := rune(-2.43).(rune); ok %}{{ s }}{% end %}`, "-2", nil},
 	{`{% if s, ok := rune(5).(rune); ok %}{{ s }}{% end %}`, "5", nil},
 	{`{% if s, ok := rune(2147483647).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
-	{`{% if s, ok := rune(2147483648).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
 	{`{% if s, ok := rune(-2147483648).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
-	{`{% if s, ok := rune(-2147483649).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
-	{`{% if s, ok := rune(27134717830649).(rune); ok %}{{ s }}{% end %}`, "-885545479", nil},
-	{`{% if s, ok := rune(83027134717649).(rune); ok %}{{ s }}{% end %}`, "1121918673", nil},
 
 	// byte
-	{`{% if s, ok := byte(0.43).(byte); ok %}{{ s }}{% end %}`, "0", nil},
-	{`{% if s, ok := byte(-2.43).(byte); ok %}{{ s }}{% end %}`, "254", nil},
-	{`{% if s, ok := byte(-4).(byte); ok %}{{ s }}{% end %}`, "252", nil},
 	{`{% if s, ok := byte(5).(byte); ok %}{{ s }}{% end %}`, "5", nil},
-	{`{% if s, ok := byte(260).(byte); ok %}{{ s }}{% end %}`, "4", nil},
-	{`{% if s, ok := byte(-257).(byte); ok %}{{ s }}{% end %}`, "255", nil},
-	{`{% if s, ok := byte(a).(byte); ok %}{{ s }}{% end %}`, "133", scope{"a": largeDecimal}},
+	{`{% if s, ok := byte(255).(byte); ok %}{{ s }}{% end %}`, "255", nil},
 
 	// map
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map{}}},
 	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": Map{}}},
-	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
-	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int(nil)}},
-	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": map[string]int{"b": 2}}},
 
 	// slice
 	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice{}}},
 	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": Slice{}}},
-	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
-	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int(nil)}},
-	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": []int{1, 2}}},
 
 	// bytes
-	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": Bytes{}}},
-	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": Bytes{}}},
+	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte{}}},
+	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{}}},
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},

@@ -54,15 +54,15 @@ var rendererBuiltinTests = []struct {
 	{"abs(-3.56)", "3.56", nil},
 
 	// append
-	{"append(s)", "a, b", map[string]interface{}{"s": []string{"a", "b"}}},
-	{"append(s, v)", "a, b, ", map[string]interface{}{"s": []string{"a", "b"}, "v": []string(nil)}},
-	{"append(s, `a`, `b`)", "a, b", map[string]interface{}{"s": []string(nil)}},
-	{"append(s, `c`, `d`)", "a, b, c, d", map[string]interface{}{"s": []string{"a", "b"}}},
-	{"append(s, html(`<c>`))", "<a>, <b>, <c>", map[string]interface{}{"s": []HTML{"<a>", "<b>"}}},
-	{"append(s, 3, 4)", "1, 2, 3, 4", map[string]interface{}{"s": []int{1, 2}}},
-	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", map[string]interface{}{"s": []*apd.Decimal{floatToDecimal(1.9), floatToDecimal(2.32)}}},
-	{"append(s, false, true)", "true, false, false, true", map[string]interface{}{"s": []bool{true, false}}},
-	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", map[string]interface{}{"s": []interface{}{"a", false, 0}}},
+	{"append(s)", "a, b", scope{"s": []string{"a", "b"}}},
+	{"append(s, v)", "a, b, ", scope{"s": []string{"a", "b"}, "v": ""}},
+	{"append(s, `a`, `b`)", "a, b", scope{"s": []string(nil)}},
+	{"append(s, `c`, `d`)", "a, b, c, d", scope{"s": []string{"a", "b"}}},
+	{"append(s, html(`<c>`))", "<a>, <b>, <c>", scope{"s": []HTML{"<a>", "<b>"}}},
+	{"append(s, 3, 4)", "1, 2, 3, 4", scope{"s": []int{1, 2}}},
+	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", scope{"s": []float64{1.9, 2.32}}},
+	{"append(s, false, true)", "true, false, false, true", scope{"s": []bool{true, false}}},
+	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", scope{"s": []interface{}{"a", false, 0}}},
 	{"append(slice{})", "", nil},
 	{"append(slice{}, 1)", "1", nil},
 	{"append(slice{1,2,3}, 4)", "1, 2, 3, 4", nil},
@@ -141,9 +141,7 @@ var rendererBuiltinTests = []struct {
 	// int
 	{"int(0)", "0", nil},
 	{"int(1)", "1", nil},
-	{"int(0.5)", "0", nil},
-	{"int(-0.5)", "0", nil},
-	{"int(3.56)", "3", nil},
+	{"int(-1)", "-1", nil},
 
 	// itoa
 	{"itoa(0).(string)", "0", nil},
@@ -175,19 +173,17 @@ var rendererBuiltinTests = []struct {
 	{"len(``)", "0", nil},
 	{"len(`a`)", "1", nil},
 	{"len(`abc`)", "3", nil},
-	{"len(`€`)", "1", nil},
-	{"len(`€`)", "1", nil},
+	{"len(`€`)", "3", nil},
+	{"len(`€`)", "3", nil},
 	{"len(a)", "1", scope{"a": "a"}},
 	{"len(a)", "3", scope{"a": "<a>"}},
 	{"len(a)", "3", scope{"a": HTML("<a>")}},
-	{"len(a)", "3", scope{"a": aString{"xz€"}}},
 	{"len(a)", "3", scope{"a": []int{1, 2, 3}}},
 	{"len(a)", "2", scope{"a": []string{"a", "b"}}},
 	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
 	{"len(a)", "0", scope{"a": []int(nil)}},
 	{"len(a)", "2", scope{"a": map[string]int{"a": 5, "b": 8}}},
 	{"len(a)", "2", scope{"a": Map{"a": 5, "b": 8}}},
-	{"len(a)", "2", scope{"a": &struct{ A, B int }{A: 5, B: 8}}},
 
 	// max
 	{"max(0, 0)", "0", nil},
@@ -202,14 +198,6 @@ var rendererBuiltinTests = []struct {
 	{"max(-7.5, 5.5)", "5.5", nil},
 	{"max(7.5, -5.5)", "7.5", nil},
 	{"max(0.0000000000000000000000000000001, 0.0000000000000000000000000000002)", "0.0000000000000000000000000000002", nil},
-
-	// number
-	{"number(0)", "0", nil},
-	{"number(5)", "5", nil},
-	{"number(-7)", "-7", nil},
-	{"number(5.5)", "5.5", nil},
-	{"number(5.50)", "5.5", nil},
-	{"number(0.00)", "0", nil},
 
 	// md5
 	{"md5(``)", "d41d8cd98f00b204e9800998ecf8427e", nil},
@@ -258,8 +246,11 @@ var rendererBuiltinTests = []struct {
 	{"reverse(s)", "3, 2, 1", scope{"s": []int{1, 2, 3}}},
 
 	// round
-	{"round(0, 0)", "0", nil},
-	{"round(5.3752, 2)", "5.38", nil},
+	{"round(0)", "0", nil},
+	{"round(0.0)", "0", nil},
+	{"round(5.3752)", "5", nil},
+	{"round(7.4999)", "7", nil},
+	{"round(7.5)", "8", nil},
 
 	// sha1
 	{"sha1(``)", "da39a3ee5e6b4b0d3255bfef95601890afd80709", nil},
@@ -268,26 +259,6 @@ var rendererBuiltinTests = []struct {
 	// sha256
 	{"sha256(``)", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
 	{"sha256(`hello world!`)", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
-
-	// sort
-	{"sort(nil)", "", nil},
-	{"sort(s1)", "", scope{"s1": []int{}}},
-	{"sort(s2)", "1", scope{"s2": []int{1}}},
-	{"sort(s3)", "1, 2", scope{"s3": []int{1, 2}}},
-	{"sort(s4)", "1, 2", scope{"s4": []int{2, 1}}},
-	{"sort(s5)", "1, 2, 3", scope{"s5": []int{3, 1, 2}}},
-	{"sort(s6)", "a", scope{"s6": []string{"a"}}},
-	{"sort(s7)", "a, b", scope{"s7": []string{"b", "a"}}},
-	{"sort(s8)", "a, b, c", scope{"s8": []string{"b", "a", "c"}}},
-	{"sort(s9)", "false, true, true", scope{"s9": []bool{true, false, true}}},
-
-	// sortBy
-	{"sortBy(s10,`N`)[0].N", "3", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sortBy(s10,`N`)[1].N", "5", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sortBy(s10,`N`)[2].N", "7", scope{"s10": []struct{ N int }{{N: 5}, {N: 3}, {N: 7}}}},
-	{"sortBy(s11,`S`)[0].S", "a", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sortBy(s11,`S`)[1].S", "b", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
-	{"sortBy(s11,`S`)[2].S", "c", scope{"s11": []struct{ S string }{{S: "a"}, {S: "c"}, {S: "b"}}}},
 
 	// split
 	{"split(``, ``)", "", nil},
@@ -378,8 +349,19 @@ var statementBuiltinTests = []struct {
 	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{"a": 6}}},
 	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": Map{"a": 6}}},
 	{"{% delete(m,5) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
-	{"{% delete(m,5.0) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
-	{"{% delete(m,map{}) %}ok", "ok", scope{"m": Map{}}},
+	{"{% delete(m,5.0) %}{% if _, ok := m[5.0]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
+
+	// sort
+	{"{% sort(nil) %}", "", nil},
+	{"{% sort(s1) %}{{ s1 }}", "", scope{"s1": []int{}}},
+	{"{% sort(s2) %}{{ s2 }}", "1", scope{"s2": []int{1}}},
+	{"{% sort(s3) %}{{ s3 }}", "1, 2", scope{"s3": []int{1, 2}}},
+	{"{% sort(s4) %}{{ s4 }}", "1, 2", scope{"s4": []int{2, 1}}},
+	{"{% sort(s5) %}{{ s5 }}", "1, 2, 3", scope{"s5": []int{3, 1, 2}}},
+	{"{% sort(s6) %}{{ s6 }}", "a", scope{"s6": []string{"a"}}},
+	{"{% sort(s7) %}{{ s7 }}", "a, b", scope{"s7": []string{"b", "a"}}},
+	{"{% sort(s8) %}{{ s8 }}", "a, b, c", scope{"s8": []string{"b", "a", "c"}}},
+	{"{% sort(s9) %}{{ s9 }}", "false, true, true", scope{"s9": []bool{true, false, true}}},
 }
 
 var rendererRandomBuiltinTests = []struct {
@@ -389,8 +371,7 @@ var rendererRandomBuiltinTests = []struct {
 	vars scope
 }{
 	// rand
-	{"rand(0)", 1, "5577006791947779410", nil},
-	{"rand(0)", 2, "1543039099823358511", nil},
+	{"rand(-1)", 1, "5577006791947779410", nil},
 	{"rand(1)", 1, "0", nil},
 	{"rand(1)", 2, "0", nil},
 	{"rand(2)", 1, "1", nil},

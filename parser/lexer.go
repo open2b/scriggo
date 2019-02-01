@@ -947,7 +947,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	return endLineAsSemicolon
 }
 
-// lexNumber reads a number (int or decimal) knowing that src starts with
+// lexNumber reads a number (integer or float) knowing that src starts with
 // '0'..'9' or '.'.
 func (l *lexer) lexNumber() {
 	// Stops only if a character can not be part of the number.
@@ -968,7 +968,11 @@ func (l *lexer) lexNumber() {
 		}
 		p++
 	}
-	l.emit(tokenNumber, p)
+	if hasDot {
+		l.emit(tokenFloat, p)
+	} else {
+		l.emit(tokenInt, p)
+	}
 	l.column += p
 }
 
@@ -1164,7 +1168,7 @@ func (l *lexer) lexRuneLiteral() error {
 	if len(l.src) <= p || l.src[p] != '\'' {
 		return l.errorf("invalid character literal (missing closing ')")
 	}
-	l.emit(tokenRuneLiteral, p+1)
+	l.emit(tokenRune, p+1)
 	l.column += p + 1
 	return nil
 }

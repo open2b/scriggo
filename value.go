@@ -7,6 +7,7 @@
 package template
 
 import (
+	"fmt"
 	"html"
 	"io"
 	"math"
@@ -17,10 +18,59 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/cockroachdb/apd"
-
 	"open2b/template/ast"
 )
+
+// CustomNumber is implemented by a val that behaves like a number.
+type CustomNumber interface {
+
+	// New returns a new zero number.
+	New() CustomNumber
+
+	// Cmp compares the current number n with y and returns:
+	//
+	//    -1 if n < y
+	//     0 if x == y (incl. -0 == 0, -Inf == -Inf, and +Inf == +Inf)
+	//    +1 if x > y
+	//
+	// If y is nil, n is compared to 0. If x or y or both are NaN the result
+	// is undefined.
+	Cmp(y CustomNumber) int
+
+	// BinaryOp sets the number with the result of the operator op applied to
+	// x and y. op can be ast.OperatorAddition, ast.OperatorSubtraction,
+	// ast.OperatorMultiplication, ast.OperatorDivision or ast.OperatorModulo.
+	BinaryOp(x CustomNumber, op ast.OperatorType, y CustomNumber) CustomNumber
+
+	// Inc increments the number of 1.
+	Inc()
+
+	// Dec decrements the number of 1.
+	Dec()
+
+	// Neg sets the number to x with its sign negated.
+	Neg(x CustomNumber) CustomNumber
+
+	// Convert converts x to a custom number. The type of x can be any
+	// numerical type, including a custom number and constant number. Returns
+	// an error if x can not be converted.
+	Convert(x interface{}) (CustomNumber, error)
+
+	// IsInf reports whether the number is +Inf or -Inf.
+	IsInf() bool
+
+	// IsNaN reports whether the number is NaN.
+	IsNaN() bool
+
+	// Name returns the name of the type.
+	Name() string
+
+	// Format implements fmt.Formatter.
+	Format(s fmt.State, format rune)
+
+	// String formats the number. The format is implementation dependent.
+	String() string
+}
 
 // ValueRenderer can be implemented by the values of variables. When a value
 // have to be rendered, if the value implements ValueRender, its Render method
@@ -63,24 +113,6 @@ type ValueRenderer interface {
 //
 type HTML string
 
-// String is the type returned from the String method of the Stringer
-// interface.
-type String string
-
-// Number is the type returned from the Number method of the Stringer
-// interface.
-type Number *apd.Decimal
-
-// Stringer is implemented by any value that behaves like a string.
-type Stringer interface {
-	String() String
-}
-
-// Numberer is implemented by any value that behaves like a number.
-type Numberer interface {
-	Number() Number
-}
-
 func (s HTML) Render(w io.Writer) (int, error) {
 	return io.WriteString(w, string(s))
 }
@@ -109,47 +141,71 @@ func newStringWriter(wr io.Writer) stringWriter {
 	return stringWriterWrapper{wr}
 }
 
-// renderDecimal renders the decimal d in the context ctx.
-func (r *rendering) renderDecimal(d *apd.Decimal, ctx ast.Context) string {
-	_, _ = d.Reduce(d)
-	switch ctx {
-	case ast.ContextText:
-		return d.Text('f')
-	case ast.ContextHTML, ast.ContextAttribute:
-		if d.Form == apd.Infinite {
-			if d.Negative {
-				return "-∞"
+// formatNumber format the number in the context ctx.
+func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, error) {
+	switch n := number.(type) {
+	case int:
+		return strconv.FormatInt(int64(n), 10), nil
+	case int64:
+		return strconv.FormatInt(n, 10), nil
+	case int32:
+		return strconv.FormatInt(int64(n), 10), nil
+	case int16:
+		return strconv.FormatInt(int64(n), 10), nil
+	case int8:
+		return strconv.FormatInt(int64(n), 10), nil
+	case uint:
+		return strconv.FormatUint(uint64(n), 10), nil
+	case uint64:
+		return strconv.FormatUint(n, 10), nil
+	case uint32:
+		return strconv.FormatUint(uint64(n), 10), nil
+	case uint16:
+		return strconv.FormatUint(uint64(n), 10), nil
+	case uint8:
+		return strconv.FormatUint(uint64(n), 10), nil
+	case float64:
+		return strconv.FormatFloat(n, 'f', -1, 64), nil
+	case float32:
+		return strconv.FormatFloat(float64(n), 'f', -1, 32), nil
+	case ConstantNumber:
+		return n.String()
+	case CustomNumber:
+		switch ctx {
+		case ast.ContextText:
+			return fmt.Sprintf("%f", n), nil
+		case ast.ContextHTML, ast.ContextAttribute:
+			if n.IsInf() {
+				if n.Cmp(n.New()) < 0 {
+					return "-∞", nil
+				}
+				return "∞", nil
 			}
-			return "∞"
+			return fmt.Sprintf("%.16f", n), nil
+		case ast.ContextCSS, ast.ContextCSSString:
+			maxInt32, _ := n.New().Convert(math.MaxInt32)
+			minInt32, _ := n.New().Convert(math.MinInt32)
+			if n.Cmp(maxInt32) == 1 {
+				n = maxInt32
+			} else if n.Cmp(minInt32) == -1 {
+				n = minInt32
+			}
+			return fmt.Sprintf("%f", n), nil
+		case ast.ContextScript, ast.ContextScriptString:
+			switch {
+			case n.IsNaN():
+				return "NaN", nil
+			case n.IsInf() && n.Cmp(n.New()) > 0:
+				return "Infinity", nil
+			case n.IsInf() && n.Cmp(n.New()) < 0:
+				return "-Infinity", nil
+			}
+			return n.String(), nil
+		default:
+			panic("template: unknown context")
 		}
-		if d.NumDigits() > 16 {
-			e := new(apd.Decimal)
-			_, _ = decimalContext.Round(e, d)
-			return e.String()
-		}
-		return d.String()
-	case ast.ContextCSS, ast.ContextCSSString:
-		maxInt32 := apd.New(math.MaxInt32, 0)
-		minInt32 := apd.New(math.MinInt32, 0)
-		if d.Cmp(maxInt32) == 1 {
-			d = maxInt32
-		} else if d.Cmp(minInt32) == -1 {
-			d = minInt32
-		}
-		return d.Text('f')
-	case ast.ContextScript, ast.ContextScriptString:
-		switch {
-		case d.Form == apd.NaN:
-			return "NaN"
-		case d.Form == apd.Infinite && !d.Negative:
-			return "Infinity"
-		case d.Form == apd.Infinite && d.Negative:
-			return "-Infinity"
-		}
-		return d.String()
-	default:
-		panic("template: unknown context")
 	}
+	panic("no integer value")
 }
 
 // renderValue renders value in the context of node and as a URL is urlstate
@@ -177,8 +233,6 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 
 		if e, ok := value.(error); ok {
 			value = e.Error()
-		} else {
-			value = asBase(value)
 		}
 
 		var err error
@@ -236,10 +290,13 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 		s = e
 	case HTML:
 		s = string(e)
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextText)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextText)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case bool:
 		s = "false"
 		if e {
@@ -260,7 +317,7 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 					return err
 				}
 			}
-			err := r.renderInText(w, asBase(rv.Index(i).Interface()), node)
+			err := r.renderInText(w, rv.Index(i).Interface(), node)
 			if err != nil {
 				return err
 			}
@@ -287,10 +344,13 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 		return htmlEscape(w, e)
 	case HTML:
 		s = string(e)
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextHTML)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextHTML)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case bool:
 		s = "false"
 		if e {
@@ -311,7 +371,7 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 					return err
 				}
 			}
-			err := r.renderInHTML(w, asBase(rv.Index(i).Interface()), node)
+			err := r.renderInHTML(w, rv.Index(i).Interface(), node)
 			if err != nil {
 				return err
 			}
@@ -362,10 +422,13 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 		return attributeEscape(w, e, quoted)
 	case HTML:
 		return attributeEscape(w, html.UnescapeString(string(e)), quoted)
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextAttribute)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextAttribute)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case bool:
 		s = "false"
 		if e {
@@ -388,7 +451,7 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 					_, err = w.WriteString(",&#32;")
 				}
 			}
-			err = r.renderInAttribute(w, asBase(rv.Index(i).Interface()), node, quoted)
+			err = r.renderInAttribute(w, rv.Index(i).Interface(), node, quoted)
 			if err != nil {
 				return err
 			}
@@ -415,10 +478,13 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 		s = e
 	case HTML:
 		s = string(e)
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextAttribute)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextAttribute)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case bool:
 		s = "false"
 		if e {
@@ -440,15 +506,18 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 					s += ",&#32;"
 				}
 			}
-			switch e := asBase(rv.Index(i).Interface()).(type) {
+			switch e := rv.Index(i).Interface().(type) {
 			case string:
 				s += e
 			case HTML:
 				s += string(e)
-			case int:
-				s += strconv.Itoa(e)
-			case *apd.Decimal:
-				s += r.renderDecimal(e, ast.ContextAttribute)
+			case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+				float64, float32, ConstantNumber, CustomNumber:
+				n, err := r.formatNumber(e, ast.ContextAttribute)
+				if err != nil {
+					return r.errorf(node, "%s", err)
+				}
+				s += n
 			case bool:
 				if e {
 					s += "true"
@@ -511,12 +580,13 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Val
 		}
 		_, err = w.WriteString(`"`)
 		return err
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextCSS)
-	case Bytes:
-		return escapeBytes(w, e, false)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextCSS)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case []byte:
 		return escapeBytes(w, e, false)
 	default:
@@ -542,12 +612,13 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 		return cssStringEscape(w, e)
 	case HTML:
 		return cssStringEscape(w, string(e))
-	case int:
-		s = strconv.Itoa(e)
-	case *apd.Decimal:
-		s = r.renderDecimal(e, ast.ContextCSSString)
-	case Bytes:
-		return escapeBytes(w, e, false)
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		var err error
+		s, err = r.formatNumber(e, ast.ContextCSSString)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
 	case []byte:
 		return escapeBytes(w, e, false)
 	default:
@@ -590,11 +661,13 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		}
 		_, err = w.WriteString("\"")
 		return err
-	case int:
-		_, err := w.WriteString(strconv.Itoa(e))
-		return err
-	case *apd.Decimal:
-		_, err := w.WriteString(r.renderDecimal(e, ast.ContextScript))
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		s, err := r.formatNumber(e, ast.ContextScript)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
+		_, err = w.WriteString(s)
 		return err
 	case bool:
 		s := "false"
@@ -603,8 +676,6 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		}
 		_, err := w.WriteString(s)
 		return err
-	case Bytes:
-		return escapeBytes(w, e, true)
 	case []byte:
 		return escapeBytes(w, e, true)
 	default:
@@ -638,7 +709,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 						return err
 					}
 				}
-				err = r.renderInScript(w, asBase(rv.Index(i).Interface()), node)
+				err = r.renderInScript(w, rv.Index(i).Interface(), node)
 				if err != nil {
 					return err
 				}
@@ -682,11 +753,13 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 	case HTML:
 		err := scriptStringEscape(w, string(e))
 		return err
-	case int:
-		_, err := w.WriteString(strconv.Itoa(e))
-		return err
-	case *apd.Decimal:
-		_, err := w.WriteString(r.renderDecimal(e, ast.ContextScriptString))
+	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
+		float64, float32, ConstantNumber, CustomNumber:
+		s, err := r.formatNumber(e, ast.ContextScriptString)
+		if err != nil {
+			return r.errorf(node, "%s", err)
+		}
+		_, err = w.WriteString(s)
 		return err
 	}
 
@@ -735,7 +808,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, asBase(keys[name].value(rv)), node)
+		err = r.renderInScript(w, keys[name].value(rv), node)
 		if err != nil {
 			return err
 		}
@@ -781,7 +854,7 @@ func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]int
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, asBase(value[n]), node)
+		err = r.renderInScript(w, value[n], node)
 		if err != nil {
 			return err
 		}
