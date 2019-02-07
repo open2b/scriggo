@@ -46,6 +46,8 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 			switch ident.Name {
 			case "append":
 				return r.evalAppend(node, n)
+			case "copy":
+				return r.evalCopy(node, n)
 			case "delete":
 				return r.evalDelete(node, n)
 			case "len":
@@ -597,6 +599,61 @@ func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 
 	return []reflect.Value{sv}, nil
+}
+
+// evalCopy evaluates the copy builtin function.
+func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
+	err := r.checkBuiltInParameterCount(node, 2, 1, n)
+	if err != nil {
+		return nil, err
+	}
+	dst := r.evalExpression(node.Args[0])
+	src := r.evalExpression(node.Args[1])
+	switch d := dst.(type) {
+	case []interface{}:
+		s, ok := src.([]interface{})
+		if ok {
+			n := copy(d, s)
+			return []reflect.Value{reflect.ValueOf(n)}, nil
+		}
+	case []string:
+		s, ok := src.([]string)
+		if ok {
+			n := copy(d, s)
+			return []reflect.Value{reflect.ValueOf(n)}, nil
+		}
+	case []int:
+		s, ok := src.([]int)
+		if ok {
+			n := copy(d, s)
+			return []reflect.Value{reflect.ValueOf(n)}, nil
+		}
+	case []byte:
+		switch s := src.(type) {
+		case []byte:
+			n := copy(d, s)
+			return []reflect.Value{reflect.ValueOf(n)}, nil
+		case string:
+			n := copy(d, s)
+			return []reflect.Value{reflect.ValueOf(n)}, nil
+		}
+	}
+	d := reflect.ValueOf(dst)
+	s := reflect.ValueOf(src)
+	dk := d.Type().Kind()
+	sk := s.Type().Kind()
+	switch {
+	case dk != reflect.Slice && sk != reflect.Slice:
+		return nil, r.errorf(node, "arguments to copy must be slices; have %s, %s", typeof(dst), typeof(src))
+	case dk != reflect.Slice:
+		return nil, r.errorf(node, "first argument to copy should be slice; have %s", typeof(dst))
+	case sk != reflect.Slice && sk != reflect.String:
+		return nil, r.errorf(node, "second argument to copy should be slice or string; have %s", typeof(src))
+	case sk == reflect.String && d.Elem().Type().Kind() != reflect.Uint8:
+		return nil, r.errorf(node, "arguments to copy have different element types: %s and %s", typeof(dst), typeof(src))
+	}
+	n = reflect.Copy(d, s)
+	return []reflect.Value{reflect.ValueOf(n)}, nil
 }
 
 // evalDelete evaluates the delete builtin function.

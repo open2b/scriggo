@@ -66,6 +66,7 @@ var builtins = map[string]interface{}{
 	"append": nil,
 	"delete": nil,
 	"new":    nil,
+	"copy":   nil,
 
 	"string":  stringType,
 	"int":     intType,
