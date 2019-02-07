@@ -173,6 +173,15 @@ var rendererExprTests = []struct {
 	{`s{1, 2}.A`, "1", nil},
 	{`s{A: 1, B: 2}.B`, "2", nil},
 
+	// composite literal with implicit type
+	{`[][]int{{1},{2,3}}[1][1]`, "3", nil},
+	{`[][]string{{"a", "b"}}[0][0]`, "a", nil},
+	{`map[string][]int{"a":{1,2}}["a"][1]`, "2", nil},
+	{`map[[2]int]string{{1,2}:"a"}[[2]int{1,2}]`, "a", nil},
+	{`[2][1]int{{1}, {5}}[1][0]`, "5", nil},
+	{`[]Point{{1,2}, {3,4}, {5,6}}[2].Y`, "6", nil},
+	{`(*(([]*Point{{3,4}})[0])).X`, "3", nil},
+
 	// selectors
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
 	{"a.b", "b", scope{"a": struct {
@@ -544,6 +553,7 @@ func TestRenderExpressions(t *testing.T) {
 	builtins["T"] = reflect.TypeOf(struct{ A, B int }{})
 	builtins["A"] = reflect.TypeOf(struct{ X, Y int }{})
 	builtins["s"] = reflect.TypeOf(struct{ A, B int }{})
+	builtins["Point"] = reflect.TypeOf(struct{ X, Y float64 }{})
 	for _, expr := range rendererExprTests {
 		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {

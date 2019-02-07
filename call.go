@@ -666,7 +666,7 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 		return nil, err
 	}
 	m := r.evalExpression(node.Args[0])
-	k, err := r.mapIndex(node.Args[1])
+	k, err := r.mapIndex(node.Args[1], interfaceType)
 	if err != nil {
 		return nil, err
 	}

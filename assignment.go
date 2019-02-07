@@ -427,7 +427,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		}
 		switch val := value.(type) {
 		case Map:
-			key, err := r.mapIndex(v.Index)
+			key, err := r.mapIndex(v.Index, interfaceType)
 			if err != nil {
 				return nil, err
 			}
@@ -457,7 +457,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			rv := reflect.ValueOf(value)
 			switch rv.Kind() {
 			case reflect.Map:
-				key, err := r.mapIndex(v.Index)
+				key, err := r.mapIndex(v.Index, rv.Type().Key())
 				if err != nil {
 					return nil, err
 				}

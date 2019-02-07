@@ -233,7 +233,7 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	case *ast.SliceType:
 		return r.evalSliceType(e)
 	case *ast.CompositeLiteral:
-		return r.evalCompositeLiteral(e)
+		return r.evalCompositeLiteral(e, nil)
 	case *ast.Call:
 		return r.evalCall(e)
 	case *ast.Index:
@@ -287,7 +287,7 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 				}
 			}
 		case *ast.CompositeLiteral:
-			return refToCopy(r.evalCompositeLiteral(expr)).Interface()
+			return refToCopy(r.evalCompositeLiteral(expr, nil)).Interface()
 		case *ast.UnaryOperator:
 			if expr.Operator() != ast.OperatorMultiplication {
 				panic(r.errorf(node, "cannot take the address of %s", expr))
@@ -1038,7 +1038,7 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 // TODO (Gianluca): use more efficient reflect functions to create slices and
 // maps when possibile.
 //
-func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{} {
+func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType reflect.Type) interface{} {
 	if i, ok := node.Type.(*ast.Identifier); ok && i.Name == "bytes" {
 		return r.evalBytes(node)
 	}
@@ -1053,9 +1053,17 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 	default:
 		panic(fmt.Sprintf("unexpected type %T as evalCompositeLiteral argument", node.Values))
 	}
-	typ, err := r.evalType(node.Type, length)
-	if err != nil {
-		panic(err)
+	var typ reflect.Type
+	if node.Type != nil {
+		var err error
+		// Composite literal with explicit type.
+		typ, err = r.evalType(node.Type, length)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// Composite literal with implicit type.
+		typ = outerType
 	}
 	switch typ {
 	case mapType: // builtin map
@@ -1065,7 +1073,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 		values := node.Values.([]ast.KeyValue)
 		builtinMap := make(Map, length)
 		for _, kv := range values {
-			key, err := r.mapIndex(kv.Key)
+			key, err := r.mapIndex(kv.Key, interfaceType)
 			if err != nil {
 				panic(err)
 			}
@@ -1092,7 +1100,12 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 		array := reflect.New(typ).Elem()
 		elemType := array.Type().Elem()
 		for i, value := range values {
-			evalValue := r.evalExpression(value)
+			var evalValue interface{}
+			if cl, ok := value.(*ast.CompositeLiteral); ok {
+				evalValue = r.evalCompositeLiteral(cl, typ.Elem())
+			} else {
+				evalValue = r.evalExpression(value)
+			}
 			var refValue reflect.Value
 			if cn, ok := evalValue.(ConstantNumber); ok {
 				typed, err := cn.ToType(elemType)
@@ -1118,7 +1131,12 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 		values := node.Values.([]ast.Expression)
 		s := reflect.MakeSlice(typ, length, length)
 		for i, v := range values {
-			ve := r.evalExpression(v)
+			var ve interface{}
+			if cl, ok := v.(*ast.CompositeLiteral); ok {
+				ve = r.evalCompositeLiteral(cl, typ.Elem())
+			} else {
+				ve = r.evalExpression(v)
+			}
 			if cn, ok := ve.(ConstantNumber); ok {
 				var err error
 				ve, err = cn.ToType(typ.Elem())
@@ -1141,12 +1159,35 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 		mapValue := reflect.MakeMap(typ)
 		pairs := node.Values.([]ast.KeyValue)
 		for _, kv := range pairs {
-			key, err := r.mapIndex(kv.Key)
-			if err != nil {
-				panic(err)
+			var key interface{}
+			if cl, ok := kv.Key.(*ast.CompositeLiteral); ok {
+				key = r.evalCompositeLiteral(cl, typ.Key())
+				switch k := key.(type) {
+				case nil, string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
+				case ConstantNumber:
+					var err error
+					key, err = k.ToTyped()
+					if err != nil {
+						panic(r.errorf(node, "%s", err))
+					}
+				default:
+					if !reflect.TypeOf(key).Comparable() {
+						panic(r.errorf(node, "hash of unhashable type %s", typeof(key)))
+					}
+				}
+			} else {
+				var err error
+				key, err = r.mapIndex(kv.Key, typ.Key())
+				if err != nil {
+					panic(err)
+				}
 			}
-			refKey := reflect.ValueOf(key)
-			value := r.evalExpression(kv.Value)
+			var value interface{}
+			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
+				value = r.evalCompositeLiteral(cl, typ.Elem())
+			} else {
+				value = r.evalExpression(kv.Value)
+			}
 			var refValue reflect.Value
 			if cn, ok := value.(ConstantNumber); ok {
 				typed, err := cn.ToType(typ.Elem())
@@ -1157,9 +1198,12 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 			} else {
 				refValue = reflect.ValueOf(value)
 			}
-			mapValue.SetMapIndex(refKey, refValue)
+			mapValue.SetMapIndex(reflect.ValueOf(key), refValue)
 		}
 		return mapValue.Interface()
+	case reflect.Ptr:
+		cl := r.evalCompositeLiteral(node, typ.Elem())
+		return refToCopy(cl).Interface()
 	case reflect.Struct:
 		if node.Values == nil {
 			return reflect.New(typ).Elem().Interface()
@@ -1208,7 +1252,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{}
 
 const noEllipses = -1
 
-// evalType evaluates an expression as type. If expr is an array type, lenght
+// evalType evaluates an expression as type. If expr is an array type, length
 // specifies the number of elements.
 func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, error) {
 	var value interface{}
@@ -1396,14 +1440,14 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return vv[i], true, nil
 	case map[interface{}]interface{}:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, interfaceType)
 		if err != nil {
 			return nil, false, err
 		}
 		u, ok := vv[k]
 		return u, ok, nil
 	case map[string]interface{}:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, stringType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1414,7 +1458,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return nil, false, nil
 	case map[string]string:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, stringType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1425,7 +1469,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return "", false, nil
 	case map[string]HTML:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, stringType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1436,7 +1480,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return HTML(""), false, nil
 	case map[string]int:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, stringType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1447,7 +1491,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return 0, false, nil
 	case map[string]bool:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, stringType)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1509,7 +1553,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return rv.Index(i).Interface(), true, nil
 	case reflect.Map:
-		k, err := r.mapIndex(node.Index)
+		k, err := r.mapIndex(node.Index, rv.Type().Key())
 		if err != nil {
 			return nil, false, err
 		}
@@ -1559,20 +1603,24 @@ func (r *rendering) sliceIndex(node ast.Expression) (i int, err error) {
 	return
 }
 
-// mapIndex evaluates node as a map index and returns the value.
-func (r *rendering) mapIndex(node ast.Expression) (interface{}, error) {
+// mapIndex evaluates node as a map index of type typ and returns the value.
+func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}, error) {
 	key := r.evalExpression(node)
 	switch k := key.(type) {
 	case nil, string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
 	case ConstantNumber:
 		var err error
-		key, err = k.ToTyped()
+		key, err = k.ToType(typ)
 		if err != nil {
 			return nil, r.errorf(node, "%s", err)
 		}
 	default:
-		if !reflect.TypeOf(key).Comparable() {
+		keyType := reflect.TypeOf(key)
+		if !keyType.Comparable() {
 			return nil, r.errorf(node, "hash of unhashable type %s", typeof(key))
+		}
+		if keyType != typ {
+			return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
 		}
 	}
 	return key, nil
