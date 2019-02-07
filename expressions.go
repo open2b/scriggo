@@ -1159,28 +1159,9 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		mapValue := reflect.MakeMap(typ)
 		pairs := node.Values.([]ast.KeyValue)
 		for _, kv := range pairs {
-			var key interface{}
-			if cl, ok := kv.Key.(*ast.CompositeLiteral); ok {
-				key = r.evalCompositeLiteral(cl, typ.Key())
-				switch k := key.(type) {
-				case nil, string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
-				case ConstantNumber:
-					var err error
-					key, err = k.ToTyped()
-					if err != nil {
-						panic(r.errorf(node, "%s", err))
-					}
-				default:
-					if !reflect.TypeOf(key).Comparable() {
-						panic(r.errorf(node, "hash of unhashable type %s", typeof(key)))
-					}
-				}
-			} else {
-				var err error
-				key, err = r.mapIndex(kv.Key, typ.Key())
-				if err != nil {
-					panic(err)
-				}
+			key, err := r.mapIndex(kv.Key, typ.Key())
+			if err != nil {
+				panic(err)
 			}
 			var value interface{}
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
@@ -1605,7 +1586,12 @@ func (r *rendering) sliceIndex(node ast.Expression) (i int, err error) {
 
 // mapIndex evaluates node as a map index of type typ and returns the value.
 func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}, error) {
-	key := r.evalExpression(node)
+	var key interface{}
+	if cl, ok := node.(*ast.CompositeLiteral); ok {
+		key = r.evalCompositeLiteral(cl, typ)
+	} else {
+		key = r.evalExpression(node)
+	}
 	switch k := key.(type) {
 	case nil, string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
 	case ConstantNumber:
@@ -1619,8 +1605,14 @@ func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}
 		if !keyType.Comparable() {
 			return nil, r.errorf(node, "hash of unhashable type %s", typeof(key))
 		}
-		if keyType != typ {
-			return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+		if typ.Kind() == reflect.Interface {
+			if !keyType.Implements(typ) {
+				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+			}
+		} else {
+			if keyType != typ {
+				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+			}
 		}
 	}
 	return key, nil
