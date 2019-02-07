@@ -32,64 +32,28 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
 	// TODO(marco): manage the special case f(g(parameters_of_g)).
 
-	if r.isBuiltin("len", node.Func) {
-		err := r.checkBuiltInParameterCount(node, 1, 1, n)
-		if err != nil {
-			return nil, err
-		}
-		arg := r.evalExpression(node.Args[0])
-		length := _len(arg)
-		if length == -1 {
-			return nil, r.errorf(node.Args[0], "invalid argument %s (type %s) for len", node.Args[0], typeof(arg))
-		}
-		return []reflect.Value{reflect.ValueOf(length)}, nil
-	}
-
-	if r.isBuiltin("delete", node.Func) {
-		err := r.checkBuiltInParameterCount(node, 2, 0, n)
-		if err != nil {
-			return nil, err
-		}
-		arg := r.evalExpression(node.Args[0])
-		switch m := arg.(type) {
-		case Map:
-			k, err := r.mapIndex(node.Args[1])
-			if err != nil {
-				return nil, err
-			}
-			_delete(m, k)
-		default:
-			v := reflect.ValueOf(arg)
-			if v.Kind() == reflect.Map {
-				k, err := r.mapIndex(node.Args[1])
-				if err != nil {
-					return nil, err
+	if ident, ok := node.Func.(*ast.Identifier); ok {
+		var isBuiltin bool
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] != nil {
+				if _, ok := r.vars[i][ident.Name]; ok {
+					isBuiltin = i == 0
+					break
 				}
-				v.SetMapIndex(reflect.ValueOf(k), reflect.Value{})
 			}
-			return nil, r.errorf(node, "first argument to delete must be map; have %s", typeof(arg))
 		}
-		return nil, nil
-	}
-
-	if r.isBuiltin("new", node.Func) {
-		err := r.checkBuiltInParameterCount(node, 1, 1, n)
-		if err != nil {
-			return nil, err
+		if isBuiltin {
+			switch ident.Name {
+			case "append":
+				return r.evalAppend(node, n)
+			case "delete":
+				return r.evalDelete(node, n)
+			case "len":
+				return r.evalLen(node, n)
+			case "new":
+				return r.evalNew(node, n)
+			}
 		}
-		typ, err := r.evalType(node.Args[0])
-		if err != nil {
-			return nil, err
-		}
-		return []reflect.Value{_new(typ)}, nil
-	}
-
-	if r.isBuiltin("append", node.Func) {
-		slice, err := r._append(node, n)
-		if err != nil {
-			return nil, err
-		}
-		return []reflect.Value{slice}, nil
 	}
 
 	var f, err = r.eval(node.Func)
@@ -97,6 +61,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		return nil, err
 	}
 
+	// Makes a type conversion.
 	if typ, ok := f.(reflect.Type); ok {
 		if len(node.Args) == 0 {
 			return nil, r.errorf(node, "missing argument to conversion to %s: %s", typ, node)
@@ -111,20 +76,31 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		return []reflect.Value{reflect.ValueOf(v)}, nil
 	}
 
-	var fun = reflect.ValueOf(f)
+	// Makes a call with reflect.
+	fun := reflect.ValueOf(f)
 	if !fun.IsValid() {
 		if r.isBuiltin("nil", node.Func) {
 			return nil, r.errorf(node, "use of untyped nil")
 		}
 		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
 	}
-	var typ = fun.Type()
-	if typ.Kind() != reflect.Func {
+	if fun.Kind() != reflect.Func {
 		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
 	}
+
+	return r.evalReflectCall(node, fun, n)
+}
+
+// evalReflectCall evaluates a call expression with reflect in n-values
+// context and returns its values. It returns an error if n > 0 and the
+// function does not return n values.
+func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([]reflect.Value, error) {
+
 	if fun.IsNil() {
 		return nil, r.errorf(node, "call of nil function")
 	}
+
+	typ := fun.Type()
 
 	var numOut = typ.NumOut()
 	switch {
@@ -517,4 +493,218 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 		}
 	}
 	return nil, errCannotConvert
+}
+
+// evalAppend evaluates the append builtin function.
+func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
+
+	if len(node.Args) == 0 {
+		return nil, r.errorf(node, "missing arguments to append")
+	}
+
+	slice, err := r.eval(node.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	if slice == nil && r.isBuiltin("nil", node.Args[0]) {
+		return nil, r.errorf(node, "first argument to append must be typed slice; have untyped nil")
+	}
+
+	t := reflect.TypeOf(slice)
+	if t.Kind() != reflect.Slice {
+		return nil, r.errorf(node, "first argument to append must be slice; have %s", t)
+	}
+	if n == 0 {
+		return nil, r.errorf(node, "%s evaluated but not used", node)
+	}
+	if n > 1 {
+		return nil, r.errorf(node, "assignment mismatch: %d variables but 1 values", n)
+	}
+
+	m := len(node.Args) - 1
+	if m == 0 {
+		return []reflect.Value{reflect.ValueOf(slice)}, nil
+	}
+
+	typ := t.Elem()
+
+	if s, ok := slice.([]interface{}); ok {
+		var s2 []interface{}
+		l, c := len(s), cap(s)
+		p := 0
+		if l+m <= c {
+			s2 = make([]interface{}, m)
+			s = s[:c:c]
+		} else {
+			s2 = make([]interface{}, l+m)
+			copy(s2, s)
+			s = s2
+			p = l
+		}
+		for i := 1; i < len(node.Args); i++ {
+			v, err := r.eval(node.Args[i])
+			if err != nil {
+				return nil, err
+			}
+			if n, ok := v.(ConstantNumber); ok {
+				v, err = n.ToType(typ)
+				if err != nil {
+					if e, ok := err.(errConstantOverflow); ok {
+						return nil, r.errorf(node.Args[i], "%s", e)
+					}
+					return nil, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+				}
+			}
+			s2[p+i-1] = v
+		}
+		if l+m <= c {
+			copy(s[l:], s2)
+		}
+		return []reflect.Value{reflect.ValueOf(s)}, nil
+	}
+
+	sv := reflect.ValueOf(slice)
+	var sv2 reflect.Value
+	l, c := sv.Len(), sv.Cap()
+	p := 0
+	if l+n <= c {
+		sv2 = reflect.MakeSlice(t, m, m)
+		sv = sv.Slice3(0, c, c)
+	} else {
+		sv2 = reflect.MakeSlice(t, l+m, l+m)
+		reflect.Copy(sv2, sv)
+		sv = sv2
+		p = l
+	}
+	for i := 1; i < len(node.Args); i++ {
+		v, err := r.eval(node.Args[i])
+		if err != nil {
+			return nil, err
+		}
+		if n, ok := v.(ConstantNumber); ok {
+			v, err = n.ToType(typ)
+			if err != nil {
+				if e, ok := err.(errConstantOverflow); ok {
+					return nil, r.errorf(node.Args[i], "%s", e)
+				}
+				return nil, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+			}
+		}
+		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
+	}
+	if l+m <= c {
+		reflect.Copy(sv2.Slice(l, l+m+1), sv2)
+	}
+
+	return []reflect.Value{sv}, nil
+}
+
+// evalDelete evaluates the delete builtin function.
+func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
+	err := r.checkBuiltInParameterCount(node, 2, 0, n)
+	if err != nil {
+		return nil, err
+	}
+	m := r.evalExpression(node.Args[0])
+	k, err := r.mapIndex(node.Args[1])
+	if err != nil {
+		return nil, err
+	}
+	// TODO: gestire il caso delle nil map
+	switch v := m.(type) {
+	case Map:
+		delete(v, k)
+	case map[string]string:
+		k, ok := k.(string)
+		if !ok {
+			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
+		}
+		delete(v, k)
+	case map[string]int:
+		k, ok := k.(string)
+		if !ok {
+			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
+		}
+		delete(v, k)
+	case map[string]interface{}:
+		k, ok := k.(string)
+		if !ok {
+			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
+		}
+		delete(v, k)
+	default:
+		rv := reflect.ValueOf(v)
+		if rv.Kind() != reflect.Map {
+			return nil, r.errorf(node, "first argument to delete must be map; have %s", typeof(m))
+		}
+		k := reflect.ValueOf(k)
+		if k.Type().AssignableTo(rv.Type().Key()) {
+			panic(fmt.Sprintf("cannot use %v (type %s) as type %s in delete", k, typeof(k), rv.Type().Key()))
+		}
+		rv.SetMapIndex(k, reflect.Value{})
+	}
+	return nil, nil
+}
+
+// evalLen evaluates the len builtin function.
+func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
+	err := r.checkBuiltInParameterCount(node, 1, 1, n)
+	if err != nil {
+		return nil, err
+	}
+	arg := node.Args[0]
+	v := r.evalExpression(arg)
+	var length int
+	switch s := v.(type) {
+	case string:
+		length = len(s)
+	case HTML:
+		length = len(string(s))
+	case []interface{}:
+		length = len(s)
+	case []string:
+		length = len(s)
+	case []HTML:
+		length = len(s)
+	case []int:
+		length = len(s)
+	case []byte:
+		length = len(s)
+	case []bool:
+		length = len(s)
+	case Map:
+		length = len(s)
+	case map[string]string:
+		length = len(s)
+	case map[string]int:
+		length = len(s)
+	case map[string]interface{}:
+		length = len(s)
+	default:
+		var rv = reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Slice:
+			length = rv.Len()
+		case reflect.Array:
+			length = rv.Len()
+		case reflect.Map:
+			length = rv.Len()
+		default:
+			return nil, r.errorf(arg, "invalid argument %s (type %s) for len", arg, typeof(v))
+		}
+	}
+	return []reflect.Value{reflect.ValueOf(length)}, nil
+}
+
+// evalNew evaluates the new builtin function.
+func (r *rendering) evalNew(node *ast.Call, n int) ([]reflect.Value, error) {
+	err := r.checkBuiltInParameterCount(node, 1, 1, n)
+	if err != nil {
+		return nil, err
+	}
+	typ, err := r.evalType(node.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	return []reflect.Value{reflect.New(typ)}, nil
 }

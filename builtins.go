@@ -62,10 +62,10 @@ var builtins = map[string]interface{}{
 	"nil":    nil,
 	"true":   true,
 	"false":  false,
-	"len":    _len,
+	"len":    nil,
 	"append": nil,
-	"delete": _delete,
-	"new":    _new,
+	"delete": nil,
+	"new":    nil,
 
 	"string":  stringType,
 	"int":     intType,
@@ -328,43 +328,6 @@ func _base64(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-// _delete is the builtin function "delete".
-func _delete(m interface{}, key interface{}) {
-	// TODO: gestire il caso delle nil map
-	switch mm := m.(type) {
-	case Map:
-		delete(mm, key)
-	case map[string]string:
-		k, ok := key.(string)
-		if !ok {
-			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
-		}
-		delete(mm, k)
-	case map[string]int:
-		k, ok := key.(string)
-		if !ok {
-			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
-		}
-		delete(mm, k)
-	case map[string]interface{}:
-		k, ok := key.(string)
-		if !ok {
-			panic(fmt.Sprintf("cannot use %v (type %s) as type string in delete", key, typeof(key)))
-		}
-		delete(mm, k)
-	default:
-		rv := reflect.ValueOf(m)
-		if rv.Kind() != reflect.Map {
-			panic(fmt.Sprintf("first argument to delete must be map; have %s", typeof(m)))
-		}
-		k := reflect.ValueOf(key)
-		if k.Type().AssignableTo(rv.Type().Key()) {
-			panic(fmt.Sprintf("cannot use %v (type %s) as type %s in delete", key, typeof(key), rv.Type().Key()))
-		}
-		rv.SetMapIndex(k, reflect.Value{})
-	}
-}
-
 // _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) {
 	panic(fmt.Errorf(format, a...))
@@ -433,48 +396,6 @@ func _lastIndex(s, sep string) int {
 		return n
 	}
 	return utf8.RuneCountInString(s[0:n])
-}
-
-// _len is the builtin function "len".
-func _len(v interface{}) int {
-	switch s := v.(type) {
-	case string:
-		return len(s)
-	case HTML:
-		return len(string(s))
-	case []interface{}:
-		return len(s)
-	case []string:
-		return len(s)
-	case []HTML:
-		return len(s)
-	case []int:
-		return len(s)
-	case []byte:
-		return len(s)
-	case []bool:
-		return len(s)
-	case Map:
-		return len(s)
-	case map[string]string:
-		return len(s)
-	case map[string]int:
-		return len(s)
-	case map[string]interface{}:
-		return len(s)
-	default:
-		var rv = reflect.ValueOf(v)
-		switch rv.Kind() {
-		case reflect.Slice:
-			return rv.Len()
-		case reflect.Array:
-			return rv.Len()
-		case reflect.Map:
-			return rv.Len()
-		}
-	}
-	// Returning -1 the method evalCall will return an invalid argument error.
-	return -1
 }
 
 // _max is the builtin function "max".
@@ -678,11 +599,6 @@ func _min(x, y interface{}) interface{} {
 		}
 	}
 	panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
-}
-
-// _new is the builtin function "new".
-func _new(typ reflect.Type) reflect.Value {
-	return reflect.New(typ)
 }
 
 // _printf is the builtin function "printf".
