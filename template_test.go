@@ -132,7 +132,7 @@ var rendererExprTests = []struct {
 	{`a.(bool)`, "true", scope{"a": true}},
 	{`a.(error)`, "err", scope{"a": errors.New("err")}},
 
-	// slice
+	// slice (builtin type Slice)
 	{"slice{}", "", nil},
 	{"len(slice{})", "0", nil},
 	{"slice{v}", "", map[string]interface{}{"v": []string(nil)}},
@@ -148,10 +148,30 @@ var rendererExprTests = []struct {
 	{`slice{"a",2,3.6,html("<b>")}`, "a, 2, 3.6, <b>", nil},
 	{`slice{slice{1,2},"/",slice{3,4}}`, "1, 2, /, 3, 4", nil},
 
-	// map
+	// slice
+	{"[]int{-3}[0]", "-3", nil},
+	{`[]string{"a","b","c"}[0]`, "a", nil},
+	{`[][]int{[]int{1,2}, []int{3,4,5}}[1][2]`, "5", nil},
+	{`len([]string{"a", "b", "c"})`, "3", nil},
+
+	// array
+	{`[2]int{-30, 30}[0]`, "-30", nil},
+	{`[1][2]int{[2]int{-30, 30}}[0][1]`, "30", nil},
+
+	// map (builtin type Map)
 	{"len(map{})", "0", nil},
+	{`map{1: 1, 2: 4, 3: 9}[2]`, "4", nil},
+
+	// map
+	{`map[int]int{1: 1, 2: 4, 3: 9}[2]`, "4", nil},
+	{`10 + map[string]int{"uno": 1, "due": 2}["due"] * 3`, "16", nil},
+	{`len(map{1: 1, 2: 4, 3: 9})`, "3", nil},
 	{`s["a"]`, "3", scope{"s": map[interface{}]int{"a": 3}}},
 	{`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
+
+	// struct
+	{`s{1, 2}.A`, "1", nil},
+	{`s{A: 1, B: 2}.B`, "2", nil},
 
 	// selectors
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
@@ -319,6 +339,7 @@ var rendererStmtTests = []struct {
 	{"{% b := 0 %}{% a, b := test2(1,2) %}{{ a }},{{ b }}", "1,2", nil},
 	{"{% s := slice{1,2,3} %}{% s[0] = 5 %}{{ s[0] }}", "5", nil},
 	{"{% s := slice{1,2,3} %}{% s2 := s[0:2] %}{% s2[0] = 5 %}{{ s2 }}", "5, 2", nil},
+	{`{% x := []string{"a","c","b"} %}{{ x[0] }}{{ x[2] }}{{ x[1] }}`, "abc", nil},
 	{"{% for i, p := range products %}{{ i }}: {{ p }}\n{% end %}", "0: a\n1: b\n2: c\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% for _, p := range products %}{{ p }}\n{% end %}", "a\nb\nc\n",
@@ -382,6 +403,8 @@ var rendererStmtTests = []struct {
 	{"{% s := slice{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
+	{`{% s := T{5, 6} %}{% if s.A == 5 %}ok{% end %}`, "ok", nil},
+	{`{% s := interface{}(3) %}{% if s == 3 %}ok{% end %}`, "ok", nil},
 	{"{% a := 12 %}{% a += 9 %}{{ a }}", "21", nil},
 	{"{% a := `ab` %}{% a += `c` %}{% if _, ok := a.(string); ok %}{{ a }}{% end %}", "abc", nil},
 	{"{% a := html(`ab`) %}{% a += `c` %}{% if _, ok := a.(string); ok %}{{ a }}{% end %}", "abc", nil},
@@ -393,6 +416,13 @@ var rendererStmtTests = []struct {
 	{"{% a := 12.3 %}{% a -= 3.7 %}{{ a }}", "8.600000000000001", nil},
 	{"{% a := 12.3 %}{% a *= 2.1 %}{{ a }}", "25.830000000000002", nil},
 	{"{% a := 12.3 %}{% a /= 4.9 %}{{ a }}", "2.510204081632653", nil},
+	{`{% a := 5 %}{% b := getref(a) %}{{ *b }}`, "5", scope{"getref": func(a int) *int { return &a }}},
+	{`{% a := 1 %}{% b := &a %}{% *b = 5 %}{{ a }}`, "5", nil},
+	{`{% a := 2 %}{% f(&a) %}{{ a }}`, "3", scope{"f": func(a *int) { *a++ }}},
+	{`{% a := &A{3, 4} %}ok`, "ok", nil},
+	{`{% a := &A{3, 4} %}{{ (*a).X }}`, "3", nil},
+	{`{% a := &A{3, 4} %}{{ a.X }}`, "3", nil},
+	{`{% a := 2 %}{% c := &(*(&a)) %}{% *c = 5 %}{{ a }}`, "5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
 
@@ -437,9 +467,12 @@ var rendererStmtTests = []struct {
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map{}}},
 	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": Map{}}},
 
-	// slice
+	// slice (builtin)
 	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice{}}},
 	{`{% if slice(a) != nil %}ok{% end %}`, "ok", scope{"a": Slice{}}},
+
+	// slice
+	{`{% if _, ok := []int{1,2,3}.([]int); ok %}ok{% end %}`, "ok", nil},
 
 	// bytes
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte{}}},
@@ -508,6 +541,9 @@ var rendererVarsToScope = []struct {
 }
 
 func TestRenderExpressions(t *testing.T) {
+	builtins["T"] = reflect.TypeOf(struct{ A, B int }{})
+	builtins["A"] = reflect.TypeOf(struct{ X, Y int }{})
+	builtins["s"] = reflect.TypeOf(struct{ A, B int }{})
 	for _, expr := range rendererExprTests {
 		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {

@@ -237,7 +237,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 				}
 				tokensInLine++
-				expr, tok2 := parseExpr(token{}, p.lex, false, false)
+				expr, tok2 := parseExpr(token{}, p.lex, false, false, false, false)
 				if expr == nil {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 				}
@@ -308,7 +308,7 @@ func (p *parsing) parseStatement(tok token) error {
 		var node ast.Node
 		var init *ast.Assignment
 		var assignmentType ast.AssignmentType
-		variables, tok := parseExprList(token{}, p.lex, true, false)
+		variables, tok := parseExprList(token{}, p.lex, true, false, false, true)
 		switch tok.typ {
 		case tokenIn:
 			// Parses statement "for ident in expr".
@@ -328,7 +328,8 @@ func (p *parsing) parseStatement(tok token) error {
 			ipos := ident.Pos()
 			blank := ast.NewIdentifier(&ast.Position{ipos.Line, ipos.Column, ipos.Start, ipos.Start}, "_")
 			// Parses the slice expression.
-			expr, tok = parseExpr(token{}, p.lex, false, false)
+			// TODO (Gianluca): nextIsBlockOpen should be true?
+			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 			if expr == nil {
 				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 			}
@@ -356,7 +357,8 @@ func (p *parsing) parseStatement(tok token) error {
 				return &Error{"", *tok.pos, fmt.Errorf("unexpected range, expecting := or = or comma")}
 			}
 			tpos := tok.pos
-			expr, tok = parseExpr(token{}, p.lex, false, false)
+			// TODO (Gianluca): nextIsBlockOpen should be true?
+			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 			if expr == nil {
 				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 			}
@@ -384,7 +386,7 @@ func (p *parsing) parseStatement(tok token) error {
 				if len(variables) > 2 {
 					return &Error{"", *tok.pos, fmt.Errorf("too many variables in range")}
 				}
-				expr, tok = parseExpr(token{}, p.lex, false, false)
+				expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
 				if expr == nil {
 					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 				}
@@ -397,13 +399,13 @@ func (p *parsing) parseStatement(tok token) error {
 				// Parses statement "for [init]; [condition]; [post]".
 				// Parses the condition expression.
 				var condition ast.Expression
-				condition, tok = parseExpr(token{}, p.lex, false, false)
+				condition, tok = parseExpr(token{}, p.lex, false, false, false, true)
 				if tok.typ != tokenSemicolon {
 					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expected semicolon", tok)}
 				}
 				// Parses the post iteration statement.
 				var post *ast.Assignment
-				variables, tok = parseExprList(token{}, p.lex, true, false)
+				variables, tok = parseExprList(token{}, p.lex, true, false, false, true)
 				if len(variables) > 0 {
 					pos := tok.pos
 					post, tok = parseAssignment(variables, tok, p.lex, false)
@@ -482,12 +484,14 @@ func (p *parsing) parseStatement(tok token) error {
 
 	// case:
 	case tokenCase:
-		// TODO (Gianluca): check all if expressions contained in this
-		// case have not been previously declarated in another "case".
-		// In such condition return an error as:
+
+		// TODO (Gianluca): check if all expressions contained in this case have
+		// not been previously declarated in another "case". In such condition
+		// return an error as:
 		//
-		// prog.go:12:2: duplicate case int in type switch previous case
-		// at prog.go:11:2
+		// prog.go:12:2: duplicate case int in type switch previous case at
+		// prog.go:11:2
+
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 		default:
@@ -495,7 +499,11 @@ func (p *parsing) parseStatement(tok token) error {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected case")}
 		}
 		var node *ast.Case
-		expressions, tok := parseExprList(token{}, p.lex, false, false)
+
+		// TODO (Gianluca): allMustBeTypes should be set to "true" when parsing
+		// TypeSwitch cases.
+
+		expressions, tok := parseExprList(token{}, p.lex, false, false, false, false)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 		}
@@ -552,8 +560,7 @@ func (p *parsing) parseStatement(tok token) error {
 
 		// fallthrough
 	case tokenFallthrough:
-		// TODO (Gianluca): fallthrough must be implemented as an ast
-		// node.
+		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
@@ -644,7 +651,7 @@ func (p *parsing) parseStatement(tok token) error {
 	// if
 	case tokenIf:
 		ifPos := tok.pos
-		expressions, tok := parseExprList(token{}, p.lex, true, false)
+		expressions, tok := parseExprList(token{}, p.lex, true, false, false, true)
 		if len(expressions) == 0 {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 		}
@@ -657,7 +664,7 @@ func (p *parsing) parseStatement(tok token) error {
 			if tok.typ != tokenSemicolon {
 				return &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
 			}
-			expr, tok = parseExpr(token{}, p.lex, false, false)
+			expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
 			if expr == nil {
 				return &Error{"", *tok.pos, fmt.Errorf("missing condition in if statement")}
 			}
@@ -752,7 +759,7 @@ func (p *parsing) parseStatement(tok token) error {
 			// arguments
 			arguments = []ast.Expression{}
 			for {
-				expr, tok = parseExpr(token{}, p.lex, false, false)
+				expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 				if expr == nil {
 					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
 				}
@@ -983,7 +990,7 @@ func (p *parsing) parseStatement(tok token) error {
 
 	// expression or assignment
 	default:
-		expressions, tok := parseExprList(tok, p.lex, true, false)
+		expressions, tok := parseExprList(tok, p.lex, true, false, false, false)
 		if len(expressions) == 0 {
 			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
 		}
@@ -996,8 +1003,8 @@ func (p *parsing) parseStatement(tok token) error {
 			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
 			}
-			pos.End = tok.pos.End
-			assignment.Position = pos
+			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
+			assignment.Position.End = tok.pos.End
 			addChild(parent, assignment)
 			p.cutSpacesToken = true
 		} else {
@@ -1026,11 +1033,15 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwi
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
 	}
 	for _, v := range variables {
-		switch v.(type) {
+		switch v := v.(type) {
 		case *ast.Identifier:
 			continue
 		case *ast.Selector, *ast.Index:
 			if typ != ast.AssignmentDeclaration {
+				continue
+			}
+		case *ast.UnaryOperator:
+			if v.Operator() == ast.OperatorMultiplication { // pointer.
 				continue
 			}
 		}
@@ -1042,7 +1053,7 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwi
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
-		values, tok = parseExprList(token{}, lex, false, canBeSwitchGuard)
+		values, tok = parseExprList(token{}, lex, false, canBeSwitchGuard, false, false)
 		if len(values) == 0 {
 			return nil, tok
 		}
@@ -1073,7 +1084,7 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwi
 			tok = next(lex)
 		} else {
 			values = make([]ast.Expression, 1)
-			values[0], tok = parseExpr(token{}, lex, false, false)
+			values[0], tok = parseExpr(token{}, lex, false, false, false, false)
 			if ident, ok := values[0].(*ast.Identifier); ok && ident.Name == "_" {
 				panic(&Error{"", *values[0].Pos(), fmt.Errorf("cannot use _ as value")})
 			}

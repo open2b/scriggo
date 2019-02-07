@@ -86,7 +86,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 			if err != nil {
 				return nil, false, err
 			}
-			typ, err := r.evalType(e.Type)
+			typ, err := r.evalType(e.Type, noEllipses)
 			if err != nil {
 				return nil, false, err
 			}
@@ -115,7 +115,12 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 						return nil, false, r.errorf(e, "use of builtin len not in function call")
 					}
 					if v, ok := r.vars[i][e.Name]; ok {
-						return v, true, nil
+						switch v.(type) {
+						default:
+							return v, true, nil
+						case reference:
+							panic("referenced not implemented in (*rendering).eval2")
+						}
 					}
 				}
 			}
@@ -185,6 +190,24 @@ func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, e
 	return nil, r.errorf(expressions[0], "assignment mismatch: %d variables but %d values", n, len(expressions))
 }
 
+// evalSliceType evaluates a slice type returning its value.
+func (r *rendering) evalSliceType(node *ast.SliceType) reflect.Type {
+	t, err := r.evalType(node, noEllipses)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+// evalMapType evaluates a map type returning its value.
+func (r *rendering) evalMapType(node *ast.MapType) reflect.Type {
+	t, err := r.evalType(node, noEllipses)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
 // evalExpression evaluates an expression and returns its value.
 // In the event of an error, calls panic with the error as parameter.
 func (r *rendering) evalExpression(expr ast.Expression) interface{} {
@@ -205,12 +228,12 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalBinaryOperator(e)
 	case *ast.Identifier:
 		return r.evalIdentifier(e)
-	case *ast.Map:
-		return r.evalMap(e)
-	case *ast.Slice:
-		return r.evalSlice(e)
-	case *ast.Bytes:
-		return r.evalBytes(e)
+	case *ast.MapType:
+		return r.evalMapType(e)
+	case *ast.SliceType:
+		return r.evalSliceType(e)
+	case *ast.CompositeLiteral:
+		return r.evalCompositeLiteral(e)
 	case *ast.Call:
 		return r.evalCall(e)
 	case *ast.Index:
@@ -226,11 +249,66 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	}
 }
 
-// evalUnaryOperator evaluates a unary operator and returns its value.
-// On error it calls panic with the error as argument.
+// refToCopy returns a reference to a copy of v.
+func refToCopy(v interface{}) reflect.Value {
+	trs := reflect.TypeOf(v)
+	rv := reflect.New(trs)
+	rv.Elem().Set(reflect.ValueOf(v))
+	return rv
+}
+
+// evalUnaryOperator evaluates a unary operator and returns its value. On error
+// it calls panic with the error as argument.
+//
+// TODO (Gianluca): The operand must be addressable, that is, either a variable,
+// pointer indirection, or slice indexing operation; or a field selector of an
+// addressable struct operand; or an array indexing operation of an addressable
+// array. As an exception to the addressability requirement, x may also be a
+// (possibly parenthesized) composite literal. If the evaluation of x would
+// cause a run-time panic, then the evaluation of &x does too.
+//
 func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
+	if node.Operator() == ast.OperatorAmpersand {
+		switch expr := node.Expr.(type) {
+		// TODO (Gianluca): should check if CanAddr.
+		case *ast.Identifier:
+			for i := len(r.vars) - 1; i >= 0; i-- {
+				if r.vars[i] != nil {
+					if v, ok := r.vars[i][expr.Name]; ok {
+						switch vv := v.(type) {
+						case reference:
+							panic("not implemented")
+						default:
+							rv := refToCopy(vv)
+							r.vars[i][expr.Name] = reference{rv.Elem()}
+							return rv.Interface()
+						}
+					}
+				}
+			}
+		case *ast.CompositeLiteral:
+			return refToCopy(r.evalCompositeLiteral(expr)).Interface()
+		case *ast.UnaryOperator:
+			if expr.Operator() != ast.OperatorMultiplication {
+				panic(r.errorf(node, "cannot take the address of %s", expr))
+			}
+			v, err := r.eval(expr.Expr)
+			if err != nil {
+				return err
+			}
+			return v
+		default:
+			panic("unexpected/not implemented")
+		}
+	}
 	var expr = r.evalExpression(node.Expr)
 	switch node.Op {
+	case ast.OperatorMultiplication:
+		if reflect.TypeOf(expr).Kind() != reflect.Ptr {
+			// TODO (Gianluca): this error message doesn't match with Go's one.
+			panic(r.errorf(node, "invalid indirect of %s (type %s)", node.Expr, typeof(expr)))
+		}
+		return reflect.ValueOf(expr).Elem().Interface()
 	case ast.OperatorNot:
 		switch b := expr.(type) {
 		case bool:
@@ -276,7 +354,7 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		}
 		panic(r.errorf(node, "invalid operation: - %s", typeof(expr)))
 	}
-	panic("unknown unary operator")
+	panic(fmt.Sprintf("unknown unary operator %s", node.Op))
 }
 
 // evalBinaryOperator evaluates a binary operator and returns its value.
@@ -857,44 +935,19 @@ SWITCH:
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
 }
 
-// evalMap evaluates a map expression and returns its value.
-func (r *rendering) evalMap(node *ast.Map) interface{} {
-	elements := make(Map, len(node.Elements))
-	for _, element := range node.Elements {
-		key, err := r.mapIndex(element.Key)
-		if err != nil {
-			panic(err)
-		}
-		elements[key], err = r.eval1(element.Value)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return elements
-}
-
-// evalSlice evaluates a slice expression and returns its value.
-func (r *rendering) evalSlice(node *ast.Slice) interface{} {
-	var err error
-	elements := make(Slice, len(node.Elements))
-	for i, element := range node.Elements {
-		elements[i], err = r.eval1(element)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return elements
-}
-
 // evalBytes evaluates a bytes expression and returns its value.
-func (r *rendering) evalBytes(node *ast.Bytes) interface{} {
-	elements := make(Bytes, len(node.Elements))
-	for i, element := range node.Elements {
+func (r *rendering) evalBytes(node *ast.CompositeLiteral) interface{} {
+	if node.Values == nil {
+		return make(Bytes, 0)
+	}
+	values := node.Values.([]ast.Expression)
+	elements := make(Bytes, len(values))
+	for i, element := range values {
 		var err error
 		v := r.evalExpression(element)
 		switch n := v.(type) {
-		case int:
-			elements[i] = byte(n)
+		case byte:
+			elements[i] = n
 		case ConstantNumber:
 			elements[i], err = n.ToUint8()
 		default:
@@ -965,7 +1018,7 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	if node.Type == nil { // .(type) assertion.
 		return val
 	}
-	typ, err := r.evalType(node.Type)
+	typ, err := r.evalType(node.Type, noEllipses)
 	if err != nil {
 		panic(err)
 	}
@@ -979,8 +1032,185 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	return val
 }
 
-// evalType evaluates an expression as type.
-func (r *rendering) evalType(expr ast.Expression) (reflect.Type, error) {
+// evalCompositeLiteral evaluates and returns the value of the composite literal
+// node. It panics on error.
+//
+// TODO (Gianluca): use more efficient reflect functions to create slices and
+// maps when possibile.
+//
+func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral) interface{} {
+	if i, ok := node.Type.(*ast.Identifier); ok && i.Name == "bytes" {
+		return r.evalBytes(node)
+	}
+	var length int
+	switch values := node.Values.(type) {
+	case nil:
+		length = 0
+	case []ast.KeyValue:
+		length = len(values)
+	case []ast.Expression:
+		length = len(values)
+	default:
+		panic(fmt.Sprintf("unexpected type %T as evalCompositeLiteral argument", node.Values))
+	}
+	typ, err := r.evalType(node.Type, length)
+	if err != nil {
+		panic(err)
+	}
+	switch typ {
+	case mapType: // builtin map
+		if node.Values == nil {
+			return make(Map, 0)
+		}
+		values := node.Values.([]ast.KeyValue)
+		builtinMap := make(Map, length)
+		for _, kv := range values {
+			key, err := r.mapIndex(kv.Key)
+			if err != nil {
+				panic(err)
+			}
+			builtinMap[key] = r.evalExpression(kv.Value)
+		}
+		return builtinMap
+	case sliceType: // builtin slice
+		if node.Values == nil {
+			return reflect.MakeSlice(typ, 0, 0).Interface()
+		}
+		values := node.Values.([]ast.Expression)
+		slice := reflect.MakeSlice(typ, 0, 0)
+		for _, element := range values {
+			slice = reflect.Append(slice, reflect.ValueOf(r.evalExpression(element)))
+		}
+		return slice.Interface()
+	}
+	switch typ.Kind() {
+	case reflect.Array:
+		if node.Values == nil {
+			return reflect.New(typ).Elem().Interface()
+		}
+		values := node.Values.([]ast.Expression)
+		array := reflect.New(typ).Elem()
+		elemType := array.Type().Elem()
+		for i, value := range values {
+			evalValue := r.evalExpression(value)
+			var refValue reflect.Value
+			if cn, ok := evalValue.(ConstantNumber); ok {
+				typed, err := cn.ToType(elemType)
+				if err != nil {
+					panic(err)
+				}
+				refValue = reflect.ValueOf(typed)
+			} else {
+				refValue = reflect.ValueOf(evalValue)
+				if refValue.Type() != typ.Elem() {
+					// TODO (Gianluca): Go shows the name of the variable instead of
+					// it's content in error.
+					panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", refValue, refValue, typ.Elem()))
+				}
+			}
+			array.Index(i).Set(refValue)
+		}
+		return array.Interface()
+	case reflect.Slice:
+		if node.Values == nil {
+			return reflect.MakeSlice(typ, 0, 0).Interface()
+		}
+		values := node.Values.([]ast.Expression)
+		s := reflect.MakeSlice(typ, length, length)
+		for i, v := range values {
+			ve := r.evalExpression(v)
+			if cn, ok := ve.(ConstantNumber); ok {
+				var err error
+				ve, err = cn.ToType(typ.Elem())
+				if err != nil {
+					panic(err)
+				}
+			}
+			if reflect.TypeOf(ve) != typ.Elem() {
+				// TODO (Gianluca): Go shows the name of the variable instead of
+				// it's content in error.
+				panic(r.errorf(node, "cannot use %v (type %T) as type %s in slice literal", ve, ve, typ.Elem()))
+			}
+			s.Index(i).Set(reflect.ValueOf(ve))
+		}
+		return s.Interface()
+	case reflect.Map:
+		if node.Values == nil {
+			return reflect.MakeMap(typ).Interface()
+		}
+		mapValue := reflect.MakeMap(typ)
+		pairs := node.Values.([]ast.KeyValue)
+		for _, kv := range pairs {
+			key, err := r.mapIndex(kv.Key)
+			if err != nil {
+				panic(err)
+			}
+			refKey := reflect.ValueOf(key)
+			value := r.evalExpression(kv.Value)
+			var refValue reflect.Value
+			if cn, ok := value.(ConstantNumber); ok {
+				typed, err := cn.ToType(typ.Elem())
+				if err != nil {
+					panic(err)
+				}
+				refValue = reflect.ValueOf(typed)
+			} else {
+				refValue = reflect.ValueOf(value)
+			}
+			mapValue.SetMapIndex(refKey, refValue)
+		}
+		return mapValue.Interface()
+	case reflect.Struct:
+		if node.Values == nil {
+			return reflect.New(typ).Elem().Interface()
+		}
+		s := reflect.New(typ).Elem()
+		switch v := node.Values.(type) {
+		case []ast.Expression:
+			for i, expr := range v {
+				val := r.evalExpression(expr)
+				var refExpr reflect.Value
+				if cn, ok := val.(ConstantNumber); ok {
+					typed, err := cn.ToType(typ.Field(i).Type)
+					if err != nil {
+						panic(err)
+					}
+					refExpr = reflect.ValueOf(typed)
+				} else {
+					refExpr = reflect.ValueOf(val)
+				}
+				s.Field(i).Set(refExpr)
+			}
+		case []ast.KeyValue:
+			for _, fv := range v {
+				val := r.evalExpression(fv.Value)
+				var refExpr reflect.Value
+				if cn, ok := val.(ConstantNumber); ok {
+					field, ok := typ.FieldByName(fv.Key.(*ast.Identifier).Name)
+					if !ok {
+						panic(r.errorf(node, "unknown field '%s' in struct literal of type %s", field.Name, typ.Name()))
+					}
+					typed, err := cn.ToType(field.Type)
+					if err != nil {
+						panic(err)
+					}
+					refExpr = reflect.ValueOf(typed)
+				} else {
+					refExpr = reflect.ValueOf(val)
+				}
+				s.FieldByName(fv.Key.(*ast.Identifier).Name).Set(refExpr)
+			}
+		}
+		return s.Interface()
+	}
+	panic(fmt.Sprintf("unknown type %s", typ))
+}
+
+const noEllipses = -1
+
+// evalType evaluates an expression as type. If expr is an array type, lenght
+// specifies the number of elements.
+func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, error) {
 	var value interface{}
 	switch e := expr.(type) {
 	case *ast.Identifier:
@@ -990,7 +1220,7 @@ func (r *rendering) evalType(expr ast.Expression) (reflect.Type, error) {
 					return nil, r.errorf(e, "use of builtin len not in function call")
 				}
 				if v, ok := r.vars[i][e.Name]; ok {
-					if typ, ok := v.(reflect.Type); ok && i == 0 {
+					if typ, ok := v.(reflect.Type); ok && (i == 0) {
 						return typ, nil
 					}
 					return nil, r.errorf(e, "%s is not a type", expr)
@@ -1016,6 +1246,72 @@ func (r *rendering) evalType(expr ast.Expression) (reflect.Type, error) {
 				return typ, nil
 			}
 		}
+	case *ast.ArrayType:
+		elemType, err := r.evalType(e.ElementType, noEllipses)
+		if err != nil {
+			panic(err)
+		}
+		var declLength int
+		if e.Len == nil {
+			if length == noEllipses {
+				return nil, r.errorf(expr, "use of [...] array outside of array literal")
+			}
+			return reflect.ArrayOf(length, elemType), nil
+		}
+		l, err := r.eval(e.Len)
+		if err != nil {
+			return nil, err
+		}
+		switch l := l.(type) {
+		case ConstantNumber:
+			n, err := l.ToType(intType)
+			if err != nil {
+				return nil, err
+			}
+			declLength = n.(int)
+			if declLength < 0 {
+				return nil, r.errorf(expr, "array bound must be non-negative")
+			}
+		default:
+			return nil, r.errorf(expr, "non-constant array bound %s", l)
+		}
+		if declLength < length {
+			return nil, r.errorf(expr, "array index %d out of bounds [0:%d]", declLength, declLength)
+		}
+		return reflect.ArrayOf(declLength, elemType), nil
+	case *ast.SliceType:
+		if e.ElementType == nil {
+			return sliceType, nil
+		}
+		elemType, err := r.evalType(e.ElementType, noEllipses)
+		if err != nil {
+			panic(err)
+		}
+		return reflect.SliceOf(elemType), nil
+	case *ast.MapType:
+		if e.KeyType == nil && e.ValueType == nil {
+			return mapType, nil
+		}
+		keyType, err := r.evalType(e.KeyType, noEllipses)
+		if err != nil {
+			panic(err)
+		}
+		valueType, err := r.evalType(e.ValueType, noEllipses)
+		if err != nil {
+			panic(err)
+		}
+		return reflect.MapOf(keyType, valueType), nil
+	case *ast.UnaryOperator:
+		if e.Operator() != ast.OperatorMultiplication {
+			panic(fmt.Errorf("%T is not a type", expr))
+		}
+		elemTyp, err := r.evalType(e.Expr, noEllipses)
+		if err != nil {
+			panic(err)
+		}
+		return reflect.PtrTo(elemTyp), nil
+	default:
+		panic(fmt.Errorf("%T is not a type", expr))
 	}
 	return nil, r.errorf(expr, "%s is not a type", expr)
 }
@@ -1234,6 +1530,12 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 			return nil, false, err
 		}
 		return rv.Index(i).Interface(), true, nil
+	case reflect.Array:
+		i, err := checkSlice(rv.Len())
+		if err != nil {
+			return nil, false, err
+		}
+		return rv.Index(i).Interface(), true, nil
 	}
 	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
 }
@@ -1365,6 +1667,9 @@ func (r *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 				panic(r.errorf(node, "use of builtin len not in function call"))
 			}
 			if v, ok := r.vars[i][node.Name]; ok {
+				if vv, ok := v.(reference); ok {
+					return vv.rv.Interface()
+				}
 				return v
 			}
 		}

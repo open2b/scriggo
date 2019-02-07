@@ -180,25 +180,30 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewUnaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr))
 	case *ast.BinaryOperator:
 		return ast.NewBinaryOperator(ClonePosition(e.Position), e.Op, CloneExpression(e.Expr1), CloneExpression(e.Expr2))
-	case *ast.Map:
-		var elements = make([]ast.KeyValue, len(e.Elements))
-		for i, element := range e.Elements {
-			elements[i].Key = CloneExpression(element.Key)
-			elements[i].Value = CloneExpression(element.Value)
+	case *ast.MapType:
+		return ast.NewMapType(ClonePosition(e.Pos()), CloneExpression(e.KeyType), CloneExpression(e.ValueType))
+	case *ast.SliceType:
+		return ast.NewSliceType(ClonePosition(e.Pos()), CloneExpression(e.ElementType))
+	case *ast.ArrayType:
+		return ast.NewArrayType(ClonePosition(e.Pos()), CloneExpression(e.Len), CloneExpression(e.ElementType))
+	case *ast.CompositeLiteral:
+		var values interface{}
+		switch vs := e.Values.(type) {
+		case []ast.Expression:
+			exprs := make([]ast.Expression, len(vs))
+			for i, value := range vs {
+				exprs[i] = CloneExpression(value)
+			}
+			values = exprs
+		case []ast.KeyValue:
+			keyValues := make([]ast.KeyValue, len(vs))
+			for i, value := range vs {
+				keyValues[i].Key = CloneExpression(value.Key)
+				keyValues[i].Value = CloneExpression(value.Value)
+			}
+			values = keyValues
 		}
-		return ast.NewMap(ClonePosition(e.Position), elements)
-	case *ast.Slice:
-		var elements = make([]ast.Expression, len(e.Elements))
-		for i, element := range e.Elements {
-			elements[i] = CloneExpression(element)
-		}
-		return ast.NewSlice(ClonePosition(e.Position), elements)
-	case *ast.Bytes:
-		var elements = make([]ast.Expression, len(e.Elements))
-		for i, element := range e.Elements {
-			elements[i] = CloneExpression(element)
-		}
-		return ast.NewBytes(ClonePosition(e.Position), elements)
+		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), values)
 	case *ast.Call:
 		var args = make([]ast.Expression, len(e.Args))
 		for i, arg := range e.Args {

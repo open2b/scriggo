@@ -723,15 +723,13 @@ LOOP:
 			l.column++
 			endLineAsSemicolon = false
 		case '&':
-			if len(l.src) == 1 {
-				return l.errorf("unexpected EOF")
+			if len(l.src) > 2 && l.src[1] == '&' {
+				l.emit(tokenAnd, 2)
+				l.column += 2
+			} else {
+				l.emit(tokenAmpersand, 1)
+				l.column += 1
 			}
-			if l.src[1] != '&' {
-				c, _ := utf8.DecodeRune(l.src[1:])
-				return l.errorf("unexpected %c, expecting &", c)
-			}
-			l.emit(tokenAnd, 2)
-			l.column += 2
 			endLineAsSemicolon = false
 		case '|':
 			if len(l.src) == 1 {
@@ -925,6 +923,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenIn, p)
 	case "include":
 		l.emit(tokenInclude, p)
+	case "interface":
+		l.emit(tokenInterface, p)
 	case "macro":
 		l.emit(tokenMacro, p)
 	case "map":

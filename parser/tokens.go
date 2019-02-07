@@ -40,6 +40,7 @@ const (
 	tokenDefault                            // default
 	tokenFallthrough                        // fallthrough
 	tokenSwitchType                         // type
+	tokenInterface                          // interface
 	tokenMap                                // map
 	tokenSlice                              // slice
 	tokenBytes                              // bytes
@@ -72,6 +73,7 @@ const (
 	tokenEqual                              // ==
 	tokenNotEqual                           // !=
 	tokenNot                                // !
+	tokenAmpersand                          // &
 	tokenLess                               // <
 	tokenLessOrEqual                        // <=
 	tokenGreater                            // >
@@ -113,6 +115,7 @@ var tokenString = map[tokenType]string{
 	tokenDefault:                  "default",
 	tokenFallthrough:              "fallthrough",
 	tokenSwitchType:               "type",
+	tokenInterface:                "interface",
 	tokenMap:                      "map",
 	tokenSlice:                    "slice",
 	tokenBytes:                    "bytes",
@@ -145,6 +148,7 @@ var tokenString = map[tokenType]string{
 	tokenEqual:                    "==",
 	tokenNotEqual:                 "!=",
 	tokenNot:                      "!",
+	tokenAmpersand:                "&",
 	tokenLess:                     "<",
 	tokenLessOrEqual:              "<=",
 	tokenGreater:                  ">",

@@ -8,6 +8,7 @@ package template
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -93,6 +94,12 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			_ = address.assign(n + 1)
 		case float32:
 			_ = address.assign(n + 1)
+		case ConstantNumber:
+			cn, err := n.BinaryOp(ast.OperatorAddition, newConstantInt(big.NewInt(1)))
+			if err != nil {
+				return err
+			}
+			_ = address.assign(cn)
 		case CustomNumber:
 			n.Inc()
 		default:
@@ -129,6 +136,12 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			_ = address.assign(n - 1)
 		case float32:
 			_ = address.assign(n - 1)
+		case ConstantNumber:
+			cn, err := n.BinaryOp(ast.OperatorSubtraction, newConstantInt(big.NewInt(1)))
+			if err != nil {
+				return err
+			}
+			_ = address.assign(cn)
 		case CustomNumber:
 			n.Dec()
 		default:
@@ -259,7 +272,13 @@ type goMapAddress struct {
 	Key reflect.Value
 }
 
-func (addr goMapAddress) assign(value interface{}) error {
+func (addr goMapAddress) assign(value interface{}) (err error) {
+	// Catches unhashable keys errors.
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
@@ -328,27 +347,33 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		if v.Name == "_" {
 			return blankAddress{}, nil
 		}
+	varsFor:
 		for j := len(r.vars) - 1; j >= 0; j-- {
 			if vars := r.vars[j]; vars != nil {
 				if vv, ok := vars[v.Name]; ok {
-					if j == 0 {
-						if vt, ok := vv.(reflect.Type); ok {
-							return nil, r.errorf(variable, "type %s is not an expression", vt)
+					switch vv.(type) {
+					case reference:
+						panic("case referenced not implemented")
+					default:
+						if j == 0 {
+							if vt, ok := vv.(reflect.Type); ok {
+								return nil, r.errorf(variable, "type %s is not an expression", vt)
+							}
+							if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
+								return nil, r.errorf(v, "use of builtin %s not in function call", v.Name)
+							}
+							return nil, r.errorf(v, "cannot assign to %s", v.Name)
 						}
-						if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
-							return nil, r.errorf(v, "use of builtin %s not in function call", v.Name)
+						if j == 1 {
+							return nil, r.errorf(v, "cannot assign to %s", v.Name)
 						}
-						return nil, r.errorf(v, "cannot assign to %s", v.Name)
+						if m, ok := vv.(macro); ok {
+							return nil, r.errorf(v, "cannot assign to a macro (macro %s declared at %s:%s)",
+								v.Name, m.path, m.node.Pos())
+						}
+						addr = scopeAddress{Scope: vars, Var: v.Name}
+						break varsFor
 					}
-					if j == 1 {
-						return nil, r.errorf(v, "cannot assign to %s", v.Name)
-					}
-					if m, ok := vv.(macro); ok {
-						return nil, r.errorf(v, "cannot assign to a macro (macro %s declared at %s:%s)",
-							v.Name, m.path, m.node.Pos())
-					}
-					addr = scopeAddress{Scope: vars, Var: v.Name}
-					break
 				}
 			}
 		}
@@ -379,6 +404,22 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		default:
 			return nil, r.errorf(variable, "%s undefined (type %s has no field or method %s)", variable, typeof(variable), v.Ident)
 		}
+	case *ast.UnaryOperator:
+		if v.Operator() != ast.OperatorMultiplication {
+			panic(fmt.Sprintf("expected a multiplication operator (*), got operator %v", v.Operator()))
+		}
+		ptrRaw, err := r.eval(v.Expr)
+		if err != nil {
+			return nil, err
+		}
+		if ptrRaw == nil {
+			return nil, r.errorf(variable, "nil pointer dereference")
+		}
+		ptr := reflect.ValueOf(ptrRaw)
+		if ptr.Kind() != reflect.Ptr {
+			return nil, r.errorf(variable, "invalid indirect of %s (type %s)", v.Expr, ptr.Type())
+		}
+		addr = varAddress{Value: reflect.Indirect(ptr)}
 	case *ast.Index:
 		value, err := r.eval(v.Expr)
 		if err != nil {

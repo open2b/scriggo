@@ -36,6 +36,8 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
+var interf = interface{}(nil)
+
 var stringType = reflect.TypeOf("")
 var htmlType = reflect.TypeOf(HTML(""))
 var constantNumberType = reflect.TypeOf(ConstantNumber{})
@@ -55,6 +57,7 @@ var boolType = reflect.TypeOf(false)
 var mapType = reflect.TypeOf(map[interface{}]interface{}(nil))
 var sliceType = reflect.TypeOf([]interface{}(nil))
 var bytesType = reflect.TypeOf([]byte(nil))
+var interfaceType = reflect.TypeOf(&interf).Elem()
 var runesType = reflect.TypeOf([]rune(nil))
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
@@ -68,26 +71,27 @@ var builtins = map[string]interface{}{
 	"new":    nil,
 	"copy":   nil,
 
-	"string":  stringType,
-	"int":     intType,
-	"int64":   int64Type,
-	"int32":   int32Type,
-	"int16":   int16Type,
-	"int8":    int8Type,
-	"uint":    uintType,
-	"uint64":  uint64Type,
-	"uint32":  uint32Type,
-	"uint16":  uint16Type,
-	"uint8":   uint8Type,
-	"float64": float64Type,
-	"float32": float32Type,
-	"rune":    int32Type,
-	"byte":    uint8Type,
-	"bool":    boolType,
-	"map":     mapType,
-	"slice":   sliceType,
-	"bytes":   bytesType,
-	"error":   errorType,
+	"string":      stringType,
+	"int":         intType,
+	"int64":       int64Type,
+	"int32":       int32Type,
+	"int16":       int16Type,
+	"int8":        int8Type,
+	"uint":        uintType,
+	"uint64":      uint64Type,
+	"uint32":      uint32Type,
+	"uint16":      uint16Type,
+	"uint8":       uint8Type,
+	"float64":     float64Type,
+	"float32":     float32Type,
+	"rune":        int32Type,
+	"byte":        uint8Type,
+	"bool":        boolType,
+	"map":         mapType,
+	"slice":       sliceType,
+	"bytes":       bytesType,
+	"interface{}": interfaceType,
+	"error":       errorType,
 
 	// packages
 	"os":   _os,

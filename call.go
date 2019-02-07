@@ -257,6 +257,7 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 }
 
 // convert converts value to type typ.
+// TODO (Gianluca): to review.
 func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 	if n, ok := value.(ConstantNumber); ok {
 		switch typ {
@@ -463,6 +464,8 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 		case []byte:
 			return v, nil
 		}
+	case interfaceType:
+		return value, nil
 	case runesType:
 		switch v := value.(type) {
 		case nil:
@@ -759,7 +762,7 @@ func (r *rendering) evalNew(node *ast.Call, n int) ([]reflect.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	typ, err := r.evalType(node.Args[0])
+	typ, err := r.evalType(node.Args[0], noEllipses)
 	if err != nil {
 		return nil, err
 	}

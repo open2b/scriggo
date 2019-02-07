@@ -97,7 +97,29 @@ var minInt = apd.New(-int64(^uint(0)>>1)-1, 0)
 // token of the expression. canBeBlank indicates if the parsed expression can be
 // the blank identifier. canBeSwitchGuard indicates if the parsed expression can
 // be a type switch guard, as x.(type). It panics on error.
-func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Expression, token) {
+//
+// TODO (Gianluca): update doc. including type parsing.
+//
+// TODO (Gianluca): use allMustBeTypes in switch cases properly
+//
+// TODO (Gianluca): parsing of {...} should be in second part of this function,
+// being independent from the type it has before.
+//
+// TODO (Gianluca): some nodes does not have a position!
+//
+// TODO (Gianluca): mustBeType ritorna quando ha finito di parsare un tipo.
+// Devono però essere aggiunti i controlli che verifichino che effettivamente
+// ciò che è stato parsato sia un tipo.
+//
+// TODO (Gianluca): nextIsBlockOpen should have a better name.
+//
+func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
+
+	// TODO (Gianluca): to doc.
+	reuseLastToken := false
+
+	// isAType indicates if the currently parsed expression is certainly a type.
+	isAType := false
 
 	// Intermediate nodes of an expression tree are unary or binary operators
 	// and the leaves are operands.
@@ -146,7 +168,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok = parseExpr(token{}, lex, false, false)
+			expr, tok = parseExpr(token{}, lex, false, false, mustBeType, false)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -156,109 +178,53 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 			operand = expr
 			operand.Pos().Start = pos.Start
 			operand.Pos().End = tok.pos.End
-		case tokenMap: // map{...}, map(...)
-			typeTok := tok
+		case tokenLeftBraces: // composite literal with no type.
+			reuseLastToken = true
+		case tokenMap:
+			isAType = true
+			mapType := ast.NewMapType(tok.pos, nil, nil)
 			tok = next(lex)
-			switch tok.typ {
-			case tokenLeftBraces:
-				// Map definition.
-				elements := []ast.KeyValue{}
-				for {
-					var element ast.KeyValue
-					element.Key, tok = parseExpr(token{}, lex, false, false)
-					if element.Key == nil {
-						if tok.typ != tokenRightBraces {
-							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
-						}
-					} else {
-						if tok.typ != tokenColon {
-							panic(&Error{"", *tok.pos, fmt.Errorf("missing key in map literal")})
-						}
-						element.Value, tok = parseExpr(token{}, lex, false, false)
-						if element.Value == nil {
-							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
-						}
-						elements = append(elements, element)
-					}
-					if tok.typ == tokenRightBraces {
-						typeTok.pos.End = tok.pos.End
-						break
-					}
+			if tok.typ == tokenLeftBrackets { // map[
+				var typ ast.Expression
+				typ, tok = parseExpr(token{}, lex, false, false, true, false)
+				if tok.typ != tokenRightBrackets {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
 				}
-				if len(elements) > 1 {
-					duplicates := map[interface{}]struct{}{}
-					for _, element := range elements {
-						switch key := element.Key.(type) {
-						case nil:
-							if _, ok := duplicates[nil]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
-							}
-							duplicates[nil] = struct{}{}
-						case *ast.String:
-							if _, ok := duplicates[key.Text]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
-							}
-							duplicates[key.Text] = struct{}{}
-						case *ast.Float:
-							if _, ok := duplicates[key.Value]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value] = struct{}{}
-						case *ast.Int:
-							if _, ok := duplicates[key.Value]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value] = struct{}{}
-						}
-					}
+				mapType.KeyType = typ
+				typ, tok = parseExpr(token{}, lex, false, false, true, false)
+				if typ == nil {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 				}
-				operand = ast.NewMap(typeTok.pos, elements)
-			case tokenLeftParenthesis:
-				// Map conversion.
-				operand = parseConversionExpr(typeTok, lex)
-			default:
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)})
+				mapType.Position.End = typ.Pos().End
+				mapType.ValueType = typ
 			}
+			operand = mapType
+			reuseLastToken = true
+		case tokenInterface:
+			isAType = true
+			pos := tok.pos
+			tok = next(lex)
+			if tok.typ != tokenLeftBraces {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
+			}
+			tok = next(lex)
+			if tok.typ != tokenRightBraces {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
+			}
+			pos.End = tok.pos.End
+			operand = ast.NewIdentifier(pos, "interface{}")
 		case tokenSlice: // slice{...}, slice(...)
-			typeTok := tok
-			tok = next(lex)
-			switch tok.typ {
-			case tokenLeftBraces:
-				// Slice definition.
-				elements, tok := parseExprList(token{}, lex, false, false)
-				if tok.typ != tokenRightBraces {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
-				}
-				typeTok.pos.End = tok.pos.End
-				operand = ast.NewSlice(typeTok.pos, elements)
-			case tokenLeftParenthesis:
-				// Slice conversion.
-				operand = parseConversionExpr(typeTok, lex)
-			default:
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)})
-			}
+			isAType = true
+			operand = ast.NewSliceType(tok.pos, nil)
 		case tokenBytes: // bytes{...}, bytes(...)
-			typeTok := tok
-			tok = next(lex)
-			switch tok.typ {
-			case tokenLeftBraces:
-				// Bytes definition.
-				elements, tok := parseExprList(token{}, lex, false, false)
-				if tok.typ != tokenRightBraces {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
-				}
-				typeTok.pos.End = tok.pos.End
-				operand = ast.NewBytes(typeTok.pos, elements)
-			case tokenLeftParenthesis:
-				// Bytes conversion.
-				operand = parseConversionExpr(typeTok, lex)
-			default:
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting { or (", tok)})
-			}
+			isAType = true
+			operand = ast.NewIdentifier(tok.pos, "bytes")
 		case
-			tokenAddition,    // +e
-			tokenSubtraction, // -e
-			tokenNot:         // !e
+			tokenAddition,       // +e
+			tokenSubtraction,    // -e
+			tokenNot,            // !e
+			tokenMultiplication, // *t, *T
+			tokenAmpersand:      // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenRune,  // '\x3c'
@@ -279,6 +245,9 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
+			if mustBeType {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecing type", tok.txt)})
+			}
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
 			ident := parseIdentifierNode(tok)
@@ -289,35 +258,187 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 				mustBeBlank = true
 			}
 			operand = ident
+		case tokenLeftBrackets: // [
+			isAType = true
+			var expr, length ast.Expression
+			pos := tok.pos
+			isEllipses := false
+			tok = next(lex)
+			switch tok.typ {
+			case tokenEllipses:
+				isEllipses = true
+				tok = next(lex)
+			case tokenRightBrackets:
+			default:
+				oldTok := tok
+				expr, tok = parseExpr(tok, lex, false, false, false, false)
+				if expr == nil {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", oldTok)})
+				}
+				length = expr
+			}
+			if tok.typ != tokenRightBrackets {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
+			}
+			var typ ast.Expression
+			typ, tok = parseExpr(token{}, lex, false, false, true, false)
+			if typ == nil {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			}
+			pos.End = typ.Pos().End
+			switch {
+			case isEllipses:
+				operand = ast.NewArrayType(pos, nil, typ)
+			case length == nil:
+				operand = ast.NewSliceType(pos, typ)
+			default:
+				operand = ast.NewArrayType(pos, length, typ)
+			}
+			reuseLastToken = true
 		default:
 			return nil, tok
+		}
+
+		if mustBeType {
+			if operator != nil {
+				op, ok := operator.(*ast.UnaryOperator)
+				if !ok || op.Operator() != ast.OperatorMultiplication {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operator)})
+				}
+			}
+			if operand != nil {
+				switch operand.(type) {
+				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType:
+				default:
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
+				}
+			}
 		}
 
 		canBeBlank = false
 
 		for operator == nil {
 
-			tok = next(lex)
+			if !reuseLastToken {
+				tok = next(lex)
+			}
+			reuseLastToken = false
+
+			backupTok := tok
+			if mustBeType {
+				tok = token{}
+			}
 
 			switch tok.typ {
+
+			case tokenLeftBraces: // ...{
+				if nextIsBlockOpen && !isAType {
+					return operand, tok
+				}
+				pos := &ast.Position{tok.pos.Line, tok.pos.Column, tok.pos.Start, tok.pos.End}
+				if operand != nil {
+					pos.Start = operand.Pos().Start
+				}
+				values := []interface{}{}
+				var expr ast.Expression
+				isKeyValue := false
+				for {
+					expr, tok = parseExpr(token{}, lex, false, false, false, false)
+					if expr == nil {
+						break
+					}
+					if tok.typ == tokenColon { // :
+						var value ast.Expression
+						value, tok = parseExpr(token{}, lex, false, false, false, false)
+						if value == nil {
+							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+						}
+						values = append(values, ast.KeyValue{Key: expr, Value: value})
+						isKeyValue = true
+					} else {
+						values = append(values, expr)
+					}
+					if tok.typ == tokenRightBraces {
+						break
+					}
+				}
+				if tok.typ != tokenRightBraces {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
+				}
+				pos.End = tok.pos.End
+				if len(values) == 0 {
+					operand = ast.NewCompositeLiteral(pos, operand, nil)
+				} else {
+					if isKeyValue {
+						keyValues := []ast.KeyValue{}
+						for _, value := range values {
+							kv := value.(ast.KeyValue)
+							keyValues = append(keyValues, ast.KeyValue{Key: kv.Key, Value: kv.Value})
+						}
+						// TODO (Gianluca): duplicates checking should be done
+						// during rendering?
+						if len(keyValues) > 1 {
+							duplicates := map[interface{}]struct{}{}
+							for _, element := range keyValues {
+								switch key := element.Key.(type) {
+								case nil:
+									if _, ok := duplicates[nil]; ok {
+										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
+									}
+									duplicates[nil] = struct{}{}
+								case *ast.String:
+									if _, ok := duplicates[key.Text]; ok {
+										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
+									}
+									duplicates[key.Text] = struct{}{}
+								case *ast.Float:
+									if _, ok := duplicates[key.Value]; ok {
+										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
+									}
+									duplicates[key.Value] = struct{}{}
+								case *ast.Int:
+									if _, ok := duplicates[key.Value.String()]; ok {
+										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
+									}
+									duplicates[key.Value.String()] = struct{}{}
+								}
+							}
+						}
+						operand = ast.NewCompositeLiteral(pos, operand, keyValues)
+					} else {
+						exprs := []ast.Expression{}
+						for i := range values {
+							expr := values[i].(ast.Expression)
+							exprs = append(exprs, expr)
+						}
+						operand = ast.NewCompositeLiteral(pos, operand, exprs)
+					}
+				}
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok := parseExprList(token{}, lex, false, false)
+				args, tok := parseExprList(token{}, lex, false, false, false, false)
 				if tok.typ != tokenRightParenthesis {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
+				// TODO (Gianluca): move these checks to rendering.
+				// if len(elements) == 0 {
+				// 	panic(&Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to %s: %s()", ident.Name, ident.Name)})
+				// }
+				// if len(elements) > 1 {
+				// 	panic(&Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))})
+				// }
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok = parseExpr(token{}, lex, false, false)
+				index, tok = parseExpr(token{}, lex, false, false, false, false)
 				if tok.typ == tokenColon {
 					low := index
 					var high ast.Expression
-					high, tok = parseExpr(token{}, lex, false, false)
+					high, tok = parseExpr(token{}, lex, false, false, false, false)
 					if tok.typ != tokenRightBrackets {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 					}
@@ -349,9 +470,6 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 				case tokenLeftParenthesis:
 					// e.(ident), e.(pkg.ident)
 					tok = next(lex)
-					if tok.typ != tokenIdentifier && tok.typ != tokenMap && tok.typ != tokenSlice && tok.typ != tokenBytes && tok.typ != tokenSwitchType {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
-					}
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {
 						panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
@@ -362,25 +480,14 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 							panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 						}
 						mustBeSwitchGuard = true
+						tok = next(lex)
 					case tokenIdentifier:
 						if len(tok.txt) == 1 && tok.txt[0] == '_' {
 							panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 						}
 						fallthrough
 					default:
-						typ = ast.NewIdentifier(tok.pos, string(tok.txt))
-					}
-					tok = next(lex)
-					if tok.typ == tokenPeriod {
-						tok = next(lex)
-						if tok.typ != tokenIdentifier {
-							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
-						}
-						if len(tok.txt) == 1 && tok.txt[0] == '_' {
-							panic(&Error{"", *tok.pos, fmt.Errorf("cannot refer to blank field or method")})
-						}
-						typ = ast.NewSelector(typ.Pos(), typ, string(tok.txt))
-						tok = next(lex)
+						typ, tok = parseExpr(tok, lex, false, true, true, false)
 					}
 					if tok.typ != tokenRightParenthesis {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
@@ -434,6 +541,9 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 				}
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
+				}
+				if mustBeType {
+					tok = backupTok
 				}
 				return operand, tok
 			}
@@ -538,10 +648,13 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard bool) (ast.Ex
 // indicates if a parsed expression can be the blank identifier.
 // allowSwitchGuard indicates if a parsed expression can containt a type switch
 // guard. It panics on error.
-func parseExprList(tok token, lex *lexer, allowBlank, allowSwitchGuard bool) ([]ast.Expression, token) {
+//
+// TODO (Gianluca): nextIsBlockOpen should have a better name
+//
+func parseExprList(tok token, lex *lexer, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
 	var elements = []ast.Expression{}
 	for {
-		element, tok2 := parseExpr(tok, lex, allowBlank, allowSwitchGuard)
+		element, tok2 := parseExpr(tok, lex, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
 		if element == nil {
 			return elements, tok2
 		}
@@ -565,26 +678,6 @@ func exprListString(elements []ast.Expression) string {
 	return s
 }
 
-// parseConversionExpr parses a conversion expression where tok is the token
-// "map" or "slice". It panics on error.
-func parseConversionExpr(tok token, lex *lexer) ast.Expression {
-	pos := tok.pos
-	ident := ast.NewIdentifier(pos, string(tok.txt))
-	elements, tok := parseExprList(token{}, lex, false, false)
-	if tok.typ != tokenRightParenthesis {
-		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
-	}
-	if len(elements) == 0 {
-		panic(&Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to %s: %s()", ident.Name, ident.Name)})
-	}
-	if len(elements) > 1 {
-		panic(&Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))})
-	}
-	pos2 := *pos
-	pos2.End = tok.pos.End
-	return ast.NewCall(&pos2, ident, elements)
-}
-
 // operatorType returns a operator type from a token type.
 func operatorType(typ tokenType) ast.OperatorType {
 	switch typ {
@@ -594,6 +687,8 @@ func operatorType(typ tokenType) ast.OperatorType {
 		return ast.OperatorNotEqual
 	case tokenNot:
 		return ast.OperatorNot
+	case tokenAmpersand:
+		return ast.OperatorAmpersand
 	case tokenLess:
 		return ast.OperatorLess
 	case tokenLessOrEqual:
@@ -628,7 +723,6 @@ func parseIdentifierNode(tok token) *ast.Identifier {
 
 // parseNumberNode returns an Expression node from an integer, float or rune
 // literal token possibly preceded by an unary operator "-" with neg position.
-// It panics on error.
 func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 	p := tok.pos
 	if neg != nil {

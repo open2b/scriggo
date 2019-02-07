@@ -27,7 +27,7 @@ var noneContextTreeTests = []struct {
 	{"", ast.NewTree("", nil, ast.ContextNone)},
 	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.ContextNone)},
 	{"a := 1", ast.NewTree("", []ast.Node{
-		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 5), "a")},
+		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextNone)},
 	{"a.b = 2", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 6), []ast.Expression{ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
@@ -501,7 +501,7 @@ var treeTests = []struct {
 	{"{% a, ok := b.c %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 17), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a"), ast.NewIdentifier(p(1, 7, 6, 7), "ok")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewSelector(p(1, 14, 12, 14),
-				ast.NewIdentifier(p(1, 16, 15, 15), "b"), "c")})}, ast.ContextHTML)},
+				ast.NewIdentifier(p(1, 13, 12, 12), "b"), "c")})}, ast.ContextHTML)},
 	{"{% a += 1 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentAddition, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), big.NewInt(1))})}, ast.ContextHTML)},
@@ -595,6 +595,35 @@ var treeTests = []struct {
 					ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 63, 62, 71), []byte("x is > 10 "), ast.Cut{})}),
 				),
 			)}, ast.ContextHTML)},
+	{"{% if _, ok := []int{1,2,3}.([]int); ok %}{% end %}", ast.NewTree("", []ast.Node{
+		ast.NewIf(p(1, 1, 0, 50),
+			ast.NewAssignment(
+				p(1, 7, 6, 34),
+				[]ast.Expression{
+					ast.NewIdentifier(p(1, 7, 6, 6), "_"),
+					ast.NewIdentifier(p(1, 10, 9, 10), "ok"),
+				},
+				ast.AssignmentDeclaration,
+				[]ast.Expression{
+					ast.NewTypeAssertion(p(1, 28, 15, 34),
+						ast.NewCompositeLiteral(p(1, 21, 15, 26),
+							ast.NewSliceType(
+								p(1, 16, 15, 19),
+								ast.NewIdentifier(p(1, 18, 17, 19), "int"),
+							),
+							[]ast.Expression{
+								ast.NewInt(p(1, 22, 21, 21), big.NewInt(1)),
+								ast.NewInt(p(1, 24, 23, 23), big.NewInt(2)),
+								ast.NewInt(p(1, 26, 25, 25), big.NewInt(3)),
+							}),
+						ast.NewSliceType(p(1, 30, 29, 33),
+							ast.NewIdentifier(p(1, 32, 31, 33), "int"),
+						))}),
+			ast.NewIdentifier(p(1, 38, 37, 38), "ok"),
+			nil,
+			nil,
+		),
+	}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
@@ -613,7 +642,17 @@ var treeTests = []struct {
 		ast.NewMacro(p(1, 1, 0, 37), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
 			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b"), ast.NewIdentifier(p(1, 15, 14, 14), "c")},
 			[]ast.Node{ast.NewText(p(1, 23, 22, 22), []byte("d"), ast.Cut{})}, true, ast.ContextHTML)}, ast.ContextHTML)},
-}
+	{"{% *a = 3 %}", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 11),
+			[]ast.Expression{
+				ast.NewUnaryOperator(p(1, 4, 3, 4),
+					ast.OperatorMultiplication,
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+				)},
+			ast.AssignmentSimple,
+			[]ast.Expression{
+				ast.NewInt(p(1, 9, 8, 8), big.NewInt(3)),
+			})}, ast.ContextHTML)}}
 
 func pageTests() map[string]struct {
 	src  string
@@ -895,19 +934,101 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-	case *ast.Slice:
-		nn2, ok := n2.(*ast.Slice)
+	case *ast.Selector:
+		nn2, ok := n2.(*ast.Selector)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		if len(nn1.Elements) != len(nn2.Elements) {
-			return fmt.Errorf("unexpected elements len %d, expecting %d", len(nn1.Elements), len(nn2.Elements))
+		err := equals(nn1.Expr, nn2.Expr, p)
+		if err != nil {
+			return err
 		}
-		for i, arg := range nn1.Elements {
-			err := equals(arg, nn2.Elements[i], p)
-			if err != nil {
-				return err
+		if nn1.Ident != nn2.Ident {
+			return fmt.Errorf("unexpected ident %q, expecting %q", nn1.Ident, nn2.Ident)
+		}
+	case *ast.CompositeLiteral:
+		nn2, ok := n2.(*ast.CompositeLiteral)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+		switch values1 := nn1.Values.(type) {
+		case nil:
+			if nn2.Values != nil {
+				return fmt.Errorf("expected nil, unexpected %s", nn2.Values)
 			}
+		case []ast.Expression:
+			values2, ok := nn2.Values.([]ast.Expression)
+			if !ok && len(values1) == 0 && nn2.Values != nil {
+				return fmt.Errorf("expected %T", nn2.Values)
+			}
+			if len(values1) != len(values2) {
+				return fmt.Errorf("unexpected len %d, expecting %d for Expression", len(values1), len(values2))
+			}
+			for i := range values1 {
+				err := equals(values1[i], values2[i], p)
+				if err != nil {
+					return err
+				}
+			}
+		case []ast.KeyValue:
+			values2, ok := nn2.Values.([]ast.KeyValue)
+			if !ok && len(values1) == 0 && nn2.Values != nil {
+				return fmt.Errorf("expected %T", nn2.Values)
+			}
+			if len(values1) != len(values2) {
+				return fmt.Errorf("unexpected len %d, expecting %d for KeyValue", len(values1), len(values2))
+			}
+			for i := range values1 {
+				err := equals(values1[i].Key, values2[i].Key, p)
+				if err != nil {
+					return err
+				}
+				err = equals(values1[i].Value, values2[i].Value, p)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			return fmt.Errorf("unexpected type %T", values1)
+		}
+	case *ast.ArrayType:
+		nn2, ok := n2.(*ast.ArrayType)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Len, nn2.Len, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.ElementType, nn2.ElementType, p)
+		if err != nil {
+			return err
+		}
+	case *ast.SliceType:
+		nn2, ok := n2.(*ast.SliceType)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.ElementType, nn2.ElementType, p)
+		if err != nil {
+			return err
+		}
+	case *ast.MapType:
+		nn2, ok := n2.(*ast.MapType)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.KeyType, nn2.KeyType, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.ValueType, nn2.ValueType, p)
+		if err != nil {
+			return err
 		}
 	case *ast.Call:
 		nn2, ok := n2.(*ast.Call)
@@ -1161,7 +1282,6 @@ func equals(n1, n2 ast.Node, p int) error {
 				return fmt.Errorf("case #%d: %s", i+1, err)
 			}
 		}
-
 	case *ast.Case:
 		nn2, ok := n2.(*ast.Case)
 		if !ok {
@@ -1185,7 +1305,6 @@ func equals(n1, n2 ast.Node, p int) error {
 				return fmt.Errorf("Body: %s", err)
 			}
 		}
-
 	case *ast.Macro:
 		nn2, ok := n2.(*ast.Macro)
 		if !ok {

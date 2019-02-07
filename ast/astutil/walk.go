@@ -42,6 +42,8 @@ func Walk(v Visitor, node ast.Node) {
 	// If the child is a concrete type, it leaves it under management at
 	// the Visit, otherwise he manages it here on the Walk.
 
+	// TODO (Gianluca): add cases for new ast nodes.
+
 	case *ast.Tree:
 		for _, child := range n.Nodes {
 			Walk(v, child)
@@ -115,21 +117,26 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Expr1)
 		Walk(v, n.Expr2)
 
-	case *ast.Map:
-		for _, element := range n.Elements {
-			Walk(v, element.Key)
-			Walk(v, element.Value)
+	case *ast.CompositeLiteral:
+		Walk(v, n.Type)
+		switch l := n.Values.(type) {
+		case []ast.Expression:
+			for _, vv := range l {
+				Walk(v, vv)
+			}
+		case []ast.KeyValue:
+			for _, vv := range l {
+				Walk(v, vv.Key)
+				Walk(v, vv.Value)
+			}
 		}
 
-	case *ast.Slice:
-		for _, element := range n.Elements {
-			Walk(v, element)
-		}
+	case *ast.SliceType:
+		Walk(v, n.ElementType)
 
-	case *ast.Bytes:
-		for _, element := range n.Elements {
-			Walk(v, element)
-		}
+	case *ast.ArrayType:
+		Walk(v, n.Len)
+		Walk(v, n.ElementType)
 
 	case *ast.Call:
 		for _, arg := range n.Args {

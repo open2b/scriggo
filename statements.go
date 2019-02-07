@@ -73,6 +73,12 @@ type rendering struct {
 // variables scope.
 type scope map[string]interface{}
 
+// reference represents a value in scope that has been referenced.
+// rv contains the value, not the address.
+type reference struct {
+	rv reflect.Value
+}
+
 var scopeType = reflect.TypeOf(scope{})
 
 // macro represents a macro in a scope.
@@ -369,6 +375,7 @@ Nodes:
 				if err != nil {
 					return err
 				}
+				// TODO (Gianluca): should check if referenced?
 				guardvalue, _ = r.variable(ident.Name)
 			}
 			for _, c := range node.Cases {
@@ -431,6 +438,7 @@ Nodes:
 			if name == "_" {
 				continue
 			}
+			// TODO (Gianluca): should check if referenced?
 			if v, ok := r.variable(name); ok {
 				var err error
 				if m, ok := v.(macro); ok {
@@ -461,6 +469,7 @@ Nodes:
 			}
 			var m macro
 			var err error
+			// TODO (Gianluca): should check if referenced?
 			if v, ok := r.variable(name); ok {
 				if m, ok = v.(macro); ok {
 					if node.Context != m.node.Context {
@@ -625,7 +634,13 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	for i := len(r.vars) - 1; i >= 0; i-- {
 		if r.vars[i] != nil {
 			if v, ok := r.vars[i][name]; ok {
-				return v, true
+				switch v.(type) {
+				case reference:
+					panic("referenced not implemented in (*rendering).variable")
+				default:
+					return v, true
+				}
+
 			}
 		}
 	}
@@ -634,6 +649,7 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 
 // typeof returns the string representation of the type of v.
 // If v is nil returns "nil".
+// TODO (Gianluca): to review.
 func typeof(v interface{}) string {
 	switch vv := v.(type) {
 	case nil:

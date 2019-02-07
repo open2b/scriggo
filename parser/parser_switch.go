@@ -25,9 +25,15 @@ func isTypeGuard(node ast.Node) bool {
 
 // parseSwitch parses a switch statement and returns an Switch or TypeSwitch
 // node. It panics on error.
+//
 // TODO (Gianluca): instead of returning an error, panic.
-// TODO (Gianluca): instead of using "pos" (*ast.Position), use full token "tok" (token)
-// TODO (Gianluca): change parameters order (final result should be tok token, lex *lexer)
+//
+// TODO (Gianluca): instead of using "pos" (*ast.Position), use full token "tok"
+// (token)
+//
+// TODO (Gianluca): change parameters order (final result should be tok token,
+// lex *lexer)
+//
 func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 
 	// TODO (Gianluca): parsing this line: switch x := 2; x, y := a.(type), b
@@ -39,7 +45,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 	// "{%" "switch" [ beforeSemicolon "," ] afterSemicolon "%}"
 	var beforeSemicolon, afterSemicolon ast.Node
 
-	expressions, tok := parseExprList(token{}, lex, false, true)
+	expressions, tok := parseExprList(token{}, lex, false, true, false, true)
 
 	end := tokenLeftBraces
 	if p.ctx != ast.ContextNone {
@@ -82,7 +88,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			// TODO (Gianluca): use type assertion node position instead of last read token position
 			return nil, &Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")}
 		}
-		expressions, tok = parseExprList(token{}, lex, false, true)
+		expressions, tok = parseExprList(token{}, lex, false, true, false, true)
 		switch len(expressions) { // # of expressions after ;
 		case 0:
 			// switch ; {
@@ -119,7 +125,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			// switch x := 3; x {
 			// switch x := 3; x + y {
 			// switch x := 2; x = y.(type) {
-			expressions, tok = parseExprList(token{}, lex, false, true)
+			expressions, tok = parseExprList(token{}, lex, false, true, false, true)
 			if isAssignmentToken(tok) {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:

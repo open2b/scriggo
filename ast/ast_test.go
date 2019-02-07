@@ -45,6 +45,51 @@ var expressionStringTests = []struct {
 		NewUnaryOperator(nil, OperatorSubtraction, n3))},
 	{"f() - 2", NewBinaryOperator(nil, OperatorSubtraction, NewCall(nil, NewIdentifier(nil, "f"), []Expression{}), n2)},
 	{"-a.b", NewUnaryOperator(nil, OperatorSubtraction, NewSelector(nil, NewIdentifier(nil, "a"), "b"))},
+	{"[]int([]int{1, 2, 3})", NewCall(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
+		[]Expression{NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
+			[]Expression{NewInt(nil, big.NewInt(1)), NewInt(nil, big.NewInt(2)), NewInt(nil, big.NewInt(3))})})},
+	{"[]int{1, 2}", NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")), []Expression{NewInt(nil, big.NewInt(1)), NewInt(nil, big.NewInt(2))})},
+	{"[2][]number{[]number{1, 2}, []number{3, 4, 5}}", NewCompositeLiteral(nil,
+		NewArrayType(nil, NewInt(nil, big.NewInt(2)), NewSliceType(nil, NewIdentifier(nil, "number"))),
+		[]Expression{
+			NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []Expression{NewInt(nil, big.NewInt(1)), NewInt(nil, big.NewInt(2))}),
+			NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []Expression{NewInt(nil, big.NewInt(3)), NewInt(nil, big.NewInt(4)), NewInt(nil, big.NewInt(5))}),
+		})},
+	{"[...]int{1, 4, 9}",
+		NewCompositeLiteral(nil, NewArrayType(nil, nil, NewIdentifier(nil, "int")), []Expression{NewInt(nil, big.NewInt(1)), NewInt(nil, big.NewInt(4)), NewInt(nil, big.NewInt(9))})},
+	{"[]T", NewSliceType(nil, NewIdentifier(nil, "T"))},
+	{"map", NewMapType(nil, nil, nil)},
+	{"map[int]bool", NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool"))},
+	{"map[int][]int", NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int")))},
+	{"map[int][]int{}", NewCompositeLiteral(nil, NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int"))), nil)},
+	{"map[int]bool{3: true, 6: false}", NewCompositeLiteral(nil, NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool")), []KeyValue{
+		KeyValue{NewInt(nil, big.NewInt(3)), NewIdentifier(nil, "true")},
+		KeyValue{NewInt(nil, big.NewInt(6)), NewIdentifier(nil, "false")},
+	})},
+	{"map[int]bool{3: true, 6: false}[32]", NewIndex(nil, NewCompositeLiteral(nil,
+		NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool")), []KeyValue{
+			KeyValue{NewInt(nil, big.NewInt(3)), NewIdentifier(nil, "true")},
+			KeyValue{NewInt(nil, big.NewInt(6)), NewIdentifier(nil, "false")},
+		}), NewInt(nil, big.NewInt(32)))},
+	{"&x", NewUnaryOperator(nil, OperatorAmpersand, NewIdentifier(nil, "x"))},
+	{`pkg.Struct{Key1: value1, Key2: "value2", Key3: 33}`,
+		NewCompositeLiteral(nil,
+			NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),
+			[]KeyValue{
+				KeyValue{NewIdentifier(nil, "Key1"), NewIdentifier(nil, "value1")},
+				KeyValue{NewIdentifier(nil, "Key2"), NewString(nil, "value2")},
+				KeyValue{NewIdentifier(nil, "Key3"), NewInt(nil, big.NewInt(33))},
+			})},
+	{`pkg.Struct{value1, "value2", 33}`, NewCompositeLiteral(nil,
+		NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),
+		[]Expression{
+			NewIdentifier(nil, "value1"),
+			NewString(nil, "value2"),
+			NewInt(nil, big.NewInt(33)),
+		})},
+	{"[]*int", NewSliceType(nil, NewUnaryOperator(
+		nil, OperatorMultiplication, NewIdentifier(nil, "int")),
+	)},
 }
 
 func TestExpressionString(t *testing.T) {

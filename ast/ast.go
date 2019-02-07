@@ -53,6 +53,7 @@ const (
 	OperatorEqual          OperatorType = iota // ==
 	OperatorNotEqual                           // !=
 	OperatorNot                                // !
+	OperatorAmpersand                          // &
 	OperatorLess                               // <
 	OperatorLessOrEqual                        // <=
 	OperatorGreater                            // >
@@ -81,7 +82,7 @@ const (
 )
 
 func (op OperatorType) String() string {
-	return []string{"==", "!=", "!", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
+	return []string{"==", "!=", "!", "&", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -669,78 +670,109 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
-// Slice node represents a slice expression.
-type Slice struct {
+// SliceType node represents a slice type.
+type SliceType struct {
 	expression
 	*Position              // position in the source.
-	Elements  []Expression // elements.
+	ElementType Expression // element type, if nil is a Scrigo slice.
 }
 
-func NewSlice(pos *Position, elements []Expression) *Slice {
-	return &Slice{expression{}, pos, elements}
+func NewSliceType(pos *Position, elementType Expression) *SliceType {
+	return &SliceType{expression{}, pos, elementType}
 }
 
-func (n *Slice) String() string {
-	s := "slice{"
-	for i, element := range n.Elements {
-		if i > 0 {
-			s += ", "
+func (s *SliceType) String() string {
+	return "[]" + s.ElementType.String()
+}
+
+// ArrayType node represents an array type.
+type ArrayType struct {
+	expression
+	*Position              // position in the source.
+	Len         Expression // length. It is nil for arrays specified with ... notation.
+	ElementType Expression // element type, if nil is a Scrigo slice.
+}
+
+func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {
+	return &ArrayType{expression{}, pos, len, elementType}
+}
+
+func (a *ArrayType) String() string {
+	s := "["
+	if a.Len == nil {
+		s += "..."
+	} else {
+		s += a.Len.String()
+	}
+	s += "]" + a.ElementType.String()
+	return s
+}
+
+// CompositeLiteral node represent a composite literal.
+type CompositeLiteral struct {
+	expression
+	*Position             // position in the source.
+	Type      Expression  // type of the composite literal. nil for composite literals without type.
+	Values    interface{} // nil for empty composite literals.
+}
+
+func NewCompositeLiteral(pos *Position, typ Expression, values interface{}) *CompositeLiteral {
+	return &CompositeLiteral{expression{}, pos, typ, values}
+}
+
+func (t *CompositeLiteral) String() string {
+	s := t.Type.String()
+	s += "{"
+	switch values := t.Values.(type) {
+	case []Expression:
+		for i, value := range values {
+			if i > 0 {
+				s += ", "
+			}
+			s += value.String()
 		}
-		s += element.String()
+	case []KeyValue:
+		for i, value := range values {
+			if i > 0 {
+				s += ", "
+			}
+			s += value.String()
+		}
 	}
 	s += "}"
 	return s
 }
 
-// Bytes node represents a bytes expression.
-type Bytes struct {
-	expression
-	*Position              // position in the source.
-	Elements  []Expression // elements.
-}
-
-func NewBytes(pos *Position, elements []Expression) *Bytes {
-	return &Bytes{expression{}, pos, elements}
-}
-
-func (n *Bytes) String() string {
-	s := "bytes{"
-	for i, element := range n.Elements {
-		if i > 0 {
-			s += ", "
-		}
-		s += element.String()
-	}
-	s += "}"
-	return s
-}
-
-// KeyValue node represents a key value couple of a map.
+// KeyValue represents a key value pair in a map or struct composite literal.
 type KeyValue struct {
 	Key   Expression
 	Value Expression
 }
 
-// Map node represents a map expression.
-type Map struct {
+func (kv KeyValue) String() string {
+	return kv.Key.String() + ": " + kv.Value.String()
+}
+
+// MapType node represents a map type.
+type MapType struct {
 	expression
 	*Position            // position in the source.
-	Elements  []KeyValue // key, value elements.
+	KeyType   Expression // type of map keys.
+	ValueType Expression // type of map values.
 }
 
-func NewMap(pos *Position, elements []KeyValue) *Map {
-	return &Map{expression{}, pos, elements}
+func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
+	return &MapType{expression{}, pos, keyType, valueType}
 }
 
-func (n *Map) String() string {
-	s := "map{"
-	for i, element := range n.Elements {
-		if i > 0 {
-			s += ", "
-		}
-		s += element.Key.String() + ": " + element.Value.String()
+func (m *MapType) String() string {
+	s := "map"
+	if m.KeyType != nil {
+		s += "[" + m.KeyType.String() + "]"
 	}
-	s += "}"
+	if m.ValueType != nil {
+		s += m.ValueType.String()
+	}
 	return s
 }
 

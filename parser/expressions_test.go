@@ -82,6 +82,8 @@ var exprTests = []struct {
 	{"`\\t`", ast.NewString(p(1, 1, 0, 3), "\\t")},
 	{"`\uFFFD`", ast.NewString(p(1, 1, 0, 4), "\uFFFD")},
 	{"!a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorNot, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"&a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorAmpersand, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
+	{"*a", ast.NewUnaryOperator(p(1, 1, 0, 1), ast.OperatorMultiplication, ast.NewIdentifier(p(1, 2, 1, 1), "a"))},
 	{"1+2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(1, 3, 2, 2), big.NewInt(2)))},
 	{"1-2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorSubtraction, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(1, 3, 2, 2), big.NewInt(2)))},
 	{"1*2", ast.NewBinaryOperator(p(1, 2, 0, 2), ast.OperatorMultiplication, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(1, 3, 2, 2), big.NewInt(2)))},
@@ -98,6 +100,21 @@ var exprTests = []struct {
 	{"1+-2", ast.NewBinaryOperator(p(1, 2, 0, 3), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(1, 3, 2, 3), big.NewInt(-2)))},
 	{"1+-(2)", ast.NewBinaryOperator(p(1, 2, 0, 5), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)),
 		ast.NewUnaryOperator(p(1, 3, 2, 5), ast.OperatorSubtraction, ast.NewInt(p(1, 5, 3, 5), big.NewInt(2))))},
+	// TODO (Gianluca): positions in this test have been altered to make the
+	// test pass.
+	{"*a+*b", ast.NewBinaryOperator(
+		p(1, 3, 1, 4),
+		ast.OperatorAddition,
+		ast.NewUnaryOperator(
+			p(1, 1, 1, 1),
+			ast.OperatorMultiplication,
+			ast.NewIdentifier(p(1, 2, 1, 1), "a"),
+		),
+		ast.NewUnaryOperator(
+			p(1, 4, 3, 4),
+			ast.OperatorMultiplication,
+			ast.NewIdentifier(p(1, 5, 4, 4), "b"),
+		))},
 	{"(a)", ast.NewIdentifier(p(1, 2, 0, 2), "a")},
 	{"a()", ast.NewCall(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{})},
 	{"a(1)", ast.NewCall(p(1, 2, 0, 3), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{ast.NewInt(p(1, 3, 2, 2), big.NewInt(1))})},
@@ -157,29 +174,380 @@ var exprTests = []struct {
 	{"a.(number)", ast.NewTypeAssertion(p(1, 2, 0, 9), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 8), "number"))},
 	{"a.(int)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "int"))},
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
-	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "map"))},
-	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "slice"))},
+	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewMapType(p(1, 4, 3, 5), nil, nil))},
+	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewSliceType(p(1, 4, 3, 7), nil))},
 	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
-	{"map{}", ast.NewMap(p(1, 1, 0, 4), []ast.KeyValue{})},
-	{"map{`a`:5}", ast.NewMap(p(1, 1, 0, 9), []ast.KeyValue{
-		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), big.NewInt(5))}})},
-	{"map{`a`:5,}", ast.NewMap(p(1, 1, 0, 10), []ast.KeyValue{
-		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), big.NewInt(5))}})},
-	{"map{`a`:5,`b`:7}", ast.NewMap(p(1, 1, 0, 15), []ast.KeyValue{
-		{ast.NewString(p(1, 5, 4, 6), "a"), ast.NewInt(p(1, 9, 8, 8), big.NewInt(5))},
-		{ast.NewString(p(1, 11, 10, 12), "b"), ast.NewInt(p(1, 15, 14, 14), big.NewInt(7))}})},
-	{"map(nil)", ast.NewCall(p(1, 1, 0, 7), ast.NewIdentifier(p(1, 1, 0, 2), "map"), []ast.Expression{ast.NewIdentifier(p(1, 5, 4, 6), "nil")})},
-	{"slice{}", ast.NewSlice(p(1, 1, 0, 6), []ast.Expression{})},
-	{"slice{5}", ast.NewSlice(p(1, 1, 0, 7), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))})},
-	{"slice{5,6,7}", ast.NewSlice(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5)),
-		ast.NewInt(p(1, 9, 8, 8), big.NewInt(6)), ast.NewInt(p(1, 11, 10, 10), big.NewInt(7))})},
-	{"slice{slice{}}", ast.NewSlice(p(1, 1, 0, 13), []ast.Expression{ast.NewSlice(p(1, 7, 6, 12), []ast.Expression{})})},
-	{"slice(nil)", ast.NewCall(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "slice"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
-	{"bytes{}", ast.NewBytes(p(1, 1, 0, 6), []ast.Expression{})},
-	{"bytes{5}", ast.NewBytes(p(1, 1, 0, 7), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))})},
-	{"bytes{5,6,7}", ast.NewBytes(p(1, 1, 0, 11), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5)),
-		ast.NewInt(p(1, 9, 8, 8), big.NewInt(6)), ast.NewInt(p(1, 11, 10, 10), big.NewInt(7))})},
-	{"bytes(nil)", ast.NewCall(p(1, 1, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
+	{"os.FileInfo", ast.NewSelector(p(1, 3, 0, 10), ast.NewIdentifier(p(1, 1, 0, 1), "os"), "FileInfo")},
+	{"{1,2,3}", ast.NewCompositeLiteral(p(1, 1, 0, 6), nil, []ast.Expression{
+		ast.NewInt(p(1, 2, 1, 1), big.NewInt(1)),
+		ast.NewInt(p(1, 4, 3, 3), big.NewInt(2)),
+		ast.NewInt(p(1, 6, 5, 5), big.NewInt(3)),
+	})},
+	{`{a: "text", b: 3}`,
+		ast.NewCompositeLiteral(
+			p(1, 1, 0, 16),
+			nil,
+			[]ast.KeyValue{
+				ast.KeyValue{
+					ast.NewIdentifier(p(1, 2, 1, 1), "a"),
+					ast.NewString(p(1, 5, 4, 9), "text"),
+				},
+				ast.KeyValue{
+					ast.NewIdentifier(p(1, 13, 12, 12), "b"),
+					ast.NewInt(p(1, 16, 15, 15), big.NewInt(3)),
+				},
+			},
+		),
+	},
+	{`[][]int{{1},{2,3}}`,
+		ast.NewCompositeLiteral(
+			p(1, 8, 0, 17),
+			ast.NewSliceType(
+				p(1, 1, 0, 6),
+				ast.NewSliceType(
+					p(1, 3, 2, 6),
+					ast.NewIdentifier(p(1, 5, 4, 6), "int"),
+				),
+			),
+			[]ast.Expression{
+				ast.NewCompositeLiteral(
+					p(1, 9, 8, 10),
+					nil,
+					[]ast.Expression{
+						ast.NewInt(p(1, 10, 9, 9), big.NewInt(1)),
+					},
+				),
+				ast.NewCompositeLiteral(
+					p(1, 13, 12, 16),
+					nil,
+					[]ast.Expression{
+						ast.NewInt(p(1, 14, 13, 13), big.NewInt(2)),
+						ast.NewInt(p(1, 16, 15, 15), big.NewInt(3)),
+					})})},
+	{`map{1,2,3}`, ast.NewCompositeLiteral(
+		p(1, 4, 0, 9),
+		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
+		[]ast.Expression{
+			ast.NewInt(p(1, 5, 4, 4), big.NewInt(1)),
+			ast.NewInt(p(1, 7, 6, 6), big.NewInt(2)),
+			ast.NewInt(p(1, 9, 8, 8), big.NewInt(3)),
+		},
+	)},
+	{`map{"a":5}`, ast.NewCompositeLiteral(p(1, 4, 0, 9),
+		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
+		[]ast.KeyValue{ast.KeyValue{
+			ast.NewString(p(1, 5, 4, 6), "a"),
+			ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
+		}})},
+	{`map{"a":5,}`, ast.NewCompositeLiteral(p(1, 4, 0, 10),
+		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
+		[]ast.KeyValue{
+			ast.KeyValue{
+				ast.NewString(p(1, 5, 4, 6), "a"),
+				ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
+			}})},
+	{`map{"a":5,"b":7}`, ast.NewCompositeLiteral(p(1, 4, 0, 15),
+		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
+		[]ast.KeyValue{
+			ast.KeyValue{
+				ast.NewString(p(1, 5, 4, 6), "a"),
+				ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
+			},
+			ast.KeyValue{
+				ast.NewString(p(1, 11, 10, 12), "b"),
+				ast.NewInt(p(1, 15, 14, 14), big.NewInt(7)),
+			}})},
+	{"map(nil)", ast.NewCall(p(1, 4, 0, 7), ast.NewMapType(p(1, 1, 0, 2), nil, nil), []ast.Expression{ast.NewIdentifier(p(1, 5, 4, 6), "nil")})},
+	{"map{}", ast.NewCompositeLiteral(p(1, 4, 0, 4), ast.NewMapType(p(1, 1, 0, 2), nil, nil), nil)},
+	{"map(nil) != nil", ast.NewBinaryOperator(p(1, 10, 0, 14),
+		ast.OperatorNotEqual,
+		ast.NewCall(p(1, 4, 0, 7),
+			ast.NewMapType(p(1, 1, 0, 2), nil, nil), // map
+			[]ast.Expression{
+				ast.NewIdentifier(p(1, 5, 4, 6), "nil"),
+			}),
+		ast.NewIdentifier(p(1, 13, 12, 14), "nil"),
+	)},
+	{"map", ast.NewMapType(p(1, 1, 0, 2), nil, nil)},
+	{"map[int]bool", ast.NewMapType(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 5, 4, 6), "int"), ast.NewIdentifier(p(1, 9, 8, 11), "bool"))},
+	{"map{1: true, 2: false}", ast.NewCompositeLiteral(
+		p(1, 4, 0, 21), ast.NewMapType(p(1, 1, 0, 2), nil, nil), []ast.KeyValue{
+			ast.KeyValue{ast.NewInt(p(1, 5, 4, 4), big.NewInt(1)), ast.NewIdentifier(p(1, 8, 7, 10), "true")},
+			ast.KeyValue{ast.NewInt(p(1, 14, 13, 13), big.NewInt(2)), ast.NewIdentifier(p(1, 17, 16, 20), "false")},
+		})},
+	{`map[int]string{1: "uno", 2: "due"}`, ast.NewCompositeLiteral(p(1, 15, 0, 33),
+		ast.NewMapType(p(1, 1, 0, 13), ast.NewIdentifier(p(1, 5, 4, 6), "int"), ast.NewIdentifier(p(1, 9, 8, 13), "string")),
+		[]ast.KeyValue{
+			ast.KeyValue{ast.NewInt(p(1, 16, 15, 15), big.NewInt(1)), ast.NewString(p(1, 19, 18, 22), "uno")},
+			ast.KeyValue{ast.NewInt(p(1, 26, 25, 25), big.NewInt(2)), ast.NewString(p(1, 29, 28, 32), "due")},
+		})},
+	{"[]int(s)", ast.NewCall(p(1, 6, 0, 7),
+		ast.NewSliceType(p(1, 1, 0, 4), ast.NewIdentifier(p(1, 3, 2, 4), "int")),
+		[]ast.Expression{ast.NewIdentifier(p(1, 7, 6, 6), "s")})},
+	{"slice", ast.NewSliceType(p(1, 1, 0, 4), nil)},
+	{"slice{}", ast.NewCompositeLiteral(p(1, 6, 0, 6), ast.NewSliceType(p(1, 1, 0, 4), nil), nil)},
+	{"slice{5}", ast.NewCompositeLiteral(p(1, 6, 0, 7), ast.NewSliceType(p(1, 1, 0, 4), nil), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))})},
+	{"slice{5,6,7}", ast.NewCompositeLiteral(
+		p(1, 6, 0, 11),
+		ast.NewSliceType(p(1, 1, 0, 4), nil),
+		[]ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5)), ast.NewInt(p(1, 9, 8, 8), big.NewInt(6)), ast.NewInt(p(1, 11, 10, 10), big.NewInt(7))})},
+	{"slice{slice{}}", ast.NewCompositeLiteral(p(1, 6, 0, 13), ast.NewSliceType(p(1, 1, 0, 4), nil),
+		[]ast.Expression{
+			ast.NewCompositeLiteral(p(1, 12, 6, 12), ast.NewSliceType(p(1, 7, 6, 10), nil), nil),
+		})},
+	{"slice(nil)", ast.NewCall(p(1, 6, 0, 9), ast.NewSliceType(p(1, 1, 0, 4), nil), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
+	{"[]int", ast.NewSliceType(p(1, 1, 0, 4),
+		ast.NewIdentifier(p(1, 3, 2, 4), "int"))},
+	{"[]string{}", ast.NewCompositeLiteral(p(1, 9, 0, 9),
+		ast.NewSliceType(p(1, 1, 0, 7), ast.NewIdentifier(p(1, 3, 2, 7), "string")), nil)},
+	{`[3]string{"a", "b", "c"}`,
+		ast.NewCompositeLiteral(p(1, 10, 0, 23), ast.NewArrayType(p(1, 1, 0, 8), ast.NewInt(p(1, 2, 1, 1), big.NewInt(3)), ast.NewIdentifier(p(1, 4, 3, 8), "string")), []ast.Expression{
+			ast.NewString(p(1, 11, 10, 12), "a"),
+			ast.NewString(p(1, 16, 15, 17), "b"),
+			ast.NewString(p(1, 21, 20, 22), "c"),
+		})},
+	{"[][]int{[]int{2}, []int{-2, 10}}",
+		ast.NewCompositeLiteral(p(1, 8, 0, 31),
+			ast.NewSliceType(p(1, 1, 0, 6), // [][]int
+				ast.NewSliceType( // []int
+					p(1, 3, 2, 6),
+					ast.NewIdentifier(p(1, 5, 4, 6), "int"))),
+			[]ast.Expression{
+				ast.NewCompositeLiteral( // []int{2}
+					p(1, 14, 8, 15),
+					ast.NewSliceType(p(1, 9, 8, 12), ast.NewIdentifier(p(1, 11, 10, 12), "int")),
+					[]ast.Expression{ast.NewInt(p(1, 15, 14, 14), big.NewInt(2))}),
+				ast.NewCompositeLiteral( // []int{-2, 10}
+					p(1, 24, 18, 30),
+					ast.NewSliceType(p(1, 19, 18, 22), ast.NewIdentifier(p(1, 21, 20, 22), "int")),
+					[]ast.Expression{ast.NewInt(p(1, 25, 24, 25), big.NewInt(-2)), ast.NewInt(p(1, 29, 28, 29), big.NewInt(10))})})},
+	{"[]int{42}", ast.NewCompositeLiteral(p(1, 6, 0, 8), ast.NewSliceType(p(1, 1, 0, 4),
+		ast.NewIdentifier(p(1, 3, 2, 4), "int")), []ast.Expression{ast.NewInt(p(1, 7, 6, 7), big.NewInt(42))})},
+	{"42 + [1]int{-30}[0]", ast.NewBinaryOperator(
+		p(1, 4, 0, 18),
+		ast.OperatorAddition,
+		ast.NewInt(p(1, 1, 0, 1), big.NewInt(42)),
+		ast.NewIndex(
+			p(1, 17, 5, 18),
+			ast.NewCompositeLiteral(p(1, 12, 5, 15), ast.NewArrayType(p(1, 6, 5, 10), ast.NewInt(p(1, 7, 6, 6), big.NewInt(1)), ast.NewIdentifier(p(1, 9, 8, 10), "int")),
+				[]ast.Expression{ast.NewInt(p(1, 13, 12, 14), big.NewInt(-30))},
+			),
+			ast.NewInt(p(1, 18, 17, 17), big.NewInt(0)),
+		))},
+	{"[1]int{-30}[0] + 42",
+		ast.NewBinaryOperator(
+			p(1, 16, 0, 18),
+			ast.OperatorAddition,
+			ast.NewIndex(
+				p(1, 12, 0, 13),
+				ast.NewCompositeLiteral(p(1, 7, 0, 10), ast.NewArrayType(p(1, 1, 0, 5), ast.NewInt(p(1, 2, 1, 1), big.NewInt(1)), ast.NewIdentifier(p(1, 4, 3, 5), "int")),
+					[]ast.Expression{ast.NewInt(p(1, 8, 7, 9), big.NewInt(-30))},
+				),
+				ast.NewInt(p(1, 13, 12, 12), big.NewInt(0)),
+			),
+			ast.NewInt(p(1, 18, 17, 18), big.NewInt(42)),
+		)},
+	{
+		"42 + [2]float{3.0, 4.0}[0] * 5.0",
+		ast.NewBinaryOperator(
+			p(1, 4, 0, 31),
+			ast.OperatorAddition,
+			ast.NewInt(p(1, 1, 0, 1), big.NewInt(42)),
+			ast.NewBinaryOperator( // [2]float{3.0, 4.0}[0] * 5.0
+				p(1, 28, 5, 31),
+				ast.OperatorMultiplication,
+				ast.NewIndex( // [2]float{3.0, 4.0}[0]
+					p(1, 24, 5, 25),
+					ast.NewCompositeLiteral(
+						p(1, 14, 5, 22),
+						ast.NewArrayType( // [2]float
+							p(1, 6, 5, 12),
+							ast.NewInt(p(1, 7, 6, 6), big.NewInt(2)),
+							ast.NewIdentifier(p(1, 9, 8, 12), "float"),
+						),
+						[]ast.Expression{
+							ast.NewFloat(p(1, 15, 14, 16), big.NewFloat(3.0)),
+							ast.NewFloat(p(1, 20, 19, 21), big.NewFloat(4.0)),
+						},
+					),
+					ast.NewInt(p(1, 25, 24, 24), big.NewInt(0)),
+				),
+				ast.NewFloat(p(1, 30, 29, 31), big.NewFloat(5.0)),
+			),
+		),
+	},
+	{"[...]int{1, 4, 9}", ast.NewCompositeLiteral(
+		p(1, 9, 0, 16), ast.NewArrayType(
+			p(1, 1, 0, 7), nil,
+			ast.NewIdentifier(p(1, 6, 5, 7), "int"),
+		),
+		[]ast.Expression{
+			ast.NewInt(p(1, 10, 9, 9), big.NewInt(1)), ast.NewInt(p(1, 13, 12, 12), big.NewInt(4)), ast.NewInt(p(1, 16, 15, 15), big.NewInt(9))}),
+	},
+	{"[]*int", ast.NewSliceType(p(1, 1, 0, 5),
+		ast.NewUnaryOperator(
+			p(1, 3, 2, 5),
+			ast.OperatorMultiplication,
+			ast.NewIdentifier(p(1, 4, 3, 5), "int"),
+		))},
+	{"[]*[]*int",
+		ast.NewSliceType(
+			p(1, 1, 0, 8),
+
+			ast.NewUnaryOperator(
+				p(1, 3, 2, 8),
+				ast.OperatorMultiplication,
+				ast.NewSliceType(
+					p(1, 4, 3, 8),
+					ast.NewUnaryOperator(
+						p(1, 6, 5, 8),
+						ast.OperatorMultiplication,
+						ast.NewIdentifier(p(1, 7, 6, 8), "int"),
+					),
+				),
+			),
+		),
+	},
+	{"1 / map[*int]Type{k1: *v1, k2: v2}[&a] - id",
+		ast.NewBinaryOperator(
+			p(1, 40, 0, 42),
+			ast.OperatorSubtraction,
+			ast.NewBinaryOperator( // 1 / map[*int]Type{k1: *v1, k2: v2}
+				p(1, 3, 0, 37),
+				ast.OperatorDivision,
+				ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)),
+				ast.NewIndex( // map[*int]Type{k1: *v1, k2: v2}[&a]
+					p(1, 35, 4, 37),
+					ast.NewCompositeLiteral( // map[*int]Type{k1: *v1, k2: v2}
+						p(1, 18, 4, 33),
+						ast.NewMapType( // map[*int]Type
+							p(1, 5, 4, 16),
+							ast.NewUnaryOperator( // *int
+								p(1, 9, 8, 11),
+								ast.OperatorMultiplication,
+								ast.NewIdentifier(p(1, 10, 9, 11), "int"),
+							),
+							ast.NewIdentifier(p(1, 14, 13, 16), "Type"),
+						),
+						[]ast.KeyValue{ // k1: *v1, k2: v2
+							ast.KeyValue{
+								ast.NewIdentifier(p(1, 19, 18, 19), "k1"), // k1
+								ast.NewUnaryOperator( // *v1
+									p(1, 23, 22, 24),
+									ast.OperatorMultiplication,
+									ast.NewIdentifier(p(1, 24, 23, 24), "v1"),
+								),
+							},
+							ast.KeyValue{
+								ast.NewIdentifier(p(1, 28, 27, 28), "k2"), // k2
+								ast.NewIdentifier(p(1, 32, 31, 32), "v2"), // v2
+							},
+						},
+					),
+					ast.NewUnaryOperator( // &a
+						p(1, 36, 35, 36),
+						ast.OperatorAmpersand,
+						ast.NewIdentifier(p(1, 37, 36, 36), "a"),
+					),
+				),
+			),
+			ast.NewIdentifier(p(1, 42, 41, 42), "id"),
+		),
+	},
+	{
+		`30 * map[string]int{"uno": 1, "due": 2}["due"] - 5`,
+		ast.NewBinaryOperator(
+			p(1, 48, 0, 49),
+			ast.OperatorSubtraction,
+			ast.NewBinaryOperator(
+				p(1, 4, 0, 45),
+				ast.OperatorMultiplication,
+				ast.NewInt(p(1, 1, 0, 1), big.NewInt(30)),
+				ast.NewIndex(
+					p(1, 40, 5, 45),
+					ast.NewCompositeLiteral(
+						p(1, 20, 5, 38),
+						ast.NewMapType(p(1, 6, 5, 18), ast.NewIdentifier(p(1, 10, 9, 14), "string"), ast.NewIdentifier(p(1, 17, 16, 18), "int")),
+						[]ast.KeyValue{
+							ast.KeyValue{ast.NewString(p(1, 21, 20, 24), "uno"), ast.NewInt(p(1, 28, 27, 27), big.NewInt(1))},
+							ast.KeyValue{ast.NewString(p(1, 31, 30, 34), "due"), ast.NewInt(p(1, 38, 37, 37), big.NewInt(2))},
+						},
+					),
+					ast.NewString(p(1, 41, 40, 44), "due"),
+				),
+			),
+			ast.NewInt(p(1, 50, 49, 49), big.NewInt(5)),
+		),
+	},
+	{`myStruct{value1, "value2", 33}`,
+		ast.NewCompositeLiteral(
+			p(1, 9, 0, 29),
+			ast.NewIdentifier(p(1, 1, 0, 7), "myStruct"),
+			[]ast.Expression{
+				ast.NewIdentifier(p(1, 10, 9, 14), "value1"),
+				ast.NewString(p(1, 18, 17, 24), "value2"),
+				ast.NewInt(p(1, 28, 27, 28), big.NewInt(33)),
+			},
+		),
+	},
+	{`pkg.Struct{value1, "value2", 33}`,
+		ast.NewCompositeLiteral(
+			p(1, 11, 0, 31),
+			ast.NewSelector(p(1, 4, 0, 9), ast.NewIdentifier(p(1, 1, 0, 2), "pkg"), "Struct"),
+			[]ast.Expression{
+				ast.NewIdentifier(p(1, 12, 11, 16), "value1"),
+				ast.NewString(p(1, 20, 19, 26), "value2"),
+				ast.NewInt(p(1, 30, 29, 30), big.NewInt(33)),
+			},
+		),
+	},
+	{`pkg.Struct{Key1: value1, Key2: "value2", Key3: 33}`,
+		ast.NewCompositeLiteral(
+			p(1, 11, 0, 49),
+			ast.NewSelector(p(1, 4, 0, 9), ast.NewIdentifier(p(1, 1, 0, 2), "pkg"), "Struct"),
+			[]ast.KeyValue{
+				ast.KeyValue{ast.NewIdentifier(p(1, 12, 11, 14), "Key1"), ast.NewIdentifier(p(1, 18, 17, 22), "value1")},
+				ast.KeyValue{ast.NewIdentifier(p(1, 26, 25, 28), "Key2"), ast.NewString(p(1, 32, 31, 38), "value2")},
+				ast.KeyValue{ast.NewIdentifier(p(1, 42, 41, 44), "Key3"), ast.NewInt(p(1, 48, 47, 48), big.NewInt(33))},
+			},
+		),
+	},
+	{`interface{}`,
+		ast.NewIdentifier(p(1, 1, 0, 10), "interface{}"),
+	},
+	{`[]interface{}{1,2,3}`,
+		ast.NewCompositeLiteral(
+			p(1, 14, 0, 19),
+			ast.NewSliceType(
+				p(1, 1, 0, 12),
+				ast.NewIdentifier(p(1, 3, 2, 12), "interface{}"),
+			),
+			[]ast.Expression{
+				ast.NewInt(p(1, 15, 14, 14), big.NewInt(1)),
+				ast.NewInt(p(1, 17, 16, 16), big.NewInt(2)),
+				ast.NewInt(p(1, 19, 18, 18), big.NewInt(3)),
+			})},
+	{`1 + interface{}(2) + 4`,
+		ast.NewBinaryOperator(
+			p(1, 20, 0, 21),
+			ast.OperatorAddition,
+			ast.NewBinaryOperator(
+				p(1, 3, 0, 17),
+				ast.OperatorAddition,
+				ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)),
+				ast.NewCall(
+					p(1, 16, 4, 17),
+					ast.NewIdentifier(p(1, 5, 4, 14), "interface{}"),
+					[]ast.Expression{ast.NewInt(p(1, 17, 16, 16), big.NewInt(2))},
+				)),
+			ast.NewInt(p(1, 22, 21, 21), big.NewInt(4)),
+		)},
+	{"bytes{}", ast.NewCompositeLiteral(p(1, 6, 0, 6), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), nil)},
+	{"bytes{5}", ast.NewCompositeLiteral(p(1, 6, 0, 7), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))})},
+	{"bytes{5,6,7}", ast.NewCompositeLiteral(p(1, 6, 0, 11), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"),
+		[]ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(5)), ast.NewInt(p(1, 9, 8, 8), big.NewInt(6)), ast.NewInt(p(1, 11, 10, 10), big.NewInt(7))})},
+	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
+	{"bytes(nil)", ast.NewCall(p(1, 6, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
 	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(2, 1, 4, 4), big.NewInt(2)))},
 	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(3, 4, 11, 11), big.NewInt(2)))},
 	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{
@@ -203,7 +571,7 @@ func TestExpressions(t *testing.T) {
 					}
 				}
 			}()
-			node, tok := parseExpr(token{}, lex, false, false)
+			node, tok := parseExpr(token{}, lex, false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 			} else {
