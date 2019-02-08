@@ -611,10 +611,10 @@ var treeTests = []struct {
 								p(1, 16, 15, 19),
 								ast.NewIdentifier(p(1, 18, 17, 19), "int"),
 							),
-							[]ast.Expression{
-								ast.NewInt(p(1, 22, 21, 21), big.NewInt(1)),
-								ast.NewInt(p(1, 24, 23, 23), big.NewInt(2)),
-								ast.NewInt(p(1, 26, 25, 25), big.NewInt(3)),
+							[]ast.KeyValue{
+								{nil, ast.NewInt(p(1, 22, 21, 21), big.NewInt(1))},
+								{nil, ast.NewInt(p(1, 24, 23, 23), big.NewInt(2))},
+								{nil, ast.NewInt(p(1, 26, 25, 25), big.NewInt(3))},
 							}),
 						ast.NewSliceType(p(1, 30, 29, 33),
 							ast.NewIdentifier(p(1, 32, 31, 33), "int"),
@@ -955,45 +955,18 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		switch values1 := nn1.Values.(type) {
-		case nil:
-			if nn2.Values != nil {
-				return fmt.Errorf("expected nil, unexpected %s", nn2.Values)
+		if len(nn1.KeyValues) != len(nn2.KeyValues) {
+			return fmt.Errorf("unexpected len %d, expecting %d for KeyValue", len(nn1.KeyValues), len(nn2.KeyValues))
+		}
+		for i := range nn1.KeyValues {
+			err := equals(nn1.KeyValues[i].Key, nn2.KeyValues[i].Key, p)
+			if err != nil {
+				return err
 			}
-		case []ast.Expression:
-			values2, ok := nn2.Values.([]ast.Expression)
-			if !ok && len(values1) == 0 && nn2.Values != nil {
-				return fmt.Errorf("expected %T", nn2.Values)
+			err = equals(nn1.KeyValues[i].Value, nn2.KeyValues[i].Value, p)
+			if err != nil {
+				return err
 			}
-			if len(values1) != len(values2) {
-				return fmt.Errorf("unexpected len %d, expecting %d for Expression", len(values1), len(values2))
-			}
-			for i := range values1 {
-				err := equals(values1[i], values2[i], p)
-				if err != nil {
-					return err
-				}
-			}
-		case []ast.KeyValue:
-			values2, ok := nn2.Values.([]ast.KeyValue)
-			if !ok && len(values1) == 0 && nn2.Values != nil {
-				return fmt.Errorf("expected %T", nn2.Values)
-			}
-			if len(values1) != len(values2) {
-				return fmt.Errorf("unexpected len %d, expecting %d for KeyValue", len(values1), len(values2))
-			}
-			for i := range values1 {
-				err := equals(values1[i].Key, values2[i].Key, p)
-				if err != nil {
-					return err
-				}
-				err = equals(values1[i].Value, values2[i].Value, p)
-				if err != nil {
-					return err
-				}
-			}
-		default:
-			return fmt.Errorf("unexpected type %T", values1)
 		}
 	case *ast.ArrayType:
 		nn2, ok := n2.(*ast.ArrayType)

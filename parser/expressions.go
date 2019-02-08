@@ -339,9 +339,8 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 				if operand != nil {
 					pos.Start = operand.Pos().Start
 				}
-				values := []interface{}{}
+				var keyValues []ast.KeyValue
 				var expr ast.Expression
-				isKeyValue := false
 				for {
 					expr, tok = parseExpr(token{}, lex, false, false, false, false)
 					if expr == nil {
@@ -353,10 +352,9 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 						if value == nil {
 							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
-						values = append(values, ast.KeyValue{Key: expr, Value: value})
-						isKeyValue = true
+						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
 					} else {
-						values = append(values, expr)
+						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
 					}
 					if tok.typ == tokenRightBraces {
 						break
@@ -366,54 +364,38 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
 				}
 				pos.End = tok.pos.End
-				if len(values) == 0 {
-					operand = ast.NewCompositeLiteral(pos, operand, nil)
-				} else {
-					if isKeyValue {
-						keyValues := []ast.KeyValue{}
-						for _, value := range values {
-							kv := value.(ast.KeyValue)
-							keyValues = append(keyValues, ast.KeyValue{Key: kv.Key, Value: kv.Value})
-						}
-						// TODO (Gianluca): duplicates checking should be done
-						// during rendering?
-						if len(keyValues) > 1 {
-							duplicates := map[interface{}]struct{}{}
-							for _, element := range keyValues {
-								switch key := element.Key.(type) {
-								case nil:
-									if _, ok := duplicates[nil]; ok {
-										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
-									}
-									duplicates[nil] = struct{}{}
-								case *ast.String:
-									if _, ok := duplicates[key.Text]; ok {
-										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
-									}
-									duplicates[key.Text] = struct{}{}
-								case *ast.Float:
-									if _, ok := duplicates[key.Value]; ok {
-										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-									}
-									duplicates[key.Value] = struct{}{}
-								case *ast.Int:
-									if _, ok := duplicates[key.Value.String()]; ok {
-										panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-									}
-									duplicates[key.Value.String()] = struct{}{}
-								}
+				if _, ok := operand.(*ast.MapType); ok {
+					duplicates := map[interface{}]struct{}{}
+					for _, element := range keyValues {
+						switch key := element.Key.(type) {
+						// TODO (Gianluca): maps cannot have duplicated nil
+						// keys, but "map{1,2,3}" is valid for parser, so this
+						// error must be checked during execution.
+						//
+						// case nil:
+						//  if _, ok := duplicates[nil]; ok {
+						//      panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
+						//  }
+						//  duplicates[nil] = struct{}{}
+						case *ast.String:
+							if _, ok := duplicates[key.Text]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
 							}
+							duplicates[key.Text] = struct{}{}
+						case *ast.Float:
+							if _, ok := duplicates[key.Value.String()]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
+							}
+							duplicates[key.Value.String()] = struct{}{}
+						case *ast.Int:
+							if _, ok := duplicates[key.Value.String()]; ok {
+								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
+							}
+							duplicates[key.Value.String()] = struct{}{}
 						}
-						operand = ast.NewCompositeLiteral(pos, operand, keyValues)
-					} else {
-						exprs := []ast.Expression{}
-						for i := range values {
-							expr := values[i].(ast.Expression)
-							exprs = append(exprs, expr)
-						}
-						operand = ast.NewCompositeLiteral(pos, operand, exprs)
 					}
 				}
+				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start

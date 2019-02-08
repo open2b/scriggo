@@ -187,23 +187,12 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	case *ast.ArrayType:
 		return ast.NewArrayType(ClonePosition(e.Pos()), CloneExpression(e.Len), CloneExpression(e.ElementType))
 	case *ast.CompositeLiteral:
-		var values interface{}
-		switch vs := e.Values.(type) {
-		case []ast.Expression:
-			exprs := make([]ast.Expression, len(vs))
-			for i, value := range vs {
-				exprs[i] = CloneExpression(value)
-			}
-			values = exprs
-		case []ast.KeyValue:
-			keyValues := make([]ast.KeyValue, len(vs))
-			for i, value := range vs {
-				keyValues[i].Key = CloneExpression(value.Key)
-				keyValues[i].Value = CloneExpression(value.Value)
-			}
-			values = keyValues
+		keyValues := make([]ast.KeyValue, len(e.KeyValues))
+		for i, kv := range e.KeyValues {
+			keyValues[i].Key = CloneExpression(kv.Key)
+			keyValues[i].Value = CloneExpression(kv.Value)
 		}
-		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), values)
+		return ast.NewCompositeLiteral(ClonePosition(e.Pos()), CloneExpression(e.Type), keyValues)
 	case *ast.Call:
 		var args = make([]ast.Expression, len(e.Args))
 		for i, arg := range e.Args {

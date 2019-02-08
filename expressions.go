@@ -937,21 +937,21 @@ SWITCH:
 
 // evalBytes evaluates a bytes expression and returns its value.
 func (r *rendering) evalBytes(node *ast.CompositeLiteral) interface{} {
-	if node.Values == nil {
+	if node.KeyValues == nil {
 		return make(Bytes, 0)
 	}
-	values := node.Values.([]ast.Expression)
-	elements := make(Bytes, len(values))
-	for i, element := range values {
+	indexValue, maxIndex := r.indexValueMap(node.KeyValues)
+	elements := make(Bytes, maxIndex+1)
+	for i, expr := range indexValue {
 		var err error
-		v := r.evalExpression(element)
+		v := r.evalExpression(expr)
 		switch n := v.(type) {
 		case byte:
 			elements[i] = n
 		case ConstantNumber:
 			elements[i], err = n.ToUint8()
 		default:
-			err = fmt.Errorf("cannot use %s (type %s) as type byte", element, typeof(v))
+			err = fmt.Errorf("cannot use %s (type %s) as type byte", expr, typeof(v))
 		}
 		if err != nil {
 			panic(r.errorf(node, "%s in bytes literal", err))
@@ -1032,6 +1032,33 @@ func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	return val
 }
 
+// indexValueMap takes a sparse list of expression-indexed values and returns a
+// map with evaluated indexes as keys and the corresponding expressions as
+// values. It also returns the maximum index found.
+func (r *rendering) indexValueMap(indexValues []ast.KeyValue) (map[int]ast.Expression, int) {
+	indexValue := make(map[int]ast.Expression, len(indexValues))
+	maxIndex := 0
+	prevIndex := -1
+	var i int
+	var err error
+	for _, kv := range indexValues {
+		if kv.Key == nil {
+			i = prevIndex + 1
+		} else {
+			i, err = r.sliceIndex(kv.Key)
+			if err != nil {
+				panic(err)
+			}
+		}
+		if i > maxIndex {
+			maxIndex = i
+		}
+		indexValue[i] = kv.Value
+		prevIndex = i
+	}
+	return indexValue, maxIndex
+}
+
 // evalCompositeLiteral evaluates and returns the value of the composite literal
 // node. It panics on error.
 //
@@ -1042,71 +1069,85 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 	if i, ok := node.Type.(*ast.Identifier); ok && i.Name == "bytes" {
 		return r.evalBytes(node)
 	}
-	var length int
-	switch values := node.Values.(type) {
-	case nil:
-		length = 0
-	case []ast.KeyValue:
-		length = len(values)
-	case []ast.Expression:
-		length = len(values)
-	default:
-		panic(fmt.Sprintf("unexpected type %T as evalCompositeLiteral argument", node.Values))
-	}
+	var err error
+	var indexValue map[int]ast.Expression
+	var maxIndex int
 	var typ reflect.Type
-	if node.Type != nil {
-		var err error
-		// Composite literal with explicit type.
+	if node.Type != nil { // Composite literal with explicit type.
+		length := noEllipses
+		if _, ok := node.Type.(*ast.ArrayType); ok {
+			// Composite literal has an array type, so the maximum index must be
+			// determined to create ellipses and to check size matching.
+			indexValue, maxIndex = r.indexValueMap(node.KeyValues)
+			length = maxIndex + 1
+		}
 		typ, err = r.evalType(node.Type, length)
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		// Composite literal with implicit type.
+	} else { // Composite literal with implicit type.
 		typ = outerType
 	}
+	// Builtin types slice{...} and map{...}.
 	switch typ {
-	case mapType: // builtin map
-		if node.Values == nil {
+	case mapType: // map{...}
+		if node.KeyValues == nil {
 			return make(Map, 0)
 		}
-		values := node.Values.([]ast.KeyValue)
-		builtinMap := make(Map, length)
-		for _, kv := range values {
+		builtinMap := make(Map, len(node.KeyValues))
+		for _, kv := range node.KeyValues {
 			key, err := r.mapIndex(kv.Key, interfaceType)
 			if err != nil {
 				panic(err)
 			}
-			builtinMap[key] = r.evalExpression(kv.Value)
+			val := r.evalExpression(kv.Value)
+			if cn, ok := val.(ConstantNumber); ok {
+				val, err = cn.ToTyped()
+				if err != nil {
+					panic(err)
+				}
+			}
+			builtinMap[key] = val
 		}
 		return builtinMap
-	case sliceType: // builtin slice
-		if node.Values == nil {
+	case sliceType: // slice{...}
+		if node.KeyValues == nil {
 			return reflect.MakeSlice(typ, 0, 0).Interface()
 		}
-		values := node.Values.([]ast.Expression)
-		slice := reflect.MakeSlice(typ, 0, 0)
-		for _, element := range values {
-			slice = reflect.Append(slice, reflect.ValueOf(r.evalExpression(element)))
+		indexValue, maxIndex = r.indexValueMap(node.KeyValues)
+		slice := reflect.MakeSlice(sliceType, maxIndex+1, maxIndex+1)
+		for i, v := range indexValue {
+			val := r.evalExpression(v)
+			if cn, ok := val.(ConstantNumber); ok {
+				val, err = cn.ToTyped()
+				if err != nil {
+					panic(err)
+				}
+			}
+			slice.Index(i).Set(reflect.ValueOf(val))
 		}
 		return slice.Interface()
 	}
+	// Generic Go types.
 	switch typ.Kind() {
-	case reflect.Array:
-		if node.Values == nil {
+	case reflect.Array: // [n]T{...}
+		if node.KeyValues == nil {
 			return reflect.New(typ).Elem().Interface()
 		}
-		values := node.Values.([]ast.Expression)
 		array := reflect.New(typ).Elem()
 		elemType := array.Type().Elem()
-		for i, value := range values {
+		indexValue, maxIndex := r.indexValueMap(node.KeyValues)
+		if maxIndex > typ.Len() {
+			panic(r.errorf(node, "array index %d out of bounds [0:%d]", maxIndex, typ.Len()))
+		}
+		for i, v := range indexValue {
+			var refValue reflect.Value
 			var evalValue interface{}
-			if cl, ok := value.(*ast.CompositeLiteral); ok {
+			if cl, ok := v.(*ast.CompositeLiteral); ok {
 				evalValue = r.evalCompositeLiteral(cl, typ.Elem())
 			} else {
-				evalValue = r.evalExpression(value)
+				evalValue = r.evalExpression(v)
 			}
-			var refValue reflect.Value
 			if cn, ok := evalValue.(ConstantNumber); ok {
 				typed, err := cn.ToType(elemType)
 				if err != nil {
@@ -1116,102 +1157,113 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 			} else {
 				refValue = reflect.ValueOf(evalValue)
 				if refValue.Type() != typ.Elem() {
-					// TODO (Gianluca): Go shows the name of the variable instead of
-					// it's content in error.
-					panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", refValue, refValue, typ.Elem()))
+					panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", v, refValue.Type(), typ.Elem()))
 				}
+			}
+			if refValue.Type() != typ.Elem() {
+				panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", v, refValue.Type(), typ.Elem()))
 			}
 			array.Index(i).Set(refValue)
 		}
 		return array.Interface()
-	case reflect.Slice:
-		if node.Values == nil {
+	case reflect.Slice: // []T{...}
+		if node.KeyValues == nil {
 			return reflect.MakeSlice(typ, 0, 0).Interface()
 		}
-		values := node.Values.([]ast.Expression)
-		s := reflect.MakeSlice(typ, length, length)
-		for i, v := range values {
-			var ve interface{}
+		indexValue, maxIndex = r.indexValueMap(node.KeyValues)
+		slice := reflect.MakeSlice(typ, maxIndex+1, maxIndex+1)
+		for i, v := range indexValue {
+			var evalValue interface{}
 			if cl, ok := v.(*ast.CompositeLiteral); ok {
-				ve = r.evalCompositeLiteral(cl, typ.Elem())
+				evalValue = r.evalCompositeLiteral(cl, typ.Elem())
 			} else {
-				ve = r.evalExpression(v)
+				evalValue = r.evalExpression(v)
 			}
-			if cn, ok := ve.(ConstantNumber); ok {
+			if cn, ok := evalValue.(ConstantNumber); ok {
 				var err error
-				ve, err = cn.ToType(typ.Elem())
+				evalValue, err = cn.ToType(typ.Elem())
 				if err != nil {
 					panic(err)
 				}
 			}
-			if reflect.TypeOf(ve) != typ.Elem() {
-				// TODO (Gianluca): Go shows the name of the variable instead of
-				// it's content in error.
-				panic(r.errorf(node, "cannot use %v (type %T) as type %s in slice literal", ve, ve, typ.Elem()))
+			if reflect.TypeOf(evalValue) != typ.Elem() {
+				panic(r.errorf(node, "cannot use %v (type %T) as type %s in slice literal", v, evalValue, typ.Elem()))
 			}
-			s.Index(i).Set(reflect.ValueOf(ve))
+			slice.Index(i).Set(reflect.ValueOf(evalValue))
 		}
-		return s.Interface()
-	case reflect.Map:
-		if node.Values == nil {
+		return slice.Interface()
+	case reflect.Map: // map[T1]T2{...}
+		if node.KeyValues == nil {
 			return reflect.MakeMap(typ).Interface()
 		}
 		mapValue := reflect.MakeMap(typ)
-		pairs := node.Values.([]ast.KeyValue)
-		for _, kv := range pairs {
+		for _, kv := range node.KeyValues {
 			key, err := r.mapIndex(kv.Key, typ.Key())
 			if err != nil {
 				panic(err)
 			}
-			var value interface{}
+			var evalValue interface{}
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				value = r.evalCompositeLiteral(cl, typ.Elem())
+				evalValue = r.evalCompositeLiteral(cl, typ.Elem())
 			} else {
-				value = r.evalExpression(kv.Value)
+				evalValue = r.evalExpression(kv.Value)
 			}
 			var refValue reflect.Value
-			if cn, ok := value.(ConstantNumber); ok {
+			if cn, ok := evalValue.(ConstantNumber); ok {
 				typed, err := cn.ToType(typ.Elem())
 				if err != nil {
 					panic(err)
 				}
 				refValue = reflect.ValueOf(typed)
 			} else {
-				refValue = reflect.ValueOf(value)
+				refValue = reflect.ValueOf(evalValue)
 			}
 			mapValue.SetMapIndex(reflect.ValueOf(key), refValue)
 		}
 		return mapValue.Interface()
-	case reflect.Ptr:
+	case reflect.Ptr: // *T{...}
 		cl := r.evalCompositeLiteral(node, typ.Elem())
 		return refToCopy(cl).Interface()
-	case reflect.Struct:
-		if node.Values == nil {
+	case reflect.Struct: // T{...}
+		if node.KeyValues == nil {
 			return reflect.New(typ).Elem().Interface()
 		}
 		s := reflect.New(typ).Elem()
-		switch v := node.Values.(type) {
-		case []ast.Expression:
-			for i, expr := range v {
-				val := r.evalExpression(expr)
-				var refExpr reflect.Value
-				if cn, ok := val.(ConstantNumber); ok {
-					typed, err := cn.ToType(typ.Field(i).Type)
-					if err != nil {
-						panic(err)
-					}
-					refExpr = reflect.ValueOf(typed)
-				} else {
-					refExpr = reflect.ValueOf(val)
-				}
-				s.Field(i).Set(refExpr)
+		// Checks if struct composite literal contains explicit fields or not.
+		var explicitFields bool
+		{
+			mixPanic := func() {
+				panic(r.errorf(node, "mixture of field:value and value initializers"))
 			}
-		case []ast.KeyValue:
-			for _, fv := range v {
+			var declType int // 0 not determined, -1 implicit, 1 explicit
+			for _, kv := range node.KeyValues {
+				if kv.Key == nil {
+					if declType == 1 {
+						mixPanic()
+					}
+					declType = -1
+					continue
+				} else {
+					if declType == -1 {
+						mixPanic()
+					}
+					declType = 1
+				}
+			}
+			explicitFields = declType == 1
+		}
+		if explicitFields {
+			for _, fv := range node.KeyValues {
 				val := r.evalExpression(fv.Value)
 				var refExpr reflect.Value
-				if cn, ok := val.(ConstantNumber); ok {
-					field, ok := typ.FieldByName(fv.Key.(*ast.Identifier).Name)
+				var field reflect.StructField
+				var ok bool
+				var ident *ast.Identifier
+				if cn, okcn := val.(ConstantNumber); okcn {
+					if ident, ok = fv.Key.(*ast.Identifier); !ok {
+						panic(r.errorf(node, "invalid field name %s in struct initializer", fv.Key))
+					}
+					field, ok = typ.FieldByName(fv.Key.(*ast.Identifier).Name)
 					if !ok {
 						panic(r.errorf(node, "unknown field '%s' in struct literal of type %s", field.Name, typ.Name()))
 					}
@@ -1223,7 +1275,22 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 				} else {
 					refExpr = reflect.ValueOf(val)
 				}
-				s.FieldByName(fv.Key.(*ast.Identifier).Name).Set(refExpr)
+				s.FieldByName(ident.Name).Set(refExpr)
+			}
+		} else {
+			for i, kv := range node.KeyValues {
+				val := r.evalExpression(kv.Value)
+				var refExpr reflect.Value
+				if cn, ok := val.(ConstantNumber); ok {
+					typed, err := cn.ToType(typ.Field(i).Type)
+					if err != nil {
+						panic(err)
+					}
+					refExpr = reflect.ValueOf(typed)
+				} else {
+					refExpr = reflect.ValueOf(val)
+				}
+				s.Field(i).Set(refExpr)
 			}
 		}
 		return s.Interface()

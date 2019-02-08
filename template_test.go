@@ -147,16 +147,27 @@ var rendererExprTests = []struct {
 	{"slice{`a`, 8, true, html(`<b>`)}", "a, 8, true, <b>", nil},
 	{`slice{"a",2,3.6,html("<b>")}`, "a, 2, 3.6, <b>", nil},
 	{`slice{slice{1,2},"/",slice{3,4}}`, "1, 2, /, 3, 4", nil},
+	{`slice{0: "zero", 2: "two"}[2]`, "two", nil},
+	{`slice{2: "two", "three", "four"}[4]`, "four", nil},
 
 	// slice
 	{"[]int{-3}[0]", "-3", nil},
 	{`[]string{"a","b","c"}[0]`, "a", nil},
 	{`[][]int{[]int{1,2}, []int{3,4,5}}[1][2]`, "5", nil},
 	{`len([]string{"a", "b", "c"})`, "3", nil},
+	{`[]string{0: "zero", 2: "two"}[2]`, "two", nil},
+	{`[]int{ 8: 64, 81, 5: 25,}[9]`, "81", nil},
+	{`[]bytes{{97, 98}, {110, 67}}[1][0]`, "110", nil},
+
+	// bytes ([]byte)
+	{`bytes{0, 4}[0]`, "0", nil},
+	{`bytes{0, 124: 97}[124]`, "97", nil},
 
 	// array
 	{`[2]int{-30, 30}[0]`, "-30", nil},
 	{`[1][2]int{[2]int{-30, 30}}[0][1]`, "30", nil},
+	{`[4]string{0: "zero", 2: "two"}[2]`, "two", nil},
+	{`[...]int{4: 5}[4]`, "5", nil},
 
 	// map (builtin type Map)
 	{"len(map{})", "0", nil},
@@ -171,7 +182,6 @@ var rendererExprTests = []struct {
 
 	// struct
 	{`s{1, 2}.A`, "1", nil},
-	{`s{A: 1, B: 2}.B`, "2", nil},
 
 	// composite literal with implicit type
 	{`[][]int{{1},{2,3}}[1][1]`, "3", nil},

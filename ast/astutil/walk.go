@@ -119,16 +119,11 @@ func Walk(v Visitor, node ast.Node) {
 
 	case *ast.CompositeLiteral:
 		Walk(v, n.Type)
-		switch l := n.Values.(type) {
-		case []ast.Expression:
-			for _, vv := range l {
-				Walk(v, vv)
-			}
-		case []ast.KeyValue:
-			for _, vv := range l {
+		for _, vv := range n.KeyValues {
+			if vv.Key != nil {
 				Walk(v, vv.Key)
-				Walk(v, vv.Value)
 			}
+			Walk(v, vv.Value)
 		}
 
 	case *ast.SliceType:

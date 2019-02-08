@@ -682,6 +682,9 @@ func NewSliceType(pos *Position, elementType Expression) *SliceType {
 }
 
 func (s *SliceType) String() string {
+	if s.ElementType == nil {
+		return "slice"
+	}
 	return "[]" + s.ElementType.String()
 }
 
@@ -711,45 +714,38 @@ func (a *ArrayType) String() string {
 // CompositeLiteral node represent a composite literal.
 type CompositeLiteral struct {
 	expression
-	*Position             // position in the source.
-	Type      Expression  // type of the composite literal. nil for composite literals without type.
-	Values    interface{} // nil for empty composite literals.
+	*Position            // position in the source.
+	Type      Expression // type of the composite literal. nil for composite literals without type.
+	KeyValues []KeyValue // nil for empty composite literals.
 }
 
-func NewCompositeLiteral(pos *Position, typ Expression, values interface{}) *CompositeLiteral {
-	return &CompositeLiteral{expression{}, pos, typ, values}
+func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *CompositeLiteral {
+	return &CompositeLiteral{expression{}, pos, typ, keyValues}
 }
 
 func (t *CompositeLiteral) String() string {
 	s := t.Type.String()
 	s += "{"
-	switch values := t.Values.(type) {
-	case []Expression:
-		for i, value := range values {
-			if i > 0 {
-				s += ", "
-			}
-			s += value.String()
+	for i, kv := range t.KeyValues {
+		if i > 0 {
+			s += ", "
 		}
-	case []KeyValue:
-		for i, value := range values {
-			if i > 0 {
-				s += ", "
-			}
-			s += value.String()
-		}
+		s += kv.String()
 	}
 	s += "}"
 	return s
 }
 
-// KeyValue represents a key value pair in a map or struct composite literal.
+// KeyValue represents a key value pair in a slice, map or struct composite literal.
 type KeyValue struct {
-	Key   Expression
+	Key   Expression // nil for not-indexed values.
 	Value Expression
 }
 
 func (kv KeyValue) String() string {
+	if kv.Key == nil {
+		return kv.Value.String()
+	}
 	return kv.Key.String() + ": " + kv.Value.String()
 }
 
