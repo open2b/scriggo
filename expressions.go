@@ -317,8 +317,6 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 				compositeLiteralValue := r.evalCompositeLiteral(e, nil)
 				compositeLiteralReflectValue := reflect.ValueOf(compositeLiteralValue)
 				switch compositeLiteralReflectValue.Kind() {
-				case reflect.Map: // &map[T1]T2{...}[i]
-					panic("not implemented")
 				case reflect.Slice: // &[]T1{...}[i]
 					i, err := r.sliceIndex(expr.Index)
 					if err != nil {
@@ -326,8 +324,6 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 					}
 					elem := compositeLiteralReflectValue.Index(i)
 					return refToCopy(elem.Interface()).Interface()
-				default:
-					panic("errore")
 				}
 			case *ast.Identifier: // &a[i]
 				rv, err := r.referenceInScope(e.Name)
