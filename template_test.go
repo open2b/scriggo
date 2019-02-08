@@ -422,6 +422,8 @@ var rendererStmtTests = []struct {
 	{"{% s := slice{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
 	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
+	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{{ b[1] }}`, "5", scope{"getref": func(s [3]int) *[3]int { return &s }}},
+	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{% b[1] = 10 %}{{ (*b)[1] }}`, "10", scope{"getref": func(s [3]int) *[3]int { return &s }}},
 	{`{% s := T{5, 6} %}{% if s.A == 5 %}ok{% end %}`, "ok", nil},
 	{`{% s := interface{}(3) %}{% if s == 3 %}ok{% end %}`, "ok", nil},
 	{"{% a := 12 %}{% a += 9 %}{{ a }}", "21", nil},

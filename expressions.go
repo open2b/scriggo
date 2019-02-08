@@ -1588,6 +1588,15 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	}
 	var rv = reflect.ValueOf(v)
 	switch rv.Kind() {
+	case reflect.Ptr:
+		if rv.Elem().Kind() != reflect.Array {
+			return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
+		}
+		i, err := checkSlice(rv.Elem().Len())
+		if err != nil {
+			return nil, false, err
+		}
+		return rv.Elem().Index(i).Interface(), true, nil
 	case reflect.String:
 		if n == 2 {
 			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")

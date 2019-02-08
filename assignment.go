@@ -471,6 +471,18 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 					return nil, r.errorf(variable, "index out of range")
 				}
 				addr = goSliceAddress{Slice: rv, Index: index}
+			case reflect.Ptr:
+				if rv.Elem().Kind() != reflect.Array {
+					return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, typeof(variable))
+				}
+				index, err := r.sliceIndex(v.Index)
+				if err != nil {
+					return nil, err
+				}
+				if index >= rv.Elem().Len() {
+					return nil, r.errorf(variable, "index out of range")
+				}
+				addr = goSliceAddress{Slice: rv.Elem(), Index: index}
 			default:
 				return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, typeof(variable))
 			}
