@@ -34,7 +34,7 @@ func isTypeGuard(node ast.Node) bool {
 // TODO (Gianluca): change parameters order (final result should be tok token,
 // lex *lexer)
 //
-func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
+func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 
 	// TODO (Gianluca): parsing this line: switch x := 2; x, y := a.(type), b
 	// should fail, cause it's not checking the number of expressions. There
@@ -45,7 +45,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
 	// "{%" "switch" [ beforeSemicolon "," ] afterSemicolon "%}"
 	var beforeSemicolon, afterSemicolon ast.Node
 
-	expressions, tok := parseExprList(token{}, lex, false, true, false, true)
+	expressions, tok := parseExprList(token{}, p.lex, false, true, false, true)
 
 	end := tokenLeftBraces
 	if p.ctx != ast.ContextNone {
@@ -88,7 +88,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
 			// TODO (Gianluca): use type assertion node position instead of last read token position
 			panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 		}
-		expressions, tok = parseExprList(token{}, lex, false, true, false, true)
+		expressions, tok = parseExprList(token{}, p.lex, false, true, false, true)
 		switch len(expressions) { // # of expressions after ;
 		case 0:
 			// switch ; {
@@ -111,7 +111,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
 		// switch x := 3; x + y {
 		// switch x = y.(type) {
 		// switch x := 2; x = y.(type) {
-		assignment, tok = parseAssignment(expressions, tok, lex, true)
+		assignment, tok = parseAssignment(expressions, tok, p.lex, true)
 		switch tok.typ {
 		case tokenSemicolon:
 
@@ -125,12 +125,12 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
 			// switch x := 3; x {
 			// switch x := 3; x + y {
 			// switch x := 2; x = y.(type) {
-			expressions, tok = parseExprList(token{}, lex, false, true, false, true)
+			expressions, tok = parseExprList(token{}, p.lex, false, true, false, true)
 			if isAssignmentToken(tok) {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:
 				//     switch x := 2; x = y.(type) {
-				assignment, tok = parseAssignment(expressions, tok, lex, true)
+				assignment, tok = parseAssignment(expressions, tok, p.lex, true)
 				ta, ok := assignment.Values[0].(*ast.TypeAssertion)
 				// TODO (Gianluca): should error contain the position of the
 				// expression which caused the error instead of the token (as Go

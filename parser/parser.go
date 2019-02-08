@@ -485,7 +485,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// switch
 	case tokenSwitch:
-		node = p.parseSwitch(p.lex, pos)
+		node = p.parseSwitch(pos)
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
