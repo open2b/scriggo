@@ -51,7 +51,9 @@ func (e CycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
-// next returns the next token from the lexer lex. It panics on error.
+// next returns the next token from the lexer. Panics if the lexer channel is
+// closed. Since next should not be called if the last token was read, it only
+// panics if there was a lexer error.
 func next(lex *lexer) token {
 	tok, ok := <-lex.tokens
 	if !ok {
