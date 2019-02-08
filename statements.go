@@ -290,15 +290,16 @@ Nodes:
 			}
 
 			inFallthrough := false
+			var defaultCase *ast.Case
 			for _, c := range node.Cases {
-				// TODO (Gianluca): "default" can occur in any position but must
-				// be evaluated as last case.
-
 				// TODO (Gianluca): init render as true and invert if condition
 				// removing else (if possibile)
 				render := false
 				isDefault := c.Expressions == nil
-				if inFallthrough || isDefault {
+				if isDefault {
+					defaultCase = c
+				}
+				if inFallthrough {
 					render = true
 				} else {
 					for _, expr := range c.Expressions {
@@ -324,7 +325,15 @@ Nodes:
 						continue
 					}
 					r.vars = r.vars[:len(r.vars)-2]
+					defaultCase = nil
 					return nil
+				}
+			}
+
+			if defaultCase != nil {
+				err := r.render(wr, defaultCase.Body, urlstate)
+				if err != nil {
+					return err
 				}
 			}
 
@@ -375,14 +384,14 @@ Nodes:
 				if err != nil {
 					return err
 				}
-				// TODO (Gianluca): should check if referenced?
 				guardvalue, _ = r.variable(ident.Name)
 			}
+			var defaultCase *ast.Case
 			for _, c := range node.Cases {
 				render := false
 				isDefault := c.Expressions == nil
 				if isDefault {
-					render = true
+					defaultCase = c
 				} else {
 					for _, expr := range c.Expressions {
 						if !isDefault {
@@ -413,7 +422,15 @@ Nodes:
 						}
 						return err
 					}
+					defaultCase = nil
 					return nil
+				}
+			}
+
+			if defaultCase != nil {
+				err := r.render(wr, defaultCase.Body, urlstate)
+				if err != nil {
+					return err
 				}
 			}
 

@@ -394,6 +394,8 @@ var rendererStmtTests = []struct {
 	{"{% switch ; %}{% case true %}ok{% end %}", "ok", nil},
 	{"{% i := 2 %}{% switch i++; %}{% case true %}{{ i }}{% end %}", "3", nil},
 	{"{% switch ; true %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch %}{% default %}default{% case true %}true{% end %}", "true", nil},
+	{"{% switch interface{}(\"hey\").(type) %}{% default %}default{% case string %}string{% end %}", "string", nil},
 	{"{% switch a := 5; a := a.(type) %}{% case int %}ok{% end %}", "ok", nil},
 	{"{% switch 3 %}{% case 3 %}three{% end %}", "three", nil},
 	{"{% switch 4 + 5 %}{% case 4 %}{% case 9 %}nine{% case 9 %}second nine{% end %}", "nine", nil},
