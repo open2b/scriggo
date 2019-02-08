@@ -1709,8 +1709,22 @@ func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}
 	} else {
 		key = r.evalExpression(node)
 	}
+	mapKeyError := func(keyType reflect.Type) error {
+		return r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+	}
 	switch k := key.(type) {
-	case nil, string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
+	case nil:
+	case string, HTML, int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, float64, float32, bool:
+		keyType := reflect.TypeOf(key)
+		if typ.Kind() == reflect.Interface {
+			if !keyType.Implements(typ) {
+				return nil, mapKeyError(keyType)
+			}
+		} else {
+			if keyType != typ {
+				return nil, mapKeyError(keyType)
+			}
+		}
 	case ConstantNumber:
 		var err error
 		key, err = k.ToType(typ)
@@ -1724,11 +1738,11 @@ func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}
 		}
 		if typ.Kind() == reflect.Interface {
 			if !keyType.Implements(typ) {
-				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+				return nil, mapKeyError(keyType)
 			}
 		} else {
 			if keyType != typ {
-				return nil, r.errorf(node, "cannot use %s (type %s) as type %s in map key", node, keyType, typ)
+				return nil, mapKeyError(keyType)
 			}
 		}
 	}

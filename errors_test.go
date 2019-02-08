@@ -56,6 +56,8 @@ var errorTests = []struct {
 	{`{{ 9223372036854775807 + 9223372036854775807 }}ok`, "ok", nil},   // math.MaxInt64 + math.MaxInt64
 	{`{{ -9223372036854775808 + -9223372036854775808 }}ok`, "ok", nil}, // math.MinInt64 + math.MinInt64
 	{"{% delete(m,map{}) %}ok", "ok", scope{"m": Map{}}},
+	{`{% m := map[int]int{1:1, 2:4} %}{% v := m["string"] %}ok`, "ok", nil},
+	{`{% m := map[int]int{1:1, 2:4} %}{% m["string"] = 5 %}ok`, "ok", nil},
 }
 
 func TestErrors(t *testing.T) {
