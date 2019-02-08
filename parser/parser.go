@@ -133,10 +133,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 		// Reads the tokens.
 		for tok := range p.lex.tokens {
-			err = p.parseStatement(tok)
-			if err != nil {
-				return nil, err
-			}
+			p.parseStatement(tok)
 		}
 
 	} else {
@@ -227,10 +224,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 				tokensInLine++
 
-				err = p.parseStatement(tok)
-				if err != nil {
-					return nil, err
-				}
+				p.parseStatement(tok)
 
 			// {{ }}
 			case tokenStartValue:
@@ -272,7 +266,8 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 	return tree, nil
 }
 
-func (p *parsing) parseStatement(tok token) error {
+// parseStatement parses a statement. Panics on error.
+func (p *parsing) parseStatement(tok token) {
 
 	var node ast.Node
 
@@ -298,7 +293,7 @@ func (p *parsing) parseStatement(tok token) error {
 	}
 	if l == 0 {
 		if tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
 		}
 	}
 
@@ -314,17 +309,17 @@ func (p *parsing) parseStatement(tok token) error {
 		case tokenIn:
 			// Parses statement "for ident in expr".
 			if len(variables) == 0 {
-				return &Error{"", *(variables[1].Pos()), fmt.Errorf("unexpected in, expected expression")}
+				panic(&Error{"", *(variables[1].Pos()), fmt.Errorf("unexpected in, expected expression")})
 			}
 			if len(variables) > 1 {
-				return &Error{"", *(variables[1].Pos()), fmt.Errorf("expected only one expression")}
+				panic(&Error{"", *(variables[1].Pos()), fmt.Errorf("expected only one expression")})
 			}
 			ident, ok := variables[0].(*ast.Identifier)
 			if !ok {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected in, expected assignment")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected in, expected assignment")})
 			}
 			if ident.Name == "_" {
-				return &Error{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")}
+				panic(&Error{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")})
 			}
 			ipos := ident.Pos()
 			blank := ast.NewIdentifier(&ast.Position{ipos.Line, ipos.Column, ipos.Start, ipos.Start}, "_")
@@ -332,7 +327,7 @@ func (p *parsing) parseStatement(tok token) error {
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 			if expr == nil {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			assignment := ast.NewAssignment(&ast.Position{ipos.Line, ipos.Column, ipos.Start, expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
@@ -340,11 +335,11 @@ func (p *parsing) parseStatement(tok token) error {
 			node = ast.NewForRange(pos, assignment, nil)
 		case tokenLeftBraces, tokenEndStatement:
 			if (p.ctx == ast.ContextNone) != (tok.typ == tokenLeftBraces) {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 			}
 			// Parses statement "for".
 			if len(variables) > 1 {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			var condition ast.Expression
 			if len(variables) == 1 {
@@ -355,13 +350,13 @@ func (p *parsing) parseStatement(tok token) error {
 		case tokenRange:
 			// Parses "for range expr".
 			if len(variables) > 0 {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected range, expecting := or = or comma")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected range, expecting := or = or comma")})
 			}
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 			if expr == nil {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			tpos.End = expr.Pos().End
 			assignment := ast.NewAssignment(tpos, nil, ast.AssignmentSimple, []ast.Expression{expr})
@@ -369,14 +364,14 @@ func (p *parsing) parseStatement(tok token) error {
 			node = ast.NewForRange(pos, assignment, nil)
 		case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
 			if len(variables) == 0 {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			if tok.typ == tokenDeclaration {
 				assignmentType = ast.AssignmentDeclaration
 			}
 			init, tok = parseAssignment(variables, tok, p.lex, false)
 			if init == nil && tok.typ != tokenRange {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			fallthrough
 		case tokenSemicolon:
@@ -385,11 +380,11 @@ func (p *parsing) parseStatement(tok token) error {
 				//     "for index[, ident] = range expr" and
 				//     "for index[, ident] := range expr".
 				if len(variables) > 2 {
-					return &Error{"", *tok.pos, fmt.Errorf("too many variables in range")}
+					panic(&Error{"", *tok.pos, fmt.Errorf("too many variables in range")})
 				}
 				expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
 				if expr == nil {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
 				vpos := variables[0].Pos()
 				assignment := ast.NewAssignment(&ast.Position{vpos.Line, vpos.Column, vpos.Start, expr.Pos().End},
@@ -402,7 +397,7 @@ func (p *parsing) parseStatement(tok token) error {
 				var condition ast.Expression
 				condition, tok = parseExpr(token{}, p.lex, false, false, false, true)
 				if tok.typ != tokenSemicolon {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expected semicolon", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expected semicolon", tok)})
 				}
 				// Parses the post iteration statement.
 				var post *ast.Assignment
@@ -411,10 +406,10 @@ func (p *parsing) parseStatement(tok token) error {
 					pos := tok.pos
 					post, tok = parseAssignment(variables, tok, p.lex, false)
 					if post == nil {
-						return &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+						panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 					}
 					if post.Type == ast.AssignmentDeclaration {
-						return &Error{"", *pos, fmt.Errorf("cannot declare in post statement of for loop")}
+						panic(&Error{"", *pos, fmt.Errorf("cannot declare in post statement of for loop")})
 					}
 				}
 				pos.End = tok.pos.End
@@ -422,7 +417,7 @@ func (p *parsing) parseStatement(tok token) error {
 			}
 		}
 		if node == nil || (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 		}
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node)
@@ -439,11 +434,11 @@ func (p *parsing) parseStatement(tok token) error {
 			}
 		}
 		if !breakable {
-			return &Error{"", *tok.pos, fmt.Errorf("break is not in a loop or switch")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("break is not in a loop or switch")})
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewBreak(pos)
@@ -461,11 +456,11 @@ func (p *parsing) parseStatement(tok token) error {
 			}
 		}
 		if !loop {
-			return &Error{"", *tok.pos, fmt.Errorf("continue is not in a loop")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("continue is not in a loop")})
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewContinue(pos)
@@ -474,11 +469,7 @@ func (p *parsing) parseStatement(tok token) error {
 
 	// switch
 	case tokenSwitch:
-		var err error
-		node, err = p.parseSwitch(p.lex, pos)
-		if err != nil {
-			return err
-		}
+		node = p.parseSwitch(p.lex, pos)
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -497,7 +488,7 @@ func (p *parsing) parseStatement(tok token) error {
 		case *ast.Switch, *ast.TypeSwitch:
 		default:
 			// TODO (Gianluca): should be "unexpected case, expecting ...".
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected case")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected case")})
 		}
 		var node *ast.Case
 
@@ -506,7 +497,7 @@ func (p *parsing) parseStatement(tok token) error {
 
 		expressions, tok := parseExprList(token{}, p.lex, false, false, false, false)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		if _, ok := parent.(*ast.TypeSwitch); ok {
@@ -515,16 +506,16 @@ func (p *parsing) parseStatement(tok token) error {
 				case *ast.Identifier:
 					switch n.Name {
 					case "true", "false":
-						return &Error{"", *tok.pos, fmt.Errorf("%s (type bool) is not a type", n.Name)}
+						panic(&Error{"", *tok.pos, fmt.Errorf("%s (type bool) is not a type", n.Name)})
 					}
 				case *ast.Int:
-					return &Error{"", *tok.pos, fmt.Errorf("%s (type int) is not a type", n)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type int) is not a type", n)})
 				case *ast.Float:
-					return &Error{"", *tok.pos, fmt.Errorf("%s (type float) is not a type", n)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type float) is not a type", n)})
 				case *ast.String:
-					return &Error{"", *tok.pos, fmt.Errorf("%s (type string) is not a type", n)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type string) is not a type", n)})
 				default:
-					return &Error{"", *tok.pos, fmt.Errorf("%s is not a type", expr)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s is not a type", expr)})
 				}
 			}
 		}
@@ -537,22 +528,22 @@ func (p *parsing) parseStatement(tok token) error {
 		case *ast.Switch:
 			for _, c := range s.Cases {
 				if c.Expressions == nil {
-					return &Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())}
+					panic(&Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
 				}
 			}
 		case *ast.TypeSwitch:
 			for _, c := range s.Cases {
 				if c.Expressions == nil {
-					return &Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())}
+					panic(&Error{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
 				}
 			}
 		default:
 			// TODO (Gianluca): should be "unexpected case, expecting ...".
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected case")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected case")})
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node := ast.NewCase(pos, nil, nil, false)
@@ -565,19 +556,19 @@ func (p *parsing) parseStatement(tok token) error {
 		p.lastFallthroughTokenPos = *tok.pos
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
 			if lastCase.Fallthrough {
-				return &Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 			}
 			lastCase.Fallthrough = true
 		case *ast.TypeSwitch:
-			return &Error{"", *tok.pos, fmt.Errorf("cannot fallthrough in type switch")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("cannot fallthrough in type switch")})
 		default:
-			return &Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 		}
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
@@ -585,10 +576,10 @@ func (p *parsing) parseStatement(tok token) error {
 	// "}"
 	case tokenRightBraces:
 		if p.ctx != ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		if len(p.ancestors) == 1 {
-			return &Error{"", *tok.pos, fmt.Errorf("not opened brace")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("not opened brace")})
 		}
 		bracesEnd := tok.pos.End
 		parent.Pos().End = bracesEnd
@@ -604,13 +595,13 @@ func (p *parsing) parseStatement(tok token) error {
 					p.ancestors = p.ancestors[:len(p.ancestors)-1]
 					parent = p.ancestors[len(p.ancestors)-1]
 				} else {
-					return nil
+					return
 				}
 			}
 		case tokenEOF:
-			return nil
+			return
 		default:
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
 		}
 		fallthrough
 
@@ -618,18 +609,18 @@ func (p *parsing) parseStatement(tok token) error {
 	case tokenElse:
 		if p.ctx == ast.ContextNone {
 			if len(p.ancestors) == 1 {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected else")})
 			}
 		} else {
 			// Closes the parent block.
 			if _, ok = parent.(*ast.Block); !ok {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected else")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected else")})
 			}
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
 			parent = p.ancestors[len(p.ancestors)-1]
 		}
 		if _, ok = parent.(*ast.If); !ok {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected else at end of statement")})
 		}
 		p.cutSpacesToken = true
 		tok = next(p.lex)
@@ -642,10 +633,10 @@ func (p *parsing) parseStatement(tok token) error {
 			elseBlock := ast.NewBlock(blockPos, nil)
 			addChild(parent, elseBlock)
 			p.ancestors = append(p.ancestors, elseBlock)
-			return nil
+			return
 		}
 		if tok.typ != tokenIf { // "else if"
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
 		}
 		fallthrough
 
@@ -654,26 +645,26 @@ func (p *parsing) parseStatement(tok token) error {
 		ifPos := tok.pos
 		expressions, tok := parseExprList(token{}, p.lex, true, false, false, true)
 		if len(expressions) == 0 {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
 		var assignment *ast.Assignment
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
 			assignment, tok = parseAssignment(expressions, tok, p.lex, false)
 			if assignment == nil {
-				return &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
 			if tok.typ != tokenSemicolon {
-				return &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 			}
 			expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
 			if expr == nil {
-				return &Error{"", *tok.pos, fmt.Errorf("missing condition in if statement")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("missing condition in if statement")})
 			}
 		} else {
 			expr = expressions[0]
 		}
 		if (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		var blockPos *ast.Position
@@ -692,26 +683,26 @@ func (p *parsing) parseStatement(tok token) error {
 	// include
 	case tokenInclude:
 		if p.ctx == ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("include statement not in template")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("include statement not in template")})
 		}
 		if p.isExtended && !p.isInMacro {
-			return &Error{"", *tok.pos, fmt.Errorf("include statement outside macro")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("include statement outside macro")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			return &Error{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("include statement inside an attribute value")})
 		}
 		// path
 		tok = next(p.lex)
 		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 		}
 		var path = unquoteString(tok.txt)
 		if !validPath(path) {
-			return fmt.Errorf("invalid path %q at %s", path, tok.pos)
+			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenEndStatement {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewInclude(pos, path, tok.ctx)
@@ -721,20 +712,20 @@ func (p *parsing) parseStatement(tok token) error {
 	// show
 	case tokenShow:
 		if p.ctx == ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("show statement not in template")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("show statement not in template")})
 		}
 		if p.isExtended && !p.isInMacro {
-			return &Error{"", *tok.pos, fmt.Errorf("show statement outside macro")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("show statement outside macro")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			return &Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("show statement inside an attribute value")})
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenIdentifier {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 		}
 		if len(tok.txt) == 1 && tok.txt[0] == '_' {
-			return &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 		}
 		macro := ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = next(p.lex)
@@ -743,15 +734,15 @@ func (p *parsing) parseStatement(tok token) error {
 		if tok.typ == tokenPeriod {
 			tok = next(p.lex)
 			if tok.typ != tokenIdentifier {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 			}
 			if len(tok.txt) == 1 && tok.txt[0] == '_' {
-				return &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 			}
 			impor = macro
 			macro = ast.NewIdentifier(tok.pos, string(tok.txt))
 			if fc, _ := utf8.DecodeRuneInString(macro.Name); !unicode.Is(unicode.Lu, fc) {
-				return &Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("cannot refer to unexported macro %s", macro.Name)})
 			}
 			tok = next(p.lex)
 		}
@@ -762,23 +753,23 @@ func (p *parsing) parseStatement(tok token) error {
 			for {
 				expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
 				if expr == nil {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
 				arguments = append(arguments, expr)
 				if tok.typ == tokenRightParenthesis {
 					break
 				}
 				if tok.typ != tokenComma {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)})
 				}
 			}
 			tok = next(p.lex)
 			if tok.typ != tokenEndStatement {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 		}
 		if tok.typ != tokenEndStatement {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewShowMacro(pos, impor, macro, arguments, tok.ctx)
@@ -788,39 +779,39 @@ func (p *parsing) parseStatement(tok token) error {
 	// extends
 	case tokenExtends:
 		if p.ctx == ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("extends statement not in template")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("extends statement not in template")})
 		}
 
 		if p.isExtended {
-			return &Error{"", *tok.pos, fmt.Errorf("extends already exists")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("extends already exists")})
 		}
 		tree := p.ancestors[0].(*ast.Tree)
 		if len(tree.Nodes) > 0 {
 			if _, ok = tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
-				return &Error{"", *tok.pos, fmt.Errorf("extends can only be the first statement")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("extends can only be the first statement")})
 			}
 		}
 		if tok.ctx != p.ctx {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				return &Error{"", *tok.pos, fmt.Errorf("extends inside an attribute value")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("extends inside an attribute value")})
 			case ast.ContextScript:
-				return &Error{"", *tok.pos, fmt.Errorf("extends inside a script tag")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("extends inside a script tag")})
 			case ast.ContextCSS:
-				return &Error{"", *tok.pos, fmt.Errorf("extends inside a style tag")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("extends inside a style tag")})
 			}
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 		}
 		var path = unquoteString(tok.txt)
 		if !validPath(path) {
-			return &Error{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)})
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenEndStatement {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewExtends(pos, path, tok.ctx)
@@ -832,21 +823,21 @@ func (p *parsing) parseStatement(tok token) error {
 		if tok.ctx != p.ctx {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				return &Error{"", *tok.pos, fmt.Errorf("import inside an attribute value")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("import inside an attribute value")})
 			case ast.ContextScript:
-				return &Error{"", *tok.pos, fmt.Errorf("import inside a script tag")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("import inside a script tag")})
 			case ast.ContextCSS:
-				return &Error{"", *tok.pos, fmt.Errorf("import inside a style tag")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("import inside a style tag")})
 			}
 		}
 		for i := len(p.ancestors) - 1; i > 0; i-- {
 			switch p.ancestors[i].(type) {
 			case ast.For, ast.ForRange:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)})
 			case *ast.If:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)})
 			case *ast.Macro:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
 			}
 		}
 		tok = next(p.lex)
@@ -856,15 +847,15 @@ func (p *parsing) parseStatement(tok token) error {
 			tok = next(p.lex)
 		}
 		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			return fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos)
+			panic(fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos))
 		}
 		var path = unquoteString(tok.txt)
 		if !validPath(path) {
-			return fmt.Errorf("invalid import path %q at %s", path, tok.pos)
+			panic(fmt.Errorf("invalid import path %q at %s", path, tok.pos))
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewImport(pos, ident, path, tok.ctx)
@@ -874,28 +865,28 @@ func (p *parsing) parseStatement(tok token) error {
 	// macro
 	case tokenMacro:
 		if p.ctx == ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("macro statement not in template")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("macro statement not in template")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			return &Error{"", *tok.pos, fmt.Errorf("macro inside an attribute value")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("macro inside an attribute value")})
 		}
 		for i := len(p.ancestors) - 1; i > 0; i-- {
 			switch p.ancestors[i].(type) {
 			case ast.For:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)})
 			case *ast.If:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)})
 			case *ast.Macro:
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
 			}
 		}
 		// ident
 		tok = next(p.lex)
 		if tok.typ != tokenIdentifier {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 		}
 		if len(tok.txt) == 1 && tok.txt[0] == '_' {
-			return &Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 		}
 		ident := ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = next(p.lex)
@@ -907,10 +898,10 @@ func (p *parsing) parseStatement(tok token) error {
 			for {
 				tok = next(p.lex)
 				if tok.typ != tokenIdentifier {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 				}
 				if ellipsesPos != nil {
-					return &Error{"", *ellipsesPos, fmt.Errorf("cannot use ... with non-final parameter")}
+					panic(&Error{"", *ellipsesPos, fmt.Errorf("cannot use ... with non-final parameter")})
 				}
 				parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
 				tok = next(p.lex)
@@ -922,15 +913,15 @@ func (p *parsing) parseStatement(tok token) error {
 					break
 				}
 				if tok.typ != tokenComma {
-					return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)})
 				}
 			}
 			tok = next(p.lex)
 			if tok.typ != tokenEndStatement {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 		} else if tok.typ != tokenEndStatement {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		node = ast.NewMacro(pos, ident, parameters, nil, ellipsesPos != nil, tok.ctx)
@@ -942,10 +933,10 @@ func (p *parsing) parseStatement(tok token) error {
 	// end
 	case tokenEnd:
 		if p.ctx == ast.ContextNone {
-			return &Error{"", *tok.pos, fmt.Errorf("end statement not in template")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("end statement not in template")})
 		}
 		if _, ok = parent.(*ast.URL); ok || len(p.ancestors) == 1 {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s", tok)})
 		}
 		if _, ok = parent.(*ast.Block); ok {
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
@@ -956,20 +947,20 @@ func (p *parsing) parseStatement(tok token) error {
 			tokparent := tok
 			tok = next(p.lex)
 			if tok.typ != tokenEndStatement {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			switch parent.(type) {
 			case ast.For:
 				if tokparent.typ != tokenFor {
-					return &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)}
+					panic(&Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)})
 				}
 			case *ast.If:
 				if tokparent.typ != tokenIf {
-					return &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)}
+					panic(&Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
 				}
 			case *ast.Macro:
 				if tokparent.typ != tokenMacro {
-					return &Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)}
+					panic(&Error{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)})
 				}
 			}
 		}
@@ -993,16 +984,16 @@ func (p *parsing) parseStatement(tok token) error {
 	default:
 		expressions, tok := parseExprList(tok, p.lex, true, false, false, false)
 		if len(expressions) == 0 {
-			return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
 			assignment, tok := parseAssignment(expressions, tok, p.lex, false)
 			if assignment == nil {
-				return &Error{"", *tok.pos, fmt.Errorf("expecting expression")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
 			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 			assignment.Position.End = tok.pos.End
@@ -1012,22 +1003,22 @@ func (p *parsing) parseStatement(tok token) error {
 			// Parses expression.
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && ident.Name == "_" {
-				return &Error{"", *expr.Pos(), fmt.Errorf("cannot use _ as value")}
+				panic(&Error{"", *expr.Pos(), fmt.Errorf("cannot use _ as value")})
 			}
 			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-				return &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			addChild(parent, expr)
 			p.cutSpacesToken = true
 		}
 	}
 
-	return nil
+	return
 }
 
 // parseAssignment parses an assignment and returns an assignment or, if there
 // is no expression, returns nil. tok can be the assignment, declaration,
-// increment or decrement token. It panics on error.
+// increment or decrement token. Panics on error.
 func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwitchGuard bool) (*ast.Assignment, token) {
 	var typ, ok = assignmentType(tok)
 	if !ok {

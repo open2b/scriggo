@@ -24,7 +24,7 @@ func isTypeGuard(node ast.Node) bool {
 }
 
 // parseSwitch parses a switch statement and returns an Switch or TypeSwitch
-// node. It panics on error.
+// node. Panics on error.
 //
 // TODO (Gianluca): instead of returning an error, panic.
 //
@@ -34,7 +34,7 @@ func isTypeGuard(node ast.Node) bool {
 // TODO (Gianluca): change parameters order (final result should be tok token,
 // lex *lexer)
 //
-func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
+func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) ast.Node {
 
 	// TODO (Gianluca): parsing this line: switch x := 2; x, y := a.(type), b
 	// should fail, cause it's not checking the number of expressions. There
@@ -66,7 +66,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			afterSemicolon = expressions[0]
 		default:
 			// switch x + 2, y + 1 {
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
 		}
 
 	case tok.typ == tokenSemicolon:
@@ -82,11 +82,11 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 		default:
 			// switch f(), g(); x + 2 {
 			// switch f(), g(); {
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting := or = or comma")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting := or = or comma")})
 		}
 		if isTypeGuard(beforeSemicolon) {
 			// TODO (Gianluca): use type assertion node position instead of last read token position
-			return nil, &Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 		}
 		expressions, tok = parseExprList(token{}, lex, false, true, false, true)
 		switch len(expressions) { // # of expressions after ;
@@ -103,7 +103,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			// switch x; a, b {
 			// switch ; a, b {
 			// switch ; a, b, c {
-			return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
 		}
 
 	case isAssignmentToken(tok):
@@ -117,7 +117,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 
 			if isTypeGuard(assignment) {
 				// TODO (Gianluca): use type assertion node position instead of last read token position
-				return nil, &Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 			}
 
 			beforeSemicolon = assignment
@@ -136,13 +136,13 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 				// expression which caused the error instead of the token (as Go
 				// does)?
 				if !ok {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)})
 				}
 				if ta.Type != nil {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 				}
 				if len(assignment.Variables) != 1 {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+					panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 				}
 				afterSemicolon = assignment
 			} else {
@@ -156,7 +156,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 					afterSemicolon = expressions[0]
 				default:
 					// switch x := 2; x + y, y + z {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")}
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting := or = or comma")})
 				}
 			}
 
@@ -164,17 +164,17 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			// switch x = y.(type) {
 			// switch x := y.(type) {
 			if len(assignment.Values) != 1 {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting expression")}
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting expression")})
 			}
 			if len(assignment.Variables) != 1 {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 			}
 			ta, ok := assignment.Values[0].(*ast.TypeAssertion)
 			if !ok {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)})
 			}
 			if ta.Type != nil {
-				return nil, &Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)}
+				panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 			}
 			afterSemicolon = assignment
 		}
@@ -182,7 +182,7 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 	}
 
 	if tok.typ != end {
-		return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)}
+		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 	}
 
 	pos.End = tok.pos.End
@@ -202,5 +202,5 @@ func (p *parsing) parseSwitch(lex *lexer, pos *ast.Position) (ast.Node, error) {
 			node = ast.NewSwitch(pos, beforeSemicolon, nil, nil)
 		}
 	}
-	return node, nil
+	return node
 }
