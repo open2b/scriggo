@@ -126,6 +126,10 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, vv.Value)
 		}
 
+	case *ast.MapType:
+		Walk(v, n.KeyType)
+		Walk(v, n.ValueType)
+
 	case *ast.SliceType:
 		Walk(v, n.ElementType)
 
