@@ -52,11 +52,13 @@ func (e CycleError) Error() string {
 }
 
 // next returns the next token from the lexer. Panics if the lexer channel is
-// closed. Since next should not be called if the last token was read, it only
-// panics if there was a lexer error.
+// closed.
 func next(lex *lexer) token {
 	tok, ok := <-lex.tokens
 	if !ok {
+		if lex.err == nil {
+			panic("next called after EOF")
+		}
 		panic(lex.err)
 	}
 	return tok
@@ -135,7 +137,13 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 		// Reads the tokens.
 		for tok := range p.lex.tokens {
-			p.parseStatement(tok)
+			if tok.typ == tokenEOF {
+				if len(p.ancestors) > 1 {
+					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+				}
+			} else {
+				p.parseStatement(tok)
+			}
 		}
 
 	} else {
