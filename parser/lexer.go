@@ -370,8 +370,8 @@ func (l *lexer) scan() {
 		l.emit(tokenEOF, 0)
 	}
 
+	l.text = nil
 	l.src = nil
-	l.ctx = 0
 
 	close(l.tokens)
 }
