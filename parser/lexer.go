@@ -40,9 +40,17 @@ func newLexer(text []byte, ctx ast.Context) *lexer {
 		line:   1,
 		column: 1,
 		ctx:    ctx,
-		tokens: tokens}
+		tokens: tokens,
+	}
 	go lex.scan()
 	return lex
+}
+
+// drain drains the tokens. Called by the parser to terminate the lexer
+// goroutine.
+func (l *lexer) drain() {
+	for range l.tokens {
+	}
 }
 
 func (l *lexer) newline() {

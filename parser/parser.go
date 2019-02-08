@@ -108,7 +108,17 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 		return nil, errors.New("template/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
 	}
 
+	// Tree result of the expansion.
+	tree = ast.NewTree("", nil, ctx)
+
+	var p = &parsing{
+		lex:       newLexer(src, ctx),
+		ctx:       ctx,
+		ancestors: []ast.Node{tree},
+	}
+
 	defer func() {
+		p.lex.drain()
 		if r := recover(); r != nil {
 			if e, ok := r.(*Error); ok {
 				tree = nil
@@ -118,15 +128,6 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 			}
 		}
 	}()
-
-	// Tree result of the expansion.
-	tree = ast.NewTree("", nil, ctx)
-
-	var p = &parsing{
-		lex:       newLexer(src, ctx),
-		ctx:       ctx,
-		ancestors: []ast.Node{tree},
-	}
 
 	if ctx == ast.ContextNone {
 
