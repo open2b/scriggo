@@ -309,6 +309,12 @@ func (p *parsing) parseStatement(tok token) {
 
 	switch tok.typ {
 
+	// ;
+	case tokenSemicolon:
+		if p.ctx != ast.ContextNone {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting %%}")})
+		}
+
 	// for
 	case tokenFor:
 		var node ast.Node

@@ -25,6 +25,7 @@ var noneContextTreeTests = []struct {
 	node ast.Node
 }{
 	{"", ast.NewTree("", nil, ast.ContextNone)},
+	{";", ast.NewTree("", nil, ast.ContextNone)},
 	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.ContextNone)},
 	{"a := 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
