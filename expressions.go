@@ -249,46 +249,48 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	}
 }
 
-// refToCopy returns a reference to a copy of v.
+// refToCopy returns a reference to a copy of v (not to v itself).
 func refToCopy(v interface{}) reflect.Value {
-	trs := reflect.TypeOf(v)
-	rv := reflect.New(trs)
+	rv := reflect.New(reflect.TypeOf(v))
 	rv.Elem().Set(reflect.ValueOf(v))
 	return rv
 }
 
+// referenceInScope substitutes the value of variable in the scope with a
+// referenced one which provides a static address. If variable is already
+// referenced, referenceInScope returns its value as is.
+func (r *rendering) referenceInScope(variable string) (reflect.Value, error) {
+	for i := len(r.vars) - 1; i >= 0; i-- {
+		if r.vars[i] != nil {
+			if v, ok := r.vars[i][variable]; ok {
+				switch vv := v.(type) {
+				case reference:
+					return vv.rv, nil
+				default:
+					rv := refToCopy(vv)
+					r.vars[i][variable] = reference{rv.Elem()}
+					return rv, nil
+				}
+			}
+		}
+	}
+	return reflect.Value{}, fmt.Errorf("undefined: %s", variable)
+}
+
 // evalUnaryOperator evaluates a unary operator and returns its value. On error
 // it calls panic with the error as argument.
-//
-// TODO (Gianluca): The operand must be addressable, that is, either a variable,
-// pointer indirection, or slice indexing operation; or a field selector of an
-// addressable struct operand; or an array indexing operation of an addressable
-// array. As an exception to the addressability requirement, x may also be a
-// (possibly parenthesized) composite literal. If the evaluation of x would
-// cause a run-time panic, then the evaluation of &x does too.
-//
 func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	if node.Operator() == ast.OperatorAmpersand {
 		switch expr := node.Expr.(type) {
-		// TODO (Gianluca): should check if CanAddr.
-		case *ast.Identifier:
-			for i := len(r.vars) - 1; i >= 0; i-- {
-				if r.vars[i] != nil {
-					if v, ok := r.vars[i][expr.Name]; ok {
-						switch vv := v.(type) {
-						case reference:
-							panic("not implemented")
-						default:
-							rv := refToCopy(vv)
-							r.vars[i][expr.Name] = reference{rv.Elem()}
-							return rv.Interface()
-						}
-					}
-				}
+		case *ast.Identifier: // &a
+			ref, err := r.referenceInScope(expr.Name)
+			if err != nil {
+				panic(r.errorf(node, err.Error()))
 			}
-		case *ast.CompositeLiteral:
+			return ref.Interface()
+		case *ast.CompositeLiteral: // &T{...}
 			return refToCopy(r.evalCompositeLiteral(expr, nil)).Interface()
-		case *ast.UnaryOperator:
+		case *ast.UnaryOperator: // &*a
 			if expr.Operator() != ast.OperatorMultiplication {
 				panic(r.errorf(node, "cannot take the address of %s", expr))
 			}
@@ -297,9 +299,52 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 				return err
 			}
 			return v
-		default:
-			panic("unexpected/not implemented")
+		case *ast.Selector: // &a.b
+			ident, ok := expr.Expr.(*ast.Identifier)
+			if ok {
+				rv, err := r.referenceInScope(ident.Name)
+				if err != nil {
+					panic(r.errorf(node, err.Error()))
+				}
+				switch rv.Elem().Kind() {
+				case reflect.Struct:
+					return rv.Elem().FieldByName(expr.Ident).Addr().Interface()
+				}
+			}
+		case *ast.Index: // &...[i]
+			switch e := expr.Expr.(type) {
+			case *ast.CompositeLiteral: // &T{...}[i]
+				compositeLiteralValue := r.evalCompositeLiteral(e, nil)
+				compositeLiteralReflectValue := reflect.ValueOf(compositeLiteralValue)
+				switch compositeLiteralReflectValue.Kind() {
+				case reflect.Map: // &map[T1]T2{...}[i]
+					panic("not implemented")
+				case reflect.Slice: // &[]T1{...}[i]
+					i, err := r.sliceIndex(expr.Index)
+					if err != nil {
+						panic(err)
+					}
+					elem := compositeLiteralReflectValue.Index(i)
+					return refToCopy(elem.Interface()).Interface()
+				default:
+					panic("errore")
+				}
+			case *ast.Identifier: // &a[i]
+				rv, err := r.referenceInScope(e.Name)
+				if err != nil {
+					panic(r.errorf(node, err.Error()))
+				}
+				switch rv.Elem().Kind() {
+				case reflect.Slice, reflect.Array: // &a[i] where "a" is a slice or an array
+					i, err := r.sliceIndex(expr.Index)
+					if err != nil {
+						panic(err)
+					}
+					return rv.Elem().Index(i).Addr().Interface()
+				}
+			}
 		}
+		panic(r.errorf(node, "cannot take the address of %s", node.Expr))
 	}
 	var expr = r.evalExpression(node.Expr)
 	switch node.Op {
