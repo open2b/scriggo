@@ -115,7 +115,6 @@ func (l *lexer) scan() {
 
 		err := l.lexCode()
 		if err != nil {
-			l.src = nil
 			l.err = err
 		}
 
@@ -144,7 +143,6 @@ func (l *lexer) scan() {
 					}
 					err := l.lexShow()
 					if err != nil {
-						l.src = nil
 						l.err = err
 						break LOOP
 					}
@@ -158,7 +156,6 @@ func (l *lexer) scan() {
 					}
 					err := l.lexStatement()
 					if err != nil {
-						l.src = nil
 						l.err = err
 						break LOOP
 					}
@@ -172,7 +169,6 @@ func (l *lexer) scan() {
 					}
 					err := l.lexComment()
 					if err != nil {
-						l.src = nil
 						l.err = err
 						break LOOP
 					}
