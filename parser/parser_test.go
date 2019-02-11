@@ -57,6 +57,15 @@ var noneContextTreeTests = []struct {
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, []*ast.Case{
 			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextNone)},
+	{"if x == 5 {}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 11}, nil,
+				ast.NewBinaryOperator(p(1, 6, 3, 8),
+					ast.OperatorEqual,
+					ast.NewIdentifier(p(1, 4, 3, 3), "x"),
+					ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
+				), nil, nil),
+		}, ast.ContextNone)},
 }
 
 var treeTests = []struct {
@@ -625,6 +634,15 @@ var treeTests = []struct {
 			nil,
 		),
 	}, ast.ContextHTML)},
+	{"{% if x == 5 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 23}, nil,
+				ast.NewBinaryOperator(p(1, 9, 6, 11),
+					ast.OperatorEqual,
+					ast.NewIdentifier(p(1, 7, 6, 6), "x"),
+					ast.NewInt(p(1, 12, 11, 11), big.NewInt(5)),
+				), nil, nil),
+		}, ast.ContextHTML)},
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{

@@ -324,17 +324,15 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			}
 			reuseLastToken = false
 
+			skip := mustBeType || (tok.typ == tokenLeftBraces && nextIsBlockOpen && !isAType)
 			backupTok := tok
-			if mustBeType {
+			if skip {
 				tok = token{}
 			}
 
 			switch tok.typ {
 
 			case tokenLeftBraces: // ...{
-				if nextIsBlockOpen && !isAType {
-					return operand, tok
-				}
 				pos := &ast.Position{tok.pos.Line, tok.pos.Column, tok.pos.Start, tok.pos.End}
 				if operand != nil {
 					pos.Start = operand.Pos().Start
@@ -524,7 +522,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 				}
-				if mustBeType {
+				if skip {
 					tok = backupTok
 				}
 				return operand, tok
