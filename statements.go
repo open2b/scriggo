@@ -266,12 +266,12 @@ Nodes:
 				switch v := node.Init.(type) {
 				case ast.Expression:
 					_, err = r.eval(v)
-					if err != nil {
+					if err != nil && !r.handleError(err) {
 						return err
 					}
 				case *ast.Assignment:
 					err = r.renderAssignment(v)
-					if err != nil {
+					if err != nil && !r.handleError(err) {
 						return err
 					}
 				}
@@ -284,7 +284,7 @@ Nodes:
 				conditionValue = true
 			} else {
 				conditionValue, err = r.eval(node.Expr)
-				if err != nil {
+				if err != nil && !r.handleError(err) {
 					return err
 				}
 			}
@@ -303,16 +303,20 @@ Nodes:
 					render = true
 				} else {
 					for _, expr := range c.Expressions {
-						r, err := r.evalBinary(conditionValue, ast.OperatorEqual, node.Expr, expr)
-						if err != nil {
+						res, err := r.evalBinary(conditionValue, ast.OperatorEqual, node.Expr, expr)
+						if err != nil && !r.handleError(err) {
 							return err
 						}
-						if render = r.(bool); render {
+						if render = res.(bool); render {
 							break
 						}
 					}
 				}
 				if render {
+					if inFallthrough {
+						r.vars = r.vars[:len(r.vars)-1]
+						r.vars = append(r.vars, nil)
+					}
 					err := r.render(wr, c.Body, urlstate)
 					if err != nil {
 						if err == errBreak {
@@ -326,7 +330,7 @@ Nodes:
 					}
 					r.vars = r.vars[:len(r.vars)-2]
 					defaultCase = nil
-					return nil
+					break
 				}
 			}
 
@@ -338,8 +342,6 @@ Nodes:
 			}
 
 			r.vars = r.vars[:len(r.vars)-2]
-
-			return nil
 
 		case *ast.TypeSwitch:
 			// TODO (Gianluca): apply the same changes requested for case
@@ -353,12 +355,12 @@ Nodes:
 				switch v := node.Init.(type) {
 				case ast.Expression:
 					_, err = r.eval(v)
-					if err != nil {
+					if err != nil && !r.handleError(err) {
 						return err
 					}
 				case *ast.Assignment:
 					err = r.renderAssignment(v)
-					if err != nil {
+					if err != nil && !r.handleError(err) {
 						return err
 					}
 				}
@@ -381,7 +383,7 @@ Nodes:
 				}
 			} else {
 				err = r.renderAssignment(node.Assignment)
-				if err != nil {
+				if err != nil && !r.handleError(err) {
 					return err
 				}
 				guardvalue, _ = r.variable(ident.Name)
@@ -396,7 +398,7 @@ Nodes:
 					for _, expr := range c.Expressions {
 						if !isDefault {
 							caseExprValue, err := r.eval(expr)
-							if err != nil {
+							if err != nil && !r.handleError(err) {
 								return err
 							}
 							vt2, ok := caseExprValue.(reflect.Type)
@@ -423,7 +425,7 @@ Nodes:
 						return err
 					}
 					defaultCase = nil
-					return nil
+					break
 				}
 			}
 
@@ -435,8 +437,6 @@ Nodes:
 			}
 
 			r.vars = r.vars[:len(r.vars)-2]
-
-			return nil
 
 		case *ast.Break:
 			return errBreak

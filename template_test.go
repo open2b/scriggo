@@ -452,6 +452,7 @@ var rendererStmtTests = []struct {
 	{`{% a := 2 %}{% c := &(*(&a)) %}{% *c = 5 %}{{ a }}`, "5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
+	{`{% switch %}{% case true %}{{ 5 }}{% end %}ok`, "5ok", nil},
 
 	// conversions
 
