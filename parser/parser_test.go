@@ -66,6 +66,29 @@ var noneContextTreeTests = []struct {
 					ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
 				), nil, nil),
 		}, ast.ContextNone)},
+	{"for _, i := range []int{1,2,3} { }",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(
+				p(1, 1, 0, 33),
+				ast.NewAssignment(
+					p(1, 5, 4, 29),
+					[]ast.Expression{
+						ast.NewIdentifier(p(1, 5, 4, 4), "_"),
+						ast.NewIdentifier(p(1, 8, 7, 7), "i"),
+					},
+					ast.AssignmentDeclaration,
+					[]ast.Expression{
+						ast.NewCompositeLiteral(p(1, 24, 18, 29),
+							ast.NewSliceType(
+								p(1, 19, 18, 22),
+								ast.NewIdentifier(p(1, 21, 20, 22), "int"),
+							),
+							[]ast.KeyValue{
+								{nil, ast.NewInt(p(1, 25, 24, 24), big.NewInt(1))},
+								{nil, ast.NewInt(p(1, 27, 26, 26), big.NewInt(2))},
+								{nil, ast.NewInt(p(1, 29, 28, 28), big.NewInt(3))},
+							})}), nil)},
+			ast.ContextNone)},
 }
 
 var treeTests = []struct {
@@ -226,6 +249,26 @@ var treeTests = []struct {
 				},
 			),
 		}, ast.ContextHTML)},
+	{"{% for _, i := range []int{1,2,3} %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewForRange(p(1, 1, 0, 44),
+				ast.NewAssignment(p(1, 8, 7, 32),
+					[]ast.Expression{
+						ast.NewIdentifier(p(1, 8, 7, 7), "_"),
+						ast.NewIdentifier(p(1, 11, 10, 10), "i"),
+					},
+					ast.AssignmentDeclaration,
+					[]ast.Expression{
+						ast.NewCompositeLiteral(p(1, 27, 21, 32),
+							ast.NewSliceType(
+								p(1, 22, 21, 25),
+								ast.NewIdentifier(p(1, 24, 23, 25), "int"),
+							),
+							[]ast.KeyValue{
+								{nil, ast.NewInt(p(1, 28, 27, 27), big.NewInt(1))},
+								{nil, ast.NewInt(p(1, 30, 29, 29), big.NewInt(2))},
+								{nil, ast.NewInt(p(1, 32, 31, 31), big.NewInt(3))},
+							})}), nil)}, ast.ContextHTML)},
 	{"{% switch x %}{% case 1 %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewSwitch(

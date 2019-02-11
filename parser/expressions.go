@@ -333,6 +333,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			switch tok.typ {
 
 			case tokenLeftBraces: // ...{
+				isAType = false
 				pos := &ast.Position{tok.pos.Line, tok.pos.Column, tok.pos.Start, tok.pos.End}
 				if operand != nil {
 					pos.Start = operand.Pos().Start

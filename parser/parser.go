@@ -370,7 +370,7 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
-			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
+			expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
