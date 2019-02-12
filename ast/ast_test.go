@@ -110,6 +110,24 @@ var expressionStringTests = []struct {
 	{"[]*int", NewSliceType(nil, NewUnaryOperator(
 		nil, OperatorMultiplication, NewIdentifier(nil, "int")),
 	)},
+	{"func()", NewFuncType(nil, nil, nil, false)},
+	{"func(int)", NewFuncType(nil, []*Field{NewField(nil, NewIdentifier(nil, "int"))}, nil, false)},
+	{"func(a int)", NewFuncType(nil, []*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false)},
+	{"func() int", NewFuncType(nil, nil, []*Field{NewField(nil, NewIdentifier(nil, "int"))}, false)},
+	{"func() (n int)", NewFuncType(nil, nil, []*Field{NewField(NewIdentifier(nil, "n"), NewIdentifier(nil, "int"))}, false)},
+	{"func(a int, b bool) (n int, err error)", NewFuncType(nil,
+		[]*Field{
+			NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int")),
+			NewField(NewIdentifier(nil, "b"), NewIdentifier(nil, "bool"))},
+		[]*Field{
+			NewField(NewIdentifier(nil, "n"), NewIdentifier(nil, "int")),
+			NewField(NewIdentifier(nil, "err"), NewIdentifier(nil, "error"))}, false)},
+	{"func literal", NewFunc(nil, nil, NewFuncType(nil,
+		[]*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
+		NewBlock(nil, nil))},
+	{"func declaration", NewFunc(nil, NewIdentifier(nil, "f"), NewFuncType(nil,
+		[]*Field{NewField(NewIdentifier(nil, "a"), NewIdentifier(nil, "int"))}, nil, false),
+		NewBlock(nil, nil))},
 }
 
 func TestExpressionString(t *testing.T) {

@@ -37,9 +37,9 @@ func main() {
 		fmt.Printf("reading file %q: %s\n", file, err)
 		os.Exit(-1)
 	}
-	err = template.RenderSource(os.Stdout, src, nil, true, template.ContextNone)
+	err = template.RenderSource(nil, src, nil, true, template.ContextNone)
 	if err != nil {
-		fmt.Printf("error: %q\n", err)
+		fmt.Print(err)
 	}
 
 }

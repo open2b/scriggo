@@ -151,6 +151,13 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewAssignment(ClonePosition(n.Position), variables, n.Type, values)
 	case *ast.Comment:
 		return ast.NewComment(ClonePosition(n.Position), n.Text)
+	case *ast.Func:
+		var ident *ast.Identifier
+		if n.Ident != nil {
+			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
+		}
+		typ := CloneExpression(n.Type).(*ast.FuncType)
+		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block))
 	case ast.Expression:
 		return CloneExpression(n)
 	default:
@@ -207,6 +214,38 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
 	case *ast.TypeAssertion:
 		return ast.NewTypeAssertion(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Type))
+	case *ast.FuncType:
+		var parameters []*ast.Field
+		if e.Parameters != nil {
+			parameters = make([]*ast.Field, len(e.Parameters))
+			for i, field := range e.Parameters {
+				var ident *ast.Identifier
+				if field.Ident != nil {
+					ident = ast.NewIdentifier(ClonePosition(field.Ident.Position), field.Ident.Name)
+				}
+				parameters[i] = &ast.Field{Ident: ident, Type: CloneExpression(field.Type)}
+			}
+		}
+		var result []*ast.Field
+		if e.Result != nil {
+			result = make([]*ast.Field, len(e.Result))
+			for i, field := range e.Result {
+				var ident *ast.Identifier
+				if field.Ident != nil {
+					ident = ast.NewIdentifier(ClonePosition(field.Ident.Position), field.Ident.Name)
+				}
+				result[i] = &ast.Field{Ident: ident, Type: CloneExpression(field.Type)}
+			}
+		}
+		return ast.NewFuncType(ClonePosition(e.Position), parameters, result, e.IsVariadic)
+	case *ast.Func:
+		var ident *ast.Identifier
+		if e.Ident != nil {
+			// Ident must be nil for a function literal, but clone it anyway.
+			ident = ast.NewIdentifier(ClonePosition(e.Ident.Position), e.Ident.Name)
+		}
+		typ := CloneExpression(e.Type).(*ast.FuncType)
+		return ast.NewFunc(ClonePosition(e.Position), ident, typ, CloneNode(e.Body).(*ast.Block))
 	default:
 		panic(fmt.Sprintf("unexpected node type %#v", expr))
 	}

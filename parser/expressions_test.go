@@ -572,7 +572,12 @@ func TestExpressions(t *testing.T) {
 					}
 				}
 			}()
-			node, tok := parseExpr(token{}, lex, false, false, false, false)
+			var p = &parsing{
+				lex:       lex,
+				ctx:       ast.ContextNone,
+				ancestors: nil,
+			}
+			node, tok := p.parseExpr(token{}, false, false, false, false)
 			if node == nil {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 			} else {

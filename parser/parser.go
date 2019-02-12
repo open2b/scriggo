@@ -242,7 +242,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 				}
 				tokensInLine++
-				expr, tok2 := parseExpr(token{}, p.lex, false, false, false, false)
+				expr, tok2 := p.parseExpr(token{}, false, false, false, false)
 				if expr == nil {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("expecting expression")}
 				}
@@ -320,7 +320,7 @@ func (p *parsing) parseStatement(tok token) {
 		var node ast.Node
 		var init *ast.Assignment
 		var assignmentType ast.AssignmentType
-		variables, tok := parseExprList(token{}, p.lex, true, false, false, true)
+		variables, tok := p.parseExprList(token{}, true, false, false, true)
 		switch tok.typ {
 		case tokenIn:
 			// Parses statement "for ident in expr".
@@ -341,7 +341,7 @@ func (p *parsing) parseStatement(tok token) {
 			blank := ast.NewIdentifier(&ast.Position{ipos.Line, ipos.Column, ipos.Start, ipos.Start}, "_")
 			// Parses the slice expression.
 			// TODO (Gianluca): nextIsBlockOpen should be true?
-			expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
+			expr, tok = p.parseExpr(token{}, false, false, false, false)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -370,7 +370,7 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			tpos := tok.pos
 			// TODO (Gianluca): nextIsBlockOpen should be true?
-			expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
+			expr, tok = p.parseExpr(token{}, false, false, false, true)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -385,7 +385,7 @@ func (p *parsing) parseStatement(tok token) {
 			if tok.typ == tokenDeclaration {
 				assignmentType = ast.AssignmentDeclaration
 			}
-			init, tok = parseAssignment(variables, tok, p.lex, false)
+			init, tok = p.parseAssignment(variables, tok, false)
 			if init == nil && tok.typ != tokenRange {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -398,7 +398,7 @@ func (p *parsing) parseStatement(tok token) {
 				if len(variables) > 2 {
 					panic(&Error{"", *tok.pos, fmt.Errorf("too many variables in range")})
 				}
-				expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
+				expr, tok = p.parseExpr(token{}, false, false, false, true)
 				if expr == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
@@ -411,16 +411,16 @@ func (p *parsing) parseStatement(tok token) {
 				// Parses statement "for [init]; [condition]; [post]".
 				// Parses the condition expression.
 				var condition ast.Expression
-				condition, tok = parseExpr(token{}, p.lex, false, false, false, true)
+				condition, tok = p.parseExpr(token{}, false, false, false, true)
 				if tok.typ != tokenSemicolon {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expected semicolon", tok)})
 				}
 				// Parses the post iteration statement.
 				var post *ast.Assignment
-				variables, tok = parseExprList(token{}, p.lex, true, false, false, true)
+				variables, tok = p.parseExprList(token{}, true, false, false, true)
 				if len(variables) > 0 {
 					pos := tok.pos
-					post, tok = parseAssignment(variables, tok, p.lex, false)
+					post, tok = p.parseAssignment(variables, tok, false)
 					if post == nil {
 						panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 					}
@@ -511,7 +511,7 @@ func (p *parsing) parseStatement(tok token) {
 		// TODO (Gianluca): allMustBeTypes should be set to "true" when parsing
 		// TypeSwitch cases.
 
-		expressions, tok := parseExprList(token{}, p.lex, false, false, false, false)
+		expressions, tok := p.parseExprList(token{}, false, false, false, false)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
@@ -659,20 +659,20 @@ func (p *parsing) parseStatement(tok token) {
 	// if
 	case tokenIf:
 		ifPos := tok.pos
-		expressions, tok := parseExprList(token{}, p.lex, true, false, false, true)
+		expressions, tok := p.parseExprList(token{}, true, false, false, true)
 		if len(expressions) == 0 {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
 		var assignment *ast.Assignment
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
-			assignment, tok = parseAssignment(expressions, tok, p.lex, false)
+			assignment, tok = p.parseAssignment(expressions, tok, false)
 			if assignment == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
 			if tok.typ != tokenSemicolon {
 				panic(&Error{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 			}
-			expr, tok = parseExpr(token{}, p.lex, false, false, false, true)
+			expr, tok = p.parseExpr(token{}, false, false, false, true)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("missing condition in if statement")})
 			}
@@ -695,6 +695,28 @@ func (p *parsing) parseStatement(tok token) {
 		addChild(parent, node)
 		p.ancestors = append(p.ancestors, node, then)
 		p.cutSpacesToken = true
+
+	// return
+	case tokenReturn:
+		var inFunction bool
+		for i := len(p.ancestors) - 1; i > 0; i-- {
+			if _, ok := p.ancestors[i].(*ast.Func); ok {
+				inFunction = true
+				break
+			}
+		}
+		if !inFunction {
+			panic(&Error{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body")})
+		}
+		values, tok := p.parseExprList(token{}, false, false, false, false)
+		if tok.typ != tokenSemicolon {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s at end of statement", tok)})
+		}
+		if len(values) > 0 {
+			pos.End = values[len(values)-1].Pos().End
+		}
+		node = ast.NewReturn(pos, values)
+		addChild(parent, node)
 
 	// include
 	case tokenInclude:
@@ -767,7 +789,7 @@ func (p *parsing) parseStatement(tok token) {
 			// arguments
 			arguments = []ast.Expression{}
 			for {
-				expr, tok = parseExpr(token{}, p.lex, false, false, false, false)
+				expr, tok = p.parseExpr(token{}, false, false, false, false)
 				if expr == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
@@ -996,15 +1018,30 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		p.cutSpacesToken = true
 
+	// func
+	case tokenFunc:
+		if p.ctx == ast.ContextNone {
+			// parseFunc does not consume the next token because kind is not
+			// parseType.
+			if len(p.ancestors) > 1 {
+				node, _ = p.parseFunc(tok, parseFuncLit)
+			} else {
+				node, _ = p.parseFunc(tok, parseFuncLit|parseFuncDecl)
+			}
+			addChild(parent, node)
+			return
+		}
+		fallthrough
+
 	// expression or assignment
 	default:
-		expressions, tok := parseExprList(tok, p.lex, true, false, false, false)
+		expressions, tok := p.parseExprList(tok, true, false, false, false)
 		if len(expressions) == 0 {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end 2", tok)})
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
-			assignment, tok := parseAssignment(expressions, tok, p.lex, false)
+			assignment, tok := p.parseAssignment(expressions, tok, false)
 			if assignment == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
@@ -1035,7 +1072,7 @@ func (p *parsing) parseStatement(tok token) {
 // parseAssignment parses an assignment and returns an assignment or, if there
 // is no expression, returns nil. tok can be the assignment, declaration,
 // increment or decrement token. Panics on error.
-func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwitchGuard bool) (*ast.Assignment, token) {
+func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSwitchGuard bool) (*ast.Assignment, token) {
 	var typ, ok = assignmentType(tok)
 	if !ok {
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
@@ -1056,12 +1093,12 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwi
 		panic(&Error{"", *(v.Pos()), fmt.Errorf("%s used as value", v)})
 	}
 	assignToken := tok
-	p := variables[0].Pos()
-	pos := &ast.Position{Line: p.Line, Column: p.Column, Start: p.Start, End: tok.pos.End}
+	vp := variables[0].Pos()
+	pos := &ast.Position{Line: vp.Line, Column: vp.Column, Start: vp.Start, End: tok.pos.End}
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
-		values, tok = parseExprList(token{}, lex, false, canBeSwitchGuard, false, false)
+		values, tok = p.parseExprList(token{}, false, canBeSwitchGuard, false, false)
 		if len(values) == 0 {
 			return nil, tok
 		}
@@ -1089,10 +1126,10 @@ func parseAssignment(variables []ast.Expression, tok token, lex *lexer, canBeSwi
 			panic(&Error{"", *variables[0].Pos(), fmt.Errorf("cannot use _ as value")})
 		}
 		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
-			tok = next(lex)
+			tok = next(p.lex)
 		} else {
 			values = make([]ast.Expression, 1)
-			values[0], tok = parseExpr(token{}, lex, false, false, false, false)
+			values[0], tok = p.parseExpr(token{}, false, false, false, false)
 			if ident, ok := values[0].(*ast.Identifier); ok && ident.Name == "_" {
 				panic(&Error{"", *values[0].Pos(), fmt.Errorf("cannot use _ as value")})
 			}

@@ -234,6 +234,8 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalSliceType(e)
 	case *ast.CompositeLiteral:
 		return r.evalCompositeLiteral(e, nil)
+	case *ast.Func:
+		return r.evalFunc(e)
 	case *ast.Call:
 		return r.evalCall(e)
 	case *ast.Index:
@@ -1449,6 +1451,36 @@ func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, err
 	return nil, r.errorf(expr, "%s is not a type", expr)
 }
 
+var errNotAssignable = errors.New("not assignable")
+
+// asAssignableTo returns v with type typ.
+//
+// If v is a constant number and it is not representable by a value of typ,
+// returns errors errConstantTruncated or errConstantOverflow. If v is not
+// assignable to typ returns errNotAssignable error.
+func asAssignableTo(v interface{}, typ reflect.Type) (interface{}, error) {
+	switch v := v.(type) {
+	case nil:
+		switch typ.Kind() {
+		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+		default:
+			return nil, errNotAssignable
+		}
+		return nil, nil
+	case ConstantNumber:
+		return v.ToType(typ)
+	case HTML:
+		if typ != htmlType && typ != stringType {
+			return nil, errNotAssignable
+		}
+		return string(v), nil
+	}
+	if !reflect.TypeOf(v).AssignableTo(typ) {
+		return nil, errNotAssignable
+	}
+	return v, nil
+}
+
 // hasType indicates if v has type typ.
 func hasType(v interface{}, typ reflect.Type) (bool, error) {
 	t := reflect.TypeOf(v)
@@ -1464,6 +1496,11 @@ func hasType(v interface{}, typ reflect.Type) (bool, error) {
 
 	}
 	return t == typ || t == htmlType && typ == stringType, nil
+}
+
+// evalFunc evaluates a function literal expression in a single context.
+func (r *rendering) evalFunc(node *ast.Func) interface{} {
+	return function{r.path, node}
 }
 
 // evalIndex evaluates an index expression in a single context.

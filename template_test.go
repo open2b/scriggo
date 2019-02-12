@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -654,5 +655,71 @@ func TestRenderErrors(t *testing.T) {
 		t.Errorf("expecting not nil error\n")
 	} else if err.Error() != "RenderTree panic" {
 		t.Errorf("unexpected error %q, expecting 'RenderTree panic'\n", err)
+	}
+}
+
+var rendererCallFuncTests = []struct {
+	src  string
+	res  string
+	vars scope
+}{
+	{"func f() {}; f()", "", nil},
+	{"func f(x int) int { return x }; print(f(2))", "2", nil},
+	{"func f(_ int) { }; f(2)", "", nil},
+	{"func f(int) {}; f(1)", "", nil},
+	{"func f(x, y int) int { return x + y }; print(f(1, 2))", "3", nil},
+	{"func f(_, _ int) { }; f(1, 2)", "", nil},
+	{"func f(x int, y int) int { return x + y }; print(f(1, 2))", "3", nil},
+	{"func f(_ int, y int) int { return y }; print(f(1, 2))", "2", nil},
+	{"func f(...int) {}; f(1, 2, 3)", "", nil},
+	{"func f(x ...int) int { s := 0; for _, i := range x { s += i }; return s }; print(f(1, 2, 3))", "6", nil},
+	{"func f(_ ...int) { }; f(1, 2, 3)", "", nil},
+	{"func f(x, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", nil},
+	{"func f(_, _ ...int) { }; f(1, 2, 3, 4)", "", nil},
+	{"func f(_, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", nil},
+	{"func f(x, _ ...int) int { return x }; print(f(1, 2, 3, 4))", "1", nil},
+	{"func f(x []int) int { s := 0; for _, i := range x { s += i }; return s }; print(f([]int{1, 2, 3, 4}))", "10", nil},
+	{"func f(x, y []int) int { s := 0; for _, i := range y { s += i }; return s }; print(f([]int{1}, []int{2, 3, 4}))", "9", nil},
+}
+
+func TestRenderCallFunc(t *testing.T) {
+	for _, stmt := range rendererCallFuncTests {
+		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextNone)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", stmt.src, err)
+			continue
+		}
+		r, w, err := os.Pipe()
+		if err != nil {
+			panic(err)
+		}
+		os.Stdout = w
+		var b = &bytes.Buffer{}
+		c := make(chan struct{})
+		go func() {
+			_, err = b.ReadFrom(r)
+			if err != nil {
+				panic(err)
+			}
+			c <- struct{}{}
+		}()
+		err = RenderTree(nil, tree, stmt.vars, true)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", stmt.src, err)
+			continue
+		}
+		err = os.Stdout.Close()
+		if err != nil {
+			panic(err)
+		}
+		_ = <-c
+		if err != nil {
+			t.Errorf("source: %q, %s\n", stmt.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != stmt.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
+		}
 	}
 }

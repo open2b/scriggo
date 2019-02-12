@@ -99,6 +99,11 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, n.Else)
 		}
 
+	case *ast.Func:
+		for _, child := range n.Body.Nodes {
+			Walk(v, child)
+		}
+
 	case *ast.Macro:
 		for _, child := range n.Body {
 			Walk(v, child)

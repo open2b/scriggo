@@ -113,7 +113,7 @@ var minInt = apd.New(-int64(^uint(0)>>1)-1, 0)
 //
 // TODO (Gianluca): nextIsBlockOpen should have a better name.
 //
-func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
+func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
 
 	// TODO (Gianluca): to doc.
 	reuseLastToken := false
@@ -153,7 +153,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 	var ok bool
 
 	if tok.txt == nil {
-		tok = next(lex)
+		tok = next(p.lex)
 	}
 
 	for {
@@ -168,7 +168,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok = parseExpr(token{}, lex, false, false, mustBeType, false)
+			expr, tok = p.parseExpr(token{}, false, false, mustBeType, false)
 			if expr == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -183,15 +183,15 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 		case tokenMap:
 			isAType = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
-			tok = next(lex)
+			tok = next(p.lex)
 			if tok.typ == tokenLeftBrackets { // map[
 				var typ ast.Expression
-				typ, tok = parseExpr(token{}, lex, false, false, true, false)
+				typ, tok = p.parseExpr(token{}, false, false, true, false)
 				if tok.typ != tokenRightBrackets {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
 				}
 				mapType.KeyType = typ
-				typ, tok = parseExpr(token{}, lex, false, false, true, false)
+				typ, tok = p.parseExpr(token{}, false, false, true, false)
 				if typ == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 				}
@@ -203,11 +203,11 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 		case tokenInterface:
 			isAType = true
 			pos := tok.pos
-			tok = next(lex)
+			tok = next(p.lex)
 			if tok.typ != tokenLeftBraces {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
 			}
-			tok = next(lex)
+			tok = next(p.lex)
 			if tok.typ != tokenRightBraces {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 			}
@@ -219,6 +219,10 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 		case tokenBytes: // bytes{...}, bytes(...)
 			isAType = true
 			operand = ast.NewIdentifier(tok.pos, "bytes")
+		case tokenFunc:
+			var node ast.Node
+			node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)
+			operand = node.(ast.Expression)
 		case
 			tokenAddition,       // +e
 			tokenSubtraction,    // -e
@@ -263,15 +267,15 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			var expr, length ast.Expression
 			pos := tok.pos
 			isEllipses := false
-			tok = next(lex)
+			tok = next(p.lex)
 			switch tok.typ {
 			case tokenEllipses:
 				isEllipses = true
-				tok = next(lex)
+				tok = next(p.lex)
 			case tokenRightBrackets:
 			default:
 				oldTok := tok
-				expr, tok = parseExpr(tok, lex, false, false, false, false)
+				expr, tok = p.parseExpr(tok, false, false, false, false)
 				if expr == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", oldTok)})
 				}
@@ -281,7 +285,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 			}
 			var typ ast.Expression
-			typ, tok = parseExpr(token{}, lex, false, false, true, false)
+			typ, tok = p.parseExpr(token{}, false, false, true, false)
 			if typ == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -320,7 +324,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 		for operator == nil {
 
 			if !reuseLastToken {
-				tok = next(lex)
+				tok = next(p.lex)
 			}
 			reuseLastToken = false
 
@@ -341,13 +345,13 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 				var keyValues []ast.KeyValue
 				var expr ast.Expression
 				for {
-					expr, tok = parseExpr(token{}, lex, false, false, false, false)
+					expr, tok = p.parseExpr(token{}, false, false, false, false)
 					if expr == nil {
 						break
 					}
 					if tok.typ == tokenColon { // :
 						var value ast.Expression
-						value, tok = parseExpr(token{}, lex, false, false, false, false)
+						value, tok = p.parseExpr(token{}, false, false, false, false)
 						if value == nil {
 							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
@@ -398,7 +402,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok := parseExprList(token{}, lex, false, false, false, false)
+				args, tok := p.parseExprList(token{}, false, false, false, false)
 				if tok.typ != tokenRightParenthesis {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
@@ -415,11 +419,11 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok = parseExpr(token{}, lex, false, false, false, false)
+				index, tok = p.parseExpr(token{}, false, false, false, false)
 				if tok.typ == tokenColon {
 					low := index
 					var high ast.Expression
-					high, tok = parseExpr(token{}, lex, false, false, false, false)
+					high, tok = p.parseExpr(token{}, false, false, false, false)
 					if tok.typ != tokenRightBrackets {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 					}
@@ -438,7 +442,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 			case tokenPeriod: // e.
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				tok = next(lex)
+				tok = next(p.lex)
 				switch tok.typ {
 				case tokenIdentifier:
 					// e.ident
@@ -450,7 +454,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 					operand = ast.NewSelector(pos, operand, ident)
 				case tokenLeftParenthesis:
 					// e.(ident), e.(pkg.ident)
-					tok = next(lex)
+					tok = next(p.lex)
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {
 						panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
@@ -461,14 +465,14 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 							panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 						}
 						mustBeSwitchGuard = true
-						tok = next(lex)
+						tok = next(p.lex)
 					case tokenIdentifier:
 						if len(tok.txt) == 1 && tok.txt[0] == '_' {
 							panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 						}
 						fallthrough
 					default:
-						typ, tok = parseExpr(tok, lex, false, true, true, false)
+						typ, tok = p.parseExpr(tok, false, true, true, false)
 					}
 					if tok.typ != tokenRightParenthesis {
 						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
@@ -617,7 +621,7 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 
 		}
 
-		tok = next(lex)
+		tok = next(p.lex)
 
 	}
 
@@ -632,10 +636,10 @@ func parseExpr(tok token, lex *lexer, canBeBlank, canBeSwitchGuard, mustBeType, 
 //
 // TODO (Gianluca): nextIsBlockOpen should have a better name
 //
-func parseExprList(tok token, lex *lexer, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
+func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
 	var elements = []ast.Expression{}
 	for {
-		element, tok2 := parseExpr(tok, lex, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
+		element, tok2 := p.parseExpr(tok, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
 		if element == nil {
 			return elements, tok2
 		}

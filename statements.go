@@ -61,12 +61,23 @@ var errBreak = errors.New("break is not in a loop or switch")
 // It is managed by the innermost "for" statement.
 var errContinue = errors.New("continue is not in a loop")
 
+// A returnError is returned from the rendering of the "return" statement.
+// It is managed by the innermost "func" statement.
+type returnError struct {
+	args []interface{}
+}
+
+func (ret returnError) Error() string {
+	return "non-declaration statement outside function body"
+}
+
 // rendering represents the state of a tree rendering.
 type rendering struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
 	treeContext ast.Context
+	function    function
 	handleError func(error) bool
 }
 
@@ -85,6 +96,12 @@ var scopeType = reflect.TypeOf(scope{})
 type macro struct {
 	path string
 	node *ast.Macro
+}
+
+// function represents a function in a scope.
+type function struct {
+	path string
+	node *ast.Func
 }
 
 // urlState represents the rendering of rendering an URL.
@@ -443,6 +460,77 @@ Nodes:
 
 		case *ast.Continue:
 			return errContinue
+
+		case *ast.Func:
+			if wr != nil {
+				err := r.errorf(node.Ident, "functions not allowed")
+				if !r.handleError(err) {
+					return err
+				}
+			}
+			name := node.Ident.Name
+			if name == "_" {
+				continue
+			}
+			if v, ok := r.variable(name); ok {
+				var err error
+				if m, ok := v.(function); ok {
+					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
+						name, m.path, m.node.Pos())
+				} else {
+					err = r.errorf(node.Ident, "%s redeclared in this file", name)
+				}
+				if r.handleError(err) {
+					continue
+				}
+				return err
+			}
+			r.vars[2][name] = function{r.path, node}
+
+		case *ast.Return:
+			if wr != nil {
+				err := r.errorf(node, "return not allowed")
+				if !r.handleError(err) {
+					return err
+				}
+			}
+			result := r.function.node.Type.Result
+			size := len(result)
+			if len(node.Values) != size {
+				// TODO(marco): returns better error message
+				return r.errorf(node, "too many or too few arguments to return")
+			}
+			if size == 0 {
+				return nil
+			}
+			var err error
+			types := make([]reflect.Type, size)
+			for i := size - 1; i >= 0; i-- {
+				if t := result[i].Type; t == nil {
+					types[i] = types[i+1]
+				} else {
+					types[i], err = r.evalType(t, noEllipses)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			ret := returnError{args: make([]interface{}, size)}
+			for i, value := range node.Values {
+				v, err := r.eval1(value)
+				if err != nil {
+					return err
+				}
+				v, err = asAssignableTo(v, types[i])
+				if err != nil {
+					if err == errNotAssignable {
+						err = r.errorf(value, "cannot use %s (type %s) as type %s in return argument", v, typeof(v), types[i])
+					}
+					return err
+				}
+				ret.args[i] = v
+			}
+			return ret
 
 		case *ast.Macro:
 			if wr != nil {

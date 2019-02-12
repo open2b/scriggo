@@ -277,6 +277,95 @@ func (a *Assignment) String() string {
 	return s
 }
 
+// Field node represents a field in a function type, literal or declaration.
+type Field struct {
+	Ident *Identifier // name, can be nil.
+	Type  Expression  // type.
+}
+
+func NewField(ident *Identifier, typ Expression) *Field {
+	return &Field{ident, typ}
+}
+
+func (n *Field) String() string {
+	if n.Ident == nil {
+		return n.Type.String()
+	}
+	if n.Type == nil {
+		return n.Ident.Name
+	}
+	return n.Ident.Name + " " + n.Type.String()
+}
+
+// FuncType node represents a function type.
+type FuncType struct {
+	expression
+	*Position           // position in the source.
+	Parameters []*Field // parameters.
+	Result     []*Field // result.
+	IsVariadic bool     // indicates if it is variadic.
+}
+
+func NewFuncType(pos *Position, parameters []*Field, result []*Field, isVariadic bool) *FuncType {
+	return &FuncType{expression{}, pos, parameters, result, isVariadic}
+}
+
+func (n *FuncType) String() string {
+	s := "func("
+	for i, field := range n.Parameters {
+		if i > 0 {
+			s += ", "
+		}
+		s += field.String()
+	}
+	s += ")"
+	if len(n.Result) > 0 {
+		if n.Result[0].Ident == nil {
+			s += " " + n.Result[0].Type.String()
+		} else {
+			s += " ("
+			for i, field := range n.Result {
+				if i > 0 {
+					s += ", "
+				}
+				s += field.String()
+			}
+			s += ")"
+		}
+	}
+	return s
+}
+
+// Func node represents a function declaration or literal.
+type Func struct {
+	expression
+	*Position
+	Ident *Identifier // name, nil for function literals.
+	Type  *FuncType   // type.
+	Body  *Block      // body.
+}
+
+func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block) *Func {
+	return &Func{expression{}, pos, name, typ, body}
+}
+
+func (n *Func) String() string {
+	if n.Ident == nil {
+		return "func literal"
+	}
+	return "func declaration"
+}
+
+// Return node represents a return statement.
+type Return struct {
+	*Position
+	Values []Expression // return values.
+}
+
+func NewReturn(pos *Position, values []Expression) *Return {
+	return &Return{pos, values}
+}
+
 // For node represents a statement {% for ... %}.
 type For struct {
 	*Position             // position in the source.

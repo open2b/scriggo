@@ -29,8 +29,8 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 // values. It returns an error if n > 0 and the function does not return n
 // values.
 func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
-
 	// TODO(marco): manage the special case f(g(parameters_of_g)).
+	// TODO(marco): manage the special case f(a, b...) in function call.
 
 	if ident, ok := node.Func.(*ast.Identifier); ok {
 		var isBuiltin bool
@@ -63,6 +63,10 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		return nil, err
 	}
 
+	if f, ok := f.(function); ok {
+		return r.evalCallFunc(node, f, n)
+	}
+
 	// Makes a type conversion.
 	if typ, ok := f.(reflect.Type); ok {
 		if len(node.Args) == 0 {
@@ -91,6 +95,144 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 
 	return r.evalReflectCall(node, fun, n)
+}
+
+// evalCallFunc evaluates a call expression in n-values context and returns
+// its values. It returns an error if n > 0 and the function does not return n values.
+func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect.Value, error) {
+
+	var err error
+
+	typ := fun.node.Type
+
+	haveSize := len(node.Args)
+	wantSize := len(typ.Parameters)
+
+	var types []reflect.Type
+	if wantSize > 0 {
+		types = make([]reflect.Type, wantSize)
+		for i := wantSize - 1; i >= 0; i-- {
+			if t := typ.Parameters[i].Type; t == nil {
+				types[i] = types[i+1]
+			} else {
+				types[i], err = r.evalType(t, noEllipses)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	if (!typ.IsVariadic && haveSize != wantSize) || (typ.IsVariadic && haveSize < wantSize-1) {
+		typeNames := make([]string, wantSize)
+		for i := len(typ.Parameters) - 1; i >= 0; i-- {
+			if t := typ.Parameters[i].Type; t == nil {
+				typeNames[i] = typeNames[i+1]
+			} else {
+				typeNames[i] = t.String()
+			}
+		}
+		have := "("
+		for i := 0; i < haveSize; i++ {
+			if i > 0 {
+				have += ", "
+			}
+			if i < wantSize {
+				have += typeNames[i]
+			} else {
+				have += "?"
+			}
+		}
+		have += ")"
+		want := "("
+		for i, t := range typeNames {
+			if i > 0 {
+				want += ", "
+			}
+			want += t
+			if i == wantSize-1 && typ.IsVariadic {
+				want += "..."
+			}
+		}
+		want += ")"
+		name := node.Func.String()
+		var err error
+		if haveSize < wantSize {
+			err = r.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+		} else {
+			err = r.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+		}
+		return nil, err
+	}
+
+	var args = scope{}
+	if params := typ.Parameters; wantSize > 0 {
+		if last := params[wantSize-1]; last.Ident != nil {
+			var final reflect.Value
+			if typ.IsVariadic && last.Ident.Name != "_" {
+				t := reflect.SliceOf(types[wantSize-1])
+				l := haveSize - wantSize + 1
+				final = reflect.MakeSlice(t, l, l)
+				args[last.Ident.Name] = final.Interface()
+			}
+			for i, arg := range node.Args {
+				v, err := r.eval(arg)
+				if err != nil {
+					return nil, err
+				}
+				var t reflect.Type
+				if i < wantSize {
+					t = types[i]
+				} else {
+					t = types[wantSize-1]
+				}
+				av, err := asAssignableTo(v, t)
+				if err != nil {
+					if err == errNotAssignable {
+						err = r.errorf(arg, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(v), t, node.Func)
+					}
+					return nil, err
+				}
+				if !typ.IsVariadic || i < wantSize-1 {
+					if ident := params[i].Ident; ident != nil && ident.Name != "_" {
+						args[ident.Name] = av
+					}
+				} else if final.IsValid() {
+					final.Index(i - wantSize + 1).Set(reflect.ValueOf(av))
+				}
+			}
+		}
+	}
+
+	// TODO(marco): implement closures.
+
+	var vars []scope
+	if ident := fun.node.Ident; ident != nil {
+		vars = []scope{r.vars[0], r.vars[1], {ident.Name: fun}, args}
+	} else {
+		vars = []scope{r.vars[0], r.vars[1], args}
+	}
+
+	rn := &rendering{
+		scope:       r.scope,
+		path:        fun.path,
+		vars:        vars,
+		treeContext: r.treeContext,
+		handleError: r.handleError,
+		function:    fun,
+	}
+	err = rn.render(nil, fun.node.Body.Nodes, nil)
+	ret, ok := err.(returnError)
+	if !ok {
+		return nil, err
+	}
+
+	result := make([]reflect.Value, len(ret.args))
+	for i, value := range ret.args {
+		result[i] = reflect.ValueOf(value)
+	}
+
+	return result, nil
 }
 
 // evalReflectCall evaluates a call expression with reflect in n-values

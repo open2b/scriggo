@@ -938,6 +938,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		endLineAsSemicolon = true
 	case "for":
 		l.emit(tokenFor, p)
+	case "func":
+		l.emit(tokenFunc, p)
 	case "if":
 		l.emit(tokenIf, p)
 	case "case":
@@ -958,6 +960,9 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenMap, p)
 	case "range":
 		l.emit(tokenRange, p)
+	case "return":
+		l.emit(tokenReturn, p)
+		endLineAsSemicolon = true
 	case "show":
 		l.emit(tokenShow, p)
 	case "slice":

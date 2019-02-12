@@ -51,6 +51,8 @@ const (
 	tokenInclude                            // include
 	tokenShow                               // show
 	tokenMacro                              // macro
+	tokenFunc                               // func
+	tokenReturn                             // return
 	tokenEnd                                // end
 	tokenComment                            // comment
 	tokenInterpretedString                  // "abc"
@@ -125,6 +127,8 @@ var tokenString = map[tokenType]string{
 	tokenImport:                   "import",
 	tokenInclude:                  "include",
 	tokenShow:                     "show",
+	tokenFunc:                     "func",
+	tokenReturn:                   "return",
 	tokenMacro:                    "macro",
 	tokenEnd:                      "end",
 	tokenComment:                  "comment",
