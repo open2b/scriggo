@@ -124,6 +124,7 @@ var builtins = map[string]interface{}{
 	"replaceAll":  _replaceAll,
 	"reverse":     _reverse,
 	"round":       _round,
+	"print":       _print,
 	"printf":      _printf,
 	"println":     _println,
 	"sha1":        _sha1,
@@ -605,6 +606,11 @@ func _min(x, y interface{}) interface{} {
 		}
 	}
 	panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
+}
+
+// _print is the builtin function "print".
+func _print(a ...interface{}) (n int, err error) {
+	return fmt.Print(a...)
 }
 
 // _printf is the builtin function "printf".
