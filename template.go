@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"unicode"
@@ -157,6 +158,20 @@ func stopOnError(err error) bool {
 	return false
 }
 
+// Run reads a Scrigo source from r and executes it, returning any parsing or
+// execution errors it encounters.
+func Run(r io.Reader) error {
+	src, err := ioutil.ReadAll(r)
+	if err != nil {
+		panic(err)
+	}
+	tree, err := parser.ParseSource(src, ast.ContextNone)
+	if err != nil {
+		return err
+	}
+	return RenderTree(nil, tree, nil, true)
+}
+
 // RenderTree renders tree and writes the result to out. The variables in vars
 // are defined as global variables. If strict is true, even errors on
 // expressions and statements execution stop the rendering. See the type
@@ -169,9 +184,10 @@ func stopOnError(err error) bool {
 // RenderTree is safe for concurrent use.
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
-	if out == nil {
-		return errors.New("template: out is nil")
-	}
+	// TODO (Gianluca): out should be "nil" for Scrigo renderings, shouldn't it?
+	// if out == nil {
+	//  return errors.New("template: out is nil")
+	// }
 	if tree == nil {
 		return errors.New("template: tree is nil")
 	}
