@@ -96,6 +96,7 @@ var builtins = map[string]interface{}{
 	// packages
 	"os":   _os,
 	"time": _time,
+	"fmt":  _fmt,
 
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
