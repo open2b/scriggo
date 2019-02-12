@@ -137,6 +137,17 @@ var typeTests = map[string][]tokenType{
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 }
 
+var typeTestsNoneContext = map[string][]tokenType{
+	``:               {},
+	"a := 3":         {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
+	"// a comment\n": {tokenSemicolon},
+	`// a comment`:   {},
+	"// a comment\na := 7\n// another comment\n": {tokenSemicolon, tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon, tokenSemicolon},
+	`/* a comment */`:                 {},
+	"/* a comment \n another line */": {tokenSemicolon},
+	`a = /* comment */ b`:             {tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenSemicolon},
+}
+
 var contextTests = map[ast.Context]map[string][]ast.Context{
 	ast.ContextText: {
 		`a`:                             {ast.ContextText},
@@ -298,10 +309,10 @@ var scanAttributeTests = []struct {
 	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
-func TestLexerTypes(t *testing.T) {
+func testLexerTypes(t *testing.T, test map[string][]tokenType, ctx ast.Context) {
 TYPES:
-	for source, types := range typeTests {
-		var lex = newLexer([]byte(source), ast.ContextText)
+	for source, types := range test {
+		var lex = newLexer([]byte(source), ctx)
 		var i int
 		for tok := range lex.tokens {
 			if tok.typ == tokenEOF {
@@ -324,6 +335,14 @@ TYPES:
 			t.Errorf("source: %q, less types\n", source)
 		}
 	}
+}
+
+func TestLexerTypes(t *testing.T) {
+	testLexerTypes(t, typeTests, ast.ContextText)
+}
+
+func TestLexerTypesNoneContext(t *testing.T) {
+	testLexerTypes(t, typeTestsNoneContext, ast.ContextNone)
 }
 
 func TestLexerContexts(t *testing.T) {

@@ -703,6 +703,26 @@ LOOP:
 				endLineAsSemicolon = false
 			}
 		case '/':
+			if len(l.src) > 1 && l.src[1] == '/' && l.ctx == ast.ContextNone {
+				p := bytes.Index(l.src, []byte("\n"))
+				if p == -1 {
+					break LOOP
+				}
+				l.src = l.src[p:]
+				endLineAsSemicolon = true
+				continue LOOP
+			}
+			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextNone {
+				p := bytes.Index(l.src, []byte("*/"))
+				if p == -1 {
+					return l.errorf("comment not terminated")
+				}
+				p += 2
+				nl := bytes.Index(l.src[2:p], []byte("\n"))
+				endLineAsSemicolon = nl != -1
+				l.src = l.src[p:]
+				continue LOOP
+			}
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenDivisionAssignment, 2)
 				l.column += 2
