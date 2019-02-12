@@ -233,6 +233,15 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 24, 23, 27), "class"), ast.ContextUnquotedAttribute),
 		ast.NewText(p(1, 32, 31, 31), []byte(">"), ast.Cut{}),
 	}, ast.ContextHTML)},
+	{"{% if x == 5 %}{% end %}",
+		ast.NewTree("", []ast.Node{
+			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 23}, nil,
+				ast.NewBinaryOperator(p(1, 9, 6, 11),
+					ast.OperatorEqual,
+					ast.NewIdentifier(p(1, 7, 6, 6), "x"),
+					ast.NewInt(p(1, 12, 11, 11), big.NewInt(5)),
+				), nil, nil),
+		}, ast.ContextHTML)},
 	{"{% for %}{% end %}",
 		ast.NewTree("", []ast.Node{
 			ast.NewFor(&ast.Position{Line: 1, Column: 1, Start: 0, End: 17}, nil, nil, nil, nil),
