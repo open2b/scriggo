@@ -193,6 +193,11 @@ var rendererExprTests = []struct {
 	{`[]Point{{1,2}, {3,4}, {5,6}}[2].Y`, "6", nil},
 	{`(*(([]*Point{{3,4}})[0])).X`, "3", nil},
 
+	// make
+	{`make([]int, 5)[0]`, "0", nil},
+	{`make([]int, 5, 10)[0]`, "0", nil},
+	{`make(map[string]int, 5)["key"]`, "0", nil},
+
 	// selectors
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
 	{"a.b", "b", scope{"a": struct {
