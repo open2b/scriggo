@@ -1,9 +1,9 @@
-package template
+package scrigo
 
 import (
 	"fmt"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 
 	"github.com/cockroachdb/apd"
 )

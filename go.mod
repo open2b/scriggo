@@ -1,4 +1,4 @@
-module open2b/template
+module scrigo
 
 require (
 	github.com/cockroachdb/apd v0.0.0-20181017181144-bced77f817b4

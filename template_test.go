@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"bytes"
@@ -17,15 +17,15 @@ import (
 	"strings"
 	"testing"
 
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 type stringConvertible string
 
 type aMap struct {
 	v string
-	H func() string `template:"G"`
+	H func() string `scrigo:"G"`
 }
 
 func (s aMap) F() string {
@@ -38,7 +38,7 @@ func (s aMap) G() string {
 
 type aStruct struct {
 	a string
-	B string `template:"b"`
+	B string `scrigo:"b"`
 	C string
 }
 
@@ -201,10 +201,10 @@ var rendererExprTests = []struct {
 	// selectors
 	{"a.B", "b", scope{"a": struct{ B string }{B: "b"}}},
 	{"a.b", "b", scope{"a": struct {
-		B string `template:"b"`
+		B string `scrigo:"b"`
 	}{B: "b"}}},
 	{"a.b", "b", scope{"a": struct {
-		C string `template:"b"`
+		C string `scrigo:"b"`
 	}{C: "b"}}},
 
 	// ==, !=
@@ -550,24 +550,24 @@ var rendererVarsToScope = []struct {
 	},
 	{
 		struct {
-			A int    `template:"a"`
-			B string `template:"b"`
+			A int    `scrigo:"a"`
+			B string `scrigo:"b"`
 			C bool
 		}{A: 1, B: "s", C: true},
 		scope{"a": 1, "b": "s", "C": true},
 	},
 	{
 		&struct {
-			A int    `template:"a"`
-			B string `template:"b"`
+			A int    `scrigo:"a"`
+			B string `scrigo:"b"`
 			C bool
 		}{A: 1, B: "s", C: true},
 		scope{"a": 1, "b": "s", "C": true},
 	},
 	{
 		reflect.ValueOf(struct {
-			A int    `template:"a"`
-			B string `template:"b"`
+			A int    `scrigo:"a"`
+			B string `scrigo:"b"`
 			C bool
 		}{A: 1, B: "s", C: true}),
 		scope{"a": 1, "b": "s", "C": true},

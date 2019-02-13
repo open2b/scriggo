@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"errors"
 	"fmt"
 	"reflect"
 
-	"open2b/template/ast"
-	"open2b/template/ast/astutil"
+	"scrigo/ast"
+	"scrigo/ast/astutil"
 )
 
 // evalCall evaluates a call expression in a single-val context. It returns

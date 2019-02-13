@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"bytes"
 	"io/ioutil"
 	"testing"
 
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/parser"
 
 	"github.com/cockroachdb/apd"
 )

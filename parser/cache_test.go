@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 func TestCache(t *testing.T) {

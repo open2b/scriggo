@@ -14,7 +14,7 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var space = []byte{' '}

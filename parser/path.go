@@ -36,7 +36,7 @@ func toAbsolutePath(dir, path string) (string, error) {
 		if b[i] == '/' {
 			if b[i+1] == '.' && b[i+2] == '.' {
 				if i == 0 {
-					return "", fmt.Errorf("template: invalid path %q", path)
+					return "", fmt.Errorf("scrigo: invalid path %q", path)
 				}
 				s := bytes.LastIndexByte(b[:i], '/')
 				b = append(b[:s+1], b[i+4:]...)

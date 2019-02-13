@@ -14,7 +14,7 @@ import (
 
 	"github.com/cockroachdb/apd"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var maxInt = apd.New(int64(^uint(0)>>1), 0)

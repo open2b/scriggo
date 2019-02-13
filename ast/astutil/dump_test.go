@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"open2b/template/ast"
-	"open2b/template/ast/astutil"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/ast/astutil"
+	"scrigo/parser"
 )
 
 func ExampleDump() {

@@ -15,21 +15,21 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var (
 	// ErrInvalidPath is returned from the Parse method and a Reader when the
 	// path argument is not valid.
-	ErrInvalidPath = errors.New("template/parser: invalid path")
+	ErrInvalidPath = errors.New("scrigo/parser: invalid path")
 
 	// ErrNotExist is returned from the Parse method and a Reader when the
 	// path does not exist.
-	ErrNotExist = errors.New("template/parser: path does not exist")
+	ErrNotExist = errors.New("scrigo/parser: path does not exist")
 
 	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
 	// exceeded.
-	ErrReadTooLarge = errors.New("template/parser: read too large")
+	ErrReadTooLarge = errors.New("scrigo/parser: read too large")
 )
 
 // Error records a parsing error with the path and the position where the
@@ -109,7 +109,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 	switch ctx {
 	case ast.ContextNone, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
 	default:
-		return nil, errors.New("template/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
+		return nil, errors.New("scrigo/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
 	}
 
 	// Tree result of the expansion.
@@ -1421,7 +1421,7 @@ func addChild(parent ast.Node, node ast.Node) {
 			lastCase.Body = append(lastCase.Body, node)
 		}
 	default:
-		panic("template/parser: unexpected parent node")
+		panic("scrigo/parser: unexpected parent node")
 	}
 }
 

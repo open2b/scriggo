@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"testing"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 func p(line, column, start, end int) *ast.Position {

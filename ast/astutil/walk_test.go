@@ -9,8 +9,8 @@ package astutil
 import (
 	"testing"
 
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 type TestVisitor struct {

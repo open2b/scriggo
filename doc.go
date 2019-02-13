@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package template implements a template engine for Go for text, HTML, CSS
+// Package scrigo implements a template engine for Go for text, HTML, CSS
 // and JavaScript files.
 //
 //  {% import conv "converter.html" %}
@@ -24,22 +24,22 @@
 // Render template files:
 //
 //  // Creates a renderer that reads template sources from a directory.
-//  r := template.NewDirRenderer("template/", false, template.ContextHTML)
+//  r := scrigo.NewDirRenderer("template/", false, scrigo.ContextHTML)
 //
 //  // Renders a file with variables vars.
 //  err := r.Render(os.Stdout, "page.html", vars)
 //
 // Render a source:
 //
-//  err := template.RenderSource(os.Stdout, []byte(`{{ a + b }}`), vars)
+//  err := scrigo.RenderSource(os.Stdout, []byte(`{{ a + b }}`), vars)
 //
 // Advanced usage examples
 //
 // Get a template tree from files:
 //
 //  import (
-//      "open2b/template/ast"
-//      "open2b/template/parser"
+//      "scrigo/ast"
+//      "scrigo/parser"
 //  )
 //
 //  // Creates a reader that read the sources from a directory.
@@ -53,15 +53,15 @@
 //
 // Gets a tree from a source:
 //
-//  import "open2b/template/parser"
+//  import "scrigo/parser"
 //
 //  tree, err := parser.ParseSource([]byte(`{{ a + b }}`), ast.ContextText)
 //
 // Parse, transform and render a tree:
 //
 //  import (
-//      "open2b/template/ast"
-//      "open2b/template/parser"
+//      "scrigo/ast"
+//      "scrigo/parser"
 //  )
 //
 //  // Defines the transformation function.
@@ -79,11 +79,11 @@
 //  tree, err := p.Parse("page.html", ast.ContextHTML)
 //
 //  // Renders the tree.
-//  err := template.RenderTree(os.Stdout, tree, vars)
+//  err := scrigo.RenderTree(os.Stdout, tree, vars)
 //
 // Read sources from files limiting sizes:
 //
-//  import "open2b/template/parser"
+//  import "scrigo/parser"
 //
 //  // Creates a reader that limit file sizes to 50K and total bytes read to 1M.
 //  r := parser.NewDirLimitedReader("template/", 50 * 1024, 1024 * 1024)
@@ -105,14 +105,14 @@
 //
 // If vars is a struct or pointer to a struct, the names of the exported
 // fields of the struct will be names and values of the global variables.
-// If an exported field has the tag "template" the variable name is defined
+// If an exported field has the tag "scrigo" the variable name is defined
 // by the tag.
 //
 // For example, if vars has type:
 //
 //  struct {
-//      Name          string `template:"name"`
-//      StockQuantity int    `template:"stock"`
+//      Name          string `scrigo:"name"`
+//      StockQuantity int    `scrigo:"stock"`
 //  }
 //
 // The variables will be "name" and "stock".
@@ -141,15 +141,15 @@
 //
 // Types
 //
-// Each template type is implemented with a type of Go. The following are the
-// template types and their implementation types in Go:
+// Each scrigo type is implemented with a type of Go. The following are the
+// scrigo types and their implementation types in Go:
 //
 //  bool:     the bool type
 //
 //  string:   the string type and the types implementing the interface
 //            renderer.Stringer
 //
-//  html:     the type template.HTML
+//  html:     the type scrigo.HTML
 //
 //  number:   all integer and floating-point types (excluding uintptr),
 //            *apd.Decimal [ https://github.com/cockroachdb/apd ] and the
@@ -161,12 +161,12 @@
 //
 //  byte:     the uint8 (byte) type
 //
-//  map:      the type template.Map, a struct type, a pointer to struct type
+//  map:      the type scrigo.Map, a struct type, a pointer to struct type
 //            and a map type
 //
-//  slice:    the type template.Slice and a slice type
+//  slice:    the type scrigo.Slice and a slice type
 //
-//  bytes:    the type template.Bytes and the []byte type
+//  bytes:    the type scrigo.Bytes and the []byte type
 //
 //  function: a function type with only one return value. As numeric parameter
 //            types, only int and *apd.Decimal can be used
@@ -178,8 +178,8 @@
 // the template struct.
 //
 // If a value has type struct or pointer to a struct, the names of the
-// exported fields of the struct will be the field names of the template
-// struct. If an exported field has the tag "template" the field name is
+// exported fields of the struct will be the field names of the scrigo
+// struct. If an exported field has the tag "scrigo" the field name is
 // defined by the tag as for the vars.
 //
-package template
+package scrigo

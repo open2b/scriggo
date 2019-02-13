@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 const maxInt = int64(^uint(0) >> 1)
@@ -1037,7 +1037,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 		if reflect.TypeOf(v).Kind() == reflect.Ptr {
 			rv := reflect.ValueOf(v)
 			if rv.Kind() != reflect.Ptr {
-				return nil, false, fmt.Errorf("template: no-pointer value in call to Var")
+				return nil, false, fmt.Errorf("scrigo: no-pointer value in call to Var")
 			}
 			return reflect.Indirect(rv.Elem()).Interface(), true, nil
 		}
@@ -1964,11 +1964,11 @@ func structKeys(st reflect.Value) map[string]structKey {
 			continue
 		}
 		name := fieldType.Name
-		if tag, ok := fieldType.Tag.Lookup("template"); ok {
+		if tag, ok := fieldType.Tag.Lookup("scrigo"); ok {
 			name = parseVarTag(tag)
 			if name == "" {
 				structs.Unlock()
-				panic(fmt.Errorf("template: invalid tag of field %q", fieldType.Name))
+				panic(fmt.Errorf("scrigo: invalid tag of field %q", fieldType.Name))
 			}
 		}
 		keys[name] = structKey{index: i}

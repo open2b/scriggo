@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var maxInt64Plus1, _ = new(big.Int).SetString("9223372036854775808", 10)

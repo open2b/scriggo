@@ -9,7 +9,7 @@ package parser
 import (
 	"fmt"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 type funcKindToParse int

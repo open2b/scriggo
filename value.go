@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // CustomNumber is implemented by a val that behaves like a number.
@@ -202,7 +202,7 @@ func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, e
 			}
 			return n.String(), nil
 		default:
-			panic("template: unknown context")
+			panic("scrigo: unknown context")
 		}
 	}
 	panic("no integer value")
@@ -265,7 +265,7 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 		case ast.ContextScriptString:
 			err = r.renderInScriptString(w, value, node)
 		default:
-			panic("template: unknown context")
+			panic("scrigo: unknown context")
 		}
 		if err != nil && !r.handleError(err) {
 			return err

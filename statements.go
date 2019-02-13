@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 
 	"github.com/cockroachdb/apd"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var decimalMaxInt = apd.New(maxInt, 0)

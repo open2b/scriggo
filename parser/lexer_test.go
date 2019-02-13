@@ -9,7 +9,7 @@ package parser
 import (
 	"testing"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var typeTests = map[string][]tokenType{

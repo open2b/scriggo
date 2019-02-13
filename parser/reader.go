@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // Reader defines a type that lets you gets a template tree give a path.
@@ -81,10 +81,10 @@ type DirLimitedReader struct {
 // It panics if maxFile or maxTotal are negative.
 func NewDirLimitedReader(dir string, maxFile, maxTotal int) *DirLimitedReader {
 	if maxFile < 0 {
-		panic("template/parser: negative max file")
+		panic("scrigo/parser: negative max file")
 	}
 	if maxTotal < 0 {
-		panic("template/parser: negative max total")
+		panic("scrigo/parser: negative max total")
 	}
 	return &DirLimitedReader{dir, maxFile, maxTotal, sync.Mutex{}}
 }

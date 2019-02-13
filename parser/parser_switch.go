@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // isTypeGuard indicates if node is a switch type guard, as x.(type) and v :=

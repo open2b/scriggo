@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template_test
+package scrigo_test
 
 import (
 	"log"
 	"os"
 
-	"open2b/template"
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 func ExampleRenderSource() {
@@ -33,7 +33,7 @@ func ExampleRenderSource() {
  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
  {% end %}`
 
-	err := template.RenderSource(os.Stdout, []byte(src), vars, false, template.ContextText)
+	err := scrigo.RenderSource(os.Stdout, []byte(src), vars, false, scrigo.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
@@ -49,7 +49,7 @@ func ExampleRenderTree() {
 
 	vars := map[string]string{"title": "The Catcher in the Rye"}
 
-	err = template.RenderTree(os.Stdout, tree, vars, false)
+	err = scrigo.RenderTree(os.Stdout, tree, vars, false)
 	if err != nil {
 		log.Fatalf("rendering error: %s", err)
 	}
@@ -68,7 +68,7 @@ func ExampleDirRenderer() {
 		},
 	}
 
-	r := template.NewDirRenderer("./template/", false, template.ContextHTML)
+	r := scrigo.NewDirRenderer("./template/", false, scrigo.ContextHTML)
 
 	err := r.Render(os.Stderr, "index.html", vars)
 	if err != nil {
@@ -86,7 +86,7 @@ func ExampleMapRenderer() {
 		"names": []string{"Robert", "Mary", "Karen", "William", "Michelle"},
 	}
 
-	r := template.NewMapRenderer(sources, false, template.ContextText)
+	r := scrigo.NewMapRenderer(sources, false, scrigo.ContextText)
 
 	err := r.Render(os.Stderr, "names.csv", vars)
 	if err != nil {

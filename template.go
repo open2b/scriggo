@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package scrigo
 
 import (
 	"errors"
@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 // Context indicates the type of source that has to be rendered and controls
@@ -34,7 +34,7 @@ const (
 
 // Errors is an error that can be returned after a rendering and contains all
 // errors on expressions and statements execution that has occurred during the
-// rendering of the template.
+// rendering of the scrigo.
 //
 // If the strict argument of a renderer function or Render type constructor is
 // true, these types of errors stop the execution. If no other type of error
@@ -129,11 +129,11 @@ func (mr *MapRenderer) Render(out io.Writer, path string, vars interface{}) erro
 var (
 	// ErrInvalidPath is returned from a rendering function of method when the
 	// path argument is not valid.
-	ErrInvalidPath = errors.New("template: invalid path")
+	ErrInvalidPath = errors.New("scrigo: invalid path")
 
 	// ErrNotExist is returned from a rendering function of method when the
 	// path passed as argument does not exist.
-	ErrNotExist = errors.New("template: path does not exist")
+	ErrNotExist = errors.New("scrigo: path does not exist")
 )
 
 // RenderSource renders the template source src, in context ctx, and writes
@@ -186,10 +186,10 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 
 	// TODO (Gianluca): out should be "nil" for Scrigo renderings, shouldn't it?
 	// if out == nil {
-	//  return errors.New("template: out is nil")
+	//  return errors.New("scrigo: out is nil")
 	// }
 	if tree == nil {
-		return errors.New("template: tree is nil")
+		return errors.New("scrigo: tree is nil")
 	}
 
 	globals, err := varsToScope(vars)
@@ -228,7 +228,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		err = r.render(out, tree.Nodes, nil)
 	} else {
 		if extends.Tree == nil {
-			return errors.New("template: extends node is not expanded")
+			return errors.New("scrigo: extends node is not expanded")
 		}
 		r.scope[r.path] = r.vars[2]
 		err = r.render(nil, tree.Nodes, nil)
@@ -323,10 +323,10 @@ func varsToScope(vars interface{}) (scope, error) {
 				}
 				value := s.rv.Field(i).Interface()
 				var name string
-				if tag, ok := field.Tag.Lookup("template"); ok {
+				if tag, ok := field.Tag.Lookup("scrigo"); ok {
 					name = parseVarTag(tag)
 					if name == "" {
-						return nil, fmt.Errorf("template: invalid tag of field %q", field.Name)
+						return nil, fmt.Errorf("scrigo: invalid tag of field %q", field.Name)
 					}
 				}
 				if name == "" {
@@ -345,7 +345,7 @@ func varsToScope(vars interface{}) (scope, error) {
 		}
 	}
 
-	return nil, errors.New("template: unsupported vars type")
+	return nil, errors.New("scrigo: unsupported vars type")
 }
 
 // getExtendsNode returns the Extends node of a tree.

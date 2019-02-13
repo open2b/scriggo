@@ -9,7 +9,7 @@ package astutil
 import (
 	"fmt"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // Visitor's visit method is invoked for every node encountered by Walk.

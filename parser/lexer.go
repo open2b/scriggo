@@ -12,7 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 var cdataStart = []byte("<![CDATA[")

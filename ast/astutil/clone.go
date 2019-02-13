@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // CloneTree returns a complete copy of tree.

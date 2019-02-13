@@ -9,7 +9,7 @@ package parser
 import (
 	"sync"
 
-	"open2b/template/ast"
+	"scrigo/ast"
 )
 
 // cache implements a trees cache used by the parser.

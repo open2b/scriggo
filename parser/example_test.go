@@ -9,10 +9,10 @@ package parser_test
 import (
 	"log"
 	"os"
+	"scrigo"
 
-	"open2b/template"
-	"open2b/template/ast"
-	"open2b/template/parser"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 func ExampleParseSource() {
@@ -30,7 +30,7 @@ func ExampleParseSource() {
 		log.Printf("parsing error: %s\n", err)
 	}
 
-	err = template.RenderTree(os.Stdout, tree, nil, false)
+	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}
@@ -47,7 +47,7 @@ func ExampleParser_Parse() {
 		log.Printf("parsing error: %s\n", err)
 	}
 
-	err = template.RenderTree(os.Stdout, tree, nil, false)
+	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}
@@ -66,7 +66,7 @@ func ExampleMapReader() {
 		log.Printf("error: %s\n", err)
 	}
 
-	err = template.RenderTree(os.Stdout, tree, nil, false)
+	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}

@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"open2b/template"
+	"scrigo"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 		fmt.Printf("reading file %q: %s\n", file, err)
 		os.Exit(-1)
 	}
-	err = template.RenderSource(nil, src, nil, true, template.ContextNone)
+	err = scrigo.RenderSource(nil, src, nil, true, scrigo.ContextNone)
 	if err != nil {
 		fmt.Print(err)
 	}
