@@ -976,6 +976,7 @@ SWITCH:
 		if uNil1 {
 			return isNil(expr2), nil
 		}
+		return false, nil
 	case ast.OperatorNotEqual:
 		if uNil2 {
 			return !isNil(expr1), nil
@@ -983,6 +984,7 @@ SWITCH:
 		if uNil1 {
 			return !isNil(expr2), nil
 		}
+		return true, nil
 	}
 
 	// TODO(marco): manage the other cases.
