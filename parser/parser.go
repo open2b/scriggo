@@ -385,7 +385,7 @@ func (p *parsing) parseStatement(tok token) {
 			if tok.typ == tokenDeclaration {
 				assignmentType = ast.AssignmentDeclaration
 			}
-			init, tok = p.parseAssignment(variables, tok, false)
+			init, tok = p.parseAssignment(variables, tok, false, false)
 			if init == nil && tok.typ != tokenRange {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -420,7 +420,7 @@ func (p *parsing) parseStatement(tok token) {
 				variables, tok = p.parseExprList(token{}, true, false, false, true)
 				if len(variables) > 0 {
 					pos := tok.pos
-					post, tok = p.parseAssignment(variables, tok, false)
+					post, tok = p.parseAssignment(variables, tok, false, true)
 					if post == nil {
 						panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 					}
@@ -665,7 +665,7 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		var assignment *ast.Assignment
 		if len(expressions) > 1 || tok.typ == tokenSimpleAssignment || tok.typ == tokenDeclaration {
-			assignment, tok = p.parseAssignment(expressions, tok, false)
+			assignment, tok = p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
@@ -1041,7 +1041,7 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
-			assignment, tok := p.parseAssignment(expressions, tok, false)
+			assignment, tok := p.parseAssignment(expressions, tok, false, false)
 			if assignment == nil {
 				panic(&Error{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
@@ -1072,7 +1072,7 @@ func (p *parsing) parseStatement(tok token) {
 // parseAssignment parses an assignment and returns an assignment or, if there
 // is no expression, returns nil. tok can be the assignment, declaration,
 // increment or decrement token. Panics on error.
-func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSwitchGuard bool) (*ast.Assignment, token) {
+func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSwitchGuard bool, nextIsBlockOpen bool) (*ast.Assignment, token) {
 	var typ, ok = assignmentType(tok)
 	if !ok {
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
@@ -1098,7 +1098,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	var values []ast.Expression
 	switch typ {
 	case ast.AssignmentSimple, ast.AssignmentDeclaration:
-		values, tok = p.parseExprList(token{}, false, canBeSwitchGuard, false, false)
+		values, tok = p.parseExprList(token{}, false, canBeSwitchGuard, false, nextIsBlockOpen)
 		if len(values) == 0 {
 			return nil, tok
 		}

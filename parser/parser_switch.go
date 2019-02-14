@@ -42,7 +42,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 
 	var assignment *ast.Assignment
 
-	// "{%" "switch" [ beforeSemicolon "," ] afterSemicolon "%}"
+	// "{%" "switch" [ beforeSemicolon ";" ] afterSemicolon "%}"
 	var beforeSemicolon, afterSemicolon ast.Node
 
 	expressions, tok := p.parseExprList(token{}, false, true, false, true)
@@ -111,7 +111,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 		// switch x := 3; x + y {
 		// switch x = y.(type) {
 		// switch x := 2; x = y.(type) {
-		assignment, tok = p.parseAssignment(expressions, tok, true)
+		assignment, tok = p.parseAssignment(expressions, tok, true, false)
 		switch tok.typ {
 		case tokenSemicolon:
 
@@ -130,7 +130,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 				// This is the only valid case where there is an assignment
 				// before and after the semicolon token:
 				//     switch x := 2; x = y.(type) {
-				assignment, tok = p.parseAssignment(expressions, tok, true)
+				assignment, tok = p.parseAssignment(expressions, tok, true, true)
 				ta, ok := assignment.Values[0].(*ast.TypeAssertion)
 				// TODO (Gianluca): should error contain the position of the
 				// expression which caused the error instead of the token (as Go
