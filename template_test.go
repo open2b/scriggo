@@ -408,8 +408,9 @@ var rendererStmtTests = []struct {
 	{"{% switch x := 1; x + 1 %}{% case 1 %}one{% case 2 %}two{% end %}", "two", nil},
 	{"{% switch %}{% case 4 < 2%}{% case 7 < 10 %}7 < 10{% default %}other{% end %}", "7 < 10", nil},
 	{"{% switch %}{% case 4 < 2%}{% case 7 > 10 %}7 > 10{% default %}other{% end %}", "other", nil},
+	{"{% switch %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch %}{% case false %}no{% end %}", "", nil},
 	{"{% switch %}{% case true %}ab{% break %}c{% end %}", "ab", nil},
-	{"{% switch %}{% case 1 %}{% end %}", "", nil},
 	{"{% switch a, b := 2, 4; c < d %}{% case true %}{{ a }}{% case false %}{{ b }}{% end %}", "4", scope{"c": 100, "d": 90}},
 	{"{% switch a := 4; %}{% case 3 < 4 %}{{ a }}{% end %}", "4", nil},
 	{"{% switch a.(type) %}{% case string %}is a string{% case int %}is an int{% default %}is something else{% end %}", "is an int", scope{"a": 3}},
@@ -512,7 +513,7 @@ var rendererStmtTests = []struct {
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte{}}},
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{}}},
 	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
-	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
+	{`{% if bytes(a) == nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},
 }
 

@@ -970,12 +970,37 @@ SWITCH:
 
 	switch op {
 	case ast.OperatorEqual:
-		return uNil2 && expr1 == nil || uNil1 && expr2 == nil, nil
+		if uNil2 {
+			return isNil(expr1), nil
+		}
+		if uNil1 {
+			return isNil(expr2), nil
+		}
 	case ast.OperatorNotEqual:
-		return (!uNil2 || expr1 != nil) && (!uNil1 || expr2 != nil), nil
+		if uNil2 {
+			return !isNil(expr1), nil
+		}
+		if uNil1 {
+			return !isNil(expr2), nil
+		}
 	}
 
+	// TODO(marco): manage the other cases.
+
 	return nil, fmt.Errorf("mismatched types %s and %s", typeof(expr1), typeof(expr2))
+}
+
+// isNil indicates if v is nil or the value is nil.
+func isNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+		reflect.Ptr, reflect.UnsafePointer, reflect.Slice:
+		return rv.IsNil()
+	}
+	return false
 }
 
 // evalBytes evaluates a bytes expression and returns its value.
