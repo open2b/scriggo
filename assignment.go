@@ -273,12 +273,6 @@ type goMapAddress struct {
 }
 
 func (addr goMapAddress) assign(value interface{}) (err error) {
-	// Catches unhashable keys errors.
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
