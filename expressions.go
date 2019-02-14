@@ -1372,7 +1372,7 @@ const noEllipses = -1
 
 // evalType evaluates an expression as type. If expr is an array type, length
 // specifies the number of elements.
-func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, error) {
+func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type, err error) {
 	var value interface{}
 	switch e := expr.(type) {
 	case *ast.Identifier:
@@ -1382,7 +1382,7 @@ func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, err
 					return nil, r.errorf(e, "use of builtin len not in function call")
 				}
 				if v, ok := r.vars[i][e.Name]; ok {
-					if typ, ok := v.(reflect.Type); ok && (i == 0) {
+					if typ, ok = v.(reflect.Type); ok && (i == 0) {
 						return typ, nil
 					}
 					return nil, r.errorf(e, "%s is not a type", expr)
@@ -1401,7 +1401,7 @@ func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, err
 					}
 					return nil, r.errorf(expr, "undefined: %s", expr)
 				}
-				typ, ok := value.(reflect.Type)
+				typ, ok = value.(reflect.Type)
 				if !ok {
 					return nil, r.errorf(expr, "%s is not a type", expr)
 				}
@@ -1454,14 +1454,20 @@ func (r *rendering) evalType(expr ast.Expression, length int) (reflect.Type, err
 		if e.KeyType == nil && e.ValueType == nil {
 			return mapType, nil
 		}
-		keyType, err := r.evalType(e.KeyType, noEllipses)
+		var keyType, valueType reflect.Type
+		keyType, err = r.evalType(e.KeyType, noEllipses)
 		if err != nil {
 			panic(err)
 		}
-		valueType, err := r.evalType(e.ValueType, noEllipses)
+		valueType, err = r.evalType(e.ValueType, noEllipses)
 		if err != nil {
 			panic(err)
 		}
+		defer func() {
+			if rec := recover(); rec != nil {
+				err = r.errorf(expr, "invalid map key type %s", keyType)
+			}
+		}()
 		return reflect.MapOf(keyType, valueType), nil
 	case *ast.UnaryOperator:
 		if e.Operator() != ast.OperatorMultiplication {
