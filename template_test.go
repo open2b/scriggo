@@ -501,6 +501,7 @@ var rendererStmtTests = []struct {
 	// map
 	{`{% if _, ok := map(a).(map); ok %}ok{% end %}`, "ok", scope{"a": Map{}}},
 	{`{% if map(a) != nil %}ok{% end %}`, "ok", scope{"a": Map{}}},
+	{`{% a := map(nil) %}ok`, "ok", nil},
 
 	// slice (builtin)
 	{`{% if _, ok := slice(a).(slice); ok %}ok{% end %}`, "ok", scope{"a": Slice{}}},

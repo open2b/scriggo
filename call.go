@@ -403,6 +403,14 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 // convert converts value to type typ.
 // TODO (Gianluca): to review.
 func convert(value interface{}, typ reflect.Type) (interface{}, error) {
+	if value == nil {
+		switch typ.Kind() {
+		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+			reflect.Ptr, reflect.UnsafePointer, reflect.Slice:
+			return reflect.Zero(typ).Interface(), nil
+		}
+		return nil, fmt.Errorf("cannot convert nil to type %s", typ)
+	}
 	if n, ok := value.(ConstantNumber); ok {
 		switch typ {
 		case stringType:
@@ -636,6 +644,7 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 			return v, nil
 		}
 	default:
+		// TODO(marco): manage T(nil), now it panics
 		rv := reflect.ValueOf(value)
 		if rv.Type().ConvertibleTo(typ) {
 			return rv.Convert(typ).Interface(), nil

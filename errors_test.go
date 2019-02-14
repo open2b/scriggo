@@ -59,6 +59,7 @@ var errorTests = []struct {
 	{`{% m := map[int]int{1:1, 2:4} %}{% v := m["string"] %}ok`, "ok", nil},
 	{`{% m := map[int]int{1:1, 2:4} %}{% m["string"] = 5 %}ok`, "ok", nil},
 	{`{% switch %}{% case true %}{% a := 5 %}{% fallthrough %}{% case false %}{{ a }}{% end %}ok`, "ok", nil},
+	{"{% a := int(nil) %}ok", "ok", nil},
 }
 
 func TestErrors(t *testing.T) {
