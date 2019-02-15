@@ -81,23 +81,30 @@ func zero(obj types.Object) string {
 	case "error":
 		return "nil"
 	}
-	return fmt.Sprintf("// not supported: %s", obj.String())
+	fmt.Fprintf(os.Stdout, "not supported: %s\n", obj)
+	return ""
 }
 
 func isValidPkg(pkg string) bool {
 	if strings.TrimSpace(pkg) == "" {
 		return false
 	}
+	if pkg == "runtime/race" || pkg == "runtime" {
+		return false
+	}
 	parts := strings.Split(pkg, "/")
 	if len(parts) > 0 {
 		switch parts[0] {
-		case "database", "cmd", "builtin", "debug", "plugin", "testing":
+		case "database", "cmd", "builtin", "debug", "plugin", "testing", "reflect", "unsafe", "syscall":
 			return false
 		}
-	}
-	for _, p := range parts {
-		if p == "internal" {
+		if parts[len(parts)-1] == "cgo" {
 			return false
+		}
+		for _, p := range parts {
+			if p == "internal" {
+				return false
+			}
 		}
 	}
 	return true
@@ -135,10 +142,6 @@ func generateMultiplePackages(pkgs []string, dir string) {
 }
 
 func generatePackage(w io.Writer, pkgPath string, scrigoPackageName string) {
-	if pkgPath == "builtin" {
-		return
-	}
-
 	imports := make(imp)
 
 	// Imports package through go/importer.
@@ -189,11 +192,23 @@ func generatePackage(w io.Writer, pkgPath string, scrigoPackageName string) {
 			if s := strings.Split(sign, " "); len(s) >= 3 && strings.HasPrefix(s[2], "interface") {
 				elem = ".Elem()"
 			}
-			pkgContent += mapPair(name, "reflect.TypeOf("+zero(obj)+")"+elem)
+			z := zero(obj)
+			if z == "" {
+				continue
+			}
+			pkgContent += mapPair(name, "reflect.TypeOf("+z+")"+elem)
 			imports["reflect"] = ""
 
 		// It's a constant.
 		case strings.HasPrefix(sign, "const"):
+			{
+				// TODO (Gianluca): this manages the special case MaxUint64.
+				// Find a better and general way to do this.
+				if pkgPath == "math" && strings.Contains(fullName, "MaxUint64") {
+					pkgContent += mapPair(name, "scrigo.Constant(uint64(original.MaxUint64), nil)")
+				}
+				continue
+			}
 			var t string
 			if strings.HasPrefix(typ, "untyped ") {
 				t = "nil"
