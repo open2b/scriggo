@@ -30,6 +30,7 @@ const (
 	tokenMultiplicationAssignment           // *=
 	tokenDivisionAssignment                 // /=
 	tokenModuloAssignment                   // %=
+	tokenPackage                            // package
 	tokenFor                                // for
 	tokenIn                                 // in
 	tokenRange                              // range
@@ -107,6 +108,7 @@ var tokenString = map[tokenType]string{
 	tokenMultiplicationAssignment: "*=",
 	tokenDivisionAssignment:       "/=",
 	tokenModuloAssignment:         "%=",
+	tokenPackage:                  "package",
 	tokenFor:                      "for",
 	tokenIn:                       "in",
 	tokenRange:                    "range",

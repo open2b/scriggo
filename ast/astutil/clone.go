@@ -27,6 +27,12 @@ func CloneNode(node ast.Node) ast.Node {
 			nn = append(nn, CloneNode(n))
 		}
 		return ast.NewTree(n.Path, nn, n.Context)
+	case *ast.Package:
+		var nn = make([]ast.Node, 0, len(n.Declarations))
+		for _, n := range n.Declarations {
+			nn = append(nn, CloneNode(n))
+		}
+		return ast.NewPackage(ClonePosition(n.Position), n.Name, nn)
 	case *ast.Text:
 		var text []byte
 		if n.Text != nil {

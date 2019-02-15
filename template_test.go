@@ -710,7 +710,7 @@ func TestRenderCallFunc(t *testing.T) {
 			}
 			c <- struct{}{}
 		}()
-		err = RenderTree(nil, tree, stmt.vars, true)
+		err = RunScriptTree(tree, stmt.vars)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue

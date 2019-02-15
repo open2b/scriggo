@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"scrigo"
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 func main() {
@@ -22,6 +25,11 @@ func main() {
 	}
 
 	file := os.Args[1]
+	ext := filepath.Ext(file)
+	if ext != ".go" && ext != ".sgo" {
+		fmt.Printf("%s: extension must be \".go\" for main packages and \".sgo\" for scripts\n", file)
+		os.Exit(-1)
+	}
 	fi, err := os.Open(file)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -37,7 +45,18 @@ func main() {
 		fmt.Printf("reading file %q: %s\n", file, err)
 		os.Exit(-1)
 	}
-	err = scrigo.RenderSource(nil, src, nil, true, scrigo.ContextNone)
+
+	tree, err := parser.ParseSource(src, ast.ContextNone)
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(-1)
+	}
+
+	if ext == ".go" {
+		err = scrigo.RunPackageTree(tree)
+	} else {
+		err = scrigo.RunScriptTree(tree, nil)
+	}
 	if err != nil {
 		fmt.Print(err)
 	}

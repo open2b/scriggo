@@ -139,7 +139,9 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 		for tok := range p.lex.tokens {
 			if tok.typ == tokenEOF {
 				if len(p.ancestors) > 1 {
-					return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+					if _, ok := p.ancestors[1].(*ast.Package); !ok || len(p.ancestors) > 2 {
+						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+					}
 				}
 			} else {
 				p.parseStatement(tok)
@@ -296,6 +298,10 @@ func (p *parsing) parseStatement(tok token) {
 
 	l := -1
 	switch s := parent.(type) {
+	case *ast.Package:
+		if tok.typ != tokenFunc {
+			panic(&Error{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body (%q)", tok)})
+		}
 	case *ast.Switch:
 		l = len(s.Cases)
 	case *ast.TypeSwitch:
@@ -314,6 +320,28 @@ func (p *parsing) parseStatement(tok token) {
 		if p.ctx != ast.ContextNone {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting %%}")})
 		}
+
+	// package
+	case tokenPackage:
+		if tree, ok := parent.(*ast.Tree); !ok || p.ctx != ast.ContextNone || len(tree.Nodes) > 0 {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected package, expecting statement")})
+		}
+		tok = next(p.lex)
+		if tok.typ != tokenIdentifier {
+			panic(&Error{"", *tok.pos, fmt.Errorf("expected 'IDENT', found %q", string(tok.txt))})
+		}
+		name := string(tok.txt)
+		if name == "_" {
+			panic(&Error{"", *tok.pos, fmt.Errorf("invalid package name _")})
+		}
+		pos.End = tok.pos.End
+		tok = next(p.lex)
+		if tok.typ != tokenSemicolon {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", string(tok.txt))})
+		}
+		node = ast.NewPackage(pos, name, nil)
+		addChild(parent, node)
+		p.ancestors = append(p.ancestors, node)
 
 	// for
 	case tokenFor:
@@ -1021,12 +1049,19 @@ func (p *parsing) parseStatement(tok token) {
 	// func
 	case tokenFunc:
 		if p.ctx == ast.ContextNone {
-			// parseFunc does not consume the next token because kind is not
-			// parseType.
-			if len(p.ancestors) > 1 {
-				node, _ = p.parseFunc(tok, parseFuncLit)
-			} else {
+			// Note that parseFunc does not consume the next token because
+			// kind is not parseType.
+			if _, ok := parent.(*ast.Package); ok {
+				node, _ = p.parseFunc(tok, parseFuncDecl)
+				// Consumes the semicolon.
+				tok = next(p.lex)
+				if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s after top level declaration", tok)})
+				}
+			} else if len(p.ancestors) == 1 {
 				node, _ = p.parseFunc(tok, parseFuncLit|parseFuncDecl)
+			} else {
+				node, _ = p.parseFunc(tok, parseFuncLit)
 			}
 			addChild(parent, node)
 			return
@@ -1388,6 +1423,8 @@ func addChild(parent ast.Node, node ast.Node) {
 	switch n := parent.(type) {
 	case *ast.Tree:
 		n.Nodes = append(n.Nodes, node)
+	case *ast.Package:
+		n.Declarations = append(n.Declarations, node)
 	case *ast.URL:
 		n.Value = append(n.Value, node)
 	case *ast.Macro:

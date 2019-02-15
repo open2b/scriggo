@@ -958,6 +958,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenMacro, p)
 	case "map":
 		l.emit(tokenMap, p)
+	case "package":
+		l.emit(tokenPackage, p)
 	case "range":
 		l.emit(tokenRange, p)
 	case "return":

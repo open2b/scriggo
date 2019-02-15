@@ -1004,6 +1004,20 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
+	case *ast.Package:
+		nn2, ok := n2.(*ast.Package)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.Declarations) != len(nn2.Declarations) {
+			return fmt.Errorf("unexpected declarations len %d, expecting %d", len(nn1.Declarations), len(nn2.Declarations))
+		}
+		for i, node := range nn1.Declarations {
+			err := equals(node, nn2.Declarations[i], p)
+			if err != nil {
+				return err
+			}
+		}
 	case *ast.Text:
 		nn2, ok := n2.(*ast.Text)
 		if !ok {

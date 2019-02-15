@@ -195,10 +195,9 @@ func Run(r io.Reader) error {
 // RenderTree is safe for concurrent use.
 func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
 
-	// TODO (Gianluca): out should be "nil" for Scrigo renderings, shouldn't it?
-	// if out == nil {
-	//  return errors.New("scrigo: out is nil")
-	// }
+	if out == nil {
+		return errors.New("scrigo: out is nil")
+	}
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
 	}
@@ -265,6 +264,88 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 	}
 
 	return err
+}
+
+// RunScriptTree runs the tree of a script.
+//
+// Run is safe for concurrent use.
+func RunScriptTree(tree *ast.Tree, vars interface{}) error {
+
+	if tree == nil {
+		return errors.New("scrigo: tree is nil")
+	}
+	if tree.Context != ast.ContextNone {
+		return errors.New("scrigo: tree context is not None")
+	}
+
+	globals, err := varsToScope(vars)
+	if err != nil {
+		return err
+	}
+
+	r := &rendering{
+		scope:       map[string]scope{},
+		path:        tree.Path,
+		vars:        []scope{builtins, globals, {}},
+		treeContext: ast.ContextNone,
+		handleError: stopOnError,
+	}
+
+	return r.render(nil, tree.Nodes, nil)
+}
+
+// RunPackageTree runs the tree of a main package.
+//
+// Run is safe for concurrent use.
+func RunPackageTree(tree *ast.Tree) error {
+
+	if tree == nil {
+		return errors.New("scrigo: tree is nil")
+	}
+	if tree.Context != ast.ContextNone {
+		return errors.New("scrigo: tree context is not None")
+	}
+
+	if len(tree.Nodes) != 1 {
+		return errors.New("scrigo: tree must contains only the main package")
+	}
+	pkg, ok := tree.Nodes[0].(*ast.Package)
+	if !ok {
+		return errors.New("scrigo: tree must contains only the main package")
+	}
+	if pkg.Name != "main" {
+		return &Error{tree.Path, *(pkg.Pos()), errors.New("package name must be main")}
+	}
+
+	vars := map[string]interface{}{}
+	var mainFunc *ast.Func
+	for _, declaration := range pkg.Declarations {
+		if fun, ok := declaration.(*ast.Func); ok {
+			name := fun.Ident.Name
+			if name == "main" {
+				mainFunc = fun
+			}
+			vars[name] = function{tree.Path, fun}
+		}
+	}
+	if mainFunc == nil {
+		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
+	}
+
+	globals, err := varsToScope(vars)
+	if err != nil {
+		return err
+	}
+
+	r := &rendering{
+		scope:       map[string]scope{},
+		path:        tree.Path,
+		vars:        []scope{builtins, globals, {}},
+		treeContext: ast.ContextNone,
+		handleError: stopOnError,
+	}
+
+	return r.render(nil, mainFunc.Body.Nodes, nil)
 }
 
 // varsToScope converts variables into a scope.

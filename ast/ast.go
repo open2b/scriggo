@@ -226,6 +226,17 @@ func NewBlock(pos *Position, nodes []Node) *Block {
 	return &Block{pos, nodes}
 }
 
+// Package node represents a package.
+type Package struct {
+	*Position
+	Name         string // name.
+	Declarations []Node // function declarations.
+}
+
+func NewPackage(pos *Position, name string, nodes []Node) *Package {
+	return &Package{pos, name, nodes}
+}
+
 // Assignment node represents an assignment statement.
 type Assignment struct {
 	*Position                // position in the source.
