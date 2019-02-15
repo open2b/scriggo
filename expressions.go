@@ -267,7 +267,7 @@ func (r *rendering) referenceInScope(variable string) (reflect.Value, error) {
 			if v, ok := r.vars[i][variable]; ok {
 				switch vv := v.(type) {
 				case reference:
-					return vv.rv, nil
+					return vv.rv.Addr(), nil
 				default:
 					rv := refToCopy(vv)
 					r.vars[i][variable] = reference{rv.Elem()}
