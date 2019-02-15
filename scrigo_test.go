@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"scrigo/ast"
+	"scrigo/parser"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,8 +31,11 @@ func executeScrigoSource(src []byte) string {
 		}
 		c <- struct{}{}
 	}()
-	srcReader := bytes.NewReader(src)
-	err = Run(srcReader)
+	tree, err := parser.ParseSource(src, ast.ContextNone)
+	if err != nil {
+		return err.Error()
+	}
+	err = RunScriptTree(tree, nil)
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
