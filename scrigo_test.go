@@ -49,7 +49,7 @@ func executeScrigoSource(src []byte) string {
 
 // listUsedPackages lists packages used in src.
 func listUsedPackages(src string) []string {
-	possiblePkgs := []string{"fmt", "math", "time"}
+	possiblePkgs := []string{"fmt", "math", "time", "os"}
 	pkgs := []string{}
 	for _, ppkg := range possiblePkgs {
 		if strings.Contains(src, ppkg+".") {

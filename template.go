@@ -20,6 +20,17 @@ import (
 	"scrigo/parser"
 )
 
+type pkgConstant struct {
+	value interface{}
+	typ   reflect.Type // nil for untyped constants.
+}
+
+// Constant returns a constant with given value and type. Can be used in Scrigo
+// packages definition. typ is nil for untyped constants.
+func Constant(value interface{}, typ reflect.Type) pkgConstant {
+	return pkgConstant{value, typ}
+}
+
 // Context indicates the type of source that has to be rendered and controls
 // how to escape the values to render.
 type Context int

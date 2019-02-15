@@ -6,8 +6,10 @@
 
 package scrigo
 
-import "fmt"
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 var _fmt = Package{
 	"Errorf":     fmt.Errorf,

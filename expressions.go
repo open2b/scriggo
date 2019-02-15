@@ -9,6 +9,7 @@ package scrigo
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 	"sync"
@@ -1067,6 +1068,18 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 				return nil, false, fmt.Errorf("scrigo: no-pointer value in call to Var")
 			}
 			return reflect.Indirect(rv.Elem()).Interface(), true, nil
+		}
+		if c, ok := v.(pkgConstant); ok {
+			// TODO (Gianluca): currently ignores types.
+			switch v := c.value.(type) {
+			// TODO (Gianluca): add missing cases.
+			case int:
+				return newConstantInt(big.NewInt(int64(v))), true, nil
+			case float64:
+				return newConstantFloat(big.NewFloat(v)), true, nil
+			default:
+				return v, true, nil
+			}
 		}
 		return v, true, nil
 	}
