@@ -48,7 +48,7 @@ func main() {
 
 	tree, err := parser.ParseSource(src, ast.ContextNone)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		os.Exit(-1)
 	}
 
