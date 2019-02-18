@@ -739,9 +739,9 @@ func (r *rendering) variable(name string) (interface{}, bool) {
 	for i := len(r.vars) - 1; i >= 0; i-- {
 		if r.vars[i] != nil {
 			if v, ok := r.vars[i][name]; ok {
-				switch v.(type) {
+				switch v := v.(type) {
 				case reference:
-					panic("referenced not implemented in (*rendering).variable")
+					return v.rv.Interface(), true
 				default:
 					return v, true
 				}
