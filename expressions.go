@@ -1063,11 +1063,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 			return nil, false, r.errorf(node, "type %s is not an expression", node)
 		}
 		if reflect.TypeOf(v).Kind() == reflect.Ptr {
-			rv := reflect.ValueOf(v)
-			if rv.Kind() != reflect.Ptr {
-				return nil, false, fmt.Errorf("scrigo: no-pointer value in call to Var")
-			}
-			return reflect.Indirect(rv.Elem()).Interface(), true, nil
+			return reflect.ValueOf(v).Elem().Interface(), true, nil
 		}
 		if c, ok := v.(pkgConstant); ok {
 			// TODO (Gianluca): currently ignores types.
