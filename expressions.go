@@ -58,9 +58,12 @@ func (r *rendering) eval0(expr ast.Expression) error {
 		_, err := r.evalCallN(e, 0)
 		return err
 	}
-	_, err := r.eval(expr)
+	v, err := r.eval(expr)
 	if err != nil {
 		return err
+	}
+	if _, ok := v.(reflect.Type); ok {
+		return r.errorf(expr, "type %s is not an expression", expr)
 	}
 	return r.errorf(expr, "%s evaluated but not used", expr)
 }
@@ -1060,7 +1063,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 			return nil, false, r.errorf(node, "undefined: %s", node)
 		}
 		if _, ok := v.(reflect.Type); ok {
-			return nil, false, r.errorf(node, "type %s is not an expression", node)
+			return v, true, nil
 		}
 		if reflect.TypeOf(v).Kind() == reflect.Ptr {
 			return reflect.ValueOf(v).Elem().Interface(), true, nil

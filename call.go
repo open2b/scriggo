@@ -442,6 +442,15 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 			return n.ToUint16()
 		case uint8Type:
 			return n.ToUint8()
+		default:
+			n, err := n.ToTyped()
+			if err != nil {
+				return nil, err
+			}
+			rv := reflect.ValueOf(n)
+			if rv.Type().ConvertibleTo(typ) {
+				return rv.Convert(typ).Interface(), nil
+			}
 		}
 	}
 	switch typ {
