@@ -1377,7 +1377,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		}
 		return s.Interface()
 	}
-	panic(fmt.Sprintf("unknown type %s", typ))
+	panic(r.errorf(node, "invalid type for composite literal: %s", node))
 }
 
 const noEllipses = -1
