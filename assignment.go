@@ -345,9 +345,9 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		for j := len(r.vars) - 1; j >= 0; j-- {
 			if vars := r.vars[j]; vars != nil {
 				if vv, ok := vars[v.Name]; ok {
-					switch vv.(type) {
+					switch vvv := vv.(type) {
 					case reference:
-						panic("case referenced not implemented")
+						return varAddress{vvv.rv}, nil
 					default:
 						if j == 0 {
 							if vt, ok := vv.(reflect.Type); ok {
