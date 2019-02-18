@@ -58,7 +58,7 @@ func main() {
 		err = scrigo.RunScriptTree(tree, pkgs)
 	}
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
 
 }
