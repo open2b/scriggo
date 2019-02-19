@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"scrigo/ast"
 	"scrigo/ast/astutil"
@@ -56,6 +57,8 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 				return r.evalMake(node, n)
 			case "new":
 				return r.evalNew(node, n)
+			case "panic":
+				return r.evalPanic(node, n)
 			}
 		}
 	}
@@ -1016,4 +1019,38 @@ func (r *rendering) evalNew(node *ast.Call, n int) ([]reflect.Value, error) {
 		return nil, err
 	}
 	return []reflect.Value{reflect.New(typ)}, nil
+}
+
+// ErrorPanic is the error representing the panic condition.
+type ErrorPanic struct {
+	err  error    // error message.
+	node ast.Node // ast node which caused panic.
+}
+
+func (e ErrorPanic) Error() string {
+	msg := `panic: {{err}}
+
+goroutine [running]:
+	{{panicPos}}
+`
+	repl := strings.NewReplacer(
+		"{{err}}", e.err.Error(),
+		"{{panicPos}}", e.node.Pos().String(),
+	)
+	return repl.Replace(msg)
+}
+
+// evalPanic evaluates the panic builtin function.
+func (r *rendering) evalPanic(node *ast.Call, n int) ([]reflect.Value, error) {
+	err := r.checkBuiltInParameterCount(node, 1, 0, n)
+	if err != nil {
+		return nil, err
+	}
+	v, err := r.eval(node.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	// TODO (Gianluca): how to convert v to string properly? This convertion
+	// does not work for constant numbers.
+	return nil, ErrorPanic{fmt.Errorf("%v", v), node}
 }

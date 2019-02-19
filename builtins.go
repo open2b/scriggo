@@ -71,6 +71,7 @@ var builtins = map[string]interface{}{
 	"new":    nil,
 	"copy":   nil,
 	"make":   nil,
+	"panic":  nil,
 
 	"string":      stringType,
 	"int":         intType,
