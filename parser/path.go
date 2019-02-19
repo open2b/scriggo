@@ -10,8 +10,28 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
+
+// validPackageImportPath indicates whether path is valid for a package import
+// path.
+func validPackageImportPath(path string) bool {
+	for _, r := range path {
+		if !unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.P, unicode.S) {
+			return false
+		}
+		switch r {
+		case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', ':', ';', '<',
+			'=', '>', '?', '[', '\\', ']', '^', '`', '{', '|', '}', '\uFFFD':
+			return false
+		}
+	}
+	if !validPath(path) {
+		return false
+	}
+	return true
+}
 
 // validPath indicates whether path is valid for an extends, import and
 // include path.

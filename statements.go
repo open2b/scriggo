@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
 	"reflect"
 	"strings"
 	"unicode"
@@ -76,6 +77,7 @@ type rendering struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
+	packages    map[string]Package
 	treeContext ast.Context
 	function    function
 	handleError func(error) bool
@@ -675,32 +677,63 @@ Nodes:
 
 		case *ast.Import:
 
-			path := node.Tree.Path
-			if _, ok := r.scope[path]; !ok {
-				rn := &rendering{
-					scope:       r.scope,
-					path:        path,
-					vars:        []scope{r.vars[0], r.vars[1], {}},
-					treeContext: r.treeContext,
-					handleError: r.handleError,
-				}
-				err := rn.render(nil, node.Tree.Nodes, nil)
-				if err != nil {
-					return err
-				}
-				r.scope[path] = rn.vars[2]
-				if node.Ident != nil && node.Ident.Name == "_" {
-					continue
-				}
-				for name, m := range rn.vars[2] {
-					if _, ok := m.(macro); ok {
-						if strings.Index(name, ".") > 0 {
-							continue
+			if r.treeContext == ast.ContextNone {
+				name := path.Base(node.Path)
+				if node.Tree == nil {
+					r.vars[2][name] = r.packages[node.Path]
+				} else {
+					if _, ok := r.scope[node.Tree.Path]; !ok {
+						rn := &rendering{
+							scope:       r.scope,
+							path:        node.Tree.Path,
+							vars:        []scope{r.vars[0], r.vars[1], {}},
+							packages:    r.packages,
+							treeContext: r.treeContext,
+							handleError: r.handleError,
 						}
-						if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
-							continue
+						declarations := node.Tree.Nodes[0].(*ast.Package).Declarations
+						err := rn.render(nil, declarations, nil)
+						if err != nil {
+							return err
 						}
-						r.vars[2][name] = m
+						r.scope[node.Tree.Path] = rn.vars[2]
+						pkg := Package{}
+						for name, fn := range rn.vars[2] {
+							if _, ok := fn.(function); ok {
+								pkg[name] = fn
+							}
+						}
+						r.vars[2][name] = pkg
+					}
+				}
+			} else {
+				if _, ok := r.scope[node.Tree.Path]; !ok {
+					rn := &rendering{
+						scope:       r.scope,
+						path:        node.Tree.Path,
+						vars:        []scope{r.vars[0], r.vars[1], {}},
+						packages:    r.packages,
+						treeContext: r.treeContext,
+						handleError: r.handleError,
+					}
+					err := rn.render(nil, node.Tree.Nodes, nil)
+					if err != nil {
+						return err
+					}
+					r.scope[node.Tree.Path] = rn.vars[2]
+					if node.Ident != nil && node.Ident.Name == "_" {
+						continue
+					}
+					for name, m := range rn.vars[2] {
+						if _, ok := m.(macro); ok {
+							if strings.Index(name, ".") > 0 {
+								continue
+							}
+							if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+								continue
+							}
+							r.vars[2][name] = m
+						}
 					}
 				}
 			}

@@ -912,7 +912,7 @@ func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 func TestPages(t *testing.T) {
 	tests := pageTests()
 	// simple.html
-	parser := New(testsReader(tests))
+	parser := New(testsReader(tests), nil)
 	p := tests["/simple.html"]
 	tree, err := parser.Parse("/simple.html", ast.ContextHTML)
 	if err != nil {

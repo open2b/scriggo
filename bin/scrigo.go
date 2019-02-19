@@ -8,7 +8,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -30,30 +29,28 @@ func main() {
 		fmt.Printf("%s: extension must be \".go\" for main packages and \".sgo\" for scripts\n", file)
 		os.Exit(-1)
 	}
-	fi, err := os.Open(file)
+
+	absFile, err := filepath.Abs(file)
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("file %q does not exist\n", file)
-		} else {
-			fmt.Printf("opening file %q: %s\n", file, err)
-		}
+		fmt.Printf("%s: %s\n", file)
 		os.Exit(-1)
 	}
-	src, err := ioutil.ReadAll(fi)
-	_ = fi.Close()
-	if err != nil {
-		fmt.Printf("reading file %q: %s\n", file, err)
-		os.Exit(-1)
+	r := parser.DirReader(filepath.Dir(absFile))
+
+	var packagesNames = make([]string, len(pkgs))
+	for name := range pkgs {
+		packagesNames = append(packagesNames, name)
 	}
 
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	p := parser.New(r, packagesNames)
+	tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
 
 	if ext == ".go" {
-		err = scrigo.RunPackageTree(tree)
+		err = scrigo.RunPackageTree(tree, pkgs)
 	} else {
 		err = scrigo.RunScriptTree(tree, pkgs)
 	}

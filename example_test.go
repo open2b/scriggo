@@ -40,7 +40,7 @@ func ExampleRenderSource() {
 }
 
 func ExampleRenderTree() {
-	p := parser.New(parser.DirReader("/home/salinger/book/"))
+	p := parser.New(parser.DirReader("/home/salinger/book/"), nil)
 
 	tree, err := p.Parse("cover.html", ast.ContextHTML)
 	if err != nil {

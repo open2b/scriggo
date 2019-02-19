@@ -213,7 +213,8 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 
 	var vars []scope
 	if ident := fun.node.Ident; ident != nil {
-		vars = []scope{r.vars[0], r.vars[1], {ident.Name: fun}, args}
+		sc := r.scope[fun.path]
+		vars = []scope{r.vars[0], r.vars[1], sc, args}
 	} else {
 		vars = []scope{r.vars[0], r.vars[1], args}
 	}

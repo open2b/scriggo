@@ -299,7 +299,9 @@ func (p *parsing) parseStatement(tok token) {
 	l := -1
 	switch s := parent.(type) {
 	case *ast.Package:
-		if tok.typ != tokenFunc {
+		switch tok.typ {
+		case tokenImport, tokenFunc:
+		default:
 			panic(&Error{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body (%q)", tok)})
 		}
 	case *ast.Switch:
@@ -902,30 +904,37 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)})
 			case *ast.If:
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)})
+			case *ast.Func:
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 			case *ast.Macro:
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
+			case *ast.Case:
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 			}
 		}
 		tok = next(p.lex)
-		var ident *ast.Identifier
-		if tok.typ == tokenIdentifier {
-			ident = ast.NewIdentifier(tok.pos, string(tok.txt))
+		if p.ctx == ast.ContextNone && tok.typ == tokenLeftParenthesis {
 			tok = next(p.lex)
+			for tok.typ != tokenRightParenthesis {
+				addChild(parent, p.parseImportSpec(tok))
+				tok = next(p.lex)
+				if tok.typ == tokenSemicolon {
+					tok = next(p.lex)
+				} else if tok.typ != tokenRightParenthesis {
+					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+				}
+			}
+			tok = next(p.lex)
+			if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon or newline", tok)})
+			}
+		} else {
+			addChild(parent, p.parseImportSpec(tok))
+			tok = next(p.lex)
+			if tok.typ != tokenSemicolon {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
 		}
-		if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-			panic(fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos))
-		}
-		var path = unquoteString(tok.txt)
-		if !validPath(path) {
-			panic(fmt.Errorf("invalid import path %q at %s", path, tok.pos))
-		}
-		tok = next(p.lex)
-		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
-		pos.End = tok.pos.End
-		node = ast.NewImport(pos, ident, path, tok.ctx)
-		addChild(parent, node)
 		p.cutSpacesToken = true
 
 	// macro
@@ -1104,6 +1113,24 @@ func (p *parsing) parseStatement(tok token) {
 	return
 }
 
+func (p *parsing) parseImportSpec(tok token) *ast.Import {
+	pos := tok.pos
+	var ident *ast.Identifier
+	if tok.typ == tokenIdentifier {
+		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
+		tok = next(p.lex)
+	}
+	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
+		panic(fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos))
+	}
+	var path = unquoteString(tok.txt)
+	if p.ctx == ast.ContextNone && !validPackageImportPath(path) || p.ctx != ast.ContextNone && !validPath(path) {
+		panic(fmt.Errorf("invalid import path %q at %s", path, tok.pos))
+	}
+	pos.End = tok.pos.End
+	return ast.NewImport(pos, ident, path, tok.ctx)
+}
+
 // parseAssignment parses an assignment and returns an assignment or, if there
 // is no expression, returns nil. tok can be the assignment, declaration,
 // increment or decrement token. Panics on error.
@@ -1183,15 +1210,17 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 // occur. In case, use the function Clone in the astutil package to create a
 // clone of the tree and then transform the clone.
 type Parser struct {
-	reader Reader
-	trees  *cache
+	reader   Reader
+	packages []string
+	trees    *cache
 }
 
 // New returns a new Parser that reads the trees from the reader r.
-func New(r Reader) *Parser {
+func New(r Reader, packages []string) *Parser {
 	return &Parser{
-		reader: r,
-		trees:  &cache{},
+		reader:   r,
+		packages: packages,
+		trees:    &cache{},
 	}
 }
 
@@ -1214,7 +1243,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	pp := &expansion{p.reader, p.trees, []string{}}
+	pp := &expansion{p.reader, p.trees, p.packages, []string{}}
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
@@ -1231,9 +1260,10 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 // expansion is an expansion state.
 type expansion struct {
-	reader Reader
-	trees  *cache
-	paths  []string
+	reader   Reader
+	trees    *cache
+	packages []string
+	paths    []string
 }
 
 // abs returns path as absolute.
@@ -1295,6 +1325,12 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 	for _, node := range nodes {
 
 		switch n := node.(type) {
+
+		case *ast.Package:
+			err := pp.expand(n.Declarations, ctx)
+			if err != nil {
+				return err
+			}
 
 		case *ast.If:
 
@@ -1381,16 +1417,40 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if err != nil {
 				return err
 			}
-			n.Tree, err = pp.parsePath(absPath, n.Context)
-			if err != nil {
-				if err == ErrInvalidPath {
-					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == ErrNotExist {
-					err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", absPath)}
-				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("imports " + string(err2))
+			if ctx == ast.ContextNone {
+				found := false
+				for _, pkg := range pp.packages {
+					if pkg == n.Path {
+						found = true
+						break
+					}
 				}
-				return err
+				if found {
+					continue
+				}
+				n.Tree, err = pp.parsePath(absPath+".go", n.Context)
+				if err != nil {
+					if err == ErrInvalidPath {
+						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+					} else if err == ErrNotExist {
+						err = &Error{"", *(n.Pos()), fmt.Errorf("cannot find package \"%s\"", n.Path)}
+					} else if err2, ok := err.(CycleError); ok {
+						err = CycleError("imports " + string(err2))
+					}
+					return err
+				}
+			} else {
+				n.Tree, err = pp.parsePath(absPath, n.Context)
+				if err != nil {
+					if err == ErrInvalidPath {
+						err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+					} else if err == ErrNotExist {
+						err = &Error{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", absPath)}
+					} else if err2, ok := err.(CycleError); ok {
+						err = CycleError("imports " + string(err2))
+					}
+					return err
+				}
 			}
 
 		case *ast.Include:

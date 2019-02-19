@@ -6,7 +6,9 @@
 
 package parser
 
-import "testing"
+import (
+	"testing"
+)
 
 var validPaths = []string{"a", "/a", "a/b", "/a/b", "../a", "a/../a", ".", "..."}
 

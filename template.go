@@ -92,7 +92,7 @@ type DirRenderer struct {
 // details.
 func NewDirRenderer(dir string, strict bool, ctx Context) *DirRenderer {
 	var r = parser.DirReader(dir)
-	return &DirRenderer{parser: parser.New(r), strict: strict, ctx: ast.Context(ctx)}
+	return &DirRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template file with the specified path, relative to the
@@ -122,7 +122,7 @@ type MapRenderer struct {
 // execution stop the rendering. See the type Errors for more details.
 func NewMapRenderer(sources map[string][]byte, strict bool, ctx Context) *MapRenderer {
 	var r = parser.MapReader(sources)
-	return &MapRenderer{parser: parser.New(r), strict: strict, ctx: ast.Context(ctx)}
+	return &MapRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template source with the specified path and writes
@@ -269,7 +269,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 // RunScriptTree runs the tree of a script.
 //
 // Run is safe for concurrent use.
-func RunScriptTree(tree *ast.Tree, vars interface{}) error {
+func RunScriptTree(tree *ast.Tree, packages map[string]Package) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -278,15 +278,26 @@ func RunScriptTree(tree *ast.Tree, vars interface{}) error {
 		return errors.New("scrigo: tree context is not None")
 	}
 
-	globals, err := varsToScope(vars)
-	if err != nil {
-		return err
+	globals := scope{}
+
+	if mainPkg, ok := packages["main"]; ok {
+		for name, value := range mainPkg {
+			if _, ok := value.(reflect.Type); !ok {
+				if rv := reflect.ValueOf(value); rv.Kind() == reflect.Ptr {
+					globals[name] = reference{rv.Elem()}
+				}
+			}
+			if _, ok := globals[name]; !ok {
+				globals[name] = value
+			}
+		}
 	}
 
 	r := &rendering{
 		scope:       map[string]scope{},
 		path:        tree.Path,
 		vars:        []scope{builtins, globals, {}},
+		packages:    packages,
 		treeContext: ast.ContextNone,
 		handleError: stopOnError,
 	}
@@ -297,7 +308,7 @@ func RunScriptTree(tree *ast.Tree, vars interface{}) error {
 // RunPackageTree runs the tree of a main package.
 //
 // Run is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]Package) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -317,35 +328,34 @@ func RunPackageTree(tree *ast.Tree) error {
 		return &Error{tree.Path, *(pkg.Pos()), errors.New("package name must be main")}
 	}
 
-	vars := map[string]interface{}{}
-	var mainFunc *ast.Func
-	for _, declaration := range pkg.Declarations {
-		if fun, ok := declaration.(*ast.Func); ok {
-			name := fun.Ident.Name
-			if name == "main" {
-				mainFunc = fun
-			}
-			vars[name] = function{tree.Path, fun}
-		}
-	}
-	if mainFunc == nil {
-		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
-	}
-
-	globals, err := varsToScope(vars)
-	if err != nil {
-		return err
-	}
-
 	r := &rendering{
 		scope:       map[string]scope{},
 		path:        tree.Path,
-		vars:        []scope{builtins, globals, {}},
+		vars:        []scope{builtins, {}, {}},
+		packages:    packages,
 		treeContext: ast.ContextNone,
 		handleError: stopOnError,
 	}
 
-	return r.render(nil, mainFunc.Body.Nodes, nil)
+	err := r.render(nil, pkg.Declarations, nil)
+	if err != nil {
+		return err
+	}
+
+	mf, ok := r.vars[2]["main"]
+	if !ok {
+		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
+	}
+
+	r.scope[tree.Path] = r.vars[2]
+	r.vars = append(r.vars, scope{})
+
+	err = r.render(nil, mf.(function).node.Body.Nodes, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // varsToScope converts variables into a scope.

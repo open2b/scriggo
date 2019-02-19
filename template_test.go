@@ -668,7 +668,7 @@ func TestRenderErrors(t *testing.T) {
 var rendererCallFuncTests = []struct {
 	src  string
 	res  string
-	vars scope
+	vars map[string]Package
 }{
 	{"func f() {}; f()", "", nil},
 	{"func f(x int) int { return x }; print(f(2))", "2", nil},
