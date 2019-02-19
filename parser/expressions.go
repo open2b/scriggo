@@ -250,7 +250,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
 			if mustBeType {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecing type", tok.txt)})
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecting type", tok.txt)})
 			}
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
