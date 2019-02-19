@@ -1049,6 +1049,7 @@ func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 // evalSelector2 evaluates a selector in a two-values context. If its
 // identifier exists it returns the value and true, otherwise it returns nil
 // and false.
+// TODO (Gianluca): structKeys is currently used for non struct types too.
 func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error) {
 	if ident, ok := node.Expr.(*ast.Identifier); ok {
 		v, ok := r.variable(ident.Name)
@@ -1104,7 +1105,16 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 		return v, true, nil
 	}
 	rv := reflect.ValueOf(value)
-	keys := structKeys(rv)
+	keys := make(map[string]structKey)
+	if rv.Kind() == reflect.Struct {
+		keys = structKeys(rv)
+	} else {
+		n := rv.NumMethod()
+		for i := 0; i < n; i++ {
+			met := rv.Type().Method(i)
+			keys[met.Name] = structKey{index: i, isMethod: true}
+		}
+	}
 	if keys == nil {
 		return nil, false, r.errorf(node, "%s undefined (type %s has no field or method %s)", node, typeof(value), node.Ident)
 	}
