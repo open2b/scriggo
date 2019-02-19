@@ -163,9 +163,9 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 		name := node.Func.String()
 		var err error
 		if haveSize < wantSize {
-			err = r.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+			err = r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", name, have, want)
 		} else {
-			err = r.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
+			err = r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", name, have, want)
 		}
 		return nil, err
 	}
