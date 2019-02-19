@@ -1106,7 +1106,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	}
 	rv := reflect.ValueOf(value)
 	keys := make(map[string]structKey)
-	if rv.Kind() == reflect.Struct {
+	if rv.Kind() == reflect.Struct || (rv.Kind() == reflect.Ptr && rv.Elem().Kind() == reflect.Struct) {
 		keys = structKeys(rv)
 	} else {
 		n := rv.NumMethod()
