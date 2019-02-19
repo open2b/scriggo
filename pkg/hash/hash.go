@@ -2,9 +2,9 @@
 
 package hash
 
+import "reflect"
 import original "hash"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
 	"Hash": reflect.TypeOf((*original.Hash)(nil)).Elem(),

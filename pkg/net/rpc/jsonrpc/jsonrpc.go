@@ -2,8 +2,8 @@
 
 package jsonrpc
 
-import "scrigo"
 import original "net/rpc/jsonrpc"
+import "scrigo"
 
 var Package = scrigo.Package{
 	"Dial": original.Dial,

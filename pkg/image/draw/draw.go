@@ -13,5 +13,7 @@ var Package = scrigo.Package{
 	"FloydSteinberg": &original.FloydSteinberg,
 	"Image": reflect.TypeOf((*original.Image)(nil)).Elem(),
 	"Op": reflect.TypeOf(original.Op(int(0))),
+	"Over": scrigo.Constant(original.Over, nil),
 	"Quantizer": reflect.TypeOf((*original.Quantizer)(nil)).Elem(),
+	"Src": scrigo.Constant(original.Src, nil),
 }

@@ -2,11 +2,12 @@
 
 package httptest
 
-import "reflect"
 import original "net/http/httptest"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
+	"DefaultRemoteAddr": scrigo.Constant(original.DefaultRemoteAddr, nil),
 	"NewRecorder": original.NewRecorder,
 	"NewRequest": original.NewRequest,
 	"NewServer": original.NewServer,

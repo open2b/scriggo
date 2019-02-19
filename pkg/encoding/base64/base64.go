@@ -12,8 +12,10 @@ var Package = scrigo.Package{
 	"NewDecoder": original.NewDecoder,
 	"NewEncoder": original.NewEncoder,
 	"NewEncoding": original.NewEncoding,
+	"NoPadding": scrigo.Constant(original.NoPadding, nil),
 	"RawStdEncoding": &original.RawStdEncoding,
 	"RawURLEncoding": &original.RawURLEncoding,
 	"StdEncoding": &original.StdEncoding,
+	"StdPadding": scrigo.Constant(original.StdPadding, nil),
 	"URLEncoding": &original.URLEncoding,
 }

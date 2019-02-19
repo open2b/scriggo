@@ -2,9 +2,9 @@
 
 package fmt
 
-import "reflect"
 import original "fmt"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"Errorf": original.Errorf,

@@ -2,8 +2,8 @@
 
 package palette
 
-import original "image/color/palette"
 import "scrigo"
+import original "image/color/palette"
 
 var Package = scrigo.Package{
 	"Plan9": &original.Plan9,

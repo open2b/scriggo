@@ -12,5 +12,6 @@ var Package = scrigo.Package{
 	"ErrorList": reflect.TypeOf((original.ErrorList)(nil)),
 	"Mode": reflect.TypeOf(original.Mode(uint(0))),
 	"PrintError": original.PrintError,
+	"ScanComments": scrigo.Constant(original.ScanComments, nil),
 	"Scanner": reflect.TypeOf(original.Scanner{}),
 }

@@ -2,9 +2,9 @@
 
 package ecdsa
 
-import "reflect"
 import original "crypto/ecdsa"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"GenerateKey": original.GenerateKey,

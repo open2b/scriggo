@@ -2,8 +2,8 @@
 
 package signal
 
-import original "os/signal"
 import "scrigo"
+import original "os/signal"
 
 var Package = scrigo.Package{
 	"Ignore": original.Ignore,

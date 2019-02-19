@@ -2,9 +2,9 @@
 
 package xml
 
-import original "encoding/xml"
 import "scrigo"
 import "reflect"
+import original "encoding/xml"
 
 var Package = scrigo.Package{
 	"Attr": reflect.TypeOf(original.Attr{}),
@@ -19,6 +19,7 @@ var Package = scrigo.Package{
 	"EscapeText": original.EscapeText,
 	"HTMLAutoClose": &original.HTMLAutoClose,
 	"HTMLEntity": &original.HTMLEntity,
+	"Header": scrigo.Constant(original.Header, nil),
 	"Marshal": original.Marshal,
 	"MarshalIndent": original.MarshalIndent,
 	"Marshaler": reflect.TypeOf((*original.Marshaler)(nil)).Elem(),

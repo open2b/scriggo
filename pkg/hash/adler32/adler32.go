@@ -8,4 +8,5 @@ import "scrigo"
 var Package = scrigo.Package{
 	"Checksum": original.Checksum,
 	"New": original.New,
+	"Size": scrigo.Constant(original.Size, nil),
 }

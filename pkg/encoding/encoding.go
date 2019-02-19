@@ -2,9 +2,9 @@
 
 package encoding
 
-import "reflect"
 import original "encoding"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"BinaryMarshaler": reflect.TypeOf((*original.BinaryMarshaler)(nil)).Elem(),

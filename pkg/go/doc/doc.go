@@ -2,11 +2,13 @@
 
 package doc
 
+import "reflect"
 import original "go/doc"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
+	"AllDecls": scrigo.Constant(original.AllDecls, nil),
+	"AllMethods": scrigo.Constant(original.AllMethods, nil),
 	"Example": reflect.TypeOf(original.Example{}),
 	"Examples": original.Examples,
 	"Filter": reflect.TypeOf((original.Filter)(nil)),

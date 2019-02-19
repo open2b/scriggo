@@ -2,9 +2,9 @@
 
 package sync
 
-import original "sync"
 import "scrigo"
 import "reflect"
+import original "sync"
 
 var Package = scrigo.Package{
 	"Cond": reflect.TypeOf(original.Cond{}),

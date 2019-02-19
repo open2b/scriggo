@@ -2,9 +2,9 @@
 
 package flag
 
-import "reflect"
 import original "flag"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"Arg": original.Arg,
@@ -12,10 +12,12 @@ var Package = scrigo.Package{
 	"Bool": original.Bool,
 	"BoolVar": original.BoolVar,
 	"CommandLine": &original.CommandLine,
+	"ContinueOnError": scrigo.Constant(original.ContinueOnError, nil),
 	"Duration": original.Duration,
 	"DurationVar": original.DurationVar,
 	"ErrHelp": &original.ErrHelp,
 	"ErrorHandling": reflect.TypeOf(original.ErrorHandling(int(0))),
+	"ExitOnError": scrigo.Constant(original.ExitOnError, nil),
 	"Flag": reflect.TypeOf(original.Flag{}),
 	"FlagSet": reflect.TypeOf(original.FlagSet{}),
 	"Float64": original.Float64,
@@ -29,6 +31,7 @@ var Package = scrigo.Package{
 	"NArg": original.NArg,
 	"NFlag": original.NFlag,
 	"NewFlagSet": original.NewFlagSet,
+	"PanicOnError": scrigo.Constant(original.PanicOnError, nil),
 	"Parse": original.Parse,
 	"Parsed": original.Parsed,
 	"PrintDefaults": original.PrintDefaults,

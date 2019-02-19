@@ -2,9 +2,9 @@
 
 package bufio
 
-import "reflect"
 import original "bufio"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"ErrAdvanceTooFar": &original.ErrAdvanceTooFar,
@@ -15,6 +15,7 @@ var Package = scrigo.Package{
 	"ErrNegativeAdvance": &original.ErrNegativeAdvance,
 	"ErrNegativeCount": &original.ErrNegativeCount,
 	"ErrTooLong": &original.ErrTooLong,
+	"MaxScanTokenSize": scrigo.Constant(original.MaxScanTokenSize, nil),
 	"NewReadWriter": original.NewReadWriter,
 	"NewReader": original.NewReader,
 	"NewReaderSize": original.NewReaderSize,

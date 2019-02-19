@@ -2,13 +2,14 @@
 
 package jpeg
 
-import "reflect"
 import original "image/jpeg"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"Decode": original.Decode,
 	"DecodeConfig": original.DecodeConfig,
+	"DefaultQuality": scrigo.Constant(original.DefaultQuality, nil),
 	"Encode": original.Encode,
 	"FormatError": reflect.TypeOf(""),
 	"Options": reflect.TypeOf(original.Options{}),

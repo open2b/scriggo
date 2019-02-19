@@ -2,9 +2,9 @@
 
 package pkix
 
+import original "crypto/x509/pkix"
 import "scrigo"
 import "reflect"
-import original "crypto/x509/pkix"
 
 var Package = scrigo.Package{
 	"AlgorithmIdentifier": reflect.TypeOf(original.AlgorithmIdentifier{}),

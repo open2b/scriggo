@@ -2,9 +2,9 @@
 
 package importer
 
-import original "go/importer"
 import "scrigo"
 import "reflect"
+import original "go/importer"
 
 var Package = scrigo.Package{
 	"Default": original.Default,

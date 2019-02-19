@@ -209,8 +209,11 @@ func generatePackage(w io.Writer, pkgPath string, scrigoPackageName string) {
 				// Find a better and general way to do this.
 				if pkgPath == "math" && strings.Contains(fullName, "MaxUint64") {
 					pkgContent += mapPair(name, "scrigo.Constant(uint64(original.MaxUint64), nil)")
+					continue
 				}
-				continue
+				if pkgPath == "hash/crc64" {
+					continue
+				}
 			}
 			var t string
 			if strings.HasPrefix(typ, "untyped ") {

@@ -2,9 +2,9 @@
 
 package trace
 
+import original "runtime/trace"
 import "scrigo"
 import "reflect"
-import original "runtime/trace"
 
 var Package = scrigo.Package{
 	"IsEnabled": original.IsEnabled,

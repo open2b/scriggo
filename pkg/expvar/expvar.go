@@ -2,9 +2,9 @@
 
 package expvar
 
+import "reflect"
 import original "expvar"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
 	"Do": original.Do,

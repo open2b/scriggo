@@ -2,9 +2,9 @@
 
 package unicode
 
-import original "unicode"
 import "scrigo"
 import "reflect"
+import original "unicode"
 
 var Package = scrigo.Package{
 	"ASCII_Hex_Digit": &original.ASCII_Hex_Digit,
@@ -122,6 +122,7 @@ var Package = scrigo.Package{
 	"Lo": &original.Lo,
 	"Logical_Order_Exception": &original.Logical_Order_Exception,
 	"Lower": &original.Lower,
+	"LowerCase": scrigo.Constant(original.LowerCase, nil),
 	"Lt": &original.Lt,
 	"Lu": &original.Lu,
 	"Lycian": &original.Lycian,
@@ -134,6 +135,10 @@ var Package = scrigo.Package{
 	"Marchen": &original.Marchen,
 	"Mark": &original.Mark,
 	"Masaram_Gondi": &original.Masaram_Gondi,
+	"MaxASCII": scrigo.Constant(original.MaxASCII, nil),
+	"MaxCase": scrigo.Constant(original.MaxCase, nil),
+	"MaxLatin1": scrigo.Constant(original.MaxLatin1, nil),
+	"MaxRune": scrigo.Constant(original.MaxRune, nil),
 	"Mc": &original.Mc,
 	"Me": &original.Me,
 	"Meetei_Mayek": &original.Meetei_Mayek,
@@ -206,6 +211,7 @@ var Package = scrigo.Package{
 	"RangeTable": reflect.TypeOf(original.RangeTable{}),
 	"Regional_Indicator": &original.Regional_Indicator,
 	"Rejang": &original.Rejang,
+	"ReplacementChar": scrigo.Constant(original.ReplacementChar, nil),
 	"Runic": &original.Runic,
 	"S": &original.S,
 	"STerm": &original.STerm,
@@ -248,6 +254,7 @@ var Package = scrigo.Package{
 	"Tifinagh": &original.Tifinagh,
 	"Tirhuta": &original.Tirhuta,
 	"Title": &original.Title,
+	"TitleCase": scrigo.Constant(original.TitleCase, nil),
 	"To": original.To,
 	"ToLower": original.ToLower,
 	"ToTitle": original.ToTitle,
@@ -256,8 +263,11 @@ var Package = scrigo.Package{
 	"Ugaritic": &original.Ugaritic,
 	"Unified_Ideograph": &original.Unified_Ideograph,
 	"Upper": &original.Upper,
+	"UpperCase": scrigo.Constant(original.UpperCase, nil),
+	"UpperLower": scrigo.Constant(original.UpperLower, nil),
 	"Vai": &original.Vai,
 	"Variation_Selector": &original.Variation_Selector,
+	"Version": scrigo.Constant(original.Version, nil),
 	"Warang_Citi": &original.Warang_Citi,
 	"White_Space": &original.White_Space,
 	"Yi": &original.Yi,

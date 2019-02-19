@@ -2,9 +2,9 @@
 
 package regexp
 
-import original "regexp"
 import "scrigo"
 import "reflect"
+import original "regexp"
 
 var Package = scrigo.Package{
 	"Compile": original.Compile,

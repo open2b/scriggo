@@ -2,9 +2,9 @@
 
 package url
 
-import "reflect"
 import original "net/url"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"Error": reflect.TypeOf(original.Error{}),

@@ -2,15 +2,17 @@
 
 package rpc
 
+import original "net/rpc"
 import "scrigo"
 import "reflect"
-import original "net/rpc"
 
 var Package = scrigo.Package{
 	"Accept": original.Accept,
 	"Call": reflect.TypeOf(original.Call{}),
 	"Client": reflect.TypeOf(original.Client{}),
 	"ClientCodec": reflect.TypeOf((*original.ClientCodec)(nil)).Elem(),
+	"DefaultDebugPath": scrigo.Constant(original.DefaultDebugPath, nil),
+	"DefaultRPCPath": scrigo.Constant(original.DefaultRPCPath, nil),
 	"DefaultServer": &original.DefaultServer,
 	"Dial": original.Dial,
 	"DialHTTP": original.DialHTTP,

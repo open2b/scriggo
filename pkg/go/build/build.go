@@ -2,15 +2,19 @@
 
 package build
 
+import original "go/build"
 import "scrigo"
 import "reflect"
-import original "go/build"
 
 var Package = scrigo.Package{
+	"AllowBinary": scrigo.Constant(original.AllowBinary, nil),
 	"ArchChar": original.ArchChar,
 	"Context": reflect.TypeOf(original.Context{}),
 	"Default": &original.Default,
+	"FindOnly": scrigo.Constant(original.FindOnly, nil),
+	"IgnoreVendor": scrigo.Constant(original.IgnoreVendor, nil),
 	"Import": original.Import,
+	"ImportComment": scrigo.Constant(original.ImportComment, nil),
 	"ImportDir": original.ImportDir,
 	"ImportMode": reflect.TypeOf(original.ImportMode(uint(0))),
 	"IsLocalImport": original.IsLocalImport,

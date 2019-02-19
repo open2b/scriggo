@@ -2,9 +2,9 @@
 
 package httputil
 
+import "reflect"
 import original "net/http/httputil"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
 	"BufferPool": reflect.TypeOf((*original.BufferPool)(nil)).Elem(),

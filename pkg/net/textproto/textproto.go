@@ -2,9 +2,9 @@
 
 package textproto
 
+import original "net/textproto"
 import "scrigo"
 import "reflect"
-import original "net/textproto"
 
 var Package = scrigo.Package{
 	"CanonicalMIMEHeaderKey": original.CanonicalMIMEHeaderKey,

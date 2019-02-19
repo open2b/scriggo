@@ -31,6 +31,7 @@ var Package = scrigo.Package{
 	"LastIndexByte": original.LastIndexByte,
 	"LastIndexFunc": original.LastIndexFunc,
 	"Map": original.Map,
+	"MinRead": scrigo.Constant(original.MinRead, nil),
 	"NewBuffer": original.NewBuffer,
 	"NewBufferString": original.NewBufferString,
 	"NewReader": original.NewReader,

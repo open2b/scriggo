@@ -2,9 +2,9 @@
 
 package sort
 
-import original "sort"
 import "scrigo"
 import "reflect"
+import original "sort"
 
 var Package = scrigo.Package{
 	"Float64Slice": reflect.TypeOf((original.Float64Slice)(nil)),

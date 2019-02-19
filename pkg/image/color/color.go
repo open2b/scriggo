@@ -2,9 +2,9 @@
 
 package color
 
-import "reflect"
 import original "image/color"
 import "scrigo"
+import "reflect"
 
 var Package = scrigo.Package{
 	"Alpha": reflect.TypeOf(original.Alpha{}),

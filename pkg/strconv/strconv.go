@@ -2,9 +2,9 @@
 
 package strconv
 
+import original "strconv"
 import "scrigo"
 import "reflect"
-import original "strconv"
 
 var Package = scrigo.Package{
 	"AppendBool": original.AppendBool,
@@ -25,6 +25,7 @@ var Package = scrigo.Package{
 	"FormatFloat": original.FormatFloat,
 	"FormatInt": original.FormatInt,
 	"FormatUint": original.FormatUint,
+	"IntSize": scrigo.Constant(original.IntSize, nil),
 	"IsGraphic": original.IsGraphic,
 	"IsPrint": original.IsPrint,
 	"Itoa": original.Itoa,

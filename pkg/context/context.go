@@ -2,9 +2,9 @@
 
 package context
 
+import original "context"
 import "scrigo"
 import "reflect"
-import original "context"
 
 var Package = scrigo.Package{
 	"Background": original.Background,

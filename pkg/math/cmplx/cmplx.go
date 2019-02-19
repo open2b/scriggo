@@ -2,8 +2,8 @@
 
 package cmplx
 
-import "scrigo"
 import original "math/cmplx"
+import "scrigo"
 
 var Package = scrigo.Package{
 	"Abs": original.Abs,

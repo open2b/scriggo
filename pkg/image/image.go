@@ -49,6 +49,12 @@ var Package = scrigo.Package{
 	"White": &original.White,
 	"YCbCr": reflect.TypeOf(original.YCbCr{}),
 	"YCbCrSubsampleRatio": reflect.TypeOf(original.YCbCrSubsampleRatio(int(0))),
+	"YCbCrSubsampleRatio410": scrigo.Constant(original.YCbCrSubsampleRatio410, nil),
+	"YCbCrSubsampleRatio411": scrigo.Constant(original.YCbCrSubsampleRatio411, nil),
+	"YCbCrSubsampleRatio420": scrigo.Constant(original.YCbCrSubsampleRatio420, nil),
+	"YCbCrSubsampleRatio422": scrigo.Constant(original.YCbCrSubsampleRatio422, nil),
+	"YCbCrSubsampleRatio440": scrigo.Constant(original.YCbCrSubsampleRatio440, nil),
+	"YCbCrSubsampleRatio444": scrigo.Constant(original.YCbCrSubsampleRatio444, nil),
 	"ZP": &original.ZP,
 	"ZR": &original.ZR,
 }

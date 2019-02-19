@@ -2,9 +2,9 @@
 
 package rsa
 
+import original "crypto/rsa"
 import "scrigo"
 import "reflect"
-import original "crypto/rsa"
 
 var Package = scrigo.Package{
 	"CRTValue": reflect.TypeOf(original.CRTValue{}),
@@ -21,6 +21,8 @@ var Package = scrigo.Package{
 	"OAEPOptions": reflect.TypeOf(original.OAEPOptions{}),
 	"PKCS1v15DecryptOptions": reflect.TypeOf(original.PKCS1v15DecryptOptions{}),
 	"PSSOptions": reflect.TypeOf(original.PSSOptions{}),
+	"PSSSaltLengthAuto": scrigo.Constant(original.PSSSaltLengthAuto, nil),
+	"PSSSaltLengthEqualsHash": scrigo.Constant(original.PSSSaltLengthEqualsHash, nil),
 	"PrecomputedValues": reflect.TypeOf(original.PrecomputedValues{}),
 	"PrivateKey": reflect.TypeOf(original.PrivateKey{}),
 	"PublicKey": reflect.TypeOf(original.PublicKey{}),

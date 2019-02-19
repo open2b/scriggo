@@ -40,4 +40,5 @@ var Package = scrigo.Package{
 	"TrailingZeros32": original.TrailingZeros32,
 	"TrailingZeros64": original.TrailingZeros64,
 	"TrailingZeros8": original.TrailingZeros8,
+	"UintSize": scrigo.Constant(original.UintSize, nil),
 }

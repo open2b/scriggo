@@ -2,9 +2,9 @@
 
 package pprof
 
-import original "runtime/pprof"
 import "scrigo"
 import "reflect"
+import original "runtime/pprof"
 
 var Package = scrigo.Package{
 	"Do": original.Do,

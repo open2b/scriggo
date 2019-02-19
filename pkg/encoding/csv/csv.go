@@ -2,9 +2,9 @@
 
 package csv
 
+import "reflect"
 import original "encoding/csv"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
 	"ErrBareQuote": &original.ErrBareQuote,

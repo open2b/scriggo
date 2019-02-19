@@ -2,13 +2,14 @@
 
 package zip
 
+import "reflect"
 import original "archive/zip"
 import "scrigo"
-import "reflect"
 
 var Package = scrigo.Package{
 	"Compressor": reflect.TypeOf((original.Compressor)(nil)),
 	"Decompressor": reflect.TypeOf((original.Decompressor)(nil)),
+	"Deflate": scrigo.Constant(original.Deflate, nil),
 	"ErrAlgorithm": &original.ErrAlgorithm,
 	"ErrChecksum": &original.ErrChecksum,
 	"ErrFormat": &original.ErrFormat,
@@ -22,5 +23,6 @@ var Package = scrigo.Package{
 	"Reader": reflect.TypeOf(original.Reader{}),
 	"RegisterCompressor": original.RegisterCompressor,
 	"RegisterDecompressor": original.RegisterDecompressor,
+	"Store": scrigo.Constant(original.Store, nil),
 	"Writer": reflect.TypeOf(original.Writer{}),
 }
