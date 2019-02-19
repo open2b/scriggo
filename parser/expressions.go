@@ -262,6 +262,19 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				mustBeBlank = true
 			}
 			operand = ident
+			if mustBeType {
+				tok = next(p.lex)
+				if tok.typ == tokenPeriod {
+					tok = next(p.lex)
+					if tok.typ != tokenIdentifier {
+						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
+					}
+					ident := parseIdentifierNode(tok)
+					operand = ast.NewSelector(tok.pos, operand, ident.Name)
+				} else {
+					reuseLastToken = true
+				}
+			}
 		case tokenLeftBrackets: // [
 			isAType = true
 			var expr, length ast.Expression
@@ -312,7 +325,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			if operand != nil {
 				switch operand.(type) {
-				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType:
+				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector:
 				default:
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
 				}
