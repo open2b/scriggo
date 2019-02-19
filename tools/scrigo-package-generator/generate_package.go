@@ -89,6 +89,9 @@ func isValidPkg(pkg string) bool {
 	if strings.TrimSpace(pkg) == "" {
 		return false
 	}
+	if pkg == "log/syslog" && runtime.GOOS == "windows" {
+		return false
+	}
 	if pkg == "runtime/race" || pkg == "runtime" {
 		return false
 	}
