@@ -71,7 +71,7 @@ func main() {
 	out := generateMultiplePackages(packages, customVariableName)
 
 	importsFileBase := filepath.Base(importsFile)
-	newBase := "_" + importsFileBase
+	newBase := "generated_" + importsFileBase
 	outPath := filepath.Join(filepath.Dir(importsFile), newBase)
 
 	f, err := os.Create(outPath)

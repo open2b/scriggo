@@ -16,6 +16,8 @@ import (
 	"scrigo/parser"
 )
 
+var packages map[string]scrigo.Package
+
 func main() {
 
 	if len(os.Args) != 2 {
@@ -37,8 +39,8 @@ func main() {
 	}
 	r := parser.DirReader(filepath.Dir(absFile))
 
-	var packagesNames = make([]string, len(pkgs))
-	for name := range pkgs {
+	var packagesNames = make([]string, len(packages))
+	for name := range packages {
 		packagesNames = append(packagesNames, name)
 	}
 
@@ -50,9 +52,9 @@ func main() {
 	}
 
 	if ext == ".go" {
-		err = scrigo.RunPackageTree(tree, pkgs)
+		err = scrigo.RunPackageTree(tree, packages)
 	} else {
-		err = scrigo.RunScriptTree(tree, pkgs)
+		err = scrigo.RunScriptTree(tree, packages)
 	}
 	if err != nil {
 		fmt.Println(err)

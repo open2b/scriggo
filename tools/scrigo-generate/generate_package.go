@@ -85,7 +85,7 @@ func needsToBeGenerated(pkg string) bool {
 
 func generateMultiplePackages(pkgs []string, customVariableName string) string {
 	s := strings.Builder{}
-	s.WriteString("package scrigo\n\n")
+	s.WriteString("package main\n\n")
 	for _, p := range pkgs {
 		s.WriteString("import " + `"` + p + `"` + "\n")
 	}
