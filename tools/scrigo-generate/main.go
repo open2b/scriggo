@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"scrigo/ast"
 	"scrigo/parser"
+	"strings"
 )
 
 func printErrorAndQuit(err interface{}) {
@@ -68,10 +69,12 @@ func main() {
 		packages = append(packages, imp.Path)
 	}
 
-	out := generateMultiplePackages(packages, customVariableName)
+	out := generateMultiplePackages(packages, importsFile, customVariableName)
 
 	importsFileBase := filepath.Base(importsFile)
-	newBase := "generated_" + importsFileBase
+	importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
+	newBase := importsFileBaseWithoutExtension + "_generated" + filepath.Ext(importsFileBase)
+
 	outPath := filepath.Join(filepath.Dir(importsFile), newBase)
 
 	f, err := os.Create(outPath)
