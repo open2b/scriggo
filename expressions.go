@@ -1425,7 +1425,7 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 					return nil, r.errorf(e, "use of builtin len not in function call")
 				}
 				if v, ok := r.vars[i][e.Name]; ok {
-					if typ, ok = v.(reflect.Type); ok && (i == 0) {
+					if typ, ok = v.(reflect.Type); ok && i <= 1 {
 						return typ, nil
 					}
 					return nil, r.errorf(e, "%s is not a type", expr)

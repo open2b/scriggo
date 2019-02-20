@@ -26,9 +26,9 @@ func floatToDecimal(f float64) *apd.Decimal {
 }
 
 var rendererBuiltinTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	// abbreviate
 	{"abbreviate(``,0)", "", nil},
@@ -319,9 +319,9 @@ var rendererBuiltinTests = []struct {
 }
 
 var rendererBuiltinTestsInHTMLContext = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	// html
 	{"html(``)", "", nil},
@@ -333,9 +333,9 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 }
 
 var statementBuiltinTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 
 	// atoi
@@ -372,10 +372,10 @@ var statementBuiltinTests = []struct {
 }
 
 var rendererRandomBuiltinTests = []struct {
-	src  string
-	seed int64
-	res  string
-	vars scope
+	src     string
+	seed    int64
+	res     string
+	globals scope
 }{
 	// rand
 	{"rand(-1)", 1, "5577006791947779410", nil},
@@ -409,7 +409,7 @@ func TestRenderBuiltin(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -429,7 +429,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -449,7 +449,7 @@ func TestStatementBuiltin(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -487,7 +487,7 @@ func TestRenderRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

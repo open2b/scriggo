@@ -15,9 +15,9 @@ import (
 )
 
 var htmlContextTests = []struct {
-	src  interface{}
-	res  string
-	vars scope
+	src     interface{}
+	res     string
+	globals scope
 }{
 	{`nil`, "", nil},
 	{`""`, "", nil},
@@ -65,7 +65,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -78,9 +78,9 @@ func TestHTMLContext(t *testing.T) {
 }
 
 var attributeContextTests = []struct {
-	src  interface{}
-	res  string
-	vars scope
+	src     interface{}
+	res     string
+	globals scope
 }{
 	{`nil`, "", nil},
 	{`""`, "", nil},
@@ -126,7 +126,7 @@ func TestAttributeContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -139,9 +139,9 @@ func TestAttributeContext(t *testing.T) {
 }
 
 var unquotedAttributeContextTests = []struct {
-	src  interface{}
-	res  string
-	vars scope
+	src     interface{}
+	res     string
+	globals scope
 }{
 	{`a`, "&#32;a&#32;", scope{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", scope{"a": "\t\n\r\x0C a=`"}},
@@ -165,7 +165,7 @@ func TestUnquotedAttributeContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -178,9 +178,9 @@ func TestUnquotedAttributeContext(t *testing.T) {
 }
 
 var urlContextTests = []struct {
-	src  interface{}
-	res  string
-	vars scope
+	src     interface{}
+	res     string
+	globals scope
 }{
 	{`<a href="">`, `<a href="">`, nil},
 	{`<a href="abc">`, `<a href="abc">`, nil},
@@ -237,7 +237,7 @@ func TestURLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -250,9 +250,9 @@ func TestURLContext(t *testing.T) {
 }
 
 var scriptContextTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`nil`, `null`, nil},
 	{`""`, `""`, nil},
@@ -313,7 +313,7 @@ func TestScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -326,9 +326,9 @@ func TestScriptContext(t *testing.T) {
 }
 
 var scriptStringContextTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`""`, ``, nil},
 	{`"a"`, `a`, nil},
@@ -355,7 +355,7 @@ func TestScriptStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.vars, false)
+			err = RenderTree(b, tree, expr.globals, false)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -369,9 +369,9 @@ func TestScriptStringContext(t *testing.T) {
 }
 
 var cssContextTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`""`, `""`, nil},
 	{`"a"`, `"a"`, nil},
@@ -391,7 +391,7 @@ func TestCSSContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -404,9 +404,9 @@ func TestCSSContext(t *testing.T) {
 }
 
 var cssStringContextTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`""`, ``, nil},
 	{`"\u0000"`, `\0 `, nil},
@@ -438,7 +438,7 @@ func TestCSSStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.vars, false)
+			err = RenderTree(b, tree, expr.globals, false)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue

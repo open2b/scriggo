@@ -8,11 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"scrigo/ast"
-	"scrigo/parser"
 	"strconv"
 	"strings"
 	"testing"
+
+	"scrigo/ast"
+	"scrigo/parser"
 )
 
 func executeScrigoSource(src []byte) string {
@@ -75,8 +76,8 @@ func extractInfosFromGoErrorMessage(msg string) (int, int, string) {
 	return line, column, errorMsg
 }
 
-const goSkeleton string = `package main
-func main() {
+const goSkeleton string = `package globals
+func globals() {
 [scrigo]
 }`
 
@@ -94,7 +95,7 @@ func executeGoSource(src string) string {
 			panic(err)
 		}
 	}()
-	tmpFile, err := os.Create(filepath.Join(tmpDir, "main.go"))
+	tmpFile, err := os.Create(filepath.Join(tmpDir, "globals.go"))
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +103,7 @@ func executeGoSource(src string) string {
 	offset := 2 + len(pkgs)
 	skel := goSkeleton
 	for _, pkg := range pkgs {
-		skel = strings.Replace(skel, "package main\n", "package main\nimport \""+pkg+"\"\n", 1)
+		skel = strings.Replace(skel, "package globals\n", "package globals\nimport \""+pkg+"\"\n", 1)
 	}
 	goSrc := strings.Replace(skel, "[scrigo]", src, 1)
 	_, err = tmpFile.WriteString(goSrc)

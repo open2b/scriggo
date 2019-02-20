@@ -43,9 +43,9 @@ type aStruct struct {
 }
 
 var rendererExprTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`"a"`, "a", nil},
 	{"`a`", "a", nil},
@@ -182,7 +182,7 @@ var rendererExprTests = []struct {
 	{`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
 
 	// struct
-	{`s{1, 2}.A`, "1", nil},
+	{`s{1, 2}.A`, "1", scope{"s": reflect.TypeOf(struct{ A, B int }{})}},
 
 	// composite literal with implicit type
 	{`[][]int{{1},{2,3}}[1][1]`, "3", nil},
@@ -190,8 +190,8 @@ var rendererExprTests = []struct {
 	{`map[string][]int{"a":{1,2}}["a"][1]`, "2", nil},
 	{`map[[2]int]string{{1,2}:"a"}[[2]int{1,2}]`, "a", nil},
 	{`[2][1]int{{1}, {5}}[1][0]`, "5", nil},
-	{`[]Point{{1,2}, {3,4}, {5,6}}[2].Y`, "6", nil},
-	{`(*(([]*Point{{3,4}})[0])).X`, "3", nil},
+	{`[]Point{{1,2}, {3,4}, {5,6}}[2].Y`, "6", scope{"Point": reflect.TypeOf(struct{ X, Y float64 }{})}},
+	{`(*(([]*Point{{3,4}})[0])).X`, "3", scope{"Point": reflect.TypeOf(struct{ X, Y float64 }{})}},
 
 	// make
 	{`make([]int, 5)[0]`, "0", nil},
@@ -312,9 +312,9 @@ var rendererExprTests = []struct {
 }
 
 var rendererStmtTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{"{% if true %}ok{% else %}no{% end %}", "ok", nil},
 	{"{% if false %}no{% else %}ok{% end %}", "ok", nil},
@@ -433,7 +433,7 @@ var rendererStmtTests = []struct {
 	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
 	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{{ b[1] }}`, "5", scope{"getref": func(s [3]int) *[3]int { return &s }}},
 	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{% b[1] = 10 %}{{ (*b)[1] }}`, "10", scope{"getref": func(s [3]int) *[3]int { return &s }}},
-	{`{% s := T{5, 6} %}{% if s.A == 5 %}ok{% end %}`, "ok", nil},
+	{`{% s := T{5, 6} %}{% if s.A == 5 %}ok{% end %}`, "ok", scope{"T": reflect.TypeOf(struct{ A, B int }{})}},
 	{`{% s := interface{}(3) %}{% if s == 3 %}ok{% end %}`, "ok", nil},
 	{"{% a := 12 %}{% a += 9 %}{{ a }}", "21", nil},
 	{"{% a := `ab` %}{% a += `c` %}{% if _, ok := a.(string); ok %}{{ a }}{% end %}", "abc", nil},
@@ -452,10 +452,10 @@ var rendererStmtTests = []struct {
 	{"{% b := &[]int{0,1,4,9}[1] %}{% *b = 5  %}{{ *b }}", "5", nil},
 	{"{% a := [ ]int{0,1,4,9} %}{% b := &a[1] %}{% *b = 5  %}{{ a[1] }}", "5", nil},
 	{"{% a := [4]int{0,1,4,9} %}{% b := &a[1] %}{% *b = 10 %}{{ a[1] }}", "10", nil},
-	{"{% p := Point{4.0, 5.0} %}{% px := &p.X %}{% *px = 8.6 %}{{ p.X }}", "8.6", nil},
-	{`{% a := &A{3, 4} %}ok`, "ok", nil},
-	{`{% a := &A{3, 4} %}{{ (*a).X }}`, "3", nil},
-	{`{% a := &A{3, 4} %}{{ a.X }}`, "3", nil},
+	{"{% p := Point{4.0, 5.0} %}{% px := &p.X %}{% *px = 8.6 %}{{ p.X }}", "8.6", scope{"Point": reflect.TypeOf(struct{ X, Y float64 }{})}},
+	{`{% a := &A{3, 4} %}ok`, "ok", scope{"A": reflect.TypeOf(struct{ X, Y int }{})}},
+	{`{% a := &A{3, 4} %}{{ (*a).X }}`, "3", scope{"A": reflect.TypeOf(struct{ X, Y int }{})}},
+	{`{% a := &A{3, 4} %}{{ a.X }}`, "3", scope{"A": reflect.TypeOf(struct{ X, Y int }{})}},
 	{`{% a := 2 %}{% c := &(*(&a)) %}{% *c = 5 %}{{ a }}`, "5", nil},
 	{"{# comment #}", "", nil},
 	{"a{# comment #}b", "ab", nil},
@@ -518,9 +518,9 @@ var rendererStmtTests = []struct {
 	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},
 }
 
-var rendererVarsToScope = []struct {
-	vars interface{}
-	res  scope
+var rendererGlobalsToScope = []struct {
+	globals interface{}
+	res     scope
 }{
 	{
 		nil,
@@ -577,10 +577,6 @@ var rendererVarsToScope = []struct {
 }
 
 func TestRenderExpressions(t *testing.T) {
-	builtins["T"] = reflect.TypeOf(struct{ A, B int }{})
-	builtins["A"] = reflect.TypeOf(struct{ X, Y int }{})
-	builtins["s"] = reflect.TypeOf(struct{ A, B int }{})
-	builtins["Point"] = reflect.TypeOf(struct{ X, Y float64 }{})
 	for _, expr := range rendererExprTests {
 		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {
@@ -588,7 +584,7 @@ func TestRenderExpressions(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, true)
+		err = RenderTree(b, tree, expr.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -601,7 +597,7 @@ func TestRenderExpressions(t *testing.T) {
 }
 
 func TestRenderStatements(t *testing.T) {
-	builtins["test2"] = func(a, b int) (int, int) {
+	globalTest2 := func(a, b int) (int, int) {
 		return a, b
 	}
 	for _, stmt := range rendererStmtTests {
@@ -611,7 +607,11 @@ func TestRenderStatements(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, stmt.vars, true)
+		if stmt.globals == nil {
+			stmt.globals = scope{}
+		}
+		stmt.globals["test2"] = globalTest2
+		err = RenderTree(b, tree, stmt.globals, true)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -623,15 +623,15 @@ func TestRenderStatements(t *testing.T) {
 	}
 }
 
-func TestVarsToScope(t *testing.T) {
-	for _, p := range rendererVarsToScope {
-		res, err := varsToScope(p.vars)
+func TestGlobalsToScope(t *testing.T) {
+	for _, p := range rendererGlobalsToScope {
+		res, err := globalsToScope(p.globals)
 		if err != nil {
-			t.Errorf("vars: %#v, %q\n", p.vars, err)
+			t.Errorf("vars: %#v, %q\n", p.globals, err)
 			continue
 		}
 		if !reflect.DeepEqual(res, p.res) {
-			t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.vars, res, p.res)
+			t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.globals, res, p.res)
 		}
 	}
 }
@@ -666,9 +666,9 @@ func TestRenderErrors(t *testing.T) {
 }
 
 var rendererCallFuncTests = []struct {
-	src  string
-	res  string
-	vars map[string]Package
+	src     string
+	res     string
+	globals Package
 }{
 	{"func f() {}; f()", "", nil},
 	{"func f(x int) int { return x }; print(f(2))", "2", nil},
@@ -710,7 +710,7 @@ func TestRenderCallFunc(t *testing.T) {
 			}
 			c <- struct{}{}
 		}()
-		err = RunScriptTree(tree, stmt.vars)
+		err = RunScriptTree(tree, stmt.globals)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue

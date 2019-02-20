@@ -21,7 +21,7 @@ func ExampleRenderSource() {
 		Price float32
 	}
 
-	vars := map[string]interface{}{
+	globals := map[string]interface{}{
 		"products": []Product{
 			{Name: "Shirt", Price: 12.99},
 			{Name: "Jacket", Price: 37.49},
@@ -33,7 +33,7 @@ func ExampleRenderSource() {
  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
  {% end %}`
 
-	err := scrigo.RenderSource(os.Stdout, []byte(src), vars, false, scrigo.ContextText)
+	err := scrigo.RenderSource(os.Stdout, []byte(src), globals, false, scrigo.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
@@ -47,9 +47,9 @@ func ExampleRenderTree() {
 		log.Fatalf("parsing error: %s", err)
 	}
 
-	vars := map[string]string{"title": "The Catcher in the Rye"}
+	globals := map[string]interface{}{"title": "The Catcher in the Rye"}
 
-	err = scrigo.RenderTree(os.Stdout, tree, vars, false)
+	err = scrigo.RenderTree(os.Stdout, tree, globals, false)
 	if err != nil {
 		log.Fatalf("rendering error: %s", err)
 	}
@@ -61,7 +61,7 @@ func ExampleDirRenderer() {
 		Price float32
 	}
 
-	vars := map[string]interface{}{
+	globals := map[string]interface{}{
 		"products": []Product{
 			{Name: "Shirt", Price: 12.99},
 			{Name: "Jacket", Price: 37.49},
@@ -70,7 +70,7 @@ func ExampleDirRenderer() {
 
 	r := scrigo.NewDirRenderer("./template/", false, scrigo.ContextHTML)
 
-	err := r.Render(os.Stderr, "index.html", vars)
+	err := r.Render(os.Stderr, "index.html", globals)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}

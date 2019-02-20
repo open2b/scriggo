@@ -61,17 +61,25 @@ var interfaceType = reflect.TypeOf(&interf).Elem()
 var runesType = reflect.TypeOf([]rune(nil))
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-var builtins = map[string]interface{}{
-	"nil":    nil,
-	"true":   true,
-	"false":  false,
-	"len":    nil,
-	"append": nil,
-	"delete": nil,
-	"new":    nil,
-	"copy":   nil,
-	"make":   nil,
-	"panic":  nil,
+func init() {
+	for k, v := range builtins {
+		templateBuiltins[k] = v
+	}
+}
+
+var builtins = scope{
+	"nil":     nil,
+	"true":    true,
+	"false":   false,
+	"len":     nil,
+	"append":  nil,
+	"delete":  nil,
+	"new":     nil,
+	"copy":    nil,
+	"make":    nil,
+	"panic":   nil,
+	"print":   _print,
+	"println": _println,
 
 	"string":      stringType,
 	"int":         intType,
@@ -94,7 +102,9 @@ var builtins = map[string]interface{}{
 	"bytes":       bytesType,
 	"interface{}": interfaceType,
 	"error":       errorType,
+}
 
+var templateBuiltins = scope{
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
 	"atoi":        strconv.Atoi,
@@ -121,9 +131,7 @@ var builtins = map[string]interface{}{
 	"replaceAll":  _replaceAll,
 	"reverse":     _reverse,
 	"round":       _round,
-	"print":       _print,
 	"printf":      _printf,
-	"println":     _println,
 	"sha1":        _sha1,
 	"sha256":      _sha256,
 	"shuffle":     _shuffle,

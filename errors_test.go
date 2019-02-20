@@ -17,9 +17,9 @@ import (
 )
 
 var errorTests = []struct {
-	src  string
-	res  string
-	vars scope
+	src     string
+	res     string
+	globals scope
 }{
 	{`{% len = 5 %}{{ "ok" }}`, `ok`, nil},
 	{`{% a := "a" %}{% a := "b" %}{{ "ok" }}`, `ok`, nil},
@@ -70,7 +70,7 @@ func TestErrors(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.vars, false)
+		err = RenderTree(b, tree, expr.globals, false)
 		if err == nil {
 			t.Errorf("source: %q, expecting error\n", expr.src)
 			continue

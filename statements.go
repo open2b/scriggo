@@ -682,6 +682,7 @@ Nodes:
 				if node.Tree == nil {
 					r.vars[2][name] = r.packages[node.Path]
 				} else {
+
 					if _, ok := r.scope[node.Tree.Path]; !ok {
 						rn := &rendering{
 							scope:       r.scope,

@@ -193,7 +193,7 @@ func Run(r io.Reader) error {
 // MapRenderer.
 //
 // RenderTree is safe for concurrent use.
-func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) error {
+func RenderTree(out io.Writer, tree *ast.Tree, globals interface{}, strict bool) error {
 
 	if out == nil {
 		return errors.New("scrigo: out is nil")
@@ -202,7 +202,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 		return errors.New("scrigo: tree is nil")
 	}
 
-	globals, err := varsToScope(vars)
+	globalScope, err := globalsToScope(globals)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 	r := &rendering{
 		scope:       map[string]scope{},
 		path:        tree.Path,
-		vars:        []scope{builtins, globals, {}},
+		vars:        []scope{templateBuiltins, globalScope, {}},
 		treeContext: tree.Context,
 	}
 
@@ -255,7 +255,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 				}
 			}
 		}
-		r.vars = []scope{builtins, globals, vars}
+		r.vars = []scope{templateBuiltins, globalScope, vars}
 		err = r.render(out, extends.Tree.Nodes, nil)
 	}
 
@@ -269,7 +269,7 @@ func RenderTree(out io.Writer, tree *ast.Tree, vars interface{}, strict bool) er
 // RunScriptTree runs the tree of a script.
 //
 // Run is safe for concurrent use.
-func RunScriptTree(tree *ast.Tree, packages map[string]Package) error {
+func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -278,26 +278,15 @@ func RunScriptTree(tree *ast.Tree, packages map[string]Package) error {
 		return errors.New("scrigo: tree context is not None")
 	}
 
-	globals := scope{}
-
-	if mainPkg, ok := packages["main"]; ok {
-		for name, value := range mainPkg {
-			if _, ok := value.(reflect.Type); !ok {
-				if rv := reflect.ValueOf(value); rv.Kind() == reflect.Ptr {
-					globals[name] = reference{rv.Elem()}
-				}
-			}
-			if _, ok := globals[name]; !ok {
-				globals[name] = value
-			}
-		}
+	globalScope, err := globalsToScope(globals)
+	if err != nil {
+		return err
 	}
 
 	r := &rendering{
 		scope:       map[string]scope{},
 		path:        tree.Path,
-		vars:        []scope{builtins, globals, {}},
-		packages:    packages,
+		vars:        []scope{builtins, globalScope, {}},
 		treeContext: ast.ContextNone,
 		handleError: stopOnError,
 	}
@@ -307,7 +296,7 @@ func RunScriptTree(tree *ast.Tree, packages map[string]Package) error {
 
 // RunPackageTree runs the tree of a main package.
 //
-// Run is safe for concurrent use.
+// RunPackageTree is safe for concurrent use.
 func RunPackageTree(tree *ast.Tree, packages map[string]Package) error {
 
 	if tree == nil {
@@ -358,8 +347,8 @@ func RunPackageTree(tree *ast.Tree, packages map[string]Package) error {
 	return nil
 }
 
-// varsToScope converts variables into a scope.
-func varsToScope(vars interface{}) (scope, error) {
+// globalsToScope converts globals into a scope.
+func globalsToScope(vars interface{}) (scope, error) {
 
 	if vars == nil {
 		return scope{}, nil
@@ -443,11 +432,11 @@ func varsToScope(vars interface{}) (scope, error) {
 	case reflect.Ptr:
 		elem := rv.Type().Elem()
 		if elem.Kind() == reflect.Struct {
-			return varsToScope(reflect.Indirect(rv))
+			return globalsToScope(reflect.Indirect(rv))
 		}
 	}
 
-	return nil, errors.New("scrigo: unsupported vars type")
+	return nil, errors.New("scrigo: unsupported globals type")
 }
 
 // getExtendsNode returns the Extends node of a tree.
