@@ -896,6 +896,30 @@ func (n *Call) String() string {
 	return s
 }
 
+// Var node represent a variable declaration by keyword "var".
+type Var struct {
+	*Position                // position in the source.
+	Identifiers []Identifier // variables.
+	Type        Expression   // nil for non-typed variable declarations.
+	Values      []Expression // nil for non-initialized variable declarations.
+}
+
+func NewVar(pos *Position, variables []Identifier, typ Expression, values []Expression) *Var {
+	return &Var{pos, variables, typ, values}
+}
+
+// Const node represent a const declaration.
+type Const struct {
+	*Position                // position in the source.
+	Identifiers []Identifier // identifiers.
+	Type        Expression   // nil for non-typed constant declarations.
+	Values      []Expression // nil for implicit-value constant declarations.
+}
+
+func NewConst(pos *Position, identifiers []Identifier, typ Expression, values []Expression) *Var {
+	return &Var{pos, identifiers, typ, values}
+}
+
 // Index node represents an index expression.
 type Index struct {
 	expression
