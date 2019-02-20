@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/importer"
 	"os"
-	"runtime"
 	"strings"
 	"unicode"
 )
@@ -15,38 +14,6 @@ func mapEntry(key, value string) string {
 
 func isExported(name string) bool {
 	return unicode.Is(unicode.Lu, []rune(name)[0])
-}
-
-// needsToBeGenerated checks if pkg needs to be generated.
-//
-// TODO (Gianluca): since imports list can be created manually, this function
-// should be obsolete?
-func needsToBeGenerated(pkg string) bool {
-	if strings.TrimSpace(pkg) == "" {
-		return false
-	}
-	if pkg == "log/syslog" && runtime.GOOS == "windows" {
-		return false
-	}
-	if pkg == "runtime/race" || pkg == "runtime" {
-		return false
-	}
-	parts := strings.Split(pkg, "/")
-	if len(parts) > 0 {
-		switch parts[0] {
-		case "database", "cmd", "builtin", "debug", "plugin", "testing", "reflect", "unsafe", "syscall":
-			return false
-		}
-		if parts[len(parts)-1] == "cgo" {
-			return false
-		}
-		for _, p := range parts {
-			if p == "internal" {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 var generatedSkel = `[generatedWarning]
@@ -78,9 +45,6 @@ func generateMultiplePackages(pkgs []string, sourceFile, customVariableName stri
 
 	pkgContent := ""
 	for _, p := range pkgs {
-		if !needsToBeGenerated(p) {
-			continue
-		}
 		out, predefTypes := generatePackage(p)
 		for _, t := range predefTypes {
 			switch t {
