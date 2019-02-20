@@ -709,7 +709,7 @@ LOOP:
 					break LOOP
 				}
 				l.src = l.src[p:]
-				endLineAsSemicolon = true
+				endLineAsSemicolon = false
 				continue LOOP
 			}
 			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextNone {
@@ -719,8 +719,14 @@ LOOP:
 				}
 				p += 2
 				nl := bytes.Index(l.src[2:p], []byte("\n"))
-				endLineAsSemicolon = nl != -1
 				l.src = l.src[p:]
+				if nl >= 0 {
+					if endLineAsSemicolon {
+						l.emit(tokenSemicolon, 0)
+						endLineAsSemicolon = false
+					}
+					l.newline()
+				}
 				continue LOOP
 			}
 			if len(l.src) > 1 && l.src[1] == '=' {
