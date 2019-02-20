@@ -912,6 +912,11 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 			}
 		}
+		if p.ctx == ast.ContextNone {
+			if _, ok := parent.(*ast.Package); !ok {
+				panic(&Error{"", *tok.pos, fmt.Errorf("import not inside a package")})
+			}
+		}
 		tok = next(p.lex)
 		if p.ctx == ast.ContextNone && tok.typ == tokenLeftParenthesis {
 			tok = next(p.lex)
