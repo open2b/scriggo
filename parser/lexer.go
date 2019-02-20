@@ -979,6 +979,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenSwitch, p)
 	case "type":
 		l.emit(tokenSwitchType, p)
+	case "var":
+		l.emit(tokenVar, p)
+	case "const":
+		l.emit(tokenConst, p)
 	default:
 		l.emit(tokenIdentifier, p)
 		endLineAsSemicolon = true

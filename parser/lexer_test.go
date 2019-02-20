@@ -147,6 +147,9 @@ var typeTestsNoneContext = map[string][]tokenType{
 	"/* a comment \n another line */":     {},
 	"f()/* a comment\nanother line */g()": {tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon, tokenIdentifier, tokenLeftParenthesis, tokenRightParenthesis, tokenSemicolon},
 	`a = /* comment */ b`:                 {tokenIdentifier, tokenSimpleAssignment, tokenIdentifier, tokenSemicolon},
+	"var a":                               {tokenVar, tokenIdentifier, tokenSemicolon},
+	"var a int = 5":                       {tokenVar, tokenIdentifier, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenSemicolon},
+	"const b, c = 8, 10":                  {tokenConst, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenComma, tokenInt, tokenSemicolon},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{

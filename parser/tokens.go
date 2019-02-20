@@ -55,6 +55,8 @@ const (
 	tokenFunc                               // func
 	tokenReturn                             // return
 	tokenEnd                                // end
+	tokenVar                                // var
+	tokenConst                              // const
 	tokenComment                            // comment
 	tokenInterpretedString                  // "abc"
 	tokenRawString                          // `abc`
@@ -133,6 +135,8 @@ var tokenString = map[tokenType]string{
 	tokenReturn:                   "return",
 	tokenMacro:                    "macro",
 	tokenEnd:                      "end",
+	tokenVar:                      "var",
+	tokenConst:                    "const",
 	tokenComment:                  "comment",
 	tokenInterpretedString:        "string",
 	tokenRawString:                "string",
