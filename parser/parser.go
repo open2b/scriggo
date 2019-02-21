@@ -1124,7 +1124,7 @@ func (p *parsing) parseStatement(tok token) {
 	default:
 		expressions, tok := p.parseExprList(tok, true, false, false, false)
 		if len(expressions) == 0 {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end 2", tok)})
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		if len(expressions) > 1 || isAssignmentToken(tok) {
 			// Parses assignment.
