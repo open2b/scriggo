@@ -1053,23 +1053,22 @@ func (r *rendering) evalSelector(node *ast.Selector) interface{} {
 func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error) {
 	if ident, ok := node.Expr.(*ast.Identifier); ok {
 		v, ok := r.variable(ident.Name)
-		if !ok {
-			panic("not found") // TODO (Gianluca): to review.
-		}
-		if reflect.TypeOf(v).Kind() == reflect.Struct {
-			rv, err := r.referenceInScope(ident.Name)
-			if err != nil {
-				panic(err) // TODO (Gianluca): to review.
+		if ok {
+			if reflect.TypeOf(v).Kind() == reflect.Struct {
+				rv, err := r.referenceInScope(ident.Name)
+				if err != nil {
+					panic(err) // TODO (Gianluca): to review.
+				}
+				keys := structKeys(rv)
+				if keys == nil {
+					return nil, false, r.errorf(node, "%s undefined (type %s has no field or method %s)", node, rv.Type(), node.Ident)
+				}
+				sk, ok := keys[node.Ident]
+				if !ok {
+					return nil, false, nil
+				}
+				return sk.value(rv), true, nil
 			}
-			keys := structKeys(rv)
-			if keys == nil {
-				return nil, false, r.errorf(node, "%s undefined (type %s has no field or method %s)", node, rv.Type(), node.Ident)
-			}
-			sk, ok := keys[node.Ident]
-			if !ok {
-				return nil, false, nil
-			}
-			return sk.value(rv), true, nil
 		}
 	}
 	value, err := r.eval(node.Expr)
