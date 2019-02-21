@@ -34,7 +34,7 @@ func main() {
 
 	absFile, err := filepath.Abs(file)
 	if err != nil {
-		fmt.Printf("%s: %s\n", file)
+		fmt.Printf("%s: %s\n", file, err)
 		os.Exit(-1)
 	}
 	r := parser.DirReader(filepath.Dir(absFile))
