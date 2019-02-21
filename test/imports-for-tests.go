@@ -3,6 +3,17 @@
 package main
 
 import (
+	_ "bufio"
+	_ "crypto/sha1"
+	_ "encoding/base64"
 	_ "fmt"
+	_ "io/ioutil"
+	_ "math/rand"
+	_ "net"
+	_ "net/url"
+	_ "os"
+	_ "sort"
+	_ "strconv"
+	_ "strings"
 	_ "time"
 )

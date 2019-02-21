@@ -1,5 +1,5 @@
-// +build ignore
-// Scrigo has various value types including strings,
+//+build ignore
+// Go has various value types including strings,
 // integers, floats, booleans, etc. Here are a few
 // basic examples.
 
@@ -10,7 +10,7 @@ import "fmt"
 func main() {
 
 	// Strings, which can be added together with `+`.
-	fmt.Println("scri" + "go")
+	fmt.Println("go" + "lang")
 
 	// Integers and floats.
 	fmt.Println("1+1 =", 1+1)

@@ -149,15 +149,18 @@ func main() {
 			if err != nil {
 				fatal(err)
 			}
+			if verbose {
+				fmt.Printf("---------------------------------------------------\n")
+				fmt.Print(path + "...")
+			}
 			scrigoOut := runScrigoAndGetOutput(src)
 			goOut := runGoAndGetOutput(src)
 			if scrigoOut == goOut {
 				if verbose {
-					fmt.Println("[OK] " + path)
+					fmt.Println("OK!")
 				}
 			} else {
-				log.Printf("---------------------------------------------------")
-				log.Printf("file %s:\n\tGo output:      %q\n\tScrigo output:  %q", path, goOut, scrigoOut)
+				fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
 			}
 		}
 	}
