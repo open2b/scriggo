@@ -325,7 +325,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			if operand != nil {
 				switch operand.(type) {
-				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector:
+				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector, *ast.FuncType:
 				default:
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
 				}
