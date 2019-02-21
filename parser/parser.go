@@ -886,6 +886,44 @@ func (p *parsing) parseStatement(tok token) {
 		addChild(parent, node)
 		p.isExtended = true
 
+	// var, const
+	case tokenVar, tokenConst:
+		var kind string
+		if tok.typ == tokenVar {
+			kind = "var"
+		} else {
+			kind = "const"
+		}
+		if tok.ctx != p.ctx {
+			switch tok.ctx {
+			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
+				panic(&Error{"", *tok.pos, fmt.Errorf("var inside an attribute value")})
+			case ast.ContextScript:
+				panic(&Error{"", *tok.pos, fmt.Errorf("var inside a script tag")})
+			case ast.ContextCSS:
+				panic(&Error{"", *tok.pos, fmt.Errorf("var inside a style tag")})
+			}
+		}
+		nodePos := &ast.Position{Line: tok.pos.Line, Column: tok.pos.Column, Start: tok.pos.Start}
+		tok = next(p.lex)
+		if tok.typ == tokenLeftParenthesis {
+			// var ( ... )
+			// const ( ... )
+			var lastNode ast.Node
+			for {
+				tok = next(p.lex)
+				if tok.typ == tokenRightParenthesis {
+					// TODO (Gianluca): what happens if there are no )?
+					lastNode.Pos().End = tok.pos.End
+					break
+				}
+				lastNode = p.parseVarOrConst(tok, nodePos, kind)
+				addChild(parent, lastNode)
+			}
+		} else {
+			addChild(parent, p.parseVarOrConst(tok, nodePos, kind))
+		}
+
 	// import
 	case tokenImport:
 		if tok.ctx != p.ctx {
@@ -1116,6 +1154,83 @@ func (p *parsing) parseStatement(tok token) {
 	}
 
 	return
+}
+
+func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string) ast.Node {
+	if tok.typ != tokenIdentifier {
+		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+	}
+	if kind != "var" && kind != "const" {
+		panic("bug: kind must be var or const")
+	}
+	var exprs []ast.Expression
+	var tmpExprs []ast.Expression
+	var idents []*ast.Identifier
+	var typ ast.Expression
+	tmpExprs, tok = p.parseExprList(tok, true, false, false, false)
+	if len(tmpExprs) == 0 {
+		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+	}
+	for _, expr := range tmpExprs {
+		if ident, ok := expr.(*ast.Identifier); ok {
+			idents = append(idents, ident)
+		} else {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %s, expecting name", expr)})
+		}
+	}
+	switch tok.typ {
+	case tokenSimpleAssignment:
+		// var/const  a     = ...
+		// var/const  a, b  = ...
+		exprs, tok = p.parseExprList(token{}, false, false, false, false)
+		if len(exprs) == 0 {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+		}
+	case tokenIdentifier:
+		// var  a     int
+		// var  a, b  int
+		// var/const  a     int  =  ...
+		// var/const  a, b  int  =  ...
+		typ, tok = p.parseExpr(tok, false, false, true, false)
+		if tok.typ != tokenSimpleAssignment && kind == "const" {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+		}
+		if tok.typ == tokenSimpleAssignment {
+			// var/const  a     int  =  ...
+			// var/const  a, b  int  =  ...
+			exprs, tok = p.parseExprList(token{}, false, false, false, false)
+			if len(exprs) == 0 {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			}
+		}
+	default:
+		// var/const  a
+		// var/const  a, b
+	}
+	// Searches the maximum end position.
+	var exprPosEnd, identPosEnd, typEndPos int
+	if exprs != nil {
+		exprPosEnd = exprs[len(exprs)-1].Pos().End
+	}
+	if idents != nil {
+		identPosEnd = idents[len(idents)-1].Pos().End
+	}
+	if typ != nil {
+		typEndPos = typ.Pos().End
+	}
+	endPos := exprPosEnd
+	if identPosEnd > endPos {
+		endPos = identPosEnd
+	}
+	if typEndPos > endPos {
+		endPos = typEndPos
+	}
+	nodePos.End = endPos
+	if kind == "var" {
+		return ast.NewVar(nodePos, idents, typ, exprs)
+	} else {
+		return ast.NewConst(nodePos, idents, typ, exprs)
+	}
 }
 
 func (p *parsing) parseImportSpec(tok token) *ast.Import {

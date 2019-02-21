@@ -89,6 +89,139 @@ var noneContextTreeTests = []struct {
 								{nil, ast.NewInt(p(1, 29, 28, 28), big.NewInt(3))},
 							})}), nil)},
 			ast.ContextNone)},
+	{"var a",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 4),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+				},
+				nil,
+				nil,
+			),
+		}, ast.ContextNone),
+	},
+	{"var a int",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 8),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+				},
+				ast.NewIdentifier(p(1, 7, 6, 8), "int"),
+				nil,
+			),
+		}, ast.ContextNone),
+	},
+	{"var a, b",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 7),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+					ast.NewIdentifier(p(1, 8, 7, 7), "b"),
+				},
+				nil,
+				nil,
+			),
+		}, ast.ContextNone),
+	},
+	{"var a, b int",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 11),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+					ast.NewIdentifier(p(1, 8, 7, 7), "b"),
+				},
+				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
+				nil,
+			),
+		}, ast.ContextNone),
+	},
+	{"var a = 4",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 8),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+				},
+				nil,
+				[]ast.Expression{
+					ast.NewInt(p(1, 9, 8, 8), big.NewInt(4)),
+				},
+			),
+		}, ast.ContextNone),
+	},
+	{"var a int = 4",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 12),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+				},
+				ast.NewIdentifier(p(1, 7, 6, 8), "int"),
+				[]ast.Expression{
+					ast.NewInt(p(1, 13, 12, 12), big.NewInt(4)),
+				},
+			),
+		}, ast.ContextNone),
+	},
+	{"var a, b int = 4, 6",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 18),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
+					ast.NewIdentifier(p(1, 8, 7, 7), "b"),
+				},
+				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
+				[]ast.Expression{
+					ast.NewInt(p(1, 16, 15, 15), big.NewInt(4)),
+					ast.NewInt(p(1, 19, 18, 18), big.NewInt(6)),
+				},
+			),
+		}, ast.ContextNone),
+	},
+	{"var (\n\ta int = 3\n\tb = 1.00\n)",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 27),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(2, 2, 7, 7), "a"),
+				},
+				ast.NewIdentifier(p(2, 4, 9, 11), "int"),
+				[]ast.Expression{
+					ast.NewInt(p(2, 10, 15, 15), big.NewInt(3)),
+				},
+			),
+			ast.NewVar(
+				p(1, 1, 0, 27),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(3, 2, 18, 18), "b"),
+				},
+				nil,
+				[]ast.Expression{
+					ast.NewFloat(p(3, 6, 22, 25), new(big.Float).SetFloat64(1.00)),
+				},
+			),
+		}, ast.ContextNone),
+	},
+	{"const a = 4",
+		ast.NewTree("", []ast.Node{
+			ast.NewConst(
+				p(1, 1, 0, 10),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 7, 6, 6), "a"),
+				},
+				nil,
+				[]ast.Expression{
+					ast.NewInt(p(1, 11, 10, 10), big.NewInt(4)),
+				},
+			),
+		}, ast.ContextNone),
+	},
+	// TODO (Gianluca): add parsing of var ( ... ).
 }
 
 var funcTests = []struct {
@@ -1362,6 +1495,60 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 		for i, node := range nn1.Body {
 			err := equals(node, nn2.Body[i], p)
+			if err != nil {
+				return err
+			}
+		}
+	case *ast.Var:
+		nn2, ok := n2.(*ast.Var)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.Identifiers) != len(nn2.Identifiers) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Identifiers), len(nn2.Identifiers))
+		}
+		for i, node := range nn1.Identifiers {
+			err := equals(node, nn2.Identifiers[i], p)
+			if err != nil {
+				return err
+			}
+		}
+		err := equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+		if len(nn1.Values) != len(nn2.Values) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Values), len(nn2.Values))
+		}
+		for i, node := range nn1.Values {
+			err := equals(node, nn2.Values[i], p)
+			if err != nil {
+				return err
+			}
+		}
+	case *ast.Const:
+		nn2, ok := n2.(*ast.Const)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.Identifiers) != len(nn2.Identifiers) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Identifiers), len(nn2.Identifiers))
+		}
+		for i, node := range nn1.Identifiers {
+			err := equals(node, nn2.Identifiers[i], p)
+			if err != nil {
+				return err
+			}
+		}
+		err := equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+		if len(nn1.Values) != len(nn2.Values) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Values), len(nn2.Values))
+		}
+		for i, node := range nn1.Values {
+			err := equals(node, nn2.Values[i], p)
 			if err != nil {
 				return err
 			}
