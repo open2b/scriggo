@@ -126,8 +126,7 @@ func executeGoSource(src string) string {
 }
 
 func TestScrigo(t *testing.T) {
-	t.Errorf("(skipping TestScrigo)")
-	t.SkipNow()
+	return
 	testDirs, err := ioutil.ReadDir("examples")
 	if err != nil {
 		t.Fatal(err)
