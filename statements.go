@@ -561,6 +561,72 @@ Nodes:
 			}
 			r.vars[2][name] = macro{r.path, node}
 
+		case *ast.Var:
+
+			// TODO (Gianluca): this implementation is partial and incorrect,
+			// review after implementation of type checker.
+
+			if node.Type == nil {
+				// var a, b = 3, 4
+				variables := make([]ast.Expression, len(node.Identifiers))
+				for i, ident := range node.Identifiers {
+					variables[i] = ident
+				}
+				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+				err := r.renderAssignment(assign)
+				if err != nil && !r.handleError(err) {
+					return err
+				}
+			} else {
+				if node.Values == nil {
+					// var a, b int
+					panic("not implemented, needs type checker")
+				} else {
+					// var a, b int = 3, 4
+					variables := make([]ast.Expression, len(node.Identifiers))
+					for i, ident := range node.Identifiers {
+						variables[i] = ident
+					}
+					assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+					err := r.renderAssignment(assign)
+					if err != nil && !r.handleError(err) {
+						return err
+					}
+				}
+			}
+
+		case *ast.Const:
+
+			// TODO (Gianluca): this implementation is partial and incorrect,
+			// review after implementation of type checker.
+
+			if node.Type == nil {
+				// const a, b = 3, 4
+				variables := make([]ast.Expression, len(node.Identifiers))
+				for i, ident := range node.Identifiers {
+					variables[i] = ident
+				}
+				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+				err := r.renderAssignment(assign)
+				if err != nil && !r.handleError(err) {
+					return err
+				}
+			} else {
+				// var a, b int = 3, 4
+
+				// TODO (Gianluca): this implementation is partial and
+				// incorrect, review after implementation of type checker.
+				variables := make([]ast.Expression, len(node.Identifiers))
+				for i, ident := range node.Identifiers {
+					variables[i] = ident
+				}
+				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+				err := r.renderAssignment(assign)
+				if err != nil && !r.handleError(err) {
+					return err
+				}
+			}
+
 		case *ast.Assignment:
 
 			err := r.renderAssignment(node)
