@@ -28,7 +28,7 @@ func Walk(v Visitor, node ast.Node) {
 	}
 
 	if node == nil {
-		panic("node can't be nil")
+		return
 	}
 
 	v = v.Visit(node)
@@ -59,7 +59,28 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
+	case *ast.Var:
+		for _, ident := range n.Identifiers {
+			Walk(v, ident)
+		}
+		Walk(v, n.Type)
+		for _, value := range n.Values {
+			Walk(v, value)
+		}
+
+	case *ast.Const:
+		for _, ident := range n.Identifiers {
+			Walk(v, ident)
+		}
+		Walk(v, n.Type)
+		for _, value := range n.Values {
+			Walk(v, value)
+		}
+
 	case *ast.Assignment:
+		for _, child := range n.Variables {
+			Walk(v, child)
+		}
 		for _, child := range n.Values {
 			Walk(v, child)
 		}
@@ -109,7 +130,37 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
+	case *ast.FuncType:
+		for _, field := range n.Parameters {
+			Walk(v, field.Type)
+		}
+		for _, field := range n.Result {
+			Walk(v, field.Type)
+		}
+
 	case *ast.Macro:
+		for _, child := range n.Body {
+			Walk(v, child)
+		}
+
+	case *ast.Switch:
+		Walk(v, n.Init)
+		Walk(v, n.Expr)
+		for _, c := range n.Cases {
+			Walk(v, c)
+		}
+
+	case *ast.TypeSwitch:
+		Walk(v, n.Init)
+		Walk(v, n.Assignment)
+		for _, c := range n.Cases {
+			Walk(v, c)
+		}
+
+	case *ast.Case:
+		for _, e := range n.Expressions {
+			Walk(v, e)
+		}
 		for _, child := range n.Body {
 			Walk(v, child)
 		}
@@ -170,6 +221,11 @@ func Walk(v Visitor, node ast.Node) {
 
 	case *ast.TypeAssertion:
 		Walk(v, n.Expr)
+
+	case *ast.Return:
+		for _, value := range n.Values {
+			Walk(v, value)
+		}
 
 	case *ast.Extends:
 	case *ast.Import:

@@ -37,29 +37,29 @@ func (tv *TestVisitor) Visit(node ast.Node) Visitor {
 
 func TestWalk(t *testing.T) {
 	stringCases := []struct {
-		input       string // da parsare
-		expectedPos []int  // posizioni attese
+		input       string
+		expectedPos []int
 	}{
 		{"{{1}}", []int{0, 0, 2}},
 		{"{{5+6}}", []int{0, 0, 2, 2, 4}},
-		{`{% x := 10 %}`, []int{0, 0, 8}},
-		{`{% y = 10 %}`, []int{0, 0, 7}},
-		{`{% y = (4 + 5) %}`, []int{0, 0, 7, 8, 12}},
+		{`{% x := 10 %}`, []int{0, 0, 3, 8}},
+		{`{% y = 10 %}`, []int{0, 0, 3, 7}},
+		{`{% y = (4 + 5) %}`, []int{0, 0, 3, 7, 8, 12}},
 		{`{{ call(3, 5) }}`, []int{0, 0, 3, 8, 11}},
 		{`{% if 5 > 4 %} some text {% end %}`, []int{0, 0, 6, 6, 10, 0, 14}},
 		{`{% if 5 > 4 %} some text {% else %} some text {% end %}`, []int{0, 0, 6, 6, 10, 0, 14, 0, 35}},
-		{`{% for p in ps %} some text {% end %}`, []int{0, 0, 7, 12, 17}},
+		{`{% for p in ps %} some text {% end %}`, []int{0, 0, 7, 7, 7, 12, 17}},
 		{`{% macro Body %} some text {% end %}`, []int{0, 0, 16}},
 		{`{{ (4+5)*6 }}`, []int{0, 0, 3, 3, 4, 6, 9}},
-		{`{% x = vect[3] %}`, []int{0, 0, 7, 7, 12}},
-		{`{% y = !x %}`, []int{0, 0, 7, 8}},
-		{`{% y = !(true || false) %}`, []int{0, 0, 7, 8, 9, 17}},
-		{`{% y = split("a b c d", " ") %}`, []int{0, 0, 7, 13, 24}},
-		{`{% x := -5 %}`, []int{0, 0, 8}},
-		{`{% x := mystruct.field %}`, []int{0, 0, 8, 8}},
-		{`{% x := (getStruct()).field %}`, []int{0, 0, 8, 8}},
-		{`{% x := -5.189 %}`, []int{0, 0, 8}},
-		{`{% x := vect[3:54] %}`, []int{0, 0, 8, 8, 13, 15}},
+		{`{% x = vect[3] %}`, []int{0, 0, 3, 7, 7, 12}},
+		{`{% y = !x %}`, []int{0, 0, 3, 7, 8}},
+		{`{% y = !(true || false) %}`, []int{0, 0, 3, 7, 8, 9, 17}},
+		{`{% y = split("a b c d", " ") %}`, []int{0, 0, 3, 7, 13, 24}},
+		{`{% x := -5 %}`, []int{0, 0, 3, 8}},
+		{`{% x := mystruct.field %}`, []int{0, 0, 3, 8, 8}},
+		{`{% x := (getStruct()).field %}`, []int{0, 0, 3, 8, 8}},
+		{`{% x := -5.189 %}`, []int{0, 0, 3, 8}},
+		{`{% x := vect[3:54] %}`, []int{0, 0, 3, 8, 8, 13, 15}},
 	}
 
 	for _, c := range stringCases {
@@ -73,7 +73,7 @@ func TestWalk(t *testing.T) {
 
 		if le, lg := len(c.expectedPos), len(visitor.Positions); le != lg {
 			t.Errorf("Expected a slice with %v positions (%v) when elaborating %q, but got %v (%v)", le, c.expectedPos, c.input, lg, visitor.Positions)
-			break
+			continue
 		}
 
 		for i := 0; i < len(c.expectedPos); i++ {
