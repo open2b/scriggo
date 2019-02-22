@@ -619,6 +619,16 @@ func (p *parsing) parseStatement(tok token) {
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
 
+	// {
+	case tokenLeftBraces:
+		if p.ctx != ast.ContextNone {
+			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
+		}
+		node = ast.NewBlock(tok.pos, nil)
+		addChild(parent, node)
+		p.ancestors = append(p.ancestors, node)
+		p.cutSpacesToken = true
+
 	// "}"
 	case tokenRightBraces:
 		if p.ctx != ast.ContextNone {

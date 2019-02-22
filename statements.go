@@ -462,6 +462,12 @@ Nodes:
 		case *ast.Continue:
 			return errContinue
 
+		case *ast.Block:
+			err := r.renderBlock(wr, node, urlstate)
+			if err != nil && !r.handleError(err) {
+				return err
+			}
+
 		case *ast.Func:
 			if wr != nil {
 				err := r.errorf(node.Ident, "functions not allowed")

@@ -221,6 +221,9 @@ var noneContextTreeTests = []struct {
 			),
 		}, ast.ContextNone),
 	},
+	{"{}", ast.NewTree("", []ast.Node{
+		ast.NewBlock(p(1, 1, 0, 1), nil),
+	}, ast.ContextNone)},
 }
 
 var funcTests = []struct {
