@@ -347,7 +347,6 @@ Nodes:
 						inFallthrough = true
 						continue
 					}
-					r.vars = r.vars[:len(r.vars)-2]
 					defaultCase = nil
 					break
 				}
