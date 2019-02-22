@@ -915,6 +915,10 @@ func (p *parsing) parseStatement(tok token) {
 				if tok.typ == tokenRightParenthesis {
 					// TODO (Gianluca): what happens if there are no )?
 					lastNode.Pos().End = tok.pos.End
+					tok = next(p.lex)
+					if tok.typ != tokenSemicolon {
+						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s at the end of statement", tok.txt)})
+					}
 					break
 				}
 				lastNode = p.parseVarOrConst(tok, nodePos, kind)

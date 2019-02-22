@@ -221,7 +221,6 @@ var noneContextTreeTests = []struct {
 			),
 		}, ast.ContextNone),
 	},
-	// TODO (Gianluca): add parsing of var ( ... ).
 }
 
 var funcTests = []struct {
