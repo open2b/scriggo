@@ -310,7 +310,7 @@ func (p *parsing) parseStatement(tok token) {
 		l = len(s.Cases)
 	}
 	if l == 0 {
-		if tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd {
+		if tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
 		}
 	}
