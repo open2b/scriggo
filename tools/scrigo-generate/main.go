@@ -69,7 +69,7 @@ func main() {
 		packages = append(packages, imp.Path)
 	}
 
-	out := generateMultiplePackages(packages, importsFile, customVariableName)
+	out := generateMultiplePackages(packages, importsFile, customVariableName, pkg.Name)
 
 	importsFileBase := filepath.Base(importsFile)
 	importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
