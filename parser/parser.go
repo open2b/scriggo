@@ -1246,6 +1246,9 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 	if tok.typ == tokenIdentifier {
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = next(p.lex)
+	} else if tok.typ == tokenPeriod {
+		ident = ast.NewIdentifier(tok.pos, ".")
+		tok = next(p.lex)
 	}
 	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
 		panic(fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos))

@@ -559,7 +559,7 @@ func (e Extends) String() string {
 // Import node represents a statement {% import ... %}.
 type Import struct {
 	*Position             // position in the source.
-	Ident     *Identifier // identifier.
+	Ident     *Identifier // name (including "." and "_") or nil.
 	Path      string      // path of the imported file.
 	Context   Context     // context.
 	Tree      *Tree       // expanded tree of import.
