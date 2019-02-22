@@ -544,7 +544,6 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			// TODO (Gianluca): should check if referenced?
 			if v, ok := r.variable(name); ok {
 				var err error
 				if m, ok := v.(macro); ok {
@@ -641,7 +640,6 @@ Nodes:
 			}
 			var m macro
 			var err error
-			// TODO (Gianluca): should check if referenced?
 			if v, ok := r.variable(name); ok {
 				if m, ok = v.(macro); ok {
 					if node.Context != m.node.Context {
