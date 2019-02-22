@@ -45,6 +45,7 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 				switch v := cond.(type) {
 				case bool:
 					if !v {
+						r.vars = r.vars[:len(r.vars)-1]
 						return nil
 					}
 				default:
@@ -56,6 +57,8 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 				}
 			}
 
+			r.vars = append(r.vars, scope{})
+
 			err := r.render(wr, n.Body, urlstate)
 			if err != nil {
 				if err == errBreak {
@@ -65,6 +68,8 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					return err
 				}
 			}
+
+			r.vars = r.vars[:len(r.vars)-1]
 
 			if n.Post != nil {
 				err = r.renderAssignment(n.Post)
@@ -123,7 +128,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -147,7 +154,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -171,7 +180,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -195,7 +206,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -219,7 +232,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -238,7 +253,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						_ = addresses[1].assign(v)
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -265,7 +282,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -289,7 +308,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -313,7 +334,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
+				r.vars = append(r.vars, scope{})
 				err = r.render(wr, n.Body, urlstate)
+				r.vars = r.vars[:len(r.vars)-1]
 				if err != nil {
 					if err == errBreak {
 						break
@@ -341,7 +364,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 							}
 						}
 					}
+					r.vars = append(r.vars, scope{})
 					err = r.render(wr, n.Body, urlstate)
+					r.vars = r.vars[:len(r.vars)-1]
 					if err != nil {
 						if err == errBreak {
 							break
@@ -372,7 +397,9 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 							}
 						}
 					}
+					r.vars = append(r.vars, scope{})
 					err = r.render(wr, n.Body, urlstate)
+					r.vars = r.vars[:len(r.vars)-1]
 					if err != nil {
 						if err == errBreak {
 							break
