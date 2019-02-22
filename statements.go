@@ -246,7 +246,7 @@ Nodes:
 			}
 			if c {
 				if node.Then != nil && len(node.Then.Nodes) > 0 {
-					err = r.render(wr, node.Then.Nodes, urlstate)
+					err = r.renderBlock(wr, node.Then, urlstate)
 					if err != nil {
 						return err
 					}
