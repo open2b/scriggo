@@ -55,7 +55,7 @@ var noneContextTreeTests = []struct {
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
 			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.ContextNone)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
-		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, []*ast.Case{
+		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
 			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextNone)},
 	{"if x == 5 {}",
 		ast.NewTree("", []ast.Node{
@@ -513,6 +513,7 @@ var treeTests = []struct {
 				p(1, 1, 0, 34),
 				nil,
 				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				nil,
 				[]*ast.Case{
 					ast.NewCase(
 						p(1, 15, 14, 25),
@@ -532,6 +533,7 @@ var treeTests = []struct {
 				p(1, 1, 0, 72),
 				nil,
 				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				nil,
 				[]*ast.Case{
 					ast.NewCase(
 						p(1, 15, 14, 25),
@@ -571,6 +573,7 @@ var treeTests = []struct {
 					ast.NewIdentifier(p(1, 19, 18, 18), "x"),
 					ast.NewInt(p(1, 23, 22, 22), big.NewInt(4)),
 				),
+				nil,
 				[]*ast.Case{
 					ast.NewCase(
 						p(1, 27, 26, 37),
@@ -588,6 +591,7 @@ var treeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewSwitch(
 				p(1, 1, 0, 36),
+				nil,
 				nil,
 				nil,
 				[]*ast.Case{
@@ -614,6 +618,7 @@ var treeTests = []struct {
 				p(1, 1, 0, 44),
 				nil,
 				nil,
+				nil,
 				[]*ast.Case{
 					ast.NewCase(
 						p(1, 13, 12, 24),
@@ -631,6 +636,7 @@ var treeTests = []struct {
 		ast.NewTree("", []ast.Node{
 			ast.NewSwitch(
 				p(1, 1, 0, 53),
+				nil,
 				nil,
 				nil,
 				[]*ast.Case{
@@ -669,6 +675,7 @@ var treeTests = []struct {
 				p(1, 1, 0, 82),
 				nil,
 				ast.NewIdentifier(p(1, 11, 10, 10), "x"),
+				nil,
 				[]*ast.Case{
 					ast.NewCase(
 						p(1, 15, 14, 25),
@@ -720,6 +727,7 @@ var treeTests = []struct {
 						),
 					},
 				),
+				nil,
 				[]*ast.Case{
 					ast.NewCase(p(1, 22, 21, 41),
 						[]ast.Expression{
@@ -753,6 +761,7 @@ var treeTests = []struct {
 						),
 					},
 				),
+				nil,
 				nil,
 			),
 		}, ast.ContextHTML),
@@ -1581,6 +1590,10 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return fmt.Errorf("assignment: %s", err)
 		}
+		err = equals(nn1.LeadingText, nn2.LeadingText, p)
+		if err != nil {
+			return err
+		}
 		if nn1.Cases == nil && nn2.Cases != nil {
 			return fmt.Errorf("unexpected nil body, expecting %#v", nn2.Cases)
 		}
@@ -1621,6 +1634,10 @@ func equals(n1, n2 ast.Node, p int) error {
 		err = equals(nn1.Init, nn2.Init, p)
 		if err != nil {
 			return fmt.Errorf("assignment: %s", err)
+		}
+		err = equals(nn1.LeadingText, nn2.LeadingText, p)
+		if err != nil {
+			return err
 		}
 		if nn1.Cases == nil && nn2.Cases != nil {
 			return fmt.Errorf("unexpected nil body, expecting %#v", nn2.Cases)

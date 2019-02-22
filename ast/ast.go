@@ -445,27 +445,29 @@ func NewIf(pos *Position, assignment *Assignment, cond Expression, then *Block, 
 // Switch node represents a statement {% switch ... %}.
 type Switch struct {
 	*Position
-	Init  Node
-	Expr  Expression
-	Cases []*Case
+	Init        Node
+	Expr        Expression
+	LeadingText *Text
+	Cases       []*Case
 }
 
 // NewSwitch returns a new Switch node.
-func NewSwitch(pos *Position, init Node, expr Expression, cases []*Case) *Switch {
-	return &Switch{pos, init, expr, cases}
+func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cases []*Case) *Switch {
+	return &Switch{pos, init, expr, leadingText, cases}
 }
 
 // TypeSwitch node represents a statement {% switch ... %} on types.
 type TypeSwitch struct {
 	*Position
-	Init       Node
-	Assignment *Assignment
-	Cases      []*Case
+	Init        Node
+	Assignment  *Assignment
+	LeadingText *Text
+	Cases       []*Case
 }
 
 // NewTypeSwitch returns a new TypeSwitch node.
-func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, cases []*Case) *TypeSwitch {
-	return &TypeSwitch{pos, init, assignment, cases}
+func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText *Text, cases []*Case) *TypeSwitch {
+	return &TypeSwitch{pos, init, assignment, leadingText, cases}
 }
 
 // Case node represents a statement {% case ... %} or {% default %}.

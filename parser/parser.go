@@ -193,19 +193,12 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 			// Text
 			case tokenText:
-				if s, ok := parent.(*ast.Switch); ok {
+				if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches?
 					if len(s.Cases) == 0 {
 						// TODO (Gianluca): this "if" should be moved before the
 						// switch that precedes it.
 						if containsOnlySpaces(text.Text) {
-							// TODO (Gianluca): instead of discarding whitespaces,
-							// add them to the switch node field called
-							// "LeadingText" in order to preserve the original
-							// source.
-
-							// If all characters are whitespaces, there's no need to
-							// show an error: just discard the text.
-							continue
+							s.LeadingText = text
 						}
 						return nil, &Error{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 					}

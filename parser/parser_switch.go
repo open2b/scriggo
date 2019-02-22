@@ -194,12 +194,12 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 				a.Pos(), []ast.Expression{ast.NewIdentifier(a.Pos(), "_")}, ast.AssignmentSimple, []ast.Expression{a},
 			)
 		}
-		node = ast.NewTypeSwitch(pos, beforeSemicolon, afterSemicolon.(*ast.Assignment), nil)
+		node = ast.NewTypeSwitch(pos, beforeSemicolon, afterSemicolon.(*ast.Assignment), nil, nil)
 	} else {
 		if afterSemicolon != nil {
-			node = ast.NewSwitch(pos, beforeSemicolon, afterSemicolon.(ast.Expression), nil)
+			node = ast.NewSwitch(pos, beforeSemicolon, afterSemicolon.(ast.Expression), nil, nil)
 		} else {
-			node = ast.NewSwitch(pos, beforeSemicolon, nil, nil)
+			node = ast.NewSwitch(pos, beforeSemicolon, nil, nil, nil)
 		}
 	}
 	return node
