@@ -16,7 +16,7 @@ func main() {
 		1:     "v1",
 		"two": "v2",
 	}
-	fmt.Println(m2)
+	fmt.Println(m2["k"][1], m2["k"]["two"])
 
 	s1 := []int{1, 2, 3}
 	s1 = append(s1, s1[0], s1[1])
