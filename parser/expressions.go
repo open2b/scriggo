@@ -351,7 +351,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 
 			case tokenLeftBraces: // ...{
 				isAType = false
-				pos := &ast.Position{tok.pos.Line, tok.pos.Column, tok.pos.Start, tok.pos.End}
+				pos := &ast.Position{Line: tok.pos.Line, Column: tok.pos.Column, Start: tok.pos.Start, End: tok.pos.End}
 				if operand != nil {
 					pos.Start = operand.Pos().Start
 				}

@@ -1235,9 +1235,8 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 	nodePos.End = endPos
 	if kind == "var" {
 		return ast.NewVar(nodePos, idents, typ, exprs)
-	} else {
-		return ast.NewConst(nodePos, idents, typ, exprs)
 	}
+	return ast.NewConst(nodePos, idents, typ, exprs)
 }
 
 func (p *parsing) parseImportSpec(tok token) *ast.Import {
@@ -1643,10 +1642,9 @@ func addChild(parent ast.Node, node ast.Node) {
 		if ok {
 			n.Cases = append(n.Cases, c)
 			return
-		} else {
-			lastCase := n.Cases[len(n.Cases)-1]
-			lastCase.Body = append(lastCase.Body, node)
 		}
+		lastCase := n.Cases[len(n.Cases)-1]
+		lastCase.Body = append(lastCase.Body, node)
 	default:
 		panic("scrigo/parser: unexpected parent node")
 	}

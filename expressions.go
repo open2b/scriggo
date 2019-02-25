@@ -1601,9 +1601,8 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	if v == nil {
 		if r.isBuiltin("nil", node.Expr) {
 			return nil, false, r.errorf(node.Expr, "use of untyped nil")
-		} else {
-			return nil, false, r.errorf(node, "index out of range")
 		}
+		return nil, false, r.errorf(node, "index out of range")
 	}
 	checkSlice := func(length int) (int, error) {
 		if n == 2 {

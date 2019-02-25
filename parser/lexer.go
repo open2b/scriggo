@@ -761,7 +761,7 @@ LOOP:
 				l.column += 2
 			} else {
 				l.emit(tokenAmpersand, 1)
-				l.column += 1
+				l.column++
 			}
 			endLineAsSemicolon = false
 		case '|':
