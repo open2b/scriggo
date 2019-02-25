@@ -26,8 +26,6 @@ func isTypeGuard(node ast.Node) bool {
 // parseSwitch parses a switch statement and returns an Switch or TypeSwitch
 // node. Panics on error.
 //
-// TODO (Gianluca): instead of returning an error, panic.
-//
 // TODO (Gianluca): instead of using "pos" (*ast.Position), use full token "tok"
 // (token)
 //
