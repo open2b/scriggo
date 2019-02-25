@@ -27,7 +27,10 @@ var errIntegerDivideByZero = errors.New("integer divide by zero")
 var reflectValueNil = reflect.ValueOf(new(interface{})).Elem()
 
 // Package represents a package.
-type Package map[string]interface{}
+type Package struct {
+	Name         string
+	Declarations map[string]interface{}
+}
 
 type Map = map[interface{}]interface{}
 
@@ -1075,8 +1078,8 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
-	if p, ok := value.(Package); ok {
-		v, ok := p[node.Ident]
+	if p, ok := value.(*Package); ok {
+		v, ok := p.Declarations[node.Ident]
 		if !ok {
 			if fc, _ := utf8.DecodeRuneInString(node.Ident); !unicode.Is(unicode.Lu, fc) {
 				return nil, false, r.errorf(node, "cannot refer to unexported name %s", node)
@@ -1436,7 +1439,7 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		if ident, ok := e.Expr.(*ast.Identifier); ok {
 			v2 := r.evalIdentifier(ident)
 			if pkg, ok := v2.(Package); ok {
-				value, ok = pkg[e.Ident]
+				value, ok = pkg.Declarations[e.Ident]
 				if !ok {
 					if fc, _ := utf8.DecodeRuneInString(e.Ident); !unicode.Is(unicode.Lu, fc) {
 						return nil, r.errorf(expr, "cannot refer to unexported name %s", expr)

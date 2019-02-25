@@ -670,23 +670,23 @@ var rendererCallFuncTests = []struct {
 	res     string
 	globals Package
 }{
-	{"func f() {}; f()", "", nil},
-	{"func f(x int) int { return x }; print(f(2))", "2", nil},
-	{"func f(_ int) { }; f(2)", "", nil},
-	{"func f(int) {}; f(1)", "", nil},
-	{"func f(x, y int) int { return x + y }; print(f(1, 2))", "3", nil},
-	{"func f(_, _ int) { }; f(1, 2)", "", nil},
-	{"func f(x int, y int) int { return x + y }; print(f(1, 2))", "3", nil},
-	{"func f(_ int, y int) int { return y }; print(f(1, 2))", "2", nil},
-	{"func f(...int) {}; f(1, 2, 3)", "", nil},
-	{"func f(x ...int) int { s := 0; for _, i := range x { s += i }; return s }; print(f(1, 2, 3))", "6", nil},
-	{"func f(_ ...int) { }; f(1, 2, 3)", "", nil},
-	{"func f(x, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", nil},
-	{"func f(_, _ ...int) { }; f(1, 2, 3, 4)", "", nil},
-	{"func f(_, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", nil},
-	{"func f(x, _ ...int) int { return x }; print(f(1, 2, 3, 4))", "1", nil},
-	{"func f(x []int) int { s := 0; for _, i := range x { s += i }; return s }; print(f([]int{1, 2, 3, 4}))", "10", nil},
-	{"func f(x, y []int) int { s := 0; for _, i := range y { s += i }; return s }; print(f([]int{1}, []int{2, 3, 4}))", "9", nil},
+	{"func f() {}; f()", "", Package{}},
+	{"func f(x int) int { return x }; print(f(2))", "2", Package{}},
+	{"func f(_ int) { }; f(2)", "", Package{}},
+	{"func f(int) {}; f(1)", "", Package{}},
+	{"func f(x, y int) int { return x + y }; print(f(1, 2))", "3", Package{}},
+	{"func f(_, _ int) { }; f(1, 2)", "", Package{}},
+	{"func f(x int, y int) int { return x + y }; print(f(1, 2))", "3", Package{}},
+	{"func f(_ int, y int) int { return y }; print(f(1, 2))", "2", Package{}},
+	{"func f(...int) {}; f(1, 2, 3)", "", Package{}},
+	{"func f(x ...int) int { s := 0; for _, i := range x { s += i }; return s }; print(f(1, 2, 3))", "6", Package{}},
+	{"func f(_ ...int) { }; f(1, 2, 3)", "", Package{}},
+	{"func f(x, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", Package{}},
+	{"func f(_, _ ...int) { }; f(1, 2, 3, 4)", "", Package{}},
+	{"func f(_, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", Package{}},
+	{"func f(x, _ ...int) int { return x }; print(f(1, 2, 3, 4))", "1", Package{}},
+	{"func f(x []int) int { s := 0; for _, i := range x { s += i }; return s }; print(f([]int{1, 2, 3, 4}))", "10", Package{}},
+	{"func f(x, y []int) int { s := 0; for _, i := range y { s += i }; return s }; print(f([]int{1}, []int{2, 3, 4}))", "9", Package{}},
 }
 
 func TestRenderCallFunc(t *testing.T) {
@@ -710,7 +710,7 @@ func TestRenderCallFunc(t *testing.T) {
 			}
 			c <- struct{}{}
 		}()
-		err = RunScriptTree(tree, stmt.globals)
+		err = RunScriptTree(tree, &stmt.globals)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue

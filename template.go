@@ -297,7 +297,7 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]Package) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]*Package) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")

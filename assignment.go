@@ -382,8 +382,8 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		switch vv := value.(type) {
 		case Map:
 			addr = mapAddress{Map: vv, Key: v.Ident}
-		case Package:
-			vvv, ok := vv[v.Ident]
+		case *Package:
+			vvv, ok := vv.Declarations[v.Ident]
 			if !ok {
 				if fc, _ := utf8.DecodeRuneInString(v.Ident); !unicode.Is(unicode.Lu, fc) {
 					return nil, r.errorf(variable, "cannot refer to unexported name %s", variable)

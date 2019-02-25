@@ -77,7 +77,7 @@ type rendering struct {
 	scope       map[string]scope
 	path        string
 	vars        []scope
-	packages    map[string]Package
+	packages    map[string]*Package
 	treeContext ast.Context
 	function    function
 	handleError func(error) bool
@@ -747,11 +747,11 @@ Nodes:
 		case *ast.Import:
 
 			if r.treeContext == ast.ContextNone {
-				name := path.Base(node.Path)
 				if node.Tree == nil {
-					r.vars[2][name] = r.packages[node.Path]
+					pkg := r.packages[node.Path]
+					r.vars[2][pkg.Name] = pkg
 				} else {
-
+					name := path.Base(node.Path)
 					if _, ok := r.scope[node.Tree.Path]; !ok {
 						rn := &rendering{
 							scope:       r.scope,
@@ -770,7 +770,7 @@ Nodes:
 						pkg := Package{}
 						for name, fn := range rn.vars[2] {
 							if _, ok := fn.(function); ok {
-								pkg[name] = fn
+								pkg.Declarations[name] = fn
 							}
 						}
 						r.vars[2][name] = pkg

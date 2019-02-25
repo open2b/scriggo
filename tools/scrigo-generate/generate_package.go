@@ -28,7 +28,7 @@ import "scrigo"
 
 func init() {
 	[predefinedTypes]
-	[customVariableName] = map[string]scrigo.Package{
+	[customVariableName] = map[string]*scrigo.Package{
 		[pkgContent]
 	}
 }
@@ -153,5 +153,18 @@ func generatePackage(pkgPath string) (string, []string) {
 		}
 	}
 
-	return "\n" + `"` + pkgPath + `": {` + "\n" + pkgContent + "},\n\n", predefinedTypes
+	skel := `"[pkgPath]": &scrigo.Package{
+			Name: "[pkg.Name()]",
+			Declarations: map[string]interface{}{
+				[pkgContent]
+			},
+		},`
+
+	repl := strings.NewReplacer(
+		"[pkgPath]", pkgPath,
+		"[pkgContent]", pkgContent,
+		"[pkg.Name()]", pkg.Name(),
+	)
+
+	return repl.Replace(skel), predefinedTypes
 }

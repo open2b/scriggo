@@ -16,7 +16,7 @@ import (
 	"scrigo/parser"
 )
 
-var packages map[string]scrigo.Package
+var packages map[string]*scrigo.Package
 
 func main() {
 

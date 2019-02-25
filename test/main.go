@@ -19,7 +19,7 @@ import (
 	"scrigo/parser"
 )
 
-var packages map[string]scrigo.Package
+var packages map[string]*scrigo.Package
 
 func runScrigoAndGetOutput(src []byte) string {
 	reader, writer, err := os.Pipe()
