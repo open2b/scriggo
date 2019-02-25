@@ -464,7 +464,7 @@ Nodes:
 
 		case *ast.Block:
 			err := r.renderBlock(wr, node, urlstate)
-			if err != nil && !r.handleError(err) {
+			if err != nil {
 				return err
 			}
 
