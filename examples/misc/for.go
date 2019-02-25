@@ -26,4 +26,12 @@ func main() {
 		}
 	}
 	fmt.Println(sum)
+	{
+		items := make([]map[int]int, 10)
+		for i := range items {
+			items[i] = make(map[int]int, 1)
+			items[i][1] = 2
+		}
+		fmt.Println(items)
+	}
 }
