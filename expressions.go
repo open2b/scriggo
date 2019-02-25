@@ -34,9 +34,6 @@ type Package struct {
 
 type Map = map[interface{}]interface{}
 
-// Slice implements a value with type "slice".
-type Slice = []interface{}
-
 // Bytes implements the mutable bytes values.
 type Bytes = []byte
 
@@ -1222,23 +1219,6 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 			builtinMap[key] = val
 		}
 		return builtinMap
-	case sliceType: // slice{...}
-		if node.KeyValues == nil {
-			return reflect.MakeSlice(typ, 0, 0).Interface()
-		}
-		indexValue, maxIndex = r.indexValueMap(node.KeyValues)
-		slice := reflect.MakeSlice(sliceType, maxIndex+1, maxIndex+1)
-		for i, v := range indexValue {
-			val := r.evalExpression(v)
-			if cn, ok := val.(ConstantNumber); ok {
-				val, err = cn.ToTyped()
-				if err != nil {
-					panic(err)
-				}
-			}
-			slice.Index(i).Set(reflect.ValueOf(val))
-		}
-		return slice.Interface()
 	}
 	// Generic Go types.
 	switch typ.Kind() {
@@ -1301,7 +1281,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 					panic(err)
 				}
 			}
-			if reflect.TypeOf(evalValue) != typ.Elem() {
+			if typeOf := reflect.TypeOf(evalValue); typeOf != typ.Elem() && !typeOf.Implements(typ.Elem()) {
 				panic(r.errorf(node, "cannot use %v (type %T) as type %s in slice literal", v, evalValue, typ.Elem()))
 			}
 			slice.Index(i).Set(reflect.ValueOf(evalValue))
@@ -1487,9 +1467,6 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		}
 		return reflect.ArrayOf(declLength, elemType), nil
 	case *ast.SliceType:
-		if e.ElementType == nil {
-			return sliceType, nil
-		}
 		elemType, err := r.evalType(e.ElementType, noEllipses)
 		if err != nil {
 			panic(err)

@@ -215,9 +215,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			pos.End = tok.pos.End
 			operand = ast.NewIdentifier(pos, "interface{}")
-		case tokenSlice: // slice{...}, slice(...)
-			canCompositeLiteral = true
-			operand = ast.NewSliceType(tok.pos, nil)
 		case tokenFunc:
 			var node ast.Node
 			node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)

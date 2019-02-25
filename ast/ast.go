@@ -776,7 +776,7 @@ func (n *BinaryOperator) Precedence() int {
 type SliceType struct {
 	expression
 	*Position              // position in the source.
-	ElementType Expression // element type, if nil is a Scrigo slice.
+	ElementType Expression // element type.
 }
 
 func NewSliceType(pos *Position, elementType Expression) *SliceType {
@@ -784,9 +784,6 @@ func NewSliceType(pos *Position, elementType Expression) *SliceType {
 }
 
 func (s *SliceType) String() string {
-	if s.ElementType == nil {
-		return "slice"
-	}
 	return "[]" + s.ElementType.String()
 }
 
@@ -795,7 +792,7 @@ type ArrayType struct {
 	expression
 	*Position              // position in the source.
 	Len         Expression // length. It is nil for arrays specified with ... notation.
-	ElementType Expression // element type, if nil is a Scrigo slice.
+	ElementType Expression // element type.
 }
 
 func NewArrayType(pos *Position, len Expression, elementType Expression) *ArrayType {

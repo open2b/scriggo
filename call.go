@@ -649,13 +649,6 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 		case map[interface{}]interface{}:
 			return v, nil
 		}
-	case sliceType:
-		switch v := value.(type) {
-		case nil:
-			return []interface{}(nil), nil
-		case []interface{}:
-			return v, nil
-		}
 	default:
 		// TODO(marco): manage T(nil), now it panics
 		rv := reflect.ValueOf(value)

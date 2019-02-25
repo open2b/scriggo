@@ -43,7 +43,6 @@ const (
 	tokenSwitchType                         // type
 	tokenInterface                          // interface
 	tokenMap                                // map
-	tokenSlice                              // slice
 	tokenIf                                 // if
 	tokenElse                               // else
 	tokenExtends                            // extends
@@ -122,7 +121,6 @@ var tokenString = map[tokenType]string{
 	tokenSwitchType:               "type",
 	tokenInterface:                "interface",
 	tokenMap:                      "map",
-	tokenSlice:                    "slice",
 	tokenIf:                       "if",
 	tokenElse:                     "else",
 	tokenExtends:                  "extends",

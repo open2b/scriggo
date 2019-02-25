@@ -164,10 +164,6 @@
 //  map:      the type scrigo.Map, a struct type, a pointer to struct type
 //            and a map type
 //
-//  slice:    the type scrigo.Slice and a slice type
-//
-//  bytes:    the type scrigo.Bytes and the []byte type
-//
 //  function: a function type with only one return value. As numeric parameter
 //            types, only int and *apd.Decimal can be used
 //

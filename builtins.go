@@ -55,7 +55,6 @@ var float64Type = reflect.TypeOf(float64(0))
 var float32Type = reflect.TypeOf(float32(0))
 var boolType = reflect.TypeOf(false)
 var mapType = reflect.TypeOf(map[interface{}]interface{}(nil))
-var sliceType = reflect.TypeOf([]interface{}(nil))
 var bytesType = reflect.TypeOf([]byte(nil))
 var interfaceType = reflect.TypeOf(&interf).Elem()
 var runesType = reflect.TypeOf([]rune(nil))
@@ -98,7 +97,6 @@ var builtins = scope{
 	"byte":        uint8Type,
 	"bool":        boolType,
 	"map":         mapType,
-	"slice":       sliceType,
 	"interface{}": interfaceType,
 	"error":       errorType,
 }
@@ -703,14 +701,14 @@ func _sha256(s string) string {
 }
 
 // _shuffle is the builtin function "shuffle".
-func _shuffle(s interface{}) Slice {
+func _shuffle(s interface{}) []interface{} {
 	if s == nil {
 		return nil
 	}
-	var ms Slice
+	var ms []interface{}
 	switch m := s.(type) {
 	case []interface{}:
-		ms = make(Slice, len(m))
+		ms = make([]interface{}, len(m))
 		copy(ms, m)
 	default:
 		rv := reflect.ValueOf(s)
@@ -718,7 +716,7 @@ func _shuffle(s interface{}) Slice {
 			panic(errNoSlice)
 		}
 		l := rv.Len()
-		ms = make(Slice, l)
+		ms = make([]interface{}, l)
 		for i := 0; i < l; i++ {
 			ms[i] = rv.Index(i).Interface()
 		}

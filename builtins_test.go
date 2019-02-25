@@ -63,10 +63,10 @@ var rendererBuiltinTests = []struct {
 	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", scope{"s": []float64{1.9, 2.32}}},
 	{"append(s, false, true)", "true, false, false, true", scope{"s": []bool{true, false}}},
 	{"append(s, 7, true, html(`<b>`))", "a, false, 0, 7, true, <b>", scope{"s": []interface{}{"a", false, 0}}},
-	{"append(slice{})", "", nil},
-	{"append(slice{}, 1)", "1", nil},
-	{"append(slice{1,2,3}, 4)", "1, 2, 3, 4", nil},
-	{"append(slice{1,2,3}, 4, 5, 6)", "1, 2, 3, 4, 5, 6", nil},
+	{"append([]interface{}{})", "", nil},
+	{"append([]interface{}{}, 1)", "1", nil},
+	{"append([]interface{}{1,2,3}, 4)", "1, 2, 3, 4", nil},
+	{"append([]interface{}{1,2,3}, 4, 5, 6)", "1, 2, 3, 4, 5, 6", nil},
 
 	// base64
 	{"base64(``)", "", nil},

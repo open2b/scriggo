@@ -866,10 +866,6 @@ func typeof(v interface{}) string {
 		return "string"
 	case Map:
 		return "map"
-	case Slice:
-		return "slice"
-	case Bytes:
-		return "bytes"
 	case ConstantNumber:
 		return "untyped number"
 	case CustomNumber:

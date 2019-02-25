@@ -284,20 +284,6 @@ func (addr goMapAddress) value() interface{} {
 	return reflect.Zero(addr.Map.Type().Elem())
 }
 
-type sliceAddress struct {
-	Slice Slice
-	Index int
-}
-
-func (addr sliceAddress) assign(value interface{}) error {
-	addr.Slice[addr.Index] = value
-	return nil
-}
-
-func (addr sliceAddress) value() interface{} {
-	return addr.Slice[addr.Index]
-}
-
 type goSliceAddress struct {
 	Slice reflect.Value
 	Index int
@@ -426,15 +412,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 				return nil, err
 			}
 			addr = mapAddress{Map: val, Key: key}
-		case Slice:
-			index, err := r.sliceIndex(v.Index)
-			if err != nil {
-				return nil, err
-			}
-			if index >= len(val) {
-				return nil, r.errorf(variable, "index out of range")
-			}
-			addr = sliceAddress{Slice: val, Index: index}
 		case Bytes:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
