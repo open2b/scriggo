@@ -118,8 +118,11 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 	// TODO (Gianluca): to doc.
 	reuseLastToken := false
 
-	// isAType indicates if the currently parsed expression is certainly a type.
-	isAType := false
+	// canCompositeLiteral indicates if the currently parsed expression can be
+	// used as type in composite literals. For instance, "interface{}" is a type
+	// but cannot be used as type in composite literals, so canCompositeLiteral
+	// is false.
+	canCompositeLiteral := false
 
 	// Intermediate nodes of an expression tree are unary or binary operators
 	// and the leaves are operands.
@@ -181,7 +184,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 		case tokenLeftBraces: // composite literal with no type.
 			reuseLastToken = true
 		case tokenMap:
-			isAType = true
+			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
 			tok = next(p.lex)
 			if tok.typ == tokenLeftBrackets { // map[
@@ -201,7 +204,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = mapType
 			reuseLastToken = true
 		case tokenInterface:
-			isAType = true
 			pos := tok.pos
 			tok = next(p.lex)
 			if tok.typ != tokenLeftBraces {
@@ -214,10 +216,10 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			pos.End = tok.pos.End
 			operand = ast.NewIdentifier(pos, "interface{}")
 		case tokenSlice: // slice{...}, slice(...)
-			isAType = true
+			canCompositeLiteral = true
 			operand = ast.NewSliceType(tok.pos, nil)
 		case tokenBytes: // bytes{...}, bytes(...)
-			isAType = true
+			canCompositeLiteral = true
 			operand = ast.NewIdentifier(tok.pos, "bytes")
 		case tokenFunc:
 			var node ast.Node
@@ -276,7 +278,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				}
 			}
 		case tokenLeftBrackets: // [
-			isAType = true
+			canCompositeLiteral = true
 			var expr, length ast.Expression
 			pos := tok.pos
 			isEllipses := false
@@ -341,7 +343,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			reuseLastToken = false
 
-			skip := mustBeType || (tok.typ == tokenLeftBraces && nextIsBlockOpen && !isAType)
+			skip := mustBeType || (tok.typ == tokenLeftBraces && nextIsBlockOpen && !canCompositeLiteral)
 			backupTok := tok
 			if skip {
 				tok = token{}
@@ -350,7 +352,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			switch tok.typ {
 
 			case tokenLeftBraces: // ...{
-				isAType = false
+				canCompositeLiteral = false
 				pos := &ast.Position{Line: tok.pos.Line, Column: tok.pos.Column, Start: tok.pos.Start, End: tok.pos.End}
 				if operand != nil {
 					pos.Start = operand.Pos().Start
