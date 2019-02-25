@@ -32,8 +32,6 @@ type Package struct {
 	Declarations map[string]interface{}
 }
 
-type Map = map[interface{}]interface{}
-
 // Bytes implements the mutable bytes values.
 type Bytes = []byte
 
@@ -1197,29 +1195,6 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 	} else { // Composite literal with implicit type.
 		typ = outerType
 	}
-	// Builtin types slice{...} and map{...}.
-	switch typ {
-	case mapType: // map{...}
-		if node.KeyValues == nil {
-			return make(Map, 0)
-		}
-		builtinMap := make(Map, len(node.KeyValues))
-		for _, kv := range node.KeyValues {
-			key, err := r.mapIndex(kv.Key, interfaceType)
-			if err != nil {
-				panic(err)
-			}
-			val := r.evalExpression(kv.Value)
-			if cn, ok := val.(ConstantNumber); ok {
-				val, err = cn.ToTyped()
-				if err != nil {
-					panic(err)
-				}
-			}
-			builtinMap[key] = val
-		}
-		return builtinMap
-	}
 	// Generic Go types.
 	switch typ.Kind() {
 	case reflect.Array: // [n]T{...}
@@ -1473,9 +1448,6 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		}
 		return reflect.SliceOf(elemType), nil
 	case *ast.MapType:
-		if e.KeyType == nil && e.ValueType == nil {
-			return mapType, nil
-		}
 		var keyType, valueType reflect.Type
 		keyType, err = r.evalType(e.KeyType, noEllipses)
 		if err != nil {
@@ -1958,10 +1930,6 @@ func (r *rendering) isBuiltin(name string, expr ast.Expression) bool {
 
 // zeroOf returns the zero value of the type typ.
 func zeroOf(typ reflect.Type) interface{} {
-	switch typ {
-	case mapType:
-		return nil
-	}
 	return reflect.Zero(typ)
 }
 

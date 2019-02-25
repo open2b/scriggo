@@ -174,7 +174,6 @@ var exprTests = []struct {
 	{"a.(number)", ast.NewTypeAssertion(p(1, 2, 0, 9), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 8), "number"))},
 	{"a.(int)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 5), "int"))},
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
-	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewMapType(p(1, 4, 3, 5), nil, nil))},
 	{"os.FileInfo", ast.NewSelector(p(1, 3, 0, 10), ast.NewIdentifier(p(1, 1, 0, 1), "os"), "FileInfo")},
 	{"{1,2,3}", ast.NewCompositeLiteral(p(1, 1, 0, 6), nil, []ast.KeyValue{
 		{nil, ast.NewInt(p(1, 2, 1, 1), big.NewInt(1))},
@@ -218,57 +217,7 @@ var exprTests = []struct {
 						{nil, ast.NewInt(p(1, 14, 13, 13), big.NewInt(2))},
 						{nil, ast.NewInt(p(1, 16, 15, 15), big.NewInt(3))},
 					})}})},
-	{`map{1,2,3}`, ast.NewCompositeLiteral(
-		p(1, 4, 0, 9),
-		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
-		[]ast.KeyValue{
-			{nil, ast.NewInt(p(1, 5, 4, 4), big.NewInt(1))},
-			{nil, ast.NewInt(p(1, 7, 6, 6), big.NewInt(2))},
-			{nil, ast.NewInt(p(1, 9, 8, 8), big.NewInt(3))},
-		},
-	)},
-	{`map{"a":5}`, ast.NewCompositeLiteral(p(1, 4, 0, 9),
-		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
-		[]ast.KeyValue{ast.KeyValue{
-			ast.NewString(p(1, 5, 4, 6), "a"),
-			ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
-		}})},
-	{`map{"a":5,}`, ast.NewCompositeLiteral(p(1, 4, 0, 10),
-		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
-		[]ast.KeyValue{
-			ast.KeyValue{
-				ast.NewString(p(1, 5, 4, 6), "a"),
-				ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
-			}})},
-	{`map{"a":5,"b":7}`, ast.NewCompositeLiteral(p(1, 4, 0, 15),
-		ast.NewMapType(p(1, 1, 0, 2), nil, nil),
-		[]ast.KeyValue{
-			ast.KeyValue{
-				ast.NewString(p(1, 5, 4, 6), "a"),
-				ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
-			},
-			ast.KeyValue{
-				ast.NewString(p(1, 11, 10, 12), "b"),
-				ast.NewInt(p(1, 15, 14, 14), big.NewInt(7)),
-			}})},
-	{"map(nil)", ast.NewCall(p(1, 4, 0, 7), ast.NewMapType(p(1, 1, 0, 2), nil, nil), []ast.Expression{ast.NewIdentifier(p(1, 5, 4, 6), "nil")})},
-	{"map{}", ast.NewCompositeLiteral(p(1, 4, 0, 4), ast.NewMapType(p(1, 1, 0, 2), nil, nil), nil)},
-	{"map(nil) != nil", ast.NewBinaryOperator(p(1, 10, 0, 14),
-		ast.OperatorNotEqual,
-		ast.NewCall(p(1, 4, 0, 7),
-			ast.NewMapType(p(1, 1, 0, 2), nil, nil), // map
-			[]ast.Expression{
-				ast.NewIdentifier(p(1, 5, 4, 6), "nil"),
-			}),
-		ast.NewIdentifier(p(1, 13, 12, 14), "nil"),
-	)},
-	{"map", ast.NewMapType(p(1, 1, 0, 2), nil, nil)},
 	{"map[int]bool", ast.NewMapType(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 5, 4, 6), "int"), ast.NewIdentifier(p(1, 9, 8, 11), "bool"))},
-	{"map{1: true, 2: false}", ast.NewCompositeLiteral(
-		p(1, 4, 0, 21), ast.NewMapType(p(1, 1, 0, 2), nil, nil), []ast.KeyValue{
-			ast.KeyValue{ast.NewInt(p(1, 5, 4, 4), big.NewInt(1)), ast.NewIdentifier(p(1, 8, 7, 10), "true")},
-			ast.KeyValue{ast.NewInt(p(1, 14, 13, 13), big.NewInt(2)), ast.NewIdentifier(p(1, 17, 16, 20), "false")},
-		})},
 	{`map[int]string{1: "uno", 2: "due"}`, ast.NewCompositeLiteral(p(1, 15, 0, 33),
 		ast.NewMapType(p(1, 1, 0, 13), ast.NewIdentifier(p(1, 5, 4, 6), "int"), ast.NewIdentifier(p(1, 9, 8, 13), "string")),
 		[]ast.KeyValue{

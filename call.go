@@ -642,13 +642,6 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 		case []rune:
 			return v, nil
 		}
-	case mapType:
-		switch v := value.(type) {
-		case nil:
-			return map[interface{}]interface{}(nil), nil
-		case map[interface{}]interface{}:
-			return v, nil
-		}
 	default:
 		// TODO(marco): manage T(nil), now it panics
 		rv := reflect.ValueOf(value)
@@ -831,7 +824,7 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 	// TODO: gestire il caso delle nil map
 	switch v := m.(type) {
-	case Map:
+	case map[interface{}]interface{}:
 		delete(v, k)
 	case map[string]string:
 		k, ok := k.(string)
@@ -890,8 +883,6 @@ func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
 	case []byte:
 		length = len(s)
 	case []bool:
-		length = len(s)
-	case Map:
 		length = len(s)
 	case map[string]string:
 		length = len(s)

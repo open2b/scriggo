@@ -78,7 +78,6 @@ var expressionStringTests = []struct {
 				{NewInt(nil, big.NewInt(7)), NewInt(nil, big.NewInt(9))},
 			})},
 	{"[]T", NewSliceType(nil, NewIdentifier(nil, "T"))},
-	{"map", NewMapType(nil, nil, nil)},
 	{"map[int]bool", NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool"))},
 	{"map[int][]int", NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int")))},
 	{"map[int][]int{}", NewCompositeLiteral(nil, NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int"))), nil)},

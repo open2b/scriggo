@@ -252,21 +252,6 @@ func (addr varAddress) value() interface{} {
 	return reflect.Indirect(addr.Value).Interface()
 }
 
-type mapAddress struct {
-	Map Map
-	Key interface{}
-}
-
-func (addr mapAddress) assign(value interface{}) error {
-	addr.Map[addr.Key] = value
-	return nil
-}
-
-func (addr mapAddress) value() interface{} {
-	value, _ := addr.Map[addr.Key]
-	return value
-}
-
 type goMapAddress struct {
 	Map reflect.Value
 	Key reflect.Value
@@ -366,8 +351,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			return nil, err
 		}
 		switch vv := value.(type) {
-		case Map:
-			addr = mapAddress{Map: vv, Key: v.Ident}
 		case *Package:
 			vvv, ok := vv.Declarations[v.Ident]
 			if !ok {
@@ -406,12 +389,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			return nil, err
 		}
 		switch val := value.(type) {
-		case Map:
-			key, err := r.mapIndex(v.Index, interfaceType)
-			if err != nil {
-				return nil, err
-			}
-			addr = mapAddress{Map: val, Key: key}
 		case Bytes:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {

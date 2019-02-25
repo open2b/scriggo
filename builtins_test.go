@@ -179,7 +179,6 @@ var rendererBuiltinTests = []struct {
 	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
 	{"len(a)", "0", scope{"a": []int(nil)}},
 	{"len(a)", "2", scope{"a": map[string]int{"a": 5, "b": 8}}},
-	{"len(a)", "2", scope{"a": Map{"a": 5, "b": 8}}},
 
 	// max
 	{"max(0, 0)", "0", nil},
@@ -345,14 +344,14 @@ var statementBuiltinTests = []struct {
 	{"{% n := copy(d, s) %}{{ d }}", "a, b", scope{"d": []string{"", ""}, "s": []string{"a", "b"}}},
 	{"{% n := copy(d, s) %}{{ d }}", "1, 2", scope{"d": []int{0, 0}, "s": []int{1, 2}}},
 	{"{% n := copy(d, s) %}{{ d }}", "1, 2", scope{"d": []byte{0, 0}, "s": []byte{1, 2}}},
-	{"{% n := copy(d, s) %}{{ d[0][1] }}, {{ d[1][2] }}", "a, b", scope{"d": []Map{nil, nil}, "s": []Map{{1: "a", 2: "b"}, {1: "a", 2: "b"}}}},
+	{"{% n := copy(d, s) %}{{ d[0][1] }}, {{ d[1][2] }}", "a, b", scope{"d": []map[interface{}]interface{}{nil, nil}, "s": []map[interface{}]interface{}{{1: "a", 2: "b"}, {1: "a", 2: "b"}}}},
 
 	// delete
-	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{}}},
-	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{"a": 6}}},
-	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": Map{"a": 6}}},
-	{"{% delete(m,5) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
-	{"{% delete(m,5.0) %}{% if _, ok := m[5.0]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": Map{5: true}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": map[interface{}]interface{}{}}},
+	{"{% delete(m,`a`) %}{% if _, ok := m[`a`]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": map[interface{}]interface{}{"a": 6}}},
+	{"{% delete(m,`b`) %}{% if _, ok := m[`a`]; ok %}ok{% else %}no{% end %}", "ok", scope{"m": map[interface{}]interface{}{"a": 6}}},
+	{"{% delete(m,5) %}{% if _, ok := m[5]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": map[interface{}]interface{}{5: true}}},
+	{"{% delete(m,5.0) %}{% if _, ok := m[5.0]; ok %}no{% else %}ok{% end %}", "ok", scope{"m": map[interface{}]interface{}{5: true}}},
 
 	// sort
 	{"{% sort(nil) %}", "", nil},

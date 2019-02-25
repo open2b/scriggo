@@ -861,14 +861,7 @@ func NewMapType(pos *Position, keyType, valueType Expression) *MapType {
 }
 
 func (m *MapType) String() string {
-	s := "map"
-	if m.KeyType != nil {
-		s += "[" + m.KeyType.String() + "]"
-	}
-	if m.ValueType != nil {
-		s += m.ValueType.String()
-	}
-	return s
+	return "map[" + m.KeyType.String() + "]" + m.ValueType.String()
 }
 
 // Call node represents a function call expression.

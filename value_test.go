@@ -47,7 +47,7 @@ var htmlContextTests = []struct {
 	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
 	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
-	{`s["a"]`, "", scope{"s": Map{}}},
+	{`s["a"]`, "", scope{"s": map[interface{}]interface{}{}}},
 }
 
 func TestHTMLContext(t *testing.T) {
@@ -108,7 +108,7 @@ var attributeContextTests = []struct {
 	{`a`, "0, 1, 2, 3, 4, 5", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "-2, -1, 0, 1, 2", scope{"a": []int{-2, -1, 0, 1, 2}}},
 	{`a`, "true, false, true", scope{"a": []bool{true, false, true}}},
-	{`s["a"]`, "", scope{"s": Map{}}},
+	{`s["a"]`, "", scope{"s": map[interface{}]interface{}{}}},
 }
 
 func TestAttributeContext(t *testing.T) {
@@ -146,7 +146,7 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&#32;a&#32;", scope{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", scope{"a": "\t\n\r\x0C a=`"}},
 	{`a`, "0,&#32;1,&#32;2", scope{"a": []int{0, 1, 2}}},
-	{`s["a"]`, "", scope{"s": Map{}}},
+	{`s["a"]`, "", scope{"s": map[interface{}]interface{}{}}},
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
@@ -219,7 +219,7 @@ var urlContextTests = []struct {
 	{`<a href={{b}}>`, `<a href=&#32;b&#32;>`, scope{"b": " b "}},
 	{`<a href= {{b}} >`, `<a href= &#32;b&#32; >`, scope{"b": " b "}},
 	{`<a href= {{b}} >`, `<a href= %09%0a%0d%0c&#32;b=%60 >`, scope{"b": "\t\n\r\x0C b=`"}},
-	{`<a href="{{ s["a"] }}">`, "<a href=\"\">", scope{"s": Map{}}},
+	{`<a href="{{ s["a"] }}">`, "<a href=\"\">", scope{"s": map[interface{}]interface{}{}}},
 }
 
 func TestURLContext(t *testing.T) {
@@ -302,7 +302,7 @@ var scriptContextTests = []struct {
 		A int
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
-	{`s["a"]`, "null", scope{"s": Map{}}},
+	{`s["a"]`, "null", scope{"s": map[interface{}]interface{}{}}},
 }
 
 func TestScriptContext(t *testing.T) {

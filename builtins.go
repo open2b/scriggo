@@ -54,7 +54,6 @@ var uint8Type = reflect.TypeOf(uint8(0))
 var float64Type = reflect.TypeOf(float64(0))
 var float32Type = reflect.TypeOf(float32(0))
 var boolType = reflect.TypeOf(false)
-var mapType = reflect.TypeOf(map[interface{}]interface{}(nil))
 var bytesType = reflect.TypeOf([]byte(nil))
 var interfaceType = reflect.TypeOf(&interf).Elem()
 var runesType = reflect.TypeOf([]rune(nil))
@@ -96,7 +95,6 @@ var builtins = scope{
 	"rune":        int32Type,
 	"byte":        uint8Type,
 	"bool":        boolType,
-	"map":         mapType,
 	"interface{}": interfaceType,
 	"error":       errorType,
 }

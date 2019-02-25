@@ -187,20 +187,21 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			canCompositeLiteral = true
 			mapType := ast.NewMapType(tok.pos, nil, nil)
 			tok = next(p.lex)
-			if tok.typ == tokenLeftBrackets { // map[
-				var typ ast.Expression
-				typ, tok = p.parseExpr(token{}, false, false, true, false)
-				if tok.typ != tokenRightBrackets {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
-				}
-				mapType.KeyType = typ
-				typ, tok = p.parseExpr(token{}, false, false, true, false)
-				if typ == nil {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
-				}
-				mapType.Position.End = typ.Pos().End
-				mapType.ValueType = typ
+			if tok.typ != tokenLeftBrackets {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting [", tok)})
 			}
+			var typ ast.Expression
+			typ, tok = p.parseExpr(token{}, false, false, true, false)
+			if tok.typ != tokenRightBrackets {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
+			}
+			mapType.KeyType = typ
+			typ, tok = p.parseExpr(token{}, false, false, true, false)
+			if typ == nil {
+				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
+			}
+			mapType.Position.End = typ.Pos().End
+			mapType.ValueType = typ
 			operand = mapType
 			reuseLastToken = true
 		case tokenInterface:

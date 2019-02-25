@@ -864,8 +864,6 @@ func typeof(v interface{}) string {
 		return "nil"
 	case HTML:
 		return "string"
-	case Map:
-		return "map"
 	case ConstantNumber:
 		return "untyped number"
 	case CustomNumber:
