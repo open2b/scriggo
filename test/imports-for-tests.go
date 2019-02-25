@@ -8,6 +8,7 @@ import (
 	_ "encoding/base64"
 	_ "fmt"
 	_ "io/ioutil"
+	_ "math"
 	_ "math/rand"
 	_ "net"
 	_ "net/url"
