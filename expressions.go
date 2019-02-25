@@ -1181,9 +1181,6 @@ func (r *rendering) indexValueMap(indexValues []ast.KeyValue) (map[int]ast.Expre
 // maps when possibile.
 //
 func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType reflect.Type) interface{} {
-	if i, ok := node.Type.(*ast.Identifier); ok && i.Name == "bytes" {
-		return r.evalBytes(node)
-	}
 	var err error
 	var indexValue map[int]ast.Expression
 	var maxIndex int
@@ -1282,6 +1279,9 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		}
 		return array.Interface()
 	case reflect.Slice: // []T{...}
+		if typ.Elem() == reflect.TypeOf(byte(0)) {
+			return r.evalBytes(node)
+		}
 		if node.KeyValues == nil {
 			return reflect.MakeSlice(typ, 0, 0).Interface()
 		}

@@ -176,7 +176,6 @@ var exprTests = []struct {
 	{"a.(bool)", ast.NewTypeAssertion(p(1, 2, 0, 7), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 6), "bool"))},
 	{"a.(map)", ast.NewTypeAssertion(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewMapType(p(1, 4, 3, 5), nil, nil))},
 	{"a.(slice)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewSliceType(p(1, 4, 3, 7), nil))},
-	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
 	{"os.FileInfo", ast.NewSelector(p(1, 3, 0, 10), ast.NewIdentifier(p(1, 1, 0, 1), "os"), "FileInfo")},
 	{"{1,2,3}", ast.NewCompositeLiteral(p(1, 1, 0, 6), nil, []ast.KeyValue{
 		{nil, ast.NewInt(p(1, 2, 1, 1), big.NewInt(1))},
@@ -543,12 +542,6 @@ var exprTests = []struct {
 				)),
 			ast.NewInt(p(1, 22, 21, 21), big.NewInt(4)),
 		)},
-	{"bytes{}", ast.NewCompositeLiteral(p(1, 6, 0, 6), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), nil)},
-	{"bytes{5}", ast.NewCompositeLiteral(p(1, 6, 0, 7), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.KeyValue{{nil, ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))}})},
-	{"bytes{5,6,7}", ast.NewCompositeLiteral(p(1, 6, 0, 11), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"),
-		[]ast.KeyValue{{nil, ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))}, {nil, ast.NewInt(p(1, 9, 8, 8), big.NewInt(6))}, {nil, ast.NewInt(p(1, 11, 10, 10), big.NewInt(7))}})},
-	{"a.(bytes)", ast.NewTypeAssertion(p(1, 2, 0, 8), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewIdentifier(p(1, 4, 3, 7), "bytes"))},
-	{"bytes(nil)", ast.NewCall(p(1, 6, 0, 9), ast.NewIdentifier(p(1, 1, 0, 4), "bytes"), []ast.Expression{ast.NewIdentifier(p(1, 7, 6, 8), "nil")})},
 	{"1\t+\n2", ast.NewBinaryOperator(p(1, 3, 0, 4), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(2, 1, 4, 4), big.NewInt(2)))},
 	{"1\t\r +\n\r\n\r\t 2", ast.NewBinaryOperator(p(1, 5, 0, 11), ast.OperatorAddition, ast.NewInt(p(1, 1, 0, 0), big.NewInt(1)), ast.NewInt(p(3, 4, 11, 11), big.NewInt(2)))},
 	{"a(\n\t1\t,\n2\t)", ast.NewCall(p(1, 2, 0, 10), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{

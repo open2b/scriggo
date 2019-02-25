@@ -928,8 +928,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "break":
 		l.emit(tokenBreak, p)
 		endLineAsSemicolon = true
-	case "bytes":
-		l.emit(tokenBytes, p)
 	case "continue":
 		l.emit(tokenContinue, p)
 		endLineAsSemicolon = true

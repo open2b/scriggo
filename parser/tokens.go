@@ -44,7 +44,6 @@ const (
 	tokenInterface                          // interface
 	tokenMap                                // map
 	tokenSlice                              // slice
-	tokenBytes                              // bytes
 	tokenIf                                 // if
 	tokenElse                               // else
 	tokenExtends                            // extends
@@ -124,7 +123,6 @@ var tokenString = map[tokenType]string{
 	tokenInterface:                "interface",
 	tokenMap:                      "map",
 	tokenSlice:                    "slice",
-	tokenBytes:                    "bytes",
 	tokenIf:                       "if",
 	tokenElse:                     "else",
 	tokenExtends:                  "extends",

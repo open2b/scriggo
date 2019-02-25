@@ -158,11 +158,8 @@ var rendererExprTests = []struct {
 	{`len([]string{"a", "b", "c"})`, "3", nil},
 	{`[]string{0: "zero", 2: "two"}[2]`, "two", nil},
 	{`[]int{ 8: 64, 81, 5: 25,}[9]`, "81", nil},
-	{`[]bytes{{97, 98}, {110, 67}}[1][0]`, "110", nil},
-
-	// bytes ([]byte)
-	{`bytes{0, 4}[0]`, "0", nil},
-	{`bytes{0, 124: 97}[124]`, "97", nil},
+	{`[]byte{0, 4}[0]`, "0", nil},
+	{`[]byte{0, 124: 97}[124]`, "97", nil},
 
 	// array
 	{`[2]int{-30, 30}[0]`, "-30", nil},
@@ -235,8 +232,8 @@ var rendererExprTests = []struct {
 	{"map{} == map{}", "false", nil},
 	{"slice{} == nil", "false", nil},
 	{"slice{} == slice{}", "false", nil},
-	{"bytes{} == nil", "false", nil},
-	{"bytes{} == bytes{}", "false", nil},
+	{"[]byte{} == nil", "false", nil},
+	{"[]byte{} == []byte{}", "false", nil},
 
 	// &&
 	{"true && true", "true", nil},
@@ -381,7 +378,7 @@ var rendererStmtTests = []struct {
 	{"{% for _, i := range slice{ html(`<`), html(`&`), html(`>`) } %}{{ i }}{% end %}", "<&>", nil},
 	{"{% for _, i := range slice{1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
 	{"{% for _, i := range slice{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
-	{"{% for _, i := range bytes{ 0, 1, 2 } %}{{ i }}{% end %}", "012", nil},
+	{"{% for _, i := range []byte{ 0, 1, 2 } %}{{ i }}{% end %}", "012", nil},
 	{"{% s := slice{} %}{% for k, v := range map{`a`: `1`, `b`: `2`} %}{% s = append(s, k+`:`+v) %}{% end %}{% sort(s) %}{{ s }}", "a:1, b:2", nil},
 	{"{% for k, v := range map{} %}{{ k }}:{{ v }},{% end %}", "", nil},
 	{"{% s := slice{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{% sort(s) %}{{ s }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
@@ -389,7 +386,7 @@ var rendererStmtTests = []struct {
 		scope{"products": []string{"a", "b", "c"}}},
 	{"{% i := 0 %}{% c := \"\" %}{% for i, c = range \"ab\" %}({{ c }}){% end %}{{ i }}", "(97)(98)1", nil},
 	{"{% for range slice{ `a`, `b`, `c` } %}.{% end %}", "...", nil},
-	{"{% for range bytes{ 1, 2, 3 } %}.{% end %}", "...", nil},
+	{"{% for range []byte{ 1, 2, 3 } %}.{% end %}", "...", nil},
 	{"{% for range slice{} %}.{% end %}", "", nil},
 	{"{% for i := 0; i < 5; i++ %}{{ i }}{% end %}", "01234", nil},
 	{"{% for i := 0; i < 5; i++ %}{{ i }}{% break %}{% end %}", "0", nil},
@@ -424,13 +421,13 @@ var rendererStmtTests = []struct {
 	{"{% i := 5 %}{% i++ %}{{ i }}", "6", nil},
 	{"{% s := map{`a`: 5} %}{% s[`a`]++ %}{{ s[`a`] }}", "6", nil},
 	{"{% s := slice{5} %}{% s[0]++ %}{{ s[0] }}", "6", nil},
-	{"{% s := bytes{5} %}{% s[0]++ %}{{ s[0] }}", "6", nil},
-	{"{% s := bytes{255} %}{% s[0]++ %}{{ s[0] }}", "0", nil},
+	{"{% s := []byte{5} %}{% s[0]++ %}{{ s[0] }}", "6", nil},
+	{"{% s := []byte{255} %}{% s[0]++ %}{{ s[0] }}", "0", nil},
 	{"{% i := 5 %}{% i-- %}{{ i }}", "4", nil},
 	{"{% s := map{`a`: 5} %}{% s[`a`]-- %}{{ s[`a`] }}", "4", nil},
 	{"{% s := slice{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
-	{"{% s := bytes{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
-	{"{% s := bytes{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
+	{"{% s := []byte{5} %}{% s[0]-- %}{{ s[0] }}", "4", nil},
+	{"{% s := []byte{0} %}{% s[0]-- %}{{ s[0] }}", "255", nil},
 	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{{ b[1] }}`, "5", scope{"getref": func(s [3]int) *[3]int { return &s }}},
 	{`{% a := [3]int{4,5,6} %}{% b := getref(a) %}{% b[1] = 10 %}{{ (*b)[1] }}`, "10", scope{"getref": func(s [3]int) *[3]int { return &s }}},
 	{`{% s := T{5, 6} %}{% if s.A == 5 %}ok{% end %}`, "ok", scope{"T": reflect.TypeOf(struct{ A, B int }{})}},
@@ -471,8 +468,8 @@ var rendererStmtTests = []struct {
 	//{`{% if s, ok := string(slice{}).(string); ok %}{{ s }}{% end %}`, "", nil},
 	//{`{% if s, ok := string(slice{35, 8364}).(string); ok %}{{ s }}{% end %}`, "#€", nil},
 	//{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "#€", scope{"a": []int{35, 8364}}},
-	{`{% if s, ok := string(bytes{}).(string); ok %}{{ s }}{% end %}`, "", nil},
-	{`{% if s, ok := string(bytes{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
+	{`{% if s, ok := string([]byte{}).(string); ok %}{{ s }}{% end %}`, "", nil},
+	{`{% if s, ok := string([]byte{97, 226, 130, 172, 98}).(string); ok %}{{ s }}{% end %}`, "a€b", nil},
 	{`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
 
 	// int
@@ -509,13 +506,6 @@ var rendererStmtTests = []struct {
 
 	// slice
 	{`{% if _, ok := []int{1,2,3}.([]int); ok %}ok{% end %}`, "ok", nil},
-
-	// bytes
-	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte{}}},
-	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{}}},
-	{`{% if _, ok := bytes(a).(bytes); ok %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
-	{`{% if bytes(a) == nil %}ok{% end %}`, "ok", scope{"a": []byte(nil)}},
-	{`{% if bytes(a) != nil %}ok{% end %}`, "ok", scope{"a": []byte{1, 2}}},
 }
 
 var rendererGlobalsToScope = []struct {

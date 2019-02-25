@@ -99,7 +99,6 @@ var builtins = scope{
 	"bool":        boolType,
 	"map":         mapType,
 	"slice":       sliceType,
-	"bytes":       bytesType,
 	"interface{}": interfaceType,
 	"error":       errorType,
 }
