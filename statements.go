@@ -748,7 +748,10 @@ Nodes:
 
 			if r.treeContext == ast.ContextNone {
 				if node.Tree == nil {
-					pkg := r.packages[node.Path]
+					pkg, ok := r.packages[node.Path]
+					if !ok {
+						return r.errorf(node, "cannot find package %q", node.Path)
+					}
 					r.vars[2][pkg.Name] = pkg
 				} else {
 					name := path.Base(node.Path)
