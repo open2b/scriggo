@@ -109,7 +109,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 		// switch x := 3; x + y {
 		// switch x = y.(type) {
 		// switch x := 2; x = y.(type) {
-		assignment, tok = p.parseAssignment(expressions, tok, true, false)
+		assignment, tok = p.parseAssignment(expressions, tok, true, true)
 		switch tok.typ {
 		case tokenSemicolon:
 

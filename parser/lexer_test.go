@@ -138,10 +138,13 @@ var typeTests = map[string][]tokenType{
 }
 
 var typeTestsNoneContext = map[string][]tokenType{
-	``:               {},
-	"a := 3":         {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
-	"// a comment\n": {},
-	`// a comment`:   {},
+	``:                {},
+	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
+	"// a comment\n":  {},
+	`// a comment`:    {},
+	`3`:               {tokenInt, tokenSemicolon},
+	`3 // comment`:    {tokenInt, tokenSemicolon},
+	"3 // comment\n4": {tokenInt, tokenSemicolon, tokenInt, tokenSemicolon},
 	"// a comment\na := 7\n// another comment\n": {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
 	`/* a comment */`:                     {},
 	"/* a comment \n another line */":     {},

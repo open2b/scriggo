@@ -86,21 +86,25 @@ func main() {
 		fmt.Println(typeName([]int{1, 2, 3}))
 	}
 	{
-		// TODO (Gianluca): issue https://github.com/open2b/scrigo/issues/24
-		// 	do := func(v interface{}) string {
-		// 		switch u := v.(type) {
-		// 		case int:
-		// 			return strconv.Itoa(u * 2) // u has type int
-		// 		case string:
-		// 			mid := len(u) / 2        // split - u has type string
-		// 			return u[mid:] + u[:mid] // join
-		// 		}
-		// 		return "unknown"
-		// 	}
-		// 	fmt.Println(do(21) == "42")
-		// 	fmt.Println(do("bitrab") == "rabbit")
-		// 	fmt.Println(do(3.142) == "unknown")
-		// }
+		v := interface{}(3)
+		switch u := v.(type) {
+		default:
+			fmt.Println(u)
+		}
+	}
+	{
+		do := func(v interface{}) int {
+			switch u := v.(type) {
+			case int:
+				return u * 2
+			case string:
+				return len(u)
+			}
+			return 3
+		}
+		fmt.Println(do(21))
+		fmt.Println(do("bitrab"))
+		fmt.Println(do(3.142))
 	}
 	{
 		pluralEnding := func(n int) string {

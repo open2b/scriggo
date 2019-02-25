@@ -709,7 +709,12 @@ LOOP:
 					break LOOP
 				}
 				l.src = l.src[p:]
-				endLineAsSemicolon = false
+				if endLineAsSemicolon {
+					l.emit(tokenSemicolon, 0)
+					endLineAsSemicolon = false
+				}
+				l.newline()
+				l.src = l.src[1:]
 				continue LOOP
 			}
 			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextNone {
