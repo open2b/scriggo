@@ -858,7 +858,7 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 		}
 		k := reflect.ValueOf(k)
 		if k.Type().AssignableTo(rv.Type().Key()) {
-			panic(fmt.Sprintf("cannot use %v (type %s) as type %s in delete", k, typeof(k), rv.Type().Key()))
+			return nil, r.errorf(node, "cannot use %v (type %s) as type %s in delete", k, typeof(k), rv.Type().Key())
 		}
 		rv.SetMapIndex(k, reflect.Value{})
 	}
