@@ -2,11 +2,60 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/importer"
+	"go/token"
 	"os"
+	"strconv"
 	"strings"
 	"unicode"
+
+	"golang.org/x/tools/go/loader"
 )
+
+type constant struct {
+	expression string
+	isTyped    bool
+}
+
+func getAllConstantExpressions(pkgPath string) (map[string]constant, error) {
+	config := loader.Config{}
+	config.Import(pkgPath)
+	program, err := config.Load()
+	constants := make(map[string]constant)
+	if err != nil {
+		return nil, err
+	}
+	pkgInfo := program.Package(pkgPath)
+	for _, file := range pkgInfo.Files {
+		for _, decl := range file.Decls {
+			if genDecl, ok := decl.(*ast.GenDecl); ok {
+				if genDecl.Tok != token.CONST {
+					continue
+				}
+				for _, spec := range genDecl.Specs {
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for i, name := range valueSpec.Names {
+							if !isExported(name.Name) {
+								continue
+							}
+							if i > len(valueSpec.Values)-1 {
+								continue
+							}
+							expr := valueSpec.Values[i]
+							c := constant{
+								expression: strconv.Quote(pkgInfo.Types[expr].Value.ExactString()),
+								isTyped:    valueSpec.Type != nil,
+							}
+							constants[name.Name] = c
+						}
+					}
+				}
+			}
+		}
+	}
+	return constants, nil
+}
 
 func mapEntry(key, value string) string {
 	return fmt.Sprintf("\t\"%s\": %s,\n", key, value)
@@ -125,27 +174,7 @@ func generatePackage(pkgPath string) (string, []string) {
 
 		// It's a constant.
 		case strings.HasPrefix(objSign, "const"):
-			{
-				// TODO (Gianluca): this manages the special case MaxUint64.
-				// Find a better and general way to do this.
-				if pkgPath == "math" && strings.Contains(objPath, "MaxUint64") {
-					pkgContent += mapEntry(name, "scrigo.Constant(uint64(math.MaxUint64), nil)")
-					continue
-				}
-				if pkgPath == "hash/crc64" {
-					continue
-				}
-			}
-			var t string
-			if strings.HasPrefix(obj.Type().String(), "untyped ") {
-				t = "nil"
-			} else {
-				// TODO (Gianluca): constant is untyped, so this should be the
-				// type of the constant as specified in package source code.
-				t = "nil"
-			}
-			v := fmt.Sprintf("scrigo.Constant(%s, %s)", objPath, t)
-			pkgContent += mapEntry(name, v)
+			// Added later.
 
 		// Unknown package element.
 		default:
@@ -153,7 +182,20 @@ func generatePackage(pkgPath string) (string, []string) {
 		}
 	}
 
-	skel := `"[pkgPath]": &scrigo.Package{
+	constants, err := getAllConstantExpressions(pkgPath)
+	if err != nil {
+		panic(err)
+	}
+	for name, constant := range constants {
+		typ := "nil"
+		if constant.isTyped {
+			typ = "reflect.TypeOf(" + pkgBase + "." + name + ")"
+		}
+		pkgContent += mapEntry(name, fmt.Sprintf("scrigo.Constant(%s, %s)", constant.expression, typ))
+	}
+
+	skel := `
+		"[pkgPath]": &scrigo.Package{
 			Name: "[pkg.Name()]",
 			Declarations: map[string]interface{}{
 				[pkgContent]
