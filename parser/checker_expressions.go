@@ -135,13 +135,11 @@ var universe = typeCheckerScope{
 }
 
 var intType reflect.Type
-var byteType reflect.Type
 
 func init() {
 	universe["byte"] = universe["uint8"]
 	universe["rune"] = universe["int32"]
 	intType = universe["int"].Type
-	byteType = universe["byte"].Type
 }
 
 // typechecker represents the state of a type checking.
