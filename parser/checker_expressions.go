@@ -255,7 +255,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				mismatch = df2 != ast.DefaultTypeBool
 			}
 			if mismatch {
-				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1, t2))
+				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
 			}
 			return tc.binaryOp(expr)
 		}
@@ -269,7 +269,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		if expr.Op >= ast.OperatorEqual && expr.Op <= ast.OperatorGreaterOrEqual {
 			if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
-				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1, t2))
+				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
 			}
 			if expr.Op == ast.OperatorEqual || expr.Op == ast.OperatorNotEqual {
 				if !tc.isComparable(t1) {
@@ -282,7 +282,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			return &ast.TypeInfo{}
 		}
 		if t1.Type != t2.Type {
-			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1, t2))
+			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
 		}
 		if kind := t1.Type.Kind(); !operatorsOfKind[kind][expr.Op] {
 			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, kind))
