@@ -27,10 +27,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
 			expr := tc.checkExpression(node.Condition)
+			// TODO(marco): types with underlying type bool and the untyped bool are both allowed as condition.
 			if expr.Type != boolType {
-				panic(tc.errorf(node.Condition, "non-bool %s (type %s) used as if condition", node.Condition, expr.Type))
+				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
 			}
 			if node.Then != nil {
+				// TODO(marco): maybe a method tc.checkInNewScope(node.Then.Nodes) can be used?
 				tc.AddScope()
 				tc.checkNodes(node.Then.Nodes)
 				tc.RemoveCurrentScope()
@@ -54,7 +56,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkAssignment(node.Init)
 			expr := tc.checkExpression(node.Condition)
 			if expr.Type != boolType {
-				panic(tc.errorf(node.Condition, "non-bool %s (type %s) used as for condition", node.Condition, expr.Type))
+				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as for condition", node.Condition, expr.Type))
 			}
 			tc.checkAssignment(node.Post)
 			tc.AddScope()
