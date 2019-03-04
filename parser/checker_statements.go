@@ -70,9 +70,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Assignment:
 
 			switch node.Type {
-
 			case ast.AssignmentIncrement, ast.AssignmentDecrement:
-
 				v := node.Variables[0]
 				exprType := tc.checkExpression(v)
 				// TODO (Gianluca): to review.
@@ -81,10 +79,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				// 	panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", v, exprType))
 				// }
 				return
-
 			case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 				ast.AssignmentDivision, ast.AssignmentModulo:
-
 				lv := node.Variables[0]
 				lt := tc.checkExpression(lv)
 				// TODO (Gianluca): to review.
@@ -92,17 +88,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				// if !lt.Numeric() {
 				// 	panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", lv, lt))
 				// }
-
 				rv := node.Values[0]
-				err := tc.assignValueToVariable(node, lv, rv, nil, false, false)
-				if err != nil {
-					panic(err)
-				}
-
+				tc.assignValueToVariable(node, lv, rv, nil, false, false)
 			case ast.AssignmentSimple, ast.AssignmentDeclaration:
-
 				tc.checkAssignment(node)
-
 			}
 
 		case *ast.Identifier:
@@ -183,14 +172,14 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 // TODO (Gianluca): handle "isConst"
 // TODO (Gianluca): typ doesn't get the type zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
-func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) error {
+func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
 	variableType := tc.checkExpression(variable)
 	valueType := tc.checkExpression(value)
 	if isConst && (valueType.Constant == nil) {
-		return tc.errorf(node, "const initializer is not a constant") // TODO (Gianluca): to review.
+		panic(tc.errorf(node, "const initializer is not a constant")) // TODO (Gianluca): to review.
 	}
 	if typ != valueType {
-		return tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueType, typ)
+		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueType, typ))
 	}
 	// TODO (Gianluca): to review.
 	_ = variableType
@@ -203,31 +192,26 @@ func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.
 		if ident, ok := variable.(*ast.Identifier); ok {
 			_, alreadyDefined := tc.LookupScope(ident.Name, true) // TODO (Gianluca): to review.
 			if alreadyDefined {
-				return tc.errorf(node, "no new variables on left side of :=")
+				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
 			tc.AssignScope(ident.Name, valueType)
-			return nil
+			return
 		}
 		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
 	}
-	return nil
+	return
 }
 
 // TODO (Gianluca): manage builtin functions.
-func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Expression, call *ast.Call, typ *ast.TypeInfo, isDeclaration, isConst bool) error {
+func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Expression, call *ast.Call, typ *ast.TypeInfo, isDeclaration, isConst bool) {
 	values := tc.checkCallExpression(call, false) // TODO (Gianluca): is "false" correct?
 	if len(variables) != len(values) {
-		return tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(variables), call, len(values))
+		panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(variables), call, len(values)))
 	}
 	for i := range variables {
-		// TODO (Gianluca): il secondo 'variables[i]' dovrebbe in realtà essere
-		// 'values[i]', ma attualmente non compila.
-		err := tc.assignValueToVariable(node, variables[i], variables[i], typ, isDeclaration, isConst)
-		if err != nil {
-			return err
-		}
+		// TODO (Gianluca): replace the second "variables[i]" with "values[i]"
+		tc.assignValueToVariable(node, variables[i], variables[i], typ, isDeclaration, isConst)
 	}
-	return nil
 }
 
 // TODO (Gianluca): handle
@@ -262,10 +246,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	if len(variables) == 1 && len(values) == 1 {
-		err := tc.assignValueToVariable(node, variables[0], values[0], typ, isDeclaration, isConst)
-		if err != nil {
-			panic(err)
-		}
+		tc.assignValueToVariable(node, variables[0], values[0], typ, isDeclaration, isConst)
 		return
 	}
 	if len(values) == 0 && typ != nil {
@@ -275,10 +256,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if isConst || isDeclaration {
 				panic("bug?") // TODO (Gianluca): review!
 			}
-			err := tc.assignValueToVariable(node, variables[i], zero, typ, false, false)
-			if err != nil {
-				panic(err)
-			}
+			tc.assignValueToVariable(node, variables[i], zero, typ, false, false)
 		}
 	}
 	if len(variables) == len(values) {
@@ -288,20 +266,14 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
 			alreadyDefined := false
 			isDecl := isDeclaration && !alreadyDefined
-			err := tc.assignValueToVariable(node, variables[i], values[i], typ, isDecl, isConst)
-			if err != nil {
-				panic(err)
-			}
+			tc.assignValueToVariable(node, variables[i], values[i], typ, isDecl, isConst)
 		}
 		return
 	}
 	if len(variables) == 2 && len(values) == 1 {
 		switch value := values[0].(type) {
 		case *ast.Call:
-			err := tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
-			if err != nil {
-				panic(err)
-			}
+			tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
 		case *ast.TypeAssertion:
 			// TODO (Gianluca):
 			// Se la type assertion è valida,
@@ -319,10 +291,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	if len(variables) > 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
-			err := tc.checkAssignmentWithCall(node, variables, call, typ, isDeclaration, isConst)
-			if err != nil {
-				panic(err)
-			}
+			tc.checkAssignmentWithCall(node, variables, call, typ, isDeclaration, isConst)
 		}
 	}
 	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(variables), len(values)))
