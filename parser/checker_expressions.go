@@ -125,13 +125,12 @@ func (tc *typechecker) RemoveLastScope() {
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
-// ScopeLookup searches for name, starting from the last scope.
-func (tc *typechecker) ScopeLookup(name string) (*ast.TypeInfo, bool) {
+// LookupScope searches for name, starting from the last scope.
+func (tc *typechecker) LookupScope(name string) (*ast.TypeInfo, bool) {
 	for i := len(tc.scopes) - 1; i >= 0; i++ {
-		s := tc.scopes[i]
-		for n, c := range s {
+		for n, ti := range tc.scopes[i] {
 			if n == name {
-				return c, true
+				return ti, true
 			}
 		}
 	}
@@ -149,19 +148,18 @@ func (tc *typechecker) InCurrentScope(name string) bool {
 	return false
 }
 
-// ScopeAssign assigns value to name in the last scope.
-func (tc *typechecker) ScopeAssign(name string, value *ast.TypeInfo) {
+// AssignScope assigns value to name in the last scope.
+func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
 }
 
 // TODO (Gianluca): check if using all declared identifiers.
-// TODO (Gianluca): "cannot usape pkg without selector"
-func (tc *typechecker) evalIdentifier(ident *ast.Identifier) (*ast.TypeInfo, error) {
-	i, ok := tc.ScopeLookup(ident.Name)
+func (tc *typechecker) evalIdentifier(ident *ast.Identifier) *ast.TypeInfo {
+	i, ok := tc.LookupScope(ident.Name)
 	if !ok {
-		return nil, tc.errorf(ident, "undefined: %v", ident)
+		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
-	return i, nil
+	return i
 }
 
 // errorf builds and returns a type check error.
@@ -336,15 +334,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return t1
 
 	case *ast.Identifier:
-		// TODO
-		//if typ.IsPackage() {
-		//	return nil, tc.errorf(expr, "use of package %s without selector", typ)
-		//}
-		value, err := tc.evalIdentifier(expr)
-		if err != nil {
-			panic(err) // TODO (Gianluca): evalIdentifier should panic, not return errors.
+		t := tc.evalIdentifier(expr)
+		if t.IsPackage() {
+			panic(tc.errorf(expr, "use of package %s without selector", t))
 		}
-		return &ast.TypeInfo{Type: value.Type}
+		return t
 
 	case *ast.MapType:
 		key := tc.checkType(expr.KeyType, noEllipses)
@@ -500,20 +494,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 
 	case *ast.Selector:
-		if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			var t = ident.TypeInfo()
-			if t.IsPackage() {
-				// TODO(marco)
-			}
-			if t.IsType() {
-				method, ok := tc.methodByName(t, expr.Ident)
-				if !ok {
-					panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
-				}
-				return method
-			}
+		t := tc.typeof(expr.Expr, noEllipses)
+		if t.IsPackage() {
+			// TODO
 		}
-		t := tc.checkExpression(expr.Expr)
+		if t.IsType() {
+			method, ok := tc.methodByName(t, expr.Ident)
+			if !ok {
+				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
+			}
+			return method
+		}
 		method, ok := tc.methodByName(t, expr.Ident)
 		if ok {
 			return method
