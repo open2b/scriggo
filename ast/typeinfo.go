@@ -50,7 +50,6 @@ const (
 	PropertyIsType                                       // is a type
 	PropertyIsPackage                                    // is a package
 	PropertyAddressable                                  // is addressable
-	PropertyAssignable                                   // is assignable
 )
 
 type TypeInfo struct {
@@ -78,11 +77,6 @@ func (ti *TypeInfo) IsPackage() bool {
 // Addressable reports whether it is a addressable.
 func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
-}
-
-// Assignable reports whether it is assignable.
-func (ti *TypeInfo) Assignable() bool {
-	return ti.Properties&PropertyAssignable != 0
 }
 
 // String returns a string representation.
