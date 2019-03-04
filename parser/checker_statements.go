@@ -10,13 +10,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Block:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkNodes(node.Nodes)
 			tc.RemoveCurrentScope()
 
 		case *ast.If:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
 			expr := tc.checkExpression(node.Condition)
 			// TODO (Gianluca): to review.
@@ -25,14 +25,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// 	return tc.errorf(node.Condition, "non-bool %s (type %s) used as if condition", node.Condition, condTyp)
 			// }
 			if node.Then != nil {
-				tc.NewScope()
+				tc.AddScope()
 				tc.checkNodes(node.Then.Nodes)
 				tc.RemoveCurrentScope()
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					tc.NewScope()
+					tc.AddScope()
 					tc.checkNodes(els.Nodes)
 					tc.RemoveCurrentScope()
 				case *ast.If:
@@ -44,7 +44,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.For:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkAssignment(node.Init)
 			expr := tc.checkExpression(node.Condition)
 			// TODO (Gianluca): to review.
@@ -53,16 +53,16 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// 	return tc.errorf(node.Condition, "non-bool %s (type %s) used as for condition", node.Condition, condTyp)
 			// }
 			tc.checkAssignment(node.Post)
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkNodes(node.Body)
 			tc.RemoveCurrentScope()
 			tc.RemoveCurrentScope()
 
 		case *ast.ForRange:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkNodes(node.Body)
 			tc.RemoveCurrentScope()
 			tc.RemoveCurrentScope()
@@ -123,7 +123,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Switch:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkAssignment(node.Init)
 			for _, cas := range node.Cases {
 				err := tc.checkCase(cas, false, node.Expr)
@@ -135,7 +135,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.TypeSwitch:
 
-			tc.NewScope()
+			tc.AddScope()
 			tc.checkAssignment(node.Init)
 			tc.checkAssignment(node.Assignment)
 			for _, cas := range node.Cases {
@@ -161,7 +161,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 }
 
 func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr ast.Expression) error {
-	tc.NewScope()
+	tc.AddScope()
 	switchExprTyp := tc.typeof(switchExpr, noEllipses)
 	for _, expr := range node.Expressions {
 		cas := tc.typeof(expr, noEllipses)
