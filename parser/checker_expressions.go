@@ -245,8 +245,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		if t1.Constant != nil && t2.Constant != nil {
 			mismatch := false
+			df1 := t1.Constant.DefaultType
 			df2 := t2.Constant.DefaultType
-			switch t1.Constant.DefaultType {
+			switch df1 {
 			default:
 				mismatch = df2 == ast.DefaultTypeString || df2 == ast.DefaultTypeBool
 			case ast.DefaultTypeString:
@@ -255,7 +256,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				mismatch = df2 != ast.DefaultTypeBool
 			}
 			if mismatch {
-				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
+				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, df1, df2))
 			}
 			return tc.binaryOp(expr)
 		}
