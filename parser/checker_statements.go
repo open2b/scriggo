@@ -7,11 +7,8 @@
 package parser
 
 import (
-	"reflect"
 	"scrigo/ast"
 )
-
-var boolType = reflect.TypeOf(false) // TODO (Gianluca): should stay here?
 
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 

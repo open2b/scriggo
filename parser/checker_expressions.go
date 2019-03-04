@@ -134,11 +134,13 @@ var universe = typeCheckerScope{
 	"uintptr": &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
 }
 
+var boolType reflect.Type
 var intType reflect.Type
 
 func init() {
 	universe["byte"] = universe["uint8"]
 	universe["rune"] = universe["int32"]
+	boolType = universe["bool"].Type
 	intType = universe["int"].Type
 }
 
