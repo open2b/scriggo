@@ -265,6 +265,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			tc.assignValueToVariable(node, variables[i], zero, typ, false, false)
 		}
+		return
 	}
 	if len(variables) == len(values) {
 		for i := range variables {
@@ -300,6 +301,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if ok {
 			tc.checkAssignmentWithCall(node, variables, call, typ, isDeclaration, isConst)
 		}
+		return
 	}
 	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(variables), len(values)))
 }
