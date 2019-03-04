@@ -111,6 +111,10 @@ type typechecker struct {
 	scopes       []typeCheckerScope
 }
 
+func (tc *typechecker) checkNodes(nodes []ast.Node) {
+	// TODO(gianluca)
+}
+
 // NewScope adds a new empty scope to imp.
 func (tc *typechecker) NewScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
@@ -299,20 +303,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			return &ast.TypeInfo{}
 		}
 		if t1.Constant != nil && t2.Constant != nil {
-			mismatch := false
-			dt1 := t1.Constant.DefaultType
-			dt2 := t2.Constant.DefaultType
-			switch dt1 {
-			default:
-				mismatch = dt2 == ast.DefaultTypeString || dt2 == ast.DefaultTypeBool
-			case ast.DefaultTypeString:
-				mismatch = dt2 != ast.DefaultTypeString
-			case ast.DefaultTypeBool:
-				mismatch = dt2 != ast.DefaultTypeBool
-			}
-			if mismatch {
-				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, dt1, dt2))
-			}
 			return tc.binaryOp(expr)
 		}
 		if t1.Type == nil && t2.Type == nil {
@@ -378,13 +368,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		return &ast.TypeInfo{Type: reflect.TypeOf(elem)}
 
-	case *ast.Func:
-		variadic := expr.Type.IsVariadic
+	case *ast.FuncType:
+		variadic := expr.IsVariadic
 		// Parameters.
-		numIn := len(expr.Type.Parameters)
+		numIn := len(expr.Parameters)
 		in := make([]reflect.Type, numIn)
 		for i := numIn - 1; i >= 0; i-- {
-			param := expr.Type.Parameters[i]
+			param := expr.Parameters[i]
 			if param.Type == nil {
 				in[i] = in[i+1]
 			} else {
@@ -397,18 +387,23 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 		}
 		// Result.
-		numOut := len(expr.Type.Result)
+		numOut := len(expr.Result)
 		out := make([]reflect.Type, numOut)
 		for i := numOut - 1; i >= 0; i-- {
-			res := expr.Type.Result[i]
-			if res.Type == nil {
+			res := expr.Result[i]
+			if res == nil {
 				out[i] = out[i+1]
 			} else {
 				c := tc.checkType(res.Type, noEllipses)
 				out[i] = c.Type
 			}
 		}
-		return &ast.TypeInfo{Type: reflect.FuncOf(in, out, variadic)}
+		return &ast.TypeInfo{Type: reflect.FuncOf(in, out, variadic), Properties: ast.PropertyIsType}
+
+	case *ast.Func:
+		t := tc.checkType(expr.Type, noEllipses)
+		tc.checkNodes(expr.Body.Nodes)
+		return &ast.TypeInfo{Type: t.Type}
 
 	case *ast.Call:
 		types := tc.checkCallExpression(expr, false)
@@ -829,10 +824,24 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 // The tow operands must be both numeric, boolean or string.
 // Panics if it can not be executed.
 func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
-	c := ast.Constant{}
 	c1 := expr.Expr1.TypeInfo().Constant
 	c2 := expr.Expr2.TypeInfo().Constant
-	switch c1.DefaultType {
+	mismatch := false
+	dt1 := c1.DefaultType
+	dt2 := c1.DefaultType
+	switch dt1 {
+	default:
+		mismatch = dt2 == ast.DefaultTypeString || dt2 == ast.DefaultTypeBool
+	case ast.DefaultTypeString:
+		mismatch = dt2 != ast.DefaultTypeString
+	case ast.DefaultTypeBool:
+		mismatch = dt2 != ast.DefaultTypeBool
+	}
+	if mismatch {
+		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, dt1, dt2))
+	}
+	c := ast.Constant{}
+	switch dt1 {
 	default:
 		var v interface{}
 		switch expr.Op {
@@ -858,7 +867,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 			if constant.Sign(c2.Number) == 0 {
 				panic(errDivisionByZero)
 			}
-			if c1.DefaultType == ast.DefaultTypeFloat64 || c2.DefaultType == ast.DefaultTypeFloat64 {
+			if dt1 == ast.DefaultTypeFloat64 || dt2 == ast.DefaultTypeFloat64 {
 				v = constant.BinaryOp(c1.Number, gotoken.QUO, c2.Number)
 			} else {
 				a, _ := new(big.Int).SetString(c1.Number.ExactString(), 10)
@@ -866,7 +875,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 				v = constant.MakeFromLiteral(a.Quo(a, b).String(), gotoken.INT, 0)
 			}
 		case ast.OperatorModulo:
-			if c1.DefaultType == ast.DefaultTypeFloat64 || c2.DefaultType == ast.DefaultTypeFloat64 {
+			if dt1 == ast.DefaultTypeFloat64 || dt2 == ast.DefaultTypeFloat64 {
 				panic(errFloatModulo)
 			}
 			if constant.Sign(c2.Number) == 0 {
@@ -875,9 +884,9 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 			v = constant.BinaryOp(c1.Number, gotoken.REM, c2.Number)
 		}
 		if number, ok := v.(constant.Value); ok {
-			c.DefaultType = c1.DefaultType
-			if c.DefaultType < c2.DefaultType {
-				c.DefaultType = c2.DefaultType
+			c.DefaultType = dt1
+			if c.DefaultType < dt2 {
+				c.DefaultType = dt2
 			}
 			c.Number = number
 		} else {
@@ -908,7 +917,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 		case ast.OperatorOr:
 			c.Bool = c1.Bool || c2.Bool
 		default:
-			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, c1.DefaultType))
+			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, dt1))
 		}
 	}
 	return &ast.TypeInfo{Constant: &c}
