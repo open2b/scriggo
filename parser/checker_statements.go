@@ -7,8 +7,11 @@
 package parser
 
 import (
+	"reflect"
 	"scrigo/ast"
 )
+
+var boolType = reflect.TypeOf(false) // TODO (Gianluca): should stay here?
 
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
@@ -27,11 +30,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
 			expr := tc.checkExpression(node.Condition)
-			// TODO (Gianluca): to review.
-			_ = expr
-			// if condTyp.Type != boolType {
-			// 	return tc.errorf(node.Condition, "non-bool %s (type %s) used as if condition", node.Condition, condTyp)
-			// }
+			if expr.Type != boolType {
+				panic(tc.errorf(node.Condition, "non-bool %s (type %s) used as if condition", node.Condition, expr.Type))
+			}
 			if node.Then != nil {
 				tc.AddScope()
 				tc.checkNodes(node.Then.Nodes)
@@ -55,11 +56,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.AddScope()
 			tc.checkAssignment(node.Init)
 			expr := tc.checkExpression(node.Condition)
-			// TODO (Gianluca): to review.
-			_ = expr
-			// if expr.Type != boolType {
-			// 	return tc.errorf(node.Condition, "non-bool %s (type %s) used as for condition", node.Condition, condTyp)
-			// }
+			if expr.Type != boolType {
+				panic(tc.errorf(node.Condition, "non-bool %s (type %s) used as for condition", node.Condition, expr.Type))
+			}
 			tc.checkAssignment(node.Post)
 			tc.AddScope()
 			tc.checkNodes(node.Body)
