@@ -52,12 +52,12 @@ type OperatorType int
 const (
 	OperatorEqual          OperatorType = iota // ==
 	OperatorNotEqual                           // !=
-	OperatorNot                                // !
-	OperatorAmpersand                          // &
 	OperatorLess                               // <
 	OperatorLessOrEqual                        // <=
 	OperatorGreater                            // >
 	OperatorGreaterOrEqual                     // >=
+	OperatorNot                                // !
+	OperatorAmpersand                          // &
 	OperatorAnd                                // &&
 	OperatorOr                                 // ||
 	OperatorAddition                           // +
@@ -153,11 +153,17 @@ type Expression interface {
 	isexpr()
 	Node
 	String() string
+	TypeInfo() *TypeInfo
 }
 
-type expression struct{}
+type expression struct {
+	typ *TypeInfo
+}
 
 func (e expression) isexpr() {}
+func (e expression) TypeInfo() *TypeInfo {
+	return e.typ
+}
 
 // Tree node represents a tree.
 type Tree struct {
@@ -898,6 +904,27 @@ type Var struct {
 
 func NewVar(pos *Position, variables []*Identifier, typ Expression, values []Expression) *Var {
 	return &Var{pos, variables, typ, values}
+}
+
+func (n *Var) String() string {
+	s := "var "
+	for i, ident := range n.Identifiers {
+		if i > 0 {
+			s += " "
+		}
+		s += ident.Name
+	}
+	if n.Type != nil {
+		s += " " + n.Type.String()
+	}
+	s += " = "
+	for i, value := range n.Values {
+		if i > 0 {
+			s += " "
+		}
+		s += value.String()
+	}
+	return s
 }
 
 // Const node represent a const declaration.
