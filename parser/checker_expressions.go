@@ -21,7 +21,7 @@ const noEllipses = -1
 type builtinfunc struct{}
 
 var intType = reflect.TypeOf(0)
-var uint8Type = reflect.TypeOf(uint8(0))
+var byteType = reflect.TypeOf(byte(0))
 var builtinfuncType = reflect.TypeOf(builtinfunc{})
 
 var numericKind = [...]bool{
@@ -431,7 +431,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 			switch kind {
 			case reflect.String:
-				return &ast.TypeInfo{Type: uint8Type}
+				return &ast.TypeInfo{Type: byteType}
 			case reflect.Slice, reflect.Array:
 				return &ast.TypeInfo{Type: t.Type.Elem()}
 			case reflect.Ptr:
