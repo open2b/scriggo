@@ -115,17 +115,18 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 	// TODO(gianluca)
 }
 
-// NewScope adds a new empty scope to imp.
+// AddScope adds a new empty scope to the type checker.
 func (tc *typechecker) NewScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
 }
 
-// RemoveLastScope removes the last scope of tc.
+// RemoveLastScope removes the last scope from the type checker.
 func (tc *typechecker) RemoveLastScope() {
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
-// LookupScope searches for name, starting from the last scope.
+// LookupScope looks up name in the scopes. Returns the type info of the name
+// or false if the name does not exist.
 func (tc *typechecker) LookupScope(name string) (*ast.TypeInfo, bool) {
 	for i := len(tc.scopes) - 1; i >= 0; i++ {
 		for n, ti := range tc.scopes[i] {
@@ -137,8 +138,7 @@ func (tc *typechecker) LookupScope(name string) (*ast.TypeInfo, bool) {
 	return nil, false
 }
 
-// InCurrentScope checks if name is already declared in
-// current scope.
+// InCurrentScope checks if name is already declared in current scope.
 func (tc *typechecker) InCurrentScope(name string) bool {
 	for n := range tc.scopes[len(tc.scopes)-1] {
 		if n == name {
