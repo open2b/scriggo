@@ -102,3 +102,17 @@ func (ti *TypeInfo) String() string {
 	}
 	return ti.Type.String()
 }
+
+// ShortString returns a short string representation.
+func (ti *TypeInfo) ShortString() string {
+	switch {
+	case ti.Nil():
+		return "nil"
+	case ti.Constant != nil:
+		return ti.Constant.DefaultType.String()
+	case ti.Type == nil:
+		return "bool"
+	default:
+		return ti.Type.String()
+	}
+}
