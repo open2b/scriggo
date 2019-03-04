@@ -345,13 +345,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t1.Constant != nil && t2.Constant != nil {
 			return tc.binaryOp(expr)
 		}
-		if t1.Type == nil && t2.Type == nil {
-			t2 = tc.convert(expr.Expr2, t1.Type)
-		}
-		if t1.Type == nil {
-			t1 = tc.convert(expr.Expr1, t2.Type)
+		var ok bool
+		if t2.Type == nil {
+			t2, ok = tc.convert(expr.Expr2, t1.Type)
+			if !ok {
+				panic(fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t2, t1))
+			}
 		} else if t1.Type == nil {
-			t2 = tc.convert(expr.Expr2, t1.Type)
+			t1, ok = tc.convert(expr.Expr1, t2.Type)
+			if !ok {
+				panic(fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2))
+			}
 		}
 		if expr.Op >= ast.OperatorEqual && expr.Op <= ast.OperatorGreaterOrEqual {
 			if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
@@ -714,30 +718,39 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if numArgs == 0 {
 				panic(tc.errorf(expr, "missing argument to make"))
 			}
-			c := tc.typeof(expr.Args[0], noEllipses)
-			if !c.IsType() {
+			t := tc.typeof(expr.Args[0], noEllipses)
+			if !t.IsType() {
 				panic(tc.errorf(expr.Args[0], "%s is not a type", expr.Args[0]))
 			}
-			switch c.Type.Kind() {
+			var ok bool
+			switch t.Type.Kind() {
 			case reflect.Slice:
 				if numArgs == 1 {
 					panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
 				}
 				if numArgs > 1 {
 					len := tc.checkExpression(expr.Args[1])
-					if len == nil {
-						panic(tc.errorf(expr, "non-integer len argument in make(%s) - nil", expr.Args[0]))
+					if !len.Nil() {
+						if len.Type == nil {
+							len, ok = tc.convert(expr.Args[1], intType)
+						} else if len.Type.Kind() == reflect.Int {
+							ok = true
+						}
 					}
-					if len.Type != intType {
+					if !ok {
 						panic(tc.errorf(expr, "non-integer len argument in make(%s) - %s", expr.Args[0], len))
 					}
 				}
 				if numArgs > 2 {
 					cap := tc.checkExpression(expr.Args[2])
-					if cap.Nil() {
-						panic(tc.errorf(expr, "non-integer cap argument in make(%s) - nil", expr.Args[0]))
+					if !cap.Nil() {
+						if cap.Type == nil {
+							cap, ok = tc.convert(expr.Args[1], intType)
+						} else if cap.Type.Kind() == reflect.Int {
+							ok = true
+						}
 					}
-					if cap.Type != intType {
+					if !ok {
 						panic(tc.errorf(expr, "non-integer cap argument in make(%s) - %s", expr.Args[0], cap))
 					}
 				}
@@ -750,15 +763,19 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				}
 				if numArgs == 2 {
 					len := tc.checkExpression(expr.Args[1])
-					if len.Nil() {
-						panic(tc.errorf(expr, "cannot convert nil to type int"))
+					if !len.Nil() {
+						if len.Type == nil {
+							len, ok = tc.convert(expr.Args[1], intType)
+						} else if len.Type.Kind() == reflect.Int {
+							ok = true
+						}
 					}
-					if len.Type != intType {
+					if !ok {
 						panic(tc.errorf(expr, "non-integer size argument in make(%s) - %s", expr.Args[0], len))
 					}
 				}
 			default:
-				panic(tc.errorf(expr, "cannot make type %s", c))
+				panic(tc.errorf(expr, "cannot make type %s", t))
 			}
 			return []*ast.TypeInfo{t}
 
@@ -958,8 +975,8 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 
 // convert converts the untyped value (constant or not constant) of expr to
 // type rt or to the default value if rt is nil. After the conversion c is a
-// typed value. Panics if it can not be converted.
-func (tc *typechecker) convert(expr ast.Expression, rt reflect.Type) *ast.TypeInfo {
+// typed value. Returns false if it can not be converted.
+func (tc *typechecker) convert(expr ast.Expression, rt reflect.Type) (*ast.TypeInfo, bool) {
 	ti := expr.TypeInfo()
 	if ti.Type != nil {
 		panic("convert on a typed value")
@@ -967,31 +984,31 @@ func (tc *typechecker) convert(expr ast.Expression, rt reflect.Type) *ast.TypeIn
 	if ti.Constant == nil {
 		// expr is an untyped not constant bool.
 		if rt.Kind() != reflect.Bool {
-			panic(fmt.Errorf("cannot convert %s (type untyped bool) to type %s", expr, rt))
+			return nil, false
 		}
-		return &ast.TypeInfo{Type: rt}
+		return &ast.TypeInfo{Type: rt}, true
 	}
 	// t is an untyped constant.
 	switch ti.Constant.DefaultType {
 	case ast.DefaultTypeBool:
 		if rt.Kind() != reflect.Bool {
-			panic(fmt.Errorf("cannot convert %s (type untyped bool) to type %s", expr, rt))
+			return nil, false
 		}
 	case ast.DefaultTypeString:
 		if rt.Kind() != reflect.String {
-			panic(fmt.Errorf("cannot convert %s (type untyped string) to type %s", expr, rt))
+			return nil, false
 		}
 	default:
 		cn := ConstantNumber{val: ti.Constant.Number, typ: ConstantNumberType(ti.Constant.DefaultType)}
 		_, err := cn.ToType(rt)
 		if err != nil {
 			if _, ok := err.(errConstantConversion); ok {
-				panic(fmt.Errorf("cannot convert %s (type untyped number) to type %s", expr, rt))
+				return nil, false
 			}
 			panic(err)
 		}
 	}
-	return &ast.TypeInfo{Type: rt}
+	return &ast.TypeInfo{Type: rt}, true
 }
 
 // fieldByName returns the struct field with the given name and a boolean
