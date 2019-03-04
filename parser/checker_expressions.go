@@ -116,7 +116,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 }
 
 // AddScope adds a new empty scope to the type checker.
-func (tc *typechecker) NewScope() {
+func (tc *typechecker) AddScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
 }
 
