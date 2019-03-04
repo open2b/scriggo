@@ -153,24 +153,25 @@ type typechecker struct {
 	scopes       []typeCheckerScope
 }
 
-func (tc *typechecker) checkNodes(nodes []ast.Node) {
-	// TODO(gianluca)
-}
-
 // AddScope adds a new empty scope to the type checker.
 func (tc *typechecker) AddScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
 }
 
-// RemoveLastScope removes the last scope from the type checker.
-func (tc *typechecker) RemoveLastScope() {
+// RemoveCurrentScope removes the current scope from the type checker.
+func (tc *typechecker) RemoveCurrentScope() {
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
-// LookupScope looks up name in the scopes. Returns the type info of the name
-// or false if the name does not exist.
-func (tc *typechecker) LookupScope(name string) (*ast.TypeInfo, bool) {
-	for i := len(tc.scopes) - 1; i >= 0; i++ {
+// LookupScope looks up name in the scopes. Returns the type info of the name or
+// false if the name does not exist. If justCurrentScope is true, LookupScope
+// looks up only in the current scope.
+func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
+	limit := 0
+	if justCurrentScope {
+		limit = len(tc.scopes) - 1
+	}
+	for i := len(tc.scopes) - 1; i >= limit; i++ {
 		for n, ti := range tc.scopes[i] {
 			if n == name {
 				return ti, true
@@ -180,16 +181,6 @@ func (tc *typechecker) LookupScope(name string) (*ast.TypeInfo, bool) {
 	return nil, false
 }
 
-// InCurrentScope checks if name is already declared in current scope.
-func (tc *typechecker) InCurrentScope(name string) bool {
-	for n := range tc.scopes[len(tc.scopes)-1] {
-		if n == name {
-			return true
-		}
-	}
-	return false
-}
-
 // AssignScope assigns value to name in the last scope.
 func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
@@ -197,7 +188,7 @@ func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 
 // TODO (Gianluca): check if using all declared identifiers.
 func (tc *typechecker) evalIdentifier(ident *ast.Identifier) *ast.TypeInfo {
-	i, ok := tc.LookupScope(ident.Name)
+	i, ok := tc.LookupScope(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
