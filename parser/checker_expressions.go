@@ -18,12 +18,6 @@ import (
 
 const noEllipses = -1
 
-type builtinfunc struct{}
-
-var intType = reflect.TypeOf(0)
-var byteType = reflect.TypeOf(byte(0))
-var builtinfuncType = reflect.TypeOf(builtinfunc{})
-
 var numericKind = [...]bool{
 	reflect.Int:     true,
 	reflect.Int8:    true,
@@ -101,6 +95,54 @@ var operatorsOfKind = [...][15]bool{
 }
 
 type typeCheckerScope map[string]*ast.TypeInfo
+
+type HTML string
+
+var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
+
+var universe = typeCheckerScope{
+	"append":  builtinTypeInfo,
+	"cap":     builtinTypeInfo,
+	"close":   builtinTypeInfo,
+	"complex": builtinTypeInfo,
+	"copy":    builtinTypeInfo,
+	"delete":  builtinTypeInfo,
+	"imag":    builtinTypeInfo,
+	"len":     builtinTypeInfo,
+	"make":    builtinTypeInfo,
+	"new":     builtinTypeInfo,
+	"panic":   builtinTypeInfo,
+	"print":   builtinTypeInfo,
+	"println": builtinTypeInfo,
+	"real":    builtinTypeInfo,
+	"recover": builtinTypeInfo,
+	"bool":    &ast.TypeInfo{Type: reflect.TypeOf(false), Properties: ast.PropertyIsType},
+	"error":   &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
+	"float32": &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
+	"float64": &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
+	"int":     &ast.TypeInfo{Type: reflect.TypeOf(0), Properties: ast.PropertyIsType},
+	"int16":   &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
+	"int32":   &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyIsType},
+	"int64":   &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
+	"int8":    &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType},
+	"string":  &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
+	"uint":    &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
+	"uint16":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
+	"uint32":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
+	"uint64":  &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
+	"uint8":   &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType},
+	"uintptr": &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
+}
+
+var intType reflect.Type
+var byteType reflect.Type
+
+func init() {
+	universe["byte"] = universe["uint8"]
+	universe["rune"] = universe["int32"]
+	intType = universe["int"].Type
+	byteType = universe["byte"].Type
+}
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
@@ -419,7 +461,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 			}
 			index := tc.checkExpression(expr.Index)
-			if index.Nil() || index.Type != intType {
+			if index.Nil() || index.Type != universe["int"].Type {
 				k := kind
 				if kind == reflect.Ptr {
 					k = reflect.Array
@@ -431,7 +473,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 			switch kind {
 			case reflect.String:
-				return &ast.TypeInfo{Type: byteType}
+				return &ast.TypeInfo{Type: universe["byte"].Type}
 			case reflect.Slice, reflect.Array:
 				return &ast.TypeInfo{Type: t.Type.Elem()}
 			case reflect.Ptr:
@@ -561,7 +603,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		panic(tc.errorf(expr, "use of package fmt without selector"))
 	}
 
-	if t.Type == builtinfuncType {
+	if t == builtinTypeInfo {
 
 		ident := expr.Func.(*ast.Identifier)
 
