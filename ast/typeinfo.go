@@ -49,6 +49,7 @@ const (
 	PropertyNil         Properties = 1 << (8 - 1 - iota) // is predeclared nil
 	PropertyIsType                                       // is a type
 	PropertyIsPackage                                    // is a package
+	PropertyIsBuiltin                                    // is a builtin
 	PropertyAddressable                                  // is addressable
 )
 
@@ -72,6 +73,11 @@ func (ti *TypeInfo) IsType() bool {
 // IsPackage reports whether it is a package.
 func (ti *TypeInfo) IsPackage() bool {
 	return ti.Properties&PropertyIsPackage != 0
+}
+
+// IsBuiltin reports whether it is a builtin.
+func (ti *TypeInfo) IsBuiltin() bool {
+	return ti.Properties&PropertyIsBuiltin != 0
 }
 
 // Addressable reports whether it is a addressable.
