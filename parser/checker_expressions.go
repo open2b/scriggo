@@ -100,9 +100,64 @@ var operatorsOfKind = [...][15]bool{
 	reflect.String:  stringOperators,
 }
 
+type typeCheckerScope map[string]*ast.TypeInfo
+
 // typechecker represents the state of a type checking.
 type typechecker struct {
 	path string
+	// imports      map[string]*Package // TODO (Gianluca): review!
+	fileBlock    map[string]*typeCheckerScope
+	packageBlock map[string]*typeCheckerScope
+	scopes       []typeCheckerScope
+}
+
+// NewScope adds a new empty scope to imp.
+func (tc *typechecker) NewScope() {
+	tc.scopes = append(tc.scopes, make(typeCheckerScope))
+}
+
+// RemoveLastScope removes the last scope of tc.
+func (tc *typechecker) RemoveLastScope() {
+	tc.scopes = tc.scopes[:len(tc.scopes)-1]
+}
+
+// ScopeLookup searches for name, starting from the last scope.
+func (tc *typechecker) ScopeLookup(name string) (*ast.TypeInfo, bool) {
+	for i := len(tc.scopes) - 1; i >= 0; i++ {
+		s := tc.scopes[i]
+		for n, c := range s {
+			if n == name {
+				return c, true
+			}
+		}
+	}
+	return nil, false
+}
+
+// InCurrentScope checks if name is already declared in
+// current scope.
+func (tc *typechecker) InCurrentScope(name string) bool {
+	for n := range tc.scopes[len(tc.scopes)-1] {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+// ScopeAssign assigns value to name in the last scope.
+func (tc *typechecker) ScopeAssign(name string, value *ast.TypeInfo) {
+	tc.scopes[len(tc.scopes)-1][name] = value
+}
+
+// TODO (Gianluca): check if using all declared identifiers.
+// TODO (Gianluca): "cannot usape pkg without selector"
+func (tc *typechecker) evalIdentifier(ident *ast.Identifier) (*ast.TypeInfo, error) {
+	i, ok := tc.ScopeLookup(ident.Name)
+	if !ok {
+		return nil, tc.errorf(ident, "undefined: %v", ident)
+	}
+	return i, nil
 }
 
 // errorf builds and returns a type check error.
@@ -295,6 +350,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		//if typ.IsPackage() {
 		//	return nil, tc.errorf(expr, "use of package %s without selector", typ)
 		//}
+		value, err := tc.evalIdentifier(expr)
+		if err != nil {
+			panic(err) // TODO (Gianluca): evalIdentifier should panic, not return errors.
+		}
+		return &ast.TypeInfo{Type: value.Type}
 
 	case *ast.MapType:
 		key := tc.checkType(expr.KeyType, noEllipses)
@@ -311,6 +371,12 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.SliceOf(elem.Type)}
 
 	case *ast.CompositeLiteral:
+		elem, err := tc.checkCompositeLiteral(expr, nil)
+		// TODO (Gianluca): checkCompositeLiteral should panic, not return errors.
+		if err != nil {
+			panic(err)
+		}
+		return &ast.TypeInfo{Type: reflect.TypeOf(elem)}
 
 	case *ast.Func:
 		variadic := expr.Type.IsVariadic
