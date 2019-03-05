@@ -11,6 +11,118 @@ import (
 	"scrigo/ast"
 )
 
+// checkAssignment checks the assignment node.
+func (tc *typechecker) checkAssignment(node ast.Node) {
+
+	var variables, values []ast.Expression
+	var typ *ast.TypeInfo
+	var isDeclaration, isConst bool
+
+	switch n := node.(type) {
+
+	case *ast.Var:
+
+		variables = make([]ast.Expression, len(n.Identifiers))
+		for i, ident := range n.Identifiers {
+			variables[i] = ident
+		}
+		values = n.Values
+		isDeclaration = true
+		typ = tc.checkType(n.Type, noEllipses)
+
+	case *ast.Const:
+
+		variables = make([]ast.Expression, len(n.Identifiers))
+		for i, ident := range n.Identifiers {
+			variables[i] = ident
+		}
+		values = n.Values
+		isConst = true
+		isDeclaration = true
+		typ = tc.checkType(n.Type, noEllipses)
+
+	case *ast.Assignment:
+
+		variables = n.Variables
+		values = n.Values
+		isDeclaration = n.Type == ast.AssignmentDeclaration
+		// TODO (Gianluca): ast.Assignment does not have a type field (Type
+		// indicates the type of the assignment itself, not the type of the
+		// values). typ = tc.checkType(...?, noEllipses)
+
+	default:
+
+		panic(fmt.Errorf("bug: unexpected node %T", node))
+
+	}
+
+	if len(variables) == 1 && len(values) == 1 {
+		tc.assignValueToVariable(node, variables[0], values[0], typ, isDeclaration, isConst)
+		return
+	}
+
+	// { "var" IdentifierList Type . }
+	if len(values) == 0 && typ != nil {
+		for i := range variables {
+			zero := (ast.Expression)(nil) // TODO (Gianluca): zero must contain the zero of type "typ".
+			if isConst || isDeclaration {
+				panic("bug?") // TODO (Gianluca): review!
+			}
+			tc.assignValueToVariable(node, variables[i], zero, typ, false, false)
+		}
+		return
+	}
+
+	if len(variables) == len(values) {
+		for i := range variables {
+			// TODO (Gianluca): if all variables have already been declared
+			// previously, a declaration must end with an error.
+			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
+			alreadyDefined := false
+			isDecl := isDeclaration && !alreadyDefined
+			tc.assignValueToVariable(node, variables[i], values[i], typ, isDecl, isConst)
+		}
+		return
+	}
+
+	if len(variables) >= 3 && len(values) == 1 {
+		call, ok := values[0].(*ast.Call)
+		if ok {
+			tc.checkAssignmentWithCall(node, variables, call, typ, isDeclaration, isConst)
+			return
+		}
+	}
+
+	if len(variables) == 2 && len(values) == 1 {
+		switch value := values[0].(type) {
+
+		case *ast.Call:
+
+			tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
+			return
+
+		case *ast.TypeAssertion:
+
+			// TODO (Gianluca):
+			// tc.checkTypeAssertion(value)
+			// tc.assignValueToVariable(node, variable[0], typeAssertionType, nil, isDeclaration, isConst)
+			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			return
+
+		case *ast.Index:
+
+			// TODO (Gianluca):
+			// tc.checkMapIndexint(value)
+			// tc.assignValueToVariable(node, variable[0], mapType, nil, isDeclaration, isConst)
+			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			return
+
+		}
+	}
+
+	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(variables), len(values)))
+}
+
 // assignValueToVariable generically assigns value to variable. node must
 // contain the assignment node (or the var/const declaration node) and it's used
 // for error messages only. If the declaration specified a type, that must be
@@ -91,87 +203,4 @@ func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Ex
 		// TODO (Gianluca): replace the second "variables[i]" with "values[i]"
 		tc.assignValueToVariable(node, variables[i], variables[i], typ, isDeclaration, isConst)
 	}
-}
-
-// checkAssignment checks the assignment node.
-func (tc *typechecker) checkAssignment(node ast.Node) {
-	var variables, values []ast.Expression
-	var typ *ast.TypeInfo
-	var isDeclaration, isConst bool
-	switch n := node.(type) {
-	case *ast.Var:
-		variables = make([]ast.Expression, len(n.Identifiers))
-		for i, ident := range n.Identifiers {
-			variables[i] = ident
-		}
-		values = n.Values
-		isDeclaration = true
-	case *ast.Const:
-		variables = make([]ast.Expression, len(n.Identifiers))
-		for i, ident := range n.Identifiers {
-			variables[i] = ident
-		}
-		values = n.Values
-		isConst = true
-		isDeclaration = true
-	case *ast.Assignment:
-		variables = n.Variables
-		values = n.Values
-		isDeclaration = n.Type == ast.AssignmentDeclaration
-	default:
-		panic(fmt.Errorf("bug: unexpected node %T", node))
-	}
-	if len(variables) == 1 && len(values) == 1 {
-		tc.assignValueToVariable(node, variables[0], values[0], typ, isDeclaration, isConst)
-		return
-	}
-	if len(values) == 0 && typ != nil {
-		for i := range variables {
-			// TODO (Gianluca): zero must contain the zero of type "typ".
-			zero := (ast.Expression)(nil)
-			if isConst || isDeclaration {
-				panic("bug?") // TODO (Gianluca): review!
-			}
-			tc.assignValueToVariable(node, variables[i], zero, typ, false, false)
-		}
-		return
-	}
-	if len(variables) == len(values) {
-		for i := range variables {
-			// TODO (Gianluca): if all variables have already been declared
-			// previously, a declaration must end with an error.
-			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
-			alreadyDefined := false
-			isDecl := isDeclaration && !alreadyDefined
-			tc.assignValueToVariable(node, variables[i], values[i], typ, isDecl, isConst)
-		}
-		return
-	}
-	if len(variables) == 2 && len(values) == 1 {
-		switch value := values[0].(type) {
-		case *ast.Call:
-			tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
-			return
-		case *ast.TypeAssertion:
-			// TODO (Gianluca):
-			// tc.checkTypeAssertion(value)
-			// tc.assignValueToVariable(node, variable[0], typeAssertionType, nil, isDeclaration, isConst)
-			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
-			return
-		case *ast.Index:
-			// TODO (Gianluca):
-			// tc.checkMapIndexint(value)
-			// tc.assignValueToVariable(node, variable[0], mapType, nil, isDeclaration, isConst)
-			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
-			return
-		}
-	}
-	if len(variables) > 2 && len(values) == 1 {
-		call, ok := values[0].(*ast.Call)
-		if ok {
-			tc.checkAssignmentWithCall(node, variables, call, typ, isDeclaration, isConst)
-		}
-		return
-	}
-	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(variables), len(values)))
 }
