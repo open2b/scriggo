@@ -154,6 +154,12 @@ var checkerStmts = map[string]string{
 	`v := map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
 	// `v := map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
 
+	// Structs.
+	`v := pointInt{}`:      ok,
+	`v := pointInt{1}`:     `too few values in pointInt literal`,
+	`v := pointInt{1,2,3}`: `too many values in pointInt literal`,
+	// `v := pointInt{1,2}`:   ok,
+
 	// For statements.
 	`for 3 { }`:               "non-bool 3 (type int) used as for condition",
 	`for i := 10; i; i++ { }`: "non-bool i (type int) used as for condition",
@@ -168,10 +174,11 @@ var checkerStmts = map[string]string{
 
 func TestCheckerStatements(t *testing.T) {
 	builtinsScope := typeCheckerScope{
-		"true":   &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"false":  &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"int":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
-		"string": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
+		"true":     &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"false":    &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"int":      &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
+		"string":   &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
+		"pointInt": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {

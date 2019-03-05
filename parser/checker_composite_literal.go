@@ -42,7 +42,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 	}
 	_ = maxIndex
 
-	// TODO (Gianluca): use MaxIndex as argument.
+	// TODO (Gianluca): use maxIndex as argument.
 	ti := tc.typeof(node.Type, noEllipses)
 	if !ti.IsType() {
 		return nil, tc.errorf(node, "%s is not a type", node.Type)
@@ -81,18 +81,24 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				}
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
-					return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.Type, ti.Type.Key())
+					return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, tc.concreteType(valueTi), ti.Type.Key())
 				}
 			}
 		} else { // struct with implicit fields.
-			if len(node.KeyValues) != ti.Type.NumField() {
-				panic("too many or not enough elements to struct composite literal")
+			if len(node.KeyValues) == 0 {
+				return ti, nil
+			}
+			if len(node.KeyValues) < ti.Type.NumField() {
+				return nil, tc.errorf(node, "too few values in %s literal", node.Type)
+			}
+			if len(node.KeyValues) > ti.Type.NumField() {
+				return nil, tc.errorf(node, "too many values in %s literal", node.Type)
 			}
 			for i, keyValue := range node.KeyValues {
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
 				if tc.isAssignableTo(valueTi, fieldTi.Type) {
-					return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.Type, fieldTi.Type)
+					return nil, tc.errorf(node, "cannot use %v (type %s) as type %v in field value", keyValue.Value, tc.concreteType(valueTi), fieldTi.Type)
 				}
 			}
 		}
