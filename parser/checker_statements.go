@@ -93,7 +93,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Identifier:
 
-			t := tc.evalIdentifier(node)
+			t := tc.checkIdentifier(node)
 			if t.IsPackage() {
 				panic(tc.errorf(node, "use of package %s without selector", t))
 			}

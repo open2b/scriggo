@@ -187,7 +187,7 @@ func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 }
 
 // TODO (Gianluca): check if using all declared identifiers.
-func (tc *typechecker) evalIdentifier(ident *ast.Identifier) *ast.TypeInfo {
+func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 	i, ok := tc.LookupScope(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
@@ -371,7 +371,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return t1
 
 	case *ast.Identifier:
-		t := tc.evalIdentifier(expr)
+		t := tc.checkIdentifier(expr)
 		if t.IsPackage() {
 			panic(tc.errorf(expr, "use of package %s without selector", t))
 		}
