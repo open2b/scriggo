@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"scrigo/ast"
 	"testing"
 )
@@ -51,13 +52,18 @@ func dumpTypeInfo(w io.Writer, ti *ast.TypeInfo) {
 
 }
 
-var checkerExprs = []string{
-	`"a" == 2`,
+var checkerExprs = []struct {
+	src   string
+	scope typeCheckerScope
+}{
+	{`"a" == 3`, nil},
+	{`a`, typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
+	{`b + 10`, typeCheckerScope{"b": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
 }
 
 func TestChecker(t *testing.T) {
 	for _, expr := range checkerExprs {
-		var lex = newLexer([]byte(expr), ast.ContextNone)
+		var lex = newLexer([]byte(expr.src), ast.ContextNone)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -78,7 +84,11 @@ func TestChecker(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr, tok)
 				return
 			}
-			checker := &typechecker{}
+			var scopes []typeCheckerScope
+			if expr.scope != nil {
+				scopes = []typeCheckerScope{expr.scope}
+			}
+			checker := &typechecker{scopes: scopes}
 			ti := checker.checkExpression(node)
 			dumpTypeInfo(os.Stderr, ti)
 		}()
