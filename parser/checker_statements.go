@@ -74,24 +74,19 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			switch node.Type {
 			case ast.AssignmentIncrement, ast.AssignmentDecrement:
 				v := node.Variables[0]
-				exprType := tc.checkExpression(v)
-				// TODO (Gianluca): to review.
-				_ = exprType
-				// if !exprType.Numeric() {
-				// 	panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", v, exprType))
-				// }
+				exprTi := tc.checkExpression(v)
+				if !numericKind[exprTi.Type.Kind()] {
+					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", v, exprTi))
+				}
 				return
 			case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 				ast.AssignmentDivision, ast.AssignmentModulo:
-				lv := node.Variables[0]
-				lt := tc.checkExpression(lv)
-				// TODO (Gianluca): to review.
-				_ = lt
-				// if !lt.Numeric() {
-				// 	panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", lv, lt))
-				// }
-				rv := node.Values[0]
-				tc.assignValueToVariable(node, lv, rv, nil, false, false)
+				variable := node.Variables[0]
+				variableTi := tc.checkExpression(variable)
+				if !numericKind[variableTi.Type.Kind()] {
+					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, variableTi))
+				}
+				tc.assignValueToVariable(node, variable, node.Values[0], nil, false, false)
 			case ast.AssignmentSimple, ast.AssignmentDeclaration:
 				tc.checkAssignment(node)
 			}
@@ -151,6 +146,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 }
 
+// checkCase checks a switch or type-switch case.
 func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr ast.Expression) error {
 	tc.AddScope()
 	switchExprTyp := tc.typeof(switchExpr, noEllipses)
@@ -200,7 +196,7 @@ func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.
 	return
 }
 
-// TODO (Gianluca): manage builtin functions.
+// TODO (Gianluca): handle builtin functions.
 func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Expression, call *ast.Call, typ *ast.TypeInfo, isDeclaration, isConst bool) {
 	values := tc.checkCallExpression(call, false) // TODO (Gianluca): is "false" correct?
 	if len(variables) != len(values) {
@@ -214,7 +210,7 @@ func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Ex
 
 // TODO (Gianluca): handle
 //		 var a, b int = f() // func f() (int, string)
-// (should be automatically handled, to verify)
+// (should be automatically handled, verify)
 func (tc *typechecker) checkAssignment(node ast.Node) {
 	var variables, values []ast.Expression
 	var typ *ast.TypeInfo
@@ -272,15 +268,14 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
 		case *ast.TypeAssertion:
 			// TODO (Gianluca):
-			// Se la type assertion è valida,
-			// if type assertion is valid:
-			// 		first value is type assertion type
-			//		second value is always a boolean
+			// tc.checkTypeAssertion(value)
+			// tc.assignValueToVariable(node, variable[0], typeAssertionType, nil, isDeclaration, isConst)
+			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
 		case *ast.Index:
 			// TODO (Gianluca):
-			// if indexing a map && key is valid ... :
-			//		first value is maptype.Elem()
-			// 		second value is always a boolean
+			// tc.checkMapIndexint(value)
+			// tc.assignValueToVariable(node, variable[0], mapType, nil, isDeclaration, isConst)
+			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
 		}
 		return
 	}
