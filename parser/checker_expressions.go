@@ -1041,6 +1041,57 @@ func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo,
 	return nil, false
 }
 
+// TODO (Gianluca): to review.
+func (tc *typechecker) defaultType(c *ast.Constant) reflect.Type {
+	switch c.DefaultType {
+	case ast.DefaultTypeInt:
+		return intType
+	case ast.DefaultTypeRune:
+		return reflect.TypeOf(rune('0'))
+	case ast.DefaultTypeFloat64:
+		return reflect.TypeOf(float64(0))
+	case ast.DefaultTypeComplex:
+		return reflect.TypeOf(complex(0, 0))
+	case ast.DefaultTypeString:
+		return reflect.TypeOf("")
+	case ast.DefaultTypeBool:
+		return reflect.TypeOf(false)
+	}
+	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
+}
+
+// TODO (Gianluca): to review.
+func (tc *typechecker) concreteType(v *ast.TypeInfo) reflect.Type {
+	if v.Constant == nil {
+		return v.Type
+	}
+	return tc.defaultType(v.Constant)
+}
+
+// TODO (Gianluca): controllare anche i numeri complessi
+// TODO (Gianluca):
+func (tc *typechecker) isRepresentableBy(src *ast.Constant, target reflect.Type) bool {
+	if src == nil && target.Kind() == reflect.Bool {
+		// TODO (Gianluca): to review.
+		// Is untyped bool.
+		return true
+	}
+	switch target.Kind() {
+	case reflect.String:
+		return src.DefaultType == ast.DefaultTypeString
+	case reflect.Bool:
+		return src.DefaultType == ast.DefaultTypeBool
+	case reflect.Int:
+		switch src.DefaultType {
+		case ast.DefaultTypeInt, ast.DefaultTypeRune:
+			return true
+		default:
+			return false
+		}
+	}
+	panic(fmt.Errorf("unexpected src: %v, target: %v", src, target))
+}
+
 // isAssignableTo reports whether t1 is assignable to type t2.
 func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 	if t1.Nil() {
@@ -1051,9 +1102,7 @@ func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 		return false
 	}
 	if t1.Type == nil {
-		// TODO (Gianluca): found a way to check assignability if t1 has no
-		// type.
-		return true
+		return tc.isRepresentableBy(t1.Constant, t2)
 	}
 	return t1.Type.AssignableTo(t2)
 }

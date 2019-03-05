@@ -60,7 +60,7 @@ var checkerExprs = []struct {
 	src   string
 	scope typeCheckerScope
 }{
-	{`"a" == 3`, nil},
+	{`"a" == "b"`, nil},
 	{`a`, typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
 	{`b + 10`, typeCheckerScope{"b": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
 }
@@ -105,35 +105,53 @@ const ok = ""
 
 var checkerStmts = map[string]string{
 
+	// Var declarations.
+	`var a = 3`:       ok,
+	`var a, b = 1, 2`: ok,
+	// `var a, b = 1`:    "assignment mismatch: 2 variable but 1 values",
+
+	// Expression errors.
+	`v := 1 + "s"`: "mismatched types int and string",
+	// `v := 5 + 8.9 + "2"`: `invalid operation: 5 + 8.9 + "2" (mismatched types float64 and string)`,
+
 	// Assignments.
 	`v := 1`:                          ok,
 	`v = 1`:                           "undefined: v",
 	`v := 1 + 2`:                      ok,
 	`v := "s" + "s"`:                  ok,
-	`v = 1 + "s"`:                     "mismatched types int and string",
 	`v := 1; v = 2`:                   ok,
 	`v := 1; v := 2`:                  "no new variables on left side of :=",
 	`v := 1 + 2; v = 3 + 4`:           ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
+	// `v1 := 1; v2 := "a"; v1 = v2`:     "cannot use v2 (type int) as type string in assignment",
 
 	// Blocks.
-	`{ a := 1; a = 10 }`:     ok,
-	`{ a := 1; { a = 10 } }`: ok,
-	`{ a := 1; a := 2 }`:     "no new variables on left side of :=",
+	`{ a := 1; a = 10 }`:         ok,
+	`{ a := 1; { a = 10 } }`:     ok,
+	`{ a := 1; a := 2 }`:         "no new variables on left side of :=",
+	`{ { { a := 1; a := 2 } } }`: "no new variables on left side of :=",
 
-	// Switch.
-	`switch 1 { case 1: }`:     ok,
-	`switch 1 + 2 { case 3: }`: ok,
+	// If statements.
+	`if 1 { }`:                     "non-bool 1 (type int) used as if condition",
+	`if 1 == 1 { }`:                ok,
+	`if 1 == 1 { a := 3 }; a = 1`:  "undefined: a",
+	`if a := 1; a == 2 { }`:        ok,
+	`if a := 1; a == 2 { b := a }`: ok,
+	`if true { }`:                  "",
 
-	// Waiting for some changes in type-checker.
+	// Composite literals.
+	// TODO (Gianluca)
 
+	// For statements.
+	`for 3 { }`:               "non-bool 3 (type int) used as for condition",
+	`for i := 10; i; i++ { }`: "non-bool i (type int) used as for condition",
 	// `for i := 0; i < 10; i++ { }`: "",
-	// `for i := 10; i; i++ { }`: "non-bool i (type int) used as for condition",
-	// `if 1 { }`: "non-bool 1 (type int) used as if condition",
+
+	// Switch statements.
+	`switch 1 { case 1: }`:       ok,
+	`switch 1 + 2 { case 3: }`:   ok,
+	`switch true { case true: }`: ok,
 	// `switch 1 + 2 { case "3": }`: `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
-	// `if true { }`: "",
-	// `switch true { case true: }`: ok,
-	// `v1 := "a";       v2 := 1;      v1 = v2`: false,
 }
 
 func TestCheckerStatements(t *testing.T) {
@@ -160,7 +178,10 @@ func TestCheckerStatements(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			checker := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
+			checker := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{
+				"true":  &ast.TypeInfo{Type: reflect.TypeOf(false)},
+				"false": &ast.TypeInfo{Type: reflect.TypeOf(false)},
+			}}}
 			checker.checkNodes(tree.Nodes)
 		}()
 	}

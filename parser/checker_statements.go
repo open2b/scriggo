@@ -35,8 +35,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			expr := tc.checkExpression(node.Condition)
 			// TODO(marco): types with underlying type bool and the untyped bool are both allowed as condition.
-			if expr.Type != boolType {
-				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
+			// TODO (Gianluca): currently using isAssignableTo (not sure if it's right)
+			// if expr.Type != boolType {
+			// 	panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
+			// }
+			if !tc.isAssignableTo(expr, boolType) {
+				// TODO (Gianluca): error message must include default type.
+				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, tc.concreteType(expr)))
 			}
 			if node.Then != nil {
 				tc.checkInNewScope(node.Then.Nodes)
@@ -59,8 +64,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node.Init)
 			}
 			expr := tc.checkExpression(node.Condition)
-			if expr.Type != boolType {
-				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as for condition", node.Condition, expr.Type))
+			// TODO (Gianluca): same as for if
+			if !tc.isAssignableTo(expr, boolType) {
+				// TODO (Gianluca): error message must include default type.
+				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, tc.concreteType(expr)))
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
@@ -187,10 +194,13 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 }
 
 // TODO (Gianluca): handle "isConst"
+//
 // TODO (Gianluca): typ doesn't get the type zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
+//
 // TODO (Gianluca): AssignScope must be called always, because constant value
 // inside scope must be updated.
+//
 // TODO (Gianluca):when assigning a costant to a value in scope, constant isn't
 // constant anymore.
 func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
@@ -198,26 +208,34 @@ func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.
 	if isConst && (valueTi.Constant == nil) {
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
-	if typ != nil {
-		if !tc.isAssignableTo(valueTi, typ.Type) {
-			panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
-		}
+	if typ != nil && !tc.isAssignableTo(valueTi, typ.Type) {
+		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
 	}
-	if isDeclaration {
-		if ident, ok := variable.(*ast.Identifier); ok {
-			_, alreadyDefined := tc.LookupScope(ident.Name, true)
-			if alreadyDefined {
-				panic(tc.errorf(node, "no new variables on left side of :="))
+	switch v := variable.(type) {
+	case *ast.Identifier:
+		_, alreadyDefinedInCurrentScope := tc.LookupScope(v.Name, true)
+		if isDeclaration && alreadyDefinedInCurrentScope {
+			panic(tc.errorf(node, "no new variables on left side of :="))
+		}
+		if !isDeclaration {
+			variableTi := tc.checkExpression(variable)
+			{ // Inizio parte da rimuovere (usata per il DEBUG, TODO (Gianluca): rimuovere.)
+				if variableTi.Type == nil {
+					panic("non ho una dichiarazione ma variableTi.Type è comunque nil..")
+				}
+			} // Fine parte da rimuovere
+			if !tc.isAssignableTo(valueTi, variableTi.Type) {
+				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
 			}
-			tc.AssignScope(ident.Name, valueTi)
-			return
 		}
+		newValueTi := &ast.TypeInfo{}
+		if isDeclaration {
+			defaultType := tc.concreteType(valueTi)
+			newValueTi.Type = defaultType
+		}
+		tc.AssignScope(v.Name, newValueTi)
+	default:
 		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
-		return
-	}
-	variableTi := tc.checkExpression(variable)
-	if !tc.isAssignableTo(variableTi, valueTi.Type) {
-		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", variable, variableTi.Type, valueTi.Type))
 	}
 	return
 }
