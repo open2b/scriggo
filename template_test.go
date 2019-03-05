@@ -65,6 +65,7 @@ var rendererExprTests = []struct {
 	{"false", "_false_", scope{"false": "_false_"}},
 	{"2 - 3", "-1", nil},
 	{"2 * 3", "6", nil},
+	{"1 + 2 * 3 + 1", "8", nil},
 	{"2.2 * 3", "6.6", nil},
 	{"2 * 3.1", "6.2", nil},
 	{"2.0 * 3.1", "6.2", nil},

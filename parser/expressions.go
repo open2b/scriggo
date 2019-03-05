@@ -600,9 +600,8 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				}
 			}
 			if p < len(path) {
-				// operand becomes the child of the operator in the path at
-				// position p.
-				switch o := path[p].(type) {
+				// operand becomes the child of the leaf operator.
+				switch o := path[len(path)-1].(type) {
 				case *ast.UnaryOperator:
 					o.Expr = operand
 				case *ast.BinaryOperator:
