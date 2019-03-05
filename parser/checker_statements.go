@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"fmt"
 	"scrigo/ast"
 )
 
@@ -24,9 +25,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Block:
 
-			tc.AddScope()
-			tc.checkNodes(node.Nodes)
-			tc.RemoveCurrentScope()
+			tc.checkInNewScope(node.Nodes)
 
 		case *ast.If:
 
@@ -144,7 +143,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		default:
 
-			panic("not implemented") // TODO (Gianluca): review!
+			panic(fmt.Errorf("checkNodes not implemented for type: %T", node))
 
 		}
 
