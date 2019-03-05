@@ -136,6 +136,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			tc.checkAssignment(node)
 
+		case *ast.Value:
+
+			tc.checkExpression(node.Expr)
+
 		default:
 
 			panic(fmt.Errorf("checkNodes not implemented for type: %T", node))
