@@ -91,14 +91,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node)
 			}
 
-		case *ast.Identifier:
-
-			t := tc.checkIdentifier(node)
-			if t.IsPackage() {
-				panic(tc.errorf(node, "use of package %s without selector", t))
-			}
-			panic(tc.errorf(node, "%s evaluated but not used", node.Name))
-
 		case *ast.Break, *ast.Continue:
 
 		case *ast.Return:
@@ -139,6 +131,23 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Value:
 
 			tc.checkExpression(node.Expr)
+
+		case *ast.Identifier:
+
+			// TODO (Gianluca): remove this case and use ast.Expression directly?
+
+			t := tc.checkIdentifier(node)
+			if t.IsPackage() {
+				panic(tc.errorf(node, "use of package %s without selector", t))
+			}
+			// TODO (Gianluca): enable after testing:
+			//panic(tc.errorf(node, "%s evaluated but not used", node.Name))
+
+		case ast.Expression:
+
+			tc.checkExpression(node)
+			// TODO (Gianluca): enable after testing:
+			//panic(tc.errorf(node, "%s evaluated but not used", node))
 
 		default:
 

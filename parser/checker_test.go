@@ -101,8 +101,10 @@ func TestCheckerExpressions(t *testing.T) {
 var checkerStmts = []struct {
 	src string
 }{
-	{`{{ 1 }}`},
-	{`{{ 1 + 2 }}`},
+	// TODO (Gianluca): add blank identifier ("_") support.
+	{`1`},
+	// {`1 + 2`},
+	// {`"a" + "b"`},
 }
 
 func TestCheckerStatements(t *testing.T) {
@@ -117,7 +119,7 @@ func TestCheckerStatements(t *testing.T) {
 					}
 				}
 			}()
-			tree, err := ParseSource([]byte(stmt.src), ast.ContextHTML)
+			tree, err := ParseSource([]byte(stmt.src), ast.ContextNone)
 			if err != nil {
 				t.Error(err)
 			}
