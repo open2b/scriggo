@@ -148,33 +148,33 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Map:
 
-		for _, keyValue := range node.KeyValues {
-			var keyTyp *ast.TypeInfo
-			if compLit, ok := keyValue.Value.(*ast.CompositeLiteral); ok {
-				keyTyp, err = tc.checkCompositeLiteral(compLit, ti.Type.Key())
+		for _, kv := range node.KeyValues {
+			var keyTi *ast.TypeInfo
+			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
+				keyTi, err = tc.checkCompositeLiteral(compLit, ti.Type.Key())
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				keyTyp = tc.typeof(keyValue.Key, noEllipses)
+				keyTi = tc.typeof(kv.Key, noEllipses)
 				if err != nil {
 					return nil, err
 				}
 			}
-			if !tc.isAssignableTo(keyTyp, ti.Type.Key()) {
-				return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in map key", keyValue.Value, keyTyp.Type, ti.Type.Key())
+			if !tc.isAssignableTo(keyTi, ti.Type.Key()) {
+				return nil, tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, tc.concreteType(keyTi), ti.Type.Key())
 			}
-			var valueTyp *ast.TypeInfo
-			if compLit, ok := keyValue.Value.(*ast.CompositeLiteral); ok {
-				valueTyp, err = tc.checkCompositeLiteral(compLit, ti.Type.Elem())
+			var valueTi *ast.TypeInfo
+			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
+				valueTi, err = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 				if err != nil {
 					panic(err)
 				}
 			} else {
-				valueTyp = tc.typeof(keyValue.Value, noEllipses)
+				valueTi = tc.typeof(kv.Value, noEllipses)
 			}
-			if !tc.isAssignableTo(valueTyp, ti.Type.Elem()) {
-				return nil, tc.errorf(node, "cannot convert %v (type %v) to type %v", keyValue.Value, valueTyp, ti.Type.Elem())
+			if !tc.isAssignableTo(valueTi, ti.Type.Elem()) {
+				return nil, tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi, ti.Type.Elem())
 			}
 		}
 	}
