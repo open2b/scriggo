@@ -30,7 +30,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.If:
 
 			tc.AddScope()
-			tc.checkAssignment(node.Assignment)
+			if node.Assignment != nil {
+				tc.checkAssignment(node.Assignment)
+			}
 			expr := tc.checkExpression(node.Condition)
 			// TODO(marco): types with underlying type bool and the untyped bool are both allowed as condition.
 			if expr.Type != boolType {
@@ -53,12 +55,17 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.For:
 
 			tc.AddScope()
-			tc.checkAssignment(node.Init)
+			if node.Init != nil {
+				tc.checkAssignment(node.Init)
+			}
 			expr := tc.checkExpression(node.Condition)
 			if expr.Type != boolType {
 				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as for condition", node.Condition, expr.Type))
 			}
-			tc.checkAssignment(node.Post)
+			if node.Post != nil {
+				tc.checkAssignment(node.Post)
+			}
+			// TODO (Gianluca): can node.Body be nil?
 			tc.checkInNewScope(node.Body)
 			tc.RemoveCurrentScope()
 
@@ -140,14 +147,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if t.IsPackage() {
 				panic(tc.errorf(node, "use of package %s without selector", t))
 			}
-			// TODO (Gianluca): enable after testing:
-			//panic(tc.errorf(node, "%s evaluated but not used", node.Name))
+			panic(tc.errorf(node, "%s evaluated but not used", node.Name))
 
 		case ast.Expression:
 
 			tc.checkExpression(node)
-			// TODO (Gianluca): enable after testing:
-			//panic(tc.errorf(node, "%s evaluated but not used", node))
+			panic(tc.errorf(node, "%s evaluated but not used", node))
 
 		default:
 
@@ -171,6 +176,7 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 		if !isTypeSwitch && switchExprTyp.IsType() {
 			return tc.errorf(expr, "type %v is not an expression", cas.Type)
 		}
+		// TODO (Gianluca): this is wrong:
 		if cas.Type != switchExprTyp.Type {
 			return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %v and %v)", expr, switchExpr, cas.Type, switchExprTyp.Type)
 		}
@@ -183,17 +189,19 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 // TODO (Gianluca): handle "isConst"
 // TODO (Gianluca): typ doesn't get the type zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
+// TODO (Gianluca): AssignScope must be called always, because constant value
+// inside scope must be updated.
+// TODO (Gianluca):when assigning a costant to a value in scope, constant isn't
+// constant anymore.
 func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
-	variableTi := tc.checkExpression(variable)
 	valueTi := tc.checkExpression(value)
 	if isConst && (valueTi.Constant == nil) {
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
-	if !tc.isAssignableTo(valueTi, typ.Type) {
-		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
-	}
-	if !tc.isAssignableTo(variableTi, valueTi.Type) {
-		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", variable, variableTi.Type, valueTi.Type))
+	if typ != nil {
+		if !tc.isAssignableTo(valueTi, typ.Type) {
+			panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
+		}
 	}
 	if isDeclaration {
 		if ident, ok := variable.(*ast.Identifier); ok {
@@ -205,6 +213,11 @@ func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.
 			return
 		}
 		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
+		return
+	}
+	variableTi := tc.checkExpression(variable)
+	if !tc.isAssignableTo(variableTi, valueTi.Type) {
+		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", variable, variableTi.Type, valueTi.Type))
 	}
 	return
 }
