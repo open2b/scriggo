@@ -720,29 +720,44 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
 				}
 				if numArgs > 1 {
-					len := tc.checkExpression(expr.Args[1])
-					if !len.Nil() {
-						if len.Type == nil {
-							len, ok = tc.convert(expr.Args[1], intType)
-						} else if len.Type.Kind() == reflect.Int {
+					n := tc.checkExpression(expr.Args[1])
+					if !n.Nil() {
+						if n.Type == nil {
+							n, ok = tc.convert(expr.Args[1], intType)
+						} else if n.Type.Kind() == reflect.Int {
 							ok = true
 						}
 					}
 					if !ok {
-						panic(tc.errorf(expr, "non-integer len argument in make(%s) - %s", expr.Args[0], len))
+						panic(tc.errorf(expr, "non-integer len argument in make(%s) - %s", expr.Args[0], n))
 					}
-				}
-				if numArgs > 2 {
-					cap := tc.checkExpression(expr.Args[2])
-					if !cap.Nil() {
-						if cap.Type == nil {
-							cap, ok = tc.convert(expr.Args[1], intType)
-						} else if cap.Type.Kind() == reflect.Int {
-							ok = true
+					var lenvalue int64
+					if n.Constant != nil {
+						if lenvalue, _ = constant.Int64Val(n.Constant.Number); lenvalue < 0 {
+							panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
 						}
 					}
-					if !ok {
-						panic(tc.errorf(expr, "non-integer cap argument in make(%s) - %s", expr.Args[0], cap))
+					if numArgs > 2 {
+						m := tc.checkExpression(expr.Args[2])
+						if !m.Nil() {
+							if m.Type == nil {
+								m, ok = tc.convert(expr.Args[1], intType)
+							} else if m.Type.Kind() == reflect.Int {
+								ok = true
+							}
+						}
+						if !ok {
+							panic(tc.errorf(expr, "non-integer cap argument in make(%s) - %s", expr.Args[0], m))
+						}
+						if m.Constant != nil {
+							capvalue, _ := constant.Int64Val(m.Constant.Number)
+							if capvalue < 0 {
+								panic(tc.errorf(expr, "negative cap argument in make(%s)", expr.Args[0]))
+							}
+							if n.Constant != nil && lenvalue > capvalue {
+								panic(tc.errorf(expr, "len larger than cap in in make(%s)", expr.Args[0]))
+							}
+						}
 					}
 				}
 				if numArgs > 3 {
@@ -753,16 +768,19 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
 				}
 				if numArgs == 2 {
-					len := tc.checkExpression(expr.Args[1])
-					if !len.Nil() {
-						if len.Type == nil {
-							len, ok = tc.convert(expr.Args[1], intType)
-						} else if len.Type.Kind() == reflect.Int {
+					n := tc.checkExpression(expr.Args[1])
+					if !n.Nil() {
+						if n.Type == nil {
+							n, ok = tc.convert(expr.Args[1], intType)
+							if v, _ := constant.Int64Val(n.Constant.Number); v < 0 {
+								panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
+							}
+						} else if n.Type.Kind() == reflect.Int {
 							ok = true
 						}
 					}
 					if !ok {
-						panic(tc.errorf(expr, "non-integer size argument in make(%s) - %s", expr.Args[0], len))
+						panic(tc.errorf(expr, "non-integer size argument in make(%s) - %s", expr.Args[0], n))
 					}
 				}
 			default:
