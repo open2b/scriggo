@@ -887,7 +887,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	c2 := expr.Expr2.TypeInfo().Constant
 	mismatch := false
 	dt1 := c1.DefaultType
-	dt2 := c1.DefaultType
+	dt2 := c2.DefaultType
 	switch dt1 {
 	default:
 		mismatch = dt2 == ast.DefaultTypeString || dt2 == ast.DefaultTypeBool
