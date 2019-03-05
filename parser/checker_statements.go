@@ -175,28 +175,24 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 // TODO (Gianluca): typ doesn't get the type zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
 func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
-	variableType := tc.checkExpression(variable)
-	valueType := tc.checkExpression(value)
-	if isConst && (valueType.Constant == nil) {
-		panic(tc.errorf(node, "const initializer is not a constant")) // TODO (Gianluca): to review.
+	variableTi := tc.checkExpression(variable)
+	valueTi := tc.checkExpression(value)
+	if isConst && (valueTi.Constant == nil) {
+		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
-	if typ != valueType {
-		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueType, typ))
+	if !tc.isAssignableTo(valueTi, typ.Type) {
+		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
 	}
-	// TODO (Gianluca): to review.
-	_ = variableType
-	// err = valueType.MustAssignableTo(variableType.ReflectType())
-	// if err != nil {
-	// 	return err
-	// }
-
+	if !tc.isAssignableTo(variableTi, valueTi.Type) {
+		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", variable, variableTi.Type, valueTi.Type))
+	}
 	if isDeclaration {
 		if ident, ok := variable.(*ast.Identifier); ok {
-			_, alreadyDefined := tc.LookupScope(ident.Name, true) // TODO (Gianluca): to review.
+			_, alreadyDefined := tc.LookupScope(ident.Name, true)
 			if alreadyDefined {
 				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
-			tc.AssignScope(ident.Name, valueType)
+			tc.AssignScope(ident.Name, valueTi)
 			return
 		}
 		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
@@ -220,11 +216,9 @@ func (tc *typechecker) checkAssignmentWithCall(node ast.Node, variables []ast.Ex
 //		 var a, b int = f() // func f() (int, string)
 // (should be automatically handled, to verify)
 func (tc *typechecker) checkAssignment(node ast.Node) {
-
 	var variables, values []ast.Expression
 	var typ *ast.TypeInfo
 	var isDeclaration, isConst bool
-
 	switch n := node.(type) {
 	case *ast.Var:
 		variables = make([]ast.Expression, len(n.Identifiers))
@@ -246,7 +240,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		values = n.Values
 		isDeclaration = n.Type == ast.AssignmentDeclaration
 	}
-
 	if len(variables) == 1 && len(values) == 1 {
 		tc.assignValueToVariable(node, variables[0], values[0], typ, isDeclaration, isConst)
 		return
