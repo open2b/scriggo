@@ -171,7 +171,7 @@ func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.Typ
 	if justCurrentScope {
 		limit = len(tc.scopes) - 1
 	}
-	for i := len(tc.scopes) - 1; i >= limit; i++ {
+	for i := len(tc.scopes) - 1; i >= limit; i-- {
 		for n, ti := range tc.scopes[i] {
 			if n == name {
 				return ti, true
