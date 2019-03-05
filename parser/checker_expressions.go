@@ -167,11 +167,16 @@ func (tc *typechecker) RemoveCurrentScope() {
 // false if the name does not exist. If justCurrentScope is true, LookupScope
 // looks up only in the current scope.
 func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
-	limit := 0
-	if justCurrentScope {
-		limit = len(tc.scopes) - 1
+	// TODO (Gianluca): is checking if len(tc.scopes) > 0 really necessary? Or
+	// there must be at least one scope for every execution?
+	if justCurrentScope && len(tc.scopes) > 0 {
+		for n, ti := range tc.scopes[len(tc.scopes)-1] {
+			if n == name {
+				return ti, true
+			}
+		}
 	}
-	for i := len(tc.scopes) - 1; i >= limit; i-- {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, ti := range tc.scopes[i] {
 			if n == name {
 				return ti, true
@@ -1044,6 +1049,11 @@ func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 			return true
 		}
 		return false
+	}
+	if t1.Type == nil {
+		// TODO (Gianluca): found a way to check assignability if t1 has no
+		// type.
+		return true
 	}
 	return t1.Type.AssignableTo(t2)
 }
