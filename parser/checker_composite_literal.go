@@ -45,7 +45,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 	// TODO (Gianluca): use MaxIndex as argument.
 	ti := tc.typeof(node.Type, noEllipses)
 	if !ti.IsType() {
-		return nil, tc.errorf(node, "composite literal type is not a type") // TODO (Gianluca): this needs a review.
+		return nil, tc.errorf(node, "%s is not a type", node.Type)
 	}
 
 	switch ti.Type.Kind() {
