@@ -10,6 +10,12 @@ import (
 	"scrigo/ast"
 )
 
+func (tc *typechecker) checkInNewScope(nodes []ast.Node) {
+	tc.AddScope()
+	tc.checkNodes(nodes)
+	tc.RemoveCurrentScope()
+}
+
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 	for _, node := range nodes {
@@ -32,17 +38,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
 			}
 			if node.Then != nil {
-				// TODO(marco): maybe a method tc.checkInNewScope(node.Then.Nodes) can be used?
-				tc.AddScope()
-				tc.checkNodes(node.Then.Nodes)
-				tc.RemoveCurrentScope()
+				tc.checkInNewScope(node.Then.Nodes)
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					tc.AddScope()
-					tc.checkNodes(els.Nodes)
-					tc.RemoveCurrentScope()
+					tc.checkInNewScope(els.Nodes)
 				case *ast.If:
 					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
@@ -59,18 +60,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as for condition", node.Condition, expr.Type))
 			}
 			tc.checkAssignment(node.Post)
-			tc.AddScope()
-			tc.checkNodes(node.Body)
-			tc.RemoveCurrentScope()
+			tc.checkInNewScope(node.Body)
 			tc.RemoveCurrentScope()
 
 		case *ast.ForRange:
 
 			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
-			tc.AddScope()
-			tc.checkNodes(node.Body)
-			tc.RemoveCurrentScope()
+			tc.checkInNewScope(node.Body)
 			tc.RemoveCurrentScope()
 
 		case *ast.Assignment:
