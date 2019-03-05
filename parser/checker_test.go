@@ -30,6 +30,9 @@ func dumpTypeInfo(w io.Writer, ti *ast.TypeInfo) {
 	if ti.IsType() {
 		_, _ = fmt.Fprint(w, " isType")
 	}
+	if ti.IsBuiltin() {
+		_, _ = fmt.Fprint(w, " isBuiltin")
+	}
 	if ti.Addressable() {
 		_, _ = fmt.Fprint(w, " addressable")
 	}
