@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"scrigo/ast"
+	"strings"
 	"testing"
 )
 
@@ -98,32 +99,68 @@ func TestCheckerExpressions(t *testing.T) {
 	}
 }
 
-var checkerStmts = []struct {
-	src string
-}{
-	// TODO (Gianluca): add blank identifier ("_") support.
-	{`1`},
-	// {`1 + 2`},
-	// {`"a" + "b"`},
+// TODO (Gianluca): add blank identifier ("_") support.
+
+const ok = ""
+
+var checkerStmts = map[string]string{
+
+	// Assignments.
+	`v := 1`:                          ok,
+	`v = 1`:                           "undefined: v",
+	`v := 1 + 2`:                      ok,
+	`v := "s" + "s"`:                  ok,
+	`v = 1 + "s"`:                     "mismatched types int and string",
+	`v := 1; v = 2`:                   ok,
+	`v := 1; v := 2`:                  "no new variables on left side of :=",
+	`v := 1 + 2; v = 3 + 4`:           ok,
+	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
+
+	// Blocks.
+	`{ a := 1; a = 10 }`:     ok,
+	`{ a := 1; { a = 10 } }`: ok,
+	`{ a := 1; a := 2 }`:     "no new variables on left side of :=",
+
+	// Switch.
+	`switch 1 { case 1: }`:     ok,
+	`switch 1 + 2 { case 3: }`: ok,
+
+	// Waiting for some changes in type-checker.
+
+	// `for i := 0; i < 10; i++ { }`: "",
+	// `for i := 10; i; i++ { }`: "non-bool i (type int) used as for condition",
+	// `if 1 { }`: "non-bool 1 (type int) used as if condition",
+	// `switch 1 + 2 { case "3": }`: `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
+	// `if true { }`: "",
+	// `switch true { case true: }`: ok,
+	// `v1 := "a";       v2 := 1;      v1 = v2`: false,
 }
 
 func TestCheckerStatements(t *testing.T) {
-	for _, stmt := range checkerStmts {
+	for src, expectedError := range checkerStmts {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*Error); ok {
-						t.Errorf("source: %q, %s\n", stmt.src, err)
+						if expectedError == "" {
+							t.Errorf("source: %q should be 'ok' but got error: %q", src, err)
+						} else if !strings.Contains(err.Error(), expectedError) {
+							t.Errorf("source: %q should return error: %q but got: %q", src, expectedError, err)
+						}
 					} else {
 						panic(r)
 					}
+				} else {
+					if expectedError != ok {
+						t.Errorf("source: %q expecting error: %q, but no errors have been returned by type-checker", src, expectedError)
+					}
 				}
 			}()
-			tree, err := ParseSource([]byte(stmt.src), ast.ContextNone)
+			tree, err := ParseSource([]byte(src), ast.ContextNone)
 			if err != nil {
 				t.Error(err)
 			}
-			checker := &typechecker{}
+			checker := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
 			checker.checkNodes(tree.Nodes)
 		}()
 	}
