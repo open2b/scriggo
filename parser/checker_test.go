@@ -64,7 +64,7 @@ var checkerExprs = []struct {
 	{`b + 10`, typeCheckerScope{"b": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
 }
 
-func TestChecker(t *testing.T) {
+func TestCheckerExpressions(t *testing.T) {
 	for _, expr := range checkerExprs {
 		var lex = newLexer([]byte(expr.src), ast.ContextNone)
 		func() {
@@ -94,6 +94,35 @@ func TestChecker(t *testing.T) {
 			checker := &typechecker{scopes: scopes}
 			ti := checker.checkExpression(node)
 			dumpTypeInfo(os.Stderr, ti)
+		}()
+	}
+}
+
+var checkerStmts = []struct {
+	src string
+}{
+	{`{{ 1 }}`},
+	{`{{ 1 + 2 }}`},
+}
+
+func TestCheckerStatements(t *testing.T) {
+	for _, stmt := range checkerStmts {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(*Error); ok {
+						t.Errorf("source: %q, %s\n", stmt.src, err)
+					} else {
+						panic(r)
+					}
+				}
+			}()
+			tree, err := ParseSource([]byte(stmt.src), ast.ContextHTML)
+			if err != nil {
+				t.Error(err)
+			}
+			checker := &typechecker{}
+			checker.checkNodes(tree.Nodes)
 		}()
 	}
 }
