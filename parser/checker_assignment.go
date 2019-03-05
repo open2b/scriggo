@@ -39,13 +39,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				if isConst || isDecl {
 					panic("bug?") // TODO (Gianluca): review!
 				}
-				tc.assignValueToVariable(node, vars[i], zero, typ, false, false)
+				tc.assignSingle(node, vars[i], zero, typ, false, false)
 			}
 			return
 		}
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignValueToVariable(node, vars[0], values[0], typ, true, false)
+			tc.assignSingle(node, vars[0], values[0], typ, true, false)
 			return
 		}
 
@@ -62,7 +62,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		typ = tc.checkType(n.Type, noEllipses)
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignValueToVariable(node, vars[0], values[0], typ, true, true)
+			tc.assignSingle(node, vars[0], values[0], typ, true, true)
 			return
 		}
 
@@ -88,7 +88,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// values). typ = tc.checkType(...?, noEllipses)
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignValueToVariable(node, vars[0], values[0], typ, isDecl, false)
+			tc.assignSingle(node, vars[0], values[0], typ, isDecl, false)
 			return
 		}
 
@@ -104,7 +104,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			// previously, a declaration must end with an error.
 			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
 			alreadyDefined := false
-			tc.assignValueToVariable(node, vars[i], values[i], typ, isDecl && !alreadyDefined, isConst)
+			tc.assignSingle(node, vars[i], values[i], typ, isDecl && !alreadyDefined, isConst)
 		}
 		return
 	}
@@ -118,7 +118,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			for i := range vars {
 				// TODO (Gianluca): replace the second "variables[i]" with "values[i]"
-				tc.assignValueToVariable(node, vars[i], vars[i], typ, isDecl, isConst)
+				tc.assignSingle(node, vars[i], vars[i], typ, isDecl, isConst)
 			}
 			return
 		}
@@ -149,7 +149,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
 }
 
-// assignValueToVariable generically assigns value to variable. node must
+// assignSingle generically assigns value to variable. node must
 // contain the assignment node (or the var/const declaration node) and it's used
 // for error messages only. If the declaration specified a type, that must be
 // passed as "typ" argument. isDeclaration and isConst indicates, respectively,
@@ -163,7 +163,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // TODO (Gianluca):when assigning a costant to a value in scope, constant isn't
 // constant anymore.
 //
-func (tc *typechecker) assignValueToVariable(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
 
 	if isConst && !isDeclaration {
 		panic("bug: cannot have a constant assignment outside a declaration")
