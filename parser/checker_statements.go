@@ -310,18 +310,20 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		switch value := values[0].(type) {
 		case *ast.Call:
 			tc.checkAssignmentWithCall(node, variables, value, typ, isDeclaration, isConst)
+			return
 		case *ast.TypeAssertion:
 			// TODO (Gianluca):
 			// tc.checkTypeAssertion(value)
 			// tc.assignValueToVariable(node, variable[0], typeAssertionType, nil, isDeclaration, isConst)
 			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			return
 		case *ast.Index:
 			// TODO (Gianluca):
 			// tc.checkMapIndexint(value)
 			// tc.assignValueToVariable(node, variable[0], mapType, nil, isDeclaration, isConst)
 			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			return
 		}
-		return
 	}
 	if len(variables) > 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)

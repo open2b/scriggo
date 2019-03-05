@@ -106,9 +106,16 @@ const ok = ""
 var checkerStmts = map[string]string{
 
 	// Var declarations.
-	`var a = 3`:       ok,
-	`var a, b = 1, 2`: ok,
-	// `var a, b = 1`:    "assignment mismatch: 2 variable but 1 values",
+	`var a = 3`:             ok,
+	`var a, b = 1, 2`:       ok,
+	`var a, b = 1`:          "assignment mismatch: 2 variable but 1 values",
+	`var a, b, c, d = 1, 2`: "assignment mismatch: 4 variable but 2 values",
+	`var a int = 1`:         ok,
+	// `var a int = "s"`:       `cannot use "s" (type string) as type int in assignment`,
+
+	// Const declarations.
+	`const a = 2`:     ok,
+	`const a int = 2`: ok,
 
 	// Expression errors.
 	`v := 1 + "s"`: "mismatched types int and string",
