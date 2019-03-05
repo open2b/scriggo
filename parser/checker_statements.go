@@ -11,7 +11,7 @@ import (
 	"scrigo/ast"
 )
 
-func (tc *typechecker) checkInNewScope(nodes []ast.Node) {
+func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 	tc.AddScope()
 	tc.checkNodes(nodes)
 	tc.RemoveCurrentScope()
@@ -25,7 +25,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Block:
 
-			tc.checkInNewScope(node.Nodes)
+			tc.checkNodesInNewScope(node.Nodes)
 
 		case *ast.If:
 
@@ -44,12 +44,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, tc.concreteType(expr)))
 			}
 			if node.Then != nil {
-				tc.checkInNewScope(node.Then.Nodes)
+				tc.checkNodesInNewScope(node.Then.Nodes)
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					tc.checkInNewScope(els.Nodes)
+					tc.checkNodesInNewScope(els.Nodes)
 				case *ast.If:
 					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
@@ -73,14 +73,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node.Post)
 			}
 			// TODO (Gianluca): can node.Body be nil?
-			tc.checkInNewScope(node.Body)
+			tc.checkNodesInNewScope(node.Body)
 			tc.RemoveCurrentScope()
 
 		case *ast.ForRange:
 
 			tc.AddScope()
 			tc.checkAssignment(node.Assignment)
-			tc.checkInNewScope(node.Body)
+			tc.checkNodesInNewScope(node.Body)
 			tc.RemoveCurrentScope()
 
 		case *ast.Assignment:
