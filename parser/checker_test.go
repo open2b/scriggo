@@ -139,8 +139,20 @@ var checkerStmts = map[string]string{
 	`if a := 1; a == 2 { b := a }`: ok,
 	`if true { }`:                  "",
 
-	// Composite literals.
-	// TODO (Gianluca)
+	// Slices.
+	`v := []int{}`:      ok,
+	`v := []int{1,2,3}`: ok,
+	`v := []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
+
+	// Arrays.
+	// `v := [1]int{1}`: ok,
+	// `v := [1]int{0}`: ok,
+
+	// Maps.
+	`v := map[string]string{}`:           ok,
+	`v := map[string]string{"k1": "v1"}`: ok,
+	`v := map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
+	// `v := map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
 
 	// For statements.
 	`for 3 { }`:               "non-bool 3 (type int) used as for condition",
@@ -155,6 +167,12 @@ var checkerStmts = map[string]string{
 }
 
 func TestCheckerStatements(t *testing.T) {
+	builtinsScope := typeCheckerScope{
+		"true":   &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"false":  &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"int":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
+		"string": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
+	}
 	for src, expectedError := range checkerStmts {
 		func() {
 			defer func() {
@@ -178,10 +196,7 @@ func TestCheckerStatements(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			checker := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{
-				"true":  &ast.TypeInfo{Type: reflect.TypeOf(false)},
-				"false": &ast.TypeInfo{Type: reflect.TypeOf(false)},
-			}}}
+			checker := &typechecker{scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
 			checker.checkNodes(tree.Nodes)
 		}()
 	}
