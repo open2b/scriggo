@@ -430,11 +430,11 @@ func tiInt64() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int64(
 func tiInt32() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int32(0))} }
 func tiInt16() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int16(0))} }
 func tiInt8() *ast.TypeInfo   { return &ast.TypeInfo{Type: reflect.TypeOf(int8(0))} }
-func tiUInt() *ast.TypeInfo   { return &ast.TypeInfo{Type: reflect.TypeOf(uint(0))} }
-func tiUInt64() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint64(0))} }
-func tiUInt32() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint32(0))} }
-func tiUInt16() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint16(0))} }
-func tiUInt8() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(uint8(0))} }
+func tiUint() *ast.TypeInfo   { return &ast.TypeInfo{Type: reflect.TypeOf(uint(0))} }
+func tiUint64() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint64(0))} }
+func tiUint32() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint32(0))} }
+func tiUint16() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint16(0))} }
+func tiUint8() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(uint8(0))} }
 
 func tiAddrInt() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: intType, Properties: ast.PropertyAddressable}
@@ -451,19 +451,19 @@ func tiAddrInt16() *ast.TypeInfo {
 func tiAddrInt8() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyAddressable}
 }
-func tiAddrUInt() *ast.TypeInfo {
+func tiAddrUint() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyAddressable}
 }
-func tiAddrUInt64() *ast.TypeInfo {
+func tiAddrUint64() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyAddressable}
 }
-func tiAddrUInt32() *ast.TypeInfo {
+func tiAddrUint32() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyAddressable}
 }
-func tiAddrUInt16() *ast.TypeInfo {
+func tiAddrUint16() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: ast.PropertyAddressable}
 }
-func tiAddrUInt8() *ast.TypeInfo {
+func tiAddrUint8() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyAddressable}
 }
 
