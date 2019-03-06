@@ -103,7 +103,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if !numericKind[variableTi.Type.Kind()] {
 					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, variableTi))
 				}
-				tc.assignValueToVariable(node, variable, node.Values[0], nil, false, false)
+				tc.assignSingle(node, variable, node.Values[0], nil, false, false)
 			case ast.AssignmentSimple, ast.AssignmentDeclaration:
 				tc.checkAssignment(node)
 			}
