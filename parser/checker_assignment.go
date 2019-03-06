@@ -195,7 +195,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if value == nil {
 			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.Type, variable, typ))
 		}
-		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi, typ))
+		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), typ))
 	}
 
 	switch v := variable.(type) {
