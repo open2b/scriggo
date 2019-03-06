@@ -991,8 +991,8 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 }
 
 // convert converts the untyped value (constant or not constant) of expr to
-// type rt or to the default value if rt is nil. After the conversion c is a
-// typed value. Returns false if it can not be converted.
+// type rt or to the default value if rt is nil. The returned type info is
+// typed. Returns false if it can not be converted.
 func (tc *typechecker) convert(expr ast.Expression, rt reflect.Type) (*ast.TypeInfo, bool) {
 	ti := expr.TypeInfo()
 	if ti.Type != nil {
