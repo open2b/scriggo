@@ -150,10 +150,10 @@ func init() {
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path string
-	// imports      map[string]*Package // TODO (Gianluca): review!
-	fileBlock    map[string]*typeCheckerScope
-	packageBlock map[string]*typeCheckerScope
+	path         string
+	imports      map[string]*Package // TODO (Gianluca): review!
+	fileBlock    typeCheckerScope
+	packageBlock typeCheckerScope
 	scopes       []typeCheckerScope
 }
 
