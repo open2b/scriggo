@@ -184,17 +184,17 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 	tc.AddScope()
 	switchExprTyp := tc.typeof(switchExpr, noEllipses)
 	for _, expr := range node.Expressions {
-		cas := tc.typeof(expr, noEllipses)
+		caseTi := tc.typeof(expr, noEllipses)
 		if isTypeSwitch && !switchExprTyp.IsType() {
-			return tc.errorf(expr, "%v (type %v) is not a type", expr, cas.Type)
+			return tc.errorf(expr, "%v (type %v) is not a type", expr, caseTi.Type)
 		}
 		if !isTypeSwitch && switchExprTyp.IsType() {
-			return tc.errorf(expr, "type %v is not an expression", cas.Type)
+			return tc.errorf(expr, "type %v is not an expression", caseTi.Type)
 		}
-		// TODO (Gianluca): this is wrong:
-		if cas.Type != switchExprTyp.Type {
-			return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %v and %v)", expr, switchExpr, cas.Type, switchExprTyp.Type)
-		}
+		// TODO (Gianluca):
+		// if !tc.isAssignableTo(caseTi, switchExprTyp.Type) {
+		// 	return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %v and %v)", expr, switchExpr, caseTi.Type, switchExprTyp.Type)
+		// }
 	}
 	tc.checkNodes(node.Body)
 	tc.RemoveCurrentScope()
