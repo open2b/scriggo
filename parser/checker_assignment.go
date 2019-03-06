@@ -8,6 +8,7 @@ package parser
 
 import (
 	"fmt"
+
 	"scrigo/ast"
 )
 

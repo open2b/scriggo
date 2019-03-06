@@ -11,9 +11,10 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"scrigo/ast"
 	"strings"
 	"testing"
+
+	"scrigo/ast"
 )
 
 func dumpTypeInfo(w io.Writer, ti *ast.TypeInfo) {
