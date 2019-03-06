@@ -127,7 +127,8 @@ var checkerStmts = map[string]string{
 	`var a int = 1`:         ok,
 	// `var a int; _ = a`:        ok,
 	// `var a int; a = 3; _ = a`: ok,
-	// `var a int = "s"`: `cannot use "s" (type string) as type int in assignment`,
+	// `var a, b int = 1, "2"`:   `cannot use "2" (type string) as type int in assignment`,
+	// `var a int = "s"`:         `cannot use "s" (type string) as type int in assignment`,
 
 	// Const declarations.
 	// `const a = 2`:     ok,
@@ -181,6 +182,7 @@ var checkerStmts = map[string]string{
 	`v := pointInt{}`:      ok,
 	`v := pointInt{1}`:     `too few values in pointInt literal`,
 	`v := pointInt{1,2,3}`: `too many values in pointInt literal`,
+	// `v := pointInt{1,2}`:   ok,
 
 	// Blocks.
 	`{ a := 1; a = 10 }`:         ok,
@@ -195,8 +197,6 @@ var checkerStmts = map[string]string{
 	`if a := 1; a == 2 { }`:        ok,
 	`if a := 1; a == 2 { b := a }`: ok,
 	`if true { }`:                  "",
-
-	// `v := pointInt{1,2}`:   ok,
 
 	// For statements.
 	`for 3 { }`:               "non-bool 3 (type int) used as for condition",
@@ -224,16 +224,16 @@ func TestCheckerStatements(t *testing.T) {
 				if r := recover(); r != nil {
 					if err, ok := r.(*Error); ok {
 						if expectedError == "" {
-							t.Errorf("source: %q should be 'ok' but got error: %q", src, err)
+							t.Errorf("source: '%s' should be 'ok' but got error: %q", src, err)
 						} else if !strings.Contains(err.Error(), expectedError) {
-							t.Errorf("source: %q should return error: %q but got: %q", src, expectedError, err)
+							t.Errorf("source: '%s' should return error: %q but got: %q", src, expectedError, err)
 						}
 					} else {
 						panic(r)
 					}
 				} else {
 					if expectedError != ok {
-						t.Errorf("source: %q expecting error: %q, but no errors have been returned by type-checker", src, expectedError)
+						t.Errorf("source: '%s' expecting error: %q, but no errors have been returned by type-checker", src, expectedError)
 					}
 				}
 			}()
