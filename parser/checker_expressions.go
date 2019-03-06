@@ -962,7 +962,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 		switch expr.Op {
 		case ast.OperatorEqual, ast.OperatorNotEqual:
 			c.DefaultType = ast.DefaultTypeBool
-			c.Bool = c1.Bool == c2.Bool
+			c.Bool = c1.String == c2.String
 			if expr.Op == ast.OperatorNotEqual {
 				c.Bool = !c.Bool
 			}
