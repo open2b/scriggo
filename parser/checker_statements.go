@@ -94,17 +94,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				v := node.Variables[0]
 				exprTi := tc.checkExpression(v)
 				if !numericKind[exprTi.Type.Kind()] {
-					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", v, exprTi))
+					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 				}
 				return
 			case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 				ast.AssignmentDivision, ast.AssignmentModulo:
 				variable := node.Variables[0]
-				variableTi := tc.checkExpression(variable)
-				if !numericKind[variableTi.Type.Kind()] {
-					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, variableTi))
-				}
-				tc.assignSingle(node, variable, node.Values[0], nil, false, false)
+				tc.assignSingle(node, variable, node.Values[0], nil, nil, false, false)
 			case ast.AssignmentSimple, ast.AssignmentDeclaration:
 				tc.checkAssignment(node)
 			}
@@ -120,7 +116,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Switch:
 
 			tc.AddScope()
-			tc.checkAssignment(node.Init)
+			if node.Init != nil {
+				tc.checkAssignment(node.Init)
+			}
 			for _, cas := range node.Cases {
 				err := tc.checkCase(cas, false, node.Expr)
 				if err != nil {
@@ -132,8 +130,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.TypeSwitch:
 
 			tc.AddScope()
-			tc.checkAssignment(node.Init)
-			tc.checkAssignment(node.Assignment)
+			if node.Init != nil {
+				tc.checkAssignment(node.Init)
+			}
+			if node.Assignment != nil {
+				tc.checkAssignment(node.Assignment)
+			}
 			for _, cas := range node.Cases {
 				err := tc.checkCase(cas, true, nil)
 				if err != nil {

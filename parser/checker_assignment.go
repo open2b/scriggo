@@ -17,7 +17,17 @@ import (
 // TODO (Gianluca): check error checking order.
 //
 // TODO (Gianluca): "a, b, c := 1, 2, a": how does Go behave? Does it find "a"
-// or evaluation order doesn't matter, so "a" is not declared?
+// or evaluation order doesn't matter, so "a" is not declared? -> "undefined: a"
+// (stessa cosa con le costanti)
+//
+// TODO (Gianluca): Unlike regular variable declarations, a short variable
+// declaration may redeclare variables provided they were originally declared
+// earlier in the same block (or the parameter lists if the block is the
+// function body) with the same type, and at least one of the non-blank
+// variables is new. As a consequence, redeclaration can only appear in a
+// multi-variable short declaration. Redeclaration does not introduce a new
+// variable; it just assigns a new value to the original.
+// [https://golang.org/ref/spec#Short_variable_declarations]
 //
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
@@ -31,22 +41,21 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		values = n.Values
 		isDecl = true
-		typ = tc.checkType(n.Type, noEllipses)
+		if n.Type != nil {
+			typ = tc.checkType(n.Type, noEllipses)
+		}
 
 		// { "var" IdentifierList Type . }
 		if len(values) == 0 && typ != nil {
 			for i := range vars {
-				zero := (ast.Expression)(nil) // TODO (Gianluca): zero must contain the zero of type "typ".
-				if isConst || isDecl {
-					panic("bug?") // TODO (Gianluca): review!
-				}
-				tc.assignSingle(node, vars[i], zero, typ, false, false)
+				zero := &ast.TypeInfo{Type: typ.Type}
+				tc.assignSingle(node, vars[i], nil, zero, typ, true, false)
 			}
 			return
 		}
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], typ, true, false)
+			tc.assignSingle(node, vars[0], values[0], nil, typ, true, false)
 			return
 		}
 
@@ -60,10 +69,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		values = n.Values
 		isConst = true
 		isDecl = true
-		typ = tc.checkType(n.Type, noEllipses)
+		if n.Type != nil {
+			typ = tc.checkType(n.Type, noEllipses)
+		}
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], typ, true, true)
+			tc.assignSingle(node, vars[0], values[0], nil, typ, true, true)
 			return
 		}
 
@@ -89,7 +100,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// values). typ = tc.checkType(...?, noEllipses)
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], typ, isDecl, false)
+			tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
 			return
 		}
 
@@ -105,7 +116,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			// previously, a declaration must end with an error.
 			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
 			alreadyDefined := false
-			tc.assignSingle(node, vars[i], values[i], typ, isDecl && !alreadyDefined, isConst)
+			tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl && !alreadyDefined, isConst)
 		}
 		return
 	}
@@ -119,7 +130,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			for i := range vars {
 				// TODO (Gianluca): replace the second "variables[i]" with "values[i]"
-				tc.assignSingle(node, vars[i], vars[i], typ, isDecl, isConst)
+				tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst)
 			}
 			return
 		}
@@ -164,13 +175,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // TODO (Gianluca):when assigning a costant to a value in scope, constant isn't
 // constant anymore.
 //
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, typ *ast.TypeInfo, isDeclaration, isConst bool) {
+// TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
+//
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) {
 
-	if isConst && !isDeclaration {
-		panic("bug: cannot have a constant assignment outside a declaration")
+	if valueTi == nil {
+		valueTi = tc.checkExpression(value)
 	}
-
-	valueTi := tc.checkExpression(value)
 
 	// If it's a constant declaration, a constant value must be provided.
 	if isConst && (valueTi.Constant == nil) {
@@ -179,7 +190,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 	// If a type is provided, value must be assignable to type.
 	if typ != nil && !tc.isAssignableTo(valueTi, typ.Type) {
-		panic(tc.errorf(node, "canont use %v (type %v) as type %v in assignment", value, valueTi, typ))
+		if value == nil {
+			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.Type, variable, typ))
+		}
+		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi, typ))
 	}
 
 	// The predeclared value nil cannot be used to initialize a variable with no
@@ -192,6 +206,12 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 	case *ast.Identifier:
 
+		if v.Name == "_" {
+			// TODO (Gianluca): check if blank identifier is used correctly (has
+			// no type, etc..).. or delegate this to parser?
+			return
+		}
+
 		_, alreadyInCurrentScope := tc.LookupScope(v.Name, true)
 
 		// Cannot declarate a variable if already exists in current scope.
@@ -202,8 +222,8 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		// If it's not a declaration, variable must already exists in some
 		// scope. Its type must be retrieved, and value must be assignable
 		// to that.
-		variableTi := tc.checkExpression(variable)
 		if !isDeclaration {
+			variableTi := tc.checkExpression(variable)
 			if !tc.isAssignableTo(valueTi, variableTi.Type) {
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
 			}
@@ -226,7 +246,9 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		tc.AssignScope(v.Name, newValueTi)
 
 	default:
+
 		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
 	}
+
 	return
 }
