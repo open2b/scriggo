@@ -1072,28 +1072,34 @@ func (tc *typechecker) concreteType(v *ast.TypeInfo) reflect.Type {
 	return tc.defaultType(v.Constant)
 }
 
-// TODO (Gianluca): controllare anche i numeri complessi
-// TODO (Gianluca):
-func (tc *typechecker) isRepresentableBy(src *ast.Constant, target reflect.Type) bool {
-	if src == nil && target.Kind() == reflect.Bool {
+// isRepresentableBy checks if the constant x is representable by a value of
+// type T.
+// See https://golang.org/ref/spec#Representability for further details.
+//
+// TODO (Gianluca): review.
+//
+func (tc *typechecker) isRepresentableBy(x *ast.Constant, T reflect.Type) bool {
+	if x == nil && T.Kind() == reflect.Bool {
 		// TODO (Gianluca): to review.
 		// Is untyped bool.
 		return true
 	}
-	switch target.Kind() {
+	switch T.Kind() {
 	case reflect.String:
-		return src.DefaultType == ast.DefaultTypeString
+		return x.DefaultType == ast.DefaultTypeString
 	case reflect.Bool:
-		return src.DefaultType == ast.DefaultTypeBool
+		return x.DefaultType == ast.DefaultTypeBool
 	case reflect.Int:
-		switch src.DefaultType {
+		switch x.DefaultType {
 		case ast.DefaultTypeInt, ast.DefaultTypeRune:
 			return true
 		default:
 			return false
 		}
+	case reflect.Complex128, reflect.Complex64:
+		// TODO (Gianluca):
 	}
-	panic(fmt.Errorf("unexpected src: %v, target: %v", src, target))
+	panic(fmt.Errorf("unexpected src: %v, target: %v", x, T))
 }
 
 // isAssignableTo reports whether t1 is assignable to type t2.

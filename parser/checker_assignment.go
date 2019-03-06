@@ -45,8 +45,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
 
-		// { "var" IdentifierList Type . }
-		if len(values) == 0 && typ != nil {
+		// [...] Otherwise [no list of expressions is given], each variable is
+		// initialized to its zero value.
+		// [https://golang.org/ref/spec#Variable_declarations]
+		if len(values) == 0 {
 			for i := range vars {
 				zero := &ast.TypeInfo{Type: typ.Type}
 				tc.assignSingle(node, vars[i], nil, zero, typ, true, false)
@@ -232,11 +234,11 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		newValueTi := &ast.TypeInfo{}
 		if isDeclaration {
 			if typ != nil {
-				// If a type is present, each variable is given that type...
+				// If a type is present, each variable is given that type.
 				// [https://golang.org/ref/spec#Variable_declarations]
 				newValueTi.Type = typ.Type
 			} else {
-				// ...otherwise, each variable is given the type of the
+				// Otherwise, each variable is given the type of the
 				// corresponding initialization value in the assignment.
 				// [https://golang.org/ref/spec#Variable_declarations]
 				defaultType := tc.concreteType(valueTi)
