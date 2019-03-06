@@ -576,7 +576,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	}
 
-	panic(tc.errorf(expr, "unexpected: %s", expr))
+	panic(fmt.Errorf("unexpected: %v", expr))
 }
 
 // checkCallExpression type checks a call expression, including type
