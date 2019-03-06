@@ -102,7 +102,12 @@ type typeCheckerScope map[string]*ast.TypeInfo
 
 type HTML string
 
+var boolType = reflect.TypeOf(false)
+var intType = reflect.TypeOf(0)
+
 var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
+var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType}
+var int32TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyIsType}
 
 var universe = typeCheckerScope{
 	"append":  builtinTypeInfo,
@@ -120,15 +125,17 @@ var universe = typeCheckerScope{
 	"println": builtinTypeInfo,
 	"real":    builtinTypeInfo,
 	"recover": builtinTypeInfo,
-	"bool":    &ast.TypeInfo{Type: reflect.TypeOf(false), Properties: ast.PropertyIsType},
+	"byte":    uint8TypeInfo,
+	"bool":    &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsType},
 	"error":   &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
 	"float32": &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
 	"float64": &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
-	"int":     &ast.TypeInfo{Type: reflect.TypeOf(0), Properties: ast.PropertyIsType},
+	"int":     &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
 	"int16":   &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
-	"int32":   &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyIsType},
+	"int32":   int32TypeInfo,
 	"int64":   &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
-	"int8":    &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType},
+	"int8":    uint8TypeInfo,
+	"rune":    int32TypeInfo,
 	"string":  &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
 	"uint":    &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
 	"uint16":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
@@ -136,16 +143,6 @@ var universe = typeCheckerScope{
 	"uint64":  &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
 	"uint8":   &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType},
 	"uintptr": &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
-}
-
-var boolType reflect.Type
-var intType reflect.Type
-
-func init() {
-	universe["byte"] = universe["uint8"]
-	universe["rune"] = universe["int32"]
-	boolType = universe["bool"].Type
-	intType = universe["int"].Type
 }
 
 // typechecker represents the state of a type checking.
