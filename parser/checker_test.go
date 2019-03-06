@@ -104,6 +104,9 @@ func TestCheckerExpressions(t *testing.T) {
 
 const ok = ""
 
+// checkerStmts contains some Scrigo snippets with expected type-checker error
+// (or empty string if type-checking is valid). Error messages are based upon Go
+// 1.12.
 var checkerStmts = map[string]string{
 
 	// Var declarations.
@@ -112,17 +115,20 @@ var checkerStmts = map[string]string{
 	`var a, b = 1`:          "assignment mismatch: 2 variable but 1 values",
 	`var a, b, c, d = 1, 2`: "assignment mismatch: 4 variable but 2 values",
 	`var a int = 1`:         ok,
-	// `var a int = "s"`:       `cannot use "s" (type string) as type int in assignment`,
+	// `var a int; _ = a`:        ok,
+	// `var a int; a = 3; _ = a`: ok,
+	// `var a int = "s"`: `cannot use "s" (type string) as type int in assignment`,
 
 	// Const declarations.
-	`const a = 2`:     ok,
-	`const a int = 2`: ok,
+	// `const a = 2`:     ok,
+	// `const a int = 2`: ok,
 
 	// Expression errors.
 	`v := 1 + "s"`: "mismatched types int and string",
 	// `v := 5 + 8.9 + "2"`: `invalid operation: 5 + 8.9 + "2" (mismatched types float64 and string)`,
 
 	// Assignments.
+	`_ = 1`:                           ok,
 	`v := 1`:                          ok,
 	`v = 1`:                           "undefined: v",
 	`v := 1 + 2`:                      ok,
@@ -133,19 +139,18 @@ var checkerStmts = map[string]string{
 	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
 	// `v1 := 1; v2 := "a"; v1 = v2`:     "cannot use v2 (type int) as type string in assignment",
 
-	// Blocks.
-	`{ a := 1; a = 10 }`:         ok,
-	`{ a := 1; { a = 10 } }`:     ok,
-	`{ a := 1; a := 2 }`:         "no new variables on left side of :=",
-	`{ { { a := 1; a := 2 } } }`: "no new variables on left side of :=",
+	// Increments and decrements.
+	`a := 1; a++`:   ok,
+	`a := ""; a++`:  `invalid operation: a++ (non-numeric type string)`,
+	`b++`:           `undefined: b`,
+	`a := 5.0; a--`: ok,
+	`a := ""; a--`:  `invalid operation: a-- (non-numeric type string)`,
+	`b--`:           `undefined: b`,
 
-	// If statements.
-	`if 1 { }`:                     "non-bool 1 (type int) used as if condition",
-	`if 1 == 1 { }`:                ok,
-	`if 1 == 1 { a := 3 }; a = 1`:  "undefined: a",
-	`if a := 1; a == 2 { }`:        ok,
-	`if a := 1; a == 2 { b := a }`: ok,
-	`if true { }`:                  "",
+	// "Compact" assignments.
+	`a := 1; a += 1`: ok,
+	`a := 1; a *= 2`: ok,
+	// `a := ""; a /= 6`: `invalid operation: a /= 6 (mismatched types string and int)`,
 
 	// Slices.
 	`v := []int{}`:      ok,
@@ -166,6 +171,21 @@ var checkerStmts = map[string]string{
 	`v := pointInt{}`:      ok,
 	`v := pointInt{1}`:     `too few values in pointInt literal`,
 	`v := pointInt{1,2,3}`: `too many values in pointInt literal`,
+
+	// Blocks.
+	`{ a := 1; a = 10 }`:         ok,
+	`{ a := 1; { a = 10 } }`:     ok,
+	`{ a := 1; a := 2 }`:         "no new variables on left side of :=",
+	`{ { { a := 1; a := 2 } } }`: "no new variables on left side of :=",
+
+	// If statements.
+	`if 1 { }`:                     "non-bool 1 (type int) used as if condition",
+	`if 1 == 1 { }`:                ok,
+	`if 1 == 1 { a := 3 }; a = 1`:  "undefined: a",
+	`if a := 1; a == 2 { }`:        ok,
+	`if a := 1; a == 2 { b := a }`: ok,
+	`if true { }`:                  "",
+
 	// `v := pointInt{1,2}`:   ok,
 
 	// For statements.
