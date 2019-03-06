@@ -1063,17 +1063,16 @@ func (tc *typechecker) defaultType(c *ast.Constant) reflect.Type {
 	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
 }
 
-// isRepresentableBy checks if the constant x is representable by a value of
-// type T.
+// isRepresentableBy checks if a constant or the untyped bool is representable
+// by a value of type T.
 // See https://golang.org/ref/spec#Representability for further details.
 //
 // TODO (Gianluca): review.
 //
 func (tc *typechecker) isRepresentableBy(x *ast.Constant, T reflect.Type) bool {
-	if x == nil && T.Kind() == reflect.Bool {
-		// TODO (Gianluca): to review.
-		// Is untyped bool.
-		return true
+	if x == nil {
+		// x is the untyped bool.
+		return T.Kind() == reflect.Bool
 	}
 	switch T.Kind() {
 	case reflect.String:
