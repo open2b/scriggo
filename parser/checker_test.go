@@ -8,8 +8,8 @@ package parser
 
 import (
 	"fmt"
-	"io"
-	"os"
+	"go/constant"
+	gotoken "go/token"
 	"reflect"
 	"strings"
 	"testing"
@@ -17,53 +17,55 @@ import (
 	"scrigo/ast"
 )
 
-func dumpTypeInfo(w io.Writer, ti *ast.TypeInfo) {
-	_, _ = fmt.Fprint(w, "Type:")
-	if ti.Type != nil {
-		_, _ = fmt.Fprintf(w, " %s", ti.Type)
-	}
-	_, _ = fmt.Fprint(w, "\nProperties:")
-	if ti.Nil() {
-		_, _ = fmt.Fprint(w, " nil")
-	}
-	if ti.IsType() {
-		_, _ = fmt.Fprint(w, " isType")
-	}
-	if ti.IsType() {
-		_, _ = fmt.Fprint(w, " isType")
-	}
-	if ti.IsBuiltin() {
-		_, _ = fmt.Fprint(w, " isBuiltin")
-	}
-	if ti.Addressable() {
-		_, _ = fmt.Fprint(w, " addressable")
-	}
-	_, _ = fmt.Fprint(w, "\nConstant:")
-	if ti.Constant != nil {
-		switch dt := ti.Constant.DefaultType; dt {
-		case ast.DefaultTypeInt, ast.DefaultTypeRune, ast.DefaultTypeFloat64:
-			_, _ = fmt.Fprintf(w, " %s (%s)", ti.Constant.Number.ExactString(), dt)
-		case ast.DefaultTypeString:
-			_, _ = fmt.Fprintf(w, " %s (%s)", ti.Constant.String, dt)
-		case ast.DefaultTypeBool:
-			_, _ = fmt.Fprintf(w, " %t (%s)", ti.Constant.Bool, dt)
-		}
-	}
-	_, _ = fmt.Fprint(w, "\nPackage:")
-	if ti.Package != nil {
-		_, _ = fmt.Fprintf(w, " %s", ti.Package.Name)
-	}
-	_, _ = fmt.Fprintln(w)
+func tiBool() *ast.TypeInfo { return &ast.TypeInfo{Type: boolType} }
+func tiAddrBool() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyAddressable}
+}
+func tiBoolConst(b bool) *ast.TypeInfo {
+	return &ast.TypeInfo{Type: boolType, Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
+}
+func tiUntypedBool() *ast.TypeInfo {
+	return &ast.TypeInfo{}
+}
+func tiUntypedBoolConst(b bool) *ast.TypeInfo {
+	return &ast.TypeInfo{Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
+}
 
+func tiInt() *ast.TypeInfo { return &ast.TypeInfo{Type: intType} }
+func tiAddrInt() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: intType, Properties: ast.PropertyAddressable}
+}
+func tiIntConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: intType,
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUntypedIntConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
 }
 
 var checkerExprs = []struct {
 	src   string
+	ti    *ast.TypeInfo
 	scope typeCheckerScope
 }{
-	{`"a" == "b"`, nil},
-	{`a`, typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
-	{`b + 10`, typeCheckerScope{"b": &ast.TypeInfo{Type: reflect.TypeOf(0)}}},
+	{`"a" == "b"`, tiUntypedBoolConst(false), nil},
+	{`a`, tiAddrInt(), typeCheckerScope{"a": tiAddrInt()}},
+	{`b + 10`, tiInt(), typeCheckerScope{"b": tiInt()}},
+	{`a`, tiBool(), typeCheckerScope{"a": tiBool()}},
+	{`a`, tiAddrBool(), typeCheckerScope{"a": tiAddrBool()}},
+	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
+	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst("1")}},
+	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -73,7 +75,7 @@ func TestCheckerExpressions(t *testing.T) {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(*Error); ok {
-						t.Errorf("source: %q, %s\n", expr, err)
+						t.Errorf("source: %q, %s\n", expr.src, err)
 					} else {
 						panic(r)
 					}
@@ -86,16 +88,24 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			node, tok := p.parseExpr(token{}, false, false, false, false)
 			if node == nil {
-				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr, tok)
+				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
 			var scopes []typeCheckerScope
-			if expr.scope != nil {
-				scopes = []typeCheckerScope{expr.scope}
+			if expr.scope == nil {
+				scopes = []typeCheckerScope{universe}
+			} else {
+				scopes = []typeCheckerScope{universe, expr.scope}
 			}
 			checker := &typechecker{scopes: scopes}
 			ti := checker.checkExpression(node)
-			dumpTypeInfo(os.Stderr, ti)
+			err := equalTypeInfo(expr.ti, ti)
+			if err != nil {
+				t.Errorf("source: %q, %s\n", expr.src, err)
+				if testing.Verbose() {
+					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
+				}
+			}
 		}()
 	}
 }
@@ -235,4 +245,114 @@ func TestCheckerStatements(t *testing.T) {
 			checker.checkNodes(tree.Nodes)
 		}()
 	}
+}
+
+// tiEquals checks that t1 and t2 are identical.
+func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
+	if t1.Type == nil && t2.Type != nil {
+		return fmt.Errorf("unexpected type %s, expecting untyped", t2.Type)
+	}
+	if t1.Type != nil && t2.Type == nil {
+		return fmt.Errorf("unexpected untyped, expecting type %s", t1.Type)
+	}
+	if t1.Type != nil && t1.Type != t2.Type {
+		return fmt.Errorf("unexpected type %s, expecting %s", t2.Type, t1.Type)
+	}
+	if t1.Nil() && !t2.Nil() {
+		return fmt.Errorf("unexpected non-predeclared nil")
+	}
+	if !t1.Nil() && t2.Nil() {
+		return fmt.Errorf("unexpected predeclared nil")
+	}
+	if t1.IsType() && !t2.IsType() {
+		return fmt.Errorf("unexpected non-type")
+	}
+	if !t1.IsType() && t2.IsType() {
+		return fmt.Errorf("unexpected type")
+	}
+	if t1.IsBuiltin() && !t2.IsBuiltin() {
+		return fmt.Errorf("unexpected non-builtin")
+	}
+	if !t1.IsBuiltin() && t2.IsBuiltin() {
+		return fmt.Errorf("unexpected builtin")
+	}
+	if t1.Addressable() && !t2.Addressable() {
+		return fmt.Errorf("unexpected not addressable")
+	}
+	if !t1.Addressable() && t2.Addressable() {
+		return fmt.Errorf("unexpected addressable")
+	}
+	if t1.Constant == nil && t2.Constant != nil {
+		return fmt.Errorf("unexpected non-constant")
+	}
+	if t1.Constant != nil && t2.Constant == nil {
+		return fmt.Errorf("unexpected constant")
+	}
+	if t1.Constant != nil {
+		c1 := t1.Constant
+		c2 := t2.Constant
+		if c1.DefaultType != c2.DefaultType {
+			return fmt.Errorf("unexpected default type %s, expecting %s", c2.DefaultType, c1.DefaultType)
+		}
+		switch c1.DefaultType {
+		case ast.DefaultTypeBool:
+			if c1.Bool != c2.Bool {
+				return fmt.Errorf("unexpected bool %t, expecting %t", c2.Bool, c1.Bool)
+			}
+		case ast.DefaultTypeString:
+			if c1.String != c2.String {
+				return fmt.Errorf("unexpected string %q, expecting %q", c2.String, c1.String)
+			}
+		default:
+			if c1.Number.ExactString() != c2.Number.ExactString() {
+				return fmt.Errorf("unexpected number %s, expecting %s", c2.Number.ExactString(), c1.Number.ExactString())
+			}
+		}
+	}
+	if t1.Package != nil && t2.Package == nil {
+		return fmt.Errorf("unexpected package")
+	}
+	if t1.Package == nil && t2.Package != nil {
+		return fmt.Errorf("unexpected non-package, expecting a package")
+	}
+	if t1.Package != nil && t1.Package != t2.Package {
+		return fmt.Errorf("unexpected package %s, expecting %s", t2.Package.Name, t1.Package.Name)
+	}
+	return nil
+}
+
+func dumpTypeInfo(ti *ast.TypeInfo) string {
+	s := "\tType:"
+	if ti.Type != nil {
+		s += " " + ti.Type.String()
+	}
+	s += "\n\tProperties:"
+	if ti.Nil() {
+		s += " nil"
+	}
+	if ti.IsType() {
+		s += " isType"
+	}
+	if ti.IsBuiltin() {
+		s += " isBuiltin"
+	}
+	if ti.Addressable() {
+		s += " addressable"
+	}
+	s += "\n\tConstant:"
+	if ti.Constant != nil {
+		switch dt := ti.Constant.DefaultType; dt {
+		case ast.DefaultTypeInt, ast.DefaultTypeRune, ast.DefaultTypeFloat64:
+			s += fmt.Sprintf(" %s (%s)", ti.Constant.Number.ExactString(), dt)
+		case ast.DefaultTypeString:
+			s += fmt.Sprintf(" %s (%s)", ti.Constant.String, dt)
+		case ast.DefaultTypeBool:
+			s += fmt.Sprintf(" %t (%s)", ti.Constant.Bool, dt)
+		}
+	}
+	s += "\n\tPackage:"
+	if ti.Package != nil {
+		s += " " + ti.Package.Name
+	}
+	return s
 }
