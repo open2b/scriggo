@@ -148,7 +148,7 @@ var checkerStmts = map[string]string{
 	`v := 1; v := 2`:                  "no new variables on left side of :=",
 	`v := 1 + 2; v = 3 + 4`:           ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
-	// `v1 := 1; v2 := "a"; v1 = v2`:     "cannot use v2 (type int) as type string in assignment",
+	`v1 := 1; v2 := "a"; v1 = v2`:     `cannot use v2 (type string) as type int in assignment`,
 
 	// Increments and decrements.
 	`a := 1; a++`:   ok,
