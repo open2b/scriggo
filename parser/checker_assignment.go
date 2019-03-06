@@ -250,7 +250,8 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				} else {
 					// «If that value is an untyped constant, it is first
 					// implicitly converted to its default type.»
-					newValueTi.Type = valueTi.Constant.DefaultType.ReflectType()
+					newValueTi = assignableDefaultType[valueTi.Constant.DefaultType]
+
 				}
 			}
 		}
@@ -287,4 +288,13 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	}
 
 	return
+}
+
+var assignableDefaultType = [...]*ast.TypeInfo{
+	ast.DefaultTypeInt:     &ast.TypeInfo{Type: universe["int"].Type, Properties: ast.PropertyAddressable},
+	ast.DefaultTypeRune:    &ast.TypeInfo{Type: universe["rune"].Type, Properties: ast.PropertyAddressable},
+	ast.DefaultTypeFloat64: &ast.TypeInfo{Type: universe["float64"].Type, Properties: ast.PropertyAddressable},
+	ast.DefaultTypeComplex: &ast.TypeInfo{Type: universe["complex"].Type, Properties: ast.PropertyAddressable},
+	ast.DefaultTypeString:  &ast.TypeInfo{Type: universe["string"].Type, Properties: ast.PropertyAddressable},
+	ast.DefaultTypeBool:    &ast.TypeInfo{Type: universe["bool"].Type, Properties: ast.PropertyAddressable},
 }
