@@ -18,19 +18,23 @@ import (
 
 const noEllipses = -1
 
+// TODO (Gianluca): implement with a bits array (int32?), and use bit
+// operations to read/write.
+
 var numericKind = [...]bool{
-	reflect.Int:     true,
-	reflect.Int8:    true,
-	reflect.Int16:   true,
-	reflect.Int32:   true,
-	reflect.Int64:   true,
-	reflect.Uint:    true,
-	reflect.Uint8:   true,
-	reflect.Uint16:  true,
-	reflect.Uint32:  true,
-	reflect.Uint64:  true,
-	reflect.Float32: true,
-	reflect.Float64: true,
+	reflect.Int:           true,
+	reflect.Int8:          true,
+	reflect.Int16:         true,
+	reflect.Int32:         true,
+	reflect.Int64:         true,
+	reflect.Uint:          true,
+	reflect.Uint8:         true,
+	reflect.Uint16:        true,
+	reflect.Uint32:        true,
+	reflect.Uint64:        true,
+	reflect.Float32:       true,
+	reflect.Float64:       true,
+	reflect.UnsafePointer: false,
 }
 
 var boolOperators = [15]bool{
