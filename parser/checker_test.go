@@ -557,3 +557,69 @@ func tiUint8Const(n string) *ast.TypeInfo {
 		},
 	}
 }
+func tiNil() *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Properties: ast.PropertyNil,
+	}
+}
+
+func TestTypechecker_IsAssignableTo(t *testing.T) {
+	stringType := universe["string"].Type
+	float64Type := universe["float64"].Type
+	intSliceType := reflect.TypeOf([]int{})
+	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
+	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
+	type myInt int
+	myIntType := reflect.TypeOf(myInt(0))
+	type myInt2 int
+	myIntType2 := reflect.TypeOf(myInt2(0))
+	cases := []struct {
+		x          *ast.TypeInfo
+		T          reflect.Type
+		assignable bool
+	}{
+		// From https://golang.org/ref/spec#Assignability
+
+		// «x's type is identical to T»
+		{x: tiInt(), T: intType, assignable: true},
+		{x: tiString(), T: stringType, assignable: true},
+		{x: tiFloat64(), T: float64Type, assignable: true},
+		{x: tiFloat64(), T: stringType, assignable: false},
+		{x: &ast.TypeInfo{Type: myIntType}, T: myIntType, assignable: true},
+
+		// «x's type V and T have identical underlying types and at least one of
+		// V or T is not a defined type.»
+		// {x: tiInt(), T: myIntType, assignable: true},                          // x is not a defined type, but T is
+		// {x: &ast.TypeInfo{Type: myIntType}, T: intType, assignable: true},     // x is a defined type, but T is not
+		{x: &ast.TypeInfo{Type: myIntType}, T: myIntType2, assignable: false}, // both x and T are (different) defined types
+
+		// «T is an interface type and x implements T.»
+		{x: tiInt(), T: emptyInterfaceType, assignable: true},
+		{x: tiInt(), T: weirdInterfaceType, assignable: false},
+		{x: tiString(), T: emptyInterfaceType, assignable: true},
+		{x: tiString(), T: weirdInterfaceType, assignable: false},
+
+		// «x is the predeclared identifier nil and T is a pointer, function,
+		// slice, map, channel, or interface type»
+		{x: tiNil(), T: intSliceType, assignable: true},
+		{x: tiNil(), T: emptyInterfaceType, assignable: true},
+		{x: tiNil(), T: weirdInterfaceType, assignable: true},
+		{x: tiNil(), T: intType, assignable: false},
+
+		// «x is an untyped constant representable by a value of type T.»
+		{x: tiUntypedBoolConst(false), T: boolType, assignable: true},
+		{x: tiUntypedIntConst("0"), T: boolType, assignable: false},
+		{x: tiUntypedIntConst("0"), T: intType, assignable: true},
+		//{x: tiUntypedIntConst("10"), float64Type, true},
+	}
+	tc := &typechecker{}
+	for _, c := range cases {
+		got := tc.isAssignableTo(c.x, c.T)
+		if c.assignable && !got {
+			t.Errorf("%s should be assignable to %s, but isAssignableTo returned false", c.x, c.T)
+		}
+		if !c.assignable && got {
+			t.Errorf("%s should not be assignable to %s, but isAssignableTo returned true", c.x, c.T)
+		}
+	}
+}
