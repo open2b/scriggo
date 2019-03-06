@@ -198,12 +198,6 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi, typ))
 	}
 
-	// The predeclared value nil cannot be used to initialize a variable with no
-	// explicit type. [https://golang.org/ref/spec#Variable_declarations]
-	if valueTi.Nil() && typ == nil {
-		panic("typ == nil && valueTi.Nil()") // TODO (Gianluca): to review.
-	}
-
 	switch v := variable.(type) {
 
 	case *ast.Identifier:
@@ -232,24 +226,64 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 
 		newValueTi := &ast.TypeInfo{}
+
 		if isDeclaration {
+
 			if typ != nil {
-				// If a type is present, each variable is given that type.
-				// [https://golang.org/ref/spec#Variable_declarations]
+
+				// «If a type is present, each variable is given that type.»
 				newValueTi.Type = typ.Type
+
 			} else {
-				// Otherwise, each variable is given the type of the
-				// corresponding initialization value in the assignment.
-				// [https://golang.org/ref/spec#Variable_declarations]
-				defaultType := tc.concreteType(valueTi)
-				newValueTi.Type = defaultType
+
+				// «The predeclared value nil cannot be used to initialize a
+				// variable with no explicit type.»
+				if valueTi.Nil() {
+					panic(tc.errorf(node, "use of untyped nil"))
+				}
+
+				//  «[if no types are presents], each variable is given the type
+				//  of the corresponding initialization value in the
+				//  assignment.»
+				if valueTi.Type != nil {
+					newValueTi.Type = valueTi.Type
+				} else {
+					// «If that value is an untyped constant, it is first
+					// implicitly converted to its default type.»
+					newValueTi.Type = valueTi.Constant.DefaultType.ReflectType()
+				}
 			}
 		}
+
 		tc.AssignScope(v.Name, newValueTi)
+
+	case *ast.Index, *ast.Selector:
+
+		if isDeclaration {
+			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+		}
+		variableTi := tc.checkExpression(variable)
+		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
+		}
+		return
+
+	case *ast.UnaryOperator:
+
+		if isDeclaration {
+			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+		}
+		if v.Operator() == ast.OperatorMultiplication {
+			variableTi := tc.checkExpression(variable)
+			if !tc.isAssignableTo(valueTi, variableTi.Type) {
+				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
+			}
+			return
+		}
 
 	default:
 
-		panic("bug/not implemented") // TODO (Gianluca): can we have a declaration without an identifier?
+		panic("bug/not implemented")
 	}
 
 	return

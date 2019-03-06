@@ -1061,14 +1061,6 @@ func (tc *typechecker) defaultType(c *ast.Constant) reflect.Type {
 	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
 }
 
-// TODO (Gianluca): to review.
-func (tc *typechecker) concreteType(v *ast.TypeInfo) reflect.Type {
-	if v.Constant == nil {
-		return v.Type
-	}
-	return tc.defaultType(v.Constant)
-}
-
 // isRepresentableBy checks if the constant x is representable by a value of
 // type T.
 // See https://golang.org/ref/spec#Representability for further details.

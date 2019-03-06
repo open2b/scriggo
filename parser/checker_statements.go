@@ -45,7 +45,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// }
 			if !tc.isAssignableTo(expr, boolType) {
 				// TODO (Gianluca): error message must include default type.
-				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, tc.concreteType(expr)))
+				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, expr.ShortString()))
 			}
 			if node.Then != nil {
 				tc.checkNodesInNewScope(node.Then.Nodes)
@@ -71,7 +71,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// TODO (Gianluca): same as for if
 			if !tc.isAssignableTo(expr, boolType) {
 				// TODO (Gianluca): error message must include default type.
-				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, tc.concreteType(expr)))
+				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)

@@ -32,6 +32,25 @@ var defaultTypeString = [...]string{
 	DefaultTypeBool:    "bool",
 }
 
+// TODO (Gianluca): to review.
+func (dt DefaultType) ReflectType() reflect.Type {
+	switch dt {
+	case DefaultTypeInt:
+		return reflect.TypeOf(int(0))
+	case DefaultTypeRune:
+		return reflect.TypeOf(rune(' '))
+	case DefaultTypeFloat64:
+		return reflect.TypeOf(float64(0))
+	case DefaultTypeComplex:
+		return reflect.TypeOf(complex(0, 0))
+	case DefaultTypeString:
+		return reflect.TypeOf(string(""))
+	case DefaultTypeBool:
+		return reflect.TypeOf(bool(false))
+	}
+	panic("unexpected")
+}
+
 func (dt DefaultType) String() string {
 	return defaultTypeString[dt]
 }

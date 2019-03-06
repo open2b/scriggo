@@ -81,7 +81,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				}
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
-					return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, tc.concreteType(valueTi), ti.Type.Key())
+					return nil, tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), ti.Type.Key())
 				}
 			}
 		} else { // struct with implicit fields.
@@ -98,7 +98,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
 				if tc.isAssignableTo(valueTi, fieldTi.Type) {
-					return nil, tc.errorf(node, "cannot use %v (type %s) as type %v in field value", keyValue.Value, tc.concreteType(valueTi), fieldTi.Type)
+					return nil, tc.errorf(node, "cannot use %v (type %s) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type)
 				}
 			}
 		}
@@ -168,7 +168,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				}
 			}
 			if !tc.isAssignableTo(keyTi, ti.Type.Key()) {
-				return nil, tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, tc.concreteType(keyTi), ti.Type.Key())
+				return nil, tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), ti.Type.Key())
 			}
 			var valueTi *ast.TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
