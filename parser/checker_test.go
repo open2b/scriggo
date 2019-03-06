@@ -17,47 +17,17 @@ import (
 	"scrigo/ast"
 )
 
-func tiBool() *ast.TypeInfo { return &ast.TypeInfo{Type: boolType} }
-func tiAddrBool() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyAddressable}
-}
-func tiBoolConst(b bool) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
-}
-func tiUntypedBool() *ast.TypeInfo {
-	return &ast.TypeInfo{}
-}
-func tiUntypedBoolConst(b bool) *ast.TypeInfo {
-	return &ast.TypeInfo{Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
-}
-
-func tiInt() *ast.TypeInfo { return &ast.TypeInfo{Type: intType} }
-func tiAddrInt() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: intType, Properties: ast.PropertyAddressable}
-}
-func tiIntConst(n string) *ast.TypeInfo {
-	return &ast.TypeInfo{
-		Type: intType,
-		Constant: &ast.Constant{
-			DefaultType: ast.DefaultTypeInt,
-			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
-		},
-	}
-}
-func tiUntypedIntConst(n string) *ast.TypeInfo {
-	return &ast.TypeInfo{
-		Constant: &ast.Constant{
-			DefaultType: ast.DefaultTypeInt,
-			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
-		},
-	}
-}
-
 var checkerExprs = []struct {
 	src   string
 	ti    *ast.TypeInfo
 	scope typeCheckerScope
 }{
+	{`true`, tiUntypedBoolConst(true), nil},
+	{`false`, tiUntypedBoolConst(false), nil},
+	{`0`, tiUntypedIntConst("0"), nil},
+	{`15`, tiUntypedIntConst("15"), nil},
+	{`15/3`, tiUntypedIntConst("5"), nil},
+	{`15/3.0`, tiUntypedFloatConst("5.0"), nil},
 	{`"a" == "b"`, tiUntypedBoolConst(false), nil},
 	{`a`, tiAddrInt(), typeCheckerScope{"a": tiAddrInt()}},
 	{`b + 10`, tiInt(), typeCheckerScope{"b": tiInt()}},
@@ -355,4 +325,235 @@ func dumpTypeInfo(ti *ast.TypeInfo) string {
 		s += " " + ti.Package.Name
 	}
 	return s
+}
+
+// bool type infos.
+func tiUntypedBoolConst(b bool) *ast.TypeInfo {
+	return &ast.TypeInfo{Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
+}
+
+func tiBool() *ast.TypeInfo { return &ast.TypeInfo{Type: boolType} }
+
+func tiAddrBool() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyAddressable}
+}
+
+func tiBoolConst(b bool) *ast.TypeInfo {
+	return &ast.TypeInfo{Type: boolType, Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: b}}
+}
+
+func tiUntypedBool() *ast.TypeInfo { return &ast.TypeInfo{} }
+
+// float type infos.
+
+func tiUntypedFloatConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeFloat64,
+			Number:      constant.MakeFromLiteral(n, gotoken.FLOAT, 0),
+		},
+	}
+}
+
+func tiFloat32() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(float32(0.0))} }
+
+func tiFloat64() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(0.0)} }
+
+func tiAddrFloat32() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(float32(0.0)), Properties: ast.PropertyAddressable}
+}
+
+func tiAddrFloat64() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(0.0), Properties: ast.PropertyAddressable}
+}
+
+func tiFloat32Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(float32(0.0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeFloat64,
+			Number:      constant.MakeFromLiteral(n, gotoken.FLOAT, 0),
+		},
+	}
+}
+
+func tiFloat64Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(0.0),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeFloat64,
+			Number:      constant.MakeFromLiteral(n, gotoken.FLOAT, 0),
+		},
+	}
+}
+
+// string type infos.
+
+func tiString() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf("")} }
+
+func tiAddrString() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyAddressable}
+}
+
+func tiStringConst(s string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(""),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeString,
+			String:      s,
+		},
+	}
+}
+
+func tiUntypedStringConst(s string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeString,
+			String:      s,
+		},
+	}
+}
+
+// int type infos.
+
+func tiUntypedIntConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+
+func tiInt() *ast.TypeInfo    { return &ast.TypeInfo{Type: intType} }
+func tiInt64() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int64(0))} }
+func tiInt32() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int32(0))} }
+func tiInt16() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(int16(0))} }
+func tiInt8() *ast.TypeInfo   { return &ast.TypeInfo{Type: reflect.TypeOf(int8(0))} }
+func tiUInt() *ast.TypeInfo   { return &ast.TypeInfo{Type: reflect.TypeOf(uint(0))} }
+func tiUInt64() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint64(0))} }
+func tiUInt32() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint32(0))} }
+func tiUInt16() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(uint16(0))} }
+func tiUInt8() *ast.TypeInfo  { return &ast.TypeInfo{Type: reflect.TypeOf(uint8(0))} }
+
+func tiAddrInt() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: intType, Properties: ast.PropertyAddressable}
+}
+func tiAddrInt64() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrInt32() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrInt16() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrInt8() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrUInt() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrUInt64() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrUInt32() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrUInt16() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: ast.PropertyAddressable}
+}
+func tiAddrUInt8() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyAddressable}
+}
+
+func tiIntConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: intType,
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiInt64Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(int64(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiInt32Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(int32(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiInt16Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(int16(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiInt8Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(int8(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUintConst(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(uint(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUint64Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(uint64(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUint32Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(uint32(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUint16Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(uint16(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
+}
+func tiUint8Const(n string) *ast.TypeInfo {
+	return &ast.TypeInfo{
+		Type: reflect.TypeOf(uint8(0)),
+		Constant: &ast.Constant{
+			DefaultType: ast.DefaultTypeInt,
+			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		},
+	}
 }
