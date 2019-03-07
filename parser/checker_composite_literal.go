@@ -13,7 +13,12 @@ import (
 )
 
 // maxIndex returns the maximum element index in the composite literal node.
-func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) (int, error) {
+func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
+	switch node.Type.(type) {
+	case *ast.ArrayType, *ast.SliceType:
+	default:
+		return noEllipses
+	}
 	maxIndex := 0
 	currentIndex := -1
 	for _, kv := range node.KeyValues {
@@ -31,22 +36,15 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) (int, error) {
 			maxIndex = currentIndex
 		}
 	}
-	return maxIndex, nil
+	return maxIndex
 }
 
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) (*ast.TypeInfo, error) {
 
-	maxIndex, err := tc.maxIndex(node)
-	if err != nil {
-		return nil, err
-	}
-	_ = maxIndex
+	var err error
 
-	// TODO (Gianluca): use maxIndex as argument.
-	ti := tc.typeof(node.Type, noEllipses)
-	if !ti.IsType() {
-		return nil, tc.errorf(node, "%s is not a type", node.Type)
-	}
+	maxIndex := tc.maxIndex(node)
+	ti := tc.checkType(node.Type, maxIndex)
 
 	switch ti.Type.Kind() {
 

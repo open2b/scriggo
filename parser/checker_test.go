@@ -152,13 +152,15 @@ var checkerStmts = map[string]string{
 	// `v := map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
 
 	// Structs.
-	`v := pointInt{}`:        ok,
-	`v := pointInt{1}`:       `too few values in pointInt literal`,
-	`v := pointInt{1,2,3}`:   `too many values in pointInt literal`,
-	`v := pointInt{1,2}`:     ok,
-	`v := pointInt{1.0,2.0}`: ok,
+	`v := pointInt{}`:           ok,
+	`v := pointInt{1}`:          `too few values in pointInt literal`,
+	`v := pointInt{1,2,3}`:      `too many values in pointInt literal`,
+	`v := pointInt{1,2}`:        ok,
+	`v := pointInt{1.0,2.0}`:    ok,
+	`v := pointInt{X: 1, Y: 2}`: ok,
+	`v := pointInt{X: 1, 2}`:    `mixture of field:value and value initializers`,
+	`v := pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
 	// `v := pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
-	// `v := pointInt{X: 1, Y: 2}`: ok,
 
 	// Blocks.
 	`{ a := 1; a = 10 }`:         ok,
