@@ -11,33 +11,8 @@ import (
 	"reflect"
 )
 
-type DefaultType uint8
-
-const (
-	DefaultTypeInt     DefaultType = iota // int
-	DefaultTypeRune                       // rune
-	DefaultTypeFloat64                    // float64
-	DefaultTypeComplex                    // complex
-	DefaultTypeString                     // string
-	DefaultTypeBool                       // bool
-
-)
-
-var defaultTypeString = [...]string{
-	DefaultTypeInt:     "int",
-	DefaultTypeRune:    "rune",
-	DefaultTypeFloat64: "float64",
-	DefaultTypeComplex: "complex",
-	DefaultTypeString:  "string",
-	DefaultTypeBool:    "bool",
-}
-
-func (dt DefaultType) String() string {
-	return defaultTypeString[dt]
-}
-
 type UntypedValue struct {
-	DefaultType DefaultType
+	DefaultType reflect.Kind
 	Bool        bool
 	String      string
 	Number      constant.Value
@@ -101,6 +76,9 @@ func (ti *TypeInfo) String() string {
 		case string:
 			return s + "string"
 		case *UntypedValue:
+			if v.DefaultType == reflect.Int32 {
+				return s + "rune"
+			}
 			return s + v.DefaultType.String()
 		}
 	}
@@ -122,6 +100,9 @@ func (ti *TypeInfo) ShortString() string {
 		case string:
 			return "string"
 		case *UntypedValue:
+			if v.DefaultType == reflect.Int32 {
+				return "rune"
+			}
 			return v.DefaultType.String()
 		}
 	case ti.Type == nil:

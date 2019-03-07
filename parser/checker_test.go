@@ -309,11 +309,11 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 				return fmt.Errorf("unexpected default type %s, expecting %s", u2.DefaultType, u1.DefaultType)
 			}
 			switch u1.DefaultType {
-			case ast.DefaultTypeBool:
+			case reflect.Bool:
 				if u1.Bool != u2.Bool {
 					return fmt.Errorf("unexpected bool %t, expecting %t", u2.Bool, u1.Bool)
 				}
-			case ast.DefaultTypeString:
+			case reflect.String:
 				if u1.String != u2.String {
 					return fmt.Errorf("unexpected string %q, expecting %q", u2.String, u1.String)
 				}
@@ -363,11 +363,11 @@ func dumpTypeInfo(ti *ast.TypeInfo) string {
 	if ti.Value != nil {
 		if v, ok := ti.Value.(*ast.UntypedValue); ok {
 			switch dt := v.DefaultType; dt {
-			case ast.DefaultTypeInt, ast.DefaultTypeRune, ast.DefaultTypeFloat64:
+			case reflect.Int, reflect.Int32, reflect.Float64:
 				s += fmt.Sprintf(" %s (%s)", v.Number.ExactString(), dt)
-			case ast.DefaultTypeString:
+			case reflect.String:
 				s += fmt.Sprintf(" %s (%s)", v.String, dt)
-			case ast.DefaultTypeBool:
+			case reflect.Bool:
 				s += fmt.Sprintf(" %t (%s)", v.Bool, dt)
 			}
 		} else {
@@ -383,7 +383,7 @@ func dumpTypeInfo(ti *ast.TypeInfo) string {
 
 // bool type infos.
 func tiUntypedBoolConst(b bool) *ast.TypeInfo {
-	return &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: ast.DefaultTypeBool, Bool: b}}
+	return &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: reflect.Bool, Bool: b}}
 }
 
 func tiBool() *ast.TypeInfo { return &ast.TypeInfo{Type: boolType} }
@@ -401,7 +401,7 @@ func tiUntypedBool() *ast.TypeInfo { return &ast.TypeInfo{} }
 func tiUntypedFloatConst(n string) *ast.TypeInfo {
 	return &ast.TypeInfo{
 		Value: &ast.UntypedValue{
-			DefaultType: ast.DefaultTypeFloat64,
+			DefaultType: reflect.Float64,
 			Number:      constant.MakeFromLiteral(n, gotoken.FLOAT, 0),
 		},
 	}
@@ -432,7 +432,7 @@ func tiFloat64Const(n float64) *ast.TypeInfo {
 func tiUntypedStringConst(s string) *ast.TypeInfo {
 	return &ast.TypeInfo{
 		Value: &ast.UntypedValue{
-			DefaultType: ast.DefaultTypeString,
+			DefaultType: reflect.String,
 			String:      s,
 		},
 	}
@@ -453,7 +453,7 @@ func tiStringConst(s string) *ast.TypeInfo {
 func tiUntypedIntConst(n string) *ast.TypeInfo {
 	return &ast.TypeInfo{
 		Value: &ast.UntypedValue{
-			DefaultType: ast.DefaultTypeInt,
+			DefaultType: reflect.Int,
 			Number:      constant.MakeFromLiteral(n, gotoken.INT, 0),
 		},
 	}

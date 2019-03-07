@@ -23,12 +23,12 @@ const noEllipses = -1
 // operations to read/write.
 
 var reflectOfDefaultType = [...]reflect.Type{
-	ast.DefaultTypeInt:     universe["int"].Type,
-	ast.DefaultTypeRune:    universe["rune"].Type,
-	ast.DefaultTypeFloat64: universe["float64"].Type,
-	ast.DefaultTypeComplex: universe["complex"].Type,
-	ast.DefaultTypeString:  universe["string"].Type,
-	ast.DefaultTypeBool:    universe["bool"].Type,
+	reflect.Int:        universe["int"].Type,
+	reflect.Int32:      universe["rune"].Type,
+	reflect.Float64:    universe["float64"].Type,
+	reflect.Complex128: universe["complex128"].Type,
+	reflect.String:     universe["string"].Type,
+	reflect.Bool:       universe["bool"].Type,
 }
 
 var numericKind = [...]bool{
@@ -120,41 +120,43 @@ var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast
 var int32TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyIsType}
 
 var universe = typeCheckerScope{
-	"append":  builtinTypeInfo,
-	"cap":     builtinTypeInfo,
-	"close":   builtinTypeInfo,
-	"complex": builtinTypeInfo,
-	"copy":    builtinTypeInfo,
-	"delete":  builtinTypeInfo,
-	"imag":    builtinTypeInfo,
-	"len":     builtinTypeInfo,
-	"make":    builtinTypeInfo,
-	"new":     builtinTypeInfo,
-	"panic":   builtinTypeInfo,
-	"print":   builtinTypeInfo,
-	"println": builtinTypeInfo,
-	"real":    builtinTypeInfo,
-	"recover": builtinTypeInfo,
-	"byte":    uint8TypeInfo,
-	"bool":    &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsType},
-	"error":   &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
-	"float32": &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
-	"float64": &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
-	"false":   &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: ast.DefaultTypeBool, Bool: false}},
-	"int":     &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
-	"int16":   &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
-	"int32":   int32TypeInfo,
-	"int64":   &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
-	"int8":    uint8TypeInfo,
-	"rune":    int32TypeInfo,
-	"string":  &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
-	"true":    &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: ast.DefaultTypeBool, Bool: true}},
-	"uint":    &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
-	"uint16":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
-	"uint32":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
-	"uint64":  &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
-	"uint8":   &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType},
-	"uintptr": &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
+	"append":     builtinTypeInfo,
+	"cap":        builtinTypeInfo,
+	"close":      builtinTypeInfo,
+	"complex":    builtinTypeInfo,
+	"copy":       builtinTypeInfo,
+	"delete":     builtinTypeInfo,
+	"imag":       builtinTypeInfo,
+	"len":        builtinTypeInfo,
+	"make":       builtinTypeInfo,
+	"new":        builtinTypeInfo,
+	"panic":      builtinTypeInfo,
+	"print":      builtinTypeInfo,
+	"println":    builtinTypeInfo,
+	"real":       builtinTypeInfo,
+	"recover":    builtinTypeInfo,
+	"byte":       uint8TypeInfo,
+	"bool":       &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsType},
+	"complex128": &ast.TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: ast.PropertyIsType},
+	"complex64":  &ast.TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: ast.PropertyIsType},
+	"error":      &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
+	"float32":    &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
+	"float64":    &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
+	"false":      &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: reflect.Bool, Bool: false}},
+	"int":        &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
+	"int16":      &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
+	"int32":      int32TypeInfo,
+	"int64":      &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
+	"int8":       uint8TypeInfo,
+	"rune":       int32TypeInfo,
+	"string":     &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
+	"true":       &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: reflect.Bool, Bool: true}},
+	"uint":       &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
+	"uint16":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
+	"uint32":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
+	"uint64":     &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
+	"uint8":      &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType},
+	"uintptr":    &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
 }
 
 // typechecker represents the state of a type checking.
@@ -268,7 +270,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.String:
 		return &ast.TypeInfo{
 			Value: &ast.UntypedValue{
-				DefaultType: ast.DefaultTypeString,
+				DefaultType: reflect.String,
 				String:      expr.Text,
 			},
 		}
@@ -276,7 +278,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Int:
 		return &ast.TypeInfo{
 			Value: &ast.UntypedValue{
-				DefaultType: ast.DefaultTypeInt,
+				DefaultType: reflect.Int,
 				Number:      constant.MakeFromLiteral(expr.Value.String(), gotoken.INT, 0),
 			},
 		}
@@ -284,7 +286,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Rune:
 		return &ast.TypeInfo{
 			Value: &ast.UntypedValue{
-				DefaultType: ast.DefaultTypeRune,
+				DefaultType: reflect.Int32,
 				Number:      constant.MakeInt64(int64(expr.Value)),
 			},
 		}
@@ -292,7 +294,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Float:
 		return &ast.TypeInfo{
 			Value: &ast.UntypedValue{
-				DefaultType: ast.DefaultTypeFloat64,
+				DefaultType: reflect.Float64,
 				Number:      constant.MakeFromLiteral(expr.Value.Text('f', -1), gotoken.FLOAT, 0),
 			},
 		}
@@ -308,7 +310,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		switch expr.Op {
 		case ast.OperatorNot:
 			if c := t.Value; c != nil {
-				if c.(*ast.UntypedValue).DefaultType != ast.DefaultTypeBool {
+				if c.(*ast.UntypedValue).DefaultType != reflect.Bool {
 					panic(tc.errorf(expr, "invalid operation: ! %s", expr))
 				}
 				c = &ast.UntypedValue{DefaultType: c.(*ast.UntypedValue).DefaultType, Bool: !c.(*ast.UntypedValue).Bool}
@@ -320,7 +322,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		case ast.OperatorAddition, ast.OperatorSubtraction:
 			if c := t.Value; c != nil {
 				dt := c.(*ast.UntypedValue).DefaultType
-				if dt == ast.DefaultTypeString || dt == ast.DefaultTypeBool {
+				if dt == reflect.String || dt == reflect.Bool {
 					panic(tc.errorf(expr, "invalid operation: %s %s", expr.Op, t))
 				}
 				if expr.Op == ast.OperatorSubtraction {
@@ -949,11 +951,11 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	dt2 := c2.DefaultType
 	switch dt1 {
 	default:
-		mismatch = dt2 == ast.DefaultTypeString || dt2 == ast.DefaultTypeBool
-	case ast.DefaultTypeString:
-		mismatch = dt2 != ast.DefaultTypeString
-	case ast.DefaultTypeBool:
-		mismatch = dt2 != ast.DefaultTypeBool
+		mismatch = dt2 == reflect.String || dt2 == reflect.Bool
+	case reflect.String:
+		mismatch = dt2 != reflect.String
+	case reflect.Bool:
+		mismatch = dt2 != reflect.Bool
 	}
 	if mismatch {
 		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, dt1, dt2))
@@ -985,7 +987,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 			if constant.Sign(c2.Number) == 0 {
 				panic(errDivisionByZero)
 			}
-			if dt1 == ast.DefaultTypeFloat64 || dt2 == ast.DefaultTypeFloat64 {
+			if dt1 == reflect.Float64 || dt2 == reflect.Float64 {
 				v = constant.BinaryOp(c1.Number, gotoken.QUO, c2.Number)
 			} else {
 				a, _ := new(big.Int).SetString(c1.Number.ExactString(), 10)
@@ -993,7 +995,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 				v = constant.MakeFromLiteral(a.Quo(a, b).String(), gotoken.INT, 0)
 			}
 		case ast.OperatorModulo:
-			if dt1 == ast.DefaultTypeFloat64 || dt2 == ast.DefaultTypeFloat64 {
+			if dt1 == reflect.Float64 || dt2 == reflect.Float64 {
 				panic(errFloatModulo)
 			}
 			if constant.Sign(c2.Number) == 0 {
@@ -1008,23 +1010,23 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 			}
 			c.Number = number
 		} else {
-			c.DefaultType = ast.DefaultTypeBool
+			c.DefaultType = reflect.Bool
 			c.Bool = v.(bool)
 		}
-	case ast.DefaultTypeString:
+	case reflect.String:
 		switch expr.Op {
 		case ast.OperatorEqual, ast.OperatorNotEqual:
-			c.DefaultType = ast.DefaultTypeBool
+			c.DefaultType = reflect.Bool
 			c.Bool = c1.String == c2.String
 			if expr.Op == ast.OperatorNotEqual {
 				c.Bool = !c.Bool
 			}
 		case ast.OperatorAddition:
-			c.DefaultType = ast.DefaultTypeString
+			c.DefaultType = reflect.String
 			c.String = c1.String + c2.String
 		}
-	case ast.DefaultTypeBool:
-		c.DefaultType = ast.DefaultTypeBool
+	case reflect.Bool:
+		c.DefaultType = reflect.Bool
 		switch expr.Op {
 		case ast.OperatorEqual:
 			c.Bool = c1.Bool == c2.Bool
@@ -1098,9 +1100,9 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 	switch c := v.(type) {
 	case *ast.UntypedValue:
 		switch dt := c.DefaultType; dt {
-		case ast.DefaultTypeBool:
+		case reflect.Bool:
 			v = c.Bool
-		case ast.DefaultTypeString:
+		case reflect.String:
 			v = c.String
 		default:
 			v = ConstantNumber{val: c.Number, typ: ConstantNumberType(c.DefaultType)}
@@ -1136,17 +1138,17 @@ func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo,
 // TODO (Gianluca): to review.
 func (tc *typechecker) defaultType(c *ast.UntypedValue) reflect.Type {
 	switch c.DefaultType {
-	case ast.DefaultTypeInt:
+	case reflect.Int:
 		return intType
-	case ast.DefaultTypeRune:
-		return reflect.TypeOf(rune('0'))
-	case ast.DefaultTypeFloat64:
+	case reflect.Int32:
+		return reflect.TypeOf(rune(0))
+	case reflect.Float64:
 		return reflect.TypeOf(float64(0))
-	case ast.DefaultTypeComplex:
-		return reflect.TypeOf(complex(0, 0))
-	case ast.DefaultTypeString:
+	case reflect.Complex128:
+		return reflect.TypeOf(complex128(0))
+	case reflect.String:
 		return reflect.TypeOf("")
-	case ast.DefaultTypeBool:
+	case reflect.Bool:
 		return reflect.TypeOf(false)
 	}
 	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
@@ -1168,7 +1170,7 @@ func (tc *typechecker) isOrdered(t *ast.TypeInfo) bool {
 		case nil, bool:
 			return false
 		case *ast.UntypedValue:
-			return v.DefaultType != ast.DefaultTypeBool
+			return v.DefaultType != reflect.Bool
 		}
 		return true
 	}

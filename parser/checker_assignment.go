@@ -308,12 +308,12 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 }
 
 var assignableDefaultType = [...]*ast.TypeInfo{
-	ast.DefaultTypeInt:     &ast.TypeInfo{Type: universe["int"].Type, Properties: ast.PropertyAddressable},
-	ast.DefaultTypeRune:    &ast.TypeInfo{Type: universe["rune"].Type, Properties: ast.PropertyAddressable},
-	ast.DefaultTypeFloat64: &ast.TypeInfo{Type: universe["float64"].Type, Properties: ast.PropertyAddressable},
-	ast.DefaultTypeComplex: &ast.TypeInfo{Type: universe["complex"].Type, Properties: ast.PropertyAddressable},
-	ast.DefaultTypeString:  &ast.TypeInfo{Type: universe["string"].Type, Properties: ast.PropertyAddressable},
-	ast.DefaultTypeBool:    &ast.TypeInfo{Type: universe["bool"].Type, Properties: ast.PropertyAddressable},
+	reflect.Int:        &ast.TypeInfo{Type: universe["int"].Type, Properties: ast.PropertyAddressable},
+	reflect.Int32:      &ast.TypeInfo{Type: universe["rune"].Type, Properties: ast.PropertyAddressable},
+	reflect.Float64:    &ast.TypeInfo{Type: universe["float64"].Type, Properties: ast.PropertyAddressable},
+	reflect.Complex128: &ast.TypeInfo{Type: universe["complex128"].Type, Properties: ast.PropertyAddressable},
+	reflect.String:     &ast.TypeInfo{Type: universe["string"].Type, Properties: ast.PropertyAddressable},
+	reflect.Bool:       &ast.TypeInfo{Type: universe["bool"].Type, Properties: ast.PropertyAddressable},
 }
 
 // isAssignableTo reports whether x is assignable to type T.
