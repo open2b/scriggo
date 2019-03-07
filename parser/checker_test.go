@@ -138,10 +138,12 @@ var checkerStmts = map[string]string{
 	`v := []int{}`:      ok,
 	`v := []int{1,2,3}`: ok,
 	`v := []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
+	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
+	// `_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
 
 	// Arrays.
-	// `v := [1]int{1}`: ok,
-	// `v := [1]int{0}`: ok,
+	`v := [1]int{1}`: ok,
+	// `v := [0]int{1}`: `array index 0 out of bounds [0:0]`,
 
 	// Maps.
 	`v := map[string]string{}`:           ok,
@@ -505,6 +507,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 	intSliceType := reflect.TypeOf([]int{})
 	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
+	byteType := reflect.TypeOf(byte(0))
 	type myInt int
 	myIntType := reflect.TypeOf(myInt(0))
 	type myIntSlice []int
@@ -548,7 +551,9 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiUntypedBoolConst(false), T: boolType, assignable: true},
 		{x: tiUntypedIntConst("0"), T: boolType, assignable: false},
 		{x: tiUntypedIntConst("0"), T: intType, assignable: true},
-		//{x: tiUntypedIntConst("10"), float64Type, true},
+		{x: tiUntypedIntConst("10"), T: float64Type, assignable: true},
+		{x: tiUntypedIntConst("10"), T: byteType, assignable: true},
+		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
 	tc := &typechecker{}
 	for _, c := range cases {
