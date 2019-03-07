@@ -50,7 +50,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// initialized to its zero value.
 		// [https://golang.org/ref/spec#Variable_declarations]
 		if len(values) == 0 {
-			for i := range vars {
+			for i := range n.Identifiers {
 				zero := &ast.TypeInfo{Type: typ.Type}
 				tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
 			}
