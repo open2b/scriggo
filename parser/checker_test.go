@@ -571,8 +571,10 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
 	type myInt int
 	myIntType := reflect.TypeOf(myInt(0))
-	type myInt2 int
-	myIntType2 := reflect.TypeOf(myInt2(0))
+	type myIntSlice []int
+	myIntSliceType := reflect.TypeOf(myIntSlice(nil))
+	type myIntSlice2 []int
+	myIntSliceType2 := reflect.TypeOf(myIntSlice2(nil))
 	cases := []struct {
 		x          *ast.TypeInfo
 		T          reflect.Type
@@ -589,9 +591,9 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 
 		// «x's type V and T have identical underlying types and at least one of
 		// V or T is not a defined type.»
-		// {x: tiInt(), T: myIntType, assignable: true},                          // x is not a defined type, but T is
-		// {x: &ast.TypeInfo{Type: myIntType}, T: intType, assignable: true},     // x is a defined type, but T is not
-		{x: &ast.TypeInfo{Type: myIntType}, T: myIntType2, assignable: false}, // both x and T are (different) defined types
+		{x: &ast.TypeInfo{Type: intSliceType}, T: myIntSliceType, assignable: true},     // x is not a defined type, but T is
+		{x: &ast.TypeInfo{Type: myIntSliceType}, T: intSliceType, assignable: true},     // x is a defined type, but T is not
+		{x: &ast.TypeInfo{Type: myIntSliceType}, T: myIntSliceType2, assignable: false}, // x and T are both defined types
 
 		// «T is an interface type and x implements T.»
 		{x: tiInt(), T: emptyInterfaceType, assignable: true},
