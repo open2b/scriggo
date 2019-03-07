@@ -103,11 +103,11 @@ var checkerStmts = map[string]string{
 	// Const declarations.
 	`const a = 2`:        ok,
 	`const a int = 2`:    ok,
-	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`,
+	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 
 	// Expression errors.
-	`v := 1 + "s"`: "mismatched types int and string",
-	// `v := 5 + 8.9 + "2"`: `invalid operation: 5 + 8.9 + "2" (mismatched types float64 and string)`,
+	`v := 1 + "s"`:       "mismatched types int and string",
+	`v := 5 + 8.9 + "2"`: `invalid operation: (5 + 8.9) + "2" (mismatched types float64 and string)`, // TODO (Gianluca): should not have parenthesis
 
 	// Assignments.
 	`_ = 1`:                           ok,

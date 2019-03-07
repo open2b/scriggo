@@ -607,7 +607,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	}
 
-	panic(fmt.Errorf("unexpected: %v", expr))
+	panic(fmt.Errorf("unexpected: %v (type %T)", expr, expr))
 }
 
 // checkCallExpression type checks a call expression, including type
@@ -1174,6 +1174,7 @@ func (tc *typechecker) isRepresentableBy(x *ast.UntypedValue, T reflect.Type) bo
 }
 
 // isAssignableTo reports whether t1 is assignable to type t2.
+// TODO (Gianluca): to review.
 func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 	if t1.Nil() {
 		switch t2.Kind() {
