@@ -51,13 +51,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if len(values) == 0 {
 			for i := range vars {
 				zero := &ast.TypeInfo{Type: typ.Type}
-				tc.assignSingle(node, vars[i], nil, zero, typ, true, false)
+				tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
 			}
 			return
 		}
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], nil, typ, true, false)
+			tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
 			return
 		}
 
@@ -76,13 +76,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], nil, typ, true, true)
+			tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
 			return
 		}
 
 		// The number of identifiers must be equal to the number of expressions.
 		// [https://golang.org/ref/spec#Constant_declarations]
-		if len(vars) != len(values) {
+		if len(n.Identifiers) != len(values) {
 			panic("len(variables) != len(values)") // TODO (Gianluca): to review.
 		}
 

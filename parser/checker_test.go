@@ -101,8 +101,9 @@ var checkerStmts = map[string]string{
 	// `var a int; a = 3; _ = a`: ok,
 
 	// Const declarations.
-	// `const a = 2`:     ok,
-	// `const a int = 2`: ok,
+	`const a = 2`:        ok,
+	`const a int = 2`:    ok,
+	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`,
 
 	// Expression errors.
 	`v := 1 + "s"`: "mismatched types int and string",
