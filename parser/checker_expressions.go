@@ -1144,58 +1144,6 @@ func (tc *typechecker) defaultType(c *ast.UntypedValue) reflect.Type {
 	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
 }
 
-// isAssignableTo reports whether x is assignable to type T.
-// See https://golang.org/ref/spec#Assignability for details.
-//
-// TODO (Gianluca): perhaps this method can be optimized, but this
-// implementation reflects Golang specs, trying to consider any special case.
-// Type 'reflect.Type' has a 'AssignableTo' method, but it covers only some of
-// the cases below.
-func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
-
-	// «x's type is identical to T.»
-	if x.Type == T {
-		return true
-	}
-
-	// «x's type V and T have identical underlying types and at least one of V
-	// or T is not a defined type.»
-	if x.Type != nil && x.Type.Kind() == T.Kind() {
-		xIsNotDefType := x.Type.Name() == ""
-		TIsNotDefType := T.Name() == ""
-		if xIsNotDefType || TIsNotDefType {
-			return true
-		}
-	}
-
-	// «T is an interface type and x implements T.»
-	if T.Kind() == reflect.Interface {
-		if x.Type != nil {
-			if x.Type.Implements(T) {
-				return true
-			}
-		}
-	}
-
-	// «x is the predeclared identifier nil and T is a pointer, function, slice,
-	// map, channel, or interface type.»
-	if x.Nil() {
-		switch T.Kind() {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return true
-		}
-		return false
-	}
-
-	// «T is an interface type and x implements T.»
-	if x.Type == nil {
-		_, err := tc.convert(x, T, false)
-		return err == nil
-	}
-
-	return false
-}
-
 // isComparable reports whether t is comparable.
 func (tc *typechecker) isComparable(t *ast.TypeInfo) bool {
 	if t.Type == nil {
