@@ -194,6 +194,16 @@ var checkerStmts = map[string]string{
 	`a := false; switch a { case a: }`:      ok,
 	`a := 3; switch a { case a: }`:          ok,
 	// `a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
+
+	// Functions literal definitions.
+	`_ = func() { }`:    ok,
+	`_ = func(int) { }`: ok,
+	// `_ = func() int { }`:          `missing return at end of function`,
+	// `_ = func() int { return 0 }`: ok,
+
+	// Function literal calls.
+	// `f := func() { }; f()`: ok,
+	// `f := func(int) { }; f(0)`: ok,
 }
 
 func TestCheckerStatements(t *testing.T) {
