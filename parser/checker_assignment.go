@@ -210,7 +210,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	// If a type is provided, value must be assignable to type.
 	if typ != nil && !tc.isAssignableTo(valueTi, typ.Type) {
 		if value == nil {
-			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.Type, variable, typ))
+			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
 		}
 		panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), typ))
 	}
@@ -238,7 +238,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !isDeclaration {
 			variableTi := tc.checkExpression(variable)
 			if !tc.isAssignableTo(valueTi, variableTi.Type) {
-				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
+				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
 		}
 
@@ -282,7 +282,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 		variableTi := tc.checkExpression(variable)
 		if !tc.isAssignableTo(valueTi, variableTi.Type) {
-			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 		return
 
@@ -294,7 +294,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if v.Operator() == ast.OperatorMultiplication {
 			variableTi := tc.checkExpression(variable)
 			if !tc.isAssignableTo(valueTi, variableTi.Type) {
-				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.Type, variableTi.Type))
+				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
 			return
 		}
