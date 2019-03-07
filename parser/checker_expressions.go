@@ -1184,7 +1184,8 @@ func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 		return false
 	}
 	if t1.Type == nil {
-		return tc.isRepresentableBy(t1.Value.(*ast.UntypedValue), t2)
+		_, err := tc.convert(t1, t2, false)
+		return err == nil
 	}
 	return t1.Type.AssignableTo(t2)
 }
