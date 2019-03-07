@@ -60,6 +60,18 @@ func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
 }
 
+// Kind returns the kind of the type or the default type (for untyped
+// constants) or reflect.Bool for the untyped bool.
+func (ti *TypeInfo) Kind() reflect.Kind {
+	if ti.Type == nil {
+		if ti.Value == nil {
+			return reflect.Bool
+		}
+		return ti.Value.(*UntypedValue).DefaultType
+	}
+	return ti.Type.Kind()
+}
+
 // String returns a string representation.
 func (ti *TypeInfo) String() string {
 	if ti.Nil() {
