@@ -419,17 +419,25 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.ArrayType:
 		elem := tc.checkType(expr.ElementType, noEllipses)
-		arrayLen := 0
 		if expr.Len == nil { // ellipsis.
-			arrayLen = length
-		} else {
-			// TODO (Gianluca): no ellipsis: check if length matches expr.Len
-			// l := tc.checkExpression(expr.Len, noEllipses)
-			// TODO (Gianluca): check that l is a constant
-			// TODO (Gianluca): extract value from l
-			arrayLen = 1000 // TODO (Gianluca): to review.
+			return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		}
-		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(arrayLen, elem.Type)}
+		len := tc.checkExpression(expr.Len)
+		if len.Value == nil { // TODO (Gianluca): should check if it's a constant
+			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
+		}
+		declLengthInterf, err := tc.convert(len, intType, false)
+		if err != nil {
+			panic(tc.errorf(expr, err.Error()))
+		}
+		declLength, _ := declLengthInterf.(ConstantNumber).ToInt()
+		if declLength < 0 {
+			panic(tc.errorf(expr, "array bound must be non-negative"))
+		}
+		if length > declLength {
+			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, declLength))
+		}
+		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		elem, err := tc.checkCompositeLiteral(expr, nil)

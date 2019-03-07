@@ -137,13 +137,21 @@ var checkerStmts = map[string]string{
 	// Slices.
 	`_ = []int{}`:      ok,
 	`_ = []int{1,2,3}`: ok,
+	`_ = []int{-3: 9}`: `index must be non-negative integer constant`,
 	`_ = []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
+	// `_ = []int{1:10, 1:20}`:                                  `duplicate index in array literal: 1`,
 	// `_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
 
 	// Arrays.
-	`_ = [1]int{1}`: ok,
-	// `v := [0]int{1}`: `array index 0 out of bounds [0:0]`,
+	`_ = [1]int{1}`:        ok,
+	`_ = [5 + 6]int{}`:     ok,
+	`_ = [5.0]int{}`:       ok,
+	`_ = [0]int{1}`:        `array index 0 out of bounds [0:0]`,
+	`_ = [1]int{10:2}`:     `array index 10 out of bounds [0:1]`,
+	`a := 4; _ = [a]int{}`: `non-constant array bound a`,
+	`_ = [-2]int{}`:        `array bound must be non-negative`,
+	// `_ = [5.3]int{}`:       `constant 5.3 truncated to integer`,
 
 	// Maps.
 	`_ = map[string]string{}`:           ok,
@@ -525,6 +533,29 @@ func tiUint8Const(n uint8) *ast.TypeInfo {
 func tiNil() *ast.TypeInfo {
 	return &ast.TypeInfo{
 		Properties: ast.PropertyNil,
+	}
+}
+
+func TestTypechecker_MaxIndex(t *testing.T) {
+	cases := map[string]int{
+		"[]T{}":              noEllipses,
+		"[]T{x}":             0,
+		"[]T{x, x}":          1,
+		"[]T{4:x}":           4,
+		"[]T{3:x, x}":        4,
+		"[]T{x, x, x, 9: x}": 9,
+		"[]T{x, 9: x, x, x}": 11,
+	}
+	tc := &typechecker{}
+	for src, expected := range cases {
+		tree, err := ParseSource([]byte(src), ast.ContextNone)
+		if err != nil {
+			t.Error(err)
+		}
+		got := tc.maxIndex(tree.Nodes[0].(*ast.CompositeLiteral))
+		if got != expected {
+			t.Errorf("src '%s': expected: %v, got: %v", src, expected, got)
+		}
 	}
 }
 

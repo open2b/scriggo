@@ -19,16 +19,26 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	default:
 		return noEllipses
 	}
-	maxIndex := 0
+	maxIndex := noEllipses
 	currentIndex := -1
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
 			ti := tc.checkExpression(kv.Key)
-			value := ti.Value
-			if value != nil {
-				// TODO (Gianluca):
-				// currentIndex := ti.UntypedValue.Number
+			if ti.Value == nil {
+				panic(tc.errorf(node, "index must be non-negative integer constant"))
 			}
+			v, err := tc.convert(ti, intType, false)
+			if err != nil {
+				panic(tc.errorf(node, err.Error()))
+			}
+			i, err := v.(ConstantNumber).ToInt()
+			if err != nil {
+				panic(tc.errorf(node, err.Error()))
+			}
+			if i < 0 {
+				panic(tc.errorf(node, "index must be non-negative integer constant"))
+			}
+			currentIndex = i
 		} else {
 			currentIndex++
 		}
@@ -44,7 +54,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 	var err error
 
 	maxIndex := tc.maxIndex(node)
-	ti := tc.checkType(node.Type, maxIndex)
+	ti := tc.checkType(node.Type, maxIndex+1)
 
 	switch ti.Type.Kind() {
 
@@ -103,9 +113,6 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Array:
 
-		if maxIndex > ti.Type.Len()-1 {
-			return nil, tc.errorf(node, "array index %d out of bounds [0:%d]", maxIndex, ti.Type.Len()-1)
-		}
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
