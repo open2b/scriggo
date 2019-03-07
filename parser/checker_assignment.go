@@ -94,6 +94,22 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Assignment:
 
+		switch n.Type {
+		case ast.AssignmentIncrement, ast.AssignmentDecrement:
+			v := n.Variables[0]
+			exprTi := tc.checkExpression(v)
+			if !numericKind[exprTi.Type.Kind()] {
+				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
+			}
+			// TODO (Gianluca): also check for assignability
+			return
+		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
+			ast.AssignmentDivision, ast.AssignmentModulo:
+			variable := n.Variables[0]
+			tc.assignSingle(node, variable, n.Values[0], nil, nil, false, false)
+			return
+		}
+
 		vars = n.Variables
 		values = n.Values
 		isDecl = n.Type == ast.AssignmentDeclaration

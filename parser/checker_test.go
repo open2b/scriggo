@@ -177,9 +177,9 @@ var checkerStmts = map[string]string{
 	`if true { }`:                  "",
 
 	// For statements.
-	`for 3 { }`:               "non-bool 3 (type int) used as for condition",
-	`for i := 10; i; i++ { }`: "non-bool i (type int) used as for condition",
-	// `for i := 0; i < 10; i++ { }`: "",
+	`for 3 { }`:                   "non-bool 3 (type int) used as for condition",
+	`for i := 10; i; i++ { }`:     "non-bool i (type int) used as for condition",
+	`for i := 0; i < 10; i++ { }`: "",
 
 	// Switch statements.
 	`switch 1 { case 1: }`:                  ok,

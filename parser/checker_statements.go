@@ -90,21 +90,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Assignment:
 
-			switch node.Type {
-			case ast.AssignmentIncrement, ast.AssignmentDecrement:
-				v := node.Variables[0]
-				exprTi := tc.checkExpression(v)
-				if !numericKind[exprTi.Type.Kind()] {
-					panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
-				}
-				return
-			case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
-				ast.AssignmentDivision, ast.AssignmentModulo:
-				variable := node.Variables[0]
-				tc.assignSingle(node, variable, node.Values[0], nil, nil, false, false)
-			case ast.AssignmentSimple, ast.AssignmentDeclaration:
-				tc.checkAssignment(node)
-			}
+			tc.checkAssignment(node)
 
 		case *ast.Break, *ast.Continue:
 
