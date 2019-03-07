@@ -155,7 +155,7 @@ var checkerStmts = map[string]string{
 	`v := pointInt{}`:      ok,
 	`v := pointInt{1}`:     `too few values in pointInt literal`,
 	`v := pointInt{1,2,3}`: `too many values in pointInt literal`,
-	// `v := pointInt{1,2}`:   ok,
+	`v := pointInt{1,2}`:   ok,
 
 	// Blocks.
 	`{ a := 1; a = 10 }`:         ok,

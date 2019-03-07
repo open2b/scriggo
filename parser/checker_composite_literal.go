@@ -97,7 +97,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			for i, keyValue := range node.KeyValues {
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
-				if tc.isAssignableTo(valueTi, fieldTi.Type) {
+				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
 					return nil, tc.errorf(node, "cannot use %v (type %s) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type)
 				}
 			}
