@@ -36,6 +36,16 @@ var checkerExprs = []struct {
 	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
 	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},
 	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}},
+
+	// Index.
+	{`"a"[0]`, tiByte(), nil},
+	{`a[0]`, tiByte(), typeCheckerScope{"a": tiUntypedStringConst("a")}},
+	{`a[0]`, tiByte(), typeCheckerScope{"a": tiStringConst("a")}},
+	{`a[0]`, tiByte(), typeCheckerScope{"a": tiAddrString()}},
+	{`a[0]`, tiByte(), typeCheckerScope{"a": tiString()}},
+	{`"a"[0.0]`, tiByte(), nil},
+	{`"aa"[1.0]`, tiByte(), nil},
+	{`"aaa"[1+1]`, tiByte(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -531,11 +541,14 @@ func tiUint16Const(n uint16) *ast.TypeInfo {
 func tiUint8Const(n uint8) *ast.TypeInfo {
 	return &ast.TypeInfo{Type: universe["uint8"].Type, Value: n}
 }
-func tiNil() *ast.TypeInfo {
-	return &ast.TypeInfo{
-		Properties: ast.PropertyNil,
-	}
-}
+
+// nil type info.
+
+func tiNil() *ast.TypeInfo { return &ast.TypeInfo{Properties: ast.PropertyNil} }
+
+// byte type info.
+
+func tiByte() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["byte"].Type} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{

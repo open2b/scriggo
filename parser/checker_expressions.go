@@ -500,30 +500,50 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
-		switch kind := t.Type.Kind(); kind {
+		switch kind := t.Kind(); kind {
 		case reflect.Slice, reflect.String, reflect.Array, reflect.Ptr:
-			if kind == reflect.Ptr && t.Type.Elem().Kind() != reflect.Array {
-				panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
+			k := kind
+			if kind == reflect.Ptr {
+				if t.Type.Elem().Kind() != reflect.Array {
+					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
+				}
+				k = reflect.Array
 			}
 			index := tc.checkExpression(expr.Index)
-			if index.Nil() || index.Type != universe["int"].Type {
-				k := kind
-				if kind == reflect.Ptr {
-					k = reflect.Array
-				}
-				if index == nil {
+			v, err := tc.convert(index, intType, false)
+			if err != nil {
+				switch err {
+				case errNilConversion:
 					panic(tc.errorf(expr, "non-integer %s index nil", kind))
+				case errTypeConversion:
+					panic(tc.errorf(expr, "non-integer %s index %s", k, index))
+				default:
+					panic(tc.errorf(expr, "%s", err))
 				}
-				panic(tc.errorf(expr, "non-integer %s index %s", k, index))
 			}
+			if v != nil {
+				if v.(int) < 0 {
+					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", k, index))
+				}
+				if t.Value != nil {
+					if s := constantString(t); len(s) <= v.(int) {
+						panic(tc.errorf(expr, "invalid string index %d (out of bounds for %d-byte string)", v, len(s)))
+					}
+				}
+			}
+			var typ reflect.Type
 			switch kind {
 			case reflect.String:
-				return &ast.TypeInfo{Type: universe["byte"].Type}
+				typ = universe["byte"].Type
 			case reflect.Slice, reflect.Array:
-				return &ast.TypeInfo{Type: t.Type.Elem()}
+				typ = t.Type.Elem()
 			case reflect.Ptr:
-				return &ast.TypeInfo{Type: t.Type.Elem().Elem()}
+				typ = t.Type.Elem().Elem()
 			}
+			if t.Addressable() && kind != reflect.String {
+				return &ast.TypeInfo{Type: typ, Properties: ast.PropertyAddressable}
+			}
+			return &ast.TypeInfo{Type: typ}
 		case reflect.Map:
 			key := tc.checkExpression(expr.Index)
 			if !tc.isAssignableTo(key, t.Type.Key()) {
@@ -533,9 +553,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in map index", expr.Index, key, t.Type.Key()))
 			}
 			return &ast.TypeInfo{Type: t.Type.Elem()}
-
 		default:
-			panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
+			panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t.ShortString()))
 		}
 
 	case *ast.Slicing:
@@ -1043,6 +1062,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	return &ast.TypeInfo{Value: &c}
 }
 
+var errNilConversion = errors.New("failed nil conversion")
 var errTypeConversion = errors.New("failed type conversion")
 
 // convert converts a value. explicit reports whether the conversion is
@@ -1063,7 +1083,7 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, errTypeConversion
+		return nil, errNilConversion
 	}
 
 	if t == nil {
@@ -1105,8 +1125,9 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		case reflect.String:
 			v = c.String
 		default:
-			v = ConstantNumber{val: c.Number, typ: ConstantNumberType(c.DefaultType)}
+			cn := ConstantNumber{val: c.Number, typ: ConstantNumberType(c.DefaultType)}
 			var err error
+			v, err = cn.ToType(t2)
 			if err != nil {
 				if _, ok := err.(errConstantConversion); ok {
 					err = errTypeConversion
@@ -1201,4 +1222,14 @@ func (tc *typechecker) methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo
 		}
 	}
 	return nil, false
+}
+
+func constantString(c *ast.TypeInfo) string {
+	switch s := c.Value.(type) {
+	case string:
+		return s
+	case *ast.UntypedValue:
+		return s.String
+	}
+	panic("no-string constant")
 }
