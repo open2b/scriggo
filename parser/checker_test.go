@@ -202,8 +202,8 @@ var checkerStmts = map[string]string{
 	// `_ = func() int { return 0 }`: ok,
 
 	// Function literal calls.
-	// `f := func() { }; f()`: ok,
-	// `f := func(int) { }; f(0)`: ok,
+	`f := func() { }; f()`:     ok,
+	`f := func(int) { }; f(0)`: ok,
 }
 
 func TestCheckerStatements(t *testing.T) {

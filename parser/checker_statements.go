@@ -149,6 +149,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			panic(tc.errorf(node, "%s evaluated but not used", node.Name))
 
+		case *ast.Call:
+
+			// TODO (Gianluca): some builtins should print error: "%s evaluated but not used"
+			tc.checkCallExpression(node, true)
+
 		case ast.Expression:
 
 			tc.checkExpression(node)
