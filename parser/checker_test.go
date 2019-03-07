@@ -135,32 +135,32 @@ var checkerStmts = map[string]string{
 	// `a := ""; a /= 6`: `invalid operation: a /= 6 (mismatched types string and int)`,
 
 	// Slices.
-	`v := []int{}`:      ok,
-	`v := []int{1,2,3}`: ok,
-	`v := []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
+	`_ = []int{}`:      ok,
+	`_ = []int{1,2,3}`: ok,
+	`_ = []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
 	// `_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
 
 	// Arrays.
-	`v := [1]int{1}`: ok,
+	`_ = [1]int{1}`: ok,
 	// `v := [0]int{1}`: `array index 0 out of bounds [0:0]`,
 
 	// Maps.
-	`v := map[string]string{}`:           ok,
-	`v := map[string]string{"k1": "v1"}`: ok,
-	`v := map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
-	// `v := map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
+	`_ = map[string]string{}`:           ok,
+	`_ = map[string]string{"k1": "v1"}`: ok,
+	`_ = map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
+	// `_ = map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
 
 	// Structs.
-	`v := pointInt{}`:           ok,
-	`v := pointInt{1}`:          `too few values in pointInt literal`,
-	`v := pointInt{1,2,3}`:      `too many values in pointInt literal`,
-	`v := pointInt{1,2}`:        ok,
-	`v := pointInt{1.0,2.0}`:    ok,
-	`v := pointInt{X: 1, Y: 2}`: ok,
-	`v := pointInt{X: 1, 2}`:    `mixture of field:value and value initializers`,
-	`v := pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
-	// `v := pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
+	`_ = pointInt{}`:           ok,
+	`_ = pointInt{1}`:          `too few values in pointInt literal`,
+	`_ = pointInt{1,2,3}`:      `too many values in pointInt literal`,
+	`_ = pointInt{1,2}`:        ok,
+	`_ = pointInt{1.0,2.0}`:    ok,
+	`_ = pointInt{X: 1, Y: 2}`: ok,
+	`_ = pointInt{X: 1, 2}`:    `mixture of field:value and value initializers`,
+	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
+	// `_ = pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
 
 	// Blocks.
 	`{ a := 1; a = 10 }`:         ok,
