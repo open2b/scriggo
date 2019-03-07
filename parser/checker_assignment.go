@@ -343,7 +343,7 @@ func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
 		return false
 	}
 
-	// «T is an interface type and x implements T.»
+	// «x is an untyped constant representable by a value of type T.»
 	if x.Type == nil {
 		_, err := tc.convert(x, T, false)
 		return err == nil
