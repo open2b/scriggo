@@ -417,6 +417,20 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		elem := tc.checkType(expr.ElementType, noEllipses)
 		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.SliceOf(elem.Type)}
 
+	case *ast.ArrayType:
+		elem := tc.checkType(expr.ElementType, noEllipses)
+		arrayLen := 0
+		if expr.Len == nil { // ellipsis.
+			arrayLen = length
+		} else {
+			// TODO (Gianluca): no ellipsis: check if length matches expr.Len
+			// l := tc.checkExpression(expr.Len, noEllipses)
+			// TODO (Gianluca): check that l is a constant
+			// TODO (Gianluca): extract value from l
+			arrayLen = 1000 // TODO (Gianluca): to review.
+		}
+		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(arrayLen, elem.Type)}
+
 	case *ast.CompositeLiteral:
 		elem, err := tc.checkCompositeLiteral(expr, nil)
 		// TODO (Gianluca): checkCompositeLiteral should panic, not return errors.
