@@ -8,6 +8,7 @@ package parser
 
 import (
 	"fmt"
+	"reflect"
 
 	"scrigo/ast"
 )
@@ -183,6 +184,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr ast.Expression) error {
 	tc.AddScope()
 	switchExprTyp := tc.typeof(switchExpr, noEllipses)
+	typ := switchExprTyp.Type
+	if typ == nil {
+		if switchExprTyp.Value == nil {
+			typ = reflect.TypeOf(false)
+		} else {
+			typ = assignableDefaultType[switchExprTyp.Value.(*ast.UntypedValue).DefaultType].Type
+		}
+	}
 	for _, expr := range node.Expressions {
 		caseTi := tc.typeof(expr, noEllipses)
 		if isTypeSwitch && !switchExprTyp.IsType() {
@@ -191,10 +200,9 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 		if !isTypeSwitch && switchExprTyp.IsType() {
 			return tc.errorf(expr, "type %v is not an expression", caseTi.Type)
 		}
-		// TODO (Gianluca):
-		// if !tc.isAssignableTo(caseTi, switchExprTyp.Type) {
-		// 	return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %v and %v)", expr, switchExpr, caseTi.Type, switchExprTyp.Type)
-		// }
+		if !tc.isAssignableTo(caseTi, typ) {
+			return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %s and %v)", expr, switchExpr, caseTi.ShortString(), typ)
+		}
 	}
 	tc.checkNodes(node.Body)
 	tc.RemoveCurrentScope()

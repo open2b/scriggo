@@ -177,10 +177,15 @@ var checkerStmts = map[string]string{
 	// `for i := 0; i < 10; i++ { }`: "",
 
 	// Switch statements.
-	`switch 1 { case 1: }`:       ok,
-	`switch 1 + 2 { case 3: }`:   ok,
-	`switch true { case true: }`: ok,
-	// `switch 1 + 2 { case "3": }`: `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
+	`switch 1 { case 1: }`:                  ok,
+	`switch 1 + 2 { case 3: }`:              ok,
+	`switch true { case true: }`:            ok,
+	`switch 1 + 2 { case "3": }`:            `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
+	`a := false; switch a { case true: }`:   ok,
+	`a := false; switch a { case 4 > 10: }`: ok,
+	`a := false; switch a { case a: }`:      ok,
+	`a := 3; switch a { case a: }`:          ok,
+	// `a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
 }
 
 func TestCheckerStatements(t *testing.T) {
