@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"go/constant"
 	gotoken "go/token"
@@ -20,6 +21,15 @@ const noEllipses = -1
 
 // TODO (Gianluca): implement with a bits array (int32?), and use bit
 // operations to read/write.
+
+var reflectOfDefaultType = [...]reflect.Type{
+	ast.DefaultTypeInt:     universe["int"].Type,
+	ast.DefaultTypeRune:    universe["rune"].Type,
+	ast.DefaultTypeFloat64: universe["float64"].Type,
+	ast.DefaultTypeComplex: universe["complex"].Type,
+	ast.DefaultTypeString:  universe["string"].Type,
+	ast.DefaultTypeBool:    universe["bool"].Type,
+}
 
 var numericKind = [...]bool{
 	reflect.Int:           true,
@@ -130,7 +140,7 @@ var universe = typeCheckerScope{
 	"error":   &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
 	"float32": &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
 	"float64": &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
-	"false":   &ast.TypeInfo{Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: false}},
+	"false":   &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: ast.DefaultTypeBool, Bool: false}},
 	"int":     &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
 	"int16":   &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
 	"int32":   int32TypeInfo,
@@ -138,7 +148,7 @@ var universe = typeCheckerScope{
 	"int8":    uint8TypeInfo,
 	"rune":    int32TypeInfo,
 	"string":  &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
-	"true":    &ast.TypeInfo{Constant: &ast.Constant{DefaultType: ast.DefaultTypeBool, Bool: true}},
+	"true":    &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: ast.DefaultTypeBool, Bool: true}},
 	"uint":    &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
 	"uint16":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
 	"uint32":  &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
@@ -257,7 +267,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.String:
 		return &ast.TypeInfo{
-			Constant: &ast.Constant{
+			Value: &ast.UntypedValue{
 				DefaultType: ast.DefaultTypeString,
 				String:      expr.Text,
 			},
@@ -265,7 +275,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.Int:
 		return &ast.TypeInfo{
-			Constant: &ast.Constant{
+			Value: &ast.UntypedValue{
 				DefaultType: ast.DefaultTypeInt,
 				Number:      constant.MakeFromLiteral(expr.Value.String(), gotoken.INT, 0),
 			},
@@ -273,7 +283,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.Rune:
 		return &ast.TypeInfo{
-			Constant: &ast.Constant{
+			Value: &ast.UntypedValue{
 				DefaultType: ast.DefaultTypeRune,
 				Number:      constant.MakeInt64(int64(expr.Value)),
 			},
@@ -281,7 +291,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.Float:
 		return &ast.TypeInfo{
-			Constant: &ast.Constant{
+			Value: &ast.UntypedValue{
 				DefaultType: ast.DefaultTypeFloat64,
 				Number:      constant.MakeFromLiteral(expr.Value.Text('f', -1), gotoken.FLOAT, 0),
 			},
@@ -297,24 +307,25 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		switch expr.Op {
 		case ast.OperatorNot:
-			if c := t.Constant; c != nil {
-				if t.Constant.DefaultType != ast.DefaultTypeBool {
+			if c := t.Value; c != nil {
+				if c.(*ast.UntypedValue).DefaultType != ast.DefaultTypeBool {
 					panic(tc.errorf(expr, "invalid operation: ! %s", expr))
 				}
-				c = &ast.Constant{DefaultType: c.DefaultType, Bool: !c.Bool}
-				t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Constant: c}
+				c = &ast.UntypedValue{DefaultType: c.(*ast.UntypedValue).DefaultType, Bool: !c.(*ast.UntypedValue).Bool}
+				t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Value: c}
 			} else if t.Type != nil && t.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(expr, "invalid operation: ! %s", expr))
 			}
 			return t
 		case ast.OperatorAddition, ast.OperatorSubtraction:
-			if c := t.Constant; c != nil {
-				if c.DefaultType == ast.DefaultTypeString || c.DefaultType == ast.DefaultTypeBool {
+			if c := t.Value; c != nil {
+				dt := c.(*ast.UntypedValue).DefaultType
+				if dt == ast.DefaultTypeString || dt == ast.DefaultTypeBool {
 					panic(tc.errorf(expr, "invalid operation: %s %s", expr.Op, t))
 				}
 				if expr.Op == ast.OperatorSubtraction {
-					c = &ast.Constant{DefaultType: c.DefaultType, Number: constant.UnaryOp(gotoken.SUB, c.Number, 0)}
-					t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Constant: c}
+					c = &ast.UntypedValue{DefaultType: dt, Number: constant.UnaryOp(gotoken.SUB, c.(*ast.UntypedValue).Number, 0)}
+					t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Value: c}
 				}
 			} else if t.Type != nil && !numericKind[t.Type.Kind()] {
 				panic(tc.errorf(expr, "invalid operation: %s %s", expr.Op, t))
@@ -341,20 +352,27 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 			return &ast.TypeInfo{}
 		}
-		if t1.Constant != nil && t2.Constant != nil {
+		if t1.Value != nil && t2.Value != nil {
 			return tc.binaryOp(expr)
 		}
-		var ok bool
 		if t2.Type == nil {
-			t2, ok = tc.convert(expr.Expr2, t1.Type)
-			if !ok {
-				panic(fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t2, t1))
+			_, err := tc.convert(t2, t1.Type, false)
+			if err != nil {
+				if err == errTypeConversion {
+					panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
+			t2 = &ast.TypeInfo{Type: t1.Type}
 		} else if t1.Type == nil {
-			t1, ok = tc.convert(expr.Expr1, t2.Type)
-			if !ok {
-				panic(fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2))
+			_, err := tc.convert(t2, t2.Type, false)
+			if err != nil {
+				if err == errTypeConversion {
+					panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t1, t2))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
+			t1 = &ast.TypeInfo{Type: t2.Type}
 		}
 		if expr.Op >= ast.OperatorEqual && expr.Op <= ast.OperatorGreaterOrEqual {
 			if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
@@ -596,10 +614,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpression(expr.Args[0])
-		if !arg.Type.ConvertibleTo(t.Type) {
-			panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr.Args[0], arg, t))
+		value, err := tc.convert(arg, t.Type, true)
+		if err != nil {
+			if err == errTypeConversion {
+				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
+			}
+			panic(tc.errorf(expr, "%s", err))
 		}
-		return []*ast.TypeInfo{t}
+		return []*ast.TypeInfo{{Type: t.Type, Value: value}}
 	}
 
 	if t.IsPackage() {
@@ -728,10 +750,19 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
 				}
 				if numArgs > 1 {
+					var lenvalue int
 					n := tc.checkExpression(expr.Args[1])
 					if !n.Nil() {
 						if n.Type == nil {
-							n, ok = tc.convert(expr.Args[1], intType)
+							c, err := tc.convert(n, intType, false)
+							if err != nil {
+								panic(tc.errorf(expr, "%s", err))
+							}
+							if ok && c != nil {
+								if lenvalue = c.(int); lenvalue < 0 {
+									panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
+								}
+							}
 						} else if n.Type.Kind() == reflect.Int {
 							ok = true
 						}
@@ -739,32 +770,27 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					if !ok {
 						panic(tc.errorf(expr, "non-integer len argument in make(%s) - %s", expr.Args[0], n))
 					}
-					var lenvalue int64
-					if n.Constant != nil {
-						if lenvalue, _ = constant.Int64Val(n.Constant.Number); lenvalue < 0 {
-							panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
-						}
-					}
 					if numArgs > 2 {
+						var capvalue int
 						m := tc.checkExpression(expr.Args[2])
 						if !m.Nil() {
 							if m.Type == nil {
-								m, ok = tc.convert(expr.Args[1], intType)
+								v, err := tc.convert(m, intType, false)
+								if err != nil {
+									panic(err)
+								}
+								if capvalue = v.(int); capvalue < 0 {
+									panic(tc.errorf(expr, "negative cap argument in make(%s)", expr.Args[0]))
+								}
+								if lenvalue > capvalue {
+									panic(tc.errorf(expr, "len larger than cap in in make(%s)", expr.Args[0]))
+								}
 							} else if m.Type.Kind() == reflect.Int {
 								ok = true
 							}
 						}
 						if !ok {
 							panic(tc.errorf(expr, "non-integer cap argument in make(%s) - %s", expr.Args[0], m))
-						}
-						if m.Constant != nil {
-							capvalue, _ := constant.Int64Val(m.Constant.Number)
-							if capvalue < 0 {
-								panic(tc.errorf(expr, "negative cap argument in make(%s)", expr.Args[0]))
-							}
-							if n.Constant != nil && lenvalue > capvalue {
-								panic(tc.errorf(expr, "len larger than cap in in make(%s)", expr.Args[0]))
-							}
 						}
 					}
 				}
@@ -779,8 +805,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					n := tc.checkExpression(expr.Args[1])
 					if !n.Nil() {
 						if n.Type == nil {
-							n, ok = tc.convert(expr.Args[1], intType)
-							if v, _ := constant.Int64Val(n.Constant.Number); v < 0 {
+							v, err := tc.convert(n, intType, false)
+							if err != nil {
+								panic(err)
+							}
+							if ok && v.(int) < 0 {
 								panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
 							}
 						} else if n.Type.Kind() == reflect.Int {
@@ -891,8 +920,8 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 // The tow operands must be both numeric, boolean or string.
 // Panics if it can not be executed.
 func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
-	c1 := expr.Expr1.TypeInfo().Constant
-	c2 := expr.Expr2.TypeInfo().Constant
+	c1 := expr.Expr1.TypeInfo().Value.(*ast.UntypedValue)
+	c2 := expr.Expr2.TypeInfo().Value.(*ast.UntypedValue)
 	mismatch := false
 	dt1 := c1.DefaultType
 	dt2 := c2.DefaultType
@@ -907,7 +936,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	if mismatch {
 		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, dt1, dt2))
 	}
-	c := ast.Constant{}
+	c := ast.UntypedValue{}
 	switch dt1 {
 	default:
 		var v interface{}
@@ -987,45 +1016,83 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, dt1))
 		}
 	}
-	return &ast.TypeInfo{Constant: &c}
+	return &ast.TypeInfo{Value: &c}
 }
 
-// convert converts the untyped value (constant or not constant) of expr to
-// type rt or to the default value if rt is nil. The returned type info is
-// typed. Returns false if it can not be converted.
-func (tc *typechecker) convert(expr ast.Expression, rt reflect.Type) (*ast.TypeInfo, bool) {
-	ti := expr.TypeInfo()
-	if ti.Type != nil {
-		panic("convert on a typed value")
+var errTypeConversion = errors.New("failed type conversion")
+
+// convert converts a value. explicit reports whether the conversion is
+// explicit. If the value is a constant and the type to convert is a concrete
+// type, the converted value is a typed constant and its value is returned,
+// otherwise returns nil.
+//
+// If the value can not be converted, returns an error errTypeConversion,
+// errConstantTruncated or errConstantOverflow.
+func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool) (interface{}, error) {
+
+	t := ti.Type
+	v := ti.Value
+	k2 := t2.Kind()
+
+	if ti.Nil() {
+		switch t2.Kind() {
+		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+			return nil, nil
+		}
+		return nil, errTypeConversion
 	}
-	if ti.Constant == nil {
-		// expr is an untyped not constant bool.
-		if rt.Kind() != reflect.Bool {
-			return nil, false
+
+	if t == nil {
+		if v == nil {
+			t = boolType
+		} else {
+			t = reflectOfDefaultType[v.(*ast.UntypedValue).DefaultType]
 		}
-		return &ast.TypeInfo{Type: rt}, true
 	}
-	// t is an untyped constant.
-	switch ti.Constant.DefaultType {
-	case ast.DefaultTypeBool:
-		if rt.Kind() != reflect.Bool {
-			return nil, false
+
+	// First, Reflect must return true.
+	if !t.ConvertibleTo(t2) {
+		return nil, errTypeConversion
+	}
+
+	// The special case is only for explicit conversion.
+	if !explicit {
+		if k := t.Kind(); k2 == reflect.String && numericKind[k] {
+			return nil, errTypeConversion
 		}
-	case ast.DefaultTypeString:
-		if rt.Kind() != reflect.String {
-			return nil, false
-		}
-	default:
-		cn := ConstantNumber{val: ti.Constant.Number, typ: ConstantNumberType(ti.Constant.DefaultType)}
-		_, err := cn.ToType(rt)
-		if err != nil {
-			if _, ok := err.(errConstantConversion); ok {
-				return nil, false
+	}
+
+	// For interface types the returned value is not a constant.
+	if k2 == reflect.Interface {
+		return nil, nil
+	}
+
+	// If it is not a constant, returns.
+	if v == nil {
+		return nil, nil
+	}
+
+	// If the resulted value is a constant, returns its value.
+	switch c := v.(type) {
+	case *ast.UntypedValue:
+		switch dt := c.DefaultType; dt {
+		case ast.DefaultTypeBool:
+			v = c.Bool
+		case ast.DefaultTypeString:
+			v = c.String
+		default:
+			v = ConstantNumber{val: c.Number, typ: ConstantNumberType(c.DefaultType)}
+			var err error
+			if err != nil {
+				if _, ok := err.(errConstantConversion); ok {
+					err = errTypeConversion
+				}
+				return nil, err
 			}
-			panic(err)
 		}
 	}
-	return &ast.TypeInfo{Type: rt}, true
+
+	return v, nil
 }
 
 // fieldByName returns the struct field with the given name and a boolean
@@ -1045,7 +1112,7 @@ func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo,
 }
 
 // TODO (Gianluca): to review.
-func (tc *typechecker) defaultType(c *ast.Constant) reflect.Type {
+func (tc *typechecker) defaultType(c *ast.UntypedValue) reflect.Type {
 	switch c.DefaultType {
 	case ast.DefaultTypeInt:
 		return intType
@@ -1069,7 +1136,7 @@ func (tc *typechecker) defaultType(c *ast.Constant) reflect.Type {
 //
 // TODO (Gianluca): review.
 //
-func (tc *typechecker) isRepresentableBy(x *ast.Constant, T reflect.Type) bool {
+func (tc *typechecker) isRepresentableBy(x *ast.UntypedValue, T reflect.Type) bool {
 	if x == nil {
 		// x is the untyped bool.
 		return T.Kind() == reflect.Bool
@@ -1102,7 +1169,7 @@ func (tc *typechecker) isAssignableTo(t1 *ast.TypeInfo, t2 reflect.Type) bool {
 		return false
 	}
 	if t1.Type == nil {
-		return tc.isRepresentableBy(t1.Constant, t2)
+		return tc.isRepresentableBy(t1.Value.(*ast.UntypedValue), t2)
 	}
 	return t1.Type.AssignableTo(t2)
 }
@@ -1119,7 +1186,13 @@ func (tc *typechecker) isComparable(t *ast.TypeInfo) bool {
 func (tc *typechecker) isOrdered(t *ast.TypeInfo) bool {
 	if t.Type == nil {
 		// Untyped bool values (constant or not constant) are not ordered.
-		return t.Constant != nil && t.Constant.DefaultType != ast.DefaultTypeBool
+		switch v := t.Value.(type) {
+		case nil, bool:
+			return false
+		case *ast.UntypedValue:
+			return v.DefaultType != ast.DefaultTypeBool
+		}
+		return true
 	}
 	k := t.Type.Kind()
 	return numericKind[k] || k == reflect.String

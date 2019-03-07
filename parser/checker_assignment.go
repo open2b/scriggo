@@ -186,7 +186,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	}
 
 	// If it's a constant declaration, a constant value must be provided.
-	if isConst && (valueTi.Constant == nil) {
+	if isConst && (valueTi.Value == nil) {
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
 
@@ -250,7 +250,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				} else {
 					// «If that value is an untyped constant, it is first
 					// implicitly converted to its default type.»
-					newValueTi = assignableDefaultType[valueTi.Constant.DefaultType]
+					newValueTi = assignableDefaultType[valueTi.Value.(*ast.UntypedValue).DefaultType]
 
 				}
 			}

@@ -365,16 +365,16 @@ func (tc *typechecker) evalConstantExpr(expr ast.Expression) (pkgConstant, error
 	// switch expr := expr.(type) {
 
 	// case *ast.String:
-	// 	return Constant(expr.Text, nil), nil
+	// 	return UntypedValue(expr.Text, nil), nil
 
 	// case *ast.Rune:
-	// 	return Constant(newConstantRune(expr.Value), nil), nil
+	// 	return UntypedValue(newConstantRune(expr.Value), nil), nil
 
 	// case *ast.Int:
-	// 	return Constant(newConstantInt(&expr.Value), nil), nil
+	// 	return UntypedValue(newConstantInt(&expr.Value), nil), nil
 
 	// case *ast.Float:
-	// 	return Constant(newConstantFloat(&expr.Value), nil), nil
+	// 	return UntypedValue(newConstantFloat(&expr.Value), nil), nil
 
 	// case *ast.Parentesis:
 	// 	return imp.evalConstantExpr(expr.Expr)
@@ -426,7 +426,7 @@ func (tc *typechecker) evalConstantExpr(expr ast.Expression) (pkgConstant, error
 	// 			if err != nil {
 	// 				return pkgConstant{}, imp.errorf(expr, "%s", err)
 	// 			}
-	// 			return Constant(n, nil), nil
+	// 			return UntypedValue(n, nil), nil
 	// 		}
 	// 	}
 	// 	if s1, ok := expr1.value.(string); ok {
@@ -436,7 +436,7 @@ func (tc *typechecker) evalConstantExpr(expr ast.Expression) (pkgConstant, error
 	// 					"invalid operation: %v - %v (operator %s not defined on string)",
 	// 					expr1, expr2, expr.Op)
 	// 			}
-	// 			return Constant(s1+s2, nil), nil
+	// 			return UntypedValue(s1+s2, nil), nil
 	// 		}
 	// 	}
 	// 	return pkgConstant{}, imp.errorf(expr, "invalid operation: %v + %v (mismatched types %s and %s)",
@@ -467,7 +467,7 @@ func (tc *typechecker) evalConstantExpr(expr ast.Expression) (pkgConstant, error
 	// 			}
 	// 			switch v := v.(type) {
 	// 			case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8, string, bool:
-	// 				return Constant(v, nil), nil
+	// 				return UntypedValue(v, nil), nil
 	// 			case pkgConstant:
 	// 				return v, nil
 	// 			}

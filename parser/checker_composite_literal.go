@@ -19,10 +19,10 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) (int, error) {
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
 			ti := tc.checkExpression(kv.Key)
-			constant := ti.Constant
-			if constant != nil {
+			value := ti.Value
+			if value != nil {
 				// TODO (Gianluca):
-				// currentIndex := ti.Constant.Number
+				// currentIndex := ti.UntypedValue.Number
 			}
 		} else {
 			currentIndex++
@@ -111,7 +111,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
-				if keyTi.Constant == nil {
+				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 			}
@@ -134,7 +134,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
-				if keyTi.Constant == nil {
+				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 			}

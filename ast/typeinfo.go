@@ -36,7 +36,7 @@ func (dt DefaultType) String() string {
 	return defaultTypeString[dt]
 }
 
-type Constant struct {
+type UntypedValue struct {
 	DefaultType DefaultType
 	Bool        bool
 	String      string
@@ -56,7 +56,7 @@ const (
 type TypeInfo struct {
 	Type       reflect.Type // Type; nil if untyped.
 	Properties Properties   // Properties.
-	Constant   *Constant    // Constant value; nil if not constant.
+	Value      interface{}  // Constant value; nil if not constant.
 	Package    *Package     // Package; nil if not a package.
 }
 
@@ -94,8 +94,15 @@ func (ti *TypeInfo) String() string {
 	if ti.Type == nil {
 		s = "untyped "
 	}
-	if ti.Constant != nil {
-		return s + ti.Constant.DefaultType.String()
+	if ti.Value != nil {
+		switch v := ti.Value.(type) {
+		case bool:
+			return s + "bool"
+		case string:
+			return s + "string"
+		case *UntypedValue:
+			return s + v.DefaultType.String()
+		}
 	}
 	if ti.Type == nil {
 		return s + "bool"
@@ -108,11 +115,17 @@ func (ti *TypeInfo) ShortString() string {
 	switch {
 	case ti.Nil():
 		return "nil"
-	case ti.Constant != nil:
-		return ti.Constant.DefaultType.String()
+	case ti.Value != nil:
+		switch v := ti.Value.(type) {
+		case bool:
+			return "bool"
+		case string:
+			return "string"
+		case *UntypedValue:
+			return v.DefaultType.String()
+		}
 	case ti.Type == nil:
 		return "bool"
-	default:
-		return ti.Type.String()
 	}
+	return ti.Type.String()
 }
