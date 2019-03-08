@@ -215,14 +215,33 @@ var checkerStmts = map[string]string{
 	// `a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
 
 	// Functions literal definitions.
-	`_ = func() { }`:            ok,
-	`_ = func(int) { }`:         ok,
-	`_ = func() { a }`:          `undefined: a`,
-	`_ = func() { 7 == "hey" }`: `invalid operation: 7 == "hey" (mismatched types int and string)`,
-	`_ = func() { if true { }; { a := 10; { _ = a } ; _ = a } }`: ok,
-	`_ = func() { if true { }; { a := 10; { _ = b } ; _ = a } }`: `undefined: b`,
-	// `_ = func() int { }`:          `missing return at end of function`,
-	// `_ = func() int { return 0 }`: ok,
+	`_ = func(     )         {                                             }`: ok,
+	`_ = func(     )         { return                                      }`: ok,
+	`_ = func(int  )         {                                             }`: ok,
+	`_ = func(     )         { a                                           }`: `undefined: a`,
+	`_ = func(     )         { 7 == "hey"                                  }`: `invalid operation: 7 == "hey" (mismatched types int and string)`,
+	`_ = func(     )         { if true { }; { a := 10; { _ = a } ; _ = a } }`: ok,
+	`_ = func(     )         { if true { }; { a := 10; { _ = b } ; _ = a } }`: `undefined: b`,
+	`_ = func(     ) (s int) { s := 0; return 0                            }`: `no new variables on left side of :=`,
+	`_ = func(s int)         { s := 0; _ = s                               }`: `no new variables on left side of :=`,
+	// `_ = func() int { }`: `missing return at end of function`,
+
+	// Return statements with named result parameters.
+	`_ = func() (a int)           { return             }`: ok,
+	`_ = func() (a int, b string) { return             }`: ok,
+	`_ = func() (a int, b string) { return 0, ""       }`: ok,
+	`_ = func() (s int)           { { s := 0; return } }`: `s is shadowed during return`,
+	`_ = func() (a int)           { return ""          }`: `cannot use "" (type string) as type int in return argument`,
+	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type string) as type int in return argument`,
+	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (int, int)\n\twant (int)",      // TODO (Gianluca): should be "number", not "int"
+	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (int)\n\twant (int, string)", // TODO (Gianluca): should be "number", not "int"
+
+	// Result statements with non-named result parameters.
+	`_ = func() int { return 0 }`:              ok,
+	`_ = func() int { return "" }`:             `cannot use "" (type string) as type int in return argument`,
+	`_ = func() (int, string) { return 0 }`:    "not enough arguments to return\n\thave (int)\n\twant (int, string)",         // TODO (Gianluca): should be "number", not "int"
+	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (int, int, int)\n\twant (int, int)",    // TODO (Gianluca): should be "number", not "int"
+	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (int, string, int)\n\twant (int, int)", // TODO (Gianluca): should be "number", not "int"
 
 	// Function literal calls.
 	`f := func() { }; f()`:     ok,

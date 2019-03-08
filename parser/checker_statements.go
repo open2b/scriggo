@@ -96,9 +96,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Return:
 
-			// TODO (Gianluca): should check if return is expected?
-			// TODO (Gianluca): check if return's value is the same of the function where return is in.
-			panic("not implemented")
+			tc.checkReturn(node)
 
 		case *ast.Switch:
 
@@ -198,4 +196,79 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 	tc.checkNodes(node.Body)
 	tc.RemoveCurrentScope()
 	return nil
+}
+
+// TODO (Gianluca): handle case 2 of Go return specifications:
+// https://golang.org/ref/spec#Return_statements
+func (tc *typechecker) checkReturn(node *ast.Return) {
+
+	if len(tc.funcBounds) == 0 {
+		panic(tc.errorf(node, "non-declaration statement outside function body"))
+	}
+
+	expected := tc.funcBounds[len(tc.funcBounds)-1].node.Type.Result
+	got := node.Values
+
+	if len(expected) == 0 && len(got) == 0 {
+		return
+	}
+
+	// Named return arguments with empty return: check if any value has been
+	// shadowed.
+	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
+		// If "return" belongs to an inner scope (not the function scope).
+		if len(tc.scopes) > tc.funcBounds[len(tc.funcBounds)-1].bound {
+			for _, e := range expected {
+				name := e.Ident.Name
+				_, ok := tc.LookupScope(name, true)
+				if ok {
+					panic(tc.errorf(node, "%s is shadowed during return", name))
+				}
+			}
+		}
+		return
+	}
+
+	expectedTypes := []reflect.Type{}
+	for _, e := range expected {
+		ti := tc.checkType(e.Type, noEllipses)
+		expectedTypes = append(expectedTypes, ti.Type)
+	}
+
+	for _, g := range got {
+		_ = tc.checkExpression(g)
+	}
+
+	if len(expected) != len(got) {
+		msg := ""
+		if len(expected) > len(got) {
+			msg = "not enough arguments to return"
+		}
+		if len(expected) < len(got) {
+			msg = "too many arguments to return"
+		}
+		msg += "\n\thave ("
+		for i, x := range got {
+			msg += x.TypeInfo().ShortString()
+			if i != len(got)-1 {
+				msg += ", "
+			}
+		}
+		msg += ")\n\twant ("
+		for i, T := range expectedTypes {
+			msg += T.String()
+			if i != len(expectedTypes)-1 {
+				msg += ", "
+			}
+		}
+		msg += ")"
+		panic(tc.errorf(node, msg))
+	}
+
+	for i, T := range expectedTypes {
+		x := got[i]
+		if !tc.isAssignableTo(x.TypeInfo(), T) {
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], got[i].TypeInfo().ShortString(), expectedTypes[i]))
+		}
+	}
 }

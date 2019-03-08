@@ -510,9 +510,23 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return &ast.TypeInfo{Type: reflect.FuncOf(in, out, variadic), Properties: ast.PropertyIsType}
 
 	case *ast.Func:
-		t := tc.checkType(expr.Type, noEllipses)
 		tc.AddScope()
+		t := tc.checkType(expr.Type, noEllipses)
 		tc.funcBounds = append(tc.funcBounds, &funcBound{len(tc.scopes), expr})
+		// Adds parameters to the function body scope.
+		for _, f := range expr.Type.Parameters {
+			if f.Ident != nil {
+				t := tc.checkType(f.Type, noEllipses)
+				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+			}
+		}
+		// Adds named return values to the function body scope.
+		for _, f := range expr.Type.Result {
+			if f.Ident != nil {
+				t := tc.checkType(f.Type, noEllipses)
+				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+			}
+		}
 		tc.checkNodes(expr.Body.Nodes)
 		tc.funcBounds = tc.funcBounds[:len(tc.funcBounds)-1]
 		tc.RemoveCurrentScope()
