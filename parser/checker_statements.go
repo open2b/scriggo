@@ -98,7 +98,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = terminating && !node.HasBreak
+			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.ForRange:
 
@@ -108,7 +108,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = !node.HasBreak
+			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
 
@@ -120,20 +120,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0; i-- {
 				switch n := tc.ancestors[i].node.(type) {
-				case *ast.For:
-					n.HasBreak = true
-					found = true
-					break
-				case *ast.ForRange:
-					n.HasBreak = true
-					found = true
-					break
-				case *ast.Switch:
-					n.HasBreak = true
-					found = true
-					break
-				case *ast.TypeSwitch:
-					n.HasBreak = true
+				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch:
+					tc.hasBreak[n] = true
 					found = true
 					break
 				}
@@ -173,7 +161,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = terminating && !node.HasBreak && hasDefault
+			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
 		case *ast.TypeSwitch:
 
@@ -197,7 +185,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = terminating && !node.HasBreak && hasDefault
+			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
 		case *ast.Const, *ast.Var:
 

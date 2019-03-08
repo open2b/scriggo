@@ -173,6 +173,7 @@ type typechecker struct {
 	scopes       []typeCheckerScope
 	ancestors    []*ancestor
 	terminating  bool // https://golang.org/ref/spec#Terminating_statements
+	hasBreak     map[ast.Node]bool
 }
 
 // AddScope adds a new empty scope to the type checker.

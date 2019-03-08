@@ -299,7 +299,7 @@ func TestCheckerStatements(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			checker := &typechecker{scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
+			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
 			checker.checkNodes(tree.Nodes)
 		}()
 	}
