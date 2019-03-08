@@ -159,6 +159,11 @@ var universe = typeCheckerScope{
 	"uintptr":    &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
 }
 
+type funcBound struct {
+	bound int
+	node  *ast.Func
+}
+
 // typechecker represents the state of a type checking.
 type typechecker struct {
 	path         string
@@ -166,8 +171,7 @@ type typechecker struct {
 	fileBlock    typeCheckerScope
 	packageBlock typeCheckerScope
 	scopes       []typeCheckerScope
-	funcBounds   []int
-	currentFunc  *ast.Func
+	funcBounds   []*funcBound
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -208,13 +212,13 @@ func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 }
 
 func (tc *typechecker) CheckUpValue(name string) string {
-	bound := tc.funcBounds[len(tc.funcBounds)-1] - 1
+	bound := tc.funcBounds[len(tc.funcBounds)-1].bound
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, _ := range tc.scopes[i] {
 			if n != name {
 				continue
 			}
-			if i < bound { // out of current function scope.
+			if i < bound-1 { // out of current function scope.
 				tc.scopes[i][n].Properties |= ast.PropertyMustBeReferenced
 				return name
 			}
@@ -229,7 +233,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 	if len(tc.funcBounds) > 0 {
 		uv := tc.CheckUpValue(ident.Name)
 		if uv != "" {
-			tc.currentFunc.Upvalues = append(tc.currentFunc.Upvalues, uv)
+			lastFunc := tc.funcBounds[len(tc.funcBounds)-1]
+			lastFunc.node.Upvalues = append(lastFunc.node.Upvalues, uv)
 		}
 	}
 	i, ok := tc.LookupScope(ident.Name, false)
@@ -508,10 +513,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Func:
 		t := tc.checkType(expr.Type, noEllipses)
 		tc.AddScope()
-		tc.funcBounds = append(tc.funcBounds, len(tc.scopes))
-		tc.currentFunc = expr
+		tc.funcBounds = append(tc.funcBounds, &funcBound{len(tc.scopes), expr})
 		tc.checkNodes(expr.Body.Nodes)
-		tc.currentFunc = nil
 		tc.funcBounds = tc.funcBounds[:len(tc.funcBounds)-1]
 		tc.RemoveCurrentScope()
 		return &ast.TypeInfo{Type: t.Type}
