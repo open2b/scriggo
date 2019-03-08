@@ -52,6 +52,10 @@ var checkerExprs = []struct {
 	{`"a"[0.0]`, tiByte(), nil},
 	{`"aa"[1.0]`, tiByte(), nil},
 	{`"aaa"[1+1]`, tiByte(), nil},
+	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiUntypedIntConst("0")}},
+	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiIntConst(1)}},
+	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiAddrInt()}},
+	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiInt()}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -104,6 +108,7 @@ var checkerExprErrors = []struct {
 	// Index
 	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
 	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
+	{`"a"[i]`, tierr(1, 5, `constant 1.2 truncated to integer`), typeCheckerScope{"i": tiUntypedFloatConst("1.2")}},
 	{`"a"[nil]`, tierr(1, 5, `non-integer string index nil`), nil},
 	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
 	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
