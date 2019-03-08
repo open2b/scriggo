@@ -40,7 +40,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.If:
 
-			isTerminating := true
+			terminating := true
 			tc.AddScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
@@ -57,7 +57,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			if node.Then != nil {
 				tc.checkNodesInNewScope(node.Then.Nodes)
-				isTerminating = isTerminating && tc.terminating
+				terminating = terminating && tc.terminating
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
@@ -67,23 +67,23 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
 				}
-				isTerminating = isTerminating && tc.terminating
+				terminating = terminating && tc.terminating
 			} else {
-				isTerminating = false
+				terminating = false
 			}
 			tc.RemoveCurrentScope()
-			tc.terminating = isTerminating
+			tc.terminating = terminating
 
 		case *ast.For:
 
-			isTerminating := true
+			terminating := true
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
 			if node.Condition != nil {
-				isTerminating = false
+				terminating = false
 				expr := tc.checkExpression(node.Condition)
 				// TODO (Gianluca): same as for if
 				if !tc.isAssignableTo(expr, boolType) {
@@ -98,7 +98,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = isTerminating && !node.HasBreak
+			tc.terminating = terminating && !node.HasBreak
 
 		case *ast.ForRange:
 
@@ -154,7 +154,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Switch:
 
-			isTerminating := true
+			terminating := true
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
@@ -169,15 +169,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if err != nil {
 					panic(err)
 				}
-				isTerminating = isTerminating && (tc.terminating || hasFallthrough)
+				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = isTerminating && !node.HasBreak && hasDefault
+			tc.terminating = terminating && !node.HasBreak && hasDefault
 
 		case *ast.TypeSwitch:
 
-			isTerminating := true
+			terminating := true
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
@@ -193,11 +193,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if err != nil {
 					panic(err)
 				}
-				isTerminating = isTerminating && tc.terminating
+				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminating = isTerminating && !node.HasBreak && hasDefault
+			tc.terminating = terminating && !node.HasBreak && hasDefault
 
 		case *ast.Const, *ast.Var:
 
