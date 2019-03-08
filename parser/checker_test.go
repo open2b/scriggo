@@ -789,7 +789,7 @@ func TestFunctionUpvalues(t *testing.T) {
 
 func sameTypeCheckError(err1, err2 *Error) error {
 	if err1.Err.Error() != err2.Err.Error() {
-		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1, err2)
+		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1.Err, err2.Err)
 	}
 	pos1 := err1.Pos
 	pos2 := err2.Pos
