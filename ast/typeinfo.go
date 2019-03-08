@@ -60,9 +60,14 @@ func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
 }
 
-// Kind returns the kind of the type or the default type (for untyped
-// constants) or reflect.Bool for the untyped bool.
+// Kind returns the kind of the type, the default type for untyped
+// constants and reflect.Bool for the untyped bool.
+//
+// Returns reflect.Invalid for the predeclared nil, packages and types.
 func (ti *TypeInfo) Kind() reflect.Kind {
+	if ti.Nil() || ti.IsPackage() || ti.IsType() {
+		return reflect.Invalid
+	}
 	if ti.Type == nil {
 		if ti.Value == nil {
 			return reflect.Bool
