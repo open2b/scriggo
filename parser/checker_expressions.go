@@ -588,13 +588,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			v, err := tc.convert(index, intType, false)
 			if err != nil {
 				if err == errTypeConversion {
-					err = fmt.Errorf("non-integer %s index %s", k, index)
+					err = fmt.Errorf("non-integer %s index %s", k, expr.Index)
 				}
-				panic(tc.errorf(expr, "%s", err))
+				panic(tc.errorf(expr.Index, "%s", err))
 			}
 			if v != nil {
 				if v.(int) < 0 {
-					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", k, index))
+					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", k, expr.Index))
 				}
 				if t.Value != nil {
 					if s := constantString(t); len(s) <= v.(int) {
