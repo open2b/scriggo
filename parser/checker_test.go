@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"go/constant"
 	gotoken "go/token"
@@ -16,6 +17,10 @@ import (
 
 	"scrigo/ast"
 )
+
+func tierr(line, column int, text string) *Error {
+	return &Error{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
+}
 
 var checkerExprs = []struct {
 	src   string
@@ -86,6 +91,60 @@ func TestCheckerExpressions(t *testing.T) {
 					t.Logf("\nUnexpected:\n%s\nExpected:\n%s\n", dumpTypeInfo(ti), dumpTypeInfo(expr.ti))
 				}
 			}
+		}()
+	}
+}
+
+var checkerExprErrors = []struct {
+	src   string
+	err   *Error
+	scope typeCheckerScope
+}{
+	// Index
+	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
+	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
+	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
+	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
+	{`"a"[-1]`, tierr(1, 4, `invalid string index -1 (index must be non-negative)`), nil},
+	{`"a"[1]`, tierr(1, 4, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
+}
+
+func TestCheckerExpressionErrors(t *testing.T) {
+	for _, expr := range checkerExprErrors {
+		var lex = newLexer([]byte(expr.src), ast.ContextNone)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if err, ok := r.(*Error); ok {
+						err := sameTypeCheckError(err, expr.err)
+						if err != nil {
+							t.Errorf("source: %q, %s\n", expr.src, err)
+							return
+						}
+					} else {
+						panic(r)
+					}
+				}
+			}()
+			var p = &parsing{
+				lex:       lex,
+				ctx:       ast.ContextNone,
+				ancestors: nil,
+			}
+			node, tok := p.parseExpr(token{}, false, false, false, false)
+			if node == nil {
+				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
+				return
+			}
+			var scopes []typeCheckerScope
+			if expr.scope == nil {
+				scopes = []typeCheckerScope{universe}
+			} else {
+				scopes = []typeCheckerScope{universe, expr.scope}
+			}
+			checker := &typechecker{scopes: scopes}
+			ti := checker.checkExpression(node)
+			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
 	}
 }
@@ -708,4 +767,25 @@ func TestFunctionUpvalues(t *testing.T) {
 			}
 		}
 	}
+}
+
+func sameTypeCheckError(err1, err2 *Error) error {
+	if err1.Err.Error() != err2.Err.Error() {
+		return fmt.Errorf("unexpected error %q, expectiong error %q\n", err1, err2)
+	}
+	pos1 := err1.Pos
+	pos2 := err2.Pos
+	if pos1.Line != pos2.Line {
+		return fmt.Errorf("unexpected line %d, expecting %d", pos1.Line, pos2.Line)
+	}
+	if pos1.Line == 1 {
+		if pos1.Column != pos2.Column {
+			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
+		}
+	} else {
+		if pos1.Column != pos2.Column {
+			return fmt.Errorf("unexpected column %d, expecting %d", pos1.Column, pos2.Column)
+		}
+	}
+	return nil
 }
