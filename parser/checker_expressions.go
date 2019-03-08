@@ -1156,6 +1156,13 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		return nil, errTypeConversion
 	}
 
+	if !explicit && t != nil {
+		if !t2.AssignableTo(t) {
+			return nil, errTypeConversion
+		}
+		return nil, nil
+	}
+
 	if t == nil {
 		if v == nil {
 			t = boolType
