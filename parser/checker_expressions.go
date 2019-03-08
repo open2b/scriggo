@@ -512,14 +512,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			index := tc.checkExpression(expr.Index)
 			v, err := tc.convert(index, intType, false)
 			if err != nil {
-				switch err {
-				case errNilConversion:
-					panic(tc.errorf(expr, "non-integer %s index nil", kind))
-				case errTypeConversion:
-					panic(tc.errorf(expr, "non-integer %s index %s", k, index))
-				default:
-					panic(tc.errorf(expr, "%s", err))
+				if err == errTypeConversion {
+					err = fmt.Errorf("non-integer %s index %s", k, index)
 				}
+				panic(tc.errorf(expr, "%s", err))
 			}
 			if v != nil {
 				if v.(int) < 0 {
@@ -1062,7 +1058,6 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	return &ast.TypeInfo{Value: &c}
 }
 
-var errNilConversion = errors.New("failed nil conversion")
 var errTypeConversion = errors.New("failed type conversion")
 
 // convert converts a value. explicit reports whether the conversion is
@@ -1083,7 +1078,7 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return nil, nil
 		}
-		return nil, errNilConversion
+		return nil, errTypeConversion
 	}
 
 	if t == nil {
