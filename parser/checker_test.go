@@ -40,7 +40,7 @@ var checkerExprs = []struct {
 	{`a`, tiAddrBool(), typeCheckerScope{"a": tiAddrBool()}},
 	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
 	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},
-	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}},
+	//{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}}, TODO(marco)
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
