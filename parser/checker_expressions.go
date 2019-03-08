@@ -166,13 +166,13 @@ type ancestor struct {
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path                 string
-	imports              map[string]*Package // TODO (Gianluca): review!
-	fileBlock            typeCheckerScope
-	packageBlock         typeCheckerScope
-	scopes               []typeCheckerScope
-	ancestors            []*ancestor
-	terminatingStatement bool // https://golang.org/ref/spec#Terminating_statements
+	path         string
+	imports      map[string]*Package // TODO (Gianluca): review!
+	fileBlock    typeCheckerScope
+	packageBlock typeCheckerScope
+	scopes       []typeCheckerScope
+	ancestors    []*ancestor
+	terminating  bool // https://golang.org/ref/spec#Terminating_statements
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -552,7 +552,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		// function body's statement list must end in a terminating
 		// statement.»
 		if len(expr.Type.Result) > 0 {
-			if !tc.terminatingStatement {
+			if !tc.terminating {
 				panic(tc.errorf(expr, "missing return at end of function"))
 			}
 		}

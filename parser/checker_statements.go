@@ -28,7 +28,7 @@ func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 //
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
-	tc.terminatingStatement = false
+	tc.terminating = false
 
 	for _, node := range nodes {
 
@@ -57,7 +57,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			if node.Then != nil {
 				tc.checkNodesInNewScope(node.Then.Nodes)
-				isTerminating = isTerminating && tc.terminatingStatement
+				isTerminating = isTerminating && tc.terminating
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
@@ -67,12 +67,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
 				}
-				isTerminating = isTerminating && tc.terminatingStatement
+				isTerminating = isTerminating && tc.terminating
 			} else {
 				isTerminating = false
 			}
 			tc.RemoveCurrentScope()
-			tc.terminatingStatement = isTerminating
+			tc.terminating = isTerminating
 
 		case *ast.For:
 
@@ -98,7 +98,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminatingStatement = isTerminating && !node.HasBreak
+			tc.terminating = isTerminating && !node.HasBreak
 
 		case *ast.ForRange:
 
@@ -108,12 +108,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminatingStatement = !node.HasBreak
+			tc.terminating = !node.HasBreak
 
 		case *ast.Assignment:
 
 			tc.checkAssignment(node)
-			tc.terminatingStatement = false
+			tc.terminating = false
 
 		case *ast.Break:
 
@@ -142,15 +142,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if !found {
 				panic(tc.errorf(node, "break is not in a loop, switch, or select"))
 			}
-			tc.terminatingStatement = false
+			tc.terminating = false
 
 		case *ast.Continue:
-			tc.terminatingStatement = false
+			tc.terminating = false
 
 		case *ast.Return:
 
 			tc.checkReturn(node)
-			tc.terminatingStatement = true
+			tc.terminating = true
 
 		case *ast.Switch:
 
@@ -169,11 +169,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if err != nil {
 					panic(err)
 				}
-				isTerminating = isTerminating && (tc.terminatingStatement || hasFallthrough)
+				isTerminating = isTerminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminatingStatement = isTerminating && !node.HasBreak && hasDefault
+			tc.terminating = isTerminating && !node.HasBreak && hasDefault
 
 		case *ast.TypeSwitch:
 
@@ -193,21 +193,21 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if err != nil {
 					panic(err)
 				}
-				isTerminating = isTerminating && tc.terminatingStatement
+				isTerminating = isTerminating && tc.terminating
 			}
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
-			tc.terminatingStatement = isTerminating && !node.HasBreak && hasDefault
+			tc.terminating = isTerminating && !node.HasBreak && hasDefault
 
 		case *ast.Const, *ast.Var:
 
 			tc.checkAssignment(node)
-			tc.terminatingStatement = false
+			tc.terminating = false
 
 		case *ast.Value:
 
 			tc.checkExpression(node.Expr)
-			tc.terminatingStatement = false
+			tc.terminating = false
 
 		case *ast.Identifier:
 
@@ -225,9 +225,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkCallExpression(node, true)
 			// TODO (Gianluca): should only match builtin function "panic".
 			if node.Func.String() == "panic" {
-				tc.terminatingStatement = true
+				tc.terminating = true
 			} else {
-				tc.terminatingStatement = false
+				tc.terminating = false
 			}
 
 		case ast.Expression:
