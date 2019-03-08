@@ -41,6 +41,7 @@ var checkerExprs = []struct {
 	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
 	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},
 	//{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}}, TODO(marco)
+	//{"[...]int{1}[0]", tiAddrInt(), nil}, TODO(gianluca)
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
@@ -51,6 +52,7 @@ var checkerExprs = []struct {
 	{`"a"[0.0]`, tiByte(), nil},
 	{`"aa"[1.0]`, tiByte(), nil},
 	{`"aaa"[1+1]`, tiByte(), nil},
+
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -655,6 +657,10 @@ func tiNil() *ast.TypeInfo { return &ast.TypeInfo{Properties: ast.PropertyNil} }
 // byte type info.
 
 func tiByte() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["byte"].Type} }
+
+// byte slice type info.
+
+func tiByteSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]byte{})} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{
