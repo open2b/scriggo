@@ -56,6 +56,14 @@ var checkerExprs = []struct {
 	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiIntConst(1)}},
 	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiAddrInt()}},
 	{`"a"[i]`, tiByte(), typeCheckerScope{"i": tiInt()}},
+
+	// Slicing.
+	{`"a"[:]`, tiString(), nil},
+	{`"a"[0:]`, tiString(), nil},
+	{`"a"[1:]`, tiString(), nil},
+	{`"a"[:0]`, tiString(), nil},
+	{`"a"[0:0]`, tiString(), nil},
+	{`"a"[0:1]`, tiString(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -115,6 +123,15 @@ var checkerExprErrors = []struct {
 	{`"a"[-1]`, tierr(1, 4, `invalid string index -1 (index must be non-negative)`), nil},
 	{`"a"[1]`, tierr(1, 4, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
 	{`nil[1]`, tierr(1, 4, `use of untyped nil`), nil},
+
+	// Slicing.
+	{`nil[:]`, tierr(1, 4, `use of untyped nil`), nil},
+	{`"a"[nil:]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
+	{`"a"[:nil]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
+	{`"a"[true:]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
+	{`"a"[:true]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
+	{`"a"[2:]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
+	{`"a"[:2]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {

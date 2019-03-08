@@ -636,7 +636,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
-		kind := t.Type.Kind()
+		kind := t.Kind()
 		switch kind {
 		case reflect.String, reflect.Slice, reflect.Array:
 		default:
@@ -646,25 +646,45 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		if expr.Low != nil {
 			low := tc.checkExpression(expr.Low)
-			if low.Nil() {
-				panic(tc.errorf(expr, "invalid slice index nil (type nil)"))
+			v, err := tc.convert(low, intType, false)
+			if err != nil {
+				if err == errTypeConversion {
+					err = fmt.Errorf("invalid slice index %s (type %s)", expr.Low, low)
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
-			if low.Type.Kind() != reflect.Int {
-				panic(tc.errorf(expr, "invalid slice index %v (type %s)", expr.Low, low))
+			if v.(int) < 0 {
+				panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.Low))
+			}
+			if t.Value != nil {
+				if s := constantString(t); len(s) < v.(int) {
+					panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", v, len(s)))
+				}
 			}
 		}
 		if expr.High != nil {
 			high := tc.checkExpression(expr.High)
-			if high.Nil() {
-				panic(tc.errorf(expr, "invalid slice index nil (type nil)"))
+			v, err := tc.convert(high, intType, false)
+			if err != nil {
+				if err == errTypeConversion {
+					err = fmt.Errorf("invalid slice index %s (type %s)", expr.High, high)
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
-			if high.Type.Kind() != reflect.Int {
-				panic(tc.errorf(expr, "invalid slice index %v (type %s)", expr.High, high))
+			if v.(int) < 0 {
+				panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.High))
+			}
+			if t.Value != nil {
+				if s := constantString(t); len(s) < v.(int) {
+					panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", v, len(s)))
+				}
 			}
 		}
 		switch kind {
-		case reflect.String, reflect.Slice:
-			return t
+		case reflect.String:
+			return &ast.TypeInfo{Type: universe["string"].Type}
+		case reflect.Slice:
+			return &ast.TypeInfo{Type: reflect.SliceOf(t.Type.Elem())}
 		case reflect.Array:
 			return &ast.TypeInfo{Type: reflect.SliceOf(t.Type.Elem())}
 		case reflect.Ptr:
