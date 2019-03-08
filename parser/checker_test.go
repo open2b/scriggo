@@ -103,10 +103,12 @@ var checkerExprErrors = []struct {
 	// Index
 	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
 	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
+	{`"a"[nil]`, tierr(1, 5, `non-integer string index nil`), nil},
 	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
 	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
 	{`"a"[-1]`, tierr(1, 4, `invalid string index -1 (index must be non-negative)`), nil},
 	{`"a"[1]`, tierr(1, 4, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
+	{`nil[1]`, tierr(1, 4, `use of untyped nil`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
@@ -777,7 +779,7 @@ func TestFunctionUpvalues(t *testing.T) {
 
 func sameTypeCheckError(err1, err2 *Error) error {
 	if err1.Err.Error() != err2.Err.Error() {
-		return fmt.Errorf("unexpected error %q, expectiong error %q\n", err1, err2)
+		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1, err2)
 	}
 	pos1 := err1.Pos
 	pos2 := err2.Pos
