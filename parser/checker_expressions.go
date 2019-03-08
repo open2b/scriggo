@@ -457,16 +457,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if len.Value == nil { // TODO (Gianluca): should check if it's a constant
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
-		declLengthInterf, err := tc.convert(len, intType, false)
+		declLength, err := tc.convert(len, intType, false)
 		if err != nil {
 			panic(tc.errorf(expr, err.Error()))
 		}
-		declLength, _ := declLengthInterf.(ConstantNumber).ToInt()
-		if declLength < 0 {
+		if declLength.(int) < 0 {
 			panic(tc.errorf(expr, "array bound must be non-negative"))
 		}
-		if length > declLength {
-			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, declLength))
+		if length > declLength.(int) {
+			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, declLength.(int)))
 		}
 		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 

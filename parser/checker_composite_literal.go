@@ -27,18 +27,14 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			if ti.Value == nil {
 				panic(tc.errorf(node, "index must be non-negative integer constant"))
 			}
-			v, err := tc.convert(ti, intType, false)
+			index, err := tc.convert(ti, intType, false)
 			if err != nil {
 				panic(tc.errorf(node, err.Error()))
 			}
-			i, err := v.(ConstantNumber).ToInt()
-			if err != nil {
-				panic(tc.errorf(node, err.Error()))
-			}
-			if i < 0 {
+			if index.(int) < 0 {
 				panic(tc.errorf(node, "index must be non-negative integer constant"))
 			}
-			currentIndex = i
+			currentIndex = index.(int)
 		} else {
 			currentIndex++
 		}
