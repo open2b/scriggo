@@ -153,6 +153,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 
 const ok = ""
 const missingReturn = "missing return at end of function"
+const noNewVariables = "no new variables on left side of :="
 
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
@@ -179,14 +180,19 @@ var checkerStmts = map[string]string{
 	`v := 1 + "s"`:       "mismatched types int and string",
 	`v := 5 + 8.9 + "2"`: `invalid operation: (5 + 8.9) + "2" (mismatched types float64 and string)`, // TODO (Gianluca): should not have parenthesis
 
+	// Blank identifier.
+	`_ = 1`:              ok,
+	`_ := 1`:             noNewVariables,
+	`_, b, c := 1, 2, 3`: ok,
+	`_, _, _ := 1, 2, 3`: noNewVariables,
+
 	// Assignments.
-	`_ = 1`:                           ok,
 	`v := 1`:                          ok,
 	`v = 1`:                           "undefined: v",
 	`v := 1 + 2`:                      ok,
 	`v := "s" + "s"`:                  ok,
 	`v := 1; v = 2`:                   ok,
-	`v := 1; v := 2`:                  "no new variables on left side of :=",
+	`v := 1; v := 2`:                  noNewVariables,
 	`v := 1 + 2; v = 3 + 4`:           ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
 	`v1 := 1; v2 := "a"; v1 = v2`:     `cannot use v2 (type string) as type int in assignment`,
@@ -244,8 +250,8 @@ var checkerStmts = map[string]string{
 	// Blocks.
 	`{ a := 1; a = 10 }`:         ok,
 	`{ a := 1; { a = 10 } }`:     ok,
-	`{ a := 1; a := 2 }`:         "no new variables on left side of :=",
-	`{ { { a := 1; a := 2 } } }`: "no new variables on left side of :=",
+	`{ a := 1; a := 2 }`:         noNewVariables,
+	`{ { { a := 1; a := 2 } } }`: noNewVariables,
 
 	// If statements.
 	`if 1 { }`:                     "non-bool 1 (type int) used as if condition",

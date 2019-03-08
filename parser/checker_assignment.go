@@ -50,15 +50,22 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// initialized to its zero value.
 		// [https://golang.org/ref/spec#Variable_declarations]
 		if len(values) == 0 {
+			newVars := false
 			for i := range n.Identifiers {
 				zero := &ast.TypeInfo{Type: typ.Type}
-				tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
+				newVar := tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
+				newVars = newVars || newVar
+			}
+			if !newVars {
+				panic(tc.errorf(node, "no new variables on left side of :=")) // TODO (Gianluca): error message is wrong.
 			}
 			return
 		}
 
-		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
+		if len(n.Identifiers) == 1 && len(values) == 1 {
+			if !tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false) {
+				panic(tc.errorf(node, "no new variables on left side of :=")) // TODO (Gianluca): error message is wrong.
+			}
 			return
 		}
 
@@ -76,7 +83,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
 
-		if len(vars) == 1 && len(values) == 1 {
+		if len(n.Identifiers) == 1 && len(values) == 1 {
+			// TODO (Gianluca): if redefining an existing constant, a special
+			// error message is required: https://play.golang.org/p/0tiVHSgeOEY
 			tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
 			return
 		}
@@ -119,7 +128,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// values). typ = tc.checkType(...?, noEllipses)
 
 		if len(vars) == 1 && len(values) == 1 {
-			tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
+			if !tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false) && isDecl {
+				panic(tc.errorf(node, "no new variables on left side of :="))
+			}
 			return
 		}
 
@@ -130,12 +141,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	if len(vars) == len(values) {
+		newVars := false
 		for i := range vars {
-			// TODO (Gianluca): if all variables have already been declared
-			// previously, a declaration must end with an error.
-			// _, alreadyDefined := tc.LookupScope("variable name", true) // TODO (Gianluca): to review.
-			alreadyDefined := false
-			tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl && !alreadyDefined, isConst)
+			newVar := tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
+			newVars = newVars || newVar
+		}
+		if !newVars && isDecl {
+			panic(tc.errorf(node, "no new variables on left side of :="))
 		}
 		return
 	}
@@ -148,8 +160,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
 			for i := range vars {
-				// TODO (Gianluca): replace the second "variables[i]" with "values[i]"
-				tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst)
+				if !tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst) && isDecl {
+					panic(tc.errorf(node, "no new variables on left side of :="))
+				}
 			}
 			return
 		}
@@ -186,6 +199,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // passed as "typ" argument. isDeclaration and isConst indicates, respectively,
 // if the assignment is a declaration and if it's a constant.
 //
+// Returns true if variable has been declared.
+//
 // TODO (Gianluca): handle "isConst"
 //
 // TODO (Gianluca): typ doesn't get the type's zero, just checks if type is
@@ -196,7 +211,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 //
 // TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
 //
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) {
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) (hasBeenDeclared bool) {
 
 	if valueTi == nil {
 		valueTi = tc.checkExpression(value)
@@ -229,7 +244,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 		// Cannot declarate a variable if already exists in current scope.
 		if isDeclaration && alreadyInCurrentScope {
-			panic(tc.errorf(node, "no new variables on left side of :="))
+			return
 		}
 
 		// If it's not a declaration, variable must already exists in some
@@ -270,9 +285,11 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 					newValueTi = assignableDefaultType[valueTi.Value.(*ast.UntypedValue).DefaultType]
 				}
 
-				v.SetTypeInfo(newValueTi)
-
 			}
+
+			v.SetTypeInfo(newValueTi)
+			hasBeenDeclared = true
+
 		}
 
 		tc.AssignScope(v.Name, newValueTi)
