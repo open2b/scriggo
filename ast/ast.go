@@ -394,13 +394,14 @@ type For struct {
 	Condition Expression  // condition expression.
 	Post      *Assignment // post iteration statement.
 	Body      []Node      // nodes of the body.
+	HasBreak  bool        // indicates if contains a break statement.
 }
 
 func NewFor(pos *Position, init *Assignment, condition Expression, post *Assignment, body []Node) *For {
 	if body == nil {
 		body = []Node{}
 	}
-	return &For{pos, init, condition, post, body}
+	return &For{pos, init, condition, post, body, false}
 }
 
 // ForRange node represents statements {% for ... range ... %} and
@@ -409,13 +410,14 @@ type ForRange struct {
 	*Position              // position in the source.
 	Assignment *Assignment // assignment.
 	Body       []Node      // nodes of the body.
+	HasBreak   bool        // indicates if contains a break statement.
 }
 
 func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
 	if body == nil {
 		body = []Node{}
 	}
-	return &ForRange{pos, assignment, body}
+	return &ForRange{pos, assignment, body, false}
 }
 
 // Break node represents a statement {% break %}.
@@ -459,11 +461,12 @@ type Switch struct {
 	Expr        Expression
 	LeadingText *Text
 	Cases       []*Case
+	HasBreak    bool // indicates if one (or more) cases contains break statement.
 }
 
 // NewSwitch returns a new Switch node.
 func NewSwitch(pos *Position, init Node, expr Expression, leadingText *Text, cases []*Case) *Switch {
-	return &Switch{pos, init, expr, leadingText, cases}
+	return &Switch{pos, init, expr, leadingText, cases, false}
 }
 
 // TypeSwitch node represents a statement {% switch ... %} on types.
@@ -473,11 +476,12 @@ type TypeSwitch struct {
 	Assignment  *Assignment
 	LeadingText *Text
 	Cases       []*Case
+	HasBreak    bool // indicates if one (or more) cases contains break statement.
 }
 
 // NewTypeSwitch returns a new TypeSwitch node.
 func NewTypeSwitch(pos *Position, init Node, assignment *Assignment, leadingText *Text, cases []*Case) *TypeSwitch {
-	return &TypeSwitch{pos, init, assignment, leadingText, cases}
+	return &TypeSwitch{pos, init, assignment, leadingText, cases, false}
 }
 
 // Case node represents a statement {% case ... %} or {% default %}.

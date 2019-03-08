@@ -93,6 +93,7 @@ func TestCheckerExpressions(t *testing.T) {
 // TODO (Gianluca): add blank identifier ("_") support.
 
 const ok = ""
+const missingReturn = "missing return at end of function"
 
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
@@ -224,7 +225,26 @@ var checkerStmts = map[string]string{
 	`_ = func(     )         { if true { }; { a := 10; { _ = b } ; _ = a } }`: `undefined: b`,
 	`_ = func(     ) (s int) { s := 0; return 0                            }`: `no new variables on left side of :=`,
 	`_ = func(s int)         { s := 0; _ = s                               }`: `no new variables on left side of :=`,
-	// `_ = func() int { }`: `missing return at end of function`,
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements
+	`_ = func() int { return 1                                          }`: ok,            // (1)
+	`_ = func() int { { return 0 }                                      }`: ok,            // (3)
+	`_ = func() int { { }                                               }`: missingReturn, // (3) non terminating block
+	`_ = func() int { if true { return 1 } else { return 2 }            }`: ok,            // (4)
+	`_ = func() int { if true { return 1 } else { }                     }`: missingReturn, // (4) no else
+	`_ = func() int { if true { } else { }                              }`: missingReturn, // (4) no then, no else
+	`_ = func() int { if true { } else { return 1 }                     }`: missingReturn, // (4) no then
+	`_ = func() int { for { }                                           }`: ok,            // (5)
+	`_ = func() int { for { break }                                     }`: missingReturn, // (5) has break
+	`_ = func() int { for { { break } }                                 }`: missingReturn, // (5) has break
+	`_ = func() int { for true { }                                      }`: missingReturn, // (5) has loop condition
+	`_ = func() int { for i := 0; i < 10; i++ { }                       }`: missingReturn, // (5) has loop condition
+	`_ = func() int { switch { case true: return 0; default: return 0 } }`: ok,            // (6)
+	`_ = func() int { switch { case true: fallthrough; default: }       }`: ok,            // (6)
+	`_ = func() int { switch { }                                        }`: missingReturn, // (6) no default
+	`_ = func() int { switch { case true: return 0; default:  }         }`: missingReturn, // (6) non terminating default
+	`_ = func() int { a := 2; _ = a                                     }`: missingReturn,
+	`_ = func() int {                                                   }`: missingReturn,
 
 	// Return statements with named result parameters.
 	`_ = func() (a int)           { return             }`: ok,

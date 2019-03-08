@@ -166,12 +166,13 @@ type ancestor struct {
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path         string
-	imports      map[string]*Package // TODO (Gianluca): review!
-	fileBlock    typeCheckerScope
-	packageBlock typeCheckerScope
-	scopes       []typeCheckerScope
-	ancestors    []*ancestor
+	path                 string
+	imports              map[string]*Package // TODO (Gianluca): review!
+	fileBlock            typeCheckerScope
+	packageBlock         typeCheckerScope
+	scopes               []typeCheckerScope
+	ancestors            []*ancestor
+	terminatingStatement bool // https://golang.org/ref/spec#Terminating_statements
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -209,6 +210,14 @@ func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.Typ
 // AssignScope assigns value to name in the last scope.
 func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
+}
+
+func (tc *typechecker) addToAncestors(n ast.Node) {
+	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), n})
+}
+
+func (tc *typechecker) removeLastAncestor() {
+	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 }
 
 // getCurrentFunc returns the current function and the related scope level. If
@@ -539,6 +548,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 		}
 		tc.checkNodes(expr.Body.Nodes)
+		// «If the function's signature declares result parameters, the
+		// function body's statement list must end in a terminating
+		// statement.»
+		if len(expr.Type.Result) > 0 {
+			if !tc.terminatingStatement {
+				panic(tc.errorf(expr, "missing return at end of function"))
+			}
+		}
 		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 		tc.RemoveCurrentScope()
 		return &ast.TypeInfo{Type: t.Type}

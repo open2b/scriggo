@@ -22,7 +22,13 @@ func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 }
 
 // checkNodes checks nodes an orderer list of statements.
+//
+// TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and
+// 'tc.checkNodesInNewScope'
+//
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
+
+	tc.terminatingStatement = false
 
 	for _, node := range nodes {
 
@@ -34,6 +40,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.If:
 
+			isTerminating := true
 			tc.AddScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
@@ -50,6 +57,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			if node.Then != nil {
 				tc.checkNodesInNewScope(node.Then.Nodes)
+				isTerminating = isTerminating && tc.terminatingStatement
 			}
 			if node.Else != nil {
 				switch els := node.Else.(type) {
@@ -59,83 +67,147 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
 				}
+				isTerminating = isTerminating && tc.terminatingStatement
+			} else {
+				isTerminating = false
 			}
 			tc.RemoveCurrentScope()
+			tc.terminatingStatement = isTerminating
 
 		case *ast.For:
 
+			isTerminating := true
 			tc.AddScope()
+			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			expr := tc.checkExpression(node.Condition)
-			// TODO (Gianluca): same as for if
-			if !tc.isAssignableTo(expr, boolType) {
-				// TODO (Gianluca): error message must include default type.
-				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
+			if node.Condition != nil {
+				isTerminating = false
+				expr := tc.checkExpression(node.Condition)
+				// TODO (Gianluca): same as for if
+				if !tc.isAssignableTo(expr, boolType) {
+					// TODO (Gianluca): error message must include default type.
+					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
+				}
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
 			}
 			// TODO (Gianluca): can node.Body be nil?
 			tc.checkNodesInNewScope(node.Body)
+			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
+			tc.terminatingStatement = isTerminating && !node.HasBreak
 
 		case *ast.ForRange:
 
 			tc.AddScope()
+			tc.addToAncestors(node)
 			tc.checkAssignment(node.Assignment)
 			tc.checkNodesInNewScope(node.Body)
+			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
+			tc.terminatingStatement = !node.HasBreak
 
 		case *ast.Assignment:
 
 			tc.checkAssignment(node)
+			tc.terminatingStatement = false
 
-		case *ast.Break, *ast.Continue:
+		case *ast.Break:
+
+			found := false
+			for i := len(tc.ancestors) - 1; i >= 0; i-- {
+				switch n := tc.ancestors[i].node.(type) {
+				case *ast.For:
+					n.HasBreak = true
+					found = true
+					break
+				case *ast.ForRange:
+					n.HasBreak = true
+					found = true
+					break
+				case *ast.Switch:
+					n.HasBreak = true
+					found = true
+					break
+				case *ast.TypeSwitch:
+					n.HasBreak = true
+					found = true
+					break
+				}
+			}
+			// TODO (Gianluca): remove this check from parser.
+			if !found {
+				panic(tc.errorf(node, "break is not in a loop, switch, or select"))
+			}
+			tc.terminatingStatement = false
+
+		case *ast.Continue:
+			tc.terminatingStatement = false
 
 		case *ast.Return:
 
 			tc.checkReturn(node)
+			tc.terminatingStatement = true
 
 		case *ast.Switch:
 
+			isTerminating := true
 			tc.AddScope()
+			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
+			hasFallthrough := false
+			hasDefault := false
 			for _, cas := range node.Cases {
+				hasFallthrough = hasFallthrough || cas.Fallthrough
+				hasDefault = hasDefault || len(cas.Expressions) == 0
 				err := tc.checkCase(cas, false, node.Expr)
 				if err != nil {
 					panic(err)
 				}
+				isTerminating = isTerminating && (tc.terminatingStatement || hasFallthrough)
 			}
+			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
+			tc.terminatingStatement = isTerminating && !node.HasBreak && hasDefault
 
 		case *ast.TypeSwitch:
 
+			isTerminating := true
 			tc.AddScope()
+			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
 			}
+			hasDefault := false
 			for _, cas := range node.Cases {
+				hasDefault = hasDefault || len(cas.Expressions) == 0
 				err := tc.checkCase(cas, true, nil)
 				if err != nil {
 					panic(err)
 				}
+				isTerminating = isTerminating && tc.terminatingStatement
 			}
+			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
+			tc.terminatingStatement = isTerminating && !node.HasBreak && hasDefault
 
 		case *ast.Const, *ast.Var:
 
 			tc.checkAssignment(node)
+			tc.terminatingStatement = false
 
 		case *ast.Value:
 
 			tc.checkExpression(node.Expr)
+			tc.terminatingStatement = false
 
 		case *ast.Identifier:
 
@@ -151,6 +223,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			// TODO (Gianluca): some builtins should print error: "%s evaluated but not used"
 			tc.checkCallExpression(node, true)
+			// TODO (Gianluca): should only match builtin function "panic".
+			if node.Func.String() == "panic" {
+				tc.terminatingStatement = true
+			} else {
+				tc.terminatingStatement = false
+			}
 
 		case ast.Expression:
 
@@ -172,13 +250,28 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 // parent switch.
 func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr ast.Expression) error {
 	tc.AddScope()
-	switchExprTyp := tc.typeof(switchExpr, noEllipses)
-	typ := switchExprTyp.Type
-	if typ == nil {
-		if switchExprTyp.Value == nil {
-			typ = reflect.TypeOf(false)
+	var switchExprTyp *ast.TypeInfo
+	var typ reflect.Type
+	if switchExpr == nil {
+		typ = boolType
+		switchExprTyp = &ast.TypeInfo{Type: boolType}
+	} else {
+		switchExprTyp = tc.checkExpression(switchExpr)
+		if switchExprTyp.Type != nil {
+			typ = switchExprTyp.Type
+		} else if switchExprTyp.Value != nil {
+			switch switchExprTyp.Kind() {
+			case reflect.Bool:
+				typ = boolType
+			case reflect.Int:
+				typ = intType
+			case reflect.Float64:
+				typ = reflect.TypeOf(float64(0))
+			case reflect.String:
+				typ = reflect.TypeOf("")
+			}
 		} else {
-			typ = assignableDefaultType[switchExprTyp.Value.(*ast.UntypedValue).DefaultType].Type
+			typ = boolType // untyped bool.
 		}
 	}
 	for _, expr := range node.Expressions {
