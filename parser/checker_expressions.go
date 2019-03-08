@@ -130,7 +130,7 @@ var universe = typeCheckerScope{
 	"len":        builtinTypeInfo,
 	"make":       builtinTypeInfo,
 	"new":        builtinTypeInfo,
-	"nil":        &ast.TypeInfo{Properties:ast.PropertyNil},
+	"nil":        &ast.TypeInfo{Properties: ast.PropertyNil},
 	"panic":      builtinTypeInfo,
 	"print":      builtinTypeInfo,
 	"println":    builtinTypeInfo,
