@@ -159,9 +159,9 @@ var universe = typeCheckerScope{
 	"uintptr":    &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
 }
 
-type funcBound struct {
-	bound int
-	node  *ast.Func
+type ancestor struct {
+	scopeLevel int
+	node       ast.Node
 }
 
 // typechecker represents the state of a type checking.
@@ -171,7 +171,7 @@ type typechecker struct {
 	fileBlock    typeCheckerScope
 	packageBlock typeCheckerScope
 	scopes       []typeCheckerScope
-	funcBounds   []*funcBound
+	ancestors    []*ancestor
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -211,14 +211,25 @@ func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
 }
 
+// getCurrentFunc returns the current function and the related scope level. If
+// getCurrentFunc is called when not in a function body, returns nil and 0.
+func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
+	for i := len(tc.ancestors) - 1; i >= 0; i-- {
+		if f, ok := tc.ancestors[i].node.(*ast.Func); ok {
+			return f, tc.ancestors[i].scopeLevel
+		}
+	}
+	return nil, 0
+}
+
 func (tc *typechecker) CheckUpValue(name string) string {
-	bound := tc.funcBounds[len(tc.funcBounds)-1].bound
+	_, funcBound := tc.getCurrentFunc()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, _ := range tc.scopes[i] {
 			if n != name {
 				continue
 			}
-			if i < bound-1 { // out of current function scope.
+			if i < funcBound-1 { // out of current function scope.
 				tc.scopes[i][n].Properties |= ast.PropertyMustBeReferenced
 				return name
 			}
@@ -230,11 +241,11 @@ func (tc *typechecker) CheckUpValue(name string) string {
 
 // TODO (Gianluca): check if using all declared identifiers.
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
-	if len(tc.funcBounds) > 0 {
+	fun, _ := tc.getCurrentFunc()
+	if fun != nil {
 		uv := tc.CheckUpValue(ident.Name)
 		if uv != "" {
-			lastFunc := tc.funcBounds[len(tc.funcBounds)-1]
-			lastFunc.node.Upvalues = append(lastFunc.node.Upvalues, uv)
+			fun.Upvalues = append(fun.Upvalues, uv)
 		}
 	}
 	i, ok := tc.LookupScope(ident.Name, false)
@@ -512,7 +523,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Func:
 		tc.AddScope()
 		t := tc.checkType(expr.Type, noEllipses)
-		tc.funcBounds = append(tc.funcBounds, &funcBound{len(tc.scopes), expr})
+		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
 		for _, f := range expr.Type.Parameters {
 			if f.Ident != nil {
@@ -528,7 +539,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 		}
 		tc.checkNodes(expr.Body.Nodes)
-		tc.funcBounds = tc.funcBounds[:len(tc.funcBounds)-1]
+		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 		tc.RemoveCurrentScope()
 		return &ast.TypeInfo{Type: t.Type}
 

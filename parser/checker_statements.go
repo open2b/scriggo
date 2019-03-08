@@ -202,11 +202,12 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 // https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 
-	if len(tc.funcBounds) == 0 {
+	fun, funcBound := tc.getCurrentFunc()
+	if fun == nil {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}
 
-	expected := tc.funcBounds[len(tc.funcBounds)-1].node.Type.Result
+	expected := fun.Type.Result
 	got := node.Values
 
 	if len(expected) == 0 && len(got) == 0 {
@@ -217,7 +218,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	// shadowed.
 	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
 		// If "return" belongs to an inner scope (not the function scope).
-		if len(tc.scopes) > tc.funcBounds[len(tc.funcBounds)-1].bound {
+		if len(tc.scopes) > funcBound {
 			for _, e := range expected {
 				name := e.Ident.Name
 				_, ok := tc.LookupScope(name, true)
