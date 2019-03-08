@@ -39,8 +39,8 @@ var checkerExprs = []struct {
 	{`a`, tiBool(), typeCheckerScope{"a": tiBool()}},
 	{`a`, tiAddrBool(), typeCheckerScope{"a": tiAddrBool()}},
 	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
-	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},
-	//{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}}, TODO(marco)
+	//{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},  TODO(marco)
+	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}},
 	//{"[...]int{1}[0]", tiAddrInt(), nil}, TODO(gianluca)
 
 	// Index.
@@ -52,7 +52,6 @@ var checkerExprs = []struct {
 	{`"a"[0.0]`, tiByte(), nil},
 	{`"aa"[1.0]`, tiByte(), nil},
 	{`"aaa"[1+1]`, tiByte(), nil},
-
 }
 
 func TestCheckerExpressions(t *testing.T) {
