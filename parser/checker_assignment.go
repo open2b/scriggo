@@ -268,8 +268,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 					// «If that value is an untyped constant, it is first
 					// implicitly converted to its default type.»
 					newValueTi = assignableDefaultType[valueTi.Value.(*ast.UntypedValue).DefaultType]
-
 				}
+
+				v.SetTypeInfo(newValueTi)
+
 			}
 		}
 

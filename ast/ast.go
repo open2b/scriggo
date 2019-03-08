@@ -360,13 +360,14 @@ func (n *FuncType) String() string {
 type Func struct {
 	expression
 	*Position
-	Ident *Identifier // name, nil for function literals.
-	Type  *FuncType   // type.
-	Body  *Block      // body.
+	Ident    *Identifier // name, nil for function literals.
+	Type     *FuncType   // type.
+	Body     *Block      // body.
+	Upvalues []string    // upvalues.
 }
 
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block) *Func {
-	return &Func{expression{}, pos, name, typ, body}
+	return &Func{expression{}, pos, name, typ, body, nil}
 }
 
 func (n *Func) String() string {

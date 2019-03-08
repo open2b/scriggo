@@ -638,3 +638,35 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		}
 	}
 }
+
+func TestFunctionUpvalues(t *testing.T) {
+	cases := map[string][]string{
+		`_ = func() { }`:                              nil,           // no variables.
+		`a := 1; _ = func() { }`:                      nil,           // a declared outside but not used.
+		`a := 1; _ = func() { _ = a }`:                []string{"a"}, // a declared outside and used.
+		`_ = func() { a := 1; _ = a }`:                nil,           // a declared inside and used.
+		`a := 1; _ = a; _ = func() { a := 1; _ = a }`: nil,           // a declared both outside and inside, used.
+
+		`a, b := 1, 1; _ = a + b; _ = func() { _ = a + b }`:               []string{"a", "b"},
+		`a, b := 1, 1; _ = a + b; _ = func() { b := 1; _ = a + b }`:       []string{"a"},
+		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
+	}
+	for src, expected := range cases {
+		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
+		tree, err := ParseSource([]byte(src), ast.ContextNone)
+		if err != nil {
+			t.Error(err)
+		}
+		tc.checkNodes(tree.Nodes)
+		got := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Values[0].(*ast.Func).Upvalues
+		if len(got) != len(expected) {
+			t.Errorf("bad upvalues for src: '%s': expected: %s, got: %s", src, expected, got)
+			continue
+		}
+		for i := range got {
+			if got[i] != expected[i] {
+				t.Errorf("bad upvalues for src: '%s': expected: %s, got: %s", src, expected, got)
+			}
+		}
+	}
+}

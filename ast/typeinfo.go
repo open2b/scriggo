@@ -21,11 +21,12 @@ type UntypedValue struct {
 type Properties uint8
 
 const (
-	PropertyNil         Properties = 1 << (8 - 1 - iota) // is predeclared nil
-	PropertyIsType                                       // is a type
-	PropertyIsPackage                                    // is a package
-	PropertyIsBuiltin                                    // is a builtin
-	PropertyAddressable                                  // is addressable
+	PropertyNil              Properties = 1 << (8 - 1 - iota) // is predeclared nil
+	PropertyIsType                                            // is a type
+	PropertyIsPackage                                         // is a package
+	PropertyIsBuiltin                                         // is a builtin
+	PropertyAddressable                                       // is addressable
+	PropertyMustBeReferenced                                  // must be referenced when declared
 )
 
 type TypeInfo struct {
@@ -58,6 +59,11 @@ func (ti *TypeInfo) IsBuiltin() bool {
 // Addressable reports whether it is a addressable.
 func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
+}
+
+// MustBeReferenced reports whether ti must be referenced when gets declared.
+func (ti *TypeInfo) MustBeReferenced() bool {
+	return ti.Properties&PropertyMustBeReferenced != 0
 }
 
 // Kind returns the kind of the type, the default type for untyped

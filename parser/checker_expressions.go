@@ -166,6 +166,8 @@ type typechecker struct {
 	fileBlock    typeCheckerScope
 	packageBlock typeCheckerScope
 	scopes       []typeCheckerScope
+	funcBounds   []int
+	currentFunc  *ast.Func
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -182,14 +184,13 @@ func (tc *typechecker) RemoveCurrentScope() {
 // false if the name does not exist. If justCurrentScope is true, LookupScope
 // looks up only in the current scope.
 func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
-	// TODO (Gianluca): is checking if len(tc.scopes) > 0 really necessary? Or
-	// there must be at least one scope for every execution?
-	if justCurrentScope && len(tc.scopes) > 0 {
+	if justCurrentScope {
 		for n, ti := range tc.scopes[len(tc.scopes)-1] {
 			if n == name {
 				return ti, true
 			}
 		}
+		return nil, false
 	}
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, ti := range tc.scopes[i] {
@@ -206,8 +207,31 @@ func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
 }
 
+func (tc *typechecker) CheckUpValue(name string) string {
+	bound := tc.funcBounds[len(tc.funcBounds)-1] - 1
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		for n, _ := range tc.scopes[i] {
+			if n != name {
+				continue
+			}
+			if i < bound { // out of current function scope.
+				tc.scopes[i][n].Properties |= ast.PropertyMustBeReferenced
+				return name
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
 // TODO (Gianluca): check if using all declared identifiers.
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
+	if len(tc.funcBounds) > 0 {
+		uv := tc.CheckUpValue(ident.Name)
+		if uv != "" {
+			tc.currentFunc.Upvalues = append(tc.currentFunc.Upvalues, uv)
+		}
+	}
 	i, ok := tc.LookupScope(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
@@ -483,7 +507,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.Func:
 		t := tc.checkType(expr.Type, noEllipses)
+		tc.AddScope()
+		tc.funcBounds = append(tc.funcBounds, len(tc.scopes))
+		tc.currentFunc = expr
 		tc.checkNodes(expr.Body.Nodes)
+		tc.currentFunc = nil
+		tc.funcBounds = tc.funcBounds[:len(tc.funcBounds)-1]
+		tc.RemoveCurrentScope()
 		return &ast.TypeInfo{Type: t.Type}
 
 	case *ast.Call:
