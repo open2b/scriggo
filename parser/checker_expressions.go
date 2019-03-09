@@ -644,47 +644,57 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr, "cannot slice %v (type %s)", expr.Expr, t))
 			}
 		}
+		var err error
+		var lv, hv interface{}
 		if expr.Low != nil {
 			low := tc.checkExpression(expr.Low)
-			v, err := tc.convert(low, intType, false)
+			lv, err = tc.convert(low, intType, false)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.Low, low)
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			if v.(int) < 0 {
-				panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.Low))
-			}
-			if t.Value != nil {
-				if s := constantString(t); len(s) < v.(int) {
-					panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", v, len(s)))
+			if lv != nil {
+				if lv.(int) < 0 {
+					panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.Low))
+				}
+				if t.Value != nil {
+					if s := constantString(t); len(s) < lv.(int) {
+						panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", lv, len(s)))
+					}
 				}
 			}
 		}
 		if expr.High != nil {
 			high := tc.checkExpression(expr.High)
-			v, err := tc.convert(high, intType, false)
+			hv, err = tc.convert(high, intType, false)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.High, high)
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			if v.(int) < 0 {
-				panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.High))
-			}
-			if t.Value != nil {
-				if s := constantString(t); len(s) < v.(int) {
-					panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", v, len(s)))
+			if hv != nil {
+				if hv.(int) < 0 {
+					panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.High))
+				}
+				if t.Value != nil {
+					if s := constantString(t); len(s) < hv.(int) {
+						panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", hv, len(s)))
+					}
+				}
+				if lv != nil && lv.(int) > hv.(int) {
+					panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
 				}
 			}
 		}
-		switch kind {
-		case reflect.String:
+		if t.Type == nil {
 			return &ast.TypeInfo{Type: universe["string"].Type}
-		case reflect.Slice:
-			return &ast.TypeInfo{Type: reflect.SliceOf(t.Type.Elem())}
+		}
+		switch kind {
+		case reflect.String, reflect.Slice:
+			return &ast.TypeInfo{Type: t.Type}
 		case reflect.Array:
 			return &ast.TypeInfo{Type: reflect.SliceOf(t.Type.Elem())}
 		case reflect.Ptr:

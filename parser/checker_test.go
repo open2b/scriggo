@@ -132,6 +132,7 @@ var checkerExprErrors = []struct {
 	{`"a"[:true]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
 	{`"a"[2:]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[:2]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
+	{`"a"[1:0]`, tierr(1, 4, `invalid slice index: 1 > 0`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
