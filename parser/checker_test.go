@@ -222,6 +222,8 @@ var checkerStmts = map[string]string{
 	`v := 1 + 2; v = 3 + 4`:           ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
 	`v1 := 1; v2 := "a"; v1 = v2`:     `cannot use v2 (type string) as type int in assignment`,
+	`f := func() int { return 0 } ; var a int = f() ; _ = a`:    ok,
+	`f := func() int { return 0 } ; var a string = f() ; _ = a`: `cannot use f() (type int) as type string in assignment`,
 
 	// Increments and decrements.
 	`a := 1; a++`:   ok,

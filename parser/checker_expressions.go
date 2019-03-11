@@ -565,6 +565,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if len(types) > 1 {
 			panic(tc.errorf(expr, "multiple-value %v in single-value context", expr))
 		}
+		return types[0]
 
 	case *ast.Index:
 		t := tc.checkExpression(expr.Expr)
