@@ -718,6 +718,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 	stringType := universe["string"].Type
 	float64Type := universe["float64"].Type
 	intSliceType := reflect.TypeOf([]int{})
+	stringSliceType := reflect.TypeOf([]string{})
 	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
 	byteType := reflect.TypeOf(byte(0))
@@ -746,6 +747,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: &ast.TypeInfo{Type: intSliceType}, T: myIntSliceType, assignable: true},     // x is not a defined type, but T is
 		{x: &ast.TypeInfo{Type: myIntSliceType}, T: intSliceType, assignable: true},     // x is a defined type, but T is not
 		{x: &ast.TypeInfo{Type: myIntSliceType}, T: myIntSliceType2, assignable: false}, // x and T are both defined types
+		{x: &ast.TypeInfo{Type: intSliceType}, T: stringSliceType, assignable: false},   // underlying types are different
 
 		// «T is an interface type and x implements T.»
 		{x: tiInt(), T: emptyInterfaceType, assignable: true},

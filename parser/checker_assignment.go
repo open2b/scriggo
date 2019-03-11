@@ -347,6 +347,24 @@ var assignableDefaultType = [...]*ast.TypeInfo{
 	reflect.Bool:       &ast.TypeInfo{Type: universe["bool"].Type, Properties: ast.PropertyAddressable},
 }
 
+// sameUnderlyingType returns true if t1 and t2 has the same underlying type.
+func sameUnderlyingType(t1, t2 reflect.Type) bool {
+	switch k1 := t1.Kind(); k1 {
+	case reflect.Slice, reflect.Array:
+		if t2.Kind() != k1 {
+			return false
+		}
+		return sameUnderlyingType(t1.Elem(), t2.Elem())
+	case reflect.Map:
+		if t2.Kind() != k1 {
+			return false
+		}
+		return sameUnderlyingType(t1.Key(), t2.Key()) && sameUnderlyingType(t1.Elem(), t2.Elem())
+	default:
+		return k1 == t2.Kind()
+	}
+}
+
 // isAssignableTo reports whether x is assignable to type T.
 // See https://golang.org/ref/spec#Assignability for details.
 //
@@ -363,7 +381,7 @@ func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
 
 	// «x's type V and T have identical underlying types and at least one of V
 	// or T is not a defined type.»
-	if x.Type != nil && x.Type.Kind() == T.Kind() {
+	if x.Type != nil && sameUnderlyingType(x.Type, T) {
 		xIsNotDefType := x.Type.Name() == ""
 		TIsNotDefType := T.Name() == ""
 		if xIsNotDefType || TIsNotDefType {
