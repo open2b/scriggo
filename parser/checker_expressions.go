@@ -1043,7 +1043,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		}
 		a := tc.checkExpression(arg)
 		if !tc.isAssignableTo(a, in) {
-			panic(tc.errorf(expr.Args[i], "cannot use %s (type %s) as type %s in argument to %s", expr.Args[i], a, in, expr.Func))
+			panic(tc.errorf(expr.Args[i], "cannot use %s (type %s) as type %s in argument to %s", expr.Args[i], a.ShortString(), in, expr.Func))
 		}
 	}
 
