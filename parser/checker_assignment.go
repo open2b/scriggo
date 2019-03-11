@@ -262,13 +262,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				//  «[if no types are presents], each variable is given the type
 				//  of the corresponding initialization value in the
 				//  assignment.»
-				if valueTi.Type != nil {
-					newValueTi.Type = valueTi.Type
-				} else {
-					// «If that value is an untyped constant, it is first
-					// implicitly converted to its default type.»
-					newValueTi = assignableDefaultType[valueTi.Value.(*ast.UntypedValue).DefaultType]
-				}
+				//
+				// «If that value is an untyped constant, it is first
+				// implicitly converted to its default type.»
+				newValueTi.Type = valueTi.Type
 			}
 			v.SetTypeInfo(newValueTi)
 			hasBeenDeclared = true
@@ -290,7 +287,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			panic(tc.errorf(node, "non name %s on left side of :=", variable))
 		}
 		variableTi := tc.checkExpression(variable)
-		switch variableTi.Kind() {
+		switch variableTi.Type.Kind() {
 		case reflect.Slice, reflect.Map:
 			// Always addressable when used in indexing operation.
 		case reflect.Array:

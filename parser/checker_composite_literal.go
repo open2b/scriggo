@@ -8,7 +8,7 @@ package parser
 
 import (
 	"go/constant"
-	gotoken "go/token"
+	"math/big"
 	"reflect"
 
 	"scrigo/ast"
@@ -71,10 +71,15 @@ func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind refl
 		for _, f := range found {
 			areEqual := false
 			switch v1 := value.(type) {
-			case *ast.UntypedValue:
-				if v2, ok := f.(*ast.UntypedValue); ok {
-					areEqual = constant.Compare(v1.Number, gotoken.EQL, v2.Number)
-				}
+			case constant.Value:
+				v2 := f.(constant.Value)
+				areEqual = v1.ExactString() == v2.ExactString()
+			case *big.Int:
+				v2 := f.(*big.Int)
+				areEqual = v1.Cmp(v2) == 0
+			case *big.Float:
+				v2 := f.(*big.Float)
+				areEqual = v1.Cmp(v2) == 0
 			default:
 				areEqual = f == value
 			}

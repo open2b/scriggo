@@ -7,21 +7,15 @@
 package ast
 
 import (
-	"go/constant"
 	"reflect"
 )
-
-type UntypedValue struct {
-	DefaultType reflect.Kind
-	Bool        bool
-	String      string
-	Number      constant.Value
-}
 
 type Properties uint8
 
 const (
 	PropertyNil              Properties = 1 << (8 - 1 - iota) // is predeclared nil
+	PropertyUntyped                                           // is untyped
+	PropertyIsConstant                                        // is a constant
 	PropertyIsType                                            // is a type
 	PropertyIsPackage                                         // is a package
 	PropertyIsBuiltin                                         // is a builtin
@@ -30,15 +24,24 @@ const (
 )
 
 type TypeInfo struct {
-	Type       reflect.Type // Type; nil if untyped.
+	Type       reflect.Type // Type.
 	Properties Properties   // Properties.
-	Value      interface{}  // Constant value; nil if not constant.
-	Package    *Package     // Package; nil if not a package.
+	Value      interface{}  // Value; for packages has type *Package.
 }
 
 // Nil reports whether it is the predeclared nil.
 func (ti *TypeInfo) Nil() bool {
 	return ti.Properties&PropertyNil != 0
+}
+
+// Untyped reports whether it is untyped.
+func (ti *TypeInfo) Untyped() bool {
+	return ti.Properties&PropertyUntyped != 0
+}
+
+// IsConstant reports whether it is a constant.
+func (ti *TypeInfo) IsConstant() bool {
+	return ti.Properties&PropertyIsConstant != 0
 }
 
 // IsType reports whether it is a type.
@@ -56,7 +59,7 @@ func (ti *TypeInfo) IsBuiltin() bool {
 	return ti.Properties&PropertyIsBuiltin != 0
 }
 
-// Addressable reports whether it is a addressable.
+// Addressable reports whether it is addressable.
 func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
 }
@@ -66,22 +69,7 @@ func (ti *TypeInfo) MustBeReferenced() bool {
 	return ti.Properties&PropertyMustBeReferenced != 0
 }
 
-// Kind returns the kind of the type, the default type for untyped
-// constants and reflect.Bool for the untyped bool.
-//
-// Returns reflect.Invalid for the predeclared nil, packages and types.
-func (ti *TypeInfo) Kind() reflect.Kind {
-	if ti.Nil() || ti.IsPackage() || ti.IsType() {
-		return reflect.Invalid
-	}
-	if ti.Type == nil {
-		if ti.Value == nil {
-			return reflect.Bool
-		}
-		return ti.Value.(*UntypedValue).DefaultType
-	}
-	return ti.Type.Kind()
-}
+var runeType = reflect.TypeOf(rune(0))
 
 // String returns a string representation.
 func (ti *TypeInfo) String() string {
@@ -89,47 +77,22 @@ func (ti *TypeInfo) String() string {
 		return "nil"
 	}
 	var s string
-	if ti.Type == nil {
+	if ti.Untyped() {
 		s = "untyped "
 	}
-	if ti.Value != nil {
-		switch v := ti.Value.(type) {
-		case bool:
-			return s + "bool"
-		case string:
-			return s + "string"
-		case *UntypedValue:
-			if v.DefaultType == reflect.Int32 {
-				return s + "rune"
-			}
-			return s + v.DefaultType.String()
-		}
+	if ti.IsConstant() && ti.Type == runeType {
+		return s + "rune"
 	}
-	if ti.Type == nil {
-		return s + "bool"
-	}
-	return ti.Type.String()
+	return s + ti.Type.String()
 }
 
 // ShortString returns a short string representation.
 func (ti *TypeInfo) ShortString() string {
-	switch {
-	case ti.Nil():
+	if ti.Nil() {
 		return "nil"
-	case ti.Value != nil:
-		switch v := ti.Value.(type) {
-		case bool:
-			return "bool"
-		case string:
-			return "string"
-		case *UntypedValue:
-			if v.DefaultType == reflect.Int32 {
-				return "rune"
-			}
-			return v.DefaultType.String()
-		}
-	case ti.Type == nil:
-		return "bool"
+	}
+	if ti.IsConstant() && ti.Type == runeType {
+		return "rune"
 	}
 	return ti.Type.String()
 }

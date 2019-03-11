@@ -19,16 +19,23 @@ import (
 
 const noEllipses = -1
 
-// TODO (Gianluca): implement with a bits array (int32?), and use bit
-// operations to read/write.
+const (
+	maxInt  = int(maxUint >> 1)
+	minInt  = -maxInt - 1
+	maxUint = ^uint(0)
+)
 
-var reflectOfDefaultType = [...]reflect.Type{
-	reflect.Int:        universe["int"].Type,
-	reflect.Int32:      universe["rune"].Type,
-	reflect.Float64:    universe["float64"].Type,
-	reflect.Complex128: universe["complex128"].Type,
-	reflect.String:     universe["string"].Type,
-	reflect.Bool:       universe["bool"].Type,
+var integerRanges = [...]struct{ min, max *big.Int }{
+	{big.NewInt(int64(minInt)), big.NewInt(int64(maxInt))}, // int
+	{big.NewInt(-1 << 7), big.NewInt(1<<7 - 1)},            // int8
+	{big.NewInt(-1 << 15), big.NewInt(1<<15 - 1)},          // int16
+	{big.NewInt(-1 << 31), big.NewInt(1<<31 - 1)},          // int32
+	{big.NewInt(-1 << 63), big.NewInt(1<<63 - 1)},          // int64
+	{nil, big.NewInt(0).SetUint64(uint64(maxUint))},        // uint
+	{nil, big.NewInt(1<<8 - 1)},                            // uint8
+	{nil, big.NewInt(1<<16 - 1)},                           // uint16
+	{nil, big.NewInt(1<<32 - 1)},                           // uint32
+	{nil, big.NewInt(0).SetUint64(1<<64 - 1)},              // uint64
 }
 
 var numericKind = [...]bool{
@@ -44,6 +51,8 @@ var numericKind = [...]bool{
 	reflect.Uint64:        true,
 	reflect.Float32:       true,
 	reflect.Float64:       true,
+	reflect.Complex64:     true,
+	reflect.Complex128:    true,
 	reflect.UnsafePointer: false,
 }
 
@@ -113,11 +122,16 @@ type typeCheckerScope map[string]*ast.TypeInfo
 type HTML string
 
 var boolType = reflect.TypeOf(false)
+var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
+var int32Type = reflect.TypeOf(int32(0))
+var float64Type = reflect.TypeOf(float64(0))
 
 var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
 var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType}
-var int32TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int32(0)), Properties: ast.PropertyIsType}
+var int32TypeInfo = &ast.TypeInfo{Type: int32Type, Properties: ast.PropertyIsType}
+
+var untypedBoolTypeInfo = &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}
 
 var universe = typeCheckerScope{
 	"append":     builtinTypeInfo,
@@ -142,16 +156,16 @@ var universe = typeCheckerScope{
 	"complex64":  &ast.TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: ast.PropertyIsType},
 	"error":      &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
 	"float32":    &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
-	"float64":    &ast.TypeInfo{Type: reflect.TypeOf(float64(0)), Properties: ast.PropertyIsType},
-	"false":      &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: reflect.Bool, Bool: false}},
+	"float64":    &ast.TypeInfo{Type: float64Type, Properties: ast.PropertyIsType},
+	"false":      &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: false},
 	"int":        &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
 	"int16":      &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
 	"int32":      int32TypeInfo,
 	"int64":      &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
 	"int8":       uint8TypeInfo,
 	"rune":       int32TypeInfo,
-	"string":     &ast.TypeInfo{Type: reflect.TypeOf(""), Properties: ast.PropertyIsType},
-	"true":       &ast.TypeInfo{Value: &ast.UntypedValue{DefaultType: reflect.Bool, Bool: true}},
+	"string":     &ast.TypeInfo{Type: stringType, Properties: ast.PropertyIsType},
+	"true":       &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: true},
 	"uint":       &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
 	"uint16":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
 	"uint32":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
@@ -320,134 +334,49 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.String:
 		return &ast.TypeInfo{
-			Value: &ast.UntypedValue{
-				DefaultType: reflect.String,
-				String:      expr.Text,
-			},
+			Type:       stringType,
+			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Value:      expr.Text,
 		}
 
 	case *ast.Int:
 		return &ast.TypeInfo{
-			Value: &ast.UntypedValue{
-				DefaultType: reflect.Int,
-				Number:      constant.MakeFromLiteral(expr.Value.String(), gotoken.INT, 0),
-			},
+			Type:       intType,
+			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Value:      constant.MakeFromLiteral(expr.Value.String(), gotoken.INT, 0),
 		}
 
 	case *ast.Rune:
 		return &ast.TypeInfo{
-			Value: &ast.UntypedValue{
-				DefaultType: reflect.Int32,
-				Number:      constant.MakeInt64(int64(expr.Value)),
-			},
+			Type:       int32Type,
+			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Value:      constant.MakeInt64(int64(expr.Value)),
 		}
 
 	case *ast.Float:
 		return &ast.TypeInfo{
-			Value: &ast.UntypedValue{
-				DefaultType: reflect.Float64,
-				Number:      constant.MakeFromLiteral(expr.Value.Text('f', -1), gotoken.FLOAT, 0),
-			},
+			Type:       float64Type,
+			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Value:      constant.MakeFromLiteral(expr.Value.Text('f', -1), gotoken.FLOAT, 0),
 		}
 
 	case *ast.Parentesis:
 		panic("unexpected parentesis")
 
 	case *ast.UnaryOperator:
-		t := tc.checkExpression(expr.Expr)
-		if t.Nil() {
-			panic(tc.errorf(expr, "invalid operation: ! nil"))
+		_ = tc.checkExpression(expr.Expr)
+		t, err := tc.unaryOp(expr)
+		if err != nil {
+			panic(tc.errorf(expr, "%s", err))
 		}
-		switch expr.Op {
-		case ast.OperatorNot:
-			if c := t.Value; c != nil {
-				if c.(*ast.UntypedValue).DefaultType != reflect.Bool {
-					panic(tc.errorf(expr, "invalid operation: ! %s", expr))
-				}
-				c = &ast.UntypedValue{DefaultType: c.(*ast.UntypedValue).DefaultType, Bool: !c.(*ast.UntypedValue).Bool}
-				t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Value: c}
-			} else if t.Type != nil && t.Type.Kind() != reflect.Bool {
-				panic(tc.errorf(expr, "invalid operation: ! %s", expr))
-			}
-			return t
-		case ast.OperatorAddition, ast.OperatorSubtraction:
-			if c := t.Value; c != nil {
-				dt := c.(*ast.UntypedValue).DefaultType
-				if dt == reflect.String || dt == reflect.Bool {
-					panic(tc.errorf(expr, "invalid operation: %s %s", expr.Op, t))
-				}
-				if expr.Op == ast.OperatorSubtraction {
-					c = &ast.UntypedValue{DefaultType: dt, Number: constant.UnaryOp(gotoken.SUB, c.(*ast.UntypedValue).Number, 0)}
-					t = &ast.TypeInfo{Properties: t.Properties, Type: t.Type, Value: c}
-				}
-			} else if t.Type != nil && !numericKind[t.Type.Kind()] {
-				panic(tc.errorf(expr, "invalid operation: %s %s", expr.Op, t))
-			}
-			return t
-		}
+		return t
 
 	case *ast.BinaryOperator:
-		t1 := tc.checkExpression(expr.Expr1)
-		t2 := tc.checkExpression(expr.Expr2)
-		if t1.Nil() && t2.Nil() {
-			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on nil)", expr, expr.Op))
+		t, err := tc.binaryOp(expr)
+		if err != nil {
+			panic(tc.errorf(expr, "%s", err))
 		}
-		if t1.Nil() || t2.Nil() {
-			var t = t1
-			if t.Nil() {
-				t = t2
-			}
-			if t.Type != nil && !t.Type.Comparable() {
-				panic(tc.errorf(expr, "cannot convert nil to type %s", t))
-			}
-			if expr.Op != ast.OperatorEqual && expr.Op != ast.OperatorNotEqual {
-				panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t.Type.Kind()))
-			}
-			return &ast.TypeInfo{}
-		}
-		if t1.Value != nil && t2.Value != nil {
-			return tc.binaryOp(expr)
-		}
-		if t2.Type == nil {
-			_, err := tc.convert(t2, t1.Type, false)
-			if err != nil {
-				if err == errTypeConversion {
-					panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
-				}
-				panic(tc.errorf(expr, "%s", err))
-			}
-			t2 = &ast.TypeInfo{Type: t1.Type}
-		} else if t1.Type == nil {
-			_, err := tc.convert(t2, t2.Type, false)
-			if err != nil {
-				if err == errTypeConversion {
-					panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t1, t2))
-				}
-				panic(tc.errorf(expr, "%s", err))
-			}
-			t1 = &ast.TypeInfo{Type: t2.Type}
-		}
-		if expr.Op >= ast.OperatorEqual && expr.Op <= ast.OperatorGreaterOrEqual {
-			if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
-				panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
-			}
-			if expr.Op == ast.OperatorEqual || expr.Op == ast.OperatorNotEqual {
-				if !tc.isComparable(t1) {
-					// TODO(marco) explain in the error message why they are not comparable.
-					panic(tc.errorf(expr, "invalid operation: %v (%s cannot be compared)", expr, t1.Type))
-				}
-			} else if !tc.isOrdered(t1) {
-				panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
-			}
-			return &ast.TypeInfo{}
-		}
-		if t1.Type != t2.Type {
-			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
-		}
-		if kind := t1.Type.Kind(); !operatorsOfKind[kind][expr.Op] {
-			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, kind))
-		}
-		return t1
+		return t
 
 	case *ast.Identifier:
 		t := tc.checkIdentifier(expr)
@@ -572,7 +501,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
-		switch kind := t.Kind(); kind {
+		kind := t.Type.Kind()
+		switch kind {
 		case reflect.Slice, reflect.String, reflect.Array, reflect.Ptr:
 			k := kind
 			if kind == reflect.Ptr {
@@ -590,11 +520,12 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr.Index, "%s", err))
 			}
 			if v != nil {
-				if v.(int) < 0 {
+				n := int(v.(*big.Int).Int64())
+				if n < 0 {
 					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", k, expr.Index))
 				}
 				if t.Value != nil {
-					if s := constantString(t); len(s) <= v.(int) {
+					if s := t.Value.(string); n >= len(s) {
 						panic(tc.errorf(expr, "invalid string index %d (out of bounds for %d-byte string)", v, len(s)))
 					}
 				}
@@ -632,7 +563,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
-		kind := t.Kind()
+		kind := t.Type.Kind()
 		switch kind {
 		case reflect.String, reflect.Slice, reflect.Array:
 		default:
@@ -640,23 +571,23 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr, "cannot slice %v (type %s)", expr.Expr, t))
 			}
 		}
-		var err error
-		var lv, hv interface{}
+		var lv, hv int
 		if expr.Low != nil {
 			low := tc.checkExpression(expr.Low)
-			lv, err = tc.convert(low, intType, false)
+			v, err := tc.convert(low, intType, false)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.Low, low)
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			if lv != nil {
-				if lv.(int) < 0 {
+			if v != nil {
+				lv = int(v.(*big.Int).Int64())
+				if lv < 0 {
 					panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.Low))
 				}
 				if t.Value != nil {
-					if s := constantString(t); len(s) < lv.(int) {
+					if s := t.Value.(string); lv > len(s) {
 						panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", lv, len(s)))
 					}
 				}
@@ -664,23 +595,24 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		if expr.High != nil {
 			high := tc.checkExpression(expr.High)
-			hv, err = tc.convert(high, intType, false)
+			v, err := tc.convert(high, intType, false)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.High, high)
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			if hv != nil {
-				if hv.(int) < 0 {
+			if v != nil {
+				hv = int(v.(*big.Int).Int64())
+				if hv < 0 {
 					panic(tc.errorf(expr, "invalid slice index %s (index must be non-negative)", expr.High))
 				}
 				if t.Value != nil {
-					if s := constantString(t); len(s) < hv.(int) {
+					if s := t.Value.(string); hv > len(s) {
 						panic(tc.errorf(expr, "invalid slice index %d (out of bounds for %d-byte string)", hv, len(s)))
 					}
 				}
-				if lv != nil && lv.(int) > hv.(int) {
+				if lv > hv {
 					panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
 				}
 			}
@@ -735,6 +667,366 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	}
 
 	panic(fmt.Errorf("unexpected: %v (type %T)", expr, expr))
+}
+
+// unaryOp executes an unary expression and returns its result. Returns an
+// error if the operation can not be executed.
+func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
+
+	t := expr.TypeInfo()
+
+	ti := &ast.TypeInfo{
+		Type:       t.Type,
+		Properties: t.Properties & (ast.PropertyUntyped | ast.PropertyIsConstant),
+	}
+
+	switch expr.Op {
+	case ast.OperatorNot:
+		if t.Nil() || t.Type.Kind() != reflect.Bool {
+			return nil, fmt.Errorf("invalid operation: ! %s", t)
+		}
+		if ti.IsConstant() {
+			ti.Value = !ti.Value.(bool)
+		}
+	case ast.OperatorAddition:
+		if t.Nil() || !numericKind[t.Type.Kind()] {
+			return nil, fmt.Errorf("invalid operation: + %s", t)
+		}
+	case ast.OperatorSubtraction:
+		if t.Nil() || !numericKind[t.Type.Kind()] {
+			return nil, fmt.Errorf("invalid operation: - %s", t)
+		}
+		if ti.IsConstant() {
+			if ti.Untyped() {
+				ti.Value = constant.UnaryOp(gotoken.SUB, ti.Value.(constant.Value), 0)
+			} else {
+				switch v := ti.Value.(type) {
+				case *big.Int:
+					v = big.NewInt(0).Neg(v)
+					min := integerRanges[t.Type.Kind()-2].min
+					max := integerRanges[t.Type.Kind()-2].max
+					if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
+						return nil, fmt.Errorf("constant %v overflows %s", v, t)
+					}
+					ti.Value = v
+				case *big.Float:
+					v = big.NewFloat(0).Neg(v)
+					var acc big.Accuracy
+					if t.Type.Kind() == reflect.Float64 {
+						_, acc = v.Float64()
+					} else {
+						_, acc = v.Float32()
+					}
+					if acc != 0 {
+						return nil, fmt.Errorf("constant %v overflows %s", v, t)
+					}
+				}
+			}
+		}
+	}
+
+	return ti, nil
+}
+
+// isComparison reports whether op is a comparison operator.
+func isComparison(op ast.OperatorType) bool {
+	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual
+}
+
+// binaryOp executes the binary expression t1 op t2 and returns its result.
+// Returns an error if the operation can not be executed.
+func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error) {
+
+	t1 := tc.checkExpression(expr.Expr1)
+	t2 := tc.checkExpression(expr.Expr2)
+
+	if t1.Untyped() && t2.Untyped() {
+		return tc.uBinaryOp(t1, expr, t2)
+	}
+
+	op := expr.Op
+
+	if t1.Nil() || t2.Nil() {
+		if t1.Nil() && t2.Nil() {
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on nil)", expr, op)
+		}
+		t := t1
+		if t.Nil() {
+			t = t2
+		}
+		k := t.Type.Kind()
+		if !operatorsOfKind[k][op] {
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s", expr, op, k)
+		}
+		if !t.Type.Comparable() {
+			return nil, fmt.Errorf("cannot convert nil to type %s", t)
+		}
+		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, op, k)
+		}
+		return untypedBoolTypeInfo, nil
+	}
+
+	if t1.Untyped() {
+		v, err := tc.convert(t1, t2.Type, false)
+		if err != nil {
+			if err == errTypeConversion {
+				return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2)
+			}
+			panic(tc.errorf(expr, "%s", err))
+		}
+		t1 = &ast.TypeInfo{Type: t2.Type, Properties: ast.PropertyIsConstant, Value: v}
+	} else if t2.Untyped() {
+		v, err := tc.convert(t2, t1.Type, false)
+		if err != nil {
+			if err == errTypeConversion {
+				panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
+			}
+			panic(tc.errorf(expr, "%s", err))
+		}
+		//if k2 == reflect.Interface {
+		t2 = &ast.TypeInfo{Type: t1.Type, Properties: ast.PropertyIsConstant, Value: v}
+	}
+
+	if t1.IsConstant() && t2.IsConstant() {
+		return tc.tBinaryOp(t1, expr, t2)
+	}
+
+	if isComparison(expr.Op) {
+		if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
+			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
+		}
+		if expr.Op == ast.OperatorEqual || expr.Op == ast.OperatorNotEqual {
+			if !t1.Type.Comparable() {
+				// TODO(marco) explain in the error message why they are not comparable.
+				panic(tc.errorf(expr, "invalid operation: %v (%s cannot be compared)", expr, t1.Type))
+			}
+		} else if !tc.isOrdered(t1) {
+			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
+		}
+		return &ast.TypeInfo{}, nil
+	}
+
+	if t1.Type != t2.Type {
+		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
+	}
+
+	if kind := t1.Type.Kind(); !operatorsOfKind[kind][expr.Op] {
+		panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, kind))
+	}
+
+	return nil, nil
+}
+
+// tBinaryOp executes a binary expression where the operands are typed
+// constants and returns its result. Returns an error if the operation can not
+// be executed.
+func (tc *typechecker) tBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+
+	if t1.Type != t2.Type {
+		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)", expr, t1, t2)
+	}
+
+	t := &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant}
+
+	switch v1 := t1.Value.(type) {
+	case bool:
+		v2 := t2.Value.(bool)
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = v1 == v2
+		case ast.OperatorNotEqual:
+			t.Value = v1 != v2
+		case ast.OperatorAnd:
+			t.Value = v1 && v2
+		case ast.OperatorOr:
+			t.Value = v1 || v2
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1)
+		}
+	case string:
+		v2 := t2.Value.(string)
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = v1 == v2
+		case ast.OperatorNotEqual:
+			t.Value = v1 != v2
+		case ast.OperatorAddition:
+			t.Value = v1 + v2
+			t.Type = t1.Type
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1)
+		}
+	case *big.Int:
+		v2 := t2.Value.(*big.Int)
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = v1.Cmp(v2) == 0
+		case ast.OperatorNotEqual:
+			t.Value = v1.Cmp(v2) != 0
+		case ast.OperatorLess:
+			t.Value = v1.Cmp(v2) < 0
+		case ast.OperatorLessOrEqual:
+			t.Value = v1.Cmp(v2) <= 0
+		case ast.OperatorGreater:
+			t.Value = v1.Cmp(v2) > 0
+		case ast.OperatorGreaterOrEqual:
+			t.Value = v1.Cmp(v2) >= 0
+		case ast.OperatorAddition:
+			t.Value = big.NewInt(0).Add(v1, v2)
+		case ast.OperatorSubtraction:
+			t.Value = big.NewInt(0).Sub(v1, v2)
+		case ast.OperatorMultiplication:
+			t.Value = big.NewInt(0).Mul(v1, v2)
+		case ast.OperatorDivision:
+			t.Value = big.NewInt(0).Quo(v1, v2)
+		case ast.OperatorModulo:
+			t.Value = big.NewInt(0).Rem(v1, v2)
+		}
+		if v, ok := t.Value.(*big.Int); ok {
+			min := integerRanges[t1.Type.Kind()-2].min
+			max := integerRanges[t1.Type.Kind()-2].max
+			if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t1)
+			}
+			t.Type = t1.Type
+		}
+	case *big.Float:
+		v2 := t2.Value.(*big.Float)
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = v1.Cmp(v2) == 0
+		case ast.OperatorNotEqual:
+			t.Value = v1.Cmp(v2) != 0
+		case ast.OperatorLess:
+			t.Value = v1.Cmp(v2) < 0
+		case ast.OperatorLessOrEqual:
+			t.Value = v1.Cmp(v2) <= 0
+		case ast.OperatorGreater:
+			t.Value = v1.Cmp(v2) > 0
+		case ast.OperatorGreaterOrEqual:
+			t.Value = v1.Cmp(v2) >= 0
+		case ast.OperatorAddition:
+			t.Value = big.NewFloat(0).Add(v1, v2)
+		case ast.OperatorSubtraction:
+			t.Value = big.NewFloat(0).Sub(v1, v2)
+		case ast.OperatorMultiplication:
+			t.Value = big.NewFloat(0).Mul(v1, v2)
+		case ast.OperatorDivision:
+			t.Value = big.NewFloat(0).Quo(v1, v2)
+		case ast.OperatorModulo:
+			return nil, fmt.Errorf("invalid operation: %v (operator %% not defined on %s)", expr, t1)
+		}
+		if v, ok := t.Value.(*big.Float); ok {
+			var acc big.Accuracy
+			if t1.Type.Kind() == reflect.Float64 {
+				_, acc = v.Float64()
+			} else {
+				_, acc = v.Float32()
+			}
+			if acc != 0 {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t1)
+			}
+			t.Type = t1.Type
+		}
+	}
+
+	return t, nil
+}
+
+// uBinaryOp executes a binary expression where the operands are untyped and
+// returns its result. Returns an error if the operation can not be executed.
+func (tc *typechecker) uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+
+	k1 := t1.Type.Kind()
+	k2 := t2.Type.Kind()
+
+	if !(k1 == k2 || numericKind[k1] && numericKind[k2]) {
+		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)",
+			expr, t1.ShortString(), t2.ShortString())
+	}
+
+	t := &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped | ast.PropertyIsConstant}
+
+	switch k1 {
+	case reflect.Bool:
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = t1.Value.(bool) == t2.Value.(bool)
+		case ast.OperatorNotEqual:
+			t.Value = t1.Value.(bool) != t2.Value.(bool)
+		case ast.OperatorAnd:
+			t.Value = t1.Value.(bool) && t2.Value.(bool)
+		case ast.OperatorOr:
+			t.Value = t1.Value.(bool) || t2.Value.(bool)
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
+		}
+	case reflect.String:
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = t1.Value.(string) == t2.Value.(string)
+		case ast.OperatorNotEqual:
+			t.Value = t1.Value.(string) != t2.Value.(string)
+		case ast.OperatorAddition:
+			t.Value = t1.Value.(string) + t2.Value.(string)
+			t.Type = stringType
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
+		}
+	default:
+		v1 := t1.Value.(constant.Value)
+		v2 := t2.Value.(constant.Value)
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = constant.Compare(v1, gotoken.EQL, v2)
+		case ast.OperatorNotEqual:
+			t.Value = constant.Compare(v1, gotoken.NEQ, v2)
+		case ast.OperatorLess:
+			t.Value = constant.Compare(v1, gotoken.LSS, v2)
+		case ast.OperatorLessOrEqual:
+			t.Value = constant.Compare(v1, gotoken.LEQ, v2)
+		case ast.OperatorGreater:
+			t.Value = constant.Compare(v1, gotoken.GTR, v2)
+		case ast.OperatorGreaterOrEqual:
+			t.Value = constant.Compare(v1, gotoken.GEQ, v2)
+		case ast.OperatorAddition:
+			t.Value = constant.BinaryOp(v1, gotoken.ADD, v2)
+		case ast.OperatorSubtraction:
+			t.Value = constant.BinaryOp(v1, gotoken.SUB, v2)
+		case ast.OperatorMultiplication:
+			t.Value = constant.BinaryOp(v1, gotoken.MUL, v2)
+		case ast.OperatorDivision:
+			if constant.Sign(v2) == 0 {
+				return nil, errDivisionByZero
+			}
+			if k1 == reflect.Float64 || k2 == reflect.Float64 {
+				t.Value = constant.BinaryOp(v1, gotoken.QUO, v2)
+			} else {
+				n1, _ := new(big.Int).SetString(v1.ExactString(), 10)
+				n2, _ := new(big.Int).SetString(v2.ExactString(), 10)
+				t.Value = constant.MakeFromLiteral(n1.Quo(n1, n2).String(), gotoken.INT, 0)
+			}
+		case ast.OperatorModulo:
+			if constant.Sign(v2) == 0 {
+				return nil, errDivisionByZero
+			}
+			if k1 == reflect.Float64 || k2 == reflect.Float64 {
+				return nil, errors.New("illegal constant expression: floating-point % operation")
+			}
+			t.Value = constant.BinaryOp(v1, gotoken.REM, v2)
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on untyped number)", expr, expr.Op)
+		}
+		if _, ok := t.Value.(constant.Value); ok {
+			t.Type = t1.Type
+			if k2 > k1 {
+				t.Type = t2.Type
+			}
+		}
+	}
+
+	return t, nil
 }
 
 // checkCallExpression type checks a call expression, including type
@@ -1057,109 +1349,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 	return resultTypes
 }
 
-// binaryOp executes the binary expression c op u, where c and u are constants.
-// The two operands must be both numeric, boolean or string.
-// Panics if it can not be executed.
-func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
-	c1 := expr.Expr1.TypeInfo().Value.(*ast.UntypedValue)
-	c2 := expr.Expr2.TypeInfo().Value.(*ast.UntypedValue)
-	mismatch := false
-	dt1 := c1.DefaultType
-	dt2 := c2.DefaultType
-	switch dt1 {
-	default:
-		mismatch = dt2 == reflect.String || dt2 == reflect.Bool
-	case reflect.String:
-		mismatch = dt2 != reflect.String
-	case reflect.Bool:
-		mismatch = dt2 != reflect.Bool
-	}
-	if mismatch {
-		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, dt1, dt2))
-	}
-	c := ast.UntypedValue{}
-	switch dt1 {
-	default:
-		var v interface{}
-		switch expr.Op {
-		case ast.OperatorEqual:
-			v = constant.Compare(c1.Number, gotoken.EQL, c2.Number)
-		case ast.OperatorNotEqual:
-			v = constant.Compare(c1.Number, gotoken.NEQ, c2.Number)
-		case ast.OperatorLess:
-			v = constant.Compare(c1.Number, gotoken.LSS, c2.Number)
-		case ast.OperatorLessOrEqual:
-			v = constant.Compare(c1.Number, gotoken.LEQ, c2.Number)
-		case ast.OperatorGreater:
-			v = constant.Compare(c1.Number, gotoken.GTR, c2.Number)
-		case ast.OperatorGreaterOrEqual:
-			v = constant.Compare(c1.Number, gotoken.GEQ, c2.Number)
-		case ast.OperatorAddition:
-			v = constant.BinaryOp(c1.Number, gotoken.ADD, c2.Number)
-		case ast.OperatorSubtraction:
-			v = constant.BinaryOp(c1.Number, gotoken.SUB, c2.Number)
-		case ast.OperatorMultiplication:
-			v = constant.BinaryOp(c1.Number, gotoken.MUL, c2.Number)
-		case ast.OperatorDivision:
-			if constant.Sign(c2.Number) == 0 {
-				panic(errDivisionByZero)
-			}
-			if dt1 == reflect.Float64 || dt2 == reflect.Float64 {
-				v = constant.BinaryOp(c1.Number, gotoken.QUO, c2.Number)
-			} else {
-				a, _ := new(big.Int).SetString(c1.Number.ExactString(), 10)
-				b, _ := new(big.Int).SetString(c2.Number.ExactString(), 10)
-				v = constant.MakeFromLiteral(a.Quo(a, b).String(), gotoken.INT, 0)
-			}
-		case ast.OperatorModulo:
-			if dt1 == reflect.Float64 || dt2 == reflect.Float64 {
-				panic(errFloatModulo)
-			}
-			if constant.Sign(c2.Number) == 0 {
-				panic(errDivisionByZero)
-			}
-			v = constant.BinaryOp(c1.Number, gotoken.REM, c2.Number)
-		}
-		if number, ok := v.(constant.Value); ok {
-			c.DefaultType = dt1
-			if c.DefaultType < dt2 {
-				c.DefaultType = dt2
-			}
-			c.Number = number
-		} else {
-			c.DefaultType = reflect.Bool
-			c.Bool = v.(bool)
-		}
-	case reflect.String:
-		switch expr.Op {
-		case ast.OperatorEqual, ast.OperatorNotEqual:
-			c.DefaultType = reflect.Bool
-			c.Bool = c1.String == c2.String
-			if expr.Op == ast.OperatorNotEqual {
-				c.Bool = !c.Bool
-			}
-		case ast.OperatorAddition:
-			c.DefaultType = reflect.String
-			c.String = c1.String + c2.String
-		}
-	case reflect.Bool:
-		c.DefaultType = reflect.Bool
-		switch expr.Op {
-		case ast.OperatorEqual:
-			c.Bool = c1.Bool == c2.Bool
-		case ast.OperatorNotEqual:
-			c.Bool = c1.Bool != c2.Bool
-		case ast.OperatorAnd:
-			c.Bool = c1.Bool && c2.Bool
-		case ast.OperatorOr:
-			c.Bool = c1.Bool || c2.Bool
-		default:
-			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, dt1))
-		}
-	}
-	return &ast.TypeInfo{Value: &c}
-}
-
 var errTypeConversion = errors.New("failed type conversion")
 
 // convert converts a value. explicit reports whether the conversion is
@@ -1167,13 +1356,13 @@ var errTypeConversion = errors.New("failed type conversion")
 // type, the converted value is a typed constant and its value is returned,
 // otherwise returns nil.
 //
-// If the value can not be converted, returns an error errTypeConversion,
+// If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
 func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool) (interface{}, error) {
 
 	t := ti.Type
 	v := ti.Value
-	k2 := t2.Kind()
+	k := t2.Kind()
 
 	if ti.Nil() {
 		switch t2.Kind() {
@@ -1183,65 +1372,118 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		return nil, errTypeConversion
 	}
 
-	if !explicit && t != nil {
-		if !t2.AssignableTo(t) {
-			return nil, errTypeConversion
-		}
-		return nil, nil
-	}
-
-	if t == nil {
-		if v == nil {
-			t = boolType
-		} else {
-			t = reflectOfDefaultType[v.(*ast.UntypedValue).DefaultType]
-		}
-	}
-
-	// First, Reflect must return true.
-	if !t.ConvertibleTo(t2) {
-		return nil, errTypeConversion
-	}
-
-	// The special case is only for explicit conversion.
-	if !explicit {
-		if k := t.Kind(); k2 == reflect.String && numericKind[k] {
-			return nil, errTypeConversion
-		}
-	}
-
-	// For interface types the returned value is not a constant.
-	if k2 == reflect.Interface {
-		return nil, nil
-	}
-
-	// If it is not a constant, returns.
-	if v == nil {
-		return nil, nil
-	}
-
-	// If the resulted value is a constant, returns its value.
-	switch c := v.(type) {
-	case *ast.UntypedValue:
-		switch dt := c.DefaultType; dt {
-		case reflect.Bool:
-			v = c.Bool
-		case reflect.String:
-			v = c.String
-		default:
-			cn := ConstantNumber{val: c.Number, typ: ConstantNumberType(c.DefaultType)}
-			var err error
-			v, err = cn.ToType(t2)
-			if err != nil {
-				if _, ok := err.(errConstantConversion); ok {
-					err = errTypeConversion
+	if ti.IsConstant() && k != reflect.Interface {
+		// As a special case, an integer constant can be explicitly converted to a string type.
+		if explicit && k == reflect.String {
+			switch v := v.(type) {
+			case *big.Int:
+				if v.IsInt64() {
+					return string(v.Int64()), nil
 				}
-				return nil, err
+				return "\uFFFD", nil
+			case constant.Value:
+				if k1 := t.Kind(); reflect.Int <= k1 && k1 <= reflect.Uint64 {
+					if v, ok := constant.Int64Val(v); ok {
+						return string(v), nil
+					}
+					return "\uFFFD", nil
+				}
 			}
 		}
+		return tc.representedBy(ti, t2)
 	}
 
-	return v, nil
+	if t.ConvertibleTo(t2) {
+		return nil, nil
+	}
+
+	return nil, errTypeConversion
+}
+
+// representedBy returns a constant value represented as a value of type t2.
+func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+
+	v := t1.Value
+	k := t2.Kind()
+
+	switch v := v.(type) {
+	case bool:
+		if k == reflect.Bool {
+			return v, nil
+		}
+	case string:
+		if k == reflect.String {
+			return v, nil
+		}
+	case *big.Int:
+		switch {
+		case reflect.Int <= k && k <= reflect.Uint64:
+			min := integerRanges[k-2].min
+			max := integerRanges[k-2].max
+			if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+			}
+			return v, nil
+		case k == reflect.Float64:
+			return big.NewFloat(0).SetInt(v), nil
+		case k == reflect.Float32:
+			return big.NewFloat(0).SetInt(v).SetPrec(24), nil
+		}
+	case *big.Float:
+		switch {
+		case reflect.Int <= k && k <= reflect.Uint64:
+			if v.IsInt() {
+				n, _ := v.Int(nil)
+				min := integerRanges[k-2].min
+				max := integerRanges[k-2].max
+				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
+					return n, nil
+				}
+			}
+			return nil, fmt.Errorf("constant %v truncated to integer", v)
+		case k == reflect.Float64:
+			return v, nil
+		case k == reflect.Float32:
+			_, acc := v.Float32()
+			if acc != 0 {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+			}
+			return v, nil
+		}
+	case constant.Value:
+		n, err := ConstantNumber{val: v, typ: ConstantNumberType(t1.Type.Kind())}.ToType(t2)
+		if err != nil {
+			return nil, err
+		}
+		switch n := n.(type) {
+		case int:
+			return big.NewInt(int64(n)), nil
+		case int8:
+			return big.NewInt(int64(n)), nil
+		case int16:
+			return big.NewInt(int64(n)), nil
+		case int32:
+			return big.NewInt(int64(n)), nil
+		case int64:
+			return big.NewInt(n), nil
+		case uint:
+			return big.NewInt(0).SetUint64(uint64(n)), nil
+		case uint8:
+			return big.NewInt(int64(n)), nil
+		case uint16:
+			return big.NewInt(int64(n)), nil
+		case uint32:
+			return big.NewInt(0).SetUint64(uint64(n)), nil
+		case uint64:
+			return big.NewInt(0).SetUint64(n), nil
+		case float32:
+			return big.NewFloat(float64(n)), nil
+		case float64:
+			return big.NewFloat(n), nil
+		}
+	}
+
+	return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
 }
 
 // fieldByName returns the struct field with the given name and a boolean
@@ -1260,45 +1502,8 @@ func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo,
 	return nil, false
 }
 
-// TODO (Gianluca): to review.
-func (tc *typechecker) defaultType(c *ast.UntypedValue) reflect.Type {
-	switch c.DefaultType {
-	case reflect.Int:
-		return intType
-	case reflect.Int32:
-		return reflect.TypeOf(rune(0))
-	case reflect.Float64:
-		return reflect.TypeOf(float64(0))
-	case reflect.Complex128:
-		return reflect.TypeOf(complex128(0))
-	case reflect.String:
-		return reflect.TypeOf("")
-	case reflect.Bool:
-		return reflect.TypeOf(false)
-	}
-	panic(fmt.Errorf("unexpected default type: %#v", c.DefaultType))
-}
-
-// isComparable reports whether t is comparable.
-func (tc *typechecker) isComparable(t *ast.TypeInfo) bool {
-	if t.Type == nil {
-		return true
-	}
-	return t.Type.Comparable()
-}
-
 // isOrdered reports whether t is ordered.
 func (tc *typechecker) isOrdered(t *ast.TypeInfo) bool {
-	if t.Type == nil {
-		// Untyped bool values (constant or not constant) are not ordered.
-		switch v := t.Value.(type) {
-		case nil, bool:
-			return false
-		case *ast.UntypedValue:
-			return v.DefaultType != reflect.Bool
-		}
-		return true
-	}
 	k := t.Type.Kind()
 	return numericKind[k] || k == reflect.String
 }
@@ -1326,14 +1531,4 @@ func (tc *typechecker) methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo
 		}
 	}
 	return nil, false
-}
-
-func constantString(c *ast.TypeInfo) string {
-	switch s := c.Value.(type) {
-	case string:
-		return s
-	case *ast.UntypedValue:
-		return s.String
-	}
-	panic("no-string constant")
 }

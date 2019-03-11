@@ -248,7 +248,7 @@ func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr a
 		if switchExprTyp.Type != nil {
 			typ = switchExprTyp.Type
 		} else if switchExprTyp.Value != nil {
-			switch switchExprTyp.Kind() {
+			switch switchExprTyp.Type.Kind() {
 			case reflect.Bool:
 				typ = boolType
 			case reflect.Int:
