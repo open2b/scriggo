@@ -1057,7 +1057,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 }
 
 // binaryOp executes the binary expression c op u, where c and u are constants.
-// The tow operands must be both numeric, boolean or string.
+// The two operands must be both numeric, boolean or string.
 // Panics if it can not be executed.
 func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) *ast.TypeInfo {
 	c1 := expr.Expr1.TypeInfo().Value.(*ast.UntypedValue)
