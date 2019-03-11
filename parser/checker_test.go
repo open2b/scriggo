@@ -242,18 +242,18 @@ var checkerStmts = map[string]string{
 	`_ = []int{-3: 9}`: `index must be non-negative integer constant`,
 	`_ = []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
-	// `_ = []int{1:10, 1:20}`:                                  `duplicate index in array literal: 1`,
+	`_ = []int{1:10, 1:20}`:                                  `duplicate index in array literal: 1`,
 	// `_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
 
 	// Arrays.
-	`_ = [1]int{1}`:        ok,
-	`_ = [5 + 6]int{}`:     ok,
-	`_ = [5.0]int{}`:       ok,
-	`_ = [0]int{1}`:        `array index 0 out of bounds [0:0]`,
-	`_ = [1]int{10:2}`:     `array index 10 out of bounds [0:1]`,
-	`a := 4; _ = [a]int{}`: `non-constant array bound a`,
-	`_ = [-2]int{}`:        `array bound must be non-negative`,
-	// `_ = [3]int{1:10, 1:20}`: `duplicate index in array literal: 1`,
+	`_ = [1]int{1}`:          ok,
+	`_ = [5 + 6]int{}`:       ok,
+	`_ = [5.0]int{}`:         ok,
+	`_ = [0]int{1}`:          `array index 0 out of bounds [0:0]`,
+	`_ = [1]int{10:2}`:       `array index 10 out of bounds [0:1]`,
+	`a := 4; _ = [a]int{}`:   `non-constant array bound a`,
+	`_ = [-2]int{}`:          `array bound must be non-negative`,
+	`_ = [3]int{1:10, 1:20}`: `duplicate index in array literal: 1`,
 	// `_ = [5.3]int{}`:       `constant 5.3 truncated to integer`,
 
 	// Maps.
@@ -261,6 +261,11 @@ var checkerStmts = map[string]string{
 	`_ = map[string]string{"k1": "v1"}`: ok,
 	`_ = map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
 	// `_ = map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
+
+	// TODO (Gianluca): duplicates checking is done by parser, so it's
+	// impossibile to test this. Decomment when parsing duplicates check has
+	// been removed.
+	// `_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
 
 	// Structs.
 	`_ = pointInt{}`:           ok,
@@ -271,6 +276,7 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{X: 1, Y: 2}`: ok,
 	`_ = pointInt{X: 1, 2}`:    `mixture of field:value and value initializers`,
 	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
+	`_ = pointInt{X: 2, X: 2}`: `duplicate field name in struct literal: X`,
 	// `_ = pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
 
 	// Blocks.
@@ -388,7 +394,8 @@ func TestCheckerStatements(t *testing.T) {
 			}()
 			tree, err := ParseSource([]byte(src), ast.ContextNone)
 			if err != nil {
-				t.Error(err)
+				t.Errorf("source: %s returned parser error: %s", src, err.Error())
+				return
 			}
 			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
 			checker.checkNodes(tree.Nodes)

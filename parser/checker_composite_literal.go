@@ -7,6 +7,8 @@
 package parser
 
 import (
+	"go/constant"
+	gotoken "go/token"
 	"reflect"
 
 	"scrigo/ast"
@@ -45,6 +47,52 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	return maxIndex
 }
 
+// checkDuplicatedKeys checks if node contains duplicates keys.
+func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind reflect.Kind) {
+	found := []interface{}{}
+	for _, kv := range node.KeyValues {
+		if kv.Key == nil {
+			continue
+		}
+		var value interface{}
+		if kind == reflect.Struct {
+			ident, ok := kv.Key.(*ast.Identifier)
+			if !ok {
+				panic(tc.errorf(kv.Key, "invalid field name composite literal in struct initializer"))
+			}
+			value = ident.Name
+		} else {
+			ti := tc.checkExpression(kv.Key)
+			if ti.Value == nil {
+				continue
+			}
+			value = ti.Value
+		}
+		for _, f := range found {
+			areEqual := false
+			switch v1 := value.(type) {
+			case *ast.UntypedValue:
+				if v2, ok := f.(*ast.UntypedValue); ok {
+					areEqual = constant.Compare(v1.Number, gotoken.EQL, v2.Number)
+				}
+			default:
+				areEqual = f == value
+			}
+			if areEqual {
+				switch kind {
+				case reflect.Struct:
+					panic(tc.errorf(node, "duplicate field name in struct literal: %s", kv.Key))
+				case reflect.Array, reflect.Slice:
+					panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
+				case reflect.Map:
+					panic(tc.errorf(node, "duplicate key in map literal: %s", kv.Key))
+				}
+			}
+		}
+		found = append(found, value)
+	}
+}
+
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) *ast.TypeInfo {
 
 	var err error
@@ -74,6 +122,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		}
 		explicitFields = declType == 1
 		if explicitFields { // struct with explicit fields.
+			tc.checkDuplicatedKeys(node, reflect.Struct)
 			for _, keyValue := range node.KeyValues {
 				ident, ok := keyValue.Key.(*ast.Identifier)
 				if !ok {
@@ -110,6 +159,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Array:
 
+		tc.checkDuplicatedKeys(node, reflect.Array)
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
@@ -130,6 +180,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Slice:
 
+		tc.checkDuplicatedKeys(node, reflect.Slice)
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
@@ -150,6 +201,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Map:
 
+		// TODO (Gianluca): checking is done by parser, so it's impossibile to
+		// test this. Decomment when parsing duplicates check has been removed.
+		//tc.checkDuplicates(node, reflect.Map)
 		for _, kv := range node.KeyValues {
 			var keyTi *ast.TypeInfo
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
