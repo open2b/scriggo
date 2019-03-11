@@ -361,9 +361,11 @@ var checkerStmts = map[string]string{
 	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (int, string, int)\n\twant (int, int)", // TODO (Gianluca): should be "number", not "int"
 
 	// Function literal calls.
-	`f := func() { }; f()`:         ok,
-	`f := func(int) { }; f(0)`:     ok,
-	`f := func(string) { } ; f(0)`: `cannot use 0 (type int) as type string in argument to f`,
+	`f := func() { }; f()`:                    ok,
+	`f := func(int) { }; f(0)`:                ok,
+	`f := func(string) { } ; f(0)`:            `cannot use 0 (type int) as type string in argument to f`,
+	`f := func(string, int) { } ; f(0)`:       "not enough arguments in call to f\n\thave (int)\n\twant (string, int)",         // TODO (Gianluca): should be "number"
+	`f := func(string, int) { } ; f(0, 0, 0)`: "too many arguments in call to f\n\thave (int, int, int)\n\twant (string, int)", // TODO (Gianluca): should be "number"
 }
 
 func TestCheckerStatements(t *testing.T) {

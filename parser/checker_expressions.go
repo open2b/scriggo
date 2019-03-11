@@ -1011,7 +1011,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if c == nil {
 				have += "nil"
 			} else {
-				have += t.String()
+				have += c.ShortString()
 			}
 		}
 		have += ")"
