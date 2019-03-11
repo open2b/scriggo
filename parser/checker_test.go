@@ -41,7 +41,7 @@ var checkerExprs = []struct {
 	{`a == 1`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
 	//{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiIntConst(1)}},  TODO(marco)
 	{`a == 1`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedIntConst("1")}},
-	//{"[...]int{1}[0]", tiAddrInt(), nil}, TODO(gianluca)
+	{"[...]int{1}[0]", tiAddrInt(), nil},
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},

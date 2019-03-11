@@ -492,12 +492,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 
 	case *ast.CompositeLiteral:
-		elem, err := tc.checkCompositeLiteral(expr, nil)
-		// TODO (Gianluca): checkCompositeLiteral should panic, not return errors.
-		if err != nil {
-			panic(err)
-		}
-		return &ast.TypeInfo{Type: reflect.TypeOf(elem)}
+		return tc.checkCompositeLiteral(expr, nil)
 
 	case *ast.FuncType:
 		variadic := expr.IsVariadic
