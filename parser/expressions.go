@@ -12,13 +12,8 @@ import (
 	"math/big"
 	"unicode/utf8"
 
-	"github.com/cockroachdb/apd"
-
 	"scrigo/ast"
 )
-
-var maxInt = apd.New(int64(^uint(0)>>1), 0)
-var minInt = apd.New(-int64(^uint(0)>>1)-1, 0)
 
 // The result of the parsing of an expression is a tree whose intermediate
 // nodes are operators and the leaves are operands. For example:
