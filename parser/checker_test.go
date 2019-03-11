@@ -263,7 +263,7 @@ var checkerStmts = map[string]string{
 	// `_ = map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
 
 	// Structs.
-	// `_ = pointInt{}`:           ok,
+	`_ = pointInt{}`:           ok,
 	`_ = pointInt{1}`:          `too few values in pointInt literal`,
 	`_ = pointInt{1,2,3}`:      `too many values in pointInt literal`,
 	`_ = pointInt{1,2}`:        ok,

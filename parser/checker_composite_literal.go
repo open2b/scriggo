@@ -90,7 +90,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			}
 		} else { // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
-				return ti
+				// TODO (Gianluca): PropertyAddressable?
+				return &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
 				panic(tc.errorf(node, "too few values in %s literal", node.Type))
