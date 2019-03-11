@@ -240,40 +240,25 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			return
 		}
 
-		_, alreadyInCurrentScope := tc.LookupScope(v.Name, true)
-
-		// Cannot declarate a variable if already exists in current scope.
-		if isDeclaration && alreadyInCurrentScope {
-			return
-		}
-
 		// If it's not a declaration, variable must already exists in some
 		// scope. Its type must be retrieved, and value must be assignable
 		// to that.
-		if !isDeclaration {
-			variableTi := tc.checkExpression(variable)
-			if !tc.isAssignableTo(valueTi, variableTi.Type) {
-				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
-			}
-		}
-
-		newValueTi := &ast.TypeInfo{}
-
 		if isDeclaration {
-
+			newValueTi := &ast.TypeInfo{}
+			// Cannot declarate a variable if already exists in current scope.
+			if _, alreadyInCurrentScope := tc.LookupScope(v.Name, true); alreadyInCurrentScope {
+				hasBeenDeclared = false
+				return
+			}
 			if typ != nil {
-
 				// «If a type is present, each variable is given that type.»
 				newValueTi.Type = typ.Type
-
 			} else {
-
 				// «The predeclared value nil cannot be used to initialize a
 				// variable with no explicit type.»
 				if valueTi.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
-
 				//  «[if no types are presents], each variable is given the type
 				//  of the corresponding initialization value in the
 				//  assignment.»
@@ -284,22 +269,49 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 					// implicitly converted to its default type.»
 					newValueTi = assignableDefaultType[valueTi.Value.(*ast.UntypedValue).DefaultType]
 				}
-
 			}
-
 			v.SetTypeInfo(newValueTi)
 			hasBeenDeclared = true
-
+			newValueTi.Properties |= ast.PropertyAddressable
+			tc.AssignScope(v.Name, newValueTi)
+			return
+		}
+		variableTi := tc.checkExpression(variable)
+		if !variableTi.Addressable() {
+			panic(tc.errorf(node, "cannot assign to %v", variable))
+		}
+		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 
-		tc.AssignScope(v.Name, newValueTi)
-
-	case *ast.Index, *ast.Selector:
+	case *ast.Index:
 
 		if isDeclaration {
 			panic(tc.errorf(node, "non name %s on left side of :=", variable))
 		}
 		variableTi := tc.checkExpression(variable)
+		switch variableTi.Kind() {
+		case reflect.Slice, reflect.Map:
+			// Always addressable when used in indexing operation.
+		case reflect.Array:
+			if !variableTi.Addressable() {
+				panic(tc.errorf(node, "cannot assign to %v", variable))
+			}
+		}
+		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
+		}
+		return
+
+	case *ast.Selector:
+
+		if isDeclaration {
+			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+		}
+		variableTi := tc.checkExpression(variable)
+		if !variableTi.Addressable() {
+			panic(tc.errorf(node, "cannot assign to %v", variable))
+		}
 		if !tc.isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
@@ -310,7 +322,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if isDeclaration {
 			panic(tc.errorf(node, "non name %s on left side of :=", variable))
 		}
-		if v.Operator() == ast.OperatorMultiplication {
+		if v.Operator() == ast.OperatorMultiplication { // pointer indirection.
 			variableTi := tc.checkExpression(variable)
 			if !tc.isAssignableTo(valueTi, variableTi.Type) {
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
