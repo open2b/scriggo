@@ -88,6 +88,9 @@ var checkerExprs = []struct {
 	{`a + 2`, tiFloat64Const(3.1), typeCheckerScope{"a": tiFloat64Const(1.1)}},
 	{`a + 'a'`, tiFloat64Const(98.1), typeCheckerScope{"a": tiFloat64Const(1.1)}},
 	{`a + 2.5`, tiFloat64Const(3.6), typeCheckerScope{"a": tiFloat64Const(1.1)}},
+	{`v + 2`, tiInt(), typeCheckerScope{"v": tiInt()}},
+	{`v + 2`, tiFloat64(), typeCheckerScope{"v": tiFloat64()}},
+	{`v + 2.5`, tiFloat32(), typeCheckerScope{"v": tiFloat32()}},
 
 	// Operations ( untyped + typed ).
 	{`true && a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
@@ -102,6 +105,9 @@ var checkerExprs = []struct {
 	{`'a' + a`, tiFloat64Const('a' + float64(1.1)), typeCheckerScope{"a": tiFloat64Const(1.1)}},
 	{`2.5 + a`, tiFloat64Const(2.5 + float64(1.1)), typeCheckerScope{"a": tiFloat64Const(1.1)}},
 	{`5.3 / a`, tiFloat64Const(5.3 / float64(1.8)), typeCheckerScope{"a": tiFloat64Const(1.8)}},
+	{`2 + v`, tiInt(), typeCheckerScope{"v": tiInt()}},
+	{`2 + v`, tiFloat64(), typeCheckerScope{"v": tiFloat64()}},
+	{`2.5 + v`, tiFloat32(), typeCheckerScope{"v": tiFloat32()}},
 
 	// Operations ( typed + typed ).
 	{`a && b`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
@@ -113,6 +119,9 @@ var checkerExprs = []struct {
 	{`a + b`, tiInt16Const(int16(-3) + int16(5)), typeCheckerScope{"a": tiInt16Const(-3), "b": tiInt16Const(5)}},
 	{`a + b`, tiFloat64Const(float64(1.1) + float64(3.7)), typeCheckerScope{"a": tiFloat64Const(1.1), "b": tiFloat64Const(3.7)}},
 	{`a / b`, tiFloat64Const(float64(5.3) / float64(1.8)), typeCheckerScope{"a": tiFloat64Const(5.3), "b": tiFloat64Const(1.8)}},
+	{`a + b`, tiString(), typeCheckerScope{"a": tiStringConst("a"), "b": tiString()}},
+	{`a + b`, tiString(), typeCheckerScope{"a": tiString(), "b": tiStringConst("b")}},
+	{`a + b`, tiString(), typeCheckerScope{"a": tiString(), "b": tiString()}},
 
 	// Equality ( untyped + untyped )
 	{`false == false`, tiUntypedBoolConst(false == false), nil},

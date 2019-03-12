@@ -814,7 +814,11 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, kind))
 	}
 
-	return nil, nil
+	if t1.IsConstant() {
+		return t2, nil
+	}
+
+	return t1, nil
 }
 
 // tBinaryOp executes a binary expression where the operands are typed
