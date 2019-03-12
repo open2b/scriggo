@@ -803,7 +803,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		} else if !tc.isOrdered(t1) {
 			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
 		}
-		return &ast.TypeInfo{}, nil
+		return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}, nil
 	}
 
 	if t1.Type != t2.Type {
