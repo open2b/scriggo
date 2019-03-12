@@ -405,18 +405,19 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		}
 		len := tc.checkExpression(expr.Len)
-		if len.Value == nil { // TODO (Gianluca): should check if it's a constant
+		if !len.IsConstant() {
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
 		declLength, err := tc.convert(len, intType, false)
 		if err != nil {
 			panic(tc.errorf(expr, err.Error()))
 		}
-		if declLength.(int) < 0 {
+		n := int(declLength.(*big.Int).Int64())
+		if n < 0 {
 			panic(tc.errorf(expr, "array bound must be non-negative"))
 		}
-		if length > declLength.(int) {
-			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, declLength.(int)))
+		if length > n {
+			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, n))
 		}
 		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 
@@ -1195,7 +1196,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 								panic(tc.errorf(expr, "%s", err))
 							}
 							if ok && c != nil {
-								if lenvalue = c.(int); lenvalue < 0 {
+								if lenvalue = int(c.(*big.Int).Int64()); lenvalue < 0 {
 									panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
 								}
 							}
@@ -1215,7 +1216,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 								if err != nil {
 									panic(err)
 								}
-								if capvalue = v.(int); capvalue < 0 {
+								if capvalue = int(v.(*big.Int).Int64()); capvalue < 0 {
 									panic(tc.errorf(expr, "negative cap argument in make(%s)", expr.Args[0]))
 								}
 								if lenvalue > capvalue {
@@ -1245,7 +1246,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 							if err != nil {
 								panic(err)
 							}
-							if ok && v.(int) < 0 {
+							if ok && int(v.(*big.Int).Int64()) < 0 {
 								panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
 							}
 						} else if n.Type.Kind() == reflect.Int {

@@ -406,8 +406,8 @@ func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
 	}
 
 	// «x is an untyped constant representable by a value of type T.»
-	if x.Type == nil {
-		_, err := tc.convert(x, T, false)
+	if x.IsConstant() && x.Untyped() {
+		_, err := tc.representedBy(x, T)
 		return err == nil
 	}
 

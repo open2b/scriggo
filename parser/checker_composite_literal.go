@@ -33,10 +33,11 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			if err != nil {
 				panic(tc.errorf(node, err.Error()))
 			}
-			if index.(int) < 0 {
+			n := int(index.(*big.Int).Int64())
+			if n < 0 {
 				panic(tc.errorf(node, "index must be non-negative integer constant"))
 			}
-			currentIndex = index.(int)
+			currentIndex = n
 		} else {
 			currentIndex++
 		}
