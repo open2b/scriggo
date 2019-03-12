@@ -729,6 +729,17 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 				}
 			}
 		}
+	case ast.OperatorMultiplication:
+		if t.Type.Kind() != reflect.Ptr {
+			return nil, fmt.Errorf("invalid indirect of %s (type %s)", expr, t)
+		}
+		ti.Type = t.Type.Elem()
+		ti.Properties = ti.Properties | ast.PropertyAddressable
+	case ast.OperatorAmpersand:
+		if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
+			return nil, fmt.Errorf("cannot take the address of %s", expr)
+		}
+		ti.Type = reflect.PtrTo(t.Type)
 	}
 
 	return ti, nil

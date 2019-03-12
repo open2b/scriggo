@@ -90,6 +90,11 @@ var checkerExprs = []struct {
 	{`-a`, tiInt(), typeCheckerScope{"a": tiInt()}},
 	{`-a`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
 	{`-a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
+	{`*a`, tiAddrInt(), typeCheckerScope{"a": tiIntPtr()}},
+	{`&a`, tiIntPtr(), typeCheckerScope{"a": tiAddrInt()}},
+	{`&[]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
+	{`&[...]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
+	{`&map[int]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
 
 	// Operations ( untyped + untyped ).
 	{`true && true`, tiUntypedBoolConst(true), nil},
@@ -861,6 +866,10 @@ func tiUint32Const(n uint32) *ast.TypeInfo {
 
 func tiUint64Const(n uint64) *ast.TypeInfo {
 	return &ast.TypeInfo{Type: universe["uint64"].Type, Value: big.NewInt(0).SetUint64(n), Properties: ast.PropertyIsConstant}
+}
+
+func tiIntPtr() *ast.TypeInfo {
+	return &ast.TypeInfo{Type: reflect.PtrTo(intType)}
 }
 
 // nil type info.
