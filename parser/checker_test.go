@@ -583,10 +583,10 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 		return fmt.Errorf("unexpected addressable")
 	}
 	if t1.Value == nil && t2.Value != nil {
-		return fmt.Errorf("unexpected non-constant")
+		return fmt.Errorf("unexpected value")
 	}
 	if t1.Value != nil && t2.Value == nil {
-		return fmt.Errorf("unexpected constant")
+		return fmt.Errorf("unexpected nil value")
 	}
 	if t1.Value != nil {
 		if reflect.TypeOf(t1.Value) != reflect.TypeOf(t2.Value) {
