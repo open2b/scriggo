@@ -62,6 +62,35 @@ var checkerExprs = []struct {
 	{`a`, tiFloat64Const(0.0), typeCheckerScope{"a": tiFloat64Const(0.0)}},
 	{`a`, tiFloat32Const(0.0), typeCheckerScope{"a": tiFloat32Const(0.0)}},
 
+	// Operations ( untyped )
+	{`!true`, tiUntypedBoolConst(false), nil},
+	{`!false`, tiUntypedBoolConst(true), nil},
+	{`+5`, tiUntypedIntConst("5"), nil},
+	{`+5.7`, tiUntypedFloatConst("5.7"), nil},
+	{`+'a'`, tiUntypedRuneConst('a'), nil},
+	{`-5`, tiUntypedIntConst("-5"), nil},
+	{`-5.7`, tiUntypedFloatConst("-5.7"), nil},
+	{`-'a'`, tiUntypedRuneConst(-'a'), nil},
+
+	// Operations ( typed constant )
+	{`!a`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(true)}},
+	{`!a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(false)}},
+	{`+a`, tiIntConst(5), typeCheckerScope{"a": tiIntConst(5)}},
+	{`+a`, tiFloat64Const(5.7), typeCheckerScope{"a": tiFloat64Const(5.7)}},
+	{`+a`, tiInt32Const('a'), typeCheckerScope{"a": tiInt32Const('a')}},
+	{`-a`, tiIntConst(-5), typeCheckerScope{"a": tiIntConst(5)}},
+	{`-a`, tiFloat64Const(-5.7), typeCheckerScope{"a": tiFloat64Const(5.7)}},
+	{`-a`, tiInt32Const(-'a'), typeCheckerScope{"a": tiInt32Const('a')}},
+
+	// Operations ( typed )
+	{`!a`, tiBool(), typeCheckerScope{"a": tiBool()}},
+	{`+a`, tiInt(), typeCheckerScope{"a": tiInt()}},
+	{`+a`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
+	{`+a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
+	{`-a`, tiInt(), typeCheckerScope{"a": tiInt()}},
+	{`-a`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
+	{`-a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
+
 	// Operations ( untyped + untyped ).
 	{`true && true`, tiUntypedBoolConst(true), nil},
 	{`true || true`, tiUntypedBoolConst(true), nil},

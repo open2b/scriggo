@@ -674,7 +674,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 // error if the operation can not be executed.
 func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 
-	t := expr.TypeInfo()
+	t := expr.Expr.TypeInfo()
+	k := t.Type.Kind()
 
 	ti := &ast.TypeInfo{
 		Type:       t.Type,
@@ -683,29 +684,32 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 
 	switch expr.Op {
 	case ast.OperatorNot:
-		if t.Nil() || t.Type.Kind() != reflect.Bool {
+		if t.Nil() || k != reflect.Bool {
 			return nil, fmt.Errorf("invalid operation: ! %s", t)
 		}
-		if ti.IsConstant() {
-			ti.Value = !ti.Value.(bool)
+		if t.IsConstant() {
+			ti.Value = !t.Value.(bool)
 		}
 	case ast.OperatorAddition:
-		if t.Nil() || !numericKind[t.Type.Kind()] {
+		if t.Nil() || !numericKind[k] {
 			return nil, fmt.Errorf("invalid operation: + %s", t)
 		}
+		if t.IsConstant() {
+			ti.Value = t.Value
+		}
 	case ast.OperatorSubtraction:
-		if t.Nil() || !numericKind[t.Type.Kind()] {
+		if t.Nil() || !numericKind[k] {
 			return nil, fmt.Errorf("invalid operation: - %s", t)
 		}
-		if ti.IsConstant() {
-			if ti.Untyped() {
-				ti.Value = constant.UnaryOp(gotoken.SUB, ti.Value.(constant.Value), 0)
+		if t.IsConstant() {
+			if t.Untyped() {
+				t.Value = constant.UnaryOp(gotoken.SUB, t.Value.(constant.Value), 0)
 			} else {
-				switch v := ti.Value.(type) {
+				switch v := t.Value.(type) {
 				case *big.Int:
 					v = big.NewInt(0).Neg(v)
-					min := integerRanges[t.Type.Kind()-2].min
-					max := integerRanges[t.Type.Kind()-2].max
+					min := integerRanges[k-2].min
+					max := integerRanges[k-2].max
 					if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
 						return nil, fmt.Errorf("constant %v overflows %s", v, t)
 					}
@@ -713,7 +717,7 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 				case *big.Float:
 					v = big.NewFloat(0).Neg(v)
 					var acc big.Accuracy
-					if t.Type.Kind() == reflect.Float64 {
+					if k == reflect.Float64 {
 						_, acc = v.Float64()
 					} else {
 						_, acc = v.Float32()
@@ -721,6 +725,7 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 					if acc != 0 {
 						return nil, fmt.Errorf("constant %v overflows %s", v, t)
 					}
+					ti.Value = v
 				}
 			}
 		}
