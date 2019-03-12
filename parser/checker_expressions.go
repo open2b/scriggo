@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"go/constant"
 	gotoken "go/token"
+	"math"
 	"math/big"
 	"reflect"
 
@@ -1074,7 +1075,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		return []*ast.TypeInfo{{Type: t.Type, Value: value}}
+		return []*ast.TypeInfo{{Type: t.Type, Value: value, Properties: arg.Properties & ast.PropertyIsConstant}}
 	}
 
 	if t.IsPackage() {
@@ -1464,11 +1465,11 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 		case k == reflect.Float64:
 			return v, nil
 		case k == reflect.Float32:
-			_, acc := v.Float32()
-			if acc != 0 {
+			n, _ := v.Float32()
+			if math.IsInf(float64(n), 0) {
 				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
 			}
-			return v, nil
+			return big.NewFloat(float64(n)), nil
 		}
 	case constant.Value:
 		n, err := ConstantNumber{val: v, typ: ConstantNumberType(t1.Type.Kind())}.ToType(t2)
