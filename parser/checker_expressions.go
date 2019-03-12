@@ -163,7 +163,7 @@ var universe = typeCheckerScope{
 	"int16":      &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
 	"int32":      int32TypeInfo,
 	"int64":      &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
-	"int8":       uint8TypeInfo,
+	"int8":       &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType},
 	"rune":       int32TypeInfo,
 	"string":     &ast.TypeInfo{Type: stringType, Properties: ast.PropertyIsType},
 	"true":       &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: true},
@@ -171,7 +171,7 @@ var universe = typeCheckerScope{
 	"uint16":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
 	"uint32":     &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
 	"uint64":     &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
-	"uint8":      &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType},
+	"uint8":      uint8TypeInfo,
 	"uintptr":    &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
 }
 
