@@ -784,7 +784,6 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		//if k2 == reflect.Interface {
 		t2 = &ast.TypeInfo{Type: t1.Type, Properties: ast.PropertyIsConstant, Value: v}
 	}
 
