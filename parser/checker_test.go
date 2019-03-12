@@ -184,7 +184,7 @@ var checkerExprs = []struct {
 	{`a == "b"`, tiBoolConst(string("a") == "b"), typeCheckerScope{"a": tiStringConst("a")}},
 	{`a == 0`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
 
-	//{"[...]int{1}[0]", tiAddrInt(), nil}, TODO(gianluca)
+	{"[...]int{1}[0]", tiAddrInt(), nil},
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
