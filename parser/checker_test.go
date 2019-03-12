@@ -244,6 +244,9 @@ var checkerExprs = []struct {
 	{`float32(5.3)`, tiFloat32Const(5.3), nil},
 	{`float64(5.3)`, tiFloat64Const(5.3), nil},
 	{`int(5.0)`, tiIntConst(5), nil},
+	{`string(5)`, tiStringConst(string(5)), nil},
+	{`[]byte("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
+	{`[]rune("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, nil},
 
 	// Conversions ( typed constants )
 	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiIntConst(5)}},
@@ -261,6 +264,8 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), typeCheckerScope{"a": tiFloat32Const(5.3)}},
 	{`float32(a)`, tiFloat32Const(float32(float64(5.3))), typeCheckerScope{"a": tiFloat64Const(5.3)}},
 	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiFloat64Const(5.0)}},
+	{`[]byte(a)`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
+	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
 
 	// Conversions ( not constants )
 	{`int(a)`, tiInt(), typeCheckerScope{"a": tiInt()}},
@@ -277,6 +282,10 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
 	{`float32(a)`, tiFloat32(), typeCheckerScope{"a": tiFloat64()}},
 	{`int(a)`, tiInt(), typeCheckerScope{"a": tiFloat64()}},
+	{`[]byte(a)`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiString()}},
+	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
+	{`string([]byte{1,2,3})`, tiString(), nil},
+	{`string([]rune{'a','b','c'})`, tiString(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {

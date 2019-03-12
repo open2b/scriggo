@@ -125,11 +125,12 @@ type HTML string
 var boolType = reflect.TypeOf(false)
 var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
+var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 var float64Type = reflect.TypeOf(float64(0))
 
 var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
-var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType}
+var uint8TypeInfo = &ast.TypeInfo{Type: uint8Type, Properties: ast.PropertyIsType}
 var int32TypeInfo = &ast.TypeInfo{Type: int32Type, Properties: ast.PropertyIsType}
 
 var untypedBoolTypeInfo = &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}
@@ -1075,7 +1076,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		return []*ast.TypeInfo{{Type: t.Type, Value: value, Properties: arg.Properties & ast.PropertyIsConstant}}
+		ti := &ast.TypeInfo{Type: t.Type, Value: value}
+		if value != nil {
+			ti.Properties = ast.PropertyIsConstant
+		}
+		return []*ast.TypeInfo{ti}
 	}
 
 	if t.IsPackage() {
@@ -1373,8 +1378,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 var errTypeConversion = errors.New("failed type conversion")
 
 // convert converts a value. explicit reports whether the conversion is
-// explicit. If the value is a constant and the type to convert is a concrete
-// type, the converted value is a typed constant and its value is returned,
+// explicit. If the converted value is a constant, convert returns its value,
 // otherwise returns nil.
 //
 // If the value can not be converted, returns an errTypeConversion type error,
@@ -1394,20 +1398,29 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 	}
 
 	if ti.IsConstant() && k != reflect.Interface {
-		// As a special case, an integer constant can be explicitly converted to a string type.
-		if explicit && k == reflect.String {
-			switch v := v.(type) {
-			case *big.Int:
-				if v.IsInt64() {
-					return string(v.Int64()), nil
-				}
-				return "\uFFFD", nil
-			case constant.Value:
-				if k1 := t.Kind(); reflect.Int <= k1 && k1 <= reflect.Uint64 {
-					if v, ok := constant.Int64Val(v); ok {
-						return string(v), nil
+		if explicit {
+			if k == reflect.String {
+				// As a special case, an integer constant can be explicitly
+				// converted to a string type.
+				switch v := v.(type) {
+				case *big.Int:
+					if v.IsInt64() {
+						return string(v.Int64()), nil
 					}
 					return "\uFFFD", nil
+				case constant.Value:
+					if k1 := t.Kind(); reflect.Int <= k1 && k1 <= reflect.Uint64 {
+						if v, ok := constant.Int64Val(v); ok {
+							return string(v), nil
+						}
+						return "\uFFFD", nil
+					}
+				}
+			} else if k == reflect.Slice && t.Kind() == reflect.String {
+				// As a special case, a string constant can be explicitly converted
+				// to a slice of runes or bytes.
+				if elem := t2.Elem(); elem == uint8Type || elem == int32Type {
+					return nil, nil
 				}
 			}
 		}
