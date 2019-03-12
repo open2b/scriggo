@@ -1387,7 +1387,7 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 
 	t := ti.Type
 	v := ti.Value
-	k := t2.Kind()
+	k2 := t2.Kind()
 
 	if ti.Nil() {
 		switch t2.Kind() {
@@ -1397,9 +1397,10 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 		return nil, errTypeConversion
 	}
 
-	if ti.IsConstant() && k != reflect.Interface {
+	if ti.IsConstant() && k2 != reflect.Interface {
 		if explicit {
-			if k == reflect.String {
+			k1 := t.Kind()
+			if k2 == reflect.String && reflect.Int <= k1 && k1 <= reflect.Uint64 {
 				// As a special case, an integer constant can be explicitly
 				// converted to a string type.
 				switch v := v.(type) {
@@ -1407,16 +1408,13 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 					if v.IsInt64() {
 						return string(v.Int64()), nil
 					}
-					return "\uFFFD", nil
 				case constant.Value:
-					if k1 := t.Kind(); reflect.Int <= k1 && k1 <= reflect.Uint64 {
-						if v, ok := constant.Int64Val(v); ok {
-							return string(v), nil
-						}
-						return "\uFFFD", nil
+					if v, ok := constant.Int64Val(v); ok {
+						return string(v), nil
 					}
 				}
-			} else if k == reflect.Slice && t.Kind() == reflect.String {
+				return "\uFFFD", nil
+			} else if k2 == reflect.Slice && k1 == reflect.String {
 				// As a special case, a string constant can be explicitly converted
 				// to a slice of runes or bytes.
 				if elem := t2.Elem(); elem == uint8Type || elem == int32Type {
