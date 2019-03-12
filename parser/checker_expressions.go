@@ -129,7 +129,7 @@ var int32Type = reflect.TypeOf(int32(0))
 var float64Type = reflect.TypeOf(float64(0))
 
 var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
-var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType}
+var uint8TypeInfo = &ast.TypeInfo{Type: reflect.TypeOf(uint8(0)), Properties: ast.PropertyIsType}
 var int32TypeInfo = &ast.TypeInfo{Type: int32Type, Properties: ast.PropertyIsType}
 
 var untypedBoolTypeInfo = &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}
