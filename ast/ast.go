@@ -82,7 +82,7 @@ const (
 )
 
 func (op OperatorType) String() string {
-	return []string{"==", "!=", "!", "&", "<", "<=", ">", ">=", "&&", "||", "+", "-", "*", "/", "%"}[op]
+	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "&&", "||", "+", "-", "*", "/", "%"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
