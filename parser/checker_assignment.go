@@ -246,7 +246,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if isDeclaration {
 			newValueTi := &ast.TypeInfo{}
 			// Cannot declarate a variable if already exists in current scope.
-			if _, alreadyInCurrentScope := tc.LookupScope(v.Name, true); alreadyInCurrentScope {
+			if _, alreadyInCurrentScope := tc.LookupScopes(v.Name, true); alreadyInCurrentScope {
 				hasBeenDeclared = false
 				return
 			}

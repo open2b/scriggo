@@ -203,10 +203,10 @@ func (tc *typechecker) RemoveCurrentScope() {
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
-// LookupScope looks up name in the scopes. Returns the type info of the name or
-// false if the name does not exist. If justCurrentScope is true, LookupScope
+// LookupScopes looks up name in the scopes. Returns the type info of the name or
+// false if the name does not exist. If justCurrentScope is true, LookupScopes
 // looks up only in the current scope.
-func (tc *typechecker) LookupScope(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
+func (tc *typechecker) LookupScopes(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
 	if justCurrentScope {
 		for n, ti := range tc.scopes[len(tc.scopes)-1] {
 			if n == name {
@@ -275,7 +275,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 			fun.Upvalues = append(fun.Upvalues, uv)
 		}
 	}
-	i, ok := tc.LookupScope(ident.Name, false)
+	i, ok := tc.LookupScopes(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
