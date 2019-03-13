@@ -171,9 +171,11 @@ func (e *expression) SetTypeInfo(ti *TypeInfo) {
 // Tree node represents a tree.
 type Tree struct {
 	*Position
-	Path    string  // path of the tree.
-	Nodes   []Node  // nodes of the first level of the tree.
-	Context Context // context.
+	Path                 string               // path of the tree.
+	Nodes                []Node               // nodes of the first level of the tree.
+	Context              Context              // context.
+	VariableOrdering     []string             // ordering of initialization of global variables.
+	ConstantsExpressions map[Node]interface{} // expressions of constants.
 }
 
 func NewTree(path string, nodes []Node, ctx Context) *Tree {

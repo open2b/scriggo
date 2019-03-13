@@ -1,19 +1,31 @@
 package parser
 
 import (
+	"reflect"
 	"scrigo/ast"
 )
 
-type Package struct {
-	Name                     string
-	Declarations             map[string]*ast.TypeInfo
-	VariablesEvaluationOrder []string
+type GoPackage struct {
+	Name         string
+	Declarations map[string]interface{}
+}
+
+type tcPackage struct {
+	Name         string
+	Declarations map[string]*ast.TypeInfo
 }
 
 var currentlyEvaluating = &ast.TypeInfo{}
 var globalNotChecked = &ast.TypeInfo{}
 
-func CheckPackage(node *ast.Package) (pkg Package, err error) {
+// TODO (Gianluca): CheckPackage should have 'src' (type []byte) instead of
+// 'node' as argument, and its name should be something like: 'ParsePackage'.
+func CheckPackage(node *ast.Tree, imports map[string]*GoPackage) (*ast.Tree, error) {
+	tree, _, err := checkPackage(node, imports)
+	return tree, err
+}
+
+func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree, pkg *tcPackage, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*Error); ok {
@@ -23,25 +35,52 @@ func CheckPackage(node *ast.Package) (pkg Package, err error) {
 			}
 		}
 	}()
-	pkg = Package{
-		Name:         node.Name,
-		Declarations: make(map[string]*ast.TypeInfo, len(node.Declarations)),
-	}
+	packageNode := node.Nodes[0].(*ast.Package)
 	tc := typechecker{
 		scopes:       []typeCheckerScope{universe},
-		packageBlock: make(typeCheckerScope, len(node.Declarations)),
+		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
 	}
-	for _, n := range node.Declarations {
+	pkg = &tcPackage{
+		Name:         packageNode.Name,
+		Declarations: make(map[string]*ast.TypeInfo, len(packageNode.Declarations)),
+	}
+	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
 		case *ast.Import:
 			if n.Tree == nil {
-				// TODO (Gianluca): (Go Package)
-			} else {
-				// TODO (Gianluca): (Scrigo Package)
-				_, err := CheckPackage(n.Tree.Nodes[0].(*ast.Package))
-				if err != nil {
-					return pkg, err
+				// Go package.
+				importedPkg := tcPackage{}
+				goPkg, ok := imports[n.Path]
+				if !ok {
+					panic(tc.errorf(n, "cannot find package %q", n.Path))
 				}
+				importedPkg.Declarations = make(map[string]*ast.TypeInfo, len(goPkg.Declarations))
+				for ident, value := range goPkg.Declarations {
+					ti := &ast.TypeInfo{}
+					switch value {
+					case reflect.TypeOf(value).Kind() == reflect.Ptr:
+						ti = &ast.TypeInfo{Type: reflect.TypeOf(value).Elem(), Properties: ast.PropertyAddressable}
+					case reflect.TypeOf(value) == reflect.TypeOf(reflect.Type(nil)):
+						ti = &ast.TypeInfo{Type: value.(reflect.Type), Properties: ast.PropertyIsType}
+					case reflect.TypeOf(value).Kind() == reflect.Func:
+						// Being not addressable, a global function can be
+						// differentiated from a global function literal.
+						ti = &ast.TypeInfo{Type: reflect.TypeOf(value)}
+					default:
+						// TODO (Gianluca): handle 'constants' properly.
+						ti = &ast.TypeInfo{Value: value}
+					}
+					importedPkg.Declarations[ident] = ti
+				}
+				importedPkg.Name = goPkg.Name
+				tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+			} else {
+				// Scrigo package.
+				_, importedPkg, err := checkPackage(n.Tree, nil)
+				if err != nil {
+					return nil, &tcPackage{}, err
+				}
+				tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
 			}
 		case *ast.Const:
 			for i := range n.Identifiers {
@@ -111,11 +150,13 @@ func CheckPackage(node *ast.Package) (pkg Package, err error) {
 			}
 		}
 	}
+	pkg.Declarations = make(map[string]*ast.TypeInfo)
 	for ident, ti := range tc.packageBlock {
 		pkg.Declarations[ident] = ti
 	}
-	pkg.VariablesEvaluationOrder = tc.initOrder
-	return pkg, nil
+	tree = node
+	tree.VariableOrdering = tc.initOrder
+	return tree, pkg, nil
 }
 
 // stringInSlice indicates if ss contains s.

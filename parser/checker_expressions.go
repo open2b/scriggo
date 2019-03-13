@@ -200,7 +200,7 @@ type Declarations struct {
 // typechecker represents the state of a type checking.
 type typechecker struct {
 	path               string
-	imports            map[string]*Package // TODO (Gianluca): review!
+	imports            map[string]tcPackage // TODO (Gianluca): review!
 	fileBlock          typeCheckerScope
 	packageBlock       typeCheckerScope
 	scopes             []typeCheckerScope
