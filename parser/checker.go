@@ -1,10 +1,12 @@
+//+build ignore
+
 // Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 // https://www.open2b.com
 
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// TODO (Gianluca): this files needs a revision.
+// TODO (Gianluca): this file needs a revision.
 
 package parser
 

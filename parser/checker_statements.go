@@ -285,7 +285,11 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	fun, funcBound := tc.getCurrentFunc()
 	if fun == nil {
-		panic(tc.errorf(node, "non-declaration statement outside function body"))
+		// TODO (Gianluca): commented because returns error when a "return"
+		// statement appears in a global function: getCurrentFunc only works with
+		// function literals.
+		// panic(tc.errorf(node, "non-declaration statement outside function body"))
+		return
 	}
 
 	expected := fun.Type.Result

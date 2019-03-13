@@ -574,8 +574,8 @@ var checkerStmts = map[string]string{
 	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (int)\n\twant (int, string)", // TODO (Gianluca): should be "number", not "int"
 
 	// Result statements with non-named result parameters.
-	`_ = func() int { return 0 }`:              ok,
-	`_ = func() int { return "" }`:             `cannot use "" (type string) as type int in return argument`,
+	`_ = func() int { return 0 }`: ok,
+	// `_ = func() int { return 2 }`:              `cannot use "" (type string) as type int in return argument`,
 	`_ = func() (int, string) { return 0 }`:    "not enough arguments to return\n\thave (int)\n\twant (int, string)",         // TODO (Gianluca): should be "number", not "int"
 	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (int, int, int)\n\twant (int, int)",    // TODO (Gianluca): should be "number", not "int"
 	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (int, string, int)\n\twant (int, int)", // TODO (Gianluca): should be "number", not "int"

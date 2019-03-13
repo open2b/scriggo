@@ -181,16 +181,54 @@ type ancestor struct {
 	node       ast.Node
 }
 
+// Declaration is a package global declaration.
+type Declaration struct {
+	Ident string
+	Expr  ast.Expression
+	Type  ast.Expression
+	Body  *ast.Block
+}
+
+// Declarations contains constant, variable and function package global
+// declarations.
+type Declarations struct {
+	Constants []*Declaration
+	Variables []*Declaration
+	Functions []*Declaration
+}
+
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path         string
-	imports      map[string]*Package // TODO (Gianluca): review!
-	fileBlock    typeCheckerScope
-	packageBlock typeCheckerScope
-	scopes       []typeCheckerScope
-	ancestors    []*ancestor
-	terminating  bool // https://golang.org/ref/spec#Terminating_statements
-	hasBreak     map[ast.Node]bool
+	path               string
+	imports            map[string]*Package // TODO (Gianluca): review!
+	fileBlock          typeCheckerScope
+	packageBlock       typeCheckerScope
+	scopes             []typeCheckerScope
+	ancestors          []*ancestor
+	terminating        bool // https://golang.org/ref/spec#Terminating_statements
+	hasBreak           map[ast.Node]bool
+	declarations       Declarations // global declarations
+	initOrder          []string     // global variables initialization order
+	globalDependencies []string     // global dependencies
+}
+
+func (tc *typechecker) DeclarationByName(name string) *Declaration {
+	for _, v := range tc.declarations.Variables {
+		if name == v.Ident {
+			return v
+		}
+	}
+	for _, f := range tc.declarations.Functions {
+		if name == f.Ident {
+			return f
+		}
+	}
+	for _, c := range tc.declarations.Constants {
+		if name == c.Ident {
+			return c
+		}
+	}
+	panic("not found")
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -220,6 +258,16 @@ func (tc *typechecker) LookupScopes(name string, justCurrentScope bool) (*ast.Ty
 			if n == name {
 				return ti, true
 			}
+		}
+	}
+	for n, ti := range tc.packageBlock {
+		if n == name {
+			return ti, true
+		}
+	}
+	for n, ti := range tc.fileBlock {
+		if n == name {
+			return ti, true
 		}
 	}
 	return nil, false
@@ -278,6 +326,27 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 	i, ok := tc.LookupScopes(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
+	}
+	if i == currentlyEvaluating {
+		panic(tc.errorf(ident, "initialization loop"))
+	}
+	tc.globalDependencies = append(tc.globalDependencies, ident.Name)
+	if i == globalNotChecked {
+		d := tc.DeclarationByName(ident.Name)
+		var ti *ast.TypeInfo
+		if d.Expr != nil {
+			tc.packageBlock[ident.Name] = currentlyEvaluating
+			ti = tc.checkExpression(d.Expr)
+			delete(tc.packageBlock, ident.Name)
+		} else if d.Body != nil {
+			tc.packageBlock[ident.Name] = currentlyEvaluating
+			tc.checkNodes(d.Body.Nodes)
+			ti = &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
+			delete(tc.packageBlock, ident.Name)
+		} else {
+			panic("invalid")
+		}
+		return ti
 	}
 	return i
 }
