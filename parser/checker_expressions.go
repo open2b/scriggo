@@ -334,12 +334,11 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 
 	if tc.getDecl(ident.Name) != nil {
 		tc.varDeps[tc.currentIdent] = append(tc.varDeps[tc.currentIdent], ident.Name)
-	}
-
-	tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
-	if containsDuplicates(tc.currentlyEvaluating) {
-		// TODO (Gianluca): add positions.
-		panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.currentlyEvaluating, " refers to\n\t")))
+		tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
+		if containsDuplicates(tc.currentlyEvaluating) {
+			// TODO (Gianluca): add positions.
+			panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.currentlyEvaluating, " refers to\n\t")))
+		}
 	}
 
 	// Check bodies of global functions.
