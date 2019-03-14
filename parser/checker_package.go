@@ -66,9 +66,9 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
 		case *ast.Import:
+			importedPkg := &tcPackage{}
 			if n.Tree == nil {
 				// Go package.
-				importedPkg := tcPackage{}
 				goPkg, ok := imports[n.Path]
 				if !ok {
 					return nil, nil, tc.errorf(n, "cannot find package %q", n.Path)
@@ -92,37 +92,25 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 					importedPkg.Declarations[ident] = ti
 				}
 				importedPkg.Name = goPkg.Name
-				if n.Ident == nil {
-					tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
-				} else {
-					switch n.Ident.Name {
-					case "_":
-					case ".":
-						for ident, ti := range importedPkg.Declarations {
-							tc.fileBlock[ident] = ti
-						}
-					default:
-						tc.fileBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
-					}
-				}
 			} else {
 				// Scrigo package.
-				_, importedPkg, err := checkPackage(n.Tree, nil)
+				var err error
+				_, importedPkg, err = checkPackage(n.Tree, nil)
 				if err != nil {
-					return nil, &tcPackage{}, err
+					return nil, nil, err
 				}
-				if n.Ident == nil {
-					tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
-				} else {
-					switch n.Ident.Name {
-					case "_":
-					case ".":
-						for ident, ti := range importedPkg.Declarations {
-							tc.fileBlock[ident] = ti
-						}
-					default:
-						tc.fileBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+			}
+			if n.Ident == nil {
+				tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+			} else {
+				switch n.Ident.Name {
+				case "_":
+				case ".":
+					for ident, ti := range importedPkg.Declarations {
+						tc.fileBlock[ident] = ti
 					}
+				default:
+					tc.fileBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
 				}
 			}
 		case *ast.Const:
