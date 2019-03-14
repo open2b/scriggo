@@ -8,16 +8,20 @@ import (
 	"strings"
 )
 
+// TODO (Gianluca): find a better name.
 type GoPackage struct {
 	Name         string
 	Declarations map[string]interface{}
 }
 
+// TODO (Gianluca): find a better name.
 type tcPackage struct {
 	Name         string
 	Declarations map[string]*ast.TypeInfo
 }
 
+// notChecked represents the type info of a not type-checked package
+// declaration.
 var notChecked = &ast.TypeInfo{}
 
 // TODO (Gianluca): CheckPackage should have 'src' (type []byte) instead of
