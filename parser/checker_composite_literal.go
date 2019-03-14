@@ -7,7 +7,6 @@
 package parser
 
 import (
-	"go/constant"
 	"math/big"
 	"reflect"
 
@@ -72,9 +71,6 @@ func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind refl
 		for _, f := range found {
 			areEqual := false
 			switch v1 := value.(type) {
-			case constant.Value:
-				v2 := f.(constant.Value)
-				areEqual = v1.ExactString() == v2.ExactString()
 			case *big.Int:
 				v2 := f.(*big.Int)
 				areEqual = v1.Cmp(v2) == 0

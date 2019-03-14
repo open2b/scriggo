@@ -9,8 +9,6 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"go/constant"
-	gotoken "go/token"
 	"math"
 	"math/big"
 	"reflect"
@@ -19,6 +17,8 @@ import (
 
 	"scrigo/ast"
 )
+
+var errDivisionByZero = errors.New("division by zero")
 
 const noEllipses = -1
 
@@ -427,21 +427,21 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return &ast.TypeInfo{
 			Type:       intType,
 			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
-			Value:      constant.MakeFromLiteral(expr.Value.String(), gotoken.INT, 0),
+			Value:      &expr.Value,
 		}
 
 	case *ast.Rune:
 		return &ast.TypeInfo{
 			Type:       int32Type,
 			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
-			Value:      constant.MakeInt64(int64(expr.Value)),
+			Value:      big.NewInt(int64(expr.Value)),
 		}
 
 	case *ast.Float:
 		return &ast.TypeInfo{
 			Type:       float64Type,
 			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
-			Value:      constant.MakeFromLiteral(expr.Value.Text('f', -1), gotoken.FLOAT, 0),
+			Value:      &expr.Value,
 		}
 
 	case *ast.Parentesis:
@@ -795,11 +795,18 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 		}
 		if t.IsConstant() {
 			if t.Untyped() {
-				t.Value = constant.UnaryOp(gotoken.SUB, t.Value.(constant.Value), 0)
+				switch v := t.Value.(type) {
+				case *big.Int:
+					ti.Value = (&big.Int{}).Neg(v)
+				case *big.Float:
+					v = (&big.Float{}).Neg(v)
+				case *big.Rat:
+					v = (&big.Rat{}).Neg(v)
+				}
 			} else {
 				switch v := t.Value.(type) {
 				case *big.Int:
-					v = big.NewInt(0).Neg(v)
+					v = (&big.Int{}).Neg(v)
 					min := integerRanges[k-2].min
 					max := integerRanges[k-2].max
 					if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
@@ -807,7 +814,7 @@ func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 					}
 					ti.Value = v
 				case *big.Float:
-					v = big.NewFloat(0).Neg(v)
+					v = (&big.Float{}).Neg(v)
 					var acc big.Accuracy
 					if k == reflect.Float64 {
 						_, acc = v.Float64()
@@ -1087,54 +1094,93 @@ func (tc *typechecker) uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 
 			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
 		}
 	default:
-		v1 := t1.Value.(constant.Value)
-		v2 := t2.Value.(constant.Value)
+		v1, v2 := toSameType(t1.Value, t2.Value)
 		switch expr.Op {
-		case ast.OperatorEqual:
-			t.Value = constant.Compare(v1, gotoken.EQL, v2)
-		case ast.OperatorNotEqual:
-			t.Value = constant.Compare(v1, gotoken.NEQ, v2)
-		case ast.OperatorLess:
-			t.Value = constant.Compare(v1, gotoken.LSS, v2)
-		case ast.OperatorLessOrEqual:
-			t.Value = constant.Compare(v1, gotoken.LEQ, v2)
-		case ast.OperatorGreater:
-			t.Value = constant.Compare(v1, gotoken.GTR, v2)
-		case ast.OperatorGreaterOrEqual:
-			t.Value = constant.Compare(v1, gotoken.GEQ, v2)
-		case ast.OperatorAddition:
-			t.Value = constant.BinaryOp(v1, gotoken.ADD, v2)
-		case ast.OperatorSubtraction:
-			t.Value = constant.BinaryOp(v1, gotoken.SUB, v2)
-		case ast.OperatorMultiplication:
-			t.Value = constant.BinaryOp(v1, gotoken.MUL, v2)
-		case ast.OperatorDivision:
-			if constant.Sign(v2) == 0 {
-				return nil, errDivisionByZero
+		default:
+			var cmp int
+			switch v1 := v1.(type) {
+			case *big.Int:
+				cmp = v1.Cmp(v2.(*big.Int))
+			case *big.Float:
+				cmp = v1.Cmp(v2.(*big.Float))
+			case *big.Rat:
+				cmp = v1.Cmp(v2.(*big.Rat))
 			}
-			if k1 == reflect.Float64 || k2 == reflect.Float64 {
-				t.Value = constant.BinaryOp(v1, gotoken.QUO, v2)
-			} else {
-				n1, _ := new(big.Int).SetString(v1.ExactString(), 10)
-				n2, _ := new(big.Int).SetString(v2.ExactString(), 10)
-				t.Value = constant.MakeFromLiteral(n1.Quo(n1, n2).String(), gotoken.INT, 0)
+			switch expr.Op {
+			case ast.OperatorEqual:
+				t.Value = cmp == 0
+			case ast.OperatorNotEqual:
+				t.Value = cmp != 0
+			case ast.OperatorLess:
+				t.Value = cmp < 0
+			case ast.OperatorLessOrEqual:
+				t.Value = cmp <= 0
+			case ast.OperatorGreater:
+				t.Value = cmp > 0
+			case ast.OperatorGreaterOrEqual:
+				t.Value = cmp >= 0
+			default:
+				return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on untyped number)", expr, expr.Op)
+			}
+			return t, nil
+		case ast.OperatorAddition:
+			switch v2 := v2.(type) {
+			case *big.Int:
+				t.Value = (&big.Int{}).Add(v1.(*big.Int), v2)
+			case *big.Float:
+				t.Value = (&big.Float{}).Add(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = (&big.Rat{}).Add(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorSubtraction:
+			switch v2 := t2.Value.(type) {
+			case *big.Int:
+				t.Value = (&big.Int{}).Sub(v1.(*big.Int), v2)
+			case *big.Float:
+				t.Value = (&big.Float{}).Sub(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = (&big.Rat{}).Sub(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorMultiplication:
+			switch v2 := v2.(type) {
+			case *big.Int:
+				t.Value = (&big.Int{}).Sub(v1.(*big.Int), v2)
+			case *big.Float:
+				t.Value = (&big.Float{}).Sub(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = (&big.Rat{}).Sub(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorDivision:
+			switch v2 := t2.Value.(type) {
+			case *big.Int:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = (&big.Rat{}).SetFrac(v1.(*big.Int), v2)
+			case *big.Float:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = (&big.Float{}).Quo(v1.(*big.Float), v2)
+			case *big.Rat:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = (&big.Rat{}).Quo(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorModulo:
-			if constant.Sign(v2) == 0 {
-				return nil, errDivisionByZero
-			}
 			if k1 == reflect.Float64 || k2 == reflect.Float64 {
 				return nil, errors.New("illegal constant expression: floating-point % operation")
 			}
-			t.Value = constant.BinaryOp(v1, gotoken.REM, v2)
-		default:
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on untyped number)", expr, expr.Op)
-		}
-		if _, ok := t.Value.(constant.Value); ok {
-			t.Type = t1.Type
-			if k2 > k1 {
-				t.Type = t2.Type
+			vv2 := v2.(*big.Int)
+			if vv2.Sign() == 0 {
+				return nil, errDivisionByZero
 			}
+			t.Value = (&big.Rat{}).SetFrac(v1.(*big.Int), vv2)
+		}
+		t.Type = t1.Type
+		if k2 > k1 {
+			t.Type = t2.Type
 		}
 	}
 
@@ -1498,10 +1544,6 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 					if v.IsInt64() {
 						return string(v.Int64()), nil
 					}
-				case constant.Value:
-					if v, ok := constant.Int64Val(v); ok {
-						return string(v), nil
-					}
 				}
 				return "\uFFFD", nil
 			} else if k2 == reflect.Slice && k1 == reflect.String {
@@ -1540,22 +1582,35 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 	case *big.Int:
 		switch {
 		case reflect.Int <= k && k <= reflect.Uint64:
-			min := integerRanges[k-2].min
-			max := integerRanges[k-2].max
-			if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
-				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+			if t1.Untyped() || k != t1.Type.Kind() {
+				min := integerRanges[k-2].min
+				max := integerRanges[k-2].max
+				if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
+					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+				}
 			}
 			return v, nil
 		case k == reflect.Float64:
-			return big.NewFloat(0).SetInt(v), nil
+			n := (&big.Float{}).SetInt(v)
+			if t1.Untyped() && !v.IsInt64() && !v.IsUint64() {
+				if _, acc := n.Float64(); acc != big.Exact {
+					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+				}
+			}
+			return n, nil
 		case k == reflect.Float32:
-			return big.NewFloat(0).SetInt(v).SetPrec(24), nil
+			n := (&big.Float{}).SetInt(v).SetPrec(24)
+			if t1.Untyped() && !v.IsInt64() && !v.IsUint64() {
+				if _, acc := n.Float32(); acc != big.Exact {
+					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+				}
+			}
+			return n, nil
 		}
 	case *big.Float:
 		switch {
 		case reflect.Int <= k && k <= reflect.Uint64:
-			if v.IsInt() {
-				n, _ := v.Int(nil)
+			if n, acc := v.Int(nil); acc == big.Exact {
 				min := integerRanges[k-2].min
 				max := integerRanges[k-2].max
 				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
@@ -1564,6 +1619,13 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 			}
 			return nil, fmt.Errorf("constant %v truncated to integer", v)
 		case k == reflect.Float64:
+			if t1.Untyped() {
+				n, _ := v.Float64()
+				if math.IsInf(n, 0) {
+					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+				}
+				v = big.NewFloat(n)
+			}
 			return v, nil
 		case k == reflect.Float32:
 			n, _ := v.Float32()
@@ -1572,36 +1634,30 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 			}
 			return big.NewFloat(float64(n)), nil
 		}
-	case constant.Value:
-		n, err := ConstantNumber{val: v, typ: ConstantNumberType(t1.Type.Kind())}.ToType(t2)
-		if err != nil {
-			return nil, err
-		}
-		switch n := n.(type) {
-		case int:
-			return big.NewInt(int64(n)), nil
-		case int8:
-			return big.NewInt(int64(n)), nil
-		case int16:
-			return big.NewInt(int64(n)), nil
-		case int32:
-			return big.NewInt(int64(n)), nil
-		case int64:
-			return big.NewInt(n), nil
-		case uint:
-			return big.NewInt(0).SetUint64(uint64(n)), nil
-		case uint8:
-			return big.NewInt(int64(n)), nil
-		case uint16:
-			return big.NewInt(int64(n)), nil
-		case uint32:
-			return big.NewInt(0).SetUint64(uint64(n)), nil
-		case uint64:
-			return big.NewInt(0).SetUint64(n), nil
-		case float32:
-			return big.NewFloat(float64(n)), nil
-		case float64:
+	case *big.Rat:
+		switch {
+		case reflect.Int <= k && k <= reflect.Uint64:
+			if v.IsInt() {
+				n := v.Num()
+				min := integerRanges[k-2].min
+				max := integerRanges[k-2].max
+				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
+					return n, nil
+				}
+			}
+			return nil, fmt.Errorf("constant %v truncated to integer", v)
+		case k == reflect.Float64:
+			n, _ := v.Float64()
+			if math.IsInf(n, 0) {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+			}
 			return big.NewFloat(n), nil
+		case k == reflect.Float32:
+			n, _ := v.Float32()
+			if math.IsInf(float64(n), 0) {
+				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+			}
+			return big.NewFloat(float64(n)), nil
 		}
 	}
 
@@ -1653,4 +1709,36 @@ func (tc *typechecker) methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo
 		}
 	}
 	return nil, false
+}
+
+// toSameType returns v1 and v2 with the same types.
+func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
+	switch n1 := v1.(type) {
+	case *big.Int:
+		switch v2.(type) {
+		case *big.Float:
+			v1 = (&big.Float{}).SetInt(n1)
+		case *big.Rat:
+			v1 = (&big.Rat{}).SetInt(n1)
+		}
+	case *big.Float:
+		switch n2 := v2.(type) {
+		case *big.Int:
+			v2 = (&big.Float{}).SetInt(n2)
+		case *big.Rat:
+			num := (&big.Float{}).SetInt(n2.Num())
+			den := (&big.Float{}).SetInt(n2.Denom())
+			v2 = num.Quo(num, den)
+		}
+	case *big.Rat:
+		switch n2 := v2.(type) {
+		case *big.Int:
+			v2 = (&big.Rat{}).SetInt(n2)
+		case *big.Float:
+			num := (&big.Float{}).SetInt(n1.Num())
+			den := (&big.Float{}).SetInt(n1.Denom())
+			v1 = num.Quo(num, den)
+		}
+	}
+	return v1, v2
 }

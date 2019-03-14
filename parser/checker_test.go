@@ -9,8 +9,6 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"go/constant"
-	gotoken "go/token"
 	"math/big"
 	"reflect"
 	"strings"
@@ -241,7 +239,7 @@ var checkerExprs = []struct {
 	{`uint16(5)`, tiUint16Const(5), nil},
 	{`uint32(5)`, tiUint32Const(5), nil},
 	{`uint64(5)`, tiUint64Const(5), nil},
-	{`float32(5.3)`, tiFloat32Const(5.3), nil},
+	{`float32(5.3)`, tiFloat32Const(float32(5.3)), nil},
 	{`float64(5.3)`, tiFloat64Const(5.3), nil},
 	{`int(5.0)`, tiIntConst(5), nil},
 	{`string(5)`, tiStringConst(string(5)), nil},
@@ -684,11 +682,6 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 			return fmt.Errorf("unexpected value type %T, expecting %T", t2.Value, t1.Value)
 		}
 		switch v1 := t1.Value.(type) {
-		case constant.Value:
-			v2 := t2.Value.(constant.Value)
-			if v1.ExactString() != v2.ExactString() {
-				return fmt.Errorf("unexpected number %s, expecting %s", v2.ExactString(), v1.ExactString())
-			}
 		case *big.Int:
 			v2 := t2.Value.(*big.Int)
 			if v1.Cmp(v2) != 0 {
@@ -696,6 +689,12 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 			}
 		case *big.Float:
 			v2 := t2.Value.(*big.Float)
+			if v1.Cmp(v2) != 0 {
+				return fmt.Errorf("unexpected floating-point %v, expecting %v",
+					v2.Text('f', 53), v1.Text('f', 53))
+			}
+		case *big.Rat:
+			v2 := t2.Value.(*big.Rat)
 			if v1.Cmp(v2) != 0 {
 				return fmt.Errorf("unexpected floating-point %v, expecting %v", v2, v1)
 			}
@@ -735,8 +734,6 @@ func dumpTypeInfo(ti *ast.TypeInfo) string {
 	s += "\n\tValue:"
 	if ti.Value != nil {
 		switch v := ti.Value.(type) {
-		case constant.Value:
-			s += fmt.Sprintf(" %v (untyped number)", v.ExactString())
 		case *ast.Package:
 			s += fmt.Sprintf(" %s (package)", v.Name)
 		default:
@@ -767,10 +764,14 @@ func tiUntypedBool() *ast.TypeInfo {
 
 // float type infos.
 
-func tiUntypedFloatConst(n string) *ast.TypeInfo {
+func tiUntypedFloatConst(lit string) *ast.TypeInfo {
+	value, ok := (&big.Float{}).SetString(lit)
+	if !ok {
+		panic("invalid floating-point literal value")
+	}
 	return &ast.TypeInfo{
 		Type:       float64Type,
-		Value:      constant.MakeFromLiteral(n, gotoken.FLOAT, 0),
+		Value:      value,
 		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
 	}
 }
@@ -799,7 +800,7 @@ func tiFloat64Const(n float64) *ast.TypeInfo {
 func tiUntypedRuneConst(r rune) *ast.TypeInfo {
 	return &ast.TypeInfo{
 		Type:       int32Type,
-		Value:      constant.MakeInt64(int64(r)),
+		Value:      (&big.Int{}).SetInt64(int64(r)),
 		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
 	}
 }
@@ -826,10 +827,14 @@ func tiStringConst(s string) *ast.TypeInfo {
 
 // int type infos.
 
-func tiUntypedIntConst(n string) *ast.TypeInfo {
+func tiUntypedIntConst(lit string) *ast.TypeInfo {
+	value, ok := (&big.Int{}).SetString(lit, 0)
+	if !ok {
+		panic("invalid integer literal value")
+	}
 	return &ast.TypeInfo{
 		Type:       intType,
-		Value:      constant.MakeFromLiteral(n, gotoken.INT, 0),
+		Value:      value,
 		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
 	}
 }
