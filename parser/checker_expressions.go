@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
+	"unicode"
 
 	"scrigo/ast"
 )
@@ -716,7 +717,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Selector:
 		t := tc.typeof(expr.Expr, noEllipses)
 		if t.IsPackage() {
-			// TODO
+			if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
+				panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
+			}
+			pkg := t.Value.(tcPackage)
+			v, ok := pkg.Declarations[expr.Ident]
+			if !ok {
+				panic(tc.errorf(expr, "undefined: %v", expr))
+			}
+			return v
 		}
 		if t.IsType() {
 			method, ok := tc.methodByName(t, expr.Ident)
