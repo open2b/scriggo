@@ -116,6 +116,9 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 	// Constants.
 	for i := 0; i < len(tc.declarations.Constants); i++ { // TODO (Gianluca): n. of iterations can be reduced.
 		for _, c := range tc.declarations.Constants {
+			tc.currentIdent = c.Ident
+			tc.currentlyEvaluating = []string{c.Ident}
+			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 			ti := tc.checkExpression(c.Expr)
 			if !ti.IsConstant() {
 				panic(tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr))
