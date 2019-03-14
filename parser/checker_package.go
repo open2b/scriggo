@@ -1,8 +1,11 @@
 package parser
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"scrigo/ast"
+	"strings"
 )
 
 type GoPackage struct {
@@ -36,7 +39,15 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 		}
 	}()
 
-	packageNode := node.Nodes[0].(*ast.Package) // TODO (Gianluca): to review.
+	if len(node.Nodes) == 0 {
+		return nil, nil, errors.New("expected 'package', found EOF")
+	}
+	packageNode, ok := node.Nodes[0].(*ast.Package)
+	if !ok {
+		t := fmt.Sprintf("%T", node.Nodes[0])
+		t = strings.ToLower(t[len("*ast."):])
+		return nil, nil, fmt.Errorf("expected 'package', found '%s'", t)
+	}
 
 	tc := typechecker{
 		scopes:       []typeCheckerScope{universe},
