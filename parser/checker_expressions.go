@@ -182,21 +182,20 @@ type ancestor struct {
 	node       ast.Node
 }
 
-// Declaration is a package global declaration.
-// TODO (Gianluca): remove unused fields.
-type Declaration struct {
-	Ident string
-	Expr  ast.Expression
-	Type  ast.Expression
-	Body  *ast.Block
-}
+type DeclarationType int
 
-// Declarations contains constant, variable and function package global
-// declarations.
-type Declarations struct {
-	Constants []*Declaration
-	Variables []*Declaration
-	Functions []*Declaration
+const (
+	DeclarationConstant = iota + 1
+	DeclarationVariable
+	DeclarationFunction
+)
+
+// Declaration is a package global declaration.
+type Declaration struct {
+	Ident           string          // identifier of the declaration.
+	Type            ast.Expression  // nil if declaration has no type.
+	DeclarationType DeclarationType // constant, variable or function.
+	Value           ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
 }
 
 // typechecker represents the state of a type checking.
@@ -212,7 +211,7 @@ type typechecker struct {
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
-	declarations        Declarations        // global declarations.
+	declarations        []*Declaration      // global declarations.
 	initOrder           []string            // global variables initialization order.
 	varDeps             map[string][]string // key is a variable, value is list of its dependencies.
 	currentIdent        string              // identifier currently being evaluated.
@@ -222,19 +221,9 @@ type typechecker struct {
 
 // getDecl returns the declaration called name, or nil if it does not exist.
 func (tc *typechecker) getDecl(name string) *Declaration {
-	for _, v := range tc.declarations.Variables {
+	for _, v := range tc.declarations {
 		if name == v.Ident {
 			return v
-		}
-	}
-	for _, f := range tc.declarations.Functions {
-		if name == f.Ident {
-			return f
-		}
-	}
-	for _, c := range tc.declarations.Constants {
-		if name == c.Ident {
-			return c
 		}
 	}
 	return nil
@@ -356,20 +345,19 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 	// Check bodies of global functions.
 	// TODO (Gianluca): this must be done only when checking global variables.
 	if i.Type != nil && i.Type.Kind() == reflect.Func && !i.Addressable() {
-		tc.checkNodes(tc.getDecl(ident.Name).Body.Nodes)
+		tc.checkNodes(tc.getDecl(ident.Name).Value.(*ast.Block).Nodes)
 	}
 
 	// Global declaration.
 	if i == notChecked {
-		if d := tc.getDecl(ident.Name); d.Expr != nil {
-			ti := tc.checkExpression(d.Expr)
+		switch d := tc.getDecl(ident.Name); d.DeclarationType {
+		case DeclarationConstant, DeclarationVariable:
+			ti := tc.checkExpression(d.Value.(ast.Expression))
 			tc.temporaryEvaluated[ident.Name] = ti
 			return ti
-		} else if d.Body != nil {
-			tc.checkNodes(d.Body.Nodes)
+		case DeclarationFunction:
+			tc.checkNodes(d.Value.(*ast.Block).Nodes)
 			return &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
-		} else {
-			panic("invalid")
 		}
 	}
 

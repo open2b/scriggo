@@ -103,65 +103,71 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			}
 		case *ast.Const:
 			for i := range n.Identifiers {
-				tc.declarations.Constants = append(tc.declarations.Constants, &Declaration{Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type})
+				tc.declarations = append(tc.declarations, &Declaration{Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
 				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
-				tc.declarations.Variables = append(tc.declarations.Variables, &Declaration{Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.declarations = append(tc.declarations, &Declaration{Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
 				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
-			tc.declarations.Functions = append(tc.declarations.Functions, &Declaration{Ident: n.Ident.Name, Body: n.Body, Type: n.Type})
+			tc.declarations = append(tc.declarations, &Declaration{Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
 			tc.packageBlock[n.Ident.Name] = notChecked
 		}
 	}
 
 	// Constants.
-	for _, c := range tc.declarations.Constants {
-		tc.currentIdent = c.Ident
-		tc.currentlyEvaluating = []string{c.Ident}
-		tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-		ti := tc.checkExpression(c.Expr)
-		if !ti.IsConstant() {
-			return nil, nil, tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr)
-		}
-		if c.Type != nil {
-			typ := tc.checkType(c.Type, noEllipses)
-			if !tc.isAssignableTo(ti, typ.Type) {
-				return nil, nil, tc.errorf(c.Expr, "cannot convert %v (type %s) to type %v", c.Expr, ti.String(), typ.Type)
+	for _, c := range tc.declarations {
+		if c.DeclarationType == DeclarationConstant {
+			tc.currentIdent = c.Ident
+			tc.currentlyEvaluating = []string{c.Ident}
+			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+			ti := tc.checkExpression(c.Value.(ast.Expression))
+			if !ti.IsConstant() {
+				return nil, nil, tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
 			}
+			if c.Type != nil {
+				typ := tc.checkType(c.Type, noEllipses)
+				if !tc.isAssignableTo(ti, typ.Type) {
+					return nil, nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
+				}
+			}
+			tc.packageBlock[c.Ident] = ti
 		}
-		tc.packageBlock[c.Ident] = ti
 	}
 
 	// Functions.
-	for _, v := range tc.declarations.Functions {
-		tc.currentIdent = v.Ident
-		tc.currentlyEvaluating = []string{v.Ident}
-		tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-		tc.checkNodes(v.Body.Nodes)
-		tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
-		tc.initOrder = append(tc.initOrder, v.Ident)
+	for _, v := range tc.declarations {
+		if v.DeclarationType == DeclarationFunction {
+			tc.currentIdent = v.Ident
+			tc.currentlyEvaluating = []string{v.Ident}
+			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+			tc.checkNodes(v.Value.(*ast.Block).Nodes)
+			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+			tc.initOrder = append(tc.initOrder, v.Ident)
+		}
 	}
 
 	// Variables.
 	for unresolvedDeps := true; unresolvedDeps; {
 		unresolvedDeps = false
-		for _, v := range tc.declarations.Variables {
-			tc.currentIdent = v.Ident
-			tc.currentlyEvaluating = []string{v.Ident}
-			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-			ti := tc.checkExpression(v.Expr)
-			if v.Type != nil {
-				typ := tc.checkType(v.Type, noEllipses)
-				if !tc.isAssignableTo(ti, typ.Type) {
-					return nil, nil, tc.errorf(v.Expr, "cannot convert %v (type %s) to type %v", v.Expr, ti.String(), typ.Type)
+		for _, v := range tc.declarations {
+			if v.DeclarationType == DeclarationVariable {
+				tc.currentIdent = v.Ident
+				tc.currentlyEvaluating = []string{v.Ident}
+				tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+				ti := tc.checkExpression(v.Value.(ast.Expression))
+				if v.Type != nil {
+					typ := tc.checkType(v.Type, noEllipses)
+					if !tc.isAssignableTo(ti, typ.Type) {
+						return nil, nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
+					}
 				}
-			}
-			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
-			if !tc.tryAddingToInitOrder(v.Ident) {
-				unresolvedDeps = true
+				tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
+				if !tc.tryAddingToInitOrder(v.Ident) {
+					unresolvedDeps = true
+				}
 			}
 		}
 	}
@@ -174,10 +180,9 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 	tree = node
 	tree.VariableOrdering = nil
 	for _, v := range tc.initOrder {
-		if tc.getDecl(v).Body != nil { // v is a function.
-			continue
+		if tc.getDecl(v).DeclarationType == DeclarationVariable {
+			tree.VariableOrdering = append(tree.VariableOrdering, v)
 		}
-		tree.VariableOrdering = append(tree.VariableOrdering, v)
 	}
 
 	return tree, pkg, nil
