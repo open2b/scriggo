@@ -15,8 +15,7 @@ type tcPackage struct {
 	Declarations map[string]*ast.TypeInfo
 }
 
-var currentlyEvaluating = &ast.TypeInfo{}
-var globalNotChecked = &ast.TypeInfo{}
+var notChecked = &ast.TypeInfo{}
 
 // TODO (Gianluca): CheckPackage should have 'src' (type []byte) instead of
 // 'node' as argument, and its name should be something like: 'ParsePackage'.
@@ -26,6 +25,7 @@ func CheckPackage(node *ast.Tree, imports map[string]*GoPackage) (*ast.Tree, err
 }
 
 func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree, pkg *tcPackage, err error) {
+
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*Error); ok {
@@ -35,15 +35,19 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			}
 		}
 	}()
-	packageNode := node.Nodes[0].(*ast.Package)
+
+	packageNode := node.Nodes[0].(*ast.Package) // TODO (Gianluca): to review.
+
 	tc := typechecker{
 		scopes:       []typeCheckerScope{universe},
 		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
+		varDeps:      make(map[string][]string, 3), // TODO (Gianluca): to review.
 	}
 	pkg = &tcPackage{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*ast.TypeInfo, len(packageNode.Declarations)),
 	}
+
 	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
 		case *ast.Import:
@@ -85,21 +89,22 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 		case *ast.Const:
 			for i := range n.Identifiers {
 				tc.declarations.Constants = append(tc.declarations.Constants, &Declaration{Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type})
-				tc.packageBlock[n.Identifiers[i].Name] = globalNotChecked
+				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
-				tc.declarations.Variables = append(tc.declarations.Variables, &Declaration{Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.packageBlock[n.Identifiers[i].Name] = globalNotChecked
+				tc.declarations.Variables = append(tc.declarations.Variables, &Declaration{Variable: n, Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
 			tc.declarations.Functions = append(tc.declarations.Functions, &Declaration{Ident: n.Ident.Name, Body: n.Body, Type: n.Type})
-			tc.packageBlock[n.Ident.Name] = globalNotChecked
+			tc.packageBlock[n.Ident.Name] = notChecked
 		}
 	}
+
+	// Constants.
 	for i := 0; i < len(tc.declarations.Constants); i++ { // TODO (Gianluca): n. of iterations can be reduced.
 		for _, c := range tc.declarations.Constants {
-			tc.packageBlock[c.Ident] = currentlyEvaluating
 			ti := tc.checkExpression(c.Expr)
 			if !ti.IsConstant() {
 				panic(tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr))
@@ -113,49 +118,46 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			tc.packageBlock[c.Ident] = ti
 		}
 	}
-	uncheckedPaths := true
-	for uncheckedPaths {
-		uncheckedPaths = false
+
+	// Functions.
+	for _, v := range tc.declarations.Functions {
+		tc.currentIdent = v.Ident
+		tc.currentlyEvaluating = []string{v.Ident}
+		tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+		tc.checkNodes(v.Body.Nodes)
+		tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+		tc.initOrder = append(tc.initOrder, v.Ident)
+	}
+
+	// Variables.
+	for unresolvedDeps := true; unresolvedDeps; {
+		unresolvedDeps = false
 		for _, v := range tc.declarations.Variables {
-			tc.packageBlock[v.Ident] = currentlyEvaluating
-			tc.globalDependencies = nil
+			tc.currentIdent = v.Ident
+			tc.currentlyEvaluating = []string{v.Ident}
+			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 			ti := tc.checkExpression(v.Expr)
 			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
-			allDepsSatisfied := true
-			for _, dep := range tc.globalDependencies {
-				if !sliceContainsString(tc.initOrder, dep) {
-					allDepsSatisfied = false
-					uncheckedPaths = true
-					break
-				}
-			}
-			if allDepsSatisfied && !sliceContainsString(tc.initOrder, v.Ident) {
-				tc.initOrder = append(tc.initOrder, v.Ident)
-			}
-		}
-		for _, f := range tc.declarations.Functions {
-			// TODO (Gianluca): add function to package block?
-			tc.globalDependencies = nil
-			tc.checkNodes(f.Body.Nodes)
-			allDepsSatisfied := true
-			for _, dep := range tc.globalDependencies {
-				if !sliceContainsString(tc.initOrder, dep) {
-					allDepsSatisfied = false
-					uncheckedPaths = true
-					break
-				}
-			}
-			if allDepsSatisfied && !sliceContainsString(tc.initOrder, f.Ident) {
-				tc.initOrder = append(tc.initOrder, f.Ident)
+			if !tc.tryAddingToInitOrder(v.Ident) {
+				unresolvedDeps = true
 			}
 		}
 	}
+
 	pkg.Declarations = make(map[string]*ast.TypeInfo)
 	for ident, ti := range tc.packageBlock {
 		pkg.Declarations[ident] = ti
 	}
+
 	tree = node
-	tree.VariableOrdering = tc.initOrder
+	tree.VariableOrdering = nil
+	for _, v := range tc.initOrder {
+		if tc.getDecl(v).Body != nil { // v is a function.
+			continue
+		}
+		tree.VariableOrdering = append(tree.VariableOrdering, v)
+	}
+
 	return tree, pkg, nil
 }
 
@@ -167,4 +169,34 @@ func sliceContainsString(ss []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// containsDuplicates returns true if ss contains at least one duplicate string.
+func containsDuplicates(ss []string) bool {
+	for _, a := range ss {
+		count := 0
+		for _, b := range ss {
+			if a == b {
+				count++
+			}
+		}
+		if count != 1 {
+			return true
+		}
+	}
+	return false
+}
+
+// tryAddingToInitOrder tries to add name to the initialization order. Returns
+// true if operation ended successfully.
+func (tc *typechecker) tryAddingToInitOrder(name string) bool {
+	for _, dep := range tc.varDeps[name] {
+		if !sliceContainsString(tc.initOrder, dep) {
+			return false
+		}
+	}
+	if !sliceContainsString(tc.initOrder, name) {
+		tc.initOrder = append(tc.initOrder, name)
+	}
+	return true
 }

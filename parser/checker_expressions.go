@@ -14,6 +14,7 @@ import (
 	"math"
 	"math/big"
 	"reflect"
+	"strings"
 
 	"scrigo/ast"
 )
@@ -182,11 +183,13 @@ type ancestor struct {
 }
 
 // Declaration is a package global declaration.
+// TODO (Gianluca): remove unused fields.
 type Declaration struct {
-	Ident string
-	Expr  ast.Expression
-	Type  ast.Expression
-	Body  *ast.Block
+	Ident    string
+	Variable *ast.Var
+	Expr     ast.Expression
+	Type     ast.Expression
+	Body     *ast.Block
 }
 
 // Declarations contains constant, variable and function package global
@@ -199,20 +202,27 @@ type Declarations struct {
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path               string
-	imports            map[string]tcPackage // TODO (Gianluca): review!
-	fileBlock          typeCheckerScope
-	packageBlock       typeCheckerScope
-	scopes             []typeCheckerScope
-	ancestors          []*ancestor
-	terminating        bool // https://golang.org/ref/spec#Terminating_statements
-	hasBreak           map[ast.Node]bool
-	declarations       Declarations // global declarations
-	initOrder          []string     // global variables initialization order
-	globalDependencies []string     // global dependencies
+	path         string
+	imports      map[string]tcPackage // TODO (Gianluca): review!
+	fileBlock    typeCheckerScope
+	packageBlock typeCheckerScope
+	scopes       []typeCheckerScope
+	ancestors    []*ancestor
+	terminating  bool // https://golang.org/ref/spec#Terminating_statements
+	hasBreak     map[ast.Node]bool
+
+	// Variable initialization support structures.
+	// TODO (Gianluca): can be simplified?
+	declarations        Declarations        // global declarations.
+	initOrder           []string            // global variables initialization order.
+	varDeps             map[string][]string // key is a variable, value is list of its dependencies.
+	currentIdent        string              // identifier currently being evaluated.
+	currentlyEvaluating []string            // stack of identifiers used in a single evaluation.
+	temporaryEvaluated  map[string]*ast.TypeInfo
 }
 
-func (tc *typechecker) DeclarationByName(name string) *Declaration {
+// getDecl returns the declaration called name, or nil if it does not exist.
+func (tc *typechecker) getDecl(name string) *Declaration {
 	for _, v := range tc.declarations.Variables {
 		if name == v.Ident {
 			return v
@@ -228,7 +238,7 @@ func (tc *typechecker) DeclarationByName(name string) *Declaration {
 			return c
 		}
 	}
-	panic("not found")
+	return nil
 }
 
 // AddScope adds a new empty scope to the type checker.
@@ -316,38 +326,51 @@ func (tc *typechecker) CheckUpValue(name string) string {
 
 // TODO (Gianluca): check if using all declared identifiers.
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
-	fun, _ := tc.getCurrentFunc()
-	if fun != nil {
+
+	// Upvalues.
+	if fun, _ := tc.getCurrentFunc(); fun != nil {
 		uv := tc.CheckUpValue(ident.Name)
 		if uv != "" {
 			fun.Upvalues = append(fun.Upvalues, uv)
 		}
 	}
+
 	i, ok := tc.LookupScopes(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
-	if i == currentlyEvaluating {
-		panic(tc.errorf(ident, "initialization loop"))
+
+	if tmpTi, ok := tc.temporaryEvaluated[ident.Name]; ok {
+		return tmpTi
 	}
-	tc.globalDependencies = append(tc.globalDependencies, ident.Name)
-	if i == globalNotChecked {
-		d := tc.DeclarationByName(ident.Name)
-		var ti *ast.TypeInfo
-		if d.Expr != nil {
-			tc.packageBlock[ident.Name] = currentlyEvaluating
-			ti = tc.checkExpression(d.Expr)
-			delete(tc.packageBlock, ident.Name)
+
+	tc.varDeps[tc.currentIdent] = append(tc.varDeps[tc.currentIdent], ident.Name)
+
+	tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
+	if containsDuplicates(tc.currentlyEvaluating) {
+		panic(tc.errorf(ident, "initialization loop: %s", strings.Join(tc.currentlyEvaluating, " -> ")))
+	}
+
+	// Check bodies of global functions.
+	// TODO (Gianluca): this must be done only when checking global variables.
+	if i.Type != nil && i.Type.Kind() == reflect.Func && !i.Addressable() {
+		tc.checkNodes(tc.getDecl(ident.Name).Body.Nodes)
+	}
+
+	// Global declaration.
+	if i == notChecked {
+		if d := tc.getDecl(ident.Name); d.Expr != nil {
+			ti := tc.checkExpression(d.Expr)
+			tc.temporaryEvaluated[ident.Name] = ti
+			return ti
 		} else if d.Body != nil {
-			tc.packageBlock[ident.Name] = currentlyEvaluating
 			tc.checkNodes(d.Body.Nodes)
-			ti = &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
-			delete(tc.packageBlock, ident.Name)
+			return &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
 		} else {
 			panic("invalid")
 		}
-		return ti
 	}
+
 	return i
 }
 
