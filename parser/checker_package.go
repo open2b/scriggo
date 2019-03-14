@@ -114,23 +114,21 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 	}
 
 	// Constants.
-	for i := 0; i < len(tc.declarations.Constants); i++ { // TODO (Gianluca): n. of iterations can be reduced.
-		for _, c := range tc.declarations.Constants {
-			tc.currentIdent = c.Ident
-			tc.currentlyEvaluating = []string{c.Ident}
-			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-			ti := tc.checkExpression(c.Expr)
-			if !ti.IsConstant() {
-				panic(tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr))
-			}
-			if c.Type != nil {
-				typ := tc.checkType(c.Type, noEllipses)
-				if !tc.isAssignableTo(ti, typ.Type) {
-					panic(tc.errorf(c.Expr, "cannot convert %v (type %s) to type %v", c.Expr, ti.String(), typ.Type))
-				}
-			}
-			tc.packageBlock[c.Ident] = ti
+	for _, c := range tc.declarations.Constants {
+		tc.currentIdent = c.Ident
+		tc.currentlyEvaluating = []string{c.Ident}
+		tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+		ti := tc.checkExpression(c.Expr)
+		if !ti.IsConstant() {
+			panic(tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr))
 		}
+		if c.Type != nil {
+			typ := tc.checkType(c.Type, noEllipses)
+			if !tc.isAssignableTo(ti, typ.Type) {
+				panic(tc.errorf(c.Expr, "cannot convert %v (type %s) to type %v", c.Expr, ti.String(), typ.Type))
+			}
+		}
+		tc.packageBlock[c.Ident] = ti
 	}
 
 	// Functions.
