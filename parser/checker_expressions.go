@@ -348,7 +348,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 
 	tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
 	if containsDuplicates(tc.currentlyEvaluating) {
-		panic(tc.errorf(ident, "initialization loop: %s", strings.Join(tc.currentlyEvaluating, " -> ")))
+		// TODO (Gianluca): add positions.
+		panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.currentlyEvaluating, " refers to\n\t")))
 	}
 
 	// Check bodies of global functions.
