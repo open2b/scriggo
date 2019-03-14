@@ -344,7 +344,9 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 		return tmpTi
 	}
 
-	tc.varDeps[tc.currentIdent] = append(tc.varDeps[tc.currentIdent], ident.Name)
+	if tc.getDecl(ident.Name) != nil {
+		tc.varDeps[tc.currentIdent] = append(tc.varDeps[tc.currentIdent], ident.Name)
+	}
 
 	tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
 	if containsDuplicates(tc.currentlyEvaluating) {

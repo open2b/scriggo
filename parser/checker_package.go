@@ -67,7 +67,7 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 				importedPkg := tcPackage{}
 				goPkg, ok := imports[n.Path]
 				if !ok {
-					panic(tc.errorf(n, "cannot find package %q", n.Path))
+					return nil, nil, tc.errorf(n, "cannot find package %q", n.Path)
 				}
 				importedPkg.Declarations = make(map[string]*ast.TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
@@ -120,12 +120,12 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 		tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 		ti := tc.checkExpression(c.Expr)
 		if !ti.IsConstant() {
-			panic(tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr))
+			return nil, nil, tc.errorf(c.Expr, "const initializer %v is not a constant", c.Expr)
 		}
 		if c.Type != nil {
 			typ := tc.checkType(c.Type, noEllipses)
 			if !tc.isAssignableTo(ti, typ.Type) {
-				panic(tc.errorf(c.Expr, "cannot convert %v (type %s) to type %v", c.Expr, ti.String(), typ.Type))
+				return nil, nil, tc.errorf(c.Expr, "cannot convert %v (type %s) to type %v", c.Expr, ti.String(), typ.Type)
 			}
 		}
 		tc.packageBlock[c.Ident] = ti
@@ -149,6 +149,12 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			tc.currentlyEvaluating = []string{v.Ident}
 			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 			ti := tc.checkExpression(v.Expr)
+			if v.Type != nil {
+				typ := tc.checkType(v.Type, noEllipses)
+				if !tc.isAssignableTo(ti, typ.Type) {
+					return nil, nil, tc.errorf(v.Expr, "cannot convert %v (type %s) to type %v", v.Expr, ti.String(), typ.Type)
+				}
+			}
 			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
 			if !tc.tryAddingToInitOrder(v.Ident) {
 				unresolvedDeps = true
