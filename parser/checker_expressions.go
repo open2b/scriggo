@@ -185,11 +185,10 @@ type ancestor struct {
 // Declaration is a package global declaration.
 // TODO (Gianluca): remove unused fields.
 type Declaration struct {
-	Ident    string
-	Variable *ast.Var
-	Expr     ast.Expression
-	Type     ast.Expression
-	Body     *ast.Block
+	Ident string
+	Expr  ast.Expression
+	Type  ast.Expression
+	Body  *ast.Block
 }
 
 // Declarations contains constant, variable and function package global

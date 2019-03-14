@@ -104,7 +104,7 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
-				tc.declarations.Variables = append(tc.declarations.Variables, &Declaration{Variable: n, Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.declarations.Variables = append(tc.declarations.Variables, &Declaration{Ident: n.Identifiers[i].Name, Expr: n.Values[i], Type: n.Type}) // TODO (Gianluca): add support for var a, b, c = f()
 				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
