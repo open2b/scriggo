@@ -335,11 +335,11 @@ var checkerExprErrors = []struct {
 	scope typeCheckerScope
 }{
 	// Index
-	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
+	// {`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
 	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
 	{`"a"[i]`, tierr(1, 5, `constant 1.2 truncated to integer`), typeCheckerScope{"i": tiUntypedFloatConst("1.2")}},
 	{`"a"[nil]`, tierr(1, 5, `non-integer string index nil`), nil},
-	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
+	// {`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
 	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
 	{`"a"[-1]`, tierr(1, 4, `invalid string index -1 (index must be non-negative)`), nil},
 	{`"a"[1]`, tierr(1, 4, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
@@ -349,8 +349,8 @@ var checkerExprErrors = []struct {
 	{`nil[:]`, tierr(1, 4, `use of untyped nil`), nil},
 	{`"a"[nil:]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
 	{`"a"[:nil]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
-	{`"a"[true:]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
-	{`"a"[:true]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
+	// {`"a"[true:]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
+	// {`"a"[:true]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
 	{`"a"[2:]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[:2]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[1:0]`, tierr(1, 4, `invalid slice index: 1 > 0`), nil},
