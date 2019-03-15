@@ -197,6 +197,16 @@ var checkerExprs = []struct {
 	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiIntConst(1)}},
 	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiAddrInt()}},
 	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiInt()}},
+	{`[]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
+	{`[]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedRuneConst('a')}},
+	{`[]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
+	{`[]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiIntConst(1)}},
+	{`[]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiInt()}},
+	{`[...]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
+	{`[...]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedRuneConst(1)}},
+	{`[...]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
+	{`[...]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiIntConst(1)}},
+	{`[...]int{0,1}[i]`, tiAddrInt(), typeCheckerScope{"i": tiInt()}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},
@@ -241,7 +251,9 @@ var checkerExprs = []struct {
 	{`uint64(5)`, tiUint64Const(5), nil},
 	{`float32(5.3)`, tiFloat32Const(float32(5.3)), nil},
 	{`float64(5.3)`, tiFloat64Const(5.3), nil},
+	{`float64(15/3.5)`, tiFloat64Const(15 / 3.5), nil},
 	{`int(5.0)`, tiIntConst(5), nil},
+	{`int(15/3)`, tiIntConst(5), nil},
 	{`string(5)`, tiStringConst(string(5)), nil},
 	{`[]byte("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
 	{`[]rune("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, nil},
@@ -981,6 +993,10 @@ func tiByte() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["byte"].Type} 
 // byte slice type info.
 
 func tiByteSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]byte{})} }
+
+// int slice type info.
+
+func tiIntSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.SliceOf(intType)} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{
