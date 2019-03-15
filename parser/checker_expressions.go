@@ -717,18 +717,24 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 
 	case *ast.Selector:
-		t := tc.typeof(expr.Expr, noEllipses)
-		if t.IsPackage() {
-			if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
-				panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
+		// Package selector.
+		if ident, ok := expr.Expr.(*ast.Identifier); ok {
+			ti, ok := tc.LookupScopes(ident.Name, false)
+			if ok {
+				if ti.IsPackage() {
+					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
+						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
+					}
+					pkg := ti.Value.(*packageInfo)
+					v, ok := pkg.Declarations[expr.Ident]
+					if !ok {
+						panic(tc.errorf(expr, "undefined: %v", expr))
+					}
+					return v
+				}
 			}
-			pkg := t.Value.(packageInfo)
-			v, ok := pkg.Declarations[expr.Ident]
-			if !ok {
-				panic(tc.errorf(expr, "undefined: %v", expr))
-			}
-			return v
 		}
+		t := tc.typeof(expr.Expr, noEllipses)
 		if t.IsType() {
 			method, ok := tc.methodByName(t, expr.Ident)
 			if !ok {
