@@ -348,7 +348,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		}
 		msg += "\n\thave ("
 		for i, x := range got {
-			msg += x.TypeInfo().ShortString()
+			msg += x.TypeInfo().FuncString()
 			if i != len(got)-1 {
 				msg += ", "
 			}

@@ -574,22 +574,22 @@ var checkerStmts = map[string]string{
 	`_ = func() (s int)           { { s := 0; return } }`: `s is shadowed during return`,
 	`_ = func() (a int)           { return ""          }`: `cannot use "" (type string) as type int in return argument`,
 	`_ = func() (a int, b string) { return "", ""      }`: `cannot use "" (type string) as type int in return argument`,
-	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (int, int)\n\twant (int)",      // TODO (Gianluca): should be "number", not "int"
-	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (int)\n\twant (int, string)", // TODO (Gianluca): should be "number", not "int"
+	`_ = func() (a int)           { return 0, 0        }`: "too many arguments to return\n\thave (number, number)\n\twant (int)",
+	`_ = func() (a int, b string) { return 0           }`: "not enough arguments to return\n\thave (number)\n\twant (int, string)",
 
 	// Result statements with non-named result parameters.
 	`_ = func() int { return 0 }`:              ok,
 	`_ = func() int { return "" }`:             `cannot use "" (type string) as type int in return argument`,
-	`_ = func() (int, string) { return 0 }`:    "not enough arguments to return\n\thave (int)\n\twant (int, string)",         // TODO (Gianluca): should be "number", not "int"
-	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (int, int, int)\n\twant (int, int)",    // TODO (Gianluca): should be "number", not "int"
-	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (int, string, int)\n\twant (int, int)", // TODO (Gianluca): should be "number", not "int"
+	`_ = func() (int, string) { return 0 }`:    "not enough arguments to return\n\thave (number)\n\twant (int, string)",
+	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (number, number, number)\n\twant (int, int)",
+	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (number, string, number)\n\twant (int, int)",
 
 	// Function literal calls.
 	`f := func() { }; f()`:                    ok,
 	`f := func(int) { }; f(0)`:                ok,
 	`f := func(string) { } ; f(0)`:            `cannot use 0 (type int) as type string in argument to f`,
-	`f := func(string, int) { } ; f(0)`:       "not enough arguments in call to f\n\thave (int)\n\twant (string, int)",         // TODO (Gianluca): should be "number"
-	`f := func(string, int) { } ; f(0, 0, 0)`: "too many arguments in call to f\n\thave (int, int, int)\n\twant (string, int)", // TODO (Gianluca): should be "number"
+	`f := func(string, int) { } ; f(0)`:       "not enough arguments in call to f\n\thave (number)\n\twant (string, int)",
+	`f := func(string, int) { } ; f(0, 0, 0)`: "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
 
 	// Variable declared and not used.
 	`a := 0`:             declaredNotUsed("a"),
