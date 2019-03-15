@@ -193,6 +193,7 @@ const (
 
 // Declaration is a package global declaration.
 type Declaration struct {
+	Node            ast.Node        // ast node of the declaration.
 	Ident           string          // identifier of the declaration.
 	Type            ast.Expression  // nil if declaration has no type.
 	DeclarationType DeclarationType // constant, variable or function.

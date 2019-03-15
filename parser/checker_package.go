@@ -127,16 +127,16 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 			}
 		case *ast.Const:
 			for i := range n.Identifiers {
-				tc.declarations = append(tc.declarations, &Declaration{Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
 				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
-				tc.declarations = append(tc.declarations, &Declaration{Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
 				tc.packageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
-			tc.declarations = append(tc.declarations, &Declaration{Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
+			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
 			tc.packageBlock[n.Ident.Name] = notChecked
 		}
 	}
@@ -164,12 +164,30 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 	// Functions.
 	for _, v := range tc.declarations {
 		if v.DeclarationType == DeclarationFunction {
+			tc.AddScope()
+			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
+			// Adds parameters to the function body scope.
+			for _, f := range v.Type.(*ast.FuncType).Parameters {
+				if f.Ident != nil {
+					t := tc.checkType(f.Type, noEllipses)
+					tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				}
+			}
+			// Adds named return values to the function body scope.
+			for _, f := range v.Type.(*ast.FuncType).Result {
+				if f.Ident != nil {
+					t := tc.checkType(f.Type, noEllipses)
+					tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				}
+			}
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
 			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
 			tc.initOrder = append(tc.initOrder, v.Ident)
+			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
+			tc.RemoveCurrentScope()
 		}
 	}
 
