@@ -523,7 +523,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if !len.IsConstant() {
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
-		declLength, err := tc.convert(len, intType, false)
+		declLength, err := tc.convertImplicit(len, intType)
 		if err != nil {
 			panic(tc.errorf(expr, err.Error()))
 		}
@@ -628,7 +628,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				k = reflect.Array
 			}
 			index := tc.checkExpression(expr.Index)
-			v, err := tc.convert(index, intType, false)
+			v, err := tc.convertImplicit(index, intType)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("non-integer %s index %s", k, expr.Index)
@@ -690,7 +690,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		var lv, hv int
 		if expr.Low != nil {
 			low := tc.checkExpression(expr.Low)
-			v, err := tc.convert(low, intType, false)
+			v, err := tc.convertImplicit(low, intType)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.Low, low)
@@ -711,7 +711,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		if expr.High != nil {
 			high := tc.checkExpression(expr.High)
-			v, err := tc.convert(high, intType, false)
+			v, err := tc.convertImplicit(high, intType)
 			if err != nil {
 				if err == errTypeConversion {
 					err = fmt.Errorf("invalid slice index %s (type %s)", expr.High, high)
@@ -921,7 +921,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 	}
 
 	if t1.Untyped() {
-		v, err := tc.convert(t1, t2.Type, false)
+		v, err := tc.convertImplicit(t1, t2.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2)
@@ -930,7 +930,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		}
 		t1 = &ast.TypeInfo{Type: t2.Type, Properties: ast.PropertyIsConstant, Value: v}
 	} else if t2.Untyped() {
-		v, err := tc.convert(t2, t1.Type, false)
+		v, err := tc.convertImplicit(t2, t1.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
@@ -1242,7 +1242,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpression(expr.Args[0])
-		value, err := tc.convert(arg, t.Type, true)
+		value, err := tc.convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
@@ -1387,7 +1387,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					n := tc.checkExpression(expr.Args[1])
 					if !n.Nil() {
 						if n.Type == nil {
-							c, err := tc.convert(n, intType, false)
+							c, err := tc.convertImplicit(n, intType)
 							if err != nil {
 								panic(tc.errorf(expr, "%s", err))
 							}
@@ -1408,7 +1408,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 						m := tc.checkExpression(expr.Args[2])
 						if !m.Nil() {
 							if m.Type == nil {
-								v, err := tc.convert(m, intType, false)
+								v, err := tc.convertImplicit(m, intType)
 								if err != nil {
 									panic(err)
 								}
@@ -1438,7 +1438,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					n := tc.checkExpression(expr.Args[1])
 					if !n.Nil() {
 						if n.Type == nil {
-							v, err := tc.convert(n, intType, false)
+							v, err := tc.convertImplicit(n, intType)
 							if err != nil {
 								panic(err)
 							}
@@ -1559,13 +1559,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 
 var errTypeConversion = errors.New("failed type conversion")
 
-// convert converts a value. explicit reports whether the conversion is
-// explicit. If the converted value is a constant, convert returns its value,
-// otherwise returns nil.
+// convert converts a value explicitly. If the converted value is a constant,
+// convert returns its value, otherwise returns nil.
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool) (interface{}, error) {
+func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	t := ti.Type
 	v := ti.Value
@@ -1580,26 +1579,53 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type, explicit bool)
 	}
 
 	if ti.IsConstant() && k2 != reflect.Interface {
-		if explicit {
-			k1 := t.Kind()
-			if k2 == reflect.String && reflect.Int <= k1 && k1 <= reflect.Uint64 {
-				// As a special case, an integer constant can be explicitly
-				// converted to a string type.
-				switch v := v.(type) {
-				case *big.Int:
-					if v.IsInt64() {
-						return string(v.Int64()), nil
-					}
-				}
-				return "\uFFFD", nil
-			} else if k2 == reflect.Slice && k1 == reflect.String {
-				// As a special case, a string constant can be explicitly converted
-				// to a slice of runes or bytes.
-				if elem := t2.Elem(); elem == uint8Type || elem == int32Type {
-					return nil, nil
+		k1 := t.Kind()
+		if k2 == reflect.String && reflect.Int <= k1 && k1 <= reflect.Uint64 {
+			// As a special case, an integer constant can be explicitly
+			// converted to a string type.
+			switch v := v.(type) {
+			case *big.Int:
+				if v.IsInt64() {
+					return string(v.Int64()), nil
 				}
 			}
+			return "\uFFFD", nil
+		} else if k2 == reflect.Slice && k1 == reflect.String {
+			// As a special case, a string constant can be explicitly converted
+			// to a slice of runes or bytes.
+			if elem := t2.Elem(); elem == uint8Type || elem == int32Type {
+				return nil, nil
+			}
 		}
+		return tc.representedBy(ti, t2)
+	}
+
+	if t.ConvertibleTo(t2) {
+		return nil, nil
+	}
+
+	return nil, errTypeConversion
+}
+
+// convertImplicit converts implicitly a value. If the converted value is a
+// constant, convert returns its value, otherwise returns nil.
+//
+// If the value can not be converted, returns an errTypeConversion type error,
+// errConstantTruncated or errConstantOverflow.
+func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+
+	t := ti.Type
+	k2 := t2.Kind()
+
+	if ti.Nil() {
+		switch t2.Kind() {
+		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
+			return nil, nil
+		}
+		return nil, errTypeConversion
+	}
+
+	if ti.IsConstant() && k2 != reflect.Interface {
 		return tc.representedBy(ti, t2)
 	}
 
