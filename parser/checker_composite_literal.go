@@ -63,7 +63,7 @@ func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind refl
 			value = ident.Name
 		} else {
 			ti := tc.checkExpression(kv.Key)
-			if ti.Value == nil {
+			if !ti.IsConstant() {
 				continue
 			}
 			value = ti.Value
@@ -105,6 +105,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 	switch ti.Type.Kind() {
 
 	case reflect.Struct:
+		// TODO(gianluca): check underscore as struct field
 
 		explicitFields := false
 		declType := 0
