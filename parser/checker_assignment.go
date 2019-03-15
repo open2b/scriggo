@@ -113,7 +113,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if !numericKind[exprTi.Type.Kind()] {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
-			// TODO (Gianluca): also check for assignability
+			if !exprTi.Addressable() {
+				panic(tc.errorf(node, "cannot assign to %s", node))
+			}
 			return
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 			ast.AssignmentDivision, ast.AssignmentModulo:
