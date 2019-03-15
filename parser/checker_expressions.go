@@ -200,6 +200,12 @@ type Declaration struct {
 	Value           ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
 }
 
+type scopeVariable struct {
+	ident      string
+	scopeLevel int
+	node       ast.Node
+}
+
 // typechecker represents the state of a type checking.
 // TODO (Gianluca): join fileBlock and packageBlock, making them a single block.
 type typechecker struct {
@@ -212,6 +218,7 @@ type typechecker struct {
 	terminating  bool // https://golang.org/ref/spec#Terminating_statements
 	hasBreak     map[ast.Node]bool
 	context      ast.Context
+	unusedVars   []*scopeVariable
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -240,6 +247,18 @@ func (tc *typechecker) AddScope() {
 
 // RemoveCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) RemoveCurrentScope() {
+	cut := len(tc.unusedVars)
+	for i := len(tc.unusedVars) - 1; i >= 0; i-- {
+		v := tc.unusedVars[i]
+		if v.scopeLevel < len(tc.scopes)-1 {
+			break
+		}
+		if v.node != nil {
+			panic(tc.errorf(v.node, "%s declared and not used", v.ident))
+		}
+		cut = i
+	}
+	tc.unusedVars = tc.unusedVars[:cut]
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
@@ -317,7 +336,7 @@ func (tc *typechecker) CheckUpValue(name string) string {
 }
 
 // TODO (Gianluca): check if using all declared identifiers.
-func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
+func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.TypeInfo {
 
 	// Upvalues.
 	if fun, _ := tc.getCurrentFunc(); fun != nil {
@@ -332,6 +351,13 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
+	// TODO (Gianluca): temporaryEvaluated must be used only for globals evaluation!
+	// Example:
+	// 	var A = 10
+	// 	func main() {
+	// 		A = 20
+	// 		println(A) // should print 20, not 10
+	// 	}
 	if tmpTi, ok := tc.temporaryEvaluated[ident.Name]; ok {
 		return tmpTi
 	}
@@ -361,6 +387,16 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier) *ast.TypeInfo {
 		case DeclarationFunction:
 			tc.checkNodes(d.Value.(*ast.Block).Nodes)
 			return &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
+		}
+	}
+
+	if using {
+		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
+			v := tc.unusedVars[i]
+			if v.ident == ident.Name {
+				v.node = nil
+				break
+			}
 		}
 	}
 
@@ -466,7 +502,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return t
 
 	case *ast.Identifier:
-		t := tc.checkIdentifier(expr)
+		t := tc.checkIdentifier(expr, true)
 		if t.IsPackage() {
 			panic(tc.errorf(expr, "use of package %s without selector", t))
 		}

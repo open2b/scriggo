@@ -316,6 +316,7 @@ func TestCheckerExpressions(t *testing.T) {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
 			checker := &typechecker{scopes: scopes}
+			checker.AddScope()
 			ti := checker.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -389,6 +390,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
 			checker := &typechecker{scopes: scopes}
+			checker.AddScope()
 			ti := checker.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
@@ -401,21 +403,25 @@ const ok = ""
 const missingReturn = "missing return at end of function"
 const noNewVariables = "no new variables on left side of :="
 
+func declaredNotUsed(v string) string {
+	return v + " declared and not used"
+}
+
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
 // 1.12.
 var checkerStmts = map[string]string{
 
 	// Var declarations.
-	`var a = 3`:               ok,
-	`var a, b = 1, 2`:         ok,
-	`var a, b = 1`:            "assignment mismatch: 2 variable but 1 values",
-	`var a, b, c, d = 1, 2`:   "assignment mismatch: 4 variable but 2 values",
-	`var a int = 1`:           ok,
-	`var a, b int = 1, "2"`:   `cannot use "2" (type string) as type int in assignment`,
-	`var a int = "s"`:         `cannot use "s" (type string) as type int in assignment`,
-	`var a int; _ = a`:        ok,
-	`var a int; a = 3; _ = a`: ok,
+	`var a = 3; _ = a`:             ok,
+	`var a, b = 1, 2; _, _ = a, b`: ok,
+	`var a, b = 1`:                 "assignment mismatch: 2 variable but 1 values",
+	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
+	`var a int = 1; _ = a`:         ok,
+	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
+	`var a int = "s"`:              `cannot use "s" (type string) as type int in assignment`,
+	`var a int; _ = a`:             ok,
+	`var a int; a = 3; _ = a`:      ok,
 
 	// Const declarations.
 	`const a = 2`:        ok,
@@ -423,21 +429,21 @@ var checkerStmts = map[string]string{
 	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 
 	// Blank identifier.
-	`_ = 1`:              ok,
-	`_ := 1`:             noNewVariables,
-	`_, b, c := 1, 2, 3`: ok,
-	`_, _, _ := 1, 2, 3`: noNewVariables,
+	`_ = 1`:                           ok,
+	`_ := 1`:                          noNewVariables,
+	`_, b, c := 1, 2, 3; _, _ = b, c`: ok,
+	`_, _, _ := 1, 2, 3`:              noNewVariables,
 
 	// Assignments.
-	`v := 1`:                          ok,
-	`v = 1`:                           "undefined: v",
-	`v := 1 + 2`:                      ok,
-	`v := "s" + "s"`:                  ok,
-	`v := 1; v = 2`:                   ok,
-	`v := 1; v := 2`:                  noNewVariables,
-	`v := 1 + 2; v = 3 + 4`:           ok,
-	`v1 := 0; v2 := 1; v3 := v2 + v1`: ok,
-	`v1 := 1; v2 := "a"; v1 = v2`:     `cannot use v2 (type string) as type int in assignment`,
+	`v := 1; _ = v`:                           ok,
+	`v = 1`:                                   "undefined: v",
+	`v := 1 + 2; _ = v`:                       ok,
+	`v := "s" + "s"; _ = v`:                   ok,
+	`v := 1; v = 2; _ = v`:                    ok,
+	`v := 1; v := 2`:                          noNewVariables,
+	`v := 1 + 2; v = 3 + 4; _ = v`:            ok,
+	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`: ok,
+	`v1 := 1; v2 := "a"; v1 = v2`:             `cannot use v2 (type string) as type int in assignment`,
 	`f := func() int { return 0 } ; var a int = f() ; _ = a`:    ok,
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`: `cannot use f() (type int) as type string in assignment`,
 
@@ -450,8 +456,8 @@ var checkerStmts = map[string]string{
 	`b--`:           `undefined: b`,
 
 	// "Compact" assignments.
-	`a := 1; a += 1`: ok,
-	`a := 1; a *= 2`: ok,
+	`a := 1; a += 1; _ = a`: ok,
+	`a := 1; a *= 2; _ = a`: ok,
 	// `a := ""; a /= 6`: `invalid operation: a /= 6 (mismatched types string and int)`,
 
 	// Slices.
@@ -498,18 +504,18 @@ var checkerStmts = map[string]string{
 	// `_ = pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
 
 	// Blocks.
-	`{ a := 1; a = 10 }`:         ok,
-	`{ a := 1; { a = 10 } }`:     ok,
-	`{ a := 1; a := 2 }`:         noNewVariables,
-	`{ { { a := 1; a := 2 } } }`: noNewVariables,
+	`{ a := 1; a = 10; _ = a }`:            ok,
+	`{ a := 1; { a = 10; _ = a }; _ = a }`: ok,
+	`{ a := 1; a := 2}`:                    noNewVariables,
+	`{ { { a := 1; a := 2 } } }`:           noNewVariables,
 
 	// If statements.
-	`if 1 { }`:                     "non-bool 1 (type int) used as if condition",
-	`if 1 == 1 { }`:                ok,
-	`if 1 == 1 { a := 3 }; a = 1`:  "undefined: a",
-	`if a := 1; a == 2 { }`:        ok,
-	`if a := 1; a == 2 { b := a }`: ok,
-	`if true { }`:                  "",
+	`if 1 { }`:                             "non-bool 1 (type int) used as if condition",
+	`if 1 == 1 { }`:                        ok,
+	`if 1 == 1 { a := 3 ; _ = a }; a = 1`:  "undefined: a",
+	`if a := 1; a == 2 { }`:                ok,
+	`if a := 1; a == 2 { b := a ; _ = b }`: ok,
+	`if true { }`:                          "",
 
 	// For statements.
 	`for 3 { }`:                     "non-bool 3 (type int) used as for condition",
@@ -584,6 +590,13 @@ var checkerStmts = map[string]string{
 	`f := func(string) { } ; f(0)`:            `cannot use 0 (type int) as type string in argument to f`,
 	`f := func(string, int) { } ; f(0)`:       "not enough arguments in call to f\n\thave (int)\n\twant (string, int)",         // TODO (Gianluca): should be "number"
 	`f := func(string, int) { } ; f(0, 0, 0)`: "too many arguments in call to f\n\thave (int, int, int)\n\twant (string, int)", // TODO (Gianluca): should be "number"
+
+	// Variable declared and not used.
+	`a := 0`:             declaredNotUsed("a"),
+	`{ { a := 0 } }`:     declaredNotUsed("a"),
+	`a := 0; a = 1`:      declaredNotUsed("a"),
+	`a := 0; { _ = a }`:  ok,
+	`a := 0; { b := 0 }`: declaredNotUsed("b"),
 }
 
 func TestCheckerStatements(t *testing.T) {
@@ -619,7 +632,9 @@ func TestCheckerStatements(t *testing.T) {
 				return
 			}
 			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
+			checker.AddScope()
 			checker.checkNodes(tree.Nodes)
+			checker.RemoveCurrentScope()
 		}()
 	}
 }
@@ -1051,6 +1066,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	}
 	for src, expected := range cases {
 		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
+		tc.AddScope()
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {
 			t.Error(err)

@@ -209,7 +209,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			// TODO (Gianluca): remove this case and use ast.Expression directly?
 
-			t := tc.checkIdentifier(node)
+			t := tc.checkIdentifier(node, true)
 			if t.IsPackage() {
 				panic(tc.errorf(node, "use of package %s without selector", t))
 			}

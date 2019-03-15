@@ -271,9 +271,16 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			hasBeenDeclared = true
 			newValueTi.Properties |= ast.PropertyAddressable
 			tc.AssignScope(v.Name, newValueTi)
+			if !isConst {
+				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
+					ident:      v.Name,
+					scopeLevel: len(tc.scopes) - 1,
+					node:       node,
+				})
+			}
 			return
 		}
-		variableTi := tc.checkExpression(variable)
+		variableTi := tc.checkIdentifier(v, false)
 		if !variableTi.Addressable() {
 			panic(tc.errorf(node, "cannot assign to %v", variable))
 		}
