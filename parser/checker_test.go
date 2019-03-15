@@ -407,6 +407,10 @@ func declaredNotUsed(v string) string {
 	return v + " declared and not used"
 }
 
+func redeclaredInThisBlock(v string) string {
+	return v + " redeclared in this block"
+}
+
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
 // 1.12.
@@ -597,6 +601,12 @@ var checkerStmts = map[string]string{
 	`a := 0; a = 1`:      declaredNotUsed("a"),
 	`a := 0; { _ = a }`:  ok,
 	`a := 0; { b := 0 }`: declaredNotUsed("b"),
+
+	// Redeclaration (variables and constants) in the same block.
+	`var A = 0; _ = A`:                ok,
+	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
+	`const A = 0; const A = 1; _ = A`: redeclaredInThisBlock("A"),
+	`A := 0; var A = 1`:               redeclaredInThisBlock("A"),
 }
 
 func TestCheckerStatements(t *testing.T) {

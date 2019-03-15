@@ -13,6 +13,14 @@ import (
 	"scrigo/ast"
 )
 
+func isBlankIdentifier(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	return ident.Name == "_"
+}
+
 // checkAssignment checks the assignment node.
 //
 // TODO (Gianluca): check error checking order.
@@ -36,10 +44,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	var typ *ast.TypeInfo
 	var isDecl, isConst bool
 
+	isVarOrConst := false
+
 	switch n := node.(type) {
 
 	case *ast.Var:
 
+		isVarOrConst = true
 		values = n.Values
 		isDecl = true
 		if n.Type != nil {
@@ -50,21 +61,20 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// initialized to its zero value.
 		// [https://golang.org/ref/spec#Variable_declarations]
 		if len(values) == 0 {
-			newVars := false
 			for i := range n.Identifiers {
 				zero := &ast.TypeInfo{Type: typ.Type}
 				newVar := tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
-				newVars = newVars || newVar
-			}
-			if !newVars {
-				panic(tc.errorf(node, "no new variables on left side of :=")) // TODO (Gianluca): error message is wrong.
+				if !newVar && !isBlankIdentifier(n.Identifiers[i]) {
+					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[i]))
+				}
 			}
 			return
 		}
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
-			if !tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false) {
-				panic(tc.errorf(node, "no new variables on left side of :=")) // TODO (Gianluca): error message is wrong.
+			newVar := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
+			if !newVar && !isBlankIdentifier(n.Identifiers[0]) {
+				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
 			}
 			return
 		}
@@ -76,6 +86,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Const:
 
+		isVarOrConst = true
 		values = n.Values
 		isConst = true
 		isDecl = true
@@ -84,9 +95,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
-			// TODO (Gianluca): if redefining an existing constant, a special
-			// error message is required: https://play.golang.org/p/0tiVHSgeOEY
-			tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
+			newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
+			if !newConst && !isBlankIdentifier(n.Identifiers[0]) {
+				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+			}
 			return
 		}
 
@@ -149,6 +161,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		newVars := false
 		for i := range vars {
 			newVar := tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
+			if isVarOrConst && !newVar && !isBlankIdentifier(vars[i]) {
+				panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
+			}
 			newVars = newVars || newVar
 		}
 		if !newVars && isDecl {
@@ -273,12 +288,12 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				newValueTi.Type = valueTi.Type
 			}
 			v.SetTypeInfo(newValueTi)
+			hasBeenDeclared = true
 			if isConst {
 				newValueTi.Value = valueTi.Value
 				tc.AssignScope(v.Name, newValueTi)
 				return
 			}
-			hasBeenDeclared = true
 			newValueTi.Properties |= ast.PropertyAddressable
 			tc.AssignScope(v.Name, newValueTi)
 			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
