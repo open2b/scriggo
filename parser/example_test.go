@@ -40,7 +40,7 @@ func ExampleParseSource() {
 func ExampleParser_Parse() {
 
 	r := parser.DirReader("./template/")
-	p := parser.New(r, nil)
+	p := parser.New(r, nil, false)
 
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {

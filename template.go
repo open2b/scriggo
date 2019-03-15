@@ -90,9 +90,9 @@ type DirRenderer struct {
 // in the context ctx. If strict is true, even errors on expressions and
 // statements execution stop the rendering. See the type Errors for more
 // details.
-func NewDirRenderer(dir string, strict bool, ctx Context) *DirRenderer {
+func NewDirRenderer(dir string, strict bool, ctx Context, typeCheck bool) *DirRenderer {
 	var r = parser.DirReader(dir)
-	return &DirRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
+	return &DirRenderer{parser: parser.New(r, nil, typeCheck), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template file with the specified path, relative to the
@@ -122,7 +122,7 @@ type MapRenderer struct {
 // execution stop the rendering. See the type Errors for more details.
 func NewMapRenderer(sources map[string][]byte, strict bool, ctx Context) *MapRenderer {
 	var r = parser.MapReader(sources)
-	return &MapRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
+	return &MapRenderer{parser: parser.New(r, nil, false), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template source with the specified path and writes

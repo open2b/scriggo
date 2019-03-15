@@ -34,6 +34,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		switch node := node.(type) {
 
+		case *ast.Extends:
+
+			tc.checkNodesInNewScope(node.Tree.Nodes)
+
+		case *ast.Include:
+
+			tc.checkNodesInNewScope(node.Tree.Nodes)
+
 		case *ast.Block:
 
 			tc.checkNodesInNewScope(node.Nodes)
@@ -206,6 +214,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "use of package %s without selector", t))
 			}
 			panic(tc.errorf(node, "%s evaluated but not used", node.Name))
+
+		case *ast.ShowMacro:
+
+			// TODO
+
+		case *ast.Macro:
+
+			// TODO (Gianluca): to review.
+			tc.checkNodesInNewScope(node.Body)
 
 		case *ast.Call:
 

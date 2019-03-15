@@ -200,15 +200,17 @@ type Declaration struct {
 }
 
 // typechecker represents the state of a type checking.
+// TODO (Gianluca): join fileBlock and packageBlock, making them a single block.
 type typechecker struct {
 	path         string
-	imports      map[string]tcPackage // TODO (Gianluca): review!
+	imports      map[string]packageInfo // TODO (Gianluca): review!
 	fileBlock    typeCheckerScope
 	packageBlock typeCheckerScope
 	scopes       []typeCheckerScope
 	ancestors    []*ancestor
 	terminating  bool // https://golang.org/ref/spec#Terminating_statements
 	hasBreak     map[ast.Node]bool
+	context      ast.Context
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -720,7 +722,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 				panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 			}
-			pkg := t.Value.(tcPackage)
+			pkg := t.Value.(packageInfo)
 			v, ok := pkg.Declarations[expr.Ident]
 			if !ok {
 				panic(tc.errorf(expr, "undefined: %v", expr))
@@ -1220,6 +1222,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 	}
 
 	if t.IsPackage() {
+		// TODO (Gianluca): why "fmt"?
 		panic(tc.errorf(expr, "use of package fmt without selector"))
 	}
 

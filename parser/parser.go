@@ -1342,15 +1342,24 @@ type Parser struct {
 	reader   Reader
 	packages []string
 	trees    *cache
+	// TODO (Gianluca): does packageInfos need synchronized access?
+	packageInfos map[string]*packageInfo // key is path.
+	typeCheck    bool
 }
 
-// New returns a new Parser that reads the trees from the reader r.
-func New(r Reader, packages []string) *Parser {
-	return &Parser{
-		reader:   r,
-		packages: packages,
-		trees:    &cache{},
+// New returns a new Parser that reads the trees from the reader r. typeCheck
+// indicates if a type-checking must be done after parsing.
+func New(r Reader, packages []string, typeCheck bool) *Parser {
+	p := &Parser{
+		reader:    r,
+		packages:  packages,
+		trees:     &cache{},
+		typeCheck: typeCheck,
 	}
+	if typeCheck {
+		p.packageInfos = make(map[string]*packageInfo)
+	}
+	return p
 }
 
 // Parse reads the source at path, with the reader, in the ctx context,
@@ -1384,7 +1393,27 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
+	if p.typeCheck {
+		// TODO (Gianluca): what about importing of Go packages?
+		pkgInfo, err := checkPackage(tree, nil, ctx)
+		if err != nil {
+			return nil, err
+		}
+		p.packageInfos[path] = pkgInfo
+	}
+
 	return tree, nil
+}
+
+// TypeCheckInfo returns the type checking formations related to path. Parsing
+// of path must be succesfully completed before calling this method, otherwise a
+// panic is invoked.
+func (p *Parser) TypeCheckInfo(path string) *packageInfo {
+	pkgInfo, ok := p.packageInfos[path]
+	if !ok {
+		panic("no type-checking infos about path")
+	}
+	return pkgInfo
 }
 
 // expansion is an expansion state.

@@ -9,29 +9,25 @@ import (
 )
 
 // TODO (Gianluca): find a better name.
+// TODO (Gianluca): this identifier must be accessed from outside as
+// "scrigo.Package" or something similar.
 type GoPackage struct {
 	Name         string
 	Declarations map[string]interface{}
 }
 
-// TODO (Gianluca): find a better name.
-type tcPackage struct {
-	Name         string
-	Declarations map[string]*ast.TypeInfo
+type packageInfo struct {
+	Name                 string
+	Declarations         map[string]*ast.TypeInfo
+	VariableOrdering     []string                 // ordering of initialization of global variables.
+	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 }
 
 // notChecked represents the type info of a not type-checked package
 // declaration.
 var notChecked = &ast.TypeInfo{}
 
-// TODO (Gianluca): CheckPackage should have 'src' (type []byte) instead of
-// 'node' as argument, and its name should be something like: 'ParsePackage'.
-func CheckPackage(node *ast.Tree, imports map[string]*GoPackage) (*ast.Tree, error) {
-	tree, _, err := checkPackage(node, imports)
-	return tree, err
-}
-
-func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree, pkg *tcPackage, err error) {
+func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Context) (pkgInfo *packageInfo, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -43,22 +39,25 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 		}
 	}()
 
-	if len(node.Nodes) == 0 {
-		return nil, nil, errors.New("expected 'package', found EOF")
+	if len(tree.Nodes) == 0 {
+		return nil, errors.New("expected 'package', found EOF")
 	}
-	packageNode, ok := node.Nodes[0].(*ast.Package)
+	packageNode, ok := tree.Nodes[0].(*ast.Package)
 	if !ok {
-		t := fmt.Sprintf("%T", node.Nodes[0])
+		t := fmt.Sprintf("%T", tree.Nodes[0])
 		t = strings.ToLower(t[len("*ast."):])
-		return nil, nil, fmt.Errorf("expected 'package', found '%s'", t)
+		return nil, fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
 	tc := typechecker{
-		scopes:       []typeCheckerScope{universe},
+		context:      context,
+		fileBlock:    make(typeCheckerScope),
 		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
+		scopes:       []typeCheckerScope{universe},
 		varDeps:      make(map[string][]string, 3), // TODO (Gianluca): to review.
 	}
-	pkg = &tcPackage{
+
+	pkgInfo = &packageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*ast.TypeInfo, len(packageNode.Declarations)),
 	}
@@ -66,12 +65,12 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
 		case *ast.Import:
-			importedPkg := &tcPackage{}
+			importedPkg := &packageInfo{}
 			if n.Tree == nil {
 				// Go package.
 				goPkg, ok := imports[n.Path]
 				if !ok {
-					return nil, nil, tc.errorf(n, "cannot find package %q", n.Path)
+					return nil, tc.errorf(n, "cannot find package %q", n.Path)
 				}
 				importedPkg.Declarations = make(map[string]*ast.TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
@@ -95,9 +94,9 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			} else {
 				// Scrigo package.
 				var err error
-				_, importedPkg, err = checkPackage(n.Tree, nil)
+				importedPkg, err = checkPackage(n.Tree, nil, context)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 			}
 			if n.Ident == nil {
@@ -137,12 +136,12 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
 			ti := tc.checkExpression(c.Value.(ast.Expression))
 			if !ti.IsConstant() {
-				return nil, nil, tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
+				return nil, tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
 			}
 			if c.Type != nil {
 				typ := tc.checkType(c.Type, noEllipses)
 				if !tc.isAssignableTo(ti, typ.Type) {
-					return nil, nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
+					return nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
 			tc.packageBlock[c.Ident] = ti
@@ -173,7 +172,7 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 				if v.Type != nil {
 					typ := tc.checkType(v.Type, noEllipses)
 					if !tc.isAssignableTo(ti, typ.Type) {
-						return nil, nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
+						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
 				tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
@@ -184,20 +183,19 @@ func checkPackage(node *ast.Tree, imports map[string]*GoPackage) (tree *ast.Tree
 		}
 	}
 
-	pkg.Declarations = make(map[string]*ast.TypeInfo)
+	pkgInfo.Declarations = make(map[string]*ast.TypeInfo)
 	for ident, ti := range tc.packageBlock {
-		pkg.Declarations[ident] = ti
+		pkgInfo.Declarations[ident] = ti
 	}
 
-	tree = node
-	tree.VariableOrdering = nil
+	pkgInfo.VariableOrdering = nil
 	for _, v := range tc.initOrder {
 		if tc.getDecl(v).DeclarationType == DeclarationVariable {
-			tree.VariableOrdering = append(tree.VariableOrdering, v)
+			pkgInfo.VariableOrdering = append(pkgInfo.VariableOrdering, v)
 		}
 	}
 
-	return tree, pkg, nil
+	return pkgInfo, nil
 }
 
 // stringInSlice indicates if ss contains s.

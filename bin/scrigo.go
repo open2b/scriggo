@@ -44,7 +44,7 @@ func main() {
 		packagesNames = append(packagesNames, name)
 	}
 
-	p := parser.New(r, packagesNames)
+	p := parser.New(r, packagesNames, true)
 	tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
 	if err != nil {
 		fmt.Println(err)
