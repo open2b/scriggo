@@ -41,6 +41,20 @@ var integerRanges = [...]struct{ min, max *big.Int }{
 	{nil, big.NewInt(0).SetUint64(1<<64 - 1)},              // uint64
 }
 
+var integerKind = [...]bool{
+	reflect.Int:           true,
+	reflect.Int8:          true,
+	reflect.Int16:         true,
+	reflect.Int32:         true,
+	reflect.Int64:         true,
+	reflect.Uint:          true,
+	reflect.Uint8:         true,
+	reflect.Uint16:        true,
+	reflect.Uint32:        true,
+	reflect.Uint64:        true,
+	reflect.UnsafePointer: false,
+}
+
 var numericKind = [...]bool{
 	reflect.Int:           true,
 	reflect.Int8:          true,
