@@ -411,6 +411,10 @@ func redeclaredInThisBlock(v string) string {
 	return v + " redeclared in this block"
 }
 
+func undefined(v string) string {
+	return "undefined: " + v
+}
+
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
 // 1.12.
@@ -440,7 +444,7 @@ var checkerStmts = map[string]string{
 
 	// Assignments.
 	`v := 1; _ = v`:                           ok,
-	`v = 1`:                                   "undefined: v",
+	`v = 1`:                                   undefined("v"),
 	`v := 1 + 2; _ = v`:                       ok,
 	`v := "s" + "s"; _ = v`:                   ok,
 	`v := 1; v = 2; _ = v`:                    ok,
@@ -450,6 +454,10 @@ var checkerStmts = map[string]string{
 	`v1 := 1; v2 := "a"; v1 = v2`:             `cannot use v2 (type string) as type int in assignment`,
 	`f := func() int { return 0 } ; var a int = f() ; _ = a`:    ok,
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`: `cannot use f() (type int) as type string in assignment`,
+
+	// Declarations with self-references.
+	`a, b, c := 1, 2, a`:      undefined("a"),
+	`const a, b, c = 1, 2, a`: undefined("a"),
 
 	// Increments and decrements.
 	`a := 1; a++`:   ok,
@@ -618,6 +626,9 @@ func TestCheckerStatements(t *testing.T) {
 		"pointInt": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
 	}
 	for src, expectedError := range checkerStmts {
+		if src != "a, b, c := 1, 2, a" {
+			continue
+		}
 		func() {
 			defer func() {
 				if r := recover(); r != nil {

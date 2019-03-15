@@ -64,7 +64,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			for i := range n.Identifiers {
 				zero := &ast.TypeInfo{Type: typ.Type}
 				newVar := tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
-				if !newVar && !isBlankIdentifier(n.Identifiers[i]) {
+				if newVar == "" && !isBlankIdentifier(n.Identifiers[i]) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[i]))
 				}
 			}
@@ -73,7 +73,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newVar := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
-			if !newVar && !isBlankIdentifier(n.Identifiers[0]) {
+			if newVar == "" && !isBlankIdentifier(n.Identifiers[0]) {
 				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
 			}
 			return
@@ -96,7 +96,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
-			if !newConst && !isBlankIdentifier(n.Identifiers[0]) {
+			if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
 				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
 			}
 			return
@@ -145,7 +145,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// values). typ = tc.checkType(...?, noEllipses)
 
 		if len(vars) == 1 && len(values) == 1 {
-			if !tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false) && isDecl {
+			newVar := tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
+			if newVar == "" && isDecl {
 				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
 			return
@@ -158,16 +159,24 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	if len(vars) == len(values) {
-		newVars := false
+		newVars := ""
+		tmpScope := typeCheckerScope{}
 		for i := range vars {
 			newVar := tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
-			if isVarOrConst && !newVar && !isBlankIdentifier(vars[i]) {
+			if isDecl {
+				tmpScope[newVar], _ = tc.LookupScopes(newVar, true)
+				delete(tc.scopes[len(tc.scopes)-1], newVar)
+			}
+			if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
 				panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
 			}
-			newVars = newVars || newVar
+			newVars = newVars + newVar
 		}
-		if !newVars && isDecl {
+		if newVars == "" && isDecl {
 			panic(tc.errorf(node, "no new variables on left side of :="))
+		}
+		for d, ti := range tmpScope {
+			tc.AssignScope(d, ti)
 		}
 		return
 	}
@@ -180,7 +189,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
 			for i := range vars {
-				if !tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst) && isDecl {
+				newVar := tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst)
+				if newVar == "" && isDecl {
 					panic(tc.errorf(node, "no new variables on left side of :="))
 				}
 			}
@@ -219,8 +229,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // passed as "typ" argument. isDeclaration and isConst indicates, respectively,
 // if the assignment is a declaration and if it's a constant.
 //
-// Returns true if variable has been declared.
-//
 // TODO (Gianluca): handle "isConst"
 //
 // TODO (Gianluca): typ doesn't get the type's zero, just checks if type is
@@ -231,7 +239,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 //
 // TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
 //
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) (isNew bool) {
+// Returns the identifier of the new declared variable, otherwise empty string.
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) string {
 
 	if valueTi == nil {
 		valueTi = tc.checkExpression(value)
@@ -257,7 +266,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if v.Name == "_" {
 			// TODO (Gianluca): check if blank identifier is used correctly (has
 			// no type, etc..).. or delegate this to parser?
-			return
+			return ""
 		}
 
 		// If it's not a declaration, variable must already exists in some
@@ -267,8 +276,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			newValueTi := &ast.TypeInfo{}
 			// Cannot declarate a variable if already exists in current scope.
 			if _, alreadyInCurrentScope := tc.LookupScopes(v.Name, true); alreadyInCurrentScope {
-				isNew = false
-				return
+				return ""
 			}
 			if typ != nil {
 				// «If a type is present, each variable is given that type.»
@@ -288,11 +296,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				newValueTi.Type = valueTi.Type
 			}
 			v.SetTypeInfo(newValueTi)
-			isNew = true
 			if isConst {
 				newValueTi.Value = valueTi.Value
 				tc.AssignScope(v.Name, newValueTi)
-				return
+				return v.Name
 			}
 			newValueTi.Properties |= ast.PropertyAddressable
 			tc.AssignScope(v.Name, newValueTi)
@@ -301,7 +308,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				scopeLevel: len(tc.scopes) - 1,
 				node:       node,
 			})
-			return
+			return v.Name
 		}
 		variableTi := tc.checkIdentifier(v, false)
 		if !variableTi.Addressable() {
@@ -328,7 +335,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !tc.isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
-		return
+		return ""
 
 	case *ast.Selector:
 
@@ -342,7 +349,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !tc.isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
-		return
+		return ""
 
 	case *ast.UnaryOperator:
 
@@ -354,7 +361,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			if !tc.isAssignableTo(valueTi, variableTi.Type) {
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
-			return
+			return ""
 		}
 
 	default:
@@ -362,7 +369,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		panic("bug/not implemented")
 	}
 
-	return
+	return ""
 }
 
 var assignableDefaultType = [...]*ast.TypeInfo{
