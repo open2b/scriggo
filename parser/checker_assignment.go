@@ -223,7 +223,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	}
 
 	// If it's a constant declaration, a constant value must be provided.
-	if isConst && (valueTi.Value == nil) {
+	if isConst && !valueTi.IsConstant() {
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
 
@@ -273,16 +273,19 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				newValueTi.Type = valueTi.Type
 			}
 			v.SetTypeInfo(newValueTi)
+			if isConst {
+				newValueTi.Value = valueTi.Value
+				tc.AssignScope(v.Name, newValueTi)
+				return
+			}
 			hasBeenDeclared = true
 			newValueTi.Properties |= ast.PropertyAddressable
 			tc.AssignScope(v.Name, newValueTi)
-			if !isConst {
-				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-					ident:      v.Name,
-					scopeLevel: len(tc.scopes) - 1,
-					node:       node,
-				})
-			}
+			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
+				ident:      v.Name,
+				scopeLevel: len(tc.scopes) - 1,
+				node:       node,
+			})
 			return
 		}
 		variableTi := tc.checkIdentifier(v, false)
