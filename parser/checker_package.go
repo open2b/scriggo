@@ -213,6 +213,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 			}
 		}
 	}
+	tc.temporaryEvaluated = nil
 
 	pkgInfo.Declarations = make(map[string]*ast.TypeInfo)
 	for ident, ti := range tc.packageBlock {

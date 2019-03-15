@@ -351,13 +351,6 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
-	// TODO (Gianluca): temporaryEvaluated must be used only for globals evaluation!
-	// Example:
-	// 	var A = 10
-	// 	func main() {
-	// 		A = 20
-	// 		println(A) // should print 20, not 10
-	// 	}
 	if tmpTi, ok := tc.temporaryEvaluated[ident.Name]; ok {
 		return tmpTi
 	}
