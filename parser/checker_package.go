@@ -118,6 +118,15 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 				switch n.Ident.Name {
 				case "_":
 				case ".":
+					// TODO (Gianluca): importing all declarations
+					// from package to fileblock has 2 problems:
+					// 1) it losts the package in which the function
+					// must be called;
+					// 2) cannot determine if package has been used,
+					// so it's impossibile to check for "imported but
+					// not used" error when importing with "." (see
+					// https://play.golang.org/p/uoePGjVei5v for
+					// further details).
 					for ident, ti := range importedPkg.Declarations {
 						tc.fileBlock[ident] = ti
 					}
