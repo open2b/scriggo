@@ -231,7 +231,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 //
 // TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
 //
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) (hasBeenDeclared bool) {
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) (isNew bool) {
 
 	if valueTi == nil {
 		valueTi = tc.checkExpression(value)
@@ -267,7 +267,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			newValueTi := &ast.TypeInfo{}
 			// Cannot declarate a variable if already exists in current scope.
 			if _, alreadyInCurrentScope := tc.LookupScopes(v.Name, true); alreadyInCurrentScope {
-				hasBeenDeclared = false
+				isNew = false
 				return
 			}
 			if typ != nil {
@@ -288,7 +288,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				newValueTi.Type = valueTi.Type
 			}
 			v.SetTypeInfo(newValueTi)
-			hasBeenDeclared = true
+			isNew = true
 			if isConst {
 				newValueTi.Value = valueTi.Value
 				tc.AssignScope(v.Name, newValueTi)
