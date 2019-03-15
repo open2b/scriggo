@@ -335,7 +335,6 @@ func (tc *typechecker) CheckUpValue(name string) string {
 	return ""
 }
 
-// TODO (Gianluca): check if using all declared identifiers.
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.TypeInfo {
 
 	// Upvalues.
