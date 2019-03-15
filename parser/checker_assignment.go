@@ -92,8 +92,11 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		// The number of identifiers must be equal to the number of expressions.
 		// [https://golang.org/ref/spec#Constant_declarations]
-		if len(n.Identifiers) != len(values) {
-			panic("len(variables) != len(values)") // TODO (Gianluca): to review.
+		if len(n.Identifiers) > len(values) {
+			panic(tc.errorf(node, "missing value in const declaration"))
+		}
+		if len(n.Identifiers) < len(values) {
+			panic(tc.errorf(node, "extra expression in const declaration"))
 		}
 
 		vars = make([]ast.Expression, len(n.Identifiers))
