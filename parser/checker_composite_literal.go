@@ -28,7 +28,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			n, err := tc.representedBy(ti, intType)
 			if err != nil || n.(*big.Int).Sign() < 0 ||
 				(ti.IsConstant() && !ti.Untyped() && !integerKind[ti.Type.Kind()]) {
-				panic(tc.errorf(node, "index must be non-negative integer constant"))
+				panic(tc.errorf(kv.Key, "index must be non-negative integer constant"))
 			}
 			currentIndex = int(n.(*big.Int).Int64())
 		} else {
