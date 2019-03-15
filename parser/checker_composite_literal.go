@@ -125,6 +125,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		}
 		explicitFields = declType == 1
 		if explicitFields { // struct with explicit fields.
+			// TODO(Gianluca): check for duplicate keys only after verifying that a key is a field
 			tc.checkDuplicatedKeys(node, reflect.Struct)
 			for _, keyValue := range node.KeyValues {
 				ident, ok := keyValue.Key.(*ast.Identifier)
