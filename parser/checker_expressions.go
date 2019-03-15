@@ -634,30 +634,34 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		kind := t.Type.Kind()
 		switch kind {
 		case reflect.Slice, reflect.String, reflect.Array, reflect.Ptr:
-			k := kind
+			realType := t.Type
+			realKind := t.Type.Kind()
 			if kind == reflect.Ptr {
-				if t.Type.Elem().Kind() != reflect.Array {
+				realType = t.Type.Elem()
+				realKind = realType.Kind()
+				if realKind != reflect.Array {
 					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 				}
-				k = reflect.Array
 			}
 			index := tc.checkExpression(expr.Index)
-			v, err := tc.convertImplicit(index, intType)
-			if err != nil {
-				if err == errTypeConversion {
-					err = fmt.Errorf("non-integer %s index %s", k, expr.Index)
-				}
-				panic(tc.errorf(expr.Index, "%s", err))
+			if index.Nil() || (!index.Untyped() && !integerKind[index.Type.Kind()]) {
+				panic(tc.errorf(expr.Index, "non-integer %s index %s", realKind, expr.Index))
 			}
-			if v != nil {
-				n := int(v.(*big.Int).Int64())
-				if n < 0 {
-					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", k, expr.Index))
+			if index.IsConstant() {
+				n, err := tc.representedBy(index, intType)
+				if err != nil {
+					panic(tc.errorf(expr.Index, fmt.Sprintf("%s", err)))
 				}
-				if t.Value != nil {
-					if s := t.Value.(string); n >= len(s) {
-						panic(tc.errorf(expr, "invalid string index %d (out of bounds for %d-byte string)", v, len(s)))
+				i := int(n.(*big.Int).Int64())
+				if i < 0 {
+					panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", realKind, expr.Index))
+				}
+				if t.IsConstant() {
+					if s := t.Value.(string); i >= len(s) {
+						panic(tc.errorf(expr, "invalid string index %s (out of bounds for %d-byte string)", expr.Index, len(s)))
 					}
+				} else if realType.Kind() == reflect.Array && i >= realType.Len() {
+					panic(tc.errorf(expr, "invalid array index %s (out of bounds for %d-element array)", expr.Index, realType.Len()))
 				}
 			}
 			var typ reflect.Type
