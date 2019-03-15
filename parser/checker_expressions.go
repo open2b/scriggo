@@ -1445,9 +1445,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 
 		case "println":
 			// TODO
+			return nil
 
 		case "print":
 			// TODO
+			return nil
 
 		}
 
