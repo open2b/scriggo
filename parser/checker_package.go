@@ -23,6 +23,19 @@ type packageInfo struct {
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 }
 
+func (pi *packageInfo) String() string {
+	s := "{\n"
+	s += "\tName:                 " + pi.Name + "\n"
+	s += "\tDeclarations:\n"
+	for i, d := range pi.Declarations {
+		s += fmt.Sprintf("                              %s: %s\n", i, d)
+	}
+	s += "\tVariableOrdering:     " + "{" + strings.Join(pi.VariableOrdering, ",") + "}\n"
+	// TODO (Gianluca): add constant expressions.
+	s += "}\n"
+	return s
+}
+
 // notChecked represents the type info of a not type-checked package
 // declaration.
 var notChecked = &ast.TypeInfo{}
