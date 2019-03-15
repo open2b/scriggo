@@ -100,7 +100,7 @@ func (ti *TypeInfo) ShortString() string {
 // FuncString returns the string representation of ti in the context of a
 // function call and return statement.
 func (ti *TypeInfo) FuncString() string {
-	if numericKind[ti.Type.Kind()] {
+	if ti.IsConstant() && ti.Untyped() && numericKind[ti.Type.Kind()] {
 		return "number"
 	}
 	return ti.Type.String()
