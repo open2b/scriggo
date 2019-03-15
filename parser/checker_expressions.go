@@ -1443,6 +1443,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			_ = tc.checkExpression(expr.Args[0])
 			return nil
 
+		case "println":
+			// TODO
+
+		case "print":
+			// TODO
+
 		}
 
 		panic(fmt.Sprintf("unexpected builtin %s", ident.Name))
