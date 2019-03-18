@@ -506,7 +506,7 @@ var checkerStmts = map[string]string{
 	`a := 4; _ = [a]int{}`:   `non-constant array bound a`,
 	`_ = [-2]int{}`:          `array bound must be non-negative`,
 	`_ = [3]int{1:10, 1:20}`: `duplicate index in array literal: 1`,
-	// `_ = [5.3]int{}`:       `constant 5.3 truncated to integer`,
+	`_ = [5.3]int{}`:         `constant 5.3 truncated to integer`,
 
 	// Maps.
 	`_ = map[string]string{}`:              ok,
