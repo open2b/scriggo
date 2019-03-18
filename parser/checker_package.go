@@ -64,6 +64,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 
 	tc := typechecker{
 		fileBlock:    make(typeCheckerScope),
+		hasBreak:     map[ast.Node]bool{},
 		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
 		scopes:       []typeCheckerScope{universe},
 		varDeps:      make(map[string][]string, 3), // TODO (Gianluca): to review.

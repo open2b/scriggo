@@ -84,6 +84,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.For:
 
+			// TODO (Gianluca): check if can iterate over element.
 			terminating := true
 			tc.AddScope()
 			tc.addToAncestors(node)
@@ -94,7 +95,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
 					isDecl := node.Init.Type == ast.AssignmentDeclaration
 					tc.assignSingle(node.Init, node.Init.Variables[0], nil, intTypeInfo, nil, isDecl, false)
-					tc.assignSingle(node.Init, node.Init.Variables[1], node.Init.Values[0], nil, nil, isDecl, false)
+					elemTi := tc.checkExpression(node.Init.Values[0])
+					tc.assignSingle(node.Init, node.Init.Variables[1], nil, &ast.TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
 				} else {
 					tc.checkAssignment(node.Init)
 				}
@@ -119,6 +121,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.ForRange:
 
+			// TODO (Gianluca): check if can iterate over element.
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Assignment != nil {
@@ -128,7 +131,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
 					isDecl := node.Assignment.Type == ast.AssignmentDeclaration
 					tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, intTypeInfo, nil, isDecl, false)
-					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], node.Assignment.Values[0], nil, nil, isDecl, false)
+					elemTi := tc.checkExpression(node.Assignment.Values[0])
+					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &ast.TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
 				} else {
 					tc.checkAssignment(node.Assignment)
 				}
