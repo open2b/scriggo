@@ -673,7 +673,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.Slicing:
 		// TODO(marco) support full slice expressions
-		// TODO(marco) check if an array is addressable
 		t := tc.checkExpression(expr.Expr)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
