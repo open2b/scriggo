@@ -495,7 +495,7 @@ var checkerStmts = map[string]string{
 	`_ = []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
 	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
 	`_ = []int{1:10, 1:20}`:                                  `duplicate index in array literal: 1`,
-	// `_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
+	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
 
 	// Arrays.
 	`_ = [1]int{1}`:          ok,
