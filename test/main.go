@@ -118,7 +118,7 @@ func runGoAndGetOutput(src []byte) string {
 	return out
 }
 
-const testsDir = "../examples"
+const testsDir = "examples"
 
 func fatal(a interface{}) {
 	log.Fatalf("fatal error: %s", a)
