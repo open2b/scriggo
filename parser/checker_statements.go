@@ -347,8 +347,24 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 
-	for _, g := range got {
-		_ = tc.checkExpression(g)
+	needsCheck := true
+	if len(expected) > 1 && len(got) == 1 {
+		if c, ok := got[0].(*ast.Call); ok {
+			tis := tc.checkCallExpression(c, false)
+			got = nil
+			for _, ti := range tis {
+				v := ast.NewCall(c.Pos(), c.Func, c.Args)
+				v.SetTypeInfo(ti)
+				got = append(got, v)
+				needsCheck = false
+			}
+		}
+	}
+
+	if needsCheck {
+		for _, g := range got {
+			_ = tc.checkExpression(g)
+		}
 	}
 
 	if len(expected) != len(got) {

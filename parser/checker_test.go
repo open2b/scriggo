@@ -615,6 +615,13 @@ var checkerStmts = map[string]string{
 	`_ = func() (int, int) { return 0, 0, 0}`:  "too many arguments to return\n\thave (number, number, number)\n\twant (int, int)",
 	`_ = func() (int, int) { return 0, "", 0}`: "too many arguments to return\n\thave (number, string, number)\n\twant (int, int)",
 
+	// Return statements with functions as return value.
+	`f := func () (int, int) { return 0, 0 }; _ = func() (int, int) { return f() }`:         ok,
+	`f := func () (int, int, int) { return 0, 0, 0 }; _ = func() (int, int) { return f() }`: "too many arguments to return\n\thave (int, int, int)\n\twant (int, int)",
+	`f := func () int { return 0 }; _ = func() (int, int) { return f() }`:                   "not enough arguments to return\n\thave (int)\n\twant (int, int)",
+	`f := func () (string, string) { return "", "" }; _ = func() (int, int) { return f() }`: `cannot use f() (type string) as type int in return argument`, // TODO (Gianluca): should be cannot use string as type int in return argument
+	// `var f func () (int, int); _ = func() (int, int) { return f() }`: ok, // TODO (Gianluca): parsing error.
+
 	// Function literal calls.
 	`f := func() { }; f()`:                    ok,
 	`f := func(int) { }; f(0)`:                ok,
