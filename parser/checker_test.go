@@ -638,9 +638,6 @@ func TestCheckerStatements(t *testing.T) {
 		"pointInt": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
 	}
 	for src, expectedError := range checkerStmts {
-		if src != "a, b, c := 1, 2, a" {
-			continue
-		}
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
