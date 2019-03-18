@@ -485,7 +485,8 @@ var checkerStmts = map[string]string{
 	// "Compact" assignments.
 	`a := 1; a += 1; _ = a`: ok,
 	`a := 1; a *= 2; _ = a`: ok,
-	// `a := ""; a /= 6`: `invalid operation: a /= 6 (mismatched types string and int)`,
+	`a := ""; a /= 6`:       `cannot convert 6 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
+	`a := ""; a %= 2`:       `cannot convert 2 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
 
 	// Slices.
 	`_ = []int{}`:      ok,

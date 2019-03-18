@@ -131,6 +131,23 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			return
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 			ast.AssignmentDivision, ast.AssignmentModulo:
+			var opType ast.OperatorType
+			switch n.Type {
+			case ast.AssignmentAddition:
+				opType = ast.OperatorAddition
+			case ast.AssignmentSubtraction:
+				opType = ast.OperatorSubtraction
+			case ast.AssignmentMultiplication:
+				opType = ast.OperatorMultiplication
+			case ast.AssignmentDivision:
+				opType = ast.OperatorDivision
+			case ast.AssignmentModulo:
+				opType = ast.OperatorModulo
+			}
+			_, err := tc.binaryOp(ast.NewBinaryOperator(n.Pos(), opType, n.Variables[0], n.Values[0]))
+			if err != nil {
+				panic(err)
+			}
 			variable := n.Variables[0]
 			tc.assignSingle(node, variable, n.Values[0], nil, nil, false, false)
 			return
