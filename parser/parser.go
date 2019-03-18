@@ -464,17 +464,6 @@ func (p *parsing) parseStatement(tok token) {
 
 	// break
 	case tokenBreak:
-		var breakable bool
-		for i := len(p.ancestors) - 1; !breakable && i > 0; i-- {
-			switch p.ancestors[i].(type) {
-			case *ast.For, *ast.ForRange, *ast.Switch:
-				breakable = true
-				break
-			}
-		}
-		if !breakable {
-			panic(&Error{"", *tok.pos, fmt.Errorf("break is not in a loop or switch")})
-		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
