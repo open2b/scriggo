@@ -123,8 +123,6 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		}
 		explicitFields = declType == 1
 		if explicitFields { // struct with explicit fields.
-			// TODO(Gianluca): check for duplicate keys only after verifying that a key is a field
-			tc.checkDuplicatedKeys(node, reflect.Struct)
 			for _, keyValue := range node.KeyValues {
 				ident, ok := keyValue.Key.(*ast.Identifier)
 				if !ok {
@@ -143,6 +141,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
+			tc.checkDuplicatedKeys(node, reflect.Struct)
 		} else { // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				// TODO (Gianluca): PropertyAddressable?
