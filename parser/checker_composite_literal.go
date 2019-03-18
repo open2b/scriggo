@@ -125,7 +125,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		if explicitFields { // struct with explicit fields.
 			for _, keyValue := range node.KeyValues {
 				ident, ok := keyValue.Key.(*ast.Identifier)
-				if !ok {
+				if !ok || ident.Name == "_" {
 					panic(tc.errorf(node, "invalid field name %s in struct initializer", keyValue.Key))
 				}
 				fieldTi, ok := ti.Type.FieldByName(ident.Name)

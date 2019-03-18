@@ -529,6 +529,7 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
 	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,

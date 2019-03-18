@@ -247,12 +247,13 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
 			ident := parseIdentifierNode(tok)
-			if ident.Name == "_" {
-				if !canBeBlank {
-					panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
-				}
-				mustBeBlank = true
-			}
+			// TODO (Gianluca): this check must be done during type-checking.
+			// if ident.Name == "_" {
+			// 	if !canBeBlank {
+			// 		panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
+			// 	}
+			// 	mustBeBlank = true
+			// }
 			operand = ident
 			if mustBeType {
 				tok = next(p.lex)
