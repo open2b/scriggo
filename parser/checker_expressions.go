@@ -548,7 +548,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if length > n {
 			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, n))
 		}
-		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
+		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(n, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
