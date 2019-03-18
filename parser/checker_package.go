@@ -87,7 +87,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 				importedPkg.Declarations = make(map[string]*ast.TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
 					ti := &ast.TypeInfo{}
-					switch value {
+					switch {
 					case reflect.TypeOf(value).Kind() == reflect.Ptr:
 						ti = &ast.TypeInfo{Type: reflect.TypeOf(value).Elem(), Properties: ast.PropertyAddressable}
 					case reflect.TypeOf(value) == reflect.TypeOf(reflect.Type(nil)):

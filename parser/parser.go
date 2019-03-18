@@ -1329,7 +1329,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 // clone of the tree and then transform the clone.
 type Parser struct {
 	reader   Reader
-	packages []string
+	packages map[string]*GoPackage
 	trees    *cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
 	packageInfos map[string]*packageInfo // key is path.
@@ -1338,7 +1338,7 @@ type Parser struct {
 
 // New returns a new Parser that reads the trees from the reader r. typeCheck
 // indicates if a type-checking must be done after parsing.
-func New(r Reader, packages []string, typeCheck bool) *Parser {
+func New(r Reader, packages map[string]*GoPackage, typeCheck bool) *Parser {
 	p := &Parser{
 		reader:    r,
 		packages:  packages,
@@ -1384,7 +1384,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	if p.typeCheck {
 		// TODO (Gianluca): what about importing of Go packages?
-		pkgInfo, err := checkPackage(tree, nil)
+		pkgInfo, err := checkPackage(tree, p.packages)
 		if err != nil {
 			return nil, err
 		}
@@ -1409,7 +1409,7 @@ func (p *Parser) TypeCheckInfo(path string) *packageInfo {
 type expansion struct {
 	reader   Reader
 	trees    *cache
-	packages []string
+	packages map[string]*GoPackage
 	paths    []string
 }
 
@@ -1567,7 +1567,7 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if ctx == ast.ContextNone {
 				found := false
 				for _, pkg := range pp.packages {
-					if pkg == n.Path {
+					if pkg.Name == n.Path { // TODO (Gianluca): to review.
 						found = true
 						break
 					}

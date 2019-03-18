@@ -19,7 +19,7 @@ import (
 	"scrigo/parser"
 )
 
-var packages map[string]*scrigo.Package
+var packages map[string]*parser.GoPackage
 
 func runScrigoAndGetOutput(src []byte) string {
 	reader, writer, err := os.Pipe()
@@ -52,7 +52,11 @@ func runScrigoAndGetOutput(src []byte) string {
 		}
 		return msg
 	}
-	err = scrigo.RunPackageTree(tree, packages)
+	pkgs := make(map[string]*scrigo.Package, len(packages))
+	for n, pkg := range packages {
+		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
+	}
+	err = scrigo.RunPackageTree(tree, pkgs)
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
