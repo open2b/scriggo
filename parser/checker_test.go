@@ -206,10 +206,17 @@ var checkerExprs = []struct {
 	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
 	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiAddrInt()}},
 	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedRuneConst(1)}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiAddrInt()}},
+	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
 	{`p[1]`, tiAddrInt(), typeCheckerScope{"p": &ast.TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
 	{`a[1]`, tiByte(), typeCheckerScope{"a": tiString()}},
 	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: ast.PropertyAddressable}}},
 	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: ast.PropertyAddressable}}},
+	{`a[1]`, tiInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: ast.PropertyAddressable}}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},

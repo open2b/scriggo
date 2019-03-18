@@ -684,11 +684,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				if key.Nil() {
 					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type.Key()))
 				}
-				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in map index", expr.Index, key, t.Type.Key()))
+				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
 			}
 			return &ast.TypeInfo{Type: t.Type.Elem()}
 		default:
-			panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t.ShortString()))
+			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
 		}
 
 	case *ast.Slicing:
