@@ -467,8 +467,10 @@ var checkerStmts = map[string]string{
 	`v := 1 + 2; v = 3 + 4; _ = v`:            ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`: ok,
 	`v1 := 1; v2 := "a"; v1 = v2`:             `cannot use v2 (type string) as type int in assignment`,
-	`f := func() int { return 0 } ; var a int = f() ; _ = a`:    ok,
-	`f := func() int { return 0 } ; var a string = f() ; _ = a`: `cannot use f() (type int) as type string in assignment`,
+	`f := func() int { return 0 } ; var a int = f() ; _ = a`:        ok,
+	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
+	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
+	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 
 	// Declarations with self-references.
 	`a, b, c := 1, 2, a`:      undefined("a"),
@@ -621,17 +623,20 @@ var checkerStmts = map[string]string{
 	`f := func(string, int) { } ; f(0, 0, 0)`: "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
 
 	// Variable declared and not used.
-	`a := 0`:             declaredNotUsed("a"),
-	`{ { a := 0 } }`:     declaredNotUsed("a"),
-	`a := 0; a = 1`:      declaredNotUsed("a"),
-	`a := 0; { _ = a }`:  ok,
-	`a := 0; { b := 0 }`: declaredNotUsed("b"),
+	`a := 0`:                     declaredNotUsed("a"),
+	`{ { a := 0 } }`:             declaredNotUsed("a"),
+	`a := 0; a = 1`:              declaredNotUsed("a"),
+	`a := 0; { _ = a }`:          ok,
+	`a := 0; { b := 0 }`:         declaredNotUsed("b"),
+	`{ const A = 0; var B = 0 }`: declaredNotUsed("B"),
 
 	// Redeclaration (variables and constants) in the same block.
+	`{ const A = 0 }`:                 ok,
 	`var A = 0; _ = A`:                ok,
-	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
-	`const A = 0; const A = 1; _ = A`: redeclaredInThisBlock("A"),
+	`{ const A = 0; var A = 0 }`:      redeclaredInThisBlock("A"),
 	`A := 0; var A = 1`:               redeclaredInThisBlock("A"),
+	`const A = 0; const A = 1; _ = A`: redeclaredInThisBlock("A"),
+	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
 }
 
 func TestCheckerStatements(t *testing.T) {
