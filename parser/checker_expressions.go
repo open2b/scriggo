@@ -232,7 +232,6 @@ type typechecker struct {
 	ancestors    []*ancestor
 	terminating  bool // https://golang.org/ref/spec#Terminating_statements
 	hasBreak     map[ast.Node]bool
-	context      ast.Context
 	unusedVars   []*scopeVariable
 
 	// Variable initialization support structures.

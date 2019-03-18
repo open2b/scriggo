@@ -40,7 +40,7 @@ func (pi *packageInfo) String() string {
 // declaration.
 var notChecked = &ast.TypeInfo{}
 
-func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Context) (pkgInfo *packageInfo, err error) {
+func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packageInfo, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -63,7 +63,6 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 	}
 
 	tc := typechecker{
-		context:      context,
 		fileBlock:    make(typeCheckerScope),
 		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
 		scopes:       []typeCheckerScope{universe},
@@ -107,7 +106,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, context ast.Con
 			} else {
 				// Scrigo package.
 				var err error
-				importedPkg, err = checkPackage(n.Tree, nil, context)
+				importedPkg, err = checkPackage(n.Tree, nil)
 				if err != nil {
 					return nil, err
 				}
