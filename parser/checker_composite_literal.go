@@ -228,9 +228,5 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		}
 	}
 
-	// TODO (Gianluca): are composite literals addressable? In Go Specifications
-	// composite literal are handled as "exceptions": « As an exception to the
-	// addressability requirement, x may also be a (possibly parenthesized)
-	// composite literal.». What do we mean with "addressable"?
-	return &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
+	return &ast.TypeInfo{Type: ti.Type}
 }
