@@ -673,10 +673,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			case reflect.Ptr:
 				typ = t.Type.Elem().Elem()
 			}
-			if t.Addressable() && kind != reflect.String {
-				return &ast.TypeInfo{Type: typ, Properties: ast.PropertyAddressable}
+			ti := &ast.TypeInfo{Type: typ}
+			if (kind != reflect.String && t.Addressable()) || kind == reflect.Ptr {
+				ti.Properties = ast.PropertyAddressable
 			}
-			return &ast.TypeInfo{Type: typ}
+			return ti
 		case reflect.Map:
 			key := tc.checkExpression(expr.Index)
 			if !tc.isAssignableTo(key, t.Type.Key()) {
