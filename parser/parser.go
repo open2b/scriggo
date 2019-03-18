@@ -104,7 +104,7 @@ type parsing struct {
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, ctx ast.Context, typeChecking bool) (tree *ast.Tree, err error) {
+func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 	switch ctx {
 	case ast.ContextNone, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
@@ -266,14 +266,6 @@ func ParseSource(src []byte, ctx ast.Context, typeChecking bool) (tree *ast.Tree
 
 	if p.lex.err != nil {
 		return nil, p.lex.err
-	}
-
-	if typeChecking {
-		// TODO (Gianluca): what about importing of Go packages?
-		_, err := checkPackage(tree, nil)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return tree, nil

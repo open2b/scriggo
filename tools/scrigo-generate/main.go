@@ -48,7 +48,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tree, err := parser.ParseSource(src, ast.ContextNone, false) // TODO (Gianluca): to review.
+	tree, err := parser.ParseSource(src, ast.ContextNone)
 	if err != nil {
 		panic(err)
 	}
