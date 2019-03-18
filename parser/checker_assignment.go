@@ -24,20 +24,6 @@ func isBlankIdentifier(expr ast.Expression) bool {
 // checkAssignment checks the assignment node.
 //
 // TODO (Gianluca): check error checking order.
-//
-// TODO (Gianluca): "a, b, c := 1, 2, a": how does Go behave? Does it find "a"
-// or evaluation order doesn't matter, so "a" is not declared? -> "undefined: a"
-// (stessa cosa con le costanti)
-//
-// TODO (Gianluca): Unlike regular variable declarations, a short variable
-// declaration may redeclare variables provided they were originally declared
-// earlier in the same block (or the parameter lists if the block is the
-// function body) with the same type, and at least one of the non-blank
-// variables is new. As a consequence, redeclaration can only appear in a
-// multi-variable short declaration. Redeclaration does not introduce a new
-// variable; it just assigns a new value to the original.
-// [https://golang.org/ref/spec#Short_variable_declarations]
-//
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression
@@ -157,10 +143,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		values = n.Values
 		isDecl = n.Type == ast.AssignmentDeclaration
 
-		// TODO (Gianluca): ast.Assignment does not have a type field (Type
-		// indicates the type of the assignment itself, not the type of the
-		// values). typ = tc.checkType(...?, noEllipses)
-
 		if len(vars) == 1 && len(values) == 1 {
 			newVar := tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
 			if newVar == "" && isDecl {
@@ -201,7 +183,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	if len(vars) >= 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
-			values := tc.checkCallExpression(call, false) // TODO (Gianluca): is "false" correct?
+			values := tc.checkCallExpression(call, false)
 			if len(vars) != len(values) {
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
@@ -246,12 +228,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // passed as "typ" argument. isDeclaration and isConst indicates, respectively,
 // if the assignment is a declaration and if it's a constant.
 //
-// TODO (Gianluca): handle "isConst"
-//
 // TODO (Gianluca): typ doesn't get the type's zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
 //
-// TODO (Gianluca):when assigning a costant to a value in scope, constant isn't
+// TODO (Gianluca): when assigning a costant to a value in scope, constant isn't
 // constant anymore.
 //
 // TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
