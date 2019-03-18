@@ -1521,9 +1521,23 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 	var numIn = t.Type.NumIn()
 	var variadic = t.Type.IsVariadic()
 
-	if (!variadic && len(expr.Args) != numIn) || (variadic && len(expr.Args) < numIn-1) {
+	args := expr.Args
+
+	if len(args) == 1 && numIn > 1 {
+		if c, ok := args[0].(*ast.Call); ok {
+			args = nil
+			tis := tc.checkCallExpression(c, false)
+			for _, ti := range tis {
+				v := ast.NewCall(c.Pos(), c.Func, c.Args)
+				v.SetTypeInfo(ti)
+				args = append(args, v)
+			}
+		}
+	}
+
+	if (!variadic && len(args) != numIn) || (variadic && len(args) < numIn-1) {
 		have := "("
-		for i, arg := range expr.Args {
+		for i, arg := range args {
 			if i > 0 {
 				have += ", "
 			}
@@ -1546,7 +1560,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			want += t.Type.In(i).String()
 		}
 		want += ")"
-		if len(expr.Args) < numIn {
+		if len(args) < numIn {
 			panic(tc.errorf(expr, "not enough arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have, want))
 		}
 		panic(tc.errorf(expr, "too many arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have, want))
@@ -1555,15 +1569,18 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 	var lastIn = numIn - 1
 	var in reflect.Type
 
-	for i, arg := range expr.Args {
+	for i, arg := range args {
 		if i < lastIn || !variadic {
 			in = t.Type.In(i)
 		} else if i == lastIn {
 			in = t.Type.In(lastIn).Elem()
 		}
-		a := tc.checkExpression(arg)
+		a := arg.TypeInfo()
+		if a == nil {
+			a = tc.checkExpression(arg)
+		}
 		if !tc.isAssignableTo(a, in) {
-			panic(tc.errorf(expr.Args[i], "cannot use %s (type %s) as type %s in argument to %s", expr.Args[i], a.ShortString(), in, expr.Func))
+			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
 	}
 
