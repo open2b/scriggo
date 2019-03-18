@@ -564,7 +564,7 @@ var rendererGlobalsToScope = []struct {
 
 func TestRenderExpressions(t *testing.T) {
 	for _, expr := range rendererExprTests {
-		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
+		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText, false) // TODO (Gianluca): to review.
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -587,7 +587,7 @@ func TestRenderStatements(t *testing.T) {
 		return a, b
 	}
 	for _, stmt := range rendererStmtTests {
-		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextText)
+		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextText, false) // TODO (Gianluca): to review.
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -677,7 +677,7 @@ var rendererCallFuncTests = []struct {
 
 func TestRenderCallFunc(t *testing.T) {
 	for _, stmt := range rendererCallFuncTests {
-		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextNone)
+		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextNone, false) // TODO (Gianluca): to review.
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue

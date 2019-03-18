@@ -696,7 +696,7 @@ func TestCheckerStatements(t *testing.T) {
 					}
 				}
 			}()
-			tree, err := ParseSource([]byte(src), ast.ContextNone)
+			tree, err := ParseSource([]byte(src), ast.ContextNone, false) // TODO (Gianluca): to review.
 			if err != nil {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
@@ -1047,7 +1047,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 	}
 	tc := &typechecker{}
 	for src, expected := range cases {
-		tree, err := ParseSource([]byte(src), ast.ContextNone)
+		tree, err := ParseSource([]byte(src), ast.ContextNone, false) // TODO (Gianluca): to review.
 		if err != nil {
 			t.Error(err)
 		}
@@ -1141,7 +1141,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	for src, expected := range cases {
 		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
 		tc.AddScope()
-		tree, err := ParseSource([]byte(src), ast.ContextNone)
+		tree, err := ParseSource([]byte(src), ast.ContextNone, false) // TODO (Gianluca): to review.
 		if err != nil {
 			t.Error(err)
 		}

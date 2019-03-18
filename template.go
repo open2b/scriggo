@@ -158,7 +158,7 @@ var (
 //
 // RenderSource is safe for concurrent use.
 func RenderSource(out io.Writer, src []byte, vars interface{}, strict bool, ctx Context) error {
-	tree, err := parser.ParseSource(src, ast.Context(ctx))
+	tree, err := parser.ParseSource(src, ast.Context(ctx), false) // TODO (Gianluca): to review.
 	if err != nil {
 		return convertError(err)
 	}
@@ -176,7 +176,7 @@ func Run(r io.Reader) error {
 	if err != nil {
 		panic(err)
 	}
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	tree, err := parser.ParseSource(src, ast.ContextNone, false) // TODO (Gianluca): to review.
 	if err != nil {
 		return err
 	}

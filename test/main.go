@@ -44,7 +44,7 @@ func runScrigoAndGetOutput(src []byte) string {
 		out <- buf.String()
 	}()
 	wg.Wait()
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	tree, err := parser.ParseSource(src, ast.ContextNone, false) // TODO (Gianluca): to review.
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {

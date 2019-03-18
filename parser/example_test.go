@@ -25,7 +25,7 @@ func ExampleParseSource() {
       {% end %}
   {% end macro %}`)
 
-	tree, err := parser.ParseSource(src, ast.ContextText)
+	tree, err := parser.ParseSource(src, ast.ContextText, false) // TODO (Gianluca): to review.
 	if err != nil {
 		log.Printf("parsing error: %s\n", err)
 	}

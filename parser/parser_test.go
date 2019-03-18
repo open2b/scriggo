@@ -1024,7 +1024,7 @@ func pageTests() map[string]struct {
 
 func TestNoneContextTrees(t *testing.T) {
 	for _, tree := range noneContextTreeTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
+		node, err := ParseSource([]byte(tree.src), ast.ContextNone, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1038,7 +1038,7 @@ func TestNoneContextTrees(t *testing.T) {
 
 func TestFunc(t *testing.T) {
 	for _, tree := range funcTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
+		node, err := ParseSource([]byte(tree.src), ast.ContextNone, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1052,7 +1052,7 @@ func TestFunc(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextHTML)
+		node, err := ParseSource([]byte(tree.src), ast.ContextHTML, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1070,7 +1070,7 @@ type testsReader map[string]struct {
 }
 
 func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
-	return ParseSource([]byte(tests[path].src), ctx)
+	return ParseSource([]byte(tests[path].src), ctx, false)
 }
 
 func TestPages(t *testing.T) {
