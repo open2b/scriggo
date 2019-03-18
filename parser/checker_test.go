@@ -509,10 +509,10 @@ var checkerStmts = map[string]string{
 	// `_ = [5.3]int{}`:       `constant 5.3 truncated to integer`,
 
 	// Maps.
-	`_ = map[string]string{}`:           ok,
-	`_ = map[string]string{"k1": "v1"}`: ok,
-	`_ = map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
-	// `_ = map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
+	`_ = map[string]string{}`:              ok,
+	`_ = map[string]string{"k1": "v1"}`:    ok,
+	`_ = map[string]string{2: "v1"}`:       `cannot use 2 (type int) as type string in map key`,
+	`_ = map[string]string{"k1": 2}`:       `cannot use 2 (type int) as type string in map value`,
 	`_ = map[int]int{1: 3, 1: 4}  `:        `duplicate key 1 in map literal`,
 	`_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
 

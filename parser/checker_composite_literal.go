@@ -231,7 +231,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				valueTi = tc.typeof(kv.Value, noEllipses)
 			}
 			if !tc.isAssignableTo(valueTi, ti.Type.Elem()) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi, ti.Type.Elem()))
+				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), ti.Type.Elem()))
 			}
 		}
 	}
