@@ -1541,7 +1541,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if i > 0 {
 				have += ", "
 			}
-			c := tc.checkExpression(arg)
+			c := arg.TypeInfo()
+			if c == nil {
+				c = tc.checkExpression(arg)
+			}
 			if c == nil {
 				have += "nil"
 			} else {
