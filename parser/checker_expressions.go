@@ -1482,7 +1482,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				panic(tc.errorf(expr, "missing argument to new"))
 			}
 			t := tc.typeof(expr.Args[0], noEllipses)
-			if t.IsType() {
+			if !t.IsType() {
 				panic(tc.errorf(expr, "%s is not a type", expr.Args[0]))
 			}
 			if len(expr.Args) > 1 {
