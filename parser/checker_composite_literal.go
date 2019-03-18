@@ -84,7 +84,7 @@ func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind refl
 				case reflect.Array, reflect.Slice:
 					panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
 				case reflect.Map:
-					panic(tc.errorf(node, "duplicate key in map literal: %s", kv.Key))
+					panic(tc.errorf(node, "duplicate key %s in map literal", kv.Key))
 				}
 			}
 		}
@@ -202,9 +202,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Map:
 
-		// TODO (Gianluca): checking is done by parser, so it's impossibile to
-		// test this. Decomment when parsing duplicates check has been removed.
-		//tc.checkDuplicates(node, reflect.Map)
+		tc.checkDuplicatedKeys(node, reflect.Map)
 		for _, kv := range node.KeyValues {
 			var keyTi *ast.TypeInfo
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {

@@ -509,11 +509,8 @@ var checkerStmts = map[string]string{
 	`_ = map[string]string{"k1": "v1"}`: ok,
 	`_ = map[string]string{2: "v1"}`:    `cannot use 2 (type int) as type string in map key`,
 	// `_ = map[string]string{"k1": 2}`:    `cannot use 2 (type int) as type string in map value`,
-
-	// TODO (Gianluca): duplicates checking is done by parser, so it's
-	// impossibile to test this. Decomment when parsing duplicates check has
-	// been removed.
-	// `_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
+	`_ = map[int]int{1: 3, 1: 4}  `:        `duplicate key 1 in map literal`,
+	`_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
 
 	// Structs.
 	`_ = pointInt{}`:           ok,

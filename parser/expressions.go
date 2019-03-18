@@ -372,37 +372,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
 				}
 				pos.End = tok.pos.End
-				if _, ok := operand.(*ast.MapType); ok {
-					duplicates := map[interface{}]struct{}{}
-					for _, element := range keyValues {
-						switch key := element.Key.(type) {
-						// TODO (Gianluca): maps cannot have duplicated nil
-						// keys, but "map{1,2,3}" is valid for parser, so this
-						// error must be checked during execution.
-						//
-						// case nil:
-						//  if _, ok := duplicates[nil]; ok {
-						//      panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
-						//  }
-						//  duplicates[nil] = struct{}{}
-						case *ast.String:
-							if _, ok := duplicates[key.Text]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
-							}
-							duplicates[key.Text] = struct{}{}
-						case *ast.Float:
-							if _, ok := duplicates[key.Value.String()]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value.String()] = struct{}{}
-						case *ast.Int:
-							if _, ok := duplicates[key.Value.String()]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value.String()] = struct{}{}
-						}
-					}
-				}
 				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
