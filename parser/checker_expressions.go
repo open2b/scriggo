@@ -660,7 +660,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 					if s := t.Value.(string); i >= len(s) {
 						panic(tc.errorf(expr, "invalid string index %s (out of bounds for %d-byte string)", expr.Index, len(s)))
 					}
-				} else if realType.Kind() == reflect.Array && i >= realType.Len() {
+				} else if realKind == reflect.Array && i >= realType.Len() {
 					panic(tc.errorf(expr, "invalid array index %s (out of bounds for %d-element array)", expr.Index, realType.Len()))
 				}
 			}
