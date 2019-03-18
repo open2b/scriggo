@@ -36,7 +36,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Extends:
 
-			tc.checkNodesInNewScope(node.Tree.Nodes)
+			panic("found *ast.Extends") // TODO (Gianluca): to review.
 
 		case *ast.Include:
 
@@ -217,12 +217,25 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.ShowMacro:
 
-			// TODO
+			// TODO (Gianluca): to review.
+			name := node.Macro.Name
+			_, ok := tc.LookupScopes(name, false)
+			if !ok {
+				panic(tc.errorf("undefined macro: %s", name))
+			}
 
 		case *ast.Macro:
 
-			// TODO (Gianluca): to review.
+			// TODO (Gianluca): handle types for macros.
+			name := node.Ident.Name
+			_, ok := tc.LookupScopes(name, false)
+			if ok {
+				panic(tc.errorf("macro %s redeclared in this page", name))
+			}
 			tc.checkNodesInNewScope(node.Body)
+			// TODO (Gianluca):
+			ti := &ast.TypeInfo{}
+			tc.AssignScope(name, ti)
 
 		case *ast.Call:
 
