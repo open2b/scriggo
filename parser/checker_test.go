@@ -561,7 +561,8 @@ var checkerStmts = map[string]string{
 	`a := false; switch a { case 4 > 10: }`: ok,
 	`a := false; switch a { case a: }`:      ok,
 	`a := 3; switch a { case a: }`:          ok,
-	// `a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
+	`a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
+	`a := 3; switch 0.0 { case a: }`:        `invalid case a in switch on 0 (mismatched types int and float64)`,
 
 	// Functions literal definitions.
 	`_ = func(     )         {                                             }`: ok,
