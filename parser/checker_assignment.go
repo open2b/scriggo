@@ -202,18 +202,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		case *ast.TypeAssertion:
 
-			// TODO (Gianluca):
-			// tc.checkTypeAssertion(value)
-			// tc.assignValueToVariable(node, variable[0], typeAssertionType, nil, isDeclaration, isConst)
-			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			ti := tc.checkType(values[0], noEllipses)
+			tc.assignSingle(node, vars[0], nil, &ast.TypeInfo{Type: ti.Type}, nil, isDecl, false)
+			tc.assignSingle(node, vars[1], nil, untypedBoolTypeInfo, nil, isDecl, false)
 			return
 
 		case *ast.Index:
 
-			// TODO (Gianluca):
-			// tc.checkMapIndexint(value)
-			// tc.assignValueToVariable(node, variable[0], mapType, nil, isDeclaration, isConst)
-			// tc.assignValueToVariable(node, variable[1], boolTi, nil, isDeclaration, isConst)
+			ti := tc.checkExpression(values[0])
+			tc.assignSingle(node, vars[0], nil, &ast.TypeInfo{Type: ti.Type}, nil, isDecl, false)
+			tc.assignSingle(node, vars[1], nil, untypedBoolTypeInfo, nil, isDecl, false)
 			return
 
 		}

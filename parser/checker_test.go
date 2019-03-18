@@ -479,6 +479,14 @@ var checkerStmts = map[string]string{
 	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 
+	// Type assertions.
+	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
+	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`:         `invalid type assertion: a.(int) (non-interface type int on left)`,
+
+	// Map key checking.
+	`a, ok := map[int]string{}[0]; var _ string = a; var _ bool = ok;`: ok,
+	`a, ok := map[int]string{}[0]; var _ string = a; var _ int = ok;`:  `cannot use ok (type bool) as type int in assignment`,
+
 	// Declarations with self-references.
 	`a, b, c := 1, 2, a`:      undefined("a"),
 	`const a, b, c = 1, 2, a`: undefined("a"),
@@ -661,11 +669,13 @@ var checkerStmts = map[string]string{
 
 func TestCheckerStatements(t *testing.T) {
 	builtinsScope := typeCheckerScope{
-		"true":     &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"false":    &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"int":      &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
-		"string":   &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
-		"pointInt": &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
+		"bool":        &ast.TypeInfo{Type: reflect.TypeOf(false), Properties: ast.PropertyIsType},
+		"true":        &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"false":       &ast.TypeInfo{Type: reflect.TypeOf(false)},
+		"int":         &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
+		"string":      &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
+		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
+		"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
