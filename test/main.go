@@ -44,7 +44,9 @@ func runScrigoAndGetOutput(src []byte) string {
 		out <- buf.String()
 	}()
 	wg.Wait()
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	r := parser.MapReader{"main": src}
+	p := parser.New(r, packages, true)
+	tree, err := p.Parse("main", ast.ContextNone)
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
