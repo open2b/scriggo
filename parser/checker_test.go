@@ -562,12 +562,14 @@ var checkerStmts = map[string]string{
 	`if true { }`:                          "",
 
 	// For statements.
-	`for 3 { }`:                     "non-bool 3 (type int) used as for condition",
-	`for i := 10; i; i++ { }`:       "non-bool i (type int) used as for condition",
-	`for i := 0; i < 10; i++ { }`:   "",
-	`for i := 0; i < 10; {}`:        ok,
-	`for i := 0; i < 10; _ = 2 {}`:  ok,
-	`for i := 0; i < 10; i = "" {}`: `cannot use "" (type string) as type int in assignment`,
+	`for 3 { }`:                                         "non-bool 3 (type int) used as for condition",
+	`for i := 10; i; i++ { }`:                           "non-bool i (type int) used as for condition",
+	`for i := 0; i < 10; i++ { }`:                       "",
+	`for i := 0; i < 10; {}`:                            ok,
+	`for i := 0; i < 10; _ = 2 {}`:                      ok,
+	`for i := 0; i < 10; i = "" {}`:                     `cannot use "" (type string) as type int in assignment`,
+	`s := []int{}; for i := range s { _ = i }`:          ok,
+	`s := []int{}; for i, v := range s { _, _ = i, v }`: ok,
 
 	// Switch statements.
 	`switch 1 { case 1: }`:                  ok,

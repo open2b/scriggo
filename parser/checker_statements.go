@@ -88,7 +88,16 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				tc.checkAssignment(node.Init)
+				nVars := len(node.Init.Variables)
+				nValues := len(node.Init.Values)
+				if nVars == 2 && nValues == 1 {
+					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
+					isDecl := node.Init.Type == ast.AssignmentDeclaration
+					tc.assignSingle(node.Init, node.Init.Variables[0], nil, intTypeInfo, nil, isDecl, false)
+					tc.assignSingle(node.Init, node.Init.Variables[1], node.Init.Values[0], nil, nil, isDecl, false)
+				} else {
+					tc.checkAssignment(node.Init)
+				}
 			}
 			if node.Condition != nil {
 				terminating = false
@@ -112,7 +121,18 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			tc.AddScope()
 			tc.addToAncestors(node)
-			tc.checkAssignment(node.Assignment)
+			if node.Assignment != nil {
+				nVars := len(node.Assignment.Variables)
+				nValues := len(node.Assignment.Values)
+				if nVars == 2 && nValues == 1 {
+					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
+					isDecl := node.Assignment.Type == ast.AssignmentDeclaration
+					tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, intTypeInfo, nil, isDecl, false)
+					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], node.Assignment.Values[0], nil, nil, isDecl, false)
+				} else {
+					tc.checkAssignment(node.Assignment)
+				}
+			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.RemoveCurrentScope()
