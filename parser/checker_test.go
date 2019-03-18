@@ -517,16 +517,18 @@ var checkerStmts = map[string]string{
 	`_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
 
 	// Structs.
-	`_ = pointInt{}`:           ok,
-	`_ = pointInt{1}`:          `too few values in pointInt literal`,
-	`_ = pointInt{1,2,3}`:      `too many values in pointInt literal`,
-	`_ = pointInt{1,2}`:        ok,
-	`_ = pointInt{1.0,2.0}`:    ok,
-	`_ = pointInt{X: 1, Y: 2}`: ok,
-	`_ = pointInt{X: 1, 2}`:    `mixture of field:value and value initializers`,
-	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
-	`_ = pointInt{X: 2, X: 2}`: `duplicate field name in struct literal: X`,
-	// `_ = pointInt{1.2,2.0}`: `constant 1.2 truncated to integer`,
+	`_ = pointInt{}`:               ok,
+	`_ = pointInt{1}`:              `too few values in pointInt literal`,
+	`_ = pointInt{1,2,3}`:          `too many values in pointInt literal`,
+	`_ = pointInt{1,2}`:            ok,
+	`_ = pointInt{1.0,2.0}`:        ok,
+	`_ = pointInt{X: 1, Y: 2}`:     ok,
+	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
+	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
+	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
+	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
+	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,

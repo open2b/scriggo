@@ -9,6 +9,7 @@ package parser
 import (
 	"math/big"
 	"reflect"
+	"strings"
 
 	"scrigo/ast"
 )
@@ -134,8 +135,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
+				_, err := tc.convertImplicit(valueTi, fieldTi.Type)
+				if err != nil && strings.Contains(err.Error(), "truncated to") {
+					panic(tc.errorf(node, err.Error()))
+				}
 				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), ti.Type.Key()))
+					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
 		} else { // struct with implicit fields.
@@ -152,8 +157,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			for i, keyValue := range node.KeyValues {
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
+				_, err := tc.convertImplicit(valueTi, fieldTi.Type)
+				if err != nil && strings.Contains(err.Error(), "truncated to") {
+					panic(tc.errorf(node, err.Error()))
+				}
 				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %s) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
 		}
@@ -173,6 +182,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
 				elemTi = tc.typeof(kv.Value, noEllipses)
+			}
+			_, err := tc.convertImplicit(elemTi, ti.Type.Elem())
+			if err != nil && strings.Contains(err.Error(), "truncated to") {
+				panic(tc.errorf(node, err.Error()))
 			}
 			if !tc.isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
@@ -199,6 +212,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			} else {
 				elemTi = tc.typeof(kv.Value, noEllipses)
 			}
+			_, err := tc.convertImplicit(elemTi, ti.Type.Elem())
+			if err != nil && strings.Contains(err.Error(), "truncated to") {
+				panic(tc.errorf(node, err.Error()))
+			}
 			if !tc.isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
 					panic(tc.errorf(node, "cannot use %s literal (type %s) as type %v in array or slice literal", elemTi.Type, elemTi, ti.Type.Elem()))
@@ -221,6 +238,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(err)
 				}
 			}
+			_, err := tc.convertImplicit(keyTi, ti.Type.Key())
+			if err != nil && strings.Contains(err.Error(), "truncated to") {
+				panic(tc.errorf(node, err.Error()))
+			}
 			if !tc.isAssignableTo(keyTi, ti.Type.Key()) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), ti.Type.Key()))
 			}
@@ -229,6 +250,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				valueTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
 				valueTi = tc.typeof(kv.Value, noEllipses)
+			}
+			_, err = tc.convertImplicit(valueTi, ti.Type.Elem())
+			if err != nil && strings.Contains(err.Error(), "truncated to") {
+				panic(tc.errorf(node, err.Error()))
 			}
 			if !tc.isAssignableTo(valueTi, ti.Type.Elem()) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), ti.Type.Elem()))
