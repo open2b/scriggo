@@ -381,15 +381,6 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	return ""
 }
 
-var assignableDefaultType = [...]*ast.TypeInfo{
-	reflect.Int:        &ast.TypeInfo{Type: universe["int"].Type, Properties: ast.PropertyAddressable},
-	reflect.Int32:      &ast.TypeInfo{Type: universe["rune"].Type, Properties: ast.PropertyAddressable},
-	reflect.Float64:    &ast.TypeInfo{Type: universe["float64"].Type, Properties: ast.PropertyAddressable},
-	reflect.Complex128: &ast.TypeInfo{Type: universe["complex128"].Type, Properties: ast.PropertyAddressable},
-	reflect.String:     &ast.TypeInfo{Type: universe["string"].Type, Properties: ast.PropertyAddressable},
-	reflect.Bool:       &ast.TypeInfo{Type: universe["bool"].Type, Properties: ast.PropertyAddressable},
-}
-
 // sameUnderlyingType returns true if t1 and t2 has the same underlying type.
 func sameUnderlyingType(t1, t2 reflect.Type) bool {
 	switch k1 := t1.Kind(); k1 {
