@@ -1547,8 +1547,8 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			}
 			if ctx == ast.ContextNone {
 				found := false
-				for _, pkg := range pp.packages {
-					if pkg.Name == n.Path { // TODO (Gianluca): to review.
+				for path := range pp.packages {
+					if path == n.Path {
 						found = true
 						break
 					}
