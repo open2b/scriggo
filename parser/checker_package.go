@@ -177,17 +177,13 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
 			// Adds parameters to the function body scope.
 			for _, f := range v.Type.(*ast.FuncType).Parameters {
-				if f.Ident != nil {
-					t := tc.checkType(f.Type, noEllipses)
-					tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
-				}
+				t := tc.checkType(f.Type, noEllipses)
+				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 			}
 			// Adds named return values to the function body scope.
 			for _, f := range v.Type.(*ast.FuncType).Result {
-				if f.Ident != nil {
-					t := tc.checkType(f.Type, noEllipses)
-					tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
-				}
+				t := tc.checkType(f.Type, noEllipses)
+				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 			}
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
