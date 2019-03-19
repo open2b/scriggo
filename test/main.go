@@ -144,28 +144,28 @@ func main() {
 		fatal(err)
 	}
 	for _, dir := range testDirs {
-		func() {
-			defer func() {
-				if mustRecover {
-					if r := recover(); r != nil {
-						fmt.Printf("!!! PANIC !!!: %v\n", r)
+		if !dir.IsDir() {
+			fatal(fmt.Errorf("%s is not a dir", dir))
+		}
+		files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
+		if err != nil {
+			fatal(err)
+		}
+		for _, f := range files {
+			func() {
+				defer func() {
+					if mustRecover {
+						if r := recover(); r != nil {
+							fmt.Printf("!!! PANIC !!!: %v\n", r)
+						}
 					}
-				}
-			}()
-			if !dir.IsDir() {
-				fatal(fmt.Errorf("%s is not a dir", dir))
-			}
-			files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
-			if err != nil {
-				fatal(err)
-			}
-			for _, f := range files {
+				}()
 				if !strings.HasSuffix(f.Name(), ".go") {
-					continue
+					return
 				}
 				path := filepath.Join(testsDir, dir.Name(), f.Name())
 				if strings.Contains(path, "_ignore_") {
-					continue
+					return
 				}
 				src, err := ioutil.ReadFile(path)
 				if err != nil {
@@ -184,7 +184,7 @@ func main() {
 				} else {
 					fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
 				}
-			}
-		}()
+			}()
+		}
 	}
 }
