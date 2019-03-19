@@ -15,10 +15,7 @@ import (
 
 func isBlankIdentifier(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
-	if !ok {
-		return false
-	}
-	return ident.Name == "_"
+	return ok && ident.Name == "_"
 }
 
 // checkAssignment checks the assignment node.
