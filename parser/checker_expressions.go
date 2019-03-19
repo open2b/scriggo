@@ -1317,6 +1317,26 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			}
 			return []*ast.TypeInfo{slice}
 
+		case "cap":
+			if len(expr.Args) < 1 {
+				panic(tc.errorf(expr, "missing argument to cap: %s", expr))
+			}
+			if len(expr.Args) > 1 {
+				panic(tc.errorf(expr, "too many arguments to cap: %s", expr))
+			}
+			t := tc.checkExpression(expr.Args[0])
+			if t.Nil() {
+				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			switch k := t.Type.Kind(); k {
+			case reflect.Slice, reflect.Array, reflect.Chan:
+			default:
+				if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
+					panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
+				}
+			}
+			return []*ast.TypeInfo{{Type: intType}}
+
 		case "copy":
 			if len(expr.Args) < 2 {
 				panic(tc.errorf(expr, "missing argument to copy: %s", expr))

@@ -329,6 +329,12 @@ var checkerExprs = []struct {
 	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiIntConst(1)}},
 	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiInt()}},
 
+	// cap
+	{`cap([]int{})`, tiInt(), nil},
+	{`cap([...]byte{})`, tiInt(), nil},
+	{`cap(new([1]byte))`, tiInt(), nil},
+	{`cap(s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
 	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
