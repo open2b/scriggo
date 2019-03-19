@@ -21,6 +21,11 @@ func tierr(line, column int, text string) *Error {
 	return &Error{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
 }
 
+type definedIntSlice []int
+type definedIntSlice2 []int
+type definedByteSlice []byte
+type definedStringSlice []byte
+
 var checkerExprs = []struct {
 	src   string
 	ti    *ast.TypeInfo
@@ -321,6 +326,21 @@ var checkerExprs = []struct {
 	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiUntypedIntConst("1")}},
 	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiIntConst(1)}},
 	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiInt()}},
+
+	// copy
+	{`copy([]int{}, []int{})`, tiInt(), nil},
+	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
+	{`copy([]int{}, s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s, []int{})`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
+		"s1": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})},
+		"s2": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice2{})},
+	}},
+	{`copy([]byte{0}, "a")`, tiInt(), nil},
+	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
+		"s1": &ast.TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
+		"s2": &ast.TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
+	}},
 }
 
 func TestCheckerExpressions(t *testing.T) {

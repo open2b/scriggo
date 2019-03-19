@@ -1337,7 +1337,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				panic(tc.errorf(expr, "use of untyped nil"))
 			}
 			dk := dst.Type.Kind()
-			sk := dst.Type.Kind()
+			sk := src.Type.Kind()
 			switch {
 			case dk != reflect.Slice && sk != reflect.Slice:
 				panic(tc.errorf(expr, "arguments to copy must be slices; have %s, %s", dst, src))
@@ -1345,11 +1345,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				panic(tc.errorf(expr, "first argument to copy should be slice; have %s", dst))
 			case sk != reflect.Slice && sk != reflect.String:
 				panic(tc.errorf(expr, "second argument to copy should be slice or string; have %s", src))
-			case sk == reflect.String && dst.Type.Elem().Kind() != reflect.Uint8:
-				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
-			}
-			// TODO(marco): verificare se il confronto dei reflect.typ è sufficiente per essere conformi alle specifiche
-			if dk == reflect.Slice && sk == reflect.Slice && dst != src {
+			case sk == reflect.String && dst.Type.Elem() != uint8Type:
+				fallthrough
+			case sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem():
 				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
 			}
 			return []*ast.TypeInfo{{Type: intType}}
