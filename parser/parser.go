@@ -1133,6 +1133,22 @@ func (p *parsing) parseStatement(tok token) {
 	return
 }
 
+// parseIdentifiersList returns a list of identifiers separated by commas and
+// the next token not used.
+func (p *parsing) parseIdentifiersList(tok token) ([]*ast.Identifier, token) {
+	idents := []*ast.Identifier{}
+	for {
+		idents = append(idents, parseIdentifierNode(tok))
+		tok = next(p.lex)
+		if tok.typ == tokenComma {
+			tok = next(p.lex)
+			continue
+		}
+		break
+	}
+	return idents, tok
+}
+
 func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string) ast.Node {
 	if tok.typ != tokenIdentifier {
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
@@ -1141,19 +1157,11 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		panic("bug: kind must be var or const")
 	}
 	var exprs []ast.Expression
-	var tmpExprs []ast.Expression
 	var idents []*ast.Identifier
 	var typ ast.Expression
-	tmpExprs, tok = p.parseExprList(tok, true, false, false, false)
-	if len(tmpExprs) == 0 {
+	idents, tok = p.parseIdentifiersList(tok)
+	if len(idents) == 0 {
 		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
-	}
-	for _, expr := range tmpExprs {
-		if ident, ok := expr.(*ast.Identifier); ok {
-			idents = append(idents, ident)
-		} else {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %s, expecting name", expr)})
-		}
 	}
 	switch tok.typ {
 	case tokenSimpleAssignment:
