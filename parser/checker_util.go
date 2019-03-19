@@ -136,11 +136,12 @@ var operatorsOfKind = [...][15]bool{
 	reflect.Interface: interfaceOperators,
 }
 
-// containsDuplicates returns true if ss contains at least one duplicate string.
-func containsDuplicates(ss []string) bool {
-	for _, a := range ss {
+// containsDuplicates returns true if slice contains at least one duplicate
+// string.
+func containsDuplicates(slice []string) bool {
+	for _, a := range slice {
 		count := 0
-		for _, b := range ss {
+		for _, b := range slice {
 			if a == b {
 				count++
 			}
@@ -415,9 +416,9 @@ func representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 	return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
 }
 
-// stringInSlice indicates if ss contains s.
-func sliceContainsString(ss []string, s string) bool {
-	for _, ts := range ss {
+// stringInSlice indicates if slice contains s.
+func sliceContainsString(slice []string, s string) bool {
+	for _, ts := range slice {
 		if s == ts {
 			return true
 		}
