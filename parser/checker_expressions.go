@@ -691,16 +691,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		case reflect.String, reflect.Slice:
 		case reflect.Array:
 			if !t.Addressable() {
-				if _, ok := expr.Expr.(*ast.CompositeLiteral); ok {
-					var low, high string
-					if expr.Low != nil {
-						low = expr.Low.String()
-					}
-					if expr.High != nil {
-						high += expr.High.String()
-					}
-					panic(tc.errorf(expr, "invalid operation %s literal[%s:%s] (slice of unaddressable value)", t.Type, low, high))
-				}
 				panic(tc.errorf(expr, "invalid operation %s (slice of unaddressable value)", expr))
 			}
 		default:
