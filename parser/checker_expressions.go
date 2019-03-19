@@ -1451,12 +1451,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			_ = tc.checkExpression(expr.Args[0])
 			return nil
 
-		case "println":
-			// TODO
-			return nil
-
-		case "print":
-			// TODO
+		case "print", "println":
+			for _, arg := range expr.Args {
+				_ = tc.checkExpression(arg)
+			}
 			return nil
 
 		}

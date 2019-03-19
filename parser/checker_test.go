@@ -713,15 +713,18 @@ var checkerStmts = map[string]string{
 	`A := 0; var A = 1`:               redeclaredInThisBlock("A"),
 	`const A = 0; const A = 1; _ = A`: redeclaredInThisBlock("A"),
 	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
+
+	// print and println builtins.
+	`print()`:         ok,
+	`print("a")`:      ok,
+	`print("a", 5)`:   ok,
+	`println()`:       ok,
+	`println("a")`:    ok,
+	`println("a", 5)`: ok,
 }
 
 func TestCheckerStatements(t *testing.T) {
-	builtinsScope := typeCheckerScope{
-		"bool":        &ast.TypeInfo{Type: reflect.TypeOf(false), Properties: ast.PropertyIsType},
-		"true":        &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"false":       &ast.TypeInfo{Type: reflect.TypeOf(false)},
-		"int":         &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(0)},
-		"string":      &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf("")},
+	scope := typeCheckerScope{
 		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
 		"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
 	}
@@ -749,7 +752,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{builtinsScope, typeCheckerScope{}}}
+			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{universe, scope, typeCheckerScope{}}}
 			checker.AddScope()
 			checker.checkNodes(tree.Nodes)
 			checker.RemoveCurrentScope()
