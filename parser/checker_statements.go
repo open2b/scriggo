@@ -199,7 +199,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						panic(tc.errorf(expr, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
 					}
 				}
-				tc.checkNodes(cas.Body)
+				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
