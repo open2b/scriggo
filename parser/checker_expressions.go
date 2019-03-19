@@ -1367,11 +1367,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if t.Type.Kind() != reflect.Map {
 				panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 			}
-			if rkey := t.Type.Key(); !tc.isAssignableTo(key, rkey) {
+			if !tc.isAssignableTo(key, t.Type.Key()) {
 				if key == nil {
-					panic(tc.errorf(expr, "cannot use nil as type %s in delete", rkey))
+					panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
 				}
-				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, rkey))
+				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, t.Type.Key()))
 			}
 			return nil
 
