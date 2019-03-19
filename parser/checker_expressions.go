@@ -150,6 +150,7 @@ var intType = reflect.TypeOf(0)
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 var float64Type = reflect.TypeOf(float64(0))
+var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
 var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
 var uint8TypeInfo = &ast.TypeInfo{Type: uint8Type, Properties: ast.PropertyIsType}
@@ -187,7 +188,7 @@ var universe = typeCheckerScope{
 	"int32":       int32TypeInfo,
 	"int64":       &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
 	"int8":        &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType},
-	"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
+	"interface{}": &ast.TypeInfo{Type: emptyInterfaceType, Properties: ast.PropertyIsType},
 	"rune":        int32TypeInfo,
 	"string":      &ast.TypeInfo{Type: stringType, Properties: ast.PropertyIsType},
 	"true":        &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: true},
@@ -1656,6 +1657,14 @@ func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (inter
 
 // representedBy returns a constant value represented as a value of type t2.
 func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+
+	if t1.Untyped() && t2 == emptyInterfaceType {
+		if t1.IsConstant() {
+			t2 = t1.Type
+		} else {
+			return t1.Value, nil
+		}
+	}
 
 	v := t1.Value
 	k := t2.Kind()

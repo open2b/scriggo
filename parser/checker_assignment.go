@@ -381,59 +381,12 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	return ""
 }
 
-// sameUnderlyingType returns true if t1 and t2 has the same underlying type.
-func sameUnderlyingType(t1, t2 reflect.Type) bool {
-	switch k1 := t1.Kind(); k1 {
-	case reflect.Slice, reflect.Array:
-		if t2.Kind() != k1 {
-			return false
-		}
-		return sameUnderlyingType(t1.Elem(), t2.Elem())
-	case reflect.Map:
-		if t2.Kind() != k1 {
-			return false
-		}
-		return sameUnderlyingType(t1.Key(), t2.Key()) && sameUnderlyingType(t1.Elem(), t2.Elem())
-	default:
-		return k1 == t2.Kind()
-	}
-}
-
 // isAssignableTo reports whether x is assignable to type T.
 // See https://golang.org/ref/spec#Assignability for details.
-//
-// TODO (Gianluca): perhaps this method can be optimized, but this
-// implementation reflects Golang specs, trying to consider any special case.
-// Type 'reflect.Type' has a 'AssignableTo' method, but it covers only some of
-// the cases below.
 func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
-
-	// «x's type is identical to T.»
 	if x.Type == T {
 		return true
 	}
-
-	// «x's type V and T have identical underlying types and at least one of V
-	// or T is not a defined type.»
-	if x.Type != nil && sameUnderlyingType(x.Type, T) {
-		xIsNotDefType := x.Type.Name() == ""
-		TIsNotDefType := T.Name() == ""
-		if xIsNotDefType || TIsNotDefType {
-			return true
-		}
-	}
-
-	// «T is an interface type and x implements T.»
-	if T.Kind() == reflect.Interface {
-		if x.Type != nil {
-			if x.Type.Implements(T) {
-				return true
-			}
-		}
-	}
-
-	// «x is the predeclared identifier nil and T is a pointer, function, slice,
-	// map, channel, or interface type.»
 	if x.Nil() {
 		switch T.Kind() {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
@@ -441,12 +394,14 @@ func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, T reflect.Type) bool {
 		}
 		return false
 	}
-
-	// «x is an untyped constant representable by a value of type T.»
-	if x.IsConstant() && x.Untyped() {
+	if x.Untyped() {
 		_, err := tc.representedBy(x, T)
 		return err == nil
 	}
-
-	return false
+	if T.Kind() == reflect.Interface && x.Type.Implements(T) {
+		return true
+	}
+	// Checks if the type of x and T have identical underlying types and at
+	// least one is not a defined type.
+	return x.Type.AssignableTo(T)
 }

@@ -21,6 +21,7 @@ func tierr(line, column int, text string) *Error {
 	return &Error{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
 }
 
+type definedBool bool
 type definedString string
 type definedIntSlice []int
 type definedIntSlice2 []int
@@ -736,6 +737,14 @@ var checkerStmts = map[string]string{
 	`const A = 0; const A = 1; _ = A`: redeclaredInThisBlock("A"),
 	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
 
+	// Assignment of unsigned values.
+	`var a int = 5; _ = a`:              ok,
+	`var a interface{} = 5; _ = a`:      ok,
+	`var a stringType = "a"; _ = a`:     ok,
+	`var a bool = 1 == 1; _ = a`:        ok,
+	`var a boolType = 1 == 1; _ = a`:    ok,
+	`var a interface{} = 1 == 1; _ = a`: ok,
+
 	// print and println builtins.
 	`print()`:         ok,
 	`print("a")`:      ok,
@@ -752,6 +761,7 @@ var checkerStmts = map[string]string{
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
+		"boolType":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedBool(false))},
 		"aString":     &ast.TypeInfo{Type: reflect.TypeOf(definedString(""))},
 		"stringType":  &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedString(""))},
 		"aStringMap":  &ast.TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
