@@ -780,7 +780,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 // If it is a constant returns the integer value, otherwise returns -1.
 func (tc *typechecker) index(expr ast.Expression, t *ast.TypeInfo, realType reflect.Type, isIndex bool) int {
 	index := tc.checkExpression(expr)
-	if index.Nil() || (!index.Untyped() && !integerKind[index.Type.Kind()]) {
+	if index.Nil() || !(index.Untyped() || integerKind[index.Type.Kind()]) {
 		panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
 	}
 	i := -1
