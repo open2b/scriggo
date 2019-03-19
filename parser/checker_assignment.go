@@ -180,6 +180,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		return
 	}
 
+	// TODO (Gianluca): should not call assignSingle; just change
+	// variables/values to fit 'len(vars) == len(variables)' condition.
 	if len(vars) >= 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
@@ -187,16 +189,23 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if len(vars) != len(values) {
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
+			newVars := ""
 			for i := range vars {
 				newVar := tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst)
-				if newVar == "" && isDecl {
-					panic(tc.errorf(node, "no new variables on left side of :="))
+				if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
+					panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
 				}
+				newVars += newVar
+			}
+			if newVars == "" && isDecl {
+				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
 			return
 		}
 	}
 
+	// TODO (Gianluca): should not call assignSingle; just change
+	// variables/values to fit 'len(vars) == len(variables)' condition.
 	if len(vars) == 2 && len(values) == 1 {
 		switch values[0].(type) {
 

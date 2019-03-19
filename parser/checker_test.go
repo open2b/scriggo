@@ -477,6 +477,7 @@ var checkerStmts = map[string]string{
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
 	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
+	`f := func() (int, int) { return 0, 0 }; _, b := f() ; _ = b`:   ok,
 
 	// Type assertions.
 	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
