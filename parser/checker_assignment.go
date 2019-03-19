@@ -157,76 +157,76 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	}
 
-	if len(vars) == len(values) {
-		newVars := ""
-		tmpScope := typeCheckerScope{}
-		for i := range vars {
-			newVar := tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
-			if isDecl {
-				tmpScope[newVar], _ = tc.LookupScopes(newVar, true)
-				delete(tc.scopes[len(tc.scopes)-1], newVar)
-			}
-			if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
-				panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
-			}
-			newVars = newVars + newVar
-		}
-		if newVars == "" && isDecl {
-			panic(tc.errorf(node, "no new variables on left side of :="))
-		}
-		for d, ti := range tmpScope {
-			tc.AssignScope(d, ti)
-		}
-		return
-	}
-
-	// TODO (Gianluca): should not call assignSingle; just change
-	// variables/values to fit 'len(vars) == len(variables)' condition.
 	if len(vars) >= 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
-			values := tc.checkCallExpression(call, false)
-			if len(vars) != len(values) {
+			tis := tc.checkCallExpression(call, false)
+			if len(vars) != len(tis) {
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
-			newVars := ""
-			for i := range vars {
-				newVar := tc.assignSingle(node, vars[i], nil, values[i], typ, isDecl, isConst)
-				if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
-					panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
-				}
-				newVars += newVar
+			values = nil
+			for _, ti := range tis {
+				newCall := ast.NewCall(call.Pos(), call.Func, call.Args)
+				newCall.SetTypeInfo(ti)
+				values = append(values, newCall)
 			}
-			if newVars == "" && isDecl {
-				panic(tc.errorf(node, "no new variables on left side of :="))
-			}
-			return
 		}
 	}
 
-	// TODO (Gianluca): should not call assignSingle; just change
-	// variables/values to fit 'len(vars) == len(variables)' condition.
 	if len(vars) == 2 && len(values) == 1 {
-		switch values[0].(type) {
+		switch v := values[0].(type) {
 
 		case *ast.TypeAssertion:
 
+			value1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+			value2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkType(values[0], noEllipses)
-			tc.assignSingle(node, vars[0], nil, &ast.TypeInfo{Type: ti.Type}, nil, isDecl, false)
-			tc.assignSingle(node, vars[1], nil, untypedBoolTypeInfo, nil, isDecl, false)
-			return
+			value1.SetTypeInfo(&ast.TypeInfo{Type: ti.Type})
+			value2.SetTypeInfo(untypedBoolTypeInfo)
+			values = []ast.Expression{value1, value2}
 
 		case *ast.Index:
 
+			value1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+			value2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpression(values[0])
-			tc.assignSingle(node, vars[0], nil, &ast.TypeInfo{Type: ti.Type}, nil, isDecl, false)
-			tc.assignSingle(node, vars[1], nil, untypedBoolTypeInfo, nil, isDecl, false)
-			return
+			value1.SetTypeInfo(&ast.TypeInfo{Type: ti.Type})
+			value2.SetTypeInfo(untypedBoolTypeInfo)
+			values = []ast.Expression{value1, value2}
 
 		}
 	}
 
-	panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
+	if len(vars) != len(values) {
+		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
+	}
+
+	newVars := ""
+	tmpScope := typeCheckerScope{}
+	for i := range vars {
+		var newVar string
+		if valueTi := values[i].TypeInfo(); valueTi == nil {
+			newVar = tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
+		} else {
+			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
+		}
+		if isDecl {
+			tmpScope[newVar], _ = tc.LookupScopes(newVar, true)
+			delete(tc.scopes[len(tc.scopes)-1], newVar)
+		}
+		if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
+			panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
+		}
+		newVars = newVars + newVar
+	}
+	if newVars == "" && isDecl {
+		panic(tc.errorf(node, "no new variables on left side of :="))
+	}
+	for d, ti := range tmpScope {
+		tc.AssignScope(d, ti)
+	}
+	return
+
 }
 
 // assignSingle generically assigns value to variable. node must
@@ -241,9 +241,14 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // TODO (Gianluca): when assigning a costant to a value in scope, constant isn't
 // constant anymore.
 //
-// TODO (Gianluca): assegnamento con funzione con tipo errato: https://play.golang.org/p/0J7GSWft4aM
+// TODO (Gianluca): assegnamento con funzione con tipo errato:
+// https://play.golang.org/p/0J7GSWft4aM
 //
 // Returns the identifier of the new declared variable, otherwise empty string.
+//
+// TODO (Gianluca): value and valueTi can be the same argument: use TypeInfo and
+// SetTypeInfo.
+//
 func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) string {
 
 	if valueTi == nil {
