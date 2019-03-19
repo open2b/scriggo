@@ -59,7 +59,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// if expr.Type != boolType {
 			// 	panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
 			// }
-			if !tc.isAssignableTo(expr, boolType) {
+			if !isAssignableTo(expr, boolType) {
 				// TODO (Gianluca): error message must include default type.
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, expr.ShortString()))
 			}
@@ -105,7 +105,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				terminating = false
 				expr := tc.checkExpression(node.Condition)
 				// TODO (Gianluca): same as for if
-				if !tc.isAssignableTo(expr, boolType) {
+				if !isAssignableTo(expr, boolType) {
 					// TODO (Gianluca): error message must include default type.
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
 				}
@@ -191,7 +191,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				hasDefault = hasDefault || len(cas.Expressions) == 0
 				for _, expr := range cas.Expressions {
 					t := tc.checkExpression(expr)
-					if !tc.isAssignableTo(t, switchType) {
+					if !isAssignableTo(t, switchType) {
 						ne := ""
 						if node.Expr != nil {
 							ne = " on " + node.Expr.String()
@@ -393,7 +393,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	for i, T := range expectedTypes {
 		x := got[i]
-		if !tc.isAssignableTo(x.TypeInfo(), T) {
+		if !isAssignableTo(x.TypeInfo(), T) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], got[i].TypeInfo().ShortString(), expectedTypes[i]))
 		}
 	}

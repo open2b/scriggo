@@ -26,7 +26,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
 			ti := tc.checkExpression(kv.Key)
-			n, err := tc.representedBy(ti, intType)
+			n, err := representedBy(ti, intType)
 			if err != nil || n.(*big.Int).Sign() < 0 ||
 				(ti.IsConstant() && !ti.Untyped() && !integerKind[ti.Type.Kind()]) {
 				panic(tc.errorf(kv.Key, "index must be non-negative integer constant"))
@@ -133,11 +133,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
-				_, err := tc.convertImplicit(valueTi, fieldTi.Type)
+				_, err := convertImplicit(valueTi, fieldTi.Type)
 				if err != nil && strings.Contains(err.Error(), "truncated to") {
 					panic(tc.errorf(node, err.Error()))
 				}
-				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
+				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
@@ -156,11 +156,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			for i, keyValue := range node.KeyValues {
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
-				_, err := tc.convertImplicit(valueTi, fieldTi.Type)
+				_, err := convertImplicit(valueTi, fieldTi.Type)
 				if err != nil && strings.Contains(err.Error(), "truncated to") {
 					panic(tc.errorf(node, err.Error()))
 				}
-				if !tc.isAssignableTo(valueTi, fieldTi.Type) {
+				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
@@ -182,11 +182,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			} else {
 				elemTi = tc.typeof(kv.Value, noEllipses)
 			}
-			_, err := tc.convertImplicit(elemTi, ti.Type.Elem())
+			_, err := convertImplicit(elemTi, ti.Type.Elem())
 			if err != nil && strings.Contains(err.Error(), "truncated to") {
 				panic(tc.errorf(node, err.Error()))
 			}
-			if !tc.isAssignableTo(elemTi, ti.Type.Elem()) {
+			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
 					panic(tc.errorf(node, "cannot use %s literal (type %s) as type %v in array or slice literal", elemTi.Type, elemTi, ti.Type.Elem()))
 				} else {
@@ -211,11 +211,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			} else {
 				elemTi = tc.typeof(kv.Value, noEllipses)
 			}
-			_, err := tc.convertImplicit(elemTi, ti.Type.Elem())
+			_, err := convertImplicit(elemTi, ti.Type.Elem())
 			if err != nil && strings.Contains(err.Error(), "truncated to") {
 				panic(tc.errorf(node, err.Error()))
 			}
-			if !tc.isAssignableTo(elemTi, ti.Type.Elem()) {
+			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
 					panic(tc.errorf(node, "cannot use %s literal (type %s) as type %v in array or slice literal", elemTi.Type, elemTi, ti.Type.Elem()))
 				} else {
@@ -237,11 +237,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(err)
 				}
 			}
-			_, err := tc.convertImplicit(keyTi, ti.Type.Key())
+			_, err := convertImplicit(keyTi, ti.Type.Key())
 			if err != nil && strings.Contains(err.Error(), "truncated to") {
 				panic(tc.errorf(node, err.Error()))
 			}
-			if !tc.isAssignableTo(keyTi, ti.Type.Key()) {
+			if !isAssignableTo(keyTi, ti.Type.Key()) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), ti.Type.Key()))
 			}
 			var valueTi *ast.TypeInfo
@@ -250,11 +250,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			} else {
 				valueTi = tc.typeof(kv.Value, noEllipses)
 			}
-			_, err = tc.convertImplicit(valueTi, ti.Type.Elem())
+			_, err = convertImplicit(valueTi, ti.Type.Elem())
 			if err != nil && strings.Contains(err.Error(), "truncated to") {
 				panic(tc.errorf(node, err.Error()))
 			}
-			if !tc.isAssignableTo(valueTi, ti.Type.Elem()) {
+			if !isAssignableTo(valueTi, ti.Type.Elem()) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), ti.Type.Elem()))
 			}
 		}

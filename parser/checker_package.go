@@ -162,7 +162,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			}
 			if c.Type != nil {
 				typ := tc.checkType(c.Type, noEllipses)
-				if !tc.isAssignableTo(ti, typ.Type) {
+				if !isAssignableTo(ti, typ.Type) {
 					return nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
@@ -211,7 +211,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 				ti := tc.checkExpression(v.Value.(ast.Expression))
 				if v.Type != nil {
 					typ := tc.checkType(v.Type, noEllipses)
-					if !tc.isAssignableTo(ti, typ.Type) {
+					if !isAssignableTo(ti, typ.Type) {
 						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}

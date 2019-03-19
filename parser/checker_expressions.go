@@ -501,7 +501,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.UnaryOperator:
 		_ = tc.checkExpression(expr.Expr)
-		t, err := tc.unaryOp(expr)
+		t, err := unaryOp(expr)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -544,7 +544,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if !len.IsConstant() {
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
-		declLength, err := tc.convertImplicit(len, intType)
+		declLength, err := convertImplicit(len, intType)
 		if err != nil {
 			panic(tc.errorf(expr, err.Error()))
 		}
@@ -667,7 +667,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			return ti
 		case reflect.Map:
 			key := tc.checkExpression(expr.Index)
-			if !tc.isAssignableTo(key, t.Type.Key()) {
+			if !isAssignableTo(key, t.Type.Key()) {
 				if key.Nil() {
 					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type.Key()))
 				}
@@ -739,28 +739,28 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		t := tc.typeof(expr.Expr, noEllipses)
 		if t.IsType() {
-			method, ok := tc.methodByName(t, expr.Ident)
+			method, ok := methodByName(t, expr.Ident)
 			if !ok {
 				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
 			}
 			return method
 		}
 		if t.Type.Kind() == reflect.Ptr {
-			method, ok := tc.methodByName(t, expr.Ident)
+			method, ok := methodByName(t, expr.Ident)
 			if ok {
 				return method
 			}
-			field, ok := tc.fieldByName(t, expr.Ident)
+			field, ok := fieldByName(t, expr.Ident)
 			if ok {
 				return field
 			}
 			panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
 		}
-		method, ok := tc.methodByName(t, expr.Ident)
+		method, ok := methodByName(t, expr.Ident)
 		if ok {
 			return method
 		}
-		field, ok := tc.fieldByName(t, expr.Ident)
+		field, ok := fieldByName(t, expr.Ident)
 		if ok {
 			return field
 		}
@@ -791,7 +791,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *ast.TypeInfo, realType
 	}
 	i := -1
 	if index.IsConstant() {
-		n, err := tc.representedBy(index, intType)
+		n, err := representedBy(index, intType)
 		if err != nil {
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
@@ -817,7 +817,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *ast.TypeInfo, realType
 
 // unaryOp executes an unary expression and returns its result. Returns an
 // error if the operation can not be executed.
-func (tc *typechecker) unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
+func unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 
 	t := expr.Expr.TypeInfo()
 	k := t.Type.Kind()
@@ -910,7 +910,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 	t2 := tc.checkExpression(expr.Expr2)
 
 	if t1.Untyped() && t2.Untyped() {
-		return tc.uBinaryOp(t1, expr, t2)
+		return uBinaryOp(t1, expr, t2)
 	}
 
 	op := expr.Op
@@ -937,7 +937,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 	}
 
 	if t1.Untyped() {
-		v, err := tc.convertImplicit(t1, t2.Type)
+		v, err := convertImplicit(t1, t2.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2)
@@ -946,7 +946,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		}
 		t1 = &ast.TypeInfo{Type: t2.Type, Properties: ast.PropertyIsConstant, Value: v}
 	} else if t2.Untyped() {
-		v, err := tc.convertImplicit(t2, t1.Type)
+		v, err := convertImplicit(t2, t1.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
@@ -957,11 +957,11 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 	}
 
 	if t1.IsConstant() && t2.IsConstant() {
-		return tc.tBinaryOp(t1, expr, t2)
+		return tBinaryOp(t1, expr, t2)
 	}
 
 	if isComparison(expr.Op) {
-		if !tc.isAssignableTo(t1, t2.Type) && !tc.isAssignableTo(t2, t1.Type) {
+		if !isAssignableTo(t1, t2.Type) && !isAssignableTo(t2, t1.Type) {
 			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
 		}
 		if expr.Op == ast.OperatorEqual || expr.Op == ast.OperatorNotEqual {
@@ -969,7 +969,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 				// TODO(marco) explain in the error message why they are not comparable.
 				panic(tc.errorf(expr, "invalid operation: %v (%s cannot be compared)", expr, t1.Type))
 			}
-		} else if !tc.isOrdered(t1) {
+		} else if !isOrdered(t1) {
 			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
 		}
 		return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}, nil
@@ -993,7 +993,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 // tBinaryOp executes a binary expression where the operands are typed
 // constants and returns its result. Returns an error if the operation can not
 // be executed.
-func (tc *typechecker) tBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+func tBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
 
 	if t1.Type != t2.Type {
 		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)", expr, t1, t2)
@@ -1108,7 +1108,7 @@ func (tc *typechecker) tBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 
 
 // uBinaryOp executes a binary expression where the operands are untyped and
 // returns its result. Returns an error if the operation can not be executed.
-func (tc *typechecker) uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+func uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
 
 	k1 := t1.Type.Kind()
 	k2 := t2.Type.Kind()
@@ -1249,7 +1249,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	}
 	s := -1
 	if size.IsConstant() {
-		n, err := tc.representedBy(size, intType)
+		n, err := representedBy(size, intType)
 		if err != nil {
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
@@ -1278,7 +1278,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpression(expr.Args[0])
-		value, err := tc.convert(arg, t.Type)
+		value, err := convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
@@ -1321,14 +1321,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				}
 				t := tc.checkExpression(expr.Args[1])
 				isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-				if !isSpecialCase && !tc.isAssignableTo(t, slice.Type) {
+				if !isSpecialCase && !isAssignableTo(t, slice.Type) {
 					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
 				}
 			} else if len(expr.Args) > 1 {
 				elem := slice.Type.Elem()
 				for _, el := range expr.Args[1:] {
 					t := tc.checkExpression(el)
-					if !tc.isAssignableTo(t, elem) {
+					if !isAssignableTo(t, elem) {
 						if t == nil {
 							panic(tc.errorf(expr, "cannot use nil as type %s in append", elem))
 						}
@@ -1404,7 +1404,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if t.Type.Kind() != reflect.Map {
 				panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 			}
-			if !tc.isAssignableTo(key, t.Type.Key()) {
+			if !isAssignableTo(key, t.Type.Key()) {
 				if key == nil {
 					panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
 				}
@@ -1572,7 +1572,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		if a == nil {
 			a = tc.checkExpression(arg)
 		}
-		if !tc.isAssignableTo(a, in) {
+		if !isAssignableTo(a, in) {
 			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
 	}
@@ -1593,7 +1593,7 @@ var errTypeConversion = errors.New("failed type conversion")
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	t := ti.Type
 	v := ti.Value
@@ -1626,7 +1626,7 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, 
 				return nil, nil
 			}
 		}
-		return tc.representedBy(ti, t2)
+		return representedBy(ti, t2)
 	}
 
 	if t.ConvertibleTo(t2) {
@@ -1641,7 +1641,7 @@ func (tc *typechecker) convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, 
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
@@ -1655,7 +1655,7 @@ func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (inter
 	}
 
 	if ti.IsConstant() && k2 != reflect.Interface {
-		return tc.representedBy(ti, t2)
+		return representedBy(ti, t2)
 	}
 
 	if t.ConvertibleTo(t2) {
@@ -1666,7 +1666,7 @@ func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (inter
 }
 
 // representedBy returns a constant value represented as a value of type t2.
-func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	if t1.Untyped() && t2 == emptyInterfaceType {
 		if !t1.IsConstant() {
@@ -1774,7 +1774,7 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
-func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
+func fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
@@ -1791,7 +1791,7 @@ func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo,
 }
 
 // isOrdered reports whether t is ordered.
-func (tc *typechecker) isOrdered(t *ast.TypeInfo) bool {
+func isOrdered(t *ast.TypeInfo) bool {
 	k := t.Type.Kind()
 	return numericKind[k] || k == reflect.String
 }
@@ -1801,7 +1801,7 @@ func (tc *typechecker) isOrdered(t *ast.TypeInfo) bool {
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func (tc *typechecker) methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
+func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 	if t.IsType() {
 		if method, ok := t.Type.MethodByName(name); ok {
 			return &ast.TypeInfo{Type: method.Type}, true

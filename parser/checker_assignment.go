@@ -258,7 +258,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	}
 
 	// If a type is provided, value must be assignable to type.
-	if typ != nil && !tc.isAssignableTo(valueTi, typ.Type) {
+	if typ != nil && !isAssignableTo(valueTi, typ.Type) {
 		if value == nil {
 			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
 		}
@@ -320,7 +320,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !variableTi.Addressable() {
 			panic(tc.errorf(node, "cannot assign to %v", variable))
 		}
-		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+		if !isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 
@@ -338,7 +338,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				panic(tc.errorf(node, "cannot assign to %v", variable))
 			}
 		}
-		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+		if !isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 		return ""
@@ -352,7 +352,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !variableTi.Addressable() {
 			panic(tc.errorf(node, "cannot assign to %v", variable))
 		}
-		if !tc.isAssignableTo(valueTi, variableTi.Type) {
+		if !isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 		return ""
@@ -364,7 +364,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 		if v.Operator() == ast.OperatorMultiplication { // pointer indirection.
 			variableTi := tc.checkExpression(variable)
-			if !tc.isAssignableTo(valueTi, variableTi.Type) {
+			if !isAssignableTo(valueTi, variableTi.Type) {
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
 			return ""
@@ -380,7 +380,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
+func isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
 	if x.Type == t {
 		return true
 	}
@@ -392,7 +392,7 @@ func (tc *typechecker) isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
 		return false
 	}
 	if x.Untyped() {
-		_, err := tc.representedBy(x, t)
+		_, err := representedBy(x, t)
 		return err == nil
 	}
 	if t.Kind() == reflect.Interface && x.Type.Implements(t) {
