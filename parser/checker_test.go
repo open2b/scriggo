@@ -495,6 +495,13 @@ var checkerStmts = map[string]string{
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 	`f := func() (int, int) { return 0, 0 }; _, b := f() ; _ = b`:   ok,
 
+	// Interface assignments.
+	`i := interface{}(0); _ = i`:                ok,
+	`i := interface{}(0); i = 1; _ = i`:         ok,
+	`i := interface{}(0); i = 1; i = ""; _ = i`: ok,
+	`var i interface{}; i = 0; _ = i`:           ok,
+	`var i interface{} = interface{}(0); _ = i`: ok,
+
 	// Type assertions.
 	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
 	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`:         `invalid type assertion: a.(int) (non-interface type int on left)`,
