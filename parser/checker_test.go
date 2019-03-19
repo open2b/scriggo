@@ -305,6 +305,22 @@ var checkerExprs = []struct {
 	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
+
+	// make
+	{`make([]int, 0)`, tiIntSlice(), nil},
+	{`make([]int, 0, 0)`, tiIntSlice(), nil},
+	{`make([]int, 2, 3)`, tiIntSlice(), nil},
+	{`make([]int, 3, 3)`, tiIntSlice(), nil},
+	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiUntypedIntConst("1"), "c": tiUntypedIntConst("1")}},
+	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiIntConst(1), "c": tiIntConst(1)}},
+	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiInt(), "c": tiInt()}},
+	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiUntypedIntConst("1"), "c": tiIntConst(1)}},
+	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiInt(), "c": tiIntConst(1)}},
+	{`make(map[string]string)`, tiStringMap(), nil},
+	{`make(map[string]string, 0)`, tiStringMap(), nil},
+	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiUntypedIntConst("1")}},
+	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiIntConst(1)}},
+	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiInt()}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -1036,6 +1052,10 @@ func tiByteSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]b
 // int slice type info.
 
 func tiIntSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.SliceOf(intType)} }
+
+// string map type info.
+
+func tiStringMap() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{

@@ -1234,6 +1234,26 @@ func (tc *typechecker) uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 
 	return t, nil
 }
 
+// checkSize checks the type of expr as a make size parameter.
+// If it is a constant returns the integer value, otherwise returns -1.
+func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name string) int {
+	size := tc.checkExpression(expr)
+	if size.Nil() || !(size.Untyped() || integerKind[size.Type.Kind()]) {
+		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, size))
+	}
+	s := -1
+	if size.IsConstant() {
+		n, err := tc.representedBy(size, intType)
+		if err != nil {
+			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+		}
+		if s = int(n.(*big.Int).Int64()); s < 0 {
+			panic(tc.errorf(expr, "negative %s argument in make(%s)", name, typ))
+		}
+	}
+	return s
+}
+
 // checkCallExpression type checks a call expression, including type
 // conversions and built-in function calls.
 func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*ast.TypeInfo {
@@ -1382,58 +1402,18 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if numArgs == 0 {
 				panic(tc.errorf(expr, "missing argument to make"))
 			}
-			t := tc.typeof(expr.Args[0], noEllipses)
-			if !t.IsType() {
-				panic(tc.errorf(expr.Args[0], "%s is not a type", expr.Args[0]))
-			}
-			var ok bool
+			t := tc.checkType(expr.Args[0], noEllipses)
 			switch t.Type.Kind() {
 			case reflect.Slice:
 				if numArgs == 1 {
 					panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
 				}
 				if numArgs > 1 {
-					var lenvalue int
-					n := tc.checkExpression(expr.Args[1])
-					if !n.Nil() {
-						if n.Type == nil {
-							c, err := tc.convertImplicit(n, intType)
-							if err != nil {
-								panic(tc.errorf(expr, "%s", err))
-							}
-							if ok && c != nil {
-								if lenvalue = int(c.(*big.Int).Int64()); lenvalue < 0 {
-									panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
-								}
-							}
-						} else if n.Type.Kind() == reflect.Int {
-							ok = true
-						}
-					}
-					if !ok {
-						panic(tc.errorf(expr, "non-integer len argument in make(%s) - %s", expr.Args[0], n))
-					}
+					l := tc.checkSize(expr.Args[1], t.Type, "len")
 					if numArgs > 2 {
-						var capvalue int
-						m := tc.checkExpression(expr.Args[2])
-						if !m.Nil() {
-							if m.Type == nil {
-								v, err := tc.convertImplicit(m, intType)
-								if err != nil {
-									panic(err)
-								}
-								if capvalue = int(v.(*big.Int).Int64()); capvalue < 0 {
-									panic(tc.errorf(expr, "negative cap argument in make(%s)", expr.Args[0]))
-								}
-								if lenvalue > capvalue {
-									panic(tc.errorf(expr, "len larger than cap in in make(%s)", expr.Args[0]))
-								}
-							} else if m.Type.Kind() == reflect.Int {
-								ok = true
-							}
-						}
-						if !ok {
-							panic(tc.errorf(expr, "non-integer cap argument in make(%s) - %s", expr.Args[0], m))
+						c := tc.checkSize(expr.Args[2], t.Type, "cap")
+						if l != -1 && c != -1 && l > c {
+							panic(tc.errorf(expr, "len larger than cap in in make(%s)", t.Type))
 						}
 					}
 				}
@@ -1445,28 +1425,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
 				}
 				if numArgs == 2 {
-					n := tc.checkExpression(expr.Args[1])
-					if !n.Nil() {
-						if n.Type == nil {
-							v, err := tc.convertImplicit(n, intType)
-							if err != nil {
-								panic(err)
-							}
-							if ok && int(v.(*big.Int).Int64()) < 0 {
-								panic(tc.errorf(expr, "negative len argument in make(%s)", expr.Args[0]))
-							}
-						} else if n.Type.Kind() == reflect.Int {
-							ok = true
-						}
-					}
-					if !ok {
-						panic(tc.errorf(expr, "non-integer size argument in make(%s) - %s", expr.Args[0], n))
-					}
+					_ = tc.checkSize(expr.Args[1], t.Type, "size")
 				}
 			default:
 				panic(tc.errorf(expr, "cannot make type %s", t))
 			}
-			return []*ast.TypeInfo{t}
+			return []*ast.TypeInfo{{Type: t.Type}}
 
 		case "new":
 			if len(expr.Args) == 0 {
