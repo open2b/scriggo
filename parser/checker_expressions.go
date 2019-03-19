@@ -1287,11 +1287,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		return []*ast.TypeInfo{ti}
 	}
 
-	if t.IsPackage() {
-		// TODO (Gianluca): why "fmt"?
-		panic(tc.errorf(expr, "use of package fmt without selector"))
-	}
-
 	if t == builtinTypeInfo {
 
 		ident := expr.Func.(*ast.Identifier)
