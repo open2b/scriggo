@@ -341,6 +341,9 @@ var checkerExprs = []struct {
 		"s1": &ast.TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
 		"s2": &ast.TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
 	}},
+
+	// new
+	{`new(int)`, tiIntPtr(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
