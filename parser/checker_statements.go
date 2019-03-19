@@ -192,7 +192,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				for _, expr := range cas.Expressions {
 					t := tc.checkExpression(expr)
 					if !tc.isAssignableTo(t, switchType) {
-						panic(tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %s and %v)", expr, node.Expr, t.ShortString(), switchType))
+						ne := ""
+						if node.Expr != nil {
+							ne = " on " + node.Expr.String()
+						}
+						panic(tc.errorf(expr, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
 					}
 				}
 				tc.checkNodes(cas.Body)
