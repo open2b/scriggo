@@ -127,7 +127,8 @@ func fatal(a interface{}) {
 func main() {
 	verbose := false
 	mustRecover := true
-	for _, arg := range os.Args {
+	pattern := ""
+	for i, arg := range os.Args {
 		if arg == "-v" || arg == "--verbose" {
 			verbose = true
 		}
@@ -135,8 +136,11 @@ func main() {
 			mustRecover = false
 		}
 		if arg == "-h" || arg == "--help" {
-			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--help|-h]\n", os.Args[0])
+			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--help|-h] [--pattern|-p PATTERN]\n", os.Args[0])
 			os.Exit(0)
+		}
+		if arg == "-p" || arg == "--pattern" {
+			pattern = os.Args[i+1]
 		}
 	}
 	testDirs, err := ioutil.ReadDir(testsDir)
@@ -166,6 +170,11 @@ func main() {
 				path := filepath.Join(testsDir, dir.Name(), f.Name())
 				if strings.Contains(path, "_ignore_") {
 					return
+				}
+				if pattern != "" {
+					if !strings.Contains(path, pattern) {
+						return
+					}
 				}
 				src, err := ioutil.ReadFile(path)
 				if err != nil {
