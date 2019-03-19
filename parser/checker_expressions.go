@@ -643,7 +643,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 				}
 			}
-			_ = tc.index(expr.Index, t, realType, true)
+			_ = tc.checkIndex(expr.Index, t, realType, true)
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
@@ -707,10 +707,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		var lv, hv int
 		if expr.Low != nil {
-			lv = tc.index(expr.Low, t, realType, false)
+			lv = tc.checkIndex(expr.Low, t, realType, false)
 		}
 		if expr.High != nil {
-			hv = tc.index(expr.High, t, realType, false)
+			hv = tc.checkIndex(expr.High, t, realType, false)
 		}
 		if lv != -1 && hv != -1 && lv > hv {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
@@ -776,9 +776,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	panic(fmt.Errorf("unexpected: %v (type %T)", expr, expr))
 }
 
-// index checks the type of expr as an index in a index or slice expression.
-// If it is a constant returns the integer value, otherwise returns -1.
-func (tc *typechecker) index(expr ast.Expression, t *ast.TypeInfo, realType reflect.Type, isIndex bool) int {
+// checkIndex checks the type of expr as an index in a index or slice
+// expression. If it is a constant returns the integer value, otherwise
+// returns -1.
+func (tc *typechecker) checkIndex(expr ast.Expression, t *ast.TypeInfo, realType reflect.Type, isIndex bool) int {
 	index := tc.checkExpression(expr)
 	if index.Nil() || !(index.Untyped() || integerKind[index.Type.Kind()]) {
 		panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
