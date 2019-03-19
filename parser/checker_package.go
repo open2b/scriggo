@@ -239,32 +239,6 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 	return pkgInfo, nil
 }
 
-// stringInSlice indicates if ss contains s.
-func sliceContainsString(ss []string, s string) bool {
-	for _, ts := range ss {
-		if s == ts {
-			return true
-		}
-	}
-	return false
-}
-
-// containsDuplicates returns true if ss contains at least one duplicate string.
-func containsDuplicates(ss []string) bool {
-	for _, a := range ss {
-		count := 0
-		for _, b := range ss {
-			if a == b {
-				count++
-			}
-		}
-		if count != 1 {
-			return true
-		}
-	}
-	return false
-}
-
 // tryAddingToInitOrder tries to add name to the initialization order. Returns
 // true if operation ended successfully.
 func (tc *typechecker) tryAddingToInitOrder(name string) bool {

@@ -377,28 +377,3 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 	return ""
 }
-
-// isAssignableTo reports whether x is assignable to type t.
-// See https://golang.org/ref/spec#Assignability for details.
-func isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
-	if x.Type == t {
-		return true
-	}
-	if x.Nil() {
-		switch t.Kind() {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return true
-		}
-		return false
-	}
-	if x.Untyped() {
-		_, err := representedBy(x, t)
-		return err == nil
-	}
-	if t.Kind() == reflect.Interface && x.Type.Implements(t) {
-		return true
-	}
-	// Checks if the type of x and t have identical underlying types and at
-	// least one is not a defined type.
-	return x.Type.AssignableTo(t)
-}
