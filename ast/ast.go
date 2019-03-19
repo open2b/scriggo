@@ -46,6 +46,10 @@ import (
 	"strconv"
 )
 
+// expandedPrint is set to true in tests to print completely a composite
+// literal.
+var expandedPrint = false
+
 // OperatorType represents an operator type in an unary and binary expression.
 type OperatorType int
 
@@ -833,16 +837,19 @@ func NewCompositeLiteral(pos *Position, typ Expression, keyValues []KeyValue) *C
 }
 
 func (t *CompositeLiteral) String() string {
-	s := t.Type.String()
-	s += "{"
-	for i, kv := range t.KeyValues {
-		if i > 0 {
-			s += ", "
+	if expandedPrint {
+		s := t.Type.String()
+		s += "{"
+		for i, kv := range t.KeyValues {
+			if i > 0 {
+				s += ", "
+			}
+			s += kv.String()
 		}
-		s += kv.String()
+		s += "}"
+		return s
 	}
-	s += "}"
-	return s
+	return t.Type.String() + " literal"
 }
 
 // KeyValue represents a key value pair in a slice, map or struct composite literal.

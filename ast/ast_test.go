@@ -11,6 +11,10 @@ import (
 	"testing"
 )
 
+func init() {
+	expandedPrint = true
+}
+
 var n1 = NewInt(nil, big.NewInt(1))
 var n2 = NewInt(nil, big.NewInt(2))
 var n3 = NewInt(nil, big.NewInt(3))
