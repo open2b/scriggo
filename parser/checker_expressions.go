@@ -1386,10 +1386,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 				panic(tc.errorf(expr, "use of untyped nil"))
 			}
 			switch k := t.Type.Kind(); k {
-			case reflect.String, reflect.Array, reflect.Map, reflect.Chan:
+			case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
 			default:
 				if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
-					panic(tc.errorf(expr, "invalid argument %v (type %s) for len", expr, t))
+					panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 				}
 			}
 			return []*ast.TypeInfo{{Type: intType}}

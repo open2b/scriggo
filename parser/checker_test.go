@@ -346,6 +346,14 @@ var checkerExprs = []struct {
 
 	// new
 	{`new(int)`, tiIntPtr(), nil},
+
+	// len
+	{`len("a")`, tiInt(), nil},
+	{`len([]int{})`, tiInt(), nil},
+	{`len(map[string]int{})`, tiInt(), nil},
+	{`len([...]byte{})`, tiInt(), nil},
+	{`len(new([1]byte))`, tiInt(), nil},
+	{`len(s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
