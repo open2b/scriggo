@@ -182,13 +182,20 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			hasFallthrough := false
 			hasDefault := false
+			switchType := boolType
+			if node.Expr != nil {
+				switchType = tc.checkExpression(node.Expr).Type
+			}
 			for _, cas := range node.Cases {
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				hasDefault = hasDefault || len(cas.Expressions) == 0
-				err := tc.checkCase(cas, false, node.Expr)
-				if err != nil {
-					panic(err)
+				for _, expr := range cas.Expressions {
+					t := tc.checkExpression(expr)
+					if !tc.isAssignableTo(t, switchType) {
+						panic(tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %s and %v)", expr, node.Expr, t.ShortString(), switchType))
+					}
 				}
+				tc.checkNodes(cas.Body)
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
@@ -203,16 +210,21 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			if node.Assignment != nil {
-				tc.checkAssignment(node.Assignment)
+			ta := node.Assignment.Values[0].(*ast.TypeAssertion)
+			t := tc.typeof(ta.Expr, noEllipses)
+			if t.Type.Kind() != reflect.Interface {
+				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
 			hasDefault := false
 			for _, cas := range node.Cases {
 				hasDefault = hasDefault || len(cas.Expressions) == 0
-				err := tc.checkCase(cas, true, nil)
-				if err != nil {
-					panic(err)
+				for _, expr := range cas.Expressions {
+					t := tc.typeof(expr, noEllipses)
+					if !t.IsType() {
+						panic(tc.errorf(expr, "%v (type %s) is not a type", expr, t.String()))
+					}
 				}
+				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
@@ -287,50 +299,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 }
 
-// checkCase checks a switch or type-switch case. isTypeSwitch indicates if the
-// parent switch is a type-switch. switchExpr contains the expression of the
-// parent switch.
-func (tc *typechecker) checkCase(node *ast.Case, isTypeSwitch bool, switchExpr ast.Expression) error {
-	tc.AddScope()
-	var switchExprTyp *ast.TypeInfo
-	var typ reflect.Type
-	if switchExpr == nil {
-		typ = boolType
-		switchExprTyp = &ast.TypeInfo{Type: boolType}
-	} else {
-		switchExprTyp = tc.checkExpression(switchExpr)
-		if switchExprTyp.Type != nil {
-			typ = switchExprTyp.Type
-		} else if switchExprTyp.Value != nil {
-			switch switchExprTyp.Type.Kind() {
-			case reflect.Bool:
-				typ = boolType
-			case reflect.Int:
-				typ = intType
-			case reflect.Float64:
-				typ = reflect.TypeOf(float64(0))
-			case reflect.String:
-				typ = reflect.TypeOf("")
-			}
-		} else {
-			typ = boolType // untyped bool.
-		}
-	}
-	for _, expr := range node.Expressions {
-		caseTi := tc.typeof(expr, noEllipses)
-		if isTypeSwitch && !switchExprTyp.IsType() {
-			return tc.errorf(expr, "%v (type %v) is not a type", expr, caseTi.Type)
-		}
-		if !isTypeSwitch && switchExprTyp.IsType() {
-			return tc.errorf(expr, "type %v is not an expression", caseTi.Type)
-		}
-		if !tc.isAssignableTo(caseTi, typ) {
-			return tc.errorf(expr, "invalid case %v in switch on %v (mismatched types %s and %v)", expr, switchExpr, caseTi.ShortString(), typ)
-		}
-	}
-	tc.checkNodes(node.Body)
-	tc.RemoveCurrentScope()
-	return nil
+func (tc *typechecker) checkCaseExpressionSwitch(node *ast.Case, switchExpr ast.Expression) {
+
 }
 
 // TODO (Gianluca): handle case 2 of Go return specifications:

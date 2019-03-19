@@ -764,9 +764,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
 		expr.Expr.SetTypeInfo(t)
-		if expr.Type == nil {
-			return nil
-		}
 		t = tc.checkType(expr.Type, noEllipses)
 		expr.Type.SetTypeInfo(t)
 		return t

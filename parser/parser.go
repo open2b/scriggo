@@ -528,25 +528,6 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		if _, ok := parent.(*ast.TypeSwitch); ok {
-			for _, expr := range expressions {
-				switch n := expr.(type) {
-				case *ast.Identifier:
-					switch n.Name {
-					case "true", "false":
-						panic(&Error{"", *tok.pos, fmt.Errorf("%s (type bool) is not a type", n.Name)})
-					}
-				case *ast.Int:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type int) is not a type", n)})
-				case *ast.Float:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type float) is not a type", n)})
-				case *ast.String:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type string) is not a type", n)})
-				default:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s is not a type", expr)})
-				}
-			}
-		}
 		node = ast.NewCase(pos, expressions, nil, false)
 		addChild(parent, node)
 

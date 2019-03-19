@@ -628,17 +628,23 @@ var checkerStmts = map[string]string{
 	`s := []int{}; for i := range s { _ = i }`:          ok,
 	`s := []int{}; for i, v := range s { _, _ = i, v }`: ok,
 
-	// Switch statements.
+	// Switch (expression) statements.
 	`switch 1 { case 1: }`:                  ok,
 	`switch 1 + 2 { case 3: }`:              ok,
 	`switch true { case true: }`:            ok,
-	`switch 1 + 2 { case "3": }`:            `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
 	`a := false; switch a { case true: }`:   ok,
 	`a := false; switch a { case 4 > 10: }`: ok,
 	`a := false; switch a { case a: }`:      ok,
 	`a := 3; switch a { case a: }`:          ok,
+	`switch 1 + 2 { case "3": }`:            `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
 	`a := 3; switch a { case a > 2: }`:      `invalid case a > 2 in switch on a (mismatched types bool and int)`,
 	`a := 3; switch 0.0 { case a: }`:        `invalid case a in switch on 0 (mismatched types int and float64)`,
+
+	// Type-switch statements.
+	`i := interface{}(int(0)); switch i.(type) { }`:                         ok,
+	`i := interface{}(int(0)); switch i.(type) { case int: case float64: }`: ok,
+	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped int) is not a type`, // TODO (Gianluca): should be "number", not "int".
+	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 
 	// Functions literal definitions.
 	`_ = func(     )         {                                             }`: ok,
