@@ -1302,21 +1302,30 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if slice.Type.Kind() != reflect.Slice {
 				panic(tc.errorf(expr, "first argument to append must be slice; have %s", t))
 			}
-			if len(expr.Args) > 1 {
-				// TODO(marco): implements variadic call to append
-				// TODO(marco): implements append([]byte{}, "abc"...)
-				elem := t.Type.Elem()
+			if expr.IsVariadic {
+				if len(expr.Args) == 1 {
+					panic(tc.errorf(expr, "cannot use ... on first argument to append"))
+				} else if len(expr.Args) > 2 {
+					panic(tc.errorf(expr, "too many arguments to append"))
+				}
+				t := tc.checkExpression(expr.Args[1])
+				isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
+				if !isSpecialCase && !tc.isAssignableTo(t, slice.Type) {
+					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
+				}
+			} else if len(expr.Args) > 1 {
+				elem := slice.Type.Elem()
 				for _, el := range expr.Args[1:] {
 					t := tc.checkExpression(el)
 					if !tc.isAssignableTo(t, elem) {
 						if t == nil {
 							panic(tc.errorf(expr, "cannot use nil as type %s in append", elem))
 						}
-						panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in append", el, t, elem))
+						panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elem))
 					}
 				}
 			}
-			return []*ast.TypeInfo{slice}
+			return []*ast.TypeInfo{{Type: slice.Type}}
 
 		case "cap":
 			if len(expr.Args) < 1 {

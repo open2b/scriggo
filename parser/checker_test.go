@@ -23,6 +23,7 @@ func tierr(line, column int, text string) *Error {
 
 type definedBool bool
 type definedString string
+type definedInt int
 type definedIntSlice []int
 type definedIntSlice2 []int
 type definedByteSlice []byte
@@ -313,6 +314,17 @@ var checkerExprs = []struct {
 	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
+
+	// append
+	{`append([]byte{})`, tiByteSlice(), nil},
+	{`append([]string{})`, tiStringSlice(), nil},
+	{`append([]byte{}, 'a', 'b', 'c')`, tiByteSlice(), nil},
+	{`append([]byte{}, "abc"...)`, tiByteSlice(), nil},
+	{`append([]string{}, "a", "b", "c")`, tiStringSlice(), nil},
+	{`append([]string{}, []string{"a", "b", "c"}...)`, tiStringSlice(), nil},
+	{`append(s, 1, 2, 3)`, tiIntSlice(), typeCheckerScope{"s": tiIntSlice()}},
+	{`append(s, 1, 2, 3)`, tiDefinedIntSlice, typeCheckerScope{"s": tiDefinedIntSlice}},
+	{`append(s, 1.0, 2.0, 3.0)`, tiDefinedIntSlice, typeCheckerScope{"s": tiDefinedIntSlice}},
 
 	// make
 	{`make([]int, 0)`, tiIntSlice(), nil},
@@ -1110,6 +1122,9 @@ func tiIntPtr() *ast.TypeInfo {
 	return &ast.TypeInfo{Type: reflect.PtrTo(intType)}
 }
 
+var tiDefinedInt = &ast.TypeInfo{Type: reflect.TypeOf(definedInt(0))}
+var tiDefinedIntSlice = &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}
+
 // nil type info.
 
 func tiNil() *ast.TypeInfo { return &ast.TypeInfo{Properties: ast.PropertyNil} }
@@ -1121,6 +1136,10 @@ func tiByte() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["byte"].Type} 
 // byte slice type info.
 
 func tiByteSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]byte{})} }
+
+// string slice type info.
+
+func tiStringSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]string{})} }
 
 // int slice type info.
 
