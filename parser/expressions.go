@@ -378,6 +378,14 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				args, tok := p.parseExprList(token{}, false, false, false, false)
+				var isVariadic bool
+				if tok.typ == tokenEllipses {
+					if len(args) == 0 {
+						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
+					}
+					isVariadic = true
+					tok = next(p.lex)
+				}
 				if tok.typ != tokenRightParenthesis {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
@@ -389,7 +397,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				// 	panic(&Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))})
 				// }
 				pos.End = tok.pos.End
-				operand = ast.NewCall(pos, operand, args)
+				operand = ast.NewCall(pos, operand, args, isVariadic)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				pos.Start = operand.Pos().Start

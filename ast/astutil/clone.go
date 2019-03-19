@@ -233,7 +233,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		for i, arg := range e.Args {
 			args[i] = CloneExpression(arg)
 		}
-		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args)
+		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args, e.IsVariadic)
 	case *ast.Index:
 		return ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *ast.Slicing:

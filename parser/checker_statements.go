@@ -351,7 +351,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			tis := tc.checkCallExpression(c, false)
 			got = nil
 			for _, ti := range tis {
-				v := ast.NewCall(c.Pos(), c.Func, c.Args)
+				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				v.SetTypeInfo(ti)
 				got = append(got, v)
 				needsCheck = false

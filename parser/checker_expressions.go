@@ -1288,6 +1288,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 
 		ident := expr.Func.(*ast.Identifier)
 
+		if expr.IsVariadic && ident.Name != "append" {
+			panic(tc.errorf(expr, "invalid use of ... with builtin %s", ident.Name))
+		}
+
 		switch ident.Name {
 
 		case "append":
@@ -1482,8 +1486,13 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		panic(tc.errorf(expr, "cannot call non-function %v (type %s)", expr.Func, t))
 	}
 
-	var numIn = t.Type.NumIn()
 	var variadic = t.Type.IsVariadic()
+
+	if expr.IsVariadic && !variadic {
+		panic(tc.errorf(expr, "invalid use of ... in call to %s", expr.Func))
+	}
+
+	var numIn = t.Type.NumIn()
 
 	args := expr.Args
 
@@ -1492,7 +1501,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			args = nil
 			tis := tc.checkCallExpression(c, false)
 			for _, ti := range tis {
-				v := ast.NewCall(c.Pos(), c.Func, c.Args)
+				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				v.SetTypeInfo(ti)
 				args = append(args, v)
 			}

@@ -678,7 +678,7 @@ var treeTests = []struct {
 									[]ast.Expression{
 										ast.NewInt(p(1, 37, 36, 36), big.NewInt(2)),
 										ast.NewInt(p(1, 40, 39, 40), big.NewInt(-3)),
-									},
+									}, false,
 								),
 							),
 						},
@@ -1415,6 +1415,12 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
+		}
+		if nn1.IsVariadic && !nn2.IsVariadic {
+			return fmt.Errorf("unexpected not variadic, expecting variadic")
+		}
+		if !nn1.IsVariadic && nn2.IsVariadic {
+			return fmt.Errorf("unexpected variadic, expecting not variadic")
 		}
 	case *ast.Assignment:
 		nn2, ok := n2.(*ast.Assignment)

@@ -166,7 +166,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			values = nil
 			for _, ti := range tis {
-				newCall := ast.NewCall(call.Pos(), call.Func, call.Args)
+				newCall := ast.NewCall(call.Pos(), call.Func, call.Args, false)
 				newCall.SetTypeInfo(ti)
 				values = append(values, newCall)
 			}

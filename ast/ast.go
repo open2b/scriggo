@@ -877,13 +877,14 @@ func (m *MapType) String() string {
 // Call node represents a function call expression.
 type Call struct {
 	expression
-	*Position              // position in the source.
-	Func      Expression   // function.
-	Args      []Expression // arguments.
+	*Position               // position in the source.
+	Func       Expression   // function.
+	Args       []Expression // arguments.
+	IsVariadic bool         // indicates if it is variadic.
 }
 
-func NewCall(pos *Position, fun Expression, args []Expression) *Call {
-	return &Call{expression{}, pos, fun, args}
+func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
+	return &Call{expression{}, pos, fun, args, isVariadic}
 }
 
 func (n *Call) String() string {
