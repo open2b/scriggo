@@ -117,21 +117,27 @@ var stringOperators = [15]bool{
 	ast.OperatorAddition:       true,
 }
 
+var interfaceOperators = [15]bool{
+	ast.OperatorEqual:    true,
+	ast.OperatorNotEqual: true,
+}
+
 var operatorsOfKind = [...][15]bool{
-	reflect.Bool:    boolOperators,
-	reflect.Int:     intOperators,
-	reflect.Int8:    intOperators,
-	reflect.Int16:   intOperators,
-	reflect.Int32:   intOperators,
-	reflect.Int64:   intOperators,
-	reflect.Uint:    intOperators,
-	reflect.Uint8:   intOperators,
-	reflect.Uint16:  intOperators,
-	reflect.Uint32:  intOperators,
-	reflect.Uint64:  intOperators,
-	reflect.Float32: floatOperators,
-	reflect.Float64: floatOperators,
-	reflect.String:  stringOperators,
+	reflect.Bool:      boolOperators,
+	reflect.Int:       intOperators,
+	reflect.Int8:      intOperators,
+	reflect.Int16:     intOperators,
+	reflect.Int32:     intOperators,
+	reflect.Int64:     intOperators,
+	reflect.Uint:      intOperators,
+	reflect.Uint8:     intOperators,
+	reflect.Uint16:    intOperators,
+	reflect.Uint32:    intOperators,
+	reflect.Uint64:    intOperators,
+	reflect.Float32:   floatOperators,
+	reflect.Float64:   floatOperators,
+	reflect.String:    stringOperators,
+	reflect.Interface: interfaceOperators,
 }
 
 type typeCheckerScope map[string]*ast.TypeInfo
@@ -917,7 +923,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		}
 		k := t.Type.Kind()
 		if !operatorsOfKind[k][op] {
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s", expr, op, k)
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, op, k)
 		}
 		if !t.Type.Comparable() {
 			return nil, fmt.Errorf("cannot convert nil to type %s", t)
