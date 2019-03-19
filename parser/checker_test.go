@@ -21,10 +21,12 @@ func tierr(line, column int, text string) *Error {
 	return &Error{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
 }
 
+type definedString string
 type definedIntSlice []int
 type definedIntSlice2 []int
 type definedByteSlice []byte
 type definedStringSlice []byte
+type definedStringMap map[string]string
 
 var checkerExprs = []struct {
 	src   string
@@ -721,10 +723,18 @@ var checkerStmts = map[string]string{
 	`println()`:       ok,
 	`println("a")`:    ok,
 	`println("a", 5)`: ok,
+
+	// delete builtin.
+	`delete(map[string]string{}, "a")`:         ok,
+	`delete(aStringMap, "a")`:                  ok,
+	`delete(map[stringType]string{}, aString)`: ok,
 }
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
+		"aString":     &ast.TypeInfo{Type: reflect.TypeOf(definedString(""))},
+		"stringType":  &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedString(""))},
+		"aStringMap":  &ast.TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
 		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
 		"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
 	}

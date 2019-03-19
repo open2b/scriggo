@@ -1349,11 +1349,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			return []*ast.TypeInfo{{Type: intType}}
 
 		case "delete":
-			if len(expr.Args) < 2 {
-				panic(tc.errorf(expr, "missing argument to delete: %s", expr))
-			}
-			if len(expr.Args) > 2 {
-				panic(tc.errorf(expr, "too many arguments to delete: %s", expr))
+			switch len(expr.Args) {
+			case 0:
+				panic(tc.errorf(expr, "missing arguments to delete"))
+			case 1:
+				panic(tc.errorf(expr, "missing second (key) argument to delete"))
+			case 2:
+			default:
+				panic(tc.errorf(expr, "too many arguments to delete"))
 			}
 			t := tc.checkExpression(expr.Args[0])
 			key := tc.checkExpression(expr.Args[1])
