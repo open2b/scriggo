@@ -126,9 +126,17 @@ func fatal(a interface{}) {
 
 func main() {
 	verbose := false
+	mustRecover := true
 	for _, arg := range os.Args {
 		if arg == "-v" || arg == "--verbose" {
 			verbose = true
+		}
+		if arg == "-n" || arg == "--no-recover" {
+			mustRecover = false
+		}
+		if arg == "-h" || arg == "--help" {
+			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--help|-h]\n", os.Args[0])
+			os.Exit(0)
 		}
 	}
 	testDirs, err := ioutil.ReadDir(testsDir)
@@ -136,38 +144,47 @@ func main() {
 		fatal(err)
 	}
 	for _, dir := range testDirs {
-		if !dir.IsDir() {
-			fatal(fmt.Errorf("%s is not a dir", dir))
-		}
-		files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
-		if err != nil {
-			fatal(err)
-		}
-		for _, f := range files {
-			if !strings.HasSuffix(f.Name(), ".go") {
-				continue
+		func() {
+			defer func() {
+				if mustRecover {
+					if r := recover(); r != nil {
+						fmt.Printf("!!! PANIC !!!: %v\n", r)
+					}
+				}
+			}()
+			if !dir.IsDir() {
+				fatal(fmt.Errorf("%s is not a dir", dir))
 			}
-			path := filepath.Join(testsDir, dir.Name(), f.Name())
-			if strings.Contains(path, "_ignore_") {
-				continue
-			}
-			src, err := ioutil.ReadFile(path)
+			files, err := ioutil.ReadDir(filepath.Join(testsDir, dir.Name()))
 			if err != nil {
 				fatal(err)
 			}
-			if verbose {
-				fmt.Printf("---------------------------------------------------\n")
-				fmt.Print(path + "...")
-			}
-			scrigoOut := runScrigoAndGetOutput(src)
-			goOut := runGoAndGetOutput(src)
-			if scrigoOut == goOut {
-				if verbose {
-					fmt.Println("OK!")
+			for _, f := range files {
+				if !strings.HasSuffix(f.Name(), ".go") {
+					continue
 				}
-			} else {
-				fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
+				path := filepath.Join(testsDir, dir.Name(), f.Name())
+				if strings.Contains(path, "_ignore_") {
+					continue
+				}
+				src, err := ioutil.ReadFile(path)
+				if err != nil {
+					fatal(err)
+				}
+				if verbose {
+					fmt.Printf("---------------------------------------------------\n")
+					fmt.Print(path + "...")
+				}
+				scrigoOut := runScrigoAndGetOutput(src)
+				goOut := runGoAndGetOutput(src)
+				if scrigoOut == goOut {
+					if verbose {
+						fmt.Println("OK!")
+					}
+				} else {
+					fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
+				}
 			}
-		}
+		}()
 	}
 }
