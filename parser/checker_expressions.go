@@ -1659,11 +1659,10 @@ func (tc *typechecker) convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (inter
 func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	if t1.Untyped() && t2 == emptyInterfaceType {
-		if t1.IsConstant() {
-			t2 = t1.Type
-		} else {
+		if !t1.IsConstant() {
 			return t1.Value, nil
 		}
+		t2 = t1.Type
 	}
 
 	v := t1.Value
