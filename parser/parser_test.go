@@ -224,6 +224,21 @@ var noneContextTreeTests = []struct {
 			),
 		}, ast.ContextNone),
 	},
+	{"var A []T",
+		ast.NewTree("", []ast.Node{
+			ast.NewVar(
+				p(1, 1, 0, 8),
+				[]*ast.Identifier{
+					ast.NewIdentifier(p(1, 5, 4, 4), "A"),
+				},
+				ast.NewSliceType(
+					p(1, 7, 6, 8),
+					ast.NewIdentifier(p(1, 9, 8, 8), "T"),
+				),
+				nil,
+			),
+		}, ast.ContextNone),
+	},
 	{"const a = 4",
 		ast.NewTree("", []ast.Node{
 			ast.NewConst(
