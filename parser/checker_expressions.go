@@ -745,6 +745,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 			return method
 		}
+		if t.Type.Kind() == reflect.Ptr {
+			method, ok := tc.methodByName(t, expr.Ident)
+			if ok {
+				return method
+			}
+			field, ok := tc.fieldByName(t, expr.Ident)
+			if ok {
+				return field
+			}
+			panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
+		}
 		method, ok := tc.methodByName(t, expr.Ident)
 		if ok {
 			return method
@@ -1764,12 +1775,14 @@ func (tc *typechecker) representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interfa
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
 func (tc *typechecker) fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
-	field, ok := t.Type.FieldByName(name)
-	if ok {
-		return &ast.TypeInfo{Type: field.Type}, true
+	if t.Type.Kind() == reflect.Struct {
+		field, ok := t.Type.FieldByName(name)
+		if ok {
+			return &ast.TypeInfo{Type: field.Type}, true
+		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
-		field, ok = t.Type.Elem().FieldByName(name)
+		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
 			return &ast.TypeInfo{Type: field.Type}, true
 		}

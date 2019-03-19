@@ -623,6 +623,14 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
 
+	// Struct fields and methods.
+	`_ = (&pointInt{0,0}).X`:    ok,
+	`_ = (pointInt{0,0}).X`:     ok,
+	`(&pointInt{0,0}).SetX(10)`: ok,
+	`_ = (&pointInt{0,0}).Z`:    `&pointInt literal.Z undefined (type *parser.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(&pointInt{0,0}).SetZ(10)`: `&pointInt literal.SetZ undefined (type *parser.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type parser.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
 	`{ a := 1; { a = 10; _ = a }; _ = a }`: ok,
@@ -771,13 +779,19 @@ var checkerStmts = map[string]string{
 	`delete(map[stringType]string{}, aString)`: ok,
 }
 
+type pointInt struct{ X, Y int }
+
+func (p *pointInt) SetX(newX int) {
+	p.X = newX
+}
+
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
 		"boolType":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedBool(false))},
 		"aString":     &ast.TypeInfo{Type: reflect.TypeOf(definedString(""))},
 		"stringType":  &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedString(""))},
 		"aStringMap":  &ast.TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
-		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(struct{ X, Y int }{})},
+		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(pointInt{})},
 		"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
 	}
 	for src, expectedError := range checkerStmts {
