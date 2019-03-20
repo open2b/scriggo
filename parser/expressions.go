@@ -389,13 +389,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				if tok.typ != tokenRightParenthesis {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
-				// TODO (Gianluca): move these checks to rendering.
-				// if len(elements) == 0 {
-				// 	panic(&Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to %s: %s()", ident.Name, ident.Name)})
-				// }
-				// if len(elements) > 1 {
-				// 	panic(&Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))})
-				// }
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
