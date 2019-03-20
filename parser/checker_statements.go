@@ -315,7 +315,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}
 
-	expected := fun.Type.Result
+	expected := fillParametersTypes(fun.Type.Result)
 	got := node.Values
 
 	if len(expected) == 0 && len(got) == 0 {

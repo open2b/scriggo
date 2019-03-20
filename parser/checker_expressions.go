@@ -471,7 +471,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		out := make([]reflect.Type, numOut)
 		for i := numOut - 1; i >= 0; i-- {
 			res := expr.Result[i]
-			if res == nil {
+			if res.Type == nil {
 				out[i] = out[i+1]
 			} else {
 				c := tc.checkType(res.Type, noEllipses)
@@ -485,14 +485,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		t := tc.checkType(expr.Type, noEllipses)
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
-		for _, f := range expr.Type.Parameters {
+		for _, f := range fillParametersTypes(expr.Type.Parameters) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
 				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 			}
 		}
 		// Adds named return values to the function body scope.
-		for _, f := range expr.Type.Result {
+		for _, f := range fillParametersTypes(expr.Type.Result) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
 				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})

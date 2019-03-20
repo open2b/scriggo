@@ -248,6 +248,24 @@ func fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 	return nil, false
 }
 
+// fillParametersTypes takes a list of parameters (function arguments or
+// function return values) and "fills" their types. For instance, a function
+// arguments signature "a, b int" becocmes "a int, b int".
+func fillParametersTypes(params []*ast.Field) []*ast.Field {
+	if len(params) == 0 {
+		return nil
+	}
+	filled := make([]*ast.Field, len(params))
+	typ := params[len(params)-1].Type
+	for i := len(params) - 1; i >= 0; i-- {
+		if params[i].Type != nil {
+			typ = params[i].Type
+		}
+		filled[i] = ast.NewField(params[i].Ident, typ)
+	}
+	return filled
+}
+
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
 func isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {

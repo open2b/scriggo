@@ -176,14 +176,14 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			tc.addScope()
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
 			// Adds parameters to the function body scope.
-			for _, param := range v.Type.(*ast.FuncType).Parameters {
+			for _, param := range fillParametersTypes(v.Type.(*ast.FuncType).Parameters) {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
 					tc.assignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 				}
 			}
 			// Adds named return values to the function body scope.
-			for _, ret := range v.Type.(*ast.FuncType).Result {
+			for _, ret := range fillParametersTypes(v.Type.(*ast.FuncType).Result) {
 				t := tc.checkType(ret.Type, noEllipses)
 				if ret.Ident != nil {
 					tc.assignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
