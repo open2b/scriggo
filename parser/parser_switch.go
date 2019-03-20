@@ -84,6 +84,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 		}
 		if isTypeGuard(beforeSemicolon) {
 			// TODO (Gianluca): use type assertion node position instead of last read token position
+			// TODO (Gianluca): move to type-checker:
 			panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 		}
 		expressions, tok = p.parseExprList(token{}, false, true, false, true)
