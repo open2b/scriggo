@@ -251,8 +251,6 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 	case *ast.Identifier:
 
 		if v.Name == "_" {
-			// TODO (Gianluca): check if blank identifier is used correctly (has
-			// no type, etc..).. or delegate this to parser?
 			return ""
 		}
 
