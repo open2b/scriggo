@@ -261,6 +261,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 		tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
 		if containsDuplicates(tc.currentlyEvaluating) {
 			// TODO (Gianluca): add positions.
+			if d := tc.getDecl(tc.currentIdent); d != nil && d.DeclarationType == DeclarationFunction {
+				ti, _ := tc.lookupScopes(ident.Name, false)
+				return ti
+			}
 			panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.currentlyEvaluating, " refers to\n\t")))
 		}
 	}

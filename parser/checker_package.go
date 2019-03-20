@@ -192,8 +192,8 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
 			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.initOrder = append(tc.initOrder, v.Ident)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.removeCurrentScope()
