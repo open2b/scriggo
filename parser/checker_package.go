@@ -99,7 +99,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 						ti = &ast.TypeInfo{Type: reflect.TypeOf(value)}
 					default:
 						// TODO (Gianluca): handle 'constants' properly.
-						ti = &ast.TypeInfo{Value: value}
+						ti = &ast.TypeInfo{Value: value, Properties: ast.PropertyIsConstant}
 					}
 					importedPkg.Declarations[ident] = ti
 				}
