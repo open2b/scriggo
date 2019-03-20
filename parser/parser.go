@@ -1119,9 +1119,6 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			// Parses expression.
 			expr := expressions[0]
-			if ident, ok := expr.(*ast.Identifier); ok && ident.Name == "_" {
-				panic(&Error{"", *expr.Pos(), fmt.Errorf("cannot use _ as value")})
-			}
 			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
@@ -1259,7 +1256,6 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 				continue
 			}
 		}
-		panic(&Error{"", *(v.Pos()), fmt.Errorf("%s used as value", v)})
 	}
 	assignToken := tok
 	vp := variables[0].Pos()
@@ -1291,17 +1287,11 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		if len(variables) > 1 {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
 		}
-		if ident, ok := variables[0].(*ast.Identifier); ok && ident.Name == "_" {
-			panic(&Error{"", *variables[0].Pos(), fmt.Errorf("cannot use _ as value")})
-		}
 		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
 			tok = next(p.lex)
 		} else {
 			values = make([]ast.Expression, 1)
 			values[0], tok = p.parseExpr(token{}, false, false, false, false)
-			if ident, ok := values[0].(*ast.Identifier); ok && ident.Name == "_" {
-				panic(&Error{"", *values[0].Pos(), fmt.Errorf("cannot use _ as value")})
-			}
 		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok

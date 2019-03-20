@@ -535,6 +535,8 @@ var checkerStmts = map[string]string{
 	`_, _, _ := 1, 2, 3`:              noNewVariables,
 	`var _ = 0`:                       ok,
 	`var _, _ = 0, 0`:                 ok,
+	`_ ++`:                            "cannot use _ as value",
+	`_ += 0`:                          "cannot use _ as value",
 
 	// Assignments.
 	`v := 1; _ = v`:                           ok,
@@ -551,6 +553,12 @@ var checkerStmts = map[string]string{
 	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 	`f := func() (int, int) { return 0, 0 }; _, b := f() ; _ = b`:   ok,
+	`f := func() int { return 0 }; f() = 1`:                         `cannot assign to f()`,
+	`map[int]string{}[0] = ""`:                                      ok,
+	`(((map[int]string{}[0]))) = ""`:                                ok,
+	`a := ((0)); var _ int = a`:                                     ok,
+	`f := func() { }; f() = 0`:                                      `f() used as value`,
+	`f := func() (int, int) { return 0, 0 }; f() = 0`:               `multiple-value f() in single-value context`,
 
 	// Interface assignments.
 	`i := interface{}(0); _ = i`:                ok,

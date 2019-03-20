@@ -94,6 +94,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		switch n.Type {
 		case ast.AssignmentIncrement, ast.AssignmentDecrement:
 			v := n.Variables[0]
+			if isBlankIdentifier(v) {
+				panic(tc.errorf(v, "cannot use _ as value"))
+			}
 			exprTi := tc.checkExpression(v)
 			if !numericKind[exprTi.Type.Kind()] {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
@@ -116,6 +119,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				opType = ast.OperatorDivision
 			case ast.AssignmentModulo:
 				opType = ast.OperatorModulo
+			}
+			if isBlankIdentifier(n.Variables[0]) {
+				panic(tc.errorf(n.Variables[0], "cannot use _ as value"))
 			}
 			_, err := tc.binaryOp(ast.NewBinaryOperator(n.Pos(), opType, n.Variables[0], n.Values[0]))
 			if err != nil {
@@ -342,6 +348,23 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
 			return ""
+		}
+
+	case *ast.Call:
+
+		if isDeclaration {
+			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+		}
+		tis := tc.checkCallExpression(v, false)
+		switch len(tis) {
+		case 0:
+			panic(tc.errorf(node, "%s used as value", variable))
+		case 1:
+			if !tis[0].Addressable() {
+				panic(tc.errorf(node, "cannot assign to %v", variable))
+			}
+		default:
+			panic(tc.errorf(node, "multiple-value %s in single-value context", variable))
 		}
 
 	default:
