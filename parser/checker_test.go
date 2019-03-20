@@ -776,16 +776,19 @@ var checkerStmts = map[string]string{
 	// `var f func () (int, int); _ = func() (int, int) { return f() }`: ok, // TODO (Gianluca): parsing error.
 
 	// Function literal calls.
-	`f := func() { }; f()`:                         ok,
-	`f := func(int) { }; f(0)`:                     ok,
-	`f := func(a, b int) { }; f(0, 0)`:             ok,
-	`f := func(a string, b int) { }; f("", 0)`:     ok,
-	`f := func() (a, b int) { return 0, 0 }; f()`:  ok,
-	`f := func(a, b int) { }; f("", 0)`:            `cannot use "" (type string) as type int in argument to f`,
-	`f := func(string) { } ; f(0)`:                 `cannot use 0 (type int) as type string in argument to f`,
-	`f := func(string, int) { } ; f(0)`:            "not enough arguments in call to f\n\thave (number)\n\twant (string, int)",
-	`f := func(string, int) { } ; f(0, 0, 0)`:      "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
-	`f := func() (a, b int) { return 0, "" }; f()`: `cannot use "" (type string) as type int in return argument`,
+	`f := func() { }; f()`:                                            ok,
+	`f := func(int) { }; f(0)`:                                        ok,
+	`f := func(a, b int) { }; f(0, 0)`:                                ok,
+	`f := func(a string, b int) { }; f("", 0)`:                        ok,
+	`f := func() (a, b int) { return 0, 0 }; f()`:                     ok,
+	`var _, _ int = func(a, b int) (int, int) { return a, b }(0, 0)`:  ok,
+	`f := func(a, b int) { }; f("", 0)`:                               `cannot use "" (type string) as type int in argument to f`,
+	`f := func(string) { } ; f(0)`:                                    `cannot use 0 (type int) as type string in argument to f`,
+	`f := func(string, int) { } ; f(0)`:                               "not enough arguments in call to f\n\thave (number)\n\twant (string, int)",
+	`f := func(string, int) { } ; f(0, 0, 0)`:                         "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
+	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
+	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
+	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO (Gianluca): panics.
 
 	// Function literal calls with function call as argument.
 	`f := func() (int, int) { return 0, 0 } ; g := func(int, int) { } ; g(f())`:         ok,
