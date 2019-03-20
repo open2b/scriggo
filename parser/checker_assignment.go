@@ -14,8 +14,6 @@ import (
 )
 
 // checkAssignment checks the assignment node.
-//
-// TODO (Gianluca): check error checking order.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression

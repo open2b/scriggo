@@ -103,7 +103,6 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 	switch ti.Type.Kind() {
 
 	case reflect.Struct:
-		// TODO(gianluca): check underscore as struct field
 
 		explicitFields := false
 		declType := 0
