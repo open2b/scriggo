@@ -690,6 +690,7 @@ var checkerStmts = map[string]string{
 	`for _, _ = range (&[...]int{}) { }`:                                             ok,
 	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
 	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
+	`for a, b, c := range "" { }`:                                                    `too many variables in range`,
 
 	// Switch (expression) statements.
 	`switch 1 { case 1: }`:                  ok,

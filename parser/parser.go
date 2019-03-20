@@ -418,9 +418,6 @@ func (p *parsing) parseStatement(tok token) {
 				// Parses statements
 				//     "for index[, ident] = range expr" and
 				//     "for index[, ident] := range expr".
-				if len(variables) > 2 {
-					panic(&Error{"", *tok.pos, fmt.Errorf("too many variables in range")})
-				}
 				expr, tok = p.parseExpr(token{}, false, false, false, true)
 				if expr == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})

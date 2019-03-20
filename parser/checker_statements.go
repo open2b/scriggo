@@ -124,6 +124,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Assignment != nil {
+				if len(node.Assignment.Variables) > 2 {
+					panic(tc.errorf(node, "too many variables in range"))
+				}
 				rangeExpr := tc.checkExpression(node.Assignment.Values[0])
 				key, elem, ok := rangeOver(rangeExpr.Type)
 				if !ok {
