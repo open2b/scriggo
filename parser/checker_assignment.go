@@ -228,9 +228,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // passed as "typ" argument. isDeclaration and isConst indicates, respectively,
 // if the assignment is a declaration and if it's a constant.
 //
-// TODO (Gianluca): assegnamento con funzione con tipo errato:
-// https://play.golang.org/p/0J7GSWft4aM
-//
 // Returns the identifier of the new declared variable, otherwise empty string.
 func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) string {
 

@@ -487,8 +487,6 @@ func TestCheckerExpressionErrors(t *testing.T) {
 	}
 }
 
-// TODO (Gianluca): add blank identifier ("_") support.
-
 const ok = ""
 const missingReturn = "missing return at end of function"
 const noNewVariables = "no new variables on left side of :="
@@ -523,6 +521,7 @@ var checkerStmts = map[string]string{
 	`var a, b = 1`:                 "assignment mismatch: 2 variable but 1 values",
 	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
 	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
+	`f := func() (int, int, int) { return 0, 0, 0 }; var a, b, c string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 
 	// Constant declarations.
 	`const a = 2`:     ok,
