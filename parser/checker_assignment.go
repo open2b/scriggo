@@ -225,9 +225,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // TODO (Gianluca): typ doesn't get the type's zero, just checks if type is
 // correct when a value is provided. Implement "var a int"
 //
-// TODO (Gianluca): when assigning a costant to a value in scope, constant isn't
-// constant anymore.
-//
 // TODO (Gianluca): assegnamento con funzione con tipo errato:
 // https://play.golang.org/p/0J7GSWft4aM
 //
@@ -287,6 +284,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			v.SetTypeInfo(newValueTi)
 			if isConst {
 				newValueTi.Value = valueTi.Value
+				newValueTi.Properties = newValueTi.Properties | ast.PropertyIsConstant
 				tc.assignScope(v.Name, newValueTi)
 				return v.Name
 			}

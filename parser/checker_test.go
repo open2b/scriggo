@@ -525,6 +525,8 @@ var checkerStmts = map[string]string{
 	`const a = 2`:        ok,
 	`const a int = 2`:    ok,
 	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+	`const A = 0; B := A; const C = A;   _ = B`: ok,
+	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
 
 	// Blank identifier.
 	`_ = 1`:                           ok,
