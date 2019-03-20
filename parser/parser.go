@@ -472,6 +472,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// continue
 	case tokenContinue:
+		// TODO (Gianluca): move to type-checker.
 		var loop bool
 		for i := len(p.ancestors) - 1; !loop && i > 0; i-- {
 			switch p.ancestors[i].(type) {
@@ -530,6 +531,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// default:
 	case tokenDefault:
+		// TODO (Gianluca): move to type-checker.
 		switch s := parent.(type) {
 		case *ast.Switch:
 			for _, c := range s.Cases {
@@ -567,13 +569,16 @@ func (p *parsing) parseStatement(tok token) {
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
+			// TODO (Gianluca): move this check to type-checker:
 			if lastCase.Fallthrough {
 				panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 			}
 			lastCase.Fallthrough = true
 		case *ast.TypeSwitch:
+			// TODO (Gianluca): move this check to type-checker:
 			panic(&Error{"", *tok.pos, fmt.Errorf("cannot fallthrough in type switch")})
 		default:
+			// TODO (Gianluca): move this check to type-checker:
 			panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 		}
 		pos.End = tok.pos.End
