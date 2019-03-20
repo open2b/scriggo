@@ -319,6 +319,22 @@ func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 		}
 		return nil, false
 	}
+	// If t represents and interface, Value.MethodByName cannot be called on
+	// it's zero value (it would panic); so, in case of interfaces, the
+	// Type.MethodByName method is used.
+	if t.Type.Kind() == reflect.Interface {
+		method, ok := t.Type.MethodByName(name)
+		if ok {
+			return &ast.TypeInfo{Type: method.Type}, true
+		}
+		if t.Type.Kind() != reflect.Ptr {
+			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
+			if ok {
+				return &ast.TypeInfo{Type: method.Type}, true
+			}
+		}
+		return nil, false
+	}
 	method := reflect.Zero(t.Type).MethodByName(name)
 	if method.IsValid() {
 		return &ast.TypeInfo{Type: method.Type()}, true
