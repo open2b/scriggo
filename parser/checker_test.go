@@ -507,79 +507,63 @@ func undefined(v string) string {
 
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
-// 1.12.
+// 1.12. Tests are subdivided for categories. Each category has a title
+// (indicated by a comment), and it's split in two parts: correct source codes
+// (which goes first) and bad ones. Correct source codes and bad source codes
+// are, respectively, sorted by lexicographical order.
 var checkerStmts = map[string]string{
 
 	// Var declarations.
 	`var a = 3; _ = a`:             ok,
-	`var a, b = 1, 2; _, _ = a, b`: ok,
-	`var a, b = 1`:                 "assignment mismatch: 2 variable but 1 values",
-	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
 	`var a int = 1; _ = a`:         ok,
-	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
-	`var a int = "s"`:              `cannot use "s" (type string) as type int in assignment`,
 	`var a int; _ = a`:             ok,
 	`var a int; a = 3; _ = a`:      ok,
+	`var a, b = 1, 2; _, _ = a, b`: ok,
+	`var a int = "s"`:              `cannot use "s" (type string) as type int in assignment`,
+	`var a, b = 1`:                 "assignment mismatch: 2 variable but 1 values",
+	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
+	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
 
-	// Const declarations.
-	`const a = 2`:        ok,
-	`const a int = 2`:    ok,
-	`const a string = 2`: `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+	// Constant declarations.
+	`const a = 2`:     ok,
+	`const a int = 2`: ok,
 	`const A = 0; B := A; const C = A;   _ = B`: ok,
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
+	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 
-	// Blank identifier.
-	`_ = 1`:                           ok,
+	// Blank identifiers.
 	`_ := 1`:                          noNewVariables,
-	`_, b, c := 1, 2, 3; _, _ = b, c`: ok,
+	`_ = 1`:                           ok,
 	`_, _, _ := 1, 2, 3`:              noNewVariables,
+	`_, b, c := 1, 2, 3; _, _ = b, c`: ok,
 	`var _ = 0`:                       ok,
 	`var _, _ = 0, 0`:                 ok,
 	`_ ++`:                            "cannot use _ as value",
 	`_ += 0`:                          "cannot use _ as value",
 
-	// Assignments.
-	`v := 1; _ = v`:                           ok,
-	`v = 1`:                                   undefined("v"),
-	`v := 1 + 2; _ = v`:                       ok,
-	`v := "s" + "s"; _ = v`:                   ok,
-	`v := 1; v = 2; _ = v`:                    ok,
-	`v := 1; v := 2`:                          noNewVariables,
-	`v := 1 + 2; v = 3 + 4; _ = v`:            ok,
-	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`: ok,
-	`v1 := 1; v2 := "a"; v1 = v2`:             `cannot use v2 (type string) as type int in assignment`,
-	`f := func() int { return 0 } ; var a int = f() ; _ = a`:        ok,
-	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
-	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
-	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
-	`f := func() (int, int) { return 0, 0 }; _, b := f() ; _ = b`:   ok,
-	`f := func() int { return 0 }; f() = 1`:                         `cannot assign to f()`,
-	`map[int]string{}[0] = ""`:                                      ok,
+	// Assignments (= and :=).
 	`(((map[int]string{}[0]))) = ""`:                                ok,
 	`a := ((0)); var _ int = a`:                                     ok,
-	`f := func() { }; f() = 0`:                                      `f() used as value`,
+	`f := func() (int, int) { return 0, 0 }; _, _ = f()`:            ok,
+	`f := func() (int, int) { return 0, 0 }; _, b := f() ; _ = b`:   ok,
+	`f := func() int { return 0 } ; var a int = f() ; _ = a`:        ok,
+	`map[int]string{}[0] = ""`:                                      ok,
+	`v := "s" + "s"; _ = v`:                                         ok,
+	`v := 1 + 2; _ = v`:                                             ok,
+	`v := 1 + 2; v = 3 + 4; _ = v`:                                  ok,
+	`v := 1; _ = v`:                                                 ok,
+	`v := 1; v := 2`:                                                noNewVariables,
+	`v := 1; v = 2; _ = v`:                                          ok,
+	`v = 1`:                                                         undefined("v"),
+	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`:                       ok,
 	`f := func() (int, int) { return 0, 0 }; f() = 0`:               `multiple-value f() in single-value context`,
+	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
+	`f := func() { }; f() = 0`:                                      `f() used as value`,
+	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
+	`f := func() int { return 0 }; f() = 1`:                         `cannot assign to f()`,
+	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 
-	// Interface assignments.
-	`i := interface{}(0); _ = i`:                ok,
-	`i := interface{}(0); i = 1; _ = i`:         ok,
-	`i := interface{}(0); i = 1; i = ""; _ = i`: ok,
-	`var i interface{}; i = 0; _ = i`:           ok,
-	`var i interface{} = interface{}(0); _ = i`: ok,
-
-	// Type assertions.
-	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
-	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`:         `invalid type assertion: a.(int) (non-interface type int on left)`,
-
-	// Map key checking.
-	`a, ok := map[int]string{}[0]; var _ string = a; var _ bool = ok;`: ok,
-	`a, ok := map[int]string{}[0]; var _ string = a; var _ int = ok;`:  `cannot use ok (type bool) as type int in assignment`,
-
-	// Declarations with self-references.
-	`a, b, c := 1, 2, a`:      undefined("a"),
-	`const a, b, c = 1, 2, a`: undefined("a"),
-
-	// Increments and decrements.
+	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
 	`a := ""; a++`:  `invalid operation: a++ (non-numeric type string)`,
 	`b++`:           `undefined: b`,
@@ -587,54 +571,74 @@ var checkerStmts = map[string]string{
 	`a := ""; a--`:  `invalid operation: a-- (non-numeric type string)`,
 	`b--`:           `undefined: b`,
 
-	// "Compact" assignments.
+	// "Compact" assignments (+=, -=, *=, ...).
 	`a := 1; a += 1; _ = a`: ok,
 	`a := 1; a *= 2; _ = a`: ok,
 	`a := ""; a /= 6`:       `cannot convert 6 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
 	`a := ""; a %= 2`:       `cannot convert 2 (type untyped int) to type string`, // TODO (Gianluca): should be "number", not "int"
 
+	// Declarations with self-references.
+	`a, b, c := 1, 2, a`:      undefined("a"),
+	`const a, b, c = 1, 2, a`: undefined("a"),
+	`var a, b, c = 1, 2, a`:   undefined("a"),
+
+	// Interface assignments.
+	`i := interface{}(0); _ = i`:                ok,
+	`i := interface{}(0); i = 1; _ = i`:         ok,
+	`i := interface{}(0); i = 1; i = ""; _ = i`: ok,
+	`var i interface{} = interface{}(0); _ = i`: ok,
+	`var i interface{}; i = 0; _ = i`:           ok,
+
+	// Type assertions.
+	`a := interface{}(3); n, ok := a.(int); var _ int = n; var _ bool = ok`: ok,
+	`a := int(3); n, ok := a.(int); var _ int = n; var _ bool = ok`:         `invalid type assertion: a.(int) (non-interface type int on left)`,
+
 	// Slices.
+	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
 	`_ = []int{}`:      ok,
 	`_ = []int{1,2,3}`: ok,
-	`_ = []int{-3: 9}`: `index must be non-negative integer constant`,
-	`_ = []int{"a"}`:   `cannot convert "a" (type untyped string) to type int`,
-	`_ = [][]string{[]string{"a", "f"}, []string{"g", "h"}}`: ok,
-	`_ = []int{1:10, 1:20}`:                                  `duplicate index in array literal: 1`,
-	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`:    `cannot use []string literal (type []string) as type []int in array or slice literal`,
+	`_ = [][]int{[]string{"a", "f"}, []string{"g", "h"}}`: `cannot use []string literal (type []string) as type []int in array or slice literal`,
+	`_ = []int{-3: 9}`:      `index must be non-negative integer constant`,
+	`_ = []int{"a"}`:        `cannot convert "a" (type untyped string) to type int`,
+	`_ = []int{1:10, 1:20}`: `duplicate index in array literal: 1`,
 
 	// Arrays.
 	`_ = [1]int{1}`:          ok,
 	`_ = [5 + 6]int{}`:       ok,
 	`_ = [5.0]int{}`:         ok,
+	`_ = [-2]int{}`:          `array bound must be non-negative`,
 	`_ = [0]int{1}`:          `array index 0 out of bounds [0:0]`,
 	`_ = [1]int{10:2}`:       `array index 10 out of bounds [0:1]`,
-	`a := 4; _ = [a]int{}`:   `non-constant array bound a`,
-	`_ = [-2]int{}`:          `array bound must be non-negative`,
 	`_ = [3]int{1:10, 1:20}`: `duplicate index in array literal: 1`,
 	`_ = [5.3]int{}`:         `constant 5.3 truncated to integer`,
+	`a := 4; _ = [a]int{}`:   `non-constant array bound a`,
 
 	// Maps.
-	`_ = map[string]string{}`:              ok,
 	`_ = map[string]string{"k1": "v1"}`:    ok,
-	`_ = map[string]string{2: "v1"}`:       `cannot use 2 (type int) as type string in map key`,
-	`_ = map[string]string{"k1": 2}`:       `cannot use 2 (type int) as type string in map value`,
+	`_ = map[string]string{}`:              ok,
 	`_ = map[int]int{1: 3, 1: 4}  `:        `duplicate key 1 in map literal`,
 	`_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
+	`_ = map[string]string{"k1": 2}`:       `cannot use 2 (type int) as type string in map value`,
+	`_ = map[string]string{2: "v1"}`:       `cannot use 2 (type int) as type string in map key`,
+
+	// Map keys.
+	`a, ok := map[int]string{}[0]; var _ string = a; var _ bool = ok;`: ok,
+	`a, ok := map[int]string{}[0]; var _ string = a; var _ int = ok;`:  `cannot use ok (type bool) as type int in assignment`,
 
 	// Structs.
 	`_ = pointInt{}`:               ok,
-	`_ = pointInt{1}`:              `too few values in pointInt literal`,
-	`_ = pointInt{1,2,3}`:          `too many values in pointInt literal`,
 	`_ = pointInt{1,2}`:            ok,
 	`_ = pointInt{1.0,2.0}`:        ok,
 	`_ = pointInt{X: 1, Y: 2}`:     ok,
-	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
-	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
-	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
-	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
-	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
-	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
+	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
+	`_ = pointInt{1,2,3}`:          `too many values in pointInt literal`,
+	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
+	`_ = pointInt{1}`:              `too few values in pointInt literal`,
+	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
+	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
 
 	// Struct fields and methods.
 	`_ = (&pointInt{0,0}).X`:    ok,
@@ -651,33 +655,39 @@ var checkerStmts = map[string]string{
 	`{ { { a := 1; a := 2 } } }`:           noNewVariables,
 
 	// If statements.
-	`if 1 { }`:                             "non-bool 1 (type int) used as if condition",
 	`if 1 == 1 { }`:                        ok,
-	`if 1 == 1 { a := 3 ; _ = a }; a = 1`:  "undefined: a",
 	`if a := 1; a == 2 { }`:                ok,
 	`if a := 1; a == 2 { b := a ; _ = b }`: ok,
-	`if true { }`:                          "",
+	`if true { }`:                          ok,
+	`if 1 { }`:                             "non-bool 1 (type int) used as if condition",
+	`if 1 == 1 { a := 3 ; _ = a }; a = 1`:  "undefined: a",
 
-	// For statements.
-	`for 3 { }`:                                                                      "non-bool 3 (type int) used as for condition",
-	`for i := 10; i; i++ { }`:                                                        "non-bool i (type int) used as for condition",
-	`for i := 0; i < 10; i++ { }`:                                                    "",
-	`for i := 0; i < 10; {}`:                                                         ok,
-	`for i := 0; i < 10; _ = 2 {}`:                                                   ok,
-	`for i := 0; i < 10; i = "" {}`:                                                  `cannot use "" (type string) as type int in assignment`,
-	`s := []int{}; for i := range s { _ = i }`:                                       ok,
-	`s := []int{}; for i, v := range s { _, _ = i, v }`:                              ok,
-	`s := []int{0,1}; for i    := range s { _ = s[i] }`:                              ok,
-	`s := []int{0,1}; for _, i := range s { _ = s[i] }`:                              ok,
-	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:                       `invalid slice index i (type string)`, // TODO (Gianluca): should be: 'non-integer slice index i'.
-	`s := []string{"a","b"}; for i := range s { _ = s[i] }`:                          ok,
-	`s := []string{"a","b"}; for i := 0; i < len(s); i++ { _ = s[i] }`:               ok,
+	// For statements with single condition.
+	`for true { }`:    ok,
+	`for 10 > 20 { }`: ok,
+	`for 3 { }`:       "non-bool 3 (type int) used as for condition",
+
+	// For statements with 'for' clause.
+	`for i := 0; i < 10; i++ { }`:                                      ok,
+	`for i := 0; i < 10; {}`:                                           ok,
+	`for i := 0; i < 10; _ = 2 {}`:                                     ok,
+	`s := []int{}; for i := range s { _ = i }`:                         ok,
+	`s := []int{}; for i, v := range s { _, _ = i, v }`:                ok,
+	`s := []int{0,1}; for i    := range s { _ = s[i] }`:                ok,
+	`s := []int{0,1}; for _, i := range s { _ = s[i] }`:                ok,
+	`s := []string{"a","b"}; for i := range s { _ = s[i] }`:            ok,
+	`s := []string{"a","b"}; for i := 0; i < len(s); i++ { _ = s[i] }`: ok,
+	`for i := 10; i; i++ { }`:                                          "non-bool i (type int) used as for condition",
+	`for i := 0; i < 10; i = "" {}`:                                    `cannot use "" (type string) as type int in assignment`,
+	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `invalid slice index i (type string)`, // TODO (Gianluca): should be: 'non-integer slice index i'.
+
+	// For statements with 'range' clause.
 	`for _, _ = range "abc" { }`:                                                     ok,
-	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
 	`for _, _ = range []int{1,2,3} { }`:                                              ok,
 	`for k, v := range ([...]int{}) { var _, _ int = k, v }`:                         ok,
 	`for k, v := range map[float64]string{} { var _ float64 = k; var _ string = v }`: ok,
 	`for _, _ = range (&[...]int{}) { }`:                                             ok,
+	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
 	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
 
 	// Switch (expression) statements.
@@ -698,36 +708,46 @@ var checkerStmts = map[string]string{
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped int) is not a type`, // TODO (Gianluca): should be "number", not "int".
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 
-	// Functions literal definitions.
+	// Function literals definitions.
 	`_ = func(     )         {                                             }`: ok,
 	`_ = func(     )         { return                                      }`: ok,
 	`_ = func(int  )         {                                             }`: ok,
+	`_ = func(     )         { if true { }; { a := 10; { _ = a } ; _ = a } }`: ok,
 	`_ = func(     )         { a                                           }`: `undefined: a`,
 	`_ = func(     )         { 7 == "hey"                                  }`: `invalid operation: 7 == "hey" (mismatched types int and string)`,
-	`_ = func(     )         { if true { }; { a := 10; { _ = a } ; _ = a } }`: ok,
 	`_ = func(     )         { if true { }; { a := 10; { _ = b } ; _ = a } }`: `undefined: b`,
 	`_ = func(     ) (s int) { s := 0; return 0                            }`: `no new variables on left side of :=`,
 	`_ = func(s int)         { s := 0; _ = s                               }`: `no new variables on left side of :=`,
 
-	// Terminating statements - https://golang.org/ref/spec#Terminating_statements
-	`_ = func() int { return 1                                          }`: ok,            // (1)
-	`_ = func() int { { return 0 }                                      }`: ok,            // (3)
-	`_ = func() int { { }                                               }`: missingReturn, // (3) non terminating block
-	`_ = func() int { if true { return 1 } else { return 2 }            }`: ok,            // (4)
-	`_ = func() int { if true { return 1 } else { }                     }`: missingReturn, // (4) no else
-	`_ = func() int { if true { } else { }                              }`: missingReturn, // (4) no then, no else
-	`_ = func() int { if true { } else { return 1 }                     }`: missingReturn, // (4) no then
-	`_ = func() int { for { }                                           }`: ok,            // (5)
-	`_ = func() int { for { break }                                     }`: missingReturn, // (5) has break
-	`_ = func() int { for { { break } }                                 }`: missingReturn, // (5) has break
-	`_ = func() int { for true { }                                      }`: missingReturn, // (5) has loop condition
-	`_ = func() int { for i := 0; i < 10; i++ { }                       }`: missingReturn, // (5) has loop condition
-	`_ = func() int { switch { case true: return 0; default: return 0 } }`: ok,            // (6)
-	`_ = func() int { switch { case true: fallthrough; default: }       }`: ok,            // (6)
-	`_ = func() int { switch { }                                        }`: missingReturn, // (6) no default
-	`_ = func() int { switch { case true: return 0; default:  }         }`: missingReturn, // (6) non terminating default
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (misc)
 	`_ = func() int { a := 2; _ = a                                     }`: missingReturn,
 	`_ = func() int {                                                   }`: missingReturn,
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (1)
+	`_ = func() int { return 1                                          }`: ok, // (1)
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (3)
+	`_ = func() int { { return 0 }                                      }`: ok,
+	`_ = func() int { { }                                               }`: missingReturn,
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (4)
+	`_ = func() int { if true { return 1 } else { return 2 }            }`: ok,
+	`_ = func() int { if true { return 1 } else { }                     }`: missingReturn,
+	`_ = func() int { if true { } else { }                              }`: missingReturn,
+	`_ = func() int { if true { } else { return 1 }                     }`: missingReturn,
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (5)
+	`_ = func() int { for { }                                           }`: ok,
+	`_ = func() int { for { break }                                     }`: missingReturn,
+	`_ = func() int { for { { break } }                                 }`: missingReturn,
+	`_ = func() int { for true { }                                      }`: missingReturn,
+	`_ = func() int { for i := 0; i < 10; i++ { }                       }`: missingReturn,
+
+	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (6)
+	`_ = func() int { switch { case true: return 0; default: return 0 } }`: ok,
+	`_ = func() int { switch { case true: fallthrough; default: }       }`: ok,
+	`_ = func() int { switch { }                                        }`: missingReturn,
+	`_ = func() int { switch { case true: return 0; default:  }         }`: missingReturn,
 
 	// Return statements with named result parameters.
 	`_ = func() (a int)           { return             }`: ok,
@@ -756,13 +776,13 @@ var checkerStmts = map[string]string{
 	// Function literal calls.
 	`f := func() { }; f()`:                         ok,
 	`f := func(int) { }; f(0)`:                     ok,
+	`f := func(a, b int) { }; f(0, 0)`:             ok,
+	`f := func(a string, b int) { }; f("", 0)`:     ok,
+	`f := func() (a, b int) { return 0, 0 }; f()`:  ok,
+	`f := func(a, b int) { }; f("", 0)`:            `cannot use "" (type string) as type int in argument to f`,
 	`f := func(string) { } ; f(0)`:                 `cannot use 0 (type int) as type string in argument to f`,
 	`f := func(string, int) { } ; f(0)`:            "not enough arguments in call to f\n\thave (number)\n\twant (string, int)",
 	`f := func(string, int) { } ; f(0, 0, 0)`:      "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
-	`f := func(a, b int) { }; f(0, 0)`:             ok,
-	`f := func(a, b int) { }; f("", 0)`:            `cannot use "" (type string) as type int in argument to f`,
-	`f := func(a string, b int) { }; f("", 0)`:     ok,
-	`f := func() (a, b int) { return 0, 0 }; f()`:  ok,
 	`f := func() (a, b int) { return 0, "" }; f()`: `cannot use "" (type string) as type int in return argument`,
 
 	// Function literal calls with function call as argument.
@@ -772,10 +792,10 @@ var checkerStmts = map[string]string{
 	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
 
 	// Variable declared and not used.
+	`a := 0; { _ = a }`:          ok,
 	`a := 0`:                     declaredNotUsed("a"),
 	`{ { a := 0 } }`:             declaredNotUsed("a"),
 	`a := 0; a = 1`:              declaredNotUsed("a"),
-	`a := 0; { _ = a }`:          ok,
 	`a := 0; { b := 0 }`:         declaredNotUsed("b"),
 	`{ const A = 0; var B = 0 }`: declaredNotUsed("B"),
 
