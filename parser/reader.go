@@ -18,6 +18,7 @@ import (
 	"scrigo/ast"
 )
 
+// TODO (Gianluca): review this doc:
 // Reader defines a type that lets you gets a template tree give a path.
 // The returned tree can be transformed because Reader returns always a new
 // tree for each call to Read.
@@ -25,7 +26,7 @@ import (
 // Implementations of Reader can use the function ParseSource to parse a
 // source and get the corresponding tree.
 type Reader interface {
-	Read(path string, ctx ast.Context) (*ast.Tree, error)
+	Read(path string, ctx ast.Context) ([]byte, error)
 }
 
 // DirReader implements a Reader that reads the source of a template
@@ -35,7 +36,7 @@ type Reader interface {
 type DirReader string
 
 // Read implements the Read method of Reader.
-func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+func (dir DirReader) Read(path string, ctx ast.Context) ([]byte, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
 	}
@@ -46,18 +47,7 @@ func (dir DirReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-	tree, err := ParseSource(src, ctx)
-	if err != nil {
-		if e, ok := err.(*Error); ok {
-			if path[0] == '/' {
-				e.Path = path
-			} else {
-				e.Path = "/" + path
-			}
-		}
-		return nil, err
-	}
-	return tree, nil
+	return src, nil
 }
 
 // DirLimitedReader implements a Reader that reads the source of a template
@@ -94,7 +84,7 @@ var testReader func(io.Reader) io.Reader
 
 // Read implements the Read method of Reader.
 // If a limit is exceeded it returns the error ErrReadTooLarge.
-func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+func (dr *DirLimitedReader) Read(path string, ctx ast.Context) ([]byte, error) {
 	if !ValidDirReaderPath(path) {
 		return nil, ErrInvalidPath
 	}
@@ -170,25 +160,7 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 	if err != nil {
 		return nil, err
 	}
-	// Parses the tree.
-	tree, err := ParseSource(src[:n], ctx)
-	if err != nil {
-		if e, ok := err.(*Error); ok {
-			if path[0] == '/' {
-				e.Path = path
-			} else {
-				e.Path = "/" + path
-			}
-		}
-		return nil, err
-	}
-	dr.mutex.Lock()
-	defer dr.mutex.Unlock()
-	if n > dr.remaining {
-		return nil, ErrReadTooLarge
-	}
-	dr.remaining -= n
-	return tree, err
+	return src[:n], nil
 }
 
 // MapReader implements a Reader where template sources are read from a map.
@@ -196,7 +168,7 @@ func (dr *DirLimitedReader) Read(path string, ctx ast.Context) (*ast.Tree, error
 type MapReader map[string][]byte
 
 // Read implements the Read method of Reader.
-func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+func (r MapReader) Read(path string, ctx ast.Context) ([]byte, error) {
 	if !validPath(path) {
 		return nil, ErrInvalidPath
 	}
@@ -207,39 +179,36 @@ func (r MapReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
 	if !ok {
 		return nil, ErrNotExist
 	}
-	tree, err := ParseSource(src, ctx)
-	if err != nil {
-		if e, ok := err.(*Error); ok {
-			e.Path = "/" + path
-		}
-	}
-	return tree, err
+	return src, nil
 }
 
-// TransformReader is a Reader that reads a tree from another Reader,
-// transforms it and returns the transformed tree.
-type TransformReader struct {
-	reader    Reader
-	transform func(tree *ast.Tree) (*ast.Tree, error)
-}
+// TODO (Gianluca): to review.
+// // TransformReader is a Reader that reads a tree from another Reader,
+// // transforms it and returns the transformed tree.
+// type TransformReader struct {
+// 	reader    Reader
+// 	transform func(tree *ast.Tree) (*ast.Tree, error)
+// }
 
-// NewTransformReader returns a TransformReader that reads a tree from r,
-// transforms the tree with t and returns the transformed tree.
-func NewTransformReader(r Reader, t func(tree *ast.Tree) (*ast.Tree, error)) *TransformReader {
-	return &TransformReader{
-		reader:    r,
-		transform: t,
-	}
-}
+// TODO (Gianluca): to review.
+// // NewTransformReader returns a TransformReader that reads a tree from r,
+// // transforms the tree with t and returns the transformed tree.
+// func NewTransformReader(r Reader, t func(tree *ast.Tree) (*ast.Tree, error)) *TransformReader {
+// 	return &TransformReader{
+// 		reader:    r,
+// 		transform: t,
+// 	}
+// }
 
-// Read implements the Read function of the Reader.
-func (tr *TransformReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
-	tree, err := tr.reader.Read(path, ctx)
-	if err != nil {
-		return nil, err
-	}
-	return tr.transform(tree)
-}
+// TODO (Gianluca): to review.
+// // Read implements the Read function of the Reader.
+// func (tr *TransformReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
+// 	tree, err := tr.reader.Read(path, ctx)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return tr.transform(tree)
+// }
 
 // ValidDirReaderPath indicates whether path is valid as path for DirReader
 // and DirLimitedReader.

@@ -1422,7 +1422,12 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 	}
 	defer pp.trees.done(path, ctx)
 
-	tree, err := pp.reader.Read(path, ctx)
+	src, err := pp.reader.Read(path, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := ParseSource(src, ctx)
 	if err != nil {
 		return nil, err
 	}

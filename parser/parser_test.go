@@ -1084,8 +1084,8 @@ type testsReader map[string]struct {
 	tree *ast.Tree
 }
 
-func (tests testsReader) Read(path string, ctx ast.Context) (*ast.Tree, error) {
-	return ParseSource([]byte(tests[path].src), ctx)
+func (tests testsReader) Read(path string, ctx ast.Context) ([]byte, error) {
+	return []byte(tests[path].src), nil
 }
 
 func TestPages(t *testing.T) {
