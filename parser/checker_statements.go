@@ -16,9 +16,9 @@ import (
 // checkNodesInNewScope checks nodes in a dedicated scope, which will be
 // destroyed after use.
 func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
-	tc.AddScope()
+	tc.addScope()
 	tc.checkNodes(nodes)
-	tc.RemoveCurrentScope()
+	tc.removeCurrentScope()
 }
 
 // checkNodes checks nodes an orderer list of statements.
@@ -49,7 +49,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.If:
 
 			terminating := true
-			tc.AddScope()
+			tc.addScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
 			}
@@ -79,14 +79,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			} else {
 				terminating = false
 			}
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 			tc.terminating = terminating
 
 		case *ast.For:
 
 			// TODO (Gianluca): check if can iterate over element.
 			terminating := true
-			tc.AddScope()
+			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				nVars := len(node.Init.Variables)
@@ -116,12 +116,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// TODO (Gianluca): can node.Body be nil?
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.ForRange:
 
-			tc.AddScope()
+			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Assignment != nil {
 				rangeExpr := tc.checkExpression(node.Assignment.Values[0])
@@ -138,7 +138,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
@@ -174,7 +174,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Switch:
 
 			terminating := true
-			tc.AddScope()
+			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
@@ -202,13 +202,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			tc.removeLastAncestor()
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
 		case *ast.TypeSwitch:
 
 			terminating := true
-			tc.AddScope()
+			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
@@ -231,7 +231,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
 		case *ast.Const, *ast.Var:
@@ -258,7 +258,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			// TODO (Gianluca): to review.
 			name := node.Macro.Name
-			_, ok := tc.LookupScopes(name, false)
+			_, ok := tc.lookupScopes(name, false)
 			if !ok {
 				panic(tc.errorf("undefined macro: %s", name))
 			}
@@ -267,14 +267,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			// TODO (Gianluca): handle types for macros.
 			name := node.Ident.Name
-			_, ok := tc.LookupScopes(name, false)
+			_, ok := tc.lookupScopes(name, false)
 			if ok {
 				panic(tc.errorf("macro %s redeclared in this page", name))
 			}
 			tc.checkNodesInNewScope(node.Body)
 			// TODO (Gianluca):
 			ti := &ast.TypeInfo{}
-			tc.AssignScope(name, ti)
+			tc.assignScope(name, ti)
 
 		case *ast.Call:
 
@@ -329,7 +329,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		if len(tc.scopes) > funcBound {
 			for _, e := range expected {
 				name := e.Ident.Name
-				_, ok := tc.LookupScopes(name, true)
+				_, ok := tc.lookupScopes(name, true)
 				if ok {
 					panic(tc.errorf(node, "%s is shadowed during return", name))
 				}

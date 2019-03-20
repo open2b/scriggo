@@ -405,7 +405,7 @@ func TestCheckerExpressions(t *testing.T) {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
 			checker := &typechecker{scopes: scopes}
-			checker.AddScope()
+			checker.addScope()
 			ti := checker.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -480,7 +480,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
 			checker := &typechecker{scopes: scopes}
-			checker.AddScope()
+			checker.addScope()
 			ti := checker.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
@@ -834,9 +834,9 @@ func TestCheckerStatements(t *testing.T) {
 				return
 			}
 			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{universe, scope, typeCheckerScope{}}}
-			checker.AddScope()
+			checker.addScope()
 			checker.checkNodes(tree.Nodes)
-			checker.RemoveCurrentScope()
+			checker.removeCurrentScope()
 		}()
 	}
 }
@@ -1282,7 +1282,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	}
 	for src, expected := range cases {
 		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
-		tc.AddScope()
+		tc.addScope()
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {
 			t.Error(err)

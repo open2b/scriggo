@@ -142,13 +142,13 @@ func (tc *typechecker) getDecl(name string) *Declaration {
 	return nil
 }
 
-// AddScope adds a new empty scope to the type checker.
-func (tc *typechecker) AddScope() {
+// addScope adds a new empty scope to the type checker.
+func (tc *typechecker) addScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
 }
 
-// RemoveCurrentScope removes the current scope from the type checker.
-func (tc *typechecker) RemoveCurrentScope() {
+// removeCurrentScope removes the current scope from the type checker.
+func (tc *typechecker) removeCurrentScope() {
 	cut := len(tc.unusedVars)
 	for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 		v := tc.unusedVars[i]
@@ -164,10 +164,10 @@ func (tc *typechecker) RemoveCurrentScope() {
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
-// LookupScopes looks up name in the scopes. Returns the type info of the name or
-// false if the name does not exist. If justCurrentScope is true, LookupScopes
+// lookupScopes looks up name in the scopes. Returns the type info of the name or
+// false if the name does not exist. If justCurrentScope is true, lookupScopes
 // looks up only in the current scope.
-func (tc *typechecker) LookupScopes(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
+func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
 	if justCurrentScope {
 		for n, ti := range tc.scopes[len(tc.scopes)-1] {
 			if n == name {
@@ -196,8 +196,8 @@ func (tc *typechecker) LookupScopes(name string, justCurrentScope bool) (*ast.Ty
 	return nil, false
 }
 
-// AssignScope assigns value to name in the last scope.
-func (tc *typechecker) AssignScope(name string, value *ast.TypeInfo) {
+// assignScope assigns value to name in the last scope.
+func (tc *typechecker) assignScope(name string, value *ast.TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
 }
 
@@ -247,7 +247,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 		}
 	}
 
-	i, ok := tc.LookupScopes(ident.Name, false)
+	i, ok := tc.lookupScopes(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
@@ -474,21 +474,21 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		return &ast.TypeInfo{Type: reflect.FuncOf(in, out, variadic), Properties: ast.PropertyIsType}
 
 	case *ast.Func:
-		tc.AddScope()
+		tc.addScope()
 		t := tc.checkType(expr.Type, noEllipses)
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
 		for _, f := range expr.Type.Parameters {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, f := range expr.Type.Result {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.AssignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 			}
 		}
 		tc.checkNodes(expr.Body.Nodes)
@@ -501,7 +501,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			}
 		}
 		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-		tc.RemoveCurrentScope()
+		tc.removeCurrentScope()
 		return &ast.TypeInfo{Type: t.Type}
 
 	case *ast.Call:
@@ -603,7 +603,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 	case *ast.Selector:
 		// Package selector.
 		if ident, ok := expr.Expr.(*ast.Identifier); ok {
-			ti, ok := tc.LookupScopes(ident.Name, false)
+			ti, ok := tc.lookupScopes(ident.Name, false)
 			if ok {
 				if ti.IsPackage() {
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {

@@ -173,20 +173,20 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 	// Functions.
 	for _, v := range tc.declarations {
 		if v.DeclarationType == DeclarationFunction {
-			tc.AddScope()
+			tc.addScope()
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
 			// Adds parameters to the function body scope.
 			for _, param := range v.Type.(*ast.FuncType).Parameters {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
-					tc.AssignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+					tc.assignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 				}
 			}
 			// Adds named return values to the function body scope.
 			for _, ret := range v.Type.(*ast.FuncType).Result {
 				t := tc.checkType(ret.Type, noEllipses)
 				if ret.Ident != nil {
-					tc.AssignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+					tc.assignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
 				}
 			}
 			tc.currentIdent = v.Ident
@@ -196,7 +196,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
 			tc.initOrder = append(tc.initOrder, v.Ident)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-			tc.RemoveCurrentScope()
+			tc.removeCurrentScope()
 		}
 	}
 

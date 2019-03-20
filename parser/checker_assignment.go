@@ -208,7 +208,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
 		}
 		if isDecl {
-			tmpScope[newVar], _ = tc.LookupScopes(newVar, true)
+			tmpScope[newVar], _ = tc.lookupScopes(newVar, true)
 			delete(tc.scopes[len(tc.scopes)-1], newVar)
 		}
 		if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
@@ -220,7 +220,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
-		tc.AssignScope(d, ti)
+		tc.assignScope(d, ti)
 	}
 	return
 
@@ -281,7 +281,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if isDeclaration {
 			newValueTi := &ast.TypeInfo{}
 			// Cannot declarate a variable if already exists in current scope.
-			if _, alreadyInCurrentScope := tc.LookupScopes(v.Name, true); alreadyInCurrentScope {
+			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
 				return ""
 			}
 			if typ != nil {
@@ -304,11 +304,11 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			v.SetTypeInfo(newValueTi)
 			if isConst {
 				newValueTi.Value = valueTi.Value
-				tc.AssignScope(v.Name, newValueTi)
+				tc.assignScope(v.Name, newValueTi)
 				return v.Name
 			}
 			newValueTi.Properties |= ast.PropertyAddressable
-			tc.AssignScope(v.Name, newValueTi)
+			tc.assignScope(v.Name, newValueTi)
 			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 				ident:      v.Name,
 				scopeLevel: len(tc.scopes) - 1,
