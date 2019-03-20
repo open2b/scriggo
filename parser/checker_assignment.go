@@ -35,9 +35,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
 
-		// [...] Otherwise [no list of expressions is given], each variable is
-		// initialized to its zero value.
-		// [https://golang.org/ref/spec#Variable_declarations]
 		if len(values) == 0 {
 			for i := range n.Identifiers {
 				zero := &ast.TypeInfo{Type: typ.Type}
@@ -80,8 +77,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			return
 		}
 
-		// The number of identifiers must be equal to the number of expressions.
-		// [https://golang.org/ref/spec#Constant_declarations]
 		if len(n.Identifiers) > len(values) {
 			panic(tc.errorf(node, "missing value in const declaration"))
 		}
@@ -247,12 +242,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		valueTi = tc.checkExpression(value)
 	}
 
-	// If it's a constant declaration, a constant value must be provided.
 	if isConst && !valueTi.IsConstant() {
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
 
-	// If a type is provided, value must be assignable to type.
 	if typ != nil && !isAssignableTo(valueTi, typ.Type) {
 		if value == nil {
 			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
@@ -270,21 +263,16 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			return ""
 		}
 
-		// If it's not a declaration, variable must already exists in some
-		// scope. Its type must be retrieved, and value must be assignable
-		// to that.
 		if isDeclaration {
 			newValueTi := &ast.TypeInfo{}
-			// Cannot declarate a variable if already exists in current scope.
 			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
 				return ""
 			}
 			if typ != nil {
-				// «If a type is present, each variable is given that type.»
 				newValueTi.Type = typ.Type
 			} else {
-				// «The predeclared value nil cannot be used to initialize a
-				// variable with no explicit type.»
+				// The predeclared value nil cannot be used to
+				// initialize a variable with no explicit type.
 				if valueTi.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
