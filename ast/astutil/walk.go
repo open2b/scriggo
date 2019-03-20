@@ -168,7 +168,7 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Value:
 		Walk(v, n.Expr)
 
-	case *ast.Parentesis:
+	case *ast.Parenthesis:
 		Walk(v, n.Expr)
 
 	case *ast.UnaryOperator:

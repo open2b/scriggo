@@ -199,8 +199,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return nil
 	}
 	switch e := expr.(type) {
-	case *ast.Parentesis:
-		return ast.NewParentesis(ClonePosition(e.Position), CloneExpression(e.Expr))
+	case *ast.Parenthesis:
+		return ast.NewParenthesis(ClonePosition(e.Position), CloneExpression(e.Expr))
 	case *ast.Rune:
 		return ast.NewRune(ClonePosition(e.Position), e.Value)
 	case *ast.Int:

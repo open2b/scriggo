@@ -222,7 +222,7 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return newConstantInt(&e.Value)
 	case *ast.Float:
 		return newConstantFloat(&e.Value)
-	case *ast.Parentesis:
+	case *ast.Parenthesis:
 		return r.evalExpression(e.Expr)
 	case *ast.UnaryOperator:
 		return r.evalUnaryOperator(e)

@@ -1307,8 +1307,8 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Text != nn2.Text {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Text, nn2.Text)
 		}
-	case *ast.Parentesis:
-		nn2, ok := n2.(*ast.Parentesis)
+	case *ast.Parenthesis:
+		nn2, ok := n2.(*ast.Parenthesis)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}

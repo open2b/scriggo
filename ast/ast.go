@@ -587,18 +587,18 @@ func NewComment(pos *Position, text string) *Comment {
 	return &Comment{pos, text}
 }
 
-// Parentesis node represents a parenthesized expression.
-type Parentesis struct {
+// Parenthesis node represents a parenthesized expression.
+type Parenthesis struct {
 	expression
 	*Position            // position in the source.
 	Expr      Expression // expression.
 }
 
-func NewParentesis(pos *Position, expr Expression) *Parentesis {
-	return &Parentesis{expression{}, pos, expr}
+func NewParenthesis(pos *Position, expr Expression) *Parenthesis {
+	return &Parenthesis{expression{}, pos, expr}
 }
 
-func (n *Parentesis) String() string {
+func (n *Parenthesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
