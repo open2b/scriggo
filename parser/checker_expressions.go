@@ -272,7 +272,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 	// Check bodies of global functions.
 	// TODO (Gianluca): this must be done only when checking global variables.
 	if i.Type != nil && i.Type.Kind() == reflect.Func && !i.Addressable() {
-		tc.checkNodes(tc.getDecl(ident.Name).Value.(*ast.Block).Nodes)
+		decl := tc.getDecl(ident.Name)
+		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), decl.Node})
+		tc.checkNodes(decl.Value.(*ast.Block).Nodes)
+		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 	}
 
 	// Global declaration.
