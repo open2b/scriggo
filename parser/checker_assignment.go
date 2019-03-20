@@ -216,7 +216,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		newVars = newVars + newVar
 	}
-	if newVars == "" && isDecl {
+	if newVars == "" && isDecl && !isVarOrConst {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {

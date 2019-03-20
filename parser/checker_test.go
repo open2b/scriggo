@@ -530,6 +530,8 @@ var checkerStmts = map[string]string{
 	`_ := 1`:                          noNewVariables,
 	`_, b, c := 1, 2, 3; _, _ = b, c`: ok,
 	`_, _, _ := 1, 2, 3`:              noNewVariables,
+	`var _ = 0`:                       ok,
+	`var _, _ = 0, 0`:                 ok,
 
 	// Assignments.
 	`v := 1; _ = v`:                           ok,
