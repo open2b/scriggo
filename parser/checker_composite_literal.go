@@ -144,8 +144,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			tc.checkDuplicatedKeys(node, reflect.Struct)
 		} else { // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
-				// TODO (Gianluca): PropertyAddressable?
-				return &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
+				return &ast.TypeInfo{Type: ti.Type}
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
 				panic(tc.errorf(node, "too few values in %s literal", node.Type))
