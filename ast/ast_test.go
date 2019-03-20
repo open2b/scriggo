@@ -41,7 +41,7 @@ var expressionStringTests = []struct {
 	{"a[:5]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, n5)},
 	{"a[2:5]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, n5)},
 	{"a.b", NewSelector(nil, NewIdentifier(nil, "a"), "b")},
-	{"(a)", NewParentesis(nil, NewIdentifier(nil, "a"))},
+	{"(a)", NewParenthesis(nil, NewIdentifier(nil, "a"))},
 	{"-(1 + 2)", NewUnaryOperator(nil, OperatorSubtraction, NewBinaryOperator(nil, OperatorAddition, n1, n2))},
 	{"-(+1)", NewUnaryOperator(nil, OperatorSubtraction, NewUnaryOperator(nil, OperatorAddition, n1))},
 	{"1 * 2 + -3", NewBinaryOperator(nil, OperatorAddition,

@@ -87,7 +87,7 @@ func TestWalk(t *testing.T) {
 	// (they can not therefore be included in the previous test list).
 	var visitor2 TestVisitor
 	var pos *ast.Position = &ast.Position{1, 1, 0, 0}
-	var parTree *ast.Parentesis = ast.NewParentesis(pos, ast.NewIdentifier(pos, "a"))
+	var parTree *ast.Parenthesis = ast.NewParenthesis(pos, ast.NewIdentifier(pos, "a"))
 	Walk(&visitor2, parTree)
 	if len(visitor2.Positions) != 2 || visitor2.Positions[0] != 0 || visitor2.Positions[1] != 0 {
 		t.Errorf("expected [0, 0], got %v", visitor2.Positions)

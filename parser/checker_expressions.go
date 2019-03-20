@@ -384,8 +384,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			Value:      &expr.Value,
 		}
 
-	case *ast.Parentesis:
-		panic("unexpected parentesis")
+	case *ast.Parenthesis:
+		panic("unexpected parenthesis")
 
 	case *ast.UnaryOperator:
 		_ = tc.checkExpression(expr.Expr)
