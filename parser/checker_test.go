@@ -661,6 +661,8 @@ var checkerStmts = map[string]string{
 	`if true { }`:                          ok,
 	`if 1 { }`:                             "non-bool 1 (type int) used as if condition",
 	`if 1 == 1 { a := 3 ; _ = a }; a = 1`:  "undefined: a",
+	`if false { a }`:                       undefined("a"),
+	`if x { }`:                             undefined("x"),
 
 	// For statements with single condition.
 	`for true { }`:    ok,
