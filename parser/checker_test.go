@@ -648,14 +648,26 @@ var checkerStmts = map[string]string{
 	`if true { }`:                          "",
 
 	// For statements.
-	`for 3 { }`:                                         "non-bool 3 (type int) used as for condition",
-	`for i := 10; i; i++ { }`:                           "non-bool i (type int) used as for condition",
-	`for i := 0; i < 10; i++ { }`:                       "",
-	`for i := 0; i < 10; {}`:                            ok,
-	`for i := 0; i < 10; _ = 2 {}`:                      ok,
-	`for i := 0; i < 10; i = "" {}`:                     `cannot use "" (type string) as type int in assignment`,
-	`s := []int{}; for i := range s { _ = i }`:          ok,
-	`s := []int{}; for i, v := range s { _, _ = i, v }`: ok,
+	`for 3 { }`:                                                                      "non-bool 3 (type int) used as for condition",
+	`for i := 10; i; i++ { }`:                                                        "non-bool i (type int) used as for condition",
+	`for i := 0; i < 10; i++ { }`:                                                    "",
+	`for i := 0; i < 10; {}`:                                                         ok,
+	`for i := 0; i < 10; _ = 2 {}`:                                                   ok,
+	`for i := 0; i < 10; i = "" {}`:                                                  `cannot use "" (type string) as type int in assignment`,
+	`s := []int{}; for i := range s { _ = i }`:                                       ok,
+	`s := []int{}; for i, v := range s { _, _ = i, v }`:                              ok,
+	`s := []int{0,1}; for i    := range s { _ = s[i] }`:                              ok,
+	`s := []int{0,1}; for _, i := range s { _ = s[i] }`:                              ok,
+	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:                       `invalid slice index i (type string)`, // TODO (Gianluca): should be: 'non-integer slice index i'.
+	`s := []string{"a","b"}; for i := range s { _ = s[i] }`:                          ok,
+	`s := []string{"a","b"}; for i := 0; i < len(s); i++ { _ = s[i] }`:               ok,
+	`for _, _ = range "abc" { }`:                                                     ok,
+	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
+	`for _, _ = range []int{1,2,3} { }`:                                              ok,
+	`for k, v := range ([...]int{}) { var _, _ int = k, v }`:                         ok,
+	`for k, v := range map[float64]string{} { var _ float64 = k; var _ string = v }`: ok,
+	`for _, _ = range (&[...]int{}) { }`:                                             ok,
+	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
 
 	// Switch (expression) statements.
 	`switch 1 { case 1: }`:                  ok,

@@ -278,6 +278,29 @@ func isComparison(op ast.OperatorType) bool {
 	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual
 }
 
+// rangeOver returns the pair of elements (key, value) obtained from the
+// iteration over typ, if exist.
+func rangeOver(typ reflect.Type) (reflect.Type, reflect.Type, bool) {
+	switch typ.Kind() {
+	case reflect.Array, reflect.Slice:
+		return intType, typ.Elem(), true
+	case reflect.Map:
+		return typ.Key(), typ.Elem(), true
+	case reflect.String:
+		return intType, reflect.TypeOf(rune(' ')), true
+	case reflect.Ptr:
+		if typ.Elem().Kind() != reflect.Array {
+			return nil, nil, false
+		}
+		return intType, typ.Elem().Elem(), true
+	case reflect.Chan:
+		// TODO (Gianluca): «...or channel permitting receive operations...»
+		return nil, nil, false
+	default:
+		return nil, nil, false
+	}
+}
+
 // isOrdered reports whether t is ordered.
 func isOrdered(t *ast.TypeInfo) bool {
 	k := t.Type.Kind()

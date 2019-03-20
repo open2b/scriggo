@@ -121,20 +121,19 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.ForRange:
 
-			// TODO (Gianluca): check if can iterate over element.
 			tc.AddScope()
 			tc.addToAncestors(node)
 			if node.Assignment != nil {
-				nVars := len(node.Assignment.Variables)
-				nValues := len(node.Assignment.Values)
-				if nVars == 2 && nValues == 1 {
-					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
-					isDecl := node.Assignment.Type == ast.AssignmentDeclaration
-					tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, intTypeInfo, nil, isDecl, false)
-					elemTi := tc.checkExpression(node.Assignment.Values[0])
-					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &ast.TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
-				} else {
-					tc.checkAssignment(node.Assignment)
+				rangeExpr := tc.checkExpression(node.Assignment.Values[0])
+				key, elem, ok := rangeOver(rangeExpr.Type)
+				if !ok {
+					panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
+				}
+				keyTi := &ast.TypeInfo{Type: key, Properties: ast.PropertyAddressable}
+				isDecl := node.Assignment.Type == ast.AssignmentDeclaration
+				tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, keyTi, nil, isDecl, false)
+				if len(node.Assignment.Variables) == 2 {
+					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &ast.TypeInfo{Type: elem}, nil, isDecl, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
