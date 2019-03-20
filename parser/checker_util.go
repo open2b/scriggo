@@ -291,6 +291,13 @@ func isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
 	return x.Type.AssignableTo(t)
 }
 
+// isBlankIdentifier indicates if expr is an identifier representing the blank
+// identifier "_".
+func isBlankIdentifier(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	return ok && ident.Name == "_"
+}
+
 // isComparison reports whether op is a comparison operator.
 func isComparison(op ast.OperatorType) bool {
 	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual

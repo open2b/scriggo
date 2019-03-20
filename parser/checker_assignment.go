@@ -13,11 +13,6 @@ import (
 	"scrigo/ast"
 )
 
-func isBlankIdentifier(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	return ok && ident.Name == "_"
-}
-
 // checkAssignment checks the assignment node.
 //
 // TODO (Gianluca): check error checking order.
