@@ -273,9 +273,25 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 	// TODO (Gianluca): this must be done only when checking global variables.
 	if i.Type != nil && i.Type.Kind() == reflect.Func && !i.Addressable() {
 		decl := tc.getDecl(ident.Name)
+		tc.addScope()
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), decl.Node})
+		// Adds parameters to the function body scope.
+		for _, param := range fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters) {
+			if param.Ident != nil {
+				t := tc.checkType(param.Type, noEllipses)
+				tc.assignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+			}
+		}
+		// Adds named return values to the function body scope.
+		for _, ret := range fillParametersTypes(decl.Node.(*ast.Func).Type.Result) {
+			t := tc.checkType(ret.Type, noEllipses)
+			if ret.Ident != nil {
+				tc.assignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+			}
+		}
 		tc.checkNodes(decl.Value.(*ast.Block).Nodes)
 		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
+		tc.removeCurrentScope()
 	}
 
 	// Global declaration.
