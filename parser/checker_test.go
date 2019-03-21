@@ -800,6 +800,18 @@ var checkerStmts = map[string]string{
 	`f := func() (string, int) { return "", 0 } ; g := func(int, int) { } ; g(f())`:     `cannot use f() (type string) as type int in argument to g`, // TODO (Gianluca): should be cannot use string as type int in argument to g
 	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
 
+	// Conversions.
+	`int()`:     `missing argument to conversion to int: int()`,
+	`int(0, 0)`: `too many arguments to conversion to int: int(0, 0)`,
+	// `int(nil)`:  `cannot convert nil to type int`, // TODO
+	// `float64("a")`: `cannot convert "a" (type untyped string) to type float64`, // TODO
+
+	// Function calls.
+	`a := 0; a()`:       `cannot call non-function a (type int)`,
+	`a := []int{}; a()`: `cannot call non-function a (type []int)`,
+	// `f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`, // TODO
+	// `nil.F()`:     `use of untyped nil`, // TODO
+
 	// Variable declared and not used.
 	`a := 0; { _ = a }`:          ok,
 	`a := 0`:                     declaredNotUsed("a"),

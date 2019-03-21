@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"scrigo/ast"
-	"scrigo/ast/astutil"
 )
 
 // evalCall evaluates a call expression in a single-val context. It returns
@@ -74,12 +73,6 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
 	// Makes a type conversion.
 	if typ, ok := f.(reflect.Type); ok {
-		if len(node.Args) == 0 {
-			return nil, r.errorf(node, "missing argument to conversion to %s: %s", typ, node)
-		}
-		if len(node.Args) > 1 {
-			return nil, r.errorf(node, "too many arguments to conversion to %s: %s", typ, node)
-		}
 		v, err := r.convert(node.Args[0], typ)
 		if err != nil {
 			panic(r.errorf(node.Args[0], "%s", err))
@@ -89,15 +82,6 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 
 	// Makes a call with reflect.
 	fun := reflect.ValueOf(f)
-	if !fun.IsValid() {
-		if r.isBuiltin("nil", node.Func) {
-			return nil, r.errorf(node, "use of untyped nil")
-		}
-		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
-	}
-	if fun.Kind() != reflect.Func {
-		return nil, r.errorf(node, "cannot call non-function %s (type %s)", node.Func, typeof(f))
-	}
 
 	return r.evalReflectCall(node, fun, n)
 }
@@ -126,48 +110,6 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 				}
 			}
 		}
-	}
-
-	if (!typ.IsVariadic && haveSize != wantSize) || (typ.IsVariadic && haveSize < wantSize-1) {
-		typeNames := make([]string, wantSize)
-		for i := len(typ.Parameters) - 1; i >= 0; i-- {
-			if t := typ.Parameters[i].Type; t == nil {
-				typeNames[i] = typeNames[i+1]
-			} else {
-				typeNames[i] = t.String()
-			}
-		}
-		have := "("
-		for i := 0; i < haveSize; i++ {
-			if i > 0 {
-				have += ", "
-			}
-			if i < wantSize {
-				have += typeNames[i]
-			} else {
-				have += "?"
-			}
-		}
-		have += ")"
-		want := "("
-		for i, t := range typeNames {
-			if i > 0 {
-				want += ", "
-			}
-			want += t
-			if i == wantSize-1 && typ.IsVariadic {
-				want += "..."
-			}
-		}
-		want += ")"
-		name := node.Func.String()
-		var err error
-		if haveSize < wantSize {
-			err = r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", name, have, want)
-		} else {
-			err = r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", name, have, want)
-		}
-		return nil, err
 	}
 
 	var args = scope{}
@@ -252,54 +194,8 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([
 
 	typ := fun.Type()
 
-	var numOut = typ.NumOut()
-	switch {
-	case n == 1 && numOut > 1:
-		expr := astutil.CloneExpression(node).(*ast.Call)
-		expr.Args = nil
-		return nil, r.errorf(node, "multiple-value %s in single-value context", expr)
-	case n > 0 && numOut == 0:
-		return nil, r.errorf(node, "%s used as value", node)
-	case n > 0 && n != numOut:
-		return nil, r.errorf(node, "assignment mismatch: %d variables but %d values", n, numOut)
-	}
-
 	var numIn = typ.NumIn()
 	var isVariadic = typ.IsVariadic()
-
-	if (!isVariadic && len(node.Args) != numIn) || (isVariadic && len(node.Args) < numIn-1) {
-		have := "("
-		for i, arg := range node.Args {
-			if i > 0 {
-				have += ", "
-			}
-			v, err := r.eval(arg)
-			if err != nil {
-				return nil, err
-			}
-			have += typeof(v)
-		}
-		have += ")"
-		want := "("
-		for i := 0; i < numIn; i++ {
-			if i > 0 {
-				want += ", "
-			}
-			if i == numIn-1 && isVariadic {
-				want += "..."
-			}
-			if in := typ.In(i); in.Kind() == reflect.Interface {
-				want += "any"
-			} else {
-				want += typeof(reflect.Zero(in).Interface())
-			}
-		}
-		want += ")"
-		if len(node.Args) < numIn {
-			return nil, r.errorf(node, "not enough arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
-		}
-		return nil, r.errorf(node, "too many arguments in call to %s\n\thave %s\n\twant %s", node.Func, have, want)
-	}
 
 	var args = make([]reflect.Value, len(node.Args))
 
@@ -313,7 +209,6 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([
 		} else if i == lastIn {
 			in = typ.In(lastIn).Elem()
 		}
-		kind := in.Kind()
 
 		var arg, err = r.eval(node.Args[i])
 		if err != nil {
@@ -321,13 +216,6 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([
 		}
 
 		switch a := arg.(type) {
-		case nil:
-			switch kind {
-			case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
-				reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
-			default:
-				return nil, r.errorf(node, "cannot use nil as type %s in argument to %s", in, node.Func)
-			}
 		case HTML:
 			if in != htmlType && in == stringType {
 				arg = string(a)
@@ -340,10 +228,6 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([
 				}
 				return nil, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
 			}
-		}
-		if arg != nil && !reflect.TypeOf(arg).AssignableTo(in) {
-			return nil, r.errorf(node.Args[i], "cannot use %s (type %s) as type %s in argument to %s",
-				node.Args[i], typeof(arg), in, node.Func)
 		}
 
 		if arg == nil {
@@ -392,13 +276,6 @@ func (r *rendering) convert(expr ast.Expression, typ reflect.Type) (interface{},
 	value := r.evalExpression(expr)
 	converted, err := convert(value, typ)
 	if err != nil {
-		if err == errCannotConvert {
-			if value == nil {
-				err = fmt.Errorf("cannot convert nil to type %s", typ)
-			} else {
-				err = fmt.Errorf("cannot convert %s (type %s) to type %s", expr, typeof(value), typ)
-			}
-		}
 		return nil, err
 	}
 	return converted, nil
