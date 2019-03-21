@@ -52,18 +52,8 @@ func (r *rendering) eval(expr ast.Expression) (value interface{}, err error) {
 // eval0 evaluates expr in a void context. It returns an error if the
 // expression evaluates to a value.
 func (r *rendering) eval0(expr ast.Expression) error {
-	if e, ok := expr.(*ast.Call); ok {
-		_, err := r.evalCallN(e, 0)
-		return err
-	}
-	v, err := r.eval(expr)
-	if err != nil {
-		return err
-	}
-	if _, ok := v.(reflect.Type); ok {
-		return r.errorf(expr, "type %s is not an expression", expr)
-	}
-	return r.errorf(expr, "%s evaluated but not used", expr)
+	_, err := r.evalCallN(expr.(*ast.Call), 0)
+	return err
 }
 
 // eval1 evaluates expr in a single-value context converting number constants to
@@ -113,9 +103,6 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 		case *ast.Identifier:
 			for i := len(r.vars) - 1; i >= 0; i-- {
 				if r.vars[i] != nil {
-					if i == 0 && e.Name == "len" {
-						return nil, false, r.errorf(e, "use of builtin len not in function call")
-					}
 					if v, ok := r.vars[i][e.Name]; ok {
 						switch v.(type) {
 						default:
@@ -128,7 +115,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 			}
 			return nil, false, nil
 		}
-		return nil, nil, r.errorf(expr1, "assignment mismatch: 2 variables but 1 values")
+		return nil, nil, nil
 	} else {
 		v1, err := r.eval(expr1)
 		if err != nil {
@@ -163,9 +150,6 @@ func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, e
 			if err != nil {
 				return nil, err
 			}
-			if len(vals) != n {
-				return nil, r.errorf(expressions[0], "assignment mismatch: %d variables but %d values", n, len(vals))
-			}
 			values := make([]interface{}, len(vals))
 			for i, value := range vals {
 				values[i] = value.Interface()
@@ -189,7 +173,7 @@ func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, e
 		}
 		return values, nil
 	}
-	return nil, r.errorf(expressions[0], "assignment mismatch: %d variables but %d values", n, len(expressions))
+	return nil, nil
 }
 
 // evalSliceType evaluates a slice type returning its value.
@@ -249,7 +233,7 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 	case *ast.TypeAssertion:
 		return r.evalTypeAssertion(e)
 	default:
-		panic(r.errorf(expr, "unexpected node type %s", typeof(expr)))
+		panic(fmt.Errorf("unexpected node type %s", typeof(expr)))
 	}
 }
 
@@ -295,9 +279,6 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 		case *ast.CompositeLiteral: // &T{...}
 			return refToCopy(r.evalCompositeLiteral(expr, nil)).Interface()
 		case *ast.UnaryOperator: // &*a
-			if expr.Operator() != ast.OperatorMultiplication {
-				panic(r.errorf(node, "cannot take the address of %s", expr))
-			}
 			v, err := r.eval(expr.Expr)
 			if err != nil {
 				return err
@@ -344,7 +325,7 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 				}
 			}
 		}
-		panic(r.errorf(node, "cannot take the address of %s", node.Expr))
+		return nil
 	}
 	var expr = r.evalExpression(node.Expr)
 	switch node.Op {

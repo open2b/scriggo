@@ -651,6 +651,10 @@ var checkerStmts = map[string]string{
 	`(&pointInt{0,0}).SetZ(10)`: `&pointInt literal.SetZ undefined (type *parser.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 	`(pointInt{0,0}).SetZ(10)`:  `pointInt literal.SetZ undefined (type parser.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 
+	// Expressions.
+	`int + 2`: `type int is not an expression`,
+	`0`:       `0 evaluated but not used`,
+
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
 	`{ a := 1; { a = 10; _ = a }; _ = a }`: ok,
