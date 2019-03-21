@@ -144,6 +144,11 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				tc.filePackageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
+			if n.Ident.Name == "init" {
+				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {
+					panic(tc.errorf(n.Ident, "func init must have no arguments and no return values"))
+				}
+			}
 			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
 			tc.filePackageBlock[n.Ident.Name] = notChecked
 		}
