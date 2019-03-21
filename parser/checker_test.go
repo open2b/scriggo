@@ -998,20 +998,59 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 		return fmt.Errorf("unexpected nil value")
 	}
 	if t1.Value != nil {
-		if reflect.TypeOf(t1.Value) != reflect.TypeOf(t2.Value) {
-			return fmt.Errorf("unexpected value type %T, expecting %T", t2.Value, t1.Value)
-		}
 		switch v1 := t1.Value.(type) {
+		case int64:
+			switch v2 := t2.Value.(type) {
+			case int64:
+				if v1 != v2 {
+					return fmt.Errorf("unexpected integer %d, expecting %d", v2, v1)
+				}
+				return nil
+			case *big.Int:
+				if v2.Cmp(big.NewInt(v1)) != 0 {
+					return fmt.Errorf("unexpected integer %s, expecting %d", v2, v1)
+				}
+				return nil
+			}
 		case *big.Int:
-			v2 := t2.Value.(*big.Int)
-			if v1.Cmp(v2) != 0 {
-				return fmt.Errorf("unexpected integer %s, expecting %s", v2, v1)
+			switch v2 := t2.Value.(type) {
+			case int64:
+				if v1.Cmp(big.NewInt(v2)) != 0 {
+					return fmt.Errorf("unexpected integer %d, expecting %s", v2, v1)
+				}
+				return nil
+			case *big.Int:
+				if v1.Cmp(v2) != 0 {
+					return fmt.Errorf("unexpected integer %s, expecting %s", v2, v1)
+				}
+				return nil
+			}
+		case float64:
+			switch v2 := t2.Value.(type) {
+			case float64:
+				if v1 != v2 {
+					return fmt.Errorf("unexpected integer %f, expecting %f", v2, v1)
+				}
+				return nil
+			case *big.Float:
+				if v2.Cmp(big.NewFloat(v1)) != 0 {
+					return fmt.Errorf("unexpected integer %s, expecting %f", v2, v1)
+				}
+				return nil
 			}
 		case *big.Float:
-			v2 := t2.Value.(*big.Float)
-			if v1.Cmp(v2) != 0 {
-				return fmt.Errorf("unexpected floating-point %v, expecting %v",
-					v2.Text('f', 53), v1.Text('f', 53))
+			switch v2 := t2.Value.(type) {
+			case float64:
+				if v1.Cmp(big.NewFloat(v2)) != 0 {
+					return fmt.Errorf("unexpected float %f, expecting %s", v2, v1)
+				}
+				return nil
+			case *big.Float:
+				if v1.Cmp(v2) != 0 {
+					return fmt.Errorf("unexpected floating-point %v, expecting %v",
+						v2.Text('f', 53), v1.Text('f', 53))
+				}
+				return nil
 			}
 		case *big.Rat:
 			v2 := t2.Value.(*big.Rat)
@@ -1022,7 +1061,9 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 			if t1.Value != t2.Value {
 				return fmt.Errorf("unexpected value %v, expecting %v", t2.Value, t1.Value)
 			}
+			return nil
 		}
+		return fmt.Errorf("unexpected value type %T, expecting %T", t2.Value, t1.Value)
 	}
 	return nil
 }
