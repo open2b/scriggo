@@ -479,19 +479,6 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			if v, ok := r.variable(name); ok {
-				var err error
-				if m, ok := v.(function); ok {
-					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
-						name, m.path, m.node.Pos())
-				} else {
-					err = r.errorf(node.Ident, "%s redeclared in this file", name)
-				}
-				if r.handleError(err) {
-					continue
-				}
-				return err
-			}
 			r.vars[2][name] = function{r.path, node}
 
 		case *ast.Return:

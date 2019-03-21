@@ -294,8 +294,6 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-// TODO (Gianluca): add support for 'init()' functions.
-//
 // TODO (Gianluca): handle constants.
 func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
 
@@ -311,6 +309,9 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 	// nodes contains a list of declarations ordered by initialization
 	// priority.
 	nodes := make([]ast.Node, len(astPkg.Declarations))
+
+	// inits contains the list of "init" functions.
+	var inits []*ast.Func
 
 	// Constants.
 	// TODO (Gianluca): are they melt into code?
@@ -329,7 +330,10 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 
 	// Functions.
 	for _, node := range astPkg.Declarations {
-		if _, ok := node.(*ast.Func); ok {
+		if f, ok := node.(*ast.Func); ok {
+			if f.Ident.Name == "init" {
+				inits = append(inits, f)
+			}
 			nodes = append(nodes, node)
 		}
 	}
@@ -356,6 +360,14 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 	err := r.render(nil, nodes, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	// Calls init functions.
+	for _, f := range inits {
+		err := r.render(nil, f.Body.Nodes, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return r.vars[2], nil
