@@ -862,15 +862,35 @@ var checkerStmts = map[string]string{
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[stringType]string{}, aString)`: ok,
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
-	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`,
-	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`,
+	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`, // TODO.
+	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
 
 	// Builtin function 'len'.
 	`_ = len([]int{})`: ok,
 	`len()`:            `missing argument to len: len()`,
 	`len(0)`:           `invalid argument 0 (type int) for len`,
 	`len(nil)`:         `use of untyped nil`,
-	// `len([]string{"", ""})`: `len([]string literal) evaluated but not used`,
+	// `len([]string{"", ""})`: `len([]string literal) evaluated but not used`, // TODO.
+
+	// Builtin function 'make'.
+	`_ = make(map[int]int)`:   ok,
+	`make()`:                  `missing argument to make`,
+	`make([]int)`:             `missing len argument to make([]int)`,
+	`make([]int, []int{})`:    `non-integer len argument in make([]int) - []int`,
+	`make([]int, 1.2)`:        `constant 1.2 truncated to integer`,
+	`make([]int, 1, 1.2)`:     `constant 1.2 truncated to integer`,
+	`make([]int, 0,0,0)`:      `too many arguments to make([]int)`,
+	`make([]int, -1)`:         `negative len argument in make([]int)`,
+	`make([]int, 1, -1)`:      `negative cap argument in make([]int)`,
+	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
+	`make(map[int]int, -1)`:   `negative size argument in make(map[int]int)`,
+	`make(string)`:            `cannot make type string`,
+	`make([2]int)`:            `cannot make type [2]int`,
+	// `make([]int, 10, 1)`:      `len larger than cap in make([]int)`, // TODO.
+	// `make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`, // TODO.
+	// `make([]int, 1, "")`:   `non-integer cap argument in make([]int) - untyped string`, // TODO.
+	// `make(map[int]int)`:       `make(map[int]int) evaluated but not used`, // TODO.
+	// `make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`, // TODO.
 }
 
 type pointInt struct{ X, Y int }

@@ -741,19 +741,12 @@ func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
 }
 
 func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
-	var ok bool
-	if len(node.Args) == 0 {
-		return nil, r.errorf(node, "missing argument to make")
-	}
 	typ, err := r.evalType(node.Args[0], noEllipses)
 	if err != nil {
 		return nil, err
 	}
 	switch typ.Kind() {
 	case reflect.Slice:
-		if len(node.Args) == 1 {
-			return nil, r.errorf(node, "missing len argument to make(%s)", node.Args[0])
-		}
 		// make([]T, len)
 		// make([]T, len, cap)
 		rawLength := r.evalExpression(node.Args[1])
@@ -763,10 +756,7 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 				return nil, err
 			}
 		}
-		length, ok := rawLength.(int)
-		if !ok {
-			return nil, r.errorf(node, "non-integer len argument in make(%s) - %s", node.Args[0], typeof(rawLength))
-		}
+		length := rawLength.(int)
 		var capacity int
 		if len(node.Args) >= 3 {
 			// make([]T, len, cap)
@@ -777,24 +767,9 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 					return nil, err
 				}
 			}
-			capacity, ok = rawCap.(int)
-			if !ok {
-				return nil, r.errorf(node, "non-integer cap argument in make(%s) - %s", node.Args[0], typeof(rawLength))
-			}
-			if capacity < length {
-				return nil, r.errorf(node, "len larger than cap in make(%s)", node.Args[0])
-			}
+			capacity = rawCap.(int)
 		} else {
 			capacity = length
-		}
-		if len(node.Args) > 3 {
-			return nil, r.errorf(node, "too many arguments to make(%s)", node.Args[0])
-		}
-		if length < 0 {
-			return nil, r.errorf(node, "negative len argument in make(%s)", node.Args[0])
-		}
-		if capacity < 0 {
-			return nil, r.errorf(node, "negative cap argument in make(%s)", node.Args[0])
 		}
 		return []reflect.Value{reflect.MakeSlice(typ, length, capacity)}, nil
 	case reflect.Map:
@@ -811,16 +786,7 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 				return nil, err
 			}
 		}
-		size, ok = rawSize.(int)
-		if !ok {
-			return nil, r.errorf(node, "non-integer size argument in make(%s) - %s", node.Args[0], typeof(rawSize))
-		}
-		if len(node.Args) > 2 {
-			return nil, r.errorf(node, "too many arguments to make(%s)", node.Args[0])
-		}
-		if size < 0 {
-			return nil, r.errorf(node, "negative size argument in make(%s)", node.Args[0])
-		}
+		size = rawSize.(int)
 		return []reflect.Value{reflect.MakeMapWithSize(typ, size)}, nil
 	default:
 		return nil, r.errorf(node, "cannot make type %s", node.Args[0])
