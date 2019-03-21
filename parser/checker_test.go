@@ -836,18 +836,13 @@ var checkerStmts = map[string]string{
 	`var a boolType = 1 == 1; _ = a`:    ok,
 	`var a interface{} = 1 == 1; _ = a`: ok,
 
-	// print and println builtins.
+	// Builtin functions 'print' and 'println'.
 	`print()`:         ok,
 	`print("a")`:      ok,
 	`print("a", 5)`:   ok,
 	`println()`:       ok,
 	`println("a")`:    ok,
 	`println("a", 5)`: ok,
-
-	// delete builtin.
-	`delete(map[string]string{}, "a")`:         ok,
-	`delete(aStringMap, "a")`:                  ok,
-	`delete(map[stringType]string{}, aString)`: ok,
 
 	// Builtin function 'append'.
 	`append()`:    `missing arguments to append`,
@@ -863,7 +858,10 @@ var checkerStmts = map[string]string{
 	// `copy(0,[]int{})`:          `first argument to copy should be slice; have int`, // TODO.
 
 	// Builtin function 'delete'.
-	`delete(nil, 0)`: `first argument to delete must be map; have nil`,
+	`delete(map[string]string{}, "a")`:         ok,
+	`delete(aStringMap, "a")`:                  ok,
+	`delete(map[stringType]string{}, aString)`: ok,
+	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
 	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`,
 	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`,
 
