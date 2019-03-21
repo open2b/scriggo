@@ -656,18 +656,6 @@ func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 	d := reflect.ValueOf(dst)
 	s := reflect.ValueOf(src)
-	dk := d.Type().Kind()
-	sk := s.Type().Kind()
-	switch {
-	case dk != reflect.Slice && sk != reflect.Slice:
-		return nil, r.errorf(node, "arguments to copy must be slices; have %s, %s", typeof(dst), typeof(src))
-	case dk != reflect.Slice:
-		return nil, r.errorf(node, "first argument to copy should be slice; have %s", typeof(dst))
-	case sk != reflect.Slice && sk != reflect.String:
-		return nil, r.errorf(node, "second argument to copy should be slice or string; have %s", typeof(src))
-	case sk == reflect.String && d.Elem().Type().Kind() != reflect.Uint8:
-		return nil, r.errorf(node, "arguments to copy have different element types: %s and %s", typeof(dst), typeof(src))
-	}
 	n = reflect.Copy(d, s)
 	return []reflect.Value{reflect.ValueOf(n)}, nil
 }

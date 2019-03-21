@@ -855,6 +855,12 @@ var checkerStmts = map[string]string{
 	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
 	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
 	// `append([]int{}, 0)`:         `append([]int literal, 0) evaluated but not used`, // TODO.
+
+	// Builtin function 'copy'.
+	`copy([]int{},[]string{})`: `arguments to copy have different element types: []int and []string`,
+	// `copy(0,0)`:                `arguments to copy must be slices; have int, int`, // TODO.
+	// `copy([]int{},0)`:          `second argument to copy should be slice or string; have int`, // TODO.
+	// `copy(0,[]int{})`:          `first argument to copy should be slice; have int`, // TODO.
 }
 
 type pointInt struct{ X, Y int }
