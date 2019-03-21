@@ -1184,10 +1184,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		}
 		array := reflect.New(typ).Elem()
 		elemType := array.Type().Elem()
-		indexValue, maxIndex := r.indexValueMap(node.KeyValues)
-		if maxIndex > typ.Len() {
-			panic(r.errorf(node, "array index %d out of bounds [0:%d]", maxIndex, typ.Len()))
-		}
+		indexValue, _ := r.indexValueMap(node.KeyValues)
 		for i, v := range indexValue {
 			var refValue reflect.Value
 			var evalValue interface{}
@@ -1204,12 +1201,6 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 				refValue = reflect.ValueOf(typed)
 			} else {
 				refValue = reflect.ValueOf(evalValue)
-				if refValue.Type() != typ.Elem() {
-					panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", v, refValue.Type(), typ.Elem()))
-				}
-			}
-			if refValue.Type() != typ.Elem() {
-				panic(r.errorf(node, "cannot use %v (type %T) as type %s in array literal", v, refValue.Type(), typ.Elem()))
 			}
 			array.Index(i).Set(refValue)
 		}
@@ -1236,9 +1227,6 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 				if err != nil {
 					panic(err)
 				}
-			}
-			if typeOf := reflect.TypeOf(evalValue); typeOf != typ.Elem() && !typeOf.Implements(typ.Elem()) {
-				panic(r.errorf(node, "cannot use %v (type %T) as type %s in slice literal", v, evalValue, typ.Elem()))
 			}
 			slice.Index(i).Set(reflect.ValueOf(evalValue))
 		}
@@ -1282,42 +1270,17 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		s := reflect.New(typ).Elem()
 		// Checks if struct composite literal contains explicit fields or not.
 		var explicitFields bool
-		{
-			mixPanic := func() {
-				panic(r.errorf(node, "mixture of field:value and value initializers"))
-			}
-			var declType int // 0 not determined, -1 implicit, 1 explicit
-			for _, kv := range node.KeyValues {
-				if kv.Key == nil {
-					if declType == 1 {
-						mixPanic()
-					}
-					declType = -1
-					continue
-				} else {
-					if declType == -1 {
-						mixPanic()
-					}
-					declType = 1
-				}
-			}
-			explicitFields = declType == 1
+		if len(node.KeyValues) > 0 {
+			explicitFields = node.KeyValues[0].Key != nil
 		}
 		if explicitFields {
 			for _, fv := range node.KeyValues {
 				val := r.evalExpression(fv.Value)
 				var refExpr reflect.Value
 				var field reflect.StructField
-				var ok bool
 				var ident *ast.Identifier
 				if cn, okcn := val.(ConstantNumber); okcn {
-					if ident, ok = fv.Key.(*ast.Identifier); !ok {
-						panic(r.errorf(node, "invalid field name %s in struct initializer", fv.Key))
-					}
-					field, ok = typ.FieldByName(fv.Key.(*ast.Identifier).Name)
-					if !ok {
-						panic(r.errorf(node, "unknown field '%s' in struct literal of type %s", field.Name, typ.Name()))
-					}
+					field, _ = typ.FieldByName(fv.Key.(*ast.Identifier).Name)
 					typed, err := cn.ToType(field.Type)
 					if err != nil {
 						panic(err)
@@ -1346,7 +1309,7 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 		}
 		return s.Interface()
 	}
-	panic(r.errorf(node, "invalid type for composite literal: %s", node))
+	return nil
 }
 
 const noEllipses = -1
