@@ -1348,7 +1348,6 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 
 	if p.typeCheck {
-		// TODO (Gianluca): what about importing of Go packages?
 		pkgInfo, err := checkPackage(tree, p.packages)
 		if err != nil {
 			return nil, err

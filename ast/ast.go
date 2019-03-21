@@ -243,7 +243,7 @@ func NewBlock(pos *Position, nodes []Node) *Block {
 type Package struct {
 	*Position
 	Name         string // name.
-	Declarations []Node // function declarations.
+	Declarations []Node
 }
 
 func NewPackage(pos *Position, name string, nodes []Node) *Package {

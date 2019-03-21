@@ -294,10 +294,78 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
+// TODO (Gianluca): add support for 'init()' functions.
+//
+// TODO (Gianluca): handle constants.
+func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
+
+	r := &rendering{
+		handleError: stopOnError,
+		packages:    pkgs,
+		path:        path,
+		scope:       map[string]scope{},
+		treeContext: ast.ContextNone,
+		vars:        []scope{builtins, {}, {}},
+	}
+
+	// nodes contains a list of declarations ordered by initialization
+	// priority.
+	nodes := make([]ast.Node, len(astPkg.Declarations))
+
+	// Constants.
+	// TODO (Gianluca): are they melt into code?
+	// for _, node := range astPkg.Declarations {
+	// 	if _, ok := node.(*ast.Const); ok {
+	// 		nodes = append(nodes, node)
+	// 	}
+	// }
+
+	// Imports.
+	for _, node := range astPkg.Declarations {
+		if _, ok := node.(*ast.Import); ok {
+			nodes = append(nodes, node)
+		}
+	}
+
+	// Functions.
+	for _, node := range astPkg.Declarations {
+		if _, ok := node.(*ast.Func); ok {
+			nodes = append(nodes, node)
+		}
+	}
+
+	// Global variables, following initialization order.
+	for _, varName := range pkgInfo.VariableOrdering {
+		for _, n := range astPkg.Declarations {
+			if varNode, ok := n.(*ast.Var); ok {
+				for i, ident := range varNode.Identifiers {
+					if ident.Name == varName {
+						if len(varNode.Identifiers) != len(varNode.Values) {
+							nodes = append(nodes, varNode)
+							break
+						}
+						newVarDecl := ast.NewVar(varNode.Pos(), []*ast.Identifier{ident}, nil, []ast.Expression{varNode.Values[i]})
+						nodes = append(nodes, newVarDecl)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	err := r.render(nil, nodes, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.vars[2], nil
+}
+
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]*Package) error {
+// TODO (Gianluca): aggiungere informazioni di typechecking come argomento (PackageInfo)
+func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parser.PackageInfo) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -326,19 +394,30 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package) error {
 		handleError: stopOnError,
 	}
 
-	err := r.render(nil, pkg.Declarations, nil)
+	// TODO (Gianluca): racchiudere in una funzione che restituisca il
+	// packageBlock:
+	// err := r.render(nil, pkg.Declarations, nil)
+	// if err != nil {
+	// 	return err
+	// }
+	// mf, ok := r.vars[2]["main"]
+	// if !ok {
+	// 	return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
+	// }
+	// r.scope[tree.Path] = r.vars[2]
+	// r.vars = append(r.vars, scope{})
+
+	var err error
+	r.vars[2], err = renderPackageBlock(pkg, pkgInfo, packages, tree.Path)
 	if err != nil {
 		return err
 	}
-
 	mf, ok := r.vars[2]["main"]
 	if !ok {
 		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
 	}
-
 	r.scope[tree.Path] = r.vars[2]
-	r.vars = append(r.vars, scope{})
-
+	r.vars = append(r.vars, scope{}) // adds 'main' function scope?
 	err = r.render(nil, mf.(function).node.Body.Nodes, nil)
 	if err != nil {
 		return err

@@ -58,7 +58,7 @@ func runScrigoAndGetOutput(src []byte) string {
 	for n, pkg := range packages {
 		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
 	}
-	err = scrigo.RunPackageTree(tree, pkgs)
+	err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfo("/main"))
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
