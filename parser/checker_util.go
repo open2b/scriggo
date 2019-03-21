@@ -351,7 +351,7 @@ func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 }
 
 // rangeOver returns the pair of elements (key, value) obtained from the
-// iteration over typ, if exist.
+// iteration over typ, if exists.
 func rangeOver(typ reflect.Type) (reflect.Type, reflect.Type, bool) {
 	switch typ.Kind() {
 	case reflect.Array, reflect.Slice:
