@@ -676,33 +676,20 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 	case map[interface{}]interface{}:
 		delete(v, k)
 	case map[string]string:
-		k, ok := k.(string)
-		if !ok {
-			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
-		}
-		delete(v, k)
+		delete(v, k.(string))
 	case map[string]int:
-		k, ok := k.(string)
-		if !ok {
-			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
-		}
-		delete(v, k)
+		delete(v, k.(string))
 	case map[string]interface{}:
-		k, ok := k.(string)
-		if !ok {
-			return nil, r.errorf(node, "cannot use %v (type %s) as type string in delete", k, typeof(k))
-		}
-		delete(v, k)
-	default:
-		rv := reflect.ValueOf(v)
-		if rv.Kind() != reflect.Map {
-			return nil, r.errorf(node, "first argument to delete must be map; have %s", typeof(m))
-		}
-		k := reflect.ValueOf(k)
-		if k.Type().AssignableTo(rv.Type().Key()) {
-			return nil, r.errorf(node, "cannot use %v (type %s) as type %s in delete", k, typeof(k), rv.Type().Key())
-		}
-		rv.SetMapIndex(k, reflect.Value{})
+		delete(v, k.(string))
+
+		// TODO (Gianluca): how can this error happen?
+		// default:
+		// 	rv := reflect.ValueOf(v)
+		// 	k := reflect.ValueOf(k)
+		// 	if k.Type().AssignableTo(rv.Type().Key()) {
+		// 		return nil, r.errorf(node, "cannot use %v (type %s) as type %s in delete", k, typeof(k), rv.Type().Key())
+		// 	}
+		// 	rv.SetMapIndex(k, reflect.Value{})
 	}
 	return nil, nil
 }

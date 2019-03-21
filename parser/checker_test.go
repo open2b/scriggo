@@ -861,6 +861,11 @@ var checkerStmts = map[string]string{
 	// `copy(0,0)`:                `arguments to copy must be slices; have int, int`, // TODO.
 	// `copy([]int{},0)`:          `second argument to copy should be slice or string; have int`, // TODO.
 	// `copy(0,[]int{})`:          `first argument to copy should be slice; have int`, // TODO.
+
+	// Builtin function 'delete'.
+	`delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`,
+	`delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`,
+	`delete(nil, 0)`:                      `first argument to delete must be map; have nil`,
 }
 
 type pointInt struct{ X, Y int }
