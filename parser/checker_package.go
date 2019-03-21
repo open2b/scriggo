@@ -63,11 +63,10 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 	}
 
 	tc := typechecker{
-		fileBlock:    make(typeCheckerScope),
-		hasBreak:     map[ast.Node]bool{},
-		packageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
-		scopes:       []typeCheckerScope{universe},
-		varDeps:      make(map[string][]string, 3), // TODO (Gianluca): to review.
+		hasBreak:         map[ast.Node]bool{},
+		filePackageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
+		scopes:           []typeCheckerScope{universe},
+		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
 	}
 
 	pkgInfo = &packageInfo{
@@ -113,13 +112,13 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 				}
 			}
 			if n.Ident == nil {
-				tc.fileBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+				tc.filePackageBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
 			} else {
 				switch n.Ident.Name {
 				case "_":
 				case ".":
 					// TODO (Gianluca): importing all declarations
-					// from package to fileblock has 2 problems:
+					// from package to filePageBlock has 2 problems:
 					// 1) it losts the package in which the function
 					// must be called;
 					// 2) cannot determine if package has been used,
@@ -128,25 +127,25 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 					// https://play.golang.org/p/uoePGjVei5v for
 					// further details).
 					for ident, ti := range importedPkg.Declarations {
-						tc.fileBlock[ident] = ti
+						tc.filePackageBlock[ident] = ti
 					}
 				default:
-					tc.fileBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+					tc.filePackageBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
 				}
 			}
 		case *ast.Const:
 			for i := range n.Identifiers {
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
-				tc.packageBlock[n.Identifiers[i].Name] = notChecked
+				tc.filePackageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.packageBlock[n.Identifiers[i].Name] = notChecked
+				tc.filePackageBlock[n.Identifiers[i].Name] = notChecked
 			}
 		case *ast.Func:
 			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
-			tc.packageBlock[n.Ident.Name] = notChecked
+			tc.filePackageBlock[n.Ident.Name] = notChecked
 		}
 	}
 
@@ -166,7 +165,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 					return nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
-			tc.packageBlock[c.Ident] = ti
+			tc.filePackageBlock[c.Ident] = ti
 		}
 	}
 
@@ -192,7 +191,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
 			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-			tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+			tc.filePackageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.initOrder = append(tc.initOrder, v.Ident)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
@@ -215,7 +214,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
-				tc.packageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
+				tc.filePackageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
 				if !tc.tryAddingToInitOrder(v.Ident) {
 					unresolvedDeps = true
 				}
@@ -225,7 +224,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 	tc.temporaryEvaluated = nil
 
 	pkgInfo.Declarations = make(map[string]*ast.TypeInfo)
-	for ident, ti := range tc.packageBlock {
+	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti
 	}
 

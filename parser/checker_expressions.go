@@ -110,17 +110,15 @@ type scopeVariable struct {
 }
 
 // typechecker represents the state of a type checking.
-// TODO (Gianluca): join fileBlock and packageBlock, making them a single block.
 type typechecker struct {
-	path         string
-	imports      map[string]packageInfo // TODO (Gianluca): review!
-	fileBlock    typeCheckerScope
-	packageBlock typeCheckerScope
-	scopes       []typeCheckerScope
-	ancestors    []*ancestor
-	terminating  bool // https://golang.org/ref/spec#Terminating_statements
-	hasBreak     map[ast.Node]bool
-	unusedVars   []*scopeVariable
+	path             string
+	imports          map[string]packageInfo // TODO (Gianluca): review!
+	filePackageBlock typeCheckerScope
+	scopes           []typeCheckerScope
+	ancestors        []*ancestor
+	terminating      bool // https://golang.org/ref/spec#Terminating_statements
+	hasBreak         map[ast.Node]bool
+	unusedVars       []*scopeVariable
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -183,12 +181,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*ast.Ty
 			}
 		}
 	}
-	for n, ti := range tc.packageBlock {
-		if n == name {
-			return ti, true
-		}
-	}
-	for n, ti := range tc.fileBlock {
+	for n, ti := range tc.filePackageBlock {
 		if n == name {
 			return ti, true
 		}
