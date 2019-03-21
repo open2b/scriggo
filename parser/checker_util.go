@@ -320,6 +320,7 @@ func rangeOver(typ reflect.Type) (reflect.Type, reflect.Type, bool) {
 		return intType, typ.Elem().Elem(), true
 	case reflect.Chan:
 		// TODO (Gianluca): «...or channel permitting receive operations...»
+		// Use reflect.Type.ChanDir()
 		return nil, nil, false
 	default:
 		return nil, nil, false

@@ -84,7 +84,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.For:
 
-			// TODO (Gianluca): check if can iterate over element.
 			terminating := true
 			tc.addScope()
 			tc.addToAncestors(node)
@@ -309,7 +308,6 @@ func (tc *typechecker) checkCaseExpressionSwitch(node *ast.Case, switchExpr ast.
 
 }
 
-// TODO (Gianluca): handle case 2 of Go return specifications:
 // https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 
