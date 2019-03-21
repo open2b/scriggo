@@ -555,12 +555,16 @@ var checkerStmts = map[string]string{
 	`v := 1; v = 2; _ = v`:                                          ok,
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`:                       ok,
+	`a := 0; b := &a; b[0] = 2`:                                     `invalid operation: b[0] (type *int does not support indexing)`,
 	`f := func() (int, int) { return 0, 0 }; f() = 0`:               `multiple-value f() in single-value context`,
 	`f := func() (int, int) { return 0, 0 }; var a, b string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 	`f := func() { }; f() = 0`:                                      `f() used as value`,
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
 	`f := func() int { return 0 }; f() = 1`:                         `cannot assign to f()`,
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
+	// `len = 0`:                                                       `use of builtin len not in function call`, // TODO.
+	// `a := 0; -a = 1`:                                                `cannot assign to -a`, // TODO.
+	// `a := 0; *a = 1`:                                                `invalid indirect of a (type int)`, // TODO.
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,

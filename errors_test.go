@@ -60,7 +60,9 @@ var errorTests = []struct {
 	{"{% a := int(nil) %}ok", "ok", nil},
 }
 
-func TestErrors(t *testing.T) {
+// TODO (Gianluca): error checking in renderer is no longer supported. Consider
+// removing these tests or moving them to the typechecker.
+func NoTestErrors(t *testing.T) {
 	for _, expr := range errorTests {
 		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
 		if err != nil {

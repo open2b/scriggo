@@ -7,11 +7,8 @@
 package scrigo
 
 import (
-	"fmt"
 	"math/big"
 	"reflect"
-	"unicode"
-	"unicode/utf8"
 
 	"scrigo/ast"
 )
@@ -102,8 +99,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			_ = address.assign(cn)
 		case CustomNumber:
 			n.Inc()
-		default:
-			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(n))
 		}
 	case ast.AssignmentDecrement:
 		address, err := r.address(node.Variables[0], nil)
@@ -144,8 +139,6 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			_ = address.assign(cn)
 		case CustomNumber:
 			n.Dec()
-		default:
-			return r.errorf(node, "invalid operation: %s (non-numeric type %s)", node, typeof(n))
 		}
 	default:
 		address, err := r.address(node.Variables[0], nil)
@@ -291,14 +284,8 @@ type bytesAddress struct {
 }
 
 func (addr bytesAddress) assign(value interface{}) error {
-	if b, ok := value.(byte); ok {
-		addr.Bytes[addr.Index] = b
-		return nil
-	}
-	if addr.Expr == nil {
-		return fmt.Errorf("cannot assign %s to %s (type byte) in multiple assignment", typeof(value), addr.Var)
-	}
-	return fmt.Errorf("cannot use %s (type %s) as type byte in assignment", addr.Expr, typeof(value))
+	addr.Bytes[addr.Index] = value.(byte)
+	return nil
 }
 
 func (addr bytesAddress) value() interface{} {
@@ -320,18 +307,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 					case reference:
 						return varAddress{vvv.rv}, nil
 					default:
-						if j == 0 {
-							if vt, ok := vv.(reflect.Type); ok {
-								return nil, r.errorf(variable, "type %s is not an expression", vt)
-							}
-							if v != nil && reflect.TypeOf(v).Kind() == reflect.Func {
-								return nil, r.errorf(v, "use of builtin %s not in function call", v.Name)
-							}
-							return nil, r.errorf(v, "cannot assign to %s", v.Name)
-						}
-						if j == 1 {
-							return nil, r.errorf(v, "cannot assign to %s", v.Name)
-						}
 						if m, ok := vv.(macro); ok {
 							return nil, r.errorf(v, "cannot assign to a macro (macro %s declared at %s:%s)",
 								v.Name, m.path, m.node.Pos())
@@ -342,35 +317,15 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 				}
 			}
 		}
-		if addr == nil {
-			return nil, r.errorf(v, "variable %s not declared", v.Name)
-		}
 	case *ast.Selector:
 		value, err := r.eval(v.Expr)
 		if err != nil {
 			return nil, err
 		}
-		switch vv := value.(type) {
-		case *Package:
-			vvv, ok := vv.Declarations[v.Ident]
-			if !ok {
-				if fc, _ := utf8.DecodeRuneInString(v.Ident); !unicode.Is(unicode.Lu, fc) {
-					return nil, r.errorf(variable, "cannot refer to unexported name %s", variable)
-				}
-				return nil, r.errorf(variable, "undefined: %s", variable)
-			}
-			rv := reflect.ValueOf(vvv)
-			if rv.Kind() != reflect.Ptr {
-				return nil, r.errorf(variable, "cannot assign to %s", variable)
-			}
-			addr = varAddress{Value: rv.Elem()}
-		default:
-			return nil, r.errorf(variable, "%s undefined (type %s has no field or method %s)", variable, typeof(variable), v.Ident)
-		}
+		vvv := value.(*Package).Declarations[v.Ident]
+		rv := reflect.ValueOf(vvv)
+		addr = varAddress{Value: rv.Elem()}
 	case *ast.UnaryOperator:
-		if v.Operator() != ast.OperatorMultiplication {
-			panic(fmt.Sprintf("expected a multiplication operator (*), got operator %v", v.Operator()))
-		}
 		ptrRaw, err := r.eval(v.Expr)
 		if err != nil {
 			return nil, err
@@ -379,9 +334,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			return nil, r.errorf(variable, "nil pointer dereference")
 		}
 		ptr := reflect.ValueOf(ptrRaw)
-		if ptr.Kind() != reflect.Ptr {
-			return nil, r.errorf(variable, "invalid indirect of %s (type %s)", v.Expr, ptr.Type())
-		}
 		addr = varAddress{Value: reflect.Indirect(ptr)}
 	case *ast.Index:
 		value, err := r.eval(v.Expr)
@@ -389,6 +341,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 			return nil, err
 		}
 		switch val := value.(type) {
+		// TODO (Gianluca): remove?
 		case Bytes:
 			index, err := r.sliceIndex(v.Index)
 			if err != nil {
@@ -420,9 +373,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 				}
 				addr = goSliceAddress{Slice: rv, Index: index}
 			case reflect.Ptr:
-				if rv.Elem().Kind() != reflect.Array {
-					return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, typeof(variable))
-				}
 				index, err := r.sliceIndex(v.Index)
 				if err != nil {
 					return nil, err
@@ -431,8 +381,6 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 					return nil, r.errorf(variable, "index out of range")
 				}
 				addr = goSliceAddress{Slice: rv.Elem(), Index: index}
-			default:
-				return nil, r.errorf(v, "invalid operation: %s (type %s does not support indexing)", variable, typeof(variable))
 			}
 		}
 	}
@@ -451,7 +399,6 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 			r.vars[len(r.vars)-1] = scope{}
 		}
 		vars = r.vars[len(r.vars)-1]
-		var newVariables bool
 		for i, variable := range node.Variables {
 			ident := variable.(*ast.Identifier)
 			if ident.Name == "_" {
@@ -463,13 +410,8 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 					return nil, r.errorf(ident, "cannot assign to a macro (macro %s declared at %s:%s)",
 						ident.Name, m.path, m.node.Pos())
 				}
-			} else {
-				newVariables = true
 			}
 			addresses[i] = scopeAddress{Scope: vars, Var: ident.Name}
-		}
-		if !newVariables {
-			return nil, r.errorf(node, "no new variables on left side of :=")
 		}
 
 	} else {
