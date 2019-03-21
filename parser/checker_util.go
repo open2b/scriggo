@@ -350,30 +350,6 @@ func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 	return nil, false
 }
 
-// rangeOver returns the pair of elements (key, value) obtained from the
-// iteration over typ, if exists.
-func rangeOver(typ reflect.Type) (reflect.Type, reflect.Type, bool) {
-	switch typ.Kind() {
-	case reflect.Array, reflect.Slice:
-		return intType, typ.Elem(), true
-	case reflect.Map:
-		return typ.Key(), typ.Elem(), true
-	case reflect.String:
-		return intType, reflect.TypeOf(rune(' ')), true
-	case reflect.Ptr:
-		if typ.Elem().Kind() != reflect.Array {
-			return nil, nil, false
-		}
-		return intType, typ.Elem().Elem(), true
-	case reflect.Chan:
-		// TODO (Gianluca): «...or channel permitting receive operations...»
-		// Use reflect.Type.ChanDir()
-		return nil, nil, false
-	default:
-		return nil, nil, false
-	}
-}
-
 // representedBy returns a constant value represented as a value of type t2.
 func representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 

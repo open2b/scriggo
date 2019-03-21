@@ -127,8 +127,32 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					panic(tc.errorf(node, "too many variables in range"))
 				}
 				rangeExpr := tc.checkExpression(node.Assignment.Values[0])
-				key, elem, ok := rangeOver(rangeExpr.Type)
-				if !ok {
+				var key, elem reflect.Type
+				switch typ := rangeExpr.Type; typ.Kind() {
+				case reflect.Array, reflect.Slice:
+					key = intType
+					elem = typ.Elem()
+				case reflect.Map:
+					key = typ.Key()
+					elem = typ.Elem()
+				case reflect.String:
+					key = intType
+					elem = reflect.TypeOf(rune(' '))
+				case reflect.Ptr:
+					if typ.Elem().Kind() != reflect.Array {
+						panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
+					}
+					key = intType
+					elem = typ.Elem().Elem()
+				case reflect.Chan:
+					if typ.ChanDir() == reflect.RecvDir {
+						panic(tc.errorf(node.Assignment.Values[0], "invalid operation: range %s (receive from send-only type %s)", node.Assignment.Values[0], rangeExpr.String()))
+					}
+					if len(node.Assignment.Variables) == 2 {
+						panic(tc.errorf(node, "too many variables in range"))
+					}
+					elem = typ.Elem()
+				default:
 					panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
 				}
 				keyTi := &ast.TypeInfo{Type: key, Properties: ast.PropertyAddressable}
