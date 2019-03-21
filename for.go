@@ -42,19 +42,11 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 					}
 					return err
 				}
-				switch v := cond.(type) {
-				case bool:
-					if !v {
-						r.vars = r.vars[:len(r.vars)-1]
-						return nil
-					}
-				default:
-					err = r.errorf(node, "non-bool %s (type %s) used as if condition", cond, typeof(cond))
-					if !r.handleError(err) {
-						return err
-					}
+				if !cond.(bool) {
+					r.vars = r.vars[:len(r.vars)-1]
 					return nil
 				}
+
 			}
 
 			r.vars = append(r.vars, scope{})
@@ -409,12 +401,6 @@ func (r *rendering) renderFor(wr io.Writer, node ast.Node, urlstate *urlState) e
 						}
 					}
 				}
-			default:
-				err = r.errorf(node, "cannot range over %s (type %s)", n.Assignment.Values[0], typeof(value))
-				if r.handleError(err) {
-					return nil
-				}
-				return err
 			}
 		}
 
