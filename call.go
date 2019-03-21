@@ -735,8 +735,6 @@ func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
 			length = rv.Len()
 		case reflect.Map:
 			length = rv.Len()
-		default:
-			return nil, r.errorf(arg, "invalid argument %s (type %s) for len", arg, typeof(v))
 		}
 	}
 	return []reflect.Value{reflect.ValueOf(length)}, nil

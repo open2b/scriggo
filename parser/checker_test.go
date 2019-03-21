@@ -863,9 +863,16 @@ var checkerStmts = map[string]string{
 	// `copy(0,[]int{})`:          `first argument to copy should be slice; have int`, // TODO.
 
 	// Builtin function 'delete'.
-	`delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`,
-	`delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`,
-	`delete(nil, 0)`:                      `first argument to delete must be map; have nil`,
+	`delete(nil, 0)`: `first argument to delete must be map; have nil`,
+	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`,
+	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`,
+
+	// Builtin function 'len'.
+	`_ = len([]int{})`: ok,
+	`len()`:            `missing argument to len: len()`,
+	`len(0)`:           `invalid argument 0 (type int) for len`,
+	`len(nil)`:         `use of untyped nil`,
+	// `len([]string{"", ""})`: `len([]string literal) evaluated but not used`,
 }
 
 type pointInt struct{ X, Y int }
