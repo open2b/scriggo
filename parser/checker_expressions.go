@@ -290,8 +290,13 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 	// Global declaration.
 	if i == notChecked {
 		switch d := tc.getDecl(ident.Name); d.DeclarationType {
-		case DeclarationConstant, DeclarationVariable:
+		case DeclarationConstant:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
+			tc.temporaryEvaluated[ident.Name] = ti
+			return ti
+		case DeclarationVariable:
+			ti := tc.checkExpression(d.Value.(ast.Expression))
+			ti.Properties |= ast.PropertyAddressable
 			tc.temporaryEvaluated[ident.Name] = ti
 			return ti
 		case DeclarationFunction:

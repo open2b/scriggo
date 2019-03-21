@@ -291,10 +291,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 		variableTi := tc.checkIdentifier(v, false)
 		if !variableTi.Addressable() {
-			panic(tc.errorf(node, "cannot assign to %v", variable))
+			panic(tc.errorf(variable, "cannot assign to %v", variable))
 		}
 		if !isAssignableTo(valueTi, variableTi.Type) {
-			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
+			panic(tc.errorf(value, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
 
 	case *ast.Index:
