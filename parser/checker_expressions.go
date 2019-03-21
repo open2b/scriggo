@@ -119,6 +119,7 @@ type typechecker struct {
 	terminating      bool // https://golang.org/ref/spec#Terminating_statements
 	hasBreak         map[ast.Node]bool
 	unusedVars       []*scopeVariable
+	unusedImports    map[string][]string
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -243,6 +244,17 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.T
 	i, ok := tc.lookupScopes(ident.Name, false)
 	if !ok {
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
+	}
+
+	// For "." imported packages, marks package as used.
+ImportsLoop:
+	for pkg, decls := range tc.unusedImports {
+		for _, d := range decls {
+			if d != ident.Name {
+				delete(tc.unusedImports, pkg)
+				break ImportsLoop
+			}
+		}
 	}
 
 	if tmpTi, ok := tc.temporaryEvaluated[ident.Name]; ok {
@@ -627,6 +639,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			ti, ok := tc.lookupScopes(ident.Name, false)
 			if ok {
 				if ti.IsPackage() {
+					delete(tc.unusedImports, ident.Name)
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 					}

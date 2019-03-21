@@ -67,6 +67,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		filePackageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
 		scopes:           []typeCheckerScope{universe},
 		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
+		unusedImports:    make(map[string][]string),
 	}
 
 	pkgInfo = &PackageInfo{
@@ -113,24 +114,19 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			}
 			if n.Ident == nil {
 				tc.filePackageBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+				tc.unusedImports[importedPkg.Name] = nil
 			} else {
 				switch n.Ident.Name {
 				case "_":
 				case ".":
-					// TODO (Gianluca): importing all declarations
-					// from package to filePageBlock has 2 problems:
-					// 1) it losts the package in which the function
-					// must be called;
-					// 2) cannot determine if package has been used,
-					// so it's impossibile to check for "imported but
-					// not used" error when importing with "." (see
-					// https://play.golang.org/p/uoePGjVei5v for
-					// further details).
+					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {
+						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
 						tc.filePackageBlock[ident] = ti
 					}
 				default:
 					tc.filePackageBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+					tc.unusedImports[n.Ident.Name] = nil
 				}
 			}
 		case *ast.Const:
@@ -239,6 +235,11 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		}
 	}
 	tc.temporaryEvaluated = nil
+
+	for pkg := range tc.unusedImports {
+		// TODO (Gianluca): position is not correct.
+		return nil, tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
+	}
 
 	pkgInfo.Declarations = make(map[string]*ast.TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
