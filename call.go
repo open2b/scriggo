@@ -655,28 +655,12 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 // evalAppend evaluates the append builtin function.
 func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
 
-	if len(node.Args) == 0 {
-		return nil, r.errorf(node, "missing arguments to append")
-	}
-
 	slice, err := r.eval(node.Args[0])
 	if err != nil {
 		return nil, err
 	}
-	if slice == nil && r.isBuiltin("nil", node.Args[0]) {
-		return nil, r.errorf(node, "first argument to append must be typed slice; have untyped nil")
-	}
 
 	t := reflect.TypeOf(slice)
-	if t.Kind() != reflect.Slice {
-		return nil, r.errorf(node, "first argument to append must be slice; have %s", t)
-	}
-	if n == 0 {
-		return nil, r.errorf(node, "%s evaluated but not used", node)
-	}
-	if n > 1 {
-		return nil, r.errorf(node, "assignment mismatch: %d variables but 1 values", n)
-	}
 
 	m := len(node.Args) - 1
 	if m == 0 {
