@@ -250,22 +250,6 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([
 	return values, err
 }
 
-func (r *rendering) checkBuiltInParameterCount(node *ast.Call, numIn, numOut, n int) error {
-	if len(node.Args) < numIn {
-		return r.errorf(node, "missing argument to %s: %s", node.Func, node)
-	}
-	if len(node.Args) > numIn {
-		return r.errorf(node, "too many arguments to %s: %s", node.Func, node)
-	}
-	if numOut == 0 && n > 0 {
-		return r.errorf(node, "%s used as value", node)
-	}
-	if n != numOut {
-		return r.errorf(node, "assignment mismatch: %d variables but %d values", n, numOut)
-	}
-	return nil
-}
-
 var errCannotConvert = errors.New("cannot convert")
 
 // convert converts the val of expr to type typ.
@@ -619,10 +603,6 @@ func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
 
 // evalCopy evaluates the copy builtin function.
 func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
-	err := r.checkBuiltInParameterCount(node, 2, 1, n)
-	if err != nil {
-		return nil, err
-	}
 	dst := r.evalExpression(node.Args[0])
 	src := r.evalExpression(node.Args[1])
 	switch d := dst.(type) {
@@ -662,10 +642,6 @@ func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
 
 // evalDelete evaluates the delete builtin function.
 func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
-	err := r.checkBuiltInParameterCount(node, 2, 0, n)
-	if err != nil {
-		return nil, err
-	}
 	m := r.evalExpression(node.Args[0])
 	k, err := r.mapIndex(node.Args[1], interfaceType)
 	if err != nil {
@@ -696,10 +672,6 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 
 // evalLen evaluates the len builtin function.
 func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
-	err := r.checkBuiltInParameterCount(node, 1, 1, n)
-	if err != nil {
-		return nil, err
-	}
 	arg := node.Args[0]
 	v := r.evalExpression(arg)
 	var length int
@@ -794,10 +766,6 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 
 // evalNew evaluates the new builtin function.
 func (r *rendering) evalNew(node *ast.Call, n int) ([]reflect.Value, error) {
-	err := r.checkBuiltInParameterCount(node, 1, 1, n)
-	if err != nil {
-		return nil, err
-	}
 	typ, err := r.evalType(node.Args[0], noEllipses)
 	if err != nil {
 		return nil, err
@@ -826,15 +794,11 @@ goroutine [running]:
 
 // evalPanic evaluates the panic builtin function.
 func (r *rendering) evalPanic(node *ast.Call, n int) ([]reflect.Value, error) {
-	err := r.checkBuiltInParameterCount(node, 1, 0, n)
-	if err != nil {
-		return nil, err
-	}
 	v, err := r.eval(node.Args[0])
 	if err != nil {
 		return nil, err
 	}
-	// TODO (Gianluca): how to convert v to string properly? This convertion
+	// TODO (Gianluca): how to convert v to string properly? This conversion
 	// does not work for constant numbers.
 	return nil, ErrorPanic{fmt.Errorf("%v", v), node}
 }
