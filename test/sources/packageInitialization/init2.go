@@ -4,6 +4,8 @@ package main
 
 import "fmt"
 
+// The inizialization order is: [B, A], because A depends on B.
+
 var A = B
 var B = 10
 
