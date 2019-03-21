@@ -145,6 +145,9 @@ var templateBuiltins = scope{
 	"trimSuffix":  strings.TrimSuffix,
 }
 
+// TODO (Gianluca): review all builtin functions, and find a proper place for
+// error checking.
+
 // _abbreviate is the builtin function "abbreviate".
 func _abbreviate(s string, n int) string {
 	s = strings.TrimRight(s, spaces)
@@ -231,26 +234,11 @@ func _abs(n interface{}) interface{} {
 // _append is the builtin function "append".
 func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
 
-	if len(node.Args) == 0 {
-		return reflect.Value{}, r.errorf(node, "missing arguments to append")
-	}
 	slice, err := r.eval(node.Args[0])
 	if err != nil {
 		return reflect.Value{}, err
 	}
-	if slice == nil && r.isBuiltin("nil", node.Args[0]) {
-		return reflect.Value{}, r.errorf(node, "first argument to append must be typed slice; have untyped nil")
-	}
 	t := reflect.TypeOf(slice)
-	if t.Kind() != reflect.Slice {
-		return reflect.Value{}, r.errorf(node, "first argument to append must be slice; have %s", t)
-	}
-	if n == 0 {
-		return reflect.Value{}, r.errorf(node, "%s evaluated but not used", node)
-	}
-	if n > 1 {
-		return reflect.Value{}, r.errorf(node, "assignment mismatch: %d variables but 1 values", n)
-	}
 
 	m := len(node.Args) - 1
 	if m == 0 {

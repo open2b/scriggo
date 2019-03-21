@@ -836,6 +836,13 @@ var checkerStmts = map[string]string{
 	`delete(map[string]string{}, "a")`:         ok,
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[stringType]string{}, aString)`: ok,
+
+	// Builtin function 'append'.
+	`append()`:    `missing arguments to append`,
+	`append(nil)`: `first argument to append must be typed slice; have untyped nil`,
+	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
+	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
+	// `append([]int{}, 0)`:         `append([]int literal, 0) evaluated but not used`, // TODO.
 }
 
 type pointInt struct{ X, Y int }
