@@ -788,9 +788,8 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 		}
 		size = rawSize.(int)
 		return []reflect.Value{reflect.MakeMapWithSize(typ, size)}, nil
-	default:
-		return nil, r.errorf(node, "cannot make type %s", node.Args[0])
 	}
+	return nil, nil
 }
 
 // evalNew evaluates the new builtin function.
