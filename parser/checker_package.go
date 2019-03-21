@@ -135,18 +135,30 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			}
 		case *ast.Const:
 			for i := range n.Identifiers {
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
-				tc.filePackageBlock[n.Identifiers[i].Name] = notChecked
+				name := n.Identifiers[i].Name
+				if _, ok := tc.filePackageBlock[name]; ok {
+					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
+				}
+				tc.filePackageBlock[name] = notChecked
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Identifiers[i].Name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.filePackageBlock[n.Identifiers[i].Name] = notChecked
+				name := n.Identifiers[i].Name
+				if _, ok := tc.filePackageBlock[name]; ok {
+					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
+				}
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.filePackageBlock[name] = notChecked
 			}
 		case *ast.Func:
 			if n.Ident.Name == "init" {
 				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {
 					panic(tc.errorf(n.Ident, "func init must have no arguments and no return values"))
+				}
+			} else {
+				if _, ok := tc.filePackageBlock[n.Ident.Name]; ok {
+					panic(tc.errorf(n.Ident, "%s redeclared in this block", n.Ident.Name))
 				}
 			}
 			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
