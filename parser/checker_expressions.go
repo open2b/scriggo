@@ -112,7 +112,7 @@ type scopeVariable struct {
 // typechecker represents the state of a type checking.
 type typechecker struct {
 	path             string
-	imports          map[string]packageInfo // TODO (Gianluca): review!
+	imports          map[string]PackageInfo // TODO (Gianluca): review!
 	filePackageBlock typeCheckerScope
 	scopes           []typeCheckerScope
 	ancestors        []*ancestor
@@ -625,7 +625,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 					}
-					pkg := ti.Value.(*packageInfo)
+					pkg := ti.Value.(*PackageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
 						panic(tc.errorf(expr, "undefined: %v", expr))

@@ -1297,7 +1297,7 @@ type Parser struct {
 	packages map[string]*GoPackage
 	trees    *cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
-	packageInfos map[string]*packageInfo // key is path.
+	packageInfos map[string]*PackageInfo // key is path.
 	typeCheck    bool
 }
 
@@ -1311,7 +1311,7 @@ func New(r Reader, packages map[string]*GoPackage, typeCheck bool) *Parser {
 		typeCheck: typeCheck,
 	}
 	if typeCheck {
-		p.packageInfos = make(map[string]*packageInfo)
+		p.packageInfos = make(map[string]*PackageInfo)
 	}
 	return p
 }
@@ -1362,7 +1362,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 // TypeCheckInfo returns the type checking formations related to path. Parsing
 // of path must be succesfully completed before calling this method, otherwise a
 // panic is invoked.
-func (p *Parser) TypeCheckInfo(path string) *packageInfo {
+func (p *Parser) TypeCheckInfo(path string) *PackageInfo {
 	pkgInfo, ok := p.packageInfos[path]
 	if !ok {
 		panic("no type-checking infos about path")

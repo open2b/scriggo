@@ -16,14 +16,14 @@ type GoPackage struct {
 	Declarations map[string]interface{}
 }
 
-type packageInfo struct {
+type PackageInfo struct {
 	Name                 string
 	Declarations         map[string]*ast.TypeInfo
 	VariableOrdering     []string                 // ordering of initialization of global variables.
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 }
 
-func (pi *packageInfo) String() string {
+func (pi *PackageInfo) String() string {
 	s := "{\n"
 	s += "\tName:                 " + pi.Name + "\n"
 	s += "\tDeclarations:\n"
@@ -40,7 +40,7 @@ func (pi *packageInfo) String() string {
 // declaration.
 var notChecked = &ast.TypeInfo{}
 
-func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packageInfo, err error) {
+func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *PackageInfo, err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -69,7 +69,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
 	}
 
-	pkgInfo = &packageInfo{
+	pkgInfo = &PackageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*ast.TypeInfo, len(packageNode.Declarations)),
 	}
@@ -77,7 +77,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *packa
 	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
 		case *ast.Import:
-			importedPkg := &packageInfo{}
+			importedPkg := &PackageInfo{}
 			if n.Tree == nil {
 				// Go package.
 				goPkg, ok := imports[n.Path]
