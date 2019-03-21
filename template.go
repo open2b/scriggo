@@ -394,19 +394,6 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parse
 		handleError: stopOnError,
 	}
 
-	// TODO (Gianluca): racchiudere in una funzione che restituisca il
-	// packageBlock:
-	// err := r.render(nil, pkg.Declarations, nil)
-	// if err != nil {
-	// 	return err
-	// }
-	// mf, ok := r.vars[2]["main"]
-	// if !ok {
-	// 	return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
-	// }
-	// r.scope[tree.Path] = r.vars[2]
-	// r.vars = append(r.vars, scope{})
-
 	var err error
 	r.vars[2], err = renderPackageBlock(pkg, pkgInfo, packages, tree.Path)
 	if err != nil {
