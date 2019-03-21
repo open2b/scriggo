@@ -358,8 +358,8 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 // a type or a package.
 func (tc *typechecker) checkExpression(expr ast.Expression) *ast.TypeInfo {
 	ti := tc.typeof(expr, noEllipses)
-	if ti.IsType() || ti.IsPackage() {
-		panic(tc.errorf(expr, "%s is not an expression", ti))
+	if ti.IsType() {
+		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
 	expr.SetTypeInfo(ti)
 	return ti
