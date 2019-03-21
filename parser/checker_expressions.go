@@ -1026,7 +1026,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					if numArgs > 2 {
 						c := tc.checkSize(expr.Args[2], t.Type, "cap")
 						if l != -1 && c != -1 && l > c {
-							panic(tc.errorf(expr, "len larger than cap in in make(%s)", t.Type))
+							panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
 						}
 					}
 				}

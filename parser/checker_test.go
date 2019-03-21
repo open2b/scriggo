@@ -890,7 +890,7 @@ var checkerStmts = map[string]string{
 	`make(map[int]int, -1)`:   `negative size argument in make(map[int]int)`,
 	`make(string)`:            `cannot make type string`,
 	`make([2]int)`:            `cannot make type [2]int`,
-	// `make([]int, 10, 1)`:      `len larger than cap in make([]int)`, // TODO.
+	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
 	// `make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`, // TODO.
 	// `make([]int, 1, "")`:   `non-integer cap argument in make([]int) - untyped string`, // TODO.
 	// `make(map[int]int)`:       `make(map[int]int) evaluated but not used`, // TODO.
