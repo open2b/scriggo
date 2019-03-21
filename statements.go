@@ -234,15 +234,7 @@ Nodes:
 					}
 					expr = false
 				}
-				switch v := expr.(type) {
-				case bool:
-					c = v
-				default:
-					err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Condition, typeof(expr))
-					if !r.handleError(err) {
-						return err
-					}
-				}
+				c = expr.(bool)
 			}
 			if c {
 				if node.Then != nil && len(node.Then.Nodes) > 0 {
@@ -490,10 +482,6 @@ Nodes:
 			}
 			result := r.function.node.Type.Result
 			size := len(result)
-			if len(node.Values) != size {
-				// TODO(marco): returns better error message
-				return r.errorf(node, "too many or too few arguments to return")
-			}
 			if size == 0 {
 				return nil
 			}
@@ -517,9 +505,6 @@ Nodes:
 				}
 				v, err = asAssignableTo(v, types[i])
 				if err != nil {
-					if err == errNotAssignable {
-						err = r.errorf(value, "cannot use %s (type %s) as type %s in return argument", v, typeof(v), types[i])
-					}
 					return err
 				}
 				ret.args[i] = v
@@ -656,44 +641,6 @@ Nodes:
 
 			haveSize := len(node.Arguments)
 			wantSize := len(m.node.Parameters)
-			if (!isVariadic && haveSize != wantSize) || (isVariadic && haveSize < wantSize-1) {
-				have := "("
-				for i := 0; i < haveSize; i++ {
-					if i > 0 {
-						have += ", "
-					}
-					if i < wantSize {
-						have += m.node.Parameters[i].Name
-					} else {
-						have += "?"
-					}
-				}
-				have += ")"
-				want := "("
-				for i, p := range m.node.Parameters {
-					if i > 0 {
-						want += ", "
-					}
-					want += p.Name
-					if i == wantSize-1 && isVariadic {
-						want += "..."
-					}
-				}
-				want += ")"
-				name := node.Macro.Name
-				if node.Import != nil {
-					name = node.Import.Name + " " + name
-				}
-				if haveSize < wantSize {
-					err = r.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-				} else {
-					err = r.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-				}
-				if r.handleError(err) {
-					continue
-				}
-				return err
-			}
 
 			var last = wantSize - 1
 			var arguments = scope{}
@@ -735,6 +682,7 @@ Nodes:
 
 			if r.treeContext == ast.ContextNone {
 				if node.Tree == nil {
+					// TODO (Gianluca): should be removed?
 					pkg, ok := r.packages[node.Path]
 					if !ok {
 						return r.errorf(node, "cannot find package %q", node.Path)
