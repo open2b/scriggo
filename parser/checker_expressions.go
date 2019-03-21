@@ -951,13 +951,13 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			dk := dst.Type.Kind()
 			sk := src.Type.Kind()
 			if dk != reflect.Slice && sk != reflect.Slice {
-				panic(tc.errorf(expr, "arguments to copy must be slices; have %s, %s", dst, src))
+				panic(tc.errorf(expr, "arguments to copy must be slices; have %s, %s", dst.ShortString(), src.ShortString()))
 			}
 			if dk != reflect.Slice {
-				panic(tc.errorf(expr, "first argument to copy should be slice; have %s", dst))
+				panic(tc.errorf(expr, "first argument to copy should be slice; have %s", dst.ShortString()))
 			}
 			if sk != reflect.Slice && sk != reflect.String {
-				panic(tc.errorf(expr, "second argument to copy should be slice or string; have %s", src))
+				panic(tc.errorf(expr, "second argument to copy should be slice or string; have %s", src.ShortString()))
 			}
 			if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
 				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))

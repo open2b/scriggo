@@ -857,9 +857,9 @@ var checkerStmts = map[string]string{
 
 	// Builtin function 'copy'.
 	`copy([]int{},[]string{})`: `arguments to copy have different element types: []int and []string`,
-	// `copy(0,0)`:                `arguments to copy must be slices; have int, int`, // TODO.
-	// `copy([]int{},0)`:          `second argument to copy should be slice or string; have int`, // TODO.
-	// `copy(0,[]int{})`:          `first argument to copy should be slice; have int`, // TODO.
+	`copy(0,0)`:                `arguments to copy must be slices; have int, int`,
+	`copy([]int{},0)`:          `second argument to copy should be slice or string; have int`,
+	`copy(0,[]int{})`:          `first argument to copy should be slice; have int`,
 
 	// Builtin function 'delete'.
 	`delete(map[string]string{}, "a")`:         ok,
