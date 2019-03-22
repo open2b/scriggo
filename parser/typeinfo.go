@@ -111,12 +111,18 @@ func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 
 // IsNumeric reports whether it is numeric.
 func (ti *TypeInfo) IsNumeric() bool {
+	if ti.Nil() {
+		return false
+	}
 	k := ti.Type.Kind()
-	return !ti.Nil() && reflect.Int <= k && k <= reflect.Complex128
+	return reflect.Int <= k && k <= reflect.Complex128
 }
 
 // IsInteger reports whether it is an integer.
 func (ti *TypeInfo) IsInteger() bool {
+	if ti.Nil() {
+		return false
+	}
 	k := ti.Type.Kind()
-	return !ti.Nil() && reflect.Int <= k && k <= reflect.Uintptr
+	return reflect.Int <= k && k <= reflect.Uintptr
 }
