@@ -423,31 +423,32 @@ var checkerExprErrors = []struct {
 	err   *Error
 	scope typeCheckerScope
 }{
-	// Index
-	// {`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
+	// Index.
+	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
 	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
 	{`"a"[i]`, tierr(1, 5, `constant 1.2 truncated to integer`), typeCheckerScope{"i": tiUntypedFloatConst("1.2")}},
 	{`"a"[nil]`, tierr(1, 5, `non-integer string index nil`), nil},
-	// {`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
+	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
 	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
-	{`"a"[-1]`, tierr(1, 4, `invalid string index -1 (index must be non-negative)`), nil},
-	{`"a"[1]`, tierr(1, 4, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
+	{`"a"[-1]`, tierr(1, 5, `invalid string index -1 (index must be non-negative)`), nil},
+	{`"a"[1]`, tierr(1, 5, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
 	{`nil[1]`, tierr(1, 4, `use of untyped nil`), nil},
 
 	// Slicing.
 	{`nil[:]`, tierr(1, 4, `use of untyped nil`), nil},
-	{`"a"[nil:]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
-	{`"a"[:nil]`, tierr(1, 4, `invalid slice index nil (type nil)`), nil},
-	// {`"a"[true:]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
-	// {`"a"[:true]`, tierr(1, 4, `invalid slice index true (type untyped bool)`), nil},
-	{`"a"[2:]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
-	{`"a"[:2]`, tierr(1, 4, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
+	{`"a"[nil:]`, tierr(1, 5, `invalid slice index nil (type nil)`), nil},
+	{`"a"[:nil]`, tierr(1, 6, `invalid slice index nil (type nil)`), nil},
+	{`"a"["":]`, tierr(1, 5, `invalid slice index "" (type untyped string)`), nil},
+	{`"a"[:""]`, tierr(1, 6, `invalid slice index "" (type untyped string)`), nil},
+	{`"a"[true:]`, tierr(1, 5, `invalid slice index true (type untyped bool)`), nil},
+	{`"a"[:true]`, tierr(1, 6, `invalid slice index true (type untyped bool)`), nil},
+	{`"a"[2:]`, tierr(1, 5, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
+	{`"a"[:2]`, tierr(1, 6, `invalid slice index 2 (out of bounds for 1-byte string)`), nil},
 	{`"a"[1:0]`, tierr(1, 4, `invalid slice index: 1 > 0`), nil},
 }
 
 func TestCheckerExpressionErrors(t *testing.T) {
 	for _, expr := range checkerExprErrors {
-		continue // TODO (Gianluca): to review.
 		var lex = newLexer([]byte(expr.src), ast.ContextNone)
 		func() {
 			defer func() {
@@ -695,7 +696,7 @@ var checkerStmts = map[string]string{
 	`s := []string{"a","b"}; for i := 0; i < len(s); i++ { _ = s[i] }`: ok,
 	`for i := 10; i; i++ { }`:                                          "non-bool i (type int) used as for condition",
 	`for i := 0; i < 10; i = "" {}`:                                    `cannot use "" (type string) as type int in assignment`,
-	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `invalid slice index i (type string)`, // TODO (Gianluca): should be: 'non-integer slice index i'.
+	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `non-integer slice index i`,
 
 	// For statements with 'range' clause.
 	`for _, _ = range "abc" { }`:                                                     ok,

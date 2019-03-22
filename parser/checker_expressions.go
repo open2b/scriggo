@@ -565,7 +565,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 				}
 			}
-			_ = tc.checkIndex(expr.Index, t, realType, true)
+			_ = tc.checkIndex(expr.Index, t, false)
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
@@ -619,10 +619,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		lv, hv := -1, -1
 		if expr.Low != nil {
-			lv = tc.checkIndex(expr.Low, t, realType, false)
+			lv = tc.checkIndex(expr.Low, t, true)
 		}
 		if expr.High != nil {
-			hv = tc.checkIndex(expr.High, t, realType, false)
+			hv = tc.checkIndex(expr.High, t, true)
 		}
 		if lv != -1 && hv != -1 && lv > hv {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
@@ -700,10 +700,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 // checkIndex checks the type of expr as an index in a index or slice
 // expression. If it is a constant returns the integer value, otherwise
 // returns -1.
-func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, realType reflect.Type, isIndex bool) int {
+func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool) int {
+	typ := t.Type
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
 	index := tc.checkExpression(expr)
-	if index.Nil() || !(index.Untyped() || integerKind[index.Type.Kind()]) {
-		panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
+	if index.Untyped() && !index.IsNumeric() || !index.Untyped() && !index.IsInteger() {
+		if isSlice {
+			panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
+		}
+		panic(tc.errorf(expr, "non-integer %s index %s", typ.Kind(), expr))
 	}
 	i := -1
 	if index.IsConstant() {
@@ -711,21 +718,24 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, realType ref
 		if err != nil {
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
-		kind := realType.Kind()
 		i = int(n.(*big.Int).Int64())
 		if i < 0 {
-			panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", kind, expr))
+			panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", typ.Kind(), expr))
 		}
 		j := i
-		if isIndex {
+		if isSlice {
 			j--
 		}
 		if t.IsConstant() {
-			if s := t.Value.(string); j > len(s) {
-				panic(tc.errorf(expr, "invalid string index %s (out of bounds for %d-byte string)", expr, len(s)))
+			if s := t.Value.(string); j >= len(s) {
+				what := typ.Kind().String()
+				if isSlice {
+					what = "slice"
+				}
+				panic(tc.errorf(expr, "invalid %s index %s (out of bounds for %d-byte string)", what, expr, len(s)))
 			}
-		} else if kind == reflect.Array && j > realType.Len() {
-			panic(tc.errorf(expr, "invalid array index %s (out of bounds for %d-element array)", expr, realType.Len()))
+		} else if typ.Kind() == reflect.Array && j > typ.Len() {
+			panic(tc.errorf(expr, "invalid array index %s (out of bounds for %d-element array)", expr, typ.Len()))
 		}
 	}
 	return i
