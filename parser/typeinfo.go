@@ -100,7 +100,7 @@ func (ti *TypeInfo) ShortString() string {
 // StringWithNumber returns the string representation of ti in the context of a
 // function call and return statement.
 func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
-	if ti.IsConstant() && ti.Untyped() && numericKind[ti.Type.Kind()] {
+	if ti.Untyped() && ti.IsNumeric() {
 		if explicitUntyped {
 			return "untyped number"
 		}
