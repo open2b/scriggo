@@ -722,7 +722,7 @@ var checkerStmts = map[string]string{
 	// Type-switch statements.
 	`i := interface{}(int(0)); switch i.(type) { }`:                         ok,
 	`i := interface{}(int(0)); switch i.(type) { case int: case float64: }`: ok,
-	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped int) is not a type`, // TODO (Gianluca): should be "number", not "int".
+	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 
 	// Function literals definitions.

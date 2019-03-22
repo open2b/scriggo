@@ -97,10 +97,13 @@ func (ti *TypeInfo) ShortString() string {
 	return ti.Type.String()
 }
 
-// FuncString returns the string representation of ti in the context of a
+// StringWithNumber returns the string representation of ti in the context of a
 // function call and return statement.
-func (ti *TypeInfo) FuncString() string {
+func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 	if ti.IsConstant() && ti.Untyped() && numericKind[ti.Type.Kind()] {
+		if explicitUntyped {
+			return "untyped number"
+		}
 		return "number"
 	}
 	return ti.Type.String()

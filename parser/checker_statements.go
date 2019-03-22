@@ -221,7 +221,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						if node.Expr != nil {
 							ne = " on " + node.Expr.String()
 						}
-						panic(tc.errorf(expr, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
+						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
 					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
@@ -250,7 +250,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				for _, expr := range cas.Expressions {
 					t := tc.typeof(expr, noEllipses)
 					if !t.IsType() {
-						panic(tc.errorf(expr, "%v (type %s) is not a type", expr, t.String()))
+						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
@@ -389,7 +389,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		}
 		msg += "\n\thave ("
 		for i, x := range got {
-			msg += tc.typeInfo[x].FuncString()
+			msg += tc.typeInfo[x].StringWithNumber(false)
 			if i != len(got)-1 {
 				msg += ", "
 			}
