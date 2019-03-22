@@ -13,14 +13,13 @@ import (
 	"scrigo/ast"
 )
 
-// checkAssignment checks the assignment node.
+// checkAssignment checks the assignment node (Var, Const or Assignment) and
+// writes to the scope, if necessary.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression
 	var typ *TypeInfo
-	var isDecl, isConst bool
-
-	isVarOrConst := false
+	var isDecl, isConst, isVarOrConst bool
 
 	switch n := node.(type) {
 
@@ -169,21 +168,21 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		case *ast.TypeAssertion:
 
-			value1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			value2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
+			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkType(values[0], noEllipses)
-			tc.typeInfo[value1] = &TypeInfo{Type: ti.Type}
-			tc.typeInfo[value2] = untypedBoolTypeInfo
-			values = []ast.Expression{value1, value2}
+			tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfo[v2] = untypedBoolTypeInfo
+			values = []ast.Expression{v1, v2}
 
 		case *ast.Index:
 
-			value1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			value2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
+			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpression(values[0])
-			tc.typeInfo[value1] = &TypeInfo{Type: ti.Type}
-			tc.typeInfo[value2] = untypedBoolTypeInfo
-			values = []ast.Expression{value1, value2}
+			tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfo[v2] = untypedBoolTypeInfo
+			values = []ast.Expression{v1, v2}
 
 		}
 	}
@@ -220,13 +219,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 }
 
-// assignSingle generically assigns value to variable. node must
-// contain the assignment node (or the var/const declaration node) and it's used
-// for error messages only. If the declaration specified a type, that must be
-// passed as "typ" argument. isDeclaration and isConst indicates, respectively,
-// if the assignment is a declaration and if it's a constant.
-//
-// Returns the identifier of the new declared variable, otherwise empty string.
+// assignSingle assigns value to variable (or valueTi to variable if value is
+// nil). typ is the type specified in the declaration, if any. If assignment is
+// a declaration and the scope has been updated, returns the identifier of the
+// new scope element; otherwise returns an empty string.
 func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
 
 	if valueTi == nil {
@@ -237,6 +233,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
 
+	// TODO (Gianluca): not clear.
 	if typ != nil && !isAssignableTo(valueTi, typ.Type) {
 		if value == nil {
 			panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
@@ -257,11 +254,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
 				return ""
 			}
-			if typ != nil {
-				newValueTi.Type = typ.Type
-			} else {
-				// The predeclared value nil cannot be used to
-				// initialize a variable with no explicit type.
+			if typ == nil {
 				if valueTi.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
@@ -272,6 +265,8 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				// «If that value is an untyped constant, it is first
 				// implicitly converted to its default type.»
 				newValueTi.Type = valueTi.Type
+			} else {
+				newValueTi.Type = typ.Type
 			}
 			tc.typeInfo[v] = newValueTi
 			if isConst {
@@ -289,6 +284,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			})
 			return v.Name
 		}
+
 		variableTi := tc.checkIdentifier(v, false)
 		if !variableTi.Addressable() {
 			panic(tc.errorf(variable, "cannot assign to %v", variable))
