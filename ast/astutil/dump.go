@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package util implements methods to walk and dump a tree.
+// Package astutil implements methods to walk and dump a tree.
 package astutil
 
 import (
