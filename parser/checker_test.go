@@ -367,7 +367,8 @@ var checkerExprs = []struct {
 	{`new(int)`, tiIntPtr(), nil},
 
 	// len
-	{`len("a")`, tiInt(), nil},
+	{`len("")`, tiIntConst(0), nil},
+	{`len("a")`, tiIntConst(1), nil},
 	{`len([]int{})`, tiInt(), nil},
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiInt(), nil},

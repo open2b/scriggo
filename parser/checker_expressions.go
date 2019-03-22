@@ -1024,8 +1024,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 					panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 				}
 			}
-			// TODO (Gianluca): should be constant when argument is constant?
-			return []*TypeInfo{{Type: intType}}, true
+			ti := &TypeInfo{Type: intType}
+			if t.IsConstant() {
+				ti.Properties = PropertyIsConstant
+				ti.Value = int64(len(t.Value.(string)))
+			}
+			return []*TypeInfo{ti}, true
 
 		case "make":
 			numArgs := len(expr.Args)
