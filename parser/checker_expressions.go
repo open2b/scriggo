@@ -218,7 +218,7 @@ func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
 func (tc *typechecker) CheckUpValue(name string) string {
 	_, funcBound := tc.getCurrentFunc()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		for n, _ := range tc.scopes[i] {
+		for n := range tc.scopes[i] {
 			if n != name {
 				continue
 			}
