@@ -265,7 +265,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkAssignment(node)
 			tc.terminating = false
 
-		case *ast.Value:
+		case *ast.Show:
 
 			tc.checkExpression(node.Expr)
 			tc.terminating = false

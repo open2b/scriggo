@@ -245,7 +245,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 				}
 				tok.pos.End = tok2.pos.End
-				var node = ast.NewValue(tok.pos, expr, tok.ctx)
+				var node = ast.NewShow(tok.pos, expr, tok.ctx)
 				addChild(parent, node)
 
 			// comment

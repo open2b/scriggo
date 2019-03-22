@@ -198,7 +198,7 @@ Nodes:
 				}
 			}
 
-		case *ast.Value:
+		case *ast.Show:
 
 			expr, err := r.eval(node.Expr)
 			if err != nil {

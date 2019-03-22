@@ -280,7 +280,7 @@ type bytesAddress struct {
 	Bytes Bytes
 	Index int
 	Var   ast.Expression
-	Expr  ast.Expression // Value is nil in multiple assignment.
+	Expr  ast.Expression // Show is nil in multiple assignment.
 }
 
 func (addr bytesAddress) assign(value interface{}) error {

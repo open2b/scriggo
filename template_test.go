@@ -635,7 +635,7 @@ func (wr RenderPanic) Render(w io.Writer) (int, error) {
 }
 
 func TestRenderErrors(t *testing.T) {
-	tree := ast.NewTree("", []ast.Node{ast.NewValue(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
+	tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
 	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, true)
 	if err == nil {
 		t.Errorf("expecting not nil error\n")

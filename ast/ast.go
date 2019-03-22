@@ -23,7 +23,7 @@
 //				nil,
 //				[]ast.Node{
 //					ast.NewText(&ast.Position{Line: 1, Column: 30, Start: 29, End: 34}, []byte("\n<div>"), ast.Cut{1,0}),
-//					ast.NewValue(
+//					ast.NewShow(
 //						&ast.Position{Line: 2, Column: 6, Start: 35, End: 53},
 //						ast.NewSelector(
 //							&ast.Position{Line: 2, Column: 16, Start: 38, End: 50},
@@ -206,7 +206,7 @@ func (t Text) String() string {
 	return string(t.Text)
 }
 
-// URL node represents an URL in an attribute value. Value nodes that are
+// URL node represents an URL in an attribute value. Show nodes that are
 // children of an URL node are rendered accordingly.
 type URL struct {
 	*Position        // position in the source.
@@ -530,18 +530,18 @@ func NewInclude(pos *Position, path string, ctx Context) *Include {
 	return &Include{Position: pos, Path: path, Context: ctx}
 }
 
-// Value node represents a statement {{ ... }}.
-type Value struct {
+// Show node represents a statement {{ ... }}.
+type Show struct {
 	*Position            // position in the source.
 	Expr      Expression // expression that once evaluated returns the value to show.
 	Context   Context    // context.
 }
 
-func NewValue(pos *Position, expr Expression, ctx Context) *Value {
-	return &Value{pos, expr, ctx}
+func NewShow(pos *Position, expr Expression, ctx Context) *Show {
+	return &Show{pos, expr, ctx}
 }
 
-func (v Value) String() string {
+func (v Show) String() string {
 	return fmt.Sprintf("{{ %v }}", v.Expr)
 }
 

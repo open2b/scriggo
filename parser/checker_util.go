@@ -322,7 +322,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 		}
 		return nil, false
 	}
-	// If t represents and interface, Value.MethodByName cannot be called on
+	// If t represents and interface, Show.MethodByName cannot be called on
 	// it's zero value (it would panic); so, in case of interfaces, the
 	// Type.MethodByName method is used.
 	if t.Type.Kind() == reflect.Interface {
