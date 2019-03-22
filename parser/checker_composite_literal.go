@@ -95,8 +95,6 @@ func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind refl
 
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) *TypeInfo {
 
-	var err error
-
 	maxIndex := tc.maxIndex(node)
 	ti := tc.checkType(node.Type, maxIndex+1)
 
@@ -230,9 +228,6 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				keyTi = tc.checkCompositeLiteral(compLit, ti.Type.Key())
 			} else {
 				keyTi = tc.typeof(kv.Key, noEllipses)
-				if err != nil {
-					panic(err)
-				}
 			}
 			_, err := convertImplicit(keyTi, ti.Type.Key())
 			if err != nil && strings.Contains(err.Error(), "truncated to") {
