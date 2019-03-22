@@ -104,7 +104,6 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Struct:
 
-		explicitFields := false
 		declType := 0
 		for _, kv := range node.KeyValues {
 			if kv.Key == nil {
@@ -120,8 +119,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				declType = 1
 			}
 		}
-		explicitFields = declType == 1
-		if explicitFields { // struct with explicit fields.
+		switch declType == 1 {
+		case true: // struct with explicit fields.
 			for _, keyValue := range node.KeyValues {
 				ident, ok := keyValue.Key.(*ast.Identifier)
 				if !ok || ident.Name == "_" {
@@ -141,7 +140,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 				}
 			}
 			tc.checkKeysDuplicates(node, reflect.Struct)
-		} else { // struct with implicit fields.
+		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				return &TypeInfo{Type: ti.Type}
 			}
