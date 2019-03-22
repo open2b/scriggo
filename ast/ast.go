@@ -154,23 +154,14 @@ func (p Position) String() string {
 
 // Expression node represents an expression.
 type Expression interface {
+	isexpr()
 	Node
 	String() string
-	TypeInfo() *TypeInfo
-	SetTypeInfo(ti *TypeInfo)
 }
 
-type expression struct {
-	ti *TypeInfo
-}
+type expression struct{}
 
-func (e *expression) TypeInfo() *TypeInfo {
-	return e.ti
-}
-
-func (e *expression) SetTypeInfo(ti *TypeInfo) {
-	e.ti = ti
-}
+func (e expression) isexpr() {}
 
 // Tree node represents a tree.
 type Tree struct {

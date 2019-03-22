@@ -21,7 +21,7 @@ var errDivisionByZero = errors.New("division by zero")
 
 const noEllipses = -1
 
-type typeCheckerScope map[string]*ast.TypeInfo
+type typeCheckerScope map[string]*TypeInfo
 
 type HTML string
 
@@ -33,11 +33,11 @@ var int32Type = reflect.TypeOf(int32(0))
 var float64Type = reflect.TypeOf(float64(0))
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
-var builtinTypeInfo = &ast.TypeInfo{Properties: ast.PropertyIsBuiltin}
-var uint8TypeInfo = &ast.TypeInfo{Type: uint8Type, Properties: ast.PropertyIsType}
-var int32TypeInfo = &ast.TypeInfo{Type: int32Type, Properties: ast.PropertyIsType}
+var builtinTypeInfo = &TypeInfo{Properties: PropertyIsBuiltin}
+var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType}
+var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
 
-var untypedBoolTypeInfo = &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}
+var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
 var universe = typeCheckerScope{
 	"append":      builtinTypeInfo,
@@ -50,35 +50,35 @@ var universe = typeCheckerScope{
 	"len":         builtinTypeInfo,
 	"make":        builtinTypeInfo,
 	"new":         builtinTypeInfo,
-	"nil":         &ast.TypeInfo{Properties: ast.PropertyNil},
+	"nil":         &TypeInfo{Properties: PropertyNil},
 	"panic":       builtinTypeInfo,
 	"print":       builtinTypeInfo,
 	"println":     builtinTypeInfo,
 	"real":        builtinTypeInfo,
 	"recover":     builtinTypeInfo,
 	"byte":        uint8TypeInfo,
-	"bool":        &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsType},
-	"complex128":  &ast.TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: ast.PropertyIsType},
-	"complex64":   &ast.TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: ast.PropertyIsType},
-	"error":       &ast.TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: ast.PropertyIsType},
-	"float32":     &ast.TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: ast.PropertyIsType},
-	"float64":     &ast.TypeInfo{Type: float64Type, Properties: ast.PropertyIsType},
-	"false":       &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: false},
-	"int":         &ast.TypeInfo{Type: intType, Properties: ast.PropertyIsType},
-	"int16":       &ast.TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: ast.PropertyIsType},
+	"bool":        &TypeInfo{Type: boolType, Properties: PropertyIsType},
+	"complex128":  &TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: PropertyIsType},
+	"complex64":   &TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: PropertyIsType},
+	"error":       &TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: PropertyIsType},
+	"float32":     &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType},
+	"float64":     &TypeInfo{Type: float64Type, Properties: PropertyIsType},
+	"false":       &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: false},
+	"int":         &TypeInfo{Type: intType, Properties: PropertyIsType},
+	"int16":       &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType},
 	"int32":       int32TypeInfo,
-	"int64":       &ast.TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: ast.PropertyIsType},
-	"int8":        &ast.TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: ast.PropertyIsType},
-	"interface{}": &ast.TypeInfo{Type: emptyInterfaceType, Properties: ast.PropertyIsType},
+	"int64":       &TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType},
+	"int8":        &TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType},
+	"interface{}": &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType},
 	"rune":        int32TypeInfo,
-	"string":      &ast.TypeInfo{Type: stringType, Properties: ast.PropertyIsType},
-	"true":        &ast.TypeInfo{Type: boolType, Properties: ast.PropertyIsConstant | ast.PropertyUntyped, Value: true},
-	"uint":        &ast.TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: ast.PropertyIsType},
-	"uint16":      &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
-	"uint32":      &ast.TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: ast.PropertyIsType},
-	"uint64":      &ast.TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: ast.PropertyIsType},
+	"string":      &TypeInfo{Type: stringType, Properties: PropertyIsType},
+	"true":        &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true},
+	"uint":        &TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: PropertyIsType},
+	"uint16":      &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType},
+	"uint32":      &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType},
+	"uint64":      &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType},
 	"uint8":       uint8TypeInfo,
-	"uintptr":     &ast.TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: ast.PropertyIsType},
+	"uintptr":     &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType},
 }
 
 type ancestor struct {
@@ -120,6 +120,7 @@ type typechecker struct {
 	hasBreak         map[ast.Node]bool
 	unusedVars       []*scopeVariable
 	unusedImports    map[string][]string
+	typeInfo         map[ast.Node]*TypeInfo
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -128,7 +129,7 @@ type typechecker struct {
 	varDeps             map[string][]string // key is a variable, value is list of its dependencies.
 	currentIdent        string              // identifier currently being evaluated.
 	currentlyEvaluating []string            // stack of identifiers used in a single evaluation.
-	temporaryEvaluated  map[string]*ast.TypeInfo
+	temporaryEvaluated  map[string]*TypeInfo
 }
 
 // getDecl returns the declaration called name, or nil if it does not exist.
@@ -166,7 +167,7 @@ func (tc *typechecker) removeCurrentScope() {
 // lookupScopes looks up name in the scopes. Returns the type info of the name or
 // false if the name does not exist. If justCurrentScope is true, lookupScopes
 // looks up only in the current scope.
-func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*ast.TypeInfo, bool) {
+func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
 	if justCurrentScope {
 		for n, ti := range tc.scopes[len(tc.scopes)-1] {
 			if n == name {
@@ -191,7 +192,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*ast.Ty
 }
 
 // assignScope assigns value to name in the last scope.
-func (tc *typechecker) assignScope(name string, value *ast.TypeInfo) {
+func (tc *typechecker) assignScope(name string, value *TypeInfo) {
 	tc.scopes[len(tc.scopes)-1][name] = value
 }
 
@@ -222,7 +223,7 @@ func (tc *typechecker) CheckUpValue(name string) string {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.scopes[i][n].Properties |= ast.PropertyMustBeReferenced
+				tc.scopes[i][n].Properties |= PropertyMustBeReferenced
 				return name
 			}
 			return ""
@@ -231,7 +232,7 @@ func (tc *typechecker) CheckUpValue(name string) string {
 	return ""
 }
 
-func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *ast.TypeInfo {
+func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
 	// Upvalues.
 	if fun, _ := tc.getCurrentFunc(); fun != nil {
@@ -284,14 +285,14 @@ ImportsLoop:
 		for _, param := range fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters) {
 			if param.Ident != nil {
 				t := tc.checkType(param.Type, noEllipses)
-				tc.assignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, ret := range fillParametersTypes(decl.Node.(*ast.Func).Type.Result) {
 			t := tc.checkType(ret.Type, noEllipses)
 			if ret.Ident != nil {
-				tc.assignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 			}
 		}
 		tc.checkNodes(decl.Value.(*ast.Block).Nodes)
@@ -308,12 +309,12 @@ ImportsLoop:
 			return ti
 		case DeclarationVariable:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
-			ti.Properties |= ast.PropertyAddressable
+			ti.Properties |= PropertyAddressable
 			tc.temporaryEvaluated[ident.Name] = ti
 			return ti
 		case DeclarationFunction:
 			tc.checkNodes(d.Value.(*ast.Block).Nodes)
-			return &ast.TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
+			return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
 		}
 	}
 
@@ -356,57 +357,57 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 
 // checkExpression returns the type info of expr. Returns an error if expr is
 // a type or a package.
-func (tc *typechecker) checkExpression(expr ast.Expression) *ast.TypeInfo {
+func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 	ti := tc.typeof(expr, noEllipses)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
-	expr.SetTypeInfo(ti)
+	tc.typeInfo[expr] = ti
 	return ti
 }
 
 // checkType evaluates expr as a type and returns the type info. Returns an
 // error if expr is not an type.
-func (tc *typechecker) checkType(expr ast.Expression, length int) *ast.TypeInfo {
+func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 	ti := tc.typeof(expr, length)
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", ti))
 	}
-	expr.SetTypeInfo(ti)
+	tc.typeInfo[expr] = ti
 	return ti
 }
 
 // typeof returns the type of expr. If expr is not an expression but a type,
 // returns the type.
-func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
+func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	switch expr := expr.(type) {
 
 	case *ast.String:
-		return &ast.TypeInfo{
+		return &TypeInfo{
 			Type:       stringType,
-			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Properties: PropertyUntyped | PropertyIsConstant,
 			Value:      expr.Text,
 		}
 
 	case *ast.Int:
-		return &ast.TypeInfo{
+		return &TypeInfo{
 			Type:       intType,
-			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Properties: PropertyUntyped | PropertyIsConstant,
 			Value:      &expr.Value,
 		}
 
 	case *ast.Rune:
-		return &ast.TypeInfo{
+		return &TypeInfo{
 			Type:       int32Type,
-			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Properties: PropertyUntyped | PropertyIsConstant,
 			Value:      big.NewInt(int64(expr.Value)),
 		}
 
 	case *ast.Float:
-		return &ast.TypeInfo{
+		return &TypeInfo{
 			Type:       float64Type,
-			Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+			Properties: PropertyUntyped | PropertyIsConstant,
 			Value:      &expr.Value,
 		}
 
@@ -415,7 +416,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 
 	case *ast.UnaryOperator:
 		_ = tc.checkExpression(expr.Expr)
-		t, err := unaryOp(expr)
+		t, err := unaryOp(tc.typeInfo[expr.Expr], expr)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
@@ -443,16 +444,16 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				panic(tc.errorf(expr, "invalid map key type %s", key))
 			}
 		}()
-		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.MapOf(key.Type, value.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: reflect.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
 		elem := tc.checkType(expr.ElementType, noEllipses)
-		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.SliceOf(elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: reflect.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
 		elem := tc.checkType(expr.ElementType, noEllipses)
 		if expr.Len == nil { // ellipsis.
-			return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
+			return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		}
 		len := tc.checkExpression(expr.Len)
 		if !len.IsConstant() {
@@ -469,7 +470,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if length > n {
 			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, n))
 		}
-		return &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.ArrayOf(n, elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(n, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
@@ -504,7 +505,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				out[i] = c.Type
 			}
 		}
-		return &ast.TypeInfo{Type: reflect.FuncOf(in, out, variadic), Properties: ast.PropertyIsType}
+		return &TypeInfo{Type: reflect.FuncOf(in, out, variadic), Properties: PropertyIsType}
 
 	case *ast.Func:
 		tc.addScope()
@@ -514,14 +515,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		for _, f := range fillParametersTypes(expr.Type.Parameters) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, f := range fillParametersTypes(expr.Type.Result) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.assignScope(f.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 			}
 		}
 		tc.checkNodes(expr.Body.Nodes)
@@ -535,7 +536,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 		tc.removeCurrentScope()
-		return &ast.TypeInfo{Type: t.Type}
+		return &TypeInfo{Type: t.Type}
 
 	case *ast.Call:
 		types := tc.checkCallExpression(expr, false)
@@ -574,9 +575,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 			case reflect.Ptr:
 				typ = t.Type.Elem().Elem()
 			}
-			ti := &ast.TypeInfo{Type: typ}
+			ti := &TypeInfo{Type: typ}
 			if (kind != reflect.String && t.Addressable()) || kind == reflect.Ptr {
-				ti.Properties = ast.PropertyAddressable
+				ti.Properties = PropertyAddressable
 			}
 			return ti
 		case reflect.Map:
@@ -587,7 +588,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 				}
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
 			}
-			return &ast.TypeInfo{Type: t.Type.Elem()}
+			return &TypeInfo{Type: t.Type.Elem()}
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
 		}
@@ -628,9 +629,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		}
 		switch kind {
 		case reflect.String, reflect.Slice:
-			return &ast.TypeInfo{Type: t.Type}
+			return &TypeInfo{Type: t.Type}
 		case reflect.Array, reflect.Ptr:
-			return &ast.TypeInfo{Type: reflect.SliceOf(realType.Elem())}
+			return &TypeInfo{Type: reflect.SliceOf(realType.Elem())}
 		}
 
 	case *ast.Selector:
@@ -686,9 +687,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 		if t.Type.Kind() != reflect.Interface {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
-		expr.Expr.SetTypeInfo(t)
+		tc.typeInfo[expr.Expr] = t
 		t = tc.checkType(expr.Type, noEllipses)
-		expr.Type.SetTypeInfo(t)
+		tc.typeInfo[expr.Type] = t
 		return t
 
 	}
@@ -699,7 +700,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *ast.TypeInfo {
 // checkIndex checks the type of expr as an index in a index or slice
 // expression. If it is a constant returns the integer value, otherwise
 // returns -1.
-func (tc *typechecker) checkIndex(expr ast.Expression, t *ast.TypeInfo, realType reflect.Type, isIndex bool) int {
+func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, realType reflect.Type, isIndex bool) int {
 	index := tc.checkExpression(expr)
 	if index.Nil() || !(index.Untyped() || integerKind[index.Type.Kind()]) {
 		panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
@@ -732,7 +733,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *ast.TypeInfo, realType
 
 // binaryOp executes the binary expression t1 op t2 and returns its result.
 // Returns an error if the operation can not be executed.
-func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error) {
+func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 
 	t1 := tc.checkExpression(expr.Expr1)
 	t2 := tc.checkExpression(expr.Expr2)
@@ -772,7 +773,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		t1 = &ast.TypeInfo{Type: t2.Type, Properties: ast.PropertyIsConstant, Value: v}
+		t1 = &TypeInfo{Type: t2.Type, Properties: PropertyIsConstant, Value: v}
 	} else if t2.Untyped() {
 		v, err := convertImplicit(t2, t1.Type)
 		if err != nil {
@@ -781,7 +782,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		t2 = &ast.TypeInfo{Type: t1.Type, Properties: ast.PropertyIsConstant, Value: v}
+		t2 = &TypeInfo{Type: t1.Type, Properties: PropertyIsConstant, Value: v}
 	}
 
 	if t1.IsConstant() && t2.IsConstant() {
@@ -800,7 +801,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*ast.TypeInfo, error)
 		} else if !isOrdered(t1) {
 			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
 		}
-		return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}, nil
+		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
 	if t1.Type != t2.Type {
@@ -840,7 +841,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 
 // checkCallExpression type checks a call expression, including type
 // conversions and built-in function calls.
-func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*ast.TypeInfo {
+func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*TypeInfo {
 
 	t := tc.typeof(expr.Func, noEllipses)
 
@@ -863,11 +864,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		ti := &ast.TypeInfo{Type: t.Type, Value: value}
+		ti := &TypeInfo{Type: t.Type, Value: value}
 		if value != nil {
-			ti.Properties = ast.PropertyIsConstant
+			ti.Properties = PropertyIsConstant
 		}
-		return []*ast.TypeInfo{ti}
+		return []*TypeInfo{ti}
 	}
 
 	if t == builtinTypeInfo {
@@ -914,7 +915,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					}
 				}
 			}
-			return []*ast.TypeInfo{{Type: slice.Type}}
+			return []*TypeInfo{{Type: slice.Type}}
 
 		case "cap":
 			if len(expr.Args) < 1 {
@@ -934,7 +935,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 				}
 			}
-			return []*ast.TypeInfo{{Type: intType}}
+			return []*TypeInfo{{Type: intType}}
 
 		case "copy":
 			if len(expr.Args) < 2 {
@@ -962,7 +963,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
 				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
 			}
-			return []*ast.TypeInfo{{Type: intType}}
+			return []*TypeInfo{{Type: intType}}
 
 		case "delete":
 			switch len(expr.Args) {
@@ -1008,7 +1009,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 					panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 				}
 			}
-			return []*ast.TypeInfo{{Type: intType}}
+			return []*TypeInfo{{Type: intType}}
 
 		case "make":
 			numArgs := len(expr.Args)
@@ -1043,7 +1044,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			default:
 				panic(tc.errorf(expr, "cannot make type %s", t))
 			}
-			return []*ast.TypeInfo{{Type: t.Type}}
+			return []*TypeInfo{{Type: t.Type}}
 
 		case "new":
 			if len(expr.Args) == 0 {
@@ -1053,7 +1054,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if len(expr.Args) > 1 {
 				panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 			}
-			return []*ast.TypeInfo{{Type: reflect.PtrTo(t.Type)}}
+			return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}
 
 		case "panic":
 			if len(expr.Args) == 0 {
@@ -1097,7 +1098,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			tis := tc.checkCallExpression(c, false)
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				v.SetTypeInfo(ti)
+				tc.typeInfo[v] = ti
 				args = append(args, v)
 			}
 		}
@@ -1109,7 +1110,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 			if i > 0 {
 				have += ", "
 			}
-			c := arg.TypeInfo()
+			c := tc.typeInfo[arg]
 			if c == nil {
 				c = tc.checkExpression(arg)
 			}
@@ -1146,7 +1147,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 		} else if i == lastIn {
 			in = t.Type.In(lastIn).Elem()
 		}
-		a := arg.TypeInfo()
+		a := tc.typeInfo[arg]
 		if a == nil {
 			a = tc.checkExpression(arg)
 		}
@@ -1156,9 +1157,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*as
 	}
 
 	numOut := t.Type.NumOut()
-	resultTypes := make([]*ast.TypeInfo, numOut)
+	resultTypes := make([]*TypeInfo, numOut)
 	for i := 0; i < numOut; i++ {
-		resultTypes[i] = &ast.TypeInfo{Type: t.Type.Out(i)}
+		resultTypes[i] = &TypeInfo{Type: t.Type.Out(i)}
 	}
 
 	return resultTypes

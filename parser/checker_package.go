@@ -18,7 +18,7 @@ type GoPackage struct {
 
 type PackageInfo struct {
 	Name                 string
-	Declarations         map[string]*ast.TypeInfo
+	Declarations         map[string]*TypeInfo
 	VariableOrdering     []string                 // ordering of initialization of global variables.
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 }
@@ -38,7 +38,7 @@ func (pi *PackageInfo) String() string {
 
 // notChecked represents the type info of a not type-checked package
 // declaration.
-var notChecked = &ast.TypeInfo{}
+var notChecked = &TypeInfo{}
 
 func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *PackageInfo, err error) {
 
@@ -72,7 +72,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 
 	pkgInfo = &PackageInfo{
 		Name:         packageNode.Name,
-		Declarations: make(map[string]*ast.TypeInfo, len(packageNode.Declarations)),
+		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
 	}
 
 	for _, n := range packageNode.Declarations {
@@ -85,21 +85,21 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				if !ok {
 					return nil, tc.errorf(n, "cannot find package %q", n.Path)
 				}
-				importedPkg.Declarations = make(map[string]*ast.TypeInfo, len(goPkg.Declarations))
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
-					ti := &ast.TypeInfo{}
+					ti := &TypeInfo{}
 					switch {
 					case reflect.TypeOf(value).Kind() == reflect.Ptr:
-						ti = &ast.TypeInfo{Type: reflect.TypeOf(value).Elem(), Properties: ast.PropertyAddressable}
+						ti = &TypeInfo{Type: reflect.TypeOf(value).Elem(), Properties: PropertyAddressable}
 					case reflect.TypeOf(value) == reflect.TypeOf(reflect.Type(nil)):
-						ti = &ast.TypeInfo{Type: value.(reflect.Type), Properties: ast.PropertyIsType}
+						ti = &TypeInfo{Type: value.(reflect.Type), Properties: PropertyIsType}
 					case reflect.TypeOf(value).Kind() == reflect.Func:
 						// Being not addressable, a global function can be
 						// differentiated from a global function literal.
-						ti = &ast.TypeInfo{Type: reflect.TypeOf(value)}
+						ti = &TypeInfo{Type: reflect.TypeOf(value)}
 					default:
 						// TODO (Gianluca): handle 'constants' properly.
-						ti = &ast.TypeInfo{Value: value, Properties: ast.PropertyIsConstant}
+						ti = &TypeInfo{Value: value, Properties: PropertyIsConstant}
 					}
 					importedPkg.Declarations[ident] = ti
 				}
@@ -113,7 +113,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				}
 			}
 			if n.Ident == nil {
-				tc.filePackageBlock[importedPkg.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+				tc.filePackageBlock[importedPkg.Name] = &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}
 				tc.unusedImports[importedPkg.Name] = nil
 			} else {
 				switch n.Ident.Name {
@@ -125,7 +125,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 						tc.filePackageBlock[ident] = ti
 					}
 				default:
-					tc.filePackageBlock[n.Ident.Name] = &ast.TypeInfo{Value: importedPkg, Properties: ast.PropertyIsPackage}
+					tc.filePackageBlock[n.Ident.Name] = &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}
 					tc.unusedImports[n.Ident.Name] = nil
 				}
 			}
@@ -167,7 +167,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		if c.DeclarationType == DeclarationConstant {
 			tc.currentIdent = c.Ident
 			tc.currentlyEvaluating = []string{c.Ident}
-			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+			tc.temporaryEvaluated = make(map[string]*TypeInfo)
 			ti := tc.checkExpression(c.Value.(ast.Expression))
 			if !ti.IsConstant() {
 				return nil, tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
@@ -191,20 +191,20 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			for _, param := range fillParametersTypes(v.Type.(*ast.FuncType).Parameters) {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
-					tc.assignScope(param.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+					tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 				}
 			}
 			// Adds named return values to the function body scope.
 			for _, ret := range fillParametersTypes(v.Type.(*ast.FuncType).Result) {
 				t := tc.checkType(ret.Type, noEllipses)
 				if ret.Ident != nil {
-					tc.assignScope(ret.Ident.Name, &ast.TypeInfo{Type: t.Type, Properties: ast.PropertyAddressable})
+					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
 				}
 			}
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
-			tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
-			tc.filePackageBlock[v.Ident] = &ast.TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+			tc.temporaryEvaluated = make(map[string]*TypeInfo)
+			tc.filePackageBlock[v.Ident] = &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.initOrder = append(tc.initOrder, v.Ident)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
@@ -219,7 +219,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			if v.DeclarationType == DeclarationVariable {
 				tc.currentIdent = v.Ident
 				tc.currentlyEvaluating = []string{v.Ident}
-				tc.temporaryEvaluated = make(map[string]*ast.TypeInfo)
+				tc.temporaryEvaluated = make(map[string]*TypeInfo)
 				ti := tc.checkExpression(v.Value.(ast.Expression))
 				if v.Type != nil {
 					typ := tc.checkType(v.Type, noEllipses)
@@ -227,7 +227,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
-				tc.filePackageBlock[v.Ident] = &ast.TypeInfo{Type: ti.Type, Properties: ast.PropertyAddressable}
+				tc.filePackageBlock[v.Ident] = &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
 				if !tc.tryAddingToInitOrder(v.Ident) {
 					unresolvedDeps = true
 				}
@@ -241,7 +241,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		return nil, tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
 	}
 
-	pkgInfo.Declarations = make(map[string]*ast.TypeInfo)
+	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti
 	}

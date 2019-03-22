@@ -159,7 +159,7 @@ func containsDuplicates(slice []string) bool {
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func convert(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	t := ti.Type
 	v := ti.Value
@@ -207,7 +207,7 @@ func convert(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 //
 // If the value can not be converted, returns an errTypeConversion type error,
 // errConstantTruncated or errConstantOverflow.
-func convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func convertImplicit(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	t := ti.Type
 	k2 := t2.Kind()
@@ -233,17 +233,17 @@ func convertImplicit(ti *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
-func fieldByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
+func fieldByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	if t.Type.Kind() == reflect.Struct {
 		field, ok := t.Type.FieldByName(name)
 		if ok {
-			return &ast.TypeInfo{Type: field.Type}, true
+			return &TypeInfo{Type: field.Type}, true
 		}
 	}
 	if t.Type.Kind() == reflect.Ptr {
 		field, ok := t.Type.Elem().FieldByName(name)
 		if ok {
-			return &ast.TypeInfo{Type: field.Type}, true
+			return &TypeInfo{Type: field.Type}, true
 		}
 	}
 	return nil, false
@@ -269,7 +269,7 @@ func fillParametersTypes(params []*ast.Field) []*ast.Field {
 
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func isAssignableTo(x *ast.TypeInfo, t reflect.Type) bool {
+func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
 	if x.Type == t {
 		return true
 	}
@@ -305,7 +305,7 @@ func isComparison(op ast.OperatorType) bool {
 }
 
 // isOrdered reports whether t is ordered.
-func isOrdered(t *ast.TypeInfo) bool {
+func isOrdered(t *TypeInfo) bool {
 	k := t.Type.Kind()
 	return numericKind[k] || k == reflect.String
 }
@@ -315,10 +315,10 @@ func isOrdered(t *ast.TypeInfo) bool {
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
+func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	if t.IsType() {
 		if method, ok := t.Type.MethodByName(name); ok {
-			return &ast.TypeInfo{Type: method.Type}, true
+			return &TypeInfo{Type: method.Type}, true
 		}
 		return nil, false
 	}
@@ -328,31 +328,31 @@ func methodByName(t *ast.TypeInfo, name string) (*ast.TypeInfo, bool) {
 	if t.Type.Kind() == reflect.Interface {
 		method, ok := t.Type.MethodByName(name)
 		if ok {
-			return &ast.TypeInfo{Type: method.Type}, true
+			return &TypeInfo{Type: method.Type}, true
 		}
 		if t.Type.Kind() != reflect.Ptr {
 			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
 			if ok {
-				return &ast.TypeInfo{Type: method.Type}, true
+				return &TypeInfo{Type: method.Type}, true
 			}
 		}
 		return nil, false
 	}
 	method := reflect.Zero(t.Type).MethodByName(name)
 	if method.IsValid() {
-		return &ast.TypeInfo{Type: method.Type()}, true
+		return &TypeInfo{Type: method.Type()}, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
 		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
 		if method.IsValid() {
-			return &ast.TypeInfo{Type: method.Type()}, true
+			return &TypeInfo{Type: method.Type()}, true
 		}
 	}
 	return nil, false
 }
 
 // representedBy returns a constant value represented as a value of type t2.
-func representedBy(t1 *ast.TypeInfo, t2 reflect.Type) (interface{}, error) {
+func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	if t1.Untyped() && t2 == emptyInterfaceType {
 		if !t1.IsConstant() {
@@ -471,7 +471,7 @@ func sliceContainsString(slice []string, s string) bool {
 // tBinaryOp executes a binary expression where the operands are typed
 // constants and returns its result. Returns an error if the operation can not
 // be executed.
-func tBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+func tBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
 
 	if t1.Type != t2.Type {
 		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)", expr, t1, t2)
@@ -656,7 +656,7 @@ func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
 
 // uBinaryOp executes a binary expression where the operands are untyped and
 // returns its result. Returns an error if the operation can not be executed.
-func uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
 
 	k1 := t1.Type.Kind()
 	k2 := t2.Type.Kind()
@@ -677,18 +677,18 @@ func uBinaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*a
 			t.Type = t2.Type
 		}
 	}
-	t.Properties |= ast.PropertyUntyped
+	t.Properties |= PropertyUntyped
 
 	return t, nil
 }
 
 // binaryOp executes a binary expression where the operands are constants and
 // returns its result. Returns an error if the operation can not be executed.
-func binaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*ast.TypeInfo, error) {
+func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
 
 	k1 := t1.Type.Kind()
 
-	t := &ast.TypeInfo{Properties: ast.PropertyIsConstant}
+	t := &TypeInfo{Properties: PropertyIsConstant}
 
 	switch k1 {
 	case reflect.Bool:
@@ -922,14 +922,13 @@ func binaryOp(t1 *ast.TypeInfo, expr *ast.BinaryOperator, t2 *ast.TypeInfo) (*as
 
 // unaryOp executes an unary expression and returns its result. Returns an
 // error if the operation can not be executed.
-func unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
+func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 
-	t := expr.Expr.TypeInfo()
 	k := t.Type.Kind()
 
-	ti := &ast.TypeInfo{
+	ti := &TypeInfo{
 		Type:       t.Type,
-		Properties: t.Properties & (ast.PropertyUntyped | ast.PropertyIsConstant),
+		Properties: t.Properties & (PropertyUntyped | PropertyIsConstant),
 	}
 
 	switch expr.Op {
@@ -991,7 +990,7 @@ func unaryOp(expr *ast.UnaryOperator) (*ast.TypeInfo, error) {
 			return nil, fmt.Errorf("invalid indirect of %s (type %s)", expr, t)
 		}
 		ti.Type = t.Type.Elem()
-		ti.Properties = ti.Properties | ast.PropertyAddressable
+		ti.Properties = ti.Properties | PropertyAddressable
 	case ast.OperatorAmpersand:
 		if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 			return nil, fmt.Errorf("cannot take the address of %s", expr)

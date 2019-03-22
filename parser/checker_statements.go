@@ -91,11 +91,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				nVars := len(node.Init.Variables)
 				nValues := len(node.Init.Values)
 				if nVars == 2 && nValues == 1 {
-					intTypeInfo := &ast.TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
+					intTypeInfo := &TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
 					isDecl := node.Init.Type == ast.AssignmentDeclaration
 					tc.assignSingle(node.Init, node.Init.Variables[0], nil, intTypeInfo, nil, isDecl, false)
 					elemTi := tc.checkExpression(node.Init.Values[0])
-					tc.assignSingle(node.Init, node.Init.Variables[1], nil, &ast.TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
+					tc.assignSingle(node.Init, node.Init.Variables[1], nil, &TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
 				} else {
 					tc.checkAssignment(node.Init)
 				}
@@ -155,11 +155,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				default:
 					panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
 				}
-				keyTi := &ast.TypeInfo{Type: key, Properties: ast.PropertyAddressable}
+				keyTi := &TypeInfo{Type: key, Properties: PropertyAddressable}
 				isDecl := node.Assignment.Type == ast.AssignmentDeclaration
 				tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, keyTi, nil, isDecl, false)
 				if len(node.Assignment.Variables) == 2 {
-					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &ast.TypeInfo{Type: elem}, nil, isDecl, false)
+					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &TypeInfo{Type: elem}, nil, isDecl, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
@@ -299,7 +299,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.checkNodesInNewScope(node.Body)
 			// TODO (Gianluca):
-			ti := &ast.TypeInfo{}
+			ti := &TypeInfo{}
 			tc.assignScope(name, ti)
 
 		case *ast.Call:
@@ -376,7 +376,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				v.SetTypeInfo(ti)
+				tc.typeInfo[v] = ti
 				got = append(got, v)
 				needsCheck = false
 			}
@@ -399,7 +399,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		}
 		msg += "\n\thave ("
 		for i, x := range got {
-			msg += x.TypeInfo().FuncString()
+			msg += tc.typeInfo[x].FuncString()
 			if i != len(got)-1 {
 				msg += ", "
 			}
@@ -417,8 +417,8 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	for i, T := range expectedTypes {
 		x := got[i]
-		if !isAssignableTo(x.TypeInfo(), T) {
-			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], got[i].TypeInfo().ShortString(), expectedTypes[i]))
+		if !isAssignableTo(tc.typeInfo[x], T) {
+			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.typeInfo[got[i]].ShortString(), expectedTypes[i]))
 		}
 	}
 }

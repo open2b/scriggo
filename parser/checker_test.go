@@ -32,7 +32,7 @@ type definedStringMap map[string]string
 
 var checkerExprs = []struct {
 	src   string
-	ti    *ast.TypeInfo
+	ti    *TypeInfo
 	scope typeCheckerScope
 }{
 	// Untyped constant literals.
@@ -99,9 +99,9 @@ var checkerExprs = []struct {
 	{`-a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
 	{`*a`, tiAddrInt(), typeCheckerScope{"a": tiIntPtr()}},
 	{`&a`, tiIntPtr(), typeCheckerScope{"a": tiAddrInt()}},
-	{`&[]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
-	{`&[...]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
-	{`&map[int]int{}`, &ast.TypeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
+	{`&[]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
+	{`&[...]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
+	{`&map[int]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
 
 	// Operations ( untyped + untyped ).
 	{`true && true`, tiUntypedBoolConst(true), nil},
@@ -221,11 +221,11 @@ var checkerExprs = []struct {
 	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
 	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiAddrInt()}},
 	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
-	{`p[1]`, tiAddrInt(), typeCheckerScope{"p": &ast.TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
+	{`p[1]`, tiAddrInt(), typeCheckerScope{"p": &TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
 	{`a[1]`, tiByte(), typeCheckerScope{"a": tiString()}},
-	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: ast.PropertyAddressable}}},
-	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: ast.PropertyAddressable}}},
-	{`a[1]`, tiInt(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: ast.PropertyAddressable}}},
+	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: PropertyAddressable}}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},
@@ -254,7 +254,7 @@ var checkerExprs = []struct {
 	{`new([3]int)[:]`, tiIntSlice(), nil},
 	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": tiIntSlice()}},
 	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": tiIntSlice()}},
-	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": &ast.TypeInfo{Type: reflect.TypeOf(new([3]int))}}},
+	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf(new([3]int))}}},
 
 	// Conversions ( untyped )
 	{`int(5)`, tiIntConst(5), nil},
@@ -273,8 +273,8 @@ var checkerExprs = []struct {
 	{`int(5.0)`, tiIntConst(5), nil},
 	{`int(15/3)`, tiIntConst(5), nil},
 	{`string(5)`, tiStringConst(string(5)), nil},
-	{`[]byte("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
-	{`[]rune("abc")`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, nil},
+	{`[]byte("abc")`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, nil},
+	{`[]rune("abc")`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, nil},
 
 	// Conversions ( typed constants )
 	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiIntConst(5)}},
@@ -292,8 +292,8 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), typeCheckerScope{"a": tiFloat32Const(5.3)}},
 	{`float32(a)`, tiFloat32Const(float32(float64(5.3))), typeCheckerScope{"a": tiFloat64Const(5.3)}},
 	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiFloat64Const(5.0)}},
-	{`[]byte(a)`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
-	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
+	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
+	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
 
 	// Conversions ( not constants )
 	{`int(a)`, tiInt(), typeCheckerScope{"a": tiInt()}},
@@ -310,8 +310,8 @@ var checkerExprs = []struct {
 	{`float64(a)`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
 	{`float32(a)`, tiFloat32(), typeCheckerScope{"a": tiFloat64()}},
 	{`int(a)`, tiInt(), typeCheckerScope{"a": tiFloat64()}},
-	{`[]byte(a)`, &ast.TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiString()}},
-	{`[]rune(a)`, &ast.TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
+	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiString()}},
+	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 
@@ -346,21 +346,21 @@ var checkerExprs = []struct {
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiInt(), nil},
 	{`cap(new([1]byte))`, tiInt(), nil},
-	{`cap(s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`cap(s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
 	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
-	{`copy([]int{}, s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	{`copy(s, []int{})`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy([]int{}, s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s, []int{})`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
-		"s1": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})},
-		"s2": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice2{})},
+		"s1": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})},
+		"s2": &TypeInfo{Type: reflect.TypeOf(definedIntSlice2{})},
 	}},
 	{`copy([]byte{0}, "a")`, tiInt(), nil},
 	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
-		"s1": &ast.TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
-		"s2": &ast.TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
+		"s1": &TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
+		"s2": &TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
 	}},
 
 	// new
@@ -372,7 +372,7 @@ var checkerExprs = []struct {
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiInt(), nil},
 	{`len(new([1]byte))`, tiInt(), nil},
-	{`len(s)`, tiInt(), typeCheckerScope{"s": &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`len(s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -404,7 +404,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
-			checker := &typechecker{scopes: scopes}
+			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
@@ -479,7 +479,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{universe, expr.scope}
 			}
-			checker := &typechecker{scopes: scopes}
+			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
@@ -905,12 +905,12 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
-		"boolType":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedBool(false))},
-		"aString":     &ast.TypeInfo{Type: reflect.TypeOf(definedString(""))},
-		"stringType":  &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(definedString(""))},
-		"aStringMap":  &ast.TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
-		"pointInt":    &ast.TypeInfo{Properties: ast.PropertyIsType, Type: reflect.TypeOf(pointInt{})},
-		"interface{}": &ast.TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: ast.PropertyIsType},
+		"boolType":    &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))},
+		"aString":     &TypeInfo{Type: reflect.TypeOf(definedString(""))},
+		"stringType":  &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))},
+		"aStringMap":  &TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
+		"pointInt":    &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})},
+		"interface{}": &TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: PropertyIsType},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -936,7 +936,11 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			checker := &typechecker{hasBreak: map[ast.Node]bool{}, scopes: []typeCheckerScope{universe, scope, typeCheckerScope{}}}
+			checker := &typechecker{
+				hasBreak: map[ast.Node]bool{},
+				scopes:   []typeCheckerScope{universe, scope, typeCheckerScope{}},
+				typeInfo: map[ast.Node]*TypeInfo{},
+			}
 			checker.addScope()
 			checker.checkNodes(tree.Nodes)
 			checker.removeCurrentScope()
@@ -945,7 +949,7 @@ func TestCheckerStatements(t *testing.T) {
 }
 
 // tiEquals checks that t1 and t2 are identical.
-func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
+func equalTypeInfo(t1, t2 *TypeInfo) error {
 	if t1.Type == nil && t2.Type != nil {
 		return fmt.Errorf("unexpected type %s, expecting untyped", t2.Type)
 	}
@@ -1068,7 +1072,7 @@ func equalTypeInfo(t1, t2 *ast.TypeInfo) error {
 	return nil
 }
 
-func dumpTypeInfo(ti *ast.TypeInfo) string {
+func dumpTypeInfo(ti *TypeInfo) string {
 	s := "\tType:"
 	if ti.Type != nil {
 		s += " " + ti.Type.String()
@@ -1105,222 +1109,222 @@ func dumpTypeInfo(ti *ast.TypeInfo) string {
 }
 
 // bool type infos.
-func tiUntypedBoolConst(b bool) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Value: b, Properties: ast.PropertyUntyped | ast.PropertyIsConstant}
+func tiUntypedBoolConst(b bool) *TypeInfo {
+	return &TypeInfo{Type: boolType, Value: b, Properties: PropertyUntyped | PropertyIsConstant}
 }
 
-func tiBool() *ast.TypeInfo { return &ast.TypeInfo{Type: boolType} }
+func tiBool() *TypeInfo { return &TypeInfo{Type: boolType} }
 
-func tiAddrBool() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyAddressable}
+func tiAddrBool() *TypeInfo {
+	return &TypeInfo{Type: boolType, Properties: PropertyAddressable}
 }
 
-func tiBoolConst(b bool) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Value: b, Properties: ast.PropertyIsConstant}
+func tiBoolConst(b bool) *TypeInfo {
+	return &TypeInfo{Type: boolType, Value: b, Properties: PropertyIsConstant}
 }
 
-func tiUntypedBool() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: boolType, Properties: ast.PropertyUntyped}
+func tiUntypedBool() *TypeInfo {
+	return &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 }
 
 // float type infos.
 
-func tiUntypedFloatConst(lit string) *ast.TypeInfo {
+func tiUntypedFloatConst(lit string) *TypeInfo {
 	value, ok := (&big.Float{}).SetString(lit)
 	if !ok {
 		panic("invalid floating-point literal value")
 	}
-	return &ast.TypeInfo{
+	return &TypeInfo{
 		Type:       float64Type,
 		Value:      value,
-		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
 
-func tiFloat32() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["float32"].Type} }
-func tiFloat64() *ast.TypeInfo { return &ast.TypeInfo{Type: float64Type} }
+func tiFloat32() *TypeInfo { return &TypeInfo{Type: universe["float32"].Type} }
+func tiFloat64() *TypeInfo { return &TypeInfo{Type: float64Type} }
 
-func tiAddrFloat32() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["float32"].Type, Properties: ast.PropertyAddressable}
+func tiAddrFloat32() *TypeInfo {
+	return &TypeInfo{Type: universe["float32"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrFloat64() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: float64Type, Properties: ast.PropertyAddressable}
+func tiAddrFloat64() *TypeInfo {
+	return &TypeInfo{Type: float64Type, Properties: PropertyAddressable}
 }
 
-func tiFloat32Const(n float32) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["float32"].Type, Value: big.NewFloat(float64(n)), Properties: ast.PropertyIsConstant}
+func tiFloat32Const(n float32) *TypeInfo {
+	return &TypeInfo{Type: universe["float32"].Type, Value: big.NewFloat(float64(n)), Properties: PropertyIsConstant}
 }
 
-func tiFloat64Const(n float64) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: float64Type, Value: big.NewFloat(n), Properties: ast.PropertyIsConstant}
+func tiFloat64Const(n float64) *TypeInfo {
+	return &TypeInfo{Type: float64Type, Value: big.NewFloat(n), Properties: PropertyIsConstant}
 }
 
 // rune type infos.
 
-func tiUntypedRuneConst(r rune) *ast.TypeInfo {
-	return &ast.TypeInfo{
+func tiUntypedRuneConst(r rune) *TypeInfo {
+	return &TypeInfo{
 		Type:       int32Type,
 		Value:      (&big.Int{}).SetInt64(int64(r)),
-		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
 
 // string type infos.
 
-func tiUntypedStringConst(s string) *ast.TypeInfo {
-	return &ast.TypeInfo{
+func tiUntypedStringConst(s string) *TypeInfo {
+	return &TypeInfo{
 		Type:       stringType,
 		Value:      s,
-		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
 
-func tiString() *ast.TypeInfo { return &ast.TypeInfo{Type: stringType} }
+func tiString() *TypeInfo { return &TypeInfo{Type: stringType} }
 
-func tiAddrString() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: stringType, Properties: ast.PropertyAddressable}
+func tiAddrString() *TypeInfo {
+	return &TypeInfo{Type: stringType, Properties: PropertyAddressable}
 }
 
-func tiStringConst(s string) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: stringType, Value: s, Properties: ast.PropertyIsConstant}
+func tiStringConst(s string) *TypeInfo {
+	return &TypeInfo{Type: stringType, Value: s, Properties: PropertyIsConstant}
 }
 
 // int type infos.
 
-func tiUntypedIntConst(lit string) *ast.TypeInfo {
+func tiUntypedIntConst(lit string) *TypeInfo {
 	value, ok := (&big.Int{}).SetString(lit, 0)
 	if !ok {
 		panic("invalid integer literal value")
 	}
-	return &ast.TypeInfo{
+	return &TypeInfo{
 		Type:       intType,
 		Value:      value,
-		Properties: ast.PropertyUntyped | ast.PropertyIsConstant,
+		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
 
-func tiInt() *ast.TypeInfo    { return &ast.TypeInfo{Type: intType} }
-func tiInt8() *ast.TypeInfo   { return &ast.TypeInfo{Type: universe["int8"].Type} }
-func tiInt16() *ast.TypeInfo  { return &ast.TypeInfo{Type: universe["int16"].Type} }
-func tiInt32() *ast.TypeInfo  { return &ast.TypeInfo{Type: universe["int32"].Type} }
-func tiInt64() *ast.TypeInfo  { return &ast.TypeInfo{Type: universe["int64"].Type} }
-func tiUint() *ast.TypeInfo   { return &ast.TypeInfo{Type: universe["uint"].Type} }
-func tiUint8() *ast.TypeInfo  { return &ast.TypeInfo{Type: universe["uint8"].Type} }
-func tiUint16() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["uint16"].Type} }
-func tiUint32() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["uint32"].Type} }
-func tiUint64() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["uint64"].Type} }
+func tiInt() *TypeInfo    { return &TypeInfo{Type: intType} }
+func tiInt8() *TypeInfo   { return &TypeInfo{Type: universe["int8"].Type} }
+func tiInt16() *TypeInfo  { return &TypeInfo{Type: universe["int16"].Type} }
+func tiInt32() *TypeInfo  { return &TypeInfo{Type: universe["int32"].Type} }
+func tiInt64() *TypeInfo  { return &TypeInfo{Type: universe["int64"].Type} }
+func tiUint() *TypeInfo   { return &TypeInfo{Type: universe["uint"].Type} }
+func tiUint8() *TypeInfo  { return &TypeInfo{Type: universe["uint8"].Type} }
+func tiUint16() *TypeInfo { return &TypeInfo{Type: universe["uint16"].Type} }
+func tiUint32() *TypeInfo { return &TypeInfo{Type: universe["uint32"].Type} }
+func tiUint64() *TypeInfo { return &TypeInfo{Type: universe["uint64"].Type} }
 
-func tiAddrInt() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: intType, Properties: ast.PropertyAddressable}
+func tiAddrInt() *TypeInfo {
+	return &TypeInfo{Type: intType, Properties: PropertyAddressable}
 }
 
-func tiAddrInt8() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int8"].Type, Properties: ast.PropertyAddressable}
+func tiAddrInt8() *TypeInfo {
+	return &TypeInfo{Type: universe["int8"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrInt16() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int16"].Type, Properties: ast.PropertyAddressable}
+func tiAddrInt16() *TypeInfo {
+	return &TypeInfo{Type: universe["int16"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrInt32() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int32"].Type, Properties: ast.PropertyAddressable}
+func tiAddrInt32() *TypeInfo {
+	return &TypeInfo{Type: universe["int32"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrInt64() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int64"].Type, Properties: ast.PropertyAddressable}
+func tiAddrInt64() *TypeInfo {
+	return &TypeInfo{Type: universe["int64"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrUint() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint"].Type, Properties: ast.PropertyAddressable}
+func tiAddrUint() *TypeInfo {
+	return &TypeInfo{Type: universe["uint"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrUint8() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint8"].Type, Properties: ast.PropertyAddressable}
+func tiAddrUint8() *TypeInfo {
+	return &TypeInfo{Type: universe["uint8"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrUint16() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint16"].Type, Properties: ast.PropertyAddressable}
+func tiAddrUint16() *TypeInfo {
+	return &TypeInfo{Type: universe["uint16"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrUint32() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint32"].Type, Properties: ast.PropertyAddressable}
+func tiAddrUint32() *TypeInfo {
+	return &TypeInfo{Type: universe["uint32"].Type, Properties: PropertyAddressable}
 }
 
-func tiAddrUint64() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint64"].Type, Properties: ast.PropertyAddressable}
+func tiAddrUint64() *TypeInfo {
+	return &TypeInfo{Type: universe["uint64"].Type, Properties: PropertyAddressable}
 }
 
-func tiIntConst(n int) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: intType, Value: big.NewInt(int64(n)), Properties: ast.PropertyIsConstant}
+func tiIntConst(n int) *TypeInfo {
+	return &TypeInfo{Type: intType, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
-func tiInt8Const(n int8) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int8"].Type, Value: big.NewInt(int64(n)), Properties: ast.PropertyIsConstant}
+func tiInt8Const(n int8) *TypeInfo {
+	return &TypeInfo{Type: universe["int8"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
-func tiInt16Const(n int16) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int16"].Type, Value: big.NewInt(int64(n)), Properties: ast.PropertyIsConstant}
+func tiInt16Const(n int16) *TypeInfo {
+	return &TypeInfo{Type: universe["int16"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
-func tiInt32Const(n int32) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int32"].Type, Value: big.NewInt(int64(n)), Properties: ast.PropertyIsConstant}
+func tiInt32Const(n int32) *TypeInfo {
+	return &TypeInfo{Type: universe["int32"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
-func tiInt64Const(n int64) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["int64"].Type, Value: big.NewInt(n), Properties: ast.PropertyIsConstant}
+func tiInt64Const(n int64) *TypeInfo {
+	return &TypeInfo{Type: universe["int64"].Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
 }
 
-func tiUintConst(n uint) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: ast.PropertyIsConstant}
+func tiUintConst(n uint) *TypeInfo {
+	return &TypeInfo{Type: universe["uint"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
-func tiUint8Const(n uint8) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint8"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: ast.PropertyIsConstant}
+func tiUint8Const(n uint8) *TypeInfo {
+	return &TypeInfo{Type: universe["uint8"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
-func tiUint16Const(n uint16) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint16"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: ast.PropertyIsConstant}
+func tiUint16Const(n uint16) *TypeInfo {
+	return &TypeInfo{Type: universe["uint16"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
-func tiUint32Const(n uint32) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint32"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: ast.PropertyIsConstant}
+func tiUint32Const(n uint32) *TypeInfo {
+	return &TypeInfo{Type: universe["uint32"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
-func tiUint64Const(n uint64) *ast.TypeInfo {
-	return &ast.TypeInfo{Type: universe["uint64"].Type, Value: big.NewInt(0).SetUint64(n), Properties: ast.PropertyIsConstant}
+func tiUint64Const(n uint64) *TypeInfo {
+	return &TypeInfo{Type: universe["uint64"].Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
 }
 
-func tiIntPtr() *ast.TypeInfo {
-	return &ast.TypeInfo{Type: reflect.PtrTo(intType)}
+func tiIntPtr() *TypeInfo {
+	return &TypeInfo{Type: reflect.PtrTo(intType)}
 }
 
-var tiDefinedInt = &ast.TypeInfo{Type: reflect.TypeOf(definedInt(0))}
-var tiDefinedIntSlice = &ast.TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}
+var tiDefinedInt = &TypeInfo{Type: reflect.TypeOf(definedInt(0))}
+var tiDefinedIntSlice = &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}
 
 // nil type info.
 
-func tiNil() *ast.TypeInfo { return &ast.TypeInfo{Properties: ast.PropertyNil} }
+func tiNil() *TypeInfo { return &TypeInfo{Properties: PropertyNil} }
 
 // byte type info.
 
-func tiByte() *ast.TypeInfo { return &ast.TypeInfo{Type: universe["byte"].Type} }
+func tiByte() *TypeInfo { return &TypeInfo{Type: universe["byte"].Type} }
 
 // byte slice type info.
 
-func tiByteSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]byte{})} }
+func tiByteSlice() *TypeInfo { return &TypeInfo{Type: reflect.TypeOf([]byte{})} }
 
 // string slice type info.
 
-func tiStringSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf([]string{})} }
+func tiStringSlice() *TypeInfo { return &TypeInfo{Type: reflect.TypeOf([]string{})} }
 
 // int slice type info.
 
-func tiIntSlice() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.SliceOf(intType)} }
+func tiIntSlice() *TypeInfo { return &TypeInfo{Type: reflect.SliceOf(intType)} }
 
 // string map type info.
 
-func tiStringMap() *ast.TypeInfo { return &ast.TypeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
+func tiStringMap() *TypeInfo { return &TypeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{
@@ -1332,7 +1336,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := &typechecker{}
+	tc := &typechecker{typeInfo: map[ast.Node]*TypeInfo{}}
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {
@@ -1360,7 +1364,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 	type myIntSlice2 []int
 	myIntSliceType2 := reflect.TypeOf(myIntSlice2(nil))
 	cases := []struct {
-		x          *ast.TypeInfo
+		x          *TypeInfo
 		T          reflect.Type
 		assignable bool
 	}{
@@ -1371,14 +1375,14 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiString(), T: stringType, assignable: true},
 		{x: tiFloat64(), T: float64Type, assignable: true},
 		{x: tiFloat64(), T: stringType, assignable: false},
-		{x: &ast.TypeInfo{Type: myIntType}, T: myIntType, assignable: true},
+		{x: &TypeInfo{Type: myIntType}, T: myIntType, assignable: true},
 
 		// «x's type V and T have identical underlying types and at least one of
 		// V or T is not a defined type.»
-		{x: &ast.TypeInfo{Type: intSliceType}, T: myIntSliceType, assignable: true},     // x is not a defined type, but T is
-		{x: &ast.TypeInfo{Type: myIntSliceType}, T: intSliceType, assignable: true},     // x is a defined type, but T is not
-		{x: &ast.TypeInfo{Type: myIntSliceType}, T: myIntSliceType2, assignable: false}, // x and T are both defined types
-		{x: &ast.TypeInfo{Type: intSliceType}, T: stringSliceType, assignable: false},   // underlying types are different
+		{x: &TypeInfo{Type: intSliceType}, T: myIntSliceType, assignable: true},     // x is not a defined type, but T is
+		{x: &TypeInfo{Type: myIntSliceType}, T: intSliceType, assignable: true},     // x is a defined type, but T is not
+		{x: &TypeInfo{Type: myIntSliceType}, T: myIntSliceType2, assignable: false}, // x and T are both defined types
+		{x: &TypeInfo{Type: intSliceType}, T: stringSliceType, assignable: false},   // underlying types are different
 
 		// «T is an interface type and x implements T.»
 		{x: tiInt(), T: emptyInterfaceType, assignable: true},
@@ -1425,7 +1429,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}}
+		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}, typeInfo: map[ast.Node]*TypeInfo{}}
 		tc.addScope()
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {

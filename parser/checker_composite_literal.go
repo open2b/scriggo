@@ -93,7 +93,7 @@ func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind refl
 	}
 }
 
-func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) *ast.TypeInfo {
+func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) *TypeInfo {
 
 	var err error
 
@@ -143,7 +143,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			tc.checkDuplicatedKeys(node, reflect.Struct)
 		} else { // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
-				return &ast.TypeInfo{Type: ti.Type}
+				return &TypeInfo{Type: ti.Type}
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
 				panic(tc.errorf(node, "too few values in %s literal", node.Type))
@@ -174,7 +174,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 			}
-			var elemTi *ast.TypeInfo
+			var elemTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
@@ -203,7 +203,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 			}
-			var elemTi *ast.TypeInfo
+			var elemTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
@@ -226,7 +226,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 		tc.checkDuplicatedKeys(node, reflect.Map)
 		for _, kv := range node.KeyValues {
-			var keyTi *ast.TypeInfo
+			var keyTi *TypeInfo
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				keyTi = tc.checkCompositeLiteral(compLit, ti.Type.Key())
 			} else {
@@ -242,7 +242,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 			if !isAssignableTo(keyTi, ti.Type.Key()) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), ti.Type.Key()))
 			}
-			var valueTi *ast.TypeInfo
+			var valueTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
@@ -258,5 +258,5 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 		}
 	}
 
-	return &ast.TypeInfo{Type: ti.Type}
+	return &TypeInfo{Type: ti.Type}
 }

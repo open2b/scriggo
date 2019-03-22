@@ -17,7 +17,7 @@ import (
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression
-	var typ *ast.TypeInfo
+	var typ *TypeInfo
 	var isDecl, isConst bool
 
 	isVarOrConst := false
@@ -35,7 +35,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(values) == 0 {
 			for i := range n.Identifiers {
-				zero := &ast.TypeInfo{Type: typ.Type}
+				zero := &TypeInfo{Type: typ.Type}
 				newVar := tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
 				if newVar == "" && !isBlankIdentifier(n.Identifiers[i]) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[i]))
@@ -158,7 +158,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			values = nil
 			for _, ti := range tis {
 				newCall := ast.NewCall(call.Pos(), call.Func, call.Args, false)
-				newCall.SetTypeInfo(ti)
+				tc.typeInfo[newCall] = ti
 				values = append(values, newCall)
 			}
 		}
@@ -172,8 +172,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			value1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			value2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkType(values[0], noEllipses)
-			value1.SetTypeInfo(&ast.TypeInfo{Type: ti.Type})
-			value2.SetTypeInfo(untypedBoolTypeInfo)
+			tc.typeInfo[value1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfo[value2] = untypedBoolTypeInfo
 			values = []ast.Expression{value1, value2}
 
 		case *ast.Index:
@@ -181,8 +181,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			value1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			value2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpression(values[0])
-			value1.SetTypeInfo(&ast.TypeInfo{Type: ti.Type})
-			value2.SetTypeInfo(untypedBoolTypeInfo)
+			tc.typeInfo[value1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfo[value2] = untypedBoolTypeInfo
 			values = []ast.Expression{value1, value2}
 
 		}
@@ -196,7 +196,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	tmpScope := typeCheckerScope{}
 	for i := range vars {
 		var newVar string
-		if valueTi := values[i].TypeInfo(); valueTi == nil {
+		if valueTi := tc.typeInfo[values[i]]; valueTi == nil {
 			newVar = tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
 		} else {
 			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
@@ -227,7 +227,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // if the assignment is a declaration and if it's a constant.
 //
 // Returns the identifier of the new declared variable, otherwise empty string.
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *ast.TypeInfo, typ *ast.TypeInfo, isDeclaration, isConst bool) string {
+func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
 
 	if valueTi == nil {
 		valueTi = tc.checkExpression(value)
@@ -253,7 +253,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 
 		if isDeclaration {
-			newValueTi := &ast.TypeInfo{}
+			newValueTi := &TypeInfo{}
 			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
 				return ""
 			}
@@ -273,14 +273,14 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				// implicitly converted to its default type.»
 				newValueTi.Type = valueTi.Type
 			}
-			v.SetTypeInfo(newValueTi)
+			tc.typeInfo[v] = newValueTi
 			if isConst {
 				newValueTi.Value = valueTi.Value
-				newValueTi.Properties = newValueTi.Properties | ast.PropertyIsConstant
+				newValueTi.Properties = newValueTi.Properties | PropertyIsConstant
 				tc.assignScope(v.Name, newValueTi)
 				return v.Name
 			}
-			newValueTi.Properties |= ast.PropertyAddressable
+			newValueTi.Properties |= PropertyAddressable
 			tc.assignScope(v.Name, newValueTi)
 			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 				ident:      v.Name,
