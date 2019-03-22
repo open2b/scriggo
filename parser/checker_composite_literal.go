@@ -24,16 +24,20 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	maxIndex := -1
 	currentIndex := -1
 	for _, kv := range node.KeyValues {
-		if kv.Key != nil {
+		if kv.Key == nil {
+			currentIndex++
+		} else {
+			currentIndex = -1
 			ti := tc.checkExpression(kv.Key)
-			n, err := representedBy(ti, intType)
-			if err != nil || n.(*big.Int).Sign() < 0 ||
-				(ti.IsConstant() && !ti.Untyped() && !integerKind[ti.Type.Kind()]) {
+			if ti.IsConstant() {
+				n, err := representedBy(ti, intType)
+				if err == nil {
+					currentIndex = int(n.(*big.Int).Int64())
+				}
+			}
+			if currentIndex < 0 {
 				panic(tc.errorf(kv.Key, "index must be non-negative integer constant"))
 			}
-			currentIndex = int(n.(*big.Int).Int64())
-		} else {
-			currentIndex++
 		}
 		if currentIndex > maxIndex {
 			maxIndex = currentIndex
