@@ -215,7 +215,7 @@ func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
 	return nil, 0
 }
 
-func (tc *typechecker) CheckUpValue(name string) string {
+func (tc *typechecker) checkUpValue(name string) string {
 	_, funcBound := tc.getCurrentFunc()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n := range tc.scopes[i] {
@@ -236,7 +236,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 
 	// Upvalues.
 	if fun, _ := tc.getCurrentFunc(); fun != nil {
-		uv := tc.CheckUpValue(ident.Name)
+		uv := tc.checkUpValue(ident.Name)
 		if uv != "" {
 			fun.Upvalues = append(fun.Upvalues, uv)
 		}
