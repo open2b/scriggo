@@ -45,8 +45,8 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	return maxIndex
 }
 
-// checkDuplicatedKeys checks if node contains duplicates keys.
-func (tc *typechecker) checkDuplicatedKeys(node *ast.CompositeLiteral, kind reflect.Kind) {
+// checkKeysDuplicates checks if node contains duplicates keys.
+func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind reflect.Kind) {
 	found := []interface{}{}
 	for _, kv := range node.KeyValues {
 		if kv.Key == nil {
@@ -140,7 +140,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 			}
-			tc.checkDuplicatedKeys(node, reflect.Struct)
+			tc.checkKeysDuplicates(node, reflect.Struct)
 		} else { // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				return &TypeInfo{Type: ti.Type}
@@ -166,7 +166,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Array:
 
-		tc.checkDuplicatedKeys(node, reflect.Array)
+		tc.checkKeysDuplicates(node, reflect.Array)
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
@@ -195,7 +195,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Slice:
 
-		tc.checkDuplicatedKeys(node, reflect.Slice)
+		tc.checkKeysDuplicates(node, reflect.Slice)
 		for _, kv := range node.KeyValues {
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
@@ -224,7 +224,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explici
 
 	case reflect.Map:
 
-		tc.checkDuplicatedKeys(node, reflect.Map)
+		tc.checkKeysDuplicates(node, reflect.Map)
 		for _, kv := range node.KeyValues {
 			var keyTi *TypeInfo
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
