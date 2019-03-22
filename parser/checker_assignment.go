@@ -201,7 +201,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
 		}
 		if isDecl {
-			tmpScope[newVar], _ = tc.lookupScopes(newVar, true)
+			ti, _ := tc.lookupScopes(newVar, true)
+			tmpScope[newVar] = scopeElement{t: ti}
 			delete(tc.scopes[len(tc.scopes)-1], newVar)
 		}
 		if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
@@ -213,7 +214,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
-		tc.assignScope(d, ti)
+		tc.assignScope(d, ti.t)
 	}
 	return
 

@@ -33,7 +33,7 @@ type definedStringMap map[string]string
 var checkerExprs = []struct {
 	src   string
 	ti    *TypeInfo
-	scope typeCheckerScope
+	scope map[string]*TypeInfo
 }{
 	// Untyped constant literals.
 	{`true`, tiUntypedBoolConst(true), nil},
@@ -45,29 +45,29 @@ var checkerExprs = []struct {
 	{`0.0`, tiUntypedFloatConst("0"), nil},
 
 	// Untyped constants.
-	{`a`, tiUntypedBoolConst(true), typeCheckerScope{"a": tiUntypedBoolConst(true)}},
-	{`a`, tiUntypedBoolConst(false), typeCheckerScope{"a": tiUntypedBoolConst(false)}},
-	{`a`, tiUntypedStringConst("a"), typeCheckerScope{"a": tiUntypedStringConst("a")}},
-	{`a`, tiUntypedIntConst("0"), typeCheckerScope{"a": tiUntypedIntConst("0")}},
-	{`a`, tiUntypedRuneConst(0), typeCheckerScope{"a": tiUntypedRuneConst(0)}},
-	{`a`, tiUntypedFloatConst("0.0"), typeCheckerScope{"a": tiUntypedFloatConst("0.0")}},
+	{`a`, tiUntypedBoolConst(true), map[string]*TypeInfo{"a": tiUntypedBoolConst(true)}},
+	{`a`, tiUntypedBoolConst(false), map[string]*TypeInfo{"a": tiUntypedBoolConst(false)}},
+	{`a`, tiUntypedStringConst("a"), map[string]*TypeInfo{"a": tiUntypedStringConst("a")}},
+	{`a`, tiUntypedIntConst("0"), map[string]*TypeInfo{"a": tiUntypedIntConst("0")}},
+	{`a`, tiUntypedRuneConst(0), map[string]*TypeInfo{"a": tiUntypedRuneConst(0)}},
+	{`a`, tiUntypedFloatConst("0.0"), map[string]*TypeInfo{"a": tiUntypedFloatConst("0.0")}},
 
 	// Typed constants
-	{`a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`a`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`a`, tiStringConst("a"), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a`, tiIntConst(0), typeCheckerScope{"a": tiIntConst(0)}},
-	{`a`, tiInt64Const(0), typeCheckerScope{"a": tiInt64Const(0)}},
-	{`a`, tiInt32Const(0), typeCheckerScope{"a": tiInt32Const(0)}},
-	{`a`, tiInt16Const(0), typeCheckerScope{"a": tiInt16Const(0)}},
-	{`a`, tiInt8Const(0), typeCheckerScope{"a": tiInt8Const(0)}},
-	{`a`, tiUintConst(0), typeCheckerScope{"a": tiUintConst(0)}},
-	{`a`, tiUint64Const(0), typeCheckerScope{"a": tiUint64Const(0)}},
-	{`a`, tiUint32Const(0), typeCheckerScope{"a": tiUint32Const(0)}},
-	{`a`, tiUint16Const(0), typeCheckerScope{"a": tiUint16Const(0)}},
-	{`a`, tiUint8Const(0), typeCheckerScope{"a": tiUint8Const(0)}},
-	{`a`, tiFloat64Const(0.0), typeCheckerScope{"a": tiFloat64Const(0.0)}},
-	{`a`, tiFloat32Const(0.0), typeCheckerScope{"a": tiFloat32Const(0.0)}},
+	{`a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`a`, tiBoolConst(false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a`, tiStringConst("a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a`, tiIntConst(0), map[string]*TypeInfo{"a": tiIntConst(0)}},
+	{`a`, tiInt64Const(0), map[string]*TypeInfo{"a": tiInt64Const(0)}},
+	{`a`, tiInt32Const(0), map[string]*TypeInfo{"a": tiInt32Const(0)}},
+	{`a`, tiInt16Const(0), map[string]*TypeInfo{"a": tiInt16Const(0)}},
+	{`a`, tiInt8Const(0), map[string]*TypeInfo{"a": tiInt8Const(0)}},
+	{`a`, tiUintConst(0), map[string]*TypeInfo{"a": tiUintConst(0)}},
+	{`a`, tiUint64Const(0), map[string]*TypeInfo{"a": tiUint64Const(0)}},
+	{`a`, tiUint32Const(0), map[string]*TypeInfo{"a": tiUint32Const(0)}},
+	{`a`, tiUint16Const(0), map[string]*TypeInfo{"a": tiUint16Const(0)}},
+	{`a`, tiUint8Const(0), map[string]*TypeInfo{"a": tiUint8Const(0)}},
+	{`a`, tiFloat64Const(0.0), map[string]*TypeInfo{"a": tiFloat64Const(0.0)}},
+	{`a`, tiFloat32Const(0.0), map[string]*TypeInfo{"a": tiFloat32Const(0.0)}},
 
 	// Operations ( untyped )
 	{`!true`, tiUntypedBoolConst(false), nil},
@@ -80,25 +80,25 @@ var checkerExprs = []struct {
 	{`-'a'`, tiUntypedRuneConst(-'a'), nil},
 
 	// Operations ( typed constant )
-	{`!a`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`!a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`+a`, tiIntConst(5), typeCheckerScope{"a": tiIntConst(5)}},
-	{`+a`, tiFloat64Const(5.7), typeCheckerScope{"a": tiFloat64Const(5.7)}},
-	{`+a`, tiInt32Const('a'), typeCheckerScope{"a": tiInt32Const('a')}},
-	{`-a`, tiIntConst(-5), typeCheckerScope{"a": tiIntConst(5)}},
-	{`-a`, tiFloat64Const(-5.7), typeCheckerScope{"a": tiFloat64Const(5.7)}},
-	{`-a`, tiInt32Const(-'a'), typeCheckerScope{"a": tiInt32Const('a')}},
+	{`!a`, tiBoolConst(false), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`!a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`+a`, tiIntConst(5), map[string]*TypeInfo{"a": tiIntConst(5)}},
+	{`+a`, tiFloat64Const(5.7), map[string]*TypeInfo{"a": tiFloat64Const(5.7)}},
+	{`+a`, tiInt32Const('a'), map[string]*TypeInfo{"a": tiInt32Const('a')}},
+	{`-a`, tiIntConst(-5), map[string]*TypeInfo{"a": tiIntConst(5)}},
+	{`-a`, tiFloat64Const(-5.7), map[string]*TypeInfo{"a": tiFloat64Const(5.7)}},
+	{`-a`, tiInt32Const(-'a'), map[string]*TypeInfo{"a": tiInt32Const('a')}},
 
 	// Operations ( typed )
-	{`!a`, tiBool(), typeCheckerScope{"a": tiBool()}},
-	{`+a`, tiInt(), typeCheckerScope{"a": tiInt()}},
-	{`+a`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
-	{`+a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
-	{`-a`, tiInt(), typeCheckerScope{"a": tiInt()}},
-	{`-a`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
-	{`-a`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
-	{`*a`, tiAddrInt(), typeCheckerScope{"a": tiIntPtr()}},
-	{`&a`, tiIntPtr(), typeCheckerScope{"a": tiAddrInt()}},
+	{`!a`, tiBool(), map[string]*TypeInfo{"a": tiBool()}},
+	{`+a`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
+	{`+a`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
+	{`+a`, tiInt32(), map[string]*TypeInfo{"a": tiInt32()}},
+	{`-a`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
+	{`-a`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
+	{`-a`, tiInt32(), map[string]*TypeInfo{"a": tiInt32()}},
+	{`*a`, tiAddrInt(), map[string]*TypeInfo{"a": tiIntPtr()}},
+	{`&a`, tiIntPtr(), map[string]*TypeInfo{"a": tiAddrInt()}},
 	{`&[]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
 	{`&[...]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.ArrayOf(0, intType))}, nil},
 	{`&map[int]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.MapOf(intType, intType))}, nil},
@@ -118,51 +118,51 @@ var checkerExprs = []struct {
 	{`"a" + "b"`, tiUntypedStringConst("ab"), nil},
 
 	// Operations ( typed + untyped ).
-	{`a && true`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`a || true`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`a && true`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`a || true`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`a + "b"`, tiStringConst("ab"), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a + 2`, tiIntConst(3), typeCheckerScope{"a": tiIntConst(1)}},
-	{`a + 'a'`, tiIntConst(98), typeCheckerScope{"a": tiIntConst(1)}},
-	{`a + 2`, tiInt8Const(3), typeCheckerScope{"a": tiInt8Const(1)}},
-	{`a + 2`, tiFloat64Const(3.1), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`a + 'a'`, tiFloat64Const(98.1), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`a + 2.5`, tiFloat64Const(3.6), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`v + 2`, tiInt(), typeCheckerScope{"v": tiInt()}},
-	{`v + 2`, tiFloat64(), typeCheckerScope{"v": tiFloat64()}},
-	{`v + 2.5`, tiFloat32(), typeCheckerScope{"v": tiFloat32()}},
+	{`a && true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`a || true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`a && true`, tiBoolConst(false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a || true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a + "b"`, tiStringConst("ab"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a + 2`, tiIntConst(3), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a + 'a'`, tiIntConst(98), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a + 2`, tiInt8Const(3), map[string]*TypeInfo{"a": tiInt8Const(1)}},
+	{`a + 2`, tiFloat64Const(3.1), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`a + 'a'`, tiFloat64Const(98.1), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`a + 2.5`, tiFloat64Const(3.6), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`v + 2`, tiInt(), map[string]*TypeInfo{"v": tiInt()}},
+	{`v + 2`, tiFloat64(), map[string]*TypeInfo{"v": tiFloat64()}},
+	{`v + 2.5`, tiFloat32(), map[string]*TypeInfo{"v": tiFloat32()}},
 
 	// Operations ( untyped + typed ).
-	{`true && a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`true || a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true)}},
-	{`true && a`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`true || a`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`"b" + a`, tiStringConst("b" + "a"), typeCheckerScope{"a": tiStringConst("a")}},
-	{`2 + a`, tiIntConst(2 + int(1)), typeCheckerScope{"a": tiIntConst(1)}},
-	{`'a' + a`, tiIntConst('a' + int(1)), typeCheckerScope{"a": tiIntConst(1)}},
-	{`2 + a`, tiInt8Const(2 + int8(1)), typeCheckerScope{"a": tiInt8Const(1)}},
-	{`2 + a`, tiFloat64Const(2 + float64(1.1)), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`'a' + a`, tiFloat64Const('a' + float64(1.1)), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`2.5 + a`, tiFloat64Const(2.5 + float64(1.1)), typeCheckerScope{"a": tiFloat64Const(1.1)}},
-	{`5.3 / a`, tiFloat64Const(5.3 / float64(1.8)), typeCheckerScope{"a": tiFloat64Const(1.8)}},
-	{`2 + v`, tiInt(), typeCheckerScope{"v": tiInt()}},
-	{`2 + v`, tiFloat64(), typeCheckerScope{"v": tiFloat64()}},
-	{`2.5 + v`, tiFloat32(), typeCheckerScope{"v": tiFloat32()}},
+	{`true && a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`true || a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
+	{`true && a`, tiBoolConst(false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`true || a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`"b" + a`, tiStringConst("b" + "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`2 + a`, tiIntConst(2 + int(1)), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`'a' + a`, tiIntConst('a' + int(1)), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`2 + a`, tiInt8Const(2 + int8(1)), map[string]*TypeInfo{"a": tiInt8Const(1)}},
+	{`2 + a`, tiFloat64Const(2 + float64(1.1)), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`'a' + a`, tiFloat64Const('a' + float64(1.1)), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`2.5 + a`, tiFloat64Const(2.5 + float64(1.1)), map[string]*TypeInfo{"a": tiFloat64Const(1.1)}},
+	{`5.3 / a`, tiFloat64Const(5.3 / float64(1.8)), map[string]*TypeInfo{"a": tiFloat64Const(1.8)}},
+	{`2 + v`, tiInt(), map[string]*TypeInfo{"v": tiInt()}},
+	{`2 + v`, tiFloat64(), map[string]*TypeInfo{"v": tiFloat64()}},
+	{`2.5 + v`, tiFloat32(), map[string]*TypeInfo{"v": tiFloat32()}},
 
 	// Operations ( typed + typed ).
-	{`a && b`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
-	{`a || b`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
-	{`a && b`, tiBoolConst(false), typeCheckerScope{"a": tiBoolConst(false), "b": tiBoolConst(true)}},
-	{`a || b`, tiBoolConst(true), typeCheckerScope{"a": tiBoolConst(false), "b": tiBoolConst(true)}},
-	{`a + b`, tiStringConst("a" + "b"), typeCheckerScope{"a": tiStringConst("a"), "b": tiStringConst("b")}},
-	{`a + b`, tiIntConst(int(1) + int(2)), typeCheckerScope{"a": tiIntConst(1), "b": tiIntConst(2)}},
-	{`a + b`, tiInt16Const(int16(-3) + int16(5)), typeCheckerScope{"a": tiInt16Const(-3), "b": tiInt16Const(5)}},
-	{`a + b`, tiFloat64Const(float64(1.1) + float64(3.7)), typeCheckerScope{"a": tiFloat64Const(1.1), "b": tiFloat64Const(3.7)}},
-	{`a / b`, tiFloat64Const(float64(5.3) / float64(1.8)), typeCheckerScope{"a": tiFloat64Const(5.3), "b": tiFloat64Const(1.8)}},
-	{`a + b`, tiString(), typeCheckerScope{"a": tiStringConst("a"), "b": tiString()}},
-	{`a + b`, tiString(), typeCheckerScope{"a": tiString(), "b": tiStringConst("b")}},
-	{`a + b`, tiString(), typeCheckerScope{"a": tiString(), "b": tiString()}},
+	{`a && b`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
+	{`a || b`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
+	{`a && b`, tiBoolConst(false), map[string]*TypeInfo{"a": tiBoolConst(false), "b": tiBoolConst(true)}},
+	{`a || b`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(false), "b": tiBoolConst(true)}},
+	{`a + b`, tiStringConst("a" + "b"), map[string]*TypeInfo{"a": tiStringConst("a"), "b": tiStringConst("b")}},
+	{`a + b`, tiIntConst(int(1) + int(2)), map[string]*TypeInfo{"a": tiIntConst(1), "b": tiIntConst(2)}},
+	{`a + b`, tiInt16Const(int16(-3) + int16(5)), map[string]*TypeInfo{"a": tiInt16Const(-3), "b": tiInt16Const(5)}},
+	{`a + b`, tiFloat64Const(float64(1.1) + float64(3.7)), map[string]*TypeInfo{"a": tiFloat64Const(1.1), "b": tiFloat64Const(3.7)}},
+	{`a / b`, tiFloat64Const(float64(5.3) / float64(1.8)), map[string]*TypeInfo{"a": tiFloat64Const(5.3), "b": tiFloat64Const(1.8)}},
+	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiStringConst("a"), "b": tiString()}},
+	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiString(), "b": tiStringConst("b")}},
+	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiString(), "b": tiString()}},
 
 	// Equality ( untyped + untyped )
 	{`false == false`, tiUntypedBoolConst(false == false), nil},
@@ -180,81 +180,81 @@ var checkerExprs = []struct {
 	{`"a" == "b"`, tiUntypedBoolConst("a" == "b"), nil},
 
 	// Equality ( typed + untyped )
-	{`a == false`, tiBoolConst(bool(false) == false), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`a == true`, tiBoolConst(bool(false) == true), typeCheckerScope{"a": tiBoolConst(false)}},
-	{`a == 0`, tiBoolConst(int(0) == 0), typeCheckerScope{"a": tiIntConst(0)}},
-	{`a == 1`, tiBoolConst(int(1) == 1), typeCheckerScope{"a": tiIntConst(1)}},
-	{`a == 0`, tiBoolConst(float64(0.0) == 0), typeCheckerScope{"a": tiFloat64Const(0.0)}},
-	{`a == 0`, tiBoolConst(float32(1.0) == 0), typeCheckerScope{"a": tiFloat32Const(1.0)}},
-	{`a == 1.0`, tiBoolConst(int(1) == 1.0), typeCheckerScope{"a": tiIntConst(1)}},
-	{`a == "a"`, tiBoolConst(string("a") == "a"), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a == "b"`, tiBoolConst(string("a") == "b"), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a == 0`, tiUntypedBool(), typeCheckerScope{"a": tiInt()}},
+	{`a == false`, tiBoolConst(bool(false) == false), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a == true`, tiBoolConst(bool(false) == true), map[string]*TypeInfo{"a": tiBoolConst(false)}},
+	{`a == 0`, tiBoolConst(int(0) == 0), map[string]*TypeInfo{"a": tiIntConst(0)}},
+	{`a == 1`, tiBoolConst(int(1) == 1), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a == 0`, tiBoolConst(float64(0.0) == 0), map[string]*TypeInfo{"a": tiFloat64Const(0.0)}},
+	{`a == 0`, tiBoolConst(float32(1.0) == 0), map[string]*TypeInfo{"a": tiFloat32Const(1.0)}},
+	{`a == 1.0`, tiBoolConst(int(1) == 1.0), map[string]*TypeInfo{"a": tiIntConst(1)}},
+	{`a == "a"`, tiBoolConst(string("a") == "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a == "b"`, tiBoolConst(string("a") == "b"), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a == 0`, tiUntypedBool(), map[string]*TypeInfo{"a": tiInt()}},
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
-	{`a[0]`, tiByte(), typeCheckerScope{"a": tiUntypedStringConst("a")}},
-	{`a[0]`, tiByte(), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a[0]`, tiByte(), typeCheckerScope{"a": tiAddrString()}},
-	{`a[0]`, tiByte(), typeCheckerScope{"a": tiString()}},
+	{`a[0]`, tiByte(), map[string]*TypeInfo{"a": tiUntypedStringConst("a")}},
+	{`a[0]`, tiByte(), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a[0]`, tiByte(), map[string]*TypeInfo{"a": tiAddrString()}},
+	{`a[0]`, tiByte(), map[string]*TypeInfo{"a": tiString()}},
 	{`"a"[0.0]`, tiByte(), nil},
 	{`"ab"[1.0]`, tiByte(), nil},
 	{`"abc"[1+1]`, tiByte(), nil},
-	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
-	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiIntConst(1)}},
-	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiAddrInt()}},
-	{`"abc"[i]`, tiByte(), typeCheckerScope{"i": tiInt()}},
-	{`[]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
-	{`[]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedRuneConst('a')}},
-	{`[]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
-	{`[]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
-	{`[]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedRuneConst(1)}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiAddrInt()}},
-	{`[...]int{0,1}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedIntConst("1")}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedRuneConst(1)}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiUntypedFloatConst("1.0")}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiIntConst(1)}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiAddrInt()}},
-	{`map[int]int{}[i]`, tiInt(), typeCheckerScope{"i": tiInt()}},
-	{`p[1]`, tiAddrInt(), typeCheckerScope{"p": &TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
-	{`a[1]`, tiByte(), typeCheckerScope{"a": tiString()}},
-	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: PropertyAddressable}}},
-	{`a[1]`, tiAddrInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: PropertyAddressable}}},
-	{`a[1]`, tiInt(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: PropertyAddressable}}},
+	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
+	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiIntConst(1)}},
+	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiAddrInt()}},
+	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiInt()}},
+	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
+	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst('a')}},
+	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
+	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
+	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiInt()}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst(1)}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiAddrInt()}},
+	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiInt()}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst(1)}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiAddrInt()}},
+	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiInt()}},
+	{`p[1]`, tiAddrInt(), map[string]*TypeInfo{"p": &TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
+	{`a[1]`, tiByte(), map[string]*TypeInfo{"a": tiString()}},
+	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: PropertyAddressable}}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},
-	{`a[:]`, tiString(), typeCheckerScope{"a": tiUntypedStringConst("a")}},
-	{`a[:]`, tiString(), typeCheckerScope{"a": tiStringConst("a")}},
-	{`a[:]`, tiString(), typeCheckerScope{"a": tiAddrString()}},
-	{`a[:]`, tiString(), typeCheckerScope{"a": tiString()}},
+	{`a[:]`, tiString(), map[string]*TypeInfo{"a": tiUntypedStringConst("a")}},
+	{`a[:]`, tiString(), map[string]*TypeInfo{"a": tiStringConst("a")}},
+	{`a[:]`, tiString(), map[string]*TypeInfo{"a": tiAddrString()}},
+	{`a[:]`, tiString(), map[string]*TypeInfo{"a": tiString()}},
 	{`"a"[1:]`, tiString(), nil},
 	{`"a"[1.0:]`, tiString(), nil},
 	{`"a"[:0]`, tiString(), nil},
 	{`"a"[:0.0]`, tiString(), nil},
-	{`"abc"[l:]`, tiString(), typeCheckerScope{"l": tiUntypedIntConst("1")}},
-	{`"abc"[l:]`, tiString(), typeCheckerScope{"l": tiUntypedFloatConst("1.0")}},
-	{`"abc"[l:]`, tiString(), typeCheckerScope{"l": tiIntConst(1)}},
-	{`"abc"[l:]`, tiString(), typeCheckerScope{"l": tiAddrInt()}},
-	{`"abc"[l:]`, tiString(), typeCheckerScope{"l": tiInt()}},
-	{`"abc"[:h]`, tiString(), typeCheckerScope{"h": tiUntypedIntConst("1")}},
-	{`"abc"[:h]`, tiString(), typeCheckerScope{"h": tiUntypedFloatConst("1.0")}},
-	{`"abc"[:h]`, tiString(), typeCheckerScope{"h": tiIntConst(1)}},
-	{`"abc"[:h]`, tiString(), typeCheckerScope{"h": tiAddrInt()}},
-	{`"abc"[:h]`, tiString(), typeCheckerScope{"h": tiInt()}},
+	{`"abc"[l:]`, tiString(), map[string]*TypeInfo{"l": tiUntypedIntConst("1")}},
+	{`"abc"[l:]`, tiString(), map[string]*TypeInfo{"l": tiUntypedFloatConst("1.0")}},
+	{`"abc"[l:]`, tiString(), map[string]*TypeInfo{"l": tiIntConst(1)}},
+	{`"abc"[l:]`, tiString(), map[string]*TypeInfo{"l": tiAddrInt()}},
+	{`"abc"[l:]`, tiString(), map[string]*TypeInfo{"l": tiInt()}},
+	{`"abc"[:h]`, tiString(), map[string]*TypeInfo{"h": tiUntypedIntConst("1")}},
+	{`"abc"[:h]`, tiString(), map[string]*TypeInfo{"h": tiUntypedFloatConst("1.0")}},
+	{`"abc"[:h]`, tiString(), map[string]*TypeInfo{"h": tiIntConst(1)}},
+	{`"abc"[:h]`, tiString(), map[string]*TypeInfo{"h": tiAddrInt()}},
+	{`"abc"[:h]`, tiString(), map[string]*TypeInfo{"h": tiInt()}},
 	{`"abc"[0:2]`, tiString(), nil},
 	{`"abc"[2:2]`, tiString(), nil},
 	{`"abc"[3:3]`, tiString(), nil},
 	{`[]int{0,1,2}[:]`, tiIntSlice(), nil},
 	{`new([3]int)[:]`, tiIntSlice(), nil},
-	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": tiIntSlice()}},
-	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": tiIntSlice()}},
-	{`a[:]`, tiIntSlice(), typeCheckerScope{"a": &TypeInfo{Type: reflect.TypeOf(new([3]int))}}},
+	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": tiIntSlice()}},
+	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": tiIntSlice()}},
+	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf(new([3]int))}}},
 
 	// Conversions ( untyped )
 	{`int(5)`, tiIntConst(5), nil},
@@ -277,41 +277,41 @@ var checkerExprs = []struct {
 	{`[]rune("abc")`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, nil},
 
 	// Conversions ( typed constants )
-	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiIntConst(5)}},
-	{`int8(a)`, tiInt8Const(5), typeCheckerScope{"a": tiInt8Const(5)}},
-	{`int16(a)`, tiInt16Const(5), typeCheckerScope{"a": tiInt16Const(5)}},
-	{`int32(a)`, tiInt32Const(5), typeCheckerScope{"a": tiInt32Const(5)}},
-	{`int64(a)`, tiInt64Const(5), typeCheckerScope{"a": tiInt64Const(5)}},
-	{`uint(a)`, tiUintConst(5), typeCheckerScope{"a": tiIntConst(5)}},
-	{`uint8(a)`, tiUint8Const(5), typeCheckerScope{"a": tiUint8Const(5)}},
-	{`uint16(a)`, tiUint16Const(5), typeCheckerScope{"a": tiUint16Const(5)}},
-	{`uint32(a)`, tiUint32Const(5), typeCheckerScope{"a": tiUint32Const(5)}},
-	{`uint64(a)`, tiUint64Const(5), typeCheckerScope{"a": tiUint64Const(5)}},
-	{`float32(a)`, tiFloat32Const(5.3), typeCheckerScope{"a": tiFloat32Const(5.3)}},
-	{`float64(a)`, tiFloat64Const(5.3), typeCheckerScope{"a": tiFloat64Const(5.3)}},
-	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), typeCheckerScope{"a": tiFloat32Const(5.3)}},
-	{`float32(a)`, tiFloat32Const(float32(float64(5.3))), typeCheckerScope{"a": tiFloat64Const(5.3)}},
-	{`int(a)`, tiIntConst(5), typeCheckerScope{"a": tiFloat64Const(5.0)}},
-	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
-	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiStringConst("abc")}},
+	{`int(a)`, tiIntConst(5), map[string]*TypeInfo{"a": tiIntConst(5)}},
+	{`int8(a)`, tiInt8Const(5), map[string]*TypeInfo{"a": tiInt8Const(5)}},
+	{`int16(a)`, tiInt16Const(5), map[string]*TypeInfo{"a": tiInt16Const(5)}},
+	{`int32(a)`, tiInt32Const(5), map[string]*TypeInfo{"a": tiInt32Const(5)}},
+	{`int64(a)`, tiInt64Const(5), map[string]*TypeInfo{"a": tiInt64Const(5)}},
+	{`uint(a)`, tiUintConst(5), map[string]*TypeInfo{"a": tiIntConst(5)}},
+	{`uint8(a)`, tiUint8Const(5), map[string]*TypeInfo{"a": tiUint8Const(5)}},
+	{`uint16(a)`, tiUint16Const(5), map[string]*TypeInfo{"a": tiUint16Const(5)}},
+	{`uint32(a)`, tiUint32Const(5), map[string]*TypeInfo{"a": tiUint32Const(5)}},
+	{`uint64(a)`, tiUint64Const(5), map[string]*TypeInfo{"a": tiUint64Const(5)}},
+	{`float32(a)`, tiFloat32Const(5.3), map[string]*TypeInfo{"a": tiFloat32Const(5.3)}},
+	{`float64(a)`, tiFloat64Const(5.3), map[string]*TypeInfo{"a": tiFloat64Const(5.3)}},
+	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), map[string]*TypeInfo{"a": tiFloat32Const(5.3)}},
+	{`float32(a)`, tiFloat32Const(float32(float64(5.3))), map[string]*TypeInfo{"a": tiFloat64Const(5.3)}},
+	{`int(a)`, tiIntConst(5), map[string]*TypeInfo{"a": tiFloat64Const(5.0)}},
+	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, map[string]*TypeInfo{"a": tiStringConst("abc")}},
+	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, map[string]*TypeInfo{"a": tiStringConst("abc")}},
 
 	// Conversions ( not constants )
-	{`int(a)`, tiInt(), typeCheckerScope{"a": tiInt()}},
-	{`int8(a)`, tiInt8(), typeCheckerScope{"a": tiInt8()}},
-	{`int16(a)`, tiInt16(), typeCheckerScope{"a": tiInt16()}},
-	{`int32(a)`, tiInt32(), typeCheckerScope{"a": tiInt32()}},
-	{`int64(a)`, tiInt64(), typeCheckerScope{"a": tiInt64()}},
-	{`uint(a)`, tiUint(), typeCheckerScope{"a": tiInt()}},
-	{`uint8(a)`, tiUint8(), typeCheckerScope{"a": tiUint8()}},
-	{`uint16(a)`, tiUint16(), typeCheckerScope{"a": tiUint16()}},
-	{`uint32(a)`, tiUint32(), typeCheckerScope{"a": tiUint32()}},
-	{`uint64(a)`, tiUint64(), typeCheckerScope{"a": tiUint64()}},
-	{`float32(a)`, tiFloat32(), typeCheckerScope{"a": tiFloat32()}},
-	{`float64(a)`, tiFloat64(), typeCheckerScope{"a": tiFloat64()}},
-	{`float32(a)`, tiFloat32(), typeCheckerScope{"a": tiFloat64()}},
-	{`int(a)`, tiInt(), typeCheckerScope{"a": tiFloat64()}},
-	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, typeCheckerScope{"a": tiString()}},
-	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, typeCheckerScope{"a": tiString()}},
+	{`int(a)`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
+	{`int8(a)`, tiInt8(), map[string]*TypeInfo{"a": tiInt8()}},
+	{`int16(a)`, tiInt16(), map[string]*TypeInfo{"a": tiInt16()}},
+	{`int32(a)`, tiInt32(), map[string]*TypeInfo{"a": tiInt32()}},
+	{`int64(a)`, tiInt64(), map[string]*TypeInfo{"a": tiInt64()}},
+	{`uint(a)`, tiUint(), map[string]*TypeInfo{"a": tiInt()}},
+	{`uint8(a)`, tiUint8(), map[string]*TypeInfo{"a": tiUint8()}},
+	{`uint16(a)`, tiUint16(), map[string]*TypeInfo{"a": tiUint16()}},
+	{`uint32(a)`, tiUint32(), map[string]*TypeInfo{"a": tiUint32()}},
+	{`uint64(a)`, tiUint64(), map[string]*TypeInfo{"a": tiUint64()}},
+	{`float32(a)`, tiFloat32(), map[string]*TypeInfo{"a": tiFloat32()}},
+	{`float64(a)`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
+	{`float32(a)`, tiFloat32(), map[string]*TypeInfo{"a": tiFloat64()}},
+	{`int(a)`, tiInt(), map[string]*TypeInfo{"a": tiFloat64()}},
+	{`[]byte(a)`, &TypeInfo{Type: reflect.SliceOf(uint8Type)}, map[string]*TypeInfo{"a": tiString()}},
+	{`[]rune(a)`, &TypeInfo{Type: reflect.SliceOf(int32Type)}, map[string]*TypeInfo{"a": tiString()}},
 	{`string([]byte{1,2,3})`, tiString(), nil},
 	{`string([]rune{'a','b','c'})`, tiString(), nil},
 
@@ -322,43 +322,43 @@ var checkerExprs = []struct {
 	{`append([]byte{}, "abc"...)`, tiByteSlice(), nil},
 	{`append([]string{}, "a", "b", "c")`, tiStringSlice(), nil},
 	{`append([]string{}, []string{"a", "b", "c"}...)`, tiStringSlice(), nil},
-	{`append(s, 1, 2, 3)`, tiIntSlice(), typeCheckerScope{"s": tiIntSlice()}},
-	{`append(s, 1, 2, 3)`, tiDefinedIntSlice, typeCheckerScope{"s": tiDefinedIntSlice}},
-	{`append(s, 1.0, 2.0, 3.0)`, tiDefinedIntSlice, typeCheckerScope{"s": tiDefinedIntSlice}},
+	{`append(s, 1, 2, 3)`, tiIntSlice(), map[string]*TypeInfo{"s": tiIntSlice()}},
+	{`append(s, 1, 2, 3)`, tiDefinedIntSlice, map[string]*TypeInfo{"s": tiDefinedIntSlice}},
+	{`append(s, 1.0, 2.0, 3.0)`, tiDefinedIntSlice, map[string]*TypeInfo{"s": tiDefinedIntSlice}},
 
 	// make
 	{`make([]int, 0)`, tiIntSlice(), nil},
 	{`make([]int, 0, 0)`, tiIntSlice(), nil},
 	{`make([]int, 2, 3)`, tiIntSlice(), nil},
 	{`make([]int, 3, 3)`, tiIntSlice(), nil},
-	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiUntypedIntConst("1"), "c": tiUntypedIntConst("1")}},
-	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiIntConst(1), "c": tiIntConst(1)}},
-	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiInt(), "c": tiInt()}},
-	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiUntypedIntConst("1"), "c": tiIntConst(1)}},
-	{`make([]int, l, c)`, tiIntSlice(), typeCheckerScope{"l": tiInt(), "c": tiIntConst(1)}},
+	{`make([]int, l, c)`, tiIntSlice(), map[string]*TypeInfo{"l": tiUntypedIntConst("1"), "c": tiUntypedIntConst("1")}},
+	{`make([]int, l, c)`, tiIntSlice(), map[string]*TypeInfo{"l": tiIntConst(1), "c": tiIntConst(1)}},
+	{`make([]int, l, c)`, tiIntSlice(), map[string]*TypeInfo{"l": tiInt(), "c": tiInt()}},
+	{`make([]int, l, c)`, tiIntSlice(), map[string]*TypeInfo{"l": tiUntypedIntConst("1"), "c": tiIntConst(1)}},
+	{`make([]int, l, c)`, tiIntSlice(), map[string]*TypeInfo{"l": tiInt(), "c": tiIntConst(1)}},
 	{`make(map[string]string)`, tiStringMap(), nil},
 	{`make(map[string]string, 0)`, tiStringMap(), nil},
-	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiUntypedIntConst("1")}},
-	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiIntConst(1)}},
-	{`make(map[string]string, s)`, tiStringMap(), typeCheckerScope{"s": tiInt()}},
+	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiUntypedIntConst("1")}},
+	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiIntConst(1)}},
+	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiInt()}},
 
 	// cap
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiInt(), nil},
 	{`cap(new([1]byte))`, tiInt(), nil},
-	{`cap(s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
 	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
-	{`copy([]int{}, s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	{`copy(s, []int{})`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
+	{`copy([]int{}, s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s, []int{})`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s1, s2)`, tiInt(), map[string]*TypeInfo{
 		"s1": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})},
 		"s2": &TypeInfo{Type: reflect.TypeOf(definedIntSlice2{})},
 	}},
 	{`copy([]byte{0}, "a")`, tiInt(), nil},
-	{`copy(s1, s2)`, tiInt(), typeCheckerScope{
+	{`copy(s1, s2)`, tiInt(), map[string]*TypeInfo{
 		"s1": &TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
 		"s2": &TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
 	}},
@@ -373,7 +373,7 @@ var checkerExprs = []struct {
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiInt(), nil},
 	{`len(new([1]byte))`, tiInt(), nil},
-	{`len(s)`, tiInt(), typeCheckerScope{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -399,11 +399,15 @@ func TestCheckerExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
+			scope := make(typeCheckerScope, len(expr.scope))
+			for k, v := range expr.scope {
+				scope[k] = scopeElement{t: v}
+			}
 			var scopes []typeCheckerScope
 			if expr.scope == nil {
 				scopes = []typeCheckerScope{universe}
 			} else {
-				scopes = []typeCheckerScope{universe, expr.scope}
+				scopes = []typeCheckerScope{universe, scope}
 			}
 			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
 			checker.addScope()
@@ -422,14 +426,14 @@ func TestCheckerExpressions(t *testing.T) {
 var checkerExprErrors = []struct {
 	src   string
 	err   *Error
-	scope typeCheckerScope
+	scope map[string]*TypeInfo
 }{
 	// Index.
 	{`"a"["i"]`, tierr(1, 5, `non-integer string index "i"`), nil},
 	{`"a"[1.2]`, tierr(1, 5, `constant 1.2 truncated to integer`), nil},
-	{`"a"[i]`, tierr(1, 5, `constant 1.2 truncated to integer`), typeCheckerScope{"i": tiUntypedFloatConst("1.2")}},
+	{`"a"[i]`, tierr(1, 5, `constant 1.2 truncated to integer`), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.2")}},
 	{`"a"[nil]`, tierr(1, 5, `non-integer string index nil`), nil},
-	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), typeCheckerScope{"i": tiFloat32()}},
+	{`"a"[i]`, tierr(1, 5, `non-integer string index i`), map[string]*TypeInfo{"i": tiFloat32()}},
 	{`5[1]`, tierr(1, 2, `invalid operation: 5[1] (type int does not support indexing)`), nil},
 	{`"a"[-1]`, tierr(1, 5, `invalid string index -1 (index must be non-negative)`), nil},
 	{`"a"[1]`, tierr(1, 5, `invalid string index 1 (out of bounds for 1-byte string)`), nil},
@@ -475,11 +479,15 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return
 			}
+			scope := make(typeCheckerScope, len(expr.scope))
+			for k, v := range expr.scope {
+				scope[k] = scopeElement{t: v}
+			}
 			var scopes []typeCheckerScope
 			if expr.scope == nil {
 				scopes = []typeCheckerScope{universe}
 			} else {
-				scopes = []typeCheckerScope{universe, expr.scope}
+				scopes = []typeCheckerScope{universe, scope}
 			}
 			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
 			checker.addScope()
@@ -951,12 +959,12 @@ func (p *pointInt) SetX(newX int) {
 
 func TestCheckerStatements(t *testing.T) {
 	scope := typeCheckerScope{
-		"boolType":    &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))},
-		"aString":     &TypeInfo{Type: reflect.TypeOf(definedString(""))},
-		"stringType":  &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))},
-		"aStringMap":  &TypeInfo{Type: reflect.TypeOf(definedStringMap{})},
-		"pointInt":    &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})},
-		"interface{}": &TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: PropertyIsType},
+		"boolType":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))}},
+		"aString":     {t: &TypeInfo{Type: reflect.TypeOf(definedString(""))}},
+		"stringType":  {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))}},
+		"aStringMap":  {t: &TypeInfo{Type: reflect.TypeOf(definedStringMap{})}},
+		"pointInt":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})}},
+		"interface{}": {t: &TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: PropertyIsType}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {
@@ -1187,11 +1195,11 @@ func tiUntypedFloatConst(lit string) *TypeInfo {
 	}
 }
 
-func tiFloat32() *TypeInfo { return &TypeInfo{Type: universe["float32"].Type} }
+func tiFloat32() *TypeInfo { return &TypeInfo{Type: universe["float32"].t.Type} }
 func tiFloat64() *TypeInfo { return &TypeInfo{Type: float64Type} }
 
 func tiAddrFloat32() *TypeInfo {
-	return &TypeInfo{Type: universe["float32"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["float32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrFloat64() *TypeInfo {
@@ -1199,7 +1207,7 @@ func tiAddrFloat64() *TypeInfo {
 }
 
 func tiFloat32Const(n float32) *TypeInfo {
-	return &TypeInfo{Type: universe["float32"].Type, Value: big.NewFloat(float64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["float32"].t.Type, Value: big.NewFloat(float64(n)), Properties: PropertyIsConstant}
 }
 
 func tiFloat64Const(n float64) *TypeInfo {
@@ -1251,54 +1259,54 @@ func tiUntypedIntConst(lit string) *TypeInfo {
 }
 
 func tiInt() *TypeInfo    { return &TypeInfo{Type: intType} }
-func tiInt8() *TypeInfo   { return &TypeInfo{Type: universe["int8"].Type} }
-func tiInt16() *TypeInfo  { return &TypeInfo{Type: universe["int16"].Type} }
-func tiInt32() *TypeInfo  { return &TypeInfo{Type: universe["int32"].Type} }
-func tiInt64() *TypeInfo  { return &TypeInfo{Type: universe["int64"].Type} }
-func tiUint() *TypeInfo   { return &TypeInfo{Type: universe["uint"].Type} }
-func tiUint8() *TypeInfo  { return &TypeInfo{Type: universe["uint8"].Type} }
-func tiUint16() *TypeInfo { return &TypeInfo{Type: universe["uint16"].Type} }
-func tiUint32() *TypeInfo { return &TypeInfo{Type: universe["uint32"].Type} }
-func tiUint64() *TypeInfo { return &TypeInfo{Type: universe["uint64"].Type} }
+func tiInt8() *TypeInfo   { return &TypeInfo{Type: universe["int8"].t.Type} }
+func tiInt16() *TypeInfo  { return &TypeInfo{Type: universe["int16"].t.Type} }
+func tiInt32() *TypeInfo  { return &TypeInfo{Type: universe["int32"].t.Type} }
+func tiInt64() *TypeInfo  { return &TypeInfo{Type: universe["int64"].t.Type} }
+func tiUint() *TypeInfo   { return &TypeInfo{Type: universe["uint"].t.Type} }
+func tiUint8() *TypeInfo  { return &TypeInfo{Type: universe["uint8"].t.Type} }
+func tiUint16() *TypeInfo { return &TypeInfo{Type: universe["uint16"].t.Type} }
+func tiUint32() *TypeInfo { return &TypeInfo{Type: universe["uint32"].t.Type} }
+func tiUint64() *TypeInfo { return &TypeInfo{Type: universe["uint64"].t.Type} }
 
 func tiAddrInt() *TypeInfo {
 	return &TypeInfo{Type: intType, Properties: PropertyAddressable}
 }
 
 func tiAddrInt8() *TypeInfo {
-	return &TypeInfo{Type: universe["int8"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int8"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt16() *TypeInfo {
-	return &TypeInfo{Type: universe["int16"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int16"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt32() *TypeInfo {
-	return &TypeInfo{Type: universe["int32"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt64() *TypeInfo {
-	return &TypeInfo{Type: universe["int64"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int64"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint() *TypeInfo {
-	return &TypeInfo{Type: universe["uint"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint8() *TypeInfo {
-	return &TypeInfo{Type: universe["uint8"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint16() *TypeInfo {
-	return &TypeInfo{Type: universe["uint16"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint32() *TypeInfo {
-	return &TypeInfo{Type: universe["uint32"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint64() *TypeInfo {
-	return &TypeInfo{Type: universe["uint64"].Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiIntConst(n int) *TypeInfo {
@@ -1306,39 +1314,39 @@ func tiIntConst(n int) *TypeInfo {
 }
 
 func tiInt8Const(n int8) *TypeInfo {
-	return &TypeInfo{Type: universe["int8"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int8"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt16Const(n int16) *TypeInfo {
-	return &TypeInfo{Type: universe["int16"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int16"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt32Const(n int32) *TypeInfo {
-	return &TypeInfo{Type: universe["int32"].Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int32"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt64Const(n int64) *TypeInfo {
-	return &TypeInfo{Type: universe["int64"].Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int64"].t.Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
 }
 
 func tiUintConst(n uint) *TypeInfo {
-	return &TypeInfo{Type: universe["uint"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint8Const(n uint8) *TypeInfo {
-	return &TypeInfo{Type: universe["uint8"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint16Const(n uint16) *TypeInfo {
-	return &TypeInfo{Type: universe["uint16"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint32Const(n uint32) *TypeInfo {
-	return &TypeInfo{Type: universe["uint32"].Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint64Const(n uint64) *TypeInfo {
-	return &TypeInfo{Type: universe["uint64"].Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
 }
 
 func tiIntPtr() *TypeInfo {
@@ -1354,7 +1362,7 @@ func tiNil() *TypeInfo { return &TypeInfo{Properties: PropertyNil} }
 
 // byte type info.
 
-func tiByte() *TypeInfo { return &TypeInfo{Type: universe["byte"].Type} }
+func tiByte() *TypeInfo { return &TypeInfo{Type: universe["byte"].t.Type} }
 
 // byte slice type info.
 
@@ -1396,8 +1404,8 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 }
 
 func TestTypechecker_IsAssignableTo(t *testing.T) {
-	stringType := universe["string"].Type
-	float64Type := universe["float64"].Type
+	stringType := universe["string"].t.Type
+	float64Type := universe["float64"].t.Type
 	intSliceType := reflect.TypeOf([]int{})
 	stringSliceType := reflect.TypeOf([]string{})
 	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()

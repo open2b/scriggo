@@ -114,7 +114,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				}
 			}
 			if n.Ident == nil {
-				tc.filePackageBlock[importedPkg.Name] = &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}
+				tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
 				tc.unusedImports[importedPkg.Name] = nil
 			} else {
 				switch n.Ident.Name {
@@ -123,10 +123,10 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {
 						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
-						tc.filePackageBlock[ident] = ti
+						tc.filePackageBlock[ident] = scopeElement{t: ti}
 					}
 				default:
-					tc.filePackageBlock[n.Ident.Name] = &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}
+					tc.filePackageBlock[n.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[n.Ident.Name] = nil
 				}
 			}
@@ -136,7 +136,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				if _, ok := tc.filePackageBlock[name]; ok {
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
-				tc.filePackageBlock[name] = notChecked
+				tc.filePackageBlock[name] = scopeElement{t: notChecked}
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
 			}
 		case *ast.Var:
@@ -146,7 +146,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.filePackageBlock[name] = notChecked
+				tc.filePackageBlock[name] = scopeElement{t: notChecked}
 			}
 		case *ast.Func:
 			if n.Ident.Name == "init" {
@@ -159,7 +159,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				}
 			}
 			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
-			tc.filePackageBlock[n.Ident.Name] = notChecked
+			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notChecked}
 		}
 	}
 
@@ -179,7 +179,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 					return nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
-			tc.filePackageBlock[c.Ident] = ti
+			tc.filePackageBlock[c.Ident] = scopeElement{t: ti}
 		}
 	}
 
@@ -205,7 +205,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			tc.currentIdent = v.Ident
 			tc.currentlyEvaluating = []string{v.Ident}
 			tc.temporaryEvaluated = make(map[string]*TypeInfo)
-			tc.filePackageBlock[v.Ident] = &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}
+			tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}}
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.initOrder = append(tc.initOrder, v.Ident)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
@@ -228,7 +228,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
-				tc.filePackageBlock[v.Ident] = &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
+				tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}}
 				if !tc.tryAddingToInitOrder(v.Ident) {
 					unresolvedDeps = true
 				}
@@ -244,7 +244,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
-		pkgInfo.Declarations[ident] = ti
+		pkgInfo.Declarations[ident] = ti.t
 	}
 
 	pkgInfo.VariableOrdering = nil

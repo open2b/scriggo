@@ -21,7 +21,12 @@ var errDivisionByZero = errors.New("division by zero")
 
 const noEllipses = -1
 
-type typeCheckerScope map[string]*TypeInfo
+type scopeElement struct {
+	t    *TypeInfo
+	decl *ast.Identifier
+}
+
+type typeCheckerScope map[string]scopeElement
 
 type HTML string
 
@@ -40,45 +45,45 @@ var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
 var universe = typeCheckerScope{
-	"append":      builtinTypeInfo,
-	"cap":         builtinTypeInfo,
-	"close":       builtinTypeInfo,
-	"complex":     builtinTypeInfo,
-	"copy":        builtinTypeInfo,
-	"delete":      builtinTypeInfo,
-	"imag":        builtinTypeInfo,
-	"len":         builtinTypeInfo,
-	"make":        builtinTypeInfo,
-	"new":         builtinTypeInfo,
-	"nil":         &TypeInfo{Properties: PropertyNil},
-	"panic":       builtinTypeInfo,
-	"print":       builtinTypeInfo,
-	"println":     builtinTypeInfo,
-	"real":        builtinTypeInfo,
-	"recover":     builtinTypeInfo,
-	"byte":        uint8TypeInfo,
-	"bool":        &TypeInfo{Type: boolType, Properties: PropertyIsType},
-	"complex128":  &TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: PropertyIsType},
-	"complex64":   &TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: PropertyIsType},
-	"error":       &TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: PropertyIsType},
-	"float32":     &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType},
-	"float64":     &TypeInfo{Type: float64Type, Properties: PropertyIsType},
-	"false":       &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: false},
-	"int":         &TypeInfo{Type: intType, Properties: PropertyIsType},
-	"int16":       &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType},
-	"int32":       int32TypeInfo,
-	"int64":       &TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType},
-	"int8":        &TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType},
-	"interface{}": &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType},
-	"rune":        int32TypeInfo,
-	"string":      &TypeInfo{Type: stringType, Properties: PropertyIsType},
-	"true":        &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true},
-	"uint":        &TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: PropertyIsType},
-	"uint16":      &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType},
-	"uint32":      &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType},
-	"uint64":      &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType},
-	"uint8":       uint8TypeInfo,
-	"uintptr":     &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType},
+	"append":      {t: builtinTypeInfo},
+	"cap":         {t: builtinTypeInfo},
+	"close":       {t: builtinTypeInfo},
+	"complex":     {t: builtinTypeInfo},
+	"copy":        {t: builtinTypeInfo},
+	"delete":      {t: builtinTypeInfo},
+	"imag":        {t: builtinTypeInfo},
+	"len":         {t: builtinTypeInfo},
+	"make":        {t: builtinTypeInfo},
+	"new":         {t: builtinTypeInfo},
+	"nil":         {t: &TypeInfo{Properties: PropertyNil}},
+	"panic":       {t: builtinTypeInfo},
+	"print":       {t: builtinTypeInfo},
+	"println":     {t: builtinTypeInfo},
+	"real":        {t: builtinTypeInfo},
+	"recover":     {t: builtinTypeInfo},
+	"byte":        {t: uint8TypeInfo},
+	"bool":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsType}},
+	"complex128":  {t: &TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: PropertyIsType}},
+	"complex64":   {t: &TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: PropertyIsType}},
+	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: PropertyIsType}},
+	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType}},
+	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType}},
+	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: false}},
+	"int":         {t: &TypeInfo{Type: intType, Properties: PropertyIsType}},
+	"int16":       {t: &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType}},
+	"int32":       {t: int32TypeInfo},
+	"int64":       {t: &TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType}},
+	"int8":        {t: &TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType}},
+	"interface{}": {t: &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType}},
+	"rune":        {t: int32TypeInfo},
+	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
+	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true}},
+	"uint":        {t: &TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: PropertyIsType}},
+	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
+	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
+	"uint64":      {t: &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType}},
+	"uint8":       {t: uint8TypeInfo},
+	"uintptr":     {t: &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType}},
 }
 
 type ancestor struct {
@@ -171,7 +176,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 	if justCurrentScope {
 		for n, ti := range tc.scopes[len(tc.scopes)-1] {
 			if n == name {
-				return ti, true
+				return ti.t, true
 			}
 		}
 		return nil, false
@@ -179,13 +184,13 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n, ti := range tc.scopes[i] {
 			if n == name {
-				return ti, true
+				return ti.t, true
 			}
 		}
 	}
 	for n, ti := range tc.filePackageBlock {
 		if n == name {
-			return ti, true
+			return ti.t, true
 		}
 	}
 	return nil, false
@@ -193,7 +198,7 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 
 // assignScope assigns value to name in the last scope.
 func (tc *typechecker) assignScope(name string, value *TypeInfo) {
-	tc.scopes[len(tc.scopes)-1][name] = value
+	tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value}
 }
 
 func (tc *typechecker) addToAncestors(n ast.Node) {
@@ -223,7 +228,9 @@ func (tc *typechecker) checkUpValue(name string) string {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.scopes[i][n].Properties |= PropertyMustBeReferenced
+				// TODO (Gianluca): if variable is global, there's no need to set this.
+				// TODO (Gianluca): to review.
+				tc.scopes[i][n].t.Properties |= PropertyMustBeReferenced
 				return name
 			}
 			return ""
@@ -569,7 +576,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
-				typ = universe["byte"].Type
+				typ = universe["byte"].t.Type
 			case reflect.Slice, reflect.Array:
 				typ = t.Type.Elem()
 			case reflect.Ptr:
