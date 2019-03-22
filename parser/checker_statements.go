@@ -303,14 +303,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, ti)
 
 		case *ast.Call:
-
-			// TODO (Gianluca): some builtins should print error: "%s evaluated but not used"
-			tc.checkCallExpression(node, true)
-			// TODO (Gianluca): should only match builtin function "panic".
-			if node.Func.String() == "panic" {
-				tc.terminating = true
-			} else {
-				tc.terminating = false
+			tis, isBuiltin := tc.checkCallExpression(node, true)
+			if ident, ok := node.Func.(*ast.Identifier); ok {
+				if isBuiltin && ident.Name == "panic" {
+					tc.terminating = true
+				}
+				if isBuiltin && len(tis) > 0 && ident.Name != "copy" {
+					panic(tc.errorf(node, "%s evaluated but not used", node))
+				}
 			}
 
 		case ast.Expression:
@@ -372,7 +372,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	needsCheck := true
 	if len(expected) > 1 && len(got) == 1 {
 		if c, ok := got[0].(*ast.Call); ok {
-			tis := tc.checkCallExpression(c, false)
+			tis, _ := tc.checkCallExpression(c, false)
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)

@@ -539,7 +539,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		return &TypeInfo{Type: t.Type}
 
 	case *ast.Call:
-		types := tc.checkCallExpression(expr, false)
+		types, _ := tc.checkCallExpression(expr, false)
 		if len(types) == 0 {
 			panic(tc.errorf(expr, "%v used as value", expr))
 		}
@@ -839,9 +839,10 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	return s
 }
 
-// checkCallExpression type checks a call expression, including type
-// conversions and built-in function calls.
-func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*TypeInfo {
+// checkCallExpression type checks a call expression, including type conversions
+// and built-in function calls. Returns a list of typeinfos obtained from the
+// call and a boolean value indicating if expr is a builtin.
+func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool) {
 
 	t := tc.typeof(expr.Func, noEllipses)
 
@@ -868,7 +869,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 		if value != nil {
 			ti.Properties = PropertyIsConstant
 		}
-		return []*TypeInfo{ti}
+		return []*TypeInfo{ti}, false
 	}
 
 	if t == builtinTypeInfo {
@@ -915,7 +916,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 					}
 				}
 			}
-			return []*TypeInfo{{Type: slice.Type}}
+			return []*TypeInfo{{Type: slice.Type}}, true
 
 		case "cap":
 			if len(expr.Args) < 1 {
@@ -935,7 +936,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 					panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 				}
 			}
-			return []*TypeInfo{{Type: intType}}
+			return []*TypeInfo{{Type: intType}}, true
 
 		case "copy":
 			if len(expr.Args) < 2 {
@@ -963,7 +964,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 			if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
 				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
 			}
-			return []*TypeInfo{{Type: intType}}
+			return []*TypeInfo{{Type: intType}}, true
 
 		case "delete":
 			switch len(expr.Args) {
@@ -989,7 +990,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 				}
 				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, t.Type.Key()))
 			}
-			return nil
+			return nil, true
 
 		case "len":
 			if len(expr.Args) < 1 {
@@ -1009,7 +1010,8 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 					panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
 				}
 			}
-			return []*TypeInfo{{Type: intType}}
+			// TODO (Gianluca): should be constant when argument is constant?
+			return []*TypeInfo{{Type: intType}}, true
 
 		case "make":
 			numArgs := len(expr.Args)
@@ -1044,7 +1046,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 			default:
 				panic(tc.errorf(expr, "cannot make type %s", t))
 			}
-			return []*TypeInfo{{Type: t.Type}}
+			return []*TypeInfo{{Type: t.Type}}, true
 
 		case "new":
 			if len(expr.Args) == 0 {
@@ -1054,7 +1056,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 			if len(expr.Args) > 1 {
 				panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 			}
-			return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}
+			return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}, true
 
 		case "panic":
 			if len(expr.Args) == 0 {
@@ -1064,13 +1066,13 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 				panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 			}
 			_ = tc.checkExpression(expr.Args[0])
-			return nil
+			return nil, true
 
 		case "print", "println":
 			for _, arg := range expr.Args {
 				_ = tc.checkExpression(arg)
 			}
-			return nil
+			return nil, true
 
 		}
 
@@ -1095,7 +1097,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 	if len(args) == 1 && numIn > 1 {
 		if c, ok := args[0].(*ast.Call); ok {
 			args = nil
-			tis := tc.checkCallExpression(c, false)
+			tis, _ := tc.checkCallExpression(c, false)
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				tc.typeInfo[v] = ti
@@ -1162,5 +1164,5 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) []*Ty
 		resultTypes[i] = &TypeInfo{Type: t.Type.Out(i)}
 	}
 
-	return resultTypes
+	return resultTypes, false
 }

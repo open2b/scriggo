@@ -849,17 +849,20 @@ var checkerStmts = map[string]string{
 	`println("a", 5)`: ok,
 
 	// Builtin function 'append'.
-	`append()`:    `missing arguments to append`,
-	`append(nil)`: `first argument to append must be typed slice; have untyped nil`,
+	`append()`:           `missing arguments to append`,
+	`append(nil)`:        `first argument to append must be typed slice; have untyped nil`,
+	`append([]int{}, 0)`: `append([]int literal, 0) evaluated but not used`,
 	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
 	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
-	// `append([]int{}, 0)`:         `append([]int literal, 0) evaluated but not used`, // TODO.
+	`_ = append([]int{}, 0)`: ok,
 
 	// Builtin function 'copy'.
-	`copy([]int{},[]string{})`: `arguments to copy have different element types: []int and []string`,
-	`copy(0,0)`:                `arguments to copy must be slices; have int, int`,
-	`copy([]int{},0)`:          `second argument to copy should be slice or string; have int`,
-	`copy(0,[]int{})`:          `first argument to copy should be slice; have int`,
+	`copy([]int{}, []int{})`:     ok,
+	`_ = copy([]int{}, []int{})`: ok,
+	`copy([]int{},[]string{})`:   `arguments to copy have different element types: []int and []string`,
+	`copy(0,0)`:                  `arguments to copy must be slices; have int, int`,
+	`copy([]int{},0)`:            `second argument to copy should be slice or string; have int`,
+	`copy(0,[]int{})`:            `first argument to copy should be slice; have int`,
 
 	// Builtin function 'delete'.
 	`delete(map[string]string{}, "a")`:         ok,
@@ -870,11 +873,11 @@ var checkerStmts = map[string]string{
 	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
 
 	// Builtin function 'len'.
-	`_ = len([]int{})`: ok,
-	`len()`:            `missing argument to len: len()`,
-	`len(0)`:           `invalid argument 0 (type int) for len`,
-	`len(nil)`:         `use of untyped nil`,
-	// `len([]string{"", ""})`: `len([]string literal) evaluated but not used`, // TODO.
+	`_ = len([]int{})`:      ok,
+	`len()`:                 `missing argument to len: len()`,
+	`len(0)`:                `invalid argument 0 (type int) for len`,
+	`len(nil)`:              `use of untyped nil`,
+	`len([]string{"", ""})`: `len([]string literal) evaluated but not used`,
 
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
@@ -891,9 +894,9 @@ var checkerStmts = map[string]string{
 	`make(string)`:            `cannot make type string`,
 	`make([2]int)`:            `cannot make type [2]int`,
 	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
+	`make(map[int]int)`:       `make(map[int]int) evaluated but not used`,
 	// `make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`, // TODO.
 	// `make([]int, 1, "")`:   `non-integer cap argument in make([]int) - untyped string`, // TODO.
-	// `make(map[int]int)`:       `make(map[int]int) evaluated but not used`, // TODO.
 	// `make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`, // TODO.
 }
 
