@@ -617,7 +617,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				panic(tc.errorf(expr, "cannot slice %s (type %s)", expr.Expr, t.ShortString()))
 			}
 		}
-		var lv, hv int
+		lv, hv := -1, -1
 		if expr.Low != nil {
 			lv = tc.checkIndex(expr.Low, t, realType, false)
 		}
@@ -712,7 +712,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, realType ref
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
 		kind := realType.Kind()
-		i := int(n.(*big.Int).Int64())
+		i = int(n.(*big.Int).Int64())
 		if i < 0 {
 			panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", kind, expr))
 		}
