@@ -294,7 +294,6 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-// TODO (Gianluca): handle constants.
 func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
 
 	r := &rendering{
@@ -310,23 +309,15 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 	// priority.
 	nodes := make([]ast.Node, len(astPkg.Declarations))
 
-	// inits contains the list of "init" functions.
-	var inits []*ast.Func
-
-	// Constants.
-	// TODO (Gianluca): are they melt into code?
-	// for _, node := range astPkg.Declarations {
-	// 	if _, ok := node.(*ast.Const); ok {
-	// 		nodes = append(nodes, node)
-	// 	}
-	// }
-
 	// Imports.
 	for _, node := range astPkg.Declarations {
 		if _, ok := node.(*ast.Import); ok {
 			nodes = append(nodes, node)
 		}
 	}
+
+	// inits contains the list of "init" functions.
+	var inits []*ast.Func
 
 	// Functions.
 	for _, node := range astPkg.Declarations {
@@ -376,7 +367,6 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-// TODO (Gianluca): aggiungere informazioni di typechecking come argomento (PackageInfo)
 func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parser.PackageInfo) error {
 
 	if tree == nil {
