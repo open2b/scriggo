@@ -16,12 +16,15 @@ import (
 
 // maxIndex returns the maximum element index in the composite literal node.
 func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
+	if len(node.KeyValues) == 0 {
+		return noEllipses
+	}
 	switch node.Type.(type) {
 	case *ast.ArrayType, *ast.SliceType:
 	default:
 		return noEllipses
 	}
-	maxIndex := -1
+	maxIndex := 0
 	currentIndex := -1
 	for _, kv := range node.KeyValues {
 		if kv.Key == nil {
@@ -42,9 +45,6 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 		if currentIndex > maxIndex {
 			maxIndex = currentIndex
 		}
-	}
-	if maxIndex == -1 {
-		return noEllipses
 	}
 	return maxIndex
 }
