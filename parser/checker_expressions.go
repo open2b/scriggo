@@ -823,8 +823,12 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 // If it is a constant returns the integer value, otherwise returns -1.
 func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name string) int {
 	size := tc.checkExpression(expr)
-	if size.Nil() || !(size.Untyped() || integerKind[size.Type.Kind()]) {
-		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, size))
+	if size.Untyped() && !size.IsNumeric() || !size.Untyped() && !size.IsInteger() {
+		got := size.String()
+		if name == "size" {
+			got = size.ShortString()
+		}
+		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, got))
 	}
 	s := -1
 	if size.IsConstant() {

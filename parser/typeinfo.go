@@ -108,3 +108,15 @@ func (ti *TypeInfo) StringWithNumber(explicitUntyped bool) string {
 	}
 	return ti.Type.String()
 }
+
+// IsNumeric reports whether it is numeric.
+func (ti *TypeInfo) IsNumeric() bool {
+	k := ti.Type.Kind()
+	return !ti.Nil() && reflect.Int <= k && k <= reflect.Complex128
+}
+
+// IsInteger reports whether it is an integer.
+func (ti *TypeInfo) IsInteger() bool {
+	k := ti.Type.Kind()
+	return !ti.Nil() && reflect.Int <= k && k <= reflect.Uintptr
+}

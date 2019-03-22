@@ -903,9 +903,9 @@ var checkerStmts = map[string]string{
 	`make([2]int)`:            `cannot make type [2]int`,
 	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
 	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
-	// `make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`, // TODO.
-	// `make([]int, 1, "")`:   `non-integer cap argument in make([]int) - untyped string`, // TODO.
-	// `make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`, // TODO.
+	`make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`,
+	`make([]int, 1, "")`:      `non-integer cap argument in make([]int) - untyped string`,
+	`make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`,
 }
 
 type pointInt struct{ X, Y int }
