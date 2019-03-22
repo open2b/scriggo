@@ -68,6 +68,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		scopes:           []typeCheckerScope{universe},
 		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
 		unusedImports:    make(map[string][]string),
+		typeInfo:         make(map[ast.Node]*TypeInfo),
 	}
 
 	pkgInfo = &PackageInfo{
