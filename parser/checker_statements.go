@@ -270,16 +270,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkExpression(node.Expr)
 			tc.terminating = false
 
-		case *ast.Identifier:
-
-			// TODO (Gianluca): remove this case and use ast.Expression directly?
-
-			t := tc.checkIdentifier(node, true)
-			if t.IsPackage() {
-				panic(tc.errorf(node, "use of package %s without selector", t))
-			}
-			panic(tc.errorf(node, "%s evaluated but not used", node.Name))
-
 		case *ast.ShowMacro:
 
 			// TODO (Gianluca): to review.

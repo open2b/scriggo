@@ -503,6 +503,10 @@ func undefined(v string) string {
 	return "undefined: " + v
 }
 
+func evaluatedButNotUsed(v string) string {
+	return v + " evaluated but not used"
+}
+
 // checkerStmts contains some Scrigo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
 // 1.12. Tests are subdivided for categories. Each category has a title
@@ -529,6 +533,9 @@ var checkerStmts = map[string]string{
 	`const A = 0; B := A; const C = A;   _ = B`: ok,
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
 	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
+
+	// Identifiers.
+	`a := 0; a`: evaluatedButNotUsed("a"),
 
 	// Blank identifiers.
 	`_ := 1`:                          noNewVariables,
@@ -653,7 +660,7 @@ var checkerStmts = map[string]string{
 
 	// Expressions.
 	`int + 2`: `type int is not an expression`,
-	`0`:       `0 evaluated but not used`,
+	`0`:       evaluatedButNotUsed("0"),
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
@@ -851,7 +858,7 @@ var checkerStmts = map[string]string{
 	// Builtin function 'append'.
 	`append()`:           `missing arguments to append`,
 	`append(nil)`:        `first argument to append must be typed slice; have untyped nil`,
-	`append([]int{}, 0)`: `append([]int literal, 0) evaluated but not used`,
+	`append([]int{}, 0)`: evaluatedButNotUsed("append([]int literal, 0)"),
 	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
 	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
 	`_ = append([]int{}, 0)`: ok,
@@ -877,7 +884,7 @@ var checkerStmts = map[string]string{
 	`len()`:                 `missing argument to len: len()`,
 	`len(0)`:                `invalid argument 0 (type int) for len`,
 	`len(nil)`:              `use of untyped nil`,
-	`len([]string{"", ""})`: `len([]string literal) evaluated but not used`,
+	`len([]string{"", ""})`: evaluatedButNotUsed("len([]string literal)"),
 
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
@@ -894,7 +901,7 @@ var checkerStmts = map[string]string{
 	`make(string)`:            `cannot make type string`,
 	`make([2]int)`:            `cannot make type [2]int`,
 	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
-	`make(map[int]int)`:       `make(map[int]int) evaluated but not used`,
+	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	// `make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`, // TODO.
 	// `make([]int, 1, "")`:   `non-integer cap argument in make([]int) - untyped string`, // TODO.
 	// `make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`, // TODO.
