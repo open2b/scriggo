@@ -256,6 +256,40 @@ var noneContextTreeTests = []struct {
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
 	}, ast.ContextNone)},
+	// TODO (Gianluca):
+	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
+	// 	ast.NewAssignment(
+	// 		p(1, 1, 0, 24),
+	// 		[]ast.Expression{
+	// 			ast.NewIdentifier(p(1, 1, 0, 0), "f"),
+	// 		},
+	// 		ast.AssignmentSimple,
+	// 		[]ast.Expression{
+	// 			ast.NewFunc(
+	// 				p(1, 5, 4, 24),
+	// 				nil,
+	// 				ast.NewFuncType(
+	// 					p(1, 5, 4, 9),
+	// 					nil,
+	// 					nil,
+	// 					false,
+	// 				),
+	// 				ast.NewBlock(
+	// 					nil,
+	// 					[]ast.Node{
+	// 						ast.NewCall(
+	// 							p(1, 14, 13, 22),
+	// 							ast.NewIdentifier(p(1, 14, 13, 19), "println"),
+	// 							[]ast.Expression{
+	// 								ast.NewIdentifier(p(1, 22, 21, 21), "a"),
+	// 							},
+	// 						),
+	// 					},
+	// 				),
+	// 			),
+	// 		},
+	// 	),
+	// }, ast.ContextNone)},
 }
 
 var funcTests = []struct {
