@@ -535,6 +535,24 @@ var checkerStmts = map[string]string{
 	`const A = 0; B := A; const C = B;   _ = B`: `const initializer B is not a constant`,
 	`const a string = 2`:                        `cannot use 2 (type int) as type string in assignment`, // TODO (Gianluca): Go returns error: cannot convert 2 (type untyped number) to type string
 
+	// Constants - from https://golang.org/ref/spec#Constant_expressions
+	`const a = 2 + 3.0`:                      ok,
+	`const b = 15 / 4`:                       ok,
+	`const c = 15 / 4.0`:                     ok,
+	`const j = true`:                         ok,
+	`const k = 'w' + 1; const m = string(k)`: ok,
+	`const k = 'w' + 1`:                      ok,
+	`const l = "hi"`:                         ok,
+	`const Θ float64 = 3/2`:                  ok,
+	`const Π float64 = 3/2.`:                 ok,
+	// `const d = 1 << 3.0`:                         ok, // TODO.
+	// `const e = 1.0 << 3`:                         ok, // TODO.
+	// `const f = int32(1) << 33`:                   `constant 8589934592 overflows int32`,
+	// `const g = float64(2) >> 1`:                  `invalid operation: float64(2) >> 1 (shift of type float64)`,
+	// `const h = "foo" > "bar"`:                ok, // TODO.
+	// `const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`: ok,  // TODO.
+	// `const Φ = iota*1i - 1/1i`:                   ok, // TODO.
+
 	// Identifiers.
 	`a := 0; a`: evaluatedButNotUsed("a"),
 
