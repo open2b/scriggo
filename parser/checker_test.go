@@ -803,6 +803,7 @@ var checkerStmts = map[string]string{
 	`f := func(string, int) { } ; f(0, 0, 0)`:                         "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
 	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
+	// `f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok, // TODO.
 	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO (Gianluca): panics.
 
 	// Function literal calls with function call as argument.
