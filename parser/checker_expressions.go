@@ -221,7 +221,8 @@ func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
 	return nil, 0
 }
 
-func (tc *typechecker) checkUpValue(name string) string {
+// isUpValue checks if name is an upvalue.
+func (tc *typechecker) isUpValue(name string) bool {
 	_, funcBound := tc.getCurrentFunc()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n := range tc.scopes[i] {
@@ -237,21 +238,20 @@ func (tc *typechecker) checkUpValue(name string) string {
 			}
 			if i < funcBound-1 { // out of current function scope.
 				tc.upValues[tc.scopes[i][n].decl] = true
-				return name
+				return true
 			}
-			return ""
+			return false
 		}
 	}
-	return ""
+	return false
 }
 
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
 	// Upvalues.
 	if fun, _ := tc.getCurrentFunc(); fun != nil {
-		uv := tc.checkUpValue(ident.Name)
-		if uv != "" {
-			fun.Upvalues = append(fun.Upvalues, uv)
+		if tc.isUpValue(ident.Name) {
+			fun.Upvalues = append(fun.Upvalues, ident.Name)
 		}
 	}
 
