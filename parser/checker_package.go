@@ -184,10 +184,16 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			tc.addScope()
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
 			// Adds parameters to the function body scope.
-			for _, param := range fillParametersTypes(v.Type.(*ast.FuncType).Parameters) {
+			params := fillParametersTypes(v.Type.(*ast.FuncType).Parameters)
+			isVariadic := v.Type.(*ast.FuncType).IsVariadic
+			for i, param := range params {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
-					tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+					if isVariadic && i == len(params)-1 {
+						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+					} else {
+						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+					}
 				}
 			}
 			// Adds named return values to the function body scope.

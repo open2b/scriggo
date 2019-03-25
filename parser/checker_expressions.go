@@ -301,10 +301,16 @@ ImportsLoop:
 		tc.addScope()
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), decl.Node})
 		// Adds parameters to the function body scope.
-		for _, param := range fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters) {
+		params := fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters)
+		isVariadic := decl.Node.(*ast.Func).Type.IsVariadic
+		for i, param := range params {
 			if param.Ident != nil {
 				t := tc.checkType(param.Type, noEllipses)
-				tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+				if isVariadic && i == len(params)-1 {
+					tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+				} else {
+					tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
+				}
 			}
 		}
 		// Adds named return values to the function body scope.
@@ -531,9 +537,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		t := tc.checkType(expr.Type, noEllipses)
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
-		for _, f := range fillParametersTypes(expr.Type.Parameters) {
+		params := fillParametersTypes(expr.Type.Parameters)
+		isVariadic := expr.Type.IsVariadic
+		for i, f := range params {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
+				if isVariadic && i == len(params)-1 {
+					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
+					continue
+				}
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
@@ -1165,10 +1177,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			if i > 0 {
 				want += ", "
 			}
+			in := t.Type.In(i)
 			if i == numIn-1 && variadic {
 				want += "..."
+				in = in.Elem()
 			}
-			want += t.Type.In(i).String()
+			want += in.String()
 		}
 		want += ")"
 		if len(args) < numIn {
@@ -1190,8 +1204,25 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if a == nil {
 			a = tc.checkExpression(arg)
 		}
-		if !isAssignableTo(a, in) {
-			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+		if expr.IsVariadic && i == lastIn {
+			if a.Type.Kind() != reflect.Slice && a.Type.Kind() != reflect.Array {
+				if variadic {
+					in = reflect.SliceOf(in)
+				}
+				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			}
+			a.Type = a.Type.Elem()
+			if !isAssignableTo(a, in) {
+				if variadic {
+					in = reflect.SliceOf(in)
+				}
+				a.Type = reflect.SliceOf(a.Type)
+				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			}
+		} else {
+			if !isAssignableTo(a, in) {
+				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			}
 		}
 	}
 

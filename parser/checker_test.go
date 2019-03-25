@@ -851,6 +851,14 @@ var checkerStmts = map[string]string{
 	`f := func() (string, int) { return "", 0 } ; g := func(int, int) { } ; g(f())`:     `cannot use f() (type string) as type int in argument to g`, // TODO (Gianluca): should be cannot use string as type int in argument to g
 	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
 
+	// Variadic function literals.
+	`f := func(a int, b...int)  { b[0] = 1 };  f(1);               f(1);  f(1,2,3)`: ok,
+	`f := func(a... int)        { a[0] = 1 };  f([]int{1,2,3}...)`:                  ok,
+	`f := func(a... int)        { a[0] = 1 };  f();                f(1);  f(1,2,3)`: ok,
+	`f := func(a... int) { a[0] = 1 };  f([]string{"1","2","3"}...)`:                `cannot use []string literal (type []string) as type []int in argument to f`,
+	`f := func(a... int) { a[0] = 1 };  var a int; f(a...)`:                         `cannot use a (type int) as type []int in argument to f`,
+	`f := func(a, b, c int, d... int) {  };  f(1,2)`:                                "not enough arguments in call to f\n\thave (number, number)\n\twant (int, int, int, ...int)",
+
 	// Conversions.
 	`int()`:     `missing argument to conversion to int: int()`,
 	`int(0, 0)`: `too many arguments to conversion to int: int(0, 0)`,

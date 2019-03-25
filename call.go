@@ -133,10 +133,13 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 				} else {
 					t = types[wantSize-1]
 				}
+				if node.IsVariadic {
+					t = reflect.SliceOf(t)
+				}
 				av, err := asAssignableTo(v, t)
 				if err != nil {
 					if err == errNotAssignable {
-						err = r.errorf(arg, "cannot use %s (type %s) as type %s in argument to %s", arg, typeof(v), t, node.Func)
+						err = r.errorf(arg, "bug: cannot use %s (type %s) as type %s in argument to %s", arg, typeof(v), t, node.Func)
 					}
 					return nil, err
 				}
@@ -145,6 +148,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 						args[ident.Name] = av
 					}
 				} else if final.IsValid() {
+					// TODO (Gianluca): to review.
 					final.Index(i - wantSize + 1).Set(reflect.ValueOf(av))
 				}
 			}
