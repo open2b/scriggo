@@ -63,15 +63,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		return nil, fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
-	tc := typechecker{
-		hasBreak:         map[ast.Node]bool{},
-		filePackageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
-		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
-		unusedImports:    make(map[string][]string),
-		typeInfo:         make(map[ast.Node]*TypeInfo),
-		upValues:         make(map[*ast.Identifier]bool),
-	}
-
+	tc := newTypechecker()
 	tc.universe = universe
 
 	pkgInfo = &PackageInfo{

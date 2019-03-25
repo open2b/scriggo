@@ -409,10 +409,11 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
-			checker.universe = universe
-			checker.addScope()
-			ti := checker.checkExpression(node)
+			tc := newTypechecker()
+			tc.scopes = scopes
+			tc.universe = universe
+			tc.addScope()
+			ti := tc.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
@@ -490,10 +491,11 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{scope}
 			}
-			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
-			checker.universe = universe
-			checker.addScope()
-			ti := checker.checkExpression(node)
+			tc := newTypechecker()
+			tc.scopes = scopes
+			tc.universe = universe
+			tc.addScope()
+			ti := tc.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
 	}
@@ -992,16 +994,12 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			checker := &typechecker{
-				hasBreak: map[ast.Node]bool{},
-				scopes:   []typeCheckerScope{scope, typeCheckerScope{}},
-				typeInfo: map[ast.Node]*TypeInfo{},
-				upValues: make(map[*ast.Identifier]bool),
-			}
-			checker.universe = universe
-			checker.addScope()
-			checker.checkNodes(tree.Nodes)
-			checker.removeCurrentScope()
+			tc := newTypechecker()
+			tc.scopes = append(tc.scopes, scope)
+			tc.universe = universe
+			tc.addScope()
+			tc.checkNodes(tree.Nodes)
+			tc.removeCurrentScope()
 		}()
 	}
 }
@@ -1394,7 +1392,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := &typechecker{typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
+	tc := newTypechecker()
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {
@@ -1487,7 +1485,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
+		tc := newTypechecker()
 		tc.addScope()
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {

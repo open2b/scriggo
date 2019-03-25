@@ -139,6 +139,20 @@ type typechecker struct {
 	temporaryEvaluated  map[string]*TypeInfo
 }
 
+func newTypechecker() *typechecker {
+	return &typechecker{
+		imports:            make(map[string]PackageInfo),
+		universe:           make(typeCheckerScope),
+		filePackageBlock:   make(typeCheckerScope),
+		hasBreak:           make(map[ast.Node]bool),
+		unusedImports:      make(map[string][]string),
+		typeInfo:           make(map[ast.Node]*TypeInfo),
+		upValues:           make(map[*ast.Identifier]bool),
+		varDeps:            make(map[string][]string),
+		temporaryEvaluated: make(map[string]*TypeInfo),
+	}
+}
+
 // getDecl returns the declaration called name, or nil if it does not exist.
 func (tc *typechecker) getDecl(name string) *Declaration {
 	for _, v := range tc.declarations {
