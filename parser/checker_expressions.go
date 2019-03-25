@@ -242,13 +242,6 @@ func (tc *typechecker) isUpValue(name string) bool {
 			if n != name {
 				continue
 			}
-			// TODO (Gianluca): builtins are in regular scopes, while
-			// global declared values are in filepackageblock scope, which
-			// is external. When this problem is resolved, this check can
-			// be removed as it's never true.
-			if tc.scopes[i][n].t == builtinTypeInfo {
-				continue
-			}
 			if i < funcBound-1 { // out of current function scope.
 				tc.upValues[tc.scopes[i][n].decl] = true
 				return true
