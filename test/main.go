@@ -147,6 +147,9 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+	if !verbose {
+		fmt.Print("comparing Scrigo with Go..")
+	}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
 			fatal(fmt.Errorf("%s is not a dir", dir))
@@ -183,6 +186,8 @@ func main() {
 				if verbose {
 					fmt.Printf("---------------------------------------------------\n")
 					fmt.Print(path + "...")
+				} else {
+					fmt.Print(".")
 				}
 				scrigoOut := runScrigoAndGetOutput(src)
 				goOut := runGoAndGetOutput(src)
@@ -191,9 +196,12 @@ func main() {
 						fmt.Println("OK!")
 					}
 				} else {
-					fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
+					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
 				}
 			}()
 		}
+	}
+	if !verbose {
+		fmt.Print("done!\n")
 	}
 }
