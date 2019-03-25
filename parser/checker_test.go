@@ -409,7 +409,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{universe, scope}
 			}
-			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
+			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
@@ -489,7 +489,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []typeCheckerScope{universe, scope}
 			}
-			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}}
+			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
@@ -994,6 +994,7 @@ func TestCheckerStatements(t *testing.T) {
 				hasBreak: map[ast.Node]bool{},
 				scopes:   []typeCheckerScope{universe, scope, typeCheckerScope{}},
 				typeInfo: map[ast.Node]*TypeInfo{},
+				upValues: make(map[*ast.Identifier]bool),
 			}
 			checker.addScope()
 			checker.checkNodes(tree.Nodes)
@@ -1390,7 +1391,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := &typechecker{typeInfo: map[ast.Node]*TypeInfo{}}
+	tc := &typechecker{typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {
@@ -1483,7 +1484,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}, typeInfo: map[ast.Node]*TypeInfo{}}
+		tc := &typechecker{scopes: []typeCheckerScope{typeCheckerScope{}}, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
 		tc.addScope()
 		tree, err := ParseSource([]byte(src), ast.ContextNone)
 		if err != nil {

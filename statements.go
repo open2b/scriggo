@@ -74,13 +74,14 @@ func (ret returnError) Error() string {
 
 // rendering represents the state of a tree rendering.
 type rendering struct {
-	scope       map[string]scope
-	path        string
-	vars        []scope
-	packages    map[string]*Package
-	treeContext ast.Context
-	function    function
-	handleError func(error) bool
+	scope          map[string]scope
+	path           string
+	vars           []scope
+	packages       map[string]*Package
+	treeContext    ast.Context
+	function       function
+	handleError    func(error) bool
+	needsReference map[*ast.Identifier]bool
 }
 
 // variables scope.
@@ -102,8 +103,9 @@ type macro struct {
 
 // function represents a function in a scope.
 type function struct {
-	path string
-	node *ast.Func
+	path     string
+	node     *ast.Func
+	upValues map[string]interface{}
 }
 
 // urlState represents the rendering of rendering an URL.
@@ -471,7 +473,7 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			r.vars[2][name] = function{r.path, node}
+			r.vars[2][name] = function{r.path, node, nil}
 
 		case *ast.Return:
 			if wr != nil {

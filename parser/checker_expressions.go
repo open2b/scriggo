@@ -126,6 +126,7 @@ type typechecker struct {
 	unusedVars       []*scopeVariable
 	unusedImports    map[string][]string
 	typeInfo         map[ast.Node]*TypeInfo
+	upValues         map[*ast.Identifier]bool
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -197,8 +198,8 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 }
 
 // assignScope assigns value to name in the last scope.
-func (tc *typechecker) assignScope(name string, value *TypeInfo) {
-	tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value}
+func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
+	tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 }
 
 func (tc *typechecker) addToAncestors(n ast.Node) {
@@ -227,10 +228,15 @@ func (tc *typechecker) checkUpValue(name string) string {
 			if n != name {
 				continue
 			}
+			// TODO (Gianluca): builtins are in regular scopes, while
+			// global declared values are in filepackageblock scope, which
+			// is external. When this problem is resolved, this check can
+			// be removed as it's never true.
+			if tc.scopes[i][n].t == builtinTypeInfo {
+				continue
+			}
 			if i < funcBound-1 { // out of current function scope.
-				// TODO (Gianluca): if variable is global, there's no need to set this.
-				// TODO (Gianluca): to review.
-				tc.scopes[i][n].t.Properties |= PropertyMustBeReferenced
+				tc.upValues[tc.scopes[i][n].decl] = true
 				return name
 			}
 			return ""
@@ -292,14 +298,14 @@ ImportsLoop:
 		for _, param := range fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters) {
 			if param.Ident != nil {
 				t := tc.checkType(param.Type, noEllipses)
-				tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+				tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, ret := range fillParametersTypes(decl.Node.(*ast.Func).Type.Result) {
 			t := tc.checkType(ret.Type, noEllipses)
 			if ret.Ident != nil {
-				tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+				tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
 		tc.checkNodes(decl.Value.(*ast.Block).Nodes)
@@ -522,14 +528,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		for _, f := range fillParametersTypes(expr.Type.Parameters) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
 		// Adds named return values to the function body scope.
 		for _, f := range fillParametersTypes(expr.Type.Result) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
-				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
 		tc.checkNodes(expr.Body.Nodes)

@@ -21,6 +21,7 @@ type PackageInfo struct {
 	Declarations         map[string]*TypeInfo
 	VariableOrdering     []string                 // ordering of initialization of global variables.
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
+	UpValues             map[*ast.Identifier]bool
 }
 
 func (pi *PackageInfo) String() string {
@@ -69,6 +70,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
 		unusedImports:    make(map[string][]string),
 		typeInfo:         make(map[ast.Node]*TypeInfo),
+		upValues:         make(map[*ast.Identifier]bool),
 	}
 
 	pkgInfo = &PackageInfo{
@@ -192,14 +194,14 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			for _, param := range fillParametersTypes(v.Type.(*ast.FuncType).Parameters) {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
-					tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+					tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
 			// Adds named return values to the function body scope.
 			for _, ret := range fillParametersTypes(v.Type.(*ast.FuncType).Result) {
 				t := tc.checkType(ret.Type, noEllipses)
 				if ret.Ident != nil {
-					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable})
+					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
 			tc.currentIdent = v.Ident
@@ -246,6 +248,8 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}
+
+	pkgInfo.UpValues = tc.upValues
 
 	pkgInfo.VariableOrdering = nil
 	for _, v := range tc.initOrder {

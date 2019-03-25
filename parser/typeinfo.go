@@ -13,14 +13,13 @@ import (
 type Properties uint8
 
 const (
-	PropertyNil              Properties = 1 << (8 - 1 - iota) // is predeclared nil
-	PropertyUntyped                                           // is untyped
-	PropertyIsConstant                                        // is a constant
-	PropertyIsType                                            // is a type
-	PropertyIsPackage                                         // is a package
-	PropertyIsBuiltin                                         // is a builtin
-	PropertyAddressable                                       // is addressable
-	PropertyMustBeReferenced                                  // must be referenced when declared
+	PropertyNil         Properties = 1 << (8 - 1 - iota) // is predeclared nil
+	PropertyUntyped                                      // is untyped
+	PropertyIsConstant                                   // is a constant
+	PropertyIsType                                       // is a type
+	PropertyIsPackage                                    // is a package
+	PropertyIsBuiltin                                    // is a builtin
+	PropertyAddressable                                  // is addressable
 )
 
 type TypeInfo struct {
@@ -62,11 +61,6 @@ func (ti *TypeInfo) IsBuiltin() bool {
 // Addressable reports whether it is addressable.
 func (ti *TypeInfo) Addressable() bool {
 	return ti.Properties&PropertyAddressable != 0
-}
-
-// MustBeReferenced reports whether ti must be referenced when gets declared.
-func (ti *TypeInfo) MustBeReferenced() bool {
-	return ti.Properties&PropertyMustBeReferenced != 0
 }
 
 var runeType = reflect.TypeOf(rune(0))

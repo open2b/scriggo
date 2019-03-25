@@ -214,7 +214,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
-		tc.assignScope(d, ti.t)
+		tc.assignScope(d, ti.t, nil)
 	}
 	return
 
@@ -273,11 +273,11 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			if isConst {
 				newValueTi.Value = valueTi.Value
 				newValueTi.Properties = newValueTi.Properties | PropertyIsConstant
-				tc.assignScope(v.Name, newValueTi)
+				tc.assignScope(v.Name, newValueTi, nil)
 				return v.Name
 			}
 			newValueTi.Properties |= PropertyAddressable
-			tc.assignScope(v.Name, newValueTi)
+			tc.assignScope(v.Name, newValueTi, v)
 			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 				ident:      v.Name,
 				scopeLevel: len(tc.scopes) - 1,

@@ -184,11 +184,16 @@ func (addr blankAddress) value() interface{} {
 }
 
 type scopeAddress struct {
-	Scope scope
-	Var   string
+	Scope          scope
+	Var            string
+	NeedsReference bool
 }
 
 func (addr scopeAddress) assign(value interface{}) error {
+	if addr.NeedsReference {
+		addr.Scope[addr.Var] = reference{refToCopy(value).Elem()}
+		return nil
+	}
 	addr.Scope[addr.Var] = value
 	return nil
 }
@@ -411,7 +416,11 @@ func (r *rendering) addresses(node *ast.Assignment) ([]address, error) {
 						ident.Name, m.path, m.node.Pos())
 				}
 			}
-			addresses[i] = scopeAddress{Scope: vars, Var: ident.Name}
+			ref := false
+			if _, ok := r.needsReference[ident]; ok {
+				ref = true
+			}
+			addresses[i] = scopeAddress{Scope: vars, Var: ident.Name, NeedsReference: ref}
 		}
 
 	} else {

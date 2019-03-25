@@ -1471,7 +1471,18 @@ func hasType(v interface{}, typ reflect.Type) (bool, error) {
 
 // evalFunc evaluates a function literal expression in a single context.
 func (r *rendering) evalFunc(node *ast.Func) interface{} {
-	return function{r.path, node}
+	upValues := make(map[string]interface{}, len(node.Upvalues))
+	for _, uv := range node.Upvalues {
+		for i := len(r.vars) - 1; i >= 0; i-- {
+			if r.vars[i] == nil {
+				continue
+			}
+			if v, ok := r.vars[i][uv]; ok {
+				upValues[uv] = v.(reference)
+			}
+		}
+	}
+	return function{r.path, node, upValues}
 }
 
 // evalIndex evaluates an index expression in a single context.

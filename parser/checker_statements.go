@@ -290,7 +290,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Body)
 			// TODO (Gianluca):
 			ti := &TypeInfo{}
-			tc.assignScope(name, ti)
+			tc.assignScope(name, ti, nil)
 
 		case *ast.Call:
 			tis, isBuiltin := tc.checkCallExpression(node, true)

@@ -388,12 +388,13 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parse
 	}
 
 	r := &rendering{
-		scope:       map[string]scope{},
-		path:        tree.Path,
-		vars:        []scope{builtins, {}, {}},
-		packages:    packages,
-		treeContext: ast.ContextNone,
-		handleError: stopOnError,
+		scope:          map[string]scope{},
+		path:           tree.Path,
+		vars:           []scope{builtins, {}, {}},
+		packages:       packages,
+		treeContext:    ast.ContextNone,
+		handleError:    stopOnError,
+		needsReference: pkgInfo.UpValues,
 	}
 
 	var err error
