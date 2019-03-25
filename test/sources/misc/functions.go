@@ -12,6 +12,10 @@ func MakeMap1(k1, v1 int) map[int]int {
 	return map[int]int{k1: v1}
 }
 
+func MakeInterface() interface{} {
+	return 0
+}
+
 // TODO (Gianluca): «10:26: invalid argument args (type int) for len»
 // func MakeSlice2(args ...int) []int {
 // 	slice := make([]int, len(args))
@@ -31,4 +35,5 @@ func main() {
 	// MakeFunc1()()
 
 	fmt.Println(MakeMap1(1, 10))
+	fmt.Println(MakeInterface())
 }
