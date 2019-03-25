@@ -360,14 +360,15 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					if expr == nil {
 						break
 					}
-					if tok.typ == tokenColon { // :
+					switch tok.typ {
+					case tokenColon:
 						var value ast.Expression
 						value, tok = p.parseExpr(token{}, false, false, false, false)
 						if value == nil {
 							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
 						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
-					} else {
+					default:
 						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
 					}
 					if tok.typ == tokenRightBraces {
