@@ -45,17 +45,17 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	pos.End = endPos.End
 	var result []*ast.Field
 	tok = next(p.lex)
+	var expr ast.Expression
 	// Parses the result if present.
 	switch tok.typ {
 	case tokenLeftParenthesis:
 		result, _, endPos = p.parseFuncFields(tok, names, true)
 		pos.End = endPos.End
 		tok = next(p.lex)
-	case tokenIdentifier:
-		typ := ast.NewIdentifier(tok.pos, string(tok.txt))
+	case tokenLeftBrackets, tokenIdentifier, tokenMap, tokenInterface, tokenFunc:
+		expr, tok = p.parseExpr(tok, false, false, true, true)
 		pos.End = tok.pos.End
-		result = []*ast.Field{ast.NewField(nil, typ)}
-		tok = next(p.lex)
+		result = []*ast.Field{ast.NewField(nil, expr)}
 	}
 	// Makes the function type.
 	typ := ast.NewFuncType(nil, parameters, result, isVariadic)

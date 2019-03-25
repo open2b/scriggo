@@ -213,7 +213,12 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = ast.NewIdentifier(pos, "interface{}")
 		case tokenFunc:
 			var node ast.Node
-			node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)
+			if mustBeType {
+				node, tok = p.parseFunc(tok, parseFuncType)
+				reuseLastToken = true
+			} else {
+				node, tok = p.parseFunc(tok, parseFuncLit)
+			}
 			operand = node.(ast.Expression)
 		case
 			tokenAddition,       // +e
