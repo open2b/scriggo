@@ -2,6 +2,15 @@
 
 package main
 
+// func F() func() {
+// 	a := 10
+// 	return func() {
+// 		b := &a
+// 		*b = 30
+// 		println(a)
+// 	}
+// }
+
 func main() {
 
 	// 'f' contains a reference to 'a', which is declared in the parent block.
@@ -50,4 +59,19 @@ func main() {
 		g()
 		println(a)
 	}
+
+	{
+		a := 2
+		g := func() {
+			b := &a
+			*b = 5
+		}
+		println(a)
+		g()
+		println(a)
+	}
+
+	// {
+	// 	F()()
+	// }
 }
