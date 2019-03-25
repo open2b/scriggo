@@ -66,12 +66,13 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 	tc := typechecker{
 		hasBreak:         map[ast.Node]bool{},
 		filePackageBlock: make(typeCheckerScope, len(packageNode.Declarations)),
-		scopes:           []typeCheckerScope{universe},
 		varDeps:          make(map[string][]string, 3), // TODO (Gianluca): to review.
 		unusedImports:    make(map[string][]string),
 		typeInfo:         make(map[ast.Node]*TypeInfo),
 		upValues:         make(map[*ast.Identifier]bool),
 	}
+
+	tc.universe = universe
 
 	pkgInfo = &PackageInfo{
 		Name:         packageNode.Name,

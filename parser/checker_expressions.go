@@ -118,6 +118,7 @@ type scopeVariable struct {
 type typechecker struct {
 	path             string
 	imports          map[string]PackageInfo // TODO (Gianluca): review!
+	universe         typeCheckerScope
 	filePackageBlock typeCheckerScope
 	scopes           []typeCheckerScope
 	ancestors        []*ancestor
@@ -174,22 +175,22 @@ func (tc *typechecker) removeCurrentScope() {
 // false if the name does not exist. If justCurrentScope is true, lookupScopes
 // looks up only in the current scope.
 func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
-	// Current scope.
-	if elem, ok := tc.scopes[len(tc.scopes)-1][name]; ok {
-		return elem.t, true
-	}
-	if justCurrentScope {
-		return nil, false
-	}
-	// Other scopes, from inside.
-	for i := len(tc.scopes) - 2; i >= 0; i-- {
+	// Iterating over scopes, from inside.
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		elem, ok := tc.scopes[i][name]
 		if ok {
 			return elem.t, true
 		}
+		if justCurrentScope && i == len(tc.scopes)-1 {
+			return nil, false
+		}
 	}
 	// Package + file block.
 	if elem, ok := tc.filePackageBlock[name]; ok {
+		return elem.t, true
+	}
+	// Universe.
+	if elem, ok := tc.universe[name]; ok {
 		return elem.t, true
 	}
 	return nil, false

@@ -405,11 +405,12 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			var scopes []typeCheckerScope
 			if expr.scope == nil {
-				scopes = []typeCheckerScope{universe}
+				scopes = []typeCheckerScope{}
 			} else {
-				scopes = []typeCheckerScope{universe, scope}
+				scopes = []typeCheckerScope{scope}
 			}
 			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
+			checker.universe = universe
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
@@ -485,11 +486,12 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}
 			var scopes []typeCheckerScope
 			if expr.scope == nil {
-				scopes = []typeCheckerScope{universe}
+				scopes = []typeCheckerScope{}
 			} else {
-				scopes = []typeCheckerScope{universe, scope}
+				scopes = []typeCheckerScope{scope}
 			}
 			checker := &typechecker{scopes: scopes, typeInfo: map[ast.Node]*TypeInfo{}, upValues: make(map[*ast.Identifier]bool)}
+			checker.universe = universe
 			checker.addScope()
 			ti := checker.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
@@ -992,10 +994,11 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			checker := &typechecker{
 				hasBreak: map[ast.Node]bool{},
-				scopes:   []typeCheckerScope{universe, scope, typeCheckerScope{}},
+				scopes:   []typeCheckerScope{scope, typeCheckerScope{}},
 				typeInfo: map[ast.Node]*TypeInfo{},
 				upValues: make(map[*ast.Identifier]bool),
 			}
+			checker.universe = universe
 			checker.addScope()
 			checker.checkNodes(tree.Nodes)
 			checker.removeCurrentScope()
