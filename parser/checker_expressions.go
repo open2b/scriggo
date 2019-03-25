@@ -174,25 +174,23 @@ func (tc *typechecker) removeCurrentScope() {
 // false if the name does not exist. If justCurrentScope is true, lookupScopes
 // looks up only in the current scope.
 func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
+	// Current scope.
+	if elem, ok := tc.scopes[len(tc.scopes)-1][name]; ok {
+		return elem.t, true
+	}
 	if justCurrentScope {
-		for n, ti := range tc.scopes[len(tc.scopes)-1] {
-			if n == name {
-				return ti.t, true
-			}
-		}
 		return nil, false
 	}
-	for i := len(tc.scopes) - 1; i >= 0; i-- {
-		for n, ti := range tc.scopes[i] {
-			if n == name {
-				return ti.t, true
-			}
+	// Other scopes, from inside.
+	for i := len(tc.scopes) - 2; i >= 0; i-- {
+		elem, ok := tc.scopes[i][name]
+		if ok {
+			return elem.t, true
 		}
 	}
-	for n, ti := range tc.filePackageBlock {
-		if n == name {
-			return ti.t, true
-		}
+	// Package + file block.
+	if elem, ok := tc.filePackageBlock[name]; ok {
+		return elem.t, true
 	}
 	return nil, false
 }
