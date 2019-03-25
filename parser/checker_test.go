@@ -701,6 +701,18 @@ var checkerStmts = map[string]string{
 	`int + 2`: `type int is not an expression`,
 	`0`:       evaluatedButNotUsed("0"),
 
+	// Address operator.
+	`var a int; _ = &((a))`: ok,
+	`var a int; _ = &a`:     ok,
+	`_ = &[]int{}`:          ok,
+	`_ = &[10]int{}`:        ok,
+	`_ = &map[int]string{}`: ok,
+	`var a int; &a`:         evaluatedButNotUsed("&a"),
+	// `_ = &[]int{1}[0]`:      ok, // TODO
+	// `var a int; var b *int = &a; _ = b`: ok, // TODO
+	// `_ = &(_)`:              `cannot use _ as value`, // TODO
+	// `_ = &(0)`:              `cannot take the address of 0`, // TODO
+
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
 	`{ a := 1; { a = 10; _ = a }; _ = a }`: ok,
