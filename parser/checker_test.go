@@ -344,9 +344,9 @@ var checkerExprs = []struct {
 
 	// cap
 	{`cap([]int{})`, tiInt(), nil},
-	{`cap([...]byte{})`, tiInt(), nil},
-	{`cap(new([1]byte))`, tiInt(), nil},
+	{`cap([...]byte{})`, tiIntConst(0), nil},
 	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	// {`cap(new([1]byte))`, tiInt(), nil}, // TODO.
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
@@ -371,9 +371,9 @@ var checkerExprs = []struct {
 	{`len("a")`, tiIntConst(1), nil},
 	{`len([]int{})`, tiInt(), nil},
 	{`len(map[string]int{})`, tiInt(), nil},
-	{`len([...]byte{})`, tiInt(), nil},
-	{`len(new([1]byte))`, tiInt(), nil},
+	{`len([...]byte{})`, tiIntConst(0), nil},
 	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	// {`len(new([1]byte))`, tiInt(), nil}, // TODO.
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -967,20 +967,24 @@ var checkerStmts = map[string]string{
 	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
 
 	// Builtin function 'len'.
-	`_ = len([]int{})`:      ok,
-	`len()`:                 `missing argument to len: len()`,
-	`len([]string{"", ""})`: evaluatedButNotUsed("len([]string literal)"),
-	`len(0)`:                `invalid argument 0 (type int) for len`,
-	`len(nil)`:              `use of untyped nil`,
-	`len := 0; _ = len`:     ok,
-	// `const _ = len("")`:     ok, // TODO.
+	`_ = len([]int{})`:           ok,
+	`len()`:                      `missing argument to len: len()`,
+	`len([]string{"", ""})`:      evaluatedButNotUsed("len([]string literal)"),
+	`len(0)`:                     `invalid argument 0 (type int) for len`,
+	`len(nil)`:                   `use of untyped nil`,
+	`len := 0; _ = len`:          ok,
+	`const _ = len("")`:          ok,
+	`const _ = len([...]byte{})`: ok,
+	// `const _ = len(new([1]byte))`: `const initializer len(new([1]byte)) is not a constant`, // TODO.
 
 	// Builtin function 'cap'.
-	`_ = cap([]int{})`: ok,
-	`cap()`:            `missing argument to cap: cap()`,
-	`cap(0)`:           `invalid argument 0 (type int) for cap`,
-	`cap(nil)`:         `use of untyped nil`,
-	// `const _ = cap([2]int{})`: ok, // TODO.
+	`_ = cap([]int{})`:          ok,
+	`const _ = cap([...]int{})`: ok,
+	`const _ = cap([2]int{})`:   ok,
+	`cap()`:                     `missing argument to cap: cap()`,
+	`cap(0)`:                    `invalid argument 0 (type int) for cap`,
+	`cap(nil)`:                  `use of untyped nil`,
+	`const _ = cap([]int{})`:    `const initializer cap([]int literal) is not a constant`,
 
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,

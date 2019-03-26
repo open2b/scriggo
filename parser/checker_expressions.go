@@ -968,7 +968,21 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
 			}
 		}
-		return []*TypeInfo{{Type: intType}}
+		// TODO (Gianluca): «The expressions len(s) and cap(s) are constants
+		// if the type of s is an array or pointer to an array and the
+		// expression s does not contain channel receives or (non-constant)
+		// function calls; in this case s is not evaluated.» (see
+		// https://golang.org/ref/spec#Length_and_capacity).
+		ti := &TypeInfo{Type: intType}
+		if t.Type.Kind() == reflect.Array {
+			ti.Properties = PropertyIsConstant
+			ti.Value = int64(t.Type.Len())
+		}
+		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+			ti.Properties = PropertyIsConstant
+			ti.Value = int64(t.Type.Elem().Len())
+		}
+		return []*TypeInfo{ti}
 
 	case "copy":
 		if len(expr.Args) < 2 {
@@ -1043,9 +1057,22 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 			}
 		}
 		ti := &TypeInfo{Type: intType}
-		if t.IsConstant() {
+		// TODO (Gianluca): «The expressions len(s) and cap(s) are constants
+		// if the type of s is an array or pointer to an array and the
+		// expression s does not contain channel receives or (non-constant)
+		// function calls; in this case s is not evaluated.» (see
+		// https://golang.org/ref/spec#Length_and_capacity).
+		if t.IsConstant() && t.Type.Kind() == reflect.String {
 			ti.Properties = PropertyIsConstant
 			ti.Value = int64(len(t.Value.(string)))
+		}
+		if t.Type.Kind() == reflect.Array {
+			ti.Properties = PropertyIsConstant
+			ti.Value = int64(t.Type.Len())
+		}
+		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
+			ti.Properties = PropertyIsConstant
+			ti.Value = int64(t.Type.Elem().Len())
 		}
 		return []*TypeInfo{ti}
 
