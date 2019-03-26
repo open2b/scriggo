@@ -1262,6 +1262,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 				if variadic {
 					in = reflect.SliceOf(in)
 				}
+				if a.Nil() {
+					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+				}
 				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 			}
 			a.Type = a.Type.Elem()
@@ -1270,10 +1273,16 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 					in = reflect.SliceOf(in)
 				}
 				a.Type = reflect.SliceOf(a.Type)
+				if a.Nil() {
+					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+				}
 				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 			}
 		} else {
 			if !isAssignableTo(a, in) {
+				if a.Nil() {
+					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+				}
 				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 			}
 		}

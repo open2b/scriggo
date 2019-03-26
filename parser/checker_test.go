@@ -897,9 +897,9 @@ var checkerStmts = map[string]string{
 	// `float64("a")`: `cannot convert "a" (type untyped string) to type float64`, // TODO
 
 	// Function calls.
-	`a := 0; a()`:       `cannot call non-function a (type int)`,
-	`a := []int{}; a()`: `cannot call non-function a (type []int)`,
-	// `f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`, // TODO
+	`a := 0; a()`:                  `cannot call non-function a (type int)`,
+	`a := []int{}; a()`:            `cannot call non-function a (type []int)`,
+	`f := func(a int) {} ; f(nil)`: `cannot use nil as type int in argument to f`,
 	// `nil.F()`:     `use of untyped nil`, // TODO
 
 	// Variable declared and not used.
