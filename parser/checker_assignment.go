@@ -19,15 +19,15 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression
 	var typ *TypeInfo
-	var isDecl, isConst, isVarOrConst bool
+	var isDecl, isConst, isVar bool
 
 	switch n := node.(type) {
 
 	case *ast.Var:
 
-		isVarOrConst = true
 		values = n.Values
 		isDecl = true
+		isVar = true
 		if n.Type != nil {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
@@ -58,10 +58,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Const:
 
-		isVarOrConst = true
 		values = n.Values
-		isConst = true
 		isDecl = true
+		isConst = true
 		if n.Type != nil {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
@@ -208,12 +207,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tmpScope[newVar] = scopeElement{t: ti}
 			delete(tc.scopes[len(tc.scopes)-1], newVar)
 		}
-		if isVarOrConst && newVar == "" && !isBlankIdentifier(vars[i]) {
+		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(vars[i]) {
 			panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
 		}
 		newVars = newVars + newVar
 	}
-	if newVars == "" && isDecl && !isVarOrConst {
+	if newVars == "" && isDecl && !isVar && !isConst {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
