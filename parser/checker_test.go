@@ -963,9 +963,9 @@ var checkerStmts = map[string]string{
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[string]string{}, "a")`:         ok,
 	`delete(map[stringType]string{}, aString)`: ok,
+	`delete(map[string]string{}, 10 + 2)`:      `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
+	`delete(map[string]string{}, nil)`:         `cannot use nil as type string in delete`,
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
-	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`, // TODO.
-	// `delete(map[string]string{}, 10 + 2)`: `cannot use 10 + 2 (type int) as type string in delete`, // TODO.
 
 	// Builtin function 'len'.
 	`_ = len([]int{})`:           ok,

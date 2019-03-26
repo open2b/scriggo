@@ -1031,10 +1031,10 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 		}
 		if !isAssignableTo(key, t.Type.Key()) {
-			if key == nil {
+			if key.Nil() {
 				panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
 			}
-			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, t.Type.Key()))
+			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key.ShortString(), t.Type.Key()))
 		}
 		return nil
 
