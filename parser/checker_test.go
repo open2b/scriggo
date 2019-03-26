@@ -204,11 +204,11 @@ var checkerExprs = []struct {
 	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiIntConst(1)}},
 	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiAddrInt()}},
 	{`"abc"[i]`, tiByte(), map[string]*TypeInfo{"i": tiInt()}},
-	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
-	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst('a')}},
-	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
-	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
-	{`[]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiInt()}},
+	{`[]int{0,1}[i]`, tiAddrInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
+	{`[]int{0,1}[i]`, tiAddrInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst('a')}},
+	{`[]int{0,1}[i]`, tiAddrInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
+	{`[]int{0,1}[i]`, tiAddrInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
+	{`[]int{0,1}[i]`, tiAddrInt(), map[string]*TypeInfo{"i": tiInt()}},
 	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedIntConst("1")}},
 	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedRuneConst(1)}},
 	{`[...]int{0,1}[i]`, tiInt(), map[string]*TypeInfo{"i": tiUntypedFloatConst("1.0")}},
@@ -708,7 +708,7 @@ var checkerStmts = map[string]string{
 	`_ = &[10]int{}`:        ok,
 	`_ = &map[int]string{}`: ok,
 	`var a int; &a`:         evaluatedButNotUsed("&a"),
-	// `_ = &[]int{1}[0]`:      ok, // TODO
+	`_ = &[]int{1}[0]`:      ok,
 	// `var a int; var b *int = &a; _ = b`: ok, // TODO
 	// `_ = &(_)`:              `cannot use _ as value`, // TODO
 	// `_ = &(0)`:              `cannot take the address of 0`, // TODO

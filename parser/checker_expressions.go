@@ -607,7 +607,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				typ = t.Type.Elem().Elem()
 			}
 			ti := &TypeInfo{Type: typ}
-			if (kind != reflect.String && t.Addressable()) || kind == reflect.Ptr {
+			if kind == reflect.Slice || kind == reflect.Array && t.Addressable() || kind == reflect.Ptr {
 				ti.Properties = PropertyAddressable
 			}
 			return ti
