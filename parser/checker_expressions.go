@@ -266,6 +266,10 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
+	if i == builtinTypeInfo {
+		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
+	}
+
 	// For "." imported packages, marks package as used.
 ImportsLoop:
 	for pkg, decls := range tc.unusedImports {
@@ -899,10 +903,229 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	return s
 }
 
+// checkCallBuiltin checks the builtin call expr, returning the list of results.
+func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
+
+	ident := expr.Func.(*ast.Identifier)
+
+	if expr.IsVariadic && ident.Name != "append" {
+		panic(tc.errorf(expr, "invalid use of ... with builtin %s", ident.Name))
+	}
+
+	switch ident.Name {
+
+	case "append":
+		if len(expr.Args) == 0 {
+			panic(tc.errorf(expr, "missing arguments to append"))
+		}
+		slice := tc.checkExpression(expr.Args[0])
+		if slice.Nil() {
+			panic(tc.errorf(expr, "first argument to append must be typed slice; have untyped nil"))
+		}
+		if slice.Type.Kind() != reflect.Slice {
+			panic(tc.errorf(expr, "first argument to append must be slice; have %s", slice))
+		}
+		if expr.IsVariadic {
+			if len(expr.Args) == 1 {
+				panic(tc.errorf(expr, "cannot use ... on first argument to append"))
+			} else if len(expr.Args) > 2 {
+				panic(tc.errorf(expr, "too many arguments to append"))
+			}
+			t := tc.checkExpression(expr.Args[1])
+			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
+			if !isSpecialCase && !isAssignableTo(t, slice.Type) {
+				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
+			}
+		} else if len(expr.Args) > 1 {
+			elem := slice.Type.Elem()
+			for _, el := range expr.Args[1:] {
+				t := tc.checkExpression(el)
+				if !isAssignableTo(t, elem) {
+					if t == nil {
+						panic(tc.errorf(expr, "cannot use nil as type %s in append", elem))
+					}
+					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elem))
+				}
+			}
+		}
+		return []*TypeInfo{{Type: slice.Type}}
+
+	case "cap":
+		if len(expr.Args) < 1 {
+			panic(tc.errorf(expr, "missing argument to cap: %s", expr))
+		}
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to cap: %s", expr))
+		}
+		t := tc.checkExpression(expr.Args[0])
+		if t.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
+		switch k := t.Type.Kind(); k {
+		case reflect.Slice, reflect.Array, reflect.Chan:
+		default:
+			if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
+			}
+		}
+		return []*TypeInfo{{Type: intType}}
+
+	case "copy":
+		if len(expr.Args) < 2 {
+			panic(tc.errorf(expr, "missing argument to copy: %s", expr))
+		}
+		if len(expr.Args) > 2 {
+			panic(tc.errorf(expr, "too many arguments to copy: %s", expr))
+		}
+		dst := tc.checkExpression(expr.Args[0])
+		src := tc.checkExpression(expr.Args[1])
+		if dst.Nil() || src.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
+		dk := dst.Type.Kind()
+		sk := src.Type.Kind()
+		if dk != reflect.Slice && sk != reflect.Slice {
+			panic(tc.errorf(expr, "arguments to copy must be slices; have %s, %s", dst.ShortString(), src.ShortString()))
+		}
+		if dk != reflect.Slice {
+			panic(tc.errorf(expr, "first argument to copy should be slice; have %s", dst.ShortString()))
+		}
+		if sk != reflect.Slice && sk != reflect.String {
+			panic(tc.errorf(expr, "second argument to copy should be slice or string; have %s", src.ShortString()))
+		}
+		if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
+			panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
+		}
+		return []*TypeInfo{{Type: intType}}
+
+	case "delete":
+		switch len(expr.Args) {
+		case 0:
+			panic(tc.errorf(expr, "missing arguments to delete"))
+		case 1:
+			panic(tc.errorf(expr, "missing second (key) argument to delete"))
+		case 2:
+		default:
+			panic(tc.errorf(expr, "too many arguments to delete"))
+		}
+		t := tc.checkExpression(expr.Args[0])
+		key := tc.checkExpression(expr.Args[1])
+		if t.Nil() {
+			panic(tc.errorf(expr, "first argument to delete must be map; have nil"))
+		}
+		if t.Type.Kind() != reflect.Map {
+			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
+		}
+		if !isAssignableTo(key, t.Type.Key()) {
+			if key == nil {
+				panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
+			}
+			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, t.Type.Key()))
+		}
+		return nil
+
+	case "len":
+		if len(expr.Args) < 1 {
+			panic(tc.errorf(expr, "missing argument to len: %s", expr))
+		}
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to len: %s", expr))
+		}
+		t := tc.checkExpression(expr.Args[0])
+		if t.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
+		switch k := t.Type.Kind(); k {
+		case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
+		default:
+			if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
+			}
+		}
+		ti := &TypeInfo{Type: intType}
+		if t.IsConstant() {
+			ti.Properties = PropertyIsConstant
+			ti.Value = int64(len(t.Value.(string)))
+		}
+		return []*TypeInfo{ti}
+
+	case "make":
+		numArgs := len(expr.Args)
+		if numArgs == 0 {
+			panic(tc.errorf(expr, "missing argument to make"))
+		}
+		t := tc.checkType(expr.Args[0], noEllipses)
+		switch t.Type.Kind() {
+		case reflect.Slice:
+			if numArgs == 1 {
+				panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
+			}
+			if numArgs > 1 {
+				l := tc.checkSize(expr.Args[1], t.Type, "len")
+				if numArgs > 2 {
+					c := tc.checkSize(expr.Args[2], t.Type, "cap")
+					if l != -1 && c != -1 && l > c {
+						panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
+					}
+				}
+			}
+			if numArgs > 3 {
+				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
+			}
+		case reflect.Map:
+			if numArgs > 2 {
+				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
+			}
+			if numArgs == 2 {
+				_ = tc.checkSize(expr.Args[1], t.Type, "size")
+			}
+		default:
+			panic(tc.errorf(expr, "cannot make type %s", t))
+		}
+		return []*TypeInfo{{Type: t.Type}}
+
+	case "new":
+		if len(expr.Args) == 0 {
+			panic(tc.errorf(expr, "missing argument to new"))
+		}
+		t := tc.checkType(expr.Args[0], noEllipses)
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
+		}
+		return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}
+
+	case "panic":
+		if len(expr.Args) == 0 {
+			panic(tc.errorf(expr, "missing argument to panic: panic()"))
+		}
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
+		}
+		_ = tc.checkExpression(expr.Args[0])
+		return nil
+
+	case "print", "println":
+		for _, arg := range expr.Args {
+			_ = tc.checkExpression(arg)
+		}
+		return nil
+
+	}
+
+	panic(fmt.Sprintf("unexpected builtin %s", ident.Name))
+
+}
+
 // checkCallExpression type checks a call expression, including type conversions
 // and built-in function calls. Returns a list of typeinfos obtained from the
 // call and a boolean value indicating if expr is a builtin.
 func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool) {
+
+	if ident, ok := expr.Func.(*ast.Identifier); ok {
+		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
+			return tc.checkCallBuiltin(expr), true
+		}
+	}
 
 	t := tc.typeof(expr.Func, noEllipses)
 
@@ -930,218 +1153,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			ti.Properties = PropertyIsConstant
 		}
 		return []*TypeInfo{ti}, false
-	}
-
-	if t == builtinTypeInfo {
-
-		ident := expr.Func.(*ast.Identifier)
-
-		if expr.IsVariadic && ident.Name != "append" {
-			panic(tc.errorf(expr, "invalid use of ... with builtin %s", ident.Name))
-		}
-
-		switch ident.Name {
-
-		case "append":
-			if len(expr.Args) == 0 {
-				panic(tc.errorf(expr, "missing arguments to append"))
-			}
-			slice := tc.checkExpression(expr.Args[0])
-			if slice.Nil() {
-				panic(tc.errorf(expr, "first argument to append must be typed slice; have untyped nil"))
-			}
-			if slice.Type.Kind() != reflect.Slice {
-				panic(tc.errorf(expr, "first argument to append must be slice; have %s", t))
-			}
-			if expr.IsVariadic {
-				if len(expr.Args) == 1 {
-					panic(tc.errorf(expr, "cannot use ... on first argument to append"))
-				} else if len(expr.Args) > 2 {
-					panic(tc.errorf(expr, "too many arguments to append"))
-				}
-				t := tc.checkExpression(expr.Args[1])
-				isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-				if !isSpecialCase && !isAssignableTo(t, slice.Type) {
-					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
-				}
-			} else if len(expr.Args) > 1 {
-				elem := slice.Type.Elem()
-				for _, el := range expr.Args[1:] {
-					t := tc.checkExpression(el)
-					if !isAssignableTo(t, elem) {
-						if t == nil {
-							panic(tc.errorf(expr, "cannot use nil as type %s in append", elem))
-						}
-						panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elem))
-					}
-				}
-			}
-			return []*TypeInfo{{Type: slice.Type}}, true
-
-		case "cap":
-			if len(expr.Args) < 1 {
-				panic(tc.errorf(expr, "missing argument to cap: %s", expr))
-			}
-			if len(expr.Args) > 1 {
-				panic(tc.errorf(expr, "too many arguments to cap: %s", expr))
-			}
-			t := tc.checkExpression(expr.Args[0])
-			if t.Nil() {
-				panic(tc.errorf(expr, "use of untyped nil"))
-			}
-			switch k := t.Type.Kind(); k {
-			case reflect.Slice, reflect.Array, reflect.Chan:
-			default:
-				if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
-					panic(tc.errorf(expr, "invalid argument %s (type %s) for cap", expr.Args[0], t.ShortString()))
-				}
-			}
-			return []*TypeInfo{{Type: intType}}, true
-
-		case "copy":
-			if len(expr.Args) < 2 {
-				panic(tc.errorf(expr, "missing argument to copy: %s", expr))
-			}
-			if len(expr.Args) > 2 {
-				panic(tc.errorf(expr, "too many arguments to copy: %s", expr))
-			}
-			dst := tc.checkExpression(expr.Args[0])
-			src := tc.checkExpression(expr.Args[1])
-			if dst.Nil() || src.Nil() {
-				panic(tc.errorf(expr, "use of untyped nil"))
-			}
-			dk := dst.Type.Kind()
-			sk := src.Type.Kind()
-			if dk != reflect.Slice && sk != reflect.Slice {
-				panic(tc.errorf(expr, "arguments to copy must be slices; have %s, %s", dst.ShortString(), src.ShortString()))
-			}
-			if dk != reflect.Slice {
-				panic(tc.errorf(expr, "first argument to copy should be slice; have %s", dst.ShortString()))
-			}
-			if sk != reflect.Slice && sk != reflect.String {
-				panic(tc.errorf(expr, "second argument to copy should be slice or string; have %s", src.ShortString()))
-			}
-			if (sk == reflect.String && dst.Type.Elem() != uint8Type) || (sk == reflect.Slice && dst.Type.Elem() != src.Type.Elem()) {
-				panic(tc.errorf(expr, "arguments to copy have different element types: %s and %s", dst, src))
-			}
-			return []*TypeInfo{{Type: intType}}, true
-
-		case "delete":
-			switch len(expr.Args) {
-			case 0:
-				panic(tc.errorf(expr, "missing arguments to delete"))
-			case 1:
-				panic(tc.errorf(expr, "missing second (key) argument to delete"))
-			case 2:
-			default:
-				panic(tc.errorf(expr, "too many arguments to delete"))
-			}
-			t := tc.checkExpression(expr.Args[0])
-			key := tc.checkExpression(expr.Args[1])
-			if t.Nil() {
-				panic(tc.errorf(expr, "first argument to delete must be map; have nil"))
-			}
-			if t.Type.Kind() != reflect.Map {
-				panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
-			}
-			if !isAssignableTo(key, t.Type.Key()) {
-				if key == nil {
-					panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
-				}
-				panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key, t.Type.Key()))
-			}
-			return nil, true
-
-		case "len":
-			if len(expr.Args) < 1 {
-				panic(tc.errorf(expr, "missing argument to len: %s", expr))
-			}
-			if len(expr.Args) > 1 {
-				panic(tc.errorf(expr, "too many arguments to len: %s", expr))
-			}
-			t := tc.checkExpression(expr.Args[0])
-			if t.Nil() {
-				panic(tc.errorf(expr, "use of untyped nil"))
-			}
-			switch k := t.Type.Kind(); k {
-			case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
-			default:
-				if k != reflect.Ptr || t.Type.Elem().Kind() != reflect.Array {
-					panic(tc.errorf(expr, "invalid argument %s (type %s) for len", expr.Args[0], t.ShortString()))
-				}
-			}
-			ti := &TypeInfo{Type: intType}
-			if t.IsConstant() {
-				ti.Properties = PropertyIsConstant
-				ti.Value = int64(len(t.Value.(string)))
-			}
-			return []*TypeInfo{ti}, true
-
-		case "make":
-			numArgs := len(expr.Args)
-			if numArgs == 0 {
-				panic(tc.errorf(expr, "missing argument to make"))
-			}
-			t := tc.checkType(expr.Args[0], noEllipses)
-			switch t.Type.Kind() {
-			case reflect.Slice:
-				if numArgs == 1 {
-					panic(tc.errorf(expr, "missing len argument to make(%s)", expr.Args[0]))
-				}
-				if numArgs > 1 {
-					l := tc.checkSize(expr.Args[1], t.Type, "len")
-					if numArgs > 2 {
-						c := tc.checkSize(expr.Args[2], t.Type, "cap")
-						if l != -1 && c != -1 && l > c {
-							panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
-						}
-					}
-				}
-				if numArgs > 3 {
-					panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
-				}
-			case reflect.Map:
-				if numArgs > 2 {
-					panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
-				}
-				if numArgs == 2 {
-					_ = tc.checkSize(expr.Args[1], t.Type, "size")
-				}
-			default:
-				panic(tc.errorf(expr, "cannot make type %s", t))
-			}
-			return []*TypeInfo{{Type: t.Type}}, true
-
-		case "new":
-			if len(expr.Args) == 0 {
-				panic(tc.errorf(expr, "missing argument to new"))
-			}
-			t := tc.checkType(expr.Args[0], noEllipses)
-			if len(expr.Args) > 1 {
-				panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
-			}
-			return []*TypeInfo{{Type: reflect.PtrTo(t.Type)}}, true
-
-		case "panic":
-			if len(expr.Args) == 0 {
-				panic(tc.errorf(expr, "missing argument to panic: panic()"))
-			}
-			if len(expr.Args) > 1 {
-				panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
-			}
-			_ = tc.checkExpression(expr.Args[0])
-			return nil, true
-
-		case "print", "println":
-			for _, arg := range expr.Args {
-				_ = tc.checkExpression(arg)
-			}
-			return nil, true
-
-		}
-
-		panic(fmt.Sprintf("unexpected builtin %s", ident.Name))
-
 	}
 
 	if t.Type.Kind() != reflect.Func {

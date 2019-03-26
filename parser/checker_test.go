@@ -612,8 +612,8 @@ var checkerStmts = map[string]string{
 	`v := 1; v = 2; _ = v`:                                          ok,
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`:                       ok,
-	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
-	// `len = 0`:                                                       `use of builtin len not in function call`, // TODO.
+	`len = 0`:                     `use of builtin len not in function call`,
+	`v1 := 1; v2 := "a"; v1 = v2`: `cannot use v2 (type string) as type int in assignment`,
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
@@ -937,16 +937,20 @@ var checkerStmts = map[string]string{
 	`println()`:       ok,
 	`println("a")`:    ok,
 	`println("a", 5)`: ok,
+	`println = 0`:     `use of builtin println not in function call`,
 
 	// Builtin function 'append'.
-	`_ = append([]int{}, 0)`: ok,
-	`append()`:               `missing arguments to append`,
-	`append([]int{}, 0)`:     evaluatedButNotUsed("append([]int literal, 0)"),
-	`append(nil)`:            `first argument to append must be typed slice; have untyped nil`,
+	`_ = append([]int{}, 0)`:  ok,
+	`append := 0; _ = append`: ok,
+	`_ = append + 3`:          `use of builtin append not in function call`,
+	`append()`:                `missing arguments to append`,
+	`append([]int{}, 0)`:      evaluatedButNotUsed("append([]int literal, 0)"),
+	`append(nil)`:             `first argument to append must be typed slice; have untyped nil`,
 	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
 	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
 
 	// Builtin function 'copy'.
+	`_ = copy + copy`:            `use of builtin copy not in function call`,
 	`_ = copy([]int{}, []int{})`: ok,
 	`copy([]int{}, []int{})`:     ok,
 	`copy([]int{},[]string{})`:   `arguments to copy have different element types: []int and []string`,
@@ -968,6 +972,7 @@ var checkerStmts = map[string]string{
 	`len([]string{"", ""})`: evaluatedButNotUsed("len([]string literal)"),
 	`len(0)`:                `invalid argument 0 (type int) for len`,
 	`len(nil)`:              `use of untyped nil`,
+	`len := 0; _ = len`:     ok,
 	// `const _ = len("")`:     ok, // TODO.
 
 	// Builtin function 'cap'.
