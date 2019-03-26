@@ -716,3 +716,41 @@ func TestRenderCallFunc(t *testing.T) {
 		}
 	}
 }
+
+func TestScrigoImport(t *testing.T) {
+	cases := []parser.MapReader{
+		parser.MapReader(map[string][]byte{
+			"main.go": []byte(
+				`package main
+				func main() {
+				}`),
+		}),
+		parser.MapReader(map[string][]byte{
+			"main.go": []byte(
+				`package main
+				import "pkg"
+				func main() {
+					pkg.F()
+				}`),
+			"pkg.go": []byte(
+				`package pkg
+				func F() {
+					println("hi!")
+				}`),
+		}),
+	}
+	for i, r := range cases {
+		p := parser.New(r, nil, true)
+		tree, err := p.Parse("main.go", ast.ContextNone)
+		if err != nil {
+			t.Errorf("test #%d, parsing error: %s", i, err)
+			continue
+		}
+		err = RunPackageTree(tree, nil, p.TypeCheckInfo("/main.go"))
+		if err != nil {
+			t.Errorf("test #%d, rendering error: %s", i, err)
+			continue
+		}
+	}
+
+}
