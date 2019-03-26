@@ -611,8 +611,8 @@ var checkerStmts = map[string]string{
 	`f := func() int { return 0 } ; var a string = f() ; _ = a`:     `cannot use f() (type int) as type string in assignment`,
 	`f := func() int { return 0 }; f() = 1`:                         `cannot assign to f()`,
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
+	`a := 0; -a = 1`:                                                `cannot assign to -a`,
 	// `len = 0`:                                                       `use of builtin len not in function call`, // TODO.
-	// `a := 0; -a = 1`:                                                `cannot assign to -a`, // TODO.
 	// `a := 0; *a = 1`:                                                `invalid indirect of a (type int)`, // TODO.
 
 	// Increments (++) and decrements (--).

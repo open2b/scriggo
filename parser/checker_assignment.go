@@ -338,6 +338,8 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 			}
 			return ""
+		} else {
+			panic(tc.errorf(node, "cannot assign to %v", variable))
 		}
 
 	case *ast.Call:
