@@ -939,9 +939,17 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "else":
 		l.emit(tokenElse, p)
 	case "end":
-		l.emit(tokenEnd, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenEnd, p)
+		}
 	case "extends":
-		l.emit(tokenExtends, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenExtends, p)
+		}
 	case "fallthrough":
 		l.emit(tokenFallthrough, p)
 		endLineAsSemicolon = true
@@ -958,13 +966,25 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "import":
 		l.emit(tokenImport, p)
 	case "in":
-		l.emit(tokenIn, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenIn, p)
+		}
 	case "include":
-		l.emit(tokenInclude, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenInclude, p)
+		}
 	case "interface":
 		l.emit(tokenInterface, p)
 	case "macro":
-		l.emit(tokenMacro, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenMacro, p)
+		}
 	case "map":
 		l.emit(tokenMap, p)
 	case "package":
@@ -975,7 +995,11 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenReturn, p)
 		endLineAsSemicolon = true
 	case "show":
-		l.emit(tokenShow, p)
+		if l.ctx == ast.ContextNone {
+			l.emit(tokenIdentifier, p)
+		} else {
+			l.emit(tokenShow, p)
+		}
 	case "switch":
 		l.emit(tokenSwitch, p)
 	case "type":

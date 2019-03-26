@@ -4,6 +4,7 @@ package main
 
 import (
 	_ "bufio"
+	_ "bytes"
 	_ "crypto/sha1"
 	_ "encoding/base64"
 	_ "fmt"
@@ -13,6 +14,7 @@ import (
 	_ "net"
 	_ "net/url"
 	_ "os"
+	_ "regexp"
 	_ "sort"
 	_ "strconv"
 	_ "strings"
