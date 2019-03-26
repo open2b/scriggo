@@ -940,23 +940,24 @@ var checkerStmts = map[string]string{
 	`println = 0`:     `use of builtin println not in function call`,
 
 	// Builtin function 'append'.
-	`_ = append([]int{}, 0)`:  ok,
-	`append := 0; _ = append`: ok,
-	`_ = append + 3`:          `use of builtin append not in function call`,
-	`append()`:                `missing arguments to append`,
-	`append([]int{}, 0)`:      evaluatedButNotUsed("append([]int literal, 0)"),
-	`append(0)`:               `first argument to append must be slice; have untyped number`,
-	`append(nil)`:             `first argument to append must be typed slice; have untyped nil`,
-	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
+	`_ = append([]int{}, 0)`:     ok,
+	`append := 0; _ = append`:    ok,
+	`_ = append + 3`:             `use of builtin append not in function call`,
+	`a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`,
+	`append()`:                   `missing arguments to append`,
+	`append([]int{}, 0)`:         evaluatedButNotUsed("append([]int literal, 0)"),
+	`append(0)`:                  `first argument to append must be slice; have untyped number`,
+	`append(nil)`:                `first argument to append must be typed slice; have untyped nil`,
 
 	// Builtin function 'copy'.
-	`_ = copy + copy`:            `use of builtin copy not in function call`,
-	`_ = copy([]int{}, []int{})`: ok,
-	`copy([]int{}, []int{})`:     ok,
-	`copy([]int{},[]string{})`:   `arguments to copy have different element types: []int and []string`,
-	`copy([]int{},0)`:            `second argument to copy should be slice or string; have int`,
-	`copy(0,[]int{})`:            `first argument to copy should be slice; have int`,
-	`copy(0,0)`:                  `arguments to copy must be slices; have int, int`,
+	`_ = copy([]int{}, []int{})`:     ok,
+	`copy([]int{}, []int{})`:         ok,
+	`_ = copy + copy`:                `use of builtin copy not in function call`,
+	`a, b := copy([]int{}, []int{})`: `assignment mismatch: 2 variable but 1 values`,
+	`copy([]int{},[]string{})`:       `arguments to copy have different element types: []int and []string`,
+	`copy([]int{},0)`:                `second argument to copy should be slice or string; have int`,
+	`copy(0,[]int{})`:                `first argument to copy should be slice; have int`,
+	`copy(0,0)`:                      `arguments to copy must be slices; have int, int`,
 
 	// Builtin function 'delete'.
 	`delete(aStringMap, "a")`:                  ok,

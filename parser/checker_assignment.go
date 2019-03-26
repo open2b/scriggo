@@ -150,8 +150,11 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	if len(vars) >= 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
-			tis, _ := tc.checkCallExpression(call, false)
+			tis, isBuiltin := tc.checkCallExpression(call, false)
 			if len(vars) != len(tis) {
+				if isBuiltin {
+					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
+				}
 				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
 			}
 			values = nil
