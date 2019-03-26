@@ -411,7 +411,7 @@ func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 	}
 	ti := tc.typeof(expr, length)
 	if !ti.IsType() {
-		panic(tc.errorf(expr, "%s is not a type", ti))
+		panic(tc.errorf(expr, "%s is not a type", expr))
 	}
 	tc.typeInfo[expr] = ti
 	return ti

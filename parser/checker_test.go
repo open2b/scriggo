@@ -920,6 +920,10 @@ var checkerStmts = map[string]string{
 	`var a boolType = 1 == 1; _ = a`:    ok,
 	`var a interface{} = 1 == 1; _ = a`: ok,
 
+	// Types and expressions.
+	`var _ int`:       ok,
+	`a := 0; var _ a`: `a is not a type`,
+
 	// Builtin functions 'print' and 'println'.
 	`print()`:         ok,
 	`print("a")`:      ok,
