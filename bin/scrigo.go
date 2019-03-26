@@ -54,7 +54,7 @@ func main() {
 	if ext == ".sgo" {
 		err = scrigo.RunScriptTree(tree, nil)
 	} else {
-		err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfo("/main"))
+		err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfos())
 	}
 	if err != nil {
 		fmt.Println(err)

@@ -1358,15 +1358,10 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	return tree, nil
 }
 
-// TypeCheckInfo returns the type checking formations related to path. Parsing
-// of path must be succesfully completed before calling this method, otherwise a
-// panic is invoked.
-func (p *Parser) TypeCheckInfo(path string) *PackageInfo {
-	pkgInfo, ok := p.packageInfos[path]
-	if !ok {
-		panic("no type-checking infos about path")
-	}
-	return pkgInfo
+// TypeCheckInfos returns the type-checking infos collected during
+// type-checking.
+func (p *Parser) TypeCheckInfos() map[string]*PackageInfo {
+	return p.packageInfos
 }
 
 // expansion is an expansion state.

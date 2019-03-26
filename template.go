@@ -294,7 +294,7 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
+func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
 
 	r := &rendering{
 		handleError: stopOnError,
@@ -330,7 +330,7 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 	}
 
 	// Global variables, following initialization order.
-	for _, varName := range pkgInfo.VariableOrdering {
+	for _, varName := range pkgInfos[path].VariableOrdering {
 		for _, n := range astPkg.Declarations {
 			if varNode, ok := n.(*ast.Var); ok {
 				for i, ident := range varNode.Identifiers {
@@ -367,7 +367,7 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfo *parser.PackageInfo, pkgs m
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parser.PackageInfo) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[string]*parser.PackageInfo) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -394,11 +394,11 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfo *parse
 		packages:       packages,
 		treeContext:    ast.ContextNone,
 		handleError:    stopOnError,
-		needsReference: pkgInfo.UpValues,
+		needsReference: pkgInfos[tree.Path].UpValues,
 	}
 
 	var err error
-	r.vars[2], err = renderPackageBlock(pkg, pkgInfo, packages, tree.Path)
+	r.vars[2], err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
 	if err != nil {
 		return err
 	}

@@ -746,7 +746,7 @@ func TestScrigoImport(t *testing.T) {
 			t.Errorf("test #%d, parsing error: %s", i, err)
 			continue
 		}
-		err = RunPackageTree(tree, nil, p.TypeCheckInfo("/main.go"))
+		err = RunPackageTree(tree, nil, p.TypeCheckInfos())
 		if err != nil {
 			t.Errorf("test #%d, rendering error: %s", i, err)
 			continue
