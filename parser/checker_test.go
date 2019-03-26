@@ -504,6 +504,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 const ok = ""
 const missingReturn = "missing return at end of function"
 const noNewVariables = "no new variables on left side of :="
+const cannotUseBlankAsValue = "cannot use _ as value"
 
 func declaredNotUsed(v string) string {
 	return v + " declared and not used"
@@ -577,14 +578,16 @@ var checkerStmts = map[string]string{
 	`a := 0; a`: evaluatedButNotUsed("a"),
 
 	// Blank identifiers.
-	`_ := 1`:                          noNewVariables,
 	`_ = 1`:                           ok,
-	`_, _, _ := 1, 2, 3`:              noNewVariables,
 	`_, b, c := 1, 2, 3; _, _ = b, c`: ok,
 	`var _ = 0`:                       ok,
 	`var _, _ = 0, 0`:                 ok,
-	`_ ++`:                            "cannot use _ as value",
-	`_ += 0`:                          "cannot use _ as value",
+	`_ := 1`:                          noNewVariables,
+	`_, _, _ := 1, 2, 3`:              noNewVariables,
+	`_ ++`:                            cannotUseBlankAsValue,
+	`_ += 0`:                          cannotUseBlankAsValue,
+	`_ = 4 + _`:                       cannotUseBlankAsValue,
+	`_ = []_{}`:                       cannotUseBlankAsValue,
 
 	// Assignments (= and :=).
 	`(((map[int]string{}[0]))) = ""`:                                ok,
@@ -710,7 +713,7 @@ var checkerStmts = map[string]string{
 	`var a int; &a`:         evaluatedButNotUsed("&a"),
 	`_ = &[]int{1}[0]`:      ok,
 	// `var a int; var b *int = &a; _ = b`: ok, // TODO
-	// `_ = &(_)`:              `cannot use _ as value`, // TODO
+	`_ = &(_)`: `cannot use _ as value`,
 	`_ = &(0)`: `cannot take the address of 0`,
 
 	// Pointer indirection operator.

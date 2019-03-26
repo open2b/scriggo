@@ -383,6 +383,9 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 // checkExpression returns the type info of expr. Returns an error if expr is
 // a type or a package.
 func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
+	if isBlankIdentifier(expr) {
+		panic(tc.errorf(expr, "cannot use _ as value"))
+	}
 	ti := tc.typeof(expr, noEllipses)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
@@ -394,6 +397,9 @@ func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 // checkType evaluates expr as a type and returns the type info. Returns an
 // error if expr is not an type.
 func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
+	if isBlankIdentifier(expr) {
+		panic(tc.errorf(expr, "cannot use _ as value"))
+	}
 	ti := tc.typeof(expr, length)
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", ti))
