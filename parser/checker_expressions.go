@@ -923,7 +923,7 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "first argument to append must be typed slice; have untyped nil"))
 		}
 		if slice.Type.Kind() != reflect.Slice {
-			panic(tc.errorf(expr, "first argument to append must be slice; have %s", slice))
+			panic(tc.errorf(expr, "first argument to append must be slice; have %s", slice.StringWithNumber(true)))
 		}
 		if expr.IsVariadic {
 			if len(expr.Args) == 1 {
