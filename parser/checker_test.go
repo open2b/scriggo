@@ -711,7 +711,7 @@ var checkerStmts = map[string]string{
 	`_ = &[]int{1}[0]`:      ok,
 	// `var a int; var b *int = &a; _ = b`: ok, // TODO
 	// `_ = &(_)`:              `cannot use _ as value`, // TODO
-	// `_ = &(0)`:              `cannot take the address of 0`, // TODO
+	`_ = &(0)`: `cannot take the address of 0`,
 
 	// Pointer indirection operator.
 	`var a int; b := &a; var c int = *b; _ = c`: ok,

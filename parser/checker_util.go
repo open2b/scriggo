@@ -993,7 +993,7 @@ func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 		ti.Properties = ti.Properties | PropertyAddressable
 	case ast.OperatorAmpersand:
 		if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
-			return nil, fmt.Errorf("cannot take the address of %s", expr)
+			return nil, fmt.Errorf("cannot take the address of %s", expr.Expr)
 		}
 		ti.Type = reflect.PtrTo(t.Type)
 	}
