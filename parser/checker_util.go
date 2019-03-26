@@ -987,7 +987,7 @@ func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 		}
 	case ast.OperatorMultiplication:
 		if t.Type.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("invalid indirect of %s (type %s)", expr, t)
+			return nil, fmt.Errorf("invalid indirect of %s (type %s)", expr.Expr, t)
 		}
 		ti.Type = t.Type.Elem()
 		ti.Properties = ti.Properties | PropertyAddressable
