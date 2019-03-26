@@ -231,6 +231,11 @@ func convertImplicit(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
 	return nil, errTypeConversion
 }
 
+// emptyMethodSet reports whether an interface has an empty method set.
+func emptyMethodSet(iface reflect.Type) bool {
+	return iface == emptyInterfaceType || boolType.Implements(iface)
+}
+
 // fieldByName returns the struct field with the given name and a boolean
 // indicating if the field was found.
 func fieldByName(t *TypeInfo, name string) (*TypeInfo, bool) {
@@ -280,11 +285,15 @@ func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
 		}
 		return false
 	}
+	k := t.Kind()
 	if x.Untyped() {
+		if k == reflect.Interface {
+			return emptyMethodSet(t)
+		}
 		_, err := representedBy(x, t)
 		return err == nil
 	}
-	if t.Kind() == reflect.Interface && x.Type.Implements(t) {
+	if k == reflect.Interface && x.Type.Implements(t) {
 		return true
 	}
 	// Checks if the type of x and t have identical underlying types and at
