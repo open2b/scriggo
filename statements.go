@@ -689,7 +689,19 @@ Nodes:
 					if !ok {
 						return r.errorf(node, "cannot find package %q", node.Path)
 					}
-					r.vars[2][pkg.Name] = pkg
+					if node.Ident == nil {
+						r.vars[2][pkg.Name] = pkg
+					} else {
+						switch node.Ident.Name {
+						case "_":
+						case ".":
+							for ident, v := range pkg.Declarations {
+								r.vars[2][ident] = v
+							}
+						default:
+							r.vars[2][node.Ident.Name] = pkg
+						}
+					}
 				} else {
 					name := path.Base(node.Path)
 					if _, ok := r.scope[node.Tree.Path]; !ok {
