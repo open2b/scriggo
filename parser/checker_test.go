@@ -800,6 +800,12 @@ var checkerStmts = map[string]string{
 	`_ = func(     ) (s int) { s := 0; return 0                            }`: `no new variables on left side of :=`,
 	`_ = func(s int)         { s := 0; _ = s                               }`: `no new variables on left side of :=`,
 
+	// Slice expressions.
+	`a := [5]int{1, 2, 3, 4, 5}; var _ []int = a[:2]`:   ok,
+	`a := [5]int{1, 2, 3, 4, 5}; var _ []int = a[1:]`:   ok,
+	`a := [5]int{1, 2, 3, 4, 5}; var _ []int = a[1:4]`:  ok,
+	`a := [5]int{1, 2, 3, 4, 5}; var _ [3]int = a[1:4]`: `cannot use a[1:4] (type []int) as type [3]int in assignment`,
+
 	// Terminating statements - https://golang.org/ref/spec#Terminating_statements (misc)
 	`_ = func() int { a := 2; _ = a                                     }`: missingReturn,
 	`_ = func() int {                                                   }`: missingReturn,
