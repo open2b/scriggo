@@ -318,10 +318,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 }
 
-func (tc *typechecker) checkCaseExpressionSwitch(node *ast.Case, switchExpr ast.Expression) {
-
-}
-
 // https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 
