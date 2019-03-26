@@ -898,11 +898,11 @@ var checkerStmts = map[string]string{
 
 	// Variable declared and not used.
 	`a := 0; { _ = a }`:          ok,
-	`a := 0`:                     declaredNotUsed("a"),
 	`{ { a := 0 } }`:             declaredNotUsed("a"),
-	`a := 0; a = 1`:              declaredNotUsed("a"),
-	`a := 0; { b := 0 }`:         declaredNotUsed("b"),
 	`{ const A = 0; var B = 0 }`: declaredNotUsed("B"),
+	`a := 0; { b := 0 }`:         declaredNotUsed("b"),
+	`a := 0; a = 1`:              declaredNotUsed("a"),
+	`a := 0`:                     declaredNotUsed("a"),
 
 	// Redeclaration (variables and constants) in the same block.
 	`{ const A = 0 }`:                 ok,
@@ -913,12 +913,12 @@ var checkerStmts = map[string]string{
 	`var A = 0; var A = 1; _ = A`:     redeclaredInThisBlock("A"),
 
 	// Assignment of unsigned values.
-	`var a int = 5; _ = a`:              ok,
-	`var a interface{} = 5; _ = a`:      ok,
-	`var a stringType = "a"; _ = a`:     ok,
 	`var a bool = 1 == 1; _ = a`:        ok,
 	`var a boolType = 1 == 1; _ = a`:    ok,
+	`var a int = 5; _ = a`:              ok,
 	`var a interface{} = 1 == 1; _ = a`: ok,
+	`var a interface{} = 5; _ = a`:      ok,
+	`var a stringType = "a"; _ = a`:     ok,
 
 	// Types and expressions.
 	`var _ int`:       ok,
@@ -933,24 +933,24 @@ var checkerStmts = map[string]string{
 	`println("a", 5)`: ok,
 
 	// Builtin function 'append'.
-	`append()`:           `missing arguments to append`,
-	`append(nil)`:        `first argument to append must be typed slice; have untyped nil`,
-	`append([]int{}, 0)`: evaluatedButNotUsed("append([]int literal, 0)"),
+	`_ = append([]int{}, 0)`: ok,
+	`append()`:               `missing arguments to append`,
+	`append([]int{}, 0)`:     evaluatedButNotUsed("append([]int literal, 0)"),
+	`append(nil)`:            `first argument to append must be typed slice; have untyped nil`,
 	// `append(0)`:   `first argument to append must be slice; have untyped number`, // TODO
 	// `a, b := append([]int{}, 0)`: `assignment mismatch: 2 variable but 1 values`, // TODO
-	`_ = append([]int{}, 0)`: ok,
 
 	// Builtin function 'copy'.
-	`copy([]int{}, []int{})`:     ok,
 	`_ = copy([]int{}, []int{})`: ok,
+	`copy([]int{}, []int{})`:     ok,
 	`copy([]int{},[]string{})`:   `arguments to copy have different element types: []int and []string`,
-	`copy(0,0)`:                  `arguments to copy must be slices; have int, int`,
 	`copy([]int{},0)`:            `second argument to copy should be slice or string; have int`,
 	`copy(0,[]int{})`:            `first argument to copy should be slice; have int`,
+	`copy(0,0)`:                  `arguments to copy must be slices; have int, int`,
 
 	// Builtin function 'delete'.
-	`delete(map[string]string{}, "a")`:         ok,
 	`delete(aStringMap, "a")`:                  ok,
+	`delete(map[string]string{}, "a")`:         ok,
 	`delete(map[stringType]string{}, aString)`: ok,
 	`delete(nil, 0)`:                           `first argument to delete must be map; have nil`,
 	// `delete(map[string]string{}, nil)`:    `cannot use nil as type string in delete`, // TODO.
@@ -959,9 +959,9 @@ var checkerStmts = map[string]string{
 	// Builtin function 'len'.
 	`_ = len([]int{})`:      ok,
 	`len()`:                 `missing argument to len: len()`,
+	`len([]string{"", ""})`: evaluatedButNotUsed("len([]string literal)"),
 	`len(0)`:                `invalid argument 0 (type int) for len`,
 	`len(nil)`:              `use of untyped nil`,
-	`len([]string{"", ""})`: evaluatedButNotUsed("len([]string literal)"),
 	// `const _ = len("")`:     ok, // TODO.
 
 	// Builtin function 'cap'.
@@ -974,22 +974,22 @@ var checkerStmts = map[string]string{
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
 	`make()`:                  `missing argument to make`,
-	`make([]int)`:             `missing len argument to make([]int)`,
-	`make([]int, []int{})`:    `non-integer len argument in make([]int) - []int`,
-	`make([]int, 1.2)`:        `constant 1.2 truncated to integer`,
-	`make([]int, 1, 1.2)`:     `constant 1.2 truncated to integer`,
-	`make([]int, 0,0,0)`:      `too many arguments to make([]int)`,
 	`make([]int, -1)`:         `negative len argument in make([]int)`,
-	`make([]int, 1, -1)`:      `negative cap argument in make([]int)`,
-	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
-	`make(map[int]int, -1)`:   `negative size argument in make(map[int]int)`,
-	`make(string)`:            `cannot make type string`,
-	`make([2]int)`:            `cannot make type [2]int`,
-	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
-	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	`make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`,
+	`make([]int, []int{})`:    `non-integer len argument in make([]int) - []int`,
+	`make([]int, 0,0,0)`:      `too many arguments to make([]int)`,
+	`make([]int, 1, -1)`:      `negative cap argument in make([]int)`,
 	`make([]int, 1, "")`:      `non-integer cap argument in make([]int) - untyped string`,
+	`make([]int, 1, 1.2)`:     `constant 1.2 truncated to integer`,
+	`make([]int, 1.2)`:        `constant 1.2 truncated to integer`,
+	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
+	`make([]int)`:             `missing len argument to make([]int)`,
+	`make([2]int)`:            `cannot make type [2]int`,
+	`make(map[int]int, -1)`:   `negative size argument in make(map[int]int)`,
 	`make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`,
+	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
+	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
+	`make(string)`:            `cannot make type string`,
 }
 
 type pointInt struct{ X, Y int }
