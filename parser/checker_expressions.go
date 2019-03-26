@@ -400,6 +400,15 @@ func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
+	if ptr, ok := expr.(*ast.UnaryOperator); ok && ptr.Operator() == ast.OperatorMultiplication {
+		ti := tc.typeof(ptr.Expr, length)
+		if !ti.IsType() {
+			panic(tc.errorf(expr, "%s is not a type", expr))
+		}
+		newTi := &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(ti.Type)}
+		tc.typeInfo[expr] = newTi
+		return newTi
+	}
 	ti := tc.typeof(expr, length)
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", ti))

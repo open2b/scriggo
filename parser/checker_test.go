@@ -705,19 +705,26 @@ var checkerStmts = map[string]string{
 	`0`:       evaluatedButNotUsed("0"),
 
 	// Address operator.
-	`var a int; _ = &((a))`: ok,
-	`var a int; _ = &a`:     ok,
-	`_ = &[]int{}`:          ok,
-	`_ = &[10]int{}`:        ok,
-	`_ = &map[int]string{}`: ok,
-	`var a int; &a`:         evaluatedButNotUsed("&a"),
-	`_ = &[]int{1}[0]`:      ok,
-	// `var a int; var b *int = &a; _ = b`: ok, // TODO
-	`_ = &(_)`: `cannot use _ as value`,
-	`_ = &(0)`: `cannot take the address of 0`,
+	`var a int; _ = &((a))`:             ok,
+	`var a int; _ = &a`:                 ok,
+	`_ = &[]int{}`:                      ok,
+	`_ = &[10]int{}`:                    ok,
+	`_ = &map[int]string{}`:             ok,
+	`var a int; &a`:                     evaluatedButNotUsed("&a"),
+	`_ = &[]int{1}[0]`:                  ok,
+	`var a int; var b *int = &a; _ = b`: ok,
+	`_ = &(_)`:                          `cannot use _ as value`,
+	`_ = &(0)`:                          `cannot take the address of 0`,
 
 	// Pointer indirection operator.
 	`var a int; b := &a; var c int = *b; _ = c`: ok,
+
+	// Pointer types.
+	`a := 0; var _ *a`:                    `*a is not a type`,
+	`var _ *int`:                          ok,
+	`var _ *map[string]interface{}`:       ok,
+	`var _ *(((map[string]interface{})))`: ok,
+	`var _ map[*int][]*string`:            ok,
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
