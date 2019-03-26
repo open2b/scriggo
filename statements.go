@@ -719,7 +719,8 @@ Nodes:
 							return err
 						}
 						r.scope[node.Tree.Path] = rn.vars[2]
-						pkg := Package{}
+						pkg := &Package{}
+						pkg.Declarations = make(map[string]interface{}, len(rn.vars[2]))
 						for name, fn := range rn.vars[2] {
 							if _, ok := fn.(function); ok {
 								pkg.Declarations[name] = fn
