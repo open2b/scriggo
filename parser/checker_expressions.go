@@ -1340,6 +1340,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
+		if a.IsConstant() {
+			expr.Args[i] = ast.NewValue(a.ValueKind(in.Kind()))
+		}
 	}
 
 	numOut := t.Type.NumOut()

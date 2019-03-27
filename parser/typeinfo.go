@@ -290,6 +290,8 @@ func (ti *TypeInfo) ValueKind(k reflect.Kind) interface{} {
 		return float32(ti.Float64())
 	case reflect.Float64:
 		return ti.Float64()
+	case reflect.Interface:
+		return ti.ValueKind(ti.Type.Kind())
 	}
 	panic("unexpected kind")
 }
