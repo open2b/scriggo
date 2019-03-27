@@ -294,7 +294,7 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (scope, error) {
+func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (map[string]scope, error) {
 
 	r := &rendering{
 		handleError: stopOnError,
@@ -360,8 +360,8 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.Package
 			return nil, err
 		}
 	}
-
-	return r.vars[2], nil
+	r.scope[path] = r.vars[2]
+	return r.scope, nil
 }
 
 // RunPackageTree runs the tree of a main package.
@@ -398,10 +398,11 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 	}
 
 	var err error
-	r.vars[2], err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
+	r.scope, err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
 	if err != nil {
 		return err
 	}
+	r.vars[2] = r.scope[tree.Path]
 	mf, ok := r.vars[2]["main"]
 	if !ok {
 		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
