@@ -929,7 +929,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		cols++
 	}
 	endLineAsSemicolon := false
-	switch string(l.src[0:p]) {
+	switch id := string(l.src[0:p]); id {
 	case "break":
 		l.emit(tokenBreak, p)
 		endLineAsSemicolon = true
@@ -944,10 +944,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenDefault, p)
 	case "else":
 		l.emit(tokenElse, p)
-	case "end":
-		l.emit(tokenEnd, p)
-	case "extends":
-		l.emit(tokenExtends, p)
 	case "fallthrough":
 		l.emit(tokenFallthrough, p)
 		endLineAsSemicolon = true
@@ -959,14 +955,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenIf, p)
 	case "import":
 		l.emit(tokenImport, p)
-	case "in":
-		l.emit(tokenIn, p)
-	case "include":
-		l.emit(tokenInclude, p)
 	case "interface":
 		l.emit(tokenInterface, p)
-	case "macro":
-		l.emit(tokenMacro, p)
 	case "map":
 		l.emit(tokenMap, p)
 	case "package":
@@ -976,8 +966,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "return":
 		l.emit(tokenReturn, p)
 		endLineAsSemicolon = true
-	case "show":
-		l.emit(tokenShow, p)
 	case "switch":
 		l.emit(tokenSwitch, p)
 	case "type":
@@ -985,8 +973,28 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "var":
 		l.emit(tokenVar, p)
 	default:
-		l.emit(tokenIdentifier, p)
-		endLineAsSemicolon = true
+		if l.ctx != ast.ContextNone {
+			switch id {
+			case "end":
+				l.emit(tokenEnd, p)
+			case "extends":
+				l.emit(tokenExtends, p)
+			case "in":
+				l.emit(tokenIn, p)
+			case "include":
+				l.emit(tokenInclude, p)
+			case "macro":
+				l.emit(tokenMacro, p)
+			case "show":
+				l.emit(tokenShow, p)
+			default:
+				l.emit(tokenIdentifier, p)
+				endLineAsSemicolon = true
+			}
+		} else {
+			l.emit(tokenIdentifier, p)
+			endLineAsSemicolon = true
+		}
 	}
 	l.column += cols
 	return endLineAsSemicolon
