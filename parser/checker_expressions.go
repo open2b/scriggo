@@ -490,9 +490,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			t1 := tc.typeInfo[expr.Expr1]
 			t2 := tc.typeInfo[expr.Expr2]
 			if t2.IsConstant() {
-				expr.Expr2 = ast.NewValue(t2.ValueKind(t1.Type.Kind()))
+				node := ast.NewValue(t2.ValueKind(t1.Type.Kind()))
+				tc.replaceTypeInfo(expr.Expr2, node)
+				expr.Expr2 = node
 			} else if t1.IsConstant() {
-				expr.Expr1 = ast.NewValue(t1.ValueKind(t2.Type.Kind()))
+				node := ast.NewValue(t1.ValueKind(t2.Type.Kind()))
+				tc.replaceTypeInfo(expr.Expr1, node)
+				expr.Expr1 = node
 			}
 		}
 		return t
@@ -640,7 +644,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				}
 			}
 			if i := tc.checkIndex(expr.Index, t, false); i != -1 {
-				expr.Index = ast.NewValue(i)
+				node := ast.NewValue(i)
+				tc.replaceTypeInfo(expr.Index, node)
+				expr.Index = node
 			}
 			var typ reflect.Type
 			switch kind {
@@ -696,12 +702,16 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		lv, hv := -1, -1
 		if expr.Low != nil {
 			if lv = tc.checkIndex(expr.Low, t, true); lv != -1 {
-				expr.Low = ast.NewValue(lv)
+				node := ast.NewValue(lv)
+				tc.replaceTypeInfo(expr.Low, node)
+				expr.Low = node
 			}
 		}
 		if expr.High != nil {
 			if hv = tc.checkIndex(expr.High, t, true); hv != -1 {
-				expr.High = ast.NewValue(hv)
+				node := ast.NewValue(hv)
+				tc.replaceTypeInfo(expr.High, node)
+				expr.High = node
 			}
 		}
 		if lv != -1 && hv != -1 && lv > hv {
@@ -978,7 +988,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					if err != nil {
 						panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 					}
-					expr.Args[i] = ast.NewValue(t.ValueKind(elemType.Kind()))
+					node := ast.NewValue(t.ValueKind(elemType.Kind()))
+					tc.replaceTypeInfo(expr.Args[i], node)
+					expr.Args[i] = node
 				}
 			}
 		}
@@ -1076,7 +1088,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			if err != nil {
 				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 			}
-			expr.Args[1] = ast.NewValue(v)
+			node := ast.NewValue(v)
+			tc.replaceTypeInfo(expr.Args[1], node)
+			expr.Args[1] = node
 		}
 		return nil
 
@@ -1132,15 +1146,19 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			if numArgs > 1 {
 				l := tc.checkSize(expr.Args[1], t.Type, "len")
 				if l != -1 {
-					expr.Args[1] = ast.NewValue(l)
+					node := ast.NewValue(l)
+					tc.replaceTypeInfo(expr.Args[1], node)
+					expr.Args[1] = node
 				}
 				if numArgs > 2 {
 					c := tc.checkSize(expr.Args[2], t.Type, "cap")
 					if c != -1 {
-						expr.Args[2] = ast.NewValue(c)
 						if l != -1 && l > c {
 							panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
 						}
+						node := ast.NewValue(c)
+						tc.replaceTypeInfo(expr.Args[2], node)
+						expr.Args[2] = node
 					}
 				}
 			}
@@ -1154,7 +1172,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			if numArgs == 2 {
 				s := tc.checkSize(expr.Args[1], t.Type, "size")
 				if s != -1 {
-					expr.Args[1] = ast.NewValue(s)
+					node := ast.NewValue(s)
+					tc.replaceTypeInfo(expr.Args[1], node)
+					expr.Args[1] = node
 				}
 			}
 		default:
@@ -1185,7 +1205,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			if err != nil {
 				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 			}
-			expr.Args[0] = ast.NewValue(v)
+			node := ast.NewValue(v)
+			tc.replaceTypeInfo(expr.Args[0], node)
+			expr.Args[0] = node
 		}
 		return nil
 
@@ -1352,7 +1374,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
 		if a.IsConstant() {
-			expr.Args[i] = ast.NewValue(a.ValueKind(in.Kind()))
+			node := ast.NewValue(a.ValueKind(in.Kind()))
+			tc.replaceTypeInfo(expr.Args[i], node)
+			expr.Args[i] = node
 		}
 	}
 
