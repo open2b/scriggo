@@ -1243,8 +1243,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	args := expr.Args
 
-	if len(args) == 1 && numIn > 1 {
+	isSpecialCase := false
+
+	if len(args) == 1 && numIn > 1 && !expr.IsVariadic {
 		if c, ok := args[0].(*ast.Call); ok {
+			isSpecialCase = true
 			args = nil
 			tis, _ := tc.checkCallExpression(c, false)
 			for _, ti := range tis {
@@ -1291,48 +1294,63 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		panic(tc.errorf(expr, "too many arguments in call to %s\n\thave %s\n\twant %s", expr.Func, have, want))
 	}
 
-	var lastIn = numIn - 1
 	var in reflect.Type
+	var lastIn = numIn - 1
 
-	for i, arg := range args {
-		if i < lastIn || !variadic {
-			in = t.Type.In(i)
-		} else if i == lastIn {
-			in = t.Type.In(lastIn).Elem()
-		}
-		a := tc.typeInfo[arg]
-		if a == nil {
-			a = tc.checkExpression(arg)
-		}
-		if expr.IsVariadic && i == lastIn {
-			if a.Type.Kind() != reflect.Slice && a.Type.Kind() != reflect.Array {
-				if variadic {
-					in = reflect.SliceOf(in)
-				}
-				if a.Nil() {
-					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
-				}
-				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+	if isSpecialCase {
+
+		for i, arg := range args {
+			if i < lastIn || !variadic {
+				in = t.Type.In(i)
+			} else if i == lastIn {
+				in = t.Type.In(lastIn).Elem()
 			}
-			a.Type = a.Type.Elem()
+			a := tc.typeInfo[arg]
 			if !isAssignableTo(a, in) {
-				if variadic {
-					in = reflect.SliceOf(in)
-				}
-				a.Type = reflect.SliceOf(a.Type)
-				if a.Nil() {
-					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
-				}
-				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
-			}
-		} else {
-			if !isAssignableTo(a, in) {
-				if a.Nil() {
-					panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
-				}
-				panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
 			}
 		}
+
+	} else {
+
+		for i, arg := range args {
+			if i < lastIn || !variadic {
+				in = t.Type.In(i)
+			} else if i == lastIn {
+				in = t.Type.In(lastIn).Elem()
+			}
+			a := tc.checkExpression(arg)
+			if i == lastIn && expr.IsVariadic {
+				if a.Type.Kind() != reflect.Slice && a.Type.Kind() != reflect.Array {
+					if variadic {
+						in = reflect.SliceOf(in)
+					}
+					if a.Nil() {
+						panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+					}
+					panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+				}
+				a.Type = a.Type.Elem()
+				if !isAssignableTo(a, in) {
+					if variadic {
+						in = reflect.SliceOf(in)
+					}
+					a.Type = reflect.SliceOf(a.Type)
+					if a.Nil() {
+						panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+					}
+					panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+				}
+			} else {
+				if !isAssignableTo(a, in) {
+					if a.Nil() {
+						panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+					}
+					panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+				}
+			}
+		}
+
 	}
 
 	numOut := t.Type.NumOut()
