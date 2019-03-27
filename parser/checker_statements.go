@@ -321,7 +321,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 // https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 
-	fun, funcBound := tc.getCurrentFunc()
+	fun, funcBound := tc.currentFunction()
 	if fun == nil {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}

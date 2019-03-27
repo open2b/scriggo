@@ -223,9 +223,9 @@ func (tc *typechecker) removeLastAncestor() {
 	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 }
 
-// getCurrentFunc returns the current function and the related scope level. If
-// getCurrentFunc is called when not in a function body, returns nil and 0.
-func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
+// currentFunction returns the current function and the related scope level.
+// If it is called when not in a function body, returns nil and 0.
+func (tc *typechecker) currentFunction() (*ast.Func, int) {
 	for i := len(tc.ancestors) - 1; i >= 0; i-- {
 		if f, ok := tc.ancestors[i].node.(*ast.Func); ok {
 			return f, tc.ancestors[i].scopeLevel
@@ -236,7 +236,7 @@ func (tc *typechecker) getCurrentFunc() (*ast.Func, int) {
 
 // isUpValue checks if name is an upvalue.
 func (tc *typechecker) isUpValue(name string) bool {
-	_, funcBound := tc.getCurrentFunc()
+	_, funcBound := tc.currentFunction()
 	for i := len(tc.scopes) - 1; i >= 0; i-- {
 		for n := range tc.scopes[i] {
 			if n != name {
@@ -266,7 +266,7 @@ func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
 	// Upvalues.
-	if fun, _ := tc.getCurrentFunc(); fun != nil {
+	if fun, _ := tc.currentFunction(); fun != nil {
 		if tc.isUpValue(ident.Name) {
 			fun.Upvalues = append(fun.Upvalues, ident.Name)
 		}
