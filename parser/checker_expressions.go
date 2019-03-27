@@ -1297,28 +1297,18 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	var in reflect.Type
 	var lastIn = numIn - 1
 
-	if isSpecialCase {
-
-		for i, arg := range args {
-			if i < lastIn || !variadic {
-				in = t.Type.In(i)
-			} else if i == lastIn {
-				in = t.Type.In(lastIn).Elem()
-			}
+	for i, arg := range args {
+		if i < lastIn || !variadic {
+			in = t.Type.In(i)
+		} else if i == lastIn {
+			in = t.Type.In(lastIn).Elem()
+		}
+		if isSpecialCase {
 			a := tc.typeInfo[arg]
 			if !isAssignableTo(a, in) {
 				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
 			}
-		}
-
-	} else {
-
-		for i, arg := range args {
-			if i < lastIn || !variadic {
-				in = t.Type.In(i)
-			} else if i == lastIn {
-				in = t.Type.In(lastIn).Elem()
-			}
+		} else {
 			a := tc.checkExpression(arg)
 			if i == lastIn && expr.IsVariadic {
 				if a.Type.Kind() != reflect.Slice && a.Type.Kind() != reflect.Array {
@@ -1350,7 +1340,6 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 				}
 			}
 		}
-
 	}
 
 	numOut := t.Type.NumOut()
