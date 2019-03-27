@@ -252,6 +252,17 @@ func (tc *typechecker) isUpValue(name string) bool {
 	return false
 }
 
+// replaceTypeInfo replaces the type info of node old with a new created type
+// info for node new.
+func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
+	ti := tc.typeInfo[old]
+	delete(tc.typeInfo, old)
+	ti.Type = reflect.TypeOf(new.Val)
+	ti.Properties = 0
+	ti.Value = nil
+	tc.typeInfo[new] = ti
+}
+
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
 	// Upvalues.
