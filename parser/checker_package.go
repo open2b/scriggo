@@ -41,7 +41,7 @@ func (pi *PackageInfo) String() string {
 // declaration.
 var notChecked = &TypeInfo{}
 
-func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *PackageInfo, err error) {
+func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -54,22 +54,17 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 	}()
 
 	if len(tree.Nodes) == 0 {
-		return nil, errors.New("expected 'package', found EOF")
+		return errors.New("expected 'package', found EOF")
 	}
 	packageNode, ok := tree.Nodes[0].(*ast.Package)
 	if !ok {
 		t := fmt.Sprintf("%T", tree.Nodes[0])
 		t = strings.ToLower(t[len("*ast."):])
-		return nil, fmt.Errorf("expected 'package', found '%s'", t)
+		return fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
 	tc := newTypechecker()
 	tc.universe = universe
-
-	pkgInfo = &PackageInfo{
-		Name:         packageNode.Name,
-		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
-	}
 
 	for _, n := range packageNode.Declarations {
 		switch n := n.(type) {
@@ -79,7 +74,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				// Go package.
 				goPkg, ok := imports[n.Path]
 				if !ok {
-					return nil, tc.errorf(n, "cannot find package %q", n.Path)
+					return tc.errorf(n, "cannot find package %q", n.Path)
 				}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
@@ -103,9 +98,10 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			} else {
 				// Scrigo package.
 				var err error
-				importedPkg, err = checkPackage(n.Tree, nil)
+				err = checkPackage(n.Tree, nil, pkgInfos)
+				importedPkg = pkgInfos[n.Tree.Path]
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 			if n.Ident == nil {
@@ -166,12 +162,12 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 			tc.temporaryEvaluated = make(map[string]*TypeInfo)
 			ti := tc.checkExpression(c.Value.(ast.Expression))
 			if !ti.IsConstant() {
-				return nil, tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
+				return tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
 			}
 			if c.Type != nil {
 				typ := tc.checkType(c.Type, noEllipses)
 				if !isAssignableTo(ti, typ.Type) {
-					return nil, tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
+					return tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
 			tc.filePackageBlock[c.Ident] = scopeElement{t: ti}
@@ -226,7 +222,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 				if v.Type != nil {
 					typ := tc.checkType(v.Type, noEllipses)
 					if !isAssignableTo(ti, typ.Type) {
-						return nil, tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
+						return tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
 				tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}}
@@ -240,24 +236,30 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage) (pkgInfo *Packa
 
 	for pkg := range tc.unusedImports {
 		// TODO (Gianluca): position is not correct.
-		return nil, tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
+		return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
 	}
 
+	pkgInfo := &PackageInfo{
+		Name:         packageNode.Name,
+		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
+	}
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}
-
 	pkgInfo.UpValues = tc.upValues
-
 	pkgInfo.VariableOrdering = nil
 	for _, v := range tc.initOrder {
 		if tc.getDecl(v).DeclarationType == DeclarationVariable {
 			pkgInfo.VariableOrdering = append(pkgInfo.VariableOrdering, v)
 		}
 	}
+	if pkgInfos == nil {
+		pkgInfos = make(map[string]*PackageInfo)
+	}
+	pkgInfos[tree.Path] = pkgInfo
 
-	return pkgInfo, nil
+	return nil
 }
 
 // tryAddingToInitOrder tries to add name to the initialization order. Returns

@@ -1348,11 +1348,10 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 
 	if p.typeCheck {
-		pkgInfo, err := checkPackage(tree, p.packages)
+		err := checkPackage(tree, p.packages, p.packageInfos)
 		if err != nil {
 			return nil, err
 		}
-		p.packageInfos[path] = pkgInfo
 	}
 
 	return tree, nil
