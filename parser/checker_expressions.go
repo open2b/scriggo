@@ -916,8 +916,8 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	return s
 }
 
-// checkCallBuiltin checks the builtin call expr, returning the list of results.
-func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
+// checkBuiltinCall checks the builtin call expr, returning the list of results.
+func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 
 	ident := expr.Func.(*ast.Identifier)
 
@@ -1197,7 +1197,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
 		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
-			return tc.checkCallBuiltin(expr), true
+			return tc.checkBuiltinCall(expr), true
 		}
 	}
 
