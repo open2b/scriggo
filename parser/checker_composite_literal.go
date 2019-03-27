@@ -9,6 +9,7 @@ package parser
 import (
 	"math/big"
 	"reflect"
+
 	"scrigo/ast"
 )
 
@@ -47,7 +48,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	return maxIndex
 }
 
-// checkKeysDuplicates checks if node contains duplicates keys.
+// checkKeysDuplicates checks that node does not contains duplicates keys.
 func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind reflect.Kind) {
 	found := []interface{}{}
 	for _, kv := range node.KeyValues {
@@ -95,7 +96,9 @@ func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind refl
 	}
 }
 
-func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, explicitType reflect.Type) *TypeInfo {
+// checkCompositeLiteral type checks a composite literal. typ is the type of
+// the composite literal.
+func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ reflect.Type) *TypeInfo {
 
 	maxIndex := tc.maxIndex(node)
 	ti := tc.checkType(node.Type, maxIndex+1)

@@ -13,8 +13,8 @@ import (
 	"scrigo/ast"
 )
 
-// checkAssignment checks the assignment node (Var, Const or Assignment) and
-// writes to the scope, if necessary.
+// checkAssignment type checks an assignment node (Var, Const or Assignment)
+// and fills the scope, if necessary.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	var vars, values []ast.Expression
@@ -223,9 +223,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 }
 
 // assignSingle assigns value to variable (or valueTi to variable if value is
-// nil). typ is the type specified in the declaration, if any. If assignment is
-// a declaration and the scope has been updated, returns the identifier of the
-// new scope element; otherwise returns an empty string.
+// nil). typ is the type specified in the declaration, if any. If assignment
+// is a declaration and the scope has been updated, returns the identifier of
+// the new scope element; otherwise returns an empty string.
 func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
 
 	if valueTi == nil {

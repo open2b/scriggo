@@ -13,19 +13,17 @@ import (
 	"scrigo/ast"
 )
 
-// checkNodesInNewScope checks nodes in a dedicated scope, which will be
-// destroyed after use.
+// checkNodesInNewScope type checks nodes in a new scope.
 func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 	tc.addScope()
 	tc.checkNodes(nodes)
 	tc.removeCurrentScope()
 }
 
-// checkNodes checks nodes an orderer list of statements.
+// checkNodes type checks one or more statements.
 //
 // TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and
 // 'tc.checkNodesInNewScope'
-//
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 	tc.terminating = false
@@ -318,6 +316,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 }
 
+// checkReturn type checks a return statement.
 // https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 

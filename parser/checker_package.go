@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"scrigo/ast"
 	"strings"
+
+	"scrigo/ast"
 )
 
 // TODO (Gianluca): find a better name.
@@ -41,6 +42,7 @@ func (pi *PackageInfo) String() string {
 // declaration.
 var notChecked = &TypeInfo{}
 
+// checkPackage type checks a package.
 func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
 
 	defer func() {
@@ -263,7 +265,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 }
 
 // tryAddingToInitOrder tries to add name to the initialization order. Returns
-// true if operation ended successfully.
+// true on success.
 func (tc *typechecker) tryAddingToInitOrder(name string) bool {
 	for _, dep := range tc.varDeps[name] {
 		if !sliceContainsString(tc.initOrder, dep) {
