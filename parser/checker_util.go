@@ -21,54 +21,10 @@ var errTypeConversion = errors.New("failed type conversion")
 const (
 	maxInt   = int(maxUint >> 1)
 	minInt   = -maxInt - 1
-	maxUint  = ^uint(0)
+	maxInt64 = 1<<63 - 1
 	minInt64 = -1 << 63
+	maxUint  = ^uint(0)
 )
-
-var integerRanges = [...]struct{ min, max *big.Int }{
-	{big.NewInt(int64(minInt)), big.NewInt(int64(maxInt))}, // int
-	{big.NewInt(-1 << 7), big.NewInt(1<<7 - 1)},            // int8
-	{big.NewInt(-1 << 15), big.NewInt(1<<15 - 1)},          // int16
-	{big.NewInt(-1 << 31), big.NewInt(1<<31 - 1)},          // int32
-	{big.NewInt(-1 << 63), big.NewInt(1<<63 - 1)},          // int64
-	{nil, big.NewInt(0).SetUint64(uint64(maxUint))},        // uint
-	{nil, big.NewInt(1<<8 - 1)},                            // uint8
-	{nil, big.NewInt(1<<16 - 1)},                           // uint16
-	{nil, big.NewInt(1<<32 - 1)},                           // uint32
-	{nil, big.NewInt(0).SetUint64(1<<64 - 1)},              // uint64
-}
-
-var integerKind = [...]bool{
-	reflect.Int:           true,
-	reflect.Int8:          true,
-	reflect.Int16:         true,
-	reflect.Int32:         true,
-	reflect.Int64:         true,
-	reflect.Uint:          true,
-	reflect.Uint8:         true,
-	reflect.Uint16:        true,
-	reflect.Uint32:        true,
-	reflect.Uint64:        true,
-	reflect.UnsafePointer: false,
-}
-
-var numericKind = [...]bool{
-	reflect.Int:           true,
-	reflect.Int8:          true,
-	reflect.Int16:         true,
-	reflect.Int32:         true,
-	reflect.Int64:         true,
-	reflect.Uint:          true,
-	reflect.Uint8:         true,
-	reflect.Uint16:        true,
-	reflect.Uint32:        true,
-	reflect.Uint64:        true,
-	reflect.Float32:       true,
-	reflect.Float64:       true,
-	reflect.Complex64:     true,
-	reflect.Complex128:    true,
-	reflect.UnsafePointer: false,
-}
 
 var boolOperators = [15]bool{
 	ast.OperatorEqual:    true,
@@ -175,7 +131,7 @@ func convert(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	if ti.IsConstant() && k2 != reflect.Interface {
 		k1 := t.Kind()
-		if k2 == reflect.String && reflect.Int <= k1 && k1 <= reflect.Uint64 {
+		if k2 == reflect.String && isInteger(k1) {
 			// As a special case, an integer constant can be explicitly
 			// converted to a string type.
 			switch v := v.(type) {
@@ -192,35 +148,6 @@ func convert(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
 				return nil, nil
 			}
 		}
-		return representedBy(ti, t2)
-	}
-
-	if t.ConvertibleTo(t2) {
-		return nil, nil
-	}
-
-	return nil, errTypeConversion
-}
-
-// convertImplicit converts implicitly a value. If the converted value is a
-// constant, convert returns its value, otherwise returns nil.
-//
-// If the value can not be converted, returns an errTypeConversion type error,
-// errConstantTruncated or errConstantOverflow.
-func convertImplicit(ti *TypeInfo, t2 reflect.Type) (interface{}, error) {
-
-	t := ti.Type
-	k2 := t2.Kind()
-
-	if ti.Nil() {
-		switch t2.Kind() {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return nil, nil
-		}
-		return nil, errTypeConversion
-	}
-
-	if ti.IsConstant() && k2 != reflect.Interface {
 		return representedBy(ti, t2)
 	}
 
@@ -313,10 +240,25 @@ func isComparison(op ast.OperatorType) bool {
 	return op >= ast.OperatorEqual && op <= ast.OperatorGreaterOrEqual
 }
 
+// isFloatingPoint reports whether a reflect kind is floating point.
+func isFloatingPoint(k reflect.Kind) bool {
+	return k == reflect.Float64 || k == reflect.Float32
+}
+
+// isInteger reports whether a reflect kind is integer.
+func isInteger(k reflect.Kind) bool {
+	return reflect.Int <= k && k <= reflect.Uint64
+}
+
+// isNumeric reports whether a reflect kind is numeric.
+func isNumeric(k reflect.Kind) bool {
+	return reflect.Int <= k && k <= reflect.Float64
+}
+
 // isOrdered reports whether t is ordered.
 func isOrdered(t *TypeInfo) bool {
 	k := t.Type.Kind()
-	return numericKind[k] || k == reflect.String
+	return isNumeric(k) || k == reflect.String
 }
 
 // methodByName returns a function type that describe the method with that
@@ -360,108 +302,117 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	return nil, false
 }
 
-// representedBy returns a constant value represented as a value of type t2.
-func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
+// newInt returns a new big.Int.
+func newInt() *big.Int {
+	return new(big.Int)
+}
 
-	if t1.Untyped() && t2 == emptyInterfaceType {
-		if !t1.IsConstant() {
-			return t1.Value, nil
-		}
-		t2 = t1.Type
-	}
+// newFloat returns a new big.Float with precision 512.
+func newFloat() *big.Float {
+	return new(big.Float).SetPrec(512)
+}
+
+// newRat returns a new big.Rat.
+func newRat() *big.Rat {
+	return new(big.Rat)
+}
+
+// representedBy returns a constant value represented as a value of type t2.
+// t2 can not be an interface.
+func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	v := t1.Value
 	k := t2.Kind()
 
-	switch v := v.(type) {
-	case bool:
-		if k == reflect.Bool {
-			return v, nil
+	switch {
+	case k == reflect.Bool:
+		if t1.Type.Kind() != reflect.Bool {
+			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
 		}
-	case string:
-		if k == reflect.String {
-			return v, nil
+		return v, nil
+	case k == reflect.String:
+		if t1.Type.Kind() != reflect.String {
+			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
 		}
-	case *big.Int:
-		switch {
-		case reflect.Int <= k && k <= reflect.Uint64:
-			if t1.Untyped() || k != t1.Type.Kind() {
-				min := integerRanges[k-2].min
-				max := integerRanges[k-2].max
-				if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
-					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-				}
-			}
-			return v, nil
-		case k == reflect.Float64:
-			n := (&big.Float{}).SetInt(v)
-			if t1.Untyped() && !v.IsInt64() && !v.IsUint64() {
-				if _, acc := n.Float64(); acc != big.Exact {
-					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-				}
-			}
-			return n, nil
-		case k == reflect.Float32:
-			n := (&big.Float{}).SetInt(v).SetPrec(24)
-			if t1.Untyped() && !v.IsInt64() && !v.IsUint64() {
-				if _, acc := n.Float32(); acc != big.Exact {
-					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-				}
-			}
-			return n, nil
-		}
-	case *big.Float:
-		switch {
-		case reflect.Int <= k && k <= reflect.Uint64:
-			if n, acc := v.Int(nil); acc == big.Exact {
-				min := integerRanges[k-2].min
-				max := integerRanges[k-2].max
-				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
+		return v, nil
+	case reflect.Int <= k && k <= reflect.Int64:
+		if t1.CanInt64() {
+			switch k {
+			case reflect.Int:
+				n := t1.Int64()
+				if int64(minInt) <= n && n <= int64(maxInt) {
 					return n, nil
 				}
-			}
-			return nil, fmt.Errorf("constant %v truncated to integer", v)
-		case k == reflect.Float64:
-			if t1.Untyped() {
-				n, _ := v.Float64()
-				if math.IsInf(n, 0) {
-					return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-				}
-				v = big.NewFloat(n)
-			}
-			return v, nil
-		case k == reflect.Float32:
-			n, _ := v.Float32()
-			if math.IsInf(float64(n), 0) {
-				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-			}
-			return big.NewFloat(float64(n)), nil
-		}
-	case *big.Rat:
-		switch {
-		case reflect.Int <= k && k <= reflect.Uint64:
-			if v.IsInt() {
-				n := v.Num()
-				min := integerRanges[k-2].min
-				max := integerRanges[k-2].max
-				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
+			case reflect.Int8:
+				n := t1.Int64()
+				if -1<<7 <= n && n <= 1<<7-1 {
 					return n, nil
 				}
+			case reflect.Int16:
+				n := t1.Int64()
+				if -1<<15 <= n && n <= 1<<15-1 {
+					return n, nil
+				}
+			case reflect.Int32:
+				n := t1.Int64()
+				if -1<<31 <= n && n <= 1<<31-1 {
+					return n, nil
+				}
+			case reflect.Int64:
+				return t1.Int64(), nil
 			}
-			return nil, fmt.Errorf("constant %v truncated to integer", v)
-		case k == reflect.Float64:
-			n, _ := v.Float64()
-			if math.IsInf(n, 0) {
-				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-			}
-			return big.NewFloat(n), nil
-		case k == reflect.Float32:
-			n, _ := v.Float32()
-			if math.IsInf(float64(n), 0) {
-				return nil, fmt.Errorf("constant %v overflows %s", v, t2)
-			}
-			return big.NewFloat(float64(n)), nil
 		}
+		return nil, fmt.Errorf("constant %v truncated to integer", v)
+	case reflect.Uint <= k && k <= reflect.Uintptr:
+		if t1.CanUint64() {
+			switch k {
+			case reflect.Uint:
+				n := t1.Uint64()
+				if n <= uint64(maxUint) {
+					if n <= uint64(maxInt64) {
+						return int64(n), nil
+					}
+					return (&big.Int{}).SetUint64(n), nil
+				}
+			case reflect.Uint8:
+				n := t1.Uint64()
+				if n <= 1<<8-1 {
+					return int64(n), nil
+				}
+			case reflect.Uint16:
+				n := t1.Uint64()
+				if n <= 1<<16-1 {
+					return int64(n), nil
+				}
+			case reflect.Uint32:
+				n := t1.Uint64()
+				if n <= 1<<32-1 {
+					if n <= uint64(maxInt) {
+						return int64(n), nil
+					}
+					return (&big.Int{}).SetUint64(n), nil
+				}
+			case reflect.Uint64:
+				n := t1.Uint64()
+				if n <= uint64(maxInt) {
+					return int64(n), nil
+				}
+				return (&big.Int{}).SetUint64(n), nil
+			}
+		}
+		return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+	case k == reflect.Float64:
+		if t1.CanFloat64() {
+			return t1.Float64(), nil
+		}
+		return nil, fmt.Errorf("constant %v overflows %s", v, t2)
+	case k == reflect.Float32:
+		if t1.CanFloat64() {
+			if f := t1.Float64(); -math.MaxFloat32 <= f && f <= math.MaxFloat32 {
+				return float64(float32(f)), nil
+			}
+		}
+		return nil, fmt.Errorf("constant %v overflows %s", v, t2)
 	}
 
 	return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
@@ -481,11 +432,9 @@ func sliceContainsString(slice []string, s string) bool {
 // constants and returns its result. Returns an error if the operation can not
 // be executed.
 func tBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
-
 	if t1.Type != t2.Type {
 		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)", expr, t1, t2)
 	}
-
 	t, err := binaryOp(t1, expr, t2)
 	if err != nil {
 		return nil, err
@@ -493,95 +442,11 @@ func tBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 	if t.Type == nil {
 		t.Type = t1.Type
 	}
-
-	v := t.Value
-	k := t1.Type.Kind()
-
-	t.Value = nil
-
-	switch v := v.(type) {
-	case bool, string:
-		t.Value = v
-	case int64:
-		var overflow bool
-		switch k {
-		case reflect.Int:
-			overflow = v != int64(int(v))
-		case reflect.Int32:
-			overflow = v != int64(int32(v))
-		case reflect.Int16:
-			overflow = v != int64(int16(v))
-		case reflect.Int8:
-			overflow = v != int64(int8(v))
-		case reflect.Uint:
-			overflow = v != int64(uint(v))
-		case reflect.Uint64:
-			overflow = v != int64(uint64(v))
-		case reflect.Uint32:
-			overflow = v != int64(uint32(v))
-		case reflect.Uint16:
-			overflow = v != int64(uint16(v))
-		case reflect.Uint8:
-			overflow = v != int64(uint8(v))
-		}
-		if !overflow {
-			t.Value = v
-		}
-	case *big.Int:
-		min := integerRanges[k-2].min
-		max := integerRanges[k-2].max
-		if (min != nil || v.Sign() >= 0) && (min == nil || v.Cmp(min) >= 0) && v.Cmp(max) <= 0 {
-			t.Value = v
-		}
-	case float64:
-		if k == reflect.Float64 || (k == reflect.Float32 && v != float64(float32(v))) {
-			t.Value = v
-		}
-	case *big.Float:
-		switch {
-		case reflect.Int <= k && k <= reflect.Uint64:
-			if n, acc := v.Int(nil); acc == big.Exact {
-				min := integerRanges[k-2].min
-				max := integerRanges[k-2].max
-				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
-					t.Value = n
-				}
-			}
-		case k == reflect.Float64:
-			if n, _ := v.Float64(); !math.IsInf(n, 0) {
-				t.Value = n
-			}
-		case k == reflect.Float32:
-			if n, _ := v.Float32(); !math.IsInf(float64(n), 0) {
-				t.Value = n
-			}
-		}
-	case *big.Rat:
-		switch {
-		case reflect.Int <= k && k <= reflect.Uint64:
-			if v.IsInt() {
-				n := v.Num()
-				min := integerRanges[k-2].min
-				max := integerRanges[k-2].max
-				if (min != nil || v.Sign() >= 0) && (min == nil || n.Cmp(min) >= 0) && n.Cmp(max) <= 0 {
-					t.Value = n
-				}
-			}
-		case k == reflect.Float64:
-			if n, _ := v.Float64(); !math.IsInf(n, 0) {
-				t.Value = n
-			}
-		case k == reflect.Float32:
-			if n, _ := v.Float32(); !math.IsInf(float64(n), 0) {
-				t.Value = n
-			}
-		}
-	}
-
-	if t.Value == nil {
+	v, err := representedBy(t, t.Type)
+	if err != nil {
 		return nil, fmt.Errorf("constant %v overflows %s", v, t1)
 	}
-
+	t.Value = v
 	return t, nil
 }
 
@@ -591,30 +456,30 @@ func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
 	case int64:
 		switch n2 := v2.(type) {
 		case *big.Int:
-			v1 = (&big.Int{}).SetInt64(n1)
+			v1 = newInt().SetInt64(n1)
 		case float64:
 			if int64(float64(n1)) == n1 {
 				n2 = float64(n2)
 			} else {
-				v1 = (&big.Float{}).SetInt64(n1)
-				v2 = (&big.Float{}).SetFloat64(n2)
+				v1 = newFloat().SetInt64(n1)
+				v2 = newFloat().SetFloat64(n2)
 			}
 		case *big.Float:
-			v1 = (&big.Float{}).SetInt64(n1)
+			v1 = newFloat().SetInt64(n1)
 		case *big.Rat:
-			v1 = (&big.Rat{}).SetInt64(n1)
+			v1 = newRat().SetInt64(n1)
 		}
 	case *big.Int:
 		switch n2 := v2.(type) {
 		case int64:
-			v2 = (&big.Int{}).SetInt64(n2)
+			v2 = newInt().SetInt64(n2)
 		case float64:
-			v1 = (&big.Float{}).SetInt(n1)
-			v2 = (&big.Float{}).SetFloat64(n2)
+			v1 = newFloat().SetInt(n1)
+			v2 = newFloat().SetFloat64(n2)
 		case *big.Float:
-			v1 = (&big.Float{}).SetInt(n1)
+			v1 = newFloat().SetInt(n1)
 		case *big.Rat:
-			v1 = (&big.Rat{}).SetInt(n1)
+			v1 = newRat().SetInt(n1)
 		}
 	case float64:
 		switch n2 := v2.(type) {
@@ -622,41 +487,41 @@ func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
 			if int64(float64(n2)) == n2 {
 				v2 = float64(n2)
 			} else {
-				v1 = (&big.Float{}).SetFloat64(n1)
-				v2 = (&big.Float{}).SetInt64(n2)
+				v1 = newFloat().SetFloat64(n1)
+				v2 = newFloat().SetInt64(n2)
 			}
 		case *big.Int:
-			v1 = (&big.Float{}).SetFloat64(n1)
-			v2 = (&big.Float{}).SetInt(n2)
+			v1 = newFloat().SetFloat64(n1)
+			v2 = newFloat().SetInt(n2)
 		case *big.Float:
-			v1 = (&big.Float{}).SetFloat64(n1)
+			v1 = newFloat().SetFloat64(n1)
 		case *big.Rat:
-			v1 = (&big.Rat{}).SetFloat64(n1)
+			v1 = newRat().SetFloat64(n1)
 		}
 	case *big.Float:
 		switch n2 := v2.(type) {
 		case int64:
-			v2 = (&big.Float{}).SetInt64(n2)
+			v2 = newFloat().SetInt64(n2)
 		case float64:
-			v2 = (&big.Float{}).SetFloat64(n2)
+			v2 = newFloat().SetFloat64(n2)
 		case *big.Int:
-			v2 = (&big.Float{}).SetInt(n2)
+			v2 = newFloat().SetInt(n2)
 		case *big.Rat:
-			num := (&big.Float{}).SetInt(n2.Num())
-			den := (&big.Float{}).SetInt(n2.Denom())
+			num := newFloat().SetInt(n2.Num())
+			den := newFloat().SetInt(n2.Denom())
 			v2 = num.Quo(num, den)
 		}
 	case *big.Rat:
 		switch n2 := v2.(type) {
 		case int64:
-			v2 = (&big.Rat{}).SetInt64(n2)
+			v2 = newRat().SetInt64(n2)
 		case float64:
-			v2 = (&big.Rat{}).SetFloat64(n2)
+			v2 = newRat().SetFloat64(n2)
 		case *big.Int:
-			v2 = (&big.Rat{}).SetInt(n2)
+			v2 = newRat().SetInt(n2)
 		case *big.Float:
-			num := (&big.Float{}).SetInt(n1.Num())
-			den := (&big.Float{}).SetInt(n1.Denom())
+			num := newFloat().SetInt(n1.Num())
+			den := newFloat().SetInt(n1.Denom())
 			v1 = num.Quo(num, den)
 		}
 	}
@@ -670,7 +535,7 @@ func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 	k1 := t1.Type.Kind()
 	k2 := t2.Type.Kind()
 
-	if !(k1 == k2 || numericKind[k1] && numericKind[k2]) {
+	if !(k1 == k2 || isNumeric(k1) && isNumeric(k2)) {
 		return nil, fmt.Errorf("invalid operation: %v (mismatched types %s and %s)",
 			expr, t1.ShortString(), t2.ShortString())
 	}
@@ -776,28 +641,28 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				v1 := v1.(int64)
 				v := v1 + v2
 				if (v < v1) != (v2 < 0) {
-					b1 := (&big.Int{}).SetInt64(v1)
-					b2 := (&big.Int{}).SetInt64(v2)
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
 					t.Value = b1.Add(b1, b2)
 				} else {
 					t.Value = v
 				}
 			case *big.Int:
-				t.Value = (&big.Int{}).Add(v1.(*big.Int), v2)
+				t.Value = newInt().Add(v1.(*big.Int), v2)
 			case float64:
 				if v1 == 0 {
 					t.Value = v2
 				} else if v2 == 0 {
 					t.Value = v1
 				} else {
-					f1 := (&big.Float{}).SetFloat64(v1.(float64))
-					f2 := (&big.Float{}).SetFloat64(v2)
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
 					t.Value = f1.Add(f1, f2)
 				}
 			case *big.Float:
-				t.Value = (&big.Float{}).Add(v1.(*big.Float), v2)
+				t.Value = newFloat().Add(v1.(*big.Float), v2)
 			case *big.Rat:
-				t.Value = (&big.Rat{}).Add(v1.(*big.Rat), v2)
+				t.Value = newRat().Add(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorSubtraction:
 			switch v2 := t2.Value.(type) {
@@ -805,26 +670,26 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				v1 := v1.(int64)
 				v := v1 - v2
 				if (v < v1) != (v2 > 0) {
-					b1 := (&big.Int{}).SetInt64(v1)
-					b2 := (&big.Int{}).SetInt64(v2)
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
 					t.Value = b1.Sub(b1, b2)
 				} else {
 					t.Value = v
 				}
 			case *big.Int:
-				t.Value = (&big.Int{}).Sub(v1.(*big.Int), v2)
+				t.Value = newInt().Sub(v1.(*big.Int), v2)
 			case float64:
 				if v2 == 0 {
 					t.Value = v1
 				} else {
-					f1 := (&big.Float{}).SetFloat64(v1.(float64))
-					f2 := (&big.Float{}).SetFloat64(v2)
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
 					t.Value = f1.Sub(f1, f2)
 				}
 			case *big.Float:
-				t.Value = (&big.Float{}).Sub(v1.(*big.Float), v2)
+				t.Value = newFloat().Sub(v1.(*big.Float), v2)
 			case *big.Rat:
-				t.Value = (&big.Rat{}).Sub(v1.(*big.Rat), v2)
+				t.Value = newRat().Sub(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorMultiplication:
 			switch v2 := v2.(type) {
@@ -839,15 +704,15 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 					v1 := v1.(int64)
 					v := v1 * v2
 					if (v < 0) != ((v1 < 0) != (v2 < 0)) || v/v2 != v1 {
-						b1 := (&big.Int{}).SetInt64(v1)
-						b2 := (&big.Int{}).SetInt64(v2)
+						b1 := newInt().SetInt64(v1)
+						b2 := newInt().SetInt64(v2)
 						t.Value = b1.Mul(b1, b2)
 					} else {
 						t.Value = v
 					}
 				}
 			case *big.Int:
-				t.Value = (&big.Int{}).Sub(v1.(*big.Int), v2)
+				t.Value = newInt().Sub(v1.(*big.Int), v2)
 			case float64:
 				if v1 == 0 || v2 == 0 {
 					t.Value = float64(0)
@@ -856,14 +721,14 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				} else if v2 == 1 {
 					t.Value = v1
 				} else {
-					f1 := (&big.Float{}).SetFloat64(v1.(float64))
-					f2 := (&big.Float{}).SetFloat64(v2)
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
 					t.Value = f1.Mul(f1, f2)
 				}
 			case *big.Float:
-				t.Value = (&big.Float{}).Sub(v1.(*big.Float), v2)
+				t.Value = newFloat().Sub(v1.(*big.Float), v2)
 			case *big.Rat:
-				t.Value = (&big.Rat{}).Sub(v1.(*big.Rat), v2)
+				t.Value = newRat().Sub(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorDivision:
 			switch v2 := t2.Value.(type) {
@@ -875,15 +740,15 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				if v1%v2 == 0 && !(v1 == minInt64 && v2 == -1) {
 					t.Value = v1 / v2
 				} else {
-					b1 := (&big.Int{}).SetInt64(v1)
-					b2 := (&big.Int{}).SetInt64(v2)
-					t.Value = (&big.Rat{}).SetFrac(b1, b2)
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
+					t.Value = newRat().SetFrac(b1, b2)
 				}
 			case *big.Int:
 				if v2.Sign() == 0 {
 					return nil, errDivisionByZero
 				}
-				t.Value = (&big.Rat{}).SetFrac(v1.(*big.Int), v2)
+				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
 			case float64:
 				if v2 == 0 {
 					return nil, errDivisionByZero
@@ -891,24 +756,24 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				if v2 == 1 {
 					t.Value = v1
 				} else {
-					f1 := (&big.Float{}).SetFloat64(v1.(float64))
-					f2 := (&big.Float{}).SetFloat64(v2)
-					t.Value = (&big.Float{}).Quo(f1, f2)
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
+					t.Value = newFloat().Quo(f1, f2)
 				}
 			case *big.Float:
 				if v2.Sign() == 0 {
 					return nil, errDivisionByZero
 				}
-				t.Value = (&big.Float{}).Quo(v1.(*big.Float), v2)
+				t.Value = newFloat().Quo(v1.(*big.Float), v2)
 			case *big.Rat:
 				if v2.Sign() == 0 {
 					return nil, errDivisionByZero
 				}
-				t.Value = (&big.Rat{}).Quo(v1.(*big.Rat), v2)
+				t.Value = newRat().Quo(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorModulo:
 			k2 := t2.Type.Kind()
-			if k1 == reflect.Float64 || k1 == reflect.Float32 || k2 == reflect.Float64 || k2 == reflect.Float32 {
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
 				return nil, errors.New("illegal constant expression: floating-point % operation")
 			}
 			switch v2 := t2.Value.(type) {
@@ -921,7 +786,7 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				if v2.Sign() == 0 {
 					return nil, errDivisionByZero
 				}
-				t.Value = (&big.Rat{}).SetFrac(v1.(*big.Int), v2)
+				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
 			}
 		}
 	}
@@ -949,49 +814,50 @@ func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 			ti.Value = !t.Value.(bool)
 		}
 	case ast.OperatorAddition:
-		if t.Nil() || !numericKind[k] {
+		if t.Nil() || !isNumeric(k) {
 			return nil, fmt.Errorf("invalid operation: + %s", t)
 		}
 		if t.IsConstant() {
 			ti.Value = t.Value
 		}
 	case ast.OperatorSubtraction:
-		if t.Nil() || !numericKind[k] {
+		if t.Nil() || !isNumeric(k) {
 			return nil, fmt.Errorf("invalid operation: - %s", t)
 		}
 		if t.IsConstant() {
-			if t.Untyped() {
-				switch v := t.Value.(type) {
-				case *big.Int:
-					ti.Value = (&big.Int{}).Neg(v)
-				case *big.Float:
-					v = (&big.Float{}).Neg(v)
-				case *big.Rat:
-					v = (&big.Rat{}).Neg(v)
+			switch v := t.Value.(type) {
+			case int64:
+				if v > 0 && reflect.Uint8 <= k && k <= reflect.Uintptr {
+					return nil, fmt.Errorf("constant %v overflows %s", v, ti)
 				}
-			} else {
-				switch v := t.Value.(type) {
-				case *big.Int:
-					v = (&big.Int{}).Neg(v)
-					min := integerRanges[k-2].min
-					max := integerRanges[k-2].max
-					if min == nil && v.Sign() < 0 || min != nil && v.Cmp(min) < 0 || v.Cmp(max) > 0 {
-						return nil, fmt.Errorf("constant %v overflows %s", v, t)
-					}
-					ti.Value = v
-				case *big.Float:
-					v = (&big.Float{}).Neg(v)
-					var acc big.Accuracy
-					if k == reflect.Float64 {
-						_, acc = v.Float64()
-					} else {
-						_, acc = v.Float32()
-					}
-					if acc != 0 {
-						return nil, fmt.Errorf("constant %v overflows %s", v, t)
-					}
-					ti.Value = v
+				if v > minInt64 {
+					ti.Value = -v
+				} else {
+					n := big.NewInt(v)
+					ti.Value = n.Neg(n)
 				}
+				if !ti.Untyped() {
+					v, err := representedBy(ti, ti.Type)
+					if err != nil {
+						return nil, fmt.Errorf("constant %v overflows %s", v, ti)
+					}
+					t.Value = v
+				}
+			case *big.Int:
+				ti.Value = newInt().Neg(v)
+				if !ti.Untyped() {
+					v, err := representedBy(ti, ti.Type)
+					if err != nil {
+						return nil, fmt.Errorf("constant %v overflows %s", v, ti)
+					}
+					t.Value = v
+				}
+			case float64:
+				ti.Value = -v
+			case *big.Float:
+				ti.Value = newFloat().Neg(v)
+			case *big.Rat:
+				ti.Value = newRat().Neg(v)
 			}
 		}
 	case ast.OperatorMultiplication:

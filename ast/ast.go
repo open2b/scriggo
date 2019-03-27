@@ -1018,3 +1018,21 @@ func (n *TypeAssertion) String() string {
 	}
 	return n.Expr.String() + ".(" + n.Type.String() + ")"
 }
+
+// Value node represent a special node with an associated value.
+type Value struct {
+	expression
+	*Position             // position in the source.
+	Val       interface{} // associated value.
+}
+
+func NewValue(val interface{}) *Value {
+	if val == nil {
+		panic("nil value")
+	}
+	return &Value{expression{}, nil, val}
+}
+
+func (n *Value) String() string {
+	return fmt.Sprintf("%v", n.Val)
+}

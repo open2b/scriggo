@@ -9,7 +9,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"unicode/utf8"
 
 	"scrigo/ast"
@@ -708,13 +707,13 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		}
 		return ast.NewRune(p, r)
 	case tokenInt:
-		n, _ := new(big.Int).SetString(string(tok.txt), 0)
+		n, _ := newInt().SetString(string(tok.txt), 0)
 		if neg != nil {
 			_ = n.Neg(n)
 		}
 		return ast.NewInt(p, n)
 	case tokenFloat:
-		n, _ := new(big.Float).SetString(string(tok.txt))
+		n, _ := newFloat().SetString(string(tok.txt))
 		if neg != nil {
 			_ = n.Neg(n)
 		}

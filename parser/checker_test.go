@@ -678,15 +678,15 @@ var checkerStmts = map[string]string{
 	`a, ok := map[int]string{}[0]; var _ string = a; var _ int = ok;`:  `cannot use ok (type bool) as type int in assignment`,
 
 	// Structs.
-	`_ = pointInt{}`:               ok,
-	`_ = pointInt{1,2}`:            ok,
-	`_ = pointInt{1.0,2.0}`:        ok,
-	`_ = pointInt{X: 1, Y: 2}`:     ok,
-	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
-	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
-	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
-	`_ = pointInt{1,2,3}`:          `too many values in pointInt literal`,
-	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
+	`_ = pointInt{}`:           ok,
+	`_ = pointInt{1,2}`:        ok,
+	`_ = pointInt{1.0,2.0}`:    ok,
+	`_ = pointInt{X: 1, Y: 2}`: ok,
+	`_ = pointInt{_:0, _:1}`:   `invalid field name _ in struct initializer`,
+	`_ = pointInt{"a", "b"}`:   `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
+	`_ = pointInt{1,2,3}`:      `too many values in pointInt literal`,
+	//`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`, // TODO
 	`_ = pointInt{1}`:              `too few values in pointInt literal`,
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
@@ -1155,7 +1155,7 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 			switch v2 := t2.Value.(type) {
 			case float64:
 				if v1.Cmp(big.NewFloat(v2)) != 0 {
-					return fmt.Errorf("unexpected float %f, expecting %s", v2, v1)
+					return fmt.Errorf("unexpected floating-point %v, expecting %v", big.NewFloat(v2).Prec(), v1.Prec())
 				}
 				return nil
 			case *big.Float:
@@ -1239,7 +1239,7 @@ func tiUntypedBool() *TypeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *TypeInfo {
-	value, ok := (&big.Float{}).SetString(lit)
+	value, ok := newFloat().SetString(lit)
 	if !ok {
 		panic("invalid floating-point literal value")
 	}
@@ -1262,11 +1262,11 @@ func tiAddrFloat64() *TypeInfo {
 }
 
 func tiFloat32Const(n float32) *TypeInfo {
-	return &TypeInfo{Type: universe["float32"].t.Type, Value: big.NewFloat(float64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["float32"].t.Type, Value: float64(n), Properties: PropertyIsConstant}
 }
 
 func tiFloat64Const(n float64) *TypeInfo {
-	return &TypeInfo{Type: float64Type, Value: big.NewFloat(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: float64Type, Value: n, Properties: PropertyIsConstant}
 }
 
 // rune type infos.
@@ -1408,7 +1408,6 @@ func tiIntPtr() *TypeInfo {
 	return &TypeInfo{Type: reflect.PtrTo(intType)}
 }
 
-var tiDefinedInt = &TypeInfo{Type: reflect.TypeOf(definedInt(0))}
 var tiDefinedIntSlice = &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}
 
 // nil type info.

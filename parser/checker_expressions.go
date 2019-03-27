@@ -475,6 +475,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
+		if !t.IsConstant() {
+			t1 := tc.typeInfo[expr.Expr1]
+			t2 := tc.typeInfo[expr.Expr2]
+			if t2.IsConstant() {
+				expr.Expr2 = ast.NewValue(t2.ValueKind(t1.Type.Kind()))
+			} else if t1.IsConstant() {
+				expr.Expr1 = ast.NewValue(t1.ValueKind(t2.Type.Kind()))
+			}
+		}
 		return t
 
 	case *ast.Identifier:
@@ -503,22 +512,22 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		if expr.Len == nil { // ellipsis.
 			return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		}
-		len := tc.checkExpression(expr.Len)
-		if !len.IsConstant() {
+		ti := tc.checkExpression(expr.Len)
+		if !ti.IsConstant() {
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
-		declLength, err := convertImplicit(len, intType)
+		n, err := representedBy(ti, intType)
 		if err != nil {
 			panic(tc.errorf(expr, err.Error()))
 		}
-		n := int(declLength.(*big.Int).Int64())
-		if n < 0 {
+		b := int(n.(int64))
+		if b < 0 {
 			panic(tc.errorf(expr, "array bound must be non-negative"))
 		}
-		if length > n {
+		if b < length {
 			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, n))
 		}
-		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(n, elem.Type)}
+		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(b, elem.Type)}
 
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
@@ -619,7 +628,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 				}
 			}
-			_ = tc.checkIndex(expr.Index, t, false)
+			if i := tc.checkIndex(expr.Index, t, false); i != -1 {
+				expr.Index = ast.NewValue(i)
+			}
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
@@ -673,10 +684,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		lv, hv := -1, -1
 		if expr.Low != nil {
-			lv = tc.checkIndex(expr.Low, t, true)
+			if lv = tc.checkIndex(expr.Low, t, true); lv != -1 {
+				expr.Low = ast.NewValue(lv)
+			}
 		}
 		if expr.High != nil {
-			hv = tc.checkIndex(expr.High, t, true)
+			if hv = tc.checkIndex(expr.High, t, true); hv != -1 {
+				expr.High = ast.NewValue(hv)
+			}
 		}
 		if lv != -1 && hv != -1 && lv > hv {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
@@ -772,7 +787,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 		if err != nil {
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
-		i = int(n.(*big.Int).Int64())
+		i = int(n.(int64))
 		if i < 0 {
 			panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", typ.Kind(), expr))
 		}
@@ -830,20 +845,14 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 	}
 
 	if t1.Untyped() {
-		v, err := convertImplicit(t1, t2.Type)
+		v, err := representedBy(t1, t2.Type)
 		if err != nil {
-			if err == errTypeConversion {
-				return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", expr, t1, t2)
-			}
 			panic(tc.errorf(expr, "%s", err))
 		}
 		t1 = &TypeInfo{Type: t2.Type, Properties: PropertyIsConstant, Value: v}
 	} else if t2.Untyped() {
-		v, err := convertImplicit(t2, t1.Type)
+		v, err := representedBy(t2, t1.Type)
 		if err != nil {
-			if err == errTypeConversion {
-				panic(tc.errorf(expr, "cannot convert %v (type %s) to type %s", expr, t2, t1))
-			}
 			panic(tc.errorf(expr, "%s", err))
 		}
 		t2 = &TypeInfo{Type: t1.Type, Properties: PropertyIsConstant, Value: v}
@@ -900,7 +909,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 		if err != nil {
 			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 		}
-		if s = int(n.(*big.Int).Int64()); s < 0 {
+		if s = int(n.(int64)); s < 0 {
 			panic(tc.errorf(expr, "negative %s argument in make(%s)", name, typ))
 		}
 	}
@@ -941,14 +950,24 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
 			}
 		} else if len(expr.Args) > 1 {
-			elem := slice.Type.Elem()
-			for _, el := range expr.Args[1:] {
+			elemType := slice.Type.Elem()
+			for i, el := range expr.Args {
+				if i == 0 {
+					continue
+				}
 				t := tc.checkExpression(el)
-				if !isAssignableTo(t, elem) {
+				if !isAssignableTo(t, elemType) {
 					if t == nil {
-						panic(tc.errorf(expr, "cannot use nil as type %s in append", elem))
+						panic(tc.errorf(expr, "cannot use nil as type %s in append", elemType))
 					}
-					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elem))
+					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elemType))
+				}
+				if t.IsConstant() {
+					_, err := representedBy(t, elemType)
+					if err != nil {
+						panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+					}
+					expr.Args[i] = ast.NewValue(t.ValueKind(elemType.Kind()))
 				}
 			}
 		}
@@ -1034,11 +1053,19 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 		if t.Type.Kind() != reflect.Map {
 			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 		}
-		if !isAssignableTo(key, t.Type.Key()) {
+		keyType := t.Type.Key()
+		if !isAssignableTo(key, keyType) {
 			if key.Nil() {
 				panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
 			}
 			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key.ShortString(), t.Type.Key()))
+		}
+		if key.IsConstant() {
+			v, err := representedBy(key, keyType)
+			if err != nil {
+				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+			}
+			expr.Args[1] = ast.NewValue(v)
 		}
 		return nil
 
@@ -1093,10 +1120,16 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 			}
 			if numArgs > 1 {
 				l := tc.checkSize(expr.Args[1], t.Type, "len")
+				if l != -1 {
+					expr.Args[1] = ast.NewValue(l)
+				}
 				if numArgs > 2 {
 					c := tc.checkSize(expr.Args[2], t.Type, "cap")
-					if l != -1 && c != -1 && l > c {
-						panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
+					if c != -1 {
+						expr.Args[2] = ast.NewValue(c)
+						if l != -1 && l > c {
+							panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
+						}
 					}
 				}
 			}
@@ -1108,7 +1141,10 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
 			}
 			if numArgs == 2 {
-				_ = tc.checkSize(expr.Args[1], t.Type, "size")
+				s := tc.checkSize(expr.Args[1], t.Type, "size")
+				if s != -1 {
+					expr.Args[1] = ast.NewValue(s)
+				}
 			}
 		default:
 			panic(tc.errorf(expr, "cannot make type %s", t))
@@ -1132,7 +1168,14 @@ func (tc *typechecker) checkCallBuiltin(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 		}
-		_ = tc.checkExpression(expr.Args[0])
+		ti := tc.checkExpression(expr.Args[0])
+		if ti.IsConstant() {
+			v, err := representedBy(ti, ti.Type)
+			if err != nil {
+				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+			}
+			expr.Args[0] = ast.NewValue(v)
+		}
 		return nil
 
 	case "print", "println":

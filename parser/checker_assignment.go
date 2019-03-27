@@ -94,7 +94,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				panic(tc.errorf(v, "cannot use _ as value"))
 			}
 			exprTi := tc.checkExpression(v)
-			if !numericKind[exprTi.Type.Kind()] {
+			if !isNumeric(exprTi.Type.Kind()) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
 			if !exprTi.Addressable() {
