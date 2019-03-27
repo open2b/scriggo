@@ -90,10 +90,7 @@ func runGoAndGetOutput(src []byte) string {
 		if !strings.HasPrefix(tmpDir, os.TempDir()) {
 			panic(fmt.Errorf("invalid tmpDir: %q", tmpDir))
 		}
-		err := os.RemoveAll(tmpDir)
-		if err != nil {
-			panic(err)
-		}
+		_ = os.RemoveAll(tmpDir)
 	}()
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "globals.go"))
 	if err != nil {
