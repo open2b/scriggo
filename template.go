@@ -297,12 +297,13 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (map[string]scope, error) {
 
 	r := &rendering{
-		handleError: stopOnError,
-		packages:    pkgs,
-		path:        path,
-		scope:       map[string]scope{},
-		treeContext: ast.ContextNone,
-		vars:        []scope{builtins, {}, {}},
+		handleError:  stopOnError,
+		packages:     pkgs,
+		path:         path,
+		scope:        map[string]scope{},
+		treeContext:  ast.ContextNone,
+		vars:         []scope{builtins, {}, {}},
+		packageInfos: pkgInfos,
 	}
 
 	// nodes contains a list of declarations ordered by initialization
@@ -395,6 +396,7 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 		treeContext:    ast.ContextNone,
 		handleError:    stopOnError,
 		needsReference: pkgInfos[tree.Path].UpValues,
+		packageInfos:   pkgInfos,
 	}
 
 	var err error

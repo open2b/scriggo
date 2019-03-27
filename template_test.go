@@ -719,12 +719,16 @@ func TestRenderCallFunc(t *testing.T) {
 
 func TestScrigoImport(t *testing.T) {
 	cases := []parser.MapReader{
+
+		// just "main".
 		parser.MapReader(map[string][]byte{
 			"main.go": []byte(
 				`package main
 				func main() {
 				}`),
 		}),
+
+		// "main" importing "pkg".
 		parser.MapReader(map[string][]byte{
 			"main.go": []byte(
 				`package main
@@ -738,17 +742,59 @@ func TestScrigoImport(t *testing.T) {
 					println("hi!")
 				}`),
 		}),
+
+		// "main" importing "pkg1" importing "pkg2" (1).
+		parser.MapReader(map[string][]byte{
+			"main.go": []byte(
+				`package main
+				import "pkg1"
+				func main() {
+					pkg1.F()
+				}`),
+			"pkg1.go": []byte(
+				`package pkg1
+				import "pkg2"
+				func F() {
+					pkg2.G()
+				}`),
+			"pkg2.go": []byte(
+				`package pkg2
+				func G() {
+					println("hi!")
+				}`),
+		}),
+
+		// "main" importing "pkg1" importing "pkg2" (2).
+		parser.MapReader(map[string][]byte{
+			"main.go": []byte(
+				`package main
+				import . "pkg1"
+				func main() {
+					F()
+				}`),
+			"pkg1.go": []byte(
+				`package pkg1
+				import p2 "pkg2"
+				func F() {
+					p2.G()
+				}`),
+			"pkg2.go": []byte(
+				`package pkg2
+				func G() {
+					println("hi!")
+				}`),
+		}),
 	}
 	for i, r := range cases {
 		p := parser.New(r, nil, true)
 		tree, err := p.Parse("main.go", ast.ContextNone)
 		if err != nil {
-			t.Errorf("test #%d, parsing error: %s", i, err)
+			t.Errorf("test %d/%d, parsing (or type-checker) error: %s", i+1, len(cases), err)
 			continue
 		}
 		err = RunPackageTree(tree, nil, p.TypeCheckInfos())
 		if err != nil {
-			t.Errorf("test #%d, rendering error: %s", i, err)
+			t.Errorf("test %d/%d, rendering error: %s", i+1, len(cases), err)
 			continue
 		}
 	}

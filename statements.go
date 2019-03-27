@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 	"reflect"
 	"strings"
 	"unicode"
@@ -20,6 +19,7 @@ import (
 	"github.com/cockroachdb/apd"
 
 	"scrigo/ast"
+	"scrigo/parser"
 )
 
 var decimalMaxInt = apd.New(maxInt, 0)
@@ -82,6 +82,7 @@ type rendering struct {
 	function       function
 	handleError    func(error) bool
 	needsReference map[*ast.Identifier]bool
+	packageInfos   map[string]*parser.PackageInfo
 }
 
 // variables scope.
@@ -683,50 +684,42 @@ Nodes:
 		case *ast.Import:
 
 			if r.treeContext == ast.ContextNone {
+				var pkg *Package
 				if node.Tree == nil {
-					// TODO (Gianluca): should be removed?
-					pkg, ok := r.packages[node.Path]
+					var ok bool
+					pkg, ok = r.packages[node.Path]
 					if !ok {
 						return r.errorf(node, "cannot find package %q", node.Path)
 					}
-					if node.Ident == nil {
-						r.vars[2][pkg.Name] = pkg
-					} else {
-						switch node.Ident.Name {
-						case "_":
-						case ".":
-							for ident, v := range pkg.Declarations {
-								r.vars[2][ident] = v
-							}
-						default:
-							r.vars[2][node.Ident.Name] = pkg
-						}
-					}
 				} else {
-					name := path.Base(node.Path)
 					if _, ok := r.scope[node.Tree.Path]; !ok {
-						rn := &rendering{
-							scope:       r.scope,
-							path:        node.Tree.Path,
-							vars:        []scope{r.vars[0], r.vars[1], {}},
-							packages:    r.packages,
-							treeContext: r.treeContext,
-							handleError: r.handleError,
+						astPkg, ok := node.Tree.Nodes[0].(*ast.Package)
+						if !ok {
+							return r.errorf(node, "%s is not a Scrigo package", node.Tree.Path)
 						}
-						declarations := node.Tree.Nodes[0].(*ast.Package).Declarations
-						err := rn.render(nil, declarations, nil)
+						var err error
+						r.scope, err = renderPackageBlock(astPkg, r.packageInfos, r.packages, node.Tree.Path)
 						if err != nil {
 							return err
 						}
-						r.scope[node.Tree.Path] = rn.vars[2]
-						pkg := &Package{}
-						pkg.Declarations = make(map[string]interface{}, len(rn.vars[2]))
-						for name, fn := range rn.vars[2] {
-							if _, ok := fn.(function); ok {
-								pkg.Declarations[name] = fn
-							}
+						pkg = &Package{Name: astPkg.Name}
+						pkg.Declarations = make(map[string]interface{}, len(astPkg.Declarations))
+						for name, decl := range r.scope[node.Tree.Path] {
+							pkg.Declarations[name] = decl
 						}
-						r.vars[2][name] = pkg
+					}
+				}
+				if node.Ident == nil {
+					r.vars[2][pkg.Name] = pkg
+				} else {
+					switch node.Ident.Name {
+					case "_":
+					case ".":
+						for ident, v := range pkg.Declarations {
+							r.vars[2][ident] = v
+						}
+					default:
+						r.vars[2][node.Ident.Name] = pkg
 					}
 				}
 			} else {
