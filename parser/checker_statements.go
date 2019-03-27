@@ -403,8 +403,14 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	for i, T := range expectedTypes {
 		x := got[i]
-		if !isAssignableTo(tc.typeInfo[x], T) {
+		ti := tc.typeInfo[x]
+		if !isAssignableTo(ti, T) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.typeInfo[got[i]].ShortString(), expectedTypes[i]))
+		}
+		if ti.IsConstant() {
+			n := ast.NewValue(ti.ValueKind(T.Kind()))
+			tc.replaceTypeInfo(x, n)
+			node.Values[i] = n
 		}
 	}
 }
