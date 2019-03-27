@@ -405,7 +405,12 @@ func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
-	ti := tc.typeof(expr, noEllipses)
+	// TODO: remove double type check
+	ti := tc.typeInfo[expr]
+	if ti != nil {
+		return ti
+	}
+	ti = tc.typeof(expr, noEllipses)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
