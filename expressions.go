@@ -232,6 +232,8 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalSelector(e)
 	case *ast.TypeAssertion:
 		return r.evalTypeAssertion(e)
+	case *ast.Value:
+		return e.Val
 	default:
 		panic(fmt.Errorf("unexpected node type %s", typeof(expr)))
 	}
