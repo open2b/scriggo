@@ -2,20 +2,26 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
-	// TODO (Gianluca):
-	// m1 := map[string]interface{}{}
-	// m1["k"] = []int{1, 2, 3}
-	// fmt.Println(m1)
 
-	// m2 := map[string]map[interface{}]string{}
-	// m2["k"] = map[interface{}]string{
-	// 	1:     "v1",
-	// 	"two": "v2",
-	// }
-	// fmt.Println(m2["k"][1], m2["k"]["two"])
+	m1 := map[string]interface{}{}
+	m1["k"] = []int{1, 2, 3}
+
+	fmt.Println(m1)
+
+	m2 := map[string]map[interface{}]string{}
+	m2["k"] = map[interface{}]string{
+		1:     "v1",
+		"two": "v2",
+	}
+	// TODO: stack overflow on x[1]
+	//x := m2["k"]
+	//_ = x[1]
+	//fmt.Println(m2["k"][1], m2["k"]["two"])
 
 	s1 := []int{1, 2, 3}
 	s1 = append(s1, s1[0], s1[1])
