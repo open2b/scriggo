@@ -406,10 +406,7 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 		return err
 	}
 	r.vars[2] = r.scope[tree.Path]
-	mf, ok := r.vars[2]["main"]
-	if !ok {
-		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
-	}
+	mf := r.vars[2]["main"]
 	r.scope[tree.Path] = r.vars[2]
 	r.vars = append(r.vars, scope{}) // adds 'main' function scope?
 	r.function = mf.(function)

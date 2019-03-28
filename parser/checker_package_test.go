@@ -13,28 +13,27 @@ func TestVariablesInitializationOrder(t *testing.T) {
 		order []string
 	}{
 		// Just one variable.
-		{`    package main
-			var A = 1
+		{`    var A = 1
 			`, []string{"A"}},
+
 		// Variables are independent from each others.
-		{`    package main
-			var A = 1
+		{`    var A = 1
 			var B = 2
 			`, []string{"A", "B"}},
+
 		// B depends on A.
-		{`    package main
-			var A = B
+		{`    var A = B
 			var B = 10
 			`, []string{"B", "A"}},
+
 		// // Three variables in reverse order.
-		// {`    package main
-		// 	var A = B
+		// {`    var A = B
 		// 	var B = C
 		// 	var C = 1
 		// 	`, []string{"C", "B", "A"}},
+
 		// B and C depends from A, but variables are already ordered.
-		{`    package main
-			var A = 1
+		{`    var A = 1
 			var B = A
 			var C = B
 			`, []string{"A", "B", "C"}},
@@ -42,6 +41,7 @@ func TestVariablesInitializationOrder(t *testing.T) {
 CasesLoop:
 	for _, c := range cases {
 		pkgInfos := make(map[string]*PackageInfo)
+		c.src = "package main\n" + c.src + "func main() { }"
 		tree, err := ParseSource([]byte(c.src), ast.ContextNone)
 		errorSrc := strings.ReplaceAll(c.src, "\n", " ")
 		errorSrc = strings.ReplaceAll(errorSrc, "\t", "")

@@ -241,6 +241,17 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 		return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
 	}
 
+	// Checks if main is defined and if it's a function.
+	if packageNode.Name == "main" {
+		main, ok := tc.filePackageBlock["main"]
+		if !ok {
+			return tc.errorf(new(ast.Position), "function main is undeclared in the main package")
+		}
+		if main.t.Type.Kind() != reflect.Func || main.t.Addressable() {
+			return tc.errorf(new(ast.Position), "cannot declare main - must be func")
+		}
+	}
+
 	pkgInfo := &PackageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
