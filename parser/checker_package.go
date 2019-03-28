@@ -84,7 +84,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					if t, ok := value.(reflect.Type); ok {
 						importedPkg.Declarations[ident] = &TypeInfo{
 							Type:       t,
-							Properties: PropertyIsType,
+							Properties: PropertyIsType | PropertyGoImplemented,
 						}
 						continue
 					}
@@ -92,21 +92,22 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					if reflect.TypeOf(value).Kind() == reflect.Ptr {
 						importedPkg.Declarations[ident] = &TypeInfo{
 							Type:       reflect.TypeOf(value).Elem(),
-							Properties: PropertyAddressable,
+							Properties: PropertyAddressable | PropertyGoImplemented,
 						}
 						continue
 					}
 					// Importing a Go global function.
 					if reflect.TypeOf(value).Kind() == reflect.Func {
 						importedPkg.Declarations[ident] = &TypeInfo{
-							Type: reflect.TypeOf(value),
+							Type:       reflect.TypeOf(value),
+							Properties: PropertyGoImplemented,
 						}
 						continue
 					}
 					// Importing a Go constant.
 					importedPkg.Declarations[ident] = &TypeInfo{
 						Value:      value, // TODO (Gianluca): to review.
-						Properties: PropertyIsConstant,
+						Properties: PropertyIsConstant | PropertyGoImplemented,
 					}
 				}
 				importedPkg.Name = goPkg.Name

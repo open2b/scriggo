@@ -1335,7 +1335,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
 		if a.IsConstant() {
-			node := ast.NewValue(a.TypedValue(in))
+			var value interface{}
+			if t.GoImplemented() {
+				ti := &TypeInfo{Type: in, Value: a.Value}
+				value = ti.TypedValue(emptyInterfaceType)
+			} else {
+				value = a.TypedValue(in)
+			}
+			node := ast.NewValue(value)
 			tc.replaceTypeInfo(expr.Args[i], node)
 			expr.Args[i] = node
 		}
