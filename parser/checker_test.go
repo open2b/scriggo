@@ -882,6 +882,11 @@ var checkerStmts = map[string]string{
 	`f := func() (string, int) { return "", 0 } ; g := func(int, int) { } ; g(f())`:     `cannot use string as type int in argument to g`,
 	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
 
+	// Variadic functions and calls.
+	`f := func(a ...int) { } ; f(nil...)`:        ok,
+	`f := func(a ...int) { } ; f([]int(nil)...)`: ok,
+	`f := func(a ...int) { } ; f([]int{1,2}...)`: ok,
+
 	// Variadic function literals.
 	`f := func(a int, b...int)  { b[0] = 1 };  f(1);               f(1);  f(1,2,3)`: ok,
 	`f := func(a... int)        { a[0] = 1 };  f([]int{1,2,3}...)`:                  ok,
