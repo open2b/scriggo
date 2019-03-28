@@ -91,6 +91,14 @@ const (
 	tokenIncrement                          // ++
 	tokenDecrement                          // --
 	tokenEOF                                // eof
+
+	// Tokens not yet supported.
+	tokenChan
+	tokenDefer
+	tokenGo
+	tokenGoto
+	tokenStruct
+	tokenSelect
 )
 
 var tokenString = map[tokenType]string{
@@ -169,6 +177,14 @@ var tokenString = map[tokenType]string{
 	tokenIncrement:                "++",
 	tokenDecrement:                "--",
 	tokenEOF:                      "EOF",
+
+	// Tokens not yet supported.
+	tokenChan:   "chan",
+	tokenDefer:  "defer",
+	tokenGo:     "go",
+	tokenGoto:   "goto",
+	tokenStruct: "struct",
+	tokenSelect: "select",
 }
 
 func (tt tokenType) String() string {

@@ -935,6 +935,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		endLineAsSemicolon = true
 	case "case":
 		l.emit(tokenCase, p)
+	case "chan":
+		l.emit(tokenChan, p)
 	case "const":
 		l.emit(tokenConst, p)
 	case "continue":
@@ -942,6 +944,8 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		endLineAsSemicolon = true
 	case "default":
 		l.emit(tokenDefault, p)
+	case "defer":
+		l.emit(tokenDefer, p)
 	case "else":
 		l.emit(tokenElse, p)
 	case "fallthrough":
@@ -951,6 +955,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenFor, p)
 	case "func":
 		l.emit(tokenFunc, p)
+	case "go":
+		l.emit(tokenGo, p)
+	case "goto":
+		l.emit(tokenGoto, p)
 	case "if":
 		l.emit(tokenIf, p)
 	case "import":
@@ -966,6 +974,10 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "return":
 		l.emit(tokenReturn, p)
 		endLineAsSemicolon = true
+	case "struct":
+		l.emit(tokenStruct, p)
+	case "select":
+		l.emit(tokenSelect, p)
 	case "switch":
 		l.emit(tokenSwitch, p)
 	case "type":
