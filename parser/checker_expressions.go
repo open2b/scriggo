@@ -644,6 +644,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				}
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
 			}
+			if key.IsConstant() {
+				ti := &TypeInfo{Type: t.Type.Key(), Value: key.Value}
+				value := ti.TypedValue(emptyInterfaceType)
+				node := ast.NewValue(value)
+				tc.replaceTypeInfo(expr.Index, node)
+				expr.Index = node
+			}
 			return &TypeInfo{Type: t.Type.Elem()}
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
