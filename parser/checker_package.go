@@ -80,21 +80,34 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
 				for ident, value := range goPkg.Declarations {
-					ti := &TypeInfo{}
-					switch {
-					case reflect.TypeOf(value).Kind() == reflect.Ptr:
-						ti = &TypeInfo{Type: reflect.TypeOf(value).Elem(), Properties: PropertyAddressable}
-					case reflect.TypeOf(value) == reflect.TypeOf(reflect.Type(nil)):
-						ti = &TypeInfo{Type: value.(reflect.Type), Properties: PropertyIsType}
-					case reflect.TypeOf(value).Kind() == reflect.Func:
-						// Being not addressable, a global function can be
-						// differentiated from a global function literal.
-						ti = &TypeInfo{Type: reflect.TypeOf(value)}
-					default:
-						// TODO (Gianluca): handle 'constants' properly.
-						ti = &TypeInfo{Value: value, Properties: PropertyIsConstant}
+					// Importing a Go type.
+					if t, ok := value.(reflect.Type); ok {
+						importedPkg.Declarations[ident] = &TypeInfo{
+							Type:       t,
+							Properties: PropertyIsType,
+						}
+						continue
 					}
-					importedPkg.Declarations[ident] = ti
+					// Importing a Go variable.
+					if reflect.TypeOf(value).Kind() == reflect.Ptr {
+						importedPkg.Declarations[ident] = &TypeInfo{
+							Type:       reflect.TypeOf(value).Elem(),
+							Properties: PropertyAddressable,
+						}
+						continue
+					}
+					// Importing a Go global function.
+					if reflect.TypeOf(value).Kind() == reflect.Func {
+						importedPkg.Declarations[ident] = &TypeInfo{
+							Type: reflect.TypeOf(value),
+						}
+						continue
+					}
+					// Importing a Go constant.
+					importedPkg.Declarations[ident] = &TypeInfo{
+						Value:      value, // TODO (Gianluca): to review.
+						Properties: PropertyIsConstant,
+					}
 				}
 				importedPkg.Name = goPkg.Name
 			} else {
