@@ -299,8 +299,8 @@ func (ti *TypeInfo) TypedValue(t reflect.Type) interface{} {
 	case reflect.Interface:
 		v := ti.TypedValue(ti.Type)
 		if !ti.Untyped() && ti.Type.Name() != "" { // Defined type.
-			nv := reflect.New(t).Elem()
-			switch t.Kind() {
+			nv := reflect.New(ti.Type).Elem()
+			switch ti.Type.Kind() {
 			case reflect.Invalid:
 			case reflect.Bool:
 				nv.SetBool(v.(bool))
