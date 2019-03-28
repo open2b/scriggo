@@ -1420,6 +1420,8 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		return reflect.PtrTo(elemTyp), nil
 	case *ast.FuncType:
 		// TODO (Gianluca): wait for type-checker to return types as constants.
+	case *ast.Value:
+		return e.Val.(reflect.Type), nil
 	default:
 		panic(fmt.Errorf("%T is not a type", expr))
 	}

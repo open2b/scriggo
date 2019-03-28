@@ -103,6 +103,10 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	maxIndex := tc.maxIndex(node)
 	ti := tc.checkType(node.Type, maxIndex+1)
 
+	newType := ast.NewValue(ti.Type)
+	tc.replaceTypeInfo(node.Type, newType)
+	node.Type = newType
+
 	switch ti.Type.Kind() {
 
 	case reflect.Struct:
@@ -124,7 +128,8 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		}
 		switch declType == 1 {
 		case true: // struct with explicit fields.
-			for _, keyValue := range node.KeyValues {
+			for i := range node.KeyValues {
+				keyValue := &node.KeyValues[i]
 				ident, ok := keyValue.Key.(*ast.Identifier)
 				if !ok || ident.Name == "_" {
 					panic(tc.errorf(node, "invalid field name %s in struct initializer", keyValue.Key))
@@ -136,6 +141,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				}
+				if valueTi.IsConstant() {
+					new := ast.NewValue(valueTi.TypedValue(fieldTi.Type))
+					tc.replaceTypeInfo(keyValue.Value, new)
+					keyValue.Value = new
 				}
 			}
 			tc.checkKeysDuplicates(node, reflect.Struct)
@@ -149,11 +159,17 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if len(node.KeyValues) > ti.Type.NumField() {
 				panic(tc.errorf(node, "too many values in %s literal", node.Type))
 			}
-			for i, keyValue := range node.KeyValues {
+			for i := range node.KeyValues {
+				keyValue := &node.KeyValues[i]
 				valueTi := tc.typeof(keyValue.Value, noEllipses)
 				fieldTi := ti.Type.Field(i)
 				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				}
+				if valueTi.IsConstant() {
+					new := ast.NewValue(valueTi.TypedValue(fieldTi.Type))
+					tc.replaceTypeInfo(keyValue.Value, new)
+					keyValue.Value = new
 				}
 			}
 		}
@@ -161,11 +177,17 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	case reflect.Array:
 
 		tc.checkKeysDuplicates(node, reflect.Array)
-		for _, kv := range node.KeyValues {
+		for i := range node.KeyValues {
+			kv := &node.KeyValues[i]
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
 				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
+				}
+				if keyTi.IsConstant() {
+					new := ast.NewValue(keyTi.TypedValue(intType))
+					tc.replaceTypeInfo(kv.Key, new)
+					kv.Key = new
 				}
 			}
 			var elemTi *TypeInfo
@@ -180,17 +202,28 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				} else {
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
+			}
+			if elemTi.IsConstant() {
+				new := ast.NewValue(elemTi.TypedValue(ti.Type.Elem()))
+				tc.replaceTypeInfo(kv.Value, new)
+				kv.Value = new
 			}
 		}
 
 	case reflect.Slice:
 
 		tc.checkKeysDuplicates(node, reflect.Slice)
-		for _, kv := range node.KeyValues {
+		for i := range node.KeyValues {
+			kv := &node.KeyValues[i]
 			if kv.Key != nil {
 				keyTi := tc.typeof(kv.Key, noEllipses)
 				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
+				}
+				if keyTi.IsConstant() {
+					new := ast.NewValue(keyTi.TypedValue(intType))
+					tc.replaceTypeInfo(kv.Key, new)
+					kv.Key = new
 				}
 			}
 			var elemTi *TypeInfo
@@ -206,29 +239,47 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
 			}
+			if elemTi.IsConstant() {
+				new := ast.NewValue(elemTi.TypedValue(ti.Type.Elem()))
+				tc.replaceTypeInfo(kv.Value, new)
+				kv.Value = new
+			}
 		}
 
 	case reflect.Map:
 
 		tc.checkKeysDuplicates(node, reflect.Map)
-		for _, kv := range node.KeyValues {
+		for i := range node.KeyValues {
+			kv := &node.KeyValues[i]
+			keyType := ti.Type.Key()
+			elemType := ti.Type.Elem()
 			var keyTi *TypeInfo
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				keyTi = tc.checkCompositeLiteral(compLit, ti.Type.Key())
+				keyTi = tc.checkCompositeLiteral(compLit, keyType)
 			} else {
 				keyTi = tc.typeof(kv.Key, noEllipses)
 			}
-			if !isAssignableTo(keyTi, ti.Type.Key()) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), ti.Type.Key()))
+			if !isAssignableTo(keyTi, keyType) {
+				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), keyType))
+			}
+			if keyTi.IsConstant() {
+				new := ast.NewValue(keyTi.TypedValue(keyType))
+				tc.replaceTypeInfo(kv.Key, new)
+				kv.Key = new
 			}
 			var valueTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
-				valueTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
+				valueTi = tc.checkCompositeLiteral(cl, elemType)
 			} else {
 				valueTi = tc.typeof(kv.Value, noEllipses)
 			}
-			if !isAssignableTo(valueTi, ti.Type.Elem()) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), ti.Type.Elem()))
+			if !isAssignableTo(valueTi, elemType) {
+				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), elemType))
+			}
+			if valueTi.IsConstant() {
+				new := ast.NewValue(valueTi.TypedValue(elemType))
+				tc.replaceTypeInfo(kv.Value, new)
+				kv.Value = new
 			}
 		}
 	}
