@@ -308,7 +308,7 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.Package
 
 	// nodes contains a list of declarations ordered by initialization
 	// priority.
-	nodes := make([]ast.Node, len(astPkg.Declarations))
+	nodes := make([]ast.Node, 0, len(astPkg.Declarations))
 
 	// Imports.
 	for _, node := range astPkg.Declarations {
@@ -325,6 +325,7 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.Package
 		if f, ok := node.(*ast.Func); ok {
 			if f.Ident.Name == "init" {
 				inits = append(inits, f)
+				continue
 			}
 			nodes = append(nodes, node)
 		}
