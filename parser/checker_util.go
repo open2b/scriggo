@@ -317,8 +317,8 @@ func newRat() *big.Rat {
 	return new(big.Rat)
 }
 
-// representedBy returns a constant value represented as a value of type t2.
-// t2 can not be an interface.
+// representedBy returns t1 ( a constant or an untyped boolean value )
+// represented as a value of type t2. t2 can not be an interface.
 func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
 
 	v := t1.Value

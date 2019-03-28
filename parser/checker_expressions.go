@@ -843,10 +843,6 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 	t1 := tc.checkExpression(expr.Expr1)
 	t2 := tc.checkExpression(expr.Expr2)
 
-	if t1.Untyped() && t2.Untyped() {
-		return uBinaryOp(t1, expr, t2)
-	}
-
 	op := expr.Op
 
 	if t1.Nil() || t2.Nil() {
@@ -870,13 +866,17 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 		return untypedBoolTypeInfo, nil
 	}
 
-	if t1.Untyped() {
+	if t1.IsUntypedConstant() && t2.IsUntypedConstant() {
+		return uBinaryOp(t1, expr, t2)
+	}
+
+	if t1.IsUntypedConstant() {
 		v, err := representedBy(t1, t2.Type)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}
 		t1 = &TypeInfo{Type: t2.Type, Properties: PropertyIsConstant, Value: v}
-	} else if t2.Untyped() {
+	} else if t2.IsUntypedConstant() {
 		v, err := representedBy(t2, t1.Type)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
