@@ -747,14 +747,18 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
 
 	case *ast.TypeAssertion:
-		t := tc.typeof(expr.Expr, noEllipses)
+		t := tc.checkExpression(expr.Expr)
 		if t.Type.Kind() != reflect.Interface {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
-		tc.typeInfo[expr.Expr] = t
-		t = tc.checkType(expr.Type, noEllipses)
-		tc.typeInfo[expr.Type] = t
-		return t
+		typ := tc.checkType(expr.Type, noEllipses)
+		newNode := ast.NewValue(typ.Type)
+		tc.replaceTypeInfo(expr.Type, newNode)
+		expr.Type = newNode
+		return &TypeInfo{
+			Type:       typ.Type,
+			Properties: t.Properties & PropertyAddressable,
+		}
 
 	}
 
