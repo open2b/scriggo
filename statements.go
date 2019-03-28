@@ -11,13 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 	"reflect"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"scrigo/ast"
+	"scrigo/parser"
 )
 
 // Error records a rendering error with the path and the position where
@@ -52,13 +52,15 @@ func (ret returnError) Error() string {
 
 // rendering represents the state of a tree rendering.
 type rendering struct {
-	scope       map[string]scope
-	path        string
-	vars        []scope
-	packages    map[string]*Package
-	treeContext ast.Context
-	function    function
-	handleError func(error) bool
+	scope          map[string]scope
+	path           string
+	vars           []scope
+	packages       map[string]*Package
+	treeContext    ast.Context
+	function       function
+	handleError    func(error) bool
+	needsReference map[*ast.Identifier]bool
+	packageInfos   map[string]*parser.PackageInfo
 }
 
 // variables scope.
@@ -80,8 +82,9 @@ type macro struct {
 
 // function represents a function in a scope.
 type function struct {
-	path string
-	node *ast.Func
+	path     string
+	node     *ast.Func
+	upValues map[string]interface{}
 }
 
 // urlState represents the rendering of rendering an URL.
@@ -176,7 +179,7 @@ Nodes:
 				}
 			}
 
-		case *ast.Value:
+		case *ast.Show:
 
 			expr, err := r.eval(node.Expr)
 			if err != nil {
@@ -212,15 +215,7 @@ Nodes:
 					}
 					expr = false
 				}
-				switch v := expr.(type) {
-				case bool:
-					c = v
-				default:
-					err = r.errorf(node, "non-bool %s (type %s) used as if condition", node.Condition, typeof(expr))
-					if !r.handleError(err) {
-						return err
-					}
-				}
+				c = expr.(bool)
 			}
 			if c {
 				if node.Then != nil && len(node.Then.Nodes) > 0 {
@@ -457,20 +452,7 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			if v, ok := r.variable(name); ok {
-				var err error
-				if m, ok := v.(function); ok {
-					err = r.errorf(node, "%s redeclared\n\tprevious declaration at %s:%s",
-						name, m.path, m.node.Pos())
-				} else {
-					err = r.errorf(node.Ident, "%s redeclared in this file", name)
-				}
-				if r.handleError(err) {
-					continue
-				}
-				return err
-			}
-			r.vars[2][name] = function{r.path, node}
+			r.vars[2][name] = function{r.path, node, nil}
 
 		case *ast.Return:
 			if wr != nil {
@@ -481,10 +463,6 @@ Nodes:
 			}
 			result := r.function.node.Type.Result
 			size := len(result)
-			if len(node.Values) != size {
-				// TODO(marco): returns better error message
-				return r.errorf(node, "too many or too few arguments to return")
-			}
 			if size == 0 {
 				return nil
 			}
@@ -508,9 +486,6 @@ Nodes:
 				}
 				v, err = asAssignableTo(v, types[i])
 				if err != nil {
-					if err == errNotAssignable {
-						err = r.errorf(value, "cannot use %s (type %s) as type %s in return argument", v, typeof(v), types[i])
-					}
 					return err
 				}
 				ret.args[i] = v
@@ -647,44 +622,6 @@ Nodes:
 
 			haveSize := len(node.Arguments)
 			wantSize := len(m.node.Parameters)
-			if (!isVariadic && haveSize != wantSize) || (isVariadic && haveSize < wantSize-1) {
-				have := "("
-				for i := 0; i < haveSize; i++ {
-					if i > 0 {
-						have += ", "
-					}
-					if i < wantSize {
-						have += m.node.Parameters[i].Name
-					} else {
-						have += "?"
-					}
-				}
-				have += ")"
-				want := "("
-				for i, p := range m.node.Parameters {
-					if i > 0 {
-						want += ", "
-					}
-					want += p.Name
-					if i == wantSize-1 && isVariadic {
-						want += "..."
-					}
-				}
-				want += ")"
-				name := node.Macro.Name
-				if node.Import != nil {
-					name = node.Import.Name + " " + name
-				}
-				if haveSize < wantSize {
-					err = r.errorf(node, "not enough arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-				} else {
-					err = r.errorf(node, "too many arguments in show of %s\n\thave %s\n\twant %s", name, have, want)
-				}
-				if r.handleError(err) {
-					continue
-				}
-				return err
-			}
 
 			var last = wantSize - 1
 			var arguments = scope{}
@@ -725,36 +662,42 @@ Nodes:
 		case *ast.Import:
 
 			if r.treeContext == ast.ContextNone {
+				var pkg *Package
 				if node.Tree == nil {
-					pkg, ok := r.packages[node.Path]
+					var ok bool
+					pkg, ok = r.packages[node.Path]
 					if !ok {
 						return r.errorf(node, "cannot find package %q", node.Path)
 					}
-					r.vars[2][pkg.Name] = pkg
 				} else {
-					name := path.Base(node.Path)
 					if _, ok := r.scope[node.Tree.Path]; !ok {
-						rn := &rendering{
-							scope:       r.scope,
-							path:        node.Tree.Path,
-							vars:        []scope{r.vars[0], r.vars[1], {}},
-							packages:    r.packages,
-							treeContext: r.treeContext,
-							handleError: r.handleError,
+						astPkg, ok := node.Tree.Nodes[0].(*ast.Package)
+						if !ok {
+							return r.errorf(node, "%s is not a Scrigo package", node.Tree.Path)
 						}
-						declarations := node.Tree.Nodes[0].(*ast.Package).Declarations
-						err := rn.render(nil, declarations, nil)
+						var err error
+						r.scope, err = renderPackageBlock(astPkg, r.packageInfos, r.packages, node.Tree.Path)
 						if err != nil {
 							return err
 						}
-						r.scope[node.Tree.Path] = rn.vars[2]
-						pkg := Package{}
-						for name, fn := range rn.vars[2] {
-							if _, ok := fn.(function); ok {
-								pkg.Declarations[name] = fn
-							}
+						pkg = &Package{Name: astPkg.Name}
+						pkg.Declarations = make(map[string]interface{}, len(astPkg.Declarations))
+						for name, decl := range r.scope[node.Tree.Path] {
+							pkg.Declarations[name] = decl
 						}
-						r.vars[2][name] = pkg
+					}
+				}
+				if node.Ident == nil {
+					r.vars[2][pkg.Name] = pkg
+				} else {
+					switch node.Ident.Name {
+					case "_":
+					case ".":
+						for ident, v := range pkg.Declarations {
+							r.vars[2][ident] = v
+						}
+					default:
+						r.vars[2][node.Ident.Name] = pkg
 					}
 				}
 			} else {

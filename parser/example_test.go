@@ -40,7 +40,7 @@ func ExampleParseSource() {
 func ExampleParser_Parse() {
 
 	r := parser.DirReader("./template/")
-	p := parser.New(r, nil)
+	p := parser.New(r, nil, false)
 
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {
@@ -61,7 +61,9 @@ func ExampleMapReader() {
 		"names.csv":  []byte("{% include `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	})
 
-	tree, err := r.Read("names.csv", ast.ContextText)
+	src, _ := r.Read("names.csv", ast.ContextText)
+
+	tree, err := parser.ParseSource(src, ast.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}

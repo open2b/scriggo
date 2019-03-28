@@ -46,8 +46,8 @@ func CloneNode(node ast.Node) ast.Node {
 			value[i] = CloneNode(n2)
 		}
 		return ast.NewURL(ClonePosition(n.Position), n.Tag, n.Attribute, value)
-	case *ast.Value:
-		return *ast.NewValue(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
+	case *ast.Show:
+		return *ast.NewShow(ClonePosition(n.Position), CloneExpression(n.Expr), n.Context)
 	case *ast.Block:
 		var b *ast.Block
 		if n.Nodes != nil {
@@ -233,7 +233,7 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		for i, arg := range e.Args {
 			args[i] = CloneExpression(arg)
 		}
-		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args)
+		return ast.NewCall(ClonePosition(e.Position), CloneExpression(e.Func), args, e.IsVariadic)
 	case *ast.Index:
 		return ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *ast.Slicing:

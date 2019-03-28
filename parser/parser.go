@@ -245,7 +245,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					return nil, &Error{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 				}
 				tok.pos.End = tok2.pos.End
-				var node = ast.NewValue(tok.pos, expr, tok.ctx)
+				var node = ast.NewShow(tok.pos, expr, tok.ctx)
 				addChild(parent, node)
 
 			// comment
@@ -418,9 +418,6 @@ func (p *parsing) parseStatement(tok token) {
 				// Parses statements
 				//     "for index[, ident] = range expr" and
 				//     "for index[, ident] := range expr".
-				if len(variables) > 2 {
-					panic(&Error{"", *tok.pos, fmt.Errorf("too many variables in range")})
-				}
 				expr, tok = p.parseExpr(token{}, false, false, false, true)
 				if expr == nil {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
@@ -464,17 +461,6 @@ func (p *parsing) parseStatement(tok token) {
 
 	// break
 	case tokenBreak:
-		var breakable bool
-		for i := len(p.ancestors) - 1; !breakable && i > 0; i-- {
-			switch p.ancestors[i].(type) {
-			case *ast.For, *ast.ForRange, *ast.Switch:
-				breakable = true
-				break
-			}
-		}
-		if !breakable {
-			panic(&Error{"", *tok.pos, fmt.Errorf("break is not in a loop or switch")})
-		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
@@ -486,6 +472,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// continue
 	case tokenContinue:
+		// TODO (Gianluca): move to type-checker.
 		var loop bool
 		for i := len(p.ancestors) - 1; !loop && i > 0; i-- {
 			switch p.ancestors[i].(type) {
@@ -539,30 +526,12 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		if _, ok := parent.(*ast.TypeSwitch); ok {
-			for _, expr := range expressions {
-				switch n := expr.(type) {
-				case *ast.Identifier:
-					switch n.Name {
-					case "true", "false":
-						panic(&Error{"", *tok.pos, fmt.Errorf("%s (type bool) is not a type", n.Name)})
-					}
-				case *ast.Int:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type int) is not a type", n)})
-				case *ast.Float:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type float) is not a type", n)})
-				case *ast.String:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s (type string) is not a type", n)})
-				default:
-					panic(&Error{"", *tok.pos, fmt.Errorf("%s is not a type", expr)})
-				}
-			}
-		}
 		node = ast.NewCase(pos, expressions, nil, false)
 		addChild(parent, node)
 
 	// default:
 	case tokenDefault:
+		// TODO (Gianluca): move to type-checker.
 		switch s := parent.(type) {
 		case *ast.Switch:
 			for _, c := range s.Cases {
@@ -600,13 +569,16 @@ func (p *parsing) parseStatement(tok token) {
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
+			// TODO (Gianluca): move this check to type-checker:
 			if lastCase.Fallthrough {
 				panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 			}
 			lastCase.Fallthrough = true
 		case *ast.TypeSwitch:
+			// TODO (Gianluca): move this check to type-checker:
 			panic(&Error{"", *tok.pos, fmt.Errorf("cannot fallthrough in type switch")})
 		default:
+			// TODO (Gianluca): move this check to type-checker:
 			panic(&Error{"", *tok.pos, fmt.Errorf("fallthrough statement out of place")})
 		}
 		pos.End = tok.pos.End
@@ -1149,9 +1121,6 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			// Parses expression.
 			expr := expressions[0]
-			if ident, ok := expr.(*ast.Identifier); ok && ident.Name == "_" {
-				panic(&Error{"", *expr.Pos(), fmt.Errorf("cannot use _ as value")})
-			}
 			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
@@ -1289,9 +1258,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 				continue
 			}
 		}
-		panic(&Error{"", *(v.Pos()), fmt.Errorf("%s used as value", v)})
 	}
-	assignToken := tok
 	vp := variables[0].Pos()
 	pos := &ast.Position{Line: vp.Line, Column: vp.Column, Start: vp.Start, End: tok.pos.End}
 	var values []ast.Expression
@@ -1301,37 +1268,16 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		if len(values) == 0 {
 			return nil, tok
 		}
-		if len(values) == 1 {
-			var mismatch bool
-			switch values[0].(type) {
-			case *ast.Call:
-			case *ast.Index, *ast.Selector, *ast.TypeAssertion:
-				mismatch = len(variables) > 2
-			default:
-				mismatch = len(variables) > 1
-			}
-			if mismatch {
-				panic(&Error{"", *assignToken.pos, fmt.Errorf("assignment mismatch: %d variables but 1 values", len(variables))})
-			}
-		} else if len(variables) != len(values) {
-			panic(&Error{"", *assignToken.pos, fmt.Errorf("assignment mismatch: %d variables but %d values", len(variables), len(values))})
-		}
 		pos.End = values[len(values)-1].Pos().End
 	default:
 		if len(variables) > 1 {
 			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
-		}
-		if ident, ok := variables[0].(*ast.Identifier); ok && ident.Name == "_" {
-			panic(&Error{"", *variables[0].Pos(), fmt.Errorf("cannot use _ as value")})
 		}
 		if typ == ast.AssignmentIncrement || typ == ast.AssignmentDecrement {
 			tok = next(p.lex)
 		} else {
 			values = make([]ast.Expression, 1)
 			values[0], tok = p.parseExpr(token{}, false, false, false, false)
-			if ident, ok := values[0].(*ast.Identifier); ok && ident.Name == "_" {
-				panic(&Error{"", *values[0].Pos(), fmt.Errorf("cannot use _ as value")})
-			}
 		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok
@@ -1348,17 +1294,26 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 // clone of the tree and then transform the clone.
 type Parser struct {
 	reader   Reader
-	packages []string
+	packages map[string]*GoPackage
 	trees    *cache
+	// TODO (Gianluca): does packageInfos need synchronized access?
+	packageInfos map[string]*PackageInfo // key is path.
+	typeCheck    bool
 }
 
-// New returns a new Parser that reads the trees from the reader r.
-func New(r Reader, packages []string) *Parser {
-	return &Parser{
-		reader:   r,
-		packages: packages,
-		trees:    &cache{},
+// New returns a new Parser that reads the trees from the reader r. typeCheck
+// indicates if a type-checking must be done after parsing.
+func New(r Reader, packages map[string]*GoPackage, typeCheck bool) *Parser {
+	p := &Parser{
+		reader:    r,
+		packages:  packages,
+		trees:     &cache{},
+		typeCheck: typeCheck,
 	}
+	if typeCheck {
+		p.packageInfos = make(map[string]*PackageInfo)
+	}
+	return p
 }
 
 // Parse reads the source at path, with the reader, in the ctx context,
@@ -1392,14 +1347,27 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		return nil, err
 	}
 
+	if p.typeCheck {
+		err := checkPackage(tree, p.packages, p.packageInfos)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return tree, nil
+}
+
+// TypeCheckInfos returns the type-checking infos collected during
+// type-checking.
+func (p *Parser) TypeCheckInfos() map[string]*PackageInfo {
+	return p.packageInfos
 }
 
 // expansion is an expansion state.
 type expansion struct {
 	reader   Reader
 	trees    *cache
-	packages []string
+	packages map[string]*GoPackage
 	paths    []string
 }
 
@@ -1433,7 +1401,12 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 	}
 	defer pp.trees.done(path, ctx)
 
-	tree, err := pp.reader.Read(path, ctx)
+	src, err := pp.reader.Read(path, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := ParseSource(src, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1556,8 +1529,8 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			}
 			if ctx == ast.ContextNone {
 				found := false
-				for _, pkg := range pp.packages {
-					if pkg == n.Path {
+				for path := range pp.packages {
+					if path == n.Path {
 						found = true
 						break
 					}

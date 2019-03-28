@@ -9,7 +9,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"unicode/utf8"
 
 	"scrigo/ast"
@@ -213,7 +212,12 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = ast.NewIdentifier(pos, "interface{}")
 		case tokenFunc:
 			var node ast.Node
-			node, tok = p.parseFunc(tok, parseFuncType|parseFuncLit)
+			if mustBeType {
+				node, tok = p.parseFunc(tok, parseFuncType)
+				reuseLastToken = true
+			} else {
+				node, tok = p.parseFunc(tok, parseFuncLit)
+			}
 			operand = node.(ast.Expression)
 		case
 			tokenAddition,       // +e
@@ -247,12 +251,13 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
 			ident := parseIdentifierNode(tok)
-			if ident.Name == "_" {
-				if !canBeBlank {
-					panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
-				}
-				mustBeBlank = true
-			}
+			// TODO (Gianluca): this check must be done during type-checking.
+			// if ident.Name == "_" {
+			// 	if !canBeBlank {
+			// 		panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
+			// 	}
+			// 	mustBeBlank = true
+			// }
 			operand = ident
 			if mustBeType {
 				tok = next(p.lex)
@@ -354,14 +359,15 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					if expr == nil {
 						break
 					}
-					if tok.typ == tokenColon { // :
+					switch tok.typ {
+					case tokenColon:
 						var value ast.Expression
 						value, tok = p.parseExpr(token{}, false, false, false, false)
 						if value == nil {
 							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
 						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
-					} else {
+					default:
 						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
 					}
 					if tok.typ == tokenRightBraces {
@@ -372,54 +378,24 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
 				}
 				pos.End = tok.pos.End
-				if _, ok := operand.(*ast.MapType); ok {
-					duplicates := map[interface{}]struct{}{}
-					for _, element := range keyValues {
-						switch key := element.Key.(type) {
-						// TODO (Gianluca): maps cannot have duplicated nil
-						// keys, but "map{1,2,3}" is valid for parser, so this
-						// error must be checked during execution.
-						//
-						// case nil:
-						//  if _, ok := duplicates[nil]; ok {
-						//      panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key nil in map literal")})
-						//  }
-						//  duplicates[nil] = struct{}{}
-						case *ast.String:
-							if _, ok := duplicates[key.Text]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %q in map literal", key.Text)})
-							}
-							duplicates[key.Text] = struct{}{}
-						case *ast.Float:
-							if _, ok := duplicates[key.Value.String()]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value.String()] = struct{}{}
-						case *ast.Int:
-							if _, ok := duplicates[key.Value.String()]; ok {
-								panic(&Error{"", *(key.Pos()), fmt.Errorf("duplicate key %s in map literal", key.Value.String())})
-							}
-							duplicates[key.Value.String()] = struct{}{}
-						}
-					}
-				}
 				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				args, tok := p.parseExprList(token{}, false, false, false, false)
+				var isVariadic bool
+				if tok.typ == tokenEllipses {
+					if len(args) == 0 {
+						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
+					}
+					isVariadic = true
+					tok = next(p.lex)
+				}
 				if tok.typ != tokenRightParenthesis {
 					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
-				// TODO (Gianluca): move these checks to rendering.
-				// if len(elements) == 0 {
-				// 	panic(&Error{"", *tok.pos, fmt.Errorf("missing argument to conversion to %s: %s()", ident.Name, ident.Name)})
-				// }
-				// if len(elements) > 1 {
-				// 	panic(&Error{"", *tok.pos, fmt.Errorf("too many arguments to conversion to %s: %s(%s)", ident.Name, ident.Name, exprListString(elements))})
-				// }
 				pos.End = tok.pos.End
-				operand = ast.NewCall(pos, operand, args)
+				operand = ast.NewCall(pos, operand, args, isVariadic)
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
@@ -731,13 +707,13 @@ func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
 		}
 		return ast.NewRune(p, r)
 	case tokenInt:
-		n, _ := new(big.Int).SetString(string(tok.txt), 0)
+		n, _ := newInt().SetString(string(tok.txt), 0)
 		if neg != nil {
 			_ = n.Neg(n)
 		}
 		return ast.NewInt(p, n)
 	case tokenFloat:
-		n, _ := new(big.Float).SetString(string(tok.txt))
+		n, _ := newFloat().SetString(string(tok.txt))
 		if neg != nil {
 			_ = n.Neg(n)
 		}

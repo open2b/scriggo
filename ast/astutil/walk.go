@@ -165,7 +165,7 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
-	case *ast.Value:
+	case *ast.Show:
 		Walk(v, n.Expr)
 
 	case *ast.Parenthesis:

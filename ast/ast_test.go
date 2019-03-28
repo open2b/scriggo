@@ -11,6 +11,10 @@ import (
 	"testing"
 )
 
+func init() {
+	expandedPrint = true
+}
+
 var n1 = NewInt(nil, big.NewInt(1))
 var n2 = NewInt(nil, big.NewInt(2))
 var n3 = NewInt(nil, big.NewInt(3))
@@ -28,9 +32,9 @@ var expressionStringTests = []struct {
 	{"-1", NewUnaryOperator(nil, OperatorSubtraction, n1)},
 	{"1 + 2", NewBinaryOperator(nil, OperatorAddition, n1, n2)},
 	{"1 + 2", NewBinaryOperator(nil, OperatorAddition, n1, n2)},
-	{"f()", NewCall(nil, NewIdentifier(nil, "f"), []Expression{})},
-	{"f(a)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a")})},
-	{"f(a, b)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a"), NewIdentifier(nil, "b")})},
+	{"f()", NewCall(nil, NewIdentifier(nil, "f"), []Expression{}, false)},
+	{"f(a)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a")}, false)},
+	{"f(a, b)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a"), NewIdentifier(nil, "b")}, false)},
 	{"a[2]", NewIndex(nil, NewIdentifier(nil, "a"), n2)},
 	{"a[:]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, nil)},
 	{"a[2:]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, nil)},
@@ -43,11 +47,11 @@ var expressionStringTests = []struct {
 	{"1 * 2 + -3", NewBinaryOperator(nil, OperatorAddition,
 		NewBinaryOperator(nil, OperatorMultiplication, n1, n2),
 		NewUnaryOperator(nil, OperatorSubtraction, n3))},
-	{"f() - 2", NewBinaryOperator(nil, OperatorSubtraction, NewCall(nil, NewIdentifier(nil, "f"), []Expression{}), n2)},
+	{"f() - 2", NewBinaryOperator(nil, OperatorSubtraction, NewCall(nil, NewIdentifier(nil, "f"), []Expression{}, false), n2)},
 	{"-a.b", NewUnaryOperator(nil, OperatorSubtraction, NewSelector(nil, NewIdentifier(nil, "a"), "b"))},
 	{"[]int([]int{1, 2, 3})", NewCall(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
 		[]Expression{NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
-			[]KeyValue{{nil, NewInt(nil, big.NewInt(1))}, {nil, NewInt(nil, big.NewInt(2))}, {nil, NewInt(nil, big.NewInt(3))}})})},
+			[]KeyValue{{nil, NewInt(nil, big.NewInt(1))}, {nil, NewInt(nil, big.NewInt(2))}, {nil, NewInt(nil, big.NewInt(3))}})}, false)},
 	{"[]int{1, 2}", NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
 		[]KeyValue{
 			{nil, NewInt(nil, big.NewInt(1))},

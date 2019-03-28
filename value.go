@@ -210,7 +210,7 @@ func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, e
 
 // renderValue renders value in the context of node and as a URL is urlstate
 // is not nil.
-func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value, urlstate *urlState) error {
+func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Show, urlstate *urlState) error {
 
 	if e, ok := value.(ValueRenderer); ok && node.Context == r.treeContext {
 
@@ -277,7 +277,7 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Value
 }
 
 // renderInText renders value in the Text context.
-func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Show) error {
 
 	if value == nil {
 		return nil
@@ -331,7 +331,7 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Va
 }
 
 // renderInHTML renders value in HTML context.
-func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Show) error {
 
 	if value == nil {
 		return nil
@@ -385,7 +385,7 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Va
 }
 
 // renderInTag renders value in Tag context.
-func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Show) error {
 	buf := strings.Builder{}
 	err := r.renderInText(&buf, value, node)
 	if err != nil {
@@ -409,7 +409,7 @@ func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Val
 
 // renderInAttribute renders value in Attribute context quoted or unquoted
 // depending on quoted value.
-func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *ast.Value, quoted bool) error {
+func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *ast.Show, quoted bool) error {
 
 	if value == nil {
 		return nil
@@ -465,7 +465,7 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 
 // renderInAttributeURL renders value as an URL in Attribute context, quoted
 // or unquoted depending on quoted value.
-func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node *ast.Value, urlstate *urlState, quoted bool) error {
+func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node *ast.Show, urlstate *urlState, quoted bool) error {
 
 	if value == nil {
 		return nil
@@ -549,7 +549,7 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 }
 
 // renderInCSS renders value in CSS context.
-func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Show) error {
 
 	if value == nil {
 		return r.errorf(node, "no-render type %s", typeof(value))
@@ -599,7 +599,7 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Val
 }
 
 // renderInCSSString renders value in CSSString context.
-func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *ast.Show) error {
 
 	if value == nil {
 		return r.errorf(node, "no-render type %s", typeof(value))
@@ -633,7 +633,7 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
 // renderInScript renders value in Script context.
-func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.Show) error {
 
 	switch e := value.(type) {
 	case nil:
@@ -742,7 +742,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 }
 
 // renderInScriptString renders value in ScriptString context.
-func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node *ast.Value) error {
+func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node *ast.Show) error {
 
 	switch e := value.(type) {
 	case nil:
@@ -768,7 +768,7 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 
 // renderValueAsScriptObject returns value as a JavaScript object or undefined
 // if it is not possible.
-func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, node *ast.Value) error {
+func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, node *ast.Show) error {
 
 	if rv.IsNil() {
 		_, err := w.WriteString("null")
@@ -821,7 +821,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 
 // renderMapAsScriptObject returns value as a JavaScript object or undefined
 // if it is not possible.
-func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]interface{}, node *ast.Value) error {
+func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]interface{}, node *ast.Show) error {
 
 	if value == nil {
 		_, err := w.WriteString("null")

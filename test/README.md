@@ -8,7 +8,7 @@ go build
 
 # Command line arguments
 
-- `-v` or `--verbose`: verbose output
+See `./test --help`
 
 # Ignoring tests
 

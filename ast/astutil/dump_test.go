@@ -54,7 +54,7 @@ func ExampleDump() {
 	}
 
 	// Output: Tree: "":1:1
-	// │    Value (1:1) {{ (4 + 5) * value() }}
+	// │    Show (1:1) {{ (4 + 5) * value() }}
 	// │    │    BinaryOperator (1:12) (4 + 5) * value()
 	// │    │    │    BinaryOperator (1:7) 4 + 5
 	// │    │    │    │    Int (1:5) 4
@@ -62,7 +62,7 @@ func ExampleDump() {
 	// │    │    │    Call (1:19) value()
 	//
 	// Tree: "":1:1
-	// │    Var (1:4) 1:4
+	// │    Var (1:4) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    Int (1:12) 10
 	//
@@ -86,13 +86,13 @@ func ExampleDump() {
 	// │    Include (1:1) 1:1
 	//
 	// Tree: "":1:1
-	// │    Value (1:1) {{ 5 + 6 }}
+	// │    Show (1:1) {{ 5 + 6 }}
 	// │    │    BinaryOperator (1:4) 5 + 6
 	// │    │    │    Int (1:3) 5
 	// │    │    │    Int (1:5) 6
 	//
 	// Tree: "":1:1
-	// │    Var (1:4) 1:4
+	// │    Var (1:4) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    Int (1:12) 10
 	//

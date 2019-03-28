@@ -40,7 +40,7 @@ func ExampleRenderSource() {
 }
 
 func ExampleRenderTree() {
-	p := parser.New(parser.DirReader("/home/salinger/book/"), nil)
+	p := parser.New(parser.DirReader("/home/salinger/book/"), nil, false)
 
 	tree, err := p.Parse("cover.html", ast.ContextHTML)
 	if err != nil {
@@ -68,7 +68,7 @@ func ExampleDirRenderer() {
 		},
 	}
 
-	r := scrigo.NewDirRenderer("./template/", false, scrigo.ContextHTML)
+	r := scrigo.NewDirRenderer("./template/", false, scrigo.ContextHTML, false)
 
 	err := r.Render(os.Stderr, "index.html", globals)
 	if err != nil {

@@ -90,9 +90,9 @@ type DirRenderer struct {
 // in the context ctx. If strict is true, even errors on expressions and
 // statements execution stop the rendering. See the type Errors for more
 // details.
-func NewDirRenderer(dir string, strict bool, ctx Context) *DirRenderer {
+func NewDirRenderer(dir string, strict bool, ctx Context, typeCheck bool) *DirRenderer {
 	var r = parser.DirReader(dir)
-	return &DirRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
+	return &DirRenderer{parser: parser.New(r, nil, typeCheck), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template file with the specified path, relative to the
@@ -122,7 +122,7 @@ type MapRenderer struct {
 // execution stop the rendering. See the type Errors for more details.
 func NewMapRenderer(sources map[string][]byte, strict bool, ctx Context) *MapRenderer {
 	var r = parser.MapReader(sources)
-	return &MapRenderer{parser: parser.New(r, nil), strict: strict, ctx: ast.Context(ctx)}
+	return &MapRenderer{parser: parser.New(r, nil, false), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template source with the specified path and writes
@@ -294,10 +294,82 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
+func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (map[string]scope, error) {
+
+	r := &rendering{
+		handleError:  stopOnError,
+		packages:     pkgs,
+		path:         path,
+		scope:        map[string]scope{},
+		treeContext:  ast.ContextNone,
+		vars:         []scope{builtins, {}, {}},
+		packageInfos: pkgInfos,
+	}
+
+	// nodes contains a list of declarations ordered by initialization
+	// priority.
+	nodes := make([]ast.Node, 0, len(astPkg.Declarations))
+
+	// Imports.
+	for _, node := range astPkg.Declarations {
+		if _, ok := node.(*ast.Import); ok {
+			nodes = append(nodes, node)
+		}
+	}
+
+	// inits contains the list of "init" functions.
+	var inits []*ast.Func
+
+	// Functions.
+	for _, node := range astPkg.Declarations {
+		if f, ok := node.(*ast.Func); ok {
+			if f.Ident.Name == "init" {
+				inits = append(inits, f)
+				continue
+			}
+			nodes = append(nodes, node)
+		}
+	}
+
+	// Global variables, following initialization order.
+	for _, varName := range pkgInfos[path].VariableOrdering {
+		for _, n := range astPkg.Declarations {
+			if varNode, ok := n.(*ast.Var); ok {
+				for i, ident := range varNode.Identifiers {
+					if ident.Name == varName {
+						if len(varNode.Identifiers) != len(varNode.Values) {
+							nodes = append(nodes, varNode)
+							break
+						}
+						newVarDecl := ast.NewVar(varNode.Pos(), []*ast.Identifier{ident}, nil, []ast.Expression{varNode.Values[i]})
+						nodes = append(nodes, newVarDecl)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	err := r.render(nil, nodes, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calls init functions.
+	for _, f := range inits {
+		err := r.render(nil, f.Body.Nodes, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	r.scope[path] = r.vars[2]
+	return r.scope, nil
+}
+
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]*Package) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[string]*parser.PackageInfo) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -318,28 +390,27 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package) error {
 	}
 
 	r := &rendering{
-		scope:       map[string]scope{},
-		path:        tree.Path,
-		vars:        []scope{builtins, {}, {}},
-		packages:    packages,
-		treeContext: ast.ContextNone,
-		handleError: stopOnError,
+		scope:          map[string]scope{},
+		path:           tree.Path,
+		vars:           []scope{builtins, {}, {}},
+		packages:       packages,
+		treeContext:    ast.ContextNone,
+		handleError:    stopOnError,
+		needsReference: pkgInfos[tree.Path].UpValues,
+		packageInfos:   pkgInfos,
 	}
 
-	err := r.render(nil, pkg.Declarations, nil)
+	var err error
+	r.scope, err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
 	if err != nil {
 		return err
 	}
-
-	mf, ok := r.vars[2]["main"]
-	if !ok {
-		return &Error{tree.Path, *(pkg.Pos()), errors.New("function main is undeclared in the main package")}
-	}
-
+	r.vars[2] = r.scope[tree.Path]
+	mf := r.vars[2]["main"]
 	r.scope[tree.Path] = r.vars[2]
-	r.vars = append(r.vars, scope{})
-
-	err = r.render(nil, mf.(function).node.Body.Nodes, nil)
+	r.vars = append(r.vars, scope{}) // adds 'main' function scope?
+	r.function = mf.(function)
+	err = r.render(nil, r.function.node.Body.Nodes, nil)
 	if err != nil {
 		return err
 	}

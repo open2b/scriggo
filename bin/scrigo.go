@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"scrigo"
+
 	"scrigo/ast"
 	"scrigo/parser"
 )
 
-var packages map[string]*scrigo.Package
+var packages map[string]*parser.GoPackage
 
 func main() {
 
@@ -39,22 +39,22 @@ func main() {
 	}
 	r := parser.DirReader(filepath.Dir(absFile))
 
-	var packagesNames = make([]string, len(packages))
-	for name := range packages {
-		packagesNames = append(packagesNames, name)
-	}
-
-	p := parser.New(r, packagesNames)
+	p := parser.New(r, packages, true)
 	tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
 
+	pkgs := make(map[string]*scrigo.Package, len(packages))
+	for n, pkg := range packages {
+		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
+	}
+
 	if ext == ".sgo" {
 		err = scrigo.RunScriptTree(tree, nil)
 	} else {
-		err = scrigo.RunPackageTree(tree, packages)
+		err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfos())
 	}
 	if err != nil {
 		fmt.Println(err)

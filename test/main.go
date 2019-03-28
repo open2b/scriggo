@@ -19,7 +19,7 @@ import (
 	"scrigo/parser"
 )
 
-var packages map[string]*scrigo.Package
+var packages map[string]*parser.GoPackage
 
 func runScrigoAndGetOutput(src []byte) string {
 	reader, writer, err := os.Pipe()
@@ -44,7 +44,9 @@ func runScrigoAndGetOutput(src []byte) string {
 		out <- buf.String()
 	}()
 	wg.Wait()
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	r := parser.MapReader{"main": src}
+	p := parser.New(r, packages, true)
+	tree, err := p.Parse("main", ast.ContextNone)
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
@@ -52,7 +54,11 @@ func runScrigoAndGetOutput(src []byte) string {
 		}
 		return msg
 	}
-	err = scrigo.RunPackageTree(tree, packages)
+	pkgs := make(map[string]*scrigo.Package, len(packages))
+	for n, pkg := range packages {
+		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
+	}
+	err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfos())
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
@@ -84,10 +90,7 @@ func runGoAndGetOutput(src []byte) string {
 		if !strings.HasPrefix(tmpDir, os.TempDir()) {
 			panic(fmt.Errorf("invalid tmpDir: %q", tmpDir))
 		}
-		err := os.RemoveAll(tmpDir)
-		if err != nil {
-			panic(err)
-		}
+		_ = os.RemoveAll(tmpDir)
 	}()
 	tmpFile, err := os.Create(filepath.Join(tmpDir, "globals.go"))
 	if err != nil {
@@ -112,7 +115,7 @@ func runGoAndGetOutput(src []byte) string {
 	return out
 }
 
-const testsDir = "../examples"
+const testsDir = "sources"
 
 func fatal(a interface{}) {
 	log.Fatalf("fatal error: %s", a)
@@ -120,14 +123,29 @@ func fatal(a interface{}) {
 
 func main() {
 	verbose := false
-	for _, arg := range os.Args {
+	mustRecover := true
+	pattern := ""
+	for i, arg := range os.Args {
 		if arg == "-v" || arg == "--verbose" {
 			verbose = true
+		}
+		if arg == "-n" || arg == "--no-recover" {
+			mustRecover = false
+		}
+		if arg == "-h" || arg == "--help" {
+			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--help|-h] [--pattern|-p PATTERN]\n", os.Args[0])
+			os.Exit(0)
+		}
+		if arg == "-p" || arg == "--pattern" {
+			pattern = os.Args[i+1]
 		}
 	}
 	testDirs, err := ioutil.ReadDir(testsDir)
 	if err != nil {
 		fatal(err)
+	}
+	if !verbose {
+		fmt.Print("comparing Scrigo with Go..")
 	}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
@@ -138,30 +156,49 @@ func main() {
 			fatal(err)
 		}
 		for _, f := range files {
-			if !strings.HasSuffix(f.Name(), ".go") {
-				continue
-			}
-			path := filepath.Join(testsDir, dir.Name(), f.Name())
-			if strings.Contains(path, "_ignore_") {
-				continue
-			}
-			src, err := ioutil.ReadFile(path)
-			if err != nil {
-				fatal(err)
-			}
-			if verbose {
-				fmt.Printf("---------------------------------------------------\n")
-				fmt.Print(path + "...")
-			}
-			scrigoOut := runScrigoAndGetOutput(src)
-			goOut := runGoAndGetOutput(src)
-			if scrigoOut == goOut {
-				if verbose {
-					fmt.Println("OK!")
+			func() {
+				defer func() {
+					if mustRecover {
+						if r := recover(); r != nil {
+							fmt.Printf("!!! PANIC !!!: %v\n", r)
+						}
+					}
+				}()
+				if !strings.HasSuffix(f.Name(), ".go") {
+					return
 				}
-			} else {
-				fmt.Printf("ERROR\n\tGo output:      %q\n\tScrigo output:  %q\n", goOut, scrigoOut)
-			}
+				path := filepath.Join(testsDir, dir.Name(), f.Name())
+				if strings.Contains(path, "_ignore_") {
+					return
+				}
+				if pattern != "" {
+					if !strings.Contains(path, pattern) {
+						return
+					}
+				}
+				src, err := ioutil.ReadFile(path)
+				if err != nil {
+					fatal(err)
+				}
+				if verbose {
+					fmt.Printf("---------------------------------------------------\n")
+					fmt.Print(path + "...")
+				} else {
+					fmt.Print(".")
+				}
+				scrigoOut := runScrigoAndGetOutput(src)
+				goOut := runGoAndGetOutput(src)
+				if scrigoOut == goOut {
+					if verbose {
+						fmt.Println("OK!")
+					}
+				} else {
+					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
+				}
+			}()
 		}
+	}
+	if !verbose {
+		fmt.Print("done!\n")
 	}
 }
