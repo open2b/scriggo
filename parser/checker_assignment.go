@@ -45,8 +45,19 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newVar := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
-			if newVar == "" && !isBlankIdentifier(n.Identifiers[0]) {
-				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+			if !isBlankIdentifier(n.Identifiers[0]) {
+				if newVar == "" {
+					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+				}
+				old := values[0]
+				if ti := tc.typeInfo[old]; ti.IsConstant() {
+					if typ == nil {
+						typ = ti
+					}
+					new := ast.NewValue(ti.TypedValue(typ.Type))
+					tc.replaceTypeInfo(old, new)
+					values[0] = new
+				}
 			}
 			return
 		}
@@ -67,8 +78,19 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
-			if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
-				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+			if !isBlankIdentifier(n.Identifiers[0]) {
+				if newConst == "" {
+					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+				}
+				old := values[0]
+				if ti := tc.typeInfo[values[0]]; ti.IsConstant() {
+					if typ == nil {
+						typ = ti
+					}
+					new := ast.NewValue(ti.TypedValue(typ.Type))
+					tc.replaceTypeInfo(old, new)
+					values[0] = new
+				}
 			}
 			return
 		}
@@ -119,12 +141,21 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if isBlankIdentifier(n.Variables[0]) {
 				panic(tc.errorf(n.Variables[0], "cannot use _ as value"))
 			}
+			// TODO (Gianluca): check if operation can be done before
+			// calling binaryOp.
 			_, err := tc.binaryOp(ast.NewBinaryOperator(n.Pos(), opType, n.Variables[0], n.Values[0]))
 			if err != nil {
 				panic(err)
 			}
-			variable := n.Variables[0]
-			tc.assignSingle(node, variable, n.Values[0], nil, nil, false, false)
+			tc.assignSingle(node, n.Variables[0], n.Values[0], nil, nil, false, false)
+			if !isBlankIdentifier(n.Variables[0]) {
+				old := n.Values[0]
+				if ti := tc.typeInfo[n.Values[0]]; ti.IsConstant() {
+					new := ast.NewValue(ti.TypedValue(ti.Type))
+					tc.replaceTypeInfo(old, new)
+					n.Values[0] = new
+				}
+			}
 			return
 		}
 
@@ -136,6 +167,19 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVar := tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
 			if newVar == "" && isDecl {
 				panic(tc.errorf(node, "no new variables on left side of :="))
+			}
+			if !isBlankIdentifier(n.Variables[0]) {
+				varTi := tc.typeInfo[n.Variables[0]]
+				old := n.Values[0]
+				if ti := tc.typeInfo[values[0]]; ti.IsConstant() {
+					typ = varTi
+					if isDecl {
+						typ = ti
+					}
+					new := ast.NewValue(ti.TypedValue(typ.Type))
+					tc.replaceTypeInfo(old, new)
+					values[0] = new
+				}
 			}
 			return
 		}
@@ -201,6 +245,21 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVar = tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
 		} else {
 			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
+		}
+		if !isBlankIdentifier(vars[i]) {
+			varTi := tc.typeInfo[vars[i]]
+			old := values[0]
+			if v, ok := tc.typeInfo[values[0]]; ok && v.IsConstant() {
+				if typ == nil {
+					typ = v
+					if isDecl {
+						typ = varTi
+					}
+				}
+				new := ast.NewValue(v.TypedValue(typ.Type))
+				tc.replaceTypeInfo(old, new)
+				values[0] = new
+			}
 		}
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
@@ -295,6 +354,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if !isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(value, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}
+		tc.typeInfo[v] = variableTi
 
 	case *ast.Index:
 

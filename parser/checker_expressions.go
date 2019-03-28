@@ -255,12 +255,12 @@ func (tc *typechecker) isUpValue(name string) bool {
 // replaceTypeInfo replaces the type info of node old with a new created type
 // info for node new.
 func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
-	ti := tc.typeInfo[old]
 	delete(tc.typeInfo, old)
-	ti.Type = reflect.TypeOf(new.Val)
-	ti.Properties = 0
-	ti.Value = nil
-	tc.typeInfo[new] = ti
+	tc.typeInfo[new] = &TypeInfo{
+		Type:       reflect.TypeOf(new.Val),
+		Properties: 0,
+		Value:      nil,
+	}
 }
 
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
@@ -495,11 +495,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			t1 := tc.typeInfo[expr.Expr1]
 			t2 := tc.typeInfo[expr.Expr2]
 			if t2.IsConstant() {
-				node := ast.NewValue(t2.ValueKind(t1.Type.Kind()))
+				node := ast.NewValue(t2.TypedValue(t1.Type))
 				tc.replaceTypeInfo(expr.Expr2, node)
 				expr.Expr2 = node
 			} else if t1.IsConstant() {
-				node := ast.NewValue(t1.ValueKind(t2.Type.Kind()))
+				node := ast.NewValue(t1.TypedValue(t2.Type))
 				tc.replaceTypeInfo(expr.Expr1, node)
 				expr.Expr1 = node
 			}
@@ -993,7 +993,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					if err != nil {
 						panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
 					}
-					node := ast.NewValue(t.ValueKind(elemType.Kind()))
+					node := ast.NewValue(t.TypedValue(elemType))
 					tc.replaceTypeInfo(expr.Args[i], node)
 					expr.Args[i] = node
 				}
@@ -1379,7 +1379,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
 		}
 		if a.IsConstant() {
-			node := ast.NewValue(a.ValueKind(in.Kind()))
+			node := ast.NewValue(a.TypedValue(in))
 			tc.replaceTypeInfo(expr.Args[i], node)
 			expr.Args[i] = node
 		}

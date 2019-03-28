@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"reflect"
@@ -259,9 +260,9 @@ func (ti *TypeInfo) Float64() float64 {
 	return 0
 }
 
-// ValueKind returns the value represented with kind k.
-func (ti *TypeInfo) ValueKind(k reflect.Kind) interface{} {
-	switch k {
+// TypedValue returns the value represented with type t.
+func (ti *TypeInfo) TypedValue(t reflect.Type) interface{} {
+	switch t.Kind() {
 	case reflect.Bool:
 		return ti.Value.(bool)
 	case reflect.String:
@@ -291,7 +292,49 @@ func (ti *TypeInfo) ValueKind(k reflect.Kind) interface{} {
 	case reflect.Float64:
 		return ti.Float64()
 	case reflect.Interface:
-		return ti.ValueKind(ti.Type.Kind())
+		v := ti.TypedValue(ti.Type)
+		if !ti.Untyped() && ti.Type.Name() != "" { // typed and predeclared.
+			nv := reflect.New(t).Elem()
+			switch t.Kind() {
+			case reflect.Invalid:
+			case reflect.Bool:
+				nv.SetBool(v.(bool))
+			case reflect.Int:
+				nv.SetInt(int64(v.(int)))
+			case reflect.Int8:
+				nv.SetInt(int64(v.(int8)))
+			case reflect.Int16:
+				nv.SetInt(int64(v.(int16)))
+			case reflect.Int32:
+				nv.SetInt(int64(v.(int32)))
+			case reflect.Int64:
+				nv.SetInt(v.(int64))
+			case reflect.Uint:
+				nv.SetUint(uint64(v.(uint)))
+			case reflect.Uint8:
+				nv.SetUint(uint64(v.(uint8)))
+			case reflect.Uint16:
+				nv.SetUint(uint64(v.(uint16)))
+			case reflect.Uint32:
+				nv.SetUint(uint64(v.(uint32)))
+			case reflect.Uint64:
+				nv.SetUint(v.(uint64))
+			case reflect.Float32:
+				nv.SetFloat(float64(v.(float32)))
+			case reflect.Float64:
+				nv.SetFloat(v.(float64))
+			case reflect.Complex64, reflect.Complex128:
+				nv.SetComplex(v.(complex128))
+			case reflect.String:
+				nv.SetString(v.(string))
+			case reflect.Interface:
+				nv.Set(reflect.ValueOf(v))
+			default:
+				panic(fmt.Errorf("unexpected kind %q (from type %q)", t.Kind(), t))
+			}
+			v = nv.Interface()
+		}
+		return v
 	}
 	panic("unexpected kind")
 }

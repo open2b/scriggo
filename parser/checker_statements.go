@@ -407,7 +407,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.typeInfo[got[i]].ShortString(), expectedTypes[i]))
 		}
 		if ti.IsConstant() {
-			n := ast.NewValue(ti.ValueKind(T.Kind()))
+			n := ast.NewValue(ti.TypedValue(T))
 			tc.replaceTypeInfo(x, n)
 			node.Values[i] = n
 		}
