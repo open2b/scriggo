@@ -1018,6 +1018,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 
 // lexNumber reads a number (integer or float) knowing that src starts with
 // '0'..'9' or '.'.
+// TODO(marco): implement octal and hex integer literals and exponent float literals
 func (l *lexer) lexNumber() {
 	// Stops only if a character can not be part of the number.
 	hasDot := l.src[0] == '.'
