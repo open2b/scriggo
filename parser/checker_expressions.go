@@ -94,18 +94,18 @@ type ancestor struct {
 type DeclarationType int
 
 const (
-	DeclarationConstant = iota + 1
-	DeclarationVariable
-	DeclarationFunction
+	DeclConst = iota + 1
+	DeclVar
+	DeclFunc
 )
 
 // Declaration is a package global declaration.
 type Declaration struct {
-	Node            ast.Node        // ast node of the declaration.
-	Ident           string          // identifier of the declaration.
-	Type            ast.Expression  // nil if declaration has no type.
-	DeclarationType DeclarationType // constant, variable or function.
-	Value           ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
+	Node     ast.Node        // ast node of the declaration.
+	Ident    string          // identifier of the declaration.
+	Type     ast.Expression  // nil if declaration has no type.
+	DeclType DeclarationType // constant, variable or function.
+	Value    ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
 }
 
 type scopeVariable struct {
@@ -131,30 +131,30 @@ type typechecker struct {
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
-	declarations        []*Declaration      // global declarations.
-	initOrder           []string            // global variables initialization order.
-	varDeps             map[string][]string // key is a variable, value is list of its dependencies.
-	currentIdent        string              // identifier currently being evaluated.
-	currentlyEvaluating []string            // stack of identifiers used in a single evaluation.
-	temporaryEvaluated  map[string]*TypeInfo
+	declarations   []*Declaration      // global declarations.
+	initOrder      []string            // global variables initialization order.
+	varDeps        map[string][]string // key is a variable, value is list of its dependencies.
+	currentGlobal  string              // identifier currently being evaluated.
+	globalEvalPath []string            // stack of identifiers used in a single evaluation.
+	globalTemp     map[string]*TypeInfo
 }
 
 func newTypechecker() *typechecker {
 	return &typechecker{
-		imports:            make(map[string]PackageInfo),
-		universe:           make(typeCheckerScope),
-		filePackageBlock:   make(typeCheckerScope),
-		hasBreak:           make(map[ast.Node]bool),
-		unusedImports:      make(map[string][]string),
-		typeInfo:           make(map[ast.Node]*TypeInfo),
-		upValues:           make(map[*ast.Identifier]bool),
-		varDeps:            make(map[string][]string),
-		temporaryEvaluated: make(map[string]*TypeInfo),
+		imports:          make(map[string]PackageInfo),
+		universe:         make(typeCheckerScope),
+		filePackageBlock: make(typeCheckerScope),
+		hasBreak:         make(map[ast.Node]bool),
+		unusedImports:    make(map[string][]string),
+		typeInfo:         make(map[ast.Node]*TypeInfo),
+		upValues:         make(map[*ast.Identifier]bool),
+		varDeps:          make(map[string][]string),
+		globalTemp:       make(map[string]*TypeInfo),
 	}
 }
 
-// getDecl returns the declaration called name, or nil if it does not exist.
-func (tc *typechecker) getDecl(name string) *Declaration {
+// globDecl returns the declaration called name, or nil if it does not exist.
+func (tc *typechecker) globDecl(name string) *Declaration {
 	for _, v := range tc.declarations {
 		if name == v.Ident {
 			return v
@@ -263,9 +263,11 @@ func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
 	}
 }
 
+// checkIdentifier checks identifier ident, returning it's typeinfo retrieved
+// from scope. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
-	// Upvalues.
+	// Looks for upvalues.
 	if fun, _ := tc.currentFunction(); fun != nil {
 		if tc.isUpValue(ident.Name) {
 			fun.Upvalues = append(fun.Upvalues, ident.Name)
@@ -282,83 +284,50 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 	}
 
 	// For "." imported packages, marks package as used.
-ImportsLoop:
-	for pkg, decls := range tc.unusedImports {
-		for _, d := range decls {
-			if d != ident.Name {
-				delete(tc.unusedImports, pkg)
-				break ImportsLoop
+	func() {
+		for pkg, decls := range tc.unusedImports {
+			for _, d := range decls {
+				if d != ident.Name {
+					delete(tc.unusedImports, pkg)
+					return
+				}
 			}
 		}
-	}
+	}()
 
-	if tmpTi, ok := tc.temporaryEvaluated[ident.Name]; ok {
+	if tmpTi, ok := tc.globalTemp[ident.Name]; ok {
 		return tmpTi
 	}
 
-	if tc.getDecl(ident.Name) != nil {
-		tc.varDeps[tc.currentIdent] = append(tc.varDeps[tc.currentIdent], ident.Name)
-		tc.currentlyEvaluating = append(tc.currentlyEvaluating, ident.Name)
-		if containsDuplicates(tc.currentlyEvaluating) {
-			if d := tc.getDecl(tc.currentIdent); d != nil && d.DeclarationType == DeclarationFunction {
+	if tc.globDecl(ident.Name) != nil {
+		tc.varDeps[tc.currentGlobal] = append(tc.varDeps[tc.currentGlobal], ident.Name)
+		tc.globalEvalPath = append(tc.globalEvalPath, ident.Name)
+		if containsDuplicates(tc.globalEvalPath) {
+			// Global functions can have cyclic dependencies.
+			if d := tc.globDecl(tc.currentGlobal); d != nil && d.DeclType == DeclFunc {
 				ti, _ := tc.lookupScopes(ident.Name, false)
 				return ti
 			}
 			// TODO (Gianluca): add positions.
-			panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.currentlyEvaluating, " refers to\n\t")))
+			panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.globalEvalPath, " refers to\n\t")))
 		}
-	}
-
-	// Check bodies of global functions.
-	// TODO (Gianluca): this must be done only when checking global variables.
-	if i.Type != nil && i.Type.Kind() == reflect.Func && !i.Addressable() {
-		decl := tc.getDecl(ident.Name)
-		// Dot-imported declarations must be ignored.
-		if decl != nil {
-			tc.addScope()
-			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), decl.Node})
-			// Adds parameters to the function body scope.
-			params := fillParametersTypes(decl.Node.(*ast.Func).Type.Parameters)
-			isVariadic := decl.Node.(*ast.Func).Type.IsVariadic
-			for i, param := range params {
-				if param.Ident != nil {
-					t := tc.checkType(param.Type, noEllipses)
-					if isVariadic && i == len(params)-1 {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
-					} else {
-						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
-					}
-				}
-			}
-			// Adds named return values to the function body scope.
-			for _, ret := range fillParametersTypes(decl.Node.(*ast.Func).Type.Result) {
-				t := tc.checkType(ret.Type, noEllipses)
-				if ret.Ident != nil {
-					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
-				}
-			}
-			tc.checkNodes(decl.Value.(*ast.Block).Nodes)
-			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
-			tc.removeCurrentScope()
-		}
-
 	}
 
 	// Global declaration.
-	if i == notChecked {
-		switch d := tc.getDecl(ident.Name); d.DeclarationType {
-		case DeclarationConstant:
+	if i == notCheckedGlobal {
+		switch d := tc.globDecl(ident.Name); d.DeclType {
+		case DeclConst:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
-			tc.temporaryEvaluated[ident.Name] = ti
+			tc.globalTemp[ident.Name] = ti
 			return ti
-		case DeclarationVariable:
+		case DeclVar:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
 			ti.Properties |= PropertyAddressable
-			tc.temporaryEvaluated[ident.Name] = ti
+			tc.globalTemp[ident.Name] = ti
 			return ti
-		case DeclarationFunction:
-			tc.checkNodes(d.Value.(*ast.Block).Nodes)
-			return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
+			// case DeclFunc:
+			// 	tc.checkNodesInNewScope(d.Value.(*ast.Block).Nodes)
+			// 	return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
 		}
 	}
 

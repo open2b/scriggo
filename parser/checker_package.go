@@ -38,9 +38,9 @@ func (pi *PackageInfo) String() string {
 	return s
 }
 
-// notChecked represents the type info of a not type-checked package
+// notCheckedGlobal represents the type info of a not type-checked package
 // declaration.
-var notChecked = &TypeInfo{}
+var notCheckedGlobal = &TypeInfo{}
 
 // checkPackage type checks a package.
 func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
@@ -129,8 +129,8 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				if _, ok := tc.filePackageBlock[name]; ok {
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
-				tc.filePackageBlock[name] = scopeElement{t: notChecked}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationConstant})
+				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
 			}
 		case *ast.Var:
 			for i := range n.Identifiers {
@@ -138,8 +138,8 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				if _, ok := tc.filePackageBlock[name]; ok {
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclarationType: DeclarationVariable}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.filePackageBlock[name] = scopeElement{t: notChecked}
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
 			}
 		case *ast.Func:
 			if n.Ident.Name == "init" {
@@ -151,17 +151,17 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					panic(tc.errorf(n.Ident, "%s redeclared in this block", n.Ident.Name))
 				}
 			}
-			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclarationType: DeclarationFunction})
-			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notChecked}
+			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclType: DeclFunc})
+			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notCheckedGlobal}
 		}
 	}
 
 	// Constants.
 	for _, c := range tc.declarations {
-		if c.DeclarationType == DeclarationConstant {
-			tc.currentIdent = c.Ident
-			tc.currentlyEvaluating = []string{c.Ident}
-			tc.temporaryEvaluated = make(map[string]*TypeInfo)
+		if c.DeclType == DeclConst {
+			tc.currentGlobal = c.Ident
+			tc.globalEvalPath = []string{c.Ident}
+			tc.globalTemp = make(map[string]*TypeInfo)
 			ti := tc.checkExpression(c.Value.(ast.Expression))
 			if !ti.IsConstant() {
 				return tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
@@ -178,7 +178,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 
 	// Functions.
 	for _, v := range tc.declarations {
-		if v.DeclarationType == DeclarationFunction {
+		if v.DeclType == DeclFunc {
 			tc.addScope()
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), v.Node})
 			// Adds parameters to the function body scope.
@@ -201,9 +201,9 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			tc.currentIdent = v.Ident
-			tc.currentlyEvaluating = []string{v.Ident}
-			tc.temporaryEvaluated = make(map[string]*TypeInfo)
+			tc.currentGlobal = v.Ident
+			tc.globalEvalPath = []string{v.Ident}
+			tc.globalTemp = make(map[string]*TypeInfo)
 			tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}}
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
 			tc.initOrder = append(tc.initOrder, v.Ident)
@@ -216,10 +216,10 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 	for unresolvedDeps := true; unresolvedDeps; {
 		unresolvedDeps = false
 		for _, v := range tc.declarations {
-			if v.DeclarationType == DeclarationVariable {
-				tc.currentIdent = v.Ident
-				tc.currentlyEvaluating = []string{v.Ident}
-				tc.temporaryEvaluated = make(map[string]*TypeInfo)
+			if v.DeclType == DeclVar {
+				tc.currentGlobal = v.Ident
+				tc.globalEvalPath = []string{v.Ident}
+				tc.globalTemp = make(map[string]*TypeInfo)
 				ti := tc.checkExpression(v.Value.(ast.Expression))
 				if v.Type != nil {
 					typ := tc.checkType(v.Type, noEllipses)
@@ -234,7 +234,9 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 			}
 		}
 	}
-	tc.temporaryEvaluated = nil
+	tc.globalTemp = nil
+	tc.globalEvalPath = nil
+	tc.currentGlobal = ""
 
 	for pkg := range tc.unusedImports {
 		// TODO (Gianluca): position is not correct.
@@ -263,7 +265,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 	pkgInfo.UpValues = tc.upValues
 	pkgInfo.VariableOrdering = nil
 	for _, v := range tc.initOrder {
-		if tc.getDecl(v).DeclarationType == DeclarationVariable {
+		if tc.globDecl(v).DeclType == DeclVar {
 			pkgInfo.VariableOrdering = append(pkgInfo.VariableOrdering, v)
 		}
 	}
