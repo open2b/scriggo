@@ -298,7 +298,7 @@ func (ti *TypeInfo) TypedValue(t reflect.Type) interface{} {
 		return ti.Float64()
 	case reflect.Interface:
 		v := ti.TypedValue(ti.Type)
-		if !ti.Untyped() && ti.Type.Name() != "" { // typed and predeclared.
+		if !ti.Untyped() && ti.Type.Name() != "" { // Defined type.
 			nv := reflect.New(t).Elem()
 			switch t.Kind() {
 			case reflect.Invalid:
