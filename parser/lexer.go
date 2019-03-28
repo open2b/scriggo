@@ -929,27 +929,25 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		cols++
 	}
 	endLineAsSemicolon := false
-	switch string(l.src[0:p]) {
+	switch id := string(l.src[0:p]); id {
 	case "break":
 		l.emit(tokenBreak, p)
 		endLineAsSemicolon = true
+	case "case":
+		l.emit(tokenCase, p)
+	case "chan":
+		l.emit(tokenChan, p)
+	case "const":
+		l.emit(tokenConst, p)
 	case "continue":
 		l.emit(tokenContinue, p)
 		endLineAsSemicolon = true
+	case "default":
+		l.emit(tokenDefault, p)
+	case "defer":
+		l.emit(tokenDefer, p)
 	case "else":
 		l.emit(tokenElse, p)
-	case "end":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenEnd, p)
-		}
-	case "extends":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenExtends, p)
-		}
 	case "fallthrough":
 		l.emit(tokenFallthrough, p)
 		endLineAsSemicolon = true
@@ -957,34 +955,16 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 		l.emit(tokenFor, p)
 	case "func":
 		l.emit(tokenFunc, p)
+	case "go":
+		l.emit(tokenGo, p)
+	case "goto":
+		l.emit(tokenGoto, p)
 	case "if":
 		l.emit(tokenIf, p)
-	case "case":
-		l.emit(tokenCase, p)
-	case "default":
-		l.emit(tokenDefault, p)
 	case "import":
 		l.emit(tokenImport, p)
-	case "in":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenIn, p)
-		}
-	case "include":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenInclude, p)
-		}
 	case "interface":
 		l.emit(tokenInterface, p)
-	case "macro":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenMacro, p)
-		}
 	case "map":
 		l.emit(tokenMap, p)
 	case "package":
@@ -994,23 +974,39 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "return":
 		l.emit(tokenReturn, p)
 		endLineAsSemicolon = true
-	case "show":
-		if l.ctx == ast.ContextNone {
-			l.emit(tokenIdentifier, p)
-		} else {
-			l.emit(tokenShow, p)
-		}
+	case "struct":
+		l.emit(tokenStruct, p)
+	case "select":
+		l.emit(tokenSelect, p)
 	case "switch":
 		l.emit(tokenSwitch, p)
 	case "type":
 		l.emit(tokenSwitchType, p)
 	case "var":
 		l.emit(tokenVar, p)
-	case "const":
-		l.emit(tokenConst, p)
 	default:
-		l.emit(tokenIdentifier, p)
-		endLineAsSemicolon = true
+		if l.ctx != ast.ContextNone {
+			switch id {
+			case "end":
+				l.emit(tokenEnd, p)
+			case "extends":
+				l.emit(tokenExtends, p)
+			case "in":
+				l.emit(tokenIn, p)
+			case "include":
+				l.emit(tokenInclude, p)
+			case "macro":
+				l.emit(tokenMacro, p)
+			case "show":
+				l.emit(tokenShow, p)
+			default:
+				l.emit(tokenIdentifier, p)
+				endLineAsSemicolon = true
+			}
+		} else {
+			l.emit(tokenIdentifier, p)
+			endLineAsSemicolon = true
+		}
 	}
 	l.column += cols
 	return endLineAsSemicolon
@@ -1018,7 +1014,6 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 
 // lexNumber reads a number (integer or float) knowing that src starts with
 // '0'..'9' or '.'.
-// TODO(marco): implement octal and hex integer literals and exponent float literals
 func (l *lexer) lexNumber() {
 	// Stops only if a character can not be part of the number.
 	hasDot := l.src[0] == '.'
