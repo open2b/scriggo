@@ -412,7 +412,8 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 	}
 	r.scope[tree.Path] = r.vars[2]
 	r.vars = append(r.vars, scope{}) // adds 'main' function scope?
-	err = r.render(nil, mf.(function).node.Body.Nodes, nil)
+	r.function = mf.(function)
+	err = r.render(nil, r.function.node.Body.Nodes, nil)
 	if err != nil {
 		return err
 	}
