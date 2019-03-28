@@ -303,7 +303,12 @@ func (ti *TypeInfo) TypedValue(t reflect.Type) interface{} {
 	case reflect.Float64:
 		return ti.Float64()
 	case reflect.Interface:
-		v := ti.TypedValue(ti.Type)
+
+		// TODO (Gianluca): causes a stack-overflow.
+		// v := ti.TypedValue(ti.Type)
+		v := ti.Value // TODO: remove when solved.
+		return v      // TODO: remove when solved.
+
 		if !ti.Untyped() && ti.Type.Name() != "" { // Defined type.
 			nv := reflect.New(ti.Type).Elem()
 			switch ti.Type.Kind() {
