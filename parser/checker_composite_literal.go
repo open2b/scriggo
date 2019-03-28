@@ -198,7 +198,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s literal (type %s) as type %v in array or slice literal", elemTi.Type, elemTi, ti.Type.Elem()))
+					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
 				} else {
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
@@ -234,7 +234,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s literal (type %s) as type %v in array or slice literal", elemTi.Type, elemTi, ti.Type.Elem()))
+					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
 				} else {
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
