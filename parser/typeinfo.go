@@ -48,6 +48,11 @@ func (ti *TypeInfo) IsConstant() bool {
 	return ti.Properties&PropertyIsConstant != 0
 }
 
+// IsUntypedConstant reports whether it is an untyped constant.
+func (ti *TypeInfo) IsUntypedConstant() bool {
+	return ti.Properties&PropertyUntyped != 0 && ti.Properties&PropertyIsConstant != 0
+}
+
 // IsType reports whether it is a type.
 func (ti *TypeInfo) IsType() bool {
 	return ti.Properties&PropertyIsType != 0
