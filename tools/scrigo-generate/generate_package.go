@@ -126,14 +126,15 @@ func generateMultiplePackages(pkgs []string, sourceFile, customVariableName, pkg
 
 func generatePackage(pkgPath string) (string, []string) {
 	predefinedTypes := []string{}
-	register := func(t string) {
-		for _, pt := range predefinedTypes {
-			if t == pt {
-				return
-			}
-		}
-		predefinedTypes = append(predefinedTypes, t)
-	}
+	// TODO (Gianluca): see TODO below.
+	// register := func(t string) {
+	// 	for _, pt := range predefinedTypes {
+	// 		if t == pt {
+	// 			return
+	// 		}
+	// 	}
+	// 	predefinedTypes = append(predefinedTypes, t)
+	// }
 	pkg, err := importer.Default().Import(pkgPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "importer error: %s\n", err)
@@ -160,16 +161,18 @@ func generatePackage(pkgPath string) (string, []string) {
 
 		// It's a type definition.
 		case strings.HasPrefix(objSign, "type"):
-			parts := strings.Fields(objSign)
 			var value = "reflect.TypeOf(new(" + objPath + ")).Elem()"
-			if len(parts) == 3 {
-				typ := parts[2]
-				switch typ {
-				case "int", "string":
-					value = typ + "Type"
-					register(value)
-				}
-			}
+			// TODO (Gianluca): disabled because "time.Month", which has
+			// an underlying type "int", is substituded with "intType",
+			// that is wrong. parts := strings.Fields(objSign) if
+			// len(parts) == 3 {
+			//    typ := parts[2]
+			//    switch typ {
+			//    case "int", "string":
+			//          value = typ + "Type"
+			//          register(value)
+			//    }
+			// }
 			pkgContent += mapEntry(name, value)
 
 		// It's a constant.
