@@ -93,6 +93,244 @@ var operatorsOfKind = [...][15]bool{
 	reflect.Interface: interfaceOperators,
 }
 
+// binaryOp executes a binary expression where the operands are constants and
+// returns its result. Returns an error if the operation can not be executed.
+func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
+
+	k1 := t1.Type.Kind()
+
+	t := &TypeInfo{Properties: PropertyIsConstant}
+
+	switch k1 {
+	case reflect.Bool:
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = t1.Value.(bool) == t2.Value.(bool)
+		case ast.OperatorNotEqual:
+			t.Value = t1.Value.(bool) != t2.Value.(bool)
+		case ast.OperatorAnd:
+			t.Value = t1.Value.(bool) && t2.Value.(bool)
+		case ast.OperatorOr:
+			t.Value = t1.Value.(bool) || t2.Value.(bool)
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
+		}
+		t.Type = boolType
+	case reflect.String:
+		switch expr.Op {
+		case ast.OperatorEqual:
+			t.Value = t1.Value.(string) == t2.Value.(string)
+			t.Type = boolType
+		case ast.OperatorNotEqual:
+			t.Value = t1.Value.(string) != t2.Value.(string)
+			t.Type = boolType
+		case ast.OperatorAddition:
+			t.Value = t1.Value.(string) + t2.Value.(string)
+			t.Type = stringType
+		default:
+			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
+		}
+	default:
+		v1, v2 := toSameType(t1.Value, t2.Value)
+		switch expr.Op {
+		default:
+			var cmp int
+			switch v1 := v1.(type) {
+			case int64:
+				if v2 := v2.(int64); v1 < v2 {
+					cmp = -1
+				} else if v1 > v2 {
+					cmp = 1
+				}
+			case *big.Int:
+				cmp = v1.Cmp(v2.(*big.Int))
+			case float64:
+				if v2 := v2.(float64); v1 < v2 {
+					cmp = -1
+				} else if v1 > v2 {
+					cmp = 1
+				}
+			case *big.Float:
+				cmp = v1.Cmp(v2.(*big.Float))
+			case *big.Rat:
+				cmp = v1.Cmp(v2.(*big.Rat))
+			}
+			switch expr.Op {
+			case ast.OperatorEqual:
+				t.Value = cmp == 0
+			case ast.OperatorNotEqual:
+				t.Value = cmp != 0
+			case ast.OperatorLess:
+				t.Value = cmp < 0
+			case ast.OperatorLessOrEqual:
+				t.Value = cmp <= 0
+			case ast.OperatorGreater:
+				t.Value = cmp > 0
+			case ast.OperatorGreaterOrEqual:
+				t.Value = cmp >= 0
+			default:
+				return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on untyped number)", expr, expr.Op)
+			}
+			t.Type = boolType
+		case ast.OperatorAddition:
+			switch v2 := v2.(type) {
+			case int64:
+				v1 := v1.(int64)
+				v := v1 + v2
+				if (v < v1) != (v2 < 0) {
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
+					t.Value = b1.Add(b1, b2)
+				} else {
+					t.Value = v
+				}
+			case *big.Int:
+				t.Value = newInt().Add(v1.(*big.Int), v2)
+			case float64:
+				if v1 == 0 {
+					t.Value = v2
+				} else if v2 == 0 {
+					t.Value = v1
+				} else {
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
+					t.Value = f1.Add(f1, f2)
+				}
+			case *big.Float:
+				t.Value = newFloat().Add(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = newRat().Add(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorSubtraction:
+			switch v2 := t2.Value.(type) {
+			case int64:
+				v1 := v1.(int64)
+				v := v1 - v2
+				if (v < v1) != (v2 > 0) {
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
+					t.Value = b1.Sub(b1, b2)
+				} else {
+					t.Value = v
+				}
+			case *big.Int:
+				t.Value = newInt().Sub(v1.(*big.Int), v2)
+			case float64:
+				if v2 == 0 {
+					t.Value = v1
+				} else {
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
+					t.Value = f1.Sub(f1, f2)
+				}
+			case *big.Float:
+				t.Value = newFloat().Sub(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = newRat().Sub(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorMultiplication:
+			switch v2 := v2.(type) {
+			case int64:
+				if v1 == 0 || v2 == 0 {
+					t.Value = int64(0)
+				} else if v1 == 1 {
+					t.Value = v2
+				} else if v2 == 1 {
+					t.Value = v1
+				} else {
+					v1 := v1.(int64)
+					v := v1 * v2
+					if (v < 0) != ((v1 < 0) != (v2 < 0)) || v/v2 != v1 {
+						b1 := newInt().SetInt64(v1)
+						b2 := newInt().SetInt64(v2)
+						t.Value = b1.Mul(b1, b2)
+					} else {
+						t.Value = v
+					}
+				}
+			case *big.Int:
+				t.Value = newInt().Sub(v1.(*big.Int), v2)
+			case float64:
+				if v1 == 0 || v2 == 0 {
+					t.Value = float64(0)
+				} else if v1 == 1 {
+					t.Value = v2
+				} else if v2 == 1 {
+					t.Value = v1
+				} else {
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
+					t.Value = f1.Mul(f1, f2)
+				}
+			case *big.Float:
+				t.Value = newFloat().Sub(v1.(*big.Float), v2)
+			case *big.Rat:
+				t.Value = newRat().Sub(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorDivision:
+			switch v2 := t2.Value.(type) {
+			case int64:
+				if v2 == 0 {
+					return nil, errDivisionByZero
+				}
+				v1 := v1.(int64)
+				if v1%v2 == 0 && !(v1 == minInt64 && v2 == -1) {
+					t.Value = v1 / v2
+				} else {
+					b1 := newInt().SetInt64(v1)
+					b2 := newInt().SetInt64(v2)
+					t.Value = newRat().SetFrac(b1, b2)
+				}
+			case *big.Int:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
+			case float64:
+				if v2 == 0 {
+					return nil, errDivisionByZero
+				}
+				if v2 == 1 {
+					t.Value = v1
+				} else {
+					f1 := newFloat().SetFloat64(v1.(float64))
+					f2 := newFloat().SetFloat64(v2)
+					t.Value = newFloat().Quo(f1, f2)
+				}
+			case *big.Float:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = newFloat().Quo(v1.(*big.Float), v2)
+			case *big.Rat:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = newRat().Quo(v1.(*big.Rat), v2)
+			}
+		case ast.OperatorModulo:
+			k2 := t2.Type.Kind()
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
+				return nil, errors.New("illegal constant expression: floating-point % operation")
+			}
+			switch v2 := t2.Value.(type) {
+			case int64:
+				if v2 == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = v1.(int64) % v2
+			case *big.Int:
+				if v2.Sign() == 0 {
+					return nil, errDivisionByZero
+				}
+				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
+			}
+		}
+	}
+
+	return t, nil
+}
+
 // containsDuplicates returns true if slice contains at least one duplicate
 // string.
 func containsDuplicates(slice []string) bool {
@@ -635,244 +873,6 @@ func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 		}
 	}
 	t.Properties |= PropertyUntyped
-
-	return t, nil
-}
-
-// binaryOp executes a binary expression where the operands are constants and
-// returns its result. Returns an error if the operation can not be executed.
-func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
-
-	k1 := t1.Type.Kind()
-
-	t := &TypeInfo{Properties: PropertyIsConstant}
-
-	switch k1 {
-	case reflect.Bool:
-		switch expr.Op {
-		case ast.OperatorEqual:
-			t.Value = t1.Value.(bool) == t2.Value.(bool)
-		case ast.OperatorNotEqual:
-			t.Value = t1.Value.(bool) != t2.Value.(bool)
-		case ast.OperatorAnd:
-			t.Value = t1.Value.(bool) && t2.Value.(bool)
-		case ast.OperatorOr:
-			t.Value = t1.Value.(bool) || t2.Value.(bool)
-		default:
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
-		}
-		t.Type = boolType
-	case reflect.String:
-		switch expr.Op {
-		case ast.OperatorEqual:
-			t.Value = t1.Value.(string) == t2.Value.(string)
-			t.Type = boolType
-		case ast.OperatorNotEqual:
-			t.Value = t1.Value.(string) != t2.Value.(string)
-			t.Type = boolType
-		case ast.OperatorAddition:
-			t.Value = t1.Value.(string) + t2.Value.(string)
-			t.Type = stringType
-		default:
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
-		}
-	default:
-		v1, v2 := toSameType(t1.Value, t2.Value)
-		switch expr.Op {
-		default:
-			var cmp int
-			switch v1 := v1.(type) {
-			case int64:
-				if v2 := v2.(int64); v1 < v2 {
-					cmp = -1
-				} else if v1 > v2 {
-					cmp = 1
-				}
-			case *big.Int:
-				cmp = v1.Cmp(v2.(*big.Int))
-			case float64:
-				if v2 := v2.(float64); v1 < v2 {
-					cmp = -1
-				} else if v1 > v2 {
-					cmp = 1
-				}
-			case *big.Float:
-				cmp = v1.Cmp(v2.(*big.Float))
-			case *big.Rat:
-				cmp = v1.Cmp(v2.(*big.Rat))
-			}
-			switch expr.Op {
-			case ast.OperatorEqual:
-				t.Value = cmp == 0
-			case ast.OperatorNotEqual:
-				t.Value = cmp != 0
-			case ast.OperatorLess:
-				t.Value = cmp < 0
-			case ast.OperatorLessOrEqual:
-				t.Value = cmp <= 0
-			case ast.OperatorGreater:
-				t.Value = cmp > 0
-			case ast.OperatorGreaterOrEqual:
-				t.Value = cmp >= 0
-			default:
-				return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on untyped number)", expr, expr.Op)
-			}
-			t.Type = boolType
-		case ast.OperatorAddition:
-			switch v2 := v2.(type) {
-			case int64:
-				v1 := v1.(int64)
-				v := v1 + v2
-				if (v < v1) != (v2 < 0) {
-					b1 := newInt().SetInt64(v1)
-					b2 := newInt().SetInt64(v2)
-					t.Value = b1.Add(b1, b2)
-				} else {
-					t.Value = v
-				}
-			case *big.Int:
-				t.Value = newInt().Add(v1.(*big.Int), v2)
-			case float64:
-				if v1 == 0 {
-					t.Value = v2
-				} else if v2 == 0 {
-					t.Value = v1
-				} else {
-					f1 := newFloat().SetFloat64(v1.(float64))
-					f2 := newFloat().SetFloat64(v2)
-					t.Value = f1.Add(f1, f2)
-				}
-			case *big.Float:
-				t.Value = newFloat().Add(v1.(*big.Float), v2)
-			case *big.Rat:
-				t.Value = newRat().Add(v1.(*big.Rat), v2)
-			}
-		case ast.OperatorSubtraction:
-			switch v2 := t2.Value.(type) {
-			case int64:
-				v1 := v1.(int64)
-				v := v1 - v2
-				if (v < v1) != (v2 > 0) {
-					b1 := newInt().SetInt64(v1)
-					b2 := newInt().SetInt64(v2)
-					t.Value = b1.Sub(b1, b2)
-				} else {
-					t.Value = v
-				}
-			case *big.Int:
-				t.Value = newInt().Sub(v1.(*big.Int), v2)
-			case float64:
-				if v2 == 0 {
-					t.Value = v1
-				} else {
-					f1 := newFloat().SetFloat64(v1.(float64))
-					f2 := newFloat().SetFloat64(v2)
-					t.Value = f1.Sub(f1, f2)
-				}
-			case *big.Float:
-				t.Value = newFloat().Sub(v1.(*big.Float), v2)
-			case *big.Rat:
-				t.Value = newRat().Sub(v1.(*big.Rat), v2)
-			}
-		case ast.OperatorMultiplication:
-			switch v2 := v2.(type) {
-			case int64:
-				if v1 == 0 || v2 == 0 {
-					t.Value = int64(0)
-				} else if v1 == 1 {
-					t.Value = v2
-				} else if v2 == 1 {
-					t.Value = v1
-				} else {
-					v1 := v1.(int64)
-					v := v1 * v2
-					if (v < 0) != ((v1 < 0) != (v2 < 0)) || v/v2 != v1 {
-						b1 := newInt().SetInt64(v1)
-						b2 := newInt().SetInt64(v2)
-						t.Value = b1.Mul(b1, b2)
-					} else {
-						t.Value = v
-					}
-				}
-			case *big.Int:
-				t.Value = newInt().Sub(v1.(*big.Int), v2)
-			case float64:
-				if v1 == 0 || v2 == 0 {
-					t.Value = float64(0)
-				} else if v1 == 1 {
-					t.Value = v2
-				} else if v2 == 1 {
-					t.Value = v1
-				} else {
-					f1 := newFloat().SetFloat64(v1.(float64))
-					f2 := newFloat().SetFloat64(v2)
-					t.Value = f1.Mul(f1, f2)
-				}
-			case *big.Float:
-				t.Value = newFloat().Sub(v1.(*big.Float), v2)
-			case *big.Rat:
-				t.Value = newRat().Sub(v1.(*big.Rat), v2)
-			}
-		case ast.OperatorDivision:
-			switch v2 := t2.Value.(type) {
-			case int64:
-				if v2 == 0 {
-					return nil, errDivisionByZero
-				}
-				v1 := v1.(int64)
-				if v1%v2 == 0 && !(v1 == minInt64 && v2 == -1) {
-					t.Value = v1 / v2
-				} else {
-					b1 := newInt().SetInt64(v1)
-					b2 := newInt().SetInt64(v2)
-					t.Value = newRat().SetFrac(b1, b2)
-				}
-			case *big.Int:
-				if v2.Sign() == 0 {
-					return nil, errDivisionByZero
-				}
-				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
-			case float64:
-				if v2 == 0 {
-					return nil, errDivisionByZero
-				}
-				if v2 == 1 {
-					t.Value = v1
-				} else {
-					f1 := newFloat().SetFloat64(v1.(float64))
-					f2 := newFloat().SetFloat64(v2)
-					t.Value = newFloat().Quo(f1, f2)
-				}
-			case *big.Float:
-				if v2.Sign() == 0 {
-					return nil, errDivisionByZero
-				}
-				t.Value = newFloat().Quo(v1.(*big.Float), v2)
-			case *big.Rat:
-				if v2.Sign() == 0 {
-					return nil, errDivisionByZero
-				}
-				t.Value = newRat().Quo(v1.(*big.Rat), v2)
-			}
-		case ast.OperatorModulo:
-			k2 := t2.Type.Kind()
-			if isFloatingPoint(k1) || isFloatingPoint(k2) {
-				return nil, errors.New("illegal constant expression: floating-point % operation")
-			}
-			switch v2 := t2.Value.(type) {
-			case int64:
-				if v2 == 0 {
-					return nil, errDivisionByZero
-				}
-				t.Value = v1.(int64) % v2
-			case *big.Int:
-				if v2.Sign() == 0 {
-					return nil, errDivisionByZero
-				}
-				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
-			}
-		}
-	}
 
 	return t, nil
 }
