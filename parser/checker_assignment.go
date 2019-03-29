@@ -54,7 +54,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					if typ == nil {
 						typ = ti
 					}
-					new := ast.NewValue(ti.TypedValue(typ.Type))
+					new := ast.NewValue(typedValue(ti, typ.Type))
 					tc.replaceTypeInfo(old, new)
 					values[0] = new
 				}
@@ -87,7 +87,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					if typ == nil {
 						typ = ti
 					}
-					new := ast.NewValue(ti.TypedValue(typ.Type))
+					new := ast.NewValue(typedValue(ti, typ.Type))
 					tc.replaceTypeInfo(old, new)
 					values[0] = new
 				}
@@ -151,7 +151,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if !isBlankIdentifier(n.Variables[0]) {
 				old := n.Values[0]
 				if ti := tc.typeInfo[n.Values[0]]; ti.IsConstant() {
-					new := ast.NewValue(ti.TypedValue(ti.Type))
+					new := ast.NewValue(typedValue(ti, ti.Type))
 					tc.replaceTypeInfo(old, new)
 					n.Values[0] = new
 				}
@@ -176,7 +176,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					if isDecl {
 						typ = ti
 					}
-					new := ast.NewValue(ti.TypedValue(typ.Type))
+					new := ast.NewValue(typedValue(ti, typ.Type))
 					tc.replaceTypeInfo(old, new)
 					values[0] = new
 				}
@@ -256,7 +256,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 						typ = varTi
 					}
 				}
-				new := ast.NewValue(v.TypedValue(typ.Type))
+				new := ast.NewValue(typedValue(v, typ.Type))
 				tc.replaceTypeInfo(old, new)
 				values[0] = new
 			}

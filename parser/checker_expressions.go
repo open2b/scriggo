@@ -469,11 +469,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			t1 := tc.typeInfo[expr.Expr1]
 			t2 := tc.typeInfo[expr.Expr2]
 			if t2.IsConstant() {
-				node := ast.NewValue(t2.TypedValue(t1.Type))
+				node := ast.NewValue(typedValue(t2, t1.Type))
 				tc.replaceTypeInfo(expr.Expr2, node)
 				expr.Expr2 = node
 			} else if t1.IsConstant() {
-				node := ast.NewValue(t1.TypedValue(t2.Type))
+				node := ast.NewValue(typedValue(t1, t2.Type))
 				tc.replaceTypeInfo(expr.Expr1, node)
 				expr.Expr1 = node
 			}
@@ -651,7 +651,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			}
 			if key.IsConstant() {
 				ti := &TypeInfo{Type: t.Type.Key(), Value: key.Value}
-				value := ti.TypedValue(emptyInterfaceType)
+				value := typedValue(ti, emptyInterfaceType)
 				node := ast.NewValue(value)
 				tc.replaceTypeInfo(expr.Index, node)
 				expr.Index = node
@@ -974,7 +974,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elemType))
 				}
 				if t.IsConstant() {
-					node := ast.NewValue(t.TypedValue(elemType))
+					node := ast.NewValue(typedValue(t, elemType))
 					tc.replaceTypeInfo(expr.Args[i], node)
 					expr.Args[i] = node
 				}
@@ -1346,9 +1346,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			var value interface{}
 			if t.GoImplemented() {
 				ti := &TypeInfo{Type: in, Value: a.Value}
-				value = ti.TypedValue(emptyInterfaceType)
+				value = typedValue(ti, emptyInterfaceType)
 			} else {
-				value = a.TypedValue(in)
+				value = typedValue(a, in)
 			}
 			node := ast.NewValue(value)
 			tc.replaceTypeInfo(expr.Args[i], node)

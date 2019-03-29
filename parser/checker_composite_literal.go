@@ -143,7 +143,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 				if valueTi.IsConstant() {
-					new := ast.NewValue(valueTi.TypedValue(fieldTi.Type))
+					new := ast.NewValue(typedValue(valueTi, fieldTi.Type))
 					tc.replaceTypeInfo(keyValue.Value, new)
 					keyValue.Value = new
 				}
@@ -167,7 +167,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
 				if valueTi.IsConstant() {
-					new := ast.NewValue(valueTi.TypedValue(fieldTi.Type))
+					new := ast.NewValue(typedValue(valueTi, fieldTi.Type))
 					tc.replaceTypeInfo(keyValue.Value, new)
 					keyValue.Value = new
 				}
@@ -185,7 +185,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 				if keyTi.IsConstant() {
-					new := ast.NewValue(keyTi.TypedValue(intType))
+					new := ast.NewValue(typedValue(keyTi, intType))
 					tc.replaceTypeInfo(kv.Key, new)
 					kv.Key = new
 				}
@@ -204,7 +204,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 			}
 			if elemTi.IsConstant() {
-				new := ast.NewValue(elemTi.TypedValue(ti.Type.Elem()))
+				new := ast.NewValue(typedValue(elemTi, ti.Type.Elem()))
 				tc.replaceTypeInfo(kv.Value, new)
 				kv.Value = new
 			}
@@ -221,7 +221,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 				if keyTi.IsConstant() {
-					new := ast.NewValue(keyTi.TypedValue(intType))
+					new := ast.NewValue(typedValue(keyTi, intType))
 					tc.replaceTypeInfo(kv.Key, new)
 					kv.Key = new
 				}
@@ -240,7 +240,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 			}
 			if elemTi.IsConstant() {
-				new := ast.NewValue(elemTi.TypedValue(ti.Type.Elem()))
+				new := ast.NewValue(typedValue(elemTi, ti.Type.Elem()))
 				tc.replaceTypeInfo(kv.Value, new)
 				kv.Value = new
 			}
@@ -263,7 +263,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), keyType))
 			}
 			if keyTi.IsConstant() {
-				new := ast.NewValue(keyTi.TypedValue(keyType))
+				new := ast.NewValue(typedValue(keyTi, keyType))
 				tc.replaceTypeInfo(kv.Key, new)
 				kv.Key = new
 			}
@@ -277,7 +277,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), elemType))
 			}
 			if valueTi.IsConstant() {
-				new := ast.NewValue(valueTi.TypedValue(elemType))
+				new := ast.NewValue(typedValue(valueTi, elemType))
 				tc.replaceTypeInfo(kv.Value, new)
 				kv.Value = new
 			}

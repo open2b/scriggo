@@ -450,6 +450,89 @@ func tBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 	return t, nil
 }
 
+// typedValue returns a type info value represented with a specific t.
+func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
+	switch t.Kind() {
+	case reflect.Bool:
+		return ti.Value.(bool)
+	case reflect.String:
+		return ti.Value.(string)
+	case reflect.Int:
+		return int(ti.Int64())
+	case reflect.Int8:
+		return int8(ti.Int64())
+	case reflect.Int16:
+		return int16(ti.Int64())
+	case reflect.Int32:
+		return int32(ti.Int64())
+	case reflect.Int64:
+		return ti.Int64()
+	case reflect.Uint:
+		return uint(ti.Uint64())
+	case reflect.Uint8:
+		return uint8(ti.Uint64())
+	case reflect.Uint16:
+		return uint16(ti.Uint64())
+	case reflect.Uint32:
+		return uint32(ti.Uint64())
+	case reflect.Uint64:
+		return ti.Uint64()
+	case reflect.Float32:
+		return float32(ti.Float64())
+	case reflect.Float64:
+		return ti.Float64()
+	case reflect.Interface:
+		// TODO (Gianluca): causes a stack-overflow.
+		// v := ti.typedValue(ti.Type)
+		v := ti.Value // TODO: remove when solved.
+		return v      // TODO: remove when solved.
+
+		if !ti.Untyped() && ti.Type.Name() != "" { // Defined type.
+			nv := reflect.New(ti.Type).Elem()
+			switch ti.Type.Kind() {
+			case reflect.Invalid:
+			case reflect.Bool:
+				nv.SetBool(v.(bool))
+			case reflect.Int:
+				nv.SetInt(int64(v.(int)))
+			case reflect.Int8:
+				nv.SetInt(int64(v.(int8)))
+			case reflect.Int16:
+				nv.SetInt(int64(v.(int16)))
+			case reflect.Int32:
+				nv.SetInt(int64(v.(int32)))
+			case reflect.Int64:
+				nv.SetInt(v.(int64))
+			case reflect.Uint:
+				nv.SetUint(uint64(v.(uint)))
+			case reflect.Uint8:
+				nv.SetUint(uint64(v.(uint8)))
+			case reflect.Uint16:
+				nv.SetUint(uint64(v.(uint16)))
+			case reflect.Uint32:
+				nv.SetUint(uint64(v.(uint32)))
+			case reflect.Uint64:
+				nv.SetUint(v.(uint64))
+			case reflect.Float32:
+				nv.SetFloat(float64(v.(float32)))
+			case reflect.Float64:
+				nv.SetFloat(v.(float64))
+			case reflect.Complex64, reflect.Complex128:
+				nv.SetComplex(v.(complex128))
+			case reflect.String:
+				nv.SetString(v.(string))
+			case reflect.Interface:
+				nv.Set(reflect.ValueOf(v))
+			default:
+				panic(fmt.Errorf("unexpected kind %q (from type %q)", t.Kind(), t))
+			}
+			v = nv.Interface()
+		}
+		return v
+	}
+	panic("unexpected kind")
+}
+
 // toSameType returns v1 and v2 with the same types.
 func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
 	switch n1 := v1.(type) {
