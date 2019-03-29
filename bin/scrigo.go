@@ -12,8 +12,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"scrigo"
 
+	"scrigo"
 	"scrigo/parser"
 )
 
@@ -38,7 +38,6 @@ func main() {
 		fmt.Printf("%s: %s\n", file, err)
 		os.Exit(-1)
 	}
-	r := parser.DirReader(filepath.Dir(absFile))
 
 	if ext == ".gos" {
 
@@ -61,6 +60,7 @@ func main() {
 
 	} else {
 
+		r := parser.DirReader(filepath.Dir(absFile))
 		compiler := scrigo.NewCompiler(r, packages)
 		f, err := os.Open(file)
 		if err != nil {
