@@ -28,8 +28,8 @@ func main() {
 
 	file := os.Args[1]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".gos" {
-		fmt.Printf("%s: extension must be \".go\" for main packages and \".gos\" for scripts\n", file)
+	if ext != ".go" && ext != ".gos" && ext != ".html" {
+		fmt.Printf("%s: extension must be \".go\" for main packages, \".gos\" for scripts and \".html\" for template pages\n", file)
 		os.Exit(-1)
 	}
 
@@ -39,8 +39,8 @@ func main() {
 		os.Exit(-1)
 	}
 
-	if ext == ".gos" {
-
+	switch ext {
+	case ".gos":
 		src, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			fmt.Println(err)
@@ -57,9 +57,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-
-	} else {
-
+	case ".go":
 		r := parser.DirReader(filepath.Dir(absFile))
 		compiler := scrigo.NewCompiler(r, packages)
 		f, err := os.Open(file)
@@ -78,7 +76,20 @@ func main() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-
+	case ".html":
+		r := parser.DirReader(filepath.Dir(absFile))
+		template := scrigo.NewTemplate(r)
+		path := "/" + filepath.Base(absFile)
+		page, err := template.Compile(path, nil, scrigo.ContextHTML)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		err = scrigo.Render(os.Stdout, page, nil)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 	}
 
 }
