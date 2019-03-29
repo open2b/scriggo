@@ -78,19 +78,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
-			if !isBlankIdentifier(n.Identifiers[0]) {
-				if newConst == "" {
-					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
-				}
-				old := values[0]
-				if ti := tc.typeInfo[values[0]]; ti.IsConstant() {
-					if typ == nil {
-						typ = ti
-					}
-					new := ast.NewValue(typedValue(ti, typ.Type))
-					tc.replaceTypeInfo(old, new)
-					values[0] = new
-				}
+			if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
+				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
 			}
 			return
 		}
