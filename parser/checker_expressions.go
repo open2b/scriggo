@@ -974,10 +974,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elemType))
 				}
 				if t.IsConstant() {
-					_, err := representedBy(t, elemType)
-					if err != nil {
-						panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
-					}
 					node := ast.NewValue(t.TypedValue(elemType))
 					tc.replaceTypeInfo(expr.Args[i], node)
 					expr.Args[i] = node
