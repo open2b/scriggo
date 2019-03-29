@@ -549,6 +549,14 @@ type Script struct {
 	main      *parser.GoPackage
 }
 
+type Template struct {
+	reader parser.Reader
+}
+
+type Page struct {
+	tree *ast.Tree
+}
+
 type PackageReader struct {
 	src    io.Reader
 	reader parser.Reader
@@ -563,6 +571,24 @@ func (pr PackageReader) Read(path string, _ ast.Context) ([]byte, error) {
 		return src, nil
 	}
 	return pr.reader.Read(path, ast.ContextNone)
+}
+
+func NewTemplate(reader parser.Reader) *Template {
+	return &Template{reader: reader}
+}
+
+func (t *Template) Compile(path string, main *parser.GoPackage, ctx ast.Context) (*Page, error) {
+	packages := map[string]*parser.GoPackage{"main": main}
+	p := parser.New(t.reader, packages, false)
+	tree, err := p.Parse(path, ctx)
+	if err != nil {
+		return nil, convertError(err)
+	}
+	return &Page{tree: tree}, nil
+}
+
+func Render(out io.Writer, page *Page, vars map[string]interface{}) error {
+	return RenderTree(out, page.tree, vars, true)
 }
 
 type Compiler struct {

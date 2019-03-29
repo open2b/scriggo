@@ -587,7 +587,9 @@ func TestRenderStatements(t *testing.T) {
 		return a, b
 	}
 	for _, stmt := range rendererStmtTests {
-		var tree, err = parser.ParseSource([]byte(stmt.src), ast.ContextText)
+		reader := parser.MapReader{"/src": []byte(stmt.src)}
+		template := NewTemplate(reader)
+		page, err := template.Compile("/src", nil, ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
@@ -597,7 +599,7 @@ func TestRenderStatements(t *testing.T) {
 			stmt.globals = scope{}
 		}
 		stmt.globals["test2"] = globalTest2
-		err = RenderTree(b, tree, stmt.globals, true)
+		err = Render(b, page, stmt.globals)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
