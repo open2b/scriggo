@@ -589,7 +589,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, stmt := range rendererStmtTests {
 		reader := parser.MapReader{"/src": []byte(stmt.src)}
 		template := NewTemplate(reader)
-		page, err := template.Compile("/src", nil, ast.ContextText)
+		page, err := template.Compile("/src", nil, ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
