@@ -577,10 +577,10 @@ func NewTemplate(reader parser.Reader) *Template {
 	return &Template{reader: reader}
 }
 
-func (t *Template) Compile(path string, main *parser.GoPackage, ctx ast.Context) (*Page, error) {
+func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*Page, error) {
 	packages := map[string]*parser.GoPackage{"main": main}
 	p := parser.New(t.reader, packages, false)
-	tree, err := p.Parse(path, ctx)
+	tree, err := p.Parse(path, ast.Context(ctx))
 	if err != nil {
 		return nil, convertError(err)
 	}
