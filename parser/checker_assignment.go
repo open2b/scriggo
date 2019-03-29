@@ -339,11 +339,13 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			}
 			newValueTi.Properties |= PropertyAddressable
 			tc.assignScope(v.Name, newValueTi, v)
-			tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-				ident:      v.Name,
-				scopeLevel: len(tc.scopes) - 1,
-				node:       node,
-			})
+			if !tc.isScript {
+				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
+					ident:      v.Name,
+					scopeLevel: len(tc.scopes) - 1,
+					node:       node,
+				})
+			}
 			return v.Name
 		}
 

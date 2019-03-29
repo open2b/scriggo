@@ -1,0 +1,24 @@
+package parser
+
+import (
+	"scrigo/ast"
+)
+
+func checkScript(tree *ast.Tree, main *GoPackage) (_ *PackageInfo, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(*Error); ok {
+				err = rerr
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	tc := newTypechecker(true)
+	tc.universe = universe
+	tc.scopes = append(tc.scopes, main.toTypeCheckerScope())
+	tc.checkNodesInNewScope(tree.Nodes)
+	pkgInfo := &PackageInfo{}
+	pkgInfo.UpValues = tc.upValues
+	return pkgInfo, err
+}

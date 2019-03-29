@@ -17,6 +17,42 @@ type GoPackage struct {
 	Declarations map[string]interface{}
 }
 
+func (gp *GoPackage) toTypeCheckerScope() typeCheckerScope {
+	s := make(typeCheckerScope, len(gp.Declarations))
+	for ident, value := range gp.Declarations {
+		// Importing a Go type.
+		if t, ok := value.(reflect.Type); ok {
+			s[ident] = scopeElement{t: &TypeInfo{
+				Type:       t,
+				Properties: PropertyIsType | PropertyGoImplemented,
+			}}
+			continue
+		}
+		// Importing a Go variable.
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			s[ident] = scopeElement{t: &TypeInfo{
+				Type:       reflect.TypeOf(value).Elem(),
+				Properties: PropertyAddressable | PropertyGoImplemented,
+			}}
+			continue
+		}
+		// Importing a Go global function.
+		if reflect.TypeOf(value).Kind() == reflect.Func {
+			s[ident] = scopeElement{t: &TypeInfo{
+				Type:       reflect.TypeOf(value),
+				Properties: PropertyGoImplemented,
+			}}
+			continue
+		}
+		// Importing a Go constant.
+		s[ident] = scopeElement{t: &TypeInfo{
+			Value:      value, // TODO (Gianluca): to review.
+			Properties: PropertyIsConstant | PropertyGoImplemented,
+		}}
+	}
+	return s
+}
+
 type PackageInfo struct {
 	Name                 string
 	Declarations         map[string]*TypeInfo
@@ -65,7 +101,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 		return fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
-	tc := newTypechecker()
+	tc := newTypechecker(false)
 	tc.universe = universe
 
 	for _, n := range packageNode.Declarations {
@@ -79,36 +115,8 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					return tc.errorf(n, "cannot find package %q", n.Path)
 				}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
-				for ident, value := range goPkg.Declarations {
-					// Importing a Go type.
-					if t, ok := value.(reflect.Type); ok {
-						importedPkg.Declarations[ident] = &TypeInfo{
-							Type:       t,
-							Properties: PropertyIsType | PropertyGoImplemented,
-						}
-						continue
-					}
-					// Importing a Go variable.
-					if reflect.TypeOf(value).Kind() == reflect.Ptr {
-						importedPkg.Declarations[ident] = &TypeInfo{
-							Type:       reflect.TypeOf(value).Elem(),
-							Properties: PropertyAddressable | PropertyGoImplemented,
-						}
-						continue
-					}
-					// Importing a Go global function.
-					if reflect.TypeOf(value).Kind() == reflect.Func {
-						importedPkg.Declarations[ident] = &TypeInfo{
-							Type:       reflect.TypeOf(value),
-							Properties: PropertyGoImplemented,
-						}
-						continue
-					}
-					// Importing a Go constant.
-					importedPkg.Declarations[ident] = &TypeInfo{
-						Value:      value, // TODO (Gianluca): to review.
-						Properties: PropertyIsConstant | PropertyGoImplemented,
-					}
+				for n, d := range goPkg.toTypeCheckerScope() {
+					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = goPkg.Name
 			} else {

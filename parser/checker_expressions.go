@@ -128,6 +128,7 @@ type typechecker struct {
 	unusedImports    map[string][]string
 	typeInfo         map[ast.Node]*TypeInfo
 	upValues         map[*ast.Identifier]bool
+	isScript         bool
 
 	// Variable initialization support structures.
 	// TODO (Gianluca): can be simplified?
@@ -139,17 +140,18 @@ type typechecker struct {
 	globalTemp     map[string]*TypeInfo
 }
 
-func newTypechecker() *typechecker {
+func newTypechecker(isScript bool) *typechecker {
 	return &typechecker{
-		imports:          make(map[string]PackageInfo),
-		universe:         make(typeCheckerScope),
 		filePackageBlock: make(typeCheckerScope),
+		globalTemp:       make(map[string]*TypeInfo),
 		hasBreak:         make(map[ast.Node]bool),
-		unusedImports:    make(map[string][]string),
+		imports:          make(map[string]PackageInfo),
+		isScript:         isScript,
 		typeInfo:         make(map[ast.Node]*TypeInfo),
+		universe:         make(typeCheckerScope),
+		unusedImports:    make(map[string][]string),
 		upValues:         make(map[*ast.Identifier]bool),
 		varDeps:          make(map[string][]string),
-		globalTemp:       make(map[string]*TypeInfo),
 	}
 }
 
@@ -170,18 +172,21 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	cut := len(tc.unusedVars)
-	for i := len(tc.unusedVars) - 1; i >= 0; i-- {
-		v := tc.unusedVars[i]
-		if v.scopeLevel < len(tc.scopes)-1 {
-			break
+	if !tc.isScript {
+		cut := len(tc.unusedVars)
+		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
+			v := tc.unusedVars[i]
+			if v.scopeLevel < len(tc.scopes)-1 {
+				break
+			}
+			if v.node != nil {
+				panic(tc.errorf(v.node, "%s declared and not used", v.ident))
+
+			}
+			cut = i
 		}
-		if v.node != nil {
-			panic(tc.errorf(v.node, "%s declared and not used", v.ident))
-		}
-		cut = i
+		tc.unusedVars = tc.unusedVars[:cut]
 	}
-	tc.unusedVars = tc.unusedVars[:cut]
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 }
 
