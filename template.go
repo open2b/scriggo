@@ -546,7 +546,7 @@ type Program struct {
 type Script struct {
 	tree      *ast.Tree
 	typecheck map[string]*parser.PackageInfo
-	main      *Package
+	main      *parser.GoPackage
 }
 
 type PackageReader struct {
@@ -582,6 +582,9 @@ func (c *Compiler) Compile(src io.Reader) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
+	if _, ok := tree.Nodes[0].(*ast.Package); !ok {
+		return nil, errors.New("expected package") // TODO (Gianluca): to review.
+	}
 	program.tree = tree
 	program.typecheck = p.TypeCheckInfos()
 	program.packages = make(map[string]*Package, len(c.packages))
@@ -591,16 +594,19 @@ func (c *Compiler) Compile(src io.Reader) (*Program, error) {
 	return program, nil
 }
 
-func CompileScript(src io.Reader, main *Package) (*Script, error) {
+func CompileScript(src io.Reader, main *parser.GoPackage) (*Script, error) {
 	buf, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}
 	r := parser.MapReader{"/main": buf}
-	p := parser.New(r, nil, true)
+	p := parser.New(r, map[string]*parser.GoPackage{"main": main}, true)
 	tree, err := p.Parse("/main", ast.ContextNone)
 	if err != nil {
 		return nil, err
+	}
+	if _, ok := tree.Nodes[0].(*ast.Package); ok {
+		return nil, errors.New("unexpected package") // TODO (Gianluca): to review.
 	}
 	return &Script{tree: tree, typecheck: p.TypeCheckInfos(), main: main}, nil
 }
@@ -609,17 +615,20 @@ func Execute(p *Program) error {
 	return RunPackageTree(p.tree, p.packages, p.typecheck)
 }
 
-//func ExecuteScript(s *Script, vars map[string]interface{}) error {
-//	globalScope, err := globalsToScope(globals)
-//	if err != nil {
-//		return nil, err
-//	}
-//	r := &rendering{
-//		scope:       map[string]scope{},
-//		path:        s.tree.Path,
-//		vars:        []scope{builtins, p.globalScope, {}},
-//		treeContext: ast.ContextNone,
-//		handleError: stopOnError,
-//	}
-//	return r.render(nil, s.tree.Nodes, nil)
-//}
+func ExecuteScript(s *Script, vars map[string]interface{}) error {
+	mainValues, err := globalsToScope(s.main)
+	if err != nil {
+		return err
+	}
+	for n, v := range vars {
+		mainValues[n] = v
+	}
+	r := &rendering{
+		scope:       map[string]scope{},
+		path:        s.tree.Path,
+		vars:        []scope{builtins, mainValues, {}},
+		treeContext: ast.ContextNone,
+		handleError: stopOnError,
+	}
+	return r.render(nil, s.tree.Nodes, nil)
+}

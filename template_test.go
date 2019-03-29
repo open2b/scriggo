@@ -722,7 +722,7 @@ func TestScrigoImport(t *testing.T) {
 
 		// just "main".
 		parser.MapReader(map[string][]byte{
-			"main.go": []byte(
+			"/main.go": []byte(
 				`package main
 				func main() {
 				}`),
@@ -730,13 +730,13 @@ func TestScrigoImport(t *testing.T) {
 
 		// "main" importing "pkg".
 		parser.MapReader(map[string][]byte{
-			"main.go": []byte(
+			"/main.go": []byte(
 				`package main
 				import "pkg"
 				func main() {
 					pkg.F()
 				}`),
-			"pkg.go": []byte(
+			"/pkg.go": []byte(
 				`package pkg
 				func F() {
 					println("hi!")
@@ -745,19 +745,19 @@ func TestScrigoImport(t *testing.T) {
 
 		// "main" importing "pkg1" importing "pkg2" (1).
 		parser.MapReader(map[string][]byte{
-			"main.go": []byte(
+			"/main.go": []byte(
 				`package main
 				import "pkg1"
 				func main() {
 					pkg1.F()
 				}`),
-			"pkg1.go": []byte(
+			"/pkg1.go": []byte(
 				`package pkg1
 				import "pkg2"
 				func F() {
 					pkg2.G()
 				}`),
-			"pkg2.go": []byte(
+			"/pkg2.go": []byte(
 				`package pkg2
 				func G() {
 					println("hi!")
@@ -766,19 +766,19 @@ func TestScrigoImport(t *testing.T) {
 
 		// "main" importing "pkg1" importing "pkg2" (2).
 		parser.MapReader(map[string][]byte{
-			"main.go": []byte(
+			"/main.go": []byte(
 				`package main
 				import . "pkg1"
 				func main() {
 					F()
 				}`),
-			"pkg1.go": []byte(
+			"/pkg1.go": []byte(
 				`package pkg1
 				import p2 "pkg2"
 				func F() {
 					p2.G()
 				}`),
-			"pkg2.go": []byte(
+			"/pkg2.go": []byte(
 				`package pkg2
 				func G() {
 					println("hi!")

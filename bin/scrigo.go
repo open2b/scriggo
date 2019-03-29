@@ -7,12 +7,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"scrigo"
 
-	"scrigo/ast"
 	"scrigo/parser"
 )
 
@@ -41,29 +42,31 @@ func main() {
 
 	if ext == ".sgo" {
 
-		p := parser.New(r, packages, true)
-		tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
+		src, err := ioutil.ReadFile(absFile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		r := bytes.NewReader(src)
+		s, err := scrigo.CompileScript(r, &parser.GoPackage{})
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		err = scrigo.ExecuteScript(s, nil)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
 
-		pkgs := make(map[string]*scrigo.Package, len(packages))
-		for n, pkg := range packages {
-			pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
-		}
-
-		err = scrigo.RunScriptTree(tree, nil)
-
 	} else {
-
+		
 		compiler := scrigo.NewCompiler(r, packages)
 		f, err := os.Open(file)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		defer f.Close()
 		program, err := compiler.Compile(f)
 		if err != nil {
 			fmt.Println(err)
@@ -71,10 +74,11 @@ func main() {
 		}
 		f.Close()
 		err = scrigo.Execute(program)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 
-	}
-	if err != nil {
-		fmt.Println(err)
 	}
 
 }

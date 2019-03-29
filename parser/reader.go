@@ -172,9 +172,10 @@ func (r MapReader) Read(path string, ctx ast.Context) ([]byte, error) {
 	if !validPath(path) {
 		return nil, ErrInvalidPath
 	}
-	if path[0] == '/' {
-		path = path[1:]
-	}
+	// TODO (Gianluca): to review.
+	// if path[0] == '/' {
+	// 	path = path[1:]
+	// }
 	src, ok := r[path]
 	if !ok {
 		return nil, ErrNotExist
