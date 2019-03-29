@@ -39,22 +39,39 @@ func main() {
 	}
 	r := parser.DirReader(filepath.Dir(absFile))
 
-	p := parser.New(r, packages, true)
-	tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
-	}
-
-	pkgs := make(map[string]*scrigo.Package, len(packages))
-	for n, pkg := range packages {
-		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
-	}
-
 	if ext == ".sgo" {
+
+		p := parser.New(r, packages, true)
+		tree, err := p.Parse(filepath.Base(file), ast.ContextNone)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+
+		pkgs := make(map[string]*scrigo.Package, len(packages))
+		for n, pkg := range packages {
+			pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
+		}
+
 		err = scrigo.RunScriptTree(tree, nil)
+
 	} else {
-		err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfos())
+
+		compiler := scrigo.NewCompiler(r, packages)
+		f, err := os.Open(file)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		defer f.Close()
+		program, err := compiler.Compile(f)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		f.Close()
+		err = scrigo.Execute(program)
+
 	}
 	if err != nil {
 		fmt.Println(err)

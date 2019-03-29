@@ -15,7 +15,6 @@ import (
 	"sync"
 
 	"scrigo"
-	"scrigo/ast"
 	"scrigo/parser"
 )
 
@@ -44,9 +43,9 @@ func runScrigoAndGetOutput(src []byte) string {
 		out <- buf.String()
 	}()
 	wg.Wait()
-	r := parser.MapReader{"main": src}
-	p := parser.New(r, packages, true)
-	tree, err := p.Parse("main", ast.ContextNone)
+
+	compiler := scrigo.NewCompiler(nil, packages)
+	program, err := compiler.Compile(bytes.NewBuffer(src))
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
@@ -54,11 +53,8 @@ func runScrigoAndGetOutput(src []byte) string {
 		}
 		return msg
 	}
-	pkgs := make(map[string]*scrigo.Package, len(packages))
-	for n, pkg := range packages {
-		pkgs[n] = &scrigo.Package{Name: pkg.Name, Declarations: pkg.Declarations}
-	}
-	err = scrigo.RunPackageTree(tree, pkgs, p.TypeCheckInfos())
+	err = scrigo.Execute(program)
+
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {

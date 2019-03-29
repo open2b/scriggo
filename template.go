@@ -536,3 +536,90 @@ func convertError(err error) error {
 	}
 	return err
 }
+
+type Program struct {
+	tree      *ast.Tree
+	packages  map[string]*Package
+	typecheck map[string]*parser.PackageInfo
+}
+
+type Script struct {
+	tree      *ast.Tree
+	typecheck map[string]*parser.PackageInfo
+	main      *Package
+}
+
+type PackageReader struct {
+	src    io.Reader
+	reader parser.Reader
+}
+
+func (pr PackageReader) Read(path string, _ ast.Context) ([]byte, error) {
+	if path == "/main" {
+		src, err := ioutil.ReadAll(pr.src)
+		if err != nil {
+			return nil, err
+		}
+		return src, nil
+	}
+	return pr.reader.Read(path, ast.ContextNone)
+}
+
+type Compiler struct {
+	reader   parser.Reader
+	packages map[string]*parser.GoPackage
+}
+
+func NewCompiler(reader parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
+	return &Compiler{reader: reader, packages: packages}
+}
+
+func (c *Compiler) Compile(src io.Reader) (*Program, error) {
+	var program = &Program{}
+	pr := PackageReader{src: src, reader: c.reader}
+	p := parser.New(pr, c.packages, true)
+	tree, err := p.Parse("/main", ast.ContextNone)
+	if err != nil {
+		return nil, err
+	}
+	program.tree = tree
+	program.typecheck = p.TypeCheckInfos()
+	program.packages = make(map[string]*Package, len(c.packages))
+	for n, pkg := range c.packages {
+		program.packages[n] = &Package{Name: pkg.Name, Declarations: pkg.Declarations}
+	}
+	return program, nil
+}
+
+func CompileScript(src io.Reader, main *Package) (*Script, error) {
+	buf, err := ioutil.ReadAll(src)
+	if err != nil {
+		return nil, err
+	}
+	r := parser.MapReader{"/main": buf}
+	p := parser.New(r, nil, true)
+	tree, err := p.Parse("/main", ast.ContextNone)
+	if err != nil {
+		return nil, err
+	}
+	return &Script{tree: tree, typecheck: p.TypeCheckInfos(), main: main}, nil
+}
+
+func Execute(p *Program) error {
+	return RunPackageTree(p.tree, p.packages, p.typecheck)
+}
+
+//func ExecuteScript(s *Script, vars map[string]interface{}) error {
+//	globalScope, err := globalsToScope(globals)
+//	if err != nil {
+//		return nil, err
+//	}
+//	r := &rendering{
+//		scope:       map[string]scope{},
+//		path:        s.tree.Path,
+//		vars:        []scope{builtins, p.globalScope, {}},
+//		treeContext: ast.ContextNone,
+//		handleError: stopOnError,
+//	}
+//	return r.render(nil, s.tree.Nodes, nil)
+//}
