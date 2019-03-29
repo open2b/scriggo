@@ -33,6 +33,16 @@ type output struct {
 	msg        string
 }
 
+func (o output) String() string {
+	if o.outputType == outputParseCheckerError {
+		return "parsing or checking error: " + o.msg
+	}
+	if o.outputType == outputRenderingError {
+		return "rendering error: " + o.msg
+	}
+	return o.msg
+}
+
 func runScrigoAndGetOutput(src []byte) output {
 	reader, writer, err := os.Pipe()
 	if err != nil {
