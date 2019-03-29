@@ -28,8 +28,8 @@ func main() {
 
 	file := os.Args[1]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".sgo" {
-		fmt.Printf("%s: extension must be \".go\" for main packages and \".sgo\" for scripts\n", file)
+	if ext != ".go" && ext != ".gos" {
+		fmt.Printf("%s: extension must be \".go\" for main packages and \".gos\" for scripts\n", file)
 		os.Exit(-1)
 	}
 
@@ -40,7 +40,7 @@ func main() {
 	}
 	r := parser.DirReader(filepath.Dir(absFile))
 
-	if ext == ".sgo" {
+	if ext == ".gos" {
 
 		src, err := ioutil.ReadFile(absFile)
 		if err != nil {
@@ -60,7 +60,7 @@ func main() {
 		}
 
 	} else {
-		
+
 		compiler := scrigo.NewCompiler(r, packages)
 		f, err := os.Open(file)
 		if err != nil {
