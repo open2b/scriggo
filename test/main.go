@@ -20,7 +20,20 @@ import (
 
 var packages map[string]*parser.GoPackage
 
-func runScrigoAndGetOutput(src []byte) string {
+type outputType uint8
+
+const (
+	outputOk outputType = iota
+	outputParseCheckerError
+	outputRenderingError
+)
+
+type output struct {
+	outputType outputType
+	msg        string
+}
+
+func runScrigoAndGetOutput(src []byte) output {
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		panic(err)
@@ -49,21 +62,37 @@ func runScrigoAndGetOutput(src []byte) string {
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
-			return msg[1:]
+			return output{
+				outputType: outputParseCheckerError,
+				msg:        msg[1:],
+			}
 		}
-		return msg
+		return output{
+			outputType: outputParseCheckerError,
+			msg:        msg,
+		}
+
 	}
 	err = scrigo.Execute(program)
 
 	if err != nil {
 		msg := err.Error()
 		if msg[0] == ':' {
-			return msg[1:]
+			return output{
+				outputType: outputRenderingError,
+				msg:        msg[1:],
+			}
 		}
-		return msg
+		return output{
+			outputType: outputRenderingError,
+			msg:        msg,
+		}
 	}
 	writer.Close()
-	return <-out
+	return output{
+		outputType: outputOk,
+		msg:        <-out,
+	}
 }
 
 var golangErrorReg = regexp.MustCompile(`[\w\. ]+:(\d+):(\d+):\s(.*)`)
@@ -77,7 +106,7 @@ func extractInfosFromGoErrorMessage(msg string) (int, int, string) {
 	return line, column, errorMsg
 }
 
-func runGoAndGetOutput(src []byte) string {
+func runGoAndGetOutput(src []byte) output {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "scrigotesting")
 	if err != nil {
 		panic(err)
@@ -106,9 +135,16 @@ func runGoAndGetOutput(src []byte) string {
 	out := stdout.String() + stderr.String()
 	if golangErrorReg.MatchString(out) {
 		line, column, errorMsg := extractInfosFromGoErrorMessage(out)
-		return fmt.Sprintf("%d:%d: %s", line, column, errorMsg)
+		return output{
+			outputType: outputParseCheckerError,
+			msg:        fmt.Sprintf("%d:%d: %s", line, column, errorMsg),
+		}
+
 	}
-	return out
+	return output{
+		outputType: outputOk,
+		msg:        out,
+	}
 }
 
 const testsDir = "sources"
@@ -184,6 +220,13 @@ func main() {
 				}
 				scrigoOut := runScrigoAndGetOutput(src)
 				goOut := runGoAndGetOutput(src)
+				if (scrigoOut.outputType != outputOk || goOut.outputType != outputOk) && (dir.Name() != "errors") {
+					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
+					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
+				}
+				if (scrigoOut.outputType == outputOk) && (goOut.outputType == outputOk) && (dir.Name() == "errors") {
+					fmt.Printf("\nTest %q should return error, but it does not\n", path)
+				}
 				if scrigoOut == goOut {
 					if verbose {
 						fmt.Println("OK!")
