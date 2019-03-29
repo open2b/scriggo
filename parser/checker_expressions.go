@@ -650,7 +650,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
 			}
 			if key.IsConstant() {
-				ti := &TypeInfo{Type: t.Type.Key(), Value: key.Value}
+				ti := &TypeInfo{Type: t.Type.Key(), Value: key.Value, Properties: PropertyIsConstant}
 				value := typedValue(ti, emptyInterfaceType)
 				node := ast.NewValue(value)
 				tc.replaceTypeInfo(expr.Index, node)
@@ -1345,7 +1345,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if a.IsConstant() {
 			var value interface{}
 			if t.GoImplemented() {
-				ti := &TypeInfo{Type: in, Value: a.Value}
+				ti := &TypeInfo{Type: in, Value: a.Value, Properties: PropertyIsConstant}
 				value = typedValue(ti, emptyInterfaceType)
 			} else {
 				value = typedValue(a, in)
