@@ -28,7 +28,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 	tc.terminating = false
 
-	for _, node := range nodes {
+	for i, node := range nodes {
 
 		switch node := node.(type) {
 
@@ -304,7 +304,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case ast.Expression:
 
 			tc.checkExpression(node)
-			panic(tc.errorf(node, "%s evaluated but not used", node))
+			isLastScriptStatement := tc.isScript && len(tc.scopes) == 2 && i == len(nodes)-1
+			if !isLastScriptStatement {
+				panic(tc.errorf(node, "%s evaluated but not used", node))
+			}
 
 		default:
 
