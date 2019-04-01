@@ -40,6 +40,9 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 				if !isExported(funcDecl.Name.Name) {
 					continue
 				}
+				if funcDecl.Recv != nil { // is a method.
+					continue
+				}
 				out[funcDecl.Name.Name] = pkgBase + "." + funcDecl.Name.Name
 			} else if genDecl, ok := decl.(*ast.GenDecl); ok {
 				switch genDecl.Tok {
