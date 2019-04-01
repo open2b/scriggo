@@ -19,8 +19,6 @@ import (
 
 var packages map[string]*parser.GoPackage
 
-type outputType uint8
-
 type output struct {
 	path        string
 	column, row string
