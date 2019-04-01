@@ -537,7 +537,9 @@ Nodes:
 			} else {
 				if node.Values == nil {
 					// var a, b int
-					panic("not implemented, needs type checker")
+					// TODO (Gianluca): assign zero.
+					panic("not implemented")
+
 				} else {
 					// var a, b int = 3, 4
 					variables := make([]ast.Expression, len(node.Identifiers))

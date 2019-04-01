@@ -40,6 +40,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[i]))
 				}
 			}
+			// Replaces the type node with a value holding a reflect.Type.
+			new := ast.NewValue(n.Type)
+			tc.replaceTypeInfo(n.Type, new)
+			n.Type = new
 			return
 		}
 
