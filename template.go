@@ -664,3 +664,11 @@ func ExecuteScript(s *Script, vars map[string]interface{}) ([]interface{}, error
 	}
 	return ret.args, nil
 }
+
+func Eval(src string) ([]interface{}, error) {
+	script, err := CompileScript(strings.NewReader(src), &parser.GoPackage{})
+	if err != nil {
+		return nil, err
+	}
+	return ExecuteScript(script, nil)
+}
