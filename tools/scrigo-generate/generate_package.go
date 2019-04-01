@@ -77,7 +77,7 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 						if !isExported(spec.Name.Name) {
 							continue
 						}
-						out[spec.Name.Name] = "reflect.TypeOf(" + pkgBase + "." + spec.Name.Name + ")"
+						out[spec.Name.Name] = "reflect.TypeOf(new(" + pkgBase + "." + spec.Name.Name + ")).Elem()"
 					}
 				}
 			}
