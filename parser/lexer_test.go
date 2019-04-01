@@ -12,7 +12,7 @@ import (
 	"scrigo/ast"
 )
 
-var typeTests = map[string][]tokenType{
+var typeTests = map[string][]tokenTyp{
 	``:                             {},
 	`a`:                            {tokenText},
 	`{`:                            {tokenText},
@@ -137,7 +137,7 @@ var typeTests = map[string][]tokenType{
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 }
 
-var typeTestsNoneContext = map[string][]tokenType{
+var typeTestsNoneContext = map[string][]tokenTyp{
 	``:                {},
 	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
 	"// a comment\n":  {},
@@ -316,7 +316,7 @@ var scanAttributeTests = []struct {
 	{"5c=\"", "5c", '"', 3, 1, 4},
 }
 
-func testLexerTypes(t *testing.T, test map[string][]tokenType, ctx ast.Context) {
+func testLexerTypes(t *testing.T, test map[string][]tokenTyp, ctx ast.Context) {
 TYPES:
 	for source, types := range test {
 		var lex = newLexer([]byte(source), ctx)

@@ -644,7 +644,7 @@ func exprListString(elements []ast.Expression) string {
 }
 
 // operatorType returns a operator type from a token type.
-func operatorType(typ tokenType) ast.OperatorType {
+func operatorType(typ tokenTyp) ast.OperatorType {
 	switch typ {
 	case tokenEqual:
 		return ast.OperatorEqual

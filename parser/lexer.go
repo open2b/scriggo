@@ -73,13 +73,13 @@ func (l *lexer) errorf(format string, args ...interface{}) *SyntaxError {
 
 // emit emits a token of type typ and length length at the current line and
 // column.
-func (l *lexer) emit(typ tokenType, length int) {
+func (l *lexer) emit(typ tokenTyp, length int) {
 	l.emitAtLineColumn(l.line, l.column, typ, length)
 }
 
 // emitAtLineColumn emits a token of type typ and length length at a specific
 // line and column.
-func (l *lexer) emitAtLineColumn(line, column int, typ tokenType, length int) {
+func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 	var txt []byte
 	if length > 0 {
 		txt = l.src[0:length]

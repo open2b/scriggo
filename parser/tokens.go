@@ -13,84 +13,84 @@ import (
 )
 
 // Token type.
-type tokenType int
+type tokenTyp int
 
 const (
-	tokenText                     tokenType = iota
-	tokenStartURL                           // start url
-	tokenEndURL                             // and url
-	tokenStartStatement                     // {%
-	tokenEndStatement                       // %}
-	tokenStartValue                         // {{
-	tokenEndValue                           // }}
-	tokenDeclaration                        // :=
-	tokenSimpleAssignment                   // =
-	tokenAdditionAssignment                 // +=
-	tokenSubtractionAssignment              // -=
-	tokenMultiplicationAssignment           // *=
-	tokenDivisionAssignment                 // /=
-	tokenModuloAssignment                   // %=
-	tokenPackage                            // package
-	tokenFor                                // for
-	tokenIn                                 // in
-	tokenRange                              // range
-	tokenBreak                              // break
-	tokenContinue                           // continue
-	tokenSwitch                             // switch
-	tokenCase                               // case
-	tokenDefault                            // default
-	tokenFallthrough                        // fallthrough
-	tokenSwitchType                         // type
-	tokenInterface                          // interface
-	tokenMap                                // map
-	tokenIf                                 // if
-	tokenElse                               // else
-	tokenExtends                            // extends
-	tokenImport                             // import
-	tokenInclude                            // include
-	tokenShow                               // show
-	tokenMacro                              // macro
-	tokenFunc                               // func
-	tokenReturn                             // return
-	tokenEnd                                // end
-	tokenVar                                // var
-	tokenConst                              // const
-	tokenComment                            // comment
-	tokenInterpretedString                  // "abc"
-	tokenRawString                          // `abc`
-	tokenRune                               // 'a'
-	tokenIdentifier                         // customerName
-	tokenPeriod                             // .
-	tokenLeftParenthesis                    // (
-	tokenRightParenthesis                   // )
-	tokenLeftBrackets                       // [
-	tokenRightBrackets                      // ]
-	tokenLeftBraces                         // {
-	tokenRightBraces                        // }
-	tokenColon                              // :
-	tokenComma                              // ,
-	tokenSemicolon                          // ;
-	tokenEllipses                           // ...
-	tokenFloat                              // 12.895
-	tokenInt                                // 18
-	tokenEqual                              // ==
-	tokenNotEqual                           // !=
-	tokenNot                                // !
-	tokenAmpersand                          // &
-	tokenLess                               // <
-	tokenLessOrEqual                        // <=
-	tokenGreater                            // >
-	tokenGreaterOrEqual                     // >=
-	tokenAnd                                // &&
-	tokenOr                                 // ||
-	tokenAddition                           // +
-	tokenSubtraction                        // -
-	tokenMultiplication                     // *
-	tokenDivision                           // /
-	tokenModulo                             // %
-	tokenIncrement                          // ++
-	tokenDecrement                          // --
-	tokenEOF                                // eof
+	tokenText                     tokenTyp = iota
+	tokenStartURL                          // start url
+	tokenEndURL                            // and url
+	tokenStartStatement                    // {%
+	tokenEndStatement                      // %}
+	tokenStartValue                        // {{
+	tokenEndValue                          // }}
+	tokenDeclaration                       // :=
+	tokenSimpleAssignment                  // =
+	tokenAdditionAssignment                // +=
+	tokenSubtractionAssignment             // -=
+	tokenMultiplicationAssignment          // *=
+	tokenDivisionAssignment                // /=
+	tokenModuloAssignment                  // %=
+	tokenPackage                           // package
+	tokenFor                               // for
+	tokenIn                                // in
+	tokenRange                             // range
+	tokenBreak                             // break
+	tokenContinue                          // continue
+	tokenSwitch                            // switch
+	tokenCase                              // case
+	tokenDefault                           // default
+	tokenFallthrough                       // fallthrough
+	tokenSwitchType                        // type
+	tokenInterface                         // interface
+	tokenMap                               // map
+	tokenIf                                // if
+	tokenElse                              // else
+	tokenExtends                           // extends
+	tokenImport                            // import
+	tokenInclude                           // include
+	tokenShow                              // show
+	tokenMacro                             // macro
+	tokenFunc                              // func
+	tokenReturn                            // return
+	tokenEnd                               // end
+	tokenVar                               // var
+	tokenConst                             // const
+	tokenComment                           // comment
+	tokenInterpretedString                 // "abc"
+	tokenRawString                         // `abc`
+	tokenRune                              // 'a'
+	tokenIdentifier                        // customerName
+	tokenPeriod                            // .
+	tokenLeftParenthesis                   // (
+	tokenRightParenthesis                  // )
+	tokenLeftBrackets                      // [
+	tokenRightBrackets                     // ]
+	tokenLeftBraces                        // {
+	tokenRightBraces                       // }
+	tokenColon                             // :
+	tokenComma                             // ,
+	tokenSemicolon                         // ;
+	tokenEllipses                          // ...
+	tokenFloat                             // 12.895
+	tokenInt                               // 18
+	tokenEqual                             // ==
+	tokenNotEqual                          // !=
+	tokenNot                               // !
+	tokenAmpersand                         // &
+	tokenLess                              // <
+	tokenLessOrEqual                       // <=
+	tokenGreater                           // >
+	tokenGreaterOrEqual                    // >=
+	tokenAnd                               // &&
+	tokenOr                                // ||
+	tokenAddition                          // +
+	tokenSubtraction                       // -
+	tokenMultiplication                    // *
+	tokenDivision                          // /
+	tokenModulo                            // %
+	tokenIncrement                         // ++
+	tokenDecrement                         // --
+	tokenEOF                               // eof
 
 	// Tokens not yet supported.
 	tokenChan
@@ -101,7 +101,7 @@ const (
 	tokenSelect
 )
 
-var tokenString = map[tokenType]string{
+var tokenString = map[tokenTyp]string{
 	tokenText:                     "text",
 	tokenStartURL:                 "start url",
 	tokenEndURL:                   "end url",
@@ -187,7 +187,7 @@ var tokenString = map[tokenType]string{
 	tokenSelect: "select",
 }
 
-func (tt tokenType) String() string {
+func (tt tokenTyp) String() string {
 	if s, ok := tokenString[tt]; ok {
 		return s
 	}
@@ -196,7 +196,7 @@ func (tt tokenType) String() string {
 
 // Information about a token to return.
 type token struct {
-	typ tokenType     // type
+	typ tokenTyp      // type
 	pos *ast.Position // position in the buffer
 	txt []byte        // token text
 	ctx ast.Context   // context
