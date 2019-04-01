@@ -1348,6 +1348,9 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 	}
 
 	if p.typeCheck {
+		if len(tree.Nodes) == 0 {
+			return nil, &SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
+		}
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
 			err := checkPackage(tree, p.packages, p.packageInfos)
 			if err != nil {
