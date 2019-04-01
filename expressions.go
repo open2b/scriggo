@@ -1477,7 +1477,7 @@ func hasType(v interface{}, typ reflect.Type) (bool, error) {
 
 // evalFunc evaluates a function literal expression in a single context.
 func (r *rendering) evalFunc(node *ast.Func) interface{} {
-	upValues := make(map[string]interface{}, len(node.Upvalues))
+	upValues := make(scope, len(node.Upvalues))
 	for _, uv := range node.Upvalues {
 		for i := len(r.vars) - 1; i >= 0; i-- {
 			if r.vars[i] == nil {
@@ -1488,7 +1488,8 @@ func (r *rendering) evalFunc(node *ast.Func) interface{} {
 			}
 		}
 	}
-	return function{r.path, node, upValues}
+	vars := []scope{r.vars[0], r.vars[1], r.vars[2], upValues}
+	return newFunction(r.path, node, vars, r.scope)
 }
 
 // evalIndex evaluates an index expression in a single context.

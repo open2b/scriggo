@@ -83,9 +83,63 @@ type macro struct {
 
 // function represents a function in a scope.
 type function struct {
-	path     string
-	node     *ast.Func
-	upValues map[string]interface{}
+	path   string
+	scope  map[string]scope
+	node   *ast.Func
+	vars   []scope
+	goFunc interface{}
+}
+
+func newFunction(path string, node *ast.Func, vars []scope, scope map[string]scope) function {
+	return function{path: path, node: node, vars: vars, scope: scope}
+}
+
+func (fn function) Func() interface{} {
+	if fn.goFunc == nil {
+		// TODO: compattare gli scopes
+		fn.goFunc = reflect.MakeFunc(fn.node.Type.Reflect, func(args []reflect.Value) []reflect.Value {
+			arguments := scope{}
+			for i, p := range fn.node.Type.Parameters {
+				if name := p.Ident.Name; name != "_" {
+					arguments[name] = args[i].Interface()
+				}
+			}
+			result, err := fn.call(arguments)
+			if err != nil {
+				panic(err)
+			}
+			return result
+		})
+	}
+	return fn.goFunc
+}
+
+func (fn function) call(args scope) ([]reflect.Value, error) {
+
+	vars := make([]scope, len(fn.vars)+1)
+	copy(vars, fn.vars)
+	vars = append(vars, args)
+
+	rn := &rendering{
+		path:        fn.path,
+		scope:       fn.scope,
+		vars:        vars,
+		treeContext: ast.ContextNone,
+		handleError: stopOnError,
+		function:    fn,
+	}
+	err := rn.render(nil, fn.node.Body.Nodes, nil)
+	ret, ok := err.(returnError)
+	if !ok {
+		return nil, err
+	}
+
+	result := make([]reflect.Value, len(ret.args))
+	for i, value := range ret.args {
+		result[i] = reflect.ValueOf(value)
+	}
+
+	return result, nil
 }
 
 // urlState represents the rendering of rendering an URL.
@@ -449,28 +503,16 @@ Nodes:
 					return err
 				}
 			}
-			isLastScriptStatement := node.Ident == nil
-			if isLastScriptStatement {
-				fn := reflect.MakeFunc(node.Type.Reflect, func(args []reflect.Value) []reflect.Value {
-					arguments := scope{}
-					for i, p := range node.Type.Parameters {
-						if name := p.Ident.Name; name != "_" {
-							arguments[name] = args[i].Interface()
-						}
-					}
-					result, err := r.callFunction(r.evalFunc(node).(function), arguments)
-					if err != nil {
-						panic(err)
-					}
-					return result
-				})
-				return returnError{args: []interface{}{fn.Interface()}}
-			}
 			name := node.Ident.Name
 			if name == "_" {
 				continue
 			}
-			r.vars[2][name] = function{r.path, node, nil}
+			r.vars[2][name] = newFunction(r.path, node, r.vars[0:2], r.scope)
+			isLastScriptStatement := node.Ident == nil
+			if isLastScriptStatement {
+				fn := newFunction(r.path, node, r.vars[0:2], r.scope)
+				return returnError{args: []interface{}{fn}}
+			}
 
 		case *ast.Return:
 			if wr != nil {

@@ -88,11 +88,11 @@ func (r *rendering) evalCallN(node *ast.Call) ([]reflect.Value, error) {
 
 // evalCallFunc evaluates a call expression in n-values context and returns
 // its values. It returns an error if n > 0 and the function does not return n values.
-func (r *rendering) evalCallFunc(node *ast.Call, fun function) ([]reflect.Value, error) {
+func (r *rendering) evalCallFunc(node *ast.Call, fn function) ([]reflect.Value, error) {
 
 	var err error
 
-	typ := fun.node.Type
+	typ := fn.node.Type
 
 	haveSize := len(node.Args)
 	wantSize := len(typ.Parameters)
@@ -155,40 +155,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function) ([]reflect.Value,
 		}
 	}
 
-	return r.callFunction(fun, args)
-}
-
-// callFunction a function and returns the results or an error.
-func (r *rendering) callFunction(fun function, args scope) ([]reflect.Value, error) {
-
-	var vars []scope
-	if ident := fun.node.Ident; ident != nil {
-		sc := r.scope[fun.path]
-		vars = []scope{r.vars[0], r.vars[1], r.vars[2], fun.upValues, sc, args}
-	} else {
-		vars = []scope{r.vars[0], r.vars[1], r.vars[2], fun.upValues, args}
-	}
-
-	rn := &rendering{
-		scope:       r.scope,
-		path:        fun.path,
-		vars:        vars,
-		treeContext: r.treeContext,
-		handleError: r.handleError,
-		function:    fun,
-	}
-	err := rn.render(nil, fun.node.Body.Nodes, nil)
-	ret, ok := err.(returnError)
-	if !ok {
-		return nil, err
-	}
-
-	result := make([]reflect.Value, len(ret.args))
-	for i, value := range ret.args {
-		result[i] = reflect.ValueOf(value)
-	}
-
-	return result, nil
+	return fn.call(args)
 }
 
 // evalReflectCall evaluates a call expression with reflect in n-values
