@@ -571,7 +571,7 @@ func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
 	var sv2 reflect.Value
 	l, c := sv.Len(), sv.Cap()
 	p := 0
-	if l+n <= c {
+	if l+m <= c {
 		sv2 = reflect.MakeSlice(t, m, m)
 		sv = sv.Slice3(0, c, c)
 	} else {
