@@ -101,7 +101,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 		return fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
-	tc := newTypechecker(false)
+	tc := newTypechecker(tree.Path, false)
 	tc.universe = universe
 
 	for _, n := range packageNode.Declarations {

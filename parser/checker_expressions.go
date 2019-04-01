@@ -140,13 +140,14 @@ type typechecker struct {
 	globalTemp     map[string]*TypeInfo
 }
 
-func newTypechecker(isScript bool) *typechecker {
+func newTypechecker(path string, isScript bool) *typechecker {
 	return &typechecker{
+		isScript:         isScript,
+		path:             path,
 		filePackageBlock: make(typeCheckerScope),
 		globalTemp:       make(map[string]*TypeInfo),
 		hasBreak:         make(map[ast.Node]bool),
 		imports:          make(map[string]PackageInfo),
-		isScript:         isScript,
 		typeInfo:         make(map[ast.Node]*TypeInfo),
 		universe:         make(typeCheckerScope),
 		unusedImports:    make(map[string][]string),

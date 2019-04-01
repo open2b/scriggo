@@ -14,7 +14,7 @@ func checkScript(tree *ast.Tree, main *GoPackage) (_ *PackageInfo, err error) {
 			}
 		}
 	}()
-	tc := newTypechecker(true)
+	tc := newTypechecker(tree.Path, true)
 	tc.universe = universe
 	if main != nil {
 		tc.scopes = append(tc.scopes, main.toTypeCheckerScope())
