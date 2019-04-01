@@ -43,6 +43,7 @@ package ast
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 )
 
@@ -315,14 +316,15 @@ func (n *Field) String() string {
 // FuncType node represents a function type.
 type FuncType struct {
 	expression
-	*Position           // position in the source.
-	Parameters []*Field // parameters.
-	Result     []*Field // result.
-	IsVariadic bool     // indicates if it is variadic.
+	*Position               // position in the source.
+	Parameters []*Field     // parameters.
+	Result     []*Field     // result.
+	IsVariadic bool         // indicates if it is variadic.
+	Reflect    reflect.Type // reflect type.
 }
 
 func NewFuncType(pos *Position, parameters []*Field, result []*Field, isVariadic bool) *FuncType {
-	return &FuncType{expression{}, pos, parameters, result, isVariadic}
+	return &FuncType{expression{}, pos, parameters, result, isVariadic, nil}
 }
 
 func (n *FuncType) String() string {
