@@ -226,7 +226,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
 	}
 
-	newVars := ""
+	newVars := []string{}
 	tmpScope := typeCheckerScope{}
 	for i := range vars {
 		var newVar string
@@ -258,9 +258,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(vars[i]) {
 			panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
 		}
-		newVars = newVars + newVar
+		for _, v := range newVars {
+			if newVar == v {
+				panic(tc.errorf(node, "%s repeated on left side of :=", vars[i]))
+			}
+		}
+		if newVar != "" {
+			newVars = append(newVars, newVar)
+		}
 	}
-	if newVars == "" && isDecl && !isVar && !isConst {
+	if len(newVars) == 0 && isDecl && !isVar && !isConst {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
