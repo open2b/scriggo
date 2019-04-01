@@ -233,9 +233,11 @@ func main() {
 				if (scrigoOut.outputType != outputOk || goOut.outputType != outputOk) && (dir.Name() != "errors") {
 					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
 					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
+					return
 				}
 				if (scrigoOut.outputType == outputOk) && (goOut.outputType == outputOk) && (dir.Name() == "errors") {
-					fmt.Printf("\nTest %q should return error, but it does not\n", path)
+					fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
+					return
 				}
 				if scrigoOut == goOut {
 					if verbose {
