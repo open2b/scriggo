@@ -40,7 +40,7 @@ const (
 	tokenCase                              // case
 	tokenDefault                           // default
 	tokenFallthrough                       // fallthrough
-	tokenSwitchType                        // type
+	tokenType                              // type
 	tokenInterface                         // interface
 	tokenMap                               // map
 	tokenIf                                // if
@@ -126,7 +126,7 @@ var tokenString = map[tokenTyp]string{
 	tokenCase:                     "case",
 	tokenDefault:                  "default",
 	tokenFallthrough:              "fallthrough",
-	tokenSwitchType:               "type",
+	tokenType:                     "type",
 	tokenInterface:                "interface",
 	tokenMap:                      "map",
 	tokenIf:                       "if",

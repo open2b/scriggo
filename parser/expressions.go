@@ -441,7 +441,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					}
 					var typ ast.Expression
 					switch tok.typ {
-					case tokenSwitchType:
+					case tokenType:
 						if !canBeSwitchGuard {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 						}

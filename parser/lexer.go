@@ -981,7 +981,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "switch":
 		l.emit(tokenSwitch, p)
 	case "type":
-		l.emit(tokenSwitchType, p)
+		l.emit(tokenType, p)
 	case "var":
 		l.emit(tokenVar, p)
 	default:
