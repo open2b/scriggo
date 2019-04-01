@@ -501,7 +501,7 @@ func TestExpressions(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*Error); ok {
+					if err, ok := r.(*SyntaxError); ok {
 						t.Errorf("source: %q, %s\n", expr.src, err)
 					} else {
 						panic(r)

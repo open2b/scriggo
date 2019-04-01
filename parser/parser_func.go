@@ -31,13 +31,13 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	tok = next(p.lex)
 	if tok.typ == tokenIdentifier {
 		if kind&parseFuncDecl == 0 {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
 		}
 		ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = next(p.lex)
 	} else if kind^parseFuncDecl == 0 {
 		// Node to parse must be a function declaration.
-		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 	}
 	// Parses the function parameters.
 	names := map[string]struct{}{}
@@ -65,7 +65,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		return typ, tok
 	}
 	if tok.typ != tokenLeftBraces {
-		panic(&Error{"", *ident.Position, fmt.Errorf("missing function body")})
+		panic(&SyntaxError{"", *ident.Position, fmt.Errorf("missing function body")})
 	}
 	body := ast.NewBlock(tok.pos, nil)
 	node := ast.NewFunc(pos, ident, typ, body)
@@ -88,7 +88,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult bool) ([]*ast.Field, bool, *ast.Position) {
 
 	if tok.typ != tokenLeftParenthesis {
-		panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting (", tok)})
 	}
 
 	var ok bool
@@ -114,29 +114,29 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 		}
 		if tok.typ == tokenEllipses {
 			if isResult {
-				panic(&Error{"", *tok.pos, fmt.Errorf("cannot use ... in receiver or result parameter list")})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use ... in receiver or result parameter list")})
 			}
 			if field.Type != nil {
 				if field.Ident, ok = field.Type.(*ast.Identifier); !ok {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", field.Type)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", field.Type)})
 				}
 				field.Type = nil
 			}
 			isVariadic = true
 			tok = next(p.lex)
 		} else if field.Type == nil {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 		}
 		expr, tok = p.parseExpr(tok, false, false, true, false)
 		if expr == nil {
 			if isVariadic {
-				panic(&Error{"", *tok.pos, fmt.Errorf("final argument in variadic function missing type")})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("final argument in variadic function missing type")})
 			}
 		} else {
 			if !isVariadic {
 				var ok bool
 				if field.Ident, ok = field.Type.(*ast.Identifier); !ok {
-					panic(&Error{"", *pos, fmt.Errorf("unexpected %s, expecting )", field.Type)})
+					panic(&SyntaxError{"", *pos, fmt.Errorf("unexpected %s, expecting )", field.Type)})
 				}
 			}
 			field.Type = expr
@@ -146,10 +146,10 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 			break
 		}
 		if tok.typ != tokenComma {
-			panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or ", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting comma or ", tok)})
 		}
 		if isVariadic {
-			panic(&Error{"", *field.Type.Pos(), fmt.Errorf("can only use ... with final parameter in list")})
+			panic(&SyntaxError{"", *field.Type.Pos(), fmt.Errorf("can only use ... with final parameter in list")})
 		}
 	}
 
@@ -157,20 +157,20 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 		if last := fields[len(fields)-1]; last.Ident == nil {
 			for _, field := range fields {
 				if field.Ident != nil {
-					panic(&Error{"", *pos, fmt.Errorf("mixed named and unnamed function parameters")})
+					panic(&SyntaxError{"", *pos, fmt.Errorf("mixed named and unnamed function parameters")})
 				}
 			}
 		} else {
 			for _, field := range fields {
 				if field.Ident == nil {
 					if field.Ident, ok = field.Type.(*ast.Identifier); !ok {
-						panic(&Error{"", *(field.Type.Pos()), fmt.Errorf("unexpected %s, expecting )", field.Type)})
+						panic(&SyntaxError{"", *(field.Type.Pos()), fmt.Errorf("unexpected %s, expecting )", field.Type)})
 					}
 					field.Type = nil
 				}
 				name := field.Ident.Name
 				if _, ok := names[name]; ok {
-					panic(&Error{"", *field.Ident.Position, fmt.Errorf("duplicate argument %s", name)})
+					panic(&SyntaxError{"", *field.Ident.Position, fmt.Errorf("duplicate argument %s", name)})
 				}
 				if name != "_" {
 					names[name] = struct{}{}

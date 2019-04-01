@@ -58,8 +58,8 @@ func (l *lexer) newline() {
 	l.column = 1
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) *Error {
-	return &Error{
+func (l *lexer) errorf(format string, args ...interface{}) *SyntaxError {
+	return &SyntaxError{
 		Path: "",
 		Pos: ast.Position{
 			Line:   l.line,

@@ -349,6 +349,18 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 	return i
 }
 
+// Error records a typechecking error with the path and the position where the
+// error occurred.
+type Error struct {
+	Path string
+	Pos  ast.Position
+	Err  error
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
+}
+
 // errorf builds and returns a type check error.
 func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...interface{}) error {
 	var pos *ast.Position

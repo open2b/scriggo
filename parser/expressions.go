@@ -167,10 +167,10 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			var expr ast.Expression
 			expr, tok = p.parseExpr(token{}, false, false, mustBeType, false)
 			if expr == nil {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			if tok.typ != tokenRightParenthesis {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 			}
 			operand = expr
 			operand.Pos().Start = pos.Start
@@ -182,17 +182,17 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			mapType := ast.NewMapType(tok.pos, nil, nil)
 			tok = next(p.lex)
 			if tok.typ != tokenLeftBrackets {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting [", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting [", tok)})
 			}
 			var typ ast.Expression
 			typ, tok = p.parseExpr(token{}, false, false, true, false)
 			if tok.typ != tokenRightBrackets {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
 			}
 			mapType.KeyType = typ
 			typ, tok = p.parseExpr(token{}, false, false, true, false)
 			if typ == nil {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 			}
 			mapType.Position.End = typ.Pos().End
 			mapType.ValueType = typ
@@ -202,11 +202,11 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			pos := tok.pos
 			tok = next(p.lex)
 			if tok.typ != tokenLeftBraces {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
 			}
 			tok = next(p.lex)
 			if tok.typ != tokenRightBraces {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 			}
 			pos.End = tok.pos.End
 			operand = ast.NewIdentifier(pos, "interface{}")
@@ -246,7 +246,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
 			if mustBeType {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecting type", tok.txt)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecting type", tok.txt)})
 			}
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
@@ -264,7 +264,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				if tok.typ == tokenPeriod {
 					tok = next(p.lex)
 					if tok.typ != tokenIdentifier {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 					}
 					ident := parseIdentifierNode(tok)
 					operand = ast.NewSelector(tok.pos, operand, ident.Name)
@@ -287,17 +287,17 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				oldTok := tok
 				expr, tok = p.parseExpr(tok, false, false, false, false)
 				if expr == nil {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", oldTok)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", oldTok)})
 				}
 				length = expr
 			}
 			if tok.typ != tokenRightBrackets {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 			}
 			var typ ast.Expression
 			typ, tok = p.parseExpr(token{}, false, false, true, false)
 			if typ == nil {
-				panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 			pos.End = typ.Pos().End
 			switch {
@@ -317,14 +317,14 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			if operator != nil {
 				op, ok := operator.(*ast.UnaryOperator)
 				if !ok || op.Operator() != ast.OperatorMultiplication {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operator)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operator)})
 				}
 			}
 			if operand != nil {
 				switch operand.(type) {
 				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector, *ast.FuncType:
 				default:
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
 				}
 			}
 		}
@@ -364,7 +364,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 						var value ast.Expression
 						value, tok = p.parseExpr(token{}, false, false, false, false)
 						if value == nil {
-							panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
 						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
 					default:
@@ -375,7 +375,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					}
 				}
 				if tok.typ != tokenRightBraces {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or }", tok)})
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewCompositeLiteral(pos, operand, keyValues)
@@ -386,13 +386,13 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				var isVariadic bool
 				if tok.typ == tokenEllipses {
 					if len(args) == 0 {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
 					}
 					isVariadic = true
 					tok = next(p.lex)
 				}
 				if tok.typ != tokenRightParenthesis {
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
@@ -406,16 +406,16 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					var high ast.Expression
 					high, tok = p.parseExpr(token{}, false, false, false, false)
 					if tok.typ != tokenRightBrackets {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewSlicing(pos, operand, low, high)
 				} else {
 					if tok.typ != tokenRightBrackets {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 					}
 					if index == nil {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected ], expecting expression")})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ], expecting expression")})
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewIndex(pos, operand, index)
@@ -429,7 +429,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					// e.ident
 					ident := string(tok.txt)
 					if ident == "_" {
-						panic(&Error{"", *tok.pos, fmt.Errorf("cannot refer to blank field")})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot refer to blank field")})
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewSelector(pos, operand, ident)
@@ -437,31 +437,31 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					// e.(ident), e.(pkg.ident)
 					tok = next(p.lex)
 					if len(tok.txt) == 1 && tok.txt[0] == '_' {
-						panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 					}
 					var typ ast.Expression
 					switch tok.typ {
 					case tokenSwitchType:
 						if !canBeSwitchGuard {
-							panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
+							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 						}
 						mustBeSwitchGuard = true
 						tok = next(p.lex)
 					case tokenIdentifier:
 						if len(tok.txt) == 1 && tok.txt[0] == '_' {
-							panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
+							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 						}
 						fallthrough
 					default:
 						typ, tok = p.parseExpr(tok, false, true, true, false)
 					}
 					if tok.typ != tokenRightParenthesis {
-						panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 					}
 					pos.End = tok.pos.End
 					operand = ast.NewTypeAssertion(pos, operand, typ)
 				default:
-					panic(&Error{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name or (", tok)})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name or (", tok)})
 				}
 			case
 				tokenEqual,          // e ==
@@ -502,11 +502,11 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				}
 				if mustBeBlank {
 					if ident, ok := operand.(*ast.Identifier); !ok || ident.Name != "_" {
-						panic(&Error{"", *ident.Position, fmt.Errorf("cannot use _ as value")})
+						panic(&SyntaxError{"", *ident.Position, fmt.Errorf("cannot use _ as value")})
 					}
 				}
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
-					panic(&Error{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
 				}
 				if skip {
 					tok = backupTok
