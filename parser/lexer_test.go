@@ -153,6 +153,8 @@ var typeTestsNoneContext = map[string][]tokenTyp{
 	"var a":                               {tokenVar, tokenIdentifier, tokenSemicolon},
 	"var a int = 5":                       {tokenVar, tokenIdentifier, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenSemicolon},
 	"const b, c = 8, 10":                  {tokenConst, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenComma, tokenInt, tokenSemicolon},
+	"type Int int":                        {tokenType, tokenIdentifier, tokenIdentifier, tokenSemicolon},
+	"type stringSlice []string":           {tokenType, tokenIdentifier, tokenLeftBrackets, tokenRightBrackets, tokenIdentifier, tokenSemicolon},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{
