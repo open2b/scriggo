@@ -18,7 +18,7 @@ import (
 // evalCall evaluates a call expression in a single-val context. It returns
 // an error if the function
 func (r *rendering) evalCall(node *ast.Call) interface{} {
-	results, err := r.evalCallN(node, 1)
+	results, err := r.evalCallN(node)
 	if err != nil {
 		panic(err)
 	}
@@ -28,7 +28,7 @@ func (r *rendering) evalCall(node *ast.Call) interface{} {
 // evalCallN evaluates a call expression in n-values context and returns its
 // values. It returns an error if n > 0 and the function does not return n
 // values.
-func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalCallN(node *ast.Call) ([]reflect.Value, error) {
 	// TODO(marco): manage the special case f(g(parameters_of_g)).
 	// TODO(marco): manage the special case f(a, b...) in function call.
 
@@ -45,19 +45,19 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 		if isBuiltin {
 			switch ident.Name {
 			case "append":
-				return r.evalAppend(node, n)
+				return r.evalAppend(node)
 			case "copy":
-				return r.evalCopy(node, n)
+				return r.evalCopy(node)
 			case "delete":
-				return r.evalDelete(node, n)
+				return r.evalDelete(node)
 			case "len":
-				return r.evalLen(node, n)
+				return r.evalLen(node)
 			case "make":
-				return r.evalMake(node, n)
+				return r.evalMake(node)
 			case "new":
-				return r.evalNew(node, n)
+				return r.evalNew(node)
 			case "panic":
-				return r.evalPanic(node, n)
+				return r.evalPanic(node)
 			}
 		}
 	}
@@ -68,7 +68,7 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 
 	if f, ok := f.(function); ok {
-		return r.evalCallFunc(node, f, n)
+		return r.evalCallFunc(node, f)
 	}
 
 	// Makes a type conversion.
@@ -83,12 +83,12 @@ func (r *rendering) evalCallN(node *ast.Call, n int) ([]reflect.Value, error) {
 	// Makes a call with reflect.
 	fun := reflect.ValueOf(f)
 
-	return r.evalReflectCall(node, fun, n)
+	return r.evalReflectCall(node, fun)
 }
 
 // evalCallFunc evaluates a call expression in n-values context and returns
 // its values. It returns an error if n > 0 and the function does not return n values.
-func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect.Value, error) {
+func (r *rendering) evalCallFunc(node *ast.Call, fun function) ([]reflect.Value, error) {
 
 	var err error
 
@@ -188,7 +188,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function, n int) ([]reflect
 // evalReflectCall evaluates a call expression with reflect in n-values
 // context and returns its values. It returns an error if n > 0 and the
 // function does not return n values.
-func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value, n int) ([]reflect.Value, error) {
+func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value) ([]reflect.Value, error) {
 
 	if fun.IsNil() {
 		return nil, r.errorf(node, "call of nil function")
@@ -516,7 +516,7 @@ func convert(value interface{}, typ reflect.Type) (interface{}, error) {
 }
 
 // evalAppend evaluates the append builtin function.
-func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalAppend(node *ast.Call) ([]reflect.Value, error) {
 
 	slice, err := r.eval(node.Args[0])
 	if err != nil {
@@ -604,7 +604,7 @@ func (r *rendering) evalAppend(node *ast.Call, n int) ([]reflect.Value, error) {
 }
 
 // evalCopy evaluates the copy builtin function.
-func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalCopy(node *ast.Call) ([]reflect.Value, error) {
 	dst := r.evalExpression(node.Args[0])
 	src := r.evalExpression(node.Args[1])
 	switch d := dst.(type) {
@@ -638,12 +638,12 @@ func (r *rendering) evalCopy(node *ast.Call, n int) ([]reflect.Value, error) {
 	}
 	d := reflect.ValueOf(dst)
 	s := reflect.ValueOf(src)
-	n = reflect.Copy(d, s)
+	n := reflect.Copy(d, s)
 	return []reflect.Value{reflect.ValueOf(n)}, nil
 }
 
 // evalDelete evaluates the delete builtin function.
-func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalDelete(node *ast.Call) ([]reflect.Value, error) {
 	m := r.evalExpression(node.Args[0])
 	k, err := r.mapIndex(node.Args[1], interfaceType)
 	if err != nil {
@@ -673,7 +673,7 @@ func (r *rendering) evalDelete(node *ast.Call, n int) ([]reflect.Value, error) {
 }
 
 // evalLen evaluates the len builtin function.
-func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalLen(node *ast.Call) ([]reflect.Value, error) {
 	arg := node.Args[0]
 	v := r.evalExpression(arg)
 	var length int
@@ -714,7 +714,7 @@ func (r *rendering) evalLen(node *ast.Call, n int) ([]reflect.Value, error) {
 	return []reflect.Value{reflect.ValueOf(length)}, nil
 }
 
-func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalMake(node *ast.Call) ([]reflect.Value, error) {
 	typ, err := r.evalType(node.Args[0], noEllipses)
 	if err != nil {
 		return nil, err
@@ -767,7 +767,7 @@ func (r *rendering) evalMake(node *ast.Call, n int) ([]reflect.Value, error) {
 }
 
 // evalNew evaluates the new builtin function.
-func (r *rendering) evalNew(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalNew(node *ast.Call) ([]reflect.Value, error) {
 	typ, err := r.evalType(node.Args[0], noEllipses)
 	if err != nil {
 		return nil, err
@@ -795,7 +795,7 @@ goroutine [running]:
 }
 
 // evalPanic evaluates the panic builtin function.
-func (r *rendering) evalPanic(node *ast.Call, n int) ([]reflect.Value, error) {
+func (r *rendering) evalPanic(node *ast.Call) ([]reflect.Value, error) {
 	v, err := r.eval(node.Args[0])
 	if err != nil {
 		return nil, err

@@ -52,7 +52,7 @@ func (r *rendering) eval(expr ast.Expression) (value interface{}, err error) {
 // eval0 evaluates expr in a void context. It returns an error if the
 // expression evaluates to a value.
 func (r *rendering) eval0(expr ast.Expression) error {
-	_, err := r.evalCallN(expr.(*ast.Call), 0)
+	_, err := r.evalCallN(expr.(*ast.Call))
 	return err
 }
 
@@ -95,7 +95,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 		case *ast.Index:
 			return r.evalIndex2(e, 2)
 		case *ast.Call:
-			values, err := r.evalCallN(e, 2)
+			values, err := r.evalCallN(e)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -146,7 +146,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, error) {
 	if len(expressions) == 1 && n > 1 {
 		if e, ok := expressions[0].(*ast.Call); ok {
-			vals, err := r.evalCallN(e, n)
+			vals, err := r.evalCallN(e)
 			if err != nil {
 				return nil, err
 			}
