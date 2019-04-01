@@ -1471,6 +1471,8 @@ func hasType(v interface{}, typ reflect.Type) (bool, error) {
 		}
 		return reflect.TypeOf(n) == typ, nil
 
+	} else if t == functionType {
+		return typ == v.(function).node.Type.Reflect, nil
 	}
 	return t == typ || t == htmlType && typ == stringType, nil
 }

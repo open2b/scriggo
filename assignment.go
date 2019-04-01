@@ -240,6 +240,9 @@ func (addr varAddress) assign(value interface{}) error {
 		addr.Value.SetBool(v)
 	case []byte:
 		addr.Value.SetBytes(v)
+	case function:
+		// TODO(marco): necessary only if the identifier is exported
+		addr.Value.Set(reflect.ValueOf(v.Func()))
 	default:
 		addr.Value.Set(reflect.ValueOf(v))
 	}
@@ -256,6 +259,9 @@ type goMapAddress struct {
 }
 
 func (addr goMapAddress) assign(value interface{}) (err error) {
+	if fn, ok := value.(function); ok {
+		value = fn.Func()
+	}
 	addr.Map.SetMapIndex(addr.Key, reflect.ValueOf(value))
 	return nil
 }
@@ -273,6 +279,9 @@ type goSliceAddress struct {
 }
 
 func (addr goSliceAddress) assign(value interface{}) error {
+	if fn, ok := value.(function); ok {
+		value = fn.Func()
+	}
 	addr.Slice.Index(addr.Index).Set(reflect.ValueOf(value))
 	return nil
 }

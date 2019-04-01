@@ -191,6 +191,8 @@ func (r *rendering) evalReflectCall(node *ast.Call, fun reflect.Value) ([]reflec
 		}
 
 		switch a := arg.(type) {
+		case function:
+			arg = a.Func()
 		case HTML:
 			if in != htmlType && in == stringType {
 				arg = string(a)

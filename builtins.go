@@ -41,6 +41,7 @@ var interf = interface{}(nil)
 var stringType = reflect.TypeOf("")
 var htmlType = reflect.TypeOf(HTML(""))
 var constantNumberType = reflect.TypeOf(ConstantNumber{})
+var functionType = reflect.TypeOf(function{})
 var intType = reflect.TypeOf(0)
 var int64Type = reflect.TypeOf(int64(0))
 var int32Type = reflect.TypeOf(int32(0))
@@ -300,14 +301,17 @@ func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
 		if err != nil {
 			return reflect.Value{}, err
 		}
-		if n, ok := v.(ConstantNumber); ok {
-			v, err = n.ToType(typ)
+		switch v2 := v.(type) {
+		case ConstantNumber:
+			v, err = v2.ToType(typ)
 			if err != nil {
 				if e, ok := err.(errConstantOverflow); ok {
 					return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
 				}
 				return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
 			}
+		case function:
+			v = v2.Func()
 		}
 		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
 	}

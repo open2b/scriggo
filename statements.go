@@ -109,7 +109,7 @@ func (fn function) Func() interface{} {
 				panic(err)
 			}
 			return result
-		})
+		}).Interface()
 	}
 	return fn.goFunc
 }
@@ -511,7 +511,7 @@ Nodes:
 			isLastScriptStatement := node.Ident == nil
 			if isLastScriptStatement {
 				fn := newFunction(r.path, node, r.vars[0:2], r.scope)
-				return returnError{args: []interface{}{fn}}
+				return returnError{args: []interface{}{fn.Func()}}
 			}
 
 		case *ast.Return:
