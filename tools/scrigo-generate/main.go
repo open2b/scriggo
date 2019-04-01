@@ -1,3 +1,9 @@
+// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
+// https://www.open2b.com
+
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -8,9 +14,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+
 	"scrigo/ast"
 	"scrigo/parser"
-	"strings"
 )
 
 func printErrorAndQuit(err interface{}) {
@@ -18,6 +25,7 @@ func printErrorAndQuit(err interface{}) {
 	os.Exit(1)
 }
 
+// goImports runs "goimports" on path.
 func goImports(path string) error {
 	cmd := exec.Command("goimports", "-w", path)
 	stderr := bytes.Buffer{}
@@ -69,7 +77,7 @@ func main() {
 		packages = append(packages, imp.Path)
 	}
 
-	out := generateMultiplePackages(packages, importsFile, customVariableName, pkg.Name)
+	out := generatePackages(packages, importsFile, customVariableName, pkg.Name)
 
 	importsFileBase := filepath.Base(importsFile)
 	importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
