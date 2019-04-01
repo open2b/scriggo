@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -22,25 +21,53 @@ var packages map[string]*parser.GoPackage
 
 type outputType uint8
 
-const (
-	outputOk outputType = iota
-	outputParseCheckerError
-	outputRenderingError
-)
-
 type output struct {
-	outputType outputType
-	msg        string
+	path        string
+	column, row string
+	msg         string
+}
+
+func makeOutput(msg string) output {
+	r := regexp.MustCompile(`([\w\. ]*):(\d+):(\d+):\s(.*)`)
+	if !r.MatchString(msg) {
+		return output{msg: msg}
+	}
+	m := r.FindStringSubmatch(msg)
+	path := m[1]
+	column := m[2]
+	row := m[3]
+	msg = m[4]
+	return output{
+		path:   path,
+		column: column,
+		row:    row,
+		msg:    msg,
+	}
+}
+
+func (o output) match(o2 output) bool {
+	if o.column != o2.column {
+		return false
+	}
+	if o.msg != o2.msg {
+		return false
+	}
+	return true
+}
+
+func (o output) isErr() bool {
+	return o.column != "" && o.row != ""
 }
 
 func (o output) String() string {
-	if o.outputType == outputParseCheckerError {
-		return "parsing or checking error: " + o.msg
+	if !o.isErr() {
+		return o.msg
 	}
-	if o.outputType == outputRenderingError {
-		return "rendering error: " + o.msg
+	path := o.path
+	if path == "" {
+		path = "[nopath]"
 	}
-	return o.msg
+	return path + ":" + o.column + ":" + o.row + " " + o.msg
 }
 
 func runScrigoAndGetOutput(src []byte) output {
@@ -70,50 +97,16 @@ func runScrigoAndGetOutput(src []byte) output {
 	compiler := scrigo.NewCompiler(nil, packages)
 	program, err := compiler.Compile(bytes.NewBuffer(src))
 	if err != nil {
-		msg := err.Error()
-		if msg[0] == ':' {
-			return output{
-				outputType: outputParseCheckerError,
-				msg:        msg[1:],
-			}
-		}
-		return output{
-			outputType: outputParseCheckerError,
-			msg:        msg,
-		}
+		return makeOutput(err.Error())
 
 	}
 	err = scrigo.Execute(program)
 
 	if err != nil {
-		msg := err.Error()
-		if msg[0] == ':' {
-			return output{
-				outputType: outputRenderingError,
-				msg:        msg[1:],
-			}
-		}
-		return output{
-			outputType: outputRenderingError,
-			msg:        msg,
-		}
+		return makeOutput(err.Error())
 	}
 	writer.Close()
-	return output{
-		outputType: outputOk,
-		msg:        <-out,
-	}
-}
-
-var golangErrorReg = regexp.MustCompile(`[\w\. ]+:(\d+):(\d+):\s(.*)`)
-
-func extractInfosFromGoErrorMessage(msg string) (int, int, string) {
-	match := golangErrorReg.FindStringSubmatch(msg)
-	line, _ := strconv.Atoi(match[1])
-	column, _ := strconv.Atoi(match[2])
-	errorMsg := match[3]
-	errorMsg = strings.Replace(errorMsg, "syntax error: ", "", 1)
-	return line, column, errorMsg
+	return makeOutput(<-out)
 }
 
 func runGoAndGetOutput(src []byte) output {
@@ -143,18 +136,7 @@ func runGoAndGetOutput(src []byte) output {
 	cmd.Stderr = &stderr
 	_ = cmd.Run()
 	out := stdout.String() + stderr.String()
-	if golangErrorReg.MatchString(out) {
-		line, column, errorMsg := extractInfosFromGoErrorMessage(out)
-		return output{
-			outputType: outputParseCheckerError,
-			msg:        fmt.Sprintf("%d:%d: %s", line, column, errorMsg),
-		}
-
-	}
-	return output{
-		outputType: outputOk,
-		msg:        out,
-	}
+	return makeOutput(out)
 }
 
 const testsDir = "sources"
@@ -165,6 +147,7 @@ func fatal(a interface{}) {
 
 func main() {
 	verbose := false
+	veryVerbose := false
 	mustRecover := true
 	pattern := ""
 	for i, arg := range os.Args {
@@ -174,8 +157,12 @@ func main() {
 		if arg == "-n" || arg == "--no-recover" {
 			mustRecover = false
 		}
+		if arg == "-V" || arg == "--veryVerbose" {
+			veryVerbose = true
+			verbose = true
+		}
 		if arg == "-h" || arg == "--help" {
-			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--help|-h] [--pattern|-p PATTERN]\n", os.Args[0])
+			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--veryVerbose|-V] [--help|-h] [--pattern|-p PATTERN]\n", os.Args[0])
 			os.Exit(0)
 		}
 		if arg == "-p" || arg == "--pattern" {
@@ -230,16 +217,19 @@ func main() {
 				}
 				scrigoOut := runScrigoAndGetOutput(src)
 				goOut := runGoAndGetOutput(src)
-				if (scrigoOut.outputType != outputOk || goOut.outputType != outputOk) && (dir.Name() != "errors") {
+				if (scrigoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
 					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
 					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
 					return
 				}
-				if (scrigoOut.outputType == outputOk) && (goOut.outputType == outputOk) && (dir.Name() == "errors") {
+				if !scrigoOut.isErr() && !goOut.isErr() && (dir.Name() == "errors") {
 					fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
 					return
 				}
-				if scrigoOut == goOut {
+				if scrigoOut.match(goOut) {
+					if veryVerbose {
+						fmt.Printf("\noutput:\n%s\n", scrigoOut)
+					}
 					if verbose {
 						fmt.Println("OK!")
 					}
