@@ -155,6 +155,12 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function) ([]reflect.Value,
 		}
 	}
 
+	return r.callFunction(fun, args)
+}
+
+// callFunction a function and returns the results or an error.
+func (r *rendering) callFunction(fun function, args scope) ([]reflect.Value, error) {
+
 	var vars []scope
 	if ident := fun.node.Ident; ident != nil {
 		sc := r.scope[fun.path]
@@ -171,7 +177,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fun function) ([]reflect.Value,
 		handleError: r.handleError,
 		function:    fun,
 	}
-	err = rn.render(nil, fun.node.Body.Nodes, nil)
+	err := rn.render(nil, fun.node.Body.Nodes, nil)
 	ret, ok := err.(returnError)
 	if !ok {
 		return nil, err

@@ -641,10 +641,10 @@ func Execute(p *Program) error {
 	return RunPackageTree(p.tree, p.packages, p.typecheck)
 }
 
-func ExecuteScript(s *Script, vars map[string]interface{}) error {
+func ExecuteScript(s *Script, vars map[string]interface{}) ([]interface{}, error) {
 	mainValues, err := globalsToScope(s.main)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for n, v := range vars {
 		mainValues[n] = v
@@ -655,6 +655,12 @@ func ExecuteScript(s *Script, vars map[string]interface{}) error {
 		vars:        []scope{builtins, mainValues, {}},
 		treeContext: ast.ContextNone,
 		handleError: stopOnError,
+		isScript:    true,
 	}
-	return r.render(nil, s.tree.Nodes, nil)
+	err = r.render(nil, s.tree.Nodes, nil)
+	ret, ok := err.(returnError)
+	if !ok {
+		return nil, err
+	}
+	return ret.args, nil
 }

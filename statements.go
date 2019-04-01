@@ -61,6 +61,7 @@ type rendering struct {
 	handleError    func(error) bool
 	needsReference map[*ast.Identifier]bool
 	packageInfos   map[string]*parser.PackageInfo
+	isScript       bool
 }
 
 // variables scope.
@@ -131,7 +132,7 @@ func (r *rendering) renderBlock(wr io.Writer, block *ast.Block, urlstate *urlSta
 func (r *rendering) render(wr io.Writer, nodes []ast.Node, urlstate *urlState) error {
 
 Nodes:
-	for _, n := range nodes {
+	for i, n := range nodes {
 
 		switch node := n.(type) {
 
@@ -448,6 +449,23 @@ Nodes:
 					return err
 				}
 			}
+			isLastScriptStatement := node.Ident == nil
+			if isLastScriptStatement {
+				fn := reflect.MakeFunc(node.Type.Reflect, func(args []reflect.Value) []reflect.Value {
+					arguments := scope{}
+					for i, p := range node.Type.Parameters {
+						if name := p.Ident.Name; name != "_" {
+							arguments[name] = args[i].Interface()
+						}
+					}
+					result, err := r.callFunction(r.evalFunc(node).(function), arguments)
+					if err != nil {
+						panic(err)
+					}
+					return result
+				})
+				return returnError{args: []interface{}{fn.Interface()}}
+			}
 			name := node.Ident.Name
 			if name == "_" {
 				continue
@@ -752,9 +770,19 @@ Nodes:
 
 		case ast.Expression:
 
-			err := r.eval0(node)
+			var err error
+			var res interface{}
+			if call, ok := node.(*ast.Call); ok {
+				res, err = r.evalCallN(call)
+			} else {
+				res, err = r.eval1(node)
+			}
 			if err != nil && !r.handleError(err) {
 				return err
+			}
+			isLastScriptStatement := r.isScript && r.function.node == nil && i == len(nodes)-1
+			if isLastScriptStatement {
+				return returnError{args: []interface{}{res}}
 			}
 
 		}
