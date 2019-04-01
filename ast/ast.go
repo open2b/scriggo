@@ -490,6 +490,27 @@ func NewCase(pos *Position, expressions []Expression, body []Node, fallThrough b
 	return &Case{pos, expressions, body, fallThrough}
 }
 
+// TypeDeclaration node represents a type declaration, that is an alias
+// declaration or a type definition.
+type TypeDeclaration struct {
+	*Position                      // position in the source.
+	Identifier         *Identifier // identifier of the type.
+	Type               Expression  // expression representing the type.
+	IsAliasDeclaration bool        // indicates if it is an alias declaration or a type definition.
+}
+
+func (td *TypeDeclaration) String() string {
+	if td.IsAliasDeclaration {
+		return fmt.Sprintf("type %s = %s", td.Identifier.Name, td.Type.String())
+	}
+	return fmt.Sprintf("type %s %s", td.Identifier.Name, td.Type.String())
+}
+
+// NewTypeDeclaration returns a new TypeDeclaration node.
+func NewTypeDeclaration(pos *Position, identifier *Identifier, typ Expression, isAliasDeclaration bool) *TypeDeclaration {
+	return &TypeDeclaration{pos, identifier, typ, isAliasDeclaration}
+}
+
 // Macro node represents a statement {% macro ... %}.
 type Macro struct {
 	*Position                // position in the source.

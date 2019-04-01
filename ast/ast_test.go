@@ -7,6 +7,7 @@
 package ast
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 )
@@ -137,6 +138,37 @@ func TestExpressionString(t *testing.T) {
 	for _, e := range expressionStringTests {
 		if e.expr.String() != e.str {
 			t.Errorf("unexpected %q, expecting %q\n", e.expr.String(), e.str)
+		}
+	}
+}
+
+func TestStatementString(t *testing.T) {
+	cases := []struct {
+		node Node
+		str  string
+	}{
+		{
+			NewTypeDeclaration(nil, NewIdentifier(nil, "Int"), NewIdentifier(nil, "int"), false),
+			"type Int int",
+		},
+		{
+			NewTypeDeclaration(nil, NewIdentifier(nil, "StringSlice"), NewSliceType(nil, NewIdentifier(nil, "string")), false),
+			"type StringSlice []string",
+		},
+		{
+			NewTypeDeclaration(nil, NewIdentifier(nil, "Int"), NewIdentifier(nil, "int"), true),
+			"type Int = int",
+		},
+		{
+			NewTypeDeclaration(nil, NewIdentifier(nil, "StringSlice"), NewSliceType(nil, NewIdentifier(nil, "string")), true),
+			"type StringSlice = []string",
+		},
+	}
+	for _, c := range cases {
+		got := fmt.Sprintf("%v", c.node)
+		expected := c.str
+		if got != expected {
+			t.Errorf("expecting: %q, got: %q", expected, got)
 		}
 	}
 }
