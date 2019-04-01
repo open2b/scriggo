@@ -47,7 +47,7 @@ type returnError struct {
 }
 
 func (ret returnError) Error() string {
-	return "non-declaration statement outside function body"
+	return "scrigo: not captured return"
 }
 
 // rendering represents the state of a tree rendering.
