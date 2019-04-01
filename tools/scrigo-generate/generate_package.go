@@ -20,9 +20,9 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
-// goAstToDeclarations navigates a Go ast and returns a map containing the
-// exported declarations.
-func goAstToDeclarations(pkgPath string) (map[string]string, error) {
+// goPackageToDeclarations navigates the package pkgPath and returns a map
+// containing the exported declarations.
+func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 
 	out := make(map[string]string)
 
@@ -41,8 +41,7 @@ func goAstToDeclarations(pkgPath string) (map[string]string, error) {
 					continue
 				}
 				out[funcDecl.Name.Name] = pkgBase + "." + funcDecl.Name.Name
-			}
-			if genDecl, ok := decl.(*ast.GenDecl); ok {
+			} else if genDecl, ok := decl.(*ast.GenDecl); ok {
 				switch genDecl.Tok {
 				case token.CONST, token.VAR:
 					for _, spec := range genDecl.Specs {
@@ -138,7 +137,7 @@ func generatePackage(pkgPath string) string {
 		return ""
 	}
 
-	decls, err := goAstToDeclarations(pkgPath)
+	decls, err := goPackageToDeclarations(pkgPath)
 	if err != nil {
 		panic(err)
 	}
