@@ -52,7 +52,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		err = scrigo.ExecuteScript(s, nil)
+		_, err = scrigo.ExecuteScript(s, nil)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
