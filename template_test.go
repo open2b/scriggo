@@ -720,7 +720,6 @@ func TestRenderCallFunc(t *testing.T) {
 }
 
 func TestScrigoImport(t *testing.T) {
-	return // TODO(marco): fix execution error
 	cases := []parser.MapReader{
 
 		// just "main".

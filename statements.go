@@ -507,7 +507,7 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			r.vars[2][name] = newFunction(r.path, node, r.vars[0:2], r.scope)
+			r.vars[2][name] = newFunction(r.path, node, r.vars[0:3], r.scope)
 			isLastScriptStatement := node.Ident == nil
 			if isLastScriptStatement {
 				fn := newFunction(r.path, node, r.vars[0:2], r.scope)
