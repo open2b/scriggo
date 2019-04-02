@@ -294,26 +294,6 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*packageNameScope, path string) (scope, error) {
-
-	r := &rendering{
-		handleError:  stopOnError,
-		packages:     pkgs,
-		path:         path,
-		scope:        map[string]scope{},
-		treeContext:  ast.ContextNone,
-		vars:         []scope{builtins, {}, {}},
-		packageInfos: pkgInfos,
-	}
-
-	err := r.render(nil, astPkg.Declarations, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.vars[2], nil
-}
-
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
@@ -352,11 +332,11 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*packageNameScope, pkgIn
 		packageInfos:   pkgInfos,
 	}
 
-	var err error
-	r.vars[2], err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
+	err := r.render(nil, pkg.Declarations, nil)
 	if err != nil {
 		return err
 	}
+
 	mf := r.vars[2]["main"]
 	r.scope[tree.Path] = r.vars[2]
 	r.vars = append(r.vars, scope{}) // adds 'main' function scope?

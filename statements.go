@@ -731,12 +731,12 @@ Nodes:
 			if r.treeContext == ast.ContextNone {
 				pkg, ok := r.packages[node.Path]
 				if !ok {
-					packageNode := node.Tree.Nodes[0].(*ast.Package)
-					sc, err := renderPackageBlock(packageNode, r.packageInfos, r.packages, node.Tree.Path)
+					astPkg := node.Tree.Nodes[0].(*ast.Package)
+					err := r.render(nil, astPkg.Declarations, nil)
 					if err != nil {
 						return err
 					}
-					pkg = &packageNameScope{name: packageNode.Name, scope: sc}
+					pkg = &packageNameScope{name: astPkg.Name, scope: r.vars[2]}
 					r.packages[node.Path] = pkg
 				}
 				if node.Ident == nil {
