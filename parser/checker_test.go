@@ -1013,6 +1013,21 @@ var checkerStmts = map[string]string{
 	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
 	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	`make(string)`:            `cannot make type string`,
+
+	// Type definitions.
+	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
+	`type T int            ; var _ T = T(0)`:                     ok,
+	`type T interface{}    ; var _ T`:                            ok,
+	`type T map[string]int ; _ = T{"one": 1}`:                    ok,
+	`type T string         ; _ = []T{"a", "b"}`:                  ok,
+	`type T T2`: undefined("T2"),
+	// `type T int            ; _ = []T{"a", "b"}`:    `cannot convert "a" (type untyped string) to type T`, // TODO.
+	// `type T float64        ; _ = T("a")`:           `cannot convert "a" (type untyped string) to type T`, // TODO.
+	// `type T float64        ; var _ T = float64(0)`: `cannot use float64(0) (type float64) as type T in assignment`, // TODO.
+
+	// Alias declarations.
+	`type T = float64 ; var _ T = float64(0)`: ok,
+	`type T = float64 ; var _ T = int(0)`:     `cannot use int(0) (type int) as type float64 in assignment`,
 }
 
 type pointInt struct{ X, Y int }

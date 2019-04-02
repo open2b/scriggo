@@ -263,6 +263,17 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkAssignment(node)
 			tc.terminating = false
 
+		case *ast.TypeDeclaration:
+			// TODO (Gianluca): it currently evaluates every type
+			// declaration as alias declaration, cause defining new types
+			// is currently not supported.
+			if isBlankIdentifier(node.Identifier) {
+				continue
+			}
+			name := node.Identifier.Name
+			typ := tc.checkType(node.Type, noEllipses)
+			tc.assignScope(name, typ, node.Identifier)
+
 		case *ast.Show:
 
 			tc.checkExpression(node.Expr)
