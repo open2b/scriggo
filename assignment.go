@@ -336,7 +336,7 @@ func (r *rendering) address(variable, expression ast.Expression) (address, error
 		if err != nil {
 			return nil, err
 		}
-		vvv := value.(*Package).Declarations[v.Ident]
+		vvv := value.(*packageNameScope).scope[v.Ident]
 		rv := reflect.ValueOf(vvv)
 		addr = varAddress{Value: rv.Elem()}
 	case *ast.UnaryOperator:

@@ -656,25 +656,25 @@ func TestRenderErrors(t *testing.T) {
 var rendererCallFuncTests = []struct {
 	src     string
 	res     string
-	globals Package
+	globals packageNameScope
 }{
-	{"func f() {}; f()", "", Package{}},
-	{"func f(x int) int { return x }; print(f(2))", "2", Package{}},
-	{"func f(_ int) { }; f(2)", "", Package{}},
-	{"func f(int) {}; f(1)", "", Package{}},
-	{"func f(x, y int) int { return x + y }; print(f(1, 2))", "3", Package{}},
-	{"func f(_, _ int) { }; f(1, 2)", "", Package{}},
-	{"func f(x int, y int) int { return x + y }; print(f(1, 2))", "3", Package{}},
-	{"func f(_ int, y int) int { return y }; print(f(1, 2))", "2", Package{}},
-	{"func f(...int) {}; f(1, 2, 3)", "", Package{}},
-	{"func f(x ...int) int { s := 0; for _, i := range x { s += i }; return s }; print(f(1, 2, 3))", "6", Package{}},
-	{"func f(_ ...int) { }; f(1, 2, 3)", "", Package{}},
-	{"func f(x, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", Package{}},
-	{"func f(_, _ ...int) { }; f(1, 2, 3, 4)", "", Package{}},
-	{"func f(_, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", Package{}},
-	{"func f(x, _ ...int) int { return x }; print(f(1, 2, 3, 4))", "1", Package{}},
-	{"func f(x []int) int { s := 0; for _, i := range x { s += i }; return s }; print(f([]int{1, 2, 3, 4}))", "10", Package{}},
-	{"func f(x, y []int) int { s := 0; for _, i := range y { s += i }; return s }; print(f([]int{1}, []int{2, 3, 4}))", "9", Package{}},
+	{"func f() {}; f()", "", packageNameScope{}},
+	{"func f(x int) int { return x }; print(f(2))", "2", packageNameScope{}},
+	{"func f(_ int) { }; f(2)", "", packageNameScope{}},
+	{"func f(int) {}; f(1)", "", packageNameScope{}},
+	{"func f(x, y int) int { return x + y }; print(f(1, 2))", "3", packageNameScope{}},
+	{"func f(_, _ int) { }; f(1, 2)", "", packageNameScope{}},
+	{"func f(x int, y int) int { return x + y }; print(f(1, 2))", "3", packageNameScope{}},
+	{"func f(_ int, y int) int { return y }; print(f(1, 2))", "2", packageNameScope{}},
+	{"func f(...int) {}; f(1, 2, 3)", "", packageNameScope{}},
+	{"func f(x ...int) int { s := 0; for _, i := range x { s += i }; return s }; print(f(1, 2, 3))", "6", packageNameScope{}},
+	{"func f(_ ...int) { }; f(1, 2, 3)", "", packageNameScope{}},
+	{"func f(x, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", packageNameScope{}},
+	{"func f(_, _ ...int) { }; f(1, 2, 3, 4)", "", packageNameScope{}},
+	{"func f(_, y ...int) int { s := 0; for _, i := range y { s += i }; return s }; print(f(1, 2, 3, 4))", "9", packageNameScope{}},
+	{"func f(x, _ ...int) int { return x }; print(f(1, 2, 3, 4))", "1", packageNameScope{}},
+	{"func f(x []int) int { s := 0; for _, i := range x { s += i }; return s }; print(f([]int{1, 2, 3, 4}))", "10", packageNameScope{}},
+	{"func f(x, y []int) int { s := 0; for _, i := range y { s += i }; return s }; print(f([]int{1}, []int{2, 3, 4}))", "9", packageNameScope{}},
 }
 
 func TestRenderCallFunc(t *testing.T) {

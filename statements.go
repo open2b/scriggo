@@ -55,7 +55,7 @@ type rendering struct {
 	scope          map[string]scope
 	path           string
 	vars           []scope
-	packages       map[string]*Package
+	packages       map[string]*packageNameScope
 	treeContext    ast.Context
 	function       function
 	handleError    func(error) bool
@@ -84,14 +84,13 @@ type macro struct {
 // function represents a function in a scope.
 type function struct {
 	path   string
-	scope  map[string]scope
 	node   *ast.Func
 	vars   []scope
 	goFunc interface{}
 }
 
-func newFunction(path string, node *ast.Func, vars []scope, scope map[string]scope) function {
-	return function{path: path, node: node, vars: vars, scope: scope}
+func newFunction(path string, node *ast.Func, vars []scope) function {
+	return function{path: path, node: node, vars: vars}
 }
 
 func (fn function) Func() interface{} {
@@ -122,7 +121,6 @@ func (fn function) call(args scope) ([]reflect.Value, error) {
 
 	rn := &rendering{
 		path:        fn.path,
-		scope:       fn.scope,
 		vars:        vars,
 		treeContext: ast.ContextNone,
 		handleError: stopOnError,
@@ -507,10 +505,10 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			r.vars[2][name] = newFunction(r.path, node, r.vars[0:3], r.scope)
+			r.vars[2][name] = newFunction(r.path, node, r.vars[0:3])
 			isLastScriptStatement := node.Ident == nil
 			if isLastScriptStatement {
-				fn := newFunction(r.path, node, r.vars[0:2], r.scope)
+				fn := newFunction(r.path, node, r.vars[0:2])
 				return returnError{args: []interface{}{fn.Func()}}
 			}
 
@@ -724,38 +722,23 @@ Nodes:
 		case *ast.Import:
 
 			if r.treeContext == ast.ContextNone {
-				var pkg *Package
-				if node.Tree == nil {
-					var ok bool
-					pkg, ok = r.packages[node.Path]
-					if !ok {
-						return r.errorf(node, "cannot find package %q", node.Path)
+				pkg, ok := r.packages[node.Path]
+				if !ok {
+					packageNode := node.Tree.Nodes[0].(*ast.Package)
+					sc, err := renderPackageBlock(packageNode, r.packageInfos, r.packages, node.Tree.Path)
+					if err != nil {
+						return err
 					}
-				} else {
-					if _, ok := r.scope[node.Tree.Path]; !ok {
-						astPkg, ok := node.Tree.Nodes[0].(*ast.Package)
-						if !ok {
-							return r.errorf(node, "%s is not a Scrigo package", node.Tree.Path)
-						}
-						var err error
-						r.scope, err = renderPackageBlock(astPkg, r.packageInfos, r.packages, node.Tree.Path)
-						if err != nil {
-							return err
-						}
-						pkg = &Package{Name: astPkg.Name}
-						pkg.Declarations = make(map[string]interface{}, len(astPkg.Declarations))
-						for name, decl := range r.scope[node.Tree.Path] {
-							pkg.Declarations[name] = decl
-						}
-					}
+					pkg = &packageNameScope{name: packageNode.Name, scope: sc}
+					r.packages[node.Path] = pkg
 				}
 				if node.Ident == nil {
-					r.vars[2][pkg.Name] = pkg
+					r.vars[2][pkg.name] = pkg
 				} else {
 					switch node.Ident.Name {
 					case "_":
 					case ".":
-						for ident, v := range pkg.Declarations {
+						for ident, v := range pkg.scope {
 							r.vars[2][ident] = v
 						}
 					default:

@@ -26,10 +26,11 @@ var errIntegerDivideByZero = errors.New("integer divide by zero")
 
 var reflectValueNil = reflect.ValueOf(new(interface{})).Elem()
 
-// Package represents a package.
-type Package struct {
-	Name         string
-	Declarations map[string]interface{}
+// packageNameScope represents a package name and its scope as used by the
+// renderer.
+type packageNameScope struct {
+	name  string
+	scope scope
 }
 
 // Bytes implements the mutable bytes values.
@@ -1056,8 +1057,8 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 	if err != nil {
 		return nil, false, err
 	}
-	if p, ok := value.(*Package); ok {
-		v, ok := p.Declarations[node.Ident]
+	if p, ok := value.(*packageNameScope); ok {
+		v, ok := p.scope[node.Ident]
 		if !ok {
 			if fc, _ := utf8.DecodeRuneInString(node.Ident); !unicode.Is(unicode.Lu, fc) {
 				return nil, false, r.errorf(node, "cannot refer to unexported name %s", node)
@@ -1339,8 +1340,8 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 	case *ast.Selector:
 		if ident, ok := e.Expr.(*ast.Identifier); ok {
 			v2 := r.evalIdentifier(ident)
-			if pkg, ok := v2.(Package); ok {
-				value, ok = pkg.Declarations[e.Ident]
+			if pkg, ok := v2.(packageNameScope); ok {
+				value, ok = pkg.scope[e.Ident]
 				if !ok {
 					if fc, _ := utf8.DecodeRuneInString(e.Ident); !unicode.Is(unicode.Lu, fc) {
 						return nil, r.errorf(expr, "cannot refer to unexported name %s", expr)
@@ -1491,7 +1492,7 @@ func (r *rendering) evalFunc(node *ast.Func) interface{} {
 		}
 	}
 	vars := []scope{r.vars[0], r.vars[1], r.vars[2], upValues}
-	return newFunction(r.path, node, vars, r.scope)
+	return newFunction(r.path, node, vars)
 }
 
 // evalIndex evaluates an index expression in a single context.

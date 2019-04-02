@@ -294,7 +294,7 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 	return r.render(nil, tree.Nodes, nil)
 }
 
-func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*Package, path string) (map[string]scope, error) {
+func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.PackageInfo, pkgs map[string]*packageNameScope, path string) (scope, error) {
 
 	r := &rendering{
 		handleError:  stopOnError,
@@ -362,14 +362,13 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.Package
 			return nil, err
 		}
 	}
-	r.scope[path] = r.vars[2]
-	return r.scope, nil
+	return r.vars[2], nil
 }
 
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[string]*parser.PackageInfo) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]*packageNameScope, pkgInfos map[string]*parser.PackageInfo) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -389,6 +388,10 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 		return &Error{tree.Path, *(pkg.Pos()), errors.New("package name must be main")}
 	}
 
+	if packages == nil {
+		packages = map[string]*packageNameScope{}
+	}
+
 	r := &rendering{
 		scope:          map[string]scope{},
 		path:           tree.Path,
@@ -401,11 +404,10 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*Package, pkgInfos map[s
 	}
 
 	var err error
-	r.scope, err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
+	r.vars[2], err = renderPackageBlock(pkg, pkgInfos, packages, tree.Path)
 	if err != nil {
 		return err
 	}
-	r.vars[2] = r.scope[tree.Path]
 	mf := r.vars[2]["main"]
 	r.scope[tree.Path] = r.vars[2]
 	r.vars = append(r.vars, scope{}) // adds 'main' function scope?
@@ -539,7 +541,7 @@ func convertError(err error) error {
 
 type Program struct {
 	tree      *ast.Tree
-	packages  map[string]*Package
+	packages  map[string]*packageNameScope
 	typecheck map[string]*parser.PackageInfo
 }
 
@@ -613,9 +615,9 @@ func (c *Compiler) Compile(src io.Reader) (*Program, error) {
 	}
 	program.tree = tree
 	program.typecheck = p.TypeCheckInfos()
-	program.packages = make(map[string]*Package, len(c.packages))
+	program.packages = make(map[string]*packageNameScope, len(c.packages))
 	for n, pkg := range c.packages {
-		program.packages[n] = &Package{Name: pkg.Name, Declarations: pkg.Declarations}
+		program.packages[n] = &packageNameScope{name: pkg.Name, scope: scope(pkg.Declarations)}
 	}
 	return program, nil
 }
