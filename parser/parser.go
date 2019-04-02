@@ -1190,6 +1190,7 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 		isAliasDecl = true
 		tok = next(p.lex)
 	}
+	// TODO (Gianluca): to review: redeclaring tok?
 	typ, tok := p.parseExpr(tok, false, false, true, false)
 	td := ast.NewTypeDeclaration(nil, ident, typ, isAliasDecl)
 	return td, tok
