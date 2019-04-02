@@ -90,6 +90,7 @@ const (
 	tokenModulo                            // %
 	tokenIncrement                         // ++
 	tokenDecrement                         // --
+	tokenStruct                            // struct
 	tokenEOF                               // eof
 
 	// Tokens not yet supported.
@@ -97,7 +98,6 @@ const (
 	tokenDefer
 	tokenGo
 	tokenGoto
-	tokenStruct
 	tokenSelect
 )
 
@@ -176,6 +176,7 @@ var tokenString = map[tokenTyp]string{
 	tokenModulo:                   "%",
 	tokenIncrement:                "++",
 	tokenDecrement:                "--",
+	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
 
 	// Tokens not yet supported.
@@ -183,7 +184,6 @@ var tokenString = map[tokenTyp]string{
 	tokenDefer:  "defer",
 	tokenGo:     "go",
 	tokenGoto:   "goto",
-	tokenStruct: "struct",
 	tokenSelect: "select",
 }
 

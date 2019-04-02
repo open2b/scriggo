@@ -155,6 +155,7 @@ var typeTestsNoneContext = map[string][]tokenTyp{
 	"const b, c = 8, 10":                  {tokenConst, tokenIdentifier, tokenComma, tokenIdentifier, tokenSimpleAssignment, tokenInt, tokenComma, tokenInt, tokenSemicolon},
 	"type Int int":                        {tokenType, tokenIdentifier, tokenIdentifier, tokenSemicolon},
 	"type stringSlice []string":           {tokenType, tokenIdentifier, tokenLeftBrackets, tokenRightBrackets, tokenIdentifier, tokenSemicolon},
+	"struct { A, B T1 ; C, D T2 }":        {tokenStruct, tokenLeftBraces, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenIdentifier, tokenComma, tokenIdentifier, tokenIdentifier, tokenSemicolon, tokenRightBraces, tokenSemicolon},
 }
 
 var contextTests = map[ast.Context]map[string][]ast.Context{
