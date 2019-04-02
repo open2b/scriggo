@@ -505,6 +505,13 @@ Nodes:
 			if name == "_" {
 				continue
 			}
+			if name == "init" {
+				err := r.render(nil, node.Body.Nodes, nil)
+				if err != nil {
+					return err
+				}
+				continue
+			}
 			fn := newFunction(r.path, node, r.vars[0:3])
 			if node.Ident == nil {
 				// Returns the last script expression value.

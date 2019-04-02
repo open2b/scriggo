@@ -56,7 +56,6 @@ func (gp *GoPackage) toTypeCheckerScope() typeCheckerScope {
 type PackageInfo struct {
 	Name                 string
 	Declarations         map[string]*TypeInfo
-	VariableOrdering     []string                 // ordering of initialization of global variables.
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 	UpValues             map[*ast.Identifier]bool
 }
@@ -68,7 +67,6 @@ func (pi *PackageInfo) String() string {
 	for i, d := range pi.Declarations {
 		s += fmt.Sprintf("                              %s: %s\n", i, d)
 	}
-	s += "\tVariableOrdering:     " + "{" + strings.Join(pi.VariableOrdering, ",") + "}\n"
 	// TODO (Gianluca): add constant expressions.
 	s += "}\n"
 	return s
@@ -285,12 +283,64 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 		pkgInfo.Declarations[ident] = ti.t
 	}
 	pkgInfo.UpValues = tc.upValues
-	pkgInfo.VariableOrdering = nil
+
+	// Sort variables.
+	// TODO (Gianluca): if a variable declaration is already
+	// internal-ordered, there's no need to split it in many
+	// single-variable declarations, just put it in orderedVars as is.
+	orderedVars := []ast.Node{}
+OrderedVarsLoop:
 	for _, v := range tc.initOrder {
-		if tc.globDecl(v).DeclType == DeclVar {
-			pkgInfo.VariableOrdering = append(pkgInfo.VariableOrdering, v)
+		for _, n := range packageNode.Declarations {
+			switch n := n.(type) {
+			case *ast.Var:
+				for i, ident := range n.Identifiers {
+					if ident.Name == v {
+						if len(n.Identifiers) == len(n.Values) {
+							assignment := ast.NewVar(n.Pos(), []*ast.Identifier{ident}, n.Type, []ast.Expression{n.Values[i]})
+							orderedVars = append(orderedVars, assignment)
+							continue OrderedVarsLoop
+						} else {
+							orderedVars = append(orderedVars, n)
+							continue OrderedVarsLoop
+						}
+					}
+				}
+			}
 		}
 	}
+	// Init functions.
+	initNodes := []ast.Node{}
+	for i, n := range packageNode.Declarations {
+		f, ok := n.(*ast.Func)
+		if ok {
+			if f.Ident.Name == "init" {
+				initNodes = append(initNodes, f)
+				packageNode.Declarations[i] = nil
+			}
+		}
+	}
+	// Imports and functions.
+	funcNodes := []ast.Node{}
+	importNodes := []ast.Node{}
+	for _, n := range packageNode.Declarations {
+		switch n := n.(type) {
+		case nil:
+		case *ast.Var:
+		case *ast.Import:
+			importNodes = append(importNodes, n)
+		case *ast.Func:
+			funcNodes = append(funcNodes, n)
+		}
+	}
+
+	orderedNodes := []ast.Node{}
+	orderedNodes = append(orderedNodes, importNodes...)
+	orderedNodes = append(orderedNodes, funcNodes...)
+	orderedNodes = append(orderedNodes, orderedVars...)
+	orderedNodes = append(orderedNodes, initNodes...)
+	packageNode.Declarations = orderedNodes
+
 	if pkgInfos == nil {
 		pkgInfos = make(map[string]*PackageInfo)
 	}

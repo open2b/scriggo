@@ -7,6 +7,20 @@ import (
 	"scrigo/ast"
 )
 
+func extractVariableInitializationOrder(tree *ast.Tree) []string {
+	order := []string{}
+	pkg, _ := tree.Nodes[0].(*ast.Package)
+	for _, n := range pkg.Declarations {
+		switch n := n.(type) {
+		case *ast.Var:
+			for _, ident := range n.Identifiers {
+				order = append(order, ident.Name)
+			}
+		}
+	}
+	return order
+}
+
 func TestVariablesInitializationOrder(t *testing.T) {
 	cases := []struct {
 		src   string
@@ -54,7 +68,7 @@ CasesLoop:
 			t.Errorf("source: %q, type-checking error: %s", errorSrc, err)
 			continue
 		}
-		got := pkgInfos[""].VariableOrdering
+		got := extractVariableInitializationOrder(tree)
 		expected := c.order
 		if len(got) != len(expected) {
 			t.Errorf("source: %q, expecting %s, got %s", errorSrc, expected, got)

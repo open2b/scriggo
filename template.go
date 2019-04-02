@@ -306,62 +306,11 @@ func renderPackageBlock(astPkg *ast.Package, pkgInfos map[string]*parser.Package
 		packageInfos: pkgInfos,
 	}
 
-	// nodes contains a list of declarations ordered by initialization
-	// priority.
-	nodes := make([]ast.Node, 0, len(astPkg.Declarations))
-
-	// Imports.
-	for _, node := range astPkg.Declarations {
-		if _, ok := node.(*ast.Import); ok {
-			nodes = append(nodes, node)
-		}
-	}
-
-	// inits contains the list of "init" functions.
-	var inits []*ast.Func
-
-	// Functions.
-	for _, node := range astPkg.Declarations {
-		if f, ok := node.(*ast.Func); ok {
-			if f.Ident.Name == "init" {
-				inits = append(inits, f)
-				continue
-			}
-			nodes = append(nodes, node)
-		}
-	}
-
-	// Global variables, following initialization order.
-	for _, varName := range pkgInfos[path].VariableOrdering {
-		for _, n := range astPkg.Declarations {
-			if varNode, ok := n.(*ast.Var); ok {
-				for i, ident := range varNode.Identifiers {
-					if ident.Name == varName {
-						if len(varNode.Identifiers) != len(varNode.Values) {
-							nodes = append(nodes, varNode)
-							break
-						}
-						newVarDecl := ast.NewVar(varNode.Pos(), []*ast.Identifier{ident}, nil, []ast.Expression{varNode.Values[i]})
-						nodes = append(nodes, newVarDecl)
-						break
-					}
-				}
-			}
-		}
-	}
-
-	err := r.render(nil, nodes, nil)
+	err := r.render(nil, astPkg.Declarations, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calls init functions.
-	for _, f := range inits {
-		err := r.render(nil, f.Body.Nodes, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return r.vars[2], nil
 }
 
