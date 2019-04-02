@@ -1028,6 +1028,16 @@ var checkerStmts = map[string]string{
 	// Alias declarations.
 	`type T = float64 ; var _ T = float64(0)`: ok,
 	`type T = float64 ; var _ T = int(0)`:     `cannot use int(0) (type int) as type float64 in assignment`,
+
+	// Struct types.
+	`_ = struct{ A int }{A: 10}`:          ok,
+	`_ = struct{ A struct { A2 int } }{}`: ok,
+	`type S struct { }`:                   ok,
+	`type S struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: 1.1}`: ok,
+	`type S struct{A,B int} ; _ = S{A: 5, B: 10}`:                               ok,
+	`type S1 struct { A int ; B map[string][]int; *int }`:                       ok,
+	`_ = struct{ A int }{C: 10}`:                                                `unknown field 'C' in struct literal of type struct { A int }`,
+	`type S struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type string) as type float64 in field value`,
 }
 
 type pointInt struct{ X, Y int }

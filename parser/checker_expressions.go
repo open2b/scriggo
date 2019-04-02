@@ -500,6 +500,42 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		return t
 
+	case *ast.StructType:
+		fields := []reflect.StructField{}
+		for _, fd := range expr.FieldDecl {
+			typ := tc.checkType(fd.Type, noEllipses).Type
+			if fd.IdentifierList == nil {
+				// Implicit field declaration.
+				fields = append(fields, reflect.StructField{
+					Name:      "Name", // TODO (Gianluca): to review.
+					PkgPath:   "",     // TODO (Gianluca): to review.
+					Type:      typ,
+					Tag:       "",  // TODO (Gianluca): to review.
+					Offset:    0,   // TODO (Gianluca): to review.
+					Index:     nil, // TODO (Gianluca): to review.
+					Anonymous: true,
+				})
+			} else {
+				// Explicit field declaration.
+				for _, ident := range fd.IdentifierList {
+					fields = append(fields, reflect.StructField{
+						Name:      ident.Name,
+						PkgPath:   "", // TODO (Gianluca): to review.
+						Type:      typ,
+						Tag:       "",  // TODO (Gianluca): to review.
+						Offset:    0,   // TODO (Gianluca): to review.
+						Index:     nil, // TODO (Gianluca): to review.
+						Anonymous: false,
+					})
+				}
+			}
+		}
+		t := reflect.StructOf(fields)
+		return &TypeInfo{
+			Type:       t,
+			Properties: PropertyIsType,
+		}
+
 	case *ast.MapType:
 		key := tc.checkType(expr.KeyType, noEllipses)
 		value := tc.checkType(expr.ValueType, noEllipses)
