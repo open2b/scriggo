@@ -745,6 +745,52 @@ func TestScrigoImport(t *testing.T) {
 				}`),
 		}),
 
+		// TODO (Gianluca):
+		// // "main" importing "pkg1" and "pkg2", where "pkg1" imports "pkg2".
+		// parser.MapReader(map[string][]byte{
+		// 	"/main.go": []byte(
+		// 		`package main
+		// 		import "pkg1"
+		// 		import "pkg2"
+		// 		func main() {
+		// 			pkg1.F1()
+		// 			pkg2.F2()
+		// 		}`),
+		// 	"/pkg1.go": []byte(
+		// 		`package pkg1
+		// 		import "pkg2"
+		// 		func F1() {
+		// 			pkg2.F2()
+		// 		}`),
+		// 	"/pkg2.go": []byte(
+		// 		`package pkg2
+		// 		func F2() {
+		// 			println("hi!")
+		// 		}`),
+		// }),
+
+		// "main" importing "pkg1" and "pkg2".
+		parser.MapReader(map[string][]byte{
+			"/main.go": []byte(
+				`package main
+				import "pkg1"
+				import "pkg2"
+				func main() {
+					pkg1.F1()
+					pkg2.F2()
+				}`),
+			"/pkg1.go": []byte(
+				`package pkg1
+				func F1() {
+					println("hi!")
+				}`),
+			"/pkg2.go": []byte(
+				`package pkg2
+				func F2() {
+					println("hi!")
+				}`),
+		}),
+
 		// "main" importing "pkg1" importing "pkg2" (1).
 		parser.MapReader(map[string][]byte{
 			"/main.go": []byte(
