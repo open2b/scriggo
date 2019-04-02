@@ -256,6 +256,82 @@ var noneContextTreeTests = []struct {
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
 	}, ast.ContextNone)},
+	{"type Int int",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 11),
+				ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
+				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
+				false,
+			),
+		}, ast.ContextNone),
+	},
+	{"type Int []string",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 16),
+				ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
+				ast.NewSliceType(p(1, 10, 9, 16), ast.NewIdentifier(p(1, 12, 11, 16), "string")),
+				false,
+			),
+		}, ast.ContextNone),
+	},
+	{"type Int = int",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 13),
+				ast.NewIdentifier(p(1, 6, 5, 7), "Int"),
+				ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+				true,
+			),
+		}, ast.ContextNone),
+	},
+	{"type MyMap = map[string]interface{}",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 34),
+				ast.NewIdentifier(p(1, 6, 5, 9), "MyMap"),
+				ast.NewMapType(
+					p(1, 14, 13, 34),
+					ast.NewIdentifier(p(1, 18, 17, 22), "string"),
+					ast.NewIdentifier(p(1, 25, 24, 34), "interface{}"),
+				),
+				true,
+			),
+		}, ast.ContextNone),
+	},
+	{"type ( Int int ; String string )",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 31),
+				ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
+				ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+				false,
+			),
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 31),
+				ast.NewIdentifier(p(1, 18, 17, 22), "String"),
+				ast.NewIdentifier(p(1, 25, 24, 29), "string"),
+				false,
+			),
+		}, ast.ContextNone),
+	},
+	{"type ( Int = int ; String string )",
+		ast.NewTree("", []ast.Node{
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 33),
+				ast.NewIdentifier(p(1, 8, 7, 9), "Int"),
+				ast.NewIdentifier(p(1, 14, 13, 15), "int"),
+				true,
+			),
+			ast.NewTypeDeclaration(
+				p(1, 1, 0, 33),
+				ast.NewIdentifier(p(1, 20, 19, 24), "String"),
+				ast.NewIdentifier(p(1, 27, 26, 31), "string"),
+				false,
+			),
+		}, ast.ContextNone),
+	},
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
 	// 	ast.NewAssignment(
@@ -1446,6 +1522,25 @@ func equals(n1, n2 ast.Node, p int) error {
 		err = equals(nn1.ValueType, nn2.ValueType, p)
 		if err != nil {
 			return err
+		}
+	case *ast.TypeDeclaration:
+		nn2, ok := n2.(*ast.TypeDeclaration)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Identifier, nn2.Identifier, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
+		}
+		if nn1.IsAliasDeclaration && !nn2.IsAliasDeclaration {
+			return fmt.Errorf("expecting type definition, got alias declaration")
+		}
+		if !nn1.IsAliasDeclaration && nn2.IsAliasDeclaration {
+			return fmt.Errorf("expecting alias declaration, got type definition")
 		}
 	case *ast.Call:
 		nn2, ok := n2.(*ast.Call)

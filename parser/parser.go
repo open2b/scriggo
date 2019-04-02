@@ -1099,6 +1099,35 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		fallthrough
 
+	// type declaration
+	case tokenType:
+		if p.ctx == ast.ContextNone {
+			var td *ast.TypeDeclaration
+			pos = tok.pos
+			tok = next(p.lex)
+			if tok.typ == tokenLeftParenthesis {
+				// "type" "(" ... ")" .
+				for {
+					tok = next(p.lex)
+					td, tok = p.parseTypeDecl(tok)
+					td.Position = pos
+					addChild(parent, td)
+					if tok.typ == tokenRightParenthesis {
+						break
+					}
+				}
+				pos.End = tok.pos.End
+			} else {
+				// "type" identifier [ "=" ] type .
+				td, tok = p.parseTypeDecl(tok)
+				pos.End = tok.pos.End
+				td.Position = pos
+				addChild(parent, td)
+
+			}
+			return
+		}
+
 	// expression or assignment
 	default:
 		expressions, tok := p.parseExprList(tok, true, false, false, false)
@@ -1146,6 +1175,24 @@ func (p *parsing) parseIdentifiersList(tok token) ([]*ast.Identifier, token) {
 		break
 	}
 	return idents, tok
+}
+
+// parseTypeDecl parses a type declaration, that is a type definition or an
+// alias declaration. The token returned is the next valid token.
+func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
+	if tok.typ != tokenIdentifier {
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+	}
+	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
+	tok = next(p.lex)
+	isAliasDecl := false
+	if tok.typ == tokenSimpleAssignment {
+		isAliasDecl = true
+		tok = next(p.lex)
+	}
+	typ, tok := p.parseExpr(tok, false, false, true, false)
+	td := ast.NewTypeDeclaration(nil, ident, typ, isAliasDecl)
+	return td, tok
 }
 
 func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string) ast.Node {
