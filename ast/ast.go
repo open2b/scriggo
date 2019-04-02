@@ -800,6 +800,60 @@ func (n *BinaryOperator) Precedence() int {
 	panic("invalid operator type")
 }
 
+// StructType node represents a struct type.
+type StructType struct {
+	expression
+	*Position
+	FieldDecl []*FieldDecl
+}
+
+// NewStructType returns a new StructType node.
+func NewStructType(pos *Position, fieldDecl []*FieldDecl) *StructType {
+	return &StructType{expression{}, pos, fieldDecl}
+}
+
+func (st *StructType) String() string {
+	s := "struct { "
+	for i, fd := range st.FieldDecl {
+		s += fd.String()
+		if i != len(st.FieldDecl)-1 {
+			s += "; "
+		}
+	}
+	s += " }"
+	return s
+}
+
+// FieldDecl represents a field declaration in a struct type. A field
+// declaration can be explicit (having an identifier list and a type) or
+// implicit (having a type only).
+type FieldDecl struct {
+	IdentifierList []*Identifier // if nil is an embedded field.
+	Type           Expression
+	Tag            *string
+}
+
+// NewFieldDecl returns a new NewFieldDecl node.
+func NewFieldDecl(identifierList []*Identifier, typ Expression, tag *string) *FieldDecl {
+	return &FieldDecl{identifierList, typ, tag}
+}
+
+func (fd *FieldDecl) String() string {
+	s := ""
+	for i, ident := range fd.IdentifierList {
+		s += ident.String()
+		if i != len(fd.IdentifierList)-1 {
+			s += ","
+		}
+		s += " "
+	}
+	s += fd.Type.String()
+	if fd.Tag != nil {
+		s += " `" + *fd.Tag + "`"
+	}
+	return s
+}
+
 // SliceType node represents a slice type.
 type SliceType struct {
 	expression

@@ -142,6 +142,10 @@ func TestExpressionString(t *testing.T) {
 	}
 }
 
+func ptrToStr(s string) *string {
+	return &s
+}
+
 func TestStatementString(t *testing.T) {
 	cases := []struct {
 		node Node
@@ -162,6 +166,56 @@ func TestStatementString(t *testing.T) {
 		{
 			NewTypeDeclaration(nil, NewIdentifier(nil, "StringSlice"), NewSliceType(nil, NewIdentifier(nil, "string")), true),
 			"type StringSlice = []string",
+		},
+		{
+			NewStructType(nil, []*FieldDecl{
+				NewFieldDecl(
+					[]*Identifier{
+						NewIdentifier(nil, "a"),
+						NewIdentifier(nil, "b"),
+					},
+					NewIdentifier(nil, "Int"),
+					nil,
+				),
+				NewFieldDecl(
+					[]*Identifier{
+						NewIdentifier(nil, "c"),
+					},
+					NewIdentifier(nil, "String"),
+					nil,
+				),
+				NewFieldDecl(
+					nil,
+					NewIdentifier(nil, "Implicit"),
+					nil,
+				),
+			}),
+			"struct { a, b Int; c String; Implicit }",
+		},
+		{
+			NewStructType(nil, []*FieldDecl{
+				NewFieldDecl(
+					[]*Identifier{
+						NewIdentifier(nil, "a"),
+						NewIdentifier(nil, "b"),
+					},
+					NewIdentifier(nil, "Int"),
+					ptrToStr("tag1"),
+				),
+				NewFieldDecl(
+					[]*Identifier{
+						NewIdentifier(nil, "c"),
+					},
+					NewIdentifier(nil, "String"),
+					ptrToStr("tag2"),
+				),
+				NewFieldDecl(
+					nil,
+					NewIdentifier(nil, "Implicit"),
+					ptrToStr("tag3"),
+				),
+			}),
+			"struct { a, b Int `tag1`; c String `tag2`; Implicit `tag3` }",
 		},
 	}
 	for _, c := range cases {
