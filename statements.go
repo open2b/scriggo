@@ -505,12 +505,12 @@ Nodes:
 			if name == "_" {
 				continue
 			}
-			r.vars[2][name] = newFunction(r.path, node, r.vars[0:3])
-			isLastScriptStatement := node.Ident == nil
-			if isLastScriptStatement {
-				fn := newFunction(r.path, node, r.vars[0:2])
+			fn := newFunction(r.path, node, r.vars[0:3])
+			if node.Ident == nil {
+				// Returns the last script expression value.
 				return returnError{args: []interface{}{fn.Func()}}
 			}
+			r.vars[2][name] = fn
 
 		case *ast.Return:
 			if wr != nil {
