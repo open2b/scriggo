@@ -332,6 +332,165 @@ var noneContextTreeTests = []struct {
 			),
 		}, ast.ContextNone),
 	},
+	{"struct { }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 9),
+				nil,
+			),
+		}, ast.ContextNone)},
+	{"struct { A int }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 15),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+						},
+						ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A []int }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 17),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+						},
+						ast.NewSliceType(
+							p(1, 12, 11, 15),
+							ast.NewIdentifier(p(1, 14, 13, 15), "int"),
+						),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A struct { C int } }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 28),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+						},
+						ast.NewStructType(
+							p(1, 12, 11, 26),
+							[]*ast.FieldDecl{
+								ast.NewFieldDecl(
+									[]*ast.Identifier{
+										ast.NewIdentifier(p(1, 21, 20, 20), "C"),
+									},
+									ast.NewIdentifier(p(1, 23, 22, 24), "int"),
+									nil,
+								),
+							},
+						),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A, B int }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 18),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+							ast.NewIdentifier(p(1, 13, 12, 12), "B"),
+						},
+						ast.NewIdentifier(p(1, 15, 14, 16), "int"),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A, B int ; C, D string }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 32),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+							ast.NewIdentifier(p(1, 13, 12, 12), "B"),
+						},
+						ast.NewIdentifier(p(1, 15, 14, 16), "int"),
+						nil,
+					),
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 21, 20, 20), "C"),
+							ast.NewIdentifier(p(1, 24, 23, 23), "D"),
+						},
+						ast.NewIdentifier(p(1, 26, 25, 30), "string"),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A int ; C ; *D }",
+		ast.NewTree("", []ast.Node{
+			ast.NewStructType(
+				p(1, 1, 0, 24),
+				[]*ast.FieldDecl{
+					ast.NewFieldDecl(
+						[]*ast.Identifier{
+							ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+						},
+						ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+						nil,
+					),
+					ast.NewFieldDecl(
+						nil,
+						ast.NewIdentifier(p(1, 18, 17, 17), "C"),
+						nil,
+					),
+					ast.NewFieldDecl(
+						nil,
+						ast.NewUnaryOperator(
+							p(1, 22, 21, 22),
+							ast.OperatorMultiplication,
+							ast.NewIdentifier(p(1, 23, 22, 22), "D"),
+						),
+						nil,
+					),
+				},
+			),
+		}, ast.ContextNone)},
+	{"struct { A int }{ A: 10 }",
+		ast.NewTree("", []ast.Node{
+			ast.NewCompositeLiteral(
+				p(1, 17, 0, 24),
+				ast.NewStructType(
+					p(1, 1, 0, 15),
+					[]*ast.FieldDecl{
+						ast.NewFieldDecl(
+							[]*ast.Identifier{
+								ast.NewIdentifier(p(1, 10, 9, 9), "A"),
+							},
+							ast.NewIdentifier(p(1, 12, 11, 13), "int"),
+							nil,
+						),
+					},
+				),
+				[]ast.KeyValue{
+					ast.KeyValue{
+						Key:   ast.NewIdentifier(p(1, 19, 18, 18), "A"),
+						Value: ast.NewInt(p(1, 22, 21, 22), big.NewInt(10)),
+					},
+				},
+			),
+		}, ast.ContextNone)},
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
 	// 	ast.NewAssignment(
@@ -1522,6 +1681,26 @@ func equals(n1, n2 ast.Node, p int) error {
 		err = equals(nn1.ValueType, nn2.ValueType, p)
 		if err != nil {
 			return err
+		}
+	case *ast.StructType:
+		nn2, ok := n2.(*ast.StructType)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if len(nn1.FieldDecl) != len(nn2.FieldDecl) {
+			return fmt.Errorf("struct type: unexpected fields len %#v, expecting %#v", len(nn1.FieldDecl), len(nn2.FieldDecl))
+		}
+		for i := range nn1.FieldDecl {
+			fd1 := nn1.FieldDecl[i]
+			fd2 := nn2.FieldDecl[i]
+			if len(fd1.IdentifierList) != len(fd2.IdentifierList) {
+				return fmt.Errorf("struct type: field %d: expecting %d identifiers, got %d", i, len(fd2.IdentifierList), len(fd1.IdentifierList))
+			}
+			err := equals(fd1.Type, fd2.Type, p)
+			if err != nil {
+				return fmt.Errorf("struct type: field %d: %s", i, err)
+			}
+			// TODO (Gianluca): add tags comparison.
 		}
 	case *ast.TypeDeclaration:
 		nn2, ok := n2.(*ast.TypeDeclaration)

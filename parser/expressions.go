@@ -198,6 +198,52 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			mapType.ValueType = typ
 			operand = mapType
 			reuseLastToken = true
+		case tokenStruct:
+			canCompositeLiteral = true
+			structType := ast.NewStructType(tok.pos, nil)
+			tok = next(p.lex)
+			if tok.typ != tokenLeftBraces {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting {", tok)})
+			}
+			tok = next(p.lex)
+			if tok.typ != tokenRightBraces {
+				for {
+					fieldDecl := ast.NewFieldDecl(nil, nil, nil)
+					var exprs []ast.Expression
+					var typ ast.Expression
+					exprs, tok = p.parseExprList(tok, true, false, true, false)
+					if tok.typ == tokenSemicolon {
+						// Implicit field declaration.
+						if len(exprs) != 1 {
+							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting typooo")})
+						}
+						fieldDecl.Type = exprs[0]
+						tok = next(p.lex)
+					} else {
+						// Explicit field declaration.
+						typ, tok = p.parseExpr(tok, false, false, true, false)
+						if tok.typ != tokenSemicolon {
+							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon", tok)})
+						}
+						tok = next(p.lex)
+						fieldDecl.IdentifierList = make([]*ast.Identifier, len(exprs))
+						for i, e := range exprs {
+							ident, ok := e.(*ast.Identifier)
+							if !ok {
+								panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting field name or embedded type ", e)})
+							}
+							fieldDecl.IdentifierList[i] = ident
+						}
+						fieldDecl.Type = typ
+					}
+					structType.FieldDecl = append(structType.FieldDecl, fieldDecl)
+					if tok.typ == tokenRightBraces {
+						break
+					}
+				}
+			}
+			structType.Position.End = tok.pos.End
+			operand = structType
 		case tokenInterface:
 			pos := tok.pos
 			tok = next(p.lex)
@@ -322,7 +368,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			if operand != nil {
 				switch operand.(type) {
-				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector, *ast.FuncType:
+				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector, *ast.FuncType, *ast.StructType:
 				default:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
 				}
