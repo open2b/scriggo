@@ -426,15 +426,14 @@ func fillParametersTypes(params []*ast.Field) []*ast.Field {
 	if len(params) == 0 {
 		return nil
 	}
-	filled := make([]*ast.Field, len(params))
 	typ := params[len(params)-1].Type
 	for i := len(params) - 1; i >= 0; i-- {
 		if params[i].Type != nil {
 			typ = params[i].Type
 		}
-		filled[i] = ast.NewField(params[i].Ident, typ)
+		params[i].Type = typ
 	}
-	return filled
+	return params
 }
 
 // isAssignableTo reports whether x is assignable to type t.
