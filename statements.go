@@ -445,10 +445,7 @@ Nodes:
 							if err != nil && !r.handleError(err) {
 								return err
 							}
-							vt2, ok := caseExprValue.(reflect.Type)
-							if !ok {
-								return r.errorf(c, "%s (type %s) is not a type", expr, typeof(caseExprValue))
-							}
+							vt2 := caseExprValue.(reflect.Type)
 							render, err = hasType(guardvalue, vt2)
 							if err != nil {
 								// TODO: use r.errorf
@@ -549,10 +546,7 @@ Nodes:
 				if err != nil {
 					return err
 				}
-				v, err = asAssignableTo(v, types[i])
-				if err != nil {
-					return err
-				}
+				v = asAssignableTo(v, types[i])
 				ret.args[i] = v
 			}
 			return ret

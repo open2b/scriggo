@@ -48,5 +48,16 @@ func main() {
 	_ = [...]int{0: 1, 2, 20: 3}
 	_ = [10]int{0: 1, 2, 2: 3}
 
-	// TODO (Gianluca): add struct tests.
+	{
+		// TODO (Gianluca): add other struct tests.
+		type MyStruct struct {
+			A    int
+			B, C float64
+		}
+		_ = MyStruct{1, 54.3, -43.0}
+		// TODO (Gianluca):
+		// _ = MyStruct{A: 1, B: 54.3, C: -43.0}
+		// _ = MyStruct{A: 1, B: 54.3}
+		// _ = MyStruct{A: 1, C: -43.0}
+	}
 }

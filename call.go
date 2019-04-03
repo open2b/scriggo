@@ -136,13 +136,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fn function) ([]reflect.Value, 
 				if node.IsVariadic {
 					t = reflect.SliceOf(t)
 				}
-				av, err := asAssignableTo(v, t)
-				if err != nil {
-					if err == errNotAssignable {
-						err = r.errorf(arg, "bug: cannot use %s (type %s) as type %s in argument to %s", arg, typeof(v), t, node.Func)
-					}
-					return nil, err
-				}
+				av := asAssignableTo(v, t)
 				if !typ.IsVariadic || i < wantSize-1 {
 					if ident := params[i].Ident; ident != nil && ident.Name != "_" {
 						args[ident.Name] = av

@@ -677,18 +677,6 @@ func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMust
 	}
 }
 
-// exprListString returns elements as its string representation.
-func exprListString(elements []ast.Expression) string {
-	s := ""
-	for i, element := range elements {
-		if i > 0 {
-			s += ", "
-		}
-		s += element.String()
-	}
-	return s
-}
-
 // operatorType returns a operator type from a token type.
 func operatorType(typ tokenTyp) ast.OperatorType {
 	switch typ {

@@ -160,7 +160,7 @@ func (r *rendering) renderAssignment(node *ast.Assignment) error {
 			v, err = r.evalBinary(v1, ast.OperatorModulo, node.Variables[0], node.Values[0])
 		}
 		if err != nil {
-			return r.errorf(node, "invalid operation: %s (%s)", node, err)
+			return err
 		}
 		_ = address.assign(v)
 	}

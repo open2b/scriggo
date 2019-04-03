@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"unicode"
-	"unicode/utf8"
 
 	"scrigo/ast"
 )
@@ -333,10 +332,6 @@ func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
 	var expr = r.evalExpression(node.Expr)
 	switch node.Op {
 	case ast.OperatorMultiplication:
-		if reflect.TypeOf(expr).Kind() != reflect.Ptr {
-			// TODO (Gianluca): this error message doesn't match with Go's one.
-			panic(r.errorf(node, "invalid indirect of %s (type %s)", node.Expr, typeof(expr)))
-		}
 		return reflect.ValueOf(expr).Elem().Interface()
 	case ast.OperatorNot:
 		switch b := expr.(type) {
@@ -1058,13 +1053,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 		return nil, false, err
 	}
 	if p, ok := value.(*packageNameScope); ok {
-		v, ok := p.scope[node.Ident]
-		if !ok {
-			if fc, _ := utf8.DecodeRuneInString(node.Ident); !unicode.Is(unicode.Lu, fc) {
-				return nil, false, r.errorf(node, "cannot refer to unexported name %s", node)
-			}
-			return nil, false, r.errorf(node, "undefined: %s", node)
-		}
+		v, _ := p.scope[node.Ident]
 		if _, ok := v.(reflect.Type); ok {
 			return v, true, nil
 		}
@@ -1320,38 +1309,20 @@ const noEllipses = -1
 // evalType evaluates an expression as type. If expr is an array type, length
 // specifies the number of elements.
 func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type, err error) {
-	var value interface{}
 	switch e := expr.(type) {
 	case *ast.Identifier:
 		for i := len(r.vars) - 1; i >= 0; i-- {
-			if r.vars[i] != nil {
-				if i == 0 && e.Name == "len" {
-					return nil, r.errorf(e, "use of builtin len not in function call")
-				}
-				if v, ok := r.vars[i][e.Name]; ok {
-					if typ, ok = v.(reflect.Type); ok && i <= 1 {
-						return typ, nil
-					}
-					return nil, r.errorf(e, "%s is not a type", expr)
+			if v, ok := r.vars[i][e.Name]; ok {
+				if typ, ok = v.(reflect.Type); ok && i <= 1 {
+					return typ, nil
 				}
 			}
 		}
-		return nil, r.errorf(expr, "undefined: %s", expr)
 	case *ast.Selector:
 		if ident, ok := e.Expr.(*ast.Identifier); ok {
 			v2 := r.evalIdentifier(ident)
 			if pkg, ok := v2.(packageNameScope); ok {
-				value, ok = pkg.scope[e.Ident]
-				if !ok {
-					if fc, _ := utf8.DecodeRuneInString(e.Ident); !unicode.Is(unicode.Lu, fc) {
-						return nil, r.errorf(expr, "cannot refer to unexported name %s", expr)
-					}
-					return nil, r.errorf(expr, "undefined: %s", expr)
-				}
-				typ, ok = value.(reflect.Type)
-				if !ok {
-					return nil, r.errorf(expr, "%s is not a type", expr)
-				}
+				typ = pkg.scope[e.Ident].(reflect.Type)
 				return typ, nil
 			}
 		}
@@ -1362,9 +1333,6 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		}
 		var declLength int
 		if e.Len == nil {
-			if length == noEllipses {
-				return nil, r.errorf(expr, "use of [...] array outside of array literal")
-			}
 			return reflect.ArrayOf(length, elemType), nil
 		}
 		l, err := r.eval(e.Len)
@@ -1404,16 +1372,8 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 		if err != nil {
 			panic(err)
 		}
-		defer func() {
-			if rec := recover(); rec != nil {
-				err = r.errorf(expr, "invalid map key type %s", keyType)
-			}
-		}()
 		return reflect.MapOf(keyType, valueType), nil
 	case *ast.UnaryOperator:
-		if e.Operator() != ast.OperatorMultiplication {
-			panic(fmt.Errorf("%T is not a type", expr))
-		}
 		elemTyp, err := r.evalType(e.Expr, noEllipses)
 		if err != nil {
 			panic(err)
@@ -1424,9 +1384,9 @@ func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type,
 	case *ast.Value:
 		return e.Val.(reflect.Type), nil
 	default:
-		panic(fmt.Errorf("%T is not a type", expr))
+		panic(fmt.Errorf("bug: %T is not a type", expr))
 	}
-	return nil, r.errorf(expr, "%s is not a type", expr)
+	return nil, r.errorf(expr, "bug: %T is not a type", expr)
 }
 
 var errNotAssignable = errors.New("not assignable")
@@ -1436,27 +1396,22 @@ var errNotAssignable = errors.New("not assignable")
 // If v is a constant number and it is not representable by a value of typ,
 // returns errors errConstantTruncated or errConstantOverflow. If v is not
 // assignable to typ returns errNotAssignable error.
-func asAssignableTo(v interface{}, typ reflect.Type) (interface{}, error) {
+// TODO (Gianluca): remove error from return arguments.
+func asAssignableTo(v interface{}, typ reflect.Type) interface{} {
 	switch v := v.(type) {
 	case nil:
-		switch typ.Kind() {
-		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-		default:
-			return nil, errNotAssignable
-		}
-		return nil, nil
+		return nil
 	case ConstantNumber:
-		return v.ToType(typ)
+		t, _ := v.ToType(typ)
+		return t
 	case HTML:
-		if typ != htmlType && typ != stringType {
-			return nil, errNotAssignable
-		}
-		return string(v), nil
+		// TODO (Gianluca): add this check to typechecker:
+		// if typ != htmlType && typ != stringType {
+		// 	return nil, errNotAssignable
+		// }
+		return string(v)
 	}
-	if !reflect.TypeOf(v).AssignableTo(typ) {
-		return nil, errNotAssignable
-	}
-	return v, nil
+	return v
 }
 
 // hasType indicates if v has type typ.
@@ -1513,15 +1468,9 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		return nil, false, err
 	}
 	if v == nil {
-		if r.isBuiltin("nil", node.Expr) {
-			return nil, false, r.errorf(node.Expr, "use of untyped nil")
-		}
 		return nil, false, r.errorf(node, "index out of range")
 	}
 	checkSlice := func(length int) (int, error) {
-		if n == 2 {
-			return 0, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
 		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return 0, err
@@ -1533,9 +1482,6 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	}
 	switch vv := v.(type) {
 	case string:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
 		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return nil, false, err
@@ -1545,9 +1491,6 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return vv[i], true, nil
 	case HTML:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
 		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return nil, false, err
@@ -1658,18 +1601,12 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 	var rv = reflect.ValueOf(v)
 	switch rv.Kind() {
 	case reflect.Ptr:
-		if rv.Elem().Kind() != reflect.Array {
-			return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
-		}
 		i, err := checkSlice(rv.Elem().Len())
 		if err != nil {
 			return nil, false, err
 		}
 		return rv.Elem().Index(i).Interface(), true, nil
 	case reflect.String:
-		if n == 2 {
-			return nil, false, r.errorf(node, "assignment mismatch: 2 variables but 1 values")
-		}
 		i, err := r.sliceIndex(node.Index)
 		if err != nil {
 			return nil, false, err
@@ -1707,7 +1644,7 @@ func (r *rendering) evalIndex2(node *ast.Index, n int) (interface{}, bool, error
 		}
 		return rv.Index(i).Interface(), true, nil
 	}
-	return nil, false, r.errorf(node, "invalid operation: %s (type %s does not support indexing)", node, typeof(v))
+	panic("bug")
 }
 
 // sliceIndex evaluates node as a slice index and returns the value.
@@ -1721,10 +1658,7 @@ func (r *rendering) sliceIndex(node ast.Expression) (i int, err error) {
 			return 0, r.errorf(node, "%s", err)
 		}
 	default:
-		return 0, r.errorf(node, "non-integer slice index %v", node)
-	}
-	if i < 0 {
-		return 0, r.errorf(node, "invalid slice index %d (index must be non-negative)", i)
+		panic("bug")
 	}
 	return
 }
@@ -1760,6 +1694,7 @@ func (r *rendering) mapIndex(node ast.Expression, typ reflect.Type) (interface{}
 			return nil, r.errorf(node, "%s", err)
 		}
 	default:
+		// TODO (Gianluca): to review.
 		keyType := reflect.TypeOf(key)
 		if !keyType.Comparable() {
 			return nil, r.errorf(node, "hash of unhashable type %s", typeof(key))
@@ -1791,10 +1726,7 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 				panic(r.errorf(node.Low, "%s", err))
 			}
 		default:
-			panic(r.errorf(node.Low, "invalid slice index %s (type %s)", node.Low, typeof(n)))
-		}
-		if l < 0 {
-			panic(r.errorf(node.Low, "invalid slice index %d (index must be non-negative)", node.Low))
+			panic("bug")
 		}
 	}
 	if node.High != nil {
@@ -1807,20 +1739,11 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 				panic(r.errorf(node.High, "%s", err))
 			}
 		default:
-			panic(r.errorf(node.High, "invalid slice index %s (type %s)", node.High, typeof(n)))
-		}
-		if h < 0 {
-			panic(r.errorf(node.High, "invalid slice index %d (index must be non-negative)", node.High))
-		}
-		if l > h {
-			panic(r.errorf(node.Low, "invalid slice index: %d > %d", l, h))
+			panic("bug")
 		}
 	}
 	var v = r.evalExpression(node.Expr)
 	if v == nil {
-		if r.isBuiltin("nil", node.Expr) {
-			panic(r.errorf(node.Expr, "use of untyped nil"))
-		}
 		panic(r.errorf(node, "slice bounds out of range"))
 	}
 	h2 := func(length int) int {
@@ -1855,16 +1778,13 @@ func (r *rendering) evalSlicing(node *ast.Slicing) interface{} {
 	case reflect.Slice:
 		return rv.Slice(l, h2(rv.Len())).Interface()
 	}
-	panic(r.errorf(node, "cannot slice %s (type %s)", node.Expr, typeof(v)))
+	panic("bug")
 }
 
 // evalIdentifier evaluates an identifier expression and returns its value.
 func (r *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 	for i := len(r.vars) - 1; i >= 0; i-- {
 		if r.vars[i] != nil {
-			if i == 0 && node.Name == "len" {
-				panic(r.errorf(node, "use of builtin len not in function call"))
-			}
 			if v, ok := r.vars[i][node.Name]; ok {
 				if vv, ok := v.(reference); ok {
 					return vv.rv.Interface()
@@ -1873,7 +1793,7 @@ func (r *rendering) evalIdentifier(node *ast.Identifier) interface{} {
 			}
 		}
 	}
-	panic(r.errorf(node, "undefined: %s", node.Name))
+	panic("bug")
 }
 
 // isBuiltin indicates if expr is the builtin with the given name.

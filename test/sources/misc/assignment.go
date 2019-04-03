@@ -34,6 +34,15 @@ func main() {
 	}
 	fmt.Println(i, x)
 
+	{
+		var i, j int = 1, 2
+		k := 3
+		fmt.Println(i, j, k)
+		// TODO (Gianluca):
+		// a, b, c := true, false, "a string"
+		// fmt.Println(i, j, k, a, b, c)
+	}
+
 	// TODO (Gianluca):
 	// var a2 int
 	// var a3, b1 int
