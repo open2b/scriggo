@@ -161,6 +161,18 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar}) // TODO (Gianluca): add support for var a, b, c = f()
 				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
 			}
+		case *ast.TypeDeclaration:
+			// TODO (Gianluca): add support for types referring to other
+			// types defined later. See
+			// https://play.golang.org/p/RJ8WruPku0U.
+			// TODO (Gianluca): all types are defined as alias
+			// declarations.
+			if isBlankIdentifier(n.Identifier) {
+				continue
+			}
+			name := n.Identifier.Name
+			typ := tc.checkType(n.Type, noEllipses)
+			tc.filePackageBlock[name] = scopeElement{t: typ}
 		case *ast.Func:
 			if n.Ident.Name == "init" {
 				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {

@@ -293,7 +293,7 @@ func (p *parsing) parseStatement(tok token) {
 	switch s := parent.(type) {
 	case *ast.Package:
 		switch tok.typ {
-		case tokenImport, tokenFunc, tokenVar, tokenConst:
+		case tokenImport, tokenFunc, tokenVar, tokenConst, tokenType:
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body (%q)", tok)})
 		}
