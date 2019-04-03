@@ -41,9 +41,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				}
 			}
 			// Replaces the type node with a value holding a reflect.Type.
-			new := ast.NewValue(n.Type)
-			tc.replaceTypeInfo(n.Type, new)
-			n.Type = new
+			n.Values = make([]ast.Expression, len(n.Identifiers))
+			var zero interface{}
+			if typ.Type.Kind() == reflect.Interface {
+				zero = nil
+			} else {
+				zero = reflect.Zero(typ.Type).Interface()
+			}
+			for i := range n.Identifiers {
+				n.Values[i] = ast.NewValue(zero)
+			}
 			return
 		}
 

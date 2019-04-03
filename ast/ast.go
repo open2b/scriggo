@@ -1104,9 +1104,6 @@ type Value struct {
 }
 
 func NewValue(val interface{}) *Value {
-	if val == nil {
-		panic("nil value")
-	}
 	return &Value{expression{}, nil, val}
 }
 

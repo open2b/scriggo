@@ -579,70 +579,26 @@ Nodes:
 
 		case *ast.Var:
 
-			// TODO (Gianluca): this implementation is partial and incorrect,
-			// review after implementation of type checker.
-
-			if node.Type == nil {
-				// var a, b = 3, 4
-				variables := make([]ast.Expression, len(node.Identifiers))
-				for i, ident := range node.Identifiers {
-					variables[i] = ident
-				}
-				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
-				err := r.renderAssignment(assign)
-				if err != nil && !r.handleError(err) {
-					return err
-				}
-			} else {
-				if node.Values == nil {
-					// var a, b int
-					// TODO (Gianluca): assign zero.
-					panic("not implemented")
-
-				} else {
-					// var a, b int = 3, 4
-					variables := make([]ast.Expression, len(node.Identifiers))
-					for i, ident := range node.Identifiers {
-						variables[i] = ident
-					}
-					assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
-					err := r.renderAssignment(assign)
-					if err != nil && !r.handleError(err) {
-						return err
-					}
-				}
+			variables := make([]ast.Expression, len(node.Identifiers))
+			for i, ident := range node.Identifiers {
+				variables[i] = ident
+			}
+			assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+			err := r.renderAssignment(assign)
+			if err != nil && !r.handleError(err) {
+				return err
 			}
 
 		case *ast.Const:
 
-			// TODO (Gianluca): this implementation is partial and incorrect,
-			// review after implementation of type checker.
-
-			if node.Type == nil {
-				// const a, b = 3, 4
-				variables := make([]ast.Expression, len(node.Identifiers))
-				for i, ident := range node.Identifiers {
-					variables[i] = ident
-				}
-				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
-				err := r.renderAssignment(assign)
-				if err != nil && !r.handleError(err) {
-					return err
-				}
-			} else {
-				// var a, b int = 3, 4
-
-				// TODO (Gianluca): this implementation is partial and
-				// incorrect, review after implementation of type checker.
-				variables := make([]ast.Expression, len(node.Identifiers))
-				for i, ident := range node.Identifiers {
-					variables[i] = ident
-				}
-				assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
-				err := r.renderAssignment(assign)
-				if err != nil && !r.handleError(err) {
-					return err
-				}
+			variables := make([]ast.Expression, len(node.Identifiers))
+			for i, ident := range node.Identifiers {
+				variables[i] = ident
+			}
+			assign := ast.NewAssignment(node.Pos(), variables, ast.AssignmentDeclaration, node.Values)
+			err := r.renderAssignment(assign)
+			if err != nil && !r.handleError(err) {
+				return err
 			}
 
 		case *ast.Assignment:

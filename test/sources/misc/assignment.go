@@ -43,10 +43,9 @@ func main() {
 		// fmt.Println(i, j, k, a, b, c)
 	}
 
-	// TODO (Gianluca):
-	// var a2 int
-	// var a3, b1 int
-	// _ = a2
-	// _ = a3
-	// _ = b1
+	var a2 int
+	var a3, b1 int
+	fmt.Println(a2)
+	fmt.Println(a3)
+	fmt.Println(b1)
 }
