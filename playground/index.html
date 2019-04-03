@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <title>The Scrigo Playground</title>
+  <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,800|Lato:300,300i,400,700|Roboto+Mono:400,400i" rel="stylesheet" crossorigin="anonymous">
+  <style>
+    * { box-sizing: border-box; }
+    html { height: 100%; overflow: auto; }
+    body { background: #0195c3 url('gopher.png') top 25px left 70px no-repeat; background-size: 175px; height: 100%; margin: 0; padding: 0; position: relative; }
+    div { position: absolute; bottom: 80px; top: 128px; left: 30px; right: 30px; }
+    #Source { background: #333; border: 0; color: #f8f8f8; font-family: 'Roboto Mono'; font-size: 14px; height: 100%; padding: 10px; tab-size: 4; width: 100%; }
+    #Execute { display: block; background: #f6d2a0; border: 1px solid #999; color: #0b140f; font-size: 15px; margin-left: 50px; margin-top: 10px; padding: 10px 60px; text-align: center; }
+  </style>
+  <script src="wasm_exec.js"></script>
+  <script>
+    function fetchAndInstantiate(url, importObject) {
+        return fetch(url).then(response =>
+            response.arrayBuffer()
+        ).then(bytes =>
+            WebAssembly.instantiate(bytes, importObject)
+        ).then(results =>
+            results.instance
+        );
+    }
+    var go = new Go();
+    var mod = fetchAndInstantiate("/scrigo.wasm", go.importObject);
+    window.onload = function() {
+        mod.then(function(instance) {
+            go.run(instance);
+        });
+    };
+  </script>
+</head>
+<body>
+
+<div>
+  <textarea id="Source" spellcheck="false" onkeydown="if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}">
+package main
+
+func main() {
+    panic("Hello Scrigo!")
+}
+
+</textarea>
+  <button id="Execute">Execute</button>
+</div>
+
+</body>
+</html>
