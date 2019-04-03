@@ -365,6 +365,9 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	expectedTypes := []reflect.Type{}
 	for _, e := range expected {
 		ti := tc.checkType(e.Type, noEllipses)
+		new := ast.NewValue(ti.Type)
+		tc.replaceTypeInfo(e.Type, new)
+		e.Type = new
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 

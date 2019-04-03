@@ -261,12 +261,22 @@ func (tc *typechecker) isUpValue(name string) bool {
 // replaceTypeInfo replaces the type info of node old with a new created type
 // info for node new.
 func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
-	delete(tc.typeInfo, old)
+	oldTi, ok := tc.typeInfo[old]
+	if ok && oldTi.IsType() {
+		tc.typeInfo[new] = &TypeInfo{
+			Type:       oldTi.Type,
+			Properties: PropertyIsType,
+			Value:      nil,
+		}
+		delete(tc.typeInfo, old)
+		return
+	}
 	tc.typeInfo[new] = &TypeInfo{
 		Type:       reflect.TypeOf(new.Val),
 		Properties: 0,
 		Value:      nil,
 	}
+	delete(tc.typeInfo, old)
 }
 
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved
@@ -392,12 +402,7 @@ func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
-	// TODO: remove double type check
-	ti := tc.typeInfo[expr]
-	if ti != nil {
-		return ti
-	}
-	ti = tc.typeof(expr, noEllipses)
+	ti := tc.typeof(expr, noEllipses)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
@@ -431,6 +436,12 @@ func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 // typeof returns the type of expr. If expr is not an expression but a type,
 // returns the type.
 func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
+
+	// TODO: remove double type check
+	ti := tc.typeInfo[expr]
+	if ti != nil {
+		return ti
+	}
 
 	switch expr := expr.(type) {
 
@@ -611,6 +622,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 	case *ast.Func:
 		tc.addScope()
 		t := tc.checkType(expr.Type, noEllipses)
+		expr.Type.Reflect = t.Type
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
 		params := fillParametersTypes(expr.Type.Parameters)
@@ -618,6 +630,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		for i, f := range params {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
+				new := ast.NewValue(t.Type)
+				tc.replaceTypeInfo(f.Type, new)
+				f.Type = new
 				if isVariadic && i == len(params)-1 {
 					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					continue
@@ -629,6 +644,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		for _, f := range fillParametersTypes(expr.Type.Result) {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
+				new := ast.NewValue(t.Type)
+				tc.replaceTypeInfo(f.Type, new)
+				f.Type = new
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
 		}
@@ -1174,6 +1192,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "missing argument to make"))
 		}
 		t := tc.checkType(expr.Args[0], noEllipses)
+		new := ast.NewValue(t.Type)
+		tc.replaceTypeInfo(expr.Args[0], new)
+		expr.Args[0] = new
 		switch t.Type.Kind() {
 		case reflect.Slice:
 			if numArgs == 1 {
@@ -1223,6 +1244,8 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "missing argument to new"))
 		}
 		t := tc.checkType(expr.Args[0], noEllipses)
+		new := ast.NewValue(t.Type)
+		tc.replaceTypeInfo(expr.Args[0], new)
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
@@ -1295,6 +1318,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if value != nil {
 			ti.Properties = PropertyIsConstant
 		}
+		new := ast.NewValue(t.Type)
+		tc.replaceTypeInfo(expr.Func, new)
+		expr.Func = new
 		return []*TypeInfo{ti}, false
 	}
 

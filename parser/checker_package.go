@@ -219,6 +219,9 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 			for i, param := range params {
 				if param.Ident != nil {
 					t := tc.checkType(param.Type, noEllipses)
+					new := ast.NewValue(t.Type)
+					tc.replaceTypeInfo(param.Type, new)
+					param.Type = new
 					if isVariadic && i == len(params)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
@@ -229,6 +232,9 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 			// Adds named return values to the function body scope.
 			for _, ret := range fillParametersTypes(v.Type.(*ast.FuncType).Result) {
 				t := tc.checkType(ret.Type, noEllipses)
+				new := ast.NewValue(t.Type)
+				tc.replaceTypeInfo(ret.Type, new)
+				ret.Type = new
 				if ret.Ident != nil {
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}

@@ -78,10 +78,7 @@ func (r *rendering) eval2(expr1, expr2 ast.Expression) (v1, v2 interface{}, err 
 			if err != nil {
 				return nil, false, err
 			}
-			typ, err := r.evalType(e.Type, noEllipses)
-			if err != nil {
-				return nil, false, err
-			}
+			typ := e.Type.(*ast.Value).Val.(reflect.Type)
 			ok, err := hasType(v, typ)
 			if err != nil {
 				return nil, nil, r.errorf(e.Expr, "%s", err)
@@ -176,24 +173,6 @@ func (r *rendering) evalN(expressions []ast.Expression, n int) ([]interface{}, e
 	return nil, nil
 }
 
-// evalSliceType evaluates a slice type returning its value.
-func (r *rendering) evalSliceType(node *ast.SliceType) reflect.Type {
-	t, err := r.evalType(node, noEllipses)
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
-// evalMapType evaluates a map type returning its value.
-func (r *rendering) evalMapType(node *ast.MapType) reflect.Type {
-	t, err := r.evalType(node, noEllipses)
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 // evalExpression evaluates an expression and returns its value.
 // In the event of an error, calls panic with the error as parameter.
 func (r *rendering) evalExpression(expr ast.Expression) interface{} {
@@ -214,10 +193,6 @@ func (r *rendering) evalExpression(expr ast.Expression) interface{} {
 		return r.evalBinaryOperator(e)
 	case *ast.Identifier:
 		return r.evalIdentifier(e)
-	case *ast.MapType:
-		return r.evalMapType(e)
-	case *ast.SliceType:
-		return r.evalSliceType(e)
 	case *ast.CompositeLiteral:
 		return r.evalCompositeLiteral(e, nil)
 	case *ast.Func:
@@ -1098,13 +1073,7 @@ func (r *rendering) evalSelector2(node *ast.Selector) (interface{}, bool, error)
 // evalTypeAssertion evaluates a type assertion.
 func (r *rendering) evalTypeAssertion(node *ast.TypeAssertion) interface{} {
 	val := r.evalExpression(node.Expr)
-	if node.Type == nil { // .(type) assertion.
-		return val
-	}
-	typ, err := r.evalType(node.Type, noEllipses)
-	if err != nil {
-		panic(err)
-	}
+	typ := node.Type.(*ast.Value).Val.(reflect.Type)
 	has, err := hasType(val, typ)
 	if err != nil {
 		panic(r.errorf(node.Expr, "%s", err))
@@ -1149,22 +1118,16 @@ func (r *rendering) indexValueMap(indexValues []ast.KeyValue) (map[int]ast.Expre
 // maps when possibile.
 //
 func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType reflect.Type) interface{} {
-	var err error
 	var indexValue map[int]ast.Expression
 	var maxIndex int
 	var typ reflect.Type
 	if node.Type != nil { // Composite literal with explicit type.
-		length := noEllipses
 		if _, ok := node.Type.(*ast.ArrayType); ok {
 			// Composite literal has an array type, so the maximum index must be
 			// determined to create ellipses and to check size matching.
 			indexValue, maxIndex = r.indexValueMap(node.KeyValues)
-			length = maxIndex + 1
 		}
-		typ, err = r.evalType(node.Type, length)
-		if err != nil {
-			panic(err)
-		}
+		typ = node.Type.(*ast.Value).Val.(reflect.Type)
 	} else { // Composite literal with implicit type.
 		typ = outerType
 	}
@@ -1305,89 +1268,6 @@ func (r *rendering) evalCompositeLiteral(node *ast.CompositeLiteral, outerType r
 }
 
 const noEllipses = -1
-
-// evalType evaluates an expression as type. If expr is an array type, length
-// specifies the number of elements.
-func (r *rendering) evalType(expr ast.Expression, length int) (typ reflect.Type, err error) {
-	switch e := expr.(type) {
-	case *ast.Identifier:
-		for i := len(r.vars) - 1; i >= 0; i-- {
-			if v, ok := r.vars[i][e.Name]; ok {
-				if typ, ok = v.(reflect.Type); ok && i <= 1 {
-					return typ, nil
-				}
-			}
-		}
-	case *ast.Selector:
-		if ident, ok := e.Expr.(*ast.Identifier); ok {
-			v2 := r.evalIdentifier(ident)
-			if pkg, ok := v2.(packageNameScope); ok {
-				typ = pkg.scope[e.Ident].(reflect.Type)
-				return typ, nil
-			}
-		}
-	case *ast.ArrayType:
-		elemType, err := r.evalType(e.ElementType, noEllipses)
-		if err != nil {
-			panic(err)
-		}
-		var declLength int
-		if e.Len == nil {
-			return reflect.ArrayOf(length, elemType), nil
-		}
-		l, err := r.eval(e.Len)
-		if err != nil {
-			return nil, err
-		}
-		switch l := l.(type) {
-		case ConstantNumber:
-			n, err := l.ToType(intType)
-			if err != nil {
-				return nil, err
-			}
-			declLength = n.(int)
-			if declLength < 0 {
-				return nil, r.errorf(expr, "array bound must be non-negative")
-			}
-		default:
-			return nil, r.errorf(expr, "non-constant array bound %s", l)
-		}
-		if declLength < length {
-			return nil, r.errorf(expr, "array index %d out of bounds [0:%d]", declLength, declLength)
-		}
-		return reflect.ArrayOf(declLength, elemType), nil
-	case *ast.SliceType:
-		elemType, err := r.evalType(e.ElementType, noEllipses)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.SliceOf(elemType), nil
-	case *ast.MapType:
-		var keyType, valueType reflect.Type
-		keyType, err = r.evalType(e.KeyType, noEllipses)
-		if err != nil {
-			panic(err)
-		}
-		valueType, err = r.evalType(e.ValueType, noEllipses)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.MapOf(keyType, valueType), nil
-	case *ast.UnaryOperator:
-		elemTyp, err := r.evalType(e.Expr, noEllipses)
-		if err != nil {
-			panic(err)
-		}
-		return reflect.PtrTo(elemTyp), nil
-	case *ast.FuncType:
-		// TODO (Gianluca): wait for type-checker to return types as constants.
-	case *ast.Value:
-		return e.Val.(reflect.Type), nil
-	default:
-		panic(fmt.Errorf("bug: %T is not a type", expr))
-	}
-	return nil, r.errorf(expr, "bug: %T is not a type", expr)
-}
 
 var errNotAssignable = errors.New("not assignable")
 

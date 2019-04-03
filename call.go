@@ -90,8 +90,6 @@ func (r *rendering) evalCallN(node *ast.Call) ([]reflect.Value, error) {
 // its values. It returns an error if n > 0 and the function does not return n values.
 func (r *rendering) evalCallFunc(node *ast.Call, fn function) ([]reflect.Value, error) {
 
-	var err error
-
 	typ := fn.node.Type
 
 	haveSize := len(node.Args)
@@ -104,10 +102,7 @@ func (r *rendering) evalCallFunc(node *ast.Call, fn function) ([]reflect.Value, 
 			if t := typ.Parameters[i].Type; t == nil {
 				types[i] = types[i+1]
 			} else {
-				types[i], err = r.evalType(t, noEllipses)
-				if err != nil {
-					return nil, err
-				}
+				types[i] = t.(*ast.Value).Val.(reflect.Type)
 			}
 		}
 	}
@@ -684,10 +679,8 @@ func (r *rendering) evalLen(node *ast.Call) ([]reflect.Value, error) {
 }
 
 func (r *rendering) evalMake(node *ast.Call) ([]reflect.Value, error) {
-	typ, err := r.evalType(node.Args[0], noEllipses)
-	if err != nil {
-		return nil, err
-	}
+	typ := node.Args[0].(*ast.Value).Val.(reflect.Type)
+	var err error
 	switch typ.Kind() {
 	case reflect.Slice:
 		// make([]T, len)
@@ -737,10 +730,7 @@ func (r *rendering) evalMake(node *ast.Call) ([]reflect.Value, error) {
 
 // evalNew evaluates the new builtin function.
 func (r *rendering) evalNew(node *ast.Call) ([]reflect.Value, error) {
-	typ, err := r.evalType(node.Args[0], noEllipses)
-	if err != nil {
-		return nil, err
-	}
+	typ := node.Args[0].(*ast.Value).Val.(reflect.Type)
 	return []reflect.Value{reflect.New(typ)}, nil
 }
 

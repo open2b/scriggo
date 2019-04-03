@@ -534,7 +534,7 @@ Nodes:
 				if t := result[i].Type; t == nil {
 					types[i] = types[i+1]
 				} else {
-					types[i], err = r.evalType(t, noEllipses)
+					types[i] = t.(*ast.Value).Val.(reflect.Type)
 					if err != nil {
 						return err
 					}
