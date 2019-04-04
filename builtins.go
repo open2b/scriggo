@@ -414,11 +414,8 @@ func _html(s interface{}) HTML {
 		return HTML(v)
 	case HTML:
 		return v
-	default:
-		// TODO (Gianluca): replace %v with the name of the variable that
-		// contains s.
-		panic(fmt.Errorf("invalid argument %v (type %T) for html", v, s))
 	}
+	panic(fmt.Sprintf("type-checking bug: _html argument must be string or HTML, got %T", s))
 }
 
 // _index is the builtin function "index".
