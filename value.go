@@ -208,6 +208,21 @@ func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, e
 	panic("no integer value")
 }
 
+// asBase returns the underlying type of value if it's a defined type, or value
+// itself if it's not.
+// TODO (Gianluca): add other types.
+func asBase(value interface{}) (baseValue interface{}, hasBeenConverted bool) {
+	typ := reflect.TypeOf(value)
+	if typ.Name() == "" { // not defined-type.
+		return value, false
+	}
+	switch typ.Kind() {
+	case reflect.String:
+		return fmt.Sprintf("%v", value), true
+	}
+	return value, false
+}
+
 // renderValue renders value in the context of node and as a URL is urlstate
 // is not nil.
 func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Show, urlstate *urlState) error {
@@ -303,6 +318,10 @@ func (r *rendering) renderInText(w stringWriter, value interface{}, node *ast.Sh
 			s = "true"
 		}
 	default:
+		value, ok := asBase(value)
+		if ok {
+			return r.renderInText(w, value, node)
+		}
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return r.errorf(node, "no-render type %s", typeof(value))
@@ -357,6 +376,10 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Sh
 			s = "true"
 		}
 	default:
+		value, ok := asBase(value)
+		if ok {
+			return r.renderInHTML(w, value, node)
+		}
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return r.errorf(node, "no-render type %s", typeof(value))
@@ -386,6 +409,7 @@ func (r *rendering) renderInHTML(w stringWriter, value interface{}, node *ast.Sh
 
 // renderInTag renders value in Tag context.
 func (r *rendering) renderInTag(w stringWriter, value interface{}, node *ast.Show) error {
+	value, _ = asBase(value)
 	buf := strings.Builder{}
 	err := r.renderInText(&buf, value, node)
 	if err != nil {
@@ -435,6 +459,10 @@ func (r *rendering) renderInAttribute(w stringWriter, value interface{}, node *a
 			s = "true"
 		}
 	default:
+		value, ok := asBase(value)
+		if ok {
+			return r.renderInAttribute(w, value, node, quoted)
+		}
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return r.errorf(node, "no-render type %s", typeof(value))
@@ -491,6 +519,10 @@ func (r *rendering) renderInAttributeURL(w stringWriter, value interface{}, node
 			s = "true"
 		}
 	default:
+		value, ok := asBase(value)
+		if ok {
+			return r.renderInAttributeURL(w, value, node, urlstate, quoted)
+		}
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
 			return r.errorf(node, "no-render type %s", typeof(value))
@@ -555,6 +587,8 @@ func (r *rendering) renderInCSS(w stringWriter, value interface{}, node *ast.Sho
 		return r.errorf(node, "no-render type %s", typeof(value))
 	}
 
+	value, _ = asBase(value)
+
 	var s string
 
 	switch e := value.(type) {
@@ -604,6 +638,8 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 	if value == nil {
 		return r.errorf(node, "no-render type %s", typeof(value))
 	}
+
+	value, _ = asBase(value)
 
 	var s string
 
@@ -679,6 +715,10 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 	case []byte:
 		return escapeBytes(w, e, true)
 	default:
+		value, ok := asBase(value)
+		if ok {
+			return r.renderInScript(w, value, node)
+		}
 		var err error
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() {
@@ -761,6 +801,11 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 		}
 		_, err = w.WriteString(s)
 		return err
+	}
+
+	value, ok := asBase(value)
+	if ok {
+		return r.renderInScript(w, value, node)
 	}
 
 	return r.errorf(node, "no-render type %s", typeof(value))
