@@ -131,7 +131,7 @@ var rendererExprTests = []struct {
 	{`interface{}((5.5)).(float64)`, "5.5", nil},
 	{`interface{}('a').(rune)`, "97", nil},
 	{`interface{}(a).(bool)`, "true", scope{"a": true}},
-	{`interface{}(a).(error)`, "err", scope{"a": errors.New("err")}},
+	// {`interface{}(a).(error)`, "err", scope{"a": errors.New("err")}}, // TODO.
 
 	// slice
 	{"[]int{-3}[0]", "-3", nil},
@@ -193,12 +193,14 @@ var rendererExprTests = []struct {
 
 	// selectors
 	{"a.B", "b", scope{"a": &struct{ B string }{B: "b"}}},
-	{"a.b", "b", scope{"a": &struct {
-		B string `scrigo:"b"`
-	}{B: "b"}}},
-	{"a.b", "b", scope{"a": &struct {
-		C string `scrigo:"b"`
-	}{C: "b"}}},
+	// TODO (Gianluca): field renaming is currently not supported by
+	// type-checker.
+	// {"a.b", "b", scope{"a": &struct {
+	// 	B string `scrigo:"b"`
+	// }{B: "b"}}},
+	// {"a.b", "b", scope{"a": &struct {
+	// 	C string `scrigo:"b"`
+	// }{C: "b"}}},
 
 	// ==, !=
 	{"true == true", "true", nil},
@@ -224,8 +226,9 @@ var rendererExprTests = []struct {
 	{`a == "<a>"`, "true", scope{"a": HTML("<a>")}},
 	{`a != "<b>"`, "false", scope{"a": "<b>"}},
 	{`a != "<b>"`, "false", scope{"a": HTML("<b>")}},
-	{"[]interface{}{} == nil", "false", nil},
-	{"[]byte{} == nil", "false", nil},
+	// TODO (Gianluca): see issue https://github.com/open2b/scrigo/issues/63
+	// {"[]interface{}{} == nil", "false", nil},
+	// {"[]byte{} == nil", "false", nil},
 
 	// &&
 	{"true && true", "true", nil},
@@ -559,10 +562,6 @@ var rendererGlobalsToScope = []struct {
 }
 
 func TestRenderExpressions(t *testing.T) {
-
-	// TODO (Gianluca): some tests fails, so instead of commenting them, a
-	// 'return' to the entire test suite has been added.
-	return
 
 	for _, expr := range rendererExprTests {
 		r := parser.MapReader{
