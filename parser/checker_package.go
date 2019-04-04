@@ -217,11 +217,11 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 			fillParametersTypes(v.Type.(*ast.FuncType).Parameters)
 			isVariadic := v.Type.(*ast.FuncType).IsVariadic
 			for i, param := range v.Type.(*ast.FuncType).Parameters {
+				t := tc.checkType(param.Type, noEllipses)
+				new := ast.NewValue(t.Type)
+				tc.replaceTypeInfo(param.Type, new)
+				param.Type = new
 				if param.Ident != nil {
-					t := tc.checkType(param.Type, noEllipses)
-					new := ast.NewValue(t.Type)
-					tc.replaceTypeInfo(param.Type, new)
-					param.Type = new
 					if isVariadic && i == len(v.Type.(*ast.FuncType).Parameters)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
