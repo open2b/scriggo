@@ -510,9 +510,6 @@ func NewTemplate(reader parser.Reader) *Template {
 }
 
 func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*Page, error) {
-	// TODO (Gianluca): creare un nuovo main con le builtin dentro e
-	// successivamente sovrascriverci i nomi passati tramite l'argomento
-	// "main".
 	mainWithBuiltins := &parser.GoPackage{Name: main.Name}
 	mainWithBuiltins.Declarations = make(map[string]interface{}, len(main.Declarations)+len(templateBuiltinOnly))
 	for n, d := range templateBuiltinOnly {
