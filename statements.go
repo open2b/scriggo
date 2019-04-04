@@ -755,6 +755,8 @@ Nodes:
 			var err error
 			var res interface{}
 			if call, ok := node.(*ast.Call); ok {
+				// TODO (Gianluca): res is not valid as it is.
+				// Change it before returning it as a value.
 				res, err = r.evalCallN(call)
 			} else {
 				res, err = r.eval1(node)
