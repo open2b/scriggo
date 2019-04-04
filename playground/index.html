@@ -23,7 +23,7 @@
         );
     }
     var go = new Go();
-    var mod = fetchAndInstantiate("/scrigo.wasm", go.importObject);
+    var mod = fetchAndInstantiate("scrigo.wasm", go.importObject);
     window.onload = function() {
         mod.then(function(instance) {
             go.run(instance);
