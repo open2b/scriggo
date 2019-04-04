@@ -129,7 +129,7 @@ var rendererExprTests = []struct {
 	{`interface{}(a).(float32)`, "5.5", scope{"a": float32(5.5)}},
 	{`interface{}((5)).(int)`, "5", nil},
 	{`interface{}((5.5)).(float64)`, "5.5", nil},
-	{`interface{}('a').(rune)`, "'a'", nil},
+	{`interface{}('a').(rune)`, "97", nil},
 	{`interface{}(a).(bool)`, "true", scope{"a": true}},
 	{`interface{}(a).(error)`, "err", scope{"a": errors.New("err")}},
 
