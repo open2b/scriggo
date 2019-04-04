@@ -32,6 +32,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		switch node := node.(type) {
 
+		case *ast.Text:
+
 		case *ast.Extends:
 
 			panic("found *ast.Extends") // TODO (Gianluca): to review.
