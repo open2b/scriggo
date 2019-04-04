@@ -224,12 +224,8 @@ var rendererExprTests = []struct {
 	{`a == "<a>"`, "true", scope{"a": HTML("<a>")}},
 	{`a != "<b>"`, "false", scope{"a": "<b>"}},
 	{`a != "<b>"`, "false", scope{"a": HTML("<b>")}},
-	{"map[interface{}]interface{}{} == nil", "false", nil},
-	{"map[interface{}]interface{}{} == map[interface{}]interface{}{}", "false", nil},
 	{"[]interface{}{} == nil", "false", nil},
-	{"[]interface{}{} == []interface{}{}", "false", nil},
 	{"[]byte{} == nil", "false", nil},
-	{"[]byte{} == []byte{}", "false", nil},
 
 	// &&
 	{"true && true", "true", nil},
