@@ -2,7 +2,9 @@
 
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	{
@@ -34,5 +36,9 @@ func main() {
 
 		f, ok := i.(float64)
 		fmt.Println(f, ok)
+	}
+	{
+		// TODO (Gianluca): see https://github.com/open2b/scrigo/issues/64
+		// _ = interface{}(errors.New("test")).(error)
 	}
 }
