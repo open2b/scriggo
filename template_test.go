@@ -131,7 +131,7 @@ var rendererExprTests = []struct {
 	{`interface{}((5.5)).(float64)`, "5.5", nil},
 	{`interface{}('a').(rune)`, "97", nil},
 	{`interface{}(a).(bool)`, "true", scope{"a": true}},
-	// {`interface{}(a).(error)`, "err", scope{"a": errors.New("err")}}, // TODO.
+	// {`interface{}(a).(error)`, "err", scope{"a": errors.New("err")}}, // TODO (Gianluca): see https://github.com/open2b/scrigo/issues/64.
 
 	// slice
 	{"[]int{-3}[0]", "-3", nil},
@@ -166,13 +166,13 @@ var rendererExprTests = []struct {
 	{`[...]int{4: 5}[4]`, "5", nil},
 
 	// map
-	// {"len(map[interface{}]interface{}{})", "0", nil},
+	{"len(map[interface{}]interface{}{})", "0", nil},
 	// {`map[interface{}]interface{}{1: 1, 2: 4, 3: 9}[2]`, "4", nil},
 	{`map[int]int{1: 1, 2: 4, 3: 9}[2]`, "4", nil},
 	{`10 + map[string]int{"uno": 1, "due": 2}["due"] * 3`, "16", nil},
-	// {`len(map[interface{}]interface{}{1: 1, 2: 4, 3: 9})`, "3", nil},
+	{`len(map[interface{}]interface{}{1: 1, 2: 4, 3: 9})`, "3", nil},
 	// {`s["a"]`, "3", scope{"s": map[interface{}]int{"a": 3}}},
-	// {`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
+	{`s[nil]`, "3", scope{"s": map[interface{}]int{nil: 3}}},
 
 	// struct
 	{`s{1, 2}.A`, "1", scope{"s": reflect.TypeOf(struct{ A, B int }{})}},
@@ -226,7 +226,8 @@ var rendererExprTests = []struct {
 	{`a == "<a>"`, "true", scope{"a": HTML("<a>")}},
 	{`a != "<b>"`, "false", scope{"a": "<b>"}},
 	{`a != "<b>"`, "false", scope{"a": HTML("<b>")}},
-	// TODO (Gianluca): see issue https://github.com/open2b/scrigo/issues/63
+
+	// TODO (Gianluca): see issue https://github.com/open2b/scrigo/issues/63.
 	// {"[]interface{}{} == nil", "false", nil},
 	// {"[]byte{} == nil", "false", nil},
 
@@ -370,15 +371,15 @@ var rendererStmtTests = []struct {
 	{"{% for _, c := range \"\" %}{{ c }}{% end %}", "", nil},
 	{"{% for _, c := range \"a\" %}({{ c }}){% end %}", "(97)", nil},
 	{"{% for _, c := range \"aÈc\" %}({{ c }}){% end %}", "(97)(200)(99)", nil},
-	// {"{% for _, c := range html(\"<b>\") %}({{ c }}){% end %}", "(60)(98)(62)", nil},
-	// {"{% for _, i := range []interface{}{ `a`, `b`, `c` } %}{{ i }}{% end %}", "abc", nil},
-	// {"{% for _, i := range []interface{}{ html(`<`), html(`&`), html(`>`) } %}{{ i }}{% end %}", "<&>", nil},
-	// {"{% for _, i := range []interface{}{1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
-	// {"{% for _, i := range []interface{}{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
-	// {"{% for _, i := range []byte{ 0, 1, 2 } %}{{ i }}{% end %}", "012", nil},
+	{"{% for _, c := range html(\"<b>\") %}({{ c }}){% end %}", "(60)(98)(62)", nil},
+	{"{% for _, i := range []interface{}{ `a`, `b`, `c` } %}{{ i }}{% end %}", "abc", nil},
+	{"{% for _, i := range []interface{}{ html(`<`), html(`&`), html(`>`) } %}{{ i }}{% end %}", "<&>", nil},
+	{"{% for _, i := range []interface{}{1, 2, 3, 4, 5} %}{{ i }}{% end %}", "12345", nil},
+	{"{% for _, i := range []interface{}{1.3, 5.8, 2.5} %}{{ i }}{% end %}", "1.35.82.5", nil},
+	{"{% for _, i := range []byte{ 0, 1, 2 } %}{{ i }}{% end %}", "012", nil},
 	// {"{% s := []interface{}{} %}{% for k, v := range map[interface{}]interface{}{`a`: `1`, `b`: `2`} %}{% s = append(s, k+`:`+v) %}{% end %}{% sort(s) %}{{ s }}", "a:1, b:2", nil},
-	// {"{% for k, v := range map[interface{}]interface{}{} %}{{ k }}:{{ v }},{% end %}", "", nil},
-	// {"{% s := []interface{}{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{% sort(s) %}{{ s }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
+	{"{% for k, v := range map[interface{}]interface{}{} %}{{ k }}:{{ v }},{% end %}", "", nil},
+	{"{% s := []interface{}{} %}{% for k, v := range m %}{% s = append(s, itoa(k)+`:`+itoa(v)) %}{% end %}{% sort(s) %}{{ s }}", "1:1, 2:4, 3:9", scope{"m": map[int]int{1: 1, 2: 4, 3: 9}}},
 	{"{% for p in products %}{{ p }}\n{% end %}", "a\nb\nc\n",
 		scope{"products": []string{"a", "b", "c"}}},
 	// {"{% i := 0 %}{% c := \"\" %}{% for i, c = range \"ab\" %}({{ c }}){% end %}{{ i }}", "(97)(98)1", nil},
@@ -393,20 +394,20 @@ var rendererStmtTests = []struct {
 	{"{% switch %}{% case true %}ok{% end %}", "ok", nil},
 	{"{% switch ; %}{% case true %}ok{% end %}", "ok", nil},
 	{"{% i := 2 %}{% switch i++; %}{% case true %}{{ i }}{% end %}", "3", nil},
-	// {"{% switch ; true %}{% case true %}ok{% end %}", "ok", nil},
-	// {"{% switch %}{% default %}default{% case true %}true{% end %}", "true", nil},
+	{"{% switch ; true %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch %}{% default %}default{% case true %}true{% end %}", "true", nil},
 	// {"{% switch interface{}(\"hey\").(type) %}{% default %}default{% case string %}string{% end %}", "string", nil},
 	// {"{% switch a := 5; a := a.(type) %}{% case int %}ok{% end %}", "ok", nil},
-	// {"{% switch 3 %}{% case 3 %}three{% end %}", "three", nil},
-	// {"{% switch 4 + 5 %}{% case 4 %}{% case 9 %}nine{% case 9 %}second nine{% end %}", "nine", nil},
-	// {"{% switch x := 1; x + 1 %}{% case 1 %}one{% case 2 %}two{% end %}", "two", nil},
-	// {"{% switch %}{% case 4 < 2%}{% case 7 < 10 %}7 < 10{% default %}other{% end %}", "7 < 10", nil},
-	// {"{% switch %}{% case 4 < 2%}{% case 7 > 10 %}7 > 10{% default %}other{% end %}", "other", nil},
-	// {"{% switch %}{% case true %}ok{% end %}", "ok", nil},
-	// {"{% switch %}{% case false %}no{% end %}", "", nil},
-	// {"{% switch %}{% case true %}ab{% break %}c{% end %}", "ab", nil},
-	// {"{% switch a, b := 2, 4; c < d %}{% case true %}{{ a }}{% case false %}{{ b }}{% end %}", "4", scope{"c": 100, "d": 90}},
-	// {"{% switch a := 4; %}{% case 3 < 4 %}{{ a }}{% end %}", "4", nil},
+	{"{% switch 3 %}{% case 3 %}three{% end %}", "three", nil},
+	{"{% switch 4 + 5 %}{% case 4 %}{% case 9 %}nine{% case 9 %}second nine{% end %}", "nine", nil},
+	{"{% switch x := 1; x + 1 %}{% case 1 %}one{% case 2 %}two{% end %}", "two", nil},
+	{"{% switch %}{% case 4 < 2%}{% case 7 < 10 %}7 < 10{% default %}other{% end %}", "7 < 10", nil},
+	{"{% switch %}{% case 4 < 2%}{% case 7 > 10 %}7 > 10{% default %}other{% end %}", "other", nil},
+	{"{% switch %}{% case true %}ok{% end %}", "ok", nil},
+	{"{% switch %}{% case false %}no{% end %}", "", nil},
+	{"{% switch %}{% case true %}ab{% break %}c{% end %}", "ab", nil},
+	{"{% switch a, b := 2, 4; c < d %}{% case true %}{{ a }}{% case false %}{{ b }}{% end %}", "4", scope{"c": 100, "d": 90}},
+	{"{% switch a := 4; %}{% case 3 < 4 %}{{ a }}{% end %}", "4", nil},
 	// {"{% switch a.(type) %}{% case string %}is a string{% case int %}is an int{% default %}is something else{% end %}", "is an int", scope{"a": 3}},
 	// {"{% switch (a + b).(type) %}{% case string %}{{ a + b }} is a string{% case int %}is an int{% default %}is something else{% end %}", "msgmsg2 is a string", scope{"a": "msg", "b": "msg2"}},
 	// {"{% switch x.(type) %}{% case string %}is a string{% default %}is something else{% case int %}is an int{% end %}", "is something else", scope{"x": false}},
@@ -470,27 +471,27 @@ var rendererStmtTests = []struct {
 	// {`{% if s, ok := string(a).(string); ok %}{{ s }}{% end %}`, "a€b", scope{"a": []byte{97, 226, 130, 172, 98}}},
 
 	// int
-	// {`{% if s, ok := int(5).(int); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := int(5.0).(int); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := int(2147483647).(int); ok %}{{ s }}{% end %}`, "2147483647", nil},
-	// {`{% if s, ok := int(-2147483648).(int); ok %}{{ s }}{% end %}`, "-2147483648", nil},
+	{`{% if s, ok := interface{}(int(5)).(int); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(int(5.0)).(int); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(int(2147483647)).(int); ok %}{{ s }}{% end %}`, "2147483647", nil},
+	{`{% if s, ok := interface{}(int(-2147483648)).(int); ok %}{{ s }}{% end %}`, "-2147483648", nil},
 
 	// float64
-	// {`{% if s, ok := float64(5).(float64); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := float64(5.5).(float64); ok %}{{ s }}{% end %}`, "5.5", nil},
+	{`{% if s, ok := interface{}(float64(5)).(float64); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(float64(5.5)).(float64); ok %}{{ s }}{% end %}`, "5.5", nil},
 
 	// float32
-	// {`{% if s, ok := float32(5).(float32); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := float32(5.5).(float32); ok %}{{ s }}{% end %}`, "5.5", nil},
+	{`{% if s, ok := interface{}(float32(5)).(float32); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(float32(5.5)).(float32); ok %}{{ s }}{% end %}`, "5.5", nil},
 
 	// rune
-	// {`{% if s, ok := rune(5).(rune); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := rune(2147483647).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
-	// {`{% if s, ok := rune(-2147483648).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
+	{`{% if s, ok := interface{}(rune(5)).(rune); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(rune(2147483647)).(rune); ok %}{{ s }}{% end %}`, "2147483647", nil},
+	{`{% if s, ok := interface{}(rune(-2147483648)).(rune); ok %}{{ s }}{% end %}`, "-2147483648", nil},
 
 	// byte
-	// {`{% if s, ok := byte(5).(byte); ok %}{{ s }}{% end %}`, "5", nil},
-	// {`{% if s, ok := byte(255).(byte); ok %}{{ s }}{% end %}`, "255", nil},
+	{`{% if s, ok := interface{}(byte(5)).(byte); ok %}{{ s }}{% end %}`, "5", nil},
+	{`{% if s, ok := interface{}(byte(255)).(byte); ok %}{{ s }}{% end %}`, "255", nil},
 
 	// map
 	// {`{% if _, ok := map[interface{}]interface{}(a).(map[interface{}]interface{}); ok %}ok{% end %}`, "ok", scope{"a": map[interface{}]interface{}{}}},
@@ -498,9 +499,9 @@ var rendererStmtTests = []struct {
 	// {`{% a := map[interface{}]interface{}(nil) %}ok`, "ok", nil},
 
 	// slice
-	// {`{% if _, ok := []int{1,2,3}.([]int); ok %}ok{% end %}`, "ok", nil},
-	// {`{% if _, ok := []interface{}(a).([]interface{}); ok %}ok{% end %}`, "ok", scope{"a": []interface{}{}}},
-	// {`{% if []interface{}(a) != nil %}ok{% end %}`, "ok", scope{"a": []interface{}{}}},
+	{`{% if _, ok := interface{}([]int{1,2,3}).([]int); ok %}ok{% end %}`, "ok", nil},
+	{`{% if _, ok := interface{}([]interface{}(a)).([]interface{}); ok %}ok{% end %}`, "ok", scope{"a": []interface{}{}}},
+	// {`{% if []interface{}(a) != nil %}ok{% end %}`, "ok", scope{"a": []interface{}{}}}, // TODO (Gianluca): see https://github.com/open2b/scrigo/issues/63.
 }
 
 var rendererGlobalsToScope = []struct {
