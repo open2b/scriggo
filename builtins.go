@@ -100,7 +100,58 @@ var builtins = scope{
 	"error":       errorType,
 }
 
+// TODO (Gianluca): keep in sync with templateBuiltinOnly for now.
 var templateBuiltins = scope{
+	"abbreviate":  _abbreviate,
+	"abs":         _abs,
+	"atoi":        strconv.Atoi,
+	"base64":      _base64,
+	"contains":    strings.Contains,
+	"errorf":      _errorf,
+	"hasPrefix":   strings.HasPrefix,
+	"hasSuffix":   strings.HasSuffix,
+	"hex":         _hex,
+	"hmac":        _hmac,
+	"html":        _html,
+	"index":       _index,
+	"indexAny":    _indexAny,
+	"itoa":        strconv.Itoa,
+	"join":        strings.Join,
+	"lastIndex":   _lastIndex,
+	"max":         _max,
+	"md5":         _md5,
+	"min":         _min,
+	"rand":        _rand,
+	"randFloat":   _randFloat,
+	"repeat":      _repeat,
+	"replace":     strings.Replace,
+	"replaceAll":  _replaceAll,
+	"reverse":     _reverse,
+	"round":       _round,
+	"printf":      _printf,
+	"sha1":        _sha1,
+	"sha256":      _sha256,
+	"shuffle":     _shuffle,
+	"sort":        _sort,
+	"split":       strings.Split,
+	"splitN":      strings.SplitN,
+	"queryEscape": url.QueryEscape,
+	"title":       strings.Title,
+	"toLower":     strings.ToLower,
+	"toTitle":     strings.ToTitle,
+	"toUpper":     strings.ToUpper,
+	"trim":        strings.Trim,
+	"trimLeft":    strings.TrimLeft,
+	"trimPrefix":  strings.TrimPrefix,
+	"trimRight":   strings.TrimRight,
+	"trimSuffix":  strings.TrimSuffix,
+}
+
+// TODO (Gianluca): templateBuiltinOnly is a copy of templateBuiltins, but this
+// last is filled with builtins.
+// Find a better solution and remove templateBuiltinOnly.
+// TODO (Gianluca): keep in sync with templateBuiltins for now.
+var templateBuiltinOnly = scope{
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
 	"atoi":        strconv.Atoi,

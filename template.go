@@ -510,13 +510,24 @@ func NewTemplate(reader parser.Reader) *Template {
 }
 
 func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*Page, error) {
-	packages := map[string]*parser.GoPackage{"main": main}
+	// TODO (Gianluca): creare un nuovo main con le builtin dentro e
+	// successivamente sovrascriverci i nomi passati tramite l'argomento
+	// "main".
+	mainWithBuiltins := &parser.GoPackage{Name: main.Name}
+	mainWithBuiltins.Declarations = make(map[string]interface{}, len(main.Declarations)+len(templateBuiltinOnly))
+	for n, d := range templateBuiltinOnly {
+		mainWithBuiltins.Declarations[n] = d
+	}
+	for n, d := range main.Declarations {
+		mainWithBuiltins.Declarations[n] = d
+	}
+	packages := map[string]*parser.GoPackage{"main": mainWithBuiltins}
 	p := parser.New(t.reader, packages, true)
 	tree, err := p.Parse(path, ast.Context(ctx))
 	if err != nil {
 		return nil, convertError(err)
 	}
-	return &Page{tree: tree, main: main}, nil
+	return &Page{tree: tree, main: mainWithBuiltins}, nil
 }
 
 func Render(out io.Writer, page *Page, vars map[string]interface{}) error {
