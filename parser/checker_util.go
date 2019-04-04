@@ -726,7 +726,7 @@ func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 		case reflect.Float64:
 			return ti.Float64()
 		default:
-			panic("unexpected kind")
+			panic(fmt.Sprintf("unexpected kind %q", k))
 		}
 	}
 	nv := reflect.New(t).Elem()
