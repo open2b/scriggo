@@ -756,8 +756,6 @@ Nodes:
 			var res interface{}
 			var args []interface{}
 			if call, ok := node.(*ast.Call); ok {
-				// TODO (Gianluca): res is not valid as it is.
-				// Change it before returning it as a value.
 				var values []reflect.Value
 				values, err = r.evalCallN(call)
 				args = make([]interface{}, len(values))
