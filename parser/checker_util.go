@@ -422,9 +422,9 @@ func fieldByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 // fillParametersTypes takes a list of parameters (function arguments or
 // function return values) and "fills" their types. For instance, a function
 // arguments signature "a, b int" becocmes "a int, b int".
-func fillParametersTypes(params []*ast.Field) []*ast.Field {
+func fillParametersTypes(params []*ast.Field) {
 	if len(params) == 0 {
-		return nil
+		return
 	}
 	typ := params[len(params)-1].Type
 	for i := len(params) - 1; i >= 0; i-- {
@@ -433,7 +433,7 @@ func fillParametersTypes(params []*ast.Field) []*ast.Field {
 		}
 		params[i].Type = typ
 	}
-	return params
+	return
 }
 
 // isAssignableTo reports whether x is assignable to type t.

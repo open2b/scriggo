@@ -625,15 +625,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		expr.Type.Reflect = t.Type
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
-		params := fillParametersTypes(expr.Type.Parameters)
+		fillParametersTypes(expr.Type.Parameters)
 		isVariadic := expr.Type.IsVariadic
-		for i, f := range params {
+		for i, f := range expr.Type.Parameters {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
 				new := ast.NewValue(t.Type)
 				tc.replaceTypeInfo(f.Type, new)
 				f.Type = new
-				if isVariadic && i == len(params)-1 {
+				if isVariadic && i == len(expr.Type.Parameters)-1 {
 					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					continue
 				}
@@ -641,7 +641,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			}
 		}
 		// Adds named return values to the function body scope.
-		for _, f := range fillParametersTypes(expr.Type.Result) {
+		fillParametersTypes(expr.Type.Result)
+		for _, f := range expr.Type.Result {
 			if f.Ident != nil {
 				t := tc.checkType(f.Type, noEllipses)
 				new := ast.NewValue(t.Type)
