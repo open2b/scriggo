@@ -486,6 +486,7 @@ type Template struct {
 
 type Page struct {
 	tree *ast.Tree
+	main *parser.GoPackage
 }
 
 type PackageReader struct {
@@ -510,16 +511,27 @@ func NewTemplate(reader parser.Reader) *Template {
 
 func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*Page, error) {
 	packages := map[string]*parser.GoPackage{"main": main}
-	p := parser.New(t.reader, packages, false)
+	p := parser.New(t.reader, packages, true)
 	tree, err := p.Parse(path, ast.Context(ctx))
 	if err != nil {
 		return nil, convertError(err)
 	}
-	return &Page{tree: tree}, nil
+	return &Page{tree: tree, main: main}, nil
 }
 
 func Render(out io.Writer, page *Page, vars map[string]interface{}) error {
-	return RenderTree(out, page.tree, vars, true)
+	mainValues := make(scope)
+	var err error
+	if page.main != nil {
+		mainValues, err = globalsToScope(page.main)
+		if err != nil {
+			return err
+		}
+	}
+	for n, v := range vars {
+		mainValues[n] = v
+	}
+	return RenderTree(out, page.tree, mainValues, true)
 }
 
 type Compiler struct {
@@ -573,9 +585,13 @@ func Execute(p *Program) error {
 }
 
 func ExecuteScript(s *Script, vars map[string]interface{}) ([]interface{}, error) {
-	mainValues, err := globalsToScope(s.main)
-	if err != nil {
-		return nil, err
+	mainValues := make(scope)
+	if s.main != nil {
+		var err error
+		mainValues, err = globalsToScope(s.main)
+		if err != nil {
+			return nil, err
+		}
 	}
 	for n, v := range vars {
 		mainValues[n] = v
@@ -588,7 +604,7 @@ func ExecuteScript(s *Script, vars map[string]interface{}) ([]interface{}, error
 		handleError: stopOnError,
 		isScript:    true,
 	}
-	err = r.render(nil, s.tree.Nodes, nil)
+	err := r.render(nil, s.tree.Nodes, nil)
 	ret, ok := err.(returnError)
 	if !ok {
 		return nil, err
