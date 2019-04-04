@@ -1,7 +1,6 @@
 package scrigo
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 )
@@ -32,13 +31,7 @@ var rendererCallFuncTests = []struct {
 
 func TestRenderCallFunc(t *testing.T) {
 	for _, stmt := range rendererCallFuncTests {
-		r := bytes.NewReader([]byte(stmt.src))
-		script, err := CompileScript(r, nil)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", stmt.src, err)
-			continue
-		}
-		v, err := ExecuteScript(script, nil)
+		v, err := Eval(stmt.src)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", stmt.src, err)
 			continue
