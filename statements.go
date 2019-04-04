@@ -754,10 +754,16 @@ Nodes:
 
 			var err error
 			var res interface{}
+			var args []interface{}
 			if call, ok := node.(*ast.Call); ok {
 				// TODO (Gianluca): res is not valid as it is.
 				// Change it before returning it as a value.
-				res, err = r.evalCallN(call)
+				var values []reflect.Value
+				values, err = r.evalCallN(call)
+				args = make([]interface{}, len(values))
+				for i, v := range values {
+					args[i] = v.Interface()
+				}
 			} else {
 				res, err = r.eval1(node)
 			}
@@ -765,8 +771,11 @@ Nodes:
 				return err
 			}
 			isLastScriptStatement := r.isScript && r.function.node == nil && i == len(nodes)-1
+			if args == nil {
+				args = []interface{}{res}
+			}
 			if isLastScriptStatement {
-				return returnError{args: []interface{}{res}}
+				return returnError{args: args}
 			}
 
 		}

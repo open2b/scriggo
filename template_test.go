@@ -728,9 +728,8 @@ func TestRenderCallFunc(t *testing.T) {
 			continue
 		}
 		res := ""
-		// TODO (Gianluca): why does it need this conversion?
-		if rvs := v[0].([]reflect.Value); len(rvs) > 0 {
-			res = fmt.Sprintf("%v", rvs[0])
+		if len(v) > 0 {
+			res = fmt.Sprintf("%v", v[0])
 		}
 		if res != stmt.res {
 			t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
