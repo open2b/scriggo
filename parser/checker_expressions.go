@@ -79,7 +79,7 @@ var universe = typeCheckerScope{
 	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
 	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true}},
 	"uint":        {t: &TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: PropertyIsType}},
-	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
+	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType}},
 	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
 	"uint64":      {t: &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType}},
 	"uint8":       {t: uint8TypeInfo},
