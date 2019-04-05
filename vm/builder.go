@@ -1,0 +1,748 @@
+// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
+// https://www.open2b.com
+
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package vm
+
+import (
+	"errors"
+	"reflect"
+)
+
+const maxInt8 = 128
+
+type Type int8
+
+const (
+	TypeInt Type = iota
+	TypeFloat
+	TypeString
+	TypeIface
+)
+
+type Kind uint8
+
+const (
+	Bool      = Kind(reflect.Bool)
+	Int       = Kind(reflect.Int)
+	Int8      = Kind(reflect.Int8)
+	Int16     = Kind(reflect.Int16)
+	Int32     = Kind(reflect.Int32)
+	Int64     = Kind(reflect.Int64)
+	Uint      = Kind(reflect.Uint)
+	Uint8     = Kind(reflect.Uint8)
+	Uint16    = Kind(reflect.Uint16)
+	Uint32    = Kind(reflect.Uint32)
+	Uint64    = Kind(reflect.Uint64)
+	Float32   = Kind(reflect.Float32)
+	Float64   = Kind(reflect.Float64)
+	String    = Kind(reflect.String)
+	Interface = Kind(reflect.Interface)
+)
+
+func (t Type) String() string {
+	switch t {
+	case TypeInt:
+		return "int"
+	case TypeFloat:
+		return "float"
+	case TypeString:
+		return "string"
+	case TypeIface:
+		return "iface"
+	}
+	panic("unknown type")
+}
+
+type Condition int8
+
+const (
+	ConditionTrue              Condition = iota // x
+	ConditionFalse                              // !x
+	ConditionEqual                              // x == y
+	ConditionNotEqual                           // x != y
+	ConditionLess                               // x <  y
+	ConditionLessOrEqual                        // x <= y
+	ConditionGreater                            // x >  y
+	ConditionGreaterOrEqual                     // x >= y
+	ConditionEqualLen                           // len(x) == y
+	ConditionNotEqualLen                        // len(x) != y
+	ConditionLessLen                            // len(x) <  y
+	ConditionLessOrEqualLen                     // len(x) <= y
+	ConditionGreaterLen                         // len(x) >  y
+	ConditionGreaterOrEqualLen                  // len(x) >= y
+	ConditionNil                                // x == nil
+	ConditionNotNil                             // x != nil
+)
+
+func (c Condition) String() string {
+	switch c {
+	case ConditionTrue:
+		return "True"
+	case ConditionFalse:
+		return "False"
+	case ConditionEqual:
+		return "Equal"
+	case ConditionNotEqual:
+		return "NotEqual"
+	case ConditionLess:
+		return "Less"
+	case ConditionLessOrEqual:
+		return "LessOrEqual"
+	case ConditionGreater:
+		return "Greater"
+	case ConditionGreaterOrEqual:
+		return "GreaterOrEqual"
+	case ConditionEqualLen:
+		return "EqualLen"
+	case ConditionNotEqualLen:
+		return "NotEqualLen"
+	case ConditionLessLen:
+		return "LessLen"
+	case ConditionLessOrEqualLen:
+		return "LessOrEqualLen"
+	case ConditionGreaterLen:
+		return "GreaterOrEqualLen"
+	case ConditionGreaterOrEqualLen:
+		return "GreaterOrEqualLen"
+	case ConditionNil:
+		return "Nil"
+	case ConditionNotNil:
+		return "NotNil"
+	}
+	panic("unknown condition")
+}
+
+type Package struct {
+	name  string
+	vars  map[string]interface{}
+	funcs []*Function
+	err   error
+}
+
+func NewPackage(name string) *Package {
+	return &Package{name: name}
+}
+
+// Function returns given its name or an error if the function does not exists.
+func (p *Package) Function(name string) (*Function, error) {
+	for _, fn := range p.funcs {
+		if fn.name == name {
+			return fn, nil
+		}
+	}
+	return nil, errors.New("function does not exist")
+}
+
+type operand int8
+
+type instruction struct {
+	op      operation
+	k       bool
+	a, b, c int8
+}
+
+type Upper struct {
+	typ   Type
+	index int32
+}
+
+type valueptrs struct {
+	t0 []*int64
+	t1 []*float64
+	t2 []*string
+	t3 []*interface{}
+}
+
+// Function represents a function.
+type Function struct {
+	name      string
+	uppers    []Upper
+	in        []Type
+	out       []Type
+	types     []reflect.Type
+	numRegs   [4]uint8
+	numIn     [4]uint8
+	numOut    [4]uint8
+	variadic  bool
+	refs      valueptrs
+	constants values
+	body      []instruction
+	lines     []int
+}
+
+// NewFunction creates a new function and appends it to the package.
+func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Function {
+	fn := &Function{
+		name:     name,
+		in:       in,
+		out:      out,
+		variadic: variadic,
+	}
+	for _, arg := range in {
+		fn.numIn[arg]++
+	}
+	for _, arg := range out {
+		fn.numOut[arg]++
+	}
+	p.funcs = append(p.funcs, fn)
+	return fn
+}
+
+type FunctionBuilder struct {
+	fn      *Function
+	labels  []uint32
+	gotos   map[uint32]uint32
+	numRegs map[reflect.Kind]uint8
+}
+
+// Builder returns the body of the function.
+func (fn *Function) Builder() *FunctionBuilder {
+	fn.body = nil
+	return &FunctionBuilder{
+		fn:      fn,
+		gotos:   map[uint32]uint32{},
+		numRegs: map[reflect.Kind]uint8{},
+	}
+}
+
+func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
+	r := -len(builder.fn.refs.t0) - 1
+	if r == -129 {
+		panic("int refs limit reached")
+	}
+	builder.fn.refs.t0 = append(builder.fn.refs.t0, &c)
+	return int8(r)
+}
+
+func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
+	r := -len(builder.fn.refs.t3) - 1
+	if r == -129 {
+		panic("interface refs limit reached")
+	}
+	builder.fn.refs.t3 = append(builder.fn.refs.t3, &c)
+	return int8(r)
+}
+
+// SetLabel sets a new label in current position.
+func (builder *FunctionBuilder) SetLabel() uint32 {
+	builder.labels = append(builder.labels, uint32(len(builder.fn.body)))
+	return uint32(len(builder.labels))
+}
+
+var intType = reflect.TypeOf(0)
+var float64Type = reflect.TypeOf(0.0)
+var stringType = reflect.TypeOf("")
+
+func encodeAddr(v uint32) (a, b, c int8) {
+	a = int8(uint8(v))
+	b = int8(uint8(v >> 8))
+	c = int8(uint8(v >> 16))
+	return
+}
+
+func (fn *Function) SetUpper(value Upper) {
+	fn.uppers = append(fn.uppers, value)
+}
+
+func (builder *FunctionBuilder) End() {
+	for addr, label := range builder.gotos {
+		i := builder.fn.body[addr]
+		i.a, i.b, i.c = encodeAddr(builder.labels[label])
+		builder.fn.body[addr] = i
+	}
+	builder.gotos = nil
+	for kind, num := range builder.numRegs {
+		switch {
+		case reflect.Int <= kind && kind <= reflect.Uint64:
+			if num > builder.fn.numRegs[0] {
+				builder.fn.numRegs[0] = num
+			}
+		case kind == reflect.Float64 || kind == reflect.Float32:
+			if num > builder.fn.numRegs[1] {
+				builder.fn.numRegs[1] = num
+			}
+		case kind == reflect.String:
+			if num > builder.fn.numRegs[2] {
+				builder.fn.numRegs[2] = num
+			}
+		default:
+			if num > builder.fn.numRegs[3] {
+				builder.fn.numRegs[3] = num
+			}
+		}
+	}
+}
+
+func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
+	if num, ok := builder.numRegs[kind]; !ok || uint8(reg) >= num {
+		builder.numRegs[kind] = uint8(reg + 1)
+	}
+}
+
+// Add appends a new "add" instruction to the function body.
+//
+//     z = x + y
+//
+func (builder *FunctionBuilder) Add(x, y, z int8, kind reflect.Kind) {
+	var op operation
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, y)
+	builder.allocRegister(kind, z)
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Uint64:
+		op = opAddInt
+	case reflect.Int32, reflect.Uint32:
+		op = opAddInt32
+	case reflect.Int16, reflect.Uint16:
+		op = opAddInt16
+	case reflect.Int8, reflect.Uint8:
+		op = opAddInt8
+	case reflect.Float64:
+		op = opAddFloat64
+	case reflect.Float32:
+		op = opAddFloat32
+	default:
+		panic("add: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// Assert appends a new "assert" instruction to the function body.
+//
+//     z = e.(t)
+//
+func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
+	var op operation
+	var tr int8
+	builder.allocRegister(reflect.Interface, e)
+	switch typ {
+	case intType:
+		builder.allocRegister(reflect.Int, z)
+		op = opAssertInt
+	case float64Type:
+		builder.allocRegister(reflect.Float64, z)
+		op = opAssertFloat64
+	case stringType:
+		builder.allocRegister(reflect.String, z)
+		op = opAssertString
+	default:
+		builder.allocRegister(reflect.Interface, z)
+		op = opAssert
+		var found bool
+		for i, t := range builder.fn.types {
+			if t == typ {
+				tr = int8(i)
+				found = true
+			}
+		}
+		if !found {
+			tr = int8(len(builder.fn.types))
+			builder.fn.types = append(builder.fn.types, typ)
+		}
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: e, b: tr, c: z})
+}
+
+// Call appends a new "call" instruction to the function body.
+//
+//     f()
+//
+func (builder *FunctionBuilder) Call(f int8) {
+	builder.allocRegister(reflect.Interface, f)
+	builder.fn.body = append(builder.fn.body, instruction{op: opCall, a: f})
+}
+
+// Assert appends a new "cap" instruction to the function body.
+//
+//     z = cap(s)
+//
+func (builder *FunctionBuilder) Cap(s, z int8) {
+	builder.allocRegister(reflect.Interface, s)
+	builder.allocRegister(reflect.Int, z)
+	builder.fn.body = append(builder.fn.body, instruction{op: opCap, a: s, c: z})
+}
+
+// Copy appends a new "copy" instruction to the function body.
+//
+//     copy(dst, src)
+//
+func (builder *FunctionBuilder) Copy(dst, src int8) {
+	builder.allocRegister(reflect.Interface, dst)
+	builder.allocRegister(reflect.Interface, src)
+	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src})
+}
+
+// Concat appends a new "concat" instruction to the function body.
+//
+//     z = concat(s, t)
+//
+func (builder *FunctionBuilder) Concat(s, t, z int8) {
+	builder.allocRegister(reflect.Interface, s)
+	builder.allocRegister(reflect.Interface, t)
+	builder.allocRegister(reflect.Interface, z)
+	builder.fn.body = append(builder.fn.body, instruction{op: opConcat, a: s, b: t, c: z})
+}
+
+// Delete appends a new "delete" instruction to the function body.
+//
+//     delete(m, k)
+//
+func (builder *FunctionBuilder) Delete(m, k int8) {
+	builder.allocRegister(reflect.Interface, m)
+	builder.allocRegister(reflect.Interface, k)
+	builder.fn.body = append(builder.fn.body, instruction{op: opDelete, a: m, b: k})
+}
+
+// Div appends a new "div" instruction to the function body.
+//
+//     z = x / y
+//
+func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, y)
+	builder.allocRegister(kind, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64:
+		op = opDivInt
+	case reflect.Int32:
+		op = opDivInt32
+	case reflect.Int16:
+		op = opDivInt16
+	case reflect.Int8:
+		op = opDivInt8
+	case reflect.Uint, reflect.Uint64:
+		op = opDivUint64
+	case reflect.Uint32:
+		op = opDivUint32
+	case reflect.Uint16:
+		op = opDivUint16
+	case reflect.Uint8:
+		op = opDivUint8
+	case reflect.Float64:
+		op = opDivFloat64
+	case reflect.Float32:
+		op = opDivFloat32
+	default:
+		panic("div: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// Goto appends a new "goto" instruction to the function body.
+//
+//     goto label
+//
+func (builder *FunctionBuilder) Goto(label uint32) {
+	in := instruction{op: opGoto}
+	if label > 0 {
+		if label <= uint32(len(builder.labels)) {
+			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		} else {
+			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+		}
+	}
+	builder.fn.body = append(builder.fn.body, in)
+}
+
+// If appends a new "If" instruction to the function body.
+//
+//     x
+//     !x
+//     x == y
+//     x != y
+//     x <  y
+//     x <= y
+//     x >  y
+//     x >= y
+//     x == nil
+//     x != nil
+//     len(x) == y
+//     len(x) != y
+//     len(x) <  y
+//     len(x) <= y
+//     len(x) >  y
+//     len(x) >= y
+//
+func (builder *FunctionBuilder) If(x int8, o Condition, y int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, y)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
+		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+		op = opIfInt
+	case reflect.Float64, reflect.Float32:
+		op = opIfFloat
+	case reflect.String:
+		op = opIfString
+	default:
+		panic("If: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: y})
+}
+
+// Ifc appends a new "Ifc" instruction to the function body.
+//
+//     x == c
+//     x != c
+//     x <  c
+//     x <= c
+//     x >  c
+//     x >= c
+//     len(x) == c
+//     len(x) != c
+//     len(x) <  c
+//     len(x) <= c
+//     len(x) >  c
+//     len(x) >= c
+//
+func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
+		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+		op = opIfInt
+	case reflect.Float64, reflect.Float32:
+		op = opIfFloat
+	case reflect.String:
+		op = opIfString
+	default:
+		panic("Ifc: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: c})
+}
+
+// JmpOk appends a new "jmpok" instruction to the function body.
+//
+//     jmpok label
+//
+func (builder *FunctionBuilder) JmpOk(label uint32) {
+	in := instruction{op: opJmpOk}
+	if label > 0 {
+		if label <= uint32(len(builder.labels)) {
+			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		} else {
+			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+		}
+	}
+	builder.fn.body = append(builder.fn.body, in)
+}
+
+// JmpNotOk appends a new "jmpnotok" instruction to the function body.
+//
+//     jmpnotok label
+//
+func (builder *FunctionBuilder) JmpNotOk(label uint32) {
+	in := instruction{op: opJmpNotOk}
+	if label > 0 {
+		if label <= uint32(len(builder.labels)) {
+			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		} else {
+			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+		}
+	}
+	builder.fn.body = append(builder.fn.body, in)
+}
+
+// Len appends a new "len" instruction to the function body.
+//
+//     l = len(s)
+//
+func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
+	builder.allocRegister(reflect.Interface, s)
+	builder.allocRegister(reflect.Int, l)
+	// TODO
+	builder.fn.body = append(builder.fn.body, instruction{op: 0, a: s, b: l})
+}
+
+// Map appends a new "map" instruction to the function body.
+//
+//     z = map(t, n)
+//
+func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
+	builder.allocRegister(reflect.Int, n)
+	builder.allocRegister(reflect.Interface, z)
+	var tr int8
+	var found bool
+	types := builder.fn.types
+	for i, t := range types {
+		if t == typ {
+			tr = int8(i)
+			found = true
+		}
+	}
+	if !found {
+		tr = int8(len(types))
+		builder.fn.types = append(types, typ)
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: tr, b: n, c: z})
+}
+
+// Move appends a new "move" instruction to the function body.
+//
+//     z = x
+//
+func (builder *FunctionBuilder) Move(x, z int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
+		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+		op = opMoveInt
+	case reflect.Float64, reflect.Float32:
+		op = opMoveFloat
+	case reflect.String:
+		op = opMoveString
+	default:
+		op = opMove
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, c: z})
+}
+
+// Mul appends a new "mul" instruction to the function body.
+//
+//     z = x * y
+//
+func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, y)
+	builder.allocRegister(kind, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Uint64:
+		op = opMulInt
+	case reflect.Int32, reflect.Uint32:
+		op = opMulInt32
+	case reflect.Int16, reflect.Uint16:
+		op = opMulInt16
+	case reflect.Int8, reflect.Uint8:
+		op = opMulInt8
+	case reflect.Float64:
+		op = opMulFloat64
+	case reflect.Float32:
+		op = opMulFloat32
+	default:
+		panic("mul: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// New appends a new "new" instruction to the function body.
+//
+//     z = new(t)
+//
+func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
+	builder.allocRegister(reflect.Interface, z)
+	var tr int8
+	var found bool
+	types := builder.fn.types
+	for i, t := range types {
+		if t == typ {
+			tr = int8(i)
+			found = true
+		}
+	}
+	if !found {
+		tr = int8(len(types))
+		builder.fn.types = append(types, typ)
+
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: tr, c: z})
+}
+
+// Rem appends a new "rem" instruction to the function body.
+//
+//     z = x % y
+//
+func (builder *FunctionBuilder) Rem(x, y, z int8, kind reflect.Kind) {
+	builder.allocRegister(kind, x)
+	builder.allocRegister(kind, y)
+	builder.allocRegister(kind, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64:
+		op = opRemInt
+	case reflect.Int32:
+		op = opRemInt32
+	case reflect.Int16:
+		op = opRemInt16
+	case reflect.Int8:
+		op = opRemInt8
+	case reflect.Uint, reflect.Uint64:
+		op = opRemUint64
+	case reflect.Uint32:
+		op = opRemUint32
+	case reflect.Uint16:
+		op = opRemUint16
+	case reflect.Uint8:
+		op = opRemUint8
+	default:
+		panic("rem: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// Return appends a new "return" instruction to the function body.
+//
+//     return
+//
+func (builder *FunctionBuilder) Return() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
+}
+
+// Slice appends a new "slice" instruction to the function body.
+//
+//     slice(t, l, c)
+//
+func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
+	builder.allocRegister(reflect.Int, l)
+	builder.allocRegister(reflect.Int, c)
+	var tr int8
+	var found bool
+	types := builder.fn.types
+	for i, typ := range types {
+		if typ == t {
+			tr = int8(i)
+			found = true
+		}
+	}
+	if !found {
+		tr = int8(len(types))
+		builder.fn.types = append(types, t)
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
+}
+
+// Sub appends a new "sub" instruction to the function body.
+//
+//     z = x - y
+//
+func (builder *FunctionBuilder) Sub(x, y, z int8, kind reflect.Kind) {
+	builder.allocRegister(reflect.Int, x)
+	builder.allocRegister(reflect.Int, y)
+	builder.allocRegister(reflect.Int, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Uint64:
+		op = opSubInt
+	case reflect.Int32, reflect.Uint32:
+		op = opSubInt32
+	case reflect.Int16, reflect.Uint16:
+		op = opSubInt16
+	case reflect.Int8, reflect.Uint8:
+		op = opSubInt8
+	case reflect.Float64:
+		op = opSubFloat64
+	case reflect.Float32:
+		op = opSubFloat32
+	default:
+		panic("sub: invalid type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}

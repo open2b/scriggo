@@ -58,6 +58,7 @@ type PackageInfo struct {
 	Declarations         map[string]*TypeInfo
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
 	UpValues             map[*ast.Identifier]bool
+	TypeInfo             map[ast.Node]*TypeInfo
 }
 
 func (pi *PackageInfo) String() string {
@@ -296,6 +297,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 	pkgInfo := &PackageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
+		TypeInfo:     tc.typeInfo,
 	}
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
