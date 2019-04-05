@@ -6,7 +6,9 @@
 
 package vm
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type values struct {
 	t0 []int64
@@ -176,6 +178,16 @@ func (vm *VM) setString(r int8, s string) {
 }
 
 func (vm *VM) value(r int8) interface{} {
+	if r >= 0 {
+		return vm.regs.t3[vm.fp[3]+uint32(r)]
+	}
+	return *(vm.fn.refs.t3[-r-1])
+}
+
+func (vm *VM) valuek(r int8, k bool) interface{} {
+	if k {
+		return vm.fn.constants.t3[-r-1]
+	}
 	if r >= 0 {
 		return vm.regs.t3[vm.fp[3]+uint32(r)]
 	}

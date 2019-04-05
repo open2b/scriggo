@@ -13,51 +13,54 @@ import (
 	"scrigo/vm"
 )
 
-var intType = reflect.TypeOf(0)
-
 func main() {
 
 	pkg := vm.NewPackage("main")
 
 	inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
 	b := inc.Builder()
-	b.Add(0, 1, 0, reflect.Int)
-	b.Move(0, 1, reflect.Int)
+	b.Add(true, 0, 1, 0, reflect.Int)
+	b.Move(false, 0, 1, reflect.Int)
 	b.Return()
 	b.End()
 
 	main := pkg.NewFunction("main", nil, nil, false)
 
+	// x := 0
+	// for i := i; i < 5; i++ {
+	//     x = inc(x)
+	// }
+
 	b = main.Builder()
-	c0 := b.MakeIntConstant(0)
-	b.Move(c0, 0, reflect.Int)
-	b.Move(c0, 1, reflect.Int)
+	cInc := b.MakeInterfaceConstant(inc)
+	b.Move(true, 0, 0, reflect.Int) // i := 0
+	b.Move(true, 0, 1, reflect.Int) // x := 0
 	b.SetLabel()
-	c5 := b.MakeIntConstant(5)
-	b.If(1, vm.ConditionLess, c5, reflect.Int)
+	b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
 	b.Goto(3)
 	b.SetLabel()
-	b.Add(1, 0, 0, reflect.Int)
-	b.Move(1, 3, reflect.Int)
-	cInc := b.MakeInterfaceConstant(inc)
+	b.Add(true, 0, 1, 0, reflect.Int) // i++
+	// x = inc(x)
+	b.Move(false, 1, 3, reflect.Int)
 	b.Call(cInc)
-	b.Move(4, 1, reflect.Int)
+	b.Move(false, 4, 1, reflect.Int)
+	//
 	b.Goto(1)
 	b.SetLabel()
 	b.Return()
 	b.End()
 
-	vm.DebugTraceExecution = false
+	vm.DebugTraceExecution = true
 
 	_, err := vm.Disassemble(os.Stdout, pkg)
 	if err != nil {
 		panic(err)
 	}
-	//vm1 := vm.New(pkg)
-	//_, err = vm1.Run("main")
-	//if err != nil {
-	//	panic(err)
-	//}
+	vm1 := vm.New(pkg)
+	_, err = vm1.Run("main")
+	if err != nil {
+		panic(err)
+	}
 	println()
 	println()
 }

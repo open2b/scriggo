@@ -6,10 +6,12 @@
 
 package vm
 
-type operation byte
+type operation int8
 
 const (
-	opAddInt operation = iota
+	opNone operation = iota
+
+	opAddInt
 	opAddInt8
 	opAddInt16
 	opAddInt32

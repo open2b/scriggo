@@ -156,7 +156,7 @@ func (vm *VM) run() int {
 		case opCall:
 			prev := Call{fp: vm.fp, pc: vm.pc, fn: vm.fn}
 			//var uppers []interface{}
-			vm.fn = vm.value(a).(*Function)
+			vm.fn = vm.valuek(a, true).(*Function)
 			for r := 0; r < 3; r++ {
 				nr := uint32(vm.fn.numRegs[r])
 				// Splits stack if necessary.
@@ -840,7 +840,7 @@ func (vm *VM) next() (operation, bool, int8, int8, int8) {
 			_, _ = os.Stderr.WriteString(" ")
 		}
 	}
-	return i.op >> 1, i.op&1 != 0, i.a, i.b, i.c
+	return i.decode()
 }
 
 //func (vm *VM) execCallI() {

@@ -136,12 +136,18 @@ func (p *Package) Function(name string) (*Function, error) {
 	return nil, errors.New("function does not exist")
 }
 
-type operand int8
-
 type instruction struct {
 	op      operation
-	k       bool
 	a, b, c int8
+}
+
+func (in instruction) decode() (op operation, k bool, a int8, b int8, c int8) {
+	op = in.op
+	if op < 0 {
+		op = -op
+		k = true
+	}
+	return op, k, in.a, in.b, in.c
 }
 
 type Upper struct {
@@ -218,11 +224,11 @@ func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
 }
 
 func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
-	r := -len(builder.fn.refs.t3) - 1
+	r := -len(builder.fn.constants.t3) - 1
 	if r == -129 {
 		panic("interface refs limit reached")
 	}
-	builder.fn.refs.t3 = append(builder.fn.refs.t3, &c)
+	builder.fn.constants.t3 = append(builder.fn.constants.t3, c)
 	return int8(r)
 }
 
@@ -286,10 +292,12 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 //
 //     z = x + y
 //
-func (builder *FunctionBuilder) Add(x, y, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	var op operation
 	builder.allocRegister(kind, x)
-	builder.allocRegister(kind, y)
+	if !k {
+		builder.allocRegister(kind, y)
+	}
 	builder.allocRegister(kind, z)
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint64:
@@ -306,6 +314,9 @@ func (builder *FunctionBuilder) Add(x, y, z int8, kind reflect.Kind) {
 		op = opAddFloat32
 	default:
 		panic("add: invalid type")
+	}
+	if k {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
@@ -467,9 +478,11 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 //     len(x) >  y
 //     len(x) >= y
 //
-func (builder *FunctionBuilder) If(x int8, o Condition, y int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
-	builder.allocRegister(kind, y)
+	if !k {
+		builder.allocRegister(kind, y)
+	}
 	var op operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
@@ -481,6 +494,9 @@ func (builder *FunctionBuilder) If(x int8, o Condition, y int8, kind reflect.Kin
 		op = opIfString
 	default:
 		panic("If: invalid type")
+	}
+	if k {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: y})
 }
@@ -587,8 +603,10 @@ func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
 //
 //     z = x
 //
-func (builder *FunctionBuilder) Move(x, z int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
+func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
+	if !k {
+		builder.allocRegister(kind, x)
+	}
 	builder.allocRegister(kind, z)
 	var op operation
 	switch kind {
@@ -601,6 +619,9 @@ func (builder *FunctionBuilder) Move(x, z int8, kind reflect.Kind) {
 		op = opMoveString
 	default:
 		op = opMove
+	}
+	if k {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, c: z})
 }

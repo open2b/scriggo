@@ -64,7 +64,7 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 			for i := range n.Identifiers {
 				value := n.Values[i]
 				kind := c.typeinfo[value].Type.Kind()
-				fb.Move(5, 0, kind)
+				fb.Move(false, 5, 0, kind)
 			}
 
 		}
