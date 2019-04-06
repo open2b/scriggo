@@ -623,7 +623,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, c: z})
+	builder.fn.body = append(builder.fn.body, instruction{op: op, b: x, c: z})
 }
 
 // Mul appends a new "mul" instruction to the function body.
