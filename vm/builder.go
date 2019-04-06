@@ -59,9 +59,7 @@ func (t Type) String() string {
 type Condition int8
 
 const (
-	ConditionTrue              Condition = iota // x
-	ConditionFalse                              // !x
-	ConditionEqual                              // x == y
+	ConditionEqual             Condition = iota // x == y
 	ConditionNotEqual                           // x != y
 	ConditionLess                               // x <  y
 	ConditionLessOrEqual                        // x <= y
@@ -79,10 +77,6 @@ const (
 
 func (c Condition) String() string {
 	switch c {
-	case ConditionTrue:
-		return "True"
-	case ConditionFalse:
-		return "False"
 	case ConditionEqual:
 		return "Equal"
 	case ConditionNotEqual:
@@ -139,15 +133,6 @@ func (p *Package) Function(name string) (*Function, error) {
 type instruction struct {
 	op      operation
 	a, b, c int8
-}
-
-func (in instruction) decode() (op operation, k bool, a int8, b int8, c int8) {
-	op = in.op
-	if op < 0 {
-		op = -op
-		k = true
-	}
-	return op, k, in.a, in.b, in.c
 }
 
 type Upper struct {
@@ -215,11 +200,11 @@ func (fn *Function) Builder() *FunctionBuilder {
 }
 
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
-	r := -len(builder.fn.refs.t0) - 1
-	if r == -129 {
+	r := len(builder.fn.constants.t0)
+	if r > 255 {
 		panic("int refs limit reached")
 	}
-	builder.fn.refs.t0 = append(builder.fn.refs.t0, &c)
+	builder.fn.constants.t0 = append(builder.fn.constants.t0, c)
 	return int8(r)
 }
 

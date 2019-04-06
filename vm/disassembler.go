@@ -61,9 +61,8 @@ func DisassembleFunction(w io.Writer, fn *Function) (int64, error) {
 func disassembleFunction(w *bytes.Buffer, fn *Function) {
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.body {
-		op, _, a, b, c := in.decode()
-		if op == opGoto {
-			labelOf[decodeAddr(a, b, c)] = 0
+		if in.op == opGoto {
+			labelOf[decodeAddr(in.a, in.b, in.c)] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -109,9 +108,8 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 		if label, ok := labelOf[uint32(addr)]; ok {
 			_, _ = fmt.Fprintf(w, "%d:", label)
 		}
-		op, _, a, b, c := in.decode()
-		if op == opGoto {
-			label := labelOf[decodeAddr(a, b, c)]
+		if in.op == opGoto {
+			label := labelOf[decodeAddr(in.a, in.b, in.c)]
 			_, _ = fmt.Fprintf(w, "\tGoto %d\n", label)
 		} else {
 			_, _ = fmt.Fprintf(w, "\t%s\n", disassembleInstruction(fn, in))
@@ -125,7 +123,12 @@ func DisassembleInstruction(w io.Writer, fn *Function, in instruction) (int64, e
 }
 
 func disassembleInstruction(fn *Function, in instruction) string {
-	op, k, a, b, c := in.decode()
+	op, a, b, c := in.op, in.a, in.b, in.c
+	k := false
+	if op < 0 {
+		op = -op
+		k = true
+	}
 	s := op.String()
 	switch op {
 	case opAddInt, opAddInt8, opAddInt16, opAddInt32,

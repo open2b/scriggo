@@ -41,10 +41,7 @@ func (vm *VM) int(r int8) int64 {
 
 func (vm *VM) intk(r int8, k bool) int64 {
 	if k {
-		if r >= 0 {
-			return int64(r)
-		}
-		return vm.fn.constants.t0[-r]
+		return int64(r)
 	}
 	if r >= 0 {
 		return vm.regs.t0[vm.fp[0]+uint32(r)]
@@ -61,10 +58,7 @@ func (vm *VM) bool(r int8) bool {
 
 func (vm *VM) boolk(r int8, k bool) bool {
 	if k {
-		if r >= 0 {
-			return r > 0
-		}
-		return vm.fn.constants.t0[-r] > 0
+		return r > 0
 	}
 	if r >= 0 {
 		return vm.regs.t0[vm.fp[0]+uint32(r)] > 0
@@ -117,10 +111,7 @@ func (vm *VM) float(r int8) float64 {
 
 func (vm *VM) floatk(r int8, k bool) float64 {
 	if k {
-		if r >= 0 {
-			return float64(r)
-		}
-		return vm.fn.constants.t1[-r]
+		return float64(r)
 	}
 	if r >= 0 {
 		return vm.regs.t1[vm.fp[1]+uint32(r)]

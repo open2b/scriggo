@@ -44,36 +44,49 @@ func (vm *VM) Run(funcname string) (InterpretResult, error) {
 func (vm *VM) run() int {
 
 	var op operation
-	var k bool
 	var a, b, c int8
 
 	for {
 
-		op, k, a, b, c = vm.next()
+		i := vm.fn.body[vm.pc]
+		vm.pc++
+
+		if DebugTraceExecution {
+			n, _ := DisassembleInstruction(os.Stderr, vm.fn, i)
+			for i := n; i < 20; i++ {
+				_, _ = os.Stderr.WriteString(" ")
+			}
+		}
+
+		op, a, b, c = i.op, i.a, i.b, i.c
 
 		switch op {
 
 		// Add
 		case opAddInt:
-			vm.setInt(c, vm.int(a)+vm.intk(b, k))
-		case opAddInt8:
-			vm.setInt(c, int64(int8(vm.int(a)+vm.intk(b, k))))
-		case opAddInt16:
-			vm.setInt(c, int64(int16(vm.int(a)+vm.intk(b, k))))
-		case opAddInt32:
-			vm.setInt(c, int64(int32(vm.int(a)+vm.intk(b, k))))
-		case opAddFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a)+vm.floatk(b, k))))
+			vm.setInt(c, vm.int(a)+vm.int(b))
+		case -opAddInt:
+			vm.setInt(c, vm.int(a)+int64(b))
+		case opAddInt8, -opAddInt8:
+			vm.setInt(c, int64(int8(vm.int(a)+vm.intk(b, op < 0))))
+		case opAddInt16, -opAddInt16:
+			vm.setInt(c, int64(int16(vm.int(a)+vm.intk(b, op < 0))))
+		case opAddInt32, -opAddInt32:
+			vm.setInt(c, int64(int32(vm.int(a)+vm.intk(b, op < 0))))
+		case opAddFloat32, -opAddFloat32:
+			vm.setFloat(c, float64(float32(vm.float(a)+vm.floatk(b, op < 0))))
 		case opAddFloat64:
-			vm.setFloat(c, vm.float(a)+vm.floatk(b, k))
+			vm.setFloat(c, vm.float(a)+vm.float(b))
+		case -opAddFloat64:
+			vm.setFloat(c, vm.float(a)+float64(b))
 
 		// And
 		case opAnd:
-			vm.setInt(c, vm.int(a)&vm.intk(b, k))
+			vm.setInt(c, vm.int(a)&vm.intk(b, op < 0))
 
 		// AndNot
 		case opAndNot:
-			vm.setInt(c, vm.int(a)&^vm.intk(b, k))
+			vm.setInt(c, vm.int(a)&^vm.intk(b, op < 0))
 
 		// Append
 		case opAppend:
@@ -226,25 +239,29 @@ func (vm *VM) run() int {
 
 		// Div
 		case opDivInt:
-			vm.setInt(c, vm.int(a)/vm.intk(b, k))
-		case opDivInt8:
-			vm.setInt(c, int64(int8(vm.int(a))/int8(vm.intk(b, k))))
-		case opDivInt16:
-			vm.setInt(c, int64(int16(vm.int(a))/int16(vm.intk(b, k))))
-		case opDivInt32:
-			vm.setInt(c, int64(int32(vm.int(a))/int32(vm.intk(b, k))))
-		case opDivUint8:
-			vm.setInt(c, int64(uint8(vm.int(a))/uint8(vm.intk(b, k))))
-		case opDivUint16:
-			vm.setInt(c, int64(uint16(vm.int(a))/uint16(vm.intk(b, k))))
-		case opDivUint32:
-			vm.setInt(c, int64(uint32(vm.int(a))/uint32(vm.intk(b, k))))
-		case opDivUint64:
-			vm.setInt(c, int64(uint64(vm.int(a))/uint64(vm.intk(b, k))))
-		case opDivFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))/float32(vm.floatk(b, k))))
+			vm.setInt(c, vm.int(a)/vm.int(b))
+		case -opDivInt:
+			vm.setInt(c, vm.int(a)/int64(b))
+		case opDivInt8, -opDivInt8:
+			vm.setInt(c, int64(int8(vm.int(a))/int8(vm.intk(b, op < 0))))
+		case opDivInt16, -opDivInt16:
+			vm.setInt(c, int64(int16(vm.int(a))/int16(vm.intk(b, op < 0))))
+		case opDivInt32, -opDivInt32:
+			vm.setInt(c, int64(int32(vm.int(a))/int32(vm.intk(b, op < 0))))
+		case opDivUint8, -opDivUint8:
+			vm.setInt(c, int64(uint8(vm.int(a))/uint8(vm.intk(b, op < 0))))
+		case opDivUint16, -opDivUint16:
+			vm.setInt(c, int64(uint16(vm.int(a))/uint16(vm.intk(b, op < 0))))
+		case opDivUint32, -opDivUint32:
+			vm.setInt(c, int64(uint32(vm.int(a))/uint32(vm.intk(b, op < 0))))
+		case opDivUint64, -opDivUint64:
+			vm.setInt(c, int64(uint64(vm.int(a))/uint64(vm.intk(b, op < 0))))
+		case opDivFloat32, -opDivFloat32:
+			vm.setFloat(c, float64(float32(vm.float(a))/float32(vm.floatk(b, op < 0))))
 		case opDivFloat64:
-			vm.setFloat(c, vm.float(a)/vm.floatk(b, k))
+			vm.setFloat(c, vm.float(a)/vm.float(b))
+		case -opDivFloat64:
+			vm.setFloat(c, vm.float(a)/float64(b))
 
 		// If
 		case opIf:
@@ -259,18 +276,11 @@ func (vm *VM) run() int {
 					vm.pc++
 				}
 			}
-		case opIfInt:
+		case opIfInt, -opIfInt:
 			var cond bool
 			v1 := vm.int(a)
-			var v2 int64
-			if Condition(b) >= ConditionEqual {
-				v2 = vm.intk(c, k)
-			}
+			v2 := int64(vm.intk(c, op < 0))
 			switch Condition(b) {
-			case ConditionFalse:
-				cond = v1 == 0
-			case ConditionTrue:
-				cond = v1 != 0
 			case ConditionEqual:
 				cond = v1 == v2
 			case ConditionNotEqual:
@@ -287,10 +297,10 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfUint:
+		case opIfUint, -opIfUint:
 			var cond bool
 			v1 := uint64(vm.int(a))
-			v2 := uint64(vm.intk(c, k))
+			v2 := uint64(vm.intk(c, op < 0))
 			switch Condition(b) {
 			case ConditionEqual:
 				cond = v1 == v2
@@ -308,10 +318,10 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfFloat:
+		case opIfFloat, -opIfFloat:
 			var cond bool
 			v1 := vm.float(a)
-			v2 := vm.floatk(c, k)
+			v2 := vm.floatk(c, op < 0)
 			switch Condition(b) {
 			case ConditionEqual:
 				cond = v1 == v2
@@ -329,11 +339,11 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfString:
+		case opIfString, -opIfString:
 			var cond bool
 			v1 := vm.string(a)
 			if Condition(b) < ConditionEqualLen {
-				if k && c >= 0 {
+				if op < 0 && c >= 0 {
 					l := len(v1)
 					switch Condition(b) {
 					case ConditionEqual:
@@ -350,7 +360,7 @@ func (vm *VM) run() int {
 						cond = l > 1 || v1[0] >= uint8(c)
 					}
 				} else {
-					v2 := vm.stringk(c, k)
+					v2 := vm.stringk(c, op < 0)
 					switch Condition(b) {
 					case ConditionEqual:
 						cond = v1 == v2
@@ -367,7 +377,7 @@ func (vm *VM) run() int {
 					}
 				}
 			} else {
-				v2 := int(vm.intk(c, k))
+				v2 := int(vm.intk(c, op < 0))
 				switch Condition(b) {
 				case ConditionEqualLen:
 					cond = len(v1) == v2
@@ -392,8 +402,8 @@ func (vm *VM) run() int {
 			vm.pc = decodeAddr(a, b, c)
 
 		// Index
-		case opIndex:
-			vm.setValue(c, reflect.ValueOf(vm.value(a)).Index(int(vm.intk(b, k))).Interface())
+		case opIndex, -opIndex:
+			vm.setValue(c, reflect.ValueOf(vm.value(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
 		// JmpOk
 		case opJmpOk:
@@ -436,15 +446,16 @@ func (vm *VM) run() int {
 			vm.setInt(c, int64(length))
 
 		// MakeMap
-		case opMakeMap:
+		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]
-			n := int(vm.intk(b, k))
+			n := int(vm.intk(b, op < 0))
 			vm.setValue(c, reflect.MakeMapWithSize(t, n))
 
 		// MapIndex
-		case opMapIndex:
+		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.value(a))
 			t := m.Type()
+			k := op < 0
 			var key reflect.Value
 			switch kind := t.Key().Kind(); {
 			case reflect.Int <= kind && kind <= reflect.Uint64:
@@ -475,44 +486,54 @@ func (vm *VM) run() int {
 			}
 
 		// MapIndexStringInt
-		case opMapIndexStringInt:
-			vm.setInt(c, int64(vm.value(a).(map[string]int)[vm.stringk(b, k)]))
+		case opMapIndexStringInt, -opMapIndexStringInt:
+			vm.setInt(c, int64(vm.value(a).(map[string]int)[vm.stringk(b, op < 0)]))
 
 		// MapIndexStringBool
-		case opMapIndexStringBool:
-			vm.setBool(c, vm.value(a).(map[string]bool)[vm.stringk(b, k)])
+		case opMapIndexStringBool, -opMapIndexStringBool:
+			vm.setBool(c, vm.value(a).(map[string]bool)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringString
-		case opMapIndexStringString:
-			vm.setString(c, vm.value(a).(map[string]string)[vm.stringk(b, k)])
+		case opMapIndexStringString, -opMapIndexStringString:
+			vm.setString(c, vm.value(a).(map[string]string)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringInterface
-		case opMapIndexStringInterface:
-			vm.setValue(c, vm.value(a).(map[string]interface{})[vm.stringk(b, k)])
+		case opMapIndexStringInterface, -opMapIndexStringInterface:
+			vm.setValue(c, vm.value(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
 		// Move
 		case opMove:
 			vm.setValue(c, vm.value(b))
 		case opMoveInt:
-			vm.setInt(c, vm.intk(b, k))
+			vm.setInt(c, vm.int(b))
+		case -opMoveInt:
+			vm.setInt(c, int64(b))
 		case opMoveFloat:
-			vm.setFloat(c, vm.floatk(b, k))
+			vm.setFloat(c, vm.float(b))
+		case -opMoveFloat:
+			vm.setFloat(c, float64(b))
 		case opMoveString:
-			vm.setString(c, vm.stringk(b, k))
+			vm.setString(c, vm.string(b))
+		case -opMoveString:
+			vm.setString(c, vm.stringk(b, true))
 
 		// Mul
 		case opMulInt:
-			vm.setInt(c, vm.int(a)*vm.intk(b, k))
-		case opMulInt8:
-			vm.setInt(c, int64(int8(vm.int(a)*vm.intk(b, k))))
-		case opMulInt16:
-			vm.setInt(c, int64(int16(vm.int(a)*vm.intk(b, k))))
-		case opMulInt32:
-			vm.setInt(c, int64(int32(vm.int(a)*vm.intk(b, k))))
-		case opMulFloat32:
-			vm.setFloat(c, float64(float32(vm.float(a))*float32(vm.floatk(b, k))))
+			vm.setInt(c, vm.int(a)*vm.int(b))
+		case -opMulInt:
+			vm.setInt(c, vm.int(a)*int64(b))
+		case opMulInt8, -opMulInt8:
+			vm.setInt(c, int64(int8(vm.int(a)*vm.intk(b, op < 0))))
+		case opMulInt16, -opMulInt16:
+			vm.setInt(c, int64(int16(vm.int(a)*vm.intk(b, op < 0))))
+		case opMulInt32, -opMulInt32:
+			vm.setInt(c, int64(int32(vm.int(a)*vm.intk(b, op < 0))))
+		case opMulFloat32, -opMulFloat32:
+			vm.setFloat(c, float64(float32(vm.float(a))*float32(vm.floatk(b, op < 0))))
 		case opMulFloat64:
-			vm.setFloat(c, vm.float(a)*vm.floatk(b, k))
+			vm.setFloat(c, vm.float(a)*vm.float(b))
+		case -opMulFloat64:
+			vm.setFloat(c, vm.float(a)*float64(b))
 
 		// New
 		case opNew:
@@ -520,8 +541,8 @@ func (vm *VM) run() int {
 			vm.setValue(c, reflect.New(t))
 
 		// Or
-		case opOr:
-			vm.setInt(c, vm.int(a)|vm.intk(b, k))
+		case opOr, -opOr:
+			vm.setInt(c, vm.int(a)|vm.intk(b, op < 0))
 
 		// Range
 		case opRange:
@@ -687,9 +708,9 @@ func (vm *VM) run() int {
 			}
 
 		// RangeString
-		case opRangeString:
+		case opRangeString, -opRangeString:
 			var cont int
-			for i, e := range vm.stringk(c, k) {
+			for i, e := range vm.stringk(c, op < 0) {
 				if a != 0 {
 					vm.setInt(a, int64(i))
 				}
@@ -706,21 +727,23 @@ func (vm *VM) run() int {
 
 		// Rem
 		case opRemInt:
-			vm.setInt(c, vm.int(a)%vm.intk(b, k))
-		case opRemInt8:
-			vm.setInt(c, int64(int8(vm.int(a))%int8(vm.intk(b, k))))
-		case opRemInt16:
-			vm.setInt(c, int64(int16(vm.int(a))%int16(vm.intk(b, k))))
-		case opRemInt32:
-			vm.setInt(c, int64(int32(vm.int(a))%int32(vm.intk(b, k))))
-		case opRemUint8:
-			vm.setInt(c, int64(uint8(vm.int(a))%uint8(vm.intk(b, k))))
-		case opRemUint16:
-			vm.setInt(c, int64(uint16(vm.int(a))%uint16(vm.intk(b, k))))
-		case opRemUint32:
-			vm.setInt(c, int64(uint32(vm.int(a))%uint32(vm.intk(b, k))))
-		case opRemUint64:
-			vm.setInt(c, int64(uint64(vm.int(a))%uint64(vm.intk(b, k))))
+			vm.setInt(c, vm.int(a)%vm.int(b))
+		case -opRemInt:
+			vm.setInt(c, vm.int(a)%int64(b))
+		case opRemInt8, -opRemInt8:
+			vm.setInt(c, int64(int8(vm.int(a))%int8(vm.intk(b, op < 0))))
+		case opRemInt16, -opRemInt16:
+			vm.setInt(c, int64(int16(vm.int(a))%int16(vm.intk(b, op < 0))))
+		case opRemInt32, -opRemInt32:
+			vm.setInt(c, int64(int32(vm.int(a))%int32(vm.intk(b, op < 0))))
+		case opRemUint8, -opRemUint8:
+			vm.setInt(c, int64(uint8(vm.int(a))%uint8(vm.intk(b, op < 0))))
+		case opRemUint16, -opRemUint16:
+			vm.setInt(c, int64(uint16(vm.int(a))%uint16(vm.intk(b, op < 0))))
+		case opRemUint32, -opRemUint32:
+			vm.setInt(c, int64(uint32(vm.int(a))%uint32(vm.intk(b, op < 0))))
+		case opRemUint64, -opRemUint64:
+			vm.setInt(c, int64(uint64(vm.int(a))%uint64(vm.intk(b, op < 0))))
 
 		// Return
 		case opReturn:
@@ -760,9 +783,9 @@ func (vm *VM) run() int {
 			//vm.pushValue(reflectValue.MakeSlice(typ, len, cap))
 
 		// SliceIndex
-		case opSliceIndex:
+		case opSliceIndex, -opSliceIndex:
 			v := vm.value(a)
-			i := int(vm.intk(b, k))
+			i := int(vm.intk(b, op < 0))
 			switch v := v.(type) {
 			case []int:
 				vm.setInt(c, int64(v[i]))
@@ -781,40 +804,46 @@ func (vm *VM) run() int {
 			}
 
 		// StringIndex
-		case opStringIndex:
-			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, k))]))
+		case opStringIndex, -opStringIndex:
+			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
 		// Sub
 		case opSubInt:
-			vm.setInt(c, -(vm.int(a) - vm.intk(b, k)))
-		case opSubInt8:
-			vm.setInt(c, int64(int8(-(vm.int(a) - vm.intk(b, k)))))
-		case opSubInt16:
-			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, k)))))
-		case opSubInt32:
-			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, k)))))
-		case opSubFloat32:
-			vm.setFloat(c, float64(int8(-(float32(vm.float(a)) - float32(vm.floatk(b, k))))))
+			vm.setInt(c, -(vm.int(a) - vm.int(b)))
+		case -opSubInt:
+			vm.setInt(c, -(vm.int(a) - int64(b)))
+		case opSubInt8, -opSubInt8:
+			vm.setInt(c, int64(int8(-(vm.int(a) - vm.intk(b, op < 0)))))
+		case opSubInt16, -opSubInt16:
+			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, op < 0)))))
+		case opSubInt32, -opSubInt32:
+			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, op < 0)))))
+		case opSubFloat32, -opSubFloat32:
+			vm.setFloat(c, float64(float32(-(float32(vm.float(a)) - float32(vm.floatk(b, op < 0))))))
 		case opSubFloat64:
-			vm.setFloat(c, -(vm.float(a) - vm.floatk(b, k)))
+			vm.setFloat(c, -(vm.float(a) - vm.float(b)))
+		case -opSubFloat64:
+			vm.setFloat(c, -(vm.float(a) - float64(b)))
 
 		// SubInv
-		case opSubInvInt:
-			vm.setInt(c, -(vm.intk(b, k) - vm.int(a)))
-		case opSubInvInt8:
-			vm.setInt(c, int64(int8(-(vm.intk(b, k) - vm.int(a)))))
-		case opSubInvInt16:
-			vm.setInt(c, int64(int32(-(vm.intk(b, k) - vm.int(b)))))
-		case opSubInvInt32:
-			vm.setInt(c, int64(int32(-(vm.intk(b, k) - vm.int(a)))))
-		case opSubInvFloat32:
-			vm.setFloat(c, float64(int8(-(float32(vm.floatk(a, k)) - float32(vm.float(a))))))
+		case opSubInvInt, -opSubInvInt:
+			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
+		case opSubInvInt8, -opSubInvInt8:
+			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
+		case opSubInvInt16, -opSubInvInt16:
+			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
+		case opSubInvInt32, -opSubInvInt32:
+			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
+		case opSubInvFloat32, -opSubInvFloat32:
+			vm.setFloat(c, float64(float32(float32(vm.float(a))-float32(vm.floatk(b, op < 0)))))
 		case opSubInvFloat64:
-			vm.setFloat(c, -(vm.floatk(b, k) - vm.float(a)))
+			vm.setFloat(c, vm.float(a)-vm.float(b))
+		case -opSubInvFloat64:
+			vm.setFloat(c, vm.float(a)-float64(b))
 
 		// opXor
-		case opXor:
-			vm.setInt(c, vm.int(a)^vm.intk(b, k))
+		case opXor, -opXor:
+			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 
 		}
 
@@ -829,18 +858,6 @@ func (vm *VM) run() int {
 
 	}
 
-}
-
-func (vm *VM) next() (operation, bool, int8, int8, int8) {
-	i := vm.fn.body[vm.pc]
-	vm.pc++
-	if DebugTraceExecution {
-		n, _ := DisassembleInstruction(os.Stderr, vm.fn, i)
-		for i := n; i < 20; i++ {
-			_, _ = os.Stderr.WriteString(" ")
-		}
-	}
-	return i.decode()
 }
 
 //func (vm *VM) execCallI() {
