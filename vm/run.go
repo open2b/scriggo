@@ -166,7 +166,7 @@ func (vm *VM) run() int {
 				// Increments frame pointer if necessary.
 				na := vm.fn.numIn[r] + vm.fn.numOut[r]
 				if nr > 0 || na > 0 {
-					vm.fp[r] += uint32(prev.fn.frameSize(r) - na)
+					vm.fp[r] += uint32(prev.fn.numRegs[r] - na)
 				}
 			}
 			vm.pc = 0
@@ -821,8 +821,8 @@ func (vm *VM) run() int {
 		if DebugTraceExecution {
 			//fmt.Printf("\ti%v f%v s%v\n",
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\n",
-				vm.regs.t0[vm.fp[0]:vm.fp[0]+uint32(vm.fn.frameSize(0))],
-				vm.regs.t1[vm.fp[1]:vm.fp[1]+uint32(vm.fn.frameSize(1))],
+				vm.regs.t0[vm.fp[0]:vm.fp[0]+uint32(vm.fn.numRegs[0])],
+				vm.regs.t1[vm.fp[1]:vm.fp[1]+uint32(vm.fn.numRegs[1])],
 			//vm.regs.r2[vm.fp[2]:uint32(vm.fn.frameSize(2))]
 			)
 		}

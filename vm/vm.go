@@ -18,10 +18,6 @@ type VM struct {
 	pkg   *Package
 }
 
-func (fn *Function) frameSize(r int) uint8 {
-	return fn.numRegs[r] + fn.numIn[r] + fn.numOut[r]
-}
-
 func New(pkg *Package) *VM {
 	vm := &VM{}
 	vm.pkg = pkg
