@@ -140,26 +140,21 @@ type Upper struct {
 	index int32
 }
 
-type valueptrs struct {
-	t0 []*int64
-	t1 []*float64
-	t2 []*string
-	t3 []*interface{}
-}
-
 // Function represents a function.
 type Function struct {
-	name      string
-	uppers    []Upper
-	in        []Type
-	out       []Type
-	types     []reflect.Type
-	numRegs   [4]uint8
-	numIn     [4]uint8
-	numOut    [4]uint8
+	name   string
+	uppers []Upper
+	in     []Type
+	out    []Type
+	types  []reflect.Type
+	stack  [4]struct {
+		regs  uint8
+		in    uint8
+		out   uint8
+		split bool
+	}
 	variadic  bool
-	refs      valueptrs
-	constants values
+	constants registers
 	body      []instruction
 	lines     []int
 }
@@ -173,10 +168,10 @@ func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Funct
 		variadic: variadic,
 	}
 	for _, arg := range in {
-		fn.numIn[arg]++
+		fn.stack[arg].in++
 	}
 	for _, arg := range out {
-		fn.numOut[arg]++
+		fn.stack[arg].out++
 	}
 	p.funcs = append(p.funcs, fn)
 	return fn
@@ -200,20 +195,20 @@ func (fn *Function) Builder() *FunctionBuilder {
 }
 
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
-	r := len(builder.fn.constants.t0)
+	r := len(builder.fn.constants.Int)
 	if r > 255 {
 		panic("int refs limit reached")
 	}
-	builder.fn.constants.t0 = append(builder.fn.constants.t0, c)
+	builder.fn.constants.Int = append(builder.fn.constants.Int, c)
 	return int8(r)
 }
 
 func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
-	r := -len(builder.fn.constants.t3) - 1
+	r := -len(builder.fn.constants.Misc) - 1
 	if r == -129 {
 		panic("interface refs limit reached")
 	}
-	builder.fn.constants.t3 = append(builder.fn.constants.t3, c)
+	builder.fn.constants.Misc = append(builder.fn.constants.Misc, c)
 	return int8(r)
 }
 
@@ -239,31 +234,36 @@ func (fn *Function) SetUpper(value Upper) {
 }
 
 func (builder *FunctionBuilder) End() {
+	fn := builder.fn
 	for addr, label := range builder.gotos {
-		i := builder.fn.body[addr]
+		i := fn.body[addr]
 		i.a, i.b, i.c = encodeAddr(builder.labels[label])
-		builder.fn.body[addr] = i
+		fn.body[addr] = i
 	}
 	builder.gotos = nil
 	for kind, num := range builder.numRegs {
 		switch {
 		case reflect.Int <= kind && kind <= reflect.Uint64:
-			if num > builder.fn.numRegs[0] {
-				builder.fn.numRegs[0] = num
+			if num > fn.stack[0].regs {
+				fn.stack[0].regs = num
 			}
 		case kind == reflect.Float64 || kind == reflect.Float32:
-			if num > builder.fn.numRegs[1] {
-				builder.fn.numRegs[1] = num
+			if num > fn.stack[1].regs {
+				fn.stack[1].regs = num
 			}
 		case kind == reflect.String:
-			if num > builder.fn.numRegs[2] {
-				builder.fn.numRegs[2] = num
+			if num > fn.stack[2].regs {
+				fn.stack[2].regs = num
 			}
 		default:
-			if num > builder.fn.numRegs[3] {
-				builder.fn.numRegs[3] = num
+			if num > fn.stack[3].regs {
+				fn.stack[0].regs = num
 			}
 		}
+	}
+	for i := 0; i < 4; i++ {
+		stack := fn.stack[i]
+		stack.split = stack.regs > stack.in+stack.out
 	}
 }
 

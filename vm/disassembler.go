@@ -101,9 +101,9 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 	}
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "\t// regs(%d,%d,%d,%d) in(%d,%d,%d,%d) out(%d,%d,%d,%d)\n",
-		fn.numRegs[0], fn.numRegs[1], fn.numRegs[2], fn.numRegs[3],
-		fn.numIn[0], fn.numIn[1], fn.numIn[2], fn.numIn[3],
-		fn.numOut[0], fn.numOut[1], fn.numOut[2], fn.numOut[3])
+		fn.stack[0].regs, fn.stack[1].regs, fn.stack[2].regs, fn.stack[3].regs,
+		fn.stack[0].in, fn.stack[1].in, fn.stack[2].in, fn.stack[3].in,
+		fn.stack[0].out, fn.stack[1].out, fn.stack[2].out, fn.stack[3].out)
 	for addr, in := range fn.body {
 		if label, ok := labelOf[uint32(addr)]; ok {
 			_, _ = fmt.Fprintf(w, "%d:", label)

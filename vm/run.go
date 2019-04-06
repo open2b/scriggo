@@ -43,22 +43,24 @@ func (vm *VM) Run(funcname string) (InterpretResult, error) {
 
 func (vm *VM) run() int {
 
+	var pc uint32
+
 	var op operation
 	var a, b, c int8
 
 	for {
 
-		i := vm.fn.body[vm.pc]
-		vm.pc++
+		in := vm.fn.body[pc]
+		pc++
 
 		if DebugTraceExecution {
-			n, _ := DisassembleInstruction(os.Stderr, vm.fn, i)
+			n, _ := DisassembleInstruction(os.Stderr, vm.fn, in)
 			for i := n; i < 20; i++ {
 				_, _ = os.Stderr.WriteString(" ")
 			}
 		}
 
-		op, a, b, c = i.op, i.a, i.b, i.c
+		op, a, b, c = in.op, in.a, in.b, in.c
 
 		switch op {
 
@@ -167,22 +169,23 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
-			prev := Call{fp: vm.fp, pc: vm.pc, fn: vm.fn}
+			prev := Call{fp: vm.fp, pc: pc, fn: vm.fn}
 			//var uppers []interface{}
 			vm.fn = vm.valuek(a, true).(*Function)
-			for r := 0; r < 3; r++ {
-				nr := uint32(vm.fn.numRegs[r])
-				// Splits stack if necessary.
-				if nr > 0 && (vm.fp[r]%StackSize)+nr > StackSize {
-					vm.checkSplitStack(r, vm.fp[r]+nr)
+			for i, stack := range vm.fn.stack {
+				nr := uint32(stack.regs)
+				if stack.split {
+					if nr > 0 && (vm.fp[i]%StackSize)+nr > StackSize {
+						vm.checkSplitStack(i, vm.fp[i]+nr)
+					}
 				}
 				// Increments frame pointer if necessary.
-				na := vm.fn.numIn[r] + vm.fn.numOut[r]
+				na := stack.in + stack.out
 				if nr > 0 || na > 0 {
-					vm.fp[r] += uint32(prev.fn.numRegs[r] - na)
+					vm.fp[i] += uint32(prev.fn.stack[i].regs - na)
 				}
 			}
-			vm.pc = 0
+			pc = 0
 			vm.calls = append(vm.calls, prev)
 
 		// CallNative
@@ -273,7 +276,7 @@ func (vm *VM) run() int {
 			case ConditionNotNil:
 				cond = v1 != nil
 				if cond {
-					vm.pc++
+					pc++
 				}
 			}
 		case opIfInt, -opIfInt:
@@ -295,7 +298,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				vm.pc++
+				pc++
 			}
 		case opIfUint, -opIfUint:
 			var cond bool
@@ -316,7 +319,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				vm.pc++
+				pc++
 			}
 		case opIfFloat, -opIfFloat:
 			var cond bool
@@ -337,7 +340,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				vm.pc++
+				pc++
 			}
 		case opIfString, -opIfString:
 			var cond bool
@@ -394,12 +397,12 @@ func (vm *VM) run() int {
 				}
 			}
 			if cond {
-				vm.pc++
+				pc++
 			}
 
 		// Goto
 		case opGoto:
-			vm.pc = decodeAddr(a, b, c)
+			pc = decodeAddr(a, b, c)
 
 		// Index
 		case opIndex, -opIndex:
@@ -408,13 +411,13 @@ func (vm *VM) run() int {
 		// JmpOk
 		case opJmpOk:
 			if vm.ok {
-				vm.pc = decodeAddr(a, b, c)
+				pc = decodeAddr(a, b, c)
 			}
 
 		// JmpNotOk
 		case opJmpNotOk:
 			if !vm.ok {
-				vm.pc = decodeAddr(a, b, c)
+				pc = decodeAddr(a, b, c)
 			}
 
 		// Len
@@ -753,7 +756,7 @@ func (vm *VM) run() int {
 			}
 			prev := vm.calls[last]
 			vm.fp = prev.fp
-			vm.pc = prev.pc
+			pc = prev.pc
 			vm.fn = prev.fn
 			vm.calls = vm.calls[0:last]
 
@@ -850,8 +853,8 @@ func (vm *VM) run() int {
 		if DebugTraceExecution {
 			//fmt.Printf("\ti%v f%v s%v\n",
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\n",
-				vm.regs.t0[vm.fp[0]:vm.fp[0]+uint32(vm.fn.numRegs[0])],
-				vm.regs.t1[vm.fp[1]:vm.fp[1]+uint32(vm.fn.numRegs[1])],
+				vm.regs.Int[vm.fp[0]:vm.fp[0]+uint32(vm.fn.stack[0].regs)],
+				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.stack[0].regs)],
 			//vm.regs.r2[vm.fp[2]:uint32(vm.fn.frameSize(2))]
 			)
 		}

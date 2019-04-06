@@ -10,11 +10,11 @@ import (
 	"reflect"
 )
 
-type values struct {
-	t0 []int64
-	t1 []float64
-	t2 []string
-	t3 []interface{}
+type registers struct {
+	Int    []int64
+	Float  []float64
+	String []string
+	Misc   []interface{}
 }
 
 func (vm *VM) set(r int8, v reflect.Value) {
@@ -34,9 +34,9 @@ func (vm *VM) set(r int8, v reflect.Value) {
 
 func (vm *VM) int(r int8) int64 {
 	if r >= 0 {
-		return vm.regs.t0[vm.fp[0]+uint32(r)]
+		return vm.regs.Int[vm.fp[0]+uint32(r)]
 	}
-	return *(vm.fn.refs.t0[-r-1])
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*int64))
 }
 
 func (vm *VM) intk(r int8, k bool) int64 {
@@ -44,16 +44,16 @@ func (vm *VM) intk(r int8, k bool) int64 {
 		return int64(r)
 	}
 	if r >= 0 {
-		return vm.regs.t0[vm.fp[0]+uint32(r)]
+		return vm.regs.Int[vm.fp[0]+uint32(r)]
 	}
-	return *(vm.fn.refs.t0[-r-1])
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*int64))
 }
 
 func (vm *VM) bool(r int8) bool {
 	if r >= 0 {
-		return vm.regs.t0[vm.fp[0]+uint32(r)] > 0
+		return vm.regs.Int[vm.fp[0]+uint32(r)] > 0
 	}
-	return *(vm.fn.refs.t0[-r-1]) > 0
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*bool))
 }
 
 func (vm *VM) boolk(r int8, k bool) bool {
@@ -61,16 +61,16 @@ func (vm *VM) boolk(r int8, k bool) bool {
 		return r > 0
 	}
 	if r >= 0 {
-		return vm.regs.t0[vm.fp[0]+uint32(r)] > 0
+		return vm.regs.Int[vm.fp[0]+uint32(r)] > 0
 	}
-	return *(vm.fn.refs.t0[-r-1]) > 0
+	return *(vm.regs.Misc[-r-1].(*bool))
 }
 
 func (vm *VM) setInt(r int8, i int64) {
 	if r >= 0 {
-		vm.regs.t0[vm.fp[0]+uint32(r)] = i
+		vm.regs.Int[vm.fp[0]+uint32(r)] = i
 	} else {
-		*(vm.fn.refs.t0[-r-1]) = i
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*int64)) = i
 	}
 }
 
@@ -80,33 +80,33 @@ func (vm *VM) setBool(r int8, b bool) {
 		v = 1
 	}
 	if r >= 0 {
-		vm.regs.t0[vm.fp[0]+uint32(r)] = v
+		vm.regs.Int[vm.fp[0]+uint32(r)] = v
 	} else {
-		*(vm.fn.refs.t0[-r-1]) = v
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*bool)) = b
 	}
 }
 
 func (vm *VM) incInt(r int8) {
 	if r >= 0 {
-		vm.regs.t0[vm.fp[0]+uint32(r)]++
+		vm.regs.Int[vm.fp[0]+uint32(r)]++
 	} else {
-		*(vm.fn.refs.t0[-r-1])++
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*int64))++
 	}
 }
 
 func (vm *VM) decInt(r int8) {
 	if r >= 0 {
-		vm.regs.t0[vm.fp[0]+uint32(r)]--
+		vm.regs.Int[vm.fp[0]+uint32(r)]--
 	} else {
-		*(vm.fn.refs.t0[-r-1])--
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*int64))--
 	}
 }
 
 func (vm *VM) float(r int8) float64 {
 	if r >= 0 {
-		return vm.regs.t1[vm.fp[1]+uint32(r)]
+		return vm.regs.Float[vm.fp[1]+uint32(r)]
 	}
-	return *(vm.fn.refs.t1[-r-1])
+	return *(vm.regs.Misc[-r-1].(*float64))
 }
 
 func (vm *VM) floatk(r int8, k bool) float64 {
@@ -114,96 +114,82 @@ func (vm *VM) floatk(r int8, k bool) float64 {
 		return float64(r)
 	}
 	if r >= 0 {
-		return vm.regs.t1[vm.fp[1]+uint32(r)]
+		return vm.regs.Float[vm.fp[1]+uint32(r)]
 	}
-	return *(vm.fn.refs.t1[-r-1])
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*float64))
+
 }
 
 func (vm *VM) setFloat(r int8, f float64) {
 	if r >= 0 {
-		vm.regs.t1[vm.fp[1]+uint32(r)] = f
+		vm.regs.Float[vm.fp[1]+uint32(r)] = f
 	} else {
-		*(vm.fn.refs.t1[-r-1]) = f
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*float64)) = f
 	}
 }
 
 func (vm *VM) incFloat(r int8) {
 	if r >= 0 {
-		vm.regs.t1[vm.fp[1]+uint32(r)]++
+		vm.regs.Float[vm.fp[1]+uint32(r)]++
 	} else {
-		*(vm.fn.refs.t1[-r-1])++
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*float64))++
 	}
 }
 
 func (vm *VM) decFloat(r int8) {
 	if r >= 0 {
-		vm.regs.t1[vm.fp[1]+uint32(r)]--
+		vm.regs.Float[vm.fp[1]+uint32(r)]--
 	} else {
-		*(vm.fn.refs.t1[-r-1])--
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*float64))--
 	}
 }
 
 func (vm *VM) string(r int8) string {
 	if r >= 0 {
-		return vm.regs.t2[vm.fp[2]+uint32(r)]
+		return vm.regs.String[vm.fp[2]+uint32(r)]
 	}
-	return *(vm.fn.refs.t2[-r-1])
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*string))
 }
 
 func (vm *VM) stringk(r int8, k bool) string {
 	if k {
-		return vm.fn.constants.t2[-r]
+		return vm.fn.constants.String[-r]
 	}
 	if r >= 0 {
-		return vm.regs.t2[vm.fp[2]+uint32(r)]
+		return vm.regs.String[vm.fp[2]+uint32(r)]
 	}
-	return *(vm.fn.refs.t2[-r-1])
+	return *(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*string))
 }
 
 func (vm *VM) setString(r int8, s string) {
 	if r >= 0 {
-		vm.regs.t2[vm.fp[2]+uint32(r)] = s
+		vm.regs.String[vm.fp[2]+uint32(r)] = s
 	} else {
-		*(vm.fn.refs.t2[-r-1]) = s
+		*(vm.regs.Misc[vm.fp[3]+uint32(-r-1)].(*string)) = s
 	}
 }
 
 func (vm *VM) value(r int8) interface{} {
 	if r >= 0 {
-		return vm.regs.t3[vm.fp[3]+uint32(r)]
+		return vm.regs.Misc[vm.fp[3]+uint32(r)]
 	}
-	return *(vm.fn.refs.t3[-r-1])
+	return reflect.ValueOf(vm.regs.Misc[vm.fp[3]+uint32(-r-1)]).Elem().Interface()
 }
 
 func (vm *VM) valuek(r int8, k bool) interface{} {
 	if k {
-		return vm.fn.constants.t3[-r-1]
+		return vm.fn.constants.Misc[-r-1]
 	}
 	if r >= 0 {
-		return vm.regs.t3[vm.fp[3]+uint32(r)]
+		return vm.regs.Misc[vm.fp[3]+uint32(r)]
 	}
-	return *(vm.fn.refs.t3[-r-1])
+	return reflect.ValueOf(vm.regs.Misc[vm.fp[3]+uint32(-r-1)]).Elem().Interface()
 }
 
 func (vm *VM) setValue(r int8, i interface{}) {
 	if r >= 0 {
-		vm.regs.t3[vm.fp[3]+uint32(r)] = i
-	} else {
-		*(vm.fn.refs.t3[-r-1]) = i
+		vm.regs.Misc[vm.fp[3]+uint32(r)] = i
+		return
 	}
-}
-
-func (vm *VM) moveValue(r1, r2 int8) {
-	if regs := vm.regs.t3; r1 >= 0 && r2 >= 0 {
-		regs[vm.fp[3]+uint32(r2)] = regs[vm.fp[3]+uint32(r1)]
-	} else if refs := vm.fn.refs.t3; r2 >= 0 {
-		regs[vm.fp[3]+uint32(r2)] = *(refs[-r1-1])
-	} else {
-		dst := uint32(-r2 - 1)
-		if r1 >= 0 {
-			*(refs[dst]) = regs[vm.fp[3]+uint32(r1)]
-		} else {
-			*(refs[dst]) = *(refs[-r1-1])
-		}
-	}
+	reflect.ValueOf(vm.regs.Misc[vm.fp[3]+uint32(-r-1)]).Elem().Set(reflect.ValueOf(i))
 }
