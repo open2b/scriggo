@@ -142,17 +142,14 @@ type Upper struct {
 
 // Function represents a function.
 type Function struct {
-	name   string
-	uppers []Upper
-	in     []Type
-	out    []Type
-	types  []reflect.Type
-	stack  [4]struct {
-		regs  uint8
-		in    uint8
-		out   uint8
-		split bool
-	}
+	name      string
+	file      string
+	line      int
+	uppers    []Upper
+	in        []Type
+	out       []Type
+	types     []reflect.Type
+	regnum    [4]uint8
 	variadic  bool
 	constants registers
 	body      []instruction
@@ -167,14 +164,13 @@ func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Funct
 		out:      out,
 		variadic: variadic,
 	}
-	for _, arg := range in {
-		fn.stack[arg].in++
-	}
-	for _, arg := range out {
-		fn.stack[arg].out++
-	}
 	p.funcs = append(p.funcs, fn)
 	return fn
+}
+
+func (fn *Function) SetFileLine(file string, line int) {
+	fn.file = file
+	fn.line = line
 }
 
 type FunctionBuilder struct {
@@ -204,11 +200,11 @@ func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
 }
 
 func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
-	r := -len(builder.fn.constants.Misc) - 1
+	r := -len(builder.fn.constants.General) - 1
 	if r == -129 {
 		panic("interface refs limit reached")
 	}
-	builder.fn.constants.Misc = append(builder.fn.constants.Misc, c)
+	builder.fn.constants.General = append(builder.fn.constants.General, c)
 	return int8(r)
 }
 
@@ -244,26 +240,22 @@ func (builder *FunctionBuilder) End() {
 	for kind, num := range builder.numRegs {
 		switch {
 		case reflect.Int <= kind && kind <= reflect.Uint64:
-			if num > fn.stack[0].regs {
-				fn.stack[0].regs = num
+			if num > fn.regnum[0] {
+				fn.regnum[0] = num
 			}
 		case kind == reflect.Float64 || kind == reflect.Float32:
-			if num > fn.stack[1].regs {
-				fn.stack[1].regs = num
+			if num > fn.regnum[1] {
+				fn.regnum[1] = num
 			}
 		case kind == reflect.String:
-			if num > fn.stack[2].regs {
-				fn.stack[2].regs = num
+			if num > fn.regnum[2] {
+				fn.regnum[2] = num
 			}
 		default:
-			if num > fn.stack[3].regs {
-				fn.stack[0].regs = num
+			if num > fn.regnum[3] {
+				fn.regnum[0] = num
 			}
 		}
-	}
-	for i := 0; i < 4; i++ {
-		stack := fn.stack[i]
-		stack.split = stack.regs > stack.in+stack.out
 	}
 }
 
@@ -342,13 +334,17 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: e, b: tr, c: z})
 }
 
+type StackShift [4]int8
+
 // Call appends a new "call" instruction to the function body.
 //
 //     f()
 //
-func (builder *FunctionBuilder) Call(f int8) {
+func (builder *FunctionBuilder) Call(f int8, shift StackShift) {
+	var fn = builder.fn
 	builder.allocRegister(reflect.Interface, f)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCall, a: f})
+	fn.body = append(fn.body, instruction{op: opCall, a: f})
+	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
 // Assert appends a new "cap" instruction to the function body.
@@ -725,13 +721,15 @@ func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
 }
 
-// Sub appends a new "sub" instruction to the function body.
+// Sub appends a new "Sub" instruction to the function body.
 //
 //     z = x - y
 //
-func (builder *FunctionBuilder) Sub(x, y, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(reflect.Int, x)
-	builder.allocRegister(reflect.Int, y)
+	if !k {
+		builder.allocRegister(reflect.Int, y)
+	}
 	builder.allocRegister(reflect.Int, z)
 	var op operation
 	switch kind {
@@ -750,5 +748,18 @@ func (builder *FunctionBuilder) Sub(x, y, z int8, kind reflect.Kind) {
 	default:
 		panic("sub: invalid type")
 	}
+	if k {
+		op = -op
+	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// TailCall appends a new "TailCall" instruction to the function body.
+//
+//     f()
+//
+func (builder *FunctionBuilder) TailCall(f int8) {
+	var fn = builder.fn
+	builder.allocRegister(reflect.Interface, f)
+	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
 }

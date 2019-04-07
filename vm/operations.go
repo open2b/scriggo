@@ -131,6 +131,8 @@ const (
 	opSubInvFloat32
 	opSubInvFloat64
 
+	opTailCall
+
 	opXor
 )
 
@@ -233,4 +235,6 @@ var operationName = [...]string{
 	opSubInvInt32:   "SubInvInt32",
 	opSubInvFloat32: "SubInvFloat32",
 	opSubInvFloat64: "SubInvFloat64",
+
+	opTailCall: "TailCall",
 }

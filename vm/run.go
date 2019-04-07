@@ -22,7 +22,7 @@ const (
 	InterpretRunTimeError
 )
 
-const noRegister = -128
+const NoRegister = -128
 
 func decodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
@@ -51,15 +51,16 @@ func (vm *VM) run() int {
 	for {
 
 		in := vm.fn.body[pc]
-		pc++
 
 		if DebugTraceExecution {
-			n, _ := DisassembleInstruction(os.Stderr, vm.fn, in)
-			for i := n; i < 20; i++ {
-				_, _ = os.Stderr.WriteString(" ")
-			}
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
+				vm.regs.Int[vm.fp[0]:vm.fp[0]+uint32(vm.fn.regnum[0])],
+				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.regnum[0])])
+			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
+			println()
 		}
 
+		pc++
 		op, a, b, c = in.op, in.a, in.b, in.c
 
 		switch op {
@@ -169,24 +170,27 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
-			prev := Call{fp: vm.fp, pc: pc, fn: vm.fn}
-			//var uppers []interface{}
-			vm.fn = vm.valuek(a, true).(*Function)
-			for i, stack := range vm.fn.stack {
-				nr := uint32(stack.regs)
-				if stack.split {
-					if nr > 0 && (vm.fp[i]%StackSize)+nr > StackSize {
-						vm.checkSplitStack(i, vm.fp[i]+nr)
-					}
-				}
-				// Increments frame pointer if necessary.
-				na := stack.in + stack.out
-				if nr > 0 || na > 0 {
-					vm.fp[i] += uint32(prev.fn.stack[i].regs - na)
-				}
+			fn := vm.fn
+			prev := Call{fn: vm.fn, fp: vm.fp, pc: pc + 1}
+			off := fn.body[pc]
+			vm.fp[0] += uint32(off.op)
+			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+				vm.moreIntStack()
 			}
-			pc = 0
+			if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+				vm.moreFloatStack()
+			}
+			vm.fp[2] += uint32(off.b)
+			if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+				vm.moreStringStack()
+			}
+			vm.fp[3] += uint32(off.c)
+			if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+				vm.moreGeneralStack()
+			}
+			vm.fn = vm.valuek(a, true).(*Function)
 			vm.calls = append(vm.calls, prev)
+			pc = 0
 
 		// CallNative
 		case opCallNative:
@@ -554,10 +558,10 @@ func (vm *VM) run() int {
 			switch s := s.(type) {
 			case []int:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setInt(b, int64(v))
 					}
 					if cont = vm.run(); cont > 0 {
@@ -566,10 +570,10 @@ func (vm *VM) run() int {
 				}
 			case []byte:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setInt(b, int64(v))
 					}
 					if cont = vm.run(); cont > 0 {
@@ -578,10 +582,10 @@ func (vm *VM) run() int {
 				}
 			case []rune:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setInt(b, int64(v))
 					}
 					if cont = vm.run(); cont > 0 {
@@ -590,10 +594,10 @@ func (vm *VM) run() int {
 				}
 			case []float64:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setFloat(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -602,10 +606,10 @@ func (vm *VM) run() int {
 				}
 			case []string:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setString(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -614,10 +618,10 @@ func (vm *VM) run() int {
 				}
 			case []interface{}:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setInt(a, int64(i))
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setValue(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -626,10 +630,10 @@ func (vm *VM) run() int {
 				}
 			case map[string]int:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setString(a, i)
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setInt(b, int64(v))
 					}
 					if cont = vm.run(); cont > 0 {
@@ -638,10 +642,10 @@ func (vm *VM) run() int {
 				}
 			case map[string]bool:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setString(a, i)
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setBool(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -650,10 +654,10 @@ func (vm *VM) run() int {
 				}
 			case map[string]string:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setString(a, i)
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setString(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -662,10 +666,10 @@ func (vm *VM) run() int {
 				}
 			case map[string]interface{}:
 				for i, v := range s {
-					if a != noRegister {
+					if a != NoRegister {
 						vm.setString(a, i)
 					}
-					if b != noRegister {
+					if b != NoRegister {
 						vm.setValue(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
@@ -678,10 +682,10 @@ func (vm *VM) run() int {
 				if kind == reflect.Map {
 					iter := rs.MapRange()
 					for iter.Next() {
-						if a != noRegister {
+						if a != NoRegister {
 							vm.set(a, iter.Key())
 						}
-						if b != noRegister {
+						if b != NoRegister {
 							vm.set(b, iter.Value())
 						}
 						if cont = vm.run(); cont > 0 {
@@ -694,10 +698,10 @@ func (vm *VM) run() int {
 					}
 					length := rs.Len()
 					for i := 0; i < length; i++ {
-						if a != noRegister {
+						if a != NoRegister {
 							vm.setInt(a, int64(i))
 						}
-						if b != noRegister {
+						if b != NoRegister {
 							vm.set(b, rs.Index(i))
 						}
 						if cont = vm.run(); cont > 0 {
@@ -750,15 +754,22 @@ func (vm *VM) run() int {
 
 		// Return
 		case opReturn:
-			last := len(vm.calls) - 1
-			if last < 0 {
+			var call Call
+			i := len(vm.calls)
+			if i == 0 {
 				return maxInt8
 			}
-			prev := vm.calls[last]
-			vm.fp = prev.fp
-			pc = prev.pc
-			vm.fn = prev.fn
-			vm.calls = vm.calls[0:last]
+			for {
+				i--
+				call = vm.calls[i]
+				if !call.tail {
+					break
+				}
+			}
+			vm.calls = vm.calls[:i]
+			vm.fp = call.fp
+			pc = call.pc
+			vm.fn = call.fn
 
 		// Selector
 		case opSelector:
@@ -812,51 +823,63 @@ func (vm *VM) run() int {
 
 		// Sub
 		case opSubInt:
-			vm.setInt(c, -(vm.int(a) - vm.int(b)))
+			vm.setInt(c, vm.int(a)-vm.int(b))
 		case -opSubInt:
-			vm.setInt(c, -(vm.int(a) - int64(b)))
+			vm.setInt(c, vm.int(a)-int64(b))
 		case opSubInt8, -opSubInt8:
-			vm.setInt(c, int64(int8(-(vm.int(a) - vm.intk(b, op < 0)))))
+			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
 		case opSubInt16, -opSubInt16:
-			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, op < 0)))))
+			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
 		case opSubInt32, -opSubInt32:
-			vm.setInt(c, int64(int32(-(vm.int(a) - vm.intk(b, op < 0)))))
+			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
 		case opSubFloat32, -opSubFloat32:
-			vm.setFloat(c, float64(float32(-(float32(vm.float(a)) - float32(vm.floatk(b, op < 0))))))
+			vm.setFloat(c, float64(float32(float32(vm.float(a))-float32(vm.floatk(b, op < 0)))))
 		case opSubFloat64:
-			vm.setFloat(c, -(vm.float(a) - vm.float(b)))
+			vm.setFloat(c, vm.float(a)-vm.float(b))
 		case -opSubFloat64:
-			vm.setFloat(c, -(vm.float(a) - float64(b)))
+			vm.setFloat(c, vm.float(a)-float64(b))
 
 		// SubInv
 		case opSubInvInt, -opSubInvInt:
-			vm.setInt(c, vm.int(a)-vm.intk(b, op < 0))
+			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
 		case opSubInvInt8, -opSubInvInt8:
-			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
+			vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(a))))
 		case opSubInvInt16, -opSubInvInt16:
-			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
+			vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(a))))
 		case opSubInvInt32, -opSubInvInt32:
-			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
+			vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(a))))
 		case opSubInvFloat32, -opSubInvFloat32:
-			vm.setFloat(c, float64(float32(float32(vm.float(a))-float32(vm.floatk(b, op < 0)))))
+			vm.setFloat(c, float64(float32(float32(vm.floatk(b, op < 0))-float32(vm.float(a)))))
 		case opSubInvFloat64:
-			vm.setFloat(c, vm.float(a)-vm.float(b))
+			vm.setFloat(c, vm.float(b)-vm.float(a))
 		case -opSubInvFloat64:
-			vm.setFloat(c, vm.float(a)-float64(b))
+			vm.setFloat(c, float64(b)-vm.float(a))
+
+		// TailCall
+		case opTailCall:
+			vm.calls = append(vm.calls, Call{fn: vm.fn, pc: pc, tail: true})
+			pc = 0
+			if a != NoRegister {
+				fn := vm.valuek(a, true).(*Function)
+				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+					vm.moreIntStack()
+				}
+				if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+					vm.moreFloatStack()
+				}
+				if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+					vm.moreStringStack()
+				}
+				if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+					vm.moreGeneralStack()
+				}
+				vm.fn = fn
+			}
 
 		// opXor
 		case opXor, -opXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 
-		}
-
-		if DebugTraceExecution {
-			//fmt.Printf("\ti%v f%v s%v\n",
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\n",
-				vm.regs.Int[vm.fp[0]:vm.fp[0]+uint32(vm.fn.stack[0].regs)],
-				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.stack[0].regs)],
-			//vm.regs.r2[vm.fp[2]:uint32(vm.fn.frameSize(2))]
-			)
 		}
 
 	}

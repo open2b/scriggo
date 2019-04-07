@@ -78,14 +78,11 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 		}
 	}
 	_, _ = fmt.Fprintf(w, "Func %s(", fn.name)
-	var reg uint8
 	for i, typ := range fn.in {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
 		}
-		_, _ = fmt.Fprintf(w, "%d %s", reg, typ)
-
-		reg++
+		_, _ = fmt.Fprintf(w, "%d %s", len(fn.out)+i, typ)
 	}
 	_, _ = fmt.Fprint(w, ")")
 	if len(fn.out) > 0 {
@@ -94,35 +91,38 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
-			_, _ = fmt.Fprintf(w, "%d %s", reg, typ)
-			reg++
+			_, _ = fmt.Fprintf(w, "%d %s", i, typ)
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
 	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprintf(w, "\t// regs(%d,%d,%d,%d) in(%d,%d,%d,%d) out(%d,%d,%d,%d)\n",
-		fn.stack[0].regs, fn.stack[1].regs, fn.stack[2].regs, fn.stack[3].regs,
-		fn.stack[0].in, fn.stack[1].in, fn.stack[2].in, fn.stack[3].in,
-		fn.stack[0].out, fn.stack[1].out, fn.stack[2].out, fn.stack[3].out)
-	for addr, in := range fn.body {
+	_, _ = fmt.Fprintf(w, "\t// regs(%d,%d,%d,%d)\n",
+		fn.regnum[0], fn.regnum[1], fn.regnum[2], fn.regnum[3])
+	instrNum := uint32(len(fn.body))
+	for addr := uint32(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[uint32(addr)]; ok {
 			_, _ = fmt.Fprintf(w, "%d:", label)
 		}
+		in := fn.body[addr]
 		if in.op == opGoto {
 			label := labelOf[decodeAddr(in.a, in.b, in.c)]
 			_, _ = fmt.Fprintf(w, "\tGoto %d\n", label)
 		} else {
-			_, _ = fmt.Fprintf(w, "\t%s\n", disassembleInstruction(fn, in))
+			_, _ = fmt.Fprintf(w, "\t%s\n", disassembleInstruction(fn, addr))
+		}
+		if in.op == opCall {
+			addr += 1
 		}
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *Function, in instruction) (int64, error) {
-	n, err := io.WriteString(w, disassembleInstruction(fn, in))
+func DisassembleInstruction(w io.Writer, fn *Function, addr uint32) (int64, error) {
+	n, err := io.WriteString(w, disassembleInstruction(fn, addr))
 	return int64(n), err
 }
 
-func disassembleInstruction(fn *Function, in instruction) string {
+func disassembleInstruction(fn *Function, addr uint32) string {
+	in := fn.body[addr]
 	op, a, b, c := in.op, in.a, in.b, in.c
 	k := false
 	if op < 0 {
@@ -166,7 +166,12 @@ func disassembleInstruction(fn *Function, in instruction) string {
 		s += " type(string)"
 		s += " " + disassembleOperand(c, String, false)
 	case opCall:
-		s += " " + disassembleOperand(a, Interface, false)
+		grow := fn.body[addr+1]
+		s += " " + disassembleOperand(a, Interface, false) + " [" +
+			strconv.Itoa(int(grow.op)) + "," +
+			strconv.Itoa(int(grow.a)) + "," +
+			strconv.Itoa(int(grow.b)) + "," +
+			strconv.Itoa(int(grow.c)) + "]"
 	case opCap:
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " " + disassembleOperand(c, Int, false)
