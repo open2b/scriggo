@@ -170,9 +170,9 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
-			fn := vm.fn
-			prev := Call{fn: vm.fn, fp: vm.fp, pc: pc + 1}
-			off := fn.body[pc]
+			off := vm.fn.body[pc]
+			call := Call{fn: vm.fn, fp: vm.fp, pc: pc + 1}
+			fn := vm.valuek(a, true).(*Function)
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -188,8 +188,8 @@ func (vm *VM) run() int {
 			if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
-			vm.fn = vm.valuek(a, true).(*Function)
-			vm.calls = append(vm.calls, prev)
+			vm.fn = fn
+			vm.calls = append(vm.calls, call)
 			pc = 0
 
 		// CallNative
