@@ -120,7 +120,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 			c.compileNodes(node.Then.Nodes, fb)
 			endIfLabel := fb.NewLabel()
 			fb.Goto(endIfLabel)
-			fb.UpdateLabelWithCurrentPos(elsLabel)
+			fb.SetLabelAddr(elsLabel)
 			if node.Else != nil {
 				switch els := node.Else.(type) {
 				case *ast.If:
@@ -129,7 +129,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 					c.compileNodes(els.Nodes, fb)
 				}
 			}
-			fb.UpdateLabelWithCurrentPos(endIfLabel)
+			fb.SetLabelAddr(endIfLabel)
 
 		case *ast.Assignment:
 			if len(node.Variables) == 1 && len(node.Values) == 1 {

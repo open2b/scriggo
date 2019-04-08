@@ -253,7 +253,7 @@ func (builder *FunctionBuilder) NewLabel() uint32 {
 	return uint32(len(builder.labels))
 }
 
-func (builder *FunctionBuilder) UpdateLabelWithCurrentPos(l uint32) {
+func (builder *FunctionBuilder) SetLabelAddr(l uint32) {
 	builder.labels[l-1] = builder.CurrentAddr()
 }
 
