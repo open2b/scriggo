@@ -214,6 +214,15 @@ func (builder *FunctionBuilder) SetLabel() uint32 {
 	return uint32(len(builder.labels))
 }
 
+func (builder *FunctionBuilder) SetEmptyLabel() uint32 {
+	builder.labels = append(builder.labels, uint32(0))
+	return uint32(len(builder.labels))
+}
+
+func (builder *FunctionBuilder) UpdateLabelWithCurrentPos(l uint32) {
+	builder.labels[l] = uint32(len(builder.fn.body))
+}
+
 var intType = reflect.TypeOf(0)
 var float64Type = reflect.TypeOf(0.0)
 var stringType = reflect.TypeOf("")
