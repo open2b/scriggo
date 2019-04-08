@@ -248,12 +248,6 @@ func (builder *FunctionBuilder) CurrentAddr() uint32 {
 	return uint32(len(builder.fn.body))
 }
 
-// SetLabel sets a new label in current position.
-func (builder *FunctionBuilder) SetLabel() uint32 {
-	builder.labels = append(builder.labels, builder.CurrentAddr())
-	return uint32(len(builder.labels))
-}
-
 func (builder *FunctionBuilder) NewEmptyLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
