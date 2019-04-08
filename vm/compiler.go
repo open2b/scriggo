@@ -133,22 +133,28 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		case *ast.If:
 			fb.EnterScope()
 			if node.Assignment != nil {
-				panic("TODO: not implemented")
+				c.compileNodes([]ast.Node{node.Assignment}, fb)
 			}
 			var k bool
 			var x, y int8
 			var o Condition
 			var kind reflect.Kind
-			if binOp, ok := node.Condition.(*ast.BinaryOperator); ok {
-				kind = c.typeinfo[binOp.Expr1].Type.Kind()
-				expr1 := fb.NewRegister(kind)
-				expr2 := fb.NewRegister(kind)
-				c.compileExpr(binOp.Expr1, fb, expr1)
-				c.compileExpr(binOp.Expr2, fb, expr2)
-				switch binOp.Operator() {
+			switch cond := node.Condition.(type) {
+			case *ast.BinaryOperator:
+				kind = c.typeinfo[cond.Expr1].Type.Kind()
+				x := fb.NewRegister(kind)
+				y := fb.NewRegister(kind)
+				c.compileExpr(cond.Expr1, fb, x)
+				c.compileExpr(cond.Expr2, fb, y)
+				switch cond.Operator() {
 				case ast.OperatorEqual:
 					o = ConditionEqual
 				}
+			default:
+				x := fb.NewRegister(kind)
+				c.compileExpr(cond, fb, x)
+				o = ConditionEqual
+				y = fb.MakeIntConstant(1)
 			}
 			fb.If(k, x, o, y, kind)
 			elsLabel := fb.NewLabel()
