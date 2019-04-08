@@ -57,23 +57,6 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
 
-	case *ast.Value:
-		kind := c.typeinfo[expr].Type.Kind()
-		switch kind {
-		case reflect.Int:
-			c := fb.MakeIntConstant(int64(expr.Val.(int)))
-			fb.Move(false, reg, c, kind)
-		default:
-			panic("TODO: not implemented")
-		}
-	case *ast.UnaryOperator:
-
-		c.compileExpr(expr.Expr, fb, 1)
-		switch expr.Operator() {
-		case ast.OperatorNot:
-			panic("TODO: not implemented")
-		}
-
 	case *ast.BinaryOperator:
 		c.compileExpr(expr.Expr1, fb, 1)
 		c.compileExpr(expr.Expr2, fb, 2)
@@ -93,12 +76,53 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		case reflect.Map:
 			panic("TODO: not implemented")
 		}
+
+	case *ast.UnaryOperator:
+		c.compileExpr(expr.Expr, fb, 1)
+		switch expr.Operator() {
+		case ast.OperatorNot:
+			panic("TODO: not implemented")
+		}
+
+	case *ast.Value:
+		kind := c.typeinfo[expr].Type.Kind()
+		switch kind {
+		case reflect.Int:
+			c := fb.MakeIntConstant(int64(expr.Val.(int)))
+			fb.Move(false, reg, c, kind)
+		default:
+			panic("TODO: not implemented")
+
+		}
 	}
 }
 
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 	for _, node := range nodes {
 		switch node := node.(type) {
+
+		case *ast.Assignment:
+			if len(node.Variables) == 1 && len(node.Values) == 1 {
+				variableExpr := node.Variables[0]
+				valueExpr := node.Values[0]
+				if isBlankIdentifier(variableExpr) {
+					continue
+				}
+				kind := c.typeinfo[valueExpr].Type.Kind()
+				switch node.Type {
+				case ast.AssignmentDeclaration:
+					variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
+					c.compileExpr(valueExpr, fb, variableReg)
+				case ast.AssignmentSimple:
+					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+					c.compileExpr(valueExpr, fb, variableReg)
+				}
+			} else {
+				panic("TODO: not implemented")
+			}
+
+		case *ast.Call:
+			fb.Call(0, StackShift{}) // TODO
 
 		case *ast.If:
 			fb.EnterScope()
@@ -155,28 +179,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			fb.Goto(forLabel)
 			fb.ExitScope()
 
-		case *ast.Call:
-			fb.Call(0, StackShift{}) // TODO
-
-		case *ast.Assignment:
-			if len(node.Variables) == 1 && len(node.Values) == 1 {
-				variableExpr := node.Variables[0]
-				valueExpr := node.Values[0]
-				if isBlankIdentifier(variableExpr) {
-					continue
-				}
-				kind := c.typeinfo[valueExpr].Type.Kind()
-				switch node.Type {
-				case ast.AssignmentDeclaration:
-					variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-					c.compileExpr(valueExpr, fb, variableReg)
-				case ast.AssignmentSimple:
-					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-					c.compileExpr(valueExpr, fb, variableReg)
-				}
-			} else {
-				panic("TODO: not implemented")
-			}
 		}
 	}
 }
