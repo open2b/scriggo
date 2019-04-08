@@ -86,6 +86,7 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 	for _, node := range nodes {
 		switch node := node.(type) {
+
 		case *ast.If:
 			// TODO (Gianluca): compile assignment.
 			var k bool
@@ -120,6 +121,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 				}
 			}
 			fb.UpdateLabelWithCurrentPos(endIfLabel)
+
 		case *ast.Assignment:
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				variableExpr := node.Variables[0]
