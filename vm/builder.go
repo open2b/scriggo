@@ -282,7 +282,7 @@ func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
 		i := fn.body[addr]
-		i.a, i.b, i.c = encodeAddr(builder.labels[label])
+		i.a, i.b, i.c = encodeAddr(builder.labels[label-1])
 		fn.body[addr] = i
 	}
 	builder.gotos = nil
