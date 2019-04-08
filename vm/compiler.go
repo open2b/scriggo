@@ -178,6 +178,7 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 	// 			fb.Move(false, 5, 0, kind)
 	// 		}
 	// 	}
+	fb.End()
 
 	return nil
 }
