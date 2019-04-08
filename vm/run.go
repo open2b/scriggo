@@ -48,11 +48,11 @@ func (vm *VM) run() int {
 	var op operation
 	var a, b, c int8
 
-	if len(vm.fn.body) == 0 {
-		return 0
-	}
-
 	for {
+
+		if int(pc) >= len(vm.fn.body) {
+			return 0
+		}
 
 		in := vm.fn.body[pc]
 
