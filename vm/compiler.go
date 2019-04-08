@@ -30,7 +30,7 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 		return nil, err
 	}
 	tci := c.parser.TypeCheckInfos()
-	c.typeinfo = tci["/hello.go"].TypeInfo
+	c.typeinfo = tci["/test.go"].TypeInfo
 	node := tree.Nodes[0].(*ast.Package)
 	pkg, err := c.compilePackage(node)
 	if err != nil {
