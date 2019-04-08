@@ -188,14 +188,6 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 
 	c.compileNodes(node.Body.Nodes, fb)
 
-	// 	switch n := n.(type) {
-	// 	case *ast.Var:
-	// 		for i := range n.Identifiers {
-	// 			value := n.Values[i]
-	// 			kind := c.typeinfo[value].Type.Kind()
-	// 			fb.Move(false, 5, 0, kind)
-	// 		}
-	// 	}
 	fb.End()
 
 	return nil
