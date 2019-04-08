@@ -205,9 +205,9 @@ func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 	return reg
 }
 
-// NewVariableRegister returns the register for holding a new variable with name
+// NewVar returns the register for holding a new variable with name
 // n of kind k.
-func (builder *FunctionBuilder) NewVariableRegister(n string, k reflect.Kind) int8 {
+func (builder *FunctionBuilder) NewVar(n string, k reflect.Kind) int8 {
 	reg := int8(builder.numRegs[k])
 	builder.allocRegister(k, reg)
 	builder.scopes[len(builder.scopes)-1][n] = reg

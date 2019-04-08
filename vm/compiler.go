@@ -168,7 +168,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				kind := c.typeinfo[valueExpr].Type.Kind()
 				switch node.Type {
 				case ast.AssignmentDeclaration:
-					variableReg := fb.NewVariableRegister(variableExpr.(*ast.Identifier).Name, kind)
+					variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
 					c.compileExpression(valueExpr, fb, variableReg)
 				case ast.AssignmentSimple:
 					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
