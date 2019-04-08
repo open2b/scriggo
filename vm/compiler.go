@@ -150,6 +150,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 			c.compileNodes(node.Body, fb)
 			fb.Goto(forLabel)
 
+		case *ast.Call:
+			fb.Call(0, StackShift{}) // TODO
+
 		case *ast.Assignment:
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				variableExpr := node.Variables[0]
