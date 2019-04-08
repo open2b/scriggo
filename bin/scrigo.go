@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"scrigo/vm"
 
 	"scrigo"
 	"scrigo/parser"
@@ -21,12 +22,19 @@ var packages map[string]*parser.GoPackage
 
 func main() {
 
-	if len(os.Args) != 2 {
-		fmt.Printf("usage: %s filename\n", os.Args[0])
+	var args = os.Args
+
+	var asm bool
+	if asm = args[1] == "-S"; asm {
+		args = args[1:]
+	}
+
+	if len(args) != 2 {
+		fmt.Printf("usage: %s filename\n", args[0])
 		os.Exit(-1)
 	}
 
-	file := os.Args[1]
+	file := args[1]
 	ext := filepath.Ext(file)
 	if ext != ".go" && ext != ".gos" && ext != ".html" {
 		fmt.Printf("%s: extension must be \".go\" for main packages, \".gos\" for scripts and \".html\" for template pages\n", file)
@@ -37,6 +45,23 @@ func main() {
 	if err != nil {
 		fmt.Printf("%s: %s\n", file, err)
 		os.Exit(-1)
+	}
+
+	if asm {
+		path := "/" + filepath.Base(absFile)
+		r := parser.DirReader(filepath.Dir(absFile))
+		compiler := vm.NewCompiler(r, packages)
+		pkg, err := compiler.Compile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
+		}
+		_, err = vm.Disassemble(os.Stdout, pkg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
+		}
+		return
 	}
 
 	switch ext {
