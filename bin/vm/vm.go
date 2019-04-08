@@ -37,10 +37,10 @@ func main() {
 	cInc := b.MakeInterfaceConstant(inc)
 	b.Move(true, 0, 0, reflect.Int) // i := 0
 	b.Move(true, 0, 1, reflect.Int) // x := 0
-	b.SetLabel()
+	// b.SetLabel() // TODO.
 	b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
 	b.Goto(3)
-	b.SetLabel()
+	// b.SetLabel() // TODO.
 	// x = inc(x)
 	b.Move(false, 1, 3, reflect.Int)
 	b.Call(cInc, vm.StackShift{2})
@@ -49,7 +49,7 @@ func main() {
 	b.Add(true, 0, 1, 0, reflect.Int) // i++
 	//
 	b.Goto(1)
-	b.SetLabel()
+	// b.SetLabel() // TODO.
 	b.Return()
 	b.End()
 
@@ -79,12 +79,12 @@ func callRec(n int) {
 	fb.Goto(1)
 	fb.Move(false, 2, 0, reflect.Int) // return a
 	fb.Return()
-	fb.SetLabel()
+	// fb.SetLabel() // TODO.
 	fb.If(true, 1, vm.ConditionEqual, 1, reflect.Int) // if n == 1
 	fb.Goto(2)
 	fb.Move(false, 3, 0, reflect.Int) // return b
 	fb.Return()
-	fb.SetLabel()
+	// fb.SetLabel() // TODO.
 	fb.Sub(true, 1, 1, 1, reflect.Int)  // n = n-1
 	fb.Move(false, 3, 4, reflect.Int)   // t = b
 	fb.Add(false, 2, 3, 3, reflect.Int) // b = a+b
