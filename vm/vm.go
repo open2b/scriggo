@@ -9,11 +9,12 @@ package vm
 const StackSize = 512
 
 type VM struct {
-	fp    [4]uint32 // frame pointers.
-	st    [4]uint32 // stack tops.
-	ok    bool      // ok flag.
-	regs  registers // registers.
-	fn    *Function // function.
+	fp    [4]uint32     // frame pointers.
+	st    [4]uint32     // stack tops.
+	ok    bool          // ok flag.
+	regs  registers     // registers.
+	fn    *Function     // function.
+	ups   []interface{} // upvalues.
 	calls []Call
 	pkg   *Package
 }
@@ -36,6 +37,7 @@ func New(pkg *Package) *VM {
 func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
 	vm.fn = nil
+	vm.ups = nil
 	vm.calls = vm.calls[:]
 }
 
@@ -72,8 +74,14 @@ func (vm *VM) moreGeneralStack() {
 }
 
 type Call struct {
-	fn   *Function // function.
-	fp   [4]uint32 // frame pointers.
-	pc   uint32    // program counter.
-	tail bool      // tail call.
+	fn   *Function     // function.
+	ups  []interface{} // upvalues.
+	fp   [4]uint32     // frame pointers.
+	pc   uint32        // program counter.
+	tail bool          // tail call.
+}
+
+type closure struct {
+	fn  *Function     // function.
+	ups []interface{} // upvalues.
 }
