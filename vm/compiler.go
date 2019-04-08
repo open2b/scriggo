@@ -135,6 +135,21 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 			}
 			fb.SetLabelAddr(endIfLabel)
 
+		case *ast.For:
+			if node.Init != nil {
+				panic("TODO: not implemented")
+			}
+			if node.Condition != nil {
+				panic("TODO: not implemented")
+			}
+			if node.Post != nil {
+				panic("TODO: not implemented")
+			}
+			forLabel := fb.NewLabel()
+			fb.SetLabelAddr(forLabel)
+			c.compileNodes(node.Body, fb)
+			fb.Goto(forLabel)
+
 		case *ast.Assignment:
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				variableExpr := node.Variables[0]
