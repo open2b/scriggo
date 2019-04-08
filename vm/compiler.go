@@ -52,9 +52,9 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 	return pkg, nil
 }
 
-// compileExpression compiles expression expr using fb and puts results into
+// compileExpr compiles expression expr using fb and puts results into
 // reg.
-func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) {
+func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
 
 	case *ast.Value:
@@ -68,15 +68,15 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 		}
 	case *ast.UnaryOperator:
 
-		c.compileExpression(expr.Expr, fb, 1)
+		c.compileExpr(expr.Expr, fb, 1)
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			panic("TODO: not implemented")
 		}
 
 	case *ast.BinaryOperator:
-		c.compileExpression(expr.Expr1, fb, 1)
-		c.compileExpression(expr.Expr2, fb, 2)
+		c.compileExpr(expr.Expr1, fb, 1)
+		c.compileExpr(expr.Expr2, fb, 2)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
 			panic("TODO: not implemented")
@@ -113,8 +113,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				kind = c.typeinfo[binOp.Expr1].Type.Kind()
 				expr1 := fb.NewRegister(kind)
 				expr2 := fb.NewRegister(kind)
-				c.compileExpression(binOp.Expr1, fb, expr1)
-				c.compileExpression(binOp.Expr2, fb, expr2)
+				c.compileExpr(binOp.Expr1, fb, expr1)
+				c.compileExpr(binOp.Expr2, fb, expr2)
 				switch binOp.Operator() {
 				case ast.OperatorEqual:
 					o = ConditionEqual
@@ -169,10 +169,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				switch node.Type {
 				case ast.AssignmentDeclaration:
 					variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-					c.compileExpression(valueExpr, fb, variableReg)
+					c.compileExpr(valueExpr, fb, variableReg)
 				case ast.AssignmentSimple:
 					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-					c.compileExpression(valueExpr, fb, variableReg)
+					c.compileExpr(valueExpr, fb, variableReg)
 				}
 			} else {
 				panic("TODO: not implemented")
