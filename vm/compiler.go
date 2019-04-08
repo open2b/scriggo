@@ -7,6 +7,7 @@
 package vm
 
 import (
+	"reflect"
 	"scrigo/ast"
 	"scrigo/parser"
 )
@@ -49,6 +50,42 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 		}
 	}
 	return pkg, nil
+}
+
+// compileExpression compiles expression expr using fb and puts results into
+// reg.
+func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) error {
+	switch expr := expr.(type) {
+	case *ast.UnaryOperator:
+		c.compileExpression(expr.Expr, fb, 1)
+		switch expr.Operator() {
+		case ast.OperatorNot:
+			// TODO
+		}
+	case *ast.BinaryOperator:
+		c.compileExpression(expr.Expr1, fb, 1)
+		c.compileExpression(expr.Expr2, fb, 2)
+		switch expr.Operator() {
+		case ast.OperatorAddition:
+			// TODO
+		}
+	case *ast.CompositeLiteral:
+		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
+		case reflect.Slice:
+			// TODO
+		case reflect.Array:
+			// TODO
+		case reflect.Struct:
+			// TODO
+		case reflect.Map:
+			// TODO
+		}
+	}
+	return nil
+}
+
+func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
+	return nil
 }
 
 func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
