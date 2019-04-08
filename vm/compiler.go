@@ -101,6 +101,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 		switch node := node.(type) {
 
 		case *ast.If:
+			fb.EnterScope()
 			if node.Assignment != nil {
 				panic("TODO: not implemented")
 			}
@@ -135,8 +136,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 				}
 			}
 			fb.SetLabelAddr(endIfLabel)
+			fb.ExitScope()
 
 		case *ast.For:
+			fb.EnterScope()
 			if node.Init != nil {
 				c.compileNodes([]ast.Node{node.Init}, fb)
 			}
@@ -150,6 +153,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 			}
 			c.compileNodes(node.Body, fb)
 			fb.Goto(forLabel)
+			fb.ExitScope()
 
 		case *ast.Call:
 			fb.Call(0, StackShift{}) // TODO
@@ -183,9 +187,10 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 	fn := pkg.NewFunction(node.Ident.Name, nil, nil, node.Type.IsVariadic)
 	fb := fn.Builder()
 
+	fb.EnterScope()
 	c.compileNodes(node.Body.Nodes, fb)
-
 	fb.End()
+	fb.ExitScope()
 
 	return nil
 }
