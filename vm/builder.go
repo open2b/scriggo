@@ -245,7 +245,7 @@ func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
 }
 
 func (builder *FunctionBuilder) CurrentAddr() uint32 {
-	return uint32(len(builder.fn.body)))
+	return uint32(len(builder.fn.body))
 }
 
 // SetLabel sets a new label in current position.
