@@ -483,10 +483,14 @@ func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) Goto(label uint32) {
 	in := instruction{op: opGoto}
 	if label > 0 {
-		if label <= uint32(len(builder.labels)) {
-			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		if label > uint32(len(builder.labels)) {
+			panic("bug!")
+		}
+		addr := builder.labels[label-1]
+		if addr == 0 {
+			builder.gotos[builder.CurrentAddr()] = label
 		} else {
-			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+			in.a, in.b, in.c = encodeAddr(addr)
 		}
 	}
 	builder.fn.body = append(builder.fn.body, in)
