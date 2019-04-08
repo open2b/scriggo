@@ -199,6 +199,12 @@ func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
 }
 
+func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
+	reg := int8(builder.numRegs[k])
+	builder.allocRegister(k, reg)
+	return reg
+}
+
 // NewVariableRegister returns the register for holding a new variable with name
 // n of kind k.
 func (builder *FunctionBuilder) NewVariableRegister(n string, k reflect.Kind) int8 {
