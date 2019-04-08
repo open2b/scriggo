@@ -178,6 +178,7 @@ type FunctionBuilder struct {
 	labels  []uint32
 	gotos   map[uint32]uint32
 	numRegs map[reflect.Kind]uint8
+	scopes  []map[string]int8
 }
 
 // Builder returns the body of the function.
@@ -187,7 +188,36 @@ func (fn *Function) Builder() *FunctionBuilder {
 		fn:      fn,
 		gotos:   map[uint32]uint32{},
 		numRegs: map[reflect.Kind]uint8{},
+		scopes:  []map[string]int8{},
 	}
+}
+
+func (builder *FunctionBuilder) EnterScope() {
+	builder.scopes = append(builder.scopes, map[string]int8{})
+}
+func (builder *FunctionBuilder) ExitScope() {
+	builder.scopes = builder.scopes[:len(builder.scopes)-1]
+}
+
+// NewVariableRegister returns the register for holding a new variable with name
+// n of kind k.
+func (builder *FunctionBuilder) NewVariableRegister(n string, k reflect.Kind) int8 {
+	reg := int8(builder.numRegs[k])
+	builder.allocRegister(k, reg)
+	builder.scopes[len(builder.scopes)-1][n] = reg
+	return reg
+}
+
+// VariableRegister returns the register in which variable with name n is
+// stored.
+func (builder *FunctionBuilder) VariableRegister(n string) int8 {
+	for i := len(builder.scopes) - 1; i >= 0; i-- {
+		reg, ok := builder.scopes[i][n]
+		if ok {
+			return reg
+		}
+	}
+	panic("not found")
 }
 
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
