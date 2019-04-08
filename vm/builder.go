@@ -260,6 +260,9 @@ func (builder *FunctionBuilder) End() {
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
+	if reg == NoRegister {
+		return
+	}
 	if num, ok := builder.numRegs[kind]; !ok || uint8(reg) >= num {
 		builder.numRegs[kind] = uint8(reg + 1)
 	}

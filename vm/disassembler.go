@@ -278,6 +278,8 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " " + disassembleOperand(b, Int, k)
 		//s += " " + disassembleOperand(c, Interface, false)
+	case opTailCall:
+		s += " " + disassembleOperand(a, Interface, false)
 	}
 	return s
 }
@@ -321,6 +323,9 @@ func disassembleOperand(op int8, kind Kind, constant bool) string {
 	}
 	if op >= 0 {
 		return "R" + strconv.Itoa(int(op))
+	}
+	if op == NoRegister {
+		return "NR"
 	}
 	return "G" + strconv.Itoa(-int(op))
 }
