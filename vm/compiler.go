@@ -54,7 +54,7 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 
 // compileExpression compiles expression expr using fb and puts results into
 // reg.
-func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) error {
+func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
 	case *ast.UnaryOperator:
 		c.compileExpression(expr.Expr, fb, 1)
@@ -81,7 +81,6 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 			// TODO
 		}
 	}
-	return nil
 }
 
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
