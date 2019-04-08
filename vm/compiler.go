@@ -103,10 +103,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 			var kind reflect.Kind
 			if binOp, ok := node.Condition.(*ast.BinaryOperator); ok {
 				kind = c.typeinfo[binOp.Expr1].Type.Kind()
-				fb.allocRegister(kind, 0)
-				fb.allocRegister(kind, 1)
-				c.compileExpression(binOp.Expr1, fb, 0)
-				c.compileExpression(binOp.Expr2, fb, 0)
+				expr1 := fb.NewRegister(kind)
+				expr2 := fb.NewRegister(kind)
+				c.compileExpression(binOp.Expr1, fb, expr1)
+				c.compileExpression(binOp.Expr2, fb, expr2)
 				switch binOp.Operator() {
 				case ast.OperatorEqual:
 					o = ConditionEqual
