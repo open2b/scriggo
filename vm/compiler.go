@@ -162,20 +162,16 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 					continue
 				}
 				kind := c.typeinfo[valueExpr].Type.Kind()
-				if node.Type == ast.AssignmentDeclaration {
-					variableReg := int8(fb.numRegs[kind])
-					fb.allocRegister(kind, int8(variableReg))
-					valueReg := int8(fb.numRegs[kind])
-					fb.allocRegister(kind, valueReg)
-					c.compileExpression(valueExpr, fb, valueReg)
-					fb.Move(false, valueReg, variableReg, kind)
-				} else if node.Type == ast.AssignmentSimple {
-					panic("TODO: not implemented")
-					// valueReg := int8(fb.numRegs[kind])
-					// fb.allocRegister(kind, valueReg)
-					// c.compileExpression(valueExpr, fb, valueReg)
-					// fb.Move(false, valueReg, variableReg, kind)
+				switch node.Type {
+				case ast.AssignmentDeclaration:
+					variableReg := fb.NewVariableRegister(variableExpr.(*ast.Identifier).Name, kind)
+					c.compileExpression(valueExpr, fb, variableReg)
+				case ast.AssignmentSimple:
+					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+					c.compileExpression(valueExpr, fb, variableReg)
 				}
+			} else {
+				panic("TODO: not implemented")
 			}
 		}
 	}
