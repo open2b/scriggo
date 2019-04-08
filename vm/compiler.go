@@ -68,25 +68,25 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 		c.compileExpression(expr.Expr, fb, 1)
 		switch expr.Operator() {
 		case ast.OperatorNot:
-			// TODO
+			panic("TODO: not implemented")
 		}
 	case *ast.BinaryOperator:
 		c.compileExpression(expr.Expr1, fb, 1)
 		c.compileExpression(expr.Expr2, fb, 2)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			// TODO
+			panic("TODO: not implemented")
 		}
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
-			// TODO
+			panic("TODO: not implemented")
 		case reflect.Array:
-			// TODO
+			panic("TODO: not implemented")
 		case reflect.Struct:
-			// TODO
+			panic("TODO: not implemented")
 		case reflect.Map:
-			// TODO
+			panic("TODO: not implemented")
 		}
 	}
 }
@@ -96,7 +96,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 		switch node := node.(type) {
 
 		case *ast.If:
-			// TODO (Gianluca): compile assignment.
+			if node.Assignment != nil {
+				panic("TODO: not implemented")
+			}
 			var k bool
 			var x, y int8
 			var o Condition
@@ -110,7 +112,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 				switch binOp.Operator() {
 				case ast.OperatorEqual:
 					o = ConditionEqual
-					// TODO
 				}
 			}
 			fb.If(k, x, o, y, kind)
@@ -146,6 +147,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 					c.compileExpression(valueExpr, fb, valueReg)
 					fb.Move(false, valueReg, variableReg, kind)
 				} else if node.Type == ast.AssignmentSimple {
+					panic("TODO: not implemented")
 					// valueReg := int8(fb.numRegs[kind])
 					// fb.allocRegister(kind, valueReg)
 					// c.compileExpression(valueExpr, fb, valueReg)
