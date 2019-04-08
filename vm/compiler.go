@@ -120,6 +120,28 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 				}
 			}
 			fb.UpdateLabelWithCurrentPos(endIfLabel)
+		case *ast.Assignment:
+			if len(node.Variables) == 1 && len(node.Values) == 1 {
+				variableExpr := node.Variables[0]
+				valueExpr := node.Values[0]
+				if isBlankIdentifier(variableExpr) {
+					continue
+				}
+				kind := c.typeinfo[valueExpr].Type.Kind()
+				if node.Type == ast.AssignmentDeclaration {
+					variableReg := int8(fb.numRegs[kind])
+					fb.allocRegister(kind, int8(variableReg))
+					valueReg := int8(fb.numRegs[kind])
+					fb.allocRegister(kind, valueReg)
+					c.compileExpression(valueExpr, fb, valueReg)
+					fb.Move(false, valueReg, variableReg, kind)
+				} else if node.Type == ast.AssignmentSimple {
+					// valueReg := int8(fb.numRegs[kind])
+					// fb.allocRegister(kind, valueReg)
+					// c.compileExpression(valueExpr, fb, valueReg)
+					// fb.Move(false, valueReg, variableReg, kind)
+				}
+			}
 		}
 	}
 	return nil
