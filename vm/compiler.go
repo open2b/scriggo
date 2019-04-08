@@ -137,16 +137,16 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 
 		case *ast.For:
 			if node.Init != nil {
-				panic("TODO: not implemented")
+				c.compileNodes([]ast.Node{node.Init}, fb)
 			}
 			if node.Condition != nil {
 				panic("TODO: not implemented")
 			}
-			if node.Post != nil {
-				panic("TODO: not implemented")
-			}
 			forLabel := fb.NewLabel()
 			fb.SetLabelAddr(forLabel)
+			if node.Post != nil {
+				c.compileNodes([]ast.Node{node.Init}, fb)
+			}
 			c.compileNodes(node.Body, fb)
 			fb.Goto(forLabel)
 
