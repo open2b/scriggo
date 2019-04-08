@@ -143,3 +143,10 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 
 	return nil
 }
+
+// isBlankIdentifier indicates if expr is an identifier representing the blank
+// identifier "_".
+func isBlankIdentifier(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	return ok && ident.Name == "_"
+}
