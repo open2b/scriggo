@@ -92,21 +92,17 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 
 	fn := pkg.NewFunction(node.Ident.Name, nil, nil, node.Type.IsVariadic)
 	fb := fn.Builder()
-	_ = fb
 
-	for _, n := range node.Body.Nodes {
+	c.compileNodes(node.Body.Nodes, fb)
 
-		switch n := n.(type) {
-		case *ast.Var:
-			for i := range n.Identifiers {
-				value := n.Values[i]
-				kind := c.typeinfo[value].Type.Kind()
-				fb.Move(false, 5, 0, kind)
-			}
-
-		}
-
-	}
+	// 	switch n := n.(type) {
+	// 	case *ast.Var:
+	// 		for i := range n.Identifiers {
+	// 			value := n.Values[i]
+	// 			kind := c.typeinfo[value].Type.Kind()
+	// 			fb.Move(false, 5, 0, kind)
+	// 		}
+	// 	}
 
 	return nil
 }
