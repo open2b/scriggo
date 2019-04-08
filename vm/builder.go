@@ -220,7 +220,7 @@ func (builder *FunctionBuilder) NewEmptyLabel() uint32 {
 }
 
 func (builder *FunctionBuilder) UpdateLabelWithCurrentPos(l uint32) {
-	builder.labels[l] = uint32(len(builder.fn.body))
+	builder.labels[l-1] = uint32(len(builder.fn.body))
 }
 
 var intType = reflect.TypeOf(0)
