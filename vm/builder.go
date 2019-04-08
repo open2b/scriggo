@@ -244,9 +244,13 @@ func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
 	return int8(r)
 }
 
+func (builder *FunctionBuilder) CurrentAddr() uint32 {
+	return builder.CurrentAddr()
+}
+
 // SetLabel sets a new label in current position.
 func (builder *FunctionBuilder) SetLabel() uint32 {
-	builder.labels = append(builder.labels, uint32(len(builder.fn.body)))
+	builder.labels = append(builder.labels, builder.CurrentAddr())
 	return uint32(len(builder.labels))
 }
 
@@ -256,7 +260,7 @@ func (builder *FunctionBuilder) NewEmptyLabel() uint32 {
 }
 
 func (builder *FunctionBuilder) UpdateLabelWithCurrentPos(l uint32) {
-	builder.labels[l-1] = uint32(len(builder.fn.body))
+	builder.labels[l-1] = builder.CurrentAddr()
 }
 
 var intType = reflect.TypeOf(0)
@@ -572,7 +576,7 @@ func (builder *FunctionBuilder) JmpOk(label uint32) {
 		if label <= uint32(len(builder.labels)) {
 			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
 		} else {
-			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+			builder.gotos[builder.CurrentAddr()] = label - 1
 		}
 	}
 	builder.fn.body = append(builder.fn.body, in)
@@ -588,7 +592,7 @@ func (builder *FunctionBuilder) JmpNotOk(label uint32) {
 		if label <= uint32(len(builder.labels)) {
 			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
 		} else {
-			builder.gotos[uint32(len(builder.fn.body))] = label - 1
+			builder.gotos[builder.CurrentAddr()] = label - 1
 		}
 	}
 	builder.fn.body = append(builder.fn.body, in)
