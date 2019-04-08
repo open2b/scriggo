@@ -12,10 +12,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"scrigo/vm"
 
 	"scrigo"
 	"scrigo/parser"
+	"scrigo/vm"
 )
 
 var packages map[string]*parser.GoPackage
@@ -24,9 +24,14 @@ func main() {
 
 	var args = os.Args
 
+	var useVM bool
 	var asm bool
-	if asm = args[1] == "-S"; asm {
+
+	if useVM = args[1] == "-vm"; useVM {
 		args = args[1:]
+		if asm = args[1] == "-S"; asm {
+			args = args[1:]
+		}
 	}
 
 	if len(args) != 2 {
@@ -47,7 +52,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	if asm {
+	if useVM {
 		path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
 		compiler := vm.NewCompiler(r, packages)
@@ -56,10 +61,19 @@ func main() {
 			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		_, err = vm.Disassemble(os.Stdout, pkg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-			os.Exit(2)
+		if asm {
+			_, err = vm.Disassemble(os.Stdout, pkg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			print("(vm) ")
+			_, err = vm.New(pkg).Run("main")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
 		}
 		return
 	}
