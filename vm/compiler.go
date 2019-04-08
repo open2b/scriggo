@@ -56,6 +56,7 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 // reg.
 func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
+
 	case *ast.Value:
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
@@ -65,11 +66,13 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 			panic("TODO: not implemented")
 		}
 	case *ast.UnaryOperator:
+
 		c.compileExpression(expr.Expr, fb, 1)
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			panic("TODO: not implemented")
 		}
+
 	case *ast.BinaryOperator:
 		c.compileExpression(expr.Expr1, fb, 1)
 		c.compileExpression(expr.Expr2, fb, 2)
@@ -77,6 +80,7 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 		case ast.OperatorAddition:
 			panic("TODO: not implemented")
 		}
+
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
