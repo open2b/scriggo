@@ -214,7 +214,7 @@ func (builder *FunctionBuilder) SetLabel() uint32 {
 	return uint32(len(builder.labels))
 }
 
-func (builder *FunctionBuilder) SetEmptyLabel() uint32 {
+func (builder *FunctionBuilder) NewEmptyLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
 }

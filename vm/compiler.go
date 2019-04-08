@@ -104,10 +104,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
 				}
 			}
 			fb.If(k, x, o, y, kind)
-			elsLabel := fb.SetEmptyLabel()
+			elsLabel := fb.NewEmptyLabel()
 			fb.Goto(elsLabel)
 			c.compileNodes(node.Then.Nodes, fb)
-			endIfLabel := fb.SetEmptyLabel()
+			endIfLabel := fb.NewEmptyLabel()
 			fb.Goto(endIfLabel)
 			fb.UpdateLabelWithCurrentPos(elsLabel)
 			if node.Else != nil {
