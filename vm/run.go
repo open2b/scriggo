@@ -175,8 +175,9 @@ func (vm *VM) run() int {
 		// Call
 		case opCall:
 			off := vm.fn.body[pc]
-			call := Call{fn: vm.fn, fp: vm.fp, pc: pc + 1}
-			fn := vm.valuek(a, true).(*Function)
+			call := Call{fn: vm.fn, ups: vm.ups, fp: vm.fp, pc: pc + 1}
+			closure := vm.valuek(a, true).(closure)
+			fn := closure.fn
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -193,6 +194,7 @@ func (vm *VM) run() int {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
+			vm.ups = closure.ups
 			vm.calls = append(vm.calls, call)
 			pc = 0
 
@@ -774,6 +776,7 @@ func (vm *VM) run() int {
 			vm.fp = call.fp
 			pc = call.pc
 			vm.fn = call.fn
+			vm.ups = call.ups
 
 		// Selector
 		case opSelector:
@@ -861,10 +864,11 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case opTailCall:
-			vm.calls = append(vm.calls, Call{fn: vm.fn, pc: pc, tail: true})
+			vm.calls = append(vm.calls, Call{fn: vm.fn, ups: vm.ups, pc: pc, tail: true})
 			pc = 0
 			if a != NoRegister {
-				fn := vm.valuek(a, true).(*Function)
+				closure := vm.valuek(a, true).(closure)
+				fn := closure.fn
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
@@ -878,6 +882,7 @@ func (vm *VM) run() int {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
+				vm.ups = closure.ups
 			}
 
 		// opXor
