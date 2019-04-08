@@ -84,6 +84,43 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 }
 
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) error {
+	for _, node := range nodes {
+		switch node := node.(type) {
+		case *ast.If:
+			// TODO (Gianluca): compile assignment.
+			var k bool
+			var x, y int8
+			var o Condition
+			var kind reflect.Kind
+			if binOp, ok := node.Condition.(*ast.BinaryOperator); ok {
+				fb.allocRegister(kind, 0)
+				fb.allocRegister(kind, 1)
+				c.compileExpression(binOp.Expr1, fb, 0)
+				c.compileExpression(binOp.Expr2, fb, 0)
+				switch binOp.Operator() {
+				case ast.OperatorEqual:
+					o = ConditionEqual
+					// TODO
+				}
+			}
+			fb.If(k, x, o, y, kind)
+			elsLabel := fb.SetEmptyLabel()
+			fb.Goto(elsLabel)
+			c.compileNodes(node.Then.Nodes, fb)
+			endIfLabel := fb.SetEmptyLabel()
+			fb.Goto(endIfLabel)
+			fb.UpdateLabelWithCurrentPos(elsLabel)
+			if node.Else != nil {
+				switch els := node.Else.(type) {
+				case *ast.If:
+					c.compileNodes([]ast.Node{els}, fb)
+				case *ast.Block:
+					c.compileNodes(els.Nodes, fb)
+				}
+			}
+			fb.UpdateLabelWithCurrentPos(endIfLabel)
+		}
+	}
 	return nil
 }
 
