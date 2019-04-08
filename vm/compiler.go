@@ -61,7 +61,8 @@ func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, r
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
 		case reflect.Int:
-			fb.MakeIntConstant(int64(expr.Val.(int)))
+			c := fb.MakeIntConstant(int64(expr.Val.(int)))
+			fb.Move(false, reg, c, kind)
 		default:
 			panic("TODO: not implemented")
 		}
