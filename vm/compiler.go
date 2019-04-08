@@ -78,9 +78,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		}
 
 	case *ast.UnaryOperator:
-		c.compileExpr(expr.Expr, fb, 1)
+		c.compileExpr(expr.Expr, fb, reg)
+		kind := c.typeinfo[expr.Expr].Type.Kind()
 		switch expr.Operator() {
 		case ast.OperatorNot:
+			panic("TODO: not implemented")
+		case ast.OperatorSubtraction:
+			// TODO (Gianluca): should be z = 0 - x (i.e. z = -x).
+			fb.Sub(true, 0, reg, reg, kind)
+		default:
 			panic("TODO: not implemented")
 		}
 
