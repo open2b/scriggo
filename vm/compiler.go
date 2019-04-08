@@ -56,6 +56,14 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 // reg.
 func (c *Compiler) compileExpression(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
+	case *ast.Value:
+		kind := c.typeinfo[expr].Type.Kind()
+		switch kind {
+		case reflect.Int:
+			fb.MakeIntConstant(expr.Val.(int64))
+		default:
+			panic("TODO: not implemented")
+		}
 	case *ast.UnaryOperator:
 		c.compileExpression(expr.Expr, fb, 1)
 		switch expr.Operator() {
