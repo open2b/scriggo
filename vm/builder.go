@@ -248,7 +248,7 @@ func (builder *FunctionBuilder) CurrentAddr() uint32 {
 	return uint32(len(builder.fn.body))
 }
 
-func (builder *FunctionBuilder) NewEmptyLabel() uint32 {
+func (builder *FunctionBuilder) NewLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
 }
