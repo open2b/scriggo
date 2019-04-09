@@ -184,6 +184,31 @@ func (c *Compiler) compileSimpleAssignmentOrDeclaration(variableExpr, valueExpr 
 	}
 }
 
+// // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
+// // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
+// // builtin.
+// func (c *Compiler) CallBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
+// 	if ident, ok := call.Func.(*ast.Identifier); ok {
+// 		var i instruction
+// 		switch ident.Name {
+// 		case "len":
+// 			// typ := c.typeinfo[call.Args[0]].Type.Kind()
+// 			// var a, b int8
+// 			// switch typ {
+// 			// case reflect.String:
+// 			// 	panic("TODO: not implemented")
+// 			// default:
+// 			// 	b = a
+// 			// }
+// 			// i = instruction{op: opLen, a: a, b: b}
+// 		default:
+// 			return false
+// 		}
+// 		fb.fn.body = append(fb.fn.body, i)
+// 	}
+// 	return false
+// }
+
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 	for _, node := range nodes {
 		switch node := node.(type) {
@@ -215,7 +240,11 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			}
 
 		case *ast.Call:
-			fb.Call(0, StackShift{}) // TODO
+			// ok := fb.CallBuiltin(node)
+			ok := false
+			if !ok {
+				fb.Call(0, StackShift{}) // TODO
+			}
 
 		case *ast.If:
 			fb.EnterScope()
