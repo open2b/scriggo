@@ -211,15 +211,27 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				c.compileNodes([]ast.Node{node.Init}, fb)
 			}
 			if node.Condition != nil {
-				panic("TODO: not implemented")
+				forLabel := fb.NewLabel()
+				fb.SetLabelAddr(forLabel)
+				x, y, kind, o := c.compileCondition(node.Condition, fb)
+				fb.If(false, x, o, y, kind)
+				endForLabel := fb.NewLabel()
+				fb.Goto(endForLabel)
+				if node.Post != nil {
+					c.compileNodes([]ast.Node{node.Post}, fb)
+				}
+				c.compileNodes(node.Body, fb)
+				fb.Goto(forLabel)
+				fb.SetLabelAddr(endForLabel)
+			} else {
+				forLabel := fb.NewLabel()
+				fb.SetLabelAddr(forLabel)
+				if node.Post != nil {
+					c.compileNodes([]ast.Node{node.Post}, fb)
+				}
+				c.compileNodes(node.Body, fb)
+				fb.Goto(forLabel)
 			}
-			forLabel := fb.NewLabel()
-			fb.SetLabelAddr(forLabel)
-			if node.Post != nil {
-				c.compileNodes([]ast.Node{node.Init}, fb)
-			}
-			c.compileNodes(node.Body, fb)
-			fb.Goto(forLabel)
 			fb.ExitScope()
 
 		case *ast.Return:
