@@ -280,6 +280,11 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		case *ast.Return:
 			fb.Return()
 
+		case *ast.Var:
+			for i := range node.Identifiers {
+				c.compileSimpleAssignmentOrDeclaration(node.Identifiers[i], node.Values[i], fb, true)
+			}
+
 		}
 	}
 }
