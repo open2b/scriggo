@@ -239,6 +239,11 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				panic("TODO: not implemented")
 			}
 
+		case *ast.Block:
+			fb.EnterScope()
+			c.compileNodes(node.Nodes, fb)
+			fb.ExitScope()
+
 		case *ast.Call:
 			// ok := fb.CallBuiltin(node)
 			ok := false
