@@ -53,6 +53,36 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 	return pkg, nil
 }
 
+func (c *Compiler) immediate(expr ast.Expression, fb *FunctionBuilder) (out int8, isValue, isRegister bool) {
+	switch expr := expr.(type) {
+	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+		i := int64(expr.Value.Int64())
+		return int8(i), true, false
+	case *ast.Identifier:
+		v := fb.VariableRegister(expr.Name)
+		return v, false, true
+	case *ast.Value:
+		kind := c.typeinfo[expr].Type.Kind()
+		switch kind {
+		case reflect.Int:
+			n := expr.Val.(int)
+			if n < 0 || n > 127 {
+				c := fb.MakeIntConstant(int64(n))
+				return c, false, true
+			} else {
+				return int8(n), true, false
+			}
+		case reflect.String:
+			c := fb.MakeStringConstant(expr.Val.(string))
+			return c, false, true
+		default:
+			panic("TODO: not implemented")
+
+		}
+	}
+	return 0, false, false
+}
+
 // compileExpr compiles expression expr using fb and puts results into
 // reg.
 func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int8) {
@@ -85,15 +115,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Identifier:
-		kind := c.typeinfo[expr].Type.Kind()
-		v := fb.VariableRegister(expr.Name)
-		fb.Move(false, v, reg, kind)
-
-	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		i := int64(expr.Value.Int64())
-		fb.Move(true, int8(i), reg, reflect.Int)
-
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, fb, reg)
 		kind := c.typeinfo[expr.Expr].Type.Kind()
@@ -107,23 +128,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Value:
+	case *ast.Value, *ast.Int, *ast.Identifier:
 		kind := c.typeinfo[expr].Type.Kind()
-		switch kind {
-		case reflect.Int:
-			n := expr.Val.(int)
-			if n < 0 || n > 127 {
-				c := fb.MakeIntConstant(int64(n))
-				fb.Move(false, -c-1, reg, reflect.Int)
-			} else {
-				fb.Move(true, int8(n), reg, reflect.Int)
-			}
-		case reflect.String:
-			c := fb.MakeStringConstant(expr.Val.(string))
-			fb.Move(false, -c-1, reg, reflect.String)
-		default:
-			panic("TODO: not implemented")
-
+		out, isValue, isRegister := c.immediate(expr, fb)
+		if isValue {
+			fb.Move(true, out, reg, kind)
+		} else if isRegister {
+			fb.Move(false, out, reg, kind)
+		} else {
+			panic("bug")
 		}
 
 	default:
@@ -157,12 +170,21 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 						continue
 					}
 					kind := c.typeinfo[valueExpr].Type.Kind()
+					var variableReg int8
 					switch node.Type {
 					case ast.AssignmentDeclaration:
-						variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-						c.compileExpr(valueExpr, fb, variableReg)
+						variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
 					case ast.AssignmentSimple:
-						variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+						variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+					default:
+						panic("TODO: not implemented")
+					}
+					out, isValue, isRegister := c.immediate(valueExpr, fb)
+					if isValue {
+						fb.Move(true, out, variableReg, kind)
+					} else if isRegister {
+						fb.Move(false, out, variableReg, kind)
+					} else {
 						c.compileExpr(valueExpr, fb, variableReg)
 					}
 				} else {
@@ -178,8 +200,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			if node.Assignment != nil {
 				c.compileNodes([]ast.Node{node.Assignment}, fb)
 			}
-			var k bool
-			x, y, kind, o := c.compileCondition(node.Condition, fb)
+			x, y, kind, o, k := c.compileCondition(node.Condition, fb)
 			fb.If(k, x, o, y, kind)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := fb.NewLabel()
@@ -213,8 +234,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			if node.Condition != nil {
 				forLabel := fb.NewLabel()
 				fb.SetLabelAddr(forLabel)
-				x, y, kind, o := c.compileCondition(node.Condition, fb)
-				fb.If(false, x, o, y, kind)
+				x, y, kind, o, k := c.compileCondition(node.Condition, fb)
+				fb.If(k, x, o, y, kind)
 				endForLabel := fb.NewLabel()
 				fb.Goto(endForLabel)
 				if node.Post != nil {
@@ -261,15 +282,30 @@ func isBlankIdentifier(expr ast.Expression) bool {
 	return ok && ident.Name == "_"
 }
 
-func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition) {
+func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition, k bool) {
 	// TODO (Gianluca): all Condition* must be generated
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
-		x = fb.NewRegister(kind)
-		y = fb.NewRegister(kind)
-		c.compileExpr(cond.Expr1, fb, x)
-		c.compileExpr(cond.Expr2, fb, y)
+		var out int8
+		var isValue, isRegister bool
+		out, _, isRegister = c.immediate(cond.Expr1, fb)
+		if isRegister {
+			x = out
+		} else {
+			x = fb.NewRegister(kind)
+			c.compileExpr(cond.Expr1, fb, x)
+		}
+		out, isValue, isRegister = c.immediate(cond.Expr2, fb)
+		if isValue {
+			y = out
+			k = true
+		} else if isRegister {
+			y = out
+		} else {
+			y = fb.NewRegister(kind)
+			c.compileExpr(cond.Expr2, fb, y)
+		}
 		switch cond.Operator() {
 		case ast.OperatorEqual:
 			o = ConditionEqual
@@ -288,5 +324,5 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		o = ConditionEqual
 		y = fb.MakeIntConstant(1)
 	}
-	return x, y, kind, o
+	return x, y, kind, o, k
 }
