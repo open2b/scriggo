@@ -60,15 +60,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 	case *ast.BinaryOperator:
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
-		op2 := int8(1)
+		op2 := int8(fb.numRegs[kind])
 		fb.allocRegister(kind, op2)
 		c.compileExpr(expr.Expr1, fb, reg)
 		c.compileExpr(expr.Expr2, fb, op2)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			fb.Add(false, reg, 1, reg, kind)
+			fb.Add(false, reg, op2, reg, kind)
 		case ast.OperatorMultiplication:
-			fb.Mul(reg, 1, reg, kind)
+			fb.Mul(reg, op2, reg, kind)
 		default:
 			panic("TODO: not implemented")
 		}
