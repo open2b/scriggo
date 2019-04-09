@@ -109,7 +109,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		fb.Move(true, int8(i), reg, reflect.Int)
 
 	default:
-		panic("TODO: not implemented")
+		panic(fmt.Sprintf("compileExpr currently does not support %T nodes", expr))
 
 	}
 
