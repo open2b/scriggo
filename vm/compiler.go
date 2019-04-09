@@ -262,6 +262,7 @@ func isBlankIdentifier(expr ast.Expression) bool {
 }
 
 func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition) {
+	// TODO (Gianluca): all Condition* must be generated
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
@@ -272,6 +273,14 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		switch cond.Operator() {
 		case ast.OperatorEqual:
 			o = ConditionEqual
+		case ast.OperatorLess:
+			o = ConditionLess
+		case ast.OperatorLessOrEqual:
+			o = ConditionLessOrEqual
+		case ast.OperatorGreater:
+			o = ConditionGreater
+		case ast.OperatorGreaterOrEqual:
+			o = ConditionGreaterOrEqual
 		}
 	default:
 		x := fb.NewRegister(kind)
