@@ -67,6 +67,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		switch expr.Operator() {
 		case ast.OperatorAddition:
 			fb.Add(false, reg, 1, reg, kind)
+		case ast.OperatorMultiplication:
+			fb.Mul(reg, 1, reg, kind)
 		default:
 			panic("TODO: not implemented")
 		}
