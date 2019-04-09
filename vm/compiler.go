@@ -151,8 +151,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			switch cond := node.Condition.(type) {
 			case *ast.BinaryOperator:
 				kind = c.typeinfo[cond.Expr1].Type.Kind()
-				x := fb.NewRegister(kind)
-				y := fb.NewRegister(kind)
+				x = fb.NewRegister(kind)
+				y = fb.NewRegister(kind)
 				c.compileExpr(cond.Expr1, fb, x)
 				c.compileExpr(cond.Expr2, fb, y)
 				switch cond.Operator() {
