@@ -138,24 +138,36 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		switch node := node.(type) {
 
 		case *ast.Assignment:
-			if len(node.Variables) == 1 && len(node.Values) == 1 {
-				variableExpr := node.Variables[0]
-				valueExpr := node.Values[0]
-				if isBlankIdentifier(variableExpr) {
-					// TODO (Gianluca): value must be compiled even if not assigned (such as, for example, "_ = f()").
-					continue
-				}
-				kind := c.typeinfo[valueExpr].Type.Kind()
-				switch node.Type {
-				case ast.AssignmentDeclaration:
-					variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-					c.compileExpr(valueExpr, fb, variableReg)
-				case ast.AssignmentSimple:
-					variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-					c.compileExpr(valueExpr, fb, variableReg)
-				}
+			if node.Type == ast.AssignmentIncrement {
+				name := node.Variables[0].(*ast.Identifier).Name
+				reg := fb.VariableRegister(name)
+				kind := c.typeinfo[node.Variables[0]].Type.Kind()
+				fb.Add(true, reg, 1, reg, kind)
+			} else if node.Type == ast.AssignmentDecrement {
+				name := node.Variables[0].(*ast.Identifier).Name
+				reg := fb.VariableRegister(name)
+				kind := c.typeinfo[node.Variables[0]].Type.Kind()
+				fb.Add(true, reg, -1, reg, kind)
 			} else {
-				panic("TODO: not implemented")
+				if len(node.Variables) == 1 && len(node.Values) == 1 {
+					variableExpr := node.Variables[0]
+					valueExpr := node.Values[0]
+					if isBlankIdentifier(variableExpr) {
+						// TODO (Gianluca): value must be compiled even if not assigned (such as, for example, "_ = f()").
+						continue
+					}
+					kind := c.typeinfo[valueExpr].Type.Kind()
+					switch node.Type {
+					case ast.AssignmentDeclaration:
+						variableReg := fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
+						c.compileExpr(valueExpr, fb, variableReg)
+					case ast.AssignmentSimple:
+						variableReg := fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+						c.compileExpr(valueExpr, fb, variableReg)
+					}
+				} else {
+					panic("TODO: not implemented")
+				}
 			}
 
 		case *ast.Call:
