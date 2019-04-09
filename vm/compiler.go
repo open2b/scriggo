@@ -53,6 +53,9 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 	return pkg, nil
 }
 
+// immediate checks if expr is a value or a register, putting it into out. If
+// it's neither of them, both isValue and isRegister are false and content of
+// out is unspecified.
 func (c *Compiler) immediate(expr ast.Expression, fb *FunctionBuilder) (out int8, isValue, isRegister bool) {
 	switch expr := expr.(type) {
 	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
@@ -200,8 +203,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			if node.Assignment != nil {
 				c.compileNodes([]ast.Node{node.Assignment}, fb)
 			}
-			x, y, kind, o, k := c.compileCondition(node.Condition, fb)
-			fb.If(k, x, o, y, kind)
+			x, y, kind, o, ky := c.compileCondition(node.Condition, fb)
+			fb.If(ky, x, o, y, kind)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := fb.NewLabel()
 				fb.Goto(endIfLabel)
@@ -234,8 +237,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			if node.Condition != nil {
 				forLabel := fb.NewLabel()
 				fb.SetLabelAddr(forLabel)
-				x, y, kind, o, k := c.compileCondition(node.Condition, fb)
-				fb.If(k, x, o, y, kind)
+				x, y, kind, o, ky := c.compileCondition(node.Condition, fb)
+				fb.If(ky, x, o, y, kind)
 				endForLabel := fb.NewLabel()
 				fb.Goto(endForLabel)
 				if node.Post != nil {
@@ -263,15 +266,12 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 }
 
 func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
-
 	fn := pkg.NewFunction(node.Ident.Name, nil, nil, node.Type.IsVariadic)
 	fb := fn.Builder()
-
 	fb.EnterScope()
 	c.compileNodes(node.Body.Nodes, fb)
 	fb.End()
 	fb.ExitScope()
-
 	return nil
 }
 
@@ -282,7 +282,10 @@ func isBlankIdentifier(expr ast.Expression) bool {
 	return ok && ident.Name == "_"
 }
 
-func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition, k bool) {
+// compileCondition compiles expr using fb. Returns the two values of the
+// condition (x and y), a kind, the condition ad a boolean ky which indicates
+// whether y is a constant value.
+func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
 	// TODO (Gianluca): all Condition* must be generated
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
@@ -299,7 +302,7 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		out, isValue, isRegister = c.immediate(cond.Expr2, fb)
 		if isValue {
 			y = out
-			k = true
+			yk = true
 		} else if isRegister {
 			y = out
 		} else {
@@ -324,5 +327,5 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		o = ConditionEqual
 		y = fb.MakeIntConstant(1)
 	}
-	return x, y, kind, o, k
+	return x, y, kind, o, yk
 }
