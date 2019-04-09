@@ -7,6 +7,7 @@
 package vm
 
 import (
+	"fmt"
 	"reflect"
 	"scrigo/ast"
 	"scrigo/parser"
@@ -82,6 +83,10 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		v := fb.VariableRegister(expr.Name)
 		fb.Move(false, v, reg, kind)
 
+	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+		i := int64(expr.Value.Int64())
+		fb.Move(true, int8(i), reg, reflect.Int)
+
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, fb, reg)
 		kind := c.typeinfo[expr.Expr].Type.Kind()
@@ -99,19 +104,20 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
 		case reflect.Int:
-			// TODO (Gianluca): what if constant is bigger than 127?
-			fb.Move(true, int8(expr.Val.(int)), reg, reflect.Int)
+			n := expr.Val.(int)
+			if n < 0 || n > 127 {
+				c := fb.MakeIntConstant(int64(n))
+				fb.Move(false, -c-1, reg, reflect.Int)
+			} else {
+				fb.Move(true, int8(n), reg, reflect.Int)
+			}
 		case reflect.String:
 			c := fb.MakeStringConstant(expr.Val.(string))
-			fb.Move(false, c, reg, reflect.String)
+			fb.Move(false, -c-1, reg, reflect.String)
 		default:
 			panic("TODO: not implemented")
 
 		}
-
-	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		i := int64(expr.Value.Int64())
-		fb.Move(true, int8(i), reg, reflect.Int)
 
 	default:
 		panic(fmt.Sprintf("compileExpr currently does not support %T nodes", expr))
@@ -129,6 +135,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				variableExpr := node.Variables[0]
 				valueExpr := node.Values[0]
 				if isBlankIdentifier(variableExpr) {
+					// TODO (Gianluca): value must be compiled even if not assigned (such as, for example, "_ = f()").
 					continue
 				}
 				kind := c.typeinfo[valueExpr].Type.Kind()
