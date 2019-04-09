@@ -156,6 +156,34 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 }
 
+// compileSimpleAssignmentOrDeclaration compiles a simple assignment or a
+// declaration.
+// TODO (Gianluca): find a shorter/better name.
+func (c *Compiler) compileSimpleAssignmentOrDeclaration(variableExpr, valueExpr ast.Expression, fb *FunctionBuilder, isDecl bool) {
+	kind := c.typeinfo[valueExpr].Type.Kind()
+	if isBlankIdentifier(variableExpr) {
+		switch valueExpr.(type) {
+		case *ast.Call:
+			c.compileNodes([]ast.Node{valueExpr}, fb)
+		}
+	} else {
+		var variableReg int8
+		if isDecl {
+			variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
+		} else {
+			variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+		}
+		out, isValue, isRegister := c.immediate(valueExpr, fb)
+		if isValue {
+			fb.Move(true, out, variableReg, kind)
+		} else if isRegister {
+			fb.Move(false, out, variableReg, kind)
+		} else {
+			c.compileExpr(valueExpr, fb, variableReg)
+		}
+	}
+}
+
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 	for _, node := range nodes {
 		switch node := node.(type) {
@@ -174,35 +202,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					fb.Add(true, reg, -1, reg, kind)
 				case ast.AssignmentDeclaration, ast.AssignmentSimple:
-					variableExpr := node.Variables[0]
-					valueExpr := node.Values[0]
-					kind := c.typeinfo[valueExpr].Type.Kind()
-					if isBlankIdentifier(variableExpr) {
-						switch valueExpr.(type) {
-						case *ast.Call:
-							c.compileNodes([]ast.Node{valueExpr}, fb)
-						}
-					} else {
-						var variableReg int8
-						if node.Type == ast.AssignmentDeclaration {
-							variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-						} else {
-							variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-						}
-						out, isValue, isRegister := c.immediate(valueExpr, fb)
-						if isValue {
-							fb.Move(true, out, variableReg, kind)
-						} else if isRegister {
-							fb.Move(false, out, variableReg, kind)
-						} else {
-							c.compileExpr(valueExpr, fb, variableReg)
-						}
-					}
+					c.compileSimpleAssignmentOrDeclaration(node.Variables[0], node.Values[0], fb, node.Type == ast.AssignmentDeclaration)
 				default:
 					panic("TODO: not implemented")
 				}
 			} else if len(node.Variables) == len(node.Values) {
-				panic("TODO: not implemented")
+				for i := range node.Variables {
+					c.compileSimpleAssignmentOrDeclaration(node.Variables[i], node.Values[i], fb, node.Type == ast.AssignmentDeclaration)
+				}
 			} else {
 				panic("TODO: not implemented")
 			}
