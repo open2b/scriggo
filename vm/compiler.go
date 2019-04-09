@@ -101,6 +101,10 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 		}
 
+	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+		i := int64(expr.Value.Int64())
+		fb.Move(true, int8(i), reg, reflect.Int)
+
 	}
 
 }
