@@ -94,8 +94,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
 		case reflect.Int:
-			c := fb.MakeIntConstant(int64(expr.Val.(int)))
-			fb.Move(false, reg, c, kind)
+			// TODO (Gianluca): what if constant is bigger than 127?
+			fb.Move(true, int8(expr.Val.(int)), reg, kind)
 		default:
 			panic("TODO: not implemented")
 
