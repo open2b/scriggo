@@ -167,26 +167,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				c.compileNodes([]ast.Node{node.Assignment}, fb)
 			}
 			var k bool
-			var x, y int8
-			var o Condition
-			var kind reflect.Kind
-			switch cond := node.Condition.(type) {
-			case *ast.BinaryOperator:
-				kind = c.typeinfo[cond.Expr1].Type.Kind()
-				x = fb.NewRegister(kind)
-				y = fb.NewRegister(kind)
-				c.compileExpr(cond.Expr1, fb, x)
-				c.compileExpr(cond.Expr2, fb, y)
-				switch cond.Operator() {
-				case ast.OperatorEqual:
-					o = ConditionEqual
-				}
-			default:
-				x := fb.NewRegister(kind)
-				c.compileExpr(cond, fb, x)
-				o = ConditionEqual
-				y = fb.MakeIntConstant(1)
-			}
+			x, y, kind, o := c.compileCondition(node.Condition, fb)
 			fb.If(k, x, o, y, kind)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := fb.NewLabel()
@@ -254,4 +235,25 @@ func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 func isBlankIdentifier(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
 	return ok && ident.Name == "_"
+}
+
+func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition) {
+	switch cond := expr.(type) {
+	case *ast.BinaryOperator:
+		kind = c.typeinfo[cond.Expr1].Type.Kind()
+		x = fb.NewRegister(kind)
+		y = fb.NewRegister(kind)
+		c.compileExpr(cond.Expr1, fb, x)
+		c.compileExpr(cond.Expr2, fb, y)
+		switch cond.Operator() {
+		case ast.OperatorEqual:
+			o = ConditionEqual
+		}
+	default:
+		x := fb.NewRegister(kind)
+		c.compileExpr(cond, fb, x)
+		o = ConditionEqual
+		y = fb.MakeIntConstant(1)
+	}
+	return x, y, kind, o
 }
