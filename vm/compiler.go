@@ -105,6 +105,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		i := int64(expr.Value.Int64())
 		fb.Move(true, int8(i), reg, reflect.Int)
 
+	default:
+		panic("TODO: not implemented")
+
 	}
 
 }
