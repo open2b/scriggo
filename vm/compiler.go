@@ -88,6 +88,7 @@ func (c *Compiler) immediate(expr ast.Expression, fb *FunctionBuilder) (out int8
 
 // compileExpr compiles expression expr using fb and puts results into
 // reg.
+// TODO (Gianluca): optimize using "immediate".
 func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
 
@@ -100,8 +101,14 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		switch expr.Operator() {
 		case ast.OperatorAddition:
 			fb.Add(false, reg, op2, reg, kind)
+		case ast.OperatorSubtraction:
+			fb.Sub(false, reg, op2, reg, kind)
 		case ast.OperatorMultiplication:
 			fb.Mul(reg, op2, reg, kind)
+		case ast.OperatorDivision:
+			panic("TODO: not implemented")
+		case ast.OperatorModulo:
+			panic("TODO: not implemented")
 		default:
 			panic("TODO: not implemented")
 		}
