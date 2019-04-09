@@ -77,6 +77,11 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 			panic("TODO: not implemented")
 		}
 
+	case *ast.Identifier:
+		kind := c.typeinfo[expr].Type.Kind()
+		v := fb.VariableRegister(expr.Name)
+		fb.Move(false, v, reg, kind)
+
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, fb, reg)
 		kind := c.typeinfo[expr.Expr].Type.Kind()
