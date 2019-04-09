@@ -100,7 +100,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 			panic("TODO: not implemented")
 
 		}
+
 	}
+
 }
 
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
@@ -157,21 +159,28 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 				y = fb.MakeIntConstant(1)
 			}
 			fb.If(k, x, o, y, kind)
-			elsLabel := fb.NewLabel()
-			fb.Goto(elsLabel)
-			c.compileNodes(node.Then.Nodes, fb)
-			endIfLabel := fb.NewLabel()
-			fb.Goto(endIfLabel)
-			fb.SetLabelAddr(elsLabel)
-			if node.Else != nil {
-				switch els := node.Else.(type) {
-				case *ast.If:
-					c.compileNodes([]ast.Node{els}, fb)
-				case *ast.Block:
-					c.compileNodes(els.Nodes, fb)
+			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
+				endIfLabel := fb.NewLabel()
+				fb.Goto(endIfLabel)
+				c.compileNodes(node.Then.Nodes, fb)
+				fb.SetLabelAddr(endIfLabel)
+			} else {
+				elseLabel := fb.NewLabel()
+				fb.Goto(elseLabel)
+				c.compileNodes(node.Then.Nodes, fb)
+				endIfLabel := fb.NewLabel()
+				fb.Goto(endIfLabel)
+				fb.SetLabelAddr(elseLabel)
+				if node.Else != nil {
+					switch els := node.Else.(type) {
+					case *ast.If:
+						c.compileNodes([]ast.Node{els}, fb)
+					case *ast.Block:
+						c.compileNodes(els.Nodes, fb)
+					}
 				}
+				fb.SetLabelAddr(endIfLabel)
 			}
-			fb.SetLabelAddr(endIfLabel)
 			fb.ExitScope()
 
 		case *ast.For:
