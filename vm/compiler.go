@@ -154,45 +154,50 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		switch node := node.(type) {
 
 		case *ast.Assignment:
-			if node.Type == ast.AssignmentIncrement {
-				name := node.Variables[0].(*ast.Identifier).Name
-				reg := fb.VariableRegister(name)
-				kind := c.typeinfo[node.Variables[0]].Type.Kind()
-				fb.Add(true, reg, 1, reg, kind)
-			} else if node.Type == ast.AssignmentDecrement {
-				name := node.Variables[0].(*ast.Identifier).Name
-				reg := fb.VariableRegister(name)
-				kind := c.typeinfo[node.Variables[0]].Type.Kind()
-				fb.Add(true, reg, -1, reg, kind)
-			} else {
-				if len(node.Variables) == 1 && len(node.Values) == 1 {
+			if len(node.Variables) == 1 && len(node.Values) == 1 {
+				switch node.Type {
+				case ast.AssignmentIncrement:
+					name := node.Variables[0].(*ast.Identifier).Name
+					reg := fb.VariableRegister(name)
+					kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					fb.Add(true, reg, 1, reg, kind)
+				case ast.AssignmentDecrement:
+					name := node.Variables[0].(*ast.Identifier).Name
+					reg := fb.VariableRegister(name)
+					kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					fb.Add(true, reg, -1, reg, kind)
+				case ast.AssignmentDeclaration, ast.AssignmentSimple:
 					variableExpr := node.Variables[0]
 					valueExpr := node.Values[0]
-					if isBlankIdentifier(variableExpr) {
-						// TODO (Gianluca): value must be compiled even if not assigned (such as, for example, "_ = f()").
-						continue
-					}
 					kind := c.typeinfo[valueExpr].Type.Kind()
-					var variableReg int8
-					switch node.Type {
-					case ast.AssignmentDeclaration:
-						variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-					case ast.AssignmentSimple:
-						variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-					default:
-						panic("TODO: not implemented")
-					}
-					out, isValue, isRegister := c.immediate(valueExpr, fb)
-					if isValue {
-						fb.Move(true, out, variableReg, kind)
-					} else if isRegister {
-						fb.Move(false, out, variableReg, kind)
+					if isBlankIdentifier(variableExpr) {
+						switch valueExpr.(type) {
+						case *ast.Call:
+							c.compileNodes([]ast.Node{valueExpr}, fb)
+						}
 					} else {
-						c.compileExpr(valueExpr, fb, variableReg)
+						var variableReg int8
+						if node.Type == ast.AssignmentDeclaration {
+							variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
+						} else {
+							variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
+						}
+						out, isValue, isRegister := c.immediate(valueExpr, fb)
+						if isValue {
+							fb.Move(true, out, variableReg, kind)
+						} else if isRegister {
+							fb.Move(false, out, variableReg, kind)
+						} else {
+							c.compileExpr(valueExpr, fb, variableReg)
+						}
 					}
-				} else {
+				default:
 					panic("TODO: not implemented")
 				}
+			} else if len(node.Variables) == len(node.Values) {
+				panic("TODO: not implemented")
+			} else {
+				panic("TODO: not implemented")
 			}
 
 		case *ast.Call:
