@@ -200,6 +200,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			fb.Goto(forLabel)
 			fb.ExitScope()
 
+		case *ast.Return:
+			fb.Return()
+
 		}
 	}
 }
