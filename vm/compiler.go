@@ -43,11 +43,16 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 	pkg := NewPackage(node.Name)
 	for _, dec := range node.Declarations {
-		if n, ok := dec.(*ast.Func); ok {
-			err := c.compileFunction(pkg, n)
-			if err != nil {
-				return nil, err
-			}
+		switch n := dec.(type) {
+		case *ast.Func:
+			fn := pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
+			fb := fn.Builder()
+			fb.EnterScope()
+			c.compileNodes(n.Body.Nodes, fb)
+			fb.End()
+			fb.ExitScope()
+		case *ast.Var:
+			panic("TODO: not implemented")
 		}
 	}
 	return pkg, nil
@@ -321,16 +326,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 
 		}
 	}
-}
-
-func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
-	fn := pkg.NewFunction(node.Ident.Name, nil, nil, node.Type.IsVariadic)
-	fb := fn.Builder()
-	fb.EnterScope()
-	c.compileNodes(node.Body.Nodes, fb)
-	fb.End()
-	fb.ExitScope()
-	return nil
 }
 
 // isBlankIdentifier indicates if expr is an identifier representing the blank
