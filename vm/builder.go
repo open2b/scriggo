@@ -110,19 +110,54 @@ func (c Condition) String() string {
 }
 
 type Package struct {
-	name  string
-	vars  map[string]interface{}
-	funcs []*Function
-	err   error
+	name      string
+	packages  []*Package
+	functions []*Function
+	variables []interface{}
+	varNames  []string
+	err       error
 }
 
 func NewPackage(name string) *Package {
-	return &Package{name: name}
+	p := &Package{name: name}
+	p.packages = []*Package{p}
+	return p
+}
+
+func (p *Package) AddPackage(pkg *Package) uint8 {
+	if len(p.packages) == 254 {
+		panic("imported packages limit reached")
+	}
+	p.packages = append(p.packages, pkg)
+	return uint8(len(p.packages) - 2)
+}
+
+func (p *Package) AddVariable(v interface{}) uint8 {
+	return p.AddNamedVariable("", v)
+}
+
+func (p *Package) AddNamedVariable(name string, v interface{}) uint8 {
+	if len(p.variables) == 256 {
+		panic("variables limit reached")
+	}
+	p.variables = append(p.variables, v)
+	if name == "" {
+		if p.varNames != nil {
+			panic("missing variable name")
+		}
+	} else {
+		if p.varNames == nil {
+			p.varNames = []string{name}
+		} else {
+			p.varNames = append(p.varNames, name)
+		}
+	}
+	return uint8(len(p.variables) - 1)
 }
 
 // Function returns given its name or an error if the function does not exists.
 func (p *Package) Function(name string) (*Function, error) {
-	for _, fn := range p.funcs {
+	for _, fn := range p.functions {
 		if fn.name == name {
 			return fn, nil
 		}
@@ -145,14 +180,17 @@ type Function struct {
 	name      string
 	file      string
 	line      int
-	uppers    []Upper
+	pkg       *Package // opCallDirect, opGetFunc, opGetVar, opSetVar
+	parent    *Function
+	crefs     []int16     // opFunc
+	funcs     []*Function // opFunc
 	in        []Type
 	out       []Type
-	types     []reflect.Type
-	regnum    [4]uint8
+	types     []reflect.Type // opAlloc, opAssert, opMakeMap, opMakeSlice, opNew
+	regnum    [4]uint8       // opCall, opCallDirect
 	variadic  bool
 	constants registers
-	body      []instruction
+	body      []instruction // run, opCall, opCallDirect
 	lines     []int
 }
 
@@ -160,12 +198,17 @@ type Function struct {
 func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Function {
 	fn := &Function{
 		name:     name,
+		pkg:      p,
 		in:       in,
 		out:      out,
 		variadic: variadic,
 	}
-	p.funcs = append(p.funcs, fn)
+	p.functions = append(p.functions, fn)
 	return fn
+}
+
+func (fn *Function) SetClosureRefs(refs []int16) {
+	fn.crefs = refs
 }
 
 func (fn *Function) SetFileLine(file string, line int) {
@@ -280,10 +323,6 @@ func encodeAddr(v uint32) (a, b, c int8) {
 	return
 }
 
-func (fn *Function) SetUpper(value Upper) {
-	fn.uppers = append(fn.uppers, value)
-}
-
 // Type returns the index of typ inside the types slice, creating a new entry if
 // necessary.
 func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
@@ -297,6 +336,9 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 		}
 	}
 	if !found {
+		if len(types) == 256 {
+			panic("types limit reached")
+		}
 		tr = int8(len(types))
 		builder.fn.types = append(types, typ)
 	}
@@ -327,10 +369,11 @@ func (builder *FunctionBuilder) End() {
 			}
 		default:
 			if num > fn.regnum[3] {
-				fn.regnum[0] = num
+				fn.regnum[3] = num
 			}
 		}
 	}
+
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
@@ -375,6 +418,32 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
+// Alloc appends a new "Alloc" instruction to the function body.
+//
+//     z = alloc(typ)
+//
+func (builder *FunctionBuilder) Alloc(typ reflect.Type, z int8) {
+	builder.allocRegister(reflect.Interface, z)
+	var tr int8
+	var found bool
+	types := builder.fn.types
+	for i, t := range types {
+		if t == typ {
+			tr = int8(i)
+			found = true
+		}
+	}
+	if !found {
+		if len(types) == 256 {
+			panic("types limit reached")
+		}
+		tr = int8(len(types))
+		builder.fn.types = append(types, typ)
+
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opAlloc, a: tr, c: z})
+}
+
 // Assert appends a new "assert" instruction to the function body.
 //
 //     z = e.(t)
@@ -411,16 +480,27 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: e, b: tr, c: z})
 }
 
+// Bind appends a new "Bind" instruction to the function body.
+//
+//     c = cv
+//
+func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
+	builder.allocRegister(reflect.Int, r)
+	builder.fn.body = append(builder.fn.body, instruction{op: opBind, b: int8(cv), c: r})
+}
+
 type StackShift [4]int8
 
-// Call appends a new "call" instruction to the function body.
+// Call appends a new "Call" instruction to the function body.
 //
 //     f()
 //
-func (builder *FunctionBuilder) Call(f int8, shift StackShift) {
+func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
-	builder.allocRegister(reflect.Interface, f)
-	fn.body = append(fn.body, instruction{op: opCall, a: f})
+	if p != NoPackage {
+		builder.allocRegister(reflect.Interface, int8(f))
+	}
+	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -499,6 +579,53 @@ func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
 		panic("div: invalid type")
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
+// Func appends a new "Func" instruction to the function body.
+//
+//     r = func() { ... }
+//
+func (builder *FunctionBuilder) Func(r int8, in, out []Type, variadic bool) *Function {
+	b := len(builder.fn.funcs)
+	if b == 256 {
+		panic("functions limit reached")
+	}
+	builder.allocRegister(reflect.Interface, r)
+	fn := &Function{
+		parent:   builder.fn,
+		in:       in,
+		out:      out,
+		variadic: variadic,
+	}
+	builder.fn.funcs = append(builder.fn.funcs, fn)
+	builder.fn.body = append(builder.fn.body, instruction{op: opFunc, b: int8(b), c: r})
+	return fn
+}
+
+// GetClosureVar appends a new "GetClosureVar" instruction to the function body.
+//
+//     z = v
+//
+func (builder *FunctionBuilder) GetClosureVar(v uint8, z int8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetClosureVar, b: int8(v), c: z})
+}
+
+// GetFunc appends a new "GetFunc" instruction to the function body.
+//
+//     z = p.f
+//
+func (builder *FunctionBuilder) GetFunc(p, f uint8, z int8) {
+	builder.allocRegister(reflect.Interface, z)
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: int8(p), b: int8(f), c: z})
+}
+
+// GetVar appends a new "GetVar" instruction to the function body.
+//
+//     z = p.v
+//
+func (builder *FunctionBuilder) GetVar(p, v uint8, z int8) {
+	builder.allocRegister(reflect.Interface, z)
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetVar, a: int8(p), b: int8(v), c: z})
 }
 
 // Goto appends a new "goto" instruction to the function body.
@@ -774,6 +901,22 @@ func (builder *FunctionBuilder) MakeSlice(typ reflect.Type, length, cap, dst int
 	builder.fn.body = append(builder.fn.body, instruction{op: operation(length), a: cap})
 }
 
+// SetClosureVar appends a new "SetClosureVar" instruction to the function body.
+//
+//     v = r
+//
+func (builder *FunctionBuilder) SetClosureVar(r int8, v uint8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSetClosureVar, b: r, c: int8(v)})
+}
+
+// SetVar appends a new "SetVar" instruction to the function body.
+//
+//     p.v = r
+//
+func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, a: r, b: int8(p), c: int8(v)})
+}
+
 // Sub appends a new "Sub" instruction to the function body.
 //
 //     z = x - y
@@ -811,8 +954,10 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 //
 //     f()
 //
-func (builder *FunctionBuilder) TailCall(f int8) {
+func (builder *FunctionBuilder) TailCall(p int8, f int8) {
 	var fn = builder.fn
-	builder.allocRegister(reflect.Interface, f)
-	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
+	if p != NoPackage {
+		builder.allocRegister(reflect.Interface, int8(f))
+	}
+	fn.body = append(fn.body, instruction{op: opTailCall, a: p, b: f})
 }

@@ -13,52 +13,59 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 	var b bytes.Buffer
-	_, _ = fmt.Fprintf(&b, "Package %s\n", pkg.name)
-	//if len(pkg.consts.Int) > 0 {
+	_, _ = fmt.Fprintf(&b, "\nPackage %s\n", pkg.name)
+	//if len(main.consts.Int) > 0 {
 	//	_, _ = fmt.Fprintf(&b, "\nconst int\n")
-	//	for i, value := range pkg.consts.Int {
+	//	for i, value := range main.consts.Int {
 	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
 	//	}
 	//}
-	//if len(pkg.consts.Float) > 0 {
+	//if len(main.consts.Float) > 0 {
 	//	_, _ = fmt.Fprintf(&b, "\nconst float\n")
-	//	for i, value := range pkg.consts.Float {
+	//	for i, value := range main.consts.Float {
 	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
 	//	}
 	//}
-	//if len(pkg.consts.String) > 0 {
+	//if len(main.consts.String) > 0 {
 	//	_, _ = fmt.Fprintf(&b, "\nconst string\n")
-	//	for i, value := range pkg.consts.String {
+	//	for i, value := range main.consts.String {
 	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
 	//	}
 	//}
-	//if len(pkg.consts.Iface) > 0 {
+	//if len(main.consts.Iface) > 0 {
 	//	_, _ = fmt.Fprintf(&b, "\nconst\n")
-	//	for i, value := range pkg.consts.Iface {
+	//	for i, value := range main.consts.Iface {
 	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
 	//	}
 	//}
 	_, _ = fmt.Fprint(&b, "\n")
-	for i, fn := range pkg.funcs {
+	for i, fn := range pkg.functions {
 		if i > 0 {
 			_, _ = b.WriteString("\n")
 		}
-		disassembleFunction(&b, fn)
+		_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
+		disassembleFunction(&b, fn, 0)
 	}
 	return b.WriteTo(w)
 }
 
 func DisassembleFunction(w io.Writer, fn *Function) (int64, error) {
 	var b bytes.Buffer
-	disassembleFunction(&b, fn)
+	_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
+	disassembleFunction(&b, fn, 0)
 	return b.WriteTo(w)
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *Function) {
+func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
+	indent := ""
+	if depth > 0 {
+		indent = strings.Repeat("\t", depth)
+	}
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.body {
 		if in.op == opGoto {
@@ -77,7 +84,7 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 			labelOf[uint32(addr)] = uint32(i) + 1
 		}
 	}
-	_, _ = fmt.Fprintf(w, "Func %s(", fn.name)
+	_, _ = fmt.Fprintf(w, "(")
 	for i, typ := range fn.in {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
@@ -96,19 +103,23 @@ func disassembleFunction(w *bytes.Buffer, fn *Function) {
 		_, _ = fmt.Fprint(w, ")")
 	}
 	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprintf(w, "\t// regs(%d,%d,%d,%d)\n",
+	_, _ = fmt.Fprintf(w, "%s\t// regs(%d,%d,%d,%d)\n", indent,
 		fn.regnum[0], fn.regnum[1], fn.regnum[2], fn.regnum[3])
 	instrNum := uint32(len(fn.body))
 	for addr := uint32(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[uint32(addr)]; ok {
-			_, _ = fmt.Fprintf(w, "%d:", label)
+			_, _ = fmt.Fprintf(w, "%s%d:", indent, label)
 		}
 		in := fn.body[addr]
-		if in.op == opGoto {
+		switch in.op {
+		case opGoto:
 			label := labelOf[decodeAddr(in.a, in.b, in.c)]
-			_, _ = fmt.Fprintf(w, "\tGoto %d\n", label)
-		} else {
-			_, _ = fmt.Fprintf(w, "\t%s\n", disassembleInstruction(fn, addr))
+			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
+		case opFunc:
+			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(in.c, Interface, false))
+			disassembleFunction(w, fn.funcs[uint8(in.b)], depth+1)
+		default:
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		if in.op == opCall {
 			addr += 1
@@ -147,6 +158,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(a, Float64, false)
 		s += " " + disassembleOperand(b, Float64, k)
 		s += " " + disassembleOperand(c, Float64, false)
+	case opAlloc:
+		s += " " + fn.types[int(uint(a))].String()
+		s += " " + disassembleOperand(c, Interface, false)
 	case opAssert:
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " type(" + strconv.Itoa(int(uint(b))) + ")"
@@ -165,13 +179,29 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " type(string)"
 		s += " " + disassembleOperand(c, String, false)
-	case opCall:
-		grow := fn.body[addr+1]
-		s += " " + disassembleOperand(a, Interface, false) + " [" +
-			strconv.Itoa(int(grow.op)) + "," +
-			strconv.Itoa(int(grow.a)) + "," +
-			strconv.Itoa(int(grow.b)) + "," +
-			strconv.Itoa(int(grow.c)) + "]"
+	case opBind:
+		s += " " + strconv.Itoa(int(uint8(b)))
+		s += " " + disassembleOperand(c, Int, false)
+	case opCall, opTailCall:
+		if a == NoPackage {
+			s += " " + disassembleOperand(b, Interface, false)
+		} else {
+			pkg := fn.pkg
+			if a != CurrentPackage {
+				pkg = pkg.packages[uint8(a)-2]
+			}
+			s += " " + pkg.name + "."
+			if pkg.varNames == nil {
+				s += strconv.Itoa(int(uint8(b)))
+			} else {
+				s += pkg.varNames[uint8(b)]
+			}
+		}
+		if op == opCall {
+			grow := fn.body[addr+1]
+			s += " [" + strconv.Itoa(int(grow.op)) + "," + strconv.Itoa(int(grow.a)) + "," +
+				strconv.Itoa(int(grow.b)) + "," + strconv.Itoa(int(grow.c)) + "]"
+		}
 	case opCap:
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " " + disassembleOperand(c, Int, false)
@@ -213,6 +243,40 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		} else {
 			s += " " + disassembleOperand(c, Int, k)
 		}
+	case opFunc:
+		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
+		s += " " + disassembleOperand(c, Int, false)
+	case opGetClosureVar:
+		cv := fn.crefs[uint8(b)]
+		var depth = 1
+		for p := fn.parent; cv >= 0; p = p.parent {
+			cv = p.crefs[cv]
+			depth++
+		}
+		s += " " + disassembleOperand(int8(cv), Interface, false)
+		if depth > 0 {
+			s += "@" + strconv.Itoa(depth)
+		}
+		s += " " + disassembleOperand(c, Int, false)
+	case opGetFunc:
+		pkg := fn.pkg
+		if a != CurrentPackage {
+			pkg = pkg.packages[uint8(a)]
+		}
+		s += " " + pkg.name + "." + pkg.functions[uint8(b)].name
+		s += " " + disassembleOperand(c, Interface, false)
+	case opGetVar:
+		pkg := fn.pkg
+		if a != CurrentPackage {
+			pkg = pkg.packages[uint8(a)]
+		}
+		s += " " + pkg.name + "."
+		if pkg.varNames == nil {
+			s += strconv.Itoa(int(uint8(b)))
+		} else {
+			s += pkg.varNames[uint8(b)]
+		}
+		s += " " + disassembleOperand(c, Interface, false)
 	case opGoto, opJmpOk, opJmpNotOk:
 		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case opIndex:
@@ -261,7 +325,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(b, String, k)
 		s += " " + disassembleOperand(c, String, false)
 	case opNew:
-		s += " type(" + strconv.Itoa(int(uint(b))) + ")"
+		s += " " + fn.types[int(uint(b))].String()
 		s += " " + disassembleOperand(c, Interface, false)
 	case opRange:
 		//s += " " + disassembleOperand(c, Interface, false)
@@ -274,12 +338,34 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		//s += " " + disassembleOperand(c, Interface, false)
 	case opMakeSlice:
 		//s += " " + disassembleOperand(c, Interface, false)
+	case opSetClosureVar:
+		s += " " + disassembleOperand(c, Int, false)
+		cv := fn.crefs[uint8(b)]
+		var depth = 1
+		for p := fn.parent; cv >= 0; p = p.parent {
+			cv = p.crefs[cv]
+			depth++
+		}
+		s += " " + disassembleOperand(int8(cv), Interface, false)
+		if depth > 0 {
+			s += "@" + strconv.Itoa(depth)
+		}
+	case opSetVar:
+		s += " " + disassembleOperand(a, Interface, false)
+		pkg := fn.pkg
+		if b != CurrentPackage {
+			pkg = pkg.packages[uint8(b)]
+		}
+		s += " " + pkg.name + "."
+		if pkg.varNames == nil {
+			s += strconv.Itoa(int(uint8(c)))
+		} else {
+			s += pkg.varNames[uint8(c)]
+		}
 	case opSliceIndex:
 		s += " " + disassembleOperand(a, Interface, false)
 		s += " " + disassembleOperand(b, Int, k)
 		//s += " " + disassembleOperand(c, Interface, false)
-	case opTailCall:
-		s += " " + disassembleOperand(a, Interface, false)
 	}
 	return s
 }
@@ -327,5 +413,5 @@ func disassembleOperand(op int8, kind Kind, constant bool) string {
 	if op == NoRegister {
 		return "NR"
 	}
-	return "G" + strconv.Itoa(-int(op))
+	return "-R" + strconv.Itoa(-int(op))
 }

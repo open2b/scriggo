@@ -132,7 +132,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 	case *ast.Call:
 		ok := c.callBuiltin(expr, fb)
 		if !ok {
-			fb.Call(0, StackShift{}) // TODO
+			fb.Call(0, 0, StackShift{}) // TODO
 		}
 
 	case *ast.CompositeLiteral:
@@ -281,7 +281,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		case *ast.Call:
 			ok := c.callBuiltin(node, fb)
 			if !ok {
-				fb.Call(0, StackShift{}) // TODO
+				fb.Call(0, 0, StackShift{}) // TODO
 			}
 
 		case *ast.If:

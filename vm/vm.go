@@ -14,14 +14,14 @@ type VM struct {
 	ok    bool          // ok flag.
 	regs  registers     // registers.
 	fn    *Function     // function.
-	ups   []interface{} // upvalues.
-	calls []Call
-	pkg   *Package
+	cvars []interface{} // closure variables.
+	calls []Call        // call stack.
+	main  *Package      // package "main".
 }
 
-func New(pkg *Package) *VM {
+func New(main *Package) *VM {
 	vm := &VM{}
-	vm.pkg = pkg
+	vm.main = main
 	vm.regs.Int = make([]int64, StackSize)
 	vm.regs.Float = make([]float64, StackSize)
 	vm.regs.String = make([]string, StackSize)
@@ -37,7 +37,7 @@ func New(pkg *Package) *VM {
 func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
 	vm.fn = nil
-	vm.ups = nil
+	vm.cvars = nil
 	vm.calls = vm.calls[:]
 }
 
@@ -74,14 +74,14 @@ func (vm *VM) moreGeneralStack() {
 }
 
 type Call struct {
-	fn   *Function     // function.
-	ups  []interface{} // upvalues.
-	fp   [4]uint32     // frame pointers.
-	pc   uint32        // program counter.
-	tail bool          // tail call.
+	fn    *Function     // function.
+	cvars []interface{} // closure variables.
+	fp    [4]uint32     // frame pointers.
+	pc    uint32        // program counter.
+	tail  bool          // tail call.
 }
 
 type closure struct {
-	fn  *Function     // function.
-	ups []interface{} // upvalues.
+	fn   *Function     // function.
+	vars []interface{} // variables.
 }

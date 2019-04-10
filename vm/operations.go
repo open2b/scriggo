@@ -18,6 +18,8 @@ const (
 	opAddFloat32
 	opAddFloat64
 
+	opAlloc
+
 	opAnd
 
 	opAndNot
@@ -29,12 +31,13 @@ const (
 
 	opAppend
 
+	opBind
+
 	opCall
+	opCallDirect
 	opCallNative
 
 	opCap
-
-	opClosure
 
 	opContinue
 
@@ -55,6 +58,12 @@ const (
 	opDivFloat32
 	opDivFloat64
 
+	opGetClosureVar
+
+	opGetFunc
+
+	opGetVar
+
 	opGoto
 
 	opIf
@@ -71,6 +80,8 @@ const (
 	opJmpNotOk
 
 	opLen
+
+	opFunc
 
 	opMakeMap
 
@@ -113,6 +124,10 @@ const (
 
 	opSelector
 
+	opSetClosureVar
+
+	opSetVar
+
 	opMakeSlice
 
 	opSliceIndex
@@ -149,6 +164,12 @@ var operationName = [...]string{
 	opAddFloat32: "AddFloat32",
 	opAddFloat64: "AddFloat64",
 
+	opAlloc: "Alloc",
+
+	opAnd: "And",
+
+	opAndNot: "AndNot",
+
 	opAppend: "Append",
 
 	opAssert:        "Assert",
@@ -156,12 +177,13 @@ var operationName = [...]string{
 	opAssertFloat64: "AssertFloat64",
 	opAssertString:  "AssertString",
 
+	opBind: "Bind",
+
 	opCall:       "Call",
+	opCallDirect: "CallDirect",
 	opCallNative: "CallNative",
 
 	opCap: "Cap",
-
-	opClosure: "Closure",
 
 	opCopy: "Copy",
 
@@ -180,6 +202,12 @@ var operationName = [...]string{
 	opDivFloat32: "DivFloat32",
 	opDivFloat64: "DivFloat64",
 
+	opGetClosureVar: "GetClosureVar",
+
+	opGetFunc: "GetFunc",
+
+	opGetVar: "GetVar",
+
 	opGoto: "Goto",
 
 	opIf:       "If",
@@ -192,6 +220,8 @@ var operationName = [...]string{
 	opJmpNotOk: "JmpNotOk",
 
 	opLen: "len",
+
+	opFunc: "Func",
 
 	opMakeMap: "MakeMap",
 
@@ -221,6 +251,10 @@ var operationName = [...]string{
 	opReturn: "Return",
 
 	opMakeSlice: "Slice",
+
+	opSetClosureVar: "SetClosureVar",
+
+	opSetVar: "SetPackageVar",
 
 	opSubInt:     "SubInt",
 	opSubInt8:    "SubInt8",

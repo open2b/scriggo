@@ -22,6 +22,10 @@ const (
 	InterpretRunTimeError
 )
 
+const NoPackage = -2
+const CurrentPackage = -1
+const CurrentFunction = -1
+
 const NoRegister = -128
 
 func decodeAddr(a, b, c int8) uint32 {
@@ -31,7 +35,7 @@ func decodeAddr(a, b, c int8) uint32 {
 func (vm *VM) Run(funcname string) (InterpretResult, error) {
 
 	var err error
-	vm.fn, err = vm.pkg.Function(funcname)
+	vm.fn, err = vm.main.Function(funcname)
 	if err != nil {
 		return 0, err
 	}
@@ -59,7 +63,7 @@ func (vm *VM) run() int {
 		if DebugTraceExecution {
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
 				vm.regs.Int[vm.fp[0]:vm.fp[0]+uint32(vm.fn.regnum[0])],
-				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.regnum[0])])
+				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.regnum[1])])
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()
 		}
@@ -86,6 +90,22 @@ func (vm *VM) run() int {
 			vm.setFloat(c, vm.float(a)+vm.float(b))
 		case -opAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
+
+		// Alloc
+		case opAlloc:
+			t := vm.fn.types[int(uint(a))]
+			var v interface{}
+			switch t.Kind() {
+			case reflect.Int:
+				v = new(int)
+			case reflect.Float64:
+				v = new(float64)
+			case reflect.String:
+				v = new(string)
+			default:
+				v = reflect.New(t).Interface()
+			}
+			vm.setValue(-c-1, v)
 
 		// And
 		case opAnd:
@@ -172,12 +192,27 @@ func (vm *VM) run() int {
 			vm.setString(c, s)
 			vm.ok = ok
 
+		// Bind
+		case opBind:
+			vm.setValue(-c-1, vm.cvars[uint8(b)])
+
 		// Call
 		case opCall:
 			off := vm.fn.body[pc]
-			call := Call{fn: vm.fn, ups: vm.ups, fp: vm.fp, pc: pc + 1}
-			closure := vm.valuek(a, true).(closure)
-			fn := closure.fn
+			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
+			var fn *Function
+			if a == NoPackage {
+				closure := vm.value(b).(closure)
+				fn = closure.fn
+				vm.cvars = closure.vars
+			} else {
+				pkg := vm.fn.pkg
+				if a != CurrentPackage {
+					pkg = pkg.packages[uint8(a)]
+				}
+				fn = pkg.functions[uint8(b)]
+				vm.cvars = nil
+			}
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -194,7 +229,6 @@ func (vm *VM) run() int {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
-			vm.ups = closure.ups
 			vm.calls = append(vm.calls, call)
 			pc = 0
 
@@ -207,28 +241,6 @@ func (vm *VM) run() int {
 		// Cap
 		case opCap:
 			vm.setInt(c, int64(reflect.ValueOf(a).Cap()))
-
-		//// Closure
-		//case opClosure:
-		//	closure := Closure{
-		//		function: vm.fn.closures[a],
-		//	}
-		//	if vars := closure.function.uppers; vars != nil {
-		//		closure.vars = make([]interface{}, len(vars))
-		//		for i, v := range vars {
-		//			switch v.typ {
-		//			case TypeInt:
-		//				closure.vars[i] = vm.getIntUpValue(v.index)
-		//			case TypeFloat:
-		//				closure.vars[i] = vm.floatUpValue(v.index)
-		//			case TypeString:
-		//				closure.vars[i] = vm.stringUpValue(v.index)
-		//			case TypeIface:
-		//				closure.vars[i] = vm.ifaceUpValue(v.index)
-		//			}
-		//		}
-		//	}
-		//	vm.setIface(b, &closure)
 
 		// Continue
 		case opContinue:
@@ -275,6 +287,86 @@ func (vm *VM) run() int {
 			vm.setFloat(c, vm.float(a)/vm.float(b))
 		case -opDivFloat64:
 			vm.setFloat(c, vm.float(a)/float64(b))
+
+		// Func
+		case opFunc:
+			fn := vm.fn.funcs[uint8(b)]
+			var vars []interface{}
+			if fn.crefs != nil {
+				vars = make([]interface{}, len(fn.crefs))
+				for i, ref := range fn.crefs {
+					if ref < 0 {
+						vars[i] = vm.value(int8(-ref - 1))
+					} else {
+						vars[i] = vm.cvars[ref]
+					}
+				}
+			}
+			vm.setValue(c, closure{fn: fn, vars: vars})
+
+		// GetClosureVar
+		case opGetClosureVar:
+			v := vm.cvars[uint8(b)]
+			switch v := v.(type) {
+			case *int:
+				vm.setInt(c, int64(*v))
+			case *float64:
+				vm.setFloat(c, *v)
+			case *string:
+				vm.setString(c, *v)
+			default:
+				rv := reflect.ValueOf(v).Elem()
+				switch k := rv.Kind(); {
+				case reflect.Int < k && k <= reflect.Int64:
+					vm.setInt(c, rv.Int())
+				case reflect.Uint <= k && k <= reflect.Uint64:
+					vm.setInt(c, int64(rv.Uint()))
+				case k == reflect.Float32:
+					vm.setFloat(c, rv.Float())
+				default:
+					vm.setValue(c, rv.Interface())
+				}
+			}
+
+		// GetFunc
+		case opGetFunc:
+			pkg := vm.fn.pkg
+			if a != CurrentPackage {
+				pkg = pkg.packages[uint8(a)]
+			}
+			vm.setValue(c, closure{fn: pkg.functions[uint8(b)]})
+
+		// GetVar
+		case opGetVar:
+			pkg := vm.fn.pkg
+			if a > 1 {
+				pkg = pkg.packages[uint8(a)-2]
+			}
+			v := pkg.variables[uint8(b)]
+			switch v := v.(type) {
+			case *int:
+				vm.setInt(c, int64(*v))
+			case *float64:
+				vm.setFloat(c, *v)
+			case *string:
+				vm.setString(c, *v)
+			default:
+				rv := reflect.ValueOf(v).Elem()
+				switch k := rv.Kind(); {
+				case reflect.Int < k && k <= reflect.Int64:
+					vm.setInt(c, rv.Int())
+				case reflect.Uint <= k && k <= reflect.Uint64:
+					vm.setInt(c, int64(rv.Uint()))
+				case k == reflect.Float32:
+					vm.setFloat(c, rv.Float())
+				default:
+					vm.setValue(c, rv.Interface())
+				}
+			}
+
+		// Goto
+		case opGoto:
+			pc = decodeAddr(a, b, c)
 
 		// If
 		case opIf:
@@ -409,10 +501,6 @@ func (vm *VM) run() int {
 			if cond {
 				pc++
 			}
-
-		// Goto
-		case opGoto:
-			pc = decodeAddr(a, b, c)
 
 		// Index
 		case opIndex, -opIndex:
@@ -551,7 +639,7 @@ func (vm *VM) run() int {
 		// New
 		case opNew:
 			t := vm.fn.types[int(uint(b))]
-			vm.setValue(c, reflect.New(t))
+			vm.setValue(c, reflect.New(t).Interface())
 
 		// Or
 		case opOr, -opOr:
@@ -776,7 +864,7 @@ func (vm *VM) run() int {
 			vm.fp = call.fp
 			pc = call.pc
 			vm.fn = call.fn
-			vm.ups = call.ups
+			vm.cvars = call.cvars
 
 		// Selector
 		case opSelector:
@@ -813,6 +901,57 @@ func (vm *VM) run() int {
 			t := vm.fn.types[int(uint(a))]
 			v := reflect.MakeSlice(t, len, cap).Interface()
 			vm.setValue(c, v)
+		// SetClosureVar
+		case opSetClosureVar, -opSetClosureVar:
+			v := vm.cvars[uint8(c)]
+			switch v := v.(type) {
+			case *int:
+				*v = int(vm.intk(b, op < 0))
+			case *float64:
+				*v = vm.floatk(b, op < 0)
+			case *string:
+				*v = vm.stringk(b, op < 0)
+			default:
+				rv := reflect.ValueOf(v).Elem()
+				switch k := rv.Kind(); {
+				case reflect.Int < k && k <= reflect.Int64:
+					rv.SetInt(vm.intk(b, op < 0))
+				case reflect.Uint <= k && k <= reflect.Uint64:
+					rv.SetUint(uint64(vm.intk(b, op < 0)))
+				case k == reflect.Float32:
+					rv.SetFloat(vm.floatk(b, op < 0))
+				default:
+					rv.Set(reflect.ValueOf(vm.value(b)))
+				}
+			}
+
+		// SetVar
+		case opSetVar, -opSetVar:
+			pkg := vm.fn.pkg
+			if a > 1 {
+				pkg = pkg.packages[uint8(b)-2]
+			}
+			v := pkg.variables[uint8(c)]
+			switch v := v.(type) {
+			case *int:
+				*v = int(vm.intk(a, op < 0))
+			case *float64:
+				*v = vm.floatk(a, op < 0)
+			case *string:
+				*v = vm.stringk(a, op < 0)
+			default:
+				rv := reflect.ValueOf(v).Elem()
+				switch k := rv.Kind(); {
+				case reflect.Int < k && k <= reflect.Int64:
+					rv.SetInt(vm.intk(a, op < 0))
+				case reflect.Uint <= k && k <= reflect.Uint64:
+					rv.SetUint(uint64(vm.intk(a, op < 0)))
+				case k == reflect.Float32:
+					rv.SetFloat(vm.floatk(a, op < 0))
+				default:
+					rv.Set(reflect.ValueOf(vm.value(a)))
+				}
+			}
 
 		// SliceIndex
 		case opSliceIndex, -opSliceIndex:
@@ -875,11 +1014,22 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case opTailCall:
-			vm.calls = append(vm.calls, Call{fn: vm.fn, ups: vm.ups, pc: pc, tail: true})
+			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: pc, tail: true})
 			pc = 0
-			if a != NoRegister {
-				closure := vm.valuek(a, true).(closure)
-				fn := closure.fn
+			if b != CurrentFunction {
+				var fn *Function
+				if a == NoPackage {
+					closure := vm.value(b).(closure)
+					fn = closure.fn
+					vm.cvars = closure.vars
+				} else {
+					pkg := vm.fn.pkg
+					if a != CurrentPackage {
+						pkg = pkg.packages[uint8(a)]
+					}
+					fn = pkg.functions[uint8(b)]
+					vm.cvars = nil
+				}
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
@@ -893,7 +1043,6 @@ func (vm *VM) run() int {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
-				vm.ups = closure.ups
 			}
 
 		// opXor
