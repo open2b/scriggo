@@ -365,8 +365,23 @@ func isBlankIdentifier(expr ast.Expression) bool {
 // compileCondition compiles expr using fb. Returns the two values of the
 // condition (x and y), a kind, the condition ad a boolean ky which indicates
 // whether y is a constant value.
+//
+// 	ConditionEqual             Condition = iota // x == y
+// 	ConditionNotEqual                           // x != y
+// 	ConditionLess                               // x <  y
+// 	ConditionLessOrEqual                        // x <= y
+// 	ConditionGreater                            // x >  y
+// 	ConditionGreaterOrEqual                     // x >= y
+// 	ConditionEqualLen                           // len(x) == y
+// 	ConditionNotEqualLen                        // len(x) != y
+// 	ConditionLessLen                            // len(x) <  y
+// 	ConditionLessOrEqualLen                     // len(x) <= y
+// 	ConditionGreaterLen                         // len(x) >  y
+// 	ConditionGreaterOrEqualLen                  // len(x) >= y
+// 	ConditionNil                                // x == nil
+// 	ConditionNotNil                             // x != nil
+//
 func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
-	// TODO (Gianluca): all Condition* must be generated
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
@@ -379,28 +394,38 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 			x = fb.NewRegister(kind)
 			c.compileExpr(cond.Expr1, fb, x)
 		}
-		out, isValue, isRegister = c.immediate(cond.Expr2, fb)
-		if isValue {
-			y = out
-			yk = true
-		} else if isRegister {
-			y = out
+		if isNil(cond.Expr2) {
+			switch cond.Operator() {
+			case ast.OperatorEqual:
+				o = ConditionNil
+			case ast.OperatorNotEqual:
+				o = ConditionNotNil
+			}
 		} else {
-			y = fb.NewRegister(kind)
-			c.compileExpr(cond.Expr2, fb, y)
+			out, isValue, isRegister = c.immediate(cond.Expr2, fb)
+			if isValue {
+				y = out
+				yk = true
+			} else if isRegister {
+				y = out
+			} else {
+				y = fb.NewRegister(kind)
+				c.compileExpr(cond.Expr2, fb, y)
+			}
+			switch cond.Operator() {
+			case ast.OperatorEqual:
+				o = ConditionEqual
+			case ast.OperatorLess:
+				o = ConditionLess
+			case ast.OperatorLessOrEqual:
+				o = ConditionLessOrEqual
+			case ast.OperatorGreater:
+				o = ConditionGreater
+			case ast.OperatorGreaterOrEqual:
+				o = ConditionGreaterOrEqual
+			}
 		}
-		switch cond.Operator() {
-		case ast.OperatorEqual:
-			o = ConditionEqual
-		case ast.OperatorLess:
-			o = ConditionLess
-		case ast.OperatorLessOrEqual:
-			o = ConditionLessOrEqual
-		case ast.OperatorGreater:
-			o = ConditionGreater
-		case ast.OperatorGreaterOrEqual:
-			o = ConditionGreaterOrEqual
-		}
+
 	default:
 		x := fb.NewRegister(kind)
 		c.compileExpr(cond, fb, x)
@@ -408,4 +433,12 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		y = fb.MakeIntConstant(1)
 	}
 	return x, y, kind, o, yk
+}
+
+func isNil(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	return ident.Name == "nil"
 }
