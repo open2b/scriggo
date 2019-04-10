@@ -477,6 +477,7 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 	return x, y, kind, o, yk
 }
 
+// isNil indicates if expr is the nil identifier.
 func isNil(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
 	if !ok {
