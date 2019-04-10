@@ -192,13 +192,17 @@ func (fn *Function) Builder() *FunctionBuilder {
 	}
 }
 
+// EnterScope enters a new scope.
 func (builder *FunctionBuilder) EnterScope() {
 	builder.scopes = append(builder.scopes, map[string]int8{})
 }
+
+// ExitScope exists the last scope.
 func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
 }
 
+// NewRegister makes a new register of kind k.
 func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 	reg := int8(builder.numRegs[k])
 	builder.allocRegister(k, reg)
