@@ -52,6 +52,9 @@ var cases = map[string][]reg{
 	// `a := []int{1,2,4}; _ = a`: []reg{
 	// 	{TypeIface, 0, []int{1, 2, 5}},
 	// },
+	`a := len("abc"); _ = a`: []reg{
+		{TypeInt, 0, int64(3)}, // a
+	},
 }
 
 func TestVM(t *testing.T) {
