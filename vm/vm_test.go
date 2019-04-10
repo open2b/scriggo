@@ -55,6 +55,12 @@ var cases = map[string][]reg{
 	`a := len("abc"); _ = a`: []reg{
 		{TypeInt, 0, int64(3)}, // a
 	},
+	`a := 0; switch 1 + 1 { case 1: a = 10 ; case 2: a = 20; case 3: a = 30 }; _ = a`: []reg{
+		{TypeInt, 0, int64(20)},
+	},
+	// `a := 0; switch 2 + 2 { case 1: a = 10 ; default: a = 80; case 2: a = 20; case 3: a = 30 }; _ = a`: []reg{
+	// 	{TypeInt, 0, int64(80)},
+	// },
 }
 
 func TestVM(t *testing.T) {

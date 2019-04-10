@@ -347,6 +347,47 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 		case *ast.Return:
 			fb.Return()
 
+		case *ast.Switch:
+			fb.EnterScope()
+			if node.Init != nil {
+				c.compileNodes([]ast.Node{node.Init}, fb)
+			}
+			kind := c.typeinfo[node.Expr].Type.Kind()
+			expr := fb.NewRegister(kind)
+			c.compileExpr(node.Expr, fb, expr)
+			caseLabels := make([]uint32, 0, len(node.Cases))
+			for _, cas := range node.Cases {
+				caseLab := fb.NewLabel()
+				caseLabels = append(caseLabels, caseLab)
+				for _, cond := range cas.Expressions {
+					var ky bool
+					var y int8
+					out, isValue, isRegister := c.quickCompile(cond, fb)
+					if isValue {
+						ky = true
+						y = out
+					} else if isRegister {
+						y = out
+					} else {
+						c.compileExpr(cond, fb, y)
+					}
+					fb.If(ky, expr, ConditionEqual, y, kind)
+					nextLabel := fb.NewLabel()
+					fb.Goto(nextLabel)
+					fb.Goto(caseLab)
+					fb.SetLabelAddr(nextLabel)
+				}
+			}
+			endSwitch := fb.NewLabel()
+			for i, cas := range node.Cases {
+
+				fb.SetLabelAddr(caseLabels[i])
+				c.compileNodes(cas.Body, fb)
+				fb.Goto(endSwitch)
+			}
+			fb.SetLabelAddr(endSwitch)
+			fb.ExitScope()
+
 		case *ast.Var:
 			for i := range node.Identifiers {
 				c.compileValueToVar(node.Values[i], node.Identifiers[i], fb, true)
