@@ -28,7 +28,7 @@ func (vm *VM) set(r int8, v reflect.Value) {
 	} else if k == reflect.Float64 || k == reflect.Float32 {
 		vm.setFloat(r, v.Float())
 	} else {
-		vm.setValue(r, v.Interface())
+		vm.setGeneral(r, v.Interface())
 	}
 }
 
@@ -169,14 +169,14 @@ func (vm *VM) setString(r int8, s string) {
 	}
 }
 
-func (vm *VM) value(r int8) interface{} {
+func (vm *VM) general(r int8) interface{} {
 	if r >= 0 {
 		return vm.regs.General[vm.fp[3]+uint32(r)]
 	}
 	return reflect.ValueOf(vm.regs.General[vm.fp[3]+uint32(-r-1)]).Elem().Interface()
 }
 
-func (vm *VM) valuek(r int8, k bool) interface{} {
+func (vm *VM) generalk(r int8, k bool) interface{} {
 	if k {
 		return vm.fn.constants.General[-r-1]
 	}
@@ -186,7 +186,7 @@ func (vm *VM) valuek(r int8, k bool) interface{} {
 	return reflect.ValueOf(vm.regs.General[vm.fp[3]+uint32(-r-1)]).Elem().Interface()
 }
 
-func (vm *VM) setValue(r int8, i interface{}) {
+func (vm *VM) setGeneral(r int8, i interface{}) {
 	if r >= 0 {
 		vm.regs.General[vm.fp[3]+uint32(r)] = i
 		return
