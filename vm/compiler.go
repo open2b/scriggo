@@ -118,6 +118,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 			panic("TODO: not implemented")
 		}
 
+	case *ast.Call:
+		ok := c.CallBuiltin(expr, fb)
+		if !ok {
+			fb.Call(0, StackShift{}) // TODO
+		}
+
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
@@ -189,30 +195,43 @@ func (c *Compiler) compileSimpleAssignmentOrDeclaration(variableExpr, valueExpr 
 	}
 }
 
-// // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
-// // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
-// // builtin.
-// func (c *Compiler) CallBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
-// 	if ident, ok := call.Func.(*ast.Identifier); ok {
-// 		var i instruction
-// 		switch ident.Name {
-// 		case "len":
-// 			// typ := c.typeinfo[call.Args[0]].Type.Kind()
-// 			// var a, b int8
-// 			// switch typ {
-// 			// case reflect.String:
-// 			// 	panic("TODO: not implemented")
-// 			// default:
-// 			// 	b = a
-// 			// }
-// 			// i = instruction{op: opLen, a: a, b: b}
-// 		default:
-// 			return false
-// 		}
-// 		fb.fn.body = append(fb.fn.body, i)
-// 	}
-// 	return false
-// }
+// TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
+// Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
+// builtin.
+func (c *Compiler) CallBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
+	if ident, ok := call.Func.(*ast.Identifier); ok {
+		var i instruction
+		switch ident.Name {
+		case "len":
+			typ := c.typeinfo[call.Args[0]].Type
+			kind := typ.Kind()
+			var a, b int8
+			out, _, isRegister := c.immediate(call.Args[0], fb)
+			if isRegister {
+				b = out
+			} else {
+				reg := int8(fb.numRegs[kind])
+				fb.allocRegister(kind, reg)
+				c.compileExpr(call.Args[0], fb, reg)
+				b = reg
+			}
+			switch typ {
+			case reflect.TypeOf(""): // TODO (Gianluca): or should check for kind string?
+				a = 0
+			default:
+				a = 1
+			case reflect.TypeOf([]byte{}):
+				a = 2
+			}
+			i = instruction{op: opLen, a: a, b: b}
+		default:
+			return false
+		}
+		fb.fn.body = append(fb.fn.body, i)
+		return true
+	}
+	return false
+}
 
 func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 	for _, node := range nodes {
@@ -250,8 +269,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			fb.ExitScope()
 
 		case *ast.Call:
-			// ok := fb.CallBuiltin(node)
-			ok := false
+			ok := c.CallBuiltin(node, fb)
 			if !ok {
 				fb.Call(0, StackShift{}) // TODO
 			}
