@@ -797,7 +797,7 @@ func (vm *VM) run() int {
 			}
 
 		// MakeSlice
-		case opNewEmptySlice:
+		case opMakeSlice:
 			//typ := vm.getType(a)
 			//len := int(vm.int(b))
 			//cap := int(vm.int(c))

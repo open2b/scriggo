@@ -113,7 +113,7 @@ const (
 
 	opSelector
 
-	opNewEmptySlice
+	opMakeSlice
 
 	opSliceIndex
 
@@ -220,7 +220,7 @@ var operationName = [...]string{
 
 	opReturn: "Return",
 
-	opNewEmptySlice: "Slice",
+	opMakeSlice: "Slice",
 
 	opSubInt:     "SubInt",
 	opSubInt8:    "SubInt8",

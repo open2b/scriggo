@@ -272,7 +272,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opReturn:
 	case opSelector:
 		//s += " " + disassembleOperand(c, Interface, false)
-	case opNewEmptySlice:
+	case opMakeSlice:
 		//s += " " + disassembleOperand(c, Interface, false)
 	case opSliceIndex:
 		s += " " + disassembleOperand(a, Interface, false)
