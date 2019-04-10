@@ -130,7 +130,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		}
 
 	case *ast.Call:
-		ok := c.CallBuiltin(expr, fb)
+		ok := c.callBuiltin(expr, fb)
 		if !ok {
 			fb.Call(0, StackShift{}) // TODO
 		}
@@ -207,7 +207,7 @@ func (c *Compiler) compileValueToVar(value, variable ast.Expression, fb *Functio
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
 // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
 // builtin.
-func (c *Compiler) CallBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
+func (c *Compiler) callBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		var i instruction
 		switch ident.Name {
@@ -278,7 +278,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			fb.ExitScope()
 
 		case *ast.Call:
-			ok := c.CallBuiltin(node, fb)
+			ok := c.callBuiltin(node, fb)
 			if !ok {
 				fb.Call(0, StackShift{}) // TODO
 			}
