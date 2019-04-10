@@ -153,7 +153,7 @@ func (vm *VM) string(r int8) string {
 
 func (vm *VM) stringk(r int8, k bool) string {
 	if k {
-		return vm.fn.constants.String[-r]
+		return vm.fn.constants.String[uint8(r)]
 	}
 	if r >= 0 {
 		return vm.regs.String[vm.fp[2]+uint32(r)]

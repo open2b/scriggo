@@ -444,38 +444,20 @@ func (vm *VM) run() int {
 			var cond bool
 			v1 := vm.string(a)
 			if Condition(b) < ConditionEqualLen {
-				if op < 0 && c >= 0 {
-					l := len(v1)
-					switch Condition(b) {
-					case ConditionEqual:
-						cond = l == 1 && v1[0] == uint8(c)
-					case ConditionNotEqual:
-						cond = l != 1 || v1[0] != uint8(c)
-					case ConditionLess:
-						cond = l == 0 || l == 1 && v1[0] < uint8(c)
-					case ConditionLessOrEqual:
-						cond = l == 0 || l == 1 && v1[0] <= uint8(c)
-					case ConditionGreater:
-						cond = l > 1 || v1[0] > uint8(c)
-					case ConditionGreaterOrEqual:
-						cond = l > 1 || v1[0] >= uint8(c)
-					}
-				} else {
-					v2 := vm.stringk(c, op < 0)
-					switch Condition(b) {
-					case ConditionEqual:
-						cond = v1 == v2
-					case ConditionNotEqual:
-						cond = v1 != v2
-					case ConditionLess:
-						cond = v1 < v2
-					case ConditionLessOrEqual:
-						cond = v1 <= v2
-					case ConditionGreater:
-						cond = v1 > v2
-					case ConditionGreaterOrEqual:
-						cond = v1 >= v2
-					}
+				v2 := vm.stringk(c, op < 0)
+				switch Condition(b) {
+				case ConditionEqual:
+					cond = v1 == v2
+				case ConditionNotEqual:
+					cond = v1 != v2
+				case ConditionLess:
+					cond = v1 < v2
+				case ConditionLessOrEqual:
+					cond = v1 <= v2
+				case ConditionGreater:
+					cond = v1 > v2
+				case ConditionGreaterOrEqual:
+					cond = v1 >= v2
 				}
 			} else {
 				v2 := int(vm.intk(c, op < 0))
