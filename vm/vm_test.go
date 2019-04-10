@@ -12,7 +12,7 @@ type reg struct {
 	value interface{}
 }
 
-var cases = map[string][]reg{
+var stmt_tests = map[string][]reg{
 
 	`a := 10; _ = a`: []reg{
 		{TypeInt, 0, int64(10)}, // a
@@ -65,7 +65,7 @@ var cases = map[string][]reg{
 
 func TestVM(t *testing.T) {
 	DebugTraceExecution = false
-	for src, registers := range cases {
+	for src, registers := range stmt_tests {
 		fullSrc := "package main\nfunc main(){\n" + src + "\n}\n"
 		r := parser.MapReader{"/test.go": []byte(fullSrc)}
 		comp := NewCompiler(r, nil)
