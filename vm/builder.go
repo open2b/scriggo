@@ -893,14 +893,6 @@ func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
 }
 
-func (builder *FunctionBuilder) MakeSlice(typ reflect.Type, length, cap, dst int8) {
-	builder.allocRegister(reflect.Interface, dst)
-	tr := builder.Type(typ)
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: 0, c: dst})
-	// TODO (Gianluca): needed only if length != 0 || cap != 0
-	builder.fn.body = append(builder.fn.body, instruction{op: operation(length), a: cap})
-}
-
 // SetClosureVar appends a new "SetClosureVar" instruction to the function body.
 //
 //     v = r
@@ -915,6 +907,18 @@ func (builder *FunctionBuilder) SetClosureVar(r int8, v uint8) {
 //
 func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, a: r, b: int8(p), c: int8(v)})
+}
+
+// Slice appends a new "slice" instruction to the function body.
+//
+//     slice(t, l, c)
+//
+func (builder *FunctionBuilder) Slice(typ reflect.Type, l, c, dst int8) {
+	builder.allocRegister(reflect.Interface, dst)
+	tr := builder.Type(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: 0, c: dst})
+	// TODO (Gianluca): needed only if length != 0 || cap != 0
+	builder.fn.body = append(builder.fn.body, instruction{op: operation(l), a: c})
 }
 
 // Sub appends a new "Sub" instruction to the function body.

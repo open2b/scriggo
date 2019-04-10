@@ -552,6 +552,23 @@ func (vm *VM) run() int {
 			n := int(vm.intk(b, op < 0))
 			vm.setValue(c, reflect.MakeMapWithSize(t, n))
 
+		// MakeSlice
+		case opMakeSlice:
+			// +-----------+----------+----------+---------+
+			// | Operand   | a        | b        | c       |
+			// +-----------+----------+----------+---------+
+			// | MakeSlice | type     | n        | dst     |
+			// +-----------+----------+----------+---------+
+			// | len       | cap      |          |         |
+			// +-----------+----------+----------+---------+
+			// TODO (Gianluca): if n == 0 len and cap are 0; if n == 0b01
+			// cap is a constant, if n == 0b10 len is a constant, if n ==
+			// 0b11 both are constants.
+			len := 0 // TODO
+			cap := 0 // TODO
+			t := vm.fn.types[int(uint(a))]
+			v := reflect.MakeSlice(t, len, cap).Interface()
+			vm.setValue(c, v)
 		// MapIndex
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.value(a))
@@ -884,23 +901,6 @@ func (vm *VM) run() int {
 				vm.setValue(c, v.Interface())
 			}
 
-		// MakeSlice
-		case opMakeSlice:
-			// +-----------+----------+----------+---------+
-			// | Operand   | a        | b        | c       |
-			// +-----------+----------+----------+---------+
-			// | MakeSlice | type     | n        | dst     |
-			// +-----------+----------+----------+---------+
-			// | len       | cap      |          |         |
-			// +-----------+----------+----------+---------+
-			// TODO (Gianluca): if n == 0 len and cap are 0; if n == 0b01
-			// cap is a constant, if n == 0b10 len is a constant, if n ==
-			// 0b11 both are constants.
-			len := 0 // TODO
-			cap := 0 // TODO
-			t := vm.fn.types[int(uint(a))]
-			v := reflect.MakeSlice(t, len, cap).Interface()
-			vm.setValue(c, v)
 		// SetClosureVar
 		case opSetClosureVar, -opSetClosureVar:
 			v := vm.cvars[uint8(c)]
