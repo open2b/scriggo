@@ -36,18 +36,18 @@ var cases = map[string][]reg{
 	`c := 0; if x := 1; x == 1 { c = 1 } else { c = 2 }; _ = c`: []reg{
 		{TypeInt, 0, int64(1)}, // c
 	},
-	`a := "s"; _ = a`: []reg{
-		{TypeString, 0, "s"},
-	},
+	// `a := "s"; _ = a`: []reg{
+	// 	{TypeString, 0, "s"},
+	// },
 	`a := []int{}; _ = a`: []reg{
-		{TypeIface, 0, []int{}},
+		{TypeIface, 0, []int{}}, // a
 	},
 	`a := []string{}; _ = a`: []reg{
-		{TypeIface, 0, []string{}},
+		{TypeIface, 0, []string{}}, // a
 	},
 	`a := []int{}; b := []byte{}; _ = a; _ = b`: []reg{
-		{TypeIface, 0, []int{}},
-		{TypeIface, 1, []byte{}},
+		{TypeIface, 0, []int{}},  // a
+		{TypeIface, 1, []byte{}}, // b
 	},
 	// `a := []int{1,2,4}; _ = a`: []reg{
 	// 	{TypeIface, 0, []int{1, 2, 5}},
