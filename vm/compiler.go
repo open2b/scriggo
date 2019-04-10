@@ -99,15 +99,27 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 	case *ast.BinaryOperator:
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
-		op2 := int8(fb.numRegs[kind])
-		fb.allocRegister(kind, op2)
+		var op2 int8
+		var ky bool
+		{
+			out, isValue, isRegister := c.immediate(expr.Expr2, fb)
+			if isValue {
+				op2 = out
+				ky = true
+			} else if isRegister {
+				op2 = out
+			} else {
+				op2 = int8(fb.numRegs[kind])
+				fb.allocRegister(kind, op2)
+				c.compileExpr(expr.Expr2, fb, op2)
+			}
+		}
 		c.compileExpr(expr.Expr1, fb, reg)
-		c.compileExpr(expr.Expr2, fb, op2)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			fb.Add(false, reg, op2, reg, kind)
+			fb.Add(ky, reg, op2, reg, kind)
 		case ast.OperatorSubtraction:
-			fb.Sub(false, reg, op2, reg, kind)
+			fb.Sub(ky, reg, op2, reg, kind)
 		case ast.OperatorMultiplication:
 			fb.Mul(reg, op2, reg, kind)
 		case ast.OperatorDivision:
