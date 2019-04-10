@@ -798,10 +798,21 @@ func (vm *VM) run() int {
 
 		// MakeSlice
 		case opMakeSlice:
-			//typ := vm.getType(a)
-			//len := int(vm.int(b))
-			//cap := int(vm.int(c))
-			//vm.pushValue(reflectValue.MakeSlice(typ, len, cap))
+			// +-----------+----------+----------+---------+
+			// | Operand   | a        | b        | c       |
+			// +-----------+----------+----------+---------+
+			// | MakeSlice | type     | n        | dst     |
+			// +-----------+----------+----------+---------+
+			// | len       | cap      |          |         |
+			// +-----------+----------+----------+---------+
+			// TODO (Gianluca): if n == 0 len and cap are 0; if n == 0b01
+			// cap is a constant, if n == 0b10 len is a constant, if n ==
+			// 0b11 both are constants.
+			len := 0 // TODO
+			cap := 0 // TODO
+			t := vm.fn.types[int(uint(a))]
+			v := reflect.MakeSlice(t, len, cap).Interface()
+			vm.setValue(c, v)
 
 		// SliceIndex
 		case opSliceIndex, -opSliceIndex:

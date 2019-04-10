@@ -699,6 +699,7 @@ func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
+	// TODO (Gianluca): replace with function "fb.GetType" (or something similar)
 	var tr int8
 	var found bool
 	types := builder.fn.types
@@ -756,28 +757,49 @@ func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
 }
 
-// Slice appends a new "slice" instruction to the function body.
-//
-//     slice(t, l, c)
-//
-func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
-	builder.allocRegister(reflect.Int, l)
-	builder.allocRegister(reflect.Int, c)
+func (builder *FunctionBuilder) MakeSlice(typ reflect.Type, length, cap, dst int8) {
+	builder.allocRegister(reflect.Interface, dst)
 	var tr int8
 	var found bool
+	// TODO (Gianluca): replace with function "fb.GetType" (or something similar)
 	types := builder.fn.types
-	for i, typ := range types {
-		if typ == t {
+	for i, t := range types {
+		if t == typ {
 			tr = int8(i)
 			found = true
 		}
 	}
 	if !found {
 		tr = int8(len(types))
-		builder.fn.types = append(types, t)
+		builder.fn.types = append(types, typ)
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: 0, c: dst})
+	// TODO (Gianluca): needed only if length != 0 || cap != 0
+	builder.fn.body = append(builder.fn.body, instruction{op: operation(length), a: cap})
 }
+
+// // Slice appends a new "slice" instruction to the function body.
+// //
+// //     slice(t, l, c)
+// //
+// func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
+// 	builder.allocRegister(reflect.Int, l)
+// 	builder.allocRegister(reflect.Int, c)
+// 	var tr int8
+// 	var found bool
+// 	types := builder.fn.types
+// 	for i, typ := range types {
+// 		if typ == t {
+// 			tr = int8(i)
+// 			found = true
+// 		}
+// 	}
+// 	if !found {
+// 		tr = int8(len(types))
+// 		builder.fn.types = append(types, t)
+// 	}
+// 	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
+// }
 
 // Sub appends a new "Sub" instruction to the function body.
 //

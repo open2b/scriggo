@@ -138,7 +138,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
-			panic("TODO: not implemented")
+			typ := expr.Type.(*ast.Value).Val.(reflect.Type)
+			fb.MakeSlice(typ, 0, 0, reg)
 		case reflect.Array:
 			panic("TODO: not implemented")
 		case reflect.Struct:
