@@ -778,29 +778,6 @@ func (builder *FunctionBuilder) MakeSlice(typ reflect.Type, length, cap, dst int
 	builder.fn.body = append(builder.fn.body, instruction{op: operation(length), a: cap})
 }
 
-// // Slice appends a new "slice" instruction to the function body.
-// //
-// //     slice(t, l, c)
-// //
-// func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
-// 	builder.allocRegister(reflect.Int, l)
-// 	builder.allocRegister(reflect.Int, c)
-// 	var tr int8
-// 	var found bool
-// 	types := builder.fn.types
-// 	for i, typ := range types {
-// 		if typ == t {
-// 			tr = int8(i)
-// 			found = true
-// 		}
-// 	}
-// 	if !found {
-// 		tr = int8(len(types))
-// 		builder.fn.types = append(types, t)
-// 	}
-// 	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
-// }
-
 // Sub appends a new "Sub" instruction to the function body.
 //
 //     z = x - y
