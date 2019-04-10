@@ -776,7 +776,7 @@ func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
 		tr = int8(len(types))
 		builder.fn.types = append(types, t)
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
+	builder.fn.body = append(builder.fn.body, instruction{op: opNewEmptySlice, a: tr, b: l, c: c})
 }
 
 // Sub appends a new "Sub" instruction to the function body.
