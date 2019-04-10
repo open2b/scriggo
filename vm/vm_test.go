@@ -36,9 +36,9 @@ var cases = map[string][]reg{
 	`c := 0; if x := 1; x == 1 { c = 1 } else { c = 2 }; _ = c`: []reg{
 		{TypeInt, 0, int64(1)}, // c
 	},
-	// `a := "s"; _ = a`: []reg{
-	// 	{TypeString, 0, "s"},
-	// },
+	`a := "s"; _ = a`: []reg{
+		{TypeString, 0, "s"},
+	},
 	`a := []int{}; _ = a`: []reg{
 		{TypeIface, 0, []int{}},
 	},

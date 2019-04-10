@@ -58,10 +58,10 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 	return pkg, nil
 }
 
-// immediate checks if expr is a value or a register, putting it into out. If
+// quickCompile checks if expr is a value or a register, putting it into out. If
 // it's neither of them, both isValue and isRegister are false and content of
 // out is unspecified.
-func (c *Compiler) immediate(expr ast.Expression, fb *FunctionBuilder) (out int8, isValue, isRegister bool) {
+func (c *Compiler) quickCompile(expr ast.Expression, fb *FunctionBuilder) (out int8, isValue, isRegister bool) {
 	switch expr := expr.(type) {
 	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		i := int64(expr.Value.Int64())
@@ -101,7 +101,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		var op2 int8
 		var ky bool
 		{
-			out, isValue, isRegister := c.immediate(expr.Expr2, fb)
+			out, isValue, isRegister := c.quickCompile(expr.Expr2, fb)
 			if isValue {
 				op2 = out
 				ky = true
@@ -163,7 +163,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 	case *ast.Value, *ast.Int, *ast.Identifier:
 		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.immediate(expr, fb)
+		out, isValue, isRegister := c.quickCompile(expr, fb)
 		if isValue {
 			fb.Move(true, out, reg, kind)
 		} else if isRegister {
@@ -195,7 +195,7 @@ func (c *Compiler) compileValueToVar(value, variable ast.Expression, fb *Functio
 	} else {
 		varReg = fb.VariableRegister(variable.(*ast.Identifier).Name)
 	}
-	out, isValue, isRegister := c.immediate(value, fb)
+	out, isValue, isRegister := c.quickCompile(value, fb)
 	if isValue {
 		fb.Move(true, out, varReg, kind)
 	} else if isRegister {
@@ -216,7 +216,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
 			typ := c.typeinfo[call.Args[0]].Type
 			kind := typ.Kind()
 			var a, b int8
-			out, _, isRegister := c.immediate(call.Args[0], fb)
+			out, _, isRegister := c.quickCompile(call.Args[0], fb)
 			if isRegister {
 				b = out
 			} else {
@@ -388,7 +388,7 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
 		var out int8
 		var isValue, isRegister bool
-		out, _, isRegister = c.immediate(cond.Expr1, fb)
+		out, _, isRegister = c.quickCompile(cond.Expr1, fb)
 		if isRegister {
 			x = out
 		} else {
@@ -403,7 +403,7 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 				o = ConditionNotNil
 			}
 		} else {
-			out, isValue, isRegister = c.immediate(cond.Expr2, fb)
+			out, isValue, isRegister = c.quickCompile(cond.Expr2, fb)
 			if isValue {
 				y = out
 				yk = true
