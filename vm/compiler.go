@@ -125,7 +125,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		case ast.OperatorDivision:
 			panic("TODO: not implemented")
 		case ast.OperatorModulo:
-			panic("TODO: not implemented")
+			fb.Rem(reg, op2, reg, kind)
 		default:
 			panic("TODO: not implemented")
 		}
