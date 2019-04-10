@@ -123,7 +123,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 		case ast.OperatorMultiplication:
 			fb.Mul(reg, op2, reg, kind)
 		case ast.OperatorDivision:
-			panic("TODO: not implemented")
+			fb.Div(reg, op2, reg, kind)
 		case ast.OperatorModulo:
 			fb.Rem(reg, op2, reg, kind)
 		default:
