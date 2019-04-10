@@ -93,7 +93,6 @@ func (c *Compiler) immediate(expr ast.Expression, fb *FunctionBuilder) (out int8
 
 // compileExpr compiles expression expr using fb and puts results into
 // reg.
-// TODO (Gianluca): optimize using "immediate".
 func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int8) {
 	switch expr := expr.(type) {
 
@@ -179,31 +178,29 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 
 }
 
-// compileSimpleAssignmentOrDeclaration compiles a simple assignment or a
-// declaration.
-// TODO (Gianluca): find a shorter/better name.
-func (c *Compiler) compileSimpleAssignmentOrDeclaration(variableExpr, valueExpr ast.Expression, fb *FunctionBuilder, isDecl bool) {
-	kind := c.typeinfo[valueExpr].Type.Kind()
-	if isBlankIdentifier(variableExpr) {
-		switch valueExpr.(type) {
+// compileValueToVar assign value to variable.
+func (c *Compiler) compileValueToVar(value, variable ast.Expression, fb *FunctionBuilder, isDecl bool) {
+	kind := c.typeinfo[value].Type.Kind()
+	if isBlankIdentifier(variable) {
+		switch value.(type) {
 		case *ast.Call:
-			c.compileNodes([]ast.Node{valueExpr}, fb)
+			c.compileNodes([]ast.Node{value}, fb)
 		}
+		return
+	}
+	var varReg int8
+	if isDecl {
+		varReg = fb.NewVar(variable.(*ast.Identifier).Name, kind)
 	} else {
-		var variableReg int8
-		if isDecl {
-			variableReg = fb.NewVar(variableExpr.(*ast.Identifier).Name, kind)
-		} else {
-			variableReg = fb.VariableRegister(variableExpr.(*ast.Identifier).Name)
-		}
-		out, isValue, isRegister := c.immediate(valueExpr, fb)
-		if isValue {
-			fb.Move(true, out, variableReg, kind)
-		} else if isRegister {
-			fb.Move(false, out, variableReg, kind)
-		} else {
-			c.compileExpr(valueExpr, fb, variableReg)
-		}
+		varReg = fb.VariableRegister(variable.(*ast.Identifier).Name)
+	}
+	out, isValue, isRegister := c.immediate(value, fb)
+	if isValue {
+		fb.Move(true, out, varReg, kind)
+	} else if isRegister {
+		fb.Move(false, out, varReg, kind)
+	} else {
+		c.compileExpr(value, fb, varReg)
 	}
 }
 
@@ -263,13 +260,13 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					fb.Add(true, reg, -1, reg, kind)
 				case ast.AssignmentDeclaration, ast.AssignmentSimple:
-					c.compileSimpleAssignmentOrDeclaration(node.Variables[0], node.Values[0], fb, node.Type == ast.AssignmentDeclaration)
+					c.compileValueToVar(node.Values[0], node.Variables[0], fb, node.Type == ast.AssignmentDeclaration)
 				default:
 					panic("TODO: not implemented")
 				}
 			} else if len(node.Variables) == len(node.Values) {
 				for i := range node.Variables {
-					c.compileSimpleAssignmentOrDeclaration(node.Variables[i], node.Values[i], fb, node.Type == ast.AssignmentDeclaration)
+					c.compileValueToVar(node.Values[i], node.Variables[i], fb, node.Type == ast.AssignmentDeclaration)
 				}
 			} else {
 				panic("TODO: not implemented")
@@ -351,7 +348,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 
 		case *ast.Var:
 			for i := range node.Identifiers {
-				c.compileSimpleAssignmentOrDeclaration(node.Identifiers[i], node.Values[i], fb, true)
+				c.compileValueToVar(node.Values[i], node.Identifiers[i], fb, true)
 			}
 
 		}
