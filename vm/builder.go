@@ -280,6 +280,25 @@ func (fn *Function) SetUpper(value Upper) {
 	fn.uppers = append(fn.uppers, value)
 }
 
+// Type returns the index of typ inside the types slice, creating a new entry if
+// necessary.
+func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
+	var tr int8
+	var found bool
+	types := builder.fn.types
+	for i, t := range types {
+		if t == typ {
+			tr = int8(i)
+			found = true
+		}
+	}
+	if !found {
+		tr = int8(len(types))
+		builder.fn.types = append(types, typ)
+	}
+	return tr
+}
+
 func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
@@ -699,21 +718,7 @@ func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	// TODO (Gianluca): replace with function "fb.GetType" (or something similar)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-
-	}
+	tr := builder.Type(typ)
 	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: tr, c: z})
 }
 
@@ -759,20 +764,7 @@ func (builder *FunctionBuilder) Return() {
 
 func (builder *FunctionBuilder) MakeSlice(typ reflect.Type, length, cap, dst int8) {
 	builder.allocRegister(reflect.Interface, dst)
-	var tr int8
-	var found bool
-	// TODO (Gianluca): replace with function "fb.GetType" (or something similar)
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-	}
+	tr := builder.Type(typ)
 	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: 0, c: dst})
 	// TODO (Gianluca): needed only if length != 0 || cap != 0
 	builder.fn.body = append(builder.fn.body, instruction{op: operation(length), a: cap})
