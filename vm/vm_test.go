@@ -12,6 +12,7 @@ type reg struct {
 	value interface{}
 }
 
+// ptrTo returns a pointer to a copy of v.
 func ptrTo(v interface{}) interface{} {
 	rv := reflect.New(reflect.TypeOf(v))
 	rv.Elem().Set(reflect.ValueOf(v))
