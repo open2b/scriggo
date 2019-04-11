@@ -182,7 +182,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opBind:
 		s += " " + strconv.Itoa(int(uint8(b)))
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCall, opCallNative, opTailCall:
+	case opCall, opCallFunc, opTailCall:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		} else {
@@ -193,7 +193,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 			s += " " + pkg.name + "."
 			if op == opCall || op == opTailCall {
 				s += pkg.functions[uint8(b)].name
-			} else if op == opCallNative {
+			} else if op == opCallFunc {
 				name := pkg.gofunctions[uint8(b)].name
 				if name == "" {
 					s += strconv.Itoa(int(uint8(b)))
@@ -202,7 +202,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				}
 			}
 		}
-		if op == opCall || op == opCallNative {
+		if op == opCall || op == opCallFunc {
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))

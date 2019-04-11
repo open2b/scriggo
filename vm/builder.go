@@ -175,9 +175,9 @@ func (fn *goFunction) toReflect() {
 
 type Package struct {
 	name        string
-	packages    []*Package    // opCall, opCallNative, opGetFunc, opGetVar, opSetVar, opTailCall
-	functions   []*Function   // opCall, opCallNative, opGetFunc, opTailCall
-	gofunctions []*goFunction // opCall, opCallNative, opGetFunc, opTailCall
+	packages    []*Package    // opCall, opCallFunc, opGetFunc, opGetVar, opSetVar, opTailCall
+	functions   []*Function   // opCall, opCallFunc, opGetFunc, opTailCall
+	gofunctions []*goFunction // opCall, opCallFunc, opGetFunc, opTailCall
 	variables   []interface{} // opGetVar, opSetVar
 	varNames    []string
 }
@@ -509,16 +509,16 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
-// CallNative appends a new "CallNative" instruction to the function body.
+// CallFunc appends a new "CallFunc" instruction to the function body.
 //
-//     p.f()
+//     p.F()
 //
-func (builder *FunctionBuilder) CallNative(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
 	if p != NoPackage {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
-	fn.body = append(fn.body, instruction{op: opCallNative, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 

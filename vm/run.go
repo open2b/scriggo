@@ -228,8 +228,8 @@ func (vm *VM) run() int {
 			vm.calls = append(vm.calls, call)
 			pc = 0
 
-		// CallNative
-		case opCallNative:
+		// CallFunc
+		case opCallFunc:
 			fn := vm.fn.pkg.packages[uint8(a)].gofunctions[uint8(b)]
 			fp := vm.fp
 			off := vm.fn.body[pc]
