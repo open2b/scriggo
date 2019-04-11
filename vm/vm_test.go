@@ -131,9 +131,6 @@ func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		src := cas.src
 		registers := cas.registers
-		if src != `a := new(int); _ = a` {
-			continue
-		}
 		fullSrc := "package main\nfunc main(){\n" + src + "\n}\n"
 		r := parser.MapReader{"/test.go": []byte(fullSrc)}
 		comp := NewCompiler(r, nil)
