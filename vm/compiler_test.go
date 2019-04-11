@@ -33,8 +33,7 @@ func NoTestMakeExpressionTests(t *testing.T) {
 	out := strings.Builder{}
 	out.WriteString("\n")
 	for _, cas := range exprTests {
-		fullSrc := "package main\nfunc main(){\n" + cas.src + "\nreturn\n\n}\n"
-		r := parser.MapReader{"/test.go": []byte(fullSrc)}
+		r := parser.MapReader{"/test.go": []byte(cas.src)}
 		comp := NewCompiler(r, nil)
 		pkg, err := comp.Compile("/test.go")
 		if err != nil {
@@ -64,7 +63,15 @@ var exprTests = []struct {
 }{
 
 	{
-		`a := 10; _ = a`,
+		`
+			package main
+
+			func main() {
+				a := 10;
+				_ = a
+				return
+			}
+		`,
 		[]string{
 			"Package main",
 			"",
@@ -75,7 +82,15 @@ var exprTests = []struct {
 		},
 	},
 	{
-		`a := 4 + 5; _ = a`,
+		`
+			package main
+
+			func main() {
+				a := 4 + 5;
+				_ = a
+				return
+			}
+		`,
 		[]string{
 			"Package main",
 			"",
@@ -86,13 +101,27 @@ var exprTests = []struct {
 		},
 	},
 	{
-		`a := 0; c := 0; if a < 20 { c = 1 } else { c = 2 }; _ = c`,
+		`
+			package main
+
+			func main() {
+				a := 0
+				c := 0
+				if a < 20 {
+					c = 1
+				} else {
+					c = 2
+				}
+				_ = c
+				return
+			}
+		`,
 		[]string{
 			"Package main",
 			"",
 			"Func main()",
 			"	// regs(2,0,0,0)",
-			"	MoveInt 0 R0",
+			"	MoveInt 0 R1",
 			"	MoveInt 0 R1",
 			"	IfInt R0 Less 20",
 			"	Goto 1",
@@ -102,12 +131,36 @@ var exprTests = []struct {
 			"2:	Return",
 		},
 	},
+	{
+		`
+		package main
+
+		func a() {
+
+		}
+
+		func main() {
+			a()
+			return
+		}
+		`,
+		[]string{
+			"Package main",
+			"",
+			"Func a()",
+			"	// regs(0,0,0,0)",
+			"",
+			"Func main()",
+			"	// regs(0,0,0,1)",
+			"	Call main.0 [0,0,0,0]",
+			"	Return",
+		},
+	},
 }
 
 func TestCompiler(t *testing.T) {
 	for _, cas := range exprTests {
-		fullSrc := "package main\nfunc main(){\n" + cas.src + "\nreturn\n\n}\n"
-		r := parser.MapReader{"/test.go": []byte(fullSrc)}
+		r := parser.MapReader{"/test.go": []byte(cas.src)}
 		comp := NewCompiler(r, nil)
 		pkg, err := comp.Compile("/test.go")
 		if err != nil {
