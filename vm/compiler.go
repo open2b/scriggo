@@ -52,6 +52,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
+			c.fb.Return() // TODO (Gianluca): should typechecker add a dummy return if implicit?
 			c.fb.End()
 			c.fb.ExitScope()
 			c.funcNameToIndex[n.Ident.Name] = index
@@ -153,9 +154,10 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.fb.EnterScope()
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.End()
+		c.fb.Return()
 		c.fb.ExitScope()
 		c.fb = currentFunc
-		c.fb.Func(0, nil, nil, expr.Type.IsVariadic)
+		c.fb.Func(reg, nil, nil, expr.Type.IsVariadic)
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
