@@ -116,7 +116,7 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 			label := labelOf[decodeAddr(in.a, in.b, in.c)]
 			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
 		case opFunc:
-			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(in.c, Interface, false))
+			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.c, Interface, false))
 			disassembleFunction(w, fn.funcs[uint8(in.b)], depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
@@ -149,103 +149,108 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		opRemInt, opRemInt8, opRemInt16, opRemInt32, opRemUint8, opRemUint16, opRemUint32, opRemUint64,
 		opSubInt, opSubInt8, opSubInt16, opSubInt32,
 		opSubInvInt, opSubInvInt8, opSubInvInt16, opSubInvInt32:
-		s += " " + disassembleOperand(a, Int, false)
-		s += " " + disassembleOperand(b, Int, k)
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, a, Int, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opAddFloat32, opAddFloat64, opDivFloat32, opDivFloat64,
 		opMulFloat32, opMulFloat64,
 		opSubFloat32, opSubFloat64, opSubInvFloat32, opSubInvFloat64:
-		s += " " + disassembleOperand(a, Float64, false)
-		s += " " + disassembleOperand(b, Float64, k)
-		s += " " + disassembleOperand(c, Float64, false)
+		s += " " + disassembleOperand(fn, a, Float64, false)
+		s += " " + disassembleOperand(fn, b, Float64, k)
+		s += " " + disassembleOperand(fn, c, Float64, false)
 	case opAlloc:
 		s += " " + fn.types[int(uint(a))].String()
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opAssert:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(" + strconv.Itoa(int(uint(b))) + ")"
 		t := fn.types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
-		s += " " + disassembleOperand(c, kind, false)
+		s += " " + disassembleOperand(fn, c, kind, false)
 	case opAssertInt:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(int)"
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opAssertFloat64:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(float64)"
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opAssertString:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(string)"
-		s += " " + disassembleOperand(c, String, false)
+		s += " " + disassembleOperand(fn, c, String, false)
 	case opBind:
 		s += " " + strconv.Itoa(int(uint8(b)))
-		s += " " + disassembleOperand(c, Int, false)
-	case opCall, opTailCall:
+		s += " " + disassembleOperand(fn, c, Int, false)
+	case opCall, opCallNative, opTailCall:
 		if a == NoPackage {
-			s += " " + disassembleOperand(b, Interface, false)
+			s += " " + disassembleOperand(fn, b, Interface, false)
 		} else {
 			pkg := fn.pkg
 			if a != CurrentPackage {
-				pkg = pkg.packages[uint8(a)-2]
+				pkg = pkg.packages[uint8(a)]
 			}
 			s += " " + pkg.name + "."
-			if pkg.varNames == nil {
-				s += strconv.Itoa(int(uint8(b)))
-			} else {
-				s += pkg.varNames[uint8(b)]
+			if op == opCall || op == opTailCall {
+				s += pkg.functions[uint8(b)].name
+			} else if op == opCallNative {
+				name := pkg.gofunctions[uint8(b)].name
+				if name == "" {
+					s += strconv.Itoa(int(uint8(b)))
+				} else {
+					s += name
+				}
 			}
 		}
-		if op == opCall {
+		if op == opCall || op == opCallNative {
 			grow := fn.body[addr+1]
-			s += " [" + strconv.Itoa(int(grow.op)) + "," + strconv.Itoa(int(grow.a)) + "," +
-				strconv.Itoa(int(grow.b)) + "," + strconv.Itoa(int(grow.c)) + "]"
+			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
+				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
 		}
 	case opCap:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opContinue:
-		s += " " + disassembleOperand(b, Int, false)
+		s += " " + disassembleOperand(fn, b, Int, false)
 	case opCopy:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, Interface, false)
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Interface, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opConcat:
-		s += " " + disassembleOperand(a, String, false)
-		s += " " + disassembleOperand(b, String, k)
-		s += " " + disassembleOperand(c, String, false)
+		s += " " + disassembleOperand(fn, a, String, false)
+		s += " " + disassembleOperand(fn, b, String, k)
+		s += " " + disassembleOperand(fn, c, String, false)
 	case opDelete:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Interface, false)
 	case opIf:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + Condition(b).String()
 	case opIfInt, opIfUint:
-		s += " " + disassembleOperand(a, Int, false)
+		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + Condition(b).String()
 		if Condition(b) >= ConditionEqual {
-			s += " " + disassembleOperand(c, Int, k)
+			s += " " + disassembleOperand(fn, c, Int, k)
 		}
 	case opIfFloat:
-		s += " " + disassembleOperand(a, Float64, false)
+		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + Condition(b).String()
-		s += " " + disassembleOperand(c, Float64, k)
+		s += " " + disassembleOperand(fn, c, Float64, k)
 	case opIfString:
-		s += " " + disassembleOperand(a, String, false)
+		s += " " + disassembleOperand(fn, a, String, false)
 		s += " " + Condition(b).String()
 		if Condition(b) < ConditionEqualLen {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
 			} else {
-				s += " " + disassembleOperand(c, String, k)
+				s += " " + disassembleOperand(fn, c, String, k)
 			}
 		} else {
-			s += " " + disassembleOperand(c, Int, k)
+			s += " " + disassembleOperand(fn, c, Int, k)
 		}
 	case opFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetClosureVar:
 		cv := fn.crefs[uint8(b)]
 		var depth = 1
@@ -253,18 +258,18 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 			cv = p.crefs[cv]
 			depth++
 		}
-		s += " " + disassembleOperand(int8(cv), Interface, false)
+		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
 		if depth > 0 {
 			s += "@" + strconv.Itoa(depth)
 		}
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
 		pkg := fn.pkg
 		if a != CurrentPackage {
 			pkg = pkg.packages[uint8(a)]
 		}
 		s += " " + pkg.name + "." + pkg.functions[uint8(b)].name
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
 		pkg := fn.pkg
 		if a != CurrentPackage {
@@ -276,82 +281,82 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		} else {
 			s += pkg.varNames[uint8(b)]
 		}
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGoto, opJmpOk, opJmpNotOk:
 		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case opIndex:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, Int, k)
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opLen:
 		s += " " + strconv.Itoa(int(a))
 		if a == 0 {
-			s += " " + disassembleOperand(b, String, false)
+			s += " " + disassembleOperand(fn, b, String, false)
 		} else {
-			s += " " + disassembleOperand(b, Interface, false)
+			s += " " + disassembleOperand(fn, b, Interface, false)
 		}
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opMakeMap:
 		s += " type(" + strconv.Itoa(int(uint(a))) + ")"
-		s += " " + disassembleOperand(b, Int, false)
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, b, Int, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMapIndex:
-		//s += " " + disassembleOperand(a, Interface, false)
+		//s += " " + disassembleOperand(fn, a, Interface, false)
 		//key := reflectToRegisterKind()
-		//s += " " + disassembleOperand(b, Interface, false)
-		//s += " " + disassembleOperand(c, Interface, false)
+		//s += " " + disassembleOperand(fn, b, Interface, false)
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMapIndexStringString:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, String, k)
-		s += " " + disassembleOperand(c, String, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, String, k)
+		s += " " + disassembleOperand(fn, c, String, false)
 	case opMapIndexStringInt:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, String, k)
-		s += " " + disassembleOperand(c, String, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, String, k)
+		s += " " + disassembleOperand(fn, c, String, false)
 	case opMapIndexStringInterface:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, String, k)
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, String, k)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:
-		s += " " + disassembleOperand(b, Int, k)
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opMoveFloat:
-		s += " " + disassembleOperand(b, Float64, k)
-		s += " " + disassembleOperand(c, Float64, false)
+		s += " " + disassembleOperand(fn, b, Float64, k)
+		s += " " + disassembleOperand(fn, c, Float64, false)
 	case opMoveString:
-		s += " " + disassembleOperand(b, String, k)
-		s += " " + disassembleOperand(c, String, false)
+		s += " " + disassembleOperand(fn, b, String, k)
+		s += " " + disassembleOperand(fn, c, String, false)
 	case opNew:
 		s += " " + fn.types[int(uint(b))].String()
-		s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opRange:
-		//s += " " + disassembleOperand(c, Interface, false)
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opRangeString:
-		s += " " + disassembleOperand(a, Int, false)
-		s += " " + disassembleOperand(b, Int, false)
-		s += " " + disassembleOperand(c, Interface, k)
+		s += " " + disassembleOperand(fn, a, Int, false)
+		s += " " + disassembleOperand(fn, b, Int, false)
+		s += " " + disassembleOperand(fn, c, Interface, k)
 	case opReturn:
 	case opSelector:
-		//s += " " + disassembleOperand(c, Interface, false)
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
-		//s += " " + disassembleOperand(c, Interface, false)
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSetClosureVar:
-		s += " " + disassembleOperand(c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 		cv := fn.crefs[uint8(b)]
 		var depth = 1
 		for p := fn.parent; cv >= 0; p = p.parent {
 			cv = p.crefs[cv]
 			depth++
 		}
-		s += " " + disassembleOperand(int8(cv), Interface, false)
+		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
 		if depth > 0 {
 			s += "@" + strconv.Itoa(depth)
 		}
 	case opSetVar:
-		s += " " + disassembleOperand(a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg
 		if b != CurrentPackage {
 			pkg = pkg.packages[uint8(b)]
@@ -363,9 +368,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 			s += pkg.varNames[uint8(c)]
 		}
 	case opSliceIndex:
-		s += " " + disassembleOperand(a, Interface, false)
-		s += " " + disassembleOperand(b, Int, k)
-		//s += " " + disassembleOperand(c, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	}
 	return s
 }
@@ -386,26 +391,23 @@ func reflectToRegisterKind(kind reflect.Kind) Kind {
 	}
 }
 
-func disassembleOperand(op int8, kind Kind, constant bool) string {
+func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string {
 	if constant {
-		if op >= 0 {
-			switch {
-			case Int <= kind && kind <= Uint64:
-				return strconv.Itoa(int(op))
-			case kind == Float64:
-				return strconv.FormatFloat(float64(op), 'f', -1, 64)
-			case kind == Float32:
-				return strconv.FormatFloat(float64(op), 'f', -1, 32)
-			case kind == Bool:
-				if op == 0 {
-					return "false"
-				}
-				return "true"
-			case kind == String:
-				return strconv.Quote(string(op))
+		switch {
+		case Int <= kind && kind <= Uint64:
+			return strconv.Itoa(int(op))
+		case kind == Float64:
+			return strconv.FormatFloat(float64(op), 'f', -1, 64)
+		case kind == Float32:
+			return strconv.FormatFloat(float64(op), 'f', -1, 32)
+		case kind == Bool:
+			if op == 0 {
+				return "false"
 			}
+			return "true"
+		case kind == String:
+			return strconv.Quote(fn.constants.String[uint8(op)])
 		}
-		return "K" + strconv.Itoa(-int(op))
 	}
 	if op >= 0 {
 		return "R" + strconv.Itoa(int(op))

@@ -109,23 +109,88 @@ func (c Condition) String() string {
 	panic("unknown condition")
 }
 
-type Package struct {
-	name      string
-	packages  []*Package
-	functions []*Function
-	variables []interface{}
-	varNames  []string
-	err       error
+type goFunction struct {
+	name   string
+	iface  interface{}
+	value  reflect.Value
+	in     []Kind
+	out    []Kind
+	args   []reflect.Value
+	outOff [4]int8
 }
 
+func (fn *goFunction) toReflect() {
+	fn.value = reflect.ValueOf(fn.iface)
+	typ := fn.value.Type()
+	nIn := typ.NumIn()
+	fn.in = make([]Kind, nIn)
+	fn.args = make([]reflect.Value, nIn)
+	for i := 0; i < nIn; i++ {
+		t := typ.In(i)
+		k := t.Kind()
+		switch {
+		case k == reflect.Bool:
+			fn.in[i] = Bool
+		case reflect.Int <= k && k <= reflect.Int64:
+			fn.in[i] = Int
+		case reflect.Uint <= k && k <= reflect.Uint64:
+			fn.in[i] = Uint
+		case k == reflect.Float64 || k == reflect.Float32:
+			fn.in[i] = Float64
+		case k == reflect.String:
+			fn.in[i] = String
+		default:
+			fn.in[i] = Interface
+		}
+		fn.args[i] = reflect.New(t).Elem()
+	}
+	nOut := typ.NumOut()
+	fn.out = make([]Kind, nOut)
+	for i := 0; i < nOut; i++ {
+		k := typ.Out(i).Kind()
+		switch {
+		case k == reflect.Bool:
+			fn.out[i] = Bool
+			fn.outOff[0]++
+		case reflect.Int <= k && k <= reflect.Int64:
+			fn.out[i] = Int
+			fn.outOff[0]++
+		case reflect.Uint <= k && k <= reflect.Uint64:
+			fn.out[i] = Uint
+			fn.outOff[0]++
+		case k == reflect.Float64 || k == reflect.Float32:
+			fn.out[i] = Float64
+			fn.outOff[1]++
+		case k == reflect.String:
+			fn.out[i] = String
+			fn.outOff[2]++
+		default:
+			fn.out[i] = Interface
+			fn.outOff[3]++
+		}
+	}
+	fn.iface = nil
+	return
+}
+
+type Package struct {
+	name        string
+	packages    []*Package    // opCall, opCallNative, opGetFunc, opGetVar, opSetVar, opTailCall
+	functions   []*Function   // opCall, opCallNative, opGetFunc, opTailCall
+	gofunctions []*goFunction // opCall, opCallNative, opGetFunc, opTailCall
+	variables   []interface{} // opGetVar, opSetVar
+	varNames    []string
+}
+
+// NewPackage creates a new package.
 func NewPackage(name string) *Package {
 	p := &Package{name: name}
-	p.packages = []*Package{p}
+	p.packages = []*Package{}
 	return p
 }
 
-// AddPackage adds package pkg to p.
-func (p *Package) AddPackage(pkg *Package) uint8 {
+// Import imports a package.
+func (p *Package) Import(pkg *Package) uint8 {
 	if len(p.packages) == 254 {
 		panic("imported packages limit reached")
 	}
@@ -133,30 +198,24 @@ func (p *Package) AddPackage(pkg *Package) uint8 {
 	return uint8(len(p.packages) - 2)
 }
 
-func (p *Package) AddVariable(v interface{}) uint8 {
-	return p.AddNamedVariable("", v)
-}
-
-func (p *Package) AddNamedVariable(name string, v interface{}) uint8 {
-	if len(p.variables) == 256 {
+// DefineVariable defines a variable.
+func (p *Package) DefineVariable(name string, v interface{}) uint8 {
+	index := len(p.variables)
+	if index == 256 {
 		panic("variables limit reached")
 	}
 	p.variables = append(p.variables, v)
-	if name == "" {
-		if p.varNames != nil {
-			panic("missing variable name")
-		}
-	} else {
+	if name != "" {
 		if p.varNames == nil {
-			p.varNames = []string{name}
-		} else {
-			p.varNames = append(p.varNames, name)
+			p.varNames = make([]string, len(p.variables))
 		}
+		p.varNames[index] = name
 	}
-	return uint8(len(p.variables) - 1)
+	return uint8(index)
 }
 
-// Function returns given its name or an error if the function does not exists.
+// Function returns a function by name. Returns an error if the function does
+// not exists.
 func (p *Package) Function(name string) (*Function, error) {
 	for _, fn := range p.functions {
 		if fn.name == name {
@@ -195,8 +254,21 @@ type Function struct {
 	lines     []int
 }
 
+// DefineGoFunction defines a Go function and appends it to the package.
+func (p *Package) DefineGoFunction(name string, fn interface{}) uint8 {
+	r := len(p.gofunctions)
+	if r > 255 {
+		panic("functions limit reached")
+	}
+	p.gofunctions = append(p.gofunctions, &goFunction{name: name, iface: fn})
+	return uint8(r)
+}
+
 // NewFunction creates a new function and appends it to the package.
 func (p *Package) NewFunction(name string, in, out []Type, variadic bool) (fn *Function, index int8) {
+	if len(p.functions) > 255 {
+		panic("functions limit reached")
+	}
 	fn = &Function{
 		name:     name,
 		pkg:      p,
@@ -503,7 +575,7 @@ type StackShift [4]int8
 
 // Call appends a new "Call" instruction to the function body.
 //
-//     f()
+//     p.f()
 //
 func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
@@ -511,6 +583,19 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
 	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+}
+
+// CallNative appends a new "CallNative" instruction to the function body.
+//
+//     p.f()
+//
+func (builder *FunctionBuilder) CallNative(p int8, f int8, shift StackShift) {
+	var fn = builder.fn
+	if p != NoPackage {
+		builder.allocRegister(reflect.Interface, int8(f))
+	}
+	fn.body = append(fn.body, instruction{op: opCallNative, a: p, b: f})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 

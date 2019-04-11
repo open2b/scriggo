@@ -255,9 +255,92 @@ func (vm *VM) run() int {
 
 		// CallNative
 		case opCallNative:
-			//fn := vm.iface(a).(reflectValue.Value)
-			//ret := f.Call(args)
-			//vm.pushValues(ret)
+			fn := vm.fn.pkg.packages[uint8(a)].gofunctions[uint8(b)]
+			fp := vm.fp
+			off := vm.fn.body[pc]
+			vm.fp[0] += uint32(off.op)
+			vm.fp[1] += uint32(off.a)
+			vm.fp[2] += uint32(off.b)
+			vm.fp[3] += uint32(off.c)
+			if fn.iface == nil {
+				vm.fp[0] += uint32(fn.outOff[0])
+				vm.fp[1] += uint32(fn.outOff[1])
+				vm.fp[2] += uint32(fn.outOff[2])
+				vm.fp[3] += uint32(fn.outOff[3])
+				for i, k := range fn.in {
+					switch k {
+					case Bool:
+						fn.args[i].SetBool(vm.bool(0))
+						vm.fp[0]++
+					case Int:
+						fn.args[i].SetInt(vm.int(0))
+						vm.fp[0]++
+					case Uint:
+						fn.args[i].SetUint(uint64(vm.int(0)))
+						vm.fp[0]++
+					case Float64:
+						fn.args[i].SetFloat(vm.float(0))
+						vm.fp[1]++
+					case String:
+						fn.args[i].SetString(vm.string(0))
+						vm.fp[2]++
+					default:
+						fn.args[i].Set(reflect.ValueOf(vm.general(0)))
+						vm.fp[3]++
+					}
+				}
+				vm.fp[0] = fp[0] + uint32(off.op)
+				vm.fp[1] = fp[1] + uint32(off.a)
+				vm.fp[2] = fp[2] + uint32(off.b)
+				vm.fp[3] = fp[3] + uint32(off.c)
+				var ret = fn.value.Call(fn.args)
+				for i, k := range fn.out {
+					switch k {
+					case Bool:
+						vm.setBool(0, ret[i].Bool())
+						vm.fp[0]++
+					case Int:
+						vm.setInt(0, ret[i].Int())
+						vm.fp[0]++
+					case Uint:
+						vm.setInt(0, int64(ret[i].Uint()))
+						vm.fp[0]++
+					case Float64:
+						vm.setFloat(0, ret[i].Float())
+						vm.fp[1]++
+					case String:
+						vm.setString(0, ret[i].String())
+						vm.fp[2]++
+					default:
+						vm.setGeneral(0, ret[i].Interface())
+						vm.fp[3]++
+					}
+				}
+			} else {
+				switch f := fn.iface.(type) {
+				case func(string) int:
+					vm.setInt(0, int64(f(vm.string(0))))
+				case func(string) string:
+					vm.setString(0, f(vm.string(1)))
+				case func(string, string) int:
+					vm.setInt(0, int64(f(vm.string(0), vm.string(1))))
+				case func(string, int) string:
+					vm.setString(0, f(vm.string(1), int(vm.int(0))))
+				case func(string, string) bool:
+					vm.setBool(0, f(vm.string(0), vm.string(1)))
+				case func([]byte) []byte:
+					vm.setGeneral(0, f(vm.general(1).([]byte)))
+				case func([]byte, []byte) int:
+					vm.setInt(0, int64(f(vm.general(0).([]byte), vm.general(1).([]byte))))
+				case func([]byte, []byte) bool:
+					vm.setBool(0, f(vm.general(0).([]byte), vm.general(1).([]byte)))
+				default:
+					fn.toReflect()
+					pc -= 2
+				}
+			}
+			vm.fp = fp
+			pc++
 
 		// Cap
 		case opCap:
@@ -1059,153 +1142,3 @@ func (vm *VM) run() int {
 	}
 
 }
-
-//func (vm *VM) execCallI() {
-
-//n := int(vm.readByte())
-//f := vm.popValue()
-//fmt.Printf("\n%T %s\n", f, f)
-
-//switch f.(type) {
-//
-//case func(string) int:
-//	a := vm.popString()
-//	_ = vm.popInterface()
-//	vm.pushInt(int64(fn(a)))
-//
-//case func(string) string:
-//	a := vm.popString()
-//	_ = vm.popInterface()
-//	vm.pushString((fn(a))
-//
-//case func(string, string) int:
-//	a1 := vm.popString()
-//	a2 := vm.popString()
-//	_ = vm.popInterface()
-//	vm.pushInt(int64(fn(a1, a2)))
-//
-//case func(string, string) bool:
-//	a1 := vm.popString()
-//	a2 := vm.popString()
-//	_ = vm.popInterface()
-//	b := fn(a1, a2)
-//	if b {
-//		vm.pushInt(1)
-//	} else {
-//		vm.pushInt(0)
-//	}
-//
-//case func([]byte) []byte:
-//	a := vm.popInterface().([]byte)
-//	_ = vm.popInterface()
-//	vm.pushInterface.push(fn(a))
-//
-//case func([]byte, []byte) int:
-//	a1 := vm.popInterface().([]byte)
-//	a2 := vm.popInterface().([]byte)
-//	_ = vm.popInterface()
-//	vm.pushInt(int64(fn(a1, a2)))
-//
-//case func([]byte, []byte) bool:
-//	a1 := vm.popInterface().([]byte)
-//	a2 := vm.popInterface().([]byte)
-//	_ = vm.popInterface()
-//	b := fn(a1, a2)
-//	if b {
-//		vm.pushInt(1)
-//	} else {
-//		vm.pushInt(0)
-//	}
-
-//default:
-//var f = reflectValue.ValueOf(f)
-//var t = f.Type()
-//var args []reflectValue.Value
-//if n == 0 {
-//	vm.popInterface()
-//} else {
-//	var numIn = t.numIn()
-//	var lastIn = numIn - 1
-//	var in reflectValue.Type
-//	args = make([]reflectValue.Value, numIn)
-//	isVariadic := t.IsVariadic()
-//	for i := 0; i < n; i++ {
-//		var arg reflectValue.Value
-//		if i < lastIn || !isVariadic {
-//			in = t.in(i)
-//		} else if i == lastIn {
-//			in = t.in(lastIn).Elem()
-//		}
-//		switch in.Kind() {
-//		case reflectValue.String:
-//			arg = reflectValue.ValueOf(vm.popString())
-//		case reflectValue.Int:
-//			arg = reflectValue.ValueOf(int(vm.popInt()))
-//		case reflectValue.Int64:
-//			arg = reflectValue.ValueOf(vm.popInt())
-//		case reflectValue.Int32:
-//			arg = reflectValue.ValueOf(int32(vm.popInt()))
-//		case reflectValue.Int16:
-//			arg = reflectValue.ValueOf(int16(vm.popInt()))
-//		case reflectValue.Int8:
-//			arg = reflectValue.ValueOf(int8(vm.popInt()))
-//		case reflectValue.Uint:
-//			arg = reflectValue.ValueOf(uint(vm.popInt()))
-//		case reflectValue.Uint64:
-//			arg = reflectValue.ValueOf(uint64(vm.popInt()))
-//		case reflectValue.Uint32:
-//			arg = reflectValue.ValueOf(uint32(vm.popInt()))
-//		case reflectValue.Uint16:
-//			arg = reflectValue.ValueOf(uint16(vm.popInt()))
-//		case reflectValue.Uint8:
-//			arg = reflectValue.ValueOf(uint8(vm.popInt()))
-//		case reflectValue.Float64:
-//			arg = reflectValue.ValueOf(vm.popFloat())
-//		case reflectValue.Float32:
-//			arg = reflectValue.ValueOf(float32(vm.popFloat()))
-//		case reflectValue.Bool:
-//			if vm.popInt() == 0 {
-//				arg = reflectValue.ValueOf(false)
-//			} else {
-//				arg = reflectValue.ValueOf(true)
-//			}
-//		default:
-//			arg = reflectValue.ValueOf(vm.popInterface())
-//		}
-//		if i < lastIn || !isVariadic {
-//			args[i] = arg
-//		} else {
-//			if i == lastIn {
-//				args[i] = reflectValue.MakeSlice(in, n-numIn+1, n-numIn+1)
-//			}
-//			args[lastIn].Index(n - numIn + 1).Set(arg)
-//		}
-//	}
-// Pop the fn.
-//_ = vm.popInterface()
-//}
-//ret := f.Call(args)
-//numOut := t.numOut()
-//for i := 0; i < numOut; i++ {
-//	switch t.out(i).Kind() {
-//	case reflectValue.String:
-//		vm.pushString(ret[i].String())
-//	case reflectValue.Int, reflectValue.Int64, reflectValue.Int32, reflectValue.Int16, reflectValue.Int8:
-//		vm.pushInt(ret[i].Int())
-//	case reflectValue.Uint, reflectValue.Uint64, reflectValue.Uint32, reflectValue.Uint16, reflectValue.Uint8:
-//		vm.pushInt(int64(ret[i].Uint()))
-//	case reflectValue.Float64, reflectValue.Float32:
-//		vm.pushFloat(ret[i].Float())
-//	case reflectValue.Bool:
-//		if ret[i].Bool() {
-//			vm.pushInt(1)
-//		} else {
-//			vm.pushInt(0)
-//		}
-//	default:
-//		vm.pushInterface(ret[i].Interface())
-//	}
-//}
-//}
-
-//}
