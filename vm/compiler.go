@@ -34,14 +34,11 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	tci := c.parser.TypeCheckInfos()
 	c.typeinfo = tci["/test.go"].TypeInfo
 	node := tree.Nodes[0].(*ast.Package)
-	pkg, err := c.compilePackage(node)
-	if err != nil {
-		return nil, err
-	}
-	return pkg, nil
+	c.compilePackage(node)
+	return c.pkg, nil
 }
 
-func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
+func (c *Compiler) compilePackage(node *ast.Package) {
 	c.pkg = NewPackage(node.Name)
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
@@ -56,7 +53,6 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 			panic("TODO: not implemented")
 		}
 	}
-	return c.pkg, nil
 }
 
 // quickCompile checks if expr is a value or a register, putting it into out. If
