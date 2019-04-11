@@ -550,7 +550,7 @@ func (vm *VM) run() int {
 			cap := 0 // TODO
 			t := vm.fn.types[int(uint(a))]
 			v := reflect.MakeSlice(t, len, cap).Interface()
-			vm.setValue(c, v)
+			vm.setGeneral(c, v)
 		// MapIndex
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))
