@@ -289,6 +289,7 @@ func (vm *VM) run() int {
 			vm.setFloat(c, vm.float(a)/float64(b))
 
 		// Func
+		// c = get_func_from_index(b)
 		case opFunc:
 			fn := vm.fn.funcs[uint8(b)]
 			var vars []interface{}

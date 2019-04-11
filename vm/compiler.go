@@ -147,6 +147,17 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			panic("TODO: not implemented")
 		}
 
+	case *ast.Func:
+		currentFunc := c.fb
+		fn := c.pkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
+		c.fb = fn.Builder()
+		c.fb.EnterScope()
+		c.compileNodes(expr.Body.Nodes)
+		c.fb.End()
+		c.fb.ExitScope()
+		c.fb = currentFunc
+		c.fb.Func(0, nil, nil, expr.Type.IsVariadic)
+
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
 		kind := c.typeinfo[expr.Expr].Type.Kind()
@@ -399,6 +410,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			for i := range node.Identifiers {
 				c.compileValueToVar(node.Values[i], node.Identifiers[i], true)
 			}
+
+		case ast.Expression:
+			c.compileExpr(node, 0)
 
 		}
 	}

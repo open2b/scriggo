@@ -124,6 +124,7 @@ func NewPackage(name string) *Package {
 	return p
 }
 
+// AddPackage adds package pkg to p.
 func (p *Package) AddPackage(pkg *Package) uint8 {
 	if len(p.packages) == 254 {
 		panic("imported packages limit reached")
