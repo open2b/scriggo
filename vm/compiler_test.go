@@ -121,7 +121,7 @@ var exprTests = []struct {
 			"",
 			"Func main()",
 			"	// regs(2,0,0,0)",
-			"	MoveInt 0 R1",
+			"	MoveInt 0 R0",
 			"	MoveInt 0 R1",
 			"	IfInt R0 Less 20",
 			"	Goto 1",

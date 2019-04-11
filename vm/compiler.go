@@ -368,49 +368,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.Return()
 
 		case *ast.Switch:
-			c.fb.EnterScope()
-			if node.Init != nil {
-				c.compileNodes([]ast.Node{node.Init})
-			}
-			kind := c.typeinfo[node.Expr].Type.Kind()
-			expr := c.fb.NewRegister(kind)
-			c.compileExpr(node.Expr, expr)
-			caseLabels := make([]uint32, 0, len(node.Cases))
-			for _, cas := range node.Cases {
-				caseLab := c.fb.NewLabel()
-				caseLabels = append(caseLabels, caseLab)
-				for _, cond := range cas.Expressions {
-					var ky bool
-					var y int8
-					out, isValue, isRegister := c.quickCompileExpr(cond)
-					if isValue {
-						ky = true
-						y = out
-					} else if isRegister {
-						y = out
-					} else {
-						c.fb.allocRegister(kind, y)
-						c.compileExpr(cond, y)
-					}
-					c.fb.If(ky, expr, ConditionEqual, y, kind)
-					nextLabel := c.fb.NewLabel()
-					c.fb.Goto(nextLabel)
-					c.fb.Goto(caseLab)
-					c.fb.SetLabelAddr(nextLabel)
-				}
-			}
-			endSwitch := c.fb.NewLabel()
-			for i, cas := range node.Cases {
-				c.fb.SetLabelAddr(caseLabels[i])
-				c.compileNodes(cas.Body)
-				if cas.Fallthrough {
-					c.fb.Goto(caseLabels[i+1])
-				} else {
-					c.fb.Goto(endSwitch)
-				}
-			}
-			c.fb.SetLabelAddr(endSwitch)
-			c.fb.ExitScope()
+			c.compileSwitch(node)
 
 		case *ast.Var:
 			for i := range node.Identifiers {
@@ -422,6 +380,59 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 
 		}
 	}
+}
+
+func (c *Compiler) compileSwitch(node *ast.Switch) {
+
+	kind := c.typeinfo[node.Expr].Type.Kind()
+	expr := c.fb.NewRegister(kind)
+	c.compileExpr(node.Expr, expr)
+	bodyLabels := make([]uint32, len(node.Cases))
+	endSwitchLabel := c.fb.NewLabel()
+
+	var defaultLabel uint32
+	hasDefault := false
+
+	for i, cas := range node.Cases {
+		bodyLabels[i] = c.fb.NewLabel()
+		hasDefault = hasDefault || cas.Expressions == nil
+		for _, caseExpr := range cas.Expressions {
+			var ky bool
+			var y int8
+			out, isValue, isRegister := c.quickCompileExpr(caseExpr)
+			if isValue {
+				ky = true
+				y = out
+			} else if isRegister {
+				y = out
+			} else {
+				c.fb.allocRegister(kind, y)
+				c.compileExpr(caseExpr, y)
+			}
+			c.fb.If(ky, expr, ConditionNotEqual, y, kind) // Condizione negata per poter concatenare gli if
+			c.fb.Goto(bodyLabels[i])
+		}
+	}
+
+	if hasDefault {
+		defaultLabel = c.fb.NewLabel()
+		c.fb.Goto(defaultLabel)
+	} else {
+		c.fb.Goto(endSwitchLabel)
+	}
+
+	for i, cas := range node.Cases {
+		if cas.Expressions == nil {
+			c.fb.SetLabelAddr(defaultLabel)
+		}
+		c.fb.SetLabelAddr(bodyLabels[i])
+		c.compileNodes(cas.Body)
+		if !cas.Fallthrough {
+			c.fb.Goto(endSwitchLabel)
+		}
+	}
+
+	c.fb.SetLabelAddr(endSwitchLabel)
 }
 
 // compileCondition compiles expr using c.currFb. Returns the two values of the
