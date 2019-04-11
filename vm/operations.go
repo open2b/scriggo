@@ -34,7 +34,6 @@ const (
 	opBind
 
 	opCall
-	opCallDirect
 	opCallNative
 
 	opCap
@@ -180,7 +179,6 @@ var operationName = [...]string{
 	opBind: "Bind",
 
 	opCall:       "Call",
-	opCallDirect: "CallDirect",
 	opCallNative: "CallNative",
 
 	opCap: "Cap",
