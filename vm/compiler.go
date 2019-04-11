@@ -408,13 +408,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 	}
 }
 
-// isBlankIdentifier indicates if expr is an identifier representing the blank
-// identifier "_".
-func isBlankIdentifier(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	return ok && ident.Name == "_"
-}
-
 // compileCondition compiles expr using c.currFb. Returns the two values of the
 // condition (x and y), a kind, the condition ad a boolean ky which indicates
 // whether y is a constant value.
@@ -486,13 +479,4 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 		y = c.fb.MakeIntConstant(1) // TODO.
 	}
 	return x, y, kind, o, yk
-}
-
-// isNil indicates if expr is the nil identifier.
-func isNil(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	if !ok {
-		return false
-	}
-	return ident.Name == "nil"
 }
