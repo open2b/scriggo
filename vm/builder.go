@@ -289,6 +289,20 @@ func (fn *Function) SetFileLine(file string, line int) {
 	fn.line = line
 }
 
+func (fn *Function) AddType(typ reflect.Type) uint8 {
+	index := len(fn.types)
+	if index > 255 {
+		panic("types limit reached")
+	}
+	for i, t := range fn.types {
+		if t == typ {
+			return uint8(i)
+		}
+	}
+	fn.types = append(fn.types, typ)
+	return uint8(index)
+}
+
 type FunctionBuilder struct {
 	fn      *Function
 	labels  []uint32
@@ -786,20 +800,8 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
 	builder.allocRegister(reflect.Int, n)
 	builder.allocRegister(reflect.Interface, z)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: tr, b: n, c: z})
+	a := builder.fn.AddType(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: int8(a), b: n, c: z})
 }
 
 // Move appends a new "move" instruction to the function body.
@@ -863,24 +865,8 @@ func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		if len(types) == 256 {
-			panic("types limit reached")
-		}
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: tr, c: z})
+	a := builder.fn.AddType(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
 // Rem appends a new "rem" instruction to the function body.
@@ -943,23 +929,11 @@ func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
 //
 //     slice(t, l, c)
 //
-func (builder *FunctionBuilder) Slice(t reflect.Type, l, c int8) {
+func (builder *FunctionBuilder) Slice(typ reflect.Type, l, c int8) {
 	builder.allocRegister(reflect.Int, l)
 	builder.allocRegister(reflect.Int, c)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, typ := range types {
-		if typ == t {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		tr = int8(len(types))
-		builder.fn.types = append(types, t)
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: l, c: c})
+	a := builder.fn.AddType(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: int8(a), b: l, c: c})
 }
 
 // Sub appends a new "Sub" instruction to the function body.
