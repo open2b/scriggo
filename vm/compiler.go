@@ -29,6 +29,26 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	return c
 }
 
+func (pkg *Package) importGoPackage(goPkg *parser.GoPackage) {
+	for ident, value := range goPkg.Declarations {
+		_ = ident
+		if t, ok := value.(reflect.Type); ok {
+			// TODO: import type
+			_ = t
+			continue
+		}
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			pkg.DefineVariable(ident, value)
+			continue
+		}
+		if reflect.TypeOf(value).Kind() == reflect.Func {
+			pkg.DefineGoFunction(ident, value)
+			continue
+		}
+		// TODO: import constant
+	}
+}
+
 // Compile compiles path and returns its package.
 func (c *Compiler) Compile(path string) (*Package, error) {
 	tree, err := c.parser.Parse(path, ast.ContextNone)
