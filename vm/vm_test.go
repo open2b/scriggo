@@ -61,6 +61,9 @@ var stmt_tests = map[string][]reg{
 	`a := 0; switch 1 + 1 { case 1: a = 10 ; case 2: a = 20; case 3: a = 30 }; _ = a`: []reg{
 		{TypeInt, 0, int64(20)},
 	},
+	`a := 0; switch 1 + 1 { case 1: a = 10 ; case 2: a = 20; fallthrough; case 3: a = 30 }; _ = a`: []reg{
+		{TypeInt, 0, int64(30)},
+	},
 	// `a := 0; switch 2 + 2 { case 1: a = 10 ; default: a = 80; case 2: a = 20; case 3: a = 30 }; _ = a`: []reg{
 	// 	{TypeInt, 0, int64(80)},
 	// },

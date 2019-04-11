@@ -369,6 +369,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 					} else if isRegister {
 						y = out
 					} else {
+						fb.allocRegister(kind, y)
 						c.compileExpr(cond, fb, y)
 					}
 					fb.If(ky, expr, ConditionEqual, y, kind)
@@ -380,10 +381,13 @@ func (c *Compiler) compileNodes(nodes []ast.Node, fb *FunctionBuilder) {
 			}
 			endSwitch := fb.NewLabel()
 			for i, cas := range node.Cases {
-
 				fb.SetLabelAddr(caseLabels[i])
 				c.compileNodes(cas.Body, fb)
-				fb.Goto(endSwitch)
+				if cas.Fallthrough {
+					fb.Goto(caseLabels[i+1])
+				} else {
+					fb.Goto(endSwitch)
+				}
 			}
 			fb.SetLabelAddr(endSwitch)
 			fb.ExitScope()
