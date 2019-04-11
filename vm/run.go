@@ -116,30 +116,51 @@ func (vm *VM) run() int {
 			vm.setInt(c, vm.int(a)&^vm.intk(b, op < 0))
 
 		// Append
-		case opAppend:
-			//s := reflectValue.ValueOf(vm.popInterface())
-			//t := s.Type()
-			//n := int(vm.readByte())
-			//var s2 reflectValue.Value
-			//l, c := s.Len(), s.Cap()
-			//p := 0
-			//if l+n <= c {
-			//	s2 = reflectValue.MakeSlice(t, n, n)
-			//	s = s.Slice3(0, c, c)
-			//} else {
-			//	s2 = reflectValue.MakeSlice(t, l+n, l+n)
-			//	reflectValue.Copy(s2, s)
-			//	s = s2
-			//	p = l
-			//}
-			//for i := 1; i < n; i++ {
-			//	v := reflectValue.ValueOf(vm.popInterface())
-			//	s2.Index(p + i - 1).Set(v)
-			//}
-			//if l+n <= c {
-			//	reflectValue.Copy(s2.Slice(l, l+n+1), s2)
-			//}
-			//vm.pushInterface(s.Interface())
+		// a = append(a, b), where b has type c
+		// case opAppend, -opAppend:
+
+		// 	target := vm.general(a)
+		// 	typ := vm.fn.types[int(uint(b))]
+		// 	var elem interface{}
+		// 	switch typ.Kind() {
+		// 	case reflect.Int:
+		// 		elem = vm.int(a)
+		// 	case reflect.String:
+		// 		elem = vm.string(a)
+		// 	case reflect.Float64:
+		// 		elem = vm.float(a)
+		// 	default:
+		// 		panic("getting from general!") // TODO (Gianluca): to remove.
+		// 		elem = vm.general(b)
+		// 	}
+		// 	vm.setGeneral(
+		// 		a,
+		// 		reflect.Append(reflect.ValueOf(target), reflect.ValueOf(elem)).Interface(),
+		// 	)
+
+		//s := reflectValue.ValueOf(vm.popInterface())
+		//t := s.Type()
+		//n := int(vm.readByte())
+		//var s2 reflectValue.Value
+		//l, c := s.Len(), s.Cap()
+		//p := 0
+		//if l+n <= c {
+		//	s2 = reflectValue.MakeSlice(t, n, n)
+		//	s = s.Slice3(0, c, c)
+		//} else {
+		//	s2 = reflectValue.MakeSlice(t, l+n, l+n)
+		//	reflectValue.Copy(s2, s)
+		//	s = s2
+		//	p = l
+		//}
+		//for i := 1; i < n; i++ {
+		//	v := reflectValue.ValueOf(vm.popInterface())
+		//	s2.Index(p + i - 1).Set(v)
+		//}
+		//if l+n <= c {
+		//	reflectValue.Copy(s2.Slice(l, l+n+1), s2)
+		//}
+		//vm.pushInterface(s.Interface())
 
 		// Assert
 		case opAssert:
