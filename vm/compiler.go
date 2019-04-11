@@ -82,7 +82,9 @@ func (c *Compiler) quickCompile(expr ast.Expression, fb *FunctionBuilder) (out i
 			}
 		case reflect.String:
 			c := fb.MakeStringConstant(expr.Val.(string))
-			return c, false, true
+			reg := fb.NewRegister(reflect.String)
+			fb.Move(true, c, reg, reflect.String)
+			return reg, false, true
 		default:
 			panic("TODO: not implemented")
 

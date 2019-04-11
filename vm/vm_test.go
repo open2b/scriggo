@@ -39,9 +39,10 @@ var stmt_tests = map[string][]reg{
 	`c := 0; if x := 1; x == 1 { c = 1 } else { c = 2 }; _ = c`: []reg{
 		{TypeInt, 0, int64(1)}, // c
 	},
-	// `a := "s"; _ = a`: []reg{
-	// 	{TypeString, 0, "s"},
-	// },
+	`a := "s"; _ = a; b := "ee" + "ff"; _ = b`: []reg{
+		{TypeString, 0, "s"},    // a
+		{TypeString, 2, "eeff"}, // b
+	},
 	`a := []int{}; _ = a`: []reg{
 		{TypeIface, 0, []int{}}, // a
 	},
@@ -92,7 +93,7 @@ func TestVM(t *testing.T) {
 			case TypeFloat:
 				got = vm.float(reg.r)
 			case TypeIface:
-				got = vm.value(reg.r)
+				got = vm.general(reg.r)
 			case TypeInt:
 				got = vm.int(reg.r)
 			case TypeString:
