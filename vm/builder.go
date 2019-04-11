@@ -196,8 +196,8 @@ type Function struct {
 }
 
 // NewFunction creates a new function and appends it to the package.
-func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Function {
-	fn := &Function{
+func (p *Package) NewFunction(name string, in, out []Type, variadic bool) (fn *Function, index int8) {
+	fn = &Function{
 		name:     name,
 		pkg:      p,
 		in:       in,
@@ -205,7 +205,7 @@ func (p *Package) NewFunction(name string, in, out []Type, variadic bool) *Funct
 		variadic: variadic,
 	}
 	p.functions = append(p.functions, fn)
-	return fn
+	return fn, int8(len(p.functions) - 1)
 }
 
 func (fn *Function) SetClosureRefs(refs []int16) {

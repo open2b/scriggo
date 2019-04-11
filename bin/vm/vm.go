@@ -7,7 +7,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 
@@ -18,14 +17,22 @@ func main() {
 
 	vm.DebugTraceExecution = true
 
-	_, _ = fmt.Fprint(os.Stderr, "Call example:\n")
-	call()
+	pkg := vm.NewPackage("main")
 
-	_, _ = fmt.Fprint(os.Stderr, "\n\nRecursive call example:\n")
-	callRec()
+	doSomething := pkg.NewFunction("doSomething", nil, nil, false)
+	b := doSomething.Builder()
+	b.Move(true, 10, 0, reflect.Int)
+	b.End()
 
-	_, _ = fmt.Fprint(os.Stderr, "\n\nClosure example:\n")
-	closure()
+	main := pkg.NewFunction("main", nil, nil, false)
+	b = main.Builder()
+	b.Call(vm.CurrentPackage, 0, vm.StackShift{})
+	b.End()
+
+	_, err := vm.Disassemble(os.Stdout, pkg)
+	if err != nil {
+		panic(err)
+	}
 
 	return
 }
@@ -37,45 +44,43 @@ func call() {
 	//     x = inc(x)
 	// }
 
-	pkg := vm.NewPackage("main")
+	// inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
+	// b := inc.Builder()
+	// b.Add(true, 1, 1, 0, reflect.Int)
+	// b.Return()
+	// b.End()
 
-	inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
-	b := inc.Builder()
-	b.Add(true, 1, 1, 0, reflect.Int)
-	b.Return()
-	b.End()
+	// main := pkg.NewFunction("main", nil, nil, false)
 
-	main := pkg.NewFunction("main", nil, nil, false)
+	// b = main.Builder()
+	// b.Move(true, 0, 0, reflect.Int) // i := 0
+	// b.Move(true, 0, 1, reflect.Int) // x := 0
+	// // b.SetLabel() // TODO.
+	// b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
+	// b.Goto(3)
+	// // b.SetLabel() // TODO.
+	// // x = inc(x)
+	// b.Move(false, 1, 3, reflect.Int)
+	// b.GetFunc(0, 0, 0)
+	// b.Call(vm.NoPackage, 0, vm.StackShift{2}) // inc()
+	// b.Move(false, 2, 1, reflect.Int)
+	// //
+	// b.Add(true, 0, 1, 0, reflect.Int) // i++
+	// //
+	// b.Goto(1)
+	// // b.SetLabel() // TODO.
+	// b.Return()
+	// b.End()
 
-	b = main.Builder()
-	b.Move(true, 0, 0, reflect.Int) // i := 0
-	b.Move(true, 0, 1, reflect.Int) // x := 0
-	// b.SetLabel() // TODO.
-	b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
-	b.Goto(3)
-	// b.SetLabel() // TODO.
-	// x = inc(x)
-	b.Move(false, 1, 3, reflect.Int)
-	b.GetFunc(0, 0, 0)
-	b.Call(vm.NoPackage, 0, vm.StackShift{2}) // inc()
-	b.Move(false, 2, 1, reflect.Int)
-	//
-	b.Add(true, 0, 1, 0, reflect.Int) // i++
-	//
-	b.Goto(1)
-	// b.SetLabel() // TODO.
-	b.Return()
-	b.End()
-
-	_, err := vm.Disassemble(os.Stdout, pkg)
-	if err != nil {
-		panic(err)
-	}
-	vm1 := vm.New(pkg)
-	_, err = vm1.Run("main")
-	if err != nil {
-		panic(err)
-	}
+	// _, err := vm.Disassemble(os.Stdout, pkg)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// vm1 := vm.New(pkg)
+	// _, err = vm1.Run("main")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 }
 

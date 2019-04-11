@@ -14,14 +14,17 @@ import (
 )
 
 type Compiler struct {
-	parser   *parser.Parser
-	pkg      *Package
-	typeinfo map[ast.Node]*parser.TypeInfo
-	fb       *FunctionBuilder // current function builder.
+	parser          *parser.Parser
+	pkg             *Package
+	typeinfo        map[ast.Node]*parser.TypeInfo
+	fb              *FunctionBuilder // current function builder.
+	funcNameToIndex map[string]int8
 }
 
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
-	c := &Compiler{}
+	c := &Compiler{
+		funcNameToIndex: make(map[string]int8),
+	}
 	c.parser = parser.New(r, packages, true)
 	return c
 }
@@ -43,12 +46,13 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
 		case *ast.Func:
-			fn := c.pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
+			fn, index := c.pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
+			c.funcNameToIndex[n.Ident.Name] = index
 		case *ast.Var:
 			panic("TODO: not implemented")
 		}
@@ -149,7 +153,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.Func:
 		currentFunc := c.fb
-		fn := c.pkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
+		fn, _ := c.pkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
 		c.fb = fn.Builder()
 		c.fb.EnterScope()
 		c.compileNodes(expr.Body.Nodes)
@@ -294,8 +298,17 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 
 		case *ast.Call:
 			ok := c.callBuiltin(node)
-			if !ok {
-				c.fb.Call(0, 0, StackShift{}) // TODO
+			if ok {
+				continue
+			}
+			switch f := node.Func.(type) {
+			case *ast.Identifier:
+				// TODO (Gianluca): can also be a clojure
+				name := f.Name
+				index := c.funcNameToIndex[name]
+				c.fb.Call(CurrentPackage, index, StackShift{}) // TODO
+			default:
+				panic("TODO: not implemented")
 			}
 
 		case *ast.If:
