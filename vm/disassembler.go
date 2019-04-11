@@ -44,6 +44,12 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 	//	}
 	//}
 	_, _ = fmt.Fprint(&b, "\n")
+	if len(pkg.packages) > 0 {
+		for _, p := range pkg.packages {
+			_, _ = fmt.Fprintf(&b, "Import %q\n", p.name)
+		}
+		_, _ = fmt.Fprint(&b, "\n")
+	}
 	for i, fn := range pkg.functions {
 		if i > 0 {
 			_, _ = b.WriteString("\n")
@@ -51,6 +57,7 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 		_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
 		disassembleFunction(&b, fn, 0)
 	}
+	_, _ = fmt.Fprint(&b, "\n")
 	return b.WriteTo(w)
 }
 
