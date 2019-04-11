@@ -105,7 +105,7 @@ func (vm *VM) run() int {
 			default:
 				v = reflect.New(t).Interface()
 			}
-			vm.setValue(-c-1, v)
+			vm.setGeneral(-c-1, v)
 
 		// And
 		case opAnd:
@@ -143,7 +143,7 @@ func (vm *VM) run() int {
 
 		// Assert
 		case opAssert:
-			v := reflect.ValueOf(vm.value(a))
+			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.types[int(uint(b))]
 			ok := v.Type() == t
 			switch t.Kind() {
@@ -176,25 +176,25 @@ func (vm *VM) run() int {
 				if ok {
 					i = v.Interface()
 				}
-				vm.setValue(c, i)
+				vm.setGeneral(c, i)
 			}
 			vm.ok = ok
 		case opAssertInt:
-			i, ok := vm.value(a).(int)
+			i, ok := vm.general(a).(int)
 			vm.setInt(c, int64(i))
 			vm.ok = ok
 		case opAssertFloat64:
-			f, ok := vm.value(a).(float64)
+			f, ok := vm.general(a).(float64)
 			vm.setFloat(c, f)
 			vm.ok = ok
 		case opAssertString:
-			s, ok := vm.value(a).(string)
+			s, ok := vm.general(a).(string)
 			vm.setString(c, s)
 			vm.ok = ok
 
 		// Bind
 		case opBind:
-			vm.setValue(-c-1, vm.cvars[uint8(b)])
+			vm.setGeneral(-c-1, vm.cvars[uint8(b)])
 
 		// Call
 		case opCall:
@@ -202,7 +202,7 @@ func (vm *VM) run() int {
 			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
 			var fn *Function
 			if a == NoPackage {
-				closure := vm.value(b).(closure)
+				closure := vm.general(b).(closure)
 				fn = closure.fn
 				vm.cvars = closure.vars
 			} else {
@@ -296,13 +296,13 @@ func (vm *VM) run() int {
 				vars = make([]interface{}, len(fn.crefs))
 				for i, ref := range fn.crefs {
 					if ref < 0 {
-						vars[i] = vm.value(int8(-ref - 1))
+						vars[i] = vm.general(int8(-ref - 1))
 					} else {
 						vars[i] = vm.cvars[ref]
 					}
 				}
 			}
-			vm.setValue(c, closure{fn: fn, vars: vars})
+			vm.setGeneral(c, closure{fn: fn, vars: vars})
 
 		// GetClosureVar
 		case opGetClosureVar:
@@ -324,7 +324,7 @@ func (vm *VM) run() int {
 				case k == reflect.Float32:
 					vm.setFloat(c, rv.Float())
 				default:
-					vm.setValue(c, rv.Interface())
+					vm.setGeneral(c, rv.Interface())
 				}
 			}
 
@@ -334,7 +334,7 @@ func (vm *VM) run() int {
 			if a != CurrentPackage {
 				pkg = pkg.packages[uint8(a)]
 			}
-			vm.setValue(c, closure{fn: pkg.functions[uint8(b)]})
+			vm.setGeneral(c, closure{fn: pkg.functions[uint8(b)]})
 
 		// GetVar
 		case opGetVar:
@@ -360,7 +360,7 @@ func (vm *VM) run() int {
 				case k == reflect.Float32:
 					vm.setFloat(c, rv.Float())
 				default:
-					vm.setValue(c, rv.Interface())
+					vm.setGeneral(c, rv.Interface())
 				}
 			}
 
@@ -371,7 +371,7 @@ func (vm *VM) run() int {
 		// If
 		case opIf:
 			var cond bool
-			v1 := vm.value(a)
+			v1 := vm.general(a)
 			switch Condition(b) {
 			case ConditionNil:
 				cond = v1 == nil
@@ -486,7 +486,7 @@ func (vm *VM) run() int {
 
 		// Index
 		case opIndex, -opIndex:
-			vm.setValue(c, reflect.ValueOf(vm.value(a)).Index(int(vm.intk(b, op < 0))).Interface())
+			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
 		// JmpOk
 		case opJmpOk:
@@ -506,7 +506,7 @@ func (vm *VM) run() int {
 			if a == 0 {
 				length = len(vm.string(b))
 			} else {
-				v := vm.value(b)
+				v := vm.general(b)
 				switch int(a) {
 				case 1:
 					length = reflect.ValueOf(v).Len()
@@ -532,7 +532,7 @@ func (vm *VM) run() int {
 		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]
 			n := int(vm.intk(b, op < 0))
-			vm.setValue(c, reflect.MakeMapWithSize(t, n))
+			vm.setGeneral(c, reflect.MakeMapWithSize(t, n))
 
 		// MakeSlice
 		case opMakeSlice:
@@ -553,7 +553,7 @@ func (vm *VM) run() int {
 			vm.setValue(c, v)
 		// MapIndex
 		case opMapIndex, -opMapIndex:
-			m := reflect.ValueOf(vm.value(a))
+			m := reflect.ValueOf(vm.general(a))
 			t := m.Type()
 			k := op < 0
 			var key reflect.Value
@@ -567,7 +567,7 @@ func (vm *VM) run() int {
 			case kind == reflect.Bool:
 				key = reflect.ValueOf(vm.boolk(b, k))
 			default:
-				key = reflect.ValueOf(vm.value(b))
+				key = reflect.ValueOf(vm.general(b))
 			}
 			elem := m.MapIndex(key)
 			switch kind := t.Elem().Kind(); {
@@ -582,28 +582,28 @@ func (vm *VM) run() int {
 			case kind == reflect.Bool:
 				vm.setBool(c, elem.Bool())
 			default:
-				vm.setValue(c, elem.Interface())
+				vm.setGeneral(c, elem.Interface())
 			}
 
 		// MapIndexStringInt
 		case opMapIndexStringInt, -opMapIndexStringInt:
-			vm.setInt(c, int64(vm.value(a).(map[string]int)[vm.stringk(b, op < 0)]))
+			vm.setInt(c, int64(vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]))
 
 		// MapIndexStringBool
 		case opMapIndexStringBool, -opMapIndexStringBool:
-			vm.setBool(c, vm.value(a).(map[string]bool)[vm.stringk(b, op < 0)])
+			vm.setBool(c, vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringString
 		case opMapIndexStringString, -opMapIndexStringString:
-			vm.setString(c, vm.value(a).(map[string]string)[vm.stringk(b, op < 0)])
+			vm.setString(c, vm.general(a).(map[string]string)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringInterface
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
-			vm.setValue(c, vm.value(a).(map[string]interface{})[vm.stringk(b, op < 0)])
+			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
 		// Move
 		case opMove:
-			vm.setValue(c, vm.value(b))
+			vm.setGeneral(c, vm.general(b))
 		case opMoveInt:
 			vm.setInt(c, vm.int(b))
 		case -opMoveInt:
@@ -638,7 +638,7 @@ func (vm *VM) run() int {
 		// New
 		case opNew:
 			t := vm.fn.types[int(uint(b))]
-			vm.setValue(c, reflect.New(t).Interface())
+			vm.setGeneral(c, reflect.New(t).Interface())
 
 		// Or
 		case opOr, -opOr:
@@ -647,7 +647,7 @@ func (vm *VM) run() int {
 		// Range
 		case opRange:
 			var cont int
-			s := vm.value(c)
+			s := vm.general(c)
 			switch s := s.(type) {
 			case []int:
 				for i, v := range s {
@@ -715,7 +715,7 @@ func (vm *VM) run() int {
 						vm.setInt(a, int64(i))
 					}
 					if b != NoRegister {
-						vm.setValue(b, v)
+						vm.setGeneral(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
 						break
@@ -763,7 +763,7 @@ func (vm *VM) run() int {
 						vm.setString(a, i)
 					}
 					if b != NoRegister {
-						vm.setValue(b, v)
+						vm.setGeneral(b, v)
 					}
 					if cont = vm.run(); cont > 0 {
 						break
@@ -867,7 +867,7 @@ func (vm *VM) run() int {
 
 		// Selector
 		case opSelector:
-			v := reflect.ValueOf(vm.value(a)).Field(int(uint8(b)))
+			v := reflect.ValueOf(vm.general(a)).Field(int(uint8(b)))
 			switch v.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				vm.setInt(c, v.Int())
@@ -880,7 +880,7 @@ func (vm *VM) run() int {
 			case reflect.String:
 				vm.setString(c, v.String())
 			default:
-				vm.setValue(c, v.Interface())
+				vm.setGeneral(c, v.Interface())
 			}
 
 		// SetClosureVar
@@ -903,7 +903,7 @@ func (vm *VM) run() int {
 				case k == reflect.Float32:
 					rv.SetFloat(vm.floatk(b, op < 0))
 				default:
-					rv.Set(reflect.ValueOf(vm.value(b)))
+					rv.Set(reflect.ValueOf(vm.general(b)))
 				}
 			}
 
@@ -931,13 +931,13 @@ func (vm *VM) run() int {
 				case k == reflect.Float32:
 					rv.SetFloat(vm.floatk(a, op < 0))
 				default:
-					rv.Set(reflect.ValueOf(vm.value(a)))
+					rv.Set(reflect.ValueOf(vm.general(a)))
 				}
 			}
 
 		// SliceIndex
 		case opSliceIndex, -opSliceIndex:
-			v := vm.value(a)
+			v := vm.general(a)
 			i := int(vm.intk(b, op < 0))
 			switch v := v.(type) {
 			case []int:
@@ -951,9 +951,9 @@ func (vm *VM) run() int {
 			case []string:
 				vm.setString(c, v[i])
 			case []interface{}:
-				vm.setValue(c, v[i])
+				vm.setGeneral(c, v[i])
 			default:
-				vm.setValue(c, reflect.ValueOf(v).Index(i).Interface())
+				vm.setGeneral(c, reflect.ValueOf(v).Index(i).Interface())
 			}
 
 		// StringIndex
@@ -1001,7 +1001,7 @@ func (vm *VM) run() int {
 			if b != CurrentFunction {
 				var fn *Function
 				if a == NoPackage {
-					closure := vm.value(b).(closure)
+					closure := vm.general(b).(closure)
 					fn = closure.fn
 					vm.cvars = closure.vars
 				} else {
