@@ -42,11 +42,11 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 }
 
 func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
-	pkg := NewPackage(node.Name)
+	c.pkg = NewPackage(node.Name)
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
 		case *ast.Func:
-			fn := pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
+			fn := c.pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
@@ -56,7 +56,7 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 			panic("TODO: not implemented")
 		}
 	}
-	return pkg, nil
+	return c.pkg, nil
 }
 
 // quickCompile checks if expr is a value or a register, putting it into out. If
