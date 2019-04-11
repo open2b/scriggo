@@ -182,13 +182,15 @@ type Package struct {
 	varNames    []string
 }
 
+// NewPackage creates a new package.
 func NewPackage(name string) *Package {
 	p := &Package{name: name}
 	p.packages = []*Package{}
 	return p
 }
 
-func (p *Package) AddPackage(pkg *Package) uint8 {
+// Import imports a package.
+func (p *Package) Import(pkg *Package) uint8 {
 	if len(p.packages) == 254 {
 		panic("imported packages limit reached")
 	}
@@ -196,30 +198,24 @@ func (p *Package) AddPackage(pkg *Package) uint8 {
 	return uint8(len(p.packages) - 2)
 }
 
-func (p *Package) AddVariable(v interface{}) uint8 {
-	return p.AddNamedVariable("", v)
-}
-
-func (p *Package) AddNamedVariable(name string, v interface{}) uint8 {
-	if len(p.variables) == 256 {
+// DefineVariable defines a variable.
+func (p *Package) DefineVariable(name string, v interface{}) uint8 {
+	index := len(p.variables)
+	if index == 256 {
 		panic("variables limit reached")
 	}
 	p.variables = append(p.variables, v)
-	if name == "" {
-		if p.varNames != nil {
-			panic("missing variable name")
-		}
-	} else {
+	if name != "" {
 		if p.varNames == nil {
-			p.varNames = []string{name}
-		} else {
-			p.varNames = append(p.varNames, name)
+			p.varNames = make([]string, len(p.variables))
 		}
+		p.varNames[index] = name
 	}
-	return uint8(len(p.variables) - 1)
+	return uint8(index)
 }
 
-// Function returns given its name or an error if the function does not exists.
+// Function returns a function by name. Returns an error if the function does
+// not exists.
 func (p *Package) Function(name string) (*Function, error) {
 	for _, fn := range p.functions {
 		if fn.name == name {
@@ -258,8 +254,8 @@ type Function struct {
 	lines     []int
 }
 
-// AddGoFunction adds a Go function and appends it to the package.
-func (p *Package) AddGoFunction(name string, fn interface{}) uint8 {
+// DefineGoFunction defines a Go function and appends it to the package.
+func (p *Package) DefineGoFunction(name string, fn interface{}) uint8 {
 	r := len(p.gofunctions)
 	if r > 255 {
 		panic("functions limit reached")
