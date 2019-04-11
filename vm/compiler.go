@@ -29,6 +29,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	return c
 }
 
+// Compile compiles path and returns its package.
 func (c *Compiler) Compile(path string) (*Package, error) {
 	tree, err := c.parser.Parse(path, ast.ContextNone)
 	if err != nil {
@@ -41,6 +42,7 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	return c.pkg, nil
 }
 
+// compilePackage compiles the node package.
 func (c *Compiler) compilePackage(node *ast.Package) {
 	c.pkg = NewPackage(node.Name)
 	for _, dec := range node.Declarations {
@@ -254,6 +256,7 @@ func (c *Compiler) callBuiltin(call *ast.Call) (ok bool) {
 	return false
 }
 
+// compileNodes compiles nodes.
 func (c *Compiler) compileNodes(nodes []ast.Node) {
 	for _, node := range nodes {
 		switch node := node.(type) {
@@ -382,6 +385,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 	}
 }
 
+// compileSwitch compiles switch node.
 func (c *Compiler) compileSwitch(node *ast.Switch) {
 
 	kind := c.typeinfo[node.Expr].Type.Kind()
@@ -438,23 +442,21 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 // compileCondition compiles expr using c.currFb. Returns the two values of the
 // condition (x and y), a kind, the condition ad a boolean ky which indicates
 // whether y is a constant value.
-//
-// 	ConditionEqual             Condition = iota // x == y
-// 	ConditionNotEqual                           // x != y
-// 	ConditionLess                               // x <  y
-// 	ConditionLessOrEqual                        // x <= y
-// 	ConditionGreater                            // x >  y
-// 	ConditionGreaterOrEqual                     // x >= y
-// 	ConditionEqualLen                           // len(x) == y
-// 	ConditionNotEqualLen                        // len(x) != y
-// 	ConditionLessLen                            // len(x) <  y
-// 	ConditionLessOrEqualLen                     // len(x) <= y
-// 	ConditionGreaterLen                         // len(x) >  y
-// 	ConditionGreaterOrEqualLen                  // len(x) >= y
-// 	ConditionNil                                // x == nil
-// 	ConditionNotNil                             // x != nil
-//
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
+	// 	ConditionEqual             Condition = iota // x == y
+	// 	ConditionNotEqual                           // x != y
+	// 	ConditionLess                               // x <  y
+	// 	ConditionLessOrEqual                        // x <= y
+	// 	ConditionGreater                            // x >  y
+	// 	ConditionGreaterOrEqual                     // x >= y
+	// 	ConditionEqualLen                           // len(x) == y
+	// 	ConditionNotEqualLen                        // len(x) != y
+	// 	ConditionLessLen                            // len(x) <  y
+	// 	ConditionLessOrEqualLen                     // len(x) <= y
+	// 	ConditionGreaterLen                         // len(x) >  y
+	// 	ConditionGreaterOrEqualLen                  // len(x) >= y
+	// 	ConditionNil                                // x == nil
+	// 	ConditionNotNil                             // x != nil
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
