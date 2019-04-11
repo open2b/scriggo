@@ -29,7 +29,36 @@ func removeTabs(s string) string {
 	return strings.ReplaceAll(s, "\t", "    ")
 }
 
-var expr_tests = []struct {
+func NoTestMakeExpressionTests(t *testing.T) {
+	out := strings.Builder{}
+	out.WriteString("\n")
+	for _, cas := range exprTests {
+		fullSrc := "package main\nfunc main(){\n" + cas.src + "\nreturn\n\n}\n"
+		r := parser.MapReader{"/test.go": []byte(fullSrc)}
+		comp := NewCompiler(r, nil)
+		pkg, err := comp.Compile("/test.go")
+		if err != nil {
+			panic(fmt.Errorf("unexpected error: source: %q, compiler error: %s", cas.src, err))
+		}
+		got := &bytes.Buffer{}
+		_, err = Disassemble(got, pkg)
+		if err != nil {
+			panic(fmt.Errorf("unexpected error: source: %q, disassemble error: %s", cas.src, err))
+		}
+
+		out.WriteString("{\n")
+		out.WriteString("\t`" + cas.src + "`,\n")
+		out.WriteString("\t[]string{\n")
+		for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
+			out.WriteString("\t\t\"" + line + "\",\n")
+		}
+		out.WriteString("\t},\n")
+		out.WriteString("},\n")
+	}
+	t.Error(out.String())
+}
+
+var exprTests = []struct {
 	src      string
 	expected []string
 }{
@@ -62,21 +91,21 @@ var expr_tests = []struct {
 			"Package main",
 			"",
 			"Func main()",
-			"      // regs(2,0,0,0)",
-			"      MoveInt 0 R0",
-			"      MoveInt 0 R1",
-			"      IfInt R0 Less 20",
-			"      Goto 1",
-			"      MoveInt 1 R1",
-			"      Goto 2",
-			"1:	 MoveInt 2 R1",
-			"2:    Return",
+			"	// regs(2,0,0,0)",
+			"	MoveInt 0 R0",
+			"	MoveInt 0 R1",
+			"	IfInt R0 Less 20",
+			"	Goto 1",
+			"	MoveInt 1 R1",
+			"	Goto 2",
+			"1:	MoveInt 2 R1",
+			"2:	Return",
 		},
 	},
 }
 
 func TestCompiler(t *testing.T) {
-	for _, cas := range expr_tests {
+	for _, cas := range exprTests {
 		fullSrc := "package main\nfunc main(){\n" + cas.src + "\nreturn\n\n}\n"
 		r := parser.MapReader{"/test.go": []byte(fullSrc)}
 		comp := NewCompiler(r, nil)
