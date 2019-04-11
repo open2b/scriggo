@@ -55,10 +55,10 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 	}
 }
 
-// quickCompile checks if expr is a value or a register, putting it into out. If
-// it's neither of them, both isValue and isRegister are false and content of
-// out is unspecified.
-func (c *Compiler) quickCompile(expr ast.Expression) (out int8, isValue, isRegister bool) {
+// quickCompileExpr checks if expr is a value or a register, putting it into
+// out. If it's neither of them, both isValue and isRegister are false and
+// content of out is unspecified.
+func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isRegister bool) {
 	switch expr := expr.(type) {
 	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		i := int64(expr.Value.Int64())
@@ -99,7 +99,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		var op2 int8
 		var ky bool
 		{
-			out, isValue, isRegister := c.quickCompile(expr.Expr2)
+			out, isValue, isRegister := c.quickCompileExpr(expr.Expr2)
 			if isValue {
 				op2 = out
 				ky = true
@@ -162,7 +162,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.Value, *ast.Int, *ast.Identifier:
 		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.quickCompile(expr)
+		out, isValue, isRegister := c.quickCompileExpr(expr)
 		if isValue {
 			c.fb.Move(true, out, reg, kind)
 		} else if isRegister {
@@ -194,7 +194,7 @@ func (c *Compiler) compileValueToVar(value, variable ast.Expression, isDecl bool
 	} else {
 		varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
 	}
-	out, isValue, isRegister := c.quickCompile(value)
+	out, isValue, isRegister := c.quickCompileExpr(value)
 	if isValue {
 		c.fb.Move(true, out, varReg, kind)
 	} else if isRegister {
@@ -215,7 +215,7 @@ func (c *Compiler) callBuiltin(call *ast.Call) (ok bool) {
 			typ := c.typeinfo[call.Args[0]].Type
 			kind := typ.Kind()
 			var a, b int8
-			out, _, isRegister := c.quickCompile(call.Args[0])
+			out, _, isRegister := c.quickCompileExpr(call.Args[0])
 			if isRegister {
 				b = out
 			} else {
@@ -365,7 +365,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				for _, cond := range cas.Expressions {
 					var ky bool
 					var y int8
-					out, isValue, isRegister := c.quickCompile(cond)
+					out, isValue, isRegister := c.quickCompileExpr(cond)
 					if isValue {
 						ky = true
 						y = out
@@ -429,7 +429,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
 		var out int8
 		var isValue, isRegister bool
-		out, _, isRegister = c.quickCompile(cond.Expr1)
+		out, _, isRegister = c.quickCompileExpr(cond.Expr1)
 		if isRegister {
 			x = out
 		} else {
@@ -444,7 +444,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 				o = ConditionNotNil
 			}
 		} else {
-			out, isValue, isRegister = c.quickCompile(cond.Expr2)
+			out, isValue, isRegister = c.quickCompileExpr(cond.Expr2)
 			if isValue {
 				y = out
 				yk = true
