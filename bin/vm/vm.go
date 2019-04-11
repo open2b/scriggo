@@ -19,12 +19,12 @@ func main() {
 
 	pkg := vm.NewPackage("main")
 
-	doSomething := pkg.NewFunction("doSomething", nil, nil, false)
+	doSomething, _ := pkg.NewFunction("doSomething", nil, nil, false)
 	b := doSomething.Builder()
 	b.Move(true, 10, 0, reflect.Int)
 	b.End()
 
-	main := pkg.NewFunction("main", nil, nil, false)
+	main, _ := pkg.NewFunction("main", nil, nil, false)
 	b = main.Builder()
 	b.Call(vm.CurrentPackage, 0, vm.StackShift{})
 	b.End()
@@ -99,7 +99,7 @@ func callRec() {
 
 	pkg := vm.NewPackage("main")
 
-	fib := pkg.NewFunction("fib", []vm.Type{vm.TypeInt, vm.TypeInt, vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
+	fib, _ := pkg.NewFunction("fib", []vm.Type{vm.TypeInt, vm.TypeInt, vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
 	fb := fib.Builder()
 
 	fb.If(true, 1, vm.ConditionEqual, 0, reflect.Int) // if n == 0
@@ -119,7 +119,7 @@ func callRec() {
 	fb.TailCall(vm.CurrentPackage, vm.CurrentFunction)
 	fb.End()
 
-	main := pkg.NewFunction("main", nil, nil, false)
+	main, _ := pkg.NewFunction("main", nil, nil, false)
 	fb = main.Builder()
 	fb.Move(true, 35, 1, reflect.Int) // n := fibN
 	fb.Move(true, 0, 2, reflect.Int)  // a := 0
@@ -153,7 +153,7 @@ func closure() {
 
 	intType := reflect.TypeOf(0)
 
-	main := pkg.NewFunction("main", nil, nil, false)
+	main, _ := pkg.NewFunction("main", nil, nil, false)
 	b := main.Builder()
 	b.Alloc(intType, -1)              // a := 0
 	inc := b.Func(1, nil, nil, false) // inc := func() { ... }
