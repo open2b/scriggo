@@ -12,6 +12,12 @@ type reg struct {
 	value interface{}
 }
 
+func ptrTo(v interface{}) interface{} {
+	rv := reflect.New(reflect.TypeOf(v))
+	rv.Elem().Set(reflect.ValueOf(v))
+	return rv.Interface()
+}
+
 var stmt_tests = map[string][]reg{
 
 	`a := 10; _ = a`: []reg{
@@ -46,6 +52,9 @@ var stmt_tests = map[string][]reg{
 	`a := []int{}; _ = a`: []reg{
 		{TypeIface, 0, []int{}}, // a
 	},
+	// `a := new(int); _ = a`: []reg{
+	// 	{TypeIface, 0, ptrTo(int64(0))},
+	// },
 	`a := []string{}; _ = a`: []reg{
 		{TypeIface, 0, []string{}}, // a
 	},
@@ -73,6 +82,9 @@ var stmt_tests = map[string][]reg{
 func TestVM(t *testing.T) {
 	DebugTraceExecution = false
 	for src, registers := range stmt_tests {
+		if src != `a := new(int); _ = a` {
+			continue
+		}
 		fullSrc := "package main\nfunc main(){\n" + src + "\n}\n"
 		r := parser.MapReader{"/test.go": []byte(fullSrc)}
 		comp := NewCompiler(r, nil)

@@ -134,7 +134,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, fb *FunctionBuilder, reg int
 	case *ast.Call:
 		ok := c.callBuiltin(expr, fb)
 		if !ok {
-			fb.Call(0, 0, StackShift{}) // TODO
+			panic("TODO: not implemented")
+			// fb.Call(0, 0, StackShift{}) // TODO
 		}
 
 	case *ast.CompositeLiteral:
@@ -236,6 +237,10 @@ func (c *Compiler) callBuiltin(call *ast.Call, fb *FunctionBuilder) (ok bool) {
 				a = 2
 			}
 			i = instruction{op: opLen, a: a, b: b}
+		// case "new":
+		// 	typ := c.typeinfo[call.Args[0]].Type
+		// 	t := fb.Type(typ)
+		// 	i = instruction{op: opNew, b: t, c: }
 		default:
 			return false
 		}
