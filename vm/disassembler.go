@@ -121,7 +121,8 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
-		if in.op == opCall {
+		switch in.op {
+		case opCall, opCallFunc, opTailCall:
 			addr += 1
 		}
 	}
