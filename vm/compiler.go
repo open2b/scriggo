@@ -299,7 +299,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				// TODO (Gianluca): can also be a clojure
 				name := f.Name
 				index := c.funcNameToIndex[name]
-				c.fb.Call(CurrentPackage, index, StackShift{}) // TODO
+				c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
 			default:
 				panic("TODO: not implemented")
 			}

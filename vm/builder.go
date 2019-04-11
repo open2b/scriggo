@@ -273,6 +273,15 @@ func (builder *FunctionBuilder) VariableRegister(n string) int8 {
 	panic("not found")
 }
 
+func (builder *FunctionBuilder) CurrentStackShift() StackShift {
+	return StackShift{
+		int8(builder.numRegs[reflect.Int]),
+		int8(builder.numRegs[reflect.Float64]),
+		int8(builder.numRegs[reflect.String]),
+		int8(builder.numRegs[reflect.Interface]),
+	}
+}
+
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	r := len(builder.fn.constants.String)
 	if r > 255 {
