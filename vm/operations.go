@@ -228,7 +228,7 @@ var operationName = [...]string{
 	opMove:       "Move",
 	opMoveInt:    "MoveInt",
 	opMoveFloat:  "MoveFloat",
-	opMoveString: "moveString",
+	opMoveString: "MoveString",
 
 	opMulInt:     "MulInt",
 	opMulInt8:    "MulInt8",

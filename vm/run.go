@@ -230,9 +230,92 @@ func (vm *VM) run() int {
 
 		// CallNative
 		case opCallNative:
-			//fn := vm.iface(a).(reflectValue.Value)
-			//ret := f.Call(args)
-			//vm.pushValues(ret)
+			fn := vm.fn.pkg.packages[uint8(a)].gofunctions[uint8(b)]
+			fp := vm.fp
+			off := vm.fn.body[pc]
+			vm.fp[0] += uint32(off.op)
+			vm.fp[1] += uint32(off.a)
+			vm.fp[2] += uint32(off.b)
+			vm.fp[3] += uint32(off.c)
+			if fn.iface == nil {
+				vm.fp[0] += uint32(fn.outOff[0])
+				vm.fp[1] += uint32(fn.outOff[1])
+				vm.fp[2] += uint32(fn.outOff[2])
+				vm.fp[3] += uint32(fn.outOff[3])
+				for i, k := range fn.in {
+					switch k {
+					case Bool:
+						fn.args[i].SetBool(vm.bool(0))
+						vm.fp[0]++
+					case Int:
+						fn.args[i].SetInt(vm.int(0))
+						vm.fp[0]++
+					case Uint:
+						fn.args[i].SetUint(uint64(vm.int(0)))
+						vm.fp[0]++
+					case Float64:
+						fn.args[i].SetFloat(vm.float(0))
+						vm.fp[1]++
+					case String:
+						fn.args[i].SetString(vm.string(0))
+						vm.fp[2]++
+					default:
+						fn.args[i].Set(reflect.ValueOf(vm.general(0)))
+						vm.fp[3]++
+					}
+				}
+				vm.fp[0] = fp[0] + uint32(off.op)
+				vm.fp[1] = fp[1] + uint32(off.a)
+				vm.fp[2] = fp[2] + uint32(off.b)
+				vm.fp[3] = fp[3] + uint32(off.c)
+				var ret = fn.value.Call(fn.args)
+				for i, k := range fn.out {
+					switch k {
+					case Bool:
+						vm.setBool(0, ret[i].Bool())
+						vm.fp[0]++
+					case Int:
+						vm.setInt(0, ret[i].Int())
+						vm.fp[0]++
+					case Uint:
+						vm.setInt(0, int64(ret[i].Uint()))
+						vm.fp[0]++
+					case Float64:
+						vm.setFloat(0, ret[i].Float())
+						vm.fp[1]++
+					case String:
+						vm.setString(0, ret[i].String())
+						vm.fp[2]++
+					default:
+						vm.setGeneral(0, ret[i].Interface())
+						vm.fp[3]++
+					}
+				}
+			} else {
+				switch f := fn.iface.(type) {
+				case func(string) int:
+					vm.setInt(0, int64(f(vm.string(0))))
+				case func(string) string:
+					vm.setString(0, f(vm.string(1)))
+				case func(string, string) int:
+					vm.setInt(0, int64(f(vm.string(0), vm.string(1))))
+				case func(string, int) string:
+					vm.setString(0, f(vm.string(1), int(vm.int(0))))
+				case func(string, string) bool:
+					vm.setBool(0, f(vm.string(0), vm.string(1)))
+				case func([]byte) []byte:
+					vm.setGeneral(0, f(vm.general(1).([]byte)))
+				case func([]byte, []byte) int:
+					vm.setInt(0, int64(f(vm.general(0).([]byte), vm.general(1).([]byte))))
+				case func([]byte, []byte) bool:
+					vm.setBool(0, f(vm.general(0).([]byte), vm.general(1).([]byte)))
+				default:
+					fn.toReflect()
+					pc -= 2
+				}
+			}
+			vm.fp = fp
+			pc++
 
 		// Cap
 		case opCap:
