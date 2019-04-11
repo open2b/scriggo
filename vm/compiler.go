@@ -488,14 +488,16 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 			switch cond.Operator() {
 			case ast.OperatorEqual:
 				o = ConditionEqual
-			case ast.OperatorLess:
-				o = ConditionLess
-			case ast.OperatorLessOrEqual:
-				o = ConditionLessOrEqual
 			case ast.OperatorGreater:
 				o = ConditionGreater
 			case ast.OperatorGreaterOrEqual:
 				o = ConditionGreaterOrEqual
+			case ast.OperatorLess:
+				o = ConditionLess
+			case ast.OperatorLessOrEqual:
+				o = ConditionLessOrEqual
+			case ast.OperatorNotEqual:
+				o = ConditionNotEqual
 			}
 		}
 
