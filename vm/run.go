@@ -228,9 +228,26 @@ func (vm *VM) run() int {
 			vm.calls = append(vm.calls, call)
 			pc = 0
 
-		// CallFunc
-		case opCallFunc:
-			fn := vm.fn.pkg.packages[uint8(a)].gofunctions[uint8(b)]
+		// CallFunc, CallMethod
+		case opCallFunc, opCallMethod:
+			var fn *goFunction
+			if op == opCallMethod {
+				t := vm.fn.types[int(uint8(a))]
+				m := t.Method(int(uint8(b)))
+				if i, ok := vm.fn.pkg.DefineGoFunction(m.Name, m.Func); ok {
+					vm.fn.body[pc-1] = instruction{op: opCallFunc, a: CurrentPackage, b: int8(i)}
+					fn = vm.fn.pkg.gofunctions[i]
+				} else {
+					fn = &goFunction{value: m.Func}
+					fn.toReflect()
+				}
+			} else {
+				pkg := vm.fn.pkg
+				if a != CurrentPackage {
+					pkg = pkg.packages[uint8(a)]
+				}
+				fn = pkg.gofunctions[uint8(b)]
+			}
 			fp := vm.fp
 			off := vm.fn.body[pc]
 			vm.fp[0] += uint32(off.op)

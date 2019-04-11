@@ -120,7 +120,10 @@ type goFunction struct {
 }
 
 func (fn *goFunction) toReflect() {
-	fn.value = reflect.ValueOf(fn.iface)
+	if fn.iface != nil {
+		fn.value = reflect.ValueOf(fn.iface)
+		fn.iface = nil
+	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
 	fn.in = make([]Kind, nIn)
@@ -169,7 +172,6 @@ func (fn *goFunction) toReflect() {
 			fn.outOff[3]++
 		}
 	}
-	fn.iface = nil
 	return
 }
 
@@ -255,13 +257,20 @@ type Function struct {
 }
 
 // DefineGoFunction defines a Go function and appends it to the package.
-func (p *Package) DefineGoFunction(name string, fn interface{}) uint8 {
+func (p *Package) DefineGoFunction(name string, fn interface{}) (uint8, bool) {
 	r := len(p.gofunctions)
 	if r > 255 {
-		panic("functions limit reached")
+		return 0, false
 	}
-	p.gofunctions = append(p.gofunctions, &goFunction{name: name, iface: fn})
-	return uint8(r)
+	goFn := &goFunction{name: name}
+	if value, ok := fn.(reflect.Value); ok {
+		goFn.value = value
+		goFn.toReflect()
+	} else {
+		goFn.iface = fn
+	}
+	p.gofunctions = append(p.gofunctions, goFn)
+	return uint8(r), true
 }
 
 // NewFunction creates a new function and appends it to the package.
@@ -529,10 +538,18 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 //
 func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
-	if p != NoPackage {
-		builder.allocRegister(reflect.Interface, int8(f))
-	}
 	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+}
+
+// CallMethod appends a new "CallMethod" instruction to the function body.
+//
+//     p.M()
+//
+func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, shift StackShift) {
+	var fn = builder.fn
+	a := builder.fn.AddType(typ)
+	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
