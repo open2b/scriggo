@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 
@@ -17,22 +18,14 @@ func main() {
 
 	vm.DebugTraceExecution = true
 
-	pkg := vm.NewPackage("main")
+	_, _ = fmt.Fprint(os.Stderr, "Call example:\n")
+	call()
 
-	doSomething, _ := pkg.NewFunction("doSomething", nil, nil, false)
-	b := doSomething.Builder()
-	b.Move(true, 10, 0, reflect.Int)
-	b.End()
+	_, _ = fmt.Fprint(os.Stderr, "\n\nRecursive call example:\n")
+	callRec()
 
-	main, _ := pkg.NewFunction("main", nil, nil, false)
-	b = main.Builder()
-	b.Call(vm.CurrentPackage, 0, vm.StackShift{})
-	b.End()
-
-	_, err := vm.Disassemble(os.Stdout, pkg)
-	if err != nil {
-		panic(err)
-	}
+	_, _ = fmt.Fprint(os.Stderr, "\n\nClosure example:\n")
+	closure()
 
 	return
 }
@@ -44,43 +37,45 @@ func call() {
 	//     x = inc(x)
 	// }
 
-	// inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
-	// b := inc.Builder()
-	// b.Add(true, 1, 1, 0, reflect.Int)
-	// b.Return()
-	// b.End()
+	pkg := vm.NewPackage("main")
 
-	// main := pkg.NewFunction("main", nil, nil, false)
+	inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
+	b := inc.Builder()
+	b.Add(true, 1, 1, 0, reflect.Int)
+	b.Return()
+	b.End()
 
-	// b = main.Builder()
-	// b.Move(true, 0, 0, reflect.Int) // i := 0
-	// b.Move(true, 0, 1, reflect.Int) // x := 0
-	// // b.SetLabel() // TODO.
-	// b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
-	// b.Goto(3)
-	// // b.SetLabel() // TODO.
-	// // x = inc(x)
-	// b.Move(false, 1, 3, reflect.Int)
-	// b.GetFunc(0, 0, 0)
-	// b.Call(vm.NoPackage, 0, vm.StackShift{2}) // inc()
-	// b.Move(false, 2, 1, reflect.Int)
-	// //
-	// b.Add(true, 0, 1, 0, reflect.Int) // i++
-	// //
-	// b.Goto(1)
-	// // b.SetLabel() // TODO.
-	// b.Return()
-	// b.End()
+	main := pkg.NewFunction("main", nil, nil, false)
 
-	// _, err := vm.Disassemble(os.Stdout, pkg)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// vm1 := vm.New(pkg)
-	// _, err = vm1.Run("main")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	b = main.Builder()
+	b.Move(true, 0, 0, reflect.Int) // i := 0
+	b.Move(true, 0, 1, reflect.Int) // x := 0
+	b.SetLabel()
+	b.If(true, 1, vm.ConditionLess, 5, reflect.Int)
+	b.Goto(3)
+	b.SetLabel()
+	// x = inc(x)
+	b.Move(false, 1, 3, reflect.Int)
+	b.GetFunc(0, 0, 0)
+	b.Call(vm.NoPackage, 0, vm.StackShift{2}) // inc()
+	b.Move(false, 2, 1, reflect.Int)
+	//
+	b.Add(true, 0, 1, 0, reflect.Int) // i++
+	//
+	b.Goto(1)
+	b.SetLabel()
+	b.Return()
+	b.End()
+
+	_, err := vm.Disassemble(os.Stdout, pkg)
+	if err != nil {
+		panic(err)
+	}
+	vm1 := vm.New(pkg)
+	_, err = vm1.Run("main")
+	if err != nil {
+		panic(err)
+	}
 
 }
 
@@ -99,19 +94,19 @@ func callRec() {
 
 	pkg := vm.NewPackage("main")
 
-	fib, _ := pkg.NewFunction("fib", []vm.Type{vm.TypeInt, vm.TypeInt, vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
+	fib := pkg.NewFunction("fib", []vm.Type{vm.TypeInt, vm.TypeInt, vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
 	fb := fib.Builder()
 
 	fb.If(true, 1, vm.ConditionEqual, 0, reflect.Int) // if n == 0
 	fb.Goto(1)
 	fb.Move(false, 2, 0, reflect.Int) // return a
 	fb.Return()
-	// fb.SetLabel() // TODO.
+	fb.SetLabel()
 	fb.If(true, 1, vm.ConditionEqual, 1, reflect.Int) // if n == 1
 	fb.Goto(2)
 	fb.Move(false, 3, 0, reflect.Int) // return b
 	fb.Return()
-	// fb.SetLabel() // TODO.
+	fb.SetLabel()
 	fb.Sub(true, 1, 1, 1, reflect.Int)  // n = n-1
 	fb.Move(false, 3, 4, reflect.Int)   // t = b
 	fb.Add(false, 2, 3, 3, reflect.Int) // b = a+b
@@ -119,7 +114,7 @@ func callRec() {
 	fb.TailCall(vm.CurrentPackage, vm.CurrentFunction)
 	fb.End()
 
-	main, _ := pkg.NewFunction("main", nil, nil, false)
+	main := pkg.NewFunction("main", nil, nil, false)
 	fb = main.Builder()
 	fb.Move(true, 35, 1, reflect.Int) // n := fibN
 	fb.Move(true, 0, 2, reflect.Int)  // a := 0
@@ -153,7 +148,7 @@ func closure() {
 
 	intType := reflect.TypeOf(0)
 
-	main, _ := pkg.NewFunction("main", nil, nil, false)
+	main := pkg.NewFunction("main", nil, nil, false)
 	b := main.Builder()
 	b.Alloc(intType, -1)              // a := 0
 	inc := b.Func(1, nil, nil, false) // inc := func() { ... }
