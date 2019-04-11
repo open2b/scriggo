@@ -472,7 +472,7 @@ func (c *Compiler) compileCondition(expr ast.Expression, fb *FunctionBuilder) (x
 		x := fb.NewRegister(kind)
 		c.compileExpr(cond, fb, x)
 		o = ConditionEqual
-		y = fb.MakeIntConstant(1)
+		y = fb.MakeIntConstant(1) // TODO.
 	}
 	return x, y, kind, o, yk
 }

@@ -17,6 +17,9 @@ var stmt_tests = map[string][]reg{
 	`a := 10; _ = a`: []reg{
 		{TypeInt, 0, int64(10)}, // a
 	},
+	// `a := 1234; _ = a`: []reg{
+	// 	{TypeInt, 0, int64(1234)}, // a
+	// },
 	`a := 5; b := 10; c := a + b; _ = c`: []reg{
 		{TypeInt, 0, int64(5)},  // a
 		{TypeInt, 1, int64(10)}, // b
