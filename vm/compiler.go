@@ -131,13 +131,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Call:
-		ok := c.callBuiltin(expr)
-		if !ok {
-			panic("TODO: not implemented")
-			// c.currFb.Call(0, 0, StackShift{}) // TODO
-		}
-
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
