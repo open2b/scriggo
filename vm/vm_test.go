@@ -17,6 +17,8 @@ import (
 //   a := 1234
 //   a := new(int)
 //   a := []int{1,2,3,4}
+//   a, b, c := f()
+//   f(3)          --> arguments must be defined in function scope
 
 var stmtTests = []struct {
 	name         string
@@ -51,7 +53,22 @@ var stmtTests = []struct {
 			{TypeInt, 0, int64(10)}, // a
 			{TypeString, 0, "hi"},   // c
 		}},
+	{"Multiple assignment",
+		`
+			package main
 
+			func main() {
+				a, b := 6, 7
+				_, _ = a, b
+				return
+			}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 0, int64(6)}, // a
+			{TypeInt, 1, int64(7)}, // b
+		},
+	},
 	{"Assignment with constant int value (addition)",
 		`
 			package main
@@ -71,19 +88,6 @@ var stmtTests = []struct {
 			`	Return`,
 		},
 		nil},
-	{"Assignment with constant int value (addition)",
-		`
-			package main
-
-			func main() {
-				a := 10 + 20 - 4
-				_ = a
-			}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 0, int64(26)}, // a
-		}},
 	{"Assignment with addition value (non constant)",
 		`
 			package main
@@ -91,7 +95,7 @@ var stmtTests = []struct {
 			func main() {
 				a := 5
 				b := 10
-				c := a + b
+				c := a + 2 + b + 30
 				_ = c
 			}
 		`,
@@ -99,7 +103,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 0, int64(5)},  // a
 			{TypeInt, 1, int64(10)}, // b
-			{TypeInt, 2, int64(15)}, // c
+			{TypeInt, 2, int64(47)}, // c
 		}},
 	{"If statement with else",
 		`
@@ -385,19 +389,18 @@ func TestVM(t *testing.T) {
 	DebugTraceExecution = false
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
-			src := cas.src
 			registers := cas.registers
 			r := parser.MapReader{"/test.go": []byte(cas.src)}
 			comp := NewCompiler(r, nil)
 			pkg, err := comp.Compile("/test.go")
 			if err != nil {
-				t.Errorf("source: %q, compiler error: %s", src, err)
+				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
 			}
 			vm := New(pkg)
 			_, err = vm.Run("main")
 			if err != nil {
-				t.Errorf("source: %q, execution error: %s", src, err)
+				t.Errorf("test %q, execution error: %s", cas.name, err)
 				return
 			}
 
@@ -407,7 +410,7 @@ func TestVM(t *testing.T) {
 				got := &bytes.Buffer{}
 				_, err = Disassemble(got, pkg)
 				if err != nil {
-					t.Errorf("source: %q, disassemble error: %s", cas.src, err)
+					t.Errorf("test %q, disassemble error: %s", cas.name, err)
 					return
 				}
 				gotLines := []string{}
@@ -445,7 +448,7 @@ func TestVM(t *testing.T) {
 							}
 						}
 						w.Flush()
-						t.Errorf("error on source %q:\n%s", cas.src, out.String())
+						t.Errorf("test %q:\n%s", cas.name, out.String())
 					}
 				}
 			}
@@ -465,7 +468,7 @@ func TestVM(t *testing.T) {
 					got = vm.string(reg.r)
 				}
 				if !reflect.DeepEqual(reg.value, got) {
-					t.Errorf("source %q, register %s[%d]: expecting %#v (type %T), got %#v (type %T)", src, reg.typ, reg.r, reg.value, reg.value, got, got)
+					t.Errorf("test %q, register %s[%d]: expecting %#v (type %T), got %#v (type %T)", cas.name, reg.typ, reg.r, reg.value, reg.value, got, got)
 				}
 			}
 		})
@@ -506,6 +509,14 @@ func ptrTo(v interface{}) interface{} {
 	return rv.Interface()
 }
 
+// oneLine puts src in just one line, returning an (as much as possibile) human
+// readable representation.
+func oneLine(src string) string {
+	src = strings.Join(strings.Split(src, "\n"), " ")
+	src = strings.ReplaceAll(src, "\t", "")
+	return src
+}
+
 // NoTestMakeExpressionTests renders the list of tests.
 //
 // Usage:
@@ -524,12 +535,12 @@ func NoTestMakeExpressionTests(t *testing.T) {
 		comp := NewCompiler(r, nil)
 		pkg, err := comp.Compile("/test.go")
 		if err != nil {
-			panic(fmt.Errorf("unexpected error: source: %q, compiler error: %s", cas.src, err))
+			panic(fmt.Errorf("unexpected error: source: %q, compiler error: %s", oneLine(cas.src), err))
 		}
 		got := &bytes.Buffer{}
 		_, err = Disassemble(got, pkg)
 		if err != nil {
-			panic(fmt.Errorf("unexpected error: source: %q, disassemble error: %s", cas.src, err))
+			panic(fmt.Errorf("unexpected error: source: %q, disassemble error: %s", oneLine(cas.src), err))
 		}
 
 		out.WriteString("{\n")
