@@ -162,6 +162,33 @@ var exprTests = []struct {
 			"	Return",
 		},
 	},
+	{
+		"Package function with one return value",
+		`
+		package main
+
+		func five() int {
+			return 5
+		}
+
+		func main() {
+			a := five()
+			_ = a
+		}
+		`,
+		[]string{
+			"Package main",
+			"",
+			"Func five()",
+			"	// regs(1,0,0,0)",
+			"	MoveInt 5 R0",
+			"	Return",
+			"",
+			"Func main()",
+			"	// regs(1,0,0,1)",
+			"	Call main.five	// Stack shift: 1, 0, 0, 0",
+		},
+	},
 }
 
 func TestCompiler(t *testing.T) {
