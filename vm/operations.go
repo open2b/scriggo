@@ -243,6 +243,9 @@ var operationName = [...]string{
 
 	opNew: "New",
 
+	opRange:       "Range",
+	opRangeString: "RangeString",
+
 	opRemInt:    "RemInt",
 	opRemInt8:   "RemInt8",
 	opRemInt16:  "RemInt16",
