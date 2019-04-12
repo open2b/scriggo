@@ -182,11 +182,21 @@ type Package struct {
 	gofunctions []*goFunction // opCall, opCallFunc, opGetFunc, opTailCall
 	variables   []interface{} // opGetVar, opSetVar
 	varNames    []string
+
+	// TODO (Gianluca): are these fields exported to the vm? In such case,
+	// these should be kept in compiler, not here!
+	funcNameToIndex map[string]int8
+	pkgNameToIndex  map[string]uint8
 }
 
 // NewPackage creates a new package.
 func NewPackage(name string) *Package {
-	p := &Package{name: name}
+	p := &Package{
+		funcNameToIndex: make(map[string]int8),
+		pkgNameToIndex:  make(map[string]uint8),
+		name:            name,
+	}
+
 	p.packages = []*Package{}
 	return p
 }
@@ -600,13 +610,18 @@ type StackShift [4]int8
 //
 //     p.f()
 //
-func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, native bool) {
 	var fn = builder.fn
 	if p != NoPackage {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
-	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
-	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	if native {
+		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	} else {
+		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
+		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	}
 }
 
 // CallFunc appends a new "CallFunc" instruction to the function body.

@@ -14,22 +14,23 @@ import (
 )
 
 type Compiler struct {
-	parser          *parser.Parser
-	currentPkg      *Package
-	typeinfo        map[ast.Node]*parser.TypeInfo
-	fb              *FunctionBuilder // current function builder.
-	funcNameToIndex map[string]int8
+	parser           *parser.Parser
+	currentPkg       *Package
+	typeinfo         map[ast.Node]*parser.TypeInfo
+	fb               *FunctionBuilder // current function builder.
+	importableGoPkgs map[string]*parser.GoPackage
 }
 
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
 	c := &Compiler{
-		funcNameToIndex: make(map[string]int8),
+		importableGoPkgs: packages,
 	}
 	c.parser = parser.New(r, packages, true)
 	return c
 }
 
-func (pkg *Package) importGoPackage(goPkg *parser.GoPackage) {
+func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
+	pkg := NewPackage(goPkg.Name)
 	for ident, value := range goPkg.Declarations {
 		_ = ident
 		if t, ok := value.(reflect.Type); ok {
@@ -42,11 +43,16 @@ func (pkg *Package) importGoPackage(goPkg *parser.GoPackage) {
 			continue
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Func {
-			pkg.DefineGoFunction(ident, value)
+			index, ok := pkg.DefineGoFunction(ident, value)
+			if !ok {
+				panic("TODO: not implemented")
+			}
+			pkg.funcNameToIndex[ident] = int8(index)
 			continue
 		}
 		// TODO: import constant
 	}
+	return pkg
 }
 
 // Compile compiles path and returns its package.
@@ -74,9 +80,19 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-			c.funcNameToIndex[n.Ident.Name] = index
+			c.currentPkg.funcNameToIndex[n.Ident.Name] = index
 		case *ast.Var:
 			panic("TODO: not implemented")
+		case *ast.Import:
+			if n.Tree == nil { // Go package.
+				parserGoPkg, ok := c.importableGoPkgs[n.Path]
+				if !ok {
+					panic(fmt.Errorf("bug: trying to import Go package %q, but it's not available (availables are: %v)!", n.Path, c.importableGoPkgs))
+				}
+				goPkg := goPackageToVMPackage(parserGoPkg)
+				pkgIndex := c.currentPkg.Import(goPkg)
+				c.currentPkg.pkgNameToIndex[node.Name] = pkgIndex // TODO (Gianluca): key must be imported pkg name!
+			}
 		}
 	}
 }
@@ -163,14 +179,20 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		if ok {
 			return
 		}
+		isNative := true // TODO
 		switch f := expr.Func.(type) {
 		case *ast.Identifier:
 			// TODO (Gianluca): can also be a clojure
 			name := f.Name
-			index := c.funcNameToIndex[name]
-			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
+			index := c.currentPkg.funcNameToIndex[name]
+			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift(), isNative)
+		case *ast.Selector:
+			n1 := f.Expr.(*ast.Identifier).Name
+			n2 := f.Ident
+			pkgIndex := int8(c.currentPkg.pkgNameToIndex[n1])
+			funcIndex := int8(c.currentPkg.packages[pkgIndex].funcNameToIndex[n2])
+			c.fb.Call(pkgIndex, funcIndex, c.fb.CurrentStackShift(), isNative) // TODO
 		default:
-			panic("TODO: not implemented")
 		}
 
 	case *ast.CompositeLiteral:
