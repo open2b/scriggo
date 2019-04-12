@@ -120,7 +120,10 @@ type goFunction struct {
 }
 
 func (fn *goFunction) toReflect() {
-	fn.value = reflect.ValueOf(fn.iface)
+	if fn.iface != nil {
+		fn.value = reflect.ValueOf(fn.iface)
+		fn.iface = nil
+	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
 	fn.in = make([]Kind, nIn)
@@ -169,15 +172,14 @@ func (fn *goFunction) toReflect() {
 			fn.outOff[3]++
 		}
 	}
-	fn.iface = nil
 	return
 }
 
 type Package struct {
 	name        string
-	packages    []*Package    // opCall, opCallNative, opGetFunc, opGetVar, opSetVar, opTailCall
-	functions   []*Function   // opCall, opCallNative, opGetFunc, opTailCall
-	gofunctions []*goFunction // opCall, opCallNative, opGetFunc, opTailCall
+	packages    []*Package    // opCall, opCallFunc, opGetFunc, opGetVar, opSetVar, opTailCall
+	functions   []*Function   // opCall, opCallFunc, opGetFunc, opTailCall
+	gofunctions []*goFunction // opCall, opCallFunc, opGetFunc, opTailCall
 	variables   []interface{} // opGetVar, opSetVar
 	varNames    []string
 }
@@ -255,13 +257,20 @@ type Function struct {
 }
 
 // DefineGoFunction defines a Go function and appends it to the package.
-func (p *Package) DefineGoFunction(name string, fn interface{}) uint8 {
+func (p *Package) DefineGoFunction(name string, fn interface{}) (uint8, bool) {
 	r := len(p.gofunctions)
 	if r > 255 {
-		panic("functions limit reached")
+		return 0, false
 	}
-	p.gofunctions = append(p.gofunctions, &goFunction{name: name, iface: fn})
-	return uint8(r)
+	goFn := &goFunction{name: name}
+	if value, ok := fn.(reflect.Value); ok {
+		goFn.value = value
+		goFn.toReflect()
+	} else {
+		goFn.iface = fn
+	}
+	p.gofunctions = append(p.gofunctions, goFn)
+	return uint8(r), true
 }
 
 // NewFunction creates a new function and appends it to the package.
@@ -287,6 +296,20 @@ func (fn *Function) SetClosureRefs(refs []int16) {
 func (fn *Function) SetFileLine(file string, line int) {
 	fn.file = file
 	fn.line = line
+}
+
+func (fn *Function) AddType(typ reflect.Type) uint8 {
+	index := len(fn.types)
+	if index > 255 {
+		panic("types limit reached")
+	}
+	for i, t := range fn.types {
+		if t == typ {
+			return uint8(i)
+		}
+	}
+	fn.types = append(fn.types, typ)
+	return uint8(index)
 }
 
 type FunctionBuilder struct {
@@ -586,16 +609,24 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
-// CallNative appends a new "CallNative" instruction to the function body.
+// CallFunc appends a new "CallFunc" instruction to the function body.
 //
-//     p.f()
+//     p.F()
 //
-func (builder *FunctionBuilder) CallNative(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
-	if p != NoPackage {
-		builder.allocRegister(reflect.Interface, int8(f))
-	}
-	fn.body = append(fn.body, instruction{op: opCallNative, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+}
+
+// CallMethod appends a new "CallMethod" instruction to the function body.
+//
+//     p.M()
+//
+func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, shift StackShift) {
+	var fn = builder.fn
+	a := builder.fn.AddType(typ)
+	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -867,20 +898,8 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
 	builder.allocRegister(reflect.Int, n)
 	builder.allocRegister(reflect.Interface, z)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: tr, b: n, c: z})
+	a := builder.fn.AddType(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: int8(a), b: n, c: z})
 }
 
 // Move appends a new "move" instruction to the function body.
@@ -944,8 +963,8 @@ func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	tr := builder.Type(typ)
-	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: tr, c: z})
+	a := builder.fn.AddType(typ)
+	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
 // Rem appends a new "rem" instruction to the function body.

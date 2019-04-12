@@ -44,6 +44,12 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 	//	}
 	//}
 	_, _ = fmt.Fprint(&b, "\n")
+	if len(pkg.packages) > 0 {
+		for _, p := range pkg.packages {
+			_, _ = fmt.Fprintf(&b, "Import %q\n", p.name)
+		}
+		_, _ = fmt.Fprint(&b, "\n")
+	}
 	for i, fn := range pkg.functions {
 		if i > 0 {
 			_, _ = b.WriteString("\n")
@@ -51,6 +57,7 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 		_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
 		disassembleFunction(&b, fn, 0)
 	}
+	_, _ = fmt.Fprint(&b, "\n")
 	return b.WriteTo(w)
 }
 
@@ -121,7 +128,8 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
-		if in.op == opCall {
+		switch in.op {
+		case opCall, opCallFunc, opCallMethod, opTailCall:
 			addr += 1
 		}
 	}
@@ -182,27 +190,35 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opBind:
 		s += " " + strconv.Itoa(int(uint8(b)))
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCall, opCallNative, opTailCall:
+	case opCall, opCallFunc, opCallMethod, opTailCall:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		} else {
-			pkg := fn.pkg
-			if a != CurrentPackage {
-				pkg = pkg.packages[uint8(a)]
-			}
-			s += " " + pkg.name + "."
-			if op == opCall || op == opTailCall {
-				s += pkg.functions[uint8(b)].name
-			} else if op == opCallNative {
-				name := pkg.gofunctions[uint8(b)].name
-				if name == "" {
-					s += strconv.Itoa(int(uint8(b)))
-				} else {
-					s += name
+			if op == opCallMethod {
+				t := fn.types[int(uint8(a))]
+				m := t.Method(int(uint8(b)))
+				s += " " + t.String() + "." + m.Name
+			} else {
+				pkg := fn.pkg
+				if a != CurrentPackage {
+					pkg = pkg.packages[uint8(a)]
+				}
+				s += " " + pkg.name + "."
+				switch op {
+				case opCall, opTailCall:
+					s += pkg.functions[uint8(b)].name
+				case opCallFunc:
+					name := pkg.gofunctions[uint8(b)].name
+					if name == "" {
+						s += strconv.Itoa(int(uint8(b)))
+					} else {
+						s += name
+					}
 				}
 			}
 		}
-		if op == opCall || op == opCallNative {
+		switch op {
+		case opCall, opCallFunc, opCallMethod:
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
