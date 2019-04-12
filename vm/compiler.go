@@ -47,7 +47,7 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 			if !ok {
 				panic("TODO: not implemented")
 			}
-			pkg.funcNameToIndex[ident] = int8(index)
+			pkg.gofunctionsNames[ident] = int8(index)
 			continue
 		}
 		// TODO: import constant
@@ -80,7 +80,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-			c.currentPkg.funcNameToIndex[n.Ident.Name] = index
+			c.currentPkg.gofunctionsNames[n.Ident.Name] = index
 		case *ast.Var:
 			panic("TODO: not implemented")
 		case *ast.Import:
@@ -91,7 +91,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 				}
 				goPkg := goPackageToVMPackage(parserGoPkg)
 				pkgIndex := c.currentPkg.Import(goPkg)
-				c.currentPkg.pkgNameToIndex[node.Name] = pkgIndex // TODO (Gianluca): key must be imported pkg name!
+				c.currentPkg.packagesNames[node.Name] = pkgIndex // TODO (Gianluca): key must be imported pkg name!
 			}
 		}
 	}
@@ -184,13 +184,13 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		case *ast.Identifier:
 			// TODO (Gianluca): can also be a clojure
 			name := f.Name
-			index := c.currentPkg.funcNameToIndex[name]
+			index := c.currentPkg.gofunctionsNames[name]
 			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift(), isNative)
 		case *ast.Selector:
 			n1 := f.Expr.(*ast.Identifier).Name
 			n2 := f.Ident
-			pkgIndex := int8(c.currentPkg.pkgNameToIndex[n1])
-			funcIndex := int8(c.currentPkg.packages[pkgIndex].funcNameToIndex[n2])
+			pkgIndex := int8(c.currentPkg.packagesNames[n1])
+			funcIndex := int8(c.currentPkg.packages[pkgIndex].gofunctionsNames[n2])
 			c.fb.Call(pkgIndex, funcIndex, c.fb.CurrentStackShift(), isNative) // TODO
 		default:
 		}
@@ -498,20 +498,20 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 // condition (x and y), a kind, the condition ad a boolean ky which indicates
 // whether y is a constant value.
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
-	// 	ConditionEqual             Condition = iota // x == y
-	// 	ConditionNotEqual                           // x != y
-	// 	ConditionLess                               // x <  y
-	// 	ConditionLessOrEqual                        // x <= y
-	// 	ConditionGreater                            // x >  y
-	// 	ConditionGreaterOrEqual                     // x >= y
-	// 	ConditionEqualLen                           // len(x) == y
-	// 	ConditionNotEqualLen                        // len(x) != y
-	// 	ConditionLessLen                            // len(x) <  y
-	// 	ConditionLessOrEqualLen                     // len(x) <= y
-	// 	ConditionGreaterLen                         // len(x) >  y
-	// 	ConditionGreaterOrEqualLen                  // len(x) >= y
-	// 	ConditionNil                                // x == nil
-	// 	ConditionNotNil                             // x != nil
+	// 	ConditionEqual               x == y
+	// 	ConditionNotEqual            x != y
+	// 	ConditionLess                x <  y
+	// 	ConditionLessOrEqual         x <= y
+	// 	ConditionGreater             x >  y
+	// 	ConditionGreaterOrEqual      x >= y
+	// 	ConditionEqualLen            len(x) == y
+	// 	ConditionNotEqualLen         len(x) != y
+	// 	ConditionLessLen             len(x) <  y
+	// 	ConditionLessOrEqualLen      len(x) <= y
+	// 	ConditionGreaterLen          len(x) >  y
+	// 	ConditionGreaterOrEqualLen   len(x) >= y
+	// 	ConditionNil                 x == nil
+	// 	ConditionNotNil              x != nil
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
