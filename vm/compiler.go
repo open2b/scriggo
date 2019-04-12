@@ -154,7 +154,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.Call:
-		ok := c.callBuiltin(expr)
+		ok := c.callBuiltin(expr, reg)
 		if ok {
 			return
 		}
@@ -252,7 +252,7 @@ func (c *Compiler) compileValueToVar(value, variable ast.Expression, isDecl bool
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
 // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
 // builtin.
-func (c *Compiler) callBuiltin(call *ast.Call) (ok bool) {
+func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		var i instruction
 		switch ident.Name {
@@ -277,7 +277,7 @@ func (c *Compiler) callBuiltin(call *ast.Call) (ok bool) {
 			case reflect.TypeOf([]byte{}):
 				a = 2
 			}
-			i = instruction{op: opLen, a: a, b: b}
+			i = instruction{op: opLen, a: a, b: b, c: reg}
 		// case "new":
 		// 	typ := c.typeinfo[call.Args[0]].Type
 		// 	t := c.currFb.Type(typ)

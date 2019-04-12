@@ -133,6 +133,18 @@ var stmtTests = []struct {
 		},
 	},
 	{
+		"Builtin len (with a variable argument)",
+		`
+		a := "a string"
+		b := len(a)
+		_ = b
+		`,
+		[]reg{
+			{TypeString, 0, "a string"}, // a
+			{TypeInt, 0, int64(8)},      // b
+		},
+	},
+	{
 		"Switch",
 		`
 		a := 0
