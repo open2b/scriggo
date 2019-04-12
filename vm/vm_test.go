@@ -74,6 +74,21 @@ var stmtTests = []struct {
 			{TypeInt, 0, int64(26)}, // a
 		},
 	},
+	// TODO (Gianluca): parsing error (operator | is not supported?).
+	// {
+	// 	"Binary or",
+	// 	`
+	// 		a := 3
+	// 		b := 8
+	// 		c := a | b
+	// 		_ = c
+	// 	`,
+	// 	[]reg{
+	// 		{TypeInt, 0, int64(3)},  // a
+	// 		{TypeInt, 1, int64(8)},  // b
+	// 		{TypeInt, 2, int64(11)}, // c
+	// 	},
+	// },
 	{
 		"If with init",
 		`c := 0; if x := 1; x == 1 { c = 1 } else { c = 2 }; _ = c`,
