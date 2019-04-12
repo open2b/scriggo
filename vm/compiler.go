@@ -219,6 +219,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.fb = currentFunc
 		c.fb.Func(0, nil, nil, expr.Type.IsVariadic)
 
+	case *ast.Selector:
+		panic("TODO: not implemented")
+
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
 		kind := c.typeinfo[expr.Expr].Type.Kind()
