@@ -58,11 +58,13 @@ func NoTestMakeExpressionTests(t *testing.T) {
 }
 
 var exprTests = []struct {
+	name     string
 	src      string
 	expected []string
 }{
 
 	{
+		"Simple assignment",
 		`
 			package main
 
@@ -82,6 +84,7 @@ var exprTests = []struct {
 		},
 	},
 	{
+		"Assignment with math (constant)",
 		`
 			package main
 
@@ -101,6 +104,7 @@ var exprTests = []struct {
 		},
 	},
 	{
+		"If statement",
 		`
 			package main
 
@@ -132,6 +136,7 @@ var exprTests = []struct {
 		},
 	},
 	{
+		"Package function call",
 		`
 		package main
 
@@ -160,56 +165,58 @@ var exprTests = []struct {
 
 func TestCompiler(t *testing.T) {
 	for _, cas := range exprTests {
-		r := parser.MapReader{"/test.go": []byte(cas.src)}
-		comp := NewCompiler(r, nil)
-		pkg, err := comp.Compile("/test.go")
-		if err != nil {
-			t.Errorf("source: %q, compiler error: %s", cas.src, err)
-			continue
-		}
-		got := &bytes.Buffer{}
-		_, err = Disassemble(got, pkg)
-		if err != nil {
-			t.Errorf("source: %q, disassemble error: %s", cas.src, err)
-			continue
-		}
-		gotLines := []string{}
-		for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
-			gotLines = append(gotLines, line)
-		}
-		if diff := equal(cas.expected, gotLines); diff >= 0 {
-			if !testing.Verbose() {
-				t.Errorf("disassembler output doesn't match for source %q (run tests in verbose mode for further details)", cas.src)
-			} else {
-				out := &bytes.Buffer{}
-				const padding = 3
-				w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
-				fmt.Fprintf(w, "expected\t  got\t\n")
-				fmt.Fprintf(w, "--------\t  ---\t\n")
-				longest := len(cas.expected)
-				if len(gotLines) > longest {
-					longest = len(gotLines)
-				}
-				for i := 0; i < longest; i++ {
-					e := " "
-					g := " "
-					if i <= len(cas.expected)-1 {
-						e = cas.expected[i]
-					}
-					if i <= len(gotLines)-1 {
-						g = gotLines[i]
-					}
-					e = removeTabs(e)
-					g = removeTabs(g)
-					if diff == i+1 {
-						fmt.Fprintf(w, "%s\t  %s\t <<< difference here\n", e, g)
-					} else {
-						fmt.Fprintf(w, "%s\t  %s\t\n", e, g)
-					}
-				}
-				w.Flush()
-				t.Errorf("error on source %q:\n%s", cas.src, out.String())
+		t.Run(cas.name, func(t *testing.T) {
+			r := parser.MapReader{"/test.go": []byte(cas.src)}
+			comp := NewCompiler(r, nil)
+			pkg, err := comp.Compile("/test.go")
+			if err != nil {
+				t.Errorf("source: %q, compiler error: %s", cas.src, err)
+				return
 			}
-		}
+			got := &bytes.Buffer{}
+			_, err = Disassemble(got, pkg)
+			if err != nil {
+				t.Errorf("source: %q, disassemble error: %s", cas.src, err)
+				return
+			}
+			gotLines := []string{}
+			for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
+				gotLines = append(gotLines, line)
+			}
+			if diff := equal(cas.expected, gotLines); diff >= 0 {
+				if !testing.Verbose() {
+					t.Errorf("disassembler output doesn't match for source %q (run tests in verbose mode for further details)", cas.src)
+				} else {
+					out := &bytes.Buffer{}
+					const padding = 3
+					w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
+					fmt.Fprintf(w, "expected\t  got\t\n")
+					fmt.Fprintf(w, "--------\t  ---\t\n")
+					longest := len(cas.expected)
+					if len(gotLines) > longest {
+						longest = len(gotLines)
+					}
+					for i := 0; i < longest; i++ {
+						e := " "
+						g := " "
+						if i <= len(cas.expected)-1 {
+							e = cas.expected[i]
+						}
+						if i <= len(gotLines)-1 {
+							g = gotLines[i]
+						}
+						e = removeTabs(e)
+						g = removeTabs(g)
+						if diff == i+1 {
+							fmt.Fprintf(w, "%s\t  %s\t <<< difference here\n", e, g)
+						} else {
+							fmt.Fprintf(w, "%s\t  %s\t\n", e, g)
+						}
+					}
+					w.Flush()
+					t.Errorf("error on source %q:\n%s", cas.src, out.String())
+				}
+			}
+		})
 	}
 }

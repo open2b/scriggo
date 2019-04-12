@@ -187,6 +187,7 @@ type Package struct {
 	// these should be kept in compiler, not here!
 	gofunctionsNames map[string]int8
 	packagesNames    map[string]uint8
+	isGoPkg          map[string]bool
 }
 
 // NewPackage creates a new package.
@@ -194,6 +195,7 @@ func NewPackage(name string) *Package {
 	p := &Package{
 		gofunctionsNames: make(map[string]int8),
 		packagesNames:    make(map[string]uint8),
+		isGoPkg:          make(map[string]bool),
 		name:             name,
 	}
 

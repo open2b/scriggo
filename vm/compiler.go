@@ -71,11 +71,15 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 // compilePackage compiles the node package.
 func (c *Compiler) compilePackage(node *ast.Package) {
 	c.currentPkg = NewPackage(node.Name)
-	initFn, _ := c.currentPkg.NewFunction("init.-1", nil, nil, false)
-	initBuilder := initFn.Builder()
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
+			// TODO (Gianluca): this makes a new init function for every
+			// variable, which is wrong. Putting initFn declaration
+			// outside this switch is wrong too: init.-1 cannot be created
+			// if there's no need.
+			initFn, _ := c.currentPkg.NewFunction("init.-1", nil, nil, false)
+			initBuilder := initFn.Builder()
 			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
 				currentBuilder := c.fb
 				c.fb = initBuilder
@@ -105,6 +109,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 				goPkg := goPackageToVMPackage(parserGoPkg)
 				pkgIndex := c.currentPkg.Import(goPkg)
 				c.currentPkg.packagesNames[node.Name] = pkgIndex // TODO (Gianluca): key must be imported pkg name!
+				c.currentPkg.isGoPkg[node.Name] = true
 			}
 		}
 	}
@@ -192,19 +197,23 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		if ok {
 			return
 		}
-		isNative := true // TODO
 		switch f := expr.Func.(type) {
 		case *ast.Identifier:
 			// TODO (Gianluca): can also be a clojure
 			name := f.Name
 			index := c.currentPkg.gofunctionsNames[name]
-			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift(), isNative)
+			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift(), false)
 		case *ast.Selector:
 			n1 := f.Expr.(*ast.Identifier).Name
 			n2 := f.Ident
 			pkgIndex := int8(c.currentPkg.packagesNames[n1])
-			funcIndex := int8(c.currentPkg.packages[pkgIndex].gofunctionsNames[n2])
-			c.fb.Call(pkgIndex, funcIndex, c.fb.CurrentStackShift(), isNative) // TODO
+			isNative := c.currentPkg.isGoPkg[n1]
+			if isNative {
+				funcIndex := int8(c.currentPkg.packages[pkgIndex].gofunctionsNames[n2])
+				c.fb.Call(pkgIndex, funcIndex, c.fb.CurrentStackShift(), isNative) // TODO
+			} else {
+				panic("TODO: not implemented")
+			}
 		default:
 		}
 
