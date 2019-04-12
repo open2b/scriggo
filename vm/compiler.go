@@ -71,8 +71,23 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 // compilePackage compiles the node package.
 func (c *Compiler) compilePackage(node *ast.Package) {
 	c.currentPkg = NewPackage(node.Name)
+	initFn, _ := c.currentPkg.NewFunction("init.-1", nil, nil, false)
+	initBuilder := initFn.Builder()
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
+		case *ast.Var:
+			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
+				currentBuilder := c.fb
+				c.fb = initBuilder
+				reg := c.fb.NewRegister(reflect.Int)
+				c.compileExpr(n.Values[0], reg)
+				c.fb = currentBuilder
+				name := "A"                 // TODO
+				v := interface{}(int64(10)) // TODO
+				c.currentPkg.DefineVariable(name, v)
+			} else {
+				panic("TODO: not implemented")
+			}
 		case *ast.Func:
 			fn, index := c.currentPkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
 			c.fb = fn.Builder()
@@ -81,8 +96,6 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			c.fb.End()
 			c.fb.ExitScope()
 			c.currentPkg.gofunctionsNames[n.Ident.Name] = index
-		case *ast.Var:
-			panic("TODO: not implemented")
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
 				parserGoPkg, ok := c.importableGoPkgs[n.Path]
