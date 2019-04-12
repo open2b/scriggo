@@ -358,7 +358,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opSelector:
 		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		s += " " + fn.types[int(uint(a))].String()
+		s += " " + fmt.Sprintf("0b%b", b)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opSetClosureVar:
 		s += " " + disassembleOperand(fn, c, Int, false)
 		cv := fn.crefs[uint8(b)]
