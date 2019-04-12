@@ -15,7 +15,7 @@ import (
 
 type Compiler struct {
 	parser          *parser.Parser
-	pkg             *Package
+	currentPkg      *Package
 	typeinfo        map[ast.Node]*parser.TypeInfo
 	fb              *FunctionBuilder // current function builder.
 	funcNameToIndex map[string]int8
@@ -59,16 +59,16 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	c.typeinfo = tci["/test.go"].TypeInfo
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
-	return c.pkg, nil
+	return c.currentPkg, nil
 }
 
 // compilePackage compiles the node package.
 func (c *Compiler) compilePackage(node *ast.Package) {
-	c.pkg = NewPackage(node.Name)
+	c.currentPkg = NewPackage(node.Name)
 	for _, dec := range node.Declarations {
 		switch n := dec.(type) {
 		case *ast.Func:
-			fn, index := c.pkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
+			fn, index := c.currentPkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
@@ -188,7 +188,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.Func:
 		currentFunc := c.fb
-		fn, _ := c.pkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
+		fn, _ := c.currentPkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
 		c.fb = fn.Builder()
 		c.fb.EnterScope()
 		c.compileNodes(expr.Body.Nodes)
