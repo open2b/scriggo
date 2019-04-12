@@ -607,6 +607,13 @@ func (vm *VM) run() int {
 
 		// Len
 		case opLen:
+
+			// ╒═════════════╤══════╤═════╤═════╕
+			// │ op          │ a    │ b   │ c   │
+			// ╞═════════════╪══════╪═════╪═════╡
+			// │ opLen       │ ctrl │ arg │ dst │
+			// ╘═════════════╧══════╧═════╧═════╛
+
 			var length int
 			if a == 0 {
 				length = len(vm.string(b))
@@ -641,6 +648,7 @@ func (vm *VM) run() int {
 
 		// MakeSlice
 		case opMakeSlice:
+
 			// ╒═════════════╤══════╤═════╤═════╕
 			// │ op          │ a    │ b   │ c   │
 			// ╞═════════════╪══════╪═════╪═════╡
@@ -648,9 +656,11 @@ func (vm *VM) run() int {
 			// ├─────────────┼──────┼─────┼─────┤
 			// │ len         │ cap  │     │     │
 			// ╘═════════════╧══════╧═════╧═════╛
+
 			// TODO (Gianluca): if n == 0 len and cap are 0; if n == 0b01
 			// cap is a constant, if n == 0b10 len is a constant, if n ==
 			// 0b11 both are constants.
+
 			len := 0 // TODO
 			cap := 0 // TODO
 			t := vm.fn.types[int(uint(a))]
