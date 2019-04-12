@@ -257,7 +257,7 @@ var operationName = [...]string{
 
 	opReturn: "Return",
 
-	opMakeSlice: "Slice",
+	opMakeSlice: "MakeSlice",
 
 	opSetClosureVar: "SetClosureVar",
 
