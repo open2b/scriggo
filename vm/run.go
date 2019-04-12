@@ -22,6 +22,7 @@ const (
 	InterpretRunTimeError
 )
 
+const NoVariadicArgs = -1
 const NoPackage = -2
 const CurrentPackage = -1
 const CurrentFunction = -1
@@ -259,33 +260,76 @@ func (vm *VM) run() int {
 				vm.fp[1] += uint32(fn.outOff[1])
 				vm.fp[2] += uint32(fn.outOff[2])
 				vm.fp[3] += uint32(fn.outOff[3])
+				variadic := fn.value.Type().IsVariadic()
+				lastNonVariadic := len(fn.in)
+				if variadic && c != NoVariadicArgs {
+					lastNonVariadic--
+				}
 				for i, k := range fn.in {
-					switch k {
-					case Bool:
-						fn.args[i].SetBool(vm.bool(0))
-						vm.fp[0]++
-					case Int:
-						fn.args[i].SetInt(vm.int(0))
-						vm.fp[0]++
-					case Uint:
-						fn.args[i].SetUint(uint64(vm.int(0)))
-						vm.fp[0]++
-					case Float64:
-						fn.args[i].SetFloat(vm.float(0))
-						vm.fp[1]++
-					case String:
-						fn.args[i].SetString(vm.string(0))
-						vm.fp[2]++
-					default:
-						fn.args[i].Set(reflect.ValueOf(vm.general(0)))
-						vm.fp[3]++
+					if i < lastNonVariadic {
+						switch k {
+						case Bool:
+							fn.args[i].SetBool(vm.bool(0))
+							vm.fp[0]++
+						case Int:
+							fn.args[i].SetInt(vm.int(0))
+							vm.fp[0]++
+						case Uint:
+							fn.args[i].SetUint(uint64(vm.int(0)))
+							vm.fp[0]++
+						case Float64:
+							fn.args[i].SetFloat(vm.float(0))
+							vm.fp[1]++
+						case String:
+							fn.args[i].SetString(vm.string(0))
+							vm.fp[2]++
+						default:
+							fn.args[i].Set(reflect.ValueOf(vm.general(0)))
+							vm.fp[3]++
+						}
+					} else {
+						sliceType := fn.args[i].Type()
+						slice := reflect.MakeSlice(sliceType, int(c), int(c))
+						k := sliceType.Elem().Kind()
+						switch {
+						case k == reflect.Bool:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).SetBool(vm.bool(int8(j)))
+							}
+						case reflect.Int <= k && k <= reflect.Int64:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).SetInt(vm.int(int8(j)))
+							}
+						case reflect.Uint <= k && k <= reflect.Uint64:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).SetUint(uint64(vm.int(int8(j))))
+							}
+						case k == reflect.Float64 || k == reflect.Float32:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).SetFloat(vm.float(int8(j)))
+							}
+						case k == reflect.String:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).SetString(vm.string(int8(j)))
+							}
+						default:
+							for j := 0; j < int(c); j++ {
+								slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j))))
+							}
+						}
+						fn.args[i].Set(slice)
 					}
 				}
 				vm.fp[0] = fp[0] + uint32(off.op)
 				vm.fp[1] = fp[1] + uint32(off.a)
 				vm.fp[2] = fp[2] + uint32(off.b)
 				vm.fp[3] = fp[3] + uint32(off.c)
-				var ret = fn.value.Call(fn.args)
+				var ret []reflect.Value
+				if variadic {
+					ret = fn.value.CallSlice(fn.args)
+				} else {
+					ret = fn.value.Call(fn.args)
+				}
 				for i, k := range fn.out {
 					switch k {
 					case Bool:
@@ -690,6 +734,8 @@ func (vm *VM) run() int {
 		// Move
 		case opMove:
 			vm.setGeneral(c, vm.general(b))
+		case -opMove:
+			vm.setGeneral(c, vm.generalk(b, true))
 		case opMoveInt:
 			vm.setInt(c, vm.int(b))
 		case -opMoveInt:

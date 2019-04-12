@@ -536,9 +536,9 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 //
 //     p.F()
 //
-func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) CallFunc(p int8, f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -546,10 +546,10 @@ func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
 //
 //     p.M()
 //
-func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, shift StackShift) {
+func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
 	a := builder.fn.AddType(typ)
-	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m})
+	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 

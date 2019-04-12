@@ -217,6 +217,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				}
 			}
 		}
+		if c >= 0 && (op == opCallFunc || op == opCallMethod) {
+			s += " ..." + strconv.Itoa(int(c))
+		}
 		switch op {
 		case opCall, opCallFunc, opCallMethod:
 			grow := fn.body[addr+1]
@@ -334,7 +337,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, a, Interface, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:
 		s += " " + disassembleOperand(fn, b, Int, k)
@@ -423,6 +426,8 @@ func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string 
 			return "true"
 		case kind == String:
 			return strconv.Quote(fn.constants.String[uint8(op)])
+		default:
+			return fmt.Sprintf("%v", fn.constants.General[uint8(op)])
 		}
 	}
 	if op >= 0 {
