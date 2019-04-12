@@ -46,6 +46,7 @@ func NoTestMakeExpressionTests(t *testing.T) {
 		}
 
 		out.WriteString("{\n")
+		out.WriteString("\t\"" + cas.name + "\",\n")
 		out.WriteString("\t`" + cas.src + "`,\n")
 		out.WriteString("\t[]string{\n")
 		for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
