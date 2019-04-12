@@ -112,6 +112,11 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			panic("TODO: not implemented")
 
 		}
+	case *ast.String: // TODO (Gianluca): remove
+		sConst := c.fb.MakeStringConstant(expr.Text)
+		reg := c.fb.NewRegister(reflect.String)
+		c.fb.Move(true, sConst, reg, reflect.String)
+		return reg, false, true
 	}
 	return 0, false, false
 }
@@ -205,7 +210,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Value, *ast.Int, *ast.Identifier:
+	case *ast.Value, *ast.Int, *ast.Identifier, *ast.String: // TODO (Gianluca): remove Int and String
 		kind := c.typeinfo[expr].Type.Kind()
 		out, isValue, isRegister := c.quickCompileExpr(expr)
 		if isValue {
@@ -385,6 +390,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				c.compileNodes(node.Body)
 				c.fb.Goto(forLabel)
 			}
+			c.fb.ExitScope()
+
+		case *ast.ForRange:
+			c.fb.EnterScope()
+			expr := c.fb.NewRegister(reflect.String)
+			kind := c.typeinfo[node.Assignment.Values[0]].Type.Kind()
+			c.compileExpr(node.Assignment.Values[0], expr)
+			c.fb.ForRange(expr, kind)
 			c.fb.ExitScope()
 
 		case *ast.Return:
