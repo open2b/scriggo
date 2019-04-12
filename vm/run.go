@@ -666,17 +666,17 @@ func (vm *VM) run() int {
 		// MakeSlice
 		case opMakeSlice:
 
-			// ╒═════════════╤══════╤═════╤═════╕
-			// │ op          │ a    │ b   │ c   │
-			// ╞═════════════╪══════╪═════╪═════╡
-			// │ opMakeSlice │ type │ n   │ dst │
-			// ├─────────────┼──────┼─────┼─────┤
-			// │ len         │ cap  │     │     │
-			// ╘═════════════╧══════╧═════╧═════╛
+			// ╒═════════════╤══════╤══════╤═════╕
+			// │ op          │ a    │ b    │ c   │
+			// ╞═════════════╪══════╪══════╪═════╡
+			// │ opMakeSlice │ type │ ctrl │ dst │
+			// ├─────────────┼──────┼──────┼─────┤
+			// │ len         │ cap  │      │     │
+			// ╘═════════════╧══════╧══════╧═════╛
 
-			// TODO (Gianluca): if n == 0 len and cap are 0; if n == 0b01
-			// cap is a constant, if n == 0b10 len is a constant, if n ==
-			// 0b11 both are constants.
+			// TODO (Gianluca): if ctrl == 0 len and cap are 0; if ctrl ==
+			// 0b01 cap is a constant, if ctrl == 0b10 len is a constant,
+			// if ctrl == 0b11 both are constants.
 
 			len := 0 // TODO
 			cap := 0 // TODO
