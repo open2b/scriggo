@@ -154,6 +154,21 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			panic("TODO: not implemented")
 		}
 
+	case *ast.Call:
+		ok := c.callBuiltin(expr)
+		if ok {
+			return
+		}
+		switch f := expr.Func.(type) {
+		case *ast.Identifier:
+			// TODO (Gianluca): can also be a clojure
+			name := f.Name
+			index := c.funcNameToIndex[name]
+			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
+		default:
+			panic("TODO: not implemented")
+		}
+
 	case *ast.CompositeLiteral:
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
@@ -313,21 +328,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.EnterScope()
 			c.compileNodes(node.Nodes)
 			c.fb.ExitScope()
-
-		case *ast.Call:
-			ok := c.callBuiltin(node)
-			if ok {
-				continue
-			}
-			switch f := node.Func.(type) {
-			case *ast.Identifier:
-				// TODO (Gianluca): can also be a clojure
-				name := f.Name
-				index := c.funcNameToIndex[name]
-				c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
-			default:
-				panic("TODO: not implemented")
-			}
 
 		case *ast.If:
 			c.fb.EnterScope()
