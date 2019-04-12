@@ -152,7 +152,7 @@ var exprTests = []struct {
 			"",
 			"Func main()",
 			"	// regs(0,0,0,1)",
-			"	Call main.0 [0,0,0,0]",
+			"	Call main.a    // Stack shift: 0, 0, 0, 0",
 			"	Return",
 		},
 	},
