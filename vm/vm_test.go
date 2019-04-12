@@ -32,19 +32,24 @@ var stmtTests = []struct {
 			func main() {
 				a := 10
 				_ = a
+				c := "hi"
+				_ = c
 				return
 			}
 		`,
 		[]string{
-			"Package main",
-			"",
-			"Func main()",
-			"	// regs(1,0,0,0)",
-			"	MoveInt 10 R0",
-			"	Return",
+			`Package main`,
+			``,
+			`Func main()`,
+			`	// regs(1,0,2,0)`,
+			`	MoveInt 10 R0`,
+			`     MoveString "hi" R1`,
+			`     MoveString R1 R0`,
+			`	Return`,
 		},
 		[]reg{
 			{TypeInt, 0, int64(10)}, // a
+			{TypeString, 0, "hi"},   // c
 		}},
 
 	{"Assignment with constant int value (addition)",
@@ -58,12 +63,12 @@ var stmtTests = []struct {
 			}
 		`,
 		[]string{
-			"Package main",
-			"",
-			"Func main()",
-			"	// regs(1,0,0,0)",
-			"	MoveInt 9 R0",
-			"	Return",
+			`Package main`,
+			``,
+			`Func main()`,
+			`	// regs(1,0,0,0)`,
+			`	MoveInt 9 R0`,
+			`	Return`,
 		},
 		nil},
 	{"Assignment with constant int value (addition)",
@@ -362,22 +367,22 @@ var stmtTests = []struct {
 		}
 		`,
 		[]string{
-			"Package main",
-			"",
-			"Func five()",
-			"	// regs(1,0,0,0)",
-			"	MoveInt 5 R0",
-			"	Return",
-			"",
-			"Func main()",
-			"	// regs(1,0,0,1)",
-			"	Call main.five	// Stack shift: 1, 0, 0, 0",
+			`Package main`,
+			``,
+			`Func five()`,
+			`	// regs(1,0,0,0)`,
+			`	MoveInt 5 R0`,
+			`	Return`,
+			``,
+			`Func main()`,
+			`	// regs(1,0,0,1)`,
+			`	Call main.five	// Stack shift: 1, 0, 0, 0`,
 		},
 		nil},
 }
 
 func TestVM(t *testing.T) {
-	DebugTraceExecution = testing.Verbose()
+	DebugTraceExecution = false
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			src := cas.src
@@ -532,7 +537,7 @@ func NoTestMakeExpressionTests(t *testing.T) {
 		out.WriteString("\t`" + cas.src + "`,\n")
 		out.WriteString("\t[]string{\n")
 		for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
-			out.WriteString("\t\t\"" + line + "\",\n")
+			out.WriteString("\t\t`" + line + "`,\n")
 		}
 		out.WriteString("\t},\n")
 		out.WriteString("\t[]reg{\n")
