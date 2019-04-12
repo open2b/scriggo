@@ -448,6 +448,12 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.ExitScope()
 
 		case *ast.Return:
+			for i, v := range node.Values {
+				kind := c.typeinfo[v].Type.Kind()
+				reg := int8(i)
+				c.fb.allocRegister(kind, reg)
+				c.compileExpr(v, reg)
+			}
 			c.fb.Return()
 
 		case *ast.Switch:
