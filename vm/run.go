@@ -173,7 +173,7 @@ func (vm *VM) run() int {
 
 		// Bind
 		case opBind:
-			vm.setGeneral(-c, vm.cvars[uint8(b)])
+			vm.setGeneral(c, vm.cvars[uint8(b)])
 
 		// Call
 		case opCall:
@@ -425,30 +425,6 @@ func (vm *VM) run() int {
 				}
 			}
 			vm.setGeneral(c, closure{fn: fn, vars: vars})
-
-		// GetClosureVar
-		case opGetClosureVar:
-			v := vm.cvars[uint8(b)]
-			switch v := v.(type) {
-			case *int:
-				vm.setInt(c, int64(*v))
-			case *float64:
-				vm.setFloat(c, *v)
-			case *string:
-				vm.setString(c, *v)
-			default:
-				rv := reflect.ValueOf(v).Elem()
-				switch k := rv.Kind(); {
-				case reflect.Int < k && k <= reflect.Int64:
-					vm.setInt(c, rv.Int())
-				case reflect.Uint <= k && k <= reflect.Uint64:
-					vm.setInt(c, int64(rv.Uint()))
-				case k == reflect.Float32:
-					vm.setFloat(c, rv.Float())
-				default:
-					vm.setGeneral(c, rv.Interface())
-				}
-			}
 
 		// GetFunc
 		case opGetFunc:
@@ -1006,30 +982,6 @@ func (vm *VM) run() int {
 				vm.setString(c, v.String())
 			default:
 				vm.setGeneral(c, v.Interface())
-			}
-
-		// SetClosureVar
-		case opSetClosureVar, -opSetClosureVar:
-			v := vm.cvars[uint8(c)]
-			switch v := v.(type) {
-			case *int:
-				*v = int(vm.intk(b, op < 0))
-			case *float64:
-				*v = vm.floatk(b, op < 0)
-			case *string:
-				*v = vm.stringk(b, op < 0)
-			default:
-				rv := reflect.ValueOf(v).Elem()
-				switch k := rv.Kind(); {
-				case reflect.Int < k && k <= reflect.Int64:
-					rv.SetInt(vm.intk(b, op < 0))
-				case reflect.Uint <= k && k <= reflect.Uint64:
-					rv.SetUint(uint64(vm.intk(b, op < 0)))
-				case k == reflect.Float32:
-					rv.SetFloat(vm.floatk(b, op < 0))
-				default:
-					rv.Set(reflect.ValueOf(vm.general(b)))
-				}
 			}
 
 		// SetVar

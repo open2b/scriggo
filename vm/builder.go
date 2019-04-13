@@ -483,10 +483,10 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 
 // Bind appends a new "Bind" instruction to the function body.
 //
-//     c = cv
+//     r = cv
 //
 func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
-	builder.allocRegister(reflect.Int, r)
+	builder.allocRegister(reflect.Interface, r)
 	builder.fn.body = append(builder.fn.body, instruction{op: opBind, b: int8(cv), c: r})
 }
 
@@ -622,14 +622,6 @@ func (builder *FunctionBuilder) Func(r int8, in, out []Type, variadic bool) *Fun
 	builder.fn.funcs = append(builder.fn.funcs, fn)
 	builder.fn.body = append(builder.fn.body, instruction{op: opFunc, b: int8(b), c: r})
 	return fn
-}
-
-// GetClosureVar appends a new "GetClosureVar" instruction to the function body.
-//
-//     z = v
-//
-func (builder *FunctionBuilder) GetClosureVar(v uint8, z int8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetClosureVar, b: int8(v), c: z})
 }
 
 // GetFunc appends a new "GetFunc" instruction to the function body.
@@ -897,14 +889,6 @@ func (builder *FunctionBuilder) Rem(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
-}
-
-// SetClosureVar appends a new "SetClosureVar" instruction to the function body.
-//
-//     v = r
-//
-func (builder *FunctionBuilder) SetClosureVar(r int8, v uint8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSetClosureVar, b: r, c: int8(v)})
 }
 
 // SetVar appends a new "SetVar" instruction to the function body.

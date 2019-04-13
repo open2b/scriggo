@@ -185,8 +185,17 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " type(string)"
 		s += " " + disassembleOperand(fn, c, String, false)
 	case opBind:
-		s += " " + strconv.Itoa(int(uint8(b)))
-		s += " " + disassembleOperand(fn, c, Int, false)
+		cv := fn.crefs[uint8(b)]
+		var depth = 1
+		for p := fn.parent; cv >= 0; p = p.parent {
+			cv = p.crefs[cv]
+			depth++
+		}
+		s += " " + disassembleOperand(fn, -int8(cv), Interface, false)
+		if depth > 0 {
+			s += "@" + strconv.Itoa(depth)
+		}
+		s += " " + disassembleOperand(fn, -c, Int, false)
 	case opCall, opCallFunc, opCallMethod, opTailCall:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
@@ -267,18 +276,6 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opGetClosureVar:
-		cv := fn.crefs[uint8(b)]
-		var depth = 1
-		for p := fn.parent; cv >= 0; p = p.parent {
-			cv = p.crefs[cv]
-			depth++
-		}
-		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
-		if depth > 0 {
-			s += "@" + strconv.Itoa(depth)
-		}
-		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
 		pkg := fn.pkg
 		if a != CurrentPackage {
@@ -334,7 +331,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		s += " " + disassembleOperand(fn, a, Interface, k)
+		s += " " + disassembleOperand(fn, b, Interface, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:
 		s += " " + disassembleOperand(fn, b, Int, k)
@@ -359,18 +356,6 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
 		//s += " " + disassembleOperand(fn, c, Interface, false)
-	case opSetClosureVar:
-		s += " " + disassembleOperand(fn, b, Int, false)
-		cv := fn.crefs[uint8(c)]
-		var depth = 1
-		for p := fn.parent; cv >= 0; p = p.parent {
-			cv = p.crefs[cv]
-			depth++
-		}
-		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
-		if depth > 0 {
-			s += "@" + strconv.Itoa(depth)
-		}
 	case opSetVar:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg

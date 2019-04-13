@@ -58,8 +58,6 @@ const (
 	opDivFloat32
 	opDivFloat64
 
-	opGetClosureVar
-
 	opGetFunc
 
 	opGetVar
@@ -123,8 +121,6 @@ const (
 	opReturn
 
 	opSelector
-
-	opSetClosureVar
 
 	opSetVar
 
@@ -202,8 +198,6 @@ var operationName = [...]string{
 	opDivFloat32: "DivFloat32",
 	opDivFloat64: "DivFloat64",
 
-	opGetClosureVar: "GetClosureVar",
-
 	opGetFunc: "GetFunc",
 
 	opGetVar: "GetVar",
@@ -251,8 +245,6 @@ var operationName = [...]string{
 	opReturn: "Return",
 
 	opMakeSlice: "Slice",
-
-	opSetClosureVar: "SetClosureVar",
 
 	opSetVar: "SetPackageVar",
 
