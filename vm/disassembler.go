@@ -195,7 +195,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		if depth > 0 {
 			s += "@" + strconv.Itoa(depth)
 		}
-		s += " " + disassembleOperand(fn, -c, Int, false)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opCall, opCallFunc, opCallMethod, opTailCall:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
@@ -418,5 +418,5 @@ func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string 
 	if op == 0 {
 		return "NR"
 	}
-	return "-R" + strconv.Itoa(-int(op))
+	return "(R" + strconv.Itoa(-int(op)) + ")"
 }
