@@ -768,7 +768,18 @@ func (vm *VM) run() int {
 		// New
 		case opNew:
 			t := vm.fn.types[int(uint(b))]
-			vm.setGeneral(c, reflect.New(t).Interface())
+			var v interface{}
+			switch t.Kind() {
+			case reflect.Int:
+				v = new(int)
+			case reflect.Float64:
+				v = new(float64)
+			case reflect.String:
+				v = new(string)
+			default:
+				v = reflect.New(t).Interface()
+			}
+			vm.setGeneral(c, v)
 
 		// Or
 		case opOr, -opOr:
