@@ -363,8 +363,8 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opMakeSlice:
 		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSetClosureVar:
-		s += " " + disassembleOperand(fn, c, Int, false)
-		cv := fn.crefs[uint8(b)]
+		s += " " + disassembleOperand(fn, b, Int, false)
+		cv := fn.crefs[uint8(c)]
 		var depth = 1
 		for p := fn.parent; cv >= 0; p = p.parent {
 			cv = p.crefs[cv]
@@ -430,10 +430,10 @@ func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string 
 			return fmt.Sprintf("%v", fn.constants.General[uint8(op)])
 		}
 	}
-	if op >= 0 {
+	if op > 0 {
 		return "R" + strconv.Itoa(int(op))
 	}
-	if op == NoRegister {
+	if op == 0 {
 		return "NR"
 	}
 	return "-R" + strconv.Itoa(-int(op))
