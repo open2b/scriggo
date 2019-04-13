@@ -18,8 +18,6 @@ const (
 	opAddFloat32
 	opAddFloat64
 
-	opAlloc
-
 	opAnd
 
 	opAndNot
@@ -165,8 +163,6 @@ var operationName = [...]string{
 	opAddInt32:   "AddInt32",
 	opAddFloat32: "AddFloat32",
 	opAddFloat64: "AddFloat64",
-
-	opAlloc: "Alloc",
 
 	opAnd: "And",
 

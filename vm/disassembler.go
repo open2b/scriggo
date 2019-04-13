@@ -166,9 +166,6 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + disassembleOperand(fn, b, Float64, k)
 		s += " " + disassembleOperand(fn, c, Float64, false)
-	case opAlloc:
-		s += " " + fn.types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opAssert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(" + strconv.Itoa(int(uint(b))) + ")"

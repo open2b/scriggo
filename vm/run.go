@@ -86,22 +86,6 @@ func (vm *VM) run() int {
 		case -opAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
-		// Alloc
-		case opAlloc:
-			t := vm.fn.types[int(uint(a))]
-			var v interface{}
-			switch t.Kind() {
-			case reflect.Int:
-				v = new(int)
-			case reflect.Float64:
-				v = new(float64)
-			case reflect.String:
-				v = new(string)
-			default:
-				v = reflect.New(t).Interface()
-			}
-			vm.setGeneral(-c, v)
-
 		// And
 		case opAnd:
 			vm.setInt(c, vm.int(a)&vm.intk(b, op < 0))

@@ -445,32 +445,6 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
-// Alloc appends a new "Alloc" instruction to the function body.
-//
-//     z = alloc(typ)
-//
-func (builder *FunctionBuilder) Alloc(typ reflect.Type, z int8) {
-	builder.allocRegister(reflect.Interface, z)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		if len(types) == 256 {
-			panic("types limit reached")
-		}
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opAlloc, a: tr, c: z})
-}
-
 // Assert appends a new "assert" instruction to the function body.
 //
 //     z = e.(t)
