@@ -198,7 +198,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				t := fn.types[int(uint8(a))]
 				m := t.Method(int(uint8(b)))
 				s += " " + t.String() + "." + m.Name
-			} else {
+			} else if b != CurrentFunction {
 				pkg := fn.pkg
 				if a != CurrentPackage {
 					pkg = pkg.packages[uint8(a)]
