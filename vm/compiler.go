@@ -44,7 +44,8 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 			continue
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Func {
-			index, ok := pkg.DefineGoFunction(ident, value)
+			nativeFunc := NewNativeFunction(ident, value)
+			index, ok := pkg.AddNativeFunction(nativeFunc)
 			if !ok {
 				panic("TODO: not implemented")
 			}
@@ -79,7 +80,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			// variable, which is wrong. Putting initFn declaration
 			// outside this switch is wrong too: init.-1 cannot be created
 			// if there's no need.
-			initFn, _ := c.currentPkg.NewFunction("init.-1", nil, nil, false)
+			initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
 			initBuilder := initFn.Builder()
 			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
 				currentBuilder := c.fb
@@ -94,7 +95,7 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 				panic("TODO: not implemented")
 			}
 		case *ast.Func:
-			fn, index := c.currentPkg.NewFunction(n.Ident.Name, nil, nil, n.Type.IsVariadic)
+			fn, index := c.currentPkg.NewFunction(n.Ident.Name, reflect.FuncOf(nil, nil, n.Type.IsVariadic))
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
@@ -179,10 +180,10 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		goPkg := c.currentPkg.packages[pkgIndex]
 		funcIndex := int8(goPkg.gofunctionsNames[funcName])
 		var funcType reflect.Type
-		if goPkg.gofunctions[funcIndex].iface != nil {
-			funcType = reflect.TypeOf(goPkg.gofunctions[funcIndex].iface)
+		if goPkg.nativeFunctions[funcIndex].fast != nil {
+			funcType = reflect.TypeOf(goPkg.nativeFunctions[funcIndex].fast)
 		} else {
-			funcType = goPkg.gofunctions[funcIndex].value.Type()
+			funcType = goPkg.nativeFunctions[funcIndex].value.Type()
 		}
 		for i := 0; i < funcType.NumOut(); i++ {
 			kind := funcType.Out(i).Kind()
@@ -194,7 +195,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			reg := c.fb.NewRegister(kind)
 			c.compileExpr(call.Args[i], reg)
 		}
-		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
+		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadic, stackShift)
 	default:
 		panic("TODO: not implemented")
 	}
@@ -264,14 +265,14 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.Func:
 		currentFunc := c.fb
-		fn, _ := c.currentPkg.NewFunction("", nil, nil, expr.Type.IsVariadic)
+		fn, _ := c.currentPkg.NewFunction("", reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
 		c.fb = fn.Builder()
 		c.fb.EnterScope()
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.End()
 		c.fb.ExitScope()
 		c.fb = currentFunc
-		c.fb.Func(0, nil, nil, expr.Type.IsVariadic)
+		c.fb.Func(0, reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
 
 	case *ast.Selector:
 		panic("TODO: not implemented")

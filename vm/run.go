@@ -22,7 +22,7 @@ const (
 	InterpretRunTimeError
 )
 
-const NoVariadicCall = -1
+const NoVariadic = -1
 const NoPackage = -2
 const CurrentPackage = -1
 const CurrentFunction = -1
@@ -62,7 +62,7 @@ func (vm *VM) run() int {
 		if DebugTraceExecution {
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
-				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
+				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()
 		}
@@ -202,21 +202,13 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
+			pkg := vm.fn.pkg
+			if a != CurrentPackage {
+				pkg = pkg.packages[uint8(a)]
+			}
+			fn := pkg.scrigoFunctions[uint8(b)]
 			off := vm.fn.body[pc]
 			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
-			var fn *Function
-			if a == NoPackage {
-				closure := vm.general(b).(closure)
-				fn = closure.fn
-				vm.cvars = closure.vars
-			} else {
-				pkg := vm.fn.pkg
-				if a != CurrentPackage {
-					pkg = pkg.packages[uint8(a)]
-				}
-				fn = pkg.functions[uint8(b)]
-				vm.cvars = nil
-			}
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -233,28 +225,60 @@ func (vm *VM) run() int {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
+			vm.cvars = nil
 			vm.calls = append(vm.calls, call)
 			pc = 0
 
-		// CallFunc, CallMethod
+		// CallIndirect
+		case opCallIndirect:
+			f := vm.general(b).(*callable)
+			if f.scrigo != nil {
+				fn := f.scrigo
+				vm.cvars = f.vars
+				off := vm.fn.body[pc]
+				call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
+				vm.fp[0] += uint32(off.op)
+				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+					vm.moreIntStack()
+				}
+				if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+					vm.moreFloatStack()
+				}
+				vm.fp[2] += uint32(off.b)
+				if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+					vm.moreStringStack()
+				}
+				vm.fp[3] += uint32(off.c)
+				if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+					vm.moreGeneralStack()
+				}
+				vm.fn = fn
+				vm.calls = append(vm.calls, call)
+				pc = 0
+				continue
+			}
+			fallthrough
+
+		// CallFunc, CallMethod, CallIndirect
 		case opCallFunc, opCallMethod:
-			var fn *goFunction
-			if op == opCallMethod {
+			var fn *NativeFunction
+			switch op {
+			case opCallMethod:
 				t := vm.fn.types[int(uint8(a))]
 				m := t.Method(int(uint8(b)))
-				if i, ok := vm.fn.pkg.DefineGoFunction(m.Name, m.Func); ok {
+				fn = &NativeFunction{name: m.Name, value: m.Func}
+				fn.slow()
+				if i, ok := vm.fn.pkg.AddNativeFunction(fn); ok {
 					vm.fn.body[pc-1] = instruction{op: opCallFunc, a: CurrentPackage, b: int8(i)}
-					fn = vm.fn.pkg.gofunctions[i]
-				} else {
-					fn = &goFunction{value: m.Func}
-					fn.toReflect()
 				}
-			} else {
+			case opCallFunc:
 				pkg := vm.fn.pkg
 				if a != CurrentPackage {
 					pkg = pkg.packages[uint8(a)]
 				}
-				fn = pkg.gofunctions[uint8(b)]
+				fn = pkg.nativeFunctions[uint8(b)]
+			case opCall:
+				fn = vm.general(b).(*callable).native
 			}
 			fp := vm.fp
 			off := vm.fn.body[pc]
@@ -262,75 +286,108 @@ func (vm *VM) run() int {
 			vm.fp[1] += uint32(off.a)
 			vm.fp[2] += uint32(off.b)
 			vm.fp[3] += uint32(off.c)
-			if fn.iface == nil {
-				vm.fp[0] += uint32(fn.outOff[0])
-				vm.fp[1] += uint32(fn.outOff[1])
-				vm.fp[2] += uint32(fn.outOff[2])
-				vm.fp[3] += uint32(fn.outOff[3])
+			if fn.fast != nil {
+				switch f := fn.fast.(type) {
+				case func(string) int:
+					vm.setInt(1, int64(f(vm.string(1))))
+				case func(string) string:
+					vm.setString(1, f(vm.string(2)))
+				case func(string, string) int:
+					vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+				case func(string, int) string:
+					vm.setString(1, f(vm.string(2), int(vm.int(1))))
+				case func(string, string) bool:
+					vm.setBool(1, f(vm.string(1), vm.string(2)))
+				case func([]byte) []byte:
+					vm.setGeneral(1, f(vm.general(2).([]byte)))
+				case func([]byte, []byte) int:
+					vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+				case func([]byte, []byte) bool:
+					vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+				default:
+					fn.slow()
+				}
+			}
+			if fn.fast == nil {
 				variadic := fn.value.Type().IsVariadic()
-				lastNonVariadic := len(fn.in)
-				if variadic && c != NoVariadicCall {
-					lastNonVariadic--
-				}
-				for i, k := range fn.in {
-					if i < lastNonVariadic {
-						switch k {
-						case Bool:
-							fn.args[i].SetBool(vm.bool(1))
-							vm.fp[0]++
-						case Int:
-							fn.args[i].SetInt(vm.int(1))
-							vm.fp[0]++
-						case Uint:
-							fn.args[i].SetUint(uint64(vm.int(1)))
-							vm.fp[0]++
-						case Float64:
-							fn.args[i].SetFloat(vm.float(1))
-							vm.fp[1]++
-						case String:
-							fn.args[i].SetString(vm.string(1))
-							vm.fp[2]++
-						default:
-							fn.args[i].Set(reflect.ValueOf(vm.general(1)))
-							vm.fp[3]++
-						}
-					} else {
-						sliceType := fn.args[i].Type()
-						slice := reflect.MakeSlice(sliceType, int(c), int(c))
-						k := sliceType.Elem().Kind()
-						switch {
-						case k == reflect.Bool:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).SetBool(vm.bool(int8(j + 1)))
-							}
-						case reflect.Int <= k && k <= reflect.Int64:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).SetInt(vm.int(int8(j + 1)))
-							}
-						case reflect.Uint <= k && k <= reflect.Uint64:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
-							}
-						case k == reflect.Float64 || k == reflect.Float32:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).SetFloat(vm.float(int8(j + 1)))
-							}
-						case k == reflect.String:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).SetString(vm.string(int8(j + 1)))
-							}
-						default:
-							for j := 0; j < int(c); j++ {
-								slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
-							}
-						}
-						fn.args[i].Set(slice)
+				if len(fn.in) > 0 {
+					vm.fp[0] += uint32(fn.outOff[0])
+					vm.fp[1] += uint32(fn.outOff[1])
+					vm.fp[2] += uint32(fn.outOff[2])
+					vm.fp[3] += uint32(fn.outOff[3])
+					lastNonVariadic := len(fn.in)
+					if variadic && c != NoVariadic {
+						lastNonVariadic--
 					}
+					for i, k := range fn.in {
+						if i < lastNonVariadic {
+							switch k {
+							case Bool:
+								fn.args[i].SetBool(vm.bool(1))
+								vm.fp[0]++
+							case Int:
+								fn.args[i].SetInt(vm.int(1))
+								vm.fp[0]++
+							case Uint:
+								fn.args[i].SetUint(uint64(vm.int(1)))
+								vm.fp[0]++
+							case Float64:
+								fn.args[i].SetFloat(vm.float(1))
+								vm.fp[1]++
+							case String:
+								fn.args[i].SetString(vm.string(1))
+								vm.fp[2]++
+							case Func:
+								f := vm.general(1).(*callable)
+								fn.args[i].Set(f.reflectValue())
+								vm.fp[3]++
+							default:
+								fn.args[i].Set(reflect.ValueOf(vm.general(1)))
+								vm.fp[3]++
+							}
+						} else {
+							sliceType := fn.args[i].Type()
+							slice := reflect.MakeSlice(sliceType, int(c), int(c))
+							k := sliceType.Elem().Kind()
+							switch {
+							case k == reflect.Bool:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).SetBool(vm.bool(int8(j + 1)))
+								}
+							case reflect.Int <= k && k <= reflect.Int64:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).SetInt(vm.int(int8(j + 1)))
+								}
+							case reflect.Uint <= k && k <= reflect.Uint64:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
+								}
+							case k == reflect.Float64 || k == reflect.Float32:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).SetFloat(vm.float(int8(j + 1)))
+								}
+							case k == reflect.String:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).SetString(vm.string(int8(j + 1)))
+								}
+							case k == reflect.Func:
+								for j := 0; j < int(c); j++ {
+									f := vm.general(int8(j + 1)).(*callable)
+									slice.Index(j).Set(f.reflectValue())
+								}
+							default:
+								for j := 0; j < int(c); j++ {
+									slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
+								}
+							}
+							fn.args[i].Set(slice)
+						}
+					}
+					vm.fp[0] = fp[0] + uint32(off.op)
+					vm.fp[1] = fp[1] + uint32(off.a)
+					vm.fp[2] = fp[2] + uint32(off.b)
+					vm.fp[3] = fp[3] + uint32(off.c)
 				}
-				vm.fp[0] = fp[0] + uint32(off.op)
-				vm.fp[1] = fp[1] + uint32(off.a)
-				vm.fp[2] = fp[2] + uint32(off.b)
-				vm.fp[3] = fp[3] + uint32(off.c)
 				var ret []reflect.Value
 				if variadic {
 					ret = fn.value.CallSlice(fn.args)
@@ -354,32 +411,12 @@ func (vm *VM) run() int {
 					case String:
 						vm.setString(1, ret[i].String())
 						vm.fp[2]++
+					case Func:
+
 					default:
 						vm.setGeneral(1, ret[i].Interface())
 						vm.fp[3]++
 					}
-				}
-			} else {
-				switch f := fn.iface.(type) {
-				case func(string) int:
-					vm.setInt(1, int64(f(vm.string(1))))
-				case func(string) string:
-					vm.setString(1, f(vm.string(2)))
-				case func(string, string) int:
-					vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-				case func(string, int) string:
-					vm.setString(1, f(vm.string(2), int(vm.int(1))))
-				case func(string, string) bool:
-					vm.setBool(1, f(vm.string(1), vm.string(2)))
-				case func([]byte) []byte:
-					vm.setGeneral(1, f(vm.general(2).([]byte)))
-				case func([]byte, []byte) int:
-					vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-				case func([]byte, []byte) bool:
-					vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-				default:
-					fn.toReflect()
-					pc -= 2
 				}
 			}
 			vm.fp = fp
@@ -437,7 +474,7 @@ func (vm *VM) run() int {
 
 		// Func
 		case opFunc:
-			fn := vm.fn.funcs[uint8(b)]
+			fn := vm.fn.literals[uint8(b)]
 			var vars []interface{}
 			if fn.crefs != nil {
 				vars = make([]interface{}, len(fn.crefs))
@@ -449,15 +486,21 @@ func (vm *VM) run() int {
 					}
 				}
 			}
-			vm.setGeneral(c, closure{fn: fn, vars: vars})
+			vm.setGeneral(c, &callable{scrigo: fn, vars: vars})
 
 		// GetFunc
 		case opGetFunc:
+			var fn interface{}
 			pkg := vm.fn.pkg
 			if a != CurrentPackage {
 				pkg = pkg.packages[uint8(a)]
 			}
-			vm.setGeneral(c, closure{fn: pkg.functions[uint8(b)]})
+			if pkg.scrigoFunctions == nil {
+				fn = &callable{native: pkg.nativeFunctions[uint8(b)]}
+			} else {
+				fn = &callable{scrigo: pkg.scrigoFunctions[uint8(b)]}
+			}
+			vm.setGeneral(c, fn)
 
 		// GetVar
 		case opGetVar:
@@ -1122,17 +1165,17 @@ func (vm *VM) run() int {
 			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: pc, tail: true})
 			pc = 0
 			if b != CurrentFunction {
-				var fn *Function
+				var fn *ScrigoFunction
 				if a == NoPackage {
-					closure := vm.general(b).(closure)
-					fn = closure.fn
+					closure := vm.general(b).(*callable)
+					fn = closure.scrigo
 					vm.cvars = closure.vars
 				} else {
 					pkg := vm.fn.pkg
 					if a != CurrentPackage {
 						pkg = pkg.packages[uint8(a)]
 					}
-					fn = pkg.functions[uint8(b)]
+					fn = pkg.scrigoFunctions[uint8(b)]
 					vm.cvars = nil
 				}
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
