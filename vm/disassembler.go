@@ -411,7 +411,7 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 		case kind == String:
 			return strconv.Quote(fn.constants.String[uint8(op)])
 		default:
-			return fmt.Sprintf("%v", fn.constants.General[uint8(op)])
+			return fmt.Sprintf("%q", fn.constants.General[uint8(op)])
 		}
 	}
 	if op > 0 {
