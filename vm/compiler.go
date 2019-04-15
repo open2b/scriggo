@@ -284,30 +284,39 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 }
 
-// compileValueToVar assign value to variable.
-func (c *Compiler) compileValueToVar(value, variable ast.Expression, isDecl bool) {
-	kind := c.typeinfo[value].Type.Kind()
-	if isBlankIdentifier(variable) {
-		switch value.(type) {
-		case *ast.Call:
-			c.compileNodes([]ast.Node{value})
+// compileVarsGetValue assign value to variables. If variables contains more
+// than one variable, value must be a function call, a map indexing operation or
+// a type assertion. These last two cases involve that variables contains 2
+// elements.
+func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Expression, isDecl bool) {
+	if len(variables) == 1 {
+		variable := variables[0]
+		kind := c.typeinfo[value].Type.Kind()
+		if isBlankIdentifier(variable) {
+			switch value.(type) {
+			case *ast.Call:
+				c.compileNodes([]ast.Node{value})
+			}
+			return
 		}
-		return
-	}
-	var varReg int8
-	if isDecl {
-		varReg = c.fb.NewVar(variable.(*ast.Identifier).Name, kind)
+		var varReg int8
+		if isDecl {
+			varReg = c.fb.NewVar(variable.(*ast.Identifier).Name, kind)
+		} else {
+			varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
+		}
+		out, isValue, isRegister := c.quickCompileExpr(value)
+		if isValue {
+			c.fb.Move(true, out, varReg, kind)
+		} else if isRegister {
+			c.fb.Move(false, out, varReg, kind)
+		} else {
+			c.compileExpr(value, varReg)
+		}
 	} else {
-		varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
+		panic("TODO: not implemented")
 	}
-	out, isValue, isRegister := c.quickCompileExpr(value)
-	if isValue {
-		c.fb.Move(true, out, varReg, kind)
-	} else if isRegister {
-		c.fb.Move(false, out, varReg, kind)
-	} else {
-		c.compileExpr(value, varReg)
-	}
+
 }
 
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
@@ -371,13 +380,13 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					c.fb.Add(true, reg, -1, reg, kind)
 				case ast.AssignmentDeclaration, ast.AssignmentSimple:
-					c.compileValueToVar(node.Values[0], node.Variables[0], node.Type == ast.AssignmentDeclaration)
+					c.compileVarsGetValue([]ast.Expression{node.Variables[0]}, node.Values[0], node.Type == ast.AssignmentDeclaration)
 				default:
 					panic("TODO: not implemented")
 				}
 			} else if len(node.Variables) == len(node.Values) {
 				for i := range node.Variables {
-					c.compileValueToVar(node.Values[i], node.Variables[i], node.Type == ast.AssignmentDeclaration)
+					c.compileVarsGetValue([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
 				}
 			} else {
 				panic("TODO: not implemented")
@@ -470,7 +479,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 
 		case *ast.Var:
 			for i := range node.Identifiers {
-				c.compileValueToVar(node.Values[i], node.Identifiers[i], true)
+				c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
 			}
 
 		case ast.Expression:
