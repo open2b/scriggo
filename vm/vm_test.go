@@ -264,6 +264,22 @@ var stmtTests = []struct {
 			{TypeInt, 7, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
 		},
 	},
+	{"Go function call of StringLen",
+		`
+			package main
+
+			import "testpkg"
+
+			func main() {
+				a := testpkg.StringLen("zzz")
+				_ = a
+			}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)},
+		},
+	},
 	{"If with init assignment",
 		`
 			package main
@@ -702,6 +718,9 @@ var goPackages = map[string]*parser.GoPackage{
 			"F11": func(a int) int { return a + 33 },
 			"Sum": func(a, b int) int {
 				return a + b
+			},
+			"StringLen": func(s string) int {
+				return len(s)
 			},
 		},
 	},
