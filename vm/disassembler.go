@@ -223,7 +223,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				}
 			}
 		}
-		if c >= 0 && (op == opCallFunc || op == opCallMethod) {
+		if c != NoVariadicCall && (op == opCallFunc || op == opCallMethod) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {

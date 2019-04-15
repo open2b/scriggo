@@ -599,10 +599,10 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, native bo
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
 	if native {
-		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: NoVariadicArgs})
+		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: NoVariadicCall})
 		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 	} else {
-		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadicArgs})
+		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadicCall})
 		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 	}
 }
