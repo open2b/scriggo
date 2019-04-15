@@ -96,7 +96,7 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
 		}
-		_, _ = fmt.Fprintf(w, "%d %s", len(fn.out)+i, typ)
+		_, _ = fmt.Fprintf(w, "%d %s", len(fn.out)+i+1, typ)
 	}
 	_, _ = fmt.Fprint(w, ")")
 	if len(fn.out) > 0 {
@@ -105,7 +105,7 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
-			_, _ = fmt.Fprintf(w, "%d %s", i, typ)
+			_, _ = fmt.Fprintf(w, "%d %s", i+1, typ)
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
