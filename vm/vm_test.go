@@ -23,8 +23,8 @@ import (
 //   a := 1234
 //   a := new(int)
 //   a := []int{1,2,3,4}
-//   a, b, c := f()
 //   f(3)          --> arguments must be defined in function scope
+//   func f(int) {
 
 var stmtTests = []struct {
 	name         string
@@ -564,6 +564,30 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(11)},       // d
 			{TypeInt, 5, int64(12)},       // e
 		}},
+	{"Package function with one parameter (not used)",
+		`
+		package main
+
+		func f(a int) {
+			return
+		}
+		
+		func main() {
+			a := 2
+			f(3)
+			b := 10
+			c := a + b
+			_ = c
+			return
+		}
+	`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(2)},  // a
+			{TypeInt, 3, int64(10)}, // b
+			{TypeInt, 4, int64(12)}, // c
+		},
+	},
 }
 
 func TestVM(t *testing.T) {
