@@ -147,7 +147,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			panic("TODO: not implemented")
 
 		}
-	case *ast.String: // TODO (Gianluca): remove
+	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		sConst := c.fb.MakeStringConstant(expr.Text)
 		reg := c.fb.NewRegister(reflect.String)
 		c.fb.Move(true, sConst, reg, reflect.String)
@@ -156,15 +156,15 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 	return 0, false, false
 }
 
-func (c *Compiler) compileCall(call *ast.Call) (returnRegs []int8, outKinds []reflect.Kind) {
-
+// compileCall compiles call, returning the list of registers (and their
+// respective kind) within which return values are inserted.
+func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kind) {
 	stackShift := StackShift{
 		int8(c.fb.numRegs[reflect.Int]),
 		int8(c.fb.numRegs[reflect.Float64]),
 		int8(c.fb.numRegs[reflect.String]),
 		int8(c.fb.numRegs[reflect.Interface]),
 	}
-
 	switch fun := call.Func.(type) {
 	case *ast.Identifier:
 		panic("TODO: not implemented")
@@ -178,24 +178,19 @@ func (c *Compiler) compileCall(call *ast.Call) (returnRegs []int8, outKinds []re
 		}
 		goPkg := c.currentPkg.packages[pkgIndex]
 		funcIndex := int8(goPkg.gofunctionsNames[funcName])
-
 		var funcType reflect.Type
 		if goPkg.gofunctions[funcIndex].iface != nil {
 			funcType = reflect.TypeOf(goPkg.gofunctions[funcIndex].iface)
 		} else {
 			funcType = goPkg.gofunctions[funcIndex].value.Type()
 		}
-
 		for i := 0; i < funcType.NumOut(); i++ {
-			out := funcType.Out(i)
-			kind := out.Kind()
-			reg := c.fb.NewRegister(kind)
-			returnRegs = append(returnRegs, reg)
-			outKinds = append(outKinds, kind)
+			kind := funcType.Out(i).Kind()
+			regs = append(regs, c.fb.NewRegister(kind))
+			kinds = append(kinds, kind)
 		}
 		for i := 0; i < funcType.NumIn(); i++ {
-			in := funcType.In(i)
-			kind := in.Kind()
+			kind := funcType.In(i).Kind()
 			reg := c.fb.NewRegister(kind)
 			c.compileExpr(call.Args[i], reg)
 		}
@@ -203,39 +198,11 @@ func (c *Compiler) compileCall(call *ast.Call) (returnRegs []int8, outKinds []re
 	default:
 		panic("TODO: not implemented")
 	}
-
-	// switch f := call.Func.(type) {
-	// case *ast.Identifier:
-	// 	// TODO (Gianluca): can also be a clojure
-	// 	name := f.Name
-	// 	index := c.currentPkg.gofunctionsNames[name]
-	// 	c.fb.Call(CurrentPackage, index, stackShift)
-	// case *ast.Selector:
-	// 	n1 := f.Expr.(*ast.Identifier).Name
-	// 	n2 := f.Ident
-	// 	pkgIndex := int8(c.currentPkg.packagesNames[n1])
-	// 	isNative := c.currentPkg.isGoPkg[n1]
-	// 	if isNative {
-	// 		goPkg := c.currentPkg.packages[pkgIndex]
-	// 		funcIndex := int8(goPkg.gofunctionsNames[n2])
-	// 		for _, arg := range call.Args {
-	// 			kind := c.typeinfo[arg].Type.Kind()
-	// 			reg := c.fb.NewRegister(kind)
-	// 			c.compileExpr(arg, reg)
-	// 		}
-	// 		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
-	// 	} else {
-	// 		panic("TODO: not implemented")
-	// 	}
-	// default:
-	// 	panic("TODO: not implemented")
-	// }
-
-	return
-
+	return regs, kinds
 }
 
-// compileExpr compiles expression expr and puts results into reg.
+// compileExpr compiles expression expr and puts results into reg. Compiled
+// result is discarded if reg is 0.
 func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 	switch expr := expr.(type) {
 
@@ -279,9 +246,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 		regs, kinds := c.compileCall(expr)
 		if reg != 0 {
-			retValue := regs[0]
-			regKind := kinds[0]
-			c.fb.Move(false, retValue, reg, regKind)
+			c.fb.Move(false, regs[0], reg, kinds[0])
 		}
 
 	case *ast.CompositeLiteral:
@@ -375,6 +340,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		return
 	}
 	// len(variables) > 1
+	// TODO (Gianluca): handle "_".
 	switch value := value.(type) {
 	case *ast.Call:
 		varRegs := []int8{}
