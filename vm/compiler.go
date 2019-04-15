@@ -9,6 +9,7 @@ package vm
 import (
 	"fmt"
 	"reflect"
+
 	"scrigo/ast"
 	"scrigo/parser"
 )
