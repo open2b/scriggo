@@ -157,7 +157,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 }
 
 // compileExpr compiles expression expr and puts results into reg.
-func (c *Compiler) compileExpr(expr ast.Expression, startReg int8) {
+func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -177,24 +177,24 @@ func (c *Compiler) compileExpr(expr ast.Expression, startReg int8) {
 				c.compileExpr(expr.Expr2, op2)
 			}
 		}
-		c.compileExpr(expr.Expr1, startReg)
+		c.compileExpr(expr.Expr1, reg)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			c.fb.Add(ky, startReg, op2, startReg, kind)
+			c.fb.Add(ky, reg, op2, reg, kind)
 		case ast.OperatorSubtraction:
-			c.fb.Sub(ky, startReg, op2, startReg, kind)
+			c.fb.Sub(ky, reg, op2, reg, kind)
 		case ast.OperatorMultiplication:
-			c.fb.Mul(startReg, op2, startReg, kind)
+			c.fb.Mul(reg, op2, reg, kind)
 		case ast.OperatorDivision:
-			c.fb.Div(startReg, op2, startReg, kind)
+			c.fb.Div(reg, op2, reg, kind)
 		case ast.OperatorModulo:
-			c.fb.Rem(startReg, op2, startReg, kind)
+			c.fb.Rem(reg, op2, reg, kind)
 		default:
 			panic("TODO: not implemented")
 		}
 
 	case *ast.Call:
-		ok := c.callBuiltin(expr, startReg)
+		ok := c.callBuiltin(expr, reg)
 		if ok {
 			return
 		}
@@ -231,7 +231,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, startReg int8) {
 		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
 		case reflect.Slice:
 			typ := expr.Type.(*ast.Value).Val.(reflect.Type)
-			c.fb.Slice(typ, 0, 0, startReg)
+			c.fb.Slice(typ, 0, 0, reg)
 		case reflect.Array:
 			panic("TODO: not implemented")
 		case reflect.Struct:
@@ -255,7 +255,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, startReg int8) {
 		panic("TODO: not implemented")
 
 	case *ast.UnaryOperator:
-		c.compileExpr(expr.Expr, startReg)
+		c.compileExpr(expr.Expr, reg)
 		// kind := c.typeinfo[expr.Expr].Type.Kind()
 		switch expr.Operator() {
 		case ast.OperatorNot:
@@ -272,9 +272,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, startReg int8) {
 		kind := c.typeinfo[expr].Type.Kind()
 		out, isValue, isRegister := c.quickCompileExpr(expr)
 		if isValue {
-			c.fb.Move(true, out, startReg, kind)
+			c.fb.Move(true, out, reg, kind)
 		} else if isRegister {
-			c.fb.Move(false, out, startReg, kind)
+			c.fb.Move(false, out, reg, kind)
 		} else {
 			panic("bug")
 		}
