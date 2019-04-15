@@ -156,6 +156,85 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 	return 0, false, false
 }
 
+func (c *Compiler) compileCall(call *ast.Call) (returnRegs []int8, outKinds []reflect.Kind) {
+
+	stackShift := StackShift{
+		int8(c.fb.numRegs[reflect.Int]),
+		int8(c.fb.numRegs[reflect.Float64]),
+		int8(c.fb.numRegs[reflect.String]),
+		int8(c.fb.numRegs[reflect.Interface]),
+	}
+
+	switch fun := call.Func.(type) {
+	case *ast.Identifier:
+		panic("TODO: not implemented")
+	case *ast.Selector:
+		pkgName := fun.Expr.(*ast.Identifier).Name
+		funcName := fun.Ident
+		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
+		isNative := c.currentPkg.isGoPkg[pkgName]
+		if !isNative {
+			panic("TODO: not implemented")
+		}
+		goPkg := c.currentPkg.packages[pkgIndex]
+		funcIndex := int8(goPkg.gofunctionsNames[funcName])
+
+		var funcType reflect.Type
+		if goPkg.gofunctions[funcIndex].iface != nil {
+			funcType = reflect.TypeOf(goPkg.gofunctions[funcIndex].iface)
+		} else {
+			funcType = goPkg.gofunctions[funcIndex].value.Type()
+		}
+
+		for i := 0; i < funcType.NumOut(); i++ {
+			out := funcType.Out(i)
+			kind := out.Kind()
+			reg := c.fb.NewRegister(kind)
+			returnRegs = append(returnRegs, reg)
+			outKinds = append(outKinds, kind)
+		}
+		for i := 0; i < funcType.NumIn(); i++ {
+			in := funcType.In(i)
+			kind := in.Kind()
+			reg := c.fb.NewRegister(kind)
+			c.compileExpr(call.Args[i], reg)
+		}
+		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
+	default:
+		panic("TODO: not implemented")
+	}
+
+	// switch f := call.Func.(type) {
+	// case *ast.Identifier:
+	// 	// TODO (Gianluca): can also be a clojure
+	// 	name := f.Name
+	// 	index := c.currentPkg.gofunctionsNames[name]
+	// 	c.fb.Call(CurrentPackage, index, stackShift)
+	// case *ast.Selector:
+	// 	n1 := f.Expr.(*ast.Identifier).Name
+	// 	n2 := f.Ident
+	// 	pkgIndex := int8(c.currentPkg.packagesNames[n1])
+	// 	isNative := c.currentPkg.isGoPkg[n1]
+	// 	if isNative {
+	// 		goPkg := c.currentPkg.packages[pkgIndex]
+	// 		funcIndex := int8(goPkg.gofunctionsNames[n2])
+	// 		for _, arg := range call.Args {
+	// 			kind := c.typeinfo[arg].Type.Kind()
+	// 			reg := c.fb.NewRegister(kind)
+	// 			c.compileExpr(arg, reg)
+	// 		}
+	// 		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
+	// 	} else {
+	// 		panic("TODO: not implemented")
+	// 	}
+	// default:
+	// 	panic("TODO: not implemented")
+	// }
+
+	return
+
+}
+
 // compileExpr compiles expression expr and puts results into reg.
 func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 	switch expr := expr.(type) {
@@ -198,33 +277,11 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		if ok {
 			return
 		}
-		switch f := expr.Func.(type) {
-		case *ast.Identifier:
-			// TODO (Gianluca): can also be a clojure
-			name := f.Name
-			index := c.currentPkg.gofunctionsNames[name]
-			c.fb.SetStackShift()
-			c.fb.Call(CurrentPackage, index, c.fb.StackShift())
-		case *ast.Selector:
-			n1 := f.Expr.(*ast.Identifier).Name
-			n2 := f.Ident
-			pkgIndex := int8(c.currentPkg.packagesNames[n1])
-			isNative := c.currentPkg.isGoPkg[n1]
-			if isNative {
-				goPkg := c.currentPkg.packages[pkgIndex]
-				funcIndex := int8(goPkg.gofunctionsNames[n2])
-				c.fb.SetStackShift()
-				stackShift := c.fb.StackShift()
-				for _, arg := range expr.Args {
-					kind := c.typeinfo[arg].Type.Kind()
-					reg := c.fb.NewRegister(kind)
-					c.compileExpr(arg, reg)
-				}
-				c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
-			} else {
-				panic("TODO: not implemented")
-			}
-		default:
+		regs, kinds := c.compileCall(expr)
+		if reg != 0 {
+			retValue := regs[0]
+			regKind := kinds[0]
+			c.fb.Move(false, retValue, reg, regKind)
 		}
 
 	case *ast.CompositeLiteral:
@@ -487,7 +544,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case ast.Expression:
 			// TODO (Gianluca): use 0 (which is no longer a valid
 			// register) and handle it as a special case in compileExpr.
-			c.compileExpr(node, 1)
+			c.compileExpr(node, 0)
 
 		}
 	}
