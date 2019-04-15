@@ -115,6 +115,8 @@ const (
 
 	opOr
 
+	opPrint
+
 	opRange
 
 	opRangeString
@@ -252,6 +254,8 @@ var operationName = [...]string{
 	opMulFloat64: "MulFloat64",
 
 	opNew: "New",
+
+	opPrint: "Print",
 
 	opRemInt:    "RemInt",
 	opRemInt8:   "RemInt8",

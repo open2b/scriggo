@@ -852,6 +852,9 @@ func (vm *VM) run() int {
 		case opOr, -opOr:
 			vm.setInt(c, vm.int(a)|vm.intk(b, op < 0))
 
+		case opPrint:
+			print(vm.general(a))
+
 		// Range
 		case opRange:
 			var cont int
