@@ -209,7 +209,7 @@ func (p *Package) Import(pkg *Package) uint8 {
 		panic("imported packages limit reached")
 	}
 	p.packages = append(p.packages, pkg)
-	return uint8(len(p.packages) - 2)
+	return uint8(len(p.packages) - 1)
 }
 
 // DefineVariable defines a variable.
@@ -381,11 +381,19 @@ func (builder *FunctionBuilder) VariableRegister(n string) int8 {
 }
 
 func (builder *FunctionBuilder) CurrentStackShift() StackShift {
+	max := func(a, b int8) int8 {
+		// TODO (Gianluca): optimize and remove this func.
+		if a > b {
+			return a
+		} else {
+			return b
+		}
+	}
 	return StackShift{
-		int8(builder.numRegs[reflect.Int]),
-		int8(builder.numRegs[reflect.Float64]),
-		int8(builder.numRegs[reflect.String]),
-		int8(builder.numRegs[reflect.Interface]),
+		max(0, int8(builder.numRegs[reflect.Int]-1)),
+		max(0, int8(builder.numRegs[reflect.Float64]-1)),
+		max(0, int8(builder.numRegs[reflect.String]-1)),
+		max(0, int8(builder.numRegs[reflect.Interface]-1)),
 	}
 }
 
@@ -591,10 +599,10 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, native bo
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
 	if native {
-		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: NoVariadicArgs})
 		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 	} else {
-		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
+		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadicArgs})
 		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 	}
 }

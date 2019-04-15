@@ -108,8 +108,8 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 				}
 				goPkg := goPackageToVMPackage(parserGoPkg)
 				pkgIndex := c.currentPkg.Import(goPkg)
-				c.currentPkg.packagesNames[node.Name] = pkgIndex // TODO (Gianluca): key must be imported pkg name!
-				c.currentPkg.isGoPkg[node.Name] = true
+				c.currentPkg.packagesNames[parserGoPkg.Name] = pkgIndex
+				c.currentPkg.isGoPkg[parserGoPkg.Name] = true
 			}
 		}
 	}
@@ -209,8 +209,14 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			pkgIndex := int8(c.currentPkg.packagesNames[n1])
 			isNative := c.currentPkg.isGoPkg[n1]
 			if isNative {
-				funcIndex := int8(c.currentPkg.packages[pkgIndex].gofunctionsNames[n2])
-				c.fb.Call(pkgIndex, funcIndex, c.fb.CurrentStackShift(), isNative) // TODO
+				goPkg := c.currentPkg.packages[pkgIndex]
+				funcIndex := int8(goPkg.gofunctionsNames[n2])
+				for _, arg := range expr.Args {
+					kind := c.typeinfo[arg].Type.Kind()
+					reg := c.fb.NewRegister(kind)
+					c.compileExpr(arg, reg)
+				}
+				c.fb.Call(pkgIndex, funcIndex, StackShift{0, 0, 0, 0}, true) // TODO
 			} else {
 				panic("TODO: not implemented")
 			}

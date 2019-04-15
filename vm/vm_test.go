@@ -160,7 +160,78 @@ var stmtTests = []struct {
 			`,
 		nil,
 		nil},
+	{"Go function call (0 in, 0 out)",
+		`
+			package main
 
+			import "testpkg"
+
+			func main() {
+				testpkg.F00()
+				return
+			}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Import "testpkg"`,
+			``,
+			`Func main()`,
+			`	// regs(0,0,0,0)`,
+			`	CallFunc testpkg.F00    // Stack shift: 0, 0, 0, 0`,
+			`     Return`,
+		},
+		nil,
+	},
+	{"Go function call (0 in, 1 out)",
+		`
+			package main
+
+			import "testpkg"
+
+			func main() {
+				v := testpkg.F01()
+				_ = v
+				return
+			}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(40)},
+		},
+	},
+	{"Go function call (1 in, 0 out)",
+		`
+			package main
+
+			import "testpkg"
+
+			func main() {
+				testpkg.F10(50)
+				return
+			}
+		`,
+		nil,
+		nil,
+	},
+	{"Go function call (1 in, 1 out)",
+		`
+			package main
+
+			import "testpkg"
+
+			func main() {
+				a := 2
+				a = testpkg.F11(9)
+				_ = a
+				return
+			}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(42)},
+		},
+	},
 	{"If with init assignment",
 		`
 			package main
@@ -380,7 +451,7 @@ var stmtTests = []struct {
 			``,
 			`Func main()`,
 			`	// regs(1,0,0,0)`,
-			`	Call main.five	// Stack shift: 1, 0, 0, 0`,
+			`	Call main.five	// Stack shift: 0, 0, 0, 0`,
 		},
 		nil},
 }
@@ -391,7 +462,7 @@ func TestVM(t *testing.T) {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
 			r := parser.MapReader{"/test.go": []byte(cas.src)}
-			comp := NewCompiler(r, nil)
+			comp := NewCompiler(r, goPackages)
 			pkg, err := comp.Compile("/test.go")
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.name, err)
@@ -419,7 +490,7 @@ func TestVM(t *testing.T) {
 				}
 				if diff := equal(cas.disassembled, gotLines); diff >= 0 {
 					if !testing.Verbose() {
-						t.Errorf("disassembler output doesn't match for source %q (run tests in verbose mode for further details)", cas.src)
+						t.Errorf("disassembler output doesn't match for test %q (run tests in verbose mode for further details)", cas.name)
 					} else {
 						out := &bytes.Buffer{}
 						const padding = 3
@@ -532,7 +603,7 @@ func NoTestMakeExpressionTests(t *testing.T) {
 	out.WriteString("\n")
 	for _, cas := range stmtTests {
 		r := parser.MapReader{"/test.go": []byte(cas.src)}
-		comp := NewCompiler(r, nil)
+		comp := NewCompiler(r, goPackages)
 		pkg, err := comp.Compile("/test.go")
 		if err != nil {
 			panic(fmt.Errorf("unexpected error: source: %q, compiler error: %s", oneLine(cas.src), err))
@@ -557,4 +628,46 @@ func NoTestMakeExpressionTests(t *testing.T) {
 		out.WriteString("},\n")
 	}
 	t.Error(out.String())
+}
+
+var goPackages = map[string]*parser.GoPackage{
+	"fmt": &parser.GoPackage{
+		Name: "fmt",
+		Declarations: map[string]interface{}{
+			"Errorf":     fmt.Errorf,
+			"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
+			"Fprint":     fmt.Fprint,
+			"Fprintf":    fmt.Fprintf,
+			"Fprintln":   fmt.Fprintln,
+			"Fscan":      fmt.Fscan,
+			"Fscanf":     fmt.Fscanf,
+			"Fscanln":    fmt.Fscanln,
+			"GoStringer": reflect.TypeOf(new(fmt.GoStringer)).Elem(),
+			"Print":      fmt.Print,
+			"Printf":     fmt.Printf,
+			"Println":    fmt.Println,
+			"Scan":       fmt.Scan,
+			"ScanState":  reflect.TypeOf(new(fmt.ScanState)).Elem(),
+			"Scanf":      fmt.Scanf,
+			"Scanln":     fmt.Scanln,
+			"Scanner":    reflect.TypeOf(new(fmt.Scanner)).Elem(),
+			"Sprint":     fmt.Sprint,
+			"Sprintf":    fmt.Sprintf,
+			"Sprintln":   fmt.Sprintln,
+			"Sscan":      fmt.Sscan,
+			"Sscanf":     fmt.Sscanf,
+			"Sscanln":    fmt.Sscanln,
+			"State":      reflect.TypeOf(new(fmt.State)).Elem(),
+			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
+		},
+	},
+	"testpkg": &parser.GoPackage{
+		Name: "testpkg",
+		Declarations: map[string]interface{}{
+			"F00": func() {},
+			"F01": func() int { return 40 },
+			"F10": func(a int) {},
+			"F11": func(a int) int { return a + 33 },
+		},
+	},
 }
