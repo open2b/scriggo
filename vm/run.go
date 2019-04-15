@@ -58,9 +58,14 @@ func (vm *VM) run() int {
 		in := vm.fn.body[pc]
 
 		if DebugTraceExecution {
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
+			funcName := vm.fn.name
+			if funcName != "" {
+				funcName += ":"
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
-				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
+				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1],
+				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()
 		}
