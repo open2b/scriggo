@@ -194,18 +194,20 @@ type Package struct {
 
 	// TODO (Gianluca): are these fields exported to the vm? In such case,
 	// these should be kept in compiler, not here!
+	functionsNames   map[string]int8
 	gofunctionsNames map[string]int8
-	packagesNames    map[string]uint8
 	isGoPkg          map[string]bool
+	packagesNames    map[string]uint8
 }
 
 // NewPackage creates a new package.
 func NewPackage(name string) *Package {
 	p := &Package{
+		functionsNames:   make(map[string]int8),
 		gofunctionsNames: make(map[string]int8),
-		packagesNames:    make(map[string]uint8),
 		isGoPkg:          make(map[string]bool),
 		name:             name,
+		packagesNames:    make(map[string]uint8),
 	}
 
 	p.packages = []*Package{}

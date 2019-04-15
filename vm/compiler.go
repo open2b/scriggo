@@ -95,13 +95,13 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 				panic("TODO: not implemented")
 			}
 		case *ast.Func:
-			fn, index := c.currentPkg.NewFunction(n.Ident.Name, reflect.FuncOf(nil, nil, n.Type.IsVariadic))
+			fn, index := c.currentPkg.NewFunction(n.Ident.Name, n.Type.Reflect)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-			c.currentPkg.gofunctionsNames[n.Ident.Name] = index
+			c.currentPkg.functionsNames[n.Ident.Name] = index
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
 				parserGoPkg, ok := c.importableGoPkgs[n.Path]
@@ -168,15 +168,29 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	}
 	switch fun := call.Func.(type) {
 	case *ast.Identifier:
-		panic("TODO: not implemented")
-	case *ast.Selector:
+		ident := fun.Name
+		i, ok := c.currentPkg.functionsNames[ident]
+		if !ok {
+			panic("bug")
+		}
+		f := c.currentPkg.scrigoFunctions[i]
+		funcType := f.typ
+		for i := 0; i < funcType.NumOut(); i++ {
+			kind := funcType.Out(i).Kind()
+			regs = append(regs, c.fb.NewRegister(kind))
+			kinds = append(kinds, kind)
+		}
+		for i := 0; i < funcType.NumIn(); i++ {
+			kind := funcType.In(i).Kind()
+			reg := c.fb.NewRegister(kind)
+			c.compileExpr(call.Args[i], reg)
+		}
+		c.fb.Call(CurrentPackage, i, stackShift)
+	case *ast.Selector: // currently supports only Go calls.
 		pkgName := fun.Expr.(*ast.Identifier).Name
 		funcName := fun.Ident
 		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
-		isNative := c.currentPkg.isGoPkg[pkgName]
-		if !isNative {
-			panic("TODO: not implemented")
-		}
+		// isNative := c.currentPkg.isGoPkg[pkgName]
 		goPkg := c.currentPkg.packages[pkgIndex]
 		funcIndex := int8(goPkg.gofunctionsNames[funcName])
 		var funcType reflect.Type
