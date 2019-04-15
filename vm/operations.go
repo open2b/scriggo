@@ -70,6 +70,8 @@ const (
 
 	opGetVar
 
+	opGo
+
 	opGoto
 
 	opIf
@@ -217,6 +219,8 @@ var operationName = [...]string{
 	opGetFunc: "GetFunc",
 
 	opGetVar: "GetVar",
+
+	opGo: "Go",
 
 	opGoto: "Goto",
 

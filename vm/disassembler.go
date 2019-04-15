@@ -297,6 +297,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += pkg.varNames[uint8(b)]
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opGo, opReturn:
 	case opGoto, opJmpOk, opJmpNotOk:
 		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case opIndex:
@@ -353,7 +354,6 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, k)
-	case opReturn:
 	case opSelector:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opMakeSlice:

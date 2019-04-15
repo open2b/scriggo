@@ -647,6 +647,14 @@ func (builder *FunctionBuilder) GetVar(p, v uint8, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opGetVar, a: int8(p), b: int8(v), c: z})
 }
 
+// Go appends a new "Go" instruction to the function body.
+//
+//     go
+//
+func (builder *FunctionBuilder) Go() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opGo})
+}
+
 // Goto appends a new "goto" instruction to the function body.
 //
 //     goto label
