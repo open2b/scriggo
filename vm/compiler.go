@@ -211,12 +211,13 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			if isNative {
 				goPkg := c.currentPkg.packages[pkgIndex]
 				funcIndex := int8(goPkg.gofunctionsNames[n2])
+				stackShift := c.fb.CurrentStackShift()
 				for _, arg := range expr.Args {
 					kind := c.typeinfo[arg].Type.Kind()
 					reg := c.fb.NewRegister(kind)
 					c.compileExpr(arg, reg)
 				}
-				c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, StackShift{0, 0, 0, 0})
+				c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, stackShift)
 			} else {
 				panic("TODO: not implemented")
 			}

@@ -232,6 +232,26 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(42)},
 		},
 	},
+	{"Go function call (2 in, 1 out) (with surrounding variables)",
+		`
+			package main
+
+			import "testpkg"
+			
+			func main() {
+				a := 2 + 1  // first arg.
+				b := 3 + 10 // second arg.
+				e := 4      // unused, just takes space.
+				_ = e
+				c := testpkg.Sum(a, b)
+				d := c // return value assigned to variable.
+				_ = d
+				return
+			}
+		`,
+		nil,
+		nil,
+	},
 	{"If with init assignment",
 		`
 			package main
@@ -668,6 +688,9 @@ var goPackages = map[string]*parser.GoPackage{
 			"F01": func() int { return 40 },
 			"F10": func(a int) {},
 			"F11": func(a int) int { return a + 33 },
+			"Sum": func(a, b int) int {
+				return a + b
+			},
 		},
 	},
 }
