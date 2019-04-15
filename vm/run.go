@@ -22,7 +22,7 @@ const (
 	InterpretRunTimeError
 )
 
-const NoVariadicCall = -1
+const NoVariadic = -1
 const NoPackage = -2
 const CurrentPackage = -1
 const CurrentFunction = -1
@@ -291,7 +291,7 @@ func (vm *VM) run() int {
 					vm.fp[2] += uint32(fn.outOff[2])
 					vm.fp[3] += uint32(fn.outOff[3])
 					lastNonVariadic := len(fn.in)
-					if variadic && c != NoVariadicCall {
+					if variadic && c != NoVariadic {
 						lastNonVariadic--
 					}
 					for i, k := range fn.in {

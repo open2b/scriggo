@@ -225,7 +225,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 				}
 			}
 		}
-		if c != NoVariadicCall && (op == opCallFunc || op == opCallMethod) {
+		if c != NoVariadic && (op == opCallFunc || op == opCallMethod) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
