@@ -172,7 +172,7 @@ func (c *callable) reflectValue() reflect.Value {
 			}
 			r++
 		}
-		return nil
+		return results
 	})
 	return c.value
 }
