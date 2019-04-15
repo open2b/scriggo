@@ -43,6 +43,12 @@ const (
 
 	opContinue
 
+	opConvert
+	opConvertInt
+	opConvertUint
+	opConvertFloat
+	opConvertString
+
 	opCopy
 
 	opConcat
@@ -188,6 +194,12 @@ var operationName = [...]string{
 	opCopy: "Copy",
 
 	opConcat: "concat",
+
+	opConvert:       "Convert",
+	opConvertInt:    "ConvertInt",
+	opConvertUint:   "ConvertUint",
+	opConvertFloat:  "ConvertFloat",
+	opConvertString: "ConvertString",
 
 	opDelete: "delete",
 
