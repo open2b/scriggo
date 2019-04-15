@@ -166,9 +166,6 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + disassembleOperand(fn, b, Float64, k)
 		s += " " + disassembleOperand(fn, c, Float64, false)
-	case opAlloc:
-		s += " " + fn.types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opAssert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(" + strconv.Itoa(int(uint(b))) + ")"
@@ -188,7 +185,16 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " type(string)"
 		s += " " + disassembleOperand(fn, c, String, false)
 	case opBind:
-		s += " " + strconv.Itoa(int(uint8(b)))
+		cv := fn.crefs[uint8(b)]
+		var depth = 1
+		for p := fn.parent; cv >= 0; p = p.parent {
+			cv = p.crefs[cv]
+			depth++
+		}
+		s += " " + disassembleOperand(fn, -int8(cv), Interface, false)
+		if depth > 0 {
+			s += "@" + strconv.Itoa(depth)
+		}
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opCall, opCallFunc, opCallMethod, opTailCall:
 		if a == NoPackage {
@@ -198,7 +204,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				t := fn.types[int(uint8(a))]
 				m := t.Method(int(uint8(b)))
 				s += " " + t.String() + "." + m.Name
-			} else {
+			} else if b != CurrentFunction {
 				pkg := fn.pkg
 				if a != CurrentPackage {
 					pkg = pkg.packages[uint8(a)]
@@ -216,6 +222,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 					}
 				}
 			}
+		}
+		if c >= 0 && (op == opCallFunc || op == opCallMethod) {
+			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
 		case opCall, opCallFunc, opCallMethod:
@@ -266,18 +275,6 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		}
 	case opFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
-		s += " " + disassembleOperand(fn, c, Int, false)
-	case opGetClosureVar:
-		cv := fn.crefs[uint8(b)]
-		var depth = 1
-		for p := fn.parent; cv >= 0; p = p.parent {
-			cv = p.crefs[cv]
-			depth++
-		}
-		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
-		if depth > 0 {
-			s += "@" + strconv.Itoa(depth)
-		}
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
 		pkg := fn.pkg
@@ -334,7 +331,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Interface, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:
 		s += " " + disassembleOperand(fn, b, Int, k)
@@ -361,18 +358,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + fn.types[int(uint(a))].String()
 		s += " " + fmt.Sprintf("0b%b", b)
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opSetClosureVar:
-		s += " " + disassembleOperand(fn, c, Int, false)
-		cv := fn.crefs[uint8(b)]
-		var depth = 1
-		for p := fn.parent; cv >= 0; p = p.parent {
-			cv = p.crefs[cv]
-			depth++
-		}
-		s += " " + disassembleOperand(fn, int8(cv), Interface, false)
-		if depth > 0 {
-			s += "@" + strconv.Itoa(depth)
-		}
+		//s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSetVar:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg
@@ -425,13 +411,15 @@ func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string 
 			return "true"
 		case kind == String:
 			return strconv.Quote(fn.constants.String[uint8(op)])
+		default:
+			return fmt.Sprintf("%v", fn.constants.General[uint8(op)])
 		}
 	}
-	if op >= 0 {
+	if op > 0 {
 		return "R" + strconv.Itoa(int(op))
 	}
-	if op == NoRegister {
+	if op == 0 {
 		return "NR"
 	}
-	return "-R" + strconv.Itoa(-int(op))
+	return "(R" + strconv.Itoa(-int(op)) + ")"
 }

@@ -18,8 +18,6 @@ const (
 	opAddFloat32
 	opAddFloat64
 
-	opAlloc
-
 	opAnd
 
 	opAndNot
@@ -59,8 +57,6 @@ const (
 	opDivUint64
 	opDivFloat32
 	opDivFloat64
-
-	opGetClosureVar
 
 	opGetFunc
 
@@ -126,8 +122,6 @@ const (
 
 	opSelector
 
-	opSetClosureVar
-
 	opSetVar
 
 	opMakeSlice
@@ -166,8 +160,6 @@ var operationName = [...]string{
 	opAddFloat32: "AddFloat32",
 	opAddFloat64: "AddFloat64",
 
-	opAlloc: "Alloc",
-
 	opAnd: "And",
 
 	opAndNot: "AndNot",
@@ -205,8 +197,6 @@ var operationName = [...]string{
 	opDivUint64:  "DivUint64",
 	opDivFloat32: "DivFloat32",
 	opDivFloat64: "DivFloat64",
-
-	opGetClosureVar: "GetClosureVar",
 
 	opGetFunc: "GetFunc",
 
@@ -258,8 +248,6 @@ var operationName = [...]string{
 	opReturn: "Return",
 
 	opMakeSlice: "MakeSlice",
-
-	opSetClosureVar: "SetClosureVar",
 
 	opSetVar: "SetPackageVar",
 

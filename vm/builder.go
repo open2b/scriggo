@@ -494,11 +494,10 @@ func (builder *FunctionBuilder) End() {
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
-	if reg == NoRegister {
-		return
-	}
-	if num, ok := builder.numRegs[kind]; !ok || uint8(reg) >= num {
-		builder.numRegs[kind] = uint8(reg + 1)
+	if reg > 0 {
+		if num, ok := builder.numRegs[kind]; !ok || uint8(reg) > num {
+			builder.numRegs[kind] = uint8(reg)
+		}
 	}
 }
 
@@ -533,32 +532,6 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
-}
-
-// Alloc appends a new "Alloc" instruction to the function body.
-//
-//     z = alloc(typ)
-//
-func (builder *FunctionBuilder) Alloc(typ reflect.Type, z int8) {
-	builder.allocRegister(reflect.Interface, z)
-	var tr int8
-	var found bool
-	types := builder.fn.types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		if len(types) == 256 {
-			panic("types limit reached")
-		}
-		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
-
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opAlloc, a: tr, c: z})
 }
 
 // Assert appends a new "assert" instruction to the function body.
@@ -599,10 +572,10 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 
 // Bind appends a new "Bind" instruction to the function body.
 //
-//     c = cv
+//     r = cv
 //
 func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
-	builder.allocRegister(reflect.Int, r)
+	builder.allocRegister(reflect.Interface, r)
 	builder.fn.body = append(builder.fn.body, instruction{op: opBind, b: int8(cv), c: r})
 }
 
@@ -630,9 +603,9 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, native bo
 //
 //     p.F()
 //
-func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) CallFunc(p int8, f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -640,10 +613,10 @@ func (builder *FunctionBuilder) CallFunc(p int8, f int8, shift StackShift) {
 //
 //     p.M()
 //
-func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, shift StackShift) {
+func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
 	a := builder.fn.AddType(typ)
-	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m})
+	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -756,14 +729,6 @@ func (builder *FunctionBuilder) Func(r int8, in, out []Type, variadic bool) *Fun
 	builder.fn.funcs = append(builder.fn.funcs, fn)
 	builder.fn.body = append(builder.fn.body, instruction{op: opFunc, b: int8(b), c: r})
 	return fn
-}
-
-// GetClosureVar appends a new "GetClosureVar" instruction to the function body.
-//
-//     z = v
-//
-func (builder *FunctionBuilder) GetClosureVar(v uint8, z int8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetClosureVar, b: int8(v), c: z})
 }
 
 // GetFunc appends a new "GetFunc" instruction to the function body.
@@ -1035,14 +1000,6 @@ func (builder *FunctionBuilder) Rem(x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
-}
-
-// SetClosureVar appends a new "SetClosureVar" instruction to the function body.
-//
-//     v = r
-//
-func (builder *FunctionBuilder) SetClosureVar(r int8, v uint8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSetClosureVar, b: r, c: int8(v)})
 }
 
 // SetVar appends a new "SetVar" instruction to the function body.
