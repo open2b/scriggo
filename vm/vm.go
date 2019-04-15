@@ -6,17 +6,19 @@
 
 package vm
 
+import "reflect"
+
 const StackSize = 512
 
 type VM struct {
-	fp    [4]uint32     // frame pointers.
-	st    [4]uint32     // stack tops.
-	ok    bool          // ok flag.
-	regs  registers     // registers.
-	fn    *Function     // function.
-	cvars []interface{} // closure variables.
-	calls []Call        // call stack.
-	main  *Package      // package "main".
+	fp    [4]uint32       // frame pointers.
+	st    [4]uint32       // stack tops.
+	ok    bool            // ok flag.
+	regs  registers       // registers.
+	fn    *ScrigoFunction // current function.
+	cvars []interface{}   // closure variables.
+	calls []Call          // call stack.
+	main  *Package        // package "main".
 }
 
 func New(main *Package) *VM {
@@ -74,14 +76,103 @@ func (vm *VM) moreGeneralStack() {
 }
 
 type Call struct {
-	fn    *Function     // function.
-	cvars []interface{} // closure variables.
-	fp    [4]uint32     // frame pointers.
-	pc    uint32        // program counter.
-	tail  bool          // tail call.
+	fn    *ScrigoFunction // function.
+	cvars []interface{}   // closure variables.
+	fp    [4]uint32       // frame pointers.
+	pc    uint32          // program counter.
+	tail  bool            // tail call.
 }
 
-type closure struct {
-	fn   *Function     // function.
-	vars []interface{} // variables.
+type callable struct {
+	scrigo *ScrigoFunction // Scrigo function.
+	native *NativeFunction // native function.
+	value  reflect.Value   // reflect value.
+	vars   []interface{}   // closure variables, if it is a closure.
+}
+
+// reflectValue returns a Reflect Value of a callable, so it can be called
+// from a native code and passed to a native code.
+func (c *callable) reflectValue() reflect.Value {
+	if c.value.IsValid() {
+		return c.value
+	}
+	if c.native != nil {
+		// It is a native function.
+		if !c.native.value.IsValid() {
+			c.native.value = reflect.ValueOf(c.native.fast)
+		}
+		c.value = c.native.value
+		return c.value
+	}
+	// It is a Scrigo function.
+	fn := c.scrigo
+	cvars := c.vars
+	c.value = reflect.MakeFunc(fn.typ, func(args []reflect.Value) []reflect.Value {
+		nvm := New(nil)
+		nvm.fn = fn
+		nvm.cvars = cvars
+		nOut := fn.typ.NumOut()
+		results := make([]reflect.Value, nOut)
+		for i := 0; i < nOut; i++ {
+			t := fn.typ.Out(i)
+			results[i] = reflect.New(t).Elem()
+			k := t.Kind()
+			switch {
+			case k == reflect.Bool || reflect.Int <= k && k <= reflect.Uint64:
+				nvm.fp[0]++
+			case k == reflect.Float64 || k == reflect.Float32:
+				nvm.fp[1]++
+			case k == reflect.String:
+				nvm.fp[2]++
+			default:
+				nvm.fp[3]++
+			}
+		}
+		var r int8 = 1
+		for _, arg := range args {
+			k := arg.Kind()
+			switch {
+			case k == reflect.Bool:
+				nvm.setBool(r, arg.Bool())
+			case reflect.Int <= k && k <= reflect.Int64:
+				nvm.setInt(r, arg.Int())
+			case reflect.Uint <= k && k <= reflect.Uint64:
+				nvm.setInt(r, int64(arg.Uint()))
+			case k == reflect.Float64 || k == reflect.Float32:
+				nvm.setFloat(r, arg.Float())
+			case k == reflect.String:
+				nvm.setString(r, arg.String())
+			default:
+				nvm.setGeneral(r, arg.Interface())
+			}
+			r++
+		}
+		nvm.fp[0] = 0
+		nvm.fp[1] = 0
+		nvm.fp[2] = 0
+		nvm.fp[3] = 0
+		nvm.run()
+		r = 1
+		for i, result := range results {
+			t := fn.typ.Out(i)
+			k := t.Kind()
+			switch {
+			case k == reflect.Bool:
+				result.SetBool(nvm.bool(r))
+			case reflect.Int <= k && k <= reflect.Int64:
+				result.SetInt(nvm.int(r))
+			case reflect.Uint <= k && k <= reflect.Uint64:
+				result.SetUint(uint64(nvm.int(r)))
+			case k == reflect.Float64 || k == reflect.Float32:
+				result.SetFloat(nvm.float(r))
+			case k == reflect.String:
+				result.SetString(nvm.string(r))
+			default:
+				result.Set(reflect.ValueOf(nvm.general(r)))
+			}
+			r++
+		}
+		return nil
+	})
+	return c.value
 }

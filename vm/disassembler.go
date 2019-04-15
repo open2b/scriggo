@@ -50,7 +50,7 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 		}
 		_, _ = fmt.Fprint(&b, "\n")
 	}
-	for i, fn := range pkg.functions {
+	for i, fn := range pkg.scrigoFunctions {
 		if i > 0 {
 			_, _ = b.WriteString("\n")
 		}
@@ -61,14 +61,14 @@ func Disassemble(w io.Writer, pkg *Package) (int64, error) {
 	return b.WriteTo(w)
 }
 
-func DisassembleFunction(w io.Writer, fn *Function) (int64, error) {
+func DisassembleFunction(w io.Writer, fn *ScrigoFunction) (int64, error) {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
 	disassembleFunction(&b, fn, 0)
 	return b.WriteTo(w)
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
+func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -92,20 +92,22 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 		}
 	}
 	_, _ = fmt.Fprintf(w, "(")
-	for i, typ := range fn.in {
+	nIn := fn.typ.NumIn()
+	nOut := fn.typ.NumOut()
+	for i := 0; i < nIn; i++ {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
 		}
-		_, _ = fmt.Fprintf(w, "%d %s", len(fn.out)+i+1, typ)
+		_, _ = fmt.Fprintf(w, "%d %s", nOut+i+1, fn.typ.In(i))
 	}
 	_, _ = fmt.Fprint(w, ")")
-	if len(fn.out) > 0 {
+	if nOut > 0 {
 		_, _ = fmt.Fprint(w, " (")
-		for i, typ := range fn.out {
+		for i := 0; i < nOut; i++ {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
-			_, _ = fmt.Fprintf(w, "%d %s", i+1, typ)
+			_, _ = fmt.Fprintf(w, "%d %s", i+1, fn.typ.Out(i))
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
@@ -124,7 +126,7 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
 		case opFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.c, Interface, false))
-			disassembleFunction(w, fn.funcs[uint8(in.b)], depth+1)
+			disassembleFunction(w, fn.literals[uint8(in.b)], depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
@@ -135,12 +137,12 @@ func disassembleFunction(w *bytes.Buffer, fn *Function, depth int) {
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *Function, addr uint32) (int64, error) {
+func DisassembleInstruction(w io.Writer, fn *ScrigoFunction, addr uint32) (int64, error) {
 	n, err := io.WriteString(w, disassembleInstruction(fn, addr))
 	return int64(n), err
 }
 
-func disassembleInstruction(fn *Function, addr uint32) string {
+func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	in := fn.body[addr]
 	op, a, b, c := in.op, in.a, in.b, in.c
 	k := false
@@ -212,9 +214,9 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 				s += " " + pkg.name + "."
 				switch op {
 				case opCall, opTailCall:
-					s += pkg.functions[uint8(b)].name
+					s += pkg.scrigoFunctions[uint8(b)].name
 				case opCallFunc:
-					name := pkg.gofunctions[uint8(b)].name
+					name := pkg.nativeFunctions[uint8(b)].name
 					if name == "" {
 						s += strconv.Itoa(int(uint8(b)))
 					} else {
@@ -281,7 +283,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		if a != CurrentPackage {
 			pkg = pkg.packages[uint8(a)]
 		}
-		s += " " + pkg.name + "." + pkg.functions[uint8(b)].name
+		s += " " + pkg.name + "." + pkg.scrigoFunctions[uint8(b)].name
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
 		pkg := fn.pkg
@@ -314,10 +316,10 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMapIndex:
-		//s += " " + disassembleOperand(fn, a, Interface, false)
+		//s += " " + disassembleOperand(scrigo, a, Interface, false)
 		//key := reflectToRegisterKind()
-		//s += " " + disassembleOperand(fn, b, Interface, false)
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		//s += " " + disassembleOperand(scrigo, b, Interface, false)
+		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opMapIndexStringString:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, String, k)
@@ -346,16 +348,16 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 		s += " " + fn.types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opRange:
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opRangeString:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, k)
 	case opReturn:
 	case opSelector:
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opMakeSlice:
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opSetVar:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg
@@ -371,7 +373,7 @@ func disassembleInstruction(fn *Function, addr uint32) string {
 	case opSliceIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
-		//s += " " + disassembleOperand(fn, c, Interface, false)
+		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	}
 	return s
 }
@@ -392,7 +394,7 @@ func reflectToRegisterKind(kind reflect.Kind) Kind {
 	}
 }
 
-func disassembleOperand(fn *Function, op int8, kind Kind, constant bool) string {
+func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) string {
 	if constant {
 		switch {
 		case Int <= kind && kind <= Uint64:

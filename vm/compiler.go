@@ -53,7 +53,7 @@ func (c *Compiler) compilePackage(node *ast.Package) (*Package, error) {
 
 func (c *Compiler) compileFunction(pkg *Package, node *ast.Func) error {
 
-	fn := pkg.NewFunction(node.Ident.Name, nil, nil, node.Type.IsVariadic)
+	fn := pkg.NewFunction(node.Ident.Name, c.typeinfo[node].Type)
 	fb := fn.Builder()
 	_ = fb
 

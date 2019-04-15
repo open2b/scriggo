@@ -33,6 +33,8 @@ const (
 
 	opCall
 
+	opCallIndirect
+
 	opCallFunc
 
 	opCallMethod
@@ -176,6 +178,8 @@ var operationName = [...]string{
 	opCall: "Call",
 
 	opCallFunc: "CallFunc",
+
+	opCallIndirect: "CallIndirect",
 
 	opCallMethod: "CallMethod",
 
