@@ -515,6 +515,55 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(5)},
 		}},
+	{"Package function with many return values (same type)",
+		`
+		package main
+
+		func pair() (int, int) {
+			return 42, 33
+		}
+
+		func main() {
+			a := 2
+			b, c := pair()
+			d, e := 11, 12
+			_ = a + b + c + d + e
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(2)},  // a
+			{TypeInt, 2, int64(42)}, // b
+			{TypeInt, 3, int64(33)}, // c
+			{TypeInt, 6, int64(11)}, // d
+			{TypeInt, 7, int64(12)}, // e
+		}},
+	{"Package function with many return values (different types)",
+		`
+		package main
+
+		func pair() (int, float64) {
+			return 42, 33.0
+		}
+
+		func main() {
+			a := 2
+			b, c := pair()
+			d, e := 11, 12
+			_ = a + b + d + e
+			_ = c
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(2)},        // a
+			{TypeInt, 2, int64(42)},       // b
+			{TypeFloat, 1, float64(33.0)}, // c
+			{TypeInt, 4, int64(11)},       // d
+			{TypeInt, 5, int64(12)},       // e
+		}},
 }
 
 func TestVM(t *testing.T) {

@@ -390,6 +390,15 @@ func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	return int8(r)
 }
 
+func (builder *FunctionBuilder) MakeFloatConstant(c float64) int8 {
+	r := len(builder.fn.constants.Float)
+	if r > 255 {
+		panic("float refs limit reached")
+	}
+	builder.fn.constants.Float = append(builder.fn.constants.Float, c)
+	return int8(r)
+}
+
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
 	r := len(builder.fn.constants.Int)
 	if r > 255 {

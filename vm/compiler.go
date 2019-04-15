@@ -144,6 +144,10 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reg := c.fb.NewRegister(reflect.String)
 			c.fb.Move(true, sConst, reg, reflect.String)
 			return reg, false, true
+		case reflect.Float64:
+			// TODO (Gianluca): handle all kind of floats.
+			v := int8(expr.Val.(float64))
+			return v, true, false
 		default:
 			panic("TODO: not implemented")
 
@@ -360,7 +364,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 	case *ast.Call:
 		varRegs := []int8{}
 		for i := 0; i < len(variables); i++ {
-			variable := variables[0]
+			variable := variables[i]
 			kind := c.typeinfo[variable].Type.Kind()
 			var varReg int8
 			if isDecl {
