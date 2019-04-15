@@ -246,13 +246,14 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
-		kind := c.typeinfo[expr.Expr].Type.Kind()
+		// kind := c.typeinfo[expr.Expr].Type.Kind()
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			panic("TODO: not implemented")
 		case ast.OperatorSubtraction:
 			// TODO (Gianluca): should be z = 0 - x (i.e. z = -x).
-			c.fb.Sub(true, 0, reg, reg, kind)
+			// c.fb.Sub(true, 0, reg, reg, kind)
+			panic("TODO: not implemented")
 		default:
 			panic("TODO: not implemented")
 		}
@@ -450,7 +451,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case *ast.Return:
 			for i, v := range node.Values {
 				kind := c.typeinfo[v].Type.Kind()
-				reg := int8(i)
+				reg := int8(i + 1)
 				c.fb.allocRegister(kind, reg)
 				c.compileExpr(v, reg)
 			}
@@ -465,7 +466,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			}
 
 		case ast.Expression:
-			c.compileExpr(node, 0)
+			// TODO (Gianluca): use 0 (which is no longer a valid
+			// register) and handle it as a special case in compileExpr.
+			c.compileExpr(node, 1)
 
 		}
 	}

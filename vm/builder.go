@@ -355,7 +355,7 @@ func (builder *FunctionBuilder) ExitScope() {
 
 // NewRegister makes a new register of kind k.
 func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
-	reg := int8(builder.numRegs[k])
+	reg := int8(builder.numRegs[k]) + 1
 	builder.allocRegister(k, reg)
 	return reg
 }

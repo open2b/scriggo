@@ -44,14 +44,14 @@ var stmtTests = []struct {
 			``,
 			`Func main()`,
 			`	// regs(1,0,2,0)`,
-			`	MoveInt 10 R0`,
-			`     MoveString "hi" R1`,
-			`     MoveString R1 R0`,
+			`	MoveInt 10 R1`,
+			`     MoveString "hi" R2`,
+			`     MoveString R2 R1`,
 			`	Return`,
 		},
 		[]reg{
-			{TypeInt, 0, int64(10)}, // a
-			{TypeString, 0, "hi"},   // c
+			{TypeInt, 1, int64(10)}, // a
+			{TypeString, 1, "hi"},   // c
 		}},
 	{"Multiple assignment",
 		`
@@ -65,8 +65,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(6)}, // a
-			{TypeInt, 1, int64(7)}, // b
+			{TypeInt, 1, int64(6)}, // a
+			{TypeInt, 2, int64(7)}, // b
 		},
 	},
 	{"Assignment with constant int value (addition)",
@@ -84,7 +84,7 @@ var stmtTests = []struct {
 			``,
 			`Func main()`,
 			`	// regs(1,0,0,0)`,
-			`	MoveInt 9 R0`,
+			`	MoveInt 9 R1`,
 			`	Return`,
 		},
 		nil},
@@ -101,9 +101,9 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(5)},  // a
-			{TypeInt, 1, int64(10)}, // b
-			{TypeInt, 2, int64(47)}, // c
+			{TypeInt, 1, int64(5)},  // a
+			{TypeInt, 2, int64(10)}, // b
+			{TypeInt, 3, int64(47)}, // c
 		}},
 	{"If statement with else",
 		`
@@ -122,8 +122,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(10)}, // a
-			{TypeInt, 1, int64(1)},  // c
+			{TypeInt, 1, int64(10)}, // a
+			{TypeInt, 2, int64(1)},  // c
 		}},
 	{"If statement with else",
 		`
@@ -142,8 +142,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(10)}, // a
-			{TypeInt, 1, int64(2)},  // c
+			{TypeInt, 1, int64(10)}, // a
+			{TypeInt, 2, int64(2)},  // c
 		}},
 	{"Package function call",
 		`
@@ -177,7 +177,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(1)}, // c
+			{TypeInt, 1, int64(1)}, // c
 		}},
 	{"String concatenation (constant)",
 		`
@@ -192,8 +192,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeString, 0, "s"},    // a
-			{TypeString, 2, "eeff"}, // b
+			{TypeString, 1, "s"},    // a
+			{TypeString, 3, "eeff"}, // b
 		}},
 	{"Empty int slice",
 		`
@@ -206,7 +206,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 0, []int{}}, // a
+			{TypeIface, 1, []int{}}, // a
 		}},
 	{"Empty string slice",
 		`
@@ -219,7 +219,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 0, []string{}}, // a
+			{TypeIface, 1, []string{}}, // a
 		}},
 	{"Empty byte slice",
 		`
@@ -233,8 +233,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 0, []int{}},  // a
-			{TypeIface, 1, []byte{}}, // b
+			{TypeIface, 1, []int{}},  // a
+			{TypeIface, 2, []byte{}}, // b
 		}},
 	{"Builtin len (with a constant argument)",
 		`
@@ -247,7 +247,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(3)}, // a
+			{TypeInt, 1, int64(3)}, // a
 		}},
 	{"Builtin len (with a variable argument)",
 		`
@@ -261,8 +261,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeString, 0, "a string"}, // a
-			{TypeInt, 0, int64(8)},      // b
+			{TypeString, 1, "a string"}, // a
+			{TypeInt, 1, int64(8)},      // b
 		}},
 	{"Switch statement",
 		`
@@ -283,7 +283,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(20)},
+			{TypeInt, 1, int64(20)},
 		}},
 	{"Switch statement with fallthrough",
 		`
@@ -305,7 +305,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(30)},
+			{TypeInt, 1, int64(30)},
 		}},
 	{"Switch statement with default",
 		`
@@ -328,7 +328,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(80)},
+			{TypeInt, 1, int64(80)},
 		}},
 	{"Switch statement with default and fallthrough",
 		`
@@ -355,7 +355,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 0, int64(30)},
+			{TypeInt, 1, int64(30)},
 		}},
 	{"Package function with one return value",
 		`
@@ -375,11 +375,11 @@ var stmtTests = []struct {
 			``,
 			`Func five()`,
 			`	// regs(1,0,0,0)`,
-			`	MoveInt 5 R0`,
+			`	MoveInt 5 R1`,
 			`	Return`,
 			``,
 			`Func main()`,
-			`	// regs(1,0,0,1)`,
+			`	// regs(1,0,0,0)`,
 			`	Call main.five	// Stack shift: 1, 0, 0, 0`,
 		},
 		nil},
