@@ -356,8 +356,15 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, k)
+	case opReceive:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Bool, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSelector:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
+	case opSend:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opSetVar:

@@ -123,6 +123,8 @@ const (
 
 	opRangeString
 
+	opReceive
+
 	opRemInt
 	opRemInt8
 	opRemInt16
@@ -139,6 +141,8 @@ const (
 	opSetVar
 
 	opMakeSlice
+
+	opSend
 
 	opSliceIndex
 
@@ -261,6 +265,8 @@ var operationName = [...]string{
 
 	opPrint: "Print",
 
+	opReceive: "Receive",
+
 	opRemInt:    "RemInt",
 	opRemInt8:   "RemInt8",
 	opRemInt16:  "RemInt16",
@@ -273,6 +279,8 @@ var operationName = [...]string{
 	opReturn: "Return",
 
 	opMakeSlice: "Slice",
+
+	opSend: "Send",
 
 	opSetVar: "SetPackageVar",
 

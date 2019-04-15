@@ -1040,6 +1040,31 @@ func (vm *VM) run() int {
 				return cont - 1
 			}
 
+		// Receive
+		case opReceive:
+			ch := vm.general(a)
+			switch ch := ch.(type) {
+			case chan struct{}:
+				vm.setGeneral(c, <-ch)
+			case chan int:
+				vm.setGeneral(c, <-ch)
+			case chan bool:
+				vm.setGeneral(c, <-ch)
+			case chan string:
+				vm.setGeneral(c, <-ch)
+			case chan rune:
+				vm.setGeneral(c, <-ch)
+			default:
+				x, ok := reflect.ValueOf(ch).Recv()
+				vm.ok = ok
+				if b != 0 {
+					vm.setBool(b, ok)
+				}
+				if c != 0 {
+					vm.setGeneral(c, x.Interface())
+				}
+			}
+
 		// Rem
 		case opRemInt:
 			vm.setInt(c, vm.int(a)%vm.int(b))
@@ -1096,6 +1121,24 @@ func (vm *VM) run() int {
 				vm.setString(c, v.String())
 			default:
 				vm.setGeneral(c, v.Interface())
+			}
+
+		// Send
+		case opSend:
+			ch := vm.general(c)
+			switch ch := ch.(type) {
+			case chan struct{}:
+				ch <- struct{}{}
+			case chan int:
+				ch <- vm.general(a).(int)
+			case chan bool:
+				ch <- vm.general(a).(bool)
+			case chan string:
+				ch <- vm.general(a).(string)
+			case chan rune:
+				ch <- vm.general(a).(rune)
+			default:
+				reflect.ValueOf(ch).Send(reflect.ValueOf(vm.general(a)))
 			}
 
 		// SetVar
