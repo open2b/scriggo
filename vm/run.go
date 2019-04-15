@@ -58,7 +58,7 @@ func (vm *VM) run() int {
 		if DebugTraceExecution {
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
-				vm.regs.Float[vm.fp[1]:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
+				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()
 		}
