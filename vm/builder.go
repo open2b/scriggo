@@ -633,9 +633,9 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *ScrigoFunction {
 //
 //     z = p.f
 //
-func (builder *FunctionBuilder) GetFunc(p, f uint8, z int8) {
+func (builder *FunctionBuilder) GetFunc(p, f int8, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: int8(p), b: int8(f), c: z})
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: p, b: f, c: z})
 }
 
 // GetVar appends a new "GetVar" instruction to the function body.
