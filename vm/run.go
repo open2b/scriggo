@@ -405,6 +405,23 @@ func (vm *VM) run() int {
 		case opContinue:
 			return int(a)
 
+		// Convert
+		case opConvert:
+			t := vm.fn.types[uint8(b)]
+			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
+		case opConvertInt:
+			t := vm.fn.types[uint8(b)]
+			vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
+		case opConvertUint:
+			t := vm.fn.types[uint8(b)]
+			vm.setGeneral(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Interface())
+		case opConvertFloat:
+			t := vm.fn.types[uint8(b)]
+			vm.setGeneral(c, reflect.ValueOf(vm.float(a)).Convert(t).Interface())
+		case opConvertString:
+			t := vm.fn.types[uint8(b)]
+			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
+
 		// Copy
 		case opCopy:
 			src := reflect.ValueOf(a)
