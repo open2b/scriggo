@@ -256,7 +256,13 @@ var stmtTests = []struct {
 			}
 		`,
 		nil,
-		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)},  // a
+			{TypeInt, 2, int64(13)}, // b
+			{TypeInt, 3, int64(4)},  // e
+			{TypeInt, 4, int64(16)}, // c
+			{TypeInt, 7, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
+		},
 	},
 	{"If with init assignment",
 		`
