@@ -427,7 +427,7 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 		return "R" + strconv.Itoa(int(op))
 	}
 	if op == 0 {
-		return "NR"
+		return "_"
 	}
 	return "(R" + strconv.Itoa(-int(op)) + ")"
 }
