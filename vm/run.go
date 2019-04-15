@@ -733,6 +733,10 @@ func (vm *VM) run() int {
 			}
 			vm.setInt(c, int64(length))
 
+		// MakeChan
+		case opMakeChan, -opMakeChan:
+			vm.setGeneral(c, reflect.MakeChan(vm.fn.types[uint8(a)], int(vm.intk(b, op < 0))).Interface())
+
 		// MakeMap
 		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]

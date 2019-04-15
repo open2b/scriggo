@@ -91,6 +91,8 @@ const (
 
 	opFunc
 
+	opMakeChan
+
 	opMakeMap
 
 	opMapIndex
@@ -238,6 +240,8 @@ var operationName = [...]string{
 	opLen: "len",
 
 	opFunc: "Func",
+
+	opMakeChan: "MakeChan",
 
 	opMakeMap: "MakeMap",
 
