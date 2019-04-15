@@ -166,7 +166,7 @@ var stmtTests = []struct {
 			`,
 		nil,
 		nil},
-	{"Go function call (0 in, 0 out)",
+	{"Native function call (0 in, 0 out)",
 		`
 			package main
 
@@ -189,7 +189,7 @@ var stmtTests = []struct {
 		},
 		nil,
 	},
-	{"Go function call (0 in, 1 out)",
+	{"Native function call (0 in, 1 out)",
 		`
 			package main
 
@@ -206,7 +206,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(40)},
 		},
 	},
-	{"Go function call (1 in, 0 out)",
+	{"Native function call (1 in, 0 out)",
 		`
 			package main
 
@@ -220,7 +220,7 @@ var stmtTests = []struct {
 		nil,
 		nil,
 	},
-	{"Go function call (1 in, 1 out)",
+	{"Native function call (1 in, 1 out)",
 		`
 			package main
 
@@ -238,7 +238,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(42)},
 		},
 	},
-	{"Go function call (2 in, 1 out) (with surrounding variables)",
+	{"Native function call (2 in, 1 out) (with surrounding variables)",
 		`
 			package main
 
@@ -264,7 +264,7 @@ var stmtTests = []struct {
 			{TypeInt, 8, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
 		},
 	},
-	{"Go function call of StringLen",
+	{"Native function call of StringLen",
 		`
 			package main
 
@@ -280,7 +280,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(3)},
 		},
 	},
-	{"1 to 2 assignment - Go function with two return values",
+	{"1 to 2 assignment - Native function with two return values",
 		`
 		package main
 
