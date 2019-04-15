@@ -280,6 +280,27 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(3)},
 		},
 	},
+	{"1 to 2 assignment - Go function with two return values",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			a := 5
+			b, c := testpkg.Pair()
+			_ = a
+			_ = b
+			_ = c
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(5)},
+			{TypeInt, 2, int64(42)},
+			{TypeInt, 3, int64(33)},
+		}},
 	{"If with init assignment",
 		`
 			package main
@@ -721,6 +742,9 @@ var goPackages = map[string]*parser.GoPackage{
 			},
 			"StringLen": func(s string) int {
 				return len(s)
+			},
+			"Pair": func() (int, int) {
+				return 42, 33
 			},
 		},
 	},

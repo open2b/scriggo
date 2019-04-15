@@ -372,10 +372,30 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		} else {
 			c.compileExpr(value, varReg)
 		}
-	} else {
+		return
+	}
+	// len(variables) > 1
+	switch value := value.(type) {
+	case *ast.Call:
+		varRegs := []int8{}
+		for i := 0; i < len(variables); i++ {
+			variable := variables[0]
+			kind := c.typeinfo[variable].Type.Kind()
+			var varReg int8
+			if isDecl {
+				varReg = c.fb.NewVar(variable.(*ast.Identifier).Name, kind)
+			} else {
+				varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
+			}
+			varRegs = append(varRegs, varReg)
+		}
+		retRegs, retKinds := c.compileCall(value)
+		for i := range retRegs {
+			c.fb.Move(false, retRegs[i], varRegs[i], retKinds[i])
+		}
+	default:
 		panic("TODO: not implemented")
 	}
-
 }
 
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
@@ -424,8 +444,8 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 func (c *Compiler) compileNodes(nodes []ast.Node) {
 	for _, node := range nodes {
 		switch node := node.(type) {
-
 		case *ast.Assignment:
+			// TODO (Gianluca): clean.
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				switch node.Type {
 				case ast.AssignmentIncrement:
@@ -447,6 +467,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				for i := range node.Variables {
 					c.compileVarsGetValue([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
 				}
+			} else if len(node.Variables) > 1 && len(node.Values) == 1 {
+				c.compileVarsGetValue(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
 			} else {
 				panic("TODO: not implemented")
 			}
