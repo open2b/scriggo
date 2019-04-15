@@ -202,7 +202,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			// TODO (Gianluca): can also be a clojure
 			name := f.Name
 			index := c.currentPkg.gofunctionsNames[name]
-			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift(), false)
+			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
 		case *ast.Selector:
 			n1 := f.Expr.(*ast.Identifier).Name
 			n2 := f.Ident
@@ -216,7 +216,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 					reg := c.fb.NewRegister(kind)
 					c.compileExpr(arg, reg)
 				}
-				c.fb.Call(pkgIndex, funcIndex, StackShift{0, 0, 0, 0}, true) // TODO
+				c.fb.CallFunc(pkgIndex, funcIndex, NoVariadicCall, StackShift{0, 0, 0, 0})
 			} else {
 				panic("TODO: not implemented")
 			}

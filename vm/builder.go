@@ -593,18 +593,13 @@ type StackShift [4]int8
 //
 //     p.f()
 //
-func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, native bool) {
+func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
 	var fn = builder.fn
 	if p != NoPackage {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
-	if native {
-		fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: NoVariadicCall})
-		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
-	} else {
-		fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadicCall})
-		fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
-	}
+	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadicCall})
+	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
 // CallFunc appends a new "CallFunc" instruction to the function body.
