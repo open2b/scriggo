@@ -471,7 +471,7 @@ func (vm *VM) run() int {
 				pkg = pkg.packages[uint8(a)]
 			}
 			if pkg.scrigoFunctions == nil {
-				fn = pkg.nativeFunctions[uint8(b)]
+				fn = &callable{native: pkg.nativeFunctions[uint8(b)]}
 			} else {
 				fn = &callable{scrigo: pkg.scrigoFunctions[uint8(b)]}
 			}
