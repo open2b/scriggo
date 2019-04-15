@@ -325,11 +325,12 @@ func (fn *Function) AddType(typ reflect.Type) uint8 {
 }
 
 type FunctionBuilder struct {
-	fn      *Function
-	labels  []uint32
-	gotos   map[uint32]uint32
-	numRegs map[reflect.Kind]uint8
-	scopes  []map[string]int8
+	fn         *Function
+	labels     []uint32
+	gotos      map[uint32]uint32
+	numRegs    map[reflect.Kind]uint8
+	scopes     []map[string]int8
+	stackShift StackShift
 }
 
 // Builder returns the body of the function.
@@ -380,7 +381,7 @@ func (builder *FunctionBuilder) VariableRegister(n string) int8 {
 	panic("not found")
 }
 
-func (builder *FunctionBuilder) CurrentStackShift() StackShift {
+func (builder *FunctionBuilder) SetStackShift() {
 	max := func(a, b int8) int8 {
 		// TODO (Gianluca): optimize and remove this func.
 		if a > b {
@@ -389,12 +390,16 @@ func (builder *FunctionBuilder) CurrentStackShift() StackShift {
 			return b
 		}
 	}
-	return StackShift{
+	builder.stackShift = StackShift{
 		max(0, int8(builder.numRegs[reflect.Int]-1)),
 		max(0, int8(builder.numRegs[reflect.Float64]-1)),
 		max(0, int8(builder.numRegs[reflect.String]-1)),
 		max(0, int8(builder.numRegs[reflect.Interface]-1)),
 	}
+}
+
+func (builder *FunctionBuilder) StackShift() StackShift {
+	return builder.stackShift
 }
 
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {

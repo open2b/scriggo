@@ -203,7 +203,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			// TODO (Gianluca): can also be a clojure
 			name := f.Name
 			index := c.currentPkg.gofunctionsNames[name]
-			c.fb.Call(CurrentPackage, index, c.fb.CurrentStackShift())
+			c.fb.SetStackShift()
+			c.fb.Call(CurrentPackage, index, c.fb.StackShift())
 		case *ast.Selector:
 			n1 := f.Expr.(*ast.Identifier).Name
 			n2 := f.Ident
@@ -212,7 +213,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			if isNative {
 				goPkg := c.currentPkg.packages[pkgIndex]
 				funcIndex := int8(goPkg.gofunctionsNames[n2])
-				stackShift := c.fb.CurrentStackShift()
+				c.fb.SetStackShift()
+				stackShift := c.fb.StackShift()
 				for _, arg := range expr.Args {
 					kind := c.typeinfo[arg].Type.Kind()
 					reg := c.fb.NewRegister(kind)
