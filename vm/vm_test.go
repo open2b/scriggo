@@ -223,6 +223,23 @@ var stmtTests = []struct {
 		},
 	},
 
+	{"Converting from int to interface{}",
+		`
+		package main
+
+		func main() {
+			a := 97
+			b := interface{}(a)
+			_ = b
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeIface, 1, int64(97)},
+		},
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",
