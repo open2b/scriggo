@@ -75,6 +75,8 @@ const (
 	ConditionGreaterOrEqualLen                  // len(x) >= y
 	ConditionNil                                // x == nil
 	ConditionNotNil                             // x != nil
+	ConditionOk                                 // [vm.ok]
+	ConditionNotOk                              // [!vm.ok]
 )
 
 func (c Condition) String() string {

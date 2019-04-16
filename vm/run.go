@@ -610,9 +610,13 @@ func (vm *VM) run() int {
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
-				if cond {
-					pc++
-				}
+			case ConditionOk:
+				cond = vm.ok
+			case ConditionNotOk:
+				cond = !vm.ok
+			}
+			if cond {
+				pc++
 			}
 		case opIfInt, -opIfInt:
 			var cond bool
