@@ -474,7 +474,9 @@ var stmtTests = []struct {
 			`	// regs(0,0,0,1)`,
 			`	MakeMap map[string]int 2 R1`,
 		},
-		nil,
+		[]reg{
+			{TypeIface, 1, map[string]int{}},
+		},
 	},
 	{"Switch statement",
 		`
@@ -658,6 +660,26 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(2)},  // a
 			{TypeInt, 3, int64(10)}, // b
 			{TypeInt, 4, int64(12)}, // c
+		},
+	},
+	{"Composite literal - Map (empty)",
+		`
+		package main
+
+		func main() {
+			m := map[string]int{}
+			_ = m
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(0,0,0,1)`,
+			`		MakeMap map[string]int 0 R1`,
+		},
+		[]reg{
+			{TypeIface, 1, map[string]int{}},
 		},
 	},
 }

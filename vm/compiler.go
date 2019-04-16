@@ -288,16 +288,22 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.CompositeLiteral:
-		switch expr.Type.(*ast.Value).Val.(reflect.Type).Kind() {
+		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
+		switch typ.Kind() {
 		case reflect.Slice:
-			typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 			c.fb.Slice(typ, 0, 0, reg)
 		case reflect.Array:
 			panic("TODO: not implemented")
 		case reflect.Struct:
 			panic("TODO: not implemented")
 		case reflect.Map:
-			panic("TODO: not implemented")
+			// TODO (Gianluca): handle maps with bigger size.
+			size := c.fb.MakeIntConstant(int64(len(expr.KeyValues)))
+			regType := c.fb.Type(typ)
+			c.fb.MakeMap(regType, true, size, reg)
+			if size > 0 {
+				panic("TODO: not implemented")
+			}
 		}
 
 	case *ast.Func:
