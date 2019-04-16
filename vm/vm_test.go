@@ -33,7 +33,9 @@ var stmtTests = []struct {
 	registers    []reg
 }{
 
-	{"Simple assignment",
+	// Assignment.
+
+	{"Single assignment",
 		`
 		package main
 
@@ -59,6 +61,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(10)}, // a
 			{TypeString, 1, "hi"},   // c
 		}},
+
 	{"Multiple assignment",
 		`
 		package main
@@ -73,8 +76,8 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(6)}, // a
 			{TypeInt, 2, int64(7)}, // b
-		},
-	},
+		}},
+
 	{"Assignment with constant int value (addition)",
 		`
 		package main
@@ -94,6 +97,7 @@ var stmtTests = []struct {
 			`	Return`,
 		},
 		nil},
+
 	{"Assignment with addition value (non constant)",
 		`
 		package main
@@ -111,203 +115,8 @@ var stmtTests = []struct {
 			{TypeInt, 2, int64(10)}, // b
 			{TypeInt, 3, int64(47)}, // c
 		}},
-	{"If statement with else",
-		`
-		package main
 
-		func main() {
-			a := 10
-			c := 0
-			if a > 5 {
-				c = 1
-			} else {
-				c = 2
-			};
-			_ = c
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(10)}, // a
-			{TypeInt, 2, int64(1)},  // c
-		}},
-	{"If statement with else",
-		`
-		package main
-
-		func main() {
-			a := 10
-			c := 0
-			if a <= 5 {
-				c = 1
-			} else {
-				c = 2
-			}
-			_ = c
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(10)}, // a
-			{TypeInt, 2, int64(2)},  // c
-		}},
-	{"Package function call",
-		`
-		package main
-
-		func a() {
-
-		}
-
-		func main() {
-			a()
-			return
-		}
-		`,
-		nil,
-		nil},
-	{"Native function call (0 in, 0 out)",
-		`
-		package main
-
-		import "testpkg"
-
-		func main() {
-			testpkg.F00()
-			return
-		}
-		`,
-		[]string{
-			`Package main`,
-			``,
-			`Import "testpkg"`,
-			``,
-			`Func main()`,
-			`	// regs(0,0,0,0)`,
-			`	CallFunc testpkg.F00    // Stack shift: 0, 0, 0, 0`,
-			`     Return`,
-		},
-		nil,
-	},
-	{"Native function call (0 in, 1 out)",
-		`
-		package main
-
-		import "testpkg"
-
-		func main() {
-			v := testpkg.F01()
-			_ = v
-			return
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(40)},
-		},
-	},
-	{"Native function call (1 in, 0 out)",
-		`
-		package main
-
-		import "testpkg"
-
-		func main() {
-			testpkg.F10(50)
-			return
-		}
-		`,
-		nil,
-		nil,
-	},
-	{"Native function call (1 in, 1 out)",
-		`
-		package main
-
-		import "testpkg"
-
-		func main() {
-			a := 2
-			a = testpkg.F11(9)
-			_ = a
-			return
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(42)},
-		},
-	},
-	{"Native function call (2 in, 1 out) (with surrounding variables)",
-		`
-		package main
-
-		import "testpkg"
-		
-		func main() {
-			a := 2 + 1  // first arg.
-			b := 3 + 10 // second arg.
-			e := 4      // unused, just takes space.
-			_ = e
-			c := testpkg.Sum(a, b)
-			d := c // return value assigned to variable.
-			_ = d
-			return
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(3)},  // a
-			{TypeInt, 2, int64(13)}, // b
-			{TypeInt, 3, int64(4)},  // e
-			{TypeInt, 4, int64(16)}, // c
-			{TypeInt, 8, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
-		},
-	},
-	{"Native function 'inc'",
-		`
-		package main
-
-		func inc(n int) int {
-			return n+1
-		}
-		
-		func main() {
-			a := 2
-			res := inc(8)
-			b := 10
-			c := a + b + res
-			_ = c
-			return
-		}
-	`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(2)},  // a
-			{TypeInt, 2, int64(9)},  // res
-			{TypeInt, 3, int64(9)},  // inc(8) return value
-			{TypeInt, 4, int64(8)},  // inc(8) argument
-			{TypeInt, 5, int64(10)}, // b
-			{TypeInt, 6, int64(21)}, // c
-		},
-	},
-	{"Native function call of StringLen",
-		`
-		package main
-
-		import "testpkg"
-
-		func main() {
-			a := testpkg.StringLen("zzz")
-			_ = a
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(3)},
-		},
-	},
-	{"1 to 2 assignment - Native function with two return values",
+	{"Function call assignment (2 to 1) - Native function with two return values",
 		`
 		package main
 
@@ -328,6 +137,136 @@ var stmtTests = []struct {
 			{TypeInt, 2, int64(42)},
 			{TypeInt, 3, int64(33)},
 		}},
+
+	// Expressions - composite literals.
+
+	{"Empty int slice composite literal",
+		`
+		package main
+
+		func main() {
+			a := []int{};
+			_ = a
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeIface, 1, []int{}}, // a
+		}},
+
+	{"Empty string slice composite literal",
+		`
+		package main
+
+		func main() {
+			a := []string{};
+			_ = a
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeIface, 1, []string{}}, // a
+		}},
+
+	{"Empty byte slice composite literal",
+		`
+		package main
+
+		func main() {
+			a := []int{};
+			b := []byte{};
+			_ = a; _ = b
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeIface, 1, []int{}},  // a
+			{TypeIface, 2, []byte{}}, // b
+		}},
+
+	{"Empty map composite literal",
+		`
+		package main
+
+		func main() {
+			m := map[string]int{}
+			_ = m
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(0,0,0,1)`,
+			`		MakeMap map[string]int 0 R1`,
+		},
+		[]reg{
+			{TypeIface, 1, map[string]int{}},
+		}},
+
+	// Expressions - misc.
+
+	{"String concatenation (constant)",
+		`
+		package main
+
+		func main() {
+			a := "s";
+			_ = a;
+			b := "ee" + "ff";
+			_ = b
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeString, 1, "s"},    // a
+			{TypeString, 3, "eeff"}, // b
+		}},
+
+	// Statements - If.
+
+	{"If statement with else",
+		`
+		package main
+
+		func main() {
+			a := 10
+			c := 0
+			if a > 5 {
+				c = 1
+			} else {
+				c = 2
+			};
+			_ = c
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(10)}, // a
+			{TypeInt, 2, int64(1)},  // c
+		}},
+
+	{"If statement with else",
+		`
+		package main
+
+		func main() {
+			a := 10
+			c := 0
+			if a <= 5 {
+				c = 1
+			} else {
+				c = 2
+			}
+			_ = c
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(10)}, // a
+			{TypeInt, 2, int64(2)},  // c
+		}},
+
 	{"If with init assignment",
 		`
 		package main
@@ -346,138 +285,9 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(1)}, // c
 		}},
-	{"String concatenation (constant)",
-		`
-		package main
 
-		func main() {
-			a := "s";
-			_ = a;
-			b := "ee" + "ff";
-			_ = b
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeString, 1, "s"},    // a
-			{TypeString, 3, "eeff"}, // b
-		}},
-	{"Empty int slice",
-		`
-		package main
+	// Statements - Switch.
 
-		func main() {
-			a := []int{};
-			_ = a
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeIface, 1, []int{}}, // a
-		}},
-	{"Empty string slice",
-		`
-		package main
-
-		func main() {
-			a := []string{};
-			_ = a
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeIface, 1, []string{}}, // a
-		}},
-	{"Empty byte slice",
-		`
-		package main
-
-		func main() {
-			a := []int{};
-			b := []byte{};
-			_ = a; _ = b
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeIface, 1, []int{}},  // a
-			{TypeIface, 2, []byte{}}, // b
-		}},
-	{"Builtin len (with a constant argument)",
-		`
-		package main
-
-		func main() {
-			a := len("abc");
-			_ = a
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(3)}, // a
-		}},
-	{"Builtin len (with a variable argument)",
-		`
-		package main
-
-		func main() {
-			a := "a string"
-			b := len(a)
-			_ = b
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeString, 1, "a string"}, // a
-			{TypeInt, 1, int64(8)},      // b
-		}},
-	{"Builtin print",
-		`
-		package main
-
-		func main() {
-			print(42)
-			print("hello")
-			a := 10
-			print(a)
-		}
-		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`// regs(4,0,2,0)`,
-			`	MoveInt 42 R1`,
-			`	Print R1`,
-			`	MoveString "hello" R1`,
-			`	MoveString R1 R2`,
-			`	Print R2`,
-			`	MoveInt 10 R3`,
-			`	MoveInt R3 R4`,
-			`	Print R4`,
-		},
-		nil,
-	},
-	{"Builtin make - map",
-		`
-		package main
-
-		func main() {
-			m := make(map[string]int, 2)
-			_ = m
-		}
-		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`	// regs(0,0,0,1)`,
-			`	MakeMap map[string]int 2 R1`,
-		},
-		[]reg{
-			{TypeIface, 1, map[string]int{}},
-		},
-	},
 	{"Switch statement",
 		`
 		package main
@@ -499,6 +309,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(20)},
 		}},
+
 	{"Switch statement with fallthrough",
 		`
 		package main
@@ -521,6 +332,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(30)},
 		}},
+
 	{"Switch statement with default",
 		`
 		package main
@@ -544,6 +356,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(80)},
 		}},
+
 	{"Switch statement with default and fallthrough",
 		`
 		package main
@@ -571,6 +384,52 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(30)},
 		}},
+
+	// Scrigo function calls.
+
+	{"Package function call",
+		`
+		package main
+
+		func a() {
+
+		}
+
+		func main() {
+			a()
+			return
+		}
+		`,
+		nil,
+		nil},
+
+	{"Package function 'inc'",
+		`
+		package main
+
+		func inc(n int) int {
+			return n+1
+		}
+		
+		func main() {
+			a := 2
+			res := inc(8)
+			b := 10
+			c := a + b + res
+			_ = c
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(2)},  // a
+			{TypeInt, 2, int64(9)},  // res
+			{TypeInt, 3, int64(9)},  // inc(8) return value
+			{TypeInt, 4, int64(8)},  // inc(8) argument
+			{TypeInt, 5, int64(10)}, // b
+			{TypeInt, 6, int64(21)}, // c
+		}},
+
 	{"Package function with one return value",
 		`
 		package main
@@ -589,6 +448,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(5)},
 		}},
+
 	{"Package function with many return values (same type)",
 		`
 		package main
@@ -613,6 +473,7 @@ var stmtTests = []struct {
 			{TypeInt, 6, int64(11)}, // d
 			{TypeInt, 7, int64(12)}, // e
 		}},
+
 	{"Package function with many return values (different types)",
 		`
 		package main
@@ -638,6 +499,7 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(11)},       // d
 			{TypeInt, 5, int64(12)},       // e
 		}},
+
 	{"Package function with one parameter (not used)",
 		`
 		package main
@@ -654,20 +516,79 @@ var stmtTests = []struct {
 			_ = c
 			return
 		}
-	`,
+		`,
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(2)},  // a
 			{TypeInt, 3, int64(10)}, // b
 			{TypeInt, 4, int64(12)}, // c
-		},
-	},
-	{"Composite literal - Map (empty)",
+		}},
+
+	// Builtin function calls.
+
+	{"Builtin len (with a constant argument)",
 		`
 		package main
 
 		func main() {
-			m := map[string]int{}
+			a := len("abc");
+			_ = a
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)}, // a
+		}},
+
+	{"Builtin len (with a variable argument)",
+		`
+		package main
+
+		func main() {
+			a := "a string"
+			b := len(a)
+			_ = b
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeString, 1, "a string"}, // a
+			{TypeInt, 1, int64(8)},      // b
+		}},
+
+	{"Builtin print",
+		`
+		package main
+
+		func main() {
+			print(42)
+			print("hello")
+			a := 10
+			print(a)
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`// regs(4,0,2,0)`,
+			`	MoveInt 42 R1`,
+			`	Print R1`,
+			`	MoveString "hello" R1`,
+			`	MoveString R1 R2`,
+			`	Print R2`,
+			`	MoveInt 10 R3`,
+			`	MoveInt R3 R4`,
+			`	Print R4`,
+		},
+		nil},
+
+	{"Builtin make - map",
+		`
+		package main
+
+		func main() {
+			m := make(map[string]int, 2)
 			_ = m
 		}
 		`,
@@ -675,13 +596,128 @@ var stmtTests = []struct {
 			`Package main`,
 			``,
 			`Func main()`,
-			`		// regs(0,0,0,1)`,
-			`		MakeMap map[string]int 0 R1`,
+			`	// regs(0,0,0,1)`,
+			`	MakeMap map[string]int 2 R1`,
 		},
 		[]reg{
 			{TypeIface, 1, map[string]int{}},
+		}},
+
+	// Native (Go) function calls.
+
+	{"Native function call (0 in, 0 out)",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			testpkg.F00()
+			return
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Import "testpkg"`,
+			``,
+			`Func main()`,
+			`	// regs(0,0,0,0)`,
+			`	CallFunc testpkg.F00    // Stack shift: 0, 0, 0, 0`,
+			`     Return`,
 		},
-	},
+		nil},
+
+	{"Native function call (0 in, 1 out)",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			v := testpkg.F01()
+			_ = v
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(40)},
+		}},
+
+	{"Native function call (1 in, 0 out)",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			testpkg.F10(50)
+			return
+		}
+		`,
+		nil,
+		nil},
+
+	{"Native function call (1 in, 1 out)",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			a := 2
+			a = testpkg.F11(9)
+			_ = a
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(42)},
+		}},
+
+	{"Native function call (2 in, 1 out) (with surrounding variables)",
+		`
+		package main
+
+		import "testpkg"
+		
+		func main() {
+			a := 2 + 1  // first arg.
+			b := 3 + 10 // second arg.
+			e := 4      // unused, just takes space.
+			_ = e
+			c := testpkg.Sum(a, b)
+			d := c // return value assigned to variable.
+			_ = d
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)},  // a
+			{TypeInt, 2, int64(13)}, // b
+			{TypeInt, 3, int64(4)},  // e
+			{TypeInt, 4, int64(16)}, // c
+			{TypeInt, 8, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
+		}},
+
+	{"Native function call of StringLen",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			a := testpkg.StringLen("zzz")
+			_ = a
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)},
+		}},
 }
 
 func TestVM(t *testing.T) {
