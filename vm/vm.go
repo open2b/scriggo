@@ -117,12 +117,13 @@ func (c *callable) reflectValue() reflect.Value {
 			t := fn.typ.Out(i)
 			results[i] = reflect.New(t).Elem()
 			k := t.Kind()
-			switch {
-			case k == reflect.Bool || reflect.Int <= k && k <= reflect.Uint64:
+			switch k {
+			case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				nvm.fp[0]++
-			case k == reflect.Float64 || k == reflect.Float32:
+			case reflect.Float32, reflect.Float64:
 				nvm.fp[1]++
-			case k == reflect.String:
+			case reflect.String:
 				nvm.fp[2]++
 			default:
 				nvm.fp[3]++
@@ -131,16 +132,16 @@ func (c *callable) reflectValue() reflect.Value {
 		var r int8 = 1
 		for _, arg := range args {
 			k := arg.Kind()
-			switch {
-			case k == reflect.Bool:
+			switch k {
+			case reflect.Bool:
 				nvm.setBool(r, arg.Bool())
-			case reflect.Int <= k && k <= reflect.Int64:
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				nvm.setInt(r, arg.Int())
-			case reflect.Uint <= k && k <= reflect.Uint64:
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				nvm.setInt(r, int64(arg.Uint()))
-			case k == reflect.Float64 || k == reflect.Float32:
+			case reflect.Float32, reflect.Float64:
 				nvm.setFloat(r, arg.Float())
-			case k == reflect.String:
+			case reflect.String:
 				nvm.setString(r, arg.String())
 			default:
 				nvm.setGeneral(r, arg.Interface())
@@ -156,16 +157,16 @@ func (c *callable) reflectValue() reflect.Value {
 		for i, result := range results {
 			t := fn.typ.Out(i)
 			k := t.Kind()
-			switch {
-			case k == reflect.Bool:
+			switch k {
+			case reflect.Bool:
 				result.SetBool(nvm.bool(r))
-			case reflect.Int <= k && k <= reflect.Int64:
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				result.SetInt(nvm.int(r))
-			case reflect.Uint <= k && k <= reflect.Uint64:
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				result.SetUint(uint64(nvm.int(r)))
-			case k == reflect.Float64 || k == reflect.Float32:
+			case reflect.Float32, reflect.Float64:
 				result.SetFloat(nvm.float(r))
-			case k == reflect.String:
+			case reflect.String:
 				result.SetString(nvm.string(r))
 			default:
 				result.Set(reflect.ValueOf(nvm.general(r)))
