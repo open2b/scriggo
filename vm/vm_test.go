@@ -204,6 +204,25 @@ var stmtTests = []struct {
 			{TypeIface, 1, map[string]int{}},
 		}},
 
+	// Expressions - conversions.
+
+	{"Converting from int to string",
+		`
+		package main
+
+		func main() {
+			a := 97
+			b := string(a)
+			_ = b
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeIface, 1, "a"},
+		},
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",

@@ -673,6 +673,17 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opConcat, a: s, b: t, c: z})
 }
 
+// Convert appends a new "convert" instruction to the function body.
+//
+// 	 dst = typ(expr)
+//
+func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int8) {
+	// TODO (Gianluca): add support for every kind of convert operator.
+	regType := builder.Type(dstType)
+	builder.allocRegister(reflect.Interface, dst)
+	builder.fn.body = append(builder.fn.body, instruction{op: opConvertInt, a: expr, b: regType, c: dst})
+}
+
 // Delete appends a new "delete" instruction to the function body.
 //
 //     delete(m, k)

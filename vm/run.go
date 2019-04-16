@@ -68,10 +68,11 @@ func (vm *VM) run() int {
 			if funcName != "" {
 				funcName += ":"
 			}
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v s%q\t%s\t",
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v s%q g%q\t%s\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
 				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1],
-				vm.regs.String[vm.fp[2]+1:vm.fp[2]+uint32(vm.fn.regnum[2])+1], // TODO (Gianluca): remove.
+				vm.regs.String[vm.fp[2]+1:vm.fp[2]+uint32(vm.fn.regnum[2])+1],  // TODO (Gianluca): remove.
+				vm.regs.General[vm.fp[3]+1:vm.fp[3]+uint32(vm.fn.regnum[3])+1], // TODO (Gianluca): remove.
 				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()

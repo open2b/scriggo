@@ -285,6 +285,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		if ok {
 			return
 		}
+		if val, ok := expr.Func.(*ast.Value); ok {
+			if typ, ok := val.Val.(reflect.Type); ok {
+				kind := c.typeinfo[expr.Args[0]].Type.Kind()
+				arg := c.fb.NewRegister(kind)
+				c.compileExpr(expr.Args[0], arg)
+				c.fb.Convert(arg, typ, reg)
+				return
+			}
+		}
 		regs, kinds := c.compileCall(expr)
 		if reg != 0 {
 			c.fb.Move(false, regs[0], reg, kinds[0])
