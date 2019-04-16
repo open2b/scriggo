@@ -286,6 +286,39 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(1)}, // c
 		}},
 
+	// Statements - For.
+
+	{"For statement",
+		`
+		package main
+
+		func main() {
+			  sum := 0
+			  for i := 0; i < 10; i++ {
+				    sum = sum + 2
+			  }
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(2,0,0,0)`,
+			`		MoveInt 0 R1`,
+			`		MoveInt 0 R2`,
+			`1:      IfInt R2 Less 10`,
+			`		Goto 2`,
+			`		AddInt R2 1 R2`,
+			`		MoveInt R1 R1`,
+			`		AddInt R1 2 R1`,
+			`		Goto 1`,
+		},
+		[]reg{
+			{TypeInt, 1, int64(20)}, // sum
+			{TypeInt, 2, int64(10)}, // i
+		},
+	},
+
 	// Statements - Switch.
 
 	{"Switch statement",
