@@ -361,17 +361,14 @@ func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 	return reg
 }
 
-// NewVar returns the register for holding a new variable with name
-// n of kind k.
-func (builder *FunctionBuilder) NewVar(n string, k reflect.Kind) int8 {
-	reg := builder.NewRegister(k)
-	builder.scopes[len(builder.scopes)-1][n] = reg
-	return reg
+// BindVarReg binds name with register reg. To create a new
+// named-variable, use VariableRegister in conjuction with BindVarReg.
+func (builder *FunctionBuilder) BindVarReg(name string, reg int8) {
+	builder.scopes[len(builder.scopes)-1][name] = reg
 }
 
-// VariableRegister returns the register in which variable with name n is
-// stored.
-func (builder *FunctionBuilder) VariableRegister(n string) int8 {
+// ScopeLookup returns the register in which variable with name n is stored.
+func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
 		reg, ok := builder.scopes[i][n]
 		if ok {

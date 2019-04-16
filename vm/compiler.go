@@ -126,7 +126,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 		i := int64(expr.Value.Int64())
 		return int8(i), true, false
 	case *ast.Identifier:
-		v := c.fb.VariableRegister(expr.Name)
+		v := c.fb.ScopeLookup(expr.Name)
 		return v, false, true
 	case *ast.Value:
 		kind := c.typeinfo[expr].Type.Kind()
@@ -344,9 +344,10 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		}
 		var varReg int8
 		if isDecl {
-			varReg = c.fb.NewVar(variable.(*ast.Identifier).Name, kind)
+			varReg = c.fb.NewRegister(kind)
+			c.fb.BindVarReg(variable.(*ast.Identifier).Name, varReg)
 		} else {
-			varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
+			varReg = c.fb.ScopeLookup(variable.(*ast.Identifier).Name)
 		}
 		out, isValue, isRegister := c.quickCompileExpr(value)
 		if isValue {
@@ -368,9 +369,10 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			kind := c.typeinfo[variable].Type.Kind()
 			var varReg int8
 			if isDecl {
-				varReg = c.fb.NewVar(variable.(*ast.Identifier).Name, kind)
+				varReg = c.fb.NewRegister(kind)
+				c.fb.BindVarReg(variable.(*ast.Identifier).Name, varReg)
 			} else {
-				varReg = c.fb.VariableRegister(variable.(*ast.Identifier).Name)
+				varReg = c.fb.ScopeLookup(variable.(*ast.Identifier).Name)
 			}
 			varRegs = append(varRegs, varReg)
 		}
@@ -435,12 +437,12 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				switch node.Type {
 				case ast.AssignmentIncrement:
 					name := node.Variables[0].(*ast.Identifier).Name
-					reg := c.fb.VariableRegister(name)
+					reg := c.fb.ScopeLookup(name)
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					c.fb.Add(true, reg, 1, reg, kind)
 				case ast.AssignmentDecrement:
 					name := node.Variables[0].(*ast.Identifier).Name
-					reg := c.fb.VariableRegister(name)
+					reg := c.fb.ScopeLookup(name)
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					c.fb.Add(true, reg, -1, reg, kind)
 				case ast.AssignmentDeclaration, ast.AssignmentSimple:
