@@ -283,7 +283,11 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		if a != CurrentPackage {
 			pkg = pkg.packages[uint8(a)]
 		}
-		s += " " + pkg.name + "." + pkg.scrigoFunctions[uint8(b)].name
+		if pkg.scrigoFunctions == nil {
+			s += " " + pkg.name + "." + pkg.nativeFunctions[uint8(b)].name
+		} else {
+			s += " " + pkg.name + "." + pkg.scrigoFunctions[uint8(b)].name
+		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
 		pkg := fn.pkg

@@ -206,6 +206,31 @@ var stmtTests = []struct {
 
 	// Expressions - misc.
 
+	{"Go functions as expressions",
+		`
+		package main
+
+		import "fmt"
+
+		func main() {
+			f := fmt.Println
+			print(f)
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Import "fmt"`,
+			``,
+			`Func main()`,
+			`		// regs(1,0,0,1)`,
+			`		GetFunc fmt.Println R1`,
+			`		Move R1 R1`,
+			`		Print R1`,
+		},
+		nil,
+	},
+
 	{"String concatenation (constant)",
 		`
 		package main

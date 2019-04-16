@@ -319,7 +319,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.fb.Func(0, reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
 
 	case *ast.Selector:
-		panic("TODO: not implemented")
+		pkgName := expr.Expr.(*ast.Identifier).Name
+		funcName := expr.Ident
+		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
+		goPkg := c.currentPkg.packages[pkgIndex]
+		funcIndex := int8(goPkg.gofunctionsNames[funcName])
+		c.fb.GetFunc(pkgIndex, funcIndex, reg)
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
