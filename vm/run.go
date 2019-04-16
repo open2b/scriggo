@@ -157,6 +157,9 @@ func (vm *VM) run() int {
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.types[int(uint(b))]
 			ok := v.Type() == t
+			if !ok && t.Kind() == reflect.Interface {
+				ok = v.Type().Implements(t)
+			}
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				var n int64
