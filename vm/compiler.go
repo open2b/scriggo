@@ -419,7 +419,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			if isRegister {
 				b = out
 			} else {
-				reg := int8(c.fb.numRegs[kind])
+				reg := int8(c.fb.numRegs[kind]) // TODO (Gianluca):
 				c.fb.allocRegister(kind, reg)
 				c.compileExpr(call.Args[0], reg)
 				b = reg
@@ -437,6 +437,11 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 		// 	typ := c.typeinfo[call.Args[0]].Type
 		// 	t := c.currFb.Type(typ)
 		// 	i = instruction{op: opNew, b: t, c: }
+		case "print":
+			// TODO (Gianluca): move argument to general
+			arg := c.fb.NewRegister(reflect.Int)
+			c.compileExpr(call.Args[0], arg)
+			i = instruction{op: opPrint, a: arg}
 		default:
 			return false
 		}

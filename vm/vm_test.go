@@ -431,6 +431,33 @@ var stmtTests = []struct {
 			{TypeString, 1, "a string"}, // a
 			{TypeInt, 1, int64(8)},      // b
 		}},
+	{"Builtin print",
+		`
+		package main
+
+		func main() {
+			print(42)
+			print("hello")
+			a := 10
+			print(a)
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`// regs(4,0,2,0)`,
+			`	MoveInt 42 R1`,
+			`	Print R1`,
+			`	MoveString "hello" R1`,
+			`	MoveString R1 R2`,
+			`	Print R2`,
+			`	MoveInt 10 R3`,
+			`	MoveInt R3 R4`,
+			`	Print R4`,
+		},
+		nil,
+	},
 	{"Switch statement",
 		`
 			package main
