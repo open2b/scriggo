@@ -272,7 +272,21 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			c.fb.Div(reg, op2, reg, kind)
 		case ast.OperatorModulo:
 			c.fb.Rem(reg, op2, reg, kind)
-		default:
+		case ast.OperatorEqual:
+			panic("TODO: not implemented")
+		case ast.OperatorNotEqual:
+			panic("TODO: not implemented")
+		case ast.OperatorLess:
+			panic("TODO: not implemented")
+		case ast.OperatorLessOrEqual:
+			panic("TODO: not implemented")
+		case ast.OperatorGreater:
+			panic("TODO: not implemented")
+		case ast.OperatorGreaterOrEqual:
+			panic("TODO: not implemented")
+		case ast.OperatorAnd:
+			panic("TODO: not implemented")
+		case ast.OperatorOr:
 			panic("TODO: not implemented")
 		}
 
