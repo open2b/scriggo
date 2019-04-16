@@ -70,6 +70,8 @@ const (
 
 	opGetVar
 
+	opGo
+
 	opGoto
 
 	opIf
@@ -88,6 +90,8 @@ const (
 	opLen
 
 	opFunc
+
+	opMakeChan
 
 	opMakeMap
 
@@ -113,9 +117,13 @@ const (
 
 	opOr
 
+	opPrint
+
 	opRange
 
 	opRangeString
+
+	opReceive
 
 	opRemInt
 	opRemInt8
@@ -133,6 +141,8 @@ const (
 	opSetVar
 
 	opMakeSlice
+
+	opSend
 
 	opSliceIndex
 
@@ -218,6 +228,8 @@ var operationName = [...]string{
 
 	opGetVar: "GetVar",
 
+	opGo: "Go",
+
 	opGoto: "Goto",
 
 	opIf:       "If",
@@ -232,6 +244,8 @@ var operationName = [...]string{
 	opLen: "len",
 
 	opFunc: "Func",
+
+	opMakeChan: "MakeChan",
 
 	opMakeMap: "MakeMap",
 
@@ -252,6 +266,10 @@ var operationName = [...]string{
 	opRange:       "Range",
 	opRangeString: "RangeString",
 
+	opPrint: "Print",
+
+	opReceive: "Receive",
+
 	opRemInt:    "RemInt",
 	opRemInt8:   "RemInt8",
 	opRemInt16:  "RemInt16",
@@ -264,6 +282,8 @@ var operationName = [...]string{
 	opReturn: "Return",
 
 	opMakeSlice: "MakeSlice",
+
+	opSend: "Send",
 
 	opSetVar: "SetPackageVar",
 

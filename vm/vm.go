@@ -176,3 +176,40 @@ func (c *callable) reflectValue() reflect.Value {
 	})
 	return c.value
 }
+
+// startScrigoGoroutine starts a new goroutine to execute a Scrigo function
+// call at program counter pc. If the function is native, returns false.
+func (vm *VM) startScrigoGoroutine(pc uint32) bool {
+	var fn *ScrigoFunction
+	var vars []interface{}
+	call := vm.fn.body[pc]
+	switch call.op {
+	case opCall:
+		pkg := vm.fn.pkg
+		if call.a != CurrentPackage {
+			pkg = pkg.packages[uint8(call.a)]
+		}
+		fn = pkg.scrigoFunctions[uint8(call.b)]
+	case opCallIndirect:
+		f := vm.general(call.b).(*callable)
+		if f.scrigo == nil {
+			return false
+		}
+		fn = f.scrigo
+		vars = f.vars
+	default:
+		return false
+	}
+	nvm := New(vm.main)
+	nvm.fn = fn
+	nvm.cvars = vars
+	pc++
+	off := vm.fn.body[pc]
+	copy(nvm.regs.Int, vm.regs.Int[vm.fp[0]+uint32(off.op):vm.fp[0]+127])
+	copy(nvm.regs.Float, vm.regs.Float[vm.fp[1]+uint32(off.a):vm.fp[1]+127])
+	copy(nvm.regs.String, vm.regs.String[vm.fp[2]+uint32(off.b):vm.fp[2]+127])
+	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.c):vm.fp[3]+127])
+	go nvm.run()
+	pc++
+	return true
+}

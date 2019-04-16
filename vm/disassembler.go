@@ -297,6 +297,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += pkg.varNames[uint8(b)]
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opGo, opReturn:
 	case opGoto, opJmpOk, opJmpNotOk:
 		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case opIndex:
@@ -311,7 +312,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opMakeMap:
+	case opMakeChan, opMakeMap:
 		s += " type(" + strconv.Itoa(int(uint(a))) + ")"
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
@@ -347,15 +348,23 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opNew:
 		s += " " + fn.types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opPrint:
+		s += " " + disassembleOperand(fn, a, Interface, false)
 	case opRange:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opRangeString:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, k)
-	case opReturn:
+	case opReceive:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Bool, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSelector:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
+	case opSend:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
 		s += " " + fn.types[int(uint(a))].String()
 		s += " " + fmt.Sprintf("0b%b", b)
@@ -415,14 +424,14 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 		case kind == String:
 			return strconv.Quote(fn.constants.String[uint8(op)])
 		default:
-			return fmt.Sprintf("%v", fn.constants.General[uint8(op)])
+			return fmt.Sprintf("%q", fn.constants.General[uint8(op)])
 		}
 	}
 	if op > 0 {
 		return "R" + strconv.Itoa(int(op))
 	}
 	if op == 0 {
-		return "NR"
+		return "_"
 	}
 	return "(R" + strconv.Itoa(-int(op)) + ")"
 }

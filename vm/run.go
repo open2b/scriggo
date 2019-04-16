@@ -48,6 +48,8 @@ func (vm *VM) run() int {
 
 	var pc uint32
 
+	var startNativeGoroutine bool
+
 	var op operation
 	var a, b, c int8
 
@@ -60,9 +62,14 @@ func (vm *VM) run() int {
 		in := vm.fn.body[pc]
 
 		if DebugTraceExecution {
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t",
+			funcName := vm.fn.name
+			if funcName != "" {
+				funcName += ":"
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
-				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1])
+				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1],
+				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
 			println()
 		}
@@ -287,25 +294,50 @@ func (vm *VM) run() int {
 			vm.fp[2] += uint32(off.b)
 			vm.fp[3] += uint32(off.c)
 			if fn.fast != nil {
-				switch f := fn.fast.(type) {
-				case func(string) int:
-					vm.setInt(1, int64(f(vm.string(1))))
-				case func(string) string:
-					vm.setString(1, f(vm.string(2)))
-				case func(string, string) int:
-					vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-				case func(string, int) string:
-					vm.setString(1, f(vm.string(2), int(vm.int(1))))
-				case func(string, string) bool:
-					vm.setBool(1, f(vm.string(1), vm.string(2)))
-				case func([]byte) []byte:
-					vm.setGeneral(1, f(vm.general(2).([]byte)))
-				case func([]byte, []byte) int:
-					vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-				case func([]byte, []byte) bool:
-					vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-				default:
-					fn.slow()
+				if startNativeGoroutine {
+					startNativeGoroutine = false
+					switch f := fn.fast.(type) {
+					case func(string) int:
+						go f(vm.string(1))
+					case func(string) string:
+						go f(vm.string(2))
+					case func(string, string) int:
+						go f(vm.string(1), vm.string(2))
+					case func(string, int) string:
+						go f(vm.string(2), int(vm.int(1)))
+					case func(string, string) bool:
+						go f(vm.string(1), vm.string(2))
+					case func([]byte) []byte:
+						go f(vm.general(2).([]byte))
+					case func([]byte, []byte) int:
+						go f(vm.general(1).([]byte), vm.general(2).([]byte))
+					case func([]byte, []byte) bool:
+						go f(vm.general(1).([]byte), vm.general(2).([]byte))
+					default:
+						startNativeGoroutine = true
+						fn.slow()
+					}
+				} else {
+					switch f := fn.fast.(type) {
+					case func(string) int:
+						vm.setInt(1, int64(f(vm.string(1))))
+					case func(string) string:
+						vm.setString(1, f(vm.string(2)))
+					case func(string, string) int:
+						vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
+					case func(string, int) string:
+						vm.setString(1, f(vm.string(2), int(vm.int(1))))
+					case func(string, string) bool:
+						vm.setBool(1, f(vm.string(1), vm.string(2)))
+					case func([]byte) []byte:
+						vm.setGeneral(1, f(vm.general(2).([]byte)))
+					case func([]byte, []byte) int:
+						vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
+					case func([]byte, []byte) bool:
+						vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+					default:
+						fn.slow()
+					}
 				}
 			}
 			if fn.fast == nil {
@@ -388,34 +420,43 @@ func (vm *VM) run() int {
 					vm.fp[2] = fp[2] + uint32(off.b)
 					vm.fp[3] = fp[3] + uint32(off.c)
 				}
-				var ret []reflect.Value
-				if variadic {
-					ret = fn.value.CallSlice(fn.args)
+				if startNativeGoroutine {
+					startNativeGoroutine = false
+					if variadic {
+						go fn.value.CallSlice(fn.args)
+					} else {
+						go fn.value.Call(fn.args)
+					}
 				} else {
-					ret = fn.value.Call(fn.args)
-				}
-				for i, k := range fn.out {
-					switch k {
-					case Bool:
-						vm.setBool(1, ret[i].Bool())
-						vm.fp[0]++
-					case Int:
-						vm.setInt(1, ret[i].Int())
-						vm.fp[0]++
-					case Uint:
-						vm.setInt(1, int64(ret[i].Uint()))
-						vm.fp[0]++
-					case Float64:
-						vm.setFloat(1, ret[i].Float())
-						vm.fp[1]++
-					case String:
-						vm.setString(1, ret[i].String())
-						vm.fp[2]++
-					case Func:
+					var ret []reflect.Value
+					if variadic {
+						ret = fn.value.CallSlice(fn.args)
+					} else {
+						ret = fn.value.Call(fn.args)
+					}
+					for i, k := range fn.out {
+						switch k {
+						case Bool:
+							vm.setBool(1, ret[i].Bool())
+							vm.fp[0]++
+						case Int:
+							vm.setInt(1, ret[i].Int())
+							vm.fp[0]++
+						case Uint:
+							vm.setInt(1, int64(ret[i].Uint()))
+							vm.fp[0]++
+						case Float64:
+							vm.setFloat(1, ret[i].Float())
+							vm.fp[1]++
+						case String:
+							vm.setString(1, ret[i].String())
+							vm.fp[2]++
+						case Func:
 
-					default:
-						vm.setGeneral(1, ret[i].Interface())
-						vm.fp[3]++
+						default:
+							vm.setGeneral(1, ret[i].Interface())
+							vm.fp[3]++
+						}
 					}
 				}
 			}
@@ -545,6 +586,12 @@ func (vm *VM) run() int {
 				default:
 					vm.setGeneral(c, rv.Interface())
 				}
+			}
+
+		// Go
+		case opGo:
+			if !vm.startScrigoGoroutine(pc) {
+				startNativeGoroutine = true
 			}
 
 		// Goto
@@ -718,6 +765,10 @@ func (vm *VM) run() int {
 			}
 			vm.setInt(c, int64(length))
 
+		// MakeChan
+		case opMakeChan, -opMakeChan:
+			vm.setGeneral(c, reflect.MakeChan(vm.fn.types[uint8(a)], int(vm.intk(b, op < 0))).Interface())
+
 		// MakeMap
 		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]
@@ -850,6 +901,9 @@ func (vm *VM) run() int {
 		// Or
 		case opOr, -opOr:
 			vm.setInt(c, vm.int(a)|vm.intk(b, op < 0))
+
+		case opPrint:
+			print(vm.general(a))
 
 		// Range
 		case opRange:
@@ -1032,6 +1086,31 @@ func (vm *VM) run() int {
 				return cont - 1
 			}
 
+		// Receive
+		case opReceive:
+			ch := vm.general(a)
+			switch ch := ch.(type) {
+			case chan struct{}:
+				vm.setGeneral(c, <-ch)
+			case chan int:
+				vm.setGeneral(c, <-ch)
+			case chan bool:
+				vm.setGeneral(c, <-ch)
+			case chan string:
+				vm.setGeneral(c, <-ch)
+			case chan rune:
+				vm.setGeneral(c, <-ch)
+			default:
+				x, ok := reflect.ValueOf(ch).Recv()
+				vm.ok = ok
+				if b != 0 {
+					vm.setBool(b, ok)
+				}
+				if c != 0 {
+					vm.setGeneral(c, x.Interface())
+				}
+			}
+
 		// Rem
 		case opRemInt:
 			vm.setInt(c, vm.int(a)%vm.int(b))
@@ -1088,6 +1167,24 @@ func (vm *VM) run() int {
 				vm.setString(c, v.String())
 			default:
 				vm.setGeneral(c, v.Interface())
+			}
+
+		// Send
+		case opSend:
+			ch := vm.general(c)
+			switch ch := ch.(type) {
+			case chan struct{}:
+				ch <- struct{}{}
+			case chan int:
+				ch <- vm.general(a).(int)
+			case chan bool:
+				ch <- vm.general(a).(bool)
+			case chan string:
+				ch <- vm.general(a).(string)
+			case chan rune:
+				ch <- vm.general(a).(rune)
+			default:
+				reflect.ValueOf(ch).Send(reflect.ValueOf(vm.general(a)))
 			}
 
 		// SetVar
