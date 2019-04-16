@@ -590,12 +590,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.ExitScope()
 
 		case *ast.ForRange:
-			c.fb.EnterScope()
-			expr := c.fb.NewRegister(reflect.String)
-			kind := c.typeinfo[node.Assignment.Values[0]].Type.Kind()
-			c.compileExpr(node.Assignment.Values[0], expr)
-			c.fb.ForRange(expr, kind)
-			c.fb.ExitScope()
+			panic("TODO: not implemented")
+			// c.fb.EnterScope()
+			// expr := c.fb.NewRegister(reflect.String)
+			// kind := c.typeinfo[node.Assignment.Values[0]].Type.Kind()
+			// c.compileExpr(node.Assignment.Values[0], expr)
+			// c.fb.ForRange(expr, kind)
+			// c.compileNodes(node.Body)
+			// c.fb.ExitScope()
 
 		case *ast.Return:
 			for i, v := range node.Values {
