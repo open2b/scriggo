@@ -482,9 +482,13 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 func (c *Compiler) compileNodes(nodes []ast.Node) {
 	for _, node := range nodes {
 		switch node := node.(type) {
+
 		case *ast.Assignment:
 			// TODO (Gianluca): clean up.
-			if len(node.Variables) == 1 && len(node.Values) == 1 {
+			switch {
+			case len(node.Variables) == 1 &&
+				len(node.Values) == 1 &&
+				(node.Type == ast.AssignmentAddition || node.Type == ast.AssignmentSubtraction):
 				switch node.Type {
 				case ast.AssignmentAddition:
 					panic("TODO: not implemented")
@@ -500,18 +504,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					// reg := c.fb.ScopeLookup(name)
 					// kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					// c.fb.Add(true, reg, -1, reg, kind)
-				case ast.AssignmentDeclaration, ast.AssignmentSimple:
-					c.compileVarsGetValue([]ast.Expression{node.Variables[0]}, node.Values[0], node.Type == ast.AssignmentDeclaration)
-				default:
-					panic("TODO: not implemented")
 				}
-			} else if len(node.Variables) == len(node.Values) {
+			case len(node.Variables) == len(node.Values):
 				for i := range node.Variables {
 					c.compileVarsGetValue([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
 				}
-			} else if len(node.Variables) > 1 && len(node.Values) == 1 {
+			case len(node.Variables) > 1 && len(node.Values) == 1:
 				c.compileVarsGetValue(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
-			} else if len(node.Variables) == 1 && len(node.Values) == 0 {
+			case len(node.Variables) == 1 && len(node.Values) == 0:
 				switch node.Type {
 				case ast.AssignmentIncrement:
 					name := node.Variables[0].(*ast.Identifier).Name
@@ -521,7 +521,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				case ast.AssignmentDecrement:
 					panic("TODO: not implemented")
 				}
-			} else {
+			default:
 				panic("TODO: not implemented")
 			}
 
