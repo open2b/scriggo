@@ -255,8 +255,12 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Interface, false)
 	case opIf:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + Condition(b).String()
+		if Condition(b) == ConditionOk {
+			s += " Ok"
+		} else {
+			s += " " + disassembleOperand(fn, a, Interface, false)
+			s += " " + Condition(b).String()
+		}
 	case opIfInt, opIfUint:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + Condition(b).String()

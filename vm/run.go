@@ -607,6 +607,12 @@ func (vm *VM) run() int {
 
 		// If
 		case opIf:
+			if Condition(b) == ConditionOk {
+				if vm.ok {
+					pc++
+				}
+				continue
+			}
 			var cond bool
 			v1 := vm.general(a)
 			switch Condition(b) {
@@ -614,10 +620,6 @@ func (vm *VM) run() int {
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
-			case ConditionOk:
-				cond = vm.ok
-			case ConditionNotOk:
-				cond = !vm.ok
 			}
 			if cond {
 				pc++

@@ -422,6 +422,30 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		for i := range retRegs {
 			c.fb.Move(false, retRegs[i], varRegs[i], retKinds[i])
 		}
+	case *ast.TypeAssertion:
+		var dst int8
+		if isDecl {
+			kind := c.typeinfo[variables[0]].Type.Kind()
+			dst = c.fb.NewRegister(kind)
+			c.fb.BindVarReg(variables[0].(*ast.Identifier).Name, dst)
+		} else {
+			dst = c.fb.ScopeLookup(variables[0].(*ast.Identifier).Name)
+		}
+		var okReg int8
+		if isDecl {
+			okReg = c.fb.NewRegister(reflect.Int)
+			c.fb.BindVarReg(variables[1].(*ast.Identifier).Name, okReg)
+		} else {
+			okReg = c.fb.ScopeLookup(variables[1].(*ast.Identifier).Name)
+		}
+		typ := value.Type.(*ast.Value).Val.(reflect.Type)
+		kind := c.typeinfo[value.Expr].Type.Kind()
+		expr := c.fb.NewRegister(kind)
+		c.compileExpr(value.Expr, expr)
+		c.fb.Assert(expr, typ, dst)
+		c.fb.IfOk()
+		c.fb.Move(true, 0, okReg, reflect.Int)
+		c.fb.Move(true, 1, okReg, reflect.Int)
 	default:
 		panic("TODO: not implemented")
 	}

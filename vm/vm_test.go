@@ -306,6 +306,29 @@ var stmtTests = []struct {
 		},
 	},
 
+	// Type assertion.
+
+	{"Type assertion - Int on interface{}",
+		`
+	package main
+
+	func main() {
+		a := interface{}(10)
+		n, ok := a.(int)
+		_ = n
+		_ = ok
+		return
+	}
+	`,
+		nil,
+		[]reg{
+			{TypeIface, 1, int64(10)}, // a
+			{TypeInt, 1, int64(10)},   // interface{}(10) argument
+			{TypeIface, 2, int64(10)}, // n
+			{TypeInt, 3, int64(1)},    // ok (true)
+		},
+	},
+
 	// Statements - If.
 
 	{"If statement with else",

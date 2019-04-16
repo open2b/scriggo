@@ -808,6 +808,10 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 	builder.fn.body = append(builder.fn.body, in)
 }
 
+func (builder *FunctionBuilder) IfOk() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
+}
+
 // If appends a new "If" instruction to the function body.
 //
 //     x
