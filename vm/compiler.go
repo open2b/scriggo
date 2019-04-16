@@ -608,6 +608,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// c.fb.ExitScope()
 
 		case *ast.Return:
+			if len(node.Values) == 1 {
+				if _, isCall := node.Values[0].(*ast.Call); isCall {
+					// TODO (Gianluca): must assign new values.
+					// TODO (Gianluca): use the appropiate function, cause not necessarily is CurrentPackage, CurrentFunction.
+					c.fb.TailCall(CurrentPackage, CurrentFunction)
+					continue
+				}
+			}
 			for i, v := range node.Values {
 				kind := c.typeinfo[v].Type.Kind()
 				reg := int8(i + 1)
