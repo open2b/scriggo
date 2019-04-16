@@ -248,6 +248,28 @@ var stmtTests = []struct {
 			{TypeString, 3, "eeff"}, // b
 		}},
 
+	{"String concatenation (non constant)",
+		`
+		package main
+
+		func main() {
+			s1 := "hello"
+			s2 := "world"
+			s3 := s1 + " " + s2
+			_ = s3
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeString, 1, "hello"},       // s1
+			{TypeString, 2, "hello"},       // "hello" constant
+			{TypeString, 3, "world"},       // s2
+			{TypeString, 4, "world"},       // "worlds" constant
+			{TypeString, 6, " "},           // " " constant
+			{TypeString, 5, "hello world"}, // should be R3?
+		},
+	},
+
 	// Statements - If.
 
 	{"If statement with else",

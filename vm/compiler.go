@@ -265,7 +265,11 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.compileExpr(expr.Expr1, reg)
 		switch expr.Operator() {
 		case ast.OperatorAddition:
-			c.fb.Add(ky, reg, op2, reg, kind)
+			if kind == reflect.String {
+				c.fb.Concat(reg, op2, reg)
+			} else {
+				c.fb.Add(ky, reg, op2, reg, kind)
+			}
 		case ast.OperatorSubtraction:
 			c.fb.Sub(ky, reg, op2, reg, kind)
 		case ast.OperatorMultiplication:
