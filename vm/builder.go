@@ -109,6 +109,10 @@ func (c Condition) String() string {
 		return "Nil"
 	case ConditionNotNil:
 		return "NotNil"
+	case ConditionOk:
+		return "Ok"
+	case ConditionNotOk:
+		return "NotOk"
 	}
 	panic("unknown condition")
 }
