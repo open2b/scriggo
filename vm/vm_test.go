@@ -458,6 +458,24 @@ var stmtTests = []struct {
 		},
 		nil,
 	},
+	{"Builtin make - map",
+		`
+	package main
+
+	func main() {
+		m := make(map[string]int, 2)
+		_ = m
+	}
+	`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`	// regs(0,0,0,1)`,
+			`	MakeMap map[string]int 2 R1`,
+		},
+		nil,
+	},
 	{"Switch statement",
 		`
 			package main

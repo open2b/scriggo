@@ -441,6 +441,27 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			arg := c.fb.NewRegister(reflect.Int)
 			c.compileExpr(call.Args[0], arg)
 			i = instruction{op: opPrint, a: arg}
+		case "make":
+			typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
+			regType := c.fb.Type(typ)
+			switch typ.Kind() {
+			case reflect.Map:
+				var size int8
+				var kSize bool
+				out, isValue, isRegister := c.quickCompileExpr(call.Args[1])
+				if isValue {
+					kSize = true
+					size = out
+				} else if isRegister {
+					size = out
+				} else {
+					size = c.fb.NewRegister(reflect.Int)
+					c.compileExpr(call.Args[1], size)
+				}
+				c.fb.MakeMap(regType, kSize, size, reg)
+			default:
+				panic("TODO: not implemented")
+			}
 		default:
 			return false
 		}
