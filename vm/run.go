@@ -1045,25 +1045,58 @@ func (vm *VM) run() int {
 		case opReceive:
 			ch := vm.general(a)
 			switch ch := ch.(type) {
-			case chan struct{}:
-				vm.setGeneral(c, <-ch)
-			case chan int:
-				vm.setGeneral(c, <-ch)
 			case chan bool:
-				vm.setGeneral(c, <-ch)
-			case chan string:
-				vm.setGeneral(c, <-ch)
-			case chan rune:
-				vm.setGeneral(c, <-ch)
-			default:
-				x, ok := reflect.ValueOf(ch).Recv()
-				vm.ok = ok
-				if b != 0 {
-					vm.setBool(b, ok)
-				}
+				var v bool
+				v, vm.ok = <-ch
 				if c != 0 {
-					vm.setGeneral(c, x.Interface())
+					vm.setBool(c, v)
 				}
+			case chan int:
+				var v int
+				v, vm.ok = <-ch
+				if c != 0 {
+					vm.setInt(c, int64(v))
+				}
+			case chan rune:
+				var v rune
+				v, vm.ok = <-ch
+				if c != 0 {
+					vm.setInt(c, int64(v))
+				}
+			case chan string:
+				var v string
+				v, vm.ok = <-ch
+				if c != 0 {
+					vm.setString(c, v)
+				}
+			case chan struct{}:
+				_, vm.ok = <-ch
+				if c != 0 {
+					vm.setGeneral(c, struct{}{})
+				}
+			default:
+				var v reflect.Value
+				v, vm.ok = reflect.ValueOf(ch).Recv()
+				if c != 0 {
+					k := reflect.TypeOf(ch).Elem().Kind()
+					switch k {
+					case reflect.Bool:
+						vm.setBool(c, v.Bool())
+					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+						vm.setInt(c, v.Int())
+					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+						vm.setInt(c, int64(v.Uint()))
+					case reflect.Float32, reflect.Float64:
+						vm.setFloat(c, v.Float())
+					case reflect.String:
+						vm.setString(c, v.String())
+					default:
+						vm.setGeneral(c, v.Interface())
+					}
+				}
+			}
+			if b != 0 {
+				vm.setBool(b, vm.ok)
 			}
 
 		// Rem
@@ -1125,21 +1158,39 @@ func (vm *VM) run() int {
 			}
 
 		// Send
-		case opSend:
-			ch := vm.general(c)
+		case opSend, -opSend:
+			k := op < 0
+			ch := vm.generalk(c, k)
 			switch ch := ch.(type) {
+			case chan bool:
+				ch <- vm.boolk(a, k)
+			case chan int:
+				ch <- int(vm.intk(a, k))
+			case chan rune:
+				ch <- rune(vm.intk(a, k))
+			case chan string:
+				ch <- vm.stringk(a, k)
 			case chan struct{}:
 				ch <- struct{}{}
-			case chan int:
-				ch <- vm.general(a).(int)
-			case chan bool:
-				ch <- vm.general(a).(bool)
-			case chan string:
-				ch <- vm.general(a).(string)
-			case chan rune:
-				ch <- vm.general(a).(rune)
 			default:
-				reflect.ValueOf(ch).Send(reflect.ValueOf(vm.general(a)))
+				r := reflect.ValueOf(ch)
+				elemType := r.Type().Elem()
+				v := reflect.New(elemType).Elem()
+				switch elemType.Kind() {
+				case reflect.Bool:
+					v.SetBool(vm.boolk(a, k))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					v.SetInt(vm.intk(a, k))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					v.SetUint(uint64(vm.intk(a, k)))
+				case reflect.Float32, reflect.Float64:
+					v.SetFloat(vm.floatk(a, k))
+				case reflect.String:
+					v.SetString(vm.stringk(a, k))
+				default:
+					v.Set(reflect.ValueOf(vm.generalk(a, k)))
+				}
+				r.Send(v)
 			}
 
 		// SetVar
