@@ -482,19 +482,23 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 		case *ast.Assignment:
-			// TODO (Gianluca): clean.
+			// TODO (Gianluca): clean up.
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				switch node.Type {
 				case ast.AssignmentAddition:
-					name := node.Variables[0].(*ast.Identifier).Name
-					reg := c.fb.ScopeLookup(name)
-					kind := c.typeinfo[node.Variables[0]].Type.Kind()
-					c.fb.Add(true, reg, 1, reg, kind)
+					panic("TODO: not implemented")
+					// TODO (Gianluca): this is wrong:
+					// name := node.Variables[0].(*ast.Identifier).Name
+					// reg := c.fb.ScopeLookup(name)
+					// kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					// c.fb.Add(true, reg, 1, reg, kind)
 				case ast.AssignmentSubtraction:
-					name := node.Variables[0].(*ast.Identifier).Name
-					reg := c.fb.ScopeLookup(name)
-					kind := c.typeinfo[node.Variables[0]].Type.Kind()
-					c.fb.Add(true, reg, -1, reg, kind)
+					panic("TODO: not implemented")
+					// TODO (Gianluca): this is wrong:
+					// name := node.Variables[0].(*ast.Identifier).Name
+					// reg := c.fb.ScopeLookup(name)
+					// kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					// c.fb.Add(true, reg, -1, reg, kind)
 				case ast.AssignmentDeclaration, ast.AssignmentSimple:
 					c.compileVarsGetValue([]ast.Expression{node.Variables[0]}, node.Values[0], node.Type == ast.AssignmentDeclaration)
 				default:
@@ -506,6 +510,16 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				}
 			} else if len(node.Variables) > 1 && len(node.Values) == 1 {
 				c.compileVarsGetValue(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
+			} else if len(node.Variables) == 1 && len(node.Values) == 0 {
+				switch node.Type {
+				case ast.AssignmentIncrement:
+					name := node.Variables[0].(*ast.Identifier).Name
+					reg := c.fb.ScopeLookup(name)
+					kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					c.fb.Add(true, reg, 1, reg, kind)
+				case ast.AssignmentDecrement:
+					panic("TODO: not implemented")
+				}
 			} else {
 				panic("TODO: not implemented")
 			}
