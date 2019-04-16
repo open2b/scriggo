@@ -485,12 +485,12 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// TODO (Gianluca): clean.
 			if len(node.Variables) == 1 && len(node.Values) == 1 {
 				switch node.Type {
-				case ast.AssignmentIncrement:
+				case ast.AssignmentAddition:
 					name := node.Variables[0].(*ast.Identifier).Name
 					reg := c.fb.ScopeLookup(name)
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					c.fb.Add(true, reg, 1, reg, kind)
-				case ast.AssignmentDecrement:
+				case ast.AssignmentSubtraction:
 					name := node.Variables[0].(*ast.Identifier).Name
 					reg := c.fb.ScopeLookup(name)
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
