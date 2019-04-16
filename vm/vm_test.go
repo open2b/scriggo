@@ -264,6 +264,33 @@ var stmtTests = []struct {
 			{TypeInt, 8, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
 		},
 	},
+	{"Native function 'inc'",
+		`
+		package main
+
+		func inc(n int) int {
+			return n+1
+		}
+		
+		func main() {
+			a := 2
+			res := inc(8)
+			b := 10
+			c := a + b + res
+			_ = c
+			return
+		}
+	`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(2)},  // a
+			{TypeInt, 2, int64(9)},  // res
+			{TypeInt, 3, int64(9)},  // inc(8) return value
+			{TypeInt, 4, int64(8)},  // inc(8) argument
+			{TypeInt, 5, int64(10)}, // b
+			{TypeInt, 6, int64(21)}, // c
+		},
+	},
 	{"Native function call of StringLen",
 		`
 			package main

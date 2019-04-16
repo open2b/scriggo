@@ -23,3 +23,20 @@ func isBlankIdentifier(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
 	return ok && ident.Name == "_"
 }
+
+// fillParametersTypes takes a list of parameters (function arguments or
+// function return values) and "fills" their types. For instance, a function
+// arguments signature "a, b int" becomes "a int, b int".
+func fillParametersTypes(params []*ast.Field) {
+	if len(params) == 0 {
+		return
+	}
+	typ := params[len(params)-1].Type
+	for i := len(params) - 1; i >= 0; i-- {
+		if params[i].Type != nil {
+			typ = params[i].Type
+		}
+		params[i].Type = typ
+	}
+	return
+}

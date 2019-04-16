@@ -98,6 +98,25 @@ func (c *Compiler) compilePackage(node *ast.Package) {
 			fn, index := c.currentPkg.NewFunction(n.Ident.Name, n.Type.Reflect)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
+			// Binds function argument names to pre-allocated registers.
+			shift := StackShift{}
+			fillParametersTypes(n.Type.Result)
+			for _, res := range n.Type.Result {
+				_ = res
+				// TODO (Gianluca): shift according to kind
+				// resType := res.Type.(*ast.Value).Val.(reflect.Type)
+				// kind := resType.Kind()
+				shift[0]++
+			}
+			fillParametersTypes(n.Type.Parameters)
+			for _, par := range n.Type.Parameters {
+				// TODO (Gianluca): shift according to kind
+				// parType := par.Type.(*ast.Value).Val.(reflect.Type)
+				// kind := parType.Kind()
+				// fakeReg := c.fb.NewRegister(kind)
+				shift[0]++
+				c.fb.BindVarReg(par.Ident.Name, shift[0])
+			}
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
