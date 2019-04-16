@@ -116,10 +116,10 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				argReg := c.fb.NewRegister(kind)
 				c.fb.BindVarReg(par.Ident.Name, argReg)
 			}
+			c.currentPkg.functionsNames[n.Ident.Name] = index
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-			c.currentPkg.functionsNames[n.Ident.Name] = index
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
 				parserGoPkg, ok := c.importableGoPkgs[n.Path]
