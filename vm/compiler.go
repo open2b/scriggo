@@ -419,10 +419,9 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			if isRegister {
 				b = out
 			} else {
-				reg := int8(c.fb.numRegs[kind]) // TODO (Gianluca):
-				c.fb.allocRegister(kind, reg)
-				c.compileExpr(call.Args[0], reg)
-				b = reg
+				arg := c.fb.NewRegister(kind)
+				c.compileExpr(call.Args[0], arg)
+				b = arg
 			}
 			switch typ {
 			case reflect.TypeOf(""): // TODO (Gianluca): or should check for kind string?
