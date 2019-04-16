@@ -105,15 +105,16 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			for _, res := range n.Type.Result {
 				resType := res.Type.(*ast.Value).Val.(reflect.Type)
 				kind := resType.Kind()
+				retReg := c.fb.NewRegister(kind)
+				_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
 				shift[kindToVMIndex(kind)]++
 			}
 			fillParametersTypes(n.Type.Parameters)
 			for _, par := range n.Type.Parameters {
 				parType := par.Type.(*ast.Value).Val.(reflect.Type)
 				kind := parType.Kind()
-				i := kindToVMIndex(kind)
-				shift[i]++
-				c.fb.BindVarReg(par.Ident.Name, shift[i])
+				argReg := c.fb.NewRegister(kind)
+				c.fb.BindVarReg(par.Ident.Name, argReg)
 			}
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()

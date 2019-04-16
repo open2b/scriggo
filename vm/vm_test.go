@@ -798,6 +798,41 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(3)},
 		}},
+
+	// Complex tests.
+
+	{"Scrigo function 'repeat(string, int) string'",
+		`
+		package main
+
+		func repeat(s string, n int) string {
+			out := ""
+			for i := 0; i < n; i++ {
+				out = out + s
+			}
+			return out
+		}
+
+		func main() {
+			b := 1
+			d := b + 2
+			s1 := repeat("z", 4)
+			f := "hello"
+			s2 := repeat(f, d)
+			_ = s1 + s2
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(1)},             // b
+			{TypeInt, 2, int64(3)},             // d
+			{TypeString, 1, "zzzz"},            // s1
+			{TypeString, 2, "zzzz"},            // repeat#1 return
+			{TypeString, 3, "z"},               // repeat#1 arg#1
+			{TypeInt, 3, int64(4)},             // repeat#1 arg#2
+			{TypeString, 8, "hellohellohello"}, // s2
+		},
+	},
 }
 
 func TestVM(t *testing.T) {
