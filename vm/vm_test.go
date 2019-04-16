@@ -35,15 +35,15 @@ var stmtTests = []struct {
 
 	{"Simple assignment",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 10
-				_ = a
-				c := "hi"
-				_ = c
-				return
-			}
+		func main() {
+			a := 10
+			_ = a
+			c := "hi"
+			_ = c
+			return
+		}
 		`,
 		[]string{
 			`Package main`,
@@ -61,13 +61,13 @@ var stmtTests = []struct {
 		}},
 	{"Multiple assignment",
 		`
-			package main
+		package main
 
-			func main() {
-				a, b := 6, 7
-				_, _ = a, b
-				return
-			}
+		func main() {
+			a, b := 6, 7
+			_, _ = a, b
+			return
+		}
 		`,
 		nil,
 		[]reg{
@@ -77,13 +77,13 @@ var stmtTests = []struct {
 	},
 	{"Assignment with constant int value (addition)",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 4 + 5;
-				_ = a
-				return
-			}
+		func main() {
+			a := 4 + 5;
+			_ = a
+			return
+		}
 		`,
 		[]string{
 			`Package main`,
@@ -96,14 +96,14 @@ var stmtTests = []struct {
 		nil},
 	{"Assignment with addition value (non constant)",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 5
-				b := 10
-				c := a + 2 + b + 30
-				_ = c
-			}
+		func main() {
+			a := 5
+			b := 10
+			c := a + 2 + b + 30
+			_ = c
+		}
 		`,
 		nil,
 		[]reg{
@@ -113,18 +113,18 @@ var stmtTests = []struct {
 		}},
 	{"If statement with else",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 10
-				c := 0
-				if a > 5 {
-					c = 1
-				} else {
-					c = 2
-				};
-				_ = c
-			}
+		func main() {
+			a := 10
+			c := 0
+			if a > 5 {
+				c = 1
+			} else {
+				c = 2
+			};
+			_ = c
+		}
 		`,
 		nil,
 		[]reg{
@@ -133,18 +133,18 @@ var stmtTests = []struct {
 		}},
 	{"If statement with else",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 10
-				c := 0
-				if a <= 5 {
-					c = 1
-				} else {
-					c = 2
-				}
-				_ = c
+		func main() {
+			a := 10
+			c := 0
+			if a <= 5 {
+				c = 1
+			} else {
+				c = 2
 			}
+			_ = c
+		}
 		`,
 		nil,
 		[]reg{
@@ -153,29 +153,29 @@ var stmtTests = []struct {
 		}},
 	{"Package function call",
 		`
-			package main
+		package main
 
-			func a() {
+		func a() {
 
-			}
+		}
 
-			func main() {
-				a()
-				return
-			}
-			`,
+		func main() {
+			a()
+			return
+		}
+		`,
 		nil,
 		nil},
 	{"Native function call (0 in, 0 out)",
 		`
-			package main
+		package main
 
-			import "testpkg"
+		import "testpkg"
 
-			func main() {
-				testpkg.F00()
-				return
-			}
+		func main() {
+			testpkg.F00()
+			return
+		}
 		`,
 		[]string{
 			`Package main`,
@@ -191,15 +191,15 @@ var stmtTests = []struct {
 	},
 	{"Native function call (0 in, 1 out)",
 		`
-			package main
+		package main
 
-			import "testpkg"
+		import "testpkg"
 
-			func main() {
-				v := testpkg.F01()
-				_ = v
-				return
-			}
+		func main() {
+			v := testpkg.F01()
+			_ = v
+			return
+		}
 		`,
 		nil,
 		[]reg{
@@ -208,30 +208,30 @@ var stmtTests = []struct {
 	},
 	{"Native function call (1 in, 0 out)",
 		`
-			package main
+		package main
 
-			import "testpkg"
+		import "testpkg"
 
-			func main() {
-				testpkg.F10(50)
-				return
-			}
+		func main() {
+			testpkg.F10(50)
+			return
+		}
 		`,
 		nil,
 		nil,
 	},
 	{"Native function call (1 in, 1 out)",
 		`
-			package main
+		package main
 
-			import "testpkg"
+		import "testpkg"
 
-			func main() {
-				a := 2
-				a = testpkg.F11(9)
-				_ = a
-				return
-			}
+		func main() {
+			a := 2
+			a = testpkg.F11(9)
+			_ = a
+			return
+		}
 		`,
 		nil,
 		[]reg{
@@ -240,20 +240,20 @@ var stmtTests = []struct {
 	},
 	{"Native function call (2 in, 1 out) (with surrounding variables)",
 		`
-			package main
+		package main
 
-			import "testpkg"
-			
-			func main() {
-				a := 2 + 1  // first arg.
-				b := 3 + 10 // second arg.
-				e := 4      // unused, just takes space.
-				_ = e
-				c := testpkg.Sum(a, b)
-				d := c // return value assigned to variable.
-				_ = d
-				return
-			}
+		import "testpkg"
+		
+		func main() {
+			a := 2 + 1  // first arg.
+			b := 3 + 10 // second arg.
+			e := 4      // unused, just takes space.
+			_ = e
+			c := testpkg.Sum(a, b)
+			d := c // return value assigned to variable.
+			_ = d
+			return
+		}
 		`,
 		nil,
 		[]reg{
@@ -293,14 +293,14 @@ var stmtTests = []struct {
 	},
 	{"Native function call of StringLen",
 		`
-			package main
+		package main
 
-			import "testpkg"
+		import "testpkg"
 
-			func main() {
-				a := testpkg.StringLen("zzz")
-				_ = a
-			}
+		func main() {
+			a := testpkg.StringLen("zzz")
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -330,17 +330,17 @@ var stmtTests = []struct {
 		}},
 	{"If with init assignment",
 		`
-			package main
+		package main
 
-			func main() {
-				c := 0
-				if x := 1; x == 1 {
-					c = 1
-				} else {
-					c = 2
-				}
-				_ = c
+		func main() {
+			c := 0
+			if x := 1; x == 1 {
+				c = 1
+			} else {
+				c = 2
 			}
+			_ = c
+		}
 		`,
 		nil,
 		[]reg{
@@ -348,14 +348,14 @@ var stmtTests = []struct {
 		}},
 	{"String concatenation (constant)",
 		`
-			package main
+		package main
 
-			func main() {
-				a := "s";
-				_ = a;
-				b := "ee" + "ff";
-				_ = b
-			}
+		func main() {
+			a := "s";
+			_ = a;
+			b := "ee" + "ff";
+			_ = b
+		}
 		`,
 		nil,
 		[]reg{
@@ -364,12 +364,12 @@ var stmtTests = []struct {
 		}},
 	{"Empty int slice",
 		`
-			package main
+		package main
 
-			func main() {
-				a := []int{};
-				_ = a
-			}
+		func main() {
+			a := []int{};
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -377,12 +377,12 @@ var stmtTests = []struct {
 		}},
 	{"Empty string slice",
 		`
-			package main
+		package main
 
-			func main() {
-				a := []string{};
-				_ = a
-			}
+		func main() {
+			a := []string{};
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -390,13 +390,13 @@ var stmtTests = []struct {
 		}},
 	{"Empty byte slice",
 		`
-			package main
+		package main
 
-			func main() {
-				a := []int{};
-				b := []byte{};
-				_ = a; _ = b
-			}
+		func main() {
+			a := []int{};
+			b := []byte{};
+			_ = a; _ = b
+		}
 		`,
 		nil,
 		[]reg{
@@ -405,12 +405,12 @@ var stmtTests = []struct {
 		}},
 	{"Builtin len (with a constant argument)",
 		`
-			package main
+		package main
 
-			func main() {
-				a := len("abc");
-				_ = a
-			}
+		func main() {
+			a := len("abc");
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -418,13 +418,13 @@ var stmtTests = []struct {
 		}},
 	{"Builtin len (with a variable argument)",
 		`
-			package main
+		package main
 
-			func main() {
-				a := "a string"
-				b := len(a)
-				_ = b
-			}
+		func main() {
+			a := "a string"
+			b := len(a)
+			_ = b
+		}
 		`,
 		nil,
 		[]reg{
@@ -460,13 +460,13 @@ var stmtTests = []struct {
 	},
 	{"Builtin make - map",
 		`
-	package main
+		package main
 
-	func main() {
-		m := make(map[string]int, 2)
-		_ = m
-	}
-	`,
+		func main() {
+			m := make(map[string]int, 2)
+			_ = m
+		}
+		`,
 		[]string{
 			`Package main`,
 			``,
@@ -480,20 +480,20 @@ var stmtTests = []struct {
 	},
 	{"Switch statement",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 0
-				switch 1 + 1 {
-				case 1:
-					a = 10
-				case 2:
-					a = 20
-				case 3:
-					a = 30
-				}
-				_ = a
+		func main() {
+			a := 0
+			switch 1 + 1 {
+			case 1:
+				a = 10
+			case 2:
+				a = 20
+			case 3:
+				a = 30
 			}
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -501,21 +501,21 @@ var stmtTests = []struct {
 		}},
 	{"Switch statement with fallthrough",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 0
-				switch 1 + 1 {
-				case 1:
-					a = 10
-				case 2:
-					a = 20
-					fallthrough
-				case 3:
-					a = 30
-				}
-				_ = a
+		func main() {
+			a := 0
+			switch 1 + 1 {
+			case 1:
+				a = 10
+			case 2:
+				a = 20
+				fallthrough
+			case 3:
+				a = 30
 			}
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -523,22 +523,22 @@ var stmtTests = []struct {
 		}},
 	{"Switch statement with default",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 0
-				switch 10 + 10 {
-				case 1:
-					a = 10
-				case 2:
-					a = 20
-				default:
-					a = 80
-				case 3:
-					a = 30
-				}
-				_ = a
+		func main() {
+			a := 0
+			switch 10 + 10 {
+			case 1:
+				a = 10
+			case 2:
+				a = 20
+			default:
+				a = 80
+			case 3:
+				a = 30
 			}
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
@@ -546,26 +546,26 @@ var stmtTests = []struct {
 		}},
 	{"Switch statement with default and fallthrough",
 		`
-			package main
+		package main
 
-			func main() {
-				a := 0
-				switch 2 + 2 {
-				case 1:
-					a = 10
-				default:
-					a = 80
-					fallthrough
-				case 2:
-					a = 1
-					fallthrough
-				case 3:
-					a = 30
-				case 40:
-					a = 3
-				}
-				_ = a
+		func main() {
+			a := 0
+			switch 2 + 2 {
+			case 1:
+				a = 10
+			default:
+				a = 80
+				fallthrough
+			case 2:
+				a = 1
+				fallthrough
+			case 3:
+				a = 30
+			case 40:
+				a = 3
 			}
+			_ = a
+		}
 		`,
 		nil,
 		[]reg{
