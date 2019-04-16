@@ -8,6 +8,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -375,7 +376,7 @@ func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 			return reg
 		}
 	}
-	panic("not found")
+	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
