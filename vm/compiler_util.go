@@ -7,7 +7,6 @@
 package vm
 
 import (
-	"reflect"
 	"scrigo/ast"
 )
 
@@ -42,19 +41,4 @@ func fillParametersTypes(params []*ast.Field) {
 		params[i].Type = typ
 	}
 	return
-}
-
-// kindToVMIndex returns the index used in VM related to kind k.
-func kindToVMIndex(k reflect.Kind) int {
-	// TODO (Gianluca): add missing cases.
-	switch k {
-	case reflect.Int:
-		return 0
-	case reflect.Float64:
-		return 1
-	case reflect.String:
-		return 2
-	default:
-		return 3
-	}
 }

@@ -57,6 +57,7 @@ func (vm *VM) run() int {
 
 	for pc < size {
 
+		// TODO (Gianluca): this check avoids "panic: runtime error: index out of range".
 		if int(pc) >= len(vm.fn.body) {
 			return 0
 		}

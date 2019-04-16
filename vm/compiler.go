@@ -23,9 +23,7 @@ type Compiler struct {
 }
 
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
-	c := &Compiler{
-		importableGoPkgs: packages,
-	}
+	c := &Compiler{importableGoPkgs: packages}
 	c.parser = parser.New(r, packages, true)
 	return c
 }
@@ -71,7 +69,7 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	return c.currentPkg, nil
 }
 
-// compilePackage compiles the pkg package.
+// compilePackage compiles pkg.
 func (c *Compiler) compilePackage(pkg *ast.Package) {
 	c.currentPkg = NewPackage(pkg.Name)
 	for _, dec := range pkg.Declarations {
@@ -100,14 +98,12 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			// Binds function argument names to pre-allocated registers.
-			shift := StackShift{}
 			fillParametersTypes(n.Type.Result)
 			for _, res := range n.Type.Result {
 				resType := res.Type.(*ast.Value).Val.(reflect.Type)
 				kind := resType.Kind()
 				retReg := c.fb.NewRegister(kind)
 				_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
-				shift[kindToVMIndex(kind)]++
 			}
 			fillParametersTypes(n.Type.Parameters)
 			for _, par := range n.Type.Parameters {
@@ -728,9 +724,9 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 	c.fb.SetLabelAddr(endSwitchLabel)
 }
 
-// compileCondition compiles expr using c.currFb. Returns the two values of the
-// condition (x and y), a kind, the condition ad a boolean ky which indicates
-// whether y is a constant value.
+// compileCondition compiles expr using the current function builder. Returns
+// the two values of the condition (x and y), a kind, the condition ad a boolean
+// ky which indicates whether y is a constant value.
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
 	// 	ConditionEqual               x == y
 	// 	ConditionNotEqual            x != y

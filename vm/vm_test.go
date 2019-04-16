@@ -23,8 +23,14 @@ import (
 //   a := 1234
 //   a := new(int)
 //   a := []int{1,2,3,4}
-//   f(3)          --> arguments must be defined in function scope
 //   func f(int) {
+
+// reg represents a register and it's used in tests only.
+type reg struct {
+	typ   Type
+	r     int8
+	value interface{}
+}
 
 var stmtTests = []struct {
 	name         string
@@ -1002,20 +1008,6 @@ func equal(expected, got []string) int {
 
 func tabsToSpaces(s string) string {
 	return strings.ReplaceAll(s, "\t", "    ")
-}
-
-// reg represents a register and it's used in tests only.
-type reg struct {
-	typ   Type
-	r     int8
-	value interface{}
-}
-
-// ptrTo returns a pointer to a copy of v.
-func ptrTo(v interface{}) interface{} {
-	rv := reflect.New(reflect.TypeOf(v))
-	rv.Elem().Set(reflect.ValueOf(v))
-	return rv.Interface()
 }
 
 // oneLine puts src in just one line, returning an (as much as possibile) human

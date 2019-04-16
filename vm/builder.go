@@ -76,7 +76,6 @@ const (
 	ConditionNil                                // x == nil
 	ConditionNotNil                             // x != nil
 	ConditionOk                                 // [vm.ok]
-	ConditionNotOk                              // [!vm.ok]
 )
 
 func (c Condition) String() string {
@@ -111,8 +110,6 @@ func (c Condition) String() string {
 		return "NotNil"
 	case ConditionOk:
 		return "Ok"
-	case ConditionNotOk:
-		return "NotOk"
 	}
 	panic("unknown condition")
 }
@@ -333,8 +330,8 @@ func (fn *ScrigoFunction) AddType(typ reflect.Type) uint8 {
 
 type FunctionBuilder struct {
 	fn         *ScrigoFunction
-	gotos      map[uint32]uint32
 	labels     []uint32
+	gotos      map[uint32]uint32
 	numRegs    map[reflect.Kind]uint8
 	scopes     []map[string]int8
 	stackShift StackShift
@@ -356,7 +353,7 @@ func (builder *FunctionBuilder) EnterScope() {
 	builder.scopes = append(builder.scopes, map[string]int8{})
 }
 
-// ExitScope exists the last scope.
+// ExitScope exits the last scope.
 func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
 }
@@ -368,13 +365,13 @@ func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 	return reg
 }
 
-// BindVarReg binds name with register reg. To create a new
-// named-variable, use VariableRegister in conjuction with BindVarReg.
+// BindVarReg binds name with register reg. To create a new variable, use
+// VariableRegister in conjuction with BindVarReg.
 func (builder *FunctionBuilder) BindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
 }
 
-// ScopeLookup returns the register in which variable with name n is stored.
+// ScopeLookup returns n's register.
 func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
 		reg, ok := builder.scopes[i][n]
@@ -433,17 +430,21 @@ func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
 	return int8(r)
 }
 
+// CurrentAddr returns builder's current address.
 func (builder *FunctionBuilder) CurrentAddr() uint32 {
 	return uint32(len(builder.fn.body))
 }
 
+// NewLabel creates a new empty label. Use SetLabelAddr to associate an address
+// to it.
 func (builder *FunctionBuilder) NewLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
 }
 
-func (builder *FunctionBuilder) SetLabelAddr(l uint32) {
-	builder.labels[l-1] = builder.CurrentAddr()
+// SetLabelAddr sets builder's current address as address for label.
+func (builder *FunctionBuilder) SetLabelAddr(label uint32) {
+	builder.labels[label-1] = builder.CurrentAddr()
 }
 
 var intType = reflect.TypeOf(0)
@@ -457,8 +458,7 @@ func encodeAddr(v uint32) (a, b, c int8) {
 	return
 }
 
-// Type returns the index of typ inside the types slice, creating a new entry if
-// necessary.
+// Type returns typ's index, creating it if necessary.
 func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	var tr int8
 	var found bool
@@ -808,6 +808,8 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 	builder.fn.body = append(builder.fn.body, in)
 }
 
+// IfOk appends a new "If" instruction to the function body which tests for the
+// Ok flag.
 func (builder *FunctionBuilder) IfOk() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
 }
