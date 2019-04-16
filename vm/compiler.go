@@ -30,6 +30,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	return c
 }
 
+// goPackageToVMPackage converts a Parser's GoPackage to a VM's Package.
 func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 	pkg := NewPackage(goPkg.Name)
 	for ident, value := range goPkg.Declarations {
@@ -70,10 +71,10 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	return c.currentPkg, nil
 }
 
-// compilePackage compiles the node package.
-func (c *Compiler) compilePackage(node *ast.Package) {
-	c.currentPkg = NewPackage(node.Name)
-	for _, dec := range node.Declarations {
+// compilePackage compiles the pkg package.
+func (c *Compiler) compilePackage(pkg *ast.Package) {
+	c.currentPkg = NewPackage(pkg.Name)
+	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
 			// TODO (Gianluca): this makes a new init function for every
