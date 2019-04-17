@@ -636,24 +636,25 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case *ast.Assignment:
 			// TODO (Gianluca): clean up.
 			switch {
-			case len(node.Variables) == 1 &&
-				len(node.Values) == 1 &&
-				(node.Type == ast.AssignmentAddition || node.Type == ast.AssignmentSubtraction):
-				switch node.Type {
-				case ast.AssignmentAddition:
-					panic("TODO: not implemented")
-					// TODO (Gianluca): this is wrong:
-					// name := node.Variables[0].(*ast.Identifier).Name
-					// reg := c.fb.ScopeLookup(name)
-					// kind := c.typeinfo[node.Variables[0]].Type.Kind()
-					// c.fb.Add(true, reg, 1, reg, kind)
-				case ast.AssignmentSubtraction:
-					panic("TODO: not implemented")
-					// TODO (Gianluca): this is wrong:
-					// name := node.Variables[0].(*ast.Identifier).Name
-					// reg := c.fb.ScopeLookup(name)
-					// kind := c.typeinfo[node.Variables[0]].Type.Kind()
-					// c.fb.Add(true, reg, -1, reg, kind)
+			case len(node.Variables) == 1 && len(node.Values) == 1 && (node.Type == ast.AssignmentAddition || node.Type == ast.AssignmentSubtraction):
+				ident := node.Variables[0].(*ast.Identifier)
+				varReg := c.fb.ScopeLookup(ident.Name)
+				kind := c.typeinfo[ident].Type.Kind()
+				out, isValue, isRegister := c.quickCompileExpr(node.Values[0])
+				var y int8
+				var ky bool
+				if isValue {
+					y = out
+					ky = true
+				} else if isRegister {
+					y = out
+				} else {
+					c.compileExpr(node.Values[0], y)
+				}
+				if node.Type == ast.AssignmentAddition {
+					c.fb.Add(ky, varReg, y, varReg, kind)
+				} else {
+					c.fb.Sub(ky, varReg, y, varReg, kind)
 				}
 			case len(node.Variables) == len(node.Values):
 				for i := range node.Variables {

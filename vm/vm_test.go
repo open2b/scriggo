@@ -144,6 +144,52 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(33)},
 		}},
 
+	{"Addition (+=) and subtraction (-=) assignments",
+		`
+		package main
+
+		func main() {
+			a := 0
+			b := 0
+			c := 0
+			d := 0
+
+			a = 10
+			b = a
+			a += 40
+			c = a
+			a -= 5
+			d = a
+
+			_ = b
+			_ = c
+			_ = d
+		}		
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(4,0,0,0)`,
+			`		MoveInt 0 R1`,
+			`		MoveInt 0 R2`,
+			`		MoveInt 0 R3`,
+			`		MoveInt 0 R4`,
+			`		MoveInt 10 R1`,
+			`		MoveInt R1 R2`,
+			`		AddInt R1 40 R1`,
+			`		MoveInt R1 R3`,
+			`		SubInt R1 5 R1`,
+			`		MoveInt R1 R4`,
+		},
+		[]reg{
+			{TypeInt, 1, int64(45)}, // a
+			{TypeInt, 2, int64(10)}, // b
+			{TypeInt, 3, int64(50)}, // c
+			{TypeInt, 4, int64(45)}, // d
+		},
+	},
+
 	// Expressions - composite literals.
 
 	{"Empty int slice composite literal",
