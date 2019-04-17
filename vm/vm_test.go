@@ -359,6 +359,37 @@ var stmtTests = []struct {
 		},
 	},
 
+	{"Operator ! (not)",
+		`
+		package main
+
+		func main() {
+			T := true
+			F := false
+
+			a := !T
+			b := !F
+			c := !!F
+			d := !!T
+
+			_ = a
+			_ = b
+			_ = c
+			_ = d
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(1)}, // T
+			{TypeInt, 2, int64(0)}, // F
+			{TypeInt, 3, int64(0)}, // a := !T
+			{TypeInt, 4, int64(1)}, // b := !F
+			{TypeInt, 5, int64(0)}, // c := !!F
+			{TypeInt, 6, int64(1)}, // d := !!T
+		},
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",

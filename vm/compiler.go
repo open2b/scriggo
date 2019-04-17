@@ -380,7 +380,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		// kind := c.typeinfo[expr.Expr].Type.Kind()
 		switch expr.Operator() {
 		case ast.OperatorNot:
-			panic("TODO: not implemented")
+			c.fb.SubInv(true, reg, int8(1), reg, reflect.Int)
 		case ast.OperatorSubtraction:
 			// TODO (Gianluca): should be z = 0 - x (i.e. z = -x).
 			// c.fb.Sub(true, 0, reg, reg, kind)
