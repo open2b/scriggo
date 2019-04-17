@@ -253,17 +253,27 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			a := 4 == 2
+			a := 1
+			b := 2
+			c := false
+			d := 4 < 5
 			_ = a
+			_ = b
+			_ = c
+			_ = d
 			return
 		}
+
 		`,
 		[]string{
 			`Package main`,
 			``,
 			`Func main()`,
-			`		// regs(0,0,0,1)`,
-			`		MoveInt 0 R1`,
+			`		// regs(4,0,0,0)`,
+			`		MoveInt 1 R1`,
+			`		MoveInt 2 R2`,
+			`		MoveInt 0 R3`,
+			`		MoveInt 1 R4`,
 			`		Return`,
 		},
 		nil,

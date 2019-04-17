@@ -360,6 +360,11 @@ func (builder *FunctionBuilder) ExitScope() {
 
 // NewRegister makes a new register of kind k.
 func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
+	switch k {
+	// TODO (Gianluca): to review (same as allocRegister)
+	case reflect.Bool:
+		k = reflect.Int
+	}
 	reg := int8(builder.numRegs[k]) + 1
 	builder.allocRegister(k, reg)
 	return reg
@@ -511,6 +516,11 @@ func (builder *FunctionBuilder) End() {
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
+	switch kind {
+	// TODO (Gianluca): to review (same as NewRegister)
+	case reflect.Bool:
+		kind = reflect.Int
+	}
 	if reg > 0 {
 		if num, ok := builder.numRegs[kind]; !ok || uint8(reg) > num {
 			builder.numRegs[kind] = uint8(reg)
