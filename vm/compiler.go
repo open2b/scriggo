@@ -526,6 +526,9 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			arg := c.fb.NewRegister(reflect.Int)
 			c.compileExpr(call.Args[0], arg)
 			i = instruction{op: opPrint, a: arg}
+		case "panic":
+			// TODO (Gianluca): pass argument to panic.
+			c.fb.Panic(0, call.Pos().Line)
 		case "make":
 			typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 			regType := c.fb.Type(typ)

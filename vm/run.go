@@ -917,7 +917,7 @@ func (vm *VM) run() int {
 		case opPanic:
 			stackTrace := make([]byte, 10000)
 			n := vm.Stack(stackTrace, false)
-			panic(&PanicError{Msg: vm.general(a), StackTrace: stackTrace[:n]})
+			panic(&PanicError{Msg: "vm.general(a)", StackTrace: stackTrace[:n]}) // TODO (Gianluca): to review.
 
 		// Print
 		case opPrint:
