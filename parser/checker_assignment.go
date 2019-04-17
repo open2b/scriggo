@@ -50,6 +50,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			for i := range n.Identifiers {
 				n.Values[i] = ast.NewValue(zero)
+				tc.typeInfo[n.Values[i]] = &TypeInfo{Type: typ.Type}
 			}
 			return
 		}
