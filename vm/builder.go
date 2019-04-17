@@ -1110,6 +1110,39 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
+// SubInv appends a new "SubInv" instruction to the function body.
+//
+//     z = y - x
+//
+func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) {
+	builder.allocRegister(reflect.Int, x)
+	if !k {
+		builder.allocRegister(reflect.Int, y)
+	}
+	builder.allocRegister(reflect.Int, z)
+	var op operation
+	switch kind {
+	case reflect.Int, reflect.Int64, reflect.Uint64:
+		op = opSubInvInt
+	case reflect.Int32, reflect.Uint32:
+		op = opSubInvInt32
+	case reflect.Int16, reflect.Uint16:
+		op = opSubInvInt16
+	case reflect.Int8, reflect.Uint8:
+		op = opSubInvInt8
+	case reflect.Float64:
+		op = opSubInvFloat64
+	case reflect.Float32:
+		op = opSubInvFloat32
+	default:
+		panic("subInv: invalid type")
+	}
+	if k {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+}
+
 // TailCall appends a new "TailCall" instruction to the function body.
 //
 //     f()
