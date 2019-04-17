@@ -723,6 +723,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 // compileSwitch compiles switch node.
 func (c *Compiler) compileSwitch(node *ast.Switch) {
 
+	if node.Init != nil {
+		c.compileNodes([]ast.Node{node.Init})
+	}
+
 	kind := c.typeinfo[node.Expr].Type.Kind()
 	expr := c.fb.NewRegister(kind)
 	c.compileExpr(node.Expr, expr)
