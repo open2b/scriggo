@@ -14,14 +14,6 @@ import (
 
 var DebugTraceExecution = true
 
-type InterpretResult int
-
-const (
-	InterpretOK InterpretResult = iota
-	InterpretCompileError
-	InterpretRunTimeError
-)
-
 const NoVariadic = -1
 const NoPackage = -2
 const CurrentPackage = -1
@@ -31,7 +23,7 @@ func decodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
 }
 
-func (vm *VM) Run(funcname string) (InterpretResult, error) {
+func (vm *VM) Run(funcname string) (int, error) {
 
 	var err error
 	vm.fn, err = vm.main.Function(funcname)
@@ -39,14 +31,12 @@ func (vm *VM) Run(funcname string) (InterpretResult, error) {
 		return 0, err
 	}
 
-	vm.run()
+	status := vm.run()
 
-	return InterpretOK, nil
+	return status, nil
 }
 
 func (vm *VM) run() int {
-
-	var pc uint32
 
 	var startNativeGoroutine bool
 
@@ -55,14 +45,14 @@ func (vm *VM) run() int {
 
 	var size = uint32(len(vm.fn.body))
 
-	for pc < size {
+	for vm.pc < size {
 
 		// TODO (Gianluca): this check avoids "panic: runtime error: index out of range".
-		if int(pc) >= len(vm.fn.body) {
+		if int(vm.pc) >= len(vm.fn.body) {
 			return 0
 		}
 
-		in := vm.fn.body[pc]
+		in := vm.fn.body[vm.pc]
 
 		if DebugTraceExecution {
 			funcName := vm.fn.name
@@ -75,11 +65,11 @@ func (vm *VM) run() int {
 				vm.regs.String[vm.fp[2]+1:vm.fp[2]+uint32(vm.fn.regnum[2])+1],  // TODO (Gianluca): remove.
 				vm.regs.General[vm.fp[3]+1:vm.fp[3]+uint32(vm.fn.regnum[3])+1], // TODO (Gianluca): remove.
 				funcName)
-			_, _ = DisassembleInstruction(os.Stderr, vm.fn, pc)
+			_, _ = DisassembleInstruction(os.Stderr, vm.fn, vm.pc)
 			println()
 		}
 
-		pc++
+		vm.pc++
 		op, a, b, c = in.op, in.a, in.b, in.c
 
 		switch op {
@@ -222,8 +212,8 @@ func (vm *VM) run() int {
 				pkg = pkg.packages[uint8(a)]
 			}
 			fn := pkg.scrigoFunctions[uint8(b)]
-			off := vm.fn.body[pc]
-			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
+			off := vm.fn.body[vm.pc]
+			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -242,7 +232,7 @@ func (vm *VM) run() int {
 			vm.fn = fn
 			vm.cvars = nil
 			vm.calls = append(vm.calls, call)
-			pc = 0
+			vm.pc = 0
 
 		// CallIndirect
 		case opCallIndirect:
@@ -250,8 +240,8 @@ func (vm *VM) run() int {
 			if f.scrigo != nil {
 				fn := f.scrigo
 				vm.cvars = f.vars
-				off := vm.fn.body[pc]
-				call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: pc + 1}
+				off := vm.fn.body[vm.pc]
+				call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.op)
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -269,7 +259,7 @@ func (vm *VM) run() int {
 				}
 				vm.fn = fn
 				vm.calls = append(vm.calls, call)
-				pc = 0
+				vm.pc = 0
 				continue
 			}
 			fallthrough
@@ -284,7 +274,7 @@ func (vm *VM) run() int {
 				fn = &NativeFunction{name: m.Name, value: m.Func}
 				fn.slow()
 				if i, ok := vm.fn.pkg.AddNativeFunction(fn); ok {
-					vm.fn.body[pc-1] = instruction{op: opCallFunc, a: CurrentPackage, b: int8(i)}
+					vm.fn.body[vm.pc-1] = instruction{op: opCallFunc, a: CurrentPackage, b: int8(i)}
 				}
 			case opCallFunc:
 				pkg := vm.fn.pkg
@@ -296,7 +286,7 @@ func (vm *VM) run() int {
 				fn = vm.general(b).(*callable).native
 			}
 			fp := vm.fp
-			off := vm.fn.body[pc]
+			off := vm.fn.body[vm.pc]
 			vm.fp[0] += uint32(off.op)
 			vm.fp[1] += uint32(off.a)
 			vm.fp[2] += uint32(off.b)
@@ -469,7 +459,7 @@ func (vm *VM) run() int {
 				}
 			}
 			vm.fp = fp
-			pc++
+			vm.pc++
 
 		// Cap
 		case opCap:
@@ -598,19 +588,19 @@ func (vm *VM) run() int {
 
 		// Go
 		case opGo:
-			if !vm.startScrigoGoroutine(pc) {
+			if !vm.startScrigoGoroutine() {
 				startNativeGoroutine = true
 			}
 
 		// Goto
 		case opGoto:
-			pc = decodeAddr(a, b, c)
+			vm.pc = decodeAddr(a, b, c)
 
 		// If
 		case opIf:
 			if Condition(b) == ConditionOk {
 				if vm.ok {
-					pc++
+					vm.pc++
 				}
 				continue
 			}
@@ -621,9 +611,10 @@ func (vm *VM) run() int {
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
+
 			}
 			if cond {
-				pc++
+				vm.pc++
 			}
 		case opIfInt, -opIfInt:
 			var cond bool
@@ -644,7 +635,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				pc++
+				vm.pc++
 			}
 		case opIfUint, -opIfUint:
 			var cond bool
@@ -665,7 +656,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				pc++
+				vm.pc++
 			}
 		case opIfFloat, -opIfFloat:
 			var cond bool
@@ -686,7 +677,7 @@ func (vm *VM) run() int {
 				cond = v1 >= v2
 			}
 			if cond {
-				pc++
+				vm.pc++
 			}
 		case opIfString, -opIfString:
 			var cond bool
@@ -725,7 +716,7 @@ func (vm *VM) run() int {
 				}
 			}
 			if cond {
-				pc++
+				vm.pc++
 			}
 
 		// Index
@@ -735,13 +726,13 @@ func (vm *VM) run() int {
 		// JmpOk
 		case opJmpOk:
 			if vm.ok {
-				pc = decodeAddr(a, b, c)
+				vm.pc = decodeAddr(a, b, c)
 			}
 
 		// JmpNotOk
 		case opJmpNotOk:
 			if !vm.ok {
-				pc = decodeAddr(a, b, c)
+				vm.pc = decodeAddr(a, b, c)
 			}
 
 		// Len
@@ -921,6 +912,12 @@ func (vm *VM) run() int {
 		// Or
 		case opOr, -opOr:
 			vm.setInt(c, vm.int(a)|vm.intk(b, op < 0))
+
+		// Panic
+		case opPanic:
+			stackTrace := make([]byte, 10000)
+			n := vm.Stack(stackTrace, false)
+			panic(&PanicError{Msg: vm.general(a), StackTrace: stackTrace[:n]})
 
 		// Print
 		case opPrint:
@@ -1201,7 +1198,7 @@ func (vm *VM) run() int {
 			}
 			vm.calls = vm.calls[:i]
 			vm.fp = call.fp
-			pc = call.pc
+			vm.pc = call.pc
 			vm.fn = call.fn
 			vm.cvars = call.cvars
 
@@ -1348,8 +1345,8 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case opTailCall:
-			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: pc, tail: true})
-			pc = 0
+			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: vm.pc, tail: true})
+			vm.pc = 0
 			if b != CurrentFunction {
 				var fn *ScrigoFunction
 				if a == NoPackage {

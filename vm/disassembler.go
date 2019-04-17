@@ -364,7 +364,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opNew:
 		s += " " + fn.types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opPrint:
+	case opPanic, opPrint:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 	case opRange:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)

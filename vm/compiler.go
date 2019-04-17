@@ -209,7 +209,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			reg := c.fb.NewRegister(kind)
 			c.compileExpr(call.Args[i], reg)
 		}
-		c.fb.Call(CurrentPackage, i, stackShift)
+		c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
 	case *ast.Selector: // currently supports only Go calls.
 		pkgName := fun.Expr.(*ast.Identifier).Name
 		funcName := fun.Ident
@@ -683,7 +683,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				if _, isCall := node.Values[0].(*ast.Call); isCall {
 					// TODO (Gianluca): must assign new values.
 					// TODO (Gianluca): use the appropiate function, cause not necessarily is CurrentPackage, CurrentFunction.
-					c.fb.TailCall(CurrentPackage, CurrentFunction)
+					c.fb.TailCall(CurrentPackage, CurrentFunction, node.Pos().Line)
 					continue
 				}
 			}

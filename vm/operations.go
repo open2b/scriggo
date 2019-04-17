@@ -117,6 +117,8 @@ const (
 
 	opOr
 
+	opPanic
+
 	opPrint
 
 	opRange
@@ -265,6 +267,8 @@ var operationName = [...]string{
 
 	opRange:       "Range",
 	opRangeString: "RangeString",
+
+	opPanic: "Panic",
 
 	opPrint: "Print",
 
