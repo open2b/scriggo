@@ -291,10 +291,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.Call:
+		// Builtin call.
 		ok := c.callBuiltin(expr, reg)
 		if ok {
 			return
 		}
+		// Conversion.
 		if val, ok := expr.Func.(*ast.Value); ok {
 			if typ, ok := val.Val.(reflect.Type); ok {
 				kind := c.typeinfo[expr.Args[0]].Type.Kind()
