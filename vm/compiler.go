@@ -515,6 +515,8 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			panic("TODO: not implemented")
 		case "imag":
 			panic("TODO: not implemented")
+		case "html": // TODO (Gianluca): to review.
+			panic("TODO: not implemented")
 		case "len":
 			typ := c.typeinfo[call.Args[0]].Type
 			kind := typ.Kind()
