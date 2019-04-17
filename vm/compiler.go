@@ -34,7 +34,7 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 	for ident, value := range goPkg.Declarations {
 		_ = ident
 		if t, ok := value.(reflect.Type); ok {
-			// TODO: import type
+			// TODO (Gianluca): import type
 			_ = t
 			continue
 		}
@@ -52,6 +52,7 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 			continue
 		}
 		// TODO: import constant
+		panic("TODO: not implemented")
 	}
 	return pkg
 }
@@ -145,6 +146,12 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 	case *ast.Value:
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
+		case reflect.Bool:
+			v := int8(0)
+			if expr.Val.(bool) {
+				v = 1
+			}
+			return v, true, false
 		case reflect.Int:
 			n := expr.Val.(int)
 			if n < 0 || n > 127 {
@@ -153,25 +160,42 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			} else {
 				return int8(n), true, false
 			}
+
+		case reflect.Float64:
+			// TODO (Gianluca): handle all kind of floats.
+			v := int8(expr.Val.(float64))
+			return v, true, false
+		case reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Int64,
+			reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Uintptr,
+			reflect.Float32,
+			reflect.Complex64,
+			reflect.Complex128,
+			reflect.Array,
+			reflect.Chan,
+			reflect.Func,
+			reflect.Interface,
+			reflect.Map,
+			reflect.Ptr,
+			reflect.Slice,
+			reflect.Struct,
+			reflect.UnsafePointer:
+			panic("TODO: not implemented")
 		case reflect.String:
 			sConst := c.fb.MakeStringConstant(expr.Val.(string))
 			reg := c.fb.NewRegister(reflect.String)
 			c.fb.Move(true, sConst, reg, reflect.String)
 			return reg, false, true
-		case reflect.Float64:
-			// TODO (Gianluca): handle all kind of floats.
-			v := int8(expr.Val.(float64))
-			return v, true, false
-		case reflect.Bool:
-			v := int8(0)
-			if expr.Val.(bool) {
-				v = 1
-			}
-			return v, true, false
-		default:
-			panic("TODO: not implemented")
 
 		}
+
 	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		sConst := c.fb.MakeStringConstant(expr.Text)
 		reg := c.fb.NewRegister(reflect.String)
@@ -356,6 +380,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			}
 		}
 
+	case *ast.TypeAssertion:
+		panic("TODO: not implemented")
+
 	case *ast.Func:
 		currentFunc := c.fb
 		fn, _ := c.currentPkg.NewFunction("", reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
@@ -377,15 +404,16 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg)
-		// kind := c.typeinfo[expr.Expr].Type.Kind()
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			c.fb.SubInv(true, reg, int8(1), reg, reflect.Int)
-		case ast.OperatorSubtraction:
-			// TODO (Gianluca): should be z = 0 - x (i.e. z = -x).
-			// c.fb.Sub(true, 0, reg, reg, kind)
+		case ast.OperatorAmpersand:
 			panic("TODO: not implemented")
-		default:
+		case ast.OperatorAddition:
+			panic("TODO: not implemented")
+		case ast.OperatorSubtraction:
+			panic("TODO: not implemented")
+		case ast.OperatorMultiplication:
 			panic("TODO: not implemented")
 		}
 
@@ -399,6 +427,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		} else {
 			panic("bug")
 		}
+
+	case *ast.Index:
+		panic("TODO: not implemented")
+
+	case *ast.Slicing:
+		panic("TODO: not implemented")
+
+	case *ast.Rune, *ast.Float: // TODO (Gianluca): to review.
+		panic("bug")
 
 	default:
 		panic(fmt.Sprintf("compileExpr currently does not support %T nodes", expr))
@@ -490,7 +527,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		c.fb.Move(true, 0, okReg, reflect.Int)
 		c.fb.Move(true, 1, okReg, reflect.Int)
 	default:
-		panic("TODO: not implemented")
+		panic("bug")
 	}
 }
 
@@ -556,8 +593,12 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 					c.compileExpr(call.Args[1], size)
 				}
 				c.fb.MakeMap(regType, kSize, size, reg)
-			default:
+			case reflect.Slice:
 				panic("TODO: not implemented")
+			case reflect.Chan:
+				panic("TODO: not implemented")
+			default:
+				panic("bug")
 			}
 		case "new":
 			panic("TODO: not implemented")
@@ -629,9 +670,11 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					c.fb.Add(true, reg, 1, reg, kind)
 				case ast.AssignmentDecrement:
 					panic("TODO: not implemented")
+				default:
+					panic("bug")
 				}
 			default:
-				panic("TODO: not implemented")
+				panic("bug")
 			}
 
 		case *ast.Block:
