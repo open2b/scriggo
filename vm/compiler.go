@@ -706,6 +706,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case *ast.Switch:
 			c.compileSwitch(node)
 
+		case *ast.TypeSwitch:
+			c.compileTypeSwitch(node)
+
 		case *ast.Var:
 			for i := range node.Identifiers {
 				c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
@@ -718,6 +721,64 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 
 		}
 	}
+}
+
+// compileTypeSwitch compiles type switch node.
+// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
+func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
+
+	if node.Init != nil {
+		c.compileNodes([]ast.Node{node.Init})
+	}
+
+	typAss := node.Assignment.Values[0].(*ast.TypeAssertion)
+	kind := c.typeinfo[typAss.Expr].Type.Kind()
+	expr := c.fb.NewRegister(kind)
+	c.compileExpr(typAss.Expr, expr)
+
+	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
+	// typReg := c.fb.Type(typ)
+	// if variab := node.Assignment.Variables[0]; !isBlankIdentifier(variab) {
+	// 	c.compileVarsGetValue([]ast.Expression{variab}, node.Assignment.Values[0], node.Assignment.Type == ast.AssignmentDeclaration)
+	// }
+
+	bodyLabels := make([]uint32, len(node.Cases))
+	endSwitchLabel := c.fb.NewLabel()
+
+	var defaultLabel uint32
+	hasDefault := false
+
+	for i, cas := range node.Cases {
+		bodyLabels[i] = c.fb.NewLabel()
+		hasDefault = hasDefault || cas.Expressions == nil
+		for _, caseExpr := range cas.Expressions {
+			caseType := caseExpr.(*ast.Value).Val.(reflect.Type)
+			c.fb.Assert(expr, caseType, 0)
+			c.fb.IfOk()
+			next := c.fb.NewLabel()
+			c.fb.Goto(next)
+			c.fb.Goto(bodyLabels[i])
+			c.fb.SetLabelAddr(next)
+		}
+	}
+
+	if hasDefault {
+		defaultLabel = c.fb.NewLabel()
+		c.fb.Goto(defaultLabel)
+	} else {
+		c.fb.Goto(endSwitchLabel)
+	}
+
+	for i, cas := range node.Cases {
+		if cas.Expressions == nil {
+			c.fb.SetLabelAddr(defaultLabel)
+		}
+		c.fb.SetLabelAddr(bodyLabels[i])
+		c.compileNodes(cas.Body)
+		c.fb.Goto(endSwitchLabel)
+	}
+
+	c.fb.SetLabelAddr(endSwitchLabel)
 }
 
 // compileSwitch compiles switch node.

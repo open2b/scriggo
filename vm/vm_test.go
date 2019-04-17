@@ -703,6 +703,34 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(30)},
 		}},
 
+	// Statements - Type switch.
+
+	{"Type switch statement",
+		`
+		package main
+
+		func main() {
+			i := interface{}(int64(5))
+			v := 0
+			switch i.(type) {
+			case string:
+				v = 10
+			case int64:
+				v = 20
+			default:
+				v = 30
+			}
+
+			_ = v
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 2, int64(20)}, // v
+		},
+	},
+
 	// Scrigo function calls.
 
 	{"Package function call",
