@@ -50,23 +50,19 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			a := 10
+			var a int
+			var c string
+
+			a = 10
+			c = "hi"
+
 			_ = a
-			c := "hi"
 			_ = c
+
 			return
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`	// regs(1,0,2,0)`,
-			`	MoveInt 10 R1`,
-			`     MoveString "hi" R2`,
-			`     MoveString R2 R1`,
-			`	Return`,
-		},
+		nil,
 		[]reg{
 			{TypeInt, 1, int64(10)}, // a
 			{TypeString, 1, "hi"},   // c
@@ -142,9 +138,9 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 1, int64(5)},
-			{TypeInt, 2, int64(42)},
-			{TypeInt, 3, int64(33)},
+			{TypeInt, 1, int64(5)},  // a
+			{TypeInt, 2, int64(42)}, // b
+			{TypeInt, 3, int64(33)}, // c
 		}, ""},
 
 	{"Addition (+=) and subtraction (-=) assignments",
@@ -152,10 +148,7 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			a := 0
-			b := 0
-			c := 0
-			d := 0
+			var a, b, c, d int
 
 			a = 10
 			b = a
@@ -299,10 +292,12 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			a := 1
-			b := 2
-			c := false
-			d := 4 < 5
+			var a, b int
+			var c, d bool
+			a = 1
+			b = 2
+			c = false
+			d = 4 < 5
 			_ = a
 			_ = b
 			_ = c
@@ -316,10 +311,14 @@ var stmtTests = []struct {
 			``,
 			`Func main()`,
 			`		// regs(4,0,0,0)`,
-			`		MoveInt 1 R1`,
-			`		MoveInt 2 R2`,
-			`		MoveInt 0 R3`,
-			`		MoveInt 1 R4`,
+			`           MoveInt 0 R1`,
+			`           MoveInt 0 R2`,
+			`           MoveInt 0 R3`,
+			`           MoveInt 0 R4`,
+			`           MoveInt 1 R1`,
+			`           MoveInt 2 R2`,
+			`           MoveInt 0 R3`,
+			`           MoveInt 1 R4`,
 			`		Return`,
 		}, nil, ""},
 
@@ -328,15 +327,18 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			a := 1
-			b := 2
+			var a, b int
+			var l, g, le, ge, e, ne bool
 
-			l := a < b
-			g := a > b
-			le := a <= b
-			ge := a >= b
-			e := a == b
-			ne := a != b
+			a = 1
+			b = 2
+
+			l = a < b
+			g = a > b
+			le = a <= b
+			ge = a >= b
+			e = a == b
+			ne = a != b
 
 			_ = l
 			_ = g
@@ -351,12 +353,12 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(1)}, // a
 			{TypeInt, 2, int64(2)}, // b
-			{TypeInt, 3, int64(1)}, // l   :=  a < b
-			{TypeInt, 4, int64(0)}, // g   :=  a > b
-			{TypeInt, 5, int64(1)}, // le  :=  a <= b
-			{TypeInt, 6, int64(0)}, // ge  :=  a >= b
-			{TypeInt, 7, int64(0)}, // e   :=  a == b
-			{TypeInt, 8, int64(1)}, // ne  :=  a != b
+			{TypeInt, 3, int64(1)}, // l   =  a < b
+			{TypeInt, 4, int64(0)}, // g   =  a > b
+			{TypeInt, 5, int64(1)}, // le  =  a <= b
+			{TypeInt, 6, int64(0)}, // ge  =  a >= b
+			{TypeInt, 7, int64(0)}, // e   =  a == b
+			{TypeInt, 8, int64(1)}, // ne  =  a != b
 		}, ""},
 
 	{"Logic AND and OR operators",
@@ -367,15 +369,17 @@ var stmtTests = []struct {
 			T := true
 			F := false
 
-			a := T && T
-			b := T && F
-			c := F && T
-			d := F && F
+			var a, b, c, d, e, f, g, h bool
 
-			e := T || T
-			f := T || F
-			g := F || T
-			h := F || F
+			a = T && T
+			b = T && F
+			c = F && T
+			d = F && F
+
+			e = T || T
+			f = T || F
+			g = F || T
+			h = F || F
 
 			_ = a
 			_ = b
@@ -435,10 +439,12 @@ var stmtTests = []struct {
 			T := true
 			F := false
 
-			a := !T
-			b := !F
-			c := !!F
-			d := !!T
+			var a, b, c, d bool
+
+			a = !T
+			b = !F
+			c = !!F
+			d = !!T
 
 			_ = a
 			_ = b
@@ -451,10 +457,10 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(1)}, // T
 			{TypeInt, 2, int64(0)}, // F
-			{TypeInt, 3, int64(0)}, // a := !T
-			{TypeInt, 4, int64(1)}, // b := !F
-			{TypeInt, 5, int64(0)}, // c := !!F
-			{TypeInt, 6, int64(1)}, // d := !!T
+			{TypeInt, 3, int64(0)}, // a = !T
+			{TypeInt, 4, int64(1)}, // b = !F
+			{TypeInt, 5, int64(0)}, // c = !!F
+			{TypeInt, 6, int64(1)}, // d = !!T
 		}, ""},
 
 	// Expressions - misc.
@@ -488,9 +494,11 @@ var stmtTests = []struct {
 
 		func main() {
 			a := "s";
-			_ = a;
 			b := "ee" + "ff";
+			
+			_ = a
 			_ = b
+			return
 		}
 		`,
 		nil,
@@ -504,20 +512,21 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			s1 := "hello"
-			s2 := "world"
-			s3 := s1 + " " + s2
+			var s1, s2, s3 string
+
+			s1 = "hello"
+			s2 = "world"
+			s3 = s1 + " " + s2
 			_ = s3
 		}
 		`,
 		nil,
 		[]reg{
 			{TypeString, 1, "hello"},       // s1
-			{TypeString, 2, "hello"},       // "hello" constant
+			{TypeString, 2, ""},            // (empty string used in s1 initialization)
 			{TypeString, 3, "world"},       // s2
-			{TypeString, 4, "world"},       // "worlds" constant
-			{TypeString, 6, " "},           // " " constant
-			{TypeString, 5, "hello world"}, // should be R3?
+			{TypeString, 4, ""},            // (empty string used in s2 initialization)
+			{TypeString, 5, "hello world"}, // s3
 		}, ""},
 
 	// Type assertion.
@@ -529,18 +538,14 @@ var stmtTests = []struct {
 	func main() {
 		a := interface{}(10)
 		n, ok := a.(int)
+
 		_ = n
 		_ = ok
 		return
 	}
 	`,
 		nil,
-		[]reg{
-			{TypeIface, 1, int64(10)}, // a
-			{TypeInt, 1, int64(10)},   // interface{}(10) argument
-			{TypeIface, 2, int64(10)}, // n
-			{TypeInt, 3, int64(1)},    // ok (true)
-		}, ""},
+		[]reg{}, ""},
 	// Statements - If.
 
 	{"If statement with else",
@@ -612,25 +617,13 @@ var stmtTests = []struct {
 
 		func main() {
 			  sum := 0
-			  for i := 0; i < 10; i++ {
+		        i := 0
+			  for i = 0; i < 10; i++ {
 				    sum = sum + 2
 			  }
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(2,0,0,0)`,
-			`		MoveInt 0 R1`,
-			`		MoveInt 0 R2`,
-			`1:      IfInt R2 Less 10`,
-			`		Goto 2`,
-			`		AddInt R2 1 R2`,
-			`		MoveInt R1 R1`,
-			`		AddInt R1 2 R1`,
-			`		Goto 1`,
-		},
+		nil,
 		[]reg{
 			{TypeInt, 1, int64(20)}, // sum
 			{TypeInt, 2, int64(10)}, // i
