@@ -162,6 +162,12 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			// TODO (Gianluca): handle all kind of floats.
 			v := int8(expr.Val.(float64))
 			return v, true, false
+		case reflect.Bool:
+			v := int8(0)
+			if expr.Val.(bool) {
+				v = 1
+			}
+			return v, true, false
 		default:
 			panic("TODO: not implemented")
 

@@ -954,7 +954,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 	var op operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
-		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Bool:
 		op = opMoveInt
 	case reflect.Float64, reflect.Float32:
 		op = opMoveFloat

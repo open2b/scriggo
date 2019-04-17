@@ -246,6 +246,29 @@ var stmtTests = []struct {
 		},
 	},
 
+	// Expressions - boolean.
+
+	{"Constant boolean",
+		`
+		package main
+
+		func main() {
+			a := 4 == 2
+			_ = a
+			return
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(0,0,0,1)`,
+			`		MoveInt 0 R1`,
+			`		Return`,
+		},
+		nil,
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",
