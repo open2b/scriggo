@@ -316,6 +316,49 @@ var stmtTests = []struct {
 		},
 	},
 
+	{"Logic AND and OR operators",
+		`
+		package main
+
+		func main() {
+			T := true
+			F := false
+
+			a := T && T
+			b := T && F
+			c := F && T
+			d := F && F
+
+			e := T || T
+			f := T || F
+			g := F || T
+			h := F || F
+
+			_ = a
+			_ = b
+			_ = c
+			_ = d
+			_ = e
+			_ = f
+			_ = g
+			_ = h
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(1)},  // T
+			{TypeInt, 2, int64(0)},  // F
+			{TypeInt, 3, int64(1)},  // a := T && T
+			{TypeInt, 4, int64(0)},  // b := T && F
+			{TypeInt, 5, int64(0)},  // c := F && T
+			{TypeInt, 6, int64(0)},  // d := F && F
+			{TypeInt, 7, int64(1)},  // e := T || T
+			{TypeInt, 8, int64(1)},  // f := T || F
+			{TypeInt, 9, int64(1)},  // g := F || T
+			{TypeInt, 10, int64(0)}, // h := F || F
+		},
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",

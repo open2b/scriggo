@@ -246,6 +246,21 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
+		if op := expr.Operator(); op == ast.OperatorAnd || op == ast.OperatorOr {
+			cmp := int8(0)
+			if op == ast.OperatorAnd {
+				cmp = 1
+			}
+			c.compileExpr(expr.Expr1, reg)
+			endIf := c.fb.NewLabel()
+			// &&: is result true?
+			// ||: is result false?
+			c.fb.If(true, reg, ConditionEqual, cmp, reflect.Int)
+			c.fb.Goto(endIf) // already knows result, stops evaluating.
+			c.compileExpr(expr.Expr2, reg)
+			c.fb.SetLabelAddr(endIf)
+			return
+		}
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
 		var op2 int8
 		var ky bool
@@ -277,10 +292,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			c.fb.Div(reg, op2, reg, kind)
 		case op == ast.OperatorModulo:
 			c.fb.Rem(reg, op2, reg, kind)
-		case op == ast.OperatorAnd:
-			panic("TODO: not implemented")
-		case op == ast.OperatorOr:
-			panic("TODO: not implemented")
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond Condition
 			switch op {
