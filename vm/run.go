@@ -165,44 +165,60 @@ func (vm *VM) run() int {
 				if ok {
 					n = v.Int()
 				}
-				vm.setInt(c, n)
+				if c != 0 {
+					vm.setInt(c, n)
+				}
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				var n int64
 				if ok {
 					n = int64(v.Uint())
 				}
-				vm.setInt(c, n)
+				if c != 0 {
+					vm.setInt(c, n)
+				}
 			case reflect.Float32, reflect.Float64:
 				var f float64
 				if ok {
 					f = v.Float()
 				}
-				vm.setFloat(c, f)
+				if c != 0 {
+					vm.setFloat(c, f)
+				}
 			case reflect.String:
 				var s string
 				if ok {
 					s = v.String()
 				}
-				vm.setString(c, s)
+				if c != 0 {
+					vm.setString(c, s)
+				}
 			default:
 				var i interface{}
 				if ok {
 					i = v.Interface()
 				}
-				vm.setGeneral(c, i)
+				if c != 0 {
+					vm.setGeneral(c, i)
+				}
 			}
 			vm.ok = ok
 		case opAssertInt:
 			i, ok := vm.general(a).(int)
-			vm.setInt(c, int64(i))
+			if c != 0 {
+				vm.setInt(c, int64(i))
+			}
 			vm.ok = ok
 		case opAssertFloat64:
 			f, ok := vm.general(a).(float64)
-			vm.setFloat(c, f)
+			if c != 0 {
+				vm.setFloat(c, f)
+			}
 			vm.ok = ok
 		case opAssertString:
 			s, ok := vm.general(a).(string)
-			vm.setString(c, s)
+			if c != 0 {
+				vm.setString(c, s)
+			}
 			vm.ok = ok
 
 		// Bind
