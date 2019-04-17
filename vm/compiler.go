@@ -501,6 +501,20 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		var i instruction
 		switch ident.Name {
+		case "append":
+			panic("TODO: not implemented")
+		case "cap":
+			panic("TODO: not implemented")
+		case "close":
+			panic("TODO: not implemented")
+		case "complex":
+			panic("TODO: not implemented")
+		case "copy":
+			panic("TODO: not implemented")
+		case "delete":
+			panic("TODO: not implemented")
+		case "imag":
+			panic("TODO: not implemented")
 		case "len":
 			typ := c.typeinfo[call.Args[0]].Type
 			kind := typ.Kind()
@@ -522,18 +536,6 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 				a = 2
 			}
 			i = instruction{op: opLen, a: a, b: b, c: reg}
-		// case "new":
-		// 	typ := c.typeinfo[call.Args[0]].Type
-		// 	t := c.currFb.Type(typ)
-		// 	i = instruction{op: opNew, b: t, c: }
-		case "print":
-			// TODO (Gianluca): move argument to general
-			arg := c.fb.NewRegister(reflect.Int)
-			c.compileExpr(call.Args[0], arg)
-			i = instruction{op: opPrint, a: arg}
-		case "panic":
-			// TODO (Gianluca): pass argument to panic.
-			c.fb.Panic(0, call.Pos().Line)
 		case "make":
 			typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 			regType := c.fb.Type(typ)
@@ -555,6 +557,25 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 			default:
 				panic("TODO: not implemented")
 			}
+		case "new":
+			panic("TODO: not implemented")
+			// typ := c.typeinfo[call.Args[0]].Type
+			// t := c.currFb.Type(typ)
+			// i = instruction{op: opNew, b: t, c: }
+		case "panic":
+			// TODO (Gianluca): pass argument to panic.
+			c.fb.Panic(0, call.Pos().Line)
+		case "print":
+			// TODO (Gianluca): move argument to general
+			arg := c.fb.NewRegister(reflect.Int)
+			c.compileExpr(call.Args[0], arg)
+			i = instruction{op: opPrint, a: arg}
+		case "println":
+			panic("TODO: not implemented")
+		case "real":
+			panic("TODO: not implemented")
+		case "recover":
+			panic("TODO: not implemented")
 		default:
 			return false
 		}
