@@ -187,7 +187,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reflect.Slice,
 			reflect.Struct,
 			reflect.UnsafePointer:
-			panic("TODO: not implemented")
+			panic(fmt.Sprintf("TODO: not implemented kind %q", kind))
 		case reflect.String:
 			sConst := c.fb.MakeStringConstant(expr.Val.(string))
 			reg := c.fb.NewRegister(reflect.String)
