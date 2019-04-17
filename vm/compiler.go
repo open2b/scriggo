@@ -416,6 +416,11 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		variable := variables[0]
 		kind := c.typeinfo[value].Type.Kind()
 		if isBlankIdentifier(variable) {
+			// TODO (Gianluca): this is wrong. Consider
+			//
+			// 	_ = f1() + f2()
+			//
+			// both functions must be called.
 			switch value.(type) {
 			case *ast.Call:
 				c.compileNodes([]ast.Node{value})
