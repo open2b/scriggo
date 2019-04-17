@@ -43,9 +43,7 @@ func (vm *VM) run() int {
 	var op operation
 	var a, b, c int8
 
-	var size = uint32(len(vm.fn.body))
-
-	for vm.pc < size {
+	for {
 
 		in := vm.fn.body[vm.pc]
 
@@ -1320,5 +1318,4 @@ func (vm *VM) run() int {
 
 	}
 
-	return 0
 }
