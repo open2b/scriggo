@@ -252,11 +252,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			hasDefault := false
 			for _, cas := range node.Cases {
 				hasDefault = hasDefault || len(cas.Expressions) == 0
-				for _, expr := range cas.Expressions {
+				for i := range cas.Expressions {
+					expr := cas.Expressions[i]
 					t := tc.typeof(expr, noEllipses)
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
+					node := ast.NewValue(t.Type)
+					tc.replaceTypeInfo(cas.Expressions[i], node)
+					cas.Expressions[i] = node
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
