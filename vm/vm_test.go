@@ -279,6 +279,43 @@ var stmtTests = []struct {
 		nil,
 	},
 
+	{"Comparison operators",
+		`
+		package main
+
+		func main() {
+			a := 1
+			b := 2
+
+			l := a < b
+			g := a > b
+			le := a <= b
+			ge := a >= b
+			e := a == b
+			ne := a != b
+
+			_ = l
+			_ = g
+			_ = le
+			_ = ge
+			_ = e
+			_ = ne
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(1)}, // a
+			{TypeInt, 2, int64(2)}, // b
+			{TypeInt, 3, int64(1)}, // l   :=  a < b
+			{TypeInt, 4, int64(0)}, // g   :=  a > b
+			{TypeInt, 5, int64(1)}, // le  :=  a <= b
+			{TypeInt, 6, int64(0)}, // ge  :=  a >= b
+			{TypeInt, 7, int64(0)}, // e   :=  a == b
+			{TypeInt, 8, int64(1)}, // ne  :=  a != b
+		},
+	},
+
 	// Expressions - misc.
 
 	{"Go functions as expressions",

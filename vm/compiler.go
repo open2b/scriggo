@@ -263,37 +263,46 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			}
 		}
 		c.compileExpr(expr.Expr1, reg)
-		switch expr.Operator() {
-		case ast.OperatorAddition:
-			if kind == reflect.String {
-				c.fb.Concat(reg, op2, reg)
-			} else {
-				c.fb.Add(ky, reg, op2, reg, kind)
-			}
-		case ast.OperatorSubtraction:
+
+		switch op := expr.Operator(); {
+		case op == ast.OperatorAddition && kind == reflect.String:
+			c.fb.Concat(reg, op2, reg)
+		case op == ast.OperatorAddition:
+			c.fb.Add(ky, reg, op2, reg, kind)
+		case op == ast.OperatorSubtraction:
 			c.fb.Sub(ky, reg, op2, reg, kind)
-		case ast.OperatorMultiplication:
+		case op == ast.OperatorMultiplication:
 			c.fb.Mul(reg, op2, reg, kind)
-		case ast.OperatorDivision:
+		case op == ast.OperatorDivision:
 			c.fb.Div(reg, op2, reg, kind)
-		case ast.OperatorModulo:
+		case op == ast.OperatorModulo:
 			c.fb.Rem(reg, op2, reg, kind)
-		case ast.OperatorEqual:
+		case op == ast.OperatorAnd:
 			panic("TODO: not implemented")
-		case ast.OperatorNotEqual:
+		case op == ast.OperatorOr:
 			panic("TODO: not implemented")
-		case ast.OperatorLess:
-			panic("TODO: not implemented")
-		case ast.OperatorLessOrEqual:
-			panic("TODO: not implemented")
-		case ast.OperatorGreater:
-			panic("TODO: not implemented")
-		case ast.OperatorGreaterOrEqual:
-			panic("TODO: not implemented")
-		case ast.OperatorAnd:
-			panic("TODO: not implemented")
-		case ast.OperatorOr:
-			panic("TODO: not implemented")
+		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
+			var cond Condition
+			switch op {
+			case ast.OperatorEqual:
+				cond = ConditionEqual
+			case ast.OperatorNotEqual:
+				cond = ConditionNotEqual
+			case ast.OperatorLess:
+				cond = ConditionLess
+			case ast.OperatorLessOrEqual:
+				cond = ConditionLessOrEqual
+			case ast.OperatorGreater:
+				cond = ConditionGreater
+			case ast.OperatorGreaterOrEqual:
+				cond = ConditionGreaterOrEqual
+			}
+			c.fb.If(ky, reg, cond, op2, kind)
+			c.fb.Move(true, 0, reg, kind)
+			endIf := c.fb.NewLabel()
+			c.fb.Goto(endIf)
+			c.fb.Move(true, 1, reg, kind)
+			c.fb.SetLabelAddr(endIf)
 		}
 
 	case *ast.Call:
