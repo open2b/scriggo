@@ -269,7 +269,7 @@ func (err *PanicError) Error() string {
 	case string:
 		b = append(b, v...)
 	default:
-		if v2, ok := v.(callable); ok {
+		if v2, ok := v.(*callable); ok {
 			v = v2.reflectValue().Interface()
 		}
 		b = append(b, "("...)
