@@ -6,13 +6,17 @@
 
 package vm
 
-import "reflect"
+import (
+	"reflect"
+	"strconv"
+)
 
 const StackSize = 512
 
 type VM struct {
 	fp    [4]uint32       // frame pointers.
 	st    [4]uint32       // stack tops.
+	pc    uint32          // program counter.
 	ok    bool            // ok flag.
 	regs  registers       // registers.
 	fn    *ScrigoFunction // current function.
@@ -38,6 +42,7 @@ func New(main *Package) *VM {
 
 func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
+	vm.pc = 0
 	vm.fn = nil
 	vm.cvars = nil
 	vm.calls = vm.calls[:]
@@ -180,10 +185,10 @@ func (c *callable) reflectValue() reflect.Value {
 
 // startScrigoGoroutine starts a new goroutine to execute a Scrigo function
 // call at program counter pc. If the function is native, returns false.
-func (vm *VM) startScrigoGoroutine(pc uint32) bool {
+func (vm *VM) startScrigoGoroutine() bool {
 	var fn *ScrigoFunction
 	var vars []interface{}
-	call := vm.fn.body[pc]
+	call := vm.fn.body[vm.pc]
 	switch call.op {
 	case opCall:
 		pkg := vm.fn.pkg
@@ -204,13 +209,125 @@ func (vm *VM) startScrigoGoroutine(pc uint32) bool {
 	nvm := New(vm.main)
 	nvm.fn = fn
 	nvm.cvars = vars
-	pc++
-	off := vm.fn.body[pc]
+	vm.pc++
+	off := vm.fn.body[vm.pc]
 	copy(nvm.regs.Int, vm.regs.Int[vm.fp[0]+uint32(off.op):vm.fp[0]+127])
 	copy(nvm.regs.Float, vm.regs.Float[vm.fp[1]+uint32(off.a):vm.fp[1]+127])
 	copy(nvm.regs.String, vm.regs.String[vm.fp[2]+uint32(off.b):vm.fp[2]+127])
 	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.c):vm.fp[3]+127])
 	go nvm.run()
-	pc++
+	vm.pc++
 	return true
+}
+
+type PanicError struct {
+	Msg        interface{}
+	StackTrace []byte
+}
+
+type stringer interface {
+	String() string
+}
+
+func (err *PanicError) Error() string {
+	b := make([]byte, 0, 100+len(err.StackTrace))
+	switch v := err.Msg.(type) {
+	case nil:
+		b = append(b, "nil"...)
+	case error:
+		b = append(b, v.Error()...)
+	case stringer:
+		b = append(b, v.String()...)
+	case bool:
+		b = strconv.AppendBool(b, v)
+	case int:
+		b = strconv.AppendInt(b, int64(v), 10)
+	case int8:
+		b = strconv.AppendInt(b, int64(v), 10)
+	case int16:
+		b = strconv.AppendInt(b, int64(v), 10)
+	case int32:
+		b = strconv.AppendInt(b, int64(v), 10)
+	case int64:
+		b = strconv.AppendInt(b, v, 10)
+	case uint:
+		b = strconv.AppendUint(b, uint64(v), 10)
+	case uint8:
+		b = strconv.AppendUint(b, uint64(v), 10)
+	case uint16:
+		b = strconv.AppendUint(b, uint64(v), 10)
+	case uint32:
+		b = strconv.AppendUint(b, uint64(v), 10)
+	case uint64:
+		b = strconv.AppendUint(b, v, 10)
+	case uintptr:
+		b = strconv.AppendUint(b, uint64(v), 10)
+	case float32:
+		b = strconv.AppendFloat(b, float64(v), 'e', 6, 32)
+	case float64:
+		b = strconv.AppendFloat(b, v, 'e', 6, 64)
+	case string:
+		b = append(b, v...)
+	default:
+		if v2, ok := v.(callable); ok {
+			v = v2.reflectValue().Interface()
+		}
+		b = append(b, "("...)
+		b = append(b, reflect.TypeOf(v).String()...)
+		b = append(b, ")"...)
+		// TODO(marco): implement print of value
+	}
+	b = append(b, "\n\n"...)
+	b = append(b, err.StackTrace...)
+	return string(b)
+}
+
+func (vm *VM) Stack(buf []byte, all bool) int {
+	// TODO(marco): implement all == true
+	if len(buf) == 0 {
+		return 0
+	}
+	b := buf[0:0:len(buf)]
+	write := func(s string) {
+		n := copy(b[len(b):cap(b)], s)
+		b = b[:len(b)+n]
+	}
+	write("scrigo goroutine 1 [running]:")
+	size := len(vm.calls)
+	for i := size; i >= 0; i-- {
+		var fn *ScrigoFunction
+		var ppc uint32
+		if i == size {
+			fn = vm.fn
+			ppc = vm.pc - 1
+		} else {
+			call := vm.calls[i]
+			fn = call.fn
+			if call.tail {
+				ppc = call.pc - 1
+			} else {
+				ppc = call.pc - 2
+			}
+		}
+		write("\n")
+		write(fn.pkg.name)
+		write(".")
+		write(fn.name)
+		write("()\n\t")
+		if fn.file != "" {
+			write(fn.file)
+		} else {
+			write("???")
+		}
+		write(":")
+		if line, ok := fn.lines[ppc]; ok {
+			write(strconv.Itoa(line))
+		} else {
+			write("???")
+		}
+		if len(b) == len(buf) {
+			break
+		}
+	}
+	return len(b)
 }

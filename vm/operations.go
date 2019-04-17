@@ -117,6 +117,8 @@ const (
 
 	opOr
 
+	opPanic
+
 	opPrint
 
 	opRange
@@ -262,6 +264,8 @@ var operationName = [...]string{
 	opMulFloat64: "MulFloat64",
 
 	opNew: "New",
+
+	opPanic: "Panic",
 
 	opPrint: "Print",
 

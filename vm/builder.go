@@ -259,7 +259,15 @@ type ScrigoFunction struct {
 	regnum    [4]uint8          // opCall, opCallDirect
 	constants registers
 	body      []instruction // run, opCall, opCallDirect
-	lines     []int
+	lines     map[uint32]int
+}
+
+func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
+	if fn.lines == nil {
+		fn.lines = map[uint32]int{pc: line}
+	} else {
+		fn.lines[pc] = line
+	}
 }
 
 // AddNativeFunction adds a native function to a package.
@@ -493,13 +501,14 @@ type StackShift [4]int8
 //
 //     p.f()
 //
-func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift) {
+func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, line int) {
 	var fn = builder.fn
 	if p != NoPackage {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
 	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	fn.AddLine(uint32(len(fn.body)-2), line)
 }
 
 // CallFunc appends a new "CallFunc" instruction to the function body.
@@ -864,6 +873,17 @@ func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
+// Panic appends a new "panic" instruction to the function body.
+//
+//     panic(v)
+//
+func (builder *FunctionBuilder) Panic(v int8, line int) {
+	fn := builder.fn
+	builder.allocRegister(reflect.Interface, v)
+	fn.body = append(fn.body, instruction{op: opPanic, a: v})
+	fn.AddLine(uint32(len(fn.body)-1), line)
+}
+
 // Rem appends a new "rem" instruction to the function body.
 //
 //     z = x % y
@@ -960,10 +980,11 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 //
 //     f()
 //
-func (builder *FunctionBuilder) TailCall(p int8, f int8) {
+func (builder *FunctionBuilder) TailCall(p int8, f int8, line int) {
 	var fn = builder.fn
 	if p != NoPackage {
 		builder.allocRegister(reflect.Interface, int8(f))
 	}
 	fn.body = append(fn.body, instruction{op: opTailCall, a: p, b: f})
+	fn.AddLine(uint32(len(fn.body)-1), line)
 }
