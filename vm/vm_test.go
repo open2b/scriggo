@@ -9,8 +9,11 @@ package vm
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"text/tabwriter"
 
@@ -37,6 +40,7 @@ var stmtTests = []struct {
 	src          string
 	disassembled []string
 	registers    []reg
+	output       string
 }{
 
 	// Assignment.
@@ -66,7 +70,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(10)}, // a
 			{TypeString, 1, "hi"},   // c
-		}},
+		}, ""},
 
 	{"Multiple assignment",
 		`
@@ -82,7 +86,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(6)}, // a
 			{TypeInt, 2, int64(7)}, // b
-		}},
+		}, ""},
 
 	{"Assignment with constant int value (addition)",
 		`
@@ -101,8 +105,7 @@ var stmtTests = []struct {
 			`	// regs(1,0,0,0)`,
 			`	MoveInt 9 R1`,
 			`	Return`,
-		},
-		nil},
+		}, nil, ""},
 
 	{"Assignment with addition value (non constant)",
 		`
@@ -120,7 +123,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(5)},  // a
 			{TypeInt, 2, int64(10)}, // b
 			{TypeInt, 3, int64(47)}, // c
-		}},
+		}, ""},
 
 	{"Function call assignment (2 to 1) - Native function with two return values",
 		`
@@ -142,7 +145,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(5)},
 			{TypeInt, 2, int64(42)},
 			{TypeInt, 3, int64(33)},
-		}},
+		}, ""},
 
 	{"Addition (+=) and subtraction (-=) assignments",
 		`
@@ -187,8 +190,7 @@ var stmtTests = []struct {
 			{TypeInt, 2, int64(10)}, // b
 			{TypeInt, 3, int64(50)}, // c
 			{TypeInt, 4, int64(45)}, // d
-		},
-	},
+		}, ""},
 
 	// Expressions - composite literals.
 
@@ -204,7 +206,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeIface, 1, []int{}}, // a
-		}},
+		}, ""},
 
 	{"Empty string slice composite literal",
 		`
@@ -218,7 +220,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeIface, 1, []string{}}, // a
-		}},
+		}, ""},
 
 	{"Empty byte slice composite literal",
 		`
@@ -234,7 +236,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeIface, 1, []int{}},  // a
 			{TypeIface, 2, []byte{}}, // b
-		}},
+		}, ""},
 
 	{"Empty map composite literal",
 		`
@@ -254,7 +256,7 @@ var stmtTests = []struct {
 		},
 		[]reg{
 			{TypeIface, 1, map[string]int{}},
-		}},
+		}, ""},
 
 	// Expressions - conversions.
 
@@ -272,8 +274,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeIface, 1, "a"},
-		},
-	},
+		}, ""},
 
 	{"Converting from int to interface{}",
 		`
@@ -289,8 +290,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeIface, 1, int64(97)},
-		},
-	},
+		}, ""},
 
 	// Expressions - boolean.
 
@@ -321,9 +321,7 @@ var stmtTests = []struct {
 			`		MoveInt 0 R3`,
 			`		MoveInt 1 R4`,
 			`		Return`,
-		},
-		nil,
-	},
+		}, nil, ""},
 
 	{"Comparison operators",
 		`
@@ -359,8 +357,7 @@ var stmtTests = []struct {
 			{TypeInt, 6, int64(0)}, // ge  :=  a >= b
 			{TypeInt, 7, int64(0)}, // e   :=  a == b
 			{TypeInt, 8, int64(1)}, // ne  :=  a != b
-		},
-	},
+		}, ""},
 
 	{"Logic AND and OR operators",
 		`
@@ -402,8 +399,7 @@ var stmtTests = []struct {
 			{TypeInt, 8, int64(1)},  // f := T || F
 			{TypeInt, 9, int64(1)},  // g := F || T
 			{TypeInt, 10, int64(0)}, // h := F || F
-		},
-	},
+		}, ""},
 
 	{"Short-circuit evaluation",
 		`
@@ -429,10 +425,7 @@ var stmtTests = []struct {
 
 			_ = v
 		}
-		`,
-		nil,
-		nil,
-	},
+		`, nil, nil, ""},
 
 	{"Operator ! (not)",
 		`
@@ -462,8 +455,7 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(1)}, // b := !F
 			{TypeInt, 5, int64(0)}, // c := !!F
 			{TypeInt, 6, int64(1)}, // d := !!T
-		},
-	},
+		}, ""},
 
 	// Expressions - misc.
 
@@ -488,9 +480,7 @@ var stmtTests = []struct {
 			`		GetFunc fmt.Println R1`,
 			`		Move R1 R1`,
 			`		Print R1`,
-		},
-		nil,
-	},
+		}, nil, ""},
 
 	{"String concatenation (constant)",
 		`
@@ -507,7 +497,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeString, 1, "s"},    // a
 			{TypeString, 3, "eeff"}, // b
-		}},
+		}, ""},
 
 	{"String concatenation (non constant)",
 		`
@@ -528,8 +518,7 @@ var stmtTests = []struct {
 			{TypeString, 4, "world"},       // "worlds" constant
 			{TypeString, 6, " "},           // " " constant
 			{TypeString, 5, "hello world"}, // should be R3?
-		},
-	},
+		}, ""},
 
 	// Type assertion.
 
@@ -551,9 +540,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(10)},   // interface{}(10) argument
 			{TypeIface, 2, int64(10)}, // n
 			{TypeInt, 3, int64(1)},    // ok (true)
-		},
-	},
-
+		}, ""},
 	// Statements - If.
 
 	{"If statement with else",
@@ -575,7 +562,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(10)}, // a
 			{TypeInt, 2, int64(1)},  // c
-		}},
+		}, ""},
 
 	{"If statement with else",
 		`
@@ -596,7 +583,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(10)}, // a
 			{TypeInt, 2, int64(2)},  // c
-		}},
+		}, ""},
 
 	{"If with init assignment",
 		`
@@ -615,7 +602,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(1)}, // c
-		}},
+		}, ""},
 
 	// Statements - For.
 
@@ -647,7 +634,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(20)}, // sum
 			{TypeInt, 2, int64(10)}, // i
-		},
+		}, "",
 	},
 
 	// Statements - Switch.
@@ -672,7 +659,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(20)},
-		}},
+		}, ""},
 
 	{"Switch statement with fallthrough",
 		`
@@ -695,7 +682,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(30)},
-		}},
+		}, ""},
 
 	{"Switch statement with default",
 		`
@@ -719,7 +706,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(80)},
-		}},
+		}, ""},
 
 	{"Switch statement with default and fallthrough",
 		`
@@ -747,7 +734,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(30)},
-		}},
+		}, ""},
 
 	// Statements - Type switch.
 
@@ -774,9 +761,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 2, int64(20)}, // v
-		},
-	},
-
+		}, ""},
 	// Scrigo function calls.
 
 	{"Package function call",
@@ -793,7 +778,7 @@ var stmtTests = []struct {
 		}
 		`,
 		nil,
-		nil},
+		nil, ""},
 
 	{"Package function 'inc'",
 		`
@@ -820,7 +805,7 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(8)},  // inc(8) argument
 			{TypeInt, 5, int64(10)}, // b
 			{TypeInt, 6, int64(21)}, // c
-		}},
+		}, ""},
 
 	{"Package function with one return value",
 		`
@@ -839,7 +824,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(5)},
-		}},
+		}, ""},
 
 	{"Package function with many return values (same type)",
 		`
@@ -864,7 +849,7 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(33)}, // c
 			{TypeInt, 6, int64(11)}, // d
 			{TypeInt, 7, int64(12)}, // e
-		}},
+		}, ""},
 
 	{"Package function with many return values (different types)",
 		`
@@ -890,7 +875,7 @@ var stmtTests = []struct {
 			{TypeFloat, 1, float64(33.0)}, // c
 			{TypeInt, 4, int64(11)},       // d
 			{TypeInt, 5, int64(12)},       // e
-		}},
+		}, ""},
 
 	{"Package function with one parameter (not used)",
 		`
@@ -914,7 +899,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(2)},  // a
 			{TypeInt, 3, int64(10)}, // b
 			{TypeInt, 4, int64(12)}, // c
-		}},
+		}, ""},
 
 	// Builtin function calls.
 
@@ -930,7 +915,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(3)}, // a
-		}},
+		}, ""},
 
 	{"Builtin len (with a variable argument)",
 		`
@@ -946,7 +931,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeString, 1, "a string"}, // a
 			{TypeInt, 1, int64(8)},      // b
-		}},
+		}, ""},
 
 	{"Builtin print",
 		`
@@ -973,7 +958,7 @@ var stmtTests = []struct {
 			`	MoveInt R3 R4`,
 			`	Print R4`,
 		},
-		nil},
+		nil, ""},
 
 	{"Builtin make - map",
 		`
@@ -993,7 +978,7 @@ var stmtTests = []struct {
 		},
 		[]reg{
 			{TypeIface, 1, map[string]int{}},
-		}},
+		}, ""},
 
 	// Native (Go) function calls.
 
@@ -1018,7 +1003,7 @@ var stmtTests = []struct {
 			`	CallFunc testpkg.F00    // Stack shift: 0, 0, 0, 0`,
 			`     Return`,
 		},
-		nil},
+		nil, ""},
 
 	{"Native function call (0 in, 1 out)",
 		`
@@ -1035,7 +1020,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(40)},
-		}},
+		}, ""},
 
 	{"Native function call (1 in, 0 out)",
 		`
@@ -1048,8 +1033,7 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		nil},
+		nil, nil, ""},
 
 	{"Native function call (1 in, 1 out)",
 		`
@@ -1067,7 +1051,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(42)},
-		}},
+		}, ""},
 
 	{"Native function call (2 in, 1 out) (with surrounding variables)",
 		`
@@ -1093,7 +1077,7 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(4)},  // e
 			{TypeInt, 4, int64(16)}, // c
 			{TypeInt, 8, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
-		}},
+		}, ""},
 
 	{"Native function call of StringLen",
 		`
@@ -1109,7 +1093,7 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(3)},
-		}},
+		}, ""},
 
 	// Complex tests.
 
@@ -1143,8 +1127,7 @@ var stmtTests = []struct {
 			{TypeString, 3, "z"},               // repeat#1 arg#1
 			{TypeInt, 3, int64(4)},             // repeat#1 arg#2
 			{TypeString, 8, "hellohellohello"}, // s2
-		},
-	},
+		}, ""},
 }
 
 func TestVM(t *testing.T) {
@@ -1159,12 +1142,37 @@ func TestVM(t *testing.T) {
 				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
 			}
+			backupStdout := os.Stdout
 			vm := New(pkg)
+			backupStderr := os.Stderr
+			reader, writer, err := os.Pipe()
+			if err != nil {
+				panic(err)
+			}
+			os.Stdout = writer
+			os.Stderr = writer
+			defer func() {
+				os.Stdout = backupStdout
+				os.Stderr = backupStderr
+			}()
+			out := make(chan string)
+			wg := new(sync.WaitGroup)
+			wg.Add(1)
+			go func() {
+				var buf bytes.Buffer
+				wg.Done()
+				io.Copy(&buf, reader)
+				out <- buf.String()
+			}()
+			wg.Wait()
 			_, err = vm.Run("main")
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", cas.name, err)
 				return
 			}
+			writer.Close()
+
+			output := <-out
 
 			// Tests if disassembler output matches.
 
@@ -1232,6 +1240,11 @@ func TestVM(t *testing.T) {
 				if !reflect.DeepEqual(reg.value, got) {
 					t.Errorf("test %q, register %s[%d]: expecting %#v (type %T), got %#v (type %T)", cas.name, reg.typ, reg.r, reg.value, reg.value, got, got)
 				}
+			}
+
+			// Tests if output matches.
+			if cas.output != output {
+				t.Errorf("test %q: expecting output %q, got %q", cas.name, cas.output, output)
 			}
 		})
 	}
