@@ -245,7 +245,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node.Init)
 			}
 			ta := node.Assignment.Values[0].(*ast.TypeAssertion)
-			t := tc.typeof(ta.Expr, noEllipses)
+			t := tc.checkExpression(ta.Expr)
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
