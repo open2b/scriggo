@@ -20,6 +20,59 @@ import (
 	"scrigo/parser"
 )
 
+var exprTests = []struct {
+	src      string
+	expected interface{}
+}{
+	// Constants.
+	{"4", int64(4)},
+	{"1 + 10", int64(11)},
+
+	// Composite literals.
+	{"[]int{}", []int{}},
+	{"[]int{1, 2}", []int{1, 2}},
+	{"[]int{0: 1, 1: 3}", []int{0: 1, 1: 3}},
+	// {"[]int{0: 1, 5: 3}", []int{0: 1, 5: 3}},
+}
+
+func TestVMExpressions(t *testing.T) {
+	DebugTraceExecution = false
+	for _, cas := range exprTests {
+		t.Run(cas.src, func(t *testing.T) {
+			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + cas.src + "; _ = a }")}
+			comp := NewCompiler(r, goPackages)
+			pkg, err := comp.Compile("/test.go")
+			if err != nil {
+				t.Errorf("test %q, compiler error: %s", cas.src, err)
+				return
+			}
+			vm := New(pkg)
+			_, err = vm.Run("main")
+			if err != nil {
+				t.Errorf("test %q, execution error: %s", cas.src, err)
+				return
+			}
+			kind := reflect.TypeOf(cas.expected).Kind()
+			var got interface{}
+			switch kind {
+			case reflect.Int, reflect.Bool, reflect.Int64:
+				got = vm.int(1)
+			case reflect.Float32, reflect.Float64:
+				got = vm.float(1)
+			case reflect.String:
+				got = vm.string(1)
+			case reflect.Slice, reflect.Map:
+				got = vm.general(1)
+			default:
+				panic("bug")
+			}
+			if !reflect.DeepEqual(cas.expected, got) {
+				t.Errorf("test %q, expected %v (type %T), got %v (type %T)", cas.src, cas.expected, cas.expected, got, got)
+			}
+		})
+	}
+}
+
 // TODO (Gianluca): currently unable to test:
 //
 //   a | b         --> parsing error
