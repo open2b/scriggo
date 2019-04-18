@@ -544,7 +544,26 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 		case "copy":
 			panic("TODO: not implemented")
 		case "delete":
-			panic("TODO: not implemented")
+			mapExpr := call.Args[0]
+			keyExpr := call.Args[1]
+			mapType := c.typeinfo[mapExpr].Type
+			keyType := c.typeinfo[keyExpr].Type
+			var mapp, key int8
+			out, _, isRegister := c.quickCompileExpr(mapExpr)
+			if isRegister {
+				mapp = out
+			} else {
+				mapp = c.fb.NewRegister(mapType.Kind())
+				c.compileExpr(mapExpr, mapp)
+			}
+			out, _, isRegister = c.quickCompileExpr(keyExpr)
+			if isRegister {
+				key = out
+			} else {
+				key = c.fb.NewRegister(keyType.Kind())
+				c.compileExpr(keyExpr, key)
+			}
+			c.fb.Delete(mapp, key)
 		case "imag":
 			panic("TODO: not implemented")
 		case "html": // TODO (Gianluca): to review.

@@ -516,6 +516,15 @@ func (vm *VM) run() int {
 			vm.setString(c, vm.string(a)+vm.string(b))
 
 		// Delete
+		//
+		//	delete(map, key)
+		//
+		// 	╒═══════════╤═════╤═════╕
+		// 	│ Operand   │ a   │ b   │
+		// 	╞═══════════╪═════╪═════╡
+		// 	│ opDelete  │ map │ key │
+		// 	╘═══════════╧═════╧═════╛
+		//
 		case opDelete:
 			m := reflect.ValueOf(a)
 			k := reflect.ValueOf(b)
