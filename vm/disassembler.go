@@ -131,7 +131,7 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.op {
-		case opCall, opCallFunc, opCallMethod, opTailCall:
+		case opCall, opCallFunc, opCallMethod, opTailCall, opMakeSlice:
 			addr += 1
 		}
 	}
@@ -385,8 +385,14 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + fn.types[int(uint(a))].String()
 		s += " " + fmt.Sprintf("0b%b", b)
 		s += " " + disassembleOperand(fn, c, Int, false)
-		//s += " " + disassembleOperand(fn, c, Interface, false)
-		//s += " " + disassembleOperand(scrigo, c, Interface, false)
+		s += " // len: "
+		s += fmt.Sprintf("%d", fn.body[addr+1].op)
+		s += ", cap: "
+		s += fmt.Sprintf("%d", fn.body[addr+1].a)
+	case opSetSliceInt:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		s += " " + disassembleOperand(fn, c, Int, false)
 	case opSetVar:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg

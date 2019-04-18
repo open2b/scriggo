@@ -823,24 +823,33 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
 
 		// MakeSlice
+		//
+		// 	╒═════════════╤══════╤══════╤═════╕
+		// 	│ op          │ a    │ b    │ c   │
+		// 	╞═════════════╪══════╪══════╪═════╡
+		// 	│ opMakeSlice │ type │ ctrl │ dst │
+		// 	├─────────────┼──────┼──────┼─────┤
+		// 	│ len         │ cap  │      │     │
+		// 	╘═════════════╧══════╧══════╧═════╛
+		//
+		//    ctrl == 0  -> len and cap are both non-constant
+		//    ctrl == 1  -> len is const
+		//    ctrl == 2  -> cap is const
+		//    ctrl == 3  -> len and cap are const
+		//
+		// TODO (Gianluca): optimization: add another ctrl value when both
+		// len and cap are 0: in such case you can use just one instruction
+		// instead of two.
 		case opMakeSlice:
-
-			// ╒═════════════╤══════╤══════╤═════╕
-			// │ op          │ a    │ b    │ c   │
-			// ╞═════════════╪══════╪══════╪═════╡
-			// │ opMakeSlice │ type │ ctrl │ dst │
-			// ├─────────────┼──────┼──────┼─────┤
-			// │ len         │ cap  │      │     │
-			// ╘═════════════╧══════╧══════╧═════╛
-
-			// TODO (Gianluca): if ctrl == 0 len and cap are 0; if ctrl ==
-			// 0b01 cap is a constant, if ctrl == 0b10 len is a constant,
-			// if ctrl == 0b11 both are constants.
-
-			len := 0 // TODO
-			cap := 0 // TODO
+			var v interface{}
 			t := vm.fn.types[int(uint(a))]
-			v := reflect.MakeSlice(t, len, cap).Interface()
+			ctrl := vm.intk(b, true)
+			kLen := ctrl == 1 || ctrl == 3
+			kCap := ctrl == 2 || ctrl == 3
+			len := vm.intk(int8(vm.fn.body[vm.pc].op), kLen)
+			cap := vm.intk(vm.fn.body[vm.pc].a, kCap)
+			v = reflect.MakeSlice(t, int(len), int(cap)).Interface()
+			vm.pc++
 			vm.setGeneral(c, v)
 
 		// SetSlice
@@ -873,7 +882,6 @@ func (vm *VM) run() int {
 			default:
 				panic("TODO: not implemented")
 			}
-			panic("TODO: not implemented")
 		case opSetSliceFloat, -opSetSliceFloat:
 			panic("TODO: not implemented")
 		case opSetSliceString, -opSetSliceString:

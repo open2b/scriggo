@@ -1155,16 +1155,29 @@ func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, a: r, b: int8(p), c: int8(v)})
 }
 
-// Slice appends a new "slice" instruction to the function body.
+// MakeSlice appends a new "MakeSlice" instruction to the function body.
 //
-//     slice(t, l, c)
+//     make(sliceType, len, cap)
 //
-func (builder *FunctionBuilder) Slice(typ reflect.Type, l, c, dst int8) {
+func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
+	in1 := instruction{op: opMakeSlice}
 	builder.allocRegister(reflect.Interface, dst)
-	tr := builder.Type(typ)
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: tr, b: 0, c: dst})
-	// TODO (Gianluca): needed only if length != 0 || cap != 0
-	builder.fn.body = append(builder.fn.body, instruction{op: operation(l), a: c})
+	t := builder.Type(sliceType)
+	in1.a = t
+	ctrl := int8(0)
+	if kLen {
+		ctrl += 1
+	}
+	if kCap {
+		ctrl += 2
+	}
+	in1.b = ctrl
+	in1.c = dst
+	builder.fn.body = append(builder.fn.body, in1)
+	in2 := instruction{}
+	in2.op = operation(len)
+	in2.a = cap
+	builder.fn.body = append(builder.fn.body, in2)
 }
 
 // Sub appends a new "Sub" instruction to the function body.

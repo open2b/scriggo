@@ -361,10 +361,37 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.CompositeLiteral:
+		// TODO (Gianluca): explicit key seems to be ignored when assigning
+		// to slice.
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice:
-			c.fb.Slice(typ, 0, 0, reg)
+			size := int8(size(expr))
+			c.fb.MakeSlice(true, true, typ, size, size, reg)
+			index := 0
+			for _, kv := range expr.KeyValues {
+				if kv.Key != nil {
+					index = kv.Key.(*ast.Value).Val.(int)
+				} else {
+					index++
+				}
+				indexConst := c.fb.MakeIntConstant(int64(index))
+				indexReg := c.fb.NewRegister(reflect.Int)
+				c.fb.Move(true, indexConst, indexReg, reflect.Int)
+				var kvalue bool
+				var value int8
+				out, isValue, isRegister := c.quickCompileExpr(kv.Value)
+				if isValue {
+					value = out
+					kvalue = true
+				} else if isRegister {
+					value = out
+				} else {
+					value = c.fb.NewRegister(typ.Elem().Kind())
+					c.compileExpr(kv.Value, value)
+				}
+				c.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
+			}
 		case reflect.Array:
 			panic("TODO: not implemented")
 		case reflect.Struct:
@@ -685,7 +712,31 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 				}
 				c.fb.MakeMap(regType, kSize, size, reg)
 			case reflect.Slice:
-				panic("TODO: not implemented")
+				lenExpr := call.Args[1]
+				capExpr := call.Args[2]
+				var len, cap int8
+				var kLen, kCap bool
+				out, isValue, isRegister := c.quickCompileExpr(lenExpr)
+				if isValue {
+					len = out
+					kLen = true
+				} else if isRegister {
+					len = out
+				} else {
+					len = c.fb.NewRegister(reflect.Int)
+					c.compileExpr(lenExpr, len)
+				}
+				out, isValue, isRegister = c.quickCompileExpr(capExpr)
+				if isValue {
+					cap = out
+					kCap = true
+				} else if isRegister {
+					cap = out
+				} else {
+					cap = c.fb.NewRegister(reflect.Int)
+					c.compileExpr(capExpr, cap)
+				}
+				c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
 			case reflect.Chan:
 				panic("TODO: not implemented")
 			default:

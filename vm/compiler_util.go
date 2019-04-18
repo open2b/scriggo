@@ -42,3 +42,18 @@ func fillParametersTypes(params []*ast.Field) {
 	}
 	return
 }
+
+// size returns node's size.
+func size(node *ast.CompositeLiteral) int {
+	size := 0
+	for _, kv := range node.KeyValues {
+		if kv.Key != nil {
+			key := kv.Key.(*ast.Value).Val.(int)
+			if key > size {
+				size = key
+			}
+		}
+		size++
+	}
+	return size
+}
