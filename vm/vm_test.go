@@ -25,10 +25,17 @@ var exprTests = []struct {
 	expected interface{}
 }{
 	// Composite literals.
-	{"[]int{}", []int{}},
-	{"[]int{1, 2}", []int{1, 2}},
-	{"[]int{0: 1, 1: 3}", []int{0: 1, 1: 3}},
-	{"[]int{0: 1, 5: 3}", []int{0: 1, 5: 3}},
+	{`[]int{}`, []int{}},
+	{`[]int{1, 2}`, []int{1, 2}},
+	{`[]int{0: 1, 1: 3}`, []int{0: 1, 1: 3}},
+	{`[]int{0: 1, 5: 3}`, []int{0: 1, 5: 3}},
+
+	// Builtin 'make'.
+	{`make([]int, 0, 0)`, []int{}},
+	{`make([]int, 0, 5)`, []int{}},
+	{`make([]int, 3, 5)`, []int{0, 0, 0}},
+	{`make([]string, 1, 5)`, []string{""}},
+	{`make(map[string]int, 1)`, map[string]int{}},
 }
 
 func TestVMExpressions(t *testing.T) {
