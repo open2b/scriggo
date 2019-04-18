@@ -43,7 +43,7 @@ var stmtTests = []struct {
 	output       string
 }{
 
-	// Assignment.
+	// Assignments.
 
 	{"Single assignment",
 		`
@@ -182,7 +182,7 @@ var stmtTests = []struct {
 			_ = b
 			_ = c
 			_ = d
-		}		
+		}
 		`,
 		[]string{
 			`Package main`,
@@ -512,7 +512,7 @@ var stmtTests = []struct {
 		func main() {
 			a := "s";
 			b := "ee" + "ff";
-			
+
 			_ = a
 			_ = b
 			return
@@ -550,17 +550,17 @@ var stmtTests = []struct {
 
 	{"Type assertion - Int on interface{}",
 		`
-	package main
+		package main
 
-	func main() {
-		a := interface{}(10)
-		n, ok := a.(int)
+		func main() {
+			a := interface{}(10)
+			n, ok := a.(int)
 
-		_ = n
-		_ = ok
-		return
-	}
-	`,
+			_ = n
+			_ = ok
+			return
+		}
+		`,
 		nil,
 		[]reg{}, ""},
 	// Statements - If.
@@ -644,8 +644,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 1, int64(20)}, // sum
 			{TypeInt, 2, int64(10)}, // i
-		}, "",
-	},
+		}, ""},
 
 	// Statements - Switch.
 
@@ -797,7 +796,7 @@ var stmtTests = []struct {
 		func inc(n int) int {
 			return n+1
 		}
-		
+
 		func main() {
 			var a, res, b, c int
 
@@ -895,7 +894,7 @@ var stmtTests = []struct {
 		func f(a int) {
 			return
 		}
-		
+
 		func main() {
 			a := 2
 			f(3)
@@ -1063,16 +1062,16 @@ var stmtTests = []struct {
 		package main
 
 		import "testpkg"
-		
+
 		func main() {
 			var a, b, e, c, d int
 
-			a = 2 + 1  
-			b = 3 + 10 
-			e = 4      
+			a = 2 + 1
+			b = 3 + 10
+			e = 4
 			c = testpkg.Sum(a, b)
-			d = c 
-			
+			d = c
+
 			_ = d
 			_ = e
 			return
