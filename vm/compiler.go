@@ -33,9 +33,7 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 	pkg := NewPackage(goPkg.Name)
 	for ident, value := range goPkg.Declarations {
 		_ = ident
-		if t, ok := value.(reflect.Type); ok {
-			// TODO (Gianluca): import type
-			_ = t
+		if _, ok := value.(reflect.Type); ok {
 			continue
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
