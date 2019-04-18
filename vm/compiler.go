@@ -49,8 +49,6 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 			pkg.gofunctionsNames[ident] = int8(index)
 			continue
 		}
-		// TODO: import constant
-		panic("TODO: not implemented")
 	}
 	return pkg
 }
