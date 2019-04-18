@@ -298,18 +298,19 @@ var stmtTests = []struct {
 		},
 		"",
 	},
-	// TODO (Gianluca):
-	// {"Slice index assignment",
-	// 	`
-	// 	package main
+	{"Slice index assignment",
+		`
+		package main
 
-	// 	func main() {
-	// 		s := []int{1, 2, 3}
-	// 		s[0] = 2
-	// 		_ = s
-	// 		return
-	// 	}
-	// 	`, nil, nil, ""},
+		func main() {
+			s := []int{1, 2, 3}
+			s[0] = 2
+			_ = s
+			return
+		}
+		`, nil, []reg{
+			{TypeIface, 1, []int{2, 2, 3}}, // s
+		}, ""},
 
 	// Expressions - composite literals.
 
