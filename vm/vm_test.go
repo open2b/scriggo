@@ -20,42 +20,39 @@ import (
 	"scrigo/parser"
 )
 
-var exprTests = []struct {
-	src      string
-	expected interface{}
-}{
+var exprTests = map[string]interface{}{
 	// Composite literals.
-	{`[]int{}`, []int{}},
-	{`[]int{1, 2}`, []int{1, 2}},
-	{`[]int{0: 1, 1: 3}`, []int{0: 1, 1: 3}},
-	{`[]int{0: 1, 5: 3}`, []int{0: 1, 5: 3}},
+	`[]int{}`:           []int{},
+	`[]int{1, 2}`:       []int{1, 2},
+	`[]int{0: 1, 1: 3}`: []int{0: 1, 1: 3},
+	`[]int{0: 1, 5: 3}`: []int{0: 1, 5: 3},
 
 	// Builtin 'make'.
-	{`make([]int, 0, 0)`, []int{}},
-	{`make([]int, 0, 5)`, []int{}},
-	{`make([]int, 3, 5)`, []int{0, 0, 0}},
-	{`make([]string, 1, 5)`, []string{""}},
-	{`make(map[string]int, 1)`, map[string]int{}},
+	`make([]int, 0, 0)`:       []int{},
+	`make([]int, 0, 5)`:       []int{},
+	`make([]int, 3, 5)`:       []int{0, 0, 0},
+	`make([]string, 1, 5)`:    []string{""},
+	`make(map[string]int, 1)`: map[string]int{},
 }
 
 func TestVMExpressions(t *testing.T) {
 	DebugTraceExecution = false
-	for _, cas := range exprTests {
-		t.Run(cas.src, func(t *testing.T) {
-			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + cas.src + "; _ = a }")}
+	for src, expected := range exprTests {
+		t.Run(src, func(t *testing.T) {
+			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
 			comp := NewCompiler(r, goPackages)
 			pkg, err := comp.Compile("/test.go")
 			if err != nil {
-				t.Errorf("test %q, compiler error: %s", cas.src, err)
+				t.Errorf("test %q, compiler error: %s", src, err)
 				return
 			}
 			vm := New(pkg)
 			_, err = vm.Run("main")
 			if err != nil {
-				t.Errorf("test %q, execution error: %s", cas.src, err)
+				t.Errorf("test %q, execution error: %s", src, err)
 				return
 			}
-			kind := reflect.TypeOf(cas.expected).Kind()
+			kind := reflect.TypeOf(expected).Kind()
 			var got interface{}
 			switch kind {
 			case reflect.Int, reflect.Bool, reflect.Int64:
@@ -69,8 +66,8 @@ func TestVMExpressions(t *testing.T) {
 			default:
 				panic("bug")
 			}
-			if !reflect.DeepEqual(cas.expected, got) {
-				t.Errorf("test %q, expected %v (type %T), got %v (type %T)", cas.src, cas.expected, cas.expected, got, got)
+			if !reflect.DeepEqual(expected, got) {
+				t.Errorf("test %q, expected %v (type %T), got %v (type %T)", src, expected, expected, got, got)
 			}
 		})
 	}
