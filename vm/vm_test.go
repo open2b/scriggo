@@ -24,15 +24,11 @@ var exprTests = []struct {
 	src      string
 	expected interface{}
 }{
-	// Constants.
-	{"4", int64(4)},
-	{"1 + 10", int64(11)},
-
 	// Composite literals.
 	{"[]int{}", []int{}},
 	{"[]int{1, 2}", []int{1, 2}},
 	{"[]int{0: 1, 1: 3}", []int{0: 1, 1: 3}},
-	// {"[]int{0: 1, 5: 3}", []int{0: 1, 5: 3}},
+	{"[]int{0: 1, 5: 3}", []int{0: 1, 5: 3}},
 }
 
 func TestVMExpressions(t *testing.T) {

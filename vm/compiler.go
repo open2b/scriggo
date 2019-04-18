@@ -368,16 +368,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		case reflect.Slice:
 			size := int8(size(expr))
 			c.fb.MakeSlice(true, true, typ, size, size, reg)
-			index := 0
+			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
-					index = kv.Key.(*ast.Value).Val.(int)
+					index = int8(kv.Key.(*ast.Value).Val.(int))
 				} else {
 					index++
 				}
-				indexConst := c.fb.MakeIntConstant(int64(index))
 				indexReg := c.fb.NewRegister(reflect.Int)
-				c.fb.Move(true, indexConst, indexReg, reflect.Int)
+				c.fb.Move(true, index, indexReg, reflect.Int)
 				var kvalue bool
 				var value int8
 				out, isValue, isRegister := c.quickCompileExpr(kv.Value)
