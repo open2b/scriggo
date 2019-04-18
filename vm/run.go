@@ -844,6 +844,7 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, v)
 
 		// MapIndex
+		// TODO (Gianluca): set vm.ok.
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))
 			t := m.Type()
@@ -879,18 +880,22 @@ func (vm *VM) run() int {
 			}
 
 		// MapIndexStringInt
+		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringInt, -opMapIndexStringInt:
 			vm.setInt(c, int64(vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]))
 
 		// MapIndexStringBool
+		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringBool, -opMapIndexStringBool:
 			vm.setBool(c, vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringString
+		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringString, -opMapIndexStringString:
 			vm.setString(c, vm.general(a).(map[string]string)[vm.stringk(b, op < 0)])
 
 		// MapIndexStringInterface
+		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
 			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
