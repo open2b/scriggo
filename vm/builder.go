@@ -404,6 +404,15 @@ func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	return int8(r)
 }
 
+func (builder *FunctionBuilder) MakeGeneralConstant(v interface{}) int8 {
+	r := len(builder.fn.constants.General)
+	if r > 255 {
+		panic("general refs limit reached")
+	}
+	builder.fn.constants.General = append(builder.fn.constants.General, v)
+	return int8(r)
+}
+
 func (builder *FunctionBuilder) MakeFloatConstant(c float64) int8 {
 	r := len(builder.fn.constants.Float)
 	if r > 255 {
