@@ -21,11 +21,14 @@ import (
 )
 
 var exprTests = map[string]interface{}{
-	// Composite literals.
-	`[]int{}`:           []int{},
-	`[]int{1, 2}`:       []int{1, 2},
-	`[]int{0: 1, 1: 3}`: []int{0: 1, 1: 3},
-	`[]int{0: 1, 5: 3}`: []int{0: 1, 5: 3},
+	// Composite literals - slices.
+	`[]int{}`:               []int{},
+	`[]int{1, 2}`:           []int{1, 2},
+	`[]int{0: 1, 1: 3}`:     []int{0: 1, 1: 3},
+	`[]int{0: 1, 5: 3}`:     []int{0: 1, 5: 3},
+	`[]string{}`:            []string{},
+	`[]string{"a", "b"}`:    []string{"a", "b"},
+	`[]string{"a", 5: "b"}`: []string{"a", 5: "b"},
 
 	// Builtin 'make'.
 	`make([]int, 0, 0)`:       []int{},

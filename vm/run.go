@@ -885,7 +885,15 @@ func (vm *VM) run() int {
 		case opSetSliceFloat, -opSetSliceFloat:
 			panic("TODO: not implemented")
 		case opSetSliceString, -opSetSliceString:
-			panic("TODO: not implemented")
+			s := vm.general(a)
+			switch s := s.(type) {
+			case []string:
+				i := vm.int(c)
+				v := vm.stringk(b, op < 0)
+				s[i] = string(v)
+			default:
+				panic("TODO: not implemented")
+			}
 
 		// MapIndex
 		// TODO (Gianluca): set vm.ok.
