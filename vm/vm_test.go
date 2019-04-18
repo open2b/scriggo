@@ -229,7 +229,14 @@ var stmtTests = []struct {
 		}
 		`,
 		nil,
-		nil,
+		[]reg{
+			{TypeInt, 1, int64(1)},  // a
+			{TypeInt, 2, int64(2)},  // b
+			{TypeInt, 3, int64(0)},  // c
+			{TypeInt, 4, int64(0)},  // d
+			{TypeInt, 5, int64(10)}, // e
+			// {TypeString, 6, "zzz"},  // f // TODO (Gianluca):
+		},
 		"",
 	},
 

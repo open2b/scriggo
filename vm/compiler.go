@@ -782,9 +782,9 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
 				}
 			} else {
-				expr := make([]ast.Expression, len(node.Values))
-				for i := range node.Values {
-					expr[i] = node.Values[i]
+				expr := make([]ast.Expression, len(node.Identifiers))
+				for i := range node.Identifiers {
+					expr[i] = node.Identifiers[i]
 				}
 				c.compileVarsGetValue(expr, node.Values[0], true)
 			}
