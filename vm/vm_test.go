@@ -206,6 +206,32 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(50)}, // c
 			{TypeInt, 4, int64(45)}, // d
 		}, ""},
+	{"Variable declaration with 'var'",
+		`
+		package main
+
+		func pair() (int, string) {
+			return 10, "zzz"
+		}
+
+		func main() {
+			var a, b = 1, 2
+			var c, d int
+			var e, f = pair()
+
+			_ = a
+			_ = b
+			_ = c
+			_ = d
+			_ = e
+			_ = f
+			return
+		}
+		`,
+		nil,
+		nil,
+		"",
+	},
 
 	// Expressions - composite literals.
 
