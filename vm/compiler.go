@@ -403,7 +403,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		case ast.OperatorAmpersand:
 			panic("TODO: not implemented")
 		case ast.OperatorAddition:
-			panic("TODO: not implemented")
+			// Do nothing.
 		case ast.OperatorSubtraction:
 			kind := c.typeinfo[expr.Expr].Type.Kind()
 			c.fb.SubInv(true, reg, 0, reg, kind)
