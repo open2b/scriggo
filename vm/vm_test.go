@@ -578,6 +578,26 @@ var stmtTests = []struct {
 			{TypeString, 4, ""},            // (empty string used in s2 initialization)
 			{TypeString, 5, "hello world"}, // s3
 		}, ""},
+	// // TODO (Gianluca): add slice, map and array indexing tests.
+	// {"Indexing",
+	// 	`
+	// 		package main
+
+	// 		func main() {
+	// 			var a string
+	// 			var b byte
+
+	// 			a = "abcde"
+	// 			b = a[2]
+
+	// 			_ = b
+	// 			return
+	// 		}
+	// 		`,
+	// 	nil,
+	// 	nil,
+	// 	"",
+	// },
 
 	// Type assertion.
 

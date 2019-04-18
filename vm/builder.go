@@ -948,6 +948,40 @@ func (builder *FunctionBuilder) JmpNotOk(label uint32) {
 	builder.fn.body = append(builder.fn.body, in)
 }
 
+// Index appends a new "index" instruction to the function body
+//
+//	dst = expr[i]
+//
+func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType reflect.Type) {
+	kind := exprType.Kind()
+	in := instruction{op: opIndex}
+	switch kind {
+	case reflect.Slice:
+		in.op = opSliceIndex
+	case reflect.String:
+		in.op = opStringIndex
+	case reflect.Map:
+		in.op = opMapIndex
+		switch exprType {
+		case reflect.TypeOf(map[string]int{}):
+			in.op = opMapIndexStringInt
+		case reflect.TypeOf(map[string]bool{}):
+			in.op = opMapIndexStringBool
+		case reflect.TypeOf(map[string]string{}):
+			in.op = opMapIndexStringString
+		case reflect.TypeOf(map[string]interface{}{}):
+			in.op = opMapIndexStringInterface
+		}
+	}
+	if ki {
+		in.op = -in.op
+	}
+	in.a = expr
+	in.b = i
+	in.c = dst
+	builder.fn.body = append(builder.fn.body, in)
+}
+
 // Len appends a new "len" instruction to the function body.
 //
 //     l = len(s)

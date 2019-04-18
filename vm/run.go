@@ -739,6 +739,17 @@ func (vm *VM) run() int {
 			}
 
 		// Index
+		//
+		//	dst = expr[i]
+		//
+		//    where expr is not a map (use mapIndex instead).
+		//
+		//    ╒═══════════╤══════╤═════╤═════╕
+		//    │ Operand   │ a    │ b   │ c   │
+		//    ╞═══════════╪══════╪═════╪═════╡
+		//    │ opIndex   │ expr │ i   │ dst │
+		//    ╘═══════════╧══════╧═════╧═════╛
+		//
 		case opIndex, -opIndex:
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
