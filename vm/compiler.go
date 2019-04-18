@@ -494,22 +494,62 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			}
 			return
 		}
-		var varReg int8
-		if isDecl {
-			varReg = c.fb.NewRegister(kind)
-			c.fb.BindVarReg(variable.(*ast.Identifier).Name, varReg)
-		} else {
-			varReg = c.fb.ScopeLookup(variable.(*ast.Identifier).Name)
-		}
-		out, isValue, isRegister := c.quickCompileExpr(value)
-		if isValue {
-			c.fb.Move(true, out, varReg, kind)
-		} else if isRegister {
-			c.fb.Move(false, out, varReg, kind)
-		} else {
-			tmpReg := c.fb.NewRegister(kind)
-			c.compileExpr(value, tmpReg)
-			c.fb.Move(false, tmpReg, varReg, kind)
+		switch variable := variable.(type) {
+		case *ast.Identifier:
+			var varReg int8
+			if isDecl {
+				varReg = c.fb.NewRegister(kind)
+				c.fb.BindVarReg(variable.Name, varReg)
+			} else {
+				varReg = c.fb.ScopeLookup(variable.Name)
+			}
+			out, isValue, isRegister := c.quickCompileExpr(value)
+			if isValue {
+				c.fb.Move(true, out, varReg, kind)
+			} else if isRegister {
+				c.fb.Move(false, out, varReg, kind)
+			} else {
+				tmpReg := c.fb.NewRegister(kind)
+				c.compileExpr(value, tmpReg)
+				c.fb.Move(false, tmpReg, varReg, kind)
+			}
+		case *ast.Index:
+			switch c.typeinfo[variable.Expr].Type.Kind() {
+			case reflect.Slice:
+				var slice int8
+				out, _, isRegister := c.quickCompileExpr(variable.Expr)
+				if isRegister {
+					slice = out
+				} else {
+					slice = c.fb.NewRegister(reflect.Interface)
+					c.compileExpr(variable.Expr, slice)
+				}
+				var kvalue bool
+				var valueReg int8
+				out, isValue, isRegister := c.quickCompileExpr(value)
+				if isValue {
+					valueReg = out
+					kvalue = true
+				} else if isRegister {
+					valueReg = out
+				} else {
+					valueReg = c.fb.NewRegister(kind)
+					c.compileExpr(value, valueReg)
+				}
+				var index int8
+				out, _, isRegister = c.quickCompileExpr(variable.Index)
+				if isRegister {
+					index = out
+				} else {
+					index = c.fb.NewRegister(reflect.Int)
+					c.compileExpr(variable.Index, index)
+				}
+				c.fb.SetSlice(kvalue, slice, valueReg, index, kind)
+			default:
+				panic("TODO: not implemented")
+			}
+		default:
+			panic("TODO: not implemented")
 		}
 		return
 	}

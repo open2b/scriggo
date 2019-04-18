@@ -639,6 +639,33 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, line int)
 	fn.AddLine(uint32(len(fn.body)-2), line)
 }
 
+// SetSlice appendsa a new "SetSlice" instruction to the function body.
+//
+//	slice = value[index]
+//
+func (builder *FunctionBuilder) SetSlice(kvalue bool, slice, value, index int8, elemKind reflect.Kind) {
+	var fn = builder.fn
+	in := instruction{op: opSetSlice}
+	switch elemKind {
+	case reflect.Int, reflect.Int64, reflect.Int8, reflect.Bool:
+		in.op = opSetSliceInt
+	case reflect.Float64, reflect.Float32:
+		in.op = opSetSliceFloat
+	case reflect.String:
+		in.op = opSetSliceString
+	}
+	if kvalue {
+		if in.op == opSetSlice {
+			panic("bug")
+		}
+		in.op = -in.op
+	}
+	in.a = slice
+	in.b = value
+	in.c = index
+	fn.body = append(fn.body, in)
+}
+
 // CallFunc appends a new "CallFunc" instruction to the function body.
 //
 //     p.F()

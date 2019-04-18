@@ -843,6 +843,42 @@ func (vm *VM) run() int {
 			v := reflect.MakeSlice(t, len, cap).Interface()
 			vm.setGeneral(c, v)
 
+		// SetSlice
+		//
+		//	slice[index] = value
+		//
+		// 	╒════════════╤═══════╤═══════╤═══════╕
+		// 	│ Operand    │ a     │ b     │ c     │
+		// 	╞════════════╪═══════╪═══════╪═══════╡
+		// 	│ opSetSlice │ slice │ value │ index │
+		// 	╘════════════╧═══════╧═══════╧═══════╛
+		//
+		//	where value can be constant.
+		//
+		case opSetSlice:
+			panic("TODO: not implemented")
+		case opSetSliceInt, -opSetSliceInt:
+			s := vm.general(a)
+			switch s := s.(type) {
+			case []int:
+				i := vm.int(c)
+				v := vm.intk(b, op < 0)
+				s[i] = int(v)
+			case []int64:
+				panic("TODO: not implemented")
+			case []byte:
+				panic("TODO: not implemented")
+			case []bool:
+				panic("TODO: not implemented")
+			default:
+				panic("TODO: not implemented")
+			}
+			panic("TODO: not implemented")
+		case opSetSliceFloat, -opSetSliceFloat:
+			panic("TODO: not implemented")
+		case opSetSliceString, -opSetSliceString:
+			panic("TODO: not implemented")
+
 		// MapIndex
 		// TODO (Gianluca): set vm.ok.
 		case opMapIndex, -opMapIndex:

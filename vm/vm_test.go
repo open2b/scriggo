@@ -239,6 +239,18 @@ var stmtTests = []struct {
 		},
 		"",
 	},
+	// TODO (Gianluca):
+	// {"Slice index assignment",
+	// 	`
+	// 	package main
+
+	// 	func main() {
+	// 		s := []int{1, 2, 3}
+	// 		s[0] = 2
+	// 		_ = s
+	// 		return
+	// 	}
+	// 	`, nil, nil, ""},
 
 	// Expressions - composite literals.
 
