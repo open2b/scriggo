@@ -1320,6 +1320,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	}
 
 	t := tc.typeof(expr.Func, noEllipses)
+	tc.typeInfo[expr.Func] = t
 
 	if t.Nil() {
 		panic(tc.errorf(expr, "use of untyped nil"))
