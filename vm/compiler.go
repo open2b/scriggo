@@ -165,6 +165,11 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			// TODO (Gianluca): handle all kind of floats.
 			v := int8(expr.Val.(float64))
 			return v, true, false
+		case reflect.Slice:
+			sliceConst := c.fb.MakeGeneralConstant(expr.Val)
+			reg := c.fb.NewRegister(reflect.Interface)
+			c.fb.Move(true, sliceConst, reg, reflect.Interface)
+			return reg, false, true
 		case reflect.Int8,
 			reflect.Int16,
 			reflect.Int32,
@@ -184,7 +189,6 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reflect.Interface,
 			reflect.Map,
 			reflect.Ptr,
-			reflect.Slice,
 			reflect.Struct,
 			reflect.UnsafePointer:
 			panic(fmt.Sprintf("TODO: not implemented kind %q", kind))
