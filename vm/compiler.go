@@ -423,7 +423,27 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.Index:
-		panic("TODO: not implemented")
+		exprType := c.typeinfo[expr.Expr].Type
+		var exprReg int8
+		out, _, isRegister := c.quickCompileExpr(expr.Expr)
+		if isRegister {
+			exprReg = out
+		} else {
+			exprReg = c.fb.NewRegister(exprType.Kind())
+		}
+		out, isValue, isRegister := c.quickCompileExpr(expr.Index)
+		ki := false
+		var i int8
+		if isValue {
+			ki = true
+			i = out
+		} else if isRegister {
+			i = out
+		} else {
+			i = c.fb.NewRegister(reflect.Int)
+			c.compileExpr(expr.Index, i)
+		}
+		c.fb.Index(ki, exprReg, i, reg, exprType)
 
 	case *ast.Slicing:
 		panic("TODO: not implemented")
