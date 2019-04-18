@@ -1008,7 +1008,8 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			m := make(map[string]int, 2)
+			var m map[string]int
+			m = make(map[string]int, 2)
 			_ = m
 		}
 		`,

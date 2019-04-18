@@ -161,10 +161,10 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			// TODO (Gianluca): handle all kind of floats.
 			v := int8(expr.Val.(float64))
 			return v, true, false
-		case reflect.Slice:
-			sliceConst := c.fb.MakeGeneralConstant(expr.Val)
+		case reflect.Slice, reflect.Map:
+			genConst := c.fb.MakeGeneralConstant(expr.Val)
 			reg := c.fb.NewRegister(reflect.Interface)
-			c.fb.Move(true, sliceConst, reg, reflect.Interface)
+			c.fb.Move(true, genConst, reg, reflect.Interface)
 			return reg, false, true
 		case reflect.Int8,
 			reflect.Int16,
@@ -183,7 +183,6 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reflect.Chan,
 			reflect.Func,
 			reflect.Interface,
-			reflect.Map,
 			reflect.Ptr,
 			reflect.Struct,
 			reflect.UnsafePointer:
