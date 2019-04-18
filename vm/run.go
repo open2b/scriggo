@@ -751,8 +751,6 @@ func (vm *VM) run() int {
 		//
 		//	dst = expr[i]
 		//
-		//    where expr is not a map (use mapIndex instead).
-		//
 		//    ╒═══════════╤══════╤═════╤═════╕
 		//    │ Operand   │ a    │ b   │ c   │
 		//    ╞═══════════╪══════╪═════╪═════╡
