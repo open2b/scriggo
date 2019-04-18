@@ -526,6 +526,27 @@ var stmtTests = []struct {
 
 	// Expressions - misc.
 
+	{"Number negation (unary operator '-')",
+		`
+		package main
+
+		func main() {
+			var a, b int
+
+			a = 45
+			b = -a
+
+			_ = b
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(45)},  // a
+			{TypeInt, 2, int64(-45)}, // b
+		},
+		""},
+
 	{"Go functions as expressions",
 		`
 		package main
