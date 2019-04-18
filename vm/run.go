@@ -883,7 +883,19 @@ func (vm *VM) run() int {
 				panic("TODO: not implemented")
 			}
 		case opSetSliceFloat, -opSetSliceFloat:
-			panic("TODO: not implemented")
+			s := vm.general(a)
+			switch s := s.(type) {
+			case []float64:
+				i := vm.int(c)
+				v := vm.floatk(b, op < 0)
+				s[i] = float64(v)
+			case []float32:
+				i := vm.int(c)
+				v := vm.floatk(b, op < 0)
+				s[i] = float32(v)
+			default:
+				panic("TODO: not implemented")
+			}
 		case opSetSliceString, -opSetSliceString:
 			s := vm.general(a)
 			switch s := s.(type) {

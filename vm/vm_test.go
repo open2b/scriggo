@@ -29,6 +29,8 @@ var exprTests = map[string]interface{}{
 	`[]string{}`:            []string{},
 	`[]string{"a", "b"}`:    []string{"a", "b"},
 	`[]string{"a", 5: "b"}`: []string{"a", 5: "b"},
+	`[]float64{5, 12, 0}`:   []float64{5, 12, 0},
+	// `[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
 
 	// Builtin 'make'.
 	`make([]int, 0, 0)`:       []int{},
@@ -36,6 +38,7 @@ var exprTests = map[string]interface{}{
 	`make([]int, 3, 5)`:       []int{0, 0, 0},
 	`make([]string, 1, 5)`:    []string{""},
 	`make(map[string]int, 1)`: map[string]int{},
+	`make([]float64, 3, 3)`:   []float64{0, 0, 0},
 }
 
 func TestVMExpressions(t *testing.T) {
