@@ -777,8 +777,16 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.compileTypeSwitch(node)
 
 		case *ast.Var:
-			for i := range node.Identifiers {
-				c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
+			if len(node.Identifiers) == len(node.Values) {
+				for i := range node.Identifiers {
+					c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
+				}
+			} else {
+				expr := make([]ast.Expression, len(node.Values))
+				for i := range node.Values {
+					expr[i] = node.Values[i]
+				}
+				c.compileVarsGetValue(expr, node.Values[0], true)
 			}
 
 		case ast.Expression:
