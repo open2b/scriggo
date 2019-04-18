@@ -156,7 +156,14 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			} else {
 				return int8(n), true, false
 			}
-
+		case reflect.Int64:
+			n := expr.Val.(int64)
+			if n < 0 || n > 127 {
+				c := c.fb.MakeIntConstant(int64(n))
+				return c, false, true
+			} else {
+				return int8(n), true, false
+			}
 		case reflect.Float64:
 			// TODO (Gianluca): handle all kind of floats.
 			v := int8(expr.Val.(float64))
@@ -169,7 +176,6 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 		case reflect.Int8,
 			reflect.Int16,
 			reflect.Int32,
-			reflect.Int64,
 			reflect.Uint,
 			reflect.Uint8,
 			reflect.Uint16,
@@ -374,7 +380,17 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		}
 
 	case *ast.TypeAssertion:
-		panic("TODO: not implemented")
+		kind := c.typeinfo[expr.Expr].Type.Kind()
+		out, _, isRegister := c.quickCompileExpr(expr.Expr)
+		var exprReg int8
+		if isRegister {
+			exprReg = out
+		} else {
+			exprReg = c.fb.NewRegister(kind)
+			c.compileExpr(expr.Expr, exprReg)
+		}
+		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
+		c.fb.Assert(exprReg, typ, reg)
 
 	case *ast.Func:
 		currentFunc := c.fb

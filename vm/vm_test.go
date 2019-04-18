@@ -622,6 +622,25 @@ var stmtTests = []struct {
 
 	// Type assertion.
 
+	{"Type assertion as expression (single value context)",
+		`
+		package main
+
+		func main() {
+			i := interface{}(int64(5))
+			a := 7 + i.(int64)
+			_ = a
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(5)},  // argument to int64
+			{TypeInt, 2, int64(12)}, // a
+		},
+		"",
+	},
+
 	{"Type assertion - Int on interface{}",
 		`
 		package main
