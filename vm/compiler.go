@@ -281,15 +281,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			}
 			c.compileExpr(expr.Expr1, reg)
 			endIf := c.fb.NewLabel()
-			// &&: is result true?
-			// ||: is result false?
 			c.fb.If(true, reg, ConditionEqual, cmp, reflect.Int)
-			c.fb.Goto(endIf) // already knows result, stops evaluating.
+			c.fb.Goto(endIf)
 			c.compileExpr(expr.Expr2, reg)
 			c.fb.SetLabelAddr(endIf)
 			return
 		}
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
+		op1 := c.fb.NewRegister(kind)
+		c.compileExpr(expr.Expr1, op1)
 		var op2 int8
 		var ky bool
 		{
@@ -300,26 +300,23 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			} else if isRegister {
 				op2 = out
 			} else {
-				op2 = int8(c.fb.numRegs[kind])
-				c.fb.allocRegister(kind, op2)
+				op2 = c.fb.NewRegister(kind)
 				c.compileExpr(expr.Expr2, op2)
 			}
 		}
-		c.compileExpr(expr.Expr1, reg)
-
 		switch op := expr.Operator(); {
 		case op == ast.OperatorAddition && kind == reflect.String:
-			c.fb.Concat(reg, op2, reg)
+			c.fb.Concat(op1, op2, reg)
 		case op == ast.OperatorAddition:
-			c.fb.Add(ky, reg, op2, reg, kind)
+			c.fb.Add(ky, op1, op2, reg, kind)
 		case op == ast.OperatorSubtraction:
-			c.fb.Sub(ky, reg, op2, reg, kind)
+			c.fb.Sub(ky, op1, op2, reg, kind)
 		case op == ast.OperatorMultiplication:
-			c.fb.Mul(reg, op2, reg, kind)
+			c.fb.Mul(op1, op2, reg, kind)
 		case op == ast.OperatorDivision:
-			c.fb.Div(reg, op2, reg, kind)
+			c.fb.Div(op1, op2, reg, kind)
 		case op == ast.OperatorModulo:
-			c.fb.Rem(reg, op2, reg, kind)
+			c.fb.Rem(op1, op2, reg, kind)
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond Condition
 			switch op {
@@ -336,12 +333,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			case ast.OperatorGreaterOrEqual:
 				cond = ConditionGreaterOrEqual
 			}
-			c.fb.If(ky, reg, cond, op2, kind)
-			c.fb.Move(true, 0, reg, kind)
-			endIf := c.fb.NewLabel()
-			c.fb.Goto(endIf)
 			c.fb.Move(true, 1, reg, kind)
-			c.fb.SetLabelAddr(endIf)
+			c.fb.If(ky, op1, cond, op2, kind)
+			c.fb.Move(true, 0, reg, kind)
 		}
 
 	case *ast.Call:
@@ -481,7 +475,9 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		} else if isRegister {
 			c.fb.Move(false, out, varReg, kind)
 		} else {
-			c.compileExpr(value, varReg)
+			tmpReg := c.fb.NewRegister(kind)
+			c.compileExpr(value, tmpReg)
+			c.fb.Move(false, tmpReg, varReg, kind)
 		}
 		return
 	}

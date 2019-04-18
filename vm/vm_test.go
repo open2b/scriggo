@@ -121,28 +121,27 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(47)}, // c
 		}, ""},
 
-	// TODO (Gianluca):
-	// {"Assignment with math expression (non constant)",
-	// 	`
-	// 	package main
+	{"Assignment with math expression (non constant)",
+		`
+		package main
 
-	// 	func main() {
-	// 		var a, b, c int
+		func main() {
+			var a, b, c int
 
-	// 		a = 3
-	// 		b = 5
-	// 		c = a + 4*b
+			a = 3
+			b = 5
+			c = a + 4*b
 
-	// 		_ = c
-	// 		return
-	// 	}
-	// 	`,
-	// 	nil,
-	// 	[]reg{
-	// 		{TypeInt, 1, int64(3)},  // a
-	// 		{TypeInt, 2, int64(5)},  // b
-	// 		{TypeInt, 3, int64(23)}, // c
-	// 	}, ""},
+			_ = c
+			return
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(3)},  // a
+			{TypeInt, 2, int64(5)},  // b
+			{TypeInt, 3, int64(23)}, // c
+		}, ""},
 
 	{"Function call assignment (2 to 1) - Native function with two return values",
 		`
