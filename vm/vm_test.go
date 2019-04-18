@@ -303,13 +303,22 @@ var stmtTests = []struct {
 		package main
 
 		func main() {
-			s := []int{1, 2, 3}
-			s[0] = 2
-			_ = s
+			var s1 []int
+			var s2 []string
+
+			s1 = []int{1, 2, 3}
+			s1[0] = 2
+
+			s2 = []string{"a", "b", "c", "d"}
+			s2[2] = "d"
+
+			_ = s1
+			_ = s2
 			return
 		}
 		`, nil, []reg{
-			{TypeIface, 1, []int{2, 2, 3}}, // s
+			{TypeIface, 1, []int{2, 2, 3}},               // s1
+			{TypeIface, 2, []string{"a", "b", "d", "d"}}, // s2
 		}, ""},
 
 	// Expressions - composite literals.
