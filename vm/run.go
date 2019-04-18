@@ -43,9 +43,7 @@ func (vm *VM) run() int {
 	var op operation
 	var a, b, c int8
 
-	var size = uint32(len(vm.fn.body))
-
-	for vm.pc < size {
+	for {
 
 		// TODO (Gianluca): this check avoids "panic: runtime error: index out of range".
 		if int(vm.pc) >= len(vm.fn.body) {
@@ -1405,5 +1403,4 @@ func (vm *VM) run() int {
 
 	}
 
-	return 0
 }
