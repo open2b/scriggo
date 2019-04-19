@@ -352,6 +352,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
+		s += []string{"", " fromInt", " fromFloat", " fromString"}[a]
 		s += " " + disassembleOperand(fn, b, Interface, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:

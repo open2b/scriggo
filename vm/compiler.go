@@ -171,7 +171,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 		case reflect.Slice, reflect.Map, reflect.Func:
 			genConst := c.fb.MakeGeneralConstant(expr.Val)
 			reg := c.fb.NewRegister(reflect.Interface)
-			c.fb.Move(true, genConst, reg, reflect.Interface)
+			c.fb.Move(true, genConst, reg, reflect.Interface, reflect.Interface)
 			return reg, false, true
 		case reflect.Int8,
 			reflect.Int16,
@@ -195,13 +195,13 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 		case reflect.String:
 			sConst := c.fb.MakeStringConstant(expr.Val.(string))
 			reg := c.fb.NewRegister(reflect.String)
-			c.fb.Move(true, sConst, reg, reflect.String)
+			c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
 			return reg, false, true
 		}
 	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		sConst := c.fb.MakeStringConstant(expr.Text)
 		reg := c.fb.NewRegister(reflect.String)
-		c.fb.Move(true, sConst, reg, reflect.String)
+		c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
 		return reg, false, true
 	case *ast.Func:
 		typ := c.typeinfo[expr].Type
@@ -383,9 +383,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, kind reflect.Kind)
 			case ast.OperatorGreaterOrEqual:
 				cond = ConditionGreaterOrEqual
 			}
-			c.fb.Move(true, 1, reg, kind)
+			c.fb.Move(true, 1, reg, kind, kind)
 			c.fb.If(ky, op1, cond, op2, kind)
-			c.fb.Move(true, 0, reg, kind)
+			c.fb.Move(true, 0, reg, kind, kind)
 		}
 
 	case *ast.Call:
@@ -406,7 +406,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, kind reflect.Kind)
 		}
 		regs, kinds := c.compileCall(expr)
 		if reg != 0 {
-			c.fb.Move(false, regs[0], reg, kinds[0])
+			c.fb.Move(false, regs[0], reg, kinds[0], kinds[0])
 		}
 
 	case *ast.CompositeLiteral:
@@ -425,7 +425,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, kind reflect.Kind)
 					index++
 				}
 				indexReg := c.fb.NewRegister(reflect.Int)
-				c.fb.Move(true, index, indexReg, reflect.Int)
+				c.fb.Move(true, index, indexReg, reflect.Int, reflect.Int)
 				var kvalue bool
 				var value int8
 				out, isValue, isRegister := c.quickCompileExpr(kv.Value)
@@ -495,9 +495,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, kind reflect.Kind)
 		kind := c.typeinfo[expr].Type.Kind()
 		out, isValue, isRegister := c.quickCompileExpr(expr)
 		if isValue {
-			c.fb.Move(true, out, reg, kind)
+			c.fb.Move(true, out, reg, kind, kind)
 		} else if isRegister {
-			c.fb.Move(false, out, reg, kind)
+			c.fb.Move(false, out, reg, kind, kind)
 		} else {
 			panic("bug")
 		}
@@ -571,13 +571,13 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			}
 			out, isValue, isRegister := c.quickCompileExpr(value)
 			if isValue {
-				c.fb.Move(true, out, varReg, kind)
+				c.fb.Move(true, out, varReg, kind, kind)
 			} else if isRegister {
-				c.fb.Move(false, out, varReg, kind)
+				c.fb.Move(false, out, varReg, kind, kind)
 			} else {
 				tmpReg := c.fb.NewRegister(kind)
 				c.compileExpr(value, tmpReg, kind)
-				c.fb.Move(false, tmpReg, varReg, kind)
+				c.fb.Move(false, tmpReg, varReg, kind, kind)
 			}
 		case *ast.Index:
 			switch c.typeinfo[variable.Expr].Type.Kind() {
@@ -638,7 +638,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		}
 		retRegs, retKinds := c.compileCall(value)
 		for i := range retRegs {
-			c.fb.Move(false, retRegs[i], varRegs[i], retKinds[i])
+			c.fb.Move(false, retRegs[i], varRegs[i], retKinds[i], retKinds[i])
 		}
 	case *ast.TypeAssertion:
 		var dst int8
@@ -662,8 +662,8 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		c.compileExpr(value.Expr, expr, kind)
 		c.fb.Assert(expr, typ, dst)
 		c.fb.IfOk()
-		c.fb.Move(true, 0, okReg, reflect.Int)
-		c.fb.Move(true, 1, okReg, reflect.Int)
+		c.fb.Move(true, 0, okReg, reflect.Int, reflect.Int)
+		c.fb.Move(true, 1, okReg, reflect.Int, reflect.Int)
 	default:
 		panic("bug")
 	}

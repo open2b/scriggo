@@ -1050,13 +1050,13 @@ func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
 //
 //     z = x
 //
-func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect.Kind) {
 	if !k {
-		builder.allocRegister(kind, x)
+		builder.allocRegister(srcKind, x)
 	}
-	builder.allocRegister(kind, z)
+	builder.allocRegister(srcKind, z)
 	var op operation
-	switch kind {
+	switch dstKind {
 	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
 		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Bool:
 		op = opMoveInt
@@ -1070,7 +1070,16 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, b: x, c: z})
+	var a int8
+	switch srcKind {
+	case reflect.Int:
+		a = 1
+	case reflect.Float64:
+		a = 2
+	case reflect.String:
+		a = 3
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: a, b: x, c: z})
 }
 
 // Mul appends a new "mul" instruction to the function body.

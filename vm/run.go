@@ -967,10 +967,39 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
 		// Move
+		//
+		// 	╒═══════════╤═════════╤═════╤═════╕
+		// 	│ Operand   │ a       │ b   │ c   │
+		// 	╞═══════════╪═════════╪═════╪═════╡
+		// 	│ opMove    │ srcType │ src │ dst │
+		// 	╘═══════════╧═════════╧═════╧═════╛
+		//
+		// 	where srcType is 0 for general to general,
+		//                     1 for int     to general,
+		//                     2 for float   to general,
+		//                     3 for string  to general
 		case opMove:
-			vm.setGeneral(c, vm.general(b))
+			switch a {
+			case 1:
+				vm.setGeneral(c, vm.int(b))
+			case 2:
+				vm.setGeneral(c, vm.float(b))
+			case 3:
+				vm.setGeneral(c, vm.string(b))
+			default:
+				vm.setGeneral(c, vm.general(b))
+			}
 		case -opMove:
-			vm.setGeneral(c, vm.generalk(b, true))
+			switch a {
+			case 1:
+				vm.setGeneral(c, vm.intk(b, true))
+			case 2:
+				vm.setGeneral(c, vm.floatk(b, true))
+			case 3:
+				vm.setGeneral(c, vm.stringk(b, true))
+			default:
+				vm.setGeneral(c, vm.generalk(b, true))
+			}
 		case opMoveInt:
 			vm.setInt(c, vm.int(b))
 		case -opMoveInt:
