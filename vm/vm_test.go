@@ -1312,6 +1312,24 @@ var stmtTests = []struct {
 			{TypeIface, 1, map[string]int{}},
 		}, ""},
 
+	{"Builtin copy",
+		`
+		package main
+
+		func main() {
+			var src, dst []int
+			var n int
+
+			src = []int{10, 20, 30}
+			dst = []int{}
+			n = copy(dst, src)
+
+			_ = n
+			return
+		}
+		`, nil, nil, "",
+	},
+
 	// Native (Go) function calls.
 
 	{"Native function call (0 in, 0 out)",

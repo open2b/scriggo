@@ -719,12 +719,13 @@ func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int
 
 // Copy appends a new "copy" instruction to the function body.
 //
-//     copy(dst, src)
+//     n == 0:   copy(dst, src)
+// 	 n != 0:   n := copy(dst, src)
 //
-func (builder *FunctionBuilder) Copy(dst, src int8) {
+func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 	builder.allocRegister(reflect.Interface, dst)
 	builder.allocRegister(reflect.Interface, src)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src})
+	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src, c: n})
 }
 
 // Delete appends a new "delete" instruction to the function body.

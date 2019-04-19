@@ -506,10 +506,23 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
 
 		// Copy
+		//
+		// 	n := copy(dst, src)
+		//
+		// 	╒═══════════╤═════╤═════╤═════╕
+		// 	│ Operand   │ a   │ b   │ c   │
+		// 	╞═══════════╪═════╪═════╪═════╡
+		// 	│ opCopy    │ src │ dst │ n   │
+		// 	╘═══════════╧═════╧═════╧═════╛
+		//
+		// 	If c is 0, n is discarded.
+		//
 		case opCopy:
-			src := reflect.ValueOf(a)
-			dst := reflect.ValueOf(b)
-			vm.setInt(c, int64(reflect.Copy(src, dst)))
+			src := reflect.ValueOf(vm.general(a))
+			dst := reflect.ValueOf(vm.general(b))
+			if c != 0 {
+				vm.setInt(c, int64(reflect.Copy(src, dst)))
+			}
 
 		// Concat
 		case opConcat:

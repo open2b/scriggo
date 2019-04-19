@@ -691,7 +691,22 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8) (ok bool) {
 		case "complex":
 			panic("TODO: not implemented")
 		case "copy":
-			panic("TODO: not implemented")
+			var dst, src int8
+			out, _, isRegister := c.quickCompileExpr(call.Args[0], reflect.Slice)
+			if isRegister {
+				dst = out
+			} else {
+				dst = c.fb.NewRegister(reflect.Slice)
+				c.compileExpr(call.Args[0], dst, reflect.Slice)
+			}
+			out, _, isRegister = c.quickCompileExpr(call.Args[1], reflect.Slice)
+			if isRegister {
+				src = out
+			} else {
+				src = c.fb.NewRegister(reflect.Slice)
+				c.compileExpr(call.Args[0], src, reflect.Slice)
+			}
+			c.fb.Copy(dst, src, reg)
 		case "delete":
 			mapExpr := call.Args[0]
 			keyExpr := call.Args[1]
