@@ -168,7 +168,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			// TODO (Gianluca): handle all kind of floats.
 			v := int8(expr.Val.(float64))
 			return v, true, false
-		case reflect.Slice, reflect.Map:
+		case reflect.Slice, reflect.Map, reflect.Func:
 			genConst := c.fb.MakeGeneralConstant(expr.Val)
 			reg := c.fb.NewRegister(reflect.Interface)
 			c.fb.Move(true, genConst, reg, reflect.Interface)
@@ -187,7 +187,6 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reflect.Complex128,
 			reflect.Array,
 			reflect.Chan,
-			reflect.Func,
 			reflect.Interface,
 			reflect.Ptr,
 			reflect.Struct,
@@ -419,15 +418,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.fb.Assert(exprReg, typ, reg)
 
 	case *ast.Func:
-		currentFunc := c.fb
-		fn, _ := c.currentPkg.NewFunction("", reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
-		c.fb = fn.Builder()
+		typ := c.typeinfo[expr].Type
+		scrigoFunc := c.fb.Func(reg, typ)
+		funcLitBuilder := scrigoFunc.Builder()
+		currentFb := c.fb
+		c.fb = funcLitBuilder
 		c.fb.EnterScope()
 		c.compileNodes(expr.Body.Nodes)
-		c.fb.End()
 		c.fb.ExitScope()
-		c.fb = currentFunc
-		c.fb.Func(0, reflect.FuncOf(nil, nil, expr.Type.IsVariadic))
+		c.fb = currentFb
 
 	case *ast.Selector:
 		pkgName := expr.Expr.(*ast.Identifier).Name
