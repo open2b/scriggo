@@ -151,7 +151,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			tc.checkKeysDuplicates(node, reflect.Struct)
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
-				return &TypeInfo{Type: ti.Type}
+				ti := &TypeInfo{Type: ti.Type}
+				tc.typeInfo[node] = ti
+				return ti
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
 				panic(tc.errorf(node, "too few values in %s literal", node.Type))
@@ -284,5 +286,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		}
 	}
 
-	return &TypeInfo{Type: ti.Type}
+	nodeTi := &TypeInfo{Type: ti.Type}
+	tc.typeInfo[node] = nodeTi
+	return nodeTi
 }
