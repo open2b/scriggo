@@ -883,7 +883,7 @@ func (vm *VM) run() int {
 			case []bool:
 				panic("TODO: not implemented")
 			default:
-				panic("TODO: not implemented")
+				panic(fmt.Sprintf("TODO: opSetSliceInt not implemented on type %T", s))
 			}
 		case opSetSliceFloat, -opSetSliceFloat:
 			s := vm.general(a)
@@ -1059,7 +1059,19 @@ func (vm *VM) run() int {
 
 		// Print
 		case opPrint:
-			print(vm.general(a))
+			v := vm.general(a)
+			switch v := v.(type) {
+			case string:
+				print(v)
+			case int:
+				print(v)
+			case int64:
+				print(v)
+			case bool:
+				print(v)
+			default:
+				print(v)
+			}
 
 		// Range
 		case opRange:
