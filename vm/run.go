@@ -865,7 +865,10 @@ func (vm *VM) run() int {
 		//	where value can be constant.
 		//
 		case opSetSlice:
-			panic("TODO: not implemented")
+			s := vm.general(a)
+			i := vm.int(c)
+			v := vm.general(b)
+			reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
 		case opSetSliceInt, -opSetSliceInt:
 			s := vm.general(a)
 			switch s := s.(type) {
