@@ -1077,11 +1077,27 @@ var stmtTests = []struct {
 			a = inc(a)
 			return
 		}
-		`,
-		nil,
+		`, nil,
 		[]reg{
 			{TypeInt, 1, int64(42)}, // a
 		}, ""},
+
+	{"Function literal call - Shadowing package level function",
+		`
+		package main
+
+		func f() {
+			panic("")
+		}
+
+		func main() {
+			f := func() {
+				// No panics.
+			}
+			f()
+			return
+		}
+		`, nil, nil, ""},
 
 	// Scrigo function calls.
 
