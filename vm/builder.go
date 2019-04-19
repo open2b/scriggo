@@ -372,6 +372,8 @@ func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 	// TODO (Gianluca): to review (same as allocRegister)
 	case reflect.Bool:
 		k = reflect.Int
+	case reflect.Func:
+		k = reflect.Interface
 	}
 	reg := int8(builder.numRegs[k]) + 1
 	builder.allocRegister(k, reg)
@@ -382,6 +384,18 @@ func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
 // VariableRegister in conjuction with BindVarReg.
 func (builder *FunctionBuilder) BindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
+}
+
+// IsAVariable indicates if n is a variable (i.e. is a name defined in some of
+// the current scopes).
+func (builder *FunctionBuilder) IsAVariable(n string) bool {
+	for i := len(builder.scopes) - 1; i >= 0; i-- {
+		_, ok := builder.scopes[i][n]
+		if ok {
+			return true
+		}
+	}
+	return false
 }
 
 // ScopeLookup returns n's register.

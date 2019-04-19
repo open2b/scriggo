@@ -218,53 +218,67 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		int8(c.fb.numRegs[reflect.String]),
 		int8(c.fb.numRegs[reflect.Interface]),
 	}
-	switch fun := call.Func.(type) {
-	case *ast.Identifier:
-		ident := fun.Name
-		i, ok := c.currentPkg.scrigoFunctionsNames[ident]
-		if !ok {
-			panic("bug")
+	if ident, ok := call.Func.(*ast.Identifier); ok {
+		if !c.fb.IsAVariable(ident.Name) {
+			if i, isScrigoFunc := c.currentPkg.scrigoFunctionsNames[ident.Name]; isScrigoFunc {
+				funcType := c.currentPkg.scrigoFunctions[i].typ
+				for i := 0; i < funcType.NumOut(); i++ {
+					kind := funcType.Out(i).Kind()
+					regs = append(regs, c.fb.NewRegister(kind))
+					kinds = append(kinds, kind)
+				}
+				for i := 0; i < funcType.NumIn(); i++ {
+					kind := funcType.In(i).Kind()
+					reg := c.fb.NewRegister(kind)
+					c.compileExpr(call.Args[i], reg)
+				}
+				c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
+				return
+			}
+			if nativeFunc, isNativeFunc := c.currentPkg.nativeFunctionsNames[ident.Name]; isNativeFunc {
+				_ = nativeFunc
+				panic("TODO: calling native functions imported with '.' not implemented")
+				return
+			}
 		}
-		f := c.currentPkg.scrigoFunctions[i]
-		funcType := f.typ
-		for i := 0; i < funcType.NumOut(); i++ {
-			kind := funcType.Out(i).Kind()
-			regs = append(regs, c.fb.NewRegister(kind))
-			kinds = append(kinds, kind)
-		}
-		for i := 0; i < funcType.NumIn(); i++ {
-			kind := funcType.In(i).Kind()
-			reg := c.fb.NewRegister(kind)
-			c.compileExpr(call.Args[i], reg)
-		}
-		c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
-	case *ast.Selector: // currently supports only Go calls.
-		pkgName := fun.Expr.(*ast.Identifier).Name
-		funcName := fun.Ident
-		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
-		// isNative := c.currentPkg.isGoPkg[pkgName]
-		goPkg := c.currentPkg.packages[pkgIndex]
-		funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
-		var funcType reflect.Type
-		if goPkg.nativeFunctions[funcIndex].fast != nil {
-			funcType = reflect.TypeOf(goPkg.nativeFunctions[funcIndex].fast)
-		} else {
-			funcType = goPkg.nativeFunctions[funcIndex].value.Type()
-		}
-		for i := 0; i < funcType.NumOut(); i++ {
-			kind := funcType.Out(i).Kind()
-			regs = append(regs, c.fb.NewRegister(kind))
-			kinds = append(kinds, kind)
-		}
-		for i := 0; i < funcType.NumIn(); i++ {
-			kind := funcType.In(i).Kind()
-			reg := c.fb.NewRegister(kind)
-			c.compileExpr(call.Args[i], reg)
-		}
-		c.fb.CallFunc(pkgIndex, funcIndex, NoVariadic, stackShift)
-	default:
-		panic("TODO: not implemented")
 	}
+	if sel, ok := call.Func.(*ast.Selector); ok {
+		if name, ok := sel.Expr.(*ast.Identifier); ok {
+			pkgIndex, isPkg := c.currentPkg.packagesNames[name.Name]
+			if isPkg {
+				if isGoPkg := c.currentPkg.isGoPkg[name.Name]; isGoPkg {
+					goPkg := c.currentPkg.packages[pkgIndex]
+					i := goPkg.nativeFunctionsNames[sel.Ident]
+					var funcType reflect.Type
+					funcType = reflect.TypeOf(goPkg.nativeFunctions[i].fast)
+					for i := 0; i < funcType.NumOut(); i++ {
+						kind := funcType.Out(i).Kind()
+						regs = append(regs, c.fb.NewRegister(kind))
+						kinds = append(kinds, kind)
+					}
+					for i := 0; i < funcType.NumIn(); i++ {
+						kind := funcType.In(i).Kind()
+						reg := c.fb.NewRegister(kind)
+						c.compileExpr(call.Args[i], reg)
+					}
+					c.fb.CallFunc(int8(pkgIndex), i, NoVariadic, stackShift)
+				} else {
+					panic("TODO: calling scrigo functions from imported packages not implemented")
+				}
+			}
+			return
+		}
+	}
+	var funReg int8
+	out, _, isRegister := c.quickCompileExpr(call.Func)
+	if isRegister {
+		funReg = out
+	} else {
+		funReg = c.fb.NewRegister(reflect.Func)
+		c.compileExpr(call.Func, funReg)
+	}
+	// TODO (Gianluca): prepare parameters for indirect function call.
+	c.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, kinds
 }
 
