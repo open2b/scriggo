@@ -435,9 +435,33 @@ var stmtTests = []struct {
 			`		// regs(0,0,0,2)`,
 			`		Func R2 () (1 int)`,
 			`			// regs(0,0,0,0)`,
-			`			MoveInt 20 R1`,
-			`			MoveInt R1 R1`,
+			`			MoveInt 20 R2`,
+			`			MoveInt R2 R1`,
 			`			Return`,
+			`		Move R2 R1`,
+		}, nil, ""},
+	{"Function literal definition - (1 in, 0 out)",
+		`
+		package main
+
+		func main() {
+			f := func(a int) {
+				b := a + 20
+				_ = b
+			}
+			_ = f
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(0,0,0,2)`,
+			`		Func R2 (1 int)`,
+			`			// regs(0,0,0,0)`,
+			`			MoveInt R1 R4`,
+			`			AddInt R4 20 R3`,
+			`			MoveInt R3 R2`,
 			`		Move R2 R1`,
 		}, nil, ""},
 
