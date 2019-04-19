@@ -97,21 +97,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			fn, index := c.currentPkg.NewFunction(n.Ident.Name, n.Type.Reflect)
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
-			// Binds function argument names to pre-allocated registers.
-			fillParametersTypes(n.Type.Result)
-			for _, res := range n.Type.Result {
-				resType := res.Type.(*ast.Value).Val.(reflect.Type)
-				kind := resType.Kind()
-				retReg := c.fb.NewRegister(kind)
-				_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
-			}
-			fillParametersTypes(n.Type.Parameters)
-			for _, par := range n.Type.Parameters {
-				parType := par.Type.(*ast.Value).Val.(reflect.Type)
-				kind := parType.Kind()
-				argReg := c.fb.NewRegister(kind)
-				c.fb.BindVarReg(par.Ident.Name, argReg)
-			}
+			c.prepareFunctionBodyParameters(n)
 			c.currentPkg.scrigoFunctionsNames[n.Ident.Name] = index
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
@@ -220,21 +206,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 		currentFb := c.fb
 		c.fb = funcLitBuilder
 		c.fb.EnterScope()
-		// Binds function argument names to pre-allocated registers.
-		fillParametersTypes(expr.Type.Result)
-		for _, res := range expr.Type.Result {
-			resType := res.Type.(*ast.Value).Val.(reflect.Type)
-			kind := resType.Kind()
-			retReg := c.fb.NewRegister(kind)
-			_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
-		}
-		fillParametersTypes(expr.Type.Parameters)
-		for _, par := range expr.Type.Parameters {
-			parType := par.Type.(*ast.Value).Val.(reflect.Type)
-			kind := parType.Kind()
-			argReg := c.fb.NewRegister(kind)
-			c.fb.BindVarReg(par.Ident.Name, argReg)
-		}
+		c.prepareFunctionBodyParameters(expr)
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.ExitScope()
 		c.fb = currentFb
@@ -261,6 +233,29 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 		c.compileExpr(args[i], reg, kind)
 	}
 	return regs, kinds
+}
+
+// prepareFunctionBodyParameters prepares fun's parameters (out and int) before
+// compiling its body.
+func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
+	// Reserves space for return parameters.
+	fillParametersTypes(fun.Type.Result)
+	for _, res := range fun.Type.Result {
+		resType := res.Type.(*ast.Value).Val.(reflect.Type)
+		kind := resType.Kind()
+		retReg := c.fb.NewRegister(kind)
+		// TODO (Gianluca): add support for named return parameters.
+		// Binding retReg to the name of the paramter should be enough.
+		_ = retReg
+	}
+	// Binds function argument names to pre-allocated registers.
+	fillParametersTypes(fun.Type.Parameters)
+	for _, par := range fun.Type.Parameters {
+		parType := par.Type.(*ast.Value).Val.(reflect.Type)
+		kind := parType.Kind()
+		argReg := c.fb.NewRegister(kind)
+		c.fb.BindVarReg(par.Ident.Name, argReg)
+	}
 }
 
 // compileCall compiles call, returning the list of registers (and their
