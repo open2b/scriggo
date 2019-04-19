@@ -388,7 +388,7 @@ var stmtTests = []struct {
 		}, ""},
 
 	// Expressions - function literals.
-	{"Function literal definition",
+	{"Function literal definition - (0 in, 0 out)",
 		`
 		package main
 
@@ -415,6 +415,30 @@ var stmtTests = []struct {
 			`			MoveInt 10 R1`,
 			`		Move R2 R1`,
 			`		MoveInt 20 R2`,
+		}, nil, ""},
+	{"Function literal definition - (0 in, 1 out)",
+		`
+		package main
+
+		func main() {
+			f := func() int {
+				a := 20
+				return a
+			}
+			_ = f
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(0,0,0,2)`,
+			`		Func R2 () (1 int)`,
+			`			// regs(0,0,0,0)`,
+			`			MoveInt 20 R1`,
+			`			MoveInt R1 R1`,
+			`			Return`,
+			`		Move R2 R1`,
 		}, nil, ""},
 
 	// Expressions - conversions.
