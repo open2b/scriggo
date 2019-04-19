@@ -14,6 +14,7 @@ import (
 	"scrigo/parser"
 )
 
+// A Compiler compiles sources generating VM's packages.
 type Compiler struct {
 	parser           *parser.Parser
 	currentPkg       *Package
@@ -22,13 +23,15 @@ type Compiler struct {
 	importableGoPkgs map[string]*parser.GoPackage
 }
 
+// NewCompiler returns a new compiler reading sources from r.
+// Native (Go) packages are made available for importing.
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
 	c := &Compiler{importableGoPkgs: packages}
 	c.parser = parser.New(r, packages, true)
 	return c
 }
 
-// goPackageToVMPackage converts a Parser's GoPackage to a VM's Package.
+// goPackageToVMPackage converts a parser's GoPackage to a VM's Package.
 func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 	pkg := NewPackage(goPkg.Name)
 	for ident, value := range goPkg.Declarations {
