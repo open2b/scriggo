@@ -277,7 +277,17 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		funReg = c.fb.NewRegister(reflect.Func)
 		c.compileExpr(call.Func, funReg)
 	}
-	// TODO (Gianluca): prepare parameters for indirect function call.
+	funcType := c.typeinfo[call.Func].Type
+	for i := 0; i < funcType.NumOut(); i++ {
+		kind := funcType.Out(i).Kind()
+		regs = append(regs, c.fb.NewRegister(kind))
+		kinds = append(kinds, kind)
+	}
+	for i := 0; i < funcType.NumIn(); i++ {
+		kind := funcType.In(i).Kind()
+		reg := c.fb.NewRegister(kind)
+		c.compileExpr(call.Args[i], reg)
+	}
 	c.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, kinds
 }

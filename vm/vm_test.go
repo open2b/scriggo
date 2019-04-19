@@ -1044,6 +1044,25 @@ var stmtTests = []struct {
 			`	Move R2 R1`,
 			`	CallIndirect`,
 		}, nil, ""},
+	{"Function literal call (0 in, 1 out)",
+		`
+		package main
+
+		func main() {
+			a := 0
+			f := func() int {
+				a := 10
+				b := 15
+				return a + b
+			}
+			a = f()
+			_ = a
+			return
+		}
+		`,
+		nil, []reg{
+			{TypeInt, 1, int64(25)}, // a
+		}, ""},
 
 	// Scrigo function calls.
 
