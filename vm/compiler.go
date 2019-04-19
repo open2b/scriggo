@@ -1127,20 +1127,21 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 // ky which indicates whether y is a constant value.
 // TODO (Gianluca): implement missing conditions.
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
-	// 	ConditionEqual               x == y
-	// 	ConditionNotEqual            x != y
-	// 	ConditionLess                x <  y
-	// 	ConditionLessOrEqual         x <= y
-	// 	ConditionGreater             x >  y
-	// 	ConditionGreaterOrEqual      x >= y
-	// 	ConditionEqualLen            len(x) == y
-	// 	ConditionNotEqualLen         len(x) != y
-	// 	ConditionLessLen             len(x) <  y
-	// 	ConditionLessOrEqualLen      len(x) <= y
-	// 	ConditionGreaterLen          len(x) >  y
-	// 	ConditionGreaterOrEqualLen   len(x) >= y
-	// 	ConditionNil                 x == nil
-	// 	ConditionNotNil              x != nil
+	// ConditionEqual             Condition = iota // x == y
+	// ConditionNotEqual                           // x != y
+	// ConditionLess                               // x <  y
+	// ConditionLessOrEqual                        // x <= y
+	// ConditionGreater                            // x >  y
+	// ConditionGreaterOrEqual                     // x >= y
+	// ConditionEqualLen                           // len(x) == y
+	// ConditionNotEqualLen                        // len(x) != y
+	// ConditionLessLen                            // len(x) <  y
+	// ConditionLessOrEqualLen                     // len(x) <= y
+	// ConditionGreaterLen                         // len(x) >  y
+	// ConditionGreaterOrEqualLen                  // len(x) >= y
+	// ConditionNil                                // x == nil
+	// ConditionNotNil                             // x != nil
+	// ConditionOk                                 // [vm.ok]
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
