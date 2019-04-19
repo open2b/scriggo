@@ -541,6 +541,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 // than one variable, value must be a function call, a map indexing operation or
 // a type assertion. These last two cases involve that variables contains 2
 // elements.
+// TODO (Gianluca): in case of variable declaration, if quickCompileExpr returns
+// a register use it instead of creating a new one.
 func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Expression, isDecl bool) {
 	if len(variables) == 1 {
 		variable := variables[0]
