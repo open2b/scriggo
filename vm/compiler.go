@@ -82,7 +82,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				currentBuilder := c.fb
 				c.fb = initBuilder
 				reg := c.fb.NewRegister(reflect.Int)
-				c.compileExpr(n.Values[0], reg)
+				c.compileExpr(n.Values[0], reg, reflect.Int)
 				c.fb = currentBuilder
 				name := "A"                 // TODO
 				v := interface{}(int64(10)) // TODO
@@ -255,7 +255,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				for i := 0; i < funcType.NumIn(); i++ {
 					kind := funcType.In(i).Kind()
 					reg := c.fb.NewRegister(kind)
-					c.compileExpr(call.Args[i], reg)
+					c.compileExpr(call.Args[i], reg, kind)
 				}
 				c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
 				return
@@ -284,7 +284,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					for i := 0; i < funcType.NumIn(); i++ {
 						kind := funcType.In(i).Kind()
 						reg := c.fb.NewRegister(kind)
-						c.compileExpr(call.Args[i], reg)
+						c.compileExpr(call.Args[i], reg, kind)
 					}
 					c.fb.CallFunc(int8(pkgIndex), i, NoVariadic, stackShift)
 				} else {
@@ -300,7 +300,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		funReg = out
 	} else {
 		funReg = c.fb.NewRegister(reflect.Func)
-		c.compileExpr(call.Func, funReg)
+		c.compileExpr(call.Func, funReg, reflect.Func)
 	}
 	funcType := c.typeinfo[call.Func].Type
 	for i := 0; i < funcType.NumOut(); i++ {
@@ -311,15 +311,16 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	for i := 0; i < funcType.NumIn(); i++ {
 		kind := funcType.In(i).Kind()
 		reg := c.fb.NewRegister(kind)
-		c.compileExpr(call.Args[i], reg)
+		c.compileExpr(call.Args[i], reg, kind)
 	}
 	c.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, kinds
 }
 
-// compileExpr compiles expression expr and puts results into reg. Compiled
-// result is discarded if reg is 0.
-func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
+// compileExpr compiles expression expr and puts results into reg (of kind
+// kind). Compiled result is discarded if reg is 0.
+// TODO (Gianluca): review all "kind" arguments in every compileExpr call.
+func (c *Compiler) compileExpr(expr ast.Expression, reg int8, kind reflect.Kind) {
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -328,17 +329,17 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			if op == ast.OperatorAnd {
 				cmp = 1
 			}
-			c.compileExpr(expr.Expr1, reg)
+			c.compileExpr(expr.Expr1, reg, kind)
 			endIf := c.fb.NewLabel()
 			c.fb.If(true, reg, ConditionEqual, cmp, reflect.Int)
 			c.fb.Goto(endIf)
-			c.compileExpr(expr.Expr2, reg)
+			c.compileExpr(expr.Expr2, reg, kind)
 			c.fb.SetLabelAddr(endIf)
 			return
 		}
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
 		op1 := c.fb.NewRegister(kind)
-		c.compileExpr(expr.Expr1, op1)
+		c.compileExpr(expr.Expr1, op1, kind)
 		var op2 int8
 		var ky bool
 		{
@@ -350,7 +351,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 				op2 = out
 			} else {
 				op2 = c.fb.NewRegister(kind)
-				c.compileExpr(expr.Expr2, op2)
+				c.compileExpr(expr.Expr2, op2, kind)
 			}
 		}
 		switch op := expr.Operator(); {
@@ -398,7 +399,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			if typ, ok := val.Val.(reflect.Type); ok {
 				kind := c.typeinfo[expr.Args[0]].Type.Kind()
 				arg := c.fb.NewRegister(kind)
-				c.compileExpr(expr.Args[0], arg)
+				c.compileExpr(expr.Args[0], arg, kind)
 				c.fb.Convert(arg, typ, reg)
 				return
 			}
@@ -435,7 +436,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 					value = out
 				} else {
 					value = c.fb.NewRegister(typ.Elem().Kind())
-					c.compileExpr(kv.Value, value)
+					c.compileExpr(kv.Value, value, kind)
 				}
 				c.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
 			}
@@ -461,7 +462,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			exprReg = out
 		} else {
 			exprReg = c.fb.NewRegister(kind)
-			c.compileExpr(expr.Expr, exprReg)
+			c.compileExpr(expr.Expr, exprReg, kind)
 		}
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		c.fb.Assert(exprReg, typ, reg)
@@ -475,7 +476,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		c.fb.GetFunc(pkgIndex, funcIndex, reg)
 
 	case *ast.UnaryOperator:
-		c.compileExpr(expr.Expr, reg)
+		c.compileExpr(expr.Expr, reg, kind)
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			c.fb.SubInv(true, reg, int8(1), reg, reflect.Int)
@@ -520,7 +521,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			i = out
 		} else {
 			i = c.fb.NewRegister(reflect.Int)
-			c.compileExpr(expr.Index, i)
+			c.compileExpr(expr.Index, i, kind)
 		}
 		c.fb.Index(ki, exprReg, i, reg, exprType)
 
@@ -575,7 +576,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 				c.fb.Move(false, out, varReg, kind)
 			} else {
 				tmpReg := c.fb.NewRegister(kind)
-				c.compileExpr(value, tmpReg)
+				c.compileExpr(value, tmpReg, kind)
 				c.fb.Move(false, tmpReg, varReg, kind)
 			}
 		case *ast.Index:
@@ -587,7 +588,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 					slice = out
 				} else {
 					slice = c.fb.NewRegister(reflect.Interface)
-					c.compileExpr(variable.Expr, slice)
+					c.compileExpr(variable.Expr, slice, kind)
 				}
 				var kvalue bool
 				var valueReg int8
@@ -599,7 +600,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 					valueReg = out
 				} else {
 					valueReg = c.fb.NewRegister(kind)
-					c.compileExpr(value, valueReg)
+					c.compileExpr(value, valueReg, kind)
 				}
 				var index int8
 				out, _, isRegister = c.quickCompileExpr(variable.Index)
@@ -607,7 +608,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 					index = out
 				} else {
 					index = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(variable.Index, index)
+					c.compileExpr(variable.Index, index, kind)
 				}
 				c.fb.SetSlice(kvalue, slice, valueReg, index, kind)
 			default:
@@ -658,7 +659,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		typ := value.Type.(*ast.Value).Val.(reflect.Type)
 		kind := c.typeinfo[value.Expr].Type.Kind()
 		expr := c.fb.NewRegister(kind)
-		c.compileExpr(value.Expr, expr)
+		c.compileExpr(value.Expr, expr, kind)
 		c.fb.Assert(expr, typ, dst)
 		c.fb.IfOk()
 		c.fb.Move(true, 0, okReg, reflect.Int)
@@ -696,14 +697,14 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 				mapp = out
 			} else {
 				mapp = c.fb.NewRegister(mapType.Kind())
-				c.compileExpr(mapExpr, mapp)
+				c.compileExpr(mapExpr, mapp, mapType.Kind())
 			}
 			out, _, isRegister = c.quickCompileExpr(keyExpr)
 			if isRegister {
 				key = out
 			} else {
 				key = c.fb.NewRegister(keyType.Kind())
-				c.compileExpr(keyExpr, key)
+				c.compileExpr(keyExpr, key, keyType.Kind())
 			}
 			c.fb.Delete(mapp, key)
 		case "imag":
@@ -719,7 +720,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 				b = out
 			} else {
 				arg := c.fb.NewRegister(kind)
-				c.compileExpr(call.Args[0], arg)
+				c.compileExpr(call.Args[0], arg, kind)
 				b = arg
 			}
 			switch typ {
@@ -746,7 +747,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 					size = out
 				} else {
 					size = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(call.Args[1], size)
+					c.compileExpr(call.Args[1], size, reflect.Int)
 				}
 				c.fb.MakeMap(regType, kSize, size, reg)
 			case reflect.Slice:
@@ -762,7 +763,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 					len = out
 				} else {
 					len = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(lenExpr, len)
+					c.compileExpr(lenExpr, len, reflect.Int)
 				}
 				out, isValue, isRegister = c.quickCompileExpr(capExpr)
 				if isValue {
@@ -772,7 +773,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 					cap = out
 				} else {
 					cap = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(capExpr, cap)
+					c.compileExpr(capExpr, cap, reflect.Int)
 				}
 				c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
 			case reflect.Chan:
@@ -791,7 +792,7 @@ func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
 		case "print":
 			// TODO (Gianluca): move argument to general
 			arg := c.fb.NewRegister(reflect.Int)
-			c.compileExpr(call.Args[0], arg)
+			c.compileExpr(call.Args[0], arg, reflect.Int)
 			i = instruction{op: opPrint, a: arg}
 		case "println":
 			panic("TODO: not implemented")
@@ -829,7 +830,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				} else if isRegister {
 					y = out
 				} else {
-					c.compileExpr(node.Values[0], y)
+					c.compileExpr(node.Values[0], y, kind)
 				}
 				if node.Type == ast.AssignmentAddition {
 					c.fb.Add(ky, varReg, y, varReg, kind)
@@ -946,7 +947,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				kind := c.typeinfo[v].Type.Kind()
 				reg := int8(i + 1)
 				c.fb.allocRegister(kind, reg)
-				c.compileExpr(v, reg)
+				c.compileExpr(v, reg, kind) // TODO (Gianluca): must be return parameter kind.
 			}
 			c.fb.Return()
 
@@ -972,7 +973,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case ast.Expression:
 			// TODO (Gianluca): use 0 (which is no longer a valid
 			// register) and handle it as a special case in compileExpr.
-			c.compileExpr(node, 0)
+			c.compileExpr(node, 0, reflect.Invalid)
 
 		}
 	}
@@ -989,7 +990,7 @@ func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
 	typAss := node.Assignment.Values[0].(*ast.TypeAssertion)
 	kind := c.typeinfo[typAss.Expr].Type.Kind()
 	expr := c.fb.NewRegister(kind)
-	c.compileExpr(typAss.Expr, expr)
+	c.compileExpr(typAss.Expr, expr, kind)
 
 	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
 	// typReg := c.fb.Type(typ)
@@ -1045,7 +1046,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 
 	kind := c.typeinfo[node.Expr].Type.Kind()
 	expr := c.fb.NewRegister(kind)
-	c.compileExpr(node.Expr, expr)
+	c.compileExpr(node.Expr, expr, kind)
 	bodyLabels := make([]uint32, len(node.Cases))
 	endSwitchLabel := c.fb.NewLabel()
 
@@ -1066,7 +1067,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 				y = out
 			} else {
 				c.fb.allocRegister(kind, y)
-				c.compileExpr(caseExpr, y)
+				c.compileExpr(caseExpr, y, kind)
 			}
 			c.fb.If(ky, expr, ConditionNotEqual, y, kind) // Condizione negata per poter concatenare gli if
 			c.fb.Goto(bodyLabels[i])
@@ -1097,6 +1098,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 // compileCondition compiles expr using the current function builder. Returns
 // the two values of the condition (x and y), a kind, the condition ad a boolean
 // ky which indicates whether y is a constant value.
+// TODO (Gianluca): implement missing conditions.
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflect.Kind, o Condition, yk bool) {
 	// 	ConditionEqual               x == y
 	// 	ConditionNotEqual            x != y
@@ -1122,7 +1124,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 			x = out
 		} else {
 			x = c.fb.NewRegister(kind)
-			c.compileExpr(cond.Expr1, x)
+			c.compileExpr(cond.Expr1, x, kind)
 		}
 		if isNil(cond.Expr2) {
 			switch cond.Operator() {
@@ -1140,7 +1142,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 				y = out
 			} else {
 				y = c.fb.NewRegister(kind)
-				c.compileExpr(cond.Expr2, y)
+				c.compileExpr(cond.Expr2, y, kind)
 			}
 			switch cond.Operator() {
 			case ast.OperatorEqual:
@@ -1160,7 +1162,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 
 	default:
 		x := c.fb.NewRegister(kind)
-		c.compileExpr(cond, x)
+		c.compileExpr(cond, x, kind)
 		o = ConditionEqual
 		y = c.fb.MakeIntConstant(1) // TODO.
 	}
