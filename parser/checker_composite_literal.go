@@ -138,7 +138,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
-				valueTi := tc.typeof(keyValue.Value, noEllipses)
+				valueTi := tc.checkExpression(keyValue.Value)
 				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
@@ -161,7 +161,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			for i := range node.KeyValues {
 				keyValue := &node.KeyValues[i]
-				valueTi := tc.typeof(keyValue.Value, noEllipses)
+				valueTi := tc.checkExpression(keyValue.Value)
 				fieldTi := ti.Type.Field(i)
 				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
@@ -180,7 +180,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
-				keyTi := tc.typeof(kv.Key, noEllipses)
+				keyTi := tc.checkExpression(kv.Key)
 				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
@@ -194,7 +194,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
-				elemTi = tc.typeof(kv.Value, noEllipses)
+				elemTi = tc.checkExpression(kv.Value)
 			}
 			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
@@ -216,7 +216,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
-				keyTi := tc.typeof(kv.Key, noEllipses)
+				keyTi := tc.checkExpression(kv.Key)
 				if keyTi.Value == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
@@ -230,7 +230,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
-				elemTi = tc.typeof(kv.Value, noEllipses)
+				elemTi = tc.checkExpression(kv.Value)
 			}
 			if !isAssignableTo(elemTi, ti.Type.Elem()) {
 				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
@@ -257,7 +257,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				keyTi = tc.checkCompositeLiteral(compLit, keyType)
 			} else {
-				keyTi = tc.typeof(kv.Key, noEllipses)
+				keyTi = tc.checkExpression(kv.Key)
 			}
 			if !isAssignableTo(keyTi, keyType) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), keyType))
@@ -271,7 +271,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, elemType)
 			} else {
-				valueTi = tc.typeof(kv.Value, noEllipses)
+				valueTi = tc.checkExpression(kv.Value)
 			}
 			if !isAssignableTo(valueTi, elemType) {
 				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), elemType))
