@@ -312,7 +312,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGo, opReturn:
-	case opGoto, opJmpOk, opJmpNotOk:
+	case opGoto:
 		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case opIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)

@@ -760,18 +760,6 @@ func (vm *VM) run() int {
 		case opIndex, -opIndex:
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
-		// JmpOk
-		case opJmpOk:
-			if vm.ok {
-				vm.pc = decodeAddr(a, b, c)
-			}
-
-		// JmpNotOk
-		case opJmpNotOk:
-			if !vm.ok {
-				vm.pc = decodeAddr(a, b, c)
-			}
-
 		// Len
 		case opLen:
 

@@ -965,38 +965,6 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	builder.fn.body = append(builder.fn.body, in)
 }
 
-// JmpOk appends a new "jmpok" instruction to the function body.
-//
-//     jmpok label
-//
-func (builder *FunctionBuilder) JmpOk(label uint32) {
-	in := instruction{op: opJmpOk}
-	if label > 0 {
-		if label <= uint32(len(builder.labels)) {
-			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
-		} else {
-			builder.gotos[builder.CurrentAddr()] = label - 1
-		}
-	}
-	builder.fn.body = append(builder.fn.body, in)
-}
-
-// JmpNotOk appends a new "jmpnotok" instruction to the function body.
-//
-//     jmpnotok label
-//
-func (builder *FunctionBuilder) JmpNotOk(label uint32) {
-	in := instruction{op: opJmpNotOk}
-	if label > 0 {
-		if label <= uint32(len(builder.labels)) {
-			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
-		} else {
-			builder.gotos[builder.CurrentAddr()] = label - 1
-		}
-	}
-	builder.fn.body = append(builder.fn.body, in)
-}
-
 // Len appends a new "len" instruction to the function body.
 //
 //     l = len(s)

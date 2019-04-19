@@ -84,9 +84,6 @@ const (
 
 	opStringIndex
 
-	opJmpOk
-	opJmpNotOk
-
 	opLen
 
 	opFunc
@@ -244,9 +241,6 @@ var operationName = [...]string{
 	opIfUint:   "IfUint",
 	opIfFloat:  "IfFloat",
 	opIfString: "IfString",
-
-	opJmpOk:    "JmpOk",
-	opJmpNotOk: "JmpNotOk",
 
 	opLen: "len",
 
