@@ -515,6 +515,7 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	return tr
 }
 
+// TODO (Gianluca): what's the point of this method?
 func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
