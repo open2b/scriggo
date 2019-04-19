@@ -393,6 +393,10 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Int, false)
+	case opSetSlice:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + disassembleOperand(fn, b, Int, k)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opSetVar:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		pkg := fn.pkg
