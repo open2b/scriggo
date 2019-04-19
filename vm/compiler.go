@@ -197,13 +197,38 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression) (out int8, isValue, isR
 			reg := c.fb.NewRegister(reflect.String)
 			c.fb.Move(true, sConst, reg, reflect.String)
 			return reg, false, true
-
 		}
-
 	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		sConst := c.fb.MakeStringConstant(expr.Text)
 		reg := c.fb.NewRegister(reflect.String)
 		c.fb.Move(true, sConst, reg, reflect.String)
+		return reg, false, true
+	case *ast.Func:
+		typ := c.typeinfo[expr].Type
+		reg := c.fb.NewRegister(reflect.Func)
+		scrigoFunc := c.fb.Func(reg, typ)
+		funcLitBuilder := scrigoFunc.Builder()
+		currentFb := c.fb
+		c.fb = funcLitBuilder
+		c.fb.EnterScope()
+		// Binds function argument names to pre-allocated registers.
+		fillParametersTypes(expr.Type.Result)
+		for _, res := range expr.Type.Result {
+			resType := res.Type.(*ast.Value).Val.(reflect.Type)
+			kind := resType.Kind()
+			retReg := c.fb.NewRegister(kind)
+			_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
+		}
+		fillParametersTypes(expr.Type.Parameters)
+		for _, par := range expr.Type.Parameters {
+			parType := par.Type.(*ast.Value).Val.(reflect.Type)
+			kind := parType.Kind()
+			argReg := c.fb.NewRegister(kind)
+			c.fb.BindVarReg(par.Ident.Name, argReg)
+		}
+		c.compileNodes(expr.Body.Nodes)
+		c.fb.ExitScope()
+		c.fb = currentFb
 		return reg, false, true
 	}
 	return 0, false, false
@@ -441,32 +466,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		c.fb.Assert(exprReg, typ, reg)
 
-	case *ast.Func:
-		typ := c.typeinfo[expr].Type
-		scrigoFunc := c.fb.Func(reg, typ)
-		funcLitBuilder := scrigoFunc.Builder()
-		currentFb := c.fb
-		c.fb = funcLitBuilder
-		c.fb.EnterScope()
-		// Binds function argument names to pre-allocated registers.
-		fillParametersTypes(expr.Type.Result)
-		for _, res := range expr.Type.Result {
-			resType := res.Type.(*ast.Value).Val.(reflect.Type)
-			kind := resType.Kind()
-			retReg := c.fb.NewRegister(kind)
-			_ = retReg // TODO (Gianluca): add support for named return parameters. Binding retReg to the name of the paramter should be enough.
-		}
-		fillParametersTypes(expr.Type.Parameters)
-		for _, par := range expr.Type.Parameters {
-			parType := par.Type.(*ast.Value).Val.(reflect.Type)
-			kind := parType.Kind()
-			argReg := c.fb.NewRegister(kind)
-			c.fb.BindVarReg(par.Ident.Name, argReg)
-		}
-		c.compileNodes(expr.Body.Nodes)
-		c.fb.ExitScope()
-		c.fb = currentFb
-
 	case *ast.Selector:
 		pkgName := expr.Expr.(*ast.Identifier).Name
 		funcName := expr.Ident
@@ -491,7 +490,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Value, *ast.Int, *ast.Identifier, *ast.String: // TODO (Gianluca): remove Int and String
+	case *ast.Value, *ast.Int, *ast.Identifier, *ast.String, *ast.Func: // TODO (Gianluca): remove Int and String
 		kind := c.typeinfo[expr].Type.Kind()
 		out, isValue, isRegister := c.quickCompileExpr(expr)
 		if isValue {
