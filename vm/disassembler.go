@@ -131,7 +131,7 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.op {
-		case opCall, opCallFunc, opCallMethod, opTailCall, opMakeSlice:
+		case opCall, opCallFunc, opCallMethod, opTailCall, opCallIndirect, opMakeSlice:
 			addr += 1
 		}
 	}
@@ -198,7 +198,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += "@" + strconv.Itoa(depth)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCall, opCallFunc, opCallMethod, opTailCall:
+	case opCall, opCallFunc, opCallMethod, opTailCall, opCallIndirect:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		} else {
@@ -206,6 +206,8 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 				t := fn.types[int(uint8(a))]
 				m := t.Method(int(uint8(b)))
 				s += " " + t.String() + "." + m.Name
+			} else if op == opCallIndirect {
+				s += " " + disassembleOperand(fn, b, Interface, false)
 			} else if b != CurrentFunction {
 				pkg := fn.pkg
 				if a != CurrentPackage {
@@ -229,7 +231,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case opCall, opCallFunc, opCallMethod:
+		case opCall, opCallFunc, opCallMethod, opCallIndirect:
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))

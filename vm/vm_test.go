@@ -1042,7 +1042,7 @@ var stmtTests = []struct {
 			`	Func R2 ()`,
 			`		// regs(0,0,0,0)`,
 			`	Move R2 R1`,
-			`	CallIndirect`,
+			`	CallIndirect R1    // Stack shift: 0, 0, 0, 2`,
 		}, nil, ""},
 	{"Function literal call (0 in, 1 out)",
 		`
