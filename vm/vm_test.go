@@ -1023,6 +1023,28 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeInt, 2, int64(20)}, // v
 		}, ""},
+
+	// Function literal calls.
+	{"Function literal call (0 in, 0 out)",
+		`
+		package main
+
+		func main() {
+			f := func() {}
+			f()
+		}
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`	// regs(0,0,0,2)`,
+			`	Func R2 ()`,
+			`		// regs(0,0,0,0)`,
+			`	Move R2 R1`,
+			`	CallIndirect`,
+		}, nil, ""},
+
 	// Scrigo function calls.
 
 	{"Package function call",
