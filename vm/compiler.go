@@ -396,7 +396,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 	case *ast.Call:
 		// Builtin call.
-		ok := c.callBuiltin(expr, reg)
+		ok := c.compileBuiltin(expr, reg)
 		if ok {
 			return
 		}
@@ -678,7 +678,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
 // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
 // builtin.
-func (c *Compiler) callBuiltin(call *ast.Call, reg int8) (ok bool) {
+func (c *Compiler) compileBuiltin(call *ast.Call, reg int8) (ok bool) {
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		var i instruction
 		switch ident.Name {
