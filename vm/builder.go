@@ -654,33 +654,6 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, line int)
 	fn.AddLine(uint32(len(fn.body)-2), line)
 }
 
-// SetSlice appendsa a new "SetSlice" instruction to the function body.
-//
-//	slice = value[index]
-//
-func (builder *FunctionBuilder) SetSlice(kvalue bool, slice, value, index int8, elemKind reflect.Kind) {
-	var fn = builder.fn
-	in := instruction{op: opSetSlice}
-	switch elemKind {
-	case reflect.Int, reflect.Int64, reflect.Int8, reflect.Bool:
-		in.op = opSetSliceInt
-	case reflect.Float64, reflect.Float32:
-		in.op = opSetSliceFloat
-	case reflect.String:
-		in.op = opSetSliceString
-	}
-	if kvalue {
-		if in.op == opSetSlice {
-			panic("bug")
-		}
-		in.op = -in.op
-	}
-	in.a = slice
-	in.b = value
-	in.c = index
-	fn.body = append(fn.body, in)
-}
-
 // CallFunc appends a new "CallFunc" instruction to the function body.
 //
 //     p.F()
@@ -722,16 +695,6 @@ func (builder *FunctionBuilder) Cap(s, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opCap, a: s, c: z})
 }
 
-// Copy appends a new "copy" instruction to the function body.
-//
-//     copy(dst, src)
-//
-func (builder *FunctionBuilder) Copy(dst, src int8) {
-	builder.allocRegister(reflect.Interface, dst)
-	builder.allocRegister(reflect.Interface, src)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src})
-}
-
 // Concat appends a new "concat" instruction to the function body.
 //
 //     z = concat(s, t)
@@ -752,6 +715,16 @@ func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int
 	regType := builder.Type(dstType)
 	builder.allocRegister(reflect.Interface, dst)
 	builder.fn.body = append(builder.fn.body, instruction{op: opConvertInt, a: expr, b: regType, c: dst})
+}
+
+// Copy appends a new "copy" instruction to the function body.
+//
+//     copy(dst, src)
+//
+func (builder *FunctionBuilder) Copy(dst, src int8) {
+	builder.allocRegister(reflect.Interface, dst)
+	builder.allocRegister(reflect.Interface, src)
+	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src})
 }
 
 // Delete appends a new "delete" instruction to the function body.
@@ -878,12 +851,6 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 	builder.fn.body = append(builder.fn.body, in)
 }
 
-// IfOk appends a new "If" instruction to the function body which tests for the
-// Ok flag.
-func (builder *FunctionBuilder) IfOk() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
-}
-
 // If appends a new "If" instruction to the function body.
 //
 //     x
@@ -958,36 +925,10 @@ func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Ki
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: c})
 }
 
-// JmpOk appends a new "jmpok" instruction to the function body.
-//
-//     jmpok label
-//
-func (builder *FunctionBuilder) JmpOk(label uint32) {
-	in := instruction{op: opJmpOk}
-	if label > 0 {
-		if label <= uint32(len(builder.labels)) {
-			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
-		} else {
-			builder.gotos[builder.CurrentAddr()] = label - 1
-		}
-	}
-	builder.fn.body = append(builder.fn.body, in)
-}
-
-// JmpNotOk appends a new "jmpnotok" instruction to the function body.
-//
-//     jmpnotok label
-//
-func (builder *FunctionBuilder) JmpNotOk(label uint32) {
-	in := instruction{op: opJmpNotOk}
-	if label > 0 {
-		if label <= uint32(len(builder.labels)) {
-			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
-		} else {
-			builder.gotos[builder.CurrentAddr()] = label - 1
-		}
-	}
-	builder.fn.body = append(builder.fn.body, in)
+// IfOk appends a new "If" instruction to the function body which tests for the
+// Ok flag.
+func (builder *FunctionBuilder) IfOk() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
 }
 
 // Index appends a new "index" instruction to the function body
@@ -1024,6 +965,38 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	builder.fn.body = append(builder.fn.body, in)
 }
 
+// JmpOk appends a new "jmpok" instruction to the function body.
+//
+//     jmpok label
+//
+func (builder *FunctionBuilder) JmpOk(label uint32) {
+	in := instruction{op: opJmpOk}
+	if label > 0 {
+		if label <= uint32(len(builder.labels)) {
+			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		} else {
+			builder.gotos[builder.CurrentAddr()] = label - 1
+		}
+	}
+	builder.fn.body = append(builder.fn.body, in)
+}
+
+// JmpNotOk appends a new "jmpnotok" instruction to the function body.
+//
+//     jmpnotok label
+//
+func (builder *FunctionBuilder) JmpNotOk(label uint32) {
+	in := instruction{op: opJmpNotOk}
+	if label > 0 {
+		if label <= uint32(len(builder.labels)) {
+			in.a, in.b, in.c = encodeAddr(builder.labels[label-1])
+		} else {
+			builder.gotos[builder.CurrentAddr()] = label - 1
+		}
+	}
+	builder.fn.body = append(builder.fn.body, in)
+}
+
 // Len appends a new "len" instruction to the function body.
 //
 //     l = len(s)
@@ -1033,6 +1006,31 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.allocRegister(reflect.Int, l)
 	// TODO
 	builder.fn.body = append(builder.fn.body, instruction{op: 0, a: s, b: l})
+}
+
+// MakeSlice appends a new "MakeSlice" instruction to the function body.
+//
+//     make(sliceType, len, cap)
+//
+func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
+	in1 := instruction{op: opMakeSlice}
+	builder.allocRegister(reflect.Interface, dst)
+	t := builder.Type(sliceType)
+	in1.a = t
+	ctrl := int8(0)
+	if kLen {
+		ctrl += 1
+	}
+	if kCap {
+		ctrl += 2
+	}
+	in1.b = ctrl
+	in1.c = dst
+	builder.fn.body = append(builder.fn.body, in1)
+	in2 := instruction{}
+	in2.op = operation(len)
+	in2.a = cap
+	builder.fn.body = append(builder.fn.body, in2)
 }
 
 // Map appends a new "map" instruction to the function body.
@@ -1191,29 +1189,31 @@ func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, a: r, b: int8(p), c: int8(v)})
 }
 
-// MakeSlice appends a new "MakeSlice" instruction to the function body.
+// SetSlice appendsa a new "SetSlice" instruction to the function body.
 //
-//     make(sliceType, len, cap)
+//	slice = value[index]
 //
-func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
-	in1 := instruction{op: opMakeSlice}
-	builder.allocRegister(reflect.Interface, dst)
-	t := builder.Type(sliceType)
-	in1.a = t
-	ctrl := int8(0)
-	if kLen {
-		ctrl += 1
+func (builder *FunctionBuilder) SetSlice(kvalue bool, slice, value, index int8, elemKind reflect.Kind) {
+	var fn = builder.fn
+	in := instruction{op: opSetSlice}
+	switch elemKind {
+	case reflect.Int, reflect.Int64, reflect.Int8, reflect.Bool:
+		in.op = opSetSliceInt
+	case reflect.Float64, reflect.Float32:
+		in.op = opSetSliceFloat
+	case reflect.String:
+		in.op = opSetSliceString
 	}
-	if kCap {
-		ctrl += 2
+	if kvalue {
+		if in.op == opSetSlice {
+			panic("bug")
+		}
+		in.op = -in.op
 	}
-	in1.b = ctrl
-	in1.c = dst
-	builder.fn.body = append(builder.fn.body, in1)
-	in2 := instruction{}
-	in2.op = operation(len)
-	in2.a = cap
-	builder.fn.body = append(builder.fn.body, in2)
+	in.a = slice
+	in.b = value
+	in.c = index
+	fn.body = append(fn.body, in)
 }
 
 // Sub appends a new "Sub" instruction to the function body.
