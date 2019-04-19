@@ -1131,6 +1131,18 @@ func (builder *FunctionBuilder) Panic(v int8, line int) {
 	fn.AddLine(uint32(len(fn.body)-1), line)
 }
 
+// Print appends a new "print" instruction to the function body.
+//
+//     print(args...)
+//
+func (builder *FunctionBuilder) Print(args []int8) {
+	i := instruction{op: opPrint}
+	for _, arg := range args {
+		i.a = arg
+		builder.fn.body = append(builder.fn.body, i)
+	}
+}
+
 // Rem appends a new "rem" instruction to the function body.
 //
 //     z = x % y
