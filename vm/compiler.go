@@ -243,6 +243,26 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 	return 0, false, false
 }
 
+// prepareCallParameters prepares parameters (out and in) for a function call of
+// type funcType and arguments args. Returns the list of return registers and
+// their respective kind.
+func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression) ([]int8, []reflect.Kind) {
+	numOut := funcType.NumOut()
+	regs := make([]int8, numOut)
+	kinds := make([]reflect.Kind, numOut)
+	for i := 0; i < numOut; i++ {
+		kind := funcType.Out(i).Kind()
+		regs[i] = c.fb.NewRegister(kind)
+		kinds[i] = kind
+	}
+	for i := 0; i < funcType.NumIn(); i++ {
+		kind := funcType.In(i).Kind()
+		reg := c.fb.NewRegister(kind)
+		c.compileExpr(args[i], reg, kind)
+	}
+	return regs, kinds
+}
+
 // compileCall compiles call, returning the list of registers (and their
 // respective kind) within which return values are inserted.
 func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kind) {
@@ -256,23 +276,14 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		if !c.fb.IsAVariable(ident.Name) {
 			if i, isScrigoFunc := c.currentPkg.scrigoFunctionsNames[ident.Name]; isScrigoFunc {
 				funcType := c.currentPkg.scrigoFunctions[i].typ
-				for i := 0; i < funcType.NumOut(); i++ {
-					kind := funcType.Out(i).Kind()
-					regs = append(regs, c.fb.NewRegister(kind))
-					kinds = append(kinds, kind)
-				}
-				for i := 0; i < funcType.NumIn(); i++ {
-					kind := funcType.In(i).Kind()
-					reg := c.fb.NewRegister(kind)
-					c.compileExpr(call.Args[i], reg, kind)
-				}
+				regs, kinds := c.prepareCallParameters(funcType, call.Args)
 				c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
-				return
+				return regs, kinds
 			}
 			if nativeFunc, isNativeFunc := c.currentPkg.nativeFunctionsNames[ident.Name]; isNativeFunc {
 				_ = nativeFunc
 				panic("TODO: calling native functions imported with '.' not implemented")
-				return
+				return nil, nil
 			}
 		}
 	}
@@ -285,22 +296,13 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					i := goPkg.nativeFunctionsNames[sel.Ident]
 					var funcType reflect.Type
 					funcType = reflect.TypeOf(goPkg.nativeFunctions[i].fast)
-					for i := 0; i < funcType.NumOut(); i++ {
-						kind := funcType.Out(i).Kind()
-						regs = append(regs, c.fb.NewRegister(kind))
-						kinds = append(kinds, kind)
-					}
-					for i := 0; i < funcType.NumIn(); i++ {
-						kind := funcType.In(i).Kind()
-						reg := c.fb.NewRegister(kind)
-						c.compileExpr(call.Args[i], reg, kind)
-					}
+					regs, kinds := c.prepareCallParameters(funcType, call.Args)
 					c.fb.CallFunc(int8(pkgIndex), i, NoVariadic, stackShift)
+					return regs, kinds
 				} else {
 					panic("TODO: calling scrigo functions from imported packages not implemented")
 				}
 			}
-			return
 		}
 	}
 	var funReg int8
@@ -312,16 +314,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		c.compileExpr(call.Func, funReg, reflect.Func)
 	}
 	funcType := c.typeinfo[call.Func].Type
-	for i := 0; i < funcType.NumOut(); i++ {
-		kind := funcType.Out(i).Kind()
-		regs = append(regs, c.fb.NewRegister(kind))
-		kinds = append(kinds, kind)
-	}
-	for i := 0; i < funcType.NumIn(); i++ {
-		kind := funcType.In(i).Kind()
-		reg := c.fb.NewRegister(kind)
-		c.compileExpr(call.Args[i], reg, kind)
-	}
+	regs, kinds = c.prepareCallParameters(funcType, call.Args)
 	c.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, kinds
 }
