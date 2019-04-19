@@ -387,6 +387,36 @@ var stmtTests = []struct {
 			{TypeIface, 1, map[string]int{}},
 		}, ""},
 
+	// Expressions - function literals.
+	{"Function literal definition",
+		`
+		package main
+
+		func main() {
+			a := 10
+			f := func() {
+				a := 10
+				_ = a
+			}
+			b := 20
+			_ = a
+			_ = b
+			_ = f
+		} 
+		`,
+		[]string{
+			`Package main`,
+			``,
+			`Func main()`,
+			`		// regs(2,0,0,2)`,
+			`		MoveInt 10 R1`,
+			`		Func R2 ()`,
+			`			// regs(0,0,0,0)`,
+			`			MoveInt 10 R1`,
+			`		Move R2 R1`,
+			`		MoveInt 20 R2`,
+		}, nil, ""},
+
 	// Expressions - conversions.
 
 	{"Converting from int to string",
