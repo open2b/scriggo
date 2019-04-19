@@ -46,7 +46,7 @@ func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
 			if !ok {
 				panic("TODO: not implemented")
 			}
-			pkg.gofunctionsNames[ident] = int8(index)
+			pkg.nativeFunctionsNames[ident] = int8(index)
 			continue
 		}
 	}
@@ -109,7 +109,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				argReg := c.fb.NewRegister(kind)
 				c.fb.BindVarReg(par.Ident.Name, argReg)
 			}
-			c.currentPkg.functionsNames[n.Ident.Name] = index
+			c.currentPkg.scrigoFunctionsNames[n.Ident.Name] = index
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
@@ -221,7 +221,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	switch fun := call.Func.(type) {
 	case *ast.Identifier:
 		ident := fun.Name
-		i, ok := c.currentPkg.functionsNames[ident]
+		i, ok := c.currentPkg.scrigoFunctionsNames[ident]
 		if !ok {
 			panic("bug")
 		}
@@ -244,7 +244,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
 		// isNative := c.currentPkg.isGoPkg[pkgName]
 		goPkg := c.currentPkg.packages[pkgIndex]
-		funcIndex := int8(goPkg.gofunctionsNames[funcName])
+		funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
 		var funcType reflect.Type
 		if goPkg.nativeFunctions[funcIndex].fast != nil {
 			funcType = reflect.TypeOf(goPkg.nativeFunctions[funcIndex].fast)
@@ -433,7 +433,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8) {
 		funcName := expr.Ident
 		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
 		goPkg := c.currentPkg.packages[pkgIndex]
-		funcIndex := int8(goPkg.gofunctionsNames[funcName])
+		funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
 		c.fb.GetFunc(pkgIndex, funcIndex, reg)
 
 	case *ast.UnaryOperator:
