@@ -234,14 +234,13 @@ func (vm *VM) run() int {
 		// CallFunc, CallIndirect
 		case opCallFunc:
 			var fn *NativeFunction
-			switch op {
-			case opCallFunc:
+			if op == opCallFunc {
 				pkg := vm.fn.pkg
 				if a != CurrentPackage {
 					pkg = pkg.packages[uint8(a)]
 				}
 				fn = pkg.nativeFunctions[uint8(b)]
-			case opCall:
+			} else {
 				fn = vm.general(b).(*callable).native
 			}
 			fp := vm.fp
