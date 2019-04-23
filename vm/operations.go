@@ -35,7 +35,7 @@ const (
 
 	opCallIndirect
 
-	opCallFunc
+	opCallNative
 
 	opCap
 
@@ -193,7 +193,7 @@ var operationName = [...]string{
 
 	opCall: "Call",
 
-	opCallFunc: "CallFunc",
+	opCallNative: "CallNative",
 
 	opCallIndirect: "CallIndirect",
 
