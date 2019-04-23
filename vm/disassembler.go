@@ -16,50 +16,55 @@ import (
 	"strings"
 )
 
-func Disassemble(w io.Writer, pkg *Package) (int64, error) {
-	var b bytes.Buffer
-	_, _ = fmt.Fprintf(&b, "\nPackage %s\n", pkg.name)
-	//if len(main.consts.Int) > 0 {
-	//	_, _ = fmt.Fprintf(&b, "\nconst int\n")
-	//	for i, value := range main.consts.Int {
-	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
-	//	}
-	//}
-	//if len(main.consts.Float) > 0 {
-	//	_, _ = fmt.Fprintf(&b, "\nconst float\n")
-	//	for i, value := range main.consts.Float {
-	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
-	//	}
-	//}
-	//if len(main.consts.String) > 0 {
-	//	_, _ = fmt.Fprintf(&b, "\nconst string\n")
-	//	for i, value := range main.consts.String {
-	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
-	//	}
-	//}
-	//if len(main.consts.Iface) > 0 {
-	//	_, _ = fmt.Fprintf(&b, "\nconst\n")
-	//	for i, value := range main.consts.Iface {
-	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
-	//	}
-	//}
-	_, _ = fmt.Fprint(&b, "\n")
-	if len(pkg.packages) > 0 {
-		for _, p := range pkg.packages {
-			_, _ = fmt.Fprintf(&b, "Import %q\n", p.name)
-		}
-		_, _ = fmt.Fprint(&b, "\n")
-	}
-	for i, fn := range pkg.scrigoFunctions {
-		if i > 0 {
-			_, _ = b.WriteString("\n")
-		}
-		_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
-		disassembleFunction(&b, fn, 0)
-	}
-	_, _ = fmt.Fprint(&b, "\n")
-	return b.WriteTo(w)
+func packageName(pkg string) string {
+	i := strings.LastIndex(pkg, "/")
+	return pkg[i+1:]
 }
+
+//func Disassemble(w io.Writer, pkg *Package) (int64, error) {
+//	var b bytes.Buffer
+//	_, _ = fmt.Fprintf(&b, "\nPackage %s\n", pkg.name)
+//	//if len(main.consts.Int) > 0 {
+//	//	_, _ = fmt.Fprintf(&b, "\nconst int\n")
+//	//	for i, value := range main.consts.Int {
+//	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
+//	//	}
+//	//}
+//	//if len(main.consts.Float) > 0 {
+//	//	_, _ = fmt.Fprintf(&b, "\nconst float\n")
+//	//	for i, value := range main.consts.Float {
+//	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
+//	//	}
+//	//}
+//	//if len(main.consts.String) > 0 {
+//	//	_, _ = fmt.Fprintf(&b, "\nconst string\n")
+//	//	for i, value := range main.consts.String {
+//	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
+//	//	}
+//	//}
+//	//if len(main.consts.Iface) > 0 {
+//	//	_, _ = fmt.Fprintf(&b, "\nconst\n")
+//	//	for i, value := range main.consts.Iface {
+//	//		_, _ = fmt.Fprintf(&b, "\t%d\t%#v\n", i, value)
+//	//	}
+//	//}
+//	//_, _ = fmt.Fprint(&b, "\n")
+//	//if len(pkg.packages) > 0 {
+//	//	for _, p := range pkg.packages {
+//	//		_, _ = fmt.Fprintf(&b, "Import %q\n", p.name)
+//	//	}
+//	//	_, _ = fmt.Fprint(&b, "\n")
+//	//}
+//	//for i, fn := range pkg.scrigoFunctions {
+//	//	if i > 0 {
+//	//		_, _ = b.WriteString("\n")
+//	//	}
+//	//	_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
+//	//	disassembleFunction(&b, fn, 0)
+//	//}
+//	//_, _ = fmt.Fprint(&b, "\n")
+//	return b.WriteTo(w)
+//}
 
 func DisassembleFunction(w io.Writer, fn *ScrigoFunction) (int64, error) {
 	var b bytes.Buffer
@@ -199,19 +204,13 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opCall, opCallFunc, opTailCall:
-		if a == NoPackage {
-			s += " " + disassembleOperand(fn, b, Interface, false)
-		} else if b != CurrentFunction {
-			pkg := fn.pkg
-			if a != CurrentPackage {
-				pkg = pkg.packages[uint8(a)]
-			}
-			s += " " + pkg.name + "."
+		if a != CurrentFunction {
+			s += " " + packageName(fn.pkg) + "."
 			switch op {
 			case opCall, opTailCall:
-				s += pkg.scrigoFunctions[uint8(b)].name
+				s += fn.scrigoFunctions[uint8(b)].name
 			case opCallFunc:
-				name := pkg.nativeFunctions[uint8(b)].name
+				name := fn.nativeFunctions[uint8(b)].name
 				if name == "" {
 					s += strconv.Itoa(int(uint8(b)))
 				} else {
@@ -273,22 +272,15 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
-		pkg := fn.pkg
-		if a != CurrentPackage {
-			pkg = pkg.packages[uint8(a)]
-		}
-		s += " " + pkg.name + "." + pkg.scrigoFunctions[uint8(b)].name
+		s += " " + packageName(fn.pkg) + "." + fn.scrigoFunctions[uint8(b)].name
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
-		pkg := fn.pkg
-		if a != CurrentPackage {
-			pkg = pkg.packages[uint8(a)]
-		}
-		s += " " + pkg.name + "."
-		if pkg.varNames == nil {
+		s += " " + packageName(fn.pkg) + "."
+		name := fn.variables[uint8(b)].name
+		if name == "" {
 			s += strconv.Itoa(int(uint8(b)))
 		} else {
-			s += pkg.varNames[uint8(b)]
+			s += name
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGo, opReturn:
@@ -362,16 +354,13 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opMakeSlice:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opSetVar:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		pkg := fn.pkg
-		if b != CurrentPackage {
-			pkg = pkg.packages[uint8(b)]
-		}
-		s += " " + pkg.name + "."
-		if pkg.varNames == nil {
+		s += " " + disassembleOperand(fn, b, Interface, false)
+		v := fn.variables[uint8(c)]
+		s += " " + packageName(v.name) + "."
+		if v.name == "" {
 			s += strconv.Itoa(int(uint8(c)))
 		} else {
-			s += pkg.varNames[uint8(c)]
+			s += v.name
 		}
 	case opSliceIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)
