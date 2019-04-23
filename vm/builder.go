@@ -7,7 +7,6 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -115,6 +114,7 @@ func (c Condition) String() string {
 }
 
 type NativeFunction struct {
+	pkg    string
 	name   string
 	fast   interface{}
 	value  reflect.Value
@@ -124,8 +124,8 @@ type NativeFunction struct {
 	outOff [4]int8
 }
 
-func NewNativeFunction(name string, fn interface{}) *NativeFunction {
-	return &NativeFunction{name: name, fast: fn}
+func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
+	return &NativeFunction{pkg: pkg, name: name, fast: fn}
 }
 
 func (fn *NativeFunction) slow() {
@@ -188,70 +188,24 @@ func (fn *NativeFunction) slow() {
 	fn.fast = nil
 }
 
-type Package struct {
-	name            string
-	packages        []*Package
-	scrigoFunctions []*ScrigoFunction
-	nativeFunctions []*NativeFunction
-	variables       []interface{}
-	varNames        []string
-
-	// TODO (Gianluca): are these fields exported to the vm? In such case,
-	// these should be kept in compiler, not here!
-	isGoPkg              map[string]bool
-	packagesNames        map[string]uint8
-	scrigoFunctionsNames map[string]int8
-	nativeFunctionsNames map[string]int8
+type variable struct {
+	pkg   string
+	name  string
+	value interface{}
 }
 
-// NewPackage creates a new package.
-func NewPackage(name string) *Package {
-	p := &Package{
-		scrigoFunctionsNames: make(map[string]int8),
-		nativeFunctionsNames: make(map[string]int8),
-		isGoPkg:              make(map[string]bool),
-		name:                 name,
-		packagesNames:        make(map[string]uint8),
-	}
-
-	p.packages = []*Package{}
-	return p
+func NewVariable(pkg, name string, value interface{}) variable {
+	return variable{pkg, name, value}
 }
 
-// Import imports a package.
-func (p *Package) Import(pkg *Package) uint8 {
-	if len(p.packages) == 254 {
-		panic("imported packages limit reached")
-	}
-	p.packages = append(p.packages, pkg)
-	return uint8(len(p.packages) - 1)
-}
-
-// DefineVariable defines a variable.
-func (p *Package) DefineVariable(name string, v interface{}) uint8 {
-	index := len(p.variables)
-	if index == 256 {
+// AddVariable add a variable to a Scrigo function.
+func (fn *ScrigoFunction) AddVariable(v variable) uint8 {
+	r := len(fn.variables)
+	if r > 255 {
 		panic("variables limit reached")
 	}
-	p.variables = append(p.variables, v)
-	if name != "" {
-		if p.varNames == nil {
-			p.varNames = make([]string, len(p.variables))
-		}
-		p.varNames[index] = name
-	}
-	return uint8(index)
-}
-
-// Function returns a Scrigo function by name. Returns an error if the
-// function does not exists.
-func (p *Package) Function(name string) (*ScrigoFunction, error) {
-	for _, fn := range p.scrigoFunctions {
-		if fn.name == name {
-			return fn, nil
-		}
-	}
-	return nil, errors.New("function does not exist")
+	fn.variables = append(fn.variables, v)
+	return uint8(r)
 }
 
 type instruction struct {
@@ -266,19 +220,26 @@ type Upper struct {
 
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
-	name      string
-	file      string
-	line      int
-	typ       reflect.Type
-	pkg       *Package // opCallDirect, opGetFunc, opGetVar, opSetVar
-	parent    *ScrigoFunction
-	crefs     []int16           // opFunc
-	literals  []*ScrigoFunction // opFunc
-	types     []reflect.Type    // opAlloc, opAssert, opMakeMap, opMakeSlice, opNew
-	regnum    [4]uint8          // opCall, opCallDirect
-	constants registers
-	body      []instruction // run, opCall, opCallDirect
-	lines     map[uint32]int
+	pkg             string
+	name            string
+	file            string
+	line            int
+	typ             reflect.Type
+	parent          *ScrigoFunction
+	crefs           []int16           // opFunc
+	literals        []*ScrigoFunction // opFunc
+	types           []reflect.Type    // opAlloc, opAssert, opMakeMap, opMakeSlice, opNew
+	regnum          [4]uint8          // opCall, opCallDirect
+	constants       registers
+	variables       []variable
+	scrigoFunctions []*ScrigoFunction
+	nativeFunctions []*NativeFunction
+	body            []instruction // run, opCall, opCallDirect
+	lines           map[uint32]int
+}
+
+func NewScrigoFunction(pkg, name string, typ reflect.Type) *ScrigoFunction {
+	return &ScrigoFunction{pkg: pkg, name: name, typ: typ}
 }
 
 func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
@@ -289,28 +250,24 @@ func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
 	}
 }
 
-// AddNativeFunction adds a native function to a package.
-func (p *Package) AddNativeFunction(fn *NativeFunction) (uint8, bool) {
-	r := len(p.nativeFunctions)
+// AddNativeFunction adds a native function to a function.
+func (fn *ScrigoFunction) AddNativeFunction(f *NativeFunction) uint8 {
+	r := len(fn.nativeFunctions)
 	if r > 255 {
-		return 0, false
+		panic("native functions limit reached")
 	}
-	p.nativeFunctions = append(p.nativeFunctions, fn)
-	return uint8(r), true
+	fn.nativeFunctions = append(fn.nativeFunctions, f)
+	return uint8(r)
 }
 
-// NewFunction creates a new Scrigo function and appends it to the package.
-func (p *Package) NewFunction(name string, typ reflect.Type) (fun *ScrigoFunction, index int8) {
-	if len(p.scrigoFunctions) > 255 {
-		panic("scrigoFunctions limit reached")
+// AddScrigoFunction add a Scrigo function to a function.
+func (fn *ScrigoFunction) AddScrigoFunction(f *ScrigoFunction) uint8 {
+	r := len(fn.scrigoFunctions)
+	if r > 255 {
+		panic("Scrigo functions limit reached")
 	}
-	fn := &ScrigoFunction{
-		name: name,
-		pkg:  p,
-		typ:  typ,
-	}
-	p.scrigoFunctions = append(p.scrigoFunctions, fn)
-	return fn, int8(len(p.scrigoFunctions) - 1)
+	fn.scrigoFunctions = append(fn.scrigoFunctions, f)
+	return uint8(r)
 }
 
 func (fn *ScrigoFunction) SetClosureRefs(refs []int16) {
@@ -644,12 +601,9 @@ type StackShift [4]int8
 //
 //     p.f()
 //
-func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, line int) {
+func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 	var fn = builder.fn
-	if p != NoPackage {
-		builder.allocRegister(reflect.Interface, int8(f))
-	}
-	fn.body = append(fn.body, instruction{op: opCall, a: p, b: f, c: NoVariadic})
+	fn.body = append(fn.body, instruction{op: opCall, a: f})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 	fn.AddLine(uint32(len(fn.body)-2), line)
 }
@@ -658,9 +612,9 @@ func (builder *FunctionBuilder) Call(p int8, f int8, shift StackShift, line int)
 //
 //     p.F()
 //
-func (builder *FunctionBuilder) CallFunc(p int8, f int8, numVariadic int8, shift StackShift) {
+func (builder *FunctionBuilder) CallFunc(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallFunc, a: p, b: f, c: numVariadic})
+	fn.body = append(fn.body, instruction{op: opCallFunc, a: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -670,7 +624,7 @@ func (builder *FunctionBuilder) CallFunc(p int8, f int8, numVariadic int8, shift
 //
 func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallIndirect, b: f, c: numVariadic})
+	fn.body = append(fn.body, instruction{op: opCallIndirect, a: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
@@ -799,18 +753,22 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *ScrigoFunction {
 //
 //     z = p.f
 //
-func (builder *FunctionBuilder) GetFunc(p, f int8, z int8) {
+func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: p, b: f, c: z})
+	var a int8
+	if native {
+		a = 1
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: a, b: f, c: z})
 }
 
 // GetVar appends a new "GetVar" instruction to the function body.
 //
 //     z = p.v
 //
-func (builder *FunctionBuilder) GetVar(p, v uint8, z int8) {
+func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetVar, a: int8(p), b: int8(v), c: z})
+	builder.fn.body = append(builder.fn.body, instruction{op: opGetVar, a: int8(v), c: z})
 }
 
 // Go appends a new "Go" instruction to the function body.
@@ -1143,8 +1101,8 @@ func (builder *FunctionBuilder) Return() {
 //
 //     p.v = r
 //
-func (builder *FunctionBuilder) SetVar(r int8, p, v uint8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, a: r, b: int8(p), c: int8(v)})
+func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, b: r, c: int8(v)})
 }
 
 // SetSlice appendsa a new "SetSlice" instruction to the function body.
@@ -1244,11 +1202,8 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 //
 //     f()
 //
-func (builder *FunctionBuilder) TailCall(p int8, f int8, line int) {
+func (builder *FunctionBuilder) TailCall(f int8, line int) {
 	var fn = builder.fn
-	if p != NoPackage {
-		builder.allocRegister(reflect.Interface, int8(f))
-	}
-	fn.body = append(fn.body, instruction{op: opTailCall, a: p, b: f})
+	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
 	fn.AddLine(uint32(len(fn.body)-1), line)
 }

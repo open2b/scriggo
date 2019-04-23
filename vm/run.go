@@ -15,24 +15,15 @@ import (
 var DebugTraceExecution = true
 
 const NoVariadic = -1
-const NoPackage = -2
-const CurrentPackage = -1
 const CurrentFunction = -1
 
 func decodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
 }
 
-func (vm *VM) Run(funcname string) (int, error) {
-
-	var err error
-	vm.fn, err = vm.main.Function(funcname)
-	if err != nil {
-		return 0, err
-	}
-
+func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
+	vm.fn = fn
 	status := vm.run()
-
 	return status, nil
 }
 
@@ -225,11 +216,7 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
-			pkg := vm.fn.pkg
-			if a != CurrentPackage {
-				pkg = pkg.packages[uint8(a)]
-			}
-			fn := pkg.scrigoFunctions[uint8(b)]
+			fn := vm.fn.scrigoFunctions[uint8(a)]
 			off := vm.fn.body[vm.pc]
 			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.op)
@@ -254,7 +241,7 @@ func (vm *VM) run() int {
 
 		// CallIndirect
 		case opCallIndirect:
-			f := vm.general(b).(*callable)
+			f := vm.general(a).(*callable)
 			if f.scrigo != nil {
 				fn := f.scrigo
 				vm.cvars = f.vars
@@ -286,13 +273,9 @@ func (vm *VM) run() int {
 		case opCallFunc:
 			var fn *NativeFunction
 			if op == opCallFunc {
-				pkg := vm.fn.pkg
-				if a != CurrentPackage {
-					pkg = pkg.packages[uint8(a)]
-				}
-				fn = pkg.nativeFunctions[uint8(b)]
+				fn = vm.fn.nativeFunctions[uint8(a)]
 			} else {
-				fn = vm.general(b).(*callable).native
+				fn = vm.general(a).(*callable).native
 			}
 			fp := vm.fp
 			off := vm.fn.body[vm.pc]
@@ -579,24 +562,16 @@ func (vm *VM) run() int {
 		// GetFunc
 		case opGetFunc:
 			var fn interface{}
-			pkg := vm.fn.pkg
-			if a != CurrentPackage {
-				pkg = pkg.packages[uint8(a)]
-			}
-			if pkg.scrigoFunctions == nil {
-				fn = &callable{native: pkg.nativeFunctions[uint8(b)]}
+			if a == 0 {
+				fn = &callable{scrigo: vm.fn.scrigoFunctions[uint8(b)]}
 			} else {
-				fn = &callable{scrigo: pkg.scrigoFunctions[uint8(b)]}
+				fn = &callable{native: vm.fn.nativeFunctions[uint8(b)]}
 			}
 			vm.setGeneral(c, fn)
 
 		// GetVar
 		case opGetVar:
-			pkg := vm.fn.pkg
-			if a > 1 {
-				pkg = pkg.packages[uint8(a)-2]
-			}
-			v := pkg.variables[uint8(b)]
+			v := vm.fn.variables[uint8(a)].value
 			switch v := v.(type) {
 			case *int:
 				vm.setInt(c, int64(*v))
@@ -1400,29 +1375,25 @@ func (vm *VM) run() int {
 
 		// SetVar
 		case opSetVar, -opSetVar:
-			pkg := vm.fn.pkg
-			if a > 1 {
-				pkg = pkg.packages[uint8(b)-2]
-			}
-			v := pkg.variables[uint8(c)]
+			v := vm.fn.variables[uint8(c)].value
 			switch v := v.(type) {
 			case *int:
-				*v = int(vm.intk(a, op < 0))
+				*v = int(vm.intk(b, op < 0))
 			case *float64:
-				*v = vm.floatk(a, op < 0)
+				*v = vm.floatk(b, op < 0)
 			case *string:
-				*v = vm.stringk(a, op < 0)
+				*v = vm.stringk(b, op < 0)
 			default:
 				rv := reflect.ValueOf(v).Elem()
 				switch k := rv.Kind(); k {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					rv.SetInt(vm.intk(a, op < 0))
+					rv.SetInt(vm.intk(b, op < 0))
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					rv.SetUint(uint64(vm.intk(a, op < 0)))
+					rv.SetUint(uint64(vm.intk(b, op < 0)))
 				case reflect.Float32:
-					rv.SetFloat(vm.floatk(a, op < 0))
+					rv.SetFloat(vm.floatk(b, op < 0))
 				default:
-					rv.Set(reflect.ValueOf(vm.general(a)))
+					rv.Set(reflect.ValueOf(vm.general(b)))
 				}
 			}
 
@@ -1489,18 +1460,14 @@ func (vm *VM) run() int {
 		case opTailCall:
 			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: vm.pc, tail: true})
 			vm.pc = 0
-			if b != CurrentFunction {
+			if a != CurrentFunction {
 				var fn *ScrigoFunction
-				if a == NoPackage {
+				if a == 0 {
 					closure := vm.general(b).(*callable)
 					fn = closure.scrigo
 					vm.cvars = closure.vars
 				} else {
-					pkg := vm.fn.pkg
-					if a != CurrentPackage {
-						pkg = pkg.packages[uint8(a)]
-					}
-					fn = pkg.scrigoFunctions[uint8(b)]
+					fn = vm.fn.scrigoFunctions[uint8(b)]
 					vm.cvars = nil
 				}
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {

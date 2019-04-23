@@ -22,12 +22,10 @@ type VM struct {
 	fn    *ScrigoFunction // current function.
 	cvars []interface{}   // closure variables.
 	calls []Call          // call stack.
-	main  *Package        // package "main".
 }
 
-func New(main *Package) *VM {
+func New() *VM {
 	vm := &VM{}
-	vm.main = main
 	vm.regs.Int = make([]int64, StackSize)
 	vm.regs.Float = make([]float64, StackSize)
 	vm.regs.String = make([]string, StackSize)
@@ -113,7 +111,7 @@ func (c *callable) reflectValue() reflect.Value {
 	fn := c.scrigo
 	cvars := c.vars
 	c.value = reflect.MakeFunc(fn.typ, func(args []reflect.Value) []reflect.Value {
-		nvm := New(nil)
+		nvm := New()
 		nvm.fn = fn
 		nvm.cvars = cvars
 		nOut := fn.typ.NumOut()
@@ -191,11 +189,7 @@ func (vm *VM) startScrigoGoroutine() bool {
 	call := vm.fn.body[vm.pc]
 	switch call.op {
 	case opCall:
-		pkg := vm.fn.pkg
-		if call.a != CurrentPackage {
-			pkg = pkg.packages[uint8(call.a)]
-		}
-		fn = pkg.scrigoFunctions[uint8(call.b)]
+		fn = vm.fn.scrigoFunctions[uint8(call.b)]
 	case opCallIndirect:
 		f := vm.general(call.b).(*callable)
 		if f.scrigo == nil {
@@ -206,7 +200,7 @@ func (vm *VM) startScrigoGoroutine() bool {
 	default:
 		return false
 	}
-	nvm := New(vm.main)
+	nvm := New()
 	nvm.fn = fn
 	nvm.cvars = vars
 	vm.pc++
@@ -310,7 +304,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			}
 		}
 		write("\n")
-		write(fn.pkg.name)
+		write(packageName(fn.pkg))
 		write(".")
 		write(fn.name)
 		write("()\n\t")

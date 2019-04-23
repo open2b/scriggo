@@ -16,49 +16,42 @@ import (
 
 // A Compiler compiles sources generating VM's packages.
 type Compiler struct {
-	parser           *parser.Parser
-	currentPkg       *Package
+	parser *parser.Parser
+	// currentPkg       *Package
+	currentFunction  *ScrigoFunction
 	typeinfo         map[ast.Node]*parser.TypeInfo
 	fb               *FunctionBuilder // current function builder.
 	importableGoPkgs map[string]*parser.GoPackage
+
+	availableScrigoFunctions map[string]*ScrigoFunction
+	availableNativeFunctions map[string]*NativeFunction
+
+	isGoPkg              map[string]bool
+	packagesNames        map[string]uint8
+	scrigoFunctionsNames map[string]int8
+	nativeFunctionsNames map[string]int8
 }
 
 // NewCompiler returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
-	c := &Compiler{importableGoPkgs: packages}
+	c := &Compiler{
+		importableGoPkgs: packages,
+
+		availableScrigoFunctions: make(map[string]*ScrigoFunction),
+		availableNativeFunctions: make(map[string]*NativeFunction),
+
+		isGoPkg:              make(map[string]bool),
+		packagesNames:        make(map[string]uint8),
+		scrigoFunctionsNames: make(map[string]int8),
+		nativeFunctionsNames: make(map[string]int8),
+	}
 	c.parser = parser.New(r, packages, true)
 	return c
 }
 
-// goPackageToVMPackage converts a parser's GoPackage to a VM's Package.
-func goPackageToVMPackage(goPkg *parser.GoPackage) *Package {
-	pkg := NewPackage(goPkg.Name)
-	for ident, value := range goPkg.Declarations {
-		_ = ident
-		if _, ok := value.(reflect.Type); ok {
-			continue
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			pkg.DefineVariable(ident, value)
-			continue
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Func {
-			nativeFunc := NewNativeFunction(ident, value)
-			index, ok := pkg.AddNativeFunction(nativeFunc)
-			if !ok {
-				panic("TODO: not implemented")
-			}
-			pkg.nativeFunctionsNames[ident] = int8(index)
-			continue
-		}
-	}
-	return pkg
-}
-
-// Compile compiles path and returns its package.
-func (c *Compiler) Compile(path string) (*Package, error) {
-	tree, err := c.parser.Parse(path, ast.ContextNone)
+func (c *Compiler) CompileFunction() (*ScrigoFunction, error) {
+	tree, err := c.parser.Parse("/test.go", ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +59,13 @@ func (c *Compiler) Compile(path string) (*Package, error) {
 	c.typeinfo = tci["/test.go"].TypeInfo
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
-	return c.currentPkg, nil
+	fun := c.currentFunction
+	return fun, nil
 }
 
 // compilePackage compiles pkg.
 func (c *Compiler) compilePackage(pkg *ast.Package) {
-	c.currentPkg = NewPackage(pkg.Name)
+	// c.currentPkg = NewPackage(pkg.Name)
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
@@ -79,39 +73,59 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			// variable, which is wrong. Putting initFn declaration
 			// outside this switch is wrong too: init.-1 cannot be created
 			// if there's no need.
-			initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
-			initBuilder := initFn.Builder()
-			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
-				currentBuilder := c.fb
-				c.fb = initBuilder
-				reg := c.fb.NewRegister(reflect.Int)
-				c.compileExpr(n.Values[0], reg, reflect.Int)
-				c.fb = currentBuilder
-				name := "A"                 // TODO
-				v := interface{}(int64(10)) // TODO
-				c.currentPkg.DefineVariable(name, v)
-			} else {
-				panic("TODO: not implemented")
-			}
+			// initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
+			// initBuilder := initFn.Builder()
+			// if len(n.Identifiers) == 1 && len(n.Values) == 1 {
+			// 	currentBuilder := c.fb
+			// 	c.fb = initBuilder
+			// 	reg := c.fb.NewRegister(reflect.Int)
+			// 	c.compileExpr(n.Values[0], reg, reflect.Int)
+			// 	c.fb = currentBuilder
+			// 	name := "A"                 // TODO
+			// 	v := interface{}(int64(10)) // TODO
+			// 	c.currentPkg.DefineVariable(name, v)
+			// } else {
+			// 	panic("TODO: not implemented")
+			// }
 		case *ast.Func:
-			fn, index := c.currentPkg.NewFunction(n.Ident.Name, n.Type.Reflect)
+			fn := NewScrigoFunction("main", n.Ident.Name, n.Type.Reflect)
+			c.currentFunction = fn
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
-			c.currentPkg.scrigoFunctionsNames[n.Ident.Name] = index
+			c.scrigoFunctionsNames[n.Ident.Name] = 0
+			c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fn)
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
+			c.availableScrigoFunctions[n.Ident.Name] = fn
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
 				parserGoPkg, ok := c.importableGoPkgs[n.Path]
 				if !ok {
 					panic(fmt.Errorf("bug: trying to import Go package %q, but it's not available (availables are: %v)!", n.Path, c.importableGoPkgs))
 				}
-				goPkg := goPackageToVMPackage(parserGoPkg)
-				pkgIndex := c.currentPkg.Import(goPkg)
-				c.currentPkg.packagesNames[parserGoPkg.Name] = pkgIndex
-				c.currentPkg.isGoPkg[parserGoPkg.Name] = true
+				for ident, value := range parserGoPkg.Declarations {
+					_ = ident
+					if _, ok := value.(reflect.Type); ok {
+						continue
+					}
+					if reflect.TypeOf(value).Kind() == reflect.Ptr {
+						// pkg.DefineVariable(ident, value)
+						// continue
+					}
+					if reflect.TypeOf(value).Kind() == reflect.Func {
+						nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
+						// index, ok := pkg.AddNativeFunction(nativeFunc)
+						// if !ok {
+						// 	panic("TODO: not implemented")
+						// }
+						// pkg.nativeFunctionsNames[ident] = int8(index)
+						// continue
+						c.availableNativeFunctions[ident] = nativeFunc
+					}
+				}
+				c.isGoPkg[parserGoPkg.Name] = true
 			}
 		}
 	}
@@ -269,13 +283,14 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	}
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsAVariable(ident.Name) {
-			if i, isScrigoFunc := c.currentPkg.scrigoFunctionsNames[ident.Name]; isScrigoFunc {
-				funcType := c.currentPkg.scrigoFunctions[i].typ
+			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
+				funcType := fun.typ
+				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
 				regs, kinds := c.prepareCallParameters(funcType, call.Args)
-				c.fb.Call(CurrentPackage, i, stackShift, call.Pos().Line)
+				c.fb.Call(int8(len(c.currentFunction.scrigoFunctions)-1), stackShift, call.Pos().Line)
 				return regs, kinds
 			}
-			if nativeFunc, isNativeFunc := c.currentPkg.nativeFunctionsNames[ident.Name]; isNativeFunc {
+			if nativeFunc, isNativeFunc := c.nativeFunctionsNames[ident.Name]; isNativeFunc {
 				_ = nativeFunc
 				panic("TODO: calling native functions imported with '.' not implemented")
 				return nil, nil
@@ -284,15 +299,18 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	}
 	if sel, ok := call.Func.(*ast.Selector); ok {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
-			pkgIndex, isPkg := c.currentPkg.packagesNames[name.Name]
-			if isPkg {
-				if isGoPkg := c.currentPkg.isGoPkg[name.Name]; isGoPkg {
-					goPkg := c.currentPkg.packages[pkgIndex]
-					i := goPkg.nativeFunctionsNames[sel.Ident]
-					var funcType reflect.Type
-					funcType = reflect.TypeOf(goPkg.nativeFunctions[i].fast)
+			_, isPkg := c.packagesNames[name.Name]
+			if isPkg || true {
+				if isGoPkg := c.isGoPkg[name.Name]; isGoPkg {
+					fun := c.availableNativeFunctions[sel.Ident]
+					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
+					// goPkg := c.currentFunction.packages[pkgIndex]
+					// i := goPkg.nativeFunctionsNames[sel.Ident]
+					// var funcType reflect.Type
+					// funcType = reflect.TypeOf(goPkg.nativeFunctions[i].fast)
+					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args)
-					c.fb.CallFunc(int8(pkgIndex), i, NoVariadic, stackShift)
+					c.fb.CallFunc(int8(len(c.currentFunction.nativeFunctions))-1, NoVariadic, stackShift)
 					return regs, kinds
 				} else {
 					panic("TODO: calling scrigo functions from imported packages not implemented")
@@ -465,12 +483,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		c.fb.Assert(exprReg, typ, reg)
 
 	case *ast.Selector:
-		pkgName := expr.Expr.(*ast.Identifier).Name
-		funcName := expr.Ident
-		pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
-		goPkg := c.currentPkg.packages[pkgIndex]
-		funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
-		c.fb.GetFunc(pkgIndex, funcIndex, reg)
+		// pkgName := expr.Expr.(*ast.Identifier).Name
+		// funcName := expr.Ident
+		// pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
+		// goPkg := c.currentPkg.packages[pkgIndex]
+		// funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
+		// c.fb.GetFunc(pkgIndex, funcIndex, reg)
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg, dstKind)
@@ -954,7 +972,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				if _, isCall := node.Values[0].(*ast.Call); isCall {
 					// TODO (Gianluca): must assign new values.
 					// TODO (Gianluca): use the appropiate function, cause not necessarily is CurrentPackage, CurrentFunction.
-					c.fb.TailCall(CurrentPackage, CurrentFunction, node.Pos().Line)
+					// c.fb.TailCall(CurrentPackage, CurrentFunction, node.Pos().Line)
 					continue
 				}
 			}
