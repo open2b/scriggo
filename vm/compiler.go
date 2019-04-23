@@ -16,8 +16,7 @@ import (
 
 // A Compiler compiles sources generating VM's packages.
 type Compiler struct {
-	parser *parser.Parser
-	// currentPkg       *Package
+	parser           *parser.Parser
 	currentFunction  *ScrigoFunction
 	typeinfo         map[ast.Node]*parser.TypeInfo
 	fb               *FunctionBuilder // current function builder.
