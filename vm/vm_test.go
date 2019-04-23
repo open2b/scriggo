@@ -1538,6 +1538,32 @@ var stmtTests = []struct {
 			{TypeInt, 2, int64(5)}, // b
 			{TypeInt, 3, int64(3)}, // c
 		}, ""},
+
+	{"Native function 'Swap'",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			var i1, i2 int
+			var s1, s2 string
+
+			i1 = 3
+			s1 = "hey"
+
+			s1, i1 = testpkg.Swap(i1, s1)
+			s2, i2 = testpkg.Swap(i1, s1)
+
+			_ = s2
+			_ = i2
+		}
+		`, nil, []reg{
+			{TypeInt, 1, int64(3)},
+			{TypeInt, 2, int64(3)},
+			{TypeString, 1, "hey"},
+			{TypeString, 3, "hey"},
+		}, ""},
 }
 
 func TestVM(t *testing.T) {
@@ -1785,6 +1811,9 @@ var goPackages = map[string]*parser.GoPackage{
 			},
 			"Dec": func(a int) int {
 				return a - 1
+			},
+			"Swap": func(a int, b string) (string, int) {
+				return b, a
 			},
 		},
 	},
