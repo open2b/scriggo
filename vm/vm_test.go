@@ -1515,6 +1515,29 @@ var stmtTests = []struct {
 			{TypeIface, 1, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
 		""},
+
+	{"Multiple native function calls",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			var a, b, c int
+			
+			a = testpkg.Inc(5)
+			b = testpkg.Dec(a)
+			c = testpkg.Inc(0) + testpkg.Dec(testpkg.Dec(testpkg.Dec(b)))
+
+			_, _, _ = a, b, c
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(6)}, // a
+			{TypeInt, 2, int64(5)}, // b
+			{TypeInt, 3, int64(3)}, // c
+		}, ""},
 }
 
 func TestVM(t *testing.T) {
@@ -1756,6 +1779,12 @@ var goPackages = map[string]*parser.GoPackage{
 			},
 			"Pair": func() (int, int) {
 				return 42, 33
+			},
+			"Inc": func(a int) int {
+				return a + 1
+			},
+			"Dec": func(a int) int {
+				return a - 1
 			},
 		},
 	},
