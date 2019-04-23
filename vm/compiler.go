@@ -84,6 +84,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			// }
 		case *ast.Func:
 			fn := NewScrigoFunction("main", n.Ident.Name, n.Type.Reflect)
+			c.availableScrigoFunctions[n.Ident.Name] = fn
 			c.currentFunction = fn
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
@@ -92,7 +93,6 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-			c.availableScrigoFunctions[n.Ident.Name] = fn
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
 				parserGoPkg, ok := c.importableGoPkgs[n.Path]
