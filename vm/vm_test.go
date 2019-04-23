@@ -1565,10 +1565,83 @@ var stmtTests = []struct {
 			{TypeString, 1, "hey"},
 			{TypeString, 3, "hey"},
 		}, ""},
+
+	{"Many Scrigo functions (swap, sum, fact)",
+		`
+		package main
+
+		import "testpkg"
+
+		func swap(a, b int) (int, int) {
+			return b, a
+		}
+
+		func sum(a, b, c int) int {
+			s := 0
+			s += a
+			s += b
+			s += c
+			return s
+		}
+
+		func fact(n int) int {
+			switch n {
+			case 0:
+				return 1
+			case 1:
+				return 1
+			default:
+				return n * fact(n-1)
+			}
+		}
+
+		func main() {
+			var a, b, c, d, e, f int
+
+			a = 2
+			b = 6
+			a, b = swap(a, b)
+			c, d = swap(a, b)
+			e = sum(a, b, sum(c, d, 0))
+			f = fact(d+2) + sum(a, b, c)
+
+			_ = a
+			_ = b
+			_ = c
+			_ = d
+			_ = e
+			_ = f
+
+			testpkg.PrintString("a:")
+			testpkg.PrintInt(a)
+			testpkg.PrintString(",")
+			testpkg.PrintString("b:")
+			testpkg.PrintInt(b)
+			testpkg.PrintString(",")
+			testpkg.PrintString("c:")
+			testpkg.PrintInt(c)
+			testpkg.PrintString(",")
+			testpkg.PrintString("d:")
+			testpkg.PrintInt(d)
+			testpkg.PrintString(",")
+			testpkg.PrintString("e:")
+			testpkg.PrintInt(e)
+			testpkg.PrintString(",")
+			testpkg.PrintString("f:")
+			testpkg.PrintInt(f)
+			testpkg.PrintString(",")
+
+			return
+		}
+		`,
+		nil,
+		nil,
+		"a:6,b:2,c:2,d:6,e:16,f:40330,",
+	},
 }
 
 func TestVM(t *testing.T) {
-	DebugTraceExecution = true
+	DebugTraceExecution = false
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
@@ -1680,11 +1753,10 @@ func TestVM(t *testing.T) {
 				}
 			}
 
-			_ = output
 			// // Tests if output matches.
-			// if cas.output != output {
-			// 	t.Errorf("test %q: expecting output %q, got %q", cas.name, cas.output, output)
-			// }
+			if cas.output != output {
+				t.Errorf("test %q: expecting output %q, got %q", cas.name, cas.output, output)
+			}
 		})
 	}
 }
@@ -1815,6 +1887,12 @@ var goPackages = map[string]*parser.GoPackage{
 			},
 			"Swap": func(a int, b string) (string, int) {
 				return b, a
+			},
+			"PrintString": func(s string) {
+				fmt.Print(s)
+			},
+			"PrintInt": func(i int) {
+				fmt.Print(i)
 			},
 		},
 	},
