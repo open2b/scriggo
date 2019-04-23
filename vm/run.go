@@ -223,6 +223,7 @@ func (vm *VM) run() int {
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
 			}
+			vm.fp[1] += uint32(off.a)
 			if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
 				vm.moreFloatStack()
 			}
@@ -255,6 +256,7 @@ func (vm *VM) run() int {
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
+				vm.fp[1] += uint32(off.a)
 				if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}

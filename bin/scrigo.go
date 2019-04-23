@@ -53,23 +53,23 @@ func main() {
 	}
 
 	if useVM {
-		path := "/" + filepath.Base(absFile)
+		// path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
 		compiler := vm.NewCompiler(r, packages)
-		pkg, err := compiler.Compile(path)
+		main, err := compiler.CompileFunction()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if asm {
-			_, err = vm.Disassemble(os.Stdout, pkg)
+			_, err = vm.DisassembleFunction(os.Stdout, main)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
 		} else {
 			print("(vm) ")
-			_, err = vm.New(pkg).Run("main")
+			_, err = vm.New().Run(main)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)

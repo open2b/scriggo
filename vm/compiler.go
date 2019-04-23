@@ -300,7 +300,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	if sel, ok := call.Func.(*ast.Selector); ok {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
 			_, isPkg := c.packagesNames[name.Name]
-			if isPkg || true {
+			if isPkg || true { // TODO (Gianluca): to review.
 				if isGoPkg := c.isGoPkg[name.Name]; isGoPkg {
 					fun := c.availableNativeFunctions[sel.Ident]
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
