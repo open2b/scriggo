@@ -242,7 +242,11 @@ func (vm *VM) run() int {
 		// CallIndirect
 		case opCallIndirect:
 			f := vm.general(a).(*callable)
-			if f.scrigo != nil {
+			if f.scrigo == nil {
+				off := vm.fn.body[vm.pc]
+				vm.callNative(f.native, int(c), StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+				startNativeGoroutine = false
+			} else {
 				fn := f.scrigo
 				vm.cvars = f.vars
 				off := vm.fn.body[vm.pc]
@@ -265,193 +269,14 @@ func (vm *VM) run() int {
 				vm.fn = fn
 				vm.calls = append(vm.calls, call)
 				vm.pc = 0
-				continue
 			}
-			fallthrough
 
-		// CallFunc, CallIndirect
-		case opCallFunc:
-			var fn *NativeFunction
-			if op == opCallFunc {
-				fn = vm.fn.nativeFunctions[uint8(a)]
-			} else {
-				fn = vm.general(a).(*callable).native
-			}
-			fp := vm.fp
+		// CallNative
+		case opCallNative:
+			fn := vm.fn.nativeFunctions[uint8(a)]
 			off := vm.fn.body[vm.pc]
-			vm.fp[0] += uint32(off.op)
-			vm.fp[1] += uint32(off.a)
-			vm.fp[2] += uint32(off.b)
-			vm.fp[3] += uint32(off.c)
-			if fn.fast != nil {
-				if startNativeGoroutine {
-					startNativeGoroutine = false
-					switch f := fn.fast.(type) {
-					case func(string) int:
-						go f(vm.string(1))
-					case func(string) string:
-						go f(vm.string(2))
-					case func(string, string) int:
-						go f(vm.string(1), vm.string(2))
-					case func(string, int) string:
-						go f(vm.string(2), int(vm.int(1)))
-					case func(string, string) bool:
-						go f(vm.string(1), vm.string(2))
-					case func([]byte) []byte:
-						go f(vm.general(2).([]byte))
-					case func([]byte, []byte) int:
-						go f(vm.general(1).([]byte), vm.general(2).([]byte))
-					case func([]byte, []byte) bool:
-						go f(vm.general(1).([]byte), vm.general(2).([]byte))
-					default:
-						startNativeGoroutine = true
-						fn.slow()
-					}
-				} else {
-					switch f := fn.fast.(type) {
-					case func(string) int:
-						vm.setInt(1, int64(f(vm.string(1))))
-					case func(string) string:
-						vm.setString(1, f(vm.string(2)))
-					case func(string, string) int:
-						vm.setInt(1, int64(f(vm.string(1), vm.string(2))))
-					case func(string, int) string:
-						vm.setString(1, f(vm.string(2), int(vm.int(1))))
-					case func(string, string) bool:
-						vm.setBool(1, f(vm.string(1), vm.string(2)))
-					case func([]byte) []byte:
-						vm.setGeneral(1, f(vm.general(2).([]byte)))
-					case func([]byte, []byte) int:
-						vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
-					case func([]byte, []byte) bool:
-						vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
-					default:
-						fn.slow()
-					}
-				}
-			}
-			if fn.fast == nil {
-				variadic := fn.value.Type().IsVariadic()
-				if len(fn.in) > 0 {
-					vm.fp[0] += uint32(fn.outOff[0])
-					vm.fp[1] += uint32(fn.outOff[1])
-					vm.fp[2] += uint32(fn.outOff[2])
-					vm.fp[3] += uint32(fn.outOff[3])
-					lastNonVariadic := len(fn.in)
-					if variadic && c != NoVariadic {
-						lastNonVariadic--
-					}
-					for i, k := range fn.in {
-						if i < lastNonVariadic {
-							switch k {
-							case Bool:
-								fn.args[i].SetBool(vm.bool(1))
-								vm.fp[0]++
-							case Int:
-								fn.args[i].SetInt(vm.int(1))
-								vm.fp[0]++
-							case Uint:
-								fn.args[i].SetUint(uint64(vm.int(1)))
-								vm.fp[0]++
-							case Float64:
-								fn.args[i].SetFloat(vm.float(1))
-								vm.fp[1]++
-							case String:
-								fn.args[i].SetString(vm.string(1))
-								vm.fp[2]++
-							case Func:
-								f := vm.general(1).(*callable)
-								fn.args[i].Set(f.reflectValue())
-								vm.fp[3]++
-							default:
-								fn.args[i].Set(reflect.ValueOf(vm.general(1)))
-								vm.fp[3]++
-							}
-						} else {
-							sliceType := fn.args[i].Type()
-							slice := reflect.MakeSlice(sliceType, int(c), int(c))
-							k := sliceType.Elem().Kind()
-							switch k {
-							case reflect.Bool:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).SetBool(vm.bool(int8(j + 1)))
-								}
-							case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).SetInt(vm.int(int8(j + 1)))
-								}
-							case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
-								}
-							case reflect.Float32, reflect.Float64:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).SetFloat(vm.float(int8(j + 1)))
-								}
-							case reflect.Func:
-								for j := 0; j < int(c); j++ {
-									f := vm.general(int8(j + 1)).(*callable)
-									slice.Index(j).Set(f.reflectValue())
-								}
-							case reflect.String:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).SetString(vm.string(int8(j + 1)))
-								}
-							default:
-								for j := 0; j < int(c); j++ {
-									slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
-								}
-							}
-							fn.args[i].Set(slice)
-						}
-					}
-					vm.fp[0] = fp[0] + uint32(off.op)
-					vm.fp[1] = fp[1] + uint32(off.a)
-					vm.fp[2] = fp[2] + uint32(off.b)
-					vm.fp[3] = fp[3] + uint32(off.c)
-				}
-				if startNativeGoroutine {
-					startNativeGoroutine = false
-					if variadic {
-						go fn.value.CallSlice(fn.args)
-					} else {
-						go fn.value.Call(fn.args)
-					}
-				} else {
-					var ret []reflect.Value
-					if variadic {
-						ret = fn.value.CallSlice(fn.args)
-					} else {
-						ret = fn.value.Call(fn.args)
-					}
-					for i, k := range fn.out {
-						switch k {
-						case Bool:
-							vm.setBool(1, ret[i].Bool())
-							vm.fp[0]++
-						case Int:
-							vm.setInt(1, ret[i].Int())
-							vm.fp[0]++
-						case Uint:
-							vm.setInt(1, int64(ret[i].Uint()))
-							vm.fp[0]++
-						case Float64:
-							vm.setFloat(1, ret[i].Float())
-							vm.fp[1]++
-						case String:
-							vm.setString(1, ret[i].String())
-							vm.fp[2]++
-						case Func:
-
-						default:
-							vm.setGeneral(1, ret[i].Interface())
-							vm.fp[3]++
-						}
-					}
-				}
-			}
-			vm.fp = fp
-			vm.pc++
+			vm.callNative(fn, int(c), StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+			startNativeGoroutine = false
 
 		// Cap
 		case opCap:

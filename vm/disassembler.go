@@ -136,7 +136,7 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.op {
-		case opCall, opCallFunc, opTailCall, opCallIndirect, opMakeSlice:
+		case opCall, opCallNative, opTailCall, opMakeSlice:
 			addr += 1
 		}
 	}
@@ -208,13 +208,13 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		grow := fn.body[addr+1]
 		s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 			strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
-	case opCall, opCallFunc, opTailCall:
+	case opCall, opCallNative, opTailCall:
 		if a != CurrentFunction {
 			s += " " + packageName(fn.pkg) + "."
 			switch op {
 			case opCall, opTailCall:
 				s += fn.scrigoFunctions[uint8(b)].name
-			case opCallFunc:
+			case opCallNative:
 				name := fn.nativeFunctions[uint8(b)].name
 				if name == "" {
 					s += strconv.Itoa(int(uint8(b)))
@@ -223,11 +223,11 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 				}
 			}
 		}
-		if c != NoVariadic && op == opCallFunc {
+		if c != NoVariadic && op == opCallNative {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case opCall, opCallFunc:
+		case opCall, opCallNative:
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))

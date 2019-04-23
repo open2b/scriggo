@@ -614,7 +614,7 @@ func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 //
 func (builder *FunctionBuilder) CallFunc(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallFunc, a: f, c: numVariadic})
+	fn.body = append(fn.body, instruction{op: opCallNative, a: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
