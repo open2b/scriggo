@@ -282,25 +282,16 @@ func (vm *VM) run() int {
 			}
 			fallthrough
 
-		// CallFunc, CallMethod, CallIndirect
-		case opCallFunc, opCallMethod:
+		// CallFunc, CallIndirect
+		case opCallFunc:
 			var fn *NativeFunction
-			switch op {
-			case opCallMethod:
-				t := vm.fn.types[int(uint8(a))]
-				m := t.Method(int(uint8(b)))
-				fn = &NativeFunction{name: m.Name, value: m.Func}
-				fn.slow()
-				if i, ok := vm.fn.pkg.AddNativeFunction(fn); ok {
-					vm.fn.body[vm.pc-1] = instruction{op: opCallFunc, a: CurrentPackage, b: int8(i)}
-				}
-			case opCallFunc:
+			if op == opCallFunc {
 				pkg := vm.fn.pkg
 				if a != CurrentPackage {
 					pkg = pkg.packages[uint8(a)]
 				}
 				fn = pkg.nativeFunctions[uint8(b)]
-			case opCall:
+			} else {
 				fn = vm.general(b).(*callable).native
 			}
 			fp := vm.fp

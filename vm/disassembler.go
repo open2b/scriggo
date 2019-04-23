@@ -131,7 +131,7 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.op {
-		case opCall, opCallFunc, opCallMethod, opTailCall, opCallIndirect, opMakeSlice:
+		case opCall, opCallFunc, opTailCall, opCallIndirect, opMakeSlice:
 			addr += 1
 		}
 	}
@@ -198,40 +198,37 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += "@" + strconv.Itoa(depth)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCall, opCallFunc, opCallMethod, opTailCall, opCallIndirect:
+	case opCallIndirect:
+		s += " " + disassembleOperand(fn, b, Interface, false)
+		grow := fn.body[addr+1]
+		s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
+			strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
+	case opCall, opCallFunc, opTailCall:
 		if a == NoPackage {
 			s += " " + disassembleOperand(fn, b, Interface, false)
-		} else {
-			if op == opCallMethod {
-				t := fn.types[int(uint8(a))]
-				m := t.Method(int(uint8(b)))
-				s += " " + t.String() + "." + m.Name
-			} else if op == opCallIndirect {
-				s += " " + disassembleOperand(fn, b, Interface, false)
-			} else if b != CurrentFunction {
-				pkg := fn.pkg
-				if a != CurrentPackage {
-					pkg = pkg.packages[uint8(a)]
-				}
-				s += " " + pkg.name + "."
-				switch op {
-				case opCall, opTailCall:
-					s += pkg.scrigoFunctions[uint8(b)].name
-				case opCallFunc:
-					name := pkg.nativeFunctions[uint8(b)].name
-					if name == "" {
-						s += strconv.Itoa(int(uint8(b)))
-					} else {
-						s += name
-					}
+		} else if b != CurrentFunction {
+			pkg := fn.pkg
+			if a != CurrentPackage {
+				pkg = pkg.packages[uint8(a)]
+			}
+			s += " " + pkg.name + "."
+			switch op {
+			case opCall, opTailCall:
+				s += pkg.scrigoFunctions[uint8(b)].name
+			case opCallFunc:
+				name := pkg.nativeFunctions[uint8(b)].name
+				if name == "" {
+					s += strconv.Itoa(int(uint8(b)))
+				} else {
+					s += name
 				}
 			}
 		}
-		if c != NoVariadic && (op == opCallFunc || op == opCallMethod) {
+		if c != NoVariadic && op == opCallFunc {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case opCall, opCallFunc, opCallMethod, opCallIndirect:
+		case opCall, opCallFunc:
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))

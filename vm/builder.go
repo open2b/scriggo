@@ -674,17 +674,6 @@ func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift Sta
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
 }
 
-// CallMethod appends a new "CallMethod" instruction to the function body.
-//
-//     p.M()
-//
-func (builder *FunctionBuilder) CallMethod(typ reflect.Type, m int8, numVariadic int8, shift StackShift) {
-	var fn = builder.fn
-	a := builder.fn.AddType(typ)
-	fn.body = append(fn.body, instruction{op: opCallMethod, a: int8(a), b: m, c: numVariadic})
-	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
-}
-
 // Assert appends a new "cap" instruction to the function body.
 //
 //     z = cap(s)

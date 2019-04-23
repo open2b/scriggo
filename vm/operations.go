@@ -37,8 +37,6 @@ const (
 
 	opCallFunc
 
-	opCallMethod
-
 	opCap
 
 	opContinue
@@ -200,8 +198,6 @@ var operationName = [...]string{
 	opCallFunc: "CallFunc",
 
 	opCallIndirect: "CallIndirect",
-
-	opCallMethod: "CallMethod",
 
 	opCap: "Cap",
 
