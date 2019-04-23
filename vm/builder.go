@@ -401,18 +401,6 @@ func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
 	return int8(r)
 }
 
-// MakeMap appends a new "MakeMap" instruction to the function body.
-//
-//     c = make(typ, size, dst)
-//
-func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
-	op := opMakeMap
-	if kSize {
-		op = -op
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: typ, b: size, c: dst})
-}
-
 func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
 	r := -len(builder.fn.constants.General) - 1
 	if r == -129 {
@@ -921,6 +909,18 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.allocRegister(reflect.Int, l)
 	// TODO
 	builder.fn.body = append(builder.fn.body, instruction{op: 0, a: s, b: l})
+}
+
+// MakeMap appends a new "MakeMap" instruction to the function body.
+//
+//     c = make(typ, size, dst)
+//
+func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
+	op := opMakeMap
+	if kSize {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: typ, b: size, c: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
