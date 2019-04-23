@@ -278,9 +278,8 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsAVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
-				funcType := fun.typ
 				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
-				regs, kinds := c.prepareCallParameters(funcType, call.Args)
+				regs, kinds := c.prepareCallParameters(fun.typ, call.Args)
 				c.fb.Call(int8(len(c.currentFunction.scrigoFunctions)-1), stackShift, call.Pos().Line)
 				return regs, kinds
 			}
@@ -298,10 +297,6 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				if isGoPkg := c.isGoPkg[name.Name]; isGoPkg {
 					fun := c.availableNativeFunctions[sel.Ident]
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
-					// goPkg := c.currentFunction.packages[pkgIndex]
-					// i := goPkg.nativeFunctionsNames[sel.Ident]
-					// var funcType reflect.Type
-					// funcType = reflect.TypeOf(goPkg.nativeFunctions[i].fast)
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args)
 					c.fb.CallFunc(int8(len(c.currentFunction.nativeFunctions))-1, NoVariadic, stackShift)
