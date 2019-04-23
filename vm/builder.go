@@ -294,12 +294,11 @@ func (fn *ScrigoFunction) AddType(typ reflect.Type) uint8 {
 }
 
 type FunctionBuilder struct {
-	fn         *ScrigoFunction
-	labels     []uint32
-	gotos      map[uint32]uint32
-	numRegs    map[reflect.Kind]uint8
-	scopes     []map[string]int8
-	stackShift StackShift
+	fn      *ScrigoFunction
+	labels  []uint32
+	gotos   map[uint32]uint32
+	numRegs map[reflect.Kind]uint8
+	scopes  []map[string]int8
 }
 
 // Builder returns the body of the function.
