@@ -55,6 +55,7 @@ func main() {
 	if useVM {
 		// path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
+		vm.DebugTraceExecution = false
 		compiler := vm.NewCompiler(r, packages)
 		main, err := compiler.CompileFunction()
 		if err != nil {
