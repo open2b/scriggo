@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"text/tabwriter"
 
 	"scrigo/parser"
 )
@@ -1612,53 +1613,53 @@ func TestVM(t *testing.T) {
 
 			// Tests if disassembler output matches.
 
-			// TODO (Gianluca):
-			// if cas.disassembled != nil {
-			// 	got := &bytes.Buffer{}
-			// 	_, err = DisassembleFunction(got, pkg)
-			// 	if err != nil {
-			// 		t.Errorf("test %q, disassemble error: %s", cas.name, err)
-			// 		return
-			// 	}
-			// 	gotLines := []string{}
-			// 	for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
-			// 		gotLines = append(gotLines, line)
-			// 	}
-			// 	if diff := equal(cas.disassembled, gotLines); diff >= 0 {
-			// 		if !testing.Verbose() {
-			// 			t.Errorf("disassembler output doesn't match for test %q (run tests in verbose mode for further details)", cas.name)
-			// 		} else {
-			// 			out := &bytes.Buffer{}
-			// 			const padding = 3
-			// 			w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
-			// 			fmt.Fprintf(w, "expected\t  got\t\n")
-			// 			fmt.Fprintf(w, "--------\t  ---\t\n")
-			// 			longest := len(cas.disassembled)
-			// 			if len(gotLines) > longest {
-			// 				longest = len(gotLines)
-			// 			}
-			// 			for i := 0; i < longest; i++ {
-			// 				e := " "
-			// 				g := " "
-			// 				if i <= len(cas.disassembled)-1 {
-			// 					e = cas.disassembled[i]
-			// 				}
-			// 				if i <= len(gotLines)-1 {
-			// 					g = gotLines[i]
-			// 				}
-			// 				e = tabsToSpaces(e)
-			// 				g = tabsToSpaces(g)
-			// 				if diff == i+1 {
-			// 					fmt.Fprintf(w, "%s\t  %s\t <<< difference here\n", e, g)
-			// 				} else {
-			// 					fmt.Fprintf(w, "%s\t  %s\t\n", e, g)
-			// 				}
-			// 			}
-			// 			w.Flush()
-			// 			t.Errorf("test %q:\n%s", cas.name, out.String())
-			// 		}
-			// 	}
-			// }
+			// TODO (Gianluca): to review.
+			if false && cas.disassembled != nil {
+				assembler, err := Disassemble(main)
+				if err != nil {
+					t.Errorf("test %q, disassemble error: %s", cas.name, err)
+					return
+				}
+				got := assembler["main"]
+				gotLines := []string{}
+				for _, line := range strings.Split(strings.TrimSpace(got), "\n") {
+					gotLines = append(gotLines, line)
+				}
+				if diff := equal(cas.disassembled, gotLines); diff >= 0 {
+					if !testing.Verbose() {
+						t.Errorf("disassembler output doesn't match for test %q (run tests in verbose mode for further details)", cas.name)
+					} else {
+						out := &bytes.Buffer{}
+						const padding = 3
+						w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
+						fmt.Fprintf(w, "expected\t  got\t\n")
+						fmt.Fprintf(w, "--------\t  ---\t\n")
+						longest := len(cas.disassembled)
+						if len(gotLines) > longest {
+							longest = len(gotLines)
+						}
+						for i := 0; i < longest; i++ {
+							e := " "
+							g := " "
+							if i <= len(cas.disassembled)-1 {
+								e = cas.disassembled[i]
+							}
+							if i <= len(gotLines)-1 {
+								g = gotLines[i]
+							}
+							e = tabsToSpaces(e)
+							g = tabsToSpaces(g)
+							if diff == i+1 {
+								fmt.Fprintf(w, "%s\t  %s\t <<< difference here\n", e, g)
+							} else {
+								fmt.Fprintf(w, "%s\t  %s\t\n", e, g)
+							}
+						}
+						w.Flush()
+						t.Errorf("test %q:\n%s", cas.name, out.String())
+					}
+				}
+			}
 
 			// Tests if registers match.
 
