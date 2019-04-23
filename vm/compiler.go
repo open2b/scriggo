@@ -28,7 +28,6 @@ type Compiler struct {
 
 	isGoPkg              map[string]bool
 	packagesNames        map[string]uint8
-	scrigoFunctionsNames map[string]int8
 	nativeFunctionsNames map[string]int8
 }
 
@@ -43,7 +42,6 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 
 		isGoPkg:              make(map[string]bool),
 		packagesNames:        make(map[string]uint8),
-		scrigoFunctionsNames: make(map[string]int8),
 		nativeFunctionsNames: make(map[string]int8),
 	}
 	c.parser = parser.New(r, packages, true)
@@ -93,7 +91,6 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
-			c.scrigoFunctionsNames[n.Ident.Name] = 0
 			c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fn)
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
