@@ -23,7 +23,41 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func Disassemble(dir string, main *ScrigoFunction) (err error) {
+func DisassembleDir(dir string, main *ScrigoFunction) (err error) {
+
+	packages, err := Disassemble(main)
+	if err != nil {
+		return err
+	}
+
+	for path, source := range packages {
+		pkgDir, file := filepath.Split(path)
+		fullDir := filepath.Join(dir, pkgDir)
+		err = os.MkdirAll(fullDir, 0775)
+		if err != nil {
+			return err
+		}
+		fi, err := os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err = fi.Close()
+		}()
+		_, err = fi.WriteString(source)
+		if err != nil {
+			return err
+		}
+		err = fi.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Disassemble(main *ScrigoFunction) (assembler map[string]string, err error) {
 
 	functionsByPkg := map[string]map[*ScrigoFunction]int{}
 	importsByPkg := map[string]map[string]struct{}{}
@@ -61,6 +95,8 @@ func Disassemble(dir string, main *ScrigoFunction) (err error) {
 		allFunctions = append(allFunctions, fn.scrigoFunctions...)
 	}
 
+	assembler = map[string]string{}
+
 	var b bytes.Buffer
 
 	for path, funcs := range functionsByPkg {
@@ -96,34 +132,13 @@ func Disassemble(dir string, main *ScrigoFunction) (err error) {
 		}
 		_, _ = b.WriteRune('\n')
 
-		pkgDir, file := filepath.Split(path)
-		fullDir := filepath.Join(dir, pkgDir)
-		err = os.MkdirAll(fullDir, 0775)
-		if err != nil {
-			return err
-		}
-
-		fi, err := os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			err = fi.Close()
-		}()
-		_, err = b.WriteTo(fi)
-		if err != nil {
-			return err
-		}
-		err = fi.Close()
-		if err != nil {
-			return err
-		}
+		assembler[path] = b.String()
 
 		b.Reset()
 
 	}
 
-	return nil
+	return assembler, nil
 }
 
 func DisassembleFunction(w io.Writer, fn *ScrigoFunction) (int64, error) {
