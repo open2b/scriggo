@@ -264,6 +264,7 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(50)}, // c
 			{TypeInt, 4, int64(45)}, // d
 		}, ""},
+
 	{"Variable declaration with 'var'",
 		`
 		package main
@@ -297,6 +298,7 @@ var stmtTests = []struct {
 		},
 		"",
 	},
+
 	{"Slice index assignment",
 		`
 		package main
@@ -387,6 +389,7 @@ var stmtTests = []struct {
 		}, ""},
 
 	// Expressions - function literals.
+
 	{"Function literal definition - (0 in, 0 out)",
 		`
 		package main
@@ -415,6 +418,7 @@ var stmtTests = []struct {
 			`		Move R2 R1`,
 			`		MoveInt 20 R2`,
 		}, nil, ""},
+
 	{"Function literal definition - (0 in, 1 out)",
 		`
 		package main
@@ -439,6 +443,7 @@ var stmtTests = []struct {
 			`			Return`,
 			`		Move R2 R1`,
 		}, nil, ""},
+
 	{"Function literal definition - (1 in, 0 out)",
 		`
 		package main
@@ -757,6 +762,7 @@ var stmtTests = []struct {
 			{TypeString, 4, ""},            // (empty string used in s2 initialization)
 			{TypeString, 5, "hello world"}, // s3
 		}, ""},
+
 	// // TODO (Gianluca): add slice, map and array indexing tests.
 	// {"Indexing",
 	// 	`
@@ -1024,6 +1030,7 @@ var stmtTests = []struct {
 		}, ""},
 
 	// Function literal calls.
+
 	{"Function literal call (0 in, 0 out)",
 		`
 		package main
@@ -1043,6 +1050,7 @@ var stmtTests = []struct {
 			`	Move R2 R1`,
 			`	CallIndirect R1    // Stack shift: 0, 0, 0, 2`,
 		}, nil, ""},
+
 	{"Function literal call (0 in, 1 out)",
 		`
 		package main
@@ -1062,6 +1070,7 @@ var stmtTests = []struct {
 		nil, []reg{
 			{TypeInt, 1, int64(25)}, // a
 		}, ""},
+
 	{"Function literal call (1 in, 1 out)",
 		`
 		package main
@@ -1113,8 +1122,7 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		nil, ""},
+		nil, nil, ""},
 
 	{"Package function 'inc'",
 		`
@@ -1283,18 +1291,18 @@ var stmtTests = []struct {
 		}
 		`,
 		[]string{
-			`Package main             `,
-			`                         `,
-			`Func main()              `,
-			`    // regs(3,0,2,3)     `,
-			`    Move fromInt 42 R1   `,
-			`    Print R1             `,
+			`Package main`,
+			``,
+			`Func main()`,
+			`    // regs(3,0,2,3)`,
+			`    Move fromInt 42 R1`,
+			`    Print R1`,
 			`    MoveString "hello" R1`,
 			`    Move fromString R1 R2`,
-			`    Print R2             `,
-			`    MoveInt 10 R2        `,
-			`    Move fromInt R2 R3   `,
-			`    Print R3             `,
+			`    Print R2`,
+			`    MoveInt 10 R2`,
+			`    Move fromInt R2 R3`,
+			`    Print R3`,
 		}, nil, ""},
 
 	{"Builtin make - map",
@@ -1506,8 +1514,7 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeIface, 1, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
-		"",
-	},
+		""},
 }
 
 func TestVM(t *testing.T) {
