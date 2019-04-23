@@ -26,9 +26,8 @@ type Compiler struct {
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
 
-	isGoPkg              map[string]bool
-	packagesNames        map[string]uint8
-	nativeFunctionsNames map[string]int8
+	isGoPkg       map[string]bool
+	packagesNames map[string]uint8
 }
 
 // NewCompiler returns a new compiler reading sources from r.
@@ -40,9 +39,8 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 		availableScrigoFunctions: make(map[string]*ScrigoFunction),
 		availableNativeFunctions: make(map[string]*NativeFunction),
 
-		isGoPkg:              make(map[string]bool),
-		packagesNames:        make(map[string]uint8),
-		nativeFunctionsNames: make(map[string]int8),
+		isGoPkg:       make(map[string]bool),
+		packagesNames: make(map[string]uint8),
 	}
 	c.parser = parser.New(r, packages, true)
 	return c
@@ -287,11 +285,11 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				c.fb.Call(int8(len(c.currentFunction.scrigoFunctions)-1), stackShift, call.Pos().Line)
 				return regs, kinds
 			}
-			if nativeFunc, isNativeFunc := c.nativeFunctionsNames[ident.Name]; isNativeFunc {
-				_ = nativeFunc
-				panic("TODO: calling native functions imported with '.' not implemented")
-				return nil, nil
-			}
+			// if nativeFunc, isNativeFunc := c.nativeFunctionsNames[ident.Name]; isNativeFunc {
+			// 	_ = nativeFunc
+			// 	panic("TODO: calling native functions imported with '.' not implemented")
+			// 	return nil, nil
+			// }
 		}
 	}
 	if sel, ok := call.Func.(*ast.Selector); ok {
