@@ -25,6 +25,12 @@ type Compiler struct {
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
 
+	// TODO (Gianluca): find better names.
+	// TODO (Gianluca): do these maps have to have a *ScrigoFunction key or
+	// can they be related to currentFunction in some way?
+	assignedIndexesOfScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
+	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
+
 	isGoPkg       map[string]bool
 	packagesNames map[string]uint8
 }
@@ -38,11 +44,48 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 		availableScrigoFunctions: make(map[string]*ScrigoFunction),
 		availableNativeFunctions: make(map[string]*NativeFunction),
 
+		assignedIndexesOfScrigoFunctions: make(map[*ScrigoFunction]map[*ScrigoFunction]int8),
+		assignedIndexesOfNativeFunctions: make(map[*ScrigoFunction]map[*NativeFunction]int8),
+
 		isGoPkg:       make(map[string]bool),
 		packagesNames: make(map[string]uint8),
 	}
 	c.parser = parser.New(r, packages, true)
 	return c
+}
+
+// scrigoFunctionIndex returns fun's index inside current function, creating it
+// if not exists.
+func (c *Compiler) scrigoFunctionIndex(fun *ScrigoFunction) int8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedIndexesOfScrigoFunctions[currFun][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(currFun.scrigoFunctions))
+	currFun.scrigoFunctions = append(currFun.scrigoFunctions, fun)
+	if c.assignedIndexesOfScrigoFunctions[currFun] == nil {
+		c.assignedIndexesOfScrigoFunctions[currFun] = make(map[*ScrigoFunction]int8)
+	}
+	c.assignedIndexesOfScrigoFunctions[currFun][fun] = i
+	return i
+}
+
+// nativeFunctionIndex returns fun's index inside current function, creating it
+// if not exists.
+func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedIndexesOfNativeFunctions[currFun][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(currFun.nativeFunctions))
+	currFun.nativeFunctions = append(currFun.nativeFunctions, fun)
+	if c.assignedIndexesOfNativeFunctions[currFun] == nil {
+		c.assignedIndexesOfNativeFunctions[currFun] = make(map[*NativeFunction]int8)
+	}
+	c.assignedIndexesOfNativeFunctions[currFun][fun] = i
+	return i
 }
 
 func (c *Compiler) CompileFunction() (*ScrigoFunction, error) {
@@ -280,7 +323,8 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
 				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
 				regs, kinds := c.prepareCallParameters(fun.typ, call.Args)
-				c.fb.Call(int8(len(c.currentFunction.scrigoFunctions)-1), stackShift, call.Pos().Line)
+				index := c.scrigoFunctionIndex(fun)
+				c.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, kinds
 			}
 			// if nativeFunc, isNativeFunc := c.nativeFunctionsNames[ident.Name]; isNativeFunc {
@@ -299,7 +343,8 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args)
-					c.fb.CallFunc(int8(len(c.currentFunction.nativeFunctions))-1, NoVariadic, stackShift)
+					index := c.nativeFunctionIndex(fun)
+					c.fb.CallFunc(index, NoVariadic, stackShift)
 					return regs, kinds
 				} else {
 					panic("TODO: calling scrigo functions from imported packages not implemented")
