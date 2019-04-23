@@ -322,17 +322,17 @@ func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
 }
 
-// NewRegister makes a new register of kind k.
-func (builder *FunctionBuilder) NewRegister(k reflect.Kind) int8 {
-	switch k {
+// NewRegister makes a new register of a given kind.
+func (builder *FunctionBuilder) NewRegister(kind reflect.Kind) int8 {
+	switch kind {
 	// TODO (Gianluca): to review (same as allocRegister)
 	case reflect.Bool:
-		k = reflect.Int
+		kind = reflect.Int
 	case reflect.Func:
-		k = reflect.Interface
+		kind = reflect.Interface
 	}
-	reg := int8(builder.numRegs[k]) + 1
-	builder.allocRegister(k, reg)
+	reg := int8(builder.numRegs[kind]) + 1
+	builder.allocRegister(kind, reg)
 	return reg
 }
 
