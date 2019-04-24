@@ -294,11 +294,12 @@ func (fn *ScrigoFunction) AddType(typ reflect.Type) uint8 {
 }
 
 type FunctionBuilder struct {
-	fn      *ScrigoFunction
-	labels  []uint32
-	gotos   map[uint32]uint32
-	numRegs map[reflect.Kind]uint8
-	scopes  []map[string]int8
+	fn          *ScrigoFunction
+	labels      []uint32
+	gotos       map[uint32]uint32
+	numRegs     map[reflect.Kind]uint8
+	scopes      []map[string]int8
+	scopeShifts []StackShift
 }
 
 // Builder returns the body of the function.
@@ -313,13 +314,30 @@ func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 }
 
 // EnterScope enters a new scope.
+// TODO (Gianluca): dinstinguish between "EnterScope/ExitScope" (which refer to
+// variables) and "EnterStack/ExitStack", which refer to registers.
 func (builder *FunctionBuilder) EnterScope() {
+	scopeShift := StackShift{
+		int8(builder.numRegs[reflect.Int]),
+		int8(builder.numRegs[reflect.Float64]),
+		int8(builder.numRegs[reflect.String]),
+		int8(builder.numRegs[reflect.Interface]),
+	}
+	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
 	builder.scopes = append(builder.scopes, map[string]int8{})
 }
 
 // ExitScope exits the last scope.
 func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
+	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
+	// TODO (Gianluca): do not change numRegs, create another data structure!
+	// (see allocRegister)
+	builder.numRegs[reflect.Int] = uint8(shift[0])
+	builder.numRegs[reflect.Float64] = uint8(shift[1])
+	builder.numRegs[reflect.String] = uint8(shift[2])
+	builder.numRegs[reflect.Interface] = uint8(shift[3])
+	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
 // NewRegister makes a new register of a given kind.
@@ -491,6 +509,8 @@ func (builder *FunctionBuilder) End() {
 
 }
 
+// TODO (Gianluca): max number of registers must be preserved! Must be
+// independent from register-recylcing optimization.
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 	switch kind {
 	// TODO (Gianluca): to review (same as NewRegister)

@@ -104,6 +104,27 @@ var stmtTests = []struct {
 	output       string
 }{
 
+	{"Recycling of registers",
+		`
+		package main
+
+		import "fmt"
+
+		func main() {
+			a := 10
+			b := a + 32
+			c := 88
+			fmt.Println(a, b, c)
+		}
+		`,
+		nil,
+		[]reg{
+			{TypeInt, 1, int64(10)},
+			{TypeInt, 2, int64(42)},
+			{TypeInt, 3, int64(88)},
+		},
+		"10 42 88\n"},
+
 	// Assignments.
 
 	{"Single assignment",
@@ -343,7 +364,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 1, []int{}}, // a
+			// {TypeIface, 1, []int{}}, // a
 		}, "[]\n"},
 
 	{"Empty string slice composite literal",
@@ -1021,6 +1042,8 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			i := interface{}(int64(5))
 			v := 0
@@ -1033,14 +1056,14 @@ var stmtTests = []struct {
 				v = 30
 			}
 
-			_ = v
+			fmt.Print(v)
 			return
 		}
 		`,
 		nil,
 		[]reg{
-			{TypeInt, 2, int64(20)}, // v
-		}, ""},
+			// {TypeInt, 2, int64(20)}, // v
+		}, "20"},
 
 	// Function literal calls.
 

@@ -197,6 +197,9 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 // If expectedKind if different from evaluated kind, quick-compiling expression
 // is impossibile so isValue and isRegister are both false and content of out is
 // unspecified.
+// TODO (Gianluca): add to function documentation:
+// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
+// not need extra registers for evaluation.
 func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Kind) (out int8, isValue, isRegister bool) {
 	if kindToType(expectedKind) != kindToType(c.typeinfo[expr].Type.Kind()) {
 		return 0, false, false
@@ -436,14 +439,17 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			if op == ast.OperatorAnd {
 				cmp = 1
 			}
+			c.fb.EnterScope()
 			c.compileExpr(expr.Expr1, reg, dstKind)
 			endIf := c.fb.NewLabel()
 			c.fb.If(true, reg, ConditionEqual, cmp, reflect.Int)
 			c.fb.Goto(endIf)
 			c.compileExpr(expr.Expr2, reg, dstKind)
 			c.fb.SetLabelAddr(endIf)
+			c.fb.ExitScope()
 			return
 		}
+		c.fb.EnterScope()
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
 		op1 := c.fb.NewRegister(kind)
 		c.compileExpr(expr.Expr1, op1, kind)
@@ -494,6 +500,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			c.fb.If(ky, op1, cond, op2, kind)
 			c.fb.Move(true, 0, reg, kind, kind)
 		}
+		c.fb.ExitScope()
 
 	case *ast.Call:
 		// Builtin call.
@@ -697,9 +704,11 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			} else if isRegister {
 				c.fb.Move(false, out, varReg, kind, kind)
 			} else {
+				c.fb.EnterScope()
 				tmpReg := c.fb.NewRegister(kind)
 				c.compileExpr(value, tmpReg, kind)
 				c.fb.Move(false, tmpReg, varReg, kind, kind)
+				c.fb.ExitScope()
 			}
 		case *ast.Index:
 			switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {
