@@ -528,8 +528,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		c.fb.ExitStack()
 
 	case *ast.CompositeLiteral:
-		// TODO (Gianluca): explicit key seems to be ignored when assigning
-		// to slice.
 		c.fb.EnterStack()
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
