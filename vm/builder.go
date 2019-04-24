@@ -319,12 +319,14 @@ func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 // Every EnterScope call must be paired with a corresponding ExitScope call.
 func (builder *FunctionBuilder) EnterScope() {
 	builder.scopes = append(builder.scopes, map[string]int8{})
+	builder.EnterStack()
 }
 
 // ExitScope exits last scope.
 // Every ExitScope call must be paired with a corresponding EnterScope call.
 func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
+	builder.ExitStack()
 }
 
 // EnterStack enters a new virtual stack, whose registers will be reused (if
