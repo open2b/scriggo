@@ -595,11 +595,11 @@ func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 	fn.AddLine(uint32(len(fn.body)-2), line)
 }
 
-// CallFunc appends a new "CallFunc" instruction to the function body.
+// CallNative appends a new "CallNative" instruction to the function body.
 //
 //     p.F()
 //
-func (builder *FunctionBuilder) CallFunc(f int8, numVariadic int8, shift StackShift) {
+func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
 	fn.body = append(fn.body, instruction{op: opCallNative, a: f, c: numVariadic})
 	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})

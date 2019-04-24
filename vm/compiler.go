@@ -369,7 +369,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args)
 					index := c.nativeFunctionIndex(fun)
-					c.fb.CallFunc(index, NoVariadic, stackShift)
+					c.fb.CallNative(index, NoVariadic, stackShift)
 					return regs, kinds
 				} else {
 					panic("TODO: calling scrigo functions from imported packages not implemented")
