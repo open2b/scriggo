@@ -125,6 +125,21 @@ var stmtTests = []struct {
 		},
 		"10 42 88\n"},
 
+	// TODO (Gianluca):
+	// {"Operator address (&)",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		a := 1
+	// 		b := &a
+	// 		c := &a
+	// 		fmt.Println(b == c)
+	// 	}
+	// 	`, nil, nil, ""},
+
 	// Assignments.
 
 	{"Single assignment",
