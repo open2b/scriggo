@@ -206,14 +206,15 @@ var stmtTests = []struct {
 		`
 		package main
 
-		import "testpkg"
+		import (
+			"fmt"
+			"testpkg"
+		)
 
 		func main() {
 			a := 5
 			b, c := testpkg.Pair()
-			_ = a
-			_ = b
-			_ = c
+			fmt.Println(a, b, c)
 			return
 		}
 		`,
@@ -222,7 +223,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(5)},  // a
 			{TypeInt, 2, int64(42)}, // b
 			{TypeInt, 3, int64(33)}, // c
-		}, ""},
+		}, "5 42 33\n"},
 
 	{"Addition (+=) and subtraction (-=) assignments",
 		`
@@ -304,6 +305,8 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			var s1 []int
 			var s2 []string
@@ -314,14 +317,14 @@ var stmtTests = []struct {
 			s2 = []string{"a", "b", "c", "d"}
 			s2[2] = "d"
 
-			_ = s1
-			_ = s2
+			fmt.Println(s1)
+			fmt.Println(s2)
 			return
 		}
 		`, nil, []reg{
 			{TypeIface, 1, []int{2, 2, 3}},               // s1
 			{TypeIface, 2, []string{"a", "b", "d", "d"}}, // s2
-		}, ""},
+		}, "[2 2 3]\n[a b d d]\n"},
 
 	// Expressions - composite literals.
 
@@ -329,15 +332,17 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			a := []int{};
-			_ = a
+			fmt.Println(a)
 		}
 		`,
 		nil,
 		[]reg{
 			{TypeIface, 1, []int{}}, // a
-		}, ""},
+		}, "[]\n"},
 
 	{"Empty string slice composite literal",
 		`
@@ -694,13 +699,15 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			var a, b int
 
 			a = 45
 			b = -a
 
-			_ = b
+			fmt.Print(b)
 			return
 		}
 		`,
@@ -709,7 +716,7 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(45)},  // a
 			{TypeInt, 2, int64(-45)}, // b
 		},
-		""},
+		"-45"},
 
 	{"Go functions as expressions",
 		`
@@ -727,24 +734,27 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			a := "s";
 			b := "ee" + "ff";
 
-			_ = a
-			_ = b
-			return
+			fmt.Println(a)
+			fmt.Print(b)
 		}
 		`,
 		nil,
 		[]reg{
 			{TypeString, 1, "s"},    // a
 			{TypeString, 3, "eeff"}, // b
-		}, ""},
+		}, "s\neeff"},
 
 	{"String concatenation (non constant)",
 		`
 		package main
+
+		import "fmt"
 
 		func main() {
 			var s1, s2, s3 string
@@ -752,7 +762,7 @@ var stmtTests = []struct {
 			s1 = "hello"
 			s2 = "world"
 			s3 = s1 + " " + s2
-			_ = s3
+			fmt.Print(s3)
 		}
 		`,
 		nil,
@@ -762,7 +772,7 @@ var stmtTests = []struct {
 			{TypeString, 3, "world"},       // s2
 			{TypeString, 4, ""},            // (empty string used in s2 initialization)
 			{TypeString, 5, "hello world"}, // s3
-		}, ""},
+		}, "hello world"},
 
 	// // TODO (Gianluca): add slice, map and array indexing tests.
 	// {"Indexing",
