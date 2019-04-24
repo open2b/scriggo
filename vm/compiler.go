@@ -369,10 +369,10 @@ func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
 // respective kind) within which return values are inserted.
 func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kind) {
 	stackShift := StackShift{
-		int8(c.fb.numRegs[reflect.Int]),
-		int8(c.fb.numRegs[reflect.Float64]),
-		int8(c.fb.numRegs[reflect.String]),
-		int8(c.fb.numRegs[reflect.Interface]),
+		int8(c.fb.currentNumRegs[reflect.Int]),
+		int8(c.fb.currentNumRegs[reflect.Float64]),
+		int8(c.fb.currentNumRegs[reflect.String]),
+		int8(c.fb.currentNumRegs[reflect.Interface]),
 	}
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsAVariable(ident.Name) {
