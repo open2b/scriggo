@@ -504,8 +504,10 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 	case *ast.Call:
 		// Builtin call.
+		c.fb.EnterStack()
 		ok := c.compileBuiltin(expr, reg)
 		if ok {
+			c.fb.ExitStack()
 			return
 		}
 		// Conversion.
@@ -515,6 +517,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				arg := c.fb.NewRegister(kind)
 				c.compileExpr(expr.Args[0], arg, kind)
 				c.fb.Convert(arg, typ, reg)
+				c.fb.ExitStack()
 				return
 			}
 		}
@@ -522,6 +525,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		if reg != 0 {
 			c.fb.Move(false, regs[0], reg, kinds[0], kinds[0])
 		}
+		c.fb.ExitStack()
 
 	case *ast.CompositeLiteral:
 		// TODO (Gianluca): explicit key seems to be ignored when assigning

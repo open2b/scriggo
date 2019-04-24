@@ -1272,8 +1272,8 @@ var stmtTests = []struct {
 		nil,
 		[]reg{
 			{TypeInt, 1, int64(2)},  // a
-			{TypeInt, 3, int64(10)}, // b
-			{TypeInt, 4, int64(12)}, // c
+			{TypeInt, 2, int64(10)}, // b
+			{TypeInt, 3, int64(12)}, // c
 		}, ""},
 
 	{"Package function with arguments that need evaluation",
