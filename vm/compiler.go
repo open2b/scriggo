@@ -24,12 +24,14 @@ type Compiler struct {
 
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
+	availableVariables       map[string]variable
 
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *ScrigoFunction key or
 	// can they be related to currentFunction in some way?
 	assignedIndexesOfScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
 	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
+	assignedIndexesOfVariables       map[*ScrigoFunction]map[variable]uint8
 
 	isGoPkg       map[string]bool
 	packagesNames map[string]uint8
@@ -43,9 +45,11 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 
 		availableScrigoFunctions: make(map[string]*ScrigoFunction),
 		availableNativeFunctions: make(map[string]*NativeFunction),
+		availableVariables:       make(map[string]variable),
 
 		assignedIndexesOfScrigoFunctions: make(map[*ScrigoFunction]map[*ScrigoFunction]int8),
 		assignedIndexesOfNativeFunctions: make(map[*ScrigoFunction]map[*NativeFunction]int8),
+		assignedIndexesOfVariables:       make(map[*ScrigoFunction]map[variable]uint8),
 
 		isGoPkg:       make(map[string]bool),
 		packagesNames: make(map[string]uint8),
@@ -85,6 +89,23 @@ func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 		c.assignedIndexesOfNativeFunctions[currFun] = make(map[*NativeFunction]int8)
 	}
 	c.assignedIndexesOfNativeFunctions[currFun][fun] = i
+	return i
+}
+
+// variableIndex returns v's index inside current function, creating it if not
+// exists.
+func (c *Compiler) variableIndex(v variable) uint8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedIndexesOfVariables[currFun][v]
+	if ok {
+		return i
+	}
+	i = uint8(len(currFun.variables))
+	currFun.variables = append(currFun.variables, v)
+	if c.assignedIndexesOfVariables[currFun] == nil {
+		c.assignedIndexesOfVariables[currFun] = make(map[variable]uint8)
+	}
+	c.assignedIndexesOfVariables[currFun][v] = i
 	return i
 }
 
@@ -150,6 +171,8 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 					if reflect.TypeOf(value).Kind() == reflect.Ptr {
 						// pkg.DefineVariable(ident, value)
 						// continue
+						v := NewVariable(parserGoPkg.Name, ident, value)
+						c.availableVariables[ident] = v
 					}
 					if reflect.TypeOf(value).Kind() == reflect.Func {
 						nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
@@ -183,8 +206,10 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 		i := int64(expr.Value.Int64())
 		return int8(i), true, false
 	case *ast.Identifier:
-		v := c.fb.ScopeLookup(expr.Name)
-		return v, false, true
+		if c.fb.IsAVariable(expr.Name) {
+			return c.fb.ScopeLookup(expr.Name), false, true
+		}
+		panic("bug")
 	case *ast.Value:
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
@@ -515,14 +540,15 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		c.fb.Assert(exprReg, typ, reg)
-
 	case *ast.Selector:
-		// pkgName := expr.Expr.(*ast.Identifier).Name
-		// funcName := expr.Ident
-		// pkgIndex := int8(c.currentPkg.packagesNames[pkgName])
-		// goPkg := c.currentPkg.packages[pkgIndex]
-		// funcIndex := int8(goPkg.nativeFunctionsNames[funcName])
-		// c.fb.GetFunc(pkgIndex, funcIndex, reg)
+		if v, ok := c.availableVariables[expr.Ident]; ok {
+			index := c.variableIndex(v)
+			c.fb.GetVar(index, reg) // TODO (Gianluca): to review.
+		} else {
+			// TODO (Gianluca):
+			// log.Printf("█ [DEBUG] █ expr: %v\n", expr) // TODO (Gianluca): Rimuovere
+			// panic("TODO: not implemented")
+		}
 
 	case *ast.UnaryOperator:
 		c.compileExpr(expr.Expr, reg, dstKind)
@@ -610,6 +636,21 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			return
 		}
 		switch variable := variable.(type) {
+		case *ast.Selector:
+			if v, ok := c.availableVariables[variable.Ident]; ok {
+				index := c.variableIndex(v)
+				out, _, isRegister := c.quickCompileExpr(value, kind)
+				var tmpReg int8
+				if isRegister {
+					tmpReg = out
+				} else {
+					tmpReg = c.fb.NewRegister(kind)
+					c.compileExpr(value, tmpReg, kind)
+				}
+				c.fb.SetVar(tmpReg, index)
+				return
+			}
+			panic("TODO: not implemented")
 		case *ast.Identifier:
 			var varReg int8
 			if isDecl {

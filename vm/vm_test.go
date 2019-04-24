@@ -1457,6 +1457,36 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(3)},
 		}, ""},
 
+	// Native (Go) variables.
+
+	{"Reading a native int variable",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			a := testpkg.A
+			testpkg.PrintInt(a)
+		}
+		`, nil, nil,
+		"20"},
+
+	{"Writing a native int variable",
+		`
+		package main
+
+		import "testpkg"
+
+		func main() {
+			testpkg.PrintInt(testpkg.B)
+			testpkg.B = 7
+			testpkg.PrintString("->")
+			testpkg.PrintInt(testpkg.B)
+		}
+		`, nil, nil,
+		"42->7"},
+
 	// Complex tests.
 
 	{"Scrigo function 'repeat(string, int) string'",
@@ -1894,6 +1924,17 @@ var goPackages = map[string]*parser.GoPackage{
 			"PrintInt": func(i int) {
 				fmt.Print(i)
 			},
+			"A": &A,
+			"B": &B,
 		},
 	},
+}
+
+// Used in tests.
+var A int
+var B int
+
+func init() {
+	A = 20
+	B = 42
 }
