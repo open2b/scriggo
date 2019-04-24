@@ -1237,6 +1237,8 @@ var stmtTests = []struct {
 	// 	`
 	// 	package main
 
+	// 	import "fmt"
+
 	// 	func pair() (int, float64) {
 	// 		return 42, 33.0
 	// 	}
@@ -1245,19 +1247,10 @@ var stmtTests = []struct {
 	// 		a := 2
 	// 		b, c := pair()
 	// 		d, e := 11, 12
-	// 		_ = a + b + d + e
-	// 		_ = c
+	// 		fmt.Print(a, b, c, d, e)
 	// 		return
 	// 	}
-	// 	`,
-	// 	nil,
-	// 	[]reg{
-	// 		{TypeInt, 1, int64(2)},        // a
-	// 		{TypeInt, 2, int64(42)},       // b
-	// 		{TypeFloat, 1, float64(33.0)}, // c
-	// 		{TypeInt, 4, int64(11)},       // d
-	// 		{TypeInt, 5, int64(12)},       // e
-	// 	}, ""},
+	// 	`, nil, nil, "2 42 33 11 12"},
 
 	{"Package function with one parameter (not used)",
 		`
