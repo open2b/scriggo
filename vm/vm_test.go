@@ -1283,24 +1283,32 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(12)}, // c
 		}, ""},
 
-	// {"Package function with arguments that need evaluation",
-	// 	`
-	// 	package main
+	{"Package function with arguments that need evaluation",
+		`
+		package main
 
-	// 	import "fmt"
+		import "fmt"
 
-	// 	func f(a, b, c int) {
-	// 		fmt.Print("a, b, c: ", a, b, c)
-	// 	}
+		func f(a, b, c int) {
+			fmt.Println("a, b, c: ", a, b, c)
+			return
+		}
 
-	// 	func main() {
-	// 		a := 3
-	// 		b := 2
-	// 		c := 5
-	// 		f(a, (b * 2) + a - a, c)
-	// 	}
-	// 	`, nil, nil,
-	// 	"a, b, c: 3 4 5"},
+		func g(slice []int) {
+			l := len(slice) // TODO (Gianluca): move inline inside fmt.Println
+			fmt.Println(slice, "has len", l)
+			return
+		}
+
+		func main() {
+			a := 3
+			b := 2
+			c := 5
+			f(a, (b*2)+a-a, c)
+			g([]int{a,b,c})
+		}
+		`, nil, nil,
+		"a, b, c:  3 4 5\n[3 2 5] has len 3\n"},
 
 	// {"Variadic package functions",
 	// 	`
