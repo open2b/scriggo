@@ -807,159 +807,160 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
 // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
 // builtin.
-func (c *Compiler) compileBuiltin(call *ast.Call, reg int8) (ok bool) {
-	if ident, ok := call.Func.(*ast.Identifier); ok {
-		var i instruction
-		switch ident.Name {
-		case "append":
-			panic("TODO: not implemented")
-		case "cap":
-			panic("TODO: not implemented")
-		case "close":
-			panic("TODO: not implemented")
-		case "complex":
-			panic("TODO: not implemented")
-		case "copy":
-			var dst, src int8
-			out, _, isRegister := c.quickCompileExpr(call.Args[0], reflect.Slice)
-			if isRegister {
-				dst = out
+func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind) bool {
+	ident, ok := call.Func.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	switch ident.Name {
+	case "append":
+		panic("TODO: not implemented")
+	case "cap":
+		panic("TODO: not implemented")
+	case "close":
+		panic("TODO: not implemented")
+	case "complex":
+		panic("TODO: not implemented")
+	case "copy":
+		var dst, src int8
+		out, _, isRegister := c.quickCompileExpr(call.Args[0], reflect.Slice)
+		if isRegister {
+			dst = out
+		} else {
+			dst = c.fb.NewRegister(reflect.Slice)
+			c.compileExpr(call.Args[0], dst, reflect.Slice)
+		}
+		out, _, isRegister = c.quickCompileExpr(call.Args[1], reflect.Slice)
+		if isRegister {
+			src = out
+		} else {
+			src = c.fb.NewRegister(reflect.Slice)
+			c.compileExpr(call.Args[0], src, reflect.Slice)
+		}
+		c.fb.Copy(dst, src, reg)
+	case "delete":
+		mapExpr := call.Args[0]
+		keyExpr := call.Args[1]
+		mapType := c.typeinfo[mapExpr].Type
+		keyType := c.typeinfo[keyExpr].Type
+		var mapp, key int8
+		out, _, isRegister := c.quickCompileExpr(mapExpr, reflect.Map)
+		if isRegister {
+			mapp = out
+		} else {
+			mapp = c.fb.NewRegister(mapType.Kind())
+			c.compileExpr(mapExpr, mapp, mapType.Kind())
+		}
+		out, _, isRegister = c.quickCompileExpr(keyExpr, keyType.Kind())
+		if isRegister {
+			key = out
+		} else {
+			key = c.fb.NewRegister(keyType.Kind())
+			c.compileExpr(keyExpr, key, keyType.Kind())
+		}
+		c.fb.Delete(mapp, key)
+	case "imag":
+		panic("TODO: not implemented")
+	case "html": // TODO (Gianluca): to review.
+		panic("TODO: not implemented")
+	case "len":
+		typ := c.typeinfo[call.Args[0]].Type
+		kind := typ.Kind()
+		var a, b int8
+		out, _, isRegister := c.quickCompileExpr(call.Args[0], kind)
+		if isRegister {
+			b = out
+		} else {
+			arg := c.fb.NewRegister(kind)
+			c.compileExpr(call.Args[0], arg, kind)
+			b = arg
+		}
+		switch typ {
+		case reflect.TypeOf(""): // TODO (Gianluca): or should check for kind string?
+			a = 0
+		default:
+			a = 1
+		case reflect.TypeOf([]byte{}):
+			a = 2
+		}
+		tmpReg := c.fb.NewRegister(reflect.Int)
+		c.fb.fn.body = append(c.fb.fn.body, instruction{op: opLen, a: a, b: b, c: tmpReg})
+		c.fb.Move(false, tmpReg, reg, reflect.Int, dstKind)
+	case "make":
+		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
+		regType := c.fb.Type(typ)
+		switch typ.Kind() {
+		case reflect.Map:
+			var size int8
+			var kSize bool
+			out, isValue, isRegister := c.quickCompileExpr(call.Args[1], reflect.Int)
+			if isValue {
+				kSize = true
+				size = out
+			} else if isRegister {
+				size = out
 			} else {
-				dst = c.fb.NewRegister(reflect.Slice)
-				c.compileExpr(call.Args[0], dst, reflect.Slice)
+				size = c.fb.NewRegister(reflect.Int)
+				c.compileExpr(call.Args[1], size, reflect.Int)
 			}
-			out, _, isRegister = c.quickCompileExpr(call.Args[1], reflect.Slice)
-			if isRegister {
-				src = out
+			c.fb.MakeMap(regType, kSize, size, reg)
+		case reflect.Slice:
+			lenExpr := call.Args[1]
+			capExpr := call.Args[2]
+			var len, cap int8
+			var kLen, kCap bool
+			out, isValue, isRegister := c.quickCompileExpr(lenExpr, reflect.Int)
+			if isValue {
+				len = out
+				kLen = true
+			} else if isRegister {
+				len = out
 			} else {
-				src = c.fb.NewRegister(reflect.Slice)
-				c.compileExpr(call.Args[0], src, reflect.Slice)
+				len = c.fb.NewRegister(reflect.Int)
+				c.compileExpr(lenExpr, len, reflect.Int)
 			}
-			c.fb.Copy(dst, src, reg)
-		case "delete":
-			mapExpr := call.Args[0]
-			keyExpr := call.Args[1]
-			mapType := c.typeinfo[mapExpr].Type
-			keyType := c.typeinfo[keyExpr].Type
-			var mapp, key int8
-			out, _, isRegister := c.quickCompileExpr(mapExpr, reflect.Map)
-			if isRegister {
-				mapp = out
+			out, isValue, isRegister = c.quickCompileExpr(capExpr, reflect.Int)
+			if isValue {
+				cap = out
+				kCap = true
+			} else if isRegister {
+				cap = out
 			} else {
-				mapp = c.fb.NewRegister(mapType.Kind())
-				c.compileExpr(mapExpr, mapp, mapType.Kind())
+				cap = c.fb.NewRegister(reflect.Int)
+				c.compileExpr(capExpr, cap, reflect.Int)
 			}
-			out, _, isRegister = c.quickCompileExpr(keyExpr, keyType.Kind())
-			if isRegister {
-				key = out
-			} else {
-				key = c.fb.NewRegister(keyType.Kind())
-				c.compileExpr(keyExpr, key, keyType.Kind())
-			}
-			c.fb.Delete(mapp, key)
-		case "imag":
-			panic("TODO: not implemented")
-		case "html": // TODO (Gianluca): to review.
-			panic("TODO: not implemented")
-		case "len":
-			typ := c.typeinfo[call.Args[0]].Type
-			kind := typ.Kind()
-			var a, b int8
-			out, _, isRegister := c.quickCompileExpr(call.Args[0], kind)
-			if isRegister {
-				b = out
-			} else {
-				arg := c.fb.NewRegister(kind)
-				c.compileExpr(call.Args[0], arg, kind)
-				b = arg
-			}
-			switch typ {
-			case reflect.TypeOf(""): // TODO (Gianluca): or should check for kind string?
-				a = 0
-			default:
-				a = 1
-			case reflect.TypeOf([]byte{}):
-				a = 2
-			}
-			i = instruction{op: opLen, a: a, b: b, c: reg}
-		case "make":
-			typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
-			regType := c.fb.Type(typ)
-			switch typ.Kind() {
-			case reflect.Map:
-				var size int8
-				var kSize bool
-				out, isValue, isRegister := c.quickCompileExpr(call.Args[1], reflect.Int)
-				if isValue {
-					kSize = true
-					size = out
-				} else if isRegister {
-					size = out
-				} else {
-					size = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(call.Args[1], size, reflect.Int)
-				}
-				c.fb.MakeMap(regType, kSize, size, reg)
-			case reflect.Slice:
-				lenExpr := call.Args[1]
-				capExpr := call.Args[2]
-				var len, cap int8
-				var kLen, kCap bool
-				out, isValue, isRegister := c.quickCompileExpr(lenExpr, reflect.Int)
-				if isValue {
-					len = out
-					kLen = true
-				} else if isRegister {
-					len = out
-				} else {
-					len = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(lenExpr, len, reflect.Int)
-				}
-				out, isValue, isRegister = c.quickCompileExpr(capExpr, reflect.Int)
-				if isValue {
-					cap = out
-					kCap = true
-				} else if isRegister {
-					cap = out
-				} else {
-					cap = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(capExpr, cap, reflect.Int)
-				}
-				c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
-			case reflect.Chan:
-				panic("TODO: not implemented")
-			default:
-				panic("bug")
-			}
-		case "new":
-			panic("TODO: not implemented")
-			// typ := c.typeinfo[call.Args[0]].Type
-			// t := c.currFb.Type(typ)
-			// i = instruction{op: opNew, b: t, c: }
-		case "panic":
-			// TODO (Gianluca): pass argument to panic.
-			c.fb.Panic(0, call.Pos().Line)
-		case "print":
-			args := make([]int8, len(call.Args))
-			for i := range call.Args {
-				args[i] = c.fb.NewRegister(reflect.Interface)
-				c.compileExpr(call.Args[i], args[i], reflect.Interface)
-			}
-			c.fb.Print(args)
-			return true
-		case "println":
-			panic("TODO: not implemented")
-		case "real":
-			panic("TODO: not implemented")
-		case "recover":
+			c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
+		case reflect.Chan:
 			panic("TODO: not implemented")
 		default:
-			return false
+			panic("bug")
 		}
-		c.fb.fn.body = append(c.fb.fn.body, i)
+	case "new":
+		panic("TODO: not implemented")
+		// typ := c.typeinfo[call.Args[0]].Type
+		// t := c.currFb.Type(typ)
+		// i = instruction{op: opNew, b: t, c: }
+	case "panic":
+		// TODO (Gianluca): pass argument to panic.
+		c.fb.Panic(0, call.Pos().Line)
+	case "print":
+		args := make([]int8, len(call.Args))
+		for i := range call.Args {
+			args[i] = c.fb.NewRegister(reflect.Interface)
+			c.compileExpr(call.Args[i], args[i], reflect.Interface)
+		}
+		c.fb.Print(args)
 		return true
+	case "println":
+		panic("TODO: not implemented")
+	case "real":
+		panic("TODO: not implemented")
+	case "recover":
+		panic("TODO: not implemented")
+	default:
+		return false
 	}
-	return false
+	return true
 }
 
 // compileNodes compiles nodes.
