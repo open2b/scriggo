@@ -984,13 +984,15 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 		op = -op
 	}
 	var a int8
-	switch srcKind {
-	case reflect.Int:
+	switch kindToType(srcKind) {
+	case TypeInt:
 		a = 1
-	case reflect.Float64:
+	case TypeFloat:
 		a = 2
-	case reflect.String:
+	case TypeString:
 		a = 3
+	case TypeIface:
+		a = 0
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: a, b: x, c: z})
 }
