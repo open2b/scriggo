@@ -439,17 +439,17 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			if op == ast.OperatorAnd {
 				cmp = 1
 			}
-			c.fb.EnterScope()
+			c.fb.EnterStack()
 			c.compileExpr(expr.Expr1, reg, dstKind)
 			endIf := c.fb.NewLabel()
 			c.fb.If(true, reg, ConditionEqual, cmp, reflect.Int)
 			c.fb.Goto(endIf)
 			c.compileExpr(expr.Expr2, reg, dstKind)
 			c.fb.SetLabelAddr(endIf)
-			c.fb.ExitScope()
+			c.fb.ExitStack()
 			return
 		}
-		c.fb.EnterScope()
+		c.fb.EnterStack()
 		kind := c.typeinfo[expr.Expr1].Type.Kind()
 		op1 := c.fb.NewRegister(kind)
 		c.compileExpr(expr.Expr1, op1, kind)
@@ -500,7 +500,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			c.fb.If(ky, op1, cond, op2, kind)
 			c.fb.Move(true, 0, reg, kind, kind)
 		}
-		c.fb.ExitScope()
+		c.fb.ExitStack()
 
 	case *ast.Call:
 		// Builtin call.
@@ -526,7 +526,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 	case *ast.CompositeLiteral:
 		// TODO (Gianluca): explicit key seems to be ignored when assigning
 		// to slice.
-		c.fb.EnterScope()
+		c.fb.EnterStack()
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice:
@@ -568,7 +568,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				panic("TODO: not implemented")
 			}
 		}
-		c.fb.ExitScope()
+		c.fb.ExitStack()
 
 	case *ast.TypeAssertion:
 		kind := c.typeinfo[expr.Expr].Type.Kind()
@@ -706,11 +706,11 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 			} else if isRegister {
 				c.fb.Move(false, out, varReg, kind, kind)
 			} else {
-				c.fb.EnterScope()
+				c.fb.EnterStack()
 				tmpReg := c.fb.NewRegister(kind)
 				c.compileExpr(value, tmpReg, kind)
 				c.fb.Move(false, tmpReg, varReg, kind, kind)
-				c.fb.ExitScope()
+				c.fb.ExitStack()
 			}
 		case *ast.Index:
 			switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {

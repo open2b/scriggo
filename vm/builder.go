@@ -319,6 +319,10 @@ func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 // TODO (Gianluca): dinstinguish between "EnterScope/ExitScope" (which refer to
 // variables) and "EnterStack/ExitStack", which refer to registers.
 func (builder *FunctionBuilder) EnterScope() {
+	builder.scopes = append(builder.scopes, map[string]int8{})
+}
+
+func (builder *FunctionBuilder) EnterStack() {
 	scopeShift := StackShift{
 		int8(builder.currentNumRegs[reflect.Int]),
 		int8(builder.currentNumRegs[reflect.Float64]),
@@ -326,12 +330,14 @@ func (builder *FunctionBuilder) EnterScope() {
 		int8(builder.currentNumRegs[reflect.Interface]),
 	}
 	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
-	builder.scopes = append(builder.scopes, map[string]int8{})
 }
 
 // ExitScope exits the last scope.
 func (builder *FunctionBuilder) ExitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
+}
+
+func (builder *FunctionBuilder) ExitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
 	builder.currentNumRegs[reflect.Int] = uint8(shift[0])
 	builder.currentNumRegs[reflect.Float64] = uint8(shift[1])
