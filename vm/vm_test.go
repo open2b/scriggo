@@ -1258,6 +1258,36 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(12)}, // c
 		}, ""},
 
+	// {"Variadic package functions",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func f(a ...int) {
+	// 		fmt.Println("variadic:", a)
+	// 		return
+	// 	}
+
+	// 	func g(a, b string, c... int) {
+	// 		fmt.Println("strings:", a, b)
+	// 		fmt.Println("variadic:", c)
+	// 		return
+	// 	}
+
+	// 	func h(a string, b... string) int {
+	// 		fmt.Println("a:", a)
+	// 		return len(b)
+	// 	}
+
+	// 	func main() {
+	// 		f(1, 2, 3)
+	// 		g("x", "y", 3, 23, 11, 12)
+	// 		fmt.Println("h:", h("a", "b", "c", "d"))
+	// 	}
+	// 	`, nil, nil,
+	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
+
 	// Builtin function calls.
 
 	{"Builtin len (with a constant argument)",

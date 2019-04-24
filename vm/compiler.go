@@ -294,8 +294,9 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective kind.
-func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression) ([]int8, []reflect.Kind) {
+func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isNative bool) ([]int8, []reflect.Kind) {
 	numOut := funcType.NumOut()
+	numIn := funcType.NumIn()
 	regs := make([]int8, numOut)
 	kinds := make([]reflect.Kind, numOut)
 	for i := 0; i < numOut; i++ {
@@ -304,21 +305,32 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 		kinds[i] = kind
 	}
 	if funcType.IsVariadic() {
-		for i := 0; i < funcType.NumIn()-1; i++ {
+		for i := 0; i < numIn-1; i++ {
 			kind := funcType.In(i).Kind()
 			reg := c.fb.NewRegister(kind)
 			c.compileExpr(args[i], reg, kind)
 		}
-		varArgs := len(args) - (funcType.NumIn() - 1)
-		if varArgs > 0 {
-			kind := funcType.In(funcType.NumIn() - 1).Elem().Kind()
-			for i := 0; i < varArgs; i++ {
-				reg := c.fb.NewRegister(kind)
-				c.compileExpr(args[i], reg, kind)
+		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
+			kind := funcType.In(numIn - 1).Elem().Kind()
+			if isNative {
+				for i := 0; i < varArgs; i++ {
+					reg := c.fb.NewRegister(kind)
+					c.compileExpr(args[i], reg, kind)
+				}
+			} else {
+				sliceReg := int8(numIn)
+				c.fb.MakeSlice(true, true, funcType.In(numIn-1), int8(varArgs), int8(varArgs), sliceReg)
+				for i := 0; i < varArgs; i++ {
+					tmpReg := c.fb.NewRegister(kind)
+					c.compileExpr(args[i+numIn-1], tmpReg, kind)
+					indexReg := c.fb.NewRegister(reflect.Int)
+					c.fb.Move(true, int8(i), indexReg, reflect.Int, reflect.Int)
+					c.fb.SetSlice(false, sliceReg, tmpReg, indexReg, kind)
+				}
 			}
 		}
 	} else {
-		for i := 0; i < funcType.NumIn(); i++ {
+		for i := 0; i < numIn; i++ {
 			kind := funcType.In(i).Kind()
 			reg := c.fb.NewRegister(kind)
 			c.compileExpr(args[i], reg, kind)
@@ -363,7 +375,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		if !c.fb.IsAVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
 				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
-				regs, kinds := c.prepareCallParameters(fun.typ, call.Args)
+				regs, kinds := c.prepareCallParameters(fun.typ, call.Args, false)
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, kinds
@@ -383,7 +395,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					fun := c.availableNativeFunctions[sel.Ident]
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 					funcType := reflect.TypeOf(fun.fast)
-					regs, kinds := c.prepareCallParameters(funcType, call.Args)
+					regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
 					index := c.nativeFunctionIndex(fun)
 					if funcType.IsVariadic() {
 						numVar := len(call.Args) - (funcType.NumIn() - 1)
@@ -407,7 +419,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		c.compileExpr(call.Func, funReg, reflect.Func)
 	}
 	funcType := c.typeinfo[call.Func].Type
-	regs, kinds = c.prepareCallParameters(funcType, call.Args)
+	regs, kinds = c.prepareCallParameters(funcType, call.Args, true)
 	c.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, kinds
 }
