@@ -79,6 +79,13 @@ func TestVMExpressions(t *testing.T) {
 	}
 }
 
+// reg represents a register and it's used in tests only.
+type reg struct {
+	typ   Type
+	r     int8
+	value interface{}
+}
+
 // TODO (Gianluca): currently unable to test:
 //
 //   a | b         --> parsing error
@@ -89,19 +96,17 @@ func TestVMExpressions(t *testing.T) {
 
 // TODO (Gianluca): test fmt.Printf
 
-// reg represents a register and it's used in tests only.
-type reg struct {
-	typ   Type
-	r     int8
-	value interface{}
-}
-
 var stmtTests = []struct {
-	name         string
-	src          string
+	// name is the name of the test.
+	name string
+	// src is the source code which must be executed.
+	src string
+	// disassembled is the expected disassembler output. Can be nil.
 	disassembled []string
-	registers    []reg
-	output       string
+	// registers is a list of expected registers. Can be nil.
+	registers []reg
+	// output is the expected stdout/stderr output.
+	output string
 }{
 
 	{"Recycling of registers",
