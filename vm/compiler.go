@@ -526,6 +526,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 	case *ast.CompositeLiteral:
 		// TODO (Gianluca): explicit key seems to be ignored when assigning
 		// to slice.
+		c.fb.EnterScope()
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice:
@@ -567,6 +568,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				panic("TODO: not implemented")
 			}
 		}
+		c.fb.ExitScope()
 
 	case *ast.TypeAssertion:
 		kind := c.typeinfo[expr.Expr].Type.Kind()
