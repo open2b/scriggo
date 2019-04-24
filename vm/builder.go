@@ -983,17 +983,6 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	builder.fn.body = append(builder.fn.body, in2)
 }
 
-// Map appends a new "map" instruction to the function body.
-//
-//     z = map(t, n)
-//
-func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
-	builder.allocRegister(reflect.Int, n)
-	builder.allocRegister(reflect.Interface, z)
-	a := builder.fn.AddType(typ)
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeMap, a: int8(a), b: n, c: z})
-}
-
 // Move appends a new "move" instruction to the function body.
 //
 //     z = x
