@@ -87,6 +87,8 @@ func TestVMExpressions(t *testing.T) {
 //   a := []int{1,2,3,4}
 //   func f(int) {
 
+// TODO (Gianluca): test fmt.Printf
+
 // reg represents a register and it's used in tests only.
 type reg struct {
 	typ   Type
@@ -1257,6 +1259,25 @@ var stmtTests = []struct {
 			{TypeInt, 3, int64(10)}, // b
 			{TypeInt, 4, int64(12)}, // c
 		}, ""},
+
+	// {"Package function with arguments that need evaluation",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func f(a, b, c int) {
+	// 		fmt.Print("a, b, c: ", a, b, c)
+	// 	}
+
+	// 	func main() {
+	// 		a := 3
+	// 		b := 2
+	// 		c := 5
+	// 		f(a, (b * 2) + a - a, c)
+	// 	}
+	// 	`, nil, nil,
+	// 	"a, b, c: 3 4 5"},
 
 	// {"Variadic package functions",
 	// 	`
