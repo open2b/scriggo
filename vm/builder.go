@@ -316,12 +316,20 @@ func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 }
 
 // EnterScope enters a new scope.
-// TODO (Gianluca): dinstinguish between "EnterScope/ExitScope" (which refer to
-// variables) and "EnterStack/ExitStack", which refer to registers.
+// Every EnterScope call must be paired with a corresponding ExitScope call.
 func (builder *FunctionBuilder) EnterScope() {
 	builder.scopes = append(builder.scopes, map[string]int8{})
 }
 
+// ExitScope exits last scope.
+// Every ExitScope call must be paired with a corresponding EnterScope call.
+func (builder *FunctionBuilder) ExitScope() {
+	builder.scopes = builder.scopes[:len(builder.scopes)-1]
+}
+
+// EnterStack enters a new virtual stack, whose registers will be reused (if
+// necessary) after calling ExitScope.
+// Every EnterStack call must be paired with a corresponding ExitStack call.
 func (builder *FunctionBuilder) EnterStack() {
 	scopeShift := StackShift{
 		int8(builder.currentNumRegs[reflect.Int]),
@@ -332,11 +340,9 @@ func (builder *FunctionBuilder) EnterStack() {
 	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
 }
 
-// ExitScope exits the last scope.
-func (builder *FunctionBuilder) ExitScope() {
-	builder.scopes = builder.scopes[:len(builder.scopes)-1]
-}
-
+// ExitStack exits current virtual stack, allowing its registers to be reused
+// (if necessary).
+// Every ExitStack call must be paired with a corresponding EnterStack call.
 func (builder *FunctionBuilder) ExitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
 	builder.currentNumRegs[reflect.Int] = uint8(shift[0])
@@ -515,8 +521,6 @@ func (builder *FunctionBuilder) End() {
 
 }
 
-// TODO (Gianluca): max number of registers must be preserved! Must be
-// independent from register-recylcing optimization.
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 	switch kind {
 	// TODO (Gianluca): to review (same as NewRegister)
