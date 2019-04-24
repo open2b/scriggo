@@ -1457,6 +1457,22 @@ var stmtTests = []struct {
 			{TypeInt, 1, int64(3)},
 		}, ""},
 
+	{"Native function call of fmt.Println",
+		`
+		package main
+
+		import "fmt"
+
+		func main() {
+			fmt.Println("hello, world!")
+			fmt.Println(42)
+			a := "hi!"
+			fmt.Println(a)
+			fmt.Println(1, 2, 3)
+			fmt.Println(a, a, []int{3,4,5})
+		}
+		`, nil, nil, "hello, world!\n42\nhi!\n1 2 3\nhi! hi! [3 4 5]\n"},
+
 	// Native (Go) variables.
 
 	{"Reading a native int variable",

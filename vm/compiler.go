@@ -303,10 +303,26 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 		regs[i] = c.fb.NewRegister(kind)
 		kinds[i] = kind
 	}
-	for i := 0; i < funcType.NumIn(); i++ {
-		kind := funcType.In(i).Kind()
-		reg := c.fb.NewRegister(kind)
-		c.compileExpr(args[i], reg, kind)
+	if funcType.IsVariadic() {
+		for i := 0; i < funcType.NumIn()-1; i++ {
+			kind := funcType.In(i).Kind()
+			reg := c.fb.NewRegister(kind)
+			c.compileExpr(args[i], reg, kind)
+		}
+		varArgs := len(args) - (funcType.NumIn() - 1)
+		if varArgs > 0 {
+			kind := funcType.In(funcType.NumIn() - 1).Elem().Kind()
+			for i := 0; i < varArgs; i++ {
+				reg := c.fb.NewRegister(kind)
+				c.compileExpr(args[i], reg, kind)
+			}
+		}
+	} else {
+		for i := 0; i < funcType.NumIn(); i++ {
+			kind := funcType.In(i).Kind()
+			reg := c.fb.NewRegister(kind)
+			c.compileExpr(args[i], reg, kind)
+		}
 	}
 	return regs, kinds
 }
@@ -369,7 +385,12 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args)
 					index := c.nativeFunctionIndex(fun)
-					c.fb.CallNative(index, NoVariadic, stackShift)
+					if funcType.IsVariadic() {
+						numVar := len(call.Args) - (funcType.NumIn() - 1)
+						c.fb.CallNative(index, int8(numVar), stackShift)
+					} else {
+						c.fb.CallNative(index, NoVariadic, stackShift)
+					}
 					return regs, kinds
 				} else {
 					panic("TODO: calling scrigo functions from imported packages not implemented")
@@ -546,7 +567,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			c.fb.GetVar(index, reg) // TODO (Gianluca): to review.
 		} else {
 			// TODO (Gianluca):
-			// log.Printf("█ [DEBUG] █ expr: %v\n", expr) // TODO (Gianluca): Rimuovere
 			// panic("TODO: not implemented")
 		}
 
