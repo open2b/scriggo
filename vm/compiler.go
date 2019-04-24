@@ -505,7 +505,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 	case *ast.Call:
 		// Builtin call.
 		c.fb.EnterStack()
-		ok := c.compileBuiltin(expr, reg)
+		ok := c.compileBuiltin(expr, reg, dstKind)
 		if ok {
 			c.fb.ExitStack()
 			return
@@ -528,7 +528,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		c.fb.ExitStack()
 
 	case *ast.CompositeLiteral:
-		c.fb.EnterStack()
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice:
@@ -541,6 +540,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				} else {
 					index++
 				}
+				c.fb.EnterStack()
 				indexReg := c.fb.NewRegister(reflect.Int)
 				c.fb.Move(true, index, indexReg, reflect.Int, reflect.Int)
 				var kvalue bool
@@ -556,6 +556,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 					c.compileExpr(kv.Value, value, typ.Elem().Kind())
 				}
 				c.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
+				c.fb.ExitStack()
 			}
 		case reflect.Array:
 			panic("TODO: not implemented")
@@ -570,7 +571,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				panic("TODO: not implemented")
 			}
 		}
-		c.fb.ExitStack()
 
 	case *ast.TypeAssertion:
 		kind := c.typeinfo[expr.Expr].Type.Kind()
@@ -883,9 +883,11 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 		case reflect.TypeOf([]byte{}):
 			a = 2
 		}
+		c.fb.EnterStack()
 		tmpReg := c.fb.NewRegister(reflect.Int)
 		c.fb.fn.body = append(c.fb.fn.body, instruction{op: opLen, a: a, b: b, c: tmpReg})
 		c.fb.Move(false, tmpReg, reg, reflect.Int, dstKind)
+		c.fb.ExitStack()
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 		regType := c.fb.Type(typ)
