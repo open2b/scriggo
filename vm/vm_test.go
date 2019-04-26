@@ -114,6 +114,25 @@ var stmtTests = []struct {
 	// output is the expected stdout/stderr output.
 	output string
 }{
+	// TODO(Gianluca):
+	// {"Implicit return",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func f() {
+	// 		fmt.Print("f")
+	// 	}
+
+	// 	func g() {
+	// 		fmt.Print("g")
+	// 	}
+
+	// 	func main() {
+	// 		f()
+	// 		g()
+	// 	}`,
+	// 	nil, nil, "fg"},
 
 	{"Recycling of registers",
 		`

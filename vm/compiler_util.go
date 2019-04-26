@@ -84,6 +84,24 @@ func fillParametersTypes(params []*ast.Field) {
 	}
 }
 
+// addExplicitReturn adds an explicit return statement as last statement to fun
+// if it is implicit.
+func addExplicitReturn(fun *ast.Func) {
+	var pos *ast.Position
+	if len(fun.Body.Nodes) == 0 {
+		pos = fun.Pos()
+	} else {
+		last := fun.Body.Nodes[len(fun.Body.Nodes)-1]
+		if _, ok := last.(*ast.Return); ok {
+			pos = last.Pos()
+		}
+	}
+	if pos != nil {
+		ret := ast.NewReturn(pos, nil)
+		fun.Body.Nodes = append(fun.Body.Nodes, ret)
+	}
+}
+
 // size returns node's size.
 func size(node *ast.CompositeLiteral) int {
 	size := 0

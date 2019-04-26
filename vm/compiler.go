@@ -180,6 +180,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
 			c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fn)
+			addExplicitReturn(n)
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
@@ -306,6 +307,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 		c.fb = funcLitBuilder
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)
+		addExplicitReturn(expr)
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.ExitScope()
 		c.fb = currentFb
