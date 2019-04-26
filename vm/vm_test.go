@@ -134,6 +134,28 @@ var stmtTests = []struct {
 	// 	}`,
 	// 	nil, nil, "fg"},
 
+	{"Import with explicit package name",
+		`package main
+		
+		import f "fmt"
+		
+		func main() {
+			f.Println("hey")
+		}`,
+		nil, nil, "hey\n"},
+
+	{"Import with explicit package name (two packages)",
+		`package main
+		
+		import f "fmt"
+		import f2 "fmt"
+		
+		func main() {
+			f.Println("hey")
+			f2.Println("oh!")
+		}`,
+		nil, nil, "hey\noh!\n"},
+
 	{"Recycling of registers",
 		`
 		package main
