@@ -1059,6 +1059,12 @@ func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
+// Nop appends a new "none" instruction to the function body.
+//
+func (builder *FunctionBuilder) Nop() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
+}
+
 // Panic appends a new "panic" instruction to the function body.
 //
 //     panic(v)

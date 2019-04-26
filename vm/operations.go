@@ -173,6 +173,8 @@ func (op operation) String() string {
 
 var operationName = [...]string{
 
+	opNone: "Nop",
+
 	opAddInt:     "AddInt",
 	opAddInt8:    "AddInt8",
 	opAddInt16:   "AddInt16",

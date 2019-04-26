@@ -148,6 +148,14 @@ func (vm *VM) run() int {
 			if !ok && t.Kind() == reflect.Interface {
 				ok = v.Type().Implements(t)
 			}
+			if ok {
+				vm.pc++
+			} else {
+				// TODO(Gianluca): if next istruction is "opPanic",
+				// raise panic from here using the correct error message
+				// (invalid conversion etc...): the "panic" instruction
+				// can't know what failed and what types where involved.
+			}
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				var n int64

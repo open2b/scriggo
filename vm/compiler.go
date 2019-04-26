@@ -607,6 +607,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		c.fb.Assert(exprReg, typ, reg)
+		c.fb.Nop()
+
 	case *ast.Selector:
 		if v, ok := c.availableVariables[expr.Ident]; ok {
 			index := c.variableIndex(v)
@@ -842,7 +844,6 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		expr := c.fb.NewRegister(kind)
 		c.compileExpr(value.Expr, expr, kind)
 		c.fb.Assert(expr, typ, dst)
-		c.fb.IfOk()
 		c.fb.Move(true, 0, okReg, reflect.Int, reflect.Int)
 		c.fb.Move(true, 1, okReg, reflect.Int, reflect.Int)
 	default:
@@ -1212,7 +1213,6 @@ func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
 		for _, caseExpr := range cas.Expressions {
 			caseType := caseExpr.(*ast.Value).Val.(reflect.Type)
 			c.fb.Assert(expr, caseType, 0)
-			c.fb.IfOk()
 			next := c.fb.NewLabel()
 			c.fb.Goto(next)
 			c.fb.Goto(bodyLabels[i])
