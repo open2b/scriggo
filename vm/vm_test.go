@@ -555,6 +555,25 @@ var stmtTests = []struct {
 			{TypeIface, 1, map[string]int{}},
 		}, ""},
 
+	// TODO (Gianluca):
+	// {"(Native) struct composite literal (empty)",
+	// 	`package main
+
+	// 	import (
+	// 		"fmt"
+	// 		"testpkg"
+	// 	)
+
+	// 	func main() {
+	// 		t1 := testpkg.TestPointInt{}
+	// 		fmt.Println(t1)
+	// 	}
+	// 	`,
+	// 	nil,
+	// 	nil,
+	// 	"",
+	// },
+
 	// Expressions - function literals.
 
 	{"Function literal definition - (0 in, 0 out)",
@@ -2201,8 +2220,9 @@ var goPackages = map[string]*parser.GoPackage{
 			"PrintInt": func(i int) {
 				fmt.Print(i)
 			},
-			"A": &A,
-			"B": &B,
+			"A":            &A,
+			"B":            &B,
+			"TestPointInt": reflect.TypeOf(new(TestPointInt)).Elem(),
 		},
 	},
 }
@@ -2214,4 +2234,8 @@ var B int
 func init() {
 	A = 20
 	B = 42
+}
+
+type TestPointInt struct {
+	A, B int
 }
