@@ -195,7 +195,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 					case "_":
 						panic("TODO(Gianluca): not implemented")
 					case ".":
-						panic("TODO(Gianluca): not implemented")
+						importPkgName = ""
 					default:
 						importPkgName = n.Ident.Name
 					}
@@ -209,7 +209,11 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 						// pkg.DefineVariable(ident, value)
 						// continue
 						v := NewVariable(parserGoPkg.Name, ident, value)
-						c.availableVariables[importPkgName+"."+ident] = v
+						if importPkgName == "" {
+							c.availableVariables[ident] = v
+						} else {
+							c.availableVariables[importPkgName+"."+ident] = v
+						}
 					}
 					if reflect.TypeOf(value).Kind() == reflect.Func {
 						nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
@@ -219,7 +223,11 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 						// }
 						// pkg.nativeFunctionsNames[ident] = int8(index)
 						// continue
-						c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+						if importPkgName == "" {
+							c.availableNativeFunctions[ident] = nativeFunc
+						} else {
+							c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+						}
 					}
 				}
 				c.isGoPkg[importPkgName] = true
@@ -248,7 +256,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 		if c.fb.IsAVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true
 		}
-		panic("bug")
+		return 0, false, false
 	case *ast.Value:
 		kind := c.typeinfo[expr].Type.Kind()
 		switch kind {
@@ -424,11 +432,20 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				c.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, kinds
 			}
-			// if nativeFunc, isNativeFunc := c.nativeFunctionsNames[ident.Name]; isNativeFunc {
-			// 	_ = nativeFunc
-			// 	panic("TODO: calling native functions imported with '.' not implemented")
-			// 	return nil, nil
-			// }
+			if _, isNativeFunc := c.availableNativeFunctions[ident.Name]; isNativeFunc {
+				fun := c.availableNativeFunctions[ident.Name]
+				c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
+				funcType := reflect.TypeOf(fun.fast)
+				regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
+				index := c.nativeFunctionIndex(fun)
+				if funcType.IsVariadic() {
+					numVar := len(call.Args) - (funcType.NumIn() - 1)
+					c.fb.CallNative(index, int8(numVar), stackShift)
+				} else {
+					c.fb.CallNative(index, NoVariadic, stackShift)
+				}
+				return regs, kinds
+			}
 		}
 	}
 	if sel, ok := call.Func.(*ast.Selector); ok {

@@ -134,7 +134,17 @@ var stmtTests = []struct {
 	// 	}`,
 	// 	nil, nil, "fg"},
 
-	{"Import with explicit package name",
+	{"Dot import (native)",
+		`package main
+		
+		import . "fmt"
+		
+		func main() {
+			Println("hey")
+		}`,
+		nil, nil, "hey\n"},
+
+	{"Import (native) with explicit package name",
 		`package main
 		
 		import f "fmt"
@@ -144,7 +154,7 @@ var stmtTests = []struct {
 		}`,
 		nil, nil, "hey\n"},
 
-	{"Import with explicit package name (two packages)",
+	{"Import (native) with explicit package name (two packages)",
 		`package main
 		
 		import f "fmt"
