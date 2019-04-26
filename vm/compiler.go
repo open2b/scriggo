@@ -186,9 +186,19 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.fb.ExitScope()
 		case *ast.Import:
 			if n.Tree == nil { // Go package.
-				parserGoPkg, ok := c.importableGoPkgs[n.Path]
-				if !ok {
-					panic(fmt.Errorf("bug: trying to import Go package %q, but it's not available (availables are: %v)!", n.Path, c.importableGoPkgs))
+				var importPkgName string
+				parserGoPkg := c.importableGoPkgs[n.Path]
+				if n.Ident == nil {
+					importPkgName = parserGoPkg.Name
+				} else {
+					switch n.Ident.Name {
+					case "_":
+						panic("TODO(Gianluca): not implemented")
+					case ".":
+						panic("TODO(Gianluca): not implemented")
+					default:
+						importPkgName = n.Ident.Name
+					}
 				}
 				for ident, value := range parserGoPkg.Declarations {
 					_ = ident
@@ -199,7 +209,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 						// pkg.DefineVariable(ident, value)
 						// continue
 						v := NewVariable(parserGoPkg.Name, ident, value)
-						c.availableVariables[ident] = v
+						c.availableVariables[importPkgName+"."+ident] = v
 					}
 					if reflect.TypeOf(value).Kind() == reflect.Func {
 						nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
@@ -209,10 +219,10 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 						// }
 						// pkg.nativeFunctionsNames[ident] = int8(index)
 						// continue
-						c.availableNativeFunctions[ident] = nativeFunc
+						c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
 					}
 				}
-				c.isGoPkg[parserGoPkg.Name] = true
+				c.isGoPkg[importPkgName] = true
 			}
 		}
 	}
@@ -426,7 +436,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			_, isPkg := c.packagesNames[name.Name]
 			if isPkg || true { // TODO (Gianluca): to review.
 				if isGoPkg := c.isGoPkg[name.Name]; isGoPkg {
-					fun := c.availableNativeFunctions[sel.Ident]
+					fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
@@ -638,7 +648,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		c.fb.Nop()
 
 	case *ast.Selector:
-		if v, ok := c.availableVariables[expr.Ident]; ok {
+		if v, ok := c.availableVariables[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			index := c.variableIndex(v)
 			c.fb.GetVar(index, reg) // TODO (Gianluca): to review.
 		} else {
@@ -756,7 +766,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		}
 		switch variable := variable.(type) {
 		case *ast.Selector:
-			if v, ok := c.availableVariables[variable.Ident]; ok {
+			if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
 				index := c.variableIndex(v)
 				out, _, isRegister := c.quickCompileExpr(value, kind)
 				var tmpReg int8
