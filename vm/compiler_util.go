@@ -82,7 +82,6 @@ func fillParametersTypes(params []*ast.Field) {
 		}
 		params[i].Type = typ
 	}
-	return
 }
 
 // size returns node's size.
