@@ -130,6 +130,29 @@ var stmtTests = []struct {
 		},
 		"10 42 88\n"},
 
+	{"Assignment to _ evaluates expression",
+		`
+		package main
+
+		import "fmt"
+
+		func f() int {
+			fmt.Print("f")
+			return 0
+		}
+
+		func main() {
+			_ = 4
+			_ = f()
+			_ = []int{f(), f(), 4, 5}
+			_ = f() + f()
+			_ = -f()
+		}
+		`,
+		nil,
+		nil,
+		"ffffff"},
+
 	{"Order of evaluation - Composite literal values",
 		`
 		package main
@@ -164,11 +187,8 @@ var stmtTests = []struct {
 			s := []int{a(), b(), c(), d(), e()}
 			_ = s
 		}
-		`,
-		nil,
-		nil,
-		"abcde",
-	},
+		`, nil, nil,
+		"abcde"},
 
 	// TODO (Gianluca):
 	// {"Operator address (&)",

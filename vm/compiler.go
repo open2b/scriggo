@@ -430,6 +430,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 // compileExpr compiles expression expr and puts results into reg (of kind
 // kind). Compiled result is discarded if reg is 0.
 // TODO (Gianluca): review all "kind" arguments in every compileExpr call.
+// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
 func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Kind) {
 	switch expr := expr.(type) {
 
@@ -469,17 +470,29 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 		switch op := expr.Operator(); {
 		case op == ast.OperatorAddition && kind == reflect.String:
-			c.fb.Concat(op1, op2, reg)
+			if reg != 0 {
+				c.fb.Concat(op1, op2, reg)
+			}
 		case op == ast.OperatorAddition:
-			c.fb.Add(ky, op1, op2, reg, kind)
+			if reg != 0 {
+				c.fb.Add(ky, op1, op2, reg, kind)
+			}
 		case op == ast.OperatorSubtraction:
-			c.fb.Sub(ky, op1, op2, reg, kind)
+			if reg != 0 {
+				c.fb.Sub(ky, op1, op2, reg, kind)
+			}
 		case op == ast.OperatorMultiplication:
-			c.fb.Mul(op1, op2, reg, kind)
+			if reg != 0 {
+				c.fb.Mul(op1, op2, reg, kind)
+			}
 		case op == ast.OperatorDivision:
-			c.fb.Div(op1, op2, reg, kind)
+			if reg != 0 {
+				c.fb.Div(op1, op2, reg, kind)
+			}
 		case op == ast.OperatorModulo:
-			c.fb.Rem(op1, op2, reg, kind)
+			if reg != 0 {
+				c.fb.Rem(op1, op2, reg, kind)
+			}
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond Condition
 			switch op {
@@ -496,9 +509,11 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			case ast.OperatorGreaterOrEqual:
 				cond = ConditionGreaterOrEqual
 			}
-			c.fb.Move(true, 1, reg, kind, kind)
-			c.fb.If(ky, op1, cond, op2, kind)
-			c.fb.Move(true, 0, reg, kind, kind)
+			if reg != 0 {
+				c.fb.Move(true, 1, reg, kind, kind)
+				c.fb.If(ky, op1, cond, op2, kind)
+				c.fb.Move(true, 0, reg, kind, kind)
+			}
 		}
 		c.fb.ExitStack()
 
@@ -532,7 +547,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		switch typ.Kind() {
 		case reflect.Slice:
 			size := int8(size(expr))
-			c.fb.MakeSlice(true, true, typ, size, size, reg)
+			if reg != 0 {
+				c.fb.MakeSlice(true, true, typ, size, size, reg)
+			}
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
@@ -555,7 +572,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 					value = c.fb.NewRegister(typ.Elem().Kind())
 					c.compileExpr(kv.Value, value, typ.Elem().Kind())
 				}
-				c.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
+				if reg != 0 {
+					c.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
+				}
 				c.fb.ExitStack()
 			}
 		case reflect.Array:
@@ -594,22 +613,32 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 
 	case *ast.UnaryOperator:
-		c.compileExpr(expr.Expr, reg, dstKind)
+		kind := c.typeinfo[expr.Expr].Type.Kind()
+		tmpReg := c.fb.NewRegister(kind)
+		c.compileExpr(expr.Expr, tmpReg, dstKind)
 		switch expr.Operator() {
 		case ast.OperatorNot:
-			c.fb.SubInv(true, reg, int8(1), reg, reflect.Int)
+			c.fb.SubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
+			if reg != 0 {
+				c.fb.Move(false, tmpReg, reg, kind, kind)
+			}
 		case ast.OperatorAmpersand:
 			panic("TODO: not implemented")
 		case ast.OperatorAddition:
 			// Do nothing.
 		case ast.OperatorSubtraction:
-			kind := c.typeinfo[expr.Expr].Type.Kind()
-			c.fb.SubInv(true, reg, 0, reg, kind)
+			c.fb.SubInv(true, tmpReg, 0, tmpReg, kind)
+			if reg != 0 {
+				c.fb.Move(false, tmpReg, reg, kind, kind)
+			}
 		case ast.OperatorMultiplication:
 			panic("TODO: not implemented")
 		}
 
 	case *ast.Value, *ast.Int, *ast.Identifier, *ast.String, *ast.Func: // TODO (Gianluca): remove Int and String
+		if reg == 0 {
+			return
+		}
 		kind := c.typeinfo[expr].Type.Kind()
 		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
 		if isValue {
@@ -667,15 +696,7 @@ func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Exp
 		variable := variables[0]
 		kind := c.typeinfo[value].Type.Kind()
 		if isBlankIdentifier(variable) {
-			// TODO (Gianluca): this is wrong. Consider
-			//
-			// 	_ = f1() + f2()
-			//
-			// both functions must be called.
-			switch value.(type) {
-			case *ast.Call:
-				c.compileNodes([]ast.Node{value})
-			}
+			c.compileNodes([]ast.Node{value})
 			return
 		}
 		switch variable := variable.(type) {
