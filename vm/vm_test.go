@@ -1741,6 +1741,23 @@ var stmtTests = []struct {
 		nil, nil,
 		"a is 42 and b is 33\n"},
 
+	// Package variables
+
+	// TODO(Gianluca):
+	// {"Reading an int variable",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	var A int = 40
+
+	// 	func main() {
+	// 		fmt.Println("A is ", A)
+	// 	}
+	// 	`,
+	// 	nil, nil,
+	// 	"A is 40\n"},
+
 	// Native (Go) variables.
 
 	{"Reading a native int variable",

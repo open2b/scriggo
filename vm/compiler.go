@@ -124,10 +124,36 @@ func (c *Compiler) CompileFunction() (*ScrigoFunction, error) {
 
 // compilePackage compiles pkg.
 func (c *Compiler) compilePackage(pkg *ast.Package) {
-	// c.currentPkg = NewPackage(pkg.Name)
+
+	haveVariables := false
+	for _, dec := range pkg.Declarations {
+		_, ok := dec.(*ast.Var)
+		if ok {
+			haveVariables = true
+			break
+		}
+	}
+
+	var initVars *ScrigoFunction
+	if haveVariables {
+		initVars = NewScrigoFunction("main", "init.vars", reflect.FuncOf(nil, nil, false))
+	}
+	_ = initVars
+
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
+			if len(n.Identifiers) == len(n.Values) {
+				panic("TODO(Gianluca): not implemented")
+				// backupBuilder := c.fb
+				// c.fb = initVars.Builder()
+				// for i := range n.Identifiers {
+				// 	c.compileVarsGetValue([]ast.Expression{n.Identifiers[i]}, n.Values[i], true)
+				// }
+				// c.fb = backupBuilder
+			} else {
+				panic("TODO(Gianluca): not implemented")
+			}
 			// TODO (Gianluca): this makes a new init function for every
 			// variable, which is wrong. Putting initFn declaration
 			// outside this switch is wrong too: init.-1 cannot be created
