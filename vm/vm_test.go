@@ -1723,6 +1723,29 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "hello, world!\n42\nhi!\n1 2 3\nhi! hi! [3 4 5]\n"},
 
+	{"Native function call f(g())",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func f(a int, b int) {
+			fmt.Println("a is", a, "and b is", b)
+			return
+		}
+		
+		func g() (int, int) {
+			return 42, 33
+		}
+		
+		func main() {
+			f(g())
+		}
+		`,
+		nil, nil,
+		"a is 42 and b is 33\n"},
+
 	// Native (Go) variables.
 
 	{"Reading a native int variable",

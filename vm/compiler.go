@@ -331,11 +331,20 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 				}
 			}
 		}
-	} else {
-		for i := 0; i < numIn; i++ {
-			kind := funcType.In(i).Kind()
-			reg := c.fb.NewRegister(kind)
-			c.compileExpr(args[i], reg, kind)
+	} else { // No-variadic function.
+		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
+			regs, kinds := c.compileCall(args[0].(*ast.Call))
+			for i := range regs {
+				dstKind := funcType.In(i).Kind()
+				reg := c.fb.NewRegister(dstKind)
+				c.fb.Move(false, regs[i], reg, kinds[i], dstKind)
+			}
+		} else {
+			for i := 0; i < numIn; i++ {
+				kind := funcType.In(i).Kind()
+				reg := c.fb.NewRegister(kind)
+				c.compileExpr(args[i], reg, kind)
+			}
 		}
 	}
 	return regs, kinds
