@@ -206,8 +206,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 	}
 	switch expr := expr.(type) {
 	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		i := int64(expr.Value.Int64())
-		return int8(i), true, false
+		return int8(expr.Value.Int64()), true, false
 	case *ast.Identifier:
 		if c.fb.IsAVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true
@@ -239,14 +238,10 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 				return int8(n), true, false
 			}
 		case reflect.Float64:
-			// TODO (Gianluca): handle all kind of floats.
+			// TODO (Gianluca): handle all kinds of floats.
 			v := int8(expr.Val.(float64))
 			return v, true, false
-		case reflect.Slice, reflect.Map, reflect.Func, reflect.Ptr:
-			genConst := c.fb.MakeGeneralConstant(expr.Val)
-			reg := c.fb.NewRegister(reflect.Interface)
-			c.fb.Move(true, genConst, reg, reflect.Interface, reflect.Interface)
-			return reg, false, true
+
 		case reflect.Int8,
 			reflect.Int16,
 			reflect.Int32,
@@ -644,7 +639,28 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			panic("TODO: not implemented")
 		}
 
-	case *ast.Value, *ast.Int, *ast.Identifier, *ast.String, *ast.Func: // TODO (Gianluca): remove Int and String
+	case *ast.Value:
+		if reg == 0 {
+			return
+		}
+		kind := c.typeinfo[expr].Type.Kind()
+		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		if isValue {
+			c.fb.Move(true, out, reg, kind, dstKind)
+		} else if isRegister {
+			c.fb.Move(false, out, reg, kind, dstKind)
+		} else {
+			kind := c.typeinfo[expr].Type.Kind()
+			switch kind {
+			case reflect.Slice, reflect.Map, reflect.Func, reflect.Ptr:
+				genConst := c.fb.MakeGeneralConstant(expr.Val)
+				c.fb.Move(true, genConst, reg, reflect.Interface, reflect.Interface)
+			default:
+				panic("bug")
+			}
+		}
+
+	case *ast.Int, *ast.Identifier, *ast.String: // TODO (Gianluca): remove Int and String
 		if reg == 0 {
 			return
 		}

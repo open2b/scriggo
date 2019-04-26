@@ -466,10 +466,8 @@ var stmtTests = []struct {
 			fmt.Println(s2)
 			return
 		}
-		`, nil, []reg{
-			{TypeIface, 1, []int{2, 2, 3}},               // s1
-			{TypeIface, 2, []string{"a", "b", "d", "d"}}, // s2
-		}, "[2 2 3]\n[a b d d]\n"},
+		`, nil, nil,
+		"[2 2 3]\n[a b d d]\n"},
 
 	// Expressions - composite literals.
 
@@ -523,23 +521,20 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			var a []int
 			var b []byte
 
-			a = []int{};
-			b = []byte{};
+			a = []int{}
+			b = []byte{}
 
-			_ = a
-			_ = b
+			fmt.Print(a, b)
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			{TypeIface, 1, []int{}},  // a
-			{TypeIface, 2, []byte{}}, // b
-		}, ""},
+		nil, nil, "[] []"},
 
 	{"Empty map composite literal",
 		`
