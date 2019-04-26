@@ -115,6 +115,19 @@ var stmtTests = []struct {
 	output string
 }{
 
+	{"Pointer declaration (nil int pointer)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var a *int
+			fmt.Print(a)
+		}
+		`, nil, nil, "<nil>"},
+
 	{"Recycling of registers",
 		`
 		package main
