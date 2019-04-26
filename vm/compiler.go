@@ -545,9 +545,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 	case *ast.CompositeLiteral:
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
-		case reflect.Slice:
+		case reflect.Slice, reflect.Array:
 			size := int8(size(expr))
 			if reg != 0 {
+				if typ.Kind() == reflect.Array {
+					typ = reflect.SliceOf(typ.Elem())
+				}
 				c.fb.MakeSlice(true, true, typ, size, size, reg)
 			}
 			var index int8 = -1
@@ -577,8 +580,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				}
 				c.fb.ExitStack()
 			}
-		case reflect.Array:
-			panic("TODO: not implemented")
 		case reflect.Struct:
 			panic("TODO: not implemented")
 		case reflect.Map:

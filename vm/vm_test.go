@@ -32,6 +32,12 @@ var exprTests = map[string]interface{}{
 	`[]float64{5, 12, 0}`:   []float64{5, 12, 0},
 	// `[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
 
+	// Composite literals - arrays.
+	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
+	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
+	`[3]string{}`:         []string{},         // Internally, arrays are stored as slices.
+	`[3]string{"a", "b"}`: []string{"a", "b"}, // Internally, arrays are stored as slices.
+
 	// Builtin 'make'.
 	`make([]int, 0, 0)`:       []int{},
 	`make([]int, 0, 5)`:       []int{},
@@ -67,7 +73,7 @@ func TestVMExpressions(t *testing.T) {
 				got = vm.float(1)
 			case reflect.String:
 				got = vm.string(1)
-			case reflect.Slice, reflect.Map:
+			case reflect.Slice, reflect.Map, reflect.Array:
 				got = vm.general(1)
 			default:
 				panic("bug")
@@ -481,6 +487,22 @@ var stmtTests = []struct {
 		}, "[2 2 3]\n[a b d d]\n"},
 
 	// Expressions - composite literals.
+
+	{"Arrays",
+		`
+		package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			a := [3]int{1, 2, 3}
+			b := [...]string{"a", "b", "c", "d"}
+			fmt.Println(a, b)
+			fmt.Print(len(a), len(b))
+		}
+		`, nil, nil, "[1 2 3] [a b c d]\n3 4"},
 
 	{"Empty int slice composite literal",
 		`
