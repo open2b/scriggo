@@ -115,19 +115,6 @@ var stmtTests = []struct {
 	output string
 }{
 
-	{"Pointer declaration (nil int pointer)",
-		`package main
-
-		import (
-			"fmt"
-		)
-		
-		func main() {
-			var a *int
-			fmt.Print(a)
-		}
-		`, nil, nil, "<nil>"},
-
 	{"Recycling of registers",
 		`
 		package main
@@ -208,21 +195,6 @@ var stmtTests = []struct {
 		}
 		`, nil, nil,
 		"abcde"},
-
-	// TODO (Gianluca):
-	// {"Operator address (&)",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		a := 1
-	// 		b := &a
-	// 		c := &a
-	// 		fmt.Println(b == c)
-	// 	}
-	// 	`, nil, nil, ""},
 
 	// TODO (Gianluca):
 	// {"Defer",
@@ -1761,6 +1733,36 @@ var stmtTests = []struct {
 		}
 		`, nil, nil,
 		"42->7"},
+
+	// Memory (pointers, addresses).
+
+	{"Pointer declaration (nil int pointer)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var a *int
+			fmt.Print(a)
+		}
+		`, nil, nil, "<nil>"},
+
+	// TODO (Gianluca):
+	// {"Operator address (&)",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		a := 1
+	// 		b := &a
+	// 		c := &a
+	// 		fmt.Println(b == c)
+	// 	}
+	// 	`, nil, nil, ""},
 
 	// Complex tests.
 
