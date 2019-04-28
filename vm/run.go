@@ -22,9 +22,47 @@ func decodeAddr(a, b, c int8) uint32 {
 }
 
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
+	var panicked bool
 	vm.fn = fn
-	status := vm.run()
-	return status, nil
+	for {
+		panicked = vm.runRecoverable()
+		if panicked && len(vm.calls) > 0 {
+			var call = Call{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Panicked}
+			vm.calls = append(vm.calls, call)
+			vm.fn = nil
+			continue
+		}
+		break
+	}
+	if len(vm.panics) > 0 {
+		var msg string
+		for i, p := range vm.panics {
+			if i > 0 {
+				msg += "\t"
+			}
+			msg += fmt.Sprintf("panic %d: %#v", i+1, p.Msg)
+			if p.Recovered {
+				msg += " [recovered]"
+			}
+			msg += "\n"
+		}
+		panic(msg)
+	}
+	return 0, nil
+}
+
+func (vm *VM) runRecoverable() (panicked bool) {
+	panicked = true
+	defer func() {
+		if panicked {
+			msg := recover()
+			vm.panics = append(vm.panics, Panic{Msg: msg})
+		}
+	}()
+	if vm.fn != nil || vm.nextCall() {
+		vm.run()
+	}
+	return false
 }
 
 func (vm *VM) run() int {
@@ -167,7 +205,7 @@ func (vm *VM) run() int {
 		case opCall:
 			fn := vm.fn.scrigoFunctions[uint8(a)]
 			off := vm.fn.body[vm.pc]
-			call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: vm.pc + 1}
+			call := Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.op)
 			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -194,13 +232,13 @@ func (vm *VM) run() int {
 			f := vm.general(a).(*callable)
 			if f.scrigo == nil {
 				off := vm.fn.body[vm.pc]
-				vm.callNative(f.native, int(c), StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+				vm.callNative(f.native, c, StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
 				startNativeGoroutine = false
 			} else {
 				fn := f.scrigo
 				vm.cvars = f.vars
 				off := vm.fn.body[vm.pc]
-				call := Call{fn: vm.fn, cvars: vm.cvars, fp: vm.fp, pc: vm.pc + 1}
+				call := Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.op)
 				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -226,7 +264,7 @@ func (vm *VM) run() int {
 		case opCallNative:
 			fn := vm.fn.nativeFunctions[uint8(a)]
 			off := vm.fn.body[vm.pc]
-			vm.callNative(fn, int(c), StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+			vm.callNative(fn, c, StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
 			startNativeGoroutine = false
 
 		// Cap
@@ -263,6 +301,15 @@ func (vm *VM) run() int {
 		// Concat
 		case opConcat:
 			vm.setString(c, vm.string(a)+vm.string(b))
+
+		// Defer
+		case opDefer:
+			off := vm.fn.body[vm.pc]
+			arg := vm.fn.body[vm.pc+1]
+			vm.deferCall(vm.general(a).(*callable), c,
+				StackShift{int8(off.op), off.a, off.b, off.c},
+				StackShift{int8(arg.op), arg.a, arg.b, arg.c})
+			vm.pc += 2
 
 		// Delete
 		case opDelete:
@@ -642,9 +689,7 @@ func (vm *VM) run() int {
 
 		// Panic
 		case opPanic:
-			stackTrace := make([]byte, 10000)
-			n := vm.Stack(stackTrace, false)
-			panic(&PanicError{Msg: vm.general(a), StackTrace: stackTrace[:n]})
+			panic(vm.general(a))
 
 		// Print
 		case opPrint:
@@ -889,6 +934,25 @@ func (vm *VM) run() int {
 				vm.setBool(b, vm.ok)
 			}
 
+		// Recover
+		case opRecover:
+			var msg interface{}
+			for i := len(vm.calls) - 1; i >= 0; i-- {
+				switch vm.calls[i].status {
+				case Deferred:
+					continue
+				case Panicked:
+					vm.calls[i].status = Recovered
+					last := len(vm.panics) - 1
+					vm.panics[last].Recovered = true
+					msg = vm.panics[last].Msg
+				}
+				break
+			}
+			if c != 0 {
+				vm.setGeneral(c, msg)
+			}
+
 		// Rem
 		case opRemInt:
 			vm.setInt(c, vm.int(a)%vm.int(b))
@@ -911,23 +975,22 @@ func (vm *VM) run() int {
 
 		// Return
 		case opReturn:
-			var call Call
-			i := len(vm.calls)
-			if i == 0 {
+			i := len(vm.calls) - 1
+			if i == -1 {
+				// TODO(marco): call finalizer.
 				return maxInt8
 			}
-			for {
-				i--
-				call = vm.calls[i]
-				if !call.tail {
-					break
-				}
+			call := vm.calls[i]
+			if call.status == Started {
+				// TODO(marco): call finalizer.
+				vm.calls = vm.calls[:i]
+				vm.fp = call.fp
+				vm.pc = call.pc
+				vm.fn = call.fn.scrigo
+				vm.cvars = call.fn.vars
+			} else if !vm.nextCall() {
+				return maxInt8
 			}
-			vm.calls = vm.calls[:i]
-			vm.fp = call.fp
-			vm.pc = call.pc
-			vm.fn = call.fn
-			vm.cvars = call.cvars
 
 		// Selector
 		case opSelector:
@@ -1068,7 +1131,7 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case opTailCall:
-			vm.calls = append(vm.calls, Call{fn: vm.fn, cvars: vm.cvars, pc: vm.pc, tail: true})
+			vm.calls = append(vm.calls, Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: Tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *ScrigoFunction

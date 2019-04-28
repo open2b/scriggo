@@ -14,14 +14,15 @@ import (
 const StackSize = 512
 
 type VM struct {
-	fp    [4]uint32       // frame pointers.
-	st    [4]uint32       // stack tops.
-	pc    uint32          // program counter.
-	ok    bool            // ok flag.
-	regs  registers       // registers.
-	fn    *ScrigoFunction // current function.
-	cvars []interface{}   // closure variables.
-	calls []Call          // call stack.
+	fp     [4]uint32       // frame pointers.
+	st     [4]uint32       // stack tops.
+	pc     uint32          // program counter.
+	ok     bool            // ok flag.
+	regs   registers       // registers.
+	fn     *ScrigoFunction // current function.
+	cvars  []interface{}   // closure variables.
+	calls  []Call          // call stack.
+	panics []Panic         // panics.
 }
 
 func New() *VM {
@@ -44,6 +45,7 @@ func (vm *VM) Reset() {
 	vm.fn = nil
 	vm.cvars = nil
 	vm.calls = vm.calls[:0]
+	vm.panics = vm.panics[:0]
 }
 
 func (vm *VM) moreIntStack() {
@@ -78,12 +80,23 @@ func (vm *VM) moreGeneralStack() {
 	vm.st[3] = uint32(top)
 }
 
+type CallStatus int8
+
+const (
+	Started CallStatus = iota
+	Tailed
+	Returned
+	Deferred
+	Panicked
+	Recovered
+)
+
 type Call struct {
-	fn    *ScrigoFunction // function.
-	cvars []interface{}   // closure variables.
-	fp    [4]uint32       // frame pointers.
-	pc    uint32          // program counter.
-	tail  bool            // tail call.
+	fn        callable   // function.
+	fp        [4]uint32  // frame pointers.
+	pc        uint32     // program counter.
+	status    CallStatus // status.
+	variadics int8       // number of variadic arguments.
 }
 
 type callable struct {
@@ -214,8 +227,9 @@ func (vm *VM) startScrigoGoroutine() bool {
 	return true
 }
 
-type PanicError struct {
+type Panic struct {
 	Msg        interface{}
+	Recovered  bool
 	StackTrace []byte
 }
 
@@ -223,7 +237,7 @@ type stringer interface {
 	String() string
 }
 
-func (err *PanicError) Error() string {
+func (err *Panic) Error() string {
 	b := make([]byte, 0, 100+len(err.StackTrace))
 	switch v := err.Msg.(type) {
 	case nil:
@@ -296,8 +310,8 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			ppc = vm.pc - 1
 		} else {
 			call := vm.calls[i]
-			fn = call.fn
-			if call.tail {
+			fn = call.fn.scrigo
+			if call.status == Tailed {
 				ppc = call.pc - 1
 			} else {
 				ppc = call.pc - 2
@@ -326,7 +340,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	return len(b)
 }
 
-func (vm *VM) callNative(fn *NativeFunction, numVariadic int, shift StackShift, newGoroutine bool) {
+func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift, newGoroutine bool) {
 	fp := vm.fp
 	vm.fp[0] += uint32(shift[0])
 	vm.fp[1] += uint32(shift[1])
@@ -416,36 +430,36 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int, shift StackShift, 
 					}
 				} else {
 					sliceType := fn.args[i].Type()
-					slice := reflect.MakeSlice(sliceType, numVariadic, numVariadic)
+					slice := reflect.MakeSlice(sliceType, int(numVariadic), int(numVariadic))
 					k := sliceType.Elem().Kind()
 					switch k {
 					case reflect.Bool:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetBool(vm.bool(int8(j + 1)))
 						}
 					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetInt(vm.int(int8(j + 1)))
 						}
 					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
 						}
 					case reflect.Float32, reflect.Float64:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetFloat(vm.float(int8(j + 1)))
 						}
 					case reflect.Func:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							f := vm.general(int8(j + 1)).(*callable)
 							slice.Index(j).Set(f.reflectValue())
 						}
 					case reflect.String:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetString(vm.string(int8(j + 1)))
 						}
 					default:
-						for j := 0; j < numVariadic; j++ {
+						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
 						}
 					}
@@ -498,4 +512,155 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int, shift StackShift, 
 	}
 	vm.fp = fp
 	vm.pc++
+}
+
+func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
+	vm.calls = append(vm.calls, Call{fn: *fn, fp: vm.fp, pc: 0, status: Deferred, variadics: numVariadic})
+	if args[0] > 0 {
+		stack := vm.regs.Int[vm.fp[0]+1:]
+		tot := shift[0] + args[0]
+		copy(stack[shift[0]:], stack[:tot])
+		copy(stack, stack[shift[0]:tot])
+		vm.fp[0] += uint32(args[0])
+	}
+	if args[1] > 0 {
+		stack := vm.regs.Float[vm.fp[1]+1:]
+		tot := shift[1] + args[1]
+		copy(stack[shift[1]:], stack[:tot])
+		copy(stack, stack[shift[1]:tot])
+		vm.fp[1] += uint32(args[1])
+	}
+	if args[2] > 0 {
+		stack := vm.regs.String[vm.fp[2]+1:]
+		tot := shift[2] + args[2]
+		copy(stack[shift[2]:], stack[:tot])
+		copy(stack, stack[shift[2]:tot])
+		vm.fp[2] += uint32(args[2])
+	}
+	if args[3] > 0 {
+		stack := vm.regs.General[vm.fp[3]+1:]
+		tot := shift[3] + args[3]
+		copy(stack[shift[3]:], stack[:tot])
+		copy(stack, stack[shift[3]:tot])
+		vm.fp[3] += uint32(args[3])
+	}
+}
+
+func (vm *VM) swapCall(call Call) Call {
+	if call.fp[0] < vm.fp[0] {
+		a := uint32(vm.fp[0] - call.fp[0])
+		b := uint32(vm.fn.regnum[0])
+		if vm.fp[0]+2*b > vm.st[0] {
+			vm.moreIntStack()
+		}
+		s := vm.regs.Int[call.fp[0]+1:]
+		copy(s[a:], s[:a+b])
+		copy(s, s[a+b:a+2*b])
+		vm.fp[0] -= a
+		call.fp[0] += b
+	}
+	if call.fp[1] < vm.fp[1] {
+		a := uint32(vm.fp[1] - call.fp[1])
+		b := uint32(vm.fn.regnum[1])
+		if vm.fp[1]+2*b > vm.st[1] {
+			vm.moreFloatStack()
+		}
+		s := vm.regs.Float[call.fp[1]+1:]
+		copy(s[a:], s[:a+b])
+		copy(s, s[a+b:a+2*b])
+		vm.fp[1] -= a
+		call.fp[1] += b
+	}
+	if call.fp[2] < vm.fp[2] {
+		a := uint32(vm.fp[2] - call.fp[2])
+		b := uint32(vm.fn.regnum[2])
+		if vm.fp[2]+2*b > vm.st[2] {
+			vm.moreStringStack()
+		}
+		s := vm.regs.Float[call.fp[2]+1:]
+		copy(s[a:], s[:a+b])
+		copy(s, s[a+b:a+2*b])
+		vm.fp[2] -= a
+		call.fp[2] += b
+	}
+	if call.fp[3] < vm.fp[3] {
+		a := uint32(vm.fp[3] - call.fp[3])
+		b := uint32(vm.fn.regnum[3])
+		if vm.fp[3]+2*b > vm.st[3] {
+			vm.moreGeneralStack()
+		}
+		s := vm.regs.General[call.fp[3]+1:]
+		copy(s[a:], s[:a+b])
+		copy(s, s[a+b:a+2*b])
+		vm.fp[3] -= a
+		call.fp[3] += b
+	}
+	return call
+}
+
+func (vm *VM) nextCall() bool {
+	var i int
+	var call Call
+	for i = len(vm.calls) - 1; i >= 0; i-- {
+		call = vm.calls[i]
+		switch call.status {
+		case Started:
+			// A call is returned, continue with the previous call.
+			// TODO(marco): call finalizer.
+		case Tailed:
+			// A tail call is returned, continue with the previous call.
+			// TODO(marco): call finalizer.
+			continue
+		case Deferred:
+			// A Scrigo call that has deferred calls is returned, its first
+			// deferred call will be executed.
+			call = vm.swapCall(call)
+			vm.calls[i] = Call{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Returned}
+			if call.fn.scrigo != nil {
+				break
+			}
+			vm.callNative(call.fn.native, call.variadics, StackShift{}, false)
+			fallthrough
+		case Returned, Recovered:
+			// A deferred call is returned. If there is another deferred
+			// call, it will be executed, otherwise the previous call will be
+			// finalized.
+			if i > 0 {
+				if prev := vm.calls[i-1]; prev.status == Deferred {
+					call, vm.calls[i-1] = prev, call
+					break
+				}
+			}
+			// TODO(marco): call finalizer.
+			if call.status == Recovered {
+				vm.panics = vm.panics[:0]
+			}
+			continue
+		case Panicked:
+			// A call is panicked, the first deferred call in the call stack,
+			// if there is one, will be executed.
+			for i = i - 1; i >= 0; i-- {
+				call = vm.calls[i]
+				if call.status == Deferred {
+					vm.calls[i] = vm.calls[i+1]
+					vm.calls[i].status = Panicked
+					if call.fn.scrigo != nil {
+						i++
+						break
+					}
+					vm.callNative(call.fn.native, call.variadics, StackShift{}, false)
+				}
+			}
+		}
+		break
+	}
+	if i >= 0 {
+		vm.calls = vm.calls[:i]
+		vm.fp = call.fp
+		vm.pc = call.pc
+		vm.fn = call.fn.scrigo
+		vm.cvars = call.fn.vars
+		return true
+	}
+	return false
 }
