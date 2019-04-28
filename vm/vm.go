@@ -43,7 +43,7 @@ func (vm *VM) Reset() {
 	vm.pc = 0
 	vm.fn = nil
 	vm.cvars = nil
-	vm.calls = vm.calls[:]
+	vm.calls = vm.calls[:0]
 }
 
 func (vm *VM) moreIntStack() {
