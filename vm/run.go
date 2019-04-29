@@ -156,9 +156,11 @@ func (vm *VM) run() int {
 		case opAssert:
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.types[int(uint(b))]
-			ok := v.Type() == t
-			if !ok && t.Kind() == reflect.Interface {
+			var ok bool
+			if t.Kind() == reflect.Interface {
 				ok = v.Type().Implements(t)
+			} else {
+				ok = v.Type() == t
 			}
 			if ok {
 				vm.pc++
