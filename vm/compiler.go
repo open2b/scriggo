@@ -1144,6 +1144,26 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.compileNodes(node.Nodes)
 			c.fb.ExitScope()
 
+		case *ast.Defer:
+			funReg := c.fb.NewRegister(reflect.Func)
+			funNode := node.Call.Func
+			funType := c.typeinfo[funNode].Type
+			c.compileExpr(funNode, funReg, reflect.Func)
+			offset := StackShift{
+				int8(c.fb.currentNumRegs[reflect.Int]),
+				int8(c.fb.currentNumRegs[reflect.Float64]),
+				int8(c.fb.currentNumRegs[reflect.String]),
+				int8(c.fb.currentNumRegs[reflect.Interface]),
+			}
+			// TODO(Gianluca): currently supports only deferring of
+			// Scrigo defined functions.
+			isNative := false
+			c.prepareCallParameters(funType, node.Call.Args, isNative)
+			// TODO(Gianluca): currently supports only deferred functions
+			// with no arguments and no return parameters.
+			argsShift := StackShift{}
+			c.fb.Defer(funReg, NoVariadic, offset, argsShift)
+
 		case *ast.If:
 			c.fb.EnterScope()
 			if node.Assignment != nil {

@@ -120,6 +120,27 @@ var stmtTests = []struct {
 	// 	}`,
 	// 	nil, nil, "fg"},
 
+	{"Defer - Calling f ang g (package level functions)",
+		`package main
+
+		import "fmt"
+		
+		func f() {
+			fmt.Println("f")
+		}
+		
+		func g() {
+			fmt.Println("g")
+		}
+		
+		func main() {
+			defer f()
+			defer g()
+		}`,
+		nil,
+		nil,
+		"g\nf\n"},
+
 	{"Dot import (native)",
 		`package main
 		
