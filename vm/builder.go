@@ -996,8 +996,8 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	in1.c = dst
 	builder.fn.body = append(builder.fn.body, in1)
 	in2 := instruction{}
-	in2.op = operation(len)
-	in2.a = cap
+	in2.a = len
+	in2.b = cap
 	builder.fn.body = append(builder.fn.body, in2)
 }
 
