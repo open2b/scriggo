@@ -1010,33 +1010,30 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 		builder.allocRegister(srcKind, x)
 	}
 	builder.allocRegister(srcKind, z)
-	var op operation
-	switch dstKind {
-	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
-		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8, reflect.Bool:
-		op = opMoveInt
-	case reflect.Float64, reflect.Float32:
-		op = opMoveFloat
-	case reflect.String:
-		op = opMoveString
-	default:
-		op = opMove
-	}
+	i := instruction{op: opMove, b: x, c: z}
 	if k {
-		op = -op
+		i.op = -i.op
 	}
-	var a int8
-	switch kindToType(srcKind) {
+	switch kindToType(dstKind) {
 	case TypeInt:
-		a = 1
+		i.a = IntInt
 	case TypeFloat:
-		a = 2
+		i.a = FloatFloat
 	case TypeString:
-		a = 3
+		i.a = StringString
 	case TypeIface:
-		a = 0
+		switch kindToType(srcKind) {
+		case TypeInt:
+			i.a = IntGeneral
+		case TypeFloat:
+			i.a = FloatGeneral
+		case TypeString:
+			i.a = StringGeneral
+		case TypeIface:
+			i.a = GeneralGeneral
+		}
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: a, b: x, c: z})
+	builder.fn.body = append(builder.fn.body, i)
 }
 
 // Mul appends a new "mul" instruction to the function body.

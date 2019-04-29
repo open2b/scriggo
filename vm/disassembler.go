@@ -413,18 +413,35 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		s += []string{"", " fromInt", " fromFloat", " fromString"}[a]
 		switch a {
-		default:
-			s += " " + disassembleOperand(fn, b, Interface, k)
-		case 1:
+		case IntInt:
+			s += " int"
 			s += " " + disassembleOperand(fn, b, Int, k)
-		case 2:
+			s += " " + disassembleOperand(fn, c, Int, false)
+		case FloatFloat:
+			s += " float64"
 			s += " " + disassembleOperand(fn, b, Float64, k)
-		case 3:
+			s += " " + disassembleOperand(fn, c, Float64, false)
+		case StringString:
+			s += " string"
 			s += " " + disassembleOperand(fn, b, String, k)
+			s += " " + disassembleOperand(fn, c, String, false)
+		case GeneralGeneral:
+			s += " " + disassembleOperand(fn, b, Interface, k)
+			s += " " + disassembleOperand(fn, c, Interface, false)
+		case IntGeneral:
+			s += " intToGeneral"
+			s += " " + disassembleOperand(fn, b, Int, k)
+			s += " " + disassembleOperand(fn, c, Interface, false)
+		case FloatGeneral:
+			s += " floatToGeneral"
+			s += " " + disassembleOperand(fn, b, Float64, k)
+			s += " " + disassembleOperand(fn, c, Interface, false)
+		case StringGeneral:
+			s += " stringToGeneral"
+			s += " " + disassembleOperand(fn, b, String, k)
+			s += " " + disassembleOperand(fn, c, Int, false)
 		}
-		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMoveInt:
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Int, false)
@@ -463,9 +480,9 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + fmt.Sprintf("0b%b", b)
 		s += " " + disassembleOperand(fn, c, Int, false)
 		s += " // len: "
-		s += fmt.Sprintf("%d", fn.body[addr+1].op)
-		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.body[addr+1].a)
+		s += ", cap: "
+		s += fmt.Sprintf("%d", fn.body[addr+1].b)
 	case opSetSliceInt:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
