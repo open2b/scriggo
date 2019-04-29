@@ -623,8 +623,9 @@ func (vm *VM) run() int {
 			ctrl := vm.intk(b, true)
 			kLen := ctrl == 1 || ctrl == 3
 			kCap := ctrl == 2 || ctrl == 3
-			len := vm.intk(vm.fn.body[vm.pc].a, kLen)
-			cap := vm.intk(vm.fn.body[vm.pc].b, kCap)
+			next := vm.fn.body[vm.pc]
+			len := vm.intk(next.a, kLen)
+			cap := vm.intk(next.b, kCap)
 			v = reflect.MakeSlice(t, int(len), int(cap)).Interface()
 			vm.pc++
 			vm.setGeneral(c, v)
