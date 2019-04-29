@@ -583,6 +583,9 @@ func (vm *VM) run() int {
 		//	dst = expr[i]
 		//
 		case opIndex, -opIndex:
+			// TODO(Gianluca): consider putting result in int, string or
+			// float (or general as default case) register according to
+			// its kind.
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
 		// Len
