@@ -650,8 +650,6 @@ func (vm *VM) run() int {
 				panic("TODO: not implemented")
 			case []byte:
 				panic("TODO: not implemented")
-			case []bool:
-				panic("TODO: not implemented")
 			default:
 				panic(fmt.Sprintf("TODO: opSetSliceInt not implemented on type %T", s))
 			}
