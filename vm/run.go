@@ -673,9 +673,6 @@ func (vm *VM) run() int {
 			case []float64:
 				v := vm.floatk(b, op < 0)
 				s[i] = float64(v)
-			case []float32:
-				v := vm.floatk(b, op < 0)
-				s[i] = float32(v)
 			case []string:
 				v := vm.stringk(b, op < 0)
 				s[i] = string(v)
