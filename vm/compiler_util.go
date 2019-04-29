@@ -12,6 +12,56 @@ import (
 	"scrigo/ast"
 )
 
+// addExplicitReturn adds an explicit return statement as last statement to fun
+// if it is implicit.
+func addExplicitReturn(fun *ast.Func) {
+	var pos *ast.Position
+	if len(fun.Body.Nodes) == 0 {
+		pos = fun.Pos()
+	} else {
+		last := fun.Body.Nodes[len(fun.Body.Nodes)-1]
+		if _, ok := last.(*ast.Return); ok {
+			pos = last.Pos()
+		}
+	}
+	if pos != nil {
+		ret := ast.NewReturn(pos, nil)
+		fun.Body.Nodes = append(fun.Body.Nodes, ret)
+	}
+}
+
+// fillParametersTypes takes a list of parameters (function arguments or
+// function return values) and "fills" their types. For instance, a function
+// arguments signature "a, b int" becomes "a int, b int".
+func fillParametersTypes(params []*ast.Field) {
+	if len(params) == 0 {
+		return
+	}
+	typ := params[len(params)-1].Type
+	for i := len(params) - 1; i >= 0; i-- {
+		if params[i].Type != nil {
+			typ = params[i].Type
+		}
+		params[i].Type = typ
+	}
+}
+
+// isBlankIdentifier indicates if expr is an identifier representing the blank
+// identifier "_".
+func isBlankIdentifier(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	return ok && ident.Name == "_"
+}
+
+// isNil indicates if expr is the nil identifier.
+func isNil(expr ast.Expression) bool {
+	ident, ok := expr.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	return ident.Name == "nil"
+}
+
 // kindToType returns VM's type of k.
 func kindToType(k reflect.Kind) Type {
 	switch k {
@@ -49,56 +99,6 @@ func kindToType(k reflect.Kind) Type {
 		panic("TODO: not implemented")
 	default:
 		panic("bug")
-	}
-}
-
-// isNil indicates if expr is the nil identifier.
-func isNil(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	if !ok {
-		return false
-	}
-	return ident.Name == "nil"
-}
-
-// isBlankIdentifier indicates if expr is an identifier representing the blank
-// identifier "_".
-func isBlankIdentifier(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	return ok && ident.Name == "_"
-}
-
-// fillParametersTypes takes a list of parameters (function arguments or
-// function return values) and "fills" their types. For instance, a function
-// arguments signature "a, b int" becomes "a int, b int".
-func fillParametersTypes(params []*ast.Field) {
-	if len(params) == 0 {
-		return
-	}
-	typ := params[len(params)-1].Type
-	for i := len(params) - 1; i >= 0; i-- {
-		if params[i].Type != nil {
-			typ = params[i].Type
-		}
-		params[i].Type = typ
-	}
-}
-
-// addExplicitReturn adds an explicit return statement as last statement to fun
-// if it is implicit.
-func addExplicitReturn(fun *ast.Func) {
-	var pos *ast.Position
-	if len(fun.Body.Nodes) == 0 {
-		pos = fun.Pos()
-	} else {
-		last := fun.Body.Nodes[len(fun.Body.Nodes)-1]
-		if _, ok := last.(*ast.Return); ok {
-			pos = last.Pos()
-		}
-	}
-	if pos != nil {
-		ret := ast.NewReturn(pos, nil)
-		fun.Body.Nodes = append(fun.Body.Nodes, ret)
 	}
 }
 
