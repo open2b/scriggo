@@ -689,7 +689,6 @@ func (vm *VM) run() int {
 			}
 
 		// MapIndex
-		// TODO (Gianluca): set vm.ok.
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))
 			t := m.Type()
@@ -709,6 +708,10 @@ func (vm *VM) run() int {
 				key = reflect.ValueOf(vm.general(b))
 			}
 			elem := m.MapIndex(key)
+			vm.ok = elem.IsValid()
+			if !vm.ok {
+				elem = reflect.Zero(t)
+			}
 			switch kind := t.Elem().Kind(); kind {
 			case reflect.Bool:
 				vm.setBool(c, elem.Bool())
@@ -725,24 +728,28 @@ func (vm *VM) run() int {
 			}
 
 		// MapIndexStringInt
-		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringInt, -opMapIndexStringInt:
-			vm.setInt(c, int64(vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]))
+			v, ok := vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]
+			vm.setInt(c, int64(v))
+			vm.ok = ok
 
 		// MapIndexStringBool
-		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringBool, -opMapIndexStringBool:
-			vm.setBool(c, vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)]
+			vm.setBool(c, v)
+			vm.ok = ok
 
 		// MapIndexStringString
-		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringString, -opMapIndexStringString:
-			vm.setString(c, vm.general(a).(map[string]string)[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]string)[vm.stringk(b, op < 0)]
+			vm.setString(c, v)
+			vm.ok = ok
 
 		// MapIndexStringInterface
-		// TODO (Gianluca): set vm.ok.
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
-			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)]
+			vm.setGeneral(c, v)
+			vm.ok = ok
 
 		// Move
 		case opMove, -opMove:
