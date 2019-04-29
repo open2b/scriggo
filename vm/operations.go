@@ -51,6 +51,8 @@ const (
 
 	opConcat
 
+	opDefer
+
 	opDelete
 
 	opDivInt
@@ -121,6 +123,8 @@ const (
 	opRangeString
 
 	opReceive
+
+	opRecover
 
 	opRemInt
 	opRemInt8
@@ -213,6 +217,8 @@ var operationName = [...]string{
 	opConvertFloat:  "ConvertFloat",
 	opConvertString: "ConvertString",
 
+	opDefer: "Defer",
+
 	opDelete: "delete",
 
 	opDivInt:     "DivInt",
@@ -270,6 +276,8 @@ var operationName = [...]string{
 	opPrint: "Print",
 
 	opReceive: "Receive",
+
+	opRecover: "Recover",
 
 	opRemInt:    "RemInt",
 	opRemInt8:   "RemInt8",

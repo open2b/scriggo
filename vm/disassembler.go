@@ -211,8 +211,10 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.op {
-		case opCall, opCallNative, opTailCall, opMakeSlice:
+		case opCall, opCallIndirect, opCallNative, opTailCall, opMakeSlice:
 			addr += 1
+		case opDefer:
+			addr += 2
 		}
 	}
 }
@@ -278,12 +280,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += "@" + strconv.Itoa(depth)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCallIndirect:
-		s += " " + disassembleOperand(fn, b, Interface, false)
-		grow := fn.body[addr+1]
-		s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
-			strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
-	case opCall, opCallNative, opTailCall:
+	case opCall, opCallIndirect, opCallNative, opTailCall, opDefer:
 		if a != CurrentFunction {
 			switch op {
 			case opCall, opTailCall:
@@ -292,16 +289,24 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			case opCallNative:
 				nf := fn.nativeFunctions[uint8(b)]
 				s += " " + packageName(nf.pkg) + "." + nf.name
+			case opCallIndirect, opDefer:
+				s += " " + disassembleOperand(fn, a, Interface, false)
 			}
 		}
-		if c != NoVariadic && op == opCallNative {
+		if c != NoVariadic && (op == opCallIndirect || op == opCallNative || op == opDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case opCall, opCallNative:
+		case opCall, opCallIndirect, opCallNative, opDefer:
 			grow := fn.body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
 				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
+		}
+		if op == opDefer {
+			args := fn.body[addr+2]
+			s += "; args: " + strconv.Itoa(int(args.op)) + ", " + strconv.Itoa(int(args.a)) + ", " +
+				strconv.Itoa(int(args.b)) + ", " + strconv.Itoa(int(args.c))
+
 		}
 	case opCap:
 		s += " " + disassembleOperand(fn, a, Interface, false)
@@ -444,6 +449,10 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Bool, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opRecover:
+		if c != 0 {
+			s += " " + disassembleOperand(fn, c, Interface, false)
+		}
 	case opSelector:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
 	case opSend:

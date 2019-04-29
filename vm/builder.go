@@ -693,6 +693,18 @@ func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src, c: n})
 }
 
+// Defer appends a new "Defer" instruction to the function body.
+//
+//     defer
+//
+func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg StackShift) {
+	var fn = builder.fn
+	builder.allocRegister(reflect.Interface, f)
+	fn.body = append(fn.body, instruction{op: opDefer, a: f, c: numVariadic})
+	fn.body = append(fn.body, instruction{op: operation(off[0]), a: off[1], b: off[2], c: off[3]})
+	fn.body = append(fn.body, instruction{op: operation(arg[0]), a: arg[1], b: arg[2], c: arg[3]})
+}
+
 // Delete appends a new "delete" instruction to the function body.
 //
 //     delete(m, k)
@@ -1066,6 +1078,7 @@ func (builder *FunctionBuilder) Nop() {
 }
 
 // Panic appends a new "panic" instruction to the function body.
+// Panic appends a new "Panic" instruction to the function body.
 //
 //     panic(v)
 //
@@ -1086,6 +1099,15 @@ func (builder *FunctionBuilder) Print(args []int8) {
 		i.a = arg
 		builder.fn.body = append(builder.fn.body, i)
 	}
+}
+
+// Recover appends a new "Recover" instruction to the function body.
+//
+//     recover()
+//
+func (builder *FunctionBuilder) Recover(r int8) {
+	builder.allocRegister(reflect.Interface, r)
+	builder.fn.body = append(builder.fn.body, instruction{op: opRecover, c: r})
 }
 
 // Rem appends a new "rem" instruction to the function body.
