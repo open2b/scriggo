@@ -30,6 +30,21 @@ func addExplicitReturn(fun *ast.Func) {
 	}
 }
 
+// compositeLiteralLen returns node's length.
+func compositeLiteralLen(node *ast.CompositeLiteral) int {
+	size := 0
+	for _, kv := range node.KeyValues {
+		if kv.Key != nil {
+			key := kv.Key.(*ast.Value).Val.(int)
+			if key > size {
+				size = key
+			}
+		}
+		size++
+	}
+	return size
+}
+
 // fillParametersTypes takes a list of parameters (function arguments or
 // function return values) and "fills" their types. For instance, a function
 // arguments signature "a, b int" becomes "a int, b int".
@@ -100,19 +115,4 @@ func kindToType(k reflect.Kind) Type {
 	default:
 		panic("bug")
 	}
-}
-
-// size returns node's size.
-func size(node *ast.CompositeLiteral) int {
-	size := 0
-	for _, kv := range node.KeyValues {
-		if kv.Key != nil {
-			key := kv.Key.(*ast.Value).Val.(int)
-			if key > size {
-				size = key
-			}
-		}
-		size++
-	}
-	return size
 }

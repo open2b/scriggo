@@ -604,7 +604,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice, reflect.Array:
-			size := int8(size(expr))
+			size := int8(compositeLiteralLen(expr))
 			if reg != 0 {
 				if typ.Kind() == reflect.Array {
 					typ = reflect.SliceOf(typ.Elem())
