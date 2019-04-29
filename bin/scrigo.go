@@ -53,6 +53,7 @@ func main() {
 	}
 
 	if useVM {
+		// TODO(Gianluca): to review.
 		// path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
 		vm.DebugTraceExecution = true

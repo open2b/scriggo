@@ -74,7 +74,8 @@ func (vm *VM) run() int {
 
 	for {
 
-		// TODO (Gianluca): this check avoids "panic: runtime error: index out of range".
+		// TODO (Gianluca): this check avoids "panic: runtime error: index
+		// out of range". Investigate.
 		if int(vm.pc) >= len(vm.fn.body) {
 			return 0
 		}
@@ -86,11 +87,9 @@ func (vm *VM) run() int {
 			if funcName != "" {
 				funcName += ":"
 			}
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v s%q g%q\t%s\t",
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
 				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
 				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1],
-				vm.regs.String[vm.fp[2]+1:vm.fp[2]+uint32(vm.fn.regnum[2])+1],  // TODO (Gianluca): remove.
-				vm.regs.General[vm.fp[3]+1:vm.fp[3]+uint32(vm.fn.regnum[3])+1], // TODO (Gianluca): remove.
 				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, vm.pc)
 			println()
@@ -128,28 +127,7 @@ func (vm *VM) run() int {
 			vm.setInt(c, vm.int(a)&^vm.intk(b, op < 0))
 
 		// Append
-		// a = append(a, b), where b has type c
-		// case opAppend, -opAppend:
-
-		// 	target := vm.general(a)
-		// 	typ := vm.fn.types[int(uint(b))]
-		// 	var elem interface{}
-		// 	switch typ.Kind() {
-		// 	case reflect.Int:
-		// 		elem = vm.int(a)
-		// 	case reflect.String:
-		// 		elem = vm.string(a)
-		// 	case reflect.Float64:
-		// 		elem = vm.float(a)
-		// 	default:
-		// 		panic("getting from general!") // TODO (Gianluca): to remove.
-		// 		elem = vm.general(b)
-		// 	}
-		// 	vm.setGeneral(
-		// 		a,
-		// 		reflect.Append(reflect.ValueOf(target), reflect.ValueOf(elem)).Interface(),
-		// 	)
-
+		case opAppend:
 		//s := reflectValue.ValueOf(vm.popInterface())
 		//t := s.Type()
 		//n := int(vm.readByte())
@@ -335,7 +313,7 @@ func (vm *VM) run() int {
 			return int(a)
 
 		// Convert TODO (Gianluca): conversion always puts result into
-		// general. Is that the expected behaviour?
+		// general. Is this the expected behaviour?
 		case opConvert:
 			t := vm.fn.types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
@@ -500,7 +478,6 @@ func (vm *VM) run() int {
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
-
 			}
 			if cond {
 				vm.pc++
@@ -673,13 +650,13 @@ func (vm *VM) run() int {
 
 		// MakeSlice
 		//
-		// 	╒═════════════╤══════╤══════╤═════╕
-		// 	│ op          │ a    │ b    │ c   │
-		// 	╞═════════════╪══════╪══════╪═════╡
-		// 	│ opMakeSlice │ type │ ctrl │ dst │
-		// 	├─────────────┼──────┼──────┼─────┤
-		// 	│ len         │ cap  │      │     │
-		// 	╘═════════════╧══════╧══════╧═════╛
+		//    ╒═════════════╤══════╤══════╤═════╕
+		//    │ op          │ a    │ b    │ c   │
+		//    ╞═════════════╪══════╪══════╪═════╡
+		//    │ opMakeSlice │ type │ ctrl │ dst │
+		//    ├─────────────┼──────┼──────┼─────┤
+		//    │ len         │ cap  │      │     │
+		//    ╘═════════════╧══════╧══════╧═════╛
 		//
 		//    ctrl == 0  -> len and cap are both non-constant
 		//    ctrl == 1  -> len is const
@@ -687,7 +664,7 @@ func (vm *VM) run() int {
 		//    ctrl == 3  -> len and cap are const
 		//
 		// TODO (Gianluca): optimization: add another ctrl value when both
-		// len and cap are 0: in such case you can use just one instruction
+		// len and cap are 0: in such case can use just one instruction
 		// instead of two.
 		case opMakeSlice:
 			var v interface{}
@@ -906,6 +883,7 @@ func (vm *VM) run() int {
 
 		// Print
 		case opPrint:
+			// TODO(Gianluca): add missing cases.
 			v := vm.general(a)
 			switch v := v.(type) {
 			case string:

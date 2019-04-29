@@ -397,6 +397,7 @@ func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
+// MakeStringConstant makes a new string constant, returning it's index.
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	r := len(builder.fn.constants.String)
 	if r > 255 {
@@ -406,6 +407,7 @@ func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	return int8(r)
 }
 
+// MakeGeneralConstant makes a new "general" constant, returning it's index.
 func (builder *FunctionBuilder) MakeGeneralConstant(v interface{}) int8 {
 	r := len(builder.fn.constants.General)
 	if r > 255 {
@@ -415,6 +417,7 @@ func (builder *FunctionBuilder) MakeGeneralConstant(v interface{}) int8 {
 	return int8(r)
 }
 
+// MakeFloatConstant makes a new float constant, returning it's index.
 func (builder *FunctionBuilder) MakeFloatConstant(c float64) int8 {
 	r := len(builder.fn.constants.Float)
 	if r > 255 {
@@ -424,6 +427,7 @@ func (builder *FunctionBuilder) MakeFloatConstant(c float64) int8 {
 	return int8(r)
 }
 
+// MakeIntConstant makes a new int constant, returning it's index.
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
 	r := len(builder.fn.constants.Int)
 	if r > 255 {
@@ -454,7 +458,7 @@ func (builder *FunctionBuilder) NewLabel() uint32 {
 	return uint32(len(builder.labels))
 }
 
-// SetLabelAddr sets builder's current address as address for label.
+// SetLabelAddr sets label's address as builder's current address.
 func (builder *FunctionBuilder) SetLabelAddr(label uint32) {
 	builder.labels[label-1] = builder.CurrentAddr()
 }
@@ -491,7 +495,8 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	return tr
 }
 
-// TODO (Gianluca): what's the point of this method?
+// TODO (Gianluca): what's the point of this method? Can it be embedded in
+// another method?
 func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
@@ -909,6 +914,7 @@ func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Ki
 
 // IfOk appends a new "If" instruction to the function body which tests for the
 // Ok flag.
+// TODO(Gianluca): this method is currently not used.
 func (builder *FunctionBuilder) IfOk() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
 }
@@ -1077,7 +1083,6 @@ func (builder *FunctionBuilder) Nop() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
 }
 
-// Panic appends a new "panic" instruction to the function body.
 // Panic appends a new "Panic" instruction to the function body.
 //
 //     panic(v)

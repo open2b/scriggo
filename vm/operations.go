@@ -177,7 +177,7 @@ func (op operation) String() string {
 
 var operationName = [...]string{
 
-	opNone: "Nop",
+	opNone: "Nop", // TODO(Gianluca): review.
 
 	opAddInt:     "AddInt",
 	opAddInt8:    "AddInt8",
