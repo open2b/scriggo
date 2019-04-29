@@ -348,12 +348,6 @@ func (vm *VM) run() int {
 		//
 		//	delete(map, key)
 		//
-		// 	╒═══════════╤═════╤═════╕
-		// 	│ Operand   │ a   │ b   │
-		// 	╞═══════════╪═════╪═════╡
-		// 	│ opDelete  │ map │ key │
-		// 	╘═══════════╧═════╧═════╛
-		//
 		case opDelete:
 			m := reflect.ValueOf(a)
 			k := reflect.ValueOf(b)
@@ -571,24 +565,11 @@ func (vm *VM) run() int {
 		//
 		//	dst = expr[i]
 		//
-		//    ╒═══════════╤══════╤═════╤═════╕
-		//    │ Operand   │ a    │ b   │ c   │
-		//    ╞═══════════╪══════╪═════╪═════╡
-		//    │ opIndex   │ expr │ i   │ dst │
-		//    ╘═══════════╧══════╧═════╧═════╛
-		//
 		case opIndex, -opIndex:
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
 
 		// Len
 		case opLen:
-
-			// ╒═════════════╤══════╤═════╤═════╕
-			// │ op          │ a    │ b   │ c   │
-			// ╞═════════════╪══════╪═════╪═════╡
-			// │ opLen       │ ctrl │ arg │ dst │
-			// ╘═════════════╧══════╧═════╧═════╛
-
 			var length int
 			if a == 0 {
 				length = len(vm.string(b))
@@ -620,25 +601,13 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.MakeChan(vm.fn.types[uint8(a)], int(vm.intk(b, op < 0))).Interface())
 
 		// MakeMap
-		// ╒═══════════╤══════╤══════╤═════════════╕
-		// │ Operand   │ a    │ b    │ c           │
-		// ╞═══════════╪══════╪══════╪═════════════╡
-		// │ opMakeMap │ Type │ Size │ Destination │
-		// ╘═══════════╧══════╧══════╧═════════════╛
+		//
 		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]
 			n := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
 
 		// MakeSlice
-		//
-		//    ╒═════════════╤══════╤══════╤═════╕
-		//    │ op          │ a    │ b    │ c   │
-		//    ╞═════════════╪══════╪══════╪═════╡
-		//    │ opMakeSlice │ type │ ctrl │ dst │
-		//    ├─────────────┼──────┼──────┼─────┤
-		//    │ len         │ cap  │      │     │
-		//    ╘═════════════╧══════╧══════╧═════╛
 		//
 		//    ctrl == 0  -> len and cap are both non-constant
 		//    ctrl == 1  -> len is const
@@ -663,14 +632,6 @@ func (vm *VM) run() int {
 		// SetSlice
 		//
 		//	slice[index] = value
-		//
-		// 	╒════════════╤═══════╤═══════╤═══════╕
-		// 	│ Operand    │ a     │ b     │ c     │
-		// 	╞════════════╪═══════╪═══════╪═══════╡
-		// 	│ opSetSlice │ slice │ value │ index │
-		// 	╘════════════╧═══════╧═══════╧═══════╛
-		//
-		//	where value can be constant.
 		//
 		case opSetSlice:
 			s := vm.general(a)
@@ -775,12 +736,6 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
 		// Move
-		//
-		// 	╒═══════════╤═════════╤═════╤═════╕
-		// 	│ Operand   │ a       │ b   │ c   │
-		// 	╞═══════════╪═════════╪═════╪═════╡
-		// 	│ opMove    │ srcType │ src │ dst │
-		// 	╘═══════════╧═════════╧═════╧═════╛
 		//
 		// 	where srcType is 0 for general to general,
 		//                     1 for int     to general,
