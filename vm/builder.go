@@ -695,7 +695,7 @@ func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int
 func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 	builder.allocRegister(reflect.Interface, dst)
 	builder.allocRegister(reflect.Interface, src)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: dst, b: src, c: n})
+	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: src, b: n, c: dst})
 }
 
 // Defer appends a new "Defer" instruction to the function body.
