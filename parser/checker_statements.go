@@ -318,7 +318,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if isBuiltin && ident.Name == "panic" {
 					tc.terminating = true
 				}
-				if isBuiltin && len(tis) > 0 && ident.Name != "copy" {
+				if isBuiltin && len(tis) > 0 && ident.Name != "copy" && ident.Name != "recover" {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}

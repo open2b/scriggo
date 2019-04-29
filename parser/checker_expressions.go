@@ -1292,6 +1292,12 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		return nil
 
+	case "recover":
+		if len(expr.Args) > 0 {
+			panic(tc.errorf(expr, "too many arguments to recover"))
+		}
+		return []*TypeInfo{{Type: emptyInterfaceType}}
+
 	}
 
 	panic(fmt.Sprintf("unexpected builtin %s", ident.Name))
