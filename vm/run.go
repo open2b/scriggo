@@ -349,8 +349,8 @@ func (vm *VM) run() int {
 		//	delete(map, key)
 		//
 		case opDelete:
-			m := reflect.ValueOf(a)
-			k := reflect.ValueOf(b)
+			m := reflect.ValueOf(vm.general(a))
+			k := reflect.ValueOf(vm.general(b))
 			m.SetMapIndex(k, reflect.Value{})
 
 		// Div
