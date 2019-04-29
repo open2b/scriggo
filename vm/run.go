@@ -809,18 +809,7 @@ func (vm *VM) run() int {
 		case opPrint:
 			// TODO(Gianluca): add missing cases.
 			v := vm.general(a)
-			switch v := v.(type) {
-			case string:
-				print(v)
-			case int:
-				print(v)
-			case int64:
-				print(v)
-			case bool:
-				print(v)
-			default:
-				print(v)
-			}
+			print(string(sprint(v)))
 
 		// Range
 		case opRange:
