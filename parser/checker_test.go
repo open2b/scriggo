@@ -995,6 +995,7 @@ var checkerStmts = map[string]string{
 	`cap()`:                     `missing argument to cap: cap()`,
 	`cap(0)`:                    `invalid argument 0 (type int) for cap`,
 	`cap(nil)`:                  `use of untyped nil`,
+	`cap([]int{})`:              evaluatedButNotUsed("cap([]int literal)"),
 	`const _ = cap([]int{})`:    `const initializer cap([]int literal) is not a constant`,
 
 	// Builtin function 'make'.
@@ -1016,6 +1017,11 @@ var checkerStmts = map[string]string{
 	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
 	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	`make(string)`:            `cannot make type string`,
+
+	// Builtin function 'new'.
+	`_ = new(int)`: ok,
+	`new()`:        `missing argument to new`,
+	`new(int)`:     evaluatedButNotUsed("new(int)"),
 
 	// Builtin function 'recover'.
 	`recover()`:                 ok,
