@@ -1159,7 +1159,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// Scrigo defined functions.
 			isNative := false
 			c.prepareCallParameters(funType, node.Call.Args, isNative)
-			// TODO(Gianluca): currently supports only deferred functions
+			// TODO(Gianluca): currently supports only deferring functions
 			// with no arguments and no return parameters.
 			argsShift := StackShift{}
 			c.fb.Defer(funReg, NoVariadic, offset, argsShift)
