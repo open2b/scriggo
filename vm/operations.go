@@ -144,9 +144,6 @@ const (
 	opMakeSlice
 
 	opSetSlice
-	opSetSliceInt
-	opSetSliceFloat
-	opSetSliceString
 
 	opSend
 
@@ -292,10 +289,7 @@ var operationName = [...]string{
 
 	opMakeSlice: "MakeSlice",
 
-	opSetSlice:       "SetSlice",
-	opSetSliceInt:    "SetSliceInt",
-	opSetSliceFloat:  "SetSliceFloat",
-	opSetSliceString: "SetSliceString",
+	opSetSlice: "SetSlice",
 
 	opSend: "Send",
 

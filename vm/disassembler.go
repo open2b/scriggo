@@ -483,10 +483,6 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += fmt.Sprintf("%d", fn.body[addr+1].a)
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.body[addr+1].b)
-	case opSetSliceInt:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + disassembleOperand(fn, b, Int, k)
-		s += " " + disassembleOperand(fn, c, Int, false)
 	case opSetSlice:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)

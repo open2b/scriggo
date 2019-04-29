@@ -63,12 +63,12 @@ func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 
 func (vm *VM) runRecoverable() (panicked bool) {
 	panicked = true
-	defer func() {
-		if panicked {
-			msg := recover()
-			vm.panics = append(vm.panics, Panic{Msg: msg})
-		}
-	}()
+	// defer func() {
+	// 	if panicked {
+	// 		msg := recover()
+	// 		vm.panics = append(vm.panics, Panic{Msg: msg})
+	// 	}
+	// }()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
@@ -663,48 +663,30 @@ func (vm *VM) run() int {
 		//
 		//	slice[index] = value
 		//
-		case opSetSlice:
-			s := vm.general(a)
+		case opSetSlice, -opSetSlice:
 			i := vm.int(c)
-			v := vm.general(b)
-			reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
-		case opSetSliceInt, -opSetSliceInt:
 			s := vm.general(a)
 			switch s := s.(type) {
 			case []int:
-				i := vm.int(c)
 				v := vm.intk(b, op < 0)
 				s[i] = int(v)
+			case []float64:
+				v := vm.floatk(b, op < 0)
+				s[i] = float64(v)
+			case []float32:
+				v := vm.floatk(b, op < 0)
+				s[i] = float32(v)
+			case []string:
+				v := vm.stringk(b, op < 0)
+				s[i] = string(v)
 			case []rune:
 				panic("TODO: not implemented")
 			case []byte:
 				panic("TODO: not implemented")
 			default:
-				panic(fmt.Sprintf("TODO: opSetSliceInt not implemented on type %T", s))
-			}
-		case opSetSliceFloat, -opSetSliceFloat:
-			s := vm.general(a)
-			switch s := s.(type) {
-			case []float64:
 				i := vm.int(c)
-				v := vm.floatk(b, op < 0)
-				s[i] = float64(v)
-			case []float32:
-				i := vm.int(c)
-				v := vm.floatk(b, op < 0)
-				s[i] = float32(v)
-			default:
-				panic("TODO: not implemented")
-			}
-		case opSetSliceString, -opSetSliceString:
-			s := vm.general(a)
-			switch s := s.(type) {
-			case []string:
-				i := vm.int(c)
-				v := vm.stringk(b, op < 0)
-				s[i] = string(v)
-			default:
-				panic("TODO: not implemented")
+				v := vm.generalk(b, op < 0)
+				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
 			}
 
 		// MapIndex

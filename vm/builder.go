@@ -1170,27 +1170,13 @@ func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
 //
 //	slice = value[index]
 //
-func (builder *FunctionBuilder) SetSlice(kvalue bool, slice, value, index int8, elemKind reflect.Kind) {
-	var fn = builder.fn
-	in := instruction{op: opSetSlice}
-	switch elemKind {
-	case reflect.Int, reflect.Int64, reflect.Int8, reflect.Bool:
-		in.op = opSetSliceInt
-	case reflect.Float64, reflect.Float32:
-		in.op = opSetSliceFloat
-	case reflect.String:
-		in.op = opSetSliceString
-	}
-	if kvalue {
-		if in.op == opSetSlice {
-			panic("bug")
-		}
+func (builder *FunctionBuilder) SetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
+	_ = elemKind // TODO(Gianluca): remove.
+	in := instruction{op: opSetSlice, a: slice, b: value, c: index}
+	if k {
 		in.op = -in.op
 	}
-	in.a = slice
-	in.b = value
-	in.c = index
-	fn.body = append(fn.body, in)
+	builder.fn.body = append(builder.fn.body, in)
 }
 
 // Sub appends a new "Sub" instruction to the function body.
