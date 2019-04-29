@@ -558,7 +558,7 @@ func (p *parsing) parseStatement(tok token) {
 		addChild(parent, node)
 		p.cutSpacesToken = true
 
-		// fallthrough
+	// fallthrough
 	case tokenFallthrough:
 		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
@@ -1127,6 +1127,30 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			return
 		}
+
+	// defer, go
+	case tokenDefer, tokenGo:
+		keyword := tok.typ
+		tok = next(p.lex)
+		expr, tok = p.parseExpr(tok, false, false, false, false)
+		// Errors on defer and go statements must be type checker errors and not syntax errors.
+		var call *ast.Call
+		switch expr := expr.(type) {
+		default:
+			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
+		case *ast.Parenthesis:
+			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
+		case *ast.Call:
+			call = expr
+		}
+		pos.End = tok.pos.End
+		var node ast.Node
+		if keyword == tokenDefer {
+			node = ast.NewDefer(pos, call)
+		} else {
+			node = ast.NewGo(pos, call)
+		}
+		addChild(parent, node)
 
 	// expression or assignment
 	default:

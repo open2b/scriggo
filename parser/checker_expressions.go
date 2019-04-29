@@ -666,7 +666,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		return &TypeInfo{Type: t.Type}
 
 	case *ast.Call:
-		types, _ := tc.checkCallExpression(expr, false)
+		types, _, _ := tc.checkCallExpression(expr, false)
 		if len(types) == 0 {
 			panic(tc.errorf(expr, "%v used as value", expr))
 		}
@@ -1292,16 +1292,23 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		return nil
 
+	case "recover":
+		if len(expr.Args) > 0 {
+			panic(tc.errorf(expr, "too many arguments to recover"))
+		}
+		return []*TypeInfo{{Type: emptyInterfaceType}}
+
 	}
 
 	panic(fmt.Sprintf("unexpected builtin %s", ident.Name))
 
 }
 
-// checkCallExpression type checks a call expression, including type conversions
-// and built-in function calls. Returns a list of typeinfos obtained from the
-// call and a boolean value indicating if expr is a builtin.
-func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool) {
+// checkCallExpression type checks a call expression, including type
+// conversions and built-in function calls. Returns a list of typeinfos
+// obtained from the call and returns two booleans indicating respectively if
+// expr is a builtin call or a conversion.
+func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool, bool) {
 
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
 		contextIsNotNone := true // TODO (Gianluca).
@@ -1312,10 +1319,10 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		// ignore "HTML" types threating them as strings, while rendering
 		// has to convert them.
 		if ident.Name == "html" && contextIsNotNone {
-			return tc.checkBuiltinCall(expr), true
+			return tc.checkBuiltinCall(expr), true, false
 		}
 		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
-			return tc.checkBuiltinCall(expr), true
+			return tc.checkBuiltinCall(expr), true, false
 		}
 	}
 
@@ -1348,7 +1355,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		new := ast.NewValue(t.Type)
 		tc.replaceTypeInfo(expr.Func, new)
 		expr.Func = new
-		return []*TypeInfo{ti}, false
+		return []*TypeInfo{ti}, false, true
 	}
 
 	if t.Type.Kind() != reflect.Func {
@@ -1371,7 +1378,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if c, ok := args[0].(*ast.Call); ok {
 			isSpecialCase = true
 			args = nil
-			tis, _ := tc.checkCallExpression(c, false)
+			tis, _, _ := tc.checkCallExpression(c, false)
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				tc.typeInfo[v] = ti
@@ -1458,5 +1465,5 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		resultTypes[i] = &TypeInfo{Type: t.Type.Out(i)}
 	}
 
-	return resultTypes, false
+	return resultTypes, false, false
 }

@@ -203,6 +203,12 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, arg)
 		}
 
+	case *ast.Defer:
+		Walk(v, n.Call)
+
+	case *ast.Go:
+		Walk(v, n.Call)
+
 	case *ast.Index:
 		Walk(v, n.Expr)
 		Walk(v, n.Index)

@@ -194,7 +194,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	if len(vars) >= 2 && len(values) == 1 {
 		call, ok := values[0].(*ast.Call)
 		if ok {
-			tis, isBuiltin := tc.checkCallExpression(call, false)
+			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
 			if len(vars) != len(tis) {
 				if isBuiltin {
 					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
@@ -419,7 +419,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if isDeclaration {
 			panic(tc.errorf(node, "non name %s on left side of :=", variable))
 		}
-		tis, _ := tc.checkCallExpression(v, false)
+		tis, _, _ := tc.checkCallExpression(v, false)
 		switch len(tis) {
 		case 0:
 			panic(tc.errorf(node, "%s used as value", variable))

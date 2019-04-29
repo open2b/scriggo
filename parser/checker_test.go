@@ -374,6 +374,9 @@ var checkerExprs = []struct {
 	{`len([...]byte{})`, tiIntConst(0), nil},
 	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 	// {`len(new([1]byte))`, tiInt(), nil}, // TODO.
+
+	// recover
+	{`recover()`, tiInterface(), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -992,6 +995,7 @@ var checkerStmts = map[string]string{
 	`cap()`:                     `missing argument to cap: cap()`,
 	`cap(0)`:                    `invalid argument 0 (type int) for cap`,
 	`cap(nil)`:                  `use of untyped nil`,
+	`cap([]int{})`:              evaluatedButNotUsed("cap([]int literal)"),
 	`const _ = cap([]int{})`:    `const initializer cap([]int literal) is not a constant`,
 
 	// Builtin function 'make'.
@@ -1013,6 +1017,16 @@ var checkerStmts = map[string]string{
 	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
 	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	`make(string)`:            `cannot make type string`,
+
+	// Builtin function 'new'.
+	`_ = new(int)`: ok,
+	`new()`:        `missing argument to new`,
+	`new(int)`:     evaluatedButNotUsed("new(int)"),
+
+	// Builtin function 'recover'.
+	`recover()`:                 ok,
+	`recover(1)`:                `too many arguments to recover`,
+	`recover := 0; _ = recover`: ok,
 
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
@@ -1465,6 +1479,10 @@ func tiIntSlice() *TypeInfo { return &TypeInfo{Type: reflect.SliceOf(intType)} }
 // string map type info.
 
 func tiStringMap() *TypeInfo { return &TypeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
+
+// interface{} type info.
+
+func tiInterface() *TypeInfo { return &TypeInfo{Type: universe["interface{}"].t.Type} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{

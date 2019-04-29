@@ -491,6 +491,23 @@ var noneContextTreeTests = []struct {
 				},
 			),
 		}, ast.ContextNone)},
+	{"defer f()",
+		ast.NewTree("", []ast.Node{
+			ast.NewDefer(
+				p(1, 1, 0, 8),
+				ast.NewCall(
+					p(1, 8, 6, 8),
+					ast.NewIdentifier(p(1, 7, 6, 6), "f"), nil, false)),
+		}, ast.ContextNone)},
+	{"go f()",
+		ast.NewTree("", []ast.Node{
+			ast.NewGo(
+				p(1, 1, 0, 5),
+				ast.NewCall(
+					p(1, 5, 3, 5),
+					ast.NewIdentifier(p(1, 4, 3, 3), "f"), nil, false)),
+		}, ast.ContextNone)},
+
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
 	// 	ast.NewAssignment(
@@ -2129,6 +2146,26 @@ func equals(n1, n2 ast.Node, p int) error {
 			}
 		}
 
+	case *ast.Defer:
+		nn2, ok := n2.(*ast.Defer)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Call, nn2.Call, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.Go:
+		nn2, ok := n2.(*ast.Go)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Call, nn2.Call, p)
+		if err != nil {
+			return err
+		}
+
 	case *ast.Macro:
 		nn2, ok := n2.(*ast.Macro)
 		if !ok {
@@ -2159,6 +2196,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.IsVariadic != nn2.IsVariadic {
 			return fmt.Errorf("unexpected is variadic %t, expecting %t", nn1.IsVariadic, nn2.IsVariadic)
 		}
+
 	case *ast.TypeAssertion:
 		nn2, ok := n2.(*ast.TypeAssertion)
 		if !ok {
@@ -2172,6 +2210,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.ShowMacro:
 		nn2, ok := n2.(*ast.ShowMacro)
 		if !ok {
@@ -2194,6 +2233,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Return:
 		nn2, ok := n2.(*ast.Return)
 		if !ok {
@@ -2208,14 +2248,17 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Break:
 		if _, ok := n2.(*ast.Break); !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
+
 	case *ast.Continue:
 		if _, ok := n2.(*ast.Continue); !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
+
 	default:
 		panic(fmt.Sprintf("unexpected node of type %T\n", n1))
 	}
