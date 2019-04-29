@@ -719,7 +719,27 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			}
 		}
 
-	case *ast.Int, *ast.Identifier, *ast.String: // TODO (Gianluca): remove Int and String
+	case *ast.Identifier: // TODO (Gianluca): remove Int and String
+		if reg == 0 {
+			return
+		}
+		kind := c.typeinfo[expr].Type.Kind()
+		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		if isValue {
+			c.fb.Move(true, out, reg, kind, dstKind)
+		} else if isRegister {
+			c.fb.Move(false, out, reg, kind, dstKind)
+		} else {
+			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
+				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
+				index := c.scrigoFunctionIndex(fun)
+				c.fb.GetFunc(false, index, reg)
+			} else {
+				panic("bug")
+			}
+		}
+
+	case *ast.Int, *ast.String: // TODO (Gianluca): remove Int and String
 		if reg == 0 {
 			return
 		}
