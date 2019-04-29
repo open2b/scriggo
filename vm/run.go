@@ -168,19 +168,13 @@ func (vm *VM) run() int {
 			t := vm.fn.types[int(uint(b))]
 			var ok bool
 			if t.Kind() == reflect.Interface {
-				ok = v.Type().Implements(t)
+				vm.ok = v.Type().Implements(t)
 			} else {
-				ok = v.Type() == t
+				vm.ok = v.Type() == t
 			}
-			if ok {
+			if vm.ok {
 				vm.pc++
-			} else {
-				// TODO(Gianluca): if next istruction is "opPanic",
-				// raise panic from here using the correct error message
-				// (invalid conversion etc...): the "panic" instruction
-				// can't know what failed and what types where involved.
 			}
-			vm.ok = ok
 			if c != 0 {
 				switch t.Kind() {
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -810,6 +804,10 @@ func (vm *VM) run() int {
 
 		// Panic
 		case opPanic:
+			// TODO(Gianluca): if argument is "TypeAssertion" (or
+			// something similar), check if previous instruction was an
+			// "Assert"; in such case, raise a type-assertion panic,
+			// retrieving informations from its operands.
 			panic(vm.general(a))
 
 		// Print
