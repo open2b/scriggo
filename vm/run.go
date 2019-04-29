@@ -804,10 +804,10 @@ func (vm *VM) run() int {
 
 		// Panic
 		case opPanic:
-			// TODO(Gianluca): if argument is "TypeAssertion" (or
-			// something similar), check if previous instruction was an
-			// "Assert"; in such case, raise a type-assertion panic,
-			// retrieving informations from its operands.
+			// TODO(Gianluca): if argument is 0, check if previous
+			// instruction was an "Assert"; in such case, raise a
+			// type-assertion panic, retrieving informations from its
+			// operands.
 			panic(vm.general(a))
 
 		// Print
