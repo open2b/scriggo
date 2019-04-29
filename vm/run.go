@@ -446,19 +446,31 @@ func (vm *VM) run() int {
 
 		// If
 		case opIf:
-			if Condition(b) == ConditionOk {
-				if vm.ok {
-					vm.pc++
-				}
-				continue
-			}
 			var cond bool
 			v1 := vm.general(a)
 			switch Condition(b) {
+			case ConditionEqual:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionNotEqual:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionNotEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionLessLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionLessOrEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionGreaterLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionGreaterOrEqualLen:
+				panic("TODO(Gianluca): not implemented")
 			case ConditionNil:
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
+			case ConditionOk:
+				cond = vm.ok
 			}
 			if cond {
 				vm.pc++
