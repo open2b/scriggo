@@ -605,6 +605,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		switch typ.Kind() {
 		case reflect.Slice, reflect.Array:
 			size := int8(compositeLiteralLen(expr))
+			// TODO(Gianluca): incorrect when reg is 0: slice is not
+			// created, but values must be evaluated anyway.
 			if reg != 0 {
 				if typ.Kind() == reflect.Array {
 					typ = reflect.SliceOf(typ.Elem())
