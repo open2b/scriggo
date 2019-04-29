@@ -313,7 +313,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, ti, nil)
 
 		case *ast.Call:
-			tis, isBuiltin := tc.checkCallExpression(node, true)
+			tis, isBuiltin, _ := tc.checkCallExpression(node, true)
 			if ident, ok := node.Func.(*ast.Identifier); ok {
 				if isBuiltin && ident.Name == "panic" {
 					tc.terminating = true
@@ -322,6 +322,20 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
+
+		case *ast.Defer:
+			_, isBuiltin, isConversion := tc.checkCallExpression(node.Call, true)
+			if isBuiltin {
+				name := node.Call.Func.(*ast.Identifier).Name
+				switch name {
+				case "append", "cap", "len", "make", "new":
+					panic(tc.errorf(node, "defer discards result of %s", node.Call))
+				}
+			}
+			if isConversion {
+				panic(tc.errorf(node, "defer requires function call, not conversion"))
+			}
+			tc.terminating = false
 
 		case ast.Expression:
 
@@ -387,7 +401,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	needsCheck := true
 	if len(expected) > 1 && len(got) == 1 {
 		if c, ok := got[0].(*ast.Call); ok {
-			tis, _ := tc.checkCallExpression(c, false)
+			tis, _, _ := tc.checkCallExpression(c, false)
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)

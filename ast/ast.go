@@ -974,6 +974,20 @@ func (n *Call) String() string {
 	return s
 }
 
+// Defer node represents a defer statement.
+type Defer struct {
+	*Position       // position in the source.
+	Call      *Call // function or method call.
+}
+
+func NewDefer(pos *Position, call *Call) *Defer {
+	return &Defer{pos, call}
+}
+
+func (n *Defer) String() string {
+	return "defer " + n.Call.String()
+}
+
 // Var node represent a variable declaration by keyword "var".
 type Var struct {
 	*Position                 // position in the source.
