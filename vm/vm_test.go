@@ -21,6 +21,13 @@ import (
 )
 
 var exprTests = map[string]interface{}{
+
+	// Composite literals - arrays.
+	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
+	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
+	`[3]string{}`:         []string{},         // Internally, arrays are stored as slices.
+	`[3]string{"a", "b"}`: []string{"a", "b"}, // Internally, arrays are stored as slices.
+
 	// Composite literals - slices.
 	`[]int{}`:               []int{},
 	`[]int{1, 2}`:           []int{1, 2},
@@ -31,12 +38,6 @@ var exprTests = map[string]interface{}{
 	`[]string{"a", 5: "b"}`: []string{"a", 5: "b"},
 	`[]float64{5, 12, 0}`:   []float64{5, 12, 0},
 	// `[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
-
-	// Composite literals - arrays.
-	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
-	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
-	`[3]string{}`:         []string{},         // Internally, arrays are stored as slices.
-	`[3]string{"a", "b"}`: []string{"a", "b"}, // Internally, arrays are stored as slices.
 
 	// Builtin 'make'.
 	`make([]int, 0, 0)`:       []int{},
@@ -85,34 +86,19 @@ func TestVMExpressions(t *testing.T) {
 	}
 }
 
-// reg represents a register and it's used in tests only.
+// reg represents a register. It's used in tests only.
 type reg struct {
 	typ   Type
 	r     int8
 	value interface{}
 }
 
-// TODO (Gianluca): currently unable to test:
-//
-//   a | b         --> parsing error
-//   a := 1234
-//   a := new(int)
-//   a := []int{1,2,3,4}
-//   func f(int) {
-
-// TODO (Gianluca): test fmt.Printf
-
 var stmtTests = []struct {
-	// name is the name of the test.
-	name string
-	// src is the source code which must be executed.
-	src string
-	// disassembled is the expected disassembler output. Can be nil.
-	disassembled []string
-	// registers is a list of expected registers. Can be nil.
-	registers []reg
-	// output is the expected stdout/stderr output.
-	output string
+	name         string   // name of the test.
+	src          string   // source code which must be executed.
+	disassembled []string // expected disassembler output. Can be nil.
+	registers    []reg    // list of expected registers. Can be nil.
+	output       string   // expected stdout/stderr output.
 }{
 	// TODO(Gianluca):
 	// {"Implicit return",
