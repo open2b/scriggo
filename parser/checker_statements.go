@@ -337,6 +337,20 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.terminating = false
 
+		case *ast.Go:
+			_, isBuiltin, isConversion := tc.checkCallExpression(node.Call, true)
+			if isBuiltin {
+				name := node.Call.Func.(*ast.Identifier).Name
+				switch name {
+				case "append", "cap", "len", "make", "new":
+					panic(tc.errorf(node, "go discards result of %s", node.Call))
+				}
+			}
+			if isConversion {
+				panic(tc.errorf(node, "go requires function call, not conversion"))
+			}
+			tc.terminating = false
+
 		case ast.Expression:
 
 			tc.checkExpression(node)

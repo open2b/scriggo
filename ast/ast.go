@@ -988,6 +988,20 @@ func (n *Defer) String() string {
 	return "defer " + n.Call.String()
 }
 
+// Go node represents a go statement.
+type Go struct {
+	*Position       // position in the source.
+	Call      *Call // function or method call.
+}
+
+func NewGo(pos *Position, call *Call) *Go {
+	return &Go{pos, call}
+}
+
+func (n *Go) String() string {
+	return "go " + n.Call.String()
+}
+
 // Var node represent a variable declaration by keyword "var".
 type Var struct {
 	*Position                 // position in the source.

@@ -1128,22 +1128,28 @@ func (p *parsing) parseStatement(tok token) {
 			return
 		}
 
-	// defer
-	case tokenDefer:
+	// defer, go
+	case tokenDefer, tokenGo:
+		keyword := tok.typ
 		tok = next(p.lex)
 		expr, tok = p.parseExpr(tok, false, false, false, false)
-		// Errors on defer statements must be type checker errors and not syntax errors.
+		// Errors on defer and go statements must be type checker errors and not syntax errors.
 		var call *ast.Call
 		switch expr := expr.(type) {
 		default:
-			panic(&Error{"", *tok.pos, fmt.Errorf("expression in defer must be function call")})
+			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
 		case *ast.Parenthesis:
-			panic(&Error{"", *tok.pos, fmt.Errorf("expression in defer must not be parenthesized")})
+			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
 		case *ast.Call:
 			call = expr
 		}
 		pos.End = tok.pos.End
-		node := ast.NewDefer(pos, call)
+		var node ast.Node
+		if keyword == tokenDefer {
+			node = ast.NewDefer(pos, call)
+		} else {
+			node = ast.NewGo(pos, call)
+		}
 		addChild(parent, node)
 
 	// expression or assignment

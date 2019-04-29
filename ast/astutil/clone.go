@@ -188,6 +188,8 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewFunc(ClonePosition(n.Position), ident, typ, CloneNode(n.Body).(*ast.Block))
 	case *ast.Defer:
 		return ast.NewDefer(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
+	case *ast.Go:
+		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
 	case ast.Expression:
 		return CloneExpression(n)
 	default:

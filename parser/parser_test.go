@@ -499,6 +499,14 @@ var noneContextTreeTests = []struct {
 					p(1, 8, 6, 8),
 					ast.NewIdentifier(p(1, 7, 6, 6), "f"), nil, false)),
 		}, ast.ContextNone)},
+	{"go f()",
+		ast.NewTree("", []ast.Node{
+			ast.NewGo(
+				p(1, 1, 0, 5),
+				ast.NewCall(
+					p(1, 5, 3, 5),
+					ast.NewIdentifier(p(1, 4, 3, 3), "f"), nil, false)),
+		}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -2140,6 +2148,16 @@ func equals(n1, n2 ast.Node, p int) error {
 
 	case *ast.Defer:
 		nn2, ok := n2.(*ast.Defer)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Call, nn2.Call, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.Go:
+		nn2, ok := n2.(*ast.Go)
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
