@@ -154,10 +154,6 @@ func (vm *VM) run() int {
 
 		// Assert
 		case opAssert:
-			// TODO (Gianluca): type assertions compares type as it is in
-			// stack, but this is wrong: a type assertion with type int32
-			// on an int32 value fails because this one is stored as
-			// int64.
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.types[int(uint(b))]
 			ok := v.Type() == t
