@@ -170,49 +170,41 @@ func (vm *VM) run() int {
 				// (invalid conversion etc...): the "panic" instruction
 				// can't know what failed and what types where involved.
 			}
-			switch t.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				var n int64
-				if ok {
-					n = v.Int()
-				}
-				if c != 0 {
+			vm.ok = ok
+			if c != 0 {
+				switch t.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					var n int64
+					if ok {
+						n = v.Int()
+					}
 					vm.setInt(c, n)
-				}
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				var n int64
-				if ok {
-					n = int64(v.Uint())
-				}
-				if c != 0 {
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					var n int64
+					if ok {
+						n = int64(v.Uint())
+					}
 					vm.setInt(c, n)
-				}
-			case reflect.Float32, reflect.Float64:
-				var f float64
-				if ok {
-					f = v.Float()
-				}
-				if c != 0 {
+				case reflect.Float32, reflect.Float64:
+					var f float64
+					if ok {
+						f = v.Float()
+					}
 					vm.setFloat(c, f)
-				}
-			case reflect.String:
-				var s string
-				if ok {
-					s = v.String()
-				}
-				if c != 0 {
+				case reflect.String:
+					var s string
+					if ok {
+						s = v.String()
+					}
 					vm.setString(c, s)
-				}
-			default:
-				var i interface{}
-				if ok {
-					i = v.Interface()
-				}
-				if c != 0 {
+				default:
+					var i interface{}
+					if ok {
+						i = v.Interface()
+					}
 					vm.setGeneral(c, i)
 				}
 			}
-			vm.ok = ok
 		case opAssertInt:
 			i, ok := vm.general(a).(int)
 			if c != 0 {
