@@ -628,26 +628,35 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
 
 		// MakeSlice
-		//
-		//    ctrl == 0  -> len and cap are both non-constant
-		//    ctrl == 1  -> len is const
-		//    ctrl == 2  -> cap is const
-		//    ctrl == 3  -> len and cap are const
-		//
-		// TODO (Gianluca): optimization: add another ctrl value when both
-		// len and cap are 0: in such case can use just one instruction
-		// instead of two.
 		case opMakeSlice:
 			var v interface{}
 			t := vm.fn.types[int(uint(a))]
-			ctrl := vm.intk(b, true)
-			kLen := ctrl == 1 || ctrl == 3
-			kCap := ctrl == 2 || ctrl == 3
-			next := vm.fn.body[vm.pc]
-			len := vm.intk(next.a, kLen)
-			cap := vm.intk(next.b, kCap)
+			k := vm.intk(b, true)
+			var len, cap int64
+			if k == 0 {
+				len, cap = 0, 0
+			} else {
+				var lenIsConst, capIsConst bool
+				switch k {
+				case 1:
+					lenIsConst = false
+					capIsConst = false
+				case 2:
+					lenIsConst = true
+					capIsConst = false
+				case 3:
+					lenIsConst = false
+					capIsConst = true
+				case 4:
+					lenIsConst = true
+					capIsConst = true
+				}
+				next := vm.fn.body[vm.pc]
+				vm.pc++
+				len = vm.intk(next.a, lenIsConst)
+				cap = vm.intk(next.b, capIsConst)
+			}
 			v = reflect.MakeSlice(t, int(len), int(cap)).Interface()
-			vm.pc++
 			vm.setGeneral(c, v)
 
 		// SetSlice

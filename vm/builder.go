@@ -985,14 +985,20 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	builder.allocRegister(reflect.Interface, dst)
 	t := builder.Type(sliceType)
 	in1.a = t
-	ctrl := int8(0)
-	if kLen {
-		ctrl += 1
+	var k int8
+	switch {
+	case len == 0 || cap == 0:
+		k = 0
+	case !kLen && !kCap:
+		k = 1
+	case kLen && !kCap:
+		k = 2
+	case !kLen && kCap:
+		k = 3
+	case kLen && kCap:
+		k = 4
 	}
-	if kCap {
-		ctrl += 2
-	}
-	in1.b = ctrl
+	in1.b = k
 	in1.c = dst
 	builder.fn.body = append(builder.fn.body, in1)
 	in2 := instruction{}
