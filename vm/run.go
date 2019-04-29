@@ -168,11 +168,12 @@ func (vm *VM) run() int {
 			t := vm.fn.types[int(uint(b))]
 			var ok bool
 			if t.Kind() == reflect.Interface {
-				vm.ok = v.Type().Implements(t)
+				ok = v.Type().Implements(t)
 			} else {
-				vm.ok = v.Type() == t
+				ok = v.Type() == t
 			}
-			if vm.ok {
+			vm.ok = ok
+			if ok {
 				vm.pc++
 			}
 			if c != 0 {
