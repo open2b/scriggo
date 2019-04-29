@@ -633,7 +633,7 @@ func (vm *VM) nextCall() bool {
 			}
 			// TODO(marco): call finalizer.
 			if call.status == Recovered {
-				vm.panics = vm.panics[:0]
+				vm.panics = vm.panics[:len(vm.panics)-1]
 			}
 			continue
 		case Panicked:
