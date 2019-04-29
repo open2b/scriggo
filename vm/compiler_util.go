@@ -20,7 +20,7 @@ func addExplicitReturn(fun *ast.Func) {
 		pos = fun.Pos()
 	} else {
 		last := fun.Body.Nodes[len(fun.Body.Nodes)-1]
-		if _, ok := last.(*ast.Return); ok {
+		if _, ok := last.(*ast.Return); !ok {
 			pos = last.Pos()
 		}
 	}

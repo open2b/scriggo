@@ -84,12 +84,6 @@ func (vm *VM) run() int {
 
 	for {
 
-		// TODO (Gianluca): this check avoids "panic: runtime error: index
-		// out of range". Investigate.
-		if int(vm.pc) >= len(vm.fn.body) {
-			return 0
-		}
-
 		in := vm.fn.body[vm.pc]
 
 		if DebugTraceExecution {
