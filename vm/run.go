@@ -656,7 +656,7 @@ func (vm *VM) run() int {
 				i := vm.int(c)
 				v := vm.intk(b, op < 0)
 				s[i] = int(v)
-			case []int64:
+			case []rune:
 				panic("TODO: not implemented")
 			case []byte:
 				panic("TODO: not implemented")
