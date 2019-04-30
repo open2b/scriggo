@@ -1069,8 +1069,16 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 		// t := c.currFb.Type(typ)
 		// i = instruction{op: opNew, b: t, c: }
 	case "panic":
-		// TODO (Gianluca): pass argument to panic.
-		c.fb.Panic(0, call.Pos().Line)
+		arg := call.Args[0]
+		var reg int8
+		out, _, isRegister := c.quickCompileExpr(arg, reflect.Interface)
+		if isRegister {
+			reg = out
+		} else {
+			reg = c.fb.NewRegister(reflect.Interface)
+			c.compileExpr(arg, reg, reflect.Interface)
+		}
+		c.fb.Panic(reg, call.Pos().Line)
 	case "print":
 		for i := range call.Args {
 			arg := c.fb.NewRegister(reflect.Interface)
