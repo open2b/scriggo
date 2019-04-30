@@ -676,11 +676,11 @@ func (vm *VM) run() int {
 			switch m := m.(type) {
 			case map[string]int:
 				k := vm.string(c)
-				v := vm.intk(c, op < 0)
+				v := vm.intk(b, op < 0)
 				m[k] = int(v)
 			case map[int]string:
 				k := vm.int(c)
-				v := vm.stringk(c, op < 0)
+				v := vm.stringk(b, op < 0)
 				m[int(k)] = v
 			// TODO(Gianluca): add map[..]bool cases.
 			default:
