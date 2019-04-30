@@ -100,25 +100,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
-	// TODO(Gianluca):
-	// {"Implicit return",
-	// 	`package main
+	{"Implicit return",
+		`package main
 
-	// 	import "fmt"
+		import "fmt"
 
-	// 	func f() {
-	// 		fmt.Print("f")
-	// 	}
+		func f() {
+			fmt.Print("f")
+		}
 
-	// 	func g() {
-	// 		fmt.Print("g")
-	// 	}
+		func g() {
+			fmt.Print("g")
+		}
 
-	// 	func main() {
-	// 		f()
-	// 		g()
-	// 	}`,
-	// 	nil, nil, "fg"},
+		func main() {
+			f()
+			g()
+		}`,
+		nil, nil, "fg"},
 
 	{"Recover",
 		`package main
