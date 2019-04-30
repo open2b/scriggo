@@ -74,8 +74,8 @@ const (
 	ConditionGreaterOrEqualLen                  // len(x) >= y
 	ConditionNil                                // x == nil
 	ConditionNotNil                             // x != nil
-	ConditionOk                                 // [vm.ok]
-	ConditionNotOk                              // ![vm.ok]
+	ConditionOK                                 // [vm.ok]
+	ConditionNotOK                              // ![vm.ok]
 )
 
 func (c Condition) String() string {
@@ -108,10 +108,10 @@ func (c Condition) String() string {
 		return "Nil"
 	case ConditionNotNil:
 		return "NotNil"
-	case ConditionOk:
-		return "Ok"
-	case ConditionNotOk:
-		return "NotOk"
+	case ConditionOK:
+		return "OK"
+	case ConditionNotOK:
+		return "NotOK"
 	}
 	panic("unknown condition")
 }
@@ -915,11 +915,11 @@ func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Ki
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: c})
 }
 
-// IfOk appends a new "If" instruction to the function body which tests for the
-// Ok flag.
+// IfOK appends a new "If" instruction to the function body which tests for the
+// OK flag.
 // TODO(Gianluca): this method is currently not used.
-func (builder *FunctionBuilder) IfOk() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOk)})
+func (builder *FunctionBuilder) IfOK() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOK)})
 }
 
 // Index appends a new "index" instruction to the function body

@@ -1431,7 +1431,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 	// ConditionGreaterOrEqualLen                  // len(x) >= y
 	// ConditionNil                                // x == nil
 	// ConditionNotNil                             // x != nil
-	// ConditionOk                                 // [vm.ok]
+	// ConditionOK                                 // [vm.ok]
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		kind = c.typeinfo[cond.Expr1].Type.Kind()
