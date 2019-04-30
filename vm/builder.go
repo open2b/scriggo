@@ -1098,7 +1098,7 @@ func (builder *FunctionBuilder) Panic(v int8, line int) {
 	fn.AddLine(uint32(len(fn.body)-1), line)
 }
 
-// Print appends a new "print" instruction to the function body.
+// Print appends a new "Print" instruction to the function body.
 //
 //     print(args...)
 //
