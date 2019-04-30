@@ -43,16 +43,16 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	c := &Compiler{
 		importableGoPkgs: packages,
 
-		availableScrigoFunctions: make(map[string]*ScrigoFunction),
-		availableNativeFunctions: make(map[string]*NativeFunction),
-		availableVariables:       make(map[string]variable),
+		availableScrigoFunctions: map[string]*ScrigoFunction{},
+		availableNativeFunctions: map[string]*NativeFunction{},
+		availableVariables:       map[string]variable{},
 
-		assignedIndexesOfScrigoFunctions: make(map[*ScrigoFunction]map[*ScrigoFunction]int8),
-		assignedIndexesOfNativeFunctions: make(map[*ScrigoFunction]map[*NativeFunction]int8),
-		assignedIndexesOfVariables:       make(map[*ScrigoFunction]map[variable]uint8),
+		assignedIndexesOfScrigoFunctions: map[*ScrigoFunction]map[*ScrigoFunction]int8{},
+		assignedIndexesOfNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
+		assignedIndexesOfVariables:       map[*ScrigoFunction]map[variable]uint8{},
 
-		isGoPkg:       make(map[string]bool),
-		packagesNames: make(map[string]uint8),
+		isGoPkg:       map[string]bool{},
+		packagesNames: map[string]uint8{},
 	}
 	c.parser = parser.New(r, packages, true)
 	return c
