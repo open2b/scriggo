@@ -921,32 +921,31 @@ func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Ki
 //
 func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType reflect.Type) {
 	kind := exprType.Kind()
-	in := instruction{op: opIndex}
+	var op operation
 	switch kind {
+	default:
+		op = opIndex
 	case reflect.Slice:
-		in.op = opSliceIndex
+		op = opSliceIndex
 	case reflect.String:
-		in.op = opStringIndex
+		op = opStringIndex
 	case reflect.Map:
-		in.op = opMapIndex
+		op = opMapIndex
 		switch exprType {
 		case reflect.TypeOf(map[string]int{}):
-			in.op = opMapIndexStringInt
+			op = opMapIndexStringInt
 		case reflect.TypeOf(map[string]bool{}):
-			in.op = opMapIndexStringBool
+			op = opMapIndexStringBool
 		case reflect.TypeOf(map[string]string{}):
-			in.op = opMapIndexStringString
+			op = opMapIndexStringString
 		case reflect.TypeOf(map[string]interface{}{}):
-			in.op = opMapIndexStringInterface
+			op = opMapIndexStringInterface
 		}
 	}
 	if ki {
-		in.op = -in.op
+		op = -op
 	}
-	in.a = expr
-	in.b = i
-	in.c = dst
-	builder.fn.body = append(builder.fn.body, in)
+	builder.fn.body = append(builder.fn.body, instruction{op: opIndex, a: expr, b: i, c: dst})
 }
 
 // Len appends a new "len" instruction to the function body.
