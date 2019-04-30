@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,24 +23,21 @@ var packages map[string]*parser.GoPackage
 
 func main() {
 
-	var args = os.Args
+	var asm = flag.Bool("S", false, "print assembly listing")
+	var trace = flag.Bool("trace", false, "print an execution trace")
 
-	var useVM bool
-	var asm bool
+	flag.Parse()
 
-	if useVM = args[1] == "-vm"; useVM {
-		args = args[1:]
-		if asm = args[1] == "-S"; asm {
-			args = args[1:]
-		}
-	}
+	vm.DebugTraceExecution = *trace
 
-	if len(args) != 2 {
+	var args = flag.Args()
+
+	if len(args) != 1 {
 		fmt.Printf("usage: %s filename\n", args[0])
 		os.Exit(-1)
 	}
 
-	file := args[1]
+	file := args[0]
 	ext := filepath.Ext(file)
 	if ext != ".go" && ext != ".gos" && ext != ".html" {
 		fmt.Printf("%s: extension must be \".go\" for main packages, \".gos\" for scripts and \".html\" for template pages\n", file)
@@ -50,34 +48,6 @@ func main() {
 	if err != nil {
 		fmt.Printf("%s: %s\n", file, err)
 		os.Exit(-1)
-	}
-
-	if useVM {
-		// TODO(Gianluca): to review.
-		// path := "/" + filepath.Base(absFile)
-		r := parser.DirReader(filepath.Dir(absFile))
-		vm.DebugTraceExecution = true
-		compiler := vm.NewCompiler(r, packages)
-		main, err := compiler.CompileFunction()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-			os.Exit(2)
-		}
-		if asm {
-			_, err = vm.DisassembleFunction(os.Stdout, main)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			print("(vm) ")
-			_, err = vm.New().Run(main)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		return
 	}
 
 	switch ext {
@@ -99,23 +69,26 @@ func main() {
 			os.Exit(-1)
 		}
 	case ".go":
+		path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
-		compiler := scrigo.NewCompiler(r, packages)
-		f, err := os.Open(file)
+		compiler := vm.NewCompiler(r, packages)
+		main, err := compiler.Compile(path)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
 		}
-		program, err := compiler.Compile(f)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-		f.Close()
-		err = scrigo.Execute(program)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+		if *asm {
+			_, err = vm.DisassembleFunction(os.Stdout, main)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			_, err = vm.New().Run(main)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
 		}
 	case ".html":
 		r := parser.DirReader(filepath.Dir(absFile))

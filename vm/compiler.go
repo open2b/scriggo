@@ -109,13 +109,13 @@ func (c *Compiler) variableIndex(v variable) uint8 {
 	return i
 }
 
-func (c *Compiler) CompileFunction() (*ScrigoFunction, error) {
-	tree, err := c.parser.Parse("/test.go", ast.ContextNone)
+func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
+	tree, err := c.parser.Parse(path, ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}
 	tci := c.parser.TypeCheckInfos()
-	c.typeinfo = tci["/test.go"].TypeInfo
+	c.typeinfo = tci[path].TypeInfo
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
 	fun := c.currentFunction
