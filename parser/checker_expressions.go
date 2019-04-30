@@ -1319,9 +1319,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		// ignore "HTML" types threating them as strings, while rendering
 		// has to convert them.
 		if ident.Name == "html" && contextIsNotNone {
+			tc.typeInfo[expr.Func] = &TypeInfo{Properties: PropertyIsBuiltin}
 			return tc.checkBuiltinCall(expr), true, false
 		}
 		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
+			tc.typeInfo[expr.Func] = t
 			return tc.checkBuiltinCall(expr), true, false
 		}
 	}
