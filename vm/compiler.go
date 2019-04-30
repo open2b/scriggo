@@ -1154,6 +1154,18 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.ExitScope()
 
 		case *ast.Defer, *ast.Go:
+			// TODO(Gianluca): builtins must be incapsulated inside a
+			// function literal call when deferring (or starting a
+			// goroutine?). For example
+			//
+			//	defer copy(dst, src)
+			//
+			// should be compiled into
+			//
+			// 	defer func() {
+			// 		copy(dst, src)
+			// 	}()
+			//
 			if def, ok := node.(*ast.Defer); ok {
 				if ident, ok := def.Call.Func.(*ast.Identifier); ok {
 					// TODO(Gianluca): should check if call is a
