@@ -120,6 +120,16 @@ var stmtTests = []struct {
 	// 	}`,
 	// 	nil, nil, "fg"},
 
+	{"Recover",
+		`package main
+		
+		func main() {
+			recover()
+			v := recover()
+			_ = v
+		}
+		`, nil, nil, ""},
+
 	{"Defer - Calling f ang g (package level functions)",
 		`package main
 

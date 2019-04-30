@@ -1083,7 +1083,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 	case "real":
 		panic("TODO: not implemented")
 	case "recover":
-		panic("TODO: not implemented")
+		c.fb.Recover(reg)
 	default:
 		return false
 	}
