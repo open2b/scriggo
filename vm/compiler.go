@@ -791,13 +791,13 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 }
 
-// compileVarsGetValue assign value to variables. If variables contains more
-// than one variable, value must be a function call, a map indexing operation or
-// a type assertion. These last two cases involve that variables contains 2
+// compileAssignment assign value to variables. If variables contains more than
+// one variable, value must be a function call, a map indexing operation or a
+// type assertion. These last two cases involve that variables contains 2
 // elements.
 // TODO (Gianluca): in case of variable declaration, if quickCompileExpr returns
 // a register use it instead of creating a new one.
-func (c *Compiler) compileVarsGetValue(variables []ast.Expression, value ast.Expression, isDecl bool) {
+func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expression, isDecl bool) {
 	if len(variables) == 1 {
 		variable := variables[0]
 		kind := c.typeinfo[value].Type.Kind()
@@ -1121,10 +1121,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				}
 			case len(node.Variables) == len(node.Values):
 				for i := range node.Variables {
-					c.compileVarsGetValue([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
+					c.compileAssignment([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
 				}
 			case len(node.Variables) > 1 && len(node.Values) == 1:
-				c.compileVarsGetValue(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
+				c.compileAssignment(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
 			case len(node.Variables) == 1 && len(node.Values) == 0:
 				switch node.Type {
 				case ast.AssignmentIncrement:
@@ -1278,14 +1278,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case *ast.Var:
 			if len(node.Identifiers) == len(node.Values) {
 				for i := range node.Identifiers {
-					c.compileVarsGetValue([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
+					c.compileAssignment([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
 				}
 			} else {
 				expr := make([]ast.Expression, len(node.Identifiers))
 				for i := range node.Identifiers {
 					expr[i] = node.Identifiers[i]
 				}
-				c.compileVarsGetValue(expr, node.Values[0], true)
+				c.compileAssignment(expr, node.Values[0], true)
 			}
 
 		case ast.Expression:
