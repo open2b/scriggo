@@ -264,6 +264,7 @@ func (fn *ScrigoFunction) AddNativeFunction(f *NativeFunction) uint8 {
 }
 
 // AddScrigoFunction add a Scrigo function to a function.
+// TODO(Gianluca): is this method obsolete?
 func (fn *ScrigoFunction) AddScrigoFunction(f *ScrigoFunction) uint8 {
 	r := len(fn.scrigoFunctions)
 	if r > 255 {
