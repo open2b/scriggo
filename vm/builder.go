@@ -1163,7 +1163,7 @@ func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, b: r, c: int8(v)})
 }
 
-// SetSlice appendsa a new "SetSlice" instruction to the function body.
+// SetSlice appends a new "SetSlice" instruction to the function body.
 //
 //	slice = value[index]
 //
