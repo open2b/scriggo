@@ -829,7 +829,7 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 	in := instruction{op: opGoto}
 	if label > 0 {
 		if label > uint32(len(builder.labels)) {
-			panic("bug!")
+			panic("bug!") // TODO(Gianluca): remove.
 		}
 		addr := builder.labels[label-1]
 		if addr == 0 {
