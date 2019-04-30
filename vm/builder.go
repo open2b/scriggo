@@ -915,13 +915,6 @@ func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Ki
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: c})
 }
 
-// IfOK appends a new "If" instruction to the function body which tests for the
-// OK flag.
-// TODO(Gianluca): this method is currently not used.
-func (builder *FunctionBuilder) IfOK() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opIf, b: int8(ConditionOK)})
-}
-
 // Index appends a new "index" instruction to the function body
 //
 //	dst = expr[i]
