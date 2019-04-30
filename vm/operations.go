@@ -84,9 +84,6 @@ const (
 
 	opStringIndex
 
-	opJmpOk
-	opJmpNotOk
-
 	opLen
 
 	opFunc
@@ -143,6 +140,8 @@ const (
 
 	opMakeSlice
 
+	opSetSlice
+
 	opSend
 
 	opSliceIndex
@@ -171,6 +170,8 @@ func (op operation) String() string {
 }
 
 var operationName = [...]string{
+
+	opNone: "Nop", // TODO(Gianluca): review.
 
 	opAddInt:     "AddInt",
 	opAddInt8:    "AddInt8",
@@ -239,9 +240,6 @@ var operationName = [...]string{
 	opIfFloat:  "IfFloat",
 	opIfString: "IfString",
 
-	opJmpOk:    "JmpOk",
-	opJmpNotOk: "JmpNotOk",
-
 	opLen: "len",
 
 	opFunc: "Func",
@@ -260,6 +258,9 @@ var operationName = [...]string{
 	opMulFloat64: "MulFloat64",
 
 	opNew: "New",
+
+	opRange:       "Range",
+	opRangeString: "RangeString",
 
 	opPanic: "Panic",
 
@@ -280,7 +281,9 @@ var operationName = [...]string{
 
 	opReturn: "Return",
 
-	opMakeSlice: "Slice",
+	opMakeSlice: "MakeSlice",
+
+	opSetSlice: "SetSlice",
 
 	opSend: "Send",
 

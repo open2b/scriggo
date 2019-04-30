@@ -237,54 +237,59 @@ type stringer interface {
 	String() string
 }
 
-func (err *Panic) Error() string {
-	b := make([]byte, 0, 100+len(err.StackTrace))
-	switch v := err.Msg.(type) {
+func sprint(v interface{}) []byte {
+	switch v := v.(type) {
 	case nil:
-		b = append(b, "nil"...)
+		return []byte("nil")
 	case error:
-		b = append(b, v.Error()...)
+		return []byte(v.Error())
 	case stringer:
-		b = append(b, v.String()...)
+		return []byte(v.String())
 	case bool:
-		b = strconv.AppendBool(b, v)
+		return strconv.AppendBool([]byte{}, v)
 	case int:
-		b = strconv.AppendInt(b, int64(v), 10)
+		return strconv.AppendInt([]byte{}, int64(v), 10)
 	case int8:
-		b = strconv.AppendInt(b, int64(v), 10)
+		return strconv.AppendInt([]byte{}, int64(v), 10)
 	case int16:
-		b = strconv.AppendInt(b, int64(v), 10)
+		return strconv.AppendInt([]byte{}, int64(v), 10)
 	case int32:
-		b = strconv.AppendInt(b, int64(v), 10)
+		return strconv.AppendInt([]byte{}, int64(v), 10)
 	case int64:
-		b = strconv.AppendInt(b, v, 10)
+		return strconv.AppendInt([]byte{}, v, 10)
 	case uint:
-		b = strconv.AppendUint(b, uint64(v), 10)
+		return strconv.AppendUint([]byte{}, uint64(v), 10)
 	case uint8:
-		b = strconv.AppendUint(b, uint64(v), 10)
+		return strconv.AppendUint([]byte{}, uint64(v), 10)
 	case uint16:
-		b = strconv.AppendUint(b, uint64(v), 10)
+		return strconv.AppendUint([]byte{}, uint64(v), 10)
 	case uint32:
-		b = strconv.AppendUint(b, uint64(v), 10)
+		return strconv.AppendUint([]byte{}, uint64(v), 10)
 	case uint64:
-		b = strconv.AppendUint(b, v, 10)
+		return strconv.AppendUint([]byte{}, v, 10)
 	case uintptr:
-		b = strconv.AppendUint(b, uint64(v), 10)
+		return strconv.AppendUint([]byte{}, uint64(v), 10)
 	case float32:
-		b = strconv.AppendFloat(b, float64(v), 'e', 6, 32)
+		return strconv.AppendFloat([]byte{}, float64(v), 'e', 6, 32)
 	case float64:
-		b = strconv.AppendFloat(b, v, 'e', 6, 64)
+		return strconv.AppendFloat([]byte{}, v, 'e', 6, 64)
 	case string:
-		b = append(b, v...)
+		return append([]byte{}, v...)
 	default:
 		if v2, ok := v.(*callable); ok {
 			v = v2.reflectValue().Interface()
 		}
-		b = append(b, "("...)
-		b = append(b, reflect.TypeOf(v).String()...)
-		b = append(b, ")"...)
+		b := append([]byte{}, "("...)
+		b = append([]byte{}, reflect.TypeOf(v).String()...)
+		b = append([]byte{}, ")"...)
+		return b
 		// TODO(marco): implement print of value
 	}
+}
+
+func (err *Panic) Error() string {
+	b := make([]byte, 0, 100+len(err.StackTrace))
+	b = append(b, sprint(err.Msg)...)
 	b = append(b, "\n\n"...)
 	b = append(b, err.StackTrace...)
 	return string(b)

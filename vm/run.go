@@ -134,79 +134,95 @@ func (vm *VM) run() int {
 
 		// Append
 		case opAppend:
-			//s := reflectValue.ValueOf(vm.popInterface())
-			//t := s.Type()
-			//n := int(vm.readByte())
-			//var s2 reflectValue.Value
-			//l, c := s.Len(), s.Cap()
-			//p := 0
-			//if l+n <= c {
-			//	s2 = reflectValue.MakeSlice(t, n, n)
-			//	s = s.Slice3(0, c, c)
-			//} else {
-			//	s2 = reflectValue.MakeSlice(t, l+n, l+n)
-			//	reflectValue.Copy(s2, s)
-			//	s = s2
-			//	p = l
-			//}
-			//for i := 1; i < n; i++ {
-			//	v := reflectValue.ValueOf(vm.popInterface())
-			//	s2.Index(p + i - 1).Set(v)
-			//}
-			//if l+n <= c {
-			//	reflectValue.Copy(s2.Slice(l, l+n+1), s2)
-			//}
-			//vm.pushInterface(s.Interface())
+		//s := reflectValue.ValueOf(vm.popInterface())
+		//t := s.Type()
+		//n := int(vm.readByte())
+		//var s2 reflectValue.Value
+		//l, c := s.Len(), s.Cap()
+		//p := 0
+		//if l+n <= c {
+		//	s2 = reflectValue.MakeSlice(t, n, n)
+		//	s = s.Slice3(0, c, c)
+		//} else {
+		//	s2 = reflectValue.MakeSlice(t, l+n, l+n)
+		//	reflectValue.Copy(s2, s)
+		//	s = s2
+		//	p = l
+		//}
+		//for i := 1; i < n; i++ {
+		//	v := reflectValue.ValueOf(vm.popInterface())
+		//	s2.Index(p + i - 1).Set(v)
+		//}
+		//if l+n <= c {
+		//	reflectValue.Copy(s2.Slice(l, l+n+1), s2)
+		//}
+		//vm.pushInterface(s.Interface())
 
 		// Assert
 		case opAssert:
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.types[int(uint(b))]
-			ok := v.Type() == t
-			switch t.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				var n int64
-				if ok {
-					n = v.Int()
-				}
-				vm.setInt(c, n)
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				var n int64
-				if ok {
-					n = int64(v.Uint())
-				}
-				vm.setInt(c, n)
-			case reflect.Float32, reflect.Float64:
-				var f float64
-				if ok {
-					f = v.Float()
-				}
-				vm.setFloat(c, f)
-			case reflect.String:
-				var s string
-				if ok {
-					s = v.String()
-				}
-				vm.setString(c, s)
-			default:
-				var i interface{}
-				if ok {
-					i = v.Interface()
-				}
-				vm.setGeneral(c, i)
+			var ok bool
+			if t.Kind() == reflect.Interface {
+				ok = v.Type().Implements(t)
+			} else {
+				ok = v.Type() == t
 			}
 			vm.ok = ok
+			if ok {
+				vm.pc++
+			}
+			if c != 0 {
+				switch t.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					var n int64
+					if ok {
+						n = v.Int()
+					}
+					vm.setInt(c, n)
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					var n int64
+					if ok {
+						n = int64(v.Uint())
+					}
+					vm.setInt(c, n)
+				case reflect.Float32, reflect.Float64:
+					var f float64
+					if ok {
+						f = v.Float()
+					}
+					vm.setFloat(c, f)
+				case reflect.String:
+					var s string
+					if ok {
+						s = v.String()
+					}
+					vm.setString(c, s)
+				default:
+					var i interface{}
+					if ok {
+						i = v.Interface()
+					}
+					vm.setGeneral(c, i)
+				}
+			}
 		case opAssertInt:
 			i, ok := vm.general(a).(int)
-			vm.setInt(c, int64(i))
+			if c != 0 {
+				vm.setInt(c, int64(i))
+			}
 			vm.ok = ok
 		case opAssertFloat64:
 			f, ok := vm.general(a).(float64)
-			vm.setFloat(c, f)
+			if c != 0 {
+				vm.setFloat(c, f)
+			}
 			vm.ok = ok
 		case opAssertString:
 			s, ok := vm.general(a).(string)
-			vm.setString(c, s)
+			if c != 0 {
+				vm.setString(c, s)
+			}
 			vm.ok = ok
 
 		// Bind
@@ -287,7 +303,8 @@ func (vm *VM) run() int {
 		case opContinue:
 			return int(a)
 
-		// Convert
+		// Convert TODO (Gianluca): conversion always puts result into
+		// general. Is this the expected behaviour?
 		case opConvert:
 			t := vm.fn.types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
@@ -305,10 +322,17 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
 
 		// Copy
+		//
+		// 	n := copy(dst, src)
+		//
 		case opCopy:
-			src := reflect.ValueOf(a)
-			dst := reflect.ValueOf(b)
-			vm.setInt(c, int64(reflect.Copy(src, dst)))
+			src := reflect.ValueOf(vm.general(a))
+			dst := reflect.ValueOf(vm.general(c))
+			if b == 0 {
+				reflect.Copy(src, dst)
+			} else {
+				vm.setInt(b, int64(reflect.Copy(src, dst)))
+			}
 
 		// Concat
 		case opConcat:
@@ -324,9 +348,12 @@ func (vm *VM) run() int {
 			vm.pc += 2
 
 		// Delete
+		//
+		//	delete(map, key)
+		//
 		case opDelete:
-			m := reflect.ValueOf(a)
-			k := reflect.ValueOf(b)
+			m := reflect.ValueOf(vm.general(a))
+			k := reflect.ValueOf(vm.general(b))
 			m.SetMapIndex(k, reflect.Value{})
 
 		// Div
@@ -420,13 +447,33 @@ func (vm *VM) run() int {
 			var cond bool
 			v1 := vm.general(a)
 			switch Condition(b) {
+			case ConditionEqual:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionNotEqual:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionNotEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionLessLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionLessOrEqualLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionGreaterLen:
+				panic("TODO(Gianluca): not implemented")
+			case ConditionGreaterOrEqualLen:
+				panic("TODO(Gianluca): not implemented")
 			case ConditionNil:
 				cond = v1 == nil
 			case ConditionNotNil:
 				cond = v1 != nil
-				if cond {
-					vm.pc++
-				}
+			case ConditionOK:
+				cond = vm.ok
+			case ConditionNotOK:
+				cond = !vm.ok
+			}
+			if cond {
+				vm.pc++
 			}
 		case opIfInt, -opIfInt:
 			var cond bool
@@ -532,20 +579,14 @@ func (vm *VM) run() int {
 			}
 
 		// Index
+		//
+		//	dst = expr[i]
+		//
 		case opIndex, -opIndex:
+			// TODO(Gianluca): consider putting result in int, string or
+			// float (or general as default case) register according to
+			// its kind.
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
-
-		// JmpOk
-		case opJmpOk:
-			if vm.ok {
-				vm.pc = decodeAddr(a, b, c)
-			}
-
-		// JmpNotOk
-		case opJmpNotOk:
-			if !vm.ok {
-				vm.pc = decodeAddr(a, b, c)
-			}
 
 		// Len
 		case opLen:
@@ -583,14 +624,48 @@ func (vm *VM) run() int {
 		case opMakeMap, -opMakeMap:
 			t := vm.fn.types[int(uint8(a))]
 			n := int(vm.intk(b, op < 0))
-			vm.setGeneral(c, reflect.MakeMapWithSize(t, n))
+			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
 
 		// MakeSlice
 		case opMakeSlice:
-			//typ := vm.getType(a)
-			//len := int(vm.int(b))
-			//cap := int(vm.int(c))
-			//vm.pushValue(reflectValue.MakeSlice(typ, len, cap))
+			var len, cap int
+			if b > 1 {
+				next := vm.fn.body[vm.pc]
+				vm.pc++
+				lenIsConst := (b & (1 << 1)) != 0
+				len = int(vm.intk(next.a, lenIsConst))
+				capIsConst := (b & (1 << 2)) != 0
+				cap = int(vm.intk(next.b, capIsConst))
+			}
+			t := vm.fn.types[int(uint(a))]
+			vm.setGeneral(c, reflect.MakeSlice(t, len, cap).Interface())
+
+		// SetSlice
+		//
+		//	slice[index] = value
+		//
+		case opSetSlice, -opSetSlice:
+			i := vm.int(c)
+			s := vm.general(a)
+			switch s := s.(type) {
+			case []int:
+				v := vm.intk(b, op < 0)
+				s[i] = int(v)
+			case []float64:
+				v := vm.floatk(b, op < 0)
+				s[i] = float64(v)
+			case []string:
+				v := vm.stringk(b, op < 0)
+				s[i] = string(v)
+			case []rune:
+				panic("TODO: not implemented")
+			case []byte:
+				panic("TODO: not implemented")
+			default:
+				i := vm.int(c)
+				v := vm.generalk(b, op < 0)
+				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
+			}
 
 		// MapIndex
 		case opMapIndex, -opMapIndex:
@@ -612,6 +687,10 @@ func (vm *VM) run() int {
 				key = reflect.ValueOf(vm.general(b))
 			}
 			elem := m.MapIndex(key)
+			vm.ok = elem.IsValid()
+			if !vm.ok {
+				elem = reflect.Zero(t)
+			}
 			switch kind := t.Elem().Kind(); kind {
 			case reflect.Bool:
 				vm.setBool(c, elem.Bool())
@@ -629,19 +708,27 @@ func (vm *VM) run() int {
 
 		// MapIndexStringInt
 		case opMapIndexStringInt, -opMapIndexStringInt:
-			vm.setInt(c, int64(vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]))
+			v, ok := vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]
+			vm.setInt(c, int64(v))
+			vm.ok = ok
 
 		// MapIndexStringBool
 		case opMapIndexStringBool, -opMapIndexStringBool:
-			vm.setBool(c, vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)]
+			vm.setBool(c, v)
+			vm.ok = ok
 
 		// MapIndexStringString
 		case opMapIndexStringString, -opMapIndexStringString:
-			vm.setString(c, vm.general(a).(map[string]string)[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]string)[vm.stringk(b, op < 0)]
+			vm.setString(c, v)
+			vm.ok = ok
 
 		// MapIndexStringInterface
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
-			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
+			v, ok := vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)]
+			vm.setGeneral(c, v)
+			vm.ok = ok
 
 		// Move
 		case opMove, -opMove:
@@ -702,11 +789,14 @@ func (vm *VM) run() int {
 
 		// Panic
 		case opPanic:
+			// TODO(Gianluca): if argument is 0, check if previous
+			// instruction is Assert; in such case, raise a type-assertion
+			// panic, retrieving informations from its operands.
 			panic(vm.general(a))
 
 		// Print
 		case opPrint:
-			print(vm.general(a))
+			print(string(sprint(vm.general(a))))
 
 		// Range
 		case opRange:
