@@ -961,7 +961,7 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
 //
-//     c = make(typ, size, dst)
+//     dst = make(typ, size)
 //
 func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
 	op := opMakeMap
