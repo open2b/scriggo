@@ -976,10 +976,8 @@ func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int
 //     make(sliceType, len, cap)
 //
 func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
-	in1 := instruction{op: opMakeSlice}
 	builder.allocRegister(reflect.Interface, dst)
 	t := builder.Type(sliceType)
-	in1.a = t
 	var k int8
 	if len == 0 && cap == 0 {
 		k = 1
@@ -991,13 +989,10 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			k |= 1 << 2
 		}
 	}
-	in1.b = k
-	in1.c = dst
-	builder.fn.body = append(builder.fn.body, in1)
-	in2 := instruction{}
-	in2.a = len
-	in2.b = cap
-	builder.fn.body = append(builder.fn.body, in2)
+	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: t, b: k, c: dst})
+	if k > 1 {
+		builder.fn.body = append(builder.fn.body, instruction{a: len, b: cap})
+	}
 }
 
 // Move appends a new "move" instruction to the function body.
