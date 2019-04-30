@@ -1154,6 +1154,16 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			c.fb.ExitScope()
 
 		case *ast.Defer, *ast.Go:
+			if def, ok := node.(*ast.Defer); ok {
+				if ident, ok := def.Call.Func.(*ast.Identifier); ok {
+					// TODO(Gianluca): should check if call is a
+					// builtin -> wait for type-checker to provide
+					// this information.
+					if ident.Name == "recover" {
+						continue
+					}
+				}
+			}
 			funReg := c.fb.NewRegister(reflect.Func)
 			var funNode ast.Expression
 			var args []ast.Expression
