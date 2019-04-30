@@ -300,7 +300,7 @@ type FunctionBuilder struct {
 	fn             *ScrigoFunction
 	labels         []uint32
 	gotos          map[uint32]uint32
-	maxNumRegs     map[reflect.Kind]uint8 // max number of registers allocated at the same time.
+	maxRegs        map[reflect.Kind]uint8 // max number of registers allocated at the same time.
 	currentNumRegs map[reflect.Kind]uint8
 	scopes         []map[string]int8
 	scopeShifts    []StackShift
@@ -312,7 +312,7 @@ func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 	return &FunctionBuilder{
 		fn:             fn,
 		gotos:          map[uint32]uint32{},
-		maxNumRegs:     map[reflect.Kind]uint8{},
+		maxRegs:        map[reflect.Kind]uint8{},
 		currentNumRegs: map[reflect.Kind]uint8{},
 		scopes:         []map[string]int8{},
 	}
@@ -508,7 +508,7 @@ func (builder *FunctionBuilder) End() {
 		fn.body[addr] = i
 	}
 	builder.gotos = nil
-	for kind, num := range builder.maxNumRegs {
+	for kind, num := range builder.maxRegs {
 		switch {
 		case reflect.Int <= kind && kind <= reflect.Uint64:
 			if num > fn.regnum[0] {
@@ -538,8 +538,8 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 		kind = reflect.Int
 	}
 	if reg > 0 {
-		if num, ok := builder.maxNumRegs[kind]; !ok || uint8(reg) > num {
-			builder.maxNumRegs[kind] = uint8(reg)
+		if num, ok := builder.maxRegs[kind]; !ok || uint8(reg) > num {
+			builder.maxRegs[kind] = uint8(reg)
 		}
 		if num, ok := builder.currentNumRegs[kind]; !ok || uint8(reg) > num {
 			builder.currentNumRegs[kind] = uint8(reg)
