@@ -989,17 +989,15 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	t := builder.Type(sliceType)
 	in1.a = t
 	var k int8
-	switch {
-	case len == 0 || cap == 0:
-		k = 0
-	case !kLen && !kCap:
+	if len == 0 && cap == 0 {
 		k = 1
-	case kLen && !kCap:
-		k = 2
-	case !kLen && kCap:
-		k = 3
-	case kLen && kCap:
-		k = 4
+	} else {
+		if kLen {
+			k |= 1 << 1
+		}
+		if kCap {
+			k |= 1 << 2
+		}
 	}
 	in1.b = k
 	in1.c = dst

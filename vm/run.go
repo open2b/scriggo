@@ -628,35 +628,17 @@ func (vm *VM) run() int {
 
 		// MakeSlice
 		case opMakeSlice:
-			var v interface{}
-			t := vm.fn.types[int(uint(a))]
-			k := vm.intk(b, true)
-			var len, cap int64
-			if k == 0 {
-				len, cap = 0, 0
-			} else {
-				var lenIsConst, capIsConst bool
-				switch k {
-				case 1:
-					lenIsConst = false
-					capIsConst = false
-				case 2:
-					lenIsConst = true
-					capIsConst = false
-				case 3:
-					lenIsConst = false
-					capIsConst = true
-				case 4:
-					lenIsConst = true
-					capIsConst = true
-				}
+			var len, cap int
+			if b > 1 {
 				next := vm.fn.body[vm.pc]
 				vm.pc++
-				len = vm.intk(next.a, lenIsConst)
-				cap = vm.intk(next.b, capIsConst)
+				lenIsConst := (b & (1 << 1)) != 0
+				len = int(vm.intk(next.a, lenIsConst))
+				capIsConst := (b & (1 << 2)) != 0
+				cap = int(vm.intk(next.b, capIsConst))
 			}
-			v = reflect.MakeSlice(t, int(len), int(cap)).Interface()
-			vm.setGeneral(c, v)
+			t := vm.fn.types[int(uint(a))]
+			vm.setGeneral(c, reflect.MakeSlice(t, len, cap).Interface())
 
 		// SetSlice
 		//
