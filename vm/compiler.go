@@ -231,6 +231,8 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 					}
 				}
 				c.isGoPkg[importPkgName] = true
+			} else {
+				panic("TODO(Gianluca): not implemented")
 			}
 		}
 	}
