@@ -17,8 +17,10 @@ var DebugTraceExecution = true
 const NoVariadic = -1
 const CurrentFunction = -1
 
+type MoveType int8
+
 const (
-	IntInt = iota + 1
+	IntInt MoveType = iota
 	FloatFloat
 	StringString
 	GeneralGeneral
@@ -745,7 +747,7 @@ func (vm *VM) run() int {
 
 		// Move
 		case opMove, -opMove:
-			switch a {
+			switch MoveType(a) {
 			case FloatFloat:
 				vm.setFloat(c, vm.floatk(b, op < 0))
 			case FloatGeneral:

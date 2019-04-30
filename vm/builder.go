@@ -1022,21 +1022,21 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 	}
 	switch kindToType(dstKind) {
 	case TypeInt:
-		i.a = IntInt
+		i.a = int8(IntInt)
 	case TypeFloat:
-		i.a = FloatFloat
+		i.a = int8(FloatFloat)
 	case TypeString:
-		i.a = StringString
+		i.a = int8(StringString)
 	case TypeIface:
 		switch kindToType(srcKind) {
 		case TypeInt:
-			i.a = IntGeneral
+			i.a = int8(IntGeneral)
 		case TypeFloat:
-			i.a = FloatGeneral
+			i.a = int8(FloatGeneral)
 		case TypeString:
-			i.a = StringGeneral
+			i.a = int8(StringGeneral)
 		case TypeIface:
-			i.a = GeneralGeneral
+			i.a = int8(GeneralGeneral)
 		}
 	}
 	builder.fn.body = append(builder.fn.body, i)

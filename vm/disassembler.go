@@ -413,7 +413,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
-		switch a {
+		switch MoveType(a) {
 		case IntInt:
 			s += " int"
 			s += " " + disassembleOperand(fn, b, Int, k)
