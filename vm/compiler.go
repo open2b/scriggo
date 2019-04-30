@@ -721,7 +721,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			}
 		}
 
-	case *ast.Identifier: // TODO (Gianluca): remove Int and String
+	case *ast.Identifier:
 		if reg == 0 {
 			return
 		}
