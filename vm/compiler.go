@@ -1072,12 +1072,11 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 		// TODO (Gianluca): pass argument to panic.
 		c.fb.Panic(0, call.Pos().Line)
 	case "print":
-		args := make([]int8, len(call.Args))
 		for i := range call.Args {
-			args[i] = c.fb.NewRegister(reflect.Interface)
-			c.compileExpr(call.Args[i], args[i], reflect.Interface)
+			arg := c.fb.NewRegister(reflect.Interface)
+			c.compileExpr(call.Args[i], arg, reflect.Interface)
+			c.fb.Print(arg)
 		}
-		c.fb.Print(args)
 		return true
 	case "println":
 		panic("TODO: not implemented")

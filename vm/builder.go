@@ -1100,14 +1100,10 @@ func (builder *FunctionBuilder) Panic(v int8, line int) {
 
 // Print appends a new "Print" instruction to the function body.
 //
-//     print(args...)
+//     print(arg)
 //
-func (builder *FunctionBuilder) Print(args []int8) {
-	i := instruction{op: opPrint}
-	for _, arg := range args {
-		i.a = arg
-		builder.fn.body = append(builder.fn.body, i)
-	}
+func (builder *FunctionBuilder) Print(arg int8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opPrint, a: arg})
 }
 
 // Recover appends a new "Recover" instruction to the function body.
