@@ -1152,7 +1152,7 @@ func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
 
 // SetSlice appends a new "SetSlice" instruction to the function body.
 //
-//	slice = value[index]
+//	slice[index] = value
 //
 func (builder *FunctionBuilder) SetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
 	_ = elemKind // TODO(Gianluca): remove.
