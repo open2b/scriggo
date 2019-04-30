@@ -410,7 +410,7 @@ func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	return int8(r)
 }
 
-// MakeGeneralConstant makes a new "general" constant, returning it's index.
+// MakeGeneralConstant makes a new general constant, returning it's index.
 func (builder *FunctionBuilder) MakeGeneralConstant(v interface{}) int8 {
 	r := len(builder.fn.constants.General)
 	if r > 255 {
@@ -679,7 +679,7 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opConcat, a: s, b: t, c: z})
 }
 
-// Convert appends a new "convert" instruction to the function body.
+// Convert appends a new "Convert" instruction to the function body.
 //
 // 	 dst = typ(expr)
 //
@@ -690,7 +690,7 @@ func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int
 	builder.fn.body = append(builder.fn.body, instruction{op: opConvertInt, a: expr, b: regType, c: dst})
 }
 
-// Copy appends a new "copy" instruction to the function body.
+// Copy appends a new "Copy" instruction to the function body.
 //
 //     n == 0:   copy(dst, src)
 // 	 n != 0:   n := copy(dst, src)
