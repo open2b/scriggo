@@ -643,7 +643,7 @@ func (vm *VM) run() int {
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
 			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
-			// Move
+		// Move
 		case opMove, -opMove:
 			switch MoveType(a) {
 			case FloatFloat:
