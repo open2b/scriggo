@@ -58,6 +58,19 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	return c
 }
 
+func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
+	tree, err := c.parser.Parse(path, ast.ContextNone)
+	if err != nil {
+		return nil, err
+	}
+	tci := c.parser.TypeCheckInfos()
+	c.typeinfo = tci[path].TypeInfo
+	node := tree.Nodes[0].(*ast.Package)
+	c.compilePackage(node)
+	fun := c.currentFunction
+	return fun, nil
+}
+
 // scrigoFunctionIndex returns fun's index inside current function, creating it
 // if not exists.
 func (c *Compiler) scrigoFunctionIndex(fun *ScrigoFunction) int8 {
@@ -107,19 +120,6 @@ func (c *Compiler) variableIndex(v variable) uint8 {
 	}
 	c.assignedIndexesOfVariables[currFun][v] = i
 	return i
-}
-
-func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
-	tree, err := c.parser.Parse(path, ast.ContextNone)
-	if err != nil {
-		return nil, err
-	}
-	tci := c.parser.TypeCheckInfos()
-	c.typeinfo = tci[path].TypeInfo
-	node := tree.Nodes[0].(*ast.Package)
-	c.compilePackage(node)
-	fun := c.currentFunction
-	return fun, nil
 }
 
 // compilePackage compiles pkg.
