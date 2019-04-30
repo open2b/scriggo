@@ -1247,7 +1247,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// expr := c.fb.NewRegister(reflect.String)
 			// kind := c.typeinfo[node.Assignment.Values[0]].Type.Kind()
 			// c.compileExpr(node.Assignment.Values[0], expr)
-			// c.fb.ForRange(expr, kind)
+			// c.fb.Range(expr, kind)
 			// c.compileNodes(node.Body)
 			// c.fb.ExitScope()
 

@@ -759,11 +759,11 @@ func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
-// ForRange appends a new "ForRange" instruction to the function body.
+// Range appends a new "Range" instruction to the function body.
 //
 //	TODO
 //
-func (builder *FunctionBuilder) ForRange(expr int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Range(expr int8, kind reflect.Kind) {
 	switch kind {
 	case reflect.String:
 		builder.fn.body = append(builder.fn.body, instruction{op: opRangeString, c: expr})
