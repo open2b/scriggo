@@ -667,6 +667,50 @@ func (vm *VM) run() int {
 				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
 			}
 
+		// SetMap
+		//
+		//	map[key] = value
+		//
+		case opSetMap, -opSetMap:
+			m := vm.general(a)
+			switch m := m.(type) {
+			case map[string]int:
+				k := vm.string(c)
+				v := vm.intk(c, op < 0)
+				m[k] = int(v)
+			case map[int]string:
+				k := vm.int(c)
+				v := vm.stringk(c, op < 0)
+				m[int(k)] = v
+			// TODO(Gianluca): add map[..]bool cases.
+			default:
+				mapValue := reflect.ValueOf(m)
+				keyType := mapValue.Type().Key()
+				valueType := mapValue.Type().Elem()
+				var k, v reflect.Value
+				switch kindToType(keyType.Kind()) {
+				case TypeInt:
+					k = reflect.ValueOf(vm.int(c))
+				case TypeString:
+					k = reflect.ValueOf(vm.string(c))
+				case TypeFloat:
+					k = reflect.ValueOf(vm.float(c))
+				case TypeIface:
+					k = reflect.ValueOf(vm.general(c))
+				}
+				switch kindToType(valueType.Kind()) {
+				case TypeInt:
+					v = reflect.ValueOf(vm.intk(b, op < 0))
+				case TypeString:
+					v = reflect.ValueOf(vm.stringk(b, op < 0))
+				case TypeFloat:
+					v = reflect.ValueOf(vm.floatk(b, op < 0))
+				case TypeIface:
+					v = reflect.ValueOf(vm.generalk(b, op < 0))
+				}
+				mapValue.MapIndex(k).Set(v)
+			}
+
 		// MapIndex
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))

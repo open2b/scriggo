@@ -1150,6 +1150,18 @@ func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, b: r, c: int8(v)})
 }
 
+// SetMap appends a new "SetMap" instruction to the function body.
+//
+//	m[key] = value
+//
+func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
+	op := opSetMap
+	if k {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: m, b: value, c: key})
+}
+
 // SetSlice appends a new "SetSlice" instruction to the function body.
 //
 //	slice[index] = value

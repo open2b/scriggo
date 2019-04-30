@@ -142,6 +142,8 @@ const (
 
 	opSetSlice
 
+	opSetMap
+
 	opSend
 
 	opSliceIndex
@@ -284,6 +286,8 @@ var operationName = [...]string{
 	opMakeSlice: "MakeSlice",
 
 	opSetSlice: "SetSlice",
+
+	opSetMap: "SetMap",
 
 	opSend: "Send",
 

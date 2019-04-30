@@ -646,11 +646,19 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			panic("TODO: not implemented")
 		case reflect.Map:
 			// TODO (Gianluca): handle maps with bigger size.
-			size := c.fb.MakeIntConstant(int64(len(expr.KeyValues)))
+			size := len(expr.KeyValues)
+			sizeReg := c.fb.MakeIntConstant(int64(size))
 			regType := c.fb.Type(typ)
-			c.fb.MakeMap(regType, true, size, reg)
-			if size > 0 {
-				panic("TODO: not implemented")
+			c.fb.MakeMap(regType, true, sizeReg, reg)
+			for _, kv := range expr.KeyValues {
+				keyReg := c.fb.NewRegister(typ.Key().Kind())
+				valueReg := c.fb.NewRegister(typ.Elem().Kind())
+				c.fb.EnterStack()
+				c.compileExpr(kv.Key, keyReg, typ.Key().Kind())
+				kValue := false // TODO(Gianluca).
+				c.compileExpr(kv.Value, valueReg, typ.Elem().Kind())
+				c.fb.ExitStack()
+				c.fb.SetMap(kValue, reg, valueReg, keyReg)
 			}
 		}
 

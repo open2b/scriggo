@@ -39,6 +39,13 @@ var exprTests = map[string]interface{}{
 	`[]float64{5, 12, 0}`:   []float64{5, 12, 0},
 	// `[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
 
+	// Composite literals - maps.
+	`map[int]string{}`:                                    map[int]string{},
+	`map[[3]int]string{}`:                                 map[[3]int]string{},
+	`map[int]string{1: "one"}`:                            map[int]string{1: "one"},
+	`map[int]string{1: "one", 2: "two", 10: "ten"}`:       map[int]string{1: "one", 2: "two", 10: "ten"},
+	`map[string]int{"one": 1, "two": 10 / 5, "three": 3}`: map[string]int{"one": 1, "two": 10 / 5, "three": 3},
+
 	// Builtin 'make'.
 	`make([]int, 0, 0)`:       []int{},
 	`make([]int, 0, 5)`:       []int{},

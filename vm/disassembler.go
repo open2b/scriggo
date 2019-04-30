@@ -474,6 +474,13 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += fmt.Sprintf("%d", fn.body[addr+1].a)
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.body[addr+1].b)
+	case opSetMap:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		// TODO(Gianluca): how can disassembler know from which register
+		// retrieve key and value? Maps always stay in general, but key and
+		// value depend on map's type.
+		s += " [mapKey]"
+		s += " [mapValue]"
 	case opSetSlice:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
