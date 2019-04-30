@@ -297,24 +297,24 @@ func (fn *ScrigoFunction) AddType(typ reflect.Type) uint8 {
 }
 
 type FunctionBuilder struct {
-	fn             *ScrigoFunction
-	labels         []uint32
-	gotos          map[uint32]uint32
-	maxRegs        map[reflect.Kind]uint8 // max number of registers allocated at the same time.
-	currentNumRegs map[reflect.Kind]uint8
-	scopes         []map[string]int8
-	scopeShifts    []StackShift
+	fn          *ScrigoFunction
+	labels      []uint32
+	gotos       map[uint32]uint32
+	maxRegs     map[reflect.Kind]uint8 // max number of registers allocated at the same time.
+	numRegs     map[reflect.Kind]uint8
+	scopes      []map[string]int8
+	scopeShifts []StackShift
 }
 
 // Builder returns the body of the function.
 func (fn *ScrigoFunction) Builder() *FunctionBuilder {
 	fn.body = nil
 	return &FunctionBuilder{
-		fn:             fn,
-		gotos:          map[uint32]uint32{},
-		maxRegs:        map[reflect.Kind]uint8{},
-		currentNumRegs: map[reflect.Kind]uint8{},
-		scopes:         []map[string]int8{},
+		fn:      fn,
+		gotos:   map[uint32]uint32{},
+		maxRegs: map[reflect.Kind]uint8{},
+		numRegs: map[reflect.Kind]uint8{},
+		scopes:  []map[string]int8{},
 	}
 }
 
@@ -337,10 +337,10 @@ func (builder *FunctionBuilder) ExitScope() {
 // Every EnterStack call must be paired with a corresponding ExitStack call.
 func (builder *FunctionBuilder) EnterStack() {
 	scopeShift := StackShift{
-		int8(builder.currentNumRegs[reflect.Int]),
-		int8(builder.currentNumRegs[reflect.Float64]),
-		int8(builder.currentNumRegs[reflect.String]),
-		int8(builder.currentNumRegs[reflect.Interface]),
+		int8(builder.numRegs[reflect.Int]),
+		int8(builder.numRegs[reflect.Float64]),
+		int8(builder.numRegs[reflect.String]),
+		int8(builder.numRegs[reflect.Interface]),
 	}
 	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
 }
@@ -350,10 +350,10 @@ func (builder *FunctionBuilder) EnterStack() {
 // Every ExitStack call must be paired with a corresponding EnterStack call.
 func (builder *FunctionBuilder) ExitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
-	builder.currentNumRegs[reflect.Int] = uint8(shift[0])
-	builder.currentNumRegs[reflect.Float64] = uint8(shift[1])
-	builder.currentNumRegs[reflect.String] = uint8(shift[2])
-	builder.currentNumRegs[reflect.Interface] = uint8(shift[3])
+	builder.numRegs[reflect.Int] = uint8(shift[0])
+	builder.numRegs[reflect.Float64] = uint8(shift[1])
+	builder.numRegs[reflect.String] = uint8(shift[2])
+	builder.numRegs[reflect.Interface] = uint8(shift[3])
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
@@ -366,7 +366,7 @@ func (builder *FunctionBuilder) NewRegister(kind reflect.Kind) int8 {
 	case reflect.Func:
 		kind = reflect.Interface
 	}
-	reg := int8(builder.currentNumRegs[kind]) + 1
+	reg := int8(builder.numRegs[kind]) + 1
 	builder.allocRegister(kind, reg)
 	return reg
 }
@@ -541,8 +541,8 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 		if num, ok := builder.maxRegs[kind]; !ok || uint8(reg) > num {
 			builder.maxRegs[kind] = uint8(reg)
 		}
-		if num, ok := builder.currentNumRegs[kind]; !ok || uint8(reg) > num {
-			builder.currentNumRegs[kind] = uint8(reg)
+		if num, ok := builder.numRegs[kind]; !ok || uint8(reg) > num {
+			builder.numRegs[kind] = uint8(reg)
 		}
 	}
 }
