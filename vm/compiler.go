@@ -580,8 +580,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 	case *ast.Call:
 		// Builtin call.
 		c.fb.EnterStack()
-		ok := c.compileBuiltin(expr, reg, dstKind)
-		if ok {
+		if c.typeinfo[expr.Func].IsBuiltin() {
+			c.compileBuiltin(expr, reg, dstKind)
 			c.fb.ExitStack()
 			return
 		}
@@ -933,12 +933,8 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 // TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
 // Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
 // builtin.
-func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind) bool {
-	ident, ok := call.Func.(*ast.Identifier)
-	if !ok {
-		return false
-	}
-	switch ident.Name {
+func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind) {
+	switch call.Func.(*ast.Identifier).Name {
 	case "append":
 		panic("TODO: not implemented")
 	case "cap":
@@ -1085,7 +1081,6 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 			c.compileExpr(call.Args[i], arg, reflect.Interface)
 			c.fb.Print(arg)
 		}
-		return true
 	case "println":
 		panic("TODO: not implemented")
 	case "real":
@@ -1093,9 +1088,8 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 	case "recover":
 		c.fb.Recover(reg)
 	default:
-		return false
+		panic("unkown builtin") // TODO(Gianluca): remove.
 	}
-	return true
 }
 
 // compileNodes compiles nodes.
