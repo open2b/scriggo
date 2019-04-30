@@ -75,6 +75,7 @@ const (
 	ConditionNil                                // x == nil
 	ConditionNotNil                             // x != nil
 	ConditionOk                                 // [vm.ok]
+	ConditionNotOk                              // ![vm.ok]
 )
 
 func (c Condition) String() string {
@@ -109,6 +110,8 @@ func (c Condition) String() string {
 		return "NotNil"
 	case ConditionOk:
 		return "Ok"
+	case ConditionNotOk:
+		return "NotOk"
 	}
 	panic("unknown condition")
 }

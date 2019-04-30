@@ -469,6 +469,8 @@ func (vm *VM) run() int {
 				cond = v1 != nil
 			case ConditionOk:
 				cond = vm.ok
+			case ConditionNotOk:
+				cond = !vm.ok
 			}
 			if cond {
 				vm.pc++
