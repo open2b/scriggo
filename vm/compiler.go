@@ -179,7 +179,6 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			c.fb = fn.Builder()
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
-			c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fn)
 			addExplicitReturn(n)
 			c.compileNodes(n.Body.Nodes)
 			c.fb.End()
@@ -428,7 +427,6 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
-				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
 				regs, kinds := c.prepareCallParameters(fun.typ, call.Args, false)
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.Call(index, stackShift, call.Pos().Line)
@@ -436,7 +434,6 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			}
 			if _, isNativeFunc := c.availableNativeFunctions[ident.Name]; isNativeFunc {
 				fun := c.availableNativeFunctions[ident.Name]
-				c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 				funcType := reflect.TypeOf(fun.fast)
 				regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
@@ -456,7 +453,6 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			if isPkg || true { // TODO (Gianluca): to review.
 				if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
 					fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
-					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 					funcType := reflect.TypeOf(fun.fast)
 					regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
 					index := c.nativeFunctionIndex(fun)
@@ -741,7 +737,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			c.fb.Move(false, out, reg, kind, dstKind)
 		} else {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
-				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.GetFunc(false, index, reg)
 			} else {
