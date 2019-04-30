@@ -372,7 +372,7 @@ func (builder *FunctionBuilder) NewRegister(kind reflect.Kind) int8 {
 }
 
 // BindVarReg binds name with register reg. To create a new variable, use
-// VariableRegister in conjuction with BindVarReg.
+// VariableRegister in conjunction with BindVarReg.
 func (builder *FunctionBuilder) BindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
 }
