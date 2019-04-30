@@ -811,9 +811,7 @@ func (vm *VM) run() int {
 
 		// Print
 		case opPrint:
-			// TODO(Gianluca): add missing cases.
-			v := vm.general(a)
-			print(string(sprint(v)))
+			print(string(sprint(vm.general(a))))
 
 		// Range
 		case opRange:
