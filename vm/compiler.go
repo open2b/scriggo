@@ -255,7 +255,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
 		return int8(expr.Value.Int64()), true, false
 	case *ast.Identifier:
-		if c.fb.IsAVariable(expr.Name) {
+		if c.fb.IsVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true
 		}
 		return 0, false, false
@@ -426,7 +426,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		int8(c.fb.numRegs[reflect.Interface]),
 	}
 	if ident, ok := call.Func.(*ast.Identifier); ok {
-		if !c.fb.IsAVariable(ident.Name) {
+		if !c.fb.IsVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
 				c.currentFunction.scrigoFunctions = append(c.currentFunction.scrigoFunctions, fun)
 				regs, kinds := c.prepareCallParameters(fun.typ, call.Args, false)
