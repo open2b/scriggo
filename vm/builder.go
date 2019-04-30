@@ -995,7 +995,7 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	}
 }
 
-// Move appends a new "move" instruction to the function body.
+// Move appends a new "Move" instruction to the function body.
 //
 //     z = x
 //
@@ -1068,7 +1068,7 @@ func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
-// Nop appends a new "none" instruction to the function body.
+// Nop appends a new "Nop" instruction to the function body.
 //
 func (builder *FunctionBuilder) Nop() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
