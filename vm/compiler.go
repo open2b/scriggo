@@ -33,7 +33,7 @@ type Compiler struct {
 	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
 	assignedIndexesOfVariables       map[*ScrigoFunction]map[variable]uint8
 
-	isGoPkg       map[string]bool
+	isNativePkg   map[string]bool
 	packagesNames map[string]uint8
 }
 
@@ -51,7 +51,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 		assignedIndexesOfNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
 		assignedIndexesOfVariables:       map[*ScrigoFunction]map[variable]uint8{},
 
-		isGoPkg:       map[string]bool{},
+		isNativePkg:   map[string]bool{},
 		packagesNames: map[string]uint8{},
 	}
 	c.parser = parser.New(r, packages, true)
@@ -230,7 +230,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 						}
 					}
 				}
-				c.isGoPkg[importPkgName] = true
+				c.isNativePkg[importPkgName] = true
 			} else {
 				panic("TODO(Gianluca): not implemented")
 			}
@@ -454,7 +454,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
 			_, isPkg := c.packagesNames[name.Name]
 			if isPkg || true { // TODO (Gianluca): to review.
-				if isGoPkg := c.isGoPkg[name.Name]; isGoPkg {
+				if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
 					fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
 					c.currentFunction.nativeFunctions = append(c.currentFunction.nativeFunctions, fun)
 					funcType := reflect.TypeOf(fun.fast)
