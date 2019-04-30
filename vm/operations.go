@@ -102,9 +102,6 @@ const (
 	opMapIndexStringInterface
 
 	opMove
-	opMoveInt
-	opMoveFloat
-	opMoveString
 
 	opMulInt
 	opMulInt8
@@ -253,10 +250,7 @@ var operationName = [...]string{
 
 	opMakeMap: "MakeMap",
 
-	opMove:       "Move",
-	opMoveInt:    "MoveInt",
-	opMoveFloat:  "MoveFloat",
-	opMoveString: "MoveString",
+	opMove: "Move",
 
 	opMulInt:     "MulInt",
 	opMulInt8:    "MulInt8",

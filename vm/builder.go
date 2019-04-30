@@ -786,27 +786,35 @@ func (builder *FunctionBuilder) Map(typ reflect.Type, n, z int8) {
 //
 //     z = x
 //
-func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect.Kind) {
 	if !k {
-		builder.allocRegister(kind, x)
+		builder.allocRegister(srcKind, x)
 	}
-	builder.allocRegister(kind, z)
-	var op operation
-	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
-		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-		op = opMoveInt
-	case reflect.Float64, reflect.Float32:
-		op = opMoveFloat
-	case reflect.String:
-		op = opMoveString
-	default:
-		op = opMove
-	}
+	builder.allocRegister(srcKind, z)
+	i := instruction{op: opMove, b: x, c: z}
 	if k {
-		op = -op
+		i.op = -i.op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, b: x, c: z})
+	switch kindToType(dstKind) {
+	case TypeInt:
+		i.a = int8(IntInt)
+	case TypeFloat:
+		i.a = int8(FloatFloat)
+	case TypeString:
+		i.a = int8(StringString)
+	case TypeIface:
+		switch kindToType(srcKind) {
+		case TypeInt:
+			i.a = int8(IntGeneral)
+		case TypeFloat:
+			i.a = int8(FloatGeneral)
+		case TypeString:
+			i.a = int8(StringGeneral)
+		case TypeIface:
+			i.a = int8(GeneralGeneral)
+		}
+	}
+	builder.fn.body = append(builder.fn.body, i)
 }
 
 // Mul appends a new "mul" instruction to the function body.

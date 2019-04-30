@@ -17,6 +17,18 @@ var DebugTraceExecution = true
 const NoVariadic = -1
 const CurrentFunction = -1
 
+type MoveType int8
+
+const (
+	IntInt MoveType = iota
+	FloatFloat
+	StringString
+	GeneralGeneral
+	IntGeneral
+	FloatGeneral
+	StringGeneral
+)
+
 func decodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
 }
@@ -631,23 +643,24 @@ func (vm *VM) run() int {
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
 			vm.setGeneral(c, vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)])
 
-		// Move
-		case opMove:
-			vm.setGeneral(c, vm.general(b))
-		case -opMove:
-			vm.setGeneral(c, vm.generalk(b, true))
-		case opMoveInt:
-			vm.setInt(c, vm.int(b))
-		case -opMoveInt:
-			vm.setInt(c, int64(b))
-		case opMoveFloat:
-			vm.setFloat(c, vm.float(b))
-		case -opMoveFloat:
-			vm.setFloat(c, float64(b))
-		case opMoveString:
-			vm.setString(c, vm.string(b))
-		case -opMoveString:
-			vm.setString(c, vm.stringk(b, true))
+			// Move
+		case opMove, -opMove:
+			switch MoveType(a) {
+			case FloatFloat:
+				vm.setFloat(c, vm.floatk(b, op < 0))
+			case FloatGeneral:
+				vm.setGeneral(c, vm.floatk(b, op < 0))
+			case GeneralGeneral:
+				vm.setGeneral(c, vm.generalk(b, op < 0))
+			case IntGeneral:
+				vm.setGeneral(c, vm.intk(b, op < 0))
+			case IntInt:
+				vm.setInt(c, vm.intk(b, op < 0))
+			case StringGeneral:
+				vm.setGeneral(c, vm.stringk(b, op < 0))
+			case StringString:
+				vm.setString(c, vm.stringk(b, op < 0))
+			}
 
 		// Mul
 		case opMulInt:

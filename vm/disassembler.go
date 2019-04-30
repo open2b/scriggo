@@ -403,15 +403,6 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opMove:
 		s += " " + disassembleOperand(fn, b, Interface, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opMoveInt:
-		s += " " + disassembleOperand(fn, b, Int, k)
-		s += " " + disassembleOperand(fn, c, Int, false)
-	case opMoveFloat:
-		s += " " + disassembleOperand(fn, b, Float64, k)
-		s += " " + disassembleOperand(fn, c, Float64, false)
-	case opMoveString:
-		s += " " + disassembleOperand(fn, b, String, k)
-		s += " " + disassembleOperand(fn, c, String, false)
 	case opNew:
 		s += " " + fn.types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
