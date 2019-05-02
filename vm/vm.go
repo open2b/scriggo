@@ -237,6 +237,7 @@ type stringer interface {
 	String() string
 }
 
+// TODO(Gianluca): this code is wrong, needs a refactoring.
 func sprint(v interface{}) []byte {
 	switch v := v.(type) {
 	case nil:
