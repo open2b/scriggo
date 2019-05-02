@@ -574,9 +574,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 				cond = ConditionGreaterOrEqual
 			}
 			if reg != 0 {
-				c.fb.Move(true, 1, reg, kind, kind)
+				c.fb.Move(true, 1, reg, kind, dstKind)
 				c.fb.If(ky, op1, cond, op2, kind)
-				c.fb.Move(true, 0, reg, kind, kind)
+				c.fb.Move(true, 0, reg, kind, dstKind)
 			}
 		}
 		c.fb.ExitStack()
