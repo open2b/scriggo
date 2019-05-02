@@ -263,7 +263,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opAssertFloat64:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(float64)"
-		s += " " + disassembleOperand(fn, c, Int, false)
+		s += " " + disassembleOperand(fn, c, Float64, false)
 	case opAssertString:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(string)"
