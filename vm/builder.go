@@ -201,7 +201,7 @@ func NewVariable(pkg, name string, value interface{}) variable {
 	return variable{pkg, name, value}
 }
 
-// AddVariable add a variable to a Scrigo function.
+// AddVariable adds a variable to a Scrigo function.
 func (fn *ScrigoFunction) AddVariable(v variable) uint8 {
 	r := len(fn.variables)
 	if r > 255 {
