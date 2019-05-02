@@ -33,8 +33,7 @@ type Compiler struct {
 	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
 	assignedIndexesOfVariables       map[*ScrigoFunction]map[variable]uint8
 
-	isNativePkg   map[string]bool
-	packagesNames map[string]uint8
+	isNativePkg map[string]bool
 }
 
 // NewCompiler returns a new compiler reading sources from r.
@@ -51,8 +50,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 		assignedIndexesOfNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
 		assignedIndexesOfVariables:       map[*ScrigoFunction]map[variable]uint8{},
 
-		isNativePkg:   map[string]bool{},
-		packagesNames: map[string]uint8{},
+		isNativePkg: map[string]bool{},
 	}
 	c.parser = parser.New(r, packages, true)
 	return c
@@ -449,23 +447,20 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	}
 	if sel, ok := call.Func.(*ast.Selector); ok {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
-			_, isPkg := c.packagesNames[name.Name]
-			if isPkg || true { // TODO (Gianluca): to review.
-				if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
-					fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
-					funcType := reflect.TypeOf(fun.fast)
-					regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
-					index := c.nativeFunctionIndex(fun)
-					if funcType.IsVariadic() {
-						numVar := len(call.Args) - (funcType.NumIn() - 1)
-						c.fb.CallNative(index, int8(numVar), stackShift)
-					} else {
-						c.fb.CallNative(index, NoVariadic, stackShift)
-					}
-					return regs, kinds
+			if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
+				fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
+				funcType := reflect.TypeOf(fun.fast)
+				regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
+				index := c.nativeFunctionIndex(fun)
+				if funcType.IsVariadic() {
+					numVar := len(call.Args) - (funcType.NumIn() - 1)
+					c.fb.CallNative(index, int8(numVar), stackShift)
 				} else {
-					panic("TODO(Gianluca): not implemented")
+					c.fb.CallNative(index, NoVariadic, stackShift)
 				}
+				return regs, kinds
+			} else {
+				panic("TODO(Gianluca): not implemented")
 			}
 		}
 	}
