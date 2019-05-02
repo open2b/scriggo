@@ -21,6 +21,7 @@ type Compiler struct {
 	typeinfo         map[ast.Node]*parser.TypeInfo
 	fb               *FunctionBuilder // current function builder.
 	importableGoPkgs map[string]*parser.GoPackage
+	indirectVars     map[*ast.Identifier]bool
 
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
@@ -41,6 +42,7 @@ type Compiler struct {
 func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
 	c := &Compiler{
 		importableGoPkgs: packages,
+		indirectVars:     map[*ast.Identifier]bool{},
 
 		availableScrigoFunctions: map[string]*ScrigoFunction{},
 		availableNativeFunctions: map[string]*NativeFunction{},
@@ -63,6 +65,7 @@ func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
 	}
 	tci := c.parser.TypeCheckInfos()
 	c.typeinfo = tci[path].TypeInfo
+	c.indirectVars = tci[path].IndirectVars
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
 	fun := c.currentFunction
