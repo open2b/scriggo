@@ -303,8 +303,7 @@ func (vm *VM) run() int {
 		case opContinue:
 			return int(a)
 
-		// Convert TODO (Gianluca): conversion always puts result into
-		// general. Is this the expected behaviour?
+		// Convert
 		case opConvert:
 			t := vm.fn.types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
