@@ -45,6 +45,8 @@ const (
 	tokenMap                               // map
 	tokenIf                                // if
 	tokenElse                              // else
+	tokenDefer                             // defer
+	tokenGo                                // go
 	tokenExtends                           // extends
 	tokenImport                            // import
 	tokenInclude                           // include
@@ -95,8 +97,6 @@ const (
 
 	// Tokens not yet supported.
 	tokenChan
-	tokenDefer
-	tokenGo
 	tokenGoto
 	tokenSelect
 )
@@ -131,6 +131,8 @@ var tokenString = map[tokenTyp]string{
 	tokenMap:                      "map",
 	tokenIf:                       "if",
 	tokenElse:                     "else",
+	tokenDefer:                    "defer",
+	tokenGo:                       "go",
 	tokenExtends:                  "extends",
 	tokenImport:                   "import",
 	tokenInclude:                  "include",
@@ -181,8 +183,6 @@ var tokenString = map[tokenTyp]string{
 
 	// Tokens not yet supported.
 	tokenChan:   "chan",
-	tokenDefer:  "defer",
-	tokenGo:     "go",
 	tokenGoto:   "goto",
 	tokenSelect: "select",
 }
