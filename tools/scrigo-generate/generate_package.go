@@ -12,6 +12,7 @@ import (
 	"go/importer"
 	"go/token"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,13 +21,43 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
+var goKeywords = []string{
+	"break", "default", "func", "interface", "select", "case", "defer",
+	"go", "map", "struct", "chan", "else", "goto", "package",
+	"switch", "const", "fallthrough", "if", "range",
+	"type", "continue", "for", "import", "return", "var",
+}
+
+var pkgNamesToPkgPaths = map[string]string{}
+
+// uniquePackageName generates an unique package name for every package path.
+func uniquePackageName(pkgPath string) string {
+	pkgName := filepath.Base(pkgPath)
+	done := false
+	for !done {
+		done = true
+		cachePath, ok := pkgNamesToPkgPaths[pkgName]
+		if ok && cachePath != pkgPath {
+			done = false
+			pkgName += "_"
+		}
+	}
+	for _, goKwd := range goKeywords {
+		if goKwd == pkgName {
+			pkgName = "_" + pkgName + "_"
+		}
+	}
+	pkgNamesToPkgPaths[pkgName] = pkgPath
+	return pkgName
+}
+
 // goPackageToDeclarations navigates the package pkgPath and returns a map
 // containing the exported declarations.
 func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 
 	out := make(map[string]string)
 
-	pkgBase := strings.ReplaceAll(pkgPath, "/", "_")
+	pkgBase := uniquePackageName(pkgPath)
 	config := loader.Config{}
 	config.Import(pkgPath)
 	program, err := config.Load()
@@ -113,7 +144,7 @@ func init() {
 func generatePackages(pkgs []string, sourceFile, customVariableName, pkgName string) string {
 	explicitImports := ""
 	for _, p := range pkgs {
-		explicitImports += strings.Replace(p, "/", "_", -1) + `"` + p + `"` + "\n"
+		explicitImports += uniquePackageName(p) + `"` + p + `"` + "\n"
 	}
 
 	pkgContent := strings.Builder{}
