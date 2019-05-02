@@ -242,6 +242,8 @@ var operationName = [...]string{
 	opIfFloat:  "If",
 	opIfString: "If",
 
+	opIndex: "Index",
+
 	opLen: "Len",
 
 	opFunc: "Func",
