@@ -159,7 +159,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				if _, ok := tc.filePackageBlock[name]; ok {
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar}) // TODO (Gianluca): add support for var a, b, c = f()
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar, Identifier: n.Identifiers[0]}) // TODO (Gianluca): add support for var a, b, c = f()
 				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
 			}
 		case *ast.TypeDeclaration:
@@ -267,10 +267,12 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 						return tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
 					}
 				}
-				tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}}
+				varTi := &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
+				tc.filePackageBlock[v.Ident] = scopeElement{t: varTi}
 				if !tc.tryAddingToInitOrder(v.Ident) {
 					unresolvedDeps = true
 				}
+				tc.typeInfo[v.Identifier] = varTi
 			}
 		}
 	}

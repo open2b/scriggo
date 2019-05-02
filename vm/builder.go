@@ -197,7 +197,7 @@ type variable struct {
 	value interface{}
 }
 
-func NewNativeVariable(pkg, name string, value interface{}) variable {
+func NewVariable(pkg, name string, value interface{}) variable {
 	return variable{pkg, name, value}
 }
 

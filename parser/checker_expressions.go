@@ -102,11 +102,12 @@ const (
 
 // Declaration is a package global declaration.
 type Declaration struct {
-	Node     ast.Node        // ast node of the declaration.
-	Ident    string          // identifier of the declaration.
-	Type     ast.Expression  // nil if declaration has no type.
-	DeclType DeclarationType // constant, variable or function.
-	Value    ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
+	Node       ast.Node        // ast node of the declaration.
+	Ident      string          // identifier of the declaration.
+	Type       ast.Expression  // nil if declaration has no type.
+	DeclType   DeclarationType // constant, variable or function.
+	Value      ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
+	Identifier *ast.Identifier
 }
 
 type scopeVariable struct {

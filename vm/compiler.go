@@ -24,14 +24,14 @@ type Compiler struct {
 
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
-	availableNativeVariables map[string]variable
+	availableVariables       map[string]variable
 
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *ScrigoFunction key or
 	// can they be related to currentFunction in some way?
 	assignedIndexesOfScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
 	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
-	assignedIndexesOfNativeVariables map[*ScrigoFunction]map[variable]uint8
+	assignedIndexesOfVariables       map[*ScrigoFunction]map[variable]uint8
 
 	isNativePkg map[string]bool
 }
@@ -44,11 +44,11 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 
 		availableScrigoFunctions: map[string]*ScrigoFunction{},
 		availableNativeFunctions: map[string]*NativeFunction{},
-		availableNativeVariables: map[string]variable{},
+		availableVariables:       map[string]variable{},
 
 		assignedIndexesOfScrigoFunctions: map[*ScrigoFunction]map[*ScrigoFunction]int8{},
 		assignedIndexesOfNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
-		assignedIndexesOfNativeVariables: map[*ScrigoFunction]map[variable]uint8{},
+		assignedIndexesOfVariables:       map[*ScrigoFunction]map[variable]uint8{},
 
 		isNativePkg: map[string]bool{},
 	}
@@ -107,16 +107,16 @@ func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 // exists.
 func (c *Compiler) variableIndex(v variable) uint8 {
 	currFun := c.currentFunction
-	i, ok := c.assignedIndexesOfNativeVariables[currFun][v]
+	i, ok := c.assignedIndexesOfVariables[currFun][v]
 	if ok {
 		return i
 	}
 	i = uint8(len(currFun.variables))
 	currFun.variables = append(currFun.variables, v)
-	if c.assignedIndexesOfNativeVariables[currFun] == nil {
-		c.assignedIndexesOfNativeVariables[currFun] = make(map[variable]uint8)
+	if c.assignedIndexesOfVariables[currFun] == nil {
+		c.assignedIndexesOfVariables[currFun] = make(map[variable]uint8)
 	}
-	c.assignedIndexesOfNativeVariables[currFun][v] = i
+	c.assignedIndexesOfVariables[currFun][v] = i
 	return i
 }
 
@@ -136,19 +136,24 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 	if haveVariables {
 		initVars = NewScrigoFunction("main", "init.vars", reflect.FuncOf(nil, nil, false))
 	}
-	_ = initVars
 
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
-			if len(n.Identifiers) == len(n.Values) {
-				panic("TODO(Gianluca): not implemented")
-				// backupBuilder := c.fb
-				// c.fb = initVars.Builder()
-				// for i := range n.Identifiers {
-				// 	c.compileVarsGetValue([]ast.Expression{n.Identifiers[i]}, n.Values[i], true)
-				// }
-				// c.fb = backupBuilder
+			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
+				backupFunction := c.currentFunction
+				c.currentFunction = initVars
+				c.fb = c.currentFunction.Builder()
+				value := n.Values[0]
+				kind := c.typeinfo[n.Identifiers[0]].Type.Kind()
+				reg := c.fb.NewRegister(kind)
+				c.compileExpr(value, reg, kind)
+				v := NewVariable("main", n.Identifiers[0].Name, nil)
+				c.availableVariables[n.Identifiers[0].Name] = v
+				index := c.variableIndex(v)
+				c.fb.SetVar(reg, index)
+				c.currentFunction = backupFunction
+				c.fb = c.currentFunction.Builder()
 			} else {
 				panic("TODO(Gianluca): not implemented")
 			}
@@ -205,11 +210,11 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 					if reflect.TypeOf(value).Kind() == reflect.Ptr {
 						// pkg.DefineVariable(ident, value)
 						// continue
-						v := NewNativeVariable(parserGoPkg.Name, ident, value)
+						v := NewVariable(parserGoPkg.Name, ident, value)
 						if importPkgName == "" {
-							c.availableNativeVariables[ident] = v
+							c.availableVariables[ident] = v
 						} else {
-							c.availableNativeVariables[importPkgName+"."+ident] = v
+							c.availableVariables[importPkgName+"."+ident] = v
 						}
 					}
 					if reflect.TypeOf(value).Kind() == reflect.Func {
@@ -232,6 +237,11 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				panic("TODO(Gianluca): not implemented")
 			}
 		}
+	}
+
+	if haveVariables {
+		b := initVars.Builder()
+		b.Return()
 	}
 }
 
@@ -668,7 +678,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		c.fb.Nop()
 
 	case *ast.Selector:
-		if v, ok := c.availableNativeVariables[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if v, ok := c.availableVariables[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -827,7 +837,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 		}
 		switch variable := variable.(type) {
 		case *ast.Selector:
-			if v, ok := c.availableNativeVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
+			if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
 				index := c.variableIndex(v)
 				out, _, isRegister := c.quickCompileExpr(value, kind)
 				var tmpReg int8
