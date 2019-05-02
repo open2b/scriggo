@@ -328,7 +328,7 @@ func RunPackageTree(tree *ast.Tree, packages map[string]*packageNameScope, pkgIn
 		packages:       packages,
 		treeContext:    ast.ContextNone,
 		handleError:    stopOnError,
-		needsReference: pkgInfos[tree.Path].UpValues,
+		needsReference: pkgInfos[tree.Path].IndirectVars,
 		packageInfos:   pkgInfos,
 	}
 

@@ -57,7 +57,7 @@ type PackageInfo struct {
 	Name                 string
 	Declarations         map[string]*TypeInfo
 	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
-	UpValues             map[*ast.Identifier]bool
+	IndirectVars         map[*ast.Identifier]bool
 	TypeInfo             map[ast.Node]*TypeInfo
 }
 
@@ -303,7 +303,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}
-	pkgInfo.UpValues = tc.upValues
+	pkgInfo.IndirectVars = tc.upValues
 
 	// Sort variables.
 	// TODO (Gianluca): if a variable declaration is already
