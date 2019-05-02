@@ -582,10 +582,18 @@ func (vm *VM) run() int {
 		//	dst = expr[i]
 		//
 		case opIndex, -opIndex:
-			// TODO(Gianluca): consider putting result in int, string or
-			// float (or general as default case) register according to
-			// its kind.
-			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Index(int(vm.intk(b, op < 0))).Interface())
+			i := int(vm.intk(b, op < 0))
+			value := reflect.ValueOf(vm.general(a)).Index(i)
+			switch kindToType(value.Kind()) {
+			case TypeInt:
+				vm.setInt(c, value.Int())
+			case TypeFloat:
+				vm.setFloat(c, value.Float())
+			case TypeString:
+				vm.setString(c, value.String())
+			case TypeIface:
+				vm.setGeneral(c, value.Interface())
+			}
 
 		// Len
 		case opLen:

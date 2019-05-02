@@ -1036,26 +1036,20 @@ var stmtTests = []struct {
 			{TypeString, 5, "hello world"}, // s3
 		}, "hello world"},
 
-	// // TODO (Gianluca): add slice, map and array indexing tests.
-	// {"Indexing",
-	// 	`
-	// 		package main
+	{"Indexing",
+		`package main
 
-	// 		func main() {
-	// 			var a string
-	// 			var b byte
+		import "fmt"
 
-	// 			a = "abcde"
-	// 			b = a[2]
-
-	// 			_ = b
-	// 			return
-	// 		}
-	// 		`,
-	// 	nil,
-	// 	nil,
-	// 	"",
-	// },
+		func main() {
+			s := []int{1, 42, 3}
+			second := s[1]
+			fmt.Println(second)
+		}`,
+		nil,
+		nil,
+		"42\n",
+	},
 
 	// Type assertion.
 
