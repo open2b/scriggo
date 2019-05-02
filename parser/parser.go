@@ -500,7 +500,7 @@ func (p *parsing) parseStatement(tok token) {
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
 
-	// case:
+	// case
 	case tokenCase:
 
 		// TODO (Gianluca): check if all expressions contained in this case have
@@ -529,7 +529,7 @@ func (p *parsing) parseStatement(tok token) {
 		node = ast.NewCase(pos, expressions, nil, false)
 		addChild(parent, node)
 
-	// default:
+	// default
 	case tokenDefault:
 		// TODO (Gianluca): move to type-checker.
 		switch s := parent.(type) {
@@ -594,7 +594,7 @@ func (p *parsing) parseStatement(tok token) {
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
 
-	// "}"
+	// }
 	case tokenRightBraces:
 		if p.ctx != ast.ContextNone {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
@@ -861,7 +861,7 @@ func (p *parsing) parseStatement(tok token) {
 		addChild(parent, node)
 		p.isExtended = true
 
-	// var, const
+	// var or const
 	case tokenVar, tokenConst:
 		var kind string
 		if tok.typ == tokenVar {
@@ -1099,7 +1099,7 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		fallthrough
 
-	// type declaration
+	// type
 	case tokenType:
 		if p.ctx == ast.ContextNone {
 			var td *ast.TypeDeclaration
@@ -1128,7 +1128,7 @@ func (p *parsing) parseStatement(tok token) {
 			return
 		}
 
-	// defer, go
+	// defer or go
 	case tokenDefer, tokenGo:
 		keyword := tok.typ
 		tok = next(p.lex)
