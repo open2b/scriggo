@@ -946,7 +946,7 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	if ki {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opIndex, a: expr, b: i, c: dst})
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: expr, b: i, c: dst})
 }
 
 // Len appends a new "len" instruction to the function body.
