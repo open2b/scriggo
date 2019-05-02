@@ -216,10 +216,11 @@ type instruction struct {
 	a, b, c int8
 }
 
-type Upper struct {
-	typ   Type
-	index int32
-}
+// TODO(Gianluca): this is unused, will be removed.
+// type Upper struct {
+// 	typ   Type
+// 	index int32
+// }
 
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
