@@ -599,7 +599,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 		regs, kinds := c.compileCall(expr)
 		if reg != 0 {
-			c.fb.Move(false, regs[0], reg, kinds[0], kinds[0])
+			c.fb.Move(false, regs[0], reg, kinds[0], dstKind)
 		}
 		c.fb.ExitStack()
 
