@@ -440,7 +440,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		case StringGeneral:
 			s += " stringToGeneral"
 			s += " " + disassembleOperand(fn, b, String, k)
-			s += " " + disassembleOperand(fn, c, Int, false)
+			s += " " + disassembleOperand(fn, c, Interface, false)
 		}
 	case opNew:
 		s += " " + fn.types[int(uint(b))].String()
