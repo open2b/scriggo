@@ -857,11 +857,10 @@ func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 // error if the operation can not be executed.
 func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 
-	if t.Nil() {
-		return nil, fmt.Errorf("invalid operation: %s nil", expr.Op)
+	var k reflect.Kind
+	if !t.Nil() {
+		k = t.Type.Kind()
 	}
-
-	k := t.Type.Kind()
 
 	ti := &TypeInfo{
 		Type:       t.Type,
@@ -924,7 +923,10 @@ func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo,
 			}
 		}
 	case ast.OperatorMultiplication:
-		if t.Type.Kind() != reflect.Ptr {
+		if t.Nil() {
+			return nil, fmt.Errorf("invalid indirect of nil")
+		}
+		if k != reflect.Ptr {
 			return nil, fmt.Errorf("invalid indirect of %s (type %s)", expr.Expr, t)
 		}
 		ti.Type = t.Type.Elem()

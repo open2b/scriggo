@@ -620,8 +620,12 @@ var checkerStmts = map[string]string{
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 
-	// Unary operators.
+	// Unary operators on untyped nil.
+	`!nil`: `invalid operation: ! nil`,
 	`+nil`: `invalid operation: + nil`,
+	`-nil`: `invalid operation: - nil`,
+	`*nil`: `invalid indirect of nil`,
+	`&nil`: `cannot take the address of nil`,
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
