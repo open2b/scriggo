@@ -793,6 +793,9 @@ LOOP:
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenLessOrEqual, 2)
 				l.column += 2
+			} else if len(l.src) > 1 && l.src[1] == '-' {
+				l.emit(tokenArrow, 2)
+				l.column += 2
 			} else {
 				l.emit(tokenLess, 1)
 				l.column++

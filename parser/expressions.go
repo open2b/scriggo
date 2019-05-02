@@ -270,7 +270,8 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			tokenSubtraction,    // -e
 			tokenNot,            // !e
 			tokenMultiplication, // *t, *T
-			tokenAmpersand:      // &e
+			tokenAmpersand,      // &e
+			tokenArrow:          // <-e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenRune,  // '\x3c'
@@ -710,6 +711,8 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorDivision
 	case tokenModulo:
 		return ast.OperatorModulo
+	case tokenArrow:
+		return ast.OperatorReceive
 	default:
 		panic("invalid token type")
 	}

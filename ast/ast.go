@@ -70,6 +70,7 @@ const (
 	OperatorMultiplication                     // *
 	OperatorDivision                           // /
 	OperatorModulo                             // %
+	OperatorReceive                            // <-
 )
 
 type AssignmentType int
@@ -87,7 +88,7 @@ const (
 )
 
 func (op OperatorType) String() string {
-	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "&&", "||", "+", "-", "*", "/", "%"}[op]
+	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "&&", "||", "+", "-", "*", "/", "%", "<-"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -1137,4 +1138,19 @@ func NewValue(val interface{}) *Value {
 
 func (n *Value) String() string {
 	return fmt.Sprintf("%v", n.Val)
+}
+
+// Send node represents a send statement.
+type Send struct {
+	*Position            // position in the source.
+	Channel   Expression // channel.
+	Value     Expression // value to send on the channel.
+}
+
+func NewSend(pos *Position, channel Expression, value Expression) *Send {
+	return &Send{pos, channel, value}
+}
+
+func (n *Send) String() string {
+	return n.Channel.String() + " <- " + n.Value.String()
 }

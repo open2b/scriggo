@@ -620,12 +620,29 @@ var checkerStmts = map[string]string{
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 
+	// Receive.
+	`<-aIntChan`:                        ok,
+	`_ = <-aIntChan`:                    ok,
+	`v := <-aIntChan; _ = v`:            ok,
+	`v, ok := <-aIntChan; _, _ = v, ok`: ok,
+
+	// Send.
+	`aIntChan <- 5`:    ok,
+	`aIntChan <- nil`:  `cannot convert nil to type int`,
+	`aIntChan <- 1.34`: `cannot use 1.34 (type float64) as type int in send`,
+	// TODO(marco): next test should fail with `cannot convert "a" (type untyped string) to type int`
+	`aIntChan <- "a"`:          `cannot use "a" (type string) as type int in send`,
+	`aSliceChan <- nil`:        ok,
+	`aSliceChan <- []int(nil)`: ok,
+	`aSliceChan <- []int{1}`:   ok,
+
 	// Unary operators on untyped nil.
-	`!nil`: `invalid operation: ! nil`,
-	`+nil`: `invalid operation: + nil`,
-	`-nil`: `invalid operation: - nil`,
-	`*nil`: `invalid indirect of nil`,
-	`&nil`: `cannot take the address of nil`,
+	`!nil`:  `invalid operation: ! nil`,
+	`+nil`:  `invalid operation: + nil`,
+	`-nil`:  `invalid operation: - nil`,
+	`*nil`:  `invalid indirect of nil`,
+	`&nil`:  `cannot take the address of nil`,
+	`<-nil`: `use of untyped nil`,
 
 	// Increments (++) and decrements (--).
 	`a := 1; a++`:   ok,
@@ -1075,6 +1092,8 @@ func TestCheckerStatements(t *testing.T) {
 		"aStringMap":  {t: &TypeInfo{Type: reflect.TypeOf(definedStringMap{})}},
 		"pointInt":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(pointInt{})}},
 		"interface{}": {t: &TypeInfo{Type: reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem(), Properties: PropertyIsType}},
+		"aIntChan":    {t: &TypeInfo{Type: reflect.TypeOf(make(chan int))}},
+		"aSliceChan":  {t: &TypeInfo{Type: reflect.TypeOf(make(chan []int))}},
 	}
 	for src, expectedError := range checkerStmts {
 		func() {

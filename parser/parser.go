@@ -1152,7 +1152,7 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		addChild(parent, node)
 
-	// expression or assignment
+	// assignment, send or expression
 	default:
 		expressions, tok := p.parseExprList(tok, true, false, false, false)
 		if len(expressions) == 0 {
@@ -1170,6 +1170,24 @@ func (p *parsing) parseStatement(tok token) {
 			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 			assignment.Position.End = tok.pos.End
 			addChild(parent, assignment)
+			p.cutSpacesToken = true
+		} else if tok.typ == tokenArrow {
+			// Parses send.
+			channel := expressions[0]
+			if ident, ok := channel.(*ast.Identifier); ok && ident.Name == "_" {
+				panic(&SyntaxError{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")})
+			}
+			var value ast.Expression
+			value, tok = p.parseExpr(token{}, false, false, false, false)
+			if value == nil {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			}
+			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
+			node := ast.NewSend(pos, channel, value)
+			node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, value.Pos().End}
+			addChild(parent, node)
 			p.cutSpacesToken = true
 		} else {
 			// Parses expression.

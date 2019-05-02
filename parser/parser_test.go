@@ -507,6 +507,21 @@ var noneContextTreeTests = []struct {
 					p(1, 5, 3, 5),
 					ast.NewIdentifier(p(1, 4, 3, 3), "f"), nil, false)),
 		}, ast.ContextNone)},
+	{"ch <- 5",
+		ast.NewTree("", []ast.Node{
+			ast.NewSend(
+				p(1, 1, 0, 6),
+				ast.NewIdentifier(p(1, 1, 0, 1), "ch"),
+				ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))),
+		}, ast.ContextNone)},
+	{"a := <-ch", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 8),
+			[]ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
+			ast.AssignmentDeclaration, []ast.Expression{
+				ast.NewUnaryOperator(
+					p(1, 6, 5, 8), ast.OperatorReceive,
+					ast.NewIdentifier(p(1, 8, 7, 8), "ch"))}),
+	}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -2162,6 +2177,20 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Call, nn2.Call, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.Send:
+		nn2, ok := n2.(*ast.Send)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Channel, nn2.Channel, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Value, nn2.Value, p)
 		if err != nil {
 			return err
 		}

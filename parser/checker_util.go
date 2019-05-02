@@ -949,6 +949,14 @@ func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo,
 				}
 			}
 		}
+	case ast.OperatorReceive:
+		if t.Nil() {
+			return nil, fmt.Errorf("use of untyped nil")
+		}
+		if k != reflect.Chan {
+			return nil, fmt.Errorf("invalid operation: %s (receive from non-chan type %s)", expr.Expr, t.Type)
+		}
+		ti.Type = t.Type.Elem()
 	}
 
 	return ti, nil

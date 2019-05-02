@@ -231,6 +231,17 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tc.typeInfo[v2] = untypedBoolTypeInfo
 			values = []ast.Expression{v1, v2}
 
+		case *ast.UnaryOperator:
+
+			if v.Op == ast.OperatorReceive {
+				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
+				ti := tc.checkExpression(values[0])
+				tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfo[v2] = untypedBoolTypeInfo
+				values = []ast.Expression{v1, v2}
+			}
+
 		}
 	}
 

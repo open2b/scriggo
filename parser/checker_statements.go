@@ -346,6 +346,31 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.terminating = false
 
+		case *ast.Send:
+			tic := tc.checkExpression(node.Channel)
+			if tic.Type.Kind() != reflect.Chan {
+				panic(tc.errorf(node, "invalid operation: %s (send to non-chan type %s)", node, tic.Type))
+			}
+			elemType := tic.Type.Elem()
+			tiv := tc.checkExpression(node.Value)
+			if !isAssignableTo(tiv, elemType) {
+				if tiv.Nil() {
+					panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
+				}
+				// TODO(marco): in some cases the error is of type:
+				// "cannot convert "a" (type untyped string) to type int"
+				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.Type, elemType))
+			}
+
+		case *ast.UnaryOperator:
+			tc.checkExpression(node)
+			if node.Op != ast.OperatorReceive {
+				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
+				if !tc.isScript || !isLastScriptStatement {
+					panic(tc.errorf(node, "%s evaluated but not used", node))
+				}
+			}
+
 		case ast.Expression:
 
 			ti := tc.checkExpression(node)

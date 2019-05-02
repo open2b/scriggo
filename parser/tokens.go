@@ -92,6 +92,7 @@ const (
 	tokenModulo                            // %
 	tokenIncrement                         // ++
 	tokenDecrement                         // --
+	tokenArrow                             // <-
 	tokenStruct                            // struct
 	tokenEOF                               // eof
 
@@ -178,6 +179,7 @@ var tokenString = map[tokenTyp]string{
 	tokenModulo:                   "%",
 	tokenIncrement:                "++",
 	tokenDecrement:                "--",
+	tokenArrow:                    "<-",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
 
