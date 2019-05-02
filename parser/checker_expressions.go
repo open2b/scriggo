@@ -479,7 +479,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	case *ast.UnaryOperator:
 		_ = tc.checkExpression(expr.Expr)
-		t, err := unaryOp(tc.typeInfo[expr.Expr], expr)
+		t, err := tc.unaryOp(tc.typeInfo[expr.Expr], expr)
 		if err != nil {
 			panic(tc.errorf(expr, "%s", err))
 		}

@@ -855,7 +855,7 @@ func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 
 // unaryOp executes an unary expression and returns its result. Returns an
 // error if the operation can not be executed.
-func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
+func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 
 	k := t.Type.Kind()
 
@@ -930,6 +930,19 @@ func unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 			return nil, fmt.Errorf("cannot take the address of %s", expr.Expr)
 		}
 		ti.Type = reflect.PtrTo(t.Type)
+		// When taking the address of a variable, such variable must be
+		// marked as "indirect".
+		if ident, ok := expr.Expr.(*ast.Identifier); ok {
+		scopesLoop:
+			for i := len(tc.scopes) - 1; i >= 0; i-- {
+				for n := range tc.scopes[i] {
+					if n == ident.Name {
+						tc.indirectVars[tc.scopes[i][n].decl] = true
+						break scopesLoop
+					}
+				}
+			}
+		}
 	}
 
 	return ti, nil
