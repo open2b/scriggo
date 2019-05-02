@@ -178,7 +178,9 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
 		}
-		_, _ = fmt.Fprintf(w, "%d %s", nOut+i+1, fn.typ.In(i))
+		typ := fn.typ.In(i)
+		label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
+		_, _ = fmt.Fprintf(w, "%s%d %s", label, nOut+i+1, typ)
 	}
 	_, _ = fmt.Fprint(w, ")")
 	if nOut > 0 {
@@ -187,7 +189,9 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
-			_, _ = fmt.Fprintf(w, "%d %s", i+1, fn.typ.Out(i))
+			typ := fn.typ.Out(i)
+			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
+			_, _ = fmt.Fprintf(w, "%s%d %s", label, i+1, fn.typ.Out(i))
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
@@ -415,30 +419,24 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opMove:
 		switch MoveType(a) {
 		case IntInt:
-			s += " int"
 			s += " " + disassembleOperand(fn, b, Int, k)
 			s += " " + disassembleOperand(fn, c, Int, false)
 		case FloatFloat:
-			s += " float64"
 			s += " " + disassembleOperand(fn, b, Float64, k)
 			s += " " + disassembleOperand(fn, c, Float64, false)
 		case StringString:
-			s += " string"
 			s += " " + disassembleOperand(fn, b, String, k)
 			s += " " + disassembleOperand(fn, c, String, false)
 		case GeneralGeneral:
 			s += " " + disassembleOperand(fn, b, Interface, k)
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		case IntGeneral:
-			s += " intToGeneral"
 			s += " " + disassembleOperand(fn, b, Int, k)
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		case FloatGeneral:
-			s += " floatToGeneral"
 			s += " " + disassembleOperand(fn, b, Float64, k)
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		case StringGeneral:
-			s += " stringToGeneral"
 			s += " " + disassembleOperand(fn, b, String, k)
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		}
@@ -519,6 +517,20 @@ func reflectToRegisterKind(kind reflect.Kind) Kind {
 	}
 }
 
+func registerKindToLabel(kind Kind) string {
+	switch kind {
+	case Bool, Int, Int8, Int16, Int32, Int64,
+		Uint, Uint8, Uint16, Uint32, Uint64:
+		return "i"
+	case Float32, Float64:
+		return "f"
+	case String:
+		return "s"
+	default:
+		return "g"
+	}
+}
+
 func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) string {
 	if constant {
 		switch {
@@ -543,11 +555,12 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 			return fmt.Sprintf("%#v", v)
 		}
 	}
+	label := registerKindToLabel(kind)
 	if op > 0 {
-		return "R" + strconv.Itoa(int(op))
+		return label + strconv.Itoa(int(op))
 	}
 	if op == 0 {
 		return "_"
 	}
-	return "(R" + strconv.Itoa(-int(op)) + ")"
+	return "(" + label + strconv.Itoa(-int(op)) + ")"
 }

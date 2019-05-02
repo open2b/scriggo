@@ -175,12 +175,12 @@ var operationName = [...]string{
 
 	opNone: "Nop", // TODO(Gianluca): review.
 
-	opAddInt:     "AddInt",
-	opAddInt8:    "AddInt8",
-	opAddInt16:   "AddInt16",
-	opAddInt32:   "AddInt32",
-	opAddFloat32: "AddFloat32",
-	opAddFloat64: "AddFloat64",
+	opAddInt:     "Add",
+	opAddInt8:    "Add8",
+	opAddInt16:   "Add16",
+	opAddInt32:   "Add32",
+	opAddFloat32: "Add32",
+	opAddFloat64: "Add",
 
 	opAnd: "And",
 
@@ -189,9 +189,9 @@ var operationName = [...]string{
 	opAppend: "Append",
 
 	opAssert:        "Assert",
-	opAssertInt:     "AssertInt",
-	opAssertFloat64: "AssertFloat64",
-	opAssertString:  "AssertString",
+	opAssertInt:     "Assert",
+	opAssertFloat64: "Assert",
+	opAssertString:  "Assert",
 
 	opBind: "Bind",
 
@@ -208,25 +208,25 @@ var operationName = [...]string{
 	opConcat: "concat",
 
 	opConvert:       "Convert",
-	opConvertInt:    "ConvertInt",
-	opConvertUint:   "ConvertUint",
-	opConvertFloat:  "ConvertFloat",
-	opConvertString: "ConvertString",
+	opConvertInt:    "Convert",
+	opConvertUint:   "ConvertU",
+	opConvertFloat:  "Convert",
+	opConvertString: "Convert",
 
 	opDefer: "Defer",
 
 	opDelete: "delete",
 
-	opDivInt:     "DivInt",
-	opDivInt8:    "DivInt8",
-	opDivInt16:   "DivInt16",
-	opDivInt32:   "DivInt32",
-	opDivUint8:   "DivUint8",
-	opDivUint16:  "DivUint16",
-	opDivUint32:  "DivUint32",
-	opDivUint64:  "DivUint64",
-	opDivFloat32: "DivFloat32",
-	opDivFloat64: "DivFloat64",
+	opDivInt:     "Div",
+	opDivInt8:    "Div8",
+	opDivInt16:   "Div16",
+	opDivInt32:   "Div32",
+	opDivUint8:   "DivU8",
+	opDivUint16:  "DivU16",
+	opDivUint32:  "DivU32",
+	opDivUint64:  "DivU64",
+	opDivFloat32: "Div32",
+	opDivFloat64: "Div",
 
 	opGetFunc: "GetFunc",
 
@@ -237,12 +237,12 @@ var operationName = [...]string{
 	opGoto: "Goto",
 
 	opIf:       "If",
-	opIfInt:    "IfInt",
-	opIfUint:   "IfUint",
-	opIfFloat:  "IfFloat",
-	opIfString: "IfString",
+	opIfInt:    "If",
+	opIfUint:   "IfU",
+	opIfFloat:  "If",
+	opIfString: "If",
 
-	opLen: "len",
+	opLen: "Len",
 
 	opFunc: "Func",
 
@@ -252,17 +252,17 @@ var operationName = [...]string{
 
 	opMove: "Move",
 
-	opMulInt:     "MulInt",
-	opMulInt8:    "MulInt8",
-	opMulInt16:   "MulInt16",
-	opMulInt32:   "MulInt32",
-	opMulFloat32: "MulFloat32",
-	opMulFloat64: "MulFloat64",
+	opMulInt:     "Mul",
+	opMulInt8:    "Mul8",
+	opMulInt16:   "Mul16",
+	opMulInt32:   "Mul32",
+	opMulFloat32: "Mul32",
+	opMulFloat64: "Mul",
 
 	opNew: "New",
 
 	opRange:       "Range",
-	opRangeString: "RangeString",
+	opRangeString: "Range",
 
 	opPanic: "Panic",
 
@@ -272,14 +272,14 @@ var operationName = [...]string{
 
 	opRecover: "Recover",
 
-	opRemInt:    "RemInt",
-	opRemInt8:   "RemInt8",
-	opRemInt16:  "RemInt16",
-	opRemInt32:  "RemInt32",
-	opRemUint8:  "RemUint8",
-	opRemUint16: "RemUint16",
-	opRemUint32: "RemUint32",
-	opRemUint64: "RemUint64",
+	opRemInt:    "Rem",
+	opRemInt8:   "Rem8",
+	opRemInt16:  "Rem16",
+	opRemInt32:  "Rem32",
+	opRemUint8:  "RemU8",
+	opRemUint16: "RemU16",
+	opRemUint32: "RemU32",
+	opRemUint64: "RemU64",
 
 	opReturn: "Return",
 
@@ -293,19 +293,19 @@ var operationName = [...]string{
 
 	opSetVar: "SetPackageVar",
 
-	opSubInt:     "SubInt",
-	opSubInt8:    "SubInt8",
-	opSubInt16:   "SubInt16",
-	opSubInt32:   "SubInt32",
-	opSubFloat32: "SubFloat32",
-	opSubFloat64: "SubFloat64",
+	opSubInt:     "Sub",
+	opSubInt8:    "Sub8",
+	opSubInt16:   "Sub16",
+	opSubInt32:   "Sub32",
+	opSubFloat32: "Sub32",
+	opSubFloat64: "Sub",
 
-	opSubInvInt:     "SubInvInt",
-	opSubInvInt8:    "SubInvInt8",
-	opSubInvInt16:   "SubInvInt16",
-	opSubInvInt32:   "SubInvInt32",
-	opSubInvFloat32: "SubInvFloat32",
-	opSubInvFloat64: "SubInvFloat64",
+	opSubInvInt:     "SubInv",
+	opSubInvInt8:    "SubInv8",
+	opSubInvInt16:   "SubInv16",
+	opSubInvInt32:   "SubInv32",
+	opSubInvFloat32: "SubInv32",
+	opSubInvFloat64: "SubInv",
 
 	opTailCall: "TailCall",
 }
