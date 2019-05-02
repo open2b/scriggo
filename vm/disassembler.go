@@ -466,7 +466,6 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
 		s += " " + fn.types[int(uint(a))].String()
-		s += " " + fmt.Sprintf("0b%b", b)
 		s += " " + disassembleOperand(fn, c, Int, false)
 		s += " // len: "
 		s += fmt.Sprintf("%d", fn.body[addr+1].a)
