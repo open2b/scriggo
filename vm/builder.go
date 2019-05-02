@@ -1116,6 +1116,16 @@ func (builder *FunctionBuilder) Print(arg int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opPrint, a: arg})
 }
 
+// Receive appends a new "Receive" instruction to the function body.
+//
+//	dst = <- ch
+//
+//	dst, ok = <- ch
+//
+func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opReceive, a: ch, b: ok, c: dst})
+}
+
 // Recover appends a new "Recover" instruction to the function body.
 //
 //     recover()
