@@ -205,7 +205,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 					if reflect.TypeOf(value).Kind() == reflect.Ptr {
 						// pkg.DefineVariable(ident, value)
 						// continue
-						v := NewVariable(parserGoPkg.Name, ident, value)
+						v := NewNativeVariable(parserGoPkg.Name, ident, value)
 						if importPkgName == "" {
 							c.availableVariables[ident] = v
 						} else {
