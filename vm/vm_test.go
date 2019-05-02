@@ -107,6 +107,26 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	// TODO(Gianluca).
+	// {"Variable swapping",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		a := 10
+	// 		b := 20
+	// 		fmt.Println(a, b)
+	// 		a, b = a, b
+	// 		fmt.Println(a, b)
+	// 		a, b = b, a
+	// 		fmt.Println(a, b)
+	// 		b, a = a, b
+	// 		fmt.Println(a, b)
+	// 	}`,
+	// 	nil,
+	// 	nil,
+	// 	"10 20\n10 20\n20 10\n10 20"},
 	{"Selector (native struct)",
 		`package main
 
