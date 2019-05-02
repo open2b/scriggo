@@ -128,7 +128,7 @@ type typechecker struct {
 	unusedVars       []*scopeVariable
 	unusedImports    map[string][]string
 	typeInfo         map[ast.Node]*TypeInfo
-	upValues         map[*ast.Identifier]bool
+	indirectVars     map[*ast.Identifier]bool
 	isScript         bool
 
 	// Variable initialization support structures.
@@ -152,7 +152,7 @@ func newTypechecker(path string, isScript bool) *typechecker {
 		typeInfo:         make(map[ast.Node]*TypeInfo),
 		universe:         make(typeCheckerScope),
 		unusedImports:    make(map[string][]string),
-		upValues:         make(map[*ast.Identifier]bool),
+		indirectVars:     make(map[*ast.Identifier]bool),
 		varDeps:          make(map[string][]string),
 	}
 }
@@ -250,7 +250,7 @@ func (tc *typechecker) isUpValue(name string) bool {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.upValues[tc.scopes[i][n].decl] = true
+				tc.indirectVars[tc.scopes[i][n].decl] = true
 				return true
 			}
 			return false

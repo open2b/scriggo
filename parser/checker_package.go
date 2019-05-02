@@ -303,7 +303,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}
-	pkgInfo.IndirectVars = tc.upValues
+	pkgInfo.IndirectVars = tc.indirectVars
 
 	// Sort variables.
 	// TODO (Gianluca): if a variable declaration is already

@@ -21,6 +21,6 @@ func checkScript(tree *ast.Tree, main *GoPackage) (_ *PackageInfo, err error) {
 	}
 	tc.checkNodesInNewScope(tree.Nodes)
 	pkgInfo := &PackageInfo{}
-	pkgInfo.IndirectVars = tc.upValues
+	pkgInfo.IndirectVars = tc.indirectVars
 	return pkgInfo, err
 }
