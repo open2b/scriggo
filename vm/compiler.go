@@ -710,8 +710,14 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 	case *ast.UnaryOperator:
 		kind := c.typeinfo[expr.Expr].Type.Kind()
-		tmpReg := c.fb.NewRegister(kind)
+		var tmpReg int8
+		if reg != 0 {
+			tmpReg = c.fb.NewRegister(kind)
+		}
 		c.compileExpr(expr.Expr, tmpReg, dstKind)
+		if reg == 0 {
+			return
+		}
 		switch expr.Operator() {
 		case ast.OperatorNot:
 			c.fb.SubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
