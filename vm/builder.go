@@ -956,8 +956,28 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.allocRegister(reflect.Interface, s)
 	builder.allocRegister(reflect.Int, l)
-	// TODO
-	builder.fn.body = append(builder.fn.body, instruction{op: 0, a: s, b: l})
+	var a int8
+	switch t {
+	case reflect.TypeOf(""):
+		// TODO(Gianluca): this cases catches string types only, not defined
+		// types with underlying type string.
+		a = 0
+	default:
+		a = 1
+	case reflect.TypeOf([]byte{}):
+		a = 2
+	case reflect.TypeOf([]string{}):
+		a = 4
+	case reflect.TypeOf([]interface{}{}):
+		a = 5
+	case reflect.TypeOf(map[string]string{}):
+		a = 6
+	case reflect.TypeOf(map[string]int{}):
+		a = 7
+	case reflect.TypeOf(map[string]interface{}{}):
+		a = 8
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opLen, a: a, b: s, c: l})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.

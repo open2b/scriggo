@@ -1007,29 +1007,9 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstKind reflect.Kind
 		panic("TODO: not implemented")
 	case "len":
 		typ := c.typeinfo[call.Args[0]].Type
-		kind := typ.Kind()
-		var a, b int8
-		out, _, isRegister := c.quickCompileExpr(call.Args[0], kind)
-		if isRegister {
-			b = out
-		} else {
-			arg := c.fb.NewRegister(kind)
-			c.compileExpr(call.Args[0], arg, kind)
-			b = arg
-		}
-		switch typ {
-		case reflect.TypeOf(""): // TODO (Gianluca): or should check for kind string?
-			a = 0
-		default:
-			a = 1
-		case reflect.TypeOf([]byte{}):
-			a = 2
-		}
-		c.fb.EnterStack()
-		tmpReg := c.fb.NewRegister(reflect.Int)
-		c.fb.fn.body = append(c.fb.fn.body, instruction{op: opLen, a: a, b: b, c: tmpReg})
-		c.fb.Move(false, tmpReg, reg, reflect.Int, dstKind)
-		c.fb.ExitStack()
+		s := c.fb.NewRegister(typ.Kind())
+		c.compileExpr(call.Args[0], s, typ.Kind())
+		c.fb.Len(s, reg, typ)
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 		regType := c.fb.Type(typ)
