@@ -857,6 +857,10 @@ func uBinaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo,
 // error if the operation can not be executed.
 func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo, error) {
 
+	if t.Nil() {
+		return nil, fmt.Errorf("invalid operation: %s nil", expr.Op)
+	}
+
 	k := t.Type.Kind()
 
 	ti := &TypeInfo{
