@@ -35,6 +35,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Func:
 
 			ti := tc.checkExpression(node)
+			if !tc.isScript {
+				panic(tc.errorf(node, "%s evaluated but not used", node))
+			}
 			tc.assignScope(node.Ident.Name, ti, node.Ident)
 
 		case *ast.Text:
@@ -354,9 +357,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case ast.Expression:
 
 			tc.checkExpression(node)
-			_, isFuncDecl := node.(*ast.Func)
 			isLastScriptStatement := tc.isScript && len(tc.scopes) == 2 && i == len(nodes)-1
-			if !isLastScriptStatement && !isFuncDecl {
+			if !isLastScriptStatement {
 				panic(tc.errorf(node, "%s evaluated but not used", node))
 			}
 
