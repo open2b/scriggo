@@ -27,10 +27,14 @@ func printErrorAndQuit(err interface{}) {
 
 // goImports runs "goimports" on path.
 func goImports(path string) error {
+	_, err := exec.LookPath("goimports")
+	if err != nil {
+		return err
+	}
 	cmd := exec.Command("goimports", "-w", path)
 	stderr := bytes.Buffer{}
 	cmd.Stderr = &stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("goimports: %s", stderr.String())
 	}
