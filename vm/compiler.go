@@ -464,7 +464,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 					}
 					return regs, kinds
 				} else {
-					panic("TODO: calling scrigo functions from imported packages not implemented")
+					panic("TODO(Gianluca): not implemented")
 				}
 			}
 		}
