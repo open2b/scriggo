@@ -674,12 +674,34 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 	case *ast.Selector:
 		if v, ok := c.availableVariables[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+			if reg == 0 {
+				return
+			}
 			index := c.variableIndex(v)
 			c.fb.GetVar(index, reg) // TODO (Gianluca): to review.
-		} else {
-			// TODO (Gianluca):
-			// panic("TODO: not implemented")
+			return
 		}
+		if nf, ok := c.availableNativeFunctions[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+			if reg == 0 {
+				return
+			}
+			index := c.nativeFunctionIndex(nf)
+			c.fb.GetFunc(true, index, reg)
+			return
+		}
+		if sf, ok := c.availableScrigoFunctions[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+			if reg == 0 {
+				return
+			}
+			index := c.scrigoFunctionIndex(sf)
+			c.fb.GetFunc(false, index, reg)
+			return
+		}
+		exprKind := c.typeinfo[expr.Expr].Type.Kind()
+		exprReg := c.fb.NewRegister(exprKind)
+		c.compileExpr(expr.Expr, exprReg, exprKind)
+		field := int8(0) // TODO(Gianluca).
+		c.fb.Selector(exprReg, field, reg)
 
 	case *ast.UnaryOperator:
 		kind := c.typeinfo[expr.Expr].Type.Kind()

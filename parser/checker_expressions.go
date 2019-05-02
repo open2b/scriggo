@@ -795,11 +795,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					if !ok {
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
+					tc.typeInfo[expr] = v
 					return v
 				}
 			}
 		}
 		t := tc.typeof(expr.Expr, noEllipses)
+		tc.typeInfo[expr.Expr] = t
 		if t.IsType() {
 			method, ok := methodByName(t, expr.Ident)
 			if !ok {

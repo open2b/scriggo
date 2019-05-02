@@ -1143,6 +1143,14 @@ func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
 }
 
+// Selector appends a new "Selector" instruction to the function body.
+//
+// 	c = a.field
+//
+func (builder *FunctionBuilder) Selector(a, field, c int8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSelector, a: a, b: field, c: c})
+}
+
 // SetVar appends a new "SetVar" instruction to the function body.
 //
 //     p.v = r

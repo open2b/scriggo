@@ -107,6 +107,19 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Selector (native struct)",
+		`package main
+
+		import (
+			"fmt"
+			"testpkg"
+		)
+		
+		func main() {
+			center := testpkg.Center
+			fmt.Println(center)
+		}
+		`, nil, nil, "{5 42}\n"},
 	{"Implicit return",
 		`package main
 
@@ -2350,6 +2363,8 @@ var goPackages = map[string]*parser.GoPackage{
 			"A":            &A,
 			"B":            &B,
 			"TestPointInt": reflect.TypeOf(new(TestPointInt)).Elem(),
+			"GetPoint":     GetPoint,
+			"Center":       &TestPointInt{A: 5, B: 42},
 		},
 	},
 }
@@ -2365,4 +2380,8 @@ func init() {
 
 type TestPointInt struct {
 	A, B int
+}
+
+func GetPoint() TestPointInt {
+	return TestPointInt{A: 5, B: 42}
 }
