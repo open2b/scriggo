@@ -959,7 +959,7 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	var a int8
 	switch t {
 	case reflect.TypeOf(""):
-		// TODO(Gianluca): this cases catches string types only, not defined
+		// TODO(Gianluca): this case catches string types only, not defined
 		// types with underlying type string.
 		a = 0
 	default:
