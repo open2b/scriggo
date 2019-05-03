@@ -1581,6 +1581,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, kind reflec
 		}
 
 	default:
+		kind = c.typeinfo[expr].Type.Kind()
 		x := c.fb.NewRegister(kind)
 		c.compileExpr(cond, x, kind)
 		o = ConditionEqual
