@@ -1312,6 +1312,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			}
 			c.fb.Return()
 
+		case *ast.Send:
+			ch := c.fb.NewRegister(reflect.Chan)
+			c.compileExpr(node.Channel, ch, reflect.Chan)
+			elemKind := c.typeinfo[node.Value].Type.Kind()
+			v := c.fb.NewRegister(elemKind)
+			c.compileExpr(node.Value, v, elemKind)
+			c.fb.Send(ch, v)
+
 		case *ast.Switch:
 			c.compileSwitch(node)
 
