@@ -2167,10 +2167,7 @@ func TestVM(t *testing.T) {
 					return
 				}
 				got := assembler["main"]
-				gotLines := []string{}
-				for _, line := range strings.Split(strings.TrimSpace(got), "\n") {
-					gotLines = append(gotLines, line)
-				}
+				gotLines := strings.Split(strings.TrimSpace(got), "\n")
 				if diff := equal(cas.disassembled, gotLines); diff >= 0 {
 					if !testing.Verbose() {
 						t.Errorf("disassembler output doesn't match for test %q (run tests in verbose mode for further details)", cas.name)
@@ -2252,14 +2249,6 @@ func equal(expected, got []string) int {
 
 func tabsToSpaces(s string) string {
 	return strings.ReplaceAll(s, "\t", "    ")
-}
-
-// oneLine puts src in just one line, returning an (as much as possibile) human
-// readable representation.
-func oneLine(src string) string {
-	src = strings.Join(strings.Split(src, "\n"), " ")
-	src = strings.ReplaceAll(src, "\t", "")
-	return src
 }
 
 // NoTestMakeExpressionTests renders the list of tests.
