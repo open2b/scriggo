@@ -249,101 +249,6 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 	}
 }
 
-// quickCompileExpr checks if expr is a value or a register, putting it into
-// out. If it's neither of them, both isValue and isRegister are false and
-// content of out is unspecified.
-func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, isValue, isRegister bool) {
-	// TODO (Gianluca): add to function documentation:
-	// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
-	// not need extra registers for evaluation.
-	if kindToType(expectedType.Kind()) != kindToType(c.typeinfo[expr].Type.Kind()) {
-		return 0, false, false
-	}
-	switch expr := expr.(type) {
-	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		return int8(expr.Value.Int64()), true, false
-	case *ast.Identifier:
-		if c.fb.IsVariable(expr.Name) {
-			return c.fb.ScopeLookup(expr.Name), false, true
-		}
-		return 0, false, false
-	case *ast.Value:
-		kind := c.typeinfo[expr].Type.Kind()
-		switch kind {
-		case reflect.Bool:
-			v := int8(0)
-			if expr.Val.(bool) {
-				v = 1
-			}
-			return v, true, false
-		case reflect.Int:
-			n := expr.Val.(int)
-			if n < 0 || n > 127 {
-				c := c.fb.MakeIntConstant(int64(n))
-				return c, false, true
-			} else {
-				return int8(n), true, false
-			}
-		case reflect.Int64:
-			n := expr.Val.(int64)
-			if n < 0 || n > 127 {
-				c := c.fb.MakeIntConstant(int64(n))
-				return c, false, true
-			} else {
-				return int8(n), true, false
-			}
-		case reflect.Float64:
-			// TODO (Gianluca): handle all kinds of floats.
-			v := int8(expr.Val.(float64))
-			return v, true, false
-
-		case reflect.Int8,
-			reflect.Int16,
-			reflect.Int32,
-			reflect.Uint,
-			reflect.Uint8,
-			reflect.Uint16,
-			reflect.Uint32,
-			reflect.Uint64,
-			reflect.Uintptr,
-			reflect.Float32,
-			reflect.Complex64,
-			reflect.Complex128,
-			reflect.Array,
-			reflect.Chan,
-			reflect.Interface,
-			reflect.Struct,
-			reflect.UnsafePointer:
-			panic(fmt.Sprintf("TODO: not implemented kind %q", kind))
-		case reflect.String:
-			sConst := c.fb.MakeStringConstant(expr.Val.(string))
-			reg := c.fb.NewRegister(reflect.String)
-			c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
-			return reg, false, true
-		}
-	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		sConst := c.fb.MakeStringConstant(expr.Text)
-		reg := c.fb.NewRegister(reflect.String)
-		c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
-		return reg, false, true
-	case *ast.Func:
-		typ := c.typeinfo[expr].Type
-		reg := c.fb.NewRegister(reflect.Func)
-		scrigoFunc := c.fb.Func(reg, typ)
-		funcLitBuilder := scrigoFunc.Builder()
-		currentFb := c.fb
-		c.fb = funcLitBuilder
-		c.fb.EnterScope()
-		c.prepareFunctionBodyParameters(expr)
-		addExplicitReturn(expr)
-		c.compileNodes(expr.Body.Nodes)
-		c.fb.ExitScope()
-		c.fb = currentFb
-		return reg, false, true
-	}
-	return 0, false, false
-}
-
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective type.
@@ -852,6 +757,101 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 
 	}
 
+}
+
+// quickCompileExpr checks if expr is a value or a register, putting it into
+// out. If it's neither of them, both isValue and isRegister are false and
+// content of out is unspecified.
+func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, isValue, isRegister bool) {
+	// TODO (Gianluca): add to function documentation:
+	// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
+	// not need extra registers for evaluation.
+	if kindToType(expectedType.Kind()) != kindToType(c.typeinfo[expr].Type.Kind()) {
+		return 0, false, false
+	}
+	switch expr := expr.(type) {
+	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+		return int8(expr.Value.Int64()), true, false
+	case *ast.Identifier:
+		if c.fb.IsVariable(expr.Name) {
+			return c.fb.ScopeLookup(expr.Name), false, true
+		}
+		return 0, false, false
+	case *ast.Value:
+		kind := c.typeinfo[expr].Type.Kind()
+		switch kind {
+		case reflect.Bool:
+			v := int8(0)
+			if expr.Val.(bool) {
+				v = 1
+			}
+			return v, true, false
+		case reflect.Int:
+			n := expr.Val.(int)
+			if n < 0 || n > 127 {
+				c := c.fb.MakeIntConstant(int64(n))
+				return c, false, true
+			} else {
+				return int8(n), true, false
+			}
+		case reflect.Int64:
+			n := expr.Val.(int64)
+			if n < 0 || n > 127 {
+				c := c.fb.MakeIntConstant(int64(n))
+				return c, false, true
+			} else {
+				return int8(n), true, false
+			}
+		case reflect.Float64:
+			// TODO (Gianluca): handle all kinds of floats.
+			v := int8(expr.Val.(float64))
+			return v, true, false
+
+		case reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Uintptr,
+			reflect.Float32,
+			reflect.Complex64,
+			reflect.Complex128,
+			reflect.Array,
+			reflect.Chan,
+			reflect.Interface,
+			reflect.Struct,
+			reflect.UnsafePointer:
+			panic(fmt.Sprintf("TODO: not implemented kind %q", kind))
+		case reflect.String:
+			sConst := c.fb.MakeStringConstant(expr.Val.(string))
+			reg := c.fb.NewRegister(reflect.String)
+			c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
+			return reg, false, true
+		}
+	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+		sConst := c.fb.MakeStringConstant(expr.Text)
+		reg := c.fb.NewRegister(reflect.String)
+		c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
+		return reg, false, true
+	case *ast.Func:
+		typ := c.typeinfo[expr].Type
+		reg := c.fb.NewRegister(reflect.Func)
+		scrigoFunc := c.fb.Func(reg, typ)
+		funcLitBuilder := scrigoFunc.Builder()
+		currentFb := c.fb
+		c.fb = funcLitBuilder
+		c.fb.EnterScope()
+		c.prepareFunctionBodyParameters(expr)
+		addExplicitReturn(expr)
+		c.compileNodes(expr.Body.Nodes)
+		c.fb.ExitScope()
+		c.fb = currentFb
+		return reg, false, true
+	}
+	return 0, false, false
 }
 
 // compileVariableAssignment assigns value to variable.
