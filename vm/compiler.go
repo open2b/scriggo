@@ -966,6 +966,28 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 		c.fb.Assert(expr, typ, dst)
 		c.fb.Move(true, 0, okReg, reflect.Int, reflect.Int)
 		c.fb.Move(true, 1, okReg, reflect.Int, reflect.Int)
+	case *ast.UnaryOperator:
+		if value.Operator() != ast.OperatorReceive {
+			panic(fmt.Errorf("type-checking bug: unexpected operator %s in assignment", value.Operator())) // TODO(Gianluca): remove.
+		}
+		var dst int8
+		if isDecl {
+			kind := c.typeinfo[variables[0]].Type.Kind()
+			dst = c.fb.NewRegister(kind)
+			c.fb.BindVarReg(variables[0].(*ast.Identifier).Name, dst)
+		} else {
+			dst = c.fb.ScopeLookup(variables[0].(*ast.Identifier).Name)
+		}
+		var okReg int8
+		if isDecl {
+			okReg = c.fb.NewRegister(reflect.Int)
+			c.fb.BindVarReg(variables[1].(*ast.Identifier).Name, okReg)
+		} else {
+			okReg = c.fb.ScopeLookup(variables[1].(*ast.Identifier).Name)
+		}
+		ch := c.fb.NewRegister(reflect.Chan)
+		c.compileExpr(value.Expr, ch, reflect.Chan)
+		c.fb.Receive(ch, okReg, dst)
 	default:
 		panic("bug")
 	}
