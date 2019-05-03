@@ -258,8 +258,8 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 // TODO (Gianluca): add to function documentation:
 // TODO (Gianluca): quickCompileExpr must evaluate only expression which does
 // not need extra registers for evaluation.
-func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Kind) (out int8, isValue, isRegister bool) {
-	if kindToType(expectedKind) != kindToType(c.typeinfo[expr].Type.Kind()) {
+func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, isValue, isRegister bool) {
+	if kindToType(expectedType.Kind()) != kindToType(c.typeinfo[expr].Type.Kind()) {
 		return 0, false, false
 	}
 	switch expr := expr.(type) {
@@ -479,7 +479,7 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 		}
 	}
 	var funReg int8
-	out, _, isRegister := c.quickCompileExpr(call.Func, reflect.Func)
+	out, _, isRegister := c.quickCompileExpr(call.Func, c.typeinfo[call.Func].Type)
 	if isRegister {
 		funReg = out
 	} else {
@@ -522,7 +522,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		var op2 int8
 		var ky bool
 		{
-			out, isValue, isRegister := c.quickCompileExpr(expr.Expr2, typ.Kind())
+			out, isValue, isRegister := c.quickCompileExpr(expr.Expr2, typ)
 			if isValue {
 				op2 = out
 				ky = true
@@ -642,7 +642,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				c.fb.Move(true, index, indexReg, reflect.Int, reflect.Int)
 				var kvalue bool
 				var value int8
-				out, isValue, isRegister := c.quickCompileExpr(kv.Value, typ.Elem().Kind())
+				out, isValue, isRegister := c.quickCompileExpr(kv.Value, typ.Elem())
 				if isValue {
 					value = out
 					kvalue = true
@@ -679,7 +679,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 
 	case *ast.TypeAssertion:
 		typ := c.typeinfo[expr.Expr].Type
-		out, _, isRegister := c.quickCompileExpr(expr.Expr, typ.Kind())
+		out, _, isRegister := c.quickCompileExpr(expr.Expr, typ)
 		var exprReg int8
 		if isRegister {
 			exprReg = out
@@ -757,12 +757,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if reg == 0 {
 			return
 		}
-		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		typ := c.typeinfo[expr].Type
+		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, kind, dstType.Kind())
+			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
 		} else if isRegister {
-			c.fb.Move(false, out, reg, kind, dstType.Kind())
+			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
 		} else {
 			kind := c.typeinfo[expr].Type.Kind()
 			switch kind {
@@ -778,12 +778,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if reg == 0 {
 			return
 		}
-		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		typ := c.typeinfo[expr].Type
+		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, kind, dstType.Kind())
+			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
 		} else if isRegister {
-			c.fb.Move(false, out, reg, kind, dstType.Kind())
+			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
 		} else {
 			panic("bug")
 		}
@@ -792,12 +792,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if reg == 0 {
 			return
 		}
-		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		typ := c.typeinfo[expr].Type
+		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, kind, dstType.Kind())
+			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
 		} else if isRegister {
-			c.fb.Move(false, out, reg, kind, dstType.Kind())
+			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
 		} else {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
 				index := c.scrigoFunctionIndex(fun)
@@ -811,12 +811,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if reg == 0 {
 			return
 		}
-		kind := c.typeinfo[expr].Type.Kind()
-		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		typ := c.typeinfo[expr].Type
+		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, kind, dstType.Kind())
+			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
 		} else if isRegister {
-			c.fb.Move(false, out, reg, kind, dstType.Kind())
+			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
 		} else {
 			panic("bug")
 		}
@@ -824,13 +824,13 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 	case *ast.Index:
 		exprType := c.typeinfo[expr.Expr].Type
 		var exprReg int8
-		out, _, isRegister := c.quickCompileExpr(expr.Expr, exprType.Kind())
+		out, _, isRegister := c.quickCompileExpr(expr.Expr, exprType)
 		if isRegister {
 			exprReg = out
 		} else {
 			exprReg = c.fb.NewRegister(exprType.Kind())
 		}
-		out, isValue, isRegister := c.quickCompileExpr(expr.Index, reflect.Int)
+		out, isValue, isRegister := c.quickCompileExpr(expr.Index, intType)
 		ki := false
 		var i int8
 		if isValue {
@@ -858,7 +858,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 }
 
 // compileVariableAssignment assigns value to variable.
-func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8, valueKind reflect.Kind, kvalue bool, isDecl bool) {
+func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8, valueType reflect.Type, kvalue bool, isDecl bool) {
 	if isBlankIdentifier(variable) {
 		return
 	}
@@ -868,7 +868,7 @@ func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8
 		if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
 			if kvalue {
 				// TODO(Gianluca): is this correct?
-				c.fb.Move(true, value, value, valueKind, valueKind)
+				c.fb.Move(true, value, value, valueType.Kind(), valueType.Kind())
 			}
 			index := c.variableIndex(v)
 			c.fb.SetVar(value, index)
@@ -883,12 +883,12 @@ func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8
 		} else {
 			varReg = c.fb.ScopeLookup(variable.Name)
 		}
-		c.fb.Move(kvalue, value, varReg, valueKind, variableType.Kind())
+		c.fb.Move(kvalue, value, varReg, valueType.Kind(), variableType.Kind())
 	case *ast.Index:
 		switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {
 		case reflect.Slice:
 			var slice int8
-			out, _, isRegister := c.quickCompileExpr(variable.Expr, reflect.Interface)
+			out, _, isRegister := c.quickCompileExpr(variable.Expr, c.typeinfo[variable.Expr].Type)
 			if isRegister {
 				slice = out
 			} else {
@@ -896,14 +896,14 @@ func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8
 				c.compileExpr(variable.Expr, slice, variableType)
 			}
 			var index int8
-			out, _, isRegister = c.quickCompileExpr(variable.Index, reflect.Int)
+			out, _, isRegister = c.quickCompileExpr(variable.Index, intType)
 			if isRegister {
 				index = out
 			} else {
 				index = c.fb.NewRegister(reflect.Int)
 				c.compileExpr(variable.Index, index, intType)
 			}
-			c.fb.SetSlice(kvalue, slice, value, index, valueKind)
+			c.fb.SetSlice(kvalue, slice, value, index, valueType.Kind())
 		default:
 			panic("TODO: not implemented")
 		}
@@ -930,7 +930,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 		case *ast.Selector:
 			if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
 				index := c.variableIndex(v)
-				out, _, isRegister := c.quickCompileExpr(value, typ.Kind())
+				out, _, isRegister := c.quickCompileExpr(value, typ)
 				var tmpReg int8
 				if isRegister {
 					tmpReg = out
@@ -950,7 +950,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 			} else {
 				varReg = c.fb.ScopeLookup(variable.Name)
 			}
-			out, isValue, isRegister := c.quickCompileExpr(value, typ.Kind())
+			out, isValue, isRegister := c.quickCompileExpr(value, typ)
 			if isValue {
 				c.fb.Move(true, out, varReg, typ.Kind(), typ.Kind())
 			} else if isRegister {
@@ -966,7 +966,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 			switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {
 			case reflect.Slice:
 				var slice int8
-				out, _, isRegister := c.quickCompileExpr(variable.Expr, reflect.Interface)
+				out, _, isRegister := c.quickCompileExpr(variable.Expr, c.typeinfo[variable].Type)
 				if isRegister {
 					slice = out
 				} else {
@@ -975,7 +975,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 				}
 				var kvalue bool
 				var valueReg int8
-				out, isValue, isRegister := c.quickCompileExpr(value, exprType.Elem().Kind())
+				out, isValue, isRegister := c.quickCompileExpr(value, exprType.Elem())
 				if isValue {
 					valueReg = out
 					kvalue = true
@@ -986,7 +986,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 					c.compileExpr(value, valueReg, typ)
 				}
 				var index int8
-				out, _, isRegister = c.quickCompileExpr(variable.Index, reflect.Int)
+				out, _, isRegister = c.quickCompileExpr(variable.Index, intType)
 				if isRegister {
 					index = out
 				} else {
@@ -1088,14 +1088,14 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		panic("TODO: not implemented")
 	case "copy":
 		var dst, src int8
-		out, _, isRegister := c.quickCompileExpr(call.Args[0], reflect.Slice)
+		out, _, isRegister := c.quickCompileExpr(call.Args[0], c.typeinfo[call.Args[0]].Type)
 		if isRegister {
 			dst = out
 		} else {
 			dst = c.fb.NewRegister(reflect.Slice)
 			c.compileExpr(call.Args[0], dst, c.typeinfo[call.Args[0]].Type)
 		}
-		out, _, isRegister = c.quickCompileExpr(call.Args[1], reflect.Slice)
+		out, _, isRegister = c.quickCompileExpr(call.Args[1], c.typeinfo[call.Args[1]].Type)
 		if isRegister {
 			src = out
 		} else {
@@ -1109,14 +1109,14 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		mapType := c.typeinfo[mapExpr].Type
 		keyType := c.typeinfo[keyExpr].Type
 		var mapp, key int8
-		out, _, isRegister := c.quickCompileExpr(mapExpr, reflect.Map)
+		out, _, isRegister := c.quickCompileExpr(mapExpr, c.typeinfo[mapExpr].Type)
 		if isRegister {
 			mapp = out
 		} else {
 			mapp = c.fb.NewRegister(mapType.Kind())
 			c.compileExpr(mapExpr, mapp, c.typeinfo[mapExpr].Type)
 		}
-		out, _, isRegister = c.quickCompileExpr(keyExpr, keyType.Kind())
+		out, _, isRegister = c.quickCompileExpr(keyExpr, keyType)
 		if isRegister {
 			key = out
 		} else {
@@ -1140,7 +1140,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		case reflect.Map:
 			var size int8
 			var kSize bool
-			out, isValue, isRegister := c.quickCompileExpr(call.Args[1], reflect.Int)
+			out, isValue, isRegister := c.quickCompileExpr(call.Args[1], intType)
 			if isValue {
 				kSize = true
 				size = out
@@ -1156,7 +1156,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 			capExpr := call.Args[2]
 			var len, cap int8
 			var kLen, kCap bool
-			out, isValue, isRegister := c.quickCompileExpr(lenExpr, reflect.Int)
+			out, isValue, isRegister := c.quickCompileExpr(lenExpr, intType)
 			if isValue {
 				len = out
 				kLen = true
@@ -1166,7 +1166,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 				len = c.fb.NewRegister(reflect.Int)
 				c.compileExpr(lenExpr, len, c.typeinfo[lenExpr].Type)
 			}
-			out, isValue, isRegister = c.quickCompileExpr(capExpr, reflect.Int)
+			out, isValue, isRegister = c.quickCompileExpr(capExpr, intType)
 			if isValue {
 				cap = out
 				kCap = true
@@ -1190,7 +1190,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 	case "panic":
 		arg := call.Args[0]
 		var reg int8
-		out, _, isRegister := c.quickCompileExpr(arg, reflect.Interface)
+		out, _, isRegister := c.quickCompileExpr(arg, emptyInterfaceType)
 		if isRegister {
 			reg = out
 		} else {
@@ -1226,7 +1226,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				ident := node.Variables[0].(*ast.Identifier)
 				varReg := c.fb.ScopeLookup(ident.Name)
 				typ := c.typeinfo[ident].Type
-				out, isValue, isRegister := c.quickCompileExpr(node.Values[0], typ.Kind())
+				out, isValue, isRegister := c.quickCompileExpr(node.Values[0], typ)
 				var y int8
 				var ky bool
 				if isValue {
@@ -1253,12 +1253,12 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 						c.compileExpr(node.Values[i], values[i], valueTypes[i])
 					}
 					for i := range node.Variables {
-						c.compileVariableAssignment(node.Variables[i], values[i], valueTypes[i].Kind(), valueIsConst[i], node.Type == ast.AssignmentDeclaration)
+						c.compileVariableAssignment(node.Variables[i], values[i], valueTypes[i], valueIsConst[i], node.Type == ast.AssignmentDeclaration)
 					}
 				} else {
 					for i := range node.Variables {
 						valueType := c.typeinfo[node.Values[i]].Type
-						out, isValue, isRegister := c.quickCompileExpr(node.Values[i], valueType.Kind())
+						out, isValue, isRegister := c.quickCompileExpr(node.Values[i], valueType)
 						var value int8
 						kvalue := false
 						if isValue {
@@ -1270,7 +1270,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 							value = c.fb.NewRegister(valueType.Kind())
 							c.compileExpr(node.Values[i], value, valueType)
 						}
-						c.compileVariableAssignment(node.Variables[i], value, valueType.Kind(), kvalue, node.Type == ast.AssignmentDeclaration)
+						c.compileVariableAssignment(node.Variables[i], value, valueType, kvalue, node.Type == ast.AssignmentDeclaration)
 					}
 				}
 			case len(node.Variables) > 1 && len(node.Values) == 1:
@@ -1560,7 +1560,7 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 		for _, caseExpr := range cas.Expressions {
 			var ky bool
 			var y int8
-			out, isValue, isRegister := c.quickCompileExpr(caseExpr, typ.Kind())
+			out, isValue, isRegister := c.quickCompileExpr(caseExpr, typ)
 			if isValue {
 				ky = true
 				y = out
@@ -1622,7 +1622,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, typ reflect
 		typ = c.typeinfo[cond.Expr1].Type
 		var out int8
 		var isValue, isRegister bool
-		out, _, isRegister = c.quickCompileExpr(cond.Expr1, typ.Kind())
+		out, _, isRegister = c.quickCompileExpr(cond.Expr1, typ)
 		if isRegister {
 			x = out
 		} else {
@@ -1637,7 +1637,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, typ reflect
 				o = ConditionNotNil
 			}
 		} else {
-			out, isValue, isRegister = c.quickCompileExpr(cond.Expr2, typ.Kind())
+			out, isValue, isRegister = c.quickCompileExpr(cond.Expr2, typ)
 			if isValue {
 				y = out
 				yk = true
