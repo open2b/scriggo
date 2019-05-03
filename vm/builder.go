@@ -1029,6 +1029,8 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 //     dst = make(typ, capacity)
 //
 func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8, dst int8) {
+	// TODO(Gianluca): uniform all Make* functions to take a reflect.Type or a
+	// type index (int8).
 	op := opMakeChan
 	if kCapacity {
 		op = -op
