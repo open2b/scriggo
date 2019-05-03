@@ -123,6 +123,18 @@ func (c *Compiler) variableIndex(v variable) uint8 {
 	return i
 }
 
+// changeRegister moves src content into dst, making a conversion if necessary.
+func (c *Compiler) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+	if srcType.Kind() != reflect.Interface && dstType.Kind() == reflect.Interface {
+		if k {
+			panic("TODO(Gianluca): not implemented")
+		}
+		c.fb.Convert(src, srcType, srcType, dst)
+	} else {
+		c.fb.Move(k, src, dst, srcType.Kind(), dstType.Kind())
+	}
+}
+
 // compilePackage compiles pkg.
 func (c *Compiler) compilePackage(pkg *ast.Package) {
 
@@ -508,7 +520,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				typ := c.typeinfo[expr.Args[0]].Type
 				arg := c.fb.NewRegister(typ.Kind())
 				c.compileExpr(expr.Args[0], arg, typ)
-				c.fb.Convert(arg, convertType, reg)
+				c.fb.Convert(arg, typ, convertType, reg)
 				c.fb.ExitStack()
 				return
 			}
@@ -699,7 +711,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if isValue {
 			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
 		} else if isRegister {
-			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
+			c.changeRegister(false, out, reg, typ, dstType)
 		} else {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
 				index := c.scrigoFunctionIndex(fun)

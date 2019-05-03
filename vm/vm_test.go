@@ -874,7 +874,7 @@ var stmtTests = []struct {
 			fmt.Print(ne)
 		}`,
 		nil, nil,
-		"101001"},
+		"truefalsetruefalsefalsetrue"},
 
 	{"Logic AND and OR operators",
 		`

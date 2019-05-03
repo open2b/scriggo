@@ -310,10 +310,27 @@ func (vm *VM) run() int {
 		// Convert
 		case opConvert:
 			t := vm.fn.types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
+			switch t.Kind() {
+			case reflect.Array:
+				slice := reflect.ValueOf(vm.general(a))
+				array := reflect.New(t)
+				for i := 0; i < slice.Len(); i++ {
+					array.Elem().Index(i).Set(slice.Index(i))
+				}
+				vm.setGeneral(c, array.Elem().Interface())
+			case reflect.Func:
+				call := vm.general(a).(*callable)
+				vm.setGeneral(c, call.reflectValue())
+			default:
+				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
+			}
 		case opConvertInt:
 			t := vm.fn.types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
+			if t.Kind() == reflect.Bool {
+				vm.setGeneral(c, reflect.ValueOf(vm.bool(a)).Convert(t).Interface())
+			} else {
+				vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
+			}
 		case opConvertUint:
 			t := vm.fn.types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Interface())

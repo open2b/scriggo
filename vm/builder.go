@@ -705,11 +705,32 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 //
 // 	 dst = typ(expr)
 //
-func (builder *FunctionBuilder) Convert(expr int8, dstType reflect.Type, dst int8) {
+func (builder *FunctionBuilder) Convert(expr int8, srcType, dstType reflect.Type, dst int8) {
 	// TODO (Gianluca): add support for every kind of convert operator.
 	regType := builder.Type(dstType)
 	builder.allocRegister(reflect.Interface, dst)
-	builder.fn.body = append(builder.fn.body, instruction{op: opConvertInt, a: expr, b: regType, c: dst})
+	var op operation
+	switch kindToType(srcType.Kind()) {
+	case TypeIface:
+		op = opConvert
+	case TypeInt:
+		switch srcType.Kind() {
+		case reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Uintptr:
+			op = opConvertUint
+		default:
+			op = opConvertInt
+		}
+	case TypeString:
+		op = opConvertString
+	case TypeFloat:
+		op = opConvertFloat
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: expr, b: regType, c: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
