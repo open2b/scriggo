@@ -585,6 +585,19 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(b, elem.Type)}
 
+	case *ast.ChanType:
+		var dir reflect.ChanDir
+		switch expr.Direction {
+		case ast.NoDirection:
+			dir = reflect.BothDir
+		case ast.ReceiveDirection:
+			dir = reflect.RecvDir
+		case ast.SendDirection:
+			dir = reflect.SendDir
+		}
+		elem := tc.checkType(expr.ElementType, noEllipses)
+		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ChanOf(dir, elem.Type)}
+
 	case *ast.CompositeLiteral:
 		return tc.checkCompositeLiteral(expr, nil)
 
@@ -982,7 +995,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	size := tc.checkExpression(expr)
 	if size.Untyped() && !size.IsNumeric() || !size.Untyped() && !size.IsInteger() {
 		got := size.String()
-		if name == "size" {
+		if name == "size" || name == "buffer" {
 			if size.Nil() {
 				panic(tc.errorf(expr, "cannot convert nil to type int"))
 			}
@@ -1250,6 +1263,18 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 			if numArgs == 2 {
 				s := tc.checkSize(expr.Args[1], t.Type, "size")
+				if s != -1 {
+					node := ast.NewValue(s)
+					tc.replaceTypeInfo(expr.Args[1], node)
+					expr.Args[1] = node
+				}
+			}
+		case reflect.Chan:
+			if numArgs > 2 {
+				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
+			}
+			if numArgs == 2 {
+				s := tc.checkSize(expr.Args[1], t.Type, "buffer")
 				if s != -1 {
 					node := ast.NewValue(s)
 					tc.replaceTypeInfo(expr.Args[1], node)

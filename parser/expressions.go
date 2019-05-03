@@ -266,12 +266,40 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			operand = node.(ast.Expression)
 		case
+			tokenArrow, // <-, <-chan
+			tokenChan:  // chan, chan<-
+			pos := tok.pos
+			direction := ast.NoDirection
+			if tok.typ == tokenArrow {
+				tok = next(p.lex)
+				if tok.typ == tokenChan {
+					direction = ast.ReceiveDirection
+				} else {
+					operator = ast.NewUnaryOperator(pos, ast.OperatorReceive, nil)
+					reuseLastToken = true
+				}
+			}
+			if operator == nil {
+				tok = next(p.lex)
+				if direction == ast.NoDirection && tok.typ == tokenArrow {
+					direction = ast.SendDirection
+					tok = next(p.lex)
+				}
+				var elemType ast.Expression
+				elemType, tok = p.parseExpr(tok, false, false, true, false)
+				if elemType == nil {
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing channel element type")})
+				}
+				reuseLastToken = true
+				pos.End = elemType.Pos().End
+				operand = ast.NewChanType(pos, direction, elemType)
+			}
+		case
 			tokenAddition,       // +e
 			tokenSubtraction,    // -e
 			tokenNot,            // !e
 			tokenMultiplication, // *t, *T
-			tokenAmpersand,      // &e
-			tokenArrow:          // <-e
+			tokenAmpersand:      // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenRune,  // '\x3c'
@@ -369,7 +397,8 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			if operand != nil {
 				switch operand.(type) {
-				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType, *ast.Selector, *ast.FuncType, *ast.StructType:
+				case *ast.Identifier, *ast.MapType, *ast.ArrayType, *ast.SliceType,
+					*ast.ChanType, *ast.Selector, *ast.FuncType, *ast.StructType:
 				default:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", operand)})
 				}
@@ -648,7 +677,10 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 
 		}
 
-		tok = next(p.lex)
+		if !reuseLastToken {
+			tok = next(p.lex)
+		}
+		reuseLastToken = false
 
 	}
 

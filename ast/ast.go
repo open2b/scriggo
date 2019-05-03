@@ -133,6 +133,18 @@ func (ctx Context) String() string {
 	panic("invalid context")
 }
 
+type ChanDirection int
+
+const (
+	NoDirection ChanDirection = iota
+	ReceiveDirection
+	SendDirection
+)
+
+var directionString = [3]string{"no direction", "receive", "send"}
+
+func (dir ChanDirection) String() string { return directionString[dir] }
+
 // Node is an element of the tree.
 type Node interface {
 	Pos() *Position // node position in the original source
@@ -1088,6 +1100,30 @@ func (n *Slicing) String() string {
 	}
 	s += "]"
 	return s
+}
+
+// ChanType node represents a chan type.
+type ChanType struct {
+	expression
+	*Position                 // position in the source.
+	Direction   ChanDirection // direction.
+	ElementType Expression    // type of chan elements.
+}
+
+func NewChanType(pos *Position, direction ChanDirection, elementType Expression) *ChanType {
+	return &ChanType{expression{}, pos, direction, elementType}
+}
+
+func (n *ChanType) String() string {
+	var s string
+	if n.Direction == ReceiveDirection {
+		s = "<-"
+	}
+	s += "chan"
+	if n.Direction == SendDirection {
+		s = "<-"
+	}
+	return s + " " + n.ElementType.String()
 }
 
 // Selector node represents a selector expression.

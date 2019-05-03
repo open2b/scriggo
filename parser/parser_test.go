@@ -1714,6 +1714,18 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+	case *ast.ChanType:
+		nn2, ok := n2.(*ast.ChanType)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		if nn1.Direction != nn2.Direction {
+			return fmt.Errorf("unexpected direction %s, expecting %s", nn1.Direction, nn2.Direction)
+		}
+		err := equals(nn1.ElementType, nn2.ElementType, p)
+		if err != nil {
+			return err
+		}
 	case *ast.StructType:
 		nn2, ok := n2.(*ast.StructType)
 		if !ok {

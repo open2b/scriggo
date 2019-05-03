@@ -227,6 +227,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 		return ast.NewSliceType(ClonePosition(e.Pos()), CloneExpression(e.ElementType))
 	case *ast.ArrayType:
 		return ast.NewArrayType(ClonePosition(e.Pos()), CloneExpression(e.Len), CloneExpression(e.ElementType))
+	case *ast.ChanType:
+		return ast.NewChanType(ClonePosition(e.Pos()), e.Direction, CloneExpression(e.ElementType))
 	case *ast.CompositeLiteral:
 		keyValues := make([]ast.KeyValue, len(e.KeyValues))
 		for i, kv := range e.KeyValues {

@@ -198,6 +198,9 @@ func Walk(v Visitor, node ast.Node) {
 		Walk(v, n.Len)
 		Walk(v, n.ElementType)
 
+	case *ast.ChanType:
+		Walk(v, n.ElementType)
+
 	case *ast.Call:
 		for _, arg := range n.Args {
 			Walk(v, arg)

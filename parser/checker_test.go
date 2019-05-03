@@ -341,6 +341,13 @@ var checkerExprs = []struct {
 	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiUntypedIntConst("1")}},
 	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiIntConst(1)}},
 	{`make(map[string]string, s)`, tiStringMap(), map[string]*TypeInfo{"s": tiInt()}},
+	{`make(chan int)`, tiIntChan(reflect.BothDir), nil},
+	{`make(chan<- int)`, tiIntChan(reflect.SendDir), nil},
+	{`make(<-chan int)`, tiIntChan(reflect.RecvDir), nil},
+	{`make(chan int, 0)`, tiIntChan(reflect.BothDir), nil},
+	{`make(chan int, s)`, tiIntChan(reflect.BothDir), map[string]*TypeInfo{"s": tiUntypedIntConst("1")}},
+	{`make(chan int, s)`, tiIntChan(reflect.BothDir), map[string]*TypeInfo{"s": tiIntConst(1)}},
+	{`make(chan int, s)`, tiIntChan(reflect.BothDir), map[string]*TypeInfo{"s": tiInt()}},
 
 	// cap
 	{`cap([]int{})`, tiInt(), nil},
@@ -1043,6 +1050,11 @@ var checkerStmts = map[string]string{
 	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,
 	`make(map[int]int)`:       evaluatedButNotUsed("make(map[int]int)"),
 	`make(string)`:            `cannot make type string`,
+	`make(chan int, nil)`:     `cannot convert nil to type int`,
+	`make(chan int, -1)`:      `negative buffer argument in make(chan int)`,
+	`make(chan int, "")`:      `non-integer buffer argument in make(chan int) - string`,
+	`make(chan int, 0, 0)`:    `too many arguments to make(chan int)`,
+	`make(chan int)`:          evaluatedButNotUsed("make(chan int)"),
 
 	// Builtin function 'new'.
 	`_ = new(int)`: ok,
@@ -1507,6 +1519,10 @@ func tiIntSlice() *TypeInfo { return &TypeInfo{Type: reflect.SliceOf(intType)} }
 // string map type info.
 
 func tiStringMap() *TypeInfo { return &TypeInfo{Type: reflect.TypeOf(map[string]string(nil))} }
+
+// int chan type info.
+
+func tiIntChan(dir reflect.ChanDir) *TypeInfo { return &TypeInfo{Type: reflect.ChanOf(dir, intType)} }
 
 // interface{} type info.
 

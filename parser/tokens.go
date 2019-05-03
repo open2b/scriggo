@@ -43,6 +43,7 @@ const (
 	tokenType                              // type
 	tokenInterface                         // interface
 	tokenMap                               // map
+	tokenChan                              // chan
 	tokenIf                                // if
 	tokenElse                              // else
 	tokenDefer                             // defer
@@ -97,7 +98,6 @@ const (
 	tokenEOF                               // eof
 
 	// Tokens not yet supported.
-	tokenChan
 	tokenGoto
 	tokenSelect
 )
@@ -130,6 +130,7 @@ var tokenString = map[tokenTyp]string{
 	tokenType:                     "type",
 	tokenInterface:                "interface",
 	tokenMap:                      "map",
+	tokenChan:                     "chan",
 	tokenIf:                       "if",
 	tokenElse:                     "else",
 	tokenDefer:                    "defer",
@@ -184,7 +185,6 @@ var tokenString = map[tokenTyp]string{
 	tokenEOF:                      "EOF",
 
 	// Tokens not yet supported.
-	tokenChan:   "chan",
 	tokenGoto:   "goto",
 	tokenSelect: "select",
 }
