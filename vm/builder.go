@@ -984,6 +984,18 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opLen, a: a, b: s, c: l})
 }
 
+// MakeChan appends a new "MakeChan" instruction to the function body.
+//
+//     dst = make(typ, capacity)
+//
+func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8, dst int8) {
+	op := opMakeChan
+	if kCapacity {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: typ, b: capacity, c: dst})
+}
+
 // MakeMap appends a new "MakeMap" instruction to the function body.
 //
 //     dst = make(typ, size)

@@ -392,8 +392,8 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opMakeChan:
-		s += " type(" + strconv.Itoa(int(uint(a))) + ")"
-		s += " " + disassembleOperand(fn, b, Int, false)
+		s += " " + fn.types[int(uint(a))].String()
+		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeMap:
 		s += " " + fn.types[int(uint(a))].String()
