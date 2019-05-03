@@ -29,6 +29,8 @@ const (
 
 	opAppend
 
+	opAppendSlice
+
 	opBind
 
 	opCall
@@ -187,6 +189,8 @@ var operationName = [...]string{
 	opAndNot: "AndNot",
 
 	opAppend: "Append",
+
+	opAppendSlice: "AppendSlice",
 
 	opAssert:        "Assert",
 	opAssertInt:     "Assert",

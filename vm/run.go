@@ -134,29 +134,33 @@ func (vm *VM) run() int {
 
 		// Append
 		case opAppend:
-		//s := reflectValue.ValueOf(vm.popInterface())
-		//t := s.Type()
-		//n := int(vm.readByte())
-		//var s2 reflectValue.Value
-		//l, c := s.Len(), s.Cap()
-		//p := 0
-		//if l+n <= c {
-		//	s2 = reflectValue.MakeSlice(t, n, n)
-		//	s = s.Slice3(0, c, c)
-		//} else {
-		//	s2 = reflectValue.MakeSlice(t, l+n, l+n)
-		//	reflectValue.Copy(s2, s)
-		//	s = s2
-		//	p = l
-		//}
-		//for i := 1; i < n; i++ {
-		//	v := reflectValue.ValueOf(vm.popInterface())
-		//	s2.Index(p + i - 1).Set(v)
-		//}
-		//if l+n <= c {
-		//	reflectValue.Copy(s2.Slice(l, l+n+1), s2)
-		//}
-		//vm.pushInterface(s.Interface())
+			first := int8(vm.intk(a, true))
+			length := int(vm.intk(b, true))
+			slice := vm.general(c)
+			vm.setGeneral(c, vm.appendSlice(first, length, slice))
+
+		// AppendSlice
+		case opAppendSlice:
+			src := vm.general(a)
+			dst := vm.general(c)
+			switch s := src.(type) {
+			case []int:
+				vm.setGeneral(c, append(dst.([]int), s...))
+			case []byte:
+				vm.setGeneral(c, append(dst.([]byte), s...))
+			case []rune:
+				vm.setGeneral(c, append(dst.([]rune), s...))
+			case []float64:
+				vm.setGeneral(c, append(dst.([]float64), s...))
+			case []string:
+				vm.setGeneral(c, append(dst.([]string), s...))
+			case []interface{}:
+				vm.setGeneral(c, append(dst.([]interface{}), s...))
+			default:
+				sv := reflect.ValueOf(src)
+				dv := reflect.ValueOf(dst)
+				vm.setGeneral(c, reflect.AppendSlice(dv, sv).Interface())
+			}
 
 		// Assert
 		case opAssert:

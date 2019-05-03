@@ -583,6 +583,25 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
+// Append appends a new "Append" instruction to the function body.
+//
+//     s = append(s, regs[first:first+length]...)
+//
+func (builder *FunctionBuilder) Append(first, length, s int8) {
+	builder.allocRegister(reflect.Interface, s)
+	builder.fn.body = append(builder.fn.body, instruction{op: opAppend, a: first, b: length, c: s})
+}
+
+// AppendSlice appends a new "AppendSlice" instruction to the function body.
+//
+//     s = append(s, t)
+//
+func (builder *FunctionBuilder) AppendSlice(t, s int8) {
+	builder.allocRegister(reflect.Interface, t)
+	builder.allocRegister(reflect.Interface, s)
+	builder.fn.body = append(builder.fn.body, instruction{op: opAppendSlice, a: t, c: s})
+}
+
 // Assert appends a new "assert" instruction to the function body.
 //
 //     z = e.(t)
