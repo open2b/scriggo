@@ -471,6 +471,7 @@ func (builder *FunctionBuilder) SetLabelAddr(label uint32) {
 var intType = reflect.TypeOf(0)
 var float64Type = reflect.TypeOf(0.0)
 var stringType = reflect.TypeOf("")
+var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
 func encodeAddr(v uint32) (a, b, c int8) {
 	a = int8(uint8(v))
@@ -1208,6 +1209,7 @@ func (builder *FunctionBuilder) Selector(a, field, c int8) {
 //	ch <- v
 //
 func (builder *FunctionBuilder) Send(ch, v int8) {
+	// TODO(Gianluca): how can send know kind/type?
 	builder.fn.body = append(builder.fn.body, instruction{op: opSend, a: v, c: ch})
 }
 
