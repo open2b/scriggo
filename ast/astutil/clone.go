@@ -190,6 +190,8 @@ func CloneNode(node ast.Node) ast.Node {
 		return ast.NewDefer(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
 	case *ast.Go:
 		return ast.NewGo(ClonePosition(n.Position), CloneExpression(n.Call).(*ast.Call))
+	case *ast.Goto:
+		return ast.NewGoto(ClonePosition(n.Position), CloneExpression(n.Label).(*ast.Identifier))
 	case *ast.Send:
 		return ast.NewSend(ClonePosition(n.Position), CloneExpression(n.Channel), CloneExpression(n.Value))
 	case ast.Expression:

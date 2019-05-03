@@ -1152,6 +1152,16 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		addChild(parent, node)
 
+	// goto
+	case tokenGoto:
+		tok = next(p.lex)
+		if tok.typ != tokenIdentifier {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
+		}
+		pos.End = tok.pos.End
+		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
+		addChild(parent, node)
+
 	// assignment, send or expression
 	default:
 		expressions, tok := p.parseExprList(tok, true, false, false, false)

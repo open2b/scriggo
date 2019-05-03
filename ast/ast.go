@@ -1015,6 +1015,20 @@ func (n *Go) String() string {
 	return "go " + n.Call.String()
 }
 
+// Goto node represents a goto statement.
+type Goto struct {
+	*Position             // position in the source.
+	Label     *Identifier // label.
+}
+
+func NewGoto(pos *Position, label *Identifier) *Goto {
+	return &Goto{pos, label}
+}
+
+func (n *Goto) String() string {
+	return "goto " + n.Label.String()
+}
+
 // Var node represent a variable declaration by keyword "var".
 type Var struct {
 	*Position                 // position in the source.

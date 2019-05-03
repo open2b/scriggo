@@ -212,6 +212,9 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.Go:
 		Walk(v, n.Call)
 
+	case *ast.Goto:
+		Walk(v, n.Label)
+
 	case *ast.Send:
 		Walk(v, n.Channel)
 		Walk(v, n.Value)
