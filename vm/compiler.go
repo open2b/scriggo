@@ -642,7 +642,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		if reg != 0 {
 			tmpReg = c.fb.NewRegister(typ.Kind())
 		}
-		c.compileExpr(expr.Expr, tmpReg, dstType)
+		c.compileExpr(expr.Expr, tmpReg, typ)
 		if reg == 0 {
 			return
 		}
@@ -1185,7 +1185,26 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 			}
 			c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
 		case reflect.Chan:
-			panic("TODO: not implemented")
+			chanType := c.typeinfo[call.Args[0]].Type
+			chanTypeIndex := c.currentFunction.AddType(chanType)
+			kCapacity := false
+			var capacity int8
+			if len(call.Args) == 1 {
+				capacity = 0
+				kCapacity = true
+			} else {
+				out, isValue, isRegister := c.quickCompileExpr(call.Args[1], intType)
+				if isValue {
+					capacity = out
+					kCapacity = true
+				} else if isRegister {
+					capacity = out
+				} else {
+					capacity = c.fb.NewRegister(reflect.Int)
+					c.compileExpr(call.Args[1], capacity, intType)
+				}
+			}
+			c.fb.MakeChan(int8(chanTypeIndex), kCapacity, capacity, reg)
 		default:
 			panic("bug")
 		}

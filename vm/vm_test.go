@@ -107,6 +107,19 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Channel reading/writing",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			ch := make(chan int, 4)
+			ch <- 5
+			v := <-ch
+			fmt.Print(v)
+		}
+		`, nil, nil, "5"},
+
 	{"Variable swapping",
 		`package main
 
