@@ -1025,6 +1025,7 @@ var checkerStmts = map[string]string{
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
 	`make()`:                  `missing argument to make`,
+	`make([]int, nil)`:        `non-integer len argument in make([]int) - nil`,
 	`make([]int, -1)`:         `negative len argument in make([]int)`,
 	`make([]int, "")`:         `non-integer len argument in make([]int) - untyped string`,
 	`make([]int, []int{})`:    `non-integer len argument in make([]int) - []int`,
@@ -1036,6 +1037,7 @@ var checkerStmts = map[string]string{
 	`make([]int, 10, 1)`:      `len larger than cap in make([]int)`,
 	`make([]int)`:             `missing len argument to make([]int)`,
 	`make([2]int)`:            `cannot make type [2]int`,
+	`make(map[int]int, nil)`:  `cannot convert nil to type int`,
 	`make(map[int]int, -1)`:   `negative size argument in make(map[int]int)`,
 	`make(map[int]int, "")`:   `non-integer size argument in make(map[int]int) - string`,
 	`make(map[int]int, 0, 0)`: `too many arguments to make(map[int]int)`,

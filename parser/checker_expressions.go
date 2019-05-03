@@ -983,6 +983,9 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 	if size.Untyped() && !size.IsNumeric() || !size.Untyped() && !size.IsInteger() {
 		got := size.String()
 		if name == "size" {
+			if size.Nil() {
+				panic(tc.errorf(expr, "cannot convert nil to type int"))
+			}
 			got = size.ShortString()
 		}
 		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, got))
