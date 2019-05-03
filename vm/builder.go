@@ -1183,6 +1183,14 @@ func (builder *FunctionBuilder) Selector(a, field, c int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opSelector, a: a, b: field, c: c})
 }
 
+// Send appends a new "Send" instruction to the function body.
+//
+//	ch <- v
+//
+func (builder *FunctionBuilder) Send(ch, v int8) {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSend, a: v, c: ch})
+}
+
 // SetVar appends a new "SetVar" instruction to the function body.
 //
 //     p.v = r
