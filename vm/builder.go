@@ -871,15 +871,14 @@ func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind ref
 		builder.allocRegister(kind, y)
 	}
 	var op operation
-	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
-		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+	switch kindToType(kind) {
+	case TypeInt:
 		op = opIfInt
-	case reflect.Float64, reflect.Float32:
+	case TypeFloat:
 		op = opIfFloat
-	case reflect.String:
+	case TypeString:
 		op = opIfString
-	default:
+	case TypeIface:
 		panic("If: invalid type")
 	}
 	if k {
