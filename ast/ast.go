@@ -1029,6 +1029,17 @@ func (n *Goto) String() string {
 	return "goto " + n.Label.String()
 }
 
+// Label node represents a label statement.
+type Label struct {
+	*Position             // position in the source.
+	Name      *Identifier // name.
+	Statement Node        // statement.
+}
+
+func NewLabel(pos *Position, name *Identifier, statement Node) *Label {
+	return &Label{pos, name, statement}
+}
+
 // Var node represent a variable declaration by keyword "var".
 type Var struct {
 	*Position                 // position in the source.

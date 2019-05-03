@@ -528,6 +528,12 @@ var noneContextTreeTests = []struct {
 			ast.NewGoto(p(1, 1, 0, 8),
 				ast.NewIdentifier(p(1, 6, 5, 8), "LOOP")),
 		}, ast.ContextNone)},
+	{"LOOP: x",
+		ast.NewTree("", []ast.Node{
+			ast.NewLabel(p(1, 1, 0, 6),
+				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
+				ast.NewIdentifier(p(1, 7, 6, 6), "x")),
+		}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -2205,6 +2211,20 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
 		err := equals(nn1.Label, nn2.Label, p)
+		if err != nil {
+			return err
+		}
+
+	case *ast.Label:
+		nn2, ok := n2.(*ast.Label)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Name, nn2.Name, p)
+		if err != nil {
+			return err
+		}
+		err = equals(nn1.Statement, nn2.Statement, p)
 		if err != nil {
 			return err
 		}

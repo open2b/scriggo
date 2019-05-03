@@ -139,8 +139,17 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 		for tok := range p.lex.tokens {
 			if tok.typ == tokenEOF {
 				if len(p.ancestors) > 1 {
-					if _, ok := p.ancestors[1].(*ast.Package); !ok || len(p.ancestors) > 2 {
-						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+					switch s := p.ancestors[1].(type) {
+					case *ast.Package:
+					case *ast.Label:
+						if s.Statement == nil {
+							return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
+						}
+						s.Pos().End = s.Statement.Pos().End
+					default:
+						if len(p.ancestors) > 2 {
+							return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+						}
 					}
 				}
 			} else {
@@ -301,6 +310,12 @@ func (p *parsing) parseStatement(tok token) {
 		l = len(s.Cases)
 	case *ast.TypeSwitch:
 		l = len(s.Cases)
+	case *ast.Label:
+		if s.Statement != nil {
+			p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			parent = p.ancestors[len(p.ancestors)-1]
+			s.Pos().End = s.Statement.Pos().End
+		}
 	}
 	if l == 0 {
 		if tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
@@ -1162,7 +1177,7 @@ func (p *parsing) parseStatement(tok token) {
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		addChild(parent, node)
 
-	// assignment, send or expression
+	// assignment, send, label or expression
 	default:
 		expressions, tok := p.parseExprList(tok, true, false, false, false)
 		if len(expressions) == 0 {
@@ -1202,11 +1217,19 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			// Parses expression.
 			expr := expressions[0]
-			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
+				node := ast.NewLabel(pos, ident, nil)
+				node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
+				addChild(parent, node)
+				p.ancestors = append(p.ancestors, node)
+				p.cutSpacesToken = true
+			} else {
+				if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+				}
+				addChild(parent, expr)
+				p.cutSpacesToken = true
 			}
-			addChild(parent, expr)
-			p.cutSpacesToken = true
 		}
 	}
 
@@ -1738,6 +1761,8 @@ func addChild(parent ast.Node, node ast.Node) {
 		}
 		lastCase := n.Cases[len(n.Cases)-1]
 		lastCase.Body = append(lastCase.Body, node)
+	case *ast.Label:
+		n.Statement = node
 	default:
 		panic("scrigo/parser: unexpected parent node")
 	}
