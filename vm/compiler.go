@@ -738,6 +738,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			}
 		case ast.OperatorMultiplication:
 			panic("TODO: not implemented")
+		case ast.OperatorReceive:
+			c.fb.Receive(tmpReg, 0, reg)
 		}
 
 	case *ast.Value:
