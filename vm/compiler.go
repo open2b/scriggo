@@ -856,6 +856,61 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 
 }
 
+// compileVariableAssignment assigns value to variable.
+func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8, valueKind reflect.Kind, kvalue bool, isDecl bool) {
+	if isBlankIdentifier(variable) {
+		return
+	}
+	variableKind := c.typeinfo[variable].Type.Kind()
+	switch variable := variable.(type) {
+	case *ast.Selector:
+		if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
+			if kvalue {
+				// TODO(Gianluca): is this correct?
+				c.fb.Move(true, value, value, valueKind, valueKind)
+			}
+			index := c.variableIndex(v)
+			c.fb.SetVar(value, index)
+			return
+		}
+		panic("TODO: not implemented")
+	case *ast.Identifier:
+		var varReg int8
+		if isDecl {
+			varReg = c.fb.NewRegister(variableKind)
+			c.fb.BindVarReg(variable.Name, varReg)
+		} else {
+			varReg = c.fb.ScopeLookup(variable.Name)
+		}
+		c.fb.Move(kvalue, value, varReg, valueKind, variableKind)
+	case *ast.Index:
+		switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {
+		case reflect.Slice:
+			var slice int8
+			out, _, isRegister := c.quickCompileExpr(variable.Expr, reflect.Interface)
+			if isRegister {
+				slice = out
+			} else {
+				slice = c.fb.NewRegister(reflect.Interface)
+				c.compileExpr(variable.Expr, slice, variableKind)
+			}
+			var index int8
+			out, _, isRegister = c.quickCompileExpr(variable.Index, reflect.Int)
+			if isRegister {
+				index = out
+			} else {
+				index = c.fb.NewRegister(reflect.Int)
+				c.compileExpr(variable.Index, index, reflect.Int)
+			}
+			c.fb.SetSlice(kvalue, slice, value, index, valueKind)
+		default:
+			panic("TODO: not implemented")
+		}
+	default:
+		panic("TODO: not implemented")
+	}
+}
+
 // compileAssignment assign value to variables. If variables contains more than
 // one variable, value must be a function call, a map indexing operation or a
 // type assertion. These last two cases involve that variables contains 2
@@ -1165,7 +1220,6 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		switch node := node.(type) {
 
 		case *ast.Assignment:
-			// TODO (Gianluca): clean up.
 			switch {
 			case len(node.Variables) == 1 && len(node.Values) == 1 && (node.Type == ast.AssignmentAddition || node.Type == ast.AssignmentSubtraction):
 				ident := node.Variables[0].(*ast.Identifier)
@@ -1188,8 +1242,35 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					c.fb.Sub(ky, varReg, y, varReg, kind)
 				}
 			case len(node.Variables) == len(node.Values):
-				for i := range node.Variables {
-					c.compileAssignment([]ast.Expression{node.Variables[i]}, node.Values[i], node.Type == ast.AssignmentDeclaration)
+				if mayHaveDepencencies(node.Variables, node.Values) {
+					values := make([]int8, len(node.Values))
+					valueKinds := make([]reflect.Kind, len(node.Values))
+					valueIsConst := make([]bool, len(node.Values)) // TODO(Gianluca): use me.
+					for i := range node.Values {
+						valueKinds[i] = c.typeinfo[node.Values[i]].Type.Kind()
+						values[i] = c.fb.NewRegister(valueKinds[i])
+						c.compileExpr(node.Values[i], values[i], valueKinds[i])
+					}
+					for i := range node.Variables {
+						c.compileVariableAssignment(node.Variables[i], values[i], valueKinds[i], valueIsConst[i], node.Type == ast.AssignmentDeclaration)
+					}
+				} else {
+					for i := range node.Variables {
+						valueKind := c.typeinfo[node.Values[i]].Type.Kind()
+						out, isValue, isRegister := c.quickCompileExpr(node.Values[i], valueKind)
+						var value int8
+						kvalue := false
+						if isValue {
+							value = out
+							kvalue = true
+						} else if isRegister {
+							value = out
+						} else {
+							value = c.fb.NewRegister(valueKind)
+							c.compileExpr(node.Values[i], value, valueKind)
+						}
+						c.compileVariableAssignment(node.Variables[i], value, valueKind, kvalue, node.Type == ast.AssignmentDeclaration)
+					}
 				}
 			case len(node.Variables) > 1 && len(node.Values) == 1:
 				c.compileAssignment(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)

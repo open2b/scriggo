@@ -116,3 +116,37 @@ func kindToType(k reflect.Kind) Type {
 		panic("bug")
 	}
 }
+
+// mayHaveDepencencies indicates if there may be dependencies between values and
+// variables.
+func mayHaveDepencencies(variables, values []ast.Expression) bool {
+	// TODO(Gianluca): this function can be optimized, although for now
+	// readability has been preferred.
+	allDifferentIdentifiers := func() bool {
+		names := make(map[string]bool)
+		for _, v := range variables {
+			ident, ok := v.(*ast.Identifier)
+			if !ok {
+				return false
+			}
+			_, alreadyPresent := names[ident.Name]
+			if alreadyPresent {
+				return false
+			}
+			names[ident.Name] = true
+		}
+		for _, v := range values {
+			ident, ok := v.(*ast.Identifier)
+			if !ok {
+				return false
+			}
+			_, alreadyPresent := names[ident.Name]
+			if alreadyPresent {
+				return false
+			}
+			names[ident.Name] = true
+		}
+		return true
+	}
+	return !allDifferentIdentifiers()
+}
