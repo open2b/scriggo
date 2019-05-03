@@ -729,7 +729,7 @@ func (builder *FunctionBuilder) Delete(m, k int8) {
 //
 //     z = x / y
 //
-func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
@@ -757,6 +757,9 @@ func (builder *FunctionBuilder) Div(x, y, z int8, kind reflect.Kind) {
 		op = opDivFloat32
 	default:
 		panic("div: invalid type")
+	}
+	if ky {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
@@ -1057,7 +1060,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 //
 //     z = x * y
 //
-func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
@@ -1077,6 +1080,9 @@ func (builder *FunctionBuilder) Mul(x, y, z int8, kind reflect.Kind) {
 		op = opMulFloat32
 	default:
 		panic("mul: invalid type")
+	}
+	if ky {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
@@ -1139,7 +1145,7 @@ func (builder *FunctionBuilder) Recover(r int8) {
 //
 //     z = x % y
 //
-func (builder *FunctionBuilder) Rem(x, y, z int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
@@ -1163,6 +1169,9 @@ func (builder *FunctionBuilder) Rem(x, y, z int8, kind reflect.Kind) {
 		op = opRemUint8
 	default:
 		panic("rem: invalid type")
+	}
+	if ky {
+		op = -op
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }

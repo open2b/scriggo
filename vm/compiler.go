@@ -534,6 +534,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 		}
 		switch op := expr.Operator(); {
 		case op == ast.OperatorAddition && kind == reflect.String:
+			// TODO(Gianluca): if "isValue" this is wrong.
 			if reg != 0 {
 				c.fb.Concat(op1, op2, reg)
 			}
@@ -547,15 +548,24 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			}
 		case op == ast.OperatorMultiplication:
 			if reg != 0 {
-				c.fb.Mul(op1, op2, reg, kind)
+				c.fb.Mul(ky, op1, op2, reg, kind)
 			}
 		case op == ast.OperatorDivision:
 			if reg != 0 {
-				c.fb.Div(op1, op2, reg, kind)
+				c.fb.Div(ky, op1, op2, reg, kind)
+				// TODO(Gianluca): if this code is correct, repeat it for every operator.
+				if kind != dstKind {
+					c.fb.Move(false, reg, reg, kind, dstKind)
+				}
+			} else {
+				// "runtime error: integer divide by zero" must be
+				// returned even if discarding result.
+				dummyReg := c.fb.NewRegister(kind)
+				c.fb.Div(ky, op1, op2, dummyReg, kind)
 			}
 		case op == ast.OperatorModulo:
 			if reg != 0 {
-				c.fb.Rem(op1, op2, reg, kind)
+				c.fb.Rem(ky, op1, op2, reg, kind)
 			}
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond Condition

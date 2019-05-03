@@ -127,6 +127,34 @@ var stmtTests = []struct {
 	// 	nil,
 	// 	nil,
 	// 	"10 20\n10 20\n20 10\n10 20"},
+
+	{"Some maths",
+		`package main
+
+		import (
+			"fmt"
+		)
+
+		func eval(v int) {
+			fmt.Print(v, ",")
+		}
+
+		func main() {
+			a := 33
+			b := 42
+			eval(a + b)
+			eval(a - b)
+			eval(a * b)
+			eval(a / b)
+			eval(a % b)
+			eval(a + b*b)
+			eval(a*b + a - b)
+			eval(a - b - b + a*b)
+			eval(a/3 + b/10)
+		}
+		`, nil, nil,
+		"75,-9,1386,0,33,1797,1377,1335,15,"},
+
 	{"Selector (native struct)",
 		`package main
 
@@ -2103,6 +2131,28 @@ var stmtTests = []struct {
 		nil,
 		"a:6,b:2,c:2,d:6,e:16,f:40330,",
 	},
+
+	{"f(g()) call (advanced test)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func f(a int, b int) {
+			fmt.Println("a is", a, "and b is", b)
+		}
+		
+		func g(s string) (int, int) {
+			return len(s), len(s) * (len(s) + 7)
+		}
+		
+		func main() {
+			f(g("a string!"))
+		}`,
+		nil,
+		nil,
+		"a is 9 and b is 144\n"},
 }
 
 func TestVM(t *testing.T) {
