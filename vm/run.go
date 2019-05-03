@@ -325,9 +325,6 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
 
 		// Copy
-		//
-		// 	n := copy(dst, src)
-		//
 		case opCopy:
 			src := reflect.ValueOf(vm.general(a))
 			dst := reflect.ValueOf(vm.general(c))
@@ -351,9 +348,6 @@ func (vm *VM) run() int {
 			vm.pc += 2
 
 		// Delete
-		//
-		//	delete(map, key)
-		//
 		case opDelete:
 			m := reflect.ValueOf(vm.general(a))
 			k := reflect.ValueOf(vm.general(b))
@@ -582,9 +576,6 @@ func (vm *VM) run() int {
 			}
 
 		// Index
-		//
-		//	dst = expr[i]
-		//
 		case opIndex, -opIndex:
 			i := int(vm.intk(b, op < 0))
 			value := reflect.ValueOf(vm.general(a)).Index(i)
@@ -651,77 +642,6 @@ func (vm *VM) run() int {
 			t := vm.fn.types[int(uint(a))]
 			vm.setGeneral(c, reflect.MakeSlice(t, len, cap).Interface())
 
-		// SetSlice
-		//
-		//	slice[index] = value
-		//
-		case opSetSlice, -opSetSlice:
-			i := vm.int(c)
-			s := vm.general(a)
-			switch s := s.(type) {
-			case []int:
-				v := vm.intk(b, op < 0)
-				s[i] = int(v)
-			case []float64:
-				v := vm.floatk(b, op < 0)
-				s[i] = float64(v)
-			case []string:
-				v := vm.stringk(b, op < 0)
-				s[i] = string(v)
-			case []rune:
-				panic("TODO: not implemented")
-			case []byte:
-				panic("TODO: not implemented")
-			default:
-				i := vm.int(c)
-				v := vm.generalk(b, op < 0)
-				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
-			}
-
-		// SetMap
-		//
-		//	map[key] = value
-		//
-		case opSetMap, -opSetMap:
-			m := vm.general(a)
-			switch m := m.(type) {
-			case map[string]int:
-				k := vm.string(c)
-				v := vm.intk(b, op < 0)
-				m[k] = int(v)
-			case map[int]string:
-				k := vm.int(c)
-				v := vm.stringk(b, op < 0)
-				m[int(k)] = v
-			// TODO(Gianluca): add map[..]bool cases.
-			default:
-				mapValue := reflect.ValueOf(m)
-				keyType := mapValue.Type().Key()
-				valueType := mapValue.Type().Elem()
-				var k, v reflect.Value
-				switch kindToType(keyType.Kind()) {
-				case TypeInt:
-					k = reflect.ValueOf(vm.int(c))
-				case TypeString:
-					k = reflect.ValueOf(vm.string(c))
-				case TypeFloat:
-					k = reflect.ValueOf(vm.float(c))
-				case TypeIface:
-					k = reflect.ValueOf(vm.general(c))
-				}
-				switch kindToType(valueType.Kind()) {
-				case TypeInt:
-					v = reflect.ValueOf(vm.intk(b, op < 0))
-				case TypeString:
-					v = reflect.ValueOf(vm.stringk(b, op < 0))
-				case TypeFloat:
-					v = reflect.ValueOf(vm.floatk(b, op < 0))
-				case TypeIface:
-					v = reflect.ValueOf(vm.generalk(b, op < 0))
-				}
-				mapValue.MapIndex(k).Set(v)
-			}
-
 		// MapIndex
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))
@@ -761,28 +681,28 @@ func (vm *VM) run() int {
 				vm.setGeneral(c, elem.Interface())
 			}
 
-		// MapIndexStringInt
-		case opMapIndexStringInt, -opMapIndexStringInt:
-			v, ok := vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]
-			vm.setInt(c, int64(v))
-			vm.ok = ok
-
 		// MapIndexStringBool
 		case opMapIndexStringBool, -opMapIndexStringBool:
 			v, ok := vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)]
 			vm.setBool(c, v)
 			vm.ok = ok
 
-		// MapIndexStringString
-		case opMapIndexStringString, -opMapIndexStringString:
-			v, ok := vm.general(a).(map[string]string)[vm.stringk(b, op < 0)]
-			vm.setString(c, v)
+		// MapIndexStringInt
+		case opMapIndexStringInt, -opMapIndexStringInt:
+			v, ok := vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]
+			vm.setInt(c, int64(v))
 			vm.ok = ok
 
 		// MapIndexStringInterface
 		case opMapIndexStringInterface, -opMapIndexStringInterface:
 			v, ok := vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)]
 			vm.setGeneral(c, v)
+			vm.ok = ok
+
+		// MapIndexStringString
+		case opMapIndexStringString, -opMapIndexStringString:
+			v, ok := vm.general(a).(map[string]string)[vm.stringk(b, op < 0)]
+			vm.setString(c, v)
 			vm.ok = ok
 
 		// Move
@@ -1204,6 +1124,71 @@ func (vm *VM) run() int {
 				r.Send(v)
 			}
 
+		// SetMap
+		case opSetMap, -opSetMap:
+			m := vm.general(a)
+			switch m := m.(type) {
+			case map[string]int:
+				k := vm.string(c)
+				v := vm.intk(b, op < 0)
+				m[k] = int(v)
+			case map[int]string:
+				k := vm.int(c)
+				v := vm.stringk(b, op < 0)
+				m[int(k)] = v
+			// TODO(Gianluca): add map[..]bool cases.
+			default:
+				mapValue := reflect.ValueOf(m)
+				keyType := mapValue.Type().Key()
+				valueType := mapValue.Type().Elem()
+				var k, v reflect.Value
+				switch kindToType(keyType.Kind()) {
+				case TypeInt:
+					k = reflect.ValueOf(vm.int(c))
+				case TypeString:
+					k = reflect.ValueOf(vm.string(c))
+				case TypeFloat:
+					k = reflect.ValueOf(vm.float(c))
+				case TypeIface:
+					k = reflect.ValueOf(vm.general(c))
+				}
+				switch kindToType(valueType.Kind()) {
+				case TypeInt:
+					v = reflect.ValueOf(vm.intk(b, op < 0))
+				case TypeString:
+					v = reflect.ValueOf(vm.stringk(b, op < 0))
+				case TypeFloat:
+					v = reflect.ValueOf(vm.floatk(b, op < 0))
+				case TypeIface:
+					v = reflect.ValueOf(vm.generalk(b, op < 0))
+				}
+				mapValue.MapIndex(k).Set(v)
+			}
+
+		// SetSlice
+		case opSetSlice, -opSetSlice:
+			i := vm.int(c)
+			s := vm.general(a)
+			switch s := s.(type) {
+			case []int:
+				v := vm.intk(b, op < 0)
+				s[i] = int(v)
+			case []float64:
+				v := vm.floatk(b, op < 0)
+				s[i] = float64(v)
+			case []string:
+				v := vm.stringk(b, op < 0)
+				s[i] = string(v)
+			case []rune:
+				panic("TODO: not implemented")
+			case []byte:
+				panic("TODO: not implemented")
+			default:
+				i := vm.int(c)
+				v := vm.generalk(b, op < 0)
+				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
+			}
+
 		// SetVar
 		case opSetVar, -opSetVar:
 			v := vm.fn.variables[uint8(c)].value
@@ -1316,7 +1301,7 @@ func (vm *VM) run() int {
 				vm.fn = fn
 			}
 
-		// opXor
+		// Xor
 		case opXor, -opXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 

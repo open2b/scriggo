@@ -68,6 +68,8 @@ const (
 	opDivFloat32
 	opDivFloat64
 
+	opFunc
+
 	opGetFunc
 
 	opGetVar
@@ -84,21 +86,23 @@ const (
 
 	opIndex
 
-	opStringIndex
-
 	opLen
-
-	opFunc
 
 	opMakeChan
 
 	opMakeMap
 
+	opMakeSlice
+
 	opMapIndex
-	opMapIndexStringInt
+
 	opMapIndexStringBool
-	opMapIndexStringString
+
+	opMapIndexStringInt
+
 	opMapIndexStringInterface
+
+	opMapIndexStringString
 
 	opMove
 
@@ -138,17 +142,17 @@ const (
 
 	opSelector
 
-	opSetVar
-
-	opMakeSlice
-
-	opSetSlice
+	opSend
 
 	opSetMap
 
-	opSend
+	opSetSlice
+
+	opSetVar
 
 	opSliceIndex
+
+	opStringIndex
 
 	opSubInt
 	opSubInt8
@@ -201,21 +205,23 @@ var operationName = [...]string{
 
 	opCall: "Call",
 
-	opCallNative: "CallNative",
-
 	opCallIndirect: "CallIndirect",
+
+	opCallNative: "CallNative",
 
 	opCap: "Cap",
 
-	opCopy: "Copy",
-
-	opConcat: "concat",
+	opContinue: "Continue",
 
 	opConvert:       "Convert",
 	opConvertInt:    "Convert",
 	opConvertUint:   "ConvertU",
 	opConvertFloat:  "Convert",
 	opConvertString: "Convert",
+
+	opCopy: "Copy",
+
+	opConcat: "concat",
 
 	opDefer: "Defer",
 
@@ -231,6 +237,8 @@ var operationName = [...]string{
 	opDivUint64:  "DivU64",
 	opDivFloat32: "Div32",
 	opDivFloat64: "Div",
+
+	opFunc: "Func",
 
 	opGetFunc: "GetFunc",
 
@@ -250,11 +258,21 @@ var operationName = [...]string{
 
 	opLen: "Len",
 
-	opFunc: "Func",
-
 	opMakeChan: "MakeChan",
 
 	opMakeMap: "MakeMap",
+
+	opMakeSlice: "MakeSlice",
+
+	opMapIndex: "MapIndex",
+
+	opMapIndexStringBool: "MapIndexStringBool",
+
+	opMapIndexStringInt: "MapIndexStringInt",
+
+	opMapIndexStringInterface: "MapIndexStringInterface",
+
+	opMapIndexStringString: "MapIndexStringString",
 
 	opMove: "Move",
 
@@ -267,12 +285,15 @@ var operationName = [...]string{
 
 	opNew: "New",
 
-	opRange:       "Range",
-	opRangeString: "Range",
+	opOr: "Or",
 
 	opPanic: "Panic",
 
 	opPrint: "Print",
+
+	opRange: "Range",
+
+	opRangeString: "Range",
 
 	opReceive: "Receive",
 
@@ -289,15 +310,19 @@ var operationName = [...]string{
 
 	opReturn: "Return",
 
-	opMakeSlice: "MakeSlice",
-
-	opSetSlice: "SetSlice",
-
-	opSetMap: "SetMap",
+	opSelector: "Selector",
 
 	opSend: "Send",
 
+	opSetMap: "SetMap",
+
+	opSetSlice: "SetSlice",
+
 	opSetVar: "SetPackageVar",
+
+	opSliceIndex: "SliceIndex",
+
+	opStringIndex: "StringIndex",
 
 	opSubInt:     "Sub",
 	opSubInt8:    "Sub8",
