@@ -252,13 +252,10 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 // quickCompileExpr checks if expr is a value or a register, putting it into
 // out. If it's neither of them, both isValue and isRegister are false and
 // content of out is unspecified.
-// If expectedKind if different from evaluated kind, quick-compiling expression
-// is impossibile so isValue and isRegister are both false and content of out is
-// unspecified.
-// TODO (Gianluca): add to function documentation:
-// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
-// not need extra registers for evaluation.
 func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, isValue, isRegister bool) {
+	// TODO (Gianluca): add to function documentation:
+	// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
+	// not need extra registers for evaluation.
 	if kindToType(expectedType.Kind()) != kindToType(c.typeinfo[expr].Type.Kind()) {
 		return 0, false, false
 	}
@@ -349,7 +346,7 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Ty
 
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
-// their respective kind.
+// their respective type.
 func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isNative bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
@@ -428,7 +425,7 @@ func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
 }
 
 // compileCall compiles call, returning the list of registers (and their
-// respective kind) within which return values are inserted.
+// respective type) within which return values are inserted.
 func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 	stackShift := StackShift{
 		int8(c.fb.numRegs[reflect.Int]),
@@ -493,10 +490,10 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 }
 
 // compileExpr compiles expression expr and puts results into reg.
-// Compiled result is discarded if reg is 0.
-// TODO (Gianluca): review all "kind" arguments in every compileExpr call.
-// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
+// Result is discarded if reg is 0.
 func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
+	// TODO (Gianluca): review all "kind" arguments in every compileExpr call.
+	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -916,9 +913,9 @@ func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8
 // one variable, value must be a function call, a map indexing operation or a
 // type assertion. These last two cases involve that variables contains 2
 // elements.
-// TODO (Gianluca): in case of variable declaration, if quickCompileExpr returns
-// a register use it instead of creating a new one.
 func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expression, isDecl bool) {
+	// TODO (Gianluca): in case of variable declaration, if quickCompileExpr returns
+	// a register use it instead of creating a new one.
 	if len(variables) == 1 { // TODO(Gianluca): remove this!
 		variable := variables[0]
 		typ := c.typeinfo[value].Type
@@ -1073,9 +1070,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 	}
 }
 
-// TODO (Gianluca): a builtin can be shadowed, but the compiler can't know it.
-// Typechecker should flag *ast.Call nodes with a boolean indicating if it's a
-// builtin.
+// compileBuiltin compiles a builtin, writing result into reg necessary.
 func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
@@ -1482,8 +1477,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 }
 
 // compileTypeSwitch compiles type switch node.
-// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
+	// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 
 	if node.Init != nil {
 		c.compileNodes([]ast.Node{node.Init})
@@ -1600,8 +1595,8 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 // compileCondition compiles expr using the current function builder. Returns
 // the two values of the condition (x and y), a kind, the condition ad a boolean
 // ky which indicates whether y is a constant value.
-// TODO (Gianluca): implement missing conditions.
 func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, typ reflect.Type, o Condition, yk bool) {
+	// TODO (Gianluca): implement missing conditions:
 	// ConditionEqual             Condition = iota // x == y
 	// ConditionNotEqual                           // x != y
 	// ConditionLess                               // x <  y
@@ -1617,6 +1612,7 @@ func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, typ reflect
 	// ConditionNil                                // x == nil
 	// ConditionNotNil                             // x != nil
 	// ConditionOK                                 // [vm.ok]
+	// TODO(Gianluca): update: some conditions are missing from above list.
 	switch cond := expr.(type) {
 	case *ast.BinaryOperator:
 		typ = c.typeinfo[cond.Expr1].Type
