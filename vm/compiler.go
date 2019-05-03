@@ -773,6 +773,20 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstKind reflect.Ki
 			}
 		}
 
+	case *ast.Func:
+		if reg == 0 {
+			return
+		}
+		kind := c.typeinfo[expr].Type.Kind()
+		out, isValue, isRegister := c.quickCompileExpr(expr, kind)
+		if isValue {
+			c.fb.Move(true, out, reg, kind, dstKind)
+		} else if isRegister {
+			c.fb.Move(false, out, reg, kind, dstKind)
+		} else {
+			panic("bug")
+		}
+
 	case *ast.Identifier:
 		if reg == 0 {
 			return
