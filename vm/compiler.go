@@ -350,15 +350,15 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedKind reflect.Ki
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective kind.
-func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isNative bool) ([]int8, []reflect.Kind) {
+func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isNative bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
 	regs := make([]int8, numOut)
-	kinds := make([]reflect.Kind, numOut)
+	types := make([]reflect.Type, numOut)
 	for i := 0; i < numOut; i++ {
-		kind := funcType.Out(i).Kind()
-		regs[i] = c.fb.NewRegister(kind)
-		kinds[i] = kind
+		typ := funcType.Out(i)
+		regs[i] = c.fb.NewRegister(typ.Kind())
+		types[i] = typ
 	}
 	if funcType.IsVariadic() {
 		for i := 0; i < numIn-1; i++ {
@@ -387,11 +387,11 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 		}
 	} else { // No-variadic function.
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
-			regs, kinds := c.compileCall(args[0].(*ast.Call))
+			regs, types := c.compileCall(args[0].(*ast.Call))
 			for i := range regs {
 				dstKind := funcType.In(i).Kind()
 				reg := c.fb.NewRegister(dstKind)
-				c.fb.Move(false, regs[i], reg, kinds[i], dstKind)
+				c.fb.Move(false, regs[i], reg, types[i].Kind(), dstKind)
 			}
 		} else {
 			for i := 0; i < numIn; i++ {
@@ -401,7 +401,7 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 			}
 		}
 	}
-	return regs, kinds
+	return regs, types
 }
 
 // prepareFunctionBodyParameters prepares fun's parameters (out and int) before
@@ -429,7 +429,7 @@ func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
 
 // compileCall compiles call, returning the list of registers (and their
 // respective kind) within which return values are inserted.
-func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kind) {
+func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 	stackShift := StackShift{
 		int8(c.fb.numRegs[reflect.Int]),
 		int8(c.fb.numRegs[reflect.Float64]),
@@ -439,15 +439,15 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
-				regs, kinds := c.prepareCallParameters(fun.typ, call.Args, false)
+				regs, types := c.prepareCallParameters(fun.typ, call.Args, false)
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.Call(index, stackShift, call.Pos().Line)
-				return regs, kinds
+				return regs, types
 			}
 			if _, isNativeFunc := c.availableNativeFunctions[ident.Name]; isNativeFunc {
 				fun := c.availableNativeFunctions[ident.Name]
 				funcType := reflect.TypeOf(fun.fast)
-				regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
+				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {
 					numVar := len(call.Args) - (funcType.NumIn() - 1)
@@ -455,7 +455,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				} else {
 					c.fb.CallNative(index, NoVariadic, stackShift)
 				}
-				return regs, kinds
+				return regs, types
 			}
 		}
 	}
@@ -464,7 +464,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 			if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
 				fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
 				funcType := reflect.TypeOf(fun.fast)
-				regs, kinds := c.prepareCallParameters(funcType, call.Args, true)
+				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {
 					numVar := len(call.Args) - (funcType.NumIn() - 1)
@@ -472,7 +472,7 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 				} else {
 					c.fb.CallNative(index, NoVariadic, stackShift)
 				}
-				return regs, kinds
+				return regs, types
 			} else {
 				panic("TODO(Gianluca): not implemented")
 			}
@@ -487,9 +487,9 @@ func (c *Compiler) compileCall(call *ast.Call) (regs []int8, kinds []reflect.Kin
 		c.compileExpr(call.Func, funReg, c.typeinfo[call.Func].Type)
 	}
 	funcType := c.typeinfo[call.Func].Type
-	regs, kinds = c.prepareCallParameters(funcType, call.Args, true)
+	regs, types := c.prepareCallParameters(funcType, call.Args, true)
 	c.fb.CallIndirect(funReg, 0, stackShift)
-	return regs, kinds
+	return regs, types
 }
 
 // compileExpr compiles expression expr and puts results into reg.
@@ -611,9 +611,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				return
 			}
 		}
-		regs, kinds := c.compileCall(expr)
+		regs, types := c.compileCall(expr)
 		if reg != 0 {
-			c.fb.Move(false, regs[0], reg, kinds[0], dstType.Kind())
+			c.fb.Move(false, regs[0], reg, types[0].Kind(), dstType.Kind())
 		}
 		c.fb.ExitStack()
 
@@ -1019,9 +1019,9 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 			}
 			varRegs = append(varRegs, varReg)
 		}
-		retRegs, retKinds := c.compileCall(value)
+		retRegs, retTypes := c.compileCall(value)
 		for i := range retRegs {
-			c.fb.Move(false, retRegs[i], varRegs[i], retKinds[i], retKinds[i])
+			c.fb.Move(false, retRegs[i], varRegs[i], retTypes[i].Kind(), retTypes[i].Kind())
 		}
 	case *ast.TypeAssertion:
 		var dst int8
