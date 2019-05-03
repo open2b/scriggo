@@ -1187,7 +1187,10 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					kind := c.typeinfo[node.Variables[0]].Type.Kind()
 					c.fb.Add(true, reg, 1, reg, kind)
 				case ast.AssignmentDecrement:
-					panic("TODO: not implemented")
+					name := node.Variables[0].(*ast.Identifier).Name
+					reg := c.fb.ScopeLookup(name)
+					kind := c.typeinfo[node.Variables[0]].Type.Kind()
+					c.fb.Sub(true, reg, 1, reg, kind)
 				default:
 					panic("bug")
 				}
