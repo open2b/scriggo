@@ -603,6 +603,8 @@ func (vm *VM) run() int {
 
 		// Len
 		case opLen:
+			// TODO(marco): add other cases
+			// TODO(marco): declare a new type for the condition
 			var length int
 			if a == 0 {
 				length = len(vm.string(b))
