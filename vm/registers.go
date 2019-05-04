@@ -398,10 +398,10 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		i := int(vm.fp[1] + uint32(first))
 		return append(slice, vm.regs.Float[i:i+length]...)
 	case []string:
-		i := int(vm.fp[1] + uint32(first))
+		i := int(vm.fp[2] + uint32(first))
 		return append(slice, vm.regs.String[i:i+length]...)
 	case []interface{}:
-		i := int(vm.fp[1] + uint32(first))
+		i := int(vm.fp[3] + uint32(first))
 		return append(slice, vm.regs.General[i:i+length]...)
 	default:
 		s := reflect.ValueOf(slice)
@@ -434,17 +434,17 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 				s.Index(j).SetUint(uint64(regs[i]))
 			}
 		case reflect.Float32, reflect.Float64:
-			regs := vm.regs.Float[vm.fp[0]+uint32(first):]
+			regs := vm.regs.Float[vm.fp[1]+uint32(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetFloat(regs[i])
 			}
 		case reflect.String:
-			regs := vm.regs.String[vm.fp[0]+uint32(first):]
+			regs := vm.regs.String[vm.fp[2]+uint32(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetString(regs[i])
 			}
 		default:
-			regs := vm.regs.General[vm.fp[0]+uint32(first):]
+			regs := vm.regs.General[vm.fp[3]+uint32(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).Set(reflect.ValueOf(regs[i]))
 			}
