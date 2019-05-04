@@ -14,25 +14,6 @@ import (
 
 var DebugTraceExecution = true
 
-const NoVariadic = -1
-const CurrentFunction = -1
-
-type MoveType int8
-
-const (
-	IntInt MoveType = iota
-	FloatFloat
-	StringString
-	GeneralGeneral
-	IntGeneral
-	FloatGeneral
-	StringGeneral
-)
-
-func decodeAddr(a, b, c int8) uint32 {
-	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
-}
-
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	var panicked bool
 	vm.fn = fn

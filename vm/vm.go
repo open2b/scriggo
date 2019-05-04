@@ -11,6 +11,9 @@ import (
 	"strconv"
 )
 
+const NoVariadic = -1
+const CurrentFunction = -1
+
 const StackSize = 512
 const maxInt8 = 128
 
@@ -20,6 +23,22 @@ type instruction struct {
 	op      operation
 	a, b, c int8
 }
+
+func decodeAddr(a, b, c int8) uint32 {
+	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
+}
+
+type MoveType int8
+
+const (
+	IntInt MoveType = iota
+	FloatFloat
+	StringString
+	GeneralGeneral
+	IntGeneral
+	FloatGeneral
+	StringGeneral
+)
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
