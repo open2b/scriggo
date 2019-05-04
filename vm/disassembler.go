@@ -30,6 +30,16 @@ func DisassembleDir(dir string, main *ScrigoFunction) (err error) {
 		return err
 	}
 
+	var fi *os.File
+	defer func() {
+		if fi != nil {
+			err2 := fi.Close()
+			if err == nil {
+				err = err2
+			}
+		}
+	}()
+
 	for path, source := range packages {
 		pkgDir, file := filepath.Split(path)
 		fullDir := filepath.Join(dir, pkgDir)
@@ -37,13 +47,10 @@ func DisassembleDir(dir string, main *ScrigoFunction) (err error) {
 		if err != nil {
 			return err
 		}
-		fi, err := os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
+		fi, err = os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			err = fi.Close()
-		}()
 		_, err = fi.WriteString(source)
 		if err != nil {
 			return err
