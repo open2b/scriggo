@@ -1321,4 +1321,6 @@ var operationName = [...]string{
 	opSubInvFloat64: "SubInv",
 
 	opTailCall: "TailCall",
+
+	opXor: "Xor",
 }
