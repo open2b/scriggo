@@ -1211,18 +1211,17 @@ func (vm *VM) run() int {
 			s := vm.general(a)
 			switch s := s.(type) {
 			case []int:
-				v := vm.intk(b, op < 0)
-				s[i] = int(v)
-			case []float64:
-				v := vm.floatk(b, op < 0)
-				s[i] = float64(v)
-			case []string:
-				v := vm.stringk(b, op < 0)
-				s[i] = string(v)
+				s[i] = int(vm.intk(b, op < 0))
 			case []rune:
-				panic("TODO: not implemented")
+				s[i] = rune(vm.intk(b, op < 0))
 			case []byte:
-				panic("TODO: not implemented")
+				s[i] = byte(vm.intk(b, op < 0))
+			case []float64:
+				s[i] = vm.floatk(b, op < 0)
+			case []string:
+				s[i] = vm.stringk(b, op < 0)
+			case []interface{}:
+				s[i] = vm.generalk(b, op < 0)
 			default:
 				i := vm.int(c)
 				v := vm.generalk(b, op < 0)
