@@ -115,10 +115,7 @@ func (vm *VM) run() int {
 
 		// Append
 		case opAppend:
-			first := int8(vm.intk(a, true))
-			length := int(vm.intk(b, true))
-			slice := vm.general(c)
-			vm.setGeneral(c, vm.appendSlice(first, length, slice))
+			vm.setGeneral(c, vm.appendSlice(a, int(b), vm.general(c)))
 
 		// AppendSlice
 		case opAppendSlice:
