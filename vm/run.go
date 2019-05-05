@@ -391,13 +391,13 @@ func (vm *VM) run() int {
 
 		// GetFunc
 		case opGetFunc:
-			var fn interface{}
+			fn := callable{}
 			if a == 0 {
-				fn = &callable{scrigo: vm.fn.scrigoFunctions[uint8(b)]}
+				fn.scrigo = vm.fn.scrigoFunctions[uint8(b)]
 			} else {
-				fn = &callable{native: vm.fn.nativeFunctions[uint8(b)]}
+				fn.native = vm.fn.nativeFunctions[uint8(b)]
 			}
-			vm.setGeneral(c, fn)
+			vm.setGeneral(c, &fn)
 
 		// GetVar
 		case opGetVar:
