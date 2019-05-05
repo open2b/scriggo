@@ -559,11 +559,7 @@ func (vm *VM) run() int {
 			v := reflect.ValueOf(vm.general(a)).Index(i)
 			switch v.Kind() {
 			case reflect.Bool:
-				var n int64
-				if v.Bool() {
-					n = 1
-				}
-				vm.setInt(c, n)
+				vm.setBool(c, v.Bool())
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				vm.setInt(c, v.Int())
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
