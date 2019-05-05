@@ -480,10 +480,6 @@ func (vm *VM) run() int {
 			v1 := uint64(vm.int(a))
 			v2 := uint64(vm.intk(c, op < 0))
 			switch Condition(b) {
-			case ConditionEqual:
-				cond = v1 == v2
-			case ConditionNotEqual:
-				cond = v1 != v2
 			case ConditionLess:
 				cond = v1 < v2
 			case ConditionLessOrEqual:
