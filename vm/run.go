@@ -1147,31 +1147,41 @@ func (vm *VM) run() int {
 			case map[int]struct{}:
 				m[int(vm.int(c))] = struct{}{}
 			default:
-				mapValue := reflect.ValueOf(m)
-				keyType := mapValue.Type().Key()
-				valueType := mapValue.Type().Elem()
-				var k, v reflect.Value
-				switch kindToType(keyType.Kind()) {
-				case TypeInt:
-					k = reflect.ValueOf(vm.int(c))
-				case TypeString:
-					k = reflect.ValueOf(vm.string(c))
-				case TypeFloat:
-					k = reflect.ValueOf(vm.float(c))
-				case TypeIface:
-					k = reflect.ValueOf(vm.general(c))
+				mv := reflect.ValueOf(m)
+				t := mv.Type()
+				kt := t.Key()
+				k := reflect.New(kt).Elem()
+				switch kt.Kind() {
+				case reflect.Bool:
+					k.SetBool(vm.bool(c))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					k.SetInt(vm.int(c))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					k.SetUint(uint64(vm.int(c)))
+				case reflect.Float32, reflect.Float64:
+					k.SetFloat(vm.float(c))
+				case reflect.String:
+					k.SetString(vm.string(c))
+				default:
+					k.Set(reflect.ValueOf(vm.general(c)))
 				}
-				switch kindToType(valueType.Kind()) {
-				case TypeInt:
-					v = reflect.ValueOf(vm.intk(b, op < 0))
-				case TypeString:
-					v = reflect.ValueOf(vm.stringk(b, op < 0))
-				case TypeFloat:
-					v = reflect.ValueOf(vm.floatk(b, op < 0))
-				case TypeIface:
-					v = reflect.ValueOf(vm.generalk(b, op < 0))
+				vt := t.Elem()
+				v := reflect.New(vt).Elem()
+				switch vt.Kind() {
+				case reflect.Bool:
+					v.SetBool(vm.boolk(b, op < 0))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					v.SetInt(vm.intk(b, op < 0))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					v.SetUint(uint64(vm.intk(b, op < 0)))
+				case reflect.Float32, reflect.Float64:
+					v.SetFloat(vm.floatk(b, op < 0))
+				case reflect.String:
+					v.SetString(vm.stringk(b, op < 0))
+				default:
+					v.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
 				}
-				mapValue.MapIndex(k).Set(v)
+				mv.SetMapIndex(k, v)
 			}
 
 		// SetSlice
