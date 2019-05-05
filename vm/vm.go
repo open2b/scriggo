@@ -438,7 +438,7 @@ func (vm *VM) nextCall() bool {
 }
 
 // startScrigoGoroutine starts a new goroutine to execute a Scrigo function
-// call at program counter pc. If the function is native, returns false.
+// call at program counter pc. If the function is native, returns true.
 func (vm *VM) startScrigoGoroutine() bool {
 	var fn *ScrigoFunction
 	var vars []interface{}
@@ -449,12 +449,12 @@ func (vm *VM) startScrigoGoroutine() bool {
 	case opCallIndirect:
 		f := vm.general(call.b).(*callable)
 		if f.scrigo == nil {
-			return false
+			return true
 		}
 		fn = f.scrigo
 		vars = f.vars
 	default:
-		return false
+		return true
 	}
 	nvm := New()
 	nvm.fn = fn
@@ -467,7 +467,7 @@ func (vm *VM) startScrigoGoroutine() bool {
 	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.c):vm.fp[3]+127])
 	go nvm.run()
 	vm.pc++
-	return true
+	return false
 }
 
 func (vm *VM) swapCall(call Call) Call {

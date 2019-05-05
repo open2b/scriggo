@@ -431,8 +431,8 @@ func (vm *VM) run() int {
 
 		// Go
 		case opGo:
-			started := vm.startScrigoGoroutine()
-			if !started {
+			wasNative := vm.startScrigoGoroutine()
+			if wasNative {
 				startNativeGoroutine = true
 			}
 
