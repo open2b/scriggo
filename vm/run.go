@@ -416,7 +416,7 @@ func (vm *VM) run() int {
 					vm.setInt(c, rv.Int())
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 					vm.setInt(c, int64(rv.Uint()))
-				case reflect.Float32:
+				case reflect.Float32, reflect.Float64:
 					vm.setFloat(c, rv.Float())
 				default:
 					vm.setGeneral(c, rv.Interface())
