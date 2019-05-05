@@ -634,7 +634,7 @@ func (vm *VM) run() int {
 			t := m.Type()
 			k := op < 0
 			var key reflect.Value
-			switch kind := t.Key().Kind(); kind {
+			switch t.Key().Kind() {
 			case reflect.Bool:
 				key = reflect.ValueOf(vm.boolk(b, k))
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -650,9 +650,9 @@ func (vm *VM) run() int {
 			elem := m.MapIndex(key)
 			vm.ok = elem.IsValid()
 			if !vm.ok {
-				elem = reflect.Zero(t)
+				elem = reflect.Zero(t.Elem())
 			}
-			switch kind := t.Elem().Kind(); kind {
+			switch elem.Kind() {
 			case reflect.Bool:
 				vm.setBool(c, elem.Bool())
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
