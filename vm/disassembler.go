@@ -411,18 +411,6 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		//key := reflectToRegisterKind()
 		//s += " " + disassembleOperand(scrigo, b, Interface, false)
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
-	case opMapIndexStringString:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + disassembleOperand(fn, b, String, k)
-		s += " " + disassembleOperand(fn, c, String, false)
-	case opMapIndexStringInt:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + disassembleOperand(fn, b, String, k)
-		s += " " + disassembleOperand(fn, c, String, false)
-	case opMapIndexStringInterface:
-		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + disassembleOperand(fn, b, String, k)
-		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMove:
 		switch MoveType(a) {
 		case IntInt:
@@ -663,14 +651,6 @@ var operationName = [...]string{
 	opMakeSlice: "MakeSlice",
 
 	opMapIndex: "MapIndex",
-
-	opMapIndexStringBool: "MapIndexStringBool",
-
-	opMapIndexStringInt: "MapIndexStringInt",
-
-	opMapIndexStringInterface: "MapIndexStringInterface",
-
-	opMapIndexStringString: "MapIndexStringString",
 
 	opMove: "Move",
 

@@ -1078,14 +1078,6 @@ const (
 
 	opMapIndex
 
-	opMapIndexStringBool
-
-	opMapIndexStringInt
-
-	opMapIndexStringInterface
-
-	opMapIndexStringString
-
 	opMove
 
 	opMulInt

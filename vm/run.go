@@ -608,40 +608,48 @@ func (vm *VM) run() int {
 
 		// MapIndex
 		case opMapIndex, -opMapIndex:
-			m := reflect.ValueOf(vm.general(a))
-			t := m.Type()
-			k := reflect.New(t.Key()).Elem()
-			vm.getIntoReflectValue(b, k, op < 0)
-			elem := m.MapIndex(k)
-			vm.ok = elem.IsValid()
-			if !vm.ok {
-				elem = reflect.Zero(t.Elem())
+			m := vm.general(a)
+			switch m := m.(type) {
+			case map[int]int:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[int]bool:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[int]string:
+				v, ok := m[int(vm.intk(b, op < 0))]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]string:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setString(c, v)
+				vm.ok = ok
+			case map[string]bool:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setBool(c, v)
+				vm.ok = ok
+			case map[string]int:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setInt(c, int64(v))
+				vm.ok = ok
+			case map[string]interface{}:
+				v, ok := m[vm.stringk(b, op < 0)]
+				vm.setGeneral(c, v)
+				vm.ok = ok
+			default:
+				mv := reflect.ValueOf(m)
+				t := mv.Type()
+				k := reflect.New(t.Key()).Elem()
+				vm.getIntoReflectValue(b, k, op < 0)
+				elem := mv.MapIndex(k)
+				vm.ok = elem.IsValid()
+				if !vm.ok {
+					elem = reflect.Zero(t.Elem())
+				}
+				vm.setFromReflectValue(c, elem)
 			}
-			vm.setFromReflectValue(c, elem)
-
-		// MapIndexStringBool
-		case opMapIndexStringBool, -opMapIndexStringBool:
-			v, ok := vm.general(a).(map[string]bool)[vm.stringk(b, op < 0)]
-			vm.setBool(c, v)
-			vm.ok = ok
-
-		// MapIndexStringInt
-		case opMapIndexStringInt, -opMapIndexStringInt:
-			v, ok := vm.general(a).(map[string]int)[vm.stringk(b, op < 0)]
-			vm.setInt(c, int64(v))
-			vm.ok = ok
-
-		// MapIndexStringInterface
-		case opMapIndexStringInterface, -opMapIndexStringInterface:
-			v, ok := vm.general(a).(map[string]interface{})[vm.stringk(b, op < 0)]
-			vm.setGeneral(c, v)
-			vm.ok = ok
-
-		// MapIndexStringString
-		case opMapIndexStringString, -opMapIndexStringString:
-			v, ok := vm.general(a).(map[string]string)[vm.stringk(b, op < 0)]
-			vm.setString(c, v)
-			vm.ok = ok
 
 		// Move
 		case opMove, -opMove:

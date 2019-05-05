@@ -687,16 +687,6 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 		op = opStringIndex
 	case reflect.Map:
 		op = opMapIndex
-		switch exprType {
-		case reflect.TypeOf(map[string]int{}):
-			op = opMapIndexStringInt
-		case reflect.TypeOf(map[string]bool{}):
-			op = opMapIndexStringBool
-		case reflect.TypeOf(map[string]string{}):
-			op = opMapIndexStringString
-		case reflect.TypeOf(map[string]interface{}{}):
-			op = opMapIndexStringInterface
-		}
 	}
 	if ki {
 		op = -op
