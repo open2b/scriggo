@@ -1259,7 +1259,7 @@ func (vm *VM) run() int {
 			case []rune:
 				vm.setInt(c, int64(v[i]))
 			case []float64:
-				vm.setInt(c, int64(v[i]))
+				vm.setFloat(c, v[i])
 			case []string:
 				vm.setString(c, v[i])
 			case []interface{}:
