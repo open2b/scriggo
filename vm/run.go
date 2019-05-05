@@ -610,22 +610,9 @@ func (vm *VM) run() int {
 		case opMapIndex, -opMapIndex:
 			m := reflect.ValueOf(vm.general(a))
 			t := m.Type()
-			k := op < 0
-			var key reflect.Value
-			switch t.Key().Kind() {
-			case reflect.Bool:
-				key = reflect.ValueOf(vm.boolk(b, k))
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				key = reflect.ValueOf(vm.intk(b, k))
-			case reflect.Float32, reflect.Float64:
-				key = reflect.ValueOf(vm.floatk(b, k))
-			case reflect.String:
-				key = reflect.ValueOf(vm.stringk(b, k))
-			default:
-				key = reflect.ValueOf(vm.general(b))
-			}
-			elem := m.MapIndex(key)
+			k := reflect.New(t.Key()).Elem()
+			vm.getIntoReflectValue(b, k, op < 0)
+			elem := m.MapIndex(k)
 			vm.ok = elem.IsValid()
 			if !vm.ok {
 				elem = reflect.Zero(t.Elem())
