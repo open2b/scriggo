@@ -586,7 +586,7 @@ func (vm *VM) run() int {
 			buffer := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeChan(typ, buffer).Interface())
 
-			// MapIndex
+		// MapIndex
 		case opMapIndex, -opMapIndex:
 			m := vm.general(a)
 			switch m := m.(type) {
