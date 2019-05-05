@@ -413,20 +413,7 @@ func (vm *VM) run() int {
 				vm.setString(c, *v)
 			default:
 				rv := reflect.ValueOf(v).Elem()
-				switch rv.Kind() {
-				case reflect.Bool:
-					vm.setBool(c, rv.Bool())
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					vm.setInt(c, rv.Int())
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					vm.setInt(c, int64(rv.Uint()))
-				case reflect.Float32, reflect.Float64:
-					vm.setFloat(c, rv.Float())
-				case reflect.String:
-					vm.setString(c, rv.String())
-				default:
-					vm.setGeneral(c, rv.Interface())
-				}
+				vm.setFromReflectValue(c, rv)
 			}
 
 		// Go
@@ -561,20 +548,7 @@ func (vm *VM) run() int {
 		case opIndex, -opIndex:
 			i := int(vm.intk(b, op < 0))
 			v := reflect.ValueOf(vm.general(a)).Index(i)
-			switch v.Kind() {
-			case reflect.Bool:
-				vm.setBool(c, v.Bool())
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				vm.setInt(c, v.Int())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				vm.setInt(c, int64(v.Uint()))
-			case reflect.Float32, reflect.Float64:
-				vm.setFloat(c, v.Float())
-			case reflect.String:
-				vm.setString(c, v.String())
-			default:
-				vm.setGeneral(c, v.Interface())
-			}
+			vm.setFromReflectValue(c, v)
 
 		// Len
 		case opLen:
@@ -656,20 +630,7 @@ func (vm *VM) run() int {
 			if !vm.ok {
 				elem = reflect.Zero(t.Elem())
 			}
-			switch elem.Kind() {
-			case reflect.Bool:
-				vm.setBool(c, elem.Bool())
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				vm.setInt(c, elem.Int())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				vm.setInt(c, int64(elem.Uint()))
-			case reflect.Float32, reflect.Float64:
-				vm.setFloat(c, elem.Float())
-			case reflect.String:
-				vm.setString(c, elem.String())
-			default:
-				vm.setGeneral(c, elem.Interface())
-			}
+			vm.setFromReflectValue(c, elem)
 
 		// MapIndexStringBool
 		case opMapIndexStringBool, -opMapIndexStringBool:
@@ -981,21 +942,7 @@ func (vm *VM) run() int {
 				var v reflect.Value
 				v, vm.ok = reflect.ValueOf(ch).Recv()
 				if c != 0 {
-					k := reflect.TypeOf(ch).Elem().Kind()
-					switch k {
-					case reflect.Bool:
-						vm.setBool(c, v.Bool())
-					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						vm.setInt(c, v.Int())
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-						vm.setInt(c, int64(v.Uint()))
-					case reflect.Float32, reflect.Float64:
-						vm.setFloat(c, v.Float())
-					case reflect.String:
-						vm.setString(c, v.String())
-					default:
-						vm.setGeneral(c, v.Interface())
-					}
+					vm.setFromReflectValue(c, v)
 				}
 			}
 			if b != 0 {
@@ -1063,20 +1010,7 @@ func (vm *VM) run() int {
 		// Selector
 		case opSelector:
 			v := reflect.ValueOf(vm.general(a)).Field(int(uint8(b)))
-			switch v.Kind() {
-			case reflect.Bool:
-				vm.setBool(c, v.Bool())
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				vm.setInt(c, v.Int())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				vm.setInt(c, int64(v.Uint()))
-			case reflect.Float32, reflect.Float64:
-				vm.setFloat(c, v.Float())
-			case reflect.String:
-				vm.setString(c, v.String())
-			default:
-				vm.setGeneral(c, v.Interface())
-			}
+			vm.setFromReflectValue(c, v)
 
 		// Send
 		case opSend, -opSend:
@@ -1097,20 +1031,7 @@ func (vm *VM) run() int {
 				r := reflect.ValueOf(ch)
 				elemType := r.Type().Elem()
 				v := reflect.New(elemType).Elem()
-				switch elemType.Kind() {
-				case reflect.Bool:
-					v.SetBool(vm.boolk(a, k))
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					v.SetInt(vm.intk(a, k))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					v.SetUint(uint64(vm.intk(a, k)))
-				case reflect.Float32, reflect.Float64:
-					v.SetFloat(vm.floatk(a, k))
-				case reflect.String:
-					v.SetString(vm.stringk(a, k))
-				default:
-					v.Set(reflect.ValueOf(vm.generalk(a, k)))
-				}
+				vm.getIntoReflectValue(a, v, k)
 				r.Send(v)
 			}
 
@@ -1153,38 +1074,10 @@ func (vm *VM) run() int {
 			default:
 				mv := reflect.ValueOf(m)
 				t := mv.Type()
-				kt := t.Key()
-				k := reflect.New(kt).Elem()
-				switch kt.Kind() {
-				case reflect.Bool:
-					k.SetBool(vm.bool(c))
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					k.SetInt(vm.int(c))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					k.SetUint(uint64(vm.int(c)))
-				case reflect.Float32, reflect.Float64:
-					k.SetFloat(vm.float(c))
-				case reflect.String:
-					k.SetString(vm.string(c))
-				default:
-					k.Set(reflect.ValueOf(vm.general(c)))
-				}
-				vt := t.Elem()
-				v := reflect.New(vt).Elem()
-				switch vt.Kind() {
-				case reflect.Bool:
-					v.SetBool(vm.boolk(b, op < 0))
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					v.SetInt(vm.intk(b, op < 0))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					v.SetUint(uint64(vm.intk(b, op < 0)))
-				case reflect.Float32, reflect.Float64:
-					v.SetFloat(vm.floatk(b, op < 0))
-				case reflect.String:
-					v.SetString(vm.stringk(b, op < 0))
-				default:
-					v.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
-				}
+				k := reflect.New(t.Key()).Elem()
+				vm.getIntoReflectValue(c, k, false)
+				v := reflect.New(t.Elem()).Elem()
+				vm.getIntoReflectValue(b, v, op < 0)
 				mv.SetMapIndex(k, v)
 			}
 
@@ -1207,20 +1100,7 @@ func (vm *VM) run() int {
 				s[i] = vm.generalk(b, op < 0)
 			default:
 				v := reflect.ValueOf(s).Index(int(i))
-				switch v.Kind() {
-				case reflect.Bool:
-					v.SetBool(vm.boolk(b, op < 0))
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					v.SetInt(vm.intk(b, op < 0))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					v.SetUint(uint64(vm.intk(b, op < 0)))
-				case reflect.Float32, reflect.Float64:
-					v.SetFloat(vm.floatk(b, op < 0))
-				case reflect.String:
-					v.SetString(vm.stringk(b, op < 0))
-				default:
-					v.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
-				}
+				vm.getIntoReflectValue(b, v, op < 0)
 			}
 
 		// SetVar
@@ -1237,18 +1117,7 @@ func (vm *VM) run() int {
 				*v = vm.stringk(b, op < 0)
 			default:
 				rv := reflect.ValueOf(v).Elem()
-				switch rv.Kind() {
-				case reflect.Bool:
-					rv.SetBool(vm.boolk(b, op < 0))
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					rv.SetInt(vm.intk(b, op < 0))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					rv.SetUint(uint64(vm.intk(b, op < 0)))
-				case reflect.Float32, reflect.Float64:
-					rv.SetFloat(vm.floatk(b, op < 0))
-				default:
-					rv.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
-				}
+				vm.getIntoReflectValue(b, rv, op < 0)
 			}
 
 		// SliceIndex

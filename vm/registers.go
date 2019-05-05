@@ -327,6 +327,38 @@ func (vm *VM) setGeneralIndirect(r int8, i interface{}) {
 	reflect.ValueOf(v).Elem().Set(reflect.ValueOf(i))
 }
 
+func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
+	switch v.Kind() {
+	case reflect.Bool:
+		v.SetBool(vm.boolk(r, k))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v.SetInt(vm.intk(r, k))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v.SetUint(uint64(vm.intk(r, k)))
+	case reflect.Float32, reflect.Float64:
+		v.SetFloat(vm.floatk(r, k))
+	default:
+		v.Set(reflect.ValueOf(vm.generalk(r, k)))
+	}
+}
+
+func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
+	switch v.Kind() {
+	case reflect.Bool:
+		vm.setBool(r, v.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		vm.setInt(r, v.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		vm.setInt(r, int64(v.Uint()))
+	case reflect.Float32, reflect.Float64:
+		vm.setFloat(r, v.Float())
+	case reflect.String:
+		vm.setString(r, v.String())
+	default:
+		vm.setGeneral(r, v.Interface())
+	}
+}
+
 func appendCap(c, ol, nl int) int {
 	if c == 0 {
 		return nl
