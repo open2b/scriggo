@@ -556,16 +556,24 @@ func (vm *VM) run() int {
 		// Index
 		case opIndex, -opIndex:
 			i := int(vm.intk(b, op < 0))
-			value := reflect.ValueOf(vm.general(a)).Index(i)
-			switch kindToType(value.Kind()) {
-			case TypeInt:
-				vm.setInt(c, value.Int())
-			case TypeFloat:
-				vm.setFloat(c, value.Float())
-			case TypeString:
-				vm.setString(c, value.String())
-			case TypeIface:
-				vm.setGeneral(c, value.Interface())
+			v := reflect.ValueOf(vm.general(a)).Index(i)
+			switch v.Kind() {
+			case reflect.Bool:
+				var n int64
+				if v.Bool() {
+					n = 1
+				}
+				vm.setInt(c, n)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				vm.setInt(c, v.Int())
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				vm.setInt(c, int64(v.Uint()))
+			case reflect.Float32, reflect.Float64:
+				vm.setFloat(c, v.Float())
+			case reflect.String:
+				vm.setString(c, v.String())
+			default:
+				vm.setGeneral(c, v.Interface())
 			}
 
 		// Len
