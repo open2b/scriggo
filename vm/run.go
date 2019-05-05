@@ -1202,9 +1202,21 @@ func (vm *VM) run() int {
 			case []interface{}:
 				s[i] = vm.generalk(b, op < 0)
 			default:
-				i := vm.int(c)
-				v := vm.generalk(b, op < 0)
-				reflect.ValueOf(s).Index(int(i)).Set(reflect.ValueOf(v))
+				v := reflect.ValueOf(s).Index(int(i))
+				switch v.Kind() {
+				case reflect.Bool:
+					v.SetBool(vm.boolk(b, op < 0))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					v.SetInt(vm.intk(b, op < 0))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					v.SetUint(uint64(vm.intk(b, op < 0)))
+				case reflect.Float32, reflect.Float64:
+					v.SetFloat(vm.floatk(b, op < 0))
+				case reflect.String:
+					v.SetString(vm.stringk(b, op < 0))
+				default:
+					v.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
+				}
 			}
 
 		// SetVar
