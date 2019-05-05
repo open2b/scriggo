@@ -646,11 +646,11 @@ var operationName = [...]string{
 
 	opMakeChan: "MakeChan",
 
+	opMapIndex: "MapIndex",
+
 	opMakeMap: "MakeMap",
 
 	opMakeSlice: "MakeSlice",
-
-	opMapIndex: "MapIndex",
 
 	opMove: "Move",
 

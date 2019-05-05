@@ -1072,11 +1072,11 @@ const (
 
 	opMakeChan
 
+	opMapIndex
+
 	opMakeMap
 
 	opMakeSlice
-
-	opMapIndex
 
 	opMove
 
