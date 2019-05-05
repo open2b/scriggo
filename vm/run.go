@@ -418,6 +418,8 @@ func (vm *VM) run() int {
 					vm.setInt(c, int64(rv.Uint()))
 				case reflect.Float32, reflect.Float64:
 					vm.setFloat(c, rv.Float())
+				case reflect.String:
+					vm.setString(c, rv.String())
 				default:
 					vm.setGeneral(c, rv.Interface())
 				}
