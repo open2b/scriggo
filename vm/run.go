@@ -323,10 +323,9 @@ func (vm *VM) run() int {
 		case opCopy:
 			src := reflect.ValueOf(vm.general(a))
 			dst := reflect.ValueOf(vm.general(c))
-			if b == 0 {
-				reflect.Copy(src, dst)
-			} else {
-				vm.setInt(b, int64(reflect.Copy(src, dst)))
+			n := reflect.Copy(dst, src)
+			if b != 0 {
+				vm.setInt(b, int64(n))
 			}
 
 		// Concat
