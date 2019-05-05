@@ -1223,6 +1223,8 @@ func (vm *VM) run() int {
 		case opSetVar, -opSetVar:
 			v := vm.fn.variables[uint8(c)].value
 			switch v := v.(type) {
+			case *bool:
+				*v = vm.boolk(b, op < 0)
 			case *int:
 				*v = int(vm.intk(b, op < 0))
 			case *float64:
@@ -1231,12 +1233,14 @@ func (vm *VM) run() int {
 				*v = vm.stringk(b, op < 0)
 			default:
 				rv := reflect.ValueOf(v).Elem()
-				switch k := rv.Kind(); k {
+				switch rv.Kind() {
+				case reflect.Bool:
+					rv.SetBool(vm.boolk(b, op < 0))
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					rv.SetInt(vm.intk(b, op < 0))
 				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 					rv.SetUint(uint64(vm.intk(b, op < 0)))
-				case reflect.Float32:
+				case reflect.Float32, reflect.Float64:
 					rv.SetFloat(vm.floatk(b, op < 0))
 				default:
 					rv.Set(reflect.ValueOf(vm.general(b)))
