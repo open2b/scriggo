@@ -440,25 +440,16 @@ func (vm *VM) run() int {
 		case opIf:
 			var cond bool
 			switch Condition(b) {
-			case ConditionOK:
+			case ConditionOK, ConditionNotOK:
 				cond = vm.ok
-			case ConditionNotOK:
-				cond = !vm.ok
-			default:
-				v1 := vm.general(a)
-				switch Condition(b) {
-				case ConditionNil:
-					cond = v1 == nil
-				case ConditionNotNil:
-					cond = v1 != nil
-				default:
-					v2 := vm.generalk(c, op < 0)
-					if Condition(b) == ConditionEqual {
-						cond = v1 == v2
-					} else {
-						cond = v1 != v2
-					}
-				}
+			case ConditionNil, ConditionNotNil:
+				cond = vm.general(a) == nil
+			case ConditionEqual, ConditionNotEqual:
+				cond = vm.general(a) == vm.generalk(c, op < 0)
+			}
+			switch Condition(b) {
+			case ConditionNotOK, ConditionNotNil, ConditionNotEqual:
+				cond = !cond
 			}
 			if cond {
 				vm.pc++
