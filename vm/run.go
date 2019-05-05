@@ -279,7 +279,7 @@ func (vm *VM) run() int {
 
 		// Cap
 		case opCap:
-			vm.setInt(c, int64(reflect.ValueOf(a).Cap()))
+			vm.setInt(c, int64(reflect.ValueOf(vm.general(a)).Cap()))
 
 		// Continue
 		case opContinue:
