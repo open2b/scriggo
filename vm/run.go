@@ -608,16 +608,19 @@ func (vm *VM) run() int {
 
 		// MakeChan
 		case opMakeChan, -opMakeChan:
-			vm.setGeneral(c, reflect.MakeChan(vm.fn.types[uint8(a)], int(vm.intk(b, op < 0))).Interface())
+			typ := vm.fn.types[uint8(a)]
+			buffer := int(vm.intk(b, op < 0))
+			vm.setGeneral(c, reflect.MakeChan(typ, buffer).Interface())
 
 		// MakeMap
 		case opMakeMap, -opMakeMap:
-			t := vm.fn.types[uint8(a)]
+			typ := vm.fn.types[uint8(a)]
 			n := int(vm.intk(b, op < 0))
-			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
+			vm.setGeneral(c, reflect.MakeMapWithSize(typ, n).Interface())
 
 		// MakeSlice
 		case opMakeSlice:
+			typ := vm.fn.types[uint8(a)]
 			var len, cap int
 			if b > 1 {
 				next := vm.fn.body[vm.pc]
@@ -627,8 +630,7 @@ func (vm *VM) run() int {
 				capIsConst := (b & (1 << 2)) != 0
 				cap = int(vm.intk(next.b, capIsConst))
 			}
-			t := vm.fn.types[uint8(a)]
-			vm.setGeneral(c, reflect.MakeSlice(t, len, cap).Interface())
+			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
 
 		// MapIndex
 		case opMapIndex, -opMapIndex:
