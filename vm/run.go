@@ -143,7 +143,7 @@ func (vm *VM) run() int {
 		// Assert
 		case opAssert:
 			v := reflect.ValueOf(vm.general(a))
-			t := vm.fn.types[int(uint(b))]
+			t := vm.fn.types[uint8(b)]
 			var ok bool
 			if t.Kind() == reflect.Interface {
 				ok = v.Type().Implements(t)
@@ -612,7 +612,7 @@ func (vm *VM) run() int {
 
 		// MakeMap
 		case opMakeMap, -opMakeMap:
-			t := vm.fn.types[int(uint8(a))]
+			t := vm.fn.types[uint8(a)]
 			n := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeMapWithSize(t, n).Interface())
 
@@ -627,7 +627,7 @@ func (vm *VM) run() int {
 				capIsConst := (b & (1 << 2)) != 0
 				cap = int(vm.intk(next.b, capIsConst))
 			}
-			t := vm.fn.types[int(uint(a))]
+			t := vm.fn.types[uint8(a)]
 			vm.setGeneral(c, reflect.MakeSlice(t, len, cap).Interface())
 
 		// MapIndex
@@ -732,7 +732,7 @@ func (vm *VM) run() int {
 
 		// New
 		case opNew:
-			t := vm.fn.types[int(uint(b))]
+			t := vm.fn.types[uint8(b)]
 			var v interface{}
 			switch t.Kind() {
 			case reflect.Int:
