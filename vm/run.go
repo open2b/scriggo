@@ -1243,7 +1243,7 @@ func (vm *VM) run() int {
 				case reflect.Float32, reflect.Float64:
 					rv.SetFloat(vm.floatk(b, op < 0))
 				default:
-					rv.Set(reflect.ValueOf(vm.general(b)))
+					rv.Set(reflect.ValueOf(vm.generalk(b, op < 0)))
 				}
 			}
 
