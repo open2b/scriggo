@@ -693,6 +693,21 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opLen, a: a, b: s, c: l})
 }
 
+// LoadNumber appends a new "LoadNumber" instruction to the function body.
+//
+func (builder *FunctionBuilder) LoadNumber(typ Type, index, dst int8) {
+	var a int8
+	switch typ {
+	case TypeInt:
+		a = 0
+	case TypeFloat:
+		a = 1
+	default:
+		panic("LoadNumber only accepts TypeInt or TypeFloat as type")
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: opLoadNumber, a: a, b: index, c: dst})
+}
+
 // MakeChan appends a new "MakeChan" instruction to the function body.
 //
 //     dst = make(typ, capacity)

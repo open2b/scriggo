@@ -644,6 +644,8 @@ var operationName = [...]string{
 
 	opLen: "Len",
 
+	opLoadNumber: "LoadNumber",
+
 	opMakeChan: "MakeChan",
 
 	opMapIndex: "MapIndex",

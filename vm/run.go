@@ -670,6 +670,15 @@ func (vm *VM) run() int {
 				vm.setString(c, vm.stringk(b, op < 0))
 			}
 
+		// LoadNumber.
+		case opLoadNumber:
+			switch a {
+			case 0:
+				vm.setInt(c, vm.fn.constants.Int[uint8(b)])
+			case 1:
+				vm.setFloat(c, vm.fn.constants.Float[uint8(b)])
+			}
+
 		// Mul
 		case opMulInt:
 			vm.setInt(c, vm.int(a)*vm.int(b))

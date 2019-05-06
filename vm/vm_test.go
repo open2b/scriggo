@@ -1047,14 +1047,7 @@ var stmtTests = []struct {
 			fmt.Print(s3)
 		}
 		`,
-		nil,
-		[]reg{
-			{TypeString, 1, "hello"},       // s1
-			{TypeString, 2, ""},            // (empty string used in s1 initialization)
-			{TypeString, 3, "world"},       // s2
-			{TypeString, 4, ""},            // (empty string used in s2 initialization)
-			{TypeString, 5, "hello world"}, // s3
-		}, "hello world"},
+		nil, nil, "hello world"},
 
 	{"Indexing",
 		`package main
@@ -1945,13 +1938,7 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(1)},             // b
-			{TypeInt, 2, int64(3)},             // d
-			{TypeString, 1, "zzzz"},            // s1
-			{TypeString, 5, "hellohellohello"}, // s2  // TODO (Gianluca): should be register 2, not 5.
-		}, ""},
+		nil, nil, ""},
 
 	{"Slice of int slices assignment",
 		`

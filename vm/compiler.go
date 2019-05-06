@@ -127,9 +127,14 @@ func (c *Compiler) variableIndex(v variable) uint8 {
 func (c *Compiler) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if srcType.Kind() != reflect.Interface && dstType.Kind() == reflect.Interface {
 		if k {
-			panic("TODO(Gianluca): not implemented")
+			c.fb.EnterStack()
+			tmpReg := c.fb.NewRegister(srcType.Kind())
+			c.fb.Move(true, src, tmpReg, srcType.Kind(), srcType.Kind())
+			c.fb.Convert(tmpReg, srcType, srcType, dst)
+			c.fb.ExitStack()
+		} else {
+			c.fb.Convert(src, srcType, srcType, dst)
 		}
-		c.fb.Convert(src, srcType, srcType, dst)
 	} else {
 		c.fb.Move(k, src, dst, srcType.Kind(), dstType.Kind())
 	}
@@ -645,27 +650,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			c.fb.Receive(tmpReg, 0, reg)
 		}
 
-	case *ast.Value:
-		if reg == 0 {
-			return
-		}
-		typ := c.typeinfo[expr].Type
-		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
-		if isValue {
-			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
-		} else if isRegister {
-			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
-		} else {
-			kind := c.typeinfo[expr].Type.Kind()
-			switch kind {
-			case reflect.Slice, reflect.Map, reflect.Func, reflect.Ptr:
-				genConst := c.fb.MakeGeneralConstant(expr.Val)
-				c.fb.Move(true, genConst, reg, reflect.Interface, reflect.Interface)
-			default:
-				panic("bug")
-			}
-		}
-
 	case *ast.Func:
 		if reg == 0 {
 			return
@@ -699,18 +683,60 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			}
 		}
 
-	case *ast.Int, *ast.String: // TODO (Gianluca): remove Int and String
+	case *ast.Value:
 		if reg == 0 {
 			return
 		}
 		typ := c.typeinfo[expr].Type
 		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
+			c.changeRegister(true, out, reg, typ, dstType)
 		} else if isRegister {
-			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
+			c.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			panic("bug")
+			switch v := expr.Val.(type) {
+			case int64:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case string:
+				constant := c.fb.MakeStringConstant(v)
+				c.changeRegister(true, constant, reg, typ, dstType)
+			case float64:
+				constant := c.fb.MakeFloatConstant(v)
+				c.fb.LoadNumber(TypeFloat, constant, reg)
+			default:
+				constant := c.fb.MakeGeneralConstant(v)
+				c.changeRegister(true, constant, reg, typ, dstType)
+			}
+		}
+
+	case *ast.Int: // TODO(Gianluca): obsolete: use *ast.Value instead.
+		if reg == 0 {
+			return
+		}
+		intType := c.typeinfo[expr].Type
+		i, ki, isRegister := c.quickCompileExpr(expr, intType)
+		if ki {
+			c.changeRegister(true, i, reg, intType, dstType)
+		} else if isRegister {
+			c.changeRegister(false, i, reg, intType, dstType)
+		} else {
+			panic("TODO(Gianluca): not implemented")
+		}
+
+	case *ast.String: // TODO(Gianluca): obsolete: use *ast.Value instead.
+		if reg == 0 {
+			return
+		}
+		stringType := c.typeinfo[expr].Type
+		i, ki, isRegister := c.quickCompileExpr(expr, stringType)
+		if ki {
+			c.changeRegister(true, i, reg, stringType, dstType)
+		} else if isRegister {
+			c.changeRegister(false, i, reg, stringType, dstType)
+		} else {
+			constant := c.fb.MakeStringConstant(expr.Text)
+			c.changeRegister(true, constant, reg, stringType, dstType)
 		}
 
 	case *ast.Index:
@@ -739,9 +765,6 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 	case *ast.Slicing:
 		panic("TODO: not implemented")
 
-	case *ast.Rune, *ast.Float: // TODO (Gianluca): to review.
-		panic("bug")
-
 	default:
 		panic(fmt.Sprintf("compileExpr currently does not support %T nodes", expr))
 
@@ -749,83 +772,46 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 
 }
 
-// quickCompileExpr checks if expr is a value or a register, putting it into
-// out. If it's neither of them, both isValue and isRegister are false and
-// content of out is unspecified.
-func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, isValue, isRegister bool) {
-	// TODO (Gianluca): add to function documentation:
+// quickCompileExpr checks if expr is k (which means immediate for integers and
+// floats and constant for strings and generals) or a register, putting it into
+// out. If it's neither of them, both k and isRegister are false and content of
+// out is unspecified.
+func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, isRegister bool) {
 	// TODO (Gianluca): quickCompileExpr must evaluate only expression which does
 	// not need extra registers for evaluation.
+
+	// Src kind and dst kind are different, so a Move/Conversion is required.
 	if kindToType(expectedType.Kind()) != kindToType(c.typeinfo[expr].Type.Kind()) {
 		return 0, false, false
 	}
 	switch expr := expr.(type) {
-	case *ast.Int: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
+
+	// TODO(Gianluca): strings and int must be put inside an *ast.Value
+	// node by typechecker.
+	case *ast.String:
+		return 0, false, false
+	case *ast.Int:
 		return int8(expr.Value.Int64()), true, false
+
 	case *ast.Identifier:
 		if c.fb.IsVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true
 		}
 		return 0, false, false
 	case *ast.Value:
-		kind := c.typeinfo[expr].Type.Kind()
-		switch kind {
-		case reflect.Bool:
-			v := int8(0)
+		switch v := expr.Val.(type) {
+		case int:
+			if -127 < v && v < 126 {
+				return int8(v), true, false
+			}
+		case bool:
+			b := int8(0)
 			if expr.Val.(bool) {
-				v = 1
+				b = 1
 			}
-			return v, true, false
-		case reflect.Int:
-			n := expr.Val.(int)
-			if n < 0 || n > 127 {
-				c := c.fb.MakeIntConstant(int64(n))
-				return c, false, true
-			} else {
-				return int8(n), true, false
-			}
-		case reflect.Int64:
-			n := expr.Val.(int64)
-			if n < 0 || n > 127 {
-				c := c.fb.MakeIntConstant(int64(n))
-				return c, false, true
-			} else {
-				return int8(n), true, false
-			}
-		case reflect.Float64:
-			// TODO (Gianluca): handle all kinds of floats.
-			v := int8(expr.Val.(float64))
-			return v, true, false
-
-		case reflect.Int8,
-			reflect.Int16,
-			reflect.Int32,
-			reflect.Uint,
-			reflect.Uint8,
-			reflect.Uint16,
-			reflect.Uint32,
-			reflect.Uint64,
-			reflect.Uintptr,
-			reflect.Float32,
-			reflect.Complex64,
-			reflect.Complex128,
-			reflect.Array,
-			reflect.Chan,
-			reflect.Interface,
-			reflect.Struct,
-			reflect.UnsafePointer:
-			panic(fmt.Sprintf("TODO: not implemented kind %q", kind))
-		case reflect.String:
-			sConst := c.fb.MakeStringConstant(expr.Val.(string))
-			reg := c.fb.NewRegister(reflect.String)
-			c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
-			return reg, false, true
+			return b, true, false
 		}
-	case *ast.String: // TODO (Gianluca): must be removed, is here because of a type-checker's bug.
-		sConst := c.fb.MakeStringConstant(expr.Text)
-		reg := c.fb.NewRegister(reflect.String)
-		c.fb.Move(true, sConst, reg, reflect.String, reflect.String)
-		return reg, false, true
+
 	case *ast.Func:
 		typ := c.typeinfo[expr].Type
 		reg := c.fb.NewRegister(reflect.Func)

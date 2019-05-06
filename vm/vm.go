@@ -1070,6 +1070,8 @@ const (
 
 	opLen
 
+	opLoadNumber
+
 	opMakeChan
 
 	opMapIndex
