@@ -639,38 +639,6 @@ func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind ref
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: y})
 }
 
-// Ifc appends a new "Ifc" instruction to the function body.
-//
-//     x == c
-//     x != c
-//     x <  c
-//     x <= c
-//     x >  c
-//     x >= c
-//     len(x) == c
-//     len(x) != c
-//     len(x) <  c
-//     len(x) <= c
-//     len(x) >  c
-//     len(x) >= c
-//
-func (builder *FunctionBuilder) Ifc(x int8, o Condition, c int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
-	var op operation
-	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
-		reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
-		op = opIfInt
-	case reflect.Float64, reflect.Float32:
-		op = opIfFloat
-	case reflect.String:
-		op = opIfString
-	default:
-		panic("Ifc: invalid type")
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: c})
-}
-
 // Index appends a new "index" instruction to the function body
 //
 //	dst = expr[i]
