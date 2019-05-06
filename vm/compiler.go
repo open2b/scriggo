@@ -1389,8 +1389,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			if node.Assignment != nil {
 				c.compileNodes([]ast.Node{node.Assignment})
 			}
-			x, y, typ, o, ky := c.compileCondition(node.Condition)
-			c.fb.If(ky, x, o, y, typ.Kind())
+			c.compileCondition(node.Condition)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := c.fb.NewLabel()
 				c.fb.Goto(endIfLabel)
@@ -1423,8 +1422,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			if node.Condition != nil {
 				forLabel := c.fb.NewLabel()
 				c.fb.SetLabelAddr(forLabel)
-				x, y, typ, o, ky := c.compileCondition(node.Condition)
-				c.fb.If(ky, x, o, y, typ.Kind())
+				c.compileCondition(node.Condition)
 				endForLabel := c.fb.NewLabel()
 				c.fb.Goto(endForLabel)
 				if node.Post != nil {
@@ -1623,79 +1621,157 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 	c.fb.SetLabelAddr(endSwitchLabel)
 }
 
-// compileCondition compiles expr using the current function builder. Returns
-// the two values of the condition (x and y), a kind, the condition ad a boolean
-// ky which indicates whether y is a constant value.
-func (c *Compiler) compileCondition(expr ast.Expression) (x, y int8, typ reflect.Type, o Condition, yk bool) {
-	// TODO (Gianluca): implement missing conditions:
-	// ConditionEqual             Condition = iota // x == y
-	// ConditionNotEqual                           // x != y
-	// ConditionLess                               // x <  y
-	// ConditionLessOrEqual                        // x <= y
-	// ConditionGreater                            // x >  y
-	// ConditionGreaterOrEqual                     // x >= y
-	// ConditionEqualLen                           // len(x) == y
-	// ConditionNotEqualLen                        // len(x) != y
-	// ConditionLessLen                            // len(x) <  y
-	// ConditionLessOrEqualLen                     // len(x) <= y
-	// ConditionGreaterLen                         // len(x) >  y
-	// ConditionGreaterOrEqualLen                  // len(x) >= y
-	// ConditionNil                                // x == nil
-	// ConditionNotNil                             // x != nil
-	// ConditionOK                                 // [vm.ok]
-	// TODO(Gianluca): update: some conditions are missing from above list.
-	switch cond := expr.(type) {
+// compileCondition compiles a condition. Last instruction added by this method
+// is always "If".
+func (c *Compiler) compileCondition(cond ast.Expression) {
+
+	switch cond := cond.(type) {
+
 	case *ast.BinaryOperator:
-		typ = c.typeinfo[cond.Expr1].Type
-		var out int8
-		var isValue, isRegister bool
-		out, _, isRegister = c.quickCompileExpr(cond.Expr1, typ)
-		if isRegister {
-			x = out
-		} else {
-			x = c.fb.NewRegister(typ.Kind())
-			c.compileExpr(cond.Expr1, x, typ)
+
+		// if v   == nil
+		// if v   != nil
+		// if nil == v
+		// if nil != v
+		if isNil(cond.Expr1) != isNil(cond.Expr2) {
+			expr := cond.Expr1
+			if isNil(cond.Expr1) {
+				expr = cond.Expr2
+			}
+			exprType := c.typeinfo[expr].Type
+			x, _, isRegister := c.quickCompileExpr(expr, exprType)
+			if !isRegister {
+				x = c.fb.NewRegister(exprType.Kind())
+				c.compileExpr(expr, x, exprType)
+			}
+			condType := ConditionNotNil
+			if cond.Operator() == ast.OperatorEqual {
+				condType = ConditionNil
+			}
+			c.fb.If(false, x, condType, 0, exprType.Kind())
+			return
 		}
-		if isNil(cond.Expr2) {
-			switch cond.Operator() {
-			case ast.OperatorEqual:
-				o = ConditionNil
-			case ast.OperatorNotEqual:
-				o = ConditionNotNil
-			}
-		} else {
-			out, isValue, isRegister = c.quickCompileExpr(cond.Expr2, typ)
-			if isValue {
-				y = out
-				yk = true
-			} else if isRegister {
-				y = out
+
+		// if len("str") == v
+		// if len("str") != v
+		// if len("str") <  v
+		// if len("str") <= v
+		// if len("str") >  v
+		// if len("str") >= v
+		// if v == len("str")
+		// if v != len("str")
+		// if v <  len("str")
+		// if v <= len("str")
+		// if v >  len("str")
+		// if v >= len("str")
+		if c.isLenBuiltinCall(cond.Expr1) != c.isLenBuiltinCall(cond.Expr2) {
+			var lenArg, expr ast.Expression
+			if c.isLenBuiltinCall(cond.Expr1) {
+				lenArg = cond.Expr1.(*ast.Call).Args[0]
+				expr = cond.Expr2
 			} else {
-				y = c.fb.NewRegister(typ.Kind())
-				c.compileExpr(cond.Expr2, y, typ)
+				lenArg = cond.Expr2.(*ast.Call).Args[0]
+				expr = cond.Expr1
 			}
-			switch cond.Operator() {
-			case ast.OperatorEqual:
-				o = ConditionEqual
-			case ast.OperatorGreater:
-				o = ConditionGreater
-			case ast.OperatorGreaterOrEqual:
-				o = ConditionGreaterOrEqual
-			case ast.OperatorLess:
-				o = ConditionLess
-			case ast.OperatorLessOrEqual:
-				o = ConditionLessOrEqual
-			case ast.OperatorNotEqual:
-				o = ConditionNotEqual
+			if c.typeinfo[lenArg].Type.Kind() == reflect.String { // len is optimized for strings only.
+				lenArgType := c.typeinfo[lenArg].Type
+				x, _, isRegister := c.quickCompileExpr(lenArg, lenArgType)
+				if !isRegister {
+					x = c.fb.NewRegister(lenArgType.Kind())
+					c.compileExpr(lenArg, x, lenArgType)
+				}
+				exprType := c.typeinfo[expr].Type
+				y, ky, isRegister := c.quickCompileExpr(expr, exprType)
+				if !ky && !isRegister {
+					y = c.fb.NewRegister(exprType.Kind())
+					c.compileExpr(expr, y, exprType)
+				}
+				var condType Condition
+				switch cond.Operator() {
+				case ast.OperatorEqual:
+					condType = ConditionEqualLen
+				case ast.OperatorNotEqual:
+					condType = ConditionNotEqualLen
+				case ast.OperatorLess:
+					condType = ConditionLessLen
+				case ast.OperatorLessOrEqual:
+					condType = ConditionLessOrEqualLen
+				case ast.OperatorGreater:
+					condType = ConditionGreaterLen
+				case ast.OperatorGreaterOrEqual:
+					condType = ConditionGreaterOrEqualLen
+				}
+				c.fb.If(ky, x, condType, y, reflect.String)
+				return
+			}
+		}
+
+		// if v1 == v2
+		// if v1 != v2
+		// if v1 <  v2
+		// if v1 <= v2
+		// if v1 >  v2
+		// if v1 >= v2
+		expr1Type := c.typeinfo[cond.Expr1].Type
+		expr2Type := c.typeinfo[cond.Expr2].Type
+		if expr1Type.Kind() == expr2Type.Kind() {
+			switch kind := expr1Type.Kind(); kind {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Float32, reflect.Float64,
+				reflect.String:
+				expr1Type := c.typeinfo[cond.Expr1].Type
+				x, _, isRegister := c.quickCompileExpr(cond.Expr1, expr1Type)
+				if !isRegister {
+					x = c.fb.NewRegister(expr1Type.Kind())
+					c.compileExpr(cond.Expr1, x, expr1Type)
+				}
+				expr2Type := c.typeinfo[cond.Expr2].Type
+				y, ky, isRegister := c.quickCompileExpr(cond.Expr2, expr2Type)
+				if !ky && !isRegister {
+					y = c.fb.NewRegister(expr2Type.Kind())
+					c.compileExpr(cond.Expr2, y, expr2Type)
+				}
+				var condType Condition
+				switch cond.Operator() {
+				case ast.OperatorEqual:
+					condType = ConditionEqual
+				case ast.OperatorNotEqual:
+					condType = ConditionNotEqual
+				case ast.OperatorLess:
+					condType = ConditionLess
+				case ast.OperatorLessOrEqual:
+					condType = ConditionLessOrEqual
+				case ast.OperatorGreater:
+					condType = ConditionGreater
+				case ast.OperatorGreaterOrEqual:
+					condType = ConditionGreaterOrEqual
+				}
+				if reflect.Uint <= kind && kind <= reflect.Uint64 {
+					// Equality and not equality checks are not
+					// optimized for uints.
+					if condType == ConditionEqual || condType == ConditionNotEqual {
+						kind = reflect.Int
+					}
+				}
+				c.fb.If(ky, x, condType, y, kind)
+				return
 			}
 		}
 
 	default:
-		typ = c.typeinfo[expr].Type
-		x := c.fb.NewRegister(typ.Kind())
-		c.compileExpr(cond, x, typ)
-		o = ConditionEqual
-		y = c.fb.MakeIntConstant(1) // TODO.
+
+		condType := c.typeinfo[cond].Type
+		x, _, isRegister := c.quickCompileExpr(cond, condType)
+		if !isRegister {
+			x = c.fb.NewRegister(condType.Kind())
+			c.compileExpr(cond, x, condType)
+		}
+		yConst := c.fb.MakeIntConstant(1)
+		y := c.fb.NewRegister(reflect.Bool)
+		c.fb.Move(true, yConst, y, reflect.Bool, reflect.Bool)
+		c.fb.If(true, x, ConditionEqual, y, reflect.Bool)
+
 	}
-	return x, y, typ, o, yk
+
 }

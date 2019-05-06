@@ -68,6 +68,18 @@ func isBlankIdentifier(expr ast.Expression) bool {
 	return ok && ident.Name == "_"
 }
 
+// isLenBuiltinCall indicates if expr is a "len" builtin call.
+func (c *Compiler) isLenBuiltinCall(expr ast.Expression) bool {
+	if call, ok := expr.(*ast.Call); ok {
+		if ti := c.typeinfo[call]; ti.IsBuiltin() {
+			if name := call.Func.(*ast.Identifier).Name; name == "len" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // isNil indicates if expr is the nil identifier.
 func isNil(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
