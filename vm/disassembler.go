@@ -333,9 +333,21 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, String, false)
 	case opConvert:
+		s += " " + disassembleOperand(fn, a, Interface, false)
+		s += " " + fn.types[int(uint(b))].String()
+		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opConvertInt, opConvertUint:
+		s += " " + disassembleOperand(fn, a, Int, false)
+		s += " " + fn.types[int(uint(b))].String()
+		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opConvertFloat:
+		s += " " + disassembleOperand(fn, a, Float64, false)
+		s += " " + fn.types[int(uint(b))].String()
+		s += " " + disassembleOperand(fn, c, Interface, false)
+	case opConvertString:
 		s += " " + disassembleOperand(fn, a, String, false)
 		s += " " + fn.types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, String, false)
+		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opDelete:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Interface, false)
