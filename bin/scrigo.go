@@ -7,10 +7,8 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -52,27 +50,32 @@ func main() {
 
 	switch ext {
 	case ".gos":
-		src, err := ioutil.ReadFile(absFile)
+		path := "/" + filepath.Base(absFile)
+		r := parser.DirReader(filepath.Dir(absFile))
+		compiler := vm.NewCompiler(r, packages)
+		main, err := compiler.CompileScript(path)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
 		}
-		r := bytes.NewReader(src)
-		s, err := scrigo.CompileScript(r, &parser.GoPackage{})
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-		_, err = scrigo.ExecuteScript(s, nil)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+		if *asm {
+			_, err = vm.DisassembleFunction(os.Stdout, main)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			_, err = vm.New().Run(main)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
 		}
 	case ".go":
 		path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
 		compiler := vm.NewCompiler(r, packages)
-		main, err := compiler.Compile(path)
+		main, err := compiler.CompilePackage(path)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)

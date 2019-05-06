@@ -58,7 +58,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 	return c
 }
 
-func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
+func (c *Compiler) CompilePackage(path string) (*ScrigoFunction, error) {
 	tree, err := c.parser.Parse(path, ast.ContextNone)
 	if err != nil {
 		return nil, err
@@ -68,6 +68,25 @@ func (c *Compiler) Compile(path string) (*ScrigoFunction, error) {
 	c.indirectVars = tci[path].IndirectVars
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
+	fun := c.currentFunction
+	return fun, nil
+}
+
+func (c *Compiler) CompileScript(path string) (*ScrigoFunction, error) {
+	tree, err := c.parser.Parse(path, ast.ContextNone)
+	if err != nil {
+		return nil, err
+	}
+	tci := c.parser.TypeCheckInfos()
+	c.typeinfo = tci["main"].TypeInfo
+	c.indirectVars = tci["main"].IndirectVars
+	main := NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
+	c.currentFunction = main
+	c.fb = c.currentFunction.Builder()
+	c.fb.EnterScope()
+	addExplicitReturn(tree)
+	c.compileNodes(tree.Nodes)
+	c.fb.ExitScope()
 	fun := c.currentFunction
 	return fun, nil
 }

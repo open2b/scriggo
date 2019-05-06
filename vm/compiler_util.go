@@ -12,21 +12,39 @@ import (
 	"scrigo/ast"
 )
 
-// addExplicitReturn adds an explicit return statement as last statement to fun
-// if it is implicit.
-func addExplicitReturn(fun *ast.Func) {
-	var pos *ast.Position
-	if len(fun.Body.Nodes) == 0 {
-		pos = fun.Pos()
-	} else {
-		last := fun.Body.Nodes[len(fun.Body.Nodes)-1]
-		if _, ok := last.(*ast.Return); !ok {
-			pos = last.Pos()
+// addExplicitReturn adds an explicit return statement as last statement to node.
+func addExplicitReturn(node ast.Node) {
+	switch node := node.(type) {
+	case *ast.Func:
+		var pos *ast.Position
+		if len(node.Body.Nodes) == 0 {
+			pos = node.Pos()
+		} else {
+			last := node.Body.Nodes[len(node.Body.Nodes)-1]
+			if _, ok := last.(*ast.Return); !ok {
+				pos = last.Pos()
+			}
 		}
-	}
-	if pos != nil {
-		ret := ast.NewReturn(pos, nil)
-		fun.Body.Nodes = append(fun.Body.Nodes, ret)
+		if pos != nil {
+			ret := ast.NewReturn(pos, nil)
+			node.Body.Nodes = append(node.Body.Nodes, ret)
+		}
+	case *ast.Tree:
+		var pos *ast.Position
+		if len(node.Nodes) == 0 {
+			pos = node.Pos()
+		} else {
+			last := node.Nodes[len(node.Nodes)-1]
+			if _, ok := last.(*ast.Return); !ok {
+				pos = last.Pos()
+			}
+		}
+		if pos != nil {
+			ret := ast.NewReturn(pos, nil)
+			node.Nodes = append(node.Nodes, ret)
+		}
+	default:
+		panic("bug") // TODO(Gianluca): remove.
 	}
 }
 

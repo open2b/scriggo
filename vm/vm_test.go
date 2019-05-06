@@ -71,7 +71,7 @@ func TestVMExpressions(t *testing.T) {
 		t.Run(src, func(t *testing.T) {
 			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
 			comp := NewCompiler(r, goPackages)
-			main, err := comp.Compile("/test.go")
+			main, err := comp.CompilePackage("/test.go")
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
@@ -2173,7 +2173,7 @@ func TestVM(t *testing.T) {
 			registers := cas.registers
 			r := parser.MapReader{"/test.go": []byte(cas.src)}
 			comp := NewCompiler(r, goPackages)
-			main, err := comp.Compile("/test.go")
+			main, err := comp.CompilePackage("/test.go")
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
