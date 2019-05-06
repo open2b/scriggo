@@ -1650,21 +1650,20 @@ var stmtTests = []struct {
 		}, ""},
 
 	{"Builtin copy",
-		`
-		package main
+		`package main
 
+		import "fmt"
+		
 		func main() {
-			var src, dst []int
-			var n int
-
-			src = []int{10, 20, 30}
-			dst = []int{}
-			n = copy(dst, src)
-
-			_ = n
-			return
+			src := []int{10, 20, 30}
+			dst := []int{1, 2, 3}
+			n := copy(dst, src)
+			fmt.Println("dst:", dst, "n:", n)
+			dst2 := []int{1, 2}
+			copy(dst2, src)
+			fmt.Println("dst2:", dst2)
 		}
-		`, nil, nil, "",
+		`, nil, nil, "dst: [10 20 30] n: 3\ndst2: [10 20]\n",
 	},
 
 	// Native (Go) function calls.
