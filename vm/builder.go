@@ -74,11 +74,14 @@ func (builder *FunctionBuilder) ExitStack() {
 
 // NewRegister makes a new register of a given kind.
 func (builder *FunctionBuilder) NewRegister(kind reflect.Kind) int8 {
-	switch kind {
-	// TODO (Gianluca): to review (same as allocRegister)
-	case reflect.Bool:
+	switch kindToType(kind) {
+	case TypeInt:
 		kind = reflect.Int
-	case reflect.Func:
+	case TypeFloat:
+		kind = reflect.Float64
+	case TypeString:
+		kind = reflect.String
+	case TypeIface:
 		kind = reflect.Interface
 	}
 	reg := int8(builder.numRegs[kind]) + 1
@@ -248,10 +251,15 @@ func (builder *FunctionBuilder) End() {
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
-	switch kind {
-	// TODO (Gianluca): to review (same as NewRegister)
-	case reflect.Bool:
+	switch kindToType(kind) {
+	case TypeInt:
 		kind = reflect.Int
+	case TypeFloat:
+		kind = reflect.Float64
+	case TypeString:
+		kind = reflect.String
+	case TypeIface:
+		kind = reflect.Interface
 	}
 	if reg > 0 {
 		if num, ok := builder.maxRegs[kind]; !ok || uint8(reg) > num {
