@@ -1439,8 +1439,9 @@ var stmtTests = []struct {
 		`, nil, nil, "21"},
 
 	{"Package function with one return value",
-		`
-		package main
+		`package main
+
+		import "fmt"
 
 		func five() int {
 			return 5
@@ -1448,16 +1449,8 @@ var stmtTests = []struct {
 
 		func main() {
 			a := five()
-			_ = a
-			return
-		}
-		`,
-		nil,
-		nil,
-		// []reg{
-		// 	{TypeInt, 1, int64(5)},
-		// },
-		""},
+			fmt.Print(a)
+		}`, nil, nil, "5"},
 
 	{"Package function - 'floats'",
 		`package main
@@ -1601,15 +1594,13 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			a := len("abc");
-			_ = a
+			fmt.Println(a)
 		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(3)}, // a
-		}, ""},
+		`, nil, nil, "3\n"},
 
 	{"Builtin len",
 		`package main
@@ -1757,8 +1748,7 @@ var stmtTests = []struct {
 		func main() {
 			testpkg.F10(50)
 			return
-		}
-		`,
+		}`,
 		nil, nil, ""},
 
 	{"Native function call (1 in, 1 out)",
