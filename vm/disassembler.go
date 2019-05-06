@@ -398,6 +398,17 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
+	case opLoadNumber:
+		if a == 0 {
+			s += " int"
+			s += " " + fmt.Sprintf("%d", fn.constants.Int[uint8(b)])
+			s += " " + disassembleOperand(fn, c, Int, false)
+		} else {
+			s += " float"
+			s += " " + fmt.Sprintf("%f", fn.constants.Float[uint8(b)])
+			s += " " + disassembleOperand(fn, c, Float64, false)
+		}
+
 	case opMakeChan:
 		s += " " + fn.types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, Int, k)
