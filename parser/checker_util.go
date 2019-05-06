@@ -707,7 +707,7 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
 	return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
 }
 
-// shiftOp executes the a shift expression t1 << t2 or t1 >> t2 and returns its
+// shiftOp executes a shift expression t1 << t2 or t1 >> t2 and returns its
 // result. Returns an error if the operation can not be executed.
 func shiftOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
 	if t2.Nil() {
