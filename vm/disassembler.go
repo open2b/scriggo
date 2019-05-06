@@ -263,7 +263,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, Float64, false)
 	case opAssert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " type(" + strconv.Itoa(int(uint(b))) + ")"
+		s += " type(" + fn.types[b].String() + ")"
 		t := fn.types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
