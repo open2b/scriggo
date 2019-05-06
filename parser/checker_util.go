@@ -202,7 +202,7 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				t.Value = newRat().Add(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorSubtraction:
-			switch v2 := t2.Value.(type) {
+			switch v2 := v2.(type) {
 			case int64:
 				v1 := v1.(int64)
 				v := v1 - v2
@@ -268,7 +268,7 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 				t.Value = newRat().Sub(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorDivision:
-			switch v2 := t2.Value.(type) {
+			switch v2 := v2.(type) {
 			case int64:
 				if v2 == 0 {
 					return nil, errDivisionByZero
@@ -313,7 +313,7 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 			if isFloatingPoint(k1) || isFloatingPoint(k2) {
 				return nil, errors.New("illegal constant expression: floating-point % operation")
 			}
-			switch v2 := t2.Value.(type) {
+			switch v2 := v2.(type) {
 			case int64:
 				if v2 == 0 {
 					return nil, errDivisionByZero
