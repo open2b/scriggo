@@ -1668,7 +1668,7 @@ var stmtTests = []struct {
 
 	// Native (Go) function calls.
 
-	{"Function which calls both Scrigo and native funcions.",
+	{"Function which calls both Scrigo and native functions",
 		`package main
 
 		import "fmt"
