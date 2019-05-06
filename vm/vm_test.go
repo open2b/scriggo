@@ -117,7 +117,7 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
-	{"Channel reading/writing",
+	{"Channels - Reading and writing",
 		`package main
 
 		import "fmt"
@@ -350,97 +350,6 @@ var stmtTests = []struct {
 		`, nil, nil,
 		"abcde"},
 
-	// TODO (Gianluca):
-	// {"Defer",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func mark(m string) {
-	// 		fmt.Print(m + ",")
-	// 	}
-
-	// 	func f() {
-	// 		mark("f")
-	// 		defer func() {
-	// 			mark("f.1")
-	// 			defer func() {
-
-	// 			}()
-	// 		}()
-	// 		defer func() {
-	// 			mark("f.2")
-	// 			defer func() {
-	// 				mark("f.2.1")
-	// 			}()
-	// 			h()
-	// 		}()
-	// 		g()
-	// 		mark("ret f")
-	// 	}
-
-	// 	func g() {
-	// 		mark("g")
-	// 	}
-
-	// 	func h() {
-	// 		mark("h")
-	// 	}
-
-	// 	func main() {
-	// 		mark("main")
-	// 		defer func() {
-	// 			mark("main.1")
-	// 			h()
-	// 			mark("main.1")
-	// 		}()
-	// 		f()
-	// 		mark("ret main")
-	// 	}
-	// 	`,
-	// 	nil, nil, "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
-
-	// Assignments.
-
-	// {"Correct order in assignments",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func f() []int {
-	// 		fmt.Printf("f")
-	// 		return []int{1, 2, 3}
-	// 	}
-
-	// 	func g() int {
-	// 		fmt.Printf("g")
-	// 		return 10
-	// 	}
-
-	// 	func main() {
-	// 		f()[1] = g()
-	// 	}
-	// 	`, nil, nil, "fg"},
-
-	// {"Multiple assignment to slices",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func triplet() (int, string, string) {
-	// 		return 20, "new1", "new2"
-	// 	}
-
-	// 	func main() {
-	// 		ss := []string{"old1", "old2", "old3"}
-	// 		is := []int{1,2,3}
-	// 		fmt.Println(ss, is)
-	// 		is[0], ss[1], ss[0] = triplet()
-	// 		fmt.Println(ss, is)
-	// 	}
-	// 	`, nil, nil, "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
-
 	{"Single assignment",
 		`
 		package main
@@ -550,7 +459,21 @@ var stmtTests = []struct {
 			return
 		}
 		`, nil, nil, "5 42 33\n"},
+	{"Type assertion assignment",
+		`
+		package main
 
+		func main() {
+			a := interface{}(10)
+			n, ok := a.(int)
+
+			_ = n
+			_ = ok
+			return
+		}
+		`,
+		nil,
+		[]reg{}, ""},
 	{"Addition (+=) and subtraction (-=) assignments",
 		`
 		package main
@@ -623,10 +546,7 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(0)},  // d
 			{TypeInt, 5, int64(10)}, // e
 			// {TypeString, 6, "zzz"},  // f // TODO (Gianluca):
-		},
-		"",
-	},
-
+		}, ""},
 	{"Slice index assignment",
 		`
 		package main
@@ -650,9 +570,7 @@ var stmtTests = []struct {
 		`, nil, nil,
 		"[2 2 3]\n[a b d d]\n"},
 
-	// Expressions - composite literals.
-
-	{"Arrays",
+	{"Arrays - Composite literal, len",
 		`
 		package main
 
@@ -730,27 +648,6 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeIface, 1, map[string]int{}},
 		}, ""},
-
-	// TODO (Gianluca):
-	// {"(Native) struct composite literal (empty)",
-	// 	`package main
-
-	// 	import (
-	// 		"fmt"
-	// 		"testpkg"
-	// 	)
-
-	// 	func main() {
-	// 		t1 := testpkg.TestPointInt{}
-	// 		fmt.Println(t1)
-	// 	}
-	// 	`,
-	// 	nil,
-	// 	nil,
-	// 	"",
-	// },
-
-	// Expressions - function literals.
 
 	{"Function literal definition - (0 in, 0 out)",
 		`
@@ -831,8 +728,6 @@ var stmtTests = []struct {
 			`		Move R2 R1`,
 		}, nil, ""},
 
-	// Expressions - conversions.
-
 	{"Converting from int to string",
 		`
 		package main
@@ -870,8 +765,6 @@ var stmtTests = []struct {
 		[]reg{
 			{TypeIface, 1, int64(97)},
 		}, ""},
-
-	// Expressions - boolean.
 
 	{"Constant boolean",
 		`
@@ -1025,8 +918,6 @@ var stmtTests = []struct {
 		nil,
 		""},
 
-	// Expressions - misc.
-
 	{"Number negation (unary operator '-')",
 		`
 		package main
@@ -1106,49 +997,7 @@ var stmtTests = []struct {
 			s := []int{1, 42, 3}
 			second := s[1]
 			fmt.Println(second)
-		}`,
-		nil,
-		nil,
-		"42\n",
-	},
-
-	// Type assertion.
-
-	// TODO(Gianluca): conversion always puts result into "general", so this
-	// test cannot pass.
-	// {"Type assertion as expression (single value context)",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		i := interface{}(int64(5))
-	// 		a := 7 + i.(int64)
-	// 		fmt.Print(i, ", ", a)
-	// 		return
-	// 	}
-	// 	`,
-	// 	nil, nil,
-	// 	"5, 12",
-	// },
-
-	{"Type assertion - Int on interface{}",
-		`
-		package main
-
-		func main() {
-			a := interface{}(10)
-			n, ok := a.(int)
-
-			_ = n
-			_ = ok
-			return
-		}
-		`,
-		nil,
-		[]reg{}, ""},
-	// Statements - If.
-
+		}`, nil, nil, "42\n"},
 	{"If statement with else",
 		`package main
 
@@ -1206,9 +1055,9 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "thenx is 11"},
 
-	// Statements - For.
-
 	{"For statement",
+		// TODO(Gianluca): this is the correct output:
+		// `, nil, nil, "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20"},
 		`package main
 
 		import "fmt"
@@ -1223,10 +1072,6 @@ var stmtTests = []struct {
 			fmt.Print("sum=",sum)
 		}
 		`, nil, nil, "i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,i=10,sum=20"},
-	// TODO(Gianluca): this is the correct output:
-	// `, nil, nil, "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20"},
-
-	// Statements - Switch.
 
 	{"Switch statement",
 		`package main
@@ -1329,8 +1174,6 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "defaultcase 2case 330"},
 
-	// Statements - Type switch.
-
 	{"Type switch statement",
 		`
 		package main
@@ -1353,8 +1196,6 @@ var stmtTests = []struct {
 			return
 		}
 		`, nil, nil, "20"},
-
-	// Function literal calls.
 
 	{"Function literal call (0 in, 0 out)",
 		`
@@ -1395,28 +1236,6 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "25"},
 
-	// TODO(Gianluca): index out of range.
-	// {"Function literal call (1 in, 1 out)",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		a := 41
-	// 		fmt.Print(a)
-	// 		inc := func(a int) int {
-	// 			fmt.Print("inc:", a)
-	// 			b := a
-	// 			b++
-	// 			fmt.Print("inc:", b)
-	// 			return b
-	// 		}
-	// 		a = inc(a)
-	// 		fmt.Print(a)
-	// 		return
-	// 	}
-	// 	`, nil, nil, "41inc:41inc:4242"},
-
 	{"Function literal call - Shadowing package level function",
 		// TODO(Gianluca): test output.
 		`
@@ -1434,8 +1253,6 @@ var stmtTests = []struct {
 			return
 		}
 		`, nil, nil, ""},
-
-	// Scrigo function calls.
 
 	{"Package function call",
 		`
@@ -1507,48 +1324,7 @@ var stmtTests = []struct {
 			f1, f2 := floats()
 			fmt.Println(f1, f2)
 		}`,
-		nil, nil, "5.6 -432.12\n",
-	},
-
-	// {"Package function with many return values (same type)",
-	// TODO(Gianluca): panics.
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func pair() (int, int) {
-	// 		return 42, 33
-	// 	}
-
-	// 	func main() {
-	// 		a := 2
-	// 		b, c := pair()
-	// 		d, e := 11, 12
-	// 		fmt.Print(a + b + c + d + e)
-	// 		return
-	// 	}
-	// 	`, nil, nil, "100"},
-
-	// TODO (Gianluca): find bug.
-	// {"Package function with many return values (different types)",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func pair() (int, float64) {
-	// 		return 42, 33.0
-	// 	}
-
-	// 	func main() {
-	// 		a := 2
-	// 		b, c := pair()
-	// 		d, e := 11, 12
-	// 		fmt.Print(a, b, c, d, e)
-	// 		return
-	// 	}
-	// 	`, nil, nil, "2 42 33 11 12"},
-
+		nil, nil, "5.6 -432.12\n"},
 	{"Package function with one parameter (not used)",
 		`
 		package main
@@ -1595,38 +1371,6 @@ var stmtTests = []struct {
 		}
 		`, nil, nil,
 		"a, b, c:  3 4 5\n[3 2 5] has len 3\n"},
-
-	// {"Variadic package functions",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func f(a ...int) {
-	// 		fmt.Println("variadic:", a)
-	// 		return
-	// 	}
-
-	// 	func g(a, b string, c... int) {
-	// 		fmt.Println("strings:", a, b)
-	// 		fmt.Println("variadic:", c)
-	// 		return
-	// 	}
-
-	// 	func h(a string, b... string) int {
-	// 		fmt.Println("a:", a)
-	// 		return len(b)
-	// 	}
-
-	// 	func main() {
-	// 		f(1, 2, 3)
-	// 		g("x", "y", 3, 23, 11, 12)
-	// 		fmt.Println("h:", h("a", "b", "c", "d"))
-	// 	}
-	// 	`, nil, nil,
-	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
-
-	// Builtin function calls.
 
 	{"Builtin len (with a constant argument)",
 		`
@@ -1714,11 +1458,7 @@ var stmtTests = []struct {
 			copy(dst2, src)
 			fmt.Println("dst2:", dst2)
 		}
-		`, nil, nil, "dst: [10 20 30] n: 3\ndst2: [10 20]\n",
-	},
-
-	// Native (Go) function calls.
-
+		`, nil, nil, "dst: [10 20 30] n: 3\ndst2: [10 20]\n"},
 	{"Function which calls both Scrigo and native functions",
 		`package main
 
@@ -1734,9 +1474,7 @@ var stmtTests = []struct {
 		}`,
 		nil,
 		nil,
-		"scrigoFunc()\nmain()\n",
-	},
-
+		"scrigoFunc()\nmain()\n"},
 	{"Native function call (0 in, 0 out)",
 		`
 		package main
@@ -1890,25 +1628,6 @@ var stmtTests = []struct {
 		nil, nil,
 		"a is 42 and b is 33\n"},
 
-	// Package variables
-
-	// TODO(Gianluca):
-	// {"Reading an int variable",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	var A int = 40
-
-	// 	func main() {
-	// 		fmt.Println("A is ", A)
-	// 	}
-	// 	`,
-	// 	nil, nil,
-	// 	"A is 40\n"},
-
-	// Native (Go) variables.
-
 	{"Reading a native int variable",
 		`
 		package main
@@ -1937,8 +1656,6 @@ var stmtTests = []struct {
 		`, nil, nil,
 		"42->7"},
 
-	// Memory (pointers, addresses).
-
 	{"Pointer declaration (nil int pointer)",
 		`package main
 
@@ -1951,23 +1668,6 @@ var stmtTests = []struct {
 			fmt.Print(a)
 		}
 		`, nil, nil, "<nil>"},
-
-	// TODO (Gianluca):
-	// {"Operator address (&)",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		a := 1
-	// 		b := &a
-	// 		c := &a
-	// 		fmt.Println(b == c)
-	// 	}
-	// 	`, nil, nil, ""},
-
-	// Complex tests.
 
 	{"Scrigo function 'repeat(string, int) string'",
 		`
@@ -2140,9 +1840,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		nil,
-		"a:6,b:2,c:2,d:6,e:16,f:40330,",
-	},
-
+		"a:6,b:2,c:2,d:6,e:16,f:40330,"},
 	{"f(g()) call (advanced test)",
 		`package main
 
@@ -2164,6 +1862,275 @@ var stmtTests = []struct {
 		nil,
 		nil,
 		"a is 9 and b is 144\n"},
+
+	//------------------------------------
+	// TODO(Gianluca): disabled tests:
+
+	// {"Defer",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func mark(m string) {
+	// 		fmt.Print(m + ",")
+	// 	}
+
+	// 	func f() {
+	// 		mark("f")
+	// 		defer func() {
+	// 			mark("f.1")
+	// 			defer func() {
+
+	// 			}()
+	// 		}()
+	// 		defer func() {
+	// 			mark("f.2")
+	// 			defer func() {
+	// 				mark("f.2.1")
+	// 			}()
+	// 			h()
+	// 		}()
+	// 		g()
+	// 		mark("ret f")
+	// 	}
+
+	// 	func g() {
+	// 		mark("g")
+	// 	}
+
+	// 	func h() {
+	// 		mark("h")
+	// 	}
+
+	// 	func main() {
+	// 		mark("main")
+	// 		defer func() {
+	// 			mark("main.1")
+	// 			h()
+	// 			mark("main.1")
+	// 		}()
+	// 		f()
+	// 		mark("ret main")
+	// 	}
+	// 	`,
+	// 	nil, nil, "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
+
+	//------------------------------------
+
+	// {"Correct order in assignments",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func f() []int {
+	// 		fmt.Printf("f")
+	// 		return []int{1, 2, 3}
+	// 	}
+
+	// 	func g() int {
+	// 		fmt.Printf("g")
+	// 		return 10
+	// 	}
+
+	// 	func main() {
+	// 		f()[1] = g()
+	// 	}
+	// 	`, nil, nil, "fg"},
+
+	//------------------------------------
+
+	// {"Multiple assignment to slices",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func triplet() (int, string, string) {
+	// 		return 20, "new1", "new2"
+	// 	}
+
+	// 	func main() {
+	// 		ss := []string{"old1", "old2", "old3"}
+	// 		is := []int{1,2,3}
+	// 		fmt.Println(ss, is)
+	// 		is[0], ss[1], ss[0] = triplet()
+	// 		fmt.Println(ss, is)
+	// 	}
+	// 	`, nil, nil, "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
+
+	//------------------------------------
+
+	// TODO (Gianluca):
+	// {"Operator address (&)",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		a := 1
+	// 		b := &a
+	// 		c := &a
+	// 		fmt.Println(b == c)
+	// 	}
+	// 	`, nil, nil, ""},
+
+	//------------------------------------
+
+	// TODO(Gianluca):
+	// {"Reading an int variable",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	var A int = 40
+
+	// 	func main() {
+	// 		fmt.Println("A is ", A)
+	// 	}
+	// 	`,
+	// 	nil, nil,
+	// 	"A is 40\n"},
+
+	//------------------------------------
+
+	// {"Package function with many return values (same type)",
+	// TODO(Gianluca): panics.
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func pair() (int, int) {
+	// 		return 42, 33
+	// 	}
+
+	// 	func main() {
+	// 		a := 2
+	// 		b, c := pair()
+	// 		d, e := 11, 12
+	// 		fmt.Print(a + b + c + d + e)
+	// 		return
+	// 	}
+	// 	`, nil, nil, "100"},
+
+	//------------------------------------
+
+	// TODO (Gianluca): find bug.
+	// {"Package function with many return values (different types)",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func pair() (int, float64) {
+	// 		return 42, 33.0
+	// 	}
+
+	// 	func main() {
+	// 		a := 2
+	// 		b, c := pair()
+	// 		d, e := 11, 12
+	// 		fmt.Print(a, b, c, d, e)
+	// 		return
+	// 	}
+	// 	`, nil, nil, "2 42 33 11 12"},
+
+	//------------------------------------
+
+	// {"Variadic package functions",
+	// 	`
+	// 	package main
+
+	// 	import "fmt"
+
+	// 	func f(a ...int) {
+	// 		fmt.Println("variadic:", a)
+	// 		return
+	// 	}
+
+	// 	func g(a, b string, c... int) {
+	// 		fmt.Println("strings:", a, b)
+	// 		fmt.Println("variadic:", c)
+	// 		return
+	// 	}
+
+	// 	func h(a string, b... string) int {
+	// 		fmt.Println("a:", a)
+	// 		return len(b)
+	// 	}
+
+	// 	func main() {
+	// 		f(1, 2, 3)
+	// 		g("x", "y", 3, 23, 11, 12)
+	// 		fmt.Println("h:", h("a", "b", "c", "d"))
+	// 	}
+	// 	`, nil, nil,
+	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
+
+	//------------------------------------
+
+	// TODO(Gianluca): index out of range.
+	// {"Function literal call (1 in, 1 out)",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		a := 41
+	// 		fmt.Print(a)
+	// 		inc := func(a int) int {
+	// 			fmt.Print("inc:", a)
+	// 			b := a
+	// 			b++
+	// 			fmt.Print("inc:", b)
+	// 			return b
+	// 		}
+	// 		a = inc(a)
+	// 		fmt.Print(a)
+	// 		return
+	// 	}
+	// 	`, nil, nil, "41inc:41inc:4242"},
+
+	//------------------------------------
+
+	// TODO(Gianluca): conversion always puts result into "general", so this
+	// test cannot pass.
+	// {"Type assertion as expression (single value context)",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func main() {
+	// 		i := interface{}(int64(5))
+	// 		a := 7 + i.(int64)
+	// 		fmt.Print(i, ", ", a)
+	// 		return
+	// 	}
+	// 	`,
+	// 	nil, nil,
+	// 	"5, 12",
+	// },
+
+	//------------------------------------
+
+	// TODO (Gianluca):
+	// {"(Native) struct composite literal (empty)",
+	// 	`package main
+
+	// 	import (
+	// 		"fmt"
+	// 		"testpkg"
+	// 	)
+
+	// 	func main() {
+	// 		t1 := testpkg.TestPointInt{}
+	// 		fmt.Println(t1)
+	// 	}
+	// 	`,
+	// 	nil,
+	// 	nil,
+	// 	"",
+	// },
 }
 
 func TestVM(t *testing.T) {
