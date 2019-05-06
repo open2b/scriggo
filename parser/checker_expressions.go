@@ -33,6 +33,7 @@ type HTML string
 var boolType = reflect.TypeOf(false)
 var stringType = reflect.TypeOf("")
 var intType = reflect.TypeOf(0)
+var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 var float64Type = reflect.TypeOf(float64(0))
@@ -79,7 +80,7 @@ var universe = typeCheckerScope{
 	"rune":        {t: int32TypeInfo},
 	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
 	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true}},
-	"uint":        {t: &TypeInfo{Type: reflect.TypeOf(uint(0)), Properties: PropertyIsType}},
+	"uint":        {t: &TypeInfo{Type: uintType, Properties: PropertyIsType}},
 	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType}},
 	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
 	"uint64":      {t: &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType}},
@@ -915,6 +916,10 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 	t2 := tc.checkExpression(expr.Expr2)
 
 	op := expr.Op
+
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		return shiftOp(t1, expr, t2)
+	}
 
 	if t1.Nil() || t2.Nil() {
 		if t1.Nil() && t2.Nil() {

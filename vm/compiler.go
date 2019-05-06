@@ -435,9 +435,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
-		if op := expr.Operator(); op == ast.OperatorAnd || op == ast.OperatorOr {
+		if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
 			cmp := int8(0)
-			if op == ast.OperatorAnd {
+			if op == ast.OperatorAndAnd {
 				cmp = 1
 			}
 			c.fb.EnterStack()
@@ -654,7 +654,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			if reg != 0 {
 				c.fb.Move(false, tmpReg, reg, typ.Kind(), dstType.Kind())
 			}
-		case ast.OperatorAmpersand:
+		case ast.OperatorAnd:
 			panic("TODO: not implemented")
 		case ast.OperatorAddition:
 			// Do nothing.

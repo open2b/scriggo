@@ -298,8 +298,9 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			tokenAddition,       // +e
 			tokenSubtraction,    // -e
 			tokenNot,            // !e
+			tokenXor,            // ^e
 			tokenMultiplication, // *t, *T
-			tokenAmpersand:      // &e
+			tokenAnd:            // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
 			tokenRune,  // '\x3c'
@@ -546,13 +547,19 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				tokenLessOrEqual,    // e <=
 				tokenGreater,        // e >
 				tokenGreaterOrEqual, // e >=
-				tokenAnd,            // e &&
-				tokenOr,             // e ||
+				tokenAndAnd,         // e &&
+				tokenOrOr,           // e ||
 				tokenAddition,       // e +
 				tokenSubtraction,    // e -
 				tokenMultiplication, // e *
 				tokenDivision,       // e /
-				tokenModulo:         // e %
+				tokenModulo,         // e %
+				tokenAnd,            // e &
+				tokenOr,             // e |
+				tokenXor,            // e ^
+				tokenAndNot,         // e &^
+				tokenLeftShift,      // e <<
+				tokenRightShift:     // e >>
 				operator = ast.NewBinaryOperator(tok.pos, operatorType(tok.typ), nil, nil)
 			default:
 				if len(path) > 0 {
@@ -719,8 +726,10 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorNotEqual
 	case tokenNot:
 		return ast.OperatorNot
-	case tokenAmpersand:
-		return ast.OperatorAmpersand
+	case tokenAnd:
+		return ast.OperatorAnd
+	case tokenOr:
+		return ast.OperatorOr
 	case tokenLess:
 		return ast.OperatorLess
 	case tokenLessOrEqual:
@@ -729,10 +738,10 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorGreater
 	case tokenGreaterOrEqual:
 		return ast.OperatorGreaterOrEqual
-	case tokenAnd:
-		return ast.OperatorAnd
-	case tokenOr:
-		return ast.OperatorOr
+	case tokenAndAnd:
+		return ast.OperatorAndAnd
+	case tokenOrOr:
+		return ast.OperatorOrOr
 	case tokenAddition:
 		return ast.OperatorAddition
 	case tokenSubtraction:
@@ -745,6 +754,14 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 		return ast.OperatorModulo
 	case tokenArrow:
 		return ast.OperatorReceive
+	case tokenXor:
+		return ast.OperatorXor
+	case tokenAndNot:
+		return ast.OperatorAndNot
+	case tokenLeftShift:
+		return ast.OperatorLeftShift
+	case tokenRightShift:
+		return ast.OperatorRightShift
 	default:
 		panic("invalid token type")
 	}

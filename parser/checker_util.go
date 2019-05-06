@@ -18,6 +18,8 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
+const constPrecision = 512
+
 const (
 	maxInt   = int(maxUint >> 1)
 	minInt   = -maxInt - 1
@@ -26,14 +28,14 @@ const (
 	maxUint  = ^uint(0)
 )
 
-var boolOperators = [15]bool{
+var boolOperators = [21]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,
-	ast.OperatorAnd:      true,
-	ast.OperatorOr:       true,
+	ast.OperatorAndAnd:   true,
+	ast.OperatorOrOr:     true,
 }
 
-var intOperators = [15]bool{
+var intOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
@@ -45,9 +47,15 @@ var intOperators = [15]bool{
 	ast.OperatorMultiplication: true,
 	ast.OperatorDivision:       true,
 	ast.OperatorModulo:         true,
+	ast.OperatorAnd:            true,
+	ast.OperatorOr:             true,
+	ast.OperatorXor:            true,
+	ast.OperatorAndNot:         true,
+	ast.OperatorLeftShift:      true,
+	ast.OperatorRightShift:     true,
 }
 
-var floatOperators = [15]bool{
+var floatOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
@@ -60,7 +68,7 @@ var floatOperators = [15]bool{
 	ast.OperatorDivision:       true,
 }
 
-var stringOperators = [15]bool{
+var stringOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
 	ast.OperatorLess:           true,
@@ -70,12 +78,12 @@ var stringOperators = [15]bool{
 	ast.OperatorAddition:       true,
 }
 
-var interfaceOperators = [15]bool{
+var interfaceOperators = [21]bool{
 	ast.OperatorEqual:    true,
 	ast.OperatorNotEqual: true,
 }
 
-var operatorsOfKind = [...][15]bool{
+var operatorsOfKind = [...][21]bool{
 	reflect.Bool:      boolOperators,
 	reflect.Int:       intOperators,
 	reflect.Int8:      intOperators,
@@ -108,9 +116,9 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 			t.Value = t1.Value.(bool) == t2.Value.(bool)
 		case ast.OperatorNotEqual:
 			t.Value = t1.Value.(bool) != t2.Value.(bool)
-		case ast.OperatorAnd:
+		case ast.OperatorAndAnd:
 			t.Value = t1.Value.(bool) && t2.Value.(bool)
-		case ast.OperatorOr:
+		case ast.OperatorOrOr:
 			t.Value = t1.Value.(bool) || t2.Value.(bool)
 		default:
 			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.ShortString())
@@ -324,6 +332,50 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 					return nil, errDivisionByZero
 				}
 				t.Value = newRat().SetFrac(v1.(*big.Int), v2)
+			}
+		case ast.OperatorAnd:
+			k2 := t2.Type.Kind()
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
+				return nil, errors.New("invalid operation: operator & not defined on untyped float")
+			}
+			switch v2 := v2.(type) {
+			case int64:
+				t.Value = v1.(int64) & v2
+			case *big.Int:
+				t.Value = newInt().And(v1.(*big.Int), v2)
+			}
+		case ast.OperatorOr:
+			k2 := t2.Type.Kind()
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
+				return nil, errors.New("invalid operation: operator | not defined on untyped float")
+			}
+			switch v2 := v2.(type) {
+			case int64:
+				t.Value = v1.(int64) | v2
+			case *big.Int:
+				t.Value = newInt().Or(v1.(*big.Int), v2)
+			}
+		case ast.OperatorXor:
+			k2 := t2.Type.Kind()
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
+				return nil, errors.New("invalid operation: operator ^ not defined on untyped float")
+			}
+			switch v2 := v2.(type) {
+			case int64:
+				t.Value = v1.(int64) ^ v2
+			case *big.Int:
+				t.Value = newInt().Xor(v1.(*big.Int), v2)
+			}
+		case ast.OperatorAndNot:
+			k2 := t2.Type.Kind()
+			if isFloatingPoint(k1) || isFloatingPoint(k2) {
+				return nil, errors.New("invalid operation: operator &^ not defined on untyped float")
+			}
+			switch v2 := v2.(type) {
+			case int64:
+				t.Value = v1.(int64) &^ v2
+			case *big.Int:
+				t.Value = newInt().AndNot(v1.(*big.Int), v2)
 			}
 		}
 	}
@@ -544,9 +596,9 @@ func newInt() *big.Int {
 	return new(big.Int)
 }
 
-// newFloat returns a new big.Float with precision 512.
+// newFloat returns a new big.Float with precision constPrecision.
 func newFloat() *big.Float {
-	return new(big.Float).SetPrec(512)
+	return new(big.Float).SetPrec(constPrecision)
 }
 
 // newRat returns a new big.Rat.
@@ -653,6 +705,58 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", v, t1, t2)
+}
+
+// shiftOp executes the a shift expression t1 << t2 or t1 >> t2 and returns its
+// result. Returns an error if the operation can not be executed.
+func shiftOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, error) {
+	if t2.Nil() {
+		return nil, errors.New("cannot convert nil to type uint")
+	}
+	if t2.IsUntypedConstant() && !t2.CanInt64() || !t2.IsUntypedConstant() && !t2.IsUnsignedInteger() {
+		return nil, fmt.Errorf("invalid operation: %s (shift count type %s, must be unsigned integer)", expr, t2.ShortString())
+	}
+	var s uint
+	if t2.IsConstant() {
+		v2 := t2.Int64()
+		var err error
+		if v2 < 0 {
+			err = fmt.Errorf("invalid negative shift count: %d", v2)
+		} else if v2 >= constPrecision {
+			err = fmt.Errorf("shift count too large: %d", v2)
+		}
+		if err != nil {
+			if !t2.IsUntypedConstant() {
+				err = fmt.Errorf("invalid operation: %s (shift count type %s, must be unsigned integer)", expr, t2.ShortString())
+			}
+			return nil, err
+		}
+		s = uint(v2)
+	}
+	if !t1.IsInteger() {
+		return nil, fmt.Errorf("invalid operation: %s (shift of type %s)", expr, t1)
+	}
+	var t *TypeInfo
+	if t1.IsConstant() && t2.IsConstant() {
+		t = &TypeInfo{Type: t1.Type, Properties: t1.Properties}
+		switch v1 := t1.Value.(type) {
+		case int64:
+			if expr.Op == ast.OperatorLeftShift {
+				t.Value = newInt().Lsh(newInt().SetInt64(v1), s)
+			} else {
+				t.Value = v1 >> s
+			}
+		case *big.Int:
+			if expr.Op == ast.OperatorLeftShift {
+				t.Value = newInt().Lsh(v1, s)
+			} else {
+				t.Value = newInt().Rsh(v1, s)
+			}
+		}
+	} else {
+		t = &TypeInfo{Type: t1.Type}
+	}
+	return t, nil
 }
 
 // stringInSlice indicates if slice contains s.
@@ -931,7 +1035,7 @@ func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo,
 		}
 		ti.Type = t.Type.Elem()
 		ti.Properties = ti.Properties | PropertyAddressable
-	case ast.OperatorAmpersand:
+	case ast.OperatorAnd:
 		if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
 			return nil, fmt.Errorf("cannot take the address of %s", expr.Expr)
 		}
@@ -949,6 +1053,8 @@ func (tc *typechecker) unaryOp(t *TypeInfo, expr *ast.UnaryOperator) (*TypeInfo,
 				}
 			}
 		}
+	case ast.OperatorXor:
+		panic("TODO: implements unary XOR")
 	case ast.OperatorReceive:
 		if t.Nil() {
 			return nil, fmt.Errorf("use of untyped nil")

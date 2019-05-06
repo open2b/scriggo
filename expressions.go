@@ -245,7 +245,7 @@ func (r *rendering) referenceInScope(variable string) (reflect.Value, error) {
 // evalUnaryOperator evaluates a unary operator and returns its value. On error
 // it calls panic with the error as argument.
 func (r *rendering) evalUnaryOperator(node *ast.UnaryOperator) interface{} {
-	if node.Operator() == ast.OperatorAmpersand {
+	if node.Operator() == ast.OperatorAnd {
 		switch expr := node.Expr.(type) {
 		case *ast.Identifier: // &a
 			ref, err := r.referenceInScope(expr.Name)
@@ -891,11 +891,11 @@ SWITCH:
 		}
 	case bool:
 		switch op {
-		case ast.OperatorAnd:
+		case ast.OperatorAndAnd:
 			if !e1 {
 				return false, nil
 			}
-		case ast.OperatorOr:
+		case ast.OperatorOrOr:
 			if e1 {
 				return true, nil
 			}
@@ -910,9 +910,9 @@ SWITCH:
 				return e1 == e2, nil
 			case ast.OperatorNotEqual:
 				return e1 != e2, nil
-			case ast.OperatorAnd:
+			case ast.OperatorAndAnd:
 				return e2, nil
-			case ast.OperatorOr:
+			case ast.OperatorOrOr:
 				return e2, nil
 			}
 		}

@@ -95,7 +95,7 @@ var expressionStringTests = []struct {
 			{NewInt(nil, big.NewInt(3)), NewIdentifier(nil, "true")},
 			{NewInt(nil, big.NewInt(6)), NewIdentifier(nil, "false")},
 		}), NewInt(nil, big.NewInt(32)))},
-	{"&x", NewUnaryOperator(nil, OperatorAmpersand, NewIdentifier(nil, "x"))},
+	{"&x", NewUnaryOperator(nil, OperatorAnd, NewIdentifier(nil, "x"))},
 	{`pkg.Struct{Key1: value1, Key2: "value2", Key3: 33}`,
 		NewCompositeLiteral(nil,
 			NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),

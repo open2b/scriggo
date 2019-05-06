@@ -761,24 +761,25 @@ LOOP:
 			l.column++
 			endLineAsSemicolon = false
 		case '&':
-			if len(l.src) > 2 && l.src[1] == '&' {
-				l.emit(tokenAnd, 2)
+			if len(l.src) > 1 && l.src[1] == '&' {
+				l.emit(tokenAndAnd, 2)
+				l.column += 2
+			} else if len(l.src) > 1 && l.src[1] == '^' {
+				l.emit(tokenAndNot, 2)
 				l.column += 2
 			} else {
-				l.emit(tokenAmpersand, 1)
+				l.emit(tokenAnd, 1)
 				l.column++
 			}
 			endLineAsSemicolon = false
 		case '|':
-			if len(l.src) == 1 {
-				return l.errorf("unexpected EOF")
+			if len(l.src) > 1 && l.src[1] == '|' {
+				l.emit(tokenOrOr, 2)
+				l.column += 2
+			} else {
+				l.emit(tokenOr, 1)
+				l.column++
 			}
-			if l.src[1] != '|' {
-				c, _ := utf8.DecodeRune(l.src[1:])
-				return l.errorf("unexpected %c, expecting |", c)
-			}
-			l.emit(tokenOr, 2)
-			l.column += 2
 			endLineAsSemicolon = false
 		case '!':
 			if len(l.src) > 1 && l.src[1] == '=' {
@@ -796,6 +797,9 @@ LOOP:
 			} else if len(l.src) > 1 && l.src[1] == '-' {
 				l.emit(tokenArrow, 2)
 				l.column += 2
+			} else if len(l.src) > 1 && l.src[1] == '<' {
+				l.emit(tokenLeftShift, 2)
+				l.column += 2
 			} else {
 				l.emit(tokenLess, 1)
 				l.column++
@@ -804,6 +808,9 @@ LOOP:
 		case '>':
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenGreaterOrEqual, 2)
+				l.column += 2
+			} else if len(l.src) > 1 && l.src[1] == '>' {
+				l.emit(tokenRightShift, 2)
 				l.column += 2
 			} else {
 				l.emit(tokenGreater, 1)
@@ -845,6 +852,10 @@ LOOP:
 			} else {
 				return l.errorf("unexpected }")
 			}
+		case '^':
+			l.emit(tokenXor, 1)
+			l.column++
+			endLineAsSemicolon = false
 		case ':':
 			if len(l.src) > 1 && l.src[1] == '=' {
 				l.emit(tokenDeclaration, 2)

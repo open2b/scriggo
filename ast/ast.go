@@ -62,14 +62,19 @@ const (
 	OperatorGreater                            // >
 	OperatorGreaterOrEqual                     // >=
 	OperatorNot                                // !
-	OperatorAmpersand                          // &
-	OperatorAnd                                // &&
-	OperatorOr                                 // ||
+	OperatorAnd                                // &
+	OperatorOr                                 // |
+	OperatorAndAnd                             // &&
+	OperatorOrOr                               // ||
 	OperatorAddition                           // +
 	OperatorSubtraction                        // -
 	OperatorMultiplication                     // *
 	OperatorDivision                           // /
 	OperatorModulo                             // %
+	OperatorXor                                // ^
+	OperatorAndNot                             // &^
+	OperatorLeftShift                          // <<
+	OperatorRightShift                         // >>
 	OperatorReceive                            // <-
 )
 
@@ -83,12 +88,19 @@ const (
 	AssignmentMultiplication                       // *=
 	AssignmentDivision                             // /=
 	AssignmentModulo                               // %=
+	AssignmentAnd                                  // &=
+	AssignmentOr                                   // |=
+	AssignmentXor                                  // ^=
+	AssignmentAndNot                               // &^=
+	AssignmentLeftShift                            // <<=
+	AssignmentRightShift                           // >>=
 	AssignmentIncrement                            // --
 	AssignmentDecrement                            // --
 )
 
 func (op OperatorType) String() string {
-	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "&&", "||", "+", "-", "*", "/", "%", "<-"}[op]
+	return []string{"==", "!=", "<", "<=", ">", ">=", "!", "&", "|", "&&", "||",
+		"+", "-", "*", "/", "%", "^", "&^", "<<", ">>", "<-"}[op]
 }
 
 // Context indicates the context in which a value statement must be valuated.
@@ -798,16 +810,17 @@ func (n *BinaryOperator) Operator() OperatorType {
 // expression.
 func (n *BinaryOperator) Precedence() int {
 	switch n.Op {
-	case OperatorMultiplication, OperatorDivision, OperatorModulo:
+	case OperatorMultiplication, OperatorDivision, OperatorModulo,
+		OperatorLeftShift, OperatorRightShift, OperatorAnd, OperatorAndNot:
 		return 5
-	case OperatorAddition, OperatorSubtraction:
+	case OperatorAddition, OperatorSubtraction, OperatorOr, OperatorXor:
 		return 4
 	case OperatorEqual, OperatorNotEqual, OperatorLess, OperatorLessOrEqual,
 		OperatorGreater, OperatorGreaterOrEqual:
 		return 3
-	case OperatorAnd:
+	case OperatorAndAnd:
 		return 2
-	case OperatorOr:
+	case OperatorOrOr:
 		return 1
 	}
 	panic("invalid operator type")

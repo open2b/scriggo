@@ -136,6 +136,15 @@ func (ti *TypeInfo) IsInteger() bool {
 	return reflect.Int <= k && k <= reflect.Uintptr
 }
 
+// IsUnsignedInteger reports whether it is an unsigned integer.
+func (ti *TypeInfo) IsUnsignedInteger() bool {
+	if ti.Nil() {
+		return false
+	}
+	k := ti.Type.Kind()
+	return reflect.Uint <= k && k <= reflect.Uint64
+}
+
 //  CanInt64 reports whether it is safe to call Int64.
 func (ti *TypeInfo) CanInt64() bool {
 	switch v := ti.Value.(type) {

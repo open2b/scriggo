@@ -80,13 +80,14 @@ const (
 	tokenEqual                             // ==
 	tokenNotEqual                          // !=
 	tokenNot                               // !
-	tokenAmpersand                         // &
+	tokenAnd                               // &
+	tokenOr                                // |
 	tokenLess                              // <
 	tokenLessOrEqual                       // <=
 	tokenGreater                           // >
 	tokenGreaterOrEqual                    // >=
-	tokenAnd                               // &&
-	tokenOr                                // ||
+	tokenAndAnd                            // &&
+	tokenOrOr                              // ||
 	tokenAddition                          // +
 	tokenSubtraction                       // -
 	tokenMultiplication                    // *
@@ -95,6 +96,10 @@ const (
 	tokenIncrement                         // ++
 	tokenDecrement                         // --
 	tokenArrow                             // <-
+	tokenXor                               // ^
+	tokenAndNot                            // &^
+	tokenLeftShift                         // <<
+	tokenRightShift                        // >>
 	tokenStruct                            // struct
 	tokenEOF                               // eof
 
@@ -167,13 +172,14 @@ var tokenString = map[tokenTyp]string{
 	tokenEqual:                    "==",
 	tokenNotEqual:                 "!=",
 	tokenNot:                      "!",
-	tokenAmpersand:                "&",
+	tokenAnd:                      "&",
+	tokenOr:                       "|",
 	tokenLess:                     "<",
 	tokenLessOrEqual:              "<=",
 	tokenGreater:                  ">",
 	tokenGreaterOrEqual:           ">=",
-	tokenAnd:                      "&&",
-	tokenOr:                       "||",
+	tokenAndAnd:                   "&&",
+	tokenOrOr:                     "||",
 	tokenAddition:                 "+",
 	tokenSubtraction:              "-",
 	tokenMultiplication:           "*",
@@ -182,6 +188,10 @@ var tokenString = map[tokenTyp]string{
 	tokenIncrement:                "++",
 	tokenDecrement:                "--",
 	tokenArrow:                    "<-",
+	tokenXor:                      "^",
+	tokenAndNot:                   "&^",
+	tokenLeftShift:                "<<",
+	tokenRightShift:               ">>",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
 

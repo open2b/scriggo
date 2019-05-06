@@ -116,6 +116,10 @@ var checkerExprs = []struct {
 	{`'a' + 1.2`, tiUntypedFloatConst("98.2"), nil},
 	{`1.5 + 1.2`, tiUntypedFloatConst("2.7"), nil},
 	{`"a" + "b"`, tiUntypedStringConst("ab"), nil},
+	{`12 & 9`, tiUntypedIntConst("8"), nil},
+	{`12 | 9`, tiUntypedIntConst("13"), nil},
+	{`12 ^ 9`, tiUntypedIntConst("5"), nil},
+	{`12 &^ 9`, tiUntypedIntConst("4"), nil},
 
 	// Operations ( typed + untyped ).
 	{`a && true`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
@@ -132,6 +136,10 @@ var checkerExprs = []struct {
 	{`v + 2`, tiInt(), map[string]*TypeInfo{"v": tiInt()}},
 	{`v + 2`, tiFloat64(), map[string]*TypeInfo{"v": tiFloat64()}},
 	{`v + 2.5`, tiFloat32(), map[string]*TypeInfo{"v": tiFloat32()}},
+	{`v & 9`, tiIntConst(8), map[string]*TypeInfo{"v": tiIntConst(12)}},
+	{`v | 9`, tiIntConst(13), map[string]*TypeInfo{"v": tiIntConst(12)}},
+	{`v ^ 9`, tiIntConst(5), map[string]*TypeInfo{"v": tiIntConst(12)}},
+	{`v &^ 9`, tiIntConst(4), map[string]*TypeInfo{"v": tiIntConst(12)}},
 
 	// Operations ( untyped + typed ).
 	{`true && a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
@@ -149,6 +157,10 @@ var checkerExprs = []struct {
 	{`2 + v`, tiInt(), map[string]*TypeInfo{"v": tiInt()}},
 	{`2 + v`, tiFloat64(), map[string]*TypeInfo{"v": tiFloat64()}},
 	{`2.5 + v`, tiFloat32(), map[string]*TypeInfo{"v": tiFloat32()}},
+	{`12 & v`, tiIntConst(8), map[string]*TypeInfo{"v": tiIntConst(9)}},
+	{`12 | v`, tiIntConst(13), map[string]*TypeInfo{"v": tiIntConst(9)}},
+	{`12 ^ v`, tiIntConst(5), map[string]*TypeInfo{"v": tiIntConst(9)}},
+	{`12 &^ v`, tiIntConst(4), map[string]*TypeInfo{"v": tiIntConst(9)}},
 
 	// Operations ( typed + typed ).
 	{`a && b`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true), "b": tiBoolConst(true)}},
@@ -163,6 +175,10 @@ var checkerExprs = []struct {
 	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiStringConst("a"), "b": tiString()}},
 	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiString(), "b": tiStringConst("b")}},
 	{`a + b`, tiString(), map[string]*TypeInfo{"a": tiString(), "b": tiString()}},
+	{`a & b`, tiIntConst(8), map[string]*TypeInfo{"a": tiIntConst(12), "b": tiIntConst(9)}},
+	{`a | b`, tiIntConst(13), map[string]*TypeInfo{"a": tiIntConst(12), "b": tiIntConst(9)}},
+	{`a ^ b`, tiIntConst(5), map[string]*TypeInfo{"a": tiIntConst(12), "b": tiIntConst(9)}},
+	{`a &^ b`, tiIntConst(4), map[string]*TypeInfo{"a": tiIntConst(12), "b": tiIntConst(9)}},
 
 	// Equality ( untyped + untyped )
 	{`false == false`, tiUntypedBoolConst(false == false), nil},
@@ -190,6 +206,16 @@ var checkerExprs = []struct {
 	{`a == "a"`, tiBoolConst(string("a") == "a"), map[string]*TypeInfo{"a": tiStringConst("a")}},
 	{`a == "b"`, tiBoolConst(string("a") == "b"), map[string]*TypeInfo{"a": tiStringConst("a")}},
 	{`a == 0`, tiUntypedBool(), map[string]*TypeInfo{"a": tiInt()}},
+
+	// Shifts.
+	{`1 << 1`, tiUntypedIntConst("2"), nil},
+	{`a << 1`, tiUntypedIntConst("2"), map[string]*TypeInfo{"a": tiUntypedIntConst("1")}},
+	{`a << 1`, tiInt8Const(2), map[string]*TypeInfo{"a": tiInt8Const(1)}},
+	{`a << 1`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
+	{`a << 1`, tiInt16(), map[string]*TypeInfo{"a": tiInt16()}},
+	{`1 << a`, tiUntypedIntConst("2"), map[string]*TypeInfo{"a": tiUntypedIntConst("1")}},
+	{`uint8(1) << a`, tiUint8Const(2), map[string]*TypeInfo{"a": tiUntypedIntConst("1")}},
+	{`1 << 511`, tiUntypedIntConst("6703903964971298549787012499102923063739682910296196688861780721860882015036773488400937149083451713845015929093243025426876941405973284973216824503042048"), nil},
 
 	// Index.
 	{`"a"[0]`, tiByte(), nil},
@@ -761,6 +787,26 @@ var checkerStmts = map[string]string{
 	`var _ *map[string]interface{}`:       ok,
 	`var _ *(((map[string]interface{})))`: ok,
 	`var _ map[*int][]*string`:            ok,
+
+	// Shifts.
+	`_ = 1 << nil`:                     `cannot convert nil to type uint`,
+	`_ = 1 << "s"`:                     `invalid operation: 1 << "s" (shift count type string, must be unsigned integer)`,
+	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (shift count type float64, must be unsigned integer)`, // NOTE: gc returns `constant 1.2 truncated to integer`
+	`_ = 1 << -1`:                      `invalid negative shift count: -1`,
+	`_ = 1 << 512`:                     `shift count too large: 512`,
+	`const a string = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
+	`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (shift count type int, must be unsigned integer)`,
+	`var a = "s"; _ = 1 << a`:          `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
+	`var a = 1.2; _ = 1 << a`:          `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
+	`var a = -1; _ = 1 << a`:           `invalid operation: 1 << a (shift count type int, must be unsigned integer)`,
+	`_ = nil << 1`:                     `invalid operation: nil << 1 (shift of type nil)`,
+	`_ = "a" << 1`:                     `invalid operation: "a" << 1 (shift of type untyped string)`,
+	`_ = 1.2 << 1`:                     `invalid operation: 1.2 << 1 (shift of type untyped float64)`, // NOTE: gc returns `constant 1.2 truncated to integer`
+	`_ = 1 << 1`:                       ok,
+	`_ = 1 << 1.0`:                     ok,
+	`_ = 1 << 511`:                     ok,
+	`_ = -1 << 1`:                      ok,
+	// `_ = 1.0 << 1`:                     ok, TODO(marco)
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
