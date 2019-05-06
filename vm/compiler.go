@@ -694,13 +694,49 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		} else if isRegister {
 			c.changeRegister(false, out, reg, typ, dstType)
 		} else {
+			// TODO(Gianluca): this switch only handles predeclared types.
+			// Add support for defined types.
 			switch v := expr.Val.(type) {
+			case complex64, complex128:
+				panic("TODO(Gianluca): not implemented")
+			case uintptr:
+				panic("TODO(Gianluca): not implemented")
+			case int:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case int8:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case int16:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case int32:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
 			case int64:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case uint:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case uint8:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case uint16:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case uint32:
+				constant := c.fb.MakeIntConstant(int64(v))
+				c.fb.LoadNumber(TypeInt, constant, reg)
+			case uint64:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(TypeInt, constant, reg)
 			case string:
 				constant := c.fb.MakeStringConstant(v)
 				c.changeRegister(true, constant, reg, typ, dstType)
+			case float32:
+				constant := c.fb.MakeFloatConstant(float64(v))
+				c.fb.LoadNumber(TypeFloat, constant, reg)
 			case float64:
 				constant := c.fb.MakeFloatConstant(v)
 				c.fb.LoadNumber(TypeFloat, constant, reg)

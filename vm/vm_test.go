@@ -22,6 +22,16 @@ import (
 
 var exprTests = map[string]interface{}{
 
+	// Numbers.
+	`3`:    int64(3),
+	`-3`:   int64(-3),
+	`3000`: int64(3000),
+	`4.5`:  float64(4.5),
+	`-4.5`: float64(-4.5),
+
+	// Strings.
+	`"abc"`: "abc",
+
 	// Composite literals - arrays.
 	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
 	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
@@ -29,15 +39,15 @@ var exprTests = map[string]interface{}{
 	`[3]string{"a", "b"}`: []string{"a", "b"}, // Internally, arrays are stored as slices.
 
 	// Composite literals - slices.
-	`[]int{}`:               []int{},
-	`[]int{1, 2}`:           []int{1, 2},
-	`[]int{0: 1, 1: 3}`:     []int{0: 1, 1: 3},
-	`[]int{0: 1, 5: 3}`:     []int{0: 1, 5: 3},
-	`[]string{}`:            []string{},
-	`[]string{"a", "b"}`:    []string{"a", "b"},
-	`[]string{"a", 5: "b"}`: []string{"a", 5: "b"},
-	`[]float64{5, 12, 0}`:   []float64{5, 12, 0},
-	// `[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
+	`[]int{}`:                   []int{},
+	`[]int{1, 2}`:               []int{1, 2},
+	`[]int{0: 1, 1: 3}`:         []int{0: 1, 1: 3},
+	`[]int{0: 1, 5: 3}`:         []int{0: 1, 5: 3},
+	`[]string{}`:                []string{},
+	`[]string{"a", "b"}`:        []string{"a", "b"},
+	`[]string{"a", 5: "b"}`:     []string{"a", 5: "b"},
+	`[]float64{5, 12, 0}`:       []float64{5, 12, 0},
+	`[]float64{5.6, 12.3, 0.4}`: []float64{5.6, 12.3, 0.4},
 
 	// Composite literals - maps.
 	`map[int]string{}`:                                    map[int]string{},
