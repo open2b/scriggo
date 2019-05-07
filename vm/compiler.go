@@ -518,9 +518,11 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		case op == ast.OperatorOr,
 			op == ast.OperatorAnd,
 			op == ast.OperatorXor,
-			op == ast.OperatorAndNot:
+			op == ast.OperatorAndNot,
+			op == ast.OperatorLeftShift,
+			op == ast.OperatorRightShift:
 			if reg != 0 {
-				c.fb.BinaryBitOperation(op, ky, x, y, reg)
+				c.fb.BinaryBitOperation(op, ky, x, y, reg, xType.Kind())
 				if kindToType(xType.Kind()) != kindToType(dstType.Kind()) {
 					c.changeRegister(ky, reg, reg, xType, dstType)
 				}

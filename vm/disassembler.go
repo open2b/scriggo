@@ -251,7 +251,9 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		opMulInt, opMulInt8, opMulInt16, opMulInt32,
 		opRemInt, opRemInt8, opRemInt16, opRemInt32, opRemUint8, opRemUint16, opRemUint32, opRemUint64,
 		opSubInt, opSubInt8, opSubInt16, opSubInt32,
-		opSubInvInt, opSubInvInt8, opSubInvInt16, opSubInvInt32:
+		opSubInvInt, opSubInvInt8, opSubInvInt16, opSubInvInt32,
+		opLeftShift, opLeftShift8, opLeftShift16, opLeftShift32,
+		opRightShift, opRightShiftU:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Int, false)
@@ -665,6 +667,11 @@ var operationName = [...]string{
 
 	opIndex: "Index",
 
+	opLeftShift:   "LeftShift",
+	opLeftShift8:  "LeftShift8",
+	opLeftShift16: "LeftShift16",
+	opLeftShift32: "LeftShift32",
+
 	opLen: "Len",
 
 	opLoadNumber: "LoadNumber",
@@ -712,6 +719,9 @@ var operationName = [...]string{
 	opRemUint64: "RemU64",
 
 	opReturn: "Return",
+
+	opRightShift:  "RightShift",
+	opRightShiftU: "RightShiftU",
 
 	opSelector: "Selector",
 

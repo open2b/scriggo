@@ -363,7 +363,7 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 //
 //	dst = x op y
 //
-func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky bool, x, y, dst int8) {
+func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky bool, x, y, dst int8, kind reflect.Kind) {
 	// TODO(Gianluca): should builder be dependent from ast? If no, introduce
 	// a new type which describes the operator.
 	var op operation
@@ -377,11 +377,21 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 	case ast.OperatorAndNot:
 		op = opAndNot
 	case ast.OperatorLeftShift:
-		// TODO(Gianluca): wait for implementation.
-		panic("TODO(Gianluca): not implemented")
+		op = opLeftShift
+		switch kind {
+		case reflect.Int8, reflect.Uint8:
+			op = opLeftShift8
+		case reflect.Int16, reflect.Uint16:
+			op = opLeftShift16
+		case reflect.Int32, reflect.Uint32:
+			op = opLeftShift32
+		}
 	case ast.OperatorRightShift:
-		// TODO(Gianluca): wait for implementation.
-		panic("TODO(Gianluca): not implemented")
+		op = opRightShift
+		switch kind {
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			op = opRightShiftU
+		}
 	}
 	if ky {
 		op = -op

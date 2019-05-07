@@ -550,6 +550,16 @@ func (vm *VM) run() int {
 			v := reflect.ValueOf(vm.general(a)).Index(i)
 			vm.setFromReflectValue(c, v)
 
+		// LeftShift
+		case opLeftShift, -opLeftShift:
+			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
+		case opLeftShift8, -opLeftShift8:
+			vm.setInt(c, int64(int8(vm.int(a))<<uint(vm.intk(b, op < 0))))
+		case opLeftShift16, -opLeftShift16:
+			vm.setInt(c, int64(int16(vm.int(a))<<uint(vm.intk(b, op < 0))))
+		case opLeftShift32, -opLeftShift32:
+			vm.setInt(c, int64(int32(vm.int(a))<<uint(vm.intk(b, op < 0))))
+
 		// Len
 		case opLen:
 			// TODO(marco): add other cases
@@ -1010,6 +1020,12 @@ func (vm *VM) run() int {
 			} else if !vm.nextCall() {
 				return maxInt8
 			}
+
+		// RightShift
+		case opRightShift, -opRightShift:
+			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
+		case opRightShiftU, -opRightShiftU:
+			vm.setInt(c, int64(uint64(vm.int(a))>>uint(vm.intk(b, op < 0))))
 
 		// Selector
 		case opSelector:

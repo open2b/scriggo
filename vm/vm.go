@@ -1068,6 +1068,11 @@ const (
 
 	opIndex
 
+	opLeftShift
+	opLeftShift8
+	opLeftShift16
+	opLeftShift32
+
 	opLen
 
 	opLoadNumber
@@ -1115,6 +1120,9 @@ const (
 	opRemUint64
 
 	opReturn
+
+	opRightShift
+	opRightShiftU
 
 	opSelector
 
