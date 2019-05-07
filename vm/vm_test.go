@@ -499,6 +499,8 @@ var stmtTests = []struct {
 		`
 		package main
 
+		import "fmt"
+
 		func main() {
 			var a int
 			var c string
@@ -506,33 +508,21 @@ var stmtTests = []struct {
 			a = 10
 			c = "hi"
 
-			_ = a
-			_ = c
-
-			return
+			fmt.Print(a, c)
 		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(10)}, // a
-			{TypeString, 1, "hi"},   // c
-		}, ""},
+		`, nil, nil, "10hi"},
 
 	{"Multiple assignment",
-		`
-		package main
+		`package main
 
+		import "fmt"
+		
 		func main() {
 			a, b := 6, 7
-			_, _ = a, b
-			return
+			fmt.Print(a, b)
 		}
 		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(6)}, // a
-			{TypeInt, 2, int64(7)}, // b
-		}, ""},
+		nil, nil, "6 7"},
 
 	{"Assignment with constant int value (addition)",
 		`
@@ -1555,7 +1545,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 1, map[string]int{}},
+			{TypeIface, 2, map[string]int{}},
 		}, ""},
 
 	{"Builtin copy",
@@ -1831,7 +1821,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 1, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
+			{TypeIface, 2, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
 		""},
 
@@ -1880,8 +1870,8 @@ var stmtTests = []struct {
 		`, nil, []reg{
 			{TypeInt, 1, int64(3)},
 			{TypeInt, 2, int64(3)},
-			{TypeString, 1, "hey"},
-			{TypeString, 3, "hey"},
+			{TypeString, 2, "hey"},
+			{TypeString, 4, "hey"},
 		}, ""},
 
 	{"Many Scrigo functions (swap, sum, fact)",

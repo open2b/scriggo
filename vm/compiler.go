@@ -985,7 +985,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 			} else {
 				varReg = c.fb.ScopeLookup(variable.Name)
 			}
-			out, isValue, isRegister := c.quickCompileExpr(value, typ)
+			out, isValue, isRegister := c.quickCompileExpr(value, c.typeinfo[variable].Type)
 			if isValue {
 				c.fb.Move(true, out, varReg, typ.Kind(), typ.Kind())
 			} else if isRegister {
@@ -1463,7 +1463,13 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 		case *ast.Var:
 			if len(node.Identifiers) == len(node.Values) {
 				for i := range node.Identifiers {
-					c.compileAssignment([]ast.Expression{node.Identifiers[i]}, node.Values[i], true)
+					valueType := c.typeinfo[node.Values[i]].Type
+					value, kvalue, isRegister := c.quickCompileExpr(node.Values[i], valueType)
+					if !kvalue && !isRegister {
+						value = c.fb.NewRegister(valueType.Kind())
+						c.compileExpr(node.Values[i], value, valueType)
+					}
+					c.compileVariableAssignment(node.Identifiers[i], value, valueType, kvalue, true)
 				}
 			} else {
 				expr := make([]ast.Expression, len(node.Identifiers))
