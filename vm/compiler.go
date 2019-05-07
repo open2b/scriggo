@@ -1401,14 +1401,28 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// c.fb.ExitScope()
 
 		case *ast.Return:
-			if len(node.Values) == 1 {
-				if _, isCall := node.Values[0].(*ast.Call); isCall {
-					// TODO (Gianluca): must assign new values.
-					// TODO (Gianluca): use the appropiate function, cause not necessarily is CurrentPackage, CurrentFunction.
-					// c.fb.TailCall(CurrentPackage, CurrentFunction, node.Pos().Line)
-					continue
-				}
-			}
+			// TODO(Gianluca): complete implementation of tail call optimization.
+			// if len(node.Values) == 1 {
+			// 	if call, ok := node.Values[0].(*ast.Call); ok {
+			// 		tmpRegs := make([]int8, len(call.Args))
+			// 		paramPosition := make([]int8, len(call.Args))
+			// 		tmpTypes := make([]reflect.Type, len(call.Args))
+			// 		shift := StackShift{}
+			// 		for i := range call.Args {
+			// 			tmpTypes[i] = c.typeinfo[call.Args[i]].Type
+			// 			t := int(kindToType(tmpTypes[i].Kind()))
+			// 			tmpRegs[i] = c.fb.NewRegister(tmpTypes[i].Kind())
+			// 			shift[t]++
+			// 			c.compileExpr(call.Args[i], tmpRegs[i], tmpTypes[i])
+			// 			paramPosition[i] = shift[t]
+			// 		}
+			// 		for i := range call.Args {
+			// 			c.changeRegister(false, tmpRegs[i], paramPosition[i], tmpTypes[i], c.typeinfo[call.Func].Type.In(i))
+			// 		}
+			// 		c.fb.TailCall(CurrentFunction, node.Pos().Line)
+			// 		continue
+			// 	}
+			// }
 			for i, v := range node.Values {
 				typ := c.typeinfo[v].Type
 				reg := int8(i + 1)
