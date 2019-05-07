@@ -31,7 +31,7 @@ func main() {
 	var args = flag.Args()
 
 	if len(args) != 1 {
-		fmt.Printf("usage: %s filename\n", args[0])
+		fmt.Printf("usage: %s [-S] [--trace] filename\n", os.Args[0])
 		os.Exit(-1)
 	}
 
