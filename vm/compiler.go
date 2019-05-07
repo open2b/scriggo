@@ -1043,7 +1043,7 @@ func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expre
 		}
 		retRegs, retTypes := c.compileCall(value)
 		for i := range retRegs {
-			c.fb.Move(false, retRegs[i], varRegs[i], retTypes[i].Kind(), retTypes[i].Kind())
+			c.changeRegister(false, retRegs[i], varRegs[i], retTypes[i], c.typeinfo[variables[i]].Type)
 		}
 	case *ast.TypeAssertion:
 		var dst int8
