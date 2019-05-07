@@ -304,6 +304,18 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
+// And appends a new "And" instruction to the function body.
+//
+//	c = x & y
+//
+func (builder *FunctionBuilder) And(ky bool, x, y, dst int8) {
+	op := opAnd
+	if ky {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
+}
+
 // Append appends a new "Append" instruction to the function body.
 //
 //     s = append(s, regs[first:first+length]...)
@@ -847,6 +859,18 @@ func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 //
 func (builder *FunctionBuilder) Nop() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
+}
+
+// Or appends a new "Or" instruction to the function body.
+//
+//	c = x | y
+//
+func (builder *FunctionBuilder) Or(ky bool, x, y, dst int8) {
+	op := opOr
+	if ky {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
 }
 
 // Panic appends a new "Panic" instruction to the function body.

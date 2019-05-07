@@ -515,6 +515,24 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				c.fb.If(ky, op1, cond, op2, typ.Kind())
 				c.fb.Move(true, 0, reg, typ.Kind(), dstType.Kind())
 			}
+		case op == ast.OperatorOr:
+			if reg != 0 {
+				c.fb.Or(ky, op1, op2, reg)
+				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
+					c.changeRegister(ky, reg, reg, typ, dstType)
+				}
+			}
+		case op == ast.OperatorAnd:
+			if reg != 0 {
+				c.fb.And(ky, op1, op2, reg)
+				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
+					c.changeRegister(ky, reg, reg, typ, dstType)
+				}
+			}
+		case op == ast.OperatorAnd:
+			panic("TODO(Gianluca): not implemented")
+		default:
+			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
 		c.fb.ExitStack()
 
@@ -667,6 +685,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			panic("TODO: not implemented")
 		case ast.OperatorReceive:
 			c.fb.Receive(tmpReg, 0, reg)
+		default:
+			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
 
 	case *ast.Func:

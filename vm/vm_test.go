@@ -117,6 +117,22 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Bit operators & (And) and | (Or)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := 5
+			b := 11
+			or := a | b
+			and := a & b
+			fmt.Println(or, and)
+		}
+		`, nil, nil, "15 1\n"},
+
 	{"Channels - Reading and writing",
 		`package main
 
