@@ -361,7 +361,9 @@ func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
 		parType := par.Type.(*ast.Value).Val.(reflect.Type)
 		kind := parType.Kind()
 		argReg := c.fb.NewRegister(kind)
-		c.fb.BindVarReg(par.Ident.Name, argReg)
+		if par.Ident != nil {
+			c.fb.BindVarReg(par.Ident.Name, argReg)
+		}
 	}
 }
 

@@ -117,6 +117,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Anonymous function arguments",
+		`package main
+
+		import "fmt"
+		
+		func f(int) { }
+		
+		func g(string, string) int {
+			return 10
+		}
+		
+		func main() {
+			f(3)
+			v := g("a", "b")
+			fmt.Println(v)
+		}
+		`, nil, nil, "10\n"},
+
 	{"Bit operators & (And) and | (Or)",
 		`package main
 
