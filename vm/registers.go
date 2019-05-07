@@ -337,6 +337,8 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		v.SetUint(uint64(vm.intk(r, k)))
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(vm.floatk(r, k))
+	case reflect.String:
+		v.SetString(vm.stringk(r, k))
 	default:
 		v.Set(reflect.ValueOf(vm.generalk(r, k)))
 	}
