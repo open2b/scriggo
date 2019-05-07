@@ -117,6 +117,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Issue #75",
+		`package main
+
+		import "fmt"
+		
+		func f(flag bool) {
+			if flag {
+				fmt.Println("flag is true")
+			} else {
+				fmt.Println("flag is false")
+			}
+		}
+		
+		func main() {
+			f(true)
+			f(false)
+		}`, nil, nil, "flag is true\nflag is false\n"},
+
 	{"Functions with strings as input/output arguments",
 		`package main
 
