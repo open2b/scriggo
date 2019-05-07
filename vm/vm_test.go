@@ -631,37 +631,6 @@ var stmtTests = []struct {
 			{TypeInt, 4, int64(45)}, // d
 		}, ""},
 
-	{"Variable declaration with 'var'",
-		`
-		package main
-
-		func pair() (int, string) {
-			return 10, "zzz"
-		}
-
-		func main() {
-			var a, b = 1, 2
-			var c, d int
-			var e, f = pair()
-
-			_ = a
-			_ = b
-			_ = c
-			_ = d
-			_ = e
-			_ = f
-			return
-		}
-		`,
-		nil,
-		[]reg{
-			{TypeInt, 1, int64(1)},  // a
-			{TypeInt, 2, int64(2)},  // b
-			{TypeInt, 3, int64(0)},  // c
-			{TypeInt, 4, int64(0)},  // d
-			{TypeInt, 5, int64(10)}, // e
-			// {TypeString, 6, "zzz"},  // f // TODO (Gianluca):
-		}, ""},
 	{"Slice index assignment",
 		`
 		package main
@@ -1980,6 +1949,28 @@ var stmtTests = []struct {
 
 	//------------------------------------
 	// TODO(Gianluca): disabled tests:
+
+	// {"Variable declaration with 'var'",
+	// 	`package main
+
+	// 	import "fmt"
+
+	// 	func pair() (int, string) {
+	// 		return 10, "zzz"
+	// 	}
+
+	// 	func main() {
+	// 		var a, b = 1, 2
+	// 		var c, d int
+	// 		var e, f = pair()
+	// 		fmt.Print(a, b, c, d, e, f)
+	// 	}
+	// 	`,
+	// 	nil,
+	// 	nil,
+	// 	"1 2 0 0 10zzz"},
+
+	//------------------------------------
 
 	// {"Defer",
 	// 	`
