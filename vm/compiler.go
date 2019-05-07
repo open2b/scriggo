@@ -515,30 +515,12 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				c.fb.If(ky, op1, cond, op2, typ.Kind())
 				c.fb.Move(true, 0, reg, typ.Kind(), dstType.Kind())
 			}
-		case op == ast.OperatorOr:
+		case op == ast.OperatorOr,
+			op == ast.OperatorAnd,
+			op == ast.OperatorXor,
+			op == ast.OperatorAndNot:
 			if reg != 0 {
-				c.fb.Or(ky, op1, op2, reg)
-				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
-					c.changeRegister(ky, reg, reg, typ, dstType)
-				}
-			}
-		case op == ast.OperatorAnd:
-			if reg != 0 {
-				c.fb.And(ky, op1, op2, reg)
-				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
-					c.changeRegister(ky, reg, reg, typ, dstType)
-				}
-			}
-		case op == ast.OperatorXor:
-			if reg != 0 {
-				c.fb.Xor(ky, op1, op2, reg)
-				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
-					c.changeRegister(ky, reg, reg, typ, dstType)
-				}
-			}
-		case op == ast.OperatorAndNot:
-			if reg != 0 {
-				c.fb.AndNot(ky, op1, op2, reg)
+				c.fb.BinaryBitOperation(op, ky, op1, op2, reg)
 				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
 					c.changeRegister(ky, reg, reg, typ, dstType)
 				}

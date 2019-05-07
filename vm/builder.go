@@ -9,6 +9,7 @@ package vm
 import (
 	"fmt"
 	"reflect"
+	"scrigo/ast"
 )
 
 type FunctionBuilder struct {
@@ -304,30 +305,6 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
 }
 
-// And appends a new "And" instruction to the function body.
-//
-//	c = x & y
-//
-func (builder *FunctionBuilder) And(ky bool, x, y, dst int8) {
-	op := opAnd
-	if ky {
-		op = -op
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
-}
-
-// AndNot appends a new "AndNot" instruction to the function body.
-//
-//	c = x &^ y
-//
-func (builder *FunctionBuilder) AndNot(ky bool, x, y, dst int8) {
-	op := opAndNot
-	if ky {
-		op = -op
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
-}
-
 // Append appends a new "Append" instruction to the function body.
 //
 //     s = append(s, regs[first:first+length]...)
@@ -381,6 +358,37 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 		}
 	}
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: e, b: tr, c: z})
+}
+
+// BinaryBitOperation appends a new binary bit operation specified by operator
+// to the function body.
+//
+//	dst = x op y
+//
+func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky bool, x, y, dst int8) {
+	// TODO(Gianluca): should builder be dependent from ast? If no, introduce
+	// a new type which describes the operator.
+	var op operation
+	switch operator {
+	case ast.OperatorAnd:
+		op = opAnd
+	case ast.OperatorOr:
+		op = opOr
+	case ast.OperatorXor:
+		op = opXor
+	case ast.OperatorAndNot:
+		op = opAndNot
+	case ast.OperatorLeftShift:
+		// TODO(Gianluca): wait for implementation.
+		panic("TODO(Gianluca): not implemented")
+	case ast.OperatorRightShift:
+		// TODO(Gianluca): wait for implementation.
+		panic("TODO(Gianluca): not implemented")
+	}
+	if ky {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
 }
 
 // Bind appends a new "Bind" instruction to the function body.
@@ -873,18 +881,6 @@ func (builder *FunctionBuilder) Nop() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
 }
 
-// Or appends a new "Or" instruction to the function body.
-//
-//	c = x | y
-//
-func (builder *FunctionBuilder) Or(ky bool, x, y, dst int8) {
-	op := opOr
-	if ky {
-		op = -op
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
-}
-
 // Panic appends a new "Panic" instruction to the function body.
 //
 //     panic(v)
@@ -1090,16 +1086,4 @@ func (builder *FunctionBuilder) TailCall(f int8, line int) {
 	var fn = builder.fn
 	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
 	fn.AddLine(uint32(len(fn.body)-1), line)
-}
-
-// Xor appends a new "Xor" instruction to the function body.
-//
-//	c = x ^ y
-//
-func (builder *FunctionBuilder) Xor(ky bool, x, y, dst int8) {
-	op := opXor
-	if ky {
-		op = -op
-	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
 }
