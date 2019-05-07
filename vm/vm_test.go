@@ -133,6 +133,22 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "15 1\n"},
 
+	{"Bit operators ^ (Xor) and &^ (bit clear = and not)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := 5
+			b := 11
+			xor := a ^ b
+			bitclear := a &^ b
+			fmt.Println(xor, bitclear)
+		}
+		`, nil, nil, "14 4\n"},
+
 	{"Channels - Reading and writing",
 		`package main
 

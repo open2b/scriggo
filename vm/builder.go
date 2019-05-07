@@ -316,6 +316,18 @@ func (builder *FunctionBuilder) And(ky bool, x, y, dst int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
 }
 
+// AndNot appends a new "AndNot" instruction to the function body.
+//
+//	c = x &^ y
+//
+func (builder *FunctionBuilder) AndNot(ky bool, x, y, dst int8) {
+	op := opAndNot
+	if ky {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
+}
+
 // Append appends a new "Append" instruction to the function body.
 //
 //     s = append(s, regs[first:first+length]...)
@@ -1078,4 +1090,16 @@ func (builder *FunctionBuilder) TailCall(f int8, line int) {
 	var fn = builder.fn
 	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
 	fn.AddLine(uint32(len(fn.body)-1), line)
+}
+
+// Xor appends a new "Xor" instruction to the function body.
+//
+//	c = x ^ y
+//
+func (builder *FunctionBuilder) Xor(ky bool, x, y, dst int8) {
+	op := opXor
+	if ky {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
 }

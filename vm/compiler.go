@@ -529,8 +529,20 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 					c.changeRegister(ky, reg, reg, typ, dstType)
 				}
 			}
-		case op == ast.OperatorAnd:
-			panic("TODO(Gianluca): not implemented")
+		case op == ast.OperatorXor:
+			if reg != 0 {
+				c.fb.Xor(ky, op1, op2, reg)
+				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
+					c.changeRegister(ky, reg, reg, typ, dstType)
+				}
+			}
+		case op == ast.OperatorAndNot:
+			if reg != 0 {
+				c.fb.AndNot(ky, op1, op2, reg)
+				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
+					c.changeRegister(ky, reg, reg, typ, dstType)
+				}
+			}
 		default:
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
