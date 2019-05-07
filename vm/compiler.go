@@ -900,8 +900,8 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Ty
 	return 0, false, false
 }
 
-// compileVariableAssignment assigns value to variable.
-func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8, valueType reflect.Type, kvalue bool, isDecl bool) {
+// compileSingleAssignment assigns value to variable.
+func (c *Compiler) compileSingleAssignment(variable ast.Expression, value int8, valueType reflect.Type, kvalue bool, isDecl bool) {
 	if isBlankIdentifier(variable) {
 		return
 	}
@@ -950,81 +950,16 @@ func (c *Compiler) compileVariableAssignment(variable ast.Expression, value int8
 	}
 }
 
-// compileAssignment assign value to variables. If variables contains more than
+// compileMultipleAssignment assign value to variables. If variables contains more than
 // one variable, value must be a function call, a map indexing operation or a
 // type assertion. These last two cases involve that variables contains 2
 // elements.
-func (c *Compiler) compileAssignment(variables []ast.Expression, value ast.Expression, isDecl bool) {
+func (c *Compiler) compileMultipleAssignment(variables []ast.Expression, value ast.Expression, isDecl bool) {
 	// TODO (Gianluca): in case of variable declaration, if quickCompileExpr returns
 	// a register use it instead of creating a new one.
-	if len(variables) == 1 { // TODO(Gianluca): remove this!
-		variable := variables[0]
-		typ := c.typeinfo[value].Type
-		if isBlankIdentifier(variable) {
-			c.compileNodes([]ast.Node{value})
-			return
-		}
-		switch variable := variable.(type) {
-		case *ast.Selector:
-			if v, ok := c.availableVariables[variable.Expr.(*ast.Identifier).Name+"."+variable.Ident]; ok {
-				index := c.variableIndex(v)
-				tmpReg, _, isRegister := c.quickCompileExpr(value, typ)
-				if !isRegister {
-					tmpReg = c.fb.NewRegister(typ.Kind())
-					c.compileExpr(value, tmpReg, typ)
-				}
-				c.fb.SetVar(tmpReg, index)
-				return
-			}
-			panic("TODO: not implemented")
-		case *ast.Identifier:
-			var varReg int8
-			if isDecl {
-				varReg = c.fb.NewRegister(typ.Kind())
-				c.fb.BindVarReg(variable.Name, varReg)
-			} else {
-				varReg = c.fb.ScopeLookup(variable.Name)
-			}
-			out, isValue, isRegister := c.quickCompileExpr(value, c.typeinfo[variable].Type)
-			if isValue {
-				c.fb.Move(true, out, varReg, typ.Kind(), typ.Kind())
-			} else if isRegister {
-				c.fb.Move(false, out, varReg, typ.Kind(), typ.Kind())
-			} else {
-				c.fb.EnterStack()
-				tmpReg := c.fb.NewRegister(typ.Kind())
-				c.compileExpr(value, tmpReg, typ)
-				c.fb.Move(false, tmpReg, varReg, typ.Kind(), typ.Kind())
-				c.fb.ExitStack()
-			}
-		case *ast.Index:
-			switch exprType := c.typeinfo[variable.Expr].Type; exprType.Kind() {
-			case reflect.Slice:
-				slice, _, isRegister := c.quickCompileExpr(variable.Expr, c.typeinfo[variable].Type)
-				if !isRegister {
-					slice = c.fb.NewRegister(reflect.Interface)
-					c.compileExpr(variable.Expr, slice, typ)
-				}
-				valueReg, kvalue, isRegister := c.quickCompileExpr(value, exprType.Elem())
-				if !kvalue && !isRegister {
-					valueReg = c.fb.NewRegister(typ.Kind())
-					c.compileExpr(value, valueReg, typ)
-				}
-				index, _, isRegister := c.quickCompileExpr(variable.Index, intType)
-				if !isRegister {
-					index = c.fb.NewRegister(reflect.Int)
-					c.compileExpr(variable.Index, index, intType)
-				}
-				c.fb.SetSlice(kvalue, slice, valueReg, index, typ.Kind())
-			default:
-				panic("TODO: not implemented")
-			}
-		default:
-			panic("TODO: not implemented")
-		}
-		return
+	if len(variables) <= 1 {
+		panic("bug")
 	}
-	// len(variables) > 1
 	// TODO (Gianluca): handle "_".
 	switch value := value.(type) {
 	case *ast.Call:
@@ -1249,7 +1184,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 						c.compileExpr(node.Values[i], values[i], valueTypes[i])
 					}
 					for i := range node.Variables {
-						c.compileVariableAssignment(node.Variables[i], values[i], valueTypes[i], valueIsConst[i], node.Type == ast.AssignmentDeclaration)
+						c.compileSingleAssignment(node.Variables[i], values[i], valueTypes[i], valueIsConst[i], node.Type == ast.AssignmentDeclaration)
 					}
 				} else {
 					for i := range node.Variables {
@@ -1259,11 +1194,11 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 							value = c.fb.NewRegister(valueType.Kind())
 							c.compileExpr(node.Values[i], value, valueType)
 						}
-						c.compileVariableAssignment(node.Variables[i], value, valueType, kvalue, node.Type == ast.AssignmentDeclaration)
+						c.compileSingleAssignment(node.Variables[i], value, valueType, kvalue, node.Type == ast.AssignmentDeclaration)
 					}
 				}
 			case len(node.Variables) > 1 && len(node.Values) == 1:
-				c.compileAssignment(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
+				c.compileMultipleAssignment(node.Variables, node.Values[0], node.Type == ast.AssignmentDeclaration)
 			case len(node.Variables) == 1 && len(node.Values) == 0:
 				switch node.Type {
 				case ast.AssignmentIncrement:
@@ -1469,14 +1404,14 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 						value = c.fb.NewRegister(valueType.Kind())
 						c.compileExpr(node.Values[i], value, valueType)
 					}
-					c.compileVariableAssignment(node.Identifiers[i], value, valueType, kvalue, true)
+					c.compileSingleAssignment(node.Identifiers[i], value, valueType, kvalue, true)
 				}
 			} else {
 				expr := make([]ast.Expression, len(node.Identifiers))
 				for i := range node.Identifiers {
 					expr[i] = node.Identifiers[i]
 				}
-				c.compileAssignment(expr, node.Values[0], true)
+				c.compileMultipleAssignment(expr, node.Values[0], true)
 			}
 
 		case ast.Expression:
