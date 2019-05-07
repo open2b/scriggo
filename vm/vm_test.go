@@ -117,6 +117,29 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Functions with strings as input/output arguments",
+		`package main
+
+		import "fmt"
+		
+		func f(s1, s2 string) string {
+			return s1 + s2
+		}
+		
+		func g(s string) int {
+			return len(s)
+		}
+		
+		func main() {
+			b := "hey"
+			fmt.Print(
+				g(
+					f("a", b),
+				),
+			)
+		}`,
+		nil, nil, "4"},
+
 	{"Named return parameters",
 		`package main
 		
