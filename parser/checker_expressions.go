@@ -302,6 +302,16 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
+	if using {
+		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
+			v := tc.unusedVars[i]
+			if v.ident == ident.Name {
+				v.node = nil
+				break
+			}
+		}
+	}
+
 	// For "." imported packages, marks package as used.
 	func() {
 		for pkg, decls := range tc.unusedImports {
@@ -347,16 +357,6 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 			// case DeclFunc:
 			// 	tc.checkNodesInNewScope(d.Value.(*ast.Block).Nodes)
 			// 	return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
-		}
-	}
-
-	if using {
-		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
-			v := tc.unusedVars[i]
-			if v.ident == ident.Name {
-				v.node = nil
-				break
-			}
 		}
 	}
 
