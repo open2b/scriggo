@@ -218,8 +218,6 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	return tr
 }
 
-// TODO (Gianluca): what's the point of this method? Can it be embedded in
-// another method?
 func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
@@ -457,7 +455,6 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 // 	 dst = typ(expr)
 //
 func (builder *FunctionBuilder) Convert(expr int8, srcType, dstType reflect.Type, dst int8) {
-	// TODO (Gianluca): add support for every kind of convert operator.
 	regType := builder.Type(dstType)
 	builder.allocRegister(reflect.Interface, dst)
 	var op operation
