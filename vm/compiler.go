@@ -1739,8 +1739,8 @@ func (c *Compiler) compileCondition(cond ast.Expression) {
 		}
 		yConst := c.fb.MakeIntConstant(1)
 		y := c.fb.NewRegister(reflect.Bool)
-		c.fb.Move(true, yConst, y, reflect.Bool, reflect.Bool)
-		c.fb.If(true, x, ConditionEqual, y, reflect.Bool)
+		c.fb.LoadNumber(TypeInt, yConst, y)
+		c.fb.If(false, x, ConditionEqual, y, reflect.Bool)
 
 	}
 
