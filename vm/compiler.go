@@ -351,9 +351,9 @@ func (c *Compiler) prepareFunctionBodyParameters(fun *ast.Func) {
 		resType := res.Type.(*ast.Value).Val.(reflect.Type)
 		kind := resType.Kind()
 		retReg := c.fb.NewRegister(kind)
-		// TODO (Gianluca): add support for named return parameters.
-		// Binding retReg to the name of the paramter should be enough.
-		_ = retReg
+		if res.Ident != nil {
+			c.fb.BindVarReg(res.Ident.Name, retReg)
+		}
 	}
 	// Binds function argument names to pre-allocated registers.
 	fillParametersTypes(fun.Type.Parameters)
