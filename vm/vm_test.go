@@ -117,6 +117,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package function with many return values (same type)",
+		`package main
+
+		import "fmt"
+
+		func pair() (int, int) {
+			return 42, 33
+		}
+
+		func main() {
+			a := 2
+			b, c := pair()
+			d, e := 11, 12
+			fmt.Print(a + b + c + d + e)
+			return
+		}
+		`, nil, nil, "100"},
+
 	{"Issue #67",
 		`package main
 
@@ -2117,27 +2135,6 @@ var stmtTests = []struct {
 	// 	`,
 	// 	nil, nil,
 	// 	"A is 40\n"},
-
-	//------------------------------------
-
-	// {"Package function with many return values (same type)",
-	// TODO(Gianluca): panics.
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func pair() (int, int) {
-	// 		return 42, 33
-	// 	}
-
-	// 	func main() {
-	// 		a := 2
-	// 		b, c := pair()
-	// 		d, e := 11, 12
-	// 		fmt.Print(a + b + c + d + e)
-	// 		return
-	// 	}
-	// 	`, nil, nil, "100"},
 
 	//------------------------------------
 
