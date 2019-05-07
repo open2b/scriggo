@@ -256,7 +256,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			keyType := ti.Type.Key()
 			elemType := ti.Type.Elem()
 			var keyTi *TypeInfo
-			if compLit, ok := kv.Value.(*ast.CompositeLiteral); ok {
+			if compLit, ok := kv.Key.(*ast.CompositeLiteral); ok {
 				keyTi = tc.checkCompositeLiteral(compLit, keyType)
 			} else {
 				keyTi = tc.checkExpression(kv.Key)

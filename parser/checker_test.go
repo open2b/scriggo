@@ -728,12 +728,14 @@ var checkerStmts = map[string]string{
 	`a := 4; _ = [a]int{}`:   `non-constant array bound a`,
 
 	// Maps.
-	`_ = map[string]string{"k1": "v1"}`:    ok,
-	`_ = map[string]string{}`:              ok,
-	`_ = map[int]int{1: 3, 1: 4}  `:        `duplicate key 1 in map literal`,
-	`_ = map[string]int{"a": 3, "a": 4}  `: `duplicate key "a" in map literal`,
-	`_ = map[string]string{"k1": 2}`:       `cannot use 2 (type int) as type string in map value`,
-	`_ = map[string]string{2: "v1"}`:       `cannot use 2 (type int) as type string in map key`,
+	`_ = map[string]string{"k1": "v1"}`:        ok,
+	`_ = map[string]string{}`:                  ok,
+	`_ = map[bool][]int{true: []int{1, 2, 3}}`: ok,                                                // Issue #69.
+	`_ = map[bool][]int{4: []int{1, 2, 3}}`:    `cannot use 4 (type int) as type bool in map key`, // Issue #69.
+	`_ = map[int]int{1: 3, 1: 4}  `:            `duplicate key 1 in map literal`,
+	`_ = map[string]int{"a": 3, "a": 4}  `:     `duplicate key "a" in map literal`,
+	`_ = map[string]string{"k1": 2}`:           `cannot use 2 (type int) as type string in map value`,
+	`_ = map[string]string{2: "v1"}`:           `cannot use 2 (type int) as type string in map key`,
 
 	// Map keys.
 	`a, ok := map[int]string{}[0]; var _ string = a; var _ bool = ok;`: ok,
