@@ -282,7 +282,7 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	}
 	builder.allocRegister(kind, z)
 	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Uint64:
+	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
 		op = opAddInt
 	case reflect.Int32, reflect.Uint32:
 		op = opAddInt32
@@ -841,7 +841,7 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, z)
 	var op operation
 	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Uint64:
+	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
 		op = opMulInt
 	case reflect.Int32, reflect.Uint32:
 		op = opMulInt32
@@ -1021,7 +1021,7 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(reflect.Int, z)
 	var op operation
 	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Uint64:
+	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
 		op = opSubInt
 	case reflect.Int32, reflect.Uint32:
 		op = opSubInt32
@@ -1054,7 +1054,7 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 	builder.allocRegister(reflect.Int, z)
 	var op operation
 	switch kind {
-	case reflect.Int, reflect.Int64, reflect.Uint64:
+	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
 		op = opSubInvInt
 	case reflect.Int32, reflect.Uint32:
 		op = opSubInvInt32
