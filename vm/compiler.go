@@ -435,6 +435,8 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
+
+		// Binary && and ||.
 		if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
 			cmp := int8(0)
 			if op == ast.OperatorAndAnd {
@@ -450,50 +452,46 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			c.fb.ExitStack()
 			return
 		}
+
 		c.fb.EnterStack()
-		typ := c.typeinfo[expr.Expr1].Type
-		op1 := c.fb.NewRegister(typ.Kind())
-		c.compileExpr(expr.Expr1, op1, typ)
-		op2, ky, isRegister := c.quickCompileExpr(expr.Expr2, typ)
+
+		xType := c.typeinfo[expr.Expr1].Type
+		x := c.fb.NewRegister(xType.Kind())
+		c.compileExpr(expr.Expr1, x, xType)
+
+		y, ky, isRegister := c.quickCompileExpr(expr.Expr2, xType)
 		if !ky && !isRegister {
-			op2 = c.fb.NewRegister(typ.Kind())
-			c.compileExpr(expr.Expr2, op2, typ)
+			y = c.fb.NewRegister(xType.Kind())
+			c.compileExpr(expr.Expr2, y, xType)
 		}
+
+		res := c.fb.NewRegister(xType.Kind())
+
 		switch op := expr.Operator(); {
-		case op == ast.OperatorAddition && typ.Kind() == reflect.String:
-			// TODO(Gianluca): if "isValue" this is wrong.
-			if reg != 0 {
-				c.fb.Concat(op1, op2, reg)
+		case op == ast.OperatorAddition && xType.Kind() == reflect.String && reg != 0:
+			if ky {
+				y = c.fb.NewRegister(reflect.String)
+				c.compileExpr(expr.Expr2, y, xType)
 			}
-		case op == ast.OperatorAddition:
-			if reg != 0 {
-				c.fb.Add(ky, op1, op2, reg, typ.Kind())
-			}
-		case op == ast.OperatorSubtraction:
-			if reg != 0 {
-				c.fb.Sub(ky, op1, op2, reg, typ.Kind())
-			}
-		case op == ast.OperatorMultiplication:
-			if reg != 0 {
-				c.fb.Mul(ky, op1, op2, reg, typ.Kind())
-			}
-		case op == ast.OperatorDivision:
-			if reg != 0 {
-				c.fb.Div(ky, op1, op2, reg, typ.Kind())
-				// TODO(Gianluca): use changeRegister
-				if typ.Kind() != dstType.Kind() {
-					c.fb.Move(false, reg, reg, typ.Kind(), dstType.Kind())
-				}
-			} else {
-				// "runtime error: integer divide by zero" must be
-				// returned even if discarding result.
-				dummyReg := c.fb.NewRegister(typ.Kind())
-				c.fb.Div(ky, op1, op2, dummyReg, typ.Kind())
-			}
-		case op == ast.OperatorModulo:
-			if reg != 0 {
-				c.fb.Rem(ky, op1, op2, reg, typ.Kind())
-			}
+			c.fb.Concat(x, y, reg)
+		case op == ast.OperatorAddition && reg != 0:
+			c.fb.Add(ky, x, y, res, xType.Kind())
+			c.changeRegister(false, res, reg, xType, dstType)
+		case op == ast.OperatorSubtraction && reg != 0:
+			c.fb.Sub(ky, x, y, res, xType.Kind())
+			c.changeRegister(false, res, reg, xType, dstType)
+		case op == ast.OperatorMultiplication && reg != 0:
+			c.fb.Mul(ky, x, y, res, xType.Kind())
+			c.changeRegister(false, res, reg, xType, dstType)
+		case op == ast.OperatorDivision && reg != 0:
+			c.fb.Div(ky, x, y, res, xType.Kind())
+			c.changeRegister(false, res, reg, xType, dstType)
+		case op == ast.OperatorDivision && reg == 0:
+			dummyReg := c.fb.NewRegister(xType.Kind())
+			c.fb.Div(ky, x, y, dummyReg, xType.Kind()) // produces division by zero.
+		case op == ast.OperatorModulo && reg != 0:
+			c.fb.Rem(ky, x, y, res, xType.Kind())
+			c.changeRegister(false, res, reg, xType, dstType)
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond Condition
 			switch op {
@@ -511,23 +509,24 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				cond = ConditionGreaterOrEqual
 			}
 			if reg != 0 {
-				c.fb.Move(true, 1, reg, typ.Kind(), dstType.Kind())
-				c.fb.If(ky, op1, cond, op2, typ.Kind())
-				c.fb.Move(true, 0, reg, typ.Kind(), dstType.Kind())
+				c.fb.Move(true, 1, reg, xType.Kind(), dstType.Kind())
+				c.fb.If(ky, x, cond, y, xType.Kind())
+				c.fb.Move(true, 0, reg, xType.Kind(), dstType.Kind())
 			}
 		case op == ast.OperatorOr,
 			op == ast.OperatorAnd,
 			op == ast.OperatorXor,
 			op == ast.OperatorAndNot:
 			if reg != 0 {
-				c.fb.BinaryBitOperation(op, ky, op1, op2, reg)
-				if kindToType(typ.Kind()) != kindToType(dstType.Kind()) {
-					c.changeRegister(ky, reg, reg, typ, dstType)
+				c.fb.BinaryBitOperation(op, ky, x, y, reg)
+				if kindToType(xType.Kind()) != kindToType(dstType.Kind()) {
+					c.changeRegister(ky, reg, reg, xType, dstType)
 				}
 			}
 		default:
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
+
 		c.fb.ExitStack()
 
 	case *ast.Call:
