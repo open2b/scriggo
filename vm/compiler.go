@@ -64,7 +64,13 @@ func (c *Compiler) CompilePackage(path string) (*ScrigoFunction, error) {
 		return nil, err
 	}
 	tci := c.parser.TypeCheckInfos()
-	c.typeinfo = tci[path].TypeInfo
+	c.typeinfo = map[ast.Node]*parser.TypeInfo{}
+	for _, pkgInfo := range tci {
+		for node, ti := range pkgInfo.TypeInfo {
+			c.typeinfo[node] = ti
+		}
+	}
+	// TODO(Gianluca): also add c.indirectVars of all packages, not just main.
 	c.indirectVars = tci[path].IndirectVars
 	node := tree.Nodes[0].(*ast.Package)
 	c.compilePackage(node)
@@ -274,7 +280,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				}
 				c.isNativePkg[importPkgName] = true
 			} else {
-				panic("TODO(Gianluca): not implemented")
+				c.compilePackage(n.Tree.Nodes[0].(*ast.Package))
 			}
 		}
 	}
