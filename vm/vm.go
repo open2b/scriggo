@@ -590,27 +590,6 @@ func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
 	}
 }
 
-// AddNativeFunction adds a native function to a Scrigo function.
-func (fn *ScrigoFunction) AddNativeFunction(f *NativeFunction) uint8 {
-	r := len(fn.nativeFunctions)
-	if r > 255 {
-		panic("native functions limit reached")
-	}
-	fn.nativeFunctions = append(fn.nativeFunctions, f)
-	return uint8(r)
-}
-
-// AddScrigoFunction adds a Scrigo function to a Scrigo function.
-// TODO(Gianluca): is this method obsolete?
-func (fn *ScrigoFunction) AddScrigoFunction(f *ScrigoFunction) uint8 {
-	r := len(fn.scrigoFunctions)
-	if r > 255 {
-		panic("Scrigo functions limit reached")
-	}
-	fn.scrigoFunctions = append(fn.scrigoFunctions, f)
-	return uint8(r)
-}
-
 func (fn *ScrigoFunction) SetClosureRefs(refs []int16) {
 	fn.crefs = refs
 }

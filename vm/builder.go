@@ -163,6 +163,28 @@ func (builder *FunctionBuilder) AddVariable(v variable) uint8 {
 	return uint8(r)
 }
 
+// AddNativeFunction adds a native function to the Scrigo function.
+func (builder *FunctionBuilder) AddNativeFunction(f *NativeFunction) uint8 {
+	fn := builder.fn
+	r := len(fn.nativeFunctions)
+	if r > 255 {
+		panic("native functions limit reached")
+	}
+	fn.nativeFunctions = append(fn.nativeFunctions, f)
+	return uint8(r)
+}
+
+// AddScrigoFunction adds a Scrigo function to the Scrigo function.
+func (builder *FunctionBuilder) AddScrigoFunction(f *ScrigoFunction) uint8 {
+	fn := builder.fn
+	r := len(fn.scrigoFunctions)
+	if r > 255 {
+		panic("Scrigo functions limit reached")
+	}
+	fn.scrigoFunctions = append(fn.scrigoFunctions, f)
+	return uint8(r)
+}
+
 // MakeStringConstant makes a new string constant, returning it's index.
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	r := len(builder.fn.constants.String)
