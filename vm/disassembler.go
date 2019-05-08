@@ -69,7 +69,7 @@ func Disassemble(main *ScrigoFunction) (assembler map[string]string, err error) 
 	functionsByPkg := map[string]map[*ScrigoFunction]int{}
 	importsByPkg := map[string]map[string]struct{}{}
 
-	c := len(main.scrigoFunctions)
+	c := len(main.ScrigoFunctions)
 	if c == 0 {
 		c = 1
 	}
@@ -78,28 +78,28 @@ func Disassemble(main *ScrigoFunction) (assembler map[string]string, err error) 
 
 	for i := 0; i < len(allFunctions); i++ {
 		fn := allFunctions[i]
-		if p, ok := functionsByPkg[fn.pkg]; ok {
-			p[fn] = fn.line
+		if p, ok := functionsByPkg[fn.Pkg]; ok {
+			p[fn] = fn.Line
 		} else {
-			functionsByPkg[fn.pkg] = map[*ScrigoFunction]int{fn: fn.line}
+			functionsByPkg[fn.Pkg] = map[*ScrigoFunction]int{fn: fn.Line}
 		}
-		for _, sf := range fn.scrigoFunctions {
-			if sf.pkg != fn.pkg {
-				if packages, ok := importsByPkg[fn.pkg]; ok {
-					packages[sf.pkg] = struct{}{}
+		for _, sf := range fn.ScrigoFunctions {
+			if sf.Pkg != fn.Pkg {
+				if packages, ok := importsByPkg[fn.Pkg]; ok {
+					packages[sf.Pkg] = struct{}{}
 				} else {
-					importsByPkg[fn.pkg] = map[string]struct{}{sf.pkg: {}}
+					importsByPkg[fn.Pkg] = map[string]struct{}{sf.Pkg: {}}
 				}
 			}
 		}
-		for _, nf := range fn.nativeFunctions {
-			if packages, ok := importsByPkg[fn.pkg]; ok {
-				packages[nf.pkg] = struct{}{}
+		for _, nf := range fn.NativeFunctions {
+			if packages, ok := importsByPkg[fn.Pkg]; ok {
+				packages[nf.Pkg] = struct{}{}
 			} else {
-				importsByPkg[fn.pkg] = map[string]struct{}{nf.pkg: {}}
+				importsByPkg[fn.Pkg] = map[string]struct{}{nf.Pkg: {}}
 			}
 		}
-		allFunctions = append(allFunctions, fn.scrigoFunctions...)
+		allFunctions = append(allFunctions, fn.ScrigoFunctions...)
 	}
 
 	assembler = map[string]string{}
@@ -130,11 +130,11 @@ func Disassemble(main *ScrigoFunction) (assembler map[string]string, err error) 
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
-		sort.Slice(functions, func(i, j int) bool { return functions[i].line < functions[i].line })
+		sort.Slice(functions, func(i, j int) bool { return functions[i].Line < functions[i].Line })
 
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")
-			_, _ = b.WriteString(fn.name)
+			_, _ = b.WriteString(fn.Name)
 			disassembleFunction(&b, fn, 0)
 		}
 		_, _ = b.WriteRune('\n')
@@ -150,7 +150,7 @@ func Disassemble(main *ScrigoFunction) (assembler map[string]string, err error) 
 
 func DisassembleFunction(w io.Writer, fn *ScrigoFunction) (int64, error) {
 	var b bytes.Buffer
-	_, _ = fmt.Fprintf(&b, "Func %s", fn.name)
+	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
 	disassembleFunction(&b, fn, 0)
 	return b.WriteTo(w)
 }
@@ -161,9 +161,9 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 		indent = strings.Repeat("\t", depth)
 	}
 	labelOf := map[uint32]uint32{}
-	for _, in := range fn.body {
-		if in.op == opGoto {
-			labelOf[decodeAddr(in.a, in.b, in.c)] = 0
+	for _, in := range fn.Body {
+		if in.Op == opGoto {
+			labelOf[decodeAddr(in.A, in.B, in.C)] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -179,13 +179,13 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 		}
 	}
 	_, _ = fmt.Fprintf(w, "(")
-	nIn := fn.typ.NumIn()
-	nOut := fn.typ.NumOut()
+	nIn := fn.Type.NumIn()
+	nOut := fn.Type.NumOut()
 	for i := 0; i < nIn; i++ {
 		if i > 0 {
 			_, _ = fmt.Fprint(w, ", ")
 		}
-		typ := fn.typ.In(i)
+		typ := fn.Type.In(i)
 		label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
 		_, _ = fmt.Fprintf(w, "%s%d %s", label, nOut+i+1, typ)
 	}
@@ -196,32 +196,32 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 			if i > 0 {
 				_, _ = fmt.Fprint(w, ", ")
 			}
-			typ := fn.typ.Out(i)
+			typ := fn.Type.Out(i)
 			label := registerKindToLabel(reflectToRegisterKind(typ.Kind()))
-			_, _ = fmt.Fprintf(w, "%s%d %s", label, i+1, fn.typ.Out(i))
+			_, _ = fmt.Fprintf(w, "%s%d %s", label, i+1, fn.Type.Out(i))
 		}
 		_, _ = fmt.Fprint(w, ")")
 	}
 	_, _ = fmt.Fprint(w, "\n")
 	_, _ = fmt.Fprintf(w, "%s\t// regs(%d,%d,%d,%d)\n", indent,
-		fn.regnum[0], fn.regnum[1], fn.regnum[2], fn.regnum[3])
-	instrNum := uint32(len(fn.body))
+		fn.RegNum[0], fn.RegNum[1], fn.RegNum[2], fn.RegNum[3])
+	instrNum := uint32(len(fn.Body))
 	for addr := uint32(0); addr < instrNum; addr++ {
 		if label, ok := labelOf[uint32(addr)]; ok {
 			_, _ = fmt.Fprintf(w, "%s%d:", indent, label)
 		}
-		in := fn.body[addr]
-		switch in.op {
+		in := fn.Body[addr]
+		switch in.Op {
 		case opGoto:
-			label := labelOf[decodeAddr(in.a, in.b, in.c)]
+			label := labelOf[decodeAddr(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
 		case opFunc:
-			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.c, Interface, false))
-			disassembleFunction(w, fn.literals[uint8(in.b)], depth+1)
+			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, Interface, false))
+			disassembleFunction(w, fn.Literals[uint8(in.B)], depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
-		switch in.op {
+		switch in.Op {
 		case opCall, opCallIndirect, opCallNative, opTailCall, opMakeSlice:
 			addr += 1
 		case opDefer:
@@ -236,8 +236,8 @@ func DisassembleInstruction(w io.Writer, fn *ScrigoFunction, addr uint32) (int64
 }
 
 func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
-	in := fn.body[addr]
-	op, a, b, c := in.op, in.a, in.b, in.c
+	in := fn.Body[addr]
+	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false
 	if op < 0 {
 		op = -op
@@ -265,8 +265,8 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, Float64, false)
 	case opAssert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " type(" + fn.types[b].String() + ")"
-		t := fn.types[int(uint(b))]
+		s += " type(" + fn.Types[b].String() + ")"
+		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case opAssertInt:
@@ -282,10 +282,10 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " type(string)"
 		s += " " + disassembleOperand(fn, c, String, false)
 	case opBind:
-		cv := fn.crefs[uint8(b)]
+		cv := fn.CRefs[uint8(b)]
 		var depth = 1
-		for p := fn.parent; cv >= 0; p = p.parent {
-			cv = p.crefs[cv]
+		for p := fn.Parent; cv >= 0; p = p.Parent {
+			cv = p.CRefs[cv]
 			depth++
 		}
 		s += " " + disassembleOperand(fn, -int8(cv), Interface, false)
@@ -297,11 +297,11 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		if a != CurrentFunction {
 			switch op {
 			case opCall, opTailCall:
-				sf := fn.scrigoFunctions[uint8(a)]
-				s += " " + packageName(sf.pkg) + "." + sf.name
+				sf := fn.ScrigoFunctions[uint8(a)]
+				s += " " + packageName(sf.Pkg) + "." + sf.Name
 			case opCallNative:
-				nf := fn.nativeFunctions[uint8(a)]
-				s += " " + packageName(nf.pkg) + "." + nf.name
+				nf := fn.NativeFunctions[uint8(a)]
+				s += " " + packageName(nf.Pkg) + "." + nf.Name
 			case opCallIndirect, opDefer:
 				s += " " + disassembleOperand(fn, a, Interface, false)
 			}
@@ -311,14 +311,14 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		}
 		switch op {
 		case opCall, opCallIndirect, opCallNative, opDefer:
-			grow := fn.body[addr+1]
-			s += "\t// Stack shift: " + strconv.Itoa(int(grow.op)) + ", " + strconv.Itoa(int(grow.a)) + ", " +
-				strconv.Itoa(int(grow.b)) + ", " + strconv.Itoa(int(grow.c))
+			grow := fn.Body[addr+1]
+			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
+				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
 		}
 		if op == opDefer {
-			args := fn.body[addr+2]
-			s += "; args: " + strconv.Itoa(int(args.op)) + ", " + strconv.Itoa(int(args.a)) + ", " +
-				strconv.Itoa(int(args.b)) + ", " + strconv.Itoa(int(args.c))
+			args := fn.Body[addr+2]
+			s += "; args: " + strconv.Itoa(int(args.Op)) + ", " + strconv.Itoa(int(args.A)) + ", " +
+				strconv.Itoa(int(args.B)) + ", " + strconv.Itoa(int(args.C))
 
 		}
 	case opCap:
@@ -345,19 +345,19 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, String, false)
 	case opConvert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
-		s += " " + fn.types[int(uint(b))].String()
+		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opConvertInt, opConvertUint:
 		s += " " + disassembleOperand(fn, a, Int, false)
-		s += " " + fn.types[int(uint(b))].String()
+		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opConvertFloat:
 		s += " " + disassembleOperand(fn, a, Float64, false)
-		s += " " + fn.types[int(uint(b))].String()
+		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opConvertString:
 		s += " " + disassembleOperand(fn, a, String, false)
-		s += " " + fn.types[int(uint(b))].String()
+		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opDelete:
 		s += " " + disassembleOperand(fn, a, Interface, false)
@@ -396,16 +396,16 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
 		if a == 0 {
-			f := fn.scrigoFunctions[uint8(b)]
-			s += " " + packageName(f.pkg) + "." + f.name
+			f := fn.ScrigoFunctions[uint8(b)]
+			s += " " + packageName(f.Pkg) + "." + f.Name
 		} else {
-			f := fn.nativeFunctions[uint8(b)]
-			s += " " + packageName(f.pkg) + "." + f.name
+			f := fn.NativeFunctions[uint8(b)]
+			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
-		s += " " + packageName(fn.pkg) + "."
-		name := fn.variables[uint8(b)].name
+		s += " " + packageName(fn.Pkg) + "."
+		name := fn.Variables[uint8(b)].Name
 		if name == "" {
 			s += strconv.Itoa(int(uint8(b)))
 		} else {
@@ -430,20 +430,20 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opLoadNumber:
 		if a == 0 {
 			s += " int"
-			s += " " + fmt.Sprintf("%d", fn.constants.Int[uint8(b)])
+			s += " " + fmt.Sprintf("%d", fn.Constants.Int[uint8(b)])
 			s += " " + disassembleOperand(fn, c, Int, false)
 		} else {
 			s += " float"
-			s += " " + fmt.Sprintf("%f", fn.constants.Float[uint8(b)])
+			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
 			s += " " + disassembleOperand(fn, c, Float64, false)
 		}
 
 	case opMakeChan:
-		s += " " + fn.types[int(uint(a))].String()
+		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeMap:
-		s += " " + fn.types[int(uint(a))].String()
+		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMapIndex:
@@ -476,7 +476,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		}
 	case opNew:
-		s += " " + fn.types[int(uint(b))].String()
+		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opPanic, opPrint:
 		s += " " + disassembleOperand(fn, a, Interface, false)
@@ -500,12 +500,12 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opMakeSlice:
-		s += " " + fn.types[int(uint(a))].String()
+		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, Int, false)
 		s += " // len: "
-		s += fmt.Sprintf("%d", fn.body[addr+1].a)
+		s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		s += ", cap: "
-		s += fmt.Sprintf("%d", fn.body[addr+1].b)
+		s += fmt.Sprintf("%d", fn.Body[addr+1].B)
 	case opSetMap:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		if k {
@@ -520,12 +520,12 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opSetVar:
 		s += " " + disassembleOperand(fn, b, Interface, false)
-		v := fn.variables[uint8(c)]
-		s += " " + packageName(v.name) + "."
-		if v.name == "" {
+		v := fn.Variables[uint8(c)]
+		s += " " + packageName(v.Name) + "."
+		if v.Name == "" {
 			s += strconv.Itoa(int(uint8(c)))
 		} else {
-			s += v.name
+			s += v.Name
 		}
 	case opSliceIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)
@@ -580,9 +580,9 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 			}
 			return "true"
 		case kind == String:
-			return strconv.Quote(fn.constants.String[uint8(op)])
+			return strconv.Quote(fn.Constants.String[uint8(op)])
 		default:
-			v := fn.constants.General[uint8(op)]
+			v := fn.Constants.General[uint8(op)]
 			if v == nil {
 				return "nil"
 			}

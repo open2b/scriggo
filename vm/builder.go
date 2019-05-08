@@ -23,8 +23,8 @@ type FunctionBuilder struct {
 }
 
 // NewBuilder returns a new function builder for the function fn.
-func (fn *ScrigoFunction) NewBuilder() *FunctionBuilder {
-	fn.body = nil
+func NewBuilder(fn *ScrigoFunction) *FunctionBuilder {
+	fn.Body = nil
 	return &FunctionBuilder{
 		fn:      fn,
 		gotos:   map[uint32]uint32{},
@@ -119,124 +119,142 @@ func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
+func (builder *FunctionBuilder) AddLine(pc uint32, line int) {
+	if builder.fn.Lines == nil {
+		builder.fn.Lines = map[uint32]int{pc: line}
+	} else {
+		builder.fn.Lines[pc] = line
+	}
+}
+
+func (builder *FunctionBuilder) SetClosureRefs(refs []int16) {
+	builder.fn.CRefs = refs
+}
+
+// SetFileLine sets the file name and line number of the Scrigo function.
+func (builder *FunctionBuilder) SetFileLine(file string, line int) {
+	builder.fn.File = file
+	builder.fn.Line = line
+}
+
 // NewVariable returns a new variable.
-func NewVariable(pkg, name string, value interface{}) variable {
-	return variable{pkg, name, value}
+func NewVariable(pkg, name string, value interface{}) Variable {
+	return Variable{pkg, name, value}
 }
 
 // NewScrigoFunction returns a new Scrigo function with a given package, name
 // and type.
 func NewScrigoFunction(pkg, name string, typ reflect.Type) *ScrigoFunction {
-	return &ScrigoFunction{pkg: pkg, name: name, typ: typ}
+	return &ScrigoFunction{Pkg: pkg, Name: name, Type: typ}
 }
 
 // NewNativeFunction returns a new native function with a given package, name
 // and implementation. fn must be a function type.
 func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
-	return &NativeFunction{pkg: pkg, name: name, fast: fn}
+	return &NativeFunction{Pkg: pkg, Name: name, Fast: fn}
 }
 
 // AddType adds a type to the Scrigo function.
 func (builder *FunctionBuilder) AddType(typ reflect.Type) uint8 {
 	fn := builder.fn
-	index := len(fn.types)
+	index := len(fn.Types)
 	if index > 255 {
 		panic("types limit reached")
 	}
-	for i, t := range fn.types {
+	for i, t := range fn.Types {
 		if t == typ {
 			return uint8(i)
 		}
 	}
-	fn.types = append(fn.types, typ)
+	fn.Types = append(fn.Types, typ)
 	return uint8(index)
 }
 
 // AddVariable adds a variable to the Scrigo function.
-func (builder *FunctionBuilder) AddVariable(v variable) uint8 {
+func (builder *FunctionBuilder) AddVariable(v Variable) uint8 {
 	fn := builder.fn
-	r := len(fn.variables)
+	r := len(fn.Variables)
 	if r > 255 {
 		panic("variables limit reached")
 	}
-	fn.variables = append(fn.variables, v)
+	fn.Variables = append(fn.Variables, v)
 	return uint8(r)
 }
 
 // AddNativeFunction adds a native function to the Scrigo function.
 func (builder *FunctionBuilder) AddNativeFunction(f *NativeFunction) uint8 {
 	fn := builder.fn
-	r := len(fn.nativeFunctions)
+	r := len(fn.NativeFunctions)
 	if r > 255 {
 		panic("native functions limit reached")
 	}
-	fn.nativeFunctions = append(fn.nativeFunctions, f)
+	fn.NativeFunctions = append(fn.NativeFunctions, f)
 	return uint8(r)
 }
 
 // AddScrigoFunction adds a Scrigo function to the Scrigo function.
 func (builder *FunctionBuilder) AddScrigoFunction(f *ScrigoFunction) uint8 {
 	fn := builder.fn
-	r := len(fn.scrigoFunctions)
+	r := len(fn.ScrigoFunctions)
 	if r > 255 {
 		panic("Scrigo functions limit reached")
 	}
-	fn.scrigoFunctions = append(fn.scrigoFunctions, f)
+	fn.ScrigoFunctions = append(fn.ScrigoFunctions, f)
 	return uint8(r)
 }
 
 // MakeStringConstant makes a new string constant, returning it's index.
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
-	r := len(builder.fn.constants.String)
+	r := len(builder.fn.Constants.String)
 	if r > 255 {
 		panic("string refs limit reached")
 	}
-	builder.fn.constants.String = append(builder.fn.constants.String, c)
+	builder.fn.Constants.String = append(builder.fn.Constants.String, c)
 	return int8(r)
 }
 
 // MakeGeneralConstant makes a new general constant, returning it's index.
 func (builder *FunctionBuilder) MakeGeneralConstant(v interface{}) int8 {
-	r := len(builder.fn.constants.General)
+	r := len(builder.fn.Constants.General)
 	if r > 255 {
 		panic("general refs limit reached")
 	}
-	builder.fn.constants.General = append(builder.fn.constants.General, v)
+	builder.fn.Constants.General = append(builder.fn.Constants.General, v)
 	return int8(r)
 }
 
 // MakeFloatConstant makes a new float constant, returning it's index.
 func (builder *FunctionBuilder) MakeFloatConstant(c float64) int8 {
-	r := len(builder.fn.constants.Float)
+	r := len(builder.fn.Constants.Float)
 	if r > 255 {
 		panic("float refs limit reached")
 	}
-	builder.fn.constants.Float = append(builder.fn.constants.Float, c)
+	builder.fn.Constants.Float = append(builder.fn.Constants.Float, c)
 	return int8(r)
 }
 
 // MakeIntConstant makes a new int constant, returning it's index.
 func (builder *FunctionBuilder) MakeIntConstant(c int64) int8 {
-	r := len(builder.fn.constants.Int)
+	r := len(builder.fn.Constants.Int)
 	if r > 255 {
 		panic("int refs limit reached")
 	}
-	builder.fn.constants.Int = append(builder.fn.constants.Int, c)
+	builder.fn.Constants.Int = append(builder.fn.Constants.Int, c)
 	return int8(r)
 }
 
 func (builder *FunctionBuilder) MakeInterfaceConstant(c interface{}) int8 {
-	r := -len(builder.fn.constants.General) - 1
+	r := -len(builder.fn.Constants.General) - 1
 	if r == -129 {
 		panic("interface refs limit reached")
 	}
-	builder.fn.constants.General = append(builder.fn.constants.General, c)
+	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
 	return int8(r)
 }
 
 // CurrentAddr returns builder's current address.
 func (builder *FunctionBuilder) CurrentAddr() uint32 {
-	return uint32(len(builder.fn.body))
+	return uint32(len(builder.fn.Body))
 }
 
 // NewLabel creates a new empty label. Use SetLabelAddr to associate an address
@@ -267,7 +285,7 @@ func encodeAddr(v uint32) (a, b, c int8) {
 func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	var tr int8
 	var found bool
-	types := builder.fn.types
+	types := builder.fn.Types
 	for i, t := range types {
 		if t == typ {
 			tr = int8(i)
@@ -279,7 +297,7 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 			panic("types limit reached")
 		}
 		tr = int8(len(types))
-		builder.fn.types = append(types, typ)
+		builder.fn.Types = append(types, typ)
 	}
 	return tr
 }
@@ -287,28 +305,28 @@ func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
-		i := fn.body[addr]
-		i.a, i.b, i.c = encodeAddr(builder.labels[label-1])
-		fn.body[addr] = i
+		i := fn.Body[addr]
+		i.A, i.B, i.C = encodeAddr(builder.labels[label-1])
+		fn.Body[addr] = i
 	}
 	builder.gotos = nil
 	for kind, num := range builder.maxRegs {
 		switch {
 		case reflect.Int <= kind && kind <= reflect.Uint64:
-			if num > fn.regnum[0] {
-				fn.regnum[0] = num
+			if num > fn.RegNum[0] {
+				fn.RegNum[0] = num
 			}
 		case kind == reflect.Float64 || kind == reflect.Float32:
-			if num > fn.regnum[1] {
-				fn.regnum[1] = num
+			if num > fn.RegNum[1] {
+				fn.RegNum[1] = num
 			}
 		case kind == reflect.String:
-			if num > fn.regnum[2] {
-				fn.regnum[2] = num
+			if num > fn.RegNum[2] {
+				fn.RegNum[2] = num
 			}
 		default:
-			if num > fn.regnum[3] {
-				fn.regnum[3] = num
+			if num > fn.RegNum[3] {
+				fn.RegNum[3] = num
 			}
 		}
 	}
@@ -366,7 +384,7 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Append appends a new "Append" instruction to the function body.
@@ -375,7 +393,7 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Append(first, length, s int8) {
 	builder.allocRegister(reflect.Interface, s)
-	builder.fn.body = append(builder.fn.body, instruction{op: opAppend, a: first, b: length, c: s})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opAppend, A: first, B: length, C: s})
 }
 
 // AppendSlice appends a new "AppendSlice" instruction to the function body.
@@ -385,7 +403,7 @@ func (builder *FunctionBuilder) Append(first, length, s int8) {
 func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 	builder.allocRegister(reflect.Interface, t)
 	builder.allocRegister(reflect.Interface, s)
-	builder.fn.body = append(builder.fn.body, instruction{op: opAppendSlice, a: t, c: s})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opAppendSlice, A: t, C: s})
 }
 
 // Assert appends a new "assert" instruction to the function body.
@@ -410,18 +428,18 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 		builder.allocRegister(reflect.Interface, z)
 		op = opAssert
 		var found bool
-		for i, t := range builder.fn.types {
+		for i, t := range builder.fn.Types {
 			if t == typ {
 				tr = int8(i)
 				found = true
 			}
 		}
 		if !found {
-			tr = int8(len(builder.fn.types))
-			builder.fn.types = append(builder.fn.types, typ)
+			tr = int8(len(builder.fn.Types))
+			builder.fn.Types = append(builder.fn.Types, typ)
 		}
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: e, b: tr, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: e, B: tr, C: z})
 }
 
 // BinaryBitOperation appends a new binary bit operation specified by operator
@@ -462,7 +480,7 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 	if ky {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: dst})
 }
 
 // Bind appends a new "Bind" instruction to the function body.
@@ -471,7 +489,7 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 //
 func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
 	builder.allocRegister(reflect.Interface, r)
-	builder.fn.body = append(builder.fn.body, instruction{op: opBind, b: int8(cv), c: r})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opBind, B: int8(cv), C: r})
 }
 
 // Call appends a new "Call" instruction to the function body.
@@ -480,9 +498,9 @@ func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
 //
 func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCall, a: f})
-	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
-	fn.AddLine(uint32(len(fn.body)-2), line)
+	fn.Body = append(fn.Body, instruction{Op: opCall, A: f})
+	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+	builder.AddLine(uint32(len(fn.Body)-2), line)
 }
 
 // CallNative appends a new "CallNative" instruction to the function body.
@@ -491,8 +509,8 @@ func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 //
 func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallNative, a: f, c: numVariadic})
-	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	fn.Body = append(fn.Body, instruction{Op: opCallNative, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
 // CallIndirect appends a new "CallIndirect" instruction to the function body.
@@ -501,8 +519,8 @@ func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift Stack
 //
 func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opCallIndirect, a: f, c: numVariadic})
-	fn.body = append(fn.body, instruction{op: operation(shift[0]), a: shift[1], b: shift[2], c: shift[3]})
+	fn.Body = append(fn.Body, instruction{Op: opCallIndirect, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
 // Assert appends a new "cap" instruction to the function body.
@@ -512,7 +530,7 @@ func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift Sta
 func (builder *FunctionBuilder) Cap(s, z int8) {
 	builder.allocRegister(reflect.Interface, s)
 	builder.allocRegister(reflect.Int, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCap, a: s, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opCap, A: s, C: z})
 }
 
 // Case appends a new "Case" instruction to the function body.
@@ -532,7 +550,7 @@ func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, 
 	if kvalue {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: int8(dir), b: value, c: ch})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: int8(dir), B: value, C: ch})
 }
 
 // Concat appends a new "concat" instruction to the function body.
@@ -543,7 +561,7 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	builder.allocRegister(reflect.Interface, s)
 	builder.allocRegister(reflect.Interface, t)
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opConcat, a: s, b: t, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opConcat, A: s, B: t, C: z})
 }
 
 // Convert appends a new "Convert" instruction to the function body.
@@ -574,7 +592,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	case TypeFloat:
 		op = opConvertFloat
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: src, b: regType, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: src, B: regType, C: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
@@ -585,7 +603,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 	builder.allocRegister(reflect.Interface, dst)
 	builder.allocRegister(reflect.Interface, src)
-	builder.fn.body = append(builder.fn.body, instruction{op: opCopy, a: src, b: n, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opCopy, A: src, B: n, C: dst})
 }
 
 // Defer appends a new "Defer" instruction to the function body.
@@ -595,9 +613,9 @@ func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg StackShift) {
 	var fn = builder.fn
 	builder.allocRegister(reflect.Interface, f)
-	fn.body = append(fn.body, instruction{op: opDefer, a: f, c: numVariadic})
-	fn.body = append(fn.body, instruction{op: operation(off[0]), a: off[1], b: off[2], c: off[3]})
-	fn.body = append(fn.body, instruction{op: operation(arg[0]), a: arg[1], b: arg[2], c: arg[3]})
+	fn.Body = append(fn.Body, instruction{Op: opDefer, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, instruction{Op: operation(off[0]), A: off[1], B: off[2], C: off[3]})
+	fn.Body = append(fn.Body, instruction{Op: operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
 }
 
 // Delete appends a new "delete" instruction to the function body.
@@ -607,7 +625,7 @@ func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg StackSh
 func (builder *FunctionBuilder) Delete(m, k int8) {
 	builder.allocRegister(reflect.Interface, m)
 	builder.allocRegister(reflect.Interface, k)
-	builder.fn.body = append(builder.fn.body, instruction{op: opDelete, a: m, b: k})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opDelete, A: m, B: k})
 }
 
 // Div appends a new "div" instruction to the function body.
@@ -646,7 +664,7 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 	if ky {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Range appends a new "Range" instruction to the function body.
@@ -656,7 +674,7 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) Range(expr int8, kind reflect.Kind) {
 	switch kind {
 	case reflect.String:
-		builder.fn.body = append(builder.fn.body, instruction{op: opRangeString, c: expr})
+		builder.fn.Body = append(builder.fn.Body, instruction{Op: opRangeString, C: expr})
 	default:
 		panic("TODO: not implemented")
 	}
@@ -667,17 +685,17 @@ func (builder *FunctionBuilder) Range(expr int8, kind reflect.Kind) {
 //     r = func() { ... }
 //
 func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *ScrigoFunction {
-	b := len(builder.fn.literals)
+	b := len(builder.fn.Literals)
 	if b == 256 {
-		panic("scrigoFunctions limit reached")
+		panic("ScrigoFunctions limit reached")
 	}
 	builder.allocRegister(reflect.Interface, r)
 	fn := &ScrigoFunction{
-		typ:    typ,
-		parent: builder.fn,
+		Type:   typ,
+		Parent: builder.fn,
 	}
-	builder.fn.literals = append(builder.fn.literals, fn)
-	builder.fn.body = append(builder.fn.body, instruction{op: opFunc, b: int8(b), c: r})
+	builder.fn.Literals = append(builder.fn.Literals, fn)
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opFunc, B: int8(b), C: r})
 	return fn
 }
 
@@ -691,7 +709,7 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 	if native {
 		a = 1
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetFunc, a: a, b: f, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGetFunc, A: a, B: f, C: z})
 }
 
 // GetVar appends a new "GetVar" instruction to the function body.
@@ -700,7 +718,7 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 //
 func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.body = append(builder.fn.body, instruction{op: opGetVar, a: int8(v), c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGetVar, A: int8(v), C: z})
 }
 
 // Go appends a new "Go" instruction to the function body.
@@ -708,7 +726,7 @@ func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
 //     go
 //
 func (builder *FunctionBuilder) Go() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opGo})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGo})
 }
 
 // Goto appends a new "goto" instruction to the function body.
@@ -716,7 +734,7 @@ func (builder *FunctionBuilder) Go() {
 //     goto label
 //
 func (builder *FunctionBuilder) Goto(label uint32) {
-	in := instruction{op: opGoto}
+	in := instruction{Op: opGoto}
 	if label > 0 {
 		if label > uint32(len(builder.labels)) {
 			panic("bug!") // TODO(Gianluca): remove.
@@ -725,10 +743,10 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 		if addr == 0 {
 			builder.gotos[builder.CurrentAddr()] = label
 		} else {
-			in.a, in.b, in.c = encodeAddr(addr)
+			in.A, in.B, in.C = encodeAddr(addr)
 		}
 	}
-	builder.fn.body = append(builder.fn.body, in)
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // If appends a new "If" instruction to the function body.
@@ -769,7 +787,7 @@ func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind ref
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: int8(o), c: y})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
 // Index appends a new "index" instruction to the function body
@@ -792,7 +810,7 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	if ki {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: expr, b: i, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: expr, B: i, C: dst})
 }
 
 // Len appends a new "len" instruction to the function body.
@@ -823,7 +841,7 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	case reflect.TypeOf(map[string]interface{}{}):
 		a = 8
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opLen, a: a, b: s, c: l})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opLen, A: a, B: s, C: l})
 }
 
 // LoadNumber appends a new "LoadNumber" instruction to the function body.
@@ -838,7 +856,7 @@ func (builder *FunctionBuilder) LoadNumber(typ Type, index, dst int8) {
 	default:
 		panic("LoadNumber only accepts TypeInt or TypeFloat as type")
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opLoadNumber, a: a, b: index, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opLoadNumber, A: a, B: index, C: dst})
 }
 
 // MakeChan appends a new "MakeChan" instruction to the function body.
@@ -852,7 +870,7 @@ func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8
 	if kCapacity {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: typ, b: capacity, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: typ, B: capacity, C: dst})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
@@ -864,7 +882,7 @@ func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int
 	if kSize {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: typ, b: size, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: typ, B: size, C: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
@@ -885,9 +903,9 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			k |= 1 << 2
 		}
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: opMakeSlice, a: t, b: k, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opMakeSlice, A: t, B: k, C: dst})
 	if k > 1 {
-		builder.fn.body = append(builder.fn.body, instruction{a: len, b: cap})
+		builder.fn.Body = append(builder.fn.Body, instruction{A: len, B: cap})
 	}
 }
 
@@ -924,7 +942,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 			moveType = GeneralGeneral
 		}
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: int8(moveType), b: x, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: int8(moveType), B: x, C: z})
 }
 
 // Mul appends a new "mul" instruction to the function body.
@@ -955,7 +973,7 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	if ky {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // New appends a new "new" instruction to the function body.
@@ -965,13 +983,13 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
 	a := builder.AddType(typ)
-	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opNew, A: int8(a), C: z})
 }
 
 // Nop appends a new "Nop" instruction to the function body.
 //
 func (builder *FunctionBuilder) Nop() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opNone})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opNone})
 }
 
 // Panic appends a new "Panic" instruction to the function body.
@@ -981,8 +999,8 @@ func (builder *FunctionBuilder) Nop() {
 func (builder *FunctionBuilder) Panic(v int8, line int) {
 	fn := builder.fn
 	builder.allocRegister(reflect.Interface, v)
-	fn.body = append(fn.body, instruction{op: opPanic, a: v})
-	fn.AddLine(uint32(len(fn.body)-1), line)
+	fn.Body = append(fn.Body, instruction{Op: opPanic, A: v})
+	builder.AddLine(uint32(len(fn.Body)-1), line)
 }
 
 // Print appends a new "Print" instruction to the function body.
@@ -990,7 +1008,7 @@ func (builder *FunctionBuilder) Panic(v int8, line int) {
 //     print(arg)
 //
 func (builder *FunctionBuilder) Print(arg int8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opPrint, a: arg})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opPrint, A: arg})
 }
 
 // Receive appends a new "Receive" instruction to the function body.
@@ -1000,7 +1018,7 @@ func (builder *FunctionBuilder) Print(arg int8) {
 //	dst, ok = <- ch
 //
 func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opReceive, a: ch, b: ok, c: dst})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opReceive, A: ch, B: ok, C: dst})
 }
 
 // Recover appends a new "Recover" instruction to the function body.
@@ -1009,7 +1027,7 @@ func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
 //
 func (builder *FunctionBuilder) Recover(r int8) {
 	builder.allocRegister(reflect.Interface, r)
-	builder.fn.body = append(builder.fn.body, instruction{op: opRecover, c: r})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opRecover, C: r})
 }
 
 // Rem appends a new "rem" instruction to the function body.
@@ -1044,7 +1062,7 @@ func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 	if ky {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Return appends a new "return" instruction to the function body.
@@ -1052,7 +1070,7 @@ func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 //     return
 //
 func (builder *FunctionBuilder) Return() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opReturn})
 }
 
 // Select appends a new "Select" instruction to the function body.
@@ -1060,15 +1078,15 @@ func (builder *FunctionBuilder) Return() {
 //     select
 //
 func (builder *FunctionBuilder) Select() {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSelect})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSelect})
 }
 
 // Selector appends a new "Selector" instruction to the function body.
 //
-// 	c = a.field
+// 	C = A.field
 //
 func (builder *FunctionBuilder) Selector(a, field, c int8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSelector, a: a, b: field, c: c})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSelector, A: a, B: field, C: c})
 }
 
 // Send appends a new "Send" instruction to the function body.
@@ -1077,7 +1095,7 @@ func (builder *FunctionBuilder) Selector(a, field, c int8) {
 //
 func (builder *FunctionBuilder) Send(ch, v int8) {
 	// TODO(Gianluca): how can send know kind/type?
-	builder.fn.body = append(builder.fn.body, instruction{op: opSend, a: v, c: ch})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSend, A: v, C: ch})
 }
 
 // SetVar appends a new "SetVar" instruction to the function body.
@@ -1085,7 +1103,7 @@ func (builder *FunctionBuilder) Send(ch, v int8) {
 //     p.v = r
 //
 func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
-	builder.fn.body = append(builder.fn.body, instruction{op: opSetVar, b: r, c: int8(v)})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSetVar, B: r, C: int8(v)})
 }
 
 // SetMap appends a new "SetMap" instruction to the function body.
@@ -1097,7 +1115,7 @@ func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: m, b: value, c: key})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: m, B: value, C: key})
 }
 
 // SetSlice appends a new "SetSlice" instruction to the function body.
@@ -1106,11 +1124,11 @@ func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
 //
 func (builder *FunctionBuilder) SetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
 	_ = elemKind // TODO(Gianluca): remove.
-	in := instruction{op: opSetSlice, a: slice, b: value, c: index}
+	in := instruction{Op: opSetSlice, A: slice, B: value, C: index}
 	if k {
-		in.op = -in.op
+		in.Op = -in.Op
 	}
-	builder.fn.body = append(builder.fn.body, in)
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // Sub appends a new "Sub" instruction to the function body.
@@ -1143,7 +1161,7 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // SubInv appends a new "SubInv" instruction to the function body.
@@ -1176,7 +1194,7 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 	if k {
 		op = -op
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: x, b: y, c: z})
+	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
 }
 
 // TailCall appends a new "TailCall" instruction to the function body.
@@ -1185,6 +1203,6 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 //
 func (builder *FunctionBuilder) TailCall(f int8, line int) {
 	var fn = builder.fn
-	fn.body = append(fn.body, instruction{op: opTailCall, a: f})
-	fn.AddLine(uint32(len(fn.body)-1), line)
+	fn.Body = append(fn.Body, instruction{Op: opTailCall, A: f})
+	builder.AddLine(uint32(len(fn.Body)-1), line)
 }

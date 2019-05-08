@@ -20,7 +20,7 @@ func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	for {
 		panicked = vm.runRecoverable()
 		if panicked && len(vm.calls) > 0 {
-			var call = Call{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Panicked}
+			var call = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Panicked}
 			vm.calls = append(vm.calls, call)
 			vm.fn = nil
 			if vm.cases != nil {
@@ -70,23 +70,23 @@ func (vm *VM) run() int {
 
 	for {
 
-		in := vm.fn.body[vm.pc]
+		in := vm.fn.Body[vm.pc]
 
 		if DebugTraceExecution {
-			funcName := vm.fn.name
+			funcName := vm.fn.Name
 			if funcName != "" {
 				funcName += ":"
 			}
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
-				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.regnum[0])+1],
-				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.regnum[1])+1],
+				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
+				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
 				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, vm.pc)
 			println()
 		}
 
 		vm.pc++
-		op, a, b, c = in.op, in.a, in.b, in.c
+		op, a, b, c = in.Op, in.A, in.B, in.C
 
 		switch op {
 
@@ -146,7 +146,7 @@ func (vm *VM) run() int {
 		// Assert
 		case opAssert:
 			v := reflect.ValueOf(vm.general(a))
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			var ok bool
 			if t.Kind() == reflect.Interface {
 				ok = v.Type().Implements(t)
@@ -216,23 +216,23 @@ func (vm *VM) run() int {
 
 		// Call
 		case opCall:
-			fn := vm.fn.scrigoFunctions[uint8(a)]
-			off := vm.fn.body[vm.pc]
-			call := Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
-			vm.fp[0] += uint32(off.op)
-			if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+			fn := vm.fn.ScrigoFunctions[uint8(a)]
+			off := vm.fn.Body[vm.pc]
+			call := funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+			vm.fp[0] += uint32(off.Op)
+			if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 				vm.moreIntStack()
 			}
-			vm.fp[1] += uint32(off.a)
-			if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+			vm.fp[1] += uint32(off.A)
+			if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
 				vm.moreFloatStack()
 			}
-			vm.fp[2] += uint32(off.b)
-			if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+			vm.fp[2] += uint32(off.B)
+			if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
 				vm.moreStringStack()
 			}
-			vm.fp[3] += uint32(off.c)
-			if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+			vm.fp[3] += uint32(off.C)
+			if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
@@ -244,28 +244,28 @@ func (vm *VM) run() int {
 		case opCallIndirect:
 			f := vm.general(a).(*callable)
 			if f.scrigo == nil {
-				off := vm.fn.body[vm.pc]
-				vm.callNative(f.native, c, StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+				off := vm.fn.Body[vm.pc]
+				vm.callNative(f.native, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
 				startNativeGoroutine = false
 			} else {
 				fn := f.scrigo
 				vm.cvars = f.vars
-				off := vm.fn.body[vm.pc]
-				call := Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
-				vm.fp[0] += uint32(off.op)
-				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+				off := vm.fn.Body[vm.pc]
+				call := funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+				vm.fp[0] += uint32(off.Op)
+				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
-				vm.fp[1] += uint32(off.a)
-				if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+				vm.fp[1] += uint32(off.A)
+				if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
-				vm.fp[2] += uint32(off.b)
-				if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+				vm.fp[2] += uint32(off.B)
+				if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
-				vm.fp[3] += uint32(off.c)
-				if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+				vm.fp[3] += uint32(off.C)
+				if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
@@ -275,9 +275,9 @@ func (vm *VM) run() int {
 
 		// CallNative
 		case opCallNative:
-			fn := vm.fn.nativeFunctions[uint8(a)]
-			off := vm.fn.body[vm.pc]
-			vm.callNative(fn, c, StackShift{int8(off.op), off.a, off.b, off.c}, startNativeGoroutine)
+			fn := vm.fn.NativeFunctions[uint8(a)]
+			off := vm.fn.Body[vm.pc]
+			vm.callNative(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
 			startNativeGoroutine = false
 
 		// Cap
@@ -318,7 +318,7 @@ func (vm *VM) run() int {
 
 		// Convert
 		case opConvert:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			switch t.Kind() {
 			case reflect.Array:
 				slice := reflect.ValueOf(vm.general(a))
@@ -334,20 +334,20 @@ func (vm *VM) run() int {
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
 		case opConvertInt:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			if t.Kind() == reflect.Bool {
 				vm.setGeneral(c, reflect.ValueOf(vm.bool(a)).Convert(t).Interface())
 			} else {
 				vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
 			}
 		case opConvertUint:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Interface())
 		case opConvertFloat:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.float(a)).Convert(t).Interface())
 		case opConvertString:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
 
 		// Copy
@@ -365,11 +365,11 @@ func (vm *VM) run() int {
 
 		// Defer
 		case opDefer:
-			off := vm.fn.body[vm.pc]
-			arg := vm.fn.body[vm.pc+1]
+			off := vm.fn.Body[vm.pc]
+			arg := vm.fn.Body[vm.pc+1]
 			vm.deferCall(vm.general(a).(*callable), c,
-				StackShift{int8(off.op), off.a, off.b, off.c},
-				StackShift{int8(arg.op), arg.a, arg.b, arg.c})
+				StackShift{int8(off.Op), off.A, off.B, off.C},
+				StackShift{int8(arg.Op), arg.A, arg.B, arg.C})
 			vm.pc += 2
 
 		// Delete
@@ -406,11 +406,11 @@ func (vm *VM) run() int {
 
 		// Func
 		case opFunc:
-			fn := vm.fn.literals[uint8(b)]
+			fn := vm.fn.Literals[uint8(b)]
 			var vars []interface{}
-			if fn.crefs != nil {
-				vars = make([]interface{}, len(fn.crefs))
-				for i, ref := range fn.crefs {
+			if fn.CRefs != nil {
+				vars = make([]interface{}, len(fn.CRefs))
+				for i, ref := range fn.CRefs {
 					if ref < 0 {
 						vars[i] = vm.general(int8(-ref))
 					} else {
@@ -424,15 +424,15 @@ func (vm *VM) run() int {
 		case opGetFunc:
 			fn := callable{}
 			if a == 0 {
-				fn.scrigo = vm.fn.scrigoFunctions[uint8(b)]
+				fn.scrigo = vm.fn.ScrigoFunctions[uint8(b)]
 			} else {
-				fn.native = vm.fn.nativeFunctions[uint8(b)]
+				fn.native = vm.fn.NativeFunctions[uint8(b)]
 			}
 			vm.setGeneral(c, &fn)
 
 		// GetVar
 		case opGetVar:
-			v := vm.fn.variables[uint8(a)].value
+			v := vm.fn.Variables[uint8(a)].Value
 			switch v := v.(type) {
 			case *bool:
 				vm.setBool(c, *v)
@@ -623,7 +623,7 @@ func (vm *VM) run() int {
 
 		// MakeChan
 		case opMakeChan, -opMakeChan:
-			typ := vm.fn.types[uint8(a)]
+			typ := vm.fn.Types[uint8(a)]
 			buffer := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeChan(typ, buffer).Interface())
 
@@ -674,21 +674,21 @@ func (vm *VM) run() int {
 
 		// MakeMap
 		case opMakeMap, -opMakeMap:
-			typ := vm.fn.types[uint8(a)]
+			typ := vm.fn.Types[uint8(a)]
 			n := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeMapWithSize(typ, n).Interface())
 
 		// MakeSlice
 		case opMakeSlice:
-			typ := vm.fn.types[uint8(a)]
+			typ := vm.fn.Types[uint8(a)]
 			var len, cap int
 			if b > 1 {
-				next := vm.fn.body[vm.pc]
+				next := vm.fn.Body[vm.pc]
 				vm.pc++
 				lenIsConst := (b & (1 << 1)) != 0
-				len = int(vm.intk(next.a, lenIsConst))
+				len = int(vm.intk(next.A, lenIsConst))
 				capIsConst := (b & (1 << 2)) != 0
-				cap = int(vm.intk(next.b, capIsConst))
+				cap = int(vm.intk(next.B, capIsConst))
 			}
 			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
 
@@ -715,9 +715,9 @@ func (vm *VM) run() int {
 		case opLoadNumber:
 			switch a {
 			case 0:
-				vm.setInt(c, vm.fn.constants.Int[uint8(b)])
+				vm.setInt(c, vm.fn.Constants.Int[uint8(b)])
 			case 1:
-				vm.setFloat(c, vm.fn.constants.Float[uint8(b)])
+				vm.setFloat(c, vm.fn.Constants.Float[uint8(b)])
 			}
 
 		// Mul
@@ -740,7 +740,7 @@ func (vm *VM) run() int {
 
 		// New
 		case opNew:
-			t := vm.fn.types[uint8(b)]
+			t := vm.fn.Types[uint8(b)]
 			var v interface{}
 			switch t.Kind() {
 			case reflect.Int:
@@ -1063,7 +1063,7 @@ func (vm *VM) run() int {
 			chosen, recv, recvOK := reflect.Select(vm.cases)
 			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
 			if vm.cases[chosen].Dir == reflect.SelectRecv {
-				r := vm.fn.body[vm.pc-1].b
+				r := vm.fn.Body[vm.pc-1].B
 				if r != 0 {
 					vm.setFromReflectValue(r, recv)
 				}
@@ -1169,7 +1169,7 @@ func (vm *VM) run() int {
 
 		// SetVar
 		case opSetVar, -opSetVar:
-			v := vm.fn.variables[uint8(c)].value
+			v := vm.fn.Variables[uint8(c)].Value
 			switch v := v.(type) {
 			case *bool:
 				*v = vm.boolk(b, op < 0)
@@ -1245,7 +1245,7 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case opTailCall:
-			vm.calls = append(vm.calls, Call{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: Tailed})
+			vm.calls = append(vm.calls, funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: Tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *ScrigoFunction
@@ -1254,19 +1254,19 @@ func (vm *VM) run() int {
 					fn = closure.scrigo
 					vm.cvars = closure.vars
 				} else {
-					fn = vm.fn.scrigoFunctions[uint8(b)]
+					fn = vm.fn.ScrigoFunctions[uint8(b)]
 					vm.cvars = nil
 				}
-				if vm.fp[0]+uint32(fn.regnum[0]) > vm.st[0] {
+				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
 				}
-				if vm.fp[1]+uint32(fn.regnum[1]) > vm.st[1] {
+				if vm.fp[1]+uint32(fn.RegNum[1]) > vm.st[1] {
 					vm.moreFloatStack()
 				}
-				if vm.fp[2]+uint32(fn.regnum[2]) > vm.st[2] {
+				if vm.fp[2]+uint32(fn.RegNum[2]) > vm.st[2] {
 					vm.moreStringStack()
 				}
-				if vm.fp[3]+uint32(fn.regnum[3]) > vm.st[3] {
+				if vm.fp[3]+uint32(fn.RegNum[3]) > vm.st[3] {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn

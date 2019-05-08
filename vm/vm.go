@@ -20,8 +20,8 @@ const maxInt8 = 128
 type StackShift [4]int8
 
 type instruction struct {
-	op      operation
-	a, b, c int8
+	Op      operation
+	A, B, C int8
 }
 
 func decodeAddr(a, b, c int8) uint32 {
@@ -49,7 +49,7 @@ type VM struct {
 	regs   registers            // registers.
 	fn     *ScrigoFunction      // current function.
 	cvars  []interface{}        // closure variables.
-	calls  []Call               // call stack.
+	calls  []funcCall           // call stack.
 	cases  []reflect.SelectCase // select cases.
 	panics []Panic              // panics.
 }
@@ -115,17 +115,17 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 			}
 		}
 		write("\n")
-		write(packageName(fn.pkg))
+		write(packageName(fn.Pkg))
 		write(".")
-		write(fn.name)
+		write(fn.Name)
 		write("()\n\t")
-		if fn.file != "" {
-			write(fn.file)
+		if fn.File != "" {
+			write(fn.File)
 		} else {
 			write("???")
 		}
 		write(":")
-		if line, ok := fn.lines[ppc]; ok {
+		if line, ok := fn.Lines[ppc]; ok {
 			write(strconv.Itoa(line))
 		} else {
 			write("???")
@@ -146,9 +146,9 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 	vm.fp[1] += uint32(shift[1])
 	vm.fp[2] += uint32(shift[2])
 	vm.fp[3] += uint32(shift[3])
-	if fn.fast != nil {
+	if fn.Fast != nil {
 		if newGoroutine {
-			switch f := fn.fast.(type) {
+			switch f := fn.Fast.(type) {
 			case func(string) int:
 				go f(vm.string(1))
 			case func(string) string:
@@ -169,7 +169,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 				fn.slow()
 			}
 		} else {
-			switch f := fn.fast.(type) {
+			switch f := fn.Fast.(type) {
 			case func(string) int:
 				vm.setInt(1, int64(f(vm.string(1))))
 			case func(string) string:
@@ -191,7 +191,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 			}
 		}
 	}
-	if fn.fast == nil {
+	if fn.Fast == nil {
 		variadic := fn.value.Type().IsVariadic()
 		if len(fn.in) > 0 {
 			vm.fp[0] += uint32(fn.outOff[0])
@@ -315,7 +315,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, Call{fn: *fn, fp: vm.fp, pc: 0, status: Deferred, variadics: numVariadic})
+	vm.calls = append(vm.calls, funcCall{fn: *fn, fp: vm.fp, pc: 0, status: Deferred, variadics: numVariadic})
 	if args[0] > 0 {
 		stack := vm.regs.Int[vm.fp[0]+1:]
 		tot := shift[0] + args[0]
@@ -380,7 +380,7 @@ func (vm *VM) moreGeneralStack() {
 
 func (vm *VM) nextCall() bool {
 	var i int
-	var call Call
+	var call funcCall
 	for i = len(vm.calls) - 1; i >= 0; i-- {
 		call = vm.calls[i]
 		switch call.status {
@@ -395,7 +395,7 @@ func (vm *VM) nextCall() bool {
 			// A Scrigo call that has deferred calls is returned, its first
 			// deferred call will be executed.
 			call = vm.swapCall(call)
-			vm.calls[i] = Call{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Returned}
+			vm.calls[i] = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Returned}
 			if call.fn.scrigo != nil {
 				break
 			}
@@ -450,12 +450,12 @@ func (vm *VM) nextCall() bool {
 func (vm *VM) startScrigoGoroutine() bool {
 	var fn *ScrigoFunction
 	var vars []interface{}
-	call := vm.fn.body[vm.pc]
-	switch call.op {
+	call := vm.fn.Body[vm.pc]
+	switch call.Op {
 	case opCall:
-		fn = vm.fn.scrigoFunctions[uint8(call.b)]
+		fn = vm.fn.ScrigoFunctions[uint8(call.B)]
 	case opCallIndirect:
-		f := vm.general(call.b).(*callable)
+		f := vm.general(call.B).(*callable)
 		if f.scrigo == nil {
 			return true
 		}
@@ -468,20 +468,20 @@ func (vm *VM) startScrigoGoroutine() bool {
 	nvm.fn = fn
 	nvm.cvars = vars
 	vm.pc++
-	off := vm.fn.body[vm.pc]
-	copy(nvm.regs.Int, vm.regs.Int[vm.fp[0]+uint32(off.op):vm.fp[0]+127])
-	copy(nvm.regs.Float, vm.regs.Float[vm.fp[1]+uint32(off.a):vm.fp[1]+127])
-	copy(nvm.regs.String, vm.regs.String[vm.fp[2]+uint32(off.b):vm.fp[2]+127])
-	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.c):vm.fp[3]+127])
+	off := vm.fn.Body[vm.pc]
+	copy(nvm.regs.Int, vm.regs.Int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
+	copy(nvm.regs.Float, vm.regs.Float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
+	copy(nvm.regs.String, vm.regs.String[vm.fp[2]+uint32(off.B):vm.fp[2]+127])
+	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.C):vm.fp[3]+127])
 	go nvm.run()
 	vm.pc++
 	return false
 }
 
-func (vm *VM) swapCall(call Call) Call {
+func (vm *VM) swapCall(call funcCall) funcCall {
 	if call.fp[0] < vm.fp[0] {
 		a := uint32(vm.fp[0] - call.fp[0])
-		b := uint32(vm.fn.regnum[0])
+		b := uint32(vm.fn.RegNum[0])
 		if vm.fp[0]+2*b > vm.st[0] {
 			vm.moreIntStack()
 		}
@@ -493,7 +493,7 @@ func (vm *VM) swapCall(call Call) Call {
 	}
 	if call.fp[1] < vm.fp[1] {
 		a := uint32(vm.fp[1] - call.fp[1])
-		b := uint32(vm.fn.regnum[1])
+		b := uint32(vm.fn.RegNum[1])
 		if vm.fp[1]+2*b > vm.st[1] {
 			vm.moreFloatStack()
 		}
@@ -505,7 +505,7 @@ func (vm *VM) swapCall(call Call) Call {
 	}
 	if call.fp[2] < vm.fp[2] {
 		a := uint32(vm.fp[2] - call.fp[2])
-		b := uint32(vm.fn.regnum[2])
+		b := uint32(vm.fn.RegNum[2])
 		if vm.fp[2]+2*b > vm.st[2] {
 			vm.moreStringStack()
 		}
@@ -517,7 +517,7 @@ func (vm *VM) swapCall(call Call) Call {
 	}
 	if call.fp[3] < vm.fp[3] {
 		a := uint32(vm.fp[3] - call.fp[3])
-		b := uint32(vm.fn.regnum[3])
+		b := uint32(vm.fn.RegNum[3])
 		if vm.fp[3]+2*b > vm.st[3] {
 			vm.moreGeneralStack()
 		}
@@ -552,9 +552,9 @@ const (
 )
 
 type NativeFunction struct {
-	pkg    string
-	name   string
-	fast   interface{}
+	Pkg    string
+	Name   string
+	Fast   interface{}
 	value  reflect.Value
 	in     []Kind
 	out    []Kind
@@ -562,55 +562,37 @@ type NativeFunction struct {
 	outOff [4]int8
 }
 
-// variable represents a global variable with a package, name and value.
-// value must a pointer to the variable value.
-type variable struct {
-	pkg   string
-	name  string
-	value interface{}
+// Variable represents a global variable with a package, name and value.
+// Value must a pointer to the variable value.
+type Variable struct {
+	Pkg   string
+	Name  string
+	Value interface{}
 }
 
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
-	pkg             string
-	name            string
-	file            string
-	line            int
-	typ             reflect.Type
-	parent          *ScrigoFunction
-	crefs           []int16           // opFunc
-	literals        []*ScrigoFunction // opFunc
-	types           []reflect.Type    // opAlloc, opAssert, opMakeMap, opMakeSlice, opNew
-	regnum          [4]uint8          // opCall, opCallDirect
-	constants       registers
-	variables       []variable
-	scrigoFunctions []*ScrigoFunction
-	nativeFunctions []*NativeFunction
-	body            []instruction // run, opCall, opCallDirect
-	lines           map[uint32]int
-}
-
-func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
-	if fn.lines == nil {
-		fn.lines = map[uint32]int{pc: line}
-	} else {
-		fn.lines[pc] = line
-	}
-}
-
-func (fn *ScrigoFunction) SetClosureRefs(refs []int16) {
-	fn.crefs = refs
-}
-
-// SetFileLine sets the file name and line number of a Scrigo function.
-func (fn *ScrigoFunction) SetFileLine(file string, line int) {
-	fn.file = file
-	fn.line = line
+	Pkg             string
+	Name            string
+	File            string
+	Line            int
+	Type            reflect.Type
+	Parent          *ScrigoFunction
+	CRefs           []int16
+	Literals        []*ScrigoFunction
+	Types           []reflect.Type
+	RegNum          [4]uint8
+	Constants       registers
+	Variables       []Variable
+	ScrigoFunctions []*ScrigoFunction
+	NativeFunctions []*NativeFunction
+	Body            []instruction
+	Lines           map[uint32]int
 }
 
 func (fn *NativeFunction) slow() {
 	if !fn.value.IsValid() {
-		fn.value = reflect.ValueOf(fn.fast)
+		fn.value = reflect.ValueOf(fn.Fast)
 	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
@@ -665,13 +647,13 @@ func (fn *NativeFunction) slow() {
 			fn.outOff[3]++
 		}
 	}
-	fn.fast = nil
+	fn.Fast = nil
 }
 
-type CallStatus int8
+type callStatus int8
 
 const (
-	Started CallStatus = iota
+	Started callStatus = iota
 	Tailed
 	Returned
 	Deferred
@@ -679,11 +661,11 @@ const (
 	Recovered
 )
 
-type Call struct {
+type funcCall struct {
 	fn        callable   // function.
 	fp        [4]uint32  // frame pointers.
 	pc        uint32     // program counter.
-	status    CallStatus // status.
+	status    callStatus // status.
 	variadics int8       // number of variadic arguments.
 }
 
@@ -703,7 +685,7 @@ func (c *callable) reflectValue() reflect.Value {
 	if c.native != nil {
 		// It is a native function.
 		if !c.native.value.IsValid() {
-			c.native.value = reflect.ValueOf(c.native.fast)
+			c.native.value = reflect.ValueOf(c.native.Fast)
 		}
 		c.value = c.native.value
 		return c.value
@@ -711,14 +693,14 @@ func (c *callable) reflectValue() reflect.Value {
 	// It is a Scrigo function.
 	fn := c.scrigo
 	cvars := c.vars
-	c.value = reflect.MakeFunc(fn.typ, func(args []reflect.Value) []reflect.Value {
+	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := New()
 		nvm.fn = fn
 		nvm.cvars = cvars
-		nOut := fn.typ.NumOut()
+		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
-			t := fn.typ.Out(i)
+			t := fn.Type.Out(i)
 			results[i] = reflect.New(t).Elem()
 			k := t.Kind()
 			switch k {
@@ -759,7 +741,7 @@ func (c *callable) reflectValue() reflect.Value {
 		nvm.run()
 		r = 1
 		for i, result := range results {
-			t := fn.typ.Out(i)
+			t := fn.Type.Out(i)
 			k := t.Kind()
 			switch k {
 			case reflect.Bool:

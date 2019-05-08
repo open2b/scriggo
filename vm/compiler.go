@@ -25,14 +25,14 @@ type Compiler struct {
 
 	availableScrigoFunctions map[string]*ScrigoFunction
 	availableNativeFunctions map[string]*NativeFunction
-	availableVariables       map[string]variable
+	availableVariables       map[string]Variable
 
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *ScrigoFunction key or
 	// can they be related to currentFunction in some way?
 	assignedScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
 	assignedNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
-	assignedVariables       map[*ScrigoFunction]map[variable]uint8
+	assignedVariables       map[*ScrigoFunction]map[Variable]uint8
 
 	isNativePkg map[string]bool
 }
@@ -46,11 +46,11 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 
 		availableScrigoFunctions: map[string]*ScrigoFunction{},
 		availableNativeFunctions: map[string]*NativeFunction{},
-		availableVariables:       map[string]variable{},
+		availableVariables:       map[string]Variable{},
 
 		assignedScrigoFunctions: map[*ScrigoFunction]map[*ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
-		assignedVariables:       map[*ScrigoFunction]map[variable]uint8{},
+		assignedVariables:       map[*ScrigoFunction]map[Variable]uint8{},
 
 		isNativePkg: map[string]bool{},
 	}
@@ -88,7 +88,7 @@ func (c *Compiler) CompileScript(path string) (*ScrigoFunction, error) {
 	c.indirectVars = tci["main"].IndirectVars
 	main := NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	c.currentFunction = main
-	c.fb = c.currentFunction.NewBuilder()
+	c.fb = NewBuilder(c.currentFunction)
 	c.fb.EnterScope()
 	addExplicitReturn(tree)
 	c.compileNodes(tree.Nodes)
@@ -105,8 +105,8 @@ func (c *Compiler) scrigoFunctionIndex(fun *ScrigoFunction) int8 {
 	if ok {
 		return i
 	}
-	i = int8(len(currFun.scrigoFunctions))
-	currFun.scrigoFunctions = append(currFun.scrigoFunctions, fun)
+	i = int8(len(currFun.ScrigoFunctions))
+	currFun.ScrigoFunctions = append(currFun.ScrigoFunctions, fun)
 	if c.assignedScrigoFunctions[currFun] == nil {
 		c.assignedScrigoFunctions[currFun] = make(map[*ScrigoFunction]int8)
 	}
@@ -122,8 +122,8 @@ func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 	if ok {
 		return i
 	}
-	i = int8(len(currFun.nativeFunctions))
-	currFun.nativeFunctions = append(currFun.nativeFunctions, fun)
+	i = int8(len(currFun.NativeFunctions))
+	currFun.NativeFunctions = append(currFun.NativeFunctions, fun)
 	if c.assignedNativeFunctions[currFun] == nil {
 		c.assignedNativeFunctions[currFun] = make(map[*NativeFunction]int8)
 	}
@@ -133,16 +133,16 @@ func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 
 // variableIndex returns v's index inside current function, creating it if not
 // exists.
-func (c *Compiler) variableIndex(v variable) uint8 {
+func (c *Compiler) variableIndex(v Variable) uint8 {
 	currFun := c.currentFunction
 	i, ok := c.assignedVariables[currFun][v]
 	if ok {
 		return i
 	}
-	i = uint8(len(currFun.variables))
-	currFun.variables = append(currFun.variables, v)
+	i = uint8(len(currFun.Variables))
+	currFun.Variables = append(currFun.Variables, v)
 	if c.assignedVariables[currFun] == nil {
-		c.assignedVariables[currFun] = make(map[variable]uint8)
+		c.assignedVariables[currFun] = make(map[Variable]uint8)
 	}
 	c.assignedVariables[currFun][v] = i
 	return i
@@ -188,7 +188,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
 				backupFunction := c.currentFunction
 				c.currentFunction = initVars
-				c.fb = c.currentFunction.NewBuilder()
+				c.fb = NewBuilder(c.currentFunction)
 				value := n.Values[0]
 				typ := c.typeinfo[n.Identifiers[0]].Type
 				kind := typ.Kind()
@@ -199,7 +199,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				index := c.variableIndex(v)
 				c.fb.SetVar(reg, index)
 				c.currentFunction = backupFunction
-				c.fb = c.currentFunction.NewBuilder()
+				c.fb = NewBuilder(c.currentFunction)
 			} else {
 				panic("TODO(Gianluca): not implemented")
 			}
@@ -208,7 +208,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			// outside this switch is wrong too: init.-1 cannot be created
 			// if there's no need.
 			// initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
-			// initBuilder := initFn.Builder()
+			// initBuilder := NewBuilder(initFn)
 			// if len(n.Identifiers) == 1 && len(n.Values) == 1 {
 			// 	currentBuilder := c.fb
 			// 	c.fb = initBuilder
@@ -225,7 +225,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			fn := NewScrigoFunction("main", n.Ident.Name, n.Type.Reflect)
 			c.availableScrigoFunctions[n.Ident.Name] = fn
 			c.currentFunction = fn
-			c.fb = fn.NewBuilder()
+			c.fb = NewBuilder(fn)
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
 			addExplicitReturn(n)
@@ -286,7 +286,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 	}
 
 	if haveVariables {
-		b := initVars.NewBuilder()
+		b := NewBuilder(initVars)
 		b.Return()
 	}
 }
@@ -385,14 +385,14 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !c.fb.IsVariable(ident.Name) {
 			if fun, isScrigoFunc := c.availableScrigoFunctions[ident.Name]; isScrigoFunc {
-				regs, types := c.prepareCallParameters(fun.typ, call.Args, false)
+				regs, types := c.prepareCallParameters(fun.Type, call.Args, false)
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
 			if _, isNativeFunc := c.availableNativeFunctions[ident.Name]; isNativeFunc {
 				fun := c.availableNativeFunctions[ident.Name]
-				funcType := reflect.TypeOf(fun.fast)
+				funcType := reflect.TypeOf(fun.Fast)
 				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {
@@ -409,7 +409,7 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
 			if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
 				fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
-				funcType := reflect.TypeOf(fun.fast)
+				funcType := reflect.TypeOf(fun.Fast)
 				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {
@@ -697,7 +697,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 			return
 		}
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
-		funcLitBuilder := fn.NewBuilder()
+		funcLitBuilder := NewBuilder(fn)
 		currFb := c.fb
 		currFn := c.currentFunction
 		c.fb = funcLitBuilder
@@ -1000,7 +1000,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		panic("TODO: not implemented")
 		// typ := c.typeinfo[call.Args[0]].Type
 		// t := c.currFb.Type(typ)
-		// i = instruction{op: opNew, b: t, c: }
+		// i = instruction{Op: opNew, B: t, C: }
 	case "panic":
 		arg := call.Args[0]
 		reg, _, isRegister := c.quickCompileExpr(arg, emptyInterfaceType)
@@ -1191,7 +1191,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// }
 			offset := [4]int8{}
 			for i, v := range node.Values {
-				typ := c.currentFunction.typ.Out(i)
+				typ := c.currentFunction.Type.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
 				case TypeInt:

@@ -42,14 +42,14 @@ func call() {
 	pkg := vm.NewPackage("main")
 
 	inc := pkg.NewFunction("inc", []vm.Type{vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
-	b := inc.Builder()
+	b := NewBuilder(inc)
 	b.Add(true, 1, 1, 0, reflect.Int)
 	b.Return()
 	b.End()
 
 	main := pkg.NewFunction("main", nil, nil, false)
 
-	b = main.Builder()
+	b = NewBuilder(main)
 	b.Move(true, 0, 0, reflect.Int) // i := 0
 	b.Move(true, 0, 1, reflect.Int) // x := 0
 	b.SetLabel()
@@ -97,7 +97,7 @@ func callRec() {
 	pkg := vm.NewPackage("main")
 
 	fib := pkg.NewFunction("fib", []vm.Type{vm.TypeInt, vm.TypeInt, vm.TypeInt}, []vm.Type{vm.TypeInt}, false)
-	fb := fib.Builder()
+	fb := NewBuilder(fib)
 
 	fb.If(true, 1, vm.ConditionEqual, 0, reflect.Int) // if n == 0
 	fb.Goto(1)
@@ -117,7 +117,7 @@ func callRec() {
 	fb.End()
 
 	main := pkg.NewFunction("main", nil, nil, false)
-	fb = main.Builder()
+	fb = NewBuilder(main)
 	fb.Move(true, 35, 1, reflect.Int) // n := fibN
 	fb.Move(true, 0, 2, reflect.Int)  // a := 0
 	fb.Move(true, 1, 3, reflect.Int)  // b := 1
@@ -151,12 +151,12 @@ func closure() {
 	intType := reflect.TypeOf(0)
 
 	main := pkg.NewFunction("main", nil, nil, false)
-	b := main.Builder()
+	b := NewBuilder(main)
 	b.Alloc(intType, -1)              // a := 0
 	inc := b.Func(1, nil, nil, false) // inc := func() { ... }
 
 	inc.SetClosureRefs([]int16{-1})
-	b2 := inc.Builder()
+	b2 := NewBuilder(inc)
 	b2.GetClosureVar(0, 0)
 	b2.Add(true, 0, 1, 0, reflect.Int)
 	b2.SetClosureVar(0, 0)

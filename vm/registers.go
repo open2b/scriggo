@@ -259,7 +259,7 @@ func (vm *VM) string(r int8) string {
 
 func (vm *VM) stringk(r int8, k bool) string {
 	if k {
-		return vm.fn.constants.String[uint8(r)]
+		return vm.fn.Constants.String[uint8(r)]
 	}
 	if r > 0 {
 		return vm.regs.String[vm.fp[2]+uint32(r)]
@@ -301,7 +301,7 @@ func (vm *VM) general(r int8) interface{} {
 
 func (vm *VM) generalk(r int8, k bool) interface{} {
 	if k {
-		return vm.fn.constants.General[r]
+		return vm.fn.Constants.General[r]
 	}
 	if r > 0 {
 		return vm.regs.General[vm.fp[3]+uint32(r)]
