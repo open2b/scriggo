@@ -297,10 +297,10 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		if a != CurrentFunction {
 			switch op {
 			case opCall, opTailCall:
-				sf := fn.scrigoFunctions[uint8(b)]
+				sf := fn.scrigoFunctions[uint8(a)]
 				s += " " + packageName(sf.pkg) + "." + sf.name
 			case opCallNative:
-				nf := fn.nativeFunctions[uint8(b)]
+				nf := fn.nativeFunctions[uint8(a)]
 				s += " " + packageName(nf.pkg) + "." + nf.name
 			case opCallIndirect, opDefer:
 				s += " " + disassembleOperand(fn, a, Interface, false)
