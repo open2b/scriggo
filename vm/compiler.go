@@ -693,20 +693,19 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		}
 
 	case *ast.Func:
-		typ := c.typeinfo[expr].Type
-		scrigoFunc := c.fb.Func(reg, typ)
-		funcLitBuilder := scrigoFunc.Builder()
-		currentFb := c.fb
-		currentFn := c.currentFunction
+		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
+		funcLitBuilder := fn.Builder()
+		currFb := c.fb
+		currFn := c.currentFunction
 		c.fb = funcLitBuilder
-		c.currentFunction = scrigoFunc
+		c.currentFunction = fn
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)
 		addExplicitReturn(expr)
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.ExitScope()
-		c.fb = currentFb
-		c.currentFunction = currentFn
+		c.fb = currFb
+		c.currentFunction = currFn
 
 	case *ast.Identifier:
 		if reg == 0 {
