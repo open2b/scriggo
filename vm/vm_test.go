@@ -117,6 +117,28 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+
+	{"Increment assignment should evaluate expression only once",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func i() int {
+			fmt.Print("i()")
+			return 0
+		}
+		
+		func main() {
+			s := []int{1,2,3}
+			s[i()] += 5
+			fmt.Println(s)
+		}
+		`,
+		nil, nil, "i()[6 2 3]\n",
+	},
+
 	{"Package function with many return values (same type)",
 		`package main
 
@@ -1563,7 +1585,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 2, map[string]int{}},
+			{TypeIface, 3, map[string]int{}},
 		}, ""},
 
 	{"Builtin copy",
@@ -1839,7 +1861,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{TypeIface, 2, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
+			{TypeIface, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
 		""},
 
@@ -1871,6 +1893,7 @@ var stmtTests = []struct {
 		package main
 
 		import "testpkg"
+		import "fmt"
 
 		func main() {
 			var i1, i2 int
@@ -1882,15 +1905,9 @@ var stmtTests = []struct {
 			s1, i1 = testpkg.Swap(i1, s1)
 			s2, i2 = testpkg.Swap(i1, s1)
 
-			_ = s2
-			_ = i2
+			fmt.Print(s1, s2, i1, i2)
 		}
-		`, nil, []reg{
-			{TypeInt, 1, int64(3)},
-			{TypeInt, 2, int64(3)},
-			{TypeString, 2, "hey"},
-			{TypeString, 4, "hey"},
-		}, ""},
+		`, nil, nil, "heyhey3 3"},
 
 	{"Many Scrigo functions (swap, sum, fact)",
 		`
