@@ -14,17 +14,17 @@ import (
 const NoVariadic = -1
 const CurrentFunction = -1
 
-const StackSize = 512
+const stackSize = 512
 const maxInt8 = 128
 
 type StackShift [4]int8
 
-type instruction struct {
-	Op      operation
+type Instruction struct {
+	Op      Operation
 	A, B, C int8
 }
 
-func decodeAddr(a, b, c int8) uint32 {
+func DecodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
 }
 
@@ -57,14 +57,14 @@ type VM struct {
 // New returns a new virtual machine.
 func New() *VM {
 	vm := &VM{}
-	vm.regs.Int = make([]int64, StackSize)
-	vm.regs.Float = make([]float64, StackSize)
-	vm.regs.String = make([]string, StackSize)
-	vm.regs.General = make([]interface{}, StackSize)
-	vm.st[0] = StackSize
-	vm.st[1] = StackSize
-	vm.st[2] = StackSize
-	vm.st[3] = StackSize
+	vm.regs.int = make([]int64, stackSize)
+	vm.regs.float = make([]float64, stackSize)
+	vm.regs.string = make([]string, stackSize)
+	vm.regs.general = make([]interface{}, stackSize)
+	vm.st[0] = stackSize
+	vm.st[1] = stackSize
+	vm.st[2] = stackSize
+	vm.st[3] = stackSize
 	vm.Reset()
 	return vm
 }
@@ -108,7 +108,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 		} else {
 			call := vm.calls[i]
 			fn = call.fn.scrigo
-			if call.status == Tailed {
+			if call.status == tailed {
 				ppc = call.pc - 1
 			} else {
 				ppc = call.pc - 2
@@ -315,30 +315,30 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, funcCall{fn: *fn, fp: vm.fp, pc: 0, status: Deferred, variadics: numVariadic})
+	vm.calls = append(vm.calls, funcCall{fn: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
 	if args[0] > 0 {
-		stack := vm.regs.Int[vm.fp[0]+1:]
+		stack := vm.regs.int[vm.fp[0]+1:]
 		tot := shift[0] + args[0]
 		copy(stack[shift[0]:], stack[:tot])
 		copy(stack, stack[shift[0]:tot])
 		vm.fp[0] += uint32(args[0])
 	}
 	if args[1] > 0 {
-		stack := vm.regs.Float[vm.fp[1]+1:]
+		stack := vm.regs.float[vm.fp[1]+1:]
 		tot := shift[1] + args[1]
 		copy(stack[shift[1]:], stack[:tot])
 		copy(stack, stack[shift[1]:tot])
 		vm.fp[1] += uint32(args[1])
 	}
 	if args[2] > 0 {
-		stack := vm.regs.String[vm.fp[2]+1:]
+		stack := vm.regs.string[vm.fp[2]+1:]
 		tot := shift[2] + args[2]
 		copy(stack[shift[2]:], stack[:tot])
 		copy(stack, stack[shift[2]:tot])
 		vm.fp[2] += uint32(args[2])
 	}
 	if args[3] > 0 {
-		stack := vm.regs.General[vm.fp[3]+1:]
+		stack := vm.regs.general[vm.fp[3]+1:]
 		tot := shift[3] + args[3]
 		copy(stack[shift[3]:], stack[:tot])
 		copy(stack, stack[shift[3]:tot])
@@ -347,34 +347,34 @@ func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) 
 }
 
 func (vm *VM) moreIntStack() {
-	top := len(vm.regs.Int) * 2
+	top := len(vm.regs.int) * 2
 	stack := make([]int64, top)
-	copy(stack, vm.regs.Int)
-	vm.regs.Int = stack
+	copy(stack, vm.regs.int)
+	vm.regs.int = stack
 	vm.st[0] = uint32(top)
 }
 
 func (vm *VM) moreFloatStack() {
-	top := len(vm.regs.Float) * 2
+	top := len(vm.regs.float) * 2
 	stack := make([]float64, top)
-	copy(stack, vm.regs.Float)
-	vm.regs.Float = stack
+	copy(stack, vm.regs.float)
+	vm.regs.float = stack
 	vm.st[1] = uint32(top)
 }
 
 func (vm *VM) moreStringStack() {
-	top := len(vm.regs.String) * 2
+	top := len(vm.regs.string) * 2
 	stack := make([]string, top)
-	copy(stack, vm.regs.String)
-	vm.regs.String = stack
+	copy(stack, vm.regs.string)
+	vm.regs.string = stack
 	vm.st[2] = uint32(top)
 }
 
 func (vm *VM) moreGeneralStack() {
-	top := len(vm.regs.General) * 2
+	top := len(vm.regs.general) * 2
 	stack := make([]interface{}, top)
-	copy(stack, vm.regs.General)
-	vm.regs.General = stack
+	copy(stack, vm.regs.general)
+	vm.regs.general = stack
 	vm.st[3] = uint32(top)
 }
 
@@ -384,46 +384,46 @@ func (vm *VM) nextCall() bool {
 	for i = len(vm.calls) - 1; i >= 0; i-- {
 		call = vm.calls[i]
 		switch call.status {
-		case Started:
+		case started:
 			// A call is returned, continue with the previous call.
 			// TODO(marco): call finalizer.
-		case Tailed:
+		case tailed:
 			// A tail call is returned, continue with the previous call.
 			// TODO(marco): call finalizer.
 			continue
-		case Deferred:
+		case deferred:
 			// A Scrigo call that has deferred calls is returned, its first
 			// deferred call will be executed.
 			call = vm.swapCall(call)
-			vm.calls[i] = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Returned}
+			vm.calls[i] = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: returned}
 			if call.fn.scrigo != nil {
 				break
 			}
 			vm.callNative(call.fn.native, call.variadics, StackShift{}, false)
 			fallthrough
-		case Returned, Recovered:
+		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
 			// call, it will be executed, otherwise the previous call will be
 			// finalized.
 			if i > 0 {
-				if prev := vm.calls[i-1]; prev.status == Deferred {
+				if prev := vm.calls[i-1]; prev.status == deferred {
 					call, vm.calls[i-1] = prev, call
 					break
 				}
 			}
 			// TODO(marco): call finalizer.
-			if call.status == Recovered {
+			if call.status == recovered {
 				vm.panics = vm.panics[:len(vm.panics)-1]
 			}
 			continue
-		case Panicked:
+		case panicked:
 			// A call is panicked, the first deferred call in the call stack,
 			// if there is one, will be executed.
 			for i = i - 1; i >= 0; i-- {
 				call = vm.calls[i]
-				if call.status == Deferred {
+				if call.status == deferred {
 					vm.calls[i] = vm.calls[i+1]
-					vm.calls[i].status = Panicked
+					vm.calls[i].status = panicked
 					if call.fn.scrigo != nil {
 						i++
 						break
@@ -452,9 +452,9 @@ func (vm *VM) startScrigoGoroutine() bool {
 	var vars []interface{}
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
-	case opCall:
+	case OpCall:
 		fn = vm.fn.ScrigoFunctions[uint8(call.B)]
-	case opCallIndirect:
+	case OpCallIndirect:
 		f := vm.general(call.B).(*callable)
 		if f.scrigo == nil {
 			return true
@@ -469,10 +469,10 @@ func (vm *VM) startScrigoGoroutine() bool {
 	nvm.cvars = vars
 	vm.pc++
 	off := vm.fn.Body[vm.pc]
-	copy(nvm.regs.Int, vm.regs.Int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
-	copy(nvm.regs.Float, vm.regs.Float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
-	copy(nvm.regs.String, vm.regs.String[vm.fp[2]+uint32(off.B):vm.fp[2]+127])
-	copy(nvm.regs.General, vm.regs.General[vm.fp[3]+uint32(off.C):vm.fp[3]+127])
+	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
+	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
+	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+uint32(off.B):vm.fp[2]+127])
+	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+uint32(off.C):vm.fp[3]+127])
 	go nvm.run()
 	vm.pc++
 	return false
@@ -485,7 +485,7 @@ func (vm *VM) swapCall(call funcCall) funcCall {
 		if vm.fp[0]+2*b > vm.st[0] {
 			vm.moreIntStack()
 		}
-		s := vm.regs.Int[call.fp[0]+1:]
+		s := vm.regs.int[call.fp[0]+1:]
 		copy(s[a:], s[:a+b])
 		copy(s, s[a+b:a+2*b])
 		vm.fp[0] -= a
@@ -497,7 +497,7 @@ func (vm *VM) swapCall(call funcCall) funcCall {
 		if vm.fp[1]+2*b > vm.st[1] {
 			vm.moreFloatStack()
 		}
-		s := vm.regs.Float[call.fp[1]+1:]
+		s := vm.regs.float[call.fp[1]+1:]
 		copy(s[a:], s[:a+b])
 		copy(s, s[a+b:a+2*b])
 		vm.fp[1] -= a
@@ -509,7 +509,7 @@ func (vm *VM) swapCall(call funcCall) funcCall {
 		if vm.fp[2]+2*b > vm.st[2] {
 			vm.moreStringStack()
 		}
-		s := vm.regs.Float[call.fp[2]+1:]
+		s := vm.regs.float[call.fp[2]+1:]
 		copy(s[a:], s[:a+b])
 		copy(s, s[a+b:a+2*b])
 		vm.fp[2] -= a
@@ -521,7 +521,7 @@ func (vm *VM) swapCall(call funcCall) funcCall {
 		if vm.fp[3]+2*b > vm.st[3] {
 			vm.moreGeneralStack()
 		}
-		s := vm.regs.General[call.fp[3]+1:]
+		s := vm.regs.general[call.fp[3]+1:]
 		copy(s[a:], s[:a+b])
 		copy(s, s[a+b:a+2*b])
 		vm.fp[3] -= a
@@ -572,21 +572,26 @@ type Variable struct {
 
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
-	Pkg             string
-	Name            string
-	File            string
-	Line            int
-	Type            reflect.Type
-	Parent          *ScrigoFunction
-	CRefs           []int16
-	Literals        []*ScrigoFunction
-	Types           []reflect.Type
-	RegNum          [4]uint8
-	Constants       registers
+	Pkg       string
+	Name      string
+	File      string
+	Line      int
+	Type      reflect.Type
+	Parent    *ScrigoFunction
+	CRefs     []int16
+	Literals  []*ScrigoFunction
+	Types     []reflect.Type
+	RegNum    [4]uint8
+	Constants struct {
+		Int     []int64
+		Float   []float64
+		String  []string
+		General []interface{}
+	}
 	Variables       []Variable
 	ScrigoFunctions []*ScrigoFunction
 	NativeFunctions []*NativeFunction
-	Body            []instruction
+	Body            []Instruction
 	Lines           map[uint32]int
 }
 
@@ -653,12 +658,12 @@ func (fn *NativeFunction) slow() {
 type callStatus int8
 
 const (
-	Started callStatus = iota
-	Tailed
-	Returned
-	Deferred
-	Panicked
-	Recovered
+	started callStatus = iota
+	tailed
+	returned
+	deferred
+	panicked
+	recovered
 )
 
 type funcCall struct {
@@ -915,175 +920,175 @@ func (c Condition) String() string {
 	panic("unknown condition")
 }
 
-type operation int8
+type Operation int8
 
 const (
-	opNone operation = iota
+	OpNone Operation = iota
 
-	opAddInt
-	opAddInt8
-	opAddInt16
-	opAddInt32
-	opAddFloat32
-	opAddFloat64
+	OpAddInt
+	OpAddInt8
+	OpAddInt16
+	OpAddInt32
+	OpAddFloat32
+	OpAddFloat64
 
-	opAnd
+	OpAnd
 
-	opAndNot
+	OpAndNot
 
-	opAssert
-	opAssertInt
-	opAssertFloat64
-	opAssertString
+	OpAssert
+	OpAssertInt
+	OpAssertFloat64
+	OpAssertString
 
-	opAppend
+	OpAppend
 
-	opAppendSlice
+	OpAppendSlice
 
-	opBind
+	OpBind
 
-	opCall
+	OpCall
 
-	opCallIndirect
+	OpCallIndirect
 
-	opCallNative
+	OpCallNative
 
-	opCap
+	OpCap
 
-	opCase
+	OpCase
 
-	opContinue
+	OpContinue
 
-	opConvert
-	opConvertInt
-	opConvertUint
-	opConvertFloat
-	opConvertString
+	OpConvert
+	OpConvertInt
+	OpConvertUint
+	OpConvertFloat
+	OpConvertString
 
-	opCopy
+	OpCopy
 
-	opConcat
+	OpConcat
 
-	opDefer
+	OpDefer
 
-	opDelete
+	OpDelete
 
-	opDivInt
-	opDivInt8
-	opDivInt16
-	opDivInt32
-	opDivUint8
-	opDivUint16
-	opDivUint32
-	opDivUint64
-	opDivFloat32
-	opDivFloat64
+	OpDivInt
+	OpDivInt8
+	OpDivInt16
+	OpDivInt32
+	OpDivUint8
+	OpDivUint16
+	OpDivUint32
+	OpDivUint64
+	OpDivFloat32
+	OpDivFloat64
 
-	opFunc
+	OpFunc
 
-	opGetFunc
+	OpGetFunc
 
-	opGetVar
+	OpGetVar
 
-	opGo
+	OpGo
 
-	opGoto
+	OpGoto
 
-	opIf
-	opIfInt
-	opIfUint
-	opIfFloat
-	opIfString
+	OpIf
+	OpIfInt
+	OpIfUint
+	OpIfFloat
+	OpIfString
 
-	opIndex
+	OpIndex
 
-	opLeftShift
-	opLeftShift8
-	opLeftShift16
-	opLeftShift32
+	OpLeftShift
+	OpLeftShift8
+	OpLeftShift16
+	OpLeftShift32
 
-	opLen
+	OpLen
 
-	opLoadNumber
+	OpLoadNumber
 
-	opMakeChan
+	OpMakeChan
 
-	opMapIndex
+	OpMapIndex
 
-	opMakeMap
+	OpMakeMap
 
-	opMakeSlice
+	OpMakeSlice
 
-	opMove
+	OpMove
 
-	opMulInt
-	opMulInt8
-	opMulInt16
-	opMulInt32
-	opMulFloat32
-	opMulFloat64
+	OpMulInt
+	OpMulInt8
+	OpMulInt16
+	OpMulInt32
+	OpMulFloat32
+	OpMulFloat64
 
-	opNew
+	OpNew
 
-	opOr
+	OpOr
 
-	opPanic
+	OpPanic
 
-	opPrint
+	OpPrint
 
-	opRange
+	OpRange
 
-	opRangeString
+	OpRangeString
 
-	opReceive
+	OpReceive
 
-	opRecover
+	OpRecover
 
-	opRemInt
-	opRemInt8
-	opRemInt16
-	opRemInt32
-	opRemUint8
-	opRemUint16
-	opRemUint32
-	opRemUint64
+	OpRemInt
+	OpRemInt8
+	OpRemInt16
+	OpRemInt32
+	OpRemUint8
+	OpRemUint16
+	OpRemUint32
+	OpRemUint64
 
-	opReturn
+	OpReturn
 
-	opRightShift
-	opRightShiftU
+	OpRightShift
+	OpRightShiftU
 
-	opSelect
+	OpSelect
 
-	opSelector
+	OpSelector
 
-	opSend
+	OpSend
 
-	opSetMap
+	OpSetMap
 
-	opSetSlice
+	OpSetSlice
 
-	opSetVar
+	OpSetVar
 
-	opSliceIndex
+	OpSliceIndex
 
-	opStringIndex
+	OpStringIndex
 
-	opSubInt
-	opSubInt8
-	opSubInt16
-	opSubInt32
-	opSubFloat32
-	opSubFloat64
+	OpSubInt
+	OpSubInt8
+	OpSubInt16
+	OpSubInt32
+	OpSubFloat32
+	OpSubFloat64
 
-	opSubInvInt
-	opSubInvInt8
-	opSubInvInt16
-	opSubInvInt32
-	opSubInvFloat32
-	opSubInvFloat64
+	OpSubInvInt
+	OpSubInvInt8
+	OpSubInvInt16
+	OpSubInvInt32
+	OpSubInvFloat32
+	OpSubInvFloat64
 
-	opTailCall
+	OpTailCall
 
-	opXor
+	OpXor
 )

@@ -359,7 +359,7 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 //     z = x + y
 //
 func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
-	var op operation
+	var op Operation
 	builder.allocRegister(kind, x)
 	if !k {
 		builder.allocRegister(kind, y)
@@ -367,24 +367,24 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, z)
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = opAddInt
+		op = OpAddInt
 	case reflect.Int32, reflect.Uint32:
-		op = opAddInt32
+		op = OpAddInt32
 	case reflect.Int16, reflect.Uint16:
-		op = opAddInt16
+		op = OpAddInt16
 	case reflect.Int8, reflect.Uint8:
-		op = opAddInt8
+		op = OpAddInt8
 	case reflect.Float64:
-		op = opAddFloat64
+		op = OpAddFloat64
 	case reflect.Float32:
-		op = opAddFloat32
+		op = OpAddFloat32
 	default:
 		panic("add: invalid type")
 	}
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Append appends a new "Append" instruction to the function body.
@@ -393,7 +393,7 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Append(first, length, s int8) {
 	builder.allocRegister(reflect.Interface, s)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opAppend, A: first, B: length, C: s})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpAppend, A: first, B: length, C: s})
 }
 
 // AppendSlice appends a new "AppendSlice" instruction to the function body.
@@ -403,7 +403,7 @@ func (builder *FunctionBuilder) Append(first, length, s int8) {
 func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 	builder.allocRegister(reflect.Interface, t)
 	builder.allocRegister(reflect.Interface, s)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opAppendSlice, A: t, C: s})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpAppendSlice, A: t, C: s})
 }
 
 // Assert appends a new "assert" instruction to the function body.
@@ -411,22 +411,22 @@ func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 //     z = e.(t)
 //
 func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
-	var op operation
+	var op Operation
 	var tr int8
 	builder.allocRegister(reflect.Interface, e)
 	switch typ {
 	case intType:
 		builder.allocRegister(reflect.Int, z)
-		op = opAssertInt
+		op = OpAssertInt
 	case float64Type:
 		builder.allocRegister(reflect.Float64, z)
-		op = opAssertFloat64
+		op = OpAssertFloat64
 	case stringType:
 		builder.allocRegister(reflect.String, z)
-		op = opAssertString
+		op = OpAssertString
 	default:
 		builder.allocRegister(reflect.Interface, z)
-		op = opAssert
+		op = OpAssert
 		var found bool
 		for i, t := range builder.fn.Types {
 			if t == typ {
@@ -439,7 +439,7 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 			builder.fn.Types = append(builder.fn.Types, typ)
 		}
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: e, B: tr, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: e, B: tr, C: z})
 }
 
 // BinaryBitOperation appends a new binary bit operation specified by operator
@@ -450,37 +450,37 @@ func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky bool, x, y, dst int8, kind reflect.Kind) {
 	// TODO(Gianluca): should builder be dependent from ast? If no, introduce
 	// a new type which describes the operator.
-	var op operation
+	var op Operation
 	switch operator {
 	case ast.OperatorAnd:
-		op = opAnd
+		op = OpAnd
 	case ast.OperatorOr:
-		op = opOr
+		op = OpOr
 	case ast.OperatorXor:
-		op = opXor
+		op = OpXor
 	case ast.OperatorAndNot:
-		op = opAndNot
+		op = OpAndNot
 	case ast.OperatorLeftShift:
-		op = opLeftShift
+		op = OpLeftShift
 		switch kind {
 		case reflect.Int8, reflect.Uint8:
-			op = opLeftShift8
+			op = OpLeftShift8
 		case reflect.Int16, reflect.Uint16:
-			op = opLeftShift16
+			op = OpLeftShift16
 		case reflect.Int32, reflect.Uint32:
-			op = opLeftShift32
+			op = OpLeftShift32
 		}
 	case ast.OperatorRightShift:
-		op = opRightShift
+		op = OpRightShift
 		switch kind {
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			op = opRightShiftU
+			op = OpRightShiftU
 		}
 	}
 	if ky {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: dst})
 }
 
 // Bind appends a new "Bind" instruction to the function body.
@@ -489,7 +489,7 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 //
 func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
 	builder.allocRegister(reflect.Interface, r)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opBind, B: int8(cv), C: r})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpBind, B: int8(cv), C: r})
 }
 
 // Call appends a new "Call" instruction to the function body.
@@ -498,8 +498,8 @@ func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
 //
 func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 	var fn = builder.fn
-	fn.Body = append(fn.Body, instruction{Op: opCall, A: f})
-	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+	fn.Body = append(fn.Body, Instruction{Op: OpCall, A: f})
+	fn.Body = append(fn.Body, Instruction{Op: Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 	builder.AddLine(uint32(len(fn.Body)-2), line)
 }
 
@@ -509,8 +509,8 @@ func (builder *FunctionBuilder) Call(f int8, shift StackShift, line int) {
 //
 func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.Body = append(fn.Body, instruction{Op: opCallNative, A: f, C: numVariadic})
-	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+	fn.Body = append(fn.Body, Instruction{Op: OpCallNative, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, Instruction{Op: Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
 // CallIndirect appends a new "CallIndirect" instruction to the function body.
@@ -519,8 +519,8 @@ func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift Stack
 //
 func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift StackShift) {
 	var fn = builder.fn
-	fn.Body = append(fn.Body, instruction{Op: opCallIndirect, A: f, C: numVariadic})
-	fn.Body = append(fn.Body, instruction{Op: operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
+	fn.Body = append(fn.Body, Instruction{Op: OpCallIndirect, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, Instruction{Op: Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
 // Assert appends a new "cap" instruction to the function body.
@@ -530,7 +530,7 @@ func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift Sta
 func (builder *FunctionBuilder) Cap(s, z int8) {
 	builder.allocRegister(reflect.Interface, s)
 	builder.allocRegister(reflect.Int, z)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opCap, A: s, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpCap, A: s, C: z})
 }
 
 // Case appends a new "Case" instruction to the function body.
@@ -546,11 +546,11 @@ func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, 
 	if ch != 0 {
 		builder.allocRegister(reflect.Interface, ch)
 	}
-	op := opCase
+	op := OpCase
 	if kvalue {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: int8(dir), B: value, C: ch})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: int8(dir), B: value, C: ch})
 }
 
 // Concat appends a new "concat" instruction to the function body.
@@ -561,7 +561,7 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	builder.allocRegister(reflect.Interface, s)
 	builder.allocRegister(reflect.Interface, t)
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opConcat, A: s, B: t, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpConcat, A: s, B: t, C: z})
 }
 
 // Convert appends a new "Convert" instruction to the function body.
@@ -571,10 +571,10 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	regType := builder.Type(typ)
 	builder.allocRegister(reflect.Interface, dst)
-	var op operation
+	var op Operation
 	switch kindToType(srcKind) {
 	case TypeIface:
-		op = opConvert
+		op = OpConvert
 	case TypeInt:
 		switch srcKind {
 		case reflect.Uint,
@@ -583,16 +583,16 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 			reflect.Uint32,
 			reflect.Uint64,
 			reflect.Uintptr:
-			op = opConvertUint
+			op = OpConvertUint
 		default:
-			op = opConvertInt
+			op = OpConvertInt
 		}
 	case TypeString:
-		op = opConvertString
+		op = OpConvertString
 	case TypeFloat:
-		op = opConvertFloat
+		op = OpConvertFloat
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: src, B: regType, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: src, B: regType, C: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
@@ -603,7 +603,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 	builder.allocRegister(reflect.Interface, dst)
 	builder.allocRegister(reflect.Interface, src)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opCopy, A: src, B: n, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpCopy, A: src, B: n, C: dst})
 }
 
 // Defer appends a new "Defer" instruction to the function body.
@@ -613,9 +613,9 @@ func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg StackShift) {
 	var fn = builder.fn
 	builder.allocRegister(reflect.Interface, f)
-	fn.Body = append(fn.Body, instruction{Op: opDefer, A: f, C: numVariadic})
-	fn.Body = append(fn.Body, instruction{Op: operation(off[0]), A: off[1], B: off[2], C: off[3]})
-	fn.Body = append(fn.Body, instruction{Op: operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
+	fn.Body = append(fn.Body, Instruction{Op: OpDefer, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, Instruction{Op: Operation(off[0]), A: off[1], B: off[2], C: off[3]})
+	fn.Body = append(fn.Body, Instruction{Op: Operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
 }
 
 // Delete appends a new "delete" instruction to the function body.
@@ -625,7 +625,7 @@ func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg StackSh
 func (builder *FunctionBuilder) Delete(m, k int8) {
 	builder.allocRegister(reflect.Interface, m)
 	builder.allocRegister(reflect.Interface, k)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opDelete, A: m, B: k})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpDelete, A: m, B: k})
 }
 
 // Div appends a new "div" instruction to the function body.
@@ -636,35 +636,35 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
-	var op operation
+	var op Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
-		op = opDivInt
+		op = OpDivInt
 	case reflect.Int32:
-		op = opDivInt32
+		op = OpDivInt32
 	case reflect.Int16:
-		op = opDivInt16
+		op = OpDivInt16
 	case reflect.Int8:
-		op = opDivInt8
+		op = OpDivInt8
 	case reflect.Uint, reflect.Uint64:
-		op = opDivUint64
+		op = OpDivUint64
 	case reflect.Uint32:
-		op = opDivUint32
+		op = OpDivUint32
 	case reflect.Uint16:
-		op = opDivUint16
+		op = OpDivUint16
 	case reflect.Uint8:
-		op = opDivUint8
+		op = OpDivUint8
 	case reflect.Float64:
-		op = opDivFloat64
+		op = OpDivFloat64
 	case reflect.Float32:
-		op = opDivFloat32
+		op = OpDivFloat32
 	default:
 		panic("div: invalid type")
 	}
 	if ky {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Range appends a new "Range" instruction to the function body.
@@ -674,7 +674,7 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) Range(expr int8, kind reflect.Kind) {
 	switch kind {
 	case reflect.String:
-		builder.fn.Body = append(builder.fn.Body, instruction{Op: opRangeString, C: expr})
+		builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpRangeString, C: expr})
 	default:
 		panic("TODO: not implemented")
 	}
@@ -695,7 +695,7 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *ScrigoFunction {
 		Parent: builder.fn,
 	}
 	builder.fn.Literals = append(builder.fn.Literals, fn)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opFunc, B: int8(b), C: r})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpFunc, B: int8(b), C: r})
 	return fn
 }
 
@@ -709,7 +709,7 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 	if native {
 		a = 1
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGetFunc, A: a, B: f, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpGetFunc, A: a, B: f, C: z})
 }
 
 // GetVar appends a new "GetVar" instruction to the function body.
@@ -718,7 +718,7 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 //
 func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGetVar, A: int8(v), C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpGetVar, A: int8(v), C: z})
 }
 
 // Go appends a new "Go" instruction to the function body.
@@ -726,7 +726,7 @@ func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
 //     go
 //
 func (builder *FunctionBuilder) Go() {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opGo})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpGo})
 }
 
 // Goto appends a new "goto" instruction to the function body.
@@ -734,7 +734,7 @@ func (builder *FunctionBuilder) Go() {
 //     goto label
 //
 func (builder *FunctionBuilder) Goto(label uint32) {
-	in := instruction{Op: opGoto}
+	in := Instruction{Op: OpGoto}
 	if label > 0 {
 		if label > uint32(len(builder.labels)) {
 			panic("bug!") // TODO(Gianluca): remove.
@@ -773,21 +773,21 @@ func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind ref
 	if !k {
 		builder.allocRegister(kind, y)
 	}
-	var op operation
+	var op Operation
 	switch kindToType(kind) {
 	case TypeInt:
-		op = opIfInt
+		op = OpIfInt
 	case TypeFloat:
-		op = opIfFloat
+		op = OpIfFloat
 	case TypeString:
-		op = opIfString
+		op = OpIfString
 	case TypeIface:
 		panic("If: invalid type")
 	}
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: int8(o), C: y})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
 // Index appends a new "index" instruction to the function body
@@ -796,21 +796,21 @@ func (builder *FunctionBuilder) If(k bool, x int8, o Condition, y int8, kind ref
 //
 func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType reflect.Type) {
 	kind := exprType.Kind()
-	var op operation
+	var op Operation
 	switch kind {
 	default:
-		op = opIndex
+		op = OpIndex
 	case reflect.Slice:
-		op = opSliceIndex
+		op = OpSliceIndex
 	case reflect.String:
-		op = opStringIndex
+		op = OpStringIndex
 	case reflect.Map:
-		op = opMapIndex
+		op = OpMapIndex
 	}
 	if ki {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: expr, B: i, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
 // Len appends a new "len" instruction to the function body.
@@ -841,7 +841,7 @@ func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
 	case reflect.TypeOf(map[string]interface{}{}):
 		a = 8
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opLen, A: a, B: s, C: l})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpLen, A: a, B: s, C: l})
 }
 
 // LoadNumber appends a new "LoadNumber" instruction to the function body.
@@ -856,7 +856,7 @@ func (builder *FunctionBuilder) LoadNumber(typ Type, index, dst int8) {
 	default:
 		panic("LoadNumber only accepts TypeInt or TypeFloat as type")
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opLoadNumber, A: a, B: index, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpLoadNumber, A: a, B: index, C: dst})
 }
 
 // MakeChan appends a new "MakeChan" instruction to the function body.
@@ -866,11 +866,11 @@ func (builder *FunctionBuilder) LoadNumber(typ Type, index, dst int8) {
 func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8, dst int8) {
 	// TODO(Gianluca): uniform all Make* functions to take a reflect.Type or a
 	// type index (int8).
-	op := opMakeChan
+	op := OpMakeChan
 	if kCapacity {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: typ, B: capacity, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: typ, B: capacity, C: dst})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
@@ -878,11 +878,11 @@ func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8
 //     dst = make(typ, size)
 //
 func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
-	op := opMakeMap
+	op := OpMakeMap
 	if kSize {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: typ, B: size, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: typ, B: size, C: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
@@ -903,9 +903,9 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			k |= 1 << 2
 		}
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opMakeSlice, A: t, B: k, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpMakeSlice, A: t, B: k, C: dst})
 	if k > 1 {
-		builder.fn.Body = append(builder.fn.Body, instruction{A: len, B: cap})
+		builder.fn.Body = append(builder.fn.Body, Instruction{A: len, B: cap})
 	}
 }
 
@@ -918,7 +918,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 		builder.allocRegister(srcKind, x)
 	}
 	builder.allocRegister(srcKind, z)
-	op := opMove
+	op := OpMove
 	if k {
 		op = -op
 	}
@@ -942,7 +942,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 			moveType = GeneralGeneral
 		}
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: int8(moveType), B: x, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: int8(moveType), B: x, C: z})
 }
 
 // Mul appends a new "mul" instruction to the function body.
@@ -953,27 +953,27 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
-	var op operation
+	var op Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = opMulInt
+		op = OpMulInt
 	case reflect.Int32, reflect.Uint32:
-		op = opMulInt32
+		op = OpMulInt32
 	case reflect.Int16, reflect.Uint16:
-		op = opMulInt16
+		op = OpMulInt16
 	case reflect.Int8, reflect.Uint8:
-		op = opMulInt8
+		op = OpMulInt8
 	case reflect.Float64:
-		op = opMulFloat64
+		op = OpMulFloat64
 	case reflect.Float32:
-		op = opMulFloat32
+		op = OpMulFloat32
 	default:
 		panic("mul: invalid type")
 	}
 	if ky {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // New appends a new "new" instruction to the function body.
@@ -983,13 +983,13 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
 	a := builder.AddType(typ)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opNew, A: int8(a), C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpNew, A: int8(a), C: z})
 }
 
 // Nop appends a new "Nop" instruction to the function body.
 //
 func (builder *FunctionBuilder) Nop() {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opNone})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpNone})
 }
 
 // Panic appends a new "Panic" instruction to the function body.
@@ -999,7 +999,7 @@ func (builder *FunctionBuilder) Nop() {
 func (builder *FunctionBuilder) Panic(v int8, line int) {
 	fn := builder.fn
 	builder.allocRegister(reflect.Interface, v)
-	fn.Body = append(fn.Body, instruction{Op: opPanic, A: v})
+	fn.Body = append(fn.Body, Instruction{Op: OpPanic, A: v})
 	builder.AddLine(uint32(len(fn.Body)-1), line)
 }
 
@@ -1008,7 +1008,7 @@ func (builder *FunctionBuilder) Panic(v int8, line int) {
 //     print(arg)
 //
 func (builder *FunctionBuilder) Print(arg int8) {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opPrint, A: arg})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpPrint, A: arg})
 }
 
 // Receive appends a new "Receive" instruction to the function body.
@@ -1018,7 +1018,7 @@ func (builder *FunctionBuilder) Print(arg int8) {
 //	dst, ok = <- ch
 //
 func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opReceive, A: ch, B: ok, C: dst})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpReceive, A: ch, B: ok, C: dst})
 }
 
 // Recover appends a new "Recover" instruction to the function body.
@@ -1027,7 +1027,7 @@ func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
 //
 func (builder *FunctionBuilder) Recover(r int8) {
 	builder.allocRegister(reflect.Interface, r)
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opRecover, C: r})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpRecover, C: r})
 }
 
 // Rem appends a new "rem" instruction to the function body.
@@ -1038,31 +1038,31 @@ func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.allocRegister(kind, x)
 	builder.allocRegister(kind, y)
 	builder.allocRegister(kind, z)
-	var op operation
+	var op Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
-		op = opRemInt
+		op = OpRemInt
 	case reflect.Int32:
-		op = opRemInt32
+		op = OpRemInt32
 	case reflect.Int16:
-		op = opRemInt16
+		op = OpRemInt16
 	case reflect.Int8:
-		op = opRemInt8
+		op = OpRemInt8
 	case reflect.Uint, reflect.Uint64:
-		op = opRemUint64
+		op = OpRemUint64
 	case reflect.Uint32:
-		op = opRemUint32
+		op = OpRemUint32
 	case reflect.Uint16:
-		op = opRemUint16
+		op = OpRemUint16
 	case reflect.Uint8:
-		op = opRemUint8
+		op = OpRemUint8
 	default:
 		panic("rem: invalid type")
 	}
 	if ky {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Return appends a new "return" instruction to the function body.
@@ -1070,7 +1070,7 @@ func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 //     return
 //
 func (builder *FunctionBuilder) Return() {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opReturn})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpReturn})
 }
 
 // Select appends a new "Select" instruction to the function body.
@@ -1078,7 +1078,7 @@ func (builder *FunctionBuilder) Return() {
 //     select
 //
 func (builder *FunctionBuilder) Select() {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSelect})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpSelect})
 }
 
 // Selector appends a new "Selector" instruction to the function body.
@@ -1086,7 +1086,7 @@ func (builder *FunctionBuilder) Select() {
 // 	C = A.field
 //
 func (builder *FunctionBuilder) Selector(a, field, c int8) {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSelector, A: a, B: field, C: c})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpSelector, A: a, B: field, C: c})
 }
 
 // Send appends a new "Send" instruction to the function body.
@@ -1095,7 +1095,7 @@ func (builder *FunctionBuilder) Selector(a, field, c int8) {
 //
 func (builder *FunctionBuilder) Send(ch, v int8) {
 	// TODO(Gianluca): how can send know kind/type?
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSend, A: v, C: ch})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpSend, A: v, C: ch})
 }
 
 // SetVar appends a new "SetVar" instruction to the function body.
@@ -1103,7 +1103,7 @@ func (builder *FunctionBuilder) Send(ch, v int8) {
 //     p.v = r
 //
 func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: opSetVar, B: r, C: int8(v)})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: OpSetVar, B: r, C: int8(v)})
 }
 
 // SetMap appends a new "SetMap" instruction to the function body.
@@ -1111,11 +1111,11 @@ func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
 //	m[key] = value
 //
 func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
-	op := opSetMap
+	op := OpSetMap
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: m, B: value, C: key})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: m, B: value, C: key})
 }
 
 // SetSlice appends a new "SetSlice" instruction to the function body.
@@ -1124,7 +1124,7 @@ func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
 //
 func (builder *FunctionBuilder) SetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
 	_ = elemKind // TODO(Gianluca): remove.
-	in := instruction{Op: opSetSlice, A: slice, B: value, C: index}
+	in := Instruction{Op: OpSetSlice, A: slice, B: value, C: index}
 	if k {
 		in.Op = -in.Op
 	}
@@ -1141,27 +1141,27 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 		builder.allocRegister(reflect.Int, y)
 	}
 	builder.allocRegister(reflect.Int, z)
-	var op operation
+	var op Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = opSubInt
+		op = OpSubInt
 	case reflect.Int32, reflect.Uint32:
-		op = opSubInt32
+		op = OpSubInt32
 	case reflect.Int16, reflect.Uint16:
-		op = opSubInt16
+		op = OpSubInt16
 	case reflect.Int8, reflect.Uint8:
-		op = opSubInt8
+		op = OpSubInt8
 	case reflect.Float64:
-		op = opSubFloat64
+		op = OpSubFloat64
 	case reflect.Float32:
-		op = opSubFloat32
+		op = OpSubFloat32
 	default:
 		panic("sub: invalid type")
 	}
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // SubInv appends a new "SubInv" instruction to the function body.
@@ -1174,27 +1174,27 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 		builder.allocRegister(reflect.Int, y)
 	}
 	builder.allocRegister(reflect.Int, z)
-	var op operation
+	var op Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = opSubInvInt
+		op = OpSubInvInt
 	case reflect.Int32, reflect.Uint32:
-		op = opSubInvInt32
+		op = OpSubInvInt32
 	case reflect.Int16, reflect.Uint16:
-		op = opSubInvInt16
+		op = OpSubInvInt16
 	case reflect.Int8, reflect.Uint8:
-		op = opSubInvInt8
+		op = OpSubInvInt8
 	case reflect.Float64:
-		op = opSubInvFloat64
+		op = OpSubInvFloat64
 	case reflect.Float32:
-		op = opSubInvFloat32
+		op = OpSubInvFloat32
 	default:
 		panic("subInv: invalid type")
 	}
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, instruction{Op: op, A: x, B: y, C: z})
+	builder.fn.Body = append(builder.fn.Body, Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // TailCall appends a new "TailCall" instruction to the function body.
@@ -1203,6 +1203,6 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 //
 func (builder *FunctionBuilder) TailCall(f int8, line int) {
 	var fn = builder.fn
-	fn.Body = append(fn.Body, instruction{Op: opTailCall, A: f})
+	fn.Body = append(fn.Body, Instruction{Op: OpTailCall, A: f})
 	builder.AddLine(uint32(len(fn.Body)-1), line)
 }

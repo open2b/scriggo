@@ -1000,7 +1000,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		panic("TODO: not implemented")
 		// typ := c.typeinfo[call.Args[0]].Type
 		// t := c.currFb.Type(typ)
-		// i = instruction{Op: opNew, B: t, C: }
+		// i = Instruction{Op: OpNew, B: t, C: }
 	case "panic":
 		arg := call.Args[0]
 		reg, _, isRegister := c.quickCompileExpr(arg, emptyInterfaceType)

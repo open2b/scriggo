@@ -162,8 +162,8 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 	}
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.Body {
-		if in.Op == opGoto {
-			labelOf[decodeAddr(in.A, in.B, in.C)] = 0
+		if in.Op == OpGoto {
+			labelOf[DecodeAddr(in.A, in.B, in.C)] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -212,19 +212,19 @@ func disassembleFunction(w *bytes.Buffer, fn *ScrigoFunction, depth int) {
 		}
 		in := fn.Body[addr]
 		switch in.Op {
-		case opGoto:
-			label := labelOf[decodeAddr(in.A, in.B, in.C)]
+		case OpGoto:
+			label := labelOf[DecodeAddr(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
-		case opFunc:
+		case OpFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, Interface, false))
 			disassembleFunction(w, fn.Literals[uint8(in.B)], depth+1)
 		default:
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.Op {
-		case opCall, opCallIndirect, opCallNative, opTailCall, opMakeSlice:
+		case OpCall, OpCallIndirect, OpCallNative, OpTailCall, OpMakeSlice:
 			addr += 1
-		case opDefer:
+		case OpDefer:
 			addr += 2
 		}
 	}
@@ -243,45 +243,45 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		op = -op
 		k = true
 	}
-	s := op.String()
+	s := operationName[op]
 	switch op {
-	case opAddInt, opAddInt8, opAddInt16, opAddInt32,
-		opAnd, opAndNot, opOr, opXor,
-		opDivInt, opDivInt8, opDivInt16, opDivInt32, opDivUint8, opDivUint16, opDivUint32, opDivUint64,
-		opMulInt, opMulInt8, opMulInt16, opMulInt32,
-		opRemInt, opRemInt8, opRemInt16, opRemInt32, opRemUint8, opRemUint16, opRemUint32, opRemUint64,
-		opSubInt, opSubInt8, opSubInt16, opSubInt32,
-		opSubInvInt, opSubInvInt8, opSubInvInt16, opSubInvInt32,
-		opLeftShift, opLeftShift8, opLeftShift16, opLeftShift32,
-		opRightShift, opRightShiftU:
+	case OpAddInt, OpAddInt8, OpAddInt16, OpAddInt32,
+		OpAnd, OpAndNot, OpOr, OpXor,
+		OpDivInt, OpDivInt8, OpDivInt16, OpDivInt32, OpDivUint8, OpDivUint16, OpDivUint32, OpDivUint64,
+		OpMulInt, OpMulInt8, OpMulInt16, OpMulInt32,
+		OpRemInt, OpRemInt8, OpRemInt16, OpRemInt32, OpRemUint8, OpRemUint16, OpRemUint32, OpRemUint64,
+		OpSubInt, OpSubInt8, OpSubInt16, OpSubInt32,
+		OpSubInvInt, OpSubInvInt8, OpSubInvInt16, OpSubInvInt32,
+		OpLeftShift, OpLeftShift8, OpLeftShift16, OpLeftShift32,
+		OpRightShift, OpRightShiftU:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opAddFloat32, opAddFloat64, opDivFloat32, opDivFloat64,
-		opMulFloat32, opMulFloat64,
-		opSubFloat32, opSubFloat64, opSubInvFloat32, opSubInvFloat64:
+	case OpAddFloat32, OpAddFloat64, OpDivFloat32, OpDivFloat64,
+		OpMulFloat32, OpMulFloat64,
+		OpSubFloat32, OpSubFloat64, OpSubInvFloat32, OpSubInvFloat64:
 		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + disassembleOperand(fn, b, Float64, k)
 		s += " " + disassembleOperand(fn, c, Float64, false)
-	case opAssert:
+	case OpAssert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(" + fn.Types[b].String() + ")"
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case opAssertInt:
+	case OpAssertInt:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(int)"
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opAssertFloat64:
+	case OpAssertFloat64:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(float64)"
 		s += " " + disassembleOperand(fn, c, Float64, false)
-	case opAssertString:
+	case OpAssertString:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " type(string)"
 		s += " " + disassembleOperand(fn, c, String, false)
-	case opBind:
+	case OpBind:
 		cv := fn.CRefs[uint8(b)]
 		var depth = 1
 		for p := fn.Parent; cv >= 0; p = p.Parent {
@@ -293,38 +293,38 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += "@" + strconv.Itoa(depth)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCall, opCallIndirect, opCallNative, opTailCall, opDefer:
+	case OpCall, OpCallIndirect, OpCallNative, OpTailCall, OpDefer:
 		if a != CurrentFunction {
 			switch op {
-			case opCall, opTailCall:
+			case OpCall, OpTailCall:
 				sf := fn.ScrigoFunctions[uint8(a)]
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
-			case opCallNative:
+			case OpCallNative:
 				nf := fn.NativeFunctions[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
-			case opCallIndirect, opDefer:
+			case OpCallIndirect, OpDefer:
 				s += " " + disassembleOperand(fn, a, Interface, false)
 			}
 		}
-		if c != NoVariadic && (op == opCallIndirect || op == opCallNative || op == opDefer) {
+		if c != NoVariadic && (op == OpCallIndirect || op == OpCallNative || op == OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case opCall, opCallIndirect, opCallNative, opDefer:
+		case OpCall, OpCallIndirect, OpCallNative, OpDefer:
 			grow := fn.Body[addr+1]
 			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
 				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
 		}
-		if op == opDefer {
+		if op == OpDefer {
 			args := fn.Body[addr+2]
 			s += "; args: " + strconv.Itoa(int(args.Op)) + ", " + strconv.Itoa(int(args.A)) + ", " +
 				strconv.Itoa(int(args.B)) + ", " + strconv.Itoa(int(args.C))
 
 		}
-	case opCap:
+	case OpCap:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opCase:
+	case OpCase:
 		switch reflect.SelectDir(a) {
 		case reflect.SelectSend:
 			s += " send " + disassembleOperand(fn, b, Int, k) + " " + disassembleOperand(fn, c, Interface, false)
@@ -333,53 +333,53 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		default:
 			s += " default"
 		}
-	case opContinue:
+	case OpContinue:
 		s += " " + disassembleOperand(fn, b, Int, false)
-	case opCopy:
+	case OpCopy:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Interface, false)
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opConcat:
+	case OpConcat:
 		s += " " + disassembleOperand(fn, a, String, false)
 		s += " " + disassembleOperand(fn, b, String, k)
 		s += " " + disassembleOperand(fn, c, String, false)
-	case opConvert:
+	case OpConvert:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opConvertInt, opConvertUint:
+	case OpConvertInt, OpConvertUint:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opConvertFloat:
+	case OpConvertFloat:
 		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opConvertString:
+	case OpConvertString:
 		s += " " + disassembleOperand(fn, a, String, false)
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opDelete:
+	case OpDelete:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Interface, false)
-	case opIf:
+	case OpIf:
 		if Condition(b) == ConditionOK {
 			s += " OK"
 		} else {
 			s += " " + disassembleOperand(fn, a, Interface, false)
 			s += " " + Condition(b).String()
 		}
-	case opIfInt, opIfUint:
+	case OpIfInt, OpIfUint:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + Condition(b).String()
 		if Condition(b) >= ConditionEqual {
 			s += " " + disassembleOperand(fn, c, Int, k)
 		}
-	case opIfFloat:
+	case OpIfFloat:
 		s += " " + disassembleOperand(fn, a, Float64, false)
 		s += " " + Condition(b).String()
 		s += " " + disassembleOperand(fn, c, Float64, k)
-	case opIfString:
+	case OpIfString:
 		s += " " + disassembleOperand(fn, a, String, false)
 		s += " " + Condition(b).String()
 		if Condition(b) < ConditionEqualLen {
@@ -391,10 +391,10 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		} else {
 			s += " " + disassembleOperand(fn, c, Int, k)
 		}
-	case opFunc:
+	case OpFunc:
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opGetFunc:
+	case OpGetFunc:
 		if a == 0 {
 			f := fn.ScrigoFunctions[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
@@ -403,7 +403,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opGetVar:
+	case OpGetVar:
 		s += " " + packageName(fn.Pkg) + "."
 		name := fn.Variables[uint8(b)].Name
 		if name == "" {
@@ -412,14 +412,14 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += name
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opGo, opReturn:
-	case opGoto:
-		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
-	case opIndex:
+	case OpGo, OpReturn:
+	case OpGoto:
+		s += " " + strconv.Itoa(int(DecodeAddr(a, b, c)))
+	case OpIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opLen:
+	case OpLen:
 		s += " " + strconv.Itoa(int(a))
 		if a == 0 {
 			s += " " + disassembleOperand(fn, b, String, false)
@@ -427,7 +427,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opLoadNumber:
+	case OpLoadNumber:
 		if a == 0 {
 			s += " int"
 			s += " " + fmt.Sprintf("%d", fn.Constants.Int[uint8(b)])
@@ -438,20 +438,20 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, c, Float64, false)
 		}
 
-	case opMakeChan:
+	case OpMakeChan:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opMakeMap:
+	case OpMakeMap:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opMapIndex:
+	case OpMapIndex:
 		//s += " " + disassembleOperand(scrigo, a, Interface, false)
 		//key := reflectToRegisterKind()
 		//s += " " + disassembleOperand(scrigo, b, Interface, false)
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
-	case opMove:
+	case OpMove:
 		switch MoveType(a) {
 		case IntInt:
 			s += " " + disassembleOperand(fn, b, Int, k)
@@ -475,38 +475,38 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, String, k)
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		}
-	case opNew:
+	case OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opPanic, opPrint:
+	case OpPanic, OpPrint:
 		s += " " + disassembleOperand(fn, a, Interface, false)
-	case opRange:
+	case OpRange:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
-	case opRangeString:
+	case OpRangeString:
 		s += " " + disassembleOperand(fn, a, Int, false)
 		s += " " + disassembleOperand(fn, b, Int, false)
 		s += " " + disassembleOperand(fn, c, Interface, k)
-	case opReceive:
+	case OpReceive:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Bool, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opRecover:
+	case OpRecover:
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, Interface, false)
 		}
-	case opSelector:
+	case OpSelector:
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
-	case opSend:
+	case OpSend:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opMakeSlice:
+	case OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, Int, false)
 		s += " // len: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].B)
-	case opSetMap:
+	case OpSetMap:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		if k {
 			s += fmt.Sprintf(" K(%v)", b)
@@ -514,11 +514,11 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
-	case opSetSlice:
+	case OpSetSlice:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		s += " " + disassembleOperand(fn, c, Int, false)
-	case opSetVar:
+	case OpSetVar:
 		s += " " + disassembleOperand(fn, b, Interface, false)
 		v := fn.Variables[uint8(c)]
 		s += " " + packageName(v.Name) + "."
@@ -527,7 +527,7 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		} else {
 			s += v.Name
 		}
-	case opSliceIndex:
+	case OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, b, Int, k)
 		//s += " " + disassembleOperand(scrigo, c, Interface, false)
@@ -599,178 +599,174 @@ func disassembleOperand(fn *ScrigoFunction, op int8, kind Kind, constant bool) s
 	return "(" + label + strconv.Itoa(-int(op)) + ")"
 }
 
-func (op operation) String() string {
-	return operationName[op]
-}
-
 var operationName = [...]string{
 
-	opNone: "Nop", // TODO(Gianluca): review.
+	OpNone: "Nop", // TODO(Gianluca): review.
 
-	opAddInt:     "Add",
-	opAddInt8:    "Add8",
-	opAddInt16:   "Add16",
-	opAddInt32:   "Add32",
-	opAddFloat32: "Add32",
-	opAddFloat64: "Add",
+	OpAddInt:     "Add",
+	OpAddInt8:    "Add8",
+	OpAddInt16:   "Add16",
+	OpAddInt32:   "Add32",
+	OpAddFloat32: "Add32",
+	OpAddFloat64: "Add",
 
-	opAnd: "And",
+	OpAnd: "And",
 
-	opAndNot: "AndNot",
+	OpAndNot: "AndNot",
 
-	opAppend: "Append",
+	OpAppend: "Append",
 
-	opAppendSlice: "AppendSlice",
+	OpAppendSlice: "AppendSlice",
 
-	opAssert:        "Assert",
-	opAssertInt:     "Assert",
-	opAssertFloat64: "Assert",
-	opAssertString:  "Assert",
+	OpAssert:        "Assert",
+	OpAssertInt:     "Assert",
+	OpAssertFloat64: "Assert",
+	OpAssertString:  "Assert",
 
-	opBind: "Bind",
+	OpBind: "Bind",
 
-	opCall: "Call",
+	OpCall: "Call",
 
-	opCallIndirect: "CallIndirect",
+	OpCallIndirect: "CallIndirect",
 
-	opCallNative: "CallNative",
+	OpCallNative: "CallNative",
 
-	opCap: "Cap",
+	OpCap: "Cap",
 
-	opCase: "Case",
+	OpCase: "Case",
 
-	opContinue: "Continue",
+	OpContinue: "Continue",
 
-	opConvert:       "Convert",
-	opConvertInt:    "Convert",
-	opConvertUint:   "ConvertU",
-	opConvertFloat:  "Convert",
-	opConvertString: "Convert",
+	OpConvert:       "Convert",
+	OpConvertInt:    "Convert",
+	OpConvertUint:   "ConvertU",
+	OpConvertFloat:  "Convert",
+	OpConvertString: "Convert",
 
-	opCopy: "Copy",
+	OpCopy: "Copy",
 
-	opConcat: "concat",
+	OpConcat: "concat",
 
-	opDefer: "Defer",
+	OpDefer: "Defer",
 
-	opDelete: "delete",
+	OpDelete: "delete",
 
-	opDivInt:     "Div",
-	opDivInt8:    "Div8",
-	opDivInt16:   "Div16",
-	opDivInt32:   "Div32",
-	opDivUint8:   "DivU8",
-	opDivUint16:  "DivU16",
-	opDivUint32:  "DivU32",
-	opDivUint64:  "DivU64",
-	opDivFloat32: "Div32",
-	opDivFloat64: "Div",
+	OpDivInt:     "Div",
+	OpDivInt8:    "Div8",
+	OpDivInt16:   "Div16",
+	OpDivInt32:   "Div32",
+	OpDivUint8:   "DivU8",
+	OpDivUint16:  "DivU16",
+	OpDivUint32:  "DivU32",
+	OpDivUint64:  "DivU64",
+	OpDivFloat32: "Div32",
+	OpDivFloat64: "Div",
 
-	opFunc: "Func",
+	OpFunc: "Func",
 
-	opGetFunc: "GetFunc",
+	OpGetFunc: "GetFunc",
 
-	opGetVar: "GetVar",
+	OpGetVar: "GetVar",
 
-	opGo: "Go",
+	OpGo: "Go",
 
-	opGoto: "Goto",
+	OpGoto: "Goto",
 
-	opIf:       "If",
-	opIfInt:    "If",
-	opIfUint:   "IfU",
-	opIfFloat:  "If",
-	opIfString: "If",
+	OpIf:       "If",
+	OpIfInt:    "If",
+	OpIfUint:   "IfU",
+	OpIfFloat:  "If",
+	OpIfString: "If",
 
-	opIndex: "Index",
+	OpIndex: "Index",
 
-	opLeftShift:   "LeftShift",
-	opLeftShift8:  "LeftShift8",
-	opLeftShift16: "LeftShift16",
-	opLeftShift32: "LeftShift32",
+	OpLeftShift:   "LeftShift",
+	OpLeftShift8:  "LeftShift8",
+	OpLeftShift16: "LeftShift16",
+	OpLeftShift32: "LeftShift32",
 
-	opLen: "Len",
+	OpLen: "Len",
 
-	opLoadNumber: "LoadNumber",
+	OpLoadNumber: "LoadNumber",
 
-	opMakeChan: "MakeChan",
+	OpMakeChan: "MakeChan",
 
-	opMapIndex: "MapIndex",
+	OpMapIndex: "MapIndex",
 
-	opMakeMap: "MakeMap",
+	OpMakeMap: "MakeMap",
 
-	opMakeSlice: "MakeSlice",
+	OpMakeSlice: "MakeSlice",
 
-	opMove: "Move",
+	OpMove: "Move",
 
-	opMulInt:     "Mul",
-	opMulInt8:    "Mul8",
-	opMulInt16:   "Mul16",
-	opMulInt32:   "Mul32",
-	opMulFloat32: "Mul32",
-	opMulFloat64: "Mul",
+	OpMulInt:     "Mul",
+	OpMulInt8:    "Mul8",
+	OpMulInt16:   "Mul16",
+	OpMulInt32:   "Mul32",
+	OpMulFloat32: "Mul32",
+	OpMulFloat64: "Mul",
 
-	opNew: "New",
+	OpNew: "New",
 
-	opOr: "Or",
+	OpOr: "Or",
 
-	opPanic: "Panic",
+	OpPanic: "Panic",
 
-	opPrint: "Print",
+	OpPrint: "Print",
 
-	opRange: "Range",
+	OpRange: "Range",
 
-	opRangeString: "Range",
+	OpRangeString: "Range",
 
-	opReceive: "Receive",
+	OpReceive: "Receive",
 
-	opRecover: "Recover",
+	OpRecover: "Recover",
 
-	opRemInt:    "Rem",
-	opRemInt8:   "Rem8",
-	opRemInt16:  "Rem16",
-	opRemInt32:  "Rem32",
-	opRemUint8:  "RemU8",
-	opRemUint16: "RemU16",
-	opRemUint32: "RemU32",
-	opRemUint64: "RemU64",
+	OpRemInt:    "Rem",
+	OpRemInt8:   "Rem8",
+	OpRemInt16:  "Rem16",
+	OpRemInt32:  "Rem32",
+	OpRemUint8:  "RemU8",
+	OpRemUint16: "RemU16",
+	OpRemUint32: "RemU32",
+	OpRemUint64: "RemU64",
 
-	opReturn: "Return",
+	OpReturn: "Return",
 
-	opRightShift:  "RightShift",
-	opRightShiftU: "RightShiftU",
+	OpRightShift:  "RightShift",
+	OpRightShiftU: "RightShiftU",
 
-	opSelect: "Select",
+	OpSelect: "Select",
 
-	opSelector: "Selector",
+	OpSelector: "Selector",
 
-	opSend: "Send",
+	OpSend: "Send",
 
-	opSetMap: "SetMap",
+	OpSetMap: "SetMap",
 
-	opSetSlice: "SetSlice",
+	OpSetSlice: "SetSlice",
 
-	opSetVar: "SetPackageVar",
+	OpSetVar: "SetPackageVar",
 
-	opSliceIndex: "SliceIndex",
+	OpSliceIndex: "SliceIndex",
 
-	opStringIndex: "StringIndex",
+	OpStringIndex: "StringIndex",
 
-	opSubInt:     "Sub",
-	opSubInt8:    "Sub8",
-	opSubInt16:   "Sub16",
-	opSubInt32:   "Sub32",
-	opSubFloat32: "Sub32",
-	opSubFloat64: "Sub",
+	OpSubInt:     "Sub",
+	OpSubInt8:    "Sub8",
+	OpSubInt16:   "Sub16",
+	OpSubInt32:   "Sub32",
+	OpSubFloat32: "Sub32",
+	OpSubFloat64: "Sub",
 
-	opSubInvInt:     "SubInv",
-	opSubInvInt8:    "SubInv8",
-	opSubInvInt16:   "SubInv16",
-	opSubInvInt32:   "SubInv32",
-	opSubInvFloat32: "SubInv32",
-	opSubInvFloat64: "SubInv",
+	OpSubInvInt:     "SubInv",
+	OpSubInvInt8:    "SubInv8",
+	OpSubInvInt16:   "SubInv16",
+	OpSubInvInt32:   "SubInv32",
+	OpSubInvFloat32: "SubInv32",
+	OpSubInvFloat64: "SubInv",
 
-	opTailCall: "TailCall",
+	OpTailCall: "TailCall",
 
-	opXor: "Xor",
+	OpXor: "Xor",
 }

@@ -15,12 +15,12 @@ import (
 var DebugTraceExecution = true
 
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
-	var panicked bool
+	var isPanicked bool
 	vm.fn = fn
 	for {
-		panicked = vm.runRecoverable()
-		if panicked && len(vm.calls) > 0 {
-			var call = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Panicked}
+		isPanicked = vm.runRecoverable()
+		if isPanicked && len(vm.calls) > 0 {
+			var call = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: panicked}
 			vm.calls = append(vm.calls, call)
 			vm.fn = nil
 			if vm.cases != nil {
@@ -65,7 +65,7 @@ func (vm *VM) run() int {
 
 	var startNativeGoroutine bool
 
-	var op operation
+	var op Operation
 	var a, b, c int8
 
 	for {
@@ -78,8 +78,8 @@ func (vm *VM) run() int {
 				funcName += ":"
 			}
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
-				vm.regs.Int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
-				vm.regs.Float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
+				vm.regs.int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
+				vm.regs.float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
 				funcName)
 			_, _ = DisassembleInstruction(os.Stderr, vm.fn, vm.pc)
 			println()
@@ -91,37 +91,37 @@ func (vm *VM) run() int {
 		switch op {
 
 		// Add
-		case opAddInt:
+		case OpAddInt:
 			vm.setInt(c, vm.int(a)+vm.int(b))
-		case -opAddInt:
+		case -OpAddInt:
 			vm.setInt(c, vm.int(a)+int64(b))
-		case opAddInt8, -opAddInt8:
+		case OpAddInt8, -OpAddInt8:
 			vm.setInt(c, int64(int8(vm.int(a)+vm.intk(b, op < 0))))
-		case opAddInt16, -opAddInt16:
+		case OpAddInt16, -OpAddInt16:
 			vm.setInt(c, int64(int16(vm.int(a)+vm.intk(b, op < 0))))
-		case opAddInt32, -opAddInt32:
+		case OpAddInt32, -OpAddInt32:
 			vm.setInt(c, int64(int32(vm.int(a)+vm.intk(b, op < 0))))
-		case opAddFloat32, -opAddFloat32:
+		case OpAddFloat32, -OpAddFloat32:
 			vm.setFloat(c, float64(float32(vm.float(a)+vm.floatk(b, op < 0))))
-		case opAddFloat64:
+		case OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+vm.float(b))
-		case -opAddFloat64:
+		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
 		// And
-		case opAnd:
+		case OpAnd:
 			vm.setInt(c, vm.int(a)&vm.intk(b, op < 0))
 
 		// AndNot
-		case opAndNot:
+		case OpAndNot:
 			vm.setInt(c, vm.int(a)&^vm.intk(b, op < 0))
 
 		// Append
-		case opAppend:
+		case OpAppend:
 			vm.setGeneral(c, vm.appendSlice(a, int(b), vm.general(c)))
 
 		// AppendSlice
-		case opAppendSlice:
+		case OpAppendSlice:
 			src := vm.general(a)
 			dst := vm.general(c)
 			switch s := src.(type) {
@@ -144,7 +144,7 @@ func (vm *VM) run() int {
 			}
 
 		// Assert
-		case opAssert:
+		case OpAssert:
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
@@ -191,19 +191,19 @@ func (vm *VM) run() int {
 					vm.setGeneral(c, i)
 				}
 			}
-		case opAssertInt:
+		case OpAssertInt:
 			i, ok := vm.general(a).(int)
 			if c != 0 {
 				vm.setInt(c, int64(i))
 			}
 			vm.ok = ok
-		case opAssertFloat64:
+		case OpAssertFloat64:
 			f, ok := vm.general(a).(float64)
 			if c != 0 {
 				vm.setFloat(c, f)
 			}
 			vm.ok = ok
-		case opAssertString:
+		case OpAssertString:
 			s, ok := vm.general(a).(string)
 			if c != 0 {
 				vm.setString(c, s)
@@ -211,11 +211,11 @@ func (vm *VM) run() int {
 			vm.ok = ok
 
 		// Bind
-		case opBind:
+		case OpBind:
 			vm.setGeneral(c, vm.cvars[uint8(b)])
 
 		// Call
-		case opCall:
+		case OpCall:
 			fn := vm.fn.ScrigoFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
 			call := funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
@@ -241,7 +241,7 @@ func (vm *VM) run() int {
 			vm.pc = 0
 
 		// CallIndirect
-		case opCallIndirect:
+		case OpCallIndirect:
 			f := vm.general(a).(*callable)
 			if f.scrigo == nil {
 				off := vm.fn.Body[vm.pc]
@@ -274,18 +274,18 @@ func (vm *VM) run() int {
 			}
 
 		// CallNative
-		case opCallNative:
+		case OpCallNative:
 			fn := vm.fn.NativeFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
 			vm.callNative(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
 			startNativeGoroutine = false
 
 		// Cap
-		case opCap:
+		case OpCap:
 			vm.setInt(c, int64(reflect.ValueOf(vm.general(a)).Cap()))
 
 		// Case
-		case opCase, -opCase:
+		case OpCase, -OpCase:
 			dir := reflect.SelectDir(a)
 			i := len(vm.cases)
 			if i == cap(vm.cases) {
@@ -313,11 +313,11 @@ func (vm *VM) run() int {
 			vm.pc++
 
 		// Continue
-		case opContinue:
+		case OpContinue:
 			return int(a)
 
 		// Convert
-		case opConvert:
+		case OpConvert:
 			t := vm.fn.Types[uint8(b)]
 			switch t.Kind() {
 			case reflect.Array:
@@ -333,25 +333,25 @@ func (vm *VM) run() int {
 			default:
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
-		case opConvertInt:
+		case OpConvertInt:
 			t := vm.fn.Types[uint8(b)]
 			if t.Kind() == reflect.Bool {
 				vm.setGeneral(c, reflect.ValueOf(vm.bool(a)).Convert(t).Interface())
 			} else {
 				vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
 			}
-		case opConvertUint:
+		case OpConvertUint:
 			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Interface())
-		case opConvertFloat:
+		case OpConvertFloat:
 			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.float(a)).Convert(t).Interface())
-		case opConvertString:
+		case OpConvertString:
 			t := vm.fn.Types[uint8(b)]
 			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
 
 		// Copy
-		case opCopy:
+		case OpCopy:
 			src := reflect.ValueOf(vm.general(a))
 			dst := reflect.ValueOf(vm.general(c))
 			n := reflect.Copy(dst, src)
@@ -360,11 +360,11 @@ func (vm *VM) run() int {
 			}
 
 		// Concat
-		case opConcat:
+		case OpConcat:
 			vm.setString(c, vm.string(a)+vm.string(b))
 
 		// Defer
-		case opDefer:
+		case OpDefer:
 			off := vm.fn.Body[vm.pc]
 			arg := vm.fn.Body[vm.pc+1]
 			vm.deferCall(vm.general(a).(*callable), c,
@@ -373,39 +373,39 @@ func (vm *VM) run() int {
 			vm.pc += 2
 
 		// Delete
-		case opDelete:
+		case OpDelete:
 			m := reflect.ValueOf(vm.general(a))
 			k := reflect.ValueOf(vm.general(b))
 			m.SetMapIndex(k, reflect.Value{})
 
 		// Div
-		case opDivInt:
+		case OpDivInt:
 			vm.setInt(c, vm.int(a)/vm.int(b))
-		case -opDivInt:
+		case -OpDivInt:
 			vm.setInt(c, vm.int(a)/int64(b))
-		case opDivInt8, -opDivInt8:
+		case OpDivInt8, -OpDivInt8:
 			vm.setInt(c, int64(int8(vm.int(a))/int8(vm.intk(b, op < 0))))
-		case opDivInt16, -opDivInt16:
+		case OpDivInt16, -OpDivInt16:
 			vm.setInt(c, int64(int16(vm.int(a))/int16(vm.intk(b, op < 0))))
-		case opDivInt32, -opDivInt32:
+		case OpDivInt32, -OpDivInt32:
 			vm.setInt(c, int64(int32(vm.int(a))/int32(vm.intk(b, op < 0))))
-		case opDivUint8, -opDivUint8:
+		case OpDivUint8, -OpDivUint8:
 			vm.setInt(c, int64(uint8(vm.int(a))/uint8(vm.intk(b, op < 0))))
-		case opDivUint16, -opDivUint16:
+		case OpDivUint16, -OpDivUint16:
 			vm.setInt(c, int64(uint16(vm.int(a))/uint16(vm.intk(b, op < 0))))
-		case opDivUint32, -opDivUint32:
+		case OpDivUint32, -OpDivUint32:
 			vm.setInt(c, int64(uint32(vm.int(a))/uint32(vm.intk(b, op < 0))))
-		case opDivUint64, -opDivUint64:
+		case OpDivUint64, -OpDivUint64:
 			vm.setInt(c, int64(uint64(vm.int(a))/uint64(vm.intk(b, op < 0))))
-		case opDivFloat32, -opDivFloat32:
+		case OpDivFloat32, -OpDivFloat32:
 			vm.setFloat(c, float64(float32(vm.float(a))/float32(vm.floatk(b, op < 0))))
-		case opDivFloat64:
+		case OpDivFloat64:
 			vm.setFloat(c, vm.float(a)/vm.float(b))
-		case -opDivFloat64:
+		case -OpDivFloat64:
 			vm.setFloat(c, vm.float(a)/float64(b))
 
 		// Func
-		case opFunc:
+		case OpFunc:
 			fn := vm.fn.Literals[uint8(b)]
 			var vars []interface{}
 			if fn.CRefs != nil {
@@ -421,7 +421,7 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, &callable{scrigo: fn, vars: vars})
 
 		// GetFunc
-		case opGetFunc:
+		case OpGetFunc:
 			fn := callable{}
 			if a == 0 {
 				fn.scrigo = vm.fn.ScrigoFunctions[uint8(b)]
@@ -431,7 +431,7 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, &fn)
 
 		// GetVar
-		case opGetVar:
+		case OpGetVar:
 			v := vm.fn.Variables[uint8(a)].Value
 			switch v := v.(type) {
 			case *bool:
@@ -448,18 +448,18 @@ func (vm *VM) run() int {
 			}
 
 		// Go
-		case opGo:
+		case OpGo:
 			wasNative := vm.startScrigoGoroutine()
 			if wasNative {
 				startNativeGoroutine = true
 			}
 
 		// Goto
-		case opGoto:
-			vm.pc = decodeAddr(a, b, c)
+		case OpGoto:
+			vm.pc = DecodeAddr(a, b, c)
 
 		// If
-		case opIf:
+		case OpIf:
 			var cond bool
 			switch Condition(b) {
 			case ConditionOK, ConditionNotOK:
@@ -476,7 +476,7 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfInt, -opIfInt:
+		case OpIfInt, -OpIfInt:
 			var cond bool
 			v1 := vm.int(a)
 			v2 := int64(vm.intk(c, op < 0))
@@ -497,7 +497,7 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfUint, -opIfUint:
+		case OpIfUint, -OpIfUint:
 			var cond bool
 			v1 := uint64(vm.int(a))
 			v2 := uint64(vm.intk(c, op < 0))
@@ -514,7 +514,7 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfFloat, -opIfFloat:
+		case OpIfFloat, -OpIfFloat:
 			var cond bool
 			v1 := vm.float(a)
 			v2 := vm.floatk(c, op < 0)
@@ -535,7 +535,7 @@ func (vm *VM) run() int {
 			if cond {
 				vm.pc++
 			}
-		case opIfString, -opIfString:
+		case OpIfString, -OpIfString:
 			var cond bool
 			v1 := vm.string(a)
 			if Condition(b) < ConditionEqualLen {
@@ -576,23 +576,23 @@ func (vm *VM) run() int {
 			}
 
 		// Index
-		case opIndex, -opIndex:
+		case OpIndex, -OpIndex:
 			i := int(vm.intk(b, op < 0))
 			v := reflect.ValueOf(vm.general(a)).Index(i)
 			vm.setFromReflectValue(c, v)
 
 		// LeftShift
-		case opLeftShift, -opLeftShift:
+		case OpLeftShift, -OpLeftShift:
 			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
-		case opLeftShift8, -opLeftShift8:
+		case OpLeftShift8, -OpLeftShift8:
 			vm.setInt(c, int64(int8(vm.int(a))<<uint(vm.intk(b, op < 0))))
-		case opLeftShift16, -opLeftShift16:
+		case OpLeftShift16, -OpLeftShift16:
 			vm.setInt(c, int64(int16(vm.int(a))<<uint(vm.intk(b, op < 0))))
-		case opLeftShift32, -opLeftShift32:
+		case OpLeftShift32, -OpLeftShift32:
 			vm.setInt(c, int64(int32(vm.int(a))<<uint(vm.intk(b, op < 0))))
 
 		// Len
-		case opLen:
+		case OpLen:
 			// TODO(marco): add other cases
 			// TODO(marco): declare a new type for the condition
 			var length int
@@ -622,13 +622,13 @@ func (vm *VM) run() int {
 			vm.setInt(c, int64(length))
 
 		// MakeChan
-		case opMakeChan, -opMakeChan:
+		case OpMakeChan, -OpMakeChan:
 			typ := vm.fn.Types[uint8(a)]
 			buffer := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeChan(typ, buffer).Interface())
 
 		// MapIndex
-		case opMapIndex, -opMapIndex:
+		case OpMapIndex, -OpMapIndex:
 			m := vm.general(a)
 			switch m := m.(type) {
 			case map[int]int:
@@ -673,13 +673,13 @@ func (vm *VM) run() int {
 			}
 
 		// MakeMap
-		case opMakeMap, -opMakeMap:
+		case OpMakeMap, -OpMakeMap:
 			typ := vm.fn.Types[uint8(a)]
 			n := int(vm.intk(b, op < 0))
 			vm.setGeneral(c, reflect.MakeMapWithSize(typ, n).Interface())
 
 		// MakeSlice
-		case opMakeSlice:
+		case OpMakeSlice:
 			typ := vm.fn.Types[uint8(a)]
 			var len, cap int
 			if b > 1 {
@@ -693,7 +693,7 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
 
 		// Move
-		case opMove, -opMove:
+		case OpMove, -OpMove:
 			switch MoveType(a) {
 			case FloatFloat:
 				vm.setFloat(c, vm.floatk(b, op < 0))
@@ -712,7 +712,7 @@ func (vm *VM) run() int {
 			}
 
 		// LoadNumber.
-		case opLoadNumber:
+		case OpLoadNumber:
 			switch a {
 			case 0:
 				vm.setInt(c, vm.fn.Constants.Int[uint8(b)])
@@ -721,25 +721,25 @@ func (vm *VM) run() int {
 			}
 
 		// Mul
-		case opMulInt:
+		case OpMulInt:
 			vm.setInt(c, vm.int(a)*vm.int(b))
-		case -opMulInt:
+		case -OpMulInt:
 			vm.setInt(c, vm.int(a)*int64(b))
-		case opMulInt8, -opMulInt8:
+		case OpMulInt8, -OpMulInt8:
 			vm.setInt(c, int64(int8(vm.int(a)*vm.intk(b, op < 0))))
-		case opMulInt16, -opMulInt16:
+		case OpMulInt16, -OpMulInt16:
 			vm.setInt(c, int64(int16(vm.int(a)*vm.intk(b, op < 0))))
-		case opMulInt32, -opMulInt32:
+		case OpMulInt32, -OpMulInt32:
 			vm.setInt(c, int64(int32(vm.int(a)*vm.intk(b, op < 0))))
-		case opMulFloat32, -opMulFloat32:
+		case OpMulFloat32, -OpMulFloat32:
 			vm.setFloat(c, float64(float32(vm.float(a))*float32(vm.floatk(b, op < 0))))
-		case opMulFloat64:
+		case OpMulFloat64:
 			vm.setFloat(c, vm.float(a)*vm.float(b))
-		case -opMulFloat64:
+		case -OpMulFloat64:
 			vm.setFloat(c, vm.float(a)*float64(b))
 
 		// New
-		case opNew:
+		case OpNew:
 			t := vm.fn.Types[uint8(b)]
 			var v interface{}
 			switch t.Kind() {
@@ -755,22 +755,22 @@ func (vm *VM) run() int {
 			vm.setGeneral(c, v)
 
 		// Or
-		case opOr, -opOr:
+		case OpOr, -OpOr:
 			vm.setInt(c, vm.int(a)|vm.intk(b, op < 0))
 
 		// Panic
-		case opPanic:
+		case OpPanic:
 			// TODO(Gianluca): if argument is 0, check if previous
 			// instruction is Assert; in such case, raise a type-assertion
 			// panic, retrieving informations from its operands.
 			panic(vm.general(a))
 
 		// Print
-		case opPrint:
+		case OpPrint:
 			print(string(sprint(vm.general(a))))
 
 		// Range
-		case opRange:
+		case OpRange:
 			var cont int
 			s := vm.general(c)
 			switch s := s.(type) {
@@ -933,7 +933,7 @@ func (vm *VM) run() int {
 			}
 
 		// RangeString
-		case opRangeString, -opRangeString:
+		case OpRangeString, -OpRangeString:
 			var cont int
 			for i, e := range vm.stringk(c, op < 0) {
 				if a != 0 {
@@ -951,7 +951,7 @@ func (vm *VM) run() int {
 			}
 
 		// Receive
-		case opReceive:
+		case OpReceive:
 			ch := vm.general(a)
 			switch ch := ch.(type) {
 			case chan bool:
@@ -995,14 +995,14 @@ func (vm *VM) run() int {
 			}
 
 		// Recover
-		case opRecover:
+		case OpRecover:
 			var msg interface{}
 			for i := len(vm.calls) - 1; i >= 0; i-- {
 				switch vm.calls[i].status {
-				case Deferred:
+				case deferred:
 					continue
-				case Panicked:
-					vm.calls[i].status = Recovered
+				case panicked:
+					vm.calls[i].status = recovered
 					last := len(vm.panics) - 1
 					vm.panics[last].Recovered = true
 					msg = vm.panics[last].Msg
@@ -1014,34 +1014,34 @@ func (vm *VM) run() int {
 			}
 
 		// Rem
-		case opRemInt:
+		case OpRemInt:
 			vm.setInt(c, vm.int(a)%vm.int(b))
-		case -opRemInt:
+		case -OpRemInt:
 			vm.setInt(c, vm.int(a)%int64(b))
-		case opRemInt8, -opRemInt8:
+		case OpRemInt8, -OpRemInt8:
 			vm.setInt(c, int64(int8(vm.int(a))%int8(vm.intk(b, op < 0))))
-		case opRemInt16, -opRemInt16:
+		case OpRemInt16, -OpRemInt16:
 			vm.setInt(c, int64(int16(vm.int(a))%int16(vm.intk(b, op < 0))))
-		case opRemInt32, -opRemInt32:
+		case OpRemInt32, -OpRemInt32:
 			vm.setInt(c, int64(int32(vm.int(a))%int32(vm.intk(b, op < 0))))
-		case opRemUint8, -opRemUint8:
+		case OpRemUint8, -OpRemUint8:
 			vm.setInt(c, int64(uint8(vm.int(a))%uint8(vm.intk(b, op < 0))))
-		case opRemUint16, -opRemUint16:
+		case OpRemUint16, -OpRemUint16:
 			vm.setInt(c, int64(uint16(vm.int(a))%uint16(vm.intk(b, op < 0))))
-		case opRemUint32, -opRemUint32:
+		case OpRemUint32, -OpRemUint32:
 			vm.setInt(c, int64(uint32(vm.int(a))%uint32(vm.intk(b, op < 0))))
-		case opRemUint64, -opRemUint64:
+		case OpRemUint64, -OpRemUint64:
 			vm.setInt(c, int64(uint64(vm.int(a))%uint64(vm.intk(b, op < 0))))
 
 		// Return
-		case opReturn:
+		case OpReturn:
 			i := len(vm.calls) - 1
 			if i == -1 {
 				// TODO(marco): call finalizer.
 				return maxInt8
 			}
 			call := vm.calls[i]
-			if call.status == Started {
+			if call.status == started {
 				// TODO(marco): call finalizer.
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
@@ -1053,13 +1053,13 @@ func (vm *VM) run() int {
 			}
 
 		// RightShift
-		case opRightShift, -opRightShift:
+		case OpRightShift, -OpRightShift:
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
-		case opRightShiftU, -opRightShiftU:
+		case OpRightShiftU, -OpRightShiftU:
 			vm.setInt(c, int64(uint64(vm.int(a))>>uint(vm.intk(b, op < 0))))
 
 		// Select
-		case opSelect:
+		case OpSelect:
 			chosen, recv, recvOK := reflect.Select(vm.cases)
 			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
 			if vm.cases[chosen].Dir == reflect.SelectRecv {
@@ -1072,12 +1072,12 @@ func (vm *VM) run() int {
 			vm.cases = vm.cases[:0]
 
 		// Selector
-		case opSelector:
+		case OpSelector:
 			v := reflect.ValueOf(vm.general(a)).Field(int(uint8(b)))
 			vm.setFromReflectValue(c, v)
 
 		// Send
-		case opSend, -opSend:
+		case OpSend, -OpSend:
 			k := op < 0
 			ch := vm.generalk(c, k)
 			switch ch := ch.(type) {
@@ -1100,7 +1100,7 @@ func (vm *VM) run() int {
 			}
 
 		// SetMap
-		case opSetMap, -opSetMap:
+		case OpSetMap, -OpSetMap:
 			m := vm.general(a)
 			switch m := m.(type) {
 			case map[string]string:
@@ -1146,7 +1146,7 @@ func (vm *VM) run() int {
 			}
 
 		// SetSlice
-		case opSetSlice, -opSetSlice:
+		case OpSetSlice, -OpSetSlice:
 			i := vm.int(c)
 			s := vm.general(a)
 			switch s := s.(type) {
@@ -1168,7 +1168,7 @@ func (vm *VM) run() int {
 			}
 
 		// SetVar
-		case opSetVar, -opSetVar:
+		case OpSetVar, -OpSetVar:
 			v := vm.fn.Variables[uint8(c)].Value
 			switch v := v.(type) {
 			case *bool:
@@ -1185,7 +1185,7 @@ func (vm *VM) run() int {
 			}
 
 		// SliceIndex
-		case opSliceIndex, -opSliceIndex:
+		case OpSliceIndex, -OpSliceIndex:
 			v := vm.general(a)
 			i := int(vm.intk(b, op < 0))
 			switch v := v.(type) {
@@ -1206,46 +1206,46 @@ func (vm *VM) run() int {
 			}
 
 		// StringIndex
-		case opStringIndex, -opStringIndex:
+		case OpStringIndex, -OpStringIndex:
 			vm.setInt(c, int64(vm.string(a)[int(vm.intk(b, op < 0))]))
 
 		// Sub
-		case opSubInt:
+		case OpSubInt:
 			vm.setInt(c, vm.int(a)-vm.int(b))
-		case -opSubInt:
+		case -OpSubInt:
 			vm.setInt(c, vm.int(a)-int64(b))
-		case opSubInt8, -opSubInt8:
+		case OpSubInt8, -OpSubInt8:
 			vm.setInt(c, int64(int8(vm.int(a)-vm.intk(b, op < 0))))
-		case opSubInt16, -opSubInt16:
+		case OpSubInt16, -OpSubInt16:
 			vm.setInt(c, int64(int16(vm.int(a)-vm.intk(b, op < 0))))
-		case opSubInt32, -opSubInt32:
+		case OpSubInt32, -OpSubInt32:
 			vm.setInt(c, int64(int32(vm.int(a)-vm.intk(b, op < 0))))
-		case opSubFloat32, -opSubFloat32:
+		case OpSubFloat32, -OpSubFloat32:
 			vm.setFloat(c, float64(float32(float32(vm.float(a))-float32(vm.floatk(b, op < 0)))))
-		case opSubFloat64:
+		case OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-vm.float(b))
-		case -opSubFloat64:
+		case -OpSubFloat64:
 			vm.setFloat(c, vm.float(a)-float64(b))
 
 		// SubInv
-		case opSubInvInt, -opSubInvInt:
+		case OpSubInvInt, -OpSubInvInt:
 			vm.setInt(c, vm.intk(b, op < 0)-vm.int(a))
-		case opSubInvInt8, -opSubInvInt8:
+		case OpSubInvInt8, -OpSubInvInt8:
 			vm.setInt(c, int64(int8(vm.intk(b, op < 0)-vm.int(a))))
-		case opSubInvInt16, -opSubInvInt16:
+		case OpSubInvInt16, -OpSubInvInt16:
 			vm.setInt(c, int64(int16(vm.intk(b, op < 0)-vm.int(a))))
-		case opSubInvInt32, -opSubInvInt32:
+		case OpSubInvInt32, -OpSubInvInt32:
 			vm.setInt(c, int64(int32(vm.intk(b, op < 0)-vm.int(a))))
-		case opSubInvFloat32, -opSubInvFloat32:
+		case OpSubInvFloat32, -OpSubInvFloat32:
 			vm.setFloat(c, float64(float32(float32(vm.floatk(b, op < 0))-float32(vm.float(a)))))
-		case opSubInvFloat64:
+		case OpSubInvFloat64:
 			vm.setFloat(c, vm.float(b)-vm.float(a))
-		case -opSubInvFloat64:
+		case -OpSubInvFloat64:
 			vm.setFloat(c, float64(b)-vm.float(a))
 
 		// TailCall
-		case opTailCall:
-			vm.calls = append(vm.calls, funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: Tailed})
+		case OpTailCall:
+			vm.calls = append(vm.calls, funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *ScrigoFunction
@@ -1273,7 +1273,7 @@ func (vm *VM) run() int {
 			}
 
 		// Xor
-		case opXor, -opXor:
+		case OpXor, -OpXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
 
 		}
