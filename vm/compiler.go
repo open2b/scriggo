@@ -149,10 +149,10 @@ func (c *Compiler) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 			c.fb.EnterStack()
 			tmpReg := c.fb.NewRegister(srcType.Kind())
 			c.fb.Move(true, src, tmpReg, srcType.Kind(), srcType.Kind())
-			c.fb.Convert(tmpReg, srcType, srcType, dst)
+			c.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
 			c.fb.ExitStack()
 		} else {
-			c.fb.Convert(src, srcType, srcType, dst)
+			c.fb.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else {
 		c.fb.Move(k, src, dst, srcType.Kind(), dstType.Kind())
@@ -547,7 +547,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 				typ := c.typeinfo[expr.Args[0]].Type
 				arg := c.fb.NewRegister(typ.Kind())
 				c.compileExpr(expr.Args[0], arg, typ)
-				c.fb.Convert(arg, typ, convertType, reg)
+				c.fb.Convert(arg, convertType, reg, typ.Kind())
 				c.fb.ExitStack()
 				return
 			}

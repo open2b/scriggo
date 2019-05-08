@@ -462,17 +462,17 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 
 // Convert appends a new "Convert" instruction to the function body.
 //
-// 	 dst = typ(expr)
+// 	 dst = typ(src)
 //
-func (builder *FunctionBuilder) Convert(expr int8, srcType, dstType reflect.Type, dst int8) {
-	regType := builder.Type(dstType)
+func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
+	regType := builder.Type(typ)
 	builder.allocRegister(reflect.Interface, dst)
 	var op operation
-	switch kindToType(srcType.Kind()) {
+	switch kindToType(srcKind) {
 	case TypeIface:
 		op = opConvert
 	case TypeInt:
-		switch srcType.Kind() {
+		switch srcKind {
 		case reflect.Uint,
 			reflect.Uint8,
 			reflect.Uint16,
@@ -488,7 +488,7 @@ func (builder *FunctionBuilder) Convert(expr int8, srcType, dstType reflect.Type
 	case TypeFloat:
 		op = opConvertFloat
 	}
-	builder.fn.body = append(builder.fn.body, instruction{op: op, a: expr, b: regType, c: dst})
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: src, b: regType, c: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
