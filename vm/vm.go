@@ -882,44 +882,6 @@ const (
 	ConditionNotOK                              // ![vm.ok]
 )
 
-func (c Condition) String() string {
-	switch c {
-	case ConditionEqual:
-		return "Equal"
-	case ConditionNotEqual:
-		return "NotEqual"
-	case ConditionLess:
-		return "Less"
-	case ConditionLessOrEqual:
-		return "LessOrEqual"
-	case ConditionGreater:
-		return "Greater"
-	case ConditionGreaterOrEqual:
-		return "GreaterOrEqual"
-	case ConditionEqualLen:
-		return "EqualLen"
-	case ConditionNotEqualLen:
-		return "NotEqualLen"
-	case ConditionLessLen:
-		return "LessLen"
-	case ConditionLessOrEqualLen:
-		return "LessOrEqualLen"
-	case ConditionGreaterLen:
-		return "GreaterOrEqualLen"
-	case ConditionGreaterOrEqualLen:
-		return "GreaterOrEqualLen"
-	case ConditionNil:
-		return "Nil"
-	case ConditionNotNil:
-		return "NotNil"
-	case ConditionOK:
-		return "OK"
-	case ConditionNotOK:
-		return "NotOK"
-	}
-	panic("unknown condition")
-}
-
 type Operation int8
 
 const (

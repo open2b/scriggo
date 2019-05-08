@@ -367,21 +367,21 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 			s += " OK"
 		} else {
 			s += " " + disassembleOperand(fn, a, Interface, false)
-			s += " " + Condition(b).String()
+			s += " " + conditionName[b]
 		}
 	case OpIfInt, OpIfUint:
 		s += " " + disassembleOperand(fn, a, Int, false)
-		s += " " + Condition(b).String()
+		s += " " + conditionName[b]
 		if Condition(b) >= ConditionEqual {
 			s += " " + disassembleOperand(fn, c, Int, k)
 		}
 	case OpIfFloat:
 		s += " " + disassembleOperand(fn, a, Float64, false)
-		s += " " + Condition(b).String()
+		s += " " + conditionName[b]
 		s += " " + disassembleOperand(fn, c, Float64, k)
 	case OpIfString:
 		s += " " + disassembleOperand(fn, a, String, false)
-		s += " " + Condition(b).String()
+		s += " " + conditionName[b]
 		if Condition(b) < ConditionEqualLen {
 			if k && c >= 0 {
 				s += " " + strconv.Quote(string(c))
@@ -769,4 +769,23 @@ var operationName = [...]string{
 	OpTailCall: "TailCall",
 
 	OpXor: "Xor",
+}
+
+var conditionName = [...]string{
+	ConditionEqual:             "Equal",
+	ConditionNotEqual:          "NotEqual",
+	ConditionLess:              "Less",
+	ConditionLessOrEqual:       "LessOrEqual",
+	ConditionGreater:           "Greater",
+	ConditionGreaterOrEqual:    "GreaterOrEqual",
+	ConditionEqualLen:          "EqualLen",
+	ConditionNotEqualLen:       "NotEqualLen",
+	ConditionLessLen:           "LessLen",
+	ConditionLessOrEqualLen:    "LessOrEqualLen",
+	ConditionGreaterLen:        "GreaterOrEqualLen",
+	ConditionGreaterOrEqualLen: "GreaterOrEqualLen",
+	ConditionNil:               "Nil",
+	ConditionNotNil:            "NotNil",
+	ConditionOK:                "OK",
+	ConditionNotOK:             "NotOK",
 }
