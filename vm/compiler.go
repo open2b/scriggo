@@ -30,9 +30,9 @@ type Compiler struct {
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *ScrigoFunction key or
 	// can they be related to currentFunction in some way?
-	assignedIndexesOfScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
-	assignedIndexesOfNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
-	assignedIndexesOfVariables       map[*ScrigoFunction]map[variable]uint8
+	assignedScrigoFunctions map[*ScrigoFunction]map[*ScrigoFunction]int8
+	assignedNativeFunctions map[*ScrigoFunction]map[*NativeFunction]int8
+	assignedVariables       map[*ScrigoFunction]map[variable]uint8
 
 	isNativePkg map[string]bool
 }
@@ -48,9 +48,9 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 		availableNativeFunctions: map[string]*NativeFunction{},
 		availableVariables:       map[string]variable{},
 
-		assignedIndexesOfScrigoFunctions: map[*ScrigoFunction]map[*ScrigoFunction]int8{},
-		assignedIndexesOfNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
-		assignedIndexesOfVariables:       map[*ScrigoFunction]map[variable]uint8{},
+		assignedScrigoFunctions: map[*ScrigoFunction]map[*ScrigoFunction]int8{},
+		assignedNativeFunctions: map[*ScrigoFunction]map[*NativeFunction]int8{},
+		assignedVariables:       map[*ScrigoFunction]map[variable]uint8{},
 
 		isNativePkg: map[string]bool{},
 	}
@@ -95,16 +95,16 @@ func (c *Compiler) CompileScript(path string) (*ScrigoFunction, error) {
 // if not exists.
 func (c *Compiler) scrigoFunctionIndex(fun *ScrigoFunction) int8 {
 	currFun := c.currentFunction
-	i, ok := c.assignedIndexesOfScrigoFunctions[currFun][fun]
+	i, ok := c.assignedScrigoFunctions[currFun][fun]
 	if ok {
 		return i
 	}
 	i = int8(len(currFun.scrigoFunctions))
 	currFun.scrigoFunctions = append(currFun.scrigoFunctions, fun)
-	if c.assignedIndexesOfScrigoFunctions[currFun] == nil {
-		c.assignedIndexesOfScrigoFunctions[currFun] = make(map[*ScrigoFunction]int8)
+	if c.assignedScrigoFunctions[currFun] == nil {
+		c.assignedScrigoFunctions[currFun] = make(map[*ScrigoFunction]int8)
 	}
-	c.assignedIndexesOfScrigoFunctions[currFun][fun] = i
+	c.assignedScrigoFunctions[currFun][fun] = i
 	return i
 }
 
@@ -112,16 +112,16 @@ func (c *Compiler) scrigoFunctionIndex(fun *ScrigoFunction) int8 {
 // if not exists.
 func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 	currFun := c.currentFunction
-	i, ok := c.assignedIndexesOfNativeFunctions[currFun][fun]
+	i, ok := c.assignedNativeFunctions[currFun][fun]
 	if ok {
 		return i
 	}
 	i = int8(len(currFun.nativeFunctions))
 	currFun.nativeFunctions = append(currFun.nativeFunctions, fun)
-	if c.assignedIndexesOfNativeFunctions[currFun] == nil {
-		c.assignedIndexesOfNativeFunctions[currFun] = make(map[*NativeFunction]int8)
+	if c.assignedNativeFunctions[currFun] == nil {
+		c.assignedNativeFunctions[currFun] = make(map[*NativeFunction]int8)
 	}
-	c.assignedIndexesOfNativeFunctions[currFun][fun] = i
+	c.assignedNativeFunctions[currFun][fun] = i
 	return i
 }
 
@@ -129,16 +129,16 @@ func (c *Compiler) nativeFunctionIndex(fun *NativeFunction) int8 {
 // exists.
 func (c *Compiler) variableIndex(v variable) uint8 {
 	currFun := c.currentFunction
-	i, ok := c.assignedIndexesOfVariables[currFun][v]
+	i, ok := c.assignedVariables[currFun][v]
 	if ok {
 		return i
 	}
 	i = uint8(len(currFun.variables))
 	currFun.variables = append(currFun.variables, v)
-	if c.assignedIndexesOfVariables[currFun] == nil {
-		c.assignedIndexesOfVariables[currFun] = make(map[variable]uint8)
+	if c.assignedVariables[currFun] == nil {
+		c.assignedVariables[currFun] = make(map[variable]uint8)
 	}
-	c.assignedIndexesOfVariables[currFun][v] = i
+	c.assignedVariables[currFun][v] = i
 	return i
 }
 
