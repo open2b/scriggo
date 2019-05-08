@@ -562,11 +562,6 @@ type variable struct {
 	value interface{}
 }
 
-// NewVariable returns a new variable.
-func NewVariable(pkg, name string, value interface{}) variable {
-	return variable{pkg, name, value}
-}
-
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
 	pkg             string
@@ -585,12 +580,6 @@ type ScrigoFunction struct {
 	nativeFunctions []*NativeFunction
 	body            []instruction // run, opCall, opCallDirect
 	lines           map[uint32]int
-}
-
-// NewScrigoFunction returns a new Scrigo function with a given package, name
-// and type.
-func NewScrigoFunction(pkg, name string, typ reflect.Type) *ScrigoFunction {
-	return &ScrigoFunction{pkg: pkg, name: name, typ: typ}
 }
 
 func (fn *ScrigoFunction) AddLine(pc uint32, line int) {
@@ -655,12 +644,6 @@ func (fn *ScrigoFunction) SetClosureRefs(refs []int16) {
 func (fn *ScrigoFunction) SetFileLine(file string, line int) {
 	fn.file = file
 	fn.line = line
-}
-
-// NewNativeFunction returns a new native function with a given package, name
-// and implementation. fn must be a function type.
-func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
-	return &NativeFunction{pkg: pkg, name: name, fast: fn}
 }
 
 func (fn *NativeFunction) slow() {

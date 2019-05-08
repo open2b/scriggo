@@ -119,6 +119,23 @@ func (builder *FunctionBuilder) ScopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
+// NewVariable returns a new variable.
+func NewVariable(pkg, name string, value interface{}) variable {
+	return variable{pkg, name, value}
+}
+
+// NewScrigoFunction returns a new Scrigo function with a given package, name
+// and type.
+func NewScrigoFunction(pkg, name string, typ reflect.Type) *ScrigoFunction {
+	return &ScrigoFunction{pkg: pkg, name: name, typ: typ}
+}
+
+// NewNativeFunction returns a new native function with a given package, name
+// and implementation. fn must be a function type.
+func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
+	return &NativeFunction{pkg: pkg, name: name, fast: fn}
+}
+
 // MakeStringConstant makes a new string constant, returning it's index.
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	r := len(builder.fn.constants.String)
