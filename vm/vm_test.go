@@ -117,6 +117,25 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Correct order in assignments",
+		`package main
+
+		import "fmt"
+
+		func f() []int {
+			fmt.Printf("f")
+			return []int{1, 2, 3}
+		}
+
+		func g() int {
+			fmt.Printf("g")
+			return 10
+		}
+
+		func main() {
+			f()[1] = g()
+		}
+		`, nil, nil, "fg"},
 
 	{"Issue #76",
 		`package main
@@ -2110,28 +2129,6 @@ var stmtTests = []struct {
 	// 	}
 	// 	`,
 	// 	nil, nil, "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
-
-	//------------------------------------
-
-	// {"Correct order in assignments",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func f() []int {
-	// 		fmt.Printf("f")
-	// 		return []int{1, 2, 3}
-	// 	}
-
-	// 	func g() int {
-	// 		fmt.Printf("g")
-	// 		return 10
-	// 	}
-
-	// 	func main() {
-	// 		f()[1] = g()
-	// 	}
-	// 	`, nil, nil, "fg"},
 
 	//------------------------------------
 
