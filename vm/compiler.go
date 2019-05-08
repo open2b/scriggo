@@ -693,18 +693,20 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		}
 
 	case *ast.Func:
-		if reg == 0 {
-			return
-		}
 		typ := c.typeinfo[expr].Type
-		out, isValue, isRegister := c.quickCompileExpr(expr, typ)
-		if isValue {
-			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
-		} else if isRegister {
-			c.fb.Move(false, out, reg, typ.Kind(), dstType.Kind())
-		} else {
-			panic("bug")
-		}
+		scrigoFunc := c.fb.Func(reg, typ)
+		funcLitBuilder := scrigoFunc.Builder()
+		currentFb := c.fb
+		currentFn := c.currentFunction
+		c.fb = funcLitBuilder
+		c.currentFunction = scrigoFunc
+		c.fb.EnterScope()
+		c.prepareFunctionBodyParameters(expr)
+		addExplicitReturn(expr)
+		c.compileNodes(expr.Body.Nodes)
+		c.fb.ExitScope()
+		c.fb = currentFb
+		c.currentFunction = currentFn
 
 	case *ast.Identifier:
 		if reg == 0 {
@@ -895,24 +897,6 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Ty
 				}
 			}
 		}
-
-	case *ast.Func:
-		typ := c.typeinfo[expr].Type
-		reg := c.fb.NewRegister(reflect.Func)
-		scrigoFunc := c.fb.Func(reg, typ)
-		funcLitBuilder := scrigoFunc.Builder()
-		currentFb := c.fb
-		currentFn := c.currentFunction
-		c.fb = funcLitBuilder
-		c.currentFunction = scrigoFunc
-		c.fb.EnterScope()
-		c.prepareFunctionBodyParameters(expr)
-		addExplicitReturn(expr)
-		c.compileNodes(expr.Body.Nodes)
-		c.fb.ExitScope()
-		c.fb = currentFb
-		c.currentFunction = currentFn
-		return reg, false, true
 	}
 	return 0, false, false
 }
