@@ -154,6 +154,22 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
 			}
 		case *ast.Var:
+			if len(n.Values) == 0 {
+				typ := tc.checkType(n.Type, noEllipses)
+				// Replaces the type node with a value holding a reflect.Type.
+				n.Values = make([]ast.Expression, len(n.Identifiers))
+				var zero interface{}
+				if typ.Type.Kind() == reflect.Interface {
+					zero = nil
+				} else {
+					zero = reflect.Zero(typ.Type).Interface()
+				}
+				for i := range n.Identifiers {
+					n.Values[i] = ast.NewValue(zero)
+					tc.typeInfo[n.Values[i]] = &TypeInfo{Type: typ.Type}
+				}
+				return
+			}
 			for i := range n.Identifiers {
 				name := n.Identifiers[i].Name
 				if _, ok := tc.filePackageBlock[name]; ok {
