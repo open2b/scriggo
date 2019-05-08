@@ -66,7 +66,6 @@ var exprTests = map[string]interface{}{
 }
 
 func TestVMExpressions(t *testing.T) {
-	DebugTraceExecution = false
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
@@ -2324,7 +2323,6 @@ var stmtTests = []struct {
 }
 
 func TestVM(t *testing.T) {
-	DebugTraceExecution = false
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers

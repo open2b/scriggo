@@ -8,11 +8,8 @@ package vm
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 )
-
-var DebugTraceExecution = true
 
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	var isPanicked bool
@@ -72,17 +69,8 @@ func (vm *VM) run() int {
 
 		in := vm.fn.Body[vm.pc]
 
-		if DebugTraceExecution {
-			funcName := vm.fn.Name
-			if funcName != "" {
-				funcName += ":"
-			}
-			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t",
-				vm.regs.int[vm.fp[0]+1:vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
-				vm.regs.float[vm.fp[1]+1:vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
-				funcName)
-			_, _ = DisassembleInstruction(os.Stderr, vm.fn, vm.pc)
-			println()
+		if vm.trace != nil {
+			vm.trace(vm.fn, vm.pc)
 		}
 
 		vm.pc++

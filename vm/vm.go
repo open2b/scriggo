@@ -40,6 +40,8 @@ const (
 	StringGeneral
 )
 
+type TraceFunc func(fn *ScrigoFunction, pc uint32)
+
 // VM represents a Scrigo virtual machine.
 type VM struct {
 	fp     [4]uint32            // frame pointers.
@@ -52,6 +54,7 @@ type VM struct {
 	calls  []callFrame          // call stack frame.
 	cases  []reflect.SelectCase // select cases.
 	panics []Panic              // panics.
+	trace  TraceFunc            // trace function.
 }
 
 // New returns a new virtual machine.
@@ -84,6 +87,10 @@ func (vm *VM) Reset() {
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
+}
+
+func (vm *VM) SetTraceFunc(fn TraceFunc) {
+	vm.trace = fn
 }
 
 // Stack returns the current stack trace.
