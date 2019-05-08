@@ -510,7 +510,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 	case *ast.Identifier:
 		t := tc.checkIdentifier(expr, true)
 		if t.IsPackage() {
-			panic(tc.errorf(expr, "use of package %s without selector", t))
+			panic(tc.errorf(expr, "use of package %s without selector", expr))
 		}
 		return t
 
