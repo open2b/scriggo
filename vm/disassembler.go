@@ -324,6 +324,15 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 	case opCap:
 		s += " " + disassembleOperand(fn, a, Interface, false)
 		s += " " + disassembleOperand(fn, c, Int, false)
+	case opCase:
+		switch reflect.SelectDir(a) {
+		case reflect.SelectSend:
+			s += " send " + disassembleOperand(fn, b, Int, k) + " " + disassembleOperand(fn, c, Interface, false)
+		case reflect.SelectRecv:
+			s += " recv " + disassembleOperand(fn, b, Int, false) + " " + disassembleOperand(fn, c, Interface, false)
+		default:
+			s += " default"
+		}
 	case opContinue:
 		s += " " + disassembleOperand(fn, b, Int, false)
 	case opCopy:
@@ -628,6 +637,8 @@ var operationName = [...]string{
 
 	opCap: "Cap",
 
+	opCase: "Case",
+
 	opContinue: "Continue",
 
 	opConvert:       "Convert",
@@ -728,6 +739,8 @@ var operationName = [...]string{
 
 	opRightShift:  "RightShift",
 	opRightShiftU: "RightShiftU",
+
+	opSelect: "Select",
 
 	opSelector: "Selector",
 

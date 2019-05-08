@@ -515,6 +515,26 @@ func (builder *FunctionBuilder) Cap(s, z int8) {
 	builder.fn.body = append(builder.fn.body, instruction{op: opCap, a: s, c: z})
 }
 
+// Case appends a new "Case" instruction to the function body.
+//
+//     case ch <- value
+//     case value = <-ch
+//     default
+//
+func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, ch int8, kind reflect.Kind) {
+	if !kvalue && value != 0 {
+		builder.allocRegister(kind, value)
+	}
+	if ch != 0 {
+		builder.allocRegister(reflect.Interface, ch)
+	}
+	op := opCase
+	if kvalue {
+		op = -op
+	}
+	builder.fn.body = append(builder.fn.body, instruction{op: op, a: int8(dir), b: value, c: ch})
+}
+
 // Concat appends a new "concat" instruction to the function body.
 //
 //     z = concat(s, t)
@@ -1033,6 +1053,14 @@ func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Return() {
 	builder.fn.body = append(builder.fn.body, instruction{op: opReturn})
+}
+
+// Select appends a new "Select" instruction to the function body.
+//
+//     select
+//
+func (builder *FunctionBuilder) Select() {
+	builder.fn.body = append(builder.fn.body, instruction{op: opSelect})
 }
 
 // Selector appends a new "Selector" instruction to the function body.

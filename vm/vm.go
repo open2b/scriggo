@@ -42,15 +42,16 @@ const (
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
-	fp     [4]uint32       // frame pointers.
-	st     [4]uint32       // stack tops.
-	pc     uint32          // program counter.
-	ok     bool            // ok flag.
-	regs   registers       // registers.
-	fn     *ScrigoFunction // current function.
-	cvars  []interface{}   // closure variables.
-	calls  []Call          // call stack.
-	panics []Panic         // panics.
+	fp     [4]uint32            // frame pointers.
+	st     [4]uint32            // stack tops.
+	pc     uint32               // program counter.
+	ok     bool                 // ok flag.
+	regs   registers            // registers.
+	fn     *ScrigoFunction      // current function.
+	cvars  []interface{}        // closure variables.
+	calls  []Call               // call stack.
+	cases  []reflect.SelectCase // select cases.
+	panics []Panic              // panics.
 }
 
 // New returns a new virtual machine.
@@ -74,8 +75,15 @@ func (vm *VM) Reset() {
 	vm.pc = 0
 	vm.fn = nil
 	vm.cvars = nil
-	vm.calls = vm.calls[:0]
-	vm.panics = vm.panics[:0]
+	if vm.calls != nil {
+		vm.calls = vm.calls[:0]
+	}
+	if vm.cases != nil {
+		vm.cases = vm.cases[:0]
+	}
+	if vm.panics != nil {
+		vm.panics = vm.panics[:0]
+	}
 }
 
 // Stack returns the current stack trace.
@@ -960,6 +968,8 @@ const (
 
 	opCap
 
+	opCase
+
 	opContinue
 
 	opConvert
@@ -1060,6 +1070,8 @@ const (
 
 	opRightShift
 	opRightShiftU
+
+	opSelect
 
 	opSelector
 

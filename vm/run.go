@@ -23,6 +23,9 @@ func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 			var call = Call{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: Panicked}
 			vm.calls = append(vm.calls, call)
 			vm.fn = nil
+			if vm.cases != nil {
+				vm.cases = vm.cases[:0]
+			}
 			continue
 		}
 		break
@@ -280,6 +283,34 @@ func (vm *VM) run() int {
 		// Cap
 		case opCap:
 			vm.setInt(c, int64(reflect.ValueOf(vm.general(a)).Cap()))
+
+		// Case
+		case opCase, -opCase:
+			dir := reflect.SelectDir(a)
+			i := len(vm.cases)
+			if i == cap(vm.cases) {
+				vm.cases = append(vm.cases, reflect.SelectCase{Dir: dir})
+			} else {
+				vm.cases = vm.cases[:i+1]
+				vm.cases[i].Dir = dir
+				if dir == reflect.SelectDefault {
+					vm.cases[i].Chan = reflect.Value{}
+				}
+				if dir != reflect.SelectSend {
+					vm.cases[i].Send = reflect.Value{}
+				}
+			}
+			if dir != reflect.SelectDefault {
+				vm.cases[i].Chan = reflect.ValueOf(vm.general(c))
+				if dir == reflect.SelectSend {
+					t := vm.cases[i].Chan.Type().Elem()
+					if !vm.cases[i].Send.IsValid() || t != vm.cases[i].Send.Type() {
+						vm.cases[i].Send = reflect.New(t).Elem()
+					}
+					vm.getIntoReflectValue(b, vm.cases[i].Send, op < 0)
+				}
+			}
+			vm.pc++
 
 		// Continue
 		case opContinue:
@@ -1026,6 +1057,19 @@ func (vm *VM) run() int {
 			vm.setInt(c, vm.int(a)>>uint(vm.intk(b, op < 0)))
 		case opRightShiftU, -opRightShiftU:
 			vm.setInt(c, int64(uint64(vm.int(a))>>uint(vm.intk(b, op < 0))))
+
+		// Select
+		case opSelect:
+			chosen, recv, recvOK := reflect.Select(vm.cases)
+			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
+			if vm.cases[chosen].Dir == reflect.SelectRecv {
+				r := vm.fn.body[vm.pc-1].b
+				if r != 0 {
+					vm.setFromReflectValue(r, recv)
+				}
+				vm.ok = recvOK
+			}
+			vm.cases = vm.cases[:0]
 
 		// Selector
 		case opSelector:
