@@ -1200,10 +1200,24 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// 		continue
 			// 	}
 			// }
-			for i, v := range node.Values {
+			offset := [4]int8{}
+			for _, v := range node.Values {
 				typ := c.typeinfo[v].Type
-				reg := int8(i + 1)
-				c.fb.allocRegister(typ.Kind(), reg)
+				var reg int8
+				switch kindToType(typ.Kind()) {
+				case TypeInt:
+					offset[0]++
+					reg = offset[0]
+				case TypeFloat:
+					offset[1]++
+					reg = offset[1]
+				case TypeString:
+					offset[2]++
+					reg = offset[2]
+				case TypeIface:
+					offset[3]++
+					reg = offset[3]
+				}
 				c.compileExpr(v, reg, typ) // TODO (Gianluca): must be return parameter kind.
 			}
 			c.fb.Return()
