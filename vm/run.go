@@ -20,7 +20,7 @@ func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked && len(vm.calls) > 0 {
-			var call = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: panicked}
+			var call = callFrame{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: panicked}
 			vm.calls = append(vm.calls, call)
 			vm.fn = nil
 			if vm.cases != nil {
@@ -218,7 +218,7 @@ func (vm *VM) run() int {
 		case OpCall:
 			fn := vm.fn.ScrigoFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			call := funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+			call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.Op)
 			if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -251,7 +251,7 @@ func (vm *VM) run() int {
 				fn := f.scrigo
 				vm.cvars = f.vars
 				off := vm.fn.Body[vm.pc]
-				call := funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+				call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.Op)
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -1245,7 +1245,7 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case OpTailCall:
-			vm.calls = append(vm.calls, funcCall{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: tailed})
+			vm.calls = append(vm.calls, callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *ScrigoFunction

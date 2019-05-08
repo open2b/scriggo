@@ -49,7 +49,7 @@ type VM struct {
 	regs   registers            // registers.
 	fn     *ScrigoFunction      // current function.
 	cvars  []interface{}        // closure variables.
-	calls  []funcCall           // call stack.
+	calls  []callFrame          // call stack frame.
 	cases  []reflect.SelectCase // select cases.
 	panics []Panic              // panics.
 }
@@ -315,7 +315,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, funcCall{fn: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
+	vm.calls = append(vm.calls, callFrame{fn: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
 	if args[0] > 0 {
 		stack := vm.regs.int[vm.fp[0]+1:]
 		tot := shift[0] + args[0]
@@ -380,7 +380,7 @@ func (vm *VM) moreGeneralStack() {
 
 func (vm *VM) nextCall() bool {
 	var i int
-	var call funcCall
+	var call callFrame
 	for i = len(vm.calls) - 1; i >= 0; i-- {
 		call = vm.calls[i]
 		switch call.status {
@@ -395,7 +395,7 @@ func (vm *VM) nextCall() bool {
 			// A Scrigo call that has deferred calls is returned, its first
 			// deferred call will be executed.
 			call = vm.swapCall(call)
-			vm.calls[i] = funcCall{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: returned}
+			vm.calls[i] = callFrame{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: returned}
 			if call.fn.scrigo != nil {
 				break
 			}
@@ -478,7 +478,7 @@ func (vm *VM) startScrigoGoroutine() bool {
 	return false
 }
 
-func (vm *VM) swapCall(call funcCall) funcCall {
+func (vm *VM) swapCall(call callFrame) callFrame {
 	if call.fp[0] < vm.fp[0] {
 		a := uint32(vm.fp[0] - call.fp[0])
 		b := uint32(vm.fn.RegNum[0])
@@ -666,7 +666,7 @@ const (
 	recovered
 )
 
-type funcCall struct {
+type callFrame struct {
 	fn        callable   // function.
 	fp        [4]uint32  // frame pointers.
 	pc        uint32     // program counter.
