@@ -117,6 +117,12 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Function literal assigned to underscore",
+		`package main
+		
+		func main() {
+			_ = func() { }
+		}`, nil, nil, ""},
 	{"Return register is determined by function type, not value type",
 		`package main
 

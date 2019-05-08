@@ -693,6 +693,9 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 		}
 
 	case *ast.Func:
+		if reg == 0 {
+			return
+		}
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
 		funcLitBuilder := fn.NewBuilder()
 		currFb := c.fb
