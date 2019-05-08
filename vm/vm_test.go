@@ -117,6 +117,22 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Return register is determined by function type, not value type",
+		`package main
+
+		import (
+			  "fmt"
+		)
+		
+		func f() interface{} {
+			  return "hey"
+		}
+		
+		func main() {
+			  a := f()
+			  fmt.Println(a)
+		}`, nil, nil, "hey\n"},
+
 	{"Package function with many return values (different types)",
 		`
 		package main

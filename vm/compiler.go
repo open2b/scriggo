@@ -1204,8 +1204,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 			// 	}
 			// }
 			offset := [4]int8{}
-			for _, v := range node.Values {
-				typ := c.typeinfo[v].Type
+			for i, v := range node.Values {
+				typ := c.currentFunction.typ.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
 				case TypeInt:
@@ -1221,7 +1221,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 					offset[3]++
 					reg = offset[3]
 				}
-				c.compileExpr(v, reg, typ) // TODO (Gianluca): must be return parameter kind.
+				c.compileExpr(v, reg, typ)
 			}
 			c.fb.Return()
 
