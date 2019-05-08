@@ -1107,7 +1107,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 			c.fb.MakeSlice(kLen, kCap, typ, len, cap, reg)
 		case reflect.Chan:
 			chanType := c.typeinfo[call.Args[0]].Type
-			chanTypeIndex := c.currentFunction.AddType(chanType)
+			chanTypeIndex := c.fb.AddType(chanType)
 			kCapacity := false
 			var capacity int8
 			if len(call.Args) == 1 {

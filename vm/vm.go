@@ -611,31 +611,6 @@ func (fn *ScrigoFunction) AddScrigoFunction(f *ScrigoFunction) uint8 {
 	return uint8(r)
 }
 
-// AddType adds a type to a Scrigo function.
-func (fn *ScrigoFunction) AddType(typ reflect.Type) uint8 {
-	index := len(fn.types)
-	if index > 255 {
-		panic("types limit reached")
-	}
-	for i, t := range fn.types {
-		if t == typ {
-			return uint8(i)
-		}
-	}
-	fn.types = append(fn.types, typ)
-	return uint8(index)
-}
-
-// AddVariable adds a variable to a Scrigo function.
-func (fn *ScrigoFunction) AddVariable(v variable) uint8 {
-	r := len(fn.variables)
-	if r > 255 {
-		panic("variables limit reached")
-	}
-	fn.variables = append(fn.variables, v)
-	return uint8(r)
-}
-
 func (fn *ScrigoFunction) SetClosureRefs(refs []int16) {
 	fn.crefs = refs
 }

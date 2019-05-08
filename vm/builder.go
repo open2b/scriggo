@@ -136,6 +136,33 @@ func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
 	return &NativeFunction{pkg: pkg, name: name, fast: fn}
 }
 
+// AddType adds a type to the Scrigo function.
+func (builder *FunctionBuilder) AddType(typ reflect.Type) uint8 {
+	fn := builder.fn
+	index := len(fn.types)
+	if index > 255 {
+		panic("types limit reached")
+	}
+	for i, t := range fn.types {
+		if t == typ {
+			return uint8(i)
+		}
+	}
+	fn.types = append(fn.types, typ)
+	return uint8(index)
+}
+
+// AddVariable adds a variable to the Scrigo function.
+func (builder *FunctionBuilder) AddVariable(v variable) uint8 {
+	fn := builder.fn
+	r := len(fn.variables)
+	if r > 255 {
+		panic("variables limit reached")
+	}
+	fn.variables = append(fn.variables, v)
+	return uint8(r)
+}
+
 // MakeStringConstant makes a new string constant, returning it's index.
 func (builder *FunctionBuilder) MakeStringConstant(c string) int8 {
 	r := len(builder.fn.constants.String)
@@ -895,7 +922,7 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	builder.allocRegister(reflect.Interface, z)
-	a := builder.fn.AddType(typ)
+	a := builder.AddType(typ)
 	builder.fn.body = append(builder.fn.body, instruction{op: opNew, a: int8(a), c: z})
 }
 
