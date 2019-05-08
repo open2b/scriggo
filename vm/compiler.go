@@ -88,7 +88,7 @@ func (c *Compiler) CompileScript(path string) (*ScrigoFunction, error) {
 	c.indirectVars = tci["main"].IndirectVars
 	main := NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	c.currentFunction = main
-	c.fb = c.currentFunction.Builder()
+	c.fb = c.currentFunction.NewBuilder()
 	c.fb.EnterScope()
 	addExplicitReturn(tree)
 	c.compileNodes(tree.Nodes)
@@ -188,7 +188,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
 				backupFunction := c.currentFunction
 				c.currentFunction = initVars
-				c.fb = c.currentFunction.Builder()
+				c.fb = c.currentFunction.NewBuilder()
 				value := n.Values[0]
 				typ := c.typeinfo[n.Identifiers[0]].Type
 				kind := typ.Kind()
@@ -199,7 +199,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 				index := c.variableIndex(v)
 				c.fb.SetVar(reg, index)
 				c.currentFunction = backupFunction
-				c.fb = c.currentFunction.Builder()
+				c.fb = c.currentFunction.NewBuilder()
 			} else {
 				panic("TODO(Gianluca): not implemented")
 			}
@@ -225,7 +225,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			fn := NewScrigoFunction("main", n.Ident.Name, n.Type.Reflect)
 			c.availableScrigoFunctions[n.Ident.Name] = fn
 			c.currentFunction = fn
-			c.fb = fn.Builder()
+			c.fb = fn.NewBuilder()
 			c.fb.EnterScope()
 			c.prepareFunctionBodyParameters(n)
 			addExplicitReturn(n)
@@ -286,7 +286,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 	}
 
 	if haveVariables {
-		b := initVars.Builder()
+		b := initVars.NewBuilder()
 		b.Return()
 	}
 }
@@ -694,7 +694,7 @@ func (c *Compiler) compileExpr(expr ast.Expression, reg int8, dstType reflect.Ty
 
 	case *ast.Func:
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
-		funcLitBuilder := fn.Builder()
+		funcLitBuilder := fn.NewBuilder()
 		currFb := c.fb
 		currFn := c.currentFunction
 		c.fb = funcLitBuilder

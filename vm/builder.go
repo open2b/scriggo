@@ -22,8 +22,8 @@ type FunctionBuilder struct {
 	scopeShifts []StackShift
 }
 
-// Builder returns the body of the function.
-func (fn *ScrigoFunction) Builder() *FunctionBuilder {
+// NewBuilder returns a new function builder for the function fn.
+func (fn *ScrigoFunction) NewBuilder() *FunctionBuilder {
 	fn.body = nil
 	return &FunctionBuilder{
 		fn:      fn,
