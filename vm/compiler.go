@@ -315,7 +315,7 @@ func (c *Compiler) prepareCallParameters(funcType reflect.Type, args []ast.Expre
 			if isNative {
 				for i := 0; i < varArgs; i++ {
 					reg := c.fb.NewRegister(typ.Kind())
-					c.compileExpr(args[i], reg, typ)
+					c.compileExpr(args[i+numIn-1], reg, typ)
 				}
 			} else {
 				sliceReg := int8(numIn)

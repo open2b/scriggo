@@ -118,6 +118,40 @@ var stmtTests = []struct {
 	output       string   // expected stdout/stderr output.
 }{
 
+	{"Issue #76",
+		`package main
+
+		import "fmt"
+
+		func typeof(v interface{}) string {
+			return fmt.Sprintf("%T", v)
+		}
+	
+		
+		func main() {
+			{
+				var a []int
+				var b []byte
+			
+				a = []int{}
+				b = []byte{}
+			
+				fmt.Printf("%T", a)
+				fmt.Printf("%T", b)
+			}
+			{
+				var a []int
+				var b []byte
+
+				a = []int{}
+				b = []byte{}
+
+				fmt.Println(a, typeof(a))
+				fmt.Println(b, typeof(b))
+			}
+		}`,
+		nil, nil, "[]int[]uint8[] []int\n[] []uint8\n"},
+
 	{"Increment assignment should evaluate expression only once",
 		`package main
 
