@@ -392,7 +392,7 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 			}
 			if _, isNativeFunc := c.availableNativeFunctions[ident.Name]; isNativeFunc {
 				fun := c.availableNativeFunctions[ident.Name]
-				funcType := reflect.TypeOf(fun.Fast)
+				funcType := reflect.TypeOf(fun.Func)
 				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {
@@ -409,7 +409,7 @@ func (c *Compiler) compileCall(call *ast.Call) ([]int8, []reflect.Type) {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
 			if isGoPkg := c.isNativePkg[name.Name]; isGoPkg {
 				fun := c.availableNativeFunctions[name.Name+"."+sel.Ident]
-				funcType := reflect.TypeOf(fun.Fast)
+				funcType := reflect.TypeOf(fun.Func)
 				regs, types := c.prepareCallParameters(funcType, call.Args, true)
 				index := c.nativeFunctionIndex(fun)
 				if funcType.IsVariadic() {

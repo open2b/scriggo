@@ -146,9 +146,9 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 	vm.fp[1] += uint32(shift[1])
 	vm.fp[2] += uint32(shift[2])
 	vm.fp[3] += uint32(shift[3])
-	if fn.Fast != nil {
+	if fn.Func != nil {
 		if newGoroutine {
-			switch f := fn.Fast.(type) {
+			switch f := fn.Func.(type) {
 			case func(string) int:
 				go f(vm.string(1))
 			case func(string) string:
@@ -169,7 +169,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 				fn.slow()
 			}
 		} else {
-			switch f := fn.Fast.(type) {
+			switch f := fn.Func.(type) {
 			case func(string) int:
 				vm.setInt(1, int64(f(vm.string(1))))
 			case func(string) string:
@@ -191,7 +191,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 			}
 		}
 	}
-	if fn.Fast == nil {
+	if fn.Func == nil {
 		variadic := fn.value.Type().IsVariadic()
 		if len(fn.in) > 0 {
 			vm.fp[0] += uint32(fn.outOff[0])
@@ -554,7 +554,7 @@ const (
 type NativeFunction struct {
 	Pkg    string
 	Name   string
-	Fast   interface{}
+	Func   interface{}
 	value  reflect.Value
 	in     []Kind
 	out    []Kind
@@ -597,7 +597,7 @@ type ScrigoFunction struct {
 
 func (fn *NativeFunction) slow() {
 	if !fn.value.IsValid() {
-		fn.value = reflect.ValueOf(fn.Fast)
+		fn.value = reflect.ValueOf(fn.Func)
 	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
@@ -652,7 +652,7 @@ func (fn *NativeFunction) slow() {
 			fn.outOff[3]++
 		}
 	}
-	fn.Fast = nil
+	fn.Func = nil
 }
 
 type callStatus int8
@@ -690,7 +690,7 @@ func (c *callable) reflectValue() reflect.Value {
 	if c.native != nil {
 		// It is a native function.
 		if !c.native.value.IsValid() {
-			c.native.value = reflect.ValueOf(c.native.Fast)
+			c.native.value = reflect.ValueOf(c.native.Func)
 		}
 		c.value = c.native.value
 		return c.value

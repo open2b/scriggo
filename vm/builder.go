@@ -151,7 +151,7 @@ func NewScrigoFunction(pkg, name string, typ reflect.Type) *ScrigoFunction {
 // NewNativeFunction returns a new native function with a given package, name
 // and implementation. fn must be a function type.
 func NewNativeFunction(pkg, name string, fn interface{}) *NativeFunction {
-	return &NativeFunction{Pkg: pkg, Name: name, Fast: fn}
+	return &NativeFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
 // AddType adds a type to the Scrigo function.
