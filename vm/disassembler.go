@@ -386,7 +386,12 @@ func disassembleInstruction(fn *ScrigoFunction, addr uint32) string {
 		s += " func(" + strconv.Itoa(int(uint8(b))) + ")"
 		s += " " + disassembleOperand(fn, c, Int, false)
 	case opGetFunc:
-		s += " " + packageName(fn.pkg) + "." + fn.scrigoFunctions[uint8(b)].name
+		s += " " + packageName(fn.pkg) + "."
+		if a == 0 {
+			s += fn.scrigoFunctions[uint8(b)].name
+		} else {
+			s += fn.nativeFunctions[uint8(b)].name
+		}
 		s += " " + disassembleOperand(fn, c, Interface, false)
 	case opGetVar:
 		s += " " + packageName(fn.pkg) + "."
