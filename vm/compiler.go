@@ -902,13 +902,16 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Ty
 		scrigoFunc := c.fb.Func(reg, typ)
 		funcLitBuilder := scrigoFunc.Builder()
 		currentFb := c.fb
+		currentFn := c.currentFunction
 		c.fb = funcLitBuilder
+		c.currentFunction = scrigoFunc
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)
 		addExplicitReturn(expr)
 		c.compileNodes(expr.Body.Nodes)
 		c.fb.ExitScope()
 		c.fb = currentFb
+		c.currentFunction = currentFn
 		return reg, false, true
 	}
 	return 0, false, false
