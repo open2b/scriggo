@@ -1350,11 +1350,11 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		tok = next(p.lex)
 	}
 	if tok.typ != tokenInterpretedString && tok.typ != tokenRawString {
-		panic(fmt.Errorf("unexpected %s, expecting string at %s", tok, tok.pos))
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 	}
 	var path = unquoteString(tok.txt)
 	if p.ctx == ast.ContextNone && !validPackageImportPath(path) || p.ctx != ast.ContextNone && !validPath(path) {
-		panic(fmt.Errorf("invalid import path %q at %s", path, tok.pos))
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path %q", path)})
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)
