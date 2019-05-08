@@ -888,6 +888,12 @@ func (c *Compiler) quickCompileExpr(expr ast.Expression, expectedType reflect.Ty
 				b = 1
 			}
 			return b, true, false
+		case float64:
+			if float64(int(v)) == v {
+				if -127 < v && v < 126 {
+					return int8(v), true, false
+				}
+			}
 		}
 
 	case *ast.Func:
