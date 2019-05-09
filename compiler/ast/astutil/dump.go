@@ -134,7 +134,10 @@ func Dump(w io.Writer, node ast.Node) (err error) {
 
 	// Writes trees that have been declared as external references.
 	for _, tree := range d.externalReferences {
-		Dump(w, tree)
+		err := Dump(w, tree)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
