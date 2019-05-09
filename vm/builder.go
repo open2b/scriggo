@@ -330,7 +330,6 @@ func (builder *FunctionBuilder) End() {
 			}
 		}
 	}
-
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {

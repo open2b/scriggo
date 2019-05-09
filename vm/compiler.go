@@ -183,6 +183,13 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 	}
 
 	for _, dec := range pkg.Declarations {
+		if fun, ok := dec.(*ast.Func); ok {
+			fn := NewScrigoFunction("main", fun.Ident.Name, fun.Type.Reflect)
+			c.availableScrigoFunctions[fun.Ident.Name] = fn
+		}
+	}
+
+	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
 			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
@@ -222,8 +229,7 @@ func (c *Compiler) compilePackage(pkg *ast.Package) {
 			// 	panic("TODO: not implemented")
 			// }
 		case *ast.Func:
-			fn := NewScrigoFunction("main", n.Ident.Name, n.Type.Reflect)
-			c.availableScrigoFunctions[n.Ident.Name] = fn
+			fn := c.availableScrigoFunctions[n.Ident.Name]
 			c.currentFunction = fn
 			c.fb = NewBuilder(fn)
 			c.fb.EnterScope()

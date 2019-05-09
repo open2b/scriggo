@@ -116,6 +116,16 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	// {"Package function calling a post-declared package function",
+	// 	`package main
+
+	// 	func f() { g() }
+
+	// 	func g() { }
+
+	// 	func main() { }
+	// 	`, nil, nil, ""},
+
 	{"Function literal assigned to underscore",
 		`package main
 		
