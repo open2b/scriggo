@@ -1559,7 +1559,7 @@ func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind refl
 			value = ti.Value
 		}
 		for _, f := range found {
-			areEqual := false
+			var areEqual bool
 			switch v1 := value.(type) {
 			case *big.Int:
 				v2 := f.(*big.Int)

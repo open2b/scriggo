@@ -985,7 +985,7 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 		case reflect.Chan:
 			chanType := c.typeinfo[call.Args[0]].Type
 			chanTypeIndex := c.fb.AddType(chanType)
-			kCapacity := false
+			var kCapacity bool
 			var capacity int8
 			if len(call.Args) == 1 {
 				capacity = 0
