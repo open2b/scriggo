@@ -67,11 +67,11 @@ func (vm *VM) run() int {
 
 	for {
 
-		in := vm.fn.Body[vm.pc]
-
 		if vm.trace != nil {
-			vm.trace(vm.fn, vm.pc)
+			vm.invokeTraceFunc()
 		}
+
+		in := vm.fn.Body[vm.pc]
 
 		vm.pc++
 		op, a, b, c = in.Op, in.A, in.B, in.C

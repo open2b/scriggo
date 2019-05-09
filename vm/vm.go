@@ -40,7 +40,7 @@ const (
 	StringGeneral
 )
 
-type TraceFunc func(fn *ScrigoFunction, pc uint32)
+type TraceFunc func(fn *ScrigoFunction, pc uint32, regs Registers)
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
@@ -321,6 +321,17 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 	vm.pc++
 }
 
+//go:noinline
+func (vm *VM) invokeTraceFunc() {
+	regs := Registers{
+		Int:     vm.regs.int[vm.fp[0]+1 : vm.fp[0]+uint32(vm.fn.RegNum[0])+1],
+		Float:   vm.regs.float[vm.fp[1]+1 : vm.fp[1]+uint32(vm.fn.RegNum[1])+1],
+		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.RegNum[2])+1],
+		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.RegNum[3])+1],
+	}
+	vm.trace(vm.fn, vm.pc, regs)
+}
+
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
 	vm.calls = append(vm.calls, callFrame{fn: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
 	if args[0] > 0 {
@@ -535,6 +546,13 @@ func (vm *VM) swapCall(call callFrame) callFrame {
 		call.fp[3] += b
 	}
 	return call
+}
+
+type Registers struct {
+	Int     []int64
+	Float   []float64
+	String  []string
+	General []interface{}
 }
 
 type Kind uint8
