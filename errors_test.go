@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"testing"
 
-	"scrigo/ast"
-	"scrigo/parser"
+	"scrigo/compiler/ast"
+	"scrigo/compiler/parser"
 
 	"github.com/cockroachdb/apd"
 )

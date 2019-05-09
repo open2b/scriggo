@@ -27,7 +27,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 var testSeed int64 = -1

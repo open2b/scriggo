@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unicode"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 const maxInt = int64(^uint(0) >> 1)

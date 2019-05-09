@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 // evalCall evaluates a call expression in a single-val context. It returns

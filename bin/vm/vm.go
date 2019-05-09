@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 
+	"scrigo/compiler"
 	"scrigo/vm"
 )
 
@@ -69,7 +70,7 @@ func call() {
 	b.Return()
 	b.End()
 
-	_, err := vm.Disassemble(os.Stdout, pkg)
+	_, err := compiler.Disassemble(os.Stdout, pkg)
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +127,7 @@ func callRec() {
 	fb.Return()
 	fb.End()
 
-	_, err := vm.Disassemble(os.Stdout, pkg)
+	_, err := compiler.Disassemble(os.Stdout, pkg)
 	if err != nil {
 		panic(err)
 	}
@@ -167,7 +168,7 @@ func closure() {
 	b.Return()
 	b.End()
 
-	_, err := vm.Disassemble(os.Stdout, pkg)
+	_, err := compiler.Disassemble(os.Stdout, pkg)
 	if err != nil {
 		panic(err)
 	}

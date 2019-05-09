@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	"scrigo"
-	"scrigo/parser"
+	"scrigo/compiler/parser"
 )
 
 var packages map[string]*parser.GoPackage

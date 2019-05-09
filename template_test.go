@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"scrigo/ast"
-	"scrigo/parser"
+	"scrigo/compiler/ast"
+	"scrigo/compiler/parser"
 )
 
 type stringConvertible string

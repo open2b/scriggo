@@ -9,6 +9,7 @@ package vm
 import (
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 const NoVariadic = -1
@@ -861,6 +862,11 @@ func (err *Panic) Error() string {
 	b = append(b, "\n\n"...)
 	b = append(b, err.StackTrace...)
 	return string(b)
+}
+
+func packageName(pkg string) string {
+	i := strings.LastIndex(pkg, "/")
+	return pkg[i+1:]
 }
 
 type Type int8

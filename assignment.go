@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 func (r *rendering) renderAssignment(node *ast.Assignment) error {

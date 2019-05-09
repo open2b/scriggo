@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 var emptyInterfaceType = reflect.TypeOf(new(interface{})).Elem()

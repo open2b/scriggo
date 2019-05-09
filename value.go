@@ -18,7 +18,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 // CustomNumber is implemented by a val that behaves like a number.

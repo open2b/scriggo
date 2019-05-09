@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scrigo/ast"
-	"scrigo/parser"
+	"scrigo/compiler/ast"
+	"scrigo/compiler/parser"
 )
 
 type pkgConstant struct {

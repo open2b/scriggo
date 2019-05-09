@@ -3,8 +3,8 @@ package scrigo
 import (
 	"testing"
 
-	"scrigo/ast"
-	"scrigo/parser"
+	"scrigo/compiler/ast"
+	"scrigo/compiler/parser"
 )
 
 func TestScrigoImport(t *testing.T) {

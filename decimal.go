@@ -3,7 +3,7 @@ package scrigo
 import (
 	"fmt"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 
 	"github.com/cockroachdb/apd"
 )

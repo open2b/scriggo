@@ -10,7 +10,7 @@ import (
 	"io"
 	"reflect"
 
-	"scrigo/ast"
+	"scrigo/compiler/ast"
 )
 
 // renderFor renders nodes.

@@ -486,3 +486,23 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		return s.Interface()
 	}
 }
+
+// TODO(Gianluca): remove
+func (vm *VM) Int(r int8) int64 {
+	return vm.int(r)
+}
+
+// TODO(Gianluca): remove
+func (vm *VM) Float(r int8) float64 {
+	return vm.float(r)
+}
+
+// TODO(Gianluca): remove
+func (vm *VM) String(r int8) string {
+	return vm.string(r)
+}
+
+// TODO(Gianluca): remove
+func (vm *VM) General(r int8) interface{} {
+	return vm.general(r)
+}

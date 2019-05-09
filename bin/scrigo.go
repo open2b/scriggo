@@ -13,7 +13,8 @@ import (
 	"path/filepath"
 
 	"scrigo"
-	"scrigo/parser"
+	"scrigo/compiler"
+	"scrigo/compiler/parser"
 	"scrigo/vm"
 )
 
@@ -34,7 +35,7 @@ func main() {
 				funcName += ":"
 			}
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t", regs.Int, regs.Float, funcName)
-			_, _ = vm.DisassembleInstruction(os.Stderr, fn, pc)
+			_, _ = compiler.DisassembleInstruction(os.Stderr, fn, pc)
 			println()
 		}
 	}
@@ -63,14 +64,14 @@ func main() {
 	case ".gos":
 		path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
-		compiler := vm.NewCompiler(r, packages)
-		main, err := compiler.CompileScript(path)
+		comp := compiler.NewCompiler(r, packages)
+		main, err := comp.CompileScript(path)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
-			_, err = vm.DisassembleFunction(os.Stdout, main)
+			_, err = compiler.DisassembleFunction(os.Stdout, main)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
@@ -89,14 +90,14 @@ func main() {
 	case ".go":
 		path := "/" + filepath.Base(absFile)
 		r := parser.DirReader(filepath.Dir(absFile))
-		compiler := vm.NewCompiler(r, packages)
-		main, err := compiler.CompilePackage(path)
+		comp := compiler.NewCompiler(r, packages)
+		main, err := comp.CompilePackage(path)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
-			_, err = vm.DisassembleFunction(os.Stdout, main)
+			_, err = compiler.DisassembleFunction(os.Stdout, main)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
