@@ -7,7 +7,7 @@ import (
 	"syscall/js"
 
 	"scrigo"
-	"scrigo/compiler/parser"
+	"scrigo/compiler"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	button.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
-		r := parser.MapReader{}
+		r := compiler.MapReader{}
 		comp := scrigo.NewCompiler(r, nil)
 		program, err := comp.Compile(strings.NewReader(source.Get("value").String()))
 		if err != nil {

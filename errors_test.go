@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"testing"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 
 	"github.com/cockroachdb/apd"
 )
@@ -64,7 +64,7 @@ var errorTests = []struct {
 // removing these tests or moving them to the typechecker.
 func NoTestErrors(t *testing.T) {
 	for _, expr := range errorTests {
-		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextHTML)
+		var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

@@ -14,11 +14,10 @@ import (
 
 	"scrigo"
 	"scrigo/compiler"
-	"scrigo/compiler/parser"
 	"scrigo/vm"
 )
 
-var packages map[string]*parser.GoPackage
+var packages map[string]*compiler.GoPackage
 
 func main() {
 
@@ -63,7 +62,7 @@ func main() {
 	switch ext {
 	case ".gos":
 		path := "/" + filepath.Base(absFile)
-		r := parser.DirReader(filepath.Dir(absFile))
+		r := compiler.DirReader(filepath.Dir(absFile))
 		comp := compiler.NewCompiler(r, packages)
 		main, err := comp.CompileScript(path)
 		if err != nil {
@@ -89,7 +88,7 @@ func main() {
 		}
 	case ".go":
 		path := "/" + filepath.Base(absFile)
-		r := parser.DirReader(filepath.Dir(absFile))
+		r := compiler.DirReader(filepath.Dir(absFile))
 		comp := compiler.NewCompiler(r, packages)
 		main, err := comp.CompilePackage(path)
 		if err != nil {
@@ -114,7 +113,7 @@ func main() {
 			}
 		}
 	case ".html":
-		r := parser.DirReader(filepath.Dir(absFile))
+		r := compiler.DirReader(filepath.Dir(absFile))
 		template := scrigo.NewTemplate(r)
 		path := "/" + filepath.Base(absFile)
 		page, err := template.Compile(path, nil, scrigo.ContextHTML)

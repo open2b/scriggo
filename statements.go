@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 // Error records a rendering error with the path and the position where
@@ -60,7 +60,7 @@ type rendering struct {
 	function       function
 	handleError    func(error) bool
 	needsReference map[*ast.Identifier]bool
-	packageInfos   map[string]*parser.PackageInfo
+	packageInfos   map[string]*compiler.PackageInfo
 	isScript       bool
 }
 

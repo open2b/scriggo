@@ -18,7 +18,6 @@ import (
 	"text/tabwriter"
 
 	"scrigo/compiler"
-	"scrigo/compiler/parser"
 	vmp "scrigo/vm"
 )
 
@@ -70,7 +69,7 @@ var exprTests = map[string]interface{}{
 func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
-			r := parser.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
+			r := compiler.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
 			comp := compiler.NewCompiler(r, goPackages)
 			main, err := comp.CompilePackage("/test.go")
 			if err != nil {
@@ -2338,7 +2337,7 @@ func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
-			r := parser.MapReader{"/test.go": []byte(cas.src)}
+			r := compiler.MapReader{"/test.go": []byte(cas.src)}
 			comp := compiler.NewCompiler(r, goPackages)
 			main, err := comp.CompilePackage("/test.go")
 			if err != nil {
@@ -2517,8 +2516,8 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = map[string]*parser.GoPackage{
-	"fmt": &parser.GoPackage{
+var goPackages = map[string]*compiler.GoPackage{
+	"fmt": &compiler.GoPackage{
 		Name: "fmt",
 		Declarations: map[string]interface{}{
 			"Errorf":     fmt.Errorf,
@@ -2548,7 +2547,7 @@ var goPackages = map[string]*parser.GoPackage{
 			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 		},
 	},
-	"testpkg": &parser.GoPackage{
+	"testpkg": &compiler.GoPackage{
 		Name: "testpkg",
 		Declarations: map[string]interface{}{
 			"F00": func() {},

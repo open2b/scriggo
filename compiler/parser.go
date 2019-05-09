@@ -6,7 +6,7 @@
 
 // Package parser implements methods to parse a template source and expand a
 // parsed tree.
-package parser
+package compiler
 
 import (
 	"errors"

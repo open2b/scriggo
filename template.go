@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 type pkgConstant struct {
@@ -81,7 +81,7 @@ type Renderer interface {
 // context. Files are read and parsed only the first time that are rendered.
 // Subsequents renderings are faster to execute.
 type DirRenderer struct {
-	parser *parser.Parser
+	parser *compiler.Parser
 	strict bool
 	ctx    ast.Context
 }
@@ -91,8 +91,8 @@ type DirRenderer struct {
 // statements execution stop the rendering. See the type Errors for more
 // details.
 func NewDirRenderer(dir string, strict bool, ctx Context, typeCheck bool) *DirRenderer {
-	var r = parser.DirReader(dir)
-	return &DirRenderer{parser: parser.New(r, nil, typeCheck), strict: strict, ctx: ast.Context(ctx)}
+	var r = compiler.DirReader(dir)
+	return &DirRenderer{parser: compiler.New(r, nil, typeCheck), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template file with the specified path, relative to the
@@ -112,7 +112,7 @@ func (dr *DirRenderer) Render(out io.Writer, path string, vars interface{}) erro
 // context. Sources are parsed only the first time that are rendered.
 // Subsequents renderings are faster to execute.
 type MapRenderer struct {
-	parser *parser.Parser
+	parser *compiler.Parser
 	strict bool
 	ctx    ast.Context
 }
@@ -121,8 +121,8 @@ type MapRenderer struct {
 // context ctx. If strict is true, even errors on expressions and statements
 // execution stop the rendering. See the type Errors for more details.
 func NewMapRenderer(sources map[string][]byte, strict bool, ctx Context) *MapRenderer {
-	var r = parser.MapReader(sources)
-	return &MapRenderer{parser: parser.New(r, nil, false), strict: strict, ctx: ast.Context(ctx)}
+	var r = compiler.MapReader(sources)
+	return &MapRenderer{parser: compiler.New(r, nil, false), strict: strict, ctx: ast.Context(ctx)}
 }
 
 // Render renders the template source with the specified path and writes
@@ -158,7 +158,7 @@ var (
 //
 // RenderSource is safe for concurrent use.
 func RenderSource(out io.Writer, src []byte, vars interface{}, strict bool, ctx Context) error {
-	tree, err := parser.ParseSource(src, ast.Context(ctx))
+	tree, err := compiler.ParseSource(src, ast.Context(ctx))
 	if err != nil {
 		return convertError(err)
 	}
@@ -176,7 +176,7 @@ func Run(r io.Reader) error {
 	if err != nil {
 		panic(err)
 	}
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	tree, err := compiler.ParseSource(src, ast.ContextNone)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func RunScriptTree(tree *ast.Tree, globals interface{}) error {
 // RunPackageTree runs the tree of a main package.
 //
 // RunPackageTree is safe for concurrent use.
-func RunPackageTree(tree *ast.Tree, packages map[string]*packageNameScope, pkgInfos map[string]*parser.PackageInfo) error {
+func RunPackageTree(tree *ast.Tree, packages map[string]*packageNameScope, pkgInfos map[string]*compiler.PackageInfo) error {
 
 	if tree == nil {
 		return errors.New("scrigo: tree is nil")
@@ -459,10 +459,10 @@ func getExtendsNode(tree *ast.Tree) *ast.Extends {
 }
 
 func convertError(err error) error {
-	if err == parser.ErrInvalidPath {
+	if err == compiler.ErrInvalidPath {
 		return ErrInvalidPath
 	}
-	if err == parser.ErrNotExist {
+	if err == compiler.ErrNotExist {
 		return ErrNotExist
 	}
 	return err
@@ -471,27 +471,27 @@ func convertError(err error) error {
 type Program struct {
 	tree      *ast.Tree
 	packages  map[string]*packageNameScope
-	typecheck map[string]*parser.PackageInfo
+	typecheck map[string]*compiler.PackageInfo
 }
 
 type Script struct {
 	tree      *ast.Tree
-	typecheck map[string]*parser.PackageInfo
-	main      *parser.GoPackage
+	typecheck map[string]*compiler.PackageInfo
+	main      *compiler.GoPackage
 }
 
 type Template struct {
-	reader parser.Reader
+	reader compiler.Reader
 }
 
 type Page struct {
 	tree *ast.Tree
-	main *parser.GoPackage
+	main *compiler.GoPackage
 }
 
 type PackageReader struct {
 	src    io.Reader
-	reader parser.Reader
+	reader compiler.Reader
 }
 
 func (pr PackageReader) Read(path string, _ ast.Context) ([]byte, error) {
@@ -505,12 +505,12 @@ func (pr PackageReader) Read(path string, _ ast.Context) ([]byte, error) {
 	return pr.reader.Read(path, ast.ContextNone)
 }
 
-func NewTemplate(reader parser.Reader) *Template {
+func NewTemplate(reader compiler.Reader) *Template {
 	return &Template{reader: reader}
 }
 
-func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*Page, error) {
-	mainWithBuiltins := &parser.GoPackage{Name: main.Name}
+func (t *Template) Compile(path string, main *compiler.GoPackage, ctx Context) (*Page, error) {
+	mainWithBuiltins := &compiler.GoPackage{Name: main.Name}
 	mainWithBuiltins.Declarations = make(map[string]interface{}, len(main.Declarations)+len(templateBuiltinOnly))
 	for n, d := range templateBuiltinOnly {
 		mainWithBuiltins.Declarations[n] = d
@@ -518,8 +518,8 @@ func (t *Template) Compile(path string, main *parser.GoPackage, ctx Context) (*P
 	for n, d := range main.Declarations {
 		mainWithBuiltins.Declarations[n] = d
 	}
-	packages := map[string]*parser.GoPackage{"main": mainWithBuiltins}
-	p := parser.New(t.reader, packages, true)
+	packages := map[string]*compiler.GoPackage{"main": mainWithBuiltins}
+	p := compiler.New(t.reader, packages, true)
 	tree, err := p.Parse(path, ast.Context(ctx))
 	if err != nil {
 		return nil, convertError(err)
@@ -543,18 +543,18 @@ func Render(out io.Writer, page *Page, vars map[string]interface{}) error {
 }
 
 type Compiler struct {
-	reader   parser.Reader
-	packages map[string]*parser.GoPackage
+	reader   compiler.Reader
+	packages map[string]*compiler.GoPackage
 }
 
-func NewCompiler(reader parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
+func NewCompiler(reader compiler.Reader, packages map[string]*compiler.GoPackage) *Compiler {
 	return &Compiler{reader: reader, packages: packages}
 }
 
 func (c *Compiler) Compile(src io.Reader) (*Program, error) {
 	var program = &Program{}
 	pr := PackageReader{src: src, reader: c.reader}
-	p := parser.New(pr, c.packages, true)
+	p := compiler.New(pr, c.packages, true)
 	tree, err := p.Parse("/main", ast.ContextNone)
 	if err != nil {
 		return nil, err
@@ -571,13 +571,13 @@ func (c *Compiler) Compile(src io.Reader) (*Program, error) {
 	return program, nil
 }
 
-func CompileScript(src io.Reader, main *parser.GoPackage) (*Script, error) {
+func CompileScript(src io.Reader, main *compiler.GoPackage) (*Script, error) {
 	buf, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}
-	r := parser.MapReader{"/main": buf}
-	p := parser.New(r, map[string]*parser.GoPackage{"main": main}, true)
+	r := compiler.MapReader{"/main": buf}
+	p := compiler.New(r, map[string]*compiler.GoPackage{"main": main}, true)
 	tree, err := p.Parse("/main", ast.ContextNone)
 	if err != nil {
 		return nil, err
@@ -621,7 +621,7 @@ func ExecuteScript(s *Script, vars map[string]interface{}) ([]interface{}, error
 }
 
 func Eval(src string) ([]interface{}, error) {
-	script, err := CompileScript(strings.NewReader(src), &parser.GoPackage{})
+	script, err := CompileScript(strings.NewReader(src), &compiler.GoPackage{})
 	if err != nil {
 		return nil, err
 	}

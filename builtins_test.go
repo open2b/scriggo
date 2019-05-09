@@ -11,8 +11,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 
 	"github.com/cockroachdb/apd"
 )
@@ -400,7 +400,7 @@ var rendererRandomBuiltinTests = []struct {
 
 func TestRenderBuiltin(t *testing.T) {
 	for _, expr := range rendererBuiltinTests {
-		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
+		var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -420,7 +420,7 @@ func TestRenderBuiltin(t *testing.T) {
 
 func TestRenderBuiltinInHTMLContext(t *testing.T) {
 	for _, expr := range rendererBuiltinTestsInHTMLContext {
-		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
+		var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -440,7 +440,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 
 func TestStatementBuiltin(t *testing.T) {
 	for _, expr := range statementBuiltinTests {
-		var tree, err = parser.ParseSource([]byte(expr.src), ast.ContextText)
+		var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -460,7 +460,7 @@ func TestStatementBuiltin(t *testing.T) {
 
 func TestRenderErrorfBuiltin(t *testing.T) {
 	src := "\n\n   {% errorf(`error %s %d`, `a`, 5) %}"
-	var tree, err = parser.ParseSource([]byte(src), ast.ContextText)
+	var tree, err = compiler.ParseSource([]byte(src), ast.ContextText)
 	if err != nil {
 		t.Errorf("source: %q, %s\n", src, err)
 		return
@@ -477,7 +477,7 @@ func TestRenderErrorfBuiltin(t *testing.T) {
 
 func TestRenderRandomBuiltin(t *testing.T) {
 	for _, expr := range rendererRandomBuiltinTests {
-		var tree, err = parser.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
+		var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

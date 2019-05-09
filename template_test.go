@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 type stringConvertible string
@@ -565,7 +565,7 @@ var rendererGlobalsToScope = []struct {
 func TestRenderExpressions(t *testing.T) {
 
 	for _, expr := range rendererExprTests {
-		r := parser.MapReader{
+		r := compiler.MapReader{
 			"/index.html": []byte("{{" + expr.src + "}}"),
 		}
 		scope := make(map[string]interface{}, len(expr.globals))
@@ -577,7 +577,7 @@ func TestRenderExpressions(t *testing.T) {
 				scope[n] = d
 			}
 		}
-		goPkg := &parser.GoPackage{
+		goPkg := &compiler.GoPackage{
 			Declarations: scope,
 		}
 		template := NewTemplate(r)
@@ -604,7 +604,7 @@ func TestRenderStatements(t *testing.T) {
 		return a, b
 	}
 	for _, stmt := range rendererStmtTests {
-		r := parser.MapReader{
+		r := compiler.MapReader{
 			"/index.html": []byte(stmt.src),
 		}
 		if stmt.globals == nil {
@@ -620,7 +620,7 @@ func TestRenderStatements(t *testing.T) {
 				scope[n] = d
 			}
 		}
-		goPkg := &parser.GoPackage{
+		goPkg := &compiler.GoPackage{
 			Declarations: scope,
 		}
 		template := NewTemplate(r)

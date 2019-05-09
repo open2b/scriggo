@@ -3,15 +3,15 @@ package scrigo
 import (
 	"testing"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 func TestScrigoImport(t *testing.T) {
-	cases := []parser.MapReader{
+	cases := []compiler.MapReader{
 
 		// just "main".
-		parser.MapReader(map[string][]byte{
+		compiler.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				func main() {
@@ -19,7 +19,7 @@ func TestScrigoImport(t *testing.T) {
 		}),
 
 		// "main" importing "pkg".
-		parser.MapReader(map[string][]byte{
+		compiler.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg"
@@ -58,7 +58,7 @@ func TestScrigoImport(t *testing.T) {
 		// }),
 
 		// "main" importing "pkg1" and "pkg2".
-		parser.MapReader(map[string][]byte{
+		compiler.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg1"
@@ -80,7 +80,7 @@ func TestScrigoImport(t *testing.T) {
 		}),
 
 		// "main" importing "pkg1" importing "pkg2" (1).
-		parser.MapReader(map[string][]byte{
+		compiler.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg1"
@@ -101,7 +101,7 @@ func TestScrigoImport(t *testing.T) {
 		}),
 
 		// "main" importing "pkg1" importing "pkg2" (2).
-		parser.MapReader(map[string][]byte{
+		compiler.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import . "pkg1"
@@ -122,7 +122,7 @@ func TestScrigoImport(t *testing.T) {
 		}),
 	}
 	for i, r := range cases {
-		p := parser.New(r, nil, true)
+		p := compiler.New(r, nil, true)
 		tree, err := p.Parse("main.go", ast.ContextNone)
 		if err != nil {
 			t.Errorf("test %d/%d, parsing (or type-checker) error: %s", i+1, len(cases), err)

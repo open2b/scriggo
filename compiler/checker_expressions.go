@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser
+package compiler
 
 import (
 	"errors"
@@ -31,13 +31,9 @@ type typeCheckerScope map[string]scopeElement
 type HTML string
 
 var boolType = reflect.TypeOf(false)
-var stringType = reflect.TypeOf("")
-var intType = reflect.TypeOf(0)
 var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
-var float64Type = reflect.TypeOf(float64(0))
-var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
 var builtinTypeInfo = &TypeInfo{Properties: PropertyIsBuiltin}
 var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType}

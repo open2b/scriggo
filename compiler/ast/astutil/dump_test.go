@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
 	"scrigo/compiler/ast/astutil"
-	"scrigo/compiler/parser"
 )
 
 func ExampleDump() {
@@ -37,7 +37,7 @@ func ExampleDump() {
 	for _, ctx := range []ast.Context{ast.ContextHTML, ast.ContextNone} {
 		stringCases := cases[ctx]
 		for _, c := range stringCases {
-			tree, err := parser.ParseSource([]byte(c), ctx)
+			tree, err := compiler.ParseSource([]byte(c), ctx)
 			if err != nil {
 				panic(err)
 			}

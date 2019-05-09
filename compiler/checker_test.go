@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser
+package compiler
 
 import (
 	"errors"
@@ -749,9 +749,9 @@ var checkerStmts = map[string]string{
 	`_ = pointInt{_:0, _:1}`:   `invalid field name _ in struct initializer`,
 	`_ = pointInt{"a", "b"}`:   `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
-	`_ = pointInt{1,2,3}`:      `too many values in parser.pointInt literal`,
+	`_ = pointInt{1,2,3}`:      `too many values in compiler.pointInt literal`,
 	//`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`, // TODO
-	`_ = pointInt{1}`:              `too few values in parser.pointInt literal`,
+	`_ = pointInt{1}`:              `too few values in compiler.pointInt literal`,
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
 	`_ = pointInt{X: 2, X: 2}`:     `duplicate field name in struct literal: X`,
@@ -760,9 +760,9 @@ var checkerStmts = map[string]string{
 	`_ = (&pointInt{0,0}).X`:    ok,
 	`_ = (pointInt{0,0}).X`:     ok,
 	`(&pointInt{0,0}).SetX(10)`: ok,
-	`_ = (&pointInt{0,0}).Z`:    `&parser.pointInt literal.Z undefined (type *parser.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	`(&pointInt{0,0}).SetZ(10)`: `&parser.pointInt literal.SetZ undefined (type *parser.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	`(pointInt{0,0}).SetZ(10)`:  `parser.pointInt literal.SetZ undefined (type parser.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`_ = (&pointInt{0,0}).Z`:    `&compiler.pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 
 	// Expressions.
 	`int + 2`: `type int is not an expression`,

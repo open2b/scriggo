@@ -11,17 +11,16 @@ import (
 	"reflect"
 
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 	"scrigo/vm"
 )
 
 // A Compiler compiles sources generating VM's packages.
 type Compiler struct {
-	parser           *parser.Parser
+	parser           *Parser
 	currentFunction  *vm.ScrigoFunction
-	typeinfo         map[ast.Node]*parser.TypeInfo
+	typeinfo         map[ast.Node]*TypeInfo
 	fb               *FunctionBuilder // current function builder.
-	importableGoPkgs map[string]*parser.GoPackage
+	importableGoPkgs map[string]*GoPackage
 	indirectVars     map[*ast.Identifier]bool
 
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
@@ -40,7 +39,7 @@ type Compiler struct {
 
 // NewCompiler returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
-func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compiler {
+func NewCompiler(r Reader, packages map[string]*GoPackage) *Compiler {
 	c := &Compiler{
 		importableGoPkgs: packages,
 		indirectVars:     map[*ast.Identifier]bool{},
@@ -55,7 +54,7 @@ func NewCompiler(r parser.Reader, packages map[string]*parser.GoPackage) *Compil
 
 		isNativePkg: map[string]bool{},
 	}
-	c.parser = parser.New(r, packages, true)
+	c.parser = New(r, packages, true)
 	return c
 }
 
@@ -65,7 +64,7 @@ func (c *Compiler) CompilePackage(path string) (*vm.ScrigoFunction, error) {
 		return nil, err
 	}
 	tci := c.parser.TypeCheckInfos()
-	c.typeinfo = map[ast.Node]*parser.TypeInfo{}
+	c.typeinfo = map[ast.Node]*TypeInfo{}
 	for _, pkgInfo := range tci {
 		for node, ti := range pkgInfo.TypeInfo {
 			c.typeinfo[node] = ti

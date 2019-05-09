@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"scrigo"
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 func ExampleRenderSource() {
@@ -40,7 +40,7 @@ func ExampleRenderSource() {
 }
 
 func ExampleRenderTree() {
-	p := parser.New(parser.DirReader("/home/salinger/book/"), nil, false)
+	p := compiler.New(compiler.DirReader("/home/salinger/book/"), nil, false)
 
 	tree, err := p.Parse("cover.html", ast.ContextHTML)
 	if err != nil {

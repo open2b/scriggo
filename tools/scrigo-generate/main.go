@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 func printErrorAndQuit(err interface{}) {
@@ -60,7 +60,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tree, err := parser.ParseSource(src, ast.ContextNone)
+	tree, err := compiler.ParseSource(src, ast.ContextNone)
 	if err != nil {
 		panic(err)
 	}

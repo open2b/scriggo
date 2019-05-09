@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser_test
+package compiler_test
 
 import (
 	"log"
 	"os"
 
 	"scrigo"
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 func ExampleParseSource() {
@@ -25,7 +25,7 @@ func ExampleParseSource() {
       {% end %}
   {% end macro %}`)
 
-	tree, err := parser.ParseSource(src, ast.ContextText)
+	tree, err := compiler.ParseSource(src, ast.ContextText)
 	if err != nil {
 		log.Printf("parsing error: %s\n", err)
 	}
@@ -39,8 +39,8 @@ func ExampleParseSource() {
 
 func ExampleParser_Parse() {
 
-	r := parser.DirReader("./template/")
-	p := parser.New(r, nil, false)
+	r := compiler.DirReader("./template/")
+	p := compiler.New(r, nil, false)
 
 	tree, err := p.Parse("index.html", ast.ContextHTML)
 	if err != nil {
@@ -56,14 +56,14 @@ func ExampleParser_Parse() {
 
 func ExampleMapReader() {
 
-	r := parser.MapReader(map[string][]byte{
+	r := compiler.MapReader(map[string][]byte{
 		"header.csv": []byte("Name"),
 		"names.csv":  []byte("{% include `header.csv` %}\n{% for name in names %}{{ name }}\n{% end %}"),
 	})
 
 	src, _ := r.Read("names.csv", ast.ContextText)
 
-	tree, err := parser.ParseSource(src, ast.ContextText)
+	tree, err := compiler.ParseSource(src, ast.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
@@ -80,7 +80,7 @@ func ExampleDirReader() {
 	// Creates a reader that read sources from the files in the directory
 	// "template/".
 
-	r := parser.DirReader("template/")
+	r := compiler.DirReader("template/")
 
 	_, err := r.Read("index.html", ast.ContextHTML)
 	if err != nil {
@@ -95,7 +95,7 @@ func ExampleNewDirLimitedReader() {
 	// "template/" and returns the error ErrReadTooLarge if a file to read
 	// is larger than 50 KB or if all the read files exceed 256 KB.
 
-	r := parser.NewDirLimitedReader("template/", 50*1024, 256*1204)
+	r := compiler.NewDirLimitedReader("template/", 50*1024, 256*1204)
 
 	_, err := r.Read("very-large-file.csv", ast.ContextText)
 	if err != nil {

@@ -9,8 +9,8 @@ package astutil
 import (
 	"testing"
 
+	"scrigo/compiler"
 	"scrigo/compiler/ast"
-	"scrigo/compiler/parser"
 )
 
 type TestVisitor struct {
@@ -63,7 +63,7 @@ func TestWalk(t *testing.T) {
 	}
 
 	for _, c := range stringCases {
-		tree, err := parser.ParseSource([]byte(c.input), ast.ContextHTML)
+		tree, err := compiler.ParseSource([]byte(c.input), ast.ContextHTML)
 		if err != nil {
 			panic(err)
 		}
