@@ -26,7 +26,18 @@ func main() {
 
 	flag.Parse()
 
-	vm.DebugTraceExecution = *trace
+	var tf vm.TraceFunc
+	if *trace {
+		tf = func(fn *vm.ScrigoFunction, pc uint32, regs vm.Registers) {
+			funcName := fn.Name
+			if funcName != "" {
+				funcName += ":"
+			}
+			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t", regs.Int, regs.Float, funcName)
+			_, _ = vm.DisassembleInstruction(os.Stderr, fn, pc)
+			println()
+		}
+	}
 
 	var args = flag.Args()
 
@@ -65,7 +76,11 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			_, err = vm.New().Run(main)
+			v := vm.New()
+			if *trace {
+				v.SetTraceFunc(tf)
+			}
+			_, err = v.Run(main)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
@@ -87,7 +102,11 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			_, err = vm.New().Run(main)
+			v := vm.New()
+			if *trace {
+				v.SetTraceFunc(tf)
+			}
+			_, err = v.Run(main)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
