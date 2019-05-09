@@ -141,7 +141,7 @@ func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 
 // NewVariable returns a new variable.
 func NewVariable(pkg, name string, value interface{}) vm.Variable {
-	return vm.Variable{pkg, name, value}
+	return vm.Variable{Pkg: pkg, Name: name, Value: value}
 }
 
 // NewScrigoFunction returns a new Scrigo function with a given package, name
