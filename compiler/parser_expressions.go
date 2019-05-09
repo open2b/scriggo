@@ -444,8 +444,10 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
 						keyValues = append(keyValues, ast.KeyValue{Key: expr, Value: value})
-					default:
+					case tokenComma, tokenSemicolon, tokenRightBraces:
 						keyValues = append(keyValues, ast.KeyValue{Key: nil, Value: expr})
+					default:
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expecting comma or }", tok)})
 					}
 					if tok.typ == tokenRightBraces {
 						break
