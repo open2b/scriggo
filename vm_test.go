@@ -847,7 +847,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			// {TypeIface, 1, []int{}}, // a
+			// {TypeGeneral, 1, []int{}}, // a
 		}, "[]\n"},
 
 	{"Empty string slice composite literal",
@@ -861,7 +861,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeIface, 1, []string{}}, // a
+			{vmp.TypeGeneral, 1, []string{}}, // a
 		}, ""},
 
 	{"Empty byte slice composite literal",
@@ -894,7 +894,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeIface, 1, map[string]int{}},
+			{vmp.TypeGeneral, 1, map[string]int{}},
 		}, ""},
 
 	{"Function literal definition - (0 in, 0 out)",
@@ -1011,7 +1011,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeIface, 1, int64(97)},
+			{vmp.TypeGeneral, 1, int64(97)},
 		}, ""},
 
 	{"Constant boolean",
@@ -1689,7 +1689,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeIface, 3, map[string]int{}},
+			{vmp.TypeGeneral, 3, map[string]int{}},
 		}, ""},
 
 	{"Builtin copy",
@@ -1965,7 +1965,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeIface, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
+			{vmp.TypeGeneral, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
 		""},
 
@@ -2433,7 +2433,7 @@ func TestVM(t *testing.T) {
 				switch reg.typ {
 				case vmp.TypeFloat:
 					got = vm.Float(reg.r)
-				case vmp.TypeIface:
+				case vmp.TypeGeneral:
 					got = vm.General(reg.r)
 				case vmp.TypeInt:
 					got = vm.Int(reg.r)

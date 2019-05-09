@@ -99,7 +99,7 @@ func kindToType(k reflect.Kind) vm.Type {
 	case reflect.String:
 		return vm.TypeString
 	default:
-		return vm.TypeIface
+		return vm.TypeGeneral
 	}
 }
 

@@ -1209,7 +1209,7 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				case vm.TypeString:
 					offset[2]++
 					reg = offset[2]
-				case vm.TypeIface:
+				case vm.TypeGeneral:
 					offset[3]++
 					reg = offset[3]
 				}

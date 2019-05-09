@@ -84,7 +84,7 @@ func (builder *FunctionBuilder) NewRegister(kind reflect.Kind) int8 {
 		kind = reflect.Float64
 	case vm.TypeString:
 		kind = reflect.String
-	case vm.TypeIface:
+	case vm.TypeGeneral:
 		kind = reflect.Interface
 	}
 	reg := int8(builder.numRegs[kind]) + 1
@@ -342,7 +342,7 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 		kind = reflect.Float64
 	case vm.TypeString:
 		kind = reflect.String
-	case vm.TypeIface:
+	case vm.TypeGeneral:
 		kind = reflect.Interface
 	}
 	if reg > 0 {
@@ -574,7 +574,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	builder.allocRegister(reflect.Interface, dst)
 	var op vm.Operation
 	switch kindToType(srcKind) {
-	case vm.TypeIface:
+	case vm.TypeGeneral:
 		op = vm.OpConvert
 	case vm.TypeInt:
 		switch srcKind {
@@ -782,7 +782,7 @@ func (builder *FunctionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind 
 		op = vm.OpIfFloat
 	case vm.TypeString:
 		op = vm.OpIfString
-	case vm.TypeIface:
+	case vm.TypeGeneral:
 		panic("If: invalid type")
 	}
 	if k {
@@ -931,7 +931,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 		moveType = vm.FloatFloat
 	case vm.TypeString:
 		moveType = vm.StringString
-	case vm.TypeIface:
+	case vm.TypeGeneral:
 		switch kindToType(srcKind) {
 		case vm.TypeInt:
 			moveType = vm.IntGeneral
@@ -939,7 +939,7 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect
 			moveType = vm.FloatGeneral
 		case vm.TypeString:
 			moveType = vm.StringGeneral
-		case vm.TypeIface:
+		case vm.TypeGeneral:
 			moveType = vm.GeneralGeneral
 		}
 	}

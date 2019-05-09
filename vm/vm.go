@@ -875,7 +875,7 @@ const (
 	TypeInt Type = iota
 	TypeFloat
 	TypeString
-	TypeIface
+	TypeGeneral
 )
 
 func (t Type) String() string {
@@ -886,8 +886,8 @@ func (t Type) String() string {
 		return "float"
 	case TypeString:
 		return "string"
-	case TypeIface:
-		return "iface"
+	case TypeGeneral:
+		return "general"
 	}
 	panic("unknown type")
 }
