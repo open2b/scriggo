@@ -13,17 +13,7 @@ import (
 
 	"scrigo/compiler"
 	"scrigo/compiler/ast"
-
-	"github.com/cockroachdb/apd"
 )
-
-func floatToDecimal(f float64) *apd.Decimal {
-	d, err := apd.New(0, 0).SetFloat64(f)
-	if err != nil {
-		panic(err)
-	}
-	return d
-}
 
 var rendererBuiltinTests = []struct {
 	src     string
