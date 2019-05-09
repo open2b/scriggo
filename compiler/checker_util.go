@@ -860,7 +860,7 @@ func toSameType(v1, v2 interface{}) (interface{}, interface{}) {
 			v1 = newInt().SetInt64(n1)
 		case float64:
 			if int64(float64(n1)) == n1 {
-				n2 = float64(n2)
+				v2 = float64(n2)
 			} else {
 				v1 = newFloat().SetInt64(n1)
 				v2 = newFloat().SetFloat64(n2)
