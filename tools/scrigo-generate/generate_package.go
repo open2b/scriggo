@@ -133,7 +133,7 @@ import (
 import "scrigo"
 
 func init() {
-	[customVariableName] = map[string]*parser.GoPackage{
+	[customVariableName] = map[string]*compiler.GoPackage{
 		[pkgContent]
 	}
 }
@@ -189,7 +189,7 @@ func generatePackage(pkgPath string) string {
 	}
 
 	skel := `
-		"[pkgPath]": &parser.GoPackage{
+		"[pkgPath]": &compiler.GoPackage{
 			Name: "[pkg.Name()]",
 			Declarations: map[string]interface{}{
 				[pkgContent]
