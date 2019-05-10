@@ -13,8 +13,8 @@ import (
 	"strings"
 	"sync"
 
-	"scrigo"
 	"scrigo/compiler"
+	"scrigo/vm"
 )
 
 var packages map[string]*compiler.GoPackage
@@ -91,15 +91,14 @@ func runScrigoAndGetOutput(src []byte) output {
 		out <- buf.String()
 	}()
 	wg.Wait()
-
-	compiler := scrigo.NewCompiler(nil, packages)
-	program, err := compiler.Compile(bytes.NewBuffer(src))
+	r := compiler.MapReader{"/main.go": src}
+	comp := compiler.NewCompiler(r, packages)
+	main, err := comp.CompilePackage("/main.go")
 	if err != nil {
 		return makeOutput(err.Error())
-
 	}
-	err = scrigo.Execute(program)
-
+	v := vm.New()
+	_, err = v.Run(main)
 	if err != nil {
 		return makeOutput(err.Error())
 	}
