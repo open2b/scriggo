@@ -534,6 +534,13 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewIdentifier(p(1, 7, 6, 6), "x")),
 		}, ast.ContextNone)},
+	{"{LOOP:}",
+		ast.NewTree("", []ast.Node{
+			ast.NewBlock(p(1, 1, 0, 6), []ast.Node{
+				ast.NewLabel(p(1, 2, 1, 5),
+					ast.NewIdentifier(p(1, 2, 1, 4), "LOOP"), nil),
+			}),
+		}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{

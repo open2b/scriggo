@@ -74,10 +74,20 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	// Parses the function body.
 	for {
 		tok = next(p.lex)
-		if tok.typ == tokenRightBraces && len(p.ancestors) == depth {
-			break
+		if tok.typ == tokenRightBraces {
+			parent := p.ancestors[len(p.ancestors)-1]
+			if _, ok := parent.(*ast.Label); ok {
+				p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			}
+			if len(p.ancestors) == depth {
+				break
+			}
 		}
 		if tok.typ == tokenEOF {
+			parent := p.ancestors[len(p.ancestors)-1]
+			if _, ok := parent.(*ast.Label); ok {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")})
+			}
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")})
 		}
 		p.parseStatement(tok)

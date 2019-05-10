@@ -139,13 +139,10 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 		for tok := range p.lex.tokens {
 			if tok.typ == tokenEOF {
 				if len(p.ancestors) > 1 {
-					switch s := p.ancestors[1].(type) {
+					switch p.ancestors[1].(type) {
 					case *ast.Package:
 					case *ast.Label:
-						if s.Statement == nil {
-							return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
-						}
-						s.Pos().End = s.Statement.Pos().End
+						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
 					default:
 						if len(p.ancestors) > 2 {
 							return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
@@ -312,14 +309,6 @@ func (p *parsing) parseStatement(tok token) {
 	case *ast.TypeSwitch:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
-		}
-	case *ast.Label:
-		if s.Statement != nil || tok.typ == tokenRightBraces {
-			p.ancestors = p.ancestors[:len(p.ancestors)-1]
-			parent = p.ancestors[len(p.ancestors)-1]
-			if s.Statement != nil {
-				s.Pos().End = s.Statement.Pos().End
-			}
 		}
 	}
 
@@ -617,6 +606,10 @@ func (p *parsing) parseStatement(tok token) {
 		if len(p.ancestors) == 1 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("not opened brace")})
 		}
+		if _, ok := parent.(*ast.Label); ok {
+			p.ancestors = p.ancestors[:len(p.ancestors)-1]
+			parent = p.ancestors[len(p.ancestors)-1]
+		}
 		bracesEnd := tok.pos.End
 		parent.Pos().End = bracesEnd
 		p.ancestors = p.ancestors[:len(p.ancestors)-1]
@@ -630,6 +623,11 @@ func (p *parsing) parseStatement(tok token) {
 					parent.Pos().End = bracesEnd
 					p.ancestors = p.ancestors[:len(p.ancestors)-1]
 					parent = p.ancestors[len(p.ancestors)-1]
+				} else if _, ok := parent.(*ast.Func); ok {
+					parent.Pos().End = bracesEnd
+					p.ancestors = p.ancestors[:len(p.ancestors)-1]
+					parent = p.ancestors[len(p.ancestors)-1]
+					break
 				} else {
 					return
 				}
@@ -1219,7 +1217,7 @@ func (p *parsing) parseStatement(tok token) {
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
 				node := ast.NewLabel(pos, ident, nil)
-				node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
+				node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, tok.pos.End}
 				addChild(parent, node)
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
@@ -1231,6 +1229,11 @@ func (p *parsing) parseStatement(tok token) {
 				p.cutSpacesToken = true
 			}
 		}
+	}
+
+	if label, ok := parent.(*ast.Label); ok && label.Statement != nil {
+		label.Pos().End = label.Statement.Pos().End
+		p.ancestors = p.ancestors[:len(p.ancestors)-1]
 	}
 
 	return
