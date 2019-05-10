@@ -1257,6 +1257,8 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
 	// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 
+	c.fb.EnterScope()
+
 	if node.Init != nil {
 		c.compileNodes([]ast.Node{node.Init})
 	}
@@ -1303,15 +1305,20 @@ func (c *Compiler) compileTypeSwitch(node *ast.TypeSwitch) {
 			c.fb.SetLabelAddr(defaultLabel)
 		}
 		c.fb.SetLabelAddr(bodyLabels[i])
+		c.fb.EnterScope()
 		c.compileNodes(cas.Body)
+		c.fb.ExitScope()
 		c.fb.Goto(endSwitchLabel)
 	}
 
 	c.fb.SetLabelAddr(endSwitchLabel)
+	c.fb.ExitScope()
 }
 
 // compileSwitch compiles switch node.
 func (c *Compiler) compileSwitch(node *ast.Switch) {
+
+	c.fb.EnterScope()
 
 	if node.Init != nil {
 		c.compileNodes([]ast.Node{node.Init})
@@ -1353,13 +1360,17 @@ func (c *Compiler) compileSwitch(node *ast.Switch) {
 			c.fb.SetLabelAddr(defaultLabel)
 		}
 		c.fb.SetLabelAddr(bodyLabels[i])
+		c.fb.EnterScope()
 		c.compileNodes(cas.Body)
 		if !cas.Fallthrough {
 			c.fb.Goto(endSwitchLabel)
 		}
+		c.fb.ExitScope()
 	}
 
 	c.fb.SetLabelAddr(endSwitchLabel)
+
+	c.fb.ExitScope()
 }
 
 // compileCondition compiles a condition. Last instruction added by this method

@@ -118,6 +118,23 @@ var stmtTests = []struct {
 	output       string   // expected stdout/stderr output.
 }{
 
+	{"Issue #86",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			a := "ext"
+			switch a := 3; a {
+			case 3:
+				fmt.Println(a)
+				a := "internal"
+				fmt.Println(a)
+			}
+			fmt.Println(a)
+		
+		}`, nil, nil, "3\ninternal\next\n"},
+
 	{"Builtin 'cap'",
 		`package main
 
