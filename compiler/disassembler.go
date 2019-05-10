@@ -503,7 +503,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 		s += " // len: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		s += ", cap: "
