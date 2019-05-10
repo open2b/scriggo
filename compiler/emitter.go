@@ -1145,19 +1145,19 @@ func (c *Compiler) compileNodes(nodes []ast.Node) {
 				c.compileCondition(node.Condition)
 				endForLabel := c.fb.NewLabel()
 				c.fb.Goto(endForLabel)
+				c.compileNodes(node.Body)
 				if node.Post != nil {
 					c.compileNodes([]ast.Node{node.Post})
 				}
-				c.compileNodes(node.Body)
 				c.fb.Goto(forLabel)
 				c.fb.SetLabelAddr(endForLabel)
 			} else {
 				forLabel := c.fb.NewLabel()
 				c.fb.SetLabelAddr(forLabel)
+				c.compileNodes(node.Body)
 				if node.Post != nil {
 					c.compileNodes([]ast.Node{node.Post})
 				}
-				c.compileNodes(node.Body)
 				c.fb.Goto(forLabel)
 			}
 			c.fb.ExitScope()

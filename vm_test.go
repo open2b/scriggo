@@ -1304,8 +1304,6 @@ var stmtTests = []struct {
 		`, nil, nil, "thenx is 11"},
 
 	{"For statement",
-		// TODO(Gianluca): this is the correct output:
-		// `, nil, nil, "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20"},
 		`package main
 
 		import "fmt"
@@ -1319,7 +1317,7 @@ var stmtTests = []struct {
 			}
 			fmt.Print("sum=",sum)
 		}
-		`, nil, nil, "i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,i=10,sum=20"},
+		`, nil, nil, "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20"},
 
 	{"Switch statement",
 		`package main
