@@ -77,6 +77,9 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		if tok.typ == tokenRightBraces && len(p.ancestors) == depth {
 			break
 		}
+		if tok.typ == tokenEOF {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")})
+		}
 		p.parseStatement(tok)
 	}
 	p.ancestors = p.ancestors[:len(p.ancestors)-2]
