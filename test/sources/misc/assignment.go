@@ -21,17 +21,19 @@ func main() {
 
 	x[1], x[2] = 4, 5
 
-	v := 10
-	fmt.Println(v)
-	ref := &v
-	*ref = 2
-	fmt.Println(v)
+	// TODO(Gianluca):
+	// v := 10
+	// fmt.Println(v)
+	// ref := &v
+	// *ref = 2
+	// fmt.Println(v)
 
 	i = 2
 	x = []int{3, 5, 7}
-	for i, x[i] = range x {
-		break
-	}
+	// TODO(Gianluca):
+	// for i, x[i] = range x {
+	// 	break
+	// }
 	fmt.Println(i, x)
 
 	{

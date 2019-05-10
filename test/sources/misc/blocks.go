@@ -28,7 +28,9 @@ func main() {
 	}
 	fmt.Println(a)
 
-	if true {
+	// TODO(Gianluca):
+	// if true {
+	if 0 == 0 {
 		{
 			{
 				{
