@@ -915,7 +915,10 @@ func (c *Compiler) compileBuiltin(call *ast.Call, reg int8, dstType reflect.Type
 	case "append":
 		panic("TODO: not implemented")
 	case "cap":
-		panic("TODO: not implemented")
+		typ := c.typeinfo[call.Args[0]].Type
+		s := c.fb.NewRegister(typ.Kind())
+		c.compileExpr(call.Args[0], s, typ)
+		c.fb.Cap(s, reg)
 	case "close":
 		panic("TODO: not implemented")
 	case "complex":

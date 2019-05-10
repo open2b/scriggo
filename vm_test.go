@@ -117,6 +117,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+
+	{"Builtin 'cap'",
+		`package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			s1 := make([]int, 2, 10)
+			c1 := cap(s1)
+			fmt.Print(c1, ",")
+			s2 := []int{1, 2, 3}
+			c2 := cap(s2)
+			fmt.Print(c2)
+		}
+		`, nil, nil, "10,3"},
+
 	// {"Package function calling a post-declared package function",
 	// 	`package main
 
