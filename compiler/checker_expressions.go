@@ -137,6 +137,13 @@ type typechecker struct {
 	currentGlobal  string              // identifier currently being evaluated.
 	globalEvalPath []string            // stack of identifiers used in a single evaluation.
 	globalTemp     map[string]*TypeInfo
+
+	// Data structures for Goto and Labels checking.
+	gotos           []string
+	storedGotos     []string
+	nextValidGoto   int
+	storedValidGoto int
+	labels          [][]string
 }
 
 func newTypechecker(path string, isScript bool) *typechecker {
@@ -168,6 +175,9 @@ func (tc *typechecker) globDecl(name string) *Declaration {
 // addScope adds a new empty scope to the type checker.
 func (tc *typechecker) addScope() {
 	tc.scopes = append(tc.scopes, make(typeCheckerScope))
+	tc.labels = append(tc.labels, []string{})
+	tc.storedGotos = tc.gotos
+	tc.gotos = []string{}
 }
 
 // removeCurrentScope removes the current scope from the type checker.
@@ -188,6 +198,9 @@ func (tc *typechecker) removeCurrentScope() {
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
 	tc.scopes = tc.scopes[:len(tc.scopes)-1]
+	tc.labels = tc.labels[:len(tc.labels)-1]
+	tc.gotos = append(tc.storedGotos, tc.gotos...)
+	tc.nextValidGoto = tc.storedValidGoto
 }
 
 // lookupScopes looks up name in the scopes. Returns the type info of the name or

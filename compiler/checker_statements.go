@@ -170,6 +170,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Assignment:
 
 			tc.checkAssignment(node)
+			if node.Type == ast.AssignmentDeclaration {
+				tc.nextValidGoto = len(tc.gotos)
+			}
 			tc.terminating = false
 
 		case *ast.Break:
@@ -264,9 +267,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.removeCurrentScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
-		case *ast.Const, *ast.Var:
+		case *ast.Const:
+			tc.checkAssignment(node)
+			tc.terminating = false
+
+		case *ast.Var:
 
 			tc.checkAssignment(node)
+			tc.nextValidGoto = len(tc.gotos)
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
@@ -370,6 +378,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
+
+		case *ast.Goto:
+			tc.gotos = append(tc.gotos, node.Label.Name)
+
+		case *ast.Label:
+			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Name.Name)
+			tc.checkNodes([]ast.Node{node.Statement})
 
 		case ast.Expression:
 

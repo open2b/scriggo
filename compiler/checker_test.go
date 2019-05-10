@@ -1719,3 +1719,30 @@ func sameTypeCheckError(err1, err2 *Error) error {
 	}
 	return nil
 }
+
+func TestGotoLabels(t *testing.T) {
+	cases := []struct {
+		name     string
+		src      string
+		errorMsg string
+	}{}
+	for _, cas := range cases {
+		t.Run(cas.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					panic(r)
+				}
+			}()
+			tree, err := ParseSource([]byte(cas.src), ast.ContextNone)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			tc := newTypechecker("", false)
+			tc.universe = universe
+			tc.addScope()
+			tc.checkNodes(tree.Nodes)
+			tc.removeCurrentScope()
+		})
+	}
+}
