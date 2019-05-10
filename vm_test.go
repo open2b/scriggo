@@ -118,6 +118,23 @@ var stmtTests = []struct {
 	output       string   // expected stdout/stderr output.
 }{
 
+	{"Switch with non-immediate expression in a case",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			a := 6
+			b := 7
+			switch 42 {
+			case a * b:
+				fmt.Print("a * b")
+			default:
+				fmt.Print("default")
+			}
+		}
+		`, nil, nil, "a * b"},
+
 	{"Issue #86",
 		`package main
 

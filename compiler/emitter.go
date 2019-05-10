@@ -1342,8 +1342,7 @@ func (c *Emitter) emitSwitch(node *ast.Switch) {
 		for _, caseExpr := range cas.Expressions {
 			y, ky, isRegister := c.quickEmitExpr(caseExpr, typ)
 			if !ky && !isRegister {
-				// TODO(Gianluca): emitter should not call allocRegister..
-				c.fb.allocRegister(typ.Kind(), y)
+				y = c.fb.NewRegister(typ.Kind())
 				c.emitExpr(caseExpr, y, typ)
 			}
 			c.fb.If(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
