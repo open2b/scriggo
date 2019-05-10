@@ -298,7 +298,6 @@ func (p *parsing) parseStatement(tok token) {
 	// Parent is always the last ancestor.
 	parent := p.ancestors[len(p.ancestors)-1]
 
-	l := -1
 	switch s := parent.(type) {
 	case *ast.Package:
 		switch tok.typ {
@@ -307,19 +306,20 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-declaration statement outside function body (%q)", tok)})
 		}
 	case *ast.Switch:
-		l = len(s.Cases)
+		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+		}
 	case *ast.TypeSwitch:
-		l = len(s.Cases)
+		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+		}
 	case *ast.Label:
-		if s.Statement != nil {
+		if s.Statement != nil || tok.typ == tokenRightBraces {
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
 			parent = p.ancestors[len(p.ancestors)-1]
-			s.Pos().End = s.Statement.Pos().End
-		}
-	}
-	if l == 0 {
-		if tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+			if s.Statement != nil {
+				s.Pos().End = s.Statement.Pos().End
+			}
 		}
 	}
 
