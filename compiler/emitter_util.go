@@ -65,7 +65,7 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 }
 
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
-func (c *Compiler) isLenBuiltinCall(expr ast.Expression) bool {
+func (c *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
 		if ti := c.typeinfo[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {

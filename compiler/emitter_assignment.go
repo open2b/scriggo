@@ -27,7 +27,7 @@ const (
 
 // Address represents an element on the left side of assignments.
 type Address struct {
-	c           *Compiler
+	c           *Emitter
 	Type        AddressType
 	ReflectType reflect.Type // Type of the addressed element.
 	Reg1        int8         // Register containing the main expression.
@@ -35,7 +35,7 @@ type Address struct {
 }
 
 // NewAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
-func (c *Compiler) NewAddress(addrType AddressType, reflectType reflect.Type, reg1, reg2 int8) Address {
+func (c *Emitter) NewAddress(addrType AddressType, reflectType reflect.Type, reg1, reg2 int8) Address {
 	return Address{c: c, Type: addrType, ReflectType: reflectType, Reg1: reg1, Reg2: reg2}
 }
 
@@ -64,7 +64,7 @@ func (a Address) Assign(k bool, value int8, valueKind reflect.Kind) {
 }
 
 // assign assigns values to addresses.
-func (c *Compiler) assign(addresses []Address, values []ast.Expression) {
+func (c *Emitter) assign(addresses []Address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == len(values) {
 		valueRegs := make([]int8, len(values))
@@ -72,10 +72,10 @@ func (c *Compiler) assign(addresses []Address, values []ast.Expression) {
 		valueIsK := make([]bool, len(values))
 		for i := range values {
 			valueTypes[i] = c.typeinfo[values[i]].Type
-			valueRegs[i], valueIsK[i], _ = c.quickCompileExpr(values[i], valueTypes[i])
+			valueRegs[i], valueIsK[i], _ = c.quickEmitExpr(values[i], valueTypes[i])
 			if !valueIsK[i] {
 				valueRegs[i] = c.fb.NewRegister(valueTypes[i].Kind())
-				c.compileExpr(values[i], valueRegs[i], valueTypes[i])
+				c.emitExpr(values[i], valueRegs[i], valueTypes[i])
 			}
 		}
 		for i, addr := range addresses {
@@ -84,7 +84,7 @@ func (c *Compiler) assign(addresses []Address, values []ast.Expression) {
 	} else {
 		switch value := values[0].(type) {
 		case *ast.Call:
-			retRegs, retTypes := c.compileCall(value)
+			retRegs, retTypes := c.emitCall(value)
 			for i, addr := range addresses {
 				addr.Assign(false, retRegs[i], retTypes[i].Kind())
 			}
@@ -92,8 +92,8 @@ func (c *Compiler) assign(addresses []Address, values []ast.Expression) {
 	}
 }
 
-// compileAssignmentNode compiles an assignment node.
-func (c *Compiler) compileAssignmentNode(node *ast.Assignment) {
+// emitAssignmentNode emits instructions for an assignment node.
+func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration:
 		addresses := make([]Address, len(node.Variables))
@@ -119,16 +119,16 @@ func (c *Compiler) compileAssignmentNode(node *ast.Assignment) {
 				}
 			case *ast.Index:
 				exprType := c.typeinfo[v.Expr].Type
-				expr, _, isRegister := c.quickCompileExpr(v.Expr, exprType)
+				expr, _, isRegister := c.quickEmitExpr(v.Expr, exprType)
 				if !isRegister {
 					expr = c.fb.NewRegister(exprType.Kind())
-					c.compileExpr(v.Expr, expr, exprType)
+					c.emitExpr(v.Expr, expr, exprType)
 				}
 				indexType := c.typeinfo[v.Index].Type
-				index, _, isRegister := c.quickCompileExpr(v.Index, indexType)
+				index, _, isRegister := c.quickEmitExpr(v.Index, indexType)
 				if !isRegister {
 					index = c.fb.NewRegister(indexType.Kind())
-					c.compileExpr(v.Index, index, indexType)
+					c.emitExpr(v.Index, index, indexType)
 				}
 				addrType := AddressSliceIndex
 				if exprType.Kind() == reflect.Map {
@@ -165,16 +165,16 @@ func (c *Compiler) compileAssignmentNode(node *ast.Assignment) {
 			valueType = varType
 		case *ast.Index:
 			exprType := c.typeinfo[v.Expr].Type
-			expr, _, isRegister := c.quickCompileExpr(v.Expr, exprType)
+			expr, _, isRegister := c.quickEmitExpr(v.Expr, exprType)
 			if !isRegister {
 				expr = c.fb.NewRegister(exprType.Kind())
-				c.compileExpr(v.Expr, expr, exprType)
+				c.emitExpr(v.Expr, expr, exprType)
 			}
 			indexType := c.typeinfo[v.Index].Type
-			index, _, isRegister := c.quickCompileExpr(v.Index, indexType)
+			index, _, isRegister := c.quickEmitExpr(v.Index, indexType)
 			if !isRegister {
 				index = c.fb.NewRegister(indexType.Kind())
-				c.compileExpr(v.Index, index, indexType)
+				c.emitExpr(v.Index, index, indexType)
 			}
 			addrType := AddressSliceIndex
 			if exprType.Kind() == reflect.Map {
@@ -195,7 +195,7 @@ func (c *Compiler) compileAssignmentNode(node *ast.Assignment) {
 		default:
 			rightOpType := c.typeinfo[node.Values[0]].Type
 			rightOp := c.fb.NewRegister(rightOpType.Kind())
-			c.compileExpr(node.Values[0], rightOp, rightOpType)
+			c.emitExpr(node.Values[0], rightOp, rightOpType)
 			switch node.Type {
 			case ast.AssignmentAddition:
 				c.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
