@@ -77,8 +77,9 @@ func (vm *VM) setIntIndirect(r int8, i int64) {
 		elem := reflect.ValueOf(v).Elem()
 		if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
 			elem.SetInt(i)
+		} else {
+			elem.SetUint(uint64(i))
 		}
-		elem.SetUint(uint64(i))
 	}
 }
 
