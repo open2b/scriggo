@@ -623,11 +623,6 @@ func (p *parsing) parseStatement(tok token) {
 					parent.Pos().End = bracesEnd
 					p.ancestors = p.ancestors[:len(p.ancestors)-1]
 					parent = p.ancestors[len(p.ancestors)-1]
-				} else if _, ok := parent.(*ast.Func); ok {
-					parent.Pos().End = bracesEnd
-					p.ancestors = p.ancestors[:len(p.ancestors)-1]
-					parent = p.ancestors[len(p.ancestors)-1]
-					break
 				} else {
 					return
 				}
