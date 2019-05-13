@@ -51,7 +51,7 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 		a.c.fb.New(a.ReflectType, -a.Reg1)
 		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
 	case AddressPointerIndirection:
-		panic("TODO(Gianluca): not implemented")
+		a.c.changeRegister(k, value, -a.Reg1, valueType, a.ReflectType)
 	case AddressSliceIndex:
 		a.c.fb.SetSlice(k, a.Reg1, value, a.Reg2, a.ReflectType.Elem().Kind())
 	case AddressStructSelector:
@@ -156,7 +156,18 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				if v.Operator() != ast.OperatorMultiplication {
 					panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
 				}
-				panic("TODO(Gianluca): not implemented")
+				switch expr := v.Expr.(type) {
+				case *ast.Identifier:
+					if c.fb.IsVariable(expr.Name) {
+						varReg := c.fb.ScopeLookup(expr.Name)
+						exprType := c.typeinfo[expr].Type
+						addresses[i] = c.NewAddress(AddressPointerIndirection, exprType, varReg, 0)
+					} else {
+						panic("TODO(Gianluca): not implemented")
+					}
+				default:
+					panic("TODO(Gianluca): not implemented")
+				}
 			default:
 				panic("TODO(Gianluca): not implemented")
 			}
