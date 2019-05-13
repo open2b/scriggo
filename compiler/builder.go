@@ -527,6 +527,14 @@ func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(dir), B: value, C: ch})
 }
 
+// Close appends a new "Close" instruction to the function body.
+//
+//     close(ch)
+//
+func (builder *FunctionBuilder) Close(ch int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpClose, A: ch})
+}
+
 // Concat appends a new "concat" instruction to the function body.
 //
 //     z = concat(s, t)

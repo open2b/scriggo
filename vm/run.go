@@ -309,6 +309,10 @@ func (vm *VM) run() int {
 			}
 			vm.pc++
 
+		// Close
+		case OpClose:
+			reflect.ValueOf(vm.general(a)).Close()
+
 		// Continue
 		case OpContinue:
 			return int(a)

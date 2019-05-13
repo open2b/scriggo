@@ -986,6 +986,8 @@ const (
 
 	OpCase
 
+	OpClose
+
 	OpContinue
 
 	OpConvert

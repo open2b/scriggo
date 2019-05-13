@@ -325,6 +325,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		default:
 			s += " default"
 		}
+	case vm.OpClose, vm.OpPanic, vm.OpPrint:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 	case vm.OpContinue:
 		s += " " + disassembleOperand(fn, a, vm.Int, true)
 	case vm.OpCopy:
@@ -451,8 +453,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpNew:
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpPanic, vm.OpPrint:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 	case vm.OpRange:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, false)
@@ -621,6 +621,8 @@ var operationName = [...]string{
 	vm.OpCap: "Cap",
 
 	vm.OpCase: "Case",
+
+	vm.OpClose: "Close",
 
 	vm.OpContinue: "Continue",
 
