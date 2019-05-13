@@ -682,20 +682,14 @@ func (vm *VM) run() int {
 
 		// Move
 		case OpMove, -OpMove:
-			switch MoveType(a) {
-			case FloatFloat:
+			switch Type(a) {
+			case TypeFloat:
 				vm.setFloat(c, vm.floatk(b, op < 0))
-			case FloatGeneral:
-				vm.setGeneral(c, vm.floatk(b, op < 0))
-			case GeneralGeneral:
+			case TypeGeneral:
 				vm.setGeneral(c, vm.generalk(b, op < 0))
-			case IntGeneral:
-				vm.setGeneral(c, vm.intk(b, op < 0))
-			case IntInt:
+			case TypeInt:
 				vm.setInt(c, vm.intk(b, op < 0))
-			case StringGeneral:
-				vm.setGeneral(c, vm.stringk(b, op < 0))
-			case StringString:
+			case TypeString:
 				vm.setString(c, vm.stringk(b, op < 0))
 			}
 

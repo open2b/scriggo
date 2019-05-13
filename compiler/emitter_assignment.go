@@ -46,7 +46,7 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	case AddressesBlank:
 		// Nothing to do.
 	case AddressRegister:
-		a.c.fb.Move(k, value, a.Reg1, a.ReflectType.Kind(), valueType.Kind())
+		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType) // TODO(Gianluca): types should be swapped?
 	case AddressIndirectDeclaration:
 		a.c.fb.New(a.ReflectType, -a.Reg1)
 		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
@@ -59,7 +59,7 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	case AddressPackageVariable:
 		if k {
 			tmpReg := a.c.fb.NewRegister(valueType.Kind())
-			a.c.fb.Move(true, value, tmpReg, valueType.Kind(), valueType.Kind())
+			a.c.fb.Move(true, value, tmpReg, valueType.Kind())
 			a.c.fb.SetVar(tmpReg, uint8(a.Reg1))
 		} else {
 			a.c.fb.SetVar(value, uint8(a.Reg1))

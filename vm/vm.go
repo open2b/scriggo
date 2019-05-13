@@ -29,18 +29,6 @@ func DecodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
 }
 
-type MoveType int8
-
-const (
-	IntInt MoveType = iota
-	FloatFloat
-	StringString
-	GeneralGeneral
-	IntGeneral
-	FloatGeneral
-	StringGeneral
-)
-
 type TraceFunc func(fn *ScrigoFunction, pc uint32, regs Registers)
 
 // VM represents a Scrigo virtual machine.

@@ -454,27 +454,18 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		//s += " " + disassembleOperand(scrigo, b, vm.Interface, false)
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
 	case vm.OpMove:
-		switch vm.MoveType(a) {
-		case vm.IntInt:
+		switch vm.Type(a) {
+		case vm.TypeInt:
 			s += " " + disassembleOperand(fn, b, vm.Int, k)
 			s += " " + disassembleOperand(fn, c, vm.Int, false)
-		case vm.FloatFloat:
+		case vm.TypeFloat:
 			s += " " + disassembleOperand(fn, b, vm.Float64, k)
 			s += " " + disassembleOperand(fn, c, vm.Float64, false)
-		case vm.StringString:
+		case vm.TypeString:
 			s += " " + disassembleOperand(fn, b, vm.String, k)
 			s += " " + disassembleOperand(fn, c, vm.String, false)
-		case vm.GeneralGeneral:
+		case vm.TypeGeneral:
 			s += " " + disassembleOperand(fn, b, vm.Interface, k)
-			s += " " + disassembleOperand(fn, c, vm.Interface, false)
-		case vm.IntGeneral:
-			s += " " + disassembleOperand(fn, b, vm.Int, k)
-			s += " " + disassembleOperand(fn, c, vm.Interface, false)
-		case vm.FloatGeneral:
-			s += " " + disassembleOperand(fn, b, vm.Float64, k)
-			s += " " + disassembleOperand(fn, c, vm.Interface, false)
-		case vm.StringGeneral:
-			s += " " + disassembleOperand(fn, b, vm.String, k)
 			s += " " + disassembleOperand(fn, c, vm.Interface, false)
 		}
 	case vm.OpNew:

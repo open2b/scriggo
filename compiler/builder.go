@@ -914,36 +914,16 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 //
 //     z = x
 //
-func (builder *FunctionBuilder) Move(k bool, x, z int8, srcKind, dstKind reflect.Kind) {
+func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 	if !k {
-		builder.allocRegister(srcKind, x)
+		builder.allocRegister(kind, x)
 	}
-	builder.allocRegister(srcKind, z)
+	builder.allocRegister(kind, z)
 	op := vm.OpMove
 	if k {
 		op = -op
 	}
-	var moveType vm.MoveType
-	switch kindToType(dstKind) {
-	case vm.TypeInt:
-		moveType = vm.IntInt
-	case vm.TypeFloat:
-		moveType = vm.FloatFloat
-	case vm.TypeString:
-		moveType = vm.StringString
-	case vm.TypeGeneral:
-		switch kindToType(srcKind) {
-		case vm.TypeInt:
-			moveType = vm.IntGeneral
-		case vm.TypeFloat:
-			moveType = vm.FloatGeneral
-		case vm.TypeString:
-			moveType = vm.StringGeneral
-		case vm.TypeGeneral:
-			moveType = vm.GeneralGeneral
-		}
-	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(moveType), B: x, C: z})
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(kindToType(kind)), B: x, C: z})
 }
 
 // Mul appends a new "mul" instruction to the function body.

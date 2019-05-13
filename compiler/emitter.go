@@ -156,14 +156,14 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 		if k {
 			c.fb.EnterStack()
 			tmpReg := c.fb.NewRegister(srcType.Kind())
-			c.fb.Move(true, src, tmpReg, srcType.Kind(), srcType.Kind())
+			c.fb.Move(true, src, tmpReg, srcType.Kind())
 			c.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
 			c.fb.ExitStack()
 		} else {
 			c.fb.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else {
-		c.fb.Move(k, src, dst, srcType.Kind(), dstType.Kind())
+		c.fb.Move(k, src, dst, srcType.Kind())
 	}
 }
 
@@ -332,7 +332,7 @@ func (c *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 					tmpReg := c.fb.NewRegister(typ.Kind())
 					c.emitExpr(args[i+numIn-1], tmpReg, typ)
 					indexReg := c.fb.NewRegister(reflect.Int)
-					c.fb.Move(true, int8(i), indexReg, reflect.Int, reflect.Int)
+					c.fb.Move(true, int8(i), indexReg, reflect.Int)
 					c.fb.SetSlice(false, sliceReg, tmpReg, indexReg, typ.Kind())
 				}
 			}
@@ -341,9 +341,9 @@ func (c *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		if numIn > 1 && len(args) == 1 { // f(g()), where f takes more than 1 argument.
 			regs, types := c.emitCall(args[0].(*ast.Call))
 			for i := range regs {
-				dstKind := funcType.In(i).Kind()
-				reg := c.fb.NewRegister(dstKind)
-				c.fb.Move(false, regs[i], reg, types[i].Kind(), dstKind)
+				dstType := funcType.In(i)
+				reg := c.fb.NewRegister(dstType.Kind())
+				c.changeRegister(false, regs[i], reg, types[i], dstType)
 			}
 		} else {
 			for i := 0; i < numIn; i++ {
@@ -525,9 +525,9 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				cond = vm.ConditionGreaterOrEqual
 			}
 			if reg != 0 {
-				c.fb.Move(true, 1, reg, xType.Kind(), dstType.Kind())
+				c.fb.Move(true, 1, reg, reflect.Bool)
 				c.fb.If(ky, x, cond, y, xType.Kind())
-				c.fb.Move(true, 0, reg, xType.Kind(), dstType.Kind())
+				c.fb.Move(true, 0, reg, reflect.Bool)
 			}
 		case op == ast.OperatorOr,
 			op == ast.OperatorAnd,
@@ -594,7 +594,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				}
 				c.fb.EnterStack()
 				indexReg := c.fb.NewRegister(reflect.Int)
-				c.fb.Move(true, index, indexReg, reflect.Int, reflect.Int)
+				c.fb.Move(true, index, indexReg, reflect.Int)
 				value, kvalue, isRegister := c.quickEmitExpr(kv.Value, typ.Elem())
 				if !kvalue && !isRegister {
 					value = c.fb.NewRegister(typ.Elem().Kind())
@@ -681,7 +681,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		case ast.OperatorNot:
 			c.fb.SubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
 			if reg != 0 {
-				c.fb.Move(false, tmpReg, reg, typ.Kind(), dstType.Kind())
+				c.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
 		case ast.OperatorAnd:
 			switch expr := expr.Expr.(type) {
@@ -689,7 +689,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				if c.fb.IsVariable(expr.Name) {
 					varReg := c.fb.ScopeLookup(expr.Name)
 					c.fb.New(reflect.PtrTo(typ), reg)
-					c.fb.Move(false, -varReg, reg, reflect.Ptr, reflect.Ptr)
+					c.fb.Move(false, -varReg, reg, reflect.Ptr)
 				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
@@ -701,7 +701,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		case ast.OperatorSubtraction:
 			c.fb.SubInv(true, tmpReg, 0, tmpReg, dstType.Kind())
 			if reg != 0 {
-				c.fb.Move(false, tmpReg, reg, typ.Kind(), dstType.Kind())
+				c.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
 		case ast.OperatorMultiplication:
 			panic("TODO: not implemented")
@@ -736,7 +736,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		typ := c.typeinfo[expr].Type
 		out, isValue, isRegister := c.quickEmitExpr(expr, typ)
 		if isValue {
-			c.fb.Move(true, out, reg, typ.Kind(), dstType.Kind())
+			c.changeRegister(true, out, reg, typ, dstType)
 		} else if isRegister {
 			c.changeRegister(false, out, reg, typ, dstType)
 		} else {
