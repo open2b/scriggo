@@ -683,13 +683,13 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			if reg != 0 {
 				c.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
-		case ast.OperatorAnd:
+		case ast.OperatorAnd, ast.OperatorMultiplication:
 			switch expr := expr.Expr.(type) {
 			case *ast.Identifier:
 				if c.fb.IsVariable(expr.Name) {
 					varReg := c.fb.ScopeLookup(expr.Name)
 					c.fb.New(reflect.PtrTo(typ), reg)
-					c.fb.Move(false, -varReg, reg, reflect.Ptr)
+					c.fb.Move(false, -varReg, reg, dstType.Kind())
 				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
@@ -703,8 +703,6 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			if reg != 0 {
 				c.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
-		case ast.OperatorMultiplication:
-			panic("TODO: not implemented")
 		case ast.OperatorReceive:
 			c.fb.Receive(tmpReg, 0, reg)
 		default:

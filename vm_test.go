@@ -117,6 +117,21 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Pointer indirection as expression",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := "a"
+			b := &a
+			c := *b
+			fmt.Print(c)
+		}
+		`, nil, nil, "a"},
+
 	{"Pointer indirection assignment",
 		`package main
 
