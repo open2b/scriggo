@@ -361,11 +361,6 @@ func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 //
 func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
-	builder.allocRegister(kind, x)
-	if !k {
-		builder.allocRegister(kind, y)
-	}
-	builder.allocRegister(kind, z)
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
 		op = vm.OpAddInt
@@ -393,7 +388,6 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 //     s = append(s, regs[first:first+length]...)
 //
 func (builder *FunctionBuilder) Append(first, length, s int8) {
-	builder.allocRegister(reflect.Interface, s)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAppend, A: first, B: length, C: s})
 }
 
@@ -402,8 +396,6 @@ func (builder *FunctionBuilder) Append(first, length, s int8) {
 //     s = append(s, t)
 //
 func (builder *FunctionBuilder) AppendSlice(t, s int8) {
-	builder.allocRegister(reflect.Interface, t)
-	builder.allocRegister(reflect.Interface, s)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAppendSlice, A: t, C: s})
 }
 
@@ -414,19 +406,14 @@ func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 	var op vm.Operation
 	var tr int8
-	builder.allocRegister(reflect.Interface, e)
 	switch typ {
 	case intType:
-		builder.allocRegister(reflect.Int, z)
 		op = vm.OpAssertInt
 	case float64Type:
-		builder.allocRegister(reflect.Float64, z)
 		op = vm.OpAssertFloat64
 	case stringType:
-		builder.allocRegister(reflect.String, z)
 		op = vm.OpAssertString
 	default:
-		builder.allocRegister(reflect.Interface, z)
 		op = vm.OpAssert
 		var found bool
 		for i, t := range builder.fn.Types {
@@ -489,7 +476,6 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 //     r = cv
 //
 func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
-	builder.allocRegister(reflect.Interface, r)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBind, B: int8(cv), C: r})
 }
 
@@ -529,8 +515,6 @@ func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift vm.
 //     z = cap(s)
 //
 func (builder *FunctionBuilder) Cap(s, z int8) {
-	builder.allocRegister(reflect.Interface, s)
-	builder.allocRegister(reflect.Int, z)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpCap, A: s, C: z})
 }
 
@@ -541,12 +525,6 @@ func (builder *FunctionBuilder) Cap(s, z int8) {
 //     default
 //
 func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, ch int8, kind reflect.Kind) {
-	if !kvalue && value != 0 {
-		builder.allocRegister(kind, value)
-	}
-	if ch != 0 {
-		builder.allocRegister(reflect.Interface, ch)
-	}
 	op := vm.OpCase
 	if kvalue {
 		op = -op
@@ -559,9 +537,6 @@ func (builder *FunctionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, 
 //     z = concat(s, t)
 //
 func (builder *FunctionBuilder) Concat(s, t, z int8) {
-	builder.allocRegister(reflect.Interface, s)
-	builder.allocRegister(reflect.Interface, t)
-	builder.allocRegister(reflect.Interface, z)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
 }
 
@@ -571,7 +546,6 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 //
 func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	regType := builder.Type(typ)
-	builder.allocRegister(reflect.Interface, dst)
 	var op vm.Operation
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
@@ -602,8 +576,6 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 // 	 n != 0:   n := copy(dst, src)
 //
 func (builder *FunctionBuilder) Copy(dst, src, n int8) {
-	builder.allocRegister(reflect.Interface, dst)
-	builder.allocRegister(reflect.Interface, src)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpCopy, A: src, B: n, C: dst})
 }
 
@@ -613,7 +585,6 @@ func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 //
 func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg vm.StackShift) {
 	var fn = builder.fn
-	builder.allocRegister(reflect.Interface, f)
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpDefer, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(off[0]), A: off[1], B: off[2], C: off[3]})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
@@ -624,8 +595,6 @@ func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg vm.Stac
 //     delete(m, k)
 //
 func (builder *FunctionBuilder) Delete(m, k int8) {
-	builder.allocRegister(reflect.Interface, m)
-	builder.allocRegister(reflect.Interface, k)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpDelete, A: m, B: k})
 }
 
@@ -634,9 +603,6 @@ func (builder *FunctionBuilder) Delete(m, k int8) {
 //     z = x / y
 //
 func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
-	builder.allocRegister(kind, y)
-	builder.allocRegister(kind, z)
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
@@ -690,7 +656,6 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunctio
 	if b == 256 {
 		panic("ScrigoFunctions limit reached")
 	}
-	builder.allocRegister(reflect.Interface, r)
 	fn := &vm.ScrigoFunction{
 		Type:   typ,
 		Parent: builder.fn,
@@ -705,7 +670,6 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunctio
 //     z = p.f
 //
 func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
-	builder.allocRegister(reflect.Interface, z)
 	var a int8
 	if native {
 		a = 1
@@ -718,7 +682,6 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 //     z = p.v
 //
 func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
-	builder.allocRegister(reflect.Interface, z)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v), C: z})
 }
 
@@ -770,10 +733,6 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 //     len(x) >= y
 //
 func (builder *FunctionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
-	if !k {
-		builder.allocRegister(kind, y)
-	}
 	var op vm.Operation
 	switch kindToType(kind) {
 	case vm.TypeInt:
@@ -819,8 +778,6 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 //     l = len(s)
 //
 func (builder *FunctionBuilder) Len(s, l int8, t reflect.Type) {
-	builder.allocRegister(reflect.Interface, s)
-	builder.allocRegister(reflect.Int, l)
 	var a int8
 	switch t {
 	case reflect.TypeOf(""):
@@ -891,7 +848,6 @@ func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int
 //     make(sliceType, len, cap)
 //
 func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
-	builder.allocRegister(reflect.Interface, dst)
 	t := builder.Type(sliceType)
 	var k int8
 	if len == 0 && cap == 0 {
@@ -915,10 +871,6 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 //     z = x
 //
 func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
-	if !k {
-		builder.allocRegister(kind, x)
-	}
-	builder.allocRegister(kind, z)
 	op := vm.OpMove
 	if k {
 		op = -op
@@ -931,9 +883,6 @@ func (builder *FunctionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 //     z = x * y
 //
 func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
-	builder.allocRegister(kind, y)
-	builder.allocRegister(kind, z)
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
@@ -962,7 +911,6 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //     z = new(t)
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
-	builder.allocRegister(reflect.Interface, z)
 	a := builder.AddType(typ)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, A: int8(a), C: z})
 }
@@ -979,7 +927,6 @@ func (builder *FunctionBuilder) Nop() {
 //
 func (builder *FunctionBuilder) Panic(v int8, line int) {
 	fn := builder.fn
-	builder.allocRegister(reflect.Interface, v)
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpPanic, A: v})
 	builder.AddLine(uint32(len(fn.Body)-1), line)
 }
@@ -1007,7 +954,6 @@ func (builder *FunctionBuilder) Receive(ch, ok, dst int8) {
 //     recover()
 //
 func (builder *FunctionBuilder) Recover(r int8) {
-	builder.allocRegister(reflect.Interface, r)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpRecover, C: r})
 }
 
@@ -1016,9 +962,6 @@ func (builder *FunctionBuilder) Recover(r int8) {
 //     z = x % y
 //
 func (builder *FunctionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
-	builder.allocRegister(kind, x)
-	builder.allocRegister(kind, y)
-	builder.allocRegister(kind, z)
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
@@ -1117,11 +1060,6 @@ func (builder *FunctionBuilder) SetSlice(k bool, slice, value, index int8, elemK
 //     z = x - y
 //
 func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
-	builder.allocRegister(reflect.Int, x)
-	if !k {
-		builder.allocRegister(reflect.Int, y)
-	}
-	builder.allocRegister(reflect.Int, z)
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
@@ -1150,11 +1088,6 @@ func (builder *FunctionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 //     z = y - x
 //
 func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) {
-	builder.allocRegister(reflect.Int, x)
-	if !k {
-		builder.allocRegister(reflect.Int, y)
-	}
-	builder.allocRegister(reflect.Int, z)
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
