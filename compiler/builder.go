@@ -783,7 +783,7 @@ func (builder *FunctionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind 
 	case vm.TypeString:
 		op = vm.OpIfString
 	case vm.TypeGeneral:
-		panic("If: invalid type")
+		op = vm.OpIf
 	}
 	if k {
 		op = -op
