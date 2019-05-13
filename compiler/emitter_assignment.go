@@ -41,15 +41,15 @@ func (c *Emitter) NewAddress(addrType AddressType, reflectType reflect.Type, reg
 }
 
 // Assign assigns value to a.
-func (a Address) Assign(k bool, value int8, valueKind reflect.Kind) {
+func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	switch a.Type {
 	case AddressesBlank:
 		// Nothing to do.
 	case AddressRegister:
-		a.c.fb.Move(k, value, a.Reg1, a.ReflectType.Kind(), valueKind)
+		a.c.fb.Move(k, value, a.Reg1, a.ReflectType.Kind(), valueType.Kind())
 	case AddressIndirectDeclaration:
 		a.c.fb.New(a.ReflectType, -a.Reg1)
-		a.c.fb.Move(k, value, a.Reg1, valueKind, reflect.Ptr)
+		a.c.fb.Move(k, value, a.Reg1, valueType.Kind(), reflect.Ptr)
 	case AddressPointerIndirection:
 		panic("TODO(Gianluca): not implemented")
 	case AddressSliceIndex:
@@ -58,8 +58,8 @@ func (a Address) Assign(k bool, value int8, valueKind reflect.Kind) {
 		panic("TODO(Gianluca): not implemented")
 	case AddressPackageVariable:
 		if k {
-			tmpReg := a.c.fb.NewRegister(valueKind)
-			a.c.fb.Move(true, value, tmpReg, valueKind, valueKind)
+			tmpReg := a.c.fb.NewRegister(valueType.Kind())
+			a.c.fb.Move(true, value, tmpReg, valueType.Kind(), valueType.Kind())
 			a.c.fb.SetVar(tmpReg, uint8(a.Reg1))
 		} else {
 			a.c.fb.SetVar(value, uint8(a.Reg1))
@@ -83,14 +83,14 @@ func (c *Emitter) assign(addresses []Address, values []ast.Expression) {
 			}
 		}
 		for i, addr := range addresses {
-			addr.Assign(valueIsK[i], valueRegs[i], valueTypes[i].Kind())
+			addr.Assign(valueIsK[i], valueRegs[i], valueTypes[i])
 		}
 	} else {
 		switch value := values[0].(type) {
 		case *ast.Call:
 			retRegs, retTypes := c.emitCall(value)
 			for i, addr := range addresses {
-				addr.Assign(false, retRegs[i], retTypes[i].Kind())
+				addr.Assign(false, retRegs[i], retTypes[i])
 			}
 		}
 	}
@@ -231,6 +231,6 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				panic("TODO(Gianluca): not implemented")
 			}
 		}
-		address.Assign(false, valueReg, valueType.Kind())
+		address.Assign(false, valueReg, valueType)
 	}
 }
