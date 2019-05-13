@@ -650,7 +650,7 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 			op = -op
 		}
 	default:
-		panic("TODO: not implemented")
+		op = vm.OpRange
 	}
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }

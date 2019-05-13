@@ -454,7 +454,9 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpPanic, vm.OpPrint:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 	case vm.OpRange:
-		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpRangeString:
 		s += " " + disassembleOperand(fn, a, vm.String, k)
 		s += " " + disassembleOperand(fn, b, vm.Int, false)

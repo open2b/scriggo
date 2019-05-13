@@ -767,124 +767,135 @@ func (vm *VM) run() int {
 		// Range
 		case OpRange:
 			var cont int
-			s := vm.general(c)
+			start := vm.pc + 1
+			s := vm.general(a)
 			switch s := s.(type) {
 			case []int:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setInt(b, int64(v))
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setInt(c, int64(v))
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case []byte:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setInt(b, int64(v))
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setInt(c, int64(v))
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case []rune:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setInt(b, int64(v))
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setInt(c, int64(v))
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case []float64:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setFloat(b, v)
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setFloat(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case []string:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setString(b, v)
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setString(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case []interface{}:
 				for i, v := range s {
-					if a != 0 {
-						vm.setInt(a, int64(i))
-					}
 					if b != 0 {
-						vm.setGeneral(b, v)
+						vm.setInt(b, int64(i))
 					}
+					if c != 0 {
+						vm.setGeneral(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case map[string]int:
 				for i, v := range s {
-					if a != 0 {
-						vm.setString(a, i)
-					}
 					if b != 0 {
-						vm.setInt(b, int64(v))
+						vm.setString(b, i)
 					}
+					if c != 0 {
+						vm.setInt(c, int64(v))
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case map[string]bool:
 				for i, v := range s {
-					if a != 0 {
-						vm.setString(a, i)
-					}
 					if b != 0 {
-						vm.setBool(b, v)
+						vm.setString(b, i)
 					}
+					if c != 0 {
+						vm.setBool(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case map[string]string:
 				for i, v := range s {
-					if a != 0 {
-						vm.setString(a, i)
-					}
 					if b != 0 {
-						vm.setString(b, v)
+						vm.setString(b, i)
 					}
+					if c != 0 {
+						vm.setString(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
 				}
 			case map[string]interface{}:
 				for i, v := range s {
-					if a != 0 {
-						vm.setString(a, i)
-					}
 					if b != 0 {
-						vm.setGeneral(b, v)
+						vm.setString(b, i)
 					}
+					if c != 0 {
+						vm.setGeneral(c, v)
+					}
+					vm.pc = start
 					if cont = vm.run(); cont > 0 {
 						break
 					}
@@ -895,12 +906,13 @@ func (vm *VM) run() int {
 				if kind == reflect.Map {
 					iter := rs.MapRange()
 					for iter.Next() {
-						if a != 0 {
-							vm.set(a, iter.Key())
-						}
 						if b != 0 {
-							vm.set(b, iter.Value())
+							vm.setFromReflectValue(b, iter.Key())
 						}
+						if c != 0 {
+							vm.setFromReflectValue(c, iter.Value())
+						}
+						vm.pc = start
 						if cont = vm.run(); cont > 0 {
 							break
 						}
@@ -911,12 +923,13 @@ func (vm *VM) run() int {
 					}
 					length := rs.Len()
 					for i := 0; i < length; i++ {
-						if a != 0 {
-							vm.setInt(a, int64(i))
-						}
 						if b != 0 {
-							vm.set(b, rs.Index(i))
+							vm.setInt(b, int64(i))
 						}
+						if c != 0 {
+							vm.setFromReflectValue(c, rs.Index(i))
+						}
+						vm.pc = start
 						if cont = vm.run(); cont > 0 {
 							break
 						}
@@ -926,6 +939,7 @@ func (vm *VM) run() int {
 			if cont > 1 {
 				return cont - 1
 			}
+			vm.pc = start - 1
 
 		// RangeString
 		case OpRangeString, -OpRangeString:
