@@ -316,21 +316,27 @@ func (c *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		for i := 0; i < numIn-1; i++ {
 			typ := funcType.In(i)
 			reg := c.fb.NewRegister(typ.Kind())
+			c.fb.EnterScope()
 			c.emitExpr(args[i], reg, typ)
+			c.fb.ExitScope()
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			typ := funcType.In(numIn - 1).Elem()
 			if isNative {
 				for i := 0; i < varArgs; i++ {
 					reg := c.fb.NewRegister(typ.Kind())
+					c.fb.EnterStack()
 					c.emitExpr(args[i+numIn-1], reg, typ)
+					c.fb.ExitStack()
 				}
 			} else {
 				sliceReg := int8(numIn)
 				c.fb.MakeSlice(true, true, funcType.In(numIn-1), int8(varArgs), int8(varArgs), sliceReg)
 				for i := 0; i < varArgs; i++ {
 					tmpReg := c.fb.NewRegister(typ.Kind())
+					c.fb.EnterStack()
 					c.emitExpr(args[i+numIn-1], tmpReg, typ)
+					c.fb.ExitStack()
 					indexReg := c.fb.NewRegister(reflect.Int)
 					c.fb.Move(true, int8(i), indexReg, reflect.Int)
 					c.fb.SetSlice(false, sliceReg, tmpReg, indexReg, typ.Kind())
@@ -349,7 +355,9 @@ func (c *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 			for i := 0; i < numIn; i++ {
 				typ := funcType.In(i)
 				reg := c.fb.NewRegister(typ.Kind())
+				c.fb.EnterStack()
 				c.emitExpr(args[i], reg, typ)
+				c.fb.ExitStack()
 			}
 		}
 	}
