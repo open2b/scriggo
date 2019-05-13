@@ -80,6 +80,9 @@ func (vm *VM) Reset() {
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
+	if vm.ctx == nil {
+		vm.ctx = &context{}
+	}
 	vm.ctx.trace = fn
 }
 

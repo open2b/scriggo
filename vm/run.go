@@ -14,7 +14,9 @@ import (
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	var isPanicked bool
 	vm.fn = fn
-	vm.ctx = &context{}
+	if vm.ctx == nil {
+		vm.ctx = &context{}
+	}
 	if n := len(fn.Globals); n > 0 {
 		globals := make([]interface{}, n)
 		for i, global := range fn.Globals {
@@ -26,6 +28,8 @@ func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 		}
 		vm.ctx.globals = globals
 		vm.vars = globals
+	} else {
+		vm.ctx.globals = nil
 	}
 	for {
 		isPanicked = vm.runRecoverable()
