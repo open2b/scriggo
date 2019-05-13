@@ -930,13 +930,15 @@ func (vm *VM) run() int {
 		// RangeString
 		case OpRangeString, -OpRangeString:
 			var cont int
-			for i, e := range vm.stringk(c, op < 0) {
-				if a != 0 {
-					vm.setInt(a, int64(i))
-				}
+			start := vm.pc + 1
+			for i, e := range vm.stringk(a, op < 0) {
 				if b != 0 {
-					vm.setInt(b, int64(e))
+					vm.setInt(b, int64(i))
 				}
+				if c != 0 {
+					vm.setInt(c, int64(e))
+				}
+				vm.pc = start
 				if cont = vm.run(); cont > 0 {
 					break
 				}
@@ -944,6 +946,7 @@ func (vm *VM) run() int {
 			if cont > 1 {
 				return cont - 1
 			}
+			vm.pc = start - 1
 
 		// Receive
 		case OpReceive:

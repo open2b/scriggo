@@ -326,7 +326,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			s += " default"
 		}
 	case vm.OpContinue:
-		s += " " + disassembleOperand(fn, b, vm.Int, false)
+		s += " " + disassembleOperand(fn, a, vm.Int, true)
 	case vm.OpCopy:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
@@ -420,7 +420,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			s += " " + fmt.Sprintf("%f", fn.Constants.Float[uint8(b)])
 			s += " " + disassembleOperand(fn, c, vm.Float64, false)
 		}
-
 	case vm.OpMakeChan:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -457,9 +456,9 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpRange:
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
 	case vm.OpRangeString:
-		s += " " + disassembleOperand(fn, a, vm.Int, false)
+		s += " " + disassembleOperand(fn, a, vm.String, k)
 		s += " " + disassembleOperand(fn, b, vm.Int, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, k)
+		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpReceive:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Bool, false)

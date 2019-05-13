@@ -535,6 +535,14 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
 }
 
+// Continue appends a new "Continue" instruction to the function body.
+//
+//     continue n
+//
+func (builder *FunctionBuilder) Continue(n int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpContinue, A: n})
+}
+
 // Convert appends a new "Convert" instruction to the function body.
 //
 // 	 dst = typ(src)
@@ -631,15 +639,20 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 
 // Range appends a new "Range" instruction to the function body.
 //
-//	TODO
+//	for i, e := range s
 //
-func (builder *FunctionBuilder) Range(expr int8, kind reflect.Kind) {
+func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
+	var op vm.Operation
 	switch kind {
 	case reflect.String:
-		builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpRangeString, C: expr})
+		op = vm.OpRangeString
+		if k {
+			op = -op
+		}
 	default:
 		panic("TODO: not implemented")
 	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }
 
 // Func appends a new "Func" instruction to the function body.
