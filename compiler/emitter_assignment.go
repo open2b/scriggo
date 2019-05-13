@@ -46,7 +46,7 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	case AddressesBlank:
 		// Nothing to do.
 	case AddressRegister:
-		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType) // TODO(Gianluca): types should be swapped?
+		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
 	case AddressIndirectDeclaration:
 		a.c.fb.New(a.ReflectType, -a.Reg1)
 		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
