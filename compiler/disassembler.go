@@ -283,17 +283,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " type(string)"
 		s += " " + disassembleOperand(fn, c, vm.String, false)
-	case vm.OpBind:
-		cv := fn.CRefs[uint8(b)]
-		var depth = 1
-		for p := fn.Parent; cv >= 0; p = p.Parent {
-			cv = p.CRefs[cv]
-			depth++
-		}
-		s += " " + disassembleOperand(fn, -int8(cv), vm.Interface, false)
-		if depth > 0 {
-			s += "@" + strconv.Itoa(depth)
-		}
+	case vm.OpBind, vm.OpGetVar:
+		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall, vm.OpDefer:
 		if a != vm.CurrentFunction {
@@ -321,7 +312,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			args := fn.Body[addr+2]
 			s += "; args: " + strconv.Itoa(int(args.Op)) + ", " + strconv.Itoa(int(args.A)) + ", " +
 				strconv.Itoa(int(args.B)) + ", " + strconv.Itoa(int(args.C))
-
 		}
 	case vm.OpCap:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
@@ -403,15 +393,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		} else {
 			f := fn.NativeFunctions[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
-		}
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpGetVar:
-		s += " " + packageName(fn.Pkg) + "."
-		name := fn.Variables[uint8(b)].Name
-		if name == "" {
-			s += strconv.Itoa(int(uint8(b)))
-		} else {
-			s += name
 		}
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpGo, vm.OpReturn:
@@ -512,18 +493,30 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpSetVar:
-		s += " " + disassembleOperand(fn, b, vm.Interface, false)
-		v := fn.Variables[uint8(c)]
-		s += " " + packageName(v.Name) + "."
-		if v.Name == "" {
-			s += strconv.Itoa(int(uint8(c)))
-		} else {
-			s += v.Name
-		}
+		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
+		s += " " + disassembleVarRef(fn, int16(int(b)<<8|int(uint8(c))))
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+	}
+	return s
+}
+
+func disassembleVarRef(fn *vm.ScrigoFunction, ref int16) string {
+	depth := 0
+	for ref >= 0 && fn.Parent != nil {
+		ref = fn.VarRefs[ref]
+		depth++
+		fn = fn.Parent
+	}
+	if depth == 0 {
+		v := fn.Globals[ref]
+		return packageName(v.Pkg) + "." + v.Name
+	}
+	s := disassembleOperand(fn, -int8(ref), vm.Interface, false)
+	if depth > 0 {
+		s += "@" + strconv.Itoa(depth)
 	}
 	return s
 }
@@ -739,7 +732,7 @@ var operationName = [...]string{
 
 	vm.OpSetSlice: "SetSlice",
 
-	vm.OpSetVar: "SetPackageVar",
+	vm.OpSetVar: "SetVar",
 
 	vm.OpSliceIndex: "SliceIndex",
 

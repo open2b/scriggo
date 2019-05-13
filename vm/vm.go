@@ -39,11 +39,11 @@ type VM struct {
 	ok     bool                 // ok flag.
 	regs   registers            // registers.
 	fn     *ScrigoFunction      // current function.
-	cvars  []interface{}        // closure variables.
+	vars   []interface{}        // global and closure variables.
+	ctx    *context             // execution context.
 	calls  []callFrame          // call stack frame.
 	cases  []reflect.SelectCase // select cases.
 	panics []Panic              // panics.
-	trace  TraceFunc            // trace function.
 }
 
 // New returns a new virtual machine.
@@ -66,7 +66,8 @@ func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
 	vm.pc = 0
 	vm.fn = nil
-	vm.cvars = nil
+	vm.vars = nil
+	vm.ctx = nil
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
@@ -79,7 +80,7 @@ func (vm *VM) Reset() {
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
-	vm.trace = fn
+	vm.ctx.trace = fn
 }
 
 // Stack returns the current stack trace.
@@ -218,7 +219,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 						vm.fp[2]++
 					case Func:
 						f := vm.general(1).(*callable)
-						fn.args[i].Set(f.reflectValue())
+						fn.args[i].Set(f.reflectValue(vm.ctx))
 						vm.fp[3]++
 					default:
 						fn.args[i].Set(reflect.ValueOf(vm.general(1)))
@@ -248,7 +249,7 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 					case reflect.Func:
 						for j := 0; j < int(numVariadic); j++ {
 							f := vm.general(int8(j + 1)).(*callable)
-							slice.Index(j).Set(f.reflectValue())
+							slice.Index(j).Set(f.reflectValue(vm.ctx))
 						}
 					case reflect.String:
 						for j := 0; j < int(numVariadic); j++ {
@@ -318,7 +319,7 @@ func (vm *VM) invokeTraceFunc() {
 		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.RegNum[2])+1],
 		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.RegNum[3])+1],
 	}
-	vm.trace(vm.fn, vm.pc, regs)
+	vm.ctx.trace(vm.fn, vm.pc, regs)
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
@@ -446,7 +447,7 @@ func (vm *VM) nextCall() bool {
 		vm.fp = call.fp
 		vm.pc = call.pc
 		vm.fn = call.fn.scrigo
-		vm.cvars = call.fn.vars
+		vm.vars = call.fn.vars
 		return true
 	}
 	return false
@@ -461,6 +462,7 @@ func (vm *VM) startScrigoGoroutine() bool {
 	switch call.Op {
 	case OpCall:
 		fn = vm.fn.ScrigoFunctions[uint8(call.B)]
+		vars = vm.ctx.globals
 	case OpCallIndirect:
 		f := vm.general(call.B).(*callable)
 		if f.scrigo == nil {
@@ -473,7 +475,8 @@ func (vm *VM) startScrigoGoroutine() bool {
 	}
 	nvm := New()
 	nvm.fn = fn
-	nvm.cvars = vars
+	nvm.vars = vars
+	nvm.ctx = vm.ctx
 	vm.pc++
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
@@ -565,6 +568,12 @@ const (
 	Interface = Kind(reflect.Interface)
 )
 
+// context represents an execution context.
+type context struct {
+	globals []interface{} // global variables.
+	trace   TraceFunc     // trace function.
+}
+
 type NativeFunction struct {
 	Pkg    string
 	Name   string
@@ -576,11 +585,13 @@ type NativeFunction struct {
 	outOff [4]int8
 }
 
-// Variable represents a global variable with a package, name and value.
-// Value must a pointer to the variable value.
-type Variable struct {
+// Global represents a global variable with a package, name, type (only for
+// Scrigo globals) and value (only for native globals). Value, if present,
+// must be a pointer to the variable value.
+type Global struct {
 	Pkg   string
 	Name  string
+	Type  reflect.Type
 	Value interface{}
 }
 
@@ -592,7 +603,7 @@ type ScrigoFunction struct {
 	Line      int
 	Type      reflect.Type
 	Parent    *ScrigoFunction
-	CRefs     []int16
+	VarRefs   []int16
 	Literals  []*ScrigoFunction
 	Types     []reflect.Type
 	RegNum    [4]uint8
@@ -602,7 +613,7 @@ type ScrigoFunction struct {
 		String  []string
 		General []interface{}
 	}
-	Variables       []Variable
+	Globals         []Global
 	ScrigoFunctions []*ScrigoFunction
 	NativeFunctions []*NativeFunction
 	Body            []Instruction
@@ -697,7 +708,7 @@ type callable struct {
 
 // reflectValue returns a Reflect Value of a callable, so it can be called
 // from a native code and passed to a native code.
-func (c *callable) reflectValue() reflect.Value {
+func (c *callable) reflectValue(ctx *context) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -711,11 +722,12 @@ func (c *callable) reflectValue() reflect.Value {
 	}
 	// It is a Scrigo function.
 	fn := c.scrigo
-	cvars := c.vars
+	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := New()
 		nvm.fn = fn
-		nvm.cvars = cvars
+		nvm.vars = vars
+		nvm.ctx = ctx
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
@@ -834,7 +846,8 @@ func sprint(v interface{}) []byte {
 		return append([]byte{}, v...)
 	default:
 		if v2, ok := v.(*callable); ok {
-			v = v2.reflectValue().Interface()
+			// TODO(marco): reflectValue needs a context
+			v = v2.reflectValue(nil).Interface()
 		}
 		b := append([]byte{}, "("...)
 		b = append([]byte{}, reflect.TypeOf(v).String()...)

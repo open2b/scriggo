@@ -25,14 +25,14 @@ type Emitter struct {
 
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
 	availableNativeFunctions map[string]*vm.NativeFunction
-	availableVariables       map[string]vm.Variable
+	availableVariables       map[string]vm.Global
 
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *vm.ScrigoFunction key or
 	// can they be related to currentFunction in some way?
 	assignedScrigoFunctions map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8
 	assignedNativeFunctions map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8
-	assignedVariables       map[*vm.ScrigoFunction]map[vm.Variable]uint8
+	assignedVariables       map[*vm.ScrigoFunction]map[vm.Global]uint8
 
 	isNativePkg map[string]bool
 }
@@ -48,11 +48,11 @@ func NewCompiler(r Reader, packages map[string]*GoPackage) *Emitter {
 
 		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
 		availableNativeFunctions: map[string]*vm.NativeFunction{},
-		availableVariables:       map[string]vm.Variable{},
+		availableVariables:       map[string]vm.Global{},
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
-		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Variable]uint8{},
+		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Global]uint8{},
 
 		isNativePkg: map[string]bool{},
 	}
@@ -135,16 +135,16 @@ func (c *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
 
 // variableIndex returns v's index inside current function, creating it if not
 // exists.
-func (c *Emitter) variableIndex(v vm.Variable) uint8 {
+func (c *Emitter) variableIndex(v vm.Global) uint8 {
 	currFun := c.currentFunction
 	i, ok := c.assignedVariables[currFun][v]
 	if ok {
 		return i
 	}
-	i = uint8(len(currFun.Variables))
-	currFun.Variables = append(currFun.Variables, v)
+	i = uint8(len(currFun.Globals))
+	currFun.Globals = append(currFun.Globals, v)
 	if c.assignedVariables[currFun] == nil {
-		c.assignedVariables[currFun] = make(map[vm.Variable]uint8)
+		c.assignedVariables[currFun] = make(map[vm.Global]uint8)
 	}
 	c.assignedVariables[currFun][v] = i
 	return i
@@ -203,10 +203,10 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 				kind := typ.Kind()
 				reg := c.fb.NewRegister(kind)
 				c.emitExpr(value, reg, typ)
-				v := NewVariable("main", n.Identifiers[0].Name, nil)
+				v := vm.Global{Pkg: "main", Name: n.Identifiers[0].Name, Value: nil}
 				c.availableVariables[n.Identifiers[0].Name] = v
 				index := c.variableIndex(v)
-				c.fb.SetVar(reg, index)
+				c.fb.SetVar(false, reg, int(index))
 				c.currentFunction = backupFunction
 				c.fb = NewBuilder(c.currentFunction)
 			} else {
@@ -264,7 +264,7 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 					if reflect.TypeOf(value).Kind() == reflect.Ptr {
 						// pkg.DefineVariable(ident, value)
 						// continue
-						v := NewVariable(parserGoPkg.Name, ident, value)
+						v := vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value}
 						if importPkgName == "" {
 							c.availableVariables[ident] = v
 						} else {
@@ -642,7 +642,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				return
 			}
 			index := c.variableIndex(v)
-			c.fb.GetVar(index, reg) // TODO (Gianluca): to review.
+			c.fb.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
 		if nf, ok := c.availableNativeFunctions[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
@@ -1289,7 +1289,7 @@ func (c *Emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 
 	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
 	// typReg := c.fb.Type(typ)
-	// if variab := node.Assignment.Variables[0]; !isBlankast.Identifier(variab) {
+	// if variab := node.Assignment.Globals[0]; !isBlankast.Identifier(variab) {
 	// 	c.compileVarsGetValue([]ast.Expression{variab}, node.Assignment.Values[0], node.Assignment.Type == ast.AssignmentDeclaration)
 	// }
 

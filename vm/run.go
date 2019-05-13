@@ -14,6 +14,19 @@ import (
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	var isPanicked bool
 	vm.fn = fn
+	vm.ctx = &context{}
+	if n := len(fn.Globals); n > 0 {
+		globals := make([]interface{}, n)
+		for i, global := range fn.Globals {
+			if global.Value == nil {
+				globals[i] = reflect.New(global.Type).Interface()
+			} else {
+				globals[i] = global.Value
+			}
+		}
+		vm.ctx.globals = globals
+		vm.vars = globals
+	}
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked && len(vm.calls) > 0 {
@@ -67,7 +80,7 @@ func (vm *VM) run() int {
 
 	for {
 
-		if vm.trace != nil {
+		if vm.ctx.trace != nil {
 			vm.invokeTraceFunc()
 		}
 
@@ -200,13 +213,13 @@ func (vm *VM) run() int {
 
 		// Bind
 		case OpBind:
-			vm.setGeneral(c, vm.cvars[uint8(b)])
+			vm.setGeneral(c, vm.vars[int(a)<<8|int(uint8(b))])
 
 		// Call
 		case OpCall:
 			fn := vm.fn.ScrigoFunctions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+			call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.Op)
 			if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -224,7 +237,7 @@ func (vm *VM) run() int {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
-			vm.cvars = nil
+			vm.vars = vm.ctx.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 
@@ -237,9 +250,9 @@ func (vm *VM) run() int {
 				startNativeGoroutine = false
 			} else {
 				fn := f.scrigo
-				vm.cvars = f.vars
+				vm.vars = f.vars
 				off := vm.fn.Body[vm.pc]
-				call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, fp: vm.fp, pc: vm.pc + 1}
+				call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.Op)
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -317,7 +330,7 @@ func (vm *VM) run() int {
 				vm.setGeneral(c, array.Elem().Interface())
 			case reflect.Func:
 				call := vm.general(a).(*callable)
-				vm.setGeneral(c, call.reflectValue())
+				vm.setGeneral(c, call.reflectValue(vm.ctx))
 			default:
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
@@ -396,13 +409,13 @@ func (vm *VM) run() int {
 		case OpFunc:
 			fn := vm.fn.Literals[uint8(b)]
 			var vars []interface{}
-			if fn.CRefs != nil {
-				vars = make([]interface{}, len(fn.CRefs))
-				for i, ref := range fn.CRefs {
+			if fn.VarRefs != nil {
+				vars = make([]interface{}, len(fn.VarRefs))
+				for i, ref := range fn.VarRefs {
 					if ref < 0 {
 						vars[i] = vm.general(int8(-ref))
 					} else {
-						vars[i] = vm.cvars[ref]
+						vars[i] = vm.vars[ref]
 					}
 				}
 			}
@@ -420,7 +433,7 @@ func (vm *VM) run() int {
 
 		// GetVar
 		case OpGetVar:
-			v := vm.fn.Variables[uint8(a)].Value
+			v := vm.vars[int(a)<<8|int(uint8(b))]
 			switch v := v.(type) {
 			case *bool:
 				vm.setBool(c, *v)
@@ -1029,7 +1042,7 @@ func (vm *VM) run() int {
 				vm.fp = call.fp
 				vm.pc = call.pc
 				vm.fn = call.fn.scrigo
-				vm.cvars = call.fn.vars
+				vm.vars = call.fn.vars
 			} else if !vm.nextCall() {
 				return maxInt8
 			}
@@ -1151,19 +1164,19 @@ func (vm *VM) run() int {
 
 		// SetVar
 		case OpSetVar, -OpSetVar:
-			v := vm.fn.Variables[uint8(c)].Value
+			v := vm.vars[int(b)<<8|int(uint8(c))]
 			switch v := v.(type) {
 			case *bool:
-				*v = vm.boolk(b, op < 0)
+				*v = vm.boolk(a, op < 0)
 			case *int:
-				*v = int(vm.intk(b, op < 0))
+				*v = int(vm.intk(a, op < 0))
 			case *float64:
-				*v = vm.floatk(b, op < 0)
+				*v = vm.floatk(a, op < 0)
 			case *string:
-				*v = vm.stringk(b, op < 0)
+				*v = vm.stringk(a, op < 0)
 			default:
 				rv := reflect.ValueOf(v).Elem()
-				vm.getIntoReflectValue(b, rv, op < 0)
+				vm.getIntoReflectValue(a, rv, op < 0)
 			}
 
 		// SliceIndex
@@ -1227,17 +1240,17 @@ func (vm *VM) run() int {
 
 		// TailCall
 		case OpTailCall:
-			vm.calls = append(vm.calls, callFrame{fn: callable{scrigo: vm.fn, vars: vm.cvars}, pc: vm.pc, status: tailed})
+			vm.calls = append(vm.calls, callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
 				var fn *ScrigoFunction
 				if a == 0 {
 					closure := vm.general(b).(*callable)
 					fn = closure.scrigo
-					vm.cvars = closure.vars
+					vm.vars = closure.vars
 				} else {
 					fn = vm.fn.ScrigoFunctions[uint8(b)]
-					vm.cvars = nil
+					vm.vars = vm.ctx.globals
 				}
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()

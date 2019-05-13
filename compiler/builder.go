@@ -130,18 +130,13 @@ func (builder *FunctionBuilder) AddLine(pc uint32, line int) {
 }
 
 func (builder *FunctionBuilder) SetClosureRefs(refs []int16) {
-	builder.fn.CRefs = refs
+	builder.fn.VarRefs = refs
 }
 
 // SetFileLine sets the file name and line number of the Scrigo function.
 func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 	builder.fn.File = file
 	builder.fn.Line = line
-}
-
-// NewVariable returns a new variable.
-func NewVariable(pkg, name string, value interface{}) vm.Variable {
-	return vm.Variable{Pkg: pkg, Name: name, Value: value}
 }
 
 // NewScrigoFunction returns a new Scrigo function with a given package, name
@@ -172,15 +167,15 @@ func (builder *FunctionBuilder) AddType(typ reflect.Type) uint8 {
 	return uint8(index)
 }
 
-// AddVariable adds a variable to the Scrigo function.
-func (builder *FunctionBuilder) AddVariable(v vm.Variable) uint8 {
+// AddGlobal adds a global variable to the Scrigo function.
+func (builder *FunctionBuilder) AddGlobal(v vm.Global) int {
 	fn := builder.fn
-	r := len(fn.Variables)
-	if r > 255 {
-		panic("variables limit reached")
+	r := len(fn.Globals)
+	if r > 32768 {
+		panic("global variables limit reached")
 	}
-	fn.Variables = append(fn.Variables, v)
-	return uint8(r)
+	fn.Globals = append(fn.Globals, v)
+	return r
 }
 
 // AddNativeFunction adds a native function to the Scrigo function.
@@ -473,10 +468,10 @@ func (builder *FunctionBuilder) BinaryBitOperation(operator ast.OperatorType, ky
 
 // Bind appends a new "Bind" instruction to the function body.
 //
-//     r = cv
+//     r = v
 //
-func (builder *FunctionBuilder) Bind(cv uint8, r int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBind, B: int8(cv), C: r})
+func (builder *FunctionBuilder) Bind(v int, r int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBind, A: int8(v >> 8), B: int8(v), C: r})
 }
 
 // Call appends a new "Call" instruction to the function body.
@@ -679,10 +674,10 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 
 // GetVar appends a new "GetVar" instruction to the function body.
 //
-//     z = p.v
+//     r = v
 //
-func (builder *FunctionBuilder) GetVar(v uint8, z int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v), C: z})
+func (builder *FunctionBuilder) GetVar(v int, r int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v >> 8), B: int8(v), C: r})
 }
 
 // Go appends a new "Go" instruction to the function body.
@@ -1024,10 +1019,14 @@ func (builder *FunctionBuilder) Send(ch, v int8) {
 
 // SetVar appends a new "SetVar" instruction to the function body.
 //
-//     p.v = r
+//     v = r
 //
-func (builder *FunctionBuilder) SetVar(r int8, v uint8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSetVar, B: r, C: int8(v)})
+func (builder *FunctionBuilder) SetVar(k bool, r int8, v int) {
+	op := vm.OpSetVar
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: r, B: int8(v >> 8), C: int8(v)})
 }
 
 // SetMap appends a new "SetMap" instruction to the function body.

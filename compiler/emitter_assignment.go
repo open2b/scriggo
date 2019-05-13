@@ -60,9 +60,9 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 		if k {
 			tmpReg := a.c.fb.NewRegister(valueType.Kind())
 			a.c.fb.Move(true, value, tmpReg, valueType.Kind())
-			a.c.fb.SetVar(tmpReg, uint8(a.Reg1))
+			a.c.fb.SetVar(false, tmpReg, int(a.Reg1))
 		} else {
-			a.c.fb.SetVar(value, uint8(a.Reg1))
+			a.c.fb.SetVar(false, value, int(a.Reg1))
 		}
 	}
 }
