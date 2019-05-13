@@ -12,25 +12,17 @@ import (
 )
 
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
+	return vm.RunWithGlobals(fn, nil)
+}
+
+func (vm *VM) RunWithGlobals(fn *ScrigoFunction, globals map[string]reflect.Value) (int, error) {
 	var isPanicked bool
 	vm.fn = fn
 	if vm.ctx == nil {
 		vm.ctx = &context{}
 	}
-	if n := len(fn.Globals); n > 0 {
-		globals := make([]interface{}, n)
-		for i, global := range fn.Globals {
-			if global.Value == nil {
-				globals[i] = reflect.New(global.Type).Interface()
-			} else {
-				globals[i] = global.Value
-			}
-		}
-		vm.ctx.globals = globals
-		vm.vars = globals
-	} else {
-		vm.ctx.globals = nil
-	}
+	vm.initGlobals(fn.Globals, globals)
+	vm.ctx.globals = vm.vars
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked && len(vm.calls) > 0 {
