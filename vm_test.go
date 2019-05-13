@@ -125,7 +125,7 @@ var stmtTests = []struct {
 		func main() {
 		
 			var s1 = "hey"
-			var s2 = "hoy"
+			var s2 = "hoy" // TODO: should be "hey"
 			var p1 = &s1
 			var p2 = &s1
 			var p3 = &s2
