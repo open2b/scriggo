@@ -117,6 +117,52 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Builtin new - creating a string pointer and updating it's value",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			pi := new(string)
+			pv := *pi
+			fmt.Print("*pi:", pv, ",")
+			*pi = "newv"
+			pv = *pi
+			fmt.Print("*pi:", pv)
+		}`, nil, nil, "*pi:,*pi:newv"},
+
+	{"Builtin new - creating two int pointers and comparing their values",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			pi := new(int)
+			fmt.Printf("pi: %T,", pi)
+			pi2 := new(int)
+			pi2 = pi
+			equal := pi == pi2
+			fmt.Print("equal?", equal)
+		}
+		`, nil, nil, "pi: *int,equal?true"},
+
+	{"Builtin new - creating an int pointer",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			pi := new(int)
+			fmt.Printf("pi: %T", pi)
+		}
+		`, nil, nil, "pi: *int"},
+
 	{"Pointer indirection as expression",
 		`package main
 

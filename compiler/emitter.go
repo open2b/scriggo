@@ -1031,10 +1031,8 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			panic("bug")
 		}
 	case "new":
-		panic("TODO: not implemented")
-		// typ := c.typeinfo[call.Args[0]].Type
-		// t := c.currFb.Type(typ)
-		// i = vm.Instruction{Op: vm.OpNew, B: t, C: }
+		newType := call.Args[0].(*ast.Value).Val.(reflect.Type)
+		c.fb.New(newType, reg)
 	case "panic":
 		arg := call.Args[0]
 		reg, _, isRegister := c.quickEmitExpr(arg, emptyInterfaceType)
