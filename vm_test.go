@@ -117,6 +117,49 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Address operator on strings declared with 'var'",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			var s1 = "hey"
+			var s2 = "hoy"
+			var p1 = &s1
+			var p2 = &s1
+			var p3 = &s2
+			c1 := p1 == p2
+			c2 := p2 == p3
+			c3 := p1 == p3
+			fmt.Println(c1)
+			fmt.Println(c2)
+			fmt.Println(c3)
+		
+		}
+		`, nil, nil, "true\nfalse\nfalse\n"},
+
+	{"Address operator on strings declared with ':='",
+		`package main
+
+		import "fmt"
+
+		func main() {
+
+			s1 := "hey"
+			s2 := "hoy"
+			p1 := &s1
+			p2 := &s1
+			p3 := &s2
+			c1 := p1 == p2
+			c2 := p2 == p3
+			c3 := p1 == p3
+			fmt.Println(c1)
+			fmt.Println(c2)
+			fmt.Println(c3)
+
+		}
+		`, nil, nil, "true\nfalse\nfalse\n"},
 
 	{"Switch with non-immediate expression in a case",
 		`package main

@@ -684,7 +684,18 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				c.fb.Move(false, tmpReg, reg, typ.Kind(), dstType.Kind())
 			}
 		case ast.OperatorAnd:
-			panic("TODO: not implemented")
+			switch expr := expr.Expr.(type) {
+			case *ast.Identifier:
+				if c.fb.IsVariable(expr.Name) {
+					varReg := c.fb.ScopeLookup(expr.Name)
+					c.fb.New(reflect.PtrTo(typ), reg)
+					c.fb.Move(false, -varReg, reg, reflect.Ptr, reflect.Ptr)
+				} else {
+					panic("TODO(Gianluca): not implemented")
+				}
+			default:
+				panic("TODO(Gianluca): not implemented")
+			}
 		case ast.OperatorAddition:
 			// Do nothing.
 		case ast.OperatorSubtraction:
@@ -1241,9 +1252,16 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			addresses := make([]Address, len(node.Identifiers))
 			for i, v := range node.Identifiers {
 				varType := c.typeinfo[v].Type
-				varReg := c.fb.NewRegister(varType.Kind())
-				c.fb.BindVarReg(v.Name, varReg)
-				addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+				if c.indirectVars[v] {
+					varReg := -c.fb.NewRegister(reflect.Interface)
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				} else {
+					varReg := c.fb.NewRegister(varType.Kind())
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+				}
+
 			}
 			c.assign(addresses, node.Values)
 

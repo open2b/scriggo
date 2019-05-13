@@ -16,13 +16,14 @@ import (
 type AddressType int8
 
 const (
-	AddressRegister           AddressType = iota // Variable assignments.
-	AddressesBlank                               // Blank identifier assignments.
-	AddressPackageVariable                       // Package variable assignments.
-	AddressPointerIndirection                    // Pointer indirection assignments.
-	AddressSliceIndex                            // Slice and array index assignments.
-	AddressMapIndex                              // Map index assignments.
-	AddressStructSelector                        // Struct selector assignments.
+	AddressRegister            AddressType = iota // Variable assignments.
+	AddressIndirectDeclaration                    // Indirect variable declaration.
+	AddressesBlank                                // Blank identifier assignments.
+	AddressPackageVariable                        // Package variable assignments.
+	AddressPointerIndirection                     // Pointer indirection assignments.
+	AddressSliceIndex                             // Slice and array index assignments.
+	AddressMapIndex                               // Map index assignments.
+	AddressStructSelector                         // Struct selector assignments.
 )
 
 // Address represents an element on the left side of assignments.
@@ -46,6 +47,9 @@ func (a Address) Assign(k bool, value int8, valueKind reflect.Kind) {
 		// Nothing to do.
 	case AddressRegister:
 		a.c.fb.Move(k, value, a.Reg1, a.ReflectType.Kind(), valueKind)
+	case AddressIndirectDeclaration:
+		a.c.fb.New(a.ReflectType, -a.Reg1)
+		a.c.fb.Move(k, value, a.Reg1, valueKind, reflect.Ptr)
 	case AddressPointerIndirection:
 		panic("TODO(Gianluca): not implemented")
 	case AddressSliceIndex:
@@ -100,9 +104,15 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 		for i, v := range node.Variables {
 			v := v.(*ast.Identifier)
 			varType := c.typeinfo[v].Type
-			varReg := c.fb.NewRegister(varType.Kind())
-			c.fb.BindVarReg(v.Name, varReg)
-			addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+			if c.indirectVars[v] {
+				varReg := -c.fb.NewRegister(reflect.Interface)
+				c.fb.BindVarReg(v.Name, varReg)
+				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+			} else {
+				varReg := c.fb.NewRegister(varType.Kind())
+				c.fb.BindVarReg(v.Name, varReg)
+				addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+			}
 		}
 		c.assign(addresses, node.Values)
 	case ast.AssignmentSimple:
