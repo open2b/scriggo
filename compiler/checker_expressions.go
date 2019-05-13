@@ -1307,6 +1307,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		t := tc.checkType(expr.Args[0], noEllipses)
 		new := ast.NewValue(t.Type)
 		tc.replaceTypeInfo(expr.Args[0], new)
+		expr.Args[0] = new
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
