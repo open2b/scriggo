@@ -998,12 +998,16 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		regType := c.fb.Type(typ)
 		switch typ.Kind() {
 		case reflect.Map:
-			size, kSize, isRegister := c.quickEmitExpr(call.Args[1], intType)
-			if !kSize && !isRegister {
-				size = c.fb.NewRegister(reflect.Int)
-				c.emitExpr(call.Args[1], size, c.typeinfo[call.Args[1]].Type)
+			if len(call.Args) == 1 {
+				c.fb.MakeMap(regType, true, 0, reg)
+			} else {
+				size, kSize, isRegister := c.quickEmitExpr(call.Args[1], intType)
+				if !kSize && !isRegister {
+					size = c.fb.NewRegister(reflect.Int)
+					c.emitExpr(call.Args[1], size, c.typeinfo[call.Args[1]].Type)
+				}
+				c.fb.MakeMap(regType, kSize, size, reg)
 			}
-			c.fb.MakeMap(regType, kSize, size, reg)
 		case reflect.Slice:
 			lenExpr := call.Args[1]
 			capExpr := call.Args[2]

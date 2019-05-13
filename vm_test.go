@@ -117,6 +117,18 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Builtin make - Map with no size",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			m := make(map[string]int)
+			fmt.Printf("%v (%T)", m, m)
+		}
+		`, nil, nil, "map[] (map[string]int)"},
+
 	{"Builtin new - creating a string pointer and updating it's value",
 		`package main
 

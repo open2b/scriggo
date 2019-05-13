@@ -681,7 +681,11 @@ func (vm *VM) run() int {
 		case OpMakeMap, -OpMakeMap:
 			typ := vm.fn.Types[uint8(a)]
 			n := int(vm.intk(b, op < 0))
-			vm.setGeneral(c, reflect.MakeMapWithSize(typ, n).Interface())
+			if n > 0 {
+				vm.setGeneral(c, reflect.MakeMapWithSize(typ, n).Interface())
+			} else {
+				vm.setGeneral(c, reflect.MakeMap(typ).Interface())
+			}
 
 		// MakeSlice
 		case OpMakeSlice:
