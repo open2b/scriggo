@@ -568,7 +568,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 		regs, types := c.emitCall(expr)
 		if reg != 0 {
-			c.fb.Move(false, regs[0], reg, types[0].Kind(), dstType.Kind())
+			c.changeRegister(false, regs[0], reg, types[0], dstType)
 		}
 		c.fb.ExitStack()
 

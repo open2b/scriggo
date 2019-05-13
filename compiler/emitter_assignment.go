@@ -49,7 +49,7 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 		a.c.fb.Move(k, value, a.Reg1, a.ReflectType.Kind(), valueType.Kind())
 	case AddressIndirectDeclaration:
 		a.c.fb.New(a.ReflectType, -a.Reg1)
-		a.c.fb.Move(k, value, a.Reg1, valueType.Kind(), reflect.Ptr)
+		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
 	case AddressPointerIndirection:
 		panic("TODO(Gianluca): not implemented")
 	case AddressSliceIndex:
