@@ -788,33 +788,43 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			case int:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case int8:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case int16:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case int32:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case int64:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case uint:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case uint8:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case uint16:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case uint32:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case uint64:
 				constant := c.fb.MakeIntConstant(int64(v))
 				c.fb.LoadNumber(vm.TypeInt, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			case string:
 				constant := c.fb.MakeStringConstant(v)
 				c.changeRegister(true, constant, reg, typ, dstType)
@@ -824,6 +834,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			case float64:
 				constant := c.fb.MakeFloatConstant(v)
 				c.fb.LoadNumber(vm.TypeFloat, constant, reg)
+				c.changeRegister(false, reg, reg, typ, dstType)
 			default:
 				constant := c.fb.MakeGeneralConstant(v)
 				c.changeRegister(true, constant, reg, typ, dstType)
