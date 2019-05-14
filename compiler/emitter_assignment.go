@@ -54,6 +54,8 @@ func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 		a.c.changeRegister(k, value, -a.Reg1, valueType, a.ReflectType)
 	case AddressSliceIndex:
 		a.c.fb.SetSlice(k, a.Reg1, value, a.Reg2, a.ReflectType.Elem().Kind())
+	case AddressMapIndex:
+		a.c.fb.SetMap(k, a.Reg1, value, a.Reg2)
 	case AddressStructSelector:
 		panic("TODO(Gianluca): not implemented")
 	case AddressPackageVariable:

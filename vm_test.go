@@ -117,6 +117,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Map index assignment",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			m := map[string]int{}
+			fmt.Print(m, ",")
+			m["one"] = 1
+			m["four"] = 4
+			fmt.Print(m, ",")
+			m["one"] = 10
+			fmt.Print(m)
+		}
+		`, nil, nil, "map[],map[four:4 one:1],map[four:4 one:10]"},
+
 	{"Builtin delete",
 		`package main
 
