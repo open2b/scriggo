@@ -102,16 +102,20 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 	case ast.AssignmentDeclaration:
 		addresses := make([]Address, len(node.Variables))
 		for i, v := range node.Variables {
-			v := v.(*ast.Identifier)
-			varType := c.typeinfo[v].Type
-			if c.indirectVars[v] {
-				varReg := -c.fb.NewRegister(reflect.Interface)
-				c.fb.BindVarReg(v.Name, varReg)
-				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+			if isBlankIdentifier(v) {
+				addresses[i] = c.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
 			} else {
-				varReg := c.fb.NewRegister(varType.Kind())
-				c.fb.BindVarReg(v.Name, varReg)
-				addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+				v := v.(*ast.Identifier)
+				varType := c.typeinfo[v].Type
+				if c.indirectVars[v] {
+					varReg := -c.fb.NewRegister(reflect.Interface)
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				} else {
+					varReg := c.fb.NewRegister(varType.Kind())
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
+				}
 			}
 		}
 		c.assign(addresses, node.Values)

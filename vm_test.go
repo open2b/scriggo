@@ -117,6 +117,20 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+
+	{"Multiple assignment with blank identifier",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			_, a := 1, 2
+			fmt.Println(a)
+		
+		}
+		`, nil, nil, "2\n"},
+
 	{"Builtin make - Map with no size",
 		`package main
 
