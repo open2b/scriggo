@@ -117,6 +117,43 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+
+	{"Builtin len on maps",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			m := map[string]int{}
+			fmt.Print(len(m))
+			m["one"] = 1
+			fmt.Print(len(m))
+			m["one"] = 1
+			m["one"] = 2
+			fmt.Print(len(m))
+			m["one"] = 1
+			m["two"] = 2
+			m["three"] = 3
+			m["five"] = 4
+			fmt.Print(len(m))
+		}
+		`, nil, nil, "0114"},
+
+	{"Builtin function calls can be used directly as function arguments",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(len([]int{1,2,3}))
+			fmt.Print(cap(make([]int, 1, 10)))
+		}
+		`, nil, nil, "310"},
+
 	{"Checking if map has keys",
 		`package main
 

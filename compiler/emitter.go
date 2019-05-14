@@ -953,6 +953,7 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		s := c.fb.NewRegister(typ.Kind())
 		c.emitExpr(call.Args[0], s, typ)
 		c.fb.Cap(s, reg)
+		c.changeRegister(false, reg, reg, intType, dstType)
 	case "close":
 		panic("TODO: not implemented")
 	case "complex":
@@ -969,6 +970,9 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			c.emitExpr(call.Args[0], src, c.typeinfo[call.Args[0]].Type)
 		}
 		c.fb.Copy(dst, src, reg)
+		if reg != 0 {
+			c.changeRegister(false, reg, reg, intType, dstType)
+		}
 	case "delete":
 		mapExpr := call.Args[0]
 		keyExpr := call.Args[1]
@@ -986,6 +990,7 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		s := c.fb.NewRegister(typ.Kind())
 		c.emitExpr(call.Args[0], s, typ)
 		c.fb.Len(s, reg, typ)
+		c.changeRegister(false, reg, reg, intType, dstType)
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 		regType := c.fb.Type(typ)
