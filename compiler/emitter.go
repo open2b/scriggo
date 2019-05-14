@@ -152,6 +152,7 @@ func (c *Emitter) variableIndex(v vm.Global) uint8 {
 
 // changeRegister moves src content into dst, making a conversion if necessary.
 func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+	// TODO(Gianluca): do not change register when not necessary.
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
 			c.fb.EnterStack()
