@@ -399,18 +399,21 @@ func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 //     z = e.(t)
 //
 func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
-	tr := -1
+	index := -1
 	for i, t := range builder.fn.Types {
 		if t == typ {
-			tr = i
+			index = i
 			break
 		}
 	}
-	if tr == -1 {
-		tr = len(builder.fn.Types)
+	if index == -1 {
+		index = len(builder.fn.Types)
+		if index > 255 {
+			panic("types limit reached")
+		}
 		builder.fn.Types = append(builder.fn.Types, typ)
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(tr), C: z})
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(index), C: z})
 }
 
 // BinaryBitOperation appends a new binary bit operation specified by operator
