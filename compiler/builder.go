@@ -649,6 +649,9 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 //	for i, e := range s
 //
+// TODO(Gianluca): this can hide a problem: if Range is called with k == true
+// but kind is not reflect.String, s (which is a constant) is threated as
+// non-constant by builder and VM.
 func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
