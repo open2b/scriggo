@@ -48,9 +48,8 @@ func main() {
 	_ = [...]int{0: 1, 2, 20: 3}
 	_ = [10]int{0: 1, 2, 2: 3}
 
-	// TODO (Gianluca): see https://github.com/open2b/scrigo/issues/63.
-	// fmt.Println([]interface{}{} == nil)
-	// fmt.Println([]byte{} == nil)
+	fmt.Println([]interface{}{} == nil)
+	fmt.Println([]byte{} == nil)
 
 	{
 		// TODO (Gianluca): add other struct tests.

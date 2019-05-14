@@ -764,6 +764,17 @@ var checkerStmts = map[string]string{
 	`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 	`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 
+	// nil comparison
+	`_ = true == nil`: `cannot convert nil to type bool`,
+	`_ = 1 == nil`:    `cannot convert nil to type int`,
+	`_ = 1.5 == nil`:  `cannot convert nil to type float64`,
+	`_ = "" == nil`:   `cannot convert nil to type string`,
+	// Note that for strings gc returns the two errors
+	// `cannot convert "" (type untyped string) to type int` and `cannot convert nil to type int`.
+	`_ = [1]int{} == nil`:           `cannot convert nil to type [1]int`,
+	`_ = []int{} < nil`:             `invalid operation: []int literal < nil (operator < not defined on slice)`,
+	`_ = map[string]string{} < nil`: `invalid operation: map[string]string literal < nil (operator < not defined on map)`,
+
 	// Expressions.
 	`int + 2`: `type int is not an expression`,
 	`0`:       evaluatedButNotUsed("0"),

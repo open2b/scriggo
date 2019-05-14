@@ -939,11 +939,8 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 			t = t2
 		}
 		k := t.Type.Kind()
-		if !operatorsOfKind[k][op] {
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, op, k)
-		}
-		if !t.Type.Comparable() {
-			return nil, fmt.Errorf("cannot convert nil to type %s", t)
+		if reflect.Bool <= k && k <= reflect.Array || k == reflect.String || k == reflect.Struct {
+			return nil, fmt.Errorf("cannot convert nil to type %s", t.ShortString())
 		}
 		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
 			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, op, k)
