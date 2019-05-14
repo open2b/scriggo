@@ -271,18 +271,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
-	case vm.OpAssertInt:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " type(int)"
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
-	case vm.OpAssertFloat64:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " type(float64)"
-		s += " " + disassembleOperand(fn, c, vm.Float64, false)
-	case vm.OpAssertString:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " type(string)"
-		s += " " + disassembleOperand(fn, c, vm.String, false)
 	case vm.OpBind, vm.OpGetVar:
 		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
@@ -658,10 +646,7 @@ var operationName = [...]string{
 
 	vm.OpAppendSlice: "AppendSlice",
 
-	vm.OpAssert:        "Assert",
-	vm.OpAssertInt:     "Assert",
-	vm.OpAssertFloat64: "Assert",
-	vm.OpAssertString:  "Assert",
+	vm.OpAssert: "Assert",
 
 	vm.OpBind: "Bind",
 

@@ -188,24 +188,6 @@ func (vm *VM) run() int {
 					vm.setGeneral(c, i)
 				}
 			}
-		case OpAssertInt:
-			i, ok := vm.general(a).(int)
-			if c != 0 {
-				vm.setInt(c, int64(i))
-			}
-			vm.ok = ok
-		case OpAssertFloat64:
-			f, ok := vm.general(a).(float64)
-			if c != 0 {
-				vm.setFloat(c, f)
-			}
-			vm.ok = ok
-		case OpAssertString:
-			s, ok := vm.general(a).(string)
-			if c != 0 {
-				vm.setString(c, s)
-			}
-			vm.ok = ok
 
 		// Bind
 		case OpBind:

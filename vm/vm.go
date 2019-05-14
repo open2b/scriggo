@@ -966,9 +966,6 @@ const (
 	OpAndNot
 
 	OpAssert
-	OpAssertInt
-	OpAssertFloat64
-	OpAssertString
 
 	OpAppend
 

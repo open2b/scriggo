@@ -399,30 +399,18 @@ func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 //     z = e.(t)
 //
 func (builder *FunctionBuilder) Assert(e int8, typ reflect.Type, z int8) {
-	var op vm.Operation
-	var tr int8
-	switch typ {
-	case intType:
-		op = vm.OpAssertInt
-	case float64Type:
-		op = vm.OpAssertFloat64
-	case stringType:
-		op = vm.OpAssertString
-	default:
-		op = vm.OpAssert
-		var found bool
-		for i, t := range builder.fn.Types {
-			if t == typ {
-				tr = int8(i)
-				found = true
-			}
-		}
-		if !found {
-			tr = int8(len(builder.fn.Types))
-			builder.fn.Types = append(builder.fn.Types, typ)
+	tr := -1
+	for i, t := range builder.fn.Types {
+		if t == typ {
+			tr = i
+			break
 		}
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: e, B: tr, C: z})
+	if tr == -1 {
+		tr = len(builder.fn.Types)
+		builder.fn.Types = append(builder.fn.Types, typ)
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(tr), C: z})
 }
 
 // BinaryBitOperation appends a new binary bit operation specified by operator
