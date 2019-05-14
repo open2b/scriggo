@@ -118,6 +118,18 @@ var stmtTests = []struct {
 	output       string   // expected stdout/stderr output.
 }{
 
+	{"Issue #92",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			fmt.Println("a", 10)
+			fmt.Println("b", 2.5)
+		
+		}`, nil, nil, "a 10\nb 2.5\n"},
+
 	{"Builtin len on maps",
 		`package main
 
