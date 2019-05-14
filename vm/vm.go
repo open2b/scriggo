@@ -26,7 +26,7 @@ type Instruction struct {
 }
 
 func DecodeAddr(a, b, c int8) uint32 {
-	return uint32(uint8(a)) | uint32(uint8(b))<<8 | uint32(uint8(c))<<16
+	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
 type TraceFunc func(fn *ScrigoFunction, pc uint32, regs Registers)

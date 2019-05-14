@@ -272,9 +272,9 @@ var stringType = reflect.TypeOf("")
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
 func encodeAddr(v uint32) (a, b, c int8) {
-	a = int8(uint8(v))
+	a = int8(uint8(v >> 16))
 	b = int8(uint8(v >> 8))
-	c = int8(uint8(v >> 16))
+	c = int8(uint8(v))
 	return
 }
 
