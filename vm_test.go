@@ -117,6 +117,135 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"For range on empty interface slice",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			mess := []interface{}{3, "hey", 5.6, 2}
+			for e, v := range mess {
+				fmt.Print(e, v, ",")
+			}
+		
+		}
+		`, nil, nil, "0 3,1hey,2 5.6,3 2,"},
+
+	{"For range on empty int slice",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			fmt.Printf("start-")
+			for _ = range []int{} {
+				fmt.Print("looping!")
+			}
+			fmt.Printf("-end")
+		
+		}
+		`, nil, nil, "start--end"},
+
+	{"For range on int slice, taking only values",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			for _, v := range []int{3, 4, 5} {
+				fmt.Print(v)
+			}
+		
+		}
+		`, nil, nil, "345"},
+
+	{"For range on int slice, taking only indexes",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			for i := range []int{3, 4, 5} {
+				fmt.Print(i)
+			}
+		
+		}
+		`, nil, nil, "012"},
+
+	{"For range with simple assignment (no declaration)",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			i := 0
+			e := 0
+			for i, e = range []int{3, 4, 5} {
+				fmt.Print(i, e, ",")
+			}
+		}
+		`, nil, nil, "0 3,1 4,2 5,"},
+
+	{"For range with no assignments",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			for _ = range []int{1, 2, 3} {
+				fmt.Print("?")
+			}
+		}
+		`, nil, nil, "???"},
+
+	{"For range on map[string]int",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			m := map[string]int{"twelve": 12}
+			for k, v := range m {
+				fmt.Print(k, " is ", v, ",")
+			}
+		
+		}
+		`, nil, nil, "twelve is 12,"},
+
+	{"For range on int slice",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			for i, v := range []int{4, 5, 6} {
+				fmt.Print(i, v, ",")
+			}
+		
+		}
+		`, nil, nil, "0 4,1 5,2 6,"},
+
+	{"For range on string",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+		
+			for i, c := range "Hello" {
+				fmt.Print(i, c, ",")
+			}
+		
+		}
+		`, nil, nil, "0 72,1 101,2 108,3 108,4 111,"},
 
 	{"Issue #92",
 		`package main

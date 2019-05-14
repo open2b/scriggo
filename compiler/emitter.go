@@ -1209,14 +1209,46 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			c.fb.ExitScope()
 
 		case *ast.ForRange:
-			panic("TODO: not implemented")
-			// c.fb.EnterScope()
-			// expr := c.fb.NewRegister(reflect.String)
-			// kind := c.typeinfo[node.Assignment.Values[0]].Type.Kind()
-			// c.compileExpr(node.Assignment.Values[0], expr)
-			// c.fb.Range(expr, kind)
-			// c.compileNodes(node.Body)
-			// c.fb.ExitScope()
+			c.fb.EnterScope()
+			vars := node.Assignment.Variables
+			indexReg := int8(0)
+			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
+				name := vars[0].(*ast.Identifier).Name
+				if node.Assignment.Type == ast.AssignmentDeclaration {
+					indexReg = c.fb.NewRegister(reflect.Int)
+					c.fb.BindVarReg(name, indexReg)
+				} else {
+					indexReg = c.fb.ScopeLookup(name)
+				}
+			}
+			elemReg := int8(0)
+			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
+				typ := c.typeinfo[vars[1]].Type
+				name := vars[1].(*ast.Identifier).Name
+				if node.Assignment.Type == ast.AssignmentDeclaration {
+					elemReg = c.fb.NewRegister(typ.Kind())
+					c.fb.BindVarReg(name, elemReg)
+				} else {
+					elemReg = c.fb.ScopeLookup(name)
+				}
+			}
+			expr := node.Assignment.Values[0]
+			exprType := c.typeinfo[expr].Type
+			exprReg, kExpr, isRegister := c.quickEmitExpr(expr, exprType)
+			if (!kExpr && !isRegister) || exprType.Kind() != reflect.String {
+				kExpr = false
+				exprReg = c.fb.NewRegister(exprType.Kind())
+				c.emitExpr(expr, exprReg, exprType)
+			}
+			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
+			endRange := c.fb.NewLabel()
+			c.fb.Goto(endRange)
+			c.fb.EnterScope()
+			c.emitNodes(node.Body)
+			c.fb.Continue(0)
+			c.fb.ExitScope()
+			c.fb.ExitScope()
+			c.fb.SetLabelAddr(endRange)
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
