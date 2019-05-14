@@ -971,18 +971,10 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "delete":
 		mapExpr := call.Args[0]
 		keyExpr := call.Args[1]
-		mapType := c.typeinfo[mapExpr].Type
-		keyType := c.typeinfo[keyExpr].Type
-		mapp, _, isRegister := c.quickEmitExpr(mapExpr, c.typeinfo[mapExpr].Type)
-		if !isRegister {
-			mapp = c.fb.NewRegister(mapType.Kind())
-			c.emitExpr(mapExpr, mapp, c.typeinfo[mapExpr].Type)
-		}
-		key, _, isRegister := c.quickEmitExpr(keyExpr, keyType)
-		if !isRegister {
-			key = c.fb.NewRegister(keyType.Kind())
-			c.emitExpr(keyExpr, key, c.typeinfo[keyExpr].Type)
-		}
+		mapp := c.fb.NewRegister(reflect.Interface)
+		c.emitExpr(mapExpr, mapp, emptyInterfaceType)
+		key := c.fb.NewRegister(reflect.Interface)
+		c.emitExpr(keyExpr, key, emptyInterfaceType)
 		c.fb.Delete(mapp, key)
 	case "imag":
 		panic("TODO: not implemented")

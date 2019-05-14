@@ -117,6 +117,20 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Builtin delete",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			m := map[string]string{"key": "value", "key2": "value2"}
+			fmt.Print(m, ",")
+			delete(m, "key")
+			fmt.Print(m)
+		}
+		`, nil, nil, "map[key:value key2:value2],map[key2:value2]"},
 
 	{"Multiple assignment with blank identifier",
 		`package main
