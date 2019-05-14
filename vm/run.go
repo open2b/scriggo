@@ -439,7 +439,7 @@ func (vm *VM) run() int {
 
 		// Goto
 		case OpGoto:
-			vm.pc = DecodeAddr(a, b, c)
+			vm.pc = decodeAddr(a, b, c)
 
 		// If
 		case OpIf:

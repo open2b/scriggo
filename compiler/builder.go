@@ -278,6 +278,10 @@ func encodeAddr(v uint32) (a, b, c int8) {
 	return
 }
 
+func decodeAddr(a, b, c int8) uint32 {
+	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
+}
+
 // Type returns typ's index, creating it if necessary.
 func (builder *FunctionBuilder) Type(typ reflect.Type) int8 {
 	var tr int8

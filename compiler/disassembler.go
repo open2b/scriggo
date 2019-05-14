@@ -165,7 +165,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.Body {
 		if in.Op == vm.OpGoto {
-			labelOf[vm.DecodeAddr(in.A, in.B, in.C)] = 0
+			labelOf[decodeAddr(in.A, in.B, in.C)] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -215,7 +215,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 		in := fn.Body[addr]
 		switch in.Op {
 		case vm.OpGoto:
-			label := labelOf[vm.DecodeAddr(in.A, in.B, in.C)]
+			label := labelOf[decodeAddr(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
 		case vm.OpFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, vm.Interface, false))
@@ -387,7 +387,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpGo, vm.OpReturn:
 	case vm.OpGoto:
-		s += " " + strconv.Itoa(int(vm.DecodeAddr(a, b, c)))
+		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case vm.OpIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)

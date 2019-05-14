@@ -25,7 +25,7 @@ type Instruction struct {
 	A, B, C int8
 }
 
-func DecodeAddr(a, b, c int8) uint32 {
+func decodeAddr(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
