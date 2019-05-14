@@ -305,8 +305,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		switch op {
 		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpDefer:
 			grow := fn.Body[addr+1]
-			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
-				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
+			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
+			s += "\t// " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)
 		}
 		if op == vm.OpDefer {
 			args := fn.Body[addr+2]
@@ -502,6 +502,59 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
 	}
 	return s
+}
+
+func disassembleFunctionCall(fn *vm.ScrigoFunction, index int8, isNative bool, stackShift vm.StackShift, variadic int8) string {
+	var funcType reflect.Type
+	var funcName string
+	if isNative {
+		funcType = reflect.TypeOf(fn.NativeFunctions[index].Func)
+		funcName = fn.NativeFunctions[index].Name
+	} else {
+		funcType = fn.ScrigoFunctions[index].Type
+		funcName = fn.ScrigoFunctions[index].Name
+	}
+	print := func(t reflect.Type) string {
+		str := ""
+		switch kindToType(t.Kind()) {
+		case vm.TypeInt:
+			stackShift[0]++
+			str += fmt.Sprintf("i%d %v", stackShift[0], t)
+		case vm.TypeFloat:
+			stackShift[1]++
+			str += fmt.Sprintf("f%d %v", stackShift[1], t)
+		case vm.TypeString:
+			stackShift[2]++
+			str += fmt.Sprintf("s%d %v", stackShift[2], t)
+		case vm.TypeGeneral:
+			stackShift[3]++
+			str += fmt.Sprintf("g%d %v", stackShift[3], t)
+		}
+		return str
+	}
+	out := ""
+	for i := 0; i < funcType.NumOut(); i++ {
+		out += print(funcType.Out(i))
+		if i < funcType.NumOut()-1 {
+			out += ", "
+		}
+	}
+	in := ""
+	for i := 0; i < funcType.NumIn()-1; i++ {
+		in += print(funcType.In(i)) + ", "
+	}
+	if variadic == vm.NoVariadic || variadic == 0 {
+		in += print(funcType.In(funcType.NumIn() - 1))
+	} else {
+		varType := funcType.In(funcType.NumIn() - 1).Elem()
+		for i := int8(0); i < variadic; i++ {
+			in += print(varType)
+			if i < variadic-1 {
+				in += ", "
+			}
+		}
+	}
+	return fmt.Sprintf("%s(%s) (%s)", funcName, in, out)
 }
 
 func disassembleVarRef(fn *vm.ScrigoFunction, ref int16) string {
