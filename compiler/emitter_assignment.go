@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"scrigo/compiler/ast"
+	"scrigo/vm"
 )
 
 // AddressType is the type of an element on the left side of and assignment.
@@ -94,6 +95,28 @@ func (c *Emitter) assign(addresses []Address, values []ast.Expression) {
 			for i, addr := range addresses {
 				addr.Assign(false, retRegs[i], retTypes[i])
 			}
+		case *ast.Index: // map index.
+			mapExpr := value.Expr
+			mapType := c.typeinfo[mapExpr].Type
+			mapReg := c.fb.NewRegister(mapType.Kind())
+			c.emitExpr(mapExpr, mapReg, mapType)
+			keyExpr := value.Index
+			keyType := c.typeinfo[keyExpr].Type
+			keyReg, kKeyReg, isRegister := c.quickEmitExpr(keyExpr, keyType)
+			if !kKeyReg && !isRegister {
+				keyReg = c.fb.NewRegister(keyType.Kind())
+				c.emitExpr(keyExpr, keyReg, keyType)
+			}
+			valueType := mapType.Elem()
+			valueReg := c.fb.NewRegister(valueType.Kind())
+			okType := addresses[1].ReflectType
+			okReg := c.fb.NewRegister(reflect.Bool)
+			c.fb.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
+			c.fb.Move(true, 1, okReg, reflect.Bool)
+			c.fb.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
+			c.fb.Move(true, 0, okReg, reflect.Bool)
+			addresses[0].Assign(false, valueReg, valueType)
+			addresses[1].Assign(false, okReg, okType)
 		}
 	}
 }
