@@ -129,10 +129,6 @@ func (builder *FunctionBuilder) AddLine(pc uint32, line int) {
 	}
 }
 
-func (builder *FunctionBuilder) SetClosureRefs(refs []int16) {
-	builder.fn.VarRefs = refs
-}
-
 // SetFileLine sets the file name and line number of the Scrigo function.
 func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 	builder.fn.File = file
