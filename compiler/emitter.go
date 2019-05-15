@@ -23,6 +23,8 @@ type Emitter struct {
 	importableGoPkgs map[string]*GoPackage
 	indirectVars     map[*ast.Identifier]bool
 
+	upvarsNames map[*vm.ScrigoFunction]map[string]int
+
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
 	availableNativeFunctions map[string]*vm.NativeFunction
 	availableVariables       map[string]vm.Global
@@ -45,6 +47,8 @@ func NewCompiler(r Reader, packages map[string]*GoPackage) *Emitter {
 	c := &Emitter{
 		importableGoPkgs: packages,
 		indirectVars:     map[*ast.Identifier]bool{},
+
+		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
 
 		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
 		availableNativeFunctions: map[string]*vm.NativeFunction{},
@@ -76,8 +80,7 @@ func (c *Emitter) CompilePackage(path string) (*vm.ScrigoFunction, error) {
 	c.indirectVars = tci[path].IndirectVars
 	node := tree.Nodes[0].(*ast.Package)
 	c.emitPackage(node)
-	fun := c.currentFunction
-	return fun, nil
+	return c.availableScrigoFunctions["main"], nil
 }
 
 func (c *Emitter) CompileScript(path string) (*vm.ScrigoFunction, error) {
@@ -170,18 +173,21 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 // emitPackage emits pkg.
 func (c *Emitter) emitPackage(pkg *ast.Package) {
 
-	haveVariables := false
+	havePkgVariables := false
 	for _, dec := range pkg.Declarations {
-		_, ok := dec.(*ast.Var)
-		if ok {
-			haveVariables = true
+		if _, ok := dec.(*ast.Var); ok {
+			havePkgVariables = true
 			break
 		}
 	}
 
-	var initVars *vm.ScrigoFunction
-	if haveVariables {
-		initVars = NewScrigoFunction("main", "init.vars", reflect.FuncOf(nil, nil, false))
+	var initVarsFn *vm.ScrigoFunction
+	var initVarsFb *FunctionBuilder
+	if havePkgVariables {
+		initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
+		c.availableScrigoFunctions["$initvars"] = initVarsFn
+		initVarsFb = NewBuilder(initVarsFn)
+		initVarsFb.EnterScope()
 	}
 
 	for _, dec := range pkg.Declarations {
@@ -194,47 +200,36 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
-			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
-				backupFunction := c.currentFunction
-				c.currentFunction = initVars
-				c.fb = NewBuilder(c.currentFunction)
-				value := n.Values[0]
-				typ := c.typeinfo[n.Identifiers[0]].Type
-				kind := typ.Kind()
-				reg := c.fb.NewRegister(kind)
-				c.emitExpr(value, reg, typ)
-				v := vm.Global{Pkg: "main", Name: n.Identifiers[0].Name, Value: nil}
-				c.availableVariables[n.Identifiers[0].Name] = v
-				index := c.variableIndex(v)
-				c.fb.SetVar(false, reg, int(index))
-				c.currentFunction = backupFunction
-				c.fb = NewBuilder(c.currentFunction)
-			} else {
-				panic("TODO(Gianluca): not implemented")
+			backupFn := c.currentFunction
+			backupFb := c.fb
+			c.currentFunction = initVarsFn
+			c.fb = initVarsFb
+			addresses := make([]Address, len(n.Identifiers))
+			for i, v := range n.Identifiers {
+				varType := c.typeinfo[v].Type
+				if c.indirectVars[v] {
+					varReg := -c.fb.NewRegister(reflect.Interface)
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				} else {
+					panic(fmt.Sprintf("global variable %s should be indirect, but is not!", v))
+				}
 			}
-			// TODO (Gianluca): this makes a new init function for every
-			// variable, which is wrong. Putting initFn declaration
-			// outside this switch is wrong too: init.-1 cannot be created
-			// if there's no need.
-			// initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
-			// initBuilder := NewBuilder(initFn)
-			// if len(n.Identifiers) == 1 && len(n.Values) == 1 {
-			// 	currentBuilder := c.fb
-			// 	c.fb = initBuilder
-			// 	reg := c.fb.NewRegister(reflect.Int)
-			// 	c.compileExpr(n.Values[0], reg, reflect.Int)
-			// 	c.fb = currentBuilder
-			// 	name := "A"                 // TODO
-			// 	v := interface{}(int64(10)) // TODO
-			// 	c.currentPkg.DefineVariable(name, v)
-			// } else {
-			// 	panic("TODO: not implemented")
-			// }
+			c.assign(addresses, n.Values)
+			c.currentFunction = backupFn
+			c.fb = backupFb
 		case *ast.Func:
 			fn := c.availableScrigoFunctions[n.Ident.Name]
 			c.currentFunction = fn
 			c.fb = NewBuilder(fn)
 			c.fb.EnterScope()
+			// If function is "main", variables initialization function
+			// must be called as first statement inside main.
+			if n.Ident.Name == "main" && havePkgVariables {
+				iv := c.availableScrigoFunctions["$initvars"]
+				index := c.fb.AddScrigoFunction(iv)
+				c.fb.Call(int8(index), vm.StackShift{}, 0)
+			}
 			c.prepareFunctionBodyParameters(n)
 			addExplicitReturn(n)
 			c.emitNodes(n.Body.Nodes)
@@ -293,9 +288,9 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		}
 	}
 
-	if haveVariables {
-		b := NewBuilder(initVars)
-		b.Return()
+	if havePkgVariables {
+		initVarsFb.ExitScope()
+		initVarsFb.Return()
 	}
 }
 
@@ -734,12 +729,31 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if reg == 0 {
 			return
 		}
+
+		for i := range expr.Upvars {
+			uv := &expr.Upvars[i]
+			if uv.Index == -1 {
+				name := uv.Declaration.(*ast.Identifier).Name
+				reg := c.fb.ScopeLookup(name)
+				uv.Index = int16(reg)
+			}
+		}
+
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
 		funcLitBuilder := NewBuilder(fn)
 		currFb := c.fb
 		currFn := c.currentFunction
 		c.fb = funcLitBuilder
 		c.currentFunction = fn
+
+		closureRefs := make([]int16, len(expr.Upvars))
+		c.upvarsNames[fn] = make(map[string]int)
+		for i, uv := range expr.Upvars {
+			c.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
+			closureRefs[i] = uv.Index
+		}
+		fn.VarRefs = closureRefs
+
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)
 		addExplicitReturn(expr)
@@ -762,6 +776,20 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.GetFunc(false, index, reg)
+			} else if index, ok := c.upvarsNames[c.currentFunction][expr.Name]; ok {
+				// TODO(Gianluca): this is an experimental handling of
+				// emitting an expression into a register of a different
+				// type. If this is correct, apply this solution to all
+				// other expression emitting cases or generalize in some
+				// way.
+				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+					c.fb.GetVar(index, reg)
+				} else {
+					tmpReg := c.fb.NewRegister(typ.Kind())
+					c.fb.GetVar(index, tmpReg)
+					c.changeRegister(false, tmpReg, reg, typ, dstType)
+				}
+				// TODO(Gianluca): move into the right register type?
 			} else {
 				panic("bug")
 			}
@@ -1322,7 +1350,6 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 					c.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
 				}
-
 			}
 			c.assign(addresses, node.Values)
 

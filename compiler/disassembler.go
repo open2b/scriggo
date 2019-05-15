@@ -294,7 +294,11 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpDefer:
+		case vm.OpCallIndirect, vm.OpDefer:
+			grow := fn.Body[addr+1]
+			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
+				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
+		case vm.OpCall, vm.OpCallNative:
 			grow := fn.Body[addr+1]
 			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
 			s += "\t// " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)
@@ -530,14 +534,16 @@ func disassembleFunctionCall(fn *vm.ScrigoFunction, index int8, isNative bool, s
 	for i := 0; i < funcType.NumIn()-1; i++ {
 		in += print(funcType.In(i)) + ", "
 	}
-	if variadic == vm.NoVariadic || variadic == 0 {
-		in += print(funcType.In(funcType.NumIn() - 1))
-	} else {
-		varType := funcType.In(funcType.NumIn() - 1).Elem()
-		for i := int8(0); i < variadic; i++ {
-			in += print(varType)
-			if i < variadic-1 {
-				in += ", "
+	if funcType.NumIn()-1 >= 0 {
+		if variadic == vm.NoVariadic || variadic == 0 {
+			in += print(funcType.In(funcType.NumIn() - 1))
+		} else {
+			varType := funcType.In(funcType.NumIn() - 1).Elem()
+			for i := int8(0); i < variadic; i++ {
+				in += print(varType)
+				if i < variadic-1 {
+					in += ", "
+				}
 			}
 		}
 	}

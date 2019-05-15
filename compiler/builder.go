@@ -129,10 +129,6 @@ func (builder *FunctionBuilder) AddLine(pc uint32, line int) {
 	}
 }
 
-func (builder *FunctionBuilder) SetClosureRefs(refs []int16) {
-	builder.fn.VarRefs = refs
-}
-
 // SetFileLine sets the file name and line number of the Scrigo function.
 func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 	builder.fn.File = file
@@ -957,8 +953,8 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //     z = new(t)
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
-	a := builder.AddType(typ)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, A: int8(a), C: z})
+	b := builder.AddType(typ)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
 }
 
 // Nop appends a new "Nop" instruction to the function body.
