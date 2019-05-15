@@ -1268,15 +1268,14 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 				exprReg = c.fb.NewRegister(exprType.Kind())
 				c.emitExpr(expr, exprReg, exprType)
 			}
+			rangeLabel := c.fb.NewLabel()
+			c.fb.SetLabelAddr(rangeLabel)
 			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
-			endRange := c.fb.NewLabel()
-			c.fb.Goto(endRange)
 			c.fb.EnterScope()
 			c.emitNodes(node.Body)
-			c.fb.Continue(0)
+			c.fb.Continue(rangeLabel)
 			c.fb.ExitScope()
 			c.fb.ExitScope()
-			c.fb.SetLabelAddr(endRange)
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
