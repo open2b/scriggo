@@ -273,6 +273,7 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 		unresolvedDeps = false
 		for _, v := range tc.declarations {
 			if v.DeclType == DeclVar {
+				tc.indirectVars[v.Identifier] = true
 				tc.currentGlobal = v.Ident
 				tc.globalEvalPath = []string{v.Ident}
 				tc.globalTemp = make(map[string]*TypeInfo)

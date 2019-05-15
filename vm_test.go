@@ -117,6 +117,22 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package variables initialization",
+		`package main
+
+		import "fmt"
+		
+		var A = F()
+		
+		func F() int {
+			fmt.Print("F has been called!")
+			return 200
+		}
+		
+		func main() {
+		}
+		`, nil, nil, "F has been called!"},
+
 	{"Closure - complex tests (multiple clojures)",
 		`package main
 

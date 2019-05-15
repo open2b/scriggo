@@ -173,18 +173,21 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 // emitPackage emits pkg.
 func (c *Emitter) emitPackage(pkg *ast.Package) {
 
-	haveVariables := false
+	havePkgVariables := false
 	for _, dec := range pkg.Declarations {
-		_, ok := dec.(*ast.Var)
-		if ok {
-			haveVariables = true
+		if _, ok := dec.(*ast.Var); ok {
+			havePkgVariables = true
 			break
 		}
 	}
 
-	var initVars *vm.ScrigoFunction
-	if haveVariables {
-		initVars = NewScrigoFunction("main", "init.vars", reflect.FuncOf(nil, nil, false))
+	var initVarsFn *vm.ScrigoFunction
+	var initVarsFb *FunctionBuilder
+	if havePkgVariables {
+		initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
+		c.availableScrigoFunctions["$initvars"] = initVarsFn
+		initVarsFb = NewBuilder(initVarsFn)
+		initVarsFb.EnterScope()
 	}
 
 	for _, dec := range pkg.Declarations {
@@ -197,47 +200,36 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
 		case *ast.Var:
-			if len(n.Identifiers) == 1 && len(n.Values) == 1 {
-				backupFunction := c.currentFunction
-				c.currentFunction = initVars
-				c.fb = NewBuilder(c.currentFunction)
-				value := n.Values[0]
-				typ := c.typeinfo[n.Identifiers[0]].Type
-				kind := typ.Kind()
-				reg := c.fb.NewRegister(kind)
-				c.emitExpr(value, reg, typ)
-				v := vm.Global{Pkg: "main", Name: n.Identifiers[0].Name, Value: nil}
-				c.availableVariables[n.Identifiers[0].Name] = v
-				index := c.variableIndex(v)
-				c.fb.SetVar(false, reg, int(index))
-				c.currentFunction = backupFunction
-				c.fb = NewBuilder(c.currentFunction)
-			} else {
-				panic("TODO(Gianluca): not implemented")
+			backupFn := c.currentFunction
+			backupFb := c.fb
+			c.currentFunction = initVarsFn
+			c.fb = initVarsFb
+			addresses := make([]Address, len(n.Identifiers))
+			for i, v := range n.Identifiers {
+				varType := c.typeinfo[v].Type
+				if c.indirectVars[v] {
+					varReg := -c.fb.NewRegister(reflect.Interface)
+					c.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				} else {
+					panic(fmt.Sprintf("global variable %s should be indirect, but is not!", v))
+				}
 			}
-			// TODO (Gianluca): this makes a new init function for every
-			// variable, which is wrong. Putting initFn declaration
-			// outside this switch is wrong too: init.-1 cannot be created
-			// if there's no need.
-			// initFn, _ := c.currentPkg.NewFunction("init.-1", reflect.FuncOf(nil, nil, false))
-			// initBuilder := NewBuilder(initFn)
-			// if len(n.Identifiers) == 1 && len(n.Values) == 1 {
-			// 	currentBuilder := c.fb
-			// 	c.fb = initBuilder
-			// 	reg := c.fb.NewRegister(reflect.Int)
-			// 	c.compileExpr(n.Values[0], reg, reflect.Int)
-			// 	c.fb = currentBuilder
-			// 	name := "A"                 // TODO
-			// 	v := interface{}(int64(10)) // TODO
-			// 	c.currentPkg.DefineVariable(name, v)
-			// } else {
-			// 	panic("TODO: not implemented")
-			// }
+			c.assign(addresses, n.Values)
+			c.currentFunction = backupFn
+			c.fb = backupFb
 		case *ast.Func:
 			fn := c.availableScrigoFunctions[n.Ident.Name]
 			c.currentFunction = fn
 			c.fb = NewBuilder(fn)
 			c.fb.EnterScope()
+			// If function is "main", variables initialization function
+			// must be called as first statement inside main.
+			if n.Ident.Name == "main" && havePkgVariables {
+				iv := c.availableScrigoFunctions["$initvars"]
+				index := c.fb.AddScrigoFunction(iv)
+				c.fb.Call(int8(index), vm.StackShift{}, 0)
+			}
 			c.prepareFunctionBodyParameters(n)
 			addExplicitReturn(n)
 			c.emitNodes(n.Body.Nodes)
@@ -296,9 +288,9 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		}
 	}
 
-	if haveVariables {
-		b := NewBuilder(initVars)
-		b.Return()
+	if havePkgVariables {
+		initVarsFb.ExitScope()
+		initVarsFb.Return()
 	}
 }
 
@@ -1358,7 +1350,6 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 					c.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
 				}
-
 			}
 			c.assign(addresses, node.Values)
 
