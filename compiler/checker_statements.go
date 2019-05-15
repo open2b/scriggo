@@ -103,6 +103,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					// TODO (Gianluca): error message must include default type.
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
 				}
+				if expr.IsConstant() {
+					new := ast.NewValue(typedValue(expr, expr.Type))
+					tc.replaceTypeInfo(node.Condition, new)
+					node.Condition = new
+				}
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
@@ -117,6 +122,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			tc.addScope()
 			tc.addToAncestors(node)
+			// TODO(gianluca): review
 			if node.Assignment != nil {
 				if len(node.Assignment.Variables) > 2 {
 					panic(tc.errorf(node, "too many variables in range"))
@@ -131,6 +137,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					key = typ.Key()
 					elem = typ.Elem()
 				case reflect.String:
+					if rangeExpr.IsConstant() {
+						new := ast.NewValue(typedValue(rangeExpr, rangeExpr.Type))
+						tc.replaceTypeInfo(node.Assignment.Values[0], new)
+						node.Assignment.Values[0] = new
+					}
 					key = intType
 					elem = reflect.TypeOf(rune(' '))
 				case reflect.Ptr:
@@ -206,13 +217,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			hasFallthrough := false
 			hasDefault := false
 			switchType := boolType
+			var switchExpr *TypeInfo
 			if node.Expr != nil {
-				switchType = tc.checkExpression(node.Expr).Type
+				switchExpr = tc.checkExpression(node.Expr)
+				switchType = switchExpr.Type
 			}
 			for _, cas := range node.Cases {
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				hasDefault = hasDefault || len(cas.Expressions) == 0
-				for _, expr := range cas.Expressions {
+				for i, expr := range cas.Expressions {
 					t := tc.checkExpression(expr)
 					if !isAssignableTo(t, switchType) {
 						ne := ""
@@ -221,9 +234,19 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						}
 						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
 					}
+					if t.IsConstant() {
+						new := ast.NewValue(typedValue(t, switchType))
+						tc.replaceTypeInfo(cas.Expressions[i], new)
+						cas.Expressions[i] = new
+					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && (tc.terminating || hasFallthrough)
+			}
+			if switchExpr != nil && switchExpr.IsConstant() {
+				new := ast.NewValue(typedValue(switchExpr, switchExpr.Type))
+				tc.replaceTypeInfo(node.Expr, new)
+				node.Expr = new
 			}
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
@@ -285,6 +308,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 
+			// TODO (Gianluca): to review.
 			tc.checkExpression(node.Expr)
 			tc.terminating = false
 
@@ -364,6 +388,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				// "cannot convert "a" (type untyped string) to type int"
 				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.Type, elemType))
 			}
+			if tiv.IsConstant() {
+				new := ast.NewValue(typedValue(tiv, elemType))
+				tc.replaceTypeInfo(node.Value, new)
+				node.Value = new
+			}
 
 		case *ast.UnaryOperator:
 			tc.checkExpression(node)
@@ -399,6 +428,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !isLastScriptStatement {
 						panic(tc.errorf(node, "%s evaluated but not used", node))
 					}
+				}
+				if ti.IsConstant() {
+					new := ast.NewValue(typedValue(ti, ti.Type))
+					tc.replaceTypeInfo(node, new)
+					nodes[i] = new
 				}
 			} else {
 				panic(tc.errorf(node, "%s evaluated but not used", node))

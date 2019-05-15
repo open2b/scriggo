@@ -1230,6 +1230,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "cannot use %v (type %s) as type string in html", expr.Args[0], arg.ShortString()))
 		}
 		arg.Properties = 0
+		// TODO(marco): replace a constant with ast.Value
 		return []*TypeInfo{arg}
 
 	case "delete":
@@ -1393,19 +1394,20 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		ti := tc.checkExpression(expr.Args[0])
 		if ti.IsConstant() {
-			v, err := representedBy(ti, ti.Type)
-			if err != nil {
-				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
-			}
-			node := ast.NewValue(v)
+			node := ast.NewValue(typedValue(ti, ti.Type))
 			tc.replaceTypeInfo(expr.Args[0], node)
 			expr.Args[0] = node
 		}
 		return nil
 
 	case "print", "println":
-		for _, arg := range expr.Args {
-			_ = tc.checkExpression(arg)
+		for i, arg := range expr.Args {
+			ti := tc.checkExpression(arg)
+			if ti.IsConstant() {
+				node := ast.NewValue(typedValue(ti, ti.Type))
+				tc.replaceTypeInfo(expr.Args[i], node)
+				expr.Args[i] = node
+			}
 		}
 		return nil
 
@@ -1466,6 +1468,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
 			}
 			panic(tc.errorf(expr, "%s", err))
+		}
+		if arg.IsConstant() {
+			node := ast.NewValue(typedValue(arg, arg.Type))
+			tc.replaceTypeInfo(expr.Args[0], node)
+			expr.Args[0] = node
 		}
 		ti := &TypeInfo{Type: t.Type, Value: value}
 		if value != nil {

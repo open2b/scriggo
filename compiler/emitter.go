@@ -869,35 +869,6 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 		}
 
-	case *ast.Int: // TODO(Gianluca): obsolete: use *ast.Value instead.
-		if reg == 0 {
-			return
-		}
-		intType := c.typeinfo[expr].Type
-		i, ki, isRegister := c.quickEmitExpr(expr, intType)
-		if ki {
-			c.changeRegister(true, i, reg, intType, dstType)
-		} else if isRegister {
-			c.changeRegister(false, i, reg, intType, dstType)
-		} else {
-			panic("TODO(Gianluca): not implemented")
-		}
-
-	case *ast.String: // TODO(Gianluca): obsolete: use *ast.Value instead.
-		if reg == 0 {
-			return
-		}
-		stringType := c.typeinfo[expr].Type
-		i, ki, isRegister := c.quickEmitExpr(expr, stringType)
-		if ki {
-			c.changeRegister(true, i, reg, stringType, dstType)
-		} else if isRegister {
-			c.changeRegister(false, i, reg, stringType, dstType)
-		} else {
-			constant := c.fb.MakeStringConstant(expr.Text)
-			c.changeRegister(true, constant, reg, stringType, dstType)
-		}
-
 	case *ast.Index:
 		exprType := c.typeinfo[expr.Expr].Type
 		var exprReg int8
@@ -944,14 +915,6 @@ func (c *Emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 		return 0, false, false
 	}
 	switch expr := expr.(type) {
-
-	// TODO(Gianluca): strings and int must be put inside an *ast.Value
-	// node by typechecker.
-	case *ast.String:
-		return 0, false, false
-	case *ast.Int:
-		return int8(expr.Value.Int64()), true, false
-
 	case *ast.Identifier:
 		if c.fb.IsVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true
