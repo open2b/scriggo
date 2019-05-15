@@ -63,6 +63,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				// TODO (Gianluca): error message must include default type.
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, expr.ShortString()))
 			}
+			if expr.IsConstant() {
+				new := ast.NewValue(typedValue(expr, expr.Type))
+				tc.replaceTypeInfo(node.Condition, new)
+				node.Condition = new
+			}
 			if node.Then != nil {
 				tc.checkNodesInNewScope(node.Then.Nodes)
 				terminating = terminating && tc.terminating
