@@ -434,7 +434,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 			return ti
 		case DeclVar:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
-			ti.Properties |= PropertyAddressable
+			ti.Properties = PropertyAddressable
 			tc.globalTemp[ident.Name] = ti
 			return ti
 			// case DeclFunc:
