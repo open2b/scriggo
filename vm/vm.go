@@ -16,7 +16,6 @@ const NoVariadic = -1
 const CurrentFunction = -1
 
 const stackSize = 512
-const maxInt8 = 128
 
 type StackShift [4]int8
 
@@ -972,6 +971,8 @@ const (
 	OpAppendSlice
 
 	OpBind
+
+	OpBreak
 
 	OpCall
 

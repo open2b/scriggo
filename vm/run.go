@@ -67,7 +67,7 @@ func (vm *VM) runRecoverable() (panicked bool) {
 	return false
 }
 
-func (vm *VM) run() int {
+func (vm *VM) run() (uint32, bool) {
 
 	var startNativeGoroutine bool
 
@@ -193,6 +193,10 @@ func (vm *VM) run() int {
 		case OpBind:
 			vm.setGeneral(c, vm.vars[int(a)<<8|int(uint8(b))])
 
+		// Break
+		case OpBreak:
+			return decodeAddr(a, b, c), false
+
 		// Call
 		case OpCall:
 			fn := vm.fn.ScrigoFunctions[uint8(a)]
@@ -297,7 +301,7 @@ func (vm *VM) run() int {
 
 		// Continue
 		case OpContinue:
-			return int(a)
+			return decodeAddr(a, b, c), true
 
 		// Convert
 		case OpConvert:
@@ -752,8 +756,10 @@ func (vm *VM) run() int {
 
 		// Range
 		case OpRange:
-			var cont int
-			start := vm.pc + 1
+			var addr uint32
+			var cont bool
+			bodyAddress := vm.pc
+			rangeAddress := bodyAddress - 1
 			s := vm.general(a)
 			switch s := s.(type) {
 			case []int:
@@ -764,8 +770,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setInt(c, int64(v))
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -777,8 +784,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setInt(c, int64(v))
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -790,8 +798,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setInt(c, int64(v))
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -803,8 +812,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setFloat(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -816,8 +826,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setString(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -829,8 +840,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setGeneral(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -842,8 +854,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setInt(c, int64(v))
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -855,8 +868,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setBool(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -868,8 +882,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setString(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -881,8 +896,9 @@ func (vm *VM) run() int {
 					if c != 0 {
 						vm.setGeneral(c, v)
 					}
-					vm.pc = start
-					if cont = vm.run(); cont > 0 {
+					vm.pc = bodyAddress
+					addr, cont = vm.run()
+					if !cont || addr != rangeAddress {
 						break
 					}
 				}
@@ -898,8 +914,9 @@ func (vm *VM) run() int {
 						if c != 0 {
 							vm.setFromReflectValue(c, iter.Value())
 						}
-						vm.pc = start
-						if cont = vm.run(); cont > 0 {
+						vm.pc = bodyAddress
+						addr, cont = vm.run()
+						if !cont || addr != rangeAddress {
 							break
 						}
 					}
@@ -915,38 +932,41 @@ func (vm *VM) run() int {
 						if c != 0 {
 							vm.setFromReflectValue(c, rs.Index(i))
 						}
-						vm.pc = start
-						if cont = vm.run(); cont > 0 {
+						vm.pc = bodyAddress
+						addr, cont = vm.run()
+						if !cont || addr != rangeAddress {
 							break
 						}
 					}
 				}
 			}
-			if cont > 1 {
-				return cont - 1
+			if addr != rangeAddress {
+				return addr, cont
 			}
-			vm.pc = start - 1
 
 		// RangeString
 		case OpRangeString, -OpRangeString:
-			var cont int
-			start := vm.pc + 1
-			for i, e := range vm.stringk(a, op < 0) {
+			var addr uint32
+			var cont bool
+			bodyAddress := vm.pc
+			rangeAddress := bodyAddress - 1
+			s := vm.stringk(a, op < 0)
+			for i, e := range s {
 				if b != 0 {
 					vm.setInt(b, int64(i))
 				}
 				if c != 0 {
 					vm.setInt(c, int64(e))
 				}
-				vm.pc = start
-				if cont = vm.run(); cont > 0 {
+				vm.pc = bodyAddress
+				addr, cont = vm.run()
+				if !cont || addr != rangeAddress {
 					break
 				}
 			}
-			if cont > 1 {
-				return cont - 1
+			if addr != rangeAddress {
+				return addr, cont
 			}
-			vm.pc = start - 1
 
 		// Receive
 		case OpReceive:
@@ -1036,7 +1056,7 @@ func (vm *VM) run() int {
 			i := len(vm.calls) - 1
 			if i == -1 {
 				// TODO(marco): call finalizer.
-				return maxInt8
+				return 0, false
 			}
 			call := vm.calls[i]
 			if call.status == started {
@@ -1047,7 +1067,7 @@ func (vm *VM) run() int {
 				vm.fn = call.fn.scrigo
 				vm.vars = call.fn.vars
 			} else if !vm.nextCall() {
-				return maxInt8
+				return 0, false
 			}
 
 		// RightShift
