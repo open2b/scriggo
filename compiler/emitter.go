@@ -80,8 +80,7 @@ func (c *Emitter) CompilePackage(path string) (*vm.ScrigoFunction, error) {
 	c.indirectVars = tci[path].IndirectVars
 	node := tree.Nodes[0].(*ast.Package)
 	c.emitPackage(node)
-	fun := c.currentFunction
-	return fun, nil
+	return c.availableScrigoFunctions["main"], nil
 }
 
 func (c *Emitter) CompileScript(path string) (*vm.ScrigoFunction, error) {
