@@ -291,7 +291,11 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpDefer:
+		case vm.OpCallIndirect, vm.OpDefer:
+			grow := fn.Body[addr+1]
+			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
+				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
+		case vm.OpCall, vm.OpCallNative:
 			grow := fn.Body[addr+1]
 			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
 			s += "\t// " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)

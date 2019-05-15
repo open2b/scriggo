@@ -117,6 +117,139 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Closure - complex tests (multiple clojures)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 10
+			B := 20
+			f1 := func() {
+				fmt.Print(A)
+				A = 10
+			}
+			f2 := func() {
+				fmt.Print(B)
+				A = B + 2
+			}
+			f3 := func() {
+				fmt.Print(A + B)
+				B = A + B
+			}
+			f1()
+			f2()
+			f3()
+		}
+		`, nil, nil, "102042"},
+
+	{"Closure - one level and two levels variable writing (int)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 5
+			fmt.Print("main:", A)
+			f := func() {
+				fmt.Print(", f:", A)
+				A = 20
+				g := func() {
+					fmt.Print(", g:", A)
+					A = 30
+					fmt.Print(", g:", A)
+				}
+				fmt.Print(", f:", A)
+				g()
+				fmt.Print(", f:", A)
+			}
+			fmt.Print(", main:", A)
+			f()
+			fmt.Print(", main:", A)
+		}
+		`, nil, nil, "main:5, main:5, f:5, f:20, g:20, g:30, f:30, main:30"},
+
+	{"Closure - one level variable writing (int)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 5
+			fmt.Print("main:", A)
+			f := func() {
+				fmt.Print(", f:", A)
+				A = 20
+				fmt.Print(", f:", A)
+			}
+			fmt.Print(", main:", A)
+			f()
+			fmt.Print(", main:", A)
+		}
+		`, nil, nil, "main:5, main:5, f:5, f:20, main:20"},
+
+	{"Closure - one level and two levels variable reading (int)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 10
+			f := func() {
+				fmt.Print("f: ", A, ", ")
+				g := func() {
+					fmt.Print("g: ", A)
+				}
+				g()
+			}
+			f()
+		}`, nil, nil, "f: 10, g: 10"},
+
+	{"Closure - one level variable reading (int and string)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 10
+			B := "hey"
+			f := func() {
+				a := A
+				fmt.Print("f: ", a, ",")
+				b := B
+				fmt.Print("f: ", b)
+			}
+			f()
+		}
+		`, nil, nil, "f: 10,f: hey"},
+
+	{"Closure - one level variable reading (int)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := 10
+			f := func() {
+				a := A
+				fmt.Print("f: ", a)
+			}
+			f()
+		}
+		`, nil, nil, "f: 10"},
+
 	{"For range on empty interface slice",
 		`package main
 

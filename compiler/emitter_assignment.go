@@ -25,6 +25,7 @@ const (
 	AddressSliceIndex                             // Slice and array index assignments.
 	AddressMapIndex                               // Map index assignments.
 	AddressStructSelector                         // Struct selector assignments.
+	AddressUpVar
 )
 
 // Address represents an element on the left side of assignments.
@@ -44,6 +45,8 @@ func (c *Emitter) NewAddress(addrType AddressType, reflectType reflect.Type, reg
 // Assign assigns value to a.
 func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	switch a.Type {
+	case AddressUpVar:
+		a.c.fb.SetVar(k, value, int(a.Reg1))
 	case AddressesBlank:
 		// Nothing to do.
 	case AddressRegister:
@@ -151,8 +154,16 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 			case *ast.Identifier:
 				if !isBlankIdentifier(v) {
 					varType := c.typeinfo[v].Type
-					reg := c.fb.ScopeLookup(v.Name)
-					addresses[i] = c.NewAddress(AddressRegister, varType, reg, 0)
+					if reg, ok := c.upvarsNames[c.currentFunction][v.Name]; ok {
+						// TODO(Gianluca): reg is converted into an
+						// int8; should we change address to store
+						// int32/64?
+						addresses[i] = c.NewAddress(AddressUpVar, varType, int8(reg), 0)
+					} else {
+
+						reg := c.fb.ScopeLookup(v.Name)
+						addresses[i] = c.NewAddress(AddressRegister, varType, reg, 0)
+					}
 				} else {
 					addresses[i] = c.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
 				}

@@ -291,9 +291,83 @@ func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
 	delete(tc.typeInfo, old)
 }
 
+// getScopeLevel returns the scope level in which name is declared.
+func (tc *typechecker) getScopeLevel(name string) int {
+	// Iterating over scopes, from inside.
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		if _, ok := tc.scopes[i][name]; ok {
+			return i + 1 // TODO(Gianluca): to review.
+		}
+	}
+	return -1
+}
+
+// getDeclarationNode returns the declaration node which declares name.
+func (tc *typechecker) getDeclarationNode(name string) ast.Node {
+	// Iterating over scopes, from inside.
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		elem, ok := tc.scopes[i][name]
+		if ok {
+			return elem.decl
+		}
+	}
+	// Package + file block.
+	if elem, ok := tc.filePackageBlock[name]; ok {
+		return elem.decl
+	}
+	// Universe.
+	if elem, ok := tc.universe[name]; ok {
+		return elem.decl
+	}
+	panic(fmt.Sprintf("trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // TODO(Gianluca): to review.
+}
+
+// funcChain returns a list of ordered functions from the brother of name's
+// declaration to the inner one.
+func (tc *typechecker) funcChain(name string) []*ast.Func {
+	funcs := []*ast.Func{}
+	declLevel := tc.getScopeLevel(name)
+	for _, anc := range tc.ancestors {
+		if fun, ok := anc.node.(*ast.Func); ok {
+			if declLevel < anc.scopeLevel {
+				funcs = append(funcs, fun)
+			}
+		}
+	}
+	return funcs
+}
+
+// isPackageVariable indicates if name is a package variable.
+func (tc *typechecker) isPackageVariable(name string) bool {
+	if elem, ok := tc.filePackageBlock[name]; ok {
+		return elem.t.Addressable()
+	}
+	return false
+}
+
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved
 // from scope. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
+
+	if tc.isUpValue(ident.Name) || tc.isPackageVariable(ident.Name) {
+		decl := tc.getDeclarationNode(ident.Name)
+		upvar := ast.Upvar{decl, -1}
+		chain := tc.funcChain(ident.Name)
+		for _, f := range chain {
+			contains := false
+			for i, uv := range f.Upvars {
+				if uv.Declaration == upvar.Declaration {
+					contains = true
+					upvar.Index = int16(i)
+					break
+				}
+			}
+			if !contains {
+				f.Upvars = append(f.Upvars, upvar)
+				upvar.Index = int16(len(f.Upvars) - 1)
+			}
+		}
+	}
 
 	// Looks for upvalues.
 	if fun, _ := tc.currentFunction(); fun != nil {

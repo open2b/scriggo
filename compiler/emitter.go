@@ -23,6 +23,8 @@ type Emitter struct {
 	importableGoPkgs map[string]*GoPackage
 	indirectVars     map[*ast.Identifier]bool
 
+	upvarsNames map[*vm.ScrigoFunction]map[string]int
+
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
 	availableNativeFunctions map[string]*vm.NativeFunction
 	availableVariables       map[string]vm.Global
@@ -45,6 +47,8 @@ func NewCompiler(r Reader, packages map[string]*GoPackage) *Emitter {
 	c := &Emitter{
 		importableGoPkgs: packages,
 		indirectVars:     map[*ast.Identifier]bool{},
+
+		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
 
 		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
 		availableNativeFunctions: map[string]*vm.NativeFunction{},
@@ -734,12 +738,31 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if reg == 0 {
 			return
 		}
+
+		for i := range expr.Upvars {
+			uv := &expr.Upvars[i]
+			if uv.Index == -1 {
+				name := uv.Declaration.(*ast.Identifier).Name
+				reg := c.fb.ScopeLookup(name)
+				uv.Index = int16(reg)
+			}
+		}
+
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
 		funcLitBuilder := NewBuilder(fn)
 		currFb := c.fb
 		currFn := c.currentFunction
 		c.fb = funcLitBuilder
 		c.currentFunction = fn
+
+		closureRefs := make([]int16, len(expr.Upvars))
+		c.upvarsNames[fn] = make(map[string]int)
+		for i, uv := range expr.Upvars {
+			c.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
+			closureRefs[i] = uv.Index
+		}
+		fn.VarRefs = closureRefs
+
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)
 		addExplicitReturn(expr)
@@ -762,6 +785,20 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			if fun, isScrigoFunc := c.availableScrigoFunctions[expr.Name]; isScrigoFunc {
 				index := c.scrigoFunctionIndex(fun)
 				c.fb.GetFunc(false, index, reg)
+			} else if index, ok := c.upvarsNames[c.currentFunction][expr.Name]; ok {
+				// TODO(Gianluca): this is an experimental handling of
+				// emitting an expression into a register of a different
+				// type. If this is correct, apply this solution to all
+				// other expression emitting cases or generalize in some
+				// way.
+				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+					c.fb.GetVar(index, reg)
+				} else {
+					tmpReg := c.fb.NewRegister(typ.Kind())
+					c.fb.GetVar(index, tmpReg)
+					c.changeRegister(false, tmpReg, reg, typ, dstType)
+				}
+				// TODO(Gianluca): move into the right register type?
 			} else {
 				panic("bug")
 			}

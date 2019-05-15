@@ -385,11 +385,18 @@ type Func struct {
 	Ident    *Identifier // name, nil for function literals.
 	Type     *FuncType   // type.
 	Body     *Block      // body.
-	Upvalues []string    // upvalues.
+	Upvalues []string    // upvalues. // TODO (Gianluca): deprecated.
+	Upvars   []Upvar     // Upvars of func.
+}
+
+// Upvar represents a variable defined outside function body.
+type Upvar struct {
+	Declaration Node
+	Index       int16
 }
 
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block) *Func {
-	return &Func{expression{}, pos, name, typ, body, nil}
+	return &Func{expression{}, pos, name, typ, body, nil, nil}
 }
 
 func (n *Func) String() string {
