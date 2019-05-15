@@ -1645,15 +1645,17 @@ func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind refl
 		}
 		for _, f := range found {
 			var areEqual bool
-			switch v1 := value.(type) {
+			// TODO(marco): to review
+			va, vb := toSameType(value, f)
+			switch v1 := va.(type) {
 			case *big.Int:
-				v2 := f.(*big.Int)
+				v2 := vb.(*big.Int)
 				areEqual = v1.Cmp(v2) == 0
 			case *big.Float:
-				v2 := f.(*big.Float)
+				v2 := vb.(*big.Float)
 				areEqual = v1.Cmp(v2) == 0
 			default:
-				areEqual = f == value
+				areEqual = va == vb
 			}
 			if areEqual {
 				switch kind {
