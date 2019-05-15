@@ -93,17 +93,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
-				nVars := len(node.Init.Variables)
-				nValues := len(node.Init.Values)
-				if nVars == 2 && nValues == 1 {
-					intTypeInfo := &TypeInfo{Type: reflect.TypeOf(int(0))} // TODO (Gianluca): to review.
-					isDecl := node.Init.Type == ast.AssignmentDeclaration
-					tc.assignSingle(node.Init, node.Init.Variables[0], nil, intTypeInfo, nil, isDecl, false)
-					elemTi := tc.checkExpression(node.Init.Values[0])
-					tc.assignSingle(node.Init, node.Init.Variables[1], nil, &TypeInfo{Type: elemTi.Type.Elem()}, nil, isDecl, false)
-				} else {
-					tc.checkAssignment(node.Init)
-				}
+				tc.checkAssignment(node.Init)
 			}
 			if node.Condition != nil {
 				terminating = false
