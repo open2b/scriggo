@@ -535,14 +535,16 @@ func disassembleFunctionCall(fn *vm.ScrigoFunction, index int8, isNative bool, s
 	for i := 0; i < funcType.NumIn()-1; i++ {
 		in += print(funcType.In(i)) + ", "
 	}
-	if variadic == vm.NoVariadic || variadic == 0 {
-		in += print(funcType.In(funcType.NumIn() - 1))
-	} else {
-		varType := funcType.In(funcType.NumIn() - 1).Elem()
-		for i := int8(0); i < variadic; i++ {
-			in += print(varType)
-			if i < variadic-1 {
-				in += ", "
+	if funcType.NumIn()-1 >= 0 {
+		if variadic == vm.NoVariadic || variadic == 0 {
+			in += print(funcType.In(funcType.NumIn() - 1))
+		} else {
+			varType := funcType.In(funcType.NumIn() - 1).Elem()
+			for i := int8(0); i < variadic; i++ {
+				in += print(varType)
+				if i < variadic-1 {
+					in += ", "
+				}
 			}
 		}
 	}
