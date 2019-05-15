@@ -96,11 +96,12 @@ func main() {
 			os.Exit(2)
 		}
 		if *asm {
-			_, err = compiler.DisassembleFunction(os.Stdout, main)
+			funcs, err := compiler.Disassemble(main)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
+			fmt.Print(funcs["main"])
 		} else {
 			v := vm.New()
 			if *trace {
