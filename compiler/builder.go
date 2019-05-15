@@ -921,8 +921,8 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //     z = new(t)
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
-	a := builder.AddType(typ)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, A: int8(a), C: z})
+	b := builder.AddType(typ)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
 }
 
 // Nop appends a new "Nop" instruction to the function body.
