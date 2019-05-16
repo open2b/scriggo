@@ -49,6 +49,23 @@ func addExplicitReturn(node ast.Node) {
 	}
 }
 
+// changeRegister moves src content into dst, making a conversion if necessary.
+func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
+		if k {
+			c.fb.EnterStack()
+			tmpReg := c.fb.NewRegister(srcType.Kind())
+			c.fb.Move(true, src, tmpReg, srcType.Kind())
+			c.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
+			c.fb.ExitStack()
+		} else {
+			c.fb.Convert(src, srcType, dst, srcType.Kind())
+		}
+	} else if k || src != dst {
+		c.fb.Move(k, src, dst, srcType.Kind())
+	}
+}
+
 // compositeLiteralLen returns node's length.
 func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	size := 0
@@ -189,6 +206,40 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
+// nativeFunctionIndex returns fun's index inside current function, creating it
+// if not exists.
+func (c *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedNativeFunctions[currFun][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(currFun.NativeFunctions))
+	currFun.NativeFunctions = append(currFun.NativeFunctions, fun)
+	if c.assignedNativeFunctions[currFun] == nil {
+		c.assignedNativeFunctions[currFun] = make(map[*vm.NativeFunction]int8)
+	}
+	c.assignedNativeFunctions[currFun][fun] = i
+	return i
+}
+
+// scrigoFunctionIndex returns fun's index inside current function, creating it
+// if not exists.
+func (c *Emitter) scrigoFunctionIndex(fun *vm.ScrigoFunction) int8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedScrigoFunctions[currFun][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(currFun.ScrigoFunctions))
+	currFun.ScrigoFunctions = append(currFun.ScrigoFunctions, fun)
+	if c.assignedScrigoFunctions[currFun] == nil {
+		c.assignedScrigoFunctions[currFun] = make(map[*vm.ScrigoFunction]int8)
+	}
+	c.assignedScrigoFunctions[currFun][fun] = i
+	return i
+}
+
 // setClosureRefs sets closure refs for function. This function works on current
 // function builder, so shall be called before changing/saving it.
 func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
@@ -215,4 +266,21 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 	// Third: var refs of current function are updated.
 	fn.VarRefs = closureRefs
 
+}
+
+// variableIndex returns v's index inside current function, creating it if not
+// exists.
+func (c *Emitter) variableIndex(v vm.Global) uint8 {
+	currFun := c.currentFunction
+	i, ok := c.assignedVariables[currFun][v]
+	if ok {
+		return i
+	}
+	i = uint8(len(currFun.Globals))
+	currFun.Globals = append(currFun.Globals, v)
+	if c.assignedVariables[currFun] == nil {
+		c.assignedVariables[currFun] = make(map[vm.Global]uint8)
+	}
+	c.assignedVariables[currFun][v] = i
+	return i
 }
