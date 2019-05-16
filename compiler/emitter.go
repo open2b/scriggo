@@ -186,36 +186,17 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 // emitPackage emits pkg.
 func (c *Emitter) emitPackage(pkg *ast.Package) {
 
-	havePkgVariables := false
-	for _, dec := range pkg.Declarations {
-		if _, ok := dec.(*ast.Var); ok {
-			havePkgVariables = true
-			break
+	// Emits imports.
+	for _, decl := range pkg.Declarations {
+		if imp, ok := decl.(*ast.Import); ok {
+			c.emitImport(imp)
 		}
 	}
 
-	var initVarsFn *vm.ScrigoFunction
-	var initVarsFb *FunctionBuilder
-
-	// If package has some variable declarations, a special "init" function
-	// must be created to initialize them. "$initvars" is used because is not
-	// a valid Go identifier, so there's no risk of collision with Scrigo
-	// defined functions.
-	if havePkgVariables {
-		initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-		c.availableScrigoFunctions["$initvars"] = initVarsFn
-		initVarsFb = NewBuilder(initVarsFn)
-		initVarsFb.EnterScope()
-	}
-
-	// List of all "init" functions in current package.
-	initFuncs := []*vm.ScrigoFunction{}
-
-	// Index of next "init" function to build.
-	initToBuild := 0
-
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
+	initFuncs := []*vm.ScrigoFunction{} // List of all "init" functions in current package.
+	initToBuild := 0                    // Index of next "init" function to build.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
 			fn := NewScrigoFunction("main", fun.Ident.Name, fun.Type.Reflect)
@@ -227,12 +208,24 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		}
 	}
 
-	// Emits instructions for package variables.
+	// Emits package variables.
+	var initVarsFn *vm.ScrigoFunction
+	var initVarsFb *FunctionBuilder
 	packageVariablesRegisters := map[string]int8{}
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
+			// If package has some variable declarations, a special "init" function
+			// must be created to initialize them. "$initvars" is used because is not
+			// a valid Go identifier, so there's no risk of collision with Scrigo
+			// defined functions.
 			backupFn := c.currentFunction
 			backupFb := c.fb
+			if initVarsFn == nil {
+				initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
+				c.availableScrigoFunctions["$initvars"] = initVarsFn
+				initVarsFb = NewBuilder(initVarsFn)
+				initVarsFb.EnterScope()
+			}
 			c.currentFunction = initVarsFn
 			c.fb = initVarsFb
 			addresses := make([]Address, len(n.Identifiers))
@@ -251,11 +244,9 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		}
 	}
 
+	// Emits function declarations.
 	for _, dec := range pkg.Declarations {
-		switch n := dec.(type) {
-
-		case *ast.Func:
-
+		if n, ok := dec.(*ast.Func); ok {
 			var fn *vm.ScrigoFunction
 			if n.Ident.Name == "init" {
 				fn = initFuncs[initToBuild]
@@ -271,7 +262,7 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 			// must be called as first statement inside main.
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
-				if havePkgVariables {
+				if initVarsFn != nil {
 					iv := c.availableScrigoFunctions["$initvars"]
 					index := c.fb.AddScrigoFunction(iv)
 					c.fb.Call(int8(index), vm.StackShift{}, 0)
@@ -287,62 +278,10 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 			c.emitNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
-
-		case *ast.Import:
-
-			if n.Tree == nil { // Go package.
-				var importPkgName string
-				parserGoPkg := c.importableGoPkgs[n.Path]
-				if n.Ident == nil {
-					importPkgName = parserGoPkg.Name
-				} else {
-					switch n.Ident.Name {
-					case "_":
-						panic("TODO(Gianluca): not implemented")
-					case ".":
-						importPkgName = ""
-					default:
-						importPkgName = n.Ident.Name
-					}
-				}
-				for ident, value := range parserGoPkg.Declarations {
-					_ = ident
-					if _, ok := value.(reflect.Type); ok {
-						continue
-					}
-					if reflect.TypeOf(value).Kind() == reflect.Ptr {
-						// pkg.DefineVariable(ident, value)
-						// continue
-						v := vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value}
-						if importPkgName == "" {
-							c.availableVariables[ident] = v
-						} else {
-							c.availableVariables[importPkgName+"."+ident] = v
-						}
-					}
-					if reflect.TypeOf(value).Kind() == reflect.Func {
-						nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
-						// index, ok := pkg.AddNativeFunction(nativeFunc)
-						// if !ok {
-						// 	panic("TODO: not implemented")
-						// }
-						// pkg.nativeFunctionsNames[ident] = int8(index)
-						// continue
-						if importPkgName == "" {
-							c.availableNativeFunctions[ident] = nativeFunc
-						} else {
-							c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
-						}
-					}
-				}
-				c.isNativePkg[importPkgName] = true
-			} else {
-				c.emitPackage(n.Tree.Nodes[0].(*ast.Package))
-			}
 		}
 	}
 
-	if havePkgVariables {
+	if initVarsFn != nil {
 		// Global variables have been locally defined inside the "$initvars"
 		// function; their values must now be exported to be available
 		// globally.

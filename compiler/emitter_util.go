@@ -64,6 +64,58 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
+func (c *Emitter) emitImport(n *ast.Import) {
+	if n.Tree == nil { // Go package.
+		var importPkgName string
+		parserGoPkg := c.importableGoPkgs[n.Path]
+		if n.Ident == nil {
+			importPkgName = parserGoPkg.Name
+		} else {
+			switch n.Ident.Name {
+			case "_":
+				panic("TODO(Gianluca): not implemented")
+			case ".":
+				importPkgName = ""
+			default:
+				importPkgName = n.Ident.Name
+			}
+		}
+		for ident, value := range parserGoPkg.Declarations {
+			_ = ident
+			if _, ok := value.(reflect.Type); ok {
+				continue
+			}
+			if reflect.TypeOf(value).Kind() == reflect.Ptr {
+				// pkg.DefineVariable(ident, value)
+				// continue
+				v := vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value}
+				if importPkgName == "" {
+					c.availableVariables[ident] = v
+				} else {
+					c.availableVariables[importPkgName+"."+ident] = v
+				}
+			}
+			if reflect.TypeOf(value).Kind() == reflect.Func {
+				nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
+				// index, ok := pkg.AddNativeFunction(nativeFunc)
+				// if !ok {
+				// 	panic("TODO: not implemented")
+				// }
+				// pkg.nativeFunctionsNames[ident] = int8(index)
+				// continue
+				if importPkgName == "" {
+					c.availableNativeFunctions[ident] = nativeFunc
+				} else {
+					c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+				}
+			}
+		}
+		c.isNativePkg[importPkgName] = true
+	} else {
+		c.emitPackage(n.Tree.Nodes[0].(*ast.Package))
+	}
+}
+
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
 func (c *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
