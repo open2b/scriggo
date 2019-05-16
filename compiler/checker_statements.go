@@ -192,13 +192,24 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					break
 				}
 			}
-			// TODO (Gianluca): remove this check from parser.
 			if !found {
 				panic(tc.errorf(node, "break is not in a loop, switch, or select"))
 			}
 			tc.terminating = false
 
 		case *ast.Continue:
+
+			found := false
+			for i := len(tc.ancestors) - 1; i >= 0; i-- {
+				switch tc.ancestors[i].node.(type) {
+				case *ast.For, *ast.ForRange:
+					found = true
+					break
+				}
+			}
+			if !found {
+				panic(tc.errorf(node, "continue is not in a loop"))
+			}
 			tc.terminating = false
 
 		case *ast.Return:
