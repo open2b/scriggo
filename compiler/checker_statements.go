@@ -215,12 +215,16 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				typ = ti.Type
 			}
 			// Check the cases.
-			hasDefault := false
 			terminating := true
 			hasFallthrough := false
+			var positionOfDefault *ast.Position
 			for _, cas := range node.Cases {
-				hasFallthrough = hasFallthrough || cas.Fallthrough
-				hasDefault = hasDefault || len(cas.Expressions) == 0
+				if cas.Expressions == nil {
+					if positionOfDefault != nil {
+						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", *positionOfDefault))
+					}
+					positionOfDefault = cas.Pos()
+				}
 				for i, ex := range cas.Expressions {
 					t := tc.checkExpression(ex)
 					if !isAssignableTo(t, typ) {
@@ -237,6 +241,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
+				hasFallthrough = hasFallthrough || cas.Fallthrough
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
 			if ti != nil && ti.IsConstant() {
@@ -246,7 +251,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
-			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
+			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.TypeSwitch:
 			terminating := true
@@ -260,9 +265,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
-			hasDefault := false
+			var positionOfDefault *ast.Position
 			for _, cas := range node.Cases {
-				hasDefault = hasDefault || len(cas.Expressions) == 0
+				if cas.Expressions == nil {
+					if positionOfDefault != nil {
+						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", *positionOfDefault))
+					}
+					positionOfDefault = cas.Pos()
+				}
 				for i := range cas.Expressions {
 					expr := cas.Expressions[i]
 					t := tc.typeof(expr, noEllipses)
@@ -278,7 +288,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
-			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
+			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.Const:
 			tc.checkAssignment(node)

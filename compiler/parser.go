@@ -533,27 +533,14 @@ func (p *parsing) parseStatement(tok token) {
 
 	// default
 	case tokenDefault:
-		// TODO (Gianluca): move to type-checker.
-		switch s := parent.(type) {
-		case *ast.Switch:
-			for _, c := range s.Cases {
-				if c.Expressions == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
-				}
-			}
-		case *ast.TypeSwitch:
-			for _, c := range s.Cases {
-				if c.Expressions == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
-				}
-			}
+		switch parent.(type) {
+		case *ast.Switch, *ast.TypeSwitch:
 		default:
-			// TODO (Gianluca): should be "unexpected case, expecting ...".
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case")})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected default, expecting }")})
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
 		}
 		pos.End = tok.pos.End
 		node := ast.NewCase(pos, nil, nil, false)
