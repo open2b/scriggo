@@ -57,19 +57,22 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		if len(n.Identifiers) == 1 && len(values) == 1 {
 			newVar := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
-			if !isBlankIdentifier(n.Identifiers[0]) {
-				if newVar == "" {
-					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+			if !isBlankIdentifier(n.Identifiers[0]) && newVar == "" {
+				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+			}
+			old := values[0]
+			if ti := tc.typeInfo[old]; ti.IsConstant() {
+				if typ == nil {
+					typ = ti
 				}
-				old := values[0]
-				if ti := tc.typeInfo[old]; ti.IsConstant() {
-					if typ == nil {
-						typ = ti
-					}
-					new := ast.NewValue(typedValue(ti, typ.Type))
-					tc.replaceTypeInfo(old, new)
-					values[0] = new
+				var new *ast.Value
+				if typ == nil {
+					new = ast.NewValue(typedValue(ti, ti.Type))
+				} else {
+					new = ast.NewValue(typedValue(ti, typ.Type))
 				}
+				tc.replaceTypeInfo(old, new)
+				values[0] = new
 			}
 			return
 		}
@@ -149,13 +152,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				panic(err)
 			}
 			tc.assignSingle(node, n.Variables[0], n.Values[0], nil, nil, false, false)
-			if !isBlankIdentifier(n.Variables[0]) {
-				old := n.Values[0]
-				if ti := tc.typeInfo[n.Values[0]]; ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, ti.Type))
-					tc.replaceTypeInfo(old, new)
-					n.Values[0] = new
+			old := n.Values[0]
+			if ti := tc.typeInfo[n.Values[0]]; ti.IsConstant() {
+				var new *ast.Value
+				if typ == nil {
+					new = ast.NewValue(typedValue(ti, ti.Type))
+				} else {
+					new = ast.NewValue(typedValue(ti, typ.Type))
 				}
+				tc.replaceTypeInfo(old, new)
+				n.Values[0] = new
 			}
 			return
 		}
@@ -169,18 +175,21 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if newVar == "" && isDecl {
 				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
-			if !isBlankIdentifier(n.Variables[0]) {
-				varTi := tc.typeInfo[n.Variables[0]]
-				old := n.Values[0]
-				if ti := tc.typeInfo[values[0]]; ti.IsConstant() {
-					typ = varTi
-					if isDecl {
-						typ = ti
-					}
-					new := ast.NewValue(typedValue(ti, typ.Type))
-					tc.replaceTypeInfo(old, new)
-					values[0] = new
+			varTi := tc.typeInfo[n.Variables[0]]
+			old := n.Values[0]
+			if ti := tc.typeInfo[values[0]]; ti.IsConstant() {
+				typ = varTi
+				if isDecl {
+					typ = ti
 				}
+				var new *ast.Value
+				if typ == nil {
+					new = ast.NewValue(typedValue(ti, ti.Type))
+				} else {
+					new = ast.NewValue(typedValue(ti, typ.Type))
+				}
+				tc.replaceTypeInfo(old, new)
+				values[0] = new
 			}
 			return
 		}
@@ -258,20 +267,23 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		} else {
 			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
 		}
-		if !isBlankIdentifier(vars[i]) {
-			varTi := tc.typeInfo[vars[i]]
-			old := values[0]
-			if v, ok := tc.typeInfo[values[0]]; ok && v.IsConstant() {
-				if typ == nil {
-					typ = v
-					if isDecl {
-						typ = varTi
-					}
+		varTi := tc.typeInfo[vars[i]]
+		old := values[i]
+		if v, ok := tc.typeInfo[values[i]]; ok && v.IsConstant() {
+			if typ == nil {
+				typ = v
+				if isDecl {
+					typ = varTi
 				}
-				new := ast.NewValue(typedValue(v, typ.Type))
-				tc.replaceTypeInfo(old, new)
-				values[0] = new
 			}
+			var new *ast.Value
+			if typ == nil {
+				new = ast.NewValue(typedValue(v, v.Type))
+			} else {
+				new = ast.NewValue(typedValue(v, typ.Type))
+			}
+			tc.replaceTypeInfo(old, new)
+			values[i] = new
 		}
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
