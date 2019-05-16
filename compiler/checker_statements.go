@@ -35,19 +35,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Text:
 
 		case *ast.Extends:
-
 			panic("found *ast.Extends") // TODO (Gianluca): to review.
 
 		case *ast.Include:
-
 			tc.checkNodesInNewScope(node.Tree.Nodes)
 
 		case *ast.Block:
-
 			tc.checkNodesInNewScope(node.Nodes)
 
 		case *ast.If:
-
 			tc.addScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
@@ -78,7 +74,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = terminating
 
 		case *ast.For:
-
 			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
@@ -104,7 +99,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
 		case *ast.ForRange:
-
 			tc.addScope()
 			tc.addToAncestors(node)
 			// Check range expression.
@@ -164,7 +158,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = !tc.hasBreak[node]
 
 		case *ast.Assignment:
-
 			tc.checkAssignment(node)
 			if node.Type == ast.AssignmentDeclaration {
 				tc.nextValidGoto = len(tc.gotos)
@@ -172,7 +165,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.Break:
-
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0; i-- {
 				switch n := tc.ancestors[i].node.(type) {
@@ -188,7 +180,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.Continue:
-
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0; i-- {
 				switch tc.ancestors[i].node.(type) {
@@ -203,12 +194,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.Return:
-
 			tc.checkReturn(node)
 			tc.terminating = true
 
 		case *ast.Switch:
-
 			tc.addScope()
 			tc.addToAncestors(node)
 			// Check the assignment.
@@ -260,7 +249,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = terminating && !tc.hasBreak[node] && hasDefault
 
 		case *ast.TypeSwitch:
-
 			terminating := true
 			tc.addScope()
 			tc.addToAncestors(node)
@@ -297,7 +285,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.Var:
-
 			tc.checkAssignment(node)
 			tc.nextValidGoto = len(tc.gotos)
 			tc.terminating = false
@@ -314,13 +301,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
-
 			// TODO (Gianluca): to review.
 			tc.checkExpression(node.Expr)
 			tc.terminating = false
 
 		case *ast.ShowMacro:
-
 			// TODO (Gianluca): to review.
 			name := node.Macro.Name
 			_, ok := tc.lookupScopes(name, false)
@@ -329,7 +314,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 
 		case *ast.Macro:
-
 			// TODO (Gianluca): handle types for macros.
 			name := node.Ident.Name
 			_, ok := tc.lookupScopes(name, false)
@@ -418,7 +402,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodes([]ast.Node{node.Statement})
 
 		case ast.Expression:
-
 			ti := tc.checkExpression(node)
 			if tc.isScript {
 				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
@@ -446,7 +429,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 
 		default:
-
 			panic(fmt.Errorf("checkNodes not implemented for type: %T", node))
 
 		}
