@@ -117,6 +117,69 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Init function with package variables",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func init() {
+			fmt.Print("init1!")
+		}
+		
+		var A = F()
+		
+		func F() int {
+			fmt.Print("F!")
+			return 42
+		}
+		
+		func main() {
+			fmt.Print("main!")
+		}
+		`, nil, nil, "F!init1!main!"},
+
+	{"Init function - one",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func init() {
+			fmt.Print("init!")
+		}
+		
+		func main() {
+			fmt.Print("main!")
+		}
+		`, nil, nil, "init!main!"},
+
+	{"Init function - three",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func init() {
+			fmt.Print("init1!")
+		}
+		
+		func main() {
+			fmt.Print("main!")
+		}
+		
+		func init() {
+			fmt.Print("init2!")
+		}
+		
+		func init() {
+			fmt.Print("init3!")
+		}
+		`, nil, nil, "init1!init2!init3!main!"},
+
 	{"Package variables initialization",
 		`package main
 
@@ -130,8 +193,9 @@ var stmtTests = []struct {
 		}
 		
 		func main() {
+			fmt.Print("main!")
 		}
-		`, nil, nil, "F has been called!"},
+		`, nil, nil, "F has been called!main!"},
 
 	{"Closure - complex tests (multiple clojures)",
 		`package main

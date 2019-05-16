@@ -173,6 +173,8 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 // emitPackage emits pkg.
 func (c *Emitter) emitPackage(pkg *ast.Package) {
 
+	// If package has variable declarations, a special "init" function must be
+	// created to initialize them.
 	havePkgVariables := false
 	for _, dec := range pkg.Declarations {
 		if _, ok := dec.(*ast.Var); ok {
@@ -183,6 +185,7 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 
 	var initVarsFn *vm.ScrigoFunction
 	var initVarsFb *FunctionBuilder
+
 	if havePkgVariables {
 		initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 		c.availableScrigoFunctions["$initvars"] = initVarsFn
@@ -190,16 +193,30 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		initVarsFb.EnterScope()
 	}
 
+	// List of all "init" functions in current package.
+	initFuncs := []*vm.ScrigoFunction{}
+
+	// Index of next "init" function to build.
+	initToBuild := 0
+
+	// Stores all function declarations in current package before building
+	// their bodies: order of declaration doesn't matter at package level.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
 			fn := NewScrigoFunction("main", fun.Ident.Name, fun.Type.Reflect)
-			c.availableScrigoFunctions[fun.Ident.Name] = fn
+			if fun.Ident.Name == "init" {
+				initFuncs = append(initFuncs, fn)
+			} else {
+				c.availableScrigoFunctions[fun.Ident.Name] = fn
+			}
 		}
 	}
 
 	for _, dec := range pkg.Declarations {
 		switch n := dec.(type) {
+
 		case *ast.Var:
+
 			backupFn := c.currentFunction
 			backupFb := c.fb
 			c.currentFunction = initVarsFn
@@ -207,35 +224,50 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 			addresses := make([]Address, len(n.Identifiers))
 			for i, v := range n.Identifiers {
 				varType := c.typeinfo[v].Type
-				if c.indirectVars[v] {
-					varReg := -c.fb.NewRegister(reflect.Interface)
-					c.fb.BindVarReg(v.Name, varReg)
-					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
-				} else {
-					panic(fmt.Sprintf("global variable %s should be indirect, but is not!", v))
-				}
+				varReg := -c.fb.NewRegister(reflect.Interface)
+				c.fb.BindVarReg(v.Name, varReg)
+				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
 			}
 			c.assign(addresses, n.Values)
 			c.currentFunction = backupFn
 			c.fb = backupFb
+
 		case *ast.Func:
-			fn := c.availableScrigoFunctions[n.Ident.Name]
+
+			var fn *vm.ScrigoFunction
+			if n.Ident.Name == "init" {
+				fn = initFuncs[initToBuild]
+				initToBuild++
+			} else {
+				fn = c.availableScrigoFunctions[n.Ident.Name]
+			}
 			c.currentFunction = fn
 			c.fb = NewBuilder(fn)
 			c.fb.EnterScope()
+
 			// If function is "main", variables initialization function
 			// must be called as first statement inside main.
-			if n.Ident.Name == "main" && havePkgVariables {
-				iv := c.availableScrigoFunctions["$initvars"]
-				index := c.fb.AddScrigoFunction(iv)
-				c.fb.Call(int8(index), vm.StackShift{}, 0)
+			if n.Ident.Name == "main" {
+				// First: initializes package variables.
+				if havePkgVariables {
+					iv := c.availableScrigoFunctions["$initvars"]
+					index := c.fb.AddScrigoFunction(iv)
+					c.fb.Call(int8(index), vm.StackShift{}, 0)
+				}
+				// Second: calls all init functions, in order.
+				for _, initFunc := range initFuncs {
+					index := c.fb.AddScrigoFunction(initFunc)
+					c.fb.Call(int8(index), vm.StackShift{}, 0)
+				}
 			}
 			c.prepareFunctionBodyParameters(n)
 			addExplicitReturn(n)
 			c.emitNodes(n.Body.Nodes)
 			c.fb.End()
 			c.fb.ExitScope()
+
 		case *ast.Import:
+
 			if n.Tree == nil { // Go package.
 				var importPkgName string
 				parserGoPkg := c.importableGoPkgs[n.Path]
@@ -869,35 +901,6 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 		}
 
-	case *ast.Int: // TODO(Gianluca): obsolete: use *ast.Value instead.
-		if reg == 0 {
-			return
-		}
-		intType := c.typeinfo[expr].Type
-		i, ki, isRegister := c.quickEmitExpr(expr, intType)
-		if ki {
-			c.changeRegister(true, i, reg, intType, dstType)
-		} else if isRegister {
-			c.changeRegister(false, i, reg, intType, dstType)
-		} else {
-			panic("TODO(Gianluca): not implemented")
-		}
-
-	case *ast.String: // TODO(Gianluca): obsolete: use *ast.Value instead.
-		if reg == 0 {
-			return
-		}
-		stringType := c.typeinfo[expr].Type
-		i, ki, isRegister := c.quickEmitExpr(expr, stringType)
-		if ki {
-			c.changeRegister(true, i, reg, stringType, dstType)
-		} else if isRegister {
-			c.changeRegister(false, i, reg, stringType, dstType)
-		} else {
-			constant := c.fb.MakeStringConstant(expr.Text)
-			c.changeRegister(true, constant, reg, stringType, dstType)
-		}
-
 	case *ast.Index:
 		exprType := c.typeinfo[expr.Expr].Type
 		var exprReg int8
@@ -944,14 +947,6 @@ func (c *Emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 		return 0, false, false
 	}
 	switch expr := expr.(type) {
-
-	// TODO(Gianluca): strings and int must be put inside an *ast.Value
-	// node by typechecker.
-	case *ast.String:
-		return 0, false, false
-	case *ast.Int:
-		return int8(expr.Value.Int64()), true, false
-
 	case *ast.Identifier:
 		if c.fb.IsVariable(expr.Name) {
 			return c.fb.ScopeLookup(expr.Name), false, true

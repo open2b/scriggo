@@ -465,35 +465,33 @@ func (p *parsing) parseStatement(tok token) {
 
 	// break
 	case tokenBreak:
+		var label *ast.Identifier
 		tok = next(p.lex)
+		if tok.typ == tokenIdentifier {
+			label = ast.NewIdentifier(tok.pos, string(tok.txt))
+			tok = next(p.lex)
+		}
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		node = ast.NewBreak(pos)
+		node = ast.NewBreak(pos, label)
 		addChild(parent, node)
 		p.cutSpacesToken = true
 
 	// continue
 	case tokenContinue:
-		// TODO (Gianluca): move to type-checker.
-		var loop bool
-		for i := len(p.ancestors) - 1; !loop && i > 0; i-- {
-			switch p.ancestors[i].(type) {
-			case *ast.For, *ast.ForRange:
-				loop = true
-				break
-			}
-		}
-		if !loop {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("continue is not in a loop")})
-		}
+		var label *ast.Identifier
 		tok = next(p.lex)
+		if tok.typ == tokenIdentifier {
+			label = ast.NewIdentifier(tok.pos, string(tok.txt))
+			tok = next(p.lex)
+		}
 		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		node = ast.NewContinue(pos)
+		node = ast.NewContinue(pos, label)
 		addChild(parent, node)
 		p.cutSpacesToken = true
 

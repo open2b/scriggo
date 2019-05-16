@@ -92,9 +92,11 @@ func CloneNode(node ast.Node) ast.Node {
 		assignment := CloneNode(n.Assignment).(*ast.Assignment)
 		return ast.NewForRange(ClonePosition(n.Position), assignment, body)
 	case *ast.Break:
-		return ast.NewBreak(ClonePosition(n.Position))
+		label := CloneExpression(n.Label).(*ast.Identifier)
+		return ast.NewBreak(ClonePosition(n.Position), label)
 	case *ast.Continue:
-		return ast.NewContinue(ClonePosition(n.Position))
+		label := CloneExpression(n.Label).(*ast.Identifier)
+		return ast.NewContinue(ClonePosition(n.Position), label)
 	case *ast.Extends:
 		extends := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {
