@@ -1266,9 +1266,12 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			rangeLabel := c.fb.NewLabel()
 			c.fb.SetLabelAddr(rangeLabel)
 			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
+			endRange := c.fb.NewLabel()
+			c.fb.Goto(endRange)
 			c.fb.EnterScope()
 			c.emitNodes(node.Body)
 			c.fb.Continue(rangeLabel)
+			c.fb.SetLabelAddr(endRange)
 			c.fb.ExitScope()
 			c.fb.ExitScope()
 
