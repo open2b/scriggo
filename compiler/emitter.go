@@ -762,29 +762,14 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		for i := range expr.Upvars {
-			uv := &expr.Upvars[i]
-			if uv.Index == -1 {
-				name := uv.Declaration.(*ast.Identifier).Name
-				reg := c.fb.ScopeLookup(name)
-				uv.Index = int16(reg)
-			}
-		}
-
 		fn := c.fb.Func(reg, c.typeinfo[expr].Type)
+		c.setClosureRefs(fn, expr.Upvars)
+
 		funcLitBuilder := NewBuilder(fn)
 		currFb := c.fb
 		currFn := c.currentFunction
 		c.fb = funcLitBuilder
 		c.currentFunction = fn
-
-		closureRefs := make([]int16, len(expr.Upvars))
-		c.upvarsNames[fn] = make(map[string]int)
-		for i, uv := range expr.Upvars {
-			c.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
-			closureRefs[i] = uv.Index
-		}
-		fn.VarRefs = closureRefs
 
 		c.fb.EnterScope()
 		c.prepareFunctionBodyParameters(expr)

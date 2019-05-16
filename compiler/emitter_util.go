@@ -136,3 +136,31 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	}
 	return !allDifferentIdentifiers()
 }
+
+// setClosureRefs sets closure refs for function. This function works on current
+// function builder, so shall be called before changing/saving it.
+func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
+
+	// First: updates indexes of declarations that are found at the same level
+	// of fn with appropriate register indexes.
+	for i := range upvars {
+		uv := &upvars[i]
+		if uv.Index == -1 {
+			name := uv.Declaration.(*ast.Identifier).Name
+			reg := c.fb.ScopeLookup(name)
+			uv.Index = int16(reg)
+		}
+	}
+
+	// Second: update upvarNames with external-defined names.
+	closureRefs := make([]int16, len(upvars))
+	c.upvarsNames[fn] = make(map[string]int)
+	for i, uv := range upvars {
+		c.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
+		closureRefs[i] = uv.Index
+	}
+
+	// Third: var refs of current function are updated.
+	fn.VarRefs = closureRefs
+
+}
