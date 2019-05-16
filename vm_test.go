@@ -117,7 +117,28 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
-	{"Continue - For range",
+	{"Break - For range (no label)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("start, ")
+			for _, v := range []int{1, 2, 3} {
+				fmt.Print("v: ", v, ", ")
+				if v == 2 {
+					fmt.Print("break, ")
+					break
+				}
+				fmt.Print("no break, ")
+			}
+			fmt.Print("end")
+		}
+		`, nil, nil, "start, v: 1, no break, v: 2, break, end"},
+
+	{"Continue - For range (no label)",
 		`package main
 
 		import (

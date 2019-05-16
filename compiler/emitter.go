@@ -38,7 +38,10 @@ type Emitter struct {
 
 	isNativePkg map[string]bool
 
-	rangeLabels []uint32
+	// rangeLabels is a list of current active Ranges. First element is the
+	// Range address, second referrs to the first instruction outside Range's
+	// body.
+	rangeLabels [][2]uint32
 }
 
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
@@ -1116,11 +1119,18 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			c.emitNodes(node.Nodes)
 			c.fb.ExitScope()
 
+		case *ast.Break:
+			if node.Label != nil {
+				panic("TODO(Gianluca): not implemented")
+			}
+			c.fb.Break(c.rangeLabels[len(c.rangeLabels)-1][0])
+			c.fb.Goto(c.rangeLabels[len(c.rangeLabels)-1][1])
+
 		case *ast.Continue:
 			if node.Label != nil {
 				panic("TODO(Gianluca): not implemented")
 			}
-			c.fb.Continue(c.rangeLabels[len(c.rangeLabels)-1])
+			c.fb.Continue(c.rangeLabels[len(c.rangeLabels)-1][0])
 
 		case *ast.Defer, *ast.Go:
 			if def, ok := node.(*ast.Defer); ok {
@@ -1273,9 +1283,9 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			}
 			rangeLabel := c.fb.NewLabel()
 			c.fb.SetLabelAddr(rangeLabel)
-			c.rangeLabels = append(c.rangeLabels, rangeLabel)
-			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
 			endRange := c.fb.NewLabel()
+			c.rangeLabels = append(c.rangeLabels, [2]uint32{rangeLabel, endRange})
+			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
 			c.fb.Goto(endRange)
 			c.fb.EnterScope()
 			c.emitNodes(node.Body)
