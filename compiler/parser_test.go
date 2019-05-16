@@ -541,6 +541,16 @@ var noneContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 2, 1, 4), "LOOP"), nil),
 			}),
 		}, ast.ContextNone)},
+	{"break LOOP",
+		ast.NewTree("", []ast.Node{
+			ast.NewBreak(p(1, 1, 0, 9),
+				ast.NewIdentifier(p(1, 7, 6, 9), "LOOP")),
+		}, ast.ContextNone)},
+	{"continue LOOP",
+		ast.NewTree("", []ast.Node{
+			ast.NewContinue(p(1, 1, 0, 12),
+				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
+		}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -979,7 +989,7 @@ var treeTests = []struct {
 						p(1, 13, 12, 24),
 						nil,
 						[]ast.Node{
-							ast.NewBreak(p(1, 26, 25, 35)),
+							ast.NewBreak(p(1, 26, 25, 35), nil),
 						},
 						false,
 					),
@@ -1187,13 +1197,13 @@ var treeTests = []struct {
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 13, 12, 12), "e")}),
-			[]ast.Node{ast.NewBreak(p(1, 17, 16, 26))})}, ast.ContextHTML)},
+			[]ast.Node{ast.NewBreak(p(1, 17, 16, 26), nil)})}, ast.ContextHTML)},
 	{"{% for v in e %}{% continue %}{% end %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 38), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"),
 			ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 13, 12, 12), "e")}),
-			[]ast.Node{ast.NewContinue(p(1, 17, 16, 29))})}, ast.ContextHTML)},
+			[]ast.Node{ast.NewContinue(p(1, 17, 16, 29), nil)})}, ast.ContextHTML)},
 	{"{% if a %}b{% end if %}", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 7, 6, 6), "a"), ast.NewBlock(nil, []ast.Node{ast.NewText(p(1, 11, 10, 10), []byte("b"), ast.Cut{})}), nil)}, ast.ContextHTML)},
 	{"{% if a %}b{% else %}c{% end %}", ast.NewTree("", []ast.Node{
@@ -2334,13 +2344,23 @@ func equals(n1, n2 ast.Node, p int) error {
 		}
 
 	case *ast.Break:
-		if _, ok := n2.(*ast.Break); !ok {
+		nn2, ok := n2.(*ast.Break)
+		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Label, nn2.Label, p)
+		if err != nil {
+			return err
 		}
 
 	case *ast.Continue:
-		if _, ok := n2.(*ast.Continue); !ok {
+		nn2, ok := n2.(*ast.Continue)
+		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Label, nn2.Label, p)
+		if err != nil {
+			return err
 		}
 
 	default:

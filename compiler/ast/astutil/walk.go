@@ -247,6 +247,12 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, value)
 		}
 
+	case *ast.Break:
+		Walk(v, n.Label)
+
+	case *ast.Continue:
+		Walk(v, n.Label)
+
 	case *ast.Extends:
 	case *ast.Import:
 	case *ast.Include:
@@ -260,8 +266,6 @@ func Walk(v Visitor, node ast.Node) {
 	case *ast.String:
 	case *ast.ShowMacro:
 	case *ast.Comment:
-	case *ast.Break:
-	case *ast.Continue:
 	case *ast.Text:
 		// Nothing to do
 

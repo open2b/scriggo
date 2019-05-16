@@ -449,20 +449,22 @@ func NewForRange(pos *Position, assignment *Assignment, body []Node) *ForRange {
 
 // Break node represents a statement {% break %}.
 type Break struct {
-	*Position // position in the source.
+	*Position             // position in the source.
+	Label     *Identifier // label.
 }
 
-func NewBreak(pos *Position) *Break {
-	return &Break{pos}
+func NewBreak(pos *Position, label *Identifier) *Break {
+	return &Break{pos, label}
 }
 
 // Continue node represents a statement {% continue %}.
 type Continue struct {
-	*Position // position in the source.
+	*Position             // position in the source.
+	Label     *Identifier // label.
 }
 
-func NewContinue(pos *Position) *Continue {
-	return &Continue{pos}
+func NewContinue(pos *Position, label *Identifier) *Continue {
+	return &Continue{pos, label}
 }
 
 // If node represents a statement {% if ... %}.
