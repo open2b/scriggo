@@ -145,10 +145,12 @@ func (vm *VM) run() (uint32, bool) {
 			v := reflect.ValueOf(vm.general(a))
 			t := vm.fn.Types[uint8(b)]
 			var ok bool
-			if t.Kind() == reflect.Interface {
-				ok = v.Type().Implements(t)
-			} else {
-				ok = v.Type() == t
+			if v.IsValid() {
+				if t.Kind() == reflect.Interface {
+					ok = v.Type().Implements(t)
+				} else {
+					ok = v.Type() == t
+				}
 			}
 			vm.ok = ok
 			if ok {
