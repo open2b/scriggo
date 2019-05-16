@@ -159,8 +159,10 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 						// int8; should we change address to store
 						// int32/64?
 						addresses[i] = c.NewAddress(AddressUpVar, varType, int8(reg), 0)
+					} else if index, ok := c.globalsIndexes[v.Name]; ok {
+						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
+						addresses[i] = c.NewAddress(AddressPackageVariable, varType, int8(index), 0)
 					} else {
-
 						reg := c.fb.ScopeLookup(v.Name)
 						addresses[i] = c.NewAddress(AddressRegister, varType, reg, 0)
 					}

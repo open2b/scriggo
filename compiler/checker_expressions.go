@@ -434,9 +434,12 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 			return ti
 		case DeclVar:
 			ti := tc.checkExpression(d.Value.(ast.Expression))
-			ti.Properties = PropertyAddressable
-			tc.globalTemp[ident.Name] = ti
-			return ti
+			tc.globalTemp[ident.Name] = &TypeInfo{
+				Type:       ti.Type,
+				Properties: PropertyAddressable,
+				Value:      ti.Value,
+			}
+			return tc.globalTemp[ident.Name]
 			// case DeclFunc:
 			// 	tc.checkNodesInNewScope(d.Value.(*ast.Block).Nodes)
 			// 	return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}

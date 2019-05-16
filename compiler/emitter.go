@@ -42,6 +42,12 @@ type Emitter struct {
 	// Range address, second referrs to the first instruction outside Range's
 	// body.
 	rangeLabels [][2]uint32
+
+	// globals holds all global variables.
+	globals []reflect.Type
+
+	// globalsIndexes maps global variable names to their index inside globals.
+	globalsIndexes map[string]int16
 }
 
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
@@ -64,6 +70,8 @@ func NewCompiler(r Reader, packages map[string]*GoPackage) *Emitter {
 		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Global]uint8{},
 
 		isNativePkg: map[string]bool{},
+
+		globalsIndexes: map[string]int16{},
 	}
 	c.parser = New(r, packages, true)
 	return c
@@ -178,8 +186,6 @@ func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 // emitPackage emits pkg.
 func (c *Emitter) emitPackage(pkg *ast.Package) {
 
-	// If package has variable declarations, a special "init" function must be
-	// created to initialize them.
 	havePkgVariables := false
 	for _, dec := range pkg.Declarations {
 		if _, ok := dec.(*ast.Var); ok {
@@ -191,6 +197,10 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 	var initVarsFn *vm.ScrigoFunction
 	var initVarsFb *FunctionBuilder
 
+	// If package has some variable declarations, a special "init" function
+	// must be created to initialize them. "$initvars" is used because is not
+	// a valid Go identifier, so there's no risk of collision with Scrigo
+	// defined functions.
 	if havePkgVariables {
 		initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 		c.availableScrigoFunctions["$initvars"] = initVarsFn
@@ -217,11 +227,10 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 		}
 	}
 
+	// Emits instructions for package variables.
+	packageVariablesRegisters := map[string]int8{}
 	for _, dec := range pkg.Declarations {
-		switch n := dec.(type) {
-
-		case *ast.Var:
-
+		if n, ok := dec.(*ast.Var); ok {
 			backupFn := c.currentFunction
 			backupFb := c.fb
 			c.currentFunction = initVarsFn
@@ -232,10 +241,18 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 				varReg := -c.fb.NewRegister(reflect.Interface)
 				c.fb.BindVarReg(v.Name, varReg)
 				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				packageVariablesRegisters[v.Name] = varReg
+				c.globals = append(c.globals, varType)
+				c.globalsIndexes[v.Name] = int16(len(c.globals) - 1)
 			}
 			c.assign(addresses, n.Values)
 			c.currentFunction = backupFn
 			c.fb = backupFb
+		}
+	}
+
+	for _, dec := range pkg.Declarations {
+		switch n := dec.(type) {
 
 		case *ast.Func:
 
@@ -326,8 +343,32 @@ func (c *Emitter) emitPackage(pkg *ast.Package) {
 	}
 
 	if havePkgVariables {
+		// Global variables have been locally defined inside the "$initvars"
+		// function; their values must now be exported to be available
+		// globally.
+		backupFn := c.currentFunction
+		backupFb := c.fb
+		c.currentFunction = initVarsFn
+		c.fb = initVarsFb
+		for name, reg := range packageVariablesRegisters {
+			index := c.globalsIndexes[name]
+			c.fb.SetVar(false, reg, int(index))
+		}
+		c.currentFunction = backupFn
+		c.fb = backupFb
 		initVarsFb.ExitScope()
 		initVarsFb.Return()
+	}
+
+	// Assigns globals to main's Globals.
+	main := c.availableScrigoFunctions["main"]
+	for name, index := range c.globalsIndexes {
+		global := c.globals[index]
+		main.Globals = append(main.Globals, vm.Global{Pkg: "main", Name: name, Type: global})
+	}
+	// All functions share Globals.
+	for _, f := range c.availableScrigoFunctions {
+		f.Globals = main.Globals
 	}
 }
 
@@ -811,7 +852,14 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					c.fb.GetVar(index, tmpReg)
 					c.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-				// TODO(Gianluca): move into the right register type?
+			} else if index, ok := c.globalsIndexes[expr.Name]; ok {
+				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+					c.fb.GetVar(int(index), reg)
+				} else {
+					tmpReg := c.fb.NewRegister(typ.Kind())
+					c.fb.GetVar(int(index), tmpReg)
+					c.changeRegister(false, tmpReg, reg, typ, dstType)
+				}
 			} else {
 				panic("bug")
 			}

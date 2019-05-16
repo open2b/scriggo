@@ -117,6 +117,104 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package variable - native call with package variable as argument",
+		`package main
+
+		import "fmt"
+		
+		var A = 3
+		
+		func main() {
+			fmt.Print(A)
+		}
+		`, nil, nil, "3"},
+
+	{"Package variable - int variable set by a package function",
+		`package main
+
+		import "fmt"
+		
+		var A = 3
+		
+		func SetA() {
+			A = 4
+		}
+		
+		func main() {
+			a := A
+			fmt.Print(a)
+			SetA()
+			a = A
+			fmt.Print(a)
+		}
+		`, nil, nil, "34"},
+
+	{"Package variable - int variable with math expression as value",
+		`package main
+
+		import "fmt"
+		
+		var A = F() + 3 + (2 * F())
+		
+		func F() int {
+			return 42
+		}
+		
+		func main() {
+			a := A
+			fmt.Print(a)
+		}
+		`, nil, nil, "129"},
+
+	{"Package variable - int variable with package function as value",
+		`package main
+
+		import "fmt"
+		
+		var A = F()
+		
+		func F() int {
+			return 42
+		}
+		
+		func main() {
+			a := A
+			fmt.Print(a)
+		}
+		`, nil, nil, "42"},
+
+	{"Package variable - int variable and string variable",
+		`package main
+
+		import "fmt"
+		
+		var A = 3
+		var B = "hey!"
+		
+		func main() {
+			a := A
+			fmt.Print(a)
+			b := B
+			fmt.Print(b)
+		
+		}
+		`, nil, nil, "3hey!"},
+
+	{"Package variable - one int variable",
+		`package main
+
+		import "fmt"
+		
+		var A = 3
+		
+		func main() {
+		
+			a := A
+			fmt.Print(a)
+		
+		}
+		`, nil, nil, "3"},
+
 	{"Break - For range (no label)",
 		`package main
 

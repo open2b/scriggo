@@ -290,6 +290,16 @@ func checkPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					unresolvedDeps = true
 				}
 				tc.typeInfo[v.Identifier] = varTi
+				// Replaces value's node and typeinfo if it's a constant.
+				if ti.IsConstant() {
+					for i, ident := range v.Node.(*ast.Var).Identifiers {
+						if ident.Name == v.Ident {
+							new := ast.NewValue(typedValue(ti, varTi.Type))
+							tc.replaceTypeInfo(v.Node.(*ast.Var).Values[i], new)
+							v.Node.(*ast.Var).Values[i] = new
+						}
+					}
+				}
 			}
 		}
 	}
