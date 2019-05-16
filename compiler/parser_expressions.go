@@ -475,6 +475,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				}
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
+				canCompositeLiteral = false
 			case tokenLeftBrackets: // e[...], e[.. : ..]
 				pos := tok.pos
 				pos.Start = operand.Pos().Start

@@ -54,6 +54,16 @@ var noneContextTreeTests = []struct {
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
 			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.ContextNone)},
+	{"for _ = range []int(nil) { }", ast.NewTree("", []ast.Node{
+		ast.NewForRange(p(1, 1, 0, 27),
+			ast.NewAssignment(p(1, 5, 4, 23),
+				[]ast.Expression{ast.NewIdentifier(p(1, 5, 4, 4), "_")},
+				ast.AssignmentSimple,
+				[]ast.Expression{
+					ast.NewCall(p(1, 20, 14, 23),
+						ast.NewSliceType(p(1, 15, 14, 18), ast.NewIdentifier(p(1, 17, 16, 18), "int")),
+						[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 22), "nil")},
+						false)}), nil)}, ast.ContextNone)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
 			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextNone)},
