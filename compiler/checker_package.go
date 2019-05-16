@@ -24,7 +24,7 @@ func (gp *GoPackage) toTypeCheckerScope() typeCheckerScope {
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       t,
-				Properties: PropertyIsType | PropertyGoImplemented,
+				Properties: PropertyIsType | PropertyIsNative,
 			}}
 			continue
 		}
@@ -32,7 +32,7 @@ func (gp *GoPackage) toTypeCheckerScope() typeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value).Elem(),
-				Properties: PropertyAddressable | PropertyGoImplemented,
+				Properties: PropertyAddressable | PropertyIsNative,
 			}}
 			continue
 		}
@@ -40,14 +40,14 @@ func (gp *GoPackage) toTypeCheckerScope() typeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value),
-				Properties: PropertyGoImplemented,
+				Properties: PropertyIsNative,
 			}}
 			continue
 		}
 		// Importing a Go constant.
 		s[ident] = scopeElement{t: &TypeInfo{
 			Value:      value, // TODO (Gianluca): to review.
-			Properties: PropertyIsConstant | PropertyGoImplemented,
+			Properties: PropertyIsConstant | PropertyIsNative,
 		}}
 	}
 	return s
