@@ -48,41 +48,31 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.If:
 
-			terminating := true
 			tc.addScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
 			}
-			expr := tc.checkExpression(node.Condition)
-			// TODO(marco): types with underlying type bool and the untyped bool are both allowed as condition.
-			// TODO (Gianluca): currently using isAssignableTo (not sure if it's right)
-			// if expr.Type != boolType {
-			// 	panic(tc.errorf(node.Condition, "non-bool %v (type %s) used as if condition", node.Condition, expr.Type))
-			// }
-			if !isAssignableTo(expr, boolType) {
-				// TODO (Gianluca): error message must include default type.
-				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, expr.ShortString()))
+			ti := tc.checkExpression(node.Condition)
+			if ti.Type.Kind() != reflect.Bool {
+				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
-			if expr.IsConstant() {
-				new := ast.NewValue(typedValue(expr, expr.Type))
+			if ti.IsConstant() {
+				new := ast.NewValue(typedValue(ti, ti.Type))
 				tc.replaceTypeInfo(node.Condition, new)
 				node.Condition = new
 			}
-			if node.Then != nil {
-				tc.checkNodesInNewScope(node.Then.Nodes)
-				terminating = terminating && tc.terminating
-			}
-			if node.Else != nil {
+			tc.checkNodesInNewScope(node.Then.Nodes)
+			terminating := tc.terminating
+			if node.Else == nil {
+				terminating = false
+			} else {
 				switch els := node.Else.(type) {
 				case *ast.Block:
 					tc.checkNodesInNewScope(els.Nodes)
 				case *ast.If:
-					// TODO (Gianluca): same problem we had in renderer:
 					tc.checkNodes([]ast.Node{els})
 				}
 				terminating = terminating && tc.terminating
-			} else {
-				terminating = false
 			}
 			tc.removeCurrentScope()
 			tc.terminating = terminating
