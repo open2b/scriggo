@@ -367,7 +367,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Send:
 			tic := tc.checkExpression(node.Channel)
 			if tic.Type.Kind() != reflect.Chan {
-				panic(tc.errorf(node, "invalid operation: %s (send to non-chan type %s)", node, tic.Type))
+				panic(tc.errorf(node, "invalid operation: %s (send to non-chan type %s)", node, tic.ShortString()))
+			}
+			if tic.Type.ChanDir() == reflect.RecvDir {
+				panic(tc.errorf(node, "invalid operation: %s (send to receive-only type %s)", node, tic.ShortString()))
 			}
 			elemType := tic.Type.Elem()
 			tiv := tc.checkExpression(node.Value)
@@ -375,9 +378,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if tiv.Nil() {
 					panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
 				}
-				// TODO(marco): in some cases the error is of type:
-				// "cannot convert "a" (type untyped string) to type int"
-				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.Type, elemType))
+				if tiv.Type == stringType {
+					panic(tc.errorf(node, "cannot convert %s (type %s) to type %s", node.Value, tiv, elemType))
+				}
+				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.ShortString(), elemType))
 			}
 			if tiv.IsConstant() {
 				new := ast.NewValue(typedValue(tiv, elemType))

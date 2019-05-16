@@ -660,11 +660,11 @@ var checkerStmts = map[string]string{
 	`v, ok := <-aIntChan; _, _ = v, ok`: ok,
 
 	// Send.
-	`aIntChan <- 5`:    ok,
-	`aIntChan <- nil`:  `cannot convert nil to type int`,
-	`aIntChan <- 1.34`: `cannot use 1.34 (type float64) as type int in send`,
-	// TODO(marco): next test should fail with `cannot convert "a" (type untyped string) to type int`
-	`aIntChan <- "a"`:          `cannot use "a" (type string) as type int in send`,
+	`aIntChan <- 5`:            ok,
+	`aIntChan <- nil`:          `cannot convert nil to type int`,
+	`aIntChan <- 1.34`:         `cannot use 1.34 (type float64) as type int in send`,
+	`aIntChan <- "a"`:          `cannot convert "a" (type untyped string) to type int`,
+	`make(<-chan int) <- 5`:    `invalid operation: make(<-chan int) <- 5 (send to receive-only type <-chan int)`,
 	`aSliceChan <- nil`:        ok,
 	`aSliceChan <- []int(nil)`: ok,
 	`aSliceChan <- []int{1}`:   ok,
