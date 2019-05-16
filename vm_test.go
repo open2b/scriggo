@@ -330,7 +330,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "f: 10"},
 
-	{"For range on empty interface slice",
+	{"For range on interface{} slice",
 		`package main
 
 		import "fmt"
