@@ -152,7 +152,7 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 		}
 	}
 
-	// Second: update upvarNames with external-defined names.
+	// Second: updates upvarNames with external-defined names.
 	closureRefs := make([]int16, len(upvars))
 	c.upvarsNames[fn] = make(map[string]int)
 	for i, uv := range upvars {
