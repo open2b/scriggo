@@ -195,7 +195,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Break
 		case OpBreak:
-			return decodeAddr(a, b, c), false
+			return decodeAddr(a, b, c), true
 
 		// Call
 		case OpCall:
@@ -301,7 +301,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Continue
 		case OpContinue:
-			return decodeAddr(a, b, c), true
+			return decodeAddr(a, b, c), false
 
 		// Convert
 		case OpConvert:
@@ -757,9 +757,9 @@ func (vm *VM) run() (uint32, bool) {
 		// Range
 		case OpRange:
 			var addr uint32
-			var cont bool
-			bodyAddress := vm.pc
-			rangeAddress := bodyAddress - 1
+			var breakOut bool
+			rangeAddress := vm.pc - 1
+			bodyAddress := vm.pc + 1
 			s := vm.general(a)
 			switch s := s.(type) {
 			case []int:
@@ -771,8 +771,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setInt(c, int64(v))
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -785,8 +788,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setInt(c, int64(v))
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -799,8 +805,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setInt(c, int64(v))
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -813,8 +822,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setFloat(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -827,8 +839,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setString(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -841,8 +856,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setGeneral(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -855,8 +873,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setInt(c, int64(v))
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -869,8 +890,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setBool(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -883,8 +907,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setString(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -897,8 +924,11 @@ func (vm *VM) run() (uint32, bool) {
 						vm.setGeneral(c, v)
 					}
 					vm.pc = bodyAddress
-					addr, cont = vm.run()
-					if !cont || addr != rangeAddress {
+					addr, breakOut = vm.run()
+					if addr != rangeAddress {
+						return addr, breakOut
+					}
+					if breakOut {
 						break
 					}
 				}
@@ -915,8 +945,11 @@ func (vm *VM) run() (uint32, bool) {
 							vm.setFromReflectValue(c, iter.Value())
 						}
 						vm.pc = bodyAddress
-						addr, cont = vm.run()
-						if !cont || addr != rangeAddress {
+						addr, breakOut = vm.run()
+						if addr != rangeAddress {
+							return addr, breakOut
+						}
+						if breakOut {
 							break
 						}
 					}
@@ -933,23 +966,26 @@ func (vm *VM) run() (uint32, bool) {
 							vm.setFromReflectValue(c, rs.Index(i))
 						}
 						vm.pc = bodyAddress
-						addr, cont = vm.run()
-						if !cont || addr != rangeAddress {
+						addr, breakOut = vm.run()
+						if addr != rangeAddress {
+							return addr, breakOut
+						}
+						if breakOut {
 							break
 						}
 					}
 				}
 			}
-			if addr != rangeAddress {
-				return addr, cont
+			if !breakOut {
+				vm.pc = rangeAddress + 1
 			}
 
 		// RangeString
 		case OpRangeString, -OpRangeString:
 			var addr uint32
-			var cont bool
-			bodyAddress := vm.pc
-			rangeAddress := bodyAddress - 1
+			var breakOut bool
+			rangeAddress := vm.pc - 1
+			bodyAddress := vm.pc + 1
 			s := vm.stringk(a, op < 0)
 			for i, e := range s {
 				if b != 0 {
@@ -959,13 +995,16 @@ func (vm *VM) run() (uint32, bool) {
 					vm.setInt(c, int64(e))
 				}
 				vm.pc = bodyAddress
-				addr, cont = vm.run()
-				if !cont || addr != rangeAddress {
+				addr, breakOut = vm.run()
+				if addr != rangeAddress {
+					return addr, breakOut
+				}
+				if breakOut {
 					break
 				}
 			}
-			if addr != rangeAddress {
-				return addr, cont
+			if !breakOut {
+				vm.pc = rangeAddress + 1
 			}
 
 		// Receive
