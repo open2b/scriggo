@@ -857,6 +857,7 @@ var checkerStmts = map[string]string{
 	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `non-integer slice index i`,
 
 	// For statements with 'range' clause.
+	`for range "abc" { }`:                                                            ok,
 	`for _, _ = range "abc" { }`:                                                     ok,
 	`for _, _ = range []int{1,2,3} { }`:                                              ok,
 	`for k, v := range ([...]int{}) { var _, _ int = k, v }`:                         ok,
@@ -865,6 +866,11 @@ var checkerStmts = map[string]string{
 	`for _, _ = range 0 { }`:                                                         `cannot range over 0 (type untyped int)`, // TODO (Gianluca): should be 'number', not int.
 	`for _, _ = range (&[]int{}) { }`:                                                `cannot range over &[]int literal (type *[]int)`,
 	`for a, b, c := range "" { }`:                                                    `too many variables in range`,
+	`for a, b := range nil { }`:                                                      `cannot range over nil`,
+	`for a, b := range _ { }`:                                                        `cannot use _ as value`,
+	`for a, b := range make(chan int) { }`:                                           `too many variables in range`,
+	`for range make(chan<- int) { }`:                                                 `invalid operation: range make(chan<- int) (receive from send-only type chan<- int)`,
+	`for range make(<-chan int) { }`:                                                 ok,
 
 	// Switch (expression) statements.
 	`switch 1 { case 1: }`:                  ok,

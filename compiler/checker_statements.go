@@ -122,50 +122,55 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 			tc.addScope()
 			tc.addToAncestors(node)
-			// TODO(gianluca): review
-			if node.Assignment != nil {
-				if len(node.Assignment.Variables) > 2 {
+			// Check range expression.
+			expr := node.Assignment.Values[0]
+			ti := tc.checkExpression(expr)
+			if ti.Nil() {
+				panic(tc.errorf(node, "cannot range over nil"))
+			}
+			maxVars := 2
+			vars := node.Assignment.Variables
+			var typ1, typ2 reflect.Type
+			switch typ := ti.Type; typ.Kind() {
+			case reflect.Array, reflect.Slice:
+				typ1 = intType
+				typ2 = typ.Elem()
+			case reflect.Map:
+				typ1 = typ.Key()
+				typ2 = typ.Elem()
+			case reflect.String:
+				if ti.IsConstant() {
+					new := ast.NewValue(typedValue(ti, typ))
+					tc.replaceTypeInfo(node.Assignment.Values[0], new)
+					node.Assignment.Values[0] = new
+				}
+				typ1 = intType
+				typ2 = runeType
+			case reflect.Ptr:
+				if typ.Elem().Kind() != reflect.Array {
+					panic(tc.errorf(expr, "cannot range over %s (type %s)", expr, ti))
+				}
+				typ1 = intType
+				typ2 = typ.Elem().Elem()
+			case reflect.Chan:
+				if dir := typ.ChanDir(); dir == reflect.SendDir {
+					panic(tc.errorf(node.Assignment.Values[0], "invalid operation: range %s (receive from send-only type %s)", expr, ti.String()))
+				}
+				typ1 = typ.Elem()
+				maxVars = 1
+			default:
+				panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", expr, ti))
+			}
+			// Check variables.
+			if vars != nil {
+				if len(vars) > maxVars {
 					panic(tc.errorf(node, "too many variables in range"))
 				}
-				rangeExpr := tc.checkExpression(node.Assignment.Values[0])
-				var key, elem reflect.Type
-				switch typ := rangeExpr.Type; typ.Kind() {
-				case reflect.Array, reflect.Slice:
-					key = intType
-					elem = typ.Elem()
-				case reflect.Map:
-					key = typ.Key()
-					elem = typ.Elem()
-				case reflect.String:
-					if rangeExpr.IsConstant() {
-						new := ast.NewValue(typedValue(rangeExpr, rangeExpr.Type))
-						tc.replaceTypeInfo(node.Assignment.Values[0], new)
-						node.Assignment.Values[0] = new
-					}
-					key = intType
-					elem = reflect.TypeOf(rune(' '))
-				case reflect.Ptr:
-					if typ.Elem().Kind() != reflect.Array {
-						panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
-					}
-					key = intType
-					elem = typ.Elem().Elem()
-				case reflect.Chan:
-					if typ.ChanDir() == reflect.RecvDir {
-						panic(tc.errorf(node.Assignment.Values[0], "invalid operation: range %s (receive from send-only type %s)", node.Assignment.Values[0], rangeExpr.String()))
-					}
-					if len(node.Assignment.Variables) == 2 {
-						panic(tc.errorf(node, "too many variables in range"))
-					}
-					elem = typ.Elem()
-				default:
-					panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", node.Assignment.Values[0], rangeExpr.String()))
-				}
-				keyTi := &TypeInfo{Type: key, Properties: PropertyAddressable}
-				isDecl := node.Assignment.Type == ast.AssignmentDeclaration
-				tc.assignSingle(node.Assignment, node.Assignment.Variables[0], nil, keyTi, nil, isDecl, false)
-				if len(node.Assignment.Variables) == 2 {
-					tc.assignSingle(node.Assignment, node.Assignment.Variables[1], nil, &TypeInfo{Type: elem}, nil, isDecl, false)
+				ti1 := &TypeInfo{Type: typ1, Properties: PropertyAddressable}
+				declaration := node.Assignment.Type == ast.AssignmentDeclaration
+				tc.assignSingle(node.Assignment, vars[0], nil, ti1, nil, declaration, false)
+				if len(vars) == 2 {
+					tc.assignSingle(node.Assignment, vars[1], nil, &TypeInfo{Type: typ2}, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
