@@ -240,11 +240,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						new := ast.NewValue(value)
 						tc.replaceTypeInfo(cas.Expressions[i], new)
 						cas.Expressions[i] = new
-						// Check duplicate.
-						if pos, ok := positionOf[value]; ok {
-							panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
+						if typ.Kind() != reflect.Bool {
+							// Check duplicate.
+							if pos, ok := positionOf[value]; ok {
+								panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
+							}
+							positionOf[value] = ex.Pos()
 						}
-						positionOf[value] = ex.Pos()
 					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
