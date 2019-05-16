@@ -222,7 +222,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			for _, cas := range node.Cases {
 				if cas.Expressions == nil {
 					if positionOfDefault != nil {
-						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", *positionOfDefault))
+						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", positionOfDefault))
 					}
 					positionOfDefault = cas.Pos()
 				}
@@ -273,17 +273,25 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
 			var positionOfDefault *ast.Position
+			var positionOfNil *ast.Position
 			positionOf := map[reflect.Type]*ast.Position{}
 			for _, cas := range node.Cases {
 				if cas.Expressions == nil {
 					if positionOfDefault != nil {
-						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", *positionOfDefault))
+						panic(tc.errorf(cas, "multiple defaults in switch (first at %s)", positionOfDefault))
 					}
 					positionOfDefault = cas.Pos()
 				}
 				for i, ex := range cas.Expressions {
 					expr := cas.Expressions[i]
 					t := tc.typeof(expr, noEllipses)
+					if t.Nil() {
+						if positionOfNil != nil {
+							panic(tc.errorf(cas, "multiple nil cases in type switch (first at %s)", positionOfNil))
+						}
+						positionOfNil = ex.Pos()
+						continue
+					}
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
