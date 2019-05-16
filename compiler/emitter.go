@@ -334,7 +334,7 @@ func (c *Emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 }
 
 // emitCall emits instruction for a call, returning the list of registers (and
-// their respective type) within which return values is inserted.
+// their respective type) within which return values are inserted.
 func (c *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	stackShift := vm.StackShift{
 		int8(c.fb.numRegs[reflect.Int]),
