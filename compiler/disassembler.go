@@ -224,10 +224,13 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.Op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall, vm.OpMakeSlice:
+		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall:
 			addr += 1
 		case vm.OpDefer:
 			addr += 2
+		}
+		if in.Op == vm.OpMakeSlice && in.B > 1 {
+			addr += 1
 		}
 	}
 }
