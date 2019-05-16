@@ -551,6 +551,52 @@ var noneContextTreeTests = []struct {
 			ast.NewContinue(p(1, 1, 0, 12),
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
 		}, ast.ContextNone)},
+	{"func f() int {}", ast.NewTree("", []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
+			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
+			ast.NewBlock(p(1, 14, 13, 14), nil))}, ast.ContextNone)},
+	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
+			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
+			ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
+				ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewInt(p(1, 23, 22, 22), big.NewInt(5))}),
+			}))}, ast.ContextNone)},
+	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
+			ast.NewFuncType(nil, nil, []*ast.Field{
+				ast.NewField(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
+				ast.NewField(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
+			}, false),
+			ast.NewBlock(p(1, 22, 22, 23), nil))}, ast.ContextNone)},
+	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
+			ast.NewFuncType(nil, nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
+				ast.NewField(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
+			}, false),
+			ast.NewBlock(p(1, 29, 28, 29), nil))}, ast.ContextNone)},
+	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
+		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
+				ast.NewField(ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
+				ast.NewField(ast.NewIdentifier(p(1, 18, 17, 17), "c"), ast.NewIdentifier(p(1, 20, 19, 22), "bool")),
+				ast.NewField(ast.NewIdentifier(p(1, 26, 25, 25), "d"), ast.NewIdentifier(p(1, 31, 30, 32), "int")),
+			}, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 37, 36, 36), "n"), ast.NewIdentifier(p(1, 39, 38, 40), "int")),
+				ast.NewField(ast.NewIdentifier(p(1, 44, 43, 45), "err"), ast.NewIdentifier(p(1, 48, 47, 51), "error")),
+			}, true),
+			ast.NewBlock(p(1, 55, 54, 78), []ast.Node{
+				ast.NewAssignment(p(1, 57, 56, 62),
+					[]ast.Expression{ast.NewIdentifier(p(1, 57, 56, 56), "a")},
+					ast.AssignmentDeclaration,
+					[]ast.Expression{ast.NewInt(p(1, 62, 61, 61), big.NewInt(5))},
+				),
+				ast.NewReturn(p(1, 65, 64, 76), []ast.Expression{
+					ast.NewIdentifier(p(1, 72, 71, 71), "a"),
+					ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
+				}),
+			}))}, ast.ContextNone)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -586,103 +632,6 @@ var noneContextTreeTests = []struct {
 	// 		},
 	// 	),
 	// }, ast.ContextNone)},
-}
-
-var funcTests = []struct {
-	src  string
-	node ast.Node
-}{
-	{"func() {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 8), nil,
-			ast.NewFuncType(nil, nil, nil, false),
-			ast.NewBlock(p(1, 8, 7, 8), nil))}, ast.ContextNone)},
-	{"func(int) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 11), nil,
-			ast.NewFuncType(nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 6, 5, 7), "int"))}, nil, false),
-			ast.NewBlock(p(1, 11, 10, 11), nil))}, ast.ContextNone)},
-	{"func(a int) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 13), nil,
-			ast.NewFuncType(nil, []*ast.Field{ast.NewField(
-				ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 9), "int")),
-			}, nil, false),
-			ast.NewBlock(p(1, 13, 12, 13), nil))}, ast.ContextNone)},
-	{"func(a, b int) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 16), nil,
-			ast.NewFuncType(nil, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), nil),
-				ast.NewField(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 11, 10, 12), "int")),
-			}, nil, false),
-			ast.NewBlock(p(1, 16, 15, 16), nil))}, ast.ContextNone)},
-	{"func(a string, b int) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 23), nil,
-			ast.NewFuncType(nil, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 12), "string")),
-				ast.NewField(ast.NewIdentifier(p(1, 16, 15, 15), "b"), ast.NewIdentifier(p(1, 18, 17, 19), "int")),
-			}, nil, false),
-			ast.NewBlock(p(1, 23, 22, 23), nil))}, ast.ContextNone)},
-	{"func(a, b ...int) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 19), nil,
-			ast.NewFuncType(nil, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), nil),
-				ast.NewField(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 14, 13, 15), "int")),
-			}, nil, true),
-			ast.NewBlock(p(1, 19, 18, 19), nil))}, ast.ContextNone)},
-	{"func f() int {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
-			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
-			ast.NewBlock(p(1, 14, 13, 14), nil))}, ast.ContextNone)},
-	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
-			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
-			ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
-				ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewInt(p(1, 23, 22, 22), big.NewInt(5))}),
-			}))}, ast.ContextNone)},
-	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
-			ast.NewFuncType(nil, nil, []*ast.Field{
-				ast.NewField(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
-				ast.NewField(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
-			}, false),
-			ast.NewBlock(p(1, 22, 22, 23), nil))}, ast.ContextNone)},
-	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
-			ast.NewFuncType(nil, nil, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
-				ast.NewField(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
-			}, false),
-			ast.NewBlock(p(1, 29, 28, 29), nil))}, ast.ContextNone)},
-	{"func() { a := 5 }", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 16), nil,
-			ast.NewFuncType(nil, nil, nil, false),
-			ast.NewBlock(p(1, 8, 7, 16), []ast.Node{
-				ast.NewAssignment(p(1, 10, 9, 15),
-					[]ast.Expression{ast.NewIdentifier(p(1, 10, 9, 9), "a")},
-					ast.AssignmentDeclaration,
-					[]ast.Expression{ast.NewInt(p(1, 15, 14, 14), big.NewInt(5))},
-				),
-			}))}, ast.ContextNone)},
-	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
-		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
-			ast.NewFuncType(nil, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 8, 7, 7), "a"), nil),
-				ast.NewField(ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
-				ast.NewField(ast.NewIdentifier(p(1, 18, 17, 17), "c"), ast.NewIdentifier(p(1, 20, 19, 22), "bool")),
-				ast.NewField(ast.NewIdentifier(p(1, 26, 25, 25), "d"), ast.NewIdentifier(p(1, 31, 30, 32), "int")),
-			}, []*ast.Field{
-				ast.NewField(ast.NewIdentifier(p(1, 37, 36, 36), "n"), ast.NewIdentifier(p(1, 39, 38, 40), "int")),
-				ast.NewField(ast.NewIdentifier(p(1, 44, 43, 45), "err"), ast.NewIdentifier(p(1, 48, 47, 51), "error")),
-			}, true),
-			ast.NewBlock(p(1, 55, 54, 78), []ast.Node{
-				ast.NewAssignment(p(1, 57, 56, 62),
-					[]ast.Expression{ast.NewIdentifier(p(1, 57, 56, 56), "a")},
-					ast.AssignmentDeclaration,
-					[]ast.Expression{ast.NewInt(p(1, 62, 61, 61), big.NewInt(5))},
-				),
-				ast.NewReturn(p(1, 65, 64, 76), []ast.Expression{
-					ast.NewIdentifier(p(1, 72, 71, 71), "a"),
-					ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
-				}),
-			}))}, ast.ContextNone)},
 }
 
 var treeTests = []struct {
@@ -1369,20 +1318,6 @@ func pageTests() map[string]struct {
 
 func TestNoneContextTrees(t *testing.T) {
 	for _, tree := range noneContextTreeTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", tree.src, err)
-			continue
-		}
-		err = equals(node, tree.node, 0)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", tree.src, err)
-		}
-	}
-}
-
-func TestFunc(t *testing.T) {
-	for _, tree := range funcTests {
 		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)

@@ -499,6 +499,41 @@ var exprTests = []struct {
 	{"a\t\r ()", ast.NewCall(p(1, 5, 0, 5), ast.NewIdentifier(p(1, 1, 0, 0), "a"), []ast.Expression{}, false)},
 	{"a[\n\t1\t]", ast.NewIndex(p(1, 2, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(2, 2, 4, 4), big.NewInt(1)))},
 	{"a\t\r [1]", ast.NewIndex(p(1, 5, 0, 6), ast.NewIdentifier(p(1, 1, 0, 0), "a"), ast.NewInt(p(1, 6, 5, 5), big.NewInt(1)))},
+	{"func() {}",
+		ast.NewFunc(p(1, 1, 0, 8), nil,
+			ast.NewFuncType(nil, nil, nil, false),
+			ast.NewBlock(p(1, 8, 7, 8), nil))},
+	{"func(int) {}",
+		ast.NewFunc(p(1, 1, 0, 11), nil,
+			ast.NewFuncType(nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 6, 5, 7), "int"))}, nil, false),
+			ast.NewBlock(p(1, 11, 10, 11), nil))},
+	{"func(a int) {}",
+		ast.NewFunc(p(1, 1, 0, 13), nil,
+			ast.NewFuncType(nil, []*ast.Field{ast.NewField(
+				ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 9), "int")),
+			}, nil, false),
+			ast.NewBlock(p(1, 13, 12, 13), nil))},
+	{"func(a, b int) {}",
+		ast.NewFunc(p(1, 1, 0, 16), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), nil),
+				ast.NewField(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 11, 10, 12), "int")),
+			}, nil, false),
+			ast.NewBlock(p(1, 16, 15, 16), nil))},
+	{"func(a string, b int) {}",
+		ast.NewFunc(p(1, 1, 0, 23), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), ast.NewIdentifier(p(1, 8, 7, 12), "string")),
+				ast.NewField(ast.NewIdentifier(p(1, 16, 15, 15), "b"), ast.NewIdentifier(p(1, 18, 17, 19), "int")),
+			}, nil, false),
+			ast.NewBlock(p(1, 23, 22, 23), nil))},
+	{"func(a, b ...int) {}",
+		ast.NewFunc(p(1, 1, 0, 19), nil,
+			ast.NewFuncType(nil, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 6, 5, 5), "a"), nil),
+				ast.NewField(ast.NewIdentifier(p(1, 9, 8, 8), "b"), ast.NewIdentifier(p(1, 14, 13, 15), "int")),
+			}, nil, true),
+			ast.NewBlock(p(1, 19, 18, 19), nil))},
 }
 
 func TestExpressions(t *testing.T) {
