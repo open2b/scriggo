@@ -887,7 +887,7 @@ var checkerStmts = map[string]string{
 	`switch nil { }`:                                   `use of untyped nil`,
 	`switch _ { }`:                                     `cannot use _ as value`,
 	`var t boolType = false; switch t { case false: }`: ok,
-	`var t boolType = false; switch false { case t: }`: ok,
+	`var t boolType = false; switch false { case t: }`: `invalid case t in switch on false (mismatched types compiler.definedBool and bool)`,
 
 	// Type-switch statements.
 	`i := interface{}(int(0)); switch i.(type) { }`:                         ok,
