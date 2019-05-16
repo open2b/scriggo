@@ -37,6 +37,11 @@ type Emitter struct {
 	assignedVariables       map[*vm.ScrigoFunction]map[vm.Global]uint8
 
 	isNativePkg map[string]bool
+
+	// rangeLabels is a list of current active Ranges. First element is the
+	// Range address, second referrs to the first instruction outside Range's
+	// body.
+	rangeLabels [][2]uint32
 }
 
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
@@ -1099,6 +1104,19 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			c.emitNodes(node.Nodes)
 			c.fb.ExitScope()
 
+		case *ast.Break:
+			if node.Label != nil {
+				panic("TODO(Gianluca): not implemented")
+			}
+			c.fb.Break(c.rangeLabels[len(c.rangeLabels)-1][0])
+			c.fb.Goto(c.rangeLabels[len(c.rangeLabels)-1][1])
+
+		case *ast.Continue:
+			if node.Label != nil {
+				panic("TODO(Gianluca): not implemented")
+			}
+			c.fb.Continue(c.rangeLabels[len(c.rangeLabels)-1][0])
+
 		case *ast.Defer, *ast.Go:
 			if def, ok := node.(*ast.Defer); ok {
 				if c.typeinfo[def.Call.Func].IsBuiltin() {
@@ -1248,15 +1266,19 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 				exprReg = c.fb.NewRegister(exprType.Kind())
 				c.emitExpr(expr, exprReg, exprType)
 			}
-			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
+			rangeLabel := c.fb.NewLabel()
+			c.fb.SetLabelAddr(rangeLabel)
 			endRange := c.fb.NewLabel()
+			c.rangeLabels = append(c.rangeLabels, [2]uint32{rangeLabel, endRange})
+			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
 			c.fb.Goto(endRange)
 			c.fb.EnterScope()
 			c.emitNodes(node.Body)
-			c.fb.Continue(0)
-			c.fb.ExitScope()
-			c.fb.ExitScope()
+			c.fb.Continue(rangeLabel)
 			c.fb.SetLabelAddr(endRange)
+			c.rangeLabels = c.rangeLabels[:len(c.rangeLabels)-1]
+			c.fb.ExitScope()
+			c.fb.ExitScope()
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
@@ -1337,6 +1359,9 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			// TODO (Gianluca): use 0 (which is no longer a valid
 			// register) and handle it as a special case in emitExpr.
 			c.emitExpr(node, 0, reflect.Type(nil))
+
+		default:
+			panic(fmt.Sprintf("node %T not supported", node)) // TODO(Gianluca): remove.
 
 		}
 	}

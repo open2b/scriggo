@@ -164,7 +164,8 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 	}
 	labelOf := map[uint32]uint32{}
 	for _, in := range fn.Body {
-		if in.Op == vm.OpGoto {
+		switch in.Op {
+		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
 			labelOf[decodeAddr(in.A, in.B, in.C)] = 0
 		}
 	}
@@ -214,9 +215,9 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 		}
 		in := fn.Body[addr]
 		switch in.Op {
-		case vm.OpGoto:
+		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
 			label := labelOf[decodeAddr(in.A, in.B, in.C)]
-			_, _ = fmt.Fprintf(w, "%s\tGoto %d\n", indent, label)
+			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
 		case vm.OpFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, vm.Interface, false))
 			disassembleFunction(w, fn.Literals[uint8(in.B)], depth+1)
@@ -277,6 +278,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpBind, vm.OpGetVar:
 		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
+	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
+		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall, vm.OpDefer:
 		if a != vm.CurrentFunction {
 			switch op {
@@ -322,8 +325,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		}
 	case vm.OpClose, vm.OpPanic, vm.OpPrint:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-	case vm.OpContinue:
-		s += " " + disassembleOperand(fn, a, vm.Int, true)
 	case vm.OpCopy:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
@@ -393,8 +394,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		}
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpGo, vm.OpReturn:
-	case vm.OpGoto:
-		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	case vm.OpIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -658,6 +657,8 @@ var operationName = [...]string{
 	vm.OpAssert: "Assert",
 
 	vm.OpBind: "Bind",
+
+	vm.OpBreak: "Break",
 
 	vm.OpCall: "Call",
 

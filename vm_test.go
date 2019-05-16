@@ -117,6 +117,47 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Break - For range (no label)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("start, ")
+			for _, v := range []int{1, 2, 3} {
+				fmt.Print("v: ", v, ", ")
+				if v == 2 {
+					fmt.Print("break, ")
+					break
+				}
+				fmt.Print("no break, ")
+			}
+			fmt.Print("end")
+		}
+		`, nil, nil, "start, v: 1, no break, v: 2, break, end"},
+
+	{"Continue - For range (no label)",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			for _, v := range []int{1, 2, 3} {
+				fmt.Print(v, ":cont?")
+				if v == 2 {
+					fmt.Print("yes!")
+					continue
+					panic("?")
+				}
+				fmt.Print("no!")
+			}
+		}
+		`, nil, nil, "1:cont?no!2:cont?yes!3:cont?no!"},
+
 	{"Init function with package variables",
 		`package main
 
@@ -330,7 +371,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "f: 10"},
 
-	{"For range on empty interface slice",
+	{"For range on interface{} slice",
 		`package main
 
 		import "fmt"

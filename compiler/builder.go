@@ -465,6 +465,26 @@ func (builder *FunctionBuilder) Bind(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBind, A: int8(v >> 8), B: int8(v), C: r})
 }
 
+// Break appends a new "Break" instruction to the function body.
+//
+//     break addr
+//
+func (builder *FunctionBuilder) Break(label uint32) {
+	in := vm.Instruction{Op: vm.OpBreak}
+	if label > 0 {
+		if label > uint32(len(builder.labels)) {
+			panic("bug!") // TODO(Gianluca): remove.
+		}
+		addr := builder.labels[label-1]
+		if addr == 0 {
+			builder.gotos[builder.CurrentAddr()] = label
+		} else {
+			in.A, in.B, in.C = encodeAddr(addr)
+		}
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
+}
+
 // Call appends a new "Call" instruction to the function body.
 //
 //     p.f()
@@ -536,10 +556,22 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 
 // Continue appends a new "Continue" instruction to the function body.
 //
-//     continue n
+//     continue addr
 //
-func (builder *FunctionBuilder) Continue(n int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpContinue, A: n})
+func (builder *FunctionBuilder) Continue(label uint32) {
+	in := vm.Instruction{Op: vm.OpContinue}
+	if label > 0 {
+		if label > uint32(len(builder.labels)) {
+			panic("bug!") // TODO(Gianluca): remove.
+		}
+		addr := builder.labels[label-1]
+		if addr == 0 {
+			builder.gotos[builder.CurrentAddr()] = label
+		} else {
+			in.A, in.B, in.C = encodeAddr(addr)
+		}
+	}
+	builder.fn.Body = append(builder.fn.Body, in)
 }
 
 // Convert appends a new "Convert" instruction to the function body.
@@ -640,9 +672,6 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 //	for i, e := range s
 //
-// TODO(Gianluca): this can hide a problem: if Range is called with k == true
-// but kind is not reflect.String, s (which is a constant) is threated as
-// non-constant by builder and VM.
 func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
@@ -652,6 +681,12 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 			op = -op
 		}
 	default:
+		if k {
+			// TODO(Gianluca):  if Range is called with k == true but kind
+			// is not reflect.String, s (which is a constant) is threated
+			// as non-constant by builder and VM.
+			panic("bug!")
+		}
 		op = vm.OpRange
 	}
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
