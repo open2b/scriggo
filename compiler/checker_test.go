@@ -855,6 +855,7 @@ var checkerStmts = map[string]string{
 	`for i := 10; i; i++ { }`:                                          "non-bool i (type int) used as for condition",
 	`for i := 0; i < 10; i = "" {}`:                                    `cannot use "" (type string) as type int in assignment`,
 	`s := []string{"a","b"}; for _, i := range s { _ = s[i] }`:         `non-integer slice index i`,
+	`var t boolType = false; for ; t; { }`:                             ok,
 
 	// For statements with 'range' clause.
 	`for range "abc" { }`:                                                            ok,

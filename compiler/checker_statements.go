@@ -89,22 +89,18 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.For:
 
-			terminating := true
 			tc.addScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
 			if node.Condition != nil {
-				terminating = false
-				expr := tc.checkExpression(node.Condition)
-				// TODO (Gianluca): same as for if
-				if !isAssignableTo(expr, boolType) {
-					// TODO (Gianluca): error message must include default type.
-					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, expr.ShortString()))
+				ti := tc.checkExpression(node.Condition)
+				if ti.Type.Kind() != reflect.Bool {
+					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, ti.ShortString()))
 				}
-				if expr.IsConstant() {
-					new := ast.NewValue(typedValue(expr, expr.Type))
+				if ti.IsConstant() {
+					new := ast.NewValue(typedValue(ti, ti.Type))
 					tc.replaceTypeInfo(node.Condition, new)
 					node.Condition = new
 				}
@@ -112,11 +108,10 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
 			}
-			// TODO (Gianluca): can node.Body be nil?
 			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
-			tc.terminating = terminating && !tc.hasBreak[node]
+			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
 		case *ast.ForRange:
 
