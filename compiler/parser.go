@@ -1083,28 +1083,6 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		p.cutSpacesToken = true
 
-	// func
-	case tokenFunc:
-		if p.ctx == ast.ContextNone {
-			// Note that parseFunc does not consume the next token because
-			// kind is not parseType.
-			if _, ok := parent.(*ast.Package); ok {
-				node, _ = p.parseFunc(tok, parseFuncDecl)
-				// Consumes the semicolon.
-				tok = next(p.lex)
-				if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after top level declaration", tok)})
-				}
-			} else if len(p.ancestors) == 1 {
-				node, _ = p.parseFunc(tok, parseFuncLit|parseFuncDecl)
-			} else {
-				node, _ = p.parseFunc(tok, parseFuncLit)
-			}
-			addChild(parent, node)
-			return
-		}
-		fallthrough
-
 	// type
 	case tokenType:
 		if p.ctx == ast.ContextNone {
@@ -1167,6 +1145,24 @@ func (p *parsing) parseStatement(tok token) {
 		pos.End = tok.pos.End
 		node := ast.NewGoto(pos, ast.NewIdentifier(tok.pos, string(tok.txt)))
 		addChild(parent, node)
+
+	// func
+	case tokenFunc:
+		if p.ctx == ast.ContextNone {
+			// Note that parseFunc does not consume the next token because
+			// kind is not parseType.
+			if _, ok := parent.(*ast.Package); ok || len(p.ancestors) == 1 {
+				node, _ = p.parseFunc(tok, parseFuncDecl)
+				// Consumes the semicolon.
+				tok = next(p.lex)
+				if tok.typ != tokenSemicolon && tok.typ != tokenEOF {
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after top level declaration", tok)})
+				}
+				addChild(parent, node)
+				return
+			}
+		}
+		fallthrough
 
 	// assignment, send, label or expression
 	default:
