@@ -209,34 +209,40 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Switch:
 
-			terminating := true
 			tc.addScope()
 			tc.addToAncestors(node)
+			// Check the assignment.
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			hasFallthrough := false
-			hasDefault := false
-			switchType := boolType
-			var switchExpr *TypeInfo
+			// Check the expression.
+			typ := boolType
+			var ti *TypeInfo
 			if node.Expr != nil {
-				switchExpr = tc.checkExpression(node.Expr)
-				switchType = switchExpr.Type
+				ti = tc.checkExpression(node.Expr)
+				if ti.Nil() {
+					panic(tc.errorf(node, "use of untyped nil"))
+				}
+				typ = ti.Type
 			}
+			// Check the cases.
+			hasDefault := false
+			terminating := true
+			hasFallthrough := false
 			for _, cas := range node.Cases {
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				hasDefault = hasDefault || len(cas.Expressions) == 0
-				for i, expr := range cas.Expressions {
-					t := tc.checkExpression(expr)
-					if !isAssignableTo(t, switchType) {
+				for i, ex := range cas.Expressions {
+					t := tc.checkExpression(ex)
+					if !isAssignableTo(t, typ) {
 						ne := ""
 						if node.Expr != nil {
 							ne = " on " + node.Expr.String()
 						}
-						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %v)", expr, ne, t.ShortString(), switchType))
+						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
 					}
 					if t.IsConstant() {
-						new := ast.NewValue(typedValue(t, switchType))
+						new := ast.NewValue(typedValue(t, typ))
 						tc.replaceTypeInfo(cas.Expressions[i], new)
 						cas.Expressions[i] = new
 					}
@@ -244,8 +250,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
-			if switchExpr != nil && switchExpr.IsConstant() {
-				new := ast.NewValue(typedValue(switchExpr, switchExpr.Type))
+			if ti != nil && ti.IsConstant() {
+				new := ast.NewValue(typedValue(ti, ti.Type))
 				tc.replaceTypeInfo(node.Expr, new)
 				node.Expr = new
 			}
