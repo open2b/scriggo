@@ -445,16 +445,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 }
 
 // checkReturn type checks a return statement.
-// https://golang.org/ref/spec#Return_statements
 func (tc *typechecker) checkReturn(node *ast.Return) {
 
-	fun, funcBound := tc.currentFunction()
-	if fun == nil {
+	fn, funcBound := tc.currentFunction()
+	if fn == nil {
 		panic(tc.errorf(node, "non-declaration statement outside function body"))
 	}
 
-	fillParametersTypes(fun.Type.Result)
-	expected := fun.Type.Result
+	fillParametersTypes(fn.Type.Result)
+	expected := fn.Type.Result
 	got := node.Values
 
 	if len(expected) == 0 && len(got) == 0 {
@@ -477,12 +476,12 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		return
 	}
 
-	expectedTypes := []reflect.Type{}
-	for _, e := range expected {
-		ti := tc.checkType(e.Type, noEllipses)
+	var expectedTypes []reflect.Type
+	for _, exp := range expected {
+		ti := tc.checkType(exp.Type, noEllipses)
 		new := ast.NewValue(ti.Type)
-		tc.replaceTypeInfo(e.Type, new)
-		e.Type = new
+		tc.replaceTypeInfo(exp.Type, new)
+		exp.Type = new
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 
@@ -522,8 +521,8 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			}
 		}
 		msg += ")\n\twant ("
-		for i, T := range expectedTypes {
-			msg += T.String()
+		for i, typ := range expectedTypes {
+			msg += typ.String()
 			if i != len(expectedTypes)-1 {
 				msg += ", "
 			}
@@ -532,16 +531,18 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		panic(tc.errorf(node, msg))
 	}
 
-	for i, T := range expectedTypes {
+	for i, typ := range expectedTypes {
 		x := got[i]
 		ti := tc.typeInfo[x]
-		if !isAssignableTo(ti, T) {
+		if !isAssignableTo(ti, typ) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.typeInfo[got[i]].ShortString(), expectedTypes[i]))
 		}
 		if ti.IsConstant() {
-			n := ast.NewValue(typedValue(ti, T))
+			n := ast.NewValue(typedValue(ti, typ))
 			tc.replaceTypeInfo(x, n)
 			node.Values[i] = n
 		}
 	}
+
+	return
 }
