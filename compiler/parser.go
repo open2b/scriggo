@@ -1186,9 +1186,6 @@ func (p *parsing) parseStatement(tok token) {
 		} else if tok.typ == tokenArrow {
 			// Parses send.
 			channel := expressions[0]
-			if ident, ok := channel.(*ast.Identifier); ok && ident.Name == "_" {
-				panic(&SyntaxError{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")})
-			}
 			var value ast.Expression
 			value, tok = p.parseExpr(token{}, false, false, false, false)
 			if value == nil {
