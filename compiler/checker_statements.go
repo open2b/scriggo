@@ -327,12 +327,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Call:
 			tis, isBuiltin, _ := tc.checkCallExpression(node, true)
-			if ident, ok := node.Func.(*ast.Identifier); ok {
-				if isBuiltin && ident.Name == "panic" {
+			if isBuiltin {
+				switch node.Func.(*ast.Identifier).Name {
+				case "copy", "recover":
+				case "panic":
 					tc.terminating = true
-				}
-				if isBuiltin && len(tis) > 0 && ident.Name != "copy" && ident.Name != "recover" {
-					panic(tc.errorf(node, "%s evaluated but not used", node))
+				default:
+					if len(tis) > 0 {
+						panic(tc.errorf(node, "%s evaluated but not used", node))
+					}
 				}
 			}
 
