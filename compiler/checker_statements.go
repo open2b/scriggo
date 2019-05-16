@@ -217,6 +217,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			// Check the cases.
 			terminating := true
 			hasFallthrough := false
+			positionOf := map[interface{}]*ast.Position{}
 			var positionOfDefault *ast.Position
 			for _, cas := range node.Cases {
 				if cas.Expressions == nil {
@@ -228,16 +229,22 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				for i, ex := range cas.Expressions {
 					t := tc.checkExpression(ex)
 					if !isAssignableTo(t, typ) {
-						ne := ""
+						var ne string
 						if node.Expr != nil {
 							ne = " on " + node.Expr.String()
 						}
 						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
 					}
 					if t.IsConstant() {
-						new := ast.NewValue(typedValue(t, typ))
+						value := typedValue(t, typ)
+						new := ast.NewValue(value)
 						tc.replaceTypeInfo(cas.Expressions[i], new)
 						cas.Expressions[i] = new
+						// Check duplicate.
+						if pos, ok := positionOf[value]; ok {
+							panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
+						}
+						positionOf[value] = ex.Pos()
 					}
 				}
 				tc.checkNodesInNewScope(cas.Body)
@@ -266,6 +273,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
 			var positionOfDefault *ast.Position
+			positionOf := map[reflect.Type]*ast.Position{}
 			for _, cas := range node.Cases {
 				if cas.Expressions == nil {
 					if positionOfDefault != nil {
@@ -273,7 +281,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOfDefault = cas.Pos()
 				}
-				for i := range cas.Expressions {
+				for i, ex := range cas.Expressions {
 					expr := cas.Expressions[i]
 					t := tc.typeof(expr, noEllipses)
 					if !t.IsType() {
@@ -282,6 +290,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					node := ast.NewValue(t.Type)
 					tc.replaceTypeInfo(cas.Expressions[i], node)
 					cas.Expressions[i] = node
+					// Check duplicate.
+					if pos, ok := positionOf[t.Type]; ok {
+						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
+					}
+					positionOf[t.Type] = ex.Pos()
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
