@@ -117,6 +117,26 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Continue - For range",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			for _, v := range []int{1, 2, 3} {
+				fmt.Print(v, ":cont?")
+				if v == 2 {
+					fmt.Print("yes!")
+					continue
+					panic("?")
+				}
+				fmt.Print("no!")
+			}
+		}
+		`, nil, nil, "1:cont?no!2:cont?yes!3:cont?no!"},
+
 	{"Init function with package variables",
 		`package main
 

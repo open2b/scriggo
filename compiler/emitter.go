@@ -37,6 +37,8 @@ type Emitter struct {
 	assignedVariables       map[*vm.ScrigoFunction]map[vm.Global]uint8
 
 	isNativePkg map[string]bool
+
+	rangeLabels []uint32
 }
 
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
@@ -1114,6 +1116,12 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			c.emitNodes(node.Nodes)
 			c.fb.ExitScope()
 
+		case *ast.Continue:
+			if node.Label != nil {
+				panic("TODO(Gianluca): not implemented")
+			}
+			c.fb.Continue(c.rangeLabels[len(c.rangeLabels)-1])
+
 		case *ast.Defer, *ast.Go:
 			if def, ok := node.(*ast.Defer); ok {
 				if c.typeinfo[def.Call.Func].IsBuiltin() {
@@ -1265,6 +1273,7 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			}
 			rangeLabel := c.fb.NewLabel()
 			c.fb.SetLabelAddr(rangeLabel)
+			c.rangeLabels = append(c.rangeLabels, rangeLabel)
 			c.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
 			endRange := c.fb.NewLabel()
 			c.fb.Goto(endRange)
@@ -1272,6 +1281,7 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			c.emitNodes(node.Body)
 			c.fb.Continue(rangeLabel)
 			c.fb.SetLabelAddr(endRange)
+			c.rangeLabels = c.rangeLabels[:len(c.rangeLabels)-1]
 			c.fb.ExitScope()
 			c.fb.ExitScope()
 
@@ -1354,6 +1364,9 @@ func (c *Emitter) emitNodes(nodes []ast.Node) {
 			// TODO (Gianluca): use 0 (which is no longer a valid
 			// register) and handle it as a special case in emitExpr.
 			c.emitExpr(node, 0, reflect.Type(nil))
+
+		default:
+			panic(fmt.Sprintf("node %T not supported", node)) // TODO(Gianluca): remove.
 
 		}
 	}
