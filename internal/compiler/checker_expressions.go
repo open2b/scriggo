@@ -26,7 +26,7 @@ type scopeElement struct {
 	decl *ast.Identifier
 }
 
-type typeCheckerScope map[string]scopeElement
+type TypeCheckerScope map[string]scopeElement
 
 type HTML string
 
@@ -41,7 +41,7 @@ var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
 
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
-var Universe = typeCheckerScope{
+var Universe = TypeCheckerScope{
 	"append":      {t: builtinTypeInfo},
 	"cap":         {t: builtinTypeInfo},
 	"close":       {t: builtinTypeInfo},
@@ -117,9 +117,9 @@ type scopeVariable struct {
 type typechecker struct {
 	path             string
 	imports          map[string]PackageInfo // TODO (Gianluca): review!
-	Universe         typeCheckerScope
-	filePackageBlock typeCheckerScope
-	Scopes           []typeCheckerScope
+	Universe         TypeCheckerScope
+	filePackageBlock TypeCheckerScope
+	Scopes           []TypeCheckerScope
 	ancestors        []*ancestor
 	terminating      bool // https://golang.org/ref/spec#Terminating_statements
 	hasBreak         map[ast.Node]bool
@@ -150,12 +150,12 @@ func NewTypechecker(path string, isScript bool) *typechecker {
 	return &typechecker{
 		isScript:         isScript,
 		path:             path,
-		filePackageBlock: make(typeCheckerScope),
+		filePackageBlock: make(TypeCheckerScope),
 		globalTemp:       make(map[string]*TypeInfo),
 		hasBreak:         make(map[ast.Node]bool),
 		imports:          make(map[string]PackageInfo),
 		TypeInfo:         make(map[ast.Node]*TypeInfo),
-		Universe:         make(typeCheckerScope),
+		Universe:         make(TypeCheckerScope),
 		unusedImports:    make(map[string][]string),
 		IndirectVars:     make(map[*ast.Identifier]bool),
 		varDeps:          make(map[string][]string),
@@ -174,7 +174,7 @@ func (tc *typechecker) globDecl(name string) *Declaration {
 
 // addScope adds a new empty scope to the type checker.
 func (tc *typechecker) addScope() {
-	tc.Scopes = append(tc.Scopes, make(typeCheckerScope))
+	tc.Scopes = append(tc.Scopes, make(TypeCheckerScope))
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}

@@ -8,13 +8,6 @@ import (
 // variables scope.
 type scope map[string]interface{}
 
-// packageNameScope represents a package name and its scope as used by the
-// renderer.
-type packageNameScope struct {
-	name  string
-	scope scope
-}
-
 var rendererCallFuncTests = []struct {
 	src     string
 	res     string

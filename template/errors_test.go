@@ -16,6 +16,9 @@ import (
 	"github.com/cockroachdb/apd"
 )
 
+// variables scope.
+type scope map[string]interface{}
+
 var errorTests = []struct {
 	src     string
 	res     string

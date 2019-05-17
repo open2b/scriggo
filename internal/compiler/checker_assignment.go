@@ -259,7 +259,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	newVars := []string{}
-	tmpScope := typeCheckerScope{}
+	tmpScope := TypeCheckerScope{}
 	for i := range vars {
 		var newVar string
 		if valueTi := tc.TypeInfo[values[i]]; valueTi == nil {

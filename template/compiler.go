@@ -2,11 +2,89 @@ package template
 
 import (
 	"fmt"
+	"io"
+	"reflect"
+	"scrigo/vm"
 	"strings"
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
 )
+
+// Context indicates the type of source that has to be rendered and controls
+// how to escape the values to render.
+type Context int
+
+const (
+	ContextNone   Context = Context(ast.ContextNone)
+	ContextText   Context = Context(ast.ContextText)
+	ContextHTML   Context = Context(ast.ContextHTML)
+	ContextCSS    Context = Context(ast.ContextCSS)
+	ContextScript Context = Context(ast.ContextScript)
+)
+
+type Page struct {
+	main *compiler.GoPackage
+	fn   *vm.ScrigoFunction
+}
+
+func Compile(path string, reader compiler.Reader, main *compiler.GoPackage, ctx Context) (*Page, error) {
+
+	// Parsing.
+	p := NewParser(reader)
+	tree, err := p.Parse(path, main, ast.Context(ctx))
+	if err != nil {
+		return nil, convertError(err)
+	}
+
+	// Type checking.
+	pkgInfo, err := typecheck(tree, main)
+	if err != nil {
+		return nil, err
+	}
+	tci := map[string]*compiler.PackageInfo{"main": pkgInfo}
+
+	// Emitting.
+	// TODO(Gianluca): pass "main" and "builtins" to emitter.
+	// main contains user defined variabiles, while builtins contains template builtins.
+	// define something like "emitterBuiltins" in order to avoid converting at every compilation.
+	emitter := compiler.NewCompiler(tree)
+	emitter.TypeInfo = tci["main"].TypeInfo
+	emitter.IndirectVars = tci["main"].IndirectVars
+	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
+	emitter.CurrentFunction = fn
+	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
+	emitter.FB.EnterScope()
+	compiler.AddExplicitReturn(tree)
+	emitter.EmitNodes(tree.Nodes)
+	emitter.FB.ExitScope()
+
+	return &Page{main: main, fn: emitter.CurrentFunction}, nil
+}
+
+func (page *Page) Render(out io.Writer, vars map[string]reflect.Value) error {
+	var globals map[string]reflect.Value
+	if page.main != nil {
+		globals = map[string]reflect.Value{}
+
+		for n, v := range vars {
+			globals[n] = v
+		}
+	}
+	pvm := vm.New()
+	_, err := pvm.RunWithGlobals(page.fn, globals)
+	return err
+}
+
+func convertError(err error) error {
+	if err == compiler.ErrInvalidPath {
+		return compiler.ErrInvalidPath
+	}
+	if err == compiler.ErrNotExist {
+		return compiler.ErrNotExist
+	}
+	return err
+}
 
 func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInfo, err error) {
 	defer func() {
@@ -21,7 +99,7 @@ func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInf
 	tc := compiler.NewTypechecker(tree.Path, true)
 	tc.Universe = compiler.Universe
 	if main != nil {
-		tc.Scopes = append(tc.Scopes, main.ToTypeCheckerScope())
+		tc.Scopes = append(tc.Scopes, tcBuiltins, main.ToTypeCheckerScope())
 	}
 	tc.CheckNodesInNewScope(tree.Nodes)
 	pkgInfo := &compiler.PackageInfo{}
@@ -43,6 +121,8 @@ type Parser struct {
 	reader compiler.Reader
 	trees  *compiler.Cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
+
+	// TODO(Gianluca): deprecated, remove.
 	packageInfos map[string]*compiler.PackageInfo // key is path.
 }
 
@@ -90,17 +170,13 @@ func (p *Parser) Parse(path string, main *compiler.GoPackage, ctx ast.Context) (
 	if len(tree.Nodes) == 0 {
 		return nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("??????????, found 'EOF'")}
 	}
-	pkgInfo, err := typecheck(tree, main)
-	if err != nil {
-		return nil, err
-	}
-	p.packageInfos["main"] = pkgInfo
 
 	return tree, nil
 }
 
 // TypeCheckInfos returns the type-checking infos collected during
 // type-checking.
+// TODO(Gianluca): deprecated, remove.
 func (p *Parser) TypeCheckInfos() map[string]*compiler.PackageInfo {
 	return p.packageInfos
 }

@@ -2,11 +2,73 @@ package scrigo
 
 import (
 	"fmt"
+	"reflect"
+	"scrigo/vm"
 	"strings"
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
 )
+
+type Program struct {
+	fn *vm.ScrigoFunction
+}
+
+func Compile(path string, reader compiler.Reader, packages map[string]*compiler.GoPackage) (*Program, error) {
+
+	// Parsing.
+	p := NewParser(reader, packages)
+	tree, err := p.Parse(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Type checking.
+	pkgInfo, err := typecheck(tree)
+	if err != nil {
+		return nil, err
+	}
+	tci := map[string]*compiler.PackageInfo{"main": pkgInfo}
+
+	// Emitting.
+	emitter := compiler.NewCompiler(tree)
+	emitter.TypeInfo = tci["main"].TypeInfo
+	emitter.IndirectVars = tci["main"].IndirectVars
+	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
+	emitter.CurrentFunction = fn
+	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
+	emitter.FB.EnterScope()
+	compiler.AddExplicitReturn(tree)
+	emitter.EmitNodes(tree.Nodes)
+	emitter.FB.ExitScope()
+
+	return &Program{fn: emitter.CurrentFunction}, nil
+}
+
+func Execute(p *Program) error {
+	pvm := vm.New()
+	_, err := pvm.Run(p.fn)
+	return err
+}
+
+func typecheck(tree *ast.Tree) (_ *compiler.PackageInfo, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(*compiler.Error); ok {
+				err = rerr
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	tc := compiler.NewTypechecker(tree.Path, true)
+	tc.Universe = compiler.Universe
+	tc.CheckNodesInNewScope(tree.Nodes)
+	pkgInfo := &compiler.PackageInfo{}
+	pkgInfo.IndirectVars = tc.IndirectVars
+	pkgInfo.TypeInfo = tc.TypeInfo
+	return pkgInfo, err
+}
 
 // Parser implements a parser that reads the tree from a Reader and expands
 // the nodes Extends, Import and Include. The trees are compiler.Cached so only one
@@ -28,15 +90,11 @@ type Parser struct {
 
 // NewParser returns a new Parser that reads the trees from the reader r. typeCheck
 // indicates if a type-checking must be done after parsing.
-func NewParser(r compiler.Reader, packages map[string]*compiler.GoPackage, typeCheck bool) *Parser {
+func NewParser(r compiler.Reader, packages map[string]*compiler.GoPackage) *Parser {
 	p := &Parser{
-		reader:    r,
-		packages:  packages,
-		trees:     &compiler.Cache{},
-		typeCheck: typeCheck,
-	}
-	if typeCheck {
-		p.packageInfos = make(map[string]*compiler.PackageInfo)
+		reader:   r,
+		packages: packages,
+		trees:    &compiler.Cache{},
 	}
 	return p
 }
@@ -45,11 +103,11 @@ func NewParser(r compiler.Reader, packages map[string]*compiler.GoPackage, typeC
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
+func (p *Parser) Parse(path string) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
-		return nil, ErrInvalidPath
+		return nil, compiler.ErrInvalidPath
 	}
 	if path[0] == '/' {
 		path = path[1:]
@@ -62,7 +120,7 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 
 	pp := &expansion{p.reader, p.trees, p.packages, []string{}}
 
-	tree, err := pp.parsePath(path, ctx)
+	tree, err := pp.parsePath(path)
 	if err != nil {
 		if err2, ok := err.(*compiler.SyntaxError); ok && err2.Path == "" {
 			err2.Path = path
@@ -71,15 +129,12 @@ func (p *Parser) Parse(path string, ctx ast.Context) (*ast.Tree, error) {
 		}
 		return nil, err
 	}
-
-	if p.typeCheck {
-		if len(tree.Nodes) == 0 {
-			return nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
-		}
-		err := compiler.CheckPackage(tree, p.packages, p.packageInfos)
-		if err != nil {
-			return nil, err
-		}
+	if len(tree.Nodes) == 0 {
+		return nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
+	}
+	err = compiler.CheckPackage(tree, p.packages, p.packageInfos)
+	if err != nil {
+		return nil, err
 	}
 
 	return tree, nil
@@ -114,7 +169,7 @@ func (pp *expansion) abs(path string) (string, error) {
 
 // parsePath parses the source at path in context ctx. path must be absolute
 // and cleared.
-func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
+func (pp *expansion) parsePath(path string) (*ast.Tree, error) {
 
 	// Checks if there is a cycle.
 	for _, p := range pp.paths {
@@ -124,17 +179,17 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 	}
 
 	// Checks if it has already been parsed.
-	if tree, ok := pp.trees.Get(path, ctx); ok {
+	if tree, ok := pp.trees.Get(path, ast.ContextNone); ok {
 		return tree, nil
 	}
-	defer pp.trees.Done(path, ctx)
+	defer pp.trees.Done(path, ast.ContextNone)
 
-	src, err := pp.reader.Read(path, ctx)
+	src, err := pp.reader.Read(path, ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := compiler.ParseSource(src, ctx)
+	tree, err := compiler.ParseSource(src, ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +197,7 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 
 	// Expands the nodes.
 	pp.paths = append(pp.paths, path)
-	err = pp.expand(tree.Nodes, ctx)
+	err = pp.expand(tree.Nodes)
 	if err != nil {
 		if e, ok := err.(*compiler.SyntaxError); ok && e.Path == "" {
 			e.Path = path
@@ -152,13 +207,13 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
 	// Adds the tree to the compiler.Cache.
-	pp.trees.Add(path, ctx, tree)
+	pp.trees.Add(path, ast.ContextNone, tree)
 
 	return tree, nil
 }
 
 // expand expands the nodes parsing the sub-trees in context ctx.
-func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
+func (pp *expansion) expand(nodes []ast.Node) error {
 
 	for _, node := range nodes {
 
@@ -166,63 +221,9 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.Package:
 
-			err := pp.expand(n.Declarations, ctx)
+			err := pp.expand(n.Declarations)
 			if err != nil {
 				return err
-			}
-
-		case *ast.If:
-
-			for {
-				err := pp.expand(n.Then.Nodes, ctx)
-				if err != nil {
-					return err
-				}
-				switch e := n.Else.(type) {
-				case *ast.If:
-					n = e
-					continue
-				case *ast.Block:
-					err := pp.expand(e.Nodes, ctx)
-					if err != nil {
-						return err
-					}
-				}
-				break
-			}
-
-		case *ast.For:
-
-			err := pp.expand(n.Body, ctx)
-			if err != nil {
-				return err
-			}
-
-		case *ast.ForRange:
-
-			err := pp.expand(n.Body, ctx)
-			if err != nil {
-				return err
-			}
-
-		case *ast.Switch:
-
-			var err error
-			for _, c := range n.Cases {
-				err = pp.expand(c.Body, ctx)
-				if err != nil {
-					return err
-				}
-			}
-
-		case *ast.TypeSwitch:
-
-			var err error
-			for _, c := range n.Cases {
-				err = pp.expand(c.Body, ctx)
-				if err != nil {
-					return err
-				}
 			}
 
 		case *ast.Import:
@@ -241,11 +242,11 @@ func (pp *expansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			if found {
 				continue
 			}
-			n.Tree, err = pp.parsePath(absPath+".go", n.Context)
+			n.Tree, err = pp.parsePath(absPath + ".go")
 			if err != nil {
-				if err == ErrInvalidPath {
+				if err == compiler.ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == ErrNotExist {
+				} else if err == compiler.ErrNotExist {
 					err = &compiler.SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package \"%s\"", n.Path)}
 				} else if err2, ok := err.(compiler.CycleError); ok {
 					err = compiler.CycleError("imports " + string(err2))

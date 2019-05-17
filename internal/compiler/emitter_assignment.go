@@ -46,29 +46,29 @@ func (c *Emitter) NewAddress(addrType AddressType, reflectType reflect.Type, reg
 func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
 	switch a.Type {
 	case AddressUpVar:
-		a.c.fb.SetVar(k, value, int(a.Reg1))
+		a.c.FB.SetVar(k, value, int(a.Reg1))
 	case AddressesBlank:
 		// Nothing to do.
 	case AddressRegister:
 		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
 	case AddressIndirectDeclaration:
-		a.c.fb.New(a.ReflectType, -a.Reg1)
+		a.c.FB.New(a.ReflectType, -a.Reg1)
 		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
 	case AddressPointerIndirection:
 		a.c.changeRegister(k, value, -a.Reg1, valueType, a.ReflectType)
 	case AddressSliceIndex:
-		a.c.fb.SetSlice(k, a.Reg1, value, a.Reg2, a.ReflectType.Elem().Kind())
+		a.c.FB.SetSlice(k, a.Reg1, value, a.Reg2, a.ReflectType.Elem().Kind())
 	case AddressMapIndex:
-		a.c.fb.SetMap(k, a.Reg1, value, a.Reg2)
+		a.c.FB.SetMap(k, a.Reg1, value, a.Reg2)
 	case AddressStructSelector:
 		panic("TODO(Gianluca): not implemented")
 	case AddressPackageVariable:
 		if k {
-			tmpReg := a.c.fb.NewRegister(valueType.Kind())
-			a.c.fb.Move(true, value, tmpReg, valueType.Kind())
-			a.c.fb.SetVar(false, tmpReg, int(a.Reg1))
+			tmpReg := a.c.FB.NewRegister(valueType.Kind())
+			a.c.FB.Move(true, value, tmpReg, valueType.Kind())
+			a.c.FB.SetVar(false, tmpReg, int(a.Reg1))
 		} else {
-			a.c.fb.SetVar(false, value, int(a.Reg1))
+			a.c.FB.SetVar(false, value, int(a.Reg1))
 		}
 	}
 }
@@ -81,10 +81,10 @@ func (c *Emitter) assign(addresses []Address, values []ast.Expression) {
 		valueTypes := make([]reflect.Type, len(values))
 		valueIsK := make([]bool, len(values))
 		for i := range values {
-			valueTypes[i] = c.typeinfo[values[i]].Type
+			valueTypes[i] = c.TypeInfo[values[i]].Type
 			valueRegs[i], valueIsK[i], _ = c.quickEmitExpr(values[i], valueTypes[i])
 			if !valueIsK[i] {
-				valueRegs[i] = c.fb.NewRegister(valueTypes[i].Kind())
+				valueRegs[i] = c.FB.NewRegister(valueTypes[i].Kind())
 				c.emitExpr(values[i], valueRegs[i], valueTypes[i])
 			}
 		}
@@ -100,24 +100,24 @@ func (c *Emitter) assign(addresses []Address, values []ast.Expression) {
 			}
 		case *ast.Index: // map index.
 			mapExpr := value.Expr
-			mapType := c.typeinfo[mapExpr].Type
-			mapReg := c.fb.NewRegister(mapType.Kind())
+			mapType := c.TypeInfo[mapExpr].Type
+			mapReg := c.FB.NewRegister(mapType.Kind())
 			c.emitExpr(mapExpr, mapReg, mapType)
 			keyExpr := value.Index
-			keyType := c.typeinfo[keyExpr].Type
+			keyType := c.TypeInfo[keyExpr].Type
 			keyReg, kKeyReg, isRegister := c.quickEmitExpr(keyExpr, keyType)
 			if !kKeyReg && !isRegister {
-				keyReg = c.fb.NewRegister(keyType.Kind())
+				keyReg = c.FB.NewRegister(keyType.Kind())
 				c.emitExpr(keyExpr, keyReg, keyType)
 			}
 			valueType := mapType.Elem()
-			valueReg := c.fb.NewRegister(valueType.Kind())
+			valueReg := c.FB.NewRegister(valueType.Kind())
 			okType := addresses[1].ReflectType
-			okReg := c.fb.NewRegister(reflect.Bool)
-			c.fb.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
-			c.fb.Move(true, 1, okReg, reflect.Bool)
-			c.fb.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
-			c.fb.Move(true, 0, okReg, reflect.Bool)
+			okReg := c.FB.NewRegister(reflect.Bool)
+			c.FB.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
+			c.FB.Move(true, 1, okReg, reflect.Bool)
+			c.FB.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
+			c.FB.Move(true, 0, okReg, reflect.Bool)
 			addresses[0].Assign(false, valueReg, valueType)
 			addresses[1].Assign(false, okReg, okType)
 		}
@@ -134,14 +134,14 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = c.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
 			} else {
 				v := v.(*ast.Identifier)
-				varType := c.typeinfo[v].Type
-				if c.indirectVars[v] {
-					varReg := -c.fb.NewRegister(reflect.Interface)
-					c.fb.BindVarReg(v.Name, varReg)
+				varType := c.TypeInfo[v].Type
+				if c.IndirectVars[v] {
+					varReg := -c.FB.NewRegister(reflect.Interface)
+					c.FB.BindVarReg(v.Name, varReg)
 					addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
 				} else {
-					varReg := c.fb.NewRegister(varType.Kind())
-					c.fb.BindVarReg(v.Name, varReg)
+					varReg := c.FB.NewRegister(varType.Kind())
+					c.FB.BindVarReg(v.Name, varReg)
 					addresses[i] = c.NewAddress(AddressRegister, varType, varReg, 0)
 				}
 			}
@@ -153,8 +153,8 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 			switch v := v.(type) {
 			case *ast.Identifier:
 				if !isBlankIdentifier(v) {
-					varType := c.typeinfo[v].Type
-					if reg, ok := c.upvarsNames[c.currentFunction][v.Name]; ok {
+					varType := c.TypeInfo[v].Type
+					if reg, ok := c.upvarsNames[c.CurrentFunction][v.Name]; ok {
 						// TODO(Gianluca): reg is converted into an
 						// int8; should we change address to store
 						// int32/64?
@@ -163,23 +163,23 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = c.NewAddress(AddressPackageVariable, varType, int8(index), 0)
 					} else {
-						reg := c.fb.ScopeLookup(v.Name)
+						reg := c.FB.ScopeLookup(v.Name)
 						addresses[i] = c.NewAddress(AddressRegister, varType, reg, 0)
 					}
 				} else {
 					addresses[i] = c.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
 				}
 			case *ast.Index:
-				exprType := c.typeinfo[v.Expr].Type
+				exprType := c.TypeInfo[v.Expr].Type
 				expr, _, isRegister := c.quickEmitExpr(v.Expr, exprType)
 				if !isRegister {
-					expr = c.fb.NewRegister(exprType.Kind())
+					expr = c.FB.NewRegister(exprType.Kind())
 					c.emitExpr(v.Expr, expr, exprType)
 				}
-				indexType := c.typeinfo[v.Index].Type
+				indexType := c.TypeInfo[v.Index].Type
 				index, _, isRegister := c.quickEmitExpr(v.Index, indexType)
 				if !isRegister {
-					index = c.fb.NewRegister(indexType.Kind())
+					index = c.FB.NewRegister(indexType.Kind())
 					c.emitExpr(v.Index, index, indexType)
 				}
 				addrType := AddressSliceIndex
@@ -190,7 +190,7 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 			case *ast.Selector:
 				if variable, ok := c.availableVariables[v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					varIndex := c.variableIndex(variable)
-					addresses[i] = c.NewAddress(AddressPackageVariable, c.typeinfo[v].Type, int8(varIndex), 0)
+					addresses[i] = c.NewAddress(AddressPackageVariable, c.TypeInfo[v].Type, int8(varIndex), 0)
 				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
@@ -200,9 +200,9 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				switch expr := v.Expr.(type) {
 				case *ast.Identifier:
-					if c.fb.IsVariable(expr.Name) {
-						varReg := c.fb.ScopeLookup(expr.Name)
-						exprType := c.typeinfo[expr].Type
+					if c.FB.IsVariable(expr.Name) {
+						varReg := c.FB.ScopeLookup(expr.Name)
+						exprType := c.TypeInfo[expr].Type
 						addresses[i] = c.NewAddress(AddressPointerIndirection, exprType, varReg, 0)
 					} else {
 						panic("TODO(Gianluca): not implemented")
@@ -221,22 +221,22 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 		var valueType reflect.Type
 		switch v := node.Variables[0].(type) {
 		case *ast.Identifier:
-			varType := c.typeinfo[v].Type
-			reg := c.fb.ScopeLookup(v.Name)
+			varType := c.TypeInfo[v].Type
+			reg := c.FB.ScopeLookup(v.Name)
 			address = c.NewAddress(AddressRegister, varType, reg, 0)
 			valueReg = reg
 			valueType = varType
 		case *ast.Index:
-			exprType := c.typeinfo[v.Expr].Type
+			exprType := c.TypeInfo[v.Expr].Type
 			expr, _, isRegister := c.quickEmitExpr(v.Expr, exprType)
 			if !isRegister {
-				expr = c.fb.NewRegister(exprType.Kind())
+				expr = c.FB.NewRegister(exprType.Kind())
 				c.emitExpr(v.Expr, expr, exprType)
 			}
-			indexType := c.typeinfo[v.Index].Type
+			indexType := c.TypeInfo[v.Index].Type
 			index, _, isRegister := c.quickEmitExpr(v.Index, indexType)
 			if !isRegister {
-				index = c.fb.NewRegister(indexType.Kind())
+				index = c.FB.NewRegister(indexType.Kind())
 				c.emitExpr(v.Index, index, indexType)
 			}
 			addrType := AddressSliceIndex
@@ -245,31 +245,31 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 			address = c.NewAddress(addrType, exprType, expr, index)
 			valueType = exprType.Elem()
-			valueReg = c.fb.NewRegister(valueType.Kind())
-			c.fb.Index(false, expr, index, valueReg, exprType)
+			valueReg = c.FB.NewRegister(valueType.Kind())
+			c.FB.Index(false, expr, index, valueReg, exprType)
 		default:
 			panic("TODO(Gianluca): not implemented")
 		}
 		switch node.Type {
 		case ast.AssignmentIncrement:
-			c.fb.Add(true, valueReg, 1, valueReg, valueType.Kind())
+			c.FB.Add(true, valueReg, 1, valueReg, valueType.Kind())
 		case ast.AssignmentDecrement:
-			c.fb.Sub(true, valueReg, 1, valueReg, valueType.Kind())
+			c.FB.Sub(true, valueReg, 1, valueReg, valueType.Kind())
 		default:
-			rightOpType := c.typeinfo[node.Values[0]].Type
-			rightOp := c.fb.NewRegister(rightOpType.Kind())
+			rightOpType := c.TypeInfo[node.Values[0]].Type
+			rightOp := c.FB.NewRegister(rightOpType.Kind())
 			c.emitExpr(node.Values[0], rightOp, rightOpType)
 			switch node.Type {
 			case ast.AssignmentAddition:
-				c.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
+				c.FB.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentSubtraction:
-				c.fb.Sub(false, valueReg, rightOp, valueReg, valueType.Kind())
+				c.FB.Sub(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentMultiplication:
-				c.fb.Mul(false, valueReg, rightOp, valueReg, valueType.Kind())
+				c.FB.Mul(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentDivision:
-				c.fb.Div(false, valueReg, rightOp, valueReg, valueType.Kind())
+				c.FB.Div(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentModulo:
-				c.fb.Rem(false, valueReg, rightOp, valueReg, valueType.Kind())
+				c.FB.Rem(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentLeftShift:
 				panic("TODO(Gianluca): not implemented")
 			case ast.AssignmentRightShift:

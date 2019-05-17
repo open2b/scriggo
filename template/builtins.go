@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net/url"
 	"reflect"
+	"scrigo/internal/compiler"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,14 +41,10 @@ var interf = interface{}(nil)
 
 var htmlType = reflect.TypeOf(HTML(""))
 
-func init() {
-	for k, v := range builtins {
-		templateBuiltins[k] = v
-	}
-}
+var tcBuiltins = compiler.TypeCheckerScope{}
 
 // TODO (Gianluca): keep in sync with templateBuiltinOnly for now.
-var templateBuiltins = scope{
+var builtins = map[string]interface{}{
 	"abbreviate":  _abbreviate,
 	"abs":         _abs,
 	"atoi":        strconv.Atoi,

@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"scrigo"
 	"scrigo/internal/compiler"
 	"scrigo/vm"
+
+	"scrigo/template"
 )
 
 var packages map[string]*compiler.GoPackage
@@ -114,15 +114,14 @@ func main() {
 			}
 		}
 	case ".html":
-		r := compiler.DirReader(filepath.Dir(absFile))
-		template := scrigo.NewTemplate(r)
+		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		page, err := template.Compile(path, nil, scrigo.ContextHTML)
+		page, err := template.Compile(path, r, nil, template.ContextHTML)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		err = scrigo.Render(os.Stdout, page, nil)
+		err = page.Render(os.Stdout, nil)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)

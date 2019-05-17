@@ -13,8 +13,8 @@ import (
 	"scrigo/vm"
 )
 
-// addExplicitReturn adds an explicit return statement as last statement to node.
-func addExplicitReturn(node ast.Node) {
+// AddExplicitReturn adds an explicit return statement as last statement to node.
+func AddExplicitReturn(node ast.Node) {
 	switch node := node.(type) {
 	case *ast.Func:
 		var pos *ast.Position
@@ -53,16 +53,16 @@ func addExplicitReturn(node ast.Node) {
 func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
-			c.fb.EnterStack()
-			tmpReg := c.fb.NewRegister(srcType.Kind())
-			c.fb.Move(true, src, tmpReg, srcType.Kind())
-			c.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
-			c.fb.ExitStack()
+			c.FB.EnterStack()
+			tmpReg := c.FB.NewRegister(srcType.Kind())
+			c.FB.Move(true, src, tmpReg, srcType.Kind())
+			c.FB.Convert(tmpReg, srcType, dst, srcType.Kind())
+			c.FB.ExitStack()
 		} else {
-			c.fb.Convert(src, srcType, dst, srcType.Kind())
+			c.FB.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else if k || src != dst {
-		c.fb.Move(k, src, dst, srcType.Kind())
+		c.FB.Move(k, src, dst, srcType.Kind())
 	}
 }
 
@@ -136,7 +136,7 @@ func (c *Emitter) emitImport(n *ast.Import) {
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
 func (c *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := c.typeinfo[call]; ti.IsBuiltin() {
+		if ti := c.TypeInfo[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
@@ -209,7 +209,7 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 // nativeFunctionIndex returns fun's index inside current function, creating it
 // if not exists.
 func (c *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
-	currFun := c.currentFunction
+	currFun := c.CurrentFunction
 	i, ok := c.assignedNativeFunctions[currFun][fun]
 	if ok {
 		return i
@@ -226,7 +226,7 @@ func (c *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
 // scrigoFunctionIndex returns fun's index inside current function, creating it
 // if not exists.
 func (c *Emitter) scrigoFunctionIndex(fun *vm.ScrigoFunction) int8 {
-	currFun := c.currentFunction
+	currFun := c.CurrentFunction
 	i, ok := c.assignedScrigoFunctions[currFun][fun]
 	if ok {
 		return i
@@ -250,7 +250,7 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 		uv := &upvars[i]
 		if uv.Index == -1 {
 			name := uv.Declaration.(*ast.Identifier).Name
-			reg := c.fb.ScopeLookup(name)
+			reg := c.FB.ScopeLookup(name)
 			uv.Index = int16(reg)
 		}
 	}
@@ -271,7 +271,7 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 // variableIndex returns v's index inside current function, creating it if not
 // exists.
 func (c *Emitter) variableIndex(v vm.Global) uint8 {
-	currFun := c.currentFunction
+	currFun := c.CurrentFunction
 	i, ok := c.assignedVariables[currFun][v]
 	if ok {
 		return i

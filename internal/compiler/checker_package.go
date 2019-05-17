@@ -17,8 +17,8 @@ type GoPackage struct {
 	Declarations map[string]interface{}
 }
 
-func (gp *GoPackage) ToTypeCheckerScope() typeCheckerScope {
-	s := make(typeCheckerScope, len(gp.Declarations))
+func (gp *GoPackage) ToTypeCheckerScope() TypeCheckerScope {
+	s := make(TypeCheckerScope, len(gp.Declarations))
 	for ident, value := range gp.Declarations {
 		// Importing a Go type.
 		if t, ok := value.(reflect.Type); ok {
