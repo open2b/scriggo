@@ -888,12 +888,17 @@ var checkerStmts = map[string]string{
 	`switch _ { }`:                                     `cannot use _ as value`,
 	`var t boolType = false; switch t { case false: }`: ok,
 	`var t boolType = false; switch false { case t: }`: `invalid case t in switch on false (mismatched types compiler.definedBool and bool)`,
+	`switch { default:; default: }`:                    `multiple defaults in switch (first at 1:10)`,
+	`switch 1 { case 2:; case 2: }`:                    `duplicate case 2 in switch` + "\n\t" + `previous case at 1:17`,
+	`switch { case false:; case false: }`:              ok,
 
 	// Type-switch statements.
 	`i := interface{}(int(0)); switch i.(type) { }`:                         ok,
 	`i := interface{}(int(0)); switch i.(type) { case int: case float64: }`: ok,
+	`i := interface{}(int(0)); switch i.(type) { case nil: case int: }`:     ok,
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
+	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:     `multiple nil cases in type switch (first at 1:50)`,
 
 	// Function literals definitions.
 	`_ = func(     )         {                                             }`: ok,

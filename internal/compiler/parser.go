@@ -503,52 +503,25 @@ func (p *parsing) parseStatement(tok token) {
 
 	// case
 	case tokenCase:
-
-		// TODO (Gianluca): check if all expressions contained in this case have
-		// not been previously declarated in another "case". In such condition
-		// return an error as:
-		//
-		// prog.go:12:2: duplicate case int in type switch previous case at
-		// prog.go:11:2
-
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 		default:
-			// TODO (Gianluca): should be "unexpected case, expecting ...".
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case")})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case, expecting %%}")})
 		}
-		var node *ast.Case
-
-		// TODO (Gianluca): allMustBeTypes should be set to "true" when parsing
-		// TypeSwitch cases.
-
 		expressions, tok := p.parseExprList(token{}, false, false, false, false)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		node = ast.NewCase(pos, expressions, nil, false)
+		node := ast.NewCase(pos, expressions, nil, false)
 		addChild(parent, node)
 
 	// default
 	case tokenDefault:
-		// TODO (Gianluca): move to type-checker.
-		switch s := parent.(type) {
-		case *ast.Switch:
-			for _, c := range s.Cases {
-				if c.Expressions == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
-				}
-			}
-		case *ast.TypeSwitch:
-			for _, c := range s.Cases {
-				if c.Expressions == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("multiple defaults in switch (first at %s)", c.Pos())})
-				}
-			}
+		switch parent.(type) {
+		case *ast.Switch, *ast.TypeSwitch:
 		default:
-			// TODO (Gianluca): should be "unexpected case, expecting ...".
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case")})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected default, expecting %%}")})
 		}
 		tok = next(p.lex)
 		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {

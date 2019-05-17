@@ -42,6 +42,7 @@ type VM struct {
 	ctx    *context             // execution context.
 	calls  []callFrame          // call stack frame.
 	cases  []reflect.SelectCase // select cases.
+	err    error                // error.
 	panics []Panic              // panics.
 }
 
@@ -76,6 +77,13 @@ func (vm *VM) Reset() {
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
+}
+
+func (vm *VM) SetOut(out writer) {
+	if vm.ctx == nil {
+		vm.ctx = &context{}
+	}
+	vm.ctx.out = out
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
@@ -602,9 +610,14 @@ const (
 	Interface = Kind(reflect.Interface)
 )
 
+type writer interface {
+	Write(p []byte) (n int, err error)
+}
+
 // context represents an execution context.
 type context struct {
 	globals []interface{} // global variables.
+	out     writer        // writer of Write instruction.
 	trace   TraceFunc     // trace function.
 }
 
@@ -652,6 +665,7 @@ type ScrigoFunction struct {
 	NativeFunctions []*NativeFunction
 	Body            []Instruction
 	Lines           map[uint32]int
+	Data            [][]byte
 }
 
 func (fn *NativeFunction) slow() {
@@ -1118,6 +1132,8 @@ const (
 	OpSubInvFloat64
 
 	OpTailCall
+
+	OpWrite
 
 	OpXor
 )
