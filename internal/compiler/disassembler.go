@@ -494,6 +494,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+	case vm.OpWrite:
+		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
 	}
 	return s
 }
@@ -804,6 +806,8 @@ var operationName = [...]string{
 	vm.OpSubInvFloat64: "SubInv",
 
 	vm.OpTailCall: "TailCall",
+
+	vm.OpWrite: "Write",
 
 	vm.OpXor: "Xor",
 }
