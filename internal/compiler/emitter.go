@@ -84,7 +84,29 @@ func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[as
 }
 
 // emitPackage emits pkg.
-func (c *Emitter) EmitPackage(pkg *ast.Package) {
+func EmitPackage(pkg *ast.Package, packages map[string]*GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *vm.ScrigoFunction {
+
+	c := &Emitter{
+
+		importableGoPkgs: packages,
+
+		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
+
+		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
+		availableNativeFunctions: map[string]*vm.NativeFunction{},
+		availableVariables:       map[string]vm.Global{},
+
+		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
+		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
+		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Global]uint8{},
+
+		isNativePkg: map[string]bool{},
+
+		globalsIndexes: map[string]int16{},
+
+		TypeInfo:     typeInfos,
+		IndirectVars: indirectVars,
+	}
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
@@ -209,6 +231,8 @@ func (c *Emitter) EmitPackage(pkg *ast.Package) {
 	for _, f := range c.availableScrigoFunctions {
 		f.Globals = main.Globals
 	}
+
+	return main
 }
 
 // prepareCallParameters prepares parameters (out and in) for a function call of

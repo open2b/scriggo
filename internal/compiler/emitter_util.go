@@ -129,7 +129,7 @@ func (c *Emitter) emitImport(n *ast.Import) {
 		}
 		c.isNativePkg[importPkgName] = true
 	} else {
-		c.EmitPackage(n.Tree.Nodes[0].(*ast.Package))
+		panic("TODO(Gianluca): not implemented")
 	}
 }
 

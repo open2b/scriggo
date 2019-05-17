@@ -30,10 +30,9 @@ func Compile(path string, reader compiler.Reader, packages map[string]*compiler.
 	}
 
 	// Emitting.
-	emitter := compiler.NewEmitter(tree, packages, tci[path].TypeInfo, tci[path].IndirectVars)
-	emitter.EmitPackage(tree.Nodes[0].(*ast.Package))
+	main := compiler.EmitPackage(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
 
-	return &Program{Fn: emitter.Main()}, nil
+	return &Program{Fn: main}, nil
 }
 
 func Execute(p *Program) error {
