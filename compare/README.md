@@ -3,12 +3,12 @@
 ```
 go generate
 go build
-./test
+./compare
 ```
 
 # Command line arguments
 
-See `./test --help`
+See `./compare --help`
 
 # Ignoring tests
 
