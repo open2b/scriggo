@@ -56,9 +56,9 @@ func (c *Emitter) Main() *vm.ScrigoFunction {
 
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
 
-// NewCompiler returns a new compiler reading sources from r.
+// NewEmitter returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
-func NewCompiler(tree *ast.Tree, packages map[string]*GoPackage) *Emitter {
+func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage) *Emitter {
 	c := &Emitter{
 
 		importableGoPkgs: packages,

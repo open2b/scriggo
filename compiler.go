@@ -30,7 +30,7 @@ func Compile(path string, reader compiler.Reader, packages map[string]*compiler.
 	}
 
 	// Emitting.
-	emitter := compiler.NewCompiler(tree, packages)
+	emitter := compiler.NewEmitter(tree, packages)
 	emitter.TypeInfo = tci[path].TypeInfo
 	emitter.IndirectVars = tci[path].IndirectVars
 	emitter.EmitPackage(tree.Nodes[0].(*ast.Package))
