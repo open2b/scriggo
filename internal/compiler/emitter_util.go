@@ -129,7 +129,7 @@ func (c *Emitter) emitImport(n *ast.Import) {
 		}
 		c.isNativePkg[importPkgName] = true
 	} else {
-		c.emitPackage(n.Tree.Nodes[0].(*ast.Package))
+		c.EmitPackage(n.Tree.Nodes[0].(*ast.Package))
 	}
 }
 

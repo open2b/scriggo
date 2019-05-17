@@ -74,27 +74,8 @@ func NewCompiler(tree *ast.Tree) *Emitter {
 	return c
 }
 
-func (c *Emitter) CompilePackage(path string) (*vm.ScrigoFunction, error) {
-	tree, err := c.parser.Parse(path, ast.ContextNone)
-	if err != nil {
-		return nil, err
-	}
-	tci := c.parser.TypeCheckInfos()
-	c.TypeInfo = map[ast.Node]*TypeInfo{}
-	for _, pkgInfo := range tci {
-		for node, ti := range pkgInfo.TypeInfo {
-			c.TypeInfo[node] = ti
-		}
-	}
-	// TODO(Gianluca): also add c.IndirectVars of all packages, not just main.
-	c.IndirectVars = tci[path].IndirectVars
-	node := tree.Nodes[0].(*ast.Package)
-	c.emitPackage(node)
-	return c.availableScrigoFunctions["main"], nil
-}
-
 // emitPackage emits pkg.
-func (c *Emitter) emitPackage(pkg *ast.Package) {
+func (c *Emitter) EmitPackage(pkg *ast.Package) {
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {

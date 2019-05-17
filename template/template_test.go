@@ -7,17 +7,12 @@
 package template
 
 import (
-	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
-
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
 )
 
 type stringConvertible string
@@ -44,7 +39,7 @@ type aStruct struct {
 var rendererExprTests = []struct {
 	src     string
 	res     string
-	globals compiler.Scope
+	globals map[string]interface{}
 }{
 	{`"a"`, "a", nil},
 	{"`a`", "a", nil},
@@ -562,97 +557,112 @@ var rendererGlobalsToScope = []struct {
 	},
 }
 
+// refToCopy returns a reference to a copy of v (not to v itself).
+func refToCopy(v interface{}) reflect.Value {
+	rv := reflect.New(reflect.TypeOf(v))
+	rv.Elem().Set(reflect.ValueOf(v))
+	return rv
+}
+
 func TestRenderExpressions(t *testing.T) {
 
-	for _, expr := range rendererExprTests {
-		r := compiler.MapReader{
-			"/index.html": []byte("{{" + expr.src + "}}"),
-		}
-		scope := make(map[string]interface{}, len(expr.globals))
-		reflectTypeType := reflect.TypeOf(&[]reflect.Type{reflect.TypeOf(0)}[0]).Elem()
-		for n, d := range expr.globals {
-			if !reflect.TypeOf(d).Implements(reflectTypeType) { // is not a type.
-				scope[n] = refToCopy(d).Interface()
-			} else {
-				scope[n] = d
-			}
-		}
-		goPkg := &compiler.GoPackage{
-			Declarations: scope,
-		}
-		template := NewTemplate(r)
-		page, err := template.Compile("/index.html", goPkg, ContextText)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = Render(b, page, expr.globals)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if res != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
-		}
-	}
+	t.Errorf("unable to run TestRenderExpressions")
+
+	// for _, expr := range rendererExprTests {
+	// 	r := compiler.MapReader{
+	// 		"/index.html": []byte("{{" + expr.src + "}}"),
+	// 	}
+	// 	scope := make(map[string]interface{}, len(expr.globals))
+	// 	reflectTypeType := reflect.TypeOf(&[]reflect.Type{reflect.TypeOf(0)}[0]).Elem()
+	// 	for n, d := range expr.globals {
+	// 		if !reflect.TypeOf(d).Implements(reflectTypeType) { // is not a type.
+	// 			scope[n] = refToCopy(d).Interface()
+	// 		} else {
+	// 			scope[n] = d
+	// 		}
+	// 	}
+	// 	goPkg := &compiler.GoPackage{
+	// 		Declarations: scope,
+	// 	}
+	// 	template := NewTemplate(r)
+	// 	page, err := template.Compile("/index.html", goPkg, ContextText)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = Render(b, page, expr.globals)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+	// 	}
+	// }
 }
 
 func TestRenderStatements(t *testing.T) {
-	globalTest2 := func(a, b int) (int, int) {
-		return a, b
-	}
-	for _, stmt := range rendererStmtTests {
-		r := compiler.MapReader{
-			"/index.html": []byte(stmt.src),
-		}
-		if stmt.globals == nil {
-			stmt.globals = make(map[string]interface{}, 1)
-		}
-		stmt.globals["test2"] = globalTest2
-		scope := make(map[string]interface{}, len(stmt.globals))
-		reflectTypeType := reflect.TypeOf(&[]reflect.Type{reflect.TypeOf(0)}[0]).Elem()
-		for n, d := range stmt.globals {
-			if !reflect.TypeOf(d).Implements(reflectTypeType) { // is not a type.
-				scope[n] = refToCopy(d).Interface()
-			} else {
-				scope[n] = d
-			}
-		}
-		goPkg := &compiler.GoPackage{
-			Declarations: scope,
-		}
-		template := NewTemplate(r)
-		page, err := template.Compile("/index.html", goPkg, ContextText)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", stmt.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = Render(b, page, stmt.globals)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", stmt.src, err)
-			continue
-		}
-		var res = b.String()
-		if res != stmt.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
-		}
-	}
+
+	t.Errorf("unable to run TestRenderStatements")
+
+	// globalTest2 := func(a, b int) (int, int) {
+	// 	return a, b
+	// }
+	// for _, stmt := range rendererStmtTests {
+	// 	r := compiler.MapReader{
+	// 		"/index.html": []byte(stmt.src),
+	// 	}
+	// 	if stmt.globals == nil {
+	// 		stmt.globals = make(map[string]interface{}, 1)
+	// 	}
+	// 	stmt.globals["test2"] = globalTest2
+	// 	scope := make(map[string]interface{}, len(stmt.globals))
+	// 	reflectTypeType := reflect.TypeOf(&[]reflect.Type{reflect.TypeOf(0)}[0]).Elem()
+	// 	for n, d := range stmt.globals {
+	// 		if !reflect.TypeOf(d).Implements(reflectTypeType) { // is not a type.
+	// 			scope[n] = refToCopy(d).Interface()
+	// 		} else {
+	// 			scope[n] = d
+	// 		}
+	// 	}
+	// 	goPkg := &compiler.GoPackage{
+	// 		Declarations: scope,
+	// 	}
+	// 	template := NewTemplate(r)
+	// 	page, err := template.Compile("/index.html", goPkg, ContextText)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", stmt.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = Render(b, page, stmt.globals)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", stmt.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res != stmt.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
+	// 	}
+	// }
 }
 
 func TestGlobalsToScope(t *testing.T) {
-	for _, p := range rendererGlobalsToScope {
-		res, err := globalsToScope(p.globals)
-		if err != nil {
-			t.Errorf("vars: %#v, %q\n", p.globals, err)
-			continue
-		}
-		if !reflect.DeepEqual(res, p.res) {
-			t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.globals, res, p.res)
-		}
-	}
+
+	t.Errorf("unable to run TestGlobalsToScope")
+
+	// for _, p := range rendererGlobalsToScope {
+	// 	res, err := globalsToScope(p.globals)
+	// 	if err != nil {
+	// 		t.Errorf("vars: %#v, %q\n", p.globals, err)
+	// 		continue
+	// 	}
+	// 	if !reflect.DeepEqual(res, p.res) {
+	// 		t.Errorf("vars: %#v, unexpected %q, expecting %q\n", p.globals, res, p.res)
+	// 	}
+	// }
 }
 
 type RenderError struct{}
@@ -668,19 +678,22 @@ func (wr RenderPanic) Render(w io.Writer) (int, error) {
 }
 
 func TestRenderErrors(t *testing.T) {
-	// TODO (Gianluca): what's the point of this test?
-	tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
-	err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, true)
-	if err == nil {
-		t.Errorf("expecting not nil error\n")
-	} else if err.Error() != "RenderTree error" {
-		t.Errorf("unexpected error %q, expecting 'RenderTree error'\n", err)
-	}
 
-	err = RenderTree(ioutil.Discard, tree, scope{"a": RenderPanic{}}, true)
-	if err == nil {
-		t.Errorf("expecting not nil error\n")
-	} else if err.Error() != "RenderTree panic" {
-		t.Errorf("unexpected error %q, expecting 'RenderTree panic'\n", err)
-	}
+	t.Errorf("unable to run TestRenderErrors")
+
+	// TODO (Gianluca): what's the point of this test?
+	// tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)
+	// err := RenderTree(ioutil.Discard, tree, scope{"a": RenderError{}}, true)
+	// if err == nil {
+	// 	t.Errorf("expecting not nil error\n")
+	// } else if err.Error() != "RenderTree error" {
+	// 	t.Errorf("unexpected error %q, expecting 'RenderTree error'\n", err)
+	// }
+
+	// err = RenderTree(ioutil.Discard, tree, scope{"a": RenderPanic{}}, true)
+	// if err == nil {
+	// 	t.Errorf("expecting not nil error\n")
+	// } else if err.Error() != "RenderTree panic" {
+	// 	t.Errorf("unexpected error %q, expecting 'RenderTree panic'\n", err)
+	// }
 }

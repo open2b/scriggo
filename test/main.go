@@ -10,11 +10,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"scrigo"
 	"strings"
 	"sync"
 
 	"scrigo/internal/compiler"
-	"scrigo/vm"
 )
 
 var packages map[string]*compiler.GoPackage
@@ -91,14 +91,13 @@ func runScrigoAndGetOutput(src []byte) output {
 		out <- buf.String()
 	}()
 	wg.Wait()
+
 	r := compiler.MapReader{"/main.go": src}
-	comp := compiler.NewCompiler(r, packages)
-	main, err := comp.CompilePackage("/main.go")
+	program, err := scrigo.Compile("/main.go", r, packages)
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	v := vm.New()
-	_, err = v.Run(main)
+	err = scrigo.Execute(program)
 	if err != nil {
 		return makeOutput(err.Error())
 	}

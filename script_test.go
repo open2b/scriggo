@@ -1,12 +1,16 @@
 package scrigo
 
 import (
-	"fmt"
 	"testing"
 )
 
 // variables scope.
 type scope map[string]interface{}
+
+type packageNameScope struct {
+	name  string
+	scope scope
+}
 
 var rendererCallFuncTests = []struct {
 	src     string
@@ -33,18 +37,21 @@ var rendererCallFuncTests = []struct {
 }
 
 func TestRenderCallFunc(t *testing.T) {
-	for _, stmt := range rendererCallFuncTests {
-		v, err := Eval(stmt.src)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", stmt.src, err)
-			continue
-		}
-		res := ""
-		if len(v) > 0 {
-			res = fmt.Sprintf("%v", v[0])
-		}
-		if res != stmt.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
-		}
-	}
+
+	t.Errorf("unable to run TestRenderCallFunc")
+
+	// for _, stmt := range rendererCallFuncTests {
+	// 	v, err := Eval(stmt.src)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", stmt.src, err)
+	// 		continue
+	// 	}
+	// 	res := ""
+	// 	if len(v) > 0 {
+	// 		res = fmt.Sprintf("%v", v[0])
+	// 	}
+	// 	if res != stmt.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", stmt.src, res, stmt.res)
+	// 	}
+	// }
 }

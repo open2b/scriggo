@@ -1364,28 +1364,31 @@ func (tests testsReader) Read(path string, ctx ast.Context) ([]byte, error) {
 }
 
 func TestPages(t *testing.T) {
-	tests := pageTests()
-	// simple.html
-	parser := New(testsReader(tests), nil, false)
-	p := tests["/simple.html"]
-	tree, err := parser.Parse("/simple.html", ast.ContextHTML)
-	if err != nil {
-		t.Errorf("source: %q, %s\n", p.src, err)
-	}
-	err = equals(tree, p.tree, 0)
-	if err != nil {
-		t.Errorf("source: %q, %s\n", p.src, err)
-	}
-	// simple2.html
-	p = tests["/simple2.html"]
-	tree, err = parser.Parse("/simple2.html", ast.ContextHTML)
-	if err != nil {
-		t.Errorf("source: %q, %s\n", p.src, err)
-	}
-	err = equals(tree, p.tree, 0)
-	if err != nil {
-		t.Errorf("source: %q, %s\n", p.src, err)
-	}
+
+	t.Errorf("unable to run TestPages")
+
+	// tests := pageTests()
+	// // simple.html
+	// parser := NewParser(testsReader(tests), nil, false)
+	// p := tests["/simple.html"]
+	// tree, err := parser.Parse("/simple.html", ast.ContextHTML)
+	// if err != nil {
+	// 	t.Errorf("source: %q, %s\n", p.src, err)
+	// }
+	// err = equals(tree, p.tree, 0)
+	// if err != nil {
+	// 	t.Errorf("source: %q, %s\n", p.src, err)
+	// }
+	// // simple2.html
+	// p = tests["/simple2.html"]
+	// tree, err = parser.Parse("/simple2.html", ast.ContextHTML)
+	// if err != nil {
+	// 	t.Errorf("source: %q, %s\n", p.src, err)
+	// }
+	// err = equals(tree, p.tree, 0)
+	// if err != nil {
+	// 	t.Errorf("source: %q, %s\n", p.src, err)
+	// }
 }
 
 func equals(n1, n2 ast.Node, p int) error {

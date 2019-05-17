@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"scrigo/compiler/ast/astutil"
+	"scrigo/internal/compiler/ast/astutil"
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
 )

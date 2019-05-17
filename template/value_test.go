@@ -7,11 +7,7 @@
 package template
 
 import (
-	"bytes"
 	"testing"
-
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
 )
 
 var htmlContextTests = []struct {
@@ -51,30 +47,33 @@ var htmlContextTests = []struct {
 }
 
 func TestHTMLContext(t *testing.T) {
-	for _, expr := range htmlContextTests {
-		var src string
-		switch s := expr.src.(type) {
-		case string:
-			src = s
-		case HTML:
-			src = string(s)
-		}
-		var tree, err = compiler.ParseSource([]byte("{{"+src+"}}"), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if res != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
-		}
-	}
+
+	t.Errorf("unable to run TestHTMLContext")
+
+	// for _, expr := range htmlContextTests {
+	// 	var src string
+	// 	switch s := expr.src.(type) {
+	// 	case string:
+	// 		src = s
+	// 	case HTML:
+	// 		src = string(s)
+	// 	}
+	// 	var tree, err = compiler.ParseSource([]byte("{{"+src+"}}"), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+	// 	}
+	// }
 }
 
 var attributeContextTests = []struct {
@@ -112,30 +111,33 @@ var attributeContextTests = []struct {
 }
 
 func TestAttributeContext(t *testing.T) {
-	for _, expr := range attributeContextTests {
-		var src string
-		switch s := expr.src.(type) {
-		case string:
-			src = s
-		case HTML:
-			src = string(s)
-		}
-		var tree, err = compiler.ParseSource([]byte(`<z x="{{`+src+`}}">`), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if res[6:len(res)-2] != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[6:len(res)-2], expr.res)
-		}
-	}
+
+	t.Errorf("unable to run TestAttributeContext")
+
+	// for _, expr := range attributeContextTests {
+	// 	var src string
+	// 	switch s := expr.src.(type) {
+	// 	case string:
+	// 		src = s
+	// 	case HTML:
+	// 		src = string(s)
+	// 	}
+	// 	var tree, err = compiler.ParseSource([]byte(`<z x="{{`+src+`}}">`), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res[6:len(res)-2] != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[6:len(res)-2], expr.res)
+	// 	}
+	// }
 }
 
 var unquotedAttributeContextTests = []struct {
@@ -150,31 +152,34 @@ var unquotedAttributeContextTests = []struct {
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
-	for _, expr := range unquotedAttributeContextTests {
-		var src string
 
-		switch s := expr.src.(type) {
-		case string:
-			src = s
-		case HTML:
-			src = string(s)
-		}
-		var tree, err = compiler.ParseSource([]byte(`<z x={{`+src+`}}>`), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if res[5:len(res)-1] != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[5:len(res)-1], expr.res)
-		}
-	}
+	t.Errorf("unable to run TestUnquotedAttributeContext")
+
+	// for _, expr := range unquotedAttributeContextTests {
+	// 	var src string
+
+	// 	switch s := expr.src.(type) {
+	// 	case string:
+	// 		src = s
+	// 	case HTML:
+	// 		src = string(s)
+	// 	}
+	// 	var tree, err = compiler.ParseSource([]byte(`<z x={{`+src+`}}>`), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res[5:len(res)-1] != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[5:len(res)-1], expr.res)
+	// 	}
+	// }
 }
 
 var urlContextTests = []struct {
@@ -223,30 +228,33 @@ var urlContextTests = []struct {
 }
 
 func TestURLContext(t *testing.T) {
-	for _, expr := range urlContextTests {
-		var src string
-		switch s := expr.src.(type) {
-		case string:
-			src = s
-		case HTML:
-			src = string(s)
-		}
-		var tree, err = compiler.ParseSource([]byte(src), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if res != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
-		}
-	}
+
+	t.Errorf("unable to run TestURLContext")
+
+	// for _, expr := range urlContextTests {
+	// 	var src string
+	// 	switch s := expr.src.(type) {
+	// 	case string:
+	// 		src = s
+	// 	case HTML:
+	// 		src = string(s)
+	// 	}
+	// 	var tree, err = compiler.ParseSource([]byte(src), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if res != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+	// 	}
+	// }
 }
 
 var scriptContextTests = []struct {
@@ -282,7 +290,7 @@ var scriptContextTests = []struct {
 	{`a`, "null", scope{"a": []int(nil)}},
 	{`a`, "[0,1,2,3,4,5]", scope{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "[-2,-1,0,1,2]", scope{"a": []int{-2, -1, 0, 1, 2}}},
-	{`a`, `"AAECAwQF"`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	// {`a`, `"AAECAwQF"`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}}, // TODO(Gianluca).
 	{`a`, `"AAECAwQF"`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 	{`a`, "null", scope{"a": []bool(nil)}},
 	{`a`, "[true,false,true]", scope{"a": []bool{true, false, true}}},
@@ -306,23 +314,26 @@ var scriptContextTests = []struct {
 }
 
 func TestScriptContext(t *testing.T) {
-	for _, expr := range scriptContextTests {
-		var tree, err = compiler.ParseSource([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if len(res) < 17 || res[8:len(res)-9] != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
-		}
-	}
+
+	t.Errorf("unable to run TestScriptContext")
+
+	// for _, expr := range scriptContextTests {
+	// 	var tree, err = compiler.ParseSource([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if len(res) < 17 || res[8:len(res)-9] != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+	// 	}
+	// }
 }
 
 var scriptStringContextTests = []struct {
@@ -347,25 +358,28 @@ var scriptStringContextTests = []struct {
 }
 
 func TestScriptStringContext(t *testing.T) {
-	for _, q := range []string{"\"", "'"} {
-		for _, expr := range scriptStringContextTests {
-			var tree, err = compiler.ParseSource([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
-			if err != nil {
-				t.Errorf("source: %q, %s\n", expr.src, err)
-				continue
-			}
-			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.globals, false)
-			if err != nil {
-				t.Errorf("source: %q, %s\n", expr.src, err)
-				continue
-			}
-			var res = b.String()
-			if len(res) < 19 || res[9:len(res)-10] != expr.res {
-				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
-			}
-		}
-	}
+
+	t.Errorf("unable to run TestScriptStringContext")
+
+	// for _, q := range []string{"\"", "'"} {
+	// 	for _, expr := range scriptStringContextTests {
+	// 		var tree, err = compiler.ParseSource([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
+	// 		if err != nil {
+	// 			t.Errorf("source: %q, %s\n", expr.src, err)
+	// 			continue
+	// 		}
+	// 		var b = &bytes.Buffer{}
+	// 		err = RenderTree(b, tree, expr.globals, false)
+	// 		if err != nil {
+	// 			t.Errorf("source: %q, %s\n", expr.src, err)
+	// 			continue
+	// 		}
+	// 		var res = b.String()
+	// 		if len(res) < 19 || res[9:len(res)-10] != expr.res {
+	// 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+	// 		}
+	// 	}
+	// }
 }
 
 var cssContextTests = []struct {
@@ -379,28 +393,31 @@ var cssContextTests = []struct {
 	{`html("<a>")`, `"\3c a\3e "`, nil},
 	{`5`, `5`, nil},
 	{`5.2`, `5.2`, nil},
-	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	// {`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}}, // TODO(Gianluca).
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 }
 
 func TestCSSContext(t *testing.T) {
-	for _, expr := range cssContextTests {
-		var tree, err = compiler.ParseSource([]byte("<style>{{"+expr.src+"}}</style>"), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var res = b.String()
-		if len(res) < 15 || res[7:len(res)-8] != expr.res {
-			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[7:len(res)-8], expr.res)
-		}
-	}
+
+	t.Errorf("unable to run TestCSSContext")
+
+	// for _, expr := range cssContextTests {
+	// 	var tree, err = compiler.ParseSource([]byte("<style>{{"+expr.src+"}}</style>"), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var res = b.String()
+	// 	if len(res) < 15 || res[7:len(res)-8] != expr.res {
+	// 		t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[7:len(res)-8], expr.res)
+	// 	}
+	// }
 }
 
 var cssStringContextTests = []struct {
@@ -425,28 +442,31 @@ var cssStringContextTests = []struct {
 	{`0.1`, "0.1", nil},
 	{`a`, `a`, scope{"a": "a"}},
 	{`a`, `\3c\3e\22 `, scope{"a": "<>\""}},
-	{`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}},
+	// {`a`, `AAECAwQF`, scope{"a": Bytes{0, 1, 2, 3, 4, 5}}}, // TODO(Gianluca).
 	{`a`, `AAECAwQF`, scope{"a": []byte{0, 1, 2, 3, 4, 5}}},
 }
 
 func TestCSSStringContext(t *testing.T) {
-	for _, q := range []string{"\"", "'"} {
-		for _, expr := range cssStringContextTests {
-			var tree, err = compiler.ParseSource([]byte("<style>"+q+"{{"+expr.src+"}}"+q+"</style>"), ast.ContextHTML)
-			if err != nil {
-				t.Errorf("source: %q, %s\n", expr.src, err)
-				continue
-			}
-			var b = &bytes.Buffer{}
-			err = RenderTree(b, tree, expr.globals, false)
-			if err != nil {
-				t.Errorf("source: %q, %s\n", expr.src, err)
-				continue
-			}
-			var res = b.String()
-			if len(res) < 17 || res[8:len(res)-9] != expr.res {
-				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
-			}
-		}
-	}
+
+	t.Errorf("unable to run TestCSSStringContext")
+
+	// for _, q := range []string{"\"", "'"} {
+	// 	for _, expr := range cssStringContextTests {
+	// 		var tree, err = compiler.ParseSource([]byte("<style>"+q+"{{"+expr.src+"}}"+q+"</style>"), ast.ContextHTML)
+	// 		if err != nil {
+	// 			t.Errorf("source: %q, %s\n", expr.src, err)
+	// 			continue
+	// 		}
+	// 		var b = &bytes.Buffer{}
+	// 		err = RenderTree(b, tree, expr.globals, false)
+	// 		if err != nil {
+	// 			t.Errorf("source: %q, %s\n", expr.src, err)
+	// 			continue
+	// 		}
+	// 		var res = b.String()
+	// 		if len(res) < 17 || res[8:len(res)-9] != expr.res {
+	// 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res[8:len(res)-9], expr.res)
+	// 		}
+	// 	}
+	// }
 }

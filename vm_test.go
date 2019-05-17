@@ -70,14 +70,13 @@ func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := compiler.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
-			comp := compiler.NewCompiler(r, goPackages)
-			main, err := comp.CompilePackage("/test.go")
+			program, err := Compile("/test.go", r, goPackages)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
 			}
 			vm := vmp.New()
-			_, err = vm.Run(main)
+			_, err = vm.Run(program.Fn)
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", src, err)
 				return
@@ -3114,14 +3113,13 @@ func TestVM(t *testing.T) {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
 			r := compiler.MapReader{"/test.go": []byte(cas.src)}
-			comp := compiler.NewCompiler(r, goPackages)
-			main, err := comp.CompilePackage("/test.go")
+			program, err := Compile("/test.go", r, goPackages)
 			if err != nil {
-				t.Errorf("test %q, compiler error: %s", cas.name, err)
+				t.Errorf("test %q, compiler error: %s", cas.src, err)
 				return
 			}
-			backupStdout := os.Stdout
 			vm := vmp.New()
+			backupStdout := os.Stdout
 			backupStderr := os.Stderr
 			reader, writer, err := os.Pipe()
 			if err != nil {
@@ -3146,7 +3144,7 @@ func TestVM(t *testing.T) {
 				out <- buf.String()
 			}()
 			wg.Wait()
-			_, err = vm.Run(main)
+			_, err = vm.Run(program.Fn)
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", cas.name, err)
 				return
@@ -3159,7 +3157,7 @@ func TestVM(t *testing.T) {
 
 			// TODO (Gianluca): to review.
 			if false && cas.disassembled != nil {
-				assembler, err := compiler.Disassemble(main)
+				assembler, err := compiler.Disassemble(program.Fn)
 				if err != nil {
 					t.Errorf("test %q, disassemble error: %s", cas.name, err)
 					return

@@ -1,3 +1,8 @@
+//+build ignore
+
+// TODO(Gianluca): this file has been excluded from building since contains
+// references to renderer. Consider what to modify and what to remove.
+
 // Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 // https://www.open2b.com
 

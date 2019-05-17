@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"scrigo/internal/compiler"
-	"scrigo/vm"
 
+	"scrigo"
+	"scrigo/internal/compiler"
+	"scrigo/script"
 	"scrigo/template"
+	"scrigo/vm"
 )
 
 var packages map[string]*compiler.GoPackage
@@ -61,42 +63,36 @@ func main() {
 
 	switch ext {
 	case ".gos":
-		path := "/" + filepath.Base(absFile)
-		r := compiler.DirReader(filepath.Dir(absFile))
-		comp := compiler.NewCompiler(r, packages)
-		main, err := comp.CompileScript(path)
+		// TODO(Gianluca): disassembling is currently not available for
+		// scripts in interpreter. Find a solution.
+		r, err := os.Open(absFile)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		if *asm {
-			_, err = compiler.DisassembleFunction(os.Stdout, main)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			v := vm.New()
-			if *trace {
-				v.SetTraceFunc(tf)
-			}
-			_, err = v.Run(main)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-				os.Exit(2)
-			}
+		s, err := script.Compile(r, nil)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
+		}
+		err = script.Execute(s, nil)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			os.Exit(2)
 		}
 	case ".go":
+		// TODO(Gianluca): use program.Execute: vm shall not be imported by
+		// interpreter. Note that disassembling and tracing support must be
+		// keep.
 		path := "/" + filepath.Base(absFile)
 		r := compiler.DirReader(filepath.Dir(absFile))
-		comp := compiler.NewCompiler(r, packages)
-		main, err := comp.CompilePackage(path)
+		program, err := scrigo.Compile(path, r, packages)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
-			funcs, err := compiler.Disassemble(main)
+			funcs, err := compiler.Disassemble(program.Fn)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
@@ -107,12 +103,13 @@ func main() {
 			if *trace {
 				v.SetTraceFunc(tf)
 			}
-			_, err = v.Run(main)
+			_, err = v.Run(program.Fn)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
 		}
+
 	case ".html":
 		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)

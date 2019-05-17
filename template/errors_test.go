@@ -7,11 +7,7 @@
 package template
 
 import (
-	"bytes"
 	"testing"
-
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
 
 	"github.com/cockroachdb/apd"
 )
@@ -66,28 +62,30 @@ var errorTests = []struct {
 // TODO (Gianluca): error checking in renderer is no longer supported. Consider
 // removing these tests or moving them to the typechecker.
 func NoTestErrors(t *testing.T) {
-	for _, expr := range errorTests {
-		var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextHTML)
-		if err != nil {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-			continue
-		}
-		var b = &bytes.Buffer{}
-		err = RenderTree(b, tree, expr.globals, false)
-		if err == nil {
-			t.Errorf("source: %q, expecting error\n", expr.src)
-			continue
-		}
-		if errs, ok := err.(Errors); ok {
-			if len(errs) > 1 {
-				t.Errorf("source: %q, unexpected %d errors, expecting 1 error\n", expr.src, len(errs))
-				continue
-			}
-			if res := b.String(); res != expr.res {
-				t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
-			}
-		} else {
-			t.Errorf("source: %q, %s\n", expr.src, err)
-		}
-	}
+	t.Errorf("unable to run NoTestErrors")
+	// TODO(Gianluca):
+	// for _, expr := range errorTests {
+	// 	var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextHTML)
+	// 	if err != nil {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 		continue
+	// 	}
+	// 	var b = &bytes.Buffer{}
+	// 	err = RenderTree(b, tree, expr.globals, false)
+	// 	if err == nil {
+	// 		t.Errorf("source: %q, expecting error\n", expr.src)
+	// 		continue
+	// 	}
+	// 	if errs, ok := err.(Errors); ok {
+	// 		if len(errs) > 1 {
+	// 			t.Errorf("source: %q, unexpected %d errors, expecting 1 error\n", expr.src, len(errs))
+	// 			continue
+	// 		}
+	// 		if res := b.String(); res != expr.res {
+	// 			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+	// 		}
+	// 	} else {
+	// 		t.Errorf("source: %q, %s\n", expr.src, err)
+	// 	}
+	// }
 }

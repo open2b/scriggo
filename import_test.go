@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
 )
 
 func TestScrigoImport(t *testing.T) {
@@ -122,15 +121,14 @@ func TestScrigoImport(t *testing.T) {
 		}),
 	}
 	for i, r := range cases {
-		p := NewParser(r, nil, true)
-		tree, err := p.Parse("main.go", ast.ContextNone)
+		program, err := Compile("/main.go", r, nil)
 		if err != nil {
-			t.Errorf("test %d/%d, parsing (or type-checker) error: %s", i+1, len(cases), err)
+			t.Errorf("test %d/%d, compiling error: %s", i+1, len(cases), err)
 			continue
 		}
-		err = RunPackageTree(tree, nil, p.TypeCheckInfos())
+		err = Execute(program)
 		if err != nil {
-			t.Errorf("test %d/%d, rendering error: %s", i+1, len(cases), err)
+			t.Errorf("test %d/%d, execution error: %s", i+1, len(cases), err)
 			continue
 		}
 	}

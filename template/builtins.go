@@ -27,8 +27,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-
-	"scrigo/internal/compiler/ast"
 )
 
 var testSeed int64 = -1
@@ -38,6 +36,10 @@ var errNoSlice = errors.New("no slice")
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
 var interf = interface{}(nil)
+
+// TODO(Gianluca): this definition is a copy-paste from "value.go", which has
+// been excluded from building. See "value.go" for further details.
+type HTML string
 
 var htmlType = reflect.TypeOf(HTML(""))
 
@@ -156,112 +158,116 @@ func _abs(n interface{}) interface{} {
 		if x < 0 {
 			n = -x
 		}
-	case ConstantNumber:
-		var err error
-		n, err = x.ToTyped()
-		if err != nil {
-			panic(err)
-		}
-		n = _abs(n)
-	case CustomNumber:
-		if x.Cmp(nil) < 0 {
-			n = x.New().Neg(x)
-		}
+	// TODO(Gianluca):
+	// case ConstantNumber:
+	// 	var err error
+	// 	n, err = x.ToTyped()
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	n = _abs(n)
+	// case CustomNumber:
+	// 	if x.Cmp(nil) < 0 {
+	// 		n = x.New().Neg(x)
+	// 	}
 	default:
-		panic(fmt.Sprintf("non-number argument in abs - %s", typeof(n)))
+		// TODO(Gianluca):
+		panic("???")
+		// panic(fmt.Sprintf("non-number argument in abs - %s", typeof(n)))
 	}
 	return n
 }
 
-// _append is the builtin function "append".
-func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
+// TODO(Gianluca): this method refers to renderer.
+// // _append is the builtin function "append".
+// func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
 
-	slice, err := r.eval(node.Args[0])
-	if err != nil {
-		return reflect.Value{}, err
-	}
-	t := reflect.TypeOf(slice)
+// 	slice, err := r.eval(node.Args[0])
+// 	if err != nil {
+// 		return reflect.Value{}, err
+// 	}
+// 	t := reflect.TypeOf(slice)
 
-	m := len(node.Args) - 1
-	if m == 0 {
-		return reflect.ValueOf(slice), nil
-	}
+// 	m := len(node.Args) - 1
+// 	if m == 0 {
+// 		return reflect.ValueOf(slice), nil
+// 	}
 
-	typ := t.Elem()
+// 	typ := t.Elem()
 
-	if s, ok := slice.([]interface{}); ok {
-		var s2 []interface{}
-		l, c := len(s), cap(s)
-		p := 0
-		if l+m <= c {
-			s2 = make([]interface{}, m)
-			s = s[:c:c]
-		} else {
-			s2 = make([]interface{}, l+m)
-			copy(s2, s)
-			s = s2
-			p = l
-		}
-		for i := 1; i < len(node.Args); i++ {
-			v, err := r.eval(node.Args[i])
-			if err != nil {
-				return reflect.Value{}, err
-			}
-			if n, ok := v.(ConstantNumber); ok {
-				v, err = n.ToType(typ)
-				if err != nil {
-					if e, ok := err.(errConstantOverflow); ok {
-						return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
-					}
-					return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
-				}
-			}
-			s2[p+i-1] = v
-		}
-		if l+m <= c {
-			copy(s[l:], s2)
-		}
-		return reflect.ValueOf(s), nil
-	}
+// 	if s, ok := slice.([]interface{}); ok {
+// 		var s2 []interface{}
+// 		l, c := len(s), cap(s)
+// 		p := 0
+// 		if l+m <= c {
+// 			s2 = make([]interface{}, m)
+// 			s = s[:c:c]
+// 		} else {
+// 			s2 = make([]interface{}, l+m)
+// 			copy(s2, s)
+// 			s = s2
+// 			p = l
+// 		}
+// 		for i := 1; i < len(node.Args); i++ {
+// 			v, err := r.eval(node.Args[i])
+// 			if err != nil {
+// 				return reflect.Value{}, err
+// 			}
+// 			if n, ok := v.(ConstantNumber); ok {
+// 				v, err = n.ToType(typ)
+// 				if err != nil {
+// 					if e, ok := err.(errConstantOverflow); ok {
+// 						return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
+// 					}
+// 					return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+// 				}
+// 			}
+// 			s2[p+i-1] = v
+// 		}
+// 		if l+m <= c {
+// 			copy(s[l:], s2)
+// 		}
+// 		return reflect.ValueOf(s), nil
+// 	}
 
-	sv := reflect.ValueOf(slice)
-	var sv2 reflect.Value
-	l, c := sv.Len(), sv.Cap()
-	p := 0
-	if l+n <= c {
-		sv2 = reflect.MakeSlice(t, m, m)
-		sv = sv.Slice3(0, c, c)
-	} else {
-		sv2 = reflect.MakeSlice(t, l+m, l+m)
-		reflect.Copy(sv2, sv)
-		sv = sv2
-		p = l
-	}
-	for i := 1; i < len(node.Args); i++ {
-		v, err := r.eval(node.Args[i])
-		if err != nil {
-			return reflect.Value{}, err
-		}
-		switch v2 := v.(type) {
-		case ConstantNumber:
-			v, err = v2.ToType(typ)
-			if err != nil {
-				if e, ok := err.(errConstantOverflow); ok {
-					return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
-				}
-				return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
-			}
-		case function:
-			v = v2.Func()
-		}
-		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
-	}
-	if l+m <= c {
-		reflect.Copy(sv2.Slice(l, l+m+1), sv2)
-	}
+// 	sv := reflect.ValueOf(slice)
+// 	var sv2 reflect.Value
+// 	l, c := sv.Len(), sv.Cap()
+// 	p := 0
+// 	if l+n <= c {
+// 		sv2 = reflect.MakeSlice(t, m, m)
+// 		sv = sv.Slice3(0, c, c)
+// 	} else {
+// 		sv2 = reflect.MakeSlice(t, l+m, l+m)
+// 		reflect.Copy(sv2, sv)
+// 		sv = sv2
+// 		p = l
+// 	}
+// 	for i := 1; i < len(node.Args); i++ {
+// 		v, err := r.eval(node.Args[i])
+// 		if err != nil {
+// 			return reflect.Value{}, err
+// 		}
+// 		switch v2 := v.(type) {
+// 		case ConstantNumber:
+// 			v, err = v2.ToType(typ)
+// 			if err != nil {
+// 				if e, ok := err.(errConstantOverflow); ok {
+// 					return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
+// 				}
+// 				return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
+// 			}
+// 		case function:
+// 			v = v2.Func()
+// 		}
+// 		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
+// 	}
+// 	if l+m <= c {
+// 		reflect.Copy(sv2.Slice(l, l+m+1), sv2)
+// 	}
 
-	return sv, nil
-}
+// 	return sv, nil
+// }
 
 // _base64 is the builtin function "base64".
 func _base64(s string) string {
@@ -422,15 +428,18 @@ func _max(x, y interface{}) interface{} {
 			}
 			return x
 		}
-	case CustomNumber:
-		if reflect.TypeOf(x) == reflect.TypeOf(y) {
-			if x.Cmp(y.(CustomNumber)) < 0 {
-				return y
-			}
-			return x
-		}
+		// TODO(Gianluca):
+		// case CustomNumber:
+		// 	if reflect.TypeOf(x) == reflect.TypeOf(y) {
+		// 		if x.Cmp(y.(CustomNumber)) < 0 {
+		// 			return y
+		// 		}
+		// 		return x
+		// 	}
 	}
-	panic(fmt.Sprintf("arguments to max have different types: %s and %s", typeof(x), typeof(y)))
+	// TODO(Gianluca):
+	panic("???")
+	// panic(fmt.Sprintf("arguments to max have different types: %s and %s", typeof(x), typeof(y)))
 }
 
 // _md5 is the builtin function "md5".
@@ -527,15 +536,18 @@ func _min(x, y interface{}) interface{} {
 			}
 			return y
 		}
-	case CustomNumber:
-		if reflect.TypeOf(x) == reflect.TypeOf(y) {
-			if x.Cmp(y.(CustomNumber)) < 0 {
-				return x
-			}
-			return y
-		}
+		// TODO(Gianluca):
+		// case CustomNumber:
+		// 	if reflect.TypeOf(x) == reflect.TypeOf(y) {
+		// 		if x.Cmp(y.(CustomNumber)) < 0 {
+		// 			return x
+		// 		}
+		// 		return y
+		// 	}
 	}
-	panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
+	// TODO(Gianluca):
+	panic("???")
+	// panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
 }
 
 // _print is the builtin function "print".

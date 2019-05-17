@@ -2,7 +2,6 @@ package scrigo
 
 import (
 	"fmt"
-	"reflect"
 	"scrigo/vm"
 	"strings"
 
@@ -11,7 +10,7 @@ import (
 )
 
 type Program struct {
-	fn *vm.ScrigoFunction
+	Fn *vm.ScrigoFunction
 }
 
 func Compile(path string, reader compiler.Reader, packages map[string]*compiler.GoPackage) (*Program, error) {
@@ -34,20 +33,14 @@ func Compile(path string, reader compiler.Reader, packages map[string]*compiler.
 	emitter := compiler.NewCompiler(tree)
 	emitter.TypeInfo = tci["main"].TypeInfo
 	emitter.IndirectVars = tci["main"].IndirectVars
-	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
-	emitter.CurrentFunction = fn
-	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
-	emitter.FB.EnterScope()
-	compiler.AddExplicitReturn(tree)
-	emitter.EmitNodes(tree.Nodes)
-	emitter.FB.ExitScope()
+	emitter.EmitPackage(tree.Nodes[0].(*ast.Package))
 
-	return &Program{fn: emitter.CurrentFunction}, nil
+	return &Program{Fn: emitter.CurrentFunction}, nil
 }
 
 func Execute(p *Program) error {
 	pvm := vm.New()
-	_, err := pvm.Run(p.fn)
+	_, err := pvm.Run(p.Fn)
 	return err
 }
 
