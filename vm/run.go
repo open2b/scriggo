@@ -11,6 +11,8 @@ import (
 	"reflect"
 )
 
+const maxAddr = 1<<32 - 1
+
 func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
 	return vm.RunWithGlobals(fn, nil)
 }
@@ -50,7 +52,7 @@ func (vm *VM) RunWithGlobals(fn *ScrigoFunction, globals map[string]reflect.Valu
 		}
 		panic(msg)
 	}
-	return 0, nil
+	return 0, vm.err
 }
 
 func (vm *VM) runRecoverable() (panicked bool) {
@@ -1241,6 +1243,13 @@ func (vm *VM) run() (uint32, bool) {
 			default:
 				rv := reflect.ValueOf(v).Elem()
 				vm.getIntoReflectValue(a, rv, op < 0)
+			}
+
+		// Write
+		case OpWrite:
+			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeAddr(a, b, c)])
+			if vm.err != nil {
+				return maxAddr, false
 			}
 
 		// SliceIndex
