@@ -36,8 +36,7 @@ func Compile(src io.Reader, main *compiler.GoPackage) (*Script, error) {
 	// Emitting.
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
-	emitter := compiler.NewEmitter(tree, nil)
-	emitter.TypeInfo = tci["main"].TypeInfo
+	emitter := compiler.NewEmitter(tree, nil, tci["main"].TypeInfo)
 	emitter.IndirectVars = tci["main"].IndirectVars
 	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	emitter.CurrentFunction = fn
