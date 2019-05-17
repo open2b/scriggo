@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"scrigo"
 	"strings"
 	"sync"
 	"testing"
@@ -70,7 +71,7 @@ func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := compiler.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
-			program, err := Compile("/test.go", r, goPackages)
+			program, err := scrigo.Compile("/test.go", r, goPackages)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
@@ -3113,7 +3114,7 @@ func TestVM(t *testing.T) {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
 			r := compiler.MapReader{"/test.go": []byte(cas.src)}
-			program, err := Compile("/test.go", r, goPackages)
+			program, err := scrigo.Compile("/test.go", r, goPackages)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.src, err)
 				return
