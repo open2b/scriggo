@@ -16,9 +16,16 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scrigo/compiler"
-	"scrigo/compiler/ast"
+	"scrigo/internal/compiler"
+	"scrigo/internal/compiler/ast"
 )
+
+// packageNameScope represents a package name and its scope as used by the
+// renderer.
+type packageNameScope struct {
+	name  string
+	scope scope
+}
 
 type pkgConstant struct {
 	value interface{}

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 
 	"scrigo"
-	"scrigo/compiler"
+	"scrigo/internal/compiler"
 	"scrigo/vm"
 )
 

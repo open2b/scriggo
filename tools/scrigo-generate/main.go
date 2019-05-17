@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"scrigo/compiler"
-	"scrigo/compiler/ast"
+	"scrigo/internal/compiler"
+	"scrigo/internal/compiler/ast"
 )
 
 func printErrorAndQuit(err interface{}) {

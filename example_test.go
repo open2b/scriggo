@@ -11,8 +11,8 @@ import (
 	"os"
 
 	"scrigo"
-	"scrigo/compiler"
-	"scrigo/compiler/ast"
+	"scrigo/internal/compiler"
+	"scrigo/internal/compiler/ast"
 )
 
 func ExampleRenderSource() {

@@ -13,7 +13,7 @@ import (
 	"os"
 	"reflect"
 
-	"scrigo/compiler"
+	"scrigo/internal/compiler"
 	"scrigo/vm"
 )
 

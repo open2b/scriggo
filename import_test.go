@@ -3,8 +3,8 @@ package scrigo
 import (
 	"testing"
 
-	"scrigo/compiler"
-	"scrigo/compiler/ast"
+	"scrigo/internal/compiler"
+	"scrigo/internal/compiler/ast"
 )
 
 func TestScrigoImport(t *testing.T) {
@@ -122,7 +122,7 @@ func TestScrigoImport(t *testing.T) {
 		}),
 	}
 	for i, r := range cases {
-		p := compiler.New(r, nil, true)
+		p := NewParser(r, nil, true)
 		tree, err := p.Parse("main.go", ast.ContextNone)
 		if err != nil {
 			t.Errorf("test %d/%d, parsing (or type-checker) error: %s", i+1, len(cases), err)

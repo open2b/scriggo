@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"scrigo/compiler"
+	"scrigo/internal/compiler"
 	"scrigo/vm"
 )
 

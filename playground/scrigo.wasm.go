@@ -7,7 +7,7 @@ import (
 	"syscall/js"
 
 	"scrigo"
-	"scrigo/compiler"
+	"scrigo/internal/compiler"
 )
 
 func main() {

@@ -17,7 +17,7 @@ import (
 	"testing"
 	"text/tabwriter"
 
-	"scrigo/compiler"
+	"scrigo/internal/compiler"
 	vmp "scrigo/vm"
 )
 
