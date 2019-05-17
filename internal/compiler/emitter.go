@@ -58,12 +58,10 @@ func (c *Emitter) Main() *vm.ScrigoFunction {
 
 // NewEmitter returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
-func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[ast.Node]*TypeInfo) *Emitter {
+func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
 	c := &Emitter{
 
 		importableGoPkgs: packages,
-
-		IndirectVars: map[*ast.Identifier]bool{},
 
 		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
 
@@ -79,7 +77,8 @@ func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[as
 
 		globalsIndexes: map[string]int16{},
 
-		TypeInfo: typeInfos,
+		TypeInfo:     typeInfos,
+		IndirectVars: indirectVars,
 	}
 	return c
 }
