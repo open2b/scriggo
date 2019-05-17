@@ -14,24 +14,17 @@ type Program struct {
 }
 
 func Compile(path string, reader compiler.Reader, packages map[string]*compiler.GoPackage) (*Program, error) {
-
-	// Parsing.
 	p := NewParser(reader, packages)
 	tree, err := p.Parse(path)
 	if err != nil {
 		return nil, err
 	}
-
-	// Type checking.
 	tci := map[string]*compiler.PackageInfo{}
 	err = compiler.CheckPackage(tree, packages, tci)
 	if err != nil {
 		return nil, err
 	}
-
-	// Emitting.
 	main := compiler.EmitPackage(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
-
 	return &Program{Fn: main}, nil
 }
 

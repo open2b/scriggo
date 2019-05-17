@@ -37,5 +37,6 @@ func TestCheckScript(t *testing.T) {
 		if err != nil {
 			t.Errorf("type checking error: %s", err)
 		}
+
 	}
 }

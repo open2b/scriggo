@@ -384,7 +384,7 @@ var rendererRandomBuiltinTests = []struct {
 }
 
 func TestRenderBuiltin(t *testing.T) {
-	t.Errorf("unable to run TestRenderBuiltin")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// for _, expr := range rendererBuiltinTests {
 	// 	var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)
@@ -406,7 +406,7 @@ func TestRenderBuiltin(t *testing.T) {
 }
 
 func TestRenderBuiltinInHTMLContext(t *testing.T) {
-	t.Errorf("unable to run TestRenderBuiltinInHTMLContext")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// for _, expr := range rendererBuiltinTestsInHTMLContext {
 	// 	var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextHTML)
@@ -428,7 +428,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 }
 
 func TestStatementBuiltin(t *testing.T) {
-	t.Errorf("unable to run TestStatementBuiltin")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// for _, expr := range statementBuiltinTests {
 	// 	var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextText)
@@ -450,7 +450,7 @@ func TestStatementBuiltin(t *testing.T) {
 }
 
 func TestRenderErrorfBuiltin(t *testing.T) {
-	t.Errorf("unable to run TestRenderErrorfBuiltin")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// src := "\n\n   {% errorf(`error %s %d`, `a`, 5) %}"
 	// var tree, err = compiler.ParseSource([]byte(src), ast.ContextText)
@@ -469,7 +469,7 @@ func TestRenderErrorfBuiltin(t *testing.T) {
 }
 
 func TestRenderRandomBuiltin(t *testing.T) {
-	t.Errorf("unable to run TestRenderErrorfBuiltin")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// for _, expr := range rendererRandomBuiltinTests {
 	// 	var tree, err = compiler.ParseSource([]byte("{{"+expr.src+"}}"), ast.ContextText)

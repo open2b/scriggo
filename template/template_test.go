@@ -566,7 +566,7 @@ func refToCopy(v interface{}) reflect.Value {
 
 func TestRenderExpressions(t *testing.T) {
 
-	t.Errorf("unable to run TestRenderExpressions")
+	t.Errorf("(not runnable)")
 
 	// for _, expr := range rendererExprTests {
 	// 	r := compiler.MapReader{
@@ -605,7 +605,7 @@ func TestRenderExpressions(t *testing.T) {
 
 func TestRenderStatements(t *testing.T) {
 
-	t.Errorf("unable to run TestRenderStatements")
+	t.Errorf("(not runnable)")
 
 	// globalTest2 := func(a, b int) (int, int) {
 	// 	return a, b
@@ -651,7 +651,7 @@ func TestRenderStatements(t *testing.T) {
 
 func TestGlobalsToScope(t *testing.T) {
 
-	t.Errorf("unable to run TestGlobalsToScope")
+	t.Errorf("(not runnable)")
 
 	// for _, p := range rendererGlobalsToScope {
 	// 	res, err := globalsToScope(p.globals)
@@ -679,7 +679,7 @@ func (wr RenderPanic) Render(w io.Writer) (int, error) {
 
 func TestRenderErrors(t *testing.T) {
 
-	t.Errorf("unable to run TestRenderErrors")
+	t.Errorf("(not runnable)")
 
 	// TODO (Gianluca): what's the point of this test?
 	// tree := ast.NewTree("", []ast.Node{ast.NewShow(nil, ast.NewIdentifier(nil, "a"), ast.ContextText)}, ast.ContextText)

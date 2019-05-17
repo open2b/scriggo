@@ -38,7 +38,7 @@ var rendererCallFuncTests = []struct {
 
 func TestRenderCallFunc(t *testing.T) {
 
-	t.Errorf("unable to run TestRenderCallFunc")
+	t.Errorf("(not runnable)")
 
 	// for _, stmt := range rendererCallFuncTests {
 	// 	v, err := Eval(stmt.src)

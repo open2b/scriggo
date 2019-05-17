@@ -1365,7 +1365,7 @@ func (tests testsReader) Read(path string, ctx ast.Context) ([]byte, error) {
 
 func TestPages(t *testing.T) {
 
-	t.Errorf("unable to run TestPages")
+	t.Errorf("(not runnable)")
 
 	// tests := pageTests()
 	// // simple.html

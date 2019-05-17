@@ -62,7 +62,7 @@ var errorTests = []struct {
 // TODO (Gianluca): error checking in renderer is no longer supported. Consider
 // removing these tests or moving them to the typechecker.
 func NoTestErrors(t *testing.T) {
-	t.Errorf("unable to run NoTestErrors")
+	t.Errorf("(not runnable)")
 	// TODO(Gianluca):
 	// for _, expr := range errorTests {
 	// 	var tree, err = compiler.ParseSource([]byte(expr.src), ast.ContextHTML)
