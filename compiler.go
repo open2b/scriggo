@@ -23,44 +23,25 @@ func Compile(path string, reader compiler.Reader, packages map[string]*compiler.
 	}
 
 	// Type checking.
-	pkgInfo, err := typecheck(tree)
+	tci := map[string]*compiler.PackageInfo{}
+	err = compiler.CheckPackage(tree, packages, tci)
 	if err != nil {
 		return nil, err
 	}
-	tci := map[string]*compiler.PackageInfo{"main": pkgInfo}
 
 	// Emitting.
-	emitter := compiler.NewCompiler(tree)
-	emitter.TypeInfo = tci["main"].TypeInfo
-	emitter.IndirectVars = tci["main"].IndirectVars
+	emitter := compiler.NewCompiler(tree, packages)
+	emitter.TypeInfo = tci[path].TypeInfo
+	emitter.IndirectVars = tci[path].IndirectVars
 	emitter.EmitPackage(tree.Nodes[0].(*ast.Package))
 
-	return &Program{Fn: emitter.CurrentFunction}, nil
+	return &Program{Fn: emitter.Main()}, nil
 }
 
 func Execute(p *Program) error {
 	pvm := vm.New()
 	_, err := pvm.Run(p.Fn)
 	return err
-}
-
-func typecheck(tree *ast.Tree) (_ *compiler.PackageInfo, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*compiler.Error); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	tc := compiler.NewTypechecker(tree.Path, true)
-	tc.Universe = compiler.Universe
-	tc.CheckNodesInNewScope(tree.Nodes)
-	pkgInfo := &compiler.PackageInfo{}
-	pkgInfo.IndirectVars = tc.IndirectVars
-	pkgInfo.TypeInfo = tc.TypeInfo
-	return pkgInfo, err
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands
@@ -124,10 +105,6 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	}
 	if len(tree.Nodes) == 0 {
 		return nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
-	}
-	err = compiler.CheckPackage(tree, p.packages, p.packageInfos)
-	if err != nil {
-		return nil, err
 	}
 
 	return tree, nil
@@ -246,10 +223,6 @@ func (pp *expansion) expand(nodes []ast.Node) error {
 				}
 				return err
 			}
-
-		// TODO: to remove.
-		default:
-			panic(fmt.Errorf("unexpected node %s", node))
 
 		}
 

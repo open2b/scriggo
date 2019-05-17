@@ -49,12 +49,20 @@ type Emitter struct {
 	globalsIndexes map[string]int16
 }
 
+// Main returns main function.
+func (c *Emitter) Main() *vm.ScrigoFunction {
+	return c.availableScrigoFunctions["main"]
+}
+
 // TODO(Gianluca): rename exported methods from "Compile" to "Emit".
 
 // NewCompiler returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
-func NewCompiler(tree *ast.Tree) *Emitter {
+func NewCompiler(tree *ast.Tree, packages map[string]*GoPackage) *Emitter {
 	c := &Emitter{
+
+		importableGoPkgs: packages,
+
 		IndirectVars: map[*ast.Identifier]bool{},
 
 		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
