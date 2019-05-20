@@ -300,7 +300,7 @@ func (vm *VM) run() (uint32, bool) {
 			return decodeAddr(a, b, c), false
 
 		// Convert
-		case OpConvert:
+		case OpConvertGeneral:
 			t := vm.fn.Types[uint8(b)]
 			switch t.Kind() {
 			case reflect.Array:

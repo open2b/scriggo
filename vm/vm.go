@@ -1006,7 +1006,7 @@ const (
 
 	OpContinue
 
-	OpConvert
+	OpConvertGeneral
 	OpConvertInt
 	OpConvertUint
 	OpConvertFloat

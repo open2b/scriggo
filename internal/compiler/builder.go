@@ -583,7 +583,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	var op vm.Operation
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
-		op = vm.OpConvert
+		op = vm.OpConvertGeneral
 	case vm.TypeInt:
 		switch srcKind {
 		case reflect.Uint,

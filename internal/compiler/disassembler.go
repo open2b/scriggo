@@ -333,7 +333,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, vm.String, false)
 		s += " " + disassembleOperand(fn, b, vm.String, k)
 		s += " " + disassembleOperand(fn, c, vm.String, false)
-	case vm.OpConvert:
+	case vm.OpConvertGeneral:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + fn.Types[int(uint(b))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
@@ -676,11 +676,11 @@ var operationName = [...]string{
 
 	vm.OpContinue: "Continue",
 
-	vm.OpConvert:       "Convert",
-	vm.OpConvertInt:    "Convert",
-	vm.OpConvertUint:   "ConvertU",
-	vm.OpConvertFloat:  "Convert",
-	vm.OpConvertString: "Convert",
+	vm.OpConvertGeneral: "Convert",
+	vm.OpConvertInt:     "Convert",
+	vm.OpConvertUint:    "ConvertU",
+	vm.OpConvertFloat:   "Convert",
+	vm.OpConvertString:  "Convert",
 
 	vm.OpCopy: "Copy",
 
