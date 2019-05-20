@@ -118,6 +118,24 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package with both Scrigo and native variables",
+		`package main
+
+		import (
+			"fmt"
+			"testpkg"
+		)
+		
+		var Center = "msg"
+		
+		func main() {
+			nativeC := testpkg.Center
+			fmt.Println(nativeC)
+			c := Center
+			fmt.Println(c)
+		}
+		`, nil, nil, "{5 42}\nmsg\n"},
+
 	{"Function literal call",
 		`package main
 
