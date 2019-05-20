@@ -381,6 +381,9 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 	case []int:
 		ol := len(slice)
 		nl := ol + length
+		if nl < ol {
+			panic(ErrOutOfMemory)
+		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
 		} else {
@@ -398,6 +401,9 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 	case []byte:
 		ol := len(slice)
 		nl := ol + length
+		if nl < ol {
+			panic(ErrOutOfMemory)
+		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
 		} else {
@@ -415,6 +421,9 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 	case []rune:
 		ol := len(slice)
 		nl := ol + length
+		if nl < ol {
+			panic(ErrOutOfMemory)
+		}
 		if c := cap(slice); nl <= c {
 			slice = slice[:nl]
 		} else {
@@ -442,6 +451,9 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 		s := reflect.ValueOf(slice)
 		ol := s.Len()
 		nl := ol + length
+		if nl < ol {
+			panic(ErrOutOfMemory)
+		}
 		if c := s.Cap(); nl <= c {
 			s = s.Slice(0, nl)
 		} else {

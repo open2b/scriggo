@@ -7,9 +7,12 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
+
+var ErrOutOfMemory = errors.New("out of memory")
 
 const maxAddr = 1<<32 - 1
 
