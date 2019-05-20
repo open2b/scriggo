@@ -490,7 +490,7 @@ func (builder *FunctionBuilder) Break(label uint32) {
 //     p.f()
 //
 func (builder *FunctionBuilder) Call(f int8, shift vm.StackShift, line int) {
-	var fn = builder.fn
+	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCall, A: f})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 	builder.AddLine(uint32(len(fn.Body)-2), line)
@@ -501,7 +501,7 @@ func (builder *FunctionBuilder) Call(f int8, shift vm.StackShift, line int) {
 //     p.F()
 //
 func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift vm.StackShift) {
-	var fn = builder.fn
+	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallNative, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
@@ -511,7 +511,7 @@ func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift vm.St
 //     f()
 //
 func (builder *FunctionBuilder) CallIndirect(f int8, numVariadic int8, shift vm.StackShift) {
-	var fn = builder.fn
+	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
@@ -618,7 +618,7 @@ func (builder *FunctionBuilder) Copy(dst, src, n int8) {
 //     defer
 //
 func (builder *FunctionBuilder) Defer(f int8, numVariadic int8, off, arg vm.StackShift) {
-	var fn = builder.fn
+	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpDefer, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(off[0]), A: off[1], B: off[2], C: off[3]})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
@@ -1174,7 +1174,7 @@ func (builder *FunctionBuilder) Write(i uint32) {
 //     f()
 //
 func (builder *FunctionBuilder) TailCall(f int8, line int) {
-	var fn = builder.fn
+	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpTailCall, A: f})
 	builder.AddLine(uint32(len(fn.Body)-1), line)
 }
