@@ -6,7 +6,7 @@ import (
 
 func TestScrigoImport(t *testing.T) {
 
-	t.Errorf("(not runnable)")
+	t.Skip("(not runnable)")
 
 	// cases := []compiler.MapReader{
 
