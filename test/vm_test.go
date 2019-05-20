@@ -118,6 +118,26 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package variable shadowing in closure body",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A = 1
+		
+		func main() {
+			fmt.Print(A)
+			func() {
+				fmt.Print(A)
+				A := 20
+				fmt.Print(A)
+			}()
+			fmt.Print(A)
+		}
+		`, nil, nil, "11201"},
+
 	{"Package variable in closure",
 		`package main
 
