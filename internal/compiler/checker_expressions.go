@@ -339,10 +339,8 @@ func (tc *typechecker) funcChain(name string) []*ast.Func {
 
 // isPackageVariable indicates if name is a package variable.
 func (tc *typechecker) isPackageVariable(name string) bool {
-	if elem, ok := tc.filePackageBlock[name]; ok {
-		return elem.t.Addressable()
-	}
-	return false
+	_, ok := tc.filePackageBlock[name]
+	return ok
 }
 
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved

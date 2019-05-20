@@ -118,6 +118,33 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Package variable in closure",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A = 1
+		
+		func main() {
+			fmt.Print(A)
+			A = 2
+			func() {
+				fmt.Print(A)
+				A = 3
+				fmt.Print(A)
+				f := func() {
+					A = 4
+					fmt.Print(A)
+				}
+				fmt.Print(A)
+				f()
+			}()
+			fmt.Print(A)
+		}
+		`, nil, nil, "123344"},
+
 	{"Package with both Scrigo and native variables",
 		`package main
 

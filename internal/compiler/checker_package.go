@@ -169,7 +169,7 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar, Identifier: n.Identifiers[0]}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
+				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal, decl: n.Identifiers[i]}
 			}
 		case *ast.TypeDeclaration:
 			// TODO (Gianluca): add support for types referring to other
@@ -278,7 +278,7 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					}
 				}
 				varTi := &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
-				tc.filePackageBlock[v.Ident] = scopeElement{t: varTi}
+				tc.filePackageBlock[v.Ident] = scopeElement{t: varTi, decl: v.Identifier}
 				if !tc.tryAddingToInitOrder(v.Ident) {
 					unresolvedDeps = true
 				}
