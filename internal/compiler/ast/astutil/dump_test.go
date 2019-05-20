@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"scrigo/internal/compiler/ast/astutil"
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
+	"scrigo/internal/compiler/ast/astutil"
 )
 
 func ExampleDump() {
