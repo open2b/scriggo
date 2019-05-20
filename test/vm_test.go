@@ -118,6 +118,22 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Function literal call",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("start,")
+			func() {
+				fmt.Print("f,")
+			}()
+			fmt.Print("end")
+		}
+		`, nil, nil, "start,f,end"},
+
 	{"Builtin close",
 		`package main
 
