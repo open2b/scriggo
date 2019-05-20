@@ -188,8 +188,7 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				addresses[i] = c.NewAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
-				if variable, ok := c.availableVariables[v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
-					varIndex := c.variableIndex(variable)
+				if varIndex, ok := c.globalsIndexes[v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = c.NewAddress(AddressPackageVariable, c.TypeInfo[v].Type, int8(varIndex), 0)
 				} else {
 					panic("TODO(Gianluca): not implemented")

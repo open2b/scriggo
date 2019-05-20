@@ -103,14 +103,12 @@ func (c *Emitter) emitImport(n *ast.Import) {
 				continue
 			}
 			if reflect.TypeOf(value).Kind() == reflect.Ptr {
-				// pkg.DefineVariable(ident, value)
-				// continue
-				v := vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value}
-				if importPkgName == "" {
-					c.availableVariables[ident] = v
-				} else {
-					c.availableVariables[importPkgName+"."+ident] = v
+				c.globals = append(c.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
+				name := ident
+				if importPkgName != "" {
+					name = importPkgName + "." + ident
 				}
+				c.globalsIndexes[name] = int16(len(c.globals) - 1)
 			}
 			if reflect.TypeOf(value).Kind() == reflect.Func {
 				nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)

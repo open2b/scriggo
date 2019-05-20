@@ -27,7 +27,6 @@ type Emitter struct {
 
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
 	availableNativeFunctions map[string]*vm.NativeFunction
-	availableVariables       map[string]vm.Global
 
 	// TODO (Gianluca): find better names.
 	// TODO (Gianluca): do these maps have to have a *vm.ScrigoFunction key or
@@ -68,7 +67,6 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 
 		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
 		availableNativeFunctions: map[string]*vm.NativeFunction{},
-		availableVariables:       map[string]vm.Global{},
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
@@ -95,7 +93,6 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
 		availableNativeFunctions: map[string]*vm.NativeFunction{},
-		availableVariables:       map[string]vm.Global{},
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
@@ -224,10 +221,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 	// Assigns globals to main's Globals.
 	main := c.availableScrigoFunctions["main"]
-	for _, index := range c.globalsIndexes {
-		global := c.globals[index]
-		main.Globals = append(main.Globals, global)
-	}
+	main.Globals = c.globals
 	// All functions share Globals.
 	for _, f := range c.availableScrigoFunctions {
 		f.Globals = main.Globals
@@ -582,11 +576,10 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		c.FB.Nop()
 
 	case *ast.Selector:
-		if v, ok := c.availableVariables[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if index, ok := c.globalsIndexes[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
-			index := c.variableIndex(v)
 			c.FB.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
