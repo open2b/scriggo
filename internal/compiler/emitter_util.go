@@ -108,7 +108,7 @@ func (c *Emitter) emitImport(n *ast.Import) {
 				if importPkgName != "" {
 					name = importPkgName + "." + ident
 				}
-				c.globalsIndexes[name] = int16(len(c.globals) - 1)
+				c.globalNameIndex[name] = int16(len(c.globals) - 1)
 			}
 			if reflect.TypeOf(value).Kind() == reflect.Func {
 				nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)

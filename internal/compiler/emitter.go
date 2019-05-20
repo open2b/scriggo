@@ -44,8 +44,8 @@ type Emitter struct {
 	// globals holds all global variables.
 	globals []vm.Global
 
-	// globalsIndexes maps global variable names to their index inside globals.
-	globalsIndexes map[string]int16
+	// globalNameIndex maps global variable names to their index inside globals.
+	globalNameIndex map[string]int16
 }
 
 // Main returns main function.
@@ -72,7 +72,7 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 
 		isNativePkg: map[string]bool{},
 
-		globalsIndexes: map[string]int16{},
+		globalNameIndex: map[string]int16{},
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
@@ -97,7 +97,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 		isNativePkg: map[string]bool{},
 
-		globalsIndexes: map[string]int16{},
+		globalNameIndex: map[string]int16{},
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
@@ -153,7 +153,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
 				packageVariablesRegisters[v.Name] = varReg
 				c.globals = append(c.globals, vm.Global{Pkg: "main", Name: v.Name, Type: varType})
-				c.globalsIndexes[v.Name] = int16(len(c.globals) - 1)
+				c.globalNameIndex[v.Name] = int16(len(c.globals) - 1)
 			}
 			c.assign(addresses, n.Values)
 			c.CurrentFunction = backupFn
@@ -207,7 +207,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 		c.CurrentFunction = initVarsFn
 		c.FB = initVarsFb
 		for name, reg := range packageVariablesRegisters {
-			index := c.globalsIndexes[name]
+			index := c.globalNameIndex[name]
 			c.FB.SetVar(false, reg, int(index))
 		}
 		c.CurrentFunction = backupFn
@@ -573,7 +573,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		c.FB.Nop()
 
 	case *ast.Selector:
-		if index, ok := c.globalsIndexes[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if index, ok := c.globalNameIndex[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -706,7 +706,7 @@ func (c *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					c.FB.GetVar(index, tmpReg)
 					c.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-			} else if index, ok := c.globalsIndexes[expr.Name]; ok {
+			} else if index, ok := c.globalNameIndex[expr.Name]; ok {
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
 					c.FB.GetVar(int(index), reg)
 				} else {

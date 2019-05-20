@@ -159,7 +159,7 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 						// int8; should we change address to store
 						// int32/64?
 						addresses[i] = c.NewAddress(AddressUpVar, varType, int8(reg), 0)
-					} else if index, ok := c.globalsIndexes[v.Name]; ok {
+					} else if index, ok := c.globalNameIndex[v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = c.NewAddress(AddressPackageVariable, varType, int8(index), 0)
 					} else {
@@ -188,7 +188,7 @@ func (c *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				addresses[i] = c.NewAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
-				if varIndex, ok := c.globalsIndexes[v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
+				if varIndex, ok := c.globalNameIndex[v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = c.NewAddress(AddressPackageVariable, c.TypeInfo[v].Type, int8(varIndex), 0)
 				} else {
 					panic("TODO(Gianluca): not implemented")
