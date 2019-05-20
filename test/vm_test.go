@@ -1556,11 +1556,7 @@ var stmtTests = []struct {
 		}
 		`,
 		nil,
-		[]reg{
-			{vmp.TypeInt, 1, int64(3)},  // a
-			{vmp.TypeInt, 2, int64(5)},  // b
-			{vmp.TypeInt, 3, int64(23)}, // c
-		}, ""},
+		nil, ""},
 
 	{"Function call assignment (2 to 1) - Native function with two return values",
 		`
@@ -1629,10 +1625,10 @@ var stmtTests = []struct {
 			`		MoveInt R1 R4`,
 		},
 		[]reg{
-			{vmp.TypeInt, 1, int64(45)}, // a
-			{vmp.TypeInt, 2, int64(10)}, // b
-			{vmp.TypeInt, 3, int64(50)}, // c
-			{vmp.TypeInt, 4, int64(45)}, // d
+			// {vmp.TypeInt, 1, int64(45)}, // a
+			// {vmp.TypeInt, 2, int64(10)}, // b
+			// {vmp.TypeInt, 3, int64(50)}, // c
+			// {vmp.TypeInt, 4, int64(45)}, // d
 		}, ""},
 
 	{"Slice index assignment",
@@ -1701,7 +1697,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeGeneral, 1, []string{}}, // a
+			// {vmp.TypeGeneral, 1, []string{}}, // a
 		}, ""},
 
 	{"Empty byte slice composite literal",
@@ -1734,7 +1730,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeGeneral, 1, map[string]int{}},
+			// {vmp.TypeGeneral, 1, map[string]int{}},
 		}, ""},
 
 	{"Function literal definition - (0 in, 0 out)",
@@ -1851,7 +1847,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeGeneral, 1, int64(97)},
+			// {vmp.TypeGeneral, 1, int64(97)},
 		}, ""},
 
 	{"Constant boolean",
@@ -2024,8 +2020,8 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeInt, 1, int64(45)},  // a
-			{vmp.TypeInt, 2, int64(-45)}, // b
+			// {vmp.TypeInt, 1, int64(45)},  // a
+			// {vmp.TypeInt, 2, int64(-45)}, // b
 		},
 		"-45"},
 
@@ -2527,7 +2523,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeGeneral, 3, map[string]int{}},
+			// {vmp.TypeGeneral, 3, map[string]int{}},
 		}, ""},
 
 	{"Builtin copy",
@@ -2598,7 +2594,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeInt, 1, int64(40)},
+			// {vmp.TypeInt, 1, int64(40)},
 		}, ""},
 
 	{"Native function call (1 in, 0 out)",
@@ -2652,11 +2648,11 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeInt, 1, int64(3)},  // a
-			{vmp.TypeInt, 2, int64(13)}, // b
-			{vmp.TypeInt, 3, int64(4)},  // e
-			{vmp.TypeInt, 4, int64(16)}, // c
-			{vmp.TypeInt, 5, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
+			// {vmp.TypeInt, 1, int64(3)},  // a
+			// {vmp.TypeInt, 2, int64(13)}, // b
+			// {vmp.TypeInt, 3, int64(4)},  // e
+			// {vmp.TypeInt, 4, int64(16)}, // c
+			// {vmp.TypeInt, 5, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
 		}, ""},
 
 	{"Native function call of StringLen",
@@ -2672,7 +2668,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeInt, 1, int64(3)},
+			// {vmp.TypeInt, 1, int64(3)},
 		}, ""},
 
 	{"Native function call of fmt.Println",
@@ -2803,7 +2799,7 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeGeneral, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
+			// {vmp.TypeGeneral, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
 		},
 		""},
 
@@ -2825,9 +2821,9 @@ var stmtTests = []struct {
 		`,
 		nil,
 		[]reg{
-			{vmp.TypeInt, 1, int64(6)}, // a
-			{vmp.TypeInt, 2, int64(5)}, // b
-			{vmp.TypeInt, 3, int64(3)}, // c
+			// {vmp.TypeInt, 1, int64(6)}, // a
+			// {vmp.TypeInt, 2, int64(5)}, // b
+			// {vmp.TypeInt, 3, int64(3)}, // c
 		}, ""},
 
 	{"Native function 'Swap'",
@@ -3172,7 +3168,6 @@ var stmtTests = []struct {
 }
 
 func TestVM(t *testing.T) {
-	t.Skip("(not runnable)")
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			registers := cas.registers
@@ -3208,7 +3203,7 @@ func TestVM(t *testing.T) {
 				out <- buf.String()
 			}()
 			wg.Wait()
-			_, err = vm.Run(program.Fn)
+			err = scrigo.Execute(program, nil)
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", cas.name, err)
 				return
