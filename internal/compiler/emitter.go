@@ -19,7 +19,7 @@ import (
 type Emitter struct {
 	CurrentFunction  *vm.ScrigoFunction
 	TypeInfo         map[ast.Node]*TypeInfo
-	FB               *FunctionBuilder // current function builder.
+	FB               *FunctionBuilder
 	importableGoPkgs map[string]*native.GoPackage
 	IndirectVars     map[*ast.Identifier]bool
 
@@ -28,9 +28,6 @@ type Emitter struct {
 	availableScrigoFunctions map[string]*vm.ScrigoFunction
 	availableNativeFunctions map[string]*vm.NativeFunction
 
-	// TODO (Gianluca): find better names.
-	// TODO (Gianluca): do these maps have to have a *vm.ScrigoFunction key or
-	// can they be related to CurrentFunction in some way?
 	assignedScrigoFunctions map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8
 	assignedNativeFunctions map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8
 
@@ -41,11 +38,8 @@ type Emitter struct {
 	// body.
 	rangeLabels [][2]uint32
 
-	// globals holds all Scrigo and native global variables.
-	globals []vm.Global
-
-	// globalNameIndex maps global variable names to their index inside globals.
-	globalNameIndex map[string]int16
+	globals         []vm.Global      // holds all Scrigo and native global variables.
+	globalNameIndex map[string]int16 // maps global variable names to their index inside globals.
 }
 
 // Main returns main function.
@@ -53,10 +47,8 @@ func (e *Emitter) Main() *vm.ScrigoFunction {
 	return e.availableScrigoFunctions["main"]
 }
 
-// TODO(Gianluca): rename exported methods from "Compile" to "Emit".
-
-// NewEmitter returns a new compiler reading sources from r.
-// Native (Go) packages are made available for importing.
+// NewEmitter returns a new emitter reading sources from r.
+// Native packages are made available for importing.
 func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
 	c := &Emitter{
 
