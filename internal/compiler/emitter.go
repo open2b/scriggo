@@ -41,7 +41,7 @@ type Emitter struct {
 	// body.
 	rangeLabels [][2]uint32
 
-	// globals holds all global variables.
+	// globals holds all Scrigo and native global variables.
 	globals []vm.Global
 
 	// globalNameIndex maps global variable names to their index inside globals.
