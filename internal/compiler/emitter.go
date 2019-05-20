@@ -942,18 +942,26 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			}
 		case reflect.Slice:
 			lenExpr := call.Args[1]
-			capExpr := call.Args[2]
-			len, kLen, isRegister := c.quickEmitExpr(lenExpr, intType)
+			lenReg, kLen, isRegister := c.quickEmitExpr(lenExpr, intType)
 			if !kLen && !isRegister {
-				len = c.FB.NewRegister(reflect.Int)
-				c.emitExpr(lenExpr, len, c.TypeInfo[lenExpr].Type)
+				lenReg = c.FB.NewRegister(reflect.Int)
+				c.emitExpr(lenExpr, lenReg, c.TypeInfo[lenExpr].Type)
 			}
-			cap, kCap, isRegister := c.quickEmitExpr(capExpr, intType)
-			if !kCap && !isRegister {
-				cap = c.FB.NewRegister(reflect.Int)
-				c.emitExpr(capExpr, cap, c.TypeInfo[capExpr].Type)
+			var kCap bool
+			var capReg int8
+			if len(call.Args) == 3 {
+				capExpr := call.Args[2]
+				var isRegister bool
+				capReg, kCap, isRegister = c.quickEmitExpr(capExpr, intType)
+				if !kCap && !isRegister {
+					capReg = c.FB.NewRegister(reflect.Int)
+					c.emitExpr(capExpr, capReg, c.TypeInfo[capExpr].Type)
+				}
+			} else {
+				kCap = kLen
+				capReg = lenReg
 			}
-			c.FB.MakeSlice(kLen, kCap, typ, len, cap, reg)
+			c.FB.MakeSlice(kLen, kCap, typ, lenReg, capReg, reg)
 		case reflect.Chan:
 			chanType := c.TypeInfo[call.Args[0]].Type
 			chanTypeIndex := c.FB.AddType(chanType)

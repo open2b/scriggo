@@ -117,6 +117,21 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Builtin make - with and w/o cap argument",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			s1 := make([]int, 2)
+			fmt.Print("s1: ", len(s1), cap(s1))
+			s2 := make([]int, 2, 5)
+			fmt.Print("/s2: ", len(s2), cap(s2))
+		}
+		`, nil, nil, "s1: 2 2/s2: 2 5"},
+
 	{"Switch without expression",
 		`package main
 

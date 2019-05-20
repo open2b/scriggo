@@ -16,14 +16,13 @@ func MakeInterface() interface{} {
 	return 0
 }
 
-// TODO (Gianluca): «10:26: invalid argument args (type int) for len»
-// func MakeSlice2(args ...int) []int {
-// 	slice := make([]int, len(args))
-// 	for i, a := range args {
-// 		slice[i] = a
-// 	}
-// 	return slice
-// }
+func MakeSlice2(args ...int) []int {
+	slice := make([]int, len(args))
+	for i, a := range args {
+		slice[i] = a
+	}
+	return slice
+}
 
 func MakeFunc1() func() {
 	return func() { fmt.Println("message") }
