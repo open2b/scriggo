@@ -1309,6 +1309,9 @@ func (c *Emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		bodyLabels[i] = c.FB.NewLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
+			if isNil(caseExpr) {
+				panic("TODO(Gianluca): not implemented")
+			}
 			caseType := caseExpr.(*ast.Value).Val.(reflect.Type)
 			c.FB.Assert(expr, caseType, 0)
 			next := c.FB.NewLabel()
