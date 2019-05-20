@@ -1193,6 +1193,11 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		return []*TypeInfo{ti}
 
+	case "close":
+		// TODO(Gianluca): add specific "close" errors.
+		tc.checkExpression(expr.Args[0])
+		return []*TypeInfo{}
+
 	case "copy":
 		if len(expr.Args) < 2 {
 			panic(tc.errorf(expr, "missing argument to copy: %s", expr))

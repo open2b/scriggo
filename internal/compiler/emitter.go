@@ -889,7 +889,10 @@ func (c *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		c.FB.Cap(s, reg)
 		c.changeRegister(false, reg, reg, intType, dstType)
 	case "close":
-		panic("TODO: not implemented")
+		chanType := c.TypeInfo[call.Args[0]].Type
+		chanReg := c.FB.NewRegister(chanType.Kind())
+		c.emitExpr(call.Args[0], chanReg, chanType)
+		c.FB.Close(chanReg)
 	case "complex":
 		panic("TODO: not implemented")
 	case "copy":

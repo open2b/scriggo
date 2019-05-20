@@ -117,6 +117,19 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Builtin close",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			c := make(chan int)
+			fmt.Print("closing: ")
+			close(c)
+			fmt.Print("ok")
+		}
+		`, nil, nil, "closing: ok"},
+
 	{"Builtin make - with and w/o cap argument",
 		`package main
 
