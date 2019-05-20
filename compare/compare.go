@@ -171,7 +171,7 @@ func main() {
 		fatal(err)
 	}
 	if !verbose {
-		fmt.Print("comparing Scrigo with Go..")
+		fmt.Print("comparing Scrigo with gc..")
 	}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
