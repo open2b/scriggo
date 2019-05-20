@@ -67,7 +67,7 @@ func (vm *VM) Reset() {
 	vm.pc = 0
 	vm.fn = nil
 	vm.vars = nil
-	vm.ctx = nil
+	vm.ctx = &context{}
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
@@ -77,6 +77,10 @@ func (vm *VM) Reset() {
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
+}
+
+func (vm *VM) SetGlobals(globals []interface{}) {
+	vm.ctx.globals = globals
 }
 
 func (vm *VM) SetOut(out writer) {

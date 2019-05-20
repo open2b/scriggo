@@ -11,8 +11,17 @@ import (
 	"scrigo/vm"
 )
 
+// Global represents a global variable with a package, name, type (only for
+// Scrigo globals) and value (only for native globals). Value, if present,
+// must be a pointer to the variable value.
+type Global struct {
+	Name string
+	Type reflect.Type
+}
+
 type Script struct {
-	fn *vm.ScrigoFunction
+	fn      *vm.ScrigoFunction
+	globals []Global
 }
 
 func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
@@ -49,10 +58,26 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	return &Script{fn: emitter.CurrentFunction}, nil
 }
 
-func Execute(script *Script, globals map[string]reflect.Value) error {
-	// TODO (Gianluca): "overwrite" main with globals before calling runwithglobals (do not overwrite)
-	pvm := vm.New()
-	_, err := pvm.RunWithGlobals(script.fn, globals)
+func Execute(script *Script, vars map[string]interface{}) error {
+	vmm := vm.New()
+	if n := len(script.globals); n > 0 {
+		globals := make([]interface{}, n)
+		for i, global := range script.globals {
+			if value, ok := vars[global.Name]; ok {
+				if v, ok := value.(reflect.Value); ok {
+					globals[i] = v.Addr().Interface()
+				} else {
+					rv := reflect.New(global.Type).Elem()
+					rv.Set(reflect.ValueOf(v))
+					globals[i] = rv.Interface()
+				}
+			} else {
+				globals[i] = reflect.New(global.Type).Interface()
+			}
+		}
+		vmm.SetGlobals(globals)
+	}
+	_, err := vmm.Run(script.fn)
 	return err
 }
 

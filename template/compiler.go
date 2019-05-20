@@ -62,16 +62,9 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 }
 
 func (page *Page) Render(out io.Writer, vars map[string]reflect.Value) error {
-	var globals map[string]reflect.Value
-	if page.main != nil {
-		globals = map[string]reflect.Value{}
-
-		for n, v := range vars {
-			globals[n] = v
-		}
-	}
+	// TODO: implement globals
 	pvm := vm.New()
-	_, err := pvm.RunWithGlobals(page.fn, globals)
+	_, err := pvm.Run(page.fn)
 	return err
 }
 

@@ -2,6 +2,7 @@ package scrigo
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"scrigo/internal/compiler"
@@ -11,7 +12,18 @@ import (
 )
 
 type Program struct {
-	Fn *vm.ScrigoFunction
+	Fn      *vm.ScrigoFunction
+	globals []Global
+}
+
+// Global represents a global variable with a package, name, type (only for
+// Scrigo globals) and value (only for native globals). Value, if present,
+// must be a pointer to the variable value.
+type Global struct {
+	Pkg   string
+	Name  string
+	Type  reflect.Type
+	Value interface{}
 }
 
 func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage) (*Program, error) {
@@ -26,12 +38,31 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 		return nil, err
 	}
 	main := compiler.EmitPackage(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
-	return &Program{Fn: main}, nil
+	// TODO(gianluca): EmitPackage must returns the globals.
+	globals := make([]Global, len(main.Globals))
+	for i, global := range main.Globals {
+		globals[i].Pkg = global.Pkg
+		globals[i].Name = global.Name
+		globals[i].Type = global.Type
+		globals[i].Value = global.Value
+	}
+	return &Program{Fn: main, globals: globals}, nil
 }
 
 func Execute(p *Program) error {
-	pvm := vm.New()
-	_, err := pvm.Run(p.Fn)
+	vmm := vm.New()
+	if n := len(p.globals); n > 0 {
+		globals := make([]interface{}, n)
+		for i, global := range p.globals {
+			if global.Value == nil {
+				globals[i] = reflect.New(global.Type).Interface()
+			} else {
+				globals[i] = global.Value
+			}
+		}
+		vmm.SetGlobals(globals)
+	}
+	_, err := vmm.Run(p.Fn)
 	return err
 }
 
