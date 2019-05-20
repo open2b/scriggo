@@ -25,14 +25,12 @@ func MakeInterface() interface{} {
 // 	return slice
 // }
 
-// TODO (Gianluca): not implemented, wait for type-checker to return types as constants.
-// func MakeFunc1() func() {
-// 	return func() { fmt.Println("message") }
-// }
+func MakeFunc1() func() {
+	return func() { fmt.Println("message") }
+}
 
 func main() {
-	// TODO (Gianluca): not implemented, wait for type-checker to return types as constants.
-	// MakeFunc1()()
+	MakeFunc1()()
 
 	fmt.Println(MakeMap1(1, 10))
 	fmt.Println(MakeInterface())
