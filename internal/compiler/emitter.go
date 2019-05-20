@@ -44,7 +44,7 @@ type Emitter struct {
 	rangeLabels [][2]uint32
 
 	// globals holds all global variables.
-	globals []reflect.Type
+	globals []vm.Global
 
 	// globalsIndexes maps global variable names to their index inside globals.
 	globalsIndexes map[string]int16
@@ -158,7 +158,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 				c.FB.BindVarReg(v.Name, varReg)
 				addresses[i] = c.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
 				packageVariablesRegisters[v.Name] = varReg
-				c.globals = append(c.globals, varType)
+				c.globals = append(c.globals, vm.Global{Pkg: "main", Name: v.Name, Type: varType})
 				c.globalsIndexes[v.Name] = int16(len(c.globals) - 1)
 			}
 			c.assign(addresses, n.Values)
@@ -224,9 +224,9 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 	// Assigns globals to main's Globals.
 	main := c.availableScrigoFunctions["main"]
-	for name, index := range c.globalsIndexes {
+	for _, index := range c.globalsIndexes {
 		global := c.globals[index]
-		main.Globals = append(main.Globals, vm.Global{Pkg: "main", Name: name, Type: global})
+		main.Globals = append(main.Globals, global)
 	}
 	// All functions share Globals.
 	for _, f := range c.availableScrigoFunctions {
