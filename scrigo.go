@@ -39,7 +39,9 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 	return &Program{Fn: main, globals: globals}, nil
 }
 
-func Execute(p *Program) error {
+// TODO(Gianluca): second parameter "tf" should be removed: setting the trace
+// function must be done in some other way.
+func Execute(p *Program, tf *vm.TraceFunc) error {
 	vmm := vm.New()
 	if n := len(p.globals); n > 0 {
 		globals := make([]interface{}, n)
@@ -51,6 +53,9 @@ func Execute(p *Program) error {
 			}
 		}
 		vmm.SetGlobals(globals)
+	}
+	if tf != nil {
+		vmm.SetTraceFunc(*tf)
 	}
 	_, err := vmm.Run(p.Fn)
 	return err

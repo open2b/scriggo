@@ -81,8 +81,8 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 }
 
 // Global represents a global variable with a package, name, type (only for
-// Scrigo globals) and value (only for native globals). Value, if present,
-// must be a pointer to the variable value.
+// Scrigo globals) and value (only for native globals). Value, if present, must
+// be a pointer to the variable value.
 type Global struct {
 	Pkg   string
 	Name  string

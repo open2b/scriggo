@@ -98,7 +98,7 @@ func runScrigoAndGetOutput(src []byte) output {
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	err = scrigo.Execute(program)
+	err = scrigo.Execute(program, nil)
 	if err != nil {
 		return makeOutput(err.Error())
 	}

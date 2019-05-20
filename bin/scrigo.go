@@ -100,11 +100,11 @@ func main() {
 			}
 			fmt.Print(funcs["main"])
 		} else {
-			v := vm.New()
 			if *trace {
-				v.SetTraceFunc(tf)
+				err = scrigo.Execute(program, &tf)
+			} else {
+				err = scrigo.Execute(program, nil)
 			}
-			_, err = v.Run(program.Fn)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
