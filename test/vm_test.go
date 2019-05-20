@@ -117,6 +117,23 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Switch without expression",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			fmt.Print("switch: ")
+			switch {
+			case true:
+				fmt.Print("true")
+			case false:
+				fmt.Print("false")
+			}
+			fmt.Print(".")
+		}
+		`, nil, nil, "switch: true."},
+
 	{"Package variable - native call with package variable as argument",
 		`package main
 

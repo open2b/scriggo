@@ -1349,9 +1349,19 @@ func (c *Emitter) emitSwitch(node *ast.Switch) {
 		c.EmitNodes([]ast.Node{node.Init})
 	}
 
-	typ := c.TypeInfo[node.Expr].Type
-	expr := c.FB.NewRegister(typ.Kind())
-	c.emitExpr(node.Expr, expr, typ)
+	var expr int8
+	var typ reflect.Type
+
+	if node.Expr == nil {
+		typ = reflect.TypeOf(false)
+		expr = c.FB.NewRegister(typ.Kind())
+		c.FB.Move(true, 1, expr, typ.Kind())
+	} else {
+		typ = c.TypeInfo[node.Expr].Type
+		expr = c.FB.NewRegister(typ.Kind())
+		c.emitExpr(node.Expr, expr, typ)
+	}
+
 	bodyLabels := make([]uint32, len(node.Cases))
 	endSwitchLabel := c.FB.NewLabel()
 
