@@ -13,17 +13,7 @@ import (
 
 type Program struct {
 	Fn      *vm.ScrigoFunction
-	globals []Global
-}
-
-// Global represents a global variable with a package, name, type (only for
-// Scrigo globals) and value (only for native globals). Value, if present,
-// must be a pointer to the variable value.
-type Global struct {
-	Pkg   string
-	Name  string
-	Type  reflect.Type
-	Value interface{}
+	globals []compiler.Global
 }
 
 func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage) (*Program, error) {
@@ -37,10 +27,10 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 	if err != nil {
 		return nil, err
 	}
-	main := compiler.EmitPackage(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
+	main, returnedGlobals := compiler.EmitPackage(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
 	// TODO(gianluca): EmitPackage must returns the globals.
-	globals := make([]Global, len(main.Globals))
-	for i, global := range main.Globals {
+	globals := make([]compiler.Global, len(main.Globals))
+	for i, global := range returnedGlobals {
 		globals[i].Pkg = global.Pkg
 		globals[i].Name = global.Name
 		globals[i].Type = global.Type

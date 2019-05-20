@@ -80,8 +80,18 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 	return c
 }
 
+// Global represents a global variable with a package, name, type (only for
+// Scrigo globals) and value (only for native globals). Value, if present,
+// must be a pointer to the variable value.
+type Global struct {
+	Pkg   string
+	Name  string
+	Type  reflect.Type
+	Value interface{}
+}
+
 // emitPackage emits pkg.
-func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *vm.ScrigoFunction {
+func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
 
 	c := &Emitter{
 
@@ -224,7 +234,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 		f.Globals = main.Globals
 	}
 
-	return main
+	return main, c.globals
 }
 
 // prepareCallParameters prepares parameters (out and in) for a function call of
