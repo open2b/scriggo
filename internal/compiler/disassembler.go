@@ -206,7 +206,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 		_, _ = fmt.Fprint(w, ")")
 	}
 	_, _ = fmt.Fprint(w, "\n")
-	_, _ = fmt.Fprintf(w, "%s\t// regs(%d,%d,%d,%d)\n", indent,
+	_, _ = fmt.Fprintf(w, "%s\t; regs(%d,%d,%d,%d)\n", indent,
 		fn.RegNum[0], fn.RegNum[1], fn.RegNum[2], fn.RegNum[3])
 	instrNum := uint32(len(fn.Body))
 	for addr := uint32(0); addr < instrNum; addr++ {
@@ -299,12 +299,12 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		switch op {
 		case vm.OpCallIndirect, vm.OpDefer:
 			grow := fn.Body[addr+1]
-			s += "\t// Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
+			s += "\t; Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
 				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
 		case vm.OpCall, vm.OpCallNative:
 			grow := fn.Body[addr+1]
 			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
-			s += "\t// " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)
+			s += "\t; " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)
 		}
 		if op == vm.OpDefer {
 			args := fn.Body[addr+2]
@@ -471,7 +471,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-		s += " // len: "
+		s += "\t; len: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].B)
