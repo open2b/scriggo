@@ -50,19 +50,19 @@ func AddExplicitReturn(node ast.Node) {
 }
 
 // changeRegister moves src content into dst, making a conversion if necessary.
-func (c *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+func (e *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
-			c.FB.EnterStack()
-			tmpReg := c.FB.NewRegister(srcType.Kind())
-			c.FB.Move(true, src, tmpReg, srcType.Kind())
-			c.FB.Convert(tmpReg, srcType, dst, srcType.Kind())
-			c.FB.ExitStack()
+			e.FB.EnterStack()
+			tmpReg := e.FB.NewRegister(srcType.Kind())
+			e.FB.Move(true, src, tmpReg, srcType.Kind())
+			e.FB.Convert(tmpReg, srcType, dst, srcType.Kind())
+			e.FB.ExitStack()
 		} else {
-			c.FB.Convert(src, srcType, dst, srcType.Kind())
+			e.FB.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else if k || src != dst {
-		c.FB.Move(k, src, dst, srcType.Kind())
+		e.FB.Move(k, src, dst, srcType.Kind())
 	}
 }
 
@@ -81,10 +81,10 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
-func (c *Emitter) emitImport(n *ast.Import) {
+func (e *Emitter) emitImport(n *ast.Import) {
 	if n.Tree == nil { // Go package.
 		var importPkgName string
-		parserGoPkg := c.importableGoPkgs[n.Path]
+		parserGoPkg := e.importableGoPkgs[n.Path]
 		if n.Ident == nil {
 			importPkgName = parserGoPkg.Name
 		} else {
@@ -103,12 +103,12 @@ func (c *Emitter) emitImport(n *ast.Import) {
 				continue
 			}
 			if reflect.TypeOf(value).Kind() == reflect.Ptr {
-				c.globals = append(c.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
+				e.globals = append(e.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
 				name := ident
 				if importPkgName != "" {
 					name = importPkgName + "." + ident
 				}
-				c.globalNameIndex[name] = int16(len(c.globals) - 1)
+				e.globalNameIndex[name] = int16(len(e.globals) - 1)
 			}
 			if reflect.TypeOf(value).Kind() == reflect.Func {
 				nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
@@ -119,22 +119,22 @@ func (c *Emitter) emitImport(n *ast.Import) {
 				// pkg.nativeFunctionsNames[ident] = int8(index)
 				// continue
 				if importPkgName == "" {
-					c.availableNativeFunctions[ident] = nativeFunc
+					e.availableNativeFunctions[ident] = nativeFunc
 				} else {
-					c.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+					e.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
 				}
 			}
 		}
-		c.isNativePkg[importPkgName] = true
+		e.isNativePkg[importPkgName] = true
 	} else {
 		panic("TODO(Gianluca): not implemented")
 	}
 }
 
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
-func (c *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
+func (e *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := c.TypeInfo[call]; ti.IsBuiltin() {
+		if ti := e.TypeInfo[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
@@ -206,41 +206,41 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 
 // nativeFunctionIndex returns fun's index inside current function, creating it
 // if not exists.
-func (c *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
-	currFun := c.CurrentFunction
-	i, ok := c.assignedNativeFunctions[currFun][fun]
+func (e *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
+	currFun := e.CurrentFunction
+	i, ok := e.assignedNativeFunctions[currFun][fun]
 	if ok {
 		return i
 	}
 	i = int8(len(currFun.NativeFunctions))
 	currFun.NativeFunctions = append(currFun.NativeFunctions, fun)
-	if c.assignedNativeFunctions[currFun] == nil {
-		c.assignedNativeFunctions[currFun] = make(map[*vm.NativeFunction]int8)
+	if e.assignedNativeFunctions[currFun] == nil {
+		e.assignedNativeFunctions[currFun] = make(map[*vm.NativeFunction]int8)
 	}
-	c.assignedNativeFunctions[currFun][fun] = i
+	e.assignedNativeFunctions[currFun][fun] = i
 	return i
 }
 
 // scrigoFunctionIndex returns fun's index inside current function, creating it
 // if not exists.
-func (c *Emitter) scrigoFunctionIndex(fun *vm.ScrigoFunction) int8 {
-	currFun := c.CurrentFunction
-	i, ok := c.assignedScrigoFunctions[currFun][fun]
+func (e *Emitter) scrigoFunctionIndex(fun *vm.ScrigoFunction) int8 {
+	currFun := e.CurrentFunction
+	i, ok := e.assignedScrigoFunctions[currFun][fun]
 	if ok {
 		return i
 	}
 	i = int8(len(currFun.ScrigoFunctions))
 	currFun.ScrigoFunctions = append(currFun.ScrigoFunctions, fun)
-	if c.assignedScrigoFunctions[currFun] == nil {
-		c.assignedScrigoFunctions[currFun] = make(map[*vm.ScrigoFunction]int8)
+	if e.assignedScrigoFunctions[currFun] == nil {
+		e.assignedScrigoFunctions[currFun] = make(map[*vm.ScrigoFunction]int8)
 	}
-	c.assignedScrigoFunctions[currFun][fun] = i
+	e.assignedScrigoFunctions[currFun][fun] = i
 	return i
 }
 
 // setClosureRefs sets closure refs for function. This function works on current
 // function builder, so shall be called before changing/saving it.
-func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
+func (e *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 
 	// First: updates indexes of declarations that are found at the same level
 	// of fn with appropriate register indexes.
@@ -248,16 +248,16 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 		uv := &upvars[i]
 		if uv.Index == -1 {
 			name := uv.Declaration.(*ast.Identifier).Name
-			reg := c.FB.ScopeLookup(name)
+			reg := e.FB.ScopeLookup(name)
 			uv.Index = int16(reg)
 		}
 	}
 
 	// Second: updates upvarNames with external-defined names.
 	closureRefs := make([]int16, len(upvars))
-	c.upvarsNames[fn] = make(map[string]int)
+	e.upvarsNames[fn] = make(map[string]int)
 	for i, uv := range upvars {
-		c.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
+		e.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
 		closureRefs[i] = uv.Index
 	}
 
