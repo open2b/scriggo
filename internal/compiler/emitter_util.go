@@ -265,20 +265,3 @@ func (c *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
 	fn.VarRefs = closureRefs
 
 }
-
-// variableIndex returns v's index inside current function, creating it if not
-// exists.
-func (c *Emitter) variableIndex(v vm.Global) uint8 {
-	currFun := c.CurrentFunction
-	i, ok := c.assignedVariables[currFun][v]
-	if ok {
-		return i
-	}
-	i = uint8(len(currFun.Globals))
-	currFun.Globals = append(currFun.Globals, v)
-	if c.assignedVariables[currFun] == nil {
-		c.assignedVariables[currFun] = make(map[vm.Global]uint8)
-	}
-	c.assignedVariables[currFun][v] = i
-	return i
-}

@@ -33,7 +33,6 @@ type Emitter struct {
 	// can they be related to CurrentFunction in some way?
 	assignedScrigoFunctions map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8
 	assignedNativeFunctions map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8
-	assignedVariables       map[*vm.ScrigoFunction]map[vm.Global]uint8
 
 	isNativePkg map[string]bool
 
@@ -70,7 +69,6 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
-		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Global]uint8{},
 
 		isNativePkg: map[string]bool{},
 
@@ -96,7 +94,6 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
-		assignedVariables:       map[*vm.ScrigoFunction]map[vm.Global]uint8{},
 
 		isNativePkg: map[string]bool{},
 
