@@ -7,17 +7,10 @@ import (
 	"strings"
 
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
 )
 
-// TODO (Gianluca): find a better name.
-// TODO (Gianluca): this identifier must be accessed from outside as
-// "scrigo.Package" or something similar.
-type GoPackage struct {
-	Name         string
-	Declarations map[string]interface{}
-}
-
-func (gp *GoPackage) ToTypeCheckerScope() TypeCheckerScope {
+func ToTypeCheckerScope(gp *native.GoPackage) TypeCheckerScope {
 	s := make(TypeCheckerScope, len(gp.Declarations))
 	for ident, value := range gp.Declarations {
 		// Importing a Go type.
@@ -78,7 +71,7 @@ func (pi *PackageInfo) String() string {
 var notCheckedGlobal = &TypeInfo{}
 
 // CheckPackage type checks a package.
-func CheckPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
+func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -114,7 +107,7 @@ func CheckPackage(tree *ast.Tree, imports map[string]*GoPackage, pkgInfos map[st
 					return tc.errorf(n, "cannot find package %q", n.Path)
 				}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
-				for n, d := range goPkg.ToTypeCheckerScope() {
+				for n, d := range ToTypeCheckerScope(goPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = goPkg.Name

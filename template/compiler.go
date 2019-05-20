@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"scrigo/vm"
 	"strings"
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
+	"scrigo/vm"
 )
 
 // Context indicates the type of source that has to be rendered and controls
@@ -24,11 +25,11 @@ const (
 )
 
 type Page struct {
-	main *compiler.GoPackage
+	main *native.GoPackage
 	fn   *vm.ScrigoFunction
 }
 
-func Compile(path string, reader compiler.Reader, main *compiler.GoPackage, ctx Context) (*Page, error) {
+func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Context) (*Page, error) {
 
 	// Parsing.
 	p := NewParser(reader)
@@ -84,7 +85,7 @@ func convertError(err error) error {
 	return err
 }
 
-func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInfo, err error) {
+func typecheck(tree *ast.Tree, main *native.GoPackage) (_ *compiler.PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*compiler.Error); ok {
@@ -97,7 +98,7 @@ func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInf
 	tc := compiler.NewTypechecker(tree.Path, true)
 	tc.Universe = compiler.Universe
 	if main != nil {
-		tc.Scopes = append(tc.Scopes, tcBuiltins, main.ToTypeCheckerScope())
+		tc.Scopes = append(tc.Scopes, tcBuiltins, compiler.ToTypeCheckerScope(main))
 	}
 	tc.CheckNodesInNewScope(tree.Nodes)
 	pkgInfo := &compiler.PackageInfo{}
@@ -138,7 +139,7 @@ func NewParser(r compiler.Reader) *Parser {
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string, main *compiler.GoPackage, ctx ast.Context) (*ast.Tree, error) {
+func (p *Parser) Parse(path string, main *native.GoPackage, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -153,7 +154,7 @@ func (p *Parser) Parse(path string, main *compiler.GoPackage, ctx ast.Context) (
 		return nil, err
 	}
 
-	pp := &expansion{p.reader, p.trees, map[string]*compiler.GoPackage{"main": main}, []string{}}
+	pp := &expansion{p.reader, p.trees, map[string]*native.GoPackage{"main": main}, []string{}}
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
@@ -183,7 +184,7 @@ func (p *Parser) TypeCheckInfos() map[string]*compiler.PackageInfo {
 type expansion struct {
 	reader   compiler.Reader
 	trees    *compiler.Cache
-	packages map[string]*compiler.GoPackage
+	packages map[string]*native.GoPackage
 	paths    []string
 }
 

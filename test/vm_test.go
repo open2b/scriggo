@@ -12,13 +12,14 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"scrigo"
 	"strings"
 	"sync"
 	"testing"
 	"text/tabwriter"
 
+	"scrigo"
 	"scrigo/internal/compiler"
+	"scrigo/native"
 	vmp "scrigo/vm"
 )
 
@@ -3336,8 +3337,8 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = map[string]*compiler.GoPackage{
-	"fmt": &compiler.GoPackage{
+var goPackages = map[string]*native.GoPackage{
+	"fmt": &native.GoPackage{
 		Name: "fmt",
 		Declarations: map[string]interface{}{
 			"Errorf":     fmt.Errorf,
@@ -3367,7 +3368,7 @@ var goPackages = map[string]*compiler.GoPackage{
 			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 		},
 	},
-	"testpkg": &compiler.GoPackage{
+	"testpkg": &native.GoPackage{
 		Name: "testpkg",
 		Declarations: map[string]interface{}{
 			"F00": func() {},

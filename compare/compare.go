@@ -15,9 +15,10 @@ import (
 	"sync"
 
 	"scrigo/internal/compiler"
+	"scrigo/native"
 )
 
-var packages map[string]*compiler.GoPackage
+var packages map[string]*native.GoPackage
 
 type output struct {
 	path        string

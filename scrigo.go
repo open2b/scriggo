@@ -2,18 +2,19 @@ package scrigo
 
 import (
 	"fmt"
-	"scrigo/vm"
 	"strings"
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
+	"scrigo/vm"
 )
 
 type Program struct {
 	Fn *vm.ScrigoFunction
 }
 
-func Compile(path string, reader compiler.Reader, packages map[string]*compiler.GoPackage) (*Program, error) {
+func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage) (*Program, error) {
 	p := NewParser(reader, packages)
 	tree, err := p.Parse(path)
 	if err != nil {
@@ -45,7 +46,7 @@ func Execute(p *Program) error {
 // clone of the tree and then transform the clone.
 type Parser struct {
 	reader   compiler.Reader
-	packages map[string]*compiler.GoPackage
+	packages map[string]*native.GoPackage
 	trees    *compiler.Cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
 	packageInfos map[string]*compiler.PackageInfo // key is path.
@@ -54,7 +55,7 @@ type Parser struct {
 
 // NewParser returns a new Parser that reads the trees from the reader r. typeCheck
 // indicates if a type-checking must be done after parsing.
-func NewParser(r compiler.Reader, packages map[string]*compiler.GoPackage) *Parser {
+func NewParser(r compiler.Reader, packages map[string]*native.GoPackage) *Parser {
 	p := &Parser{
 		reader:   r,
 		packages: packages,
@@ -110,7 +111,7 @@ func (p *Parser) TypeCheckInfos() map[string]*compiler.PackageInfo {
 type expansion struct {
 	reader   compiler.Reader
 	trees    *compiler.Cache
-	packages map[string]*compiler.GoPackage
+	packages map[string]*native.GoPackage
 	paths    []string
 }
 

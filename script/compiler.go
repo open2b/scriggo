@@ -7,6 +7,7 @@ import (
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
 	"scrigo/vm"
 )
 
@@ -14,7 +15,7 @@ type Script struct {
 	fn *vm.ScrigoFunction
 }
 
-func Compile(src io.Reader, main *compiler.GoPackage) (*Script, error) {
+func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 
 	// Parsing.
 	buf, err := ioutil.ReadAll(src)
@@ -55,7 +56,7 @@ func Execute(script *Script, globals map[string]reflect.Value) error {
 	return err
 }
 
-func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInfo, err error) {
+func typecheck(tree *ast.Tree, main *native.GoPackage) (_ *compiler.PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*compiler.Error); ok {
@@ -68,7 +69,7 @@ func typecheck(tree *ast.Tree, main *compiler.GoPackage) (_ *compiler.PackageInf
 	tc := compiler.NewTypechecker(tree.Path, true)
 	tc.Universe = compiler.Universe
 	if main != nil {
-		tc.Scopes = append(tc.Scopes, main.ToTypeCheckerScope())
+		tc.Scopes = append(tc.Scopes, compiler.ToTypeCheckerScope(main))
 	}
 	tc.CheckNodesInNewScope(tree.Nodes)
 	pkgInfo := &compiler.PackageInfo{}

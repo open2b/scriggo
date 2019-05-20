@@ -95,7 +95,7 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 										typ = "reflect.TypeOf(" + pkgBase + "." + name.Name + ")"
 									}
 									expression := strconv.Quote(pkgInfo.Types[expr].Value.ExactString())
-									out[name.Name] = fmt.Sprintf("scrigo.Constant(%s, %s)", expression, typ)
+									out[name.Name] = fmt.Sprintf("native.Constant(%s, %s)", expression, typ)
 								} else {
 									out[name.Name] = "&" + pkgBase + "." + name.Name
 								}
@@ -133,7 +133,7 @@ import (
 import "scrigo"
 
 func init() {
-	[customVariableName] = map[string]*compiler.GoPackage{
+	[customVariableName] = map[string]*native.GoPackage{
 		[pkgContent]
 	}
 }
@@ -189,7 +189,7 @@ func generatePackage(pkgPath string) string {
 	}
 
 	skel := `
-		"[pkgPath]": &compiler.GoPackage{
+		"[pkgPath]": &native.GoPackage{
 			Name: "[pkg.Name()]",
 			Declarations: map[string]interface{}{
 				[pkgContent]

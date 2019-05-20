@@ -6,12 +6,13 @@ import (
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
 )
 
 func TestCheckScript(t *testing.T) {
 	cases := []struct {
 		src  string
-		main *compiler.GoPackage
+		main *native.GoPackage
 	}{
 		{
 			src: `
@@ -19,7 +20,7 @@ func TestCheckScript(t *testing.T) {
 				println(len(s))
 				a := 20
 			`,
-			main: &compiler.GoPackage{
+			main: &native.GoPackage{
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"SliceInt": reflect.SliceOf(reflect.TypeOf(int(0))),

@@ -11,6 +11,7 @@ import (
 	"reflect"
 
 	"scrigo/internal/compiler/ast"
+	"scrigo/native"
 	"scrigo/vm"
 )
 
@@ -19,7 +20,7 @@ type Emitter struct {
 	CurrentFunction  *vm.ScrigoFunction
 	TypeInfo         map[ast.Node]*TypeInfo
 	FB               *FunctionBuilder // current function builder.
-	importableGoPkgs map[string]*GoPackage
+	importableGoPkgs map[string]*native.GoPackage
 	IndirectVars     map[*ast.Identifier]bool
 
 	upvarsNames map[*vm.ScrigoFunction]map[string]int
@@ -58,7 +59,7 @@ func (c *Emitter) Main() *vm.ScrigoFunction {
 
 // NewEmitter returns a new compiler reading sources from r.
 // Native (Go) packages are made available for importing.
-func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
+func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
 	c := &Emitter{
 
 		importableGoPkgs: packages,
@@ -84,7 +85,7 @@ func NewEmitter(tree *ast.Tree, packages map[string]*GoPackage, typeInfos map[as
 }
 
 // emitPackage emits pkg.
-func EmitPackage(pkg *ast.Package, packages map[string]*GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *vm.ScrigoFunction {
+func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *vm.ScrigoFunction {
 
 	c := &Emitter{
 

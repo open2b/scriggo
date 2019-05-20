@@ -14,12 +14,13 @@ import (
 
 	"scrigo"
 	"scrigo/internal/compiler"
+	"scrigo/native"
 	"scrigo/script"
 	"scrigo/template"
 	"scrigo/vm"
 )
 
-var packages map[string]*compiler.GoPackage
+var packages map[string]*native.GoPackage
 
 func main() {
 
