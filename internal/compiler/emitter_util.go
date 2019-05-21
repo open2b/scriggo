@@ -107,7 +107,7 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 			if importPkgName != "" {
 				name = importPkgName + "." + ident
 			}
-			e.globalNameIndex[name] = int16(len(e.globals) - 1)
+			e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Func {
 			nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)

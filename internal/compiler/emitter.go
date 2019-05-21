@@ -38,8 +38,8 @@ type Emitter struct {
 	// body.
 	rangeLabels [][2]uint32
 
-	globals         []vm.Global      // holds all Scrigo and native global variables.
-	globalNameIndex map[string]int16 // maps global variable names to their index inside globals.
+	globals         []vm.Global                       // holds all Scrigo and native global variables.
+	globalNameIndex map[*ast.Package]map[string]int16 // maps global variable names to their index inside globals.
 
 	labels map[*vm.ScrigoFunction]map[string]uint32
 
@@ -68,7 +68,7 @@ func NewEmitter(packages map[string]*native.GoPackage, typeInfos map[ast.Node]*T
 
 		isNativePkg: map[string]bool{},
 
-		globalNameIndex: map[string]int16{},
+		globalNameIndex: map[*ast.Package]map[string]int16{},
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
@@ -95,6 +95,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 	e.currentPackage = pkg
 	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
 	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
+	e.globalNameIndex[e.currentPackage] = map[string]int16{}
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
@@ -146,7 +147,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 				addresses[i] = e.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
 				packageVariablesRegisters[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: varType})
-				e.globalNameIndex[v.Name] = int16(len(e.globals) - 1)
+				e.globalNameIndex[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
 			}
 			e.assign(addresses, n.Values)
 			e.CurrentFunction = backupFn
@@ -200,7 +201,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 		e.CurrentFunction = initVarsFn
 		e.FB = initVarsFb
 		for name, reg := range packageVariablesRegisters {
-			index := e.globalNameIndex[name]
+			index := e.globalNameIndex[e.currentPackage][name]
 			e.FB.SetVar(false, reg, int(index))
 		}
 		e.CurrentFunction = backupFn
@@ -566,7 +567,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.FB.Nop()
 
 	case *ast.Selector:
-		if index, ok := e.globalNameIndex[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if index, ok := e.globalNameIndex[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -699,7 +700,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					e.FB.GetVar(index, tmpReg)
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-			} else if index, ok := e.globalNameIndex[expr.Name]; ok {
+			} else if index, ok := e.globalNameIndex[e.currentPackage][expr.Name]; ok {
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
 					e.FB.GetVar(int(index), reg)
 				} else {
