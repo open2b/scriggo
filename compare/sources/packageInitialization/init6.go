@@ -2,25 +2,27 @@
 
 package main
 
+import "fmt"
+
 var A = "global"
 
 func init() {
-	println(A)
+	fmt.Println(A)
 	A = "init 1"
 }
 
 func F() {
-	println(A)
+	fmt.Println(A)
 	A = "F"
 }
 
 func init() {
-	println(A)
+	fmt.Println(A)
 	A = "init 2"
 }
 
 func main() {
-	println(A)
+	fmt.Println(A)
 	F()
-	println(A)
+	fmt.Println(A)
 }
