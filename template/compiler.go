@@ -55,7 +55,7 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variabiles, while builtins contains template builtins.
 	// define something like "emitterBuiltins" in order to avoid converting at every compilation.
-	emitter := compiler.NewEmitter(tree, nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
+	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
 	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	emitter.CurrentFunction = fn
 	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
