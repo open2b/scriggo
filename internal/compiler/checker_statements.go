@@ -439,7 +439,17 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Label:
 			tc.labels[len(tc.labels)-1] = append(tc.labels[len(tc.labels)-1], node.Name.Name)
-			tc.checkNodes([]ast.Node{node.Statement})
+			for i, g := range tc.gotos {
+				if g == node.Name.Name {
+					if i < tc.nextValidGoto {
+						panic(tc.errorf(node, "goto %s jumps over declaration of ? at ?", node.Name.Name)) // TODO(Gianluca).
+					}
+					break
+				}
+			}
+			if node.Statement != nil {
+				tc.checkNodes([]ast.Node{node.Statement})
+			}
 
 		case ast.Expression:
 			ti := tc.checkExpression(node)

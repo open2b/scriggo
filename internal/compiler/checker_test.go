@@ -1752,24 +1752,69 @@ func TestGotoLabels(t *testing.T) {
 		name     string
 		src      string
 		errorMsg string
-	}{}
+	}{
+		{"Simple backward goto",
+			`package main
+
+			func main() {
+			L:
+				goto L
+			}
+			`, ""},
+
+		{"Simple forward goto",
+			`package main
+
+			func main() {
+				goto L
+			L:
+			}
+			`, ""},
+
+		{"Goto jumping over constant declaration",
+			`package main
+		
+			func main() {
+				goto L
+				const A = 10
+			L:
+				println(A)
+			}`,
+			"",
+		},
+
+		{"Goto jumping over variable declaration",
+			`package main
+		
+			func main() {
+				goto L
+				var A = 10
+			L:
+				println(A)
+			}`, "goto L jumps over declaration of ? at ?"},
+	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
-			defer func() {
-				if r := recover(); r != nil {
-					panic(r)
-				}
-			}()
 			tree, err := ParseSource([]byte(cas.src), ast.ContextNone)
 			if err != nil {
 				t.Error(err)
 				return
 			}
-			tc := NewTypechecker("", false)
-			tc.Universe = Universe
-			tc.addScope()
-			tc.checkNodes(tree.Nodes)
-			tc.removeCurrentScope()
+			err = CheckPackage(tree, nil, nil)
+			switch {
+			case err == nil && cas.errorMsg == "":
+				// Ok.
+			case err == nil && cas.errorMsg != "":
+				t.Errorf("%s: expecting error %q, got nothing", cas.name, cas.errorMsg)
+			case err != nil && cas.errorMsg == "":
+				t.Errorf("%s: unexpected error %q", cas.name, err)
+			case err != nil && cas.errorMsg != "":
+				if strings.Contains(err.Error(), cas.errorMsg) {
+					// Ok.
+				} else {
+					t.Errorf("%s: expecting error %q, got %q", cas.name, cas.errorMsg, err)
+				}
+			}
 		})
 	}
 }
