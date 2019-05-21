@@ -96,7 +96,8 @@ func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage
 	return main, e.globals
 }
 
-func (e *Emitter) emitPackage(pkg *ast.Package) {
+// emitPackage emits package pkg. Returns a list of exported functions.
+func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 	e.currentPackage = pkg
 	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
 	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
@@ -105,9 +106,39 @@ func (e *Emitter) emitPackage(pkg *ast.Package) {
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
 		if imp, ok := decl.(*ast.Import); ok {
-			e.emitImport(imp)
+			if imp.Tree == nil {
+				e.importNativePackage(imp)
+			} else {
+				currentPkg := e.currentPackage
+				pkg := imp.Tree.Nodes[0].(*ast.Package)
+				exportedFunctions := e.emitPackage(pkg)
+				e.currentPackage = currentPkg
+				var importPkgName string
+				if imp.Ident == nil {
+					importPkgName = pkg.Name
+				} else {
+					switch imp.Ident.Name {
+					case "_":
+						panic("TODO(Gianluca): not implemented")
+					case ".":
+						importPkgName = ""
+					default:
+						importPkgName = imp.Ident.Name
+					}
+				}
+				for name, fn := range exportedFunctions {
+					if importPkgName == "" {
+						e.availableScrigoFunctions[e.currentPackage][name] = fn
+					} else {
+						e.availableScrigoFunctions[e.currentPackage][importPkgName+"."+name] = fn
+					}
+
+				}
+			}
 		}
 	}
+
+	exportedFunctions := map[string]*vm.ScrigoFunction{}
 
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
@@ -120,6 +151,9 @@ func (e *Emitter) emitPackage(pkg *ast.Package) {
 				initFuncs = append(initFuncs, fn)
 			} else {
 				e.availableScrigoFunctions[e.currentPackage][fun.Ident.Name] = fn
+				if isExported(fun.Ident.Name) {
+					exportedFunctions[fun.Ident.Name] = fn
+				}
 			}
 		}
 	}
@@ -219,6 +253,8 @@ func (e *Emitter) emitPackage(pkg *ast.Package) {
 	for _, f := range e.availableScrigoFunctions[pkg] {
 		f.Globals = e.globals
 	}
+
+	return exportedFunctions
 
 }
 
@@ -356,6 +392,16 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 					e.FB.CallNative(index, int8(numVar), stackShift)
 				} else {
 					e.FB.CallNative(index, vm.NoVariadic, stackShift)
+				}
+				return regs, types
+			} else if fun, ok := e.availableScrigoFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
+				funcType := fun.Type
+				regs, types := e.prepareCallParameters(funcType, call.Args, false)
+				index := e.scrigoFunctionIndex(fun)
+				if funcType.IsVariadic() {
+					panic("TODO(Gianluca): not implemented")
+				} else {
+					e.FB.Call(index, stackShift, sel.Pos().Line)
 				}
 				return regs, types
 			} else {

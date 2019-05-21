@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"reflect"
+	"unicode"
 
 	"scrigo/internal/compiler/ast"
 	"scrigo/vm"
@@ -121,13 +122,10 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 	e.isNativePkg[importPkgName] = true
 }
 
-func (e *Emitter) emitImport(n *ast.Import) {
-	if n.Tree == nil { // Go package.
-		e.importNativePackage(n)
-	} else {
-		// TODO(Gianluca): backup e.currentPackage before calling emitPackage.
-		panic("TODO(Gianluca): not implemented")
-	}
+// isExported indicates if name is exported, according to
+// https://golang.org/ref/spec#Exported_identifiers.
+func isExported(name string) bool {
+	return unicode.Is(unicode.Lu, []rune(name)[0])
 }
 
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
