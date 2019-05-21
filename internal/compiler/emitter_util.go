@@ -111,12 +111,6 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Func {
 			nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
-			// index, ok := pkg.AddNativeFunction(nativeFunc)
-			// if !ok {
-			// 	panic("TODO: not implemented")
-			// }
-			// pkg.nativeFunctionsNames[ident] = int8(index)
-			// continue
 			if importPkgName == "" {
 				e.availableNativeFunctions[ident] = nativeFunc
 			} else {
