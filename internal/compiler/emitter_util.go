@@ -81,51 +81,55 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
+func (e *Emitter) importNativePackage(n *ast.Import) {
+	var importPkgName string
+	parserGoPkg := e.importableGoPkgs[n.Path]
+	if n.Ident == nil {
+		importPkgName = parserGoPkg.Name
+	} else {
+		switch n.Ident.Name {
+		case "_":
+			panic("TODO(Gianluca): not implemented")
+		case ".":
+			importPkgName = ""
+		default:
+			importPkgName = n.Ident.Name
+		}
+	}
+	for ident, value := range parserGoPkg.Declarations {
+		_ = ident
+		if _, ok := value.(reflect.Type); ok {
+			continue
+		}
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			e.globals = append(e.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
+			name := ident
+			if importPkgName != "" {
+				name = importPkgName + "." + ident
+			}
+			e.globalNameIndex[name] = int16(len(e.globals) - 1)
+		}
+		if reflect.TypeOf(value).Kind() == reflect.Func {
+			nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
+			// index, ok := pkg.AddNativeFunction(nativeFunc)
+			// if !ok {
+			// 	panic("TODO: not implemented")
+			// }
+			// pkg.nativeFunctionsNames[ident] = int8(index)
+			// continue
+			if importPkgName == "" {
+				e.availableNativeFunctions[ident] = nativeFunc
+			} else {
+				e.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+			}
+		}
+	}
+	e.isNativePkg[importPkgName] = true
+}
+
 func (e *Emitter) emitImport(n *ast.Import) {
 	if n.Tree == nil { // Go package.
-		var importPkgName string
-		parserGoPkg := e.importableGoPkgs[n.Path]
-		if n.Ident == nil {
-			importPkgName = parserGoPkg.Name
-		} else {
-			switch n.Ident.Name {
-			case "_":
-				panic("TODO(Gianluca): not implemented")
-			case ".":
-				importPkgName = ""
-			default:
-				importPkgName = n.Ident.Name
-			}
-		}
-		for ident, value := range parserGoPkg.Declarations {
-			_ = ident
-			if _, ok := value.(reflect.Type); ok {
-				continue
-			}
-			if reflect.TypeOf(value).Kind() == reflect.Ptr {
-				e.globals = append(e.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
-				name := ident
-				if importPkgName != "" {
-					name = importPkgName + "." + ident
-				}
-				e.globalNameIndex[name] = int16(len(e.globals) - 1)
-			}
-			if reflect.TypeOf(value).Kind() == reflect.Func {
-				nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
-				// index, ok := pkg.AddNativeFunction(nativeFunc)
-				// if !ok {
-				// 	panic("TODO: not implemented")
-				// }
-				// pkg.nativeFunctionsNames[ident] = int8(index)
-				// continue
-				if importPkgName == "" {
-					e.availableNativeFunctions[ident] = nativeFunc
-				} else {
-					e.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
-				}
-			}
-		}
-		e.isNativePkg[importPkgName] = true
+		e.importNativePackage(n)
 	} else {
 		panic("TODO(Gianluca): not implemented")
 	}
