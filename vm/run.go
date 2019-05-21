@@ -13,6 +13,7 @@ import (
 )
 
 var ErrOutOfMemory = errors.New("out of memory")
+var ErrStackOverflow = errors.New("stack overflow")
 
 const maxAddr = 1<<32 - 1
 
@@ -101,6 +102,23 @@ func (vm *VM) run() (uint32, bool) {
 			vm.setFloat(c, vm.float(a)+vm.float(b))
 		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
+
+		// OpAlloc
+		case OpAlloc:
+			vm.alloc()
+		case -OpAlloc:
+			size := int(decodeAddr(a, b, c))
+			var free int
+			vm.ctx.Lock()
+			free = vm.ctx.freeMemory
+			if free >= 0 {
+				free -= size
+				vm.ctx.freeMemory = free
+			}
+			vm.ctx.Unlock()
+			if free < 0 {
+				panic(ErrOutOfMemory)
+			}
 
 		// And
 		case OpAnd:

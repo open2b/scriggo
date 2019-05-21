@@ -269,6 +269,10 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, vm.Float64, false)
 		s += " " + disassembleOperand(fn, b, vm.Float64, k)
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
+	case vm.OpAlloc:
+		if k {
+			s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
+		}
 	case vm.OpAssert:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " type(" + fn.Types[b].String() + ")"
@@ -647,6 +651,8 @@ var operationName = [...]string{
 	vm.OpAddInt32:   "Add32",
 	vm.OpAddFloat32: "Add32",
 	vm.OpAddFloat64: "Add",
+
+	vm.OpAlloc: "Alloc",
 
 	vm.OpAnd: "And",
 

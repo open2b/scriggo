@@ -10,12 +10,13 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const NoVariadic = -1
 const CurrentFunction = -1
 
-const stackSize = 512
+const stackSize = 512 // If changed, update the documentation of SetMaxStack.
 
 type StackShift [4]int8
 
@@ -61,9 +62,22 @@ func New() *VM {
 	return vm
 }
 
+// FreeMemory returns the current free memory in bytes. The returned value can
+// be negative. FreeMemory can be called when VM is running.
+func (vm *VM) FreeMemory() int {
+	vm.ctx.Lock()
+	free := vm.ctx.freeMemory
+	vm.ctx.Unlock()
+	return free
+}
+
 // Reset resets a virtual machine so that it is ready for a new call to Run.
 func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
+	vm.st[0] = uint32(len(vm.regs.int))
+	vm.st[1] = uint32(len(vm.regs.float))
+	vm.st[2] = uint32(len(vm.regs.string))
+	vm.st[3] = uint32(len(vm.regs.general))
 	vm.pc = 0
 	vm.fn = nil
 	vm.vars = nil
@@ -81,6 +95,20 @@ func (vm *VM) Reset() {
 
 func (vm *VM) SetGlobals(globals []interface{}) {
 	vm.ctx.globals = globals
+}
+
+// SetFreeMemory sets the free memory.
+func (vm *VM) SetFreeMemory(bytes int) {
+	vm.ctx.freeMemory = bytes
+}
+
+// SetMaxStack sets the max size for a stack. If bytes is zero or negative,
+// there is no max size, otherwise if bytes is less than 512 it is set to 512.
+func (vm *VM) SetMaxStack(bytes int) {
+	if bytes < stackSize {
+		bytes = stackSize
+	}
+	vm.ctx.stackMax = bytes
 }
 
 func (vm *VM) SetOut(out writer) {
@@ -146,6 +174,215 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 		}
 	}
 	return len(b)
+}
+
+func (vm *VM) alloc() {
+	in := vm.fn.Body[vm.pc]
+	op, a, b, c := in.Op, in.A, in.B, in.C
+	k := op < 0
+	if k {
+		op = -op
+	}
+	var size int
+	switch op {
+	case OpAppend:
+		var elemSize int
+		var sc, sl int
+		switch s := vm.general(c).(type) {
+		case []int:
+			elemSize = 8
+			sl, sc = len(s), cap(s)
+		case []byte:
+			elemSize = 1
+			sl, sc = len(s), cap(s)
+		case []rune:
+			elemSize = 4
+			sl, sc = len(s), cap(s)
+		case []float64:
+			elemSize = 8
+			sl, sc = len(s), cap(s)
+		case []string:
+			elemSize = 16
+			sl, sc = len(s), cap(s)
+		case []interface{}:
+			elemSize = 16
+			sl, sc = len(s), cap(s)
+		default:
+			rs := reflect.ValueOf(s)
+			elemSize = int(rs.Type().Size())
+			sl, sc = rs.Len(), rs.Cap()
+		}
+		l := int(b)
+		if l > sc-sl {
+			if sl < sl+l {
+				panic(ErrOutOfMemory)
+			}
+			cap := appendCap(sc, sl, sl+l)
+			size = cap * elemSize
+			if size/cap != elemSize {
+				panic(ErrOutOfMemory)
+			}
+		}
+	case OpAppendSlice:
+		var elemSize int
+		var l, sc, sl int
+		src := vm.general(a)
+		switch s := vm.general(c).(type) {
+		case []int:
+			elemSize = 8
+			l, sl, sc = len(src.([]int)), len(s), cap(s)
+		case []byte:
+			elemSize = 1
+			l, sl, sc = len(src.([]byte)), len(s), cap(s)
+		case []rune:
+			elemSize = 4
+			l, sl, sc = len(src.([]rune)), len(s), cap(s)
+		case []float64:
+			elemSize = 8
+			l, sl, sc = len(src.([]float64)), len(s), cap(s)
+		case []string:
+			elemSize = 16
+			l, sl, sc = len(src.([]string)), len(s), cap(s)
+		case []interface{}:
+			elemSize = 16
+			l, sl, sc = len(src.([]interface{})), len(s), cap(s)
+		default:
+			sl, sc = reflect.ValueOf(src).Len(), reflect.ValueOf(s).Cap()
+		}
+		if l > sc-sl {
+			nl := sl + l
+			if nl < sl {
+				panic(ErrOutOfMemory)
+			}
+			cap := appendCap(sc, sl, nl)
+			size = cap * elemSize
+			if size/cap != elemSize {
+				panic(ErrOutOfMemory)
+			}
+		}
+	case OpConvertGeneral:
+		t := vm.fn.Types[uint8(b)]
+		switch t.Kind() {
+		case reflect.Array:
+			size = reflect.ValueOf(vm.general(a)).Len() * int(t.Size())
+		case reflect.Func:
+			call := vm.general(a).(*callable)
+			if !call.value.IsValid() {
+				// Approximated size based on makeFuncImpl in
+				// https://golang.org/src/reflect/makefunc.go
+				size = 100
+			}
+		default:
+			size = int(reflect.TypeOf(vm.general(a)).Size())
+		}
+	case OpConvertString:
+		t := vm.fn.Types[uint8(b)]
+		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Int32 {
+			length := len([]rune(vm.string(a)))
+			size = length * 4
+			if size/4 != length {
+				panic(ErrOutOfMemory)
+			}
+		} else {
+			size = len(vm.string(a))
+		}
+	case OpConcat:
+		aLen := len(vm.string(a))
+		bLen := len(vm.string(b))
+		size = aLen + bLen
+		if size < aLen {
+			panic(ErrOutOfMemory)
+		}
+	case OpFunc:
+		fn := vm.fn.Literals[uint8(b)]
+		size = 32 + len(fn.VarRefs)*16
+	case OpGetFunc:
+		size = 32
+	case OpMakeChan:
+		typ := vm.fn.Types[uint8(a)]
+		buffer := int(vm.intk(b, k))
+		ts := int(typ.Size())
+		size = ts * buffer
+		if size/ts != buffer {
+			panic(ErrOutOfMemory)
+		}
+		size += 10 * 8
+		if size < 0 {
+			panic(ErrOutOfMemory)
+		}
+	case OpMakeMap:
+		// The size is approximated. The actual size depend on the type and
+		// architecture.
+		n := int(vm.intk(b, k))
+		size = 4 + 50*n
+		if size < 0 {
+			panic(ErrOutOfMemory)
+		}
+	case OpMakeSlice:
+		typ := vm.fn.Types[uint8(a)]
+		if b > 1 {
+			isConst := (b & (1 << 2)) != 0
+			cap := int(vm.intk(vm.fn.Body[vm.pc+1].B, isConst))
+			ts := int(typ.Elem().Size())
+			size = ts * cap
+			if size/ts != cap {
+				panic(ErrOutOfMemory)
+			}
+		}
+		size += 24
+		if size < 0 {
+			panic(ErrOutOfMemory)
+		}
+	case OpNew:
+		t := vm.fn.Types[uint8(b)]
+		size = int(t.Size())
+	case OpSetMap:
+		m := vm.general(a)
+		switch m.(type) {
+		case map[string]string:
+			size = 32
+		case map[string]int:
+			size = 24
+		case map[string]bool:
+			size = 17
+		case map[string]struct{}:
+			size = 16
+		case map[string]interface{}:
+			size = 32
+		case map[int]int:
+			size = 16
+		case map[int]bool:
+			size = 9
+		case map[int]string:
+			size = 24
+		case map[int]struct{}:
+			size = 8
+		default:
+			t := reflect.TypeOf(m)
+			kSize := int(t.Key().Size())
+			eSize := int(t.Elem().Size())
+			size = kSize + eSize
+			if size < kSize {
+				panic(ErrOutOfMemory)
+			}
+		}
+	case OpStringIndex:
+		size = 8
+	}
+	if size != 0 {
+		var free int
+		vm.ctx.Lock()
+		free = vm.ctx.freeMemory
+		if free >= 0 {
+			free -= size
+			vm.ctx.freeMemory = free
+		}
+		vm.ctx.Unlock()
+		if free < 0 {
+			panic(ErrOutOfMemory)
+		}
+	}
+	return
 }
 
 // callNative calls a native function. numVariadic is the number of actual
@@ -400,8 +637,18 @@ func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) 
 	}
 }
 
+func (vm *VM) checkStackOverflow(top int) {
+	vm.ctx.Lock()
+	stackMax := vm.ctx.stackMax
+	vm.ctx.Unlock()
+	if stackMax > 0 && top > stackMax {
+		panic(ErrStackOverflow)
+	}
+}
+
 func (vm *VM) moreIntStack() {
 	top := len(vm.regs.int) * 2
+	vm.checkStackOverflow(top)
 	stack := make([]int64, top)
 	copy(stack, vm.regs.int)
 	vm.regs.int = stack
@@ -410,6 +657,7 @@ func (vm *VM) moreIntStack() {
 
 func (vm *VM) moreFloatStack() {
 	top := len(vm.regs.float) * 2
+	vm.checkStackOverflow(top)
 	stack := make([]float64, top)
 	copy(stack, vm.regs.float)
 	vm.regs.float = stack
@@ -418,6 +666,7 @@ func (vm *VM) moreFloatStack() {
 
 func (vm *VM) moreStringStack() {
 	top := len(vm.regs.string) * 2
+	vm.checkStackOverflow(top)
 	stack := make([]string, top)
 	copy(stack, vm.regs.string)
 	vm.regs.string = stack
@@ -426,6 +675,7 @@ func (vm *VM) moreStringStack() {
 
 func (vm *VM) moreGeneralStack() {
 	top := len(vm.regs.general) * 2
+	vm.checkStackOverflow(top)
 	stack := make([]interface{}, top)
 	copy(stack, vm.regs.general)
 	vm.regs.general = stack
@@ -621,8 +871,12 @@ type writer interface {
 // context represents an execution context.
 type context struct {
 	globals []interface{} // global variables.
-	out     writer        // writer of Write instruction.
 	trace   TraceFunc     // trace function.
+	out     writer        // writer of Write instruction.
+
+	sync.Mutex     // mutex for the following fields.
+	freeMemory int // free memory.
+	stackMax   int // max stack size.
 }
 
 type NativeFunction struct {
@@ -977,6 +1231,8 @@ const (
 	OpAddInt32
 	OpAddFloat32
 	OpAddFloat64
+
+	OpAlloc
 
 	OpAnd
 

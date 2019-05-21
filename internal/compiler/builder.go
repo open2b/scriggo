@@ -22,6 +22,7 @@ type FunctionBuilder struct {
 	numRegs     map[reflect.Kind]uint8
 	scopes      []map[string]int8
 	scopeShifts []vm.StackShift
+	alloc       bool
 }
 
 // NewBuilder returns a new function builder for the function fn.
@@ -133,6 +134,12 @@ func (builder *FunctionBuilder) AddLine(pc uint32, line int) {
 func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 	builder.fn.File = file
 	builder.fn.Line = line
+}
+
+// SetAlloc sets the alloc property. If true, an Alloc instruction will be
+// inserted where necessary.
+func (builder *FunctionBuilder) SetAlloc(alloc bool) {
+	builder.alloc = alloc
 }
 
 // NewScrigoFunction returns a new Scrigo function with a given package, name
@@ -383,7 +390,11 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 //     s = append(s, regs[first:first+length]...)
 //
 func (builder *FunctionBuilder) Append(first, length, s int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAppend, A: first, B: length, C: s})
+	fn := builder.fn
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppend, A: first, B: length, C: s})
 }
 
 // AppendSlice appends a new "AppendSlice" instruction to the function body.
@@ -391,7 +402,11 @@ func (builder *FunctionBuilder) Append(first, length, s int8) {
 //     s = append(s, t)
 //
 func (builder *FunctionBuilder) AppendSlice(t, s int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAppendSlice, A: t, C: s})
+	fn := builder.fn
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppendSlice, A: t, C: s})
 }
 
 // Assert appends a new "assert" instruction to the function body.
@@ -551,7 +566,11 @@ func (builder *FunctionBuilder) Close(ch int8) {
 //     z = concat(s, t)
 //
 func (builder *FunctionBuilder) Concat(s, t, z int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
+	fn := builder.fn
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
 }
 
 // Continue appends a new "Continue" instruction to the function body.
@@ -579,11 +598,15 @@ func (builder *FunctionBuilder) Continue(label uint32) {
 // 	 dst = typ(src)
 //
 func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
+	fn := builder.fn
 	regType := builder.Type(typ)
 	var op vm.Operation
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
 		op = vm.OpConvertGeneral
+		if builder.alloc {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	case vm.TypeInt:
 		switch srcKind {
 		case reflect.Uint,
@@ -598,10 +621,13 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 		}
 	case vm.TypeString:
 		op = vm.OpConvertString
+		if builder.alloc {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	case vm.TypeFloat:
 		op = vm.OpConvertFloat
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: src, B: regType, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: src, B: regType, C: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
@@ -697,17 +723,21 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 //     r = func() { ... }
 //
 func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunction {
-	b := len(builder.fn.Literals)
+	fn := builder.fn
+	b := len(fn.Literals)
 	if b == 256 {
 		panic("ScrigoFunctions limit reached")
 	}
-	fn := &vm.ScrigoFunction{
+	scrigoFunc := &vm.ScrigoFunction{
 		Type:   typ,
-		Parent: builder.fn,
+		Parent: fn,
 	}
-	builder.fn.Literals = append(builder.fn.Literals, fn)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpFunc, B: int8(b), C: r})
-	return fn
+	fn.Literals = append(fn.Literals, scrigoFunc)
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpFunc, B: int8(b), C: r})
+	return scrigoFunc
 }
 
 // GetFunc appends a new "GetFunc" instruction to the function body.
@@ -715,11 +745,15 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunctio
 //     z = p.f
 //
 func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
+	fn := builder.fn
 	var a int8
 	if native {
 		a = 1
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetFunc, A: a, B: f, C: z})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpGetFunc, A: a, B: f, C: z})
 }
 
 // GetVar appends a new "GetVar" instruction to the function body.
@@ -800,6 +834,7 @@ func (builder *FunctionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind 
 //	dst = expr[i]
 //
 func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType reflect.Type) {
+	fn := builder.fn
 	kind := exprType.Kind()
 	var op vm.Operation
 	switch kind {
@@ -809,13 +844,16 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 		op = vm.OpSliceIndex
 	case reflect.String:
 		op = vm.OpStringIndex
+		if builder.alloc {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	case reflect.Map:
 		op = vm.OpMapIndex
 	}
 	if ki {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: expr, B: i, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
 // Len appends a new "len" instruction to the function body.
@@ -869,11 +907,15 @@ func (builder *FunctionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
 func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8, dst int8) {
 	// TODO(Gianluca): uniform all Make* functions to take a reflect.Type or a
 	// type index (int8).
+	fn := builder.fn
 	op := vm.OpMakeChan
 	if kCapacity {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: typ, B: capacity, C: dst})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: typ, B: capacity, C: dst})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
@@ -881,11 +923,15 @@ func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8
 //     dst = make(typ, size)
 //
 func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
+	fn := builder.fn
 	op := vm.OpMakeMap
 	if kSize {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: typ, B: size, C: dst})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: typ, B: size, C: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
@@ -893,6 +939,7 @@ func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int
 //     make(sliceType, len, cap)
 //
 func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
+	fn := builder.fn
 	t := builder.Type(sliceType)
 	var k int8
 	if len == 0 && cap == 0 {
@@ -905,9 +952,12 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			k |= 1 << 2
 		}
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: t, B: k, C: dst})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: t, B: k, C: dst})
 	if k > 1 {
-		builder.fn.Body = append(builder.fn.Body, vm.Instruction{A: len, B: cap})
+		fn.Body = append(fn.Body, vm.Instruction{A: len, B: cap})
 	}
 }
 
@@ -956,8 +1006,12 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //     z = new(t)
 //
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
+	fn := builder.fn
 	b := builder.AddType(typ)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
 }
 
 // Nop appends a new "Nop" instruction to the function body.
@@ -1084,11 +1138,15 @@ func (builder *FunctionBuilder) SetVar(k bool, r int8, v int) {
 //	m[key] = value
 //
 func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
+	fn := builder.fn
 	op := vm.OpSetMap
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: m, B: value, C: key})
+	if builder.alloc {
+		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: m, B: value, C: key})
 }
 
 // SetSlice appends a new "SetSlice" instruction to the function body.
