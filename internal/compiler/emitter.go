@@ -184,12 +184,12 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 			}
 			e.CurrentFunction = initVarsFn
 			e.FB = initVarsFb
-			addresses := make([]Address, len(n.Identifiers))
+			addresses := make([]address, len(n.Identifiers))
 			for i, v := range n.Identifiers {
 				varType := e.TypeInfo[v].Type
 				varReg := -e.FB.NewRegister(reflect.Interface)
 				e.FB.BindVarReg(v.Name, varReg)
-				addresses[i] = e.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+				addresses[i] = e.newAddress(addressIndirectDeclaration, varType, varReg, 0)
 				packageVariablesRegisters[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: varType})
 				e.globalNameIndex[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
@@ -1327,17 +1327,17 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			e.emitTypeSwitch(node)
 
 		case *ast.Var:
-			addresses := make([]Address, len(node.Identifiers))
+			addresses := make([]address, len(node.Identifiers))
 			for i, v := range node.Identifiers {
 				varType := e.TypeInfo[v].Type
 				if e.IndirectVars[v] {
 					varReg := -e.FB.NewRegister(reflect.Interface)
 					e.FB.BindVarReg(v.Name, varReg)
-					addresses[i] = e.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+					addresses[i] = e.newAddress(addressIndirectDeclaration, varType, varReg, 0)
 				} else {
 					varReg := e.FB.NewRegister(varType.Kind())
 					e.FB.BindVarReg(v.Name, varReg)
-					addresses[i] = e.NewAddress(AddressRegister, varType, varReg, 0)
+					addresses[i] = e.newAddress(addressRegister, varType, varReg, 0)
 				}
 			}
 			e.assign(addresses, node.Values)

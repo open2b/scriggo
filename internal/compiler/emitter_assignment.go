@@ -13,68 +13,68 @@ import (
 	"scrigo/vm"
 )
 
-// AddressType is the type of an element on the left side of and assignment.
-type AddressType int8
+// addressType is the type of an element on the left side of and assignment.
+type addressType int8
 
 const (
-	AddressRegister            AddressType = iota // Variable assignments.
-	AddressIndirectDeclaration                    // Indirect variable declaration.
-	AddressesBlank                                // Blank identifier assignments.
-	AddressPackageVariable                        // Package variable assignments.
-	AddressPointerIndirection                     // Pointer indirection assignments.
-	AddressSliceIndex                             // Slice and array index assignments.
-	AddressMapIndex                               // Map index assignments.
-	AddressStructSelector                         // Struct selector assignments.
-	AddressUpVar
+	addressRegister            addressType = iota // Variable assignments.
+	addressIndirectDeclaration                    // Indirect variable declaration.
+	addressBlank                                  // Blank identifier assignments.
+	addressPackageVariable                        // Package variable assignments.
+	addressPointerIndirection                     // Pointer indirection assignments.
+	addressSliceIndex                             // Slice and array index assignments.
+	addressMapIndex                               // Map index assignments.
+	addressStructSelector                         // Struct selector assignments.
+	addressUpVar
 )
 
-// Address represents an element on the left side of assignments.
-type Address struct {
+// address represents an element on the left side of assignments.
+type address struct {
 	c           *Emitter
-	Type        AddressType
-	ReflectType reflect.Type // Type of the addressed element.
-	Reg1        int8         // Register containing the main expression.
-	Reg2        int8         // Auxiliary register used in slice, map, array and selector assignments.
+	addrType    addressType
+	reflectType reflect.Type // Type of the addressed element.
+	reg1        int8         // Register containing the main expression.
+	reg2        int8         // Auxiliary register used in slice, map, array and selector assignments.
 }
 
-// NewAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
-func (e *Emitter) NewAddress(addrType AddressType, reflectType reflect.Type, reg1, reg2 int8) Address {
-	return Address{c: e, Type: addrType, ReflectType: reflectType, Reg1: reg1, Reg2: reg2}
+// newAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
+func (e *Emitter) newAddress(addrType addressType, reflectType reflect.Type, reg1, reg2 int8) address {
+	return address{c: e, addrType: addrType, reflectType: reflectType, reg1: reg1, reg2: reg2}
 }
 
-// Assign assigns value to a.
-func (a Address) Assign(k bool, value int8, valueType reflect.Type) {
-	switch a.Type {
-	case AddressUpVar:
-		a.c.FB.SetVar(k, value, int(a.Reg1))
-	case AddressesBlank:
+// assign assigns value to a.
+func (a address) assign(k bool, value int8, valueType reflect.Type) {
+	switch a.addrType {
+	case addressUpVar:
+		a.c.FB.SetVar(k, value, int(a.reg1))
+	case addressBlank:
 		// Nothing to do.
-	case AddressRegister:
-		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
-	case AddressIndirectDeclaration:
-		a.c.FB.New(a.ReflectType, -a.Reg1)
-		a.c.changeRegister(k, value, a.Reg1, valueType, a.ReflectType)
-	case AddressPointerIndirection:
-		a.c.changeRegister(k, value, -a.Reg1, valueType, a.ReflectType)
-	case AddressSliceIndex:
-		a.c.FB.SetSlice(k, a.Reg1, value, a.Reg2, a.ReflectType.Elem().Kind())
-	case AddressMapIndex:
-		a.c.FB.SetMap(k, a.Reg1, value, a.Reg2)
-	case AddressStructSelector:
+	case addressRegister:
+		a.c.changeRegister(k, value, a.reg1, valueType, a.reflectType)
+	case addressIndirectDeclaration:
+		a.c.FB.New(a.reflectType, -a.reg1)
+		a.c.changeRegister(k, value, a.reg1, valueType, a.reflectType)
+	case addressPointerIndirection:
+		a.c.changeRegister(k, value, -a.reg1, valueType, a.reflectType)
+	case addressSliceIndex:
+		a.c.FB.SetSlice(k, a.reg1, value, a.reg2, a.reflectType.Elem().Kind())
+	case addressMapIndex:
+		a.c.FB.SetMap(k, a.reg1, value, a.reg2)
+	case addressStructSelector:
 		panic("TODO(Gianluca): not implemented")
-	case AddressPackageVariable:
+	case addressPackageVariable:
 		if k {
 			tmpReg := a.c.FB.NewRegister(valueType.Kind())
 			a.c.FB.Move(true, value, tmpReg, valueType.Kind())
-			a.c.FB.SetVar(false, tmpReg, int(a.Reg1))
+			a.c.FB.SetVar(false, tmpReg, int(a.reg1))
 		} else {
-			a.c.FB.SetVar(false, value, int(a.Reg1))
+			a.c.FB.SetVar(false, value, int(a.reg1))
 		}
 	}
 }
 
 // assign assigns values to addresses.
-func (e *Emitter) assign(addresses []Address, values []ast.Expression) {
+func (e *Emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == len(values) {
 		valueRegs := make([]int8, len(values))
@@ -89,14 +89,14 @@ func (e *Emitter) assign(addresses []Address, values []ast.Expression) {
 			}
 		}
 		for i, addr := range addresses {
-			addr.Assign(valueIsK[i], valueRegs[i], valueTypes[i])
+			addr.assign(valueIsK[i], valueRegs[i], valueTypes[i])
 		}
 	} else {
 		switch value := values[0].(type) {
 		case *ast.Call:
 			retRegs, retTypes := e.emitCall(value)
 			for i, addr := range addresses {
-				addr.Assign(false, retRegs[i], retTypes[i])
+				addr.assign(false, retRegs[i], retTypes[i])
 			}
 		case *ast.Index: // map index.
 			mapExpr := value.Expr
@@ -112,14 +112,14 @@ func (e *Emitter) assign(addresses []Address, values []ast.Expression) {
 			}
 			valueType := mapType.Elem()
 			valueReg := e.FB.NewRegister(valueType.Kind())
-			okType := addresses[1].ReflectType
+			okType := addresses[1].reflectType
 			okReg := e.FB.NewRegister(reflect.Bool)
 			e.FB.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
 			e.FB.Move(true, 1, okReg, reflect.Bool)
 			e.FB.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
 			e.FB.Move(true, 0, okReg, reflect.Bool)
-			addresses[0].Assign(false, valueReg, valueType)
-			addresses[1].Assign(false, okReg, okType)
+			addresses[0].assign(false, valueReg, valueType)
+			addresses[1].assign(false, okReg, okType)
 		}
 	}
 }
@@ -128,27 +128,27 @@ func (e *Emitter) assign(addresses []Address, values []ast.Expression) {
 func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration:
-		addresses := make([]Address, len(node.Variables))
+		addresses := make([]address, len(node.Variables))
 		for i, v := range node.Variables {
 			if isBlankIdentifier(v) {
-				addresses[i] = e.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
+				addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 			} else {
 				v := v.(*ast.Identifier)
 				varType := e.TypeInfo[v].Type
 				if e.IndirectVars[v] {
 					varReg := -e.FB.NewRegister(reflect.Interface)
 					e.FB.BindVarReg(v.Name, varReg)
-					addresses[i] = e.NewAddress(AddressIndirectDeclaration, varType, varReg, 0)
+					addresses[i] = e.newAddress(addressIndirectDeclaration, varType, varReg, 0)
 				} else {
 					varReg := e.FB.NewRegister(varType.Kind())
 					e.FB.BindVarReg(v.Name, varReg)
-					addresses[i] = e.NewAddress(AddressRegister, varType, varReg, 0)
+					addresses[i] = e.newAddress(addressRegister, varType, varReg, 0)
 				}
 			}
 		}
 		e.assign(addresses, node.Values)
 	case ast.AssignmentSimple:
-		addresses := make([]Address, len(node.Variables))
+		addresses := make([]address, len(node.Variables))
 		for i, v := range node.Variables {
 			switch v := v.(type) {
 			case *ast.Identifier:
@@ -158,16 +158,16 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 						// TODO(Gianluca): reg is converted into an
 						// int8; should we change address to store
 						// int32/64?
-						addresses[i] = e.NewAddress(AddressUpVar, varType, int8(reg), 0)
+						addresses[i] = e.newAddress(addressUpVar, varType, int8(reg), 0)
 					} else if index, ok := e.globalNameIndex[e.currentPackage][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
-						addresses[i] = e.NewAddress(AddressPackageVariable, varType, int8(index), 0)
+						addresses[i] = e.newAddress(addressPackageVariable, varType, int8(index), 0)
 					} else {
 						reg := e.FB.ScopeLookup(v.Name)
-						addresses[i] = e.NewAddress(AddressRegister, varType, reg, 0)
+						addresses[i] = e.newAddress(addressRegister, varType, reg, 0)
 					}
 				} else {
-					addresses[i] = e.NewAddress(AddressesBlank, reflect.Type(nil), 0, 0)
+					addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 				}
 			case *ast.Index:
 				exprType := e.TypeInfo[v.Expr].Type
@@ -182,14 +182,14 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 					index = e.FB.NewRegister(indexType.Kind())
 					e.emitExpr(v.Index, index, indexType)
 				}
-				addrType := AddressSliceIndex
+				addrType := addressSliceIndex
 				if exprType.Kind() == reflect.Map {
-					addrType = AddressMapIndex
+					addrType = addressMapIndex
 				}
-				addresses[i] = e.NewAddress(addrType, exprType, expr, index)
+				addresses[i] = e.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
 				if varIndex, ok := e.globalNameIndex[e.currentPackage][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
-					addresses[i] = e.NewAddress(AddressPackageVariable, e.TypeInfo[v].Type, int8(varIndex), 0)
+					addresses[i] = e.newAddress(addressPackageVariable, e.TypeInfo[v].Type, int8(varIndex), 0)
 				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
@@ -202,7 +202,7 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 					if e.FB.IsVariable(expr.Name) {
 						varReg := e.FB.ScopeLookup(expr.Name)
 						exprType := e.TypeInfo[expr].Type
-						addresses[i] = e.NewAddress(AddressPointerIndirection, exprType, varReg, 0)
+						addresses[i] = e.newAddress(addressPointerIndirection, exprType, varReg, 0)
 					} else {
 						panic("TODO(Gianluca): not implemented")
 					}
@@ -215,14 +215,14 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 		}
 		e.assign(addresses, node.Values)
 	default:
-		var address Address
+		var addr address
 		var valueReg int8
 		var valueType reflect.Type
 		switch v := node.Variables[0].(type) {
 		case *ast.Identifier:
 			varType := e.TypeInfo[v].Type
 			reg := e.FB.ScopeLookup(v.Name)
-			address = e.NewAddress(AddressRegister, varType, reg, 0)
+			addr = e.newAddress(addressRegister, varType, reg, 0)
 			valueReg = reg
 			valueType = varType
 		case *ast.Index:
@@ -238,11 +238,11 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				index = e.FB.NewRegister(indexType.Kind())
 				e.emitExpr(v.Index, index, indexType)
 			}
-			addrType := AddressSliceIndex
+			addrType := addressSliceIndex
 			if exprType.Kind() == reflect.Map {
-				addrType = AddressMapIndex
+				addrType = addressMapIndex
 			}
-			address = e.NewAddress(addrType, exprType, expr, index)
+			addr = e.newAddress(addrType, exprType, expr, index)
 			valueType = exprType.Elem()
 			valueReg = e.FB.NewRegister(valueType.Kind())
 			e.FB.Index(false, expr, index, valueReg, exprType)
@@ -283,6 +283,6 @@ func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
 				panic("TODO(Gianluca): not implemented")
 			}
 		}
-		address.Assign(false, valueReg, valueType)
+		addr.assign(false, valueReg, valueType)
 	}
 }
