@@ -74,24 +74,24 @@ func TestScrigoImport(t *testing.T) {
 					print("called pkg2.G()")
 				}`)}),
 
-		// `"main" importing "pkg1" importing "pkg2" (dot import)`: compiler.MapReader(map[string][]byte{
-		// 	"/main.go": []byte(
-		// 		`package main
-		// 		import . "pkg1"
-		// 		func main() {
-		// 			F()
-		// 		}`),
-		// 	"/pkg1.go": []byte(
-		// 		`package pkg1
-		// 		import p2 "pkg2"
-		// 		func F() {
-		// 			p2.G()
-		// 		}`),
-		// 	"/pkg2.go": []byte(
-		// 		`package pkg2
-		// 		func G() {
-		// 			print("called pkg1.G()")
-		// 		}`)}),
+		`"main" importing "pkg1" importing "pkg2" (dot import)`: compiler.MapReader(map[string][]byte{
+			"/main.go": []byte(
+				`package main
+				import . "pkg1"
+				func main() {
+					F()
+				}`),
+			"/pkg1.go": []byte(
+				`package pkg1
+				import p2 "pkg2"
+				func F() {
+					p2.G()
+				}`),
+			"/pkg2.go": []byte(
+				`package pkg2
+				func G() {
+					print("called pkg1.G()")
+				}`)}),
 	}
 	for name, reader := range cases {
 		t.Run(name, func(t *testing.T) {
