@@ -1064,6 +1064,9 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			}
 			e.FB.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
 			e.FB.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
+		
+		case *ast.Const:
+			// Nothing to do.
 
 		case *ast.Continue:
 			if node.Label != nil {

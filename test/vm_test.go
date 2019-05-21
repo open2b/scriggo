@@ -118,6 +118,16 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Const declaration inside function body",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			const A = 10
+			fmt.Println(A)
+		}`, nil, nil, "10\n"},
+
 	{"Issue #78",
 		`package main
 
