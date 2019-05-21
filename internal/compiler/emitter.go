@@ -46,11 +46,6 @@ type Emitter struct {
 	currentPackage *ast.Package
 }
 
-// Main returns main function.
-func (e *Emitter) Main() *vm.ScrigoFunction {
-	return e.availableScrigoFunctions[e.currentPackage]["main"]
-}
-
 // NewEmitter returns a new emitter reading sources from r.
 // Native packages are made available for importing.
 func NewEmitter(packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
