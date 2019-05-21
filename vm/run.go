@@ -1258,13 +1258,6 @@ func (vm *VM) run() (uint32, bool) {
 				vm.getIntoReflectValue(a, rv, op < 0)
 			}
 
-		// Write
-		case OpWrite:
-			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
-			if vm.err != nil {
-				return maxAddr, false
-			}
-
 		// SliceIndex
 		case OpSliceIndex, -OpSliceIndex:
 			v := vm.general(a)
@@ -1351,6 +1344,13 @@ func (vm *VM) run() (uint32, bool) {
 					vm.moreGeneralStack()
 				}
 				vm.fn = fn
+			}
+
+		// Write
+		case OpWrite:
+			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
+			if vm.err != nil {
+				return maxAddr, false
 			}
 
 		// Xor
