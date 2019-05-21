@@ -89,27 +89,7 @@ type Global struct {
 // emitPackage emits pkg.
 func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
 
-	e := &Emitter{
-
-		importableGoPkgs: packages,
-
-		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
-
-		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
-		availableNativeFunctions: map[string]*vm.NativeFunction{},
-
-		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
-		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
-
-		isNativePkg: map[string]bool{},
-
-		globalNameIndex: map[string]int16{},
-
-		TypeInfo:     typeInfos,
-		IndirectVars: indirectVars,
-
-		labels: make(map[*vm.ScrigoFunction]map[string]uint32),
-	}
+	e := NewEmitter(packages, typeInfos, indirectVars)
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
