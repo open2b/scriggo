@@ -33,8 +33,13 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 	if err != nil {
 		return nil, err
 	}
-	main, returnedGlobals := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, tci[path].TypeInfo, tci[path].IndirectVars)
-	// TODO(gianluca): EmitPackageMain must returns the globals.
+	typeInfos := map[ast.Node]*compiler.TypeInfo{}
+	for _, pkgInfos := range tci {
+		for node, ti := range pkgInfos.TypeInfo {
+			typeInfos[node] = ti
+		}
+	}
+	main, returnedGlobals := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars)
 	globals := make([]compiler.Global, len(main.Globals))
 	for i, global := range returnedGlobals {
 		globals[i].Pkg = global.Pkg
