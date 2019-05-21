@@ -562,38 +562,6 @@ func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift,
 	vm.pc++
 }
 
-func (vm *VM) initGlobals(globals []Global, scrigoGlobals map[string]reflect.Value) {
-	n := len(globals)
-	if n == 0 {
-		return
-	}
-	vm.vars = make([]interface{}, n)
-	if len(scrigoGlobals) == 0 {
-		for i, global := range globals {
-			if global.Value == nil {
-				vm.vars[i] = reflect.New(global.Type).Interface()
-			} else {
-				vm.vars[i] = global.Value
-			}
-		}
-		return
-	}
-	for i, global := range globals {
-		if global.Value == nil {
-			value := reflect.New(global.Type)
-			if global.Pkg == "main" {
-				if v, ok := scrigoGlobals[global.Name]; ok {
-					value.Elem().Set(v)
-				}
-			}
-			vm.vars[i] = value.Interface()
-		} else {
-			vm.vars[i] = global.Value
-		}
-	}
-	return
-}
-
 //go:noinline
 func (vm *VM) invokeTraceFunc() {
 	regs := Registers{
