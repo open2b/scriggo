@@ -107,7 +107,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpAlloc:
 			vm.alloc()
 		case -OpAlloc:
-			size := int(decodeAddr(a, b, c))
+			size := int(decodeUint24(a, b, c))
 			var free int
 			vm.ctx.Lock()
 			free = vm.ctx.freeMemory
@@ -212,7 +212,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Break
 		case OpBreak:
-			return decodeAddr(a, b, c), true
+			return decodeUint24(a, b, c), true
 
 		// Call
 		case OpCall:
@@ -318,7 +318,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Continue
 		case OpContinue:
-			return decodeAddr(a, b, c), false
+			return decodeUint24(a, b, c), false
 
 		// Convert
 		case OpConvertGeneral:
@@ -460,7 +460,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Goto
 		case OpGoto:
-			vm.pc = decodeAddr(a, b, c)
+			vm.pc = decodeUint24(a, b, c)
 
 		// If
 		case OpIf:
@@ -1260,7 +1260,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Write
 		case OpWrite:
-			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeAddr(a, b, c)])
+			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
 			if vm.err != nil {
 				return maxAddr, false
 			}
