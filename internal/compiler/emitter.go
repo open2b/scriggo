@@ -89,7 +89,7 @@ type Global struct {
 }
 
 // emitPackage emits pkg.
-func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
+func EmitPackageMain(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
 
 	e := NewEmitter(packages, typeInfos, indirectVars)
 	e.currentPackage = pkg
