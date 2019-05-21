@@ -112,9 +112,9 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 		if reflect.TypeOf(value).Kind() == reflect.Func {
 			nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
 			if importPkgName == "" {
-				e.availableNativeFunctions[ident] = nativeFunc
+				e.availableNativeFunctions[e.currentPackage][ident] = nativeFunc
 			} else {
-				e.availableNativeFunctions[importPkgName+"."+ident] = nativeFunc
+				e.availableNativeFunctions[e.currentPackage][importPkgName+"."+ident] = nativeFunc
 			}
 		}
 	}

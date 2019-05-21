@@ -25,8 +25,8 @@ type Emitter struct {
 
 	upvarsNames map[*vm.ScrigoFunction]map[string]int
 
-	availableScrigoFunctions map[string]*vm.ScrigoFunction
-	availableNativeFunctions map[string]*vm.NativeFunction
+	availableScrigoFunctions map[*ast.Package]map[string]*vm.ScrigoFunction
+	availableNativeFunctions map[*ast.Package]map[string]*vm.NativeFunction
 
 	assignedScrigoFunctions map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8
 	assignedNativeFunctions map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8
@@ -42,11 +42,13 @@ type Emitter struct {
 	globalNameIndex map[string]int16 // maps global variable names to their index inside globals.
 
 	labels map[*vm.ScrigoFunction]map[string]uint32
+
+	currentPackage *ast.Package
 }
 
 // Main returns main function.
 func (e *Emitter) Main() *vm.ScrigoFunction {
-	return e.availableScrigoFunctions["main"]
+	return e.availableScrigoFunctions[e.currentPackage]["main"]
 }
 
 // NewEmitter returns a new emitter reading sources from r.
@@ -58,8 +60,8 @@ func NewEmitter(packages map[string]*native.GoPackage, typeInfos map[ast.Node]*T
 
 		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
 
-		availableScrigoFunctions: map[string]*vm.ScrigoFunction{},
-		availableNativeFunctions: map[string]*vm.NativeFunction{},
+		availableScrigoFunctions: map[*ast.Package]map[string]*vm.ScrigoFunction{},
+		availableNativeFunctions: map[*ast.Package]map[string]*vm.NativeFunction{},
 
 		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
 		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
@@ -90,6 +92,9 @@ type Global struct {
 func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
 
 	e := NewEmitter(packages, typeInfos, indirectVars)
+	e.currentPackage = pkg
+	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
+	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
@@ -108,7 +113,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 			if fun.Ident.Name == "init" {
 				initFuncs = append(initFuncs, fn)
 			} else {
-				e.availableScrigoFunctions[fun.Ident.Name] = fn
+				e.availableScrigoFunctions[e.currentPackage][fun.Ident.Name] = fn
 			}
 		}
 	}
@@ -127,7 +132,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 			backupFb := e.FB
 			if initVarsFn == nil {
 				initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				e.availableScrigoFunctions["$initvars"] = initVarsFn
+				e.availableScrigoFunctions[e.currentPackage]["$initvars"] = initVarsFn
 				initVarsFb = NewBuilder(initVarsFn)
 				initVarsFb.EnterScope()
 			}
@@ -157,7 +162,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 				fn = initFuncs[initToBuild]
 				initToBuild++
 			} else {
-				fn = e.availableScrigoFunctions[n.Ident.Name]
+				fn = e.availableScrigoFunctions[e.currentPackage][n.Ident.Name]
 			}
 			e.CurrentFunction = fn
 			e.FB = NewBuilder(fn)
@@ -168,7 +173,7 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
-					iv := e.availableScrigoFunctions["$initvars"]
+					iv := e.availableScrigoFunctions[e.currentPackage]["$initvars"]
 					index := e.FB.AddScrigoFunction(iv)
 					e.FB.Call(int8(index), vm.StackShift{}, 0)
 				}
@@ -205,10 +210,10 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 	}
 
 	// Assigns globals to main's Globals.
-	main := e.availableScrigoFunctions["main"]
+	main := e.availableScrigoFunctions[e.currentPackage]["main"]
 	main.Globals = e.globals
 	// All functions share Globals.
-	for _, f := range e.availableScrigoFunctions {
+	for _, f := range e.availableScrigoFunctions[e.currentPackage] {
 		f.Globals = main.Globals
 	}
 
@@ -316,14 +321,14 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !e.FB.IsVariable(ident.Name) {
-			if fun, isScrigoFunc := e.availableScrigoFunctions[ident.Name]; isScrigoFunc {
+			if fun, isScrigoFunc := e.availableScrigoFunctions[e.currentPackage][ident.Name]; isScrigoFunc {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.scrigoFunctionIndex(fun)
 				e.FB.Call(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
-			if _, isNativeFunc := e.availableNativeFunctions[ident.Name]; isNativeFunc {
-				fun := e.availableNativeFunctions[ident.Name]
+			if _, isNativeFunc := e.availableNativeFunctions[e.currentPackage][ident.Name]; isNativeFunc {
+				fun := e.availableNativeFunctions[e.currentPackage][ident.Name]
 				funcType := reflect.TypeOf(fun.Func)
 				regs, types := e.prepareCallParameters(funcType, call.Args, true)
 				index := e.nativeFunctionIndex(fun)
@@ -340,7 +345,7 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	if sel, ok := call.Func.(*ast.Selector); ok {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
 			if isGoPkg := e.isNativePkg[name.Name]; isGoPkg {
-				fun := e.availableNativeFunctions[name.Name+"."+sel.Ident]
+				fun := e.availableNativeFunctions[e.currentPackage][name.Name+"."+sel.Ident]
 				funcType := reflect.TypeOf(fun.Func)
 				regs, types := e.prepareCallParameters(funcType, call.Args, true)
 				index := e.nativeFunctionIndex(fun)
@@ -568,7 +573,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.FB.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
-		if nf, ok := e.availableNativeFunctions[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if nf, ok := e.availableNativeFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -576,7 +581,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.FB.GetFunc(true, index, reg)
 			return
 		}
-		if sf, ok := e.availableScrigoFunctions[expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if sf, ok := e.availableScrigoFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -678,7 +683,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			e.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			if fun, isScrigoFunc := e.availableScrigoFunctions[expr.Name]; isScrigoFunc {
+			if fun, isScrigoFunc := e.availableScrigoFunctions[e.currentPackage][expr.Name]; isScrigoFunc {
 				index := e.scrigoFunctionIndex(fun)
 				e.FB.GetFunc(false, index, reg)
 			} else if index, ok := e.upvarsNames[e.CurrentFunction][expr.Name]; ok {
