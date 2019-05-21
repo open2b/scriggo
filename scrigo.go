@@ -39,15 +39,15 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 			typeInfos[node] = ti
 		}
 	}
-	main, returnedGlobals := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars)
-	globals := make([]compiler.Global, len(main.Globals))
-	for i, global := range returnedGlobals {
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars)
+	globals := make([]compiler.Global, len(pkgMain.Globals))
+	for i, global := range pkgMain.Globals {
 		globals[i].Pkg = global.Pkg
 		globals[i].Name = global.Name
 		globals[i].Type = global.Type
 		globals[i].Value = global.Value
 	}
-	return &Program{Fn: main, globals: globals}, nil
+	return &Program{Fn: pkgMain.Main, globals: globals}, nil
 }
 
 // TODO(Gianluca): second parameter "tf" should be removed: setting the trace

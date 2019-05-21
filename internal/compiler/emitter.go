@@ -88,12 +88,23 @@ type Global struct {
 	Value interface{}
 }
 
+type Package struct {
+	Globals   []vm.Global
+	Functions map[string]*vm.ScrigoFunction
+	Main      *vm.ScrigoFunction
+}
+
 // EmitPackageMain emits package main.
-func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
+func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Package {
 	e := NewEmitter(packages, typeInfos, indirectVars)
-	e.emitPackage(pkgMain)
+	funcs := e.emitPackage(pkgMain)
 	main := e.availableScrigoFunctions[pkgMain]["main"]
-	return main, e.globals
+	pkg := &Package{
+		Globals:   e.globals,
+		Functions: funcs,
+		Main:      main,
+	}
+	return pkg
 }
 
 // emitPackage emits package pkg. Returns a list of exported functions.
@@ -1064,7 +1075,7 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			}
 			e.FB.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
 			e.FB.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
-		
+
 		case *ast.Const:
 			// Nothing to do.
 
