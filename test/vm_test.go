@@ -118,6 +118,16 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Issue #78",
+		`package main
+
+		func main() {
+			a := 0
+			f := func() { _ = a }
+			_ = f
+		}
+		`, nil, nil, ""},
+
 	{"Counter based on gotos/labels",
 		`package main
 
