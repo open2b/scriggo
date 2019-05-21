@@ -125,6 +125,7 @@ func (e *Emitter) emitImport(n *ast.Import) {
 	if n.Tree == nil { // Go package.
 		e.importNativePackage(n)
 	} else {
+		// TODO(Gianluca): backup e.currentPackage before calling emitPackage.
 		panic("TODO(Gianluca): not implemented")
 	}
 }

@@ -88,10 +88,15 @@ type Global struct {
 	Value interface{}
 }
 
-// emitPackage emits pkg.
-func EmitPackageMain(pkg *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
-
+// EmitPackageMain emits package main.
+func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) (*vm.ScrigoFunction, []vm.Global) {
 	e := NewEmitter(packages, typeInfos, indirectVars)
+	e.emitPackage(pkgMain)
+	main := e.availableScrigoFunctions[pkgMain]["main"]
+	return main, e.globals
+}
+
+func (e *Emitter) emitPackage(pkg *ast.Package) {
 	e.currentPackage = pkg
 	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
 	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
@@ -210,15 +215,11 @@ func EmitPackageMain(pkg *ast.Package, packages map[string]*native.GoPackage, ty
 		initVarsFb.Return()
 	}
 
-	// Assigns globals to main's Globals.
-	main := e.availableScrigoFunctions[e.currentPackage]["main"]
-	main.Globals = e.globals
 	// All functions share Globals.
-	for _, f := range e.availableScrigoFunctions[e.currentPackage] {
-		f.Globals = main.Globals
+	for _, f := range e.availableScrigoFunctions[pkg] {
+		f.Globals = e.globals
 	}
 
-	return main, e.globals
 }
 
 // prepareCallParameters prepares parameters (out and in) for a function call of
