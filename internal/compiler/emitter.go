@@ -40,6 +40,8 @@ type Emitter struct {
 
 	globals         []vm.Global      // holds all Scrigo and native global variables.
 	globalNameIndex map[string]int16 // maps global variable names to their index inside globals.
+
+	labels map[*vm.ScrigoFunction]map[string]uint32
 }
 
 // Main returns main function.
@@ -68,6 +70,8 @@ func NewEmitter(tree *ast.Tree, packages map[string]*native.GoPackage, typeInfos
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
+
+		labels: make(map[*vm.ScrigoFunction]map[string]uint32),
 	}
 	return c
 }
@@ -103,6 +107,8 @@ func EmitPackage(pkg *ast.Package, packages map[string]*native.GoPackage, typeIn
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
+
+		labels: make(map[*vm.ScrigoFunction]map[string]uint32),
 	}
 
 	// Emits imports.
@@ -1089,6 +1095,30 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			case *ast.Go:
 				// TODO(Gianluca):
 				e.FB.Go()
+			}
+
+		case *ast.Goto:
+			if label, ok := e.labels[e.CurrentFunction][node.Label.Name]; ok {
+				e.FB.Goto(label)
+			} else {
+				if e.labels[e.CurrentFunction] == nil {
+					e.labels[e.CurrentFunction] = make(map[string]uint32)
+				}
+				label = e.FB.NewLabel()
+				e.FB.Goto(label)
+				e.labels[e.CurrentFunction][node.Label.Name] = label
+			}
+
+		case *ast.Label:
+			if _, found := e.labels[e.CurrentFunction][node.Name.Name]; !found {
+				if e.labels[e.CurrentFunction] == nil {
+					e.labels[e.CurrentFunction] = make(map[string]uint32)
+				}
+				e.labels[e.CurrentFunction][node.Name.Name] = e.FB.NewLabel()
+			}
+			e.FB.SetLabelAddr(e.labels[e.CurrentFunction][node.Name.Name])
+			if node.Statement != nil {
+				e.EmitNodes([]ast.Node{node.Statement})
 			}
 
 		case *ast.If:

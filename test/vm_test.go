@@ -118,6 +118,77 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Counter based on gotos/labels",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			count := 0
+		loop:
+			fmt.Print(",")
+			if count > 9 {
+				goto end
+			}
+			fmt.Print(count)
+			count++
+			goto loop
+		end:
+		}
+		`, nil, nil, ",0,1,2,3,4,5,6,7,8,9,"},
+
+	{"Goto label - Forward jump out of scope",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("out1,")
+			{
+				fmt.Print("goto,")
+				goto out
+				fmt.Print("error")
+			}
+			out:
+			fmt.Print("out2")
+		}
+		`, nil, nil, "out1,goto,out2"},
+
+	{"Goto label - Simple forwaring goto",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("a")
+			goto L
+			fmt.Print("???")
+		L:
+			fmt.Print("b")
+		}
+		`, nil, nil, "ab"},
+
+	{"Goto label - Simple one-step forwarding goto",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("a")
+			goto L
+		L:
+			fmt.Print("b")
+		}
+		`, nil, nil, "ab"},
+
 	{"Package variable shadowing in closure body",
 		`package main
 
