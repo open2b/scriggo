@@ -30,16 +30,16 @@ const (
 
 // address represents an element on the left side of assignments.
 type address struct {
-	c           *Emitter
-	addrType    addressType
-	reflectType reflect.Type // Type of the addressed element.
-	reg1        int8         // Register containing the main expression.
-	reg2        int8         // Auxiliary register used in slice, map, array and selector assignments.
+	c          *Emitter
+	addrType   addressType
+	staticType reflect.Type // Type of the addressed element.
+	reg1       int8         // Register containing the main expression.
+	reg2       int8         // Auxiliary register used in slice, map, array and selector assignments.
 }
 
 // newAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
 func (e *Emitter) newAddress(addrType addressType, reflectType reflect.Type, reg1, reg2 int8) address {
-	return address{c: e, addrType: addrType, reflectType: reflectType, reg1: reg1, reg2: reg2}
+	return address{c: e, addrType: addrType, staticType: reflectType, reg1: reg1, reg2: reg2}
 }
 
 // assign assigns value to a.
@@ -50,14 +50,14 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	case addressBlank:
 		// Nothing to do.
 	case addressRegister:
-		a.c.changeRegister(k, value, a.reg1, valueType, a.reflectType)
+		a.c.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressIndirectDeclaration:
-		a.c.FB.New(a.reflectType, -a.reg1)
-		a.c.changeRegister(k, value, a.reg1, valueType, a.reflectType)
+		a.c.FB.New(a.staticType, -a.reg1)
+		a.c.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressPointerIndirection:
-		a.c.changeRegister(k, value, -a.reg1, valueType, a.reflectType)
+		a.c.changeRegister(k, value, -a.reg1, valueType, a.staticType)
 	case addressSliceIndex:
-		a.c.FB.SetSlice(k, a.reg1, value, a.reg2, a.reflectType.Elem().Kind())
+		a.c.FB.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
 	case addressMapIndex:
 		a.c.FB.SetMap(k, a.reg1, value, a.reg2)
 	case addressStructSelector:
@@ -112,7 +112,7 @@ func (e *Emitter) assign(addresses []address, values []ast.Expression) {
 			}
 			valueType := mapType.Elem()
 			valueReg := e.FB.NewRegister(valueType.Kind())
-			okType := addresses[1].reflectType
+			okType := addresses[1].staticType
 			okReg := e.FB.NewRegister(reflect.Bool)
 			e.FB.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
 			e.FB.Move(true, 1, okReg, reflect.Bool)
