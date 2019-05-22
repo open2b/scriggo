@@ -16,10 +16,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"scrigo"
 	"strings"
 	"sync"
 
+	"scrigo"
 	"scrigo/internal/compiler"
 	"scrigo/native"
 )
