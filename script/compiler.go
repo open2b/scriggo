@@ -60,6 +60,7 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	compiler.AddExplicitReturn(tree)
 	emitter.EmitNodes(tree.Nodes)
 	emitter.FB.ExitScope()
+	emitter.FB.End()
 
 	return &Script{Fn: emitter.CurrentFunction}, nil
 }
