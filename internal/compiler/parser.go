@@ -1362,7 +1362,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	return ast.NewAssignment(pos, variables, typ, values), tok
 }
 
-// addChild adds node as child of parent.
+// addChild adds a child to the current parent node.
 func (p *parsing) addChild(child ast.Node) {
 	switch n := p.ancestors[len(p.ancestors)-1].(type) {
 	case *ast.Tree:
