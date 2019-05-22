@@ -118,6 +118,20 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+
+	{"Double pointer indirection",
+		`package main
+
+		import "fmt"
+		
+		func main() {
+			a := "hello"
+			b := &a
+			c := &b
+			fmt.Print(**c)
+		}
+		`, nil, nil, "hello"},
+
 	{"Break statement in type-switch statements",
 		`package main
 
