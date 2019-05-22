@@ -76,10 +76,19 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		err = script.Execute(s, nil)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
-			os.Exit(2)
+		if *asm {
+			funcs, err := compiler.Disassemble(s.Fn)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
+			fmt.Print(funcs["main"])
+		} else {
+			err = script.Execute(s, nil)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
 		}
 	case ".go":
 		// TODO(Gianluca): use program.Execute: vm shall not be imported by

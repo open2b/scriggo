@@ -26,7 +26,7 @@ type Global struct {
 }
 
 type Script struct {
-	fn      *vm.ScrigoFunction
+	Fn      *vm.ScrigoFunction
 	globals []Global
 }
 
@@ -61,7 +61,7 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	emitter.EmitNodes(tree.Nodes)
 	emitter.FB.ExitScope()
 
-	return &Script{fn: emitter.CurrentFunction}, nil
+	return &Script{Fn: emitter.CurrentFunction}, nil
 }
 
 func Execute(script *Script, vars map[string]interface{}) error {
@@ -83,7 +83,7 @@ func Execute(script *Script, vars map[string]interface{}) error {
 		}
 		vmm.SetGlobals(globals)
 	}
-	_, err := vmm.Run(script.fn)
+	_, err := vmm.Run(script.Fn)
 	return err
 }
 
