@@ -130,38 +130,38 @@ func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map
 		case *ast.Var:
 
 			switch {
-			case len(n.Identifiers) == len(n.Values):
-				for i := range n.Identifiers {
-					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
-						decl: n.Identifiers[i],
+			case len(n.Lhs) == len(n.Rhs):
+				for i := range n.Lhs {
+					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
+						decl: n.Lhs[i],
 						t:    notCheckedGlobal,
 					}
 					tc.declarations = append(tc.declarations, &Declaration{
 						DeclType:   DeclVar,
-						Identifier: n.Identifiers[0],
+						Identifier: n.Lhs[0],
 						Node:       n,
 						Type:       n.Type,
-						Value:      n.Values[i],
+						Value:      n.Rhs[i],
 					})
 				}
-			case len(n.Values) == 0:
-				for i := range n.Identifiers {
-					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
-						decl: n.Identifiers[i],
+			case len(n.Rhs) == 0:
+				for i := range n.Lhs {
+					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
+						decl: n.Lhs[i],
 						t:    notCheckedGlobal,
 					}
 					tc.declarations = append(tc.declarations, &Declaration{
 						DeclType:   DeclVar,
-						Identifier: n.Identifiers[0],
+						Identifier: n.Lhs[0],
 						Node:       n,
 						Type:       n.Type,
 						Value:      nil,
 					})
 				}
 			default:
-				for i := range n.Identifiers {
-					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
-						decl: n.Identifiers[i],
+				for i := range n.Lhs {
+					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
+						decl: n.Lhs[i],
 						t:    notCheckedGlobal,
 					}
 				}
@@ -321,11 +321,11 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 				tc.TypeInfo[v.Identifier] = varTi
 				// Replaces value's node and typeinfo if it's a constant.
 				if ti.IsConstant() {
-					for i, ident := range v.Node.(*ast.Var).Identifiers {
+					for i, ident := range v.Node.(*ast.Var).Lhs {
 						if ident.Name == v.Identifier.Name {
 							new := ast.NewValue(typedValue(ti, varTi.Type))
-							tc.replaceTypeInfo(v.Node.(*ast.Var).Values[i], new)
-							v.Node.(*ast.Var).Values[i] = new
+							tc.replaceTypeInfo(v.Node.(*ast.Var).Rhs[i], new)
+							v.Node.(*ast.Var).Rhs[i] = new
 						}
 					}
 				}
@@ -373,10 +373,10 @@ OrderedVarsLoop:
 		for _, n := range packageNode.Declarations {
 			switch n := n.(type) {
 			case *ast.Var:
-				for i, ident := range n.Identifiers {
+				for i, ident := range n.Lhs {
 					if ident.Name == v {
-						if len(n.Identifiers) == len(n.Values) {
-							assignment := ast.NewVar(n.Pos(), []*ast.Identifier{ident}, n.Type, []ast.Expression{n.Values[i]})
+						if len(n.Lhs) == len(n.Rhs) {
+							assignment := ast.NewVar(n.Pos(), []*ast.Identifier{ident}, n.Type, []ast.Expression{n.Rhs[i]})
 							orderedVars = append(orderedVars, assignment)
 							continue OrderedVarsLoop
 						} else {

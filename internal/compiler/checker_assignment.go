@@ -25,7 +25,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Var:
 
-		values = n.Values
+		values = n.Rhs
 		isDecl = true
 		isVar = true
 		if n.Type != nil {
@@ -33,32 +33,32 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 
 		if len(values) == 0 {
-			for i := range n.Identifiers {
+			for i := range n.Lhs {
 				zero := &TypeInfo{Type: typ.Type}
-				newVar := tc.assignSingle(node, n.Identifiers[i], nil, zero, typ, true, false)
-				if newVar == "" && !isBlankIdentifier(n.Identifiers[i]) {
-					panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[i]))
+				newVar := tc.assignSingle(node, n.Lhs[i], nil, zero, typ, true, false)
+				if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
+					panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 				}
 			}
 			// Replaces the type node with a value holding a reflect.Type.
-			n.Values = make([]ast.Expression, len(n.Identifiers))
+			n.Rhs = make([]ast.Expression, len(n.Lhs))
 			var zero interface{}
 			if typ.Type.Kind() == reflect.Interface {
 				zero = nil
 			} else {
 				zero = reflect.Zero(typ.Type).Interface()
 			}
-			for i := range n.Identifiers {
-				n.Values[i] = ast.NewValue(zero)
-				tc.TypeInfo[n.Values[i]] = &TypeInfo{Type: typ.Type}
+			for i := range n.Lhs {
+				n.Rhs[i] = ast.NewValue(zero)
+				tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type}
 			}
 			return
 		}
 
-		if len(n.Identifiers) == 1 && len(values) == 1 {
-			newVar := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, false)
-			if !isBlankIdentifier(n.Identifiers[0]) && newVar == "" {
-				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+		if len(n.Lhs) == 1 && len(values) == 1 {
+			newVar := tc.assignSingle(node, n.Lhs[0], values[0], nil, typ, true, false)
+			if !isBlankIdentifier(n.Lhs[0]) && newVar == "" {
+				panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[0]))
 			}
 			old := values[0]
 			if ti := tc.TypeInfo[old]; ti.IsConstant() {
@@ -77,8 +77,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			return
 		}
 
-		vars = make([]ast.Expression, len(n.Identifiers))
-		for i, ident := range n.Identifiers {
+		vars = make([]ast.Expression, len(n.Lhs))
+		for i, ident := range n.Lhs {
 			vars[i] = ident
 		}
 

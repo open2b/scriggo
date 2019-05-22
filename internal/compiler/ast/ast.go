@@ -1064,19 +1064,19 @@ func NewLabel(pos *Position, name *Identifier, statement Node) *Label {
 
 // Var node represent a variable declaration by keyword "var".
 type Var struct {
-	*Position                 // position in the source.
-	Identifiers []*Identifier // variables.
-	Type        Expression    // nil for non-typed variable declarations.
-	Values      []Expression  // nil for non-initialized variable declarations.
+	*Position               // position in the source.
+	Lhs       []*Identifier // left-hand side of assignment.
+	Type      Expression    // nil for non-typed variable declarations.
+	Rhs       []Expression  // nil for non-initialized variable declarations.
 }
 
-func NewVar(pos *Position, variables []*Identifier, typ Expression, values []Expression) *Var {
-	return &Var{pos, variables, typ, values}
+func NewVar(pos *Position, lhs []*Identifier, typ Expression, rhs []Expression) *Var {
+	return &Var{pos, lhs, typ, rhs}
 }
 
 func (n *Var) String() string {
 	s := "var "
-	for i, ident := range n.Identifiers {
+	for i, ident := range n.Lhs {
 		if i > 0 {
 			s += " "
 		}
@@ -1086,7 +1086,7 @@ func (n *Var) String() string {
 		s += " " + n.Type.String()
 	}
 	s += " = "
-	for i, value := range n.Values {
+	for i, value := range n.Rhs {
 		if i > 0 {
 			s += " "
 		}

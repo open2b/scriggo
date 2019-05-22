@@ -204,8 +204,8 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 			}
 			e.CurrentFunction = initVarsFn
 			e.FB = initVarsFb
-			addresses := make([]address, len(n.Identifiers))
-			for i, v := range n.Identifiers {
+			addresses := make([]address, len(n.Lhs))
+			for i, v := range n.Lhs {
 				staticType := e.TypeInfo[v].Type
 				varReg := -e.FB.NewRegister(reflect.Interface)
 				e.FB.BindVarReg(v.Name, varReg)
@@ -215,7 +215,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 				e.globalNameIndex[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
 				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
-			e.assign(addresses, n.Values)
+			e.assign(addresses, n.Rhs)
 			e.CurrentFunction = backupFn
 			e.FB = backupFb
 		}
@@ -1410,8 +1410,8 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			e.breakLabel = currentBreakLabel
 
 		case *ast.Var:
-			addresses := make([]address, len(node.Identifiers))
-			for i, v := range node.Identifiers {
+			addresses := make([]address, len(node.Lhs))
+			for i, v := range node.Lhs {
 				staticType := e.TypeInfo[v].Type
 				if e.IndirectVars[v] {
 					varReg := -e.FB.NewRegister(reflect.Interface)
@@ -1423,7 +1423,7 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 					addresses[i] = e.newAddress(addressRegister, staticType, varReg, 0)
 				}
 			}
-			e.assign(addresses, node.Values)
+			e.assign(addresses, node.Rhs)
 
 		case ast.Expression:
 			// TODO (Gianluca): use 0 (which is no longer a valid

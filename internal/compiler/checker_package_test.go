@@ -19,7 +19,7 @@ func extractVariableInitializationOrder(tree *ast.Tree) []string {
 	for _, n := range pkg.Declarations {
 		switch n := n.(type) {
 		case *ast.Var:
-			for _, ident := range n.Identifiers {
+			for _, ident := range n.Lhs {
 				order = append(order, ident.Name)
 			}
 		}
