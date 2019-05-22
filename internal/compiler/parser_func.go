@@ -64,6 +64,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		typ.Position = pos
 		return typ, tok
 	}
+	// Parses the function body.
 	if tok.typ != tokenLeftBraces {
 		panic(&SyntaxError{"", *ident.Position, fmt.Errorf("missing function body")})
 	}
@@ -71,9 +72,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	node := ast.NewFunc(pos, ident, typ, body)
 	p.ancestors = append(p.ancestors, node, body)
 	depth := len(p.ancestors)
-	// Parses the function body.
-	for {
-		tok = next(p.lex)
+	for tok = range p.lex.tokens {
 		if tok.typ == tokenRightBraces {
 			parent := p.ancestors[len(p.ancestors)-1]
 			if _, ok := parent.(*ast.Label); ok {
@@ -92,9 +91,9 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		}
 		p.parseStatement(tok)
 	}
-	p.ancestors = p.ancestors[:len(p.ancestors)-2]
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End
+	p.ancestors = p.ancestors[:len(p.ancestors)-2]
 	return node, token{}
 }
 
