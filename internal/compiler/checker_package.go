@@ -76,33 +76,8 @@ func (pi *PackageInfo) String() string {
 // declaration.
 var notCheckedGlobal = &TypeInfo{}
 
-// CheckPackage type checks a package.
-func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*Error); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-
-	if len(tree.Nodes) == 0 {
-		return errors.New("expected 'package', found EOF")
-	}
-	packageNode, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		t := fmt.Sprintf("%T", tree.Nodes[0])
-		t = strings.ToLower(t[len("*ast."):])
-		return fmt.Errorf("expected 'package', found '%s'", t)
-	}
-
-	tc := NewTypechecker(tree.Path, false)
-	tc.Universe = Universe
-
-	for _, n := range packageNode.Declarations {
+func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) error {
+	for _, n := range declarations {
 		switch n := n.(type) {
 		case *ast.Import:
 			importedPkg := &PackageInfo{}
@@ -153,30 +128,52 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
 			}
 		case *ast.Var:
-			if len(n.Values) == 0 {
-				typ := tc.checkType(n.Type, noEllipses)
-				// Replaces the type node with a value holding a reflect.Type.
-				n.Values = make([]ast.Expression, len(n.Identifiers))
-				var zero interface{}
-				if typ.Type.Kind() == reflect.Interface {
-					zero = nil
-				} else {
-					zero = reflect.Zero(typ.Type).Interface()
-				}
+
+			switch {
+			case len(n.Identifiers) == len(n.Values):
 				for i := range n.Identifiers {
-					n.Values[i] = ast.NewValue(zero)
-					tc.TypeInfo[n.Values[i]] = &TypeInfo{Type: typ.Type}
+					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
+						decl: n.Identifiers[i],
+						t:    notCheckedGlobal,
+					}
+					tc.declarations = append(tc.declarations, &Declaration{
+						DeclType:   DeclVar,
+						Ident:      n.Identifiers[i].Name,
+						Identifier: n.Identifiers[0],
+						Node:       n,
+						Type:       n.Type,
+						Value:      n.Values[i],
+					})
 				}
-				return
-			}
-			for i := range n.Identifiers {
-				name := n.Identifiers[i].Name
-				if _, ok := tc.filePackageBlock[name]; ok {
-					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
+			case len(n.Values) == 0:
+				for i := range n.Identifiers {
+					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
+						decl: n.Identifiers[i],
+						t:    notCheckedGlobal,
+					}
+					tc.declarations = append(tc.declarations, &Declaration{
+						DeclType:   DeclVar,
+						Ident:      n.Identifiers[i].Name,
+						Identifier: n.Identifiers[0],
+						Node:       n,
+						Type:       n.Type,
+						Value:      nil,
+					})
 				}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclVar, Identifier: n.Identifiers[0]}) // TODO (Gianluca): add support for var a, b, c = f()
-				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal, decl: n.Identifiers[i]}
+			default:
+				for i := range n.Identifiers {
+					tc.filePackageBlock[n.Identifiers[i].Name] = scopeElement{
+						decl: n.Identifiers[i],
+						t:    notCheckedGlobal,
+					}
+				}
+				tc.declarations = append(tc.declarations, &Declaration{
+					DeclType: DeclVar,
+					Node:     n,
+					Type:     n.Type,
+				})
 			}
+
 		case *ast.TypeDeclaration:
 			// TODO (Gianluca): add support for types referring to other
 			// types defined later. See
@@ -189,6 +186,7 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 			name := n.Identifier.Name
 			typ := tc.checkType(n.Type, noEllipses)
 			tc.filePackageBlock[name] = scopeElement{t: typ}
+
 		case *ast.Func:
 			if n.Ident.Name == "init" || n.Ident.Name == "main" {
 				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {
@@ -202,6 +200,40 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclType: DeclFunc})
 			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notCheckedGlobal}
 		}
+	}
+
+	return nil
+}
+
+// CheckPackage type checks a package.
+func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(*Error); ok {
+				err = rerr
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	if len(tree.Nodes) == 0 {
+		return errors.New("expected 'package', found EOF")
+	}
+	packageNode, ok := tree.Nodes[0].(*ast.Package)
+	if !ok {
+		t := fmt.Sprintf("%T", tree.Nodes[0])
+		t = strings.ToLower(t[len("*ast."):])
+		return fmt.Errorf("expected 'package', found '%s'", t)
+	}
+
+	tc := NewTypechecker(tree.Path, false)
+	tc.Universe = Universe
+
+	err = tc.precheckDeclarations(packageNode.Declarations, imports, pkgInfos)
+	if err != nil {
+		return err
 	}
 
 	// Constants.
