@@ -99,7 +99,7 @@ type Package struct {
 // EmitPackageMain emits package main.
 func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Package {
 	e := NewEmitter(packages, typeInfos, indirectVars)
-	funcs := e.emitPackage(pkgMain)
+	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableScrigoFunctions[pkgMain]["main"]
 	pkg := &Package{
 		Globals:   e.globals,
@@ -109,12 +109,17 @@ func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage
 	return pkg
 }
 
-// emitPackage emits package pkg. Returns a list of exported functions.
-func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
+// emitPackage emits package pkg. Returns a list of exported functions and
+// exported variables.
+func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, map[string]int16, []*vm.ScrigoFunction) {
 	e.currentPackage = pkg
 	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
 	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
 	e.globalNameIndex[e.currentPackage] = map[string]int16{}
+
+	// TODO(Gianluca): if a package is imported more than once, its init
+	// functions are called more than once, which is wrong.
+	initFuncs := []*vm.ScrigoFunction{} // List of all "init" functions in current package.
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
@@ -124,8 +129,9 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 			} else {
 				currentPkg := e.currentPackage
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				exportedFunctions := e.emitPackage(pkg)
+				exportedFunctions, exportedVars, pkgInitFuncs := e.emitPackage(pkg)
 				e.currentPackage = currentPkg
+				initFuncs = append(initFuncs, pkgInitFuncs...)
 				var importPkgName string
 				if imp.Ident == nil {
 					importPkgName = pkg.Name
@@ -145,7 +151,13 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 					} else {
 						e.availableScrigoFunctions[e.currentPackage][importPkgName+"."+name] = fn
 					}
-
+				}
+				for name, v := range exportedVars {
+					if importPkgName == "" {
+						e.globalNameIndex[e.currentPackage][name] = v
+					} else {
+						e.globalNameIndex[e.currentPackage][importPkgName+"."+name] = v
+					}
 				}
 			}
 		}
@@ -155,8 +167,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
-	initFuncs := []*vm.ScrigoFunction{} // List of all "init" functions in current package.
-	initToBuild := 0                    // Index of next "init" function to build.
+	initToBuild := len(initFuncs) // Index of next "init" function to build.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
 			fn := NewScrigoFunction("main", fun.Ident.Name, fun.Type.Reflect)
@@ -170,6 +181,8 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 			}
 		}
 	}
+
+	exportedVars := map[string]int16{}
 
 	// Emits package variables.
 	var initVarsFn *vm.ScrigoFunction
@@ -200,6 +213,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 				packageVariablesRegisters[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: varType})
 				e.globalNameIndex[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
+				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
 			e.assign(addresses, n.Values)
 			e.CurrentFunction = backupFn
@@ -267,7 +281,13 @@ func (e *Emitter) emitPackage(pkg *ast.Package) map[string]*vm.ScrigoFunction {
 		f.Globals = e.globals
 	}
 
-	return exportedFunctions
+	// If this package is imported, initFuncs must contain initVarsFn, that is
+	// processed as a common "init" function.
+	if initVarsFn != nil {
+		initFuncs = append(initFuncs, initVarsFn)
+	}
+
+	return exportedFunctions, exportedVars, initFuncs
 
 }
 
