@@ -1803,11 +1803,19 @@ func TestGotoLabels(t *testing.T) {
 			}`, "goto next jumps over declaration of ? at ?"},
 		
 		{"Goto jumping over variable assignment",
-			`func valid() {
+			`
+			package main
+			
+			func valid() {
 				var a = 10
 				goto next
 				a = 10
 			next:
+				_ = a
+			}
+
+			func main() {
+				
 			}
 			`, ""},
 	}
