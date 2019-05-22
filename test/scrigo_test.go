@@ -118,6 +118,65 @@ var stmtTests = []struct {
 	registers    []reg    // list of expected registers. Can be nil.
 	output       string   // expected stdout/stderr output.
 }{
+	{"Break statement in type-switch statements",
+		`package main
+
+		import (
+			  "fmt"
+		)
+		
+		func main() {
+			  fmt.Print("switch,")
+			  switch interface{}("hey").(type) {
+			  case string:
+				    fmt.Print("case string,")
+				    break
+				    fmt.Print("???")
+			  default:
+				    fmt.Print("???")
+			  }
+			  fmt.Print("done")
+		}`, nil, nil, "switch,case string,done"},
+
+	{"Break statement in switch statements",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print("switch,")
+			switch {
+			case true:
+				fmt.Print("case true,")
+				break
+				fmt.Print("???")
+			default:
+				fmt.Print("???")
+			}
+			fmt.Print("done")
+		}
+		`, nil, nil, "switch,case true,done"},
+
+	{"Break statement in for statements",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Printf("a")
+			for {
+				fmt.Printf("b")
+				break
+				fmt.Printf("???")
+			}
+			fmt.Printf("c")
+		}
+		`, nil, nil, "abc"},
+
 	{"Const declaration inside function body",
 		`package main
 

@@ -12,22 +12,20 @@ func main() {
 		_ = v
 		_ = k
 	}
-	// TODO(Gianluca): 
-	// for {
-	// 	break
-	// }
+	for {
+		break
+	}
 	for i := -3; i < 0; i++ {
 		fmt.Println(i)
 	}
-	// TODO(Gianluca): 
-	// sum := 0
-	// for x := 10; true; {
-	// 	sum += x
-	// 	if sum > 50 {
-	// 		break
-	// 	}
-	// }
-	// fmt.Println(sum)
+	sum := 0
+	for x := 10; true; {
+		sum += x
+		if sum > 50 {
+			break
+		}
+	}
+	fmt.Println(sum)
 	{
 		items := make([]map[int]int, 10)
 		for i := range items {

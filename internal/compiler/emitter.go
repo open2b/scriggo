@@ -44,6 +44,13 @@ type Emitter struct {
 	labels map[*vm.ScrigoFunction]map[string]uint32
 
 	currentPackage *ast.Package
+
+	// breakable is true if emitting a "breakable" statement (except ForRange,
+	// which implements his own "breaking" system).
+	breakable bool
+	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
+	// jump.
+	breakLabel *uint32
 }
 
 // NewEmitter returns a new emitter reading sources from r.
@@ -1065,11 +1072,19 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			e.FB.ExitScope()
 
 		case *ast.Break:
-			if node.Label != nil {
-				panic("TODO(Gianluca): not implemented")
+			if e.breakable {
+				if e.breakLabel == nil {
+					label := e.FB.NewLabel()
+					e.breakLabel = &label
+				}
+				e.FB.Goto(*e.breakLabel)
+			} else {
+				if node.Label != nil {
+					panic("TODO(Gianluca): not implemented")
+				}
+				e.FB.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
+				e.FB.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
 			}
-			e.FB.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
-			e.FB.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
 
 		case *ast.Const:
 			// Nothing to do.
@@ -1194,6 +1209,10 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			e.FB.ExitScope()
 
 		case *ast.For:
+			currentBreakable := e.breakable
+			currentBreakLabel := e.breakLabel
+			e.breakable = true
+			e.breakLabel = nil
 			e.FB.EnterScope()
 			if node.Init != nil {
 				e.EmitNodes([]ast.Node{node.Init})
@@ -1220,6 +1239,11 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 				e.FB.Goto(forLabel)
 			}
 			e.FB.ExitScope()
+			if e.breakLabel != nil {
+				e.FB.SetLabelAddr(*e.breakLabel)
+			}
+			e.breakable = currentBreakable
+			e.breakLabel = currentBreakLabel
 
 		case *ast.ForRange:
 			e.FB.EnterScope()
@@ -1321,10 +1345,28 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 			e.FB.Send(ch, v)
 
 		case *ast.Switch:
+			currentBreakable := e.breakable
+			currentBreakLabel := e.breakLabel
+			e.breakable = true
+			e.breakLabel = nil
 			e.emitSwitch(node)
+			if e.breakLabel != nil {
+				e.FB.SetLabelAddr(*e.breakLabel)
+			}
+			e.breakable = currentBreakable
+			e.breakLabel = currentBreakLabel
 
 		case *ast.TypeSwitch:
+			currentBreakable := e.breakable
+			currentBreakLabel := e.breakLabel
+			e.breakable = true
+			e.breakLabel = nil
 			e.emitTypeSwitch(node)
+			if e.breakLabel != nil {
+				e.FB.SetLabelAddr(*e.breakLabel)
+			}
+			e.breakable = currentBreakable
+			e.breakLabel = currentBreakLabel
 
 		case *ast.Var:
 			addresses := make([]address, len(node.Identifiers))
