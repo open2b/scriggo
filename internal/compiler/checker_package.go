@@ -190,9 +190,9 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 			typ := tc.checkType(n.Type, noEllipses)
 			tc.filePackageBlock[name] = scopeElement{t: typ}
 		case *ast.Func:
-			if n.Ident.Name == "init" {
+			if n.Ident.Name == "init" || n.Ident.Name == "main" {
 				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {
-					panic(tc.errorf(n.Ident, "func init must have no arguments and no return values"))
+					panic(tc.errorf(n.Ident, "func %s must have no arguments and no return values", n.Ident.Name))
 				}
 			} else {
 				if _, ok := tc.filePackageBlock[n.Ident.Name]; ok {
