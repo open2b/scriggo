@@ -38,8 +38,8 @@ type address struct {
 }
 
 // newAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
-func (e *Emitter) newAddress(addrType addressType, reflectType reflect.Type, reg1, reg2 int8) address {
-	return address{c: e, addrType: addrType, staticType: reflectType, reg1: reg1, reg2: reg2}
+func (e *Emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
+	return address{c: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
 
 // assign assigns value to a.
