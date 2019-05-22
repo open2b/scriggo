@@ -100,7 +100,6 @@ const (
 // Declaration is a package global declaration.
 type Declaration struct {
 	Node       ast.Node        // ast node of the declaration.
-	Ident      string          // identifier of the declaration.
 	Type       ast.Expression  // nil if declaration has no type.
 	DeclType   DeclarationType // constant, variable or function.
 	Value      ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
@@ -165,7 +164,7 @@ func NewTypechecker(path string, isScript bool) *typechecker {
 // globDecl returns the declaration called name, or nil if it does not exist.
 func (tc *typechecker) globDecl(name string) *Declaration {
 	for _, v := range tc.declarations {
-		if name == v.Ident {
+		if name == v.Identifier.Name {
 			return v
 		}
 	}

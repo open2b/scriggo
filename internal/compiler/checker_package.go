@@ -125,7 +125,7 @@ func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map
 					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
 				}
 				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: name, Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
+				tc.declarations = append(tc.declarations, &Declaration{Node: n, Identifier: n.Identifiers[i], Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
 			}
 		case *ast.Var:
 
@@ -138,7 +138,6 @@ func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map
 					}
 					tc.declarations = append(tc.declarations, &Declaration{
 						DeclType:   DeclVar,
-						Ident:      n.Identifiers[i].Name,
 						Identifier: n.Identifiers[0],
 						Node:       n,
 						Type:       n.Type,
@@ -153,7 +152,6 @@ func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map
 					}
 					tc.declarations = append(tc.declarations, &Declaration{
 						DeclType:   DeclVar,
-						Ident:      n.Identifiers[i].Name,
 						Identifier: n.Identifiers[0],
 						Node:       n,
 						Type:       n.Type,
@@ -197,7 +195,7 @@ func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map
 					panic(tc.errorf(n.Ident, "%s redeclared in this block", n.Ident.Name))
 				}
 			}
-			tc.declarations = append(tc.declarations, &Declaration{Node: n, Ident: n.Ident.Name, Value: n.Body, Type: n.Type, DeclType: DeclFunc})
+			tc.declarations = append(tc.declarations, &Declaration{Identifier: n.Ident, Node: n, Value: n.Body, Type: n.Type, DeclType: DeclFunc})
 			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notCheckedGlobal}
 		}
 	}
@@ -239,8 +237,8 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 	// Constants.
 	for _, c := range tc.declarations {
 		if c.DeclType == DeclConst {
-			tc.currentGlobal = c.Ident
-			tc.globalEvalPath = []string{c.Ident}
+			tc.currentGlobal = c.Identifier.Name
+			tc.globalEvalPath = []string{c.Identifier.Name}
 			tc.globalTemp = make(map[string]*TypeInfo)
 			ti := tc.checkExpression(c.Value.(ast.Expression))
 			if !ti.IsConstant() {
@@ -252,7 +250,7 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					return tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
 				}
 			}
-			tc.filePackageBlock[c.Ident] = scopeElement{t: ti}
+			tc.filePackageBlock[c.Identifier.Name] = scopeElement{t: ti}
 		}
 	}
 
@@ -288,12 +286,12 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			tc.currentGlobal = v.Ident
-			tc.globalEvalPath = []string{v.Ident}
+			tc.currentGlobal = v.Identifier.Name
+			tc.globalEvalPath = []string{v.Identifier.Name}
 			tc.globalTemp = make(map[string]*TypeInfo)
-			tc.filePackageBlock[v.Ident] = scopeElement{t: &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}}
+			tc.filePackageBlock[v.Identifier.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}}
 			tc.checkNodes(v.Value.(*ast.Block).Nodes)
-			tc.initOrder = append(tc.initOrder, v.Ident)
+			tc.initOrder = append(tc.initOrder, v.Identifier.Name)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.removeCurrentScope()
 		}
@@ -305,8 +303,8 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 		for _, v := range tc.declarations {
 			if v.DeclType == DeclVar {
 				tc.IndirectVars[v.Identifier] = true
-				tc.currentGlobal = v.Ident
-				tc.globalEvalPath = []string{v.Ident}
+				tc.currentGlobal = v.Identifier.Name
+				tc.globalEvalPath = []string{v.Identifier.Name}
 				tc.globalTemp = make(map[string]*TypeInfo)
 				ti := tc.checkExpression(v.Value.(ast.Expression))
 				if v.Type != nil {
@@ -316,15 +314,15 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					}
 				}
 				varTi := &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
-				tc.filePackageBlock[v.Ident] = scopeElement{t: varTi, decl: v.Identifier}
-				if !tc.tryAddingToInitOrder(v.Ident) {
+				tc.filePackageBlock[v.Identifier.Name] = scopeElement{t: varTi, decl: v.Identifier}
+				if !tc.tryAddingToInitOrder(v.Identifier.Name) {
 					unresolvedDeps = true
 				}
 				tc.TypeInfo[v.Identifier] = varTi
 				// Replaces value's node and typeinfo if it's a constant.
 				if ti.IsConstant() {
 					for i, ident := range v.Node.(*ast.Var).Identifiers {
-						if ident.Name == v.Ident {
+						if ident.Name == v.Identifier.Name {
 							new := ast.NewValue(typedValue(ti, varTi.Type))
 							tc.replaceTypeInfo(v.Node.(*ast.Var).Values[i], new)
 							v.Node.(*ast.Var).Values[i] = new
