@@ -1792,6 +1792,24 @@ func TestGotoLabels(t *testing.T) {
 			L:
 				println(A)
 			}`, "goto L jumps over declaration of ? at ?"},
+		
+		{"Goto jumping over variable declaration (2)",
+			`package main
+
+			func invalid() {
+				goto next
+				a := 10
+			next:
+			}`, "goto next jumps over declaration of ? at ?"},
+		
+		{"Goto jumping over variable assignment",
+			`func valid() {
+				var a = 10
+				goto next
+				a = 10
+			next:
+			}
+			`, ""},
 	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
