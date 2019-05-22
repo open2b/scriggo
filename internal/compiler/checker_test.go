@@ -1792,7 +1792,7 @@ func TestGotoLabels(t *testing.T) {
 			L:
 				println(A)
 			}`, "goto L jumps over declaration of ? at ?"},
-		
+
 		{"Goto jumping over variable declaration (2)",
 			`package main
 
@@ -1801,7 +1801,7 @@ func TestGotoLabels(t *testing.T) {
 				a := 10
 			next:
 			}`, "goto next jumps over declaration of ? at ?"},
-		
+
 		{"Goto jumping over variable assignment",
 			`
 			package main
