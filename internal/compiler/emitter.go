@@ -712,6 +712,17 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 
 	case *ast.Func:
+
+		if expr.Ident != nil {
+			varReg := e.FB.NewRegister(reflect.Func)
+			e.FB.BindVarReg(expr.Ident.Name, varReg)
+			expr.Ident = nil // avoids recursive calls.
+			funcType := e.TypeInfo[expr].Type
+			addr := e.newAddress(addressRegister, funcType, varReg, 0)
+			e.assign([]address{addr}, []ast.Expression{expr})
+			return
+		}
+
 		if reg == 0 {
 			return
 		}
