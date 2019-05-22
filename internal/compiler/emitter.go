@@ -1079,7 +1079,17 @@ func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			e.FB.Print(arg)
 		}
 	case "println":
-		panic("TODO: not implemented")
+		for i := range call.Args {
+			arg := e.FB.NewRegister(reflect.Interface)
+			e.emitExpr(call.Args[i], arg, emptyInterfaceType)
+			e.FB.Print(arg)
+			if i < len(call.Args)-1 {
+				str := e.FB.MakeStringConstant(" ")
+				sep := e.FB.NewRegister(reflect.Interface)
+				e.changeRegister(true, str, sep, stringType, emptyInterfaceType)
+				e.FB.Print(sep)
+			}
+		}
 	case "real":
 		panic("TODO: not implemented")
 	case "recover":
