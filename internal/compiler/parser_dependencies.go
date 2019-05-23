@@ -69,9 +69,9 @@ func (d *dependencies) exitScope() {
 	d.scopes = d.scopes[:len(d.scopes)-1]
 }
 
-// local sets lhs as local-declared, avoiding false-positive reports of
+// declareLocal sets lhs as declareLocal-declared, avoiding false-positive reports of
 // dependencies from global declarations.
-func (d *dependencies) local(lhs []*ast.Identifier) {
+func (d *dependencies) declareLocal(lhs []*ast.Identifier) {
 	if !d.enabled {
 		return
 	}
