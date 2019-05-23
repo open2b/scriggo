@@ -1346,6 +1346,13 @@ func (vm *VM) run() (uint32, bool) {
 				vm.fn = fn
 			}
 
+		// Typify
+		case OpTypify, -OpTypify:
+			t := vm.fn.Types[uint8(a)]
+			v := reflect.New(t).Elem()
+			vm.getIntoReflectValue(b, v, op < 0)
+			vm.setGeneral(c, v.Interface())
+
 		// Write
 		case OpWrite:
 			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeUint24(a, b, c)])

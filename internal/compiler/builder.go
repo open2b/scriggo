@@ -1218,6 +1218,16 @@ func (builder *FunctionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// Typify appends a new "Typify" instruction to the function body.
+func (builder *FunctionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
+	t := builder.Type(typ)
+	op := vm.OpTypify
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: t, B: x, C: z})
+}
+
 // Write appends a new "Write" instruction to the function body.
 //
 //     out.Write(data)

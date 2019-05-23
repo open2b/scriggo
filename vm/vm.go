@@ -1361,6 +1361,8 @@ const (
 
 	OpTailCall
 
+	OpTypify
+
 	OpWrite
 
 	OpXor
