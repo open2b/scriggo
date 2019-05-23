@@ -17,9 +17,6 @@ import (
 
 // dependencies analyzes dependencis between global declarations.
 type dependencies struct {
-	// enabled indicates if dependency analysis is enabled or not; if not, all
-	// method calls result in a "nop".
-	enabled bool
 
 	// pending is the list of global declarations waiting for evaluation.
 	pending []*ast.Identifier
@@ -38,7 +35,7 @@ type dependencies struct {
 
 // result returns all dependencies of global declarations.
 func (d *dependencies) result() map[*ast.Identifier][]*ast.Identifier {
-	if !d.enabled {
+	if d == nil {
 		return nil
 	}
 	out := map[*ast.Identifier][]*ast.Identifier{}
@@ -55,7 +52,7 @@ func (d *dependencies) result() map[*ast.Identifier][]*ast.Identifier {
 
 // enterScope enters a new scope.
 func (d *dependencies) enterScope() {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	d.scopes = append(d.scopes, map[string]struct{}{})
@@ -63,7 +60,7 @@ func (d *dependencies) enterScope() {
 
 // exitScope exits current scope.
 func (d *dependencies) exitScope() {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	d.scopes = d.scopes[:len(d.scopes)-1]
@@ -72,7 +69,7 @@ func (d *dependencies) exitScope() {
 // declareLocal sets lhs as declareLocal-declared, avoiding false-positive reports of
 // dependencies from global declarations.
 func (d *dependencies) declareLocal(lhs []*ast.Identifier) {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	if len(d.scopes) == 0 {
@@ -93,7 +90,7 @@ func (d *dependencies) declareLocal(lhs []*ast.Identifier) {
 
 // declareGlobal registers lhs as global declarations.
 func (d *dependencies) declareGlobal(lhs []*ast.Identifier) {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	if d.deps == nil {
@@ -113,7 +110,7 @@ func (d *dependencies) declareGlobal(lhs []*ast.Identifier) {
 
 // end ends dependency evaluation of current global declaration.
 func (d *dependencies) end() {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	if len(d.scopes) > 0 {
@@ -133,6 +130,9 @@ func (d *dependencies) end() {
 // endList ends evaluation of global variables and constants. endList must be
 // called even when the number of lhs is one.
 func (d *dependencies) endList() {
+	if d == nil {
+		return
+	}
 	// If there are still pending global declarations, parser is parsing a
 	// multiple assignment (var or const). All left symbols must share the
 	// same dependency set.
@@ -150,7 +150,7 @@ func (d *dependencies) endList() {
 // dinstiction between global declarations (that introduce a dependency) and
 // local declarations (that do not).
 func (d *dependencies) use(name *ast.Identifier) {
-	if !d.enabled {
+	if d == nil {
 		return
 	}
 	if len(d.pending) == 0 {

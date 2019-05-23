@@ -100,7 +100,7 @@ type parsing struct {
 	lastFallthroughTokenPos ast.Position
 
 	// deps stores the state of the dependency analysis on packages.
-	deps dependencies
+	deps *dependencies
 }
 
 // ParseSource parses src in the context ctx and returns a tree. Nodes
@@ -121,7 +121,10 @@ func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, d
 		lex:       newLexer(src, ctx),
 		ctx:       ctx,
 		ancestors: []ast.Node{tree},
-		deps:      dependencies{enabled: isPackage},
+	}
+
+	if isPackage {
+		p.deps = &dependencies{}
 	}
 
 	defer func() {
