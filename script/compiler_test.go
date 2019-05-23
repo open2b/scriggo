@@ -35,7 +35,7 @@ func TestCheckScript(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		tree, err := compiler.ParseSource([]byte(c.src), ast.ContextNone)
+		tree, _, err := compiler.ParseSource([]byte(c.src), false, ast.ContextNone)
 		if err != nil {
 			t.Errorf("parsing error: %s", err)
 			continue

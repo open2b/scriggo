@@ -62,7 +62,7 @@ CasesLoop:
 	for _, c := range cases {
 		pkgInfos := make(map[string]*PackageInfo)
 		c.src = "package main\n" + c.src + "func main() { }"
-		tree, err := ParseSource([]byte(c.src), ast.ContextNone)
+		tree, _, err := ParseSource([]byte(c.src), true, ast.ContextNone)
 		errorSrc := strings.ReplaceAll(c.src, "\n", " ")
 		errorSrc = strings.ReplaceAll(errorSrc, "\t", "")
 		if err != nil {

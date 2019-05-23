@@ -1334,7 +1334,7 @@ func pageTests() map[string]struct {
 
 func TestNoneContextTrees(t *testing.T) {
 	for _, tree := range noneContextTreeTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextNone)
+		node, _, err := ParseSource([]byte(tree.src), false, ast.ContextNone)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue
@@ -1348,7 +1348,7 @@ func TestNoneContextTrees(t *testing.T) {
 
 func TestTrees(t *testing.T) {
 	for _, tree := range treeTests {
-		node, err := ParseSource([]byte(tree.src), ast.ContextHTML)
+		node, _, err := ParseSource([]byte(tree.src), false, ast.ContextHTML)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

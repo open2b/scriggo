@@ -207,5 +207,6 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 			node = ast.NewSwitch(pos, beforeSemicolon, nil, nil, nil)
 		}
 	}
+	p.deps.enterScope()
 	return node
 }

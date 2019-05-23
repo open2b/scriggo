@@ -326,7 +326,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 			operand = parseStringNode(tok)
 		case tokenIdentifier: // a
-			ident := parseIdentifierNode(tok)
+			ident := p.parseIdentifierNode(tok)
 			// TODO (Gianluca): this check must be done during type-checking.
 			// if ident.Name == "_" {
 			// 	if !canBeBlank {
@@ -342,7 +342,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					if tok.typ != tokenIdentifier {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 					}
-					ident := parseIdentifierNode(tok)
+					ident := p.parseIdentifierNode(tok)
 					operand = ast.NewSelector(tok.pos, operand, ident.Name)
 				} else {
 					reuseLastToken = true
@@ -709,11 +709,20 @@ func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMust
 	var elements = []ast.Expression{}
 	for {
 		element, tok2 := p.parseExpr(tok, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
+		if len(p.ancestors) == 2 {
+			p.deps.end()
+		}
 		if element == nil {
+			if len(p.ancestors) == 2 {
+				p.deps.endList()
+			}
 			return elements, tok2
 		}
 		elements = append(elements, element)
 		if tok2.typ != tokenComma {
+			if len(p.ancestors) == 2 {
+				p.deps.endList()
+			}
 			return elements, tok2
 		}
 		tok = token{}
@@ -771,8 +780,10 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 }
 
 // parseIdentifierNode returns an Identifier node from a token.
-func parseIdentifierNode(tok token) *ast.Identifier {
-	return ast.NewIdentifier(tok.pos, string(tok.txt))
+func (p *parsing) parseIdentifierNode(tok token) *ast.Identifier {
+	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
+	p.deps.use(ident)
+	return ident
 }
 
 // parseNumberNode returns an Expression node from an integer, float or rune

@@ -39,6 +39,12 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		// Node to parse must be a function declaration.
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 	}
+	if len(p.ancestors) == 2 && ident != nil {
+		p.deps.register([]*ast.Identifier{ident})
+	}
+	if kind&parseFuncType == 0 {
+		p.deps.enterScope()
+	}
 	// Parses the function parameters.
 	names := map[string]struct{}{}
 	parameters, isVariadic, endPos := p.parseFuncFields(tok, names, false)
@@ -94,6 +100,10 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	body.Position.End = tok.pos.End
 	node.Position.End = tok.pos.End
 	p.ancestors = p.ancestors[:len(p.ancestors)-2]
+	p.deps.exitScope()
+	if len(p.ancestors) == 2 {
+		p.deps.end()
+	}
 	return node, token{}
 }
 
@@ -113,7 +123,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 		tok = next(p.lex)
 		field := ast.NewField(nil, nil)
 		if tok.typ == tokenIdentifier {
-			field.Type = parseIdentifierNode(tok)
+			field.Type = p.parseIdentifierNode(tok)
 			tok = next(p.lex)
 		} else {
 			field.Type, tok = p.parseExpr(tok, true, false, true, false)

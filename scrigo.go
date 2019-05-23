@@ -24,7 +24,8 @@ type Program struct {
 
 func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage) (*Program, error) {
 	p := NewParser(reader, packages)
-	tree, err := p.Parse(path)
+	tree, deps, err := p.Parse(path)
+	_ = deps
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +106,11 @@ func NewParser(r compiler.Reader, packages map[string]*native.GoPackage) *Parser
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string) (*ast.Tree, error) {
+func (p *Parser) Parse(path string) (*ast.Tree, map[*ast.Identifier][]*ast.Identifier, error) {
 
 	// Path must be absolute.
 	if path == "" {
-		return nil, compiler.ErrInvalidPath
+		return nil, nil, compiler.ErrInvalidPath
 	}
 	if path[0] == '/' {
 		path = path[1:]
@@ -117,7 +118,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 	// Cleans the path by removing "..".
 	path, err := compiler.ToAbsolutePath("/", path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	pp := &expansion{p.reader, p.trees, p.packages, []string{}}
@@ -129,13 +130,13 @@ func (p *Parser) Parse(path string) (*ast.Tree, error) {
 		} else if err2, ok := err.(compiler.CycleError); ok {
 			err = compiler.CycleError(path + "\n\t" + string(err2))
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	if len(tree.Nodes) == 0 {
-		return nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
+		return nil, nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
 	}
 
-	return tree, nil
+	return tree, nil, nil
 }
 
 // TypeCheckInfos returns the type-checking infos collected during
@@ -187,7 +188,7 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, error) {
 		return nil, err
 	}
 
-	tree, err := compiler.ParseSource(src, ast.ContextNone)
+	tree, _, err := compiler.ParseSource(src, true, ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}

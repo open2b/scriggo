@@ -98,17 +98,20 @@ type parsing struct {
 
 	// Position of the last fallthrough token, used for error messages.
 	lastFallthroughTokenPos ast.Position
+
+	// deps stores the state of the dependency analysis on packages.
+	deps dependencies
 }
 
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
+func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, deps map[*ast.Identifier][]*ast.Identifier, err error) {
 
 	switch ctx {
 	case ast.ContextNone, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
 	default:
-		return nil, errors.New("scrigo/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
+		return nil, nil, errors.New("scrigo/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
 	}
 
 	// Tree result of the expansion.
@@ -118,6 +121,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 		lex:       newLexer(src, ctx),
 		ctx:       ctx,
 		ancestors: []ast.Node{tree},
+		deps:      dependencies{enabled: isPackage},
 	}
 
 	defer func() {
@@ -141,10 +145,10 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 					switch p.ancestors[1].(type) {
 					case *ast.Package:
 					case *ast.Label:
-						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
+						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
 					default:
 						if len(p.ancestors) > 2 {
-							return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+							return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
 						}
 					}
 				}
@@ -193,7 +197,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 			// EOF
 			case tokenEOF:
 				if len(p.ancestors) > 1 {
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
 				}
 
 			// Text
@@ -205,14 +209,14 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 						if containsOnlySpaces(text.Text) {
 							s.LeadingText = text
 						}
-						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 					}
 					lastCase := s.Cases[len(s.Cases)-1]
 					if lastCase.Fallthrough {
 						if containsOnlySpaces(text.Text) {
 							continue
 						}
-						return nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
+						return nil, nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
 					}
 				}
 				p.addChild(text)
@@ -239,15 +243,15 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 			// {{ }}
 			case tokenStartValue:
 				if p.isExtended && !p.isInMacro {
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 				}
 				tokensInLine++
 				expr, tok2 := p.parseExpr(token{}, false, false, false, false)
 				if expr == nil {
-					return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
+					return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
 				}
 				if tok2.typ != tokenEndValue {
-					return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
+					return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 				}
 				tok.pos.End = tok2.pos.End
 				var node = ast.NewShow(tok.pos, expr, tok.ctx)
@@ -261,7 +265,7 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 				p.cutSpacesToken = true
 
 			default:
-				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 
 			}
 
@@ -270,10 +274,10 @@ func ParseSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 	}
 
 	if p.lex.err != nil {
-		return nil, p.lex.err
+		return nil, nil, p.lex.err
 	}
 
-	return tree, nil
+	return tree, p.deps.result(), nil
 }
 
 // parseStatement parses a statement. Panics on error.
@@ -371,10 +375,12 @@ func (p *parsing) parseStatement(tok token) {
 			if expr == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
+			p.deps.local([]*ast.Identifier{ident})
 			assignment := ast.NewAssignment(&ast.Position{ipos.Line, ipos.Column, ipos.Start, expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
+			p.deps.enterScope()
 		case tokenLeftBraces, tokenEndStatement:
 			if (p.ctx == ast.ContextNone) != (tok.typ == tokenLeftBraces) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
@@ -389,6 +395,7 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			pos.End = tok.pos.End
 			node = ast.NewFor(pos, nil, condition, nil, nil)
+			p.deps.enterScope()
 		case tokenRange:
 			// Parses "for range expr".
 			if len(variables) > 0 {
@@ -404,6 +411,7 @@ func (p *parsing) parseStatement(tok token) {
 			assignment := ast.NewAssignment(tpos, nil, ast.AssignmentSimple, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
+			p.deps.enterScope()
 		case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
 			if len(variables) == 0 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
@@ -426,10 +434,18 @@ func (p *parsing) parseStatement(tok token) {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
 				vpos := variables[0].Pos()
+				if assignmentType == ast.AssignmentDeclaration {
+					for _, left := range variables {
+						if ident, ok := left.(*ast.Identifier); ok {
+							p.deps.local([]*ast.Identifier{ident})
+						}
+					}
+				}
 				assignment := ast.NewAssignment(&ast.Position{vpos.Line, vpos.Column, vpos.Start, expr.Pos().End},
 					variables, assignmentType, []ast.Expression{expr})
 				pos.End = tok.pos.End
 				node = ast.NewForRange(pos, assignment, nil)
+				p.deps.enterScope()
 			} else {
 				// Parses statement "for [init]; [condition]; [post]".
 				// Parses the condition expression.
@@ -453,6 +469,7 @@ func (p *parsing) parseStatement(tok token) {
 				}
 				pos.End = tok.pos.End
 				node = ast.NewFor(pos, init, condition, post, nil)
+				p.deps.enterScope()
 			}
 		}
 		if node == nil || (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
@@ -564,6 +581,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		node = ast.NewBlock(tok.pos, nil)
+		p.deps.enterScope()
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -579,6 +597,10 @@ func (p *parsing) parseStatement(tok token) {
 		if _, ok := parent.(*ast.Label); ok {
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
 			parent = p.ancestors[len(p.ancestors)-1]
+		}
+		switch parent.(type) {
+		case *ast.Block, *ast.If, *ast.For, *ast.ForRange, *ast.TypeSwitch, *ast.Switch:
+			p.deps.exitScope()
 		}
 		bracesEnd := tok.pos.End
 		parent.Pos().End = bracesEnd
@@ -631,6 +653,7 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
 			p.addChild(elseBlock)
+			p.deps.enterScope()
 			p.ancestors = append(p.ancestors, elseBlock)
 			return
 		}
@@ -675,6 +698,7 @@ func (p *parsing) parseStatement(tok token) {
 			ifPos = pos
 		}
 		node = ast.NewIf(ifPos, assignment, expr, then, nil)
+		p.deps.enterScope()
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node, then)
 		p.cutSpacesToken = true
@@ -1197,7 +1221,7 @@ func (p *parsing) parseStatement(tok token) {
 func (p *parsing) parseIdentifiersList(tok token) ([]*ast.Identifier, token) {
 	idents := []*ast.Identifier{}
 	for {
-		idents = append(idents, parseIdentifierNode(tok))
+		idents = append(idents, p.parseIdentifierNode(tok))
 		tok = next(p.lex)
 		if tok.typ == tokenComma {
 			tok = next(p.lex)
@@ -1245,6 +1269,11 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 	case tokenSimpleAssignment:
 		// var/const  a     = ...
 		// var/const  a, b  = ...
+		if len(p.ancestors) == 2 {
+			p.deps.register(idents)
+		} else {
+			p.deps.local(idents)
+		}
 		exprs, tok = p.parseExprList(token{}, false, false, false, false)
 		if len(exprs) == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
@@ -1257,6 +1286,9 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		typ, tok = p.parseExpr(tok, false, false, true, false)
 		if tok.typ != tokenSimpleAssignment && kind == "const" {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+		}
+		if len(p.ancestors) == 2 {
+			p.deps.register(idents)
 		}
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...
@@ -1357,6 +1389,13 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		} else {
 			values = make([]ast.Expression, 1)
 			values[0], tok = p.parseExpr(token{}, false, false, false, false)
+		}
+	}
+	if typ == ast.AssignmentDeclaration {
+		for _, left := range variables {
+			if ident, ok := left.(*ast.Identifier); ok {
+				p.deps.local([]*ast.Identifier{ident})
+			}
 		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok

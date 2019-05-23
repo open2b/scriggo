@@ -37,7 +37,7 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	if err != nil {
 		return nil, err
 	}
-	tree, err := compiler.ParseSource(buf, ast.ContextNone)
+	tree, _, err := compiler.ParseSource(buf, false, ast.ContextNone)
 	if err != nil {
 		return nil, err
 	}
