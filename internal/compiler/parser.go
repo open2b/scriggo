@@ -1270,7 +1270,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		// var/const  a     = ...
 		// var/const  a, b  = ...
 		if len(p.ancestors) == 2 {
-			p.deps.register(idents)
+			p.deps.declareGlobal(idents)
 		} else {
 			p.deps.local(idents)
 		}
@@ -1288,7 +1288,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
 		if len(p.ancestors) == 2 {
-			p.deps.register(idents)
+			p.deps.declareGlobal(idents)
 		}
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...

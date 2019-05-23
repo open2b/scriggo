@@ -91,8 +91,8 @@ func (d *dependencies) local(lhs []*ast.Identifier) {
 	}
 }
 
-// register registers lhs as global declarations.
-func (d *dependencies) register(lhs []*ast.Identifier) {
+// declareGlobal registers lhs as global declarations.
+func (d *dependencies) declareGlobal(lhs []*ast.Identifier) {
 	if !d.enabled {
 		return
 	}
