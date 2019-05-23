@@ -166,7 +166,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 	for _, in := range fn.Body {
 		switch in.Op {
 		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
-			labelOf[decodeAddr(in.A, in.B, in.C)] = 0
+			labelOf[decodeUint24(in.A, in.B, in.C)] = 0
 		}
 	}
 	if len(labelOf) > 0 {
@@ -216,7 +216,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 		in := fn.Body[addr]
 		switch in.Op {
 		case vm.OpBreak, vm.OpContinue, vm.OpGoto:
-			label := labelOf[decodeAddr(in.A, in.B, in.C)]
+			label := labelOf[decodeUint24(in.A, in.B, in.C)]
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
 		case vm.OpFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, vm.Interface, false))
@@ -271,7 +271,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
 	case vm.OpAlloc:
 		if k {
-			s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
+			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 		}
 	case vm.OpAssert:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
@@ -283,7 +283,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
-		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
+		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall, vm.OpDefer:
 		if a != vm.CurrentFunction {
 			switch op {
@@ -504,7 +504,7 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, a, reflectToRegisterKind(typ.Kind()), k)
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 	case vm.OpWrite:
-		s += " " + strconv.Itoa(int(decodeAddr(a, b, c)))
+		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	}
 	return s
 }

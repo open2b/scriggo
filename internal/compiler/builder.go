@@ -274,14 +274,14 @@ var float64Type = reflect.TypeOf(0.0)
 var stringType = reflect.TypeOf("")
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 
-func encodeAddr(v uint32) (a, b, c int8) {
+func encodeUint24(v uint32) (a, b, c int8) {
 	a = int8(uint8(v >> 16))
 	b = int8(uint8(v >> 8))
 	c = int8(uint8(v))
 	return
 }
 
-func decodeAddr(a, b, c int8) uint32 {
+func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
@@ -310,7 +310,7 @@ func (builder *FunctionBuilder) End() {
 	fn := builder.fn
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
-		i.A, i.B, i.C = encodeAddr(builder.labels[label-1])
+		i.A, i.B, i.C = encodeUint24(builder.labels[label-1])
 		fn.Body[addr] = i
 	}
 	builder.gotos = nil
@@ -494,7 +494,7 @@ func (builder *FunctionBuilder) Break(label uint32) {
 		if addr == 0 {
 			builder.gotos[builder.CurrentAddr()] = label
 		} else {
-			in.A, in.B, in.C = encodeAddr(addr)
+			in.A, in.B, in.C = encodeUint24(addr)
 		}
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
@@ -587,7 +587,7 @@ func (builder *FunctionBuilder) Continue(label uint32) {
 		if addr == 0 {
 			builder.gotos[builder.CurrentAddr()] = label
 		} else {
-			in.A, in.B, in.C = encodeAddr(addr)
+			in.A, in.B, in.C = encodeUint24(addr)
 		}
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
@@ -786,7 +786,7 @@ func (builder *FunctionBuilder) Goto(label uint32) {
 		if addr == 0 {
 			builder.gotos[builder.CurrentAddr()] = label
 		} else {
-			in.A, in.B, in.C = encodeAddr(addr)
+			in.A, in.B, in.C = encodeUint24(addr)
 		}
 	}
 	builder.fn.Body = append(builder.fn.Body, in)
@@ -1233,7 +1233,7 @@ func (builder *FunctionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 //     out.Write(data)
 //
 func (builder *FunctionBuilder) Write(i uint32) {
-	a, b, c := encodeAddr(i)
+	a, b, c := encodeUint24(i)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpWrite, A: a, B: b, C: c})
 }
 
