@@ -106,7 +106,7 @@ func NewParser(r compiler.Reader, packages map[string]*native.GoPackage) *Parser
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string) (*ast.Tree, map[*ast.Identifier][]*ast.Identifier, error) {
+func (p *Parser) Parse(path string) (*ast.Tree, compiler.GlobalsDependencies, error) {
 
 	// Path must be absolute.
 	if path == "" {

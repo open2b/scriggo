@@ -15,6 +15,8 @@ import (
 // See https://golang.org/ref/spec#Package_initialization for further
 // informations.
 
+type GlobalsDependencies map[*ast.Identifier][]*ast.Identifier
+
 // dependencies analyzes dependencis between global declarations.
 type dependencies struct {
 
@@ -34,11 +36,11 @@ type dependencies struct {
 }
 
 // result returns all dependencies of global declarations.
-func (d *dependencies) result() map[*ast.Identifier][]*ast.Identifier {
+func (d *dependencies) result() GlobalsDependencies {
 	if d == nil {
 		return nil
 	}
-	out := map[*ast.Identifier][]*ast.Identifier{}
+	out := GlobalsDependencies{}
 	for glob, deps := range d.deps {
 		out[glob] = []*ast.Identifier{}
 		for d, count := range deps {

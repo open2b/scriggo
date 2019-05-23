@@ -106,7 +106,7 @@ type parsing struct {
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, deps map[*ast.Identifier][]*ast.Identifier, err error) {
+func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	switch ctx {
 	case ast.ContextNone, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
