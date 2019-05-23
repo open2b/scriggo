@@ -68,46 +68,43 @@ func (d *dependencies) exitScope() {
 	d.scopes = d.scopes[:len(d.scopes)-1]
 }
 
-// declareLocal sets lhs as declareLocal-declared, avoiding false-positive reports of
-// dependencies from global declarations.
-func (d *dependencies) declareLocal(lhs []*ast.Identifier) {
+// declare sets lhs as declared.
+func (d *dependencies) declare(lhs []*ast.Identifier) {
 	if d == nil {
 		return
 	}
 	if len(d.scopes) == 0 {
-		panic("cannot call localDeclared when there are no opened scopes")
-	}
-	for _, left := range lhs {
-		d.scopes[len(d.scopes)-1][left.Name] = struct{}{}
-		// When parser finds "var a = 10" inside a scope, a is parsed as identifier
-		// then added as dependency of current global declaration, reporting a false-positive.
-		curr := d.pending[0]
-		for dep := range d.deps[curr] {
-			if dep.Name == left.Name {
-				d.deps[curr][dep]--
+		// Global declaration.
+		if d == nil {
+			return
+		}
+		if d.deps == nil {
+			d.deps = map[*ast.Identifier]map[*ast.Identifier]int{}
+		}
+		if len(d.pending) > 0 {
+			panic(fmt.Errorf("called registerGlobals when there are still pending globals (%v)", d.pending))
+		}
+		// If len(lhs) is greater than one, parser is parsing a multiple
+		// assignment (var or const). If len(rhs) is one all left symbols share
+		// the same dependency set.
+		if len(lhs) > 1 {
+			d.lastLhs = lhs
+		}
+		d.pending = lhs
+	} else {
+		// Local declaration.
+		for _, left := range lhs {
+			d.scopes[len(d.scopes)-1][left.Name] = struct{}{}
+			// When parser finds "var a = 10" inside a scope, a is parsed as identifier
+			// then added as dependency of current global declaration, reporting a false-positive.
+			curr := d.pending[0]
+			for dep := range d.deps[curr] {
+				if dep.Name == left.Name {
+					d.deps[curr][dep]--
+				}
 			}
 		}
 	}
-}
-
-// declareGlobal registers lhs as global declarations.
-func (d *dependencies) declareGlobal(lhs []*ast.Identifier) {
-	if d == nil {
-		return
-	}
-	if d.deps == nil {
-		d.deps = map[*ast.Identifier]map[*ast.Identifier]int{}
-	}
-	if len(d.pending) > 0 {
-		panic(fmt.Errorf("called registerGlobals when there are still pending globals (%v)", d.pending))
-	}
-	// If len(lhs) is greater than one, parser is parsing a multiple
-	// assignment (var or const). If len(rhs) is one all left symbols share
-	// the same dependency set.
-	if len(lhs) > 1 {
-		d.lastLhs = lhs
-	}
-	d.pending = lhs
 }
 
 // end ends dependency evaluation of current global declaration.

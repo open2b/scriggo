@@ -40,7 +40,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 	}
 	if len(p.ancestors) == 2 && ident != nil {
-		p.deps.declareGlobal([]*ast.Identifier{ident})
+		p.deps.declare([]*ast.Identifier{ident})
 	}
 	if kind&parseFuncType == 0 {
 		p.deps.enterScope()

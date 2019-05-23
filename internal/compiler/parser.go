@@ -378,7 +378,7 @@ func (p *parsing) parseStatement(tok token) {
 			if expr == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			p.deps.declareLocal([]*ast.Identifier{ident})
+			p.deps.declare([]*ast.Identifier{ident})
 			assignment := ast.NewAssignment(&ast.Position{ipos.Line, ipos.Column, ipos.Start, expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
@@ -440,7 +440,7 @@ func (p *parsing) parseStatement(tok token) {
 				if assignmentType == ast.AssignmentDeclaration {
 					for _, left := range variables {
 						if ident, ok := left.(*ast.Identifier); ok {
-							p.deps.declareLocal([]*ast.Identifier{ident})
+							p.deps.declare([]*ast.Identifier{ident})
 						}
 					}
 				}
@@ -1273,9 +1273,9 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		// var/const  a     = ...
 		// var/const  a, b  = ...
 		if len(p.ancestors) == 2 {
-			p.deps.declareGlobal(idents)
+			p.deps.declare(idents)
 		} else {
-			p.deps.declareLocal(idents)
+			p.deps.declare(idents)
 		}
 		exprs, tok = p.parseExprList(token{}, false, false, false, false)
 		if len(exprs) == 0 {
@@ -1291,7 +1291,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
 		if len(p.ancestors) == 2 {
-			p.deps.declareGlobal(idents)
+			p.deps.declare(idents)
 		}
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...
@@ -1397,7 +1397,7 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	if typ == ast.AssignmentDeclaration {
 		for _, left := range variables {
 			if ident, ok := left.(*ast.Identifier); ok {
-				p.deps.declareLocal([]*ast.Identifier{ident})
+				p.deps.declare([]*ast.Identifier{ident})
 			}
 		}
 	}
