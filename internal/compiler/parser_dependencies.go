@@ -17,6 +17,14 @@ import (
 
 type GlobalsDependencies map[*ast.Identifier][]*ast.Identifier
 
+// TODO(Gianluca): consider implementing dependencies using channel
+// communication instead of method calling.
+// Something like:
+//
+// 	p.deps <- {EventIdentifier, ident}
+//	p.deps <- {EventDeclare, lhs}
+//	deps <- p.result()
+
 // dependencies analyzes dependencis between global declarations.
 type dependencies struct {
 
