@@ -145,10 +145,10 @@ func (d *dependencies) endList() {
 	d.pending = nil
 }
 
-// uses sets name as used by current global declaration, which will make
+// identifier sets name as used by current global declaration, which will make
 // dinstiction between global declarations (that introduce a dependency) and
 // local declarations (that do not).
-func (d *dependencies) use(name *ast.Identifier) {
+func (d *dependencies) identifier(name *ast.Identifier) {
 	if d == nil {
 		return
 	}

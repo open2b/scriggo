@@ -782,7 +782,7 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 // parseIdentifierNode returns an Identifier node from a token.
 func (p *parsing) parseIdentifierNode(tok token) *ast.Identifier {
 	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
-	p.deps.use(ident)
+	p.deps.identifier(ident)
 	return ident
 }
 
