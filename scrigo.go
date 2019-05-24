@@ -28,11 +28,15 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 	if err != nil {
 		return nil, err
 	}
-	tci := map[string]*compiler.PackageInfo{}
-	err = compiler.CheckPackage(tree, deps, packages, tci)
+
+	opts := &compiler.Options{
+		IsPackage: true,
+	}
+	tci, err := compiler.Typecheck(opts, tree, nil, packages, deps, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	typeInfos := map[ast.Node]*compiler.TypeInfo{}
 	for _, pkgInfos := range tci {
 		for node, ti := range pkgInfos.TypeInfo {

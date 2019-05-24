@@ -44,12 +44,13 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 		return nil, convertError(err)
 	}
 
-	// Type checking.
-	pkgInfo, err := typecheck(tree, main)
+	opts := &compiler.Options{
+		IsPackage: false,
+	}
+	tci, err := compiler.Typecheck(opts, tree, main, nil, nil, tcBuiltins)
 	if err != nil {
 		return nil, err
 	}
-	tci := map[string]*compiler.PackageInfo{"main": pkgInfo}
 
 	// Emitting.
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
@@ -85,28 +86,6 @@ func convertError(err error) error {
 		return compiler.ErrNotExist
 	}
 	return err
-}
-
-func typecheck(tree *ast.Tree, main *native.GoPackage) (_ *compiler.PackageInfo, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*compiler.Error); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	tc := compiler.NewTypechecker(tree.Path, true)
-	tc.Universe = compiler.Universe
-	if main != nil {
-		tc.Scopes = append(tc.Scopes, tcBuiltins, compiler.ToTypeCheckerScope(main))
-	}
-	tc.CheckNodesInNewScope(tree.Nodes)
-	pkgInfo := &compiler.PackageInfo{}
-	pkgInfo.IndirectVars = tc.IndirectVars
-	pkgInfo.TypeInfo = tc.TypeInfo
-	return pkgInfo, err
 }
 
 // Parser implements a parser that reads the tree from a Reader and expands

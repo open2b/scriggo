@@ -40,7 +40,8 @@ func TestCheckScript(t *testing.T) {
 			t.Errorf("parsing error: %s", err)
 			continue
 		}
-		_, err = typecheck(tree, c.main)
+		opts := &compiler.Options{IsPackage: false}
+		_, err = compiler.Typecheck(opts, tree, c.main, nil, nil, nil)
 		if err != nil {
 			t.Errorf("type checking error: %s", err)
 		}

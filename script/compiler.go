@@ -42,12 +42,13 @@ func Compile(src io.Reader, main *native.GoPackage, alloc bool) (*Script, error)
 		return nil, err
 	}
 
-	// Type checking.
-	pkgInfo, err := typecheck(tree, main)
+	opts := &compiler.Options{
+		IsPackage: false,
+	}
+	tci, err := compiler.Typecheck(opts, tree, main, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	tci := map[string]*compiler.PackageInfo{"main": pkgInfo}
 
 	// Emitting.
 	// TODO(Gianluca): pass "main" to emitter.
@@ -89,26 +90,4 @@ func Execute(script *Script, vars map[string]interface{}, freeMemory int) error 
 	vmm.SetFreeMemory(freeMemory)
 	_, err := vmm.Run(script.Fn)
 	return err
-}
-
-func typecheck(tree *ast.Tree, main *native.GoPackage) (_ *compiler.PackageInfo, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*compiler.Error); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	tc := compiler.NewTypechecker(tree.Path, true)
-	tc.Universe = compiler.Universe
-	if main != nil {
-		tc.Scopes = append(tc.Scopes, compiler.ToTypeCheckerScope(main))
-	}
-	tc.CheckNodesInNewScope(tree.Nodes)
-	pkgInfo := &compiler.PackageInfo{}
-	pkgInfo.IndirectVars = tc.IndirectVars
-	pkgInfo.TypeInfo = tc.TypeInfo
-	return pkgInfo, err
 }
