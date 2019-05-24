@@ -183,7 +183,7 @@ func (vm *VM) alloc() {
 	if k {
 		op = -op
 	}
-	var size int
+	var bytes int
 	switch op {
 	case OpAppend:
 		var elemSize int
@@ -217,9 +217,9 @@ func (vm *VM) alloc() {
 			if sl < sl+l {
 				panic(ErrOutOfMemory)
 			}
-			cap := appendCap(sc, sl, sl+l)
-			size = cap * elemSize
-			if size/cap != elemSize {
+			capacity := appendCap(sc, sl, sl+l)
+			bytes = capacity * elemSize
+			if bytes/capacity != elemSize {
 				panic(ErrOutOfMemory)
 			}
 		}
@@ -254,127 +254,98 @@ func (vm *VM) alloc() {
 			if nl < sl {
 				panic(ErrOutOfMemory)
 			}
-			cap := appendCap(sc, sl, nl)
-			size = cap * elemSize
-			if size/cap != elemSize {
+			capacity := appendCap(sc, sl, nl)
+			bytes = capacity * elemSize
+			if bytes/capacity != elemSize {
 				panic(ErrOutOfMemory)
 			}
 		}
-	case OpConvertGeneral:
+	case OpConvertGeneral: // TODO(marco): implement in the builder.
 		t := vm.fn.Types[uint8(b)]
 		switch t.Kind() {
-		case reflect.Array:
-			size = reflect.ValueOf(vm.general(a)).Len() * int(t.Size())
 		case reflect.Func:
 			call := vm.general(a).(*callable)
 			if !call.value.IsValid() {
 				// Approximated size based on makeFuncImpl in
 				// https://golang.org/src/reflect/makefunc.go
-				size = 100
+				bytes = 100
 			}
 		default:
-			size = int(reflect.TypeOf(vm.general(a)).Size())
+			bytes = int(reflect.TypeOf(vm.general(a)).Size())
 		}
-	case OpConvertString:
+	case OpConvertString: // TODO(marco): implement in the builder.
 		t := vm.fn.Types[uint8(b)]
 		if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Int32 {
 			length := len([]rune(vm.string(a)))
-			size = length * 4
-			if size/4 != length {
+			bytes = length * 4
+			if bytes/4 != length {
 				panic(ErrOutOfMemory)
 			}
 		} else {
-			size = len(vm.string(a))
+			bytes = len(vm.string(a))
 		}
 	case OpConcat:
 		aLen := len(vm.string(a))
 		bLen := len(vm.string(b))
-		size = aLen + bLen
-		if size < aLen {
+		bytes = aLen + bLen
+		if bytes < aLen {
 			panic(ErrOutOfMemory)
 		}
-	case OpFunc:
-		fn := vm.fn.Literals[uint8(b)]
-		size = 32 + len(fn.VarRefs)*16
-	case OpGetFunc:
-		size = 32
 	case OpMakeChan:
 		typ := vm.fn.Types[uint8(a)]
-		buffer := int(vm.intk(b, k))
+		capacity := int(vm.intk(b, k))
 		ts := int(typ.Size())
-		size = ts * buffer
-		if size/ts != buffer {
+		bytes = ts * capacity
+		if bytes/ts != capacity {
 			panic(ErrOutOfMemory)
 		}
-		size += 10 * 8
-		if size < 0 {
+		bytes += 10 * 8
+		if bytes < 0 {
 			panic(ErrOutOfMemory)
 		}
 	case OpMakeMap:
 		// The size is approximated. The actual size depend on the type and
 		// architecture.
-		n := int(vm.intk(b, k))
-		size = 4 + 50*n
-		if size < 0 {
+		n := int(vm.int(b))
+		bytes = 50 * n
+		if bytes/50 != n {
+			panic(ErrOutOfMemory)
+		}
+		bytes += 24
+		if bytes < 0 {
 			panic(ErrOutOfMemory)
 		}
 	case OpMakeSlice:
 		typ := vm.fn.Types[uint8(a)]
-		if b > 1 {
-			isConst := (b & (1 << 2)) != 0
-			cap := int(vm.intk(vm.fn.Body[vm.pc+1].B, isConst))
-			ts := int(typ.Elem().Size())
-			size = ts * cap
-			if size/ts != cap {
-				panic(ErrOutOfMemory)
-			}
+		capacity := int(vm.intk(vm.fn.Body[vm.pc+1].B, k))
+		ts := int(typ.Elem().Size())
+		bytes = ts * capacity
+		if bytes/ts != capacity {
+			panic(ErrOutOfMemory)
 		}
-		size += 24
-		if size < 0 {
+		bytes += 24
+		if bytes < 0 {
 			panic(ErrOutOfMemory)
 		}
 	case OpNew:
 		t := vm.fn.Types[uint8(b)]
-		size = int(t.Size())
+		bytes = int(t.Size())
 	case OpSetMap:
 		m := vm.general(a)
-		switch m.(type) {
-		case map[string]string:
-			size = 32
-		case map[string]int:
-			size = 24
-		case map[string]bool:
-			size = 17
-		case map[string]struct{}:
-			size = 16
-		case map[string]interface{}:
-			size = 32
-		case map[int]int:
-			size = 16
-		case map[int]bool:
-			size = 9
-		case map[int]string:
-			size = 24
-		case map[int]struct{}:
-			size = 8
-		default:
-			t := reflect.TypeOf(m)
-			kSize := int(t.Key().Size())
-			eSize := int(t.Elem().Size())
-			size = kSize + eSize
-			if size < kSize {
-				panic(ErrOutOfMemory)
-			}
+		t := reflect.TypeOf(m)
+		kSize := int(t.Key().Size())
+		eSize := int(t.Elem().Size())
+		bytes = kSize + eSize
+		if bytes < 0 {
+			panic(ErrOutOfMemory)
 		}
-	case OpStringIndex:
-		size = 8
 	}
-	if size != 0 {
+	if bytes != 0 {
 		var free int
 		vm.ctx.Lock()
 		free = vm.ctx.freeMemory
 		if free >= 0 {
-			free -= size
+			free -= bytes
 			vm.ctx.freeMemory = free
 		}
 		vm.ctx.Unlock()
@@ -965,6 +936,10 @@ const (
 	recovered
 )
 
+// Size of a CallFrame.
+const CallFrameSize = 88
+
+// If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
 	fn        callable   // function.
 	fp        [4]uint32  // frame pointers.

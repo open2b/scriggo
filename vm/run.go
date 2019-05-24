@@ -108,7 +108,7 @@ func (vm *VM) run() (uint32, bool) {
 		case -OpAddFloat64:
 			vm.setFloat(c, vm.float(a)+float64(b))
 
-		// OpAlloc
+		// Alloc
 		case OpAlloc:
 			vm.alloc()
 		case -OpAlloc:

@@ -100,11 +100,11 @@ func runScrigoAndGetOutput(src []byte) output {
 	wg.Wait()
 
 	r := compiler.MapReader{"/main.go": src}
-	program, err := scrigo.Compile("/main.go", r, packages)
+	program, err := scrigo.Compile("/main.go", r, packages, true)
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	err = scrigo.Execute(program, nil)
+	err = scrigo.Execute(program, nil, 1000000)
 	if err != nil {
 		return makeOutput(err.Error())
 	}

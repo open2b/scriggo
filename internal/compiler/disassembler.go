@@ -272,6 +272,8 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	case vm.OpAlloc:
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
+		} else {
+			s += " *"
 		}
 	case vm.OpAppend:
 		s += " " + disassembleOperand(fn, a, vm.Int, true)

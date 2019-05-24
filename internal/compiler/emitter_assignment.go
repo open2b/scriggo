@@ -59,7 +59,7 @@ func (a address) assign(k bool, value int8, dynamicType reflect.Type) {
 	case addressSliceIndex:
 		a.c.FB.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
 	case addressMapIndex:
-		a.c.FB.SetMap(k, a.reg1, value, a.reg2)
+		a.c.FB.SetMap(k, a.reg1, value, a.reg2, a.staticType)
 	case addressStructSelector:
 		panic("TODO(Gianluca): not implemented")
 	case addressPackageVariable:
