@@ -273,6 +273,13 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		if k {
 			s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 		}
+	case vm.OpAppend:
+		s += " " + disassembleOperand(fn, a, vm.Int, true)
+		s += " " + disassembleOperand(fn, b, vm.Int, true)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+	case vm.OpAppendSlice, vm.OpSend:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpAssert:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " type(" + fn.Types[b].String() + ")"
@@ -469,9 +476,6 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		}
 	case vm.OpSelector:
 		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
-	case vm.OpSend:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
