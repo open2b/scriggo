@@ -72,10 +72,6 @@ func (pi *PackageInfo) String() string {
 	return s
 }
 
-// notCheckedGlobal represents the type info of a not type-checked package
-// declaration.
-var notCheckedGlobal = &TypeInfo{}
-
 func depsOf(name string, deps GlobalsDependencies) []*ast.Identifier {
 	for g, d := range deps {
 		if g.Name == name {
@@ -227,7 +223,6 @@ constsLoop:
 			}
 			if depsOk {
 				// All dependencies of consts are resolved.
-				loop = false
 				sortedConsts = append(sortedConsts, c)
 				consts = append(consts[:i], consts[i+1:]...)
 				continue constsLoop
@@ -286,7 +281,6 @@ varsLoop:
 			}
 			if depsOk {
 				// All dependencies of vars are resolved.
-				loop = false
 				sortedVars = append(sortedVars, v)
 				vars = append(vars[:i], vars[i+1:]...)
 				continue varsLoop
