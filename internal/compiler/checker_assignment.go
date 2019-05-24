@@ -288,7 +288,11 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
 			tmpScope[newVar] = scopeElement{t: ti}
-			delete(tc.Scopes[len(tc.Scopes)-1], newVar)
+			if len(tc.Scopes) > 0 {
+				delete(tc.Scopes[len(tc.Scopes)-1], newVar)
+			} else {
+				delete(tc.filePackageBlock, newVar)
+			}
 		}
 		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(vars[i]) {
 			panic(tc.errorf(node, "%s redeclared in this block", vars[i]))

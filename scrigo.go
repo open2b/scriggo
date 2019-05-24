@@ -25,12 +25,11 @@ type Program struct {
 func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage, alloc bool) (*Program, error) {
 	p := NewParser(reader, packages)
 	tree, deps, err := p.Parse(path)
-	_ = deps
 	if err != nil {
 		return nil, err
 	}
 	tci := map[string]*compiler.PackageInfo{}
-	err = compiler.CheckPackage(tree, packages, tci)
+	err = compiler.CheckPackage(tree, deps, packages, tci)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +123,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, compiler.GlobalsDependencies, er
 
 	pp := &expansion{p.reader, p.trees, p.packages, []string{}}
 
-	tree, err := pp.parsePath(path)
+	tree, deps, err := pp.parsePath(path)
 	if err != nil {
 		if err2, ok := err.(*compiler.SyntaxError); ok && err2.Path == "" {
 			err2.Path = path
@@ -137,7 +136,7 @@ func (p *Parser) Parse(path string) (*ast.Tree, compiler.GlobalsDependencies, er
 		return nil, nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
 	}
 
-	return tree, nil, nil
+	return tree, deps, nil
 }
 
 // TypeCheckInfos returns the type-checking infos collected during
@@ -169,51 +168,56 @@ func (pp *expansion) abs(path string) (string, error) {
 
 // parsePath parses the source at path in context ctx. path must be absolute
 // and cleared.
-func (pp *expansion) parsePath(path string) (*ast.Tree, error) {
+func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependencies, error) {
 
 	// Checks if there is a cycle.
 	for _, p := range pp.paths {
 		if p == path {
-			return nil, compiler.CycleError(path)
+			return nil, nil, compiler.CycleError(path)
 		}
 	}
 
 	// Checks if it has already been parsed.
 	if tree, ok := pp.trees.Get(path, ast.ContextNone); ok {
-		return tree, nil
+		return tree, nil, nil
 	}
 	defer pp.trees.Done(path, ast.ContextNone)
 
 	src, err := pp.reader.Read(path, ast.ContextNone)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	tree, _, err := compiler.ParseSource(src, true, ast.ContextNone)
+	tree, deps, err := compiler.ParseSource(src, true, ast.ContextNone)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tree.Path = path
 
 	// Expands the nodes.
 	pp.paths = append(pp.paths, path)
-	err = pp.expand(tree.Nodes)
+	expandedDeps, err := pp.expand(tree.Nodes)
 	if err != nil {
 		if e, ok := err.(*compiler.SyntaxError); ok && e.Path == "" {
 			e.Path = path
 		}
-		return nil, err
+		return nil, nil, err
+	}
+	for k, v := range expandedDeps {
+		deps[k] = v
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
 	// Adds the tree to the compiler.Cache.
 	pp.trees.Add(path, ast.ContextNone, tree)
 
-	return tree, nil
+	return tree, deps, nil
 }
 
 // expand expands the nodes parsing the sub-trees in context ctx.
-func (pp *expansion) expand(nodes []ast.Node) error {
+func (pp *expansion) expand(nodes []ast.Node) (compiler.GlobalsDependencies, error) {
+
+	allDeps := compiler.GlobalsDependencies{}
 
 	for _, node := range nodes {
 
@@ -221,16 +225,19 @@ func (pp *expansion) expand(nodes []ast.Node) error {
 
 		case *ast.Package:
 
-			err := pp.expand(n.Declarations)
+			deps, err := pp.expand(n.Declarations)
 			if err != nil {
-				return err
+				return nil, err
+			}
+			for k, v := range deps {
+				allDeps[k] = v
 			}
 
 		case *ast.Import:
 
 			absPath, err := pp.abs(n.Path)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			found := false
 			for path := range pp.packages {
@@ -242,7 +249,8 @@ func (pp *expansion) expand(nodes []ast.Node) error {
 			if found {
 				continue
 			}
-			n.Tree, err = pp.parsePath(absPath + ".go")
+			var deps compiler.GlobalsDependencies
+			n.Tree, deps, err = pp.parsePath(absPath + ".go")
 			if err != nil {
 				if err == compiler.ErrInvalidPath {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
@@ -251,12 +259,15 @@ func (pp *expansion) expand(nodes []ast.Node) error {
 				} else if err2, ok := err.(compiler.CycleError); ok {
 					err = compiler.CycleError("imports " + string(err2))
 				}
-				return err
+				return nil, err
+			}
+			for k, v := range deps {
+				allDeps[k] = v
 			}
 
 		}
 
 	}
 
-	return nil
+	return allDeps, nil
 }

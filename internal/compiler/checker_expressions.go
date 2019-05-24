@@ -227,9 +227,17 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 	return nil, false
 }
 
-// assignScope assigns value to name in the last scope.
+// assignScope assigns value to name in the last scope. If there are no scopes,
+// value is assigned in file/package block.
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
-	tc.Scopes[len(tc.Scopes)-1][name] = scopeElement{t: value, decl: declNode}
+	if len(tc.Scopes) == 0 {
+		if _, ok := tc.filePackageBlock[name]; ok {
+			panic("redeclared in this block...") // TODO(Gianluca): to review.
+		}
+		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
+	} else {
+		tc.Scopes[len(tc.Scopes)-1][name] = scopeElement{t: value, decl: declNode}
+	}
 }
 
 func (tc *typechecker) addToAncestors(n ast.Node) {

@@ -1821,12 +1821,12 @@ func TestGotoLabels(t *testing.T) {
 	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
-			tree, _, err := ParseSource([]byte(cas.src), true, ast.ContextNone)
+			tree, deps, err := ParseSource([]byte(cas.src), true, ast.ContextNone)
 			if err != nil {
 				t.Error(err)
 				return
 			}
-			err = CheckPackage(tree, nil, nil)
+			err = CheckPackage(tree, deps, nil, nil)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

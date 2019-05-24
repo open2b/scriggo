@@ -76,135 +76,251 @@ func (pi *PackageInfo) String() string {
 // declaration.
 var notCheckedGlobal = &TypeInfo{}
 
-func (tc *typechecker) precheckDeclarations(declarations []ast.Node, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) error {
-	for _, n := range declarations {
-		switch n := n.(type) {
-		case *ast.Import:
-			importedPkg := &PackageInfo{}
-			if n.Tree == nil {
-				// Go package.
-				goPkg, ok := imports[n.Path]
-				if !ok {
-					return tc.errorf(n, "cannot find package %q", n.Path)
-				}
-				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
-				for n, d := range ToTypeCheckerScope(goPkg) {
-					importedPkg.Declarations[n] = d.t
-				}
-				importedPkg.Name = goPkg.Name
-			} else {
-				// Scrigo package.
-				var err error
-				err = CheckPackage(n.Tree, nil, pkgInfos)
-				importedPkg = pkgInfos[n.Tree.Path]
-				if err != nil {
-					return err
-				}
-			}
-			if n.Ident == nil {
-				tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-				tc.unusedImports[importedPkg.Name] = nil
-			} else {
-				switch n.Ident.Name {
-				case "_":
-				case ".":
-					tc.unusedImports[importedPkg.Name] = nil
-					for ident, ti := range importedPkg.Declarations {
-						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
-						tc.filePackageBlock[ident] = scopeElement{t: ti}
-					}
-				default:
-					tc.filePackageBlock[n.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-					tc.unusedImports[n.Ident.Name] = nil
-				}
-			}
-		case *ast.Const:
-			for i := range n.Identifiers {
-				name := n.Identifiers[i].Name
-				if _, ok := tc.filePackageBlock[name]; ok {
-					panic(tc.errorf(n.Identifiers[i], "%s redeclared in this block", name))
-				}
-				tc.filePackageBlock[name] = scopeElement{t: notCheckedGlobal}
-				tc.declarations = append(tc.declarations, &Declaration{Node: n, Identifier: n.Identifiers[i], Value: n.Values[i], Type: n.Type, DeclType: DeclConst})
-			}
-		case *ast.Var:
-
-			switch {
-			case len(n.Lhs) == len(n.Rhs):
-				for i := range n.Lhs {
-					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
-						decl: n.Lhs[i],
-						t:    notCheckedGlobal,
-					}
-					tc.declarations = append(tc.declarations, &Declaration{
-						DeclType:   DeclVar,
-						Identifier: n.Lhs[0],
-						Node:       n,
-						Type:       n.Type,
-						Value:      n.Rhs[i],
-					})
-				}
-			case len(n.Rhs) == 0:
-				for i := range n.Lhs {
-					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
-						decl: n.Lhs[i],
-						t:    notCheckedGlobal,
-					}
-					tc.declarations = append(tc.declarations, &Declaration{
-						DeclType:   DeclVar,
-						Identifier: n.Lhs[0],
-						Node:       n,
-						Type:       n.Type,
-						Value:      nil,
-					})
-				}
-			default:
-				for i := range n.Lhs {
-					tc.filePackageBlock[n.Lhs[i].Name] = scopeElement{
-						decl: n.Lhs[i],
-						t:    notCheckedGlobal,
-					}
-				}
-				tc.declarations = append(tc.declarations, &Declaration{
-					DeclType: DeclVar,
-					Node:     n,
-					Type:     n.Type,
-				})
-			}
-
-		case *ast.TypeDeclaration:
-			// TODO (Gianluca): add support for types referring to other
-			// types defined later. See
-			// https://play.golang.org/p/RJ8WruPku0U.
-			// TODO (Gianluca): all types are defined as alias
-			// declarations.
-			if isBlankIdentifier(n.Identifier) {
-				continue
-			}
-			name := n.Identifier.Name
-			typ := tc.checkType(n.Type, noEllipses)
-			tc.filePackageBlock[name] = scopeElement{t: typ}
-
-		case *ast.Func:
-			if n.Ident.Name == "init" || n.Ident.Name == "main" {
-				if len(n.Type.Parameters) > 0 || len(n.Type.Result) > 0 {
-					panic(tc.errorf(n.Ident, "func %s must have no arguments and no return values", n.Ident.Name))
-				}
-			} else {
-				if _, ok := tc.filePackageBlock[n.Ident.Name]; ok {
-					panic(tc.errorf(n.Ident, "%s redeclared in this block", n.Ident.Name))
-				}
-			}
-			tc.declarations = append(tc.declarations, &Declaration{Identifier: n.Ident, Node: n, Value: n.Body, Type: n.Type, DeclType: DeclFunc})
-			tc.filePackageBlock[n.Ident.Name] = scopeElement{t: notCheckedGlobal}
+func depsOf(name string, deps GlobalsDependencies) []*ast.Identifier {
+	for g, d := range deps {
+		if g.Name == name {
+			return d
 		}
 	}
-
 	return nil
 }
 
+func checkDepsPath(path []*ast.Identifier, deps GlobalsDependencies) []*ast.Identifier {
+	last := path[len(path)-1]
+	for _, dep := range depsOf(last.Name, deps) {
+		for _, p := range path {
+			if p.Name == dep.Name {
+				return append(path, dep)
+			}
+		}
+		loopPath := checkDepsPath(append(path, dep), deps)
+		if loopPath != nil {
+			return loopPath
+		}
+	}
+	return nil
+}
+
+func detectConstantsLoop(consts []*ast.Const, deps GlobalsDependencies) error {
+	for _, c := range consts {
+		path := []*ast.Identifier{c.Identifiers[0]}
+		loopPath := checkDepsPath(path, deps)
+		if loopPath != nil {
+			msg := "constant definition loop\n"
+			for i := 0; i < len(loopPath)-1; i++ {
+				msg += "\t" + loopPath[i].Pos().String() + ": "
+				msg += loopPath[i].String() + " uses " + loopPath[i+1].String()
+				msg += "\n"
+			}
+			return errors.New(msg)
+		}
+	}
+	return nil
+}
+
+func detectVarsLoop(vars []*ast.Var, deps GlobalsDependencies) error {
+	for _, v := range vars {
+		for _, left := range v.Lhs {
+			path := []*ast.Identifier{left}
+			loopPath := checkDepsPath(path, deps)
+			if loopPath != nil {
+				msg := "typechecking loop involving " + v.String() + "\n"
+				for _, p := range loopPath {
+					msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
+				}
+				return errors.New(msg)
+			}
+		}
+	}
+	return nil
+}
+
+func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
+	consts := []*ast.Const{}
+	vars := []*ast.Var{}
+	imports := []*ast.Import{}
+	funcs := []*ast.Func{}
+
+	// Fragments global declarations.
+	for _, decl := range pkg.Declarations {
+		switch decl := decl.(type) {
+		case *ast.Import:
+			imports = append(imports, decl)
+		case *ast.Func:
+			funcs = append(funcs, decl)
+		case *ast.Const:
+			if len(decl.Values) != len(decl.Identifiers) {
+				panic("TODO(Gianluca): not implemented")
+			}
+			for i := range decl.Identifiers {
+				consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, decl.Values[i:i+1]))
+			}
+		case *ast.Var:
+			if len(decl.Lhs) == len(decl.Rhs) {
+				for i := range decl.Lhs {
+					vars = append(vars, ast.NewVar(decl.Pos(), decl.Lhs[i:i+1], decl.Type, decl.Rhs[i:i+1]))
+				}
+			} else {
+				vars = append(vars, decl)
+			}
+		}
+	}
+
+	// Removes from deps all non-global dependencies.
+	for decl, ds := range deps {
+		newDs := []*ast.Identifier{}
+		for _, d := range ds {
+			// Is d a global identifier?
+			for _, c := range consts {
+				if c.Identifiers[0].Name == d.Name {
+					newDs = append(newDs, d)
+				}
+			}
+			for _, f := range funcs {
+				if f.Ident.Name == d.Name {
+					newDs = append(newDs, d)
+				}
+			}
+			for _, v := range vars {
+				for _, left := range v.Lhs {
+					if left.Name == d.Name {
+						newDs = append(newDs, d)
+					}
+				}
+			}
+		}
+		deps[decl] = newDs
+	}
+
+	err := detectConstantsLoop(consts, deps)
+	if err != nil {
+		return err
+	}
+	err = detectVarsLoop(vars, deps)
+	if err != nil {
+		return err
+	}
+
+	// Sorts constants.
+	sortedConsts := []*ast.Const{}
+constsLoop:
+	for len(consts) > 0 {
+		loop := true
+		// Searches for next constant with resolved deps.
+		for i, c := range consts {
+			depsOk := true
+			for _, dep := range deps[c.Identifiers[0]] {
+				found := false
+				for _, resolvedC := range sortedConsts {
+					if dep.Name == resolvedC.Identifiers[0].Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
+				if !found {
+					// A dependency of c cannot be found.
+					depsOk = false
+					break
+				}
+			}
+			if depsOk {
+				// All dependencies of consts are resolved.
+				loop = false
+				sortedConsts = append(sortedConsts, c)
+				consts = append(consts[:i], consts[i+1:]...)
+				continue constsLoop
+			}
+		}
+		if loop {
+			// All remaining constants are added as "sorted"; a later
+			// stage of typechecking will report the error (usually a not
+			// defined symbol).
+			sortedConsts = append(sortedConsts, consts...)
+		}
+	}
+
+	// Sorts variables.
+	sortedVars := []*ast.Var{}
+varsLoop:
+	for len(vars) > 0 {
+		loop := true
+		// Searches for next variable with resolved deps.
+		for i, v := range vars {
+			depsOk := true
+			for _, dep := range deps[v.Lhs[0]] {
+				found := false
+			resolvedLoop:
+				for _, resolvedV := range sortedVars {
+					for _, left := range resolvedV.Lhs {
+						if dep.Name == left.Name {
+							// This dependency has been resolved: move
+							// on checking for next one.
+							found = true
+							break resolvedLoop
+						}
+					}
+				}
+				for _, resolvedC := range sortedConsts {
+					if dep.Name == resolvedC.Identifiers[0].Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
+				for _, f := range funcs {
+					if dep.Name == f.Ident.Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
+				if !found {
+					// A dependency of v cannot be found.
+					depsOk = false
+					break
+				}
+			}
+			if depsOk {
+				// All dependencies of vars are resolved.
+				loop = false
+				sortedVars = append(sortedVars, v)
+				vars = append(vars[:i], vars[i+1:]...)
+				continue varsLoop
+			}
+		}
+		if loop {
+			// All remaining vars are added as "sorted"; a later stage of
+			// typechecking will report the error (usually a not defined
+			// symbol).
+			sortedVars = append(sortedVars, vars...)
+		}
+	}
+
+	sorted := []ast.Node{}
+	for _, imp := range imports {
+		sorted = append(sorted, imp)
+	}
+	for _, c := range sortedConsts {
+		sorted = append(sorted, c)
+	}
+	for _, v := range sortedVars {
+		sorted = append(sorted, v)
+	}
+	for _, f := range funcs {
+		sorted = append(sorted, f)
+	}
+	pkg.Declarations = sorted
+
+	return nil
+
+}
+
 // CheckPackage type checks a package.
-func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
+func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -229,46 +345,83 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 	tc := NewTypechecker(tree.Path, false)
 	tc.Universe = Universe
 
-	err = tc.precheckDeclarations(packageNode.Declarations, imports, pkgInfos)
+	err = sortDeclarations(packageNode, deps)
 	if err != nil {
 		return err
 	}
 
-	// Constants.
-	for _, c := range tc.declarations {
-		if c.DeclType == DeclConst {
-			tc.currentGlobal = c.Identifier.Name
-			tc.globalEvalPath = []string{c.Identifier.Name}
-			tc.globalTemp = make(map[string]*TypeInfo)
-			ti := tc.checkExpression(c.Value.(ast.Expression))
-			if !ti.IsConstant() {
-				return tc.errorf(c.Value, "const initializer %v is not a constant", c.Value)
-			}
-			if c.Type != nil {
-				typ := tc.checkType(c.Type, noEllipses)
-				if !isAssignableTo(ti, typ.Type) {
-					return tc.errorf(c.Value, "cannot convert %v (type %s) to type %v", c.Value, ti.String(), typ.Type)
+	// Defines functions in file/package block before checking all
+	// declarations.
+	for _, d := range packageNode.Declarations {
+		if f, ok := d.(*ast.Func); ok {
+			if f.Ident.Name == "init" || f.Ident.Name == "main" {
+				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
+					panic(tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name))
 				}
 			}
-			tc.filePackageBlock[c.Identifier.Name] = scopeElement{t: ti}
+			if f.Ident.Name != "init" {
+				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
+					panic(tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name))
+				}
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
+			}
 		}
 	}
 
-	// Functions.
-	for _, v := range tc.declarations {
-		if v.DeclType == DeclFunc {
+	for _, d := range packageNode.Declarations {
+		switch d := d.(type) {
+		case *ast.Import:
+			importedPkg := &PackageInfo{}
+			if d.Tree == nil {
+				// Go package.
+				goPkg, ok := imports[d.Path]
+				if !ok {
+					return tc.errorf(d, "cannot find package %q", d.Path)
+				}
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
+				for n, d := range ToTypeCheckerScope(goPkg) {
+					importedPkg.Declarations[n] = d.t
+				}
+				importedPkg.Name = goPkg.Name
+			} else {
+				// Scrigo package.
+				var err error
+				err = CheckPackage(d.Tree, nil, nil, pkgInfos) // TODO(Gianluca): where are deps?
+				importedPkg = pkgInfos[d.Tree.Path]
+				if err != nil {
+					return err
+				}
+			}
+			if d.Ident == nil {
+				tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+				tc.unusedImports[importedPkg.Name] = nil
+			} else {
+				switch d.Ident.Name {
+				case "_":
+				case ".":
+					tc.unusedImports[importedPkg.Name] = nil
+					for ident, ti := range importedPkg.Declarations {
+						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+						tc.filePackageBlock[ident] = scopeElement{t: ti}
+					}
+				default:
+					tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.unusedImports[d.Ident.Name] = nil
+				}
+			}
+		case *ast.Func:
 			tc.addScope()
-			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), v.Node})
+			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), d})
 			// Adds parameters to the function body scope.
-			fillParametersTypes(v.Type.(*ast.FuncType).Parameters)
-			isVariadic := v.Type.(*ast.FuncType).IsVariadic
-			for i, param := range v.Type.(*ast.FuncType).Parameters {
+			fillParametersTypes(d.Type.Parameters)
+			isVariadic := d.Type.IsVariadic
+			for i, param := range d.Type.Parameters {
 				t := tc.checkType(param.Type, noEllipses)
 				new := ast.NewValue(t.Type)
 				tc.replaceTypeInfo(param.Type, new)
 				param.Type = new
 				if param.Ident != nil {
-					if isVariadic && i == len(v.Type.(*ast.FuncType).Parameters)-1 {
+					if isVariadic && i == len(d.Type.Parameters)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
 					} else {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
@@ -276,8 +429,8 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 				}
 			}
 			// Adds named return values to the function body scope.
-			fillParametersTypes(v.Type.(*ast.FuncType).Result)
-			for _, ret := range v.Type.(*ast.FuncType).Result {
+			fillParametersTypes(d.Type.Result)
+			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type, noEllipses)
 				new := ast.NewValue(t.Type)
 				tc.replaceTypeInfo(ret.Type, new)
@@ -286,62 +439,20 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			tc.currentGlobal = v.Identifier.Name
-			tc.globalEvalPath = []string{v.Identifier.Name}
-			tc.globalTemp = make(map[string]*TypeInfo)
-			tc.filePackageBlock[v.Identifier.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(v.Type, noEllipses).Type}}
-			tc.checkNodes(v.Value.(*ast.Block).Nodes)
-			tc.initOrder = append(tc.initOrder, v.Identifier.Name)
+			tc.checkNodes(d.Body.Nodes)
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.removeCurrentScope()
+		case *ast.Const:
+			tc.checkAssignment(d)
+		case *ast.Var:
+			tc.checkAssignment(d)
 		}
 	}
-
-	// Variables.
-	for unresolvedDeps := true; unresolvedDeps; {
-		unresolvedDeps = false
-		for _, v := range tc.declarations {
-			if v.DeclType == DeclVar {
-				tc.IndirectVars[v.Identifier] = true
-				tc.currentGlobal = v.Identifier.Name
-				tc.globalEvalPath = []string{v.Identifier.Name}
-				tc.globalTemp = make(map[string]*TypeInfo)
-				ti := tc.checkExpression(v.Value.(ast.Expression))
-				if v.Type != nil {
-					typ := tc.checkType(v.Type, noEllipses)
-					if !isAssignableTo(ti, typ.Type) {
-						return tc.errorf(v.Value, "cannot convert %v (type %s) to type %v", v.Value, ti.String(), typ.Type)
-					}
-				}
-				varTi := &TypeInfo{Type: ti.Type, Properties: PropertyAddressable}
-				tc.filePackageBlock[v.Identifier.Name] = scopeElement{t: varTi, decl: v.Identifier}
-				if !tc.tryAddingToInitOrder(v.Identifier.Name) {
-					unresolvedDeps = true
-				}
-				tc.TypeInfo[v.Identifier] = varTi
-				// Replaces value's node and typeinfo if it's a constant.
-				if ti.IsConstant() {
-					for i, ident := range v.Node.(*ast.Var).Lhs {
-						if ident.Name == v.Identifier.Name {
-							new := ast.NewValue(typedValue(ti, varTi.Type))
-							tc.replaceTypeInfo(v.Node.(*ast.Var).Rhs[i], new)
-							v.Node.(*ast.Var).Rhs[i] = new
-						}
-					}
-				}
-			}
-		}
-	}
-	tc.globalTemp = nil
-	tc.globalEvalPath = nil
-	tc.currentGlobal = ""
 
 	for pkg := range tc.unusedImports {
-		// TODO (Gianluca): position is not correct.
-		return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg)
+		return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
 	}
 
-	// Checks if main is defined and if it's a function.
 	if packageNode.Name == "main" {
 		main, ok := tc.filePackageBlock["main"]
 		if !ok {
@@ -363,81 +474,10 @@ func CheckPackage(tree *ast.Tree, imports map[string]*native.GoPackage, pkgInfos
 	}
 	pkgInfo.IndirectVars = tc.IndirectVars
 
-	// Sort variables.
-	// TODO (Gianluca): if a variable declaration is already
-	// internal-ordered, there's no need to split it in many
-	// single-variable declarations, just put it in orderedVars as is.
-	orderedVars := []ast.Node{}
-OrderedVarsLoop:
-	for _, v := range tc.initOrder {
-		for _, n := range packageNode.Declarations {
-			switch n := n.(type) {
-			case *ast.Var:
-				for i, ident := range n.Lhs {
-					if ident.Name == v {
-						if len(n.Lhs) == len(n.Rhs) {
-							assignment := ast.NewVar(n.Pos(), []*ast.Identifier{ident}, n.Type, []ast.Expression{n.Rhs[i]})
-							orderedVars = append(orderedVars, assignment)
-							continue OrderedVarsLoop
-						} else {
-							orderedVars = append(orderedVars, n)
-							continue OrderedVarsLoop
-						}
-					}
-				}
-			}
-		}
-	}
-	// Init functions.
-	initNodes := []ast.Node{}
-	for i, n := range packageNode.Declarations {
-		f, ok := n.(*ast.Func)
-		if ok {
-			if f.Ident.Name == "init" {
-				initNodes = append(initNodes, f)
-				packageNode.Declarations[i] = nil
-			}
-		}
-	}
-	// Imports and functions.
-	funcNodes := []ast.Node{}
-	importNodes := []ast.Node{}
-	for _, n := range packageNode.Declarations {
-		switch n := n.(type) {
-		case nil:
-		case *ast.Var:
-		case *ast.Import:
-			importNodes = append(importNodes, n)
-		case *ast.Func:
-			funcNodes = append(funcNodes, n)
-		}
-	}
-
-	orderedNodes := []ast.Node{}
-	orderedNodes = append(orderedNodes, importNodes...)
-	orderedNodes = append(orderedNodes, funcNodes...)
-	orderedNodes = append(orderedNodes, orderedVars...)
-	orderedNodes = append(orderedNodes, initNodes...)
-	packageNode.Declarations = orderedNodes
-
 	if pkgInfos == nil {
 		pkgInfos = make(map[string]*PackageInfo)
 	}
 	pkgInfos[tree.Path] = pkgInfo
 
 	return nil
-}
-
-// tryAddingToInitOrder tries to add name to the initialization order. Returns
-// true on success.
-func (tc *typechecker) tryAddingToInitOrder(name string) bool {
-	for _, dep := range tc.varDeps[name] {
-		if !sliceContainsString(tc.initOrder, dep) {
-			return false
-		}
-	}
-	if !sliceContainsString(tc.initOrder, name) {
-		tc.initOrder = append(tc.initOrder, name)
-	}
-	return true
 }

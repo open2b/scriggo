@@ -7,84 +7,232 @@
 package compiler
 
 import (
-	"strings"
 	"testing"
 
 	"scrigo/internal/compiler/ast"
 )
 
-func extractVariableInitializationOrder(tree *ast.Tree) []string {
-	order := []string{}
-	pkg, _ := tree.Nodes[0].(*ast.Package)
-	for _, n := range pkg.Declarations {
-		switch n := n.(type) {
-		case *ast.Var:
-			for _, ident := range n.Lhs {
-				order = append(order, ident.Name)
-			}
-		}
+func TestInitializationLoop(t *testing.T) {
+	cases := map[string]struct {
+		src      string
+		expected string
+	}{
+		"#1": {
+			`package main
+		
+			var A = 10
+			var B = 20`,
+			"",
+		},
+		"#2": {
+			`package main
+			
+			var A = B
+			var B = A`,
+			"typechecking loop involving var A = B\n\t3:8: A\n\t3:12: B\n\t4:12: A\n",
+		},
+		"#3": {
+			`package main
+			
+			const C1 = C2
+			const C2 = C3
+			const C3 = C1`,
+			"constant definition loop\n\t3:10: C1 uses C2\n\t3:15: C2 uses C3\n\t4:15: C3 uses C1\n",
+		},
 	}
-	return order
+	for name, cas := range cases {
+		t.Run(name, func(t *testing.T) {
+			tree, deps, err := ParseSource([]byte(cas.src), true, ast.ContextNone)
+			if err != nil {
+				t.Fatalf("parsing error: %s", err)
+			}
+			pkg := tree.Nodes[0].(*ast.Package)
+			vars := []*ast.Var{}
+			consts := []*ast.Const{}
+			for _, d := range pkg.Declarations {
+				switch d := d.(type) {
+				case *ast.Var:
+					vars = append(vars, d)
+				case *ast.Const:
+					consts = append(consts, d)
+				}
+			}
+			got := ""
+			err = detectConstantsLoop(consts, deps)
+			if err != nil {
+				got += err.Error()
+			}
+			err = detectVarsLoop(vars, deps)
+			if err != nil {
+				got += err.Error()
+			}
+			if cas.expected != got {
+				t.Fatalf("expecting error %q, got %q", cas.expected, got)
+			}
+		})
+	}
 }
 
-func TestVariablesInitializationOrder(t *testing.T) {
-	cases := []struct {
-		src   string
-		order []string
+func TestPackageOrdering(t *testing.T) {
+	cases := map[string]struct {
+		src      string
+		expected string
 	}{
-		// Just one variable.
-		{`    var A = 1
-			`, []string{"A"}},
+		"two independent variables": {
+			`package pkg
 
-		// Variables are independent from each others.
-		{`    var A = 1
-			var B = 2
-			`, []string{"A", "B"}},
+			var A = 10
+			var B = 20
+			`,
+			"A,B,",
+		},
 
-		// B depends on A.
-		{`    var A = B
-			var B = 10
-			`, []string{"B", "A"}},
+		"first variable depending on second one": {
+			`package pkg
 
-		// // Three variables in reverse order.
-		// {`    var A = B
-		// 	var B = C
-		// 	var C = 1
-		// 	`, []string{"C", "B", "A"}},
+			var A = B
+			var B = 20`,
+			"B,A,",
+		},
 
-		// B and C depends from A, but variables are already ordered.
-		{`    var A = 1
-			var B = A
-			var C = B
-			`, []string{"A", "B", "C"}},
-	}
-CasesLoop:
-	for _, c := range cases {
-		pkgInfos := make(map[string]*PackageInfo)
-		c.src = "package main\n" + c.src + "func main() { }"
-		tree, _, err := ParseSource([]byte(c.src), true, ast.ContextNone)
-		errorSrc := strings.ReplaceAll(c.src, "\n", " ")
-		errorSrc = strings.ReplaceAll(errorSrc, "\t", "")
-		if err != nil {
-			t.Errorf("source: %q, parsing error: %s", errorSrc, err)
-			continue
-		}
-		err = CheckPackage(tree, nil, pkgInfos)
-		if err != nil {
-			t.Errorf("source: %q, type-checking error: %s", errorSrc, err)
-			continue
-		}
-		got := extractVariableInitializationOrder(tree)
-		expected := c.order
-		if len(got) != len(expected) {
-			t.Errorf("source: %q, expecting %s, got %s", errorSrc, expected, got)
-			continue
-		}
-		for i := range got {
-			if expected[i] != got[i] {
-				t.Errorf("source: %q, expecting %s, got %s", errorSrc, expected, got)
-				continue CasesLoop
+		"constants and variables (unrelated)": {
+			`package pkg
+
+			const  C1  =  10
+			var    A   =  30
+			const  C2  =  20
+			var    B   =  40`,
+			"C1,C2,A,B,",
+		},
+
+		"constants and variables (related)": {
+			`package pkg
+
+			const  C1  =  10
+			var    B   =  C1
+			var    A   =  C2
+			const  C2  =  20`,
+			"C1,C2,B,A,",
+		},
+
+		"complex variables": {
+			`package pkg
+
+			var (
+				A = B
+				B = 10
+				C = D
+				D = A
+				E = A + B
+			)`,
+			"B,A,D,C,E,",
+		},
+
+		"types dependencies must be ignored": {
+			`package pkg
+
+			var A = int(20)`,
+			"A,",
+		},
+
+		"imported symbols dependencies must be ignored": {
+			`package pkg
+
+			import "x"
+
+			var A = B
+			var B = x.F()`,
+			"B,A,",
+		},
+
+		"functions, constants and variables": {
+			`package main
+
+			func   F1()    {}
+			var    A       = E
+			const  C1      = C2
+			const  C2      = 11
+			var    E       = C1 + C2
+			func   F2()    {}
+			var    D       = 2
+			func   main()  {}
+			`,
+			"C2,C1,E,A,D,F1,F2,main,",
+		},
+
+		"function assignment": {
+			`package pkg
+
+			var E = A + B
+			var A, B, C = F()
+			var D = A
+
+			func F() {}`,
+			"A,B,C,E,D,F,",
+		},
+
+		"complex test": {
+			`package main
+
+			import (
+				"fmt"
+			)
+
+			var m = map[string]int{"20": 12}
+			var notOk = !ok
+			var doubleValue = value * 2
+			var value, ok = m[k()]
+
+			func k() string {
+				a := 20
+				return fmt.Sprintf("%d", a)
 			}
-		}
+
+			func main() {
+				fmt.Println(m)
+				fmt.Println(notOk)
+				fmt.Println(doubleValue)
+			}`, "m,value,ok,notOk,doubleValue,k,main,",
+		},
+
+		"two constants where first depends on second": {
+			`package main
+
+			import "fmt"
+			
+			const A = B
+			const B = 20
+			
+			func main() {
+				fmt.Println(A)
+				fmt.Println(B)
+			}`, "B,A,main,",
+		},
+	}
+	for name, cas := range cases {
+		t.Run(name, func(t *testing.T) {
+			tree, deps, err := ParseSource([]byte(cas.src), true, ast.ContextNone)
+			if err != nil {
+				t.Fatalf("parsing error: %s", err)
+			}
+			pkg := tree.Nodes[0].(*ast.Package)
+			sortDeclarations(pkg, deps)
+			got := ""
+			for _, d := range pkg.Declarations {
+				switch d := d.(type) {
+				case *ast.Var:
+					for _, left := range d.Lhs {
+						got += left.Name + ","
+					}
+				case *ast.Const:
+					got += d.Identifiers[0].Name + ","
+				case *ast.Func:
+					got += d.Ident.Name + ","
+				}
+			}
+			if cas.expected != got {
+				t.Fatalf("expecting %q, got %q", cas.expected, got)
+			}
+		})
 	}
 }
