@@ -818,22 +818,17 @@ type Global struct {
 
 // ScrigoFunction represents a Scrigo function.
 type ScrigoFunction struct {
-	Pkg       string
-	Name      string
-	File      string
-	Line      int
-	Type      reflect.Type
-	Parent    *ScrigoFunction
-	VarRefs   []int16
-	Literals  []*ScrigoFunction
-	Types     []reflect.Type
-	RegNum    [4]uint8
-	Constants struct {
-		Int     []int64
-		Float   []float64
-		String  []string
-		General []interface{}
-	}
+	Pkg             string
+	Name            string
+	File            string
+	Line            int
+	Type            reflect.Type
+	Parent          *ScrigoFunction
+	VarRefs         []int16
+	Literals        []*ScrigoFunction
+	Types           []reflect.Type
+	RegNum          [4]uint8
+	Constants       Registers
 	Globals         []Global
 	ScrigoFunctions []*ScrigoFunction
 	NativeFunctions []*NativeFunction
