@@ -16,6 +16,22 @@ import (
 
 const maxUint24 = 16777215
 
+var intType = reflect.TypeOf(0)
+var float64Type = reflect.TypeOf(0.0)
+var stringType = reflect.TypeOf("")
+var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
+
+func encodeUint24(v uint32) (a, b, c int8) {
+	a = int8(uint8(v >> 16))
+	b = int8(uint8(v >> 8))
+	c = int8(uint8(v))
+	return
+}
+
+func decodeUint24(a, b, c int8) uint32 {
+	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
+}
+
 type FunctionBuilder struct {
 	fn          *vm.ScrigoFunction
 	labels      []uint32
@@ -273,22 +289,6 @@ func (builder *FunctionBuilder) NewLabel() uint32 {
 // SetLabelAddr sets label's address as builder's current address.
 func (builder *FunctionBuilder) SetLabelAddr(label uint32) {
 	builder.labels[label-1] = builder.CurrentAddr()
-}
-
-var intType = reflect.TypeOf(0)
-var float64Type = reflect.TypeOf(0.0)
-var stringType = reflect.TypeOf("")
-var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
-
-func encodeUint24(v uint32) (a, b, c int8) {
-	a = int8(uint8(v >> 16))
-	b = int8(uint8(v >> 8))
-	c = int8(uint8(v))
-	return
-}
-
-func decodeUint24(a, b, c int8) uint32 {
-	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
 // Type returns typ's index, creating it if necessary.
