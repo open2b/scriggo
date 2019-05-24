@@ -725,8 +725,7 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 		op = vm.OpRange
 	}
 	if builder.allocs != nil {
-		a, b, c := encodeUint24(100)
-		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, C: 100})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }
@@ -765,8 +764,7 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 		a = 1
 	}
 	if builder.allocs != nil {
-		a, b, c := encodeUint24(32)
-		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, C: 32})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpGetFunc, A: a, B: f, C: z})
 }
@@ -860,8 +858,7 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	case reflect.String:
 		op = vm.OpStringIndex
 		if builder.allocs != nil {
-			a, b, c := encodeUint24(8)
-			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, C: 8})
 		}
 	case reflect.Map:
 		op = vm.OpMapIndex
