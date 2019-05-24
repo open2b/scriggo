@@ -485,19 +485,9 @@ func (builder *FunctionBuilder) Bind(v int, r int8) {
 //     break addr
 //
 func (builder *FunctionBuilder) Break(label uint32) {
-	in := vm.Instruction{Op: vm.OpBreak}
-	if label > 0 {
-		if label > uint32(len(builder.labels)) {
-			panic("bug!") // TODO(Gianluca): remove.
-		}
-		addr := builder.labels[label-1]
-		if addr == 0 {
-			builder.gotos[builder.CurrentAddr()] = label
-		} else {
-			in.A, in.B, in.C = encodeUint24(addr)
-		}
-	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	addr := builder.labels[label-1]
+	a, b, c := encodeUint24(addr)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBreak, A: a, B: b, C: c})
 }
 
 // Call appends a new "Call" instruction to the function body.
