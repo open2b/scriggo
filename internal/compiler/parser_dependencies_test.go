@@ -314,7 +314,7 @@ var cases = map[string]struct {
 		},
 	},
 
-	"fewfwe": {
+	"function uses both global and local variable with same name": {
 		`
 		package pkg
 
