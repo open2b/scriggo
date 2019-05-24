@@ -63,7 +63,7 @@ func New() *VM {
 }
 
 // FreeMemory returns the current free memory in bytes. The returned value can
-// be negative. FreeMemory can be called when VM is running.
+// be negative. FreeMemory can be called when vm is running.
 func (vm *VM) FreeMemory() int {
 	vm.ctx.Lock()
 	free := vm.ctx.freeMemory
