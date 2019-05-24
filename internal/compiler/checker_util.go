@@ -383,23 +383,6 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 	return t, nil
 }
 
-// containsDuplicates returns true if slice contains at least one duplicate
-// string.
-func containsDuplicates(slice []string) bool {
-	for _, a := range slice {
-		count := 0
-		for _, b := range slice {
-			if a == b {
-				count++
-			}
-		}
-		if count != 1 {
-			return true
-		}
-	}
-	return false
-}
-
 // convert converts a value explicitly. If the converted value is a constant,
 // convert returns its value, otherwise returns nil.
 //
@@ -757,16 +740,6 @@ func shiftOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, e
 		t = &TypeInfo{Type: t1.Type}
 	}
 	return t, nil
-}
-
-// stringInSlice indicates if slice contains s.
-func sliceContainsString(slice []string, s string) bool {
-	for _, ts := range slice {
-		if s == ts {
-			return true
-		}
-	}
-	return false
 }
 
 // tBinaryOp executes a binary expression where the operands are typed

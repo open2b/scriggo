@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
-	"strings"
 	"unicode"
 
 	"scrigo/internal/compiler/ast"
@@ -89,23 +88,6 @@ type ancestor struct {
 	node       ast.Node
 }
 
-type DeclarationType int
-
-const (
-	DeclConst = iota + 1
-	DeclVar
-	DeclFunc
-)
-
-// Declaration is a package global declaration.
-type Declaration struct {
-	Node       ast.Node        // ast node of the declaration.
-	Type       ast.Expression  // nil if declaration has no type.
-	DeclType   DeclarationType // constant, variable or function.
-	Value      ast.Node        // ast.Expression for variables/constant, ast.Block for functions.
-	Identifier *ast.Identifier
-}
-
 type scopeVariable struct {
 	ident      string
 	scopeLevel int
@@ -128,15 +110,6 @@ type typechecker struct {
 	IndirectVars     map[*ast.Identifier]bool
 	isScript         bool
 
-	// Variable initialization support structures.
-	// TODO (Gianluca): can be simplified?
-	declarations   []*Declaration      // global declarations.
-	initOrder      []string            // global variables initialization order.
-	varDeps        map[string][]string // key is a variable, value is list of its dependencies.
-	currentGlobal  string              // identifier currently being evaluated.
-	globalEvalPath []string            // stack of identifiers used in a single evaluation.
-	globalTemp     map[string]*TypeInfo
-
 	// Data structures for Goto and Labels checking.
 	gotos           []string
 	storedGotos     []string
@@ -150,25 +123,13 @@ func NewTypechecker(path string, isScript bool) *typechecker {
 		isScript:         isScript,
 		path:             path,
 		filePackageBlock: make(TypeCheckerScope),
-		globalTemp:       make(map[string]*TypeInfo),
 		hasBreak:         make(map[ast.Node]bool),
 		imports:          make(map[string]PackageInfo),
 		TypeInfo:         make(map[ast.Node]*TypeInfo),
 		Universe:         make(TypeCheckerScope),
 		unusedImports:    make(map[string][]string),
 		IndirectVars:     make(map[*ast.Identifier]bool),
-		varDeps:          make(map[string][]string),
 	}
-}
-
-// globDecl returns the declaration called name, or nil if it does not exist.
-func (tc *typechecker) globDecl(name string) *Declaration {
-	for _, v := range tc.declarations {
-		if name == v.Identifier.Name {
-			return v
-		}
-	}
-	return nil
 }
 
 // addScope adds a new empty scope to the type checker.
@@ -401,53 +362,13 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 	}
 
 	// For "." imported packages, marks package as used.
-	func() {
-		for pkg, decls := range tc.unusedImports {
-			for _, d := range decls {
-				if d != ident.Name {
-					delete(tc.unusedImports, pkg)
-					return
-				}
+unusedLoop:
+	for pkg, decls := range tc.unusedImports {
+		for _, d := range decls {
+			if d != ident.Name {
+				delete(tc.unusedImports, pkg)
+				break unusedLoop
 			}
-		}
-	}()
-
-	if tmpTi, ok := tc.globalTemp[ident.Name]; ok {
-		return tmpTi
-	}
-
-	if tc.globDecl(ident.Name) != nil {
-		tc.varDeps[tc.currentGlobal] = append(tc.varDeps[tc.currentGlobal], ident.Name)
-		tc.globalEvalPath = append(tc.globalEvalPath, ident.Name)
-		if containsDuplicates(tc.globalEvalPath) {
-			// Global functions can have cyclic dependencies.
-			if d := tc.globDecl(tc.currentGlobal); d != nil && d.DeclType == DeclFunc {
-				ti, _ := tc.lookupScopes(ident.Name, false)
-				return ti
-			}
-			// TODO (Gianluca): add positions.
-			panic(tc.errorf(ident, "initialization loop:\n\t%s", strings.Join(tc.globalEvalPath, " refers to\n\t")))
-		}
-	}
-
-	// Global declaration.
-	if i == notCheckedGlobal {
-		switch d := tc.globDecl(ident.Name); d.DeclType {
-		case DeclConst:
-			ti := tc.checkExpression(d.Value.(ast.Expression))
-			tc.globalTemp[ident.Name] = ti
-			return ti
-		case DeclVar:
-			ti := tc.checkExpression(d.Value.(ast.Expression))
-			tc.globalTemp[ident.Name] = &TypeInfo{
-				Type:       ti.Type,
-				Properties: PropertyAddressable,
-				Value:      ti.Value,
-			}
-			return tc.globalTemp[ident.Name]
-			// case DeclFunc:
-			// 	tc.CheckNodesInNewScope(d.Value.(*ast.Block).Nodes)
-			// 	return &TypeInfo{Type: tc.typeof(d.Type, noEllipses).Type}
 		}
 	}
 
