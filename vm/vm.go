@@ -16,7 +16,7 @@ import (
 const NoVariadic = -1
 const CurrentFunction = -1
 
-const stackSize = 512 // If changed, update the documentation of SetMaxStack.
+const stackSize = 512
 
 type StackShift [4]int8
 
@@ -100,15 +100,6 @@ func (vm *VM) SetGlobals(globals []interface{}) {
 // SetFreeMemory sets the free memory.
 func (vm *VM) SetFreeMemory(bytes int) {
 	vm.ctx.freeMemory = bytes
-}
-
-// SetMaxStack sets the max size for a stack. If bytes is zero or negative,
-// there is no max size, otherwise if bytes is less than 512 it is set to 512.
-func (vm *VM) SetMaxStack(bytes int) {
-	if bytes < stackSize {
-		bytes = stackSize
-	}
-	vm.ctx.stackMax = bytes
 }
 
 func (vm *VM) SetOut(out writer) {
@@ -576,18 +567,8 @@ func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) 
 	}
 }
 
-func (vm *VM) checkStackOverflow(top int) {
-	vm.ctx.Lock()
-	stackMax := vm.ctx.stackMax
-	vm.ctx.Unlock()
-	if stackMax > 0 && top > stackMax {
-		panic(ErrStackOverflow)
-	}
-}
-
 func (vm *VM) moreIntStack() {
 	top := len(vm.regs.int) * 2
-	vm.checkStackOverflow(top)
 	stack := make([]int64, top)
 	copy(stack, vm.regs.int)
 	vm.regs.int = stack
@@ -596,7 +577,6 @@ func (vm *VM) moreIntStack() {
 
 func (vm *VM) moreFloatStack() {
 	top := len(vm.regs.float) * 2
-	vm.checkStackOverflow(top)
 	stack := make([]float64, top)
 	copy(stack, vm.regs.float)
 	vm.regs.float = stack
@@ -605,7 +585,6 @@ func (vm *VM) moreFloatStack() {
 
 func (vm *VM) moreStringStack() {
 	top := len(vm.regs.string) * 2
-	vm.checkStackOverflow(top)
 	stack := make([]string, top)
 	copy(stack, vm.regs.string)
 	vm.regs.string = stack
@@ -614,7 +593,6 @@ func (vm *VM) moreStringStack() {
 
 func (vm *VM) moreGeneralStack() {
 	top := len(vm.regs.general) * 2
-	vm.checkStackOverflow(top)
 	stack := make([]interface{}, top)
 	copy(stack, vm.regs.general)
 	vm.regs.general = stack
@@ -813,9 +791,8 @@ type context struct {
 	trace   TraceFunc     // trace function.
 	out     writer        // writer of Write instruction.
 
-	sync.Mutex     // mutex for the following fields.
+	sync.Mutex     // mutex for field freeMemory.
 	freeMemory int // free memory.
-	stackMax   int // max stack size.
 }
 
 type NativeFunction struct {

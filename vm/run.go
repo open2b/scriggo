@@ -13,7 +13,6 @@ import (
 )
 
 var ErrOutOfMemory = errors.New("out of memory")
-var ErrStackOverflow = errors.New("stack overflow")
 
 const maxAddr = 1<<32 - 1
 
@@ -56,7 +55,7 @@ func (vm *VM) runRecoverable() (panicked bool) {
 	defer func() {
 		if panicked {
 			msg := recover()
-			if msg == ErrOutOfMemory || msg == ErrStackOverflow {
+			if msg == ErrOutOfMemory {
 				vm.err = msg.(error)
 				vm.panics = vm.panics[:0]
 			} else {
