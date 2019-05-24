@@ -30,7 +30,7 @@ type Script struct {
 	globals []Global
 }
 
-func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
+func Compile(src io.Reader, main *native.GoPackage, alloc bool) (*Script, error) {
 
 	// Parsing.
 	buf, err := ioutil.ReadAll(src)
@@ -53,9 +53,11 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
 	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
+	emitter.SetAlloc(alloc)
 	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	emitter.CurrentFunction = fn
 	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
+	emitter.FB.SetAlloc(alloc)
 	emitter.FB.EnterScope()
 	compiler.AddExplicitReturn(tree)
 	emitter.EmitNodes(tree.Nodes)
@@ -65,7 +67,7 @@ func Compile(src io.Reader, main *native.GoPackage) (*Script, error) {
 	return &Script{Fn: emitter.CurrentFunction}, nil
 }
 
-func Execute(script *Script, vars map[string]interface{}) error {
+func Execute(script *Script, vars map[string]interface{}, freeMemory int) error {
 	vmm := vm.New()
 	if n := len(script.globals); n > 0 {
 		globals := make([]interface{}, n)
@@ -84,6 +86,7 @@ func Execute(script *Script, vars map[string]interface{}) error {
 		}
 		vmm.SetGlobals(globals)
 	}
+	vmm.SetFreeMemory(freeMemory)
 	_, err := vmm.Run(script.Fn)
 	return err
 }

@@ -14,6 +14,8 @@ import (
 	"scrigo/vm"
 )
 
+const maxUint24 = 16777215
+
 type FunctionBuilder struct {
 	fn          *vm.ScrigoFunction
 	labels      []uint32
@@ -22,19 +24,20 @@ type FunctionBuilder struct {
 	numRegs     map[reflect.Kind]uint8
 	scopes      []map[string]int8
 	scopeShifts []vm.StackShift
-	alloc       bool
+	allocs      []uint32
 }
 
 // NewBuilder returns a new function builder for the function fn.
 func NewBuilder(fn *vm.ScrigoFunction) *FunctionBuilder {
 	fn.Body = nil
-	return &FunctionBuilder{
+	builder := &FunctionBuilder{
 		fn:      fn,
 		gotos:   map[uint32]uint32{},
 		maxRegs: map[reflect.Kind]uint8{},
 		numRegs: map[reflect.Kind]uint8{},
 		scopes:  []map[string]int8{},
 	}
+	return builder
 }
 
 // EnterScope enters a new scope.
@@ -139,7 +142,10 @@ func (builder *FunctionBuilder) SetFileLine(file string, line int) {
 // SetAlloc sets the alloc property. If true, an Alloc instruction will be
 // inserted where necessary.
 func (builder *FunctionBuilder) SetAlloc(alloc bool) {
-	builder.alloc = alloc
+	if alloc && builder.allocs == nil {
+		builder.allocs = append(builder.allocs, 0)
+		builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
 }
 
 // NewScrigoFunction returns a new Scrigo function with a given package, name
@@ -334,6 +340,22 @@ func (builder *FunctionBuilder) End() {
 			}
 		}
 	}
+	if builder.allocs != nil {
+		for _, addr := range builder.allocs {
+			var bytes int
+			if addr == 0 {
+				bytes = vm.CallFrameSize + 8*int(fn.RegNum[0]+fn.RegNum[1]) + 16*int(fn.RegNum[2]+fn.RegNum[3])
+			} else {
+				in := fn.Body[addr+1]
+				if in.Op == vm.OpFunc {
+					f := fn.Literals[uint8(in.B)]
+					bytes = 32 + len(f.VarRefs)*16
+				}
+			}
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body[addr] = vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c}
+		}
+	}
 }
 
 func (builder *FunctionBuilder) allocRegister(kind reflect.Kind, reg int8) {
@@ -391,7 +413,7 @@ func (builder *FunctionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *FunctionBuilder) Append(first, length, s int8) {
 	fn := builder.fn
-	if builder.alloc {
+	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppend, A: first, B: length, C: s})
@@ -403,7 +425,7 @@ func (builder *FunctionBuilder) Append(first, length, s int8) {
 //
 func (builder *FunctionBuilder) AppendSlice(t, s int8) {
 	fn := builder.fn
-	if builder.alloc {
+	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppendSlice, A: t, C: s})
@@ -486,6 +508,9 @@ func (builder *FunctionBuilder) Bind(v int, r int8) {
 //
 func (builder *FunctionBuilder) Break(label uint32) {
 	addr := builder.labels[label-1]
+	if builder.allocs != nil {
+		addr += 1
+	}
 	a, b, c := encodeUint24(addr)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBreak, A: a, B: b, C: c})
 }
@@ -557,7 +582,7 @@ func (builder *FunctionBuilder) Close(ch int8) {
 //
 func (builder *FunctionBuilder) Concat(s, t, z int8) {
 	fn := builder.fn
-	if builder.alloc {
+	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
@@ -569,6 +594,9 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 //
 func (builder *FunctionBuilder) Continue(label uint32) {
 	addr := builder.labels[label-1]
+	if builder.allocs != nil {
+		addr += 1
+	}
 	a, b, c := encodeUint24(addr)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpContinue, A: a, B: b, C: c})
 }
@@ -584,7 +612,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
 		op = vm.OpConvertGeneral
-		if builder.alloc {
+		if builder.allocs != nil {
 			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 		}
 	case vm.TypeInt:
@@ -601,7 +629,7 @@ func (builder *FunctionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 		}
 	case vm.TypeString:
 		op = vm.OpConvertString
-		if builder.alloc {
+		if builder.allocs != nil {
 			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 		}
 	case vm.TypeFloat:
@@ -679,6 +707,7 @@ func (builder *FunctionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 //	for i, e := range s
 //
 func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
+	fn := builder.fn
 	var op vm.Operation
 	switch kind {
 	case reflect.String:
@@ -695,7 +724,11 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 		}
 		op = vm.OpRange
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
+	if builder.allocs != nil {
+		a, b, c := encodeUint24(100)
+		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }
 
 // Func appends a new "Func" instruction to the function body.
@@ -713,7 +746,8 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunctio
 		Parent: fn,
 	}
 	fn.Literals = append(fn.Literals, scrigoFunc)
-	if builder.alloc {
+	if builder.allocs != nil {
+		builder.allocs = append(builder.allocs, uint32(len(fn.Body)))
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpFunc, B: int8(b), C: r})
@@ -730,8 +764,9 @@ func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
 	if native {
 		a = 1
 	}
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		a, b, c := encodeUint24(32)
+		fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpGetFunc, A: a, B: f, C: z})
 }
@@ -824,8 +859,9 @@ func (builder *FunctionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 		op = vm.OpSliceIndex
 	case reflect.String:
 		op = vm.OpStringIndex
-		if builder.alloc {
-			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		if builder.allocs != nil {
+			a, b, c := encodeUint24(8)
+			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
 		}
 	case reflect.Map:
 		op = vm.OpMapIndex
@@ -884,34 +920,59 @@ func (builder *FunctionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
 //
 //     dst = make(typ, capacity)
 //
-func (builder *FunctionBuilder) MakeChan(typ int8, kCapacity bool, capacity int8, dst int8) {
-	// TODO(Gianluca): uniform all Make* functions to take a reflect.Type or a
-	// type index (int8).
+func (builder *FunctionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
 	fn := builder.fn
+	t := builder.Type(typ)
 	op := vm.OpMakeChan
 	if kCapacity {
 		op = -op
 	}
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		constantAlloc := false
+		if kCapacity {
+			size := int(typ.Size())
+			bytes := size * int(capacity)
+			if bytes/size != int(capacity) {
+				panic("out of memory")
+			}
+			bytes += 10 * 8
+			if bytes < 0 {
+				panic("out of memory")
+			}
+			if bytes <= maxUint24 {
+				a, b, c := encodeUint24(uint32(bytes))
+				fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+				constantAlloc = true
+			}
+		}
+		if !constantAlloc {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: typ, B: capacity, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: t, B: capacity, C: dst})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
 //
 //     dst = make(typ, size)
 //
-func (builder *FunctionBuilder) MakeMap(typ int8, kSize bool, size int8, dst int8) {
+func (builder *FunctionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := builder.fn
+	t := builder.Type(typ)
 	op := vm.OpMakeMap
 	if kSize {
 		op = -op
 	}
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		if kSize {
+			bytes := 24 + 50*int(size)
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+		} else {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: typ, B: size, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: t, B: size, C: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
@@ -932,8 +993,27 @@ func (builder *FunctionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			k |= 1 << 2
 		}
 	}
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		constantAlloc := false
+		if kCap {
+			ts := int(sliceType.Elem().Size())
+			bytes := ts * int(cap)
+			if bytes/ts != int(cap) {
+				panic("out of memory")
+			}
+			bytes += 24
+			if bytes < 0 {
+				panic("out of memory")
+			}
+			if bytes <= maxUint24 {
+				a, b, c := encodeUint24(uint32(bytes))
+				fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+				constantAlloc = true
+			}
+		}
+		if !constantAlloc {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: t, B: k, C: dst})
 	if k > 1 {
@@ -988,8 +1068,14 @@ func (builder *FunctionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 func (builder *FunctionBuilder) New(typ reflect.Type, z int8) {
 	fn := builder.fn
 	b := builder.AddType(typ)
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		bytes := int(typ.Size())
+		if bytes <= maxUint24 {
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+		} else {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
 }
@@ -1117,14 +1203,25 @@ func (builder *FunctionBuilder) SetVar(k bool, r int8, v int) {
 //
 //	m[key] = value
 //
-func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8) {
+func (builder *FunctionBuilder) SetMap(k bool, m, value, key int8, typ reflect.Type) {
 	fn := builder.fn
 	op := vm.OpSetMap
 	if k {
 		op = -op
 	}
-	if builder.alloc {
-		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	if builder.allocs != nil {
+		kSize := int(typ.Key().Size())
+		eSize := int(typ.Elem().Size())
+		bytes := kSize + eSize
+		if bytes < 0 {
+			panic("out of memory")
+		}
+		if bytes <= maxUint24 {
+			a, b, c := encodeUint24(uint32(bytes))
+			fn.Body = append(fn.Body, vm.Instruction{Op: -vm.OpAlloc, A: a, B: b, C: c})
+		} else {
+			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
+		}
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: m, B: value, C: key})
 }

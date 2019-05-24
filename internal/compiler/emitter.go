@@ -51,6 +51,8 @@ type Emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
+
+	alloc bool
 }
 
 // NewEmitter returns a new emitter reading sources from r.
@@ -80,6 +82,10 @@ func NewEmitter(packages map[string]*native.GoPackage, typeInfos map[ast.Node]*T
 	return c
 }
 
+func (e *Emitter) SetAlloc(alloc bool) {
+	e.alloc = alloc
+}
+
 // Global represents a global variable with a package, name, type (only for
 // Scrigo globals) and value (only for native globals). Value, if present, must
 // be a pointer to the variable value.
@@ -97,8 +103,9 @@ type Package struct {
 }
 
 // EmitPackageMain emits package main.
-func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Package {
+func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
 	e := NewEmitter(packages, typeInfos, indirectVars)
+	e.SetAlloc(alloc)
 	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableScrigoFunctions[pkgMain]["main"]
 	pkg := &Package{
@@ -200,6 +207,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 				initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 				e.availableScrigoFunctions[e.currentPackage]["$initvars"] = initVarsFn
 				initVarsFb = NewBuilder(initVarsFn)
+				initVarsFb.SetAlloc(e.alloc)
 				initVarsFb.EnterScope()
 			}
 			e.CurrentFunction = initVarsFn
@@ -233,6 +241,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 			}
 			e.CurrentFunction = fn
 			e.FB = NewBuilder(fn)
+			e.FB.SetAlloc(e.alloc)
 			e.FB.EnterScope()
 
 			// If function is "main", variables initialization function
@@ -621,8 +630,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			// TODO (Gianluca): handle maps with bigger size.
 			size := len(expr.KeyValues)
 			sizeReg := e.FB.MakeIntConstant(int64(size))
-			regType := e.FB.Type(typ)
-			e.FB.MakeMap(regType, true, sizeReg, reg)
+			e.FB.MakeMap(typ, true, sizeReg, reg)
 			for _, kv := range expr.KeyValues {
 				keyReg := e.FB.NewRegister(typ.Key().Kind())
 				valueReg := e.FB.NewRegister(typ.Elem().Kind())
@@ -631,7 +639,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				kValue := false // TODO(Gianluca).
 				e.emitExpr(kv.Value, valueReg, typ.Elem())
 				e.FB.ExitStack()
-				e.FB.SetMap(kValue, reg, valueReg, keyReg)
+				e.FB.SetMap(kValue, reg, valueReg, keyReg, typ)
 			}
 		}
 
@@ -751,6 +759,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.setClosureRefs(fn, expr.Upvars)
 
 		funcLitBuilder := NewBuilder(fn)
+		funcLitBuilder.SetAlloc(e.alloc)
 		currFb := e.FB
 		currFn := e.CurrentFunction
 		e.FB = funcLitBuilder
@@ -1006,18 +1015,17 @@ func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		e.changeRegister(false, reg, reg, intType, dstType)
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
-		regType := e.FB.Type(typ)
 		switch typ.Kind() {
 		case reflect.Map:
 			if len(call.Args) == 1 {
-				e.FB.MakeMap(regType, true, 0, reg)
+				e.FB.MakeMap(typ, true, 0, reg)
 			} else {
 				size, kSize, isRegister := e.quickEmitExpr(call.Args[1], intType)
 				if !kSize && !isRegister {
 					size = e.FB.NewRegister(reflect.Int)
 					e.emitExpr(call.Args[1], size, e.TypeInfo[call.Args[1]].Type)
 				}
-				e.FB.MakeMap(regType, kSize, size, reg)
+				e.FB.MakeMap(typ, kSize, size, reg)
 			}
 		case reflect.Slice:
 			lenExpr := call.Args[1]
@@ -1043,7 +1051,6 @@ func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			e.FB.MakeSlice(kLen, kCap, typ, lenReg, capReg, reg)
 		case reflect.Chan:
 			chanType := e.TypeInfo[call.Args[0]].Type
-			chanTypeIndex := e.FB.AddType(chanType)
 			var kCapacity bool
 			var capacity int8
 			if len(call.Args) == 1 {
@@ -1057,7 +1064,7 @@ func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 					e.emitExpr(call.Args[1], capacity, intType)
 				}
 			}
-			e.FB.MakeChan(int8(chanTypeIndex), kCapacity, capacity, reg)
+			e.FB.MakeChan(chanType, kCapacity, capacity, reg)
 		default:
 			panic("bug")
 		}

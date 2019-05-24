@@ -35,7 +35,7 @@ type Page struct {
 	fn   *vm.ScrigoFunction
 }
 
-func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Context) (*Page, error) {
+func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Context, alloc bool) (*Page, error) {
 
 	// Parsing.
 	p := NewParser(reader)
@@ -56,9 +56,11 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 	// main contains user defined variabiles, while builtins contains template builtins.
 	// define something like "emitterBuiltins" in order to avoid converting at every compilation.
 	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
+	emitter.SetAlloc(alloc)
 	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	emitter.CurrentFunction = fn
 	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
+	emitter.FB.SetAlloc(alloc)
 	emitter.FB.EnterScope()
 	compiler.AddExplicitReturn(tree)
 	emitter.EmitNodes(tree.Nodes)
@@ -67,9 +69,10 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 	return &Page{main: main, fn: emitter.CurrentFunction}, nil
 }
 
-func (page *Page) Render(out io.Writer, vars map[string]reflect.Value) error {
+func (page *Page) Render(out io.Writer, vars map[string]reflect.Value, freeMemory int) error {
 	// TODO: implement globals
 	pvm := vm.New()
+	pvm.SetFreeMemory(freeMemory)
 	_, err := pvm.Run(page.fn)
 	return err
 }

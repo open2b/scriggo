@@ -95,12 +95,12 @@ func TestScrigoImport(t *testing.T) {
 	}
 	for name, reader := range cases {
 		t.Run(name, func(t *testing.T) {
-			program, err := scrigo.Compile("/main.go", reader, nil)
+			program, err := scrigo.Compile("/main.go", reader, nil, true)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return
 			}
-			err = scrigo.Execute(program, nil)
+			err = scrigo.Execute(program, nil, 1000000)
 			if err != nil {
 				t.Errorf("execution error: %s", err)
 				return

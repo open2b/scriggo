@@ -56,7 +56,12 @@ func (vm *VM) runRecoverable() (panicked bool) {
 	defer func() {
 		if panicked {
 			msg := recover()
-			vm.panics = append(vm.panics, Panic{Msg: msg})
+			if msg == ErrOutOfMemory || msg == ErrStackOverflow {
+				vm.err = msg.(error)
+				vm.panics = vm.panics[:0]
+			} else {
+				vm.panics = append(vm.panics, Panic{Msg: msg})
+			}
 		}
 	}()
 	if vm.fn != nil || vm.nextCall() {
@@ -107,12 +112,12 @@ func (vm *VM) run() (uint32, bool) {
 		case OpAlloc:
 			vm.alloc()
 		case -OpAlloc:
-			size := int(decodeUint24(a, b, c))
+			bytes := decodeUint24(a, b, c)
 			var free int
 			vm.ctx.Lock()
 			free = vm.ctx.freeMemory
 			if free >= 0 {
-				free -= size
+				free -= int(bytes)
 				vm.ctx.freeMemory = free
 			}
 			vm.ctx.Unlock()
@@ -1109,6 +1114,18 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Return
 		case OpReturn:
+			if vm.ctx.freeMemory > 0 {
+				in := vm.fn.Body[0]
+				if in.Op == -OpAlloc {
+					bytes := decodeUint24(in.A, in.B, in.C)
+					in = vm.fn.Body[vm.pc-2]
+					if bytes > 0 && in.Op != OpTailCall {
+						vm.ctx.Lock()
+						vm.ctx.freeMemory -= int(bytes)
+						vm.ctx.Unlock()
+					}
+				}
+			}
 			i := len(vm.calls) - 1
 			if i == -1 {
 				// TODO(marco): call finalizer.
@@ -1319,6 +1336,17 @@ func (vm *VM) run() (uint32, bool) {
 
 		// TailCall
 		case OpTailCall:
+			if vm.ctx.freeMemory > 0 {
+				in := vm.fn.Body[0]
+				if in.Op == -OpAlloc {
+					bytes := decodeUint24(in.A, in.B, in.C)
+					if bytes > 0 {
+						vm.ctx.Lock()
+						vm.ctx.freeMemory -= int(bytes)
+						vm.ctx.Unlock()
+					}
+				}
+			}
 			vm.calls = append(vm.calls, callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
 			vm.pc = 0
 			if a != CurrentFunction {

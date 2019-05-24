@@ -22,7 +22,7 @@ type Program struct {
 	globals []compiler.Global
 }
 
-func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage) (*Program, error) {
+func Compile(path string, reader compiler.Reader, packages map[string]*native.GoPackage, alloc bool) (*Program, error) {
 	p := NewParser(reader, packages)
 	tree, deps, err := p.Parse(path)
 	_ = deps
@@ -40,7 +40,7 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 			typeInfos[node] = ti
 		}
 	}
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars)
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars, alloc)
 	globals := make([]compiler.Global, len(pkgMain.Globals))
 	for i, global := range pkgMain.Globals {
 		globals[i].Pkg = global.Pkg
@@ -53,7 +53,7 @@ func Compile(path string, reader compiler.Reader, packages map[string]*native.Go
 
 // TODO(Gianluca): second parameter "tf" should be removed: setting the trace
 // function must be done in some other way.
-func Execute(p *Program, tf *vm.TraceFunc) error {
+func Execute(p *Program, tf *vm.TraceFunc, freeMemory int) error {
 	vmm := vm.New()
 	if n := len(p.globals); n > 0 {
 		globals := make([]interface{}, n)
@@ -69,6 +69,7 @@ func Execute(p *Program, tf *vm.TraceFunc) error {
 	if tf != nil {
 		vmm.SetTraceFunc(*tf)
 	}
+	vmm.SetFreeMemory(freeMemory)
 	_, err := vmm.Run(p.Fn)
 	return err
 }
