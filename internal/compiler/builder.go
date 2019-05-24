@@ -578,19 +578,9 @@ func (builder *FunctionBuilder) Concat(s, t, z int8) {
 //     continue addr
 //
 func (builder *FunctionBuilder) Continue(label uint32) {
-	in := vm.Instruction{Op: vm.OpContinue}
-	if label > 0 {
-		if label > uint32(len(builder.labels)) {
-			panic("bug!") // TODO(Gianluca): remove.
-		}
-		addr := builder.labels[label-1]
-		if addr == 0 {
-			builder.gotos[builder.CurrentAddr()] = label
-		} else {
-			in.A, in.B, in.C = encodeUint24(addr)
-		}
-	}
-	builder.fn.Body = append(builder.fn.Body, in)
+	addr := builder.labels[label-1]
+	a, b, c := encodeUint24(addr)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpContinue, A: a, B: b, C: c})
 }
 
 // Convert appends a new "Convert" instruction to the function body.
