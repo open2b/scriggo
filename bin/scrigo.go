@@ -55,7 +55,11 @@ func main() {
 	if *mem != "" {
 		loadOptions = scrigo.LimitMemorySize
 		var unit = (*mem)[len(*mem)-1]
-		if unit == 'K' || unit == 'M' {
+		if unit > 'Z' {
+			unit -= 'z' - 'Z'
+		}
+		switch unit {
+		case 'K', 'M', 'G':
 			*mem = (*mem)[:len(*mem)-1]
 		}
 		var err error
