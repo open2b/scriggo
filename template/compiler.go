@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"strings"
 
+	"scrigo"
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
-	"scrigo/native"
 	"scrigo/vm"
 )
 
@@ -31,11 +31,11 @@ const (
 )
 
 type Page struct {
-	main *native.GoPackage
-	fn   *vm.ScrigoFunction
+	main *scrigo.PredefinedPackage
+	fn   *vm.Function
 }
 
-func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Context, alloc bool) (*Page, error) {
+func Compile(path string, reader compiler.Reader, main *scrigo.PredefinedPackage, ctx Context, alloc bool) (*Page, error) {
 
 	// Parsing.
 	p := NewParser(reader)
@@ -58,7 +58,7 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 	// define something like "emitterBuiltins" in order to avoid converting at every compilation.
 	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
 	emitter.SetAlloc(alloc)
-	fn := compiler.NewScrigoFunction("main", "main", reflect.FuncOf(nil, nil, false))
+	fn := compiler.NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	emitter.CurrentFunction = fn
 	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
 	emitter.FB.SetAlloc(alloc)
@@ -73,7 +73,7 @@ func Compile(path string, reader compiler.Reader, main *native.GoPackage, ctx Co
 func (page *Page) Render(out io.Writer, vars map[string]reflect.Value, freeMemory int) error {
 	// TODO: implement globals
 	pvm := vm.New()
-	pvm.SetFreeMemory(freeMemory)
+	pvm.SetMaxMemory(freeMemory)
 	_, err := pvm.Run(page.fn)
 	return err
 }
@@ -120,7 +120,7 @@ func NewParser(r compiler.Reader) *Parser {
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string, main *native.GoPackage, ctx ast.Context) (*ast.Tree, error) {
+func (p *Parser) Parse(path string, main *scrigo.PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -135,7 +135,7 @@ func (p *Parser) Parse(path string, main *native.GoPackage, ctx ast.Context) (*a
 		return nil, err
 	}
 
-	pp := &expansion{p.reader, p.trees, map[string]*native.GoPackage{"main": main}, []string{}}
+	pp := &expansion{p.reader, p.trees, map[string]*scrigo.PredefinedPackage{"main": main}, []string{}}
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
@@ -165,7 +165,7 @@ func (p *Parser) TypeCheckInfos() map[string]*compiler.PackageInfo {
 type expansion struct {
 	reader   compiler.Reader
 	trees    *compiler.Cache
-	packages map[string]*native.GoPackage
+	packages map[string]*scrigo.PredefinedPackage
 	paths    []string
 }
 

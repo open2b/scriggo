@@ -33,7 +33,7 @@ func decodeUint24(a, b, c int8) uint32 {
 }
 
 type FunctionBuilder struct {
-	fn          *vm.ScrigoFunction
+	fn          *vm.Function
 	labels      []uint32
 	gotos       map[uint32]uint32
 	maxRegs     map[reflect.Kind]uint8 // max number of registers allocated at the same time.
@@ -44,7 +44,7 @@ type FunctionBuilder struct {
 }
 
 // NewBuilder returns a new function builder for the function fn.
-func NewBuilder(fn *vm.ScrigoFunction) *FunctionBuilder {
+func NewBuilder(fn *vm.Function) *FunctionBuilder {
 	fn.Body = nil
 	builder := &FunctionBuilder{
 		fn:      fn,
@@ -164,19 +164,18 @@ func (builder *FunctionBuilder) SetAlloc(alloc bool) {
 	}
 }
 
-// NewScrigoFunction returns a new Scrigo function with a given package, name
-// and type.
-func NewScrigoFunction(pkg, name string, typ reflect.Type) *vm.ScrigoFunction {
-	return &vm.ScrigoFunction{Pkg: pkg, Name: name, Type: typ}
+// NewFunction returns a new function with a given package, name and type.
+func NewFunction(pkg, name string, typ reflect.Type) *vm.Function {
+	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
 }
 
-// NewNativeFunction returns a new native function with a given package, name
-// and implementation. fn must be a function type.
-func NewNativeFunction(pkg, name string, fn interface{}) *vm.NativeFunction {
-	return &vm.NativeFunction{Pkg: pkg, Name: name, Func: fn}
+// NewPredefinedFunction returns a new predefined function with a given
+// package, name and implementation. fn must be a function type.
+func NewPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
+	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
-// AddType adds a type to the Scrigo function.
+// AddType adds a type to the builder's function.
 func (builder *FunctionBuilder) AddType(typ reflect.Type) uint8 {
 	fn := builder.fn
 	index := len(fn.Types)
@@ -192,7 +191,7 @@ func (builder *FunctionBuilder) AddType(typ reflect.Type) uint8 {
 	return uint8(index)
 }
 
-// AddGlobal adds a global variable to the Scrigo function.
+// AddGlobal adds a global variable to the builder's function.
 func (builder *FunctionBuilder) AddGlobal(v vm.Global) int {
 	fn := builder.fn
 	r := len(fn.Globals)
@@ -203,25 +202,25 @@ func (builder *FunctionBuilder) AddGlobal(v vm.Global) int {
 	return r
 }
 
-// AddNativeFunction adds a native function to the Scrigo function.
-func (builder *FunctionBuilder) AddNativeFunction(f *vm.NativeFunction) uint8 {
+// AddPredefinedFunction adds a predefined function to the builder's function.
+func (builder *FunctionBuilder) AddPredefinedFunction(f *vm.PredefinedFunction) uint8 {
 	fn := builder.fn
-	r := len(fn.NativeFunctions)
+	r := len(fn.Predefined)
 	if r > 255 {
-		panic("native functions limit reached")
+		panic("predefined functions limit reached")
 	}
-	fn.NativeFunctions = append(fn.NativeFunctions, f)
+	fn.Predefined = append(fn.Predefined, f)
 	return uint8(r)
 }
 
-// AddScrigoFunction adds a Scrigo function to the Scrigo function.
-func (builder *FunctionBuilder) AddScrigoFunction(f *vm.ScrigoFunction) uint8 {
+// AddFunction adds a function to the builder's function.
+func (builder *FunctionBuilder) AddFunction(f *vm.Function) uint8 {
 	fn := builder.fn
-	r := len(fn.ScrigoFunctions)
+	r := len(fn.Functions)
 	if r > 255 {
 		panic("Scrigo functions limit reached")
 	}
-	fn.ScrigoFunctions = append(fn.ScrigoFunctions, f)
+	fn.Functions = append(fn.Functions, f)
 	return uint8(r)
 }
 
@@ -279,8 +278,8 @@ func (builder *FunctionBuilder) CurrentAddr() uint32 {
 	return uint32(len(builder.fn.Body))
 }
 
-// NewLabel creates a new empty label. Use SetLabelAddr to associate an address
-// to it.
+// NewLabel creates a new empty label. Use SetLabelAddr to associate an
+// address to it.
 func (builder *FunctionBuilder) NewLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
@@ -526,13 +525,13 @@ func (builder *FunctionBuilder) Call(f int8, shift vm.StackShift, line int) {
 	builder.AddLine(uint32(len(fn.Body)-2), line)
 }
 
-// CallNative appends a new "CallNative" instruction to the function body.
+// CallPredefined appends a new "CallPredefined" instruction to the function body.
 //
 //     p.F()
 //
-func (builder *FunctionBuilder) CallNative(f int8, numVariadic int8, shift vm.StackShift) {
+func (builder *FunctionBuilder) CallPredefined(f int8, numVariadic int8, shift vm.StackShift) {
 	fn := builder.fn
-	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallNative, A: f, C: numVariadic})
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallPredefined, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
@@ -734,13 +733,13 @@ func (builder *FunctionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 //
 //     r = func() { ... }
 //
-func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunction {
+func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.Function {
 	fn := builder.fn
 	b := len(fn.Literals)
 	if b == 256 {
-		panic("ScrigoFunctions limit reached")
+		panic("Functions limit reached")
 	}
-	scrigoFunc := &vm.ScrigoFunction{
+	scrigoFunc := &vm.Function{
 		Type:   typ,
 		Parent: fn,
 	}
@@ -757,10 +756,10 @@ func (builder *FunctionBuilder) Func(r int8, typ reflect.Type) *vm.ScrigoFunctio
 //
 //     z = p.f
 //
-func (builder *FunctionBuilder) GetFunc(native bool, f int8, z int8) {
+func (builder *FunctionBuilder) GetFunc(predefined bool, f int8, z int8) {
 	fn := builder.fn
 	var a int8
-	if native {
+	if predefined {
 		a = 1
 	}
 	if builder.allocs != nil {

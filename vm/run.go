@@ -16,14 +16,14 @@ var ErrOutOfMemory = errors.New("out of memory")
 
 const maxAddr = 1<<32 - 1
 
-func (vm *VM) Run(fn *ScrigoFunction) (int, error) {
+func (vm *VM) Run(fn *Function) (int, error) {
 	var isPanicked bool
 	vm.fn = fn
 	vm.vars = vm.ctx.globals
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked && len(vm.calls) > 0 {
-			var call = callFrame{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: panicked}
+			var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
 			vm.calls = append(vm.calls, call)
 			vm.fn = nil
 			if vm.cases != nil {
@@ -71,7 +71,7 @@ func (vm *VM) runRecoverable() (panicked bool) {
 
 func (vm *VM) run() (uint32, bool) {
 
-	var startNativeGoroutine bool
+	var startPredefinedGoroutine bool
 
 	var op Operation
 	var a, b, c int8
@@ -220,9 +220,9 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Call
 		case OpCall:
-			fn := vm.fn.ScrigoFunctions[uint8(a)]
+			fn := vm.fn.Functions[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+			call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 			vm.fp[0] += uint32(off.Op)
 			if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 				vm.moreIntStack()
@@ -247,15 +247,15 @@ func (vm *VM) run() (uint32, bool) {
 		// CallIndirect
 		case OpCallIndirect:
 			f := vm.general(a).(*callable)
-			if f.scrigo == nil {
+			if f.fn == nil {
 				off := vm.fn.Body[vm.pc]
-				vm.callNative(f.native, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
-				startNativeGoroutine = false
+				vm.callPredefined(f.predefined, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
+				startPredefinedGoroutine = false
 			} else {
-				fn := f.scrigo
+				fn := f.fn
 				vm.vars = f.vars
 				off := vm.fn.Body[vm.pc]
-				call := callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
+				call := callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, fp: vm.fp, pc: vm.pc + 1}
 				vm.fp[0] += uint32(off.Op)
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -277,12 +277,12 @@ func (vm *VM) run() (uint32, bool) {
 				vm.pc = 0
 			}
 
-		// CallNative
-		case OpCallNative:
-			fn := vm.fn.NativeFunctions[uint8(a)]
+		// CallPredefined
+		case OpCallPredefined:
+			fn := vm.fn.Predefined[uint8(a)]
 			off := vm.fn.Body[vm.pc]
-			vm.callNative(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startNativeGoroutine)
-			startNativeGoroutine = false
+			vm.callPredefined(fn, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
+			startPredefinedGoroutine = false
 
 		// Cap
 		case OpCap:
@@ -426,15 +426,15 @@ func (vm *VM) run() (uint32, bool) {
 					}
 				}
 			}
-			vm.setGeneral(c, &callable{scrigo: fn, vars: vars})
+			vm.setGeneral(c, &callable{fn: fn, vars: vars})
 
 		// GetFunc
 		case OpGetFunc:
 			fn := callable{}
 			if a == 0 {
-				fn.scrigo = vm.fn.ScrigoFunctions[uint8(b)]
+				fn.fn = vm.fn.Functions[uint8(b)]
 			} else {
-				fn.native = vm.fn.NativeFunctions[uint8(b)]
+				fn.predefined = vm.fn.Predefined[uint8(b)]
 			}
 			vm.setGeneral(c, &fn)
 
@@ -457,9 +457,9 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Go
 		case OpGo:
-			wasNative := vm.startScrigoGoroutine()
-			if wasNative {
-				startNativeGoroutine = true
+			wasPredefined := vm.startGoroutine()
+			if wasPredefined {
+				startPredefinedGoroutine = true
 			}
 
 		// Goto
@@ -768,7 +768,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpPanic:
 			// TODO(Gianluca): if argument is 0, check if previous
 			// instruction is Assert; in such case, raise a type-assertion
-			// panic, retrieving informations from its operands.
+			// panic, retrieving information from its operands.
 			panic(vm.general(a))
 
 		// Print
@@ -1136,8 +1136,8 @@ func (vm *VM) run() (uint32, bool) {
 				vm.calls = vm.calls[:i]
 				vm.fp = call.fp
 				vm.pc = call.pc
-				vm.fn = call.fn.scrigo
-				vm.vars = call.fn.vars
+				vm.fn = call.cl.fn
+				vm.vars = call.cl.vars
 			} else if !vm.nextCall() {
 				return 0, false
 			}
@@ -1346,16 +1346,16 @@ func (vm *VM) run() (uint32, bool) {
 					}
 				}
 			}
-			vm.calls = append(vm.calls, callFrame{fn: callable{scrigo: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
+			vm.calls = append(vm.calls, callFrame{cl: callable{fn: vm.fn, vars: vm.vars}, pc: vm.pc, status: tailed})
 			vm.pc = 0
 			if a != CurrentFunction {
-				var fn *ScrigoFunction
+				var fn *Function
 				if a == 0 {
 					closure := vm.general(b).(*callable)
-					fn = closure.scrigo
+					fn = closure.fn
 					vm.vars = closure.vars
 				} else {
-					fn = vm.fn.ScrigoFunctions[uint8(b)]
+					fn = vm.fn.Functions[uint8(b)]
 					vm.vars = vm.ctx.globals
 				}
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {

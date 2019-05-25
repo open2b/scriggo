@@ -3,30 +3,30 @@
 package main
 
 import (
-	bufio "bufio"
-	bytes "bytes"
-	sha1 "crypto/sha1"
-	base64 "encoding/base64"
-	fmt "fmt"
-	ioutil "io/ioutil"
-	math "math"
-	rand "math/rand"
-	net "net"
-	url "net/url"
-	os "os"
+	"bufio"
+	"bytes"
+	"crypto/sha1"
+	"encoding/base64"
+	"fmt"
+	"io/ioutil"
+	"math"
+	"math/rand"
+	"net"
+	"net/url"
+	"os"
 	"reflect"
-	regexp "regexp"
-	"scrigo/native"
-	sort "sort"
-	strconv "strconv"
-	strings "strings"
-	time "time"
+	"regexp"
+	"scrigo"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func init() {
-	packages = map[string]*native.GoPackage{
+	packages = map[string]*scrigo.PredefinedPackage{
 
-		"bufio": &native.GoPackage{
+		"bufio": &scrigo.PredefinedPackage{
 			Name: "bufio",
 			Declarations: map[string]interface{}{
 				"ErrAdvanceTooFar":     &bufio.ErrAdvanceTooFar,
@@ -37,7 +37,7 @@ func init() {
 				"ErrNegativeAdvance":   &bufio.ErrNegativeAdvance,
 				"ErrNegativeCount":     &bufio.ErrNegativeCount,
 				"ErrTooLong":           &bufio.ErrTooLong,
-				"MaxScanTokenSize":     native.Constant("65536", nil),
+				"MaxScanTokenSize":     scrigo.Constant(nil, "65536"),
 				"NewReadWriter":        bufio.NewReadWriter,
 				"NewReader":            bufio.NewReader,
 				"NewReaderSize":        bufio.NewReaderSize,
@@ -55,7 +55,7 @@ func init() {
 				"Writer":               reflect.TypeOf(new(bufio.Writer)).Elem(),
 			},
 		},
-		"bytes": &native.GoPackage{
+		"bytes": &scrigo.PredefinedPackage{
 			Name: "bytes",
 			Declarations: map[string]interface{}{
 				"Buffer":          reflect.TypeOf(new(bytes.Buffer)).Elem(),
@@ -82,7 +82,7 @@ func init() {
 				"LastIndexByte":   bytes.LastIndexByte,
 				"LastIndexFunc":   bytes.LastIndexFunc,
 				"Map":             bytes.Map,
-				"MinRead":         native.Constant("512", nil),
+				"MinRead":         scrigo.Constant(nil, "512"),
 				"NewBuffer":       bytes.NewBuffer,
 				"NewBufferString": bytes.NewBufferString,
 				"NewReader":       bytes.NewReader,
@@ -113,16 +113,16 @@ func init() {
 				"TrimSuffix":      bytes.TrimSuffix,
 			},
 		},
-		"crypto/sha1": &native.GoPackage{
+		"crypto/sha1": &scrigo.PredefinedPackage{
 			Name: "sha1",
 			Declarations: map[string]interface{}{
-				"BlockSize": native.Constant("64", nil),
+				"BlockSize": scrigo.Constant(nil, "64"),
 				"New":       sha1.New,
-				"Size":      native.Constant("20", nil),
+				"Size":      scrigo.Constant(nil, "20"),
 				"Sum":       sha1.Sum,
 			},
 		},
-		"encoding/base64": &native.GoPackage{
+		"encoding/base64": &scrigo.PredefinedPackage{
 			Name: "base64",
 			Declarations: map[string]interface{}{
 				"CorruptInputError": reflect.TypeOf(new(base64.CorruptInputError)).Elem(),
@@ -130,15 +130,15 @@ func init() {
 				"NewDecoder":        base64.NewDecoder,
 				"NewEncoder":        base64.NewEncoder,
 				"NewEncoding":       base64.NewEncoding,
-				"NoPadding":         native.Constant("-1", reflect.TypeOf(base64.NoPadding)),
+				"NoPadding":         scrigo.Constant(reflect.TypeOf(base64.NoPadding), "-1"),
 				"RawStdEncoding":    &base64.RawStdEncoding,
 				"RawURLEncoding":    &base64.RawURLEncoding,
 				"StdEncoding":       &base64.StdEncoding,
-				"StdPadding":        native.Constant("61", reflect.TypeOf(base64.StdPadding)),
+				"StdPadding":        scrigo.Constant(reflect.TypeOf(base64.StdPadding), "61"),
 				"URLEncoding":       &base64.URLEncoding,
 			},
 		},
-		"fmt": &native.GoPackage{
+		"fmt": &scrigo.PredefinedPackage{
 			Name: "fmt",
 			Declarations: map[string]interface{}{
 				"Errorf":     fmt.Errorf,
@@ -168,7 +168,7 @@ func init() {
 				"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 			},
 		},
-		"io/ioutil": &native.GoPackage{
+		"io/ioutil": &scrigo.PredefinedPackage{
 			Name: "ioutil",
 			Declarations: map[string]interface{}{
 				"Discard":   &ioutil.Discard,
@@ -181,7 +181,7 @@ func init() {
 				"WriteFile": ioutil.WriteFile,
 			},
 		},
-		"math": &native.GoPackage{
+		"math": &scrigo.PredefinedPackage{
 			Name: "math",
 			Declarations: map[string]interface{}{
 				"Abs":                    math.Abs,
@@ -198,7 +198,7 @@ func init() {
 				"Cos":                    math.Cos,
 				"Cosh":                   math.Cosh,
 				"Dim":                    math.Dim,
-				"E":                      native.Constant("271828182845904523536028747135266249775724709369995957496696763/100000000000000000000000000000000000000000000000000000000000000", nil),
+				"E":                      scrigo.Constant(nil, "271828182845904523536028747135266249775724709369995957496696763/100000000000000000000000000000000000000000000000000000000000000"),
 				"Erf":                    math.Erf,
 				"Erfc":                   math.Erfc,
 				"Erfcinv":                math.Erfcinv,
@@ -223,38 +223,38 @@ func init() {
 				"Jn":                     math.Jn,
 				"Ldexp":                  math.Ldexp,
 				"Lgamma":                 math.Lgamma,
-				"Ln10":                   native.Constant("23025850929940456840179914546843642076011014886287729760333279/10000000000000000000000000000000000000000000000000000000000000", nil),
-				"Ln2":                    native.Constant("693147180559945309417232121458176568075500134360255254120680009/1000000000000000000000000000000000000000000000000000000000000000", nil),
+				"Ln10":                   scrigo.Constant(nil, "23025850929940456840179914546843642076011014886287729760333279/10000000000000000000000000000000000000000000000000000000000000"),
+				"Ln2":                    scrigo.Constant(nil, "693147180559945309417232121458176568075500134360255254120680009/1000000000000000000000000000000000000000000000000000000000000000"),
 				"Log":                    math.Log,
 				"Log10":                  math.Log10,
-				"Log10E":                 native.Constant("10000000000000000000000000000000000000000000000000000000000000/23025850929940456840179914546843642076011014886287729760333279", nil),
+				"Log10E":                 scrigo.Constant(nil, "10000000000000000000000000000000000000000000000000000000000000/23025850929940456840179914546843642076011014886287729760333279"),
 				"Log1p":                  math.Log1p,
 				"Log2":                   math.Log2,
-				"Log2E":                  native.Constant("1000000000000000000000000000000000000000000000000000000000000000/693147180559945309417232121458176568075500134360255254120680009", nil),
+				"Log2E":                  scrigo.Constant(nil, "1000000000000000000000000000000000000000000000000000000000000000/693147180559945309417232121458176568075500134360255254120680009"),
 				"Logb":                   math.Logb,
 				"Max":                    math.Max,
-				"MaxFloat32":             native.Constant("340282346638528859811704183484516925440", nil),
-				"MaxFloat64":             native.Constant("179769313486231570814527423731704356798100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", nil),
-				"MaxInt16":               native.Constant("32767", nil),
-				"MaxInt32":               native.Constant("2147483647", nil),
-				"MaxInt64":               native.Constant("9223372036854775807", nil),
-				"MaxInt8":                native.Constant("127", nil),
-				"MaxUint16":              native.Constant("65535", nil),
-				"MaxUint32":              native.Constant("4294967295", nil),
-				"MaxUint64":              native.Constant("18446744073709551615", nil),
-				"MaxUint8":               native.Constant("255", nil),
+				"MaxFloat32":             scrigo.Constant(nil, "340282346638528859811704183484516925440"),
+				"MaxFloat64":             scrigo.Constant(nil, "179769313486231570814527423731704356798100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+				"MaxInt16":               scrigo.Constant(nil, "32767"),
+				"MaxInt32":               scrigo.Constant(nil, "2147483647"),
+				"MaxInt64":               scrigo.Constant(nil, "9223372036854775807"),
+				"MaxInt8":                scrigo.Constant(nil, "127"),
+				"MaxUint16":              scrigo.Constant(nil, "65535"),
+				"MaxUint32":              scrigo.Constant(nil, "4294967295"),
+				"MaxUint64":              scrigo.Constant(nil, "18446744073709551615"),
+				"MaxUint8":               scrigo.Constant(nil, "255"),
 				"Min":                    math.Min,
-				"MinInt16":               native.Constant("-32768", nil),
-				"MinInt32":               native.Constant("-2147483648", nil),
-				"MinInt64":               native.Constant("-9223372036854775808", nil),
-				"MinInt8":                native.Constant("-128", nil),
+				"MinInt16":               scrigo.Constant(nil, "-32768"),
+				"MinInt32":               scrigo.Constant(nil, "-2147483648"),
+				"MinInt64":               scrigo.Constant(nil, "-9223372036854775808"),
+				"MinInt8":                scrigo.Constant(nil, "-128"),
 				"Mod":                    math.Mod,
 				"Modf":                   math.Modf,
 				"NaN":                    math.NaN,
 				"Nextafter":              math.Nextafter,
 				"Nextafter32":            math.Nextafter32,
-				"Phi":                    native.Constant("80901699437494742410229341718281905886015458990288143106772431/50000000000000000000000000000000000000000000000000000000000000", nil),
-				"Pi":                     native.Constant("314159265358979323846264338327950288419716939937510582097494459/100000000000000000000000000000000000000000000000000000000000000", nil),
+				"Phi":                    scrigo.Constant(nil, "80901699437494742410229341718281905886015458990288143106772431/50000000000000000000000000000000000000000000000000000000000000"),
+				"Pi":                     scrigo.Constant(nil, "314159265358979323846264338327950288419716939937510582097494459/100000000000000000000000000000000000000000000000000000000000000"),
 				"Pow":                    math.Pow,
 				"Pow10":                  math.Pow10,
 				"Remainder":              math.Remainder,
@@ -264,13 +264,13 @@ func init() {
 				"Sin":                    math.Sin,
 				"Sincos":                 math.Sincos,
 				"Sinh":                   math.Sinh,
-				"SmallestNonzeroFloat32": native.Constant("17516230804060213386546619791123951641/12500000000000000000000000000000000000000000000000000000000000000000000000000000000", nil),
-				"SmallestNonzeroFloat64": native.Constant("4940656458412465441765687928682213723651/1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", nil),
+				"SmallestNonzeroFloat32": scrigo.Constant(nil, "17516230804060213386546619791123951641/12500000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+				"SmallestNonzeroFloat64": scrigo.Constant(nil, "4940656458412465441765687928682213723651/1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 				"Sqrt":                   math.Sqrt,
-				"Sqrt2":                  native.Constant("70710678118654752440084436210484903928483593768847403658833987/50000000000000000000000000000000000000000000000000000000000000", nil),
-				"SqrtE":                  native.Constant("164872127070012814684865078781416357165377610071014801157507931/100000000000000000000000000000000000000000000000000000000000000", nil),
-				"SqrtPhi":                native.Constant("63600982475703448212621123086874574585780402092004812430832019/50000000000000000000000000000000000000000000000000000000000000", nil),
-				"SqrtPi":                 native.Constant("177245385090551602729816748334114518279754945612238712821380779/100000000000000000000000000000000000000000000000000000000000000", nil),
+				"Sqrt2":                  scrigo.Constant(nil, "70710678118654752440084436210484903928483593768847403658833987/50000000000000000000000000000000000000000000000000000000000000"),
+				"SqrtE":                  scrigo.Constant(nil, "164872127070012814684865078781416357165377610071014801157507931/100000000000000000000000000000000000000000000000000000000000000"),
+				"SqrtPhi":                scrigo.Constant(nil, "63600982475703448212621123086874574585780402092004812430832019/50000000000000000000000000000000000000000000000000000000000000"),
+				"SqrtPi":                 scrigo.Constant(nil, "177245385090551602729816748334114518279754945612238712821380779/100000000000000000000000000000000000000000000000000000000000000"),
 				"Tan":                    math.Tan,
 				"Tanh":                   math.Tanh,
 				"Trunc":                  math.Trunc,
@@ -279,7 +279,7 @@ func init() {
 				"Yn":                     math.Yn,
 			},
 		},
-		"math/rand": &native.GoPackage{
+		"math/rand": &scrigo.PredefinedPackage{
 			Name: "rand",
 			Declarations: map[string]interface{}{
 				"ExpFloat64":  rand.ExpFloat64,
@@ -307,7 +307,7 @@ func init() {
 				"Zipf":        reflect.TypeOf(new(rand.Zipf)).Elem(),
 			},
 		},
-		"net": &native.GoPackage{
+		"net": &scrigo.PredefinedPackage{
 			Name: "net",
 			Declarations: map[string]interface{}{
 				"Addr":                       reflect.TypeOf(new(net.Addr)).Elem(),
@@ -330,7 +330,7 @@ func init() {
 				"FileConn":                   net.FileConn,
 				"FileListener":               net.FileListener,
 				"FilePacketConn":             net.FilePacketConn,
-				"FlagUp":                     native.Constant("16", reflect.TypeOf(net.FlagUp)),
+				"FlagUp":                     scrigo.Constant(reflect.TypeOf(net.FlagUp), "16"),
 				"Flags":                      reflect.TypeOf(new(net.Flags)).Elem(),
 				"HardwareAddr":               reflect.TypeOf(new(net.HardwareAddr)).Elem(),
 				"IP":                         reflect.TypeOf(new(net.IP)).Elem(),
@@ -343,10 +343,10 @@ func init() {
 				"IPv4allrouter":              &net.IPv4allrouter,
 				"IPv4allsys":                 &net.IPv4allsys,
 				"IPv4bcast":                  &net.IPv4bcast,
-				"IPv4len":                    native.Constant("4", nil),
+				"IPv4len":                    scrigo.Constant(nil, "4"),
 				"IPv4zero":                   &net.IPv4zero,
 				"IPv6interfacelocalallnodes": &net.IPv6interfacelocalallnodes,
-				"IPv6len":                    native.Constant("16", nil),
+				"IPv6len":                    scrigo.Constant(nil, "16"),
 				"IPv6linklocalallnodes":      &net.IPv6linklocalallnodes,
 				"IPv6linklocalallrouters":    &net.IPv6linklocalallrouters,
 				"IPv6loopback":               &net.IPv6loopback,
@@ -405,7 +405,7 @@ func init() {
 				"UnknownNetworkError":        reflect.TypeOf(new(net.UnknownNetworkError)).Elem(),
 			},
 		},
-		"net/url": &native.GoPackage{
+		"net/url": &scrigo.PredefinedPackage{
 			Name: "url",
 			Declarations: map[string]interface{}{
 				"Error":            reflect.TypeOf(new(url.Error)).Elem(),
@@ -425,7 +425,7 @@ func init() {
 				"Values":           reflect.TypeOf(new(url.Values)).Elem(),
 			},
 		},
-		"os": &native.GoPackage{
+		"os": &scrigo.PredefinedPackage{
 			Name: "os",
 			Declarations: map[string]interface{}{
 				"Chdir":             os.Chdir,
@@ -434,7 +434,7 @@ func init() {
 				"Chtimes":           os.Chtimes,
 				"Clearenv":          os.Clearenv,
 				"Create":            os.Create,
-				"DevNull":           native.Constant("\"NUL\"", nil),
+				"DevNull":           scrigo.Constant(nil, "\"NUL\""),
 				"Environ":           os.Environ,
 				"ErrClosed":         &os.ErrClosed,
 				"ErrExist":          &os.ErrExist,
@@ -475,24 +475,24 @@ func init() {
 				"Lstat":             os.Lstat,
 				"Mkdir":             os.Mkdir,
 				"MkdirAll":          os.MkdirAll,
-				"ModeDir":           native.Constant("524288", reflect.TypeOf(os.ModeDir)),
-				"ModePerm":          native.Constant("511", reflect.TypeOf(os.ModePerm)),
-				"ModeType":          native.Constant("2401763328", nil),
+				"ModeDir":           scrigo.Constant(reflect.TypeOf(os.ModeDir), "524288"),
+				"ModePerm":          scrigo.Constant(reflect.TypeOf(os.ModePerm), "511"),
+				"ModeType":          scrigo.Constant(nil, "2401763328"),
 				"NewFile":           os.NewFile,
 				"NewSyscallError":   os.NewSyscallError,
-				"O_APPEND":          native.Constant("1024", reflect.TypeOf(os.O_APPEND)),
-				"O_CREATE":          native.Constant("64", reflect.TypeOf(os.O_CREATE)),
-				"O_EXCL":            native.Constant("128", reflect.TypeOf(os.O_EXCL)),
-				"O_RDONLY":          native.Constant("0", reflect.TypeOf(os.O_RDONLY)),
-				"O_RDWR":            native.Constant("2", reflect.TypeOf(os.O_RDWR)),
-				"O_SYNC":            native.Constant("4096", reflect.TypeOf(os.O_SYNC)),
-				"O_TRUNC":           native.Constant("512", reflect.TypeOf(os.O_TRUNC)),
-				"O_WRONLY":          native.Constant("1", reflect.TypeOf(os.O_WRONLY)),
+				"O_APPEND":          scrigo.Constant(reflect.TypeOf(os.O_APPEND), "1024"),
+				"O_CREATE":          scrigo.Constant(reflect.TypeOf(os.O_CREATE), "64"),
+				"O_EXCL":            scrigo.Constant(reflect.TypeOf(os.O_EXCL), "128"),
+				"O_RDONLY":          scrigo.Constant(reflect.TypeOf(os.O_RDONLY), "0"),
+				"O_RDWR":            scrigo.Constant(reflect.TypeOf(os.O_RDWR), "2"),
+				"O_SYNC":            scrigo.Constant(reflect.TypeOf(os.O_SYNC), "4096"),
+				"O_TRUNC":           scrigo.Constant(reflect.TypeOf(os.O_TRUNC), "512"),
+				"O_WRONLY":          scrigo.Constant(reflect.TypeOf(os.O_WRONLY), "1"),
 				"Open":              os.Open,
 				"OpenFile":          os.OpenFile,
 				"PathError":         reflect.TypeOf(new(os.PathError)).Elem(),
-				"PathListSeparator": native.Constant("59", nil),
-				"PathSeparator":     native.Constant("92", nil),
+				"PathListSeparator": scrigo.Constant(nil, "59"),
+				"PathSeparator":     scrigo.Constant(nil, "92"),
 				"Pipe":              os.Pipe,
 				"ProcAttr":          reflect.TypeOf(new(os.ProcAttr)).Elem(),
 				"Process":           reflect.TypeOf(new(os.Process)).Elem(),
@@ -501,9 +501,9 @@ func init() {
 				"Remove":            os.Remove,
 				"RemoveAll":         os.RemoveAll,
 				"Rename":            os.Rename,
-				"SEEK_CUR":          native.Constant("1", reflect.TypeOf(os.SEEK_CUR)),
-				"SEEK_END":          native.Constant("2", reflect.TypeOf(os.SEEK_END)),
-				"SEEK_SET":          native.Constant("0", reflect.TypeOf(os.SEEK_SET)),
+				"SEEK_CUR":          scrigo.Constant(reflect.TypeOf(os.SEEK_CUR), "1"),
+				"SEEK_END":          scrigo.Constant(reflect.TypeOf(os.SEEK_END), "2"),
+				"SEEK_SET":          scrigo.Constant(reflect.TypeOf(os.SEEK_SET), "0"),
 				"SameFile":          os.SameFile,
 				"Setenv":            os.Setenv,
 				"Signal":            reflect.TypeOf(new(os.Signal)).Elem(),
@@ -521,7 +521,7 @@ func init() {
 				"UserHomeDir":       os.UserHomeDir,
 			},
 		},
-		"regexp": &native.GoPackage{
+		"regexp": &scrigo.PredefinedPackage{
 			Name: "regexp",
 			Declarations: map[string]interface{}{
 				"Compile":          regexp.Compile,
@@ -535,7 +535,7 @@ func init() {
 				"Regexp":           reflect.TypeOf(new(regexp.Regexp)).Elem(),
 			},
 		},
-		"sort": &native.GoPackage{
+		"sort": &scrigo.PredefinedPackage{
 			Name: "sort",
 			Declarations: map[string]interface{}{
 				"Float64Slice":      reflect.TypeOf(new(sort.Float64Slice)).Elem(),
@@ -561,7 +561,7 @@ func init() {
 				"StringsAreSorted":  sort.StringsAreSorted,
 			},
 		},
-		"strconv": &native.GoPackage{
+		"strconv": &scrigo.PredefinedPackage{
 			Name: "strconv",
 			Declarations: map[string]interface{}{
 				"AppendBool":               strconv.AppendBool,
@@ -582,7 +582,7 @@ func init() {
 				"FormatFloat":              strconv.FormatFloat,
 				"FormatInt":                strconv.FormatInt,
 				"FormatUint":               strconv.FormatUint,
-				"IntSize":                  native.Constant("64", nil),
+				"IntSize":                  scrigo.Constant(nil, "64"),
 				"IsGraphic":                strconv.IsGraphic,
 				"IsPrint":                  strconv.IsPrint,
 				"Itoa":                     strconv.Itoa,
@@ -601,7 +601,7 @@ func init() {
 				"UnquoteChar":              strconv.UnquoteChar,
 			},
 		},
-		"strings": &native.GoPackage{
+		"strings": &scrigo.PredefinedPackage{
 			Name: "strings",
 			Declarations: map[string]interface{}{
 				"Builder":        reflect.TypeOf(new(strings.Builder)).Elem(),
@@ -655,27 +655,27 @@ func init() {
 				"TrimSuffix":     strings.TrimSuffix,
 			},
 		},
-		"time": &native.GoPackage{
+		"time": &scrigo.PredefinedPackage{
 			Name: "time",
 			Declarations: map[string]interface{}{
-				"ANSIC":                  native.Constant("\"Mon Jan _2 15:04:05 2006\"", nil),
+				"ANSIC":                  scrigo.Constant(nil, "\"Mon Jan _2 15:04:05 2006\""),
 				"After":                  time.After,
 				"AfterFunc":              time.AfterFunc,
 				"Date":                   time.Date,
 				"Duration":               reflect.TypeOf(new(time.Duration)).Elem(),
 				"FixedZone":              time.FixedZone,
-				"Hour":                   native.Constant("3600000000000", nil),
-				"January":                native.Constant("12", reflect.TypeOf(time.January)),
-				"Kitchen":                native.Constant("\"3:04PM\"", nil),
+				"Hour":                   scrigo.Constant(nil, "3600000000000"),
+				"January":                scrigo.Constant(reflect.TypeOf(time.January), "12"),
+				"Kitchen":                scrigo.Constant(nil, "\"3:04PM\""),
 				"LoadLocation":           time.LoadLocation,
 				"LoadLocationFromTZData": time.LoadLocationFromTZData,
 				"Local":                  &time.Local,
 				"Location":               reflect.TypeOf(new(time.Location)).Elem(),
-				"Microsecond":            native.Constant("1000", nil),
-				"Millisecond":            native.Constant("1000000", nil),
-				"Minute":                 native.Constant("60000000000", nil),
+				"Microsecond":            scrigo.Constant(nil, "1000"),
+				"Millisecond":            scrigo.Constant(nil, "1000000"),
+				"Minute":                 scrigo.Constant(nil, "60000000000"),
 				"Month":                  reflect.TypeOf(new(time.Month)).Elem(),
-				"Nanosecond":             native.Constant("1", reflect.TypeOf(time.Nanosecond)),
+				"Nanosecond":             scrigo.Constant(reflect.TypeOf(time.Nanosecond), "1"),
 				"NewTicker":              time.NewTicker,
 				"NewTimer":               time.NewTimer,
 				"Now":                    time.Now,
@@ -683,29 +683,29 @@ func init() {
 				"ParseDuration":          time.ParseDuration,
 				"ParseError":             reflect.TypeOf(new(time.ParseError)).Elem(),
 				"ParseInLocation":        time.ParseInLocation,
-				"RFC1123":                native.Constant("\"Mon, 02 Jan 2006 15:04:05 MST\"", nil),
-				"RFC1123Z":               native.Constant("\"Mon, 02 Jan 2006 15:04:05 -0700\"", nil),
-				"RFC3339":                native.Constant("\"2006-01-02T15:04:05Z07:00\"", nil),
-				"RFC3339Nano":            native.Constant("\"2006-01-02T15:04:05.999999999Z07:00\"", nil),
-				"RFC822":                 native.Constant("\"02 Jan 06 15:04 MST\"", nil),
-				"RFC822Z":                native.Constant("\"02 Jan 06 15:04 -0700\"", nil),
-				"RFC850":                 native.Constant("\"Monday, 02-Jan-06 15:04:05 MST\"", nil),
-				"RubyDate":               native.Constant("\"Mon Jan 02 15:04:05 -0700 2006\"", nil),
-				"Second":                 native.Constant("1000000000", nil),
+				"RFC1123":                scrigo.Constant(nil, "\"Mon, 02 Jan 2006 15:04:05 MST\""),
+				"RFC1123Z":               scrigo.Constant(nil, "\"Mon, 02 Jan 2006 15:04:05 -0700\""),
+				"RFC3339":                scrigo.Constant(nil, "\"2006-01-02T15:04:05Z07:00\""),
+				"RFC3339Nano":            scrigo.Constant(nil, "\"2006-01-02T15:04:05.999999999Z07:00\""),
+				"RFC822":                 scrigo.Constant(nil, "\"02 Jan 06 15:04 MST\""),
+				"RFC822Z":                scrigo.Constant(nil, "\"02 Jan 06 15:04 -0700\""),
+				"RFC850":                 scrigo.Constant(nil, "\"Monday, 02-Jan-06 15:04:05 MST\""),
+				"RubyDate":               scrigo.Constant(nil, "\"Mon Jan 02 15:04:05 -0700 2006\""),
+				"Second":                 scrigo.Constant(nil, "1000000000"),
 				"Since":                  time.Since,
 				"Sleep":                  time.Sleep,
-				"Stamp":                  native.Constant("\"Jan _2 15:04:05\"", nil),
-				"StampMicro":             native.Constant("\"Jan _2 15:04:05.000000\"", nil),
-				"StampMilli":             native.Constant("\"Jan _2 15:04:05.000\"", nil),
-				"StampNano":              native.Constant("\"Jan _2 15:04:05.000000000\"", nil),
-				"Sunday":                 native.Constant("6", reflect.TypeOf(time.Sunday)),
+				"Stamp":                  scrigo.Constant(nil, "\"Jan _2 15:04:05\""),
+				"StampMicro":             scrigo.Constant(nil, "\"Jan _2 15:04:05.000000\""),
+				"StampMilli":             scrigo.Constant(nil, "\"Jan _2 15:04:05.000\""),
+				"StampNano":              scrigo.Constant(nil, "\"Jan _2 15:04:05.000000000\""),
+				"Sunday":                 scrigo.Constant(reflect.TypeOf(time.Sunday), "6"),
 				"Tick":                   time.Tick,
 				"Ticker":                 reflect.TypeOf(new(time.Ticker)).Elem(),
 				"Time":                   reflect.TypeOf(new(time.Time)).Elem(),
 				"Timer":                  reflect.TypeOf(new(time.Timer)).Elem(),
 				"UTC":                    &time.UTC,
 				"Unix":                   time.Unix,
-				"UnixDate":               native.Constant("\"Mon Jan _2 15:04:05 MST 2006\"", nil),
+				"UnixDate":               scrigo.Constant(nil, "\"Mon Jan _2 15:04:05 MST 2006\""),
 				"Until":                  time.Until,
 				"Weekday":                reflect.TypeOf(new(time.Weekday)).Elem(),
 			},

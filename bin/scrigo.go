@@ -15,13 +15,11 @@ import (
 
 	"scrigo"
 	"scrigo/internal/compiler"
-	"scrigo/native"
-	"scrigo/script"
 	"scrigo/template"
 	"scrigo/vm"
 )
 
-var packages map[string]*native.GoPackage
+var packages map[string]*scrigo.PredefinedPackage
 
 func main() {
 
@@ -33,7 +31,7 @@ func main() {
 
 	var tf vm.TraceFunc
 	if *trace {
-		tf = func(fn *vm.ScrigoFunction, pc uint32, regs vm.Registers) {
+		tf = func(fn *vm.Function, pc uint32, regs vm.Registers) {
 			funcName := fn.Name
 			if funcName != "" {
 				funcName += ":"
@@ -97,20 +95,27 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		s, err := script.Compile(r, nil, freeMemory > 0)
+		var loadOptions scrigo.Option
+		if freeMemory > 0 {
+			loadOptions = scrigo.LimitMemorySize
+		}
+		script, err := scrigo.LoadScript(r, nil, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
-			funcs, err := compiler.Disassemble(s.Fn)
+			_, err := script.Disassemble(os.Stdout)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
-			fmt.Print(funcs["main"])
 		} else {
-			err = script.Execute(s, nil, freeMemory)
+			execOptions := scrigo.Options{MaxMemorySize: freeMemory}
+			if *trace {
+				execOptions.TraceFunc = tf
+			}
+			err = script.Run(nil, execOptions)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
@@ -122,30 +127,32 @@ func main() {
 		// keep.
 		path := "/" + filepath.Base(absFile)
 		r := compiler.DirReader(filepath.Dir(absFile))
-		program, err := scrigo.Compile(path, r, packages, freeMemory > 0)
+		var loadOptions scrigo.Option
+		if freeMemory > 0 {
+			loadOptions = scrigo.LimitMemorySize
+		}
+		program, err := scrigo.Load(path, r, packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
-			funcs, err := compiler.Disassemble(program.Fn)
+			_, err := program.Disassemble(os.Stdout, "main")
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
-			fmt.Print(funcs["main"])
 		} else {
+			execOptions := scrigo.Options{MaxMemorySize: freeMemory}
 			if *trace {
-				err = scrigo.Execute(program, &tf, freeMemory)
-			} else {
-				err = scrigo.Execute(program, nil, freeMemory)
+				execOptions.TraceFunc = tf
 			}
+			err = program.Run(execOptions)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
 		}
-
 	case ".html":
 		if *mem == "" {
 			freeMemory = 16 * 1024 * 1024

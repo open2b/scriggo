@@ -19,8 +19,7 @@ import (
 
 	"scrigo"
 	"scrigo/internal/compiler"
-	"scrigo/native"
-	vmp "scrigo/vm"
+	"scrigo/vm"
 )
 
 var exprTests = map[string]interface{}{
@@ -72,14 +71,16 @@ func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := compiler.MapReader{"/test.go": []byte("package main; func main() { a := " + src + "; _ = a }")}
-			program, err := scrigo.Compile("/test.go", r, goPackages, true)
+			program, err := scrigo.Load("/test.go", r, goPackages, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
 			}
-			vm := vmp.New()
-			vm.SetFreeMemory(1000000)
-			_, err = vm.Run(program.Fn)
+			var registers vm.Registers
+			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
+				registers = regs
+			}
+			err = program.Run(scrigo.Options{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", src, err)
 				return
@@ -88,13 +89,13 @@ func TestVMExpressions(t *testing.T) {
 			var got interface{}
 			switch kind {
 			case reflect.Int, reflect.Bool, reflect.Int64:
-				got = vm.Int(1)
+				got = registers.Int[0]
 			case reflect.Float32, reflect.Float64:
-				got = vm.Float(1)
+				got = registers.Float[0]
 			case reflect.String:
-				got = vm.String(1)
+				got = registers.String[0]
 			case reflect.Slice, reflect.Map, reflect.Array:
-				got = vm.General(1)
+				got = registers.General[0]
 			default:
 				panic("bug")
 			}
@@ -107,7 +108,7 @@ func TestVMExpressions(t *testing.T) {
 
 // reg represents a register. It's used in tests only.
 type reg struct {
-	typ   vmp.Type
+	typ   vm.Type
 	r     int8
 	value interface{}
 }
@@ -332,7 +333,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "123344", nil, 0},
 
-	{"Package with both Scrigo and native variables",
+	{"Package with both predefined and not predefined variables",
 		`package main
 
 		import (
@@ -343,8 +344,8 @@ var stmtTests = []struct {
 		var Center = "msg"
 		
 		func main() {
-			nativeC := testpkg.Center
-			fmt.Println(nativeC)
+			predefinedC := testpkg.Center
+			fmt.Println(predefinedC)
 			c := Center
 			fmt.Println(c)
 		}
@@ -411,7 +412,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "switch: true.", nil, 0},
 
-	{"Package variable - native call with package variable as argument",
+	{"Package variable - call to a predefined function with package variable as argument",
 		`package main
 
 		import "fmt"
@@ -1537,7 +1538,7 @@ var stmtTests = []struct {
 		`, nil, nil,
 		"75,-9,1386,0,33,1797,1377,1335,15,", nil, 0},
 
-	{"Selector (native struct)",
+	{"Selector (predefined struct)",
 		`package main
 
 		import (
@@ -1600,7 +1601,7 @@ var stmtTests = []struct {
 		nil,
 		"g\nf\n", nil, 0},
 
-	{"Dot import (native)",
+	{"Dot import (predefined)",
 		`package main
 		
 		import . "fmt"
@@ -1610,7 +1611,7 @@ var stmtTests = []struct {
 		}`,
 		nil, nil, "hey\n", nil, 0},
 
-	{"Import (native) with explicit package name",
+	{"Import (predefined) with explicit package name",
 		`package main
 		
 		import f "fmt"
@@ -1620,7 +1621,7 @@ var stmtTests = []struct {
 		}`,
 		nil, nil, "hey\n", nil, 0},
 
-	{"Import (native) with explicit package name (two packages)",
+	{"Import (predefined) with explicit package name (two packages)",
 		`package main
 		
 		import f "fmt"
@@ -1789,7 +1790,7 @@ var stmtTests = []struct {
 		nil,
 		nil, "", nil, 0},
 
-	{"Function call assignment (2 to 1) - Native function with two return values",
+	{"Function call assignment (2 to 1) - Predefined function with two return values",
 		`
 		package main
 
@@ -2772,7 +2773,7 @@ var stmtTests = []struct {
 			fmt.Println("dst2:", dst2)
 		}
 		`, nil, nil, "dst: [10 20 30] n: 3\ndst2: [10 20]\n", nil, 0},
-	{"Function which calls both Scrigo and native functions",
+	{"Function which calls both predefined and not predefined functions",
 		`package main
 
 		import "fmt"
@@ -2788,7 +2789,7 @@ var stmtTests = []struct {
 		nil,
 		nil,
 		"scrigoFunc()\nmain()\n", nil, 0},
-	{"Native function call (0 in, 0 out)",
+	{"Predefined function call (0 in, 0 out)",
 		`
 		package main
 
@@ -2811,7 +2812,7 @@ var stmtTests = []struct {
 		},
 		nil, "", nil, 0},
 
-	{"Native function call (0 in, 1 out)",
+	{"Predefined function call (0 in, 1 out)",
 		`
 		package main
 
@@ -2828,7 +2829,7 @@ var stmtTests = []struct {
 			// {vmp.TypeInt, 1, int64(40)},
 		}, "", nil, 0},
 
-	{"Native function call (1 in, 0 out)",
+	{"Predefined function call (1 in, 0 out)",
 		`
 		package main
 
@@ -2840,7 +2841,7 @@ var stmtTests = []struct {
 		}`,
 		nil, nil, "", nil, 0},
 
-	{"Native function call (1 in, 1 out)",
+	{"Predefined function call (1 in, 1 out)",
 		`
 		package main
 
@@ -2857,7 +2858,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "42", nil, 0},
 
-	{"Native function call (2 in, 1 out) (with surrounding variables)",
+	{"Predefined function call (2 in, 1 out) (with surrounding variables)",
 		`
 		package main
 
@@ -2886,7 +2887,7 @@ var stmtTests = []struct {
 			// {vmp.TypeInt, 5, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
 		}, "", nil, 0},
 
-	{"Native function call of StringLen",
+	{"Predefined function call of StringLen",
 		`
 		package main
 
@@ -2902,7 +2903,7 @@ var stmtTests = []struct {
 			// {vmp.TypeInt, 1, int64(3)},
 		}, "", nil, 0},
 
-	{"Native function call of fmt.Println",
+	{"Predefined function call of fmt.Println",
 		`
 		package main
 
@@ -2918,7 +2919,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "hello, world!\n42\nhi!\n1 2 3\nhi! hi! [3 4 5]\n", nil, 0},
 
-	{"Native function call f(g())",
+	{"Predefined function call f(g())",
 		`package main
 
 		import (
@@ -2941,7 +2942,7 @@ var stmtTests = []struct {
 		nil, nil,
 		"a is 42 and b is 33\n", nil, 0},
 
-	{"Reading a native int variable",
+	{"Reading a predefined int variable",
 		`
 		package main
 
@@ -2954,7 +2955,7 @@ var stmtTests = []struct {
 		`, nil, nil,
 		"20", nil, 0},
 
-	{"Writing a native int variable",
+	{"Writing a predefined int variable",
 		`
 		package main
 
@@ -3034,7 +3035,7 @@ var stmtTests = []struct {
 		},
 		"", nil, 0},
 
-	{"Multiple native function calls",
+	{"Multiple predefined function calls",
 		`
 		package main
 
@@ -3057,7 +3058,7 @@ var stmtTests = []struct {
 			// {vmp.TypeInt, 3, int64(3)}, // c
 		}, "", nil, 0},
 
-	{"Native function 'Swap'",
+	{"Predefined function 'Swap'",
 		`
 		package main
 
@@ -3391,7 +3392,7 @@ var stmtTests = []struct {
 	//------------------------------------
 
 	// TODO (Gianluca):
-	// {"(Native) struct composite literal (empty)",
+	// {"(Predefined) struct composite literal (empty)",
 	// 	`package main
 
 	// 	import (
@@ -3413,14 +3414,13 @@ var stmtTests = []struct {
 func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
-			registers := cas.registers
+			regs := cas.registers
 			r := compiler.MapReader{"/test.go": []byte(cas.src)}
-			program, err := scrigo.Compile("/test.go", r, goPackages, true)
+			program, err := scrigo.Load("/test.go", r, goPackages, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.src, err)
 				return
 			}
-			vm := vmp.New()
 			backupStdout := os.Stdout
 			backupStderr := os.Stderr
 			reader, writer, err := os.Pipe()
@@ -3446,7 +3446,11 @@ func TestVM(t *testing.T) {
 				out <- buf.String()
 			}()
 			wg.Wait()
-			err = scrigo.Execute(program, nil, 1000000)
+			var registers vm.Registers
+			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
+				registers = regs
+			}
+			err = program.Run(scrigo.Options{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err == nil {
 				if cas.err != nil {
 					t.Errorf("test %q, expecting error %#v, got not error", cas.name, cas.err)
@@ -3467,12 +3471,13 @@ func TestVM(t *testing.T) {
 
 			// TODO (Gianluca): to review.
 			if false && cas.disassembled != nil {
-				assembler, err := compiler.Disassemble(program.Fn)
+				asm := strings.Builder{}
+				_, err := program.Disassemble(&asm, "main")
 				if err != nil {
 					t.Errorf("test %q, disassemble error: %s", cas.name, err)
 					return
 				}
-				got := assembler["main"]
+				got := asm.String()
 				gotLines := strings.Split(strings.TrimSpace(got), "\n")
 				if diff := equal(cas.disassembled, gotLines); diff >= 0 {
 					if !testing.Verbose() {
@@ -3512,17 +3517,17 @@ func TestVM(t *testing.T) {
 
 			// Tests if registers match.
 
-			for _, reg := range registers {
+			for _, reg := range regs {
 				var got interface{}
 				switch reg.typ {
-				case vmp.TypeFloat:
-					got = vm.Float(reg.r)
-				case vmp.TypeGeneral:
-					got = vm.General(reg.r)
-				case vmp.TypeInt:
-					got = vm.Int(reg.r)
-				case vmp.TypeString:
-					got = vm.String(reg.r)
+				case vm.TypeFloat:
+					got = registers.Float[reg.r-1]
+				case vm.TypeGeneral:
+					got = registers.General[reg.r-1]
+				case vm.TypeInt:
+					got = registers.Int[reg.r-1]
+				case vm.TypeString:
+					got = registers.String[reg.r-1]
 				}
 				if !reflect.DeepEqual(reg.value, got) {
 					t.Errorf("test %q, register %s[%d]: expecting %#v (type %T), got %#v (type %T)", cas.name, reg.typ, reg.r, reg.value, reg.value, got, got)
@@ -3600,8 +3605,8 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = map[string]*native.GoPackage{
-	"fmt": &native.GoPackage{
+var goPackages = map[string]*scrigo.PredefinedPackage{
+	"fmt": &scrigo.PredefinedPackage{
 		Name: "fmt",
 		Declarations: map[string]interface{}{
 			"Errorf":     fmt.Errorf,
@@ -3631,7 +3636,7 @@ var goPackages = map[string]*native.GoPackage{
 			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 		},
 	},
-	"testpkg": &native.GoPackage{
+	"testpkg": &scrigo.PredefinedPackage{
 		Name: "testpkg",
 		Declarations: map[string]interface{}{
 			"F00": func() {},

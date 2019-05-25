@@ -21,10 +21,9 @@ import (
 
 	"scrigo"
 	"scrigo/internal/compiler"
-	"scrigo/native"
 )
 
-var packages map[string]*native.GoPackage
+var packages map[string]*scrigo.PredefinedPackage
 
 type output struct {
 	path        string
@@ -100,11 +99,11 @@ func runScrigoAndGetOutput(src []byte) output {
 	wg.Wait()
 
 	r := compiler.MapReader{"/main.go": src}
-	program, err := scrigo.Compile("/main.go", r, packages, true)
+	program, err := scrigo.Load("/main.go", r, packages, scrigo.LimitMemorySize)
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	err = scrigo.Execute(program, nil, 1000000)
+	err = program.Run(scrigo.Options{MaxMemorySize: 1000000})
 	if err != nil {
 		return makeOutput(err.Error())
 	}

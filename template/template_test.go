@@ -581,7 +581,7 @@ func TestRenderExpressions(t *testing.T) {
 	// 			scope[n] = d
 	// 		}
 	// 	}
-	// 	goPkg := &native.GoPackage{
+	// 	goPkg := &scrigo.PredefinedPackage{
 	// 		Declarations: scope,
 	// 	}
 	// 	template := NewTemplate(r)
@@ -627,7 +627,7 @@ func TestRenderStatements(t *testing.T) {
 	// 			scope[n] = d
 	// 		}
 	// 	}
-	// 	goPkg := &native.GoPackage{
+	// 	goPkg := &scrigo.PredefinedPackage{
 	// 		Declarations: scope,
 	// 	}
 	// 	template := NewTemplate(r)

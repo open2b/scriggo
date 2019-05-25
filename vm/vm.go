@@ -29,7 +29,7 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-type TraceFunc func(fn *ScrigoFunction, pc uint32, regs Registers)
+type TraceFunc func(fn *Function, pc uint32, regs Registers)
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
@@ -38,7 +38,7 @@ type VM struct {
 	pc     uint32               // program counter.
 	ok     bool                 // ok flag.
 	regs   registers            // registers.
-	fn     *ScrigoFunction      // current function.
+	fn     *Function            // running function.
 	vars   []interface{}        // global and closure variables.
 	ctx    *context             // execution context.
 	calls  []callFrame          // call stack frame.
@@ -97,8 +97,8 @@ func (vm *VM) SetGlobals(globals []interface{}) {
 	vm.ctx.globals = globals
 }
 
-// SetFreeMemory sets the free memory.
-func (vm *VM) SetFreeMemory(bytes int) {
+// SetMaxMemory sets the maximum allocable memory.
+func (vm *VM) SetMaxMemory(bytes int) {
 	vm.ctx.freeMemory = bytes
 }
 
@@ -130,14 +130,14 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	write("scrigo goroutine 1 [running]:")
 	size := len(vm.calls)
 	for i := size; i >= 0; i-- {
-		var fn *ScrigoFunction
+		var fn *Function
 		var ppc uint32
 		if i == size {
 			fn = vm.fn
 			ppc = vm.pc - 1
 		} else {
 			call := vm.calls[i]
-			fn = call.fn.scrigo
+			fn = call.cl.fn
 			if call.status == tailed {
 				ppc = call.pc - 1
 			} else {
@@ -347,10 +347,10 @@ func (vm *VM) alloc() {
 	return
 }
 
-// callNative calls a native function. numVariadic is the number of actual
-// variadic arguments, shift is the stack shift and newGoroutine reports
-// whether a new goroutine must be started.
-func (vm *VM) callNative(fn *NativeFunction, numVariadic int8, shift StackShift, newGoroutine bool) {
+// callPredefined calls a predefined function. numVariadic is the number of
+// actual variadic arguments, shift is the stack shift and newGoroutine
+// reports whether a new goroutine must be started.
+func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift StackShift, newGoroutine bool) {
 	fp := vm.fp
 	vm.fp[0] += uint32(shift[0])
 	vm.fp[1] += uint32(shift[1])
@@ -536,7 +536,7 @@ func (vm *VM) invokeTraceFunc() {
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
-	vm.calls = append(vm.calls, callFrame{fn: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
+	vm.calls = append(vm.calls, callFrame{cl: *fn, fp: vm.fp, pc: 0, status: deferred, variadics: numVariadic})
 	if args[0] > 0 {
 		stack := vm.regs.int[vm.fp[0]+1:]
 		tot := shift[0] + args[0]
@@ -613,14 +613,14 @@ func (vm *VM) nextCall() bool {
 			// TODO(marco): call finalizer.
 			continue
 		case deferred:
-			// A Scrigo call that has deferred calls is returned, its first
+			// A call, that has deferred calls, is returned, its first
 			// deferred call will be executed.
 			call = vm.swapCall(call)
-			vm.calls[i] = callFrame{fn: callable{scrigo: vm.fn}, fp: vm.fp, status: returned}
-			if call.fn.scrigo != nil {
+			vm.calls[i] = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: returned}
+			if call.cl.fn != nil {
 				break
 			}
-			vm.callNative(call.fn.native, call.variadics, StackShift{}, false)
+			vm.callPredefined(call.cl.predefined, call.variadics, StackShift{}, false)
 			fallthrough
 		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
@@ -645,11 +645,11 @@ func (vm *VM) nextCall() bool {
 				if call.status == deferred {
 					vm.calls[i] = vm.calls[i+1]
 					vm.calls[i].status = panicked
-					if call.fn.scrigo != nil {
+					if call.cl.fn != nil {
 						i++
 						break
 					}
-					vm.callNative(call.fn.native, call.variadics, StackShift{}, false)
+					vm.callPredefined(call.cl.predefined, call.variadics, StackShift{}, false)
 				}
 			}
 		}
@@ -659,29 +659,29 @@ func (vm *VM) nextCall() bool {
 		vm.calls = vm.calls[:i]
 		vm.fp = call.fp
 		vm.pc = call.pc
-		vm.fn = call.fn.scrigo
-		vm.vars = call.fn.vars
+		vm.fn = call.cl.fn
+		vm.vars = call.cl.vars
 		return true
 	}
 	return false
 }
 
-// startScrigoGoroutine starts a new goroutine to execute a Scrigo function
-// call at program counter pc. If the function is native, returns true.
-func (vm *VM) startScrigoGoroutine() bool {
-	var fn *ScrigoFunction
+// startGoroutine starts a new goroutine to execute a function call at program
+// counter pc. If the function is predefined, returns true.
+func (vm *VM) startGoroutine() bool {
+	var fn *Function
 	var vars []interface{}
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
 	case OpCall:
-		fn = vm.fn.ScrigoFunctions[uint8(call.B)]
+		fn = vm.fn.Functions[uint8(call.B)]
 		vars = vm.ctx.globals
 	case OpCallIndirect:
 		f := vm.general(call.B).(*callable)
-		if f.scrigo == nil {
+		if f.fn == nil {
 			return true
 		}
-		fn = f.scrigo
+		fn = f.fn
 		vars = f.vars
 	default:
 		return true
@@ -795,7 +795,7 @@ type context struct {
 	freeMemory int // free memory.
 }
 
-type NativeFunction struct {
+type PredefinedFunction struct {
 	Pkg    string
 	Name   string
 	Func   interface{}
@@ -807,8 +807,8 @@ type NativeFunction struct {
 }
 
 // Global represents a global variable with a package, name, type (only for
-// Scrigo globals) and value (only for native globals). Value, if present,
-// must be a pointer to the variable value.
+// not predefined globals) and value (only for predefined globals). Value, if
+// present, must be a pointer to the variable value.
 type Global struct {
 	Pkg   string
 	Name  string
@@ -816,28 +816,28 @@ type Global struct {
 	Value interface{}
 }
 
-// ScrigoFunction represents a Scrigo function.
-type ScrigoFunction struct {
-	Pkg             string
-	Name            string
-	File            string
-	Line            int
-	Type            reflect.Type
-	Parent          *ScrigoFunction
-	VarRefs         []int16
-	Literals        []*ScrigoFunction
-	Types           []reflect.Type
-	RegNum          [4]uint8
-	Constants       Registers
-	Globals         []Global
-	ScrigoFunctions []*ScrigoFunction
-	NativeFunctions []*NativeFunction
-	Body            []Instruction
-	Lines           map[uint32]int
-	Data            [][]byte
+// Function represents a function.
+type Function struct {
+	Pkg        string
+	Name       string
+	File       string
+	Line       int
+	Type       reflect.Type
+	Parent     *Function
+	VarRefs    []int16
+	Literals   []*Function
+	Types      []reflect.Type
+	RegNum     [4]uint8
+	Constants  Registers
+	Globals    []Global
+	Functions  []*Function
+	Predefined []*PredefinedFunction
+	Body       []Instruction
+	Lines      map[uint32]int
+	Data       [][]byte
 }
 
-func (fn *NativeFunction) slow() {
+func (fn *PredefinedFunction) slow() {
 	if !fn.value.IsValid() {
 		fn.value = reflect.ValueOf(fn.Func)
 	}
@@ -913,7 +913,7 @@ const CallFrameSize = 88
 
 // If the size of callFrame changes, update the constant CallFrameSize.
 type callFrame struct {
-	fn        callable   // function.
+	cl        callable   // callable.
 	fp        [4]uint32  // frame pointers.
 	pc        uint32     // program counter.
 	status    callStatus // status.
@@ -921,28 +921,28 @@ type callFrame struct {
 }
 
 type callable struct {
-	scrigo *ScrigoFunction // Scrigo function.
-	native *NativeFunction // native function.
-	value  reflect.Value   // reflect value.
-	vars   []interface{}   // closure variables, if it is a closure.
+	fn         *Function           // function.
+	predefined *PredefinedFunction // predefined function.
+	value      reflect.Value       // reflect value.
+	vars       []interface{}       // closure variables, if it is a closure.
 }
 
 // reflectValue returns a Reflect Value of a callable, so it can be called
-// from a native code and passed to a native code.
+// from a predefined code and passed to a predefined code.
 func (c *callable) reflectValue(ctx *context) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
-	if c.native != nil {
-		// It is a native function.
-		if !c.native.value.IsValid() {
-			c.native.value = reflect.ValueOf(c.native.Func)
+	if c.predefined != nil {
+		// It is a predefined function.
+		if !c.predefined.value.IsValid() {
+			c.predefined.value = reflect.ValueOf(c.predefined.Func)
 		}
-		c.value = c.native.value
+		c.value = c.predefined.value
 		return c.value
 	}
-	// It is a Scrigo function.
-	fn := c.scrigo
+	// It is not a predefined function.
+	fn := c.fn
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
 		nvm := New()
@@ -1167,7 +1167,7 @@ const (
 
 	OpCallIndirect
 
-	OpCallNative
+	OpCallPredefined
 
 	OpCap
 

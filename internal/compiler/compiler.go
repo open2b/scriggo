@@ -8,7 +8,6 @@ package compiler
 
 import (
 	"scrigo/internal/compiler/ast"
-	"scrigo/native"
 )
 
 type Options struct {
@@ -17,7 +16,7 @@ type Options struct {
 	IsPackage    bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, main *native.GoPackage, imports map[string]*native.GoPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
+func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports map[string]*PredefinedPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
 	if opts.IsPackage && main != nil {
 		panic("cannot have package main with option IsPackage enabled")
 	}

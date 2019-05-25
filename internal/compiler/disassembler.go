@@ -25,7 +25,7 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func DisassembleDir(dir string, main *vm.ScrigoFunction) (err error) {
+func DisassembleDir(dir string, main *vm.Function) (err error) {
 
 	packages, err := Disassemble(main)
 	if err != nil {
@@ -66,16 +66,16 @@ func DisassembleDir(dir string, main *vm.ScrigoFunction) (err error) {
 	return nil
 }
 
-func Disassemble(main *vm.ScrigoFunction) (assembler map[string]string, err error) {
+func Disassemble(main *vm.Function) (assembler map[string]string, err error) {
 
-	functionsByPkg := map[string]map[*vm.ScrigoFunction]int{}
+	functionsByPkg := map[string]map[*vm.Function]int{}
 	importsByPkg := map[string]map[string]struct{}{}
 
-	c := len(main.ScrigoFunctions)
+	c := len(main.Functions)
 	if c == 0 {
 		c = 1
 	}
-	allFunctions := make([]*vm.ScrigoFunction, 1, c)
+	allFunctions := make([]*vm.Function, 1, c)
 	allFunctions[0] = main
 
 	for i := 0; i < len(allFunctions); i++ {
@@ -83,9 +83,9 @@ func Disassemble(main *vm.ScrigoFunction) (assembler map[string]string, err erro
 		if p, ok := functionsByPkg[fn.Pkg]; ok {
 			p[fn] = fn.Line
 		} else {
-			functionsByPkg[fn.Pkg] = map[*vm.ScrigoFunction]int{fn: fn.Line}
+			functionsByPkg[fn.Pkg] = map[*vm.Function]int{fn: fn.Line}
 		}
-		for _, sf := range fn.ScrigoFunctions {
+		for _, sf := range fn.Functions {
 			if sf.Pkg != fn.Pkg {
 				if packages, ok := importsByPkg[fn.Pkg]; ok {
 					packages[sf.Pkg] = struct{}{}
@@ -94,14 +94,14 @@ func Disassemble(main *vm.ScrigoFunction) (assembler map[string]string, err erro
 				}
 			}
 		}
-		for _, nf := range fn.NativeFunctions {
+		for _, nf := range fn.Predefined {
 			if packages, ok := importsByPkg[fn.Pkg]; ok {
 				packages[nf.Pkg] = struct{}{}
 			} else {
 				importsByPkg[fn.Pkg] = map[string]struct{}{nf.Pkg: {}}
 			}
 		}
-		allFunctions = append(allFunctions, fn.ScrigoFunctions...)
+		allFunctions = append(allFunctions, fn.Functions...)
 	}
 
 	assembler = map[string]string{}
@@ -128,7 +128,7 @@ func Disassemble(main *vm.ScrigoFunction) (assembler map[string]string, err erro
 			packages = packages[:]
 		}
 
-		functions := make([]*vm.ScrigoFunction, 0, len(funcs))
+		functions := make([]*vm.Function, 0, len(funcs))
 		for fn := range funcs {
 			functions = append(functions, fn)
 		}
@@ -150,14 +150,14 @@ func Disassemble(main *vm.ScrigoFunction) (assembler map[string]string, err erro
 	return assembler, nil
 }
 
-func DisassembleFunction(w io.Writer, fn *vm.ScrigoFunction) (int64, error) {
+func DisassembleFunction(w io.Writer, fn *vm.Function) (int64, error) {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
 	disassembleFunction(&b, fn, 0)
 	return b.WriteTo(w)
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
+func disassembleFunction(w *bytes.Buffer, fn *vm.Function, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -225,7 +225,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
 		}
 		switch in.Op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall:
+		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall:
 			addr += 1
 		case vm.OpDefer:
 			addr += 2
@@ -236,12 +236,12 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.ScrigoFunction, depth int) {
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *vm.ScrigoFunction, addr uint32) (int64, error) {
+func DisassembleInstruction(w io.Writer, fn *vm.Function, addr uint32) (int64, error) {
 	n, err := io.WriteString(w, disassembleInstruction(fn, addr))
 	return int64(n), err
 }
 
-func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
+func disassembleInstruction(fn *vm.Function, addr uint32) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false
@@ -293,20 +293,20 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
-	case vm.OpCall, vm.OpCallIndirect, vm.OpCallNative, vm.OpTailCall, vm.OpDefer:
+	case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpDefer:
 		if a != vm.CurrentFunction {
 			switch op {
 			case vm.OpCall, vm.OpTailCall:
-				sf := fn.ScrigoFunctions[uint8(a)]
+				sf := fn.Functions[uint8(a)]
 				s += " " + packageName(sf.Pkg) + "." + sf.Name
-			case vm.OpCallNative:
-				nf := fn.NativeFunctions[uint8(a)]
+			case vm.OpCallPredefined:
+				nf := fn.Predefined[uint8(a)]
 				s += " " + packageName(nf.Pkg) + "." + nf.Name
 			case vm.OpCallIndirect, vm.OpDefer:
 				s += " " + disassembleOperand(fn, a, vm.Interface, false)
 			}
 		}
-		if c != vm.NoVariadic && (op == vm.OpCallIndirect || op == vm.OpCallNative || op == vm.OpDefer) {
+		if c != vm.NoVariadic && (op == vm.OpCallIndirect || op == vm.OpCallPredefined || op == vm.OpDefer) {
 			s += " ..." + strconv.Itoa(int(c))
 		}
 		switch op {
@@ -314,10 +314,10 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 			grow := fn.Body[addr+1]
 			s += "\t; Stack shift: " + strconv.Itoa(int(grow.Op)) + ", " + strconv.Itoa(int(grow.A)) + ", " +
 				strconv.Itoa(int(grow.B)) + ", " + strconv.Itoa(int(grow.C))
-		case vm.OpCall, vm.OpCallNative:
+		case vm.OpCall, vm.OpCallPredefined:
 			grow := fn.Body[addr+1]
 			stackShift := vm.StackShift{int8(grow.Op), grow.A, grow.B, grow.C}
-			s += "\t; " + disassembleFunctionCall(fn, a, op == vm.OpCallNative, stackShift, c)
+			s += "\t; " + disassembleFunctionCall(fn, a, op == vm.OpCallPredefined, stackShift, c)
 		}
 		if op == vm.OpDefer {
 			args := fn.Body[addr+2]
@@ -399,10 +399,10 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpGetFunc:
 		if a == 0 {
-			f := fn.ScrigoFunctions[uint8(b)]
+			f := fn.Functions[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		} else {
-			f := fn.NativeFunctions[uint8(b)]
+			f := fn.Predefined[uint8(b)]
 			s += " " + packageName(f.Pkg) + "." + f.Name
 		}
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
@@ -515,15 +515,15 @@ func disassembleInstruction(fn *vm.ScrigoFunction, addr uint32) string {
 	return s
 }
 
-func disassembleFunctionCall(fn *vm.ScrigoFunction, index int8, isNative bool, stackShift vm.StackShift, variadic int8) string {
+func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, stackShift vm.StackShift, variadic int8) string {
 	var funcType reflect.Type
 	var funcName string
-	if isNative {
-		funcType = reflect.TypeOf(fn.NativeFunctions[index].Func)
-		funcName = fn.NativeFunctions[index].Name
+	if isPredefined {
+		funcType = reflect.TypeOf(fn.Predefined[index].Func)
+		funcName = fn.Predefined[index].Name
 	} else {
-		funcType = fn.ScrigoFunctions[index].Type
-		funcName = fn.ScrigoFunctions[index].Name
+		funcType = fn.Functions[index].Type
+		funcName = fn.Functions[index].Name
 	}
 	print := func(t reflect.Type) string {
 		str := ""
@@ -570,7 +570,7 @@ func disassembleFunctionCall(fn *vm.ScrigoFunction, index int8, isNative bool, s
 	return fmt.Sprintf("%s(%s) (%s)", funcName, in, out)
 }
 
-func disassembleVarRef(fn *vm.ScrigoFunction, ref int16) string {
+func disassembleVarRef(fn *vm.Function, ref int16) string {
 	depth := 0
 	for ref >= 0 && fn.Parent != nil {
 		ref = fn.VarRefs[ref]
@@ -618,7 +618,7 @@ func registerKindToLabel(kind vm.Kind) string {
 	}
 }
 
-func disassembleOperand(fn *vm.ScrigoFunction, op int8, kind vm.Kind, constant bool) string {
+func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) string {
 	if constant {
 		switch {
 		case vm.Int <= kind && kind <= vm.Uint64:
@@ -683,7 +683,7 @@ var operationName = [...]string{
 
 	vm.OpCallIndirect: "CallIndirect",
 
-	vm.OpCallNative: "CallNative",
+	vm.OpCallPredefined: "CallPredefined",
 
 	vm.OpCap: "Cap",
 

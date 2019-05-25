@@ -13,17 +13,33 @@ import (
 	"strings"
 
 	"scrigo/internal/compiler/ast"
-	"scrigo/native"
 )
 
-func ToTypeCheckerScope(gp *native.GoPackage) TypeCheckerScope {
+type PredefinedPackage struct {
+	Name         string
+	Declarations map[string]interface{}
+}
+
+type PredefinedConstant struct {
+	value interface{}
+	typ   reflect.Type // nil for untyped constants.
+}
+
+// Constant returns a predefined constant given its type and value. Can be
+// used as a declaration of a precompiled package. For untyped constants the
+// type is nil.
+func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
+	return PredefinedConstant{value: value, typ: typ}
+}
+
+func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 	s := make(TypeCheckerScope, len(gp.Declarations))
 	for ident, value := range gp.Declarations {
 		// Importing a Go type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       t,
-				Properties: PropertyIsType | PropertyIsNative,
+				Properties: PropertyIsType | PropertyIsPredefined,
 			}}
 			continue
 		}
@@ -31,7 +47,7 @@ func ToTypeCheckerScope(gp *native.GoPackage) TypeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value).Elem(),
-				Properties: PropertyAddressable | PropertyIsNative,
+				Properties: PropertyAddressable | PropertyIsPredefined,
 			}}
 			continue
 		}
@@ -39,14 +55,14 @@ func ToTypeCheckerScope(gp *native.GoPackage) TypeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value),
-				Properties: PropertyIsNative,
+				Properties: PropertyIsPredefined,
 			}}
 			continue
 		}
 		// Importing a Go constant.
 		s[ident] = scopeElement{t: &TypeInfo{
 			Value:      value, // TODO (Gianluca): to review.
-			Properties: PropertyIsConstant | PropertyIsNative,
+			Properties: PropertyIsConstant | PropertyIsPredefined,
 		}}
 	}
 	return s
@@ -314,7 +330,7 @@ varsLoop:
 }
 
 // CheckPackage type checks a package.
-func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*native.GoPackage, pkgInfos map[string]*PackageInfo) (err error) {
+func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*PredefinedPackage, pkgInfos map[string]*PackageInfo) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -367,18 +383,18 @@ func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		case *ast.Import:
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
-				// Go package.
-				goPkg, ok := imports[d.Path]
+				// Predeclared package.
+				predeclaredPkg, ok := imports[d.Path]
 				if !ok {
 					return tc.errorf(d, "cannot find package %q", d.Path)
 				}
-				importedPkg.Declarations = make(map[string]*TypeInfo, len(goPkg.Declarations))
-				for n, d := range ToTypeCheckerScope(goPkg) {
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(predeclaredPkg.Declarations))
+				for n, d := range ToTypeCheckerScope(predeclaredPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
-				importedPkg.Name = goPkg.Name
+				importedPkg.Name = predeclaredPkg.Name
 			} else {
-				// Scrigo package.
+				// Not predeclared package.
 				var err error
 				err = CheckPackage(d.Tree, nil, nil, pkgInfos) // TODO(Gianluca): where are deps?
 				importedPkg = pkgInfos[d.Tree.Path]

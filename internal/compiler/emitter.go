@@ -11,37 +11,36 @@ import (
 	"reflect"
 
 	"scrigo/internal/compiler/ast"
-	"scrigo/native"
 	"scrigo/vm"
 )
 
 // An Emitter emits instructions for the VM.
 type Emitter struct {
-	CurrentFunction  *vm.ScrigoFunction
-	TypeInfo         map[ast.Node]*TypeInfo
-	FB               *FunctionBuilder
-	importableGoPkgs map[string]*native.GoPackage
-	IndirectVars     map[*ast.Identifier]bool
+	CurrentFunction          *vm.Function
+	TypeInfo                 map[ast.Node]*TypeInfo
+	FB                       *FunctionBuilder
+	importablePredefinedPkgs map[string]*PredefinedPackage
+	IndirectVars             map[*ast.Identifier]bool
 
-	upvarsNames map[*vm.ScrigoFunction]map[string]int
+	upvarsNames map[*vm.Function]map[string]int
 
-	availableScrigoFunctions map[*ast.Package]map[string]*vm.ScrigoFunction
-	availableNativeFunctions map[*ast.Package]map[string]*vm.NativeFunction
+	availableFunctions           map[*ast.Package]map[string]*vm.Function
+	availablePredefinedFunctions map[*ast.Package]map[string]*vm.PredefinedFunction
 
-	assignedScrigoFunctions map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8
-	assignedNativeFunctions map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8
+	assignedFunctions           map[*vm.Function]map[*vm.Function]int8
+	assignedPredefinedFunctions map[*vm.Function]map[*vm.PredefinedFunction]int8
 
-	isNativePkg map[string]bool
+	isPredefinedPkg map[string]bool
 
 	// rangeLabels is a list of current active Ranges. First element is the
-	// Range address, second referrs to the first instruction outside Range's
+	// Range address, second refers to the first instruction outside Range's
 	// body.
 	rangeLabels [][2]uint32
 
-	globals         []vm.Global                       // holds all Scrigo and native global variables.
+	globals         []vm.Global                       // holds all predefined and not predefined global variables.
 	globalNameIndex map[*ast.Package]map[string]int16 // maps global variable names to their index inside globals.
 
-	labels map[*vm.ScrigoFunction]map[string]uint32
+	labels map[*vm.Function]map[string]uint32
 
 	currentPackage *ast.Package
 
@@ -56,28 +55,28 @@ type Emitter struct {
 }
 
 // NewEmitter returns a new emitter reading sources from r.
-// Native packages are made available for importing.
-func NewEmitter(packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
+// Predefined packages are made available for importing.
+func NewEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
 	c := &Emitter{
 
-		importableGoPkgs: packages,
+		importablePredefinedPkgs: packages,
 
-		upvarsNames: make(map[*vm.ScrigoFunction]map[string]int),
+		upvarsNames: make(map[*vm.Function]map[string]int),
 
-		availableScrigoFunctions: map[*ast.Package]map[string]*vm.ScrigoFunction{},
-		availableNativeFunctions: map[*ast.Package]map[string]*vm.NativeFunction{},
+		availableFunctions:           map[*ast.Package]map[string]*vm.Function{},
+		availablePredefinedFunctions: map[*ast.Package]map[string]*vm.PredefinedFunction{},
 
-		assignedScrigoFunctions: map[*vm.ScrigoFunction]map[*vm.ScrigoFunction]int8{},
-		assignedNativeFunctions: map[*vm.ScrigoFunction]map[*vm.NativeFunction]int8{},
+		assignedFunctions:           map[*vm.Function]map[*vm.Function]int8{},
+		assignedPredefinedFunctions: map[*vm.Function]map[*vm.PredefinedFunction]int8{},
 
-		isNativePkg: map[string]bool{},
+		isPredefinedPkg: map[string]bool{},
 
 		globalNameIndex: map[*ast.Package]map[string]int16{},
 
 		TypeInfo:     typeInfos,
 		IndirectVars: indirectVars,
 
-		labels: make(map[*vm.ScrigoFunction]map[string]uint32),
+		labels: make(map[*vm.Function]map[string]uint32),
 	}
 	return c
 }
@@ -87,8 +86,8 @@ func (e *Emitter) SetAlloc(alloc bool) {
 }
 
 // Global represents a global variable with a package, name, type (only for
-// Scrigo globals) and value (only for native globals). Value, if present, must
-// be a pointer to the variable value.
+// not predefined globals) and value (only for predefined globals). Value, if
+// present, must be a pointer to the variable value.
 type Global struct {
 	Pkg   string
 	Name  string
@@ -98,16 +97,16 @@ type Global struct {
 
 type Package struct {
 	Globals   []vm.Global
-	Functions map[string]*vm.ScrigoFunction
-	Main      *vm.ScrigoFunction
+	Functions map[string]*vm.Function
+	Main      *vm.Function
 }
 
 // EmitPackageMain emits package main.
-func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
+func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
 	e := NewEmitter(packages, typeInfos, indirectVars)
 	e.SetAlloc(alloc)
 	funcs, _, _ := e.emitPackage(pkgMain)
-	main := e.availableScrigoFunctions[pkgMain]["main"]
+	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &Package{
 		Globals:   e.globals,
 		Functions: funcs,
@@ -118,21 +117,21 @@ func EmitPackageMain(pkgMain *ast.Package, packages map[string]*native.GoPackage
 
 // emitPackage emits package pkg. Returns a list of exported functions and
 // exported variables.
-func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, map[string]int16, []*vm.ScrigoFunction) {
+func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
 	e.currentPackage = pkg
-	e.availableScrigoFunctions[e.currentPackage] = map[string]*vm.ScrigoFunction{}
-	e.availableNativeFunctions[e.currentPackage] = map[string]*vm.NativeFunction{}
+	e.availableFunctions[e.currentPackage] = map[string]*vm.Function{}
+	e.availablePredefinedFunctions[e.currentPackage] = map[string]*vm.PredefinedFunction{}
 	e.globalNameIndex[e.currentPackage] = map[string]int16{}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
 	// functions are called more than once, which is wrong.
-	initFuncs := []*vm.ScrigoFunction{} // List of all "init" functions in current package.
+	initFuncs := []*vm.Function{} // List of all "init" functions in current package.
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
 		if imp, ok := decl.(*ast.Import); ok {
 			if imp.Tree == nil {
-				e.importNativePackage(imp)
+				e.importPredefinedPackage(imp)
 			} else {
 				currentPkg := e.currentPackage
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
@@ -154,9 +153,9 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 				}
 				for name, fn := range exportedFunctions {
 					if importPkgName == "" {
-						e.availableScrigoFunctions[e.currentPackage][name] = fn
+						e.availableFunctions[e.currentPackage][name] = fn
 					} else {
-						e.availableScrigoFunctions[e.currentPackage][importPkgName+"."+name] = fn
+						e.availableFunctions[e.currentPackage][importPkgName+"."+name] = fn
 					}
 				}
 				for name, v := range exportedVars {
@@ -170,18 +169,18 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 		}
 	}
 
-	exportedFunctions := map[string]*vm.ScrigoFunction{}
+	exportedFunctions := map[string]*vm.Function{}
 
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
 	initToBuild := len(initFuncs) // Index of next "init" function to build.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
-			fn := NewScrigoFunction("main", fun.Ident.Name, fun.Type.Reflect)
+			fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
 			if fun.Ident.Name == "init" {
 				initFuncs = append(initFuncs, fn)
 			} else {
-				e.availableScrigoFunctions[e.currentPackage][fun.Ident.Name] = fn
+				e.availableFunctions[e.currentPackage][fun.Ident.Name] = fn
 				if isExported(fun.Ident.Name) {
 					exportedFunctions[fun.Ident.Name] = fn
 				}
@@ -192,7 +191,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 	exportedVars := map[string]int16{}
 
 	// Emits package variables.
-	var initVarsFn *vm.ScrigoFunction
+	var initVarsFn *vm.Function
 	var initVarsFb *FunctionBuilder
 	packageVariablesRegisters := map[string]int8{}
 	for _, dec := range pkg.Declarations {
@@ -204,8 +203,8 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 			backupFn := e.CurrentFunction
 			backupFb := e.FB
 			if initVarsFn == nil {
-				initVarsFn = NewScrigoFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				e.availableScrigoFunctions[e.currentPackage]["$initvars"] = initVarsFn
+				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
+				e.availableFunctions[e.currentPackage]["$initvars"] = initVarsFn
 				initVarsFb = NewBuilder(initVarsFn)
 				initVarsFb.SetAlloc(e.alloc)
 				initVarsFb.EnterScope()
@@ -232,12 +231,12 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 	// Emits function declarations.
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Func); ok {
-			var fn *vm.ScrigoFunction
+			var fn *vm.Function
 			if n.Ident.Name == "init" {
 				fn = initFuncs[initToBuild]
 				initToBuild++
 			} else {
-				fn = e.availableScrigoFunctions[e.currentPackage][n.Ident.Name]
+				fn = e.availableFunctions[e.currentPackage][n.Ident.Name]
 			}
 			e.CurrentFunction = fn
 			e.FB = NewBuilder(fn)
@@ -249,13 +248,13 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
-					iv := e.availableScrigoFunctions[e.currentPackage]["$initvars"]
-					index := e.FB.AddScrigoFunction(iv)
+					iv := e.availableFunctions[e.currentPackage]["$initvars"]
+					index := e.FB.AddFunction(iv)
 					e.FB.Call(int8(index), vm.StackShift{}, 0)
 				}
 				// Second: calls all init functions, in order.
 				for _, initFunc := range initFuncs {
-					index := e.FB.AddScrigoFunction(initFunc)
+					index := e.FB.AddFunction(initFunc)
 					e.FB.Call(int8(index), vm.StackShift{}, 0)
 				}
 			}
@@ -286,7 +285,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 	}
 
 	// All functions share Globals.
-	for _, f := range e.availableScrigoFunctions[pkg] {
+	for _, f := range e.availableFunctions[pkg] {
 		f.Globals = e.globals
 	}
 
@@ -303,7 +302,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.ScrigoFunction, 
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective type.
-func (e *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isNative bool) ([]int8, []reflect.Type) {
+func (e *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
 	regs := make([]int8, numOut)
@@ -323,7 +322,7 @@ func (e *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			typ := funcType.In(numIn - 1).Elem()
-			if isNative {
+			if isPredefined {
 				for i := 0; i < varArgs; i++ {
 					reg := e.FB.NewRegister(typ.Kind())
 					e.FB.EnterStack()
@@ -401,22 +400,22 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !e.FB.IsVariable(ident.Name) {
-			if fun, isScrigoFunc := e.availableScrigoFunctions[e.currentPackage][ident.Name]; isScrigoFunc {
+			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][ident.Name]; isNotPredeclared {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
-				index := e.scrigoFunctionIndex(fun)
+				index := e.functionIndex(fun)
 				e.FB.Call(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
-			if _, isNativeFunc := e.availableNativeFunctions[e.currentPackage][ident.Name]; isNativeFunc {
-				fun := e.availableNativeFunctions[e.currentPackage][ident.Name]
+			if _, isPredefinedFunc := e.availablePredefinedFunctions[e.currentPackage][ident.Name]; isPredefinedFunc {
+				fun := e.availablePredefinedFunctions[e.currentPackage][ident.Name]
 				funcType := reflect.TypeOf(fun.Func)
 				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.nativeFunctionIndex(fun)
+				index := e.predefinedFunctionIndex(fun)
 				if funcType.IsVariadic() {
 					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallNative(index, int8(numVar), stackShift)
+					e.FB.CallPredefined(index, int8(numVar), stackShift)
 				} else {
-					e.FB.CallNative(index, vm.NoVariadic, stackShift)
+					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
 				}
 				return regs, types
 			}
@@ -424,22 +423,22 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 	if sel, ok := call.Func.(*ast.Selector); ok {
 		if name, ok := sel.Expr.(*ast.Identifier); ok {
-			if isGoPkg := e.isNativePkg[name.Name]; isGoPkg {
-				fun := e.availableNativeFunctions[e.currentPackage][name.Name+"."+sel.Ident]
+			if isGoPkg := e.isPredefinedPkg[name.Name]; isGoPkg {
+				fun := e.availablePredefinedFunctions[e.currentPackage][name.Name+"."+sel.Ident]
 				funcType := reflect.TypeOf(fun.Func)
 				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.nativeFunctionIndex(fun)
+				index := e.predefinedFunctionIndex(fun)
 				if funcType.IsVariadic() {
 					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallNative(index, int8(numVar), stackShift)
+					e.FB.CallPredefined(index, int8(numVar), stackShift)
 				} else {
-					e.FB.CallNative(index, vm.NoVariadic, stackShift)
+					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
 				}
 				return regs, types
-			} else if fun, ok := e.availableScrigoFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
+			} else if fun, ok := e.availableFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
 				funcType := fun.Type
 				regs, types := e.prepareCallParameters(funcType, call.Args, false)
-				index := e.scrigoFunctionIndex(fun)
+				index := e.functionIndex(fun)
 				if funcType.IsVariadic() {
 					panic("TODO(Gianluca): not implemented")
 				} else {
@@ -662,19 +661,19 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.FB.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
-		if nf, ok := e.availableNativeFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if nf, ok := e.availablePredefinedFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
-			index := e.nativeFunctionIndex(nf)
+			index := e.predefinedFunctionIndex(nf)
 			e.FB.GetFunc(true, index, reg)
 			return
 		}
-		if sf, ok := e.availableScrigoFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if sf, ok := e.availableFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
-			index := e.scrigoFunctionIndex(sf)
+			index := e.functionIndex(sf)
 			e.FB.GetFunc(false, index, reg)
 			return
 		}
@@ -784,8 +783,8 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			e.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			if fun, isScrigoFunc := e.availableScrigoFunctions[e.currentPackage][expr.Name]; isScrigoFunc {
-				index := e.scrigoFunctionIndex(fun)
+			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][expr.Name]; isNotPredeclared {
+				index := e.functionIndex(fun)
 				e.FB.GetFunc(false, index, reg)
 			} else if index, ok := e.upvarsNames[e.CurrentFunction][expr.Name]; ok {
 				// TODO(Gianluca): this is an experimental handling of
@@ -1187,9 +1186,9 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 				int8(e.FB.numRegs[reflect.Interface]),
 			}
 			// TODO(Gianluca): currently supports only deferring or
-			// starting goroutines of Scrigo defined functions.
-			isNative := false
-			e.prepareCallParameters(funType, args, isNative)
+			// starting goroutines of not predefined functions.
+			isPredefined := false
+			e.prepareCallParameters(funType, args, isPredefined)
 			// TODO(Gianluca): currently supports only deferring functions
 			// and starting goroutines with no arguments and no return
 			// parameters.

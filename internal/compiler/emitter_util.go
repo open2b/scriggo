@@ -82,11 +82,11 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
-func (e *Emitter) importNativePackage(n *ast.Import) {
+func (e *Emitter) importPredefinedPackage(n *ast.Import) {
 	var importPkgName string
-	parserGoPkg := e.importableGoPkgs[n.Path]
+	parserPredefinedPkg := e.importablePredefinedPkgs[n.Path]
 	if n.Ident == nil {
-		importPkgName = parserGoPkg.Name
+		importPkgName = parserPredefinedPkg.Name
 	} else {
 		switch n.Ident.Name {
 		case "_":
@@ -97,13 +97,13 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 			importPkgName = n.Ident.Name
 		}
 	}
-	for ident, value := range parserGoPkg.Declarations {
+	for ident, value := range parserPredefinedPkg.Declarations {
 		_ = ident
 		if _, ok := value.(reflect.Type); ok {
 			continue
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			e.globals = append(e.globals, vm.Global{Pkg: parserGoPkg.Name, Name: ident, Value: value})
+			e.globals = append(e.globals, vm.Global{Pkg: parserPredefinedPkg.Name, Name: ident, Value: value})
 			name := ident
 			if importPkgName != "" {
 				name = importPkgName + "." + ident
@@ -111,15 +111,15 @@ func (e *Emitter) importNativePackage(n *ast.Import) {
 			e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
 		}
 		if reflect.TypeOf(value).Kind() == reflect.Func {
-			nativeFunc := NewNativeFunction(parserGoPkg.Name, ident, value)
+			predefinedFunc := NewPredefinedFunction(parserPredefinedPkg.Name, ident, value)
 			if importPkgName == "" {
-				e.availableNativeFunctions[e.currentPackage][ident] = nativeFunc
+				e.availablePredefinedFunctions[e.currentPackage][ident] = predefinedFunc
 			} else {
-				e.availableNativeFunctions[e.currentPackage][importPkgName+"."+ident] = nativeFunc
+				e.availablePredefinedFunctions[e.currentPackage][importPkgName+"."+ident] = predefinedFunc
 			}
 		}
 	}
-	e.isNativePkg[importPkgName] = true
+	e.isPredefinedPkg[importPkgName] = true
 }
 
 // isExported indicates if name is exported, according to
@@ -201,43 +201,43 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-// nativeFunctionIndex returns fun's index inside current function, creating it
-// if not exists.
-func (e *Emitter) nativeFunctionIndex(fun *vm.NativeFunction) int8 {
+// predefinedFunctionIndex returns fun's index inside current function,
+// creating it if not exists.
+func (e *Emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
 	currFun := e.CurrentFunction
-	i, ok := e.assignedNativeFunctions[currFun][fun]
+	i, ok := e.assignedPredefinedFunctions[currFun][fun]
 	if ok {
 		return i
 	}
-	i = int8(len(currFun.NativeFunctions))
-	currFun.NativeFunctions = append(currFun.NativeFunctions, fun)
-	if e.assignedNativeFunctions[currFun] == nil {
-		e.assignedNativeFunctions[currFun] = make(map[*vm.NativeFunction]int8)
+	i = int8(len(currFun.Predefined))
+	currFun.Predefined = append(currFun.Predefined, fun)
+	if e.assignedPredefinedFunctions[currFun] == nil {
+		e.assignedPredefinedFunctions[currFun] = make(map[*vm.PredefinedFunction]int8)
 	}
-	e.assignedNativeFunctions[currFun][fun] = i
+	e.assignedPredefinedFunctions[currFun][fun] = i
 	return i
 }
 
-// scrigoFunctionIndex returns fun's index inside current function, creating it
-// if not exists.
-func (e *Emitter) scrigoFunctionIndex(fun *vm.ScrigoFunction) int8 {
+// functionIndex returns fun's index inside current function, creating it if
+// not exists.
+func (e *Emitter) functionIndex(fun *vm.Function) int8 {
 	currFun := e.CurrentFunction
-	i, ok := e.assignedScrigoFunctions[currFun][fun]
+	i, ok := e.assignedFunctions[currFun][fun]
 	if ok {
 		return i
 	}
-	i = int8(len(currFun.ScrigoFunctions))
-	currFun.ScrigoFunctions = append(currFun.ScrigoFunctions, fun)
-	if e.assignedScrigoFunctions[currFun] == nil {
-		e.assignedScrigoFunctions[currFun] = make(map[*vm.ScrigoFunction]int8)
+	i = int8(len(currFun.Functions))
+	currFun.Functions = append(currFun.Functions, fun)
+	if e.assignedFunctions[currFun] == nil {
+		e.assignedFunctions[currFun] = make(map[*vm.Function]int8)
 	}
-	e.assignedScrigoFunctions[currFun][fun] = i
+	e.assignedFunctions[currFun][fun] = i
 	return i
 }
 
 // setClosureRefs sets closure refs for function. This function works on current
 // function builder, so shall be called before changing/saving it.
-func (e *Emitter) setClosureRefs(fn *vm.ScrigoFunction, upvars []ast.Upvar) {
+func (e *Emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 
 	// First: updates indexes of declarations that are found at the same level
 	// of fn with appropriate register indexes.
