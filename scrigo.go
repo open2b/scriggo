@@ -79,6 +79,11 @@ func Load(path string, reader Reader, packages map[string]*PredefinedPackage, op
 	return &Program{fn: pkgMain.Main, globals: globals, options: options}, nil
 }
 
+// Options returns the options with which the program has been loaded.
+func (p *Program) Options() Option {
+	return p.options
+}
+
 type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
@@ -183,6 +188,11 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	emitter.FB.End()
 
 	return &Script{fn: emitter.CurrentFunction, options: options}, nil
+}
+
+// Options returns the options with which the script has been loaded.
+func (s *Script) Options() Option {
+	return s.options
 }
 
 // Run starts a script with the specified global variables and waits for it to
