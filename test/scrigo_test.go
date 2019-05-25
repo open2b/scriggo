@@ -80,7 +80,7 @@ func TestVMExpressions(t *testing.T) {
 			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
 				registers = regs
 			}
-			err = program.Run(scrigo.Options{MaxMemorySize: 1000000, TraceFunc: tf})
+			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", src, err)
 				return
@@ -3450,7 +3450,7 @@ func TestVM(t *testing.T) {
 			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
 				registers = regs
 			}
-			err = program.Run(scrigo.Options{MaxMemorySize: 1000000, TraceFunc: tf})
+			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err == nil {
 				if cas.err != nil {
 					t.Errorf("test %q, expecting error %#v, got not error", cas.name, cas.err)

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const NoVariadic = -1
@@ -43,6 +44,7 @@ type VM struct {
 	ctx    *context             // execution context.
 	calls  []callFrame          // call stack frame.
 	cases  []reflect.SelectCase // select cases.
+	done   <-chan struct{}      // done.
 	err    error                // error.
 	panics []Panic              // panics.
 }
@@ -88,8 +90,25 @@ func (vm *VM) Reset() {
 	if vm.cases != nil {
 		vm.cases = vm.cases[:0]
 	}
+	vm.done = nil
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
+	}
+}
+
+type Context interface {
+	Deadline() (deadline time.Time, ok bool)
+	Done() <-chan struct{}
+	Err() error
+	Value(key interface{}) interface{}
+}
+
+func (vm *VM) SetContext(ctx Context) {
+	vm.ctx.context = ctx
+	if ctx == nil {
+		vm.done = nil
+	} else {
+		vm.done = ctx.Done()
 	}
 }
 
@@ -788,6 +807,7 @@ type writer interface {
 // context represents an execution context.
 type context struct {
 	globals []interface{} // global variables.
+	context Context       // context.
 	trace   TraceFunc     // trace function.
 	out     writer        // writer of Write instruction.
 

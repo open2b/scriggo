@@ -100,7 +100,7 @@ func TestScrigoImport(t *testing.T) {
 				t.Errorf("compiling error: %s", err)
 				return
 			}
-			err = program.Run(scrigo.Options{MaxMemorySize: 1000000})
+			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000})
 			if err != nil {
 				t.Errorf("execution error: %s", err)
 				return

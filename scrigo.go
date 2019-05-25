@@ -7,6 +7,7 @@
 package scrigo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -78,14 +79,18 @@ func Load(path string, reader Reader, packages map[string]*PredefinedPackage, op
 	return &Program{fn: pkgMain.Main, globals: globals, options: options}, nil
 }
 
-type Options struct {
+type RunOptions struct {
+	Context       context.Context
 	MaxMemorySize int
 	TraceFunc     vm.TraceFunc
 }
 
 // Run starts the program and waits for it to complete.
-func (p *Program) Run(options Options) error {
+func (p *Program) Run(options RunOptions) error {
 	vmm := vm.New()
+	if options.Context != nil {
+		vmm.SetContext(options.Context)
+	}
 	if options.MaxMemorySize > 0 {
 		if p.options&LimitMemorySize == 0 {
 			return errors.New("program not loaded with LimitMemorySize option")
@@ -182,8 +187,11 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 
 // Run starts a script with the specified global variables and waits for it to
 // complete.
-func (s *Script) Run(vars map[string]interface{}, options Options) error {
+func (s *Script) Run(vars map[string]interface{}, options RunOptions) error {
 	vmm := vm.New()
+	if options.Context != nil {
+		vmm.SetContext(options.Context)
+	}
 	if options.MaxMemorySize > 0 {
 		if s.options&LimitMemorySize == 0 {
 			return errors.New("script not loaded with LimitMemorySize option")

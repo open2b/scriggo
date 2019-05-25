@@ -103,7 +103,7 @@ func runScrigoAndGetOutput(src []byte) output {
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	err = program.Run(scrigo.Options{MaxMemorySize: 1000000})
+	err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000})
 	if err != nil {
 		return makeOutput(err.Error())
 	}

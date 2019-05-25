@@ -78,6 +78,15 @@ func (vm *VM) run() (uint32, bool) {
 
 	for {
 
+		if vm.done != nil {
+			select {
+			case <-vm.done:
+				vm.err = vm.ctx.context.Err()
+				return maxAddr, false
+			default:
+			}
+		}
+
 		if vm.ctx.trace != nil {
 			vm.invokeTraceFunc()
 		}

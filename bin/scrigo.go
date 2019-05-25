@@ -7,11 +7,14 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"scrigo"
 	"scrigo/internal/compiler"
@@ -19,19 +22,60 @@ import (
 	"scrigo/vm"
 )
 
+const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
+
 var packages map[string]*scrigo.PredefinedPackage
 
 func main() {
 
 	var asm = flag.Bool("S", false, "print assembly listing")
+	var timeout = flag.String("time", "", "`limit` the execution time; zero is no limit")
+	var mem = flag.String("mem", "", "`limit` the allocable memory; zero is no limit")
 	var trace = flag.Bool("trace", false, "print an execution trace")
-	var mem = flag.String("mem", "", "maximum allocable memory; set to zero for no limit")
 
 	flag.Parse()
 
-	var tf vm.TraceFunc
+	var loadOptions scrigo.Option
+	var runOptions scrigo.RunOptions
+
+	if *timeout != "" {
+		d, err := time.ParseDuration(*timeout)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
+			flag.PrintDefaults()
+			os.Exit(-1)
+		}
+		if d != 0 {
+			var cancel context.CancelFunc
+			runOptions.Context, cancel = context.WithTimeout(context.Background(), d)
+			defer cancel()
+		}
+	}
+
+	if *mem != "" {
+		loadOptions = scrigo.LimitMemorySize
+		var unit = (*mem)[len(*mem)-1]
+		if unit == 'K' || unit == 'M' {
+			*mem = (*mem)[:len(*mem)-1]
+		}
+		var err error
+		runOptions.MaxMemorySize, err = strconv.Atoi(*mem)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
+			flag.PrintDefaults()
+			os.Exit(-1)
+		}
+		if unit == 'K' {
+			runOptions.MaxMemorySize *= 1024
+		} else if unit == 'M' {
+			runOptions.MaxMemorySize *= 1024 * 1024
+		} else if unit == 'G' {
+			runOptions.MaxMemorySize *= 1024 * 1024 * 1024
+		}
+	}
+
 	if *trace {
-		tf = func(fn *vm.Function, pc uint32, regs vm.Registers) {
+		runOptions.TraceFunc = func(fn *vm.Function, pc uint32, regs vm.Registers) {
 			funcName := fn.Name
 			if funcName != "" {
 				funcName += ":"
@@ -42,31 +86,11 @@ func main() {
 		}
 	}
 
-	freeMemory := 0
-	if *mem != "" {
-		var unit = (*mem)[len(*mem)-1]
-		if unit == 'K' || unit == 'M' {
-			*mem = (*mem)[:len(*mem)-1]
-		}
-		var err error
-		freeMemory, err = strconv.Atoi(*mem)
-		if err != nil {
-			fmt.Printf("usage: %s [-S] [--trace] [--mem=size[K|M|G]] filename\n", os.Args[0])
-			os.Exit(-1)
-		}
-		if unit == 'K' {
-			freeMemory *= 1024
-		} else if unit == 'M' {
-			freeMemory *= 1024 * 1024
-		} else if unit == 'G' {
-			freeMemory *= 1024 * 1024 * 1024
-		}
-	}
-
 	var args = flag.Args()
 
 	if len(args) != 1 {
-		fmt.Printf("usage: %s [-S] [--trace] [--mem=size[K|M|G]] filename\n", os.Args[0])
+		_, _ = fmt.Fprintf(os.Stderr, usage, os.Args[0])
+		flag.PrintDefaults()
 		os.Exit(-1)
 	}
 
@@ -85,19 +109,12 @@ func main() {
 
 	switch ext {
 	case ".gos":
-		if *mem == "" {
-			freeMemory = 16 * 1024 * 1024
-		}
 		// TODO(Gianluca): disassembling is currently not available for
 		// scripts in interpreter. Find a solution.
 		r, err := os.Open(absFile)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
-		}
-		var loadOptions scrigo.Option
-		if freeMemory > 0 {
-			loadOptions = scrigo.LimitMemorySize
 		}
 		script, err := scrigo.LoadScript(r, nil, loadOptions)
 		if err != nil {
@@ -111,11 +128,7 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			execOptions := scrigo.Options{MaxMemorySize: freeMemory}
-			if *trace {
-				execOptions.TraceFunc = tf
-			}
-			err = script.Run(nil, execOptions)
+			err = script.Run(nil, runOptions)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
@@ -127,10 +140,6 @@ func main() {
 		// keep.
 		path := "/" + filepath.Base(absFile)
 		r := compiler.DirReader(filepath.Dir(absFile))
-		var loadOptions scrigo.Option
-		if freeMemory > 0 {
-			loadOptions = scrigo.LimitMemorySize
-		}
 		program, err := scrigo.Load(path, r, packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
@@ -143,28 +152,24 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			execOptions := scrigo.Options{MaxMemorySize: freeMemory}
-			if *trace {
-				execOptions.TraceFunc = tf
-			}
-			err = program.Run(execOptions)
+			err = program.Run(runOptions)
 			if err != nil {
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
 				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 				os.Exit(2)
 			}
 		}
 	case ".html":
-		if *mem == "" {
-			freeMemory = 16 * 1024 * 1024
-		}
 		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		page, err := template.Compile(path, r, nil, template.ContextHTML, freeMemory > 0)
+		page, err := template.Compile(path, r, nil, template.ContextHTML, false)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		err = page.Render(os.Stdout, nil, freeMemory)
+		err = page.Render(os.Stdout, nil, 0)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
