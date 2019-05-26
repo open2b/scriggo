@@ -17,6 +17,7 @@ type tokenTyp int
 
 const (
 	tokenText                     tokenTyp = iota
+	tokenShebangLine                       // #!
 	tokenStartURL                          // start url
 	tokenEndURL                            // and url
 	tokenStartStatement                    // {%
@@ -109,6 +110,7 @@ const (
 
 var tokenString = map[tokenTyp]string{
 	tokenText:                     "text",
+	tokenShebangLine:              "#!",
 	tokenStartURL:                 "start url",
 	tokenEndURL:                   "end url",
 	tokenStartStatement:           "{%",

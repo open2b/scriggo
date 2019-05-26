@@ -602,6 +602,17 @@ func (l *lexer) lexCode() error {
 	if len(l.src) == 0 {
 		return nil
 	}
+	if l.ctx == ast.ContextNone && len(l.src) > 1 {
+		// Parse shebang line.
+		if l.src[0] == '#' && l.src[1] == '!' {
+			t := bytes.IndexByte(l.src, '\n')
+			if t == -1 {
+				t = len(l.src) - 1
+			}
+			l.emit(tokenShebangLine, t+1)
+			l.line++
+		}
+	}
 	// endLineAsSemicolon indicates if "\n" should be treated as ";".
 	var endLineAsSemicolon = false
 	// unclosedLeftBraces is the number of left braces lexed without a

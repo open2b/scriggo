@@ -143,7 +143,12 @@ func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, d
 
 		// Reads the tokens.
 		for tok := range p.lex.tokens {
-			if tok.typ == tokenEOF {
+			switch tok.typ {
+			case tokenShebangLine:
+				continue
+			default:
+				p.parseStatement(tok)
+			case tokenEOF:
 				if len(p.ancestors) > 1 {
 					switch p.ancestors[1].(type) {
 					case *ast.Package:
@@ -155,8 +160,6 @@ func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, d
 						}
 					}
 				}
-			} else {
-				p.parseStatement(tok)
 			}
 		}
 
