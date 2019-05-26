@@ -20,7 +20,6 @@ import (
 	"sync"
 
 	"scrigo"
-	"scrigo/internal/compiler"
 )
 
 var packages map[string]*scrigo.PredefinedPackage
@@ -98,7 +97,7 @@ func runScrigoAndGetOutput(src []byte) output {
 	}()
 	wg.Wait()
 
-	r := compiler.MapReader{"/main.go": src}
+	r := scrigo.MapReader{"/main.go": src}
 	program, err := scrigo.Load("/main.go", r, packages, scrigo.LimitMemorySize)
 	if err != nil {
 		return makeOutput(err.Error())

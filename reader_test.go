@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package compiler
+package scrigo
 
 import (
 	"io"
@@ -13,8 +13,6 @@ import (
 	"path/filepath"
 	"testing"
 	"testing/iotest"
-
-	"scrigo/internal/compiler/ast"
 )
 
 var space = []byte{' '}
@@ -64,7 +62,7 @@ func TestDirLimitedReader(t *testing.T) {
 			}
 			testReader = file.read
 			dir := NewDirLimitedReader(filepath.Dir(f.Name()), file.max, file.max)
-			_, err = dir.Read("/"+filepath.Base(f.Name()), ast.ContextText)
+			_, err = dir.Read("/" + filepath.Base(f.Name()))
 			if file.size <= file.max {
 				if err == ErrReadTooLarge {
 					t.Errorf("unexpected error %q", ErrReadTooLarge)

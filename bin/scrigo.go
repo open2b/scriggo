@@ -140,7 +140,7 @@ func main() {
 		}
 	case ".go":
 		path := "/" + filepath.Base(absFile)
-		r := compiler.DirReader(filepath.Dir(absFile))
+		r := scrigo.DirReader(filepath.Dir(absFile))
 		program, err := scrigo.Load(path, r, packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
@@ -163,7 +163,7 @@ func main() {
 			}
 		}
 	case ".html":
-		r := template.DirReader(filepath.Dir(absFile))
+		r := scrigo.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
 		t, err := template.Load(path, r, nil, template.ContextHTML, template.Option(loadOptions))
 		if err != nil {

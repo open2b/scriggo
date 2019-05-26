@@ -27,15 +27,15 @@ func validPackageImportPath(path string) bool {
 			return false
 		}
 	}
-	if !validPath(path) {
+	if !ValidPath(path) {
 		return false
 	}
 	return true
 }
 
-// validPath indicates whether path is valid for an extends, import and
+// ValidPath indicates whether path is valid for an extends, import and
 // include path.
-func validPath(path string) bool {
+func ValidPath(path string) bool {
 	return utf8.ValidString(path) &&
 		path != "" && path != ".." &&
 		path[len(path)-1] != '/' &&

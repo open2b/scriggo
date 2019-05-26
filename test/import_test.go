@@ -10,19 +10,18 @@ import (
 	"testing"
 
 	"scrigo"
-	"scrigo/internal/compiler"
 )
 
 func TestScrigoImport(t *testing.T) {
-	cases := map[string]compiler.MapReader{
+	cases := map[string]scrigo.MapReader{
 
-		`Just package "main", no imports`: compiler.MapReader(map[string][]byte{
+		`Just package "main", no imports`: scrigo.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				func main() {
 				}`)}),
 
-		`"main" importing "pkg"`: compiler.MapReader(map[string][]byte{
+		`"main" importing "pkg"`: scrigo.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg"
@@ -35,7 +34,7 @@ func TestScrigoImport(t *testing.T) {
 					print("called pkg.F()")
 				}`)}),
 
-		`"main" importing "pkg1" and "pkg2`: compiler.MapReader(map[string][]byte{
+		`"main" importing "pkg1" and "pkg2`: scrigo.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg1"
@@ -55,7 +54,7 @@ func TestScrigoImport(t *testing.T) {
 					print("called pkg2.F2()")
 				}`)}),
 
-		`"main" importing "pkg1" importing "pkg2" (1)`: compiler.MapReader(map[string][]byte{
+		`"main" importing "pkg1" importing "pkg2" (1)`: scrigo.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import "pkg1"
@@ -74,7 +73,7 @@ func TestScrigoImport(t *testing.T) {
 					print("called pkg2.G()")
 				}`)}),
 
-		`"main" importing "pkg1" importing "pkg2" (dot import)`: compiler.MapReader(map[string][]byte{
+		`"main" importing "pkg1" importing "pkg2" (dot import)`: scrigo.MapReader(map[string][]byte{
 			"/main.go": []byte(
 				`package main
 				import . "pkg1"

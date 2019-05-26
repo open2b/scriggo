@@ -24,8 +24,6 @@ const (
 	LimitMemorySize Option = 1 << iota
 )
 
-type Reader = compiler.Reader
-
 type Option int
 
 type PredefinedPackage = compiler.PredefinedPackage
@@ -354,7 +352,7 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 	}
 	defer pp.trees.Done(path, ast.ContextNone)
 
-	src, err := pp.reader.Read(path, ast.ContextNone)
+	src, err := pp.reader.Read(path)
 	if err != nil {
 		return nil, nil, err
 	}

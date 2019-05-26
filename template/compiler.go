@@ -25,7 +25,6 @@ import (
 type Context int
 
 const (
-	ContextNone   Context = Context(ast.ContextNone)
 	ContextText   Context = Context(ast.ContextText)
 	ContextHTML   Context = Context(ast.ContextHTML)
 	ContextCSS    Context = Context(ast.ContextCSS)
@@ -51,7 +50,7 @@ type Template struct {
 	options Option
 }
 
-func Load(path string, reader Reader, main *scrigo.PredefinedPackage, ctx Context, options Option) (*Template, error) {
+func Load(path string, reader scrigo.Reader, main *scrigo.PredefinedPackage, ctx Context, options Option) (*Template, error) {
 
 	// Parsing.
 	p := newParser(reader)
@@ -234,7 +233,7 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 	}
 	defer pp.trees.Done(path, ctx)
 
-	src, err := pp.reader.Read(path, ctx)
+	src, err := pp.reader.Read(path)
 	if err != nil {
 		return nil, err
 	}

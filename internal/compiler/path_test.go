@@ -17,12 +17,12 @@ var invalidPaths = []string{"\xf0", "", "..", "/", "a/", "//", "a//", "//a",
 
 func TestValidPath(t *testing.T) {
 	for _, p := range validPaths {
-		if !validPath(p) {
+		if !ValidPath(p) {
 			t.Errorf("path: %q, expected valid, but invalid\n", p)
 		}
 	}
 	for _, p := range invalidPaths {
-		if validPath(p) {
+		if ValidPath(p) {
 			t.Errorf("path: %q, expected invalid, but valid\n", p)
 		}
 	}

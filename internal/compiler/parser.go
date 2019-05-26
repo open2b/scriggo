@@ -17,6 +17,10 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
+type Reader interface {
+	Read(path string) ([]byte, error)
+}
+
 var (
 	// ErrInvalidPath is returned from the Parse method and a Reader when the
 	// path argument is not valid.
@@ -748,7 +752,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 		}
 		var path = unquoteString(tok.txt)
-		if !validPath(path) {
+		if !ValidPath(path) {
 			panic(fmt.Errorf("invalid path %q at %s", path, tok.pos))
 		}
 		tok = next(p.lex)
@@ -857,7 +861,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 		}
 		var path = unquoteString(tok.txt)
-		if !validPath(path) {
+		if !ValidPath(path) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid extends path %q", path)})
 		}
 		tok = next(p.lex)
@@ -1347,7 +1351,7 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 	}
 	var path = unquoteString(tok.txt)
-	if p.ctx == ast.ContextNone && !validPackageImportPath(path) || p.ctx != ast.ContextNone && !validPath(path) {
+	if p.ctx == ast.ContextNone && !validPackageImportPath(path) || p.ctx != ast.ContextNone && !ValidPath(path) {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path %q", path)})
 	}
 	pos.End = tok.pos.End
