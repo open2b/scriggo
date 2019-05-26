@@ -113,8 +113,6 @@ func main() {
 
 	switch ext {
 	case ".gos":
-		// TODO(Gianluca): disassembling is currently not available for
-		// scripts in interpreter. Find a solution.
 		r, err := os.Open(absFile)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
@@ -139,9 +137,6 @@ func main() {
 			}
 		}
 	case ".go":
-		// TODO(Gianluca): use program.Execute: vm shall not be imported by
-		// interpreter. Note that disassembling and tracing support must be
-		// keep.
 		path := "/" + filepath.Base(absFile)
 		r := compiler.DirReader(filepath.Dir(absFile))
 		program, err := scrigo.Load(path, r, packages, loadOptions)
