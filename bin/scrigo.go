@@ -59,7 +59,7 @@ func main() {
 			unit -= 'z' - 'Z'
 		}
 		switch unit {
-		case 'K', 'M', 'G':
+		case 'B', 'K', 'M', 'G':
 			*mem = (*mem)[:len(*mem)-1]
 		}
 		var err error
@@ -69,11 +69,12 @@ func main() {
 			flag.PrintDefaults()
 			os.Exit(-1)
 		}
-		if unit == 'K' {
+		switch unit {
+		case 'K':
 			runOptions.MaxMemorySize *= 1024
-		} else if unit == 'M' {
+		case 'M':
 			runOptions.MaxMemorySize *= 1024 * 1024
-		} else if unit == 'G' {
+		case 'G':
 			runOptions.MaxMemorySize *= 1024 * 1024 * 1024
 		}
 	}
