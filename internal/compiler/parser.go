@@ -110,7 +110,11 @@ type parsing struct {
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+func ParseSource(src []byte, isPackage, shebang bool, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+
+	if isPackage && shebang {
+		return nil, nil, errors.New("scrigo/parser: both isPackage and shebang cannot be true")
+	}
 
 	switch ctx {
 	case ast.ContextGo, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
@@ -149,6 +153,9 @@ func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, d
 		for tok := range p.lex.tokens {
 			switch tok.typ {
 			case tokenShebangLine:
+				if !shebang {
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
+				}
 				continue
 			default:
 				p.parseStatement(tok)

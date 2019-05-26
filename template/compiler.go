@@ -238,7 +238,7 @@ func (pp *expansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) 
 		return nil, err
 	}
 
-	tree, _, err := compiler.ParseSource(src, false, ctx)
+	tree, _, err := compiler.ParseSource(src, false, false, ctx)
 	if err != nil {
 		return nil, err
 	}

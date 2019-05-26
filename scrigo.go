@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	LimitMemorySize Option = 1 << iota
+	LimitMemorySize  Option = 1 << iota // limit allocable memory size.
+	AllowShebangLine                    // allow shebang line; only for scripts.
 )
 
 type Option int
@@ -154,12 +155,15 @@ type Script struct {
 // LoadScript loads a script from a reader.
 func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script, error) {
 
+	alloc := options&LimitMemorySize != 0
+	shebang := options&AllowShebangLine != 0
+
 	// Parsing.
 	buf, err := ioutil.ReadAll(src)
 	if err != nil {
 		return nil, err
 	}
-	tree, _, err := compiler.ParseSource(buf, false, ast.ContextGo)
+	tree, _, err := compiler.ParseSource(buf, false, shebang, ast.ContextGo)
 	if err != nil {
 		return nil, err
 	}
@@ -171,8 +175,6 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	if err != nil {
 		return nil, err
 	}
-
-	alloc := options&LimitMemorySize != 0
 
 	// Emitting.
 	// TODO(Gianluca): pass "main" to emitter.
@@ -357,7 +359,7 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 		return nil, nil, err
 	}
 
-	tree, deps, err := compiler.ParseSource(src, true, ast.ContextGo)
+	tree, deps, err := compiler.ParseSource(src, true, false, ast.ContextGo)
 	if err != nil {
 		return nil, nil, err
 	}

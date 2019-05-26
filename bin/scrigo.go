@@ -119,7 +119,7 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scrigo.LoadScript(r, nil, loadOptions)
+		script, err := scrigo.LoadScript(r, nil, loadOptions|scrigo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
