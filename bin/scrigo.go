@@ -165,12 +165,12 @@ func main() {
 	case ".html":
 		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		page, err := template.Compile(path, r, nil, template.ContextHTML, false)
+		t, err := template.Load(path, r, nil, template.ContextHTML, template.Option(loadOptions))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		err = page.Render(os.Stdout, nil, 0)
+		err = t.Render(os.Stdout, nil, template.RenderOptions(runOptions))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)

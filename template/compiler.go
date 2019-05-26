@@ -7,6 +7,8 @@
 package template
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -30,16 +32,30 @@ const (
 	ContextScript Context = Context(ast.ContextScript)
 )
 
-type Page struct {
-	main *scrigo.PredefinedPackage
-	fn   *vm.Function
+type Option int
+
+const (
+	LimitMemorySize Option = 1 << iota
+)
+
+type RenderOptions struct {
+	Context       context.Context
+	MaxMemorySize int
+	DontPanic     bool
+	TraceFunc     vm.TraceFunc
 }
 
-func Compile(path string, reader compiler.Reader, main *scrigo.PredefinedPackage, ctx Context, alloc bool) (*Page, error) {
+type Template struct {
+	main    *scrigo.PredefinedPackage
+	fn      *vm.Function
+	options Option
+}
+
+func Load(path string, reader Reader, main *scrigo.PredefinedPackage, ctx Context, options Option) (*Template, error) {
 
 	// Parsing.
-	p := NewParser(reader)
-	tree, err := p.Parse(path, main, ast.Context(ctx))
+	p := newParser(reader)
+	tree, err := p.parse(path, main, ast.Context(ctx))
 	if err != nil {
 		return nil, convertError(err)
 	}
@@ -51,6 +67,8 @@ func Compile(path string, reader compiler.Reader, main *scrigo.PredefinedPackage
 	if err != nil {
 		return nil, err
 	}
+
+	alloc := options&LimitMemorySize != 0
 
 	// Emitting.
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
@@ -67,15 +85,39 @@ func Compile(path string, reader compiler.Reader, main *scrigo.PredefinedPackage
 	emitter.EmitNodes(tree.Nodes)
 	emitter.FB.ExitScope()
 
-	return &Page{main: main, fn: emitter.CurrentFunction}, nil
+	return &Template{main: main, fn: emitter.CurrentFunction}, nil
 }
 
-func (page *Page) Render(out io.Writer, vars map[string]reflect.Value, freeMemory int) error {
+func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options RenderOptions) error {
 	// TODO: implement globals
-	pvm := vm.New()
-	pvm.SetMaxMemory(freeMemory)
-	_, err := pvm.Run(page.fn)
+	vmm := vm.New()
+	if options.Context != nil {
+		vmm.SetContext(options.Context)
+	}
+	if options.MaxMemorySize > 0 {
+		if t.options&LimitMemorySize == 0 {
+			return errors.New("program not loaded with LimitMemorySize option")
+		}
+		vmm.SetMaxMemory(options.MaxMemorySize)
+	}
+	if options.DontPanic {
+		vmm.SetDontPanic(true)
+	}
+	if options.TraceFunc != nil {
+		vmm.SetTraceFunc(options.TraceFunc)
+	}
+	_, err := vmm.Run(t.fn)
 	return err
+}
+
+// Options returns the options with which the template has been loaded.
+func (t *Template) Options() Option {
+	return t.options
+}
+
+// Disassemble disassembles a template.
+func (t *Template) Disassemble(w io.Writer) (int64, error) {
+	return compiler.DisassembleFunction(w, t.fn)
 }
 
 func convertError(err error) error {
@@ -88,7 +130,7 @@ func convertError(err error) error {
 	return err
 }
 
-// Parser implements a parser that reads the tree from a Reader and expands
+// parser implements a parser that reads the tree from a Reader and expands
 // the nodes Extends, Import and Include. The trees are cached so only one
 // call per combination of path and context is made to the reader even if
 // several goroutines parse the same paths at the same time.
@@ -97,7 +139,7 @@ func convertError(err error) error {
 // because it would be the cached trees to be transformed and a data race can
 // occur. In case, use the function Clone in the astutil package to create a
 // clone of the tree and then transform the clone.
-type Parser struct {
+type parser struct {
 	reader compiler.Reader
 	trees  *compiler.Cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
@@ -106,21 +148,21 @@ type Parser struct {
 	packageInfos map[string]*compiler.PackageInfo // key is path.
 }
 
-// New returns a new Parser that reads the trees from the reader r. typeCheck
-// indicates if a type-checking must be done after parsing.
-func NewParser(r compiler.Reader) *Parser {
-	return &Parser{
+// newParser returns a new Parser that reads the trees from the reader r.
+// typeCheck indicates if a type-checking must be done after parsing.
+func newParser(r compiler.Reader) *parser {
+	return &parser{
 		reader:       r,
 		trees:        &compiler.Cache{},
 		packageInfos: make(map[string]*compiler.PackageInfo),
 	}
 }
 
-// Parse reads the source at path, with the reader, in the ctx context,
+// parse reads the source at path, with the reader, in the ctx context,
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *Parser) Parse(path string, main *scrigo.PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
+func (p *parser) parse(path string, main *scrigo.PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -152,13 +194,6 @@ func (p *Parser) Parse(path string, main *scrigo.PredefinedPackage, ctx ast.Cont
 	}
 
 	return tree, nil
-}
-
-// TypeCheckInfos returns the type-checking infos collected during
-// type-checking.
-// TODO(Gianluca): deprecated, remove.
-func (p *Parser) TypeCheckInfos() map[string]*compiler.PackageInfo {
-	return p.packageInfos
 }
 
 // expansion is an expansion state.
