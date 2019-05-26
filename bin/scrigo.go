@@ -123,6 +123,7 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
+		_ = r.Close()
 		if *asm {
 			_, err := script.Disassemble(os.Stdout)
 			if err != nil {
