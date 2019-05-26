@@ -60,7 +60,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	tree, _, err := compiler.ParseSource(src, true, ast.ContextNone)
+	tree, _, err := compiler.ParseSource(src, true, ast.ContextGo)
 	if err != nil {
 		panic(err)
 	}

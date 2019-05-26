@@ -52,7 +52,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 	expressions, tok := p.parseExprList(token{}, false, true, false, true)
 
 	end := tokenLeftBraces
-	if p.ctx != ast.ContextNone {
+	if p.ctx != ast.ContextGo {
 		end = tokenEndStatement
 	}
 

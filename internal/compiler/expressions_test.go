@@ -552,7 +552,7 @@ func TestExpressions(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				ctx:       ast.ContextNone,
+				ctx:       ast.ContextGo,
 				ancestors: nil,
 			}
 			node, tok := p.parseExpr(token{}, false, false, false, false)

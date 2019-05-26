@@ -25,10 +25,10 @@ import (
 type Context int
 
 const (
-	ContextText   Context = Context(ast.ContextText)
-	ContextHTML   Context = Context(ast.ContextHTML)
-	ContextCSS    Context = Context(ast.ContextCSS)
-	ContextScript Context = Context(ast.ContextScript)
+	ContextText       Context = Context(ast.ContextText)
+	ContextHTML       Context = Context(ast.ContextHTML)
+	ContextCSS        Context = Context(ast.ContextCSS)
+	ContextJavaScript Context = Context(ast.ContextJavaScript)
 )
 
 type Option int

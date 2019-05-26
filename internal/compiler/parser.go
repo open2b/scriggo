@@ -113,9 +113,9 @@ type parsing struct {
 func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	switch ctx {
-	case ast.ContextNone, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextScript:
+	case ast.ContextGo, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
 	default:
-		return nil, nil, errors.New("scrigo/parser: invalid context. Valid contexts are None, Text, HTML, CSS and Script")
+		return nil, nil, errors.New("scrigo/parser: invalid context. Valid contexts are Go, Text, HTML, CSS and Script")
 	}
 
 	// Tree result of the expansion.
@@ -143,7 +143,7 @@ func ParseSource(src []byte, isPackage bool, ctx ast.Context) (tree *ast.Tree, d
 		}
 	}()
 
-	if ctx == ast.ContextNone {
+	if ctx == ast.ContextGo {
 
 		// Reads the tokens.
 		for tok := range p.lex.tokens {
@@ -301,7 +301,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	var ok bool
 
-	if p.ctx != ast.ContextNone {
+	if p.ctx != ast.ContextGo {
 		tok = next(p.lex)
 	}
 
@@ -329,13 +329,13 @@ func (p *parsing) parseStatement(tok token) {
 
 	// ;
 	case tokenSemicolon:
-		if p.ctx != ast.ContextNone {
+		if p.ctx != ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting %%}")})
 		}
 
 	// package
 	case tokenPackage:
-		if tree, ok := parent.(*ast.Tree); !ok || p.ctx != ast.ContextNone || len(tree.Nodes) > 0 {
+		if tree, ok := parent.(*ast.Tree); !ok || p.ctx != ast.ContextGo || len(tree.Nodes) > 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected package, expecting statement")})
 		}
 		tok = next(p.lex)
@@ -392,7 +392,7 @@ func (p *parsing) parseStatement(tok token) {
 			node = ast.NewForRange(pos, assignment, nil)
 			p.deps.enterScope()
 		case tokenLeftBraces, tokenEndStatement:
-			if (p.ctx == ast.ContextNone) != (tok.typ == tokenLeftBraces) {
+			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 			}
 			// Parses statement "for".
@@ -482,7 +482,7 @@ func (p *parsing) parseStatement(tok token) {
 				p.deps.enterScope()
 			}
 		}
-		if node == nil || (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if node == nil || (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 		}
 		p.addChild(node)
@@ -497,7 +497,7 @@ func (p *parsing) parseStatement(tok token) {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
@@ -513,7 +513,7 @@ func (p *parsing) parseStatement(tok token) {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
@@ -536,7 +536,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case, expecting %%}")})
 		}
 		expressions, tok := p.parseExprList(token{}, false, false, false, false)
-		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
@@ -551,7 +551,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected default, expecting %%}")})
 		}
 		tok = next(p.lex)
-		if (p.ctx == ast.ContextNone && tok.typ != tokenColon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
@@ -564,7 +564,7 @@ func (p *parsing) parseStatement(tok token) {
 		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
 		tok = next(p.lex)
-		if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		switch s := parent.(type) {
@@ -587,7 +587,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// {
 	case tokenLeftBraces:
-		if p.ctx != ast.ContextNone {
+		if p.ctx != ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		node = ast.NewBlock(tok.pos, nil)
@@ -598,7 +598,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// }
 	case tokenRightBraces:
-		if p.ctx != ast.ContextNone {
+		if p.ctx != ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
 		if len(p.ancestors) == 1 {
@@ -638,7 +638,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// else
 	case tokenElse:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			if len(p.ancestors) == 1 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected else")})
 			}
@@ -655,10 +655,10 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		p.cutSpacesToken = true
 		tok = next(p.lex)
-		if p.ctx == ast.ContextNone && tok.typ == tokenLeftBraces || p.ctx != ast.ContextNone && tok.typ == tokenEndStatement {
+		if p.ctx == ast.ContextGo && tok.typ == tokenLeftBraces || p.ctx != ast.ContextGo && tok.typ == tokenEndStatement {
 			// "else"
 			var blockPos *ast.Position
-			if p.ctx == ast.ContextNone {
+			if p.ctx == ast.ContextGo {
 				blockPos = tok.pos
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
@@ -695,12 +695,12 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			expr = expressions[0]
 		}
-		if (p.ctx == ast.ContextNone && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+		if (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
 		var blockPos *ast.Position
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			blockPos = tok.pos
 		}
 		then := ast.NewBlock(blockPos, nil)
@@ -737,7 +737,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// include
 	case tokenInclude:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement not in template")})
 		}
 		if p.isExtended && !p.isInMacro {
@@ -766,7 +766,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// show
 	case tokenShow:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement not in template")})
 		}
 		if p.isExtended && !p.isInMacro {
@@ -833,7 +833,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// extends
 	case tokenExtends:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends statement not in template")})
 		}
 
@@ -850,7 +850,7 @@ func (p *parsing) parseStatement(tok token) {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside an attribute value")})
-			case ast.ContextScript:
+			case ast.ContextJavaScript:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside a script tag")})
 			case ast.ContextCSS:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside a style tag")})
@@ -885,7 +885,7 @@ func (p *parsing) parseStatement(tok token) {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside an attribute value")})
-			case ast.ContextScript:
+			case ast.ContextJavaScript:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside a script tag")})
 			case ast.ContextCSS:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside a style tag")})
@@ -921,7 +921,7 @@ func (p *parsing) parseStatement(tok token) {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside an attribute value")})
-			case ast.ContextScript:
+			case ast.ContextJavaScript:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside a script tag")})
 			case ast.ContextCSS:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside a style tag")})
@@ -941,13 +941,13 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 			}
 		}
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			if _, ok := parent.(*ast.Package); !ok {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not inside a package")})
 			}
 		}
 		tok = next(p.lex)
-		if p.ctx == ast.ContextNone && tok.typ == tokenLeftParenthesis {
+		if p.ctx == ast.ContextGo && tok.typ == tokenLeftParenthesis {
 			tok = next(p.lex)
 			for tok.typ != tokenRightParenthesis {
 				p.addChild(p.parseImportSpec(tok))
@@ -973,7 +973,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// macro
 	case tokenMacro:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro statement not in template")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
@@ -1041,7 +1041,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// end
 	case tokenEnd:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("end statement not in template")})
 		}
 		if _, ok = parent.(*ast.URL); ok || len(p.ancestors) == 1 {
@@ -1091,7 +1091,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// type
 	case tokenType:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			var td *ast.TypeDeclaration
 			pos = tok.pos
 			tok = next(p.lex)
@@ -1154,7 +1154,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	// func
 	case tokenFunc:
-		if p.ctx == ast.ContextNone {
+		if p.ctx == ast.ContextGo {
 			// Note that parseFunc does not consume the next token because
 			// kind is not parseType.
 			if _, ok := parent.(*ast.Package); ok || len(p.ancestors) == 1 {
@@ -1182,7 +1182,7 @@ func (p *parsing) parseStatement(tok token) {
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
-			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
@@ -1197,7 +1197,7 @@ func (p *parsing) parseStatement(tok token) {
 			if value == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			node := ast.NewSend(pos, channel, value)
@@ -1214,7 +1214,7 @@ func (p *parsing) parseStatement(tok token) {
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
 			} else {
-				if (p.ctx == ast.ContextNone && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextNone && tok.typ != tokenEndStatement) {
+				if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 				}
 				p.addChild(expr)
@@ -1351,7 +1351,7 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 	}
 	var path = unquoteString(tok.txt)
-	if p.ctx == ast.ContextNone && !validPackageImportPath(path) || p.ctx != ast.ContextNone && !ValidPath(path) {
+	if p.ctx == ast.ContextGo && !validPackageImportPath(path) || p.ctx != ast.ContextGo && !ValidPath(path) {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path %q", path)})
 	}
 	pos.End = tok.pos.End

@@ -28,13 +28,13 @@ func ExampleDump() {
 			`{% y = 10 %}`,
 			`{% y = (4 + 5) %}`,
 		},
-		ast.ContextNone: {
+		ast.ContextGo: {
 			"5 + 6",
 			"map[string]([]interface{})",
 		},
 	}
 
-	for _, ctx := range []ast.Context{ast.ContextHTML, ast.ContextNone} {
+	for _, ctx := range []ast.Context{ast.ContextHTML, ast.ContextGo} {
 		stringCases := cases[ctx]
 		for _, c := range stringCases {
 			tree, _, err := compiler.ParseSource([]byte(c), false, ctx)

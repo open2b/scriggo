@@ -20,40 +20,40 @@ func p(line, column, start, end int) *ast.Position {
 	return &ast.Position{line, column, start, end}
 }
 
-var noneContextTreeTests = []struct {
+var goContextTreeTests = []struct {
 	src  string
 	node ast.Node
 }{
-	{"", ast.NewTree("", nil, ast.ContextNone)},
-	{";", ast.NewTree("", nil, ast.ContextNone)},
-	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.ContextNone)},
+	{"", ast.NewTree("", nil, ast.ContextGo)},
+	{";", ast.NewTree("", nil, ast.ContextGo)},
+	{"a", ast.NewTree("", []ast.Node{ast.NewIdentifier(p(1, 1, 0, 0), "a")}, ast.ContextGo)},
 	{"a := 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
-			ast.AssignmentDeclaration, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextNone)},
+			ast.AssignmentDeclaration, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextGo)},
 	{"a.b = 2", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 6), []ast.Expression{ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
-			ast.AssignmentSimple, []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(2))})}, ast.ContextNone)},
+			ast.AssignmentSimple, []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(2))})}, ast.ContextGo)},
 	{"if a {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}), nil)}, ast.ContextNone)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}), nil)}, ast.ContextGo)},
 	{"if a {\t\tb\t}\t", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 10), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
-			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}), nil)}, ast.ContextNone)},
+			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(1, 9, 8, 8), "b")}), nil)}, ast.ContextGo)},
 	{"if a {\n\tb\n} else {\n\tc\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
 			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
-			ast.NewBlock(p(3, 8, 17, 22), []ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")}))}, ast.ContextNone)},
+			ast.NewBlock(p(3, 8, 17, 22), []ast.Node{ast.NewIdentifier(p(4, 2, 20, 20), "c")}))}, ast.ContextGo)},
 	{"if a {\n\tb\n} else if c {\n\td\n} else {\n\te\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewIf(p(1, 1, 0, 39), nil, ast.NewIdentifier(p(1, 4, 3, 3), "a"),
 			ast.NewBlock(p(1, 6, 5, 10), []ast.Node{ast.NewIdentifier(p(2, 2, 8, 8), "b")}),
 			ast.NewIf(p(3, 8, 17, 39), nil, ast.NewIdentifier(p(3, 11, 20, 20), "c"),
 				ast.NewBlock(p(3, 13, 22, 27), []ast.Node{ast.NewIdentifier(p(4, 2, 25, 25), "d")}),
-				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(6, 2, 37, 37), "e")})))}, ast.ContextNone)},
+				ast.NewBlock(p(5, 8, 34, 39), []ast.Node{ast.NewIdentifier(p(6, 2, 37, 37), "e")})))}, ast.ContextGo)},
 	{"for _, v := range e {\n\tb\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 25), ast.NewAssignment(p(1, 5, 4, 18), []ast.Expression{
 			ast.NewIdentifier(p(1, 5, 4, 4), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewIdentifier(p(1, 19, 18, 18), "e")}),
-			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.ContextNone)},
+			[]ast.Node{ast.NewIdentifier(p(2, 2, 23, 23), "b")})}, ast.ContextGo)},
 	{"for _ = range []int(nil) { }", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 27),
 			ast.NewAssignment(p(1, 5, 4, 23),
@@ -63,10 +63,10 @@ var noneContextTreeTests = []struct {
 					ast.NewCall(p(1, 20, 14, 23),
 						ast.NewSliceType(p(1, 15, 14, 18), ast.NewIdentifier(p(1, 17, 16, 18), "int")),
 						[]ast.Expression{ast.NewIdentifier(p(1, 21, 20, 22), "nil")},
-						false)}), nil)}, ast.ContextNone)},
+						false)}), nil)}, ast.ContextGo)},
 	{"switch {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSwitch(p(1, 1, 0, 19), nil, nil, nil, []*ast.Case{
-			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextNone)},
+			ast.NewCase(p(2, 2, 10, 17), nil, nil, false)})}, ast.ContextGo)},
 	{"if x == 5 {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewIf(&ast.Position{Line: 1, Column: 1, Start: 0, End: 11}, nil,
@@ -75,7 +75,7 @@ var noneContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 4, 3, 3), "x"),
 					ast.NewInt(p(1, 9, 8, 8), big.NewInt(5)),
 				), nil, nil),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"for _, i := range []int{1,2,3} { }",
 		ast.NewTree("", []ast.Node{
 			ast.NewForRange(
@@ -98,7 +98,7 @@ var noneContextTreeTests = []struct {
 								{nil, ast.NewInt(p(1, 27, 26, 26), big.NewInt(2))},
 								{nil, ast.NewInt(p(1, 29, 28, 28), big.NewInt(3))},
 							})}), nil)},
-			ast.ContextNone)},
+			ast.ContextGo)},
 	{"var a",
 		ast.NewTree("", []ast.Node{
 			ast.NewVar(
@@ -109,7 +109,7 @@ var noneContextTreeTests = []struct {
 				nil,
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a int",
 		ast.NewTree("", []ast.Node{
@@ -121,7 +121,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 7, 6, 8), "int"),
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a, b",
 		ast.NewTree("", []ast.Node{
@@ -134,7 +134,7 @@ var noneContextTreeTests = []struct {
 				nil,
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a, b int",
 		ast.NewTree("", []ast.Node{
@@ -147,7 +147,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a = 4",
 		ast.NewTree("", []ast.Node{
@@ -161,7 +161,7 @@ var noneContextTreeTests = []struct {
 					ast.NewInt(p(1, 9, 8, 8), big.NewInt(4)),
 				},
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a int = 4",
 		ast.NewTree("", []ast.Node{
@@ -175,7 +175,7 @@ var noneContextTreeTests = []struct {
 					ast.NewInt(p(1, 13, 12, 12), big.NewInt(4)),
 				},
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var a, b int = 4, 6",
 		ast.NewTree("", []ast.Node{
@@ -191,7 +191,7 @@ var noneContextTreeTests = []struct {
 					ast.NewInt(p(1, 19, 18, 18), big.NewInt(6)),
 				},
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var (\n\ta int = 3\n\tb = 1.00\n)",
 		ast.NewTree("", []ast.Node{
@@ -215,7 +215,7 @@ var noneContextTreeTests = []struct {
 					ast.NewFloat(p(3, 6, 22, 25), new(big.Float).SetFloat64(1.00)),
 				},
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var f func ()",
 		ast.NewTree("", []ast.Node{
@@ -232,7 +232,7 @@ var noneContextTreeTests = []struct {
 				),
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"var A []T",
 		ast.NewTree("", []ast.Node{
@@ -247,7 +247,7 @@ var noneContextTreeTests = []struct {
 				),
 				nil,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"const a = 4",
 		ast.NewTree("", []ast.Node{
@@ -261,11 +261,11 @@ var noneContextTreeTests = []struct {
 					ast.NewInt(p(1, 11, 10, 10), big.NewInt(4)),
 				},
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
-	}, ast.ContextNone)},
+	}, ast.ContextGo)},
 	{"type Int int",
 		ast.NewTree("", []ast.Node{
 			ast.NewTypeDeclaration(
@@ -274,7 +274,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 10, 9, 11), "int"),
 				false,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"type Int []string",
 		ast.NewTree("", []ast.Node{
@@ -284,7 +284,7 @@ var noneContextTreeTests = []struct {
 				ast.NewSliceType(p(1, 10, 9, 16), ast.NewIdentifier(p(1, 12, 11, 16), "string")),
 				false,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"type Int = int",
 		ast.NewTree("", []ast.Node{
@@ -294,7 +294,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 12, 11, 13), "int"),
 				true,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"type MyMap = map[string]interface{}",
 		ast.NewTree("", []ast.Node{
@@ -308,7 +308,7 @@ var noneContextTreeTests = []struct {
 				),
 				true,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"type ( Int int ; String string )",
 		ast.NewTree("", []ast.Node{
@@ -324,7 +324,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 25, 24, 29), "string"),
 				false,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"type ( Int = int ; String string )",
 		ast.NewTree("", []ast.Node{
@@ -340,7 +340,7 @@ var noneContextTreeTests = []struct {
 				ast.NewIdentifier(p(1, 27, 26, 31), "string"),
 				false,
 			),
-		}, ast.ContextNone),
+		}, ast.ContextGo),
 	},
 	{"struct { }",
 		ast.NewTree("", []ast.Node{
@@ -348,7 +348,7 @@ var noneContextTreeTests = []struct {
 				p(1, 1, 0, 9),
 				nil,
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -363,7 +363,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A []int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -381,7 +381,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A struct { C int } }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -407,7 +407,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A, B int }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -423,7 +423,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A, B int ; C, D string }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -447,7 +447,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A int ; C ; *D }",
 		ast.NewTree("", []ast.Node{
 			ast.NewStructType(
@@ -476,7 +476,7 @@ var noneContextTreeTests = []struct {
 					),
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"struct { A int }{ A: 10 }",
 		ast.NewTree("", []ast.Node{
 			ast.NewCompositeLiteral(
@@ -500,7 +500,7 @@ var noneContextTreeTests = []struct {
 					},
 				},
 			),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"defer f()",
 		ast.NewTree("", []ast.Node{
 			ast.NewDefer(
@@ -508,7 +508,7 @@ var noneContextTreeTests = []struct {
 				ast.NewCall(
 					p(1, 8, 6, 8),
 					ast.NewIdentifier(p(1, 7, 6, 6), "f"), nil, false)),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"go f()",
 		ast.NewTree("", []ast.Node{
 			ast.NewGo(
@@ -516,14 +516,14 @@ var noneContextTreeTests = []struct {
 				ast.NewCall(
 					p(1, 5, 3, 5),
 					ast.NewIdentifier(p(1, 4, 3, 3), "f"), nil, false)),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"ch <- 5",
 		ast.NewTree("", []ast.Node{
 			ast.NewSend(
 				p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 1), "ch"),
 				ast.NewInt(p(1, 7, 6, 6), big.NewInt(5))),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"a := <-ch",
 		ast.NewTree("", []ast.Node{
 			ast.NewAssignment(p(1, 1, 0, 8),
@@ -532,65 +532,65 @@ var noneContextTreeTests = []struct {
 					ast.NewUnaryOperator(
 						p(1, 6, 5, 8), ast.OperatorReceive,
 						ast.NewIdentifier(p(1, 8, 7, 8), "ch"))}),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"goto LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewGoto(p(1, 1, 0, 8),
 				ast.NewIdentifier(p(1, 6, 5, 8), "LOOP")),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"LOOP: x",
 		ast.NewTree("", []ast.Node{
 			ast.NewLabel(p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewIdentifier(p(1, 7, 6, 6), "x")),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"LOOP: {}",
 		ast.NewTree("", []ast.Node{
 			ast.NewLabel(p(1, 1, 0, 6),
 				ast.NewIdentifier(p(1, 1, 0, 3), "LOOP"),
 				ast.NewBlock(p(1, 7, 6, 7), nil)),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"{LOOP:}",
 		ast.NewTree("", []ast.Node{
 			ast.NewBlock(p(1, 1, 0, 6), []ast.Node{
 				ast.NewLabel(p(1, 2, 1, 5),
 					ast.NewIdentifier(p(1, 2, 1, 4), "LOOP"), nil),
 			}),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"break LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewBreak(p(1, 1, 0, 9),
 				ast.NewIdentifier(p(1, 7, 6, 9), "LOOP")),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"continue LOOP",
 		ast.NewTree("", []ast.Node{
 			ast.NewContinue(p(1, 1, 0, 12),
 				ast.NewIdentifier(p(1, 10, 9, 12), "LOOP")),
-		}, ast.ContextNone)},
+		}, ast.ContextGo)},
 	{"func f() int {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 14), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
 			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
-			ast.NewBlock(p(1, 14, 13, 14), nil))}, ast.ContextNone)},
+			ast.NewBlock(p(1, 14, 13, 14), nil))}, ast.ContextGo)},
 	{"func f() int { return 5 }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 24), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
 			ast.NewFuncType(nil, nil, []*ast.Field{ast.NewField(nil, ast.NewIdentifier(p(1, 10, 9, 11), "int"))}, false),
 			ast.NewBlock(p(1, 14, 13, 24), []ast.Node{
 				ast.NewReturn(p(1, 16, 15, 22), []ast.Expression{ast.NewInt(p(1, 23, 22, 22), big.NewInt(5))}),
-			}))}, ast.ContextNone)},
+			}))}, ast.ContextGo)},
 	{"func f() (int, error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 23), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
 			ast.NewFuncType(nil, nil, []*ast.Field{
 				ast.NewField(nil, ast.NewIdentifier(p(1, 11, 10, 12), "int")),
 				ast.NewField(nil, ast.NewIdentifier(p(1, 16, 15, 19), "error")),
 			}, false),
-			ast.NewBlock(p(1, 22, 22, 23), nil))}, ast.ContextNone)},
+			ast.NewBlock(p(1, 22, 22, 23), nil))}, ast.ContextGo)},
 	{"func f() (n int, err error) {}", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 29), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
 			ast.NewFuncType(nil, nil, []*ast.Field{
 				ast.NewField(ast.NewIdentifier(p(1, 11, 10, 10), "n"), ast.NewIdentifier(p(1, 13, 12, 14), "int")),
 				ast.NewField(ast.NewIdentifier(p(1, 18, 17, 19), "err"), ast.NewIdentifier(p(1, 22, 21, 25), "error")),
 			}, false),
-			ast.NewBlock(p(1, 29, 28, 29), nil))}, ast.ContextNone)},
+			ast.NewBlock(p(1, 29, 28, 29), nil))}, ast.ContextGo)},
 	{"func f(a, b int, c bool, d ...int) (n int, err error) { a := 5; return a, nil }", ast.NewTree("", []ast.Node{
 		ast.NewFunc(p(1, 1, 0, 78), ast.NewIdentifier(p(1, 6, 5, 5), "f"),
 			ast.NewFuncType(nil, []*ast.Field{
@@ -612,7 +612,7 @@ var noneContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 72, 71, 71), "a"),
 					ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
 				}),
-			}))}, ast.ContextNone)},
+			}))}, ast.ContextGo)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -647,7 +647,7 @@ var noneContextTreeTests = []struct {
 	// 			),
 	// 		},
 	// 	),
-	// }, ast.ContextNone)},
+	// }, ast.ContextGo)},
 }
 
 var treeTests = []struct {
@@ -1332,9 +1332,9 @@ func pageTests() map[string]struct {
 	}
 }
 
-func TestNoneContextTrees(t *testing.T) {
-	for _, tree := range noneContextTreeTests {
-		node, _, err := ParseSource([]byte(tree.src), false, ast.ContextNone)
+func TestGoContextTrees(t *testing.T) {
+	for _, tree := range goContextTreeTests {
+		node, _, err := ParseSource([]byte(tree.src), false, ast.ContextGo)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

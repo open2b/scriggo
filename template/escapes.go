@@ -266,7 +266,7 @@ func cssStringEscape(w stringWriter, s string) error {
 	return nil
 }
 
-var scriptStringEscapes = []string{
+var javaScriptStringEscapes = []string{
 	0:    `\x00`,
 	1:    `\x01`,
 	2:    `\x02`,
@@ -307,16 +307,16 @@ var scriptStringEscapes = []string{
 	'\\': `\\`,
 }
 
-// scriptStringEscape escapes the string s so it can be placed inside a
+// javaScriptStringEscape escapes the string s so it can be placed inside a
 // JavaScript and JSON string with single or double quotes, and write it to w.
-func scriptStringEscape(w stringWriter, s string) error {
+func javaScriptStringEscape(w stringWriter, s string) error {
 	last := 0
 	var buf []byte
 	for i, c := range s {
 		var esc string
 		switch {
-		case int(c) < len(scriptStringEscapes) && scriptStringEscapes[c] != "":
-			esc = scriptStringEscapes[c]
+		case int(c) < len(javaScriptStringEscapes) && javaScriptStringEscapes[c] != "":
+			esc = javaScriptStringEscapes[c]
 		case c == '\u2028':
 			esc = `\u2028`
 		case c == '\u2029':

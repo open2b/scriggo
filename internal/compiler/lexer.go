@@ -119,7 +119,7 @@ func (l *lexer) emitAtLineColumn(line, column int, typ tokenTyp, length int) {
 // error occurs, it puts the error in err, closes the channel and returns.
 func (l *lexer) scan() {
 
-	if l.ctx == ast.ContextNone {
+	if l.ctx == ast.ContextGo {
 
 		err := l.lexCode()
 		if err != nil {
@@ -228,7 +228,7 @@ func (l *lexer) scan() {
 					// End tag.
 					switch l.tag {
 					case "script":
-						l.ctx = ast.ContextScript
+						l.ctx = ast.ContextJavaScript
 					case "style":
 						l.ctx = ast.ContextCSS
 					default:
@@ -325,18 +325,18 @@ func (l *lexer) scan() {
 					}
 				}
 
-			case ast.ContextScript:
+			case ast.ContextJavaScript:
 				if isHTML && c == '<' && isEndScript(l.src[p:]) {
 					// </script>
 					l.ctx = ast.ContextHTML
 					p += 8
 					l.column += 8
 				} else if c == '"' || c == '\'' {
-					l.ctx = ast.ContextScriptString
+					l.ctx = ast.ContextJavaScriptString
 					quote = c
 				}
 
-			case ast.ContextScriptString:
+			case ast.ContextJavaScriptString:
 				switch c {
 				case '\\':
 					if p+1 < len(l.src) && l.src[p+1] == quote {
@@ -344,7 +344,7 @@ func (l *lexer) scan() {
 						l.column++
 					}
 				case quote:
-					l.ctx = ast.ContextScript
+					l.ctx = ast.ContextJavaScript
 					quote = 0
 				case '<':
 					if isHTML && isEndScript(l.src[p:]) {
@@ -602,7 +602,7 @@ func (l *lexer) lexCode() error {
 	if len(l.src) == 0 {
 		return nil
 	}
-	if l.ctx == ast.ContextNone && len(l.src) > 1 {
+	if l.ctx == ast.ContextGo && len(l.src) > 1 {
 		// Parse shebang line.
 		if l.src[0] == '#' && l.src[1] == '!' {
 			t := bytes.IndexByte(l.src, '\n')
@@ -714,7 +714,7 @@ LOOP:
 				endLineAsSemicolon = false
 			}
 		case '/':
-			if len(l.src) > 1 && l.src[1] == '/' && l.ctx == ast.ContextNone {
+			if len(l.src) > 1 && l.src[1] == '/' && l.ctx == ast.ContextGo {
 				p := bytes.Index(l.src, []byte("\n"))
 				if p == -1 {
 					break LOOP
@@ -728,7 +728,7 @@ LOOP:
 				l.src = l.src[1:]
 				continue LOOP
 			}
-			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextNone {
+			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextGo {
 				p := bytes.Index(l.src, []byte("*/"))
 				if p == -1 {
 					return l.errorf("comment not terminated")
@@ -758,7 +758,7 @@ LOOP:
 			if len(l.src) > 1 {
 				switch l.src[1] {
 				case '}':
-					if l.ctx != ast.ContextNone {
+					if l.ctx != ast.ContextGo {
 						break LOOP
 					}
 				case '=':
@@ -851,14 +851,14 @@ LOOP:
 			unclosedLeftBraces++
 		case '}':
 			if unclosedLeftBraces > 0 {
-				if endLineAsSemicolon && l.ctx == ast.ContextNone {
+				if endLineAsSemicolon && l.ctx == ast.ContextGo {
 					l.emit(tokenSemicolon, 0)
 				}
 				l.emit(tokenRightBraces, 1)
 				l.column++
 				endLineAsSemicolon = true
 				unclosedLeftBraces--
-			} else if l.ctx != ast.ContextNone && len(l.src) > 1 && l.src[1] == '}' {
+			} else if l.ctx != ast.ContextGo && len(l.src) > 1 && l.src[1] == '}' {
 				break LOOP
 			} else {
 				return l.errorf("unexpected }")
@@ -907,7 +907,7 @@ LOOP:
 			}
 		}
 	}
-	if endLineAsSemicolon && l.ctx == ast.ContextNone {
+	if endLineAsSemicolon && l.ctx == ast.ContextGo {
 		l.emit(tokenSemicolon, 0)
 	}
 	return nil
@@ -1010,7 +1010,7 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	case "var":
 		l.emit(tokenVar, p)
 	default:
-		if l.ctx != ast.ContextNone {
+		if l.ctx != ast.ContextGo {
 			switch id {
 			case "end":
 				l.emit(tokenEnd, p)

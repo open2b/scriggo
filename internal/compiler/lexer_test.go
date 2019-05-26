@@ -137,7 +137,7 @@ var typeTests = map[string][]tokenTyp{
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 }
 
-var typeTestsNoneContext = map[string][]tokenTyp{
+var typeTestsGoContext = map[string][]tokenTyp{
 	``:                {},
 	"a := 3":          {tokenIdentifier, tokenDeclaration, tokenInt, tokenSemicolon},
 	"// a comment\n":  {},
@@ -172,14 +172,14 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`{{a}}`:                                        {ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		"<script></script>":                            {ast.ContextText},
 		"<style></style>":                              {ast.ContextText},
-		"<script>s{{a}}</script>{{a}}":                 {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		"<script>s{{a}}</script>{{a}}":                 {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		"<style>s{{a}}</style>{{a}}":                   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<style>s{{include "a"}}t</style>`:             {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
-		`<script>s{{include "a"}}t</script>`:           {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
+		`<script>s{{include "a"}}t</script>`:           {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 		`<style a="{{b}}"></style>`:                    {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
 		`<style a="b">{{1}}</style>`:                   {ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
 		`<script a="{{b}}"></script>`:                  {ast.ContextText, ast.ContextAttribute, ast.ContextAttribute, ast.ContextAttribute, ast.ContextText},
-		`<script a="b">{{1}}</script>`:                 {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
+		`<script a="b">{{1}}</script>`:                 {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 		`<![CDATA[<script>{{1}}</script>]]>`:           {ast.ContextText},
 		`a<![CDATA[<script>{{1}}</script>]]>{{2}}`:     {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
 		`<div {{ attr }}>`:                             {ast.ContextText, ast.ContextTag, ast.ContextTag, ast.ContextTag, ast.ContextText},
@@ -204,11 +204,11 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`<style>'{{a}}'{{a}}</style>`:                  {ast.ContextText, ast.ContextCSSString, ast.ContextCSSString, ast.ContextCSSString, ast.ContextText, ast.ContextCSS, ast.ContextCSS, ast.ContextCSS, ast.ContextText},
 		`<style>'</style>'{{a}}</style>`:               {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<style>"</style>"{{a}}</style>`:               {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
-		"<script>s{{a}}t</script>{{a}}":                {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
-		`<script>{{a}}"{{a}}"</script>`:                {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
-		`<script>"{{a}}"{{a}}</script>`:                {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
-		`<script>{{a}}'{{a}}'</script>`:                {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
-		`<script>'{{a}}'{{a}}</script>`:                {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText},
+		"<script>s{{a}}t</script>{{a}}":                {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
+		`<script>{{a}}"{{a}}"</script>`:                {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText},
+		`<script>"{{a}}"{{a}}</script>`:                {ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
+		`<script>{{a}}'{{a}}'</script>`:                {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText},
+		`<script>'{{a}}'{{a}}</script>`:                {ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText},
 		`<script>'</script>'{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script>"</script>"{{a}}</script>`:            {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML, ast.ContextText},
 		`<script async></script>{{ "a" }}`:             {ast.ContextText, ast.ContextHTML, ast.ContextHTML, ast.ContextHTML},
@@ -224,17 +224,17 @@ var contextTests = map[ast.Context]map[string][]ast.Context{
 		`a`:       {ast.ContextText},
 		`a{{a}}a`: {ast.ContextText, ast.ContextCSSString, ast.ContextCSSString, ast.ContextCSSString, ast.ContextText},
 	},
-	ast.ContextScript: {
+	ast.ContextJavaScript: {
 		`a`:                             {ast.ContextText},
-		`{{a}}`:                         {ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		`{{a}}`:                         {ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript},
 		"<script></script>":             {ast.ContextText},
 		"<style></style>":               {ast.ContextText},
-		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
-		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript, ast.ContextText, ast.ContextScript, ast.ContextScript, ast.ContextScript},
+		"<script>s{{a}}t</script>{{a}}": {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript},
+		"<style>s{{a}}t</style>{{a}}":   {ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextText, ast.ContextJavaScript, ast.ContextJavaScript, ast.ContextJavaScript},
 	},
-	ast.ContextScriptString: {
+	ast.ContextJavaScriptString: {
 		`a`:       {ast.ContextText},
-		`a{{a}}a`: {ast.ContextText, ast.ContextScriptString, ast.ContextScriptString, ast.ContextScriptString, ast.ContextText},
+		`a{{a}}a`: {ast.ContextText, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextJavaScriptString, ast.ContextText},
 	},
 }
 
@@ -351,8 +351,8 @@ func TestLexerTypes(t *testing.T) {
 	testLexerTypes(t, typeTests, ast.ContextText)
 }
 
-func TestLexerTypesNoneContext(t *testing.T) {
-	testLexerTypes(t, typeTestsNoneContext, ast.ContextNone)
+func TestLexerTypesGoContext(t *testing.T) {
+	testLexerTypes(t, typeTestsGoContext, ast.ContextGo)
 }
 
 func TestLexerContexts(t *testing.T) {

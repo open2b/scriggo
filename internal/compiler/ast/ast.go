@@ -107,7 +107,7 @@ func (op OperatorType) String() string {
 type Context int
 
 const (
-	ContextNone Context = iota
+	ContextGo Context = iota
 	ContextText
 	ContextHTML
 	ContextTag
@@ -115,14 +115,14 @@ const (
 	ContextUnquotedAttribute
 	ContextCSS
 	ContextCSSString
-	ContextScript
-	ContextScriptString
+	ContextJavaScript
+	ContextJavaScriptString
 )
 
 func (ctx Context) String() string {
 	switch ctx {
-	case ContextNone:
-		return "None"
+	case ContextGo:
+		return "Go"
 	case ContextText:
 		return "Text"
 	case ContextHTML:
@@ -137,10 +137,10 @@ func (ctx Context) String() string {
 		return "CSS"
 	case ContextCSSString:
 		return "CSSString"
-	case ContextScript:
-		return "Script"
-	case ContextScriptString:
-		return "ScriptString"
+	case ContextJavaScript:
+		return "JavaScript"
+	case ContextJavaScriptString:
+		return "JavaScriptString"
 	}
 	panic("invalid context")
 }

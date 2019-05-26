@@ -414,7 +414,7 @@ var checkerExprs = []struct {
 
 func TestCheckerExpressions(t *testing.T) {
 	for _, expr := range checkerExprs {
-		var lex = newLexer([]byte(expr.src), ast.ContextNone)
+		var lex = newLexer([]byte(expr.src), ast.ContextGo)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -427,7 +427,7 @@ func TestCheckerExpressions(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				ctx:       ast.ContextNone,
+				ctx:       ast.ContextGo,
 				ancestors: nil,
 			}
 			node, tok := p.parseExpr(token{}, false, false, false, false)
@@ -492,7 +492,7 @@ var checkerExprErrors = []struct {
 
 func TestCheckerExpressionErrors(t *testing.T) {
 	for _, expr := range checkerExprErrors {
-		var lex = newLexer([]byte(expr.src), ast.ContextNone)
+		var lex = newLexer([]byte(expr.src), ast.ContextGo)
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -509,7 +509,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}()
 			var p = &parsing{
 				lex:       lex,
-				ctx:       ast.ContextNone,
+				ctx:       ast.ContextGo,
 				ancestors: nil,
 			}
 			node, tok := p.parseExpr(token{}, false, false, false, false)
@@ -1203,7 +1203,7 @@ func TestCheckerStatements(t *testing.T) {
 					}
 				}
 			}()
-			tree, _, err := ParseSource([]byte(src), false, ast.ContextNone)
+			tree, _, err := ParseSource([]byte(src), false, ast.ContextGo)
 			if err != nil {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
@@ -1615,7 +1615,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 	}
 	tc := NewTypechecker("", false)
 	for src, expected := range cases {
-		tree, _, err := ParseSource([]byte(src), false, ast.ContextNone)
+		tree, _, err := ParseSource([]byte(src), false, ast.ContextGo)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1708,7 +1708,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	for src, expected := range cases {
 		tc := NewTypechecker("", false)
 		tc.addScope()
-		tree, _, err := ParseSource([]byte(src), false, ast.ContextNone)
+		tree, _, err := ParseSource([]byte(src), false, ast.ContextGo)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1821,7 +1821,7 @@ func TestGotoLabels(t *testing.T) {
 	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
-			tree, deps, err := ParseSource([]byte(cas.src), true, ast.ContextNone)
+			tree, deps, err := ParseSource([]byte(cas.src), true, ast.ContextGo)
 			if err != nil {
 				t.Error(err)
 				return

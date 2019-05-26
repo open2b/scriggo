@@ -159,7 +159,7 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	if err != nil {
 		return nil, err
 	}
-	tree, _, err := compiler.ParseSource(buf, false, ast.ContextNone)
+	tree, _, err := compiler.ParseSource(buf, false, ast.ContextGo)
 	if err != nil {
 		return nil, err
 	}
@@ -347,17 +347,17 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 	}
 
 	// Checks if it has already been parsed.
-	if tree, ok := pp.trees.Get(path, ast.ContextNone); ok {
+	if tree, ok := pp.trees.Get(path, ast.ContextGo); ok {
 		return tree, nil, nil
 	}
-	defer pp.trees.Done(path, ast.ContextNone)
+	defer pp.trees.Done(path, ast.ContextGo)
 
 	src, err := pp.reader.Read(path)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tree, deps, err := compiler.ParseSource(src, true, ast.ContextNone)
+	tree, deps, err := compiler.ParseSource(src, true, ast.ContextGo)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -378,7 +378,7 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
 	// Adds the tree to the compiler.Cache.
-	pp.trees.Add(path, ast.ContextNone, tree)
+	pp.trees.Add(path, ast.ContextGo, tree)
 
 	return tree, deps, nil
 }

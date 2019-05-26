@@ -91,8 +91,8 @@ type CustomNumber interface {
 //  <script>var b = {{ expr3 }};</script>
 //
 // the first statement has context Attribute, the second has context HTML and
-// the third has context Script, so Render would only be called on the second
-// statement.
+// the third has context JavaScript, so Render would only be called on the
+// second statement.
 //
 // Render returns the number of bytes written to out and any error encountered
 // during the write.
@@ -196,7 +196,7 @@ func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, e
 				n = minInt32
 			}
 			return fmt.Sprintf("%f", n), nil
-		case ast.ContextScript, ast.ContextScriptString:
+		case ast.ContextJavaScript, ast.ContextJavaScriptString:
 			switch {
 			case n.IsNaN():
 				return "NaN", nil
@@ -280,10 +280,10 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Show,
 			err = r.renderInCSS(w, value, node)
 		case ast.ContextCSSString:
 			err = r.renderInCSSString(w, value, node)
-		case ast.ContextScript:
-			err = r.renderInScript(w, value, node)
-		case ast.ContextScriptString:
-			err = r.renderInScriptString(w, value, node)
+		case ast.ContextJavaScript:
+			err = r.renderInJavaScript(w, value, node)
+		case ast.ContextJavaScriptString:
+			err = r.renderInJavaScriptString(w, value, node)
 		default:
 			panic("scrigo: unknown context")
 		}
@@ -673,8 +673,8 @@ func (r *rendering) renderInCSSString(w stringWriter, value interface{}, node *a
 
 var mapStringToInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
-// renderInScript renders value in Script context.
-func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.Show) error {
+// renderInJavaScript renders value in JavaScript context.
+func (r *rendering) renderInJavaScript(w stringWriter, value interface{}, node *ast.Show) error {
 
 	switch e := value.(type) {
 	case nil:
@@ -685,7 +685,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		if err != nil {
 			return err
 		}
-		err = scriptStringEscape(w, e)
+		err = javaScriptStringEscape(w, e)
 		if err != nil {
 			return err
 		}
@@ -696,7 +696,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		if err != nil {
 			return err
 		}
-		err = scriptStringEscape(w, string(e))
+		err = javaScriptStringEscape(w, string(e))
 		if err != nil {
 			return err
 		}
@@ -704,7 +704,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 		return err
 	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
 		float64, float32, ConstantNumber, CustomNumber:
-		s, err := r.formatNumber(e, ast.ContextScript)
+		s, err := r.formatNumber(e, ast.ContextJavaScript)
 		if err != nil {
 			return r.errorf(node, "%s", err)
 		}
@@ -722,7 +722,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 	default:
 		value, ok := asBase(value)
 		if ok {
-			return r.renderInScript(w, value, node)
+			return r.renderInJavaScript(w, value, node)
 		}
 		var err error
 		rv := reflect.ValueOf(value)
@@ -754,7 +754,7 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 						return err
 					}
 				}
-				err = r.renderInScript(w, rv.Index(i).Interface(), node)
+				err = r.renderInJavaScript(w, rv.Index(i).Interface(), node)
 				if err != nil {
 					return err
 				}
@@ -773,9 +773,9 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 				}
 				return r.errorf(node, "no-render type %s", typeof(value))
 			}
-			return r.renderMapAsScriptObject(w, rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}), node)
+			return r.renderMapAsJavaScriptObject(w, rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}), node)
 		case reflect.Struct, reflect.Ptr:
-			return r.renderValueAsScriptObject(w, rv, node)
+			return r.renderValueAsJavaScriptObject(w, rv, node)
 		}
 	}
 
@@ -786,21 +786,21 @@ func (r *rendering) renderInScript(w stringWriter, value interface{}, node *ast.
 	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
-// renderInScriptString renders value in ScriptString context.
-func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node *ast.Show) error {
+// renderInJavaScriptString renders value in JavaScriptString context.
+func (r *rendering) renderInJavaScriptString(w stringWriter, value interface{}, node *ast.Show) error {
 
 	switch e := value.(type) {
 	case nil:
 		return r.errorf(node, "no-render type %s", typeof(value))
 	case string:
-		err := scriptStringEscape(w, e)
+		err := javaScriptStringEscape(w, e)
 		return err
 	case HTML:
-		err := scriptStringEscape(w, string(e))
+		err := javaScriptStringEscape(w, string(e))
 		return err
 	case int, int64, int32, int16, int8, uint, uint64, uint32, uint16, uint8,
 		float64, float32, ConstantNumber, CustomNumber:
-		s, err := r.formatNumber(e, ast.ContextScriptString)
+		s, err := r.formatNumber(e, ast.ContextJavaScriptString)
 		if err != nil {
 			return r.errorf(node, "%s", err)
 		}
@@ -810,15 +810,15 @@ func (r *rendering) renderInScriptString(w stringWriter, value interface{}, node
 
 	value, ok := asBase(value)
 	if ok {
-		return r.renderInScript(w, value, node)
+		return r.renderInJavaScript(w, value, node)
 	}
 
 	return r.errorf(node, "no-render type %s", typeof(value))
 }
 
-// renderValueAsScriptObject returns value as a JavaScript object or undefined
-// if it is not possible.
-func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, node *ast.Show) error {
+// renderValueAsJavaScriptObject returns value as a JavaScript object or
+// undefined if it is not possible.
+func (r *rendering) renderValueAsJavaScriptObject(w stringWriter, rv reflect.Value, node *ast.Show) error {
 
 	if rv.IsNil() {
 		_, err := w.WriteString("null")
@@ -850,7 +850,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 		if err != nil {
 			return err
 		}
-		err = scriptStringEscape(w, name)
+		err = javaScriptStringEscape(w, name)
 		if err != nil {
 			return err
 		}
@@ -858,7 +858,7 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, keys[name].value(rv), node)
+		err = r.renderInJavaScript(w, keys[name].value(rv), node)
 		if err != nil {
 			return err
 		}
@@ -869,9 +869,9 @@ func (r *rendering) renderValueAsScriptObject(w stringWriter, rv reflect.Value, 
 	return err
 }
 
-// renderMapAsScriptObject returns value as a JavaScript object or undefined
-// if it is not possible.
-func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]interface{}, node *ast.Show) error {
+// renderMapAsJavaScriptObject returns value as a JavaScript object or
+// undefined if it is not possible.
+func (r *rendering) renderMapAsJavaScriptObject(w stringWriter, value map[string]interface{}, node *ast.Show) error {
 
 	if value == nil {
 		_, err := w.WriteString("null")
@@ -896,7 +896,7 @@ func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]int
 				return err
 			}
 		}
-		err = scriptStringEscape(w, n)
+		err = javaScriptStringEscape(w, n)
 		if err != nil {
 			return err
 		}
@@ -904,7 +904,7 @@ func (r *rendering) renderMapAsScriptObject(w stringWriter, value map[string]int
 		if err != nil {
 			return err
 		}
-		err = r.renderInScript(w, value[n], node)
+		err = r.renderInJavaScript(w, value[n], node)
 		if err != nil {
 			return err
 		}

@@ -1364,14 +1364,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool, bool) {
 
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		contextIsNotNone := true // TODO (Gianluca).
+		contextIsNotGo := true // TODO (Gianluca).
 		// TODO (Gianluca): html must be in type-checker scope because it's
 		// a builtin (and since it's one of them can be shadowd by a local
 		// declaration) but the definition for type-checker must be
 		// different than the one seen by rendering: type-checker must
 		// ignore "HTML" types threating them as strings, while rendering
 		// has to convert them.
-		if ident.Name == "html" && contextIsNotNone {
+		if ident.Name == "html" && contextIsNotGo {
 			tc.TypeInfo[expr.Func] = &TypeInfo{Properties: PropertyIsBuiltin}
 			return tc.checkBuiltinCall(expr), true, false
 		}

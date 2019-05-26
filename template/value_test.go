@@ -257,7 +257,7 @@ func TestURLContext(t *testing.T) {
 	// }
 }
 
-var scriptContextTests = []struct {
+var javaScriptContextTests = []struct {
 	src     string
 	res     string
 	globals scope
@@ -317,7 +317,7 @@ func TestScriptContext(t *testing.T) {
 
 	t.Skip("(not runnable)")
 
-	// for _, expr := range scriptContextTests {
+	// for _, expr := range javaScriptContextTests {
 	// 	var tree, err = compiler.ParseSource([]byte("<script>{{"+expr.src+"}}</script>"), ast.ContextHTML)
 	// 	if err != nil {
 	// 		t.Errorf("source: %q, %s\n", expr.src, err)
@@ -336,7 +336,7 @@ func TestScriptContext(t *testing.T) {
 	// }
 }
 
-var scriptStringContextTests = []struct {
+var javaScriptStringContextTests = []struct {
 	src     string
 	res     string
 	globals scope
@@ -357,12 +357,12 @@ var scriptStringContextTests = []struct {
 	{`a`, `\x3c\x3e\"`, scope{"a": "<>\""}},
 }
 
-func TestScriptStringContext(t *testing.T) {
+func TestJavaScriptStringContext(t *testing.T) {
 
 	t.Skip("(not runnable)")
 
 	// for _, q := range []string{"\"", "'"} {
-	// 	for _, expr := range scriptStringContextTests {
+	// 	for _, expr := range javaScriptStringContextTests {
 	// 		var tree, err = compiler.ParseSource([]byte("<script>"+q+"{{"+expr.src+"}}"+q+"</script>"), ast.ContextHTML)
 	// 		if err != nil {
 	// 			t.Errorf("source: %q, %s\n", expr.src, err)
