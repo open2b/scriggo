@@ -112,6 +112,10 @@ func (vm *VM) SetContext(ctx Context) {
 	}
 }
 
+func (vm *VM) SetDontPanic(dontPanic bool) {
+	vm.ctx.dontPanic = dontPanic
+}
+
 func (vm *VM) SetGlobals(globals []interface{}) {
 	vm.ctx.globals = globals
 }
@@ -186,7 +190,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 	return len(b)
 }
 
-func (vm *VM) alloc() {
+func (vm *VM) alloc() error {
 	in := vm.fn.Body[vm.pc]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := op < 0
@@ -360,10 +364,10 @@ func (vm *VM) alloc() {
 		}
 		vm.ctx.Unlock()
 		if free < 0 {
-			panic(ErrOutOfMemory)
+			return ErrOutOfMemory
 		}
 	}
-	return
+	return nil
 }
 
 // callPredefined calls a predefined function. numVariadic is the number of
@@ -806,10 +810,11 @@ type writer interface {
 
 // context represents an execution context.
 type context struct {
-	globals []interface{} // global variables.
-	context Context       // context.
-	trace   TraceFunc     // trace function.
-	out     writer        // writer of Write instruction.
+	globals   []interface{} // global variables.
+	context   Context       // context.
+	dontPanic bool          // don't panic.
+	trace     TraceFunc     // trace function.
+	out       writer        // writer of Write instruction.
 
 	sync.Mutex     // mutex for field freeMemory.
 	freeMemory int // free memory.
@@ -1098,7 +1103,7 @@ func sprint(v interface{}) []byte {
 	}
 }
 
-func (err *Panic) Error() string {
+func (err Panic) Error() string {
 	b := make([]byte, 0, 100+len(err.StackTrace))
 	b = append(b, sprint(err.Msg)...)
 	b = append(b, "\n\n"...)

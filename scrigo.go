@@ -87,6 +87,7 @@ func (p *Program) Options() Option {
 type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
+	DontPanic     bool
 	TraceFunc     vm.TraceFunc
 }
 
@@ -101,6 +102,9 @@ func (p *Program) Run(options RunOptions) error {
 			return errors.New("program not loaded with LimitMemorySize option")
 		}
 		vmm.SetMaxMemory(options.MaxMemorySize)
+	}
+	if options.DontPanic {
+		vmm.SetDontPanic(true)
 	}
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
@@ -207,6 +211,9 @@ func (s *Script) Run(vars map[string]interface{}, options RunOptions) error {
 			return errors.New("script not loaded with LimitMemorySize option")
 		}
 		vmm.SetMaxMemory(options.MaxMemorySize)
+	}
+	if options.DontPanic {
+		vmm.SetDontPanic(true)
 	}
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)

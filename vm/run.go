@@ -34,18 +34,22 @@ func (vm *VM) Run(fn *Function) (int, error) {
 		break
 	}
 	if len(vm.panics) > 0 {
-		var msg string
-		for i, p := range vm.panics {
-			if i > 0 {
-				msg += "\t"
+		if vm.ctx.dontPanic {
+			vm.err = vm.panics[len(vm.panics)-1]
+		} else {
+			var msg string
+			for i, p := range vm.panics {
+				if i > 0 {
+					msg += "\t"
+				}
+				msg += fmt.Sprintf("panic %d: %#v", i+1, p.Msg)
+				if p.Recovered {
+					msg += " [recovered]"
+				}
+				msg += "\n"
 			}
-			msg += fmt.Sprintf("panic %d: %#v", i+1, p.Msg)
-			if p.Recovered {
-				msg += " [recovered]"
-			}
-			msg += "\n"
+			panic(msg)
 		}
-		panic(msg)
 	}
 	return 0, vm.err
 }
@@ -118,7 +122,11 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Alloc
 		case OpAlloc:
-			vm.alloc()
+			err := vm.alloc()
+			if err != nil {
+				vm.err = err
+				return maxAddr, false
+			}
 		case -OpAlloc:
 			bytes := decodeUint24(a, b, c)
 			var free int
@@ -130,7 +138,8 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			vm.ctx.Unlock()
 			if free < 0 {
-				panic(ErrOutOfMemory)
+				vm.err = ErrOutOfMemory
+				return maxAddr, false
 			}
 
 		// And
