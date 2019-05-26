@@ -30,7 +30,7 @@ func ExampleParseSource() {
       {% end %}
   {% end macro %}`)
 
-	tree, err := compiler.ParseSource(src, ast.ContextText, false)
+	tree, err := compiler.ParseTEmplateSource(src, ast.ContextText)
 	if err != nil {
 		log.Printf("parsing error: %s\n", err)
 	}
@@ -68,7 +68,7 @@ func ExampleMapReader() {
 
 	src, _ := r.Read("names.csv", ast.ContextText)
 
-	tree, err := compiler.ParseSource(src, ast.ContextText, false)
+	tree := compiler.ParseTemplateSource(src, ast.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}

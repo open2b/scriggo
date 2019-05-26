@@ -21,12 +21,13 @@ import (
 	"math/rand"
 	"net/url"
 	"reflect"
-	"scrigo/internal/compiler"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"scrigo/internal/compiler"
 )
 
 var testSeed int64 = -1

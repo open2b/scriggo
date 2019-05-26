@@ -163,7 +163,7 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	if err != nil {
 		return nil, err
 	}
-	tree, _, err := compiler.ParseSource(buf, false, shebang, ast.ContextGo)
+	tree, _, err := compiler.ParseSource(buf, false, shebang)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +359,7 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 		return nil, nil, err
 	}
 
-	tree, deps, err := compiler.ParseSource(src, true, false, ast.ContextGo)
+	tree, deps, err := compiler.ParseSource(src, true, false)
 	if err != nil {
 		return nil, nil, err
 	}

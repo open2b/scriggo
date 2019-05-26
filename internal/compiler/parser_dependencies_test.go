@@ -11,8 +11,6 @@ import (
 	"sort"
 	"strconv"
 	"testing"
-
-	"scrigo/internal/compiler/ast"
 )
 
 var cases = map[string]struct {
@@ -369,7 +367,7 @@ var cases = map[string]struct {
 func TestDependencies(t *testing.T) {
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, got, err := ParseSource([]byte(cas.src), true, false, ast.ContextGo)
+			_, got, err := ParseSource([]byte(cas.src), true, false)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}

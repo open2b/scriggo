@@ -37,11 +37,16 @@ func ExampleDump() {
 	for _, ctx := range []ast.Context{ast.ContextHTML, ast.ContextGo} {
 		stringCases := cases[ctx]
 		for _, c := range stringCases {
-			tree, _, err := compiler.ParseSource([]byte(c), false, false, ctx)
+			var tree *ast.Tree
+			var err error
+			if ctx == ast.ContextGo {
+				tree, _, err = compiler.ParseSource([]byte(c), false, false)
+			} else {
+				tree, err = compiler.ParseTemplateSource([]byte(c), ctx)
+			}
 			if err != nil {
 				panic(err)
 			}
-
 			var buf bytes.Buffer
 			err = astutil.Dump(&buf, tree)
 			if err != nil {

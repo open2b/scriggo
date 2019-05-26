@@ -110,24 +110,18 @@ type parsing struct {
 // ParseSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, isPackage, shebang bool, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+func ParseSource(src []byte, isPackage, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	if isPackage && shebang {
 		return nil, nil, errors.New("scrigo/parser: both isPackage and shebang cannot be true")
 	}
 
-	switch ctx {
-	case ast.ContextGo, ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
-	default:
-		return nil, nil, errors.New("scrigo/parser: invalid context. Valid contexts are Go, Text, HTML, CSS and Script")
-	}
-
 	// Tree result of the expansion.
-	tree = ast.NewTree("", nil, ctx)
+	tree = ast.NewTree("", nil, ast.ContextGo)
 
 	var p = &parsing{
-		lex:       newLexer(src, ctx),
-		ctx:       ctx,
+		lex:       newLexer(src, ast.ContextGo),
+		ctx:       ast.ContextGo,
 		ancestors: []ast.Node{tree},
 	}
 
@@ -147,147 +141,29 @@ func ParseSource(src []byte, isPackage, shebang bool, ctx ast.Context) (tree *as
 		}
 	}()
 
-	if ctx == ast.ContextGo {
-
-		// Reads the tokens.
-		for tok := range p.lex.tokens {
-			switch tok.typ {
-			case tokenShebangLine:
-				if !shebang {
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
-				}
-				continue
-			default:
-				p.parseStatement(tok)
-			case tokenEOF:
-				if len(p.ancestors) > 1 {
-					switch p.ancestors[1].(type) {
-					case *ast.Package:
-					case *ast.Label:
-						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
-					default:
-						if len(p.ancestors) > 2 {
-							return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
-						}
+	// Reads the tokens.
+	for tok := range p.lex.tokens {
+		switch tok.typ {
+		case tokenShebangLine:
+			if !shebang {
+				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
+			}
+			continue
+		default:
+			p.parseStatement(tok)
+		case tokenEOF:
+			if len(p.ancestors) > 1 {
+				switch p.ancestors[1].(type) {
+				case *ast.Package:
+				case *ast.Label:
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
+				default:
+					if len(p.ancestors) > 2 {
+						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
 					}
 				}
 			}
 		}
-
-	} else {
-
-		// Current line.
-		var line = 0
-
-		// First Text node of the current line.
-		var firstText *ast.Text
-
-		// Number of non-text tokens in current line.
-		var tokensInLine = 0
-
-		// Index of the last byte.
-		var end = len(src) - 1
-
-		// Reads the tokens.
-		for tok := range p.lex.tokens {
-
-			var text *ast.Text
-			if tok.typ == tokenText {
-				text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
-			}
-
-			if line < tok.lin || tok.pos.End == end {
-				if p.cutSpacesToken && tokensInLine == 1 {
-					cutSpaces(firstText, text)
-				}
-				line = tok.lin
-				firstText = text
-				p.cutSpacesToken = false
-				tokensInLine = 0
-			}
-
-			// Parent is always the last ancestor.
-			parent := p.ancestors[len(p.ancestors)-1]
-
-			switch tok.typ {
-
-			// EOF
-			case tokenEOF:
-				if len(p.ancestors) > 1 {
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
-				}
-
-			// Text
-			case tokenText:
-				if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches?
-					if len(s.Cases) == 0 {
-						// TODO (Gianluca): this "if" should be moved before the
-						// switch that precedes it.
-						if containsOnlySpaces(text.Text) {
-							s.LeadingText = text
-						}
-						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
-					}
-					lastCase := s.Cases[len(s.Cases)-1]
-					if lastCase.Fallthrough {
-						if containsOnlySpaces(text.Text) {
-							continue
-						}
-						return nil, nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
-					}
-				}
-				p.addChild(text)
-
-			// StartURL
-			case tokenStartURL:
-				node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
-				p.addChild(node)
-				p.ancestors = append(p.ancestors, node)
-
-			// EndURL
-			case tokenEndURL:
-				pos := p.ancestors[len(p.ancestors)-1].Pos()
-				pos.End = tok.pos.End - 1
-				p.ancestors = p.ancestors[:len(p.ancestors)-1]
-
-			// {%
-			case tokenStartStatement:
-
-				tokensInLine++
-
-				p.parseStatement(tok)
-
-			// {{ }}
-			case tokenStartValue:
-				if p.isExtended && !p.isInMacro {
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
-				}
-				tokensInLine++
-				expr, tok2 := p.parseExpr(token{}, false, false, false, false)
-				if expr == nil {
-					return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
-				}
-				if tok2.typ != tokenEndValue {
-					return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
-				}
-				tok.pos.End = tok2.pos.End
-				var node = ast.NewShow(tok.pos, expr, tok.ctx)
-				p.addChild(node)
-
-			// comment
-			case tokenComment:
-				tokensInLine++
-				var node = ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
-				p.addChild(node)
-				p.cutSpacesToken = true
-
-			default:
-				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
-
-			}
-
-		}
-
 	}
 
 	if p.lex.err != nil {
@@ -295,6 +171,157 @@ func ParseSource(src []byte, isPackage, shebang bool, ctx ast.Context) (tree *as
 	}
 
 	return tree, p.deps.result(), nil
+}
+
+// ParseTemplateSource parses src in the context ctx and returns a tree. Nodes
+// Extends, Import and Include will not be expanded (the field Tree will be
+// nil). To get an expanded tree call the method Parse of a Parser instead.
+func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
+
+	switch ctx {
+	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
+	default:
+		return nil, errors.New("scrigo/parser: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+	}
+
+	// Tree result of the expansion.
+	tree = ast.NewTree("", nil, ctx)
+
+	var p = &parsing{
+		lex:       newLexer(src, ctx),
+		ctx:       ctx,
+		ancestors: []ast.Node{tree},
+	}
+
+	defer func() {
+		p.lex.drain()
+		if r := recover(); r != nil {
+			if e, ok := r.(*SyntaxError); ok {
+				tree = nil
+				err = e
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
+	// Current line.
+	var line = 0
+
+	// First Text node of the current line.
+	var firstText *ast.Text
+
+	// Number of non-text tokens in current line.
+	var tokensInLine = 0
+
+	// Index of the last byte.
+	var end = len(src) - 1
+
+	// Reads the tokens.
+	for tok := range p.lex.tokens {
+
+		var text *ast.Text
+		if tok.typ == tokenText {
+			text = ast.NewText(tok.pos, tok.txt, ast.Cut{})
+		}
+
+		if line < tok.lin || tok.pos.End == end {
+			if p.cutSpacesToken && tokensInLine == 1 {
+				cutSpaces(firstText, text)
+			}
+			line = tok.lin
+			firstText = text
+			p.cutSpacesToken = false
+			tokensInLine = 0
+		}
+
+		// Parent is always the last ancestor.
+		parent := p.ancestors[len(p.ancestors)-1]
+
+		switch tok.typ {
+
+		// EOF
+		case tokenEOF:
+			if len(p.ancestors) > 1 {
+				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
+			}
+
+		// Text
+		case tokenText:
+			if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches?
+				if len(s.Cases) == 0 {
+					// TODO (Gianluca): this "if" should be moved before the
+					// switch that precedes it.
+					if containsOnlySpaces(text.Text) {
+						s.LeadingText = text
+					}
+					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+				}
+				lastCase := s.Cases[len(s.Cases)-1]
+				if lastCase.Fallthrough {
+					if containsOnlySpaces(text.Text) {
+						continue
+					}
+					return nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
+				}
+			}
+			p.addChild(text)
+
+		// StartURL
+		case tokenStartURL:
+			node := ast.NewURL(tok.pos, tok.tag, tok.att, nil)
+			p.addChild(node)
+			p.ancestors = append(p.ancestors, node)
+
+		// EndURL
+		case tokenEndURL:
+			pos := p.ancestors[len(p.ancestors)-1].Pos()
+			pos.End = tok.pos.End - 1
+			p.ancestors = p.ancestors[:len(p.ancestors)-1]
+
+		// {%
+		case tokenStartStatement:
+
+			tokensInLine++
+
+			p.parseStatement(tok)
+
+		// {{ }}
+		case tokenStartValue:
+			if p.isExtended && !p.isInMacro {
+				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
+			}
+			tokensInLine++
+			expr, tok2 := p.parseExpr(token{}, false, false, false, false)
+			if expr == nil {
+				return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
+			}
+			if tok2.typ != tokenEndValue {
+				return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
+			}
+			tok.pos.End = tok2.pos.End
+			var node = ast.NewShow(tok.pos, expr, tok.ctx)
+			p.addChild(node)
+
+		// comment
+		case tokenComment:
+			tokensInLine++
+			var node = ast.NewComment(tok.pos, string(tok.txt[2:len(tok.txt)-2]))
+			p.addChild(node)
+			p.cutSpacesToken = true
+
+		default:
+			return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+
+		}
+
+	}
+
+	if p.lex.err != nil {
+		return nil, p.lex.err
+	}
+
+	return tree, nil
 }
 
 // parseStatement parses a statement. Panics on error.
