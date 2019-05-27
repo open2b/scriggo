@@ -105,11 +105,13 @@ type Context interface {
 
 func (vm *VM) SetContext(ctx Context) {
 	vm.ctx.context = ctx
-	if ctx == nil {
-		vm.done = nil
-	} else {
-		vm.done = ctx.Done()
+	if ctx != nil {
+		if done := ctx.Done(); done != nil {
+			vm.done = done
+			return
+		}
 	}
+	vm.done = nil
 }
 
 func (vm *VM) SetDontPanic(dontPanic bool) {
