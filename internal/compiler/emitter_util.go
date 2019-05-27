@@ -14,8 +14,8 @@ import (
 	"scrigo/vm"
 )
 
-// AddExplicitReturn adds an explicit return statement as last statement to node.
-func AddExplicitReturn(node ast.Node) {
+// addExplicitReturn adds an explicit return statement as last statement to node.
+func addExplicitReturn(node ast.Node) {
 	switch node := node.(type) {
 	case *ast.Func:
 		var pos *ast.Position

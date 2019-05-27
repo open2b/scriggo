@@ -81,7 +81,7 @@ func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfo
 	e.FB = newBuilder(e.CurrentFunction)
 	e.FB.SetAlloc(alloc)
 	e.FB.EnterScope()
-	AddExplicitReturn(tree)
+	addExplicitReturn(tree)
 	e.EmitNodes(tree.Nodes)
 	e.FB.ExitScope()
 	e.FB.End()
@@ -266,7 +266,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				}
 			}
 			e.prepareFunctionBodyParameters(n)
-			AddExplicitReturn(n)
+			addExplicitReturn(n)
 			e.EmitNodes(n.Body.Nodes)
 			e.FB.End()
 			e.FB.ExitScope()
@@ -773,7 +773,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 		e.FB.EnterScope()
 		e.prepareFunctionBodyParameters(expr)
-		AddExplicitReturn(expr)
+		addExplicitReturn(expr)
 		e.EmitNodes(expr.Body.Nodes)
 		e.FB.ExitScope()
 		e.FB = currFb
