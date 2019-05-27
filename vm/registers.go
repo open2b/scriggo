@@ -54,6 +54,12 @@ func (vm *VM) intIndirect(r int8) int64 {
 	if v, ok := v.(*int); ok {
 		return int64(*v)
 	}
+	if v, ok := v.(*bool); ok {
+		if *v {
+			return 1 // true.
+		}
+		return 0 // false.
+	}
 	elem := reflect.ValueOf(v).Elem()
 	if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {
 		return elem.Int()
@@ -71,8 +77,10 @@ func (vm *VM) setInt(r int8, i int64) {
 
 func (vm *VM) setIntIndirect(r int8, i int64) {
 	v := vm.regs.general[vm.fp[3]+uint32(r)]
-	if v, ok := v.(*int); ok {
-		*v = int(i)
+	if vi, ok := v.(*int); ok {
+		*vi = int(i)
+	} else if vb, ok := v.(*bool); ok {
+		*vb = bool(i == 1)
 	} else {
 		elem := reflect.ValueOf(v).Elem()
 		if k := elem.Kind(); reflect.Int <= k && k <= reflect.Int64 {

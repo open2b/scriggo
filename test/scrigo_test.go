@@ -122,6 +122,45 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 
+	{"Issue #113",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var m = map[string]int{"20": 12}
+		var notOk = !ok
+		var doubleValue = value * 2
+		var value, ok = m[k()]
+		
+		func k() string {
+			a := 20
+			return fmt.Sprintf("%d", a)
+		}
+		
+		func main() {
+			fmt.Println(m)
+			fmt.Println(notOk)
+			fmt.Println(doubleValue)
+		}`, nil, nil, "map[20:12]\nfalse\n24\n", nil, 0},
+
+	{"Boolean global variables",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A = true
+		var B = false
+		var C = A
+		
+		func main() {
+			fmt.Print(A, B, C)
+		}
+		`, nil, nil, "true false true", nil, 0},
+
 	{"Double pointer indirection",
 		`package main
 
