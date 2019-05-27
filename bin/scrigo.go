@@ -11,6 +11,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -139,9 +140,24 @@ func main() {
 			}
 		}
 	case ".go":
-		path := "/" + filepath.Base(absFile)
-		r := scrigo.DirReader(filepath.Dir(absFile))
-		program, err := scrigo.Load(path, r, packages, loadOptions)
+		// TODO(Gianluca): use this instead of ioutil.ReadFile(absFile).
+		// reader := scrigo.DirReader(filepath.Dir(absFile))
+		// sources := func(path string) []byte {
+		// 	if path == "/main" {
+		// 		path = "/" + filepath.Base(absFile)
+		// 	}
+		// 	data, err := reader.Read(path)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// 	return data
+		// }
+		main, err := ioutil.ReadFile(absFile)
+		if err != nil {
+			panic(err)
+		}
+		sources := scrigo.MapReader{"/main": main}
+		program, err := scrigo.LoadProgram([]scrigo.PackageImporter{sources, packages}, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)

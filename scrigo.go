@@ -45,17 +45,75 @@ type Program struct {
 	options Option
 }
 
-// Load loads a program.
-func Load(path string, reader Reader, packages map[string]*PredefinedPackage, options Option) (*Program, error) {
-	p := newParser(reader, packages)
-	tree, deps, err := p.parse(path)
+// TODO(Gianluca): add documentation.
+type PackageImporter interface{}
+
+// TODO(Gianluca): proxyReader should be removed, but first the parsing function
+// must call the internal parser.
+type proxyReader struct {
+	readers []Reader
+}
+
+func (cr proxyReader) Read(path string) ([]byte, error) {
+	for _, r := range cr.readers {
+		out, err := r.Read(path)
+		if err != nil {
+			continue
+		} else {
+			return out, nil
+		}
+	}
+	return nil, errors.New("not found")
+}
+
+// LoadProgram loads a program, reading "/main" from packages.
+func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
+
+	predefinedPackages := map[string]*PredefinedPackage{}
+	proxy := proxyReader{}
+
+	mainFound := false
+
+	for _, pi := range packages {
+		switch pi := pi.(type) {
+		case Reader:
+			_, err := pi.Read("/main")
+			if err == nil {
+				mainFound = true
+			}
+			proxy.readers = append(proxy.readers, pi)
+		case map[string]*PredefinedPackage:
+			for k, v := range pi {
+				if k == "/main" {
+					mainFound = true
+				}
+				predefinedPackages[k] = v
+			}
+		case map[string][]byte:
+			if _, ok := pi["/main"]; ok {
+				mainFound = true
+			}
+			proxy.readers = append(proxy.readers, MapReader(pi))
+		case func(path string) []byte:
+			panic("TODO(Gianluca): func(path string) []byte not implemented")
+		default:
+			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
+		}
+	}
+
+	if !mainFound {
+		return nil, errors.New("\"/main\" not found in packages")
+	}
+
+	p := newParser(proxy, predefinedPackages)
+	tree, deps, err := p.parse("/main")
 	if err != nil {
 		return nil, err
 	}
 	opts := &compiler.Options{
 		IsPackage: true,
 	}
-	tci, err := compiler.Typecheck(opts, tree, nil, packages, deps, nil)
+	tci, err := compiler.Typecheck(opts, tree, nil, predefinedPackages, deps, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +125,7 @@ func Load(path string, reader Reader, packages map[string]*PredefinedPackage, op
 	}
 	alloc := options&LimitMemorySize != 0
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), packages, typeInfos, tci[path].IndirectVars, alloc)
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), predefinedPackages, typeInfos, tci["/main"].IndirectVars, alloc)
 	globals := make([]compiler.Global, len(pkgMain.Globals))
 	for i, global := range pkgMain.Globals {
 		globals[i].Pkg = global.Pkg

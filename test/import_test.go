@@ -16,13 +16,13 @@ func TestScrigoImport(t *testing.T) {
 	cases := map[string]scrigo.MapReader{
 
 		`Just package "main", no imports`: scrigo.MapReader(map[string][]byte{
-			"/main.go": []byte(
+			"/main": []byte(
 				`package main
 				func main() {
 				}`)}),
 
 		`"main" importing "pkg"`: scrigo.MapReader(map[string][]byte{
-			"/main.go": []byte(
+			"/main": []byte(
 				`package main
 				import "pkg"
 				func main() {
@@ -35,7 +35,7 @@ func TestScrigoImport(t *testing.T) {
 				}`)}),
 
 		`"main" importing "pkg1" and "pkg2`: scrigo.MapReader(map[string][]byte{
-			"/main.go": []byte(
+			"/main": []byte(
 				`package main
 				import "pkg1"
 				import "pkg2"
@@ -55,7 +55,7 @@ func TestScrigoImport(t *testing.T) {
 				}`)}),
 
 		`"main" importing "pkg1" importing "pkg2" (1)`: scrigo.MapReader(map[string][]byte{
-			"/main.go": []byte(
+			"/main": []byte(
 				`package main
 				import "pkg1"
 				func main() {
@@ -74,7 +74,7 @@ func TestScrigoImport(t *testing.T) {
 				}`)}),
 
 		`"main" importing "pkg1" importing "pkg2" (dot import)`: scrigo.MapReader(map[string][]byte{
-			"/main.go": []byte(
+			"/main": []byte(
 				`package main
 				import . "pkg1"
 				func main() {
@@ -94,7 +94,7 @@ func TestScrigoImport(t *testing.T) {
 	}
 	for name, reader := range cases {
 		t.Run(name, func(t *testing.T) {
-			program, err := scrigo.Load("/main.go", reader, nil, scrigo.LimitMemorySize)
+			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{reader}, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return
