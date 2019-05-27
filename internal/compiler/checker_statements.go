@@ -168,7 +168,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			found := false
 			for i := len(tc.ancestors) - 1; i >= 0; i-- {
 				switch n := tc.ancestors[i].node.(type) {
-				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch:
+				case *ast.For, *ast.ForRange, *ast.Switch, *ast.TypeSwitch, *ast.Select:
 					tc.hasBreak[n] = true
 					found = true
 					break
@@ -312,6 +312,42 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
+
+		case *ast.Select:
+			tc.addScope()
+			tc.addToAncestors(node)
+			// Check the cases.
+			terminating := true
+			var positionOfDefault *ast.Position
+			for _, cas := range node.Cases {
+				switch comm := cas.Comm.(type) {
+				case nil:
+					if positionOfDefault != nil {
+						panic(tc.errorf(cas, "multiple defaults in select (first at %s)", positionOfDefault))
+					}
+					positionOfDefault = cas.Pos()
+				case ast.Expression:
+					_ = tc.checkExpression(comm)
+					if recv, ok := comm.(*ast.UnaryOperator); !ok || recv.Op != ast.OperatorReceive {
+						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
+					}
+				case *ast.Assignment:
+					tc.checkAssignment(comm)
+					if comm.Type != ast.AssignmentSimple && comm.Type != ast.AssignmentDeclaration {
+						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
+					}
+					if recv, ok := comm.Values[0].(*ast.UnaryOperator); !ok || recv.Op != ast.OperatorReceive {
+						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
+					}
+				case *ast.Send:
+					tc.checkNodes([]ast.Node{comm})
+				}
+				tc.CheckNodesInNewScope(cas.Body)
+				terminating = terminating && tc.terminating
+			}
+			tc.removeLastAncestor()
+			tc.removeCurrentScope()
+			tc.terminating = terminating && !tc.hasBreak[node]
 
 		case *ast.Const:
 			tc.checkAssignment(node)

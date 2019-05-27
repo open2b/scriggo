@@ -165,6 +165,17 @@ func Walk(v Visitor, node ast.Node) {
 			Walk(v, child)
 		}
 
+	case *ast.Select:
+		for _, c := range n.Cases {
+			Walk(v, c)
+		}
+
+	case *ast.SelectCase:
+		Walk(v, n.Comm)
+		for _, child := range n.Body {
+			Walk(v, child)
+		}
+
 	case *ast.Show:
 		Walk(v, n.Expr)
 

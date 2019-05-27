@@ -613,6 +613,11 @@ var goContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 75, 74, 76), "nil"),
 				}),
 			}))}, ast.ContextGo)},
+	{"select {}", ast.NewTree("", []ast.Node{
+		ast.NewSelect(p(1, 1, 0, 8), nil, nil)}, ast.ContextGo)},
+	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
+		ast.NewSelect(p(1, 1, 0, 19), nil, []*ast.SelectCase{
+			ast.NewSelectCase(p(2, 2, 10, 17), nil, nil)})}, ast.ContextGo)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
@@ -2068,6 +2073,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return fmt.Errorf("case #%d: %s", i+1, err)
 			}
 		}
+
 	case *ast.Case:
 		nn2, ok := n2.(*ast.Case)
 		if !ok {
@@ -2081,6 +2087,50 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return fmt.Errorf("expressions: %s", err)
 			}
+		}
+		if len(nn1.Body) != len(nn2.Body) {
+			return fmt.Errorf("unexpected Body nodes len %d, expected %d", len(nn1.Body), len(nn2.Body))
+		}
+		for i, expr := range nn1.Body {
+			err := equals(expr, nn2.Body[i], p)
+			if err != nil {
+				return fmt.Errorf("Body: %s", err)
+			}
+		}
+
+	case *ast.Select:
+		nn2, ok := n2.(*ast.Select)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.LeadingText, nn2.LeadingText, p)
+		if err != nil {
+			return err
+		}
+		if nn1.Cases == nil && nn2.Cases != nil {
+			return fmt.Errorf("unexpected nil body, expecting %#v", nn2.Cases)
+		}
+		if nn1.Cases != nil && nn2.Cases == nil {
+			return fmt.Errorf("unexpected body %#v, expecting nil", nn1.Cases)
+		}
+		if len(nn1.Cases) != len(nn2.Cases) {
+			return fmt.Errorf("unexpected body len %d, expecting %d", len(nn1.Cases), len(nn2.Cases))
+		}
+		for i, c := range nn1.Cases {
+			err := equals(c, nn2.Cases[i], p)
+			if err != nil {
+				return fmt.Errorf("case #%d: %s", i+1, err)
+			}
+		}
+
+	case *ast.SelectCase:
+		nn2, ok := n2.(*ast.SelectCase)
+		if !ok {
+			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
+		}
+		err := equals(nn1.Comm, nn2.Comm, p)
+		if err != nil {
+			return err
 		}
 		if len(nn1.Body) != len(nn2.Body) {
 			return fmt.Errorf("unexpected Body nodes len %d, expected %d", len(nn1.Body), len(nn2.Body))

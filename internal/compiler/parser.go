@@ -248,7 +248,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 
 		// Text
 		case tokenText:
-			if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches?
+			if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches and Selects?
 				if len(s.Cases) == 0 {
 					// TODO (Gianluca): this "if" should be moved before the
 					// switch that precedes it.
@@ -354,6 +354,10 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
 		}
 	case *ast.TypeSwitch:
+		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
+		}
+	case *ast.Select:
 		if len(s.Cases) == 0 && tok.typ != tokenCase && tok.typ != tokenDefault && tok.typ != tokenEnd && tok.typ != tokenRightBraces {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting case of default or {%% end %%}", tok.String())})
 		}
@@ -566,32 +570,69 @@ func (p *parsing) parseStatement(tok token) {
 	case tokenCase:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
+			expressions, tok := p.parseExprList(token{}, false, false, false, false)
+			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
+			pos.End = tok.pos.End
+			node := ast.NewCase(pos, expressions, nil, false)
+			p.addChild(node)
+		case *ast.Select:
+			expressions, tok := p.parseExprList(token{}, false, false, false, false)
+			if len(expressions) == 0 {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			}
+			var comm ast.Node
+			if len(expressions) > 1 || isAssignmentToken(tok) {
+				comm, tok = p.parseAssignment(expressions, tok, false, false)
+			} else {
+				if tok.typ == tokenArrow {
+					channel := expressions[0]
+					sendPos := tok.pos
+					var value ast.Expression
+					value, tok = p.parseExpr(token{}, false, false, false, false)
+					if value == nil {
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+					}
+					comm = ast.NewSend(sendPos, channel, value)
+				} else {
+					comm = expressions[0]
+				}
+			}
+			if tok.typ != tokenColon {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
+			pos.End = tok.pos.End
+			node := ast.NewSelectCase(pos, comm, nil)
+			p.addChild(node)
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected case, expecting %%}")})
 		}
-		expressions, tok := p.parseExprList(token{}, false, false, false, false)
-		if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
-		pos.End = tok.pos.End
-		node := ast.NewCase(pos, expressions, nil, false)
-		p.addChild(node)
 
 	// default
 	case tokenDefault:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
+			tok = next(p.lex)
+			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
+			pos.End = tok.pos.End
+			node := ast.NewCase(pos, nil, nil, false)
+			p.addChild(node)
+			p.cutSpacesToken = true
+		case *ast.Select:
+			tok = next(p.lex)
+			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+			}
+			pos.End = tok.pos.End
+			node := ast.NewSelectCase(pos, nil, nil)
+			p.addChild(node)
+			p.cutSpacesToken = true
 		default:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected default, expecting %%}")})
 		}
-		tok = next(p.lex)
-		if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
-		pos.End = tok.pos.End
-		node := ast.NewCase(pos, nil, nil, false)
-		p.addChild(node)
-		p.cutSpacesToken = true
 
 	// fallthrough
 	case tokenFallthrough:
@@ -619,6 +660,18 @@ func (p *parsing) parseStatement(tok token) {
 		pos.End = tok.pos.End
 		p.cutSpacesToken = true
 
+	// select
+	case tokenSelect:
+		tok = next(p.lex)
+		if (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+		}
+		node = ast.NewSelect(pos, nil, nil)
+		p.addChild(node)
+		p.ancestors = append(p.ancestors, node)
+		p.cutSpacesToken = true
+		p.deps.enterScope()
+
 	// {
 	case tokenLeftBraces:
 		if p.ctx != ast.ContextGo {
@@ -643,7 +696,7 @@ func (p *parsing) parseStatement(tok token) {
 			parent = p.ancestors[len(p.ancestors)-1]
 		}
 		switch parent.(type) {
-		case *ast.Block, *ast.If, *ast.For, *ast.ForRange, *ast.TypeSwitch, *ast.Switch:
+		case *ast.Block, *ast.If, *ast.For, *ast.ForRange, *ast.TypeSwitch, *ast.Switch, *ast.Select:
 			p.deps.exitScope()
 		}
 		bracesEnd := tok.pos.End
@@ -1483,6 +1536,14 @@ func (p *parsing) addChild(child ast.Node) {
 		}
 		lastCase := n.Cases[len(n.Cases)-1]
 		lastCase.Body = append(lastCase.Body, child)
+	case *ast.Select:
+		cc, ok := child.(*ast.SelectCase)
+		if ok {
+			n.Cases = append(n.Cases, cc)
+		} else {
+			lastCase := n.Cases[len(n.Cases)-1]
+			lastCase.Body = append(lastCase.Body, child)
+		}
 	case *ast.Label:
 		n.Statement = child
 		n.Pos().End = child.Pos().End

@@ -151,6 +151,32 @@ func CloneNode(node ast.Node) ast.Node {
 			}
 		}
 		return ast.NewCase(ClonePosition(n.Position), expressions, body, n.Fallthrough)
+	case *ast.Select:
+		var text *ast.Text
+		if n.LeadingText != nil {
+			text = CloneNode(n.LeadingText).(*ast.Text)
+		}
+		var cases []*ast.SelectCase
+		if n.Cases != nil {
+			cases = make([]*ast.SelectCase, len(n.Cases))
+			for i, c := range n.Cases {
+				cases[i] = CloneNode(c).(*ast.SelectCase)
+			}
+		}
+		return ast.NewSelect(ClonePosition(n.Position), text, cases)
+	case *ast.SelectCase:
+		var comm ast.Node
+		if n.Comm != nil {
+			comm = CloneNode(n.Comm)
+		}
+		var body []ast.Node
+		if n.Body != nil {
+			body = make([]ast.Node, len(n.Body))
+			for i, node := range n.Body {
+				body[i] = CloneNode(node)
+			}
+		}
+		return ast.NewSelectCase(ClonePosition(n.Position), comm, body)
 	case *ast.Extends:
 		extends := ast.NewExtends(ClonePosition(n.Position), n.Path, n.Context)
 		if n.Tree != nil {

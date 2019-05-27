@@ -900,6 +900,23 @@ var checkerStmts = map[string]string{
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:     `multiple nil cases in type switch (first at 1:50)`,
 
+	// Select statements.
+	`select { }`:          ok,
+	`select { default: }`: ok,
+	`ch := make(chan int); select { case <-ch: }`:                                                      ok,
+	`select { case <- make(chan int): }`:                                                               ok,
+	`select { case a := <- make(chan int): _ = a }`:                                                    ok,
+	`select { case a, ok := <- make(chan int): _, _ = a, ok }`:                                         ok,
+	`var a int; select { case a = <- make(chan int): }; _ = a`:                                         ok,
+	`var a int; var ok bool; select { case a, ok = <- make(chan int): }; _, _ = a, ok`:                 ok,
+	`select { case <- (make(chan int)): }`:                                                             ok,
+	`var ch = make(chan int); select { case ch <- 1: }`:                                                ok,
+	`var ch = make(chan int); select { case ch <- 1: print("sent") }`:                                  ok,
+	`var ch = make(chan int); select { case ch <- 1: print("sent"); case a := <-ch: _ = a; default: }`: ok,
+	`select { default:; default: }`:                                                                    `multiple defaults in select (first at 1:10)`,
+	`select { case true: }`:                                                                            `select case must be receive, send or assign recv`,
+	`ch := make(chan int); var a int; select { case a += <- ch: }`:                                     `select case must be receive, send or assign recv`,
+
 	// Function literals definitions.
 	`_ = func(     )         {                                             }`: ok,
 	`_ = func(     )         { return                                      }`: ok,

@@ -225,6 +225,16 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				}
 			}
 
+		case *ast.Select:
+
+			var err error
+			for _, c := range n.Cases {
+				err = pp.expand(c.Body, ctx)
+				if err != nil {
+					return err
+				}
+			}
+
 		case *ast.Macro:
 
 			err := pp.expand(n.Body, ctx)

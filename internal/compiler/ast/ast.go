@@ -524,6 +524,30 @@ func NewCase(pos *Position, expressions []Expression, body []Node, fallThrough b
 	return &Case{pos, expressions, body, fallThrough}
 }
 
+// Select node represents a statement {% select ... %}.
+type Select struct {
+	*Position
+	LeadingText *Text
+	Cases       []*SelectCase
+}
+
+// NewSelect returns a new Select node.
+func NewSelect(pos *Position, leadingText *Text, cases []*SelectCase) *Select {
+	return &Select{pos, leadingText, cases}
+}
+
+// NewSelectCase represents a statement {% case ... %} in a select.
+type SelectCase struct {
+	*Position
+	Comm Node
+	Body []Node
+}
+
+// NewSelectCase returns a new SelectCase node.
+func NewSelectCase(pos *Position, comm Node, body []Node) *SelectCase {
+	return &SelectCase{pos, comm, body}
+}
+
 // TypeDeclaration node represents a type declaration, that is an alias
 // declaration or a type definition.
 type TypeDeclaration struct {
