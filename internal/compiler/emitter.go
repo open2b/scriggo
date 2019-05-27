@@ -18,7 +18,7 @@ import (
 type Emitter struct {
 	CurrentFunction          *vm.Function
 	TypeInfo                 map[ast.Node]*TypeInfo
-	FB                       *FunctionBuilder
+	FB                       *functionBuilder
 	importablePredefinedPkgs map[string]*PredefinedPackage
 	IndirectVars             map[*ast.Identifier]bool
 
@@ -78,7 +78,7 @@ func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfo
 	e.SetAlloc(alloc)
 	fn := NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	e.CurrentFunction = fn
-	e.FB = NewBuilder(e.CurrentFunction)
+	e.FB = newBuilder(e.CurrentFunction)
 	e.FB.SetAlloc(alloc)
 	e.FB.EnterScope()
 	AddExplicitReturn(tree)
@@ -199,7 +199,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 	// Emits package variables.
 	var initVarsFn *vm.Function
-	var initVarsFb *FunctionBuilder
+	var initVarsFb *functionBuilder
 	packageVariablesRegisters := map[string]int8{}
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
@@ -212,7 +212,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			if initVarsFn == nil {
 				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 				e.availableFunctions[e.currentPackage]["$initvars"] = initVarsFn
-				initVarsFb = NewBuilder(initVarsFn)
+				initVarsFb = newBuilder(initVarsFn)
 				initVarsFb.SetAlloc(e.alloc)
 				initVarsFb.EnterScope()
 			}
@@ -246,7 +246,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				fn = e.availableFunctions[e.currentPackage][n.Ident.Name]
 			}
 			e.CurrentFunction = fn
-			e.FB = NewBuilder(fn)
+			e.FB = newBuilder(fn)
 			e.FB.SetAlloc(e.alloc)
 			e.FB.EnterScope()
 
@@ -764,7 +764,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		fn := e.FB.Func(reg, e.TypeInfo[expr].Type)
 		e.setClosureRefs(fn, expr.Upvars)
 
-		funcLitBuilder := NewBuilder(fn)
+		funcLitBuilder := newBuilder(fn)
 		funcLitBuilder.SetAlloc(e.alloc)
 		currFb := e.FB
 		currFn := e.CurrentFunction
