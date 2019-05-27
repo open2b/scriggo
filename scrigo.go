@@ -185,22 +185,11 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 		return nil, err
 	}
 
-	// Emitting.
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
-	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
-	emitter.SetAlloc(alloc)
-	fn := compiler.NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
-	emitter.CurrentFunction = fn
-	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
-	emitter.FB.SetAlloc(alloc)
-	emitter.FB.EnterScope()
-	compiler.AddExplicitReturn(tree)
-	emitter.EmitNodes(tree.Nodes)
-	emitter.FB.ExitScope()
-	emitter.FB.End()
+	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
 
-	return &Script{fn: emitter.CurrentFunction, options: options}, nil
+	return &Script{fn: mainFn, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.

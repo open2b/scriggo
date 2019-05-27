@@ -65,22 +65,13 @@ func Load(path string, reader scrigo.Reader, main *scrigo.PredefinedPackage, ctx
 
 	alloc := options&LimitMemorySize != 0
 
-	// Emitting.
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variabiles, while builtins contains template builtins.
-	// define something like "emitterBuiltins" in order to avoid converting at every compilation.
-	emitter := compiler.NewEmitter(nil, tci["main"].TypeInfo, tci["main"].IndirectVars)
-	emitter.SetAlloc(alloc)
-	fn := compiler.NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
-	emitter.CurrentFunction = fn
-	emitter.FB = compiler.NewBuilder(emitter.CurrentFunction)
-	emitter.FB.SetAlloc(alloc)
-	emitter.FB.EnterScope()
-	compiler.AddExplicitReturn(tree)
-	emitter.EmitNodes(tree.Nodes)
-	emitter.FB.ExitScope()
+	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
 
-	return &Template{main: main, fn: emitter.CurrentFunction}, nil
+	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
+
+	return &Template{main: main, fn: mainFn}, nil
 }
 
 func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options RenderOptions) error {

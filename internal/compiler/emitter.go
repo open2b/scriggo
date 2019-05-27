@@ -54,31 +54,38 @@ type Emitter struct {
 	alloc bool
 }
 
-// NewEmitter returns a new emitter reading sources from r.
+// newEmitter returns a new emitter reading sources from r.
 // Predefined packages are made available for importing.
-func NewEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
+func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
 	c := &Emitter{
-
-		importablePredefinedPkgs: packages,
-
-		upvarsNames: make(map[*vm.Function]map[string]int),
-
+		importablePredefinedPkgs:     packages,
+		upvarsNames:                  make(map[*vm.Function]map[string]int),
 		availableFunctions:           map[*ast.Package]map[string]*vm.Function{},
 		availablePredefinedFunctions: map[*ast.Package]map[string]*vm.PredefinedFunction{},
-
-		assignedFunctions:           map[*vm.Function]map[*vm.Function]int8{},
-		assignedPredefinedFunctions: map[*vm.Function]map[*vm.PredefinedFunction]int8{},
-
-		isPredefinedPkg: map[string]bool{},
-
-		globalNameIndex: map[*ast.Package]map[string]int16{},
-
-		TypeInfo:     typeInfos,
-		IndirectVars: indirectVars,
-
-		labels: make(map[*vm.Function]map[string]uint32),
+		assignedFunctions:            map[*vm.Function]map[*vm.Function]int8{},
+		assignedPredefinedFunctions:  map[*vm.Function]map[*vm.PredefinedFunction]int8{},
+		isPredefinedPkg:              map[string]bool{},
+		globalNameIndex:              map[*ast.Package]map[string]int16{},
+		TypeInfo:                     typeInfos,
+		IndirectVars:                 indirectVars,
+		labels:                       make(map[*vm.Function]map[string]uint32),
 	}
 	return c
+}
+
+func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+	e := newEmitter(packages, typeInfos, indirectVars)
+	e.SetAlloc(alloc)
+	fn := NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
+	e.CurrentFunction = fn
+	e.FB = NewBuilder(e.CurrentFunction)
+	e.FB.SetAlloc(alloc)
+	e.FB.EnterScope()
+	AddExplicitReturn(tree)
+	e.EmitNodes(tree.Nodes)
+	e.FB.ExitScope()
+	e.FB.End()
+	return e.CurrentFunction
 }
 
 func (e *Emitter) SetAlloc(alloc bool) {
@@ -103,7 +110,7 @@ type Package struct {
 
 // EmitPackageMain emits package main.
 func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
-	e := NewEmitter(packages, typeInfos, indirectVars)
+	e := newEmitter(packages, typeInfos, indirectVars)
 	e.SetAlloc(alloc)
 	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableFunctions[pkgMain]["main"]
