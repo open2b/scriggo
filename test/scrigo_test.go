@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 
+	{"Binary operation on global expression",
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A = true
+		var B = false
+		var OR = A || B
+		
+		func main() {
+			fmt.Print(A, B, OR)
+		}`, nil, nil, "true false true", nil, 0},
+
 	{"Issue #113",
 		`package main
 

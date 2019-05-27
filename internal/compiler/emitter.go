@@ -289,6 +289,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		e.FB = backupFb
 		initVarsFb.ExitScope()
 		initVarsFb.Return()
+		initVarsFb.End()
 	}
 
 	// All functions share Globals.
