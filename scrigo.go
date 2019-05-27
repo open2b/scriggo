@@ -9,11 +9,9 @@ package scrigo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"reflect"
-	"strings"
 
 	"scrigo/internal/compiler"
 	"scrigo/internal/compiler/ast"
@@ -51,11 +49,18 @@ type PackageImporter interface{}
 // LoadProgram loads a program, reading "/main" from packages.
 func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 
-	p := newParser(packages)
-	tree, deps, predefinedPackages, err := p.parse("/main")
+	// Converts []PackageImporter in []compiler.PackageImporter.
+	// Type alias is not reccomended as it would make documentation unclear.
+	compilerPkgs := make([]compiler.PackageImporter, len(packages))
+	for i := range packages {
+		compilerPkgs[i] = packages[i]
+	}
+
+	tree, deps, predefinedPackages, err := compiler.ParseProgram(compilerPkgs)
 	if err != nil {
 		return nil, err
 	}
+
 	opts := &compiler.Options{
 		IsPackage: true,
 	}
@@ -246,262 +251,4 @@ func (s *Script) Run(vars map[string]interface{}, options RunOptions) error {
 // Disassemble disassembles a script.
 func (s *Script) Disassemble(w io.Writer) (int64, error) {
 	return compiler.DisassembleFunction(w, s.fn)
-}
-
-// parser implements a parser that reads the tree from a Reader and expands
-// the nodes Extends, Import and Include. The trees are compiler.Cached so only one
-// call per combination of path and context is made to the reader even if
-// several goroutines parse the same paths at the same time.
-//
-// Returned trees can only be transformed if the parser is no longer used,
-// because it would be the compiler.Cached trees to be transformed and a data race can
-// occur. In case, use the function Clone in the astutil package to create a
-// clone of the tree and then transform the clone.
-type parser struct {
-	trees *compiler.Cache
-	// TODO (Gianluca): does packageInfos need synchronized access?
-	packageInfos map[string]*compiler.PackageInfo // key is path.
-	typeCheck    bool
-	packages     []PackageImporter
-}
-
-// newParser returns a new parser that reads the trees from the reader r. typeCheck
-// indicates if a type-checking must be done after parsing.
-func newParser(packages []PackageImporter) *parser {
-	p := &parser{
-		trees:    &compiler.Cache{},
-		packages: packages,
-	}
-	return p
-}
-
-// parse reads the source at path, with the reader, in the ctx context,
-// expands the nodes Extends, Import and Include and returns the expanded tree.
-//
-// parse is safe for concurrent use.
-func (p *parser) parse(path string) (*ast.Tree, compiler.GlobalsDependencies, map[string]*PredefinedPackage, error) {
-
-	// Path must be absolute.
-	if path == "" {
-		return nil, nil, nil, compiler.ErrInvalidPath
-	}
-	if path[0] == '/' {
-		path = path[1:]
-	}
-	// Cleans the path by removing "..".
-	path, err := compiler.ToAbsolutePath("/", path)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	pp := &expansion{
-		trees:          p.trees,
-		packages:       p.packages,
-		predefinedPkgs: map[string]*PredefinedPackage{},
-		paths:          []string{},
-	}
-
-	tree, deps, err := pp.parsePath(path)
-	if err != nil {
-		if err2, ok := err.(*compiler.SyntaxError); ok && err2.Path == "" {
-			err2.Path = path
-		} else if err2, ok := err.(compiler.CycleError); ok {
-			err = compiler.CycleError(path + "\n\t" + string(err2))
-		}
-		return nil, nil, nil, err
-	}
-	if len(tree.Nodes) == 0 {
-		return nil, nil, nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
-	}
-
-	return tree, deps, pp.predefinedPkgs, nil
-}
-
-// TypeCheckInfos returns the type-checking infos collected during
-// type-checking.
-func (p *parser) typeCheckInfos() map[string]*compiler.PackageInfo {
-	return p.packageInfos
-}
-
-// expansion is an expansion state.
-type expansion struct {
-	// reader compiler.Reader
-	trees *compiler.Cache
-	// packages map[string]*PredefinedPackage
-	packages       []PackageImporter
-	predefinedPkgs map[string]*PredefinedPackage
-	paths          []string
-}
-
-// abs returns path as absolute.
-func (pp *expansion) abs(path string) (string, error) {
-	var err error
-	if path[0] == '/' {
-		path, err = compiler.ToAbsolutePath("/", path[1:])
-	} else {
-		parent := pp.paths[len(pp.paths)-1]
-		dir := parent[:strings.LastIndex(parent, "/")+1]
-		path, err = compiler.ToAbsolutePath(dir, path)
-	}
-	return path, err
-}
-
-// parsePath parses the source at path in context ctx. path must be absolute
-// and cleared.
-func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependencies, error) {
-
-	// Checks if there is a cycle.
-	for _, p := range pp.paths {
-		if p == path {
-			return nil, nil, compiler.CycleError(path)
-		}
-	}
-
-	// Checks if it has already been parsed.
-	if tree, ok := pp.trees.Get(path, ast.ContextGo); ok {
-		return tree, nil, nil
-	}
-	defer pp.trees.Done(path, ast.ContextGo)
-
-	src, ok := lookupSource(pp.packages, path)
-	if !ok {
-		panic("not found")
-	}
-
-	tree, deps, err := compiler.ParseSource(src, true, false)
-	if err != nil {
-		return nil, nil, err
-	}
-	tree.Path = path
-
-	// Expands the nodes.
-	pp.paths = append(pp.paths, path)
-	expandedDeps, err := pp.expand(tree.Nodes)
-	if err != nil {
-		if e, ok := err.(*compiler.SyntaxError); ok && e.Path == "" {
-			e.Path = path
-		}
-		return nil, nil, err
-	}
-	for k, v := range expandedDeps {
-		deps[k] = v
-	}
-	pp.paths = pp.paths[:len(pp.paths)-1]
-
-	// Adds the tree to the compiler.Cache.
-	pp.trees.Add(path, ast.ContextGo, tree)
-
-	return tree, deps, nil
-}
-
-// expand expands the nodes parsing the sub-trees in context ctx.
-func (pp *expansion) expand(nodes []ast.Node) (compiler.GlobalsDependencies, error) {
-
-	allDeps := compiler.GlobalsDependencies{}
-
-	for _, node := range nodes {
-
-		switch n := node.(type) {
-
-		case *ast.Package:
-
-			deps, err := pp.expand(n.Declarations)
-			if err != nil {
-				return nil, err
-			}
-			for k, v := range deps {
-				allDeps[k] = v
-			}
-
-		case *ast.Import:
-
-			absPath, err := pp.abs(n.Path)
-			if err != nil {
-				return nil, err
-			}
-
-			pkg, foundPredef := lookupPredefined(pp.packages, n.Path)
-			if foundPredef {
-				pp.predefinedPkgs[n.Path] = pkg
-				continue
-			}
-			if _, foundSrc := lookupSource(pp.packages, n.Path); foundSrc || foundPredef {
-				continue
-			}
-
-			var deps compiler.GlobalsDependencies
-			n.Tree, deps, err = pp.parsePath(absPath + ".go")
-			if err != nil {
-				if err == compiler.ErrInvalidPath {
-					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
-				} else if err == compiler.ErrNotExist {
-					err = &compiler.SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package \"%s\"", n.Path)}
-				} else if err2, ok := err.(compiler.CycleError); ok {
-					err = compiler.CycleError("imports " + string(err2))
-				}
-				return nil, err
-			}
-			for k, v := range deps {
-				allDeps[k] = v
-			}
-
-		}
-
-	}
-
-	return allDeps, nil
-}
-
-// lookupSource searches for a source located at path in packages.
-func lookupSource(packages []PackageImporter, path string) ([]byte, bool) {
-	for _, pi := range packages {
-		switch pi := pi.(type) {
-		case Reader:
-			data, err := pi.Read(path)
-			if err == nil {
-				return data, true
-			}
-		case map[string][]byte:
-			if data, ok := pi[path]; ok {
-				return data, true
-			}
-		case func(path string) ([]byte, bool):
-			data, ok := pi(path)
-			if ok {
-				return data, true
-			}
-		case map[string]*PredefinedPackage:
-			// Nothing to do.
-		case func(path string) (*PredefinedPackage, bool):
-			// Nothing to do.
-		default:
-			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
-		}
-	}
-	return nil, false
-}
-
-// lookupPredefined searches for a predefined package located at path in packages.
-func lookupPredefined(packages []PackageImporter, path string) (*PredefinedPackage, bool) {
-	for _, pi := range packages {
-		switch pi := pi.(type) {
-		case func(path string) (*PredefinedPackage, bool):
-			pkg, ok := pi(path)
-			if ok {
-				return pkg, true
-			}
-		case map[string]*PredefinedPackage:
-			pkg, ok := pi[path]
-			if ok {
-				return pkg, true
-			}
-		case Reader:
-			// Nothing to do.
-		case map[string][]byte:
-			// Nothing to do.
-		default:
-			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
-		}
-	}
-	return nil, false
 }
