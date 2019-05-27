@@ -114,6 +114,27 @@ func CloneNode(node ast.Node) ast.Node {
 			}
 		}
 		return ast.NewSwitch(ClonePosition(n.Position), init, CloneExpression(n.Expr), text, cases)
+	case *ast.TypeSwitch:
+		var init ast.Node
+		if n.Init != nil {
+			init = CloneNode(n.Init)
+		}
+		var assignment *ast.Assignment
+		if n.Assignment != nil {
+			assignment = CloneNode(n.Assignment).(*ast.Assignment)
+		}
+		var text *ast.Text
+		if n.LeadingText != nil {
+			text = CloneNode(n.LeadingText).(*ast.Text)
+		}
+		var cases []*ast.Case
+		if n.Cases != nil {
+			cases = make([]*ast.Case, len(n.Cases))
+			for i, c := range n.Cases {
+				cases[i] = CloneNode(c).(*ast.Case)
+			}
+		}
+		return ast.NewTypeSwitch(ClonePosition(n.Position), init, assignment, text, cases)
 	case *ast.Case:
 		var expressions []ast.Expression
 		if n.Expressions != nil {
