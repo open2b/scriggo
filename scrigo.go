@@ -48,65 +48,11 @@ type Program struct {
 // TODO(Gianluca): add documentation.
 type PackageImporter interface{}
 
-// TODO(Gianluca): proxyReader should be removed, but first the parsing function
-// must call the internal parser.
-type proxyReader struct {
-	readers []Reader
-}
-
-func (cr proxyReader) Read(path string) ([]byte, error) {
-	for _, r := range cr.readers {
-		out, err := r.Read(path)
-		if err != nil {
-			continue
-		} else {
-			return out, nil
-		}
-	}
-	return nil, errors.New("not found")
-}
-
 // LoadProgram loads a program, reading "/main" from packages.
 func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 
-	predefinedPackages := map[string]*PredefinedPackage{}
-	proxy := proxyReader{}
-
-	mainFound := false
-
-	for _, pi := range packages {
-		switch pi := pi.(type) {
-		case Reader:
-			_, err := pi.Read("/main")
-			if err == nil {
-				mainFound = true
-			}
-			proxy.readers = append(proxy.readers, pi)
-		case map[string]*PredefinedPackage:
-			for k, v := range pi {
-				if k == "/main" {
-					mainFound = true
-				}
-				predefinedPackages[k] = v
-			}
-		case map[string][]byte:
-			if _, ok := pi["/main"]; ok {
-				mainFound = true
-			}
-			proxy.readers = append(proxy.readers, MapReader(pi))
-		case func(path string) []byte:
-			panic("TODO(Gianluca): func(path string) []byte not implemented")
-		default:
-			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
-		}
-	}
-
-	if !mainFound {
-		return nil, errors.New("\"/main\" not found in packages")
-	}
-
-	p := newParser(proxy, predefinedPackages)
-	tree, deps, err := p.parse("/main")
+	p := newParser(packages)
+	tree, deps, predefinedPackages, err := p.parse("/main")
 	if err != nil {
 		return nil, err
 	}
@@ -312,21 +258,19 @@ func (s *Script) Disassemble(w io.Writer) (int64, error) {
 // occur. In case, use the function Clone in the astutil package to create a
 // clone of the tree and then transform the clone.
 type parser struct {
-	reader   compiler.Reader
-	packages map[string]*PredefinedPackage
-	trees    *compiler.Cache
+	trees *compiler.Cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
 	packageInfos map[string]*compiler.PackageInfo // key is path.
 	typeCheck    bool
+	packages     []PackageImporter
 }
 
 // newParser returns a new parser that reads the trees from the reader r. typeCheck
 // indicates if a type-checking must be done after parsing.
-func newParser(r compiler.Reader, packages map[string]*PredefinedPackage) *parser {
+func newParser(packages []PackageImporter) *parser {
 	p := &parser{
-		reader:   r,
-		packages: packages,
 		trees:    &compiler.Cache{},
+		packages: packages,
 	}
 	return p
 }
@@ -335,11 +279,11 @@ func newParser(r compiler.Reader, packages map[string]*PredefinedPackage) *parse
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // parse is safe for concurrent use.
-func (p *parser) parse(path string) (*ast.Tree, compiler.GlobalsDependencies, error) {
+func (p *parser) parse(path string) (*ast.Tree, compiler.GlobalsDependencies, map[string]*PredefinedPackage, error) {
 
 	// Path must be absolute.
 	if path == "" {
-		return nil, nil, compiler.ErrInvalidPath
+		return nil, nil, nil, compiler.ErrInvalidPath
 	}
 	if path[0] == '/' {
 		path = path[1:]
@@ -347,10 +291,15 @@ func (p *parser) parse(path string) (*ast.Tree, compiler.GlobalsDependencies, er
 	// Cleans the path by removing "..".
 	path, err := compiler.ToAbsolutePath("/", path)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	pp := &expansion{p.reader, p.trees, p.packages, []string{}}
+	pp := &expansion{
+		trees:          p.trees,
+		packages:       p.packages,
+		predefinedPkgs: map[string]*PredefinedPackage{},
+		paths:          []string{},
+	}
 
 	tree, deps, err := pp.parsePath(path)
 	if err != nil {
@@ -359,13 +308,13 @@ func (p *parser) parse(path string) (*ast.Tree, compiler.GlobalsDependencies, er
 		} else if err2, ok := err.(compiler.CycleError); ok {
 			err = compiler.CycleError(path + "\n\t" + string(err2))
 		}
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if len(tree.Nodes) == 0 {
-		return nil, nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
+		return nil, nil, nil, &compiler.SyntaxError{"", ast.Position{1, 1, 0, 0}, fmt.Errorf("expected 'package' or script, found 'EOF'")}
 	}
 
-	return tree, deps, nil
+	return tree, deps, pp.predefinedPkgs, nil
 }
 
 // TypeCheckInfos returns the type-checking infos collected during
@@ -376,10 +325,12 @@ func (p *parser) typeCheckInfos() map[string]*compiler.PackageInfo {
 
 // expansion is an expansion state.
 type expansion struct {
-	reader   compiler.Reader
-	trees    *compiler.Cache
-	packages map[string]*PredefinedPackage
-	paths    []string
+	// reader compiler.Reader
+	trees *compiler.Cache
+	// packages map[string]*PredefinedPackage
+	packages       []PackageImporter
+	predefinedPkgs map[string]*PredefinedPackage
+	paths          []string
 }
 
 // abs returns path as absolute.
@@ -412,9 +363,9 @@ func (pp *expansion) parsePath(path string) (*ast.Tree, compiler.GlobalsDependen
 	}
 	defer pp.trees.Done(path, ast.ContextGo)
 
-	src, err := pp.reader.Read(path)
-	if err != nil {
-		return nil, nil, err
+	src, ok := lookupSource(pp.packages, path)
+	if !ok {
+		panic("not found")
 	}
 
 	tree, deps, err := compiler.ParseSource(src, true, false)
@@ -468,16 +419,16 @@ func (pp *expansion) expand(nodes []ast.Node) (compiler.GlobalsDependencies, err
 			if err != nil {
 				return nil, err
 			}
-			found := false
-			for path := range pp.packages {
-				if path == n.Path {
-					found = true
-					break
-				}
-			}
-			if found {
+
+			pkg, foundPredef := lookupPredefined(pp.packages, n.Path)
+			if foundPredef {
+				pp.predefinedPkgs[n.Path] = pkg
 				continue
 			}
+			if _, foundSrc := lookupSource(pp.packages, n.Path); foundSrc || foundPredef {
+				continue
+			}
+
 			var deps compiler.GlobalsDependencies
 			n.Tree, deps, err = pp.parsePath(absPath + ".go")
 			if err != nil {
@@ -499,4 +450,58 @@ func (pp *expansion) expand(nodes []ast.Node) (compiler.GlobalsDependencies, err
 	}
 
 	return allDeps, nil
+}
+
+// lookupSource searches for a source located at path in packages.
+func lookupSource(packages []PackageImporter, path string) ([]byte, bool) {
+	for _, pi := range packages {
+		switch pi := pi.(type) {
+		case Reader:
+			data, err := pi.Read(path)
+			if err == nil {
+				return data, true
+			}
+		case map[string][]byte:
+			if data, ok := pi[path]; ok {
+				return data, true
+			}
+		case func(path string) ([]byte, bool):
+			data, ok := pi(path)
+			if ok {
+				return data, true
+			}
+		case map[string]*PredefinedPackage:
+			// Nothing to do.
+		case func(path string) (*PredefinedPackage, bool):
+			// Nothing to do.
+		default:
+			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
+		}
+	}
+	return nil, false
+}
+
+// lookupPredefined searches for a predefined package located at path in packages.
+func lookupPredefined(packages []PackageImporter, path string) (*PredefinedPackage, bool) {
+	for _, pi := range packages {
+		switch pi := pi.(type) {
+		case func(path string) (*PredefinedPackage, bool):
+			pkg, ok := pi(path)
+			if ok {
+				return pkg, true
+			}
+		case map[string]*PredefinedPackage:
+			pkg, ok := pi[path]
+			if ok {
+				return pkg, true
+			}
+		case Reader:
+			// Nothing to do.
+		case map[string][]byte:
+			// Nothing to do.
+		default:
+			panic(fmt.Sprintf("unsupported type %T", pi)) // TODO(Gianluca): to review.
+		}
+	}
+	return nil, false
 }
