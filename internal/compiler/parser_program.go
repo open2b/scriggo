@@ -18,7 +18,7 @@ type PackageImporter interface{}
 // ParseProgram parses a program reading its sources from packages.
 func ParseProgram(packages []PackageImporter) (*ast.Tree, GlobalsDependencies, map[string]*PredefinedPackage, error) {
 	p := &programParser{
-		trees:    &Cache{},
+		trees:    &cache{},
 		packages: packages,
 	}
 	tree, deps, predefinedPackages, err := p.parse("/main")
@@ -38,7 +38,7 @@ func ParseProgram(packages []PackageImporter) (*ast.Tree, GlobalsDependencies, m
 // occur. In case, use the function Clone in the astutil package to create a
 // clone of the tree and then transform the clone.
 type programParser struct {
-	trees *Cache
+	trees *cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
 	packageInfos map[string]*PackageInfo // key is path.
 	typeCheck    bool
@@ -96,7 +96,7 @@ func (p *programParser) typeCheckInfos() map[string]*PackageInfo {
 // programExpansion is an programExpansion state.
 type programExpansion struct {
 	// reader Reader
-	trees *Cache
+	trees *cache
 	// packages map[string]*PredefinedPackage
 	packages       []PackageImporter
 	predefinedPkgs map[string]*PredefinedPackage

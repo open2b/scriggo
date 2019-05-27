@@ -16,7 +16,7 @@ import (
 func ParseTemplate(path string, reader Reader, main *PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
 	p := &templateParser{
 		reader:       reader,
-		trees:        &Cache{},
+		trees:        &cache{},
 		packageInfos: make(map[string]*PackageInfo),
 	}
 
@@ -48,7 +48,7 @@ func convertError(err error) error {
 // clone of the tree and then transform the clone.
 type templateParser struct {
 	reader Reader
-	trees  *Cache
+	trees  *cache
 	// TODO (Gianluca): does packageInfos need synchronized access?
 
 	// TODO(Gianluca): deprecated, remove.
@@ -96,7 +96,7 @@ func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Con
 // templateExpansion is a template expansion state.
 type templateExpansion struct {
 	reader   Reader
-	trees    *Cache
+	trees    *cache
 	packages map[string]*PredefinedPackage
 	paths    []string
 }

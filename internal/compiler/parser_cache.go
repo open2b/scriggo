@@ -12,8 +12,8 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-// Cache implements a trees cache used by the parser.
-type Cache struct {
+// cache implements a trees cache used by the parser.
+type cache struct {
 	trees map[treeCacheEntry]*ast.Tree
 	waits map[treeCacheEntry]*sync.WaitGroup
 	sync.Mutex
@@ -29,7 +29,7 @@ type treeCacheEntry struct {
 //
 // If the tree does not exist it returns false and in this
 // case a call to Done must be made.
-func (c *Cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
+func (c *cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
 	entry := treeCacheEntry{path, ctx}
 	c.Lock()
 	t, ok := c.trees[entry]
@@ -55,7 +55,7 @@ func (c *Cache) Get(path string, ctx ast.Context) (*ast.Tree, bool) {
 // Add adds a tree to the cache.
 //
 // Can be called only after a previous call to Get has returned false.
-func (c *Cache) Add(path string, ctx ast.Context, tree *ast.Tree) {
+func (c *cache) Add(path string, ctx ast.Context, tree *ast.Tree) {
 	entry := treeCacheEntry{path, ctx}
 	c.Lock()
 	if c.trees == nil {
@@ -69,7 +69,7 @@ func (c *Cache) Add(path string, ctx ast.Context, tree *ast.Tree) {
 
 // Done must be called only and only if a previous call to Get has returned
 // false.
-func (c *Cache) Done(path string, ctx ast.Context) {
+func (c *cache) Done(path string, ctx ast.Context) {
 	entry := treeCacheEntry{path, ctx}
 	c.Lock()
 	c.waits[entry].Done()

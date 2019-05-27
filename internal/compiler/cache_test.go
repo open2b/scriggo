@@ -19,7 +19,7 @@ func TestCache(t *testing.T) {
 	tree := ast.NewTree(path, nil, ast.ContextHTML)
 	ctx := ast.ContextHTML
 
-	c := Cache{}
+	c := cache{}
 
 	// tests one goroutine
 
@@ -54,7 +54,7 @@ b: add ok
 a: get ok
 `
 
-	c = Cache{}
+	c = cache{}
 	steps := make(chan string, 10)
 	go func() {
 		c.Get(path, ctx)
