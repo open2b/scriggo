@@ -81,6 +81,7 @@ func (vm *VM) Reset() {
 	vm.st[2] = uint32(len(vm.regs.string))
 	vm.st[3] = uint32(len(vm.regs.general))
 	vm.pc = 0
+	vm.ok = false
 	vm.fn = nil
 	vm.vars = nil
 	vm.ctx = &context{}
