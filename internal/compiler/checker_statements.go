@@ -200,11 +200,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Switch:
 			tc.addScope()
 			tc.addToAncestors(node)
-			// Check the assignment.
+			// Checks the init.
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			// Check the expression.
+			// Checks the expression.
 			typ := boolType
 			var ti *TypeInfo
 			if node.Expr != nil {
@@ -214,7 +214,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				typ = ti.Type
 			}
-			// Check the cases.
+			// Checks the cases.
 			terminating := true
 			hasFallthrough := false
 			positionOf := map[interface{}]*ast.Position{}
@@ -273,6 +273,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			t := tc.checkExpression(ta.Expr)
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
+			}
+			if len(node.Assignment.Variables) == 1 {
+				n := ast.NewAssignment(
+					node.Assignment.Pos(),
+					[]ast.Expression{node.Assignment.Variables[0]},
+					node.Assignment.Type,
+					[]ast.Expression{ta.Expr},
+				)
+				tc.checkAssignment(n)
 			}
 			var positionOfDefault *ast.Position
 			var positionOfNil *ast.Position

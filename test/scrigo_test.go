@@ -121,7 +121,22 @@ var stmtTests = []struct {
 	err          interface{} // error.
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "Issue #57",
+		src: `package main
 
+		import "fmt"
+		
+		func main() {
+			v := interface{}(3)
+			switch u := v.(type) {
+			default:
+				fmt.Println(u)
+			}
+		}
+		`,
+		output: "3\n",
+	},
 	{
 		name: "Builtin append - single element",
 		src: `package main

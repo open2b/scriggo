@@ -1493,6 +1493,16 @@ func (e *Emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	expr := e.FB.NewRegister(typ.Kind())
 	e.emitExpr(typAss.Expr, expr, typ)
 
+	if len(node.Assignment.Variables) == 1 {
+		n := ast.NewAssignment(
+			node.Assignment.Pos(),
+			[]ast.Expression{node.Assignment.Variables[0]},
+			node.Assignment.Type,
+			[]ast.Expression{typAss.Expr},
+		)
+		e.EmitNodes([]ast.Node{n})
+	}
+
 	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
 	// typReg := e.FB.Type(typ)
 	// if variab := node.Assignment.Globals[0]; !isBlankast.Identifier(variab) {
