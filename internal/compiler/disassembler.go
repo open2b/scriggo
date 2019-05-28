@@ -507,8 +507,8 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
-		s += " " + disassembleOperand(fn, a, reflectToRegisterKind(typ.Kind()), k)
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), k)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpWrite:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	}
