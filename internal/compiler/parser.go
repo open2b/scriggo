@@ -1395,9 +1395,13 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 		}
+	case tokenEndStatement:
+		// TODO(Gianluca): support constant declaration with implicit value.
+		// const c
+		// const c, d
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting value")})
 	default:
-		// var/const  a
-		// var/const  a, b
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 	}
 	// Searches the maximum end position.
 	var exprPosEnd, identPosEnd, typEndPos int

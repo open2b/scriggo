@@ -99,18 +99,6 @@ var goContextTreeTests = []struct {
 								{nil, ast.NewInt(p(1, 29, 28, 28), big.NewInt(3))},
 							})}), nil)},
 			ast.ContextGo)},
-	{"var a",
-		ast.NewTree("", []ast.Node{
-			ast.NewVar(
-				p(1, 1, 0, 4),
-				[]*ast.Identifier{
-					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
-				},
-				nil,
-				nil,
-			),
-		}, ast.ContextGo),
-	},
 	{"var a int",
 		ast.NewTree("", []ast.Node{
 			ast.NewVar(
@@ -119,19 +107,6 @@ var goContextTreeTests = []struct {
 					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
 				},
 				ast.NewIdentifier(p(1, 7, 6, 8), "int"),
-				nil,
-			),
-		}, ast.ContextGo),
-	},
-	{"var a, b",
-		ast.NewTree("", []ast.Node{
-			ast.NewVar(
-				p(1, 1, 0, 7),
-				[]*ast.Identifier{
-					ast.NewIdentifier(p(1, 5, 4, 4), "a"),
-					ast.NewIdentifier(p(1, 8, 7, 7), "b"),
-				},
-				nil,
 				nil,
 			),
 		}, ast.ContextGo),
