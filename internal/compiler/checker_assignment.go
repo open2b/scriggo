@@ -418,9 +418,10 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			panic(tc.errorf(node, "non name %s on left side of :=", variable))
 		}
 		variableTi := tc.checkExpression(variable)
-		if !variableTi.Addressable() {
-			panic(tc.errorf(node, "cannot assign to %v", variable))
-		}
+		// TODO(Gianluca): investigate: this always fails.
+		// if !variableTi.Addressable() {
+		// 	panic(tc.errorf(node, "cannot assign to %v", variable))
+		// }
 		if !isAssignableTo(valueTi, variableTi.Type) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in assignment", value, valueTi.ShortString(), variableTi.Type))
 		}

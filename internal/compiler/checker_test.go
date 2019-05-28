@@ -640,6 +640,7 @@ var checkerStmts = map[string]string{
 	`v := 1; v := 2`:                                                noNewVariables,
 	`v := 1; v = 2; _ = v`:                                          ok,
 	`v1 := 0; v2 := 1; v3 := v2 + v1; _ = v3`:                       ok,
+	`p := pointInt{}; p.X = 10`:                                     ok,
 	`a := 0; *a = 1`:                                                `invalid indirect of a (type int)`,
 	`a := 0; b := &a; b[0] = 2`:                                     `invalid operation: b[0] (type *int does not support indexing)`,
 	`a := 1; a, a = 1, 2`:                                           declaredNotUsed("a"),
