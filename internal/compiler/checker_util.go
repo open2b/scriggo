@@ -271,9 +271,9 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 					t.Value = f1.Mul(f1, f2)
 				}
 			case *big.Float:
-				t.Value = newFloat().Sub(v1.(*big.Float), v2)
+				t.Value = newFloat().Mul(v1.(*big.Float), v2)
 			case *big.Rat:
-				t.Value = newRat().Sub(v1.(*big.Rat), v2)
+				t.Value = newRat().Mul(v1.(*big.Rat), v2)
 			}
 		case ast.OperatorDivision:
 			switch v2 := v2.(type) {
