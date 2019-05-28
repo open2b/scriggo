@@ -973,7 +973,34 @@ func (e *Emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
-		panic("TODO: not implemented")
+		sliceType := e.TypeInfo[call.Args[0]].Type
+		sliceReg := e.FB.NewRegister(sliceType.Kind())
+		e.emitExpr(call.Args[0], sliceReg, sliceType)
+		tmpSliceReg := e.FB.NewRegister(sliceType.Kind())
+		// TODO(Gianluca): moving to a different register is not always
+		// necessary. For instance, in case of `s = append(s, t)` moving can
+		// be avoided.
+		// TODO(Gianluca): in case of append(s, e1, e2, e3) use the length
+		// parameter of Append.
+		e.FB.Move(false, sliceReg, tmpSliceReg, sliceType.Kind())
+		if call.IsVariadic {
+			argType := e.TypeInfo[call.Args[1]].Type
+			argReg := e.FB.NewRegister(argType.Kind())
+			e.emitExpr(call.Args[1], argReg, sliceType)
+			e.FB.AppendSlice(argReg, tmpSliceReg)
+			e.changeRegister(false, tmpSliceReg, reg, sliceType, dstType)
+		} else {
+			for i := range call.Args {
+				if i == 0 {
+					continue
+				}
+				argType := e.TypeInfo[call.Args[i]].Type
+				argReg := e.FB.NewRegister(argType.Kind())
+				e.emitExpr(call.Args[i], argReg, sliceType)
+				e.FB.Append(argReg, 1, tmpSliceReg)
+			}
+			e.changeRegister(false, tmpSliceReg, reg, sliceType, dstType)
+		}
 	case "cap":
 		typ := e.TypeInfo[call.Args[0]].Type
 		s := e.FB.NewRegister(typ.Kind())
