@@ -11,9 +11,10 @@ import (
 )
 
 type Options struct {
-	AllowImports bool
-	NotUsedError bool
-	IsPackage    bool
+	AllowImports   bool
+	NotUsedError   bool
+	IsPackage      bool
+	DisallowGoStmt bool
 }
 
 func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports map[string]*PredefinedPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
@@ -38,7 +39,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 			}
 		}
 	}()
-	tc := NewTypechecker(tree.Path, true)
+	tc := NewTypechecker(tree.Path, true, opts.DisallowGoStmt)
 	tc.Universe = Universe
 	if customBuiltins != nil {
 		tc.Scopes = append(tc.Scopes, customBuiltins)
@@ -48,7 +49,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 	}
 	if opts.IsPackage {
 		pkgInfos := map[string]*PackageInfo{}
-		err := CheckPackage(tree, deps, imports, pkgInfos)
+		err := CheckPackage(tree, deps, imports, pkgInfos, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}

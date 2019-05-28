@@ -330,7 +330,7 @@ varsLoop:
 }
 
 // CheckPackage type checks a package.
-func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*PredefinedPackage, pkgInfos map[string]*PackageInfo) (err error) {
+func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*PredefinedPackage, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -352,7 +352,7 @@ func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		return fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
-	tc := NewTypechecker(tree.Path, false)
+	tc := NewTypechecker(tree.Path, false, disallowGoStmt)
 	tc.Universe = Universe
 
 	err = sortDeclarations(packageNode, deps)
@@ -396,7 +396,7 @@ func CheckPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 			} else {
 				// Not predeclared package.
 				var err error
-				err = CheckPackage(d.Tree, nil, nil, pkgInfos) // TODO(Gianluca): where are deps?
+				err = CheckPackage(d.Tree, nil, nil, pkgInfos, disallowGoStmt) // TODO(Gianluca): where are deps?
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {
 					return err

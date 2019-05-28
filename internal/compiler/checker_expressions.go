@@ -109,6 +109,7 @@ type typechecker struct {
 	TypeInfo         map[ast.Node]*TypeInfo
 	IndirectVars     map[*ast.Identifier]bool
 	isScript         bool
+	disallowGoStmt   bool
 
 	// Data structures for Goto and Labels checking.
 	gotos           []string
@@ -118,7 +119,7 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func NewTypechecker(path string, isScript bool) *typechecker {
+func NewTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
 	return &typechecker{
 		isScript:         isScript,
 		path:             path,
@@ -129,6 +130,7 @@ func NewTypechecker(path string, isScript bool) *typechecker {
 		Universe:         make(TypeCheckerScope),
 		unusedImports:    make(map[string][]string),
 		IndirectVars:     make(map[*ast.Identifier]bool),
+		disallowGoStmt:   disallowGoStmt,
 	}
 }
 

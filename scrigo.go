@@ -20,6 +20,7 @@ import (
 
 const (
 	LimitMemorySize  Option = 1 << iota // limit allocable memory size.
+	DisallowGoStmt                      // disallow "go" statement.
 	AllowShebangLine                    // allow shebang line; only for scripts.
 )
 
@@ -63,6 +64,9 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 
 	opts := &compiler.Options{
 		IsPackage: true,
+	}
+	if options&DisallowGoStmt != 0 {
+		opts.DisallowGoStmt = true
 	}
 	tci, err := compiler.Typecheck(opts, tree, nil, predefinedPackages, deps, nil)
 	if err != nil {
@@ -179,6 +183,9 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 
 	opts := &compiler.Options{
 		IsPackage: false,
+	}
+	if options&DisallowGoStmt != 0 {
+		opts.DisallowGoStmt = true
 	}
 	tci, err := compiler.Typecheck(opts, tree, main, nil, nil, nil)
 	if err != nil {

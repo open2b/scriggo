@@ -443,6 +443,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if isConversion {
 				panic(tc.errorf(node, "go requires function call, not conversion"))
 			}
+			if tc.disallowGoStmt {
+				panic(tc.errorf(node, "\"go\" statement not available"))
+			}
 			tc.terminating = false
 
 		case *ast.Send:

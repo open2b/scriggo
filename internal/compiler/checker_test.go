@@ -445,7 +445,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := NewTypechecker("", false)
+			tc := NewTypechecker("", false, false)
 			tc.Scopes = scopes
 			tc.Universe = Universe
 			tc.addScope()
@@ -527,7 +527,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := NewTypechecker("", false)
+			tc := NewTypechecker("", false, false)
 			tc.Scopes = scopes
 			tc.Universe = Universe
 			tc.addScope()
@@ -1190,6 +1190,9 @@ var checkerStmts = map[string]string{
 	`type S1 struct { A int ; B map[string][]int; *int }`:                       ok,
 	`_ = struct{ A int }{C: 10}`:                                                `unknown field 'C' in struct literal of type struct { A int }`,
 	`type S struct{A,B int ; C,D float64} ; _ = S{A: 5, B: 10, C: 3.4, D: ""}`:  `cannot use "" (type string) as type float64 in field value`,
+
+	// go statement.
+	`go func() {}()`: `"go" statement not available`,
 }
 
 type pointInt struct{ X, Y int }
@@ -1233,7 +1236,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := NewTypechecker("", false)
+			tc := NewTypechecker("", false, true)
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.Universe = Universe
 			tc.addScope()
@@ -1638,7 +1641,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := NewTypechecker("", false)
+	tc := NewTypechecker("", false, false)
 	for src, expected := range cases {
 		tree, _, err := ParseSource([]byte(src), false, false)
 		if err != nil {
@@ -1731,7 +1734,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := NewTypechecker("", false)
+		tc := NewTypechecker("", false, false)
 		tc.addScope()
 		tree, _, err := ParseSource([]byte(src), false, false)
 		if err != nil {
@@ -1851,7 +1854,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = CheckPackage(tree, deps, nil, nil)
+			err = CheckPackage(tree, deps, nil, nil, false)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.
