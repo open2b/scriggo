@@ -122,6 +122,24 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Identifiers",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := 1
+			_x9 := 2
+			ThisVariableIsExported := 3
+			αβ := 4
+			fmt.Print(a, _x9, ThisVariableIsExported, αβ)
+		}
+		`,
+		output: "1 2 3 4",
+	},
+	{
 		name: "Comment inside string",
 		src: `package main
 
