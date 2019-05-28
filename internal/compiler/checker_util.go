@@ -257,7 +257,7 @@ func binaryOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, 
 					}
 				}
 			case *big.Int:
-				t.Value = newInt().Sub(v1.(*big.Int), v2)
+				t.Value = newInt().Mul(v1.(*big.Int), v2)
 			case float64:
 				if v1 == 0 || v2 == 0 {
 					t.Value = float64(0)
