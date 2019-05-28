@@ -433,8 +433,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 	}
 	if fn.Func == nil {
+		var args []reflect.Value
 		variadic := fn.value.Type().IsVariadic()
 		if len(fn.in) > 0 {
+			args = fn.getArgs()
 			vm.fp[0] += uint32(fn.outOff[0])
 			vm.fp[1] += uint32(fn.outOff[1])
 			vm.fp[2] += uint32(fn.outOff[2])
@@ -447,30 +449,30 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				if i < lastNonVariadic {
 					switch k {
 					case Bool:
-						fn.args[i].SetBool(vm.bool(1))
+						args[i].SetBool(vm.bool(1))
 						vm.fp[0]++
 					case Int:
-						fn.args[i].SetInt(vm.int(1))
+						args[i].SetInt(vm.int(1))
 						vm.fp[0]++
 					case Uint:
-						fn.args[i].SetUint(uint64(vm.int(1)))
+						args[i].SetUint(uint64(vm.int(1)))
 						vm.fp[0]++
 					case Float64:
-						fn.args[i].SetFloat(vm.float(1))
+						args[i].SetFloat(vm.float(1))
 						vm.fp[1]++
 					case String:
-						fn.args[i].SetString(vm.string(1))
+						args[i].SetString(vm.string(1))
 						vm.fp[2]++
 					case Func:
 						f := vm.general(1).(*callable)
-						fn.args[i].Set(f.reflectValue(vm.ctx))
+						args[i].Set(f.reflectValue(vm.ctx))
 						vm.fp[3]++
 					default:
-						fn.args[i].Set(reflect.ValueOf(vm.general(1)))
+						args[i].Set(reflect.ValueOf(vm.general(1)))
 						vm.fp[3]++
 					}
 				} else {
-					sliceType := fn.args[i].Type()
+					sliceType := args[i].Type()
 					slice := reflect.MakeSlice(sliceType, int(numVariadic), int(numVariadic))
 					k := sliceType.Elem().Kind()
 					switch k {
@@ -504,7 +506,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 							slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
 						}
 					}
-					fn.args[i].Set(slice)
+					args[i].Set(slice)
 				}
 			}
 			vm.fp[0] = fp[0] + uint32(shift[0])
@@ -514,16 +516,16 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		}
 		if newGoroutine {
 			if variadic {
-				go fn.value.CallSlice(fn.args)
+				go fn.value.CallSlice(args)
 			} else {
-				go fn.value.Call(fn.args)
+				go fn.value.Call(args)
 			}
 		} else {
 			var ret []reflect.Value
 			if variadic {
-				ret = fn.value.CallSlice(fn.args)
+				ret = fn.value.CallSlice(args)
 			} else {
-				ret = fn.value.Call(fn.args)
+				ret = fn.value.Call(args)
 			}
 			for i, k := range fn.out {
 				switch k {
@@ -548,6 +550,9 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					vm.setGeneral(1, ret[i].Interface())
 					vm.fp[3]++
 				}
+			}
+			if args != nil {
+				fn.putArgs(args)
 			}
 		}
 	}
@@ -726,7 +731,8 @@ func (vm *VM) startGoroutine() bool {
 	nvm.fn = fn
 	nvm.vars = vars
 	nvm.ctx = vm.ctx
-	vm.pc++
+	nvm.done = vm.done
+	nvm.doneCase = vm.doneCase
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
@@ -840,8 +846,36 @@ type PredefinedFunction struct {
 	value  reflect.Value
 	in     []Kind
 	out    []Kind
-	args   []reflect.Value
+	mx     sync.Mutex
+	args   [][]reflect.Value
 	outOff [4]int8
+}
+
+func (fn *PredefinedFunction) getArgs() []reflect.Value {
+	fn.mx.Lock()
+	var args []reflect.Value
+	if len(fn.args) == 0 {
+		nIn := len(fn.in)
+		typ := fn.value.Type()
+		args = make([]reflect.Value, nIn)
+		for i := 0; i < nIn; i++ {
+			t := typ.In(i)
+			args[i] = reflect.New(t).Elem()
+		}
+	} else {
+		last := len(fn.args) - 1
+		args = fn.args[last]
+		fn.args = fn.args[:last]
+	}
+	fn.mx.Unlock()
+	return args
+}
+
+func (fn *PredefinedFunction) putArgs(args []reflect.Value) {
+	fn.mx.Lock()
+	fn.args = append(fn.args, args)
+	fn.mx.Unlock()
+	return
 }
 
 // Global represents a global variable with a package, name, type (only for
@@ -876,16 +910,15 @@ type Function struct {
 }
 
 func (fn *PredefinedFunction) slow() {
+	fn.mx.Lock()
 	if !fn.value.IsValid() {
 		fn.value = reflect.ValueOf(fn.Func)
 	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
 	fn.in = make([]Kind, nIn)
-	fn.args = make([]reflect.Value, nIn)
 	for i := 0; i < nIn; i++ {
-		t := typ.In(i)
-		k := t.Kind()
+		k := typ.In(i).Kind()
 		switch {
 		case k == reflect.Bool:
 			fn.in[i] = Bool
@@ -902,7 +935,6 @@ func (fn *PredefinedFunction) slow() {
 		default:
 			fn.in[i] = Interface
 		}
-		fn.args[i] = reflect.New(t).Elem()
 	}
 	nOut := typ.NumOut()
 	fn.out = make([]Kind, nOut)
@@ -933,6 +965,7 @@ func (fn *PredefinedFunction) slow() {
 		}
 	}
 	fn.Func = nil
+	fn.mx.Unlock()
 }
 
 type callStatus int8
