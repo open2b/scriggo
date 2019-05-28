@@ -357,7 +357,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setGeneral(c, array.Elem().Interface())
 			case reflect.Func:
 				call := vm.general(a).(*callable)
-				vm.setGeneral(c, call.reflectValue(vm.ctx))
+				vm.setGeneral(c, call.reflectValue(vm.ctx).Interface())
 			default:
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
