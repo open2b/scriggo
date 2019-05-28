@@ -566,6 +566,11 @@ func evaluatedButNotUsed(v string) string {
 // are, respectively, sorted by lexicographical order.
 var checkerStmts = map[string]string{
 
+	// Comments.
+	`// a commented line`:                        ok,
+	`var a = 10; _ = a; // a+++a++a- var if for`: ok,
+	`s := "/* hello */"; _ = s`:                  ok,
+
 	// Var declarations.
 	`var a = 3; _ = a`:             ok,
 	`var a int = 1; _ = a`:         ok,
@@ -897,7 +902,7 @@ var checkerStmts = map[string]string{
 	`i := interface{}(int(0)); switch i.(type) { }`:                         ok,
 	`i := interface{}(int(0)); switch i.(type) { case int: case float64: }`: ok,
 	`i := interface{}(int(0)); switch i.(type) { case nil: case int: }`:     ok,
-	`v := interface{}(3); switch u := v.(type) { default: { _ = u } }`: ok,
+	`v := interface{}(3); switch u := v.(type) { default: { _ = u } }`:      ok,
 	`i := interface{}(int(0)); switch i.(type) { case 2: case float64: }`:   `2 (type untyped number) is not a type`,
 	`i := 0; switch i.(type) { }`:                                           `cannot type switch on non-interface value i (type int)`,
 	`i := interface{}(int(0)); switch i.(type) { case nil: case nil: }`:     `multiple nil cases in type switch (first at 1:50)`,
@@ -1013,9 +1018,9 @@ var checkerStmts = map[string]string{
 	`f := func() (int, int, int) { return 0, 0, 0 } ; g := func(int, int) { } ; g(f())`: "too many arguments in call to g\n\thave (int, int, int)\n\twant (int, int)",
 
 	// Variadic functions and calls.
-	`f := func(a ...int) { } ; f(nil...)`:        ok,
-	`f := func(a ...int) { } ; f([]int(nil)...)`: ok,
-	`f := func(a ...int) { } ; f([]int{1,2}...)`: ok,
+	`f := func(a ...int) { } ; f(nil...)`:                                      ok,
+	`f := func(a ...int) { } ; f([]int(nil)...)`:                               ok,
+	`f := func(a ...int) { } ; f([]int{1,2}...)`:                               ok,
 	`g := func() (int, int) { return 0, 0 } ; f := func(v ...int) {} ; f(g())`: ok,
 
 	// Variadic function literals.

@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Comment inside string",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			s := "/* not a comment */"
+			fmt.Print(s)
+		}
+		`,
+		output: "/* not a comment */",
+	},
+	{
 		name: "Issue #57",
 		src: `package main
 
