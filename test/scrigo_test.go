@@ -121,24 +121,24 @@ var stmtTests = []struct {
 	err          interface{} // error.
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
-	// TODO(Gianluca):
-	// {
-	// 	name: "Builtin append - single element",
-	// 	src: `package main
 
-	// 		import (
-	// 			"fmt"
-	// 		)
+	{
+		name: "Builtin append - single element",
+		src: `package main
 
-	// 		func main() {
-	// 			s1 := []int{10, 20, 30}
-	// 			s2 := append(s1, 40)
-	// 			s3 := append(s1, 50)
-	// 			fmt.Print(s1, s2, s3)
-	// 		}
-	// 		`,
-	// 	output: "[10 20 30] [10 20 30 40] [10 20 30 50]",
-	// },
+			import (
+				"fmt"
+			)
+
+			func main() {
+				s1 := []int{10, 20, 30}
+				s2 := append(s1, 40)
+				s3 := append(s1, 50)
+				fmt.Print(s1, s2, s3)
+			}
+			`,
+		output: "[10 20 30] [10 20 30 40] [10 20 30 50]",
+	},
 	{
 		name: "Builtin append on slice (variadic)",
 		src: `package main

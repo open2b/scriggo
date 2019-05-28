@@ -236,7 +236,7 @@ func (vm *VM) alloc() error {
 		}
 		l := int(b)
 		if l > sc-sl {
-			if sl < sl+l {
+			if sl+l < 0 {
 				panic(ErrOutOfMemory)
 			}
 			capacity := appendCap(sc, sl, sl+l)
