@@ -710,10 +710,10 @@ func (vm *VM) startGoroutine() bool {
 	call := vm.fn.Body[vm.pc]
 	switch call.Op {
 	case OpCall:
-		fn = vm.fn.Functions[uint8(call.B)]
+		fn = vm.fn.Functions[uint8(call.A)]
 		vars = vm.ctx.globals
 	case OpCallIndirect:
-		f := vm.general(call.B).(*callable)
+		f := vm.general(call.A).(*callable)
 		if f.fn == nil {
 			return true
 		}
