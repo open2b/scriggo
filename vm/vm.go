@@ -34,19 +34,20 @@ type TraceFunc func(fn *Function, pc uint32, regs Registers)
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
-	fp     [4]uint32            // frame pointers.
-	st     [4]uint32            // stack tops.
-	pc     uint32               // program counter.
-	ok     bool                 // ok flag.
-	regs   registers            // registers.
-	fn     *Function            // running function.
-	vars   []interface{}        // global and closure variables.
-	ctx    *context             // execution context.
-	calls  []callFrame          // call stack frame.
-	cases  []reflect.SelectCase // select cases.
-	done   <-chan struct{}      // done.
-	err    error                // error.
-	panics []Panic              // panics.
+	fp       [4]uint32            // frame pointers.
+	st       [4]uint32            // stack tops.
+	pc       uint32               // program counter.
+	ok       bool                 // ok flag.
+	regs     registers            // registers.
+	fn       *Function            // running function.
+	vars     []interface{}        // global and closure variables.
+	ctx      *context             // execution context.
+	calls    []callFrame          // call stack frame.
+	cases    []reflect.SelectCase // select cases.
+	done     <-chan struct{}      // done.
+	doneCase reflect.SelectCase   // done, as reflect case.
+	err      error                // error.
+	panics   []Panic              // panics.
 }
 
 // New returns a new virtual machine.
@@ -109,6 +110,10 @@ func (vm *VM) SetContext(ctx Context) {
 	if ctx != nil {
 		if done := ctx.Done(); done != nil {
 			vm.done = done
+			vm.doneCase = reflect.SelectCase{
+				Dir:  reflect.SelectRecv,
+				Chan: reflect.ValueOf(done),
+			}
 			return
 		}
 	}
@@ -548,6 +553,11 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 	}
 	vm.fp = fp
 	vm.pc++
+}
+
+func (vm *VM) hasDone() (uint32, bool) {
+	vm.err = vm.ctx.context.Err()
+	return maxAddr, false
 }
 
 //go:noinline

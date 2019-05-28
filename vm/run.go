@@ -76,6 +76,7 @@ func (vm *VM) runRecoverable() (panicked bool) {
 func (vm *VM) run() (uint32, bool) {
 
 	var startPredefinedGoroutine bool
+	var hasDefaultCase bool
 
 	var op Operation
 	var a, b, c int8
@@ -85,8 +86,7 @@ func (vm *VM) run() (uint32, bool) {
 		if vm.done != nil {
 			select {
 			case <-vm.done:
-				vm.err = vm.ctx.context.Err()
-				return maxAddr, false
+				return vm.hasDone()
 			default:
 			}
 		}
@@ -322,7 +322,9 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases[i].Send = reflect.Value{}
 				}
 			}
-			if dir != reflect.SelectDefault {
+			if dir == reflect.SelectDefault {
+				hasDefaultCase = true
+			} else {
 				vm.cases[i].Chan = reflect.ValueOf(vm.general(c))
 				if dir == reflect.SelectSend {
 					t := vm.cases[i].Chan.Type().Elem()
@@ -1052,36 +1054,87 @@ func (vm *VM) run() (uint32, bool) {
 			switch ch := ch.(type) {
 			case chan bool:
 				var v bool
-				v, vm.ok = <-ch
+				if vm.done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 				if c != 0 {
 					vm.setBool(c, v)
 				}
 			case chan int:
 				var v int
-				v, vm.ok = <-ch
+				if vm.done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan rune:
 				var v rune
-				v, vm.ok = <-ch
+				if vm.done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 				if c != 0 {
 					vm.setInt(c, int64(v))
 				}
 			case chan string:
 				var v string
-				v, vm.ok = <-ch
+				if vm.done == nil {
+					v, vm.ok = <-ch
+				} else {
+					select {
+					case v, vm.ok = <-ch:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 				if c != 0 {
 					vm.setString(c, v)
 				}
 			case chan struct{}:
-				_, vm.ok = <-ch
+				if vm.done == nil {
+					_, vm.ok = <-ch
+				} else {
+					select {
+					case _, vm.ok = <-ch:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 				if c != 0 {
 					vm.setGeneral(c, struct{}{})
 				}
 			default:
 				var v reflect.Value
-				v, vm.ok = reflect.ValueOf(ch).Recv()
+				if vm.done == nil {
+					v, vm.ok = reflect.ValueOf(ch).Recv()
+				} else {
+					var chosen int
+					cas := reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
+					vm.cases = append(vm.cases, cas, vm.doneCase)
+					chosen, v, vm.ok = reflect.Select(vm.cases)
+					if chosen == 1 {
+						return vm.hasDone()
+					}
+					vm.cases = vm.cases[:0]
+				}
 				if c != 0 {
 					vm.setFromReflectValue(c, v)
 				}
@@ -1168,7 +1221,18 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Select
 		case OpSelect:
-			chosen, recv, recvOK := reflect.Select(vm.cases)
+			var chosen int
+			var recv reflect.Value
+			var recvOK bool
+			if vm.done == nil || hasDefaultCase {
+				chosen, recv, recvOK = reflect.Select(vm.cases)
+			} else {
+				vm.cases = append(vm.cases, vm.doneCase)
+				chosen, recv, recvOK = reflect.Select(vm.cases)
+				if chosen == len(vm.cases)-1 {
+					return vm.hasDone()
+				}
+			}
 			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
 			if vm.cases[chosen].Dir == reflect.SelectRecv {
 				r := vm.fn.Body[vm.pc-1].B
@@ -1177,6 +1241,7 @@ func (vm *VM) run() (uint32, bool) {
 				}
 				vm.ok = recvOK
 			}
+			hasDefaultCase = false
 			vm.cases = vm.cases[:0]
 
 		// Selector
@@ -1190,21 +1255,71 @@ func (vm *VM) run() (uint32, bool) {
 			ch := vm.generalk(c, k)
 			switch ch := ch.(type) {
 			case chan bool:
-				ch <- vm.boolk(a, k)
+				if vm.done == nil {
+					ch <- vm.boolk(a, k)
+				} else {
+					select {
+					case ch <- vm.boolk(a, k):
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 			case chan int:
-				ch <- int(vm.intk(a, k))
+				if vm.done == nil {
+					ch <- int(vm.intk(a, k))
+				} else {
+					select {
+					case ch <- int(vm.intk(a, k)):
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 			case chan rune:
-				ch <- rune(vm.intk(a, k))
+				if vm.done == nil {
+					ch <- rune(vm.intk(a, k))
+				} else {
+					select {
+					case ch <- rune(vm.intk(a, k)):
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 			case chan string:
-				ch <- vm.stringk(a, k)
+				if vm.done == nil {
+					ch <- vm.stringk(a, k)
+				} else {
+					select {
+					case ch <- vm.stringk(a, k):
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 			case chan struct{}:
-				ch <- struct{}{}
+				if vm.done == nil {
+					ch <- struct{}{}
+				} else {
+					select {
+					case ch <- struct{}{}:
+					case <-vm.done:
+						return vm.hasDone()
+					}
+				}
 			default:
 				r := reflect.ValueOf(ch)
 				elemType := r.Type().Elem()
 				v := reflect.New(elemType).Elem()
 				vm.getIntoReflectValue(a, v, k)
-				r.Send(v)
+				if vm.done == nil {
+					r.Send(v)
+				} else {
+					cas := reflect.SelectCase{Dir: reflect.SelectSend, Chan: reflect.ValueOf(ch), Send: v}
+					vm.cases = append(vm.cases, cas, vm.doneCase)
+					chosen, _, _ := reflect.Select(vm.cases)
+					if chosen == 1 {
+						return vm.hasDone()
+					}
+					vm.cases = vm.cases[:0]
+				}
 			}
 
 		// SetMap
