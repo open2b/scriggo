@@ -91,13 +91,14 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
 
-		if len(n.Identifiers) == 1 && len(values) == 1 {
-			newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
-			if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
-				panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
-			}
-			return
-		}
+		// TODO(Gianluca): optimization has been disabled. Re-enable or remove?
+		// if len(n.Identifiers) == 1 && len(values) == 1 {
+		// 	newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
+		// 	if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
+		// 		panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
+		// 	}
+		// 	return
+		// }
 
 		if len(n.Identifiers) > len(values) {
 			panic(tc.errorf(node, "missing value in const declaration"))
