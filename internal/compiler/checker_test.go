@@ -1016,6 +1016,7 @@ var checkerStmts = map[string]string{
 	`f := func(a ...int) { } ; f(nil...)`:        ok,
 	`f := func(a ...int) { } ; f([]int(nil)...)`: ok,
 	`f := func(a ...int) { } ; f([]int{1,2}...)`: ok,
+	`g := func() (int, int) { return 0, 0 } ; f := func(v ...int) {} ; f(g())`: ok,
 
 	// Variadic function literals.
 	`f := func(a int, b...int)  { b[0] = 1 };  f(1);               f(1);  f(1,2,3)`: ok,

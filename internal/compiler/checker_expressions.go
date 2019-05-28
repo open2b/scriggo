@@ -1445,6 +1445,16 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 				args = append(args, v)
 			}
 		}
+	} else if len(args) == 1 && numIn == 1 && funcIsVariadic && !callIsVariadic {
+		if c, ok := args[0].(*ast.Call); ok {
+			args = nil
+			tis, _, _ := tc.checkCallExpression(c, false)
+			for _, ti := range tis {
+				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
+				tc.TypeInfo[v] = ti
+				args = append(args, v)
+			}
+		}
 	}
 
 	if (!funcIsVariadic && len(args) != numIn) || (funcIsVariadic && len(args) < numIn-1) {
