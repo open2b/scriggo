@@ -69,11 +69,11 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.Const:
-		for _, ident := range n.Identifiers {
+		for _, ident := range n.Lhs {
 			Walk(v, ident)
 		}
 		Walk(v, n.Type)
-		for _, value := range n.Values {
+		for _, value := range n.Rhs {
 			Walk(v, value)
 		}
 

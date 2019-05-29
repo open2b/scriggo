@@ -1961,11 +1961,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		if len(nn1.Identifiers) != len(nn2.Identifiers) {
-			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Identifiers), len(nn2.Identifiers))
+		if len(nn1.Lhs) != len(nn2.Lhs) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Lhs), len(nn2.Lhs))
 		}
-		for i, node := range nn1.Identifiers {
-			err := equals(node, nn2.Identifiers[i], p)
+		for i, node := range nn1.Lhs {
+			err := equals(node, nn2.Lhs[i], p)
 			if err != nil {
 				return err
 			}
@@ -1974,11 +1974,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		if len(nn1.Values) != len(nn2.Values) {
-			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Values), len(nn2.Values))
+		if len(nn1.Rhs) != len(nn2.Rhs) {
+			return fmt.Errorf("unexpected nodes len %d, expecting %d", len(nn1.Rhs), len(nn2.Rhs))
 		}
-		for i, node := range nn1.Values {
-			err := equals(node, nn2.Values[i], p)
+		for i, node := range nn1.Rhs {
+			err := equals(node, nn2.Rhs[i], p)
 			if err != nil {
 				return err
 			}

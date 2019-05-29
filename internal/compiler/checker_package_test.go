@@ -225,7 +225,7 @@ func TestPackageOrdering(t *testing.T) {
 						got += left.Name + ","
 					}
 				case *ast.Const:
-					got += d.Identifiers[0].Name + ","
+					got += d.Lhs[0].Name + ","
 				case *ast.Func:
 					got += d.Ident.Name + ","
 				}

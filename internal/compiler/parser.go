@@ -1003,13 +1003,13 @@ func (p *parsing) parseStatement(tok token) {
 					if c.Type == nil {
 						c.Type = astutil.CloneExpression(lastConstType)
 					}
-					if len(c.Values) == 0 {
-						c.Values = make([]ast.Expression, len(lastConstValues))
+					if len(c.Rhs) == 0 {
+						c.Rhs = make([]ast.Expression, len(lastConstValues))
 						for i := range lastConstValues {
-							c.Values[i] = astutil.CloneExpression(lastConstValues[i])
+							c.Rhs[i] = astutil.CloneExpression(lastConstValues[i])
 						}
 					}
-					lastConstValues = c.Values
+					lastConstValues = c.Rhs
 					lastConstType = c.Type
 				}
 				p.addChild(lastNode)

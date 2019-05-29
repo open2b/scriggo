@@ -1121,10 +1121,10 @@ func (n *Var) String() string {
 
 // Const node represent a const declaration.
 type Const struct {
-	*Position                 // position in the source.
-	Identifiers []*Identifier // identifiers.
-	Type        Expression    // nil for non-typed constant declarations.
-	Values      []Expression  // nil for implicit-value constant declarations.
+	*Position               // position in the source.
+	Lhs       []*Identifier // left-hand side identifiers.
+	Type      Expression    // nil for non-typed constant declarations.
+	Rhs       []Expression  // nil for implicit-value constant declarations.
 }
 
 func NewConst(pos *Position, identifiers []*Identifier, typ Expression, values []Expression) *Const {

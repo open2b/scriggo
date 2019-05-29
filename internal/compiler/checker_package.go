@@ -115,7 +115,7 @@ func checkDepsPath(path []*ast.Identifier, deps GlobalsDependencies) []*ast.Iden
 
 func detectConstantsLoop(consts []*ast.Const, deps GlobalsDependencies) error {
 	for _, c := range consts {
-		path := []*ast.Identifier{c.Identifiers[0]}
+		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
 		if loopPath != nil {
 			msg := "constant definition loop\n"
@@ -161,13 +161,13 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 		case *ast.Func:
 			funcs = append(funcs, decl)
 		case *ast.Const:
-			if len(decl.Values) == 0 {
-				for i := range decl.Identifiers {
-					consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, nil))
+			if len(decl.Rhs) == 0 {
+				for i := range decl.Lhs {
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, nil))
 				}
 			} else {
-				for i := range decl.Identifiers {
-					consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, decl.Values[i:i+1]))
+				for i := range decl.Lhs {
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, decl.Rhs[i:i+1]))
 				}
 			}
 		case *ast.Var:
@@ -187,7 +187,7 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 		for _, d := range ds {
 			// Is d a global identifier?
 			for _, c := range consts {
-				if c.Identifiers[0].Name == d.Name {
+				if c.Lhs[0].Name == d.Name {
 					newDs = append(newDs, d)
 				}
 			}
@@ -224,10 +224,10 @@ constsLoop:
 		// Searches for next constant with resolved deps.
 		for i, c := range consts {
 			depsOk := true
-			for _, dep := range deps[c.Identifiers[0]] {
+			for _, dep := range deps[c.Lhs[0]] {
 				found := false
 				for _, resolvedC := range sortedConsts {
-					if dep.Name == resolvedC.Identifiers[0].Name {
+					if dep.Name == resolvedC.Lhs[0].Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -277,7 +277,7 @@ varsLoop:
 					}
 				}
 				for _, resolvedC := range sortedConsts {
-					if dep.Name == resolvedC.Identifiers[0].Name {
+					if dep.Name == resolvedC.Lhs[0].Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true

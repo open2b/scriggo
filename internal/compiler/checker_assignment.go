@@ -88,7 +88,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Const:
 
-		values = n.Values
+		values = n.Rhs
 		isDecl = true
 		isConst = true
 		if n.Type != nil {
@@ -105,15 +105,15 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		// 	return
 		// }
 
-		if len(n.Identifiers) > len(values) {
+		if len(n.Lhs) > len(values) {
 			panic(tc.errorf(node, "missing value in const declaration"))
 		}
-		if len(n.Identifiers) < len(values) {
+		if len(n.Lhs) < len(values) {
 			panic(tc.errorf(node, "extra expression in const declaration"))
 		}
 
-		vars = make([]ast.Expression, len(n.Identifiers))
-		for i, ident := range n.Identifiers {
+		vars = make([]ast.Expression, len(n.Lhs))
+		for i, ident := range n.Lhs {
 			vars[i] = ident
 		}
 
