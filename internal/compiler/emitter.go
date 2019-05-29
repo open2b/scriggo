@@ -75,7 +75,7 @@ func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*
 
 func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
 	e := newEmitter(packages, typeInfos, indirectVars)
-	e.SetAlloc(alloc)
+	e.alloc = alloc
 	fn := NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
 	e.CurrentFunction = fn
 	e.FB = newBuilder(e.CurrentFunction)
@@ -86,10 +86,6 @@ func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfo
 	e.FB.ExitScope()
 	e.FB.End()
 	return e.CurrentFunction
-}
-
-func (e *Emitter) SetAlloc(alloc bool) {
-	e.alloc = alloc
 }
 
 // Global represents a global variable with a package, name, type (only for
@@ -111,7 +107,7 @@ type Package struct {
 // EmitPackageMain emits package main.
 func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
 	e := newEmitter(packages, typeInfos, indirectVars)
-	e.SetAlloc(alloc)
+	e.alloc = alloc
 	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &Package{
