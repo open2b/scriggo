@@ -1230,9 +1230,9 @@ func (p *parsing) parseStatement(tok token) {
 		var call *ast.Call
 		switch expr := expr.(type) {
 		default:
-			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
+			panic(&CheckingError{"", *tok.pos, fmt.Errorf("expression in %s must be function call", keyword)})
 		case *ast.Parenthesis:
-			panic(&Error{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
+			panic(&CheckingError{"", *tok.pos, fmt.Errorf("expression in %s must not be parenthesized", keyword)})
 		case *ast.Call:
 			call = expr
 		}

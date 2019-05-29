@@ -387,15 +387,15 @@ unusedLoop:
 	return i
 }
 
-// Error records a typechecking error with the path and the position where the
+// CheckingError records a typechecking error with the path and the position where the
 // error occurred.
-type Error struct {
+type CheckingError struct {
 	Path string
 	Pos  ast.Position
 	Err  error
 }
 
-func (e *Error) Error() string {
+func (e *CheckingError) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
@@ -410,7 +410,7 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	} else {
 		pos = nodeOrPos.(*ast.Position)
 	}
-	var err = &Error{
+	var err = &CheckingError{
 		Path: tc.path,
 		Pos: ast.Position{
 			Line:   pos.Line,

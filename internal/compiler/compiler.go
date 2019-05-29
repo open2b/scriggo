@@ -32,7 +32,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			if rerr, ok := r.(*Error); ok {
+			if rerr, ok := r.(*CheckingError); ok {
 				err = rerr
 			} else {
 				panic(r)

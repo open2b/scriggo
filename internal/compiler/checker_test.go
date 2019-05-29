@@ -17,8 +17,8 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-func tierr(line, column int, text string) *Error {
-	return &Error{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
+func tierr(line, column int, text string) *CheckingError {
+	return &CheckingError{Pos: ast.Position{Line: line, Column: column}, Err: errors.New(text)}
 }
 
 type definedBool bool
@@ -418,7 +418,7 @@ func TestCheckerExpressions(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*Error); ok {
+					if err, ok := r.(*CheckingError); ok {
 						t.Errorf("source: %q, %s\n", expr.src, err)
 					} else {
 						panic(r)
@@ -463,7 +463,7 @@ func TestCheckerExpressions(t *testing.T) {
 
 var checkerExprErrors = []struct {
 	src   string
-	err   *Error
+	err   *CheckingError
 	scope map[string]*TypeInfo
 }{
 	// Index.
@@ -496,7 +496,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*Error); ok {
+					if err, ok := r.(*CheckingError); ok {
 						err := sameTypeCheckError(err, expr.err)
 						if err != nil {
 							t.Errorf("source: %q, %s\n", expr.src, err)
@@ -1216,7 +1216,7 @@ func TestCheckerStatements(t *testing.T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					if err, ok := r.(*Error); ok {
+					if err, ok := r.(*CheckingError); ok {
 						if expectedError == "" {
 							t.Errorf("source: '%s' should be 'ok' but got error: %q", src, err)
 						} else if !strings.Contains(err.Error(), expectedError) {
@@ -1754,7 +1754,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	}
 }
 
-func sameTypeCheckError(err1, err2 *Error) error {
+func sameTypeCheckError(err1, err2 *CheckingError) error {
 	if err1.Err.Error() != err2.Err.Error() {
 		return fmt.Errorf("unexpected error %q, expecting error %q\n", err1.Err, err2.Err)
 	}

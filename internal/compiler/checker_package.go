@@ -337,7 +337,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 
 	defer func() {
 		if r := recover(); r != nil {
-			if rerr, ok := r.(*Error); ok {
+			if rerr, ok := r.(*CheckingError); ok {
 				err = rerr
 			} else {
 				panic(r)
