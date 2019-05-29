@@ -98,13 +98,14 @@ type Global struct {
 	Value interface{}
 }
 
+// Package is the result of a package emitting process.
 type Package struct {
 	Globals   []vm.Global
 	Functions map[string]*vm.Function
 	Main      *vm.Function
 }
 
-// EmitPackageMain emits package main.
+// EmitPackageMain emits package main, returning a Package.
 func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
 	e := newEmitter(packages, typeInfos, indirectVars)
 	e.alloc = alloc
