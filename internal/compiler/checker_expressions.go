@@ -96,20 +96,22 @@ type scopeVariable struct {
 
 // typechecker represents the state of a type checking.
 type typechecker struct {
-	path             string
-	imports          map[string]PackageInfo // TODO (Gianluca): review!
-	Universe         TypeCheckerScope
-	filePackageBlock TypeCheckerScope
-	Scopes           []TypeCheckerScope
-	ancestors        []*ancestor
-	terminating      bool // https://golang.org/ref/spec#Terminating_statements
-	hasBreak         map[ast.Node]bool
-	unusedVars       []*scopeVariable
-	unusedImports    map[string][]string
-	TypeInfo         map[ast.Node]*TypeInfo
-	IndirectVars     map[*ast.Identifier]bool
-	isScript         bool
-	disallowGoStmt   bool
+	path              string
+	imports           map[string]PackageInfo // TODO (Gianluca): review!
+	Universe          TypeCheckerScope
+	filePackageBlock  TypeCheckerScope
+	Scopes            []TypeCheckerScope
+	ancestors         []*ancestor
+	terminating       bool // https://golang.org/ref/spec#Terminating_statements
+	hasBreak          map[ast.Node]bool
+	unusedVars        []*scopeVariable
+	unusedImports     map[string][]string
+	TypeInfo          map[ast.Node]*TypeInfo
+	IndirectVars      map[*ast.Identifier]bool
+	isScript          bool
+	disallowGoStmt    bool
+	iota              int
+	lastConstPosition *ast.Position // when changes iota is reset.
 
 	// Data structures for Goto and Labels checking.
 	gotos           []string
@@ -131,6 +133,7 @@ func NewTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
 		unusedImports:    make(map[string][]string),
 		IndirectVars:     make(map[*ast.Identifier]bool),
 		disallowGoStmt:   disallowGoStmt,
+		iota:             -1,
 	}
 }
 
@@ -346,6 +349,13 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 
 	i, ok := tc.lookupScopes(ident.Name, false)
 	if !ok {
+		if ident.Name == "iota" && tc.iota >= 0 {
+			return &TypeInfo{
+				Value:      int64(tc.iota),
+				Type:       intType,
+				Properties: PropertyUntyped | PropertyIsConstant,
+			}
+		}
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 

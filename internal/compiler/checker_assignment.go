@@ -21,6 +21,10 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	var typ *TypeInfo
 	var isDecl, isConst, isVar bool
 
+	if tc.lastConstPosition != node.Pos() {
+		tc.iota = -1
+	}
+
 	switch n := node.(type) {
 
 	case *ast.Var:
@@ -90,6 +94,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if n.Type != nil {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
+		tc.lastConstPosition = node.Pos()
 
 		// TODO(Gianluca): optimization has been disabled. Re-enable or remove?
 		// if len(n.Identifiers) == 1 && len(values) == 1 {
@@ -262,6 +267,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	newVars := []string{}
 	tmpScope := TypeCheckerScope{}
 	for i := range vars {
+		if isConst {
+			tc.iota++
+		}
 		var newVar string
 		if valueTi := tc.TypeInfo[values[i]]; valueTi == nil {
 			newVar = tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)

@@ -122,6 +122,83 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Iota - local constant in math expression",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const (
+				A = iota * 4
+				B = iota * 2
+				C = (iota + 3) * 2
+			)
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "0 2 10",
+	},
+	{
+		name: "Iota - global constant in math expression",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		const (
+			A = iota * 4
+			B = iota * 2
+			C = (iota + 3) * 2
+		)
+
+		func main() {
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "0 2 10",
+	},
+	{
+		name: "Iota - local constant",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const A = iota
+			const B = iota
+			const (
+				C = iota
+				D = iota
+			)
+			fmt.Print(A, B, C, D)
+		}
+		`,
+		output: "0 0 0 1",
+	},
+	{
+		name: "Iota - global constant",
+		src: `package main
+
+		import "fmt"
+		
+		const (
+			A = iota
+			B = iota
+			C = iota
+		)
+		
+		func main() {
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "0 1 2",
+	},
+	{
 		name: "Identifiers",
 		src: `package main
 
@@ -3307,6 +3384,9 @@ var stmtTests = []struct {
 		nil,
 		"a is 9 and b is 144\n", nil, 0},
 
+	//------------------------------------
+	// TODO(Gianluca): disabled tests:
+
 	//{"Out of memory: OpAppend ",
 	//	`package main
 	//
@@ -3319,8 +3399,25 @@ var stmtTests = []struct {
 	//	nil,
 	//	"a is 9 and b is 144\n", nil, 0},
 
-	//------------------------------------
-	// TODO(Gianluca): disabled tests:
+	// {
+	// 	name: "Iota - local constant in math expression (with float numbers)",
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		const (
+	// 			A = (iota * iota) + 10
+	// 			B = A * (iota * 2.341)
+	// 			C = A + B + iota / 2.312
+	// 		)
+	// 		fmt.Print(A, B, C)
+	// 	}
+	// 	`,
+	// 	output: "10 23.41 34.27505190311419",
+	// },
 
 	// {"Variable declaration with 'var'",
 	// 	`package main
