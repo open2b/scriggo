@@ -4,8 +4,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package parser implements methods to parse a template source and expand a
-// parsed tree.
 package compiler
 
 import (

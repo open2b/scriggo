@@ -4,6 +4,29 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// The compiler implements parsing, type-checking and emitting of sources.
+//
+// Parsing
+//
+// Parsing is done using
+//
+//	ParseTemplate(...)
+//	ParseProgram(...)
+//	ParseScript(...) (currently not implemented)
+//
+// Typechecking
+//
+// When parsing is done, tree can be type-checked by:
+//
+// 	Typecheck(...)
+//
+// Emitting
+//
+// To emit a type-checked tree, use:
+//
+//    EmitSingle(...)
+//    EmitPackageMain(...)
+//
 package compiler
 
 import (
@@ -11,9 +34,20 @@ import (
 )
 
 type Options struct {
-	AllowImports   bool
-	NotUsedError   bool
-	IsPackage      bool
+
+	// AllowImports makes import statements available.
+	AllowImports bool
+
+	// NotUsedError returns a checking error if a variable is declared and not
+	// used or a package is imported and not used.
+	NotUsedError bool
+
+	// IsPackage indicate if it's a package. If true, all sources must start
+	// with "package" and package-level declarations will be sorted according
+	// to Go package inizialization specs.
+	IsPackage bool
+
+	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 }
 
