@@ -14,6 +14,7 @@ import (
 	"unicode"
 
 	"scrigo/internal/compiler/ast"
+	"scrigo/vm"
 )
 
 var errDivisionByZero = errors.New("division by zero")
@@ -39,6 +40,8 @@ var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType}
 var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
 
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
+
+var envType = reflect.TypeOf(&vm.Env{})
 
 var universe = TypeCheckerScope{
 	"append":      {t: builtinTypeInfo},

@@ -14,28 +14,46 @@ import (
 
 var ErrOutOfMemory = errors.New("out of memory")
 
-const maxAddr = 1<<32 - 1
+var errDone = errors.New("done")
 
-func (vm *VM) Run(fn *Function) (int, error) {
+func (vm *VM) Run(fn *Function) (code int, err error) {
 	var isPanicked bool
 	vm.fn = fn
 	vm.vars = vm.env.globals
 	for {
 		isPanicked = vm.runRecoverable()
-		if isPanicked && len(vm.calls) > 0 {
-			var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
-			vm.calls = append(vm.calls, call)
-			vm.fn = nil
-			if vm.cases != nil {
-				vm.cases = vm.cases[:0]
+		if isPanicked {
+			p := vm.panics[len(vm.panics)-1]
+			if e, ok := p.Msg.(error); ok && e == errDone || e == ErrOutOfMemory {
+				vm.panics = vm.panics[:0]
+				if e == errDone {
+					err = vm.env.ctx.Err()
+				} else {
+					err = e
+				}
+			} else if len(vm.calls) > 0 {
+				var call = callFrame{cl: callable{fn: vm.fn}, fp: vm.fp, status: panicked}
+				vm.calls = append(vm.calls, call)
+				vm.fn = nil
+				if vm.cases != nil {
+					vm.cases = vm.cases[:0]
+				}
+				continue
 			}
-			continue
 		}
 		break
 	}
+	// Call exit functions.
+	vm.env.mu.Lock()
+	for _, f := range vm.env.exits {
+		go f()
+	}
+	vm.env.exits = nil
+	vm.env.mu.Unlock()
+	// Manage error and panics.
 	if len(vm.panics) > 0 {
 		if vm.env.dontPanic {
-			vm.err = vm.panics[len(vm.panics)-1]
+			err = vm.panics[len(vm.panics)-1]
 		} else {
 			var msg string
 			for i, p := range vm.panics {
@@ -51,7 +69,7 @@ func (vm *VM) Run(fn *Function) (int, error) {
 			panic(msg)
 		}
 	}
-	return 0, vm.err
+	return 0, err
 }
 
 func (vm *VM) runRecoverable() (panicked bool) {
@@ -59,12 +77,7 @@ func (vm *VM) runRecoverable() (panicked bool) {
 	defer func() {
 		if panicked {
 			msg := recover()
-			if msg == ErrOutOfMemory {
-				vm.err = msg.(error)
-				vm.panics = vm.panics[:0]
-			} else {
-				vm.panics = append(vm.panics, Panic{Msg: msg})
-			}
+			vm.panics = append(vm.panics, Panic{Msg: msg})
 		}
 	}()
 	if vm.fn != nil || vm.nextCall() {
@@ -86,7 +99,7 @@ func (vm *VM) run() (uint32, bool) {
 		if vm.done != nil {
 			select {
 			case <-vm.done:
-				return vm.hasDone()
+				panic(errDone)
 			default:
 			}
 		}
@@ -122,24 +135,19 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Alloc
 		case OpAlloc:
-			err := vm.alloc()
-			if err != nil {
-				vm.err = err
-				return maxAddr, false
-			}
+			vm.alloc()
 		case -OpAlloc:
 			bytes := decodeUint24(a, b, c)
 			var free int
-			vm.env.Lock()
+			vm.env.mu.Lock()
 			free = vm.env.freeMemory
 			if free >= 0 {
 				free -= int(bytes)
 				vm.env.freeMemory = free
 			}
-			vm.env.Unlock()
+			vm.env.mu.Unlock()
 			if free < 0 {
-				vm.err = ErrOutOfMemory
-				return maxAddr, false
+				panic(ErrOutOfMemory)
 			}
 
 		// And
@@ -1060,7 +1068,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 				if c != 0 {
@@ -1074,7 +1082,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 				if c != 0 {
@@ -1088,7 +1096,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 				if c != 0 {
@@ -1102,7 +1110,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case v, vm.ok = <-ch:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 				if c != 0 {
@@ -1115,7 +1123,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case _, vm.ok = <-ch:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 				if c != 0 {
@@ -1131,7 +1139,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, v, vm.ok = reflect.Select(vm.cases)
 					if chosen == 1 {
-						return vm.hasDone()
+						panic(errDone)
 					}
 					vm.cases = vm.cases[:0]
 				}
@@ -1190,9 +1198,9 @@ func (vm *VM) run() (uint32, bool) {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
-						vm.env.Lock()
+						vm.env.mu.Lock()
 						vm.env.freeMemory -= int(bytes)
-						vm.env.Unlock()
+						vm.env.mu.Unlock()
 					}
 				}
 			}
@@ -1230,7 +1238,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.cases = append(vm.cases, vm.doneCase)
 				chosen, recv, recvOK = reflect.Select(vm.cases)
 				if chosen == len(vm.cases)-1 {
-					return vm.hasDone()
+					panic(errDone)
 				}
 			}
 			vm.pc -= 2 * uint32(len(vm.cases)-chosen)
@@ -1261,7 +1269,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.boolk(a, k):
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 			case chan int:
@@ -1271,7 +1279,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- int(vm.intk(a, k)):
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 			case chan rune:
@@ -1281,7 +1289,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- rune(vm.intk(a, k)):
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 			case chan string:
@@ -1291,7 +1299,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- vm.stringk(a, k):
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 			case chan struct{}:
@@ -1301,7 +1309,7 @@ func (vm *VM) run() (uint32, bool) {
 					select {
 					case ch <- struct{}{}:
 					case <-vm.done:
-						return vm.hasDone()
+						panic(errDone)
 					}
 				}
 			default:
@@ -1316,7 +1324,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = append(vm.cases, cas, vm.doneCase)
 					chosen, _, _ := reflect.Select(vm.cases)
 					if chosen == 1 {
-						return vm.hasDone()
+						panic(errDone)
 					}
 					vm.cases = vm.cases[:0]
 				}
@@ -1473,9 +1481,9 @@ func (vm *VM) run() (uint32, bool) {
 				if in.Op == -OpAlloc {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
-						vm.env.Lock()
+						vm.env.mu.Lock()
 						vm.env.freeMemory -= int(bytes)
-						vm.env.Unlock()
+						vm.env.mu.Unlock()
 					}
 				}
 			}
@@ -1515,9 +1523,9 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Write
 		case OpWrite:
-			_, vm.err = vm.env.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
-			if vm.err != nil {
-				return maxAddr, false
+			_, err := vm.env.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
+			if err != nil {
+				panic(err)
 			}
 
 		// Xor

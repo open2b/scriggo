@@ -52,9 +52,9 @@ func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 			continue
 		}
 		// Importing a Go global function.
-		if reflect.TypeOf(value).Kind() == reflect.Func {
+		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
-				Type:       reflect.TypeOf(value),
+				Type:       removeEnvArg(typ, false),
 				Properties: PropertyIsPredefined,
 			}}
 			continue

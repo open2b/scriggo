@@ -541,7 +541,7 @@ func isOrdered(t *TypeInfo) bool {
 func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	if t.IsType() {
 		if method, ok := t.Type.MethodByName(name); ok {
-			return &TypeInfo{Type: method.Type}, true
+			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
 		}
 		return nil, false
 	}
@@ -551,24 +551,24 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	if t.Type.Kind() == reflect.Interface {
 		method, ok := t.Type.MethodByName(name)
 		if ok {
-			return &TypeInfo{Type: method.Type}, true
+			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
 		}
 		if t.Type.Kind() != reflect.Ptr {
 			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
 			if ok {
-				return &TypeInfo{Type: method.Type}, true
+				return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
 			}
 		}
 		return nil, false
 	}
 	method := reflect.Zero(t.Type).MethodByName(name)
 	if method.IsValid() {
-		return &TypeInfo{Type: method.Type()}, true
+		return &TypeInfo{Type: removeEnvArg(method.Type(), false)}, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
 		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
 		if method.IsValid() {
-			return &TypeInfo{Type: method.Type()}, true
+			return &TypeInfo{Type: removeEnvArg(method.Type(), false)}, true
 		}
 	}
 	return nil, false
@@ -587,6 +587,35 @@ func newFloat() *big.Float {
 // newRat returns a new big.Rat.
 func newRat() *big.Rat {
 	return new(big.Rat)
+}
+
+// removeEnvArg returns the a type equal to typ but with the vm environment
+// parameter removed, if there is one. hasReceiver reports whether the first
+// argument of typ is a receiver.
+func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
+	numIn := typ.NumIn()
+	if hasReceiver && (numIn <= 1 || typ.In(1) != envType) {
+		return typ
+	}
+	if !hasReceiver && (numIn == 0 || typ.In(0) != envType) {
+		return typ
+	}
+	ins := make([]reflect.Type, numIn-1)
+	if hasReceiver {
+		ins[0] = typ.In(0)
+		for i := 2; i < numIn; i++ {
+			ins[i-1] = typ.In(i)
+		}
+	} else {
+		for i := 1; i < numIn; i++ {
+			ins[i-1] = typ.In(i)
+		}
+	}
+	outs := make([]reflect.Type, typ.NumOut())
+	for i := range outs {
+		outs[i] = typ.Out(i)
+	}
+	return reflect.FuncOf(ins, outs, typ.IsVariadic())
 }
 
 // representedBy returns t1 ( a constant or an untyped boolean value )

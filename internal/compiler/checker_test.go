@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"scrigo/internal/compiler/ast"
+	"scrigo/vm"
 )
 
 func tierr(line, column int, text string) *CheckingError {
@@ -1243,6 +1244,68 @@ func TestCheckerStatements(t *testing.T) {
 			tc.checkNodes(tree.Nodes)
 			tc.removeCurrentScope()
 		}()
+	}
+}
+
+type T int
+
+func (t T) M0()                          {}
+func (t T) M1(a int)                     {}
+func (t T) M2(a, b int)                  {}
+func (t T) MVar(a ...int)                {}
+func (t T) Env0(env *vm.Env)             {}
+func (t T) Env1(env *vm.Env, a int)      {}
+func (t T) Env2(env *vm.Env, a, b int)   {}
+func (t T) EnvVar(env *vm.Env, a ...int) {}
+
+func TestCheckerRemoveEnv(t *testing.T) {
+	pPkg := &PredefinedPackage{
+		Name: "p",
+		Declarations: map[string]interface{}{
+			"T":      reflect.TypeOf(T(0)),
+			"F0":     func() {},
+			"F1":     func(a int) {},
+			"F2":     func(a, b int) {},
+			"Env0":   func(env *vm.Env) {},
+			"Env1":   func(env *vm.Env, a int) {},
+			"Env2":   func(env *vm.Env, a, b int) {},
+			"EnvVar": func(env *vm.Env, a ...int) {},
+		},
+	}
+	main := []byte(`
+	package main
+	import "p"
+	func main() {
+		v := p.T(0)
+		vp := new(p.T)
+		p.F0()
+		p.F1(1)
+		p.F2(1,2)
+		v.M0()
+		v.M1(1)
+		v.M2(1,2)	
+		vp.M0()
+		vp.M1(1)
+		vp.M2(1,2)
+		p.Env0()
+		p.Env1(1)
+		p.EnvVar(1,2,3,4,5)
+	}`)
+	pPkgImporter := map[string]*PredefinedPackage{"p": pPkg}
+	tree, deps, _, err := ParseProgram([]PackageImporter{map[string][]byte{"/main": main}, pPkgImporter})
+	if err != nil {
+		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
+		return
+	}
+	opts := &Options{
+		AllowImports: true,
+		NotUsedError: true,
+		IsPackage:    true,
+	}
+	_, err = Typecheck(opts, tree, nil, pPkgImporter, deps, nil)
+	if err != nil {
+		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
+		return
 	}
 }
 
