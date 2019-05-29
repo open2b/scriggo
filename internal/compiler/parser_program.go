@@ -135,7 +135,7 @@ func (pp *programExpansion) parsePath(path string) (*ast.Tree, GlobalsDependenci
 
 	src, ok := lookupSource(pp.packages, path)
 	if !ok {
-		panic("not found")
+		return nil, nil, ErrNotExist
 	}
 
 	tree, deps, err := ParseSource(src, true, false)
