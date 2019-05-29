@@ -51,7 +51,7 @@ func addExplicitReturn(node ast.Node) {
 }
 
 // changeRegister moves src content into dst, making a conversion if necessary.
-func (e *Emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
 			e.FB.EnterStack()
@@ -82,7 +82,7 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
-func (e *Emitter) importPredefinedPackage(n *ast.Import) {
+func (e *emitter) importPredefinedPackage(n *ast.Import) {
 	var importPkgName string
 	parserPredefinedPkg := e.importablePredefinedPkgs[n.Path]
 	if n.Ident == nil {
@@ -129,7 +129,7 @@ func isExported(name string) bool {
 }
 
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
-func (e *Emitter) isLenBuiltinCall(expr ast.Expression) bool {
+func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
 		if ti := e.TypeInfo[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
@@ -203,7 +203,7 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 
 // predefinedFunctionIndex returns fun's index inside current function,
 // creating it if not exists.
-func (e *Emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
+func (e *emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
 	currFun := e.CurrentFunction
 	i, ok := e.assignedPredefinedFunctions[currFun][fun]
 	if ok {
@@ -220,7 +220,7 @@ func (e *Emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
 
 // functionIndex returns fun's index inside current function, creating it if
 // not exists.
-func (e *Emitter) functionIndex(fun *vm.Function) int8 {
+func (e *emitter) functionIndex(fun *vm.Function) int8 {
 	currFun := e.CurrentFunction
 	i, ok := e.assignedFunctions[currFun][fun]
 	if ok {
@@ -237,7 +237,7 @@ func (e *Emitter) functionIndex(fun *vm.Function) int8 {
 
 // setClosureRefs sets closure refs for function. This function works on current
 // function builder, so shall be called before changing/saving it.
-func (e *Emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
+func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 
 	// First: updates indexes of declarations that are found at the same level
 	// of fn with appropriate register indexes.

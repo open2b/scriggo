@@ -14,8 +14,8 @@ import (
 	"scrigo/vm"
 )
 
-// An Emitter emits instructions for the VM.
-type Emitter struct {
+// An emitter emits instructions for the VM.
+type emitter struct {
 	CurrentFunction          *vm.Function
 	TypeInfo                 map[ast.Node]*TypeInfo
 	FB                       *functionBuilder
@@ -56,8 +56,8 @@ type Emitter struct {
 
 // newEmitter returns a new emitter reading sources from r.
 // Predefined packages are made available for importing.
-func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *Emitter {
-	c := &Emitter{
+func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
+	c := &emitter{
 		importablePredefinedPkgs:     packages,
 		upvarsNames:                  make(map[*vm.Function]map[string]int),
 		availableFunctions:           map[*ast.Package]map[string]*vm.Function{},
@@ -120,7 +120,7 @@ func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackag
 
 // emitPackage emits package pkg. Returns a list of exported functions and
 // exported variables.
-func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
+func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
 	e.currentPackage = pkg
 	e.availableFunctions[e.currentPackage] = map[string]*vm.Function{}
 	e.availablePredefinedFunctions[e.currentPackage] = map[string]*vm.PredefinedFunction{}
@@ -306,7 +306,7 @@ func (e *Emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective type.
-func (e *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
+func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
 	regs := make([]int8, numOut)
@@ -370,7 +370,7 @@ func (e *Emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 
 // prepareFunctionBodyParameters prepares fun's parameters (out and int) before
 // emitting its body.
-func (e *Emitter) prepareFunctionBodyParameters(fun *ast.Func) {
+func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	// Reserves space for return parameters.
 	fillParametersTypes(fun.Type.Result)
 	for _, res := range fun.Type.Result {
@@ -395,7 +395,7 @@ func (e *Emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 
 // emitCall emits instruction for a call, returning the list of registers (and
 // their respective type) within which return values are inserted.
-func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
+func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	stackShift := vm.StackShift{
 		int8(e.FB.numRegs[reflect.Int]),
 		int8(e.FB.numRegs[reflect.Float64]),
@@ -467,7 +467,7 @@ func (e *Emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
 // emitExpr emits instruction such that expr value is put into reg. If reg is
 // zero instructions are emitted anyway but result is discarded.
-func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
+func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 	// TODO (Gianluca): review all "kind" arguments in every emitExpr call.
 	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
 	switch expr := expr.(type) {
@@ -927,7 +927,7 @@ func (e *Emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 // floats and constant for strings and generals) or a register, putting it into
 // out. If it's neither of them, both k and isRegister are false and content of
 // out is unspecified.
-func (e *Emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, isRegister bool) {
+func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, isRegister bool) {
 	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
 	// not need extra registers for evaluation.
 
@@ -966,7 +966,7 @@ func (e *Emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 
 // emitBuiltin emits instructions for a builtin call, writing result into reg if
 // necessary.
-func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
+func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
 		sliceType := e.TypeInfo[call.Args[0]].Type
@@ -1137,7 +1137,7 @@ func (e *Emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 }
 
 // EmitNodes emits instructions for nodes.
-func (e *Emitter) EmitNodes(nodes []ast.Node) {
+func (e *emitter) EmitNodes(nodes []ast.Node) {
 	for _, node := range nodes {
 		switch node := node.(type) {
 
@@ -1475,7 +1475,7 @@ func (e *Emitter) EmitNodes(nodes []ast.Node) {
 }
 
 // emitTypeSwitch emits instructions for a type switch node.
-func (e *Emitter) emitTypeSwitch(node *ast.TypeSwitch) {
+func (e *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 
 	e.FB.EnterScope()
@@ -1550,7 +1550,7 @@ func (e *Emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 }
 
 // emitSwitch emits instructions for a switch node.
-func (e *Emitter) emitSwitch(node *ast.Switch) {
+func (e *emitter) emitSwitch(node *ast.Switch) {
 
 	e.FB.EnterScope()
 
@@ -1618,7 +1618,7 @@ func (e *Emitter) emitSwitch(node *ast.Switch) {
 
 // emitCondition emits instructions for a condition. Last instruction added by
 // this method is always "If".
-func (e *Emitter) emitCondition(cond ast.Expression) {
+func (e *emitter) emitCondition(cond ast.Expression) {
 
 	switch cond := cond.(type) {
 

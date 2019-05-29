@@ -30,7 +30,7 @@ const (
 
 // address represents an element on the left side of assignments.
 type address struct {
-	c          *Emitter
+	c          *emitter
 	addrType   addressType
 	staticType reflect.Type // Type of the addressed element.
 	reg1       int8         // Register containing the main expression.
@@ -38,7 +38,7 @@ type address struct {
 }
 
 // newAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
-func (e *Emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
+func (e *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
 	return address{c: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
 
@@ -74,7 +74,7 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 }
 
 // assign assigns values to addresses.
-func (e *Emitter) assign(addresses []address, values []ast.Expression) {
+func (e *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == len(values) {
 		valueRegs := make([]int8, len(values))
@@ -125,7 +125,7 @@ func (e *Emitter) assign(addresses []address, values []ast.Expression) {
 }
 
 // emitAssignmentNode emits instructions for an assignment node.
-func (e *Emitter) emitAssignmentNode(node *ast.Assignment) {
+func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 	switch node.Type {
 	case ast.AssignmentDeclaration:
 		addresses := make([]address, len(node.Variables))
