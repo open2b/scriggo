@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"scrigo/internal/compiler/ast"
+	"scrigo/internal/compiler/ast/astutil"
 )
 
 type Reader interface {
@@ -968,6 +969,7 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			kind = "const"
 		}
+		var lastConstValues []ast.Expression
 		if tok.ctx != p.ctx {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
@@ -996,6 +998,15 @@ func (p *parsing) parseStatement(tok token) {
 					break
 				}
 				lastNode = p.parseVarOrConst(tok, nodePos, kind)
+				if c, ok := lastNode.(*ast.Const); ok {
+					if len(c.Values) == 0 {
+						c.Values = make([]ast.Expression, len(lastConstValues))
+						for i := range lastConstValues {
+							c.Values[i] = astutil.CloneExpression(lastConstValues[i])
+						}
+					}
+					lastConstValues = c.Values
+				}
 				p.addChild(lastNode)
 			}
 		} else {
@@ -1395,11 +1406,12 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
 		}
-	case tokenEndStatement:
-		// TODO(Gianluca): support constant declaration with implicit value.
+	case tokenSemicolon:
 		// const c
 		// const c, d
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting value")})
+		if kind == "var" {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
+		}
 	default:
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 	}

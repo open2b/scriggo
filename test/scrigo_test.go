@@ -122,6 +122,104 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Implicit repetition on global declaration using iota",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		const (
+			A = iota
+		)
+		
+		const (
+			B = iota
+			C
+		)
+		
+		func main() {
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "0 0 1",
+	},
+	{
+		name: "Implicit repetition on local declaration using iota (multiple iota on same line)",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const (
+				A = 10 + iota + (iota * 2)
+				B
+				C
+			)
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "10 13 16",
+	},
+	{
+		name: "Implicit repetition on local declaration using iota",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const (
+				A = 2 << iota
+				B
+				C
+			)
+			fmt.Print(A, B, C)
+		}
+		`,
+		output: "2 4 8",
+	},
+	{
+		name: "Implicit repetition on local declaration",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const (
+				A = 10
+				B
+			)
+			fmt.Print(A, B)
+		}
+		`,
+		output: "10 10",
+	},
+	{
+		name: "Implicit repetition on global declaration",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		const (
+			A = 10
+			B
+		)
+		
+		func main() {
+			fmt.Print(A, B)
+		}	
+		`,
+		output: "10 10",
+	},
+	{
 		name: "Iota - local constant in math expression",
 		src: `package main
 
@@ -3650,7 +3748,7 @@ func TestVM(t *testing.T) {
 			r := scrigo.MapReader{"/main": []byte(cas.src)}
 			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{r, goPackages}, scrigo.LimitMemorySize)
 			if err != nil {
-				t.Errorf("test %q, compiler error: %s", cas.src, err)
+				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
 			}
 			backupStdout := os.Stdout

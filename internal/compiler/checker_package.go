@@ -161,11 +161,14 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 		case *ast.Func:
 			funcs = append(funcs, decl)
 		case *ast.Const:
-			if len(decl.Values) != len(decl.Identifiers) {
-				panic("TODO(Gianluca): not implemented")
-			}
-			for i := range decl.Identifiers {
-				consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, decl.Values[i:i+1]))
+			if len(decl.Values) == 0 {
+				for i := range decl.Identifiers {
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, nil))
+				}
+			} else {
+				for i := range decl.Identifiers {
+					consts = append(consts, ast.NewConst(decl.Pos(), decl.Identifiers[i:i+1], decl.Type, decl.Values[i:i+1]))
+				}
 			}
 		case *ast.Var:
 			if len(decl.Lhs) == len(decl.Rhs) {
