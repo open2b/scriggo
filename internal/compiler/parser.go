@@ -970,6 +970,7 @@ func (p *parsing) parseStatement(tok token) {
 			kind = "const"
 		}
 		var lastConstValues []ast.Expression
+		var lastConstType ast.Expression
 		if tok.ctx != p.ctx {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
@@ -999,6 +1000,9 @@ func (p *parsing) parseStatement(tok token) {
 				}
 				lastNode = p.parseVarOrConst(tok, nodePos, kind)
 				if c, ok := lastNode.(*ast.Const); ok {
+					if c.Type == nil {
+						c.Type = astutil.CloneExpression(lastConstType)
+					}
 					if len(c.Values) == 0 {
 						c.Values = make([]ast.Expression, len(lastConstValues))
 						for i := range lastConstValues {
@@ -1006,6 +1010,7 @@ func (p *parsing) parseStatement(tok token) {
 						}
 					}
 					lastConstValues = c.Values
+					lastConstType = c.Type
 				}
 				p.addChild(lastNode)
 			}
