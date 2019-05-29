@@ -43,11 +43,11 @@ func ValidPath(path string) bool {
 		!strings.HasSuffix(path, "/..")
 }
 
-// ToAbsolutePath combines dir with path to obtain an absolute path.
+// toAbsolutePath combines dir with path to obtain an absolute path.
 // dir must be absolute and path must be relative. The parameters are not
 // validated, but an error is returned if the resulting path is outside
 // the root "/".
-func ToAbsolutePath(dir, path string) (string, error) {
+func toAbsolutePath(dir, path string) (string, error) {
 	if !strings.Contains(path, "..") {
 		return dir + path, nil
 	}

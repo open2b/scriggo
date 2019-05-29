@@ -69,7 +69,7 @@ func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Con
 		path = path[1:]
 	}
 	// Cleans the path by removing "..".
-	path, err := ToAbsolutePath("/", path)
+	path, err := toAbsolutePath("/", path)
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +105,11 @@ type templateExpansion struct {
 func (pp *templateExpansion) abs(path string) (string, error) {
 	var err error
 	if path[0] == '/' {
-		path, err = ToAbsolutePath("/", path[1:])
+		path, err = toAbsolutePath("/", path[1:])
 	} else {
 		parent := pp.paths[len(pp.paths)-1]
 		dir := parent[:strings.LastIndex(parent, "/")+1]
-		path, err = ToAbsolutePath(dir, path)
+		path, err = toAbsolutePath(dir, path)
 	}
 	return path, err
 }
