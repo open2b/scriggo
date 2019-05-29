@@ -121,7 +121,7 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func NewTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
+func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
 	return &typechecker{
 		isScript:         isScript,
 		path:             path,

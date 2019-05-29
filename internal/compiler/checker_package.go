@@ -355,7 +355,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		return fmt.Errorf("expected 'package', found '%s'", t)
 	}
 
-	tc := NewTypechecker(tree.Path, false, disallowGoStmt)
+	tc := newTypechecker(tree.Path, false, disallowGoStmt)
 	tc.Universe = universe
 
 	err = sortDeclarations(packageNode, deps)

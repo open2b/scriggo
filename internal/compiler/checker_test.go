@@ -445,7 +445,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := NewTypechecker("", false, false)
+			tc := newTypechecker("", false, false)
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -527,7 +527,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := NewTypechecker("", false, false)
+			tc := newTypechecker("", false, false)
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -1236,7 +1236,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := NewTypechecker("", false, true)
+			tc := newTypechecker("", false, true)
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.Universe = universe
 			tc.addScope()
@@ -1641,7 +1641,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := NewTypechecker("", false, false)
+	tc := newTypechecker("", false, false)
 	for src, expected := range cases {
 		tree, _, err := ParseSource([]byte(src), false, false)
 		if err != nil {
@@ -1734,7 +1734,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := NewTypechecker("", false, false)
+		tc := newTypechecker("", false, false)
 		tc.addScope()
 		tree, _, err := ParseSource([]byte(src), false, false)
 		if err != nil {
