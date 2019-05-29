@@ -356,7 +356,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 	}
 
 	tc := NewTypechecker(tree.Path, false, disallowGoStmt)
-	tc.Universe = Universe
+	tc.Universe = universe
 
 	err = sortDeclarations(packageNode, deps)
 	if err != nil {

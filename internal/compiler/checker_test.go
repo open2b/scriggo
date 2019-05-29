@@ -447,7 +447,7 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			tc := NewTypechecker("", false, false)
 			tc.Scopes = scopes
-			tc.Universe = Universe
+			tc.Universe = universe
 			tc.addScope()
 			ti := tc.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
@@ -529,7 +529,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}
 			tc := NewTypechecker("", false, false)
 			tc.Scopes = scopes
-			tc.Universe = Universe
+			tc.Universe = universe
 			tc.addScope()
 			ti := tc.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
@@ -1238,7 +1238,7 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			tc := NewTypechecker("", false, true)
 			tc.Scopes = append(tc.Scopes, scope)
-			tc.Universe = Universe
+			tc.Universe = universe
 			tc.addScope()
 			tc.checkNodes(tree.Nodes)
 			tc.removeCurrentScope()
@@ -1439,11 +1439,11 @@ func tiUntypedFloatConst(lit string) *TypeInfo {
 	}
 }
 
-func tiFloat32() *TypeInfo { return &TypeInfo{Type: Universe["float32"].t.Type} }
+func tiFloat32() *TypeInfo { return &TypeInfo{Type: universe["float32"].t.Type} }
 func tiFloat64() *TypeInfo { return &TypeInfo{Type: float64Type} }
 
 func tiAddrFloat32() *TypeInfo {
-	return &TypeInfo{Type: Universe["float32"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["float32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrFloat64() *TypeInfo {
@@ -1451,7 +1451,7 @@ func tiAddrFloat64() *TypeInfo {
 }
 
 func tiFloat32Const(n float32) *TypeInfo {
-	return &TypeInfo{Type: Universe["float32"].t.Type, Value: float64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["float32"].t.Type, Value: float64(n), Properties: PropertyIsConstant}
 }
 
 func tiFloat64Const(n float64) *TypeInfo {
@@ -1503,54 +1503,54 @@ func tiUntypedIntConst(lit string) *TypeInfo {
 }
 
 func tiInt() *TypeInfo    { return &TypeInfo{Type: intType} }
-func tiInt8() *TypeInfo   { return &TypeInfo{Type: Universe["int8"].t.Type} }
-func tiInt16() *TypeInfo  { return &TypeInfo{Type: Universe["int16"].t.Type} }
-func tiInt32() *TypeInfo  { return &TypeInfo{Type: Universe["int32"].t.Type} }
-func tiInt64() *TypeInfo  { return &TypeInfo{Type: Universe["int64"].t.Type} }
-func tiUint() *TypeInfo   { return &TypeInfo{Type: Universe["uint"].t.Type} }
-func tiUint8() *TypeInfo  { return &TypeInfo{Type: Universe["uint8"].t.Type} }
-func tiUint16() *TypeInfo { return &TypeInfo{Type: Universe["uint16"].t.Type} }
-func tiUint32() *TypeInfo { return &TypeInfo{Type: Universe["uint32"].t.Type} }
-func tiUint64() *TypeInfo { return &TypeInfo{Type: Universe["uint64"].t.Type} }
+func tiInt8() *TypeInfo   { return &TypeInfo{Type: universe["int8"].t.Type} }
+func tiInt16() *TypeInfo  { return &TypeInfo{Type: universe["int16"].t.Type} }
+func tiInt32() *TypeInfo  { return &TypeInfo{Type: universe["int32"].t.Type} }
+func tiInt64() *TypeInfo  { return &TypeInfo{Type: universe["int64"].t.Type} }
+func tiUint() *TypeInfo   { return &TypeInfo{Type: universe["uint"].t.Type} }
+func tiUint8() *TypeInfo  { return &TypeInfo{Type: universe["uint8"].t.Type} }
+func tiUint16() *TypeInfo { return &TypeInfo{Type: universe["uint16"].t.Type} }
+func tiUint32() *TypeInfo { return &TypeInfo{Type: universe["uint32"].t.Type} }
+func tiUint64() *TypeInfo { return &TypeInfo{Type: universe["uint64"].t.Type} }
 
 func tiAddrInt() *TypeInfo {
 	return &TypeInfo{Type: intType, Properties: PropertyAddressable}
 }
 
 func tiAddrInt8() *TypeInfo {
-	return &TypeInfo{Type: Universe["int8"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int8"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt16() *TypeInfo {
-	return &TypeInfo{Type: Universe["int16"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int16"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt32() *TypeInfo {
-	return &TypeInfo{Type: Universe["int32"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrInt64() *TypeInfo {
-	return &TypeInfo{Type: Universe["int64"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["int64"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint() *TypeInfo {
-	return &TypeInfo{Type: Universe["uint"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint8() *TypeInfo {
-	return &TypeInfo{Type: Universe["uint8"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint16() *TypeInfo {
-	return &TypeInfo{Type: Universe["uint16"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint32() *TypeInfo {
-	return &TypeInfo{Type: Universe["uint32"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiAddrUint64() *TypeInfo {
-	return &TypeInfo{Type: Universe["uint64"].t.Type, Properties: PropertyAddressable}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Properties: PropertyAddressable}
 }
 
 func tiIntConst(n int) *TypeInfo {
@@ -1558,39 +1558,39 @@ func tiIntConst(n int) *TypeInfo {
 }
 
 func tiInt8Const(n int8) *TypeInfo {
-	return &TypeInfo{Type: Universe["int8"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int8"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt16Const(n int16) *TypeInfo {
-	return &TypeInfo{Type: Universe["int16"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int16"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt32Const(n int32) *TypeInfo {
-	return &TypeInfo{Type: Universe["int32"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int32"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt64Const(n int64) *TypeInfo {
-	return &TypeInfo{Type: Universe["int64"].t.Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int64"].t.Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
 }
 
 func tiUintConst(n uint) *TypeInfo {
-	return &TypeInfo{Type: Universe["uint"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint8Const(n uint8) *TypeInfo {
-	return &TypeInfo{Type: Universe["uint8"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint16Const(n uint16) *TypeInfo {
-	return &TypeInfo{Type: Universe["uint16"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint32Const(n uint32) *TypeInfo {
-	return &TypeInfo{Type: Universe["uint32"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint64Const(n uint64) *TypeInfo {
-	return &TypeInfo{Type: Universe["uint64"].t.Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
 }
 
 func tiIntPtr() *TypeInfo {
@@ -1605,7 +1605,7 @@ func tiNil() *TypeInfo { return &TypeInfo{Properties: PropertyNil} }
 
 // byte type info.
 
-func tiByte() *TypeInfo { return &TypeInfo{Type: Universe["byte"].t.Type} }
+func tiByte() *TypeInfo { return &TypeInfo{Type: universe["byte"].t.Type} }
 
 // byte slice type info.
 
@@ -1629,7 +1629,7 @@ func tiIntChan(dir reflect.ChanDir) *TypeInfo { return &TypeInfo{Type: reflect.C
 
 // interface{} type info.
 
-func tiInterface() *TypeInfo { return &TypeInfo{Type: Universe["interface{}"].t.Type} }
+func tiInterface() *TypeInfo { return &TypeInfo{Type: universe["interface{}"].t.Type} }
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{
@@ -1655,8 +1655,8 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 }
 
 func TestTypechecker_IsAssignableTo(t *testing.T) {
-	stringType := Universe["string"].t.Type
-	float64Type := Universe["float64"].t.Type
+	stringType := universe["string"].t.Type
+	float64Type := universe["float64"].t.Type
 	intSliceType := reflect.TypeOf([]int{})
 	stringSliceType := reflect.TypeOf([]string{})
 	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()

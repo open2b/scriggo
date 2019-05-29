@@ -40,7 +40,7 @@ var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
 
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
-var Universe = TypeCheckerScope{
+var universe = TypeCheckerScope{
 	"append":      {t: builtinTypeInfo},
 	"cap":         {t: builtinTypeInfo},
 	"close":       {t: builtinTypeInfo},
@@ -739,7 +739,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
-				typ = Universe["byte"].t.Type
+				typ = universe["byte"].t.Type
 			case reflect.Slice, reflect.Array:
 				typ = t.Type.Elem()
 			case reflect.Ptr:

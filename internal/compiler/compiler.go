@@ -40,7 +40,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 		}
 	}()
 	tc := NewTypechecker(tree.Path, true, opts.DisallowGoStmt)
-	tc.Universe = Universe
+	tc.Universe = universe
 	if customBuiltins != nil {
 		tc.Scopes = append(tc.Scopes, customBuiltins)
 	}
