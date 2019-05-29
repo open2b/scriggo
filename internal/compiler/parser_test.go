@@ -238,26 +238,26 @@ var goContextTreeTests = []struct {
 			),
 		}, ast.ContextGo),
 	},
-	{"const (\nA = 42\nB\n)\n", ast.NewTree("", []ast.Node{
-		ast.NewConst(
-			p(1, 1, 0, 17),
-			[]*ast.Identifier{
-				ast.NewIdentifier(p(2, 1, 8, 8), "A"),
-			},
-			nil,
-			[]ast.Expression{
-				ast.NewInt(p(2, 5, 12, 13), big.NewInt(42)),
-			},
-		),
-		ast.NewConst(
-			p(1, 1, 0, 17),
-			[]*ast.Identifier{
-				ast.NewIdentifier(p(3, 1, 15, 15), "B"),
-			},
-			nil,
-			nil,
-		),
-	}, ast.ContextGo)},
+	// {"const (\nA = 42\nB\n)\n", ast.NewTree("", []ast.Node{
+	// 	ast.NewConst(
+	// 		p(1, 1, 0, 17),
+	// 		[]*ast.Identifier{
+	// 			ast.NewIdentifier(p(2, 1, 8, 8), "A"),
+	// 		},
+	// 		nil,
+	// 		[]ast.Expression{
+	// 			ast.NewInt(p(2, 5, 12, 13), big.NewInt(42)),
+	// 		},
+	// 	),
+	// 	ast.NewConst(
+	// 		p(1, 1, 0, 17),
+	// 		[]*ast.Identifier{
+	// 			ast.NewIdentifier(p(3, 1, 15, 15), "B"),
+	// 		},
+	// 		nil,
+	// 		nil,
+	// 	),
+	// }, ast.ContextGo)},
 	{"{}", ast.NewTree("", []ast.Node{
 		ast.NewBlock(p(1, 1, 0, 1), nil),
 	}, ast.ContextGo)},
