@@ -19,7 +19,7 @@ const maxAddr = 1<<32 - 1
 func (vm *VM) Run(fn *Function) (int, error) {
 	var isPanicked bool
 	vm.fn = fn
-	vm.vars = vm.ctx.globals
+	vm.vars = vm.env.globals
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked && len(vm.calls) > 0 {
@@ -34,7 +34,7 @@ func (vm *VM) Run(fn *Function) (int, error) {
 		break
 	}
 	if len(vm.panics) > 0 {
-		if vm.ctx.dontPanic {
+		if vm.env.dontPanic {
 			vm.err = vm.panics[len(vm.panics)-1]
 		} else {
 			var msg string
@@ -91,7 +91,7 @@ func (vm *VM) run() (uint32, bool) {
 			}
 		}
 
-		if vm.ctx.trace != nil {
+		if vm.env.trace != nil {
 			vm.invokeTraceFunc()
 		}
 
@@ -130,13 +130,13 @@ func (vm *VM) run() (uint32, bool) {
 		case -OpAlloc:
 			bytes := decodeUint24(a, b, c)
 			var free int
-			vm.ctx.Lock()
-			free = vm.ctx.freeMemory
+			vm.env.Lock()
+			free = vm.env.freeMemory
 			if free >= 0 {
 				free -= int(bytes)
-				vm.ctx.freeMemory = free
+				vm.env.freeMemory = free
 			}
-			vm.ctx.Unlock()
+			vm.env.Unlock()
 			if free < 0 {
 				vm.err = ErrOutOfMemory
 				return maxAddr, false
@@ -258,7 +258,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.moreGeneralStack()
 			}
 			vm.fn = fn
-			vm.vars = vm.ctx.globals
+			vm.vars = vm.env.globals
 			vm.calls = append(vm.calls, call)
 			vm.pc = 0
 
@@ -357,7 +357,7 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setGeneral(c, array.Elem().Interface())
 			case reflect.Func:
 				call := vm.general(a).(*callable)
-				vm.setGeneral(c, call.reflectValue(vm.ctx).Interface())
+				vm.setGeneral(c, call.reflectValue(vm.env).Interface())
 			default:
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
@@ -1184,15 +1184,15 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Return
 		case OpReturn:
-			if vm.ctx.freeMemory > 0 {
+			if vm.env.freeMemory > 0 {
 				in := vm.fn.Body[0]
 				if in.Op == -OpAlloc {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
-						vm.ctx.Lock()
-						vm.ctx.freeMemory -= int(bytes)
-						vm.ctx.Unlock()
+						vm.env.Lock()
+						vm.env.freeMemory -= int(bytes)
+						vm.env.Unlock()
 					}
 				}
 			}
@@ -1468,14 +1468,14 @@ func (vm *VM) run() (uint32, bool) {
 
 		// TailCall
 		case OpTailCall:
-			if vm.ctx.freeMemory > 0 {
+			if vm.env.freeMemory > 0 {
 				in := vm.fn.Body[0]
 				if in.Op == -OpAlloc {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
-						vm.ctx.Lock()
-						vm.ctx.freeMemory -= int(bytes)
-						vm.ctx.Unlock()
+						vm.env.Lock()
+						vm.env.freeMemory -= int(bytes)
+						vm.env.Unlock()
 					}
 				}
 			}
@@ -1489,7 +1489,7 @@ func (vm *VM) run() (uint32, bool) {
 					vm.vars = closure.vars
 				} else {
 					fn = vm.fn.Functions[uint8(b)]
-					vm.vars = vm.ctx.globals
+					vm.vars = vm.env.globals
 				}
 				if vm.fp[0]+uint32(fn.RegNum[0]) > vm.st[0] {
 					vm.moreIntStack()
@@ -1515,7 +1515,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Write
 		case OpWrite:
-			_, vm.err = vm.ctx.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
+			_, vm.err = vm.env.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
 			if vm.err != nil {
 				return maxAddr, false
 			}

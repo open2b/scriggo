@@ -41,7 +41,7 @@ type VM struct {
 	regs     registers            // registers.
 	fn       *Function            // running function.
 	vars     []interface{}        // global and closure variables.
-	ctx      *context             // execution context.
+	env      *environment         // execution environment.
 	calls    []callFrame          // call stack frame.
 	cases    []reflect.SelectCase // select cases.
 	done     <-chan struct{}      // done.
@@ -68,9 +68,9 @@ func New() *VM {
 // FreeMemory returns the current free memory in bytes. The returned value can
 // be negative. FreeMemory can be called when vm is running.
 func (vm *VM) FreeMemory() int {
-	vm.ctx.Lock()
-	free := vm.ctx.freeMemory
-	vm.ctx.Unlock()
+	vm.env.Lock()
+	free := vm.env.freeMemory
+	vm.env.Unlock()
 	return free
 }
 
@@ -85,7 +85,7 @@ func (vm *VM) Reset() {
 	vm.ok = false
 	vm.fn = nil
 	vm.vars = nil
-	vm.ctx = &context{}
+	vm.env = &environment{}
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
@@ -106,7 +106,7 @@ type Context interface {
 }
 
 func (vm *VM) SetContext(ctx Context) {
-	vm.ctx.context = ctx
+	vm.env.context = ctx
 	if ctx != nil {
 		if done := ctx.Done(); done != nil {
 			vm.done = done
@@ -121,30 +121,30 @@ func (vm *VM) SetContext(ctx Context) {
 }
 
 func (vm *VM) SetDontPanic(dontPanic bool) {
-	vm.ctx.dontPanic = dontPanic
+	vm.env.dontPanic = dontPanic
 }
 
 func (vm *VM) SetGlobals(globals []interface{}) {
-	vm.ctx.globals = globals
+	vm.env.globals = globals
 }
 
 // SetMaxMemory sets the maximum allocable memory.
 func (vm *VM) SetMaxMemory(bytes int) {
-	vm.ctx.freeMemory = bytes
+	vm.env.freeMemory = bytes
 }
 
 func (vm *VM) SetOut(out writer) {
-	if vm.ctx == nil {
-		vm.ctx = &context{}
+	if vm.env == nil {
+		vm.env = &environment{}
 	}
-	vm.ctx.out = out
+	vm.env.out = out
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
-	if vm.ctx == nil {
-		vm.ctx = &context{}
+	if vm.env == nil {
+		vm.env = &environment{}
 	}
-	vm.ctx.trace = fn
+	vm.env.trace = fn
 }
 
 // Stack returns the current stack trace.
@@ -364,13 +364,13 @@ func (vm *VM) alloc() error {
 	}
 	if bytes != 0 {
 		var free int
-		vm.ctx.Lock()
-		free = vm.ctx.freeMemory
+		vm.env.Lock()
+		free = vm.env.freeMemory
 		if free >= 0 {
 			free -= bytes
-			vm.ctx.freeMemory = free
+			vm.env.freeMemory = free
 		}
-		vm.ctx.Unlock()
+		vm.env.Unlock()
 		if free < 0 {
 			return ErrOutOfMemory
 		}
@@ -465,7 +465,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						vm.fp[2]++
 					case Func:
 						f := vm.general(1).(*callable)
-						args[i].Set(f.reflectValue(vm.ctx))
+						args[i].Set(f.reflectValue(vm.env))
 						vm.fp[3]++
 					default:
 						args[i].Set(reflect.ValueOf(vm.general(1)))
@@ -495,7 +495,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					case reflect.Func:
 						for j := 0; j < int(numVariadic); j++ {
 							f := vm.general(int8(j + 1)).(*callable)
-							slice.Index(j).Set(f.reflectValue(vm.ctx))
+							slice.Index(j).Set(f.reflectValue(vm.env))
 						}
 					case reflect.String:
 						for j := 0; j < int(numVariadic); j++ {
@@ -561,7 +561,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 }
 
 func (vm *VM) hasDone() (uint32, bool) {
-	vm.err = vm.ctx.context.Err()
+	vm.err = vm.env.context.Err()
 	return maxAddr, false
 }
 
@@ -573,7 +573,7 @@ func (vm *VM) invokeTraceFunc() {
 		String:  vm.regs.string[vm.fp[2]+1 : vm.fp[2]+uint32(vm.fn.RegNum[2])+1],
 		General: vm.regs.general[vm.fp[3]+1 : vm.fp[3]+uint32(vm.fn.RegNum[3])+1],
 	}
-	vm.ctx.trace(vm.fn, vm.pc, regs)
+	vm.env.trace(vm.fn, vm.pc, regs)
 }
 
 func (vm *VM) deferCall(fn *callable, numVariadic int8, shift, args StackShift) {
@@ -716,7 +716,7 @@ func (vm *VM) startGoroutine() bool {
 	switch call.Op {
 	case OpCall:
 		fn = vm.fn.Functions[uint8(call.A)]
-		vars = vm.ctx.globals
+		vars = vm.env.globals
 	case OpCallIndirect:
 		f := vm.general(call.A).(*callable)
 		if f.fn == nil {
@@ -730,7 +730,7 @@ func (vm *VM) startGoroutine() bool {
 	nvm := New()
 	nvm.fn = fn
 	nvm.vars = vars
-	nvm.ctx = vm.ctx
+	nvm.env = vm.env
 	nvm.done = vm.done
 	nvm.doneCase = vm.doneCase
 	off := vm.fn.Body[vm.pc]
@@ -827,8 +827,8 @@ type writer interface {
 	Write(p []byte) (n int, err error)
 }
 
-// context represents an execution context.
-type context struct {
+// environment represents an execution environment.
+type environment struct {
 	globals   []interface{} // global variables.
 	context   Context       // context.
 	dontPanic bool          // don't panic.
@@ -1000,7 +1000,7 @@ type callable struct {
 
 // reflectValue returns a Reflect Value of a callable, so it can be called
 // from a predefined code and passed to a predefined code.
-func (c *callable) reflectValue(ctx *context) reflect.Value {
+func (c *callable) reflectValue(ctx *environment) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -1019,7 +1019,7 @@ func (c *callable) reflectValue(ctx *context) reflect.Value {
 		nvm := New()
 		nvm.fn = fn
 		nvm.vars = vars
-		nvm.ctx = ctx
+		nvm.env = ctx
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
@@ -1138,7 +1138,7 @@ func sprint(v interface{}) []byte {
 		return append([]byte{}, v...)
 	default:
 		if v2, ok := v.(*callable); ok {
-			// TODO(marco): reflectValue needs a context
+			// TODO(marco): reflectValue needs a environment
 			v = v2.reflectValue(nil).Interface()
 		}
 		b := append([]byte{}, "("...)
