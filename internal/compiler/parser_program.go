@@ -75,8 +75,8 @@ func (p *programParser) parse(path string) (*ast.Tree, GlobalsDependencies, map[
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.Path == "" {
 			err2.Path = path
-		} else if err2, ok := err.(CycleError); ok {
-			err = CycleError(path + "\n\t" + string(err2))
+		} else if err2, ok := err.(cycleError); ok {
+			err = cycleError(path + "\n\t" + string(err2))
 		}
 		return nil, nil, nil, err
 	}
@@ -123,7 +123,7 @@ func (pp *programExpansion) parsePath(path string) (*ast.Tree, GlobalsDependenci
 	// Checks if there is a cycle.
 	for _, p := range pp.paths {
 		if p == path {
-			return nil, nil, CycleError(path)
+			return nil, nil, cycleError(path)
 		}
 	}
 
@@ -206,8 +206,8 @@ func (pp *programExpansion) expand(nodes []ast.Node) (GlobalsDependencies, error
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
 					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package \"%s\"", n.Path)}
-				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("imports " + string(err2))
+				} else if err2, ok := err.(cycleError); ok {
+					err = cycleError("imports " + string(err2))
 				}
 				return nil, err
 			}

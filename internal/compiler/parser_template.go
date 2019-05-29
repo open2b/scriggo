@@ -80,8 +80,8 @@ func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Con
 	if err != nil {
 		if err2, ok := err.(*SyntaxError); ok && err2.Path == "" {
 			err2.Path = path
-		} else if err2, ok := err.(CycleError); ok {
-			err = CycleError(path + "\n\t" + string(err2))
+		} else if err2, ok := err.(cycleError); ok {
+			err = cycleError(path + "\n\t" + string(err2))
 		}
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	// Checks if there is a cycle.
 	for _, p := range pp.paths {
 		if p == path {
-			return nil, CycleError(path)
+			return nil, cycleError(path)
 		}
 	}
 
@@ -257,8 +257,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
 					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("extends path %q does not exist", absPath)}
-				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("imports " + string(err2))
+				} else if err2, ok := err.(cycleError); ok {
+					err = cycleError("imports " + string(err2))
 				}
 				return err
 			}
@@ -275,8 +275,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
 					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("import path %q does not exist", absPath)}
-				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("imports " + string(err2))
+				} else if err2, ok := err.(cycleError); ok {
+					err = cycleError("imports " + string(err2))
 				}
 				return err
 			}
@@ -293,8 +293,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 					err = fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 				} else if err == ErrNotExist {
 					err = &SyntaxError{"", *(n.Pos()), fmt.Errorf("included path %q does not exist", absPath)}
-				} else if err2, ok := err.(CycleError); ok {
-					err = CycleError("include " + string(err2))
+				} else if err2, ok := err.(cycleError); ok {
+					err = cycleError("include " + string(err2))
 				}
 				return err
 			}

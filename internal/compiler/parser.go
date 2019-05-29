@@ -48,10 +48,10 @@ func (e *SyntaxError) Error() string {
 	return fmt.Sprintf("%s:%s: syntax error: %s", e.Path, e.Pos, e.Err)
 }
 
-// CycleError implements an error indicating the presence of a cycle.
-type CycleError string
+// cycleError implements an error indicating the presence of a cycle.
+type cycleError string
 
-func (e CycleError) Error() string {
+func (e cycleError) Error() string {
 	return fmt.Sprintf("cycle not allowed\n%s", string(e))
 }
 
