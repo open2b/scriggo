@@ -49,7 +49,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 	}
 	if opts.IsPackage {
 		pkgInfos := map[string]*PackageInfo{}
-		err := CheckPackage(tree, deps, imports, pkgInfos, opts.DisallowGoStmt)
+		err := checkPackage(tree, deps, imports, pkgInfos, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}

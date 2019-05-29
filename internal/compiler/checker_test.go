@@ -1854,7 +1854,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = CheckPackage(tree, deps, nil, nil, false)
+			err = checkPackage(tree, deps, nil, nil, false)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.
