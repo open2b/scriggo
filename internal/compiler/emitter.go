@@ -32,10 +32,10 @@ type emitter struct {
 	pkgVariables map[*ast.Package]map[string]int16
 
 	// Predefined functions.
-	predefFunIndex map[*vm.Function]map[reflect.Value]int8
+	predefFunIndexes map[*vm.Function]map[reflect.Value]int8
 
 	// Predefined variables.
-	predefVarIndex map[*vm.Function]map[reflect.Value]int16
+	predefVarIndexes map[*vm.Function]map[reflect.Value]int16
 
 	// Holds all Scrigo-defined and pre-predefined global variables.
 	globals []vm.Global
@@ -61,8 +61,8 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		availableFunctions: map[*ast.Package]map[string]*vm.Function{},
 		indirectVars:       indirectVars,
 		labels:             make(map[*vm.Function]map[string]uint32),
-		predefFunIndex:     map[*vm.Function]map[reflect.Value]int8{},
-		predefVarIndex:     map[*vm.Function]map[reflect.Value]int16{},
+		predefFunIndexes:   map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndexes:   map[*vm.Function]map[reflect.Value]int16{},
 		pkgVariables:       map[*ast.Package]map[string]int16{},
 		typeInfos:          typeInfos,
 		upvarsNames:        make(map[*vm.Function]map[string]int),
@@ -397,7 +397,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
 		regs, types := e.prepareCallParameters(funcType, call.Args, true)
-		index := e.predefFunctionIndex(funcTypeInfo.Value.(reflect.Value))
+		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value))
 		if funcType.IsVariadic() {
 			numVar := len(call.Args) - (funcType.NumIn() - 1)
 			e.fb.CallPredefined(index, int8(numVar), stackShift)
@@ -639,13 +639,13 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 			// Predefined function.
 			if typeInfo.Type.Kind() == reflect.Func {
-				index := e.predefFunctionIndex(typeInfo.Value.(reflect.Value))
+				index := e.predefFuncIndex(typeInfo.Value.(reflect.Value))
 				e.fb.GetFunc(true, index, reg)
 				return
 			}
 
 			// Predefined variable.
-			index := e.predefinedVariableIndex(typeInfo.Value.(reflect.Value))
+			index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
 			e.fb.GetVar(int(index), reg)
 			return
 		}

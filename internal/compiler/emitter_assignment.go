@@ -194,7 +194,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				ti := e.typeInfos[v]
 				if ti.IsPredefined() {
 					varRv := ti.Value.(reflect.Value)
-					index := e.predefinedVariableIndex(varRv)
+					index := e.predefVarIndex(varRv)
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
 				}
 

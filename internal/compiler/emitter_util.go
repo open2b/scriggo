@@ -46,6 +46,22 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
+// functionIndex returns fun's index inside current function, creating it if
+// not exists.
+func (e *emitter) functionIndex(fun *vm.Function) int8 {
+	i, ok := e.assignedFunctions[e.fb.fn][fun]
+	if ok {
+		return i
+	}
+	i = int8(len(e.fb.fn.Functions))
+	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
+	if e.assignedFunctions[e.fb.fn] == nil {
+		e.assignedFunctions[e.fb.fn] = make(map[*vm.Function]int8)
+	}
+	e.assignedFunctions[e.fb.fn][fun] = i
+	return i
+}
+
 // isExported indicates if name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {
@@ -66,11 +82,12 @@ func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 
 // isNil indicates if expr is the nil identifier.
 func isNil(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	if !ok {
-		return false
+	// TODO(Gianluca): this implementation is wrong: nil can be shadowed. Use
+	// typeinfo informations instead.
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Name == "nil"
 	}
-	return ident.Name == "nil"
+	return false
 }
 
 // kindToType returns VM's type of k.
@@ -125,50 +142,37 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-func (e *emitter) predefinedVariableIndex(varRv reflect.Value) int16 {
-	index, ok := e.predefVarIndex[e.fb.fn][varRv]
+// predefVarIndex returns index of varRv inside globals, adding it if necessary.
+func (e *emitter) predefVarIndex(varRv reflect.Value) int16 {
+	index, ok := e.predefVarIndexes[e.fb.fn][varRv]
 	if ok {
 		return index
 	}
 	index = int16(len(e.globals))
 	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
-	if e.predefVarIndex[e.fb.fn] == nil {
-		e.predefVarIndex[e.fb.fn] = make(map[reflect.Value]int16)
+	if e.predefVarIndexes[e.fb.fn] == nil {
+		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
 	}
 	e.globals = append(e.globals, g)
-	e.predefVarIndex[e.fb.fn][varRv] = index
+	e.predefVarIndexes[e.fb.fn][varRv] = index
 	return index
 }
 
-func (e *emitter) predefFunctionIndex(funRv reflect.Value) int8 {
-	index, ok := e.predefFunIndex[e.fb.fn][funRv]
+// predefFuncIndex returns index of funRv inside list of current function's
+// predefined functions, adding it if necessary.
+func (e *emitter) predefFuncIndex(funRv reflect.Value) int8 {
+	index, ok := e.predefFunIndexes[e.fb.fn][funRv]
 	if ok {
 		return index
 	}
 	index = int8(len(e.fb.fn.Predefined))
 	f := NewPredefinedFunction("???", "???", funRv.Interface())
-	if e.predefFunIndex[e.fb.fn] == nil {
-		e.predefFunIndex[e.fb.fn] = make(map[reflect.Value]int8)
+	if e.predefFunIndexes[e.fb.fn] == nil {
+		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
 	}
 	e.fb.fn.Predefined = append(e.fb.fn.Predefined, f)
-	e.predefFunIndex[e.fb.fn][funRv] = index
+	e.predefFunIndexes[e.fb.fn][funRv] = index
 	return index
-}
-
-// functionIndex returns fun's index inside current function, creating it if
-// not exists.
-func (e *emitter) functionIndex(fun *vm.Function) int8 {
-	i, ok := e.assignedFunctions[e.fb.fn][fun]
-	if ok {
-		return i
-	}
-	i = int8(len(e.fb.fn.Functions))
-	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
-	if e.assignedFunctions[e.fb.fn] == nil {
-		e.assignedFunctions[e.fb.fn] = make(map[*vm.Function]int8)
-	}
-	e.assignedFunctions[e.fb.fn][fun] = i
-	return i
 }
 
 // setClosureRefs sets closure refs for function. This function works on current
