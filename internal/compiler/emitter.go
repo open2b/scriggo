@@ -16,76 +16,70 @@ import (
 
 // An emitter emits instructions for the VM.
 type emitter struct {
-	CurrentFunction          *vm.Function
-	TypeInfo                 map[ast.Node]*TypeInfo
-	FB                       *functionBuilder
-	importablePredefinedPkgs map[string]*PredefinedPackage
-	IndirectVars             map[*ast.Identifier]bool
+	addAllocInstructions bool
+	fb                   *functionBuilder
+	indirectVars         map[*ast.Identifier]bool
+	labels               map[*vm.Function]map[string]uint32
+	pkg                  *ast.Package
+	typeInfos            map[ast.Node]*TypeInfo
+	upvarsNames          map[*vm.Function]map[string]int
 
-	upvarsNames map[*vm.Function]map[string]int
+	// Scrigo functions.
+	availableFunctions map[*ast.Package]map[string]*vm.Function
+	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
 
-	availableFunctions           map[*ast.Package]map[string]*vm.Function
-	availablePredefinedFunctions map[*ast.Package]map[string]*vm.PredefinedFunction
+	// Scrigo variables.
+	pkgVariables map[*ast.Package]map[string]int16
 
-	assignedFunctions           map[*vm.Function]map[*vm.Function]int8
-	assignedPredefinedFunctions map[*vm.Function]map[*vm.PredefinedFunction]int8
+	// Predefined functions.
+	predefFunIndexes map[*vm.Function]map[reflect.Value]int8
 
-	isPredefinedPkg map[string]bool
+	// Predefined variables.
+	predefVarIndexes map[*vm.Function]map[reflect.Value]int16
+
+	// Holds all Scrigo-defined and pre-predefined global variables.
+	globals []vm.Global
 
 	// rangeLabels is a list of current active Ranges. First element is the
 	// Range address, second refers to the first instruction outside Range's
 	// body.
 	rangeLabels [][2]uint32
 
-	globals         []vm.Global                       // holds all predefined and not predefined global variables.
-	globalNameIndex map[*ast.Package]map[string]int16 // maps global variable names to their index inside globals.
-
-	labels map[*vm.Function]map[string]uint32
-
-	currentPackage *ast.Package
-
 	// breakable is true if emitting a "breakable" statement (except ForRange,
 	// which implements his own "breaking" system).
 	breakable bool
+
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
-
-	alloc bool
 }
 
 // newEmitter returns a new emitter reading sources from r.
-// Predefined packages are made available for importing.
-func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
+func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
 	c := &emitter{
-		importablePredefinedPkgs:     packages,
-		upvarsNames:                  make(map[*vm.Function]map[string]int),
-		availableFunctions:           map[*ast.Package]map[string]*vm.Function{},
-		availablePredefinedFunctions: map[*ast.Package]map[string]*vm.PredefinedFunction{},
-		assignedFunctions:            map[*vm.Function]map[*vm.Function]int8{},
-		assignedPredefinedFunctions:  map[*vm.Function]map[*vm.PredefinedFunction]int8{},
-		isPredefinedPkg:              map[string]bool{},
-		globalNameIndex:              map[*ast.Package]map[string]int16{},
-		TypeInfo:                     typeInfos,
-		IndirectVars:                 indirectVars,
-		labels:                       make(map[*vm.Function]map[string]uint32),
+		assignedFunctions:  map[*vm.Function]map[*vm.Function]int8{},
+		availableFunctions: map[*ast.Package]map[string]*vm.Function{},
+		indirectVars:       indirectVars,
+		labels:             make(map[*vm.Function]map[string]uint32),
+		predefFunIndexes:   map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndexes:   map[*vm.Function]map[reflect.Value]int16{},
+		pkgVariables:       map[*ast.Package]map[string]int16{},
+		typeInfos:          typeInfos,
+		upvarsNames:        make(map[*vm.Function]map[string]int),
 	}
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
-	e := newEmitter(packages, typeInfos, indirectVars)
-	e.alloc = alloc
-	fn := NewFunction("main", "main", reflect.FuncOf(nil, nil, false))
-	e.CurrentFunction = fn
-	e.FB = newBuilder(e.CurrentFunction)
-	e.FB.SetAlloc(alloc)
-	e.FB.EnterScope()
-	addExplicitReturn(tree)
+func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+	e := newEmitter(typeInfos, indirectVars)
+	e.addAllocInstructions = alloc
+	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb.SetAlloc(alloc)
+	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
-	e.FB.ExitScope()
-	e.FB.End()
-	return e.CurrentFunction
+	e.fb.ExitScope()
+	e.fb.End()
+	return e.fb.fn
 }
 
 // Package is the result of a package emitting process.
@@ -96,9 +90,9 @@ type Package struct {
 }
 
 // EmitPackageMain emits package main, returning a Package.
-func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
-	e := newEmitter(packages, typeInfos, indirectVars)
-	e.alloc = alloc
+func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
+	e := newEmitter(typeInfos, indirectVars)
+	e.addAllocInstructions = alloc
 	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &Package{
@@ -112,51 +106,52 @@ func EmitPackageMain(pkgMain *ast.Package, packages map[string]*PredefinedPackag
 // emitPackage emits package pkg. Returns a list of exported functions and
 // exported variables.
 func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
-	e.currentPackage = pkg
-	e.availableFunctions[e.currentPackage] = map[string]*vm.Function{}
-	e.availablePredefinedFunctions[e.currentPackage] = map[string]*vm.PredefinedFunction{}
-	e.globalNameIndex[e.currentPackage] = map[string]int16{}
+	e.pkg = pkg
+	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+	e.pkgVariables[e.pkg] = map[string]int16{}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
-	// functions are called more than once, which is wrong.
-	initFuncs := []*vm.Function{} // List of all "init" functions in current package.
+	// functions are called more than once: that is wrong.
+	allInits := []*vm.Function{} // List of all "init" functions in current package.
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
 		if imp, ok := decl.(*ast.Import); ok {
 			if imp.Tree == nil {
-				e.importPredefinedPackage(imp)
+				// Nothing to do. Predefined variables, constants, types
+				// and functions are added as informations to tree by
+				// type-checker.
 			} else {
-				currentPkg := e.currentPackage
+				backupPkg := e.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				exportedFunctions, exportedVars, pkgInitFuncs := e.emitPackage(pkg)
-				e.currentPackage = currentPkg
-				initFuncs = append(initFuncs, pkgInitFuncs...)
-				var importPkgName string
+				funcs, vars, inits := e.emitPackage(pkg)
+				e.pkg = backupPkg
+				allInits = append(allInits, inits...)
+				var importName string
 				if imp.Ident == nil {
-					importPkgName = pkg.Name
+					importName = pkg.Name
 				} else {
 					switch imp.Ident.Name {
 					case "_":
 						panic("TODO(Gianluca): not implemented")
 					case ".":
-						importPkgName = ""
+						importName = ""
 					default:
-						importPkgName = imp.Ident.Name
+						importName = imp.Ident.Name
 					}
 				}
-				for name, fn := range exportedFunctions {
-					if importPkgName == "" {
-						e.availableFunctions[e.currentPackage][name] = fn
+				for name, fn := range funcs {
+					if importName == "" {
+						e.availableFunctions[e.pkg][name] = fn
 					} else {
-						e.availableFunctions[e.currentPackage][importPkgName+"."+name] = fn
+						e.availableFunctions[e.pkg][importName+"."+name] = fn
 					}
 				}
-				for name, v := range exportedVars {
-					if importPkgName == "" {
-						e.globalNameIndex[e.currentPackage][name] = v
+				for name, v := range vars {
+					if importName == "" {
+						e.pkgVariables[e.pkg][name] = v
 					} else {
-						e.globalNameIndex[e.currentPackage][importPkgName+"."+name] = v
+						e.pkgVariables[e.pkg][importName+"."+name] = v
 					}
 				}
 			}
@@ -167,14 +162,14 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
-	initToBuild := len(initFuncs) // Index of next "init" function to build.
+	initToBuild := len(allInits) // Index of next "init" function to build.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
 			fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
 			if fun.Ident.Name == "init" {
-				initFuncs = append(initFuncs, fn)
+				allInits = append(allInits, fn)
 			} else {
-				e.availableFunctions[e.currentPackage][fun.Ident.Name] = fn
+				e.availableFunctions[e.pkg][fun.Ident.Name] = fn
 				if isExported(fun.Ident.Name) {
 					exportedFunctions[fun.Ident.Name] = fn
 				}
@@ -187,38 +182,38 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	// Emits package variables.
 	var initVarsFn *vm.Function
 	var initVarsFb *functionBuilder
-	packageVariablesRegisters := map[string]int8{}
+	pkgVarRegs := map[string]int8{}
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
 			// If package has some variable declarations, a special "init" function
 			// must be created to initialize them. "$initvars" is used because is not
 			// a valid Go identifier, so there's no risk of collision with Scrigo
 			// defined functions.
-			backupFn := e.CurrentFunction
-			backupFb := e.FB
+			backupFb := e.fb
 			if initVarsFn == nil {
 				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				e.availableFunctions[e.currentPackage]["$initvars"] = initVarsFn
+				e.availableFunctions[e.pkg]["$initvars"] = initVarsFn
 				initVarsFb = newBuilder(initVarsFn)
-				initVarsFb.SetAlloc(e.alloc)
+				initVarsFb.SetAlloc(e.addAllocInstructions)
 				initVarsFb.EnterScope()
 			}
-			e.CurrentFunction = initVarsFn
-			e.FB = initVarsFb
+			e.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
 			for i, v := range n.Lhs {
-				staticType := e.TypeInfo[v].Type
-				varReg := -e.FB.NewRegister(reflect.Interface)
-				e.FB.BindVarReg(v.Name, varReg)
+				staticType := e.typeInfos[v].Type
+				varReg := -e.fb.NewRegister(reflect.Interface)
+				e.fb.BindVarReg(v.Name, varReg)
 				addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
-				packageVariablesRegisters[v.Name] = varReg
+				// Variable register is stored: will be used later to
+				// store initialized value inside proper global index
+				// during building of $initvars.
+				pkgVarRegs[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: staticType})
-				e.globalNameIndex[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
+				e.pkgVariables[e.pkg][v.Name] = int16(len(e.globals) - 1)
 				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
 			e.assign(addresses, n.Rhs)
-			e.CurrentFunction = backupFn
-			e.FB = backupFb
+			e.fb = backupFb
 		}
 	}
 
@@ -227,36 +222,33 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		if n, ok := dec.(*ast.Func); ok {
 			var fn *vm.Function
 			if n.Ident.Name == "init" {
-				fn = initFuncs[initToBuild]
+				fn = allInits[initToBuild]
 				initToBuild++
 			} else {
-				fn = e.availableFunctions[e.currentPackage][n.Ident.Name]
+				fn = e.availableFunctions[e.pkg][n.Ident.Name]
 			}
-			e.CurrentFunction = fn
-			e.FB = newBuilder(fn)
-			e.FB.SetAlloc(e.alloc)
-			e.FB.EnterScope()
-
-			// If function is "main", variables initialization function
-			// must be called as first statement inside main.
+			e.fb = newBuilder(fn)
+			e.fb.SetAlloc(e.addAllocInstructions)
+			e.fb.EnterScope()
+			// If function is "main", variable initialization functions
+			// must be called before everything else inside main's body.
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
-					iv := e.availableFunctions[e.currentPackage]["$initvars"]
-					index := e.FB.AddFunction(iv)
-					e.FB.Call(int8(index), vm.StackShift{}, 0)
+					iv := e.availableFunctions[e.pkg]["$initvars"]
+					index := e.fb.AddFunction(iv)
+					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
 				// Second: calls all init functions, in order.
-				for _, initFunc := range initFuncs {
-					index := e.FB.AddFunction(initFunc)
-					e.FB.Call(int8(index), vm.StackShift{}, 0)
+				for _, initFunc := range allInits {
+					index := e.fb.AddFunction(initFunc)
+					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
 			}
 			e.prepareFunctionBodyParameters(n)
-			addExplicitReturn(n)
 			e.EmitNodes(n.Body.Nodes)
-			e.FB.End()
-			e.FB.ExitScope()
+			e.fb.End()
+			e.fb.ExitScope()
 		}
 	}
 
@@ -264,16 +256,13 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		// Global variables have been locally defined inside the "$initvars"
 		// function; their values must now be exported to be available
 		// globally.
-		backupFn := e.CurrentFunction
-		backupFb := e.FB
-		e.CurrentFunction = initVarsFn
-		e.FB = initVarsFb
-		for name, reg := range packageVariablesRegisters {
-			index := e.globalNameIndex[e.currentPackage][name]
-			e.FB.SetVar(false, reg, int(index))
+		backupFb := e.fb
+		e.fb = initVarsFb
+		for name, reg := range pkgVarRegs {
+			index := e.pkgVariables[e.pkg][name]
+			e.fb.SetVar(false, reg, int(index))
 		}
-		e.CurrentFunction = backupFn
-		e.FB = backupFb
+		e.fb = backupFb
 		initVarsFb.ExitScope()
 		initVarsFb.Return()
 		initVarsFb.End()
@@ -287,16 +276,20 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	// If this package is imported, initFuncs must contain initVarsFn, that is
 	// processed as a common "init" function.
 	if initVarsFn != nil {
-		initFuncs = append(initFuncs, initVarsFn)
+		allInits = append(allInits, initVarsFn)
 	}
 
-	return exportedFunctions, exportedVars, initFuncs
+	return exportedFunctions, exportedVars, allInits
 
 }
 
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective type.
+//
+// Note that this functions is different than prepareFunctionBodyParameters;
+// while the former is used before emitting a function's body, the latter is
+// used before calling it.
 func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
@@ -304,37 +297,37 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 	types := make([]reflect.Type, numOut)
 	for i := 0; i < numOut; i++ {
 		typ := funcType.Out(i)
-		regs[i] = e.FB.NewRegister(typ.Kind())
+		regs[i] = e.fb.NewRegister(typ.Kind())
 		types[i] = typ
 	}
 	if funcType.IsVariadic() {
 		for i := 0; i < numIn-1; i++ {
 			typ := funcType.In(i)
-			reg := e.FB.NewRegister(typ.Kind())
-			e.FB.EnterScope()
+			reg := e.fb.NewRegister(typ.Kind())
+			e.fb.EnterScope()
 			e.emitExpr(args[i], reg, typ)
-			e.FB.ExitScope()
+			e.fb.ExitScope()
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			typ := funcType.In(numIn - 1).Elem()
 			if isPredefined {
 				for i := 0; i < varArgs; i++ {
-					reg := e.FB.NewRegister(typ.Kind())
-					e.FB.EnterStack()
+					reg := e.fb.NewRegister(typ.Kind())
+					e.fb.EnterStack()
 					e.emitExpr(args[i+numIn-1], reg, typ)
-					e.FB.ExitStack()
+					e.fb.ExitStack()
 				}
 			} else {
 				sliceReg := int8(numIn)
-				e.FB.MakeSlice(true, true, funcType.In(numIn-1), int8(varArgs), int8(varArgs), sliceReg)
+				e.fb.MakeSlice(true, true, funcType.In(numIn-1), int8(varArgs), int8(varArgs), sliceReg)
 				for i := 0; i < varArgs; i++ {
-					tmpReg := e.FB.NewRegister(typ.Kind())
-					e.FB.EnterStack()
+					tmpReg := e.fb.NewRegister(typ.Kind())
+					e.fb.EnterStack()
 					e.emitExpr(args[i+numIn-1], tmpReg, typ)
-					e.FB.ExitStack()
-					indexReg := e.FB.NewRegister(reflect.Int)
-					e.FB.Move(true, int8(i), indexReg, reflect.Int)
-					e.FB.SetSlice(false, sliceReg, tmpReg, indexReg, typ.Kind())
+					e.fb.ExitStack()
+					indexReg := e.fb.NewRegister(reflect.Int)
+					e.fb.Move(true, int8(i), indexReg, reflect.Int)
+					e.fb.SetSlice(false, sliceReg, tmpReg, indexReg, typ.Kind())
 				}
 			}
 		}
@@ -343,16 +336,16 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 			regs, types := e.emitCall(args[0].(*ast.Call))
 			for i := range regs {
 				dstType := funcType.In(i)
-				reg := e.FB.NewRegister(dstType.Kind())
+				reg := e.fb.NewRegister(dstType.Kind())
 				e.changeRegister(false, regs[i], reg, types[i], dstType)
 			}
 		} else {
 			for i := 0; i < numIn; i++ {
 				typ := funcType.In(i)
-				reg := e.FB.NewRegister(typ.Kind())
-				e.FB.EnterStack()
+				reg := e.fb.NewRegister(typ.Kind())
+				e.fb.EnterStack()
 				e.emitExpr(args[i], reg, typ)
-				e.FB.ExitStack()
+				e.fb.ExitStack()
 			}
 		}
 	}
@@ -361,15 +354,19 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 
 // prepareFunctionBodyParameters prepares fun's parameters (out and int) before
 // emitting its body.
+//
+// Note that this functions is different than prepareCallParameters; while the
+// former is used before calling a function, the latter is used before emitting
+// it's body.
 func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	// Reserves space for return parameters.
 	fillParametersTypes(fun.Type.Result)
 	for _, res := range fun.Type.Result {
 		resType := res.Type.(*ast.Value).Val.(reflect.Type)
 		kind := resType.Kind()
-		retReg := e.FB.NewRegister(kind)
+		retReg := e.fb.NewRegister(kind)
 		if res.Ident != nil {
-			e.FB.BindVarReg(res.Ident.Name, retReg)
+			e.fb.BindVarReg(res.Ident.Name, retReg)
 		}
 	}
 	// Binds function argument names to pre-allocated registers.
@@ -377,9 +374,9 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	for _, par := range fun.Type.Parameters {
 		parType := par.Type.(*ast.Value).Val.(reflect.Type)
 		kind := parType.Kind()
-		argReg := e.FB.NewRegister(kind)
+		argReg := e.fb.NewRegister(kind)
 		if par.Ident != nil {
-			e.FB.BindVarReg(par.Ident.Name, argReg)
+			e.fb.BindVarReg(par.Ident.Name, argReg)
 		}
 	}
 }
@@ -387,77 +384,64 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 // emitCall emits instruction for a call, returning the list of registers (and
 // their respective type) within which return values are inserted.
 func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
+
 	stackShift := vm.StackShift{
-		int8(e.FB.numRegs[reflect.Int]),
-		int8(e.FB.numRegs[reflect.Float64]),
-		int8(e.FB.numRegs[reflect.String]),
-		int8(e.FB.numRegs[reflect.Interface]),
+		int8(e.fb.numRegs[reflect.Int]),
+		int8(e.fb.numRegs[reflect.Float64]),
+		int8(e.fb.numRegs[reflect.String]),
+		int8(e.fb.numRegs[reflect.Interface]),
 	}
-	if ident, ok := call.Func.(*ast.Identifier); ok {
-		if !e.FB.IsVariable(ident.Name) {
-			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][ident.Name]; isNotPredeclared {
+
+	// Predefined function
+	funcTypeInfo := e.typeInfos[call.Func]
+	funcType := funcTypeInfo.Type
+	if funcTypeInfo.IsPredefined() {
+		regs, types := e.prepareCallParameters(funcType, call.Args, true)
+		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value))
+		if funcType.IsVariadic() {
+			numVar := len(call.Args) - (funcType.NumIn() - 1)
+			e.fb.CallPredefined(index, int8(numVar), stackShift)
+		} else {
+			e.fb.CallPredefined(index, vm.NoVariadic, stackShift)
+		}
+		return regs, types
+	}
+
+	// Scrigo-defined function (identifier).
+	if ident, ok := call.Func.(*ast.Identifier); ok && !e.fb.IsVariable(ident.Name) {
+		if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
+			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
+			index := e.functionIndex(fun)
+			e.fb.Call(index, stackShift, call.Pos().Line)
+			return regs, types
+		}
+	}
+
+	// Scrigo-defined function (selector).
+	if selector, ok := call.Func.(*ast.Selector); ok {
+		if ident, ok := selector.Expr.(*ast.Identifier); ok {
+			if fun, ok := e.availableFunctions[e.pkg][selector.Ident+"."+ident.Name]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
-				e.FB.Call(index, stackShift, call.Pos().Line)
-				return regs, types
-			}
-			if _, isPredefinedFunc := e.availablePredefinedFunctions[e.currentPackage][ident.Name]; isPredefinedFunc {
-				fun := e.availablePredefinedFunctions[e.currentPackage][ident.Name]
-				funcType := reflect.TypeOf(fun.Func)
-				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.predefinedFunctionIndex(fun)
-				if funcType.IsVariadic() {
-					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallPredefined(index, int8(numVar), stackShift)
-				} else {
-					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-				}
+				e.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
 		}
 	}
-	if sel, ok := call.Func.(*ast.Selector); ok {
-		if name, ok := sel.Expr.(*ast.Identifier); ok {
-			if isGoPkg := e.isPredefinedPkg[name.Name]; isGoPkg {
-				fun := e.availablePredefinedFunctions[e.currentPackage][name.Name+"."+sel.Ident]
-				funcType := reflect.TypeOf(fun.Func)
-				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.predefinedFunctionIndex(fun)
-				if funcType.IsVariadic() {
-					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallPredefined(index, int8(numVar), stackShift)
-				} else {
-					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-				}
-				return regs, types
-			} else if fun, ok := e.availableFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
-				funcType := fun.Type
-				regs, types := e.prepareCallParameters(funcType, call.Args, false)
-				index := e.functionIndex(fun)
-				if funcType.IsVariadic() {
-					panic("TODO(Gianluca): not implemented")
-				} else {
-					e.FB.Call(index, stackShift, sel.Pos().Line)
-				}
-				return regs, types
-			} else {
-				panic("TODO(Gianluca): not implemented")
-			}
-		}
-	}
-	funReg, _, isRegister := e.quickEmitExpr(call.Func, e.TypeInfo[call.Func].Type)
+
+	// Indirect function.
+	funReg, _, isRegister := e.quickEmitExpr(call.Func, e.typeInfos[call.Func].Type)
 	if !isRegister {
-		funReg = e.FB.NewRegister(reflect.Func)
-		e.emitExpr(call.Func, funReg, e.TypeInfo[call.Func].Type)
+		funReg = e.fb.NewRegister(reflect.Func)
+		e.emitExpr(call.Func, funReg, e.typeInfos[call.Func].Type)
 	}
-	funcType := e.TypeInfo[call.Func].Type
 	regs, types := e.prepareCallParameters(funcType, call.Args, true)
-	e.FB.CallIndirect(funReg, 0, stackShift)
+	e.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, types
 }
 
 // emitExpr emits instruction such that expr value is put into reg. If reg is
-// zero instructions are emitted anyway but result is discarded.
+// zero, instructions are emitted anyway but result is discarded.
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 	// TODO (Gianluca): review all "kind" arguments in every emitExpr call.
 	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
@@ -471,55 +455,55 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			if op == ast.OperatorAndAnd {
 				cmp = 1
 			}
-			e.FB.EnterStack()
+			e.fb.EnterStack()
 			e.emitExpr(expr.Expr1, reg, dstType)
-			endIf := e.FB.NewLabel()
-			e.FB.If(true, reg, vm.ConditionEqual, cmp, reflect.Int)
-			e.FB.Goto(endIf)
+			endIf := e.fb.NewLabel()
+			e.fb.If(true, reg, vm.ConditionEqual, cmp, reflect.Int)
+			e.fb.Goto(endIf)
 			e.emitExpr(expr.Expr2, reg, dstType)
-			e.FB.SetLabelAddr(endIf)
-			e.FB.ExitStack()
+			e.fb.SetLabelAddr(endIf)
+			e.fb.ExitStack()
 			return
 		}
 
-		e.FB.EnterStack()
+		e.fb.EnterStack()
 
-		xType := e.TypeInfo[expr.Expr1].Type
-		x := e.FB.NewRegister(xType.Kind())
+		xType := e.typeInfos[expr.Expr1].Type
+		x := e.fb.NewRegister(xType.Kind())
 		e.emitExpr(expr.Expr1, x, xType)
 
 		y, ky, isRegister := e.quickEmitExpr(expr.Expr2, xType)
 		if !ky && !isRegister {
-			y = e.FB.NewRegister(xType.Kind())
+			y = e.fb.NewRegister(xType.Kind())
 			e.emitExpr(expr.Expr2, y, xType)
 		}
 
-		res := e.FB.NewRegister(xType.Kind())
+		res := e.fb.NewRegister(xType.Kind())
 
 		switch op := expr.Operator(); {
 		case op == ast.OperatorAddition && xType.Kind() == reflect.String && reg != 0:
 			if ky {
-				y = e.FB.NewRegister(reflect.String)
+				y = e.fb.NewRegister(reflect.String)
 				e.emitExpr(expr.Expr2, y, xType)
 			}
-			e.FB.Concat(x, y, reg)
+			e.fb.Concat(x, y, reg)
 		case op == ast.OperatorAddition && reg != 0:
-			e.FB.Add(ky, x, y, res, xType.Kind())
+			e.fb.Add(ky, x, y, res, xType.Kind())
 			e.changeRegister(false, res, reg, xType, dstType)
 		case op == ast.OperatorSubtraction && reg != 0:
-			e.FB.Sub(ky, x, y, res, xType.Kind())
+			e.fb.Sub(ky, x, y, res, xType.Kind())
 			e.changeRegister(false, res, reg, xType, dstType)
 		case op == ast.OperatorMultiplication && reg != 0:
-			e.FB.Mul(ky, x, y, res, xType.Kind())
+			e.fb.Mul(ky, x, y, res, xType.Kind())
 			e.changeRegister(false, res, reg, xType, dstType)
 		case op == ast.OperatorDivision && reg != 0:
-			e.FB.Div(ky, x, y, res, xType.Kind())
+			e.fb.Div(ky, x, y, res, xType.Kind())
 			e.changeRegister(false, res, reg, xType, dstType)
 		case op == ast.OperatorDivision && reg == 0:
-			dummyReg := e.FB.NewRegister(xType.Kind())
-			e.FB.Div(ky, x, y, dummyReg, xType.Kind()) // produces division by zero.
+			dummyReg := e.fb.NewRegister(xType.Kind())
+			e.fb.Div(ky, x, y, dummyReg, xType.Kind()) // produces division by zero.
 		case op == ast.OperatorModulo && reg != 0:
-			e.FB.Rem(ky, x, y, res, xType.Kind())
+			e.fb.Rem(ky, x, y, res, xType.Kind())
 			e.changeRegister(false, res, reg, xType, dstType)
 		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
 			var cond vm.Condition
@@ -538,9 +522,9 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				cond = vm.ConditionGreaterOrEqual
 			}
 			if reg != 0 {
-				e.FB.Move(true, 1, reg, reflect.Bool)
-				e.FB.If(ky, x, cond, y, xType.Kind())
-				e.FB.Move(true, 0, reg, reflect.Bool)
+				e.fb.Move(true, 1, reg, reflect.Bool)
+				e.fb.If(ky, x, cond, y, xType.Kind())
+				e.fb.Move(true, 0, reg, reflect.Bool)
 			}
 		case op == ast.OperatorOr,
 			op == ast.OperatorAnd,
@@ -549,7 +533,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			op == ast.OperatorLeftShift,
 			op == ast.OperatorRightShift:
 			if reg != 0 {
-				e.FB.BinaryBitOperation(op, ky, x, y, reg, xType.Kind())
+				e.fb.BinaryBitOperation(op, ky, x, y, reg, xType.Kind())
 				if kindToType(xType.Kind()) != kindToType(dstType.Kind()) {
 					e.changeRegister(ky, reg, reg, xType, dstType)
 				}
@@ -558,32 +542,33 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
 
-		e.FB.ExitStack()
+		e.fb.ExitStack()
 
 	case *ast.Call:
+		e.fb.EnterStack()
 		// Builtin call.
-		e.FB.EnterStack()
-		if e.TypeInfo[expr.Func].IsBuiltin() {
+		if e.typeInfos[expr.Func].IsBuiltin() {
 			e.emitBuiltin(expr, reg, dstType)
-			e.FB.ExitStack()
+			e.fb.ExitStack()
 			return
 		}
 		// Conversion.
 		if val, ok := expr.Func.(*ast.Value); ok {
 			if convertType, ok := val.Val.(reflect.Type); ok {
-				typ := e.TypeInfo[expr.Args[0]].Type
-				arg := e.FB.NewRegister(typ.Kind())
+				typ := e.typeInfos[expr.Args[0]].Type
+				arg := e.fb.NewRegister(typ.Kind())
 				e.emitExpr(expr.Args[0], arg, typ)
-				e.FB.Convert(arg, convertType, reg, typ.Kind())
-				e.FB.ExitStack()
+				e.fb.Convert(arg, convertType, reg, typ.Kind())
+				e.fb.ExitStack()
 				return
 			}
 		}
+		// Function call.
 		regs, types := e.emitCall(expr)
 		if reg != 0 {
 			e.changeRegister(false, regs[0], reg, types[0], dstType)
 		}
-		e.FB.ExitStack()
+		e.fb.ExitStack()
 
 	case *ast.CompositeLiteral:
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
@@ -596,7 +581,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				if typ.Kind() == reflect.Array {
 					typ = reflect.SliceOf(typ.Elem())
 				}
-				e.FB.MakeSlice(true, true, typ, size, size, reg)
+				e.fb.MakeSlice(true, true, typ, size, size, reg)
 			}
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
@@ -605,84 +590,97 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				} else {
 					index++
 				}
-				e.FB.EnterStack()
-				indexReg := e.FB.NewRegister(reflect.Int)
-				e.FB.Move(true, index, indexReg, reflect.Int)
+				e.fb.EnterStack()
+				indexReg := e.fb.NewRegister(reflect.Int)
+				e.fb.Move(true, index, indexReg, reflect.Int)
 				value, kvalue, isRegister := e.quickEmitExpr(kv.Value, typ.Elem())
 				if !kvalue && !isRegister {
-					value = e.FB.NewRegister(typ.Elem().Kind())
+					value = e.fb.NewRegister(typ.Elem().Kind())
 					e.emitExpr(kv.Value, value, typ.Elem())
 				}
 				if reg != 0 {
-					e.FB.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
+					e.fb.SetSlice(kvalue, reg, value, indexReg, typ.Elem().Kind())
 				}
-				e.FB.ExitStack()
+				e.fb.ExitStack()
 			}
 		case reflect.Struct:
 			panic("TODO: not implemented")
 		case reflect.Map:
 			// TODO (Gianluca): handle maps with bigger size.
 			size := len(expr.KeyValues)
-			sizeReg := e.FB.MakeIntConstant(int64(size))
-			e.FB.MakeMap(typ, true, sizeReg, reg)
+			sizeReg := e.fb.MakeIntConstant(int64(size))
+			e.fb.MakeMap(typ, true, sizeReg, reg)
 			for _, kv := range expr.KeyValues {
-				keyReg := e.FB.NewRegister(typ.Key().Kind())
-				valueReg := e.FB.NewRegister(typ.Elem().Kind())
-				e.FB.EnterStack()
+				keyReg := e.fb.NewRegister(typ.Key().Kind())
+				valueReg := e.fb.NewRegister(typ.Elem().Kind())
+				e.fb.EnterStack()
 				e.emitExpr(kv.Key, keyReg, typ.Key())
 				kValue := false // TODO(Gianluca).
 				e.emitExpr(kv.Value, valueReg, typ.Elem())
-				e.FB.ExitStack()
-				e.FB.SetMap(kValue, reg, valueReg, keyReg, typ)
+				e.fb.ExitStack()
+				e.fb.SetMap(kValue, reg, valueReg, keyReg, typ)
 			}
 		}
 
 	case *ast.TypeAssertion:
-		typ := e.TypeInfo[expr.Expr].Type
+		typ := e.typeInfos[expr.Expr].Type
 		exprReg, _, isRegister := e.quickEmitExpr(expr.Expr, typ)
 		if !isRegister {
-			exprReg = e.FB.NewRegister(typ.Kind())
+			exprReg = e.fb.NewRegister(typ.Kind())
 			e.emitExpr(expr.Expr, exprReg, typ)
 		}
 		assertType := expr.Type.(*ast.Value).Val.(reflect.Type)
-		e.FB.Assert(exprReg, assertType, reg)
-		e.FB.Nop()
+		e.fb.Assert(exprReg, assertType, reg)
+		e.fb.Nop()
 
 	case *ast.Selector:
-		if index, ok := e.globalNameIndex[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+
+		if typeInfo := e.typeInfos[expr]; typeInfo.IsPredefined() {
+
+			// Predefined function.
+			if typeInfo.Type.Kind() == reflect.Func {
+				index := e.predefFuncIndex(typeInfo.Value.(reflect.Value))
+				e.fb.GetFunc(true, index, reg)
+				return
+			}
+
+			// Predefined variable.
+			index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
+			e.fb.GetVar(int(index), reg)
+			return
+		}
+
+		// Scrigo-defined package variables.
+		if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
-			e.FB.GetVar(int(index), reg) // TODO (Gianluca): to review.
+			e.fb.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
-		if nf, ok := e.availablePredefinedFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-			if reg == 0 {
-				return
-			}
-			index := e.predefinedFunctionIndex(nf)
-			e.FB.GetFunc(true, index, reg)
-			return
-		}
-		if sf, ok := e.availableFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+
+		// Scrigo-defined package functions.
+		if sf, ok := e.availableFunctions[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
 			index := e.functionIndex(sf)
-			e.FB.GetFunc(false, index, reg)
+			e.fb.GetFunc(false, index, reg)
 			return
 		}
-		exprType := e.TypeInfo[expr.Expr].Type
-		exprReg := e.FB.NewRegister(exprType.Kind())
+
+		// Selector is emitted a general expression.
+		exprType := e.typeInfos[expr.Expr].Type
+		exprReg := e.fb.NewRegister(exprType.Kind())
 		e.emitExpr(expr.Expr, exprReg, exprType)
 		field := int8(0) // TODO(Gianluca).
-		e.FB.Selector(exprReg, field, reg)
+		e.fb.Selector(exprReg, field, reg)
 
 	case *ast.UnaryOperator:
-		typ := e.TypeInfo[expr.Expr].Type
+		typ := e.typeInfos[expr.Expr].Type
 		var tmpReg int8
 		if reg != 0 {
-			tmpReg = e.FB.NewRegister(typ.Kind())
+			tmpReg = e.fb.NewRegister(typ.Kind())
 		}
 		e.emitExpr(expr.Expr, tmpReg, typ)
 		if reg == 0 {
@@ -690,7 +688,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 		switch expr.Operator() {
 		case ast.OperatorNot:
-			e.FB.SubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
+			e.fb.SubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
 			if reg != 0 {
 				e.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
@@ -699,10 +697,10 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		case ast.OperatorAnd:
 			switch expr := expr.Expr.(type) {
 			case *ast.Identifier:
-				if e.FB.IsVariable(expr.Name) {
-					varReg := e.FB.ScopeLookup(expr.Name)
-					e.FB.New(reflect.PtrTo(typ), reg)
-					e.FB.Move(false, -varReg, reg, dstType.Kind())
+				if e.fb.IsVariable(expr.Name) {
+					varReg := e.fb.ScopeLookup(expr.Name)
+					e.fb.New(reflect.PtrTo(typ), reg)
+					e.fb.Move(false, -varReg, reg, dstType.Kind())
 				} else {
 					panic("TODO(Gianluca): not implemented")
 				}
@@ -723,23 +721,24 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		case ast.OperatorAddition:
 			// Do nothing.
 		case ast.OperatorSubtraction:
-			e.FB.SubInv(true, tmpReg, 0, tmpReg, dstType.Kind())
+			e.fb.SubInv(true, tmpReg, 0, tmpReg, dstType.Kind())
 			if reg != 0 {
 				e.changeRegister(false, tmpReg, reg, typ, dstType)
 			}
 		case ast.OperatorReceive:
-			e.FB.Receive(tmpReg, 0, reg)
+			e.fb.Receive(tmpReg, 0, reg)
 		default:
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
 
 	case *ast.Func:
 
+		// Supports scripts function declarations.
 		if expr.Ident != nil {
-			varReg := e.FB.NewRegister(reflect.Func)
-			e.FB.BindVarReg(expr.Ident.Name, varReg)
+			varReg := e.fb.NewRegister(reflect.Func)
+			e.fb.BindVarReg(expr.Ident.Name, varReg)
 			expr.Ident = nil // avoids recursive calls.
-			funcType := e.TypeInfo[expr].Type
+			funcType := e.typeInfos[expr].Type
 			addr := e.newAddress(addressRegister, funcType, varReg, 0)
 			e.assign([]address{addr}, []ast.Expression{expr})
 			return
@@ -749,57 +748,54 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		fn := e.FB.Func(reg, e.TypeInfo[expr].Type)
+		fn := e.fb.Func(reg, e.typeInfos[expr].Type)
 		e.setClosureRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn)
-		funcLitBuilder.SetAlloc(e.alloc)
-		currFb := e.FB
-		currFn := e.CurrentFunction
-		e.FB = funcLitBuilder
-		e.CurrentFunction = fn
+		funcLitBuilder.SetAlloc(e.addAllocInstructions)
+		currFb := e.fb
+		e.fb = funcLitBuilder
 
-		e.FB.EnterScope()
+		e.fb.EnterScope()
 		e.prepareFunctionBodyParameters(expr)
-		addExplicitReturn(expr)
 		e.EmitNodes(expr.Body.Nodes)
-		e.FB.ExitScope()
-		e.FB = currFb
-		e.CurrentFunction = currFn
+		e.fb.ExitScope()
+		e.fb.End()
+		e.fb = currFb
 
 	case *ast.Identifier:
 		if reg == 0 {
 			return
 		}
-		typ := e.TypeInfo[expr].Type
+		typ := e.typeInfos[expr].Type
 		out, isValue, isRegister := e.quickEmitExpr(expr, typ)
 		if isValue {
 			e.changeRegister(true, out, reg, typ, dstType)
 		} else if isRegister {
 			e.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][expr.Name]; isNotPredeclared {
+			if fun, isNotPredeclared := e.availableFunctions[e.pkg][expr.Name]; isNotPredeclared {
 				index := e.functionIndex(fun)
-				e.FB.GetFunc(false, index, reg)
-			} else if index, ok := e.upvarsNames[e.CurrentFunction][expr.Name]; ok {
+				e.fb.GetFunc(false, index, reg)
+			} else if index, ok := e.upvarsNames[e.fb.fn][expr.Name]; ok {
 				// TODO(Gianluca): this is an experimental handling of
 				// emitting an expression into a register of a different
 				// type. If this is correct, apply this solution to all
 				// other expression emitting cases or generalize in some
 				// way.
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
-					e.FB.GetVar(index, reg)
+					e.fb.GetVar(index, reg)
 				} else {
-					tmpReg := e.FB.NewRegister(typ.Kind())
-					e.FB.GetVar(index, tmpReg)
+					tmpReg := e.fb.NewRegister(typ.Kind())
+					e.fb.GetVar(index, tmpReg)
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-			} else if index, ok := e.globalNameIndex[e.currentPackage][expr.Name]; ok {
+			} else if index, ok := e.pkgVariables[e.pkg][expr.Name]; ok {
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
-					e.FB.GetVar(int(index), reg)
+					e.fb.GetVar(int(index), reg)
 				} else {
-					tmpReg := e.FB.NewRegister(typ.Kind())
-					e.FB.GetVar(int(index), tmpReg)
+					tmpReg := e.fb.NewRegister(typ.Kind())
+					e.fb.GetVar(int(index), tmpReg)
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
 			} else {
@@ -811,7 +807,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if reg == 0 {
 			return
 		}
-		typ := e.TypeInfo[expr].Type
+		typ := e.typeInfos[expr].Type
 		out, isValue, isRegister := e.quickEmitExpr(expr, typ)
 		if isValue {
 			e.changeRegister(true, out, reg, typ, dstType)
@@ -826,69 +822,69 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			case uintptr:
 				panic("TODO(Gianluca): not implemented")
 			case int:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case int8:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case int16:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case int32:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case int64:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case uint:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case uint8:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case uint16:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case uint32:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case uint64:
-				constant := e.FB.MakeIntConstant(int64(v))
-				e.FB.LoadNumber(vm.TypeInt, constant, reg)
+				constant := e.fb.MakeIntConstant(int64(v))
+				e.fb.LoadNumber(vm.TypeInt, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			case string:
-				constant := e.FB.MakeStringConstant(v)
+				constant := e.fb.MakeStringConstant(v)
 				e.changeRegister(true, constant, reg, typ, dstType)
 			case float32:
-				constant := e.FB.MakeFloatConstant(float64(v))
-				e.FB.LoadNumber(vm.TypeFloat, constant, reg)
+				constant := e.fb.MakeFloatConstant(float64(v))
+				e.fb.LoadNumber(vm.TypeFloat, constant, reg)
 			case float64:
-				constant := e.FB.MakeFloatConstant(v)
-				e.FB.LoadNumber(vm.TypeFloat, constant, reg)
+				constant := e.fb.MakeFloatConstant(v)
+				e.fb.LoadNumber(vm.TypeFloat, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			default:
-				constant := e.FB.MakeGeneralConstant(v)
+				constant := e.fb.MakeGeneralConstant(v)
 				e.changeRegister(true, constant, reg, typ, dstType)
 			}
 		}
 
 	case *ast.Index:
-		exprType := e.TypeInfo[expr.Expr].Type
+		exprType := e.typeInfos[expr.Expr].Type
 		var exprReg int8
 		out, _, isRegister := e.quickEmitExpr(expr.Expr, exprType)
 		if isRegister {
 			exprReg = out
 		} else {
-			exprReg = e.FB.NewRegister(exprType.Kind())
+			exprReg = e.fb.NewRegister(exprType.Kind())
 		}
 		out, isValue, isRegister := e.quickEmitExpr(expr.Index, intType)
 		ki := false
@@ -899,10 +895,10 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			i = out
 		} else {
-			i = e.FB.NewRegister(reflect.Int)
+			i = e.fb.NewRegister(reflect.Int)
 			e.emitExpr(expr.Index, i, dstType)
 		}
-		e.FB.Index(ki, exprReg, i, reg, exprType)
+		e.fb.Index(ki, exprReg, i, reg, exprType)
 
 	case *ast.Slicing:
 		panic("TODO: not implemented")
@@ -923,13 +919,13 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 	// not need extra registers for evaluation.
 
 	// Src kind and dst kind are different, so a Move/Conversion is required.
-	if kindToType(expectedType.Kind()) != kindToType(e.TypeInfo[expr].Type.Kind()) {
+	if kindToType(expectedType.Kind()) != kindToType(e.typeInfos[expr].Type.Kind()) {
 		return 0, false, false
 	}
 	switch expr := expr.(type) {
 	case *ast.Identifier:
-		if e.FB.IsVariable(expr.Name) {
-			return e.FB.ScopeLookup(expr.Name), false, true
+		if e.fb.IsVariable(expr.Name) {
+			return e.fb.ScopeLookup(expr.Name), false, true
 		}
 		return 0, false, false
 	case *ast.Value:
@@ -960,100 +956,100 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
-		sliceType := e.TypeInfo[call.Args[0]].Type
-		sliceReg := e.FB.NewRegister(sliceType.Kind())
+		sliceType := e.typeInfos[call.Args[0]].Type
+		sliceReg := e.fb.NewRegister(sliceType.Kind())
 		e.emitExpr(call.Args[0], sliceReg, sliceType)
-		tmpSliceReg := e.FB.NewRegister(sliceType.Kind())
+		tmpSliceReg := e.fb.NewRegister(sliceType.Kind())
 		// TODO(Gianluca): moving to a different register is not always
 		// necessary. For instance, in case of `s = append(s, t)` moving can
 		// be avoided.
 		// TODO(Gianluca): in case of append(s, e1, e2, e3) use the length
 		// parameter of Append.
-		e.FB.Move(false, sliceReg, tmpSliceReg, sliceType.Kind())
+		e.fb.Move(false, sliceReg, tmpSliceReg, sliceType.Kind())
 		if call.IsVariadic {
-			argType := e.TypeInfo[call.Args[1]].Type
-			argReg := e.FB.NewRegister(argType.Kind())
+			argType := e.typeInfos[call.Args[1]].Type
+			argReg := e.fb.NewRegister(argType.Kind())
 			e.emitExpr(call.Args[1], argReg, sliceType)
-			e.FB.AppendSlice(argReg, tmpSliceReg)
+			e.fb.AppendSlice(argReg, tmpSliceReg)
 			e.changeRegister(false, tmpSliceReg, reg, sliceType, dstType)
 		} else {
 			for i := range call.Args {
 				if i == 0 {
 					continue
 				}
-				argType := e.TypeInfo[call.Args[i]].Type
-				argReg := e.FB.NewRegister(argType.Kind())
+				argType := e.typeInfos[call.Args[i]].Type
+				argReg := e.fb.NewRegister(argType.Kind())
 				e.emitExpr(call.Args[i], argReg, sliceType)
-				e.FB.Append(argReg, 1, tmpSliceReg)
+				e.fb.Append(argReg, 1, tmpSliceReg)
 			}
 			e.changeRegister(false, tmpSliceReg, reg, sliceType, dstType)
 		}
 	case "cap":
-		typ := e.TypeInfo[call.Args[0]].Type
-		s := e.FB.NewRegister(typ.Kind())
+		typ := e.typeInfos[call.Args[0]].Type
+		s := e.fb.NewRegister(typ.Kind())
 		e.emitExpr(call.Args[0], s, typ)
-		e.FB.Cap(s, reg)
+		e.fb.Cap(s, reg)
 		e.changeRegister(false, reg, reg, intType, dstType)
 	case "close":
-		chanType := e.TypeInfo[call.Args[0]].Type
-		chanReg := e.FB.NewRegister(chanType.Kind())
+		chanType := e.typeInfos[call.Args[0]].Type
+		chanReg := e.fb.NewRegister(chanType.Kind())
 		e.emitExpr(call.Args[0], chanReg, chanType)
-		e.FB.Close(chanReg)
+		e.fb.Close(chanReg)
 	case "complex":
 		panic("TODO: not implemented")
 	case "copy":
-		dst, _, isRegister := e.quickEmitExpr(call.Args[0], e.TypeInfo[call.Args[0]].Type)
+		dst, _, isRegister := e.quickEmitExpr(call.Args[0], e.typeInfos[call.Args[0]].Type)
 		if !isRegister {
-			dst = e.FB.NewRegister(reflect.Slice)
-			e.emitExpr(call.Args[0], dst, e.TypeInfo[call.Args[0]].Type)
+			dst = e.fb.NewRegister(reflect.Slice)
+			e.emitExpr(call.Args[0], dst, e.typeInfos[call.Args[0]].Type)
 		}
-		src, _, isRegister := e.quickEmitExpr(call.Args[1], e.TypeInfo[call.Args[1]].Type)
+		src, _, isRegister := e.quickEmitExpr(call.Args[1], e.typeInfos[call.Args[1]].Type)
 		if !isRegister {
-			src = e.FB.NewRegister(reflect.Slice)
-			e.emitExpr(call.Args[0], src, e.TypeInfo[call.Args[0]].Type)
+			src = e.fb.NewRegister(reflect.Slice)
+			e.emitExpr(call.Args[0], src, e.typeInfos[call.Args[0]].Type)
 		}
-		e.FB.Copy(dst, src, reg)
+		e.fb.Copy(dst, src, reg)
 		if reg != 0 {
 			e.changeRegister(false, reg, reg, intType, dstType)
 		}
 	case "delete":
 		mapExpr := call.Args[0]
 		keyExpr := call.Args[1]
-		mapp := e.FB.NewRegister(reflect.Interface)
+		mapp := e.fb.NewRegister(reflect.Interface)
 		e.emitExpr(mapExpr, mapp, emptyInterfaceType)
-		key := e.FB.NewRegister(reflect.Interface)
+		key := e.fb.NewRegister(reflect.Interface)
 		e.emitExpr(keyExpr, key, emptyInterfaceType)
-		e.FB.Delete(mapp, key)
+		e.fb.Delete(mapp, key)
 	case "imag":
 		panic("TODO: not implemented")
 	case "html": // TODO (Gianluca): to review.
 		panic("TODO: not implemented")
 	case "len":
-		typ := e.TypeInfo[call.Args[0]].Type
-		s := e.FB.NewRegister(typ.Kind())
+		typ := e.typeInfos[call.Args[0]].Type
+		s := e.fb.NewRegister(typ.Kind())
 		e.emitExpr(call.Args[0], s, typ)
-		e.FB.Len(s, reg, typ)
+		e.fb.Len(s, reg, typ)
 		e.changeRegister(false, reg, reg, intType, dstType)
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Map:
 			if len(call.Args) == 1 {
-				e.FB.MakeMap(typ, true, 0, reg)
+				e.fb.MakeMap(typ, true, 0, reg)
 			} else {
 				size, kSize, isRegister := e.quickEmitExpr(call.Args[1], intType)
 				if !kSize && !isRegister {
-					size = e.FB.NewRegister(reflect.Int)
-					e.emitExpr(call.Args[1], size, e.TypeInfo[call.Args[1]].Type)
+					size = e.fb.NewRegister(reflect.Int)
+					e.emitExpr(call.Args[1], size, e.typeInfos[call.Args[1]].Type)
 				}
-				e.FB.MakeMap(typ, kSize, size, reg)
+				e.fb.MakeMap(typ, kSize, size, reg)
 			}
 		case reflect.Slice:
 			lenExpr := call.Args[1]
 			lenReg, kLen, isRegister := e.quickEmitExpr(lenExpr, intType)
 			if !kLen && !isRegister {
-				lenReg = e.FB.NewRegister(reflect.Int)
-				e.emitExpr(lenExpr, lenReg, e.TypeInfo[lenExpr].Type)
+				lenReg = e.fb.NewRegister(reflect.Int)
+				e.emitExpr(lenExpr, lenReg, e.typeInfos[lenExpr].Type)
 			}
 			var kCap bool
 			var capReg int8
@@ -1062,16 +1058,16 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 				var isRegister bool
 				capReg, kCap, isRegister = e.quickEmitExpr(capExpr, intType)
 				if !kCap && !isRegister {
-					capReg = e.FB.NewRegister(reflect.Int)
-					e.emitExpr(capExpr, capReg, e.TypeInfo[capExpr].Type)
+					capReg = e.fb.NewRegister(reflect.Int)
+					e.emitExpr(capExpr, capReg, e.typeInfos[capExpr].Type)
 				}
 			} else {
 				kCap = kLen
 				capReg = lenReg
 			}
-			e.FB.MakeSlice(kLen, kCap, typ, lenReg, capReg, reg)
+			e.fb.MakeSlice(kLen, kCap, typ, lenReg, capReg, reg)
 		case reflect.Chan:
-			chanType := e.TypeInfo[call.Args[0]].Type
+			chanType := e.typeInfos[call.Args[0]].Type
 			var kCapacity bool
 			var capacity int8
 			if len(call.Args) == 1 {
@@ -1081,47 +1077,47 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 				var isRegister bool
 				capacity, kCapacity, isRegister = e.quickEmitExpr(call.Args[1], intType)
 				if !kCapacity && !isRegister {
-					capacity = e.FB.NewRegister(reflect.Int)
+					capacity = e.fb.NewRegister(reflect.Int)
 					e.emitExpr(call.Args[1], capacity, intType)
 				}
 			}
-			e.FB.MakeChan(chanType, kCapacity, capacity, reg)
+			e.fb.MakeChan(chanType, kCapacity, capacity, reg)
 		default:
 			panic("bug")
 		}
 	case "new":
 		newType := call.Args[0].(*ast.Value).Val.(reflect.Type)
-		e.FB.New(newType, reg)
+		e.fb.New(newType, reg)
 	case "panic":
 		arg := call.Args[0]
 		reg, _, isRegister := e.quickEmitExpr(arg, emptyInterfaceType)
 		if !isRegister {
-			reg = e.FB.NewRegister(reflect.Interface)
+			reg = e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(arg, reg, emptyInterfaceType)
 		}
-		e.FB.Panic(reg, call.Pos().Line)
+		e.fb.Panic(reg, call.Pos().Line)
 	case "print":
 		for i := range call.Args {
-			arg := e.FB.NewRegister(reflect.Interface)
+			arg := e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(call.Args[i], arg, emptyInterfaceType)
-			e.FB.Print(arg)
+			e.fb.Print(arg)
 		}
 	case "println":
 		for i := range call.Args {
-			arg := e.FB.NewRegister(reflect.Interface)
+			arg := e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(call.Args[i], arg, emptyInterfaceType)
-			e.FB.Print(arg)
+			e.fb.Print(arg)
 			if i < len(call.Args)-1 {
-				str := e.FB.MakeStringConstant(" ")
-				sep := e.FB.NewRegister(reflect.Interface)
+				str := e.fb.MakeStringConstant(" ")
+				sep := e.fb.NewRegister(reflect.Interface)
 				e.changeRegister(true, str, sep, stringType, emptyInterfaceType)
-				e.FB.Print(sep)
+				e.fb.Print(sep)
 			}
 		}
 	case "real":
 		panic("TODO: not implemented")
 	case "recover":
-		e.FB.Recover(reg)
+		e.fb.Recover(reg)
 	default:
 		panic("unkown builtin") // TODO(Gianluca): remove.
 	}
@@ -1136,23 +1132,23 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.emitAssignmentNode(node)
 
 		case *ast.Block:
-			e.FB.EnterScope()
+			e.fb.EnterScope()
 			e.EmitNodes(node.Nodes)
-			e.FB.ExitScope()
+			e.fb.ExitScope()
 
 		case *ast.Break:
 			if e.breakable {
 				if e.breakLabel == nil {
-					label := e.FB.NewLabel()
+					label := e.fb.NewLabel()
 					e.breakLabel = &label
 				}
-				e.FB.Goto(*e.breakLabel)
+				e.fb.Goto(*e.breakLabel)
 			} else {
 				if node.Label != nil {
 					panic("TODO(Gianluca): not implemented")
 				}
-				e.FB.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
-				e.FB.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
+				e.fb.Break(e.rangeLabels[len(e.rangeLabels)-1][0])
+				e.fb.Goto(e.rangeLabels[len(e.rangeLabels)-1][1])
 			}
 
 		case *ast.Const:
@@ -1162,11 +1158,11 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			if node.Label != nil {
 				panic("TODO(Gianluca): not implemented")
 			}
-			e.FB.Continue(e.rangeLabels[len(e.rangeLabels)-1][0])
+			e.fb.Continue(e.rangeLabels[len(e.rangeLabels)-1][0])
 
 		case *ast.Defer, *ast.Go:
 			if def, ok := node.(*ast.Defer); ok {
-				if e.TypeInfo[def.Call.Func].IsBuiltin() {
+				if e.typeInfos[def.Call.Func].IsBuiltin() {
 					ident := def.Call.Func.(*ast.Identifier)
 					if ident.Name == "recover" {
 						continue
@@ -1188,7 +1184,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 					}
 				}
 			}
-			funReg := e.FB.NewRegister(reflect.Func)
+			funReg := e.fb.NewRegister(reflect.Func)
 			var funNode ast.Expression
 			var args []ast.Expression
 			switch node := node.(type) {
@@ -1199,13 +1195,13 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 				funNode = node.Call.Func
 				args = node.Call.Args
 			}
-			funType := e.TypeInfo[funNode].Type
-			e.emitExpr(funNode, funReg, e.TypeInfo[funNode].Type)
+			funType := e.typeInfos[funNode].Type
+			e.emitExpr(funNode, funReg, e.typeInfos[funNode].Type)
 			offset := vm.StackShift{
-				int8(e.FB.numRegs[reflect.Int]),
-				int8(e.FB.numRegs[reflect.Float64]),
-				int8(e.FB.numRegs[reflect.String]),
-				int8(e.FB.numRegs[reflect.Interface]),
+				int8(e.fb.numRegs[reflect.Int]),
+				int8(e.fb.numRegs[reflect.Float64]),
+				int8(e.fb.numRegs[reflect.String]),
+				int8(e.fb.numRegs[reflect.Interface]),
 			}
 			// TODO(Gianluca): currently supports only deferring or
 			// starting goroutines of not predefined functions.
@@ -1217,54 +1213,125 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			argsShift := vm.StackShift{}
 			switch node.(type) {
 			case *ast.Defer:
-				e.FB.Defer(funReg, vm.NoVariadic, offset, argsShift)
+				e.fb.Defer(funReg, vm.NoVariadic, offset, argsShift)
 			case *ast.Go:
 				// TODO(Gianluca):
-				e.FB.Go()
+				e.fb.Go()
 			}
+
+		case *ast.For:
+			currentBreakable := e.breakable
+			currentBreakLabel := e.breakLabel
+			e.breakable = true
+			e.breakLabel = nil
+			e.fb.EnterScope()
+			if node.Init != nil {
+				e.EmitNodes([]ast.Node{node.Init})
+			}
+			if node.Condition != nil {
+				forLabel := e.fb.NewLabel()
+				e.fb.SetLabelAddr(forLabel)
+				e.emitCondition(node.Condition)
+				endForLabel := e.fb.NewLabel()
+				e.fb.Goto(endForLabel)
+				e.EmitNodes(node.Body)
+				if node.Post != nil {
+					e.EmitNodes([]ast.Node{node.Post})
+				}
+				e.fb.Goto(forLabel)
+				e.fb.SetLabelAddr(endForLabel)
+			} else {
+				forLabel := e.fb.NewLabel()
+				e.fb.SetLabelAddr(forLabel)
+				e.EmitNodes(node.Body)
+				if node.Post != nil {
+					e.EmitNodes([]ast.Node{node.Post})
+				}
+				e.fb.Goto(forLabel)
+			}
+			e.fb.ExitScope()
+			if e.breakLabel != nil {
+				e.fb.SetLabelAddr(*e.breakLabel)
+			}
+			e.breakable = currentBreakable
+			e.breakLabel = currentBreakLabel
+
+		case *ast.ForRange:
+			e.fb.EnterScope()
+			vars := node.Assignment.Variables
+			indexReg := int8(0)
+			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
+				name := vars[0].(*ast.Identifier).Name
+				if node.Assignment.Type == ast.AssignmentDeclaration {
+					indexReg = e.fb.NewRegister(reflect.Int)
+					e.fb.BindVarReg(name, indexReg)
+				} else {
+					indexReg = e.fb.ScopeLookup(name)
+				}
+			}
+			elemReg := int8(0)
+			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
+				typ := e.typeInfos[vars[1]].Type
+				name := vars[1].(*ast.Identifier).Name
+				if node.Assignment.Type == ast.AssignmentDeclaration {
+					elemReg = e.fb.NewRegister(typ.Kind())
+					e.fb.BindVarReg(name, elemReg)
+				} else {
+					elemReg = e.fb.ScopeLookup(name)
+				}
+			}
+			expr := node.Assignment.Values[0]
+			exprType := e.typeInfos[expr].Type
+			exprReg, kExpr, isRegister := e.quickEmitExpr(expr, exprType)
+			if (!kExpr && !isRegister) || exprType.Kind() != reflect.String {
+				kExpr = false
+				exprReg = e.fb.NewRegister(exprType.Kind())
+				e.emitExpr(expr, exprReg, exprType)
+			}
+			rangeLabel := e.fb.NewLabel()
+			e.fb.SetLabelAddr(rangeLabel)
+			endRange := e.fb.NewLabel()
+			e.rangeLabels = append(e.rangeLabels, [2]uint32{rangeLabel, endRange})
+			e.fb.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
+			e.fb.Goto(endRange)
+			e.fb.EnterScope()
+			e.EmitNodes(node.Body)
+			e.fb.Continue(rangeLabel)
+			e.fb.SetLabelAddr(endRange)
+			e.rangeLabels = e.rangeLabels[:len(e.rangeLabels)-1]
+			e.fb.ExitScope()
+			e.fb.ExitScope()
 
 		case *ast.Goto:
-			if label, ok := e.labels[e.CurrentFunction][node.Label.Name]; ok {
-				e.FB.Goto(label)
+			if label, ok := e.labels[e.fb.fn][node.Label.Name]; ok {
+				e.fb.Goto(label)
 			} else {
-				if e.labels[e.CurrentFunction] == nil {
-					e.labels[e.CurrentFunction] = make(map[string]uint32)
+				if e.labels[e.fb.fn] == nil {
+					e.labels[e.fb.fn] = make(map[string]uint32)
 				}
-				label = e.FB.NewLabel()
-				e.FB.Goto(label)
-				e.labels[e.CurrentFunction][node.Label.Name] = label
-			}
-
-		case *ast.Label:
-			if _, found := e.labels[e.CurrentFunction][node.Name.Name]; !found {
-				if e.labels[e.CurrentFunction] == nil {
-					e.labels[e.CurrentFunction] = make(map[string]uint32)
-				}
-				e.labels[e.CurrentFunction][node.Name.Name] = e.FB.NewLabel()
-			}
-			e.FB.SetLabelAddr(e.labels[e.CurrentFunction][node.Name.Name])
-			if node.Statement != nil {
-				e.EmitNodes([]ast.Node{node.Statement})
+				label = e.fb.NewLabel()
+				e.fb.Goto(label)
+				e.labels[e.fb.fn][node.Label.Name] = label
 			}
 
 		case *ast.If:
-			e.FB.EnterScope()
+			e.fb.EnterScope()
 			if node.Assignment != nil {
 				e.EmitNodes([]ast.Node{node.Assignment})
 			}
 			e.emitCondition(node.Condition)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
-				endIfLabel := e.FB.NewLabel()
-				e.FB.Goto(endIfLabel)
+				endIfLabel := e.fb.NewLabel()
+				e.fb.Goto(endIfLabel)
 				e.EmitNodes(node.Then.Nodes)
-				e.FB.SetLabelAddr(endIfLabel)
+				e.fb.SetLabelAddr(endIfLabel)
 			} else {
-				elseLabel := e.FB.NewLabel()
-				e.FB.Goto(elseLabel)
+				elseLabel := e.fb.NewLabel()
+				e.fb.Goto(elseLabel)
 				e.EmitNodes(node.Then.Nodes)
-				endIfLabel := e.FB.NewLabel()
-				e.FB.Goto(endIfLabel)
-				e.FB.SetLabelAddr(elseLabel)
+				endIfLabel := e.fb.NewLabel()
+				e.fb.Goto(endIfLabel)
+				e.fb.SetLabelAddr(elseLabel)
 				if node.Else != nil {
 					switch els := node.Else.(type) {
 					case *ast.If:
@@ -1273,92 +1340,21 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 						e.EmitNodes(els.Nodes)
 					}
 				}
-				e.FB.SetLabelAddr(endIfLabel)
+				e.fb.SetLabelAddr(endIfLabel)
 			}
-			e.FB.ExitScope()
+			e.fb.ExitScope()
 
-		case *ast.For:
-			currentBreakable := e.breakable
-			currentBreakLabel := e.breakLabel
-			e.breakable = true
-			e.breakLabel = nil
-			e.FB.EnterScope()
-			if node.Init != nil {
-				e.EmitNodes([]ast.Node{node.Init})
-			}
-			if node.Condition != nil {
-				forLabel := e.FB.NewLabel()
-				e.FB.SetLabelAddr(forLabel)
-				e.emitCondition(node.Condition)
-				endForLabel := e.FB.NewLabel()
-				e.FB.Goto(endForLabel)
-				e.EmitNodes(node.Body)
-				if node.Post != nil {
-					e.EmitNodes([]ast.Node{node.Post})
+		case *ast.Label:
+			if _, found := e.labels[e.fb.fn][node.Name.Name]; !found {
+				if e.labels[e.fb.fn] == nil {
+					e.labels[e.fb.fn] = make(map[string]uint32)
 				}
-				e.FB.Goto(forLabel)
-				e.FB.SetLabelAddr(endForLabel)
-			} else {
-				forLabel := e.FB.NewLabel()
-				e.FB.SetLabelAddr(forLabel)
-				e.EmitNodes(node.Body)
-				if node.Post != nil {
-					e.EmitNodes([]ast.Node{node.Post})
-				}
-				e.FB.Goto(forLabel)
+				e.labels[e.fb.fn][node.Name.Name] = e.fb.NewLabel()
 			}
-			e.FB.ExitScope()
-			if e.breakLabel != nil {
-				e.FB.SetLabelAddr(*e.breakLabel)
+			e.fb.SetLabelAddr(e.labels[e.fb.fn][node.Name.Name])
+			if node.Statement != nil {
+				e.EmitNodes([]ast.Node{node.Statement})
 			}
-			e.breakable = currentBreakable
-			e.breakLabel = currentBreakLabel
-
-		case *ast.ForRange:
-			e.FB.EnterScope()
-			vars := node.Assignment.Variables
-			indexReg := int8(0)
-			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
-				name := vars[0].(*ast.Identifier).Name
-				if node.Assignment.Type == ast.AssignmentDeclaration {
-					indexReg = e.FB.NewRegister(reflect.Int)
-					e.FB.BindVarReg(name, indexReg)
-				} else {
-					indexReg = e.FB.ScopeLookup(name)
-				}
-			}
-			elemReg := int8(0)
-			if len(vars) == 2 && !isBlankIdentifier(vars[1]) {
-				typ := e.TypeInfo[vars[1]].Type
-				name := vars[1].(*ast.Identifier).Name
-				if node.Assignment.Type == ast.AssignmentDeclaration {
-					elemReg = e.FB.NewRegister(typ.Kind())
-					e.FB.BindVarReg(name, elemReg)
-				} else {
-					elemReg = e.FB.ScopeLookup(name)
-				}
-			}
-			expr := node.Assignment.Values[0]
-			exprType := e.TypeInfo[expr].Type
-			exprReg, kExpr, isRegister := e.quickEmitExpr(expr, exprType)
-			if (!kExpr && !isRegister) || exprType.Kind() != reflect.String {
-				kExpr = false
-				exprReg = e.FB.NewRegister(exprType.Kind())
-				e.emitExpr(expr, exprReg, exprType)
-			}
-			rangeLabel := e.FB.NewLabel()
-			e.FB.SetLabelAddr(rangeLabel)
-			endRange := e.FB.NewLabel()
-			e.rangeLabels = append(e.rangeLabels, [2]uint32{rangeLabel, endRange})
-			e.FB.Range(kExpr, exprReg, indexReg, elemReg, exprType.Kind())
-			e.FB.Goto(endRange)
-			e.FB.EnterScope()
-			e.EmitNodes(node.Body)
-			e.FB.Continue(rangeLabel)
-			e.FB.SetLabelAddr(endRange)
-			e.rangeLabels = e.rangeLabels[:len(e.rangeLabels)-1]
-			e.FB.ExitScope()
-			e.FB.ExitScope()
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
@@ -1385,7 +1381,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			// }
 			offset := [4]int8{}
 			for i, v := range node.Values {
-				typ := e.CurrentFunction.Type.Out(i)
+				typ := e.fb.fn.Type.Out(i)
 				var reg int8
 				switch kindToType(typ.Kind()) {
 				case vm.TypeInt:
@@ -1403,15 +1399,15 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 				}
 				e.emitExpr(v, reg, typ)
 			}
-			e.FB.Return()
+			e.fb.Return()
 
 		case *ast.Send:
-			ch := e.FB.NewRegister(reflect.Chan)
-			e.emitExpr(node.Channel, ch, e.TypeInfo[node.Channel].Type)
-			elemType := e.TypeInfo[node.Value].Type
-			v := e.FB.NewRegister(elemType.Kind())
+			ch := e.fb.NewRegister(reflect.Chan)
+			e.emitExpr(node.Channel, ch, e.typeInfos[node.Channel].Type)
+			elemType := e.typeInfos[node.Value].Type
+			v := e.fb.NewRegister(elemType.Kind())
 			e.emitExpr(node.Value, v, elemType)
-			e.FB.Send(ch, v)
+			e.fb.Send(ch, v)
 
 		case *ast.Switch:
 			currentBreakable := e.breakable
@@ -1420,7 +1416,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.breakLabel = nil
 			e.emitSwitch(node)
 			if e.breakLabel != nil {
-				e.FB.SetLabelAddr(*e.breakLabel)
+				e.fb.SetLabelAddr(*e.breakLabel)
 			}
 			e.breakable = currentBreakable
 			e.breakLabel = currentBreakLabel
@@ -1432,7 +1428,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.breakLabel = nil
 			e.emitTypeSwitch(node)
 			if e.breakLabel != nil {
-				e.FB.SetLabelAddr(*e.breakLabel)
+				e.fb.SetLabelAddr(*e.breakLabel)
 			}
 			e.breakable = currentBreakable
 			e.breakLabel = currentBreakLabel
@@ -1440,14 +1436,14 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 		case *ast.Var:
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
-				staticType := e.TypeInfo[v].Type
-				if e.IndirectVars[v] {
-					varReg := -e.FB.NewRegister(reflect.Interface)
-					e.FB.BindVarReg(v.Name, varReg)
+				staticType := e.typeInfos[v].Type
+				if e.indirectVars[v] {
+					varReg := -e.fb.NewRegister(reflect.Interface)
+					e.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
 				} else {
-					varReg := e.FB.NewRegister(staticType.Kind())
-					e.FB.BindVarReg(v.Name, varReg)
+					varReg := e.fb.NewRegister(staticType.Kind())
+					e.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = e.newAddress(addressRegister, staticType, varReg, 0)
 				}
 			}
@@ -1469,15 +1465,15 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 func (e *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 
-	e.FB.EnterScope()
+	e.fb.EnterScope()
 
 	if node.Init != nil {
 		e.EmitNodes([]ast.Node{node.Init})
 	}
 
 	typAss := node.Assignment.Values[0].(*ast.TypeAssertion)
-	typ := e.TypeInfo[typAss.Expr].Type
-	expr := e.FB.NewRegister(typ.Kind())
+	typ := e.typeInfos[typAss.Expr].Type
+	expr := e.fb.NewRegister(typ.Kind())
 	e.emitExpr(typAss.Expr, expr, typ)
 
 	if len(node.Assignment.Variables) == 1 {
@@ -1490,60 +1486,54 @@ func (e *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		e.EmitNodes([]ast.Node{n})
 	}
 
-	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
-	// typReg := e.FB.Type(typ)
-	// if variab := node.Assignment.Globals[0]; !isBlankast.Identifier(variab) {
-	// 	c.compileVarsGetValue([]ast.Expression{variab}, node.Assignment.Values[0], node.Assignment.Type == ast.AssignmentDeclaration)
-	// }
-
 	bodyLabels := make([]uint32, len(node.Cases))
-	endSwitchLabel := e.FB.NewLabel()
+	endSwitchLabel := e.fb.NewLabel()
 
 	var defaultLabel uint32
 	hasDefault := false
 
 	for i, cas := range node.Cases {
-		bodyLabels[i] = e.FB.NewLabel()
+		bodyLabels[i] = e.fb.NewLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
 			if isNil(caseExpr) {
 				panic("TODO(Gianluca): not implemented")
 			}
 			caseType := caseExpr.(*ast.Value).Val.(reflect.Type)
-			e.FB.Assert(expr, caseType, 0)
-			next := e.FB.NewLabel()
-			e.FB.Goto(next)
-			e.FB.Goto(bodyLabels[i])
-			e.FB.SetLabelAddr(next)
+			e.fb.Assert(expr, caseType, 0)
+			next := e.fb.NewLabel()
+			e.fb.Goto(next)
+			e.fb.Goto(bodyLabels[i])
+			e.fb.SetLabelAddr(next)
 		}
 	}
 
 	if hasDefault {
-		defaultLabel = e.FB.NewLabel()
-		e.FB.Goto(defaultLabel)
+		defaultLabel = e.fb.NewLabel()
+		e.fb.Goto(defaultLabel)
 	} else {
-		e.FB.Goto(endSwitchLabel)
+		e.fb.Goto(endSwitchLabel)
 	}
 
 	for i, cas := range node.Cases {
 		if cas.Expressions == nil {
-			e.FB.SetLabelAddr(defaultLabel)
+			e.fb.SetLabelAddr(defaultLabel)
 		}
-		e.FB.SetLabelAddr(bodyLabels[i])
-		e.FB.EnterScope()
+		e.fb.SetLabelAddr(bodyLabels[i])
+		e.fb.EnterScope()
 		e.EmitNodes(cas.Body)
-		e.FB.ExitScope()
-		e.FB.Goto(endSwitchLabel)
+		e.fb.ExitScope()
+		e.fb.Goto(endSwitchLabel)
 	}
 
-	e.FB.SetLabelAddr(endSwitchLabel)
-	e.FB.ExitScope()
+	e.fb.SetLabelAddr(endSwitchLabel)
+	e.fb.ExitScope()
 }
 
 // emitSwitch emits instructions for a switch node.
 func (e *emitter) emitSwitch(node *ast.Switch) {
 
-	e.FB.EnterScope()
+	e.fb.EnterScope()
 
 	if node.Init != nil {
 		e.EmitNodes([]ast.Node{node.Init})
@@ -1554,57 +1544,57 @@ func (e *emitter) emitSwitch(node *ast.Switch) {
 
 	if node.Expr == nil {
 		typ = reflect.TypeOf(false)
-		expr = e.FB.NewRegister(typ.Kind())
-		e.FB.Move(true, 1, expr, typ.Kind())
+		expr = e.fb.NewRegister(typ.Kind())
+		e.fb.Move(true, 1, expr, typ.Kind())
 	} else {
-		typ = e.TypeInfo[node.Expr].Type
-		expr = e.FB.NewRegister(typ.Kind())
+		typ = e.typeInfos[node.Expr].Type
+		expr = e.fb.NewRegister(typ.Kind())
 		e.emitExpr(node.Expr, expr, typ)
 	}
 
 	bodyLabels := make([]uint32, len(node.Cases))
-	endSwitchLabel := e.FB.NewLabel()
+	endSwitchLabel := e.fb.NewLabel()
 
 	var defaultLabel uint32
 	hasDefault := false
 
 	for i, cas := range node.Cases {
-		bodyLabels[i] = e.FB.NewLabel()
+		bodyLabels[i] = e.fb.NewLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
 			y, ky, isRegister := e.quickEmitExpr(caseExpr, typ)
 			if !ky && !isRegister {
-				y = e.FB.NewRegister(typ.Kind())
+				y = e.fb.NewRegister(typ.Kind())
 				e.emitExpr(caseExpr, y, typ)
 			}
-			e.FB.If(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
-			e.FB.Goto(bodyLabels[i])
+			e.fb.If(ky, expr, vm.ConditionNotEqual, y, typ.Kind()) // Condizione negata per poter concatenare gli if
+			e.fb.Goto(bodyLabels[i])
 		}
 	}
 
 	if hasDefault {
-		defaultLabel = e.FB.NewLabel()
-		e.FB.Goto(defaultLabel)
+		defaultLabel = e.fb.NewLabel()
+		e.fb.Goto(defaultLabel)
 	} else {
-		e.FB.Goto(endSwitchLabel)
+		e.fb.Goto(endSwitchLabel)
 	}
 
 	for i, cas := range node.Cases {
 		if cas.Expressions == nil {
-			e.FB.SetLabelAddr(defaultLabel)
+			e.fb.SetLabelAddr(defaultLabel)
 		}
-		e.FB.SetLabelAddr(bodyLabels[i])
-		e.FB.EnterScope()
+		e.fb.SetLabelAddr(bodyLabels[i])
+		e.fb.EnterScope()
 		e.EmitNodes(cas.Body)
 		if !cas.Fallthrough {
-			e.FB.Goto(endSwitchLabel)
+			e.fb.Goto(endSwitchLabel)
 		}
-		e.FB.ExitScope()
+		e.fb.ExitScope()
 	}
 
-	e.FB.SetLabelAddr(endSwitchLabel)
+	e.fb.SetLabelAddr(endSwitchLabel)
 
-	e.FB.ExitScope()
+	e.fb.ExitScope()
 }
 
 // emitCondition emits instructions for a condition. Last instruction added by
@@ -1624,17 +1614,17 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 			if isNil(cond.Expr1) {
 				expr = cond.Expr2
 			}
-			exprType := e.TypeInfo[expr].Type
+			exprType := e.typeInfos[expr].Type
 			x, _, isRegister := e.quickEmitExpr(expr, exprType)
 			if !isRegister {
-				x = e.FB.NewRegister(exprType.Kind())
+				x = e.fb.NewRegister(exprType.Kind())
 				e.emitExpr(expr, x, exprType)
 			}
 			condType := vm.ConditionNotNil
 			if cond.Operator() == ast.OperatorEqual {
 				condType = vm.ConditionNil
 			}
-			e.FB.If(false, x, condType, 0, exprType.Kind())
+			e.fb.If(false, x, condType, 0, exprType.Kind())
 			return
 		}
 
@@ -1659,17 +1649,17 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 				lenArg = cond.Expr2.(*ast.Call).Args[0]
 				expr = cond.Expr1
 			}
-			if e.TypeInfo[lenArg].Type.Kind() == reflect.String { // len is optimized for strings only.
-				lenArgType := e.TypeInfo[lenArg].Type
+			if e.typeInfos[lenArg].Type.Kind() == reflect.String { // len is optimized for strings only.
+				lenArgType := e.typeInfos[lenArg].Type
 				x, _, isRegister := e.quickEmitExpr(lenArg, lenArgType)
 				if !isRegister {
-					x = e.FB.NewRegister(lenArgType.Kind())
+					x = e.fb.NewRegister(lenArgType.Kind())
 					e.emitExpr(lenArg, x, lenArgType)
 				}
-				exprType := e.TypeInfo[expr].Type
+				exprType := e.typeInfos[expr].Type
 				y, ky, isRegister := e.quickEmitExpr(expr, exprType)
 				if !ky && !isRegister {
-					y = e.FB.NewRegister(exprType.Kind())
+					y = e.fb.NewRegister(exprType.Kind())
 					e.emitExpr(expr, y, exprType)
 				}
 				var condType vm.Condition
@@ -1687,7 +1677,7 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 				case ast.OperatorGreaterOrEqual:
 					condType = vm.ConditionGreaterOrEqualLen
 				}
-				e.FB.If(ky, x, condType, y, reflect.String)
+				e.fb.If(ky, x, condType, y, reflect.String)
 				return
 			}
 		}
@@ -1698,24 +1688,24 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 		// if v1 <= v2
 		// if v1 >  v2
 		// if v1 >= v2
-		expr1Type := e.TypeInfo[cond.Expr1].Type
-		expr2Type := e.TypeInfo[cond.Expr2].Type
+		expr1Type := e.typeInfos[cond.Expr1].Type
+		expr2Type := e.typeInfos[cond.Expr2].Type
 		if expr1Type.Kind() == expr2Type.Kind() {
 			switch kind := expr1Type.Kind(); kind {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 				reflect.Float32, reflect.Float64,
 				reflect.String:
-				expr1Type := e.TypeInfo[cond.Expr1].Type
+				expr1Type := e.typeInfos[cond.Expr1].Type
 				x, _, isRegister := e.quickEmitExpr(cond.Expr1, expr1Type)
 				if !isRegister {
-					x = e.FB.NewRegister(expr1Type.Kind())
+					x = e.fb.NewRegister(expr1Type.Kind())
 					e.emitExpr(cond.Expr1, x, expr1Type)
 				}
-				expr2Type := e.TypeInfo[cond.Expr2].Type
+				expr2Type := e.typeInfos[cond.Expr2].Type
 				y, ky, isRegister := e.quickEmitExpr(cond.Expr2, expr2Type)
 				if !ky && !isRegister {
-					y = e.FB.NewRegister(expr2Type.Kind())
+					y = e.fb.NewRegister(expr2Type.Kind())
 					e.emitExpr(cond.Expr2, y, expr2Type)
 				}
 				var condType vm.Condition
@@ -1740,23 +1730,23 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 						kind = reflect.Int
 					}
 				}
-				e.FB.If(ky, x, condType, y, kind)
+				e.fb.If(ky, x, condType, y, kind)
 				return
 			}
 		}
 
 	default:
 
-		condType := e.TypeInfo[cond].Type
+		condType := e.typeInfos[cond].Type
 		x, _, isRegister := e.quickEmitExpr(cond, condType)
 		if !isRegister {
-			x = e.FB.NewRegister(condType.Kind())
+			x = e.fb.NewRegister(condType.Kind())
 			e.emitExpr(cond, x, condType)
 		}
-		yConst := e.FB.MakeIntConstant(1)
-		y := e.FB.NewRegister(reflect.Bool)
-		e.FB.LoadNumber(vm.TypeInt, yConst, y)
-		e.FB.If(false, x, vm.ConditionEqual, y, reflect.Bool)
+		yConst := e.fb.MakeIntConstant(1)
+		y := e.fb.NewRegister(reflect.Bool)
+		e.fb.LoadNumber(vm.TypeInt, yConst, y)
+		e.fb.If(false, x, vm.ConditionEqual, y, reflect.Bool)
 
 	}
 

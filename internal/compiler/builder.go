@@ -313,6 +313,9 @@ func (builder *functionBuilder) Type(typ reflect.Type) int8 {
 
 func (builder *functionBuilder) End() {
 	fn := builder.fn
+	if fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
+		builder.Return()
+	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
 		i.A, i.B, i.C = encodeUint24(builder.labels[label-1])

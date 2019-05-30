@@ -14,56 +14,20 @@ import (
 	"scrigo/vm"
 )
 
-// addExplicitReturn adds an explicit return statement as last statement to node.
-func addExplicitReturn(node ast.Node) {
-	switch node := node.(type) {
-	case *ast.Func:
-		var pos *ast.Position
-		if len(node.Body.Nodes) == 0 {
-			pos = node.Pos()
-		} else {
-			last := node.Body.Nodes[len(node.Body.Nodes)-1]
-			if _, ok := last.(*ast.Return); !ok {
-				pos = last.Pos()
-			}
-		}
-		if pos != nil {
-			ret := ast.NewReturn(pos, nil)
-			node.Body.Nodes = append(node.Body.Nodes, ret)
-		}
-	case *ast.Tree:
-		var pos *ast.Position
-		if len(node.Nodes) == 0 {
-			pos = node.Pos()
-		} else {
-			last := node.Nodes[len(node.Nodes)-1]
-			if _, ok := last.(*ast.Return); !ok {
-				pos = last.Pos()
-			}
-		}
-		if pos != nil {
-			ret := ast.NewReturn(pos, nil)
-			node.Nodes = append(node.Nodes, ret)
-		}
-	default:
-		panic("bug") // TODO(Gianluca): remove.
-	}
-}
-
 // changeRegister moves src content into dst, making a conversion if necessary.
 func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
-			e.FB.EnterStack()
-			tmpReg := e.FB.NewRegister(srcType.Kind())
-			e.FB.Move(true, src, tmpReg, srcType.Kind())
-			e.FB.Convert(tmpReg, srcType, dst, srcType.Kind())
-			e.FB.ExitStack()
+			e.fb.EnterStack()
+			tmpReg := e.fb.NewRegister(srcType.Kind())
+			e.fb.Move(true, src, tmpReg, srcType.Kind())
+			e.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
+			e.fb.ExitStack()
 		} else {
-			e.FB.Convert(src, srcType, dst, srcType.Kind())
+			e.fb.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else if k || src != dst {
-		e.FB.Move(k, src, dst, srcType.Kind())
+		e.fb.Move(k, src, dst, srcType.Kind())
 	}
 }
 
@@ -82,44 +46,20 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
-func (e *emitter) importPredefinedPackage(n *ast.Import) {
-	var importPkgName string
-	parserPredefinedPkg := e.importablePredefinedPkgs[n.Path]
-	if n.Ident == nil {
-		importPkgName = parserPredefinedPkg.Name
-	} else {
-		switch n.Ident.Name {
-		case "_":
-			panic("TODO(Gianluca): not implemented")
-		case ".":
-			importPkgName = ""
-		default:
-			importPkgName = n.Ident.Name
-		}
+// functionIndex returns fun's index inside current function, creating it if
+// not exists.
+func (e *emitter) functionIndex(fun *vm.Function) int8 {
+	i, ok := e.assignedFunctions[e.fb.fn][fun]
+	if ok {
+		return i
 	}
-	for ident, value := range parserPredefinedPkg.Declarations {
-		_ = ident
-		if _, ok := value.(reflect.Type); ok {
-			continue
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			e.globals = append(e.globals, vm.Global{Pkg: parserPredefinedPkg.Name, Name: ident, Value: value})
-			name := ident
-			if importPkgName != "" {
-				name = importPkgName + "." + ident
-			}
-			e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Func {
-			predefinedFunc := NewPredefinedFunction(parserPredefinedPkg.Name, ident, value)
-			if importPkgName == "" {
-				e.availablePredefinedFunctions[e.currentPackage][ident] = predefinedFunc
-			} else {
-				e.availablePredefinedFunctions[e.currentPackage][importPkgName+"."+ident] = predefinedFunc
-			}
-		}
+	i = int8(len(e.fb.fn.Functions))
+	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
+	if e.assignedFunctions[e.fb.fn] == nil {
+		e.assignedFunctions[e.fb.fn] = make(map[*vm.Function]int8)
 	}
-	e.isPredefinedPkg[importPkgName] = true
+	e.assignedFunctions[e.fb.fn][fun] = i
+	return i
 }
 
 // isExported indicates if name is exported, according to
@@ -131,7 +71,7 @@ func isExported(name string) bool {
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
 func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := e.TypeInfo[call]; ti.IsBuiltin() {
+		if ti := e.typeInfos[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
@@ -142,11 +82,12 @@ func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 
 // isNil indicates if expr is the nil identifier.
 func isNil(expr ast.Expression) bool {
-	ident, ok := expr.(*ast.Identifier)
-	if !ok {
-		return false
+	// TODO(Gianluca): this implementation is wrong: nil can be shadowed. Use
+	// typeinfo informations instead.
+	if ident, ok := expr.(*ast.Identifier); ok {
+		return ident.Name == "nil"
 	}
-	return ident.Name == "nil"
+	return false
 }
 
 // kindToType returns VM's type of k.
@@ -201,38 +142,37 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-// predefinedFunctionIndex returns fun's index inside current function,
-// creating it if not exists.
-func (e *emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
-	currFun := e.CurrentFunction
-	i, ok := e.assignedPredefinedFunctions[currFun][fun]
+// predefVarIndex returns index of varRv inside globals, adding it if necessary.
+func (e *emitter) predefVarIndex(varRv reflect.Value) int16 {
+	index, ok := e.predefVarIndexes[e.fb.fn][varRv]
 	if ok {
-		return i
+		return index
 	}
-	i = int8(len(currFun.Predefined))
-	currFun.Predefined = append(currFun.Predefined, fun)
-	if e.assignedPredefinedFunctions[currFun] == nil {
-		e.assignedPredefinedFunctions[currFun] = make(map[*vm.PredefinedFunction]int8)
+	index = int16(len(e.globals))
+	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
+	if e.predefVarIndexes[e.fb.fn] == nil {
+		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
 	}
-	e.assignedPredefinedFunctions[currFun][fun] = i
-	return i
+	e.globals = append(e.globals, g)
+	e.predefVarIndexes[e.fb.fn][varRv] = index
+	return index
 }
 
-// functionIndex returns fun's index inside current function, creating it if
-// not exists.
-func (e *emitter) functionIndex(fun *vm.Function) int8 {
-	currFun := e.CurrentFunction
-	i, ok := e.assignedFunctions[currFun][fun]
+// predefFuncIndex returns index of funRv inside list of current function's
+// predefined functions, adding it if necessary.
+func (e *emitter) predefFuncIndex(funRv reflect.Value) int8 {
+	index, ok := e.predefFunIndexes[e.fb.fn][funRv]
 	if ok {
-		return i
+		return index
 	}
-	i = int8(len(currFun.Functions))
-	currFun.Functions = append(currFun.Functions, fun)
-	if e.assignedFunctions[currFun] == nil {
-		e.assignedFunctions[currFun] = make(map[*vm.Function]int8)
+	index = int8(len(e.fb.fn.Predefined))
+	f := NewPredefinedFunction("???", "???", funRv.Interface())
+	if e.predefFunIndexes[e.fb.fn] == nil {
+		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
 	}
-	e.assignedFunctions[currFun][fun] = i
-	return i
+	e.fb.fn.Predefined = append(e.fb.fn.Predefined, f)
+	e.predefFunIndexes[e.fb.fn][funRv] = index
+	return index
 }
 
 // setClosureRefs sets closure refs for function. This function works on current
@@ -245,7 +185,7 @@ func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 		uv := &upvars[i]
 		if uv.Index == -1 {
 			name := uv.Declaration.(*ast.Identifier).Name
-			reg := e.FB.ScopeLookup(name)
+			reg := e.fb.ScopeLookup(name)
 			uv.Index = int16(reg)
 		}
 	}
