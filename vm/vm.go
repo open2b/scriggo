@@ -446,11 +446,6 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 		variadic := fn.value.Type().IsVariadic()
 		if len(fn.in) > 0 {
 			args = fn.getArgs()
-			pargs := args
-			if fn.wantEnv {
-				args[0].Set(vm.envArg)
-				pargs = args[1:]
-			}
 			vm.fp[0] += uint32(fn.outOff[0])
 			vm.fp[1] += uint32(fn.outOff[1])
 			vm.fp[2] += uint32(fn.outOff[2])
@@ -463,26 +458,28 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				if i < lastNonVariadic {
 					switch k {
 					case Bool:
-						pargs[i].SetBool(vm.bool(1))
+						args[i].SetBool(vm.bool(1))
 						vm.fp[0]++
 					case Int:
-						pargs[i].SetInt(vm.int(1))
+						args[i].SetInt(vm.int(1))
 						vm.fp[0]++
 					case Uint:
-						pargs[i].SetUint(uint64(vm.int(1)))
+						args[i].SetUint(uint64(vm.int(1)))
 						vm.fp[0]++
 					case Float64:
-						pargs[i].SetFloat(vm.float(1))
+						args[i].SetFloat(vm.float(1))
 						vm.fp[1]++
 					case String:
-						pargs[i].SetString(vm.string(1))
+						args[i].SetString(vm.string(1))
 						vm.fp[2]++
 					case Func:
 						f := vm.general(1).(*callable)
-						pargs[i].Set(f.reflectValue(vm.env))
+						args[i].Set(f.reflectValue(vm.env))
 						vm.fp[3]++
+					case Environment:
+						args[i].Set(vm.envArg)
 					default:
-						pargs[i].Set(reflect.ValueOf(vm.general(1)))
+						args[i].Set(reflect.ValueOf(vm.general(1)))
 						vm.fp[3]++
 					}
 				} else {
@@ -520,16 +517,13 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 							slice.Index(j).Set(reflect.ValueOf(vm.general(int8(j + 1))))
 						}
 					}
-					pargs[i].Set(slice)
+					args[i].Set(slice)
 				}
 			}
 			vm.fp[0] = fp[0] + uint32(shift[0])
 			vm.fp[1] = fp[1] + uint32(shift[1])
 			vm.fp[2] = fp[2] + uint32(shift[2])
 			vm.fp[3] = fp[3] + uint32(shift[3])
-		} else if fn.wantEnv {
-			args = fn.getArgs()
-			args[0].Set(vm.envArg)
 		}
 		if newGoroutine {
 			if variadic {
@@ -817,22 +811,23 @@ type Registers struct {
 type Kind uint8
 
 const (
-	Bool      = Kind(reflect.Bool)
-	Int       = Kind(reflect.Int)
-	Int8      = Kind(reflect.Int8)
-	Int16     = Kind(reflect.Int16)
-	Int32     = Kind(reflect.Int32)
-	Int64     = Kind(reflect.Int64)
-	Uint      = Kind(reflect.Uint)
-	Uint8     = Kind(reflect.Uint8)
-	Uint16    = Kind(reflect.Uint16)
-	Uint32    = Kind(reflect.Uint32)
-	Uint64    = Kind(reflect.Uint64)
-	Float32   = Kind(reflect.Float32)
-	Float64   = Kind(reflect.Float64)
-	String    = Kind(reflect.String)
-	Func      = Kind(reflect.Func)
-	Interface = Kind(reflect.Interface)
+	Bool        = Kind(reflect.Bool)
+	Int         = Kind(reflect.Int)
+	Int8        = Kind(reflect.Int8)
+	Int16       = Kind(reflect.Int16)
+	Int32       = Kind(reflect.Int32)
+	Int64       = Kind(reflect.Int64)
+	Uint        = Kind(reflect.Uint)
+	Uint8       = Kind(reflect.Uint8)
+	Uint16      = Kind(reflect.Uint16)
+	Uint32      = Kind(reflect.Uint32)
+	Uint64      = Kind(reflect.Uint64)
+	Float32     = Kind(reflect.Float32)
+	Float64     = Kind(reflect.Float64)
+	String      = Kind(reflect.String)
+	Func        = Kind(reflect.Func)
+	Interface   = Kind(reflect.Interface)
+	Environment = 255
 )
 
 type writer interface {
@@ -889,16 +884,15 @@ func (env *Env) Context() Context {
 }
 
 type PredefinedFunction struct {
-	Pkg     string
-	Name    string
-	Func    interface{}
-	value   reflect.Value
-	wantEnv bool
-	in      []Kind
-	out     []Kind
-	mx      sync.Mutex
-	args    [][]reflect.Value
-	outOff  [4]int8
+	Pkg    string
+	Name   string
+	Func   interface{}
+	value  reflect.Value
+	in     []Kind
+	out    []Kind
+	mx     sync.Mutex
+	args   [][]reflect.Value
+	outOff [4]int8
 }
 
 func (fn *PredefinedFunction) getArgs() []reflect.Value {
@@ -966,18 +960,9 @@ func (fn *PredefinedFunction) slow() {
 	}
 	typ := fn.value.Type()
 	nIn := typ.NumIn()
-	if nIn > 0 && typ.In(0) == envType {
-		fn.wantEnv = true
-		nIn--
-	}
 	fn.in = make([]Kind, nIn)
 	for i := 0; i < nIn; i++ {
-		var k reflect.Kind
-		if fn.wantEnv {
-			k = typ.In(i + 1).Kind()
-		} else {
-			k = typ.In(i).Kind()
-		}
+		var k = typ.In(i).Kind()
 		switch {
 		case k == reflect.Bool:
 			fn.in[i] = Bool
@@ -992,7 +977,11 @@ func (fn *PredefinedFunction) slow() {
 		case k == reflect.Func:
 			fn.in[i] = Func
 		default:
-			fn.in[i] = Interface
+			if i < 2 && typ.In(i) == envType {
+				fn.in[i] = Environment
+			} else {
+				fn.in[i] = Interface
+			}
 		}
 	}
 	nOut := typ.NumOut()
