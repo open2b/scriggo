@@ -69,7 +69,7 @@ func Load(path string, reader scrigo.Reader, main *scrigo.PredefinedPackage, ctx
 	// main contains user defined variabiles, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
 
-	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
+	mainFn := compiler.EmitSingle(tree, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
 
 	return &Template{main: main, fn: mainFn}, nil
 }

@@ -80,7 +80,7 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 	}
 	alloc := options&LimitMemorySize != 0
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), predefinedPackages, typeInfos, tci["/main"].IndirectVars, alloc)
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["/main"].IndirectVars, alloc)
 
 	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
@@ -178,7 +178,7 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
-	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
+	mainFn := compiler.EmitSingle(tree, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
 
 	return &Script{fn: mainFn, globals: mainFn.Globals, options: options}, nil
 }

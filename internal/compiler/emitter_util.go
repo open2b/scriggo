@@ -54,16 +54,16 @@ func addExplicitReturn(node ast.Node) {
 func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
 		if k {
-			e.FB.EnterStack()
-			tmpReg := e.FB.NewRegister(srcType.Kind())
-			e.FB.Move(true, src, tmpReg, srcType.Kind())
-			e.FB.Convert(tmpReg, srcType, dst, srcType.Kind())
-			e.FB.ExitStack()
+			e.fb.EnterStack()
+			tmpReg := e.fb.NewRegister(srcType.Kind())
+			e.fb.Move(true, src, tmpReg, srcType.Kind())
+			e.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
+			e.fb.ExitStack()
 		} else {
-			e.FB.Convert(src, srcType, dst, srcType.Kind())
+			e.fb.Convert(src, srcType, dst, srcType.Kind())
 		}
 	} else if k || src != dst {
-		e.FB.Move(k, src, dst, srcType.Kind())
+		e.fb.Move(k, src, dst, srcType.Kind())
 	}
 }
 
@@ -80,47 +80,6 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 		size++
 	}
 	return size
-}
-
-func (e *emitter) importPredefinedPackage(n *ast.Import) {
-	panic("deprecated")
-	var importPkgName string
-	parserPredefinedPkg := e.importablePredefinedPkgs[n.Path]
-	if n.Ident == nil {
-		importPkgName = parserPredefinedPkg.Name
-	} else {
-		switch n.Ident.Name {
-		case "_":
-			panic("TODO(Gianluca): not implemented")
-		case ".":
-			importPkgName = ""
-		default:
-			importPkgName = n.Ident.Name
-		}
-	}
-	for ident, value := range parserPredefinedPkg.Declarations {
-		_ = ident
-		if _, ok := value.(reflect.Type); ok {
-			continue
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			e.globals = append(e.globals, vm.Global{Pkg: parserPredefinedPkg.Name, Name: ident, Value: value})
-			name := ident
-			if importPkgName != "" {
-				name = importPkgName + "." + ident
-			}
-			e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
-		}
-		if reflect.TypeOf(value).Kind() == reflect.Func {
-			predefinedFunc := NewPredefinedFunction(parserPredefinedPkg.Name, ident, value)
-			if importPkgName == "" {
-				e.availablePredefinedFunctions[e.currentPackage][ident] = predefinedFunc
-			} else {
-				e.availablePredefinedFunctions[e.currentPackage][importPkgName+"."+ident] = predefinedFunc
-			}
-		}
-	}
-	e.isPredefinedPkg[importPkgName] = true
 }
 
 // isExported indicates if name is exported, according to
@@ -213,18 +172,17 @@ func (e *emitter) predefinedVariableIndex(varRv reflect.Value) int8 {
 				e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
 			}
 	*/
-	currFn := e.CurrentFunction
-	index, ok := e.predefVarIndex[currFn][varRv]
+	index, ok := e.predefVarIndex[e.fb.fn][varRv]
 	if ok {
 		return index
 	}
 	index = int8(len(e.globals))
 	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
-	if e.predefVarIndex[currFn] == nil {
-		e.predefVarIndex[currFn] = make(map[reflect.Value]int8)
+	if e.predefVarIndex[e.fb.fn] == nil {
+		e.predefVarIndex[e.fb.fn] = make(map[reflect.Value]int8)
 	}
 	e.globals = append(e.globals, g)
-	e.predefVarIndex[currFn][varRv] = index
+	e.predefVarIndex[e.fb.fn][varRv] = index
 	return index
 }
 
@@ -241,35 +199,33 @@ func (e *emitter) predefinedFunctionIndex(funRv reflect.Value) int8 {
 	// }
 	// e.assignedPredefinedFunctions[currFun][fun] = i
 	// return i
-	currFn := e.CurrentFunction
-	index, ok := e.predefFunIndex[currFn][funRv]
+	index, ok := e.predefFunIndex[e.fb.fn][funRv]
 	if ok {
 		return index
 	}
-	index = int8(len(currFn.Predefined))
+	index = int8(len(e.fb.fn.Predefined))
 	f := NewPredefinedFunction("???", "???", funRv.Interface())
-	if e.predefFunIndex[currFn] == nil {
-		e.predefFunIndex[currFn] = make(map[reflect.Value]int8)
+	if e.predefFunIndex[e.fb.fn] == nil {
+		e.predefFunIndex[e.fb.fn] = make(map[reflect.Value]int8)
 	}
-	currFn.Predefined = append(currFn.Predefined, f)
-	e.predefFunIndex[currFn][funRv] = index
+	e.fb.fn.Predefined = append(e.fb.fn.Predefined, f)
+	e.predefFunIndex[e.fb.fn][funRv] = index
 	return index
 }
 
 // functionIndex returns fun's index inside current function, creating it if
 // not exists.
 func (e *emitter) functionIndex(fun *vm.Function) int8 {
-	currFun := e.CurrentFunction
-	i, ok := e.assignedFunctions[currFun][fun]
+	i, ok := e.assignedFunctions[e.fb.fn][fun]
 	if ok {
 		return i
 	}
-	i = int8(len(currFun.Functions))
-	currFun.Functions = append(currFun.Functions, fun)
-	if e.assignedFunctions[currFun] == nil {
-		e.assignedFunctions[currFun] = make(map[*vm.Function]int8)
+	i = int8(len(e.fb.fn.Functions))
+	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
+	if e.assignedFunctions[e.fb.fn] == nil {
+		e.assignedFunctions[e.fb.fn] = make(map[*vm.Function]int8)
 	}
-	e.assignedFunctions[currFun][fun] = i
+	e.assignedFunctions[e.fb.fn][fun] = i
 	return i
 }
 
@@ -283,7 +239,7 @@ func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 		uv := &upvars[i]
 		if uv.Index == -1 {
 			name := uv.Declaration.(*ast.Identifier).Name
-			reg := e.FB.ScopeLookup(name)
+			reg := e.fb.ScopeLookup(name)
 			uv.Index = int16(reg)
 		}
 	}
