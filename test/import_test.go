@@ -92,6 +92,19 @@ func TestScrigoImport(t *testing.T) {
 				func G() {
 					print("called pkg1.G()")
 				}`)}),
+
+		`"main" importing a package variable from "pkg1`: scrigo.MapReader(map[string][]byte{
+			"/main": []byte(
+				`package main
+				import "pkg1"
+				func main() {
+					v := pkg1.V
+					_ = v
+				}`),
+			"/pkg1.go": []byte(
+				`package pkg1
+				var V = 10`),
+		}),
 	}
 	for name, reader := range cases {
 		t.Run(name, func(t *testing.T) {
