@@ -201,21 +201,32 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-// predefinedFunctionIndex returns fun's index inside current function,
-// creating it if not exists.
-func (e *emitter) predefinedFunctionIndex(fun *vm.PredefinedFunction) int8 {
-	currFun := e.CurrentFunction
-	i, ok := e.assignedPredefinedFunctions[currFun][fun]
+func (e *emitter) predefinedFunctionIndex(funRv reflect.Value) int8 {
+	// currFun := e.CurrentFunction
+	// i, ok := e.assignedPredefinedFunctions[currFun][fun]
+	// if ok {
+	// 	return i
+	// }
+	// i = int8(len(currFun.Predefined))
+	// currFun.Predefined = append(currFun.Predefined, fun)
+	// if e.assignedPredefinedFunctions[currFun] == nil {
+	// 	e.assignedPredefinedFunctions[currFun] = make(map[*vm.PredefinedFunction]int8)
+	// }
+	// e.assignedPredefinedFunctions[currFun][fun] = i
+	// return i
+	currFn := e.CurrentFunction
+	index, ok := e.predefFunIndex[currFn][funRv]
 	if ok {
-		return i
+		return index
 	}
-	i = int8(len(currFun.Predefined))
-	currFun.Predefined = append(currFun.Predefined, fun)
-	if e.assignedPredefinedFunctions[currFun] == nil {
-		e.assignedPredefinedFunctions[currFun] = make(map[*vm.PredefinedFunction]int8)
+	index = int8(len(currFn.Predefined))
+	f := NewPredefinedFunction("???", "???", funRv.Interface())
+	if e.predefFunIndex[currFn] == nil {
+		e.predefFunIndex[currFn] = make(map[reflect.Value]int8)
 	}
-	e.assignedPredefinedFunctions[currFun][fun] = i
-	return i
+	currFn.Predefined = append(currFn.Predefined, f)
+	e.predefFunIndex[currFn][funRv] = index
+	return index
 }
 
 // functionIndex returns fun's index inside current function, creating it if

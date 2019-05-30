@@ -52,6 +52,7 @@ type emitter struct {
 	breakLabel *uint32
 
 	alloc bool
+	predefFunIndex map[*vm.Function]map[reflect.Value]int8
 }
 
 // newEmitter returns a new emitter reading sources from r.
@@ -69,6 +70,7 @@ func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*
 		TypeInfo:                     typeInfos,
 		IndirectVars:                 indirectVars,
 		labels:                       make(map[*vm.Function]map[string]uint32),
+		predefFunIndex:               map[*vm.Function]map[reflect.Value]int8{},
 	}
 	return c
 }
@@ -135,7 +137,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	for _, decl := range pkg.Declarations {
 		if imp, ok := decl.(*ast.Import); ok {
 			if imp.Tree == nil {
-				e.importPredefinedPackage(imp)
+				//e.importPredefinedPackage(imp)
 			} else {
 				currentPkg := e.currentPackage
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
@@ -397,73 +399,124 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 // emitCall emits instruction for a call, returning the list of registers (and
 // their respective type) within which return values are inserted.
 func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
+
 	stackShift := vm.StackShift{
 		int8(e.FB.numRegs[reflect.Int]),
 		int8(e.FB.numRegs[reflect.Float64]),
 		int8(e.FB.numRegs[reflect.String]),
 		int8(e.FB.numRegs[reflect.Interface]),
 	}
+
+	// Predefined function
+	funcTypeInfo := e.TypeInfo[call.Func]
+	funcType := funcTypeInfo.Type
+	if funcTypeInfo.IsPredefined() {
+		regs, types := e.prepareCallParameters(funcType, call.Args, true)
+		index := e.predefinedFunctionIndex(funcTypeInfo.Value.(reflect.Value))
+		if funcType.IsVariadic() {
+			numVar := len(call.Args) - (funcType.NumIn() - 1)
+			e.FB.CallPredefined(index, int8(numVar), stackShift)
+		} else {
+			e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
+		}
+		return regs, types
+	}
+
+	// Scrigo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !e.FB.IsVariable(ident.Name) {
-			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][ident.Name]; isNotPredeclared {
+			if fun, ok := e.availableFunctions[e.currentPackage][ident.Name]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
 				e.FB.Call(index, stackShift, call.Pos().Line)
 				return regs, types
 			}
-			if _, isPredefinedFunc := e.availablePredefinedFunctions[e.currentPackage][ident.Name]; isPredefinedFunc {
-				fun := e.availablePredefinedFunctions[e.currentPackage][ident.Name]
-				funcType := reflect.TypeOf(fun.Func)
-				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.predefinedFunctionIndex(fun)
-				if funcType.IsVariadic() {
-					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallPredefined(index, int8(numVar), stackShift)
-				} else {
-					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-				}
-				return regs, types
-			}
 		}
 	}
-	if sel, ok := call.Func.(*ast.Selector); ok {
-		if name, ok := sel.Expr.(*ast.Identifier); ok {
-			if isGoPkg := e.isPredefinedPkg[name.Name]; isGoPkg {
-				fun := e.availablePredefinedFunctions[e.currentPackage][name.Name+"."+sel.Ident]
-				funcType := reflect.TypeOf(fun.Func)
-				regs, types := e.prepareCallParameters(funcType, call.Args, true)
-				index := e.predefinedFunctionIndex(fun)
-				if funcType.IsVariadic() {
-					numVar := len(call.Args) - (funcType.NumIn() - 1)
-					e.FB.CallPredefined(index, int8(numVar), stackShift)
-				} else {
-					e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-				}
-				return regs, types
-			} else if fun, ok := e.availableFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
-				funcType := fun.Type
-				regs, types := e.prepareCallParameters(funcType, call.Args, false)
+
+	// Scrigo-defined function(selector).
+	if selector, ok := call.Func.(*ast.Selector); ok {
+		if ident, ok := selector.Expr.(*ast.Identifier); ok {
+			if fun, ok := e.availableFunctions[e.currentPackage][selector.Ident+"."+ident.Name]; ok {
+				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
-				if funcType.IsVariadic() {
-					panic("TODO(Gianluca): not implemented")
-				} else {
-					e.FB.Call(index, stackShift, sel.Pos().Line)
-				}
+				e.FB.Call(index, stackShift, call.Pos().Line)
 				return regs, types
-			} else {
-				panic("TODO(Gianluca): not implemented")
 			}
 		}
 	}
+
+	// Indirect function.
 	funReg, _, isRegister := e.quickEmitExpr(call.Func, e.TypeInfo[call.Func].Type)
 	if !isRegister {
 		funReg = e.FB.NewRegister(reflect.Func)
 		e.emitExpr(call.Func, funReg, e.TypeInfo[call.Func].Type)
 	}
-	funcType := e.TypeInfo[call.Func].Type
 	regs, types := e.prepareCallParameters(funcType, call.Args, true)
 	e.FB.CallIndirect(funReg, 0, stackShift)
 	return regs, types
+
+	// if ident, ok := call.Func.(*ast.Identifier); ok {
+	// 	if !e.FB.IsVariable(ident.Name) {
+	// 		if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][ident.Name]; isNotPredeclared {
+	// 			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
+	// 			index := e.functionIndex(fun)
+	// 			e.FB.Call(index, stackShift, call.Pos().Line)
+	// 			return regs, types
+	// 		}
+	// 		if _, isPredefinedFunc := e.availablePredefinedFunctions[e.currentPackage][ident.Name]; isPredefinedFunc {
+	// 			fun := e.availablePredefinedFunctions[e.currentPackage][ident.Name]
+	// 			funcType := reflect.TypeOf(fun.Func)
+	// 			regs, types := e.prepareCallParameters(funcType, call.Args, true)
+	// 			index := e.predefinedFunctionIndex(fun)
+	// 			if funcType.IsVariadic() {
+	// 				numVar := len(call.Args) - (funcType.NumIn() - 1)
+	// 				e.FB.CallPredefined(index, int8(numVar), stackShift)
+	// 			} else {
+	// 				e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
+	// 			}
+	// 			return regs, types
+	// 		}
+	// 	}
+	// }
+	// if sel, ok := call.Func.(*ast.Selector); ok {
+	// 	if name, ok := sel.Expr.(*ast.Identifier); ok {
+	// 		if isGoPkg := e.isPredefinedPkg[name.Name]; isGoPkg {
+	// 			fun := e.availablePredefinedFunctions[e.currentPackage][name.Name+"."+sel.Ident]
+	// 			funcType := reflect.TypeOf(fun.Func)
+	// 			regs, types := e.prepareCallParameters(funcType, call.Args, true)
+	// 			index := e.predefinedFunctionIndex(fun)
+	// 			if funcType.IsVariadic() {
+	// 				numVar := len(call.Args) - (funcType.NumIn() - 1)
+	// 				e.FB.CallPredefined(index, int8(numVar), stackShift)
+	// 			} else {
+	// 				e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
+	// 			}
+	// 			return regs, types
+	// 		} else if fun, ok := e.availableFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
+	// 			funcType := fun.Type
+	// 			regs, types := e.prepareCallParameters(funcType, call.Args, false)
+	// 			index := e.functionIndex(fun)
+	// 			if funcType.IsVariadic() {
+	// 				panic("TODO(Gianluca): not implemented")
+	// 			} else {
+	// 				e.FB.Call(index, stackShift, sel.Pos().Line)
+	// 			}
+	// 			return regs, types
+	// 		} else {
+	// 			panic("TODO(Gianluca): not implemented")
+	// 		}
+	// 	}
+	// }
+	// funReg, _, isRegister := e.quickEmitExpr(call.Func, e.TypeInfo[call.Func].Type)
+	// if !isRegister {
+	// 	funReg = e.FB.NewRegister(reflect.Func)
+	// 	e.emitExpr(call.Func, funReg, e.TypeInfo[call.Func].Type)
+	// }
+	// funcType := e.TypeInfo[call.Func].Type
+	// regs, types := e.prepareCallParameters(funcType, call.Args, true)
+	// e.FB.CallIndirect(funReg, 0, stackShift)
+	// return regs, types
 }
 
 // emitExpr emits instruction such that expr value is put into reg. If reg is
@@ -659,6 +712,15 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.FB.Nop()
 
 	case *ast.Selector:
+
+		// Predefined function.
+		typeInfo := e.TypeInfo[expr]
+		if typeInfo.IsPredefined() && typeInfo.Type.Kind() == reflect.Func {
+			index := e.predefinedFunctionIndex(typeInfo.Value.(reflect.Value))
+			e.FB.GetFunc(true, index, reg)
+			return
+		}
+
 		if index, ok := e.globalNameIndex[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
@@ -666,14 +728,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.FB.GetVar(int(index), reg) // TODO (Gianluca): to review.
 			return
 		}
-		if nf, ok := e.availablePredefinedFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-			if reg == 0 {
-				return
-			}
-			index := e.predefinedFunctionIndex(nf)
-			e.FB.GetFunc(true, index, reg)
-			return
-		}
+
 		if sf, ok := e.availableFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
@@ -682,6 +737,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.FB.GetFunc(false, index, reg)
 			return
 		}
+
 		exprType := e.TypeInfo[expr.Expr].Type
 		exprReg := e.FB.NewRegister(exprType.Kind())
 		e.emitExpr(expr.Expr, exprReg, exprType)

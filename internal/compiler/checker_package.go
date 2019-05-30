@@ -47,6 +47,7 @@ func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value).Elem(),
+				Value:      reflect.ValueOf(value),
 				Properties: PropertyAddressable | PropertyIsPredefined,
 			}}
 			continue
@@ -55,6 +56,7 @@ func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       removeEnvArg(typ, false),
+				Value:      reflect.ValueOf(value),
 				Properties: PropertyIsPredefined,
 			}}
 			continue
