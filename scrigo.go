@@ -145,17 +145,9 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	return int64(n), err
 }
 
-// Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
-type Global struct {
-	Name string
-	Type reflect.Type
-}
-
 type Script struct {
 	fn      *vm.Function
-	globals []Global
+	globals []vm.Global
 	options Option
 }
 
@@ -190,7 +182,7 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	// main contains user defined variables.
 	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
 
-	return &Script{fn: mainFn, options: options}, nil
+	return &Script{fn: mainFn, globals: mainFn.Globals, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.
