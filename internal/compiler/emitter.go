@@ -131,7 +131,9 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	for _, decl := range pkg.Declarations {
 		if imp, ok := decl.(*ast.Import); ok {
 			if imp.Tree == nil {
-				//e.importPredefinedPackage(imp)
+				// Nothing to do. Predefined variables, constants, types
+				// and functions are added as informations to tree by
+				// type-checker.
 			} else {
 				currentPkg := e.currentPackage
 				pkg := imp.Tree.Nodes[0].(*ast.Package)

@@ -83,6 +83,7 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 }
 
 func (e *emitter) importPredefinedPackage(n *ast.Import) {
+	panic("deprecated")
 	var importPkgName string
 	parserPredefinedPkg := e.importablePredefinedPkgs[n.Path]
 	if n.Ident == nil {
