@@ -69,6 +69,11 @@ func New() *VM {
 	return vm
 }
 
+// Env returns the execution environment of vm.
+func (vm *VM) Env() *Env {
+	return vm.env
+}
+
 // FreeMemory returns the current free memory in bytes. The returned value can
 // be negative. FreeMemory can be called when vm is running.
 func (vm *VM) FreeMemory() int {
