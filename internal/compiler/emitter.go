@@ -29,7 +29,7 @@ type emitter struct {
 	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
 
 	// Scrigo variables.
-	scrigoPackageVariables map[*ast.Package]map[string]int16
+	pkgVariables map[*ast.Package]map[string]int16
 
 	// Predefined functions.
 	predefFunIndex map[*vm.Function]map[reflect.Value]int8
@@ -57,15 +57,15 @@ type emitter struct {
 // newEmitter returns a new emitter reading sources from r.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
 	c := &emitter{
-		assignedFunctions:      map[*vm.Function]map[*vm.Function]int8{},
-		availableFunctions:     map[*ast.Package]map[string]*vm.Function{},
-		indirectVars:           indirectVars,
-		labels:                 make(map[*vm.Function]map[string]uint32),
-		predefFunIndex:         map[*vm.Function]map[reflect.Value]int8{},
-		predefVarIndex:         map[*vm.Function]map[reflect.Value]int16{},
-		scrigoPackageVariables: map[*ast.Package]map[string]int16{},
-		typeInfos:              typeInfos,
-		upvarsNames:            make(map[*vm.Function]map[string]int),
+		assignedFunctions:  map[*vm.Function]map[*vm.Function]int8{},
+		availableFunctions: map[*ast.Package]map[string]*vm.Function{},
+		indirectVars:       indirectVars,
+		labels:             make(map[*vm.Function]map[string]uint32),
+		predefFunIndex:     map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndex:     map[*vm.Function]map[reflect.Value]int16{},
+		pkgVariables:       map[*ast.Package]map[string]int16{},
+		typeInfos:          typeInfos,
+		upvarsNames:        make(map[*vm.Function]map[string]int),
 	}
 	return c
 }
@@ -109,11 +109,11 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
 	e.pkg = pkg
 	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
-	e.scrigoPackageVariables[e.pkg] = map[string]int16{}
+	e.pkgVariables[e.pkg] = map[string]int16{}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
-	// functions are called more than once, which is wrong.
-	initFuncs := []*vm.Function{} // List of all "init" functions in current package.
+	// functions are called more than once: that is wrong.
+	allInits := []*vm.Function{} // List of all "init" functions in current package.
 
 	// Emits imports.
 	for _, decl := range pkg.Declarations {
@@ -123,36 +123,36 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				// and functions are added as informations to tree by
 				// type-checker.
 			} else {
-				currentPkg := e.pkg
+				backupPkg := e.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				exportedFunctions, exportedVars, pkgInitFuncs := e.emitPackage(pkg)
-				e.pkg = currentPkg
-				initFuncs = append(initFuncs, pkgInitFuncs...)
-				var importPkgName string
+				funcs, vars, inits := e.emitPackage(pkg)
+				e.pkg = backupPkg
+				allInits = append(allInits, inits...)
+				var importName string
 				if imp.Ident == nil {
-					importPkgName = pkg.Name
+					importName = pkg.Name
 				} else {
 					switch imp.Ident.Name {
 					case "_":
 						panic("TODO(Gianluca): not implemented")
 					case ".":
-						importPkgName = ""
+						importName = ""
 					default:
-						importPkgName = imp.Ident.Name
+						importName = imp.Ident.Name
 					}
 				}
-				for name, fn := range exportedFunctions {
-					if importPkgName == "" {
+				for name, fn := range funcs {
+					if importName == "" {
 						e.availableFunctions[e.pkg][name] = fn
 					} else {
-						e.availableFunctions[e.pkg][importPkgName+"."+name] = fn
+						e.availableFunctions[e.pkg][importName+"."+name] = fn
 					}
 				}
-				for name, v := range exportedVars {
-					if importPkgName == "" {
-						e.scrigoPackageVariables[e.pkg][name] = v
+				for name, v := range vars {
+					if importName == "" {
+						e.pkgVariables[e.pkg][name] = v
 					} else {
-						e.scrigoPackageVariables[e.pkg][importPkgName+"."+name] = v
+						e.pkgVariables[e.pkg][importName+"."+name] = v
 					}
 				}
 			}
@@ -163,12 +163,12 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 	// Stores all function declarations in current package before building
 	// their bodies: order of declaration doesn't matter at package level.
-	initToBuild := len(initFuncs) // Index of next "init" function to build.
+	initToBuild := len(allInits) // Index of next "init" function to build.
 	for _, dec := range pkg.Declarations {
 		if fun, ok := dec.(*ast.Func); ok {
 			fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
 			if fun.Ident.Name == "init" {
-				initFuncs = append(initFuncs, fn)
+				allInits = append(allInits, fn)
 			} else {
 				e.availableFunctions[e.pkg][fun.Ident.Name] = fn
 				if isExported(fun.Ident.Name) {
@@ -183,7 +183,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	// Emits package variables.
 	var initVarsFn *vm.Function
 	var initVarsFb *functionBuilder
-	packageVariablesRegisters := map[string]int8{}
+	pkgVarRegs := map[string]int8{}
 	for _, dec := range pkg.Declarations {
 		if n, ok := dec.(*ast.Var); ok {
 			// If package has some variable declarations, a special "init" function
@@ -205,9 +205,12 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				varReg := -e.fb.NewRegister(reflect.Interface)
 				e.fb.BindVarReg(v.Name, varReg)
 				addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
-				packageVariablesRegisters[v.Name] = varReg
+				// Variable register is stored: will be used later to
+				// store initialized value inside proper global index
+				// during building of $initvars.
+				pkgVarRegs[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: staticType})
-				e.scrigoPackageVariables[e.pkg][v.Name] = int16(len(e.globals) - 1)
+				e.pkgVariables[e.pkg][v.Name] = int16(len(e.globals) - 1)
 				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
 			e.assign(addresses, n.Rhs)
@@ -220,7 +223,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		if n, ok := dec.(*ast.Func); ok {
 			var fn *vm.Function
 			if n.Ident.Name == "init" {
-				fn = initFuncs[initToBuild]
+				fn = allInits[initToBuild]
 				initToBuild++
 			} else {
 				fn = e.availableFunctions[e.pkg][n.Ident.Name]
@@ -228,9 +231,8 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			e.fb = newBuilder(fn)
 			e.fb.SetAlloc(e.addAllocInstructions)
 			e.fb.EnterScope()
-
-			// If function is "main", variables initialization function
-			// must be called as first statement inside main.
+			// If function is "main", variable initialization functions
+			// must be called before everything else inside main's body.
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
@@ -239,7 +241,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
 				// Second: calls all init functions, in order.
-				for _, initFunc := range initFuncs {
+				for _, initFunc := range allInits {
 					index := e.fb.AddFunction(initFunc)
 					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
@@ -258,8 +260,8 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		// globally.
 		backupFb := e.fb
 		e.fb = initVarsFb
-		for name, reg := range packageVariablesRegisters {
-			index := e.scrigoPackageVariables[e.pkg][name]
+		for name, reg := range pkgVarRegs {
+			index := e.pkgVariables[e.pkg][name]
 			e.fb.SetVar(false, reg, int(index))
 		}
 		e.fb = backupFb
@@ -276,16 +278,20 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 	// If this package is imported, initFuncs must contain initVarsFn, that is
 	// processed as a common "init" function.
 	if initVarsFn != nil {
-		initFuncs = append(initFuncs, initVarsFn)
+		allInits = append(allInits, initVarsFn)
 	}
 
-	return exportedFunctions, exportedVars, initFuncs
+	return exportedFunctions, exportedVars, allInits
 
 }
 
 // prepareCallParameters prepares parameters (out and in) for a function call of
 // type funcType and arguments args. Returns the list of return registers and
 // their respective type.
+//
+// Note that this functions is different than prepareFunctionBodyParameters;
+// while the former is used before emitting a function's body, the latter is
+// used before calling it.
 func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
@@ -350,6 +356,10 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 
 // prepareFunctionBodyParameters prepares fun's parameters (out and int) before
 // emitting its body.
+//
+// Note that this functions is different than prepareCallParameters; while the
+// former is used before calling a function, the latter is used before emitting
+// it's body.
 func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	// Reserves space for return parameters.
 	fillParametersTypes(fun.Type.Result)
@@ -432,68 +442,6 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	regs, types := e.prepareCallParameters(funcType, call.Args, true)
 	e.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, types
-
-	// if ident, ok := call.Func.(*ast.Identifier); ok {
-	// 	if !e.FB.IsVariable(ident.Name) {
-	// 		if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][ident.Name]; isNotPredeclared {
-	// 			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
-	// 			index := e.functionIndex(fun)
-	// 			e.FB.Call(index, stackShift, call.Pos().Line)
-	// 			return regs, types
-	// 		}
-	// 		if _, isPredefinedFunc := e.availablePredefinedFunctions[e.currentPackage][ident.Name]; isPredefinedFunc {
-	// 			fun := e.availablePredefinedFunctions[e.currentPackage][ident.Name]
-	// 			funcType := reflect.TypeOf(fun.Func)
-	// 			regs, types := e.prepareCallParameters(funcType, call.Args, true)
-	// 			index := e.predefinedFunctionIndex(fun)
-	// 			if funcType.IsVariadic() {
-	// 				numVar := len(call.Args) - (funcType.NumIn() - 1)
-	// 				e.FB.CallPredefined(index, int8(numVar), stackShift)
-	// 			} else {
-	// 				e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-	// 			}
-	// 			return regs, types
-	// 		}
-	// 	}
-	// }
-	// if sel, ok := call.Func.(*ast.Selector); ok {
-	// 	if name, ok := sel.Expr.(*ast.Identifier); ok {
-	// 		if isGoPkg := e.isPredefinedPkg[name.Name]; isGoPkg {
-	// 			fun := e.availablePredefinedFunctions[e.currentPackage][name.Name+"."+sel.Ident]
-	// 			funcType := reflect.TypeOf(fun.Func)
-	// 			regs, types := e.prepareCallParameters(funcType, call.Args, true)
-	// 			index := e.predefinedFunctionIndex(fun)
-	// 			if funcType.IsVariadic() {
-	// 				numVar := len(call.Args) - (funcType.NumIn() - 1)
-	// 				e.FB.CallPredefined(index, int8(numVar), stackShift)
-	// 			} else {
-	// 				e.FB.CallPredefined(index, vm.NoVariadic, stackShift)
-	// 			}
-	// 			return regs, types
-	// 		} else if fun, ok := e.availableFunctions[e.currentPackage][name.Name+"."+sel.Ident]; ok {
-	// 			funcType := fun.Type
-	// 			regs, types := e.prepareCallParameters(funcType, call.Args, false)
-	// 			index := e.functionIndex(fun)
-	// 			if funcType.IsVariadic() {
-	// 				panic("TODO(Gianluca): not implemented")
-	// 			} else {
-	// 				e.FB.Call(index, stackShift, sel.Pos().Line)
-	// 			}
-	// 			return regs, types
-	// 		} else {
-	// 			panic("TODO(Gianluca): not implemented")
-	// 		}
-	// 	}
-	// }
-	// funReg, _, isRegister := e.quickEmitExpr(call.Func, e.TypeInfo[call.Func].Type)
-	// if !isRegister {
-	// 	funReg = e.FB.NewRegister(reflect.Func)
-	// 	e.emitExpr(call.Func, funReg, e.TypeInfo[call.Func].Type)
-	// }
-	// funcType := e.TypeInfo[call.Func].Type
-	// regs, types := e.prepareCallParameters(funcType, call.Args, true)
-	// e.FB.CallIndirect(funReg, 0, stackShift)
-	// return regs, types
 }
 
 // emitExpr emits instruction such that expr value is put into reg. If reg is
@@ -705,7 +653,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		if index, ok := e.scrigoPackageVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -841,7 +789,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					e.fb.GetVar(index, tmpReg)
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-			} else if index, ok := e.scrigoPackageVariables[e.pkg][expr.Name]; ok {
+			} else if index, ok := e.pkgVariables[e.pkg][expr.Name]; ok {
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
 					e.fb.GetVar(int(index), reg)
 				} else {
