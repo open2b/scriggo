@@ -40,7 +40,7 @@ func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
 
 type Program struct {
 	fn      *vm.Function
-	globals []compiler.Global
+	globals []vm.Global
 	options Option
 }
 
@@ -81,14 +81,8 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 	alloc := options&LimitMemorySize != 0
 
 	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), predefinedPackages, typeInfos, tci["/main"].IndirectVars, alloc)
-	globals := make([]compiler.Global, len(pkgMain.Globals))
-	for i, global := range pkgMain.Globals {
-		globals[i].Pkg = global.Pkg
-		globals[i].Name = global.Name
-		globals[i].Type = global.Type
-		globals[i].Value = global.Value
-	}
-	return &Program{fn: pkgMain.Main, globals: globals, options: options}, nil
+
+	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
 
 // Options returns the options with which the program has been loaded.
