@@ -1,4 +1,4 @@
-package scrigo
+package test
 
 import (
 	"bytes"
