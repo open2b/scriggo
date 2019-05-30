@@ -37,7 +37,9 @@ type emitter struct {
 	// body.
 	rangeLabels [][2]uint32
 
-	globals         []vm.Global                       // holds all predefined and not predefined global variables.
+	globals []vm.Global // holds all predefined and not predefined global variables.
+
+	// TODO(Gianluca): rename to "scrigo globals" (predefined globals are in a different structure)
 	globalNameIndex map[*ast.Package]map[string]int16 // maps global variable names to their index inside globals.
 
 	labels map[*vm.Function]map[string]uint32
@@ -51,8 +53,9 @@ type emitter struct {
 	// jump.
 	breakLabel *uint32
 
-	alloc bool
+	alloc          bool
 	predefFunIndex map[*vm.Function]map[reflect.Value]int8
+	predefVarIndex map[*vm.Function]map[reflect.Value]int8
 }
 
 // newEmitter returns a new emitter reading sources from r.
@@ -71,6 +74,7 @@ func newEmitter(packages map[string]*PredefinedPackage, typeInfos map[ast.Node]*
 		IndirectVars:                 indirectVars,
 		labels:                       make(map[*vm.Function]map[string]uint32),
 		predefFunIndex:               map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndex:               map[*vm.Function]map[reflect.Value]int8{},
 	}
 	return c
 }
@@ -703,11 +707,18 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Selector:
 
-		// Predefined function.
-		typeInfo := e.TypeInfo[expr]
-		if typeInfo.IsPredefined() && typeInfo.Type.Kind() == reflect.Func {
-			index := e.predefinedFunctionIndex(typeInfo.Value.(reflect.Value))
-			e.FB.GetFunc(true, index, reg)
+		if typeInfo := e.TypeInfo[expr]; typeInfo.IsPredefined() {
+
+			// Predefined function.
+			if typeInfo.Type.Kind() == reflect.Func {
+				index := e.predefinedFunctionIndex(typeInfo.Value.(reflect.Value))
+				e.FB.GetFunc(true, index, reg)
+				return
+			}
+
+			// Predefined variable.
+			index := e.predefinedVariableIndex(typeInfo.Value.(reflect.Value))
+			e.FB.GetVar(int(index), reg)
 			return
 		}
 

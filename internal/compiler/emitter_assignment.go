@@ -190,9 +190,14 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			case *ast.Selector:
 				if varIndex, ok := e.globalNameIndex[e.currentPackage][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = e.newAddress(addressPackageVariable, e.TypeInfo[v].Type, int8(varIndex), 0)
-				} else {
-					panic("TODO(Gianluca): not implemented")
 				}
+				ti := e.TypeInfo[v]
+				if ti.IsPredefined() {
+					varRv := ti.Value.(reflect.Value)
+					index := e.predefinedVariableIndex(varRv)
+					addresses[i] = e.newAddress(addressPackageVariable, e.TypeInfo[v].Type, int8(index), 0)
+				}
+
 			case *ast.UnaryOperator:
 				if v.Operator() != ast.OperatorMultiplication {
 					panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.

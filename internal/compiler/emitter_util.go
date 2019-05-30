@@ -201,6 +201,32 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
+func (e *emitter) predefinedVariableIndex(varRv reflect.Value) int8 {
+	/*
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			e.globals = append(e.globals, vm.Global{Pkg: parserPredefinedPkg.Name, Name: ident, Value: value})
+				name := ident
+				if importPkgName != "" {
+					name = importPkgName + "." + ident
+				}
+				e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
+			}
+	*/
+	currFn := e.CurrentFunction
+	index, ok := e.predefVarIndex[currFn][varRv]
+	if ok {
+		return index
+	}
+	index = int8(len(e.globals))
+	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
+	if e.predefVarIndex[currFn] == nil {
+		e.predefVarIndex[currFn] = make(map[reflect.Value]int8)
+	}
+	e.globals = append(e.globals, g)
+	e.predefVarIndex[currFn][varRv] = index
+	return index
+}
+
 func (e *emitter) predefinedFunctionIndex(funRv reflect.Value) int8 {
 	// currFun := e.CurrentFunction
 	// i, ok := e.assignedPredefinedFunctions[currFun][fun]

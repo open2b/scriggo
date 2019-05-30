@@ -7,6 +7,7 @@
 package scrigo
 
 import (
+	"log"
 	"testing"
 
 	"scrigo"
@@ -94,6 +95,7 @@ func TestScrigoImport(t *testing.T) {
 	}
 	for name, reader := range cases {
 		t.Run(name, func(t *testing.T) {
+			log.Printf("█ [DEBUG] █ name: %v\n", name) // TODO(Gianluca): remove.
 			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{reader}, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
