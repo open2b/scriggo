@@ -91,7 +91,7 @@ func isExported(name string) bool {
 // isLenBuiltinCall indicates if expr is a "len" builtin call.
 func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := e.TypeInfo[call]; ti.IsBuiltin() {
+		if ti := e.typeInfos[call]; ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
