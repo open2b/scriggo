@@ -90,16 +90,6 @@ func EmitSingle(tree *ast.Tree, packages map[string]*PredefinedPackage, typeInfo
 	return e.CurrentFunction
 }
 
-// Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
-type Global struct {
-	Pkg   string
-	Name  string
-	Type  reflect.Type
-	Value interface{}
-}
-
 // Package is the result of a package emitting process.
 type Package struct {
 	Globals   []vm.Global

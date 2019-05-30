@@ -40,7 +40,7 @@ func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
 
 type Program struct {
 	fn      *vm.Function
-	globals []compiler.Global
+	globals []vm.Global
 	options Option
 }
 
@@ -51,7 +51,7 @@ type PackageImporter interface{}
 func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 
 	// Converts []PackageImporter in []compiler.PackageImporter.
-	// Type alias is not reccomended as it would make documentation unclear.
+	// Type alias is not recommended as it would make documentation unclear.
 	compilerPkgs := make([]compiler.PackageImporter, len(packages))
 	for i := range packages {
 		compilerPkgs[i] = packages[i]
@@ -81,14 +81,8 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 	alloc := options&LimitMemorySize != 0
 
 	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), predefinedPackages, typeInfos, tci["/main"].IndirectVars, alloc)
-	globals := make([]compiler.Global, len(pkgMain.Globals))
-	for i, global := range pkgMain.Globals {
-		globals[i].Pkg = global.Pkg
-		globals[i].Name = global.Name
-		globals[i].Type = global.Type
-		globals[i].Value = global.Value
-	}
-	return &Program{fn: pkgMain.Main, globals: globals, options: options}, nil
+
+	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
 
 // Options returns the options with which the program has been loaded.
@@ -104,36 +98,34 @@ type RunOptions struct {
 }
 
 // Run starts the program and waits for it to complete.
+//
+// Panics if the option MaxMemorySize is greater than zero but the program has
+// not been loaded with option LimitMemorySize.
 func (p *Program) Run(options RunOptions) error {
-	vmm := vm.New()
-	if options.Context != nil {
-		vmm.SetContext(options.Context)
-	}
 	if options.MaxMemorySize > 0 {
 		if p.options&LimitMemorySize == 0 {
-			return errors.New("program not loaded with LimitMemorySize option")
+			panic("scrigo: program not loaded with LimitMemorySize option")
 		}
-		vmm.SetMaxMemory(options.MaxMemorySize)
 	}
-	if options.DontPanic {
-		vmm.SetDontPanic(true)
-	}
-	if options.TraceFunc != nil {
-		vmm.SetTraceFunc(options.TraceFunc)
-	}
-	if n := len(p.globals); n > 0 {
-		globals := make([]interface{}, n)
-		for i, global := range p.globals {
-			if global.Value == nil {
-				globals[i] = reflect.New(global.Type).Interface()
-			} else {
-				globals[i] = global.Value
-			}
-		}
-		vmm.SetGlobals(globals)
-	}
+	vmm := newVM(p.globals, nil, options)
 	_, err := vmm.Run(p.fn)
 	return err
+}
+
+// Start starts the program in a new goroutine and returns its virtual machine
+// execution environment.
+//
+// Panics if the option MaxMemorySize is greater than zero but the program has
+// not been loaded with option LimitMemorySize.
+func (p *Program) Start(options RunOptions) *vm.Env {
+	if options.MaxMemorySize > 0 {
+		if p.options&LimitMemorySize == 0 {
+			panic("scrigo: program not loaded with LimitMemorySize option")
+		}
+	}
+	vmm := newVM(p.globals, nil, options)
+	go vmm.Run(p.fn)
+	return vmm.Env()
 }
 
 // Disassemble disassembles the package with the given path. Predefined
@@ -145,23 +137,15 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	}
 	asm, ok := packages[pkgPath]
 	if !ok {
-		return 0, errors.New("package path does not exist")
+		return 0, errors.New("scrigo: package path does not exist")
 	}
 	n, err := io.WriteString(w, asm)
 	return int64(n), err
 }
 
-// Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
-type Global struct {
-	Name string
-	Type reflect.Type
-}
-
 type Script struct {
 	fn      *vm.Function
-	globals []Global
+	globals []vm.Global
 	options Option
 }
 
@@ -196,7 +180,7 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	// main contains user defined variables.
 	mainFn := compiler.EmitSingle(tree, nil, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
 
-	return &Script{fn: mainFn, options: options}, nil
+	return &Script{fn: mainFn, globals: mainFn.Globals, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.
@@ -204,17 +188,45 @@ func (s *Script) Options() Option {
 	return s.options
 }
 
-// Run starts a script with the specified global variables and waits for it to
-// complete.
-func (s *Script) Run(vars map[string]interface{}, options RunOptions) error {
+// Run starts the script, with initialization values for the global variables,
+// and waits for it to complete.
+//
+// Panics if the option MaxMemorySize is greater than zero but the script has
+// not been loaded with option LimitMemorySize.
+func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
+	if options.MaxMemorySize > 0 {
+		if s.options&LimitMemorySize == 0 {
+			panic("scrigo: script not loaded with LimitMemorySize option")
+		}
+	}
+	vmm := newVM(s.globals, init, options)
+	_, err := vmm.Run(s.fn)
+	return err
+}
+
+// Start starts the script in a new goroutine, with initialization values for
+// the global variables, and returns its virtual machine execution environment.
+//
+// Panics if the option MaxMemorySize is greater than zero but the script has
+// not been loaded with option LimitMemorySize.
+func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env {
+	if options.MaxMemorySize > 0 {
+		if s.options&LimitMemorySize == 0 {
+			panic("scrigo: script not loaded with LimitMemorySize option")
+		}
+	}
+	vmm := newVM(s.globals, init, options)
+	go vmm.Run(s.fn)
+	return vmm.Env()
+}
+
+// newVM returns a new vm with the given options.
+func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions) *vm.VM {
 	vmm := vm.New()
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
 	}
 	if options.MaxMemorySize > 0 {
-		if s.options&LimitMemorySize == 0 {
-			return errors.New("script not loaded with LimitMemorySize option")
-		}
 		vmm.SetMaxMemory(options.MaxMemorySize)
 	}
 	if options.DontPanic {
@@ -223,25 +235,30 @@ func (s *Script) Run(vars map[string]interface{}, options RunOptions) error {
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
-	if n := len(s.globals); n > 0 {
-		globals := make([]interface{}, n)
-		for i, global := range s.globals {
-			if value, ok := vars[global.Name]; ok {
-				if v, ok := value.(reflect.Value); ok {
-					globals[i] = v.Addr().Interface()
+	if n := len(globals); n > 0 {
+		values := make([]interface{}, n)
+		for i, global := range globals {
+			if global.Value == nil {
+				// global is not predeclared.
+				if value, ok := init[global.Name]; ok {
+					if v, ok := value.(reflect.Value); ok {
+						values[i] = v.Addr().Interface()
+					} else {
+						rv := reflect.New(global.Type).Elem()
+						rv.Set(reflect.ValueOf(v))
+						values[i] = rv.Interface()
+					}
 				} else {
-					rv := reflect.New(global.Type).Elem()
-					rv.Set(reflect.ValueOf(v))
-					globals[i] = rv.Interface()
+					values[i] = reflect.New(global.Type).Interface()
 				}
 			} else {
-				globals[i] = reflect.New(global.Type).Interface()
+				// global is predeclared.
+				values[i] = global.Value
 			}
 		}
-		vmm.SetGlobals(globals)
+		vmm.SetGlobals(values)
 	}
-	_, err := vmm.Run(s.fn)
-	return err
+	return vmm
 }
 
 // Disassemble disassembles a script.
