@@ -774,7 +774,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			e.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			if fun, isNotPredeclared := e.availableFunctions[e.pkg][expr.Name]; isNotPredeclared {
+			if fun, ok := e.availableFunctions[e.pkg][expr.Name]; ok {
 				index := e.functionIndex(fun)
 				e.fb.GetFunc(false, index, reg)
 			} else if index, ok := e.upvarsNames[e.fb.fn][expr.Name]; ok {
