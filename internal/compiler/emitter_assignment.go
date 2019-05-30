@@ -159,7 +159,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 						// int8; should we change address to store
 						// int32/64?
 						addresses[i] = e.newAddress(addressUpVar, staticType, int8(reg), 0)
-					} else if index, ok := e.scrigoPackageVariables[e.currentPackage][v.Name]; ok {
+					} else if index, ok := e.scrigoPackageVariables[e.pkg][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else {
@@ -188,7 +188,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				addresses[i] = e.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
-				if varIndex, ok := e.scrigoPackageVariables[e.currentPackage][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
+				if varIndex, ok := e.scrigoPackageVariables[e.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(varIndex), 0)
 				}
 				ti := e.typeInfos[v]

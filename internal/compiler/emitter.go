@@ -17,10 +17,10 @@ import (
 // An emitter emits instructions for the VM.
 type emitter struct {
 	addAllocInstructions bool
-	currentPackage       *ast.Package
 	fb                   *functionBuilder
 	indirectVars         map[*ast.Identifier]bool
 	labels               map[*vm.Function]map[string]uint32
+	pkg                  *ast.Package
 	typeInfos            map[ast.Node]*TypeInfo
 	upvarsNames          map[*vm.Function]map[string]int
 
@@ -48,6 +48,7 @@ type emitter struct {
 	// breakable is true if emitting a "breakable" statement (except ForRange,
 	// which implements his own "breaking" system).
 	breakable bool
+
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
@@ -56,15 +57,15 @@ type emitter struct {
 // newEmitter returns a new emitter reading sources from r.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
 	c := &emitter{
-		upvarsNames:            make(map[*vm.Function]map[string]int),
-		availableFunctions:     map[*ast.Package]map[string]*vm.Function{},
 		assignedFunctions:      map[*vm.Function]map[*vm.Function]int8{},
-		scrigoPackageVariables: map[*ast.Package]map[string]int16{},
-		typeInfos:              typeInfos,
+		availableFunctions:     map[*ast.Package]map[string]*vm.Function{},
 		indirectVars:           indirectVars,
 		labels:                 make(map[*vm.Function]map[string]uint32),
 		predefFunIndex:         map[*vm.Function]map[reflect.Value]int8{},
 		predefVarIndex:         map[*vm.Function]map[reflect.Value]int16{},
+		scrigoPackageVariables: map[*ast.Package]map[string]int16{},
+		typeInfos:              typeInfos,
+		upvarsNames:            make(map[*vm.Function]map[string]int),
 	}
 	return c
 }
@@ -106,9 +107,9 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // emitPackage emits package pkg. Returns a list of exported functions and
 // exported variables.
 func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
-	e.currentPackage = pkg
-	e.availableFunctions[e.currentPackage] = map[string]*vm.Function{}
-	e.scrigoPackageVariables[e.currentPackage] = map[string]int16{}
+	e.pkg = pkg
+	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+	e.scrigoPackageVariables[e.pkg] = map[string]int16{}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
 	// functions are called more than once, which is wrong.
@@ -122,10 +123,10 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				// and functions are added as informations to tree by
 				// type-checker.
 			} else {
-				currentPkg := e.currentPackage
+				currentPkg := e.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
 				exportedFunctions, exportedVars, pkgInitFuncs := e.emitPackage(pkg)
-				e.currentPackage = currentPkg
+				e.pkg = currentPkg
 				initFuncs = append(initFuncs, pkgInitFuncs...)
 				var importPkgName string
 				if imp.Ident == nil {
@@ -142,16 +143,16 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				}
 				for name, fn := range exportedFunctions {
 					if importPkgName == "" {
-						e.availableFunctions[e.currentPackage][name] = fn
+						e.availableFunctions[e.pkg][name] = fn
 					} else {
-						e.availableFunctions[e.currentPackage][importPkgName+"."+name] = fn
+						e.availableFunctions[e.pkg][importPkgName+"."+name] = fn
 					}
 				}
 				for name, v := range exportedVars {
 					if importPkgName == "" {
-						e.scrigoPackageVariables[e.currentPackage][name] = v
+						e.scrigoPackageVariables[e.pkg][name] = v
 					} else {
-						e.scrigoPackageVariables[e.currentPackage][importPkgName+"."+name] = v
+						e.scrigoPackageVariables[e.pkg][importPkgName+"."+name] = v
 					}
 				}
 			}
@@ -169,7 +170,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			if fun.Ident.Name == "init" {
 				initFuncs = append(initFuncs, fn)
 			} else {
-				e.availableFunctions[e.currentPackage][fun.Ident.Name] = fn
+				e.availableFunctions[e.pkg][fun.Ident.Name] = fn
 				if isExported(fun.Ident.Name) {
 					exportedFunctions[fun.Ident.Name] = fn
 				}
@@ -192,7 +193,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			backupFb := e.fb
 			if initVarsFn == nil {
 				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				e.availableFunctions[e.currentPackage]["$initvars"] = initVarsFn
+				e.availableFunctions[e.pkg]["$initvars"] = initVarsFn
 				initVarsFb = newBuilder(initVarsFn)
 				initVarsFb.SetAlloc(e.addAllocInstructions)
 				initVarsFb.EnterScope()
@@ -206,7 +207,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
 				packageVariablesRegisters[v.Name] = varReg
 				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: staticType})
-				e.scrigoPackageVariables[e.currentPackage][v.Name] = int16(len(e.globals) - 1)
+				e.scrigoPackageVariables[e.pkg][v.Name] = int16(len(e.globals) - 1)
 				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
 			e.assign(addresses, n.Rhs)
@@ -222,7 +223,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				fn = initFuncs[initToBuild]
 				initToBuild++
 			} else {
-				fn = e.availableFunctions[e.currentPackage][n.Ident.Name]
+				fn = e.availableFunctions[e.pkg][n.Ident.Name]
 			}
 			e.fb = newBuilder(fn)
 			e.fb.SetAlloc(e.addAllocInstructions)
@@ -233,7 +234,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
-					iv := e.availableFunctions[e.currentPackage]["$initvars"]
+					iv := e.availableFunctions[e.pkg]["$initvars"]
 					index := e.fb.AddFunction(iv)
 					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
@@ -258,7 +259,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		backupFb := e.fb
 		e.fb = initVarsFb
 		for name, reg := range packageVariablesRegisters {
-			index := e.scrigoPackageVariables[e.currentPackage][name]
+			index := e.scrigoPackageVariables[e.pkg][name]
 			e.fb.SetVar(false, reg, int(index))
 		}
 		e.fb = backupFb
@@ -401,7 +402,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scrigo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok {
 		if !e.fb.IsVariable(ident.Name) {
-			if fun, ok := e.availableFunctions[e.currentPackage][ident.Name]; ok {
+			if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
 				e.fb.Call(index, stackShift, call.Pos().Line)
@@ -413,7 +414,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scrigo-defined function(selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if fun, ok := e.availableFunctions[e.currentPackage][selector.Ident+"."+ident.Name]; ok {
+			if fun, ok := e.availableFunctions[e.pkg][selector.Ident+"."+ident.Name]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
 				e.fb.Call(index, stackShift, call.Pos().Line)
@@ -704,7 +705,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		if index, ok := e.scrigoPackageVariables[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if index, ok := e.scrigoPackageVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -712,7 +713,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		if sf, ok := e.availableFunctions[e.currentPackage][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if sf, ok := e.availableFunctions[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -824,7 +825,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			e.changeRegister(false, out, reg, typ, dstType)
 		} else {
-			if fun, isNotPredeclared := e.availableFunctions[e.currentPackage][expr.Name]; isNotPredeclared {
+			if fun, isNotPredeclared := e.availableFunctions[e.pkg][expr.Name]; isNotPredeclared {
 				index := e.functionIndex(fun)
 				e.fb.GetFunc(false, index, reg)
 			} else if index, ok := e.upvarsNames[e.fb.fn][expr.Name]; ok {
@@ -840,7 +841,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					e.fb.GetVar(index, tmpReg)
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
-			} else if index, ok := e.scrigoPackageVariables[e.currentPackage][expr.Name]; ok {
+			} else if index, ok := e.scrigoPackageVariables[e.pkg][expr.Name]; ok {
 				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
 					e.fb.GetVar(int(index), reg)
 				} else {
