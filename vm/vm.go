@@ -9,7 +9,6 @@ package vm
 import (
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -1206,8 +1205,12 @@ func (err Panic) Error() string {
 }
 
 func packageName(pkg string) string {
-	i := strings.LastIndex(pkg, "/")
-	return pkg[i+1:]
+	for i := len(pkg) - 1; i >= 0; i-- {
+		if pkg[i] == '/' {
+			return pkg[i+1:]
+		}
+	}
+	return pkg
 }
 
 type Type int8
