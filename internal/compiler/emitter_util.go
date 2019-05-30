@@ -14,42 +14,6 @@ import (
 	"scrigo/vm"
 )
 
-// addExplicitReturn adds an explicit return statement as last statement to node.
-func addExplicitReturn(node ast.Node) {
-	switch node := node.(type) {
-	case *ast.Func:
-		var pos *ast.Position
-		if len(node.Body.Nodes) == 0 {
-			pos = node.Pos()
-		} else {
-			last := node.Body.Nodes[len(node.Body.Nodes)-1]
-			if _, ok := last.(*ast.Return); !ok {
-				pos = last.Pos()
-			}
-		}
-		if pos != nil {
-			ret := ast.NewReturn(pos, nil)
-			node.Body.Nodes = append(node.Body.Nodes, ret)
-		}
-	case *ast.Tree:
-		var pos *ast.Position
-		if len(node.Nodes) == 0 {
-			pos = node.Pos()
-		} else {
-			last := node.Nodes[len(node.Nodes)-1]
-			if _, ok := last.(*ast.Return); !ok {
-				pos = last.Pos()
-			}
-		}
-		if pos != nil {
-			ret := ast.NewReturn(pos, nil)
-			node.Nodes = append(node.Nodes, ret)
-		}
-	default:
-		panic("bug") // TODO(Gianluca): remove.
-	}
-}
-
 // changeRegister moves src content into dst, making a conversion if necessary.
 func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
@@ -162,16 +126,6 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 }
 
 func (e *emitter) predefinedVariableIndex(varRv reflect.Value) int16 {
-	/*
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			e.globals = append(e.globals, vm.Global{Pkg: parserPredefinedPkg.Name, Name: ident, Value: value})
-				name := ident
-				if importPkgName != "" {
-					name = importPkgName + "." + ident
-				}
-				e.globalNameIndex[e.currentPackage][name] = int16(len(e.globals) - 1)
-			}
-	*/
 	index, ok := e.predefVarIndex[e.fb.fn][varRv]
 	if ok {
 		return index
@@ -186,19 +140,7 @@ func (e *emitter) predefinedVariableIndex(varRv reflect.Value) int16 {
 	return index
 }
 
-func (e *emitter) predefinedFunctionIndex(funRv reflect.Value) int8 {
-	// currFun := e.CurrentFunction
-	// i, ok := e.assignedPredefinedFunctions[currFun][fun]
-	// if ok {
-	// 	return i
-	// }
-	// i = int8(len(currFun.Predefined))
-	// currFun.Predefined = append(currFun.Predefined, fun)
-	// if e.assignedPredefinedFunctions[currFun] == nil {
-	// 	e.assignedPredefinedFunctions[currFun] = make(map[*vm.PredefinedFunction]int8)
-	// }
-	// e.assignedPredefinedFunctions[currFun][fun] = i
-	// return i
+func (e *emitter) predefFunctionIndex(funRv reflect.Value) int8 {
 	index, ok := e.predefFunIndex[e.fb.fn][funRv]
 	if ok {
 		return index

@@ -123,6 +123,27 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "If statement inside function literal",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			f := func() {
+				if true == false {
+					fmt.Print("paradox")
+				} else {
+					fmt.Print("ok")
+				}
+			}
+			f()
+		}
+		`,
+		output: "ok",
+	},
+	{
 		name: "Implicit repetition on global declaration using iota",
 		src: `package main
 

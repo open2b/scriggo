@@ -76,7 +76,6 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
-	addExplicitReturn(tree)
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
@@ -247,7 +246,6 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				}
 			}
 			e.prepareFunctionBodyParameters(n)
-			addExplicitReturn(n)
 			e.EmitNodes(n.Body.Nodes)
 			e.fb.End()
 			e.fb.ExitScope()
@@ -399,7 +397,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
 		regs, types := e.prepareCallParameters(funcType, call.Args, true)
-		index := e.predefinedFunctionIndex(funcTypeInfo.Value.(reflect.Value))
+		index := e.predefFunctionIndex(funcTypeInfo.Value.(reflect.Value))
 		if funcType.IsVariadic() {
 			numVar := len(call.Args) - (funcType.NumIn() - 1)
 			e.fb.CallPredefined(index, int8(numVar), stackShift)
@@ -410,18 +408,16 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 
 	// Scrigo-defined function (identifier).
-	if ident, ok := call.Func.(*ast.Identifier); ok {
-		if !e.fb.IsVariable(ident.Name) {
-			if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
-				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
-				index := e.functionIndex(fun)
-				e.fb.Call(index, stackShift, call.Pos().Line)
-				return regs, types
-			}
+	if ident, ok := call.Func.(*ast.Identifier); ok && !e.fb.IsVariable(ident.Name) {
+		if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
+			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
+			index := e.functionIndex(fun)
+			e.fb.Call(index, stackShift, call.Pos().Line)
+			return regs, types
 		}
 	}
 
-	// Scrigo-defined function(selector).
+	// Scrigo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := e.availableFunctions[e.pkg][selector.Ident+"."+ident.Name]; ok {
@@ -445,7 +441,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 }
 
 // emitExpr emits instruction such that expr value is put into reg. If reg is
-// zero instructions are emitted anyway but result is discarded.
+// zero, instructions are emitted anyway but result is discarded.
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 	// TODO (Gianluca): review all "kind" arguments in every emitExpr call.
 	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
@@ -549,8 +545,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.ExitStack()
 
 	case *ast.Call:
-		// Builtin call.
 		e.fb.EnterStack()
+		// Builtin call.
 		if e.typeInfos[expr.Func].IsBuiltin() {
 			e.emitBuiltin(expr, reg, dstType)
 			e.fb.ExitStack()
@@ -567,6 +563,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				return
 			}
 		}
+		// Function call.
 		regs, types := e.emitCall(expr)
 		if reg != 0 {
 			e.changeRegister(false, regs[0], reg, types[0], dstType)
@@ -642,7 +639,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 			// Predefined function.
 			if typeInfo.Type.Kind() == reflect.Func {
-				index := e.predefinedFunctionIndex(typeInfo.Value.(reflect.Value))
+				index := e.predefFunctionIndex(typeInfo.Value.(reflect.Value))
 				e.fb.GetFunc(true, index, reg)
 				return
 			}
@@ -653,6 +650,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
+		// Scrigo-defined package variables.
 		if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
@@ -661,6 +659,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
+		// Scrigo-defined package functions.
 		if sf, ok := e.availableFunctions[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
@@ -670,6 +669,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
+		// Selector is emitted a general expression.
 		exprType := e.typeInfos[expr.Expr].Type
 		exprReg := e.fb.NewRegister(exprType.Kind())
 		e.emitExpr(expr.Expr, exprReg, exprType)
@@ -733,6 +733,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Func:
 
+		// Supports scripts function declarations.
 		if expr.Ident != nil {
 			varReg := e.fb.NewRegister(reflect.Func)
 			e.fb.BindVarReg(expr.Ident.Name, varReg)
@@ -757,9 +758,9 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 		e.fb.EnterScope()
 		e.prepareFunctionBodyParameters(expr)
-		addExplicitReturn(expr)
 		e.EmitNodes(expr.Body.Nodes)
 		e.fb.ExitScope()
+		e.fb.End()
 		e.fb = currFb
 
 	case *ast.Identifier:
@@ -1218,60 +1219,6 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 				e.fb.Go()
 			}
 
-		case *ast.Goto:
-			if label, ok := e.labels[e.fb.fn][node.Label.Name]; ok {
-				e.fb.Goto(label)
-			} else {
-				if e.labels[e.fb.fn] == nil {
-					e.labels[e.fb.fn] = make(map[string]uint32)
-				}
-				label = e.fb.NewLabel()
-				e.fb.Goto(label)
-				e.labels[e.fb.fn][node.Label.Name] = label
-			}
-
-		case *ast.Label:
-			if _, found := e.labels[e.fb.fn][node.Name.Name]; !found {
-				if e.labels[e.fb.fn] == nil {
-					e.labels[e.fb.fn] = make(map[string]uint32)
-				}
-				e.labels[e.fb.fn][node.Name.Name] = e.fb.NewLabel()
-			}
-			e.fb.SetLabelAddr(e.labels[e.fb.fn][node.Name.Name])
-			if node.Statement != nil {
-				e.EmitNodes([]ast.Node{node.Statement})
-			}
-
-		case *ast.If:
-			e.fb.EnterScope()
-			if node.Assignment != nil {
-				e.EmitNodes([]ast.Node{node.Assignment})
-			}
-			e.emitCondition(node.Condition)
-			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
-				endIfLabel := e.fb.NewLabel()
-				e.fb.Goto(endIfLabel)
-				e.EmitNodes(node.Then.Nodes)
-				e.fb.SetLabelAddr(endIfLabel)
-			} else {
-				elseLabel := e.fb.NewLabel()
-				e.fb.Goto(elseLabel)
-				e.EmitNodes(node.Then.Nodes)
-				endIfLabel := e.fb.NewLabel()
-				e.fb.Goto(endIfLabel)
-				e.fb.SetLabelAddr(elseLabel)
-				if node.Else != nil {
-					switch els := node.Else.(type) {
-					case *ast.If:
-						e.EmitNodes([]ast.Node{els})
-					case *ast.Block:
-						e.EmitNodes(els.Nodes)
-					}
-				}
-				e.fb.SetLabelAddr(endIfLabel)
-			}
-			e.fb.ExitScope()
-
 		case *ast.For:
 			currentBreakable := e.breakable
 			currentBreakLabel := e.breakLabel
@@ -1354,6 +1301,60 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.rangeLabels = e.rangeLabels[:len(e.rangeLabels)-1]
 			e.fb.ExitScope()
 			e.fb.ExitScope()
+
+		case *ast.Goto:
+			if label, ok := e.labels[e.fb.fn][node.Label.Name]; ok {
+				e.fb.Goto(label)
+			} else {
+				if e.labels[e.fb.fn] == nil {
+					e.labels[e.fb.fn] = make(map[string]uint32)
+				}
+				label = e.fb.NewLabel()
+				e.fb.Goto(label)
+				e.labels[e.fb.fn][node.Label.Name] = label
+			}
+
+		case *ast.If:
+			e.fb.EnterScope()
+			if node.Assignment != nil {
+				e.EmitNodes([]ast.Node{node.Assignment})
+			}
+			e.emitCondition(node.Condition)
+			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
+				endIfLabel := e.fb.NewLabel()
+				e.fb.Goto(endIfLabel)
+				e.EmitNodes(node.Then.Nodes)
+				e.fb.SetLabelAddr(endIfLabel)
+			} else {
+				elseLabel := e.fb.NewLabel()
+				e.fb.Goto(elseLabel)
+				e.EmitNodes(node.Then.Nodes)
+				endIfLabel := e.fb.NewLabel()
+				e.fb.Goto(endIfLabel)
+				e.fb.SetLabelAddr(elseLabel)
+				if node.Else != nil {
+					switch els := node.Else.(type) {
+					case *ast.If:
+						e.EmitNodes([]ast.Node{els})
+					case *ast.Block:
+						e.EmitNodes(els.Nodes)
+					}
+				}
+				e.fb.SetLabelAddr(endIfLabel)
+			}
+			e.fb.ExitScope()
+
+		case *ast.Label:
+			if _, found := e.labels[e.fb.fn][node.Name.Name]; !found {
+				if e.labels[e.fb.fn] == nil {
+					e.labels[e.fb.fn] = make(map[string]uint32)
+				}
+				e.labels[e.fb.fn][node.Name.Name] = e.fb.NewLabel()
+			}
+			e.fb.SetLabelAddr(e.labels[e.fb.fn][node.Name.Name])
+			if node.Statement != nil {
+				e.EmitNodes([]ast.Node{node.Statement})
+			}
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
@@ -1484,12 +1485,6 @@ func (e *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		)
 		e.EmitNodes([]ast.Node{n})
 	}
-
-	// typ := node.Assignment.Values[0].(*ast.Value).Val.(reflect.Type)
-	// typReg := e.FB.Type(typ)
-	// if variab := node.Assignment.Globals[0]; !isBlankast.Identifier(variab) {
-	// 	c.compileVarsGetValue([]ast.Expression{variab}, node.Assignment.Values[0], node.Assignment.Type == ast.AssignmentDeclaration)
-	// }
 
 	bodyLabels := make([]uint32, len(node.Cases))
 	endSwitchLabel := e.fb.NewLabel()
