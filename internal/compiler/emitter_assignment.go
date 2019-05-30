@@ -135,7 +135,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			} else {
 				v := v.(*ast.Identifier)
 				staticType := e.typeInfos[v].Type
-				if e.IndirectVars[v] {
+				if e.indirectVars[v] {
 					varReg := -e.fb.NewRegister(reflect.Interface)
 					e.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)

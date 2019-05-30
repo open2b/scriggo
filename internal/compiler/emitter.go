@@ -16,11 +16,13 @@ import (
 
 // An emitter emits instructions for the VM.
 type emitter struct {
-	typeInfos    map[ast.Node]*TypeInfo
-	fb           *functionBuilder
-	IndirectVars map[*ast.Identifier]bool
-
-	upvarsNames map[*vm.Function]map[string]int
+	addAllocInstructions bool
+	currentPackage       *ast.Package
+	fb                   *functionBuilder
+	indirectVars         map[*ast.Identifier]bool
+	labels               map[*vm.Function]map[string]uint32
+	typeInfos            map[ast.Node]*TypeInfo
+	upvarsNames          map[*vm.Function]map[string]int
 
 	// Scrigo functions.
 	availableFunctions map[*ast.Package]map[string]*vm.Function
@@ -43,20 +45,12 @@ type emitter struct {
 	// body.
 	rangeLabels [][2]uint32
 
-	// TODO(Gianluca): rename to "scrigo globals" (predefined globals are in a different structure)
-
-	labels map[*vm.Function]map[string]uint32
-
-	currentPackage *ast.Package
-
 	// breakable is true if emitting a "breakable" statement (except ForRange,
 	// which implements his own "breaking" system).
 	breakable bool
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
-
-	addAllocInstructions bool
 }
 
 // newEmitter returns a new emitter reading sources from r.
@@ -67,7 +61,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		assignedFunctions:      map[*vm.Function]map[*vm.Function]int8{},
 		scrigoPackageVariables: map[*ast.Package]map[string]int16{},
 		typeInfos:              typeInfos,
-		IndirectVars:           indirectVars,
+		indirectVars:           indirectVars,
 		labels:                 make(map[*vm.Function]map[string]uint32),
 		predefFunIndex:         map[*vm.Function]map[reflect.Value]int8{},
 		predefVarIndex:         map[*vm.Function]map[reflect.Value]int8{},
@@ -1493,7 +1487,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			addresses := make([]address, len(node.Lhs))
 			for i, v := range node.Lhs {
 				staticType := e.typeInfos[v].Type
-				if e.IndirectVars[v] {
+				if e.indirectVars[v] {
 					varReg := -e.fb.NewRegister(reflect.Interface)
 					e.fb.BindVarReg(v.Name, varReg)
 					addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
