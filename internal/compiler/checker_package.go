@@ -9,7 +9,6 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -46,7 +45,6 @@ func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 		}
 		// Importing a Go variable.
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			log.Printf("█ [DEBUG] █ reflect.TypeOf(value): %v\n", reflect.TypeOf(value)) // TODO(Gianluca): remove.
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:       reflect.TypeOf(value).Elem(),
 				Value:      reflect.ValueOf(value),

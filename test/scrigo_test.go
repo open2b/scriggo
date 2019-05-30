@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -3766,7 +3765,6 @@ var stmtTests = []struct {
 func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
-			log.Printf("█ [DEBUG] █ cas.name: %v\n", cas.name) // TODO(Gianluca): remove.
 			regs := cas.registers
 			r := scrigo.MapReader{"/main": []byte(cas.src)}
 			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{r, goPackages}, scrigo.LimitMemorySize)
