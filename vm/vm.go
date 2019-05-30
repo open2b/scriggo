@@ -850,6 +850,7 @@ type Env struct {
 	mu         sync.Mutex // mutex for the following fields.
 	freeMemory int        // free memory.
 	exits      []func()   // exit functions.
+	exited     bool       // reports whether it is exited.
 }
 
 // Alloc allocates memory in the execution environment. If bytes is negative
@@ -873,7 +874,11 @@ func (env *Env) Alloc(bytes int) {
 // environment is terminated.
 func (env *Env) ExitFunc(f func()) {
 	env.mu.Lock()
-	env.exits = append(env.exits, f)
+	if env.exited {
+		go f()
+	} else {
+		env.exits = append(env.exits, f)
+	}
 	env.mu.Unlock()
 	return
 }
