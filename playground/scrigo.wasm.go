@@ -3,11 +3,9 @@
 package main
 
 import (
-	"strings"
 	"syscall/js"
 
 	"scrigo"
-	"scrigo/internal/compiler"
 )
 
 func main() {
@@ -19,14 +17,14 @@ func main() {
 
 	button.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
-		r := compiler.MapReader{}
-		comp := scrigo.NewCompiler(r, nil)
-		program, err := comp.Compile(strings.NewReader(source.Get("value").String()))
+		main := []byte(source.Get("value").String())
+
+		program, err := scrigo.LoadProgram([]scrigo.PackageImporter{map[string][]byte{"/main": main}}, 0)
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil
 		}
-		err = scrigo.Execute(program)
+		err = program.Run(scrigo.RunOptions{})
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil
