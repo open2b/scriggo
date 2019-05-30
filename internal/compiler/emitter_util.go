@@ -149,6 +149,7 @@ func (e *emitter) predefVarIndex(varRv reflect.Value) int16 {
 		return index
 	}
 	index = int16(len(e.globals))
+	// TODO(Gianluca): replace "???" with proper values.
 	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
 	if e.predefVarIndexes[e.fb.fn] == nil {
 		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
@@ -166,6 +167,7 @@ func (e *emitter) predefFuncIndex(funRv reflect.Value) int8 {
 		return index
 	}
 	index = int8(len(e.fb.fn.Predefined))
+	// TODO(Gianluca): replace "???" with proper values.
 	f := NewPredefinedFunction("???", "???", funRv.Interface())
 	if e.predefFunIndexes[e.fb.fn] == nil {
 		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
