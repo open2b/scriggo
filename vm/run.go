@@ -49,6 +49,7 @@ func (vm *VM) Run(fn *Function) (code int, err error) {
 		go f()
 	}
 	vm.env.exits = nil
+	vm.env.exited = true
 	vm.env.mu.Unlock()
 	// Manage error and panics.
 	if len(vm.panics) > 0 {
