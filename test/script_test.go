@@ -15,28 +15,34 @@ func TestScript(t *testing.T) {
 			"Print":   fmt.Print,
 		},
 	}
-	_ = simpleMain
 	cases := map[string]struct {
 		src  string
 		main *scrigo.PredefinedPackage
 		init map[string]interface{}
 	}{
-		"A script which doesn't use anything but Go builtins": {
+		"Don't use anything but Go builtins": {
 			src: `println("hi!")`,
 		},
-		// TODO(Gianluca):
-		// "A script using external main definition": {
-		// 	src:  `Println("hi!")`,
-		// 	main: simpleMain,
-		// },
+		"Use external main definition": {
+			src:  `Println("hi!")`,
+			main: simpleMain,
+		},
+		"Function definitions": {
+			src: `
+			func F() {
+				println("i'm f")
+			}
+			F()
+			`,
+		},
 	}
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), nil, scrigo.Option(0))
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.main, scrigo.Option(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			err = script.Run(nil, scrigo.RunOptions{})
+			err = script.Run(cas.init, scrigo.RunOptions{})
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
