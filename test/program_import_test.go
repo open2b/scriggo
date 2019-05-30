@@ -12,7 +12,7 @@ import (
 	"scrigo"
 )
 
-func TestScrigoImport(t *testing.T) {
+func TestProgramImport(t *testing.T) {
 	cases := map[string]scrigo.MapReader{
 
 		`Just package "main", no imports`: scrigo.MapReader(map[string][]byte{
