@@ -29,13 +29,13 @@ type emitter struct {
 	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
 
 	// Scrigo variables.
-	scrigoPackageVariables map[*ast.Package]map[string]int16 // maps global variable names to their index inside globals.
+	scrigoPackageVariables map[*ast.Package]map[string]int16
 
 	// Predefined functions.
 	predefFunIndex map[*vm.Function]map[reflect.Value]int8
 
 	// Predefined variables.
-	predefVarIndex map[*vm.Function]map[reflect.Value]int8
+	predefVarIndex map[*vm.Function]map[reflect.Value]int16
 
 	// Holds all Scrigo-defined and pre-predefined global variables.
 	globals []vm.Global
@@ -64,7 +64,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		indirectVars:           indirectVars,
 		labels:                 make(map[*vm.Function]map[string]uint32),
 		predefFunIndex:         map[*vm.Function]map[reflect.Value]int8{},
-		predefVarIndex:         map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndex:         map[*vm.Function]map[reflect.Value]int16{},
 	}
 	return c
 }
