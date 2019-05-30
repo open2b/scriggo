@@ -94,6 +94,7 @@ type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
+	PrintWriter   io.Writer
 	TraceFunc     vm.TraceFunc
 }
 
@@ -231,6 +232,9 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 	}
 	if options.DontPanic {
 		vmm.SetDontPanic(true)
+	}
+	if options.PrintWriter != nil {
+		vmm.SetPrintWriter(options.PrintWriter)
 	}
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)

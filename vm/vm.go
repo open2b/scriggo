@@ -148,6 +148,10 @@ func (vm *VM) SetOut(out writer) {
 	vm.env.out = out
 }
 
+func (vm *VM) SetPrintWriter(w writer) {
+	vm.env.print = w
+}
+
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
 	if vm.env == nil {
 		vm.env = &Env{}
@@ -840,6 +844,7 @@ type Env struct {
 	dontPanic bool          // don't panic.
 	trace     TraceFunc     // trace function.
 	out       writer        // writer of Write instruction.
+	print     writer        // writer of Print instruction.
 
 	mu         sync.Mutex // mutex for the following fields.
 	freeMemory int        // free memory.
