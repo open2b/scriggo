@@ -70,7 +70,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
@@ -79,7 +79,7 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
-	return e.fb.fn
+	return e.fb.fn, e.globals
 }
 
 // Package is the result of a package emitting process.
@@ -392,7 +392,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		int8(e.fb.numRegs[reflect.Interface]),
 	}
 
-	// Predefined function
+	// Predefined function (identifiers, selectors etc...).
 	funcTypeInfo := e.typeInfos[call.Func]
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
@@ -764,6 +764,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb = currFb
 
 	case *ast.Identifier:
+		// TODO(Gianluca): review this case.
 		if reg == 0 {
 			return
 		}
@@ -799,7 +800,19 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
 			} else {
-				panic("bug")
+				// Predefined variable.
+				if typeInfo := e.typeInfos[expr]; typeInfo.IsPredefined() && typeInfo.Type.Kind() != reflect.Func {
+					index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
+					if kindToType(typeInfo.Type.Kind()) == kindToType(dstType.Kind()) {
+						e.fb.GetVar(int(index), reg)
+					} else {
+						tmpReg := e.fb.NewRegister(typeInfo.Type.Kind())
+						e.fb.GetVar(int(index), tmpReg)
+						e.changeRegister(false, tmpReg, reg, typeInfo.Type, dstType)
+					}
+				} else {
+					panic("bug")
+				}
 			}
 		}
 

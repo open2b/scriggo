@@ -13,15 +13,15 @@ var scriptCases = map[string]struct {
 	main *scrigo.PredefinedPackage
 	init map[string]interface{}
 
-	expectedOutput string
+	out string
 }{
 	"Don't use anything but Go builtins": {
 		src: `println("hi!")`,
 	},
 
 	"Use external main definition": {
-		src:            `Print("hi!")`,
-		expectedOutput: "hi!",
+		src: `Print("hi!")`,
+		out: "hi!",
 	},
 
 	"Variable declarations": {
@@ -30,7 +30,35 @@ var scriptCases = map[string]struct {
 			B := "hey"
 			Print(A, B)
 		`,
-		expectedOutput: "10hey",
+		out: "10hey",
+	},
+
+	"Read variables declared in external main": {
+		src: `
+			Print("A is ", A)
+		`,
+		out: "A is 2",
+		main: &scrigo.PredefinedPackage{
+			Name: "main",
+			Declarations: map[string]interface{}{
+				"A": (*int)(nil),
+			},
+		},
+	},
+
+	"Read and write variables declared in external main": {
+		src: `
+			Print("default: ", A, ", ")
+			A = 20
+			Print("new: ", A)
+		`,
+		out: "default: 0, new: 20",
+		main: &scrigo.PredefinedPackage{
+			Name: "main",
+			Declarations: map[string]interface{}{
+				"A": (*int)(nil),
+			},
+		},
 	},
 
 	// TODO(Gianluca): panics.
@@ -44,7 +72,7 @@ var scriptCases = map[string]struct {
 	// },
 }
 
-// Handles script output.
+// Holds scripts output.
 var scriptStdout strings.Builder
 
 func TestScript(t *testing.T) {
@@ -59,7 +87,12 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.main, scrigo.Option(0))
+			packages := []scrigo.PkgImporter{
+				map[string]*scrigo.PredefinedPackage{
+					"main": cas.main,
+				},
+			}
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), packages, scrigo.Option(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -67,10 +100,10 @@ func TestScript(t *testing.T) {
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
-			output := scriptStdout.String()
+			out := scriptStdout.String()
 			scriptStdout.Reset()
-			if output != cas.expectedOutput {
-				t.Fatalf("expecting output %q, got %q", cas.expectedOutput, output)
+			if out != cas.out {
+				t.Fatalf("expecting output %q, got %q", cas.out, out)
 			}
 		})
 	}

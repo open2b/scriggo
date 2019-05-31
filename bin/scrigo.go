@@ -157,7 +157,7 @@ func main() {
 			panic(err)
 		}
 		sources := scrigo.MapReader{"/main": main}
-		program, err := scrigo.LoadProgram([]scrigo.PackageImporter{sources, packages}, loadOptions)
+		program, err := scrigo.LoadProgram([]scrigo.PkgImporter{sources, packages}, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
