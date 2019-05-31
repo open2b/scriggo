@@ -52,20 +52,20 @@ var scriptCases = map[string]struct {
 		out: "pkg.F called!",
 	},
 
-	// "Read variables declared in predeclared package main": {
-	// 	src: `
-	// 		Print("A is ", A)
-	// 	`,
-	// 	out: "A is 2",
-	// 	pkgs: map[string]*scrigo.PredefinedPackage{
-	// 		"main": &scrigo.PredefinedPackage{
-	// 			Name: "main",
-	// 			Declarations: map[string]interface{}{
-	// 				"A": (*int)(nil),
-	// 			},
-	// 		},
-	// 	},
-	// },
+	"Read variables declared in predeclared package main": {
+		src: `
+			Print("A is ", A)
+		`,
+		out: "A is 0",
+		pkgs: map[string]*scrigo.PredefinedPackage{
+			"main": &scrigo.PredefinedPackage{
+				Name: "main",
+				Declarations: map[string]interface{}{
+					"A": (*int)(nil),
+				},
+			},
+		},
+	},
 
 	// "Read and write variables declared in external main": {
 	// 	src: `
@@ -73,11 +73,13 @@ var scriptCases = map[string]struct {
 	// 		A = 20
 	// 		Print("new: ", A)
 	// 	`,
-	// 	out: "default: 0, new: 20",
-	// 	main: &scrigo.PredefinedPackage{
-	// 		Name: "main",
-	// 		Declarations: map[string]interface{}{
-	// 			"A": (*int)(nil),
+	// 	out: "default: 0, new: 33",
+	// 	pkgs: map[string]*scrigo.PredefinedPackage{
+	// 		"main": &scrigo.PredefinedPackage{
+	// 			Name: "main",
+	// 			Declarations: map[string]interface{}{
+	// 				"A": (*int)(nil),
+	// 			},
 	// 		},
 	// 	},
 	// },

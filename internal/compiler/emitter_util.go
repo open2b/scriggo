@@ -149,7 +149,7 @@ func (e *emitter) predefVarIndex(varRv reflect.Value, predefPkgName, name string
 		return index
 	}
 	index = int16(len(e.globals))
-	g := vm.Global{Pkg: predefPkgName, Name: name, Value: varRv.Interface()}
+	g := vm.Global{Pkg: predefPkgName, Name: name, Value: varRv.Interface(), Type: varRv.Type().Elem()}
 	if e.predefVarIndexes[e.fb.fn] == nil {
 		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
 	}
