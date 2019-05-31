@@ -75,12 +75,12 @@ func (vm *VM) Run(fn *Function) (code int, err error) {
 
 func (vm *VM) runRecoverable() (panicked bool) {
 	panicked = true
-	// defer func() {
-	// 	if panicked {
-	// 		msg := recover()
-	// 		vm.panics = append(vm.panics, Panic{Msg: msg})
-	// 	}
-	// }()
+	defer func() {
+		if panicked {
+			msg := recover()
+			vm.panics = append(vm.panics, Panic{Msg: msg})
+		}
+	}()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
