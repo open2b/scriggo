@@ -45,10 +45,10 @@ type Program struct {
 }
 
 // TODO(Gianluca): add documentation.
-type PkgImporter interface{}
+type PackageImporter interface{}
 
 // LoadProgram loads a program, reading "/main" from packages.
-func LoadProgram(packages []PkgImporter, options Option) (*Program, error) {
+func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 
 	// Converts []PackageImporter in []compiler.PackageImporter.
 	// Type alias is not recommended as it would make documentation unclear.
@@ -153,7 +153,7 @@ type Script struct {
 // LoadScript loads a script from a reader.
 // TODO(Gianluca): scripts must support "import" statements. Import work as they
 // do in Go. Import statements  must stay at the beginning of the script.
-func LoadScript(src io.Reader, packages []PkgImporter, options Option) (*Script, error) {
+func LoadScript(src io.Reader, packages []PackageImporter, options Option) (*Script, error) {
 
 	// TODO(Gianluca): the solution adopted here makes no sense: a slice of
 	// PkgImporter must be accessed using a query system to retrieve main

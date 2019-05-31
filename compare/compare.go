@@ -98,7 +98,7 @@ func runScrigoAndGetOutput(src []byte) output {
 	wg.Wait()
 
 	main := scrigo.MapReader{"/main": src}
-	program, err := scrigo.LoadProgram([]scrigo.PkgImporter{main, packages}, scrigo.LimitMemorySize)
+	program, err := scrigo.LoadProgram([]scrigo.PackageImporter{main, packages}, scrigo.LimitMemorySize)
 
 	if err != nil {
 		return makeOutput(err.Error())

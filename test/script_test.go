@@ -150,7 +150,7 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), []scrigo.PkgImporter{cas.pkgs}, scrigo.Option(0))
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), []scrigo.PackageImporter{cas.pkgs}, scrigo.Option(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -170,7 +170,7 @@ func TestScript(t *testing.T) {
 func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
-	pkgs := []scrigo.PkgImporter{
+	pkgs := []scrigo.PackageImporter{
 		map[string]*scrigo.PredefinedPackage{
 			"main": &scrigo.PredefinedPackage{
 				Name: "main",
@@ -198,7 +198,7 @@ func TestScriptChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	pkgs := []scrigo.PkgImporter{
+	pkgs := []scrigo.PackageImporter{
 		map[string]*scrigo.PredefinedPackage{
 			"main": &scrigo.PredefinedPackage{
 				Name: "main",
