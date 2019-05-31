@@ -397,7 +397,14 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
 		regs, types := e.prepareCallParameters(funcType, call.Args, true)
-		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value))
+		var name string
+		switch f := call.Func.(type) {
+		case *ast.Identifier:
+			name = f.Name
+		case *ast.Selector:
+			name = f.Ident
+		}
+		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value), funcTypeInfo.PredefPackageName, name)
 		if funcType.IsVariadic() {
 			numVar := len(call.Args) - (funcType.NumIn() - 1)
 			e.fb.CallPredefined(index, int8(numVar), stackShift)
@@ -635,17 +642,17 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Selector:
 
-		if typeInfo := e.typeInfos[expr]; typeInfo.IsPredefined() {
+		if ti := e.typeInfos[expr]; ti.IsPredefined() {
 
 			// Predefined function.
-			if typeInfo.Type.Kind() == reflect.Func {
-				index := e.predefFuncIndex(typeInfo.Value.(reflect.Value))
+			if ti.Type.Kind() == reflect.Func {
+				index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 				e.fb.GetFunc(true, index, reg)
 				return
 			}
 
 			// Predefined variable.
-			index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
+			index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 			e.fb.GetVar(int(index), reg)
 			return
 		}
@@ -801,14 +808,14 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				}
 			} else {
 				// Predefined variable.
-				if typeInfo := e.typeInfos[expr]; typeInfo.IsPredefined() && typeInfo.Type.Kind() != reflect.Func {
-					index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
-					if kindToType(typeInfo.Type.Kind()) == kindToType(dstType.Kind()) {
+				if ti := e.typeInfos[expr]; ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
+					index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Name)
+					if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
 						e.fb.GetVar(int(index), reg)
 					} else {
-						tmpReg := e.fb.NewRegister(typeInfo.Type.Kind())
+						tmpReg := e.fb.NewRegister(ti.Type.Kind())
 						e.fb.GetVar(int(index), tmpReg)
-						e.changeRegister(false, tmpReg, reg, typeInfo.Type, dstType)
+						e.changeRegister(false, tmpReg, reg, ti.Type, dstType)
 					}
 				} else {
 					panic("bug")

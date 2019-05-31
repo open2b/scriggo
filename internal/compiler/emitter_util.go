@@ -143,14 +143,13 @@ func mayHaveDepencencies(variables, values []ast.Expression) bool {
 }
 
 // predefVarIndex returns index of varRv inside globals, adding it if necessary.
-func (e *emitter) predefVarIndex(varRv reflect.Value) int16 {
+func (e *emitter) predefVarIndex(varRv reflect.Value, predefPkgName, name string) int16 {
 	index, ok := e.predefVarIndexes[e.fb.fn][varRv]
 	if ok {
 		return index
 	}
 	index = int16(len(e.globals))
-	// TODO(Gianluca): replace "???" with proper values.
-	g := vm.Global{Pkg: "???", Name: "???", Value: varRv.Interface()}
+	g := vm.Global{Pkg: predefPkgName, Name: name, Value: varRv.Interface()}
 	if e.predefVarIndexes[e.fb.fn] == nil {
 		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
 	}
@@ -161,14 +160,13 @@ func (e *emitter) predefVarIndex(varRv reflect.Value) int16 {
 
 // predefFuncIndex returns index of funRv inside list of current function's
 // predefined functions, adding it if necessary.
-func (e *emitter) predefFuncIndex(funRv reflect.Value) int8 {
+func (e *emitter) predefFuncIndex(funRv reflect.Value, predefPkgName, name string) int8 {
 	index, ok := e.predefFunIndexes[e.fb.fn][funRv]
 	if ok {
 		return index
 	}
 	index = int8(len(e.fb.fn.Predefined))
-	// TODO(Gianluca): replace "???" with proper values.
-	f := NewPredefinedFunction("???", "???", funRv.Interface())
+	f := NewPredefinedFunction(predefPkgName, name, funRv.Interface())
 	if e.predefFunIndexes[e.fb.fn] == nil {
 		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
 	}
