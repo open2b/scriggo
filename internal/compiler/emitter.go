@@ -1232,6 +1232,9 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 				e.fb.Go()
 			}
 
+		case *ast.Import:
+			// Nothing to do.
+
 		case *ast.For:
 			currentBreakable := e.breakable
 			currentBreakLabel := e.breakLabel

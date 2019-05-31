@@ -34,15 +34,35 @@ var scriptCases = map[string]struct {
 		out: "10hey",
 	},
 
-	// "Read variables declared in external main": {
+	"Importing a package using 'import' statement": {
+		src: `
+			import "pkg"
+			pkg.F()
+		`,
+		pkgs: map[string]*scrigo.PredefinedPackage{
+			"pkg": &scrigo.PredefinedPackage{
+				Name: "pkg",
+				Declarations: map[string]interface{}{
+					"F": func() {
+						scriptStdout.WriteString("pkg.F called!")
+					},
+				},
+			},
+		},
+		out: "pkg.F called!",
+	},
+
+	// "Read variables declared in predeclared package main": {
 	// 	src: `
 	// 		Print("A is ", A)
 	// 	`,
 	// 	out: "A is 2",
-	// 	main: &scrigo.PredefinedPackage{
-	// 		Name: "main",
-	// 		Declarations: map[string]interface{}{
-	// 			"A": (*int)(nil),
+	// 	pkgs: map[string]*scrigo.PredefinedPackage{
+	// 		"main": &scrigo.PredefinedPackage{
+	// 			Name: "main",
+	// 			Declarations: map[string]interface{}{
+	// 				"A": (*int)(nil),
+	// 			},
 	// 		},
 	// 	},
 	// },

@@ -203,6 +203,8 @@ func (s *Script) Options() Option {
 	return s.options
 }
 
+var emptyInit = map[string]interface{}{}
+
 // Run starts the script, with initialization values for the global variables,
 // and waits for it to complete.
 //
@@ -213,6 +215,9 @@ func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 		if s.options&LimitMemorySize == 0 {
 			panic("scrigo: script not loaded with LimitMemorySize option")
 		}
+	}
+	if init == nil {
+		init = emptyInit
 	}
 	vmm := newVM(s.globals, init, options)
 	_, err := vmm.Run(s.fn)

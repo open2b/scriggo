@@ -1042,11 +1042,13 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 			}
 		}
-		if p.ctx == ast.ContextGo {
-			if _, ok := parent.(*ast.Package); !ok {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not inside a package")})
-			}
-		}
+		// TODO(Gianluca): import statements are now allowed in scripts.
+		// Find another way to check admissibility of such statements.
+		// if p.ctx == ast.ContextGo {
+		// 	if _, ok := parent.(*ast.Package); !ok {
+		// 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not inside a package")})
+		// 	}
+		// }
 		tok = next(p.lex)
 		if p.ctx == ast.ContextGo && tok.typ == tokenLeftParenthesis {
 			tok = next(p.lex)

@@ -77,6 +77,7 @@ func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*PredefinedPac
 		}
 		return pkgInfos, nil
 	}
+	tc.packages = packages
 	tc.CheckNodesInNewScope(tree.Nodes)
 	mainPkgInfo := &PackageInfo{}
 	mainPkgInfo.IndirectVars = tc.IndirectVars
