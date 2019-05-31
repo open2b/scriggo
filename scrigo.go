@@ -271,13 +271,15 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 				}
 			} else { // Script and template.
 				if global.Pkg == "main" {
-					if v, ok := init[global.Name]; ok {
-						if v, ok := v.(reflect.Value); ok {
+					if value, ok := init[global.Name]; ok {
+						if v, ok := value.(reflect.Value); ok {
 							values[i] = v.Addr().Interface()
 						} else {
-							rv := reflect.New(global.Type).Elem()
-							rv.Set(reflect.ValueOf(v))
-							values[i] = rv.Interface()
+							// TODO(Gianluca): why should we use reflect?
+							// rv := reflect.New(global.Type)
+							// rv.Elem().Set(reflect.ValueOf(value).Elem())
+							// values[i] = rv.Interface()
+							values[i] = value
 						}
 					} else {
 						values[i] = reflect.New(global.Type).Interface()
