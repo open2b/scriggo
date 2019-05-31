@@ -3,14 +3,15 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"scrigo"
 	"strings"
 	"testing"
+
+	"scrigo"
 )
 
 var scriptCases = map[string]struct {
 	src  string
-	main *scrigo.PredefinedPackage
+	pkgs map[string]*scrigo.PredefinedPackage
 	init map[string]interface{}
 
 	out string
@@ -78,21 +79,19 @@ var scriptStdout strings.Builder
 func TestScript(t *testing.T) {
 	for name, cas := range scriptCases {
 		t.Run(name, func(t *testing.T) {
-			if cas.main == nil {
-				cas.main = &scrigo.PredefinedPackage{}
-				cas.main.Declarations = make(map[string]interface{})
+			if cas.pkgs == nil {
+				cas.pkgs = map[string]*scrigo.PredefinedPackage{}
 			}
-			cas.main.Declarations["Print"] = func(args ...interface{}) {
+			if _, ok := cas.pkgs["main"]; !ok {
+				cas.pkgs["main"] = &scrigo.PredefinedPackage{}
+				cas.pkgs["main"].Declarations = make(map[string]interface{})
+			}
+			cas.pkgs["main"].Declarations["Print"] = func(args ...interface{}) {
 				for _, a := range args {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			packages := []scrigo.PkgImporter{
-				map[string]*scrigo.PredefinedPackage{
-					"main": cas.main,
-				},
-			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), packages, scrigo.Option(0))
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), []scrigo.PkgImporter{cas.pkgs}, scrigo.Option(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
