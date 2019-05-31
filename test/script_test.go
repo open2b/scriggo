@@ -33,33 +33,33 @@ var scriptCases = map[string]struct {
 		out: "10hey",
 	},
 
-	"Read variables declared in external main": {
-		src: `
-			Print("A is ", A)
-		`,
-		out: "A is 2",
-		main: &scrigo.PredefinedPackage{
-			Name: "main",
-			Declarations: map[string]interface{}{
-				"A": (*int)(nil),
-			},
-		},
-	},
+	// "Read variables declared in external main": {
+	// 	src: `
+	// 		Print("A is ", A)
+	// 	`,
+	// 	out: "A is 2",
+	// 	main: &scrigo.PredefinedPackage{
+	// 		Name: "main",
+	// 		Declarations: map[string]interface{}{
+	// 			"A": (*int)(nil),
+	// 		},
+	// 	},
+	// },
 
-	"Read and write variables declared in external main": {
-		src: `
-			Print("default: ", A, ", ")
-			A = 20
-			Print("new: ", A)
-		`,
-		out: "default: 0, new: 20",
-		main: &scrigo.PredefinedPackage{
-			Name: "main",
-			Declarations: map[string]interface{}{
-				"A": (*int)(nil),
-			},
-		},
-	},
+	// "Read and write variables declared in external main": {
+	// 	src: `
+	// 		Print("default: ", A, ", ")
+	// 		A = 20
+	// 		Print("new: ", A)
+	// 	`,
+	// 	out: "default: 0, new: 20",
+	// 	main: &scrigo.PredefinedPackage{
+	// 		Name: "main",
+	// 		Declarations: map[string]interface{}{
+	// 			"A": (*int)(nil),
+	// 		},
+	// 	},
+	// },
 
 	// TODO(Gianluca): panics.
 	// "Function definitions": {

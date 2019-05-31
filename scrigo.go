@@ -155,8 +155,17 @@ type Script struct {
 // do in Go. Import statements  must stay at the beginning of the script.
 func LoadScript(src io.Reader, packages []PkgImporter, options Option) (*Script, error) {
 
-	// TODO(Gianluca): extract "main" from packages.
-	var main *compiler.PredefinedPackage
+	// TODO(Gianluca): the solution adopted here makes no sense: a slice of
+	// PkgImporter must be accessed using a query system to retrieve main
+	// source, a predeclared package etc...
+	predeclPackages := map[string]*compiler.PredefinedPackage{}
+	for _, pkg := range packages {
+		if pkg, ok := pkg.(map[string]*PredefinedPackage); ok {
+			for k, v := range pkg {
+				predeclPackages[k] = v
+			}
+		}
+	}
 
 	alloc := options&LimitMemorySize != 0
 	shebang := options&AllowShebangLine != 0
@@ -177,7 +186,7 @@ func LoadScript(src io.Reader, packages []PkgImporter, options Option) (*Script,
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, main, nil, nil, nil)
+	tci, err := compiler.Typecheck(opts, tree, predeclPackages, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
