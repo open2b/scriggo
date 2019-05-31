@@ -51,19 +51,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports map[string]*PredefinedPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
-	if opts.IsPackage && main != nil {
-		panic("cannot have package main with option IsPackage enabled")
-	}
-	if opts.IsPackage && customBuiltins != nil {
-		panic("cannot have customBuiltins with option IsPackage enabled")
-	}
-	if imports != nil && !opts.IsPackage {
-		panic("cannot have imports when checking a non-package")
-	}
-	if deps != nil && !opts.IsPackage {
-		panic("cannot have deps when checking a non-package")
-	}
+func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*PredefinedPackage, imports map[string]*PredefinedPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
@@ -78,7 +66,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 	if customBuiltins != nil {
 		tc.Scopes = append(tc.Scopes, customBuiltins)
 	}
-	if main != nil {
+	if main, ok := packages["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}
 	if opts.IsPackage {
@@ -89,6 +77,7 @@ func Typecheck(opts *Options, tree *ast.Tree, main *PredefinedPackage, imports m
 		}
 		return pkgInfos, nil
 	}
+	tc.packages = packages
 	tc.CheckNodesInNewScope(tree.Nodes)
 	mainPkgInfo := &PackageInfo{}
 	mainPkgInfo.IndirectVars = tc.IndirectVars

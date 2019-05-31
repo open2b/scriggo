@@ -70,7 +70,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
@@ -79,7 +79,7 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
-	return e.fb.fn
+	return e.fb.fn, e.globals
 }
 
 // Package is the result of a package emitting process.
@@ -392,12 +392,19 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		int8(e.fb.numRegs[reflect.Interface]),
 	}
 
-	// Predefined function
+	// Predefined function (identifiers, selectors etc...).
 	funcTypeInfo := e.typeInfos[call.Func]
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
 		regs, types := e.prepareCallParameters(funcType, call.Args, true)
-		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value))
+		var name string
+		switch f := call.Func.(type) {
+		case *ast.Identifier:
+			name = f.Name
+		case *ast.Selector:
+			name = f.Ident
+		}
+		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value), funcTypeInfo.PredefPackageName, name)
 		if funcType.IsVariadic() {
 			numVar := len(call.Args) - (funcType.NumIn() - 1)
 			e.fb.CallPredefined(index, int8(numVar), stackShift)
@@ -635,17 +642,17 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Selector:
 
-		if typeInfo := e.typeInfos[expr]; typeInfo.IsPredefined() {
+		if ti := e.typeInfos[expr]; ti.IsPredefined() {
 
 			// Predefined function.
-			if typeInfo.Type.Kind() == reflect.Func {
-				index := e.predefFuncIndex(typeInfo.Value.(reflect.Value))
+			if ti.Type.Kind() == reflect.Func {
+				index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 				e.fb.GetFunc(true, index, reg)
 				return
 			}
 
 			// Predefined variable.
-			index := e.predefVarIndex(typeInfo.Value.(reflect.Value))
+			index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 			e.fb.GetVar(int(index), reg)
 			return
 		}
@@ -764,6 +771,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb = currFb
 
 	case *ast.Identifier:
+		// TODO(Gianluca): review this case.
 		if reg == 0 {
 			return
 		}
@@ -799,7 +807,19 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					e.changeRegister(false, tmpReg, reg, typ, dstType)
 				}
 			} else {
-				panic("bug")
+				// Predefined variable.
+				if ti := e.typeInfos[expr]; ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
+					index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Name)
+					if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
+						e.fb.GetVar(int(index), reg)
+					} else {
+						tmpReg := e.fb.NewRegister(ti.Type.Kind())
+						e.fb.GetVar(int(index), tmpReg)
+						e.changeRegister(false, tmpReg, reg, ti.Type, dstType)
+					}
+				} else {
+					panic("bug")
+				}
 			}
 		}
 
@@ -1218,6 +1238,9 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 				// TODO(Gianluca):
 				e.fb.Go()
 			}
+
+		case *ast.Import:
+			// Nothing to do.
 
 		case *ast.For:
 			currentBreakable := e.breakable

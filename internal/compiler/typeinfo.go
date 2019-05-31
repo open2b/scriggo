@@ -28,9 +28,10 @@ const (
 )
 
 type TypeInfo struct {
-	Type       reflect.Type // Type.
-	Properties Properties   // Properties.
-	Value      interface{}  // Value; for packages has type *Package.
+	Type              reflect.Type // Type.
+	Properties        Properties   // Properties.
+	Value             interface{}  // Value; for packages has type *Package.
+	PredefPackageName string       // Name of the package. Empty string if not predefined.
 }
 
 // Nil reports whether it is the predeclared nil.

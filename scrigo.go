@@ -151,7 +151,19 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script, error) {
+// TODO(Gianluca): scripts must support "import" statements. Import work as they
+// do in Go. Import statements  must stay at the beginning of the script.
+func LoadScript(src io.Reader, packages []PackageImporter, options Option) (*Script, error) {
+
+	// TODO(Gianluca): use Load (when implemented).
+	predeclPackages := map[string]*compiler.PredefinedPackage{}
+	for _, pkg := range packages {
+		if pkg, ok := pkg.(map[string]*PredefinedPackage); ok {
+			for k, v := range pkg {
+				predeclPackages[k] = v
+			}
+		}
+	}
 
 	alloc := options&LimitMemorySize != 0
 	shebang := options&AllowShebangLine != 0
@@ -172,22 +184,24 @@ func LoadScript(src io.Reader, main *PredefinedPackage, options Option) (*Script
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, main, nil, nil, nil)
+	tci, err := compiler.Typecheck(opts, tree, predeclPackages, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
-	mainFn := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	mainFn, globals := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
 
-	return &Script{fn: mainFn, globals: mainFn.Globals, options: options}, nil
+	return &Script{fn: mainFn, globals: globals, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.
 func (s *Script) Options() Option {
 	return s.options
 }
+
+var emptyInit = map[string]interface{}{}
 
 // Run starts the script, with initialization values for the global variables,
 // and waits for it to complete.
@@ -199,6 +213,9 @@ func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 		if s.options&LimitMemorySize == 0 {
 			panic("scrigo: script not loaded with LimitMemorySize option")
 		}
+	}
+	if init == nil {
+		init = emptyInit
 	}
 	vmm := newVM(s.globals, init, options)
 	_, err := vmm.Run(s.fn)
@@ -242,22 +259,28 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 	if n := len(globals); n > 0 {
 		values := make([]interface{}, n)
 		for i, global := range globals {
-			if global.Value == nil {
-				// global is not predeclared.
-				if value, ok := init[global.Name]; ok {
-					if v, ok := value.(reflect.Value); ok {
-						values[i] = v.Addr().Interface()
+			if init == nil { // Program.
+				if global.Value == nil {
+					values[i] = reflect.New(global.Type).Interface()
+				} else {
+					values[i] = global.Value
+				}
+			} else { // Script and template.
+				if global.Pkg == "main" {
+					if value, ok := init[global.Name]; ok {
+						if v, ok := value.(reflect.Value); ok {
+							values[i] = v.Addr().Interface()
+						} else {
+							rv := reflect.New(global.Type).Elem()
+							rv.Set(reflect.ValueOf(v))
+							values[i] = rv.Interface()
+						}
 					} else {
-						rv := reflect.New(global.Type).Elem()
-						rv.Set(reflect.ValueOf(v))
-						values[i] = rv.Interface()
+						values[i] = reflect.New(global.Type).Interface()
 					}
 				} else {
-					values[i] = reflect.New(global.Type).Interface()
+					values[i] = global.Value
 				}
-			} else {
-				// global is predeclared.
-				values[i] = global.Value
 			}
 		}
 		vmm.SetGlobals(values)

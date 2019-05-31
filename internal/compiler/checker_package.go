@@ -38,33 +38,37 @@ func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 		// Importing a Go type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
-				Type:       t,
-				Properties: PropertyIsType | PropertyIsPredefined,
+				Type:              t,
+				Properties:        PropertyIsType | PropertyIsPredefined,
+				PredefPackageName: gp.Name,
 			}}
 			continue
 		}
 		// Importing a Go variable.
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
-				Type:       reflect.TypeOf(value).Elem(),
-				Value:      reflect.ValueOf(value),
-				Properties: PropertyAddressable | PropertyIsPredefined,
+				Type:              reflect.TypeOf(value).Elem(),
+				Value:             reflect.ValueOf(value),
+				Properties:        PropertyAddressable | PropertyIsPredefined,
+				PredefPackageName: gp.Name,
 			}}
 			continue
 		}
 		// Importing a Go global function.
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
-				Type:       removeEnvArg(typ, false),
-				Value:      reflect.ValueOf(value),
-				Properties: PropertyIsPredefined,
+				Type:              removeEnvArg(typ, false),
+				Value:             reflect.ValueOf(value),
+				Properties:        PropertyIsPredefined,
+				PredefPackageName: gp.Name,
 			}}
 			continue
 		}
 		// Importing a Go constant.
 		s[ident] = scopeElement{t: &TypeInfo{
-			Value:      value, // TODO (Gianluca): to review.
-			Properties: PropertyIsConstant | PropertyIsPredefined,
+			Value:             value, // TODO (Gianluca): to review.
+			Properties:        PropertyIsConstant | PropertyIsPredefined,
+			PredefPackageName: gp.Name,
 		}}
 	}
 	return s
