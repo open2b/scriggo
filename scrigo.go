@@ -155,9 +155,7 @@ type Script struct {
 // do in Go. Import statements  must stay at the beginning of the script.
 func LoadScript(src io.Reader, packages []PackageImporter, options Option) (*Script, error) {
 
-	// TODO(Gianluca): the solution adopted here makes no sense: a slice of
-	// PkgImporter must be accessed using a query system to retrieve main
-	// source, a predeclared package etc...
+	// TODO(Gianluca): use Load (when implemented).
 	predeclPackages := map[string]*compiler.PredefinedPackage{}
 	for _, pkg := range packages {
 		if pkg, ok := pkg.(map[string]*PredefinedPackage); ok {
@@ -241,8 +239,6 @@ func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env 
 }
 
 // newVM returns a new vm with the given options.
-// TODO(Gianluca): if not a program, init must always be != nil. Declare a
-// not-exported empty map[string]interf{} and use it (name it "emptyInit").
 func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions) *vm.VM {
 	vmm := vm.New()
 	if options.Context != nil {
@@ -275,8 +271,8 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 						if v, ok := value.(reflect.Value); ok {
 							values[i] = v.Addr().Interface()
 						} else {
-							rv := reflect.New(global.Type)
-							rv.Elem().Set(reflect.ValueOf(value).Elem())
+							rv := reflect.New(global.Type).Elem()
+							rv.Set(reflect.ValueOf(v))
 							values[i] = rv.Interface()
 						}
 					} else {
