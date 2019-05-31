@@ -162,6 +162,9 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 					} else if index, ok := e.pkgVariables[e.pkg][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
+					} else if ti := e.typeInfos[v]; ti.IsPredefined() {
+						index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, v.Name)
+						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else {
 						reg := e.fb.ScopeLookup(v.Name)
 						addresses[i] = e.newAddress(addressRegister, staticType, reg, 0)
@@ -192,12 +195,12 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(varIndex), 0)
 				}
 				ti := e.typeInfos[v]
+				// TODO(Gianluca): add support for predeclared variables assignments.
 				if ti.IsPredefined() {
 					varRv := ti.Value.(reflect.Value)
 					index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Ident)
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
 				}
-
 			case *ast.UnaryOperator:
 				if v.Operator() != ast.OperatorMultiplication {
 					panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.
