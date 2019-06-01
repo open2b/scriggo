@@ -49,6 +49,10 @@ type Template struct {
 	options LoadOption
 }
 
+// Load loads a template given its path. Load calls the method Read of reader
+// to read the files of the template. Package main declares constants, types,
+// variables and functions that are accessible from the code in the template.
+// Context is the context in which the code is executed.
 func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
 
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
@@ -67,7 +71,7 @@ func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, 
 	alloc := options&LimitMemorySize != 0
 
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
-	// main contains user defined variabiles, while builtins contains template builtins.
+	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
 
 	mainFn, globals := compiler.EmitSingle(tree, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
@@ -76,6 +80,8 @@ func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, 
 	return &Template{main: main, fn: mainFn}, nil
 }
 
+// Render renders the template and write the output to out. vars contains the values for the
+// variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options RenderOptions) error {
 	// TODO: implement globals
 	vmm := vm.New()
