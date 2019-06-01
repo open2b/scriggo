@@ -38,26 +38,29 @@ func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
 	return compiler.Constant(typ, value)
 }
 
+type PredefinedPackages map[string]*PredefinedPackage
+
+func (pp PredefinedPackages) Load(path string) (interface{}, error) {
+	p := pp[path]
+	return p, nil
+}
+
 type Program struct {
 	fn      *vm.Function
 	globals []vm.Global
 	options Option
 }
 
-// TODO(Gianluca): add documentation.
-type PackageImporter interface{}
+// LoadProgram loads a program, reading package "main" from packages.
+func LoadProgram(packages []PackageLoader, options Option) (*Program, error) {
 
-// LoadProgram loads a program, reading "/main" from packages.
-func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
-
-	// Converts []PackageImporter in []compiler.PackageImporter.
-	// Type alias is not recommended as it would make documentation unclear.
-	compilerPkgs := make([]compiler.PackageImporter, len(packages))
+	// Converts []PackageLoader in []compiler.PackageLoader.
+	loaders := make([]compiler.PackageLoader, len(packages))
 	for i := range packages {
-		compilerPkgs[i] = packages[i]
+		loaders[i] = packages[i]
 	}
 
-	tree, deps, predefinedPackages, err := compiler.ParseProgram(compilerPkgs)
+	tree, deps, predefined, err := compiler.ParseProgram(loaders)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +71,7 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, nil, predefinedPackages, deps, nil)
+	tci, err := compiler.Typecheck(opts, tree, nil, predefined, deps, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +83,7 @@ func LoadProgram(packages []PackageImporter, options Option) (*Program, error) {
 	}
 	alloc := options&LimitMemorySize != 0
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["/main"].IndirectVars, alloc)
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, alloc)
 
 	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
@@ -151,16 +154,13 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-// TODO(Gianluca): scripts must support "import" statements. Import work as they
-// do in Go. Import statements  must stay at the beginning of the script.
-func LoadScript(src io.Reader, packages []PackageImporter, options Option) (*Script, error) {
+func LoadScript(src io.Reader, packages []PackageLoader, options Option) (*Script, error) {
 
-	// TODO(Gianluca): use Load (when implemented).
-	predeclPackages := map[string]*compiler.PredefinedPackage{}
+	predefined := map[string]*compiler.PredefinedPackage{}
 	for _, pkg := range packages {
-		if pkg, ok := pkg.(map[string]*PredefinedPackage); ok {
+		if pkg, ok := pkg.(PredefinedPackages); ok {
 			for k, v := range pkg {
-				predeclPackages[k] = v
+				predefined[k] = v
 			}
 		}
 	}
@@ -184,7 +184,7 @@ func LoadScript(src io.Reader, packages []PackageImporter, options Option) (*Scr
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, predeclPackages, nil, nil, nil)
+	tci, err := compiler.Typecheck(opts, tree, predefined, nil, nil, nil)
 	if err != nil {
 		return nil, err
 	}

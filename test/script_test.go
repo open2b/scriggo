@@ -14,7 +14,7 @@ var scriptTestA = 0
 
 var scriptCases = map[string]struct {
 	src  string
-	pkgs map[string]*scrigo.PredefinedPackage
+	pkgs scrigo.PredefinedPackages
 	init map[string]interface{}
 
 	out string
@@ -152,7 +152,7 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), []scrigo.PackageImporter{cas.pkgs}, scrigo.Option(0))
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), []scrigo.PackageLoader{cas.pkgs}, scrigo.Option(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -172,8 +172,8 @@ func TestScript(t *testing.T) {
 func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
-	pkgs := []scrigo.PackageImporter{
-		map[string]*scrigo.PredefinedPackage{
+	pkgs := []scrigo.PackageLoader{
+		scrigo.PredefinedPackages{
 			"main": &scrigo.PredefinedPackage{
 				Name: "main",
 				Declarations: map[string]interface{}{
@@ -200,8 +200,8 @@ func TestScriptChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	pkgs := []scrigo.PackageImporter{
-		map[string]*scrigo.PredefinedPackage{
+	pkgs := []scrigo.PackageLoader{
+		scrigo.PredefinedPackages{
 			"main": &scrigo.PredefinedPackage{
 				Name: "main",
 				Declarations: map[string]interface{}{

@@ -17,9 +17,9 @@ func main() {
 
 	button.Call("addEventListener", "click", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
-		main := []byte(source.Get("value").String())
+		main := scrigo.MapStringLoader{"main": source.Get("value").String()}
 
-		program, err := scrigo.LoadProgram([]scrigo.PackageImporter{map[string][]byte{"/main": main}}, 0)
+		program, err := scrigo.LoadProgram([]scrigo.PackageLoader{main}, 0)
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil

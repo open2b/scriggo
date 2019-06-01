@@ -21,17 +21,23 @@ type Reader interface {
 }
 
 var (
+	// ErrInvalidPackagePath is returned from the Parse method and a Reader
+	// when the path argument is not valid.
+	ErrInvalidPackagePath = errors.New("scrigo: invalid path")
+
+	ErrNotCanonicalImportPath = errors.New("scrigo: non-canonical import path")
+
 	// ErrInvalidPath is returned from the Parse method and a Reader when the
 	// path argument is not valid.
-	ErrInvalidPath = errors.New("scrigo/parser: invalid path")
+	ErrInvalidPath = errors.New("scrigo: invalid path")
 
 	// ErrNotExist is returned from the Parse method and a Reader when the
 	// path does not exist.
-	ErrNotExist = errors.New("scrigo/parser: path does not exist")
+	ErrNotExist = errors.New("scrigo: path does not exist")
 
 	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
 	// exceeded.
-	ErrReadTooLarge = errors.New("scrigo/parser: read too large")
+	ErrReadTooLarge = errors.New("scrigo: read too large")
 )
 
 // SyntaxError records a parsing error with the path and the position where the
@@ -115,7 +121,6 @@ func ParseSource(src []byte, isPackage, shebang bool) (tree *ast.Tree, deps Glob
 		return nil, nil, errors.New("scrigo/parser: both isPackage and shebang cannot be true")
 	}
 
-	// Tree result of the expansion.
 	tree = ast.NewTree("", nil, ast.ContextGo)
 
 	var p = &parsing{
@@ -1459,8 +1464,16 @@ func (p *parsing) parseImportSpec(tok token) *ast.Import {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting string", tok)})
 	}
 	var path = unquoteString(tok.txt)
-	if p.ctx == ast.ContextGo && !validPackageImportPath(path) || p.ctx != ast.ContextGo && !ValidPath(path) {
-		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path %q", path)})
+	if !ValidPath(path) {
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path: %q", path)})
+	}
+	if p.ctx == ast.ContextGo {
+		if err := validPackagePath(path); err != nil {
+			if err == ErrNotCanonicalImportPath {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("non-canonical import path %q (should be %q)", path, cleanPath(path))})
+			}
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("invalid import path: %q", path)})
+		}
 	}
 	pos.End = tok.pos.End
 	return ast.NewImport(pos, ident, path, tok.ctx)

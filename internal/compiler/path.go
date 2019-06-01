@@ -14,23 +14,26 @@ import (
 	"unicode/utf8"
 )
 
-// validPackageImportPath indicates whether path is valid for a package import
-// path.
-func validPackageImportPath(path string) bool {
+// validPackagePath reports whether path is a valid package path. path must be
+// already a valid path.
+func validPackagePath(path string) error {
+	if path == "main" {
+		return nil
+	}
 	for _, r := range path {
 		if !unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.P, unicode.S) {
-			return false
+			return ErrInvalidPackagePath
 		}
 		switch r {
 		case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', ':', ';', '<',
 			'=', '>', '?', '[', '\\', ']', '^', '`', '{', '|', '}', '\uFFFD':
-			return false
+			return ErrInvalidPackagePath
 		}
 	}
-	if !ValidPath(path) {
-		return false
+	if cleaned := cleanPath(path); path != cleaned {
+		return ErrNotCanonicalImportPath
 	}
-	return true
+	return nil
 }
 
 // ValidPath indicates whether path is valid for an extends, import and
@@ -65,4 +68,23 @@ func toAbsolutePath(dir, path string) (string, error) {
 		}
 	}
 	return string(b), nil
+}
+
+// cleanPath cleans a path and returns the path in its canonical form.
+// path must be already a valid path.
+func cleanPath(path string) string {
+	if !strings.Contains(path, "..") {
+		return path
+	}
+	var b = []byte(path)
+	for i := 0; i < len(b); i++ {
+		if b[i] == '/' {
+			if b[i+1] == '.' && b[i+2] == '.' {
+				s := bytes.LastIndexByte(b[:i], '/')
+				b = append(b[:s+1], b[i+4:]...)
+				i = s - 1
+			}
+		}
+	}
+	return string(b)
 }

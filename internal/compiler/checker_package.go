@@ -15,23 +15,6 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-type PredefinedPackage struct {
-	Name         string
-	Declarations map[string]interface{}
-}
-
-type PredefinedConstant struct {
-	value interface{}
-	typ   reflect.Type // nil for untyped constants.
-}
-
-// Constant returns a predefined constant given its type and value. Can be
-// used as a declaration of a precompiled package. For untyped constants the
-// type is nil.
-func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
-	return PredefinedConstant{value: value, typ: typ}
-}
-
 func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
 	s := make(TypeCheckerScope, len(gp.Declarations))
 	for ident, value := range gp.Declarations {

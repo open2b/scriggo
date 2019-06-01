@@ -69,8 +69,8 @@ var exprTests = map[string]interface{}{
 func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
-			r := scrigo.MapReader{"/main": []byte("package main; func main() { a := " + src + "; _ = a }")}
-			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{r, goPackages}, scrigo.LimitMemorySize)
+			r := scrigo.MapStringLoader{"main": "package main; func main() { a := " + src + "; _ = a }"}
+			program, err := scrigo.LoadProgram([]scrigo.PackageLoader{r, goPackages}, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
@@ -3766,8 +3766,8 @@ func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			regs := cas.registers
-			r := scrigo.MapReader{"/main": []byte(cas.src)}
-			program, err := scrigo.LoadProgram([]scrigo.PackageImporter{r, goPackages}, scrigo.LimitMemorySize)
+			r := scrigo.MapStringLoader{"main": cas.src}
+			program, err := scrigo.LoadProgram([]scrigo.PackageLoader{r, goPackages}, scrigo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
@@ -3956,8 +3956,8 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = map[string]*scrigo.PredefinedPackage{
-	"fmt": &scrigo.PredefinedPackage{
+var goPackages = scrigo.PredefinedPackages{
+	"fmt": {
 		Name: "fmt",
 		Declarations: map[string]interface{}{
 			"Errorf":     fmt.Errorf,
@@ -3987,7 +3987,7 @@ var goPackages = map[string]*scrigo.PredefinedPackage{
 			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 		},
 	},
-	"testpkg": &scrigo.PredefinedPackage{
+	"testpkg": {
 		Name: "testpkg",
 		Declarations: map[string]interface{}{
 			"F00": func() {},

@@ -133,7 +133,7 @@ import (
 import "scrigo"
 
 func init() {
-	[customVariableName] = map[string]*scrigo.PredefinedPackage{
+	[customVariableName] = scrigo.PredefinedPackages{
 		[pkgContent]
 	}
 }

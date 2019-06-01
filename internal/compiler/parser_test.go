@@ -11,10 +11,30 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"strings"
 	"testing"
 
 	"scrigo/internal/compiler/ast"
 )
+
+// mapStringLoader implements PackageLoader for not predefined packages as a
+// map with string values. Paths and sources are respectively the keys and the
+// values of the map.
+type mapStringLoader map[string]string
+
+func (r mapStringLoader) Load(path string) (interface{}, error) {
+	if src, ok := r[path]; ok {
+		return strings.NewReader(src), nil
+	}
+	return nil, nil
+}
+
+type predefinedPackages map[string]*PredefinedPackage
+
+func (pp predefinedPackages) Load(path string) (interface{}, error) {
+	p := pp[path]
+	return p, nil
+}
 
 func p(line, column, start, end int) *ast.Position {
 	return &ast.Position{line, column, start, end}

@@ -30,8 +30,38 @@
 package compiler
 
 import (
+	"reflect"
+
 	"scrigo/internal/compiler/ast"
 )
+
+type PredefinedPackage struct {
+	Name         string
+	Declarations map[string]interface{}
+}
+
+type PredefinedConstant struct {
+	value interface{}
+	typ   reflect.Type // nil for untyped constants.
+}
+
+// Constant returns a predefined constant given its type and value. Can be
+// used as a declaration of a precompiled package. For untyped constants the
+// type is nil.
+func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
+	return PredefinedConstant{value: value, typ: typ}
+}
+
+// PackageLoader is implemented by package loaders. Load returns a predefined
+// package as *PredefinedPackage or the source of a non predefined package as
+// an io.Reader.
+//
+// If the package does not exist it returns nil and nil.
+// If the package exists but there was an error while loading the package, it
+// returns nil and the error.
+type PackageLoader interface {
+	Load(pkgPath string) (interface{}, error)
+}
 
 type Options struct {
 

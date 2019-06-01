@@ -1259,7 +1259,7 @@ func (t T) Env2(env *vm.Env, a, b int)   {}
 func (t T) EnvVar(env *vm.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
-	pPkg := &PredefinedPackage{
+	p := &PredefinedPackage{
 		Name: "p",
 		Declarations: map[string]interface{}{
 			"T":      reflect.TypeOf(T(0)),
@@ -1272,7 +1272,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 			"EnvVar": func(env *vm.Env, a ...int) {},
 		},
 	}
-	main := []byte(`
+	main := `
 	package main
 	import "p"
 	func main() {
@@ -1290,9 +1290,9 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.Env0()
 		p.Env1(1)
 		p.EnvVar(1,2,3,4,5)
-	}`)
-	pPkgImporter := map[string]*PredefinedPackage{"p": pPkg}
-	tree, deps, _, err := ParseProgram([]PackageImporter{map[string][]byte{"/main": main}, pPkgImporter})
+	}`
+	predefined := predefinedPackages{"p": p}
+	tree, deps, _, err := ParseProgram([]PackageLoader{mapStringLoader{"main": main}, predefined})
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
@@ -1302,7 +1302,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		NotUsedError: true,
 		IsPackage:    true,
 	}
-	_, err = Typecheck(opts, tree, nil, pPkgImporter, deps, nil)
+	_, err = Typecheck(opts, tree, nil, predefined, deps, nil)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return

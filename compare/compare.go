@@ -22,7 +22,7 @@ import (
 	"scrigo"
 )
 
-var packages map[string]*scrigo.PredefinedPackage
+var packages scrigo.PredefinedPackages
 
 type output struct {
 	path        string
@@ -73,6 +73,15 @@ func (o output) String() string {
 	return path + ":" + o.column + ":" + o.row + " " + o.msg
 }
 
+type mainLoader []byte
+
+func (b mainLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		return bytes.NewReader(b), nil
+	}
+	return nil, nil
+}
+
 func runScrigoAndGetOutput(src []byte) output {
 	reader, writer, err := os.Pipe()
 	if err != nil {
@@ -97,8 +106,7 @@ func runScrigoAndGetOutput(src []byte) output {
 	}()
 	wg.Wait()
 
-	main := scrigo.MapReader{"/main": src}
-	program, err := scrigo.LoadProgram([]scrigo.PackageImporter{main, packages}, scrigo.LimitMemorySize)
+	program, err := scrigo.LoadProgram([]scrigo.PackageLoader{mainLoader(src), packages}, scrigo.LimitMemorySize)
 
 	if err != nil {
 		return makeOutput(err.Error())

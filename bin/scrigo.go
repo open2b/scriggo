@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -25,7 +26,16 @@ import (
 
 const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
 
-var packages map[string]*scrigo.PredefinedPackage
+var packages scrigo.PredefinedPackages
+
+type mainLoader []byte
+
+func (b mainLoader) Load(path string) (interface{}, error) {
+	if path == "main" {
+		return bytes.NewReader(b), nil
+	}
+	return nil, nil
+}
 
 func main() {
 
@@ -156,8 +166,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		sources := scrigo.MapReader{"/main": main}
-		program, err := scrigo.LoadProgram([]scrigo.PackageImporter{sources, packages}, loadOptions)
+		program, err := scrigo.LoadProgram([]scrigo.PackageLoader{mainLoader(main), packages}, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
