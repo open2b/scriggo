@@ -29,10 +29,10 @@ const (
 	ContextJavaScript Context = Context(ast.ContextJavaScript)
 )
 
-type Option int
+type LoadOption int
 
 const (
-	LimitMemorySize Option = 1 << iota
+	LimitMemorySize LoadOption = 1 << iota
 )
 
 type RenderOptions struct {
@@ -46,10 +46,10 @@ type RenderOptions struct {
 type Template struct {
 	main    *scrigo.Package
 	fn      *vm.Function
-	options Option
+	options LoadOption
 }
 
-func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, options Option) (*Template, error) {
+func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
 
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
@@ -102,7 +102,7 @@ func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options 
 }
 
 // Options returns the options with which the template has been loaded.
-func (t *Template) Options() Option {
+func (t *Template) Options() LoadOption {
 	return t.options
 }
 

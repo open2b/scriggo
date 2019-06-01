@@ -190,7 +190,7 @@ func main() {
 	case ".html":
 		r := scrigo.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		t, err := template.Load(path, r, nil, template.ContextHTML, template.Option(loadOptions))
+		t, err := template.Load(path, r, nil, template.ContextHTML, template.LoadOption(loadOptions))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
