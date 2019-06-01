@@ -62,7 +62,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[s
 				return nil, nil, nil, err
 			}
 			var deps GlobalsDependencies
-			n.Tree, deps, err = ParseSource(src, true, false)
+			n.Tree, deps, err = ParseSource(src, false, false)
 			if err != nil {
 				return nil, nil, nil, err
 			}

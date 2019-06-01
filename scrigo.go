@@ -158,7 +158,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options Option) (*Script,
 	if err != nil {
 		return nil, err
 	}
-	tree, _, err := compiler.ParseSource(buf, false, shebang)
+	tree, _, err := compiler.ParseSource(buf, true, shebang)
 	if err != nil {
 		return nil, err
 	}

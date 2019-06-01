@@ -138,7 +138,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 
 	var tree *ast.Tree
 	if ctx == ast.ContextGo {
-		tree, _, err = ParseSource(src, false, false)
+		tree, _, err = ParseSource(src, true, false)
 	} else {
 		tree, err = ParseTemplateSource(src, ctx)
 	}

@@ -39,7 +39,7 @@ func ExampleDump() {
 			var tree *ast.Tree
 			var err error
 			if ctx == ast.ContextGo {
-				tree, _, err = compiler.ParseSource([]byte(c), false, false)
+				tree, _, err = compiler.ParseSource([]byte(c), true, false)
 			} else {
 				tree, err = compiler.ParseTemplateSource([]byte(c), ctx)
 			}

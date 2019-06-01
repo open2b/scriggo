@@ -1377,7 +1377,7 @@ func pageTests() map[string]struct {
 
 func TestGoContextTrees(t *testing.T) {
 	for _, tree := range goContextTreeTests {
-		node, _, err := ParseSource([]byte(tree.src), false, false)
+		node, _, err := ParseSource([]byte(tree.src), true, false)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", tree.src, err)
 			continue

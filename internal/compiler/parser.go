@@ -112,13 +112,16 @@ type parsing struct {
 	deps *dependencies
 }
 
-// ParseSource parses src in the context ctx and returns a tree. Nodes
-// Extends, Import and Include will not be expanded (the field Tree will be
-// nil). To get an expanded tree call the method Parse of a Parser instead.
-func ParseSource(src []byte, isPackage, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+// ParseSource parses a program or script. isScript reports whether it is a
+// script and shebang reports whether a script can have the shebang as first
+// line.
+//
+// Returns the AST tree and, only if it is a program, the dependencies for the
+// type checker.
+func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
-	if isPackage && shebang {
-		return nil, nil, errors.New("scrigo/parser: both isPackage and shebang cannot be true")
+	if shebang && !isScript {
+		return nil, nil, errors.New("scrigo/parser: shebang can be true only for scripts")
 	}
 
 	tree = ast.NewTree("", nil, ast.ContextGo)
@@ -129,7 +132,7 @@ func ParseSource(src []byte, isPackage, shebang bool) (tree *ast.Tree, deps Glob
 		ancestors: []ast.Node{tree},
 	}
 
-	if isPackage {
+	if !isScript {
 		p.deps = &dependencies{}
 	}
 
