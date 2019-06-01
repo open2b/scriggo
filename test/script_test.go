@@ -42,8 +42,8 @@ var scriptCases = map[string]struct {
 			import "pkg"
 			pkg.F()
 		`,
-		pkgs: map[string]*scrigo.Package{
-			"pkg": &scrigo.Package{
+		pkgs: scrigo.Packages{
+			"pkg": {
 				Name: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
@@ -60,8 +60,8 @@ var scriptCases = map[string]struct {
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		pkgs: map[string]*scrigo.Package{
-			"main": &scrigo.Package{
+		pkgs: scrigo.Packages{
+			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
@@ -77,8 +77,8 @@ var scriptCases = map[string]struct {
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		pkgs: map[string]*scrigo.Package{
-			"main": &scrigo.Package{
+		pkgs: scrigo.Packages{
+			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
@@ -91,8 +91,8 @@ var scriptCases = map[string]struct {
 	// 	src: `
 	// 		Print(A)
 	// 	`,
-	// 	pkgs: map[string]*scrigo.Package{
-	// 		"main": &scrigo.Package{
+	// 	pkgs: scrigo.Packages{
+	// 		"main": {
 	// 			Name: "main",
 	// 			Declarations: map[string]interface{}{
 	// 				"A": (*int)(nil),
@@ -112,8 +112,8 @@ var scriptCases = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		pkgs: map[string]*scrigo.Package{
-			"main": &scrigo.Package{
+		pkgs: scrigo.Packages{
+			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"Sum": (*int)(nil),
@@ -141,7 +141,7 @@ func TestScript(t *testing.T) {
 	for name, cas := range scriptCases {
 		t.Run(name, func(t *testing.T) {
 			if cas.pkgs == nil {
-				cas.pkgs = map[string]*scrigo.Package{}
+				cas.pkgs = scrigo.Packages{}
 			}
 			if _, ok := cas.pkgs["main"]; !ok {
 				cas.pkgs["main"] = &scrigo.Package{}
