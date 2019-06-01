@@ -55,11 +55,11 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[s
 			predefined[n.Path] = pkg
 		case io.Reader:
 			src, err := ioutil.ReadAll(pkg)
-			if err != nil {
-				return nil, nil, nil, err
-			}
 			if r, ok := pkg.(io.Closer); ok {
 				_ = r.Close()
+			}
+			if err != nil {
+				return nil, nil, nil, err
 			}
 			var deps GlobalsDependencies
 			n.Tree, deps, err = ParseSource(src, true, false)
