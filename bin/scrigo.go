@@ -46,7 +46,7 @@ func main() {
 
 	flag.Parse()
 
-	var loadOptions scrigo.Option
+	var loadOptions scrigo.LoadOption
 	var runOptions scrigo.RunOptions
 
 	if *timeout != "" {

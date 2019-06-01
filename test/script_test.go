@@ -152,7 +152,7 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, scrigo.Option(0))
+			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, scrigo.LoadOption(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -181,7 +181,7 @@ func TestScriptSum(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Sum": reflect.ValueOf(&Sum).Elem()}
-	script, err := scrigo.LoadScript(bytes.NewReader([]byte(src)), pkgs, scrigo.Option(0))
+	script, err := scrigo.LoadScript(bytes.NewReader([]byte(src)), pkgs, scrigo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
@@ -207,11 +207,11 @@ func TestScriptChainMessages(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Message": reflect.ValueOf(&Message).Elem()}
-	script1, err := scrigo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, scrigo.Option(0))
+	script1, err := scrigo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, scrigo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scrigo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, scrigo.Option(0))
+	script2, err := scrigo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, scrigo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}

@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	LimitMemorySize  Option = 1 << iota // limit allocable memory size.
-	DisallowGoStmt                      // disallow "go" statement.
-	AllowShebangLine                    // allow shebang line; only for scripts.
+	LimitMemorySize  LoadOption = 1 << iota // limit allocable memory size.
+	DisallowGoStmt                          // disallow "go" statement.
+	AllowShebangLine                        // allow shebang line; only for scripts.
 )
 
-type Option int
+type LoadOption int
 
 type Package = compiler.Package
 
@@ -41,11 +41,11 @@ func Constant(typ reflect.Type, value interface{}) ConstantValue {
 type Program struct {
 	fn      *vm.Function
 	globals []vm.Global
-	options Option
+	options LoadOption
 }
 
 // LoadProgram loads a program, reading package "main" from packages.
-func LoadProgram(packages PackageLoader, options Option) (*Program, error) {
+func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 
 	tree, deps, predefined, err := compiler.ParseProgram(packages)
 	if err != nil {
@@ -76,7 +76,7 @@ func LoadProgram(packages PackageLoader, options Option) (*Program, error) {
 }
 
 // Options returns the options with which the program has been loaded.
-func (p *Program) Options() Option {
+func (p *Program) Options() LoadOption {
 	return p.options
 }
 
@@ -137,11 +137,11 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 type Script struct {
 	fn      *vm.Function
 	globals []vm.Global
-	options Option
+	options LoadOption
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, packages PackageLoader, options Option) (*Script, error) {
+func LoadScript(src io.Reader, packages PackageLoader, options LoadOption) (*Script, error) {
 
 	predefined := Packages{}
 	if pkg, ok := packages.(Packages); ok {
@@ -182,7 +182,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options Option) (*Script,
 }
 
 // Options returns the options with which the script has been loaded.
-func (s *Script) Options() Option {
+func (s *Script) Options() LoadOption {
 	return s.options
 }
 
