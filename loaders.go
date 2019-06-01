@@ -36,3 +36,32 @@ func (r MapStringLoader) Load(path string) (interface{}, error) {
 	}
 	return nil, nil
 }
+
+// CombinedLoaders combines more loaders in one loader.
+type CombinedLoaders []PackageLoader
+
+func (loaders CombinedLoaders) Load(path string) (interface{}, error) {
+	for _, loader := range loaders {
+		p, err := loader.Load(path)
+		if p != nil || err != nil {
+			return p, err
+		}
+	}
+	return nil, nil
+}
+
+// Loaders returns a loader combining more loaders.
+func Loaders(loaders ...PackageLoader) PackageLoader {
+	return CombinedLoaders(loaders)
+}
+
+// PredefinedPackages is a Loader that load predefined packages from a map
+// where the key is a package path and the value is a predefined package.
+type PredefinedPackages map[string]*PredefinedPackage
+
+func (pp PredefinedPackages) Load(path string) (interface{}, error) {
+	if p, ok := pp[path]; ok {
+		return p, nil
+	}
+	return nil, nil
+}

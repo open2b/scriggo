@@ -1292,7 +1292,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.EnvVar(1,2,3,4,5)
 	}`
 	predefined := predefinedPackages{"p": p}
-	tree, deps, _, err := ParseProgram([]PackageLoader{mapStringLoader{"main": main}, predefined})
+	tree, deps, _, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return

@@ -38,13 +38,6 @@ func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
 	return compiler.Constant(typ, value)
 }
 
-type PredefinedPackages map[string]*PredefinedPackage
-
-func (pp PredefinedPackages) Load(path string) (interface{}, error) {
-	p := pp[path]
-	return p, nil
-}
-
 type Program struct {
 	fn      *vm.Function
 	globals []vm.Global
@@ -52,15 +45,9 @@ type Program struct {
 }
 
 // LoadProgram loads a program, reading package "main" from packages.
-func LoadProgram(packages []PackageLoader, options Option) (*Program, error) {
+func LoadProgram(packages PackageLoader, options Option) (*Program, error) {
 
-	// Converts []PackageLoader in []compiler.PackageLoader.
-	loaders := make([]compiler.PackageLoader, len(packages))
-	for i := range packages {
-		loaders[i] = packages[i]
-	}
-
-	tree, deps, predefined, err := compiler.ParseProgram(loaders)
+	tree, deps, predefined, err := compiler.ParseProgram(packages)
 	if err != nil {
 		return nil, err
 	}
@@ -154,14 +141,12 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, packages []PackageLoader, options Option) (*Script, error) {
+func LoadScript(src io.Reader, packages PackageLoader, options Option) (*Script, error) {
 
-	predefined := map[string]*compiler.PredefinedPackage{}
-	for _, pkg := range packages {
-		if pkg, ok := pkg.(PredefinedPackages); ok {
-			for k, v := range pkg {
-				predefined[k] = v
-			}
+	predefined := PredefinedPackages{}
+	if pkg, ok := packages.(PredefinedPackages); ok {
+		for k, v := range pkg {
+			predefined[k] = v
 		}
 	}
 

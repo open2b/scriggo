@@ -17,6 +17,24 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
+// combinedLoaders combines more loaders in one loader.
+type combinedLoaders []PackageLoader
+
+func (loaders combinedLoaders) Load(path string) (interface{}, error) {
+	for _, loader := range loaders {
+		p, err := loader.Load(path)
+		if p != nil || err != nil {
+			return p, err
+		}
+	}
+	return nil, nil
+}
+
+// loaders returns a loader combining more loaders.
+func loaders(loaders ...PackageLoader) PackageLoader {
+	return combinedLoaders(loaders)
+}
+
 // mapStringLoader implements PackageLoader for not predefined packages as a
 // map with string values. Paths and sources are respectively the keys and the
 // values of the map.

@@ -166,7 +166,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		program, err := scrigo.LoadProgram([]scrigo.PackageLoader{mainLoader(main), packages}, loadOptions)
+		program, err := scrigo.LoadProgram(scrigo.Loaders(mainLoader(main), packages), loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
