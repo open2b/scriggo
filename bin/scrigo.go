@@ -26,7 +26,7 @@ import (
 
 const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
 
-var packages scrigo.PredefinedPackages
+var packages scrigo.Packages
 
 type mainLoader []byte
 

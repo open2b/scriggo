@@ -26,15 +26,15 @@ const (
 
 type Option int
 
-type PredefinedPackage = compiler.PredefinedPackage
+type Package = compiler.Package
 
-type PredefinedConstant = compiler.PredefinedConstant
+type ConstantValue = compiler.ConstantValue
 
 // Constant returns a constant, given its type and value, that can be used as
 // a declaration in a predefined package.
 //
 // For untyped constants the type is nil.
-func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
+func Constant(typ reflect.Type, value interface{}) ConstantValue {
 	return compiler.Constant(typ, value)
 }
 
@@ -143,8 +143,8 @@ type Script struct {
 // LoadScript loads a script from a reader.
 func LoadScript(src io.Reader, packages PackageLoader, options Option) (*Script, error) {
 
-	predefined := PredefinedPackages{}
-	if pkg, ok := packages.(PredefinedPackages); ok {
+	predefined := Packages{}
+	if pkg, ok := packages.(Packages); ok {
 		for k, v := range pkg {
 			predefined[k] = v
 		}

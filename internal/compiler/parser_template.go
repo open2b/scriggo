@@ -13,7 +13,7 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-func ParseTemplate(path string, reader Reader, main *PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
+func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (*ast.Tree, error) {
 	p := &templateParser{
 		reader:       reader,
 		trees:        &cache{},
@@ -59,7 +59,7 @@ type templateParser struct {
 // expands the nodes Extends, Import and Include and returns the expanded tree.
 //
 // Parse is safe for concurrent use.
-func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Context) (*ast.Tree, error) {
+func (p *templateParser) parse(path string, main *Package, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -74,7 +74,7 @@ func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Con
 		return nil, err
 	}
 
-	pp := &templateExpansion{p.reader, p.trees, map[string]*PredefinedPackage{"main": main}, []string{}}
+	pp := &templateExpansion{p.reader, p.trees, map[string]*Package{"main": main}, []string{}}
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
@@ -97,7 +97,7 @@ func (p *templateParser) parse(path string, main *PredefinedPackage, ctx ast.Con
 type templateExpansion struct {
 	reader   Reader
 	trees    *cache
-	packages map[string]*PredefinedPackage
+	packages map[string]*Package
 	paths    []string
 }
 

@@ -22,7 +22,7 @@ import (
 	"scrigo"
 )
 
-var packages scrigo.PredefinedPackages
+var packages scrigo.Packages
 
 type output struct {
 	path        string

@@ -15,10 +15,10 @@ import (
 )
 
 // ParseProgram parses a program reading its sources from loaders.
-func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[string]*PredefinedPackage, error) {
+func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[string]*Package, error) {
 
 	trees := map[string]*ast.Tree{}
-	predefined := map[string]*PredefinedPackage{}
+	predefined := map[string]*Package{}
 	dependencies := GlobalsDependencies{}
 
 	main := ast.NewImport(nil, nil, "main", ast.ContextGo)
@@ -51,7 +51,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[s
 		}
 
 		switch pkg := pkg.(type) {
-		case *PredefinedPackage:
+		case *Package:
 			predefined[n.Path] = pkg
 		case io.Reader:
 			src, err := ioutil.ReadAll(pkg)

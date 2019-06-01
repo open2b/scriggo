@@ -10,24 +10,22 @@ import (
 	"strings"
 )
 
-// PackageLoader is implemented by package loaders. Load returns a predefined
-// package as *PredefinedPackage or the source of a non predefined package as
-// an io.Reader.
+// PackageLoader is implemented by package loaders. Given a package path, Load
+// returns a *Package value or a package source as io.Reader.
 //
 // If the package does not exist it returns nil and nil.
 // If the package exists but there was an error while loading the package, it
 // returns nil and the error.
 //
-// If the loader returns an io.Reader that implements io.Closer, the Close
-// method will be called immediately after a Read returns either EOF or an
-// error.
+// If Load returns an io.Reader that implements io.Closer, the Close method
+// will be called after a Read returns either EOF or an error.
 type PackageLoader interface {
 	Load(path string) (interface{}, error)
 }
 
-// MapStringLoader implements PackageLoader for not predefined packages as a
-// map with string values. Paths and sources are respectively the keys and the
-// values of the map.
+// MapStringLoader implements PackageLoader that returns the source of a
+// package. Package paths and sources are respectively the keys and the values
+// of the map.
 type MapStringLoader map[string]string
 
 func (r MapStringLoader) Load(path string) (interface{}, error) {
@@ -37,7 +35,9 @@ func (r MapStringLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// CombinedLoaders combines more loaders in one loader.
+// CombinedLoaders combines more loaders in one loader. Load calls in order
+// the Load methods of each loader and returns as soon as a loader returns
+// a package.
 type CombinedLoaders []PackageLoader
 
 func (loaders CombinedLoaders) Load(path string) (interface{}, error) {
@@ -50,16 +50,16 @@ func (loaders CombinedLoaders) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-// Loaders returns a loader combining more loaders.
+// Loaders returns a CombinedLoaders that combine loaders.
 func Loaders(loaders ...PackageLoader) PackageLoader {
 	return CombinedLoaders(loaders)
 }
 
-// PredefinedPackages is a Loader that load predefined packages from a map
-// where the key is a package path and the value is a predefined package.
-type PredefinedPackages map[string]*PredefinedPackage
+// Packages is a Loader that load packages from a map where the key is a
+// package path and the value is a *Package value.
+type Packages map[string]*Package
 
-func (pp PredefinedPackages) Load(path string) (interface{}, error) {
+func (pp Packages) Load(path string) (interface{}, error) {
 	if p, ok := pp[path]; ok {
 		return p, nil
 	}

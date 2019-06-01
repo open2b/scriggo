@@ -44,12 +44,12 @@ type RenderOptions struct {
 }
 
 type Template struct {
-	main    *scrigo.PredefinedPackage
+	main    *scrigo.Package
 	fn      *vm.Function
 	options Option
 }
 
-func Load(path string, reader scrigo.Reader, main *scrigo.PredefinedPackage, ctx Context, options Option) (*Template, error) {
+func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, options Option) (*Template, error) {
 
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
@@ -59,7 +59,7 @@ func Load(path string, reader scrigo.Reader, main *scrigo.PredefinedPackage, ctx
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.PredefinedPackage{"main": main}, nil, nil, tcBuiltins)
+	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.Package{"main": main}, nil, nil, tcBuiltins)
 	if err != nil {
 		return nil, err
 	}

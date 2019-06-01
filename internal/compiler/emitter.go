@@ -82,20 +82,20 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	return e.fb.fn, e.globals
 }
 
-// Package is the result of a package emitting process.
-type Package struct {
+// emittedPackage is the result of a package emitting process.
+type emittedPackage struct {
 	Globals   []vm.Global
 	Functions map[string]*vm.Function
 	Main      *vm.Function
 }
 
 // EmitPackageMain emits package main, returning a Package.
-func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *Package {
+func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	funcs, _, _ := e.emitPackage(pkgMain)
 	main := e.availableFunctions[pkgMain]["main"]
-	pkg := &Package{
+	pkg := &emittedPackage{
 		Globals:   e.globals,
 		Functions: funcs,
 		Main:      main,

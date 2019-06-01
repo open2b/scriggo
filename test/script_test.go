@@ -14,7 +14,7 @@ var scriptTestA = 0
 
 var scriptCases = map[string]struct {
 	src  string
-	pkgs scrigo.PredefinedPackages
+	pkgs scrigo.Packages
 	init map[string]interface{}
 
 	out string
@@ -42,8 +42,8 @@ var scriptCases = map[string]struct {
 			import "pkg"
 			pkg.F()
 		`,
-		pkgs: map[string]*scrigo.PredefinedPackage{
-			"pkg": &scrigo.PredefinedPackage{
+		pkgs: map[string]*scrigo.Package{
+			"pkg": &scrigo.Package{
 				Name: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
@@ -60,8 +60,8 @@ var scriptCases = map[string]struct {
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		pkgs: map[string]*scrigo.PredefinedPackage{
-			"main": &scrigo.PredefinedPackage{
+		pkgs: map[string]*scrigo.Package{
+			"main": &scrigo.Package{
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
@@ -77,8 +77,8 @@ var scriptCases = map[string]struct {
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		pkgs: map[string]*scrigo.PredefinedPackage{
-			"main": &scrigo.PredefinedPackage{
+		pkgs: map[string]*scrigo.Package{
+			"main": &scrigo.Package{
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
@@ -91,8 +91,8 @@ var scriptCases = map[string]struct {
 	// 	src: `
 	// 		Print(A)
 	// 	`,
-	// 	pkgs: map[string]*scrigo.PredefinedPackage{
-	// 		"main": &scrigo.PredefinedPackage{
+	// 	pkgs: map[string]*scrigo.Package{
+	// 		"main": &scrigo.Package{
 	// 			Name: "main",
 	// 			Declarations: map[string]interface{}{
 	// 				"A": (*int)(nil),
@@ -112,8 +112,8 @@ var scriptCases = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		pkgs: map[string]*scrigo.PredefinedPackage{
-			"main": &scrigo.PredefinedPackage{
+		pkgs: map[string]*scrigo.Package{
+			"main": &scrigo.Package{
 				Name: "main",
 				Declarations: map[string]interface{}{
 					"Sum": (*int)(nil),
@@ -141,10 +141,10 @@ func TestScript(t *testing.T) {
 	for name, cas := range scriptCases {
 		t.Run(name, func(t *testing.T) {
 			if cas.pkgs == nil {
-				cas.pkgs = map[string]*scrigo.PredefinedPackage{}
+				cas.pkgs = map[string]*scrigo.Package{}
 			}
 			if _, ok := cas.pkgs["main"]; !ok {
-				cas.pkgs["main"] = &scrigo.PredefinedPackage{}
+				cas.pkgs["main"] = &scrigo.Package{}
 				cas.pkgs["main"].Declarations = make(map[string]interface{})
 			}
 			cas.pkgs["main"].Declarations["Print"] = func(args ...interface{}) {
@@ -172,8 +172,8 @@ func TestScript(t *testing.T) {
 func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
-	pkgs := scrigo.PredefinedPackages{
-		"main": &scrigo.PredefinedPackage{
+	pkgs := scrigo.Packages{
+		"main": &scrigo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"Sum": (*int)(nil),
@@ -198,8 +198,8 @@ func TestScriptChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	pkgs := scrigo.PredefinedPackages{
-		"main": &scrigo.PredefinedPackage{
+	pkgs := scrigo.Packages{
+		"main": &scrigo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"Message": (*string)(nil),

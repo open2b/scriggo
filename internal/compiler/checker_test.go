@@ -1259,7 +1259,7 @@ func (t T) Env2(env *vm.Env, a, b int)   {}
 func (t T) EnvVar(env *vm.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
-	p := &PredefinedPackage{
+	p := &Package{
 		Name: "p",
 		Declarations: map[string]interface{}{
 			"T":      reflect.TypeOf(T(0)),

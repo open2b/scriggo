@@ -35,12 +35,12 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-type PredefinedPackage struct {
+type Package struct {
 	Name         string
 	Declarations map[string]interface{}
 }
 
-type PredefinedConstant struct {
+type ConstantValue struct {
 	value interface{}
 	typ   reflect.Type // nil for untyped constants.
 }
@@ -48,12 +48,12 @@ type PredefinedConstant struct {
 // Constant returns a predefined constant given its type and value. Can be
 // used as a declaration of a precompiled package. For untyped constants the
 // type is nil.
-func Constant(typ reflect.Type, value interface{}) PredefinedConstant {
-	return PredefinedConstant{value: value, typ: typ}
+func Constant(typ reflect.Type, value interface{}) ConstantValue {
+	return ConstantValue{value: value, typ: typ}
 }
 
 // PackageLoader is implemented by package loaders. Load returns a predefined
-// package as *PredefinedPackage or the source of a non predefined package as
+// package as *Package or the source of a non predefined package as
 // an io.Reader.
 //
 // If the package does not exist it returns nil and nil.
@@ -81,7 +81,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*PredefinedPackage, imports map[string]*PredefinedPackage, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
+func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, imports map[string]*Package, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {

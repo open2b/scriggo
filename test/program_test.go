@@ -3956,7 +3956,7 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = scrigo.PredefinedPackages{
+var goPackages = scrigo.Packages{
 	"fmt": {
 		Name: "fmt",
 		Declarations: map[string]interface{}{

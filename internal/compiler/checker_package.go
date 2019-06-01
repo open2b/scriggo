@@ -15,7 +15,7 @@ import (
 	"scrigo/internal/compiler/ast"
 )
 
-func ToTypeCheckerScope(gp *PredefinedPackage) TypeCheckerScope {
+func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 	s := make(TypeCheckerScope, len(gp.Declarations))
 	for ident, value := range gp.Declarations {
 		// Importing a Go type.
@@ -322,7 +322,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*PredefinedPackage, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
+func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
