@@ -189,7 +189,7 @@ func generatePackage(pkgPath string) string {
 	}
 
 	skel := `
-		"[pkgPath]": &scrigo.PredefinedPackage{
+		"[pkgPath]": {
 			Name: "[pkg.Name()]",
 			Declarations: map[string]interface{}{
 				[pkgContent]
