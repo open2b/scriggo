@@ -9,7 +9,7 @@ package builtins
 
 import (
 	"reflect"
-	"sort"
+	_sort "sort"
 )
 
 // sortedSlice represents a slice to sort.
@@ -38,7 +38,7 @@ func sortSlice(slice interface{}) {
 		value: value,
 		swap:  reflect.Swapper(slice),
 	}
-	sort.Stable(sorted)
+	_sort.Stable(sorted)
 	return
 }
 

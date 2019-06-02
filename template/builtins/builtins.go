@@ -7,21 +7,21 @@
 package builtins
 
 import (
-	"crypto/hmac"
+	_hmac "crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
+	_base64 "encoding/base64"
+	_hex "encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
+	_hash "hash"
 	"io"
 	"math"
-	"math/rand"
+	_rand "math/rand"
 	"net/url"
 	"reflect"
-	"sort"
+	_sort "sort"
 	"strconv"
 	"strings"
 	"time"
@@ -68,42 +68,42 @@ var builtins = scrigo.Package{
 		"MD5":         scrigo.Constant(hasherType, _MD5),
 		"SHA1":        scrigo.Constant(hasherType, _SHA1),
 		"SHA256":      scrigo.Constant(hasherType, _SHA256),
-		"abbreviate":  _abbreviate,
-		"abs":         _abs,
+		"abbreviate":  abbreviate,
+		"abs":         abs,
 		"atoi":        strconv.Atoi,
-		"base64":      _base64,
+		"base64":      base64,
 		"contains":    strings.Contains,
-		"errorf":      _errorf,
-		"hash":        _hash,
+		"errorf":      errorf,
+		"hash":        hash,
 		"hasPrefix":   strings.HasPrefix,
 		"hasSuffix":   strings.HasSuffix,
-		"hex":         _hex,
-		"hmac":        _hmac,
-		"html":        _html,
-		"index":       _index,
-		"indexAny":    _indexAny,
+		"hex":         hex,
+		"hmac":        hmac,
+		"html":        html,
+		"index":       index,
+		"indexAny":    indexAny,
 		"itoa":        strconv.Itoa,
-		"join":        _join,
-		"lastIndex":   _lastIndex,
-		"max":         _max,
-		"min":         _min,
-		"rand":        _rand,
-		"randFloat":   _randFloat,
-		"repeat":      _repeat,
-		"replace":     _replace,
-		"replaceAll":  _replaceAll,
-		"reverse":     _reverse,
-		"round":       _round,
-		"printf":      _printf,
-		"shuffle":     _shuffle,
-		"sort":        _sort,
-		"split":       _split,
-		"splitN":      _splitN,
-		"queryEscape": _queryEscape,
-		"title":       _title,
-		"toLower":     _toLower,
-		"toTitle":     _toTitle,
-		"toUpper":     _toUpper,
+		"join":        join,
+		"lastIndex":   lastIndex,
+		"max":         max,
+		"min":         min,
+		"rand":        rand,
+		"randFloat":   randFloat,
+		"repeat":      repeat,
+		"replace":     replace,
+		"replaceAll":  replaceAll,
+		"reverse":     reverse,
+		"round":       round,
+		"printf":      printf,
+		"shuffle":     shuffle,
+		"sort":        sort,
+		"split":       split,
+		"splitN":      splitN,
+		"queryEscape": queryEscape,
+		"title":       title,
+		"toLower":     toLower,
+		"toTitle":     toTitle,
+		"toUpper":     toUpper,
 		"trim":        strings.Trim,
 		"trimLeft":    strings.TrimLeft,
 		"trimPrefix":  strings.TrimPrefix,
@@ -112,8 +112,8 @@ var builtins = scrigo.Package{
 	},
 }
 
-// _abbreviate is the builtin function "abbreviate".
-func _abbreviate(env vm.Env, s string, n int) string {
+// abbreviate is the builtin function "abbreviate".
+func abbreviate(env vm.Env, s string, n int) string {
 	s = strings.TrimRight(s, spaces)
 	if len(s) <= n {
 		return s
@@ -148,37 +148,37 @@ func _abbreviate(env vm.Env, s string, n int) string {
 	return s + "..."
 }
 
-// _abs is the builtin function "abs".
-func _abs(x int) int {
+// abs is the builtin function "abs".
+func abs(x int) int {
 	if x < 0 {
 		return -x
 	}
 	return x
 }
 
-// _base64 is the builtin function "base64".
-func _base64(env *vm.Env, s string) string {
+// base64 is the builtin function "base64".
+func base64(env *vm.Env, s string) string {
 	if s == "" {
 		return s
 	}
 	env.Alloc(16)
-	bytes := base64.StdEncoding.EncodedLen(len(s))
+	bytes := _base64.StdEncoding.EncodedLen(len(s))
 	if bytes < 0 {
 		bytes = maxInt
 	}
 	env.Alloc(bytes)
-	return base64.StdEncoding.EncodeToString([]byte(s))
+	return _base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-// _errorf is the builtin function "errorf".
-func _errorf(format string, a ...interface{}) {
+// errorf is the builtin function "errorf".
+func errorf(format string, a ...interface{}) {
 	// TODO(marco): Alloc.
 	panic(fmt.Errorf(format, a...))
 }
 
-// _hash is the builtin function "hash".
-func _hash(env *vm.Env, hasher Hasher, s string) string {
-	var h hash.Hash
+// hash is the builtin function "hash".
+func hash(env *vm.Env, hasher Hasher, s string) string {
+	var h _hash.Hash
 	switch hasher {
 	case _MD5:
 		h = md5.New()
@@ -193,26 +193,26 @@ func _hash(env *vm.Env, hasher Hasher, s string) string {
 		panic(errors.New("unknown hash function"))
 	}
 	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
+	return _hex.EncodeToString(h.Sum(nil))
 }
 
-// _hex is the builtin function "hex".
-func _hex(env *vm.Env, s string) string {
+// hex is the builtin function "hex".
+func hex(env *vm.Env, s string) string {
 	if s == "" {
 		return s
 	}
 	env.Alloc(16)
-	bytes := hex.EncodedLen(len(s))
+	bytes := _hex.EncodedLen(len(s))
 	if bytes < 0 {
 		bytes = maxInt
 	}
 	env.Alloc(bytes)
-	return hex.EncodeToString([]byte(s))
+	return _hex.EncodeToString([]byte(s))
 }
 
-// _hmac is the builtin function "hmac".
-func _hmac(env *vm.Env, hasher Hasher, message, key string) string {
-	var h func() hash.Hash
+// hmac is the builtin function "hmac".
+func hmac(env *vm.Env, hasher Hasher, message, key string) string {
+	var h func() _hash.Hash
 	switch hasher {
 	case _MD5:
 		h = md5.New
@@ -226,25 +226,25 @@ func _hmac(env *vm.Env, hasher Hasher, message, key string) string {
 	default:
 		panic(errors.New("unknown hash function"))
 	}
-	mac := hmac.New(h, []byte(key))
+	mac := _hmac.New(h, []byte(key))
 	_, _ = io.WriteString(mac, message)
-	s := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	s := _base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return s
 }
 
-// _html is the builtin function "html".
-func _html(s interface{}) template.HTML {
+// html is the builtin function "html".
+func html(s interface{}) template.HTML {
 	switch v := s.(type) {
 	case string:
 		return template.HTML(v)
 	case template.HTML:
 		return v
 	}
-	panic(fmt.Sprintf("type-checking bug: _html argument must be string or HTML, got %T", s))
+	panic(fmt.Sprintf("type-checking bug: html argument must be string or HTML, got %T", s))
 }
 
-// _index is the builtin function "index".
-func _index(s, substr string) int {
+// index is the builtin function "index".
+func index(s, substr string) int {
 	n := strings.Index(s, substr)
 	if n <= 1 {
 		return n
@@ -252,8 +252,8 @@ func _index(s, substr string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _indexAny is the builtin function "indexAny".
-func _indexAny(s, chars string) int {
+// indexAny is the builtin function "indexAny".
+func indexAny(s, chars string) int {
 	n := strings.IndexAny(s, chars)
 	if n <= 1 {
 		return n
@@ -261,8 +261,8 @@ func _indexAny(s, chars string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _join is the builtin function "join".
-func _join(env *vm.Env, a []string, sep string) string {
+// join is the builtin function "join".
+func join(env *vm.Env, a []string, sep string) string {
 	if n := len(a); n > 1 {
 		env.Alloc(16)
 		bytes := (n - 1) * len(sep)
@@ -277,8 +277,8 @@ func _join(env *vm.Env, a []string, sep string) string {
 	return strings.Join(a, sep)
 }
 
-// _lastIndex is the builtin function "lastIndex".
-func _lastIndex(s, sep string) int {
+// lastIndex is the builtin function "lastIndex".
+func lastIndex(s, sep string) int {
 	n := strings.LastIndex(s, sep)
 	if n <= 1 {
 		return n
@@ -286,35 +286,35 @@ func _lastIndex(s, sep string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
-// _max is the builtin function "max".
-func _max(x, y int) int {
+// max is the builtin function "max".
+func max(x, y int) int {
 	if x < y {
 		return y
 	}
 	return x
 }
 
-// _min is the builtin function "min".
-func _min(x, y int) int {
+// min is the builtin function "min".
+func min(x, y int) int {
 	if y < x {
 		return y
 	}
 	return x
 }
 
-// _printf is the builtin function "printf".
-func _printf(format string, a ...interface{}) (n int, err error) {
+// printf is the builtin function "printf".
+func printf(format string, a ...interface{}) (n int, err error) {
 	// TODO(marco): Alloc.
 	return fmt.Printf(format, a...)
 }
 
-// _rand is the builtin function "rand".
-func _rand(x int) int {
+// rand is the builtin function "rand".
+func rand(x int) int {
 	seed := time.Now().UTC().UnixNano()
 	if testSeed >= 0 {
 		seed = testSeed
 	}
-	r := rand.New(rand.NewSource(seed))
+	r := _rand.New(_rand.NewSource(seed))
 	switch {
 	case x < 0:
 		return r.Int()
@@ -325,13 +325,13 @@ func _rand(x int) int {
 	}
 }
 
-// _randFloat is the builtin function "randFloat".
-func _randFloat() float64 {
-	return rand.Float64()
+// randFloat is the builtin function "randFloat".
+func randFloat() float64 {
+	return _rand.Float64()
 }
 
-// _repeat is the builtin function "repeat".
-func _repeat(env *vm.Env, s string, count int) string {
+// repeat is the builtin function "repeat".
+func repeat(env *vm.Env, s string, count int) string {
 	if count < 0 {
 		panic("negative repeat count")
 	}
@@ -347,8 +347,8 @@ func _repeat(env *vm.Env, s string, count int) string {
 	return strings.Repeat(s, count)
 }
 
-// _replace is the builtin function "replace".
-func _replace(env *vm.Env, s, old, new string, n int) string {
+// replace is the builtin function "replace".
+func replace(env *vm.Env, s, old, new string, n int) string {
 	if old != new && n != 0 {
 		if c := strings.Count(s, old); c > 0 {
 			if n > 0 && c > n {
@@ -366,13 +366,13 @@ func _replace(env *vm.Env, s, old, new string, n int) string {
 	return strings.Replace(s, old, new, n)
 }
 
-// _replaceAll is the builtin function "replaceAll".
-func _replaceAll(env *vm.Env, s, old, new string) string {
-	return _replace(env, s, old, new, -1)
+// replaceAll is the builtin function "replaceAll".
+func replaceAll(env *vm.Env, s, old, new string) string {
+	return replace(env, s, old, new, -1)
 }
 
-// _reverse is the builtin function "reverse".
-func _reverse(s interface{}) interface{} {
+// reverse is the builtin function "reverse".
+func reverse(s interface{}) interface{} {
 	if s == nil {
 		return nil
 	}
@@ -395,13 +395,13 @@ func _reverse(s interface{}) interface{} {
 	return sc
 }
 
-// _round is the builtin function "round".
-func _round(x float64) float64 {
+// round is the builtin function "round".
+func round(x float64) float64 {
 	return math.Round(x)
 }
 
-// _shuffle is the builtin function "shuffle".
-func _shuffle(s interface{}) []interface{} {
+// shuffle is the builtin function "shuffle".
+func shuffle(s interface{}) []interface{} {
 	if s == nil {
 		return nil
 	}
@@ -429,7 +429,7 @@ func _shuffle(s interface{}) []interface{} {
 	if testSeed >= 0 {
 		seed = testSeed
 	}
-	r := rand.New(rand.NewSource(seed))
+	r := _rand.New(_rand.NewSource(seed))
 	swap := reflect.Swapper(ms)
 	for i := len(ms) - 1; i >= 0; i-- {
 		j := r.Intn(i + 1)
@@ -438,35 +438,35 @@ func _shuffle(s interface{}) []interface{} {
 	return ms
 }
 
-// _sort is the builtin function "sort".
-func _sort(slice interface{}) {
+// sort is the builtin function "sort".
+func sort(slice interface{}) {
 	// no reflect
 	switch s := slice.(type) {
 	case nil:
 	case []string:
-		sort.Strings(s)
+		_sort.Strings(s)
 	case []template.HTML:
-		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
+		_sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []rune:
-		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+		_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []byte:
-		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+		_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []int:
-		sort.Ints(s)
+		_sort.Ints(s)
 	case []float64:
-		sort.Float64s(s)
+		_sort.Float64s(s)
 	}
 	// reflect
 	sortSlice(slice)
 }
 
-// _split is the builtin function "split".
-func _split(env *vm.Env, s, sep string) []string {
-	return _splitN(env, s, sep, -1)
+// split is the builtin function "split".
+func split(env *vm.Env, s, sep string) []string {
+	return splitN(env, s, sep, -1)
 }
 
-// _splitN is the builtin function "splitN".
-func _splitN(env *vm.Env, s, sep string, n int) []string {
+// splitN is the builtin function "splitN".
+func splitN(env *vm.Env, s, sep string, n int) []string {
 	if n != 0 {
 		env.Alloc(16)
 		if sep == "" {
@@ -495,8 +495,8 @@ func _splitN(env *vm.Env, s, sep string, n int) []string {
 	return strings.SplitN(s, sep, n)
 }
 
-// _queryEscape is the builtin function "queryEscape".
-func _queryEscape(env *vm.Env, s string) string {
+// queryEscape is the builtin function "queryEscape".
+func queryEscape(env *vm.Env, s string) string {
 	alloc := false
 	numHex := 0
 	for i := 0; i < len(s); i++ {
@@ -521,23 +521,23 @@ func _queryEscape(env *vm.Env, s string) string {
 	return url.QueryEscape(s)
 }
 
-// _title is the builtin function "title".
-func _title(env *vm.Env, s string) string {
+// title is the builtin function "title".
+func title(env *vm.Env, s string) string {
 	return withAlloc(env, strings.Title, s)
 }
 
-// _toLower is the builtin function "toLower".
-func _toLower(env *vm.Env, s string) string {
+// toLower is the builtin function "toLower".
+func toLower(env *vm.Env, s string) string {
 	return withAlloc(env, strings.ToLower, s)
 }
 
-// _toTitle is the builtin function "toTitle".
-func _toTitle(env *vm.Env, s string) string {
+// toTitle is the builtin function "toTitle".
+func toTitle(env *vm.Env, s string) string {
 	return withAlloc(env, strings.ToTitle, s)
 }
 
-// _toUpper is the builtin function "toUpper".
-func _toUpper(env *vm.Env, s string) string {
+// toUpper is the builtin function "toUpper".
+func toUpper(env *vm.Env, s string) string {
 	return withAlloc(env, strings.ToUpper, s)
 }
 
