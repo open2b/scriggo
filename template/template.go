@@ -55,7 +55,7 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
-func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
+func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
 
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
