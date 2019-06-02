@@ -27,8 +27,22 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"scrigo"
 	"scrigo/internal/compiler"
+	"scrigo/vm"
 )
+
+const maxInt = int(^uint(0) >> 1)
+
+type Hasher int
+
+const (
+	_MD5 Hasher = iota
+	_SHA1
+	_SHA256
+)
+
+var hasherType = reflect.TypeOf(_MD5)
 
 var testSeed int64 = -1
 
@@ -36,65 +50,65 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-var interf = interface{}(nil)
-
 // TODO(Gianluca): this definition is a copy-paste from "value.go", which has
 // been excluded from building. See "value.go" for further details.
 type HTML string
 
-var htmlType = reflect.TypeOf(HTML(""))
-
 var tcBuiltins = compiler.TypeCheckerScope{}
 
-// TODO (Gianluca): keep in sync with templateBuiltinOnly for now.
-var builtins = map[string]interface{}{
-	"abbreviate":  _abbreviate,
-	"abs":         _abs,
-	"atoi":        strconv.Atoi,
-	"base64":      _base64,
-	"contains":    strings.Contains,
-	"errorf":      _errorf,
-	"hasPrefix":   strings.HasPrefix,
-	"hasSuffix":   strings.HasSuffix,
-	"hex":         _hex,
-	"hmac":        _hmac,
-	"html":        _html,
-	"index":       _index,
-	"indexAny":    _indexAny,
-	"itoa":        strconv.Itoa,
-	"join":        strings.Join,
-	"lastIndex":   _lastIndex,
-	"max":         _max,
-	"md5":         _md5,
-	"min":         _min,
-	"rand":        _rand,
-	"randFloat":   _randFloat,
-	"repeat":      _repeat,
-	"replace":     strings.Replace,
-	"replaceAll":  _replaceAll,
-	"reverse":     _reverse,
-	"round":       _round,
-	"printf":      _printf,
-	"sha1":        _sha1,
-	"sha256":      _sha256,
-	"shuffle":     _shuffle,
-	"sort":        _sort,
-	"split":       strings.Split,
-	"splitN":      strings.SplitN,
-	"queryEscape": url.QueryEscape,
-	"title":       strings.Title,
-	"toLower":     strings.ToLower,
-	"toTitle":     strings.ToTitle,
-	"toUpper":     strings.ToUpper,
-	"trim":        strings.Trim,
-	"trimLeft":    strings.TrimLeft,
-	"trimPrefix":  strings.TrimPrefix,
-	"trimRight":   strings.TrimRight,
-	"trimSuffix":  strings.TrimSuffix,
+var builtins = scrigo.Package{
+	Name: "main",
+	Declarations: map[string]interface{}{
+		"Hasher":      hasherType,
+		"MD5":         scrigo.Constant(hasherType, _MD5),
+		"SHA1":        scrigo.Constant(hasherType, _SHA1),
+		"SHA256":      scrigo.Constant(hasherType, _SHA256),
+		"abbreviate":  _abbreviate,
+		"abs":         _abs,
+		"atoi":        strconv.Atoi,
+		"base64":      _base64,
+		"contains":    strings.Contains,
+		"errorf":      _errorf,
+		"hash":        _hash,
+		"hasPrefix":   strings.HasPrefix,
+		"hasSuffix":   strings.HasSuffix,
+		"hex":         _hex,
+		"hmac":        _hmac,
+		"html":        _html,
+		"index":       _index,
+		"indexAny":    _indexAny,
+		"itoa":        strconv.Itoa,
+		"join":        _join,
+		"lastIndex":   _lastIndex,
+		"max":         _max,
+		"min":         _min,
+		"rand":        _rand,
+		"randFloat":   _randFloat,
+		"repeat":      _repeat,
+		"replace":     _replace,
+		"replaceAll":  _replaceAll,
+		"reverse":     _reverse,
+		"round":       _round,
+		"printf":      _printf,
+		"shuffle":     _shuffle,
+		"sort":        _sort,
+		"split":       _split,
+		"splitN":      _splitN,
+		"queryEscape": _queryEscape,
+		"title":       _title,
+		"toLower":     _toLower,
+		"toTitle":     _toTitle,
+		"toUpper":     _toUpper,
+		"trim":        strings.Trim,
+		"trimLeft":    strings.TrimLeft,
+		"trimPrefix":  strings.TrimPrefix,
+		"trimRight":   strings.TrimRight,
+		"trimSuffix":  strings.TrimSuffix,
+	},
 }
 
 // _abbreviate is the builtin function "abbreviate".
-func _abbreviate(s string, n int) string {
+func _abbreviate(env vm.Env, s string, n int) string {
 	s = strings.TrimRight(s, spaces)
 	if len(s) <= n {
 		return s
@@ -124,177 +138,86 @@ func _abbreviate(s string, n int) string {
 	if l := len(s) - 1; l >= 0 && (s[l] == '.' || s[l] == ',') {
 		s = s[:l]
 	}
+	env.Alloc(16 + 3)
+	env.Alloc(len(s))
 	return s + "..."
 }
 
 // _abs is the builtin function "abs".
-func _abs(n interface{}) interface{} {
-	switch x := n.(type) {
-	case int:
-		if x < 0 {
-			n = -x
-		}
-	case int64:
-		if x < 0 {
-			n = -x
-		}
-	case int32:
-		if x < 0 {
-			n = -x
-		}
-	case int16:
-		if x < 0 {
-			n = -x
-		}
-	case int8:
-		if x < 0 {
-			n = -x
-		}
-	case uint, uint64, uint32, uint16, uint8:
-	case float64:
-		if x < 0 {
-			n = -x
-		}
-	case float32:
-		if x < 0 {
-			n = -x
-		}
-	// TODO(Gianluca):
-	// case ConstantNumber:
-	// 	var err error
-	// 	n, err = x.ToTyped()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	n = _abs(n)
-	// case CustomNumber:
-	// 	if x.Cmp(nil) < 0 {
-	// 		n = x.New().Neg(x)
-	// 	}
-	default:
-		// TODO(Gianluca):
-		panic("???")
-		// panic(fmt.Sprintf("non-number argument in abs - %s", typeof(n)))
+func _abs(x int) int {
+	if x < 0 {
+		return -x
 	}
-	return n
+	return x
 }
 
-// TODO(Gianluca): this method refers to renderer.
-// // _append is the builtin function "append".
-// func (r *rendering) _append(node *ast.Call, n int) (reflect.Value, error) {
-
-// 	slice, err := r.eval(node.Args[0])
-// 	if err != nil {
-// 		return reflect.Value{}, err
-// 	}
-// 	t := reflect.TypeOf(slice)
-
-// 	m := len(node.Args) - 1
-// 	if m == 0 {
-// 		return reflect.ValueOf(slice), nil
-// 	}
-
-// 	typ := t.Elem()
-
-// 	if s, ok := slice.([]interface{}); ok {
-// 		var s2 []interface{}
-// 		l, c := len(s), cap(s)
-// 		p := 0
-// 		if l+m <= c {
-// 			s2 = make([]interface{}, m)
-// 			s = s[:c:c]
-// 		} else {
-// 			s2 = make([]interface{}, l+m)
-// 			copy(s2, s)
-// 			s = s2
-// 			p = l
-// 		}
-// 		for i := 1; i < len(node.Args); i++ {
-// 			v, err := r.eval(node.Args[i])
-// 			if err != nil {
-// 				return reflect.Value{}, err
-// 			}
-// 			if n, ok := v.(ConstantNumber); ok {
-// 				v, err = n.ToType(typ)
-// 				if err != nil {
-// 					if e, ok := err.(errConstantOverflow); ok {
-// 						return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
-// 					}
-// 					return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
-// 				}
-// 			}
-// 			s2[p+i-1] = v
-// 		}
-// 		if l+m <= c {
-// 			copy(s[l:], s2)
-// 		}
-// 		return reflect.ValueOf(s), nil
-// 	}
-
-// 	sv := reflect.ValueOf(slice)
-// 	var sv2 reflect.Value
-// 	l, c := sv.Len(), sv.Cap()
-// 	p := 0
-// 	if l+n <= c {
-// 		sv2 = reflect.MakeSlice(t, m, m)
-// 		sv = sv.Slice3(0, c, c)
-// 	} else {
-// 		sv2 = reflect.MakeSlice(t, l+m, l+m)
-// 		reflect.Copy(sv2, sv)
-// 		sv = sv2
-// 		p = l
-// 	}
-// 	for i := 1; i < len(node.Args); i++ {
-// 		v, err := r.eval(node.Args[i])
-// 		if err != nil {
-// 			return reflect.Value{}, err
-// 		}
-// 		switch v2 := v.(type) {
-// 		case ConstantNumber:
-// 			v, err = v2.ToType(typ)
-// 			if err != nil {
-// 				if e, ok := err.(errConstantOverflow); ok {
-// 					return reflect.Value{}, r.errorf(node.Args[i], "%s", e)
-// 				}
-// 				return reflect.Value{}, r.errorf(node.Args[i], "%s in argument to %s", err, node.Func)
-// 			}
-// 		case function:
-// 			v = v2.Func()
-// 		}
-// 		sv2.Index(p + i - 1).Set(reflect.ValueOf(v))
-// 	}
-// 	if l+m <= c {
-// 		reflect.Copy(sv2.Slice(l, l+m+1), sv2)
-// 	}
-
-// 	return sv, nil
-// }
-
 // _base64 is the builtin function "base64".
-func _base64(s string) string {
+func _base64(env *vm.Env, s string) string {
+	if s == "" {
+		return s
+	}
+	env.Alloc(16)
+	bytes := base64.StdEncoding.EncodedLen(len(s))
+	if bytes < 0 {
+		bytes = maxInt
+	}
+	env.Alloc(bytes)
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
 // _errorf is the builtin function "errorf".
 func _errorf(format string, a ...interface{}) {
+	// TODO(marco): Alloc.
 	panic(fmt.Errorf(format, a...))
 }
 
+// _hash is the builtin function "hash".
+func _hash(env *vm.Env, hasher Hasher, s string) string {
+	var h hash.Hash
+	switch hasher {
+	case _MD5:
+		h = md5.New()
+		env.Alloc(16 + 16)
+	case _SHA1:
+		h = sha1.New()
+		env.Alloc(16 + 28)
+	case _SHA256:
+		h = sha256.New()
+		env.Alloc(16 + 64)
+	default:
+		panic(errors.New("unknown hash function"))
+	}
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 // _hex is the builtin function "hex".
-func _hex(s string) string {
+func _hex(env *vm.Env, s string) string {
+	if s == "" {
+		return s
+	}
+	env.Alloc(16)
+	bytes := hex.EncodedLen(len(s))
+	if bytes < 0 {
+		bytes = maxInt
+	}
+	env.Alloc(bytes)
 	return hex.EncodeToString([]byte(s))
 }
 
 // _hmac is the builtin function "hmac".
-func _hmac(hasher, message, key string) string {
+func _hmac(env *vm.Env, hasher Hasher, message, key string) string {
 	var h func() hash.Hash
 	switch hasher {
-	case "MD5":
+	case _MD5:
 		h = md5.New
-	case "SHA-1":
+		env.Alloc(16 + 24)
+	case _SHA1:
 		h = sha1.New
-	case "SHA-256":
+		env.Alloc(16 + 28)
+	case _SHA256:
 		h = sha256.New
+		env.Alloc(16 + 44)
 	default:
 		panic(errors.New("unknown hash function"))
 	}
@@ -333,6 +256,22 @@ func _indexAny(s, chars string) int {
 	return utf8.RuneCountInString(s[0:n])
 }
 
+// _join is the builtin function "join".
+func _join(env *vm.Env, a []string, sep string) string {
+	if n := len(a); n > 1 {
+		env.Alloc(16)
+		bytes := (n - 1) * len(sep)
+		if bytes/(n-1) != len(sep) {
+			bytes = maxInt
+		}
+		env.Alloc(bytes)
+		for _, s := range a {
+			env.Alloc(len(s))
+		}
+	}
+	return strings.Join(a, sep)
+}
+
 // _lastIndex is the builtin function "lastIndex".
 func _lastIndex(s, sep string) int {
 	n := strings.LastIndex(s, sep)
@@ -343,227 +282,25 @@ func _lastIndex(s, sep string) int {
 }
 
 // _max is the builtin function "max".
-func _max(x, y interface{}) interface{} {
-	switch x := x.(type) {
-	case int:
-		if y, ok := y.(int); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case int64:
-		if y, ok := y.(int64); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case int32:
-		if y, ok := y.(int32); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case int16:
-		if y, ok := y.(int16); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case int8:
-		if y, ok := y.(int8); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case uint:
-		if y, ok := y.(uint); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case uint64:
-		if y, ok := y.(uint64); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case uint32:
-		if y, ok := y.(uint32); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case uint16:
-		if y, ok := y.(uint16); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case uint8:
-		if y, ok := y.(uint8); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case float64:
-		if y, ok := y.(float64); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-	case float32:
-		if y, ok := y.(float32); ok {
-			if x < y {
-				return y
-			}
-			return x
-		}
-		// TODO(Gianluca):
-		// case CustomNumber:
-		// 	if reflect.TypeOf(x) == reflect.TypeOf(y) {
-		// 		if x.Cmp(y.(CustomNumber)) < 0 {
-		// 			return y
-		// 		}
-		// 		return x
-		// 	}
+func _max(x, y int) int {
+	if x < y {
+		return y
 	}
-	// TODO(Gianluca):
-	panic("???")
-	// panic(fmt.Sprintf("arguments to max have different types: %s and %s", typeof(x), typeof(y)))
-}
-
-// _md5 is the builtin function "md5".
-func _md5(s string) string {
-	hasher := md5.New()
-	hasher.Write([]byte(s))
-	return hex.EncodeToString(hasher.Sum(nil))
+	return x
 }
 
 // _min is the builtin function "min".
-func _min(x, y interface{}) interface{} {
-	switch x := x.(type) {
-	case int:
-		if y, ok := y.(int); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case int64:
-		if y, ok := y.(int64); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case int32:
-		if y, ok := y.(int32); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case int16:
-		if y, ok := y.(int16); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case int8:
-		if y, ok := y.(int8); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case uint:
-		if y, ok := y.(uint); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case uint64:
-		if y, ok := y.(uint64); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case uint32:
-		if y, ok := y.(uint32); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case uint16:
-		if y, ok := y.(uint16); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case uint8:
-		if y, ok := y.(uint8); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case float64:
-		if y, ok := y.(float64); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-	case float32:
-		if y, ok := y.(float32); ok {
-			if x < y {
-				return x
-			}
-			return y
-		}
-		// TODO(Gianluca):
-		// case CustomNumber:
-		// 	if reflect.TypeOf(x) == reflect.TypeOf(y) {
-		// 		if x.Cmp(y.(CustomNumber)) < 0 {
-		// 			return x
-		// 		}
-		// 		return y
-		// 	}
+func _min(x, y int) int {
+	if y < x {
+		return y
 	}
-	// TODO(Gianluca):
-	panic("???")
-	// panic(fmt.Sprintf("arguments to min have different types: %s and %s", typeof(x), typeof(y)))
-}
-
-// _print is the builtin function "print".
-func _print(a ...interface{}) (n int, err error) {
-	return fmt.Print(a...)
+	return x
 }
 
 // _printf is the builtin function "printf".
 func _printf(format string, a ...interface{}) (n int, err error) {
+	// TODO(marco): Alloc.
 	return fmt.Printf(format, a...)
-}
-
-// _println is the builtin function "println".
-func _println(a ...interface{}) (n int, err error) {
-	return fmt.Println(a...)
 }
 
 // _rand is the builtin function "rand".
@@ -589,13 +326,44 @@ func _randFloat() float64 {
 }
 
 // _repeat is the builtin function "repeat".
-func _repeat(s string, count int) string {
+func _repeat(env *vm.Env, s string, count int) string {
+	if count < 0 {
+		panic("negative repeat count")
+	}
+	if s == "" || count == 0 {
+		return s
+	}
+	env.Alloc(16)
+	bytes := len(s) * count
+	if bytes/count != len(s) {
+		bytes = maxInt
+	}
+	env.Alloc(bytes)
 	return strings.Repeat(s, count)
 }
 
+// _replace is the builtin function "replace".
+func _replace(env *vm.Env, s, old, new string, n int) string {
+	if old != new && n != 0 {
+		if c := strings.Count(s, old); c > 0 {
+			if n > 0 && c > n {
+				c = n
+			}
+			env.Alloc(16)
+			env.Alloc(len(s))
+			bytes := (len(new) - len(old)) * c
+			if bytes/c != len(new)-len(old) {
+				bytes = maxInt
+			}
+			env.Alloc(bytes)
+		}
+	}
+	return strings.Replace(s, old, new, n)
+}
+
 // _replaceAll is the builtin function "replaceAll".
-func _replaceAll(s, old, new string) string {
-	return strings.Replace(s, old, new, -1)
+func _replaceAll(env *vm.Env, s, old, new string) string {
+	return _replace(env, s, old, new, -1)
 }
 
 // _reverse is the builtin function "reverse".
@@ -625,20 +393,6 @@ func _reverse(s interface{}) interface{} {
 // _round is the builtin function "round".
 func _round(x float64) float64 {
 	return math.Round(x)
-}
-
-// _sha1 is the builtin function "sha1".
-func _sha1(s string) string {
-	hasher := sha1.New()
-	hasher.Write([]byte(s))
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-// _sha256 is the builtin function "sha256".
-func _sha256(s string) string {
-	hasher := sha256.New()
-	hasher.Write([]byte(s))
-	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // _shuffle is the builtin function "shuffle".
@@ -688,15 +442,113 @@ func _sort(slice interface{}) {
 		sort.Strings(s)
 	case []HTML:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
+	case []rune:
+		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []byte:
 		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []int:
 		sort.Ints(s)
 	case []float64:
 		sort.Float64s(s)
-	case []bool:
-		sort.Slice(s, func(i, j int) bool { return !s[i] })
 	}
 	// reflect
 	sortSlice(slice)
+}
+
+// _split is the builtin function "split".
+func _split(env *vm.Env, s, sep string) []string {
+	return _splitN(env, s, sep, -1)
+}
+
+// _splitN is the builtin function "splitN".
+func _splitN(env *vm.Env, s, sep string, n int) []string {
+	if n != 0 {
+		env.Alloc(16)
+		if sep == "" {
+			// Invalid UTF-8 sequences are replaced with RuneError.
+			i := 0
+			for _, r := range s {
+				if i == n {
+					break
+				}
+				env.Alloc(16 + utf8.RuneLen(r)) // string head and bytes.
+				i++
+			}
+		} else {
+			c := strings.Count(s, sep)
+			if n > 0 && c > n {
+				c = n
+			}
+			bytes := 16 * (c + 1) // string heads.
+			if bytes < 0 {
+				bytes = maxInt
+			}
+			env.Alloc(bytes)
+			env.Alloc(len(s) - len(sep)*c) // string bytes.
+		}
+	}
+	return strings.SplitN(s, sep, n)
+}
+
+// _queryEscape is the builtin function "queryEscape".
+func _queryEscape(env *vm.Env, s string) string {
+	alloc := false
+	numHex := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if '0' <= c && c <= '9' || 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' ||
+			c == '-' || c == '.' || c == '_' || c == '~' {
+			continue
+		}
+		alloc = true
+		if c != ' ' {
+			numHex++
+		}
+	}
+	if alloc {
+		env.Alloc(16)
+		env.Alloc(len(s))
+		if 2*numHex < 0 {
+			env.Alloc(maxInt)
+		}
+		env.Alloc(2 * numHex)
+	}
+	return url.QueryEscape(s)
+}
+
+// _title is the builtin function "title".
+func _title(env *vm.Env, s string) string {
+	return withAlloc(env, strings.Title, s)
+}
+
+// _toLower is the builtin function "toLower".
+func _toLower(env *vm.Env, s string) string {
+	return withAlloc(env, strings.ToLower, s)
+}
+
+// _toTitle is the builtin function "toTitle".
+func _toTitle(env *vm.Env, s string) string {
+	return withAlloc(env, strings.ToTitle, s)
+}
+
+// _toUpper is the builtin function "toUpper".
+func _toUpper(env *vm.Env, s string) string {
+	return withAlloc(env, strings.ToUpper, s)
+}
+
+// withAlloc wraps a function that get a string and return a string,
+// allocating memory only if necessary. Should be used only if the function f
+// guarantees that if the output string is a new allocated string it is not
+// equal to the input string.
+func withAlloc(env *vm.Env, f func(string) string, s string) string {
+	env.Alloc(16)
+	env.Alloc(len(s))
+	t := f(s)
+	if t == s {
+		env.Alloc(-16)
+		env.Alloc(-len(s))
+	} else {
+		env.Alloc(len(t) - len(s))
+	}
+	return t
 }
