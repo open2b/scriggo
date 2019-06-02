@@ -55,13 +55,13 @@ func Main() *scrigo.Package {
 		Name:         "main",
 		Declarations: map[string]interface{}{},
 	}
-	for name, value := range builtins.Declarations {
+	for name, value := range main.Declarations {
 		p.Declarations[name] = value
 	}
 	return &p
 }
 
-var builtins = scrigo.Package{
+var main = scrigo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
 		"Hasher":      hasherType,
