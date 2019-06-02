@@ -34,10 +34,10 @@ import (
 
 const maxInt = int(^uint(0) >> 1)
 
-type Hasher int
+type hasher int
 
 const (
-	_MD5 Hasher = iota
+	_MD5 hasher = iota
 	_SHA1
 	_SHA256
 )
@@ -177,7 +177,7 @@ func errorf(format string, a ...interface{}) {
 }
 
 // hash is the builtin function "hash".
-func hash(env *vm.Env, hasher Hasher, s string) string {
+func hash(env *vm.Env, hasher hasher, s string) string {
 	var h _hash.Hash
 	switch hasher {
 	case _MD5:
@@ -211,7 +211,7 @@ func hex(env *vm.Env, s string) string {
 }
 
 // hmac is the builtin function "hmac".
-func hmac(env *vm.Env, hasher Hasher, message, key string) string {
+func hmac(env *vm.Env, hasher hasher, message, key string) string {
 	var h func() _hash.Hash
 	switch hasher {
 	case _MD5:
