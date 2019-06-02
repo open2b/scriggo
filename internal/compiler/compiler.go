@@ -81,7 +81,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, imports map[string]*Package, deps GlobalsDependencies, customBuiltins TypeCheckerScope) (_ map[string]*PackageInfo, err error) {
+func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, imports map[string]*Package, deps GlobalsDependencies) (_ map[string]*PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
@@ -93,9 +93,6 @@ func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, impo
 	}()
 	tc := newTypechecker(tree.Path, true, opts.DisallowGoStmt)
 	tc.Universe = universe
-	if customBuiltins != nil {
-		tc.Scopes = append(tc.Scopes, customBuiltins)
-	}
 	if main, ok := packages["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}

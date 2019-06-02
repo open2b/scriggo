@@ -4,11 +4,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package builtins
 
 import (
 	"testing"
+
+	"scrigo/template"
 )
+
+// variables scope.
+type scope map[string]interface{}
 
 var rendererBuiltinTests = []struct {
 	src     string
@@ -43,7 +48,7 @@ var rendererBuiltinTests = []struct {
 	{"append(s, v)", "a, b, ", scope{"s": []string{"a", "b"}, "v": ""}},
 	{"append(s, `a`, `b`)", "a, b", scope{"s": []string(nil)}},
 	{"append(s, `c`, `d`)", "a, b, c, d", scope{"s": []string{"a", "b"}}},
-	{"append(s, html(`<c>`))", "<a>, <b>, <c>", scope{"s": []HTML{"<a>", "<b>"}}},
+	{"append(s, html(`<c>`))", "<a>, <b>, <c>", scope{"s": []template.HTML{"<a>", "<b>"}}},
 	{"append(s, 3, 4)", "1, 2, 3, 4", scope{"s": []int{1, 2}}},
 	{"append(s, 3.5, 4.23)", "1.9, 2.32, 3.5, 4.23", scope{"s": []float64{1.9, 2.32}}},
 	{"append(s, false, true)", "true, false, false, true", scope{"s": []bool{true, false}}},
@@ -160,7 +165,7 @@ var rendererBuiltinTests = []struct {
 	{"len(`€`)", "3", nil},
 	{"len(a)", "1", scope{"a": "a"}},
 	{"len(a)", "3", scope{"a": "<a>"}},
-	{"len(a)", "3", scope{"a": HTML("<a>")}},
+	{"len(a)", "3", scope{"a": template.HTML("<a>")}},
 	{"len(a)", "3", scope{"a": []int{1, 2, 3}}},
 	{"len(a)", "2", scope{"a": []string{"a", "b"}}},
 	{"len(a)", "4", scope{"a": []interface{}{"a", 2, 3, 4}}},
@@ -310,7 +315,7 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"html(`a`)", "a", nil},
 	{"html(`<a>`)", "<a>", nil},
 	{"html(a)", "<a>", scope{"a": "<a>"}},
-	{"html(a)", "<a>", scope{"a": HTML("<a>")}},
+	{"html(a)", "<a>", scope{"a": template.HTML("<a>")}},
 	{"html(a) + html(b)", "<a><b>", scope{"a": "<a>", "b": "<b>"}},
 }
 

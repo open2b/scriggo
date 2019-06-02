@@ -18,6 +18,8 @@ import (
 	"scrigo/vm"
 )
 
+type HTML string
+
 // Context indicates the type of source that has to be rendered and controls
 // how to escape the values to render.
 type Context int
@@ -63,7 +65,7 @@ func Load(path string, reader scrigo.Reader, main *scrigo.Package, ctx Context, 
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.Package{"main": main}, nil, nil, tcBuiltins)
+	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.Package{"main": main}, nil, nil)
 	if err != nil {
 		return nil, err
 	}

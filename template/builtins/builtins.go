@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package template
+package builtins
 
 import (
 	"crypto/hmac"
@@ -28,7 +28,7 @@ import (
 	"unicode/utf8"
 
 	"scrigo"
-	"scrigo/internal/compiler"
+	"scrigo/template"
 	"scrigo/vm"
 )
 
@@ -50,11 +50,16 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-// TODO(Gianluca): this definition is a copy-paste from "value.go", which has
-// been excluded from building. See "value.go" for further details.
-type HTML string
-
-var tcBuiltins = compiler.TypeCheckerScope{}
+func Main() *scrigo.Package {
+	p := scrigo.Package{
+		Name:         "main",
+		Declarations: map[string]interface{}{},
+	}
+	for name, value := range builtins.Declarations {
+		p.Declarations[name] = value
+	}
+	return &p
+}
 
 var builtins = scrigo.Package{
 	Name: "main",
@@ -228,11 +233,11 @@ func _hmac(env *vm.Env, hasher Hasher, message, key string) string {
 }
 
 // _html is the builtin function "html".
-func _html(s interface{}) HTML {
+func _html(s interface{}) template.HTML {
 	switch v := s.(type) {
 	case string:
-		return HTML(v)
-	case HTML:
+		return template.HTML(v)
+	case template.HTML:
 		return v
 	}
 	panic(fmt.Sprintf("type-checking bug: _html argument must be string or HTML, got %T", s))
@@ -440,7 +445,7 @@ func _sort(slice interface{}) {
 	case nil:
 	case []string:
 		sort.Strings(s)
-	case []HTML:
+	case []template.HTML:
 		sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []rune:
 		sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
