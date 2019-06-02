@@ -190,7 +190,7 @@ func hash(env *vm.Env, hasher Hasher, s string) string {
 		h = sha256.New()
 		env.Alloc(16 + 64)
 	default:
-		panic(errors.New("unknown hash function"))
+		panic("call of hash with unknown hasher")
 	}
 	h.Write([]byte(s))
 	return _hex.EncodeToString(h.Sum(nil))
@@ -224,7 +224,7 @@ func hmac(env *vm.Env, hasher Hasher, message, key string) string {
 		h = sha256.New
 		env.Alloc(16 + 44)
 	default:
-		panic(errors.New("unknown hash function"))
+		panic("call of hmac with unknown hasher")
 	}
 	mac := _hmac.New(h, []byte(key))
 	_, _ = io.WriteString(mac, message)
@@ -319,7 +319,7 @@ func rand(x int) int {
 	case x < 0:
 		return r.Int()
 	case x == 0:
-		panic("invalid argument to rand")
+		panic("call of rand with zero value")
 	default:
 		return r.Intn(x)
 	}
@@ -333,7 +333,7 @@ func randFloat() float64 {
 // repeat is the builtin function "repeat".
 func repeat(env *vm.Env, s string, count int) string {
 	if count < 0 {
-		panic("negative repeat count")
+		panic("call of repeat with negative count")
 	}
 	if s == "" || count == 0 {
 		return s
