@@ -82,7 +82,7 @@ var main = scrigo.Package{
 		"html":        html,
 		"index":       index,
 		"indexAny":    indexAny,
-		"itoa":        strconv.Itoa,
+		"itoa":        itoa,
 		"join":        join,
 		"lastIndex":   lastIndex,
 		"max":         max,
@@ -259,6 +259,13 @@ func indexAny(s, chars string) int {
 		return n
 	}
 	return utf8.RuneCountInString(s[0:n])
+}
+
+// itoa is the builtin function "itoa".
+func itoa(env *vm.Env, i int) string {
+	s := strconv.Itoa(i)
+	env.Alloc(16 + len(s))
+	return s
 }
 
 // join is the builtin function "join".
