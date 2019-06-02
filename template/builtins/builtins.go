@@ -401,28 +401,13 @@ func round(x float64) float64 {
 }
 
 // shuffle is the builtin function "shuffle".
-func shuffle(s interface{}) []interface{} {
-	if s == nil {
-		return nil
+func shuffle(slice interface{}) {
+	if slice == nil {
+		return
 	}
-	var ms []interface{}
-	switch m := s.(type) {
-	case []interface{}:
-		ms = make([]interface{}, len(m))
-		copy(ms, m)
-	default:
-		rv := reflect.ValueOf(s)
-		if rv.Kind() != reflect.Slice {
-			panic(errNoSlice)
-		}
-		l := rv.Len()
-		ms = make([]interface{}, l)
-		for i := 0; i < l; i++ {
-			ms[i] = rv.Index(i).Interface()
-		}
-	}
-	if len(ms) < 2 {
-		return ms
+	v := reflect.ValueOf(slice)
+	if v.Kind() != reflect.Slice {
+		panic(fmt.Sprintf("call of shuffle on %s value", v.Kind()))
 	}
 	// Swap.
 	seed := time.Now().UTC().UnixNano()
@@ -430,12 +415,12 @@ func shuffle(s interface{}) []interface{} {
 		seed = testSeed
 	}
 	r := _rand.New(_rand.NewSource(seed))
-	swap := reflect.Swapper(ms)
-	for i := len(ms) - 1; i >= 0; i-- {
+	swap := reflect.Swapper(slice)
+	for i := v.Len() - 1; i >= 0; i-- {
 		j := r.Intn(i + 1)
 		swap(i, j)
 	}
-	return ms
+	return
 }
 
 // sort is the builtin function "sort".
