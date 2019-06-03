@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"reflect"
 
 	"scrigo/internal/compiler"
@@ -141,24 +140,12 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, packages PackageLoader, options LoadOption) (*Script, error) {
-
-	predefined := Packages{}
-	if pkg, ok := packages.(Packages); ok {
-		for k, v := range pkg {
-			predefined[k] = v
-		}
-	}
+func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Script, error) {
 
 	alloc := options&LimitMemorySize != 0
 	shebang := options&AllowShebangLine != 0
 
-	// Parsing.
-	buf, err := ioutil.ReadAll(src)
-	if err != nil {
-		return nil, err
-	}
-	tree, _, err := compiler.ParseSource(buf, true, shebang)
+	tree, packages, err := compiler.ParseScript(src, loader, shebang)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +156,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options LoadOption) (*Scr
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, predefined, nil, nil)
+	tci, err := compiler.Typecheck(opts, tree, packages, nil, nil)
 	if err != nil {
 		return nil, err
 	}
