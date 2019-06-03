@@ -1357,6 +1357,8 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				node := ast.NewValue(typedValue(ti, ti.Type))
 				tc.replaceTypeInfo(expr.Args[i], node)
 				expr.Args[i] = node
+			} else if k := ti.Type.Kind(); k == reflect.Array || k == reflect.Struct {
+				panic(tc.errorf(arg, "illegal types for operand: print\n\t%s", ti.Type))
 			}
 		}
 		return nil
