@@ -151,18 +151,6 @@ func main() {
 			}
 		}
 	case ".go":
-		// TODO(Gianluca): use this instead of ioutil.ReadFile(absFile).
-		// reader := scrigo.DirReader(filepath.Dir(absFile))
-		// sources := func(path string) []byte {
-		// 	if path == "/main" {
-		// 		path = "/" + filepath.Base(absFile)
-		// 	}
-		// 	data, err := reader.Read(path)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	return data
-		// }
 		main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
