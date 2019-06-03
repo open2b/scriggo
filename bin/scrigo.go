@@ -131,7 +131,8 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scrigo.LoadScript(r, nil, loadOptions|scrigo.AllowShebangLine)
+		mainLoader := scrigo.Packages{"main": &scrigo.Package{Name: "main", Declarations: map[string]interface{}{}}}
+		script, err := scrigo.LoadScript(r, scrigo.Loaders(mainLoader, packages), loadOptions|scrigo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
