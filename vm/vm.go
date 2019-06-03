@@ -62,8 +62,6 @@ func New() *VM {
 	vm.st[1] = stackSize
 	vm.st[2] = stackSize
 	vm.st[3] = stackSize
-	vm.env = &Env{}
-	vm.envArg = reflect.ValueOf(vm.env)
 	vm.Reset()
 	return vm
 }
@@ -94,6 +92,7 @@ func (vm *VM) Reset() {
 	vm.fn = nil
 	vm.vars = nil
 	vm.env = &Env{}
+	vm.envArg = reflect.ValueOf(vm.env)
 	if vm.calls != nil {
 		vm.calls = vm.calls[:0]
 	}
