@@ -144,7 +144,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 	case *Package:
 		packages["main"] = main
 	case nil:
-		packages["main"] = &Package{Name: "main", Declarations: map[string]interface{}{}}
+		packages["main"] = &Package{Name: "main"}
 	default:
 		return nil, nil, fmt.Errorf("scrigo: unexpected type %T for package \"main\"", main)
 	}
