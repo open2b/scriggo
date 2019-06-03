@@ -1045,7 +1045,7 @@ type callable struct {
 
 // reflectValue returns a Reflect Value of a callable, so it can be called
 // from a predefined code and passed to a predefined code.
-func (c *callable) reflectValue(ctx *Env) reflect.Value {
+func (c *callable) reflectValue(env *Env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -1064,7 +1064,7 @@ func (c *callable) reflectValue(ctx *Env) reflect.Value {
 		nvm := New()
 		nvm.fn = fn
 		nvm.vars = vars
-		nvm.env = ctx
+		nvm.env = env
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
