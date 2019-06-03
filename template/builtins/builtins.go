@@ -113,7 +113,7 @@ var main = scrigo.Package{
 }
 
 // abbreviate is the builtin function "abbreviate".
-func abbreviate(env vm.Env, s string, n int) string {
+func abbreviate(env *vm.Env, s string, n int) string {
 	s = strings.TrimRight(s, spaces)
 	if len(s) <= n {
 		return s
