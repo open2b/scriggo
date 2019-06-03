@@ -102,8 +102,10 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 		_ = e.fb.NewRegister(reflect.Int) // i1.
 	}
 	e.fb.SetAlloc(alloc)
-	e.fb.GetVar(0, 1) // Move Write from Globals to Generals.
-	e.fb.GetVar(1, 2) // Move Render from Globals to Generals.
+	if isTemplate {
+		e.fb.GetVar(0, 1) // Move Write from Globals to Generals.
+		e.fb.GetVar(1, 2) // Move Render from Globals to Generals.
+	}
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
