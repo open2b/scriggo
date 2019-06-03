@@ -127,3 +127,68 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[s
 
 	return main.Tree, dependencies, predefined, nil
 }
+
+// ParseScript parses a script reading its source from src and the imported
+// packages form the loader. shebang reports whether the script can have the
+// shebang as first line.
+func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, map[string]*Package, error) {
+
+	packages := map[string]*Package{}
+
+	// Load package main.
+	main, err := loader.Load("main")
+	if err != nil {
+		return nil, nil, err
+	}
+	switch main := main.(type) {
+	case *Package:
+		packages["main"] = main
+	case nil:
+		return nil, nil, fmt.Errorf("scrigo: cannot find package \"main\"")
+	default:
+		return nil, nil, fmt.Errorf("scrigo: unexpected type %T loading package \"main\"", main)
+	}
+
+	// Parse the source.
+	buf, err := ioutil.ReadAll(src)
+	if r, ok := src.(io.Closer); ok {
+		_ = r.Close()
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	tree, _, err := ParseSource(buf, true, shebang)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Parse the import declarations in the tree.
+	for _, node := range tree.Nodes {
+		imp, ok := node.(*ast.Import)
+		if !ok {
+			break
+		}
+		// Check if the path is a package path (path is already a valid path).
+		if err := validPackagePath(imp.Path); err != nil {
+			if err == ErrNotCanonicalImportPath {
+				return nil, nil, fmt.Errorf("non-canonical import path %q (should be %q)", imp.Path, cleanPath(imp.Path))
+			}
+			return nil, nil, fmt.Errorf("invalid path %q at %s", imp.Path, imp.Pos())
+		}
+		// Load the package.
+		pkg, err := loader.Load(imp.Path)
+		if err != nil {
+			return nil, nil, err
+		}
+		switch pkg := pkg.(type) {
+		case *Package:
+			packages[imp.Path] = pkg
+		case nil:
+			return nil, nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
+		default:
+			return nil, nil, fmt.Errorf("scrigo: unexpected type %T package loader", pkg)
+		}
+	}
+
+	return tree, packages, nil
+}

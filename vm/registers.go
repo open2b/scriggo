@@ -348,6 +348,13 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		v.SetFloat(vm.floatk(r, k))
 	case reflect.String:
 		v.SetString(vm.stringk(r, k))
+	case reflect.Func:
+		v.Set(vm.generalk(r, k).(*callable).reflectValue(vm.env))
+	case reflect.Array:
+		slice := reflect.ValueOf(vm.generalk(r, k))
+		array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()
+		reflect.Copy(array, slice)
+		v.Set(array)
 	default:
 		v.Set(reflect.ValueOf(vm.generalk(r, k)))
 	}
@@ -365,6 +372,16 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 		vm.setFloat(r, v.Float())
 	case reflect.String:
 		vm.setString(r, v.String())
+	case reflect.Func:
+		c := &callable{
+			predefined: &PredefinedFunction{
+				Func:  v.Interface(),
+				value: v,
+			},
+		}
+		vm.setGeneral(r, c)
+	case reflect.Array:
+		vm.setGeneral(r, v.Slice(0, v.Len()).Interface())
 	default:
 		vm.setGeneral(r, v.Interface())
 	}
