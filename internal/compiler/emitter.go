@@ -88,10 +88,18 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 		//
 		// [ 1 ] --> Write function
 		// [ 2 ] --> Render function
-		// [ 3 ] --> Value to render/write
-		_ = e.fb.NewRegister(reflect.Func)
-		_ = e.fb.NewRegister(reflect.Func)
-		_ = e.fb.NewRegister(reflect.Interface)
+		// [ 3 ] --> reserved for "Write" error return argument
+		// [ 4 ] --> Value to render/write
+
+		// Int registers
+		//
+		// [ 1 ] --> reserved for "writer" n return argument
+		_ = e.fb.NewRegister(reflect.Func)      // g1.
+		_ = e.fb.NewRegister(reflect.Func)      // g2.
+		_ = e.fb.NewRegister(reflect.Interface) // g3.
+		_ = e.fb.NewRegister(reflect.Interface) // g4.
+
+		_ = e.fb.NewRegister(reflect.Int) // i1.
 	}
 	e.fb.SetAlloc(alloc)
 	e.fb.GetVar(0, 1) // Move Write from Globals to Generals.
@@ -1471,7 +1479,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 		case *ast.Text:
 			index := len(e.fb.fn.Data)
 			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
-			e.fb.LoadData(int16(index), 3)
+			e.fb.LoadData(int16(index), 4)
 			e.fb.CallIndirect(1, 0, vm.StackShift{0, 0, 0, 2}) // TODO(Gianluca): review stackshift.
 
 		case *ast.TypeSwitch:
