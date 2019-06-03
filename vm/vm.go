@@ -141,9 +141,6 @@ func (vm *VM) SetMaxMemory(bytes int) {
 }
 
 func (vm *VM) SetOut(out writer) {
-	if vm.env == nil {
-		vm.env = &Env{}
-	}
 	vm.env.out = out
 }
 
@@ -152,9 +149,6 @@ func (vm *VM) SetPrintWriter(w writer) {
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
-	if vm.env == nil {
-		vm.env = &Env{}
-	}
 	vm.env.trace = fn
 }
 
