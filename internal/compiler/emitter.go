@@ -70,15 +70,37 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
+func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool, isTemplate bool) (*vm.Function, []vm.Global) {
+	// TODO(Gianluca): remove e.globals return parameter.
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	if isTemplate {
+		//
+		// Globals
+		//
+		// [ 0 ] --> Write function
+		// [ 1 ] --> Render function
+		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
+		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
+		//
+		// General registers
+		//
+		// [ 1 ] --> Write function
+		// [ 2 ] --> Render function
+		// [ 3 ] --> Value to render/write
+		_ = e.fb.NewRegister(reflect.Func)
+		_ = e.fb.NewRegister(reflect.Func)
+		_ = e.fb.NewRegister(reflect.Interface)
+	}
 	e.fb.SetAlloc(alloc)
+	e.fb.GetVar(0, 1) // Move Write from Globals to Generals.
+	e.fb.GetVar(1, 2) // Move Render from Globals to Generals.
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
+	e.fb.fn.Globals = e.globals
 	return e.fb.fn, e.globals
 }
 
@@ -1432,6 +1454,8 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.emitExpr(node.Value, v, elemType)
 			e.fb.Send(ch, v)
 
+		case *ast.Show:
+
 		case *ast.Switch:
 			currentBreakable := e.breakable
 			currentBreakLabel := e.breakLabel
@@ -1443,6 +1467,12 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			e.breakable = currentBreakable
 			e.breakLabel = currentBreakLabel
+
+		case *ast.Text:
+			index := len(e.fb.fn.Data)
+			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
+			e.fb.LoadData(int16(index), 3)
+			e.fb.CallIndirect(1, 0, vm.StackShift{0, 0, 0, 2}) // TODO(Gianluca): review stackshift.
 
 		case *ast.TypeSwitch:
 			currentBreakable := e.breakable

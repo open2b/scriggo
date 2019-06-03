@@ -65,7 +65,13 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.Package{"main": main}, nil, nil)
+
+	var pkgs scrigo.Packages
+	if main != nil {
+		pkgs = scrigo.Packages{"main": main}
+	}
+
+	tci, err := compiler.Typecheck(opts, tree, pkgs, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -76,17 +82,25 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
 
-	mainFn, globals := compiler.EmitSingle(tree, tci["/main"].TypeInfo, tci["/main"].IndirectVars, alloc)
+	mainFn, globals := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc, true)
 
 	_ = globals // TODO(Gianluca).
 	return &Template{main: main, fn: mainFn}, nil
 }
 
+// TODO(Gianluca): just a placeholder, remove.
+func render(value interface{}) {
+	panic("called render!")
+}
+
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
-func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options RenderOptions) error {
-	// TODO: implement globals
-	vmm := vm.New()
+func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+	w := out.Write
+	r := render
+	t.fn.Globals[0] = vm.Global{Value: &w}
+	t.fn.Globals[1] = vm.Global{Value: &r}
+	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
 	}
@@ -105,6 +119,8 @@ func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options 
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
+	vmm.SetOut(out)
+
 	_, err := vmm.Run(t.fn)
 	return err
 }
@@ -117,4 +133,31 @@ func (t *Template) Options() LoadOption {
 // Disassemble disassembles a template.
 func (t *Template) Disassemble(w io.Writer) (int64, error) {
 	return compiler.DisassembleFunction(w, t.fn)
+}
+
+// newVM returns a new vm with the given options.
+func newVM(globals []vm.Global, init map[string]interface{}) *vm.VM {
+	vmm := vm.New()
+	if n := len(globals); n > 0 {
+		values := make([]interface{}, n)
+		for i, global := range globals {
+			if global.Pkg == "main" {
+				if value, ok := init[global.Name]; ok {
+					if v, ok := value.(reflect.Value); ok {
+						values[i] = v.Addr().Interface()
+					} else {
+						rv := reflect.New(global.Type).Elem()
+						rv.Set(reflect.ValueOf(v))
+						values[i] = rv.Interface()
+					}
+				} else {
+					values[i] = reflect.New(global.Type).Interface()
+				}
+			} else {
+				values[i] = global.Value
+			}
+		}
+		vmm.SetGlobals(values)
+	}
+	return vmm
 }

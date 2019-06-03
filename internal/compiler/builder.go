@@ -28,6 +28,12 @@ func encodeUint24(v uint32) (a, b, c int8) {
 	return
 }
 
+func encodeInt16(v int16) (a, b int8) {
+	a = int8(v >> 8)
+	b = int8(v)
+	return
+}
+
 func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
@@ -313,7 +319,7 @@ func (builder *functionBuilder) Type(typ reflect.Type) int8 {
 
 func (builder *functionBuilder) End() {
 	fn := builder.fn
-	if fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
+	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
 		builder.Return()
 	}
 	for addr, label := range builder.gotos {
@@ -900,6 +906,12 @@ func (builder *functionBuilder) Len(s, l int8, t reflect.Type) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLen, A: a, B: s, C: l})
 }
 
+// Load data appends a new "LoadData" instruction to the function body.
+func (builder *functionBuilder) LoadData(i int16, dst int8) {
+	a, b := encodeInt16(i)
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLoadData, A: a, B: b, C: dst})
+}
+
 // LoadNumber appends a new "LoadNumber" instruction to the function body.
 //
 func (builder *functionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
@@ -1302,15 +1314,6 @@ func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 		op = -op
 	}
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: t, B: x, C: z})
-}
-
-// Write appends a new "Write" instruction to the function body.
-//
-//     out.Write(data)
-//
-func (builder *functionBuilder) Write(i uint32) {
-	a, b, c := encodeUint24(i)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpWrite, A: a, B: b, C: c})
 }
 
 // TailCall appends a new "TailCall" instruction to the function body.

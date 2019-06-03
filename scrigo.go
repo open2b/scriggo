@@ -176,7 +176,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options LoadOption) (*Scr
 
 	// TODO(Gianluca): pass "main" to emitter.
 	// main contains user defined variables.
-	mainFn, globals := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	mainFn, globals := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc, false)
 
 	return &Script{fn: mainFn, globals: globals, options: options}, nil
 }

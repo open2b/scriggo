@@ -2,25 +2,28 @@ package test
 
 import (
 	"bytes"
-	"fmt"
 	"scrigo/template"
 	"testing"
 )
 
-var templateCases = []struct {
+var templateCases = map[string]struct {
 	src string
 	out string
 }{
-	{
-		src: `Only text`,
-		out: `Only text`,
+	"Text only": {
+		src: `Hello, world!`,
+		out: `Hello, world!`,
 	},
+
+	// "'Show' node only": {
+	// 	src: `{{ "i am a show" }}`,
+	// 	out: `i am a show`,
+	// },
 }
 
 func TestTemplate(t *testing.T) {
-	i := 0
-	for _, cas := range templateCases {
-		t.Run(fmt.Sprintf("Template test #%d", i), func(t *testing.T) {
+	for name, cas := range templateCases {
+		t.Run(name, func(t *testing.T) {
 			r := template.MapReader{"/main": []byte(cas.src)}
 			templ, err := template.Load("/main", r, nil, template.ContextText, template.LoadOption(0))
 			if err != nil {
@@ -37,3 +40,9 @@ func TestTemplate(t *testing.T) {
 		})
 	}
 }
+
+// TODO(Gianluca): should we allow empty template pages?
+// "Empty": {
+// 	src: ``,
+// 	out: ``,
+// },

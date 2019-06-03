@@ -75,12 +75,12 @@ func (vm *VM) Run(fn *Function) (code int, err error) {
 
 func (vm *VM) runRecoverable() (panicked bool) {
 	panicked = true
-	defer func() {
-		if panicked {
-			msg := recover()
-			vm.panics = append(vm.panics, Panic{Msg: msg})
-		}
-	}()
+	// defer func() {
+	// 	if panicked {
+	// 		msg := recover()
+	// 		vm.panics = append(vm.panics, Panic{Msg: msg})
+	// 	}
+	// }()
 	if vm.fn != nil || vm.nextCall() {
 		vm.run()
 	}
@@ -745,6 +745,10 @@ func (vm *VM) run() (uint32, bool) {
 			case TypeString:
 				vm.setString(c, vm.stringk(b, op < 0))
 			}
+
+		// LoadData
+		case OpLoadData:
+			vm.setGeneral(c, vm.fn.Data[int(a)<<8|int(uint8(b))]) // TODO(Gianluca): is this correct?
 
 		// LoadNumber.
 		case OpLoadNumber:
@@ -1526,13 +1530,6 @@ func (vm *VM) run() (uint32, bool) {
 			v := reflect.New(t).Elem()
 			vm.getIntoReflectValue(b, v, op < 0)
 			vm.setGeneral(c, v.Interface())
-
-		// Write
-		case OpWrite:
-			_, err := vm.env.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
-			if err != nil {
-				panic(err)
-			}
 
 		// Xor
 		case OpXor, -OpXor:

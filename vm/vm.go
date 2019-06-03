@@ -1354,6 +1354,8 @@ const (
 
 	OpLen
 
+	OpLoadData
+
 	OpLoadNumber
 
 	OpMakeChan

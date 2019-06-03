@@ -299,6 +299,12 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
+		case *ast.Text:
+			// Nothing to do.
+
+		case *ast.Show:
+			// Nothing to do.
+
 		// TODO: to remove.
 		default:
 			panic(fmt.Errorf("unexpected node %s", node))
