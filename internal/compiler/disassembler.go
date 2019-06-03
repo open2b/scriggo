@@ -419,6 +419,9 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 			s += " " + disassembleOperand(fn, b, vm.Interface, false)
 		}
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
+	case vm.OpLoadData:
+		s += " " + strconv.Itoa(int(a)<<8|int(uint8(b)))
+		s += " " + disassembleOperand(fn, c, vm.Func, false)
 	case vm.OpLoadNumber:
 		if a == 0 {
 			s += " int"
@@ -742,6 +745,8 @@ var operationName = [...]string{
 	vm.OpLeftShift32: "LeftShift32",
 
 	vm.OpLen: "Len",
+
+	vm.OpLoadData: "LoadData",
 
 	vm.OpLoadNumber: "LoadNumber",
 
