@@ -802,12 +802,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Print
 		case OpPrint:
-			s := sprint(vm.general(a))
-			if w := vm.env.print; w == nil {
-				print(string(s))
-			} else {
-				_, _ = w.Write(s)
-			}
+			vm.print(vm.general(a))
 
 		// Range
 		case OpRange:
