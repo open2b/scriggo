@@ -88,8 +88,8 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 		//
 		// [ 1 ] --> Write function
 		// [ 2 ] --> Render function
-		// [ 3 ] --> reserved for "Write" error return argument
-		// [ 4 ] --> Value to render/write
+		// [ 3 ] --> reserved for "Write" error return argument/value to render
+		// [ 4 ] --> Argument of Write
 
 		// Int registers
 		//
@@ -1465,6 +1465,8 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.fb.Send(ch, v)
 
 		case *ast.Show:
+			e.emitExpr(node.Expr, 4, emptyInterfaceType)
+			e.fb.CallIndirect(1, 0, vm.StackShift{0, 0, 0, 1})
 
 		case *ast.Switch:
 			currentBreakable := e.breakable
