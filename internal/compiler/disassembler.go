@@ -421,7 +421,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		}
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpLoadData:
-		s += " " + strconv.Itoa(int(a)<<8|int(uint8(b)))
+		s += " " + strconv.Itoa(int(decodeInt16(a, b)))
 		s += " " + disassembleOperand(fn, c, vm.Func, false)
 	case vm.OpLoadNumber:
 		if a == 0 {

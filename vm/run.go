@@ -748,7 +748,7 @@ func (vm *VM) run() (uint32, bool) {
 
 		// LoadData
 		case OpLoadData:
-			vm.setGeneral(c, vm.fn.Data[int(a)<<8|int(uint8(b))])
+			vm.setGeneral(c, vm.fn.Data[decodeInt16(a, b)])
 
 		// LoadNumber.
 		case OpLoadNumber:
