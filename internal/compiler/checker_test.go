@@ -1073,17 +1073,13 @@ var checkerStmts = map[string]string{
 	`a := 0; var _ a`: `a is not a type`,
 
 	// Builtin functions 'print' and 'println'.
-	`print()`:             ok,
-	`print("a")`:          ok,
-	`print("a", 5)`:       ok,
-	`println()`:           ok,
-	`println("a")`:        ok,
-	`println("a", 5)`:     ok,
-	`println = 0`:         `use of builtin println not in function call`,
-	`print([1]int{})`:     `illegal types for operand: print` + "\n\t[1]int",
-	`print(struct{}{})`:   `illegal types for operand: print` + "\n\tstruct {}",
-	`println([1]int{})`:   `illegal types for operand: print` + "\n\t[1]int",
-	`println(struct{}{})`: `illegal types for operand: print` + "\n\tstruct {}",
+	`print()`:         ok,
+	`print("a")`:      ok,
+	`print("a", 5)`:   ok,
+	`println()`:       ok,
+	`println("a")`:    ok,
+	`println("a", 5)`: ok,
+	`println = 0`:     `use of builtin println not in function call`,
 
 	// Builtin function 'append'.
 	`_ = append([]int{}, 0)`:     ok,
