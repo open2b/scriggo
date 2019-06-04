@@ -52,20 +52,6 @@ type emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
-
-	template struct {
-		// TODO(Gianluca): some fields are used locally, remove them and use local variables.
-		// ioWriter      int
-		// writeFnIndex  int
-		// renderFnIndex int
-
-		//ioWriterReg   int8
-		//writeFnReg    int8
-		//renderFnReg   int8
-		//generalRegA   int8
-		//generalRegB   int8
-		//intRegA       int8
-	}
 }
 
 // newEmitter returns a new emitter reading sources from r.
