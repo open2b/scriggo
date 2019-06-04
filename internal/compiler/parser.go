@@ -1108,53 +1108,31 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
 			}
 		}
-		// ident
+		// Parses the macro name.
 		tok = next(p.lex)
 		if tok.typ != tokenIdentifier {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok.txt)})
 		}
-		// TODO(Gianluca): move to typechecker.
-		if len(tok.txt) == 1 && tok.txt[0] == '_' {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
-		}
-		ident := ast.NewIdentifier(tok.pos, string(tok.txt))
+		var ident = ast.NewIdentifier(tok.pos, string(tok.txt))
 		tok = next(p.lex)
-		var parameters []*ast.Identifier
-		var ellipsesPos *ast.Position
-		// TODO(Gianluca): use function parser instead of this code:
+		var parameters []*ast.Field
+		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
-			// parameters
-			parameters = []*ast.Identifier{}
-			for {
-				tok = next(p.lex)
-				if tok.typ != tokenIdentifier {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
-				}
-				if ellipsesPos != nil {
-					panic(&SyntaxError{"", *ellipsesPos, fmt.Errorf("cannot use ... with non-final parameter")})
-				}
-				parameters = append(parameters, ast.NewIdentifier(tok.pos, string(tok.txt)))
-				tok = next(p.lex)
-				if tok.typ == tokenEllipses {
-					ellipsesPos = tok.pos
-					tok = next(p.lex)
-				}
-				if tok.typ == tokenRightParenthesis {
-					break
-				}
-				if tok.typ != tokenComma {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)})
-				}
-			}
+			// Parses the macro parameters.
+			names := map[string]struct{}{}
+			var endPos *ast.Position
+			parameters, isVariadic, endPos = p.parseFuncFields(tok, names, false)
+			pos.End = endPos.End
 			tok = next(p.lex)
-			if tok.typ != tokenEndStatement {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
-		} else if tok.typ != tokenEndStatement {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
 		}
+		if tok.typ != tokenEndStatement {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
+		}
+		// Makes the macro node.
+		typ := ast.NewFuncType(nil, parameters, nil, isVariadic)
 		pos.End = tok.pos.End
-		node = ast.NewMacro(pos, ident, parameters, nil, ellipsesPos != nil, tok.ctx)
+		typ.Position = pos
+		node := ast.NewMacro(pos, ident, typ, nil, tok.ctx)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true

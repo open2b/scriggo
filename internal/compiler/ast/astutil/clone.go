@@ -184,19 +184,17 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		return extends
 	case *ast.Macro:
-		var ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
-		var parameters []*ast.Identifier
-		if n.Parameters != nil {
-			parameters = make([]*ast.Identifier, len(n.Parameters))
-			for i, p := range n.Parameters {
-				parameters[i] = ast.NewIdentifier(ClonePosition(p.Position), p.Name)
-			}
+		var ident *ast.Identifier
+		if n.Ident != nil {
+			// Ident must be nil for a function literal, but clone it anyway.
+			ident = ast.NewIdentifier(ClonePosition(n.Ident.Position), n.Ident.Name)
 		}
+		typ := CloneExpression(n.Type).(*ast.FuncType)
 		var body = make([]ast.Node, len(n.Body))
 		for i, n2 := range n.Body {
 			body[i] = CloneNode(n2)
 		}
-		return ast.NewMacro(ClonePosition(n.Position), ident, parameters, body, n.IsVariadic, n.Context)
+		return ast.NewMacro(ClonePosition(n.Position), ident, typ, body, n.Context)
 	case *ast.ShowMacro:
 		var impor *ast.Identifier
 		if n.Import != nil {

@@ -1309,21 +1309,36 @@ var treeTests = []struct {
 	{"{% extends \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewExtends(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% include \"/a.b\" %}", ast.NewTree("", []ast.Node{ast.NewInclude(p(1, 1, 0, 19), "/a.b", ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% extends \"a.e\" %}{% macro b %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 20, 19, 47), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			nil, []ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% extends \"a.e\" %}{% macro b(c,d) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML), ast.NewMacro(p(1, 20, 19, 54), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
-			[]*ast.Identifier{ast.NewIdentifier(p(1, 31, 30, 30), "c"), ast.NewIdentifier(p(1, 33, 32, 32), "d")},
-			[]ast.Node{ast.NewText(p(1, 38, 37, 39), []byte("txt"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
+		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML),
+		ast.NewMacro(p(1, 20, 19, 47), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 20, Start: 19, End: 47}, nil, nil, false),
+			[]ast.Node{ast.NewText(p(1, 33, 32, 32), []byte("c"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% extends \"a.e\" %}{% macro b(c, d int) %}txt{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewExtends(p(1, 1, 0, 18), "a.e", ast.ContextHTML),
+		ast.NewMacro(p(1, 20, 19, 59), ast.NewIdentifier(p(1, 29, 28, 28), "b"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 20, Start: 19, End: 59}, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 31, 30, 30), "c"), nil),
+				ast.NewField(ast.NewIdentifier(p(1, 34, 33, 33), "d"),
+					ast.NewIdentifier(p(1, 36, 35, 37), "int")),
+			}, nil, false),
+			[]ast.Node{ast.NewText(p(1, 43, 42, 44), []byte("txt"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{# comment\ncomment #}", ast.NewTree("", []ast.Node{ast.NewComment(p(1, 1, 0, 20), " comment\ncomment ")}, ast.ContextHTML)},
-	{"{% macro a(b) %}c{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 31), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
-			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b")},
-			[]ast.Node{ast.NewText(p(1, 17, 16, 16), []byte("c"), ast.Cut{})}, false, ast.ContextHTML)}, ast.ContextHTML)},
-	{"{% macro a(b, c...) %}d{% end macro %}", ast.NewTree("", []ast.Node{
-		ast.NewMacro(p(1, 1, 0, 37), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
-			[]*ast.Identifier{ast.NewIdentifier(p(1, 12, 11, 11), "b"), ast.NewIdentifier(p(1, 15, 14, 14), "c")},
-			[]ast.Node{ast.NewText(p(1, 23, 22, 22), []byte("d"), ast.Cut{})}, true, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% macro a(i int) %}c{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewMacro(p(1, 1, 0, 35), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 1, Start: 0, End: 35}, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 12, 11, 11), "i"),
+					ast.NewIdentifier(p(1, 14, 13, 15), "int")),
+			}, nil, false),
+			[]ast.Node{ast.NewText(p(1, 21, 20, 20), []byte("c"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% macro a(b bool, c ...string) %}d{% end macro %}", ast.NewTree("", []ast.Node{
+		ast.NewMacro(p(1, 1, 0, 49), ast.NewIdentifier(p(1, 10, 9, 9), "a"),
+			ast.NewFuncType(&ast.Position{Line: 1, Column: 1, Start: 0, End: 49}, []*ast.Field{
+				ast.NewField(ast.NewIdentifier(p(1, 12, 11, 11), "b"),
+					ast.NewIdentifier(p(1, 14, 13, 16), "bool")),
+				ast.NewField(ast.NewIdentifier(p(1, 20, 19, 19), "c"),
+					ast.NewIdentifier(p(1, 25, 24, 29), "string")),
+			}, nil, true),
+			[]ast.Node{ast.NewText(p(1, 35, 34, 34), []byte("d"), ast.Cut{})}, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% *a = 3 %}", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 11),
 			[]ast.Expression{
@@ -1334,7 +1349,8 @@ var treeTests = []struct {
 			ast.AssignmentSimple,
 			[]ast.Expression{
 				ast.NewInt(p(1, 9, 8, 8), big.NewInt(3)),
-			})}, ast.ContextHTML)}}
+			})}, ast.ContextHTML)},
+}
 
 func pageTests() map[string]struct {
 	src  string
@@ -2311,14 +2327,9 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
-		if len(nn1.Parameters) != len(nn2.Parameters) {
-			return fmt.Errorf("unexpected arguments len %d, expecting %d", len(nn1.Parameters), len(nn2.Parameters))
-		}
-		for i, parameter := range nn1.Parameters {
-			err := equals(parameter, nn2.Parameters[i], p)
-			if err != nil {
-				return err
-			}
+		err = equals(nn1.Type, nn2.Type, p)
+		if err != nil {
+			return err
 		}
 		if len(nn1.Body) != len(nn2.Body) {
 			return fmt.Errorf("unexpected body len %d, expecting %d", len(nn1.Body), len(nn2.Body))
@@ -2328,9 +2339,6 @@ func equals(n1, n2 ast.Node, p int) error {
 			if err != nil {
 				return err
 			}
-		}
-		if nn1.IsVariadic != nn2.IsVariadic {
-			return fmt.Errorf("unexpected is variadic %t, expecting %t", nn1.IsVariadic, nn2.IsVariadic)
 		}
 
 	case *ast.TypeAssertion:

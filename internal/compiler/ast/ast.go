@@ -571,19 +571,19 @@ func NewTypeDeclaration(pos *Position, identifier *Identifier, typ Expression, i
 
 // Macro node represents a statement {% macro ... %}.
 type Macro struct {
-	*Position                // position in the source.
-	Ident      *Identifier   // name.
-	Parameters []*Identifier // parameters.
-	Body       []Node        // body.
-	IsVariadic bool          // indicates if it is variadic.
-	Context    Context       // context.
+	*Position             // position in the source.
+	Ident     *Identifier // name.
+	Type      *FuncType   // type.
+	Body      []Node      // body.
+	Upvars    []Upvar     // Upvars of macro.
+	Context   Context     // context.
 }
 
-func NewMacro(pos *Position, ident *Identifier, parameters []*Identifier, body []Node, isVariadic bool, ctx Context) *Macro {
+func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx Context) *Macro {
 	if body == nil {
 		body = []Node{}
 	}
-	return &Macro{pos, ident, parameters, body, isVariadic, ctx}
+	return &Macro{pos, name, typ, body, nil, ctx}
 }
 
 // ShowMacro node represents a statement {% show <macro> %}.
