@@ -1304,15 +1304,6 @@ func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: t, B: x, C: z})
 }
 
-// Write appends a new "Write" instruction to the function body.
-//
-//     out.Write(data)
-//
-func (builder *functionBuilder) Write(i uint32) {
-	a, b, c := encodeUint24(i)
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpWrite, A: a, B: b, C: c})
-}
-
 // TailCall appends a new "TailCall" instruction to the function body.
 //
 //     f()

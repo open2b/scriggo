@@ -1428,7 +1428,5 @@ const (
 
 	OpTypify
 
-	OpWrite
-
 	OpXor
 )
