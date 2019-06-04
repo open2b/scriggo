@@ -827,10 +827,6 @@ const (
 	Environment = 255
 )
 
-type writer interface {
-	Write(p []byte) (n int, err error)
-}
-
 // Env represents an execution environment.
 type Env struct {
 	globals   []interface{} // global variables.
