@@ -112,6 +112,15 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expected: "included a: 20",
 	},
+
+	"Include - Including a file which includes another file": {
+		sources: map[string]string{
+			"/index.html":              `indexstart,{% include "/dir1/included.html" %}indexend,`,
+			"/dir1/included.html":      `i1start,{% include "/dir1/dir2/included.html" %}i1end,`,
+			"/dir1/dir2/included.html": `i2,`,
+		},
+		expected: "indexstart,i1start,i2,i1end,indexend,",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {
