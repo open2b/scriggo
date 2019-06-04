@@ -290,6 +290,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case vm.OpBind, vm.OpGetVar:
 		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
+		// TODO(Gianluca): add correct register type, not 'vm.Int'.
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
