@@ -88,12 +88,10 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
-
 	// Globals.
 	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
-
 	// Registers.
 	e.fb.NewRegister(reflect.Interface) // w io.Writer
 	e.fb.NewRegister(reflect.Interface) // Write
@@ -101,7 +99,6 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.NewRegister(reflect.Interface) // free.
 	e.fb.NewRegister(reflect.Interface) // free.
 	e.fb.NewRegister(reflect.Int)       // free.
-
 	e.fb.GetVar(0, 1)
 	e.fb.GetVar(1, 2)
 	e.fb.GetVar(2, 3)
@@ -1465,16 +1462,9 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.fb.Send(ch, v)
 
 		case *ast.Show:
-			// e.emitExpr(node.Expr, 3, emptyInterfaceType)
-			// ss := vm.StackShift{
-			// 	e.template.ioWriterReg,
-			// 	0,
-			// 	0,
-			// 	e.template.intRegA,
-			// }
-			// e.fb.CallIndirect(e.template.renderFnReg, 0, ss)
+			// render([implicit *vm.Env,] g4 io.Writer, g5 interface{}, i1 ast.Context)
 			e.emitExpr(node.Expr, 5, emptyInterfaceType)
-			// TODO(Gianluca): move context in register i1
+			// TODO(Gianluca): put context in register i1
 			e.fb.Move(false, 1, 4, reflect.Interface)
 			e.fb.CallIndirect(3, 0, vm.StackShift{0, 0, 0, 3})
 
@@ -1491,6 +1481,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.breakLabel = currentBreakLabel
 
 		case *ast.Text:
+			// Write(g5 []byte) (i1 int, g4 error)
 			index := len(e.fb.fn.Data)
 			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
 			e.fb.LoadData(int16(index), 5)
