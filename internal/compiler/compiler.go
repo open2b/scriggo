@@ -81,7 +81,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, imports map[string]*Package, deps GlobalsDependencies) (_ map[string]*PackageInfo, err error) {
+func Typecheck(opts *Options, tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies) (_ map[string]*PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
@@ -93,18 +93,18 @@ func Typecheck(opts *Options, tree *ast.Tree, packages map[string]*Package, impo
 	}()
 	tc := newTypechecker(tree.Path, true, opts.DisallowGoStmt)
 	tc.Universe = universe
-	if main, ok := packages["main"]; ok {
+	if main, ok := predefinedPkgs["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}
 	if opts.IsPackage {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree, deps, imports, pkgInfos, opts.DisallowGoStmt)
+		err := checkPackage(tree, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}
 		return pkgInfos, nil
 	}
-	tc.predefinedPkgs = packages
+	tc.predefinedPkgs = predefinedPkgs
 	tc.CheckNodesInNewScope(tree.Nodes)
 	mainPkgInfo := &PackageInfo{}
 	mainPkgInfo.IndirectVars = tc.IndirectVars

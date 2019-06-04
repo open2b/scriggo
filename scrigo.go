@@ -59,7 +59,7 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, nil, predefined, deps)
+	tci, err := compiler.Typecheck(opts, tree, predefined, deps)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
 	}
-	tci, err := compiler.Typecheck(opts, tree, packages, nil, nil)
+	tci, err := compiler.Typecheck(opts, tree, packages, nil)
 	if err != nil {
 		return nil, err
 	}
