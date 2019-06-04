@@ -118,7 +118,6 @@ func TestTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			templ.SetRenderFunc(template.DefaultRenderFunc)
 			err = templ.Render(w, cas.vars, template.RenderOptions{})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
@@ -181,7 +180,6 @@ func TestMultiPageTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			templ.SetRenderFunc(template.DefaultRenderFunc)
 			err = templ.Render(w, nil, template.RenderOptions{})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)

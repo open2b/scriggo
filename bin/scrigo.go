@@ -192,7 +192,12 @@ func main() {
 			}
 
 		} else {
-			err = t.Render(os.Stdout, nil, template.RenderOptions(runOptions))
+			options := template.RenderOptions{
+				Context:       runOptions.Context,
+				MaxMemorySize: runOptions.MaxMemorySize,
+				TraceFunc:     runOptions.TraceFunc,
+			}
+			err = t.Render(os.Stdout, nil, options)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(-1)

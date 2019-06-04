@@ -42,6 +42,7 @@ type RenderOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
+	RenderFunc    RenderFunc
 	PrintFunc     vm.PrintFunc
 	TraceFunc     vm.TraceFunc
 }
@@ -84,17 +85,11 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 // RenderFunc represents a rendering function used in template.
 type RenderFunc func(*vm.Env, io.Writer, interface{}, Context)
 
-// DefaultRenderFunc is a default render function which can be passed to
-// SetRenderFunc.
+// DefaultRenderFunc is the default RenderFunc used by Render method if the
+// option RenderFunc is nil.
 var DefaultRenderFunc = func(env *vm.Env, w io.Writer, value interface{}, ctx Context) {
 	// TODO(Gianluca): replace with correct function.
 	w.Write([]byte(fmt.Sprintf("%v", value)))
-}
-
-// SetRenderFunc sets the rendering function used for {{ .. }}. Use
-// DefaultRenderFunc for a default render function.
-func (t *Template) SetRenderFunc(render RenderFunc) {
-	t.render = render
 }
 
 var emptyVars = map[string]interface{}{}
@@ -102,15 +97,14 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
-	if t.render == nil {
-		t.render = func(*vm.Env, io.Writer, interface{}, Context) {
-			panic("render func not set")
-		}
+	render := DefaultRenderFunc
+	if t.render != nil {
+		render = t.render
 	}
 	write := out.Write
 	t.fn.Globals[0] = vm.Global{Value: &out}
 	t.fn.Globals[1] = vm.Global{Value: &write}
-	t.fn.Globals[2] = vm.Global{Value: &t.render}
+	t.fn.Globals[2] = vm.Global{Value: &render}
 	if vars == nil {
 		vars = emptyVars
 	}
