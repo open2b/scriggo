@@ -42,10 +42,6 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-func decodeInt16(a, b int8) int16 {
-	return int16(int(a)<<8 | int(uint8(b)))
-}
-
 type functionBuilder struct {
 	fn          *vm.Function
 	labels      []uint32
