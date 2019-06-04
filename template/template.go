@@ -84,6 +84,7 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 // DefaultRender is a default render function which can be passed to
 // SetRenderFunc.
 var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
+	// TODO(Gianluca): replace with correct function.
 	w.Write([]byte(fmt.Sprintf("%v", value)))
 }
 
