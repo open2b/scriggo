@@ -84,15 +84,15 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 // RenderFunc represents a rendering function used in template.
 type RenderFunc func(*vm.Env, io.Writer, interface{}, Context)
 
-// DefaultRender is a default render function which can be passed to
+// DefaultRenderFunc is a default render function which can be passed to
 // SetRenderFunc.
-var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx Context) {
+var DefaultRenderFunc = func(env *vm.Env, w io.Writer, value interface{}, ctx Context) {
 	// TODO(Gianluca): replace with correct function.
 	w.Write([]byte(fmt.Sprintf("%v", value)))
 }
 
 // SetRenderFunc sets the rendering function used for {{ .. }}. Use
-// DefaultRender for a default render function.
+// DefaultRenderFunc for a default render function.
 func (t *Template) SetRenderFunc(render RenderFunc) {
 	t.render = render
 }
