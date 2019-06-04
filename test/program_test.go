@@ -122,6 +122,24 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Issue #130",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		
+		func main() {
+			a := "hello"
+			a = a + " "
+			a += "world!"
+			fmt.Println(a)
+		}
+		`,
+		output: "hello world!\n",
+	},
+	{
 		name: "If statement inside function literal",
 		src: `package main
 

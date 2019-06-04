@@ -276,7 +276,11 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			e.emitExpr(node.Values[0], rightOp, rightOpType)
 			switch node.Type {
 			case ast.AssignmentAddition:
-				e.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
+				if valueType.Kind() == reflect.String {
+					e.fb.Concat(valueReg, rightOp, valueReg)
+				} else {
+					e.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
+				}
 			case ast.AssignmentSubtraction:
 				e.fb.Sub(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentMultiplication:
