@@ -1522,13 +1522,6 @@ func (vm *VM) run() (uint32, bool) {
 			vm.getIntoReflectValue(b, v, op < 0)
 			vm.setGeneral(c, v.Interface())
 
-		// Write
-		case OpWrite:
-			_, err := vm.env.out.Write(vm.fn.Data[decodeUint24(a, b, c)])
-			if err != nil {
-				panic(err)
-			}
-
 		// Xor
 		case OpXor, -OpXor:
 			vm.setInt(c, vm.int(a)^vm.intk(b, op < 0))
