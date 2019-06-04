@@ -90,6 +90,7 @@ type parsing struct {
 	lex *lexer
 
 	// Indicates if it has been extended.
+	// TODO(Gianluca): rename to "hasExtend" and change description.
 	isExtended bool
 
 	// Indicates if it is in a macro.
@@ -118,6 +119,7 @@ type parsing struct {
 //
 // Returns the AST tree and, only if it is a program, the dependencies for the
 // type checker.
+// TODO(Gianluca): path validation must be moved to parser.
 func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	if shebang && !isScript {
@@ -183,6 +185,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Globa
 // ParseTemplateSource parses src in the context ctx and returns a tree. Nodes
 // Extends, Import and Include will not be expanded (the field Tree will be
 // nil). To get an expanded tree call the method Parse of a Parser instead.
+// TODO(Gianluca): path validation must be moved to parser.
 func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 	switch ctx {
@@ -863,6 +866,8 @@ func (p *parsing) parseStatement(tok token) {
 		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement not in template")})
 		}
+		// TODO(Gianluca): consider check if p.isExtended && !p.isInMacro
+		// before entering parsing switch, removing checks from all cases.
 		if p.isExtended && !p.isInMacro {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement outside macro")})
 		}
@@ -873,6 +878,7 @@ func (p *parsing) parseStatement(tok token) {
 		if tok.typ != tokenIdentifier {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 		}
+		// TODO(Gianluca): move to typechecker.
 		if len(tok.txt) == 1 && tok.txt[0] == '_' {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 		}
@@ -897,7 +903,8 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		var arguments []ast.Expression
 		if tok.typ == tokenLeftParenthesis {
-			// arguments
+			// arguments TODO(Gianluca): use parseExprList (see case
+			// tokenLeftParenthesis in parser_expressions.go).
 			arguments = []ast.Expression{}
 			for {
 				expr, tok = p.parseExpr(token{}, false, false, false, false)
@@ -963,7 +970,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		node = ast.NewExtends(pos, path, tok.ctx)
+		node = ast.NewExtends(pos, path, tree.Context)
 		p.addChild(node)
 		p.isExtended = true
 
@@ -1087,9 +1094,11 @@ func (p *parsing) parseStatement(tok token) {
 		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro statement not in template")})
 		}
+		// TODO(Gianluca): add missing contexts to all cases.
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro inside an attribute value")})
 		}
+		// TODO(Gianluca): replace "for" with "if len(p.ancestors) > 1".
 		for i := len(p.ancestors) - 1; i > 0; i-- {
 			switch p.ancestors[i].(type) {
 			case ast.For:
@@ -1105,6 +1114,7 @@ func (p *parsing) parseStatement(tok token) {
 		if tok.typ != tokenIdentifier {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting identifier", tok)})
 		}
+		// TODO(Gianluca): move to typechecker.
 		if len(tok.txt) == 1 && tok.txt[0] == '_' {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
 		}
@@ -1112,6 +1122,7 @@ func (p *parsing) parseStatement(tok token) {
 		tok = next(p.lex)
 		var parameters []*ast.Identifier
 		var ellipsesPos *ast.Position
+		// TODO(Gianluca): use function parser instead of this code:
 		if tok.typ == tokenLeftParenthesis {
 			// parameters
 			parameters = []*ast.Identifier{}
