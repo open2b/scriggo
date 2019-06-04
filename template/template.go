@@ -50,7 +50,7 @@ type Template struct {
 	main    *scrigo.Package
 	fn      *vm.Function
 	options LoadOption
-	rf      func(*vm.Env, io.Writer, interface{}, ast.Context)
+	render  func(*vm.Env, io.Writer, interface{}, ast.Context)
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -90,22 +90,22 @@ var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Co
 
 // SetRenderFunc sets the rendering function used for *ast.Show. Use
 // DefaultRender for a default render function.
-func (t *Template) SetRenderFunc(rf func(*vm.Env, io.Writer, interface{}, ast.Context)) {
-	t.rf = rf
+func (t *Template) SetRenderFunc(render func(*vm.Env, io.Writer, interface{}, ast.Context)) {
+	t.render = render
 }
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
-	if t.rf == nil {
-		t.rf = func(*vm.Env, io.Writer, interface{}, ast.Context) {
+	if t.render == nil {
+		t.render = func(*vm.Env, io.Writer, interface{}, ast.Context) {
 			panic("render func not set")
 		}
 	}
 	write := out.Write
 	t.fn.Globals[0] = vm.Global{Value: &out}
 	t.fn.Globals[1] = vm.Global{Value: &write}
-	t.fn.Globals[2] = vm.Global{Value: &t.rf}
+	t.fn.Globals[2] = vm.Global{Value: &t.render}
 	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
