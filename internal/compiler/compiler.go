@@ -32,7 +32,7 @@ package compiler
 import (
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 type Package struct {

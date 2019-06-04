@@ -19,10 +19,10 @@ import (
 	"strings"
 	"sync"
 
-	"scrigo"
+	"scriggo"
 )
 
-var packages scrigo.Packages
+var packages scriggo.Packages
 
 type output struct {
 	path        string
@@ -82,7 +82,7 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-func runScrigoAndGetOutput(src []byte) output {
+func runScriggoAndGetOutput(src []byte) output {
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		panic(err)
@@ -106,12 +106,12 @@ func runScrigoAndGetOutput(src []byte) output {
 	}()
 	wg.Wait()
 
-	program, err := scrigo.LoadProgram(scrigo.Loaders(mainLoader(src), packages), scrigo.LimitMemorySize)
+	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), scriggo.LimitMemorySize)
 
 	if err != nil {
 		return makeOutput(err.Error())
 	}
-	err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000})
+	err = program.Run(scriggo.RunOptions{MaxMemorySize: 1000000})
 	if err != nil {
 		return makeOutput(err.Error())
 	}
@@ -120,7 +120,7 @@ func runScrigoAndGetOutput(src []byte) output {
 }
 
 func runGoAndGetOutput(src []byte) output {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "scrigotesting")
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "scriggotesting")
 	if err != nil {
 		panic(err)
 	}
@@ -184,7 +184,7 @@ func main() {
 		fatal(err)
 	}
 	if !verbose {
-		fmt.Print("comparing Scrigo with gc..")
+		fmt.Print("comparing Scriggo with gc..")
 	}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
@@ -225,26 +225,26 @@ func main() {
 				} else {
 					fmt.Print(".")
 				}
-				scrigoOut := runScrigoAndGetOutput(src)
+				scriggoOut := runScriggoAndGetOutput(src)
 				goOut := runGoAndGetOutput(src)
-				if (scrigoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
+				if (scriggoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
 					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
+					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
 					return
 				}
-				if !scrigoOut.isErr() && !goOut.isErr() && (dir.Name() == "errors") {
+				if !scriggoOut.isErr() && !goOut.isErr() && (dir.Name() == "errors") {
 					fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
 					return
 				}
-				if scrigoOut.match(goOut) {
+				if scriggoOut.match(goOut) {
 					if veryVerbose {
-						fmt.Printf("\noutput:\n%s\n", scrigoOut)
+						fmt.Printf("\noutput:\n%s\n", scriggoOut)
 					}
 					if verbose {
 						fmt.Println("OK!")
 					}
 				} else {
-					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScrigo output:  %q\n", path, goOut, scrigoOut)
+					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
 				}
 			}()
 		}

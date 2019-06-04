@@ -13,8 +13,8 @@ import (
 	"reflect"
 	"unicode"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 var errDivisionByZero = errors.New("division by zero")

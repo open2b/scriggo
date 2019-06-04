@@ -9,8 +9,8 @@ package compiler
 import (
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 // addressType is the type of an element on the left side of and assignment.

@@ -13,7 +13,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 var errTypeConversion = errors.New("failed type conversion")

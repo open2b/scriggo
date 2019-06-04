@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // combinedLoaders combines more loaders in one loader.

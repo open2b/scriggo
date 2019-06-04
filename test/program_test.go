@@ -17,8 +17,8 @@ import (
 	"testing"
 	"text/tabwriter"
 
-	"scrigo"
-	"scrigo/vm"
+	"scriggo"
+	"scriggo/vm"
 )
 
 var exprTests = map[string]interface{}{
@@ -69,8 +69,8 @@ var exprTests = map[string]interface{}{
 func TestVMExpressions(t *testing.T) {
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
-			r := scrigo.MapStringLoader{"main": "package main; func main() { a := " + src + "; _ = a }"}
-			program, err := scrigo.LoadProgram(scrigo.Loaders(r, goPackages), scrigo.LimitMemorySize)
+			r := scriggo.MapStringLoader{"main": "package main; func main() { a := " + src + "; _ = a }"}
+			program, err := scriggo.LoadProgram(scriggo.Loaders(r, goPackages), scriggo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", src, err)
 				return
@@ -79,7 +79,7 @@ func TestVMExpressions(t *testing.T) {
 			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
 				registers = regs
 			}
-			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
+			err = program.Run(scriggo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err != nil {
 				t.Errorf("test %q, execution error: %s", src, err)
 				return
@@ -3142,17 +3142,17 @@ var stmtTests = []struct {
 
 		import "fmt"
 		
-		func scrigoFunc() {
-			fmt.Println("scrigoFunc()")
+		func scriggoFunc() {
+			fmt.Println("scriggoFunc()")
 		}
 
 		func main() {
-			scrigoFunc()
+			scriggoFunc()
 			fmt.Println("main()")
 		}`,
 		nil,
 		nil,
-		"scrigoFunc()\nmain()\n", nil, 0},
+		"scriggoFunc()\nmain()\n", nil, 0},
 	{"Predefined function call (0 in, 0 out)",
 		`
 		package main
@@ -3347,7 +3347,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "<nil>", nil, 0},
 
-	{"Scrigo function 'repeat(string, int) string'",
+	{"Scriggo function 'repeat(string, int) string'",
 		`
 		package main
 
@@ -3443,7 +3443,7 @@ var stmtTests = []struct {
 		}
 		`, nil, nil, "heyhey3 3", nil, 0},
 
-	{"Many Scrigo functions (swap, sum, fact)",
+	{"Many Scriggo functions (swap, sum, fact)",
 		`
 		package main
 
@@ -3799,8 +3799,8 @@ func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			regs := cas.registers
-			r := scrigo.MapStringLoader{"main": cas.src}
-			program, err := scrigo.LoadProgram(scrigo.Loaders(r, goPackages), scrigo.LimitMemorySize)
+			r := scriggo.MapStringLoader{"main": cas.src}
+			program, err := scriggo.LoadProgram(scriggo.Loaders(r, goPackages), scriggo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("test %q, compiler error: %s", cas.name, err)
 				return
@@ -3834,7 +3834,7 @@ func TestVM(t *testing.T) {
 			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
 				registers = regs
 			}
-			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
+			err = program.Run(scriggo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
 			if err == nil {
 				if cas.err != nil {
 					t.Errorf("test %q, expecting error %#v, got not error", cas.name, cas.err)
@@ -3989,7 +3989,7 @@ func tabsToSpaces(s string) string {
 // 	t.Error(out.String())
 // }
 
-var goPackages = scrigo.Packages{
+var goPackages = scriggo.Packages{
 	"fmt": {
 		Name: "fmt",
 		Declarations: map[string]interface{}{

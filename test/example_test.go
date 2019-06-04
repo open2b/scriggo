@@ -15,9 +15,9 @@ import (
 	"log"
 	"os"
 
-	"scrigo"
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
+	"scriggo"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
 )
 
 func ExampleRenderSource() {
@@ -38,7 +38,7 @@ func ExampleRenderSource() {
  {{ i }}. {{ p.Name }}: $ {{ p.Price }}
  {% end %}`
 
-	err := scrigo.RenderSource(os.Stdout, []byte(src), globals, false, scrigo.ContextText)
+	err := scriggo.RenderSource(os.Stdout, []byte(src), globals, false, scriggo.ContextText)
 	if err != nil {
 		log.Printf("error: %s\n", err)
 	}
@@ -54,7 +54,7 @@ func ExampleRenderTree() {
 
 	globals := map[string]interface{}{"title": "The Catcher in the Rye"}
 
-	err = scrigo.RenderTree(os.Stdout, tree, globals, false)
+	err = scriggo.RenderTree(os.Stdout, tree, globals, false)
 	if err != nil {
 		log.Fatalf("rendering error: %s", err)
 	}
@@ -73,7 +73,7 @@ func ExampleDirRenderer() {
 		},
 	}
 
-	r := scrigo.NewDirRenderer("./template/", false, scrigo.ContextHTML, false)
+	r := scriggo.NewDirRenderer("./template/", false, scriggo.ContextHTML, false)
 
 	err := r.Render(os.Stderr, "index.html", globals)
 	if err != nil {
@@ -91,7 +91,7 @@ func ExampleMapRenderer() {
 		"names": []string{"Robert", "Mary", "Karen", "William", "Michelle"},
 	}
 
-	r := scrigo.NewMapRenderer(sources, false, scrigo.ContextText)
+	r := scriggo.NewMapRenderer(sources, false, scriggo.ContextText)
 
 	err := r.Render(os.Stderr, "names.csv", vars)
 	if err != nil {

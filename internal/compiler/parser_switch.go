@@ -9,7 +9,7 @@ package compiler
 import (
 	"fmt"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // isTypeGuard indicates if node is a switch type guard, as x.(type) and v :=

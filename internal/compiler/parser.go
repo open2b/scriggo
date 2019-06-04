@@ -12,8 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/internal/compiler/ast/astutil"
+	"scriggo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast/astutil"
 )
 
 type Reader interface {
@@ -23,21 +23,21 @@ type Reader interface {
 var (
 	// ErrInvalidPackagePath is returned from the Parse method and a Reader
 	// when the path argument is not valid.
-	ErrInvalidPackagePath = errors.New("scrigo: invalid path")
+	ErrInvalidPackagePath = errors.New("scriggo: invalid path")
 
-	ErrNotCanonicalImportPath = errors.New("scrigo: non-canonical import path")
+	ErrNotCanonicalImportPath = errors.New("scriggo: non-canonical import path")
 
 	// ErrInvalidPath is returned from the Parse method and a Reader when the
 	// path argument is not valid.
-	ErrInvalidPath = errors.New("scrigo: invalid path")
+	ErrInvalidPath = errors.New("scriggo: invalid path")
 
 	// ErrNotExist is returned from the Parse method and a Reader when the
 	// path does not exist.
-	ErrNotExist = errors.New("scrigo: path does not exist")
+	ErrNotExist = errors.New("scriggo: path does not exist")
 
 	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
 	// exceeded.
-	ErrReadTooLarge = errors.New("scrigo: read too large")
+	ErrReadTooLarge = errors.New("scriggo: read too large")
 )
 
 // SyntaxError records a parsing error with the path and the position where the
@@ -122,7 +122,7 @@ type parsing struct {
 func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	if shebang && !isScript {
-		return nil, nil, errors.New("scrigo/parser: shebang can be true only for scripts")
+		return nil, nil, errors.New("scriggo/parser: shebang can be true only for scripts")
 	}
 
 	tree = ast.NewTree("", nil, ast.ContextGo)
@@ -190,7 +190,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
 	default:
-		return nil, errors.New("scrigo/parser: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+		return nil, errors.New("scriggo/parser: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
 	}
 
 	// Tree result of the expansion.
@@ -1574,7 +1574,7 @@ func (p *parsing) addChild(child ast.Node) {
 		n.Pos().End = child.Pos().End
 		p.ancestors = p.ancestors[:len(p.ancestors)-1]
 	default:
-		panic("scrigo/parser: unexpected parent node")
+		panic("scriggo/parser: unexpected parent node")
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // ParseProgram parses a program reading its sources from loaders.
@@ -116,7 +116,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, GlobalsDependencies, map[s
 				dependencies[k] = v
 			}
 		default:
-			panic("scrigo: unexpected type from package loader")
+			panic("scriggo: unexpected type from package loader")
 		}
 
 		if last == len(imports)-1 {
@@ -146,7 +146,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 	case nil:
 		packages["main"] = &Package{Name: "main"}
 	default:
-		return nil, nil, fmt.Errorf("scrigo: unexpected type %T for package \"main\"", main)
+		return nil, nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
 	}
 
 	// Parse the source.
@@ -186,7 +186,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		case nil:
 			return nil, nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
 		default:
-			return nil, nil, fmt.Errorf("scrigo: unexpected type %T package loader", pkg)
+			return nil, nil, fmt.Errorf("scriggo: unexpected type %T package loader", pkg)
 		}
 	}
 

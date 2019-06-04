@@ -1,4 +1,4 @@
-//go:generate scrigo-generate $GOFILE packages
+//go:generate scriggo-generate $GOFILE packages
 
 package main
 

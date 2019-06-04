@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 func ToTypeCheckerScope(gp *Package) TypeCheckerScope {

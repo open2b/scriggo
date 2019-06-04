@@ -14,8 +14,8 @@ import (
 	"strings"
 	"testing"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 func tierr(line, column int, text string) *CheckingError {
@@ -559,7 +559,7 @@ func evaluatedButNotUsed(v string) string {
 	return v + " evaluated but not used"
 }
 
-// checkerStmts contains some Scrigo snippets with expected type-checker error
+// checkerStmts contains some Scriggo snippets with expected type-checker error
 // (or empty string if type-checking is valid). Error messages are based upon Go
 // 1.12. Tests are subdivided for categories. Each category has a title
 // (indicated by a comment), and it's split in two parts: correct source codes

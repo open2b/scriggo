@@ -13,7 +13,7 @@ import (
 	"io"
 	"strconv"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 type dumper struct {
@@ -145,7 +145,7 @@ func Dump(w io.Writer, node ast.Node) (err error) {
 
 func truncate(b []byte, maxRunes int) []byte {
 	if maxRunes < 0 {
-		panic("scrigo/util: maxRunes can not be negative")
+		panic("scriggo/util: maxRunes can not be negative")
 	}
 	if len(b) > maxRunes {
 		var n = 1

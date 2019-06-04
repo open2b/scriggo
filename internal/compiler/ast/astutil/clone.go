@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // CloneTree returns a complete copy of tree.

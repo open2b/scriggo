@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scrigo/vm"
+	"scriggo/vm"
 )
 
 func packageName(pkg string) string {
@@ -442,10 +442,10 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpMapIndex:
-		//s += " " + disassembleOperand(scrigo, a, vm.Interface, false)
+		//s += " " + disassembleOperand(scriggo, a, vm.Interface, false)
 		//key := reflectToRegisterKind()
-		//s += " " + disassembleOperand(scrigo, b, vm.Interface, false)
-		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+		//s += " " + disassembleOperand(scriggo, b, vm.Interface, false)
+		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
 	case vm.OpMove:
 		switch vm.Type(a) {
 		case vm.TypeInt:
@@ -481,7 +481,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 			s += " " + disassembleOperand(fn, c, vm.Interface, false)
 		}
 	case vm.OpSelector:
-		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
@@ -507,7 +507,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		//s += " " + disassembleOperand(scrigo, c, vm.Interface, false)
+		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()

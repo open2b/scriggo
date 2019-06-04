@@ -7,9 +7,9 @@
 package astutil_test
 
 import (
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
-	"scrigo/internal/compiler/ast/astutil"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast/astutil"
 	"testing"
 )
 

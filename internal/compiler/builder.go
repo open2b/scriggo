@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 const maxUint24 = 16777215
@@ -159,7 +159,7 @@ func (builder *functionBuilder) AddLine(pc uint32, line int) {
 	}
 }
 
-// SetFileLine sets the file name and line number of the Scrigo function.
+// SetFileLine sets the file name and line number of the Scriggo function.
 func (builder *functionBuilder) SetFileLine(file string, line int) {
 	builder.fn.File = file
 	builder.fn.Line = line
@@ -228,7 +228,7 @@ func (builder *functionBuilder) AddFunction(f *vm.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
 	if r > 255 {
-		panic("Scrigo functions limit reached")
+		panic("Scriggo functions limit reached")
 	}
 	fn.Functions = append(fn.Functions, f)
 	return uint8(r)
@@ -752,17 +752,17 @@ func (builder *functionBuilder) Func(r int8, typ reflect.Type) *vm.Function {
 	if b == 256 {
 		panic("Functions limit reached")
 	}
-	scrigoFunc := &vm.Function{
+	scriggoFunc := &vm.Function{
 		Type:   typ,
 		Parent: fn,
 	}
-	fn.Literals = append(fn.Literals, scrigoFunc)
+	fn.Literals = append(fn.Literals, scriggoFunc)
 	if builder.allocs != nil {
 		builder.allocs = append(builder.allocs, uint32(len(fn.Body)))
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpFunc, B: int8(b), C: r})
-	return scrigoFunc
+	return scriggoFunc
 }
 
 // GetFunc appends a new "GetFunc" instruction to the function body.

@@ -38,7 +38,7 @@ func decodeUint24(a, b, c int8) uint32 {
 type TraceFunc func(fn *Function, pc uint32, regs Registers)
 type PrintFunc func(interface{})
 
-// VM represents a Scrigo virtual machine.
+// VM represents a Scriggo virtual machine.
 type VM struct {
 	fp       [4]uint32            // frame pointers.
 	st       [4]uint32            // stack tops.
@@ -164,7 +164,7 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 		n := copy(b[len(b):cap(b)], s)
 		b = b[:len(b)+n]
 	}
-	write("scrigo goroutine 1 [running]:")
+	write("scriggo goroutine 1 [running]:")
 	size := len(vm.calls)
 	for i := size; i >= 0; i-- {
 		var fn *Function

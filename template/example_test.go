@@ -15,9 +15,9 @@ import (
 	"log"
 	"os"
 
-	"scrigo"
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
+	"scriggo"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
 )
 
 func ExampleParseSource() {
@@ -35,7 +35,7 @@ func ExampleParseSource() {
 		log.Printf("parsing error: %s\n", err)
 	}
 
-	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
+	err = scriggo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}
@@ -52,7 +52,7 @@ func ExampleParser_Parse() {
 		log.Printf("parsing error: %s\n", err)
 	}
 
-	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
+	err = scriggo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}
@@ -73,7 +73,7 @@ func ExampleMapReader() {
 		log.Printf("error: %s\n", err)
 	}
 
-	err = scrigo.RenderTree(os.Stdout, tree, nil, false)
+	err = scriggo.RenderTree(os.Stdout, tree, nil, false)
 	if err != nil {
 		log.Printf("rendering error: %s\n", err)
 	}

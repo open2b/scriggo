@@ -4,7 +4,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scrigo
+package scriggo
 
 import (
 	"context"
@@ -14,9 +14,9 @@ import (
 	"reflect"
 	"strings"
 
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 const (
@@ -96,7 +96,7 @@ type RunOptions struct {
 func (p *Program) Run(options RunOptions) error {
 	if options.MaxMemorySize > 0 {
 		if p.options&LimitMemorySize == 0 {
-			panic("scrigo: program not loaded with LimitMemorySize option")
+			panic("scriggo: program not loaded with LimitMemorySize option")
 		}
 	}
 	vmm := newVM(p.globals, nil, options)
@@ -112,7 +112,7 @@ func (p *Program) Run(options RunOptions) error {
 func (p *Program) Start(options RunOptions) *vm.Env {
 	if options.MaxMemorySize > 0 {
 		if p.options&LimitMemorySize == 0 {
-			panic("scrigo: program not loaded with LimitMemorySize option")
+			panic("scriggo: program not loaded with LimitMemorySize option")
 		}
 	}
 	vmm := newVM(p.globals, nil, options)
@@ -129,7 +129,7 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 	}
 	asm, ok := packages[pkgPath]
 	if !ok {
-		return 0, errors.New("scrigo: package path does not exist")
+		return 0, errors.New("scriggo: package path does not exist")
 	}
 	n, err := io.WriteString(w, asm)
 	return int64(n), err
@@ -183,7 +183,7 @@ var emptyInit = map[string]interface{}{}
 func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 	if options.MaxMemorySize > 0 {
 		if s.options&LimitMemorySize == 0 {
-			panic("scrigo: script not loaded with LimitMemorySize option")
+			panic("scriggo: script not loaded with LimitMemorySize option")
 		}
 	}
 	if init == nil {
@@ -202,7 +202,7 @@ func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env {
 	if options.MaxMemorySize > 0 {
 		if s.options&LimitMemorySize == 0 {
-			panic("scrigo: script not loaded with LimitMemorySize option")
+			panic("scriggo: script not loaded with LimitMemorySize option")
 		}
 	}
 	vmm := newVM(s.globals, init, options)

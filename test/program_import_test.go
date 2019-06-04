@@ -9,11 +9,11 @@ package test
 import (
 	"testing"
 
-	"scrigo"
+	"scriggo"
 )
 
 func TestProgramImport(t *testing.T) {
-	cases := map[string]scrigo.MapStringLoader{
+	cases := map[string]scriggo.MapStringLoader{
 		`Just package "main", no imports`: {
 			"main": `package main
 				func main() {
@@ -92,12 +92,12 @@ func TestProgramImport(t *testing.T) {
 	}
 	for name, loader := range cases {
 		t.Run(name, func(t *testing.T) {
-			program, err := scrigo.LoadProgram(loader, scrigo.LimitMemorySize)
+			program, err := scriggo.LoadProgram(loader, scriggo.LimitMemorySize)
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return
 			}
-			err = program.Run(scrigo.RunOptions{MaxMemorySize: 1000000})
+			err = program.Run(scriggo.RunOptions{MaxMemorySize: 1000000})
 			if err != nil {
 				t.Errorf("execution error: %s", err)
 				return

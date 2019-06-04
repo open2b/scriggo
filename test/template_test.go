@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"testing"
 
-	"scrigo"
-	"scrigo/template"
-	"scrigo/template/builtins"
+	"scriggo"
+	"scriggo/template"
+	"scriggo/template/builtins"
 )
 
 var templateCases = map[string]struct {
 	src  string
 	out  string
-	main *scrigo.Package
+	main *scriggo.Package
 	vars map[string]interface{}
 }{
 	"Text only": {
@@ -62,7 +62,7 @@ var templateCases = map[string]struct {
 
 	"Using a function declared in main": {
 		src: `calling f: {{ f() }}, done!`,
-		main: &scrigo.Package{
+		main: &scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"f": func() string { return "i'm f!" },
@@ -73,7 +73,7 @@ var templateCases = map[string]struct {
 
 	"Reading a variable declared in main": {
 		src: `{{ mainVar }}`,
-		main: &scrigo.Package{
+		main: &scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"mainVar": (*int)(nil),
@@ -84,7 +84,7 @@ var templateCases = map[string]struct {
 
 	"Reading a variable declared in main and initialized with vars": {
 		src: `{{ initMainVar }}`,
-		main: &scrigo.Package{
+		main: &scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"initMainVar": (*int)(nil),

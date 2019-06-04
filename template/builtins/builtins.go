@@ -27,9 +27,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"scrigo"
-	"scrigo/template"
-	"scrigo/vm"
+	"scriggo"
+	"scriggo/template"
+	"scriggo/vm"
 )
 
 const maxInt = int(^uint(0) >> 1)
@@ -50,8 +50,8 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-func Main() *scrigo.Package {
-	p := scrigo.Package{
+func Main() *scriggo.Package {
+	p := scriggo.Package{
 		Name:         "main",
 		Declarations: map[string]interface{}{},
 	}
@@ -61,13 +61,13 @@ func Main() *scrigo.Package {
 	return &p
 }
 
-var main = scrigo.Package{
+var main = scriggo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
 		"Hasher":      hasherType,
-		"MD5":         scrigo.Constant(hasherType, _MD5),
-		"SHA1":        scrigo.Constant(hasherType, _SHA1),
-		"SHA256":      scrigo.Constant(hasherType, _SHA256),
+		"MD5":         scriggo.Constant(hasherType, _MD5),
+		"SHA1":        scriggo.Constant(hasherType, _SHA1),
+		"SHA256":      scriggo.Constant(hasherType, _SHA256),
 		"abbreviate":  abbreviate,
 		"abs":         abs,
 		"atoi":        strconv.Atoi,

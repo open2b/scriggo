@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 // An emitter emits instructions for the VM.
@@ -24,11 +24,11 @@ type emitter struct {
 	typeInfos            map[ast.Node]*TypeInfo
 	upvarsNames          map[*vm.Function]map[string]int
 
-	// Scrigo functions.
+	// Scriggo functions.
 	availableFunctions map[*ast.Package]map[string]*vm.Function
 	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
 
-	// Scrigo variables.
+	// Scriggo variables.
 	pkgVariables map[*ast.Package]map[string]int16
 
 	// Predefined functions.
@@ -37,7 +37,7 @@ type emitter struct {
 	// Predefined variables.
 	predefVarIndexes map[*vm.Function]map[reflect.Value]int16
 
-	// Holds all Scrigo-defined and pre-predefined global variables.
+	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []vm.Global
 
 	// rangeLabels is a list of current active Ranges. First element is the
@@ -215,7 +215,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		if n, ok := dec.(*ast.Var); ok {
 			// If package has some variable declarations, a special "init" function
 			// must be created to initialize them. "$initvars" is used because is not
-			// a valid Go identifier, so there's no risk of collision with Scrigo
+			// a valid Go identifier, so there's no risk of collision with Scriggo
 			// defined functions.
 			backupFb := e.fb
 			if initVarsFn == nil {
@@ -442,7 +442,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		return regs, types
 	}
 
-	// Scrigo-defined function (identifier).
+	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !e.fb.IsVariable(ident.Name) {
 		if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
 			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
@@ -452,7 +452,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		}
 	}
 
-	// Scrigo-defined function (selector).
+	// Scriggo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := e.availableFunctions[e.pkg][selector.Ident+"."+ident.Name]; ok {
@@ -685,7 +685,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		// Scrigo-defined package variables.
+		// Scriggo-defined package variables.
 		if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
@@ -694,7 +694,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 
-		// Scrigo-defined package functions.
+		// Scriggo-defined package functions.
 		if sf, ok := e.availableFunctions[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return

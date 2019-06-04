@@ -23,7 +23,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // CustomNumber is implemented by a val that behaves like a number.
@@ -207,7 +207,7 @@ func (r *rendering) formatNumber(number interface{}, ctx ast.Context) (string, e
 			}
 			return n.String(), nil
 		default:
-			panic("scrigo: unknown context")
+			panic("scriggo: unknown context")
 		}
 	}
 	panic("no integer value")
@@ -285,7 +285,7 @@ func (r *rendering) renderValue(wr io.Writer, value interface{}, node *ast.Show,
 		case ast.ContextJavaScriptString:
 			err = r.renderInJavaScriptString(w, value, node)
 		default:
-			panic("scrigo: unknown context")
+			panic("scriggo: unknown context")
 		}
 		if err != nil && !r.handleError(err) {
 			return err

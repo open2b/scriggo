@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // checkAssignment type checks an assignment node (Var, Const or Assignment)

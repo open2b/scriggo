@@ -13,10 +13,10 @@ import (
 	"io"
 	"reflect"
 
-	"scrigo"
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 type HTML string
@@ -48,7 +48,7 @@ type RenderOptions struct {
 }
 
 type Template struct {
-	main    *scrigo.Package
+	main    *scriggo.Package
 	fn      *vm.Function
 	options LoadOption
 	render  RenderFunc
@@ -58,7 +58,7 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
-func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
+func Load(path string, reader Reader, main *scriggo.Package, ctx Context, options LoadOption) (*Template, error) {
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
 		return nil, err
@@ -66,9 +66,9 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-	var pkgs scrigo.Packages
+	var pkgs scriggo.Packages
 	if main != nil {
-		pkgs = scrigo.Packages{"main": main}
+		pkgs = scriggo.Packages{"main": main}
 	}
 	tci, err := compiler.Typecheck(opts, tree, pkgs, nil)
 	if err != nil {

@@ -16,8 +16,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"scrigo/internal/compiler"
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler"
+	"scriggo/internal/compiler/ast"
 )
 
 func printErrorAndQuit(err interface{}) {
@@ -42,7 +42,7 @@ func goImports(path string) error {
 }
 
 func usage() string {
-	return "scrigo-generate imports-file variable-name"
+	return "scriggo-generate imports-file variable-name"
 }
 
 func main() {

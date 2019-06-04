@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"scrigo/internal/compiler"
+	"scriggo/internal/compiler"
 )
 
 type Reader interface {
@@ -78,10 +78,10 @@ type DirLimitedReader struct {
 // It panics if maxFile or maxTotal are negative.
 func NewDirLimitedReader(dir string, maxFile, maxTotal int) *DirLimitedReader {
 	if maxFile < 0 {
-		panic("scrigo/parser: negative max file")
+		panic("scriggo/parser: negative max file")
 	}
 	if maxTotal < 0 {
-		panic("scrigo/parser: negative max total")
+		panic("scriggo/parser: negative max total")
 	}
 	return &DirLimitedReader{dir, maxFile, maxTotal, sync.Mutex{}}
 }

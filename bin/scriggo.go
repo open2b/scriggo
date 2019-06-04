@@ -18,16 +18,16 @@ import (
 	"strconv"
 	"time"
 
-	"scrigo"
-	"scrigo/internal/compiler"
-	"scrigo/template"
-	"scrigo/template/builtins"
-	"scrigo/vm"
+	"scriggo"
+	"scriggo/internal/compiler"
+	"scriggo/template"
+	"scriggo/template/builtins"
+	"scriggo/vm"
 )
 
 const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
 
-var packages scrigo.Packages
+var packages scriggo.Packages
 
 type mainLoader []byte
 
@@ -47,8 +47,8 @@ func main() {
 
 	flag.Parse()
 
-	var loadOptions scrigo.LoadOption
-	var runOptions scrigo.RunOptions
+	var loadOptions scriggo.LoadOption
+	var runOptions scriggo.RunOptions
 
 	if *timeout != "" {
 		d, err := time.ParseDuration(*timeout)
@@ -65,7 +65,7 @@ func main() {
 	}
 
 	if *mem != "" {
-		loadOptions = scrigo.LimitMemorySize
+		loadOptions = scriggo.LimitMemorySize
 		var unit = (*mem)[len(*mem)-1]
 		if unit > 'Z' {
 			unit -= 'z' - 'Z'
@@ -128,25 +128,25 @@ func main() {
 	case ".gos":
 		r, err := os.Open(absFile)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scrigo.LoadScript(r, packages, loadOptions|scrigo.AllowShebangLine)
+		script, err := scriggo.LoadScript(r, packages, loadOptions|scriggo.AllowShebangLine)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
 		_ = r.Close()
 		if *asm {
 			_, err := script.Disassemble(os.Stdout)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
 		} else {
 			err = script.Run(nil, runOptions)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
 		}
@@ -155,15 +155,15 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		program, err := scrigo.LoadProgram(scrigo.Loaders(mainLoader(main), packages), loadOptions)
+		program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(main), packages), loadOptions)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
 		if *asm {
 			_, err := program.Disassemble(os.Stdout, "main")
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
 		} else {
@@ -172,7 +172,7 @@ func main() {
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
 				}
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
 		}
@@ -187,7 +187,7 @@ func main() {
 		if *asm {
 			_, err := t.Disassemble(os.Stdout)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
 

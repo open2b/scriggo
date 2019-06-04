@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-  <title>The Scrigo Playground</title>
+  <title>The Scriggo Playground</title>
   <link href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,800|Lato:300,300i,400,700|Roboto+Mono:400,400i" rel="stylesheet" crossorigin="anonymous">
   <style>
     * { box-sizing: border-box; }
@@ -23,7 +23,7 @@
         );
     }
     var go = new Go();
-    var mod = fetchAndInstantiate("scrigo.wasm", go.importObject);
+    var mod = fetchAndInstantiate("scriggo.wasm", go.importObject);
     window.onload = function() {
         mod.then(function(instance) {
             go.run(instance);
@@ -38,7 +38,7 @@
 package main
 
 func main() {
-    panic("Hello Scrigo!")
+    panic("Hello Scriggo!")
 }
 
 </textarea>

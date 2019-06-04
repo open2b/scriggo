@@ -9,7 +9,7 @@ package builtins
 import (
 	"testing"
 
-	"scrigo/template"
+	"scriggo/template"
 )
 
 // variables scope.

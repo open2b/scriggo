@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 // CheckNodesInNewScope type checks nodes in a new scope.

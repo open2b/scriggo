@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"unicode"
 
-	"scrigo/internal/compiler/ast"
-	"scrigo/vm"
+	"scriggo/internal/compiler/ast"
+	"scriggo/vm"
 )
 
 // changeRegister moves src content into dst, making a conversion if necessary.

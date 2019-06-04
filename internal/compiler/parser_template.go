@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"scrigo/internal/compiler/ast"
+	"scriggo/internal/compiler/ast"
 )
 
 func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (*ast.Tree, error) {

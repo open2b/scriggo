@@ -7,19 +7,19 @@ import (
 	"strings"
 	"testing"
 
-	"scrigo"
+	"scriggo"
 )
 
 var scriptTestA = 0
 
 var scriptCases = map[string]struct {
 	src  string
-	pkgs scrigo.Packages
+	pkgs scriggo.Packages
 	init map[string]interface{}
 
 	out string
 }{
-	"Don't use anything but Scrigo builtins": {
+	"Don't use anything but Scriggo builtins": {
 		src: `println("hi!")`,
 	},
 
@@ -42,7 +42,7 @@ var scriptCases = map[string]struct {
 			import "pkg"
 			pkg.F()
 		`,
-		pkgs: scrigo.Packages{
+		pkgs: scriggo.Packages{
 			"pkg": {
 				Name: "pkg",
 				Declarations: map[string]interface{}{
@@ -60,7 +60,7 @@ var scriptCases = map[string]struct {
 			Print("A is ", A)
 		`,
 		out: "A is 0",
-		pkgs: scrigo.Packages{
+		pkgs: scriggo.Packages{
 			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
@@ -77,7 +77,7 @@ var scriptCases = map[string]struct {
 			Print("new: ", A)
 		`,
 		out: "default: 0, new: 20",
-		pkgs: scrigo.Packages{
+		pkgs: scriggo.Packages{
 			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
@@ -91,7 +91,7 @@ var scriptCases = map[string]struct {
 	// 	src: `
 	// 		Print(A)
 	// 	`,
-	// 	pkgs: scrigo.Packages{
+	// 	pkgs: scriggo.Packages{
 	// 		"main": {
 	// 			Name: "main",
 	// 			Declarations: map[string]interface{}{
@@ -112,7 +112,7 @@ var scriptCases = map[string]struct {
 			}
 			Print(Sum)
 		`,
-		pkgs: scrigo.Packages{
+		pkgs: scriggo.Packages{
 			"main": {
 				Name: "main",
 				Declarations: map[string]interface{}{
@@ -141,10 +141,10 @@ func TestScript(t *testing.T) {
 	for name, cas := range scriptCases {
 		t.Run(name, func(t *testing.T) {
 			if cas.pkgs == nil {
-				cas.pkgs = scrigo.Packages{}
+				cas.pkgs = scriggo.Packages{}
 			}
 			if _, ok := cas.pkgs["main"]; !ok {
-				cas.pkgs["main"] = &scrigo.Package{}
+				cas.pkgs["main"] = &scriggo.Package{}
 				cas.pkgs["main"].Declarations = make(map[string]interface{})
 			}
 			cas.pkgs["main"].Declarations["Print"] = func(args ...interface{}) {
@@ -152,11 +152,11 @@ func TestScript(t *testing.T) {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
 			}
-			script, err := scrigo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, scrigo.LoadOption(0))
+			script, err := scriggo.LoadScript(bytes.NewReader([]byte(cas.src)), cas.pkgs, scriggo.LoadOption(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			err = script.Run(cas.init, scrigo.RunOptions{})
+			err = script.Run(cas.init, scriggo.RunOptions{})
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
@@ -172,8 +172,8 @@ func TestScript(t *testing.T) {
 func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
-	pkgs := scrigo.Packages{
-		"main": &scrigo.Package{
+	pkgs := scriggo.Packages{
+		"main": &scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"Sum": (*int)(nil),
@@ -181,11 +181,11 @@ func TestScriptSum(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Sum": reflect.ValueOf(&Sum).Elem()}
-	script, err := scrigo.LoadScript(bytes.NewReader([]byte(src)), pkgs, scrigo.LoadOption(0))
+	script, err := scriggo.LoadScript(bytes.NewReader([]byte(src)), pkgs, scriggo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	err = script.Run(init, scrigo.RunOptions{})
+	err = script.Run(init, scriggo.RunOptions{})
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -198,8 +198,8 @@ func TestScriptChainMessages(t *testing.T) {
 	src1 := `Message = Message + "script1,"`
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
-	pkgs := scrigo.Packages{
-		"main": &scrigo.Package{
+	pkgs := scriggo.Packages{
+		"main": &scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				"Message": (*string)(nil),
@@ -207,22 +207,22 @@ func TestScriptChainMessages(t *testing.T) {
 		},
 	}
 	init := map[string]interface{}{"Message": reflect.ValueOf(&Message).Elem()}
-	script1, err := scrigo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, scrigo.LoadOption(0))
+	script1, err := scriggo.LoadScript(bytes.NewReader([]byte(src1)), pkgs, scriggo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script 1: %s", err)
 	}
-	script2, err := scrigo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, scrigo.LoadOption(0))
+	script2, err := scriggo.LoadScript(bytes.NewReader([]byte(src2)), pkgs, scriggo.LoadOption(0))
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	err = script1.Run(init, scrigo.RunOptions{})
+	err = script1.Run(init, scriggo.RunOptions{})
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	err = script2.Run(init, scrigo.RunOptions{})
+	err = script2.Run(init, scriggo.RunOptions{})
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
