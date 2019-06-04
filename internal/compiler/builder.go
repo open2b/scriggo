@@ -28,12 +28,6 @@ func encodeUint24(v uint32) (a, b, c int8) {
 	return
 }
 
-func encodeInt16(v int16) (a, b int8) {
-	a = int8(v >> 8)
-	b = int8(v)
-	return
-}
-
 func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
@@ -908,7 +902,7 @@ func (builder *functionBuilder) Len(s, l int8, t reflect.Type) {
 
 // Load data appends a new "LoadData" instruction to the function body.
 func (builder *functionBuilder) LoadData(i int16, dst int8) {
-	a, b := encodeInt16(i)
+	a, b := int8(i>>8), int8(i)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLoadData, A: a, B: b, C: dst})
 }
 
