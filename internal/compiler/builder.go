@@ -313,7 +313,7 @@ func (builder *functionBuilder) Type(typ reflect.Type) int8 {
 
 func (builder *functionBuilder) End() {
 	fn := builder.fn
-	if fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
+	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
 		builder.Return()
 	}
 	for addr, label := range builder.gotos {
