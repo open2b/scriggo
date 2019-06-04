@@ -68,7 +68,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			panic("found *ast.Extends") // TODO (Gianluca): to review.
 
 		case *ast.Include:
-			tc.CheckNodesInNewScope(node.Tree.Nodes)
+			tc.checkNodes(node.Tree.Nodes)
 
 		case *ast.Block:
 			tc.CheckNodesInNewScope(node.Nodes)

@@ -87,7 +87,32 @@ func TestTemplate(t *testing.T) {
 var templateMultiPageCases = map[string]struct {
 	sources  map[string]string
 	expected string
-}{}
+}{
+
+	"Include - Only text": {
+		sources: map[string]string{
+			"/index.html":    `a{% include "/included.html" %}c`,
+			"/included.html": `b`,
+		},
+		expected: "abc",
+	},
+
+	"Include - Included file uses external variable": {
+		sources: map[string]string{
+			"/index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
+			"/included.html": `{{ a }}`,
+		},
+		expected: "a: 10",
+	},
+
+	"Include - File including uses included variable": {
+		sources: map[string]string{
+			"/index.html":    `{% include "/included.html" %}included a: {{ a }}`,
+			"/included.html": `{% var a = 20 %}`,
+		},
+		expected: "included a: 20",
+	},
+}
 
 func TestMultiPageTemplate(t *testing.T) {
 	for name, cas := range templateMultiPageCases {

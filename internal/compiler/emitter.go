@@ -1395,6 +1395,9 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			e.fb.ExitScope()
 
+		case *ast.Include:
+			e.EmitNodes(node.Tree.Nodes)
+
 		case *ast.Label:
 			if _, found := e.labels[e.fb.fn][node.Name.Name]; !found {
 				if e.labels[e.fb.fn] == nil {
