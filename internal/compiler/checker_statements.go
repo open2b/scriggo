@@ -33,8 +33,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		switch node := node.(type) {
 
 		case *ast.Import:
-			// Import statements in scripts.
-			predeclaredPkg, ok := tc.packages[node.Path]
+			// Import statement in scripts.
+			predeclaredPkg, ok := tc.predefinedPkgs[node.Path]
 			if !ok {
 				panic(tc.errorf(node, "cannot find package %q", node.Path))
 			}

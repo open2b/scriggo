@@ -100,7 +100,7 @@ type scopeVariable struct {
 // typechecker represents the state of a type checking.
 type typechecker struct {
 	path              string
-	packages          map[string]*Package // TODO (Gianluca): review!
+	predefinedPkgs    map[string]*Package
 	Universe          TypeCheckerScope
 	filePackageBlock  TypeCheckerScope
 	Scopes            []TypeCheckerScope
@@ -131,7 +131,7 @@ func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
 		path:             path,
 		filePackageBlock: make(TypeCheckerScope),
 		hasBreak:         make(map[ast.Node]bool),
-		packages:         make(map[string]*Package),
+		predefinedPkgs:   make(map[string]*Package),
 		TypeInfo:         make(map[ast.Node]*TypeInfo),
 		Universe:         make(TypeCheckerScope),
 		unusedImports:    make(map[string][]string),
