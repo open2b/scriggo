@@ -125,17 +125,16 @@ type typechecker struct {
 }
 
 func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
-	// TODO(Gianluca): replace all these "make"s with composite literals.
 	return &typechecker{
 		isScript:         isScript,
 		path:             path,
-		filePackageBlock: make(TypeCheckerScope),
-		hasBreak:         make(map[ast.Node]bool),
-		predefinedPkgs:   make(map[string]*Package),
-		TypeInfo:         make(map[ast.Node]*TypeInfo),
-		Universe:         make(TypeCheckerScope),
-		unusedImports:    make(map[string][]string),
-		IndirectVars:     make(map[*ast.Identifier]bool),
+		filePackageBlock: TypeCheckerScope{},
+		hasBreak:         map[ast.Node]bool{},
+		predefinedPkgs:   map[string]*Package{},
+		TypeInfo:         map[ast.Node]*TypeInfo{},
+		Universe:         TypeCheckerScope{},
+		unusedImports:    map[string][]string{},
+		IndirectVars:     map[*ast.Identifier]bool{},
 		disallowGoStmt:   disallowGoStmt,
 		iota:             -1,
 	}
@@ -143,7 +142,7 @@ func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
 
 // addScope adds a new empty scope to the type checker.
 func (tc *typechecker) addScope() {
-	tc.Scopes = append(tc.Scopes, make(TypeCheckerScope))
+	tc.Scopes = append(tc.Scopes, TypeCheckerScope{})
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
