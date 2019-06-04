@@ -299,7 +299,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Show, *ast.Var, *ast.Text:
+		case *ast.Show, *ast.Var, *ast.Text, *ast.Assignment, *ast.Call:
+			// TODO(Gianluca): add missing nodes.
 			// Nothing to do.
 
 		// TODO: to remove.
