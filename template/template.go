@@ -42,7 +42,7 @@ type RenderOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
-	Print         func(interface{})
+	PrintFunc     vm.PrintFunc
 	TraceFunc     vm.TraceFunc
 }
 
@@ -122,8 +122,8 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 	if options.DontPanic {
 		vmm.SetDontPanic(true)
 	}
-	if options.Print != nil {
-		vmm.SetPrint(options.Print)
+	if options.PrintFunc != nil {
+		vmm.SetPrint(options.PrintFunc)
 	}
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)

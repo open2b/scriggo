@@ -85,7 +85,7 @@ type RunOptions struct {
 	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
-	Print         func(interface{})
+	PrintFunc     vm.PrintFunc
 	TraceFunc     vm.TraceFunc
 }
 
@@ -222,8 +222,8 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 	if options.DontPanic {
 		vmm.SetDontPanic(true)
 	}
-	if options.Print != nil {
-		vmm.SetPrint(options.Print)
+	if options.PrintFunc != nil {
+		vmm.SetPrint(options.PrintFunc)
 	}
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
@@ -323,9 +323,8 @@ func (pp Packages) Load(path string) (interface{}, error) {
 
 // PrintFunc returns a function that print its argument to the writer w with
 // the same format used by the builtin print to print to the standard error.
-// The returned function can be used for the Print option of Run and Start
-// methods.
-func PrintFunc(w io.Writer) func(v interface{}) {
+// The returned function can be used for the PrintFunc option.
+func PrintFunc(w io.Writer) vm.PrintFunc {
 	return func(v interface{}) {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {

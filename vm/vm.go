@@ -36,6 +36,7 @@ func decodeUint24(a, b, c int8) uint32 {
 }
 
 type TraceFunc func(fn *Function, pc uint32, regs Registers)
+type PrintFunc func(interface{})
 
 // VM represents a Scrigo virtual machine.
 type VM struct {
@@ -836,12 +837,12 @@ type writer interface {
 
 // Env represents an execution environment.
 type Env struct {
-	globals   []interface{}     // global variables.
-	ctx       Context           // context.
-	dontPanic bool              // don't panic.
-	trace     TraceFunc         // trace function.
-	out       writer            // writer of Write instruction.
-	print     func(interface{}) // custom print builtin.
+	globals   []interface{} // global variables.
+	ctx       Context       // context.
+	dontPanic bool          // don't panic.
+	trace     TraceFunc     // trace function.
+	out       writer        // writer of Write instruction.
+	print     PrintFunc     // custom print builtin.
 
 	mu         sync.Mutex // mutex for the following fields.
 	freeMemory int        // free memory.
