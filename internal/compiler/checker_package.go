@@ -65,18 +65,6 @@ type PackageInfo struct {
 	TypeInfo             map[ast.Node]*TypeInfo
 }
 
-func (pi *PackageInfo) String() string {
-	s := "{\n"
-	s += "\tName:                 " + pi.Name + "\n"
-	s += "\tDeclarations:\n"
-	for i, d := range pi.Declarations {
-		s += fmt.Sprintf("                              %s: %s\n", i, d)
-	}
-	// TODO (Gianluca): add constant expressions.
-	s += "}\n"
-	return s
-}
-
 func depsOf(name string, deps GlobalsDependencies) []*ast.Identifier {
 	for g, d := range deps {
 		if g.Name == name {
