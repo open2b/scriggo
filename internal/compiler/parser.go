@@ -89,9 +89,8 @@ type parsing struct {
 	// Lexer.
 	lex *lexer
 
-	// Indicates if it has been extended.
-	// TODO(Gianluca): rename to "hasExtend" and change description.
-	isExtended bool
+	// Indicates if it has an extend statement.
+	hasExtend bool
 
 	// Indicates if it is in a macro.
 	isInMacro bool
@@ -298,7 +297,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 
 		// {{ }}
 		case tokenStartValue:
-			if p.isExtended && !p.isInMacro {
+			if p.hasExtend && !p.isInMacro {
 				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 			}
 			tokensInLine++
@@ -837,7 +836,7 @@ func (p *parsing) parseStatement(tok token) {
 		if p.ctx == ast.ContextGo {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement not in template")})
 		}
-		if p.isExtended && !p.isInMacro {
+		if p.hasExtend && !p.isInMacro {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement outside macro")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
@@ -868,7 +867,7 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		// TODO(Gianluca): consider check if p.isExtended && !p.isInMacro
 		// before entering parsing switch, removing checks from all cases.
-		if p.isExtended && !p.isInMacro {
+		if p.hasExtend && !p.isInMacro {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement outside macro")})
 		}
 		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
@@ -938,7 +937,7 @@ func (p *parsing) parseStatement(tok token) {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends statement not in template")})
 		}
 
-		if p.isExtended {
+		if p.hasExtend {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends already exists")})
 		}
 		tree := p.ancestors[0].(*ast.Tree)
@@ -972,7 +971,7 @@ func (p *parsing) parseStatement(tok token) {
 		pos.End = tok.pos.End
 		node = ast.NewExtends(pos, path, tree.Context)
 		p.addChild(node)
-		p.isExtended = true
+		p.hasExtend = true
 
 	// var or const
 	case tokenVar, tokenConst:
