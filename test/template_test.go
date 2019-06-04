@@ -55,6 +55,7 @@ func TestTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
+			templ.SetRenderFunc(template.DefaultRender)
 			err = templ.Render(w, nil, template.RenderOptions{})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
