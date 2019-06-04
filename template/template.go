@@ -97,6 +97,8 @@ func (t *Template) SetRenderFunc(render RenderFunc) {
 	t.render = render
 }
 
+var emptyVars = map[string]interface{}{}
+
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
@@ -109,6 +111,9 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 	t.fn.Globals[0] = vm.Global{Value: &out}
 	t.fn.Globals[1] = vm.Global{Value: &write}
 	t.fn.Globals[2] = vm.Global{Value: &t.render}
+	if vars == nil {
+		vars = emptyVars
+	}
 	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
@@ -155,8 +160,8 @@ func newVM(globals []vm.Global, init map[string]interface{}) *vm.VM {
 						values[i] = v.Addr().Interface()
 					} else {
 						rv := reflect.New(global.Type).Elem()
-						rv.Set(reflect.ValueOf(v))
-						values[i] = rv.Interface()
+						rv.Set(reflect.ValueOf(value))
+						values[i] = rv.Addr().Interface()
 					}
 				} else {
 					values[i] = reflect.New(global.Type).Interface()

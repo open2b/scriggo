@@ -13,6 +13,7 @@ var templateCases = map[string]struct {
 	src  string
 	out  string
 	main *scrigo.Package
+	vars map[string]interface{}
 }{
 	"Text only": {
 		src: `Hello, world!`,
@@ -70,6 +71,31 @@ var templateCases = map[string]struct {
 		out: `calling f: i'm f!, done!`,
 	},
 
+	"Reading a variable declared in main": {
+		src: `{{ mainVar }}`,
+		main: &scrigo.Package{
+			Name: "main",
+			Declarations: map[string]interface{}{
+				"mainVar": (*int)(nil),
+			},
+		},
+		out: `0`,
+	},
+
+	"Reading a variable declared in main and initialized with vars": {
+		src: `{{ initMainVar }}`,
+		main: &scrigo.Package{
+			Name: "main",
+			Declarations: map[string]interface{}{
+				"initMainVar": (*int)(nil),
+			},
+		},
+		vars: map[string]interface{}{
+			"initMainVar": 42,
+		},
+		out: `42`,
+	},
+
 	// TODO(Gianluca): out of memory.
 	// "Template builtin - title": {
 	// 	src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
@@ -93,7 +119,7 @@ func TestTemplate(t *testing.T) {
 			}
 			w := &bytes.Buffer{}
 			templ.SetRenderFunc(template.DefaultRender)
-			err = templ.Render(w, nil, template.RenderOptions{})
+			err = templ.Render(w, cas.vars, template.RenderOptions{})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
