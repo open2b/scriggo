@@ -184,10 +184,19 @@ func main() {
 			fmt.Println(err)
 			os.Exit(-1)
 		}
-		err = t.Render(os.Stdout, nil, template.RenderOptions(runOptions))
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+		if *asm {
+			_, err := t.Disassemble(os.Stdout)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
+				os.Exit(2)
+			}
+
+		} else {
+			err = t.Render(os.Stdout, nil, template.RenderOptions(runOptions))
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(-1)
+			}
 		}
 	}
 

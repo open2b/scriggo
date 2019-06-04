@@ -162,7 +162,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 		return nil, err
 	}
 
-	mainFn := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	mainFn := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
 
 	return &Script{fn: mainFn, globals: mainFn.Globals, options: options}, nil
 }

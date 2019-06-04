@@ -9,6 +9,7 @@ package template
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -49,6 +50,7 @@ type Template struct {
 	main    *scrigo.Package
 	fn      *vm.Function
 	options LoadOption
+	render  RenderFunc
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -56,36 +58,58 @@ type Template struct {
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
 func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
-
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
 		return nil, err
 	}
-
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-	tci, err := compiler.Typecheck(opts, tree, map[string]*compiler.Package{"main": main}, nil, nil)
+	var pkgs scrigo.Packages
+	if main != nil {
+		pkgs = scrigo.Packages{"main": main}
+	}
+	tci, err := compiler.Typecheck(opts, tree, pkgs, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	alloc := options&LimitMemorySize != 0
-
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
-
-	mainFn := compiler.EmitSingle(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
-
+	mainFn := compiler.EmitTemplate(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
 	return &Template{main: main, fn: mainFn}, nil
+}
+
+// RenderFunc represents a rendering function used in template.
+type RenderFunc func(*vm.Env, io.Writer, interface{}, ast.Context)
+
+// DefaultRender is a default render function which can be passed to
+// SetRenderFunc.
+var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
+	// TODO(Gianluca): replace with correct function.
+	w.Write([]byte(fmt.Sprintf("%v", value)))
+}
+
+// SetRenderFunc sets the rendering function used for {{ .. }}. Use
+// DefaultRender for a default render function.
+func (t *Template) SetRenderFunc(render RenderFunc) {
+	t.render = render
 }
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
-func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options RenderOptions) error {
-	// TODO: implement globals
-	vmm := vm.New()
+func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+	if t.render == nil {
+		t.render = func(*vm.Env, io.Writer, interface{}, ast.Context) {
+			panic("render func not set")
+		}
+	}
+	write := out.Write
+	t.fn.Globals[0] = vm.Global{Value: &out}
+	t.fn.Globals[1] = vm.Global{Value: &write}
+	t.fn.Globals[2] = vm.Global{Value: &t.render}
+	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
 	}
@@ -104,6 +128,7 @@ func (t *Template) Render(out io.Writer, vars map[string]reflect.Value, options 
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
+	vmm.SetOut(out)
 	_, err := vmm.Run(t.fn)
 	return err
 }
@@ -116,4 +141,31 @@ func (t *Template) Options() LoadOption {
 // Disassemble disassembles a template.
 func (t *Template) Disassemble(w io.Writer) (int64, error) {
 	return compiler.DisassembleFunction(w, t.fn)
+}
+
+// newVM returns a new vm with the given options.
+func newVM(globals []vm.Global, init map[string]interface{}) *vm.VM {
+	vmm := vm.New()
+	if n := len(globals); n > 0 {
+		values := make([]interface{}, n)
+		for i, global := range globals {
+			if global.Pkg == "main" {
+				if value, ok := init[global.Name]; ok {
+					if v, ok := value.(reflect.Value); ok {
+						values[i] = v.Addr().Interface()
+					} else {
+						rv := reflect.New(global.Type).Elem()
+						rv.Set(reflect.ValueOf(v))
+						values[i] = rv.Interface()
+					}
+				} else {
+					values[i] = reflect.New(global.Type).Interface()
+				}
+			} else {
+				values[i] = global.Value
+			}
+		}
+		vmm.SetGlobals(values)
+	}
+	return vmm
 }

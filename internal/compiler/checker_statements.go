@@ -409,8 +409,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
-			// TODO (Gianluca): to review.
-			tc.checkExpression(node.Expr)
+			ti := tc.checkExpression(node.Expr)
+			if ti.IsConstant() {
+				new := ast.NewValue(typedValue(ti, ti.Type))
+				tc.replaceTypeInfo(node.Expr, new)
+				node.Expr = new
+			}
 			tc.terminating = false
 
 		case *ast.ShowMacro:

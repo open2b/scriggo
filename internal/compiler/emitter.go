@@ -70,10 +70,37 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb.SetAlloc(alloc)
+	e.fb.EnterScope()
+	e.EmitNodes(tree.Nodes)
+	e.fb.ExitScope()
+	e.fb.End()
+	e.fb.fn.Globals = e.globals
+	return e.fb.fn
+}
+
+func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *vm.Function {
+	e := newEmitter(typeInfos, indirectVars)
+	e.addAllocInstructions = alloc
+	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	// Globals.
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
+	// Registers.
+	e.fb.NewRegister(reflect.Interface) // w io.Writer
+	e.fb.NewRegister(reflect.Interface) // Write
+	e.fb.NewRegister(reflect.Interface) // Render
+	e.fb.NewRegister(reflect.Interface) // free.
+	e.fb.NewRegister(reflect.Interface) // free.
+	e.fb.NewRegister(reflect.Int)       // free.
+	e.fb.GetVar(0, 1)
+	e.fb.GetVar(1, 2)
+	e.fb.GetVar(2, 3)
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
@@ -1433,6 +1460,13 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.emitExpr(node.Value, v, elemType)
 			e.fb.Send(ch, v)
 
+		case *ast.Show:
+			// render([implicit *vm.Env,] g4 io.Writer, g5 interface{}, i1 ast.Context)
+			e.emitExpr(node.Expr, 5, emptyInterfaceType)
+			// TODO(Gianluca): put context in register i1
+			e.fb.Move(false, 1, 4, reflect.Interface)
+			e.fb.CallIndirect(3, 0, vm.StackShift{0, 0, 0, 3})
+
 		case *ast.Switch:
 			currentBreakable := e.breakable
 			currentBreakLabel := e.breakLabel
@@ -1444,6 +1478,13 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			e.breakable = currentBreakable
 			e.breakLabel = currentBreakLabel
+
+		case *ast.Text:
+			// Write(g5 []byte) (i1 int, g4 error)
+			index := len(e.fb.fn.Data)
+			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
+			e.fb.LoadData(int16(index), 5)
+			e.fb.CallIndirect(2, 0, vm.StackShift{0, 0, 0, 3})
 
 		case *ast.TypeSwitch:
 			currentBreakable := e.breakable
