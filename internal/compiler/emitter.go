@@ -84,48 +84,42 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool, isTemplate bool) (*vm.Function, []vm.Global) {
+func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
 	// TODO(Gianluca): remove e.globals return parameter.
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
-	if isTemplate {
+	e.fb.SetAlloc(alloc)
+	e.fb.EnterScope()
+	e.EmitNodes(tree.Nodes)
+	e.fb.ExitScope()
+	e.fb.End()
+	e.fb.fn.Globals = e.globals
+	return e.fb.fn, e.globals
+}
 
-		// Globals.
-		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
-		if len(e.globals)-1 != 0 {
-			panic("bug")
-		}
+func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
+	// TODO(Gianluca): remove e.globals return parameter.
+	e := newEmitter(typeInfos, indirectVars)
+	e.addAllocInstructions = alloc
+	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 
-		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
-		if len(e.globals)-1 != 1 {
-			panic("bug")
-		}
+	// Globals.
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
+	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
 
-		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
-		if len(e.globals)-1 != 2 {
-			panic("bug")
-		}
+	// Registers.
+	e.fb.NewRegister(reflect.Interface) // w io.Writer
+	e.fb.NewRegister(reflect.Interface) // Write
+	e.fb.NewRegister(reflect.Interface) // Render
+	e.fb.NewRegister(reflect.Interface) // free.
+	e.fb.NewRegister(reflect.Interface) // free.
+	e.fb.NewRegister(reflect.Int)       // free.
 
-		// Registers.
-
-		g1 := e.fb.NewRegister(reflect.Interface) // w io.Writer
-		g2 := e.fb.NewRegister(reflect.Interface) // Write
-		g3 := e.fb.NewRegister(reflect.Interface) // Render
-
-		g4 := e.fb.NewRegister(reflect.Interface) // free.
-		g5 := e.fb.NewRegister(reflect.Interface) // free.
-		i1 := e.fb.NewRegister(reflect.Int)       // free.
-
-		e.fb.GetVar(0, 1)
-		e.fb.GetVar(1, 2)
-		e.fb.GetVar(2, 3)
-
-		if g1 != 1 || g2 != 2 || g3 != 3 || g4 != 4 || g5 != 5 || i1 != 1 {
-			panic("bug")
-		}
-
-	}
+	e.fb.GetVar(0, 1)
+	e.fb.GetVar(1, 2)
+	e.fb.GetVar(2, 3)
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
