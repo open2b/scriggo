@@ -746,6 +746,10 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setString(c, vm.stringk(b, op < 0))
 			}
 
+		// LoadData
+		case OpLoadData:
+			vm.setGeneral(c, vm.fn.Data[decodeInt16(a, b)])
+
 		// LoadNumber.
 		case OpLoadNumber:
 			switch a {
