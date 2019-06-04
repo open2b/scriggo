@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Passing a function to Go",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		
+		func main() {
+			f := func() {}
+			fmt.Printf("%T", f)
+		}`,
+		output: "func()",
+	},
+	{
 		name: "Issue #130",
 		src: `package main
 

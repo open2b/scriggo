@@ -16,16 +16,10 @@ import (
 
 // changeRegister moves src content into dst, making a conversion if necessary.
 func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
-	if kindToType(srcType.Kind()) != vm.TypeGeneral && dstType.Kind() == reflect.Interface {
-		if k {
-			e.fb.EnterStack()
-			tmpReg := e.fb.NewRegister(srcType.Kind())
-			e.fb.Move(true, src, tmpReg, srcType.Kind())
-			e.fb.Convert(tmpReg, srcType, dst, srcType.Kind())
-			e.fb.ExitStack()
-		} else {
-			e.fb.Convert(src, srcType, dst, srcType.Kind())
-		}
+	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
+		e.fb.Move(k, src, dst, srcType.Kind())
+	} else if dstType.Kind() == reflect.Interface {
+		e.fb.Typify(k, srcType, src, dst)
 	} else if k || src != dst {
 		e.fb.Move(k, src, dst, srcType.Kind())
 	}
