@@ -96,11 +96,6 @@ import (
 //
 // TODO (Gianluca): use allMustBeTypes in switch cases properly
 //
-// TODO (Gianluca): parsing of {...} should be in second part of this function,
-// being independent from the type it has before.
-//
-// TODO (Gianluca): some nodes does not have a position!
-//
 // TODO (Gianluca): mustBeType ritorna quando ha finito di parsare un tipo.
 // Devono però essere aggiunti i controlli che verifichino che effettivamente
 // ciò che è stato parsato sia un tipo.
