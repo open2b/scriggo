@@ -145,10 +145,6 @@ func (vm *VM) SetMaxMemory(bytes int) {
 	vm.env.freeMemory = bytes
 }
 
-func (vm *VM) SetOut(out writer) {
-	vm.env.out = out
-}
-
 func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
 }
@@ -841,7 +837,6 @@ type Env struct {
 	ctx       Context       // context.
 	dontPanic bool          // don't panic.
 	trace     TraceFunc     // trace function.
-	out       writer        // writer of Write instruction.
 	print     PrintFunc     // custom print builtin.
 
 	mu         sync.Mutex // mutex for the following fields.

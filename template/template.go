@@ -129,7 +129,6 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
-	vmm.SetOut(out)
 	_, err := vmm.Run(t.fn)
 	return err
 }
