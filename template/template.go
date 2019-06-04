@@ -50,7 +50,7 @@ type Template struct {
 	main    *scrigo.Package
 	fn      *vm.Function
 	options LoadOption
-	render  func(*vm.Env, io.Writer, interface{}, ast.Context)
+	render  RenderFunc
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -81,6 +81,9 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 	return &Template{main: main, fn: mainFn}, nil
 }
 
+// RenderFunc represents a rendering function used in template.
+type RenderFunc func(*vm.Env, io.Writer, interface{}, ast.Context)
+
 // DefaultRender is a default render function which can be passed to
 // SetRenderFunc.
 var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
@@ -88,9 +91,9 @@ var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Co
 	w.Write([]byte(fmt.Sprintf("%v", value)))
 }
 
-// SetRenderFunc sets the rendering function used for *ast.Show. Use
+// SetRenderFunc sets the rendering function used for {{ .. }}. Use
 // DefaultRender for a default render function.
-func (t *Template) SetRenderFunc(render func(*vm.Env, io.Writer, interface{}, ast.Context)) {
+func (t *Template) SetRenderFunc(render RenderFunc) {
 	t.render = render
 }
 
@@ -98,7 +101,7 @@ func (t *Template) SetRenderFunc(render func(*vm.Env, io.Writer, interface{}, as
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	if t.render == nil {
-		t.render = func(*vm.Env, io.Writer, interface{}, ast.Context) {
+		t.render = RenderFunc {
 			panic("render func not set")
 		}
 	}
