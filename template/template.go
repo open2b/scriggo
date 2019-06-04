@@ -50,6 +50,7 @@ type Template struct {
 	main    *scrigo.Package
 	fn      *vm.Function
 	options LoadOption
+	rf      func(*vm.Env, io.Writer, interface{}, ast.Context)
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -57,50 +58,53 @@ type Template struct {
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
 func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options LoadOption) (*Template, error) {
-
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
 		return nil, err
 	}
-
 	opts := &compiler.Options{
 		IsPackage: false,
 	}
-
 	var pkgs scrigo.Packages
 	if main != nil {
 		pkgs = scrigo.Packages{"main": main}
 	}
-
 	tci, err := compiler.Typecheck(opts, tree, pkgs, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	alloc := options&LimitMemorySize != 0
-
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
-
 	mainFn := compiler.EmitTemplate(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
-
 	return &Template{main: main, fn: mainFn}, nil
 }
 
-// TODO(Gianluca): just a placeholder, remove.
-func render(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
+// DefaultRender is a default render function which can be passed to
+// SetRenderFunc.
+var DefaultRender = func(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
 	w.Write([]byte(fmt.Sprintf("%v", value)))
+}
+
+// SetRenderFunc sets the rendering function used for *ast.Show. Use
+// DefaultRender for a default render function.
+func (t *Template) SetRenderFunc(rf func(*vm.Env, io.Writer, interface{}, ast.Context)) {
+	t.rf = rf
 }
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+	if t.rf == nil {
+		t.rf = func(*vm.Env, io.Writer, interface{}, ast.Context) {
+			panic("render func not set")
+		}
+	}
 	write := out.Write
-	var r func(*vm.Env, io.Writer, interface{}, ast.Context) = render
 	t.fn.Globals[0] = vm.Global{Value: &out}
 	t.fn.Globals[1] = vm.Global{Value: &write}
-	t.fn.Globals[2] = vm.Global{Value: &r}
+	t.fn.Globals[2] = vm.Global{Value: &t.rf}
 	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
@@ -121,7 +125,6 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
 	vmm.SetOut(out)
-
 	_, err := vmm.Run(t.fn)
 	return err
 }
