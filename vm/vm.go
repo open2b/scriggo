@@ -144,8 +144,8 @@ func (vm *VM) SetOut(out writer) {
 	vm.env.out = out
 }
 
-func (vm *VM) SetPrintWriter(w writer) {
-	vm.env.print = w
+func (vm *VM) SetPrint(p func(interface{})) {
+	vm.env.print = p
 }
 
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
@@ -832,12 +832,12 @@ type writer interface {
 
 // Env represents an execution environment.
 type Env struct {
-	globals   []interface{} // global variables.
-	ctx       Context       // context.
-	dontPanic bool          // don't panic.
-	trace     TraceFunc     // trace function.
-	out       writer        // writer of Write instruction.
-	print     writer        // writer of Print instruction.
+	globals   []interface{}     // global variables.
+	ctx       Context           // context.
+	dontPanic bool              // don't panic.
+	trace     TraceFunc         // trace function.
+	out       writer            // writer of Write instruction.
+	print     func(interface{}) // custom print builtin.
 
 	mu         sync.Mutex // mutex for the following fields.
 	freeMemory int        // free memory.
@@ -1142,61 +1142,59 @@ type stringer interface {
 	String() string
 }
 
-// TODO(Gianluca): this code is wrong, needs a refactoring.
-func sprint(v interface{}) []byte {
-	switch v := v.(type) {
-	case nil:
-		return []byte("nil")
-	case error:
-		return []byte(v.Error())
-	case stringer:
-		return []byte(v.String())
-	case bool:
-		return strconv.AppendBool([]byte{}, v)
-	case int:
-		return strconv.AppendInt([]byte{}, int64(v), 10)
-	case int8:
-		return strconv.AppendInt([]byte{}, int64(v), 10)
-	case int16:
-		return strconv.AppendInt([]byte{}, int64(v), 10)
-	case int32:
-		return strconv.AppendInt([]byte{}, int64(v), 10)
-	case int64:
-		return strconv.AppendInt([]byte{}, v, 10)
-	case uint:
-		return strconv.AppendUint([]byte{}, uint64(v), 10)
-	case uint8:
-		return strconv.AppendUint([]byte{}, uint64(v), 10)
-	case uint16:
-		return strconv.AppendUint([]byte{}, uint64(v), 10)
-	case uint32:
-		return strconv.AppendUint([]byte{}, uint64(v), 10)
-	case uint64:
-		return strconv.AppendUint([]byte{}, v, 10)
-	case uintptr:
-		return strconv.AppendUint([]byte{}, uint64(v), 10)
-	case float32:
-		return strconv.AppendFloat([]byte{}, float64(v), 'e', 6, 32)
-	case float64:
-		return strconv.AppendFloat([]byte{}, v, 'e', 6, 64)
-	case string:
-		return append([]byte{}, v...)
-	default:
-		if v2, ok := v.(*callable); ok {
-			// TODO(marco): reflectValue needs an environment
-			v = v2.reflectValue(nil).Interface()
+func (vm *VM) print(v interface{}) {
+	if vm.env.print == nil {
+		r := reflect.ValueOf(v)
+		switch r.Kind() {
+		case reflect.Invalid, reflect.Func:
+			print(hex(reflect.ValueOf(&v).Elem().InterfaceData()[1]))
+		case reflect.Bool:
+			if r.Bool() {
+				print("true")
+			} else {
+				print("false")
+			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			print(r.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			print(r.Uint())
+		case reflect.Float32, reflect.Float64:
+			print(r.Float())
+		case reflect.Complex64, reflect.Complex128:
+			print(r.Complex())
+		case reflect.Chan, reflect.Map, reflect.UnsafePointer:
+			print(hex(r.Pointer()))
+		case reflect.Interface, reflect.Ptr:
+			print(v)
+		case reflect.Slice:
+			print("[", r.Len(), "/", r.Cap(), "]", hex(r.Pointer()))
+		case reflect.String:
+			print(r.String())
 		}
-		b := append([]byte{}, "("...)
-		b = append([]byte{}, reflect.TypeOf(v).String()...)
-		b = append([]byte{}, ")"...)
-		return b
-		// TODO(marco): implement print of value
+	} else {
+		vm.env.print(v)
 	}
+}
+
+func hex(p uintptr) string {
+	i := 20
+	h := [20]byte{}
+	for {
+		i--
+		h[i] = "0123456789abcdef"[p%16]
+		p = p / 16
+		if p == 0 {
+			break
+		}
+	}
+	h[i-1] = 'x'
+	h[i-2] = '0'
+	return string(h[i-2:])
 }
 
 func (err Panic) Error() string {
 	b := make([]byte, 0, 100+len(err.StackTrace))
-	b = append(b, sprint(err.Msg)...)
+	//b = append(b, sprint(err.Msg)...) // TODO(marco): rewrite.
 	b = append(b, "\n\n"...)
 	b = append(b, err.StackTrace...)
 	return string(b)

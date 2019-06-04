@@ -131,8 +131,7 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
 		}
-		mainLoader := scrigo.Packages{"main": &scrigo.Package{Name: "main", Declarations: map[string]interface{}{}}}
-		script, err := scrigo.LoadScript(r, scrigo.Loaders(mainLoader, packages), loadOptions|scrigo.AllowShebangLine)
+		script, err := scrigo.LoadScript(r, packages, loadOptions|scrigo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scrigo: %s\n", err)
 			os.Exit(2)
@@ -152,18 +151,6 @@ func main() {
 			}
 		}
 	case ".go":
-		// TODO(Gianluca): use this instead of ioutil.ReadFile(absFile).
-		// reader := scrigo.DirReader(filepath.Dir(absFile))
-		// sources := func(path string) []byte {
-		// 	if path == "/main" {
-		// 		path = "/" + filepath.Base(absFile)
-		// 	}
-		// 	data, err := reader.Read(path)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	return data
-		// }
 		main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
