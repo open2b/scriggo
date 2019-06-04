@@ -2,14 +2,17 @@ package test
 
 import (
 	"bytes"
+	"testing"
+
+	"scrigo"
 	"scrigo/template"
 	"scrigo/template/builtins"
-	"testing"
 )
 
 var templateCases = map[string]struct {
-	src string
-	out string
+	src  string
+	out  string
+	main *scrigo.Package
 }{
 	"Text only": {
 		src: `Hello, world!`,
@@ -56,6 +59,17 @@ var templateCases = map[string]struct {
 		out: `[a c b] sorted is [a b c]`,
 	},
 
+	"Using a function declared in main": {
+		src: `calling f: {{ f() }}, done!`,
+		main: &scrigo.Package{
+			Name: "main",
+			Declarations: map[string]interface{}{
+				"f": func() string { return "i'm f!" },
+			},
+		},
+		out: `calling f: i'm f!, done!`,
+	},
+
 	// TODO(Gianluca): out of memory.
 	// "Template builtin - title": {
 	// 	src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
@@ -67,7 +81,13 @@ func TestTemplate(t *testing.T) {
 	for name, cas := range templateCases {
 		t.Run(name, func(t *testing.T) {
 			r := template.MapReader{"/main": []byte(cas.src)}
-			templ, err := template.Load("/main", r, builtins.Main(), template.ContextText, template.LoadOption(0))
+			main := builtins.Main()
+			if cas.main != nil {
+				for k, v := range cas.main.Declarations {
+					main.Declarations[k] = v
+				}
+			}
+			templ, err := template.Load("/main", r, main, template.ContextText, template.LoadOption(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
