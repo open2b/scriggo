@@ -15,9 +15,9 @@ import (
 )
 
 var rendererExprTests = []struct {
-	src     string
-	res     string
-	globals map[string]interface{}
+	src      string
+	expected string
+	globals  map[string]interface{}
 }{
 	{`"a"`, "a", nil},
 	{"`a`", "a", nil},
@@ -278,30 +278,30 @@ var rendererExprTests = []struct {
 }
 
 func TestRenderExpressions(t *testing.T) {
-	for _, expr := range rendererExprTests {
-		t.Run(expr.src, func(t *testing.T) {
-			r := MapReader{"/index.html": []byte("{{" + expr.src + "}}")}
+	for _, cas := range rendererExprTests {
+		t.Run(cas.src, func(t *testing.T) {
+			r := MapReader{"/index.html": []byte("{{" + cas.src + "}}")}
 			templ, err := Load("/index.html", r, nil, ContextText, LoadOption(0))
 			if err != nil {
-				t.Fatalf("source %q: loading error: %s", expr.src, err)
+				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			templ.SetRenderFunc(DefaultRender)
 			b := &bytes.Buffer{}
 			err = templ.Render(b, nil, RenderOptions{})
 			if err != nil {
-				t.Fatalf("source %q: rendering error: %s", expr.src, err)
+				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
-			if expr.res != b.String() {
-				t.Fatalf("source %q: expecting %q, got %q", expr.src, expr.res, b)
+			if cas.expected != b.String() {
+				t.Fatalf("source %q: expecting %q, got %q", cas.src, cas.expected, b)
 			}
 		})
 	}
 }
 
 var rendererStmtTests = []struct {
-	src     string
-	res     string
-	globals scope
+	src      string
+	expected string
+	globals  scope
 }{
 	// TODO (Gianluca): decomment commented tests.
 	{"{% if true %}ok{% else %}no{% end %}", "ok", nil},
@@ -499,21 +499,21 @@ var rendererStmtTests = []struct {
 }
 
 func TestRenderStatements(t *testing.T) {
-	for _, expr := range rendererStmtTests {
-		t.Run(expr.src, func(t *testing.T) {
-			r := MapReader{"/index.html": []byte(expr.src)}
+	for _, cas := range rendererStmtTests {
+		t.Run(cas.src, func(t *testing.T) {
+			r := MapReader{"/index.html": []byte(cas.src)}
 			templ, err := Load("/index.html", r, nil, ContextText, LoadOption(0))
 			if err != nil {
-				t.Fatalf("source %q: loading error: %s", expr.src, err)
+				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			templ.SetRenderFunc(DefaultRender)
 			b := &bytes.Buffer{}
 			err = templ.Render(b, nil, RenderOptions{})
 			if err != nil {
-				t.Fatalf("source %q: rendering error: %s", expr.src, err)
+				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
-			if expr.res != b.String() {
-				t.Fatalf("source %q: expecting %q, got %q", expr.src, expr.res, b)
+			if cas.expected != b.String() {
+				t.Fatalf("source %q: expecting %q, got %q", cas.src, cas.expected, b)
 			}
 		})
 	}
