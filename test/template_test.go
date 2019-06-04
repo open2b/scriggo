@@ -83,3 +83,32 @@ func TestTemplate(t *testing.T) {
 		})
 	}
 }
+
+var templateMultiPageCases = map[string]struct {
+	sources  map[string]string
+	expected string
+}{}
+
+func TestMultiPageTemplate(t *testing.T) {
+	for name, cas := range templateMultiPageCases {
+		t.Run(name, func(t *testing.T) {
+			r := template.MapReader{}
+			for p, src := range cas.sources {
+				r[p] = []byte(src)
+			}
+			templ, err := template.Load("/index.html", r, builtins.Main(), template.ContextText, template.LoadOption(0))
+			if err != nil {
+				t.Fatalf("loading error: %s", err)
+			}
+			w := &bytes.Buffer{}
+			templ.SetRenderFunc(template.DefaultRender)
+			err = templ.Render(w, nil, template.RenderOptions{})
+			if err != nil {
+				t.Fatalf("rendering error: %s", err)
+			}
+			if cas.expected != w.String() {
+				t.Fatalf("expecting %q, got %q", cas.expected, w.String())
+			}
+		})
+	}
+}
