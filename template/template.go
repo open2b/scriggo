@@ -101,7 +101,7 @@ func (t *Template) SetRenderFunc(render RenderFunc) {
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	if t.render == nil {
-		t.render = RenderFunc {
+		t.render = func(*vm.Env, io.Writer, interface{}, ast.Context) {
 			panic("render func not set")
 		}
 	}
