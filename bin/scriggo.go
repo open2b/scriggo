@@ -113,8 +113,8 @@ func main() {
 
 	file := args[0]
 	ext := filepath.Ext(file)
-	if ext != ".go" && ext != ".gos" && ext != ".html" {
-		fmt.Printf("%s: extension must be \".go\" for main packages, \".gos\" for scripts and \".html\" for template pages\n", file)
+	if ext != ".go" && ext != ".sgo" && ext != ".html" {
+		fmt.Printf("%s: extension must be \".go\" for main packages, \".sgo\" for scripts and \".html\" for template pages\n", file)
 		os.Exit(-1)
 	}
 
@@ -125,7 +125,7 @@ func main() {
 	}
 
 	switch ext {
-	case ".gos":
+	case ".sgo":
 		r, err := os.Open(absFile)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
