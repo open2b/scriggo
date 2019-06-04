@@ -65,9 +65,3 @@ func TestTemplate(t *testing.T) {
 		})
 	}
 }
-
-// TODO(Gianluca): should we allow empty template pages?
-// "Empty": {
-// 	src: ``,
-// 	out: ``,
-// },
