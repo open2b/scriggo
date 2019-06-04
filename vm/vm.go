@@ -1146,7 +1146,7 @@ func (vm *VM) print(v interface{}) {
 	if vm.env.print == nil {
 		r := reflect.ValueOf(v)
 		switch r.Kind() {
-		case reflect.Invalid, reflect.Func:
+		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Struct:
 			print(hex(reflect.ValueOf(&v).Elem().InterfaceData()[1]))
 		case reflect.Bool:
 			if r.Bool() {
