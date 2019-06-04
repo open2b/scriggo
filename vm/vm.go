@@ -1434,7 +1434,5 @@ const (
 
 	OpTypify
 
-	OpWrite
-
 	OpXor
 )

@@ -513,8 +513,6 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, b, reflectToRegisterKind(typ.Kind()), k)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
-	case vm.OpWrite:
-		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	}
 	return s
 }
@@ -831,8 +829,6 @@ var operationName = [...]string{
 	vm.OpTailCall: "TailCall",
 
 	vm.OpTypify: "Typify",
-
-	vm.OpWrite: "Write",
 
 	vm.OpXor: "Xor",
 }
