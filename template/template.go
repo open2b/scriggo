@@ -9,6 +9,7 @@ package template
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 
@@ -89,17 +90,18 @@ func Load(path string, reader Reader, main *scrigo.Package, ctx Context, options
 }
 
 // TODO(Gianluca): just a placeholder, remove.
-func render(value interface{}) {
-	panic("called render!")
+func render(env *vm.Env, w io.Writer, value interface{}, ctx ast.Context) {
+	w.Write([]byte(fmt.Sprintf("%v", value)))
 }
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
-	w := out.Write
-	r := render
-	t.fn.Globals[0] = vm.Global{Value: &w}
-	t.fn.Globals[1] = vm.Global{Value: &r}
+	write := out.Write
+	var r func(*vm.Env, io.Writer, interface{}, ast.Context) = render
+	t.fn.Globals[0] = vm.Global{Value: &out}
+	t.fn.Globals[1] = vm.Global{Value: &write}
+	t.fn.Globals[2] = vm.Global{Value: &r}
 	vmm := newVM(t.fn.Globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)

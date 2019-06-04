@@ -299,10 +299,7 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Text:
-			// Nothing to do.
-
-		case *ast.Show:
+		case *ast.Show, *ast.Var, *ast.Text:
 			// Nothing to do.
 
 		// TODO: to remove.

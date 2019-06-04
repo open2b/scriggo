@@ -15,10 +15,35 @@ var templateCases = map[string]struct {
 		out: `Hello, world!`,
 	},
 
-	// "'Show' node only": {
-	// 	src: `{{ "i am a show" }}`,
-	// 	out: `i am a show`,
-	// },
+	"'Show' node only": {
+		src: `{{ "i am a show" }}`,
+		out: `i am a show`,
+	},
+
+	"Text and show": {
+		src: `Hello, {{ "world" }}!!`,
+		out: `Hello, world!!`,
+	},
+
+	"If statements - true": {
+		src: `{% if true %}true{% else %}false{% end %}`,
+		out: `true`,
+	},
+
+	"If statements - false": {
+		src: `{% if !true %}true{% else %}false{% end %}`,
+		out: `false`,
+	},
+
+	"Variable declarations": {
+		src: `{% var a = 10 %}{% var b = 20 %}{{ a + b }}`,
+		out: "30",
+	},
+
+	"For loop": {
+		src: "For loop: {% for i := 0; i < 5; i++ %}{{ i }}, {% end %}",
+		out: "For loop: 0, 1, 2, 3, 4, ",
+	},
 }
 
 func TestTemplate(t *testing.T) {

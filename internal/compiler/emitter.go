@@ -52,6 +52,20 @@ type emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
+
+	template struct {
+		// TODO(Gianluca): some fields are used locally, remove them and use local variables.
+		// ioWriter      int
+		// writeFnIndex  int
+		// renderFnIndex int
+
+		//ioWriterReg   int8
+		//writeFnReg    int8
+		//renderFnReg   int8
+		//generalRegA   int8
+		//generalRegB   int8
+		//intRegA       int8
+	}
 }
 
 // newEmitter returns a new emitter reading sources from r.
@@ -76,36 +90,43 @@ func EmitSingle(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	if isTemplate {
-		//
-		// Globals
-		//
-		// [ 0 ] --> Write function
-		// [ 1 ] --> Render function
+
+		// Globals.
+		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
+		if len(e.globals)-1 != 0 {
+			panic("bug")
+		}
+
 		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
+		if len(e.globals)-1 != 1 {
+			panic("bug")
+		}
+
 		e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
-		//
-		// General registers
-		//
-		// [ 1 ] --> Write function
-		// [ 2 ] --> Render function
-		// [ 3 ] --> reserved for "Write" error return argument/value to render
-		// [ 4 ] --> Argument of Write
+		if len(e.globals)-1 != 2 {
+			panic("bug")
+		}
 
-		// Int registers
-		//
-		// [ 1 ] --> reserved for "writer" n return argument
-		_ = e.fb.NewRegister(reflect.Func)      // g1.
-		_ = e.fb.NewRegister(reflect.Func)      // g2.
-		_ = e.fb.NewRegister(reflect.Interface) // g3.
-		_ = e.fb.NewRegister(reflect.Interface) // g4.
+		// Registers.
 
-		_ = e.fb.NewRegister(reflect.Int) // i1.
+		g1 := e.fb.NewRegister(reflect.Interface) // w io.Writer
+		g2 := e.fb.NewRegister(reflect.Interface) // Write
+		g3 := e.fb.NewRegister(reflect.Interface) // Render
+
+		g4 := e.fb.NewRegister(reflect.Interface) // free.
+		g5 := e.fb.NewRegister(reflect.Interface) // free.
+		i1 := e.fb.NewRegister(reflect.Int)       // free.
+
+		e.fb.GetVar(0, 1)
+		e.fb.GetVar(1, 2)
+		e.fb.GetVar(2, 3)
+
+		if g1 != 1 || g2 != 2 || g3 != 3 || g4 != 4 || g5 != 5 || i1 != 1 {
+			panic("bug")
+		}
+
 	}
 	e.fb.SetAlloc(alloc)
-	if isTemplate {
-		e.fb.GetVar(0, 1) // Move Write from Globals to Generals.
-		e.fb.GetVar(1, 2) // Move Render from Globals to Generals.
-	}
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
@@ -1465,8 +1486,18 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.fb.Send(ch, v)
 
 		case *ast.Show:
-			e.emitExpr(node.Expr, 4, emptyInterfaceType)
-			e.fb.CallIndirect(1, 0, vm.StackShift{0, 0, 0, 1})
+			// e.emitExpr(node.Expr, 3, emptyInterfaceType)
+			// ss := vm.StackShift{
+			// 	e.template.ioWriterReg,
+			// 	0,
+			// 	0,
+			// 	e.template.intRegA,
+			// }
+			// e.fb.CallIndirect(e.template.renderFnReg, 0, ss)
+			e.emitExpr(node.Expr, 5, emptyInterfaceType)
+			// TODO(Gianluca): move context in register i1
+			e.fb.Move(false, 1, 4, reflect.Interface)
+			e.fb.CallIndirect(3, 0, vm.StackShift{0, 0, 0, 3})
 
 		case *ast.Switch:
 			currentBreakable := e.breakable
@@ -1483,8 +1514,8 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 		case *ast.Text:
 			index := len(e.fb.fn.Data)
 			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
-			e.fb.LoadData(int16(index), 4)
-			e.fb.CallIndirect(1, 0, vm.StackShift{0, 0, 0, 2}) // TODO(Gianluca): review stackshift.
+			e.fb.LoadData(int16(index), 5)
+			e.fb.CallIndirect(2, 0, vm.StackShift{0, 0, 0, 3})
 
 		case *ast.TypeSwitch:
 			currentBreakable := e.breakable
