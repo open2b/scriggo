@@ -19,7 +19,7 @@ func main() {
 
 		main := scrigo.MapStringLoader{"main": source.Get("value").String()}
 
-		program, err := scrigo.LoadProgram([]scrigo.PackageLoader{main}, 0)
+		program, err := scrigo.LoadProgram(main, 0)
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil
