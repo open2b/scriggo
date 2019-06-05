@@ -927,6 +927,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Index:
 		exprType := e.typeInfos[expr.Expr].Type
+		indexType := e.typeInfos[expr.Index].Type
 		var exprReg int8
 		out, _, isRegister := e.quickEmitExpr(expr.Expr, exprType)
 		if isRegister {
@@ -934,7 +935,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else {
 			exprReg = e.fb.NewRegister(exprType.Kind())
 		}
-		out, isValue, isRegister := e.quickEmitExpr(expr.Index, intType)
+		out, isValue, isRegister := e.quickEmitExpr(expr.Index, indexType)
 		ki := false
 		var i int8
 		if isValue {
@@ -943,8 +944,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		} else if isRegister {
 			i = out
 		} else {
-			i = e.fb.NewRegister(reflect.Int)
-			e.emitExpr(expr.Index, i, dstType)
+			i = e.fb.NewRegister(indexType.Kind())
+			e.emitExpr(expr.Index, i, indexType)
 		}
 		e.fb.Index(ki, exprReg, i, reg, exprType)
 
