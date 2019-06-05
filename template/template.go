@@ -52,6 +52,7 @@ type Template struct {
 	fn      *vm.Function
 	options LoadOption
 	render  RenderFunc
+	globals []vm.Global
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -78,8 +79,8 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
-	mainFn := compiler.EmitTemplate(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
-	return &Template{main: main, fn: mainFn}, nil
+	mainFn, globals := compiler.EmitTemplate(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	return &Template{main: main, fn: mainFn, globals: globals}, nil
 }
 
 // A RenderFunc renders value in the context ctx and writes the result to out.
@@ -104,13 +105,13 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 		render = t.render
 	}
 	write := out.Write
-	t.fn.Globals[0] = vm.Global{Value: &out}
-	t.fn.Globals[1] = vm.Global{Value: &write}
-	t.fn.Globals[2] = vm.Global{Value: &render}
+	t.globals[0] = vm.Global{Value: &out}
+	t.globals[1] = vm.Global{Value: &write}
+	t.globals[2] = vm.Global{Value: &render}
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(t.fn.Globals, vars)
+	vmm := newVM(t.globals, vars)
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
 	}
