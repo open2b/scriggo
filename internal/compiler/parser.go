@@ -985,58 +985,52 @@ func (p *parsing) parseStatement(tok token) {
 
 	// var or const
 	case tokenVar, tokenConst:
-		var kind string
-		if tok.typ == tokenVar {
-			kind = "var"
-		} else {
-			kind = "const"
-		}
-		var lastConstValues []ast.Expression
-		var lastConstType ast.Expression
+		var decType = tok.typ
 		if tok.ctx != p.ctx {
 			switch tok.ctx {
 			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside an attribute value")})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside an attribute value", decType)})
 			case ast.ContextJavaScript:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside a script tag")})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside a script tag", decType)})
 			case ast.ContextCSS:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside a style tag")})
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside a style tag", decType)})
 			}
 		}
 		tok = next(p.lex)
 		if tok.typ == tokenLeftParenthesis {
 			// var ( ... )
 			// const ( ... )
-			var lastNode ast.Node
+			var prevNode ast.Node
+			var prevConstValues []ast.Expression
+			var prevConstType ast.Expression
 			for {
 				tok = next(p.lex)
 				if tok.typ == tokenRightParenthesis {
-					// TODO (Gianluca): what happens if there are no )?
-					lastNode.Pos().End = tok.pos.End
 					tok = next(p.lex)
-					if tok.typ != tokenSemicolon {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s at the end of statement", tok.txt)})
+					if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 					}
+					prevNode.Pos().End = tok.pos.End
 					break
 				}
-				lastNode = p.parseVarOrConst(tok, pos, kind)
-				if c, ok := lastNode.(*ast.Const); ok {
+				prevNode = p.parseVarOrConst(tok, pos, decType)
+				if c, ok := prevNode.(*ast.Const); ok {
 					if c.Type == nil {
-						c.Type = astutil.CloneExpression(lastConstType)
+						c.Type = astutil.CloneExpression(prevConstType)
 					}
 					if len(c.Rhs) == 0 {
-						c.Rhs = make([]ast.Expression, len(lastConstValues))
-						for i := range lastConstValues {
-							c.Rhs[i] = astutil.CloneExpression(lastConstValues[i])
+						c.Rhs = make([]ast.Expression, len(prevConstValues))
+						for i := range prevConstValues {
+							c.Rhs[i] = astutil.CloneExpression(prevConstValues[i])
 						}
 					}
-					lastConstValues = c.Rhs
-					lastConstType = c.Type
+					prevConstValues = c.Rhs
+					prevConstType = c.Type
 				}
-				p.addChild(lastNode)
+				p.addChild(prevNode)
 			}
 		} else {
-			p.addChild(p.parseVarOrConst(tok, pos, kind))
+			p.addChild(p.parseVarOrConst(tok, pos, decType))
 		}
 
 	// import
@@ -1369,12 +1363,9 @@ func (p *parsing) parseTypeDecl(tok token) (*ast.TypeDeclaration, token) {
 	return td, tok
 }
 
-func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string) ast.Node {
+func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType tokenTyp) ast.Node {
 	if tok.typ != tokenIdentifier {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
-	}
-	if kind != "var" && kind != "const" {
-		panic("bug: kind must be var or const")
 	}
 	var exprs []ast.Expression
 	var idents []*ast.Identifier
@@ -1402,7 +1393,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		// var/const  a     int  =  ...
 		// var/const  a, b  int  =  ...
 		typ, tok = p.parseExpr(tok, false, false, true, false)
-		if tok.typ != tokenSimpleAssignment && kind == "const" {
+		if tok.typ != tokenSimpleAssignment && decType == tokenConst {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 		}
 		if len(p.ancestors) == 2 {
@@ -1419,7 +1410,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 	case tokenSemicolon:
 		// const c
 		// const c, d
-		if kind == "var" {
+		if decType == tokenVar {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 		}
 	default:
@@ -1444,7 +1435,7 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, kind string)
 		endPos = typEndPos
 	}
 	nodePos.End = endPos
-	if kind == "var" {
+	if decType == tokenVar {
 		return ast.NewVar(nodePos, idents, typ, exprs)
 	}
 	return ast.NewConst(nodePos, idents, typ, exprs)
