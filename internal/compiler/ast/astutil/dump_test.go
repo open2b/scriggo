@@ -66,7 +66,7 @@ func ExampleDump() {
 	// │    │    │    Call (1:19) value()
 	//
 	// Tree: "":1:1
-	// │    Var (1:4) var x = 10
+	// │    Var (1:1) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    Int (1:12) 10
 	//
@@ -96,7 +96,7 @@ func ExampleDump() {
 	// │    │    │    Int (1:5) 6
 	//
 	// Tree: "":1:1
-	// │    Var (1:4) var x = 10
+	// │    Var (1:1) var x = 10
 	// │    │    Identifier (1:8) x
 	// │    │    Int (1:12) 10
 	//

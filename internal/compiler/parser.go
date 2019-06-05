@@ -1003,7 +1003,6 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("var inside a style tag")})
 			}
 		}
-		nodePos := &ast.Position{Line: tok.pos.Line, Column: tok.pos.Column, Start: tok.pos.Start}
 		tok = next(p.lex)
 		if tok.typ == tokenLeftParenthesis {
 			// var ( ... )
@@ -1020,7 +1019,7 @@ func (p *parsing) parseStatement(tok token) {
 					}
 					break
 				}
-				lastNode = p.parseVarOrConst(tok, nodePos, kind)
+				lastNode = p.parseVarOrConst(tok, pos, kind)
 				if c, ok := lastNode.(*ast.Const); ok {
 					if c.Type == nil {
 						c.Type = astutil.CloneExpression(lastConstType)
@@ -1037,7 +1036,7 @@ func (p *parsing) parseStatement(tok token) {
 				p.addChild(lastNode)
 			}
 		} else {
-			p.addChild(p.parseVarOrConst(tok, nodePos, kind))
+			p.addChild(p.parseVarOrConst(tok, pos, kind))
 		}
 
 	// import
