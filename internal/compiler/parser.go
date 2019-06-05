@@ -181,16 +181,14 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Globa
 	return tree, p.deps.result(), nil
 }
 
-// ParseTemplateSource parses src in the context ctx and returns a tree. Nodes
-// Extends, Import and Include will not be expanded (the field Tree will be
-// nil). To get an expanded tree call the method Parse of a Parser instead.
-// TODO(Gianluca): path validation must be moved to parser.
+// ParseTemplateSource parses src in the context ctx and returns the parsed
+// tree. Nodes Extends, Import and Include are not be expanded.
 func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
 	default:
-		return nil, errors.New("scriggo/parser: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+		return nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
 	}
 
 	// Tree result of the expansion.
@@ -290,9 +288,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 
 		// {%
 		case tokenStartStatement:
-
 			tokensInLine++
-
 			p.parseStatement(tok)
 
 		// {{ }}
