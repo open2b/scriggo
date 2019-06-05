@@ -41,6 +41,7 @@ const (
 	tokenCase                              // case
 	tokenDefault                           // default
 	tokenFallthrough                       // fallthrough
+	tokenSelect                            // select
 	tokenType                              // type
 	tokenInterface                         // interface
 	tokenMap                               // map
@@ -103,9 +104,6 @@ const (
 	tokenRightShift                        // >>
 	tokenStruct                            // struct
 	tokenEOF                               // eof
-
-	// Tokens not yet supported.
-	tokenSelect
 )
 
 var tokenString = map[tokenTyp]string{
@@ -134,6 +132,7 @@ var tokenString = map[tokenTyp]string{
 	tokenCase:                     "case",
 	tokenDefault:                  "default",
 	tokenFallthrough:              "fallthrough",
+	tokenSelect:                   "select",
 	tokenType:                     "type",
 	tokenInterface:                "interface",
 	tokenMap:                      "map",
@@ -196,9 +195,6 @@ var tokenString = map[tokenTyp]string{
 	tokenRightShift:               ">>",
 	tokenStruct:                   "struct",
 	tokenEOF:                      "EOF",
-
-	// Tokens not yet supported.
-	tokenSelect: "select",
 }
 
 func (tt tokenTyp) String() string {
