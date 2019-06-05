@@ -13,53 +13,13 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
+// ParseTemplate parses the template with the given path, reading the template
+// files from the reader, in context ctx. main is the main package.
+//
+// ParseTemplate expands the nodes Extends, Import and Include parsing the
+// relative trees. The parsed trees are cached so only one call per
+// combination of path and context is made to the reader.
 func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (*ast.Tree, error) {
-	p := &templateParser{
-		reader:       reader,
-		trees:        &cache{},
-		packageInfos: make(map[string]*PackageInfo),
-	}
-
-	tree, err := p.parse(path, main, ctx)
-	if err != nil {
-		return nil, convertError(err)
-	}
-	return tree, nil
-}
-
-func convertError(err error) error {
-	if err == ErrInvalidPath {
-		return ErrInvalidPath
-	}
-	if err == ErrNotExist {
-		return ErrNotExist
-	}
-	return err
-}
-
-// templateParser implements a templateParser that reads the tree from a Reader and expands
-// the nodes Extends, Import and Include. The trees are cached so only one
-// call per combination of path and context is made to the reader even if
-// several goroutines parse the same paths at the same time.
-//
-// Returned trees can only be transformed if the templateParser is no longer used,
-// because it would be the cached trees to be transformed and a data race can
-// occur. In case, use the function Clone in the astutil package to create a
-// clone of the tree and then transform the clone.
-type templateParser struct {
-	reader Reader
-	trees  *cache
-	// TODO (Gianluca): does packageInfos need synchronized access?
-
-	// TODO(Gianluca): deprecated, remove.
-	packageInfos map[string]*PackageInfo // key is path.
-}
-
-// parse reads the source at path, with the reader, in the ctx context,
-// expands the nodes Extends, Import and Include and returns the expanded tree.
-//
-// Parse is safe for concurrent use.
-func (p *templateParser) parse(path string, main *Package, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -74,7 +34,12 @@ func (p *templateParser) parse(path string, main *Package, ctx ast.Context) (*as
 		return nil, err
 	}
 
-	pp := &templateExpansion{p.reader, p.trees, map[string]*Package{"main": main}, []string{}}
+	pp := &templateExpansion{
+		reader:   reader,
+		trees:    &cache{},
+		packages: map[string]*Package{"main": main},
+		paths:    []string{},
+	}
 
 	tree, err := pp.parsePath(path, ctx)
 	if err != nil {
@@ -93,7 +58,7 @@ func (p *templateParser) parse(path string, main *Package, ctx ast.Context) (*as
 	return tree, nil
 }
 
-// templateExpansion is a template expansion state.
+// templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
 	reader   Reader
 	trees    *cache
@@ -114,18 +79,18 @@ func (pp *templateExpansion) abs(path string) (string, error) {
 	return path, err
 }
 
-// parsePath parses the source at path in context ctx. path must be absolute
-// and cleared.
+// parsePath parses the source at the given path in context ctx. path must be
+// absolute and cleared.
 func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree, error) {
 
-	// Checks if there is a cycle.
+	// Check if there is a cycle.
 	for _, p := range pp.paths {
 		if p == path {
 			return nil, cycleError(path)
 		}
 	}
 
-	// Checks if it has already been parsed.
+	// Check if it has already been parsed.
 	if tree, ok := pp.trees.Get(path, ctx); ok {
 		return tree, nil
 	}
@@ -136,18 +101,13 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 		return nil, err
 	}
 
-	var tree *ast.Tree
-	if ctx == ast.ContextGo {
-		tree, _, err = ParseSource(src, true, false)
-	} else {
-		tree, err = ParseTemplateSource(src, ctx)
-	}
+	tree, err := ParseTemplateSource(src, ctx)
 	if err != nil {
 		return nil, err
 	}
 	tree.Path = path
 
-	// Expands the nodes.
+	// Expand the nodes.
 	pp.paths = append(pp.paths, path)
 	err = pp.expand(tree.Nodes, ctx)
 	if err != nil {
@@ -158,7 +118,7 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 	}
 	pp.paths = pp.paths[:len(pp.paths)-1]
 
-	// Adds the tree to the cache.
+	// Add the tree to the cache.
 	pp.trees.Add(path, ctx, tree)
 
 	return tree, nil
@@ -299,13 +259,14 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Show, *ast.Var, *ast.Text, *ast.Assignment, *ast.Call, *ast.Break,
-			*ast.Continue:
+		case *ast.Show, *ast.Var, *ast.Text, *ast.Assignment, *ast.Call, *ast.Break, *ast.Continue:
+
 			// TODO(Gianluca): add missing nodes.
 			// Nothing to do.
 
 		// TODO: to remove.
 		default:
+
 			panic(fmt.Errorf("unexpected node %s (type %T)", node, node))
 
 		}
