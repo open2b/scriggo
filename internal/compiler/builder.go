@@ -201,17 +201,6 @@ func (builder *functionBuilder) AddType(typ reflect.Type) uint8 {
 	return uint8(index)
 }
 
-// AddGlobal adds a global variable to the builder's function.
-func (builder *functionBuilder) AddGlobal(v vm.Global) int {
-	fn := builder.fn
-	r := len(fn.Globals)
-	if r > 32768 {
-		panic("global variables limit reached")
-	}
-	fn.Globals = append(fn.Globals, v)
-	return r
-}
-
 // AddPredefinedFunction adds a predefined function to the builder's function.
 func (builder *functionBuilder) AddPredefinedFunction(f *vm.PredefinedFunction) uint8 {
 	fn := builder.fn

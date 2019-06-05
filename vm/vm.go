@@ -915,16 +915,6 @@ func (fn *PredefinedFunction) putArgs(args []reflect.Value) {
 	return
 }
 
-// Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
-type Global struct {
-	Pkg   string
-	Name  string
-	Type  reflect.Type
-	Value interface{}
-}
-
 // Function represents a function.
 type Function struct {
 	Pkg        string
@@ -938,7 +928,6 @@ type Function struct {
 	Types      []reflect.Type
 	RegNum     [4]uint8
 	Constants  Registers
-	Globals    []Global
 	Functions  []*Function
 	Predefined []*PredefinedFunction
 	Body       []Instruction

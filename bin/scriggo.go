@@ -98,7 +98,7 @@ func main() {
 				funcName += ":"
 			}
 			_, _ = fmt.Fprintf(os.Stderr, "i%v f%v\t%s\t", regs.Int, regs.Float, funcName)
-			_, _ = compiler.DisassembleInstruction(os.Stderr, fn, pc)
+			_, _ = compiler.DisassembleInstruction(os.Stderr, fn, []compiler.Global{}, pc)
 			println()
 		}
 	}

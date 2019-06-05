@@ -38,7 +38,7 @@ type emitter struct {
 	predefVarIndexes map[*vm.Function]map[reflect.Value]int16
 
 	// Holds all Scriggo-defined and pre-predefined global variables.
-	globals []vm.Global
+	globals []Global
 
 	// rangeLabels is a list of current active Ranges. First element is the
 	// Range address, second refers to the first instruction outside Range's
@@ -52,6 +52,16 @@ type emitter struct {
 	// breakLabel, if not nil, is the label to which pre-stated "breaks" must
 	// jump.
 	breakLabel *uint32
+}
+
+// Global represents a global variable with a package, name, type (only for
+// not predefined globals) and value (only for predefined globals). Value, if
+// present, must be a pointer to the variable value.
+type Global struct {
+	Pkg   string
+	Name  string
+	Type  reflect.Type
+	Value interface{}
 }
 
 // newEmitter returns a new emitter reading sources from r.
@@ -70,7 +80,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
-func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
+func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
@@ -82,14 +92,14 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	return e.fb.fn, e.globals
 }
 
-func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []vm.Global) {
+func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	// Globals.
-	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
-	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
-	e.globals = append(e.globals, vm.Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
+	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
+	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
+	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
 	// Registers.
 	e.fb.NewRegister(reflect.Interface) // w io.Writer
 	e.fb.NewRegister(reflect.Interface) // Write
@@ -110,7 +120,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 
 // emittedPackage is the result of a package emitting process.
 type emittedPackage struct {
-	Globals   []vm.Global
+	Globals   []Global
 	Functions map[string]*vm.Function
 	Main      *vm.Function
 }
@@ -234,7 +244,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 				// store initialized value inside proper global index
 				// during building of $initvars.
 				pkgVarRegs[v.Name] = varReg
-				e.globals = append(e.globals, vm.Global{Pkg: "main", Name: v.Name, Type: staticType})
+				e.globals = append(e.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
 				e.pkgVariables[e.pkg][v.Name] = int16(len(e.globals) - 1)
 				exportedVars[v.Name] = int16(len(e.globals) - 1)
 			}
@@ -292,11 +302,6 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 		initVarsFb.ExitScope()
 		initVarsFb.Return()
 		initVarsFb.End()
-	}
-
-	// All functions share Globals.
-	for _, f := range e.availableFunctions[pkg] {
-		f.Globals = e.globals
 	}
 
 	// If this package is imported, initFuncs must contain initVarsFn, that is

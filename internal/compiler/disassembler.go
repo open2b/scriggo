@@ -25,9 +25,9 @@ func packageName(pkg string) string {
 	return pkg[i+1:]
 }
 
-func DisassembleDir(dir string, main *vm.Function) (err error) {
+func DisassembleDir(dir string, main *vm.Function, globals []Global) (err error) {
 
-	packages, err := Disassemble(main)
+	packages, err := Disassemble(main, globals)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func DisassembleDir(dir string, main *vm.Function) (err error) {
 	return nil
 }
 
-func Disassemble(main *vm.Function) (assembler map[string]string, err error) {
+func Disassemble(main *vm.Function, globals []Global) (assembler map[string]string, err error) {
 
 	functionsByPkg := map[string]map[*vm.Function]int{}
 	importsByPkg := map[string]map[string]struct{}{}
@@ -137,7 +137,7 @@ func Disassemble(main *vm.Function) (assembler map[string]string, err error) {
 		for _, fn := range functions {
 			_, _ = b.WriteString("\nFunc ")
 			_, _ = b.WriteString(fn.Name)
-			disassembleFunction(&b, fn, 0)
+			disassembleFunction(&b, fn, globals, 0)
 		}
 		_, _ = b.WriteRune('\n')
 
@@ -150,14 +150,14 @@ func Disassemble(main *vm.Function) (assembler map[string]string, err error) {
 	return assembler, nil
 }
 
-func DisassembleFunction(w io.Writer, fn *vm.Function) (int64, error) {
+func DisassembleFunction(w io.Writer, fn *vm.Function, globals []Global) (int64, error) {
 	var b bytes.Buffer
 	_, _ = fmt.Fprintf(&b, "Func %s", fn.Name)
-	disassembleFunction(&b, fn, 0)
+	disassembleFunction(&b, fn, globals, 0)
 	return b.WriteTo(w)
 }
 
-func disassembleFunction(w *bytes.Buffer, fn *vm.Function, depth int) {
+func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, depth int) {
 	indent := ""
 	if depth > 0 {
 		indent = strings.Repeat("\t", depth)
@@ -220,9 +220,9 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, depth int) {
 			_, _ = fmt.Fprintf(w, "%s\t%s %d\n", indent, operationName[in.Op], label)
 		case vm.OpFunc:
 			_, _ = fmt.Fprintf(w, "%s\tFunc %s ", indent, disassembleOperand(fn, in.C, vm.Interface, false))
-			disassembleFunction(w, fn.Literals[uint8(in.B)], depth+1)
+			disassembleFunction(w, fn.Literals[uint8(in.B)], globals, depth+1)
 		default:
-			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, addr))
+			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
 		switch in.Op {
 		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall:
@@ -236,12 +236,12 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, depth int) {
 	}
 }
 
-func DisassembleInstruction(w io.Writer, fn *vm.Function, addr uint32) (int64, error) {
-	n, err := io.WriteString(w, disassembleInstruction(fn, addr))
+func DisassembleInstruction(w io.Writer, fn *vm.Function, globals []Global, addr uint32) (int64, error) {
+	n, err := io.WriteString(w, disassembleInstruction(fn, globals, addr))
 	return int64(n), err
 }
 
-func disassembleInstruction(fn *vm.Function, addr uint32) string {
+func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) string {
 	in := fn.Body[addr]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := false
@@ -289,7 +289,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case vm.OpBind, vm.OpGetVar:
-		s += " " + disassembleVarRef(fn, int16(int(a)<<8|int(uint8(b))))
+		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
 		// TODO(Gianluca): add correct register type, not 'vm.Int'.
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
@@ -507,7 +507,7 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpSetVar:
 		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
-		s += " " + disassembleVarRef(fn, int16(int(b)<<8|int(uint8(c))))
+		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -576,7 +576,7 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 	return fmt.Sprintf("%s(%s) (%s)", funcName, in, out)
 }
 
-func disassembleVarRef(fn *vm.Function, ref int16) string {
+func disassembleVarRef(fn *vm.Function, globals []Global, ref int16) string {
 	depth := 0
 	for ref >= 0 && fn.Parent != nil {
 		ref = fn.VarRefs[ref]
@@ -584,7 +584,7 @@ func disassembleVarRef(fn *vm.Function, ref int16) string {
 		fn = fn.Parent
 	}
 	if depth == 0 {
-		v := fn.Globals[ref]
+		v := globals[ref]
 		return packageName(v.Pkg) + "." + v.Name
 	}
 	s := disassembleOperand(fn, -int8(ref), vm.Interface, false)

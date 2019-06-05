@@ -52,7 +52,7 @@ type Template struct {
 	fn      *vm.Function
 	options LoadOption
 	render  RenderFunc
-	globals []vm.Global
+	globals []compiler.Global
 }
 
 // Load loads a template given its path. Load calls the method Read of reader
@@ -105,9 +105,9 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 		render = t.render
 	}
 	write := out.Write
-	t.globals[0] = vm.Global{Value: &out}
-	t.globals[1] = vm.Global{Value: &write}
-	t.globals[2] = vm.Global{Value: &render}
+	t.globals[0] = compiler.Global{Value: &out}
+	t.globals[1] = compiler.Global{Value: &write}
+	t.globals[2] = compiler.Global{Value: &render}
 	if vars == nil {
 		vars = emptyVars
 	}
@@ -141,11 +141,11 @@ func (t *Template) Options() LoadOption {
 
 // Disassemble disassembles a template.
 func (t *Template) Disassemble(w io.Writer) (int64, error) {
-	return compiler.DisassembleFunction(w, t.fn)
+	return compiler.DisassembleFunction(w, t.fn, t.globals)
 }
 
 // newVM returns a new vm with the given options.
-func newVM(globals []vm.Global, init map[string]interface{}) *vm.VM {
+func newVM(globals []compiler.Global, init map[string]interface{}) *vm.VM {
 	vmm := vm.New()
 	if n := len(globals); n > 0 {
 		values := make([]interface{}, n)

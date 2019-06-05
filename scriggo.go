@@ -41,7 +41,7 @@ func Constant(typ reflect.Type, value interface{}) ConstantValue {
 
 type Program struct {
 	fn      *vm.Function
-	globals []vm.Global
+	globals []compiler.Global
 	options LoadOption
 }
 
@@ -123,7 +123,7 @@ func (p *Program) Start(options RunOptions) *vm.Env {
 // Disassemble disassembles the package with the given path. Predefined
 // packages can not be disassembled.
 func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
-	packages, err := compiler.Disassemble(p.fn)
+	packages, err := compiler.Disassemble(p.fn, p.globals)
 	if err != nil {
 		return 0, err
 	}
@@ -137,7 +137,7 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 
 type Script struct {
 	fn      *vm.Function
-	globals []vm.Global
+	globals []compiler.Global
 	options LoadOption
 }
 
@@ -211,7 +211,7 @@ func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env 
 }
 
 // newVM returns a new vm with the given options.
-func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions) *vm.VM {
+func newVM(globals []compiler.Global, init map[string]interface{}, options RunOptions) *vm.VM {
 	vmm := vm.New()
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
@@ -262,7 +262,7 @@ func newVM(globals []vm.Global, init map[string]interface{}, options RunOptions)
 
 // Disassemble disassembles a script.
 func (s *Script) Disassemble(w io.Writer) (int64, error) {
-	return compiler.DisassembleFunction(w, s.fn)
+	return compiler.DisassembleFunction(w, s.fn, s.globals)
 }
 
 // PackageLoader is implemented by package loaders. Given a package path, Load
