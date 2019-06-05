@@ -105,9 +105,9 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 		render = t.render
 	}
 	write := out.Write
-	t.globals[0] = compiler.Global{Value: &out}
-	t.globals[1] = compiler.Global{Value: &write}
-	t.globals[2] = compiler.Global{Value: &render}
+	t.globals[0].Value = &out
+	t.globals[1].Value = &write
+	t.globals[2].Value = &render
 	if vars == nil {
 		vars = emptyVars
 	}
