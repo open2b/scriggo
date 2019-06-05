@@ -593,7 +593,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				typ := e.typeInfos[expr.Args[0]].Type
 				arg := e.fb.NewRegister(typ.Kind())
 				e.emitExpr(expr.Args[0], arg, typ)
-				e.fb.Convert(arg, convertType, reg, typ.Kind())
+				e.changeRegister(false, arg, reg, typ, convertType)
 				e.fb.ExitStack()
 				return
 			}

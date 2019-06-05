@@ -16,11 +16,43 @@ import (
 
 // changeRegister moves src content into dst, making a conversion if necessary.
 func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+
+	// dst is indirect, so value must be "typed" to its true (original) type
+	// before putting it into general.
+	if dst < 0 {
+		e.fb.Typify(k, srcType, src, dst)
+		return
+	}
+
+	// When moving a value from general to general, value's type must be
+	// updated.
 	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
 		e.fb.Move(k, src, dst, srcType.Kind())
-	} else if dstType.Kind() == reflect.Interface {
+		return
+	}
+
+	// When moving a value from int, float or string to general, value's type
+	// must be "typed" to its true (original) type.
+	if dstType.Kind() == reflect.Interface {
 		e.fb.Typify(k, srcType, src, dst)
-	} else if k || src != dst {
+		return
+	}
+
+	// Source register is different than destination register: a convertion is
+	// needed.
+	if dstType.Kind() != srcType.Kind() {
+		if k {
+			e.fb.EnterScope()
+			tmpReg := e.fb.NewRegister(srcType.Kind())
+			e.fb.Move(true, src, tmpReg, srcType.Kind())
+			e.fb.Convert(tmpReg, dstType, dst, srcType.Kind())
+			e.fb.ExitScope()
+		}
+		e.fb.Convert(src, dstType, dst, srcType.Kind())
+		return
+	}
+
+	if k || src != dst {
 		e.fb.Move(k, src, dst, srcType.Kind())
 	}
 }

@@ -357,35 +357,47 @@ func (vm *VM) run() (uint32, bool) {
 		case OpConvertGeneral:
 			t := vm.fn.Types[uint8(b)]
 			switch t.Kind() {
-			case reflect.Array:
-				slice := reflect.ValueOf(vm.general(a))
-				array := reflect.New(t)
-				for i := 0; i < slice.Len(); i++ {
-					array.Elem().Index(i).Set(slice.Index(i))
-				}
-				vm.setGeneral(c, array.Elem().Interface())
-			case reflect.Func:
-				call := vm.general(a).(*callable)
-				vm.setGeneral(c, call.reflectValue(vm.env).Interface())
+			case reflect.String:
+				vm.setString(c, reflect.ValueOf(vm.general(a)).Convert(t).String())
 			default:
 				vm.setGeneral(c, reflect.ValueOf(vm.general(a)).Convert(t).Interface())
 			}
 		case OpConvertInt:
 			t := vm.fn.Types[uint8(b)]
-			if t.Kind() == reflect.Bool {
-				vm.setGeneral(c, reflect.ValueOf(vm.bool(a)).Convert(t).Interface())
-			} else {
-				vm.setGeneral(c, reflect.ValueOf(vm.int(a)).Convert(t).Interface())
+			switch t.Kind() {
+			case reflect.String:
+				vm.setString(c, reflect.ValueOf(vm.int(a)).Convert(t).String())
+			case reflect.Float64, reflect.Float32:
+				vm.setFloat(c, reflect.ValueOf(vm.int(a)).Convert(t).Float())
+			default:
+				vm.setInt(c, reflect.ValueOf(vm.int(a)).Convert(t).Int())
 			}
 		case OpConvertUint:
 			t := vm.fn.Types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Interface())
+			switch t.Kind() {
+			case reflect.String:
+				vm.setString(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).String())
+			case reflect.Float64, reflect.Float32:
+				vm.setFloat(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Float())
+			default:
+				vm.setInt(c, reflect.ValueOf(uint64(vm.int(a))).Convert(t).Int())
+			}
 		case OpConvertFloat:
 			t := vm.fn.Types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(vm.float(a)).Convert(t).Interface())
+			switch t.Kind() {
+			case reflect.Int:
+				vm.setInt(c, reflect.ValueOf(vm.float(a)).Convert(t).Int())
+			default:
+				vm.setFloat(c, reflect.ValueOf(vm.float(a)).Convert(t).Float())
+			}
 		case OpConvertString:
 			t := vm.fn.Types[uint8(b)]
-			vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
+			switch t.Kind() {
+			case reflect.Slice:
+				vm.setGeneral(c, reflect.ValueOf(vm.string(a)).Convert(t).Interface())
+			default:
+				vm.setString(c, reflect.ValueOf(vm.string(a)).Convert(t).String())
+			}
 
 		// Copy
 		case OpCopy:

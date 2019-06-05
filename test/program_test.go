@@ -122,6 +122,133 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Converting uint16 -> string",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var f uint16 = 99
+			var s string = string(f)
+			fmt.Print(f, ", ", s)
+		}`,
+		output: "99, c",
+	},
+	{
+		name: "Converting float64 -> int (truncating)",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var f float64 = 60.001
+			var i int = int(f)
+			fmt.Print(f, i)
+		}
+		`,
+		output: "60.001 60",
+	},
+	{
+		name: "Converting int -> float64",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var i int = 10
+			var f float64 = float64(i)
+			fmt.Print(i, f)
+		}
+		`,
+		output: "10 10",
+	},
+	{
+		name: "Converting float64 -> float32",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var f64 float64 = 123456789.98765321
+			var f32 float32 = float32(f64)
+			fmt.Print(f64, f32)
+		}
+		`,
+		output: "1.2345678998765321e+08 1.2345679e+08",
+	},
+	{
+		name: "Converting string -> []byte",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var str = string("hello!")
+			var slice = []byte(str)
+			fmt.Print("str: ", str, ", slice: ", slice)
+		}
+		`,
+		output: `str: hello!, slice: [104 101 108 108 111 33]`,
+	},
+	{
+		name: "Converting []byte -> string",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var s []byte = []byte{97, 98, 99}
+			var c string = string(s)
+			fmt.Print("s: ", s, ", c: ", c)
+		}`,
+		output: `s: [97 98 99], c: abc`,
+	},
+	{
+		name: "Converting int -> string",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var i int = 97
+			var c string = string(i)
+			fmt.Print("i: ", i, ", c: ", c)
+		}
+		`,
+		output: "i: 97, c: a",
+	},
+	{
+		name: "Converting int -> int8 -> int (truncating result)",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			var a int = 400
+			var b int8 = int8(a)
+			var c int = int(b)
+			fmt.Print(a, b, c)
+		}
+		`,
+		output: "400 -112 -112",
+	},
+	{
 		name: "Passing a function to Go",
 		src: `package main
 
