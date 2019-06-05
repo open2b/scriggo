@@ -1145,11 +1145,7 @@ func (vm *VM) print(v interface{}) {
 		case reflect.Invalid, reflect.Array, reflect.Func, reflect.Struct:
 			print(hex(reflect.ValueOf(&v).Elem().InterfaceData()[1]))
 		case reflect.Bool:
-			if r.Bool() {
-				print("true")
-			} else {
-				print("false")
-			}
+			print(r.Bool())
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			print(r.Int())
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
