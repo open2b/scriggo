@@ -242,9 +242,6 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 			tokensInLine = 0
 		}
 
-		// Parent is always the last ancestor.
-		parent := p.ancestors[len(p.ancestors)-1]
-
 		switch tok.typ {
 
 		// EOF
@@ -255,21 +252,38 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 
 		// Text
 		case tokenText:
-			if s, ok := parent.(*ast.Switch); ok { // TODO (Gianluca): what about Type Switches and Selects?
-				if len(s.Cases) == 0 {
-					// TODO (Gianluca): this "if" should be moved before the
-					// switch that precedes it.
+			parent := p.ancestors[len(p.ancestors)-1]
+			switch n := parent.(type) {
+			case *ast.Switch:
+				if len(n.Cases) == 0 {
+					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
 					if containsOnlySpaces(text.Text) {
-						s.LeadingText = text
+						n.LeadingText = text
 					}
 					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 				}
-				lastCase := s.Cases[len(s.Cases)-1]
+				lastCase := n.Cases[len(n.Cases)-1]
 				if lastCase.Fallthrough {
 					if containsOnlySpaces(text.Text) {
 						continue
 					}
 					return nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
+				}
+			case *ast.TypeSwitch:
+				if len(n.Cases) == 0 {
+					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
+					if containsOnlySpaces(text.Text) {
+						n.LeadingText = text
+					}
+					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+				}
+			case *ast.Select:
+				if len(n.Cases) == 0 {
+					// TODO (Gianluca): this "if" should be moved before the switch that precedes it.
+					if containsOnlySpaces(text.Text) {
+						n.LeadingText = text
+					}
+					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 				}
 			}
 			p.addChild(text)
