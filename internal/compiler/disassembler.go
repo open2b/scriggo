@@ -349,20 +349,24 @@ func disassembleInstruction(fn *vm.Function, addr uint32) string {
 		s += " " + disassembleOperand(fn, c, vm.String, false)
 	case vm.OpConvertGeneral:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		typ := fn.Types[int(uint(b))]
+		s += " " + typ.String()
+		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
 	case vm.OpConvertInt, vm.OpConvertUint:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)
-		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		typ := fn.Types[int(uint(b))]
+		s += " " + typ.String()
+		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
 	case vm.OpConvertFloat:
 		s += " " + disassembleOperand(fn, a, vm.Float64, false)
-		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		typ := fn.Types[int(uint(b))]
+		s += " " + typ.String()
+		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
 	case vm.OpConvertString:
 		s += " " + disassembleOperand(fn, a, vm.String, false)
-		s += " " + fn.Types[int(uint(b))].String()
-		s += " " + disassembleOperand(fn, c, vm.Interface, false)
+		typ := fn.Types[int(uint(b))]
+		s += " " + typ.String()
+		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
 	case vm.OpDelete:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
