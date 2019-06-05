@@ -1028,7 +1028,7 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 				}
 				argType := e.typeInfos[call.Args[i]].Type
 				argReg := e.fb.NewRegister(argType.Kind())
-				e.emitExpr(call.Args[i], argReg, sliceType)
+				e.emitExpr(call.Args[i], argReg, sliceType.Elem())
 				e.fb.Append(argReg, 1, tmpSliceReg)
 			}
 			e.changeRegister(false, tmpSliceReg, reg, sliceType, dstType)
