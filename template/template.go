@@ -50,7 +50,6 @@ type Template struct {
 	main    *scriggo.Package
 	fn      *vm.Function
 	options LoadOption
-	render  RenderFunc
 	globals []compiler.Global
 }
 
@@ -106,8 +105,8 @@ var emptyVars = map[string]interface{}{}
 // variables of the main package.
 func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	render := DefaultRenderFunc
-	if t.render != nil {
-		render = t.render
+	if options.RenderFunc != nil {
+		render = options.RenderFunc
 	}
 	write := out.Write
 	t.globals[0].Value = &out
