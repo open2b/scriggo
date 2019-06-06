@@ -7,10 +7,10 @@
 package vm
 
 import (
+	"context"
 	"reflect"
 	"strconv"
 	"sync"
-	"time"
 )
 
 const NoVariadic = -1
@@ -110,14 +110,7 @@ func (vm *VM) Reset() {
 	}
 }
 
-type Context interface {
-	Deadline() (deadline time.Time, ok bool)
-	Done() <-chan struct{}
-	Err() error
-	Value(key interface{}) interface{}
-}
-
-func (vm *VM) SetContext(ctx Context) {
+func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
 	if ctx != nil {
 		if done := ctx.Done(); done != nil {
@@ -829,11 +822,11 @@ const (
 
 // Env represents an execution environment.
 type Env struct {
-	globals   []interface{} // global variables.
-	ctx       Context       // context.
-	dontPanic bool          // don't panic.
-	trace     TraceFunc     // trace function.
-	print     PrintFunc     // custom print builtin.
+	globals   []interface{}   // global variables.
+	ctx       context.Context // context.
+	dontPanic bool            // don't panic.
+	trace     TraceFunc       // trace function.
+	print     PrintFunc       // custom print builtin.
 
 	mu         sync.Mutex // mutex for the following fields.
 	freeMemory int        // free memory.
@@ -872,7 +865,7 @@ func (env *Env) ExitFunc(f func()) {
 }
 
 // Context returns the context of the environment.
-func (env *Env) Context() Context {
+func (env *Env) Context() context.Context {
 	return env.ctx
 }
 
