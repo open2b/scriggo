@@ -219,6 +219,10 @@ func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 	// Second: updates upvarNames with external-defined names.
 	closureRefs := make([]int16, len(upvars))
 	e.upvarsNames[fn] = make(map[string]int)
+	if e.isTemplate {
+		// If it's a template, adds reserved global variables.
+		closureRefs = append(closureRefs, 0, 1, 2)
+	}
 	for i, uv := range upvars {
 		e.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
 		closureRefs[i] = uv.Index

@@ -418,24 +418,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.ShowMacro:
-			// TODO (Gianluca): to review.
-			name := node.Macro.Name
-			_, ok := tc.lookupScopes(name, false)
-			if !ok {
-				panic(tc.errorf("undefined macro: %s", name))
-			}
+			// TODO(Gianluca): investigate support for variadic macros.
+			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Arguments, false)
+			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:
-			// TODO (Gianluca): handle types for macros.
-			name := node.Ident.Name
-			_, ok := tc.lookupScopes(name, false)
-			if ok {
-				panic(tc.errorf("macro %s redeclared in this page", name))
-			}
-			tc.CheckNodesInNewScope(node.Body)
-			// TODO (Gianluca):
-			ti := &TypeInfo{}
-			tc.assignScope(name, ti, nil)
+			nodes[i] = ast.NewFunc(node.Pos(), node.Ident, node.Type, ast.NewBlock(nil, node.Body))
+			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Call:
 			tis, isBuiltin, _ := tc.checkCallExpression(node, true)

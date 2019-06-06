@@ -24,6 +24,12 @@ type emitter struct {
 	typeInfos            map[ast.Node]*TypeInfo
 	upvarsNames          map[*vm.Function]map[string]int
 
+	isTemplate bool // Indicates if it's a template.
+	template   struct {
+		gA, gB, gC, gD, gE int8 // Reserved general registers.
+		iA                 int8 // Reserved int register.
+	}
+
 	// Scriggo functions.
 	availableFunctions map[*ast.Package]map[string]*vm.Function
 	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
@@ -95,27 +101,31 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
+	e.isTemplate = true
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
-	// Registers.
-	e.fb.NewRegister(reflect.Interface) // w io.Writer
-	e.fb.NewRegister(reflect.Interface) // Write
-	e.fb.NewRegister(reflect.Interface) // Render
-	e.fb.NewRegister(reflect.Interface) // free.
-	e.fb.NewRegister(reflect.Interface) // free.
-	e.fb.NewRegister(reflect.Int)       // free.
-	e.fb.GetVar(0, 1)
-	e.fb.GetVar(1, 2)
-	e.fb.GetVar(2, 3)
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
+	e.reserveTemplateRegisters()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
 	return e.fb.fn, e.globals
+}
+
+func (e *emitter) reserveTemplateRegisters() {
+	e.template.gA = e.fb.NewRegister(reflect.Interface) // w io.Writer
+	e.template.gB = e.fb.NewRegister(reflect.Interface) // Write
+	e.template.gC = e.fb.NewRegister(reflect.Interface) // Render
+	e.template.gD = e.fb.NewRegister(reflect.Interface) // free.
+	e.template.gE = e.fb.NewRegister(reflect.Interface) // free.
+	e.template.iA = e.fb.NewRegister(reflect.Int)       // free.
+	e.fb.GetVar(0, e.template.gA)
+	e.fb.GetVar(1, e.template.gB)
+	e.fb.GetVar(2, e.template.gC)
 }
 
 // emittedPackage is the result of a package emitting process.
@@ -390,6 +400,7 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 // former is used before calling a function, the latter is used before emitting
 // it's body.
 func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
+
 	// Reserves space for return parameters.
 	fillParametersTypes(fun.Type.Result)
 	for _, res := range fun.Type.Result {
@@ -409,6 +420,10 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 		if par.Ident != nil {
 			e.fb.BindVarReg(par.Ident.Name, argReg)
 		}
+	}
+
+	if e.isTemplate {
+		e.reserveTemplateRegisters()
 	}
 }
 
@@ -1468,11 +1483,11 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.fb.Send(ch, v)
 
 		case *ast.Show:
-			// render([implicit *vm.Env,] g4 io.Writer, g5 interface{}, i1 ast.Context)
-			e.emitExpr(node.Expr, 5, emptyInterfaceType)
-			// TODO(Gianluca): put context in register i1
-			e.fb.Move(false, 1, 4, reflect.Interface)
-			e.fb.CallIndirect(3, 0, vm.StackShift{0, 0, 0, 3})
+			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
+			e.emitExpr(node.Expr, e.template.gE, emptyInterfaceType)
+			// TODO(Gianluca): put context in register i1.
+			e.fb.Move(false, e.template.gA, e.template.gD, reflect.Interface)
+			e.fb.CallIndirect(e.template.gC, 0, vm.StackShift{e.template.iA - 1, 0, 0, e.template.gC})
 
 		case *ast.Switch:
 			currentBreakable := e.breakable
@@ -1487,11 +1502,11 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			e.breakLabel = currentBreakLabel
 
 		case *ast.Text:
-			// Write(g5 []byte) (i1 int, g4 error)
+			// Write(gE []byte) (iA int, gD error)
 			index := len(e.fb.fn.Data)
 			e.fb.fn.Data = append(e.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
-			e.fb.LoadData(int16(index), 5)
-			e.fb.CallIndirect(2, 0, vm.StackShift{0, 0, 0, 3})
+			e.fb.LoadData(int16(index), e.template.gE)
+			e.fb.CallIndirect(e.template.gB, 0, vm.StackShift{e.template.iA - 1, 0, 0, e.template.gC})
 
 		case *ast.TypeSwitch:
 			currentBreakable := e.breakable

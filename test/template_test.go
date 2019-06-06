@@ -96,6 +96,49 @@ var templateCases = map[string]struct {
 		out: `42`,
 	},
 
+	"Macro definition (no arguments)": {
+		src: `Macro def: {% macro M %}M's body{% end %}end.`,
+		out: `Macro def: end.`,
+	},
+
+	"Macro definition (no arguments) and show-macro": {
+		src: `{% macro M %}body{% end %}{% show M %}`,
+		out: `body`,
+	},
+
+	"Macro definition (with arguments)": {
+		src: `{% macro M(v int) %}v is {{ v }}{% end %}`,
+	},
+
+	"Macro definition (with one string argument) and show-macro": {
+		src: `{% macro M(v string) %}v is {{ v }}{% end %}{% show M("msg") %}`,
+		out: `v is msg`,
+	},
+
+	"Macro definition (with two string arguments) and show-macro": {
+		src: `{% macro M(a, b string) %}a is {{ a }} and b is {{ b }}{% end %}{% show M("avalue", "bvalue") %}`,
+		out: `a is avalue and b is bvalue`,
+	},
+
+	"Macro definition (with one int argument) and show-macro": {
+		src: `{% macro M(v int) %}v is {{ v }}{% end %}{% show M(42) %}`,
+		out: `v is 42`,
+	},
+
+	"Macro definition (with one []int argument) and show-macro": {
+		src: `{% macro M(v []int) %}v is {{ v }}{% end %}{% show M([]int{42}) %}`,
+		out: `v is [42]`,
+	},
+
+	"Two macro definitions": {
+		src: `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}`,
+	},
+
+	"Two macro definitions and three show-macro": {
+		src: `{% macro M1 %}M1's body{% end %}{% macro M2(i int, s string) %}i: {{ i }}, s: {{ s }}{% end %}Show macro: {% show M1 %} {% show M2(-30, "hello") %} ... {% show M1 %}`,
+		out: `Show macro: M1's body i: -30, s: hello ... M1's body`,
+	},
+
 	// TODO(Gianluca): out of memory.
 	// "Template builtin - title": {
 	// 	src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
