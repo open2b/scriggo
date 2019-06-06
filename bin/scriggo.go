@@ -25,7 +25,7 @@ import (
 	"scriggo/vm"
 )
 
-const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
+const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-builtins] [-trace] filename\n"
 
 var packages scriggo.Packages
 
@@ -43,6 +43,7 @@ func main() {
 	var asm = flag.Bool("S", false, "print assembly listing")
 	var timeout = flag.String("time", "", "`limit` the execution time; zero is no limit")
 	var mem = flag.String("mem", "", "`limit` the allocable memory; zero is no limit")
+	var builtin = flag.Bool("builtins", false, "allow the use of builtins in scripts")
 	var trace = flag.Bool("trace", false, "print an execution trace")
 
 	flag.Parse()
@@ -131,7 +132,11 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scriggo.LoadScript(r, packages, loadOptions|scriggo.AllowShebangLine)
+		var loaders scriggo.PackageLoader = packages
+		if *builtin {
+			loaders = scriggo.Loaders(scriggo.Packages{"main": builtins.Main()}, packages)
+		}
+		script, err := scriggo.LoadScript(r, loaders, loadOptions|scriggo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
