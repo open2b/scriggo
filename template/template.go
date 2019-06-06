@@ -104,6 +104,9 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
+		return errors.New("scrigoo: template not loaded with LimitMemorySize option")
+	}
 	render := DefaultRenderFunc
 	if options.RenderFunc != nil {
 		render = options.RenderFunc
@@ -115,25 +118,7 @@ func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]in
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(t.globals, vars)
-	if ctx != nil {
-		vmm.SetContext(ctx)
-	}
-	if options.MaxMemorySize > 0 {
-		if t.options&LimitMemorySize == 0 {
-			return errors.New("program not loaded with LimitMemorySize option")
-		}
-		vmm.SetMaxMemory(options.MaxMemorySize)
-	}
-	if options.DontPanic {
-		vmm.SetDontPanic(true)
-	}
-	if options.PrintFunc != nil {
-		vmm.SetPrint(options.PrintFunc)
-	}
-	if options.TraceFunc != nil {
-		vmm.SetTraceFunc(options.TraceFunc)
-	}
+	vmm := newVM(ctx, t.globals, vars, options)
 	_, err := vmm.Run(t.fn)
 	return err
 }
@@ -149,8 +134,11 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(globals []compiler.Global, init map[string]interface{}) *vm.VM {
+func newVM(ctx context.Context, globals []compiler.Global, init map[string]interface{}, options RenderOptions) *vm.VM {
 	vmm := vm.New()
+	if ctx != nil {
+		vmm.SetContext(ctx)
+	}
 	if n := len(globals); n > 0 {
 		values := make([]interface{}, n)
 		for i, global := range globals {
@@ -171,6 +159,18 @@ func newVM(globals []compiler.Global, init map[string]interface{}) *vm.VM {
 			}
 		}
 		vmm.SetGlobals(values)
+	}
+	if options.MaxMemorySize > 0 {
+		vmm.SetMaxMemory(options.MaxMemorySize)
+	}
+	if options.DontPanic {
+		vmm.SetDontPanic(true)
+	}
+	if options.PrintFunc != nil {
+		vmm.SetPrint(options.PrintFunc)
+	}
+	if options.TraceFunc != nil {
+		vmm.SetTraceFunc(options.TraceFunc)
 	}
 	return vmm
 }
