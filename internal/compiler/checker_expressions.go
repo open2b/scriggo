@@ -267,15 +267,17 @@ func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
 	delete(tc.TypeInfo, old)
 }
 
-// getScopeLevel returns the scope level in which name is declared.
-func (tc *typechecker) getScopeLevel(name string) int {
+// getScopeLevel returns the scope level in which name is declared, and a
+// boolean which indicates if has been imported from another package/page or
+// not.
+func (tc *typechecker) getScopeLevel(name string) (int, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.Scopes) - 1; i >= 0; i-- {
 		if _, ok := tc.Scopes[i][name]; ok {
-			return i + 1 // TODO(Gianluca): to review.
+			return i + 1, false // TODO(Gianluca): to review.
 		}
 	}
-	return -1
+	return -1, tc.filePackageBlock[name].decl == nil
 }
 
 // getDeclarationNode returns the declaration node which declares name.
@@ -302,7 +304,11 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 // declaration to the inner one.
 func (tc *typechecker) funcChain(name string) []*ast.Func {
 	funcs := []*ast.Func{}
-	declLevel := tc.getScopeLevel(name)
+	declLevel, imported := tc.getScopeLevel(name)
+	// If name has been imported, function chain does not exist.
+	if imported {
+		return nil
+	}
 	for _, anc := range tc.ancestors {
 		if fun, ok := anc.node.(*ast.Func); ok {
 			if declLevel < anc.scopeLevel {

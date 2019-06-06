@@ -239,6 +239,31 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expected: "indexstart,i1start,i2,i1end,indexend,",
 	},
+
+	"Import/Macro - Importing a macro defined in another page": {
+		sources: map[string]string{
+			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
+			"/page.html":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
+		},
+		expected: "macro!macro!",
+	},
+
+	"Import/Macro - Importing a macro defined in another page, which imports a third page": {
+		sources: map[string]string{
+			"/index.html": `{% import "/page1.html" %}index-start,{% show M1 %}index-end`,
+			"/page1.html": `{% import "/page2.html" %}{% macro M1 %}M1-start,{% show M2 %}M1-end,{% end %}`,
+			"/page2.html": `{% macro M2 %}M2,{% end %}`,
+		},
+		expected: "index-start,M1-start,M2,M1-end,index-end",
+	},
+
+	"Import/Macro - Importing a macro using an import statement with identifier": {
+		sources: map[string]string{
+			"/index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
+			"/page.html":  `{% macro M %}macro!{% end %}`,
+		},
+		expected: "macro!macro!",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {

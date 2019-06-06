@@ -33,32 +33,73 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		switch node := node.(type) {
 
 		case *ast.Import:
-			// Import statement in scripts.
-			predeclaredPkg, ok := tc.predefinedPkgs[node.Path]
-			if !ok {
-				panic(tc.errorf(node, "cannot find package %q", node.Path))
-			}
-			importedPkg := &PackageInfo{}
-			importedPkg.Declarations = make(map[string]*TypeInfo, len(predeclaredPkg.Declarations))
-			for n, d := range ToTypeCheckerScope(predeclaredPkg) {
-				importedPkg.Declarations[n] = d.t
-			}
-			importedPkg.Name = predeclaredPkg.Name
-			if node.Ident == nil {
-				tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-				tc.unusedImports[importedPkg.Name] = nil
-			} else {
-				switch node.Ident.Name {
-				case "_":
-				case ".":
+			if node.Tree == nil {
+				// Import statement in script.
+				predeclaredPkg, ok := tc.predefinedPkgs[node.Path]
+				if !ok {
+					panic(tc.errorf(node, "cannot find package %q", node.Path))
+				}
+				importedPkg := &PackageInfo{}
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(predeclaredPkg.Declarations))
+				for n, d := range ToTypeCheckerScope(predeclaredPkg) {
+					importedPkg.Declarations[n] = d.t
+				}
+				importedPkg.Name = predeclaredPkg.Name
+				if node.Ident == nil {
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
-					for ident, ti := range importedPkg.Declarations {
-						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
-						tc.filePackageBlock[ident] = scopeElement{t: ti}
+				} else {
+					switch node.Ident.Name {
+					case "_":
+					case ".":
+						tc.unusedImports[importedPkg.Name] = nil
+						for ident, ti := range importedPkg.Declarations {
+							tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+							tc.filePackageBlock[ident] = scopeElement{t: ti}
+						}
+					default:
+						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.unusedImports[node.Ident.Name] = nil
 					}
-				default:
-					tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-					tc.unusedImports[node.Ident.Name] = nil
+				}
+			} else {
+				// Imports a template page in templates.
+				if node.Ident != nil && node.Ident.Name == "_" {
+					// Nothing to do.
+				} else {
+					importTc := newTypechecker(node.Tree.Path, true, false) // TODO(Gianluca): to review.
+					importTc.addScope()
+					importTc.checkNodes(node.Tree.Nodes)
+					// Imports all macro declarations from page.
+					decls := map[string]scopeElement{}
+					for name, v := range importTc.Scopes[0] {
+						if isExported(name) && v.t.Type.Kind() == reflect.Func {
+							decls[name] = v
+						}
+					}
+					importTc.removeCurrentScope()
+					if node.Ident == nil || (node.Ident != nil && node.Ident.Name == ".") {
+						// Import statements without identifier
+						// behave like imports with "." identifier;
+						// this is the only difference between
+						// import statements in Scriggo's template
+						// and Go.
+						for name, v := range decls {
+							v.decl = nil // Marks v as not declared in this page.
+							tc.filePackageBlock[name] = v
+						}
+					} else {
+						pkg := &PackageInfo{}
+						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: pkg, Properties: PropertyIsPackage}}
+						pkg.Declarations = map[string]*TypeInfo{}
+						for name, d := range decls {
+							pkg.Declarations[name] = d.t
+						}
+					}
+					// TODO(Gianluca): review.
+					for k, v := range importTc.TypeInfo {
+						tc.TypeInfo[k] = v
+					}
 				}
 			}
 
@@ -419,7 +460,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.ShowMacro:
 			// TODO(Gianluca): investigate support for variadic macros.
-			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Arguments, false)
+			var fun ast.Expression
+			if node.Import != nil {
+				fun = ast.NewSelector(node.Import.Pos(), node.Import, node.Macro.Name)
+			} else {
+				fun = node.Macro
+			}
+			nodes[i] = ast.NewCall(node.Pos(), fun, node.Arguments, false)
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:

@@ -588,7 +588,8 @@ func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx C
 
 // ShowMacro node represents a statement {% show <macro> %}.
 type ShowMacro struct {
-	*Position              // position in the source.
+	*Position // position in the source.
+	// TODO(Gianluca): unify Import and Macro.
 	Import    *Identifier  // name of the import.
 	Macro     *Identifier  // name of the macro.
 	Arguments []Expression // arguments.

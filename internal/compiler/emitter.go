@@ -100,6 +100,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
+	e.pkg = &ast.Package{}
 	e.addAllocInstructions = alloc
 	e.isTemplate = true
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
@@ -473,7 +474,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scriggo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if fun, ok := e.availableFunctions[e.pkg][selector.Ident+"."+ident.Name]; ok {
+			if fun, ok := e.availableFunctions[e.pkg][ident.Name+"."+selector.Ident]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
 				e.fb.Call(index, stackShift, call.Pos().Line)
@@ -786,14 +787,38 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Func:
 
-		// Supports scripts function declarations.
-		if expr.Ident != nil {
+		// Template macro definition.
+		if expr.Ident != nil && e.isTemplate {
+			macroFn := NewFunction("", expr.Ident.Name, expr.Type.Reflect)
+			if e.availableFunctions[e.pkg] == nil {
+				e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+			}
+			e.availableFunctions[e.pkg][expr.Ident.Name] = macroFn
+			fb := e.fb
+			e.setClosureRefs(macroFn, expr.Upvars)
+			e.fb = newBuilder(macroFn)
+			e.fb.SetAlloc(e.addAllocInstructions)
+			e.fb.EnterScope()
+			e.prepareFunctionBodyParameters(expr)
+			e.EmitNodes(expr.Body.Nodes)
+			e.fb.End()
+			e.fb.ExitScope()
+			e.fb = fb
+			return
+		}
+
+		// Script function definition.
+		if expr.Ident != nil && !e.isTemplate {
 			varReg := e.fb.NewRegister(reflect.Func)
 			e.fb.BindVarReg(expr.Ident.Name, varReg)
+			ident := expr.Ident
 			expr.Ident = nil // avoids recursive calls.
 			funcType := e.typeInfos[expr].Type
-			addr := e.newAddress(addressRegister, funcType, varReg, 0)
-			e.assign([]address{addr}, []ast.Expression{expr})
+			if e.isTemplate {
+				addr := e.newAddress(addressRegister, funcType, varReg, 0)
+				e.assign([]address{addr}, []ast.Expression{expr})
+			}
+			expr.Ident = ident
 			return
 		}
 
@@ -1287,7 +1312,35 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			}
 
 		case *ast.Import:
-			// Nothing to do.
+			if e.isTemplate {
+				if node.Ident != nil && node.Ident.Name == "_" {
+					// Nothing to do: template pages cannot have
+					// collateral effects.
+				} else {
+					importE := newEmitter(e.typeInfos, e.indirectVars)
+					importE.isTemplate = true
+					importE.pkg = &ast.Package{}
+					fn := NewFunction("", "", reflect.FuncOf(nil, nil, false))
+					importE.fb = newBuilder(fn)
+					importE.fb.EnterScope()
+					importE.reserveTemplateRegisters()
+					importE.EmitNodes(node.Tree.Nodes)
+					for _, n := range node.Tree.Nodes {
+						if macro, ok := n.(*ast.Func); ok {
+							name := macro.Ident.Name
+							if e.availableFunctions[e.pkg] == nil {
+								e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+							}
+							if node.Ident == nil {
+								e.availableFunctions[e.pkg][name] = importE.availableFunctions[importE.pkg][name]
+							} else {
+								e.availableFunctions[e.pkg][node.Ident.Name+"."+name] = importE.availableFunctions[importE.pkg][name]
+							}
+						}
+					}
+					importE.fb.ExitScope()
+				}
+			}
 
 		case *ast.For:
 			currentBreakable := e.breakable

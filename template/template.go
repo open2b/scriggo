@@ -79,7 +79,13 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
-	mainFn, globals := compiler.EmitTemplate(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	typeInfos := map[ast.Node]*compiler.TypeInfo{}
+	for _, pkgInfos := range tci {
+		for node, ti := range pkgInfos.TypeInfo {
+			typeInfos[node] = ti
+		}
+	}
+	mainFn, globals := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, alloc)
 	return &Template{main: main, fn: mainFn, globals: globals}, nil
 }
 
