@@ -1058,7 +1058,7 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			p.addChild(p.parseImportSpec(tok))
 			tok = next(p.lex)
-			if tok.typ != tokenSemicolon {
+			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 		}
