@@ -286,7 +286,7 @@ func TestRenderExpressions(t *testing.T) {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Render(b, nil, RenderOptions{})
+			err = templ.Render(nil, b, nil, RenderOptions{})
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}
@@ -506,7 +506,7 @@ func TestRenderStatements(t *testing.T) {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
 			b := &bytes.Buffer{}
-			err = templ.Render(b, nil, RenderOptions{})
+			err = templ.Render(nil, b, nil, RenderOptions{})
 			if err != nil {
 				t.Fatalf("source %q: rendering error: %s", cas.src, err)
 			}

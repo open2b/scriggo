@@ -51,6 +51,7 @@ func main() {
 	var loadOptions scriggo.LoadOption
 	var runOptions scriggo.RunOptions
 
+	var ctx context.Context
 	if *timeout != "" {
 		d, err := time.ParseDuration(*timeout)
 		if err != nil {
@@ -60,7 +61,7 @@ func main() {
 		}
 		if d != 0 {
 			var cancel context.CancelFunc
-			runOptions.Context, cancel = context.WithTimeout(context.Background(), d)
+			ctx, cancel = context.WithTimeout(context.Background(), d)
 			defer cancel()
 		}
 	}
@@ -149,7 +150,7 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			err = script.Run(nil, runOptions)
+			err = script.Run(ctx, nil, runOptions)
 			if err != nil {
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
@@ -172,7 +173,7 @@ func main() {
 				os.Exit(2)
 			}
 		} else {
-			err = program.Run(runOptions)
+			err = program.Run(ctx, runOptions)
 			if err != nil {
 				if err == context.DeadlineExceeded {
 					err = errors.New("process took too long")
@@ -198,11 +199,10 @@ func main() {
 
 		} else {
 			options := template.RenderOptions{
-				Context:       runOptions.Context,
 				MaxMemorySize: runOptions.MaxMemorySize,
 				TraceFunc:     runOptions.TraceFunc,
 			}
-			err = t.Render(os.Stdout, nil, options)
+			err = t.Render(nil, os.Stdout, nil, options)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(-1)

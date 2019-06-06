@@ -39,7 +39,6 @@ const (
 )
 
 type RenderOptions struct {
-	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
 	RenderFunc    RenderFunc
@@ -105,7 +104,7 @@ var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
-func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	render := DefaultRenderFunc
 	if t.render != nil {
 		render = t.render
@@ -118,8 +117,8 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 		vars = emptyVars
 	}
 	vmm := newVM(t.globals, vars)
-	if options.Context != nil {
-		vmm.SetContext(options.Context)
+	if ctx != nil {
+		vmm.SetContext(ctx)
 	}
 	if options.MaxMemorySize > 0 {
 		if t.options&LimitMemorySize == 0 {
