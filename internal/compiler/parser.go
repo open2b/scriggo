@@ -354,7 +354,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	var ok bool
 
-	if p.ctx != ast.ContextGo {
+	if tok.typ == tokenStartStatement {
 		tok = next(p.lex)
 	}
 
@@ -387,7 +387,7 @@ func (p *parsing) parseStatement(tok token) {
 	// ;
 	case tokenSemicolon:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting %%}")})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected semicolon, expecting statement")})
 		}
 
 	// package
@@ -694,7 +694,7 @@ func (p *parsing) parseStatement(tok token) {
 	// {
 	case tokenLeftBraces:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 		}
 		node = ast.NewBlock(tok.pos, nil)
 		p.deps.enterScope()
@@ -705,7 +705,7 @@ func (p *parsing) parseStatement(tok token) {
 	// }
 	case tokenRightBraces:
 		if p.ctx != ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 		}
 		if len(p.ancestors) == 1 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("not opened brace")})
@@ -744,12 +744,8 @@ func (p *parsing) parseStatement(tok token) {
 
 	// else
 	case tokenElse:
-		if p.ctx == ast.ContextGo {
-			if len(p.ancestors) == 1 {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected else")})
-			}
-		} else {
-			// Closes the parent block.
+		if p.ctx != ast.ContextGo {
+			// Closes the "then" block.
 			if _, ok = parent.(*ast.Block); !ok {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected else")})
 			}
@@ -843,9 +839,6 @@ func (p *parsing) parseStatement(tok token) {
 
 	// include
 	case tokenInclude:
-		if p.ctx == ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement not in template")})
-		}
 		if p.hasExtend && !p.isInMacro {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("include statement outside macro")})
 		}
@@ -872,9 +865,6 @@ func (p *parsing) parseStatement(tok token) {
 
 	// show
 	case tokenShow:
-		if p.ctx == ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("show statement not in template")})
-		}
 		// TODO(Gianluca): consider check if p.isExtended && !p.isInMacro
 		// before entering parsing switch, removing checks from all cases.
 		if p.hasExtend && !p.isInMacro {
@@ -943,10 +933,9 @@ func (p *parsing) parseStatement(tok token) {
 
 	// extends
 	case tokenExtends:
-		if p.ctx == ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends statement not in template")})
+		if tok.ctx != p.ctx {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends not in %s content", p.ctx)})
 		}
-
 		if p.hasExtend {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends already exists")})
 		}
@@ -954,16 +943,6 @@ func (p *parsing) parseStatement(tok token) {
 		if len(tree.Nodes) > 0 {
 			if _, ok = tree.Nodes[0].(*ast.Text); !ok || len(tree.Nodes) > 1 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends can only be the first statement")})
-			}
-		}
-		if tok.ctx != p.ctx {
-			switch tok.ctx {
-			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside an attribute value")})
-			case ast.ContextJavaScript:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside a script tag")})
-			case ast.ContextCSS:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("extends inside a style tag")})
 			}
 		}
 		tok = next(p.lex)
@@ -987,14 +966,7 @@ func (p *parsing) parseStatement(tok token) {
 	case tokenVar, tokenConst:
 		var decType = tok.typ
 		if tok.ctx != p.ctx {
-			switch tok.ctx {
-			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside an attribute value", decType)})
-			case ast.ContextJavaScript:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside a script tag", decType)})
-			case ast.ContextCSS:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s inside a style tag", decType)})
-			}
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s declaration not in %s content", decType, p.ctx)})
 		}
 		tok = next(p.lex)
 		if tok.typ == tokenLeftParenthesis {
@@ -1035,37 +1007,38 @@ func (p *parsing) parseStatement(tok token) {
 
 	// import
 	case tokenImport:
+		var outOfOrder bool
+		switch p := parent.(type) {
+		case *ast.Tree:
+			for i := len(p.Nodes) - 1; i >= 0; i-- {
+				switch p.Nodes[i].(type) {
+				case *ast.Extends, *ast.Import:
+					break
+				case *ast.Text:
+				default:
+					outOfOrder = true
+					break
+				}
+			}
+		case *ast.Package:
+			if len(p.Declarations) > 0 {
+				if _, ok := p.Declarations[0].(*ast.Import); !ok {
+					outOfOrder = true
+				}
+			}
+		default:
+			outOfOrder = true
+		}
+		if outOfOrder {
+			if tok.ctx == ast.ContextGo {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected import, expecting }")})
+			} else {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected import, expecting statement")})
+			}
+		}
 		if tok.ctx != p.ctx {
-			switch tok.ctx {
-			case ast.ContextAttribute, ast.ContextUnquotedAttribute:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside an attribute value")})
-			case ast.ContextJavaScript:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside a script tag")})
-			case ast.ContextCSS:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import inside a style tag")})
-			}
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not in %s content", p.ctx)})
 		}
-		for i := len(p.ancestors) - 1; i > 0; i-- {
-			switch p.ancestors[i].(type) {
-			case ast.For, ast.ForRange:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)})
-			case *ast.If:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)})
-			case *ast.Func:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting }", tok)})
-			case *ast.Macro:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
-			case *ast.Case:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
-			}
-		}
-		// TODO(Gianluca): import statements are now allowed in scripts.
-		// Find another way to check admissibility of such statements.
-		// if p.ctx == ast.ContextGo {
-		// 	if _, ok := parent.(*ast.Package); !ok {
-		// 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("import not inside a package")})
-		// 	}
-		// }
 		tok = next(p.lex)
 		if p.ctx == ast.ContextGo && tok.typ == tokenLeftParenthesis {
 			tok = next(p.lex)
@@ -1093,23 +1066,11 @@ func (p *parsing) parseStatement(tok token) {
 
 	// macro
 	case tokenMacro:
-		if p.ctx == ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro statement not in template")})
+		if len(p.ancestors) > 1 {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected macro in statement scope")})
 		}
-		// TODO(Gianluca): add missing contexts to all cases.
-		if tok.ctx == ast.ContextAttribute || tok.ctx == ast.ContextUnquotedAttribute {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro inside an attribute value")})
-		}
-		// TODO(Gianluca): replace "for" with "if len(p.ancestors) > 1".
-		for i := len(p.ancestors) - 1; i > 0; i-- {
-			switch p.ancestors[i].(type) {
-			case ast.For:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end for", tok)})
-			case *ast.If:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end if", tok)})
-			case *ast.Macro:
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting end macro", tok)})
-			}
+		if tok.ctx != p.ctx {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("macro not in %s content", p.ctx)})
 		}
 		// Parses the macro name.
 		tok = next(p.lex)
@@ -1143,9 +1104,6 @@ func (p *parsing) parseStatement(tok token) {
 
 	// end
 	case tokenEnd:
-		if p.ctx == ast.ContextGo {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("end statement not in template")})
-		}
 		if _, ok = parent.(*ast.URL); ok || len(p.ancestors) == 1 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)})
 		}
@@ -1155,23 +1113,31 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		tok = next(p.lex)
 		if tok.typ != tokenEndStatement {
-			tokparent := tok
+			parentTok := tok
 			tok = next(p.lex)
 			if tok.typ != tokenEndStatement {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 			switch parent.(type) {
 			case ast.For:
-				if tokparent.typ != tokenFor {
-					panic(&SyntaxError{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)})
+				if parentTok.typ != tokenFor {
+					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting for or %%}", tok)})
 				}
 			case *ast.If:
-				if tokparent.typ != tokenIf {
-					panic(&SyntaxError{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
+				if parentTok.typ != tokenIf {
+					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting if or %%}", tok)})
 				}
 			case *ast.Macro:
-				if tokparent.typ != tokenMacro {
-					panic(&SyntaxError{"", *tokparent.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)})
+				if parentTok.typ != tokenMacro {
+					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting macro or %%}", tok)})
+				}
+			case ast.Switch, ast.TypeSwitch:
+				if parentTok.typ != tokenSwitch {
+					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting switch or %%}", tok)})
+				}
+			case ast.Select:
+				if parentTok.typ != tokenSelect {
+					panic(&SyntaxError{"", *parentTok.pos, fmt.Errorf("unexpected %s, expecting select or %%}", tok)})
 				}
 			}
 		}
@@ -1193,31 +1159,28 @@ func (p *parsing) parseStatement(tok token) {
 
 	// type
 	case tokenType:
-		if p.ctx == ast.ContextGo {
-			var td *ast.TypeDeclaration
-			pos = tok.pos
-			tok = next(p.lex)
-			if tok.typ == tokenLeftParenthesis {
-				// "type" "(" ... ")" .
-				for {
-					tok = next(p.lex)
-					td, tok = p.parseTypeDecl(tok)
-					td.Position = pos
-					p.addChild(td)
-					if tok.typ == tokenRightParenthesis {
-						break
-					}
-				}
-				pos.End = tok.pos.End
-			} else {
-				// "type" identifier [ "=" ] type .
+		var td *ast.TypeDeclaration
+		pos = tok.pos
+		tok = next(p.lex)
+		if tok.typ == tokenLeftParenthesis {
+			// "type" "(" ... ")" .
+			for {
+				tok = next(p.lex)
 				td, tok = p.parseTypeDecl(tok)
-				pos.End = tok.pos.End
 				td.Position = pos
 				p.addChild(td)
-
+				if tok.typ == tokenRightParenthesis {
+					break
+				}
 			}
-			return
+			pos.End = tok.pos.End
+		} else {
+			// "type" identifier [ "=" ] type .
+			td, tok = p.parseTypeDecl(tok)
+			pos.End = tok.pos.End
+			td.Position = pos
+			p.addChild(td)
+
 		}
 
 	// defer or go
@@ -1246,6 +1209,9 @@ func (p *parsing) parseStatement(tok token) {
 
 	// goto
 	case tokenGoto:
+		if tok.ctx != ast.ContextGo {
+			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected goto outside function body")})
+		}
 		tok = next(p.lex)
 		if tok.typ != tokenIdentifier {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting name", tok)})
@@ -1259,7 +1225,8 @@ func (p *parsing) parseStatement(tok token) {
 		if p.ctx == ast.ContextGo {
 			// Note that parseFunc does not consume the next token because
 			// kind is not parseType.
-			if _, ok := parent.(*ast.Package); ok || len(p.ancestors) == 1 {
+			switch parent.(type) {
+			case *ast.Tree, *ast.Package:
 				node, _ = p.parseFunc(tok, parseFuncDecl)
 				// Consumes the semicolon.
 				tok = next(p.lex)
@@ -1274,7 +1241,8 @@ func (p *parsing) parseStatement(tok token) {
 
 	// assignment, send, label or expression
 	default:
-		expressions, tok := p.parseExprList(tok, true, false, false, false)
+		var expressions []ast.Expression
+		expressions, tok = p.parseExprList(tok, true, false, false, false)
 		if len(expressions) == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting for, if, show, extends, include, macro or end", tok)})
 		}
