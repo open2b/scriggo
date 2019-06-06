@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"scriggo"
+	"scriggo/builtins"
 	"scriggo/template"
-	"scriggo/template/builtins"
 )
 
 var templateCases = map[string]struct {

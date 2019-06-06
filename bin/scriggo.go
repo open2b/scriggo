@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"scriggo"
+	"scriggo/builtins"
 	"scriggo/internal/compiler"
 	"scriggo/template"
-	"scriggo/template/builtins"
 	"scriggo/vm"
 )
 
