@@ -133,7 +133,7 @@ var typeTests = map[string][]tokenTyp{
 	"{{ ( 1 + 2 ) * 3 }}": {tokenStartValue, tokenLeftParenthesis, tokenInt, tokenAddition, tokenInt, tokenRightParenthesis,
 		tokenMultiplication, tokenInt, tokenEndValue},
 	"{{ map{} }}":       {tokenStartValue, tokenMap, tokenLeftBraces, tokenRightBraces, tokenEndValue},
-	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenInt, tokenRightBraces, tokenEndValue},
+	"{{ map{`a`: 6} }}": {tokenStartValue, tokenMap, tokenLeftBraces, tokenRawString, tokenColon, tokenInt, tokenSemicolon, tokenRightBraces, tokenEndValue},
 	"{{ interface{} }}": {tokenStartValue, tokenInterface, tokenLeftBraces, tokenRightBraces, tokenEndValue},
 }
 

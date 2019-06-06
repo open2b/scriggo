@@ -714,7 +714,7 @@ LOOP:
 				endLineAsSemicolon = false
 			}
 		case '/':
-			if len(l.src) > 1 && l.src[1] == '/' && l.ctx == ast.ContextGo {
+			if len(l.src) > 1 && l.src[1] == '/' {
 				p := bytes.Index(l.src, []byte("\n"))
 				if p == -1 {
 					break LOOP
@@ -728,7 +728,7 @@ LOOP:
 				l.src = l.src[1:]
 				continue LOOP
 			}
-			if len(l.src) > 1 && l.src[1] == '*' && l.ctx == ast.ContextGo {
+			if len(l.src) > 1 && l.src[1] == '*' {
 				p := bytes.Index(l.src, []byte("*/"))
 				if p == -1 {
 					return l.errorf("comment not terminated")
@@ -851,7 +851,7 @@ LOOP:
 			unclosedLeftBraces++
 		case '}':
 			if unclosedLeftBraces > 0 {
-				if endLineAsSemicolon && l.ctx == ast.ContextGo {
+				if endLineAsSemicolon {
 					l.emit(tokenSemicolon, 0)
 				}
 				l.emit(tokenRightBraces, 1)

@@ -354,7 +354,8 @@ func (p *parsing) parseStatement(tok token) {
 
 	var ok bool
 
-	if tok.typ == tokenStartStatement {
+	isTemplate := tok.typ == tokenStartStatement
+	if isTemplate {
 		tok = next(p.lex)
 	}
 
@@ -539,9 +540,10 @@ func (p *parsing) parseStatement(tok token) {
 				p.deps.enterScope()
 			}
 		}
-		if node == nil || (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
+		if node == nil {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 		}
+		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -554,9 +556,7 @@ func (p *parsing) parseStatement(tok token) {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 		pos.End = tok.pos.End
 		node = ast.NewBreak(pos, label)
 		p.addChild(node)
@@ -570,9 +570,7 @@ func (p *parsing) parseStatement(tok token) {
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 		pos.End = tok.pos.End
 		node = ast.NewContinue(pos, label)
 		p.addChild(node)
@@ -590,9 +588,7 @@ func (p *parsing) parseStatement(tok token) {
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			expressions, tok := p.parseExprList(token{}, false, false, false, false)
-			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenColon, isTemplate)
 			pos.End = tok.pos.End
 			node := ast.NewCase(pos, expressions, nil, false)
 			p.addChild(node)
@@ -633,18 +629,14 @@ func (p *parsing) parseStatement(tok token) {
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			tok = next(p.lex)
-			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenColon, isTemplate)
 			pos.End = tok.pos.End
 			node := ast.NewCase(pos, nil, nil, false)
 			p.addChild(node)
 			p.cutSpacesToken = true
 		case *ast.Select:
 			tok = next(p.lex)
-			if (p.ctx == ast.ContextGo && tok.typ != tokenColon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenColon, isTemplate)
 			pos.End = tok.pos.End
 			node := ast.NewSelectCase(pos, nil, nil)
 			p.addChild(node)
@@ -658,9 +650,7 @@ func (p *parsing) parseStatement(tok token) {
 		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
 		tok = next(p.lex)
-		if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
@@ -682,9 +672,7 @@ func (p *parsing) parseStatement(tok token) {
 	// select
 	case tokenSelect:
 		tok = next(p.lex)
-		if (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
 		node = ast.NewSelect(pos, nil, nil)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
@@ -797,9 +785,7 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			expr = expressions[0]
 		}
-		if (p.ctx == ast.ContextGo && tok.typ != tokenLeftBraces) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
 		pos.End = tok.pos.End
 		var blockPos *ast.Position
 		if p.ctx == ast.ContextGo {
@@ -979,9 +965,7 @@ func (p *parsing) parseStatement(tok token) {
 				tok = next(p.lex)
 				if tok.typ == tokenRightParenthesis {
 					tok = next(p.lex)
-					if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-					}
+					p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 					prevNode.Pos().End = tok.pos.End
 					break
 				}
@@ -1058,9 +1042,7 @@ func (p *parsing) parseStatement(tok token) {
 		} else {
 			p.addChild(p.parseImportSpec(tok))
 			tok = next(p.lex)
-			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 		}
 		p.cutSpacesToken = true
 
@@ -1252,9 +1234,7 @@ func (p *parsing) parseStatement(tok token) {
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
-			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 			assignment.Position.End = tok.pos.End
 			p.addChild(assignment)
@@ -1267,9 +1247,7 @@ func (p *parsing) parseStatement(tok token) {
 			if value == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
+			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 			node := ast.NewSend(pos, channel, value)
 			node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, value.Pos().End}
 			p.addChild(node)
@@ -1284,9 +1262,7 @@ func (p *parsing) parseStatement(tok token) {
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
 			} else {
-				if (p.ctx == ast.ContextGo && tok.typ != tokenSemicolon) || (p.ctx != ast.ContextGo && tok.typ != tokenEndStatement) {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-				}
+				p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 				p.addChild(expr)
 				p.cutSpacesToken = true
 			}
@@ -1294,6 +1270,18 @@ func (p *parsing) parseStatement(tok token) {
 	}
 
 	return
+}
+
+func (p *parsing) parseEndStatement(tok token, want tokenTyp, isTemplate bool) {
+	if isTemplate {
+		if tok.typ == tokenSemicolon {
+			tok = next(p.lex)
+		}
+		want = tokenEndStatement
+	}
+	if tok.typ != want {
+		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, want)})
+	}
 }
 
 // parseIdentifiersList returns a list of identifiers separated by commas and

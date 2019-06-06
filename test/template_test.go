@@ -60,6 +60,36 @@ var templateCases = map[string]struct {
 		out: `[a c b] sorted is [a b c]`,
 	},
 
+	"Function call": {
+		src: `{% func() { print(5) }() %}`,
+		out: `5`,
+	},
+
+	"Multi rows": {
+		src: `{%
+	print(3) %}`,
+		out: `3`,
+	},
+
+	"Multi rows 2": {
+		src: `{%
+	print(3)
+%}`,
+		out: `3`,
+	},
+
+	"Multi rows with comments": {
+		src: `{%
+// pre comment
+/* pre comment */
+	print(3)
+/* post comment */
+// post comment
+
+%}`,
+		out: `3`,
+	},
+
 	"Using a function declared in main": {
 		src: `calling f: {{ f() }}, done!`,
 		main: &scriggo.Package{
@@ -161,7 +191,7 @@ func TestTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			err = templ.Render(w, cas.vars, template.RenderOptions{})
+			err = templ.Render(w, cas.vars, template.RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
