@@ -8,7 +8,6 @@ package template
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -105,7 +104,7 @@ var emptyVars = map[string]interface{}{}
 // variables of the main package.
 func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
-		return errors.New("scrigoo: template not loaded with LimitMemorySize option")
+		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
 	render := DefaultRenderFunc
 	if options.RenderFunc != nil {
