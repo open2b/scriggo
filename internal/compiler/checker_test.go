@@ -1302,7 +1302,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		NotUsedError: true,
 		IsPackage:    true,
 	}
-	_, err = Typecheck(opts, tree, predefined, deps)
+	_, err = Typecheck(tree, predefined, deps, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return

@@ -91,7 +91,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(opts *Options, tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies) (_ map[string]*PackageInfo, err error) {
+func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (_ map[string]*PackageInfo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if rerr, ok := r.(*CheckingError); ok {
