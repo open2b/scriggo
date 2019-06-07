@@ -45,7 +45,7 @@ import (
 //		Type:     assign the reflect.TypeOf of type to Declarations.
 type Package struct {
 	// Package name.
-	Name         string
+	Name string
 	// Package declarations.
 	Declarations map[string]interface{}
 }
