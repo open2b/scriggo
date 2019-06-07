@@ -101,6 +101,9 @@ func (vm *VM) Reset() {
 	}
 }
 
+// SetContext sets the context.
+//
+// SetContext must not be called after vm has been started.
 func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
 	if ctx != nil {
@@ -116,12 +119,17 @@ func (vm *VM) SetContext(ctx context.Context) {
 	vm.done = nil
 }
 
+// SetDontPanic sets the "don't panic" option.
+//
+// SetDontPanic must not be called after vm has been started.
 func (vm *VM) SetDontPanic(dontPanic bool) {
 	vm.env.dontPanic = dontPanic
 }
 
 // SetMaxMemory sets the maximum available memory. Set bytes to zero or
 // negative for no limits.
+//
+// SetMaxMemory must not be called after vm has been started.
 func (vm *VM) SetMaxMemory(bytes int) {
 	if bytes > 0 {
 		vm.env.limitMemory = true
@@ -132,10 +140,16 @@ func (vm *VM) SetMaxMemory(bytes int) {
 	}
 }
 
+// SetPrint sets the "print" builtin function.
+//
+// SetPrint must not be called after vm has been started.
 func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
 }
 
+// SetTraceFunc sets the trace stack function.
+//
+// SetTraceFunc must not be called after vm has been started.
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
 	vm.env.trace = fn
 }
