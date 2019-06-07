@@ -560,7 +560,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
-				if !tc.isScript || !isLastScriptStatement {
+				if !tc.isScript || !tc.isTemplate || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
@@ -605,6 +605,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					tc.replaceTypeInfo(node, new)
 					nodes[i] = new
 				}
+			} else if tc.isTemplate {
+				// TODO(Gianluca): handle expression statements in template.
 			} else {
 				panic(tc.errorf(node, "%s evaluated but not used", node))
 			}

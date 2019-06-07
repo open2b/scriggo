@@ -152,7 +152,9 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	if !tc.isScript && !tc.isTemplate {
+	if tc.isScript || tc.isTemplate {
+		// Nothing to do.
+	} else {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
