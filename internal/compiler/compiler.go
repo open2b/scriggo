@@ -4,15 +4,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The compiler implements parsing, type-checking and emitting of sources.
+// Package compiler implements parsing, type-checking and emitting of sources.
 //
 // Parsing
 //
 // Parsing is done using
 //
-//	ParseTemplate(...)
-//	ParseProgram(...)
-//	ParseScript(...) (currently not implemented)
+//	ParseTemplate(..)
+//	ParseProgram(..)
+//	ParseScript(..)
 //
 // Typechecking
 //
@@ -24,8 +24,9 @@
 //
 // To emit a type-checked tree, use:
 //
-//    EmitSingle(...)
-//    EmitPackageMain(...)
+//  EmitTemplate(..)
+//  EmitPackageMain(..)
+//  EmitScript(..)
 //
 package compiler
 
@@ -35,8 +36,17 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
+// Package represents a predefined package.
+// A package can contain a function, a variable, a constant or a type.
+//
+//		Function: assign function value to Declarations as is.
+//		Variable: assign the address of value to Declarations.
+//		Constant: TODO(Gianluca).
+//		Type:     assign the reflect.TypeOf of type to Declarations.
 type Package struct {
+	// Package name.
 	Name         string
+	// Package declarations.
 	Declarations map[string]interface{}
 }
 
