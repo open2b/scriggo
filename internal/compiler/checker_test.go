@@ -1237,7 +1237,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", false, false, false)
+			tc := newTypechecker("", false, false, true)
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.Universe = universe
 			tc.addScope()
