@@ -308,7 +308,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -322,8 +322,8 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 
 	packageNode := pkg
 
-	// TODO(Gianluca): add proper path.
-	tc := newTypechecker(path, false, disallowGoStmt)
+	// TODO(Gianluca): isTemplate should be an argument to checkPackage, not always "false".
+	tc := newTypechecker(path, false, isTemplate, disallowGoStmt)
 	tc.Universe = universe
 
 	err = sortDeclarations(packageNode, deps)
@@ -367,7 +367,16 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 			} else {
 				// Not predeclared package.
 				var err error
-				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, disallowGoStmt) // TODO(Gianluca): where are deps?
+				if tc.isTemplate {
+					pkg, err := tc.templateToPackage(d.Tree)
+					if err != nil {
+						panic(err)
+					}
+					// TODO(Gianluca): if templateToPackage panics instead of returning error, put it inline.
+					err = checkPackage(pkg, d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
+				} else {
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, false, disallowGoStmt) // TODO(Gianluca): where are deps?
+				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {
 					return err

@@ -20,6 +20,21 @@ func (tc *typechecker) CheckNodesInNewScope(nodes []ast.Node) {
 	tc.removeCurrentScope()
 }
 
+func (tc *typechecker) templateToPackage(tree *ast.Tree) (*ast.Package, error) {
+	nodes := []ast.Node{}
+	for _, n := range tree.Nodes {
+		switch n := n.(type) {
+		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import:
+			nodes = append(nodes, n)
+		default:
+			// TODO(Gianluca): review error.
+			return nil, tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+		}
+	}
+	pkg := ast.NewPackage(tree.Pos(), "", nodes)
+	return pkg, nil
+}
+
 // checkNodes type checks one or more statements.
 //
 // TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and
@@ -67,38 +82,37 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do.
 				} else {
-					importTc := newTypechecker(node.Tree.Path, true, false) // TODO(Gianluca): to review.
-					importTc.addScope()
-					importTc.checkNodes(node.Tree.Nodes)
-					// Imports all macro declarations from page.
-					decls := map[string]scopeElement{}
-					for name, v := range importTc.Scopes[0] {
-						if isExported(name) && v.t.Type.Kind() == reflect.Func {
-							decls[name] = v
-						}
+					templatePkg, err := tc.templateToPackage(node.Tree)
+					if err != nil {
+						panic(err)
 					}
-					importTc.removeCurrentScope()
-					if node.Ident == nil || (node.Ident != nil && node.Ident.Name == ".") {
-						// Import statements without identifier
-						// behave like imports with "." identifier;
-						// this is the only difference between
-						// import statements in Scriggo's template
-						// and Go.
-						for name, v := range decls {
-							v.decl = nil // Marks v as not declared in this page.
-							tc.filePackageBlock[name] = v
+					pkgInfos := map[string]*PackageInfo{}
+					checkPackage(templatePkg, node.Path, nil, nil, pkgInfos, true, true)
+					importedPkg := &PackageInfo{}
+					if node.Ident == nil {
+						tc.unusedImports[importedPkg.Name] = nil
+						for ident, ti := range importedPkg.Declarations {
+							tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					} else {
-						pkg := &PackageInfo{}
-						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: pkg, Properties: PropertyIsPackage}}
-						pkg.Declarations = map[string]*TypeInfo{}
-						for name, d := range decls {
-							pkg.Declarations[name] = d.t
+						switch node.Ident.Name {
+						case "_":
+						case ".":
+							tc.unusedImports[importedPkg.Name] = nil
+							for ident, ti := range importedPkg.Declarations {
+								tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+								tc.filePackageBlock[ident] = scopeElement{t: ti}
+							}
+						default:
+							tc.filePackageBlock[node.Ident.Name] = scopeElement{
+								t: &TypeInfo{
+									Value:      importedPkg,
+									Properties: PropertyIsPackage,
+								},
+							}
+							tc.unusedImports[node.Ident.Name] = nil
 						}
-					}
-					// TODO(Gianluca): review.
-					for k, v := range importTc.TypeInfo {
-						tc.TypeInfo[k] = v
 					}
 				}
 			}

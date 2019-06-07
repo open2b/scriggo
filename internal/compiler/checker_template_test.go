@@ -39,7 +39,7 @@ func TestTemplate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			_, err = compiler.Typecheck(tree, nil, nil, &compiler.Options{})
+			_, err = compiler.Typecheck(tree, nil, nil, &compiler.Options{IsTemplate: true})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)

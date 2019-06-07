@@ -112,6 +112,7 @@ type typechecker struct {
 	TypeInfo          map[ast.Node]*TypeInfo
 	IndirectVars      map[*ast.Identifier]bool
 	isScript          bool
+	isTemplate        bool
 	disallowGoStmt    bool
 	iota              int
 	lastConstPosition *ast.Position // when changes iota is reset.
@@ -124,9 +125,10 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
+func newTypechecker(path string, isScript, isTemplate, disallowGoStmt bool) *typechecker {
 	return &typechecker{
 		isScript:         isScript,
+		isTemplate:       isTemplate,
 		path:             path,
 		filePackageBlock: TypeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
@@ -150,7 +152,7 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	if !tc.isScript {
+	if !tc.isScript && !tc.isTemplate {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]

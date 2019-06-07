@@ -88,6 +88,10 @@ type Options struct {
 	// to Go package inizialization specs.
 	IsProgram bool
 
+	IsTemplate bool
+
+	IsScript bool
+
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 }
@@ -102,14 +106,15 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 			}
 		}
 	}()
-	tc := newTypechecker(tree.Path, true, opts.DisallowGoStmt)
+	// TODO(Gianluca): review.
+	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
 	tc.Universe = universe
 	if main, ok := predefinedPkgs["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}
-	if opts.IsProgram {
+	if opts.IsProgram { // TODO(Gianluca): move this code before creating a newTypechecker.
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}
