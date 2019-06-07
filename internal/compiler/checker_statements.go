@@ -473,14 +473,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.ShowMacro:
-			// TODO(Gianluca): investigate support for variadic macros.
 			var fun ast.Expression
 			if node.Import != nil {
 				fun = ast.NewSelector(node.Import.Pos(), node.Import, node.Macro.Name)
 			} else {
 				fun = node.Macro
 			}
-			nodes[i] = ast.NewCall(node.Pos(), fun, node.Arguments, false)
+			nodes[i] = ast.NewCall(node.Pos(), fun, node.Args, node.IsVariadic)
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:

@@ -24,6 +24,7 @@ import (
 	_sort "sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -43,6 +44,7 @@ const (
 )
 
 var hasherType = reflect.TypeOf(_MD5)
+var timeType = reflect.TypeOf(Time{})
 
 var testSeed int64 = -1
 
@@ -68,6 +70,7 @@ var main = scriggo.Package{
 		"MD5":         scriggo.Constant(hasherType, _MD5),
 		"SHA1":        scriggo.Constant(hasherType, _SHA1),
 		"SHA256":      scriggo.Constant(hasherType, _SHA256),
+		"Time":        timeType,
 		"abbreviate":  abbreviate,
 		"abs":         abs,
 		"atoi":        strconv.Atoi,
@@ -87,6 +90,7 @@ var main = scriggo.Package{
 		"lastIndex":   lastIndex,
 		"max":         max,
 		"min":         min,
+		"now":         now,
 		"rand":        rand,
 		"randFloat":   randFloat,
 		"repeat":      repeat,
@@ -110,6 +114,23 @@ var main = scriggo.Package{
 		"trimRight":   strings.TrimRight,
 		"trimSuffix":  strings.TrimSuffix,
 	},
+}
+
+var times sync.Map
+
+type Time time.Time
+
+func (t Time) Format(layout string) string {
+	return time.Time(t).Format(layout)
+}
+
+func (t Time) String() string {
+	return time.Time(t).String()
+}
+
+func (t Time) UTC(env *vm.Env) Time {
+	env.Alloc(24)
+	return Time(time.Time(t).UTC())
 }
 
 // abbreviate is the builtin function "abbreviate".
@@ -307,6 +328,21 @@ func min(x, y int) int {
 		return y
 	}
 	return x
+}
+
+// now is the builtin function "now".
+func now(env *vm.Env) Time {
+	if env.Context() == nil {
+		return Time(time.Now())
+	}
+	t := Time(time.Now().Round(1 * time.Millisecond))
+	actual, loaded := times.LoadOrStore(env, t)
+	if loaded {
+		env.ExitFunc(func() {
+			times.Delete(env)
+		})
+	}
+	return actual.(Time)
 }
 
 // printf is the builtin function "printf".
