@@ -7,6 +7,7 @@
 package compiler
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"unicode"
@@ -38,6 +39,13 @@ var (
 	// ErrReadTooLarge is returned from a DirLimitedReader when a limit is
 	// exceeded.
 	ErrReadTooLarge = errors.New("scriggo: read too large")
+)
+
+var (
+	orIdent     = []byte("or")
+	ignoreIdent = []byte("ignore")
+	todoIdent   = []byte("todo")
+	errorIdent  = []byte("error")
 )
 
 // SyntaxError records a parsing error with the path and the position where the
@@ -904,21 +912,19 @@ func (p *parsing) parseStatement(tok token) {
 		}
 		or := ast.ShowMacroOrError
 		if tok.typ == tokenIdentifier {
-			if string(tok.txt) == "or" {
+			if bytes.Equal(tok.txt, orIdent) {
 				tok = next(p.lex)
 				switch {
-				case tok.typ == tokenIdentifier && string(tok.txt) == "ignore":
+				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, ignoreIdent):
 					or = ast.ShowMacroOrIgnore
-					tok = next(p.lex)
-				case tok.typ == tokenIdentifier && string(tok.txt) == "todo":
+				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, todoIdent):
 					or = ast.ShowMacroOrTodo
-					tok = next(p.lex)
-				case tok.typ == tokenIdentifier && string(tok.txt) == "error":
+				case tok.typ == tokenIdentifier && bytes.Equal(tok.txt, errorIdent):
 					or = ast.ShowMacroOrError
-					tok = next(p.lex)
 				default:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after or in show macro, expecting ignore, todo or error", tok)})
 				}
+				tok = next(p.lex)
 			}
 		}
 		p.parseEndStatement(tok, tokenEndStatement, true)
