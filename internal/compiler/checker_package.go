@@ -8,9 +8,7 @@ package compiler
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"strings"
 
 	"scriggo/internal/compiler/ast"
 )
@@ -310,7 +308,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -322,17 +320,10 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		}
 	}()
 
-	if len(tree.Nodes) == 0 {
-		return errors.New("expected 'package', found EOF")
-	}
-	packageNode, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		t := fmt.Sprintf("%T", tree.Nodes[0])
-		t = strings.ToLower(t[len("*ast."):])
-		return fmt.Errorf("expected 'package', found '%s'", t)
-	}
+	packageNode := pkg
 
-	tc := newTypechecker(tree.Path, false, disallowGoStmt)
+	// TODO(Gianluca): add proper path.
+	tc := newTypechecker(path, false, disallowGoStmt)
 	tc.Universe = universe
 
 	err = sortDeclarations(packageNode, deps)
@@ -376,7 +367,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 			} else {
 				// Not predeclared package.
 				var err error
-				err = checkPackage(d.Tree, nil, nil, pkgInfos, disallowGoStmt) // TODO(Gianluca): where are deps?
+				err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, disallowGoStmt) // TODO(Gianluca): where are deps?
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {
 					return err
@@ -467,7 +458,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 	if pkgInfos == nil {
 		pkgInfos = make(map[string]*PackageInfo)
 	}
-	pkgInfos[tree.Path] = pkgInfo
+	pkgInfos[path] = pkgInfo
 
 	return nil
 }

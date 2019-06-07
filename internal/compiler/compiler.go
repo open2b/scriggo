@@ -108,7 +108,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 	}
 	if opts.IsPackage {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}

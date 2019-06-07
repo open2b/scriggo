@@ -1917,7 +1917,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = checkPackage(tree, deps, nil, nil, false)
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, nil, false)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.
