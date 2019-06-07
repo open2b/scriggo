@@ -1469,6 +1469,7 @@ func TestPages(t *testing.T) {
 }
 
 func equals(n1, n2 ast.Node, p int) error {
+
 	if n1 == nil && n2 == nil {
 		return nil
 	}
@@ -1520,7 +1521,9 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected end %d, expecting %d", pos1.End-p, pos2.End)
 		}
 	}
+
 	switch nn1 := n1.(type) {
+
 	case *ast.Tree:
 		nn2, ok := n2.(*ast.Tree)
 		if !ok {
@@ -1538,6 +1541,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
+
 	case *ast.Extends:
 		nn2, ok := n2.(*ast.Extends)
 		if !ok {
@@ -1553,6 +1557,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.Include:
 		nn2, ok := n2.(*ast.Include)
 		if !ok {
@@ -1568,6 +1573,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.Package:
 		nn2, ok := n2.(*ast.Package)
 		if !ok {
@@ -1582,6 +1588,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Text:
 		nn2, ok := n2.(*ast.Text)
 		if !ok {
@@ -1594,6 +1601,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			return fmt.Errorf("unexpected cut (%d,%d), expecting (%d,%d)",
 				nn1.Cut.Left, nn1.Cut.Right, nn2.Cut.Left, nn2.Cut.Right)
 		}
+
 	case *ast.Comment:
 		nn2, ok := n2.(*ast.Comment)
 		if !ok {
@@ -1602,6 +1610,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Text != nn2.Text {
 			return fmt.Errorf("unexpected text %q, expecting %q", nn1.Text, nn2.Text)
 		}
+
 	case *ast.URL:
 		nn2, ok := n2.(*ast.URL)
 		if !ok {
@@ -1622,6 +1631,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Identifier:
 		nn2, ok := n2.(*ast.Identifier)
 		if !ok {
@@ -1630,6 +1640,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Name != nn2.Name {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Name, nn2.Name)
 		}
+
 	case *ast.Rune:
 		nn2, ok := n2.(*ast.Rune)
 		if !ok {
@@ -1638,6 +1649,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Value != nn2.Value {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value, nn2.Value)
 		}
+
 	case *ast.Int:
 		nn2, ok := n2.(*ast.Int)
 		if !ok {
@@ -1646,6 +1658,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Value.Cmp(&nn2.Value) != 0 {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Value.String(), nn2.Value.String())
 		}
+
 	case *ast.Float:
 		nn2, ok := n2.(*ast.Float)
 		if !ok {
@@ -1654,6 +1667,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Value.Cmp(&nn2.Value) != 0 {
 			return fmt.Errorf("unexpected %s, expecting %s", nn1.Value.String(), nn2.Value.String())
 		}
+
 	case *ast.String:
 		nn2, ok := n2.(*ast.String)
 		if !ok {
@@ -1662,6 +1676,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Text != nn2.Text {
 			return fmt.Errorf("unexpected %q, expecting %q", nn1.Text, nn2.Text)
 		}
+
 	case *ast.Parenthesis:
 		nn2, ok := n2.(*ast.Parenthesis)
 		if !ok {
@@ -1671,6 +1686,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.UnaryOperator:
 		nn2, ok := n2.(*ast.UnaryOperator)
 		if !ok {
@@ -1683,6 +1699,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.BinaryOperator:
 		nn2, ok := n2.(*ast.BinaryOperator)
 		if !ok {
@@ -1699,6 +1716,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.Selector:
 		nn2, ok := n2.(*ast.Selector)
 		if !ok {
@@ -1711,6 +1729,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Ident != nn2.Ident {
 			return fmt.Errorf("unexpected ident %q, expecting %q", nn1.Ident, nn2.Ident)
 		}
+
 	case *ast.CompositeLiteral:
 		nn2, ok := n2.(*ast.CompositeLiteral)
 		if !ok {
@@ -1733,6 +1752,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.ArrayType:
 		nn2, ok := n2.(*ast.ArrayType)
 		if !ok {
@@ -1746,6 +1766,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.SliceType:
 		nn2, ok := n2.(*ast.SliceType)
 		if !ok {
@@ -1755,6 +1776,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.MapType:
 		nn2, ok := n2.(*ast.MapType)
 		if !ok {
@@ -1768,6 +1790,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.ChanType:
 		nn2, ok := n2.(*ast.ChanType)
 		if !ok {
@@ -1780,6 +1803,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.StructType:
 		nn2, ok := n2.(*ast.StructType)
 		if !ok {
@@ -1800,6 +1824,7 @@ func equals(n1, n2 ast.Node, p int) error {
 			}
 			// TODO (Gianluca): add tags comparison.
 		}
+
 	case *ast.TypeDeclaration:
 		nn2, ok := n2.(*ast.TypeDeclaration)
 		if !ok {
@@ -1819,6 +1844,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !nn1.IsAliasDeclaration && nn2.IsAliasDeclaration {
 			return fmt.Errorf("expecting alias declaration, got type definition")
 		}
+
 	case *ast.Call:
 		nn2, ok := n2.(*ast.Call)
 		if !ok {
@@ -1843,6 +1869,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !nn1.IsVariadic && nn2.IsVariadic {
 			return fmt.Errorf("unexpected variadic, expecting not variadic")
 		}
+
 	case *ast.Assignment:
 		nn2, ok := n2.(*ast.Assignment)
 		if !ok {
@@ -1869,6 +1896,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Index:
 		nn2, ok := n2.(*ast.Index)
 		if !ok {
@@ -1882,6 +1910,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.Slicing:
 		nn2, ok := n2.(*ast.Slicing)
 		if !ok {
@@ -1899,6 +1928,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.Show:
 		nn2, ok := n2.(*ast.Show)
 		if !ok {
@@ -1911,6 +1941,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Context != nn2.Context {
 			return fmt.Errorf("unexpected context %s, expecting %s", nn1.Context, nn2.Context)
 		}
+
 	case *ast.Block:
 		nn2, ok := n2.(*ast.Block)
 		if !ok {
@@ -1925,6 +1956,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.If:
 		nn2, ok := n2.(*ast.If)
 		if !ok {
@@ -1951,6 +1983,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+
 	case *ast.For:
 		nn2, ok := n2.(*ast.For)
 		if !ok {
@@ -1977,6 +2010,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.ForRange:
 		nn2, ok := n2.(*ast.ForRange)
 		if !ok {
@@ -1995,6 +2029,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Var:
 		nn2, ok := n2.(*ast.Var)
 		if !ok {
@@ -2022,6 +2057,7 @@ func equals(n1, n2 ast.Node, p int) error {
 				return err
 			}
 		}
+
 	case *ast.Const:
 		nn2, ok := n2.(*ast.Const)
 		if !ok {
@@ -2437,5 +2473,6 @@ func equals(n1, n2 ast.Node, p int) error {
 	default:
 		panic(fmt.Sprintf("unexpected node of type %T\n", n1))
 	}
+
 	return nil
 }
