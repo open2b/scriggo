@@ -38,6 +38,7 @@ const (
 )
 
 type RenderOptions struct {
+	Context       context.Context
 	MaxMemorySize int
 	DontPanic     bool
 	RenderFunc    RenderFunc
@@ -102,7 +103,7 @@ var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
-func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
 	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
 		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
@@ -117,7 +118,7 @@ func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]in
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(ctx, t.globals, vars, options)
+	vmm := newVM(t.globals, vars, options)
 	_, err := vmm.Run(t.fn)
 	return err
 }
@@ -125,7 +126,7 @@ func (t *Template) Render(ctx context.Context, out io.Writer, vars map[string]in
 // StartRender renders the template in a new goroutine, writing the output to
 // out, and returns its virtual machine execution environment. vars contains
 // the values for the variables of the main package.
-func (t *Template) StartRender(ctx context.Context, out io.Writer, vars map[string]interface{}, options RenderOptions) *vm.Env {
+func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, options RenderOptions) *vm.Env {
 	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
 		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
@@ -140,7 +141,7 @@ func (t *Template) StartRender(ctx context.Context, out io.Writer, vars map[stri
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(ctx, t.globals, vars, options)
+	vmm := newVM(t.globals, vars, options)
 	go vmm.Run(t.fn)
 	return vmm.Env()
 }
@@ -156,10 +157,10 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(ctx context.Context, globals []compiler.Global, init map[string]interface{}, options RenderOptions) *vm.VM {
+func newVM(globals []compiler.Global, init map[string]interface{}, options RenderOptions) *vm.VM {
 	vmm := vm.New()
-	if ctx != nil {
-		vmm.SetContext(ctx)
+	if options.Context != nil {
+		vmm.SetContext(options.Context)
 	}
 	if n := len(globals); n > 0 {
 		values := make([]interface{}, n)
