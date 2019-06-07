@@ -76,21 +76,6 @@ func (vm *VM) Env() *Env {
 	return vm.env
 }
 
-// FreeMemory returns the current free memory in bytes and true if the maximum
-// memory has been limited. Otherwise returns zero and false.
-//
-// A negative value means that an out or error has been occurred and bytes
-// represent the number of bytes that were not available.
-func (vm *VM) FreeMemory() (bytes int, limitedMemory bool) {
-	if vm.env.limitMemory {
-		vm.env.mu.Lock()
-		free := vm.env.freeMemory
-		vm.env.mu.Unlock()
-		return free, true
-	}
-	return 0, false
-}
-
 // Reset resets a virtual machine so that it is ready for a new call to Run.
 func (vm *VM) Reset() {
 	vm.fp = [4]uint32{0, 0, 0, 0}
@@ -869,6 +854,11 @@ func (env *Env) Alloc(bytes int) {
 	}
 }
 
+// Context returns the context of the environment.
+func (env *Env) Context() context.Context {
+	return env.ctx
+}
+
 // ExitFunc calls f in its own goroutine after the execution of the
 // environment is terminated.
 func (env *Env) ExitFunc(f func()) {
@@ -882,9 +872,19 @@ func (env *Env) ExitFunc(f func()) {
 	return
 }
 
-// Context returns the context of the environment.
-func (env *Env) Context() context.Context {
-	return env.ctx
+// FreeMemory returns the current free memory in bytes and true if the maximum
+// memory has been limited. Otherwise returns zero and false.
+//
+// A negative value means that an out or error has been occurred and bytes
+// represent the number of bytes that were not available.
+func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
+	if env.limitMemory {
+		env.mu.Lock()
+		free := env.freeMemory
+		env.mu.Unlock()
+		return free, true
+	}
+	return 0, false
 }
 
 type PredefinedFunction struct {
