@@ -183,12 +183,12 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Globa
 
 // ParseTemplateSource parses src in the context ctx and returns the parsed
 // tree. Nodes Extends, Import and Include are not be expanded.
-func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error) {
+func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
 	default:
-		return nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
+		return nil, nil, errors.New("scriggo: invalid context. Valid contexts are Text, HTML, CSS and JavaScript")
 	}
 
 	// Tree result of the expansion.
@@ -198,6 +198,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 		lex:       newLexer(src, ctx),
 		ctx:       ctx,
 		ancestors: []ast.Node{tree},
+		deps:      &dependencies{},
 	}
 
 	defer func() {
@@ -247,7 +248,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 		// EOF
 		case tokenEOF:
 			if len(p.ancestors) > 1 {
-				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
+				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting {%% end %%}")}
 			}
 
 		// Text
@@ -260,14 +261,14 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 				}
 				lastCase := n.Cases[len(n.Cases)-1]
 				if lastCase.Fallthrough {
 					if containsOnlySpaces(text.Text) {
 						continue
 					}
-					return nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
+					return nil, nil, &SyntaxError{"", p.lastFallthroughTokenPos, fmt.Errorf("fallthrough statement out of place")}
 				}
 			case *ast.TypeSwitch:
 				if len(n.Cases) == 0 {
@@ -275,7 +276,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 				}
 			case *ast.Select:
 				if len(n.Cases) == 0 {
@@ -283,7 +284,7 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 					if containsOnlySpaces(text.Text) {
 						n.LeadingText = text
 					}
-					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
+					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected text, expecting case of default or {%% end %%}")}
 				}
 			}
 			p.addChild(text)
@@ -308,15 +309,15 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 		// {{ }}
 		case tokenStartValue:
 			if p.hasExtend && !p.isInMacro {
-				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
+				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("value statement outside macro")}
 			}
 			tokensInLine++
 			expr, tok2 := p.parseExpr(token{}, false, false, false, false)
 			if expr == nil {
-				return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
+				return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("expecting expression")}
 			}
 			if tok2.typ != tokenEndValue {
-				return nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
+				return nil, nil, &SyntaxError{"", *tok2.pos, fmt.Errorf("unexpected %s, expecting }}", tok2)}
 			}
 			tok.pos.End = tok2.pos.End
 			var node = ast.NewShow(tok.pos, expr, tok.ctx)
@@ -330,17 +331,17 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 			p.cutSpacesToken = true
 
 		default:
-			return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
+			return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s", tok)}
 
 		}
 
 	}
 
 	if p.lex.err != nil {
-		return nil, p.lex.err
+		return nil, nil, p.lex.err
 	}
 
-	return tree, nil
+	return tree, deps, nil
 }
 
 // parseStatement parses a statement. Panics on error.
@@ -505,7 +506,9 @@ func (p *parsing) parseStatement(tok token) {
 				if assignmentType == ast.AssignmentDeclaration {
 					for _, left := range variables {
 						if ident, ok := left.(*ast.Identifier); ok {
-							p.deps.declare([]*ast.Identifier{ident})
+							if (p.ctx == ast.ContextGo && len(p.ancestors) > 2) || (p.ctx != ast.ContextGo && len(p.ancestors) > 1) {
+								p.deps.declare([]*ast.Identifier{ident})
+							}
 						}
 					}
 				}

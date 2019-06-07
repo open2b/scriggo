@@ -704,18 +704,18 @@ func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMust
 	var elements = []ast.Expression{}
 	for {
 		element, tok2 := p.parseExpr(tok, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
-		if len(p.ancestors) == 2 {
+		if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
 			p.deps.end()
 		}
 		if element == nil {
-			if len(p.ancestors) == 2 {
+			if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
 				p.deps.endList()
 			}
 			return elements, tok2
 		}
 		elements = append(elements, element)
 		if tok2.typ != tokenComma {
-			if len(p.ancestors) == 2 {
+			if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
 				p.deps.endList()
 			}
 			return elements, tok2

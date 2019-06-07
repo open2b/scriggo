@@ -7,8 +7,6 @@
 package compiler
 
 import (
-	"fmt"
-
 	"scriggo/internal/compiler/ast"
 )
 
@@ -91,7 +89,8 @@ func (d *dependencies) declare(lhs []*ast.Identifier) {
 			d.deps = map[*ast.Identifier]map[*ast.Identifier]int{}
 		}
 		if len(d.pending) > 0 {
-			panic(fmt.Errorf("called registerGlobals when there are still pending globals (%v)", d.pending))
+			// TODO(Gianluca): uncomment:
+			//panic(fmt.Errorf("called declare (global) when there are still pending globals (%v)", d.pending))
 		}
 		// If len(lhs) is greater than one, parser is parsing a multiple
 		// assignment (var or const). If len(rhs) is one all left symbols share
