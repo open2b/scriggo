@@ -76,13 +76,19 @@ func (vm *VM) Env() *Env {
 	return vm.env
 }
 
-// FreeMemory returns the current free memory in bytes. The returned value can
-// be negative. FreeMemory can be called when vm is running.
-func (vm *VM) FreeMemory() int {
-	vm.env.mu.Lock()
-	free := vm.env.freeMemory
-	vm.env.mu.Unlock()
-	return free
+// FreeMemory returns the current free memory in bytes and true if the maximum
+// memory has been limited. Otherwise returns zero and false.
+//
+// A negative value means that an out or error has been occurred and bytes
+// represent the number of bytes that were not available.
+func (vm *VM) FreeMemory() (bytes int, limitedMemory bool) {
+	if vm.env.limitMemory {
+		vm.env.mu.Lock()
+		free := vm.env.freeMemory
+		vm.env.mu.Unlock()
+		return free, true
+	}
+	return 0, false
 }
 
 // Reset resets a virtual machine so that it is ready for a new call to Run.
@@ -133,10 +139,16 @@ func (vm *VM) SetGlobals(globals []interface{}) {
 	vm.env.globals = globals
 }
 
-// SetMaxMemory sets the maximum allocable memory.
+// SetMaxMemory sets the maximum available memory. Set bytes to zero or
+// negative for no limits.
 func (vm *VM) SetMaxMemory(bytes int) {
-	vm.env.limitMemory = true
-	vm.env.freeMemory = bytes
+	if bytes > 0 {
+		vm.env.limitMemory = true
+		vm.env.freeMemory = bytes
+	} else {
+		vm.env.limitMemory = false
+		vm.env.freeMemory = 0
+	}
 }
 
 func (vm *VM) SetPrint(p func(interface{})) {
@@ -199,6 +211,9 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 }
 
 func (vm *VM) alloc() {
+	if !vm.env.limitMemory {
+		return
+	}
 	in := vm.fn.Body[vm.pc]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := op < 0
@@ -836,24 +851,21 @@ type Env struct {
 	freeMemory  int        // free memory.
 }
 
-// Alloc allocates memory in the execution environment. If bytes is negative
-// the memory is deallocated.
-//
-// If there are no free memory, Alloc panics with the OutOfMemory error.
+// Alloc allocates, or if bytes is negative, deallocates memory. Alloc does
+// nothing if there is no memory limits. If there are no free memory, Alloc
+// panics with the OutOfMemory error.
 func (env *Env) Alloc(bytes int) {
-	env.mu.Lock()
-	if !env.limitMemory {
+	if env.limitMemory {
+		env.mu.Lock()
+		free := env.freeMemory
+		if free >= 0 {
+			free -= int(bytes)
+			env.freeMemory = free
+		}
 		env.mu.Unlock()
-		return
-	}
-	free := env.freeMemory
-	if free >= 0 {
-		free -= int(bytes)
-		env.freeMemory = free
-	}
-	env.mu.Unlock()
-	if free < 0 {
-		panic(ErrOutOfMemory)
+		if free < 0 {
+			panic(ErrOutOfMemory)
+		}
 	}
 }
 
