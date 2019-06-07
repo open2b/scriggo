@@ -837,7 +837,7 @@ type Env struct {
 }
 
 // Alloc allocates, or if bytes is negative, deallocates memory. Alloc does
-// nothing if there is no memory limits. If there are no free memory, Alloc
+// nothing if there is no memory limit. If there is no free memory, Alloc
 // panics with the OutOfMemory error.
 func (env *Env) Alloc(bytes int) {
 	if env.limitMemory {
@@ -875,8 +875,8 @@ func (env *Env) ExitFunc(f func()) {
 // FreeMemory returns the current free memory in bytes and true if the maximum
 // memory has been limited. Otherwise returns zero and false.
 //
-// A negative value means that an out or error has been occurred and bytes
-// represent the number of bytes that were not available.
+// A negative value means that an out of memory error has been occurred and in
+// this case bytes represents the number of bytes that were not available.
 func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
 	if env.limitMemory {
 		env.mu.Lock()
