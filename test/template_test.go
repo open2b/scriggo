@@ -185,11 +185,10 @@ var templateCases = map[string]struct {
 	//	out: `123`,
 	//},
 
-	// TODO(Gianluca): out of memory.
-	// "Template builtin - title": {
-	// 	src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
-	// 	out: ``,
-	// },
+	"Template builtin - title": {
+		src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
+		out: `hello, world converted to title is Hello, World`,
+	},
 }
 
 func TestTemplate(t *testing.T) {

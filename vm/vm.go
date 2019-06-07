@@ -135,6 +135,7 @@ func (vm *VM) SetGlobals(globals []interface{}) {
 
 // SetMaxMemory sets the maximum allocable memory.
 func (vm *VM) SetMaxMemory(bytes int) {
+	vm.env.limitMemory = true
 	vm.env.freeMemory = bytes
 }
 
@@ -828,10 +829,11 @@ type Env struct {
 	trace     TraceFunc       // trace function.
 	print     PrintFunc       // custom print builtin.
 
-	mu         sync.Mutex // mutex for the following fields.
-	freeMemory int        // free memory.
-	exits      []func()   // exit functions.
-	exited     bool       // reports whether it is exited.
+	mu          sync.Mutex // mutex for the following fields.
+	exits       []func()   // exit functions.
+	exited      bool       // reports whether it is exited.
+	limitMemory bool       // reports whether memory is limited.
+	freeMemory  int        // free memory.
 }
 
 // Alloc allocates memory in the execution environment. If bytes is negative
@@ -840,6 +842,10 @@ type Env struct {
 // If there are no free memory, Alloc panics with the OutOfMemory error.
 func (env *Env) Alloc(bytes int) {
 	env.mu.Lock()
+	if !env.limitMemory {
+		env.mu.Unlock()
+		return
+	}
 	free := env.freeMemory
 	if free >= 0 {
 		free -= int(bytes)

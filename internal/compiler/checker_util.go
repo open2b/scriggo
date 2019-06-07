@@ -589,7 +589,7 @@ func newRat() *big.Rat {
 	return new(big.Rat)
 }
 
-// removeEnvArg returns the a type equal to typ but with the vm environment
+// removeEnvArg returns a type equal to typ but with the vm environment
 // parameter removed, if there is one. hasReceiver reports whether the first
 // argument of typ is a receiver.
 func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
