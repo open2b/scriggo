@@ -606,7 +606,11 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					nodes[i] = new
 				}
 			} else if tc.isTemplate {
-				// TODO(Gianluca): handle expression statements in template.
+				// TODO(Gianluca): handle expression statements in templates.
+				switch node := node.(type) {
+				case *ast.Func:
+					tc.assignScope(node.Ident.Name, ti, node.Ident)
+				}
 			} else {
 				panic(tc.errorf(node, "%s evaluated but not used", node))
 			}
