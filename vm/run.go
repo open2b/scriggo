@@ -16,10 +16,11 @@ var ErrOutOfMemory = errors.New("out of memory")
 
 var errDone = errors.New("done")
 
-func (vm *VM) Run(fn *Function) (code int, err error) {
+func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
 	var isPanicked bool
 	vm.fn = fn
-	vm.vars = vm.env.globals
+	vm.vars = globals
+	vm.env.globals = globals
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked {

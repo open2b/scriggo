@@ -120,10 +120,6 @@ func (vm *VM) SetDontPanic(dontPanic bool) {
 	vm.env.dontPanic = dontPanic
 }
 
-func (vm *VM) SetGlobals(globals []interface{}) {
-	vm.env.globals = globals
-}
-
 // SetMaxMemory sets the maximum available memory. Set bytes to zero or
 // negative for no limits.
 func (vm *VM) SetMaxMemory(bytes int) {
