@@ -1300,7 +1300,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := &Options{
 		AllowImports: true,
 		NotUsedError: true,
-		IsPackage:    true,
+		IsProgram:    true,
 	}
 	_, err = Typecheck(tree, predefined, deps, opts)
 	if err != nil {

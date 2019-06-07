@@ -82,10 +82,11 @@ type Options struct {
 	// used or a package is imported and not used.
 	NotUsedError bool
 
-	// IsPackage indicate if it's a package. If true, all sources must start
+	// TODO(Gianluca): review doc.
+	// IsProgram indicate if it's a package. If true, all sources must start
 	// with "package" and package-level declarations will be sorted according
 	// to Go package inizialization specs.
-	IsPackage bool
+	IsProgram bool
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
@@ -106,7 +107,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 	if main, ok := predefinedPkgs["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}
-	if opts.IsPackage {
+	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
 		if err != nil {

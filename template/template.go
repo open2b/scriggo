@@ -63,7 +63,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 		return nil, err
 	}
 	opts := &compiler.Options{
-		IsPackage: false,
+		IsProgram: false,
 	}
 	var pkgs scriggo.Packages
 	if main != nil {
