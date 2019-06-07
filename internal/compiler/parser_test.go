@@ -1191,10 +1191,19 @@ var treeTests = []struct {
 		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentModulo, []ast.Expression{ast.NewInt(p(1, 9, 8, 8), big.NewInt(1))})}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, ast.ContextHTML)}, ast.ContextHTML)},
+		ast.NewShowMacro(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
 		ast.NewShowMacro(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
-			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ContextHTML)}, ast.ContextHTML)},
+			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
+	{"{% show M or todo %}", ast.NewTree("", []ast.Node{
+		ast.NewShowMacro(p(1, 1, 0, 19), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, ast.ShowMacroOrTodo, ast.ContextHTML),
+	}, ast.ContextHTML)},
+	{"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
+		ast.NewShowMacro(p(1, 1, 0, 28), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, ast.ShowMacroOrIgnore, ast.ContextHTML),
+	}, ast.ContextHTML)},
+	{"{% show M  or  error %}", ast.NewTree("", []ast.Node{
+		ast.NewShowMacro(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, ast.ShowMacroOrError, ast.ContextHTML),
+	}, ast.ContextHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 29), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
 			ast.NewIdentifier(p(1, 8, 7, 7), "_"), ast.NewIdentifier(p(1, 8, 7, 7), "v")},
@@ -2367,6 +2376,9 @@ func equals(n1, n2 ast.Node, p int) error {
 		err = equals(nn1.Macro, nn2.Macro, p)
 		if err != nil {
 			return err
+		}
+		if nn1.Or != nn2.Or {
+			return fmt.Errorf("unexpected %s, expecting %s", nn1.Or, nn2.Or)
 		}
 		if len(nn1.Arguments) != len(nn2.Arguments) {
 			return fmt.Errorf("unexpected arguments len %d, expecting %d", len(nn1.Arguments), len(nn2.Arguments))

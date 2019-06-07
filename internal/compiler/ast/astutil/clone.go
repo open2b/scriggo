@@ -208,7 +208,7 @@ func CloneNode(node ast.Node) ast.Node {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return ast.NewShowMacro(ClonePosition(n.Position), impor, macro, arguments, n.Context)
+		return ast.NewShowMacro(ClonePosition(n.Position), impor, macro, arguments, n.Or, n.Context)
 	case *ast.Import:
 		var ident *ast.Identifier
 		if n.Ident != nil {

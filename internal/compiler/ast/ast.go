@@ -586,6 +586,31 @@ func NewMacro(pos *Position, name *Identifier, typ *FuncType, body []Node, ctx C
 	return &Macro{pos, name, typ, body, nil, ctx}
 }
 
+// ShowMacroOr specifies behavior when macro is not defined.
+type ShowMacroOr int8
+
+const (
+	// ShowMacroOrIgnore ignores if not defined.
+	ShowMacroOrIgnore ShowMacroOr = iota
+	// ShowMacroOrTodo returns error if compiled with "fail on todo" option.
+	ShowMacroOrTodo
+	// ShowMacroOrError is the default behavior: returns an error.
+	ShowMacroOrError
+)
+
+func (s ShowMacroOr) String() string {
+	switch s {
+	case ShowMacroOrIgnore:
+		return "ShowMacroOrIgnore"
+	case ShowMacroOrTodo:
+		return "ShowMacroOrTodo"
+	case ShowMacroOrError:
+		return "ShowMacroOrError"
+	default:
+		panic("not defined")
+	}
+}
+
 // ShowMacro node represents a statement {% show <macro> %}.
 type ShowMacro struct {
 	*Position // position in the source.
@@ -593,11 +618,12 @@ type ShowMacro struct {
 	Import    *Identifier  // name of the import.
 	Macro     *Identifier  // name of the macro.
 	Arguments []Expression // arguments.
+	Or        ShowMacroOr  // when macro is not defined.
 	Context   Context      // context.
 }
 
-func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expression, ctx Context) *ShowMacro {
-	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Arguments: arguments, Context: ctx}
+func NewShowMacro(pos *Position, impor, macro *Identifier, arguments []Expression, or ShowMacroOr, ctx Context) *ShowMacro {
+	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Arguments: arguments, Or: or, Context: ctx}
 }
 
 // Include node represents a statement {% include <path> %}.

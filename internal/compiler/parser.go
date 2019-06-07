@@ -909,11 +909,30 @@ func (p *parsing) parseStatement(tok token) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
 			}
 		}
+		or := ast.ShowMacroOrError
+		if tok.typ == tokenIdentifier {
+			if string(tok.txt) == "or" {
+				tok = next(p.lex)
+				switch {
+				case tok.typ == tokenIdentifier && string(tok.txt) == "ignore":
+					or = ast.ShowMacroOrIgnore
+					tok = next(p.lex)
+				case tok.typ == tokenIdentifier && string(tok.txt) == "todo":
+					or = ast.ShowMacroOrTodo
+					tok = next(p.lex)
+				case tok.typ == tokenIdentifier && string(tok.txt) == "error":
+					or = ast.ShowMacroOrError
+					tok = next(p.lex)
+				default:
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s after or in show macro, expecting ignore, todo or error", tok)})
+				}
+			}
+		}
 		if tok.typ != tokenEndStatement {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
 		}
 		pos.End = tok.pos.End
-		node = ast.NewShowMacro(pos, impor, macro, arguments, tok.ctx)
+		node = ast.NewShowMacro(pos, impor, macro, arguments, or, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
 
