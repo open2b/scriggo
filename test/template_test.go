@@ -169,6 +169,22 @@ var templateCases = map[string]struct {
 		out: `Show macro: M1's body i: -30, s: hello ... M1's body`,
 	},
 
+	"Macro definition and show-macro without parameters": {
+		src: `{% macro M %}ok{% end %}{% show M() %}`,
+		out: `ok`,
+	},
+
+	"Macro definition and show-macro without parentheses": {
+		src: `{% macro M %}ok{% end %}{% show M %}`,
+		out: `ok`,
+	},
+
+	// TODO(Ginluca): reflect: call of reflect.Value.Len on struct Value
+	//"Macro definition and show-macro variadic": {
+	//	src: `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
+	//	out: `123`,
+	//},
+
 	// TODO(Gianluca): out of memory.
 	// "Template builtin - title": {
 	// 	src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,

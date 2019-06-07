@@ -886,28 +886,21 @@ func (p *parsing) parseStatement(tok token) {
 			}
 			tok = next(p.lex)
 		}
-		var arguments []ast.Expression
+		var args []ast.Expression
+		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
-			// arguments TODO(Gianluca): use parseExprList (see case
-			// tokenLeftParenthesis in parser_expressions.go).
-			arguments = []ast.Expression{}
-			for {
-				expr, tok = p.parseExpr(token{}, false, false, false, false)
-				if expr == nil {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
+			args, tok = p.parseExprList(token{}, false, false, false, false)
+			if tok.typ == tokenEllipses {
+				if len(args) == 0 {
+					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
 				}
-				arguments = append(arguments, expr)
-				if tok.typ == tokenRightParenthesis {
-					break
-				}
-				if tok.typ != tokenComma {
-					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting , or )", tok)})
-				}
+				isVariadic = true
+				tok = next(p.lex)
+			}
+			if tok.typ != tokenRightParenthesis {
+				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or )", tok)})
 			}
 			tok = next(p.lex)
-			if tok.typ != tokenEndStatement {
-				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %%}", tok)})
-			}
 		}
 		or := ast.ShowMacroOrError
 		if tok.typ == tokenIdentifier {
@@ -928,11 +921,9 @@ func (p *parsing) parseStatement(tok token) {
 				}
 			}
 		}
-		if tok.typ != tokenEndStatement {
-			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ( or %%}", tok)})
-		}
+		p.parseEndStatement(tok, tokenEndStatement, true)
 		pos.End = tok.pos.End
-		node = ast.NewShowMacro(pos, impor, macro, arguments, or, tok.ctx)
+		node = ast.NewShowMacro(pos, impor, macro, args, isVariadic, or, tok.ctx)
 		p.addChild(node)
 		p.cutSpacesToken = true
 

@@ -202,13 +202,13 @@ func CloneNode(node ast.Node) ast.Node {
 		}
 		var macro = ast.NewIdentifier(ClonePosition(n.Macro.Position), n.Macro.Name)
 		var arguments []ast.Expression
-		if n.Arguments != nil {
-			arguments = make([]ast.Expression, len(n.Arguments))
-			for i, a := range n.Arguments {
+		if n.Args != nil {
+			arguments = make([]ast.Expression, len(n.Args))
+			for i, a := range n.Args {
 				arguments[i] = CloneExpression(a)
 			}
 		}
-		return ast.NewShowMacro(ClonePosition(n.Position), impor, macro, arguments, n.Or, n.Context)
+		return ast.NewShowMacro(ClonePosition(n.Position), impor, macro, arguments, n.IsVariadic, n.Or, n.Context)
 	case *ast.Import:
 		var ident *ast.Identifier
 		if n.Ident != nil {
