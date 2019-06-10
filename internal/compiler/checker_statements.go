@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"scriggo/internal/compiler/ast"
 )
@@ -44,7 +45,11 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 			nodes = append(nodes, n)
 		default:
 			// TODO(Gianluca): review error.
-			return tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+			if txt, ok := n.(*ast.Text); ok && len(strings.TrimSpace(string(txt.Text))) == 0 {
+				// Nothing to do
+			} else {
+				return tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+			}
 		}
 	}
 	tree.Nodes = []ast.Node{
@@ -105,7 +110,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						panic(err)
 					}
 					pkgInfos := map[string]*PackageInfo{}
-					checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, true, true)
+					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, true, true)
+					if err != nil {
+						panic(err)
+					}
+					// TypeInfos of imported packages in templates are
+					// "manually" added to the map of typeinfos of typechecker.
+					for k, v := range pkgInfos[node.Path].TypeInfo {
+						tc.TypeInfo[k] = v
+					}
 					importedPkg, ok := pkgInfos[node.Path]
 					if !ok {
 						panic(fmt.Errorf("cannot find path %q inside pkgInfos (%v)", node.Path, pkgInfos)) // TODO(Gianluca): remove.
