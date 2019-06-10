@@ -268,8 +268,8 @@ func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
 }
 
 // getScopeLevel returns the scope level in which name is declared, and a
-// boolean which indicates if has been imported from another package/page or
-// not.
+// boolean which reports whether has been imported from another package/page
+// or not.
 func (tc *typechecker) getScopeLevel(name string) (int, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.Scopes) - 1; i >= 0; i-- {
@@ -319,7 +319,7 @@ func (tc *typechecker) funcChain(name string) []*ast.Func {
 	return funcs
 }
 
-// isPackageVariable indicates if name is a package variable.
+// isPackageVariable reports whether name is a package variable.
 func (tc *typechecker) isPackageVariable(name string) bool {
 	_, ok := tc.filePackageBlock[name]
 	return ok

@@ -231,7 +231,9 @@ func ValidDirReaderPath(path string) bool {
 	return true
 }
 
-// isWindowsReservedName indicates if name is a reserved file name on Windows.
+// isWindowsReservedName reports whether name is a reserved file name on
+// Windows.
+//
 // See https://docs.microsoft.com/en-us/windows/desktop/fileio/naming-a-file
 func isWindowsReservedName(name string) bool {
 	const DEL = '\x7f'

@@ -35,7 +35,7 @@ func main() {
 	fmt.Println("map:", m)
 
 	// The optional second return value when getting a
-	// value from a map indicates if the key was present
+	// value from a map reports whether the key was present
 	// in the map. This can be used to disambiguate
 	// between missing keys and keys with zero values
 	// like `0` or `""`. Here we didn't need the value

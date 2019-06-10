@@ -128,8 +128,8 @@ func (builder *functionBuilder) BindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
 }
 
-// IsVariable indicates if n is a variable (i.e. is a name defined in some of
-// the current scopes).
+// IsVariable reports whether n is a variable (i.e. is a name defined in some
+// of the current scopes).
 func (builder *functionBuilder) IsVariable(n string) bool {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
 		_, ok := builder.scopes[i][n]

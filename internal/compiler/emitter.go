@@ -24,7 +24,7 @@ type emitter struct {
 	typeInfos            map[ast.Node]*TypeInfo
 	upvarsNames          map[*vm.Function]map[string]int
 
-	isTemplate bool // Indicates if it's a template.
+	isTemplate bool // Reports whether it's a template.
 	template   struct {
 		gA, gB, gC, gD, gE int8 // Reserved general registers.
 		iA                 int8 // Reserved int register.

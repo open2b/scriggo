@@ -80,8 +80,8 @@ func next(lex *lexer) token {
 	return tok
 }
 
-// containsOnlySpaces indicates if b contains only white space characters as
-// intended by Go parser.
+// containsOnlySpaces reports whether b contains only white space characters
+// as intended by Go parser.
 func containsOnlySpaces(bytes []byte) bool {
 	for _, b := range bytes {
 		if b != ' ' && b != '\t' && b != '\n' && b != '\r' {
@@ -97,13 +97,13 @@ type parsing struct {
 	// Lexer.
 	lex *lexer
 
-	// Indicates if it has an extend statement.
+	// Reports whether it has an extend statement.
 	hasExtend bool
 
-	// Indicates if it is in a macro.
+	// Reports whether it is in a macro.
 	isInMacro bool
 
-	// Indicates if there is a token in current line for which it is possible
+	// Reports whether there is a token in current line for which it is possible
 	// to cut the leading and trailing spaces.
 	cutSpacesToken bool
 

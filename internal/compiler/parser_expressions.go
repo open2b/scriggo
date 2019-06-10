@@ -88,9 +88,9 @@ import (
 
 // parseExpr parses an expression and returns its tree and the last read token
 // that does not belong to the expression. tok, if initialized, is the first
-// token of the expression. canBeBlank indicates if the parsed expression can be
-// the blank identifier. canBeSwitchGuard indicates if the parsed expression can
-// be a type switch guard, as x.(type). It panics on error.
+// token of the expression. canBeBlank reports whether the parsed expression
+// can be the blank identifier. canBeSwitchGuard reports whether the parsed
+// expression can be a type switch guard, as x.(type). It panics on error.
 //
 // TODO (Gianluca): update doc. including type parsing.
 //
@@ -107,10 +107,10 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 	// TODO (Gianluca): to doc.
 	reuseLastToken := false
 
-	// canCompositeLiteral indicates if the currently parsed expression can be
-	// used as type in composite literals. For instance, "interface{}" is a type
-	// but cannot be used as type in composite literals, so canCompositeLiteral
-	// is false.
+	// canCompositeLiteral reports whether the currently parsed expression can
+	// be used as type in composite literals. For instance, "interface{}" is a
+	// type but cannot be used as type in composite literals, so
+	// canCompositeLiteral is false.
 	canCompositeLiteral := false
 
 	// Intermediate nodes of an expression tree are unary or binary operators
@@ -134,7 +134,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
-	// mustBeBlank indicates if the parsed expression must be the blank
+	// mustBeBlank reports whether the parsed expression must be the blank
 	// identifier. It must be if it can be the blank identifier and the
 	// first token is "_".
 	var mustBeBlank bool
@@ -694,9 +694,9 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 // parseExprList parses a list of expressions separated by a comma and returns
 // the list and the last token read that can not be part of the last expression.
 // tok, if initialized, is the first token of the expression. canBeBlank
-// indicates if a parsed expression can be the blank identifier.
-// allowSwitchGuard indicates if a parsed expression can containt a type switch
-// guard. It panics on error.
+// reports whether a parsed expression can be the blank identifier.
+// allowSwitchGuard reports whether a parsed expression can contain a type
+// switch guard. It panics on error.
 //
 // TODO (Gianluca): nextIsBlockOpen should have a better name
 //

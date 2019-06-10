@@ -12,8 +12,8 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
-// isTypeGuard indicates if node is a switch type guard, as x.(type) and v :=
-// x.(type).
+// isTypeGuard reports whether node is a switch type guard, as x.(type) and
+// v := x.(type).
 func isTypeGuard(node ast.Node) bool {
 	switch v := node.(type) {
 	case *ast.Assignment:
