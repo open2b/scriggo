@@ -1219,7 +1219,9 @@ func (vm *VM) run() (uint32, bool) {
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
 						vm.env.mu.Lock()
-						vm.env.freeMemory -= int(bytes)
+						if vm.env.freeMemory >= 0 {
+							vm.env.freeMemory -= int(bytes)
+						}
 						vm.env.mu.Unlock()
 					}
 				}
@@ -1502,7 +1504,9 @@ func (vm *VM) run() (uint32, bool) {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
 						vm.env.mu.Lock()
-						vm.env.freeMemory -= int(bytes)
+						if vm.env.freeMemory >= 0 {
+							vm.env.freeMemory -= int(bytes)
+						}
 						vm.env.mu.Unlock()
 					}
 				}
