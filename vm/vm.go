@@ -67,7 +67,8 @@ func New() *VM {
 	vm.st[1] = stackSize
 	vm.st[2] = stackSize
 	vm.st[3] = stackSize
-	vm.Reset()
+	vm.env = &Env{}
+	vm.envArg = reflect.ValueOf(vm.env)
 	return vm
 }
 
