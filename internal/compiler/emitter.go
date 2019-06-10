@@ -1317,28 +1317,40 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 					// Nothing to do: template pages cannot have
 					// collateral effects.
 				} else {
-					importE := newEmitter(e.typeInfos, e.indirectVars)
-					importE.isTemplate = true
-					importE.pkg = &ast.Package{}
-					fn := NewFunction("", "", reflect.FuncOf(nil, nil, false))
-					importE.fb = newBuilder(fn)
-					importE.fb.EnterScope()
-					importE.reserveTemplateRegisters()
-					importE.EmitNodes(node.Tree.Nodes)
-					for _, n := range node.Tree.Nodes {
-						if macro, ok := n.(*ast.Func); ok {
-							name := macro.Ident.Name
-							if e.availableFunctions[e.pkg] == nil {
-								e.availableFunctions[e.pkg] = map[string]*vm.Function{}
-							}
-							if node.Ident == nil {
-								e.availableFunctions[e.pkg][name] = importE.availableFunctions[importE.pkg][name]
-							} else {
-								e.availableFunctions[e.pkg][node.Ident.Name+"."+name] = importE.availableFunctions[importE.pkg][name]
-							}
+					backupBuilder := e.fb
+					funcs, vars, inits := e.emitPackage(node.Tree.Nodes[0].(*ast.Package))
+					var importName string
+					if node.Ident == nil {
+						// Imports without identifiers are handled as 'import . "path"'.
+						importName = ""
+					} else {
+						switch node.Ident.Name {
+						case "_":
+							panic("TODO(Gianluca): not implemented")
+						case ".":
+							importName = ""
+						default:
+							importName = node.Ident.Name
 						}
 					}
-					importE.fb.ExitScope()
+					for name, fn := range funcs {
+						if importName == "" {
+							e.availableFunctions[e.pkg][name] = fn
+						} else {
+							e.availableFunctions[e.pkg][importName+"."+name] = fn
+						}
+					}
+					for name, v := range vars {
+						if importName == "" {
+							e.pkgVariables[e.pkg][name] = v
+						} else {
+							e.pkgVariables[e.pkg][importName+"."+name] = v
+						}
+					}
+					if len(inits) > 0 {
+						panic("have inits!") // TODO(Gianluca): review.
+					}
+					e.fb = backupBuilder
 				}
 			}
 

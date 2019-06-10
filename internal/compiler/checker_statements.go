@@ -20,7 +20,9 @@ func (tc *typechecker) CheckNodesInNewScope(nodes []ast.Node) {
 	tc.removeCurrentScope()
 }
 
-func (tc *typechecker) templateToPackage(tree *ast.Tree) (*ast.Package, error) {
+// templateToPackage extract first-level declarations in tree and appends them
+// to a package, which will be the only node of tree.
+func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -28,11 +30,13 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) (*ast.Package, error) {
 			nodes = append(nodes, n)
 		default:
 			// TODO(Gianluca): review error.
-			return nil, tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+			return tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
 		}
 	}
-	pkg := ast.NewPackage(tree.Pos(), "", nodes)
-	return pkg, nil
+	tree.Nodes = []ast.Node{
+		ast.NewPackage(tree.Pos(), "", nodes),
+	}
+	return nil
 }
 
 // checkNodes type checks one or more statements.
@@ -82,13 +86,16 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do.
 				} else {
-					templatePkg, err := tc.templateToPackage(node.Tree)
+					err := tc.templateToPackage(node.Tree)
 					if err != nil {
 						panic(err)
 					}
 					pkgInfos := map[string]*PackageInfo{}
-					checkPackage(templatePkg, node.Path, nil, nil, pkgInfos, true, true)
-					importedPkg := &PackageInfo{}
+					checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, true, true)
+					importedPkg, ok := pkgInfos[node.Path]
+					if !ok {
+						panic(fmt.Errorf("cannot find path %q inside pkgInfos (%v)", node.Path, pkgInfos)) // TODO(Gianluca): remove.
+					}
 					if node.Ident == nil {
 						tc.unusedImports[importedPkg.Name] = nil
 						for ident, ti := range importedPkg.Declarations {
@@ -483,7 +490,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:
-			nodes[i] = ast.NewFunc(node.Pos(), node.Ident, node.Type, ast.NewBlock(nil, node.Body))
+			nodes[i] = macroToFunc(node)
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Call:

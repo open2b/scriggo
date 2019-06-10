@@ -135,6 +135,8 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 			imports = append(imports, decl)
 		case *ast.Func:
 			funcs = append(funcs, decl)
+		case *ast.Macro:
+			funcs = append(funcs, macroToFunc(decl))
 		case *ast.Const:
 			if len(decl.Rhs) == 0 {
 				for i := range decl.Lhs {
@@ -368,12 +370,12 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 				// Not predeclared package.
 				var err error
 				if tc.isTemplate {
-					pkg, err := tc.templateToPackage(d.Tree)
+					err := tc.templateToPackage(d.Tree)
 					if err != nil {
 						panic(err)
 					}
 					// TODO(Gianluca): if templateToPackage panics instead of returning error, put it inline.
-					err = checkPackage(pkg, d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
 				} else {
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, false, disallowGoStmt) // TODO(Gianluca): where are deps?
 				}

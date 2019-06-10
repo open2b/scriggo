@@ -222,46 +222,46 @@ var templateMultiPageCases = map[string]struct {
 	expected string
 }{
 
-	"Include - Only text": {
-		sources: map[string]string{
-			"/index.html":    `a{% include "/included.html" %}c`,
-			"/included.html": `b`,
-		},
-		expected: "abc",
-	},
+	// "Include - Only text": {
+	// 	sources: map[string]string{
+	// 		"/index.html":    `a{% include "/included.html" %}c`,
+	// 		"/included.html": `b`,
+	// 	},
+	// 	expected: "abc",
+	// },
 
-	"Include - Included file uses external variable": {
-		sources: map[string]string{
-			"/index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
-			"/included.html": `{{ a }}`,
-		},
-		expected: "a: 10",
-	},
+	// "Include - Included file uses external variable": {
+	// 	sources: map[string]string{
+	// 		"/index.html":    `{% var a = 10 %}a: {% include "/included.html" %}`,
+	// 		"/included.html": `{{ a }}`,
+	// 	},
+	// 	expected: "a: 10",
+	// },
 
-	"Include - File including uses included variable": {
-		sources: map[string]string{
-			"/index.html":    `{% include "/included.html" %}included a: {{ a }}`,
-			"/included.html": `{% var a = 20 %}`,
-		},
-		expected: "included a: 20",
-	},
+	// "Include - File including uses included variable": {
+	// 	sources: map[string]string{
+	// 		"/index.html":    `{% include "/included.html" %}included a: {{ a }}`,
+	// 		"/included.html": `{% var a = 20 %}`,
+	// 	},
+	// 	expected: "included a: 20",
+	// },
 
-	"Include - Including a file which includes another file": {
-		sources: map[string]string{
-			"/index.html":              `indexstart,{% include "/dir1/included.html" %}indexend,`,
-			"/dir1/included.html":      `i1start,{% include "/dir1/dir2/included.html" %}i1end,`,
-			"/dir1/dir2/included.html": `i2,`,
-		},
-		expected: "indexstart,i1start,i2,i1end,indexend,",
-	},
+	// "Include - Including a file which includes another file": {
+	// 	sources: map[string]string{
+	// 		"/index.html":              `indexstart,{% include "/dir1/included.html" %}indexend,`,
+	// 		"/dir1/included.html":      `i1start,{% include "/dir1/dir2/included.html" %}i1end,`,
+	// 		"/dir1/dir2/included.html": `i2,`,
+	// 	},
+	// 	expected: "indexstart,i1start,i2,i1end,indexend,",
+	// },
 
-	"Import/Macro - Importing a macro defined in another page": {
-		sources: map[string]string{
-			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
-			"/page.html":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
-		},
-		expected: "macro!macro!",
-	},
+	// "Import/Macro - Importing a macro defined in another page": {
+	// 	sources: map[string]string{
+	// 		"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
+	// 		"/page.html":  `{% macro M %}macro!{% end %}{% macro M2 %}macro 2!{% end %}`,
+	// 	},
+	// 	expected: "macro!macro!",
+	// },
 
 	// TODO(Gianluca): uncomment.
 	// "Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
@@ -296,13 +296,13 @@ var templateMultiPageCases = map[string]struct {
 		expected: "index-start,M1-start,M2,M1-end,index-end",
 	},
 
-	"Import/Macro - Importing a macro using an import statement with identifier": {
-		sources: map[string]string{
-			"/index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
-			"/page.html":  `{% macro M %}macro!{% end %}`,
-		},
-		expected: "macro!macro!",
-	},
+	// "Import/Macro - Importing a macro using an import statement with identifier": {
+	// 	sources: map[string]string{
+	// 		"/index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
+	// 		"/page.html":  `{% macro M %}macro!{% end %}`,
+	// 	},
+	// 	expected: "macro!macro!",
+	// },
 }
 
 func TestMultiPageTemplate(t *testing.T) {
