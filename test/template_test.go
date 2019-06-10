@@ -189,6 +189,16 @@ var templateCases = map[string]struct {
 		src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
 		out: `hello, world converted to title is Hello, World`,
 	},
+
+	"Label for": {
+		src: `{% L: for %}a{% break L %}b{% end for %}`,
+		out: `a`,
+	},
+
+	"Label switch": {
+		src: `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
+		out: `a`,
+	},
 }
 
 func TestTemplate(t *testing.T) {
