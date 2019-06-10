@@ -320,13 +320,22 @@ var templateMultiPageCases = map[string]struct {
 		expected: "I'm page!",
 	},
 
-	"Extends - Extending a page that calls a macro defined in current page": {
+	"Extends - Extending a page that calls a macro defined on current page": {
 		sources: map[string]string{
 			"/index.html": `{% extends "/page.html" %}{% macro E %}E's body{% end %}`,
 			"/page.html":  `{% show E %}`,
 		},
 		expected: "E's body",
 	},
+
+	// TODO(Gianluca): uncomment.
+	// "Extends - Exteting a page that calls two macros defined on current page": {
+	// 	sources: map[string]string{
+	// 		"/index.html": `{% extends "/page.html" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
+	// 		"/page.html":  `{% show E1 %}{% show E1 %}`,
+	// 	},
+	// 	expected: "E1's bodyE2's body",
+	// },
 }
 
 func TestMultiPageTemplate(t *testing.T) {
