@@ -198,6 +198,8 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 	if !isExtendingPage {
 		e.pkg = pkg
 		e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+	}
+	if e.pkgVariables[e.pkg] == nil {
 		e.pkgVariables[e.pkg] = map[string]int16{}
 	}
 

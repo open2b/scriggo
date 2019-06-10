@@ -135,6 +135,14 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 			mainPkgInfo := &PackageInfo{}
 			mainPkgInfo.IndirectVars = tc.IndirectVars
 			mainPkgInfo.TypeInfo = tc.TypeInfo
+			for _, pkgInfo := range pkgInfos {
+				for k, v := range pkgInfo.TypeInfo {
+					mainPkgInfo.TypeInfo[k] = v
+				}
+				for k, v := range pkgInfo.IndirectVars {
+					mainPkgInfo.IndirectVars[k] = v
+				}
+			}
 			return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 		}
 	}
