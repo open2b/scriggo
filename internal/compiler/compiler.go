@@ -96,16 +96,7 @@ type Options struct {
 	DisallowGoStmt bool
 }
 
-func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (_ map[string]*PackageInfo, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*CheckingError); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
+func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (map[string]*PackageInfo, error) {
 	// TODO(Gianluca): review.
 	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
 	tc.Universe = universe
@@ -121,7 +112,10 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 		return pkgInfos, nil
 	}
 	tc.predefinedPkgs = predefinedPkgs
-	tc.CheckNodesInNewScope(tree.Nodes)
+	err := tc.CheckNodesInNewScopeCatchingPanics(tree.Nodes)
+	if err != nil {
+		return nil, err
+	}
 	mainPkgInfo := &PackageInfo{}
 	mainPkgInfo.IndirectVars = tc.IndirectVars
 	mainPkgInfo.TypeInfo = tc.TypeInfo

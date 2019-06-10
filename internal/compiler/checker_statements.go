@@ -13,6 +13,20 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
+func (tc *typechecker) CheckNodesInNewScopeCatchingPanics(nodes []ast.Node) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(*CheckingError); ok {
+				err = rerr
+			} else {
+				panic(r)
+			}
+		}
+	}()
+	tc.CheckNodesInNewScope(nodes)
+	return err
+}
+
 // CheckNodesInNewScope type checks nodes in a new scope.
 func (tc *typechecker) CheckNodesInNewScope(nodes []ast.Node) {
 	tc.addScope()
