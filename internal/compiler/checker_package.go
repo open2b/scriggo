@@ -123,6 +123,7 @@ func detectVarsLoop(vars []*ast.Var, deps GlobalsDependencies) error {
 }
 
 func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
+	var extends *ast.Extends
 	consts := []*ast.Const{}
 	vars := []*ast.Var{}
 	imports := []*ast.Import{}
@@ -131,6 +132,8 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 	// Fragments global declarations.
 	for _, decl := range pkg.Declarations {
 		switch decl := decl.(type) {
+		case *ast.Extends:
+			extends = decl
 		case *ast.Import:
 			imports = append(imports, decl)
 		case *ast.Func:
@@ -291,6 +294,9 @@ varsLoop:
 	}
 
 	sorted := []ast.Node{}
+	if extends != nil {
+		sorted = append(sorted, extends)
+	}
 	for _, imp := range imports {
 		sorted = append(sorted, imp)
 	}

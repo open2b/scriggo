@@ -41,7 +41,7 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
-		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import:
+		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import, *ast.Extends:
 			nodes = append(nodes, n)
 		default:
 			// TODO(Gianluca): review error.
@@ -152,9 +152,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 
 		case *ast.Text:
-
-		case *ast.Extends:
-			panic("found *ast.Extends") // TODO (Gianluca): to review.
 
 		case *ast.Include:
 			tc.checkNodes(node.Tree.Nodes)

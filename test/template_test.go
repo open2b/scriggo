@@ -311,6 +311,22 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expected: "macro!macro!",
 	},
+
+	"Extends - Empty page extends a page containing only text": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}`,
+			"/page.html":  `I'm page!`,
+		},
+		expected: "I'm page!",
+	},
+
+	"Extends - Extending a page that calls a macro defined in current page": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% macro E %}E's body{% end %}`,
+			"/page.html":  `{% show E %}`,
+		},
+		expected: "E's body",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {

@@ -111,6 +111,25 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
 	e.reserveTemplateRegisters()
+
+	// If page is a package, then page extends another page.
+	if len(tree.Nodes) == 1 {
+		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
+			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+			for _, dec := range pkg.Declarations {
+				if fun, ok := dec.(*ast.Func); ok {
+					fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+				}
+			}
+			extends := pkg.Declarations[0].(*ast.Extends)
+			e.EmitNodes(extends.Tree.Nodes)
+			e.fb.End()
+			_, _, _ = e.emitPackage(pkg)
+			return e.fb.fn, e.globals
+		}
+	}
+
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()

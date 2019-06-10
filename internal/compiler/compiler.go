@@ -111,6 +111,33 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 		}
 		return pkgInfos, nil
 	}
+	if opts.IsTemplate {
+		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
+			for _, d := range tree.Nodes[1:] {
+				if m, ok := d.(*ast.Macro); ok {
+					f := macroToFunc(m)
+					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
+				}
+			}
+			err := tc.CheckNodesInNewScopeCatchingPanics(extends.Tree.Nodes)
+			if err != nil {
+				return nil, err
+			}
+			err = tc.templateToPackage(tree)
+			if err != nil {
+				return nil, err
+			}
+			pkgInfos := map[string]*PackageInfo{}
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, true, true)
+			if err != nil {
+				return nil, err
+			}
+			mainPkgInfo := &PackageInfo{}
+			mainPkgInfo.IndirectVars = tc.IndirectVars
+			mainPkgInfo.TypeInfo = tc.TypeInfo
+			return map[string]*PackageInfo{"main": mainPkgInfo}, nil
+		}
+	}
 	tc.predefinedPkgs = predefinedPkgs
 	err := tc.CheckNodesInNewScopeCatchingPanics(tree.Nodes)
 	if err != nil {
