@@ -259,6 +259,13 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
+		case *ast.Label:
+
+			err := pp.expand([]ast.Node{n.Statement}, ctx)
+			if err != nil {
+				return err
+			}
+
 		case *ast.Show, *ast.Var, *ast.Text, *ast.Assignment, *ast.Call, *ast.Break, *ast.Continue, *ast.ShowMacro:
 
 			// TODO(Gianluca): add missing nodes.

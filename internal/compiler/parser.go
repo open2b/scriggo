@@ -367,6 +367,8 @@ func (p *parsing) parseStatement(tok token) {
 		tok = next(p.lex)
 	}
 
+LABEL:
+
 	// Parent is always the last ancestor.
 	parent := p.ancestors[len(p.ancestors)-1]
 
@@ -1272,11 +1274,23 @@ func (p *parsing) parseStatement(tok token) {
 			// Parses expression.
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
+				if isTemplate {
+					if _, ok := parent.(*ast.Label); ok {
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected label, expecting statement")})
+					}
+				}
 				node := ast.NewLabel(pos, ident, nil)
 				node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, tok.pos.End}
 				p.addChild(node)
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
+				if isTemplate {
+					tok = next(p.lex)
+					if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
+						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
+					}
+					goto LABEL
+				}
 			} else {
 				p.parseEndStatement(tok, tokenSemicolon, isTemplate)
 				p.addChild(expr)
