@@ -86,6 +86,10 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 	return c
 }
 
+// EmitScript emits the code for a script given its tree, the type info and
+// indirect variables. alloc reports whether Alloc instructions must be
+// emitted. EmitScript returns a function that is the entry point of the
+// script and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
@@ -98,6 +102,10 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	return e.fb.fn, e.globals
 }
 
+// EmitTemplate emits the code for a template given its tree, the type info and
+// indirect variables. alloc reports whether Alloc instructions must be
+// emitted. EmitTemplate returns a function that is the entry point of the
+// template and the global variables.
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars)
 	e.pkg = &ast.Package{}
@@ -136,7 +144,10 @@ type emittedPackage struct {
 	Main      *vm.Function
 }
 
-// EmitPackageMain emits package main, returning a Package.
+// EmitPackageMain emits the code for a package main given its ast node, the
+// type info and indirect variables. alloc reports whether Alloc instructions
+// must be emitted. EmitPackageMain returns an emittedPackage instance with
+// the global variables and the main function.
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
@@ -150,8 +161,8 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 	return pkg
 }
 
-// emitPackage emits package pkg. Returns a list of exported functions and
-// exported variables.
+// emitPackage emits package pkg returning exported function, exported
+// variables and init functions.
 func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
 	e.pkg = pkg
 	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
@@ -325,13 +336,15 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 }
 
-// prepareCallParameters prepares parameters (out and in) for a function call of
-// type funcType and arguments args. Returns the list of return registers and
-// their respective type.
+// prepareCallParameters prepares the parameters (out and in) for a function
+// call. funcType is the reflect type of the function, args are the arguments
+// and isPredefined reports whether it is a predefined function.
 //
-// Note that this functions is different than prepareFunctionBodyParameters;
-// while the former is used before emitting a function's body, the latter is
-// used before calling it.
+// It returns the registers for the returned values and their respective
+// reflect types.
+//
+// While prepareCallParameters is called before calling the function,
+// prepareFunctionBodyParameters is called before emitting the its body.
 func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
@@ -394,12 +407,11 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 	return regs, types
 }
 
-// prepareFunctionBodyParameters prepares fun's parameters (out and int) before
+// prepareFunctionBodyParameters prepares fun's parameters (in and out) before
 // emitting its body.
 //
-// Note that this functions is different than prepareCallParameters; while the
-// former is used before calling a function, the latter is used before emitting
-// it's body.
+// While prepareCallParameters is called before calling the function,
+// prepareFunctionBodyParameters is called before emitting the its body.
 func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 
 	// Reserves space for return parameters.
@@ -428,8 +440,8 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	}
 }
 
-// emitCall emits instruction for a call, returning the list of registers (and
-// their respective type) within which return values are inserted.
+// emitCall emits instructions for a function call. It returns the registers
+// and the reflect types of the returned values.
 func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
 	stackShift := vm.StackShift{
@@ -494,8 +506,9 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	return regs, types
 }
 
-// emitExpr emits instruction such that expr value is put into reg. If reg is
-// zero, instructions are emitted anyway but result is discarded.
+// emitExpr emits the instructions that evaluate the expression expr and put
+// the result into the register reg. If reg is zero, instructions are emitted
+// anyway but the result is discarded.
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 	// TODO (Gianluca): review all "kind" arguments in every emitExpr call.
 	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
@@ -1033,8 +1046,8 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 	return 0, false, false
 }
 
-// emitBuiltin emits instructions for a builtin call, writing result into reg if
-// necessary.
+// emitBuiltin emits instructions for a builtin call, writing the result, if
+// necessary, into the register reg.
 func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
@@ -1727,8 +1740,8 @@ func (e *emitter) emitSwitch(node *ast.Switch) {
 	e.fb.ExitScope()
 }
 
-// emitCondition emits instructions for a condition. Last instruction added by
-// this method is always "If".
+// emitCondition emits the instructions for a condition. The last instruction
+// emitted is always the "If" instruction
 func (e *emitter) emitCondition(cond ast.Expression) {
 
 	switch cond := cond.(type) {

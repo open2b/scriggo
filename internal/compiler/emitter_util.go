@@ -57,7 +57,7 @@ func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 	}
 }
 
-// compositeLiteralLen returns node's length.
+// compositeLiteralLen returns the length of a composite literal.
 func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	size := 0
 	for _, kv := range node.KeyValues {
@@ -72,8 +72,8 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 	return size
 }
 
-// functionIndex returns fun's index inside current function, creating it if
-// not exists.
+// functionIndex returns the index of a function inside the current function,
+// creating it if it does not exist.
 func (e *emitter) functionIndex(fun *vm.Function) int8 {
 	i, ok := e.assignedFunctions[e.fb.fn][fun]
 	if ok {
@@ -94,7 +94,7 @@ func isExported(name string) bool {
 	return unicode.Is(unicode.Lu, []rune(name)[0])
 }
 
-// isLenBuiltinCall reports whether expr is a "len" builtin call.
+// isLenBuiltinCall reports whether expr is a call to the builtin "len".
 func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
 		if ti := e.typeInfos[call]; ti.IsBuiltin() {
@@ -116,7 +116,7 @@ func isNil(expr ast.Expression) bool {
 	return false
 }
 
-// kindToType returns VM's type of k.
+// kindToType returns the internal register type of a reflect kind.
 func kindToType(k reflect.Kind) vm.Type {
 	switch k {
 	case reflect.Bool:
@@ -168,7 +168,8 @@ func mayHaveDependencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-// predefVarIndex returns index of varRv inside globals, adding it if necessary.
+// predefVarIndex returns the index of a global variable in globals, adding it
+// if it does not exist.
 func (e *emitter) predefVarIndex(varRv reflect.Value, predefPkgName, name string) int16 {
 	index, ok := e.predefVarIndexes[e.fb.fn][varRv]
 	if ok {
@@ -184,8 +185,8 @@ func (e *emitter) predefVarIndex(varRv reflect.Value, predefPkgName, name string
 	return index
 }
 
-// predefFuncIndex returns index of funRv inside list of current function's
-// predefined functions, adding it if necessary.
+// predefFuncIndex returns the index of a predefined function in the current
+// function, adding it if it does not exist.
 func (e *emitter) predefFuncIndex(funRv reflect.Value, predefPkgName, name string) int8 {
 	index, ok := e.predefFunIndexes[e.fb.fn][funRv]
 	if ok {
@@ -201,8 +202,9 @@ func (e *emitter) predefFuncIndex(funRv reflect.Value, predefPkgName, name strin
 	return index
 }
 
-// setClosureRefs sets closure refs for function. This function works on current
-// function builder, so shall be called before changing/saving it.
+// setClosureRefs sets the closure refs of a function. setClosureRefs operates
+// on current function builder, so shall be called before changing or saving
+// it.
 func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
 
 	// First: updates indexes of declarations that are found at the same level

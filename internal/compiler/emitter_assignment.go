@@ -28,7 +28,7 @@ const (
 	addressUpVar
 )
 
-// address represents an element on the left side of assignments.
+// address represents an element on the left side of an assignment.
 type address struct {
 	c          *emitter
 	addrType   addressType
@@ -37,12 +37,13 @@ type address struct {
 	reg2       int8         // Auxiliary register used in slice, map, array and selector assignments.
 }
 
-// newAddress returns a new address. Meaning of reg1 and reg2 depends on address type.
+// newAddress returns a new address. The meaning of reg1 and reg2 depends on the address type.
 func (e *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
 	return address{c: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
 
-// assign assigns value to a.
+// assign assigns value, with type valueType, to the address. If k is true
+// value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
 	case addressUpVar:
