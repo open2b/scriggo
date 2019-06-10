@@ -58,18 +58,7 @@ type VM struct {
 
 // New returns a new virtual machine.
 func New() *VM {
-	vm := &VM{}
-	vm.regs.int = make([]int64, stackSize)
-	vm.regs.float = make([]float64, stackSize)
-	vm.regs.string = make([]string, stackSize)
-	vm.regs.general = make([]interface{}, stackSize)
-	vm.st[0] = stackSize
-	vm.st[1] = stackSize
-	vm.st[2] = stackSize
-	vm.st[3] = stackSize
-	vm.env = &Env{}
-	vm.envArg = reflect.ValueOf(vm.env)
-	return vm
+	return create(nil, nil, &Env{})
 }
 
 // Env returns the execution environment of vm.
@@ -715,6 +704,28 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
+// create creates a new virtual machine with the function fn, the globals and
+// closure variables vars and the execution environment env.
+func create(fn *Function, vars []interface{}, env *Env) *VM {
+	vm := &VM{
+		st: [4]uint32{stackSize, stackSize, stackSize, stackSize},
+		regs: registers{
+			int:     make([]int64, stackSize),
+			float:   make([]float64, stackSize),
+			string:  make([]string, stackSize),
+			general: make([]interface{}, stackSize),
+		},
+		fn:   fn,
+		vars: vars,
+	}
+	if env != nil {
+		vm.env = env
+		vm.envArg = reflect.ValueOf(env)
+		vm.SetContext(env.ctx)
+	}
+	return vm
+}
+
 // startGoroutine starts a new goroutine to execute a function call at program
 // counter pc. If the function is predefined, returns true.
 func (vm *VM) startGoroutine() bool {
@@ -735,12 +746,7 @@ func (vm *VM) startGoroutine() bool {
 	default:
 		return true
 	}
-	nvm := New()
-	nvm.fn = fn
-	nvm.vars = vars
-	nvm.env = vm.env
-	nvm.done = vm.done
-	nvm.doneCase = vm.doneCase
+	nvm := create(fn, vars, vm.env)
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
@@ -1073,10 +1079,7 @@ func (c *callable) reflectValue(env *Env) reflect.Value {
 	fn := c.fn
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-		nvm := New()
-		nvm.fn = fn
-		nvm.vars = vars
-		nvm.env = env
+		nvm := create(fn, vars, env)
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
