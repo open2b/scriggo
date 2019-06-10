@@ -115,6 +115,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
+			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by extended page.
 			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
@@ -131,7 +132,8 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			e.fb.End()
 			e.fb.ExitScope()
 			// Emits extending page as a package.
-			_, _, _ = e.emitPackage(pkg)
+			_, _, _ = e.emitPackage(pkg, true)
+			e.fb = mainBuilder
 			return e.fb.fn, e.globals
 		}
 	}
@@ -169,7 +171,7 @@ type emittedPackage struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
-	funcs, _, _ := e.emitPackage(pkgMain)
+	funcs, _, _ := e.emitPackage(pkgMain, false)
 	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &emittedPackage{
 		Globals:   e.globals,
@@ -181,10 +183,12 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 
 // emitPackage emits package pkg. Returns a list of exported functions and
 // exported variables.
-func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
-	e.pkg = pkg
-	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
-	e.pkgVariables[e.pkg] = map[string]int16{}
+func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
+	if !isExtendingPage {
+		e.pkg = pkg
+		e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+		e.pkgVariables[e.pkg] = map[string]int16{}
+	}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
 	// functions are called more than once: that is wrong.
@@ -200,7 +204,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			} else {
 				backupPkg := e.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, inits := e.emitPackage(pkg)
+				funcs, vars, inits := e.emitPackage(pkg, false)
 				e.pkg = backupPkg
 				allInits = append(allInits, inits...)
 				var importName string
@@ -236,18 +240,24 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 	exportedFunctions := map[string]*vm.Function{}
 
-	// Stores all function declarations in current package before building
-	// their bodies: order of declaration doesn't matter at package level.
 	initToBuild := len(allInits) // Index of next "init" function to build.
-	for _, dec := range pkg.Declarations {
-		if fun, ok := dec.(*ast.Func); ok {
-			fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
-			if fun.Ident.Name == "init" {
-				allInits = append(allInits, fn)
-			} else {
-				e.availableFunctions[e.pkg][fun.Ident.Name] = fn
-				if isExported(fun.Ident.Name) {
-					exportedFunctions[fun.Ident.Name] = fn
+	if isExtendingPage {
+		// If page is extending another page, function declarations have already
+		// been added to the list of available functions, so they can't be added
+		// twice.
+	} else {
+		// Stores all function declarations in current package before building
+		// their bodies: order of declaration doesn't matter at package level.
+		for _, dec := range pkg.Declarations {
+			if fun, ok := dec.(*ast.Func); ok {
+				fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+				if fun.Ident.Name == "init" {
+					allInits = append(allInits, fn)
+				} else {
+					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+					if isExported(fun.Ident.Name) {
+						exportedFunctions[fun.Ident.Name] = fn
+					}
 				}
 			}
 		}
@@ -1347,7 +1357,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 					// collateral effects.
 				} else {
 					backupBuilder := e.fb
-					funcs, vars, inits := e.emitPackage(node.Tree.Nodes[0].(*ast.Package))
+					funcs, vars, inits := e.emitPackage(node.Tree.Nodes[0].(*ast.Package), false)
 					var importName string
 					if node.Ident == nil {
 						// Imports without identifiers are handled as 'import . "path"'.
