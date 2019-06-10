@@ -105,8 +105,8 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 			e.emitExpr(mapExpr, mapReg, mapType)
 			keyExpr := value.Index
 			keyType := e.typeInfos[keyExpr].Type
-			keyReg, kKeyReg, isRegister := e.quickEmitExpr(keyExpr, keyType)
-			if !kKeyReg && !isRegister {
+			keyReg, kKeyReg, ok := e.quickEmitExpr(keyExpr, keyType)
+			if !ok {
 				keyReg = e.fb.NewRegister(keyType.Kind())
 				e.emitExpr(keyExpr, keyReg, keyType)
 			}
@@ -174,14 +174,14 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 			case *ast.Index:
 				exprType := e.typeInfos[v.Expr].Type
-				expr, _, isRegister := e.quickEmitExpr(v.Expr, exprType)
-				if !isRegister {
+				expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
+				if !ok || k {
 					expr = e.fb.NewRegister(exprType.Kind())
 					e.emitExpr(v.Expr, expr, exprType)
 				}
 				indexType := e.typeInfos[v.Index].Type
-				index, _, isRegister := e.quickEmitExpr(v.Index, indexType)
-				if !isRegister {
+				index, k, ok := e.quickEmitExpr(v.Index, indexType)
+				if !ok || k {
 					index = e.fb.NewRegister(indexType.Kind())
 					e.emitExpr(v.Index, index, indexType)
 				}
@@ -243,14 +243,14 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		case *ast.Index:
 			exprType := e.typeInfos[v.Expr].Type
-			expr, _, isRegister := e.quickEmitExpr(v.Expr, exprType)
-			if !isRegister {
+			expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
+			if !ok || k {
 				expr = e.fb.NewRegister(exprType.Kind())
 				e.emitExpr(v.Expr, expr, exprType)
 			}
 			indexType := e.typeInfos[v.Index].Type
-			index, _, isRegister := e.quickEmitExpr(v.Index, indexType)
-			if !isRegister {
+			index, k, ok := e.quickEmitExpr(v.Index, indexType)
+			if !ok || k {
 				index = e.fb.NewRegister(indexType.Kind())
 				e.emitExpr(v.Index, index, indexType)
 			}

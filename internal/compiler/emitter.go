@@ -81,9 +81,9 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		predefVarIndexes:   map[*vm.Function]map[reflect.Value]int16{},
 		pkgVariables:       map[*ast.Package]map[string]int16{},
 		typeInfos:          typeInfos,
-		upvarsNames:        make(map[*vm.Function]map[string]int),
+		upvarsNames:        map[*vm.Function]map[string]int{},
 	}
-	return c
+	return e
 }
 
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
@@ -484,8 +484,8 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 
 	// Indirect function.
-	funReg, _, isRegister := e.quickEmitExpr(call.Func, e.typeInfos[call.Func].Type)
-	if !isRegister {
+	funReg, k, ok := e.quickEmitExpr(call.Func, e.typeInfos[call.Func].Type)
+	if !ok || k {
 		funReg = e.fb.NewRegister(reflect.Func)
 		e.emitExpr(call.Func, funReg, e.typeInfos[call.Func].Type)
 	}
@@ -526,8 +526,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		x := e.fb.NewRegister(xType.Kind())
 		e.emitExpr(expr.Expr1, x, xType)
 
-		y, ky, isRegister := e.quickEmitExpr(expr.Expr2, xType)
-		if !ky && !isRegister {
+		y, ky, ok := e.quickEmitExpr(expr.Expr2, xType)
+		if !ok {
 			y = e.fb.NewRegister(xType.Kind())
 			e.emitExpr(expr.Expr2, y, xType)
 		}
@@ -647,8 +647,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				e.fb.EnterStack()
 				indexReg := e.fb.NewRegister(reflect.Int)
 				e.fb.Move(true, index, indexReg, reflect.Int)
-				value, kvalue, isRegister := e.quickEmitExpr(kv.Value, typ.Elem())
-				if !kvalue && !isRegister {
+				value, kvalue, ok := e.quickEmitExpr(kv.Value, typ.Elem())
+				if !ok {
 					value = e.fb.NewRegister(typ.Elem().Kind())
 					e.emitExpr(kv.Value, value, typ.Elem())
 				}
@@ -678,8 +678,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.TypeAssertion:
 		typ := e.typeInfos[expr.Expr].Type
-		exprReg, _, isRegister := e.quickEmitExpr(expr.Expr, typ)
-		if !isRegister {
+		exprReg, k, ok := e.quickEmitExpr(expr.Expr, typ)
+		if !ok || k {
 			exprReg = e.fb.NewRegister(typ.Kind())
 			e.emitExpr(expr.Expr, exprReg, typ)
 		}
@@ -847,11 +847,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 		typ := e.typeInfos[expr].Type
-		out, isValue, isRegister := e.quickEmitExpr(expr, typ)
-		if isValue {
-			e.changeRegister(true, out, reg, typ, dstType)
-		} else if isRegister {
-			e.changeRegister(false, out, reg, typ, dstType)
+		if out, k, ok := e.quickEmitExpr(expr, typ); ok {
+			e.changeRegister(k, out, reg, typ, dstType)
 		} else {
 			if fun, ok := e.availableFunctions[e.pkg][expr.Name]; ok {
 				index := e.functionIndex(fun)
@@ -899,11 +896,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 		typ := e.typeInfos[expr].Type
-		out, isValue, isRegister := e.quickEmitExpr(expr, typ)
-		if isValue {
-			e.changeRegister(true, out, reg, typ, dstType)
-		} else if isRegister {
-			e.changeRegister(false, out, reg, typ, dstType)
+		if out, k, ok := e.quickEmitExpr(expr, typ); ok {
+			e.changeRegister(k, out, reg, typ, dstType)
 		} else {
 			// TODO(Gianluca): this switch only handles predeclared types.
 			// Add support for defined types.
@@ -972,19 +966,14 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		exprType := e.typeInfos[expr.Expr].Type
 		indexType := e.typeInfos[expr.Index].Type
 		var exprReg int8
-		out, _, isRegister := e.quickEmitExpr(expr.Expr, exprType)
-		if isRegister {
+		if out, k, ok := e.quickEmitExpr(expr.Expr, exprType); ok && !k {
 			exprReg = out
 		} else {
 			exprReg = e.fb.NewRegister(exprType.Kind())
 		}
-		out, isValue, isRegister := e.quickEmitExpr(expr.Index, indexType)
-		ki := false
 		var i int8
-		if isValue {
-			ki = true
-			i = out
-		} else if isRegister {
+		out, ki, ok := e.quickEmitExpr(expr.Index, indexType)
+		if ok {
 			i = out
 		} else {
 			i = e.fb.NewRegister(indexType.Kind())
@@ -1002,11 +991,12 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 }
 
-// quickEmitExpr checks if expr is k (which means immediate for integers and
-// floats and constant for strings and generals) or a register, putting it into
-// out. If it's neither of them, both k and isRegister are false and content of
-// out is unspecified.
-func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, isRegister bool) {
+// quickEmitExpr try to evaluate expr as a constant or a register without
+// emitting code, in this case ok is true otherwise is false.
+//
+// If expr is a constant, out is the constant and k is true.
+// if expr is a register, out is the register and k is false.
+func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, ok bool) {
 	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
 	// not need extra registers for evaluation.
 
@@ -1024,18 +1014,18 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 		switch v := expr.Val.(type) {
 		case int:
 			if -127 < v && v < 126 {
-				return int8(v), true, false
+				return int8(v), true, true
 			}
 		case bool:
 			b := int8(0)
 			if expr.Val.(bool) {
 				b = 1
 			}
-			return b, true, false
+			return b, true, true
 		case float64:
 			if float64(int(v)) == v {
 				if -127 < v && v < 126 {
-					return int8(v), true, false
+					return int8(v), true, true
 				}
 			}
 		}
@@ -1090,13 +1080,13 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "complex":
 		panic("TODO: not implemented")
 	case "copy":
-		dst, _, isRegister := e.quickEmitExpr(call.Args[0], e.typeInfos[call.Args[0]].Type)
-		if !isRegister {
+		dst, k, ok := e.quickEmitExpr(call.Args[0], e.typeInfos[call.Args[0]].Type)
+		if !ok || k {
 			dst = e.fb.NewRegister(reflect.Slice)
 			e.emitExpr(call.Args[0], dst, e.typeInfos[call.Args[0]].Type)
 		}
-		src, _, isRegister := e.quickEmitExpr(call.Args[1], e.typeInfos[call.Args[1]].Type)
-		if !isRegister {
+		src, k, ok := e.quickEmitExpr(call.Args[1], e.typeInfos[call.Args[1]].Type)
+		if !ok || k {
 			src = e.fb.NewRegister(reflect.Slice)
 			e.emitExpr(call.Args[0], src, e.typeInfos[call.Args[0]].Type)
 		}
@@ -1129,8 +1119,8 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			if len(call.Args) == 1 {
 				e.fb.MakeMap(typ, true, 0, reg)
 			} else {
-				size, kSize, isRegister := e.quickEmitExpr(call.Args[1], intType)
-				if !kSize && !isRegister {
+				size, kSize, ok := e.quickEmitExpr(call.Args[1], intType)
+				if !ok {
 					size = e.fb.NewRegister(reflect.Int)
 					e.emitExpr(call.Args[1], size, e.typeInfos[call.Args[1]].Type)
 				}
@@ -1138,8 +1128,8 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			}
 		case reflect.Slice:
 			lenExpr := call.Args[1]
-			lenReg, kLen, isRegister := e.quickEmitExpr(lenExpr, intType)
-			if !kLen && !isRegister {
+			lenReg, kLen, ok := e.quickEmitExpr(lenExpr, intType)
+			if !ok {
 				lenReg = e.fb.NewRegister(reflect.Int)
 				e.emitExpr(lenExpr, lenReg, e.typeInfos[lenExpr].Type)
 			}
@@ -1147,9 +1137,9 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			var capReg int8
 			if len(call.Args) == 3 {
 				capExpr := call.Args[2]
-				var isRegister bool
-				capReg, kCap, isRegister = e.quickEmitExpr(capExpr, intType)
-				if !kCap && !isRegister {
+				var ok bool
+				capReg, kCap, ok = e.quickEmitExpr(capExpr, intType)
+				if !ok {
 					capReg = e.fb.NewRegister(reflect.Int)
 					e.emitExpr(capExpr, capReg, e.typeInfos[capExpr].Type)
 				}
@@ -1166,9 +1156,9 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 				capacity = 0
 				kCapacity = true
 			} else {
-				var isRegister bool
-				capacity, kCapacity, isRegister = e.quickEmitExpr(call.Args[1], intType)
-				if !kCapacity && !isRegister {
+				var ok bool
+				capacity, kCapacity, ok = e.quickEmitExpr(call.Args[1], intType)
+				if !ok {
 					capacity = e.fb.NewRegister(reflect.Int)
 					e.emitExpr(call.Args[1], capacity, intType)
 				}
@@ -1182,8 +1172,8 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		e.fb.New(newType, reg)
 	case "panic":
 		arg := call.Args[0]
-		reg, _, isRegister := e.quickEmitExpr(arg, emptyInterfaceType)
-		if !isRegister {
+		reg, k, ok := e.quickEmitExpr(arg, emptyInterfaceType)
+		if !ok || k {
 			reg = e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(arg, reg, emptyInterfaceType)
 		}
@@ -1405,8 +1395,8 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			expr := node.Assignment.Values[0]
 			exprType := e.typeInfos[expr].Type
-			exprReg, kExpr, isRegister := e.quickEmitExpr(expr, exprType)
-			if (!kExpr && !isRegister) || exprType.Kind() != reflect.String {
+			exprReg, kExpr, ok := e.quickEmitExpr(expr, exprType)
+			if !ok || exprType.Kind() != reflect.String {
 				kExpr = false
 				exprReg = e.fb.NewRegister(exprType.Kind())
 				e.emitExpr(expr, exprReg, exprType)
@@ -1702,8 +1692,8 @@ func (e *emitter) emitSwitch(node *ast.Switch) {
 		bodyLabels[i] = e.fb.NewLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			y, ky, isRegister := e.quickEmitExpr(caseExpr, typ)
-			if !ky && !isRegister {
+			y, ky, ok := e.quickEmitExpr(caseExpr, typ)
+			if !ok {
 				y = e.fb.NewRegister(typ.Kind())
 				e.emitExpr(caseExpr, y, typ)
 			}
@@ -1755,8 +1745,8 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 				expr = cond.Expr2
 			}
 			exprType := e.typeInfos[expr].Type
-			x, _, isRegister := e.quickEmitExpr(expr, exprType)
-			if !isRegister {
+			x, k, ok := e.quickEmitExpr(expr, exprType)
+			if !ok || k {
 				x = e.fb.NewRegister(exprType.Kind())
 				e.emitExpr(expr, x, exprType)
 			}
@@ -1791,14 +1781,14 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 			}
 			if e.typeInfos[lenArg].Type.Kind() == reflect.String { // len is optimized for strings only.
 				lenArgType := e.typeInfos[lenArg].Type
-				x, _, isRegister := e.quickEmitExpr(lenArg, lenArgType)
-				if !isRegister {
+				x, k, ok := e.quickEmitExpr(lenArg, lenArgType)
+				if !ok || k {
 					x = e.fb.NewRegister(lenArgType.Kind())
 					e.emitExpr(lenArg, x, lenArgType)
 				}
 				exprType := e.typeInfos[expr].Type
-				y, ky, isRegister := e.quickEmitExpr(expr, exprType)
-				if !ky && !isRegister {
+				y, ky, ok := e.quickEmitExpr(expr, exprType)
+				if !ok {
 					y = e.fb.NewRegister(exprType.Kind())
 					e.emitExpr(expr, y, exprType)
 				}
@@ -1837,14 +1827,14 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 				reflect.Float32, reflect.Float64,
 				reflect.String:
 				expr1Type := e.typeInfos[cond.Expr1].Type
-				x, _, isRegister := e.quickEmitExpr(cond.Expr1, expr1Type)
-				if !isRegister {
+				x, k, ok := e.quickEmitExpr(cond.Expr1, expr1Type)
+				if !ok || k {
 					x = e.fb.NewRegister(expr1Type.Kind())
 					e.emitExpr(cond.Expr1, x, expr1Type)
 				}
 				expr2Type := e.typeInfos[cond.Expr2].Type
-				y, ky, isRegister := e.quickEmitExpr(cond.Expr2, expr2Type)
-				if !ky && !isRegister {
+				y, ky, ok := e.quickEmitExpr(cond.Expr2, expr2Type)
+				if !ok {
 					y = e.fb.NewRegister(expr2Type.Kind())
 					e.emitExpr(cond.Expr2, y, expr2Type)
 				}
@@ -1878,8 +1868,8 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 	default:
 
 		condType := e.typeInfos[cond].Type
-		x, _, isRegister := e.quickEmitExpr(cond, condType)
-		if !isRegister {
+		x, k, ok := e.quickEmitExpr(cond, condType)
+		if !ok || k {
 			x = e.fb.NewRegister(condType.Kind())
 			e.emitExpr(cond, x, condType)
 		}
