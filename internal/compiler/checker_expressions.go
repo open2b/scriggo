@@ -825,9 +825,9 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		if expr.Max != nil {
 			if mv = tc.checkIndex(expr.Max, t, true); mv != -1 {
-				node := ast.NewValue(hv)
-				tc.replaceTypeInfo(expr.High, node)
-				expr.High = node
+				node := ast.NewValue(mv)
+				tc.replaceTypeInfo(expr.Max, node)
+				expr.Max = node
 			}
 		} else if expr.IsFull {
 			panic(tc.errorf(expr, "final index required in 3-index slice"))
