@@ -70,7 +70,8 @@ type Global struct {
 	Value interface{}
 }
 
-// newEmitter returns a new emitter reading sources from r.
+// newEmitter returns a new emitter with the given type infos and indirect
+// variables.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
 	c := &emitter{
 		assignedFunctions:  map[*vm.Function]map[*vm.Function]int8{},
