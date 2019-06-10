@@ -134,9 +134,9 @@ func kindToType(k reflect.Kind) vm.Type {
 	}
 }
 
-// mayHaveDepencencies reports whether there may be dependencies between
+// mayHaveDependencies reports whether there may be dependencies between
 // values and variables.
-func mayHaveDepencencies(variables, values []ast.Expression) bool {
+func mayHaveDependencies(variables, values []ast.Expression) bool {
 	// TODO(Gianluca): this function can be optimized, although for now
 	// readability has been preferred.
 	allDifferentIdentifiers := func() bool {
