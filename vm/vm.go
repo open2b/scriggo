@@ -833,17 +833,22 @@ const (
 
 // Env represents an execution environment.
 type Env struct {
-	globals   []interface{}   // global variables.
-	ctx       context.Context // context.
-	dontPanic bool            // don't panic.
-	trace     TraceFunc       // trace function.
-	print     PrintFunc       // custom print builtin.
 
-	mu          sync.Mutex // mutex for the following fields.
-	exits       []func()   // exit functions.
-	exited      bool       // reports whether it is exited.
-	limitMemory bool       // reports whether memory is limited.
-	freeMemory  int        // free memory.
+	// Only freeMemory, exited and exits fields can be changed after the vm
+	// has been started and access to these three fields must be done with
+	// this mutex.
+	mu sync.Mutex
+
+	ctx         context.Context // context.
+	globals     []interface{}   // global variables.
+	trace       TraceFunc       // trace function.
+	print       PrintFunc       // custom print builtin.
+	freeMemory  int             // free memory.
+	limitMemory bool            // reports whether memory is limited.
+	dontPanic   bool            // don't panic.
+	exited      bool            // reports whether it is exited.
+	exits       []func()        // exit functions.
+
 }
 
 // Alloc allocates, or if bytes is negative, deallocates memory. Alloc does
