@@ -1182,10 +1182,12 @@ type Slicing struct {
 	Expr      Expression // expression.
 	Low       Expression // low bound.
 	High      Expression // high bound.
+	Max       Expression // max bound.
+	IsFull    bool       // reports whether is a full expression.
 }
 
-func NewSlicing(pos *Position, expr, low, high Expression) *Slicing {
-	return &Slicing{expression{}, pos, expr, low, high}
+func NewSlicing(pos *Position, expr, low, high Expression, max Expression, isFull bool) *Slicing {
+	return &Slicing{expression{}, pos, expr, low, high, max, isFull}
 }
 
 func (n *Slicing) String() string {
@@ -1196,6 +1198,10 @@ func (n *Slicing) String() string {
 	s += ":"
 	if n.High != nil {
 		s += n.High.String()
+	}
+	if n.Max != nil {
+		s += ":"
+		s += n.Max.String()
 	}
 	s += "]"
 	return s

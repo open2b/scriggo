@@ -660,6 +660,21 @@ var checkerStmts = map[string]string{
 	`v = 1`:                                                         undefined("v"),
 	`v1 := 1; v2 := "a"; v1 = v2`:                                   `cannot use v2 (type string) as type int in assignment`,
 
+	// Slicing
+	`_ = []int{1,2,3,4,5}[:]`:             ok,
+	`_ = [5]int{1,2,3,4,5}[:]`:            `invalid operation [5]int literal[:] (slice of unaddressable value)`,
+	`a := [5]int{1,2,3,4,5}; _ = a[:]`:    ok,
+	`_ = "abcde"[:]`:                      ok,
+	`_ = []int{1,2,3,4,5}[:1:2]`:          ok,
+	`a := [5]int{1,2,3,4,5}; _ = a[:1:2]`: ok,
+	`_ = []int{1,2,3,4,5}[2:1]`:           `invalid slice index: 2 > 1`,
+	`_ = "abcde"[:1:2]`:                   `invalid operation "abcde"[:1:2] (3-index slice of string)`,
+	`_ = []int{1,2,3,4,5}[1::1]`:          `middle index required in 3-index slice`,
+	`_ = []int{1,2,3,4,5}[1:2:]`:          `final index required in 3-index slice`,
+	`_ = []int{1,2,3,4,5}[2:3:1]`:         `invalid slice index: 2 > 1`,
+	`_ = []int{1,2,3,4,5}[2:3:2]`:         `invalid slice index: 3 > 2`,
+	`_ = []int{1,2,3,4,5}[2:3:nil]`:       `invalid slice index nil (type nil)`,
+
 	// Receive.
 	`<-aIntChan`:                        ok,
 	`_ = <-aIntChan`:                    ok,

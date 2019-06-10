@@ -20,6 +20,7 @@ var n1 = NewInt(nil, big.NewInt(1))
 var n2 = NewInt(nil, big.NewInt(2))
 var n3 = NewInt(nil, big.NewInt(3))
 var n5 = NewInt(nil, big.NewInt(5))
+var n7 = NewInt(nil, big.NewInt(7))
 
 var expressionStringTests = []struct {
 	str  string
@@ -37,10 +38,12 @@ var expressionStringTests = []struct {
 	{"f(a)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a")}, false)},
 	{"f(a, b)", NewCall(nil, NewIdentifier(nil, "f"), []Expression{NewIdentifier(nil, "a"), NewIdentifier(nil, "b")}, false)},
 	{"a[2]", NewIndex(nil, NewIdentifier(nil, "a"), n2)},
-	{"a[:]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, nil)},
-	{"a[2:]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, nil)},
-	{"a[:5]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, n5)},
-	{"a[2:5]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, n5)},
+	{"a[:]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, nil, nil, false)},
+	{"a[2:]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, nil, nil, false)},
+	{"a[:5]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, n5, nil, false)},
+	{"a[2:5]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, n5, nil, false)},
+	{"a[2:5:7]", NewSlicing(nil, NewIdentifier(nil, "a"), n2, n5, n7, true)},
+	{"a[:5:7]", NewSlicing(nil, NewIdentifier(nil, "a"), nil, n5, n7, true)},
 	{"a.b", NewSelector(nil, NewIdentifier(nil, "a"), "b")},
 	{"(a)", NewParenthesis(nil, NewIdentifier(nil, "a"))},
 	{"-(1 + 2)", NewUnaryOperator(nil, OperatorSubtraction, NewBinaryOperator(nil, OperatorAddition, n1, n2))},

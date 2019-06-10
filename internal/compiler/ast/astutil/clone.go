@@ -329,7 +329,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	case *ast.Index:
 		return ast.NewIndex(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Index))
 	case *ast.Slicing:
-		return ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low), CloneExpression(e.High))
+		return ast.NewSlicing(ClonePosition(e.Position), CloneExpression(e.Expr), CloneExpression(e.Low),
+			CloneExpression(e.High), CloneExpression(e.Max), e.IsFull)
 	case *ast.Selector:
 		return ast.NewSelector(ClonePosition(e.Position), CloneExpression(e.Expr), e.Ident)
 	case *ast.TypeAssertion:
