@@ -83,7 +83,7 @@ func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifi
 		typeInfos:          typeInfos,
 		upvarsNames:        map[*vm.Function]map[string]int{},
 	}
-	return e
+	return c
 }
 
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
