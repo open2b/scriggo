@@ -58,7 +58,7 @@ type VM struct {
 
 // New returns a new virtual machine.
 func New() *VM {
-	return create(nil, nil, &Env{})
+	return create(&Env{})
 }
 
 // Env returns the execution environment of vm.
@@ -704,9 +704,8 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
-// create creates a new virtual machine with the function fn, the globals and
-// closure variables vars and the execution environment env.
-func create(fn *Function, vars []interface{}, env *Env) *VM {
+// create creates a new virtual machine with the execution environment env.
+func create(env *Env) *VM {
 	vm := &VM{
 		st: [4]uint32{stackSize, stackSize, stackSize, stackSize},
 		regs: registers{
@@ -715,8 +714,6 @@ func create(fn *Function, vars []interface{}, env *Env) *VM {
 			string:  make([]string, stackSize),
 			general: make([]interface{}, stackSize),
 		},
-		fn:   fn,
-		vars: vars,
 	}
 	if env != nil {
 		vm.env = env
@@ -746,13 +743,13 @@ func (vm *VM) startGoroutine() bool {
 	default:
 		return true
 	}
-	nvm := create(fn, vars, vm.env)
+	nvm := create(vm.env)
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
 	copy(nvm.regs.string, vm.regs.string[vm.fp[2]+uint32(off.B):vm.fp[2]+127])
 	copy(nvm.regs.general, vm.regs.general[vm.fp[3]+uint32(off.C):vm.fp[3]+127])
-	go nvm.run()
+	go nvm.runFunc(fn, vars)
 	vm.pc++
 	return false
 }
@@ -1079,7 +1076,7 @@ func (c *callable) reflectValue(env *Env) reflect.Value {
 	fn := c.fn
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-		nvm := create(fn, vars, env)
+		nvm := create(env)
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {
@@ -1121,7 +1118,7 @@ func (c *callable) reflectValue(env *Env) reflect.Value {
 		nvm.fp[1] = 0
 		nvm.fp[2] = 0
 		nvm.fp[3] = 0
-		nvm.run()
+		nvm.runFunc(fn, vars)
 		r = 1
 		for i, result := range results {
 			t := fn.Type.Out(i)
