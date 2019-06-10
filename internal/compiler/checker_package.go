@@ -310,17 +310,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*CheckingError); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
+func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) error {
 
 	packageNode := pkg
 
@@ -328,7 +318,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 	tc := newTypechecker(path, false, isTemplate, disallowGoStmt)
 	tc.Universe = universe
 
-	err = sortDeclarations(packageNode, deps)
+	err := sortDeclarations(packageNode, deps)
 	if err != nil {
 		return err
 	}
