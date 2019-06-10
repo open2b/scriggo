@@ -12,14 +12,7 @@ import (
 	"reflect"
 )
 
-var ErrOutOfMemory = errors.New("out of memory")
-
 var errDone = errors.New("done")
-
-func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
-	vm.env.globals = globals
-	return vm.runFunc(fn, globals)
-}
 
 func (vm *VM) runFunc(fn *Function, vars []interface{}) (code int, err error) {
 	var isPanicked bool

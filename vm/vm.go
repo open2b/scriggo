@@ -8,6 +8,7 @@ package vm
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"strconv"
 	"sync"
@@ -17,6 +18,8 @@ const NoVariadic = -1
 const CurrentFunction = -1
 
 const stackSize = 512
+
+var ErrOutOfMemory = errors.New("out of memory")
 
 var envType = reflect.TypeOf(&Env{})
 
@@ -89,6 +92,11 @@ func (vm *VM) Reset() {
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
+}
+
+func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
+	vm.env.globals = globals
+	return vm.runFunc(fn, globals)
 }
 
 // SetContext sets the context.
