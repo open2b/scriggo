@@ -263,7 +263,6 @@ var templateMultiPageCases = map[string]struct {
 		expected: "macro!macro!",
 	},
 
-	// TODO(Gianluca): uncomment.
 	"Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
 		sources: map[string]string{
 			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
@@ -275,7 +274,6 @@ var templateMultiPageCases = map[string]struct {
 		expected: "macro 2!macro 2!",
 	},
 
-	// TODO(Gianluca): uncomment.
 	"Import/Macro - Importing a macro defined in another page, where a function calls an after-declared function": {
 		sources: map[string]string{
 			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
