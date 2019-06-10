@@ -99,22 +99,23 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 }
 
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
+
 	e := newEmitter(typeInfos, indirectVars)
 	e.pkg = &ast.Package{}
 	e.addAllocInstructions = alloc
 	e.isTemplate = true
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
 	e.fb.SetAlloc(alloc)
-	e.fb.EnterScope()
-	e.reserveTemplateRegisters()
 
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
+			// Macro declarations in extending page must be accessed by extended page.
 			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
@@ -122,18 +123,27 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
 				}
 			}
+			// Emits extended page.
 			extends := pkg.Declarations[0].(*ast.Extends)
+			e.fb.EnterScope()
+			e.reserveTemplateRegisters()
 			e.EmitNodes(extends.Tree.Nodes)
 			e.fb.End()
+			e.fb.ExitScope()
+			// Emits extending page as a package.
 			_, _, _ = e.emitPackage(pkg)
 			return e.fb.fn, e.globals
 		}
 	}
 
+	// Default case: tree is a generic template page.
+	e.fb.EnterScope()
+	e.reserveTemplateRegisters()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
 	return e.fb.fn, e.globals
+
 }
 
 func (e *emitter) reserveTemplateRegisters() {
