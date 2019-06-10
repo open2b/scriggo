@@ -996,7 +996,44 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.Index(ki, exprReg, i, reg, exprType)
 
 	case *ast.Slicing:
-		panic("TODO: not implemented")
+		exprType := e.typeInfos[expr.Expr].Type
+		var src int8
+		if out, k, ok := e.quickEmitExpr(expr.Expr, exprType); ok && !k {
+			src = out
+		} else {
+			src = e.fb.NewRegister(exprType.Kind())
+		}
+		var ok bool
+		var low, high, max int8 = 0, 0, 0
+		var klow, khigh, kmax = true, true, true
+		// emit low
+		if expr.Low != nil {
+			typ := e.typeInfos[expr.Low].Type
+			low, klow, ok = e.quickEmitExpr(expr.Low, typ)
+			if !ok {
+				low = e.fb.NewRegister(typ.Kind())
+				e.emitExpr(expr.Low, low, typ)
+			}
+		}
+		// emit high
+		if expr.High != nil {
+			typ := e.typeInfos[expr.High].Type
+			high, khigh, ok = e.quickEmitExpr(expr.High, typ)
+			if !ok {
+				high = e.fb.NewRegister(typ.Kind())
+				e.emitExpr(expr.High, high, typ)
+			}
+		}
+		// emit max
+		if expr.Max != nil {
+			typ := e.typeInfos[expr.Max].Type
+			max, kmax, ok = e.quickEmitExpr(expr.Max, typ)
+			if !ok {
+				max = e.fb.NewRegister(typ.Kind())
+				e.emitExpr(expr.Max, max, typ)
+			}
+		}
+		e.fb.Slice(klow, khigh, kmax, src, reg, low, high, max)
 
 	default:
 		panic(fmt.Sprintf("emitExpr currently does not support %T nodes", expr))

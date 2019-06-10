@@ -225,7 +225,7 @@ func disassembleFunction(w *bytes.Buffer, fn *vm.Function, globals []Global, dep
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", indent, disassembleInstruction(fn, globals, addr))
 		}
 		switch in.Op {
-		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall:
+		case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpSlice:
 			addr += 1
 		case vm.OpDefer:
 			addr += 2
@@ -508,6 +508,12 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	case vm.OpSetVar:
 		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
+	case vm.OpSlice:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, vm.Int, b&1 != 0)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].B, vm.Int, b&2 != 0)
+		s += " " + disassembleOperand(fn, fn.Body[addr+1].C, vm.Int, b&4 != 0)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -811,6 +817,8 @@ var operationName = [...]string{
 	vm.OpSetSlice: "SetSlice",
 
 	vm.OpSetVar: "SetVar",
+
+	vm.OpSlice: "Slice",
 
 	vm.OpSliceIndex: "SliceIndex",
 

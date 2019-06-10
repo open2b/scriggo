@@ -1424,6 +1424,8 @@ const (
 
 	OpSetVar
 
+	OpSlice
+
 	OpSliceIndex
 
 	OpStringIndex
