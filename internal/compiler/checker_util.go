@@ -500,8 +500,8 @@ func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
 	return x.Type.AssignableTo(t)
 }
 
-// isBlankIdentifier indicates if expr is an identifier representing the blank
-// identifier "_".
+// isBlankIdentifier reports whether expr is an identifier representing the
+// blank identifier "_".
 func isBlankIdentifier(expr ast.Expression) bool {
 	ident, ok := expr.(*ast.Identifier)
 	return ok && ident.Name == "_"

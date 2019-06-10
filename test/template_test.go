@@ -179,7 +179,7 @@ var templateCases = map[string]struct {
 		out: `ok`,
 	},
 
-	// TODO(Ginluca): reflect: call of reflect.Value.Len on struct Value
+	// TODO(Gianluca): reflect: call of reflect.Value.Len on struct Value
 	//"Macro definition and show-macro variadic": {
 	//	src: `{% macro M(v ...int) %}{% for _ , i := range v %}{{ i }}{% end for %}{% end macro %}{% show M([]int{1,2,3}...) %}`,
 	//	out: `123`,
@@ -188,6 +188,16 @@ var templateCases = map[string]struct {
 	"Template builtin - title": {
 		src: `{% s := "hello, world" %}{{ s }} converted to title is {{ title(s) }}`,
 		out: `hello, world converted to title is Hello, World`,
+	},
+
+	"Label for": {
+		src: `{% L: for %}a{% break L %}b{% end for %}`,
+		out: `a`,
+	},
+
+	"Label switch": {
+		src: `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
+		out: `a`,
 	},
 }
 

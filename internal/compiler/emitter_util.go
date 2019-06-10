@@ -88,13 +88,13 @@ func (e *emitter) functionIndex(fun *vm.Function) int8 {
 	return i
 }
 
-// isExported indicates if name is exported, according to
+// isExported reports whether name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {
 	return unicode.Is(unicode.Lu, []rune(name)[0])
 }
 
-// isLenBuiltinCall indicates if expr is a "len" builtin call.
+// isLenBuiltinCall reports whether expr is a "len" builtin call.
 func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
 		if ti := e.typeInfos[call]; ti.IsBuiltin() {
@@ -106,7 +106,7 @@ func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	return false
 }
 
-// isNil indicates if expr is the nil identifier.
+// isNil reports whether expr is the nil identifier.
 func isNil(expr ast.Expression) bool {
 	// TODO(Gianluca): this implementation is wrong: nil can be shadowed. Use
 	// typeinfo informations instead.
@@ -134,8 +134,8 @@ func kindToType(k reflect.Kind) vm.Type {
 	}
 }
 
-// mayHaveDepencencies indicates if there may be dependencies between values and
-// variables.
+// mayHaveDepencencies reports whether there may be dependencies between
+// values and variables.
 func mayHaveDepencencies(variables, values []ast.Expression) bool {
 	// TODO(Gianluca): this function can be optimized, although for now
 	// readability has been preferred.

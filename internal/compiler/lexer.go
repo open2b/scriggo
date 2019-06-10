@@ -28,7 +28,7 @@ type lexer struct {
 	tag    string      // current tag
 	attr   string      // current attribute
 	tokens chan token  // tokens, is closed at the end of the scan
-	err    error       // error, indicates if there was an error
+	err    error       // error, reports whether there was an error
 }
 
 // newLexer creates a new lexer.
@@ -384,7 +384,7 @@ func (l *lexer) scan() {
 	close(l.tokens)
 }
 
-// containsURL indicates if the attribute attr of tag contains an URL or a
+// containsURL reports whether the attribute attr of tag contains an URL or a
 // comma-separated list of URL.
 //
 // See https://www.w3.org/TR/2017/REC-html52-20171214/fullindex.html#attributes-table.
@@ -526,14 +526,14 @@ func (l *lexer) scanAttribute(p int) (string, int) {
 	return name, p
 }
 
-// isEndStyle indicates if s is the start or end of "style" tag.
+// isEndStyle reports whether s is the start or end of "style" tag.
 func isEndStyle(s []byte) bool {
 	return len(s) >= 8 && s[0] == '<' && s[1] == '/' && (s[7] == '>' || isSpace(s[7])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 't' || s[3] == 'T') && (s[4] == 'y' || s[4] == 'Y') &&
 		(s[5] == 'l' || s[5] == 'L') && (s[6] == 'e' || s[6] == 'E')
 }
 
-// isEndScript indicates if s is the start or end of "script" tag.
+// isEndScript reports whether s is the start or end of "script" tag.
 func isEndScript(s []byte) bool {
 	return len(s) >= 9 && s[0] == '<' && s[1] == '/' && (s[8] == '>' || isSpace(s[8])) &&
 		(s[2] == 's' || s[2] == 'S') && (s[3] == 'c' || s[3] == 'C') && (s[4] == 'r' || s[4] == 'R') &&
@@ -613,7 +613,7 @@ func (l *lexer) lexCode() error {
 			l.line++
 		}
 	}
-	// endLineAsSemicolon indicates if "\n" should be treated as ";".
+	// endLineAsSemicolon reports whether "\n" should be treated as ";".
 	var endLineAsSemicolon = false
 	// unclosedLeftBraces is the number of left braces lexed without a
 	// corresponding right brace.
@@ -913,27 +913,28 @@ LOOP:
 	return nil
 }
 
-// isSpace indicates if s is a space.
+// isSpace reports whether s is a space.
 func isSpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r'
 }
 
-// isStartChar indicates if b is the first byte of an UTF-8 encoded character.
+// isStartChar reports whether b is the first byte of an UTF-8 encoded
+// character.
 func isStartChar(b byte) bool {
 	return b < 128 || 191 < b
 }
 
-// isASCIISpace indicates if s if a space for the HTML spec.
+// isASCIISpace reports whether s if a space for the HTML spec.
 func isASCIISpace(s byte) bool {
 	return s == ' ' || s == '\t' || s == '\n' || s == '\r' || s == '\f'
 }
 
-// isAlpha indicates if s is ASCII alpha.
+// isAlpha reports whether s is ASCII alpha.
 func isAlpha(s byte) bool {
 	return 'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z'
 }
 
-// isDigit indicates if s is ASCII digit.
+// isDigit reports whether s is ASCII digit.
 func isDigit(s byte) bool {
 	return '0' <= s && s <= '9'
 }

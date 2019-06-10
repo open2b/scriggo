@@ -97,8 +97,8 @@ func (p *Program) Run(options RunOptions) error {
 	if options.MaxMemorySize > 0 && p.options&LimitMemorySize == 0 {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(p.globals, nil, options)
-	_, err := vmm.Run(p.fn)
+	vmm := newVM(options)
+	_, err := vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return err
 }
 
@@ -111,8 +111,8 @@ func (p *Program) Start(options RunOptions) *vm.Env {
 	if options.MaxMemorySize > 0 && p.options&LimitMemorySize == 0 {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(p.globals, nil, options)
-	go vmm.Run(p.fn)
+	vmm := newVM(options)
+	go vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return vmm.Env()
 }
 
@@ -180,12 +180,11 @@ func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 	if options.MaxMemorySize > 0 && s.options&LimitMemorySize == 0 {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
-
 	if init == nil {
 		init = emptyInit
 	}
-	vmm := newVM(s.globals, init, options)
-	_, err := vmm.Run(s.fn)
+	vmm := newVM(options)
+	_, err := vmm.Run(s.fn, initGlobals(s.globals, init))
 	return err
 }
 
@@ -199,13 +198,13 @@ func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env 
 	if options.MaxMemorySize > 0 && s.options&LimitMemorySize == 0 {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(s.globals, init, options)
-	go vmm.Run(s.fn)
+	vmm := newVM(options)
+	go vmm.Run(s.fn, initGlobals(s.globals, init))
 	return vmm.Env()
 }
 
 // newVM returns a new vm with the given options.
-func newVM(globals []compiler.Global, init map[string]interface{}, options RunOptions) *vm.VM {
+func newVM(options RunOptions) *vm.VM {
 	vmm := vm.New()
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
@@ -222,36 +221,42 @@ func newVM(globals []compiler.Global, init map[string]interface{}, options RunOp
 	if options.TraceFunc != nil {
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
-	if n := len(globals); n > 0 {
-		values := make([]interface{}, n)
-		for i, global := range globals {
-			if init == nil { // Program.
-				if global.Value == nil {
-					values[i] = reflect.New(global.Type).Interface()
-				} else {
-					values[i] = global.Value
-				}
-			} else { // Script and template.
-				if global.Pkg == "main" {
-					if value, ok := init[global.Name]; ok {
-						if v, ok := value.(reflect.Value); ok {
-							values[i] = v.Addr().Interface()
-						} else {
-							rv := reflect.New(global.Type).Elem()
-							rv.Set(reflect.ValueOf(v))
-							values[i] = rv.Interface()
-						}
+	return vmm
+}
+
+// initGlobals initializes the global variables and returns the values.
+func initGlobals(globals []compiler.Global, init map[string]interface{}) []interface{} {
+	n := len(globals)
+	if n == 0 {
+		return nil
+	}
+	values := make([]interface{}, n)
+	for i, global := range globals {
+		if init == nil { // Program.
+			if global.Value == nil {
+				values[i] = reflect.New(global.Type).Interface()
+			} else {
+				values[i] = global.Value
+			}
+		} else { // Script and template.
+			if global.Pkg == "main" {
+				if value, ok := init[global.Name]; ok {
+					if v, ok := value.(reflect.Value); ok {
+						values[i] = v.Addr().Interface()
 					} else {
-						values[i] = reflect.New(global.Type).Interface()
+						rv := reflect.New(global.Type).Elem()
+						rv.Set(reflect.ValueOf(v))
+						values[i] = rv.Interface()
 					}
 				} else {
-					values[i] = global.Value
+					values[i] = reflect.New(global.Type).Interface()
 				}
+			} else {
+				values[i] = global.Value
 			}
 		}
-		vmm.SetGlobals(values)
 	}
-	return vmm
+	return values
 }
 
 // Disassemble disassembles a script.

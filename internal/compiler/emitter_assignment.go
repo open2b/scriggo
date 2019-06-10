@@ -227,7 +227,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 		switch v := node.Variables[0].(type) {
 		case *ast.Identifier:
 			staticType := e.typeInfos[v].Type
-			// TODO(Gianluca): support predeclared variables in other cases.
+			// TODO(Gianluca): support predefined variables in other cases.
 			if ti := e.typeInfos[v]; ti.IsPredefined() {
 				varRv := ti.Value.(reflect.Value)
 				index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Name)

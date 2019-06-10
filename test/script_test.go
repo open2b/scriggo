@@ -55,7 +55,7 @@ var scriptCases = map[string]struct {
 		out: "pkg.F called!",
 	},
 
-	"Read variables declared in predeclared package main": {
+	"Read variables declared in predefined package main": {
 		src: `
 			Print("A is ", A)
 		`,
@@ -87,7 +87,7 @@ var scriptCases = map[string]struct {
 		},
 	},
 
-	// "Overwriting predeclared main variable using init": {
+	// "Overwriting predefined main variable using init": {
 	// 	src: `
 	// 		Print(A)
 	// 	`,

@@ -58,31 +58,12 @@ type VM struct {
 
 // New returns a new virtual machine.
 func New() *VM {
-	vm := &VM{}
-	vm.regs.int = make([]int64, stackSize)
-	vm.regs.float = make([]float64, stackSize)
-	vm.regs.string = make([]string, stackSize)
-	vm.regs.general = make([]interface{}, stackSize)
-	vm.st[0] = stackSize
-	vm.st[1] = stackSize
-	vm.st[2] = stackSize
-	vm.st[3] = stackSize
-	vm.Reset()
-	return vm
+	return create(nil, nil, &Env{})
 }
 
 // Env returns the execution environment of vm.
 func (vm *VM) Env() *Env {
 	return vm.env
-}
-
-// FreeMemory returns the current free memory in bytes. The returned value can
-// be negative. FreeMemory can be called when vm is running.
-func (vm *VM) FreeMemory() int {
-	vm.env.mu.Lock()
-	free := vm.env.freeMemory
-	vm.env.mu.Unlock()
-	return free
 }
 
 // Reset resets a virtual machine so that it is ready for a new call to Run.
@@ -110,6 +91,9 @@ func (vm *VM) Reset() {
 	}
 }
 
+// SetContext sets the context.
+//
+// SetContext must not be called after vm has been started.
 func (vm *VM) SetContext(ctx context.Context) {
 	vm.env.ctx = ctx
 	if ctx != nil {
@@ -125,24 +109,37 @@ func (vm *VM) SetContext(ctx context.Context) {
 	vm.done = nil
 }
 
+// SetDontPanic sets the "don't panic" option.
+//
+// SetDontPanic must not be called after vm has been started.
 func (vm *VM) SetDontPanic(dontPanic bool) {
 	vm.env.dontPanic = dontPanic
 }
 
-func (vm *VM) SetGlobals(globals []interface{}) {
-	vm.env.globals = globals
-}
-
-// SetMaxMemory sets the maximum allocable memory.
+// SetMaxMemory sets the maximum available memory. Set bytes to zero or
+// negative for no limits.
+//
+// SetMaxMemory must not be called after vm has been started.
 func (vm *VM) SetMaxMemory(bytes int) {
-	vm.env.limitMemory = true
-	vm.env.freeMemory = bytes
+	if bytes > 0 {
+		vm.env.limitMemory = true
+		vm.env.freeMemory = bytes
+	} else {
+		vm.env.limitMemory = false
+		vm.env.freeMemory = 0
+	}
 }
 
+// SetPrint sets the "print" builtin function.
+//
+// SetPrint must not be called after vm has been started.
 func (vm *VM) SetPrint(p func(interface{})) {
 	vm.env.print = p
 }
 
+// SetTraceFunc sets the trace stack function.
+//
+// SetTraceFunc must not be called after vm has been started.
 func (vm *VM) SetTraceFunc(fn TraceFunc) {
 	vm.env.trace = fn
 }
@@ -199,6 +196,9 @@ func (vm *VM) Stack(buf []byte, all bool) int {
 }
 
 func (vm *VM) alloc() {
+	if !vm.env.limitMemory {
+		return
+	}
 	in := vm.fn.Body[vm.pc]
 	op, a, b, c := in.Op, in.A, in.B, in.C
 	k := op < 0
@@ -704,6 +704,28 @@ func (vm *VM) nextCall() bool {
 	return false
 }
 
+// create creates a new virtual machine with the function fn, the globals and
+// closure variables vars and the execution environment env.
+func create(fn *Function, vars []interface{}, env *Env) *VM {
+	vm := &VM{
+		st: [4]uint32{stackSize, stackSize, stackSize, stackSize},
+		regs: registers{
+			int:     make([]int64, stackSize),
+			float:   make([]float64, stackSize),
+			string:  make([]string, stackSize),
+			general: make([]interface{}, stackSize),
+		},
+		fn:   fn,
+		vars: vars,
+	}
+	if env != nil {
+		vm.env = env
+		vm.envArg = reflect.ValueOf(env)
+		vm.SetContext(env.ctx)
+	}
+	return vm
+}
+
 // startGoroutine starts a new goroutine to execute a function call at program
 // counter pc. If the function is predefined, returns true.
 func (vm *VM) startGoroutine() bool {
@@ -724,12 +746,7 @@ func (vm *VM) startGoroutine() bool {
 	default:
 		return true
 	}
-	nvm := New()
-	nvm.fn = fn
-	nvm.vars = vars
-	nvm.env = vm.env
-	nvm.done = vm.done
-	nvm.doneCase = vm.doneCase
+	nvm := create(fn, vars, vm.env)
 	off := vm.fn.Body[vm.pc]
 	copy(nvm.regs.int, vm.regs.int[vm.fp[0]+uint32(off.Op):vm.fp[0]+127])
 	copy(nvm.regs.float, vm.regs.float[vm.fp[1]+uint32(off.A):vm.fp[1]+127])
@@ -823,38 +840,45 @@ const (
 
 // Env represents an execution environment.
 type Env struct {
-	globals   []interface{}   // global variables.
-	ctx       context.Context // context.
-	dontPanic bool            // don't panic.
-	trace     TraceFunc       // trace function.
-	print     PrintFunc       // custom print builtin.
 
-	mu          sync.Mutex // mutex for the following fields.
-	exits       []func()   // exit functions.
-	exited      bool       // reports whether it is exited.
-	limitMemory bool       // reports whether memory is limited.
-	freeMemory  int        // free memory.
+	// Only freeMemory, exited and exits fields can be changed after the vm
+	// has been started and access to these three fields must be done with
+	// this mutex.
+	mu sync.Mutex
+
+	ctx         context.Context // context.
+	globals     []interface{}   // global variables.
+	trace       TraceFunc       // trace function.
+	print       PrintFunc       // custom print builtin.
+	freeMemory  int             // free memory.
+	limitMemory bool            // reports whether memory is limited.
+	dontPanic   bool            // don't panic.
+	exited      bool            // reports whether it is exited.
+	exits       []func()        // exit functions.
+
 }
 
-// Alloc allocates memory in the execution environment. If bytes is negative
-// the memory is deallocated.
-//
-// If there are no free memory, Alloc panics with the OutOfMemory error.
+// Alloc allocates, or if bytes is negative, deallocates memory. Alloc does
+// nothing if there is no memory limit. If there is no free memory, Alloc
+// panics with the OutOfMemory error.
 func (env *Env) Alloc(bytes int) {
-	env.mu.Lock()
-	if !env.limitMemory {
+	if env.limitMemory {
+		env.mu.Lock()
+		free := env.freeMemory
+		if free >= 0 {
+			free -= int(bytes)
+			env.freeMemory = free
+		}
 		env.mu.Unlock()
-		return
+		if free < 0 {
+			panic(ErrOutOfMemory)
+		}
 	}
-	free := env.freeMemory
-	if free >= 0 {
-		free -= int(bytes)
-		env.freeMemory = free
-	}
-	env.mu.Unlock()
-	if free < 0 {
-		panic(ErrOutOfMemory)
-	}
+}
+
+// Context returns the context of the environment.
+func (env *Env) Context() context.Context {
+	return env.ctx
 }
 
 // ExitFunc calls f in its own goroutine after the execution of the
@@ -870,9 +894,19 @@ func (env *Env) ExitFunc(f func()) {
 	return
 }
 
-// Context returns the context of the environment.
-func (env *Env) Context() context.Context {
-	return env.ctx
+// FreeMemory returns the current free memory in bytes and true if the maximum
+// memory has been limited. Otherwise returns zero and false.
+//
+// A negative value means that an out of memory error has been occurred and in
+// this case bytes represents the number of bytes that were not available.
+func (env *Env) FreeMemory() (bytes int, limitedMemory bool) {
+	if env.limitMemory {
+		env.mu.Lock()
+		free := env.freeMemory
+		env.mu.Unlock()
+		return free, true
+	}
+	return 0, false
 }
 
 type PredefinedFunction struct {
@@ -1045,10 +1079,7 @@ func (c *callable) reflectValue(env *Env) reflect.Value {
 	fn := c.fn
 	vars := c.vars
 	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-		nvm := New()
-		nvm.fn = fn
-		nvm.vars = vars
-		nvm.env = env
+		nvm := create(fn, vars, env)
 		nOut := fn.Type.NumOut()
 		results := make([]reflect.Value, nOut)
 		for i := 0; i < nOut; i++ {

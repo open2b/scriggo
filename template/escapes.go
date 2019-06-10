@@ -113,7 +113,7 @@ func htmlEscapeString(s string) string {
 }
 
 // attributeEscape escapes the string s, so it can be placed inside an HTML
-// attribute value, and write it to w. quoted indicates if the attribute is
+// attribute value, and write it to w. quoted reports whether the attribute is
 // quoted.
 func attributeEscape(w stringWriter, s string, quoted bool) error {
 	if quoted {
@@ -169,8 +169,8 @@ func attributeEscape(w stringWriter, s string, quoted bool) error {
 	return nil
 }
 
-// prefixWithSpace indicates if the byte c, in a CSS string, must be preceded
-// by a space when an escape sequence precedes it.
+// prefixWithSpace reports whether the byte c, in a CSS string, must be
+// preceded by a space when an escape sequence precedes it.
 func prefixWithSpace(c byte) bool {
 	switch c {
 	case '\t', '\n', '\f', '\r', ' ':
@@ -353,7 +353,7 @@ func javaScriptStringEscape(w stringWriter, s string) error {
 }
 
 // pathEscape escapes the string s so it can be placed inside an attribute
-// value as URL path, and write it to w. quoted indicates if the attribute
+// value as URL path, and write it to w. quoted reports whether the attribute
 // is quoted.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.

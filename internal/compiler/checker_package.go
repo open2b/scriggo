@@ -346,18 +346,18 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 		case *ast.Import:
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
-				// Predeclared package.
-				predeclaredPkg, ok := imports[d.Path]
+				// Predefined package.
+				predefinedPkg, ok := imports[d.Path]
 				if !ok {
 					return tc.errorf(d, "cannot find package %q", d.Path)
 				}
-				importedPkg.Declarations = make(map[string]*TypeInfo, len(predeclaredPkg.Declarations))
-				for n, d := range ToTypeCheckerScope(predeclaredPkg) {
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(predefinedPkg.Declarations))
+				for n, d := range ToTypeCheckerScope(predefinedPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
-				importedPkg.Name = predeclaredPkg.Name
+				importedPkg.Name = predefinedPkg.Name
 			} else {
-				// Not predeclared package.
+				// Not predefined package.
 				var err error
 				if tc.isTemplate {
 					err := tc.templateToPackage(d.Tree)

@@ -16,10 +16,11 @@ var ErrOutOfMemory = errors.New("out of memory")
 
 var errDone = errors.New("done")
 
-func (vm *VM) Run(fn *Function) (code int, err error) {
+func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
 	var isPanicked bool
 	vm.fn = fn
-	vm.vars = vm.env.globals
+	vm.vars = globals
+	vm.env.globals = globals
 	for {
 		isPanicked = vm.runRecoverable()
 		if isPanicked {
@@ -138,17 +139,19 @@ func (vm *VM) run() (uint32, bool) {
 		case OpAlloc:
 			vm.alloc()
 		case -OpAlloc:
-			bytes := decodeUint24(a, b, c)
-			var free int
-			vm.env.mu.Lock()
-			free = vm.env.freeMemory
-			if free >= 0 {
-				free -= int(bytes)
-				vm.env.freeMemory = free
-			}
-			vm.env.mu.Unlock()
-			if free < 0 {
-				panic(ErrOutOfMemory)
+			if vm.env.limitMemory {
+				bytes := decodeUint24(a, b, c)
+				var free int
+				vm.env.mu.Lock()
+				free = vm.env.freeMemory
+				if free >= 0 {
+					free -= int(bytes)
+					vm.env.freeMemory = free
+				}
+				vm.env.mu.Unlock()
+				if free < 0 {
+					panic(ErrOutOfMemory)
+				}
 			}
 
 		// And
@@ -1209,14 +1212,16 @@ func (vm *VM) run() (uint32, bool) {
 
 		// Return
 		case OpReturn:
-			if vm.env.freeMemory > 0 {
+			if vm.env.limitMemory {
 				in := vm.fn.Body[0]
 				if in.Op == -OpAlloc {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					in = vm.fn.Body[vm.pc-2]
 					if bytes > 0 && in.Op != OpTailCall {
 						vm.env.mu.Lock()
-						vm.env.freeMemory -= int(bytes)
+						if vm.env.freeMemory >= 0 {
+							vm.env.freeMemory -= int(bytes)
+						}
 						vm.env.mu.Unlock()
 					}
 				}
@@ -1493,13 +1498,15 @@ func (vm *VM) run() (uint32, bool) {
 
 		// TailCall
 		case OpTailCall:
-			if vm.env.freeMemory > 0 {
+			if vm.env.limitMemory {
 				in := vm.fn.Body[0]
 				if in.Op == -OpAlloc {
 					bytes := decodeUint24(in.A, in.B, in.C)
 					if bytes > 0 {
 						vm.env.mu.Lock()
-						vm.env.freeMemory -= int(bytes)
+						if vm.env.freeMemory >= 0 {
+							vm.env.freeMemory -= int(bytes)
+						}
 						vm.env.mu.Unlock()
 					}
 				}

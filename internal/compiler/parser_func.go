@@ -78,6 +78,8 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	node := ast.NewFunc(pos, ident, typ, body)
 	p.ancestors = append(p.ancestors, node, body)
 	depth := len(p.ancestors)
+	isTemplate := p.isTemplate
+	p.isTemplate = false
 	for tok = range p.lex.tokens {
 		if tok.typ == tokenRightBraces {
 			parent := p.ancestors[len(p.ancestors)-1]
@@ -104,6 +106,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 	if len(p.ancestors) == 2 {
 		p.deps.end()
 	}
+	p.isTemplate = isTemplate
 	return node, token{}
 }
 

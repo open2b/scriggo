@@ -118,8 +118,8 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(t.globals, vars, options)
-	_, err := vmm.Run(t.fn)
+	vmm := newVM(options)
+	_, err := vmm.Run(t.fn, initGlobals(t.globals, vars))
 	return err
 }
 
@@ -141,8 +141,8 @@ func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, optio
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(t.globals, vars, options)
-	go vmm.Run(t.fn)
+	vmm := newVM(options)
+	go vmm.Run(t.fn, initGlobals(t.globals, vars))
 	return vmm.Env()
 }
 
@@ -157,31 +157,10 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(globals []compiler.Global, init map[string]interface{}, options RenderOptions) *vm.VM {
+func newVM(options RenderOptions) *vm.VM {
 	vmm := vm.New()
 	if options.Context != nil {
 		vmm.SetContext(options.Context)
-	}
-	if n := len(globals); n > 0 {
-		values := make([]interface{}, n)
-		for i, global := range globals {
-			if global.Pkg == "main" {
-				if value, ok := init[global.Name]; ok {
-					if v, ok := value.(reflect.Value); ok {
-						values[i] = v.Addr().Interface()
-					} else {
-						rv := reflect.New(global.Type).Elem()
-						rv.Set(reflect.ValueOf(value))
-						values[i] = rv.Addr().Interface()
-					}
-				} else {
-					values[i] = reflect.New(global.Type).Interface()
-				}
-			} else {
-				values[i] = global.Value
-			}
-		}
-		vmm.SetGlobals(values)
 	}
 	if options.MaxMemorySize > 0 {
 		vmm.SetMaxMemory(options.MaxMemorySize)
@@ -196,4 +175,31 @@ func newVM(globals []compiler.Global, init map[string]interface{}, options Rende
 		vmm.SetTraceFunc(options.TraceFunc)
 	}
 	return vmm
+}
+
+// initGlobals initializes the global variables and returns the values.
+func initGlobals(globals []compiler.Global, init map[string]interface{}) []interface{} {
+	n := len(globals)
+	if n == 0 {
+		return nil
+	}
+	values := make([]interface{}, n)
+	for i, global := range globals {
+		if global.Pkg == "main" {
+			if value, ok := init[global.Name]; ok {
+				if v, ok := value.(reflect.Value); ok {
+					values[i] = v.Addr().Interface()
+				} else {
+					rv := reflect.New(global.Type).Elem()
+					rv.Set(reflect.ValueOf(value))
+					values[i] = rv.Addr().Interface()
+				}
+			} else {
+				values[i] = reflect.New(global.Type).Interface()
+			}
+		} else {
+			values[i] = global.Value
+		}
+	}
+	return values
 }

@@ -344,7 +344,7 @@ type FuncType struct {
 	*Position               // position in the source.
 	Parameters []*Field     // parameters.
 	Result     []*Field     // result.
-	IsVariadic bool         // indicates if it is variadic.
+	IsVariadic bool         // reports whether it is variadic.
 	Reflect    reflect.Type // reflect type.
 }
 
@@ -554,7 +554,7 @@ type TypeDeclaration struct {
 	*Position                      // position in the source.
 	Identifier         *Identifier // identifier of the type.
 	Type               Expression  // expression representing the type.
-	IsAliasDeclaration bool        // indicates if it is an alias declaration or a type definition.
+	IsAliasDeclaration bool        // reports whether it is an alias declaration or a type definition.
 }
 
 func (td *TypeDeclaration) String() string {
@@ -618,7 +618,7 @@ type ShowMacro struct {
 	Import     *Identifier  // name of the import.
 	Macro      *Identifier  // name of the macro.
 	Args       []Expression // arguments.
-	IsVariadic bool         // indicates if it is variadic.
+	IsVariadic bool         // reports whether it is variadic.
 	Or         ShowMacroOr  // when macro is not defined.
 	Context    Context      // context.
 }
@@ -1042,7 +1042,7 @@ type Call struct {
 	*Position               // position in the source.
 	Func       Expression   // function.
 	Args       []Expression // arguments.
-	IsVariadic bool         // indicates if it is variadic.
+	IsVariadic bool         // reports whether it is variadic.
 }
 
 func NewCall(pos *Position, fun Expression, args []Expression, isVariadic bool) *Call {
