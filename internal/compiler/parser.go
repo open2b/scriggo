@@ -97,6 +97,9 @@ type parsing struct {
 	// Lexer.
 	lex *lexer
 
+	// Reports whether it is a template.
+	isTemplate bool
+
 	// Reports whether it has an extend statement.
 	hasExtend bool
 
@@ -203,9 +206,10 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, err error
 	tree = ast.NewTree("", nil, ctx)
 
 	var p = &parsing{
-		lex:       newLexer(src, ctx),
-		ctx:       ctx,
-		ancestors: []ast.Node{tree},
+		lex:        newLexer(src, ctx),
+		isTemplate: true,
+		ctx:        ctx,
+		ancestors:  []ast.Node{tree},
 	}
 
 	defer func() {
@@ -362,8 +366,7 @@ func (p *parsing) parseStatement(tok token) {
 
 	var ok bool
 
-	isTemplate := tok.typ == tokenStartStatement
-	if isTemplate {
+	if p.isTemplate {
 		tok = next(p.lex)
 	}
 
@@ -553,7 +556,7 @@ LABEL:
 		if node == nil {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
 		}
-		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
+		p.parseEndStatement(tok, tokenLeftBraces)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -566,7 +569,7 @@ LABEL:
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+		p.parseEndStatement(tok, tokenSemicolon)
 		pos.End = tok.pos.End
 		node = ast.NewBreak(pos, label)
 		p.addChild(node)
@@ -580,7 +583,7 @@ LABEL:
 			label = ast.NewIdentifier(tok.pos, string(tok.txt))
 			tok = next(p.lex)
 		}
-		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+		p.parseEndStatement(tok, tokenSemicolon)
 		pos.End = tok.pos.End
 		node = ast.NewContinue(pos, label)
 		p.addChild(node)
@@ -598,7 +601,7 @@ LABEL:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			expressions, tok := p.parseExprList(token{}, false, false, false, false)
-			p.parseEndStatement(tok, tokenColon, isTemplate)
+			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
 			node := ast.NewCase(pos, expressions, nil, false)
 			p.addChild(node)
@@ -639,14 +642,14 @@ LABEL:
 		switch parent.(type) {
 		case *ast.Switch, *ast.TypeSwitch:
 			tok = next(p.lex)
-			p.parseEndStatement(tok, tokenColon, isTemplate)
+			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
 			node := ast.NewCase(pos, nil, nil, false)
 			p.addChild(node)
 			p.cutSpacesToken = true
 		case *ast.Select:
 			tok = next(p.lex)
-			p.parseEndStatement(tok, tokenColon, isTemplate)
+			p.parseEndStatement(tok, tokenColon)
 			pos.End = tok.pos.End
 			node := ast.NewSelectCase(pos, nil, nil)
 			p.addChild(node)
@@ -660,7 +663,7 @@ LABEL:
 		// TODO (Gianluca): fallthrough must be implemented as an ast node.
 		p.lastFallthroughTokenPos = *tok.pos
 		tok = next(p.lex)
-		p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+		p.parseEndStatement(tok, tokenSemicolon)
 		switch s := parent.(type) {
 		case *ast.Switch:
 			lastCase := s.Cases[len(s.Cases)-1]
@@ -682,7 +685,7 @@ LABEL:
 	// select
 	case tokenSelect:
 		tok = next(p.lex)
-		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
+		p.parseEndStatement(tok, tokenLeftBraces)
 		node = ast.NewSelect(pos, nil, nil)
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
@@ -795,7 +798,7 @@ LABEL:
 		} else {
 			expr = expressions[0]
 		}
-		p.parseEndStatement(tok, tokenLeftBraces, isTemplate)
+		p.parseEndStatement(tok, tokenLeftBraces)
 		pos.End = tok.pos.End
 		var blockPos *ast.Position
 		if p.ctx == ast.ContextGo {
@@ -929,7 +932,7 @@ LABEL:
 				tok = next(p.lex)
 			}
 		}
-		p.parseEndStatement(tok, tokenEndStatement, true)
+		p.parseEndStatement(tok, tokenEndStatement)
 		pos.End = tok.pos.End
 		node = ast.NewShowMacro(pos, impor, macro, args, isVariadic, or, tok.ctx)
 		p.addChild(node)
@@ -983,7 +986,7 @@ LABEL:
 				tok = next(p.lex)
 				if tok.typ == tokenRightParenthesis {
 					tok = next(p.lex)
-					p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+					p.parseEndStatement(tok, tokenSemicolon)
 					prevNode.Pos().End = tok.pos.End
 					break
 				}
@@ -1060,7 +1063,7 @@ LABEL:
 		} else {
 			p.addChild(p.parseImportSpec(tok))
 			tok = next(p.lex)
-			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+			p.parseEndStatement(tok, tokenSemicolon)
 		}
 		p.cutSpacesToken = true
 
@@ -1252,7 +1255,7 @@ LABEL:
 			if assignment == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
-			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+			p.parseEndStatement(tok, tokenSemicolon)
 			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
 			assignment.Position.End = tok.pos.End
 			p.addChild(assignment)
@@ -1265,7 +1268,7 @@ LABEL:
 			if value == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+			p.parseEndStatement(tok, tokenSemicolon)
 			node := ast.NewSend(pos, channel, value)
 			node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, value.Pos().End}
 			p.addChild(node)
@@ -1274,7 +1277,7 @@ LABEL:
 			// Parses expression.
 			expr := expressions[0]
 			if ident, ok := expr.(*ast.Identifier); ok && tok.typ == tokenColon {
-				if isTemplate {
+				if p.isTemplate {
 					if _, ok := parent.(*ast.Label); ok {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected label, expecting statement")})
 					}
@@ -1284,7 +1287,7 @@ LABEL:
 				p.addChild(node)
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
-				if isTemplate {
+				if p.isTemplate {
 					tok = next(p.lex)
 					if tok.typ == tokenEndStatement || tok.typ == tokenEOF {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
@@ -1292,7 +1295,7 @@ LABEL:
 					goto LABEL
 				}
 			} else {
-				p.parseEndStatement(tok, tokenSemicolon, isTemplate)
+				p.parseEndStatement(tok, tokenSemicolon)
 				p.addChild(expr)
 				p.cutSpacesToken = true
 			}
@@ -1302,8 +1305,8 @@ LABEL:
 	return
 }
 
-func (p *parsing) parseEndStatement(tok token, want tokenTyp, isTemplate bool) {
-	if isTemplate {
+func (p *parsing) parseEndStatement(tok token, want tokenTyp) {
+	if p.isTemplate {
 		if tok.typ == tokenSemicolon {
 			tok = next(p.lex)
 		}
