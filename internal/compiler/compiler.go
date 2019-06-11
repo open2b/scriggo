@@ -103,7 +103,6 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 		return pkgInfos, nil
 	}
 	tc := newTypechecker(tree.Path, opts)
-	tc.Universe = universe
 	if main, ok := predefinedPkgs["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}

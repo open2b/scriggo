@@ -131,7 +131,7 @@ func newTypechecker(path string, opts Options) *typechecker {
 		hasBreak:         map[ast.Node]bool{},
 		predefinedPkgs:   map[string]*Package{},
 		TypeInfo:         map[ast.Node]*TypeInfo{},
-		Universe:         TypeCheckerScope{},
+		Universe:         universe,
 		unusedImports:    map[string][]string{},
 		IndirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,

@@ -448,7 +448,6 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			tc := newTypechecker("", Options{})
 			tc.Scopes = scopes
-			tc.Universe = universe
 			tc.addScope()
 			ti := tc.checkExpression(node)
 			err := equalTypeInfo(expr.ti, ti)
@@ -530,7 +529,6 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}
 			tc := newTypechecker("", Options{})
 			tc.Scopes = scopes
-			tc.Universe = universe
 			tc.addScope()
 			ti := tc.checkExpression(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
@@ -1254,7 +1252,6 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			tc := newTypechecker("", Options{DisallowGoStmt: true})
 			tc.Scopes = append(tc.Scopes, scope)
-			tc.Universe = universe
 			tc.addScope()
 			tc.checkNodes(tree.Nodes)
 			tc.removeCurrentScope()

@@ -321,7 +321,6 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 	packageNode := pkg
 
 	tc := newTypechecker(path, Options{IsTemplate: isTemplate, DisallowGoStmt: disallowGoStmt})
-	tc.Universe = universe
 
 	err := sortDeclarations(packageNode, deps)
 	if err != nil {
