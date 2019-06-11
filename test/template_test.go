@@ -199,6 +199,11 @@ var templateCases = map[string]struct {
 		src: `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
 		out: `a`,
 	},
+
+	"ShowMacro of a not-defined macro with 'or ignore' option": {
+		src: `Ignored macro: {% show M or ignore %} ok.`,
+		out: `Ignored macro:  ok.`,
+	},
 }
 
 func TestTemplate(t *testing.T) {

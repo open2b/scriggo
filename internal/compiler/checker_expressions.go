@@ -115,7 +115,8 @@ type typechecker struct {
 	isTemplate        bool
 	disallowGoStmt    bool
 	iota              int
-	lastConstPosition *ast.Position // when changes iota is reset.
+	lastConstPosition *ast.Position    // when changes iota is reset.
+	showMacros        []*ast.ShowMacro // list of *ast.ShowMacro nodes.
 
 	// Data structures for Goto and Labels checking.
 	gotos           []string
@@ -329,6 +330,8 @@ func (tc *typechecker) isPackageVariable(name string) bool {
 	return ok
 }
 
+var showMacroIgnoredTi = &TypeInfo{}
+
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved
 // from scope. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
@@ -367,6 +370,17 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 				Value:      int64(tc.iota),
 				Type:       intType,
 				Properties: PropertyUntyped | PropertyIsConstant,
+			}
+		}
+		// If identifiers is a ShowMacro identifier, first needs to check if
+		// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
+		// error should not be returned, and function call should be removed
+		// from tree.
+		// TODO(Gianluca): add support for "or todo" error when typechecking
+		// with "todosNotAllowed" option.
+		for _, sm := range tc.showMacros {
+			if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
+				return showMacroIgnoredTi
 			}
 		}
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
@@ -865,6 +879,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					pkg := ti.Value.(*PackageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
+						// If identifiers is a ShowMacro identifier, first needs to check if
+						// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
+						// error should not be returned, and function call should be removed
+						// from tree.
+						// TODO(Gianluca): add support for "or todo" error when typechecking
+						// with "todosNotAllowed" option.
+						for _, sm := range tc.showMacros {
+							if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
+								return showMacroIgnoredTi
+							}
+						}
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
 					tc.TypeInfo[expr] = v
@@ -1428,6 +1453,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	t := tc.typeof(expr.Func, noEllipses)
 	tc.TypeInfo[expr.Func] = t
+
+	// expr is a show-macro expression which is not defined and which has been
+	// marked as "to be ignored" or "to do".
+	if t == showMacroIgnoredTi {
+		return nil, false, false
+	}
 
 	if t.Nil() {
 		panic(tc.errorf(expr, "use of untyped nil"))

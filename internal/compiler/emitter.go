@@ -673,6 +673,9 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.ExitStack()
 
 	case *ast.Call:
+		if e.typeInfos[expr.Func] == showMacroIgnoredTi {
+			return
+		}
 		e.fb.EnterStack()
 		// Builtin call.
 		if e.typeInfos[expr.Func].IsBuiltin() {

@@ -27,6 +27,13 @@ var templateCases = map[string]string{
 	`{% macro M(int) %}{% end %}    {% show M("s") %}`: "cannot use \"s\" (type string) as type int in argument to M",
 
 	// "{% macro M %}{% end %}    {% show M() %}":  ok, // TODO(Gianluca): See issue #136.
+
+	`{% show M %}`:           `undefined: M`,
+	`{% show M or error %}`:  `undefined: M`,
+	`{% show M or ignore %}`: ok,
+
+	// TODO(Gianluca): result of this test depends on typechecking options.
+	// `{% show M or todo %}`: ok,
 }
 
 const ok = ""

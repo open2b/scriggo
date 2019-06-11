@@ -504,6 +504,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.ShowMacro:
+			tc.showMacros = append(tc.showMacros, node)
 			var fun ast.Expression
 			if node.Import != nil {
 				fun = ast.NewSelector(node.Import.Pos(), node.Import, node.Macro.Name)
