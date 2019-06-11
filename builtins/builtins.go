@@ -205,7 +205,9 @@ func escape(env *vm.Env, s interface{}) scriggo.HTML {
 	case scriggo.HTML:
 		return s
 	default:
-		panic(fmt.Sprintf("call of escape on %T value", s))
+		err := fmt.Sprintf("call of escape on %T value", s)
+		env.Alloc(len(err))
+		panic(err)
 	}
 }
 
@@ -445,13 +447,15 @@ func round(x float64) float64 {
 }
 
 // shuffle is the builtin function "shuffle".
-func shuffle(slice interface{}) {
+func shuffle(env *vm.Env, slice interface{}) {
 	if slice == nil {
 		return
 	}
 	v := reflect.ValueOf(slice)
 	if v.Kind() != reflect.Slice {
-		panic(fmt.Sprintf("call of shuffle on %s value", v.Kind()))
+		err := fmt.Sprintf("call of shuffle on %s value", v.Kind())
+		env.Alloc(len(err))
+		panic(err)
 	}
 	// Swap.
 	seed := time.Now().UTC().UnixNano()
