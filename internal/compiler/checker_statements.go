@@ -14,7 +14,7 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
-func (tc *typechecker) CheckNodesInNewScopeError(nodes []ast.Node) error {
+func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
 	tc.addScope()
 	err := tc.checkNodesError(nodes)
 	if err != nil {
@@ -24,8 +24,8 @@ func (tc *typechecker) CheckNodesInNewScopeError(nodes []ast.Node) error {
 	return nil
 }
 
-// CheckNodesInNewScope type checks nodes in a new scope.
-func (tc *typechecker) CheckNodesInNewScope(nodes []ast.Node) {
+// checkNodesInNewScope type checks nodes in a new scope.
+func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 	tc.addScope()
 	tc.checkNodes(nodes)
 	tc.removeCurrentScope()
@@ -171,7 +171,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodes(node.Tree.Nodes)
 
 		case *ast.Block:
-			tc.CheckNodesInNewScope(node.Nodes)
+			tc.checkNodesInNewScope(node.Nodes)
 
 		case *ast.If:
 			tc.addScope()
@@ -187,14 +187,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.replaceTypeInfo(node.Condition, new)
 				node.Condition = new
 			}
-			tc.CheckNodesInNewScope(node.Then.Nodes)
+			tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
 				terminating = false
 			} else {
 				switch els := node.Else.(type) {
 				case *ast.Block:
-					tc.CheckNodesInNewScope(els.Nodes)
+					tc.checkNodesInNewScope(els.Nodes)
 				case *ast.If:
 					tc.checkNodes([]ast.Node{els})
 				}
@@ -223,7 +223,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
 			}
-			tc.CheckNodesInNewScope(node.Body)
+			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
@@ -282,7 +282,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					tc.assignSingle(node.Assignment, vars[1], nil, &TypeInfo{Type: typ2}, nil, declaration, false)
 				}
 			}
-			tc.CheckNodesInNewScope(node.Body)
+			tc.checkNodesInNewScope(node.Body)
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
 			tc.terminating = !tc.hasBreak[node]
@@ -379,7 +379,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						}
 					}
 				}
-				tc.CheckNodesInNewScope(cas.Body)
+				tc.checkNodesInNewScope(cas.Body)
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				terminating = terminating && (tc.terminating || hasFallthrough)
 			}
@@ -445,7 +445,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOf[t.Type] = ex.Pos()
 				}
-				tc.CheckNodesInNewScope(cas.Body)
+				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
@@ -481,7 +481,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				case *ast.Send:
 					tc.checkNodes([]ast.Node{comm})
 				}
-				tc.CheckNodesInNewScope(cas.Body)
+				tc.checkNodesInNewScope(cas.Body)
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
