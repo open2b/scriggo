@@ -119,7 +119,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
 				}
 			}
-			err := tc.CheckNodesInNewScopeCatchingPanics(extends.Tree.Nodes)
+			err := tc.CheckNodesInNewScopeError(extends.Tree.Nodes)
 			if err != nil {
 				return nil, err
 			}
@@ -147,7 +147,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 		}
 	}
 	tc.predefinedPkgs = predefinedPkgs
-	err := tc.CheckNodesInNewScopeCatchingPanics(tree.Nodes)
+	err := tc.CheckNodesInNewScopeError(tree.Nodes)
 	if err != nil {
 		return nil, err
 	}
