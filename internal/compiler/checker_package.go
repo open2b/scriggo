@@ -63,7 +63,7 @@ type PackageInfo struct {
 	TypeInfo             map[ast.Node]*TypeInfo
 }
 
-func depsOf(name string, deps GlobalsDependencies) []*ast.Identifier {
+func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
 	for g, d := range deps {
 		if g.Name == name {
 			return d
@@ -72,7 +72,7 @@ func depsOf(name string, deps GlobalsDependencies) []*ast.Identifier {
 	return nil
 }
 
-func checkDepsPath(path []*ast.Identifier, deps GlobalsDependencies) []*ast.Identifier {
+func checkDepsPath(path []*ast.Identifier, deps PackageDeclsDeps) []*ast.Identifier {
 	last := path[len(path)-1]
 	for _, dep := range depsOf(last.Name, deps) {
 		for _, p := range path {
@@ -88,7 +88,7 @@ func checkDepsPath(path []*ast.Identifier, deps GlobalsDependencies) []*ast.Iden
 	return nil
 }
 
-func detectConstantsLoop(consts []*ast.Const, deps GlobalsDependencies) error {
+func detectConstantsLoop(consts []*ast.Const, deps PackageDeclsDeps) error {
 	for _, c := range consts {
 		path := []*ast.Identifier{c.Lhs[0]}
 		loopPath := checkDepsPath(path, deps)
@@ -105,7 +105,7 @@ func detectConstantsLoop(consts []*ast.Const, deps GlobalsDependencies) error {
 	return nil
 }
 
-func detectVarsLoop(vars []*ast.Var, deps GlobalsDependencies) error {
+func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 	for _, v := range vars {
 		for _, left := range v.Lhs {
 			path := []*ast.Identifier{left}
@@ -122,7 +122,7 @@ func detectVarsLoop(vars []*ast.Var, deps GlobalsDependencies) error {
 	return nil
 }
 
-func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
+func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 	var extends *ast.Extends
 	consts := []*ast.Const{}
 	vars := []*ast.Var{}
@@ -316,7 +316,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) error {
+func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) error {
 
 	packageNode := pkg
 

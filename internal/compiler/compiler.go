@@ -101,7 +101,7 @@ type Options struct {
 // must contain dependencies in case of package initialization (program or
 // template import/extend).
 // tree may be altered during typechecking.
-func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts Options) (map[string]*PackageInfo, error) {
+func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps PackageDeclsDeps, opts Options) (map[string]*PackageInfo, error) {
 	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)

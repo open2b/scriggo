@@ -14,7 +14,9 @@ import (
 // See https://golang.org/ref/spec#Package_initialization for further
 // informations.
 
-type GlobalsDependencies map[*ast.Identifier][]*ast.Identifier
+// PackageDeclsDeps maps package level declarations to a list of their
+// dependencies.
+type PackageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 
 // TODO(Gianluca): consider implementing dependencies using channel
 // communication instead of method calling.
@@ -43,11 +45,11 @@ type dependencies struct {
 }
 
 // result returns all dependencies of global declarations.
-func (d *dependencies) result() GlobalsDependencies {
+func (d *dependencies) result() PackageDeclsDeps {
 	if d == nil {
 		return nil
 	}
-	out := GlobalsDependencies{}
+	out := PackageDeclsDeps{}
 	for glob, deps := range d.deps {
 		out[glob] = []*ast.Identifier{}
 		for d, count := range deps {

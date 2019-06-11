@@ -130,7 +130,7 @@ type parsing struct {
 // Returns the AST tree and, only if it is a program, the dependencies for the
 // type checker.
 // TODO(Gianluca): path validation must be moved to parser.
-func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
 
 	if shebang && !isScript {
 		return nil, nil, errors.New("scriggo/parser: shebang can be true only for scripts")
@@ -194,7 +194,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Globa
 
 // ParseTemplateSource parses src in the context ctx and returns the parsed
 // tree. Nodes Extends, Import and Include are not be expanded.
-func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps GlobalsDependencies, err error) {
+func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
