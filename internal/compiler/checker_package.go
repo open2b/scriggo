@@ -490,11 +490,6 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 	}
 	pkgInfo.IndirectVars = tc.IndirectVars
 
-	if pkgInfos == nil {
-		// TODO(Gianluca): pkgInfos shall not be nil when passed to checkPackage,
-		// remove this check and initialization.
-		pkgInfos = make(map[string]*PackageInfo)
-	}
 	pkgInfos[path] = pkgInfo
 
 	return nil
