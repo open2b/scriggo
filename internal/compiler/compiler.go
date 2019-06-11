@@ -170,22 +170,25 @@ type Global struct {
 	Value interface{}
 }
 
-// emittedPackage is the result of a package emitting process.
-type emittedPackage struct {
-	Globals   []Global
+// Code is the result of a package emitting process.
+type Code struct {
+	// Globals is a slice of all globals used in Code.
+	Globals []Global
+	// Functions is a map of exported functions indexed by name.
 	Functions map[string]*vm.Function
-	Main      *vm.Function
+	// Main is the Code entry point.
+	Main *vm.Function
 }
 
 // EmitPackageMain emits the code for a package main given its ast node, the
 // type info and indirect variables. alloc reports whether Alloc instructions
 // must be emitted. EmitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *emittedPackage {
+func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	funcs, _, _ := e.emitPackage(pkgMain, false)
 	main := e.availableFuncs[pkgMain]["main"]
-	pkg := &emittedPackage{
+	pkg := &Code{
 		Globals:   e.globals,
 		Functions: funcs,
 		Main:      main,
