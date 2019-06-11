@@ -94,6 +94,19 @@ func (vm *VM) Reset() {
 	}
 }
 
+// Run starts the execution of the function fn with the given global variables
+// and waits for it to complete.
+//
+// During the execution if a panic occurs and has not been recovered, by
+// default Run panics with the panic message. If the DontPanic option is true,
+// Run don't panic and returns the panic message in the err out parameter.
+//
+// If a maximum available memory has been set and the memory is exhausted,
+// Run returns immediately with the error ErrOutOfMemory.
+//
+// If a context has been set and the context is canceled, Run returns
+// as soon as possible with the error returned by the Err method of the
+// context.
 func (vm *VM) Run(fn *Function, globals []interface{}) (code int, err error) {
 	vm.env.globals = globals
 	return vm.runFunc(fn, globals)
