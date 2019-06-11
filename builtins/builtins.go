@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	_hash "hash"
-	"html"
 	"io"
 	"math"
 	_rand "math/rand"
@@ -202,15 +201,14 @@ func errorf(format string, a ...interface{}) {
 }
 
 // escape is the builtin function "escape".
-func escape(a interface{}) HTML {
-	switch a := a.(type) {
+func escape(env *vm.Env, s interface{}) HTML {
+	switch s := s.(type) {
 	case string:
-		// TODO(Gianluca): is this the right implementation? Compare with renderer.
-		return HTML(html.EscapeString(a))
+		return HTML(htmlEscapeString(env, s))
 	case HTML:
-		return a
+		return s
 	default:
-		panic("not supported") // TODO(Gianluca): review.
+		panic(fmt.Sprintf("call of escape on %T value", s))
 	}
 }
 
@@ -590,4 +588,62 @@ func withAlloc(env *vm.Env, f func(string) string, s string) string {
 		env.Alloc(len(t) - len(s))
 	}
 	return t
+}
+
+// htmlEscapeString escapes the string s so it can be placed inside HTML, and
+// returns the escaped string.
+//
+// This is a copy of the homonymous function in package template, with the
+// addition of the env parameter to allocate the memory for the new string.
+func htmlEscapeString(env *vm.Env, s string) string {
+	more := 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '<', '>':
+			more += 3
+		case '&', '\'', '"':
+			more += 4
+		}
+	}
+	if more == 0 {
+		return s
+	}
+	env.Alloc(len(s) + more)
+	b := make([]byte, len(s)+more)
+	for i, j := 0, 0; i < len(s); i++ {
+		switch c := s[i]; c {
+		case '<', '>':
+			b[j] = '&'
+			if c == '<' {
+				b[j+1] = 'l'
+			} else {
+				b[j+1] = 'g'
+			}
+			b[j+2] = 't'
+			b[j+3] = ';'
+			j += 4
+		case '&':
+			b[j] = '&'
+			b[j+1] = 'a'
+			b[j+2] = 'm'
+			b[j+3] = 'p'
+			b[j+4] = ';'
+			j += 5
+		case '"', '\'':
+			b[j] = '&'
+			b[j+1] = '#'
+			b[j+2] = '3'
+			if c == '"' {
+				b[j+3] = '4'
+			} else {
+				b[j+3] = '9'
+			}
+			b[j+4] = ';'
+			j += 5
+		default:
+			b[j] = c
+			j++
+		}
+	}
+	return string(b)
 }
