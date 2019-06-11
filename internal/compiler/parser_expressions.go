@@ -471,20 +471,25 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				pos.End = tok.pos.End
 				operand = ast.NewCall(pos, operand, args, isVariadic)
 				canCompositeLiteral = false
-			case tokenLeftBrackets: // e[...], e[.. : ..]
+			case tokenLeftBrackets: // e[...], e[.. : ..], e[.. : .. : ..],
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
 				index, tok = p.parseExpr(token{}, false, false, false, false)
 				if tok.typ == tokenColon {
 					low := index
-					var high ast.Expression
+					isFull := false
+					var high, max ast.Expression
 					high, tok = p.parseExpr(token{}, false, false, false, false)
+					if tok.typ == tokenColon {
+						isFull = true
+						max, tok = p.parseExpr(token{}, false, false, false, false)
+					}
 					if tok.typ != tokenRightBrackets {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 					}
 					pos.End = tok.pos.End
-					operand = ast.NewSlicing(pos, operand, low, high)
+					operand = ast.NewSlicing(pos, operand, low, high, max, isFull)
 				} else {
 					if tok.typ != tokenRightBrackets {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})

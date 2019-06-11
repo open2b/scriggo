@@ -784,7 +784,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 
 	case *ast.Slicing:
-		// TODO(marco) support full slice expressions
 		t := tc.checkExpression(expr.Expr)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
@@ -793,7 +792,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		realType := t.Type
 		realKind := kind
 		switch kind {
-		case reflect.String, reflect.Slice:
+		case reflect.String:
+			if expr.IsFull {
+				panic(tc.errorf(expr, "invalid operation %s (3-index slice of string)", expr))
+			}
+		case reflect.Slice:
 		case reflect.Array:
 			if !t.Addressable() {
 				panic(tc.errorf(expr, "invalid operation %s (slice of unaddressable value)", expr))
@@ -807,7 +810,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				panic(tc.errorf(expr, "cannot slice %s (type %s)", expr.Expr, t.ShortString()))
 			}
 		}
-		lv, hv := -1, -1
+		lv, hv, mv := -1, -1, -1
 		if expr.Low != nil {
 			if lv = tc.checkIndex(expr.Low, t, true); lv != -1 {
 				node := ast.NewValue(lv)
@@ -821,9 +824,26 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				tc.replaceTypeInfo(expr.High, node)
 				expr.High = node
 			}
+		} else if expr.IsFull {
+			panic(tc.errorf(expr, "middle index required in 3-index slice"))
+		}
+		if expr.Max != nil {
+			if mv = tc.checkIndex(expr.Max, t, true); mv != -1 {
+				node := ast.NewValue(mv)
+				tc.replaceTypeInfo(expr.Max, node)
+				expr.Max = node
+			}
+		} else if expr.IsFull {
+			panic(tc.errorf(expr, "final index required in 3-index slice"))
 		}
 		if lv != -1 && hv != -1 && lv > hv {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
+		}
+		if lv != -1 && mv != -1 && lv > mv {
+			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, mv))
+		}
+		if hv != -1 && mv != -1 && hv > mv {
+			panic(tc.errorf(expr, "invalid slice index: %d > %d", hv, mv))
 		}
 		switch kind {
 		case reflect.String, reflect.Slice:

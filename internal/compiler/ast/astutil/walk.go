@@ -246,6 +246,9 @@ func Walk(v Visitor, node ast.Node) {
 		if n.High != nil {
 			Walk(v, n.High)
 		}
+		if n.Max != nil {
+			Walk(v, n.Max)
+		}
 
 	case *ast.Selector:
 		Walk(v, n.Expr)

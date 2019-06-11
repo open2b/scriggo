@@ -1928,6 +1928,17 @@ func equals(n1, n2 ast.Node, p int) error {
 		if err != nil {
 			return err
 		}
+		err = equals(nn1.Max, nn2.Max, p)
+		if err != nil {
+			return err
+		}
+		if nn1.IsFull != nn2.IsFull {
+			if nn1.IsFull {
+				return fmt.Errorf("unexpected full expression, expecting not full")
+			} else {
+				return fmt.Errorf("unexpected not full expression, expecting full")
+			}
+		}
 
 	case *ast.Show:
 		nn2, ok := n2.(*ast.Show)

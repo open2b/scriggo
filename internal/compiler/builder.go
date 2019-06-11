@@ -1243,6 +1243,26 @@ func (builder *functionBuilder) SetSlice(k bool, slice, value, index int8, elemK
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
+// Slice appends a new "Slice" instruction to the function body.
+//
+//	slice[low:high:max]
+//
+func (builder *functionBuilder) Slice(klow, khigh, kmax bool, src, dst, low, high, max int8) {
+	fn := builder.fn
+	var b int8
+	if klow {
+		b = 1
+	}
+	if khigh && high > 0 {
+		b |= 2
+	}
+	if kmax && max > 0 {
+		b |= 4
+	}
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpSlice, A: src, B: b, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{A: low, B: high, C: max})
+}
+
 // Sub appends a new "Sub" instruction to the function body.
 //
 //     z = x - y
