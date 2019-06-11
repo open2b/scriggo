@@ -82,34 +82,25 @@ type Options struct {
 	// used or a package is imported and not used.
 	NotUsedError bool
 
-	// TODO(Gianluca): review doc.
-	// IsProgram indicate if it's a package. If true, all sources must start
-	// with "package" and package-level declarations will be sorted according
-	// to Go package inizialization specs.
-	IsProgram bool
-
-	IsTemplate bool
-
-	IsScript bool
+	IsProgram, IsTemplate, IsScript bool
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 }
 
 func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (map[string]*PackageInfo, error) {
-	// TODO(Gianluca): review.
-	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
-	tc.Universe = universe
-	if main, ok := predefinedPkgs["main"]; ok {
-		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
-	}
-	if opts.IsProgram { // TODO(Gianluca): move this code before creating a newTypechecker.
+	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}
 		return pkgInfos, nil
+	}
+	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
+	tc.Universe = universe
+	if main, ok := predefinedPkgs["main"]; ok {
+		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
 	}
 	if opts.IsTemplate {
 		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
