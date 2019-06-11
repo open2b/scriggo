@@ -1096,8 +1096,6 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		e.fb.Delete(mapp, key)
 	case "imag":
 		panic("TODO: not implemented")
-	case "html": // TODO (Gianluca): to review.
-		panic("TODO: not implemented")
 	case "len":
 		typ := e.typeInfos[call.Args[0]].Type
 		s := e.fb.NewRegister(typ.Kind())

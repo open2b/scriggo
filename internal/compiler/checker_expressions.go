@@ -57,7 +57,6 @@ var universe = TypeCheckerScope{
 	"nil":         {t: &TypeInfo{Properties: PropertyNil}},
 	"panic":       {t: builtinTypeInfo},
 	"print":       {t: builtinTypeInfo},
-	"html":        {t: builtinTypeInfo},
 	"println":     {t: builtinTypeInfo},
 	"real":        {t: builtinTypeInfo},
 	"recover":     {t: builtinTypeInfo},
@@ -1218,21 +1217,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		}
 		return []*TypeInfo{{Type: intType}}
 
-	case "html":
-		if len(expr.Args) == 0 {
-			panic(tc.errorf(expr, "missing argument to html"))
-		}
-		if len(expr.Args) > 1 {
-			panic(tc.errorf(expr, "too many arguments to html"))
-		}
-		arg := tc.checkExpression(expr.Args[0])
-		if !isAssignableTo(arg, stringType) {
-			panic(tc.errorf(expr, "cannot use %v (type %s) as type string in html", expr.Args[0], arg.ShortString()))
-		}
-		arg.Properties = 0
-		// TODO(marco): replace a constant with ast.Value
-		return []*TypeInfo{arg}
-
 	case "delete":
 		switch len(expr.Args) {
 		case 0:
@@ -1430,17 +1414,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool, bool) {
 
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		contextIsNotGo := true // TODO (Gianluca).
-		// TODO (Gianluca): html must be in type-checker scope because it's
-		// a builtin (and since it's one of them can be shadowd by a local
-		// declaration) but the definition for type-checker must be
-		// different than the one seen by rendering: type-checker must
-		// ignore "HTML" types threating them as strings, while rendering
-		// has to convert them.
-		if ident.Name == "html" && contextIsNotGo {
-			tc.TypeInfo[expr.Func] = &TypeInfo{Properties: PropertyIsBuiltin}
-			return tc.checkBuiltinCall(expr), true, false
-		}
 		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
 			tc.TypeInfo[expr.Func] = t
 			return tc.checkBuiltinCall(expr), true, false

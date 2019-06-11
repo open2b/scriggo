@@ -82,7 +82,6 @@ var main = scriggo.Package{
 		"hasSuffix":   strings.HasSuffix,
 		"hex":         hex,
 		"hmac":        hmac,
-		"html":        html,
 		"index":       index,
 		"indexAny":    indexAny,
 		"itoa":        itoa,
@@ -251,17 +250,6 @@ func hmac(env *vm.Env, hasher hasher, message, key string) string {
 	_, _ = io.WriteString(mac, message)
 	s := _base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return s
-}
-
-// html is the builtin function "html".
-func html(s interface{}) template.HTML {
-	switch v := s.(type) {
-	case string:
-		return template.HTML(v)
-	case template.HTML:
-		return v
-	}
-	panic(fmt.Sprintf("type-checking bug: html argument must be string or HTML, got %T", s))
 }
 
 // index is the builtin function "index".
