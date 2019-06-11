@@ -153,9 +153,7 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	if tc.isScript || tc.isTemplate {
-		// Nothing to do.
-	} else {
+	if !tc.isScript && !tc.isTemplate {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
@@ -330,6 +328,8 @@ func (tc *typechecker) isPackageVariable(name string) bool {
 	return ok
 }
 
+// showMacroIgnoredTi is the TypeInfo of a ShowMacro identifier which is
+// undefined but has been marked as to be ignored or "todo".
 var showMacroIgnoredTi = &TypeInfo{}
 
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved
@@ -1454,7 +1454,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	t := tc.typeof(expr.Func, noEllipses)
 	tc.TypeInfo[expr.Func] = t
 
-	// expr is a show-macro expression which is not defined and which has been
+	// expr is a ShowMacro expression which is not defined and which has been
 	// marked as "to be ignored" or "to do".
 	if t == showMacroIgnoredTi {
 		return nil, false, false

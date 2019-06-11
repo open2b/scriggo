@@ -58,6 +58,24 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	return nil
 }
 
+// checkNodesError calls checkNodes catching panics and returing their errors as
+// return parameter.
+func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if rerr, ok := r.(*CheckingError); ok {
+					err = rerr
+				} else {
+					panic(r)
+				}
+			}
+		}()
+		tc.checkNodes(nodes)
+	}()
+	return err
+}
+
 // checkNodes type checks one or more statements.
 //
 // TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and

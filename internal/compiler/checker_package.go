@@ -320,7 +320,6 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 
 	packageNode := pkg
 
-	// TODO(Gianluca): isTemplate should be an argument to checkPackage, not always "false".
 	tc := newTypechecker(path, false, isTemplate, disallowGoStmt)
 	tc.Universe = universe
 
@@ -370,7 +369,6 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 					if err != nil {
 						return err
 					}
-					// TODO(Gianluca): if templateToPackage panics instead of returning error, put it inline.
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
 				} else {
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, false, disallowGoStmt) // TODO(Gianluca): where are deps?
@@ -451,19 +449,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			var err error
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						if rerr, ok := r.(*CheckingError); ok {
-							err = rerr
-						} else {
-							panic(r)
-						}
-					}
-				}()
-				tc.checkNodes(d.Body.Nodes)
-			}()
+			err = tc.checkNodesError(d.Body.Nodes)
 			if err != nil {
 				return err
 			}
