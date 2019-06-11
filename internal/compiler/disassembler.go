@@ -509,10 +509,22 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
 	case vm.OpSlice:
+		khigh := b&2 != 0
+		high := fn.Body[addr+1].B
+		if khigh && high == -1 {
+			khigh = false
+			high = 0
+		}
+		kmax := b&4 != 0
+		max := fn.Body[addr+1].C
+		if kmax && max == -1 {
+			kmax = false
+			max = 0
+		}
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, fn.Body[addr+1].A, vm.Int, b&1 != 0)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].B, vm.Int, b&2 != 0)
-		s += " " + disassembleOperand(fn, fn.Body[addr+1].C, vm.Int, b&4 != 0)
+		s += " " + disassembleOperand(fn, high, vm.Int, khigh)
+		s += " " + disassembleOperand(fn, max, vm.Int, kmax)
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
