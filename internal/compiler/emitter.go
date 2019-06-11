@@ -1067,7 +1067,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			src = e.fb.NewRegister(exprType.Kind())
 		}
 		var ok bool
-		var low, high, max int8 = 0, 0, 0
+		var low, high, max int8 = 0, -1, -1
 		var klow, khigh, kmax = true, true, true
 		// emit low
 		if expr.Low != nil {

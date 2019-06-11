@@ -249,14 +249,44 @@ var stmtTests = []struct {
 		output: "400 -112 -112",
 	},
 	{
+		name: "Slice expressions",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			var s = []int{1,2,3,4,5}
+			slices := [][]int{
+				s[:],
+				s[:0],
+				s[0:0],
+				s[:3],
+				s[0:3],
+				s[0:5],
+				s[2:5],
+				s[2:4],
+				s[2:2],
+				s[0:0:0],
+				s[0:1:2],
+				s[2:3:5],
+				s[5:5:5],
+			}
+			for _, slice := range slices {
+				fmt.Print(slice, len(slice), cap(slice), "\t")
+			}
+		}`,
+		output: "[1 2 3 4 5] 5 5\t[] 0 5\t[] 0 5\t[1 2 3] 3 5\t[1 2 3] 3 5\t[1 2 3 4 5] 5 5\t[3 4 5] 3 3\t[3 4] 2 3\t[] 0 3\t[] 0 0\t[1] 1 2\t[3] 1 3\t[] 0 0\t",
+	},
+	{
 		name: "Passing a function to Go",
 		src: `package main
 
 		import (
 			"fmt"
 		)
-		
-		
+
 		func main() {
 			f := func() {}
 			fmt.Printf("%T", f)
@@ -270,8 +300,7 @@ var stmtTests = []struct {
 		import (
 			"fmt"
 		)
-		
-		
+
 		func main() {
 			a := "hello"
 			a = a + " "

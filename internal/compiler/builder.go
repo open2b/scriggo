@@ -1253,10 +1253,10 @@ func (builder *functionBuilder) Slice(klow, khigh, kmax bool, src, dst, low, hig
 	if klow {
 		b = 1
 	}
-	if khigh && high > 0 {
+	if khigh {
 		b |= 2
 	}
-	if kmax && max > 0 {
+	if kmax {
 		b |= 4
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpSlice, A: src, B: b, C: dst})
