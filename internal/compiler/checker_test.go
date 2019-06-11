@@ -446,7 +446,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", false, false)
+			tc := newTypechecker("", false, false, false)
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -528,7 +528,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", false, false)
+			tc := newTypechecker("", false, false, false)
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -1252,7 +1252,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", false, true)
+			tc := newTypechecker("", false, false, true)
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.Universe = universe
 			tc.addScope()
@@ -1315,7 +1315,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 	opts := &Options{
 		AllowImports: true,
 		NotUsedError: true,
-		IsPackage:    true,
+		IsProgram:    true,
 	}
 	_, err = Typecheck(tree, predefined, deps, opts)
 	if err != nil {
@@ -1719,7 +1719,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker("", false, false)
+	tc := newTypechecker("", false, false, false)
 	for src, expected := range cases {
 		tree, _, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -1812,7 +1812,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := newTypechecker("", false, false)
+		tc := newTypechecker("", false, false, false)
 		tc.addScope()
 		tree, _, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -1932,7 +1932,8 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			err = checkPackage(tree, deps, nil, nil, false)
+			pkgInfos := map[string]*PackageInfo{}
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, false, false)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

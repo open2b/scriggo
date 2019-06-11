@@ -108,22 +108,72 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 // emitted. EmitTemplate returns a function that is the entry point of the
 // template and the global variables.
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
+
 	e := newEmitter(typeInfos, indirectVars)
 	e.pkg = &ast.Package{}
 	e.addAllocInstructions = alloc
 	e.isTemplate = true
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
 	e.fb.SetAlloc(alloc)
+
+	// If page is a package, then page extends another page.
+	if len(tree.Nodes) == 1 {
+		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
+			mainBuilder := e.fb
+			// Macro declarations in extending page must be accessed by extended page.
+			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+			for _, dec := range pkg.Declarations {
+				if fun, ok := dec.(*ast.Func); ok {
+					fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+				}
+			}
+			// Emits extended page.
+			extends := pkg.Declarations[0].(*ast.Extends)
+			e.fb.EnterScope()
+			e.reserveTemplateRegisters()
+			// Reserves first index of Functions for the function that
+			// initializes package variables. There is no guarantee that such
+			// function will exist: it depends on the presence or the absence of
+			// package variables.
+			var initVarsIndex int8 = 0
+			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
+			e.fb.Call(initVarsIndex, vm.StackShift{}, 0)
+			e.EmitNodes(extends.Tree.Nodes)
+			e.fb.End()
+			e.fb.ExitScope()
+			// Emits extending page as a package.
+			_, _, inits := e.emitPackage(pkg, true)
+			e.fb = mainBuilder
+			// Just one init is supported: the implicit one (the one that
+			// initializes variables).
+			if len(inits) == 1 {
+				e.fb.fn.Functions[0] = inits[0]
+			} else {
+				// If there are no variables to initialize, a nop function is
+				// created because space has already been reserved for it.
+				nopFunction := NewFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
+				nopBuilder := newBuilder(nopFunction)
+				nopBuilder.End()
+				e.fb.fn.Functions[0] = nopFunction
+			}
+			return e.fb.fn, e.globals
+		}
+	}
+
+	// Default case: tree is a generic template page.
 	e.fb.EnterScope()
 	e.reserveTemplateRegisters()
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
 	return e.fb.fn, e.globals
+
 }
 
 func (e *emitter) reserveTemplateRegisters() {
@@ -152,7 +202,7 @@ type emittedPackage struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
 	e := newEmitter(typeInfos, indirectVars)
 	e.addAllocInstructions = alloc
-	funcs, _, _ := e.emitPackage(pkgMain)
+	funcs, _, _ := e.emitPackage(pkgMain, false)
 	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &emittedPackage{
 		Globals:   e.globals,
@@ -164,10 +214,14 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 
 // emitPackage emits package pkg returning exported function, exported
 // variables and init functions.
-func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
-	e.pkg = pkg
-	e.availableFunctions[e.pkg] = map[string]*vm.Function{}
-	e.pkgVariables[e.pkg] = map[string]int16{}
+func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
+	if !isExtendingPage {
+		e.pkg = pkg
+		e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+	}
+	if e.pkgVariables[e.pkg] == nil {
+		e.pkgVariables[e.pkg] = map[string]int16{}
+	}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
 	// functions are called more than once: that is wrong.
@@ -183,7 +237,7 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 			} else {
 				backupPkg := e.pkg
 				pkg := imp.Tree.Nodes[0].(*ast.Package)
-				funcs, vars, inits := e.emitPackage(pkg)
+				funcs, vars, inits := e.emitPackage(pkg, false)
 				e.pkg = backupPkg
 				allInits = append(allInits, inits...)
 				var importName string
@@ -219,18 +273,24 @@ func (e *emitter) emitPackage(pkg *ast.Package) (map[string]*vm.Function, map[st
 
 	exportedFunctions := map[string]*vm.Function{}
 
-	// Stores all function declarations in current package before building
-	// their bodies: order of declaration doesn't matter at package level.
 	initToBuild := len(allInits) // Index of next "init" function to build.
-	for _, dec := range pkg.Declarations {
-		if fun, ok := dec.(*ast.Func); ok {
-			fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
-			if fun.Ident.Name == "init" {
-				allInits = append(allInits, fn)
-			} else {
-				e.availableFunctions[e.pkg][fun.Ident.Name] = fn
-				if isExported(fun.Ident.Name) {
-					exportedFunctions[fun.Ident.Name] = fn
+	if isExtendingPage {
+		// If page is extending another page, function declarations have already
+		// been added to the list of available functions, so they can't be added
+		// twice.
+	} else {
+		// Stores all function declarations in current package before building
+		// their bodies: order of declaration doesn't matter at package level.
+		for _, dec := range pkg.Declarations {
+			if fun, ok := dec.(*ast.Func); ok {
+				fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+				if fun.Ident.Name == "init" {
+					allInits = append(allInits, fn)
+				} else {
+					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+					if isExported(fun.Ident.Name) {
+						exportedFunctions[fun.Ident.Name] = fn
+					}
 				}
 			}
 		}
@@ -613,6 +673,9 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.ExitStack()
 
 	case *ast.Call:
+		if e.typeInfos[expr.Func] == showMacroIgnoredTi {
+			return
+		}
 		e.fb.EnterStack()
 		// Builtin call.
 		if e.typeInfos[expr.Func].IsBuiltin() {
@@ -1358,28 +1421,40 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 					// Nothing to do: template pages cannot have
 					// collateral effects.
 				} else {
-					importE := newEmitter(e.typeInfos, e.indirectVars)
-					importE.isTemplate = true
-					importE.pkg = &ast.Package{}
-					fn := NewFunction("", "", reflect.FuncOf(nil, nil, false))
-					importE.fb = newBuilder(fn)
-					importE.fb.EnterScope()
-					importE.reserveTemplateRegisters()
-					importE.EmitNodes(node.Tree.Nodes)
-					for _, n := range node.Tree.Nodes {
-						if macro, ok := n.(*ast.Func); ok {
-							name := macro.Ident.Name
-							if e.availableFunctions[e.pkg] == nil {
-								e.availableFunctions[e.pkg] = map[string]*vm.Function{}
-							}
-							if node.Ident == nil {
-								e.availableFunctions[e.pkg][name] = importE.availableFunctions[importE.pkg][name]
-							} else {
-								e.availableFunctions[e.pkg][node.Ident.Name+"."+name] = importE.availableFunctions[importE.pkg][name]
-							}
+					backupBuilder := e.fb
+					funcs, vars, inits := e.emitPackage(node.Tree.Nodes[0].(*ast.Package), false)
+					var importName string
+					if node.Ident == nil {
+						// Imports without identifiers are handled as 'import . "path"'.
+						importName = ""
+					} else {
+						switch node.Ident.Name {
+						case "_":
+							panic("TODO(Gianluca): not implemented")
+						case ".":
+							importName = ""
+						default:
+							importName = node.Ident.Name
 						}
 					}
-					importE.fb.ExitScope()
+					for name, fn := range funcs {
+						if importName == "" {
+							e.availableFunctions[e.pkg][name] = fn
+						} else {
+							e.availableFunctions[e.pkg][importName+"."+name] = fn
+						}
+					}
+					for name, v := range vars {
+						if importName == "" {
+							e.pkgVariables[e.pkg][name] = v
+						} else {
+							e.pkgVariables[e.pkg][importName+"."+name] = v
+						}
+					}
+					if len(inits) > 0 {
+						panic("have inits!") // TODO(Gianluca): review.
+					}
+					e.fb = backupBuilder
 				}
 			}
 

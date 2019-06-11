@@ -199,6 +199,11 @@ var templateCases = map[string]struct {
 		src: `{% L: switch 1 %}{% case 1 %}a{% break L %}b{% end switch %}`,
 		out: `a`,
 	},
+
+	"ShowMacro of a not-defined macro with 'or ignore' option": {
+		src: `Ignored macro: {% show M or ignore %} ok.`,
+		out: `Ignored macro:  ok.`,
+	},
 }
 
 func TestTemplate(t *testing.T) {
@@ -273,6 +278,28 @@ var templateMultiPageCases = map[string]struct {
 		expected: "macro!macro!",
 	},
 
+	"Import/Macro - Importing a macro defined in another page, where a function calls a before-declared function": {
+		sources: map[string]string{
+			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
+			"/page.html": `
+				{% macro M2 %}macro 2!{% end %}
+				{% macro M %}{% show M2 %}{% end %}
+			`,
+		},
+		expected: "macro 2!macro 2!",
+	},
+
+	"Import/Macro - Importing a macro defined in another page, where a function calls an after-declared function": {
+		sources: map[string]string{
+			"/index.html": `{% import "/page.html" %}{% show M %}{% show M %}`,
+			"/page.html": `
+				{% macro M %}{% show M2 %}{% end %}
+				{% macro M2 %}macro 2!{% end %}
+			`,
+		},
+		expected: "macro 2!macro 2!",
+	},
+
 	"Import/Macro - Importing a macro defined in another page, which imports a third page": {
 		sources: map[string]string{
 			"/index.html": `{% import "/page1.html" %}index-start,{% show M1 %}index-end`,
@@ -288,6 +315,54 @@ var templateMultiPageCases = map[string]struct {
 			"/page.html":  `{% macro M %}macro!{% end %}`,
 		},
 		expected: "macro!macro!",
+	},
+
+	"Extends - Empty page extends a page containing only text": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}`,
+			"/page.html":  `I'm page!`,
+		},
+		expected: "I'm page!",
+	},
+
+	"Extends - Extending a page that calls a macro defined on current page": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% macro E %}E's body{% end %}`,
+			"/page.html":  `{% show E %}`,
+		},
+		expected: "E's body",
+	},
+
+	"Extends - Extending a page that calls two macros defined on current page": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,
+			"/page.html":  `{% show E1 %}{% show E2 %}`,
+		},
+		expected: "E1's bodyE2's body",
+	},
+
+	"Extends - Define a variable (with zero value) used in macro definition": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% var Local int %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"/page.html":  `{% show E1 %}`,
+		},
+		expected: "Local has value 0",
+	},
+
+	"Extends - Define a variable (with non-zero value) used in macro definition": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"/page.html":  `{% show E1 %}`,
+		},
+		expected: "Local has value 50",
+	},
+
+	"Extends - Extending a file which contains text and shows": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}`,
+			"/page.html":  `I am an {{ "extended" }} file.`,
+		},
+		expected: "I am an extended file.",
 	},
 }
 

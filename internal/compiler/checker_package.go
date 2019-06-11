@@ -8,9 +8,7 @@ package compiler
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
-	"strings"
 
 	"scriggo/internal/compiler/ast"
 )
@@ -125,6 +123,7 @@ func detectVarsLoop(vars []*ast.Var, deps GlobalsDependencies) error {
 }
 
 func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
+	var extends *ast.Extends
 	consts := []*ast.Const{}
 	vars := []*ast.Var{}
 	imports := []*ast.Import{}
@@ -133,10 +132,14 @@ func sortDeclarations(pkg *ast.Package, deps GlobalsDependencies) error {
 	// Fragments global declarations.
 	for _, decl := range pkg.Declarations {
 		switch decl := decl.(type) {
+		case *ast.Extends:
+			extends = decl
 		case *ast.Import:
 			imports = append(imports, decl)
 		case *ast.Func:
 			funcs = append(funcs, decl)
+		case *ast.Macro:
+			funcs = append(funcs, macroToFunc(decl))
 		case *ast.Const:
 			if len(decl.Rhs) == 0 {
 				for i := range decl.Lhs {
@@ -291,6 +294,9 @@ varsLoop:
 	}
 
 	sorted := []ast.Node{}
+	if extends != nil {
+		sorted = append(sorted, extends)
+	}
 	for _, imp := range imports {
 		sorted = append(sorted, imp)
 	}
@@ -310,32 +316,14 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, disallowGoStmt bool) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) error {
 
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*CheckingError); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
+	packageNode := pkg
 
-	if len(tree.Nodes) == 0 {
-		return errors.New("expected 'package', found EOF")
-	}
-	packageNode, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		t := fmt.Sprintf("%T", tree.Nodes[0])
-		t = strings.ToLower(t[len("*ast."):])
-		return fmt.Errorf("expected 'package', found '%s'", t)
-	}
-
-	tc := newTypechecker(tree.Path, false, disallowGoStmt)
+	tc := newTypechecker(path, false, isTemplate, disallowGoStmt)
 	tc.Universe = universe
 
-	err = sortDeclarations(packageNode, deps)
+	err := sortDeclarations(packageNode, deps)
 	if err != nil {
 		return err
 	}
@@ -346,12 +334,12 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		if f, ok := d.(*ast.Func); ok {
 			if f.Ident.Name == "init" || f.Ident.Name == "main" {
 				if len(f.Type.Parameters) > 0 || len(f.Type.Result) > 0 {
-					panic(tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name))
+					return tc.errorf(f.Ident, "func %s must have no arguments and no return values", f.Ident.Name)
 				}
 			}
 			if f.Ident.Name != "init" {
 				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
-					panic(tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name))
+					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 				}
 				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
 			}
@@ -376,29 +364,61 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 			} else {
 				// Not predefined package.
 				var err error
-				err = checkPackage(d.Tree, nil, nil, pkgInfos, disallowGoStmt) // TODO(Gianluca): where are deps?
+				if tc.isTemplate {
+					err := tc.templateToPackage(d.Tree)
+					if err != nil {
+						return err
+					}
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
+				} else {
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, false, disallowGoStmt) // TODO(Gianluca): where are deps?
+				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {
 					return err
 				}
 			}
-			if d.Ident == nil {
-				tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-				tc.unusedImports[importedPkg.Name] = nil
-			} else {
-				switch d.Ident.Name {
-				case "_":
-				case ".":
+			if tc.isTemplate {
+				if d.Ident == nil {
 					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {
 						tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
 						tc.filePackageBlock[ident] = scopeElement{t: ti}
 					}
-				default:
-					tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
-					tc.unusedImports[d.Ident.Name] = nil
+				} else {
+					switch d.Ident.Name {
+					case "_":
+					case ".":
+						tc.unusedImports[importedPkg.Name] = nil
+						for ident, ti := range importedPkg.Declarations {
+							tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+							tc.filePackageBlock[ident] = scopeElement{t: ti}
+						}
+					default:
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.unusedImports[d.Ident.Name] = nil
+					}
+				}
+			} else {
+				if d.Ident == nil {
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.unusedImports[importedPkg.Name] = nil
+				} else {
+					switch d.Ident.Name {
+					case "_":
+					case ".":
+						tc.unusedImports[importedPkg.Name] = nil
+						for ident, ti := range importedPkg.Declarations {
+							tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+							tc.filePackageBlock[ident] = scopeElement{t: ti}
+						}
+					default:
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.unusedImports[d.Ident.Name] = nil
+					}
 				}
 			}
+
 		case *ast.Func:
 			tc.addScope()
 			tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), d})
@@ -429,7 +449,10 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
 			}
-			tc.checkNodes(d.Body.Nodes)
+			err = tc.checkNodesError(d.Body.Nodes)
+			if err != nil {
+				return err
+			}
 			tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 			tc.removeCurrentScope()
 		case *ast.Const:
@@ -439,8 +462,11 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 		}
 	}
 
-	for pkg := range tc.unusedImports {
-		return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
+	// TODO(Gianluca): should be enabled for templates too?
+	if !tc.isTemplate {
+		for pkg := range tc.unusedImports {
+			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
+		}
 	}
 
 	if packageNode.Name == "main" {
@@ -464,10 +490,7 @@ func checkPackage(tree *ast.Tree, deps GlobalsDependencies, imports map[string]*
 	}
 	pkgInfo.IndirectVars = tc.IndirectVars
 
-	if pkgInfos == nil {
-		pkgInfos = make(map[string]*PackageInfo)
-	}
-	pkgInfos[tree.Path] = pkgInfo
+	pkgInfos[path] = pkgInfo
 
 	return nil
 }

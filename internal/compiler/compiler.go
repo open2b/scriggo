@@ -82,40 +82,66 @@ type Options struct {
 	// used or a package is imported and not used.
 	NotUsedError bool
 
-	// IsPackage indicate if it's a package. If true, all sources must start
-	// with "package" and package-level declarations will be sorted according
-	// to Go package inizialization specs.
-	IsPackage bool
+	IsProgram, IsTemplate, IsScript bool
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 }
 
-func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (_ map[string]*PackageInfo, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if rerr, ok := r.(*CheckingError); ok {
-				err = rerr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-	tc := newTypechecker(tree.Path, true, opts.DisallowGoStmt)
-	tc.Universe = universe
-	if main, ok := predefinedPkgs["main"]; ok {
-		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
-	}
-	if opts.IsPackage {
+func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (map[string]*PackageInfo, error) {
+	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree, deps, predefinedPkgs, pkgInfos, opts.DisallowGoStmt)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}
 		return pkgInfos, nil
 	}
+	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
+	tc.Universe = universe
+	if main, ok := predefinedPkgs["main"]; ok {
+		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
+	}
+	if opts.IsTemplate {
+		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
+			for _, d := range tree.Nodes[1:] {
+				if m, ok := d.(*ast.Macro); ok {
+					f := macroToFunc(m)
+					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
+				}
+			}
+			err := tc.CheckNodesInNewScopeError(extends.Tree.Nodes)
+			if err != nil {
+				return nil, err
+			}
+			err = tc.templateToPackage(tree)
+			if err != nil {
+				return nil, err
+			}
+			pkgInfos := map[string]*PackageInfo{}
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, true, true)
+			if err != nil {
+				return nil, err
+			}
+			mainPkgInfo := &PackageInfo{}
+			mainPkgInfo.IndirectVars = tc.IndirectVars
+			mainPkgInfo.TypeInfo = tc.TypeInfo
+			for _, pkgInfo := range pkgInfos {
+				for k, v := range pkgInfo.TypeInfo {
+					mainPkgInfo.TypeInfo[k] = v
+				}
+				for k, v := range pkgInfo.IndirectVars {
+					mainPkgInfo.IndirectVars[k] = v
+				}
+			}
+			return map[string]*PackageInfo{"main": mainPkgInfo}, nil
+		}
+	}
 	tc.predefinedPkgs = predefinedPkgs
-	tc.CheckNodesInNewScope(tree.Nodes)
+	err := tc.CheckNodesInNewScopeError(tree.Nodes)
+	if err != nil {
+		return nil, err
+	}
 	mainPkgInfo := &PackageInfo{}
 	mainPkgInfo.IndirectVars = tc.IndirectVars
 	mainPkgInfo.TypeInfo = tc.TypeInfo

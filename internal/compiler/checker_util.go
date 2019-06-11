@@ -533,6 +533,11 @@ func isOrdered(t *TypeInfo) bool {
 	return isNumeric(k) || k == reflect.String
 }
 
+// macroToFunc converts a macro node into a function node.
+func macroToFunc(macro *ast.Macro) *ast.Func {
+	return ast.NewFunc(macro.Pos(), macro.Ident, macro.Type, ast.NewBlock(nil, macro.Body))
+}
+
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
 //

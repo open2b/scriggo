@@ -9,15 +9,67 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"scriggo/internal/compiler/ast"
 )
+
+func (tc *typechecker) CheckNodesInNewScopeError(nodes []ast.Node) error {
+	tc.addScope()
+	err := tc.checkNodesError(nodes)
+	if err != nil {
+		return err
+	}
+	tc.removeCurrentScope()
+	return nil
+}
 
 // CheckNodesInNewScope type checks nodes in a new scope.
 func (tc *typechecker) CheckNodesInNewScope(nodes []ast.Node) {
 	tc.addScope()
 	tc.checkNodes(nodes)
 	tc.removeCurrentScope()
+}
+
+// templateToPackage extract first-level declarations in tree and appends them
+// to a package, which will be the only node of tree.
+func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
+	nodes := []ast.Node{}
+	for _, n := range tree.Nodes {
+		switch n := n.(type) {
+		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import, *ast.Extends:
+			nodes = append(nodes, n)
+		default:
+			// TODO(Gianluca): review error.
+			if txt, ok := n.(*ast.Text); ok && len(strings.TrimSpace(string(txt.Text))) == 0 {
+				// Nothing to do
+			} else {
+				return tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+			}
+		}
+	}
+	tree.Nodes = []ast.Node{
+		ast.NewPackage(tree.Pos(), "", nodes),
+	}
+	return nil
+}
+
+// checkNodesError calls checkNodes catching panics and returing their errors as
+// return parameter.
+func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if rerr, ok := r.(*CheckingError); ok {
+					err = rerr
+				} else {
+					panic(r)
+				}
+			}
+		}()
+		tc.checkNodes(nodes)
+	}()
+	return err
 }
 
 // checkNodes type checks one or more statements.
@@ -67,46 +119,53 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do.
 				} else {
-					importTc := newTypechecker(node.Tree.Path, true, false) // TODO(Gianluca): to review.
-					importTc.addScope()
-					importTc.checkNodes(node.Tree.Nodes)
-					// Imports all macro declarations from page.
-					decls := map[string]scopeElement{}
-					for name, v := range importTc.Scopes[0] {
-						if isExported(name) && v.t.Type.Kind() == reflect.Func {
-							decls[name] = v
-						}
+					err := tc.templateToPackage(node.Tree)
+					if err != nil {
+						panic(err)
 					}
-					importTc.removeCurrentScope()
-					if node.Ident == nil || (node.Ident != nil && node.Ident.Name == ".") {
-						// Import statements without identifier
-						// behave like imports with "." identifier;
-						// this is the only difference between
-						// import statements in Scriggo's template
-						// and Go.
-						for name, v := range decls {
-							v.decl = nil // Marks v as not declared in this page.
-							tc.filePackageBlock[name] = v
+					pkgInfos := map[string]*PackageInfo{}
+					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, true, true)
+					if err != nil {
+						panic(err)
+					}
+					// TypeInfos of imported packages in templates are
+					// "manually" added to the map of typeinfos of typechecker.
+					for k, v := range pkgInfos[node.Path].TypeInfo {
+						tc.TypeInfo[k] = v
+					}
+					importedPkg, ok := pkgInfos[node.Path]
+					if !ok {
+						panic(fmt.Errorf("cannot find path %q inside pkgInfos (%v)", node.Path, pkgInfos)) // TODO(Gianluca): remove.
+					}
+					if node.Ident == nil {
+						tc.unusedImports[importedPkg.Name] = nil
+						for ident, ti := range importedPkg.Declarations {
+							tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					} else {
-						pkg := &PackageInfo{}
-						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: pkg, Properties: PropertyIsPackage}}
-						pkg.Declarations = map[string]*TypeInfo{}
-						for name, d := range decls {
-							pkg.Declarations[name] = d.t
+						switch node.Ident.Name {
+						case "_":
+						case ".":
+							tc.unusedImports[importedPkg.Name] = nil
+							for ident, ti := range importedPkg.Declarations {
+								tc.unusedImports[importedPkg.Name] = append(tc.unusedImports[importedPkg.Name], ident)
+								tc.filePackageBlock[ident] = scopeElement{t: ti}
+							}
+						default:
+							tc.filePackageBlock[node.Ident.Name] = scopeElement{
+								t: &TypeInfo{
+									Value:      importedPkg,
+									Properties: PropertyIsPackage,
+								},
+							}
+							tc.unusedImports[node.Ident.Name] = nil
 						}
-					}
-					// TODO(Gianluca): review.
-					for k, v := range importTc.TypeInfo {
-						tc.TypeInfo[k] = v
 					}
 				}
 			}
 
 		case *ast.Text:
-
-		case *ast.Extends:
-			panic("found *ast.Extends") // TODO (Gianluca): to review.
 
 		case *ast.Include:
 			tc.checkNodes(node.Tree.Nodes)
@@ -459,6 +518,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.ShowMacro:
+			tc.showMacros = append(tc.showMacros, node)
 			var fun ast.Expression
 			if node.Import != nil {
 				fun = ast.NewSelector(node.Import.Pos(), node.Import, node.Macro.Name)
@@ -469,7 +529,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:
-			nodes[i] = ast.NewFunc(node.Pos(), node.Ident, node.Type, ast.NewBlock(nil, node.Body))
+			nodes[i] = macroToFunc(node)
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Call:
@@ -546,7 +606,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
-				if !tc.isScript || !isLastScriptStatement {
+				if !tc.isScript || !tc.isTemplate || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
@@ -590,6 +650,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					new := ast.NewValue(typedValue(ti, ti.Type))
 					tc.replaceTypeInfo(node, new)
 					nodes[i] = new
+				}
+			} else if tc.isTemplate {
+				// TODO(Gianluca): handle expression statements in templates.
+				switch node := node.(type) {
+				case *ast.Func:
+					tc.assignScope(node.Ident.Name, ti, node.Ident)
 				}
 			} else {
 				panic(tc.errorf(node, "%s evaluated but not used", node))

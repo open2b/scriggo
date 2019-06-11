@@ -54,7 +54,7 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 	}
 
 	opts := &compiler.Options{
-		IsPackage: true,
+		IsProgram: true,
 	}
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true
@@ -149,7 +149,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 	}
 
 	opts := &compiler.Options{
-		IsPackage: false,
+		IsProgram: false,
 	}
 	if options&DisallowGoStmt != 0 {
 		opts.DisallowGoStmt = true

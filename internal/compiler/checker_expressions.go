@@ -112,9 +112,11 @@ type typechecker struct {
 	TypeInfo          map[ast.Node]*TypeInfo
 	IndirectVars      map[*ast.Identifier]bool
 	isScript          bool
+	isTemplate        bool
 	disallowGoStmt    bool
 	iota              int
-	lastConstPosition *ast.Position // when changes iota is reset.
+	lastConstPosition *ast.Position    // when changes iota is reset.
+	showMacros        []*ast.ShowMacro // list of *ast.ShowMacro nodes.
 
 	// Data structures for Goto and Labels checking.
 	gotos           []string
@@ -124,9 +126,10 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func newTypechecker(path string, isScript, disallowGoStmt bool) *typechecker {
+func newTypechecker(path string, isScript, isTemplate, disallowGoStmt bool) *typechecker {
 	return &typechecker{
 		isScript:         isScript,
+		isTemplate:       isTemplate,
 		path:             path,
 		filePackageBlock: TypeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
@@ -150,7 +153,7 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	if !tc.isScript {
+	if !tc.isScript && !tc.isTemplate {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
@@ -325,6 +328,10 @@ func (tc *typechecker) isPackageVariable(name string) bool {
 	return ok
 }
 
+// showMacroIgnoredTi is the TypeInfo of a ShowMacro identifier which is
+// undefined but has been marked as to be ignored or "todo".
+var showMacroIgnoredTi = &TypeInfo{}
+
 // checkIdentifier checks identifier ident, returning it's typeinfo retrieved
 // from scope. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
@@ -363,6 +370,17 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 				Value:      int64(tc.iota),
 				Type:       intType,
 				Properties: PropertyUntyped | PropertyIsConstant,
+			}
+		}
+		// If identifiers is a ShowMacro identifier, first needs to check if
+		// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
+		// error should not be returned, and function call should be removed
+		// from tree.
+		// TODO(Gianluca): add support for "or todo" error when typechecking
+		// with "todosNotAllowed" option.
+		for _, sm := range tc.showMacros {
+			if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
+				return showMacroIgnoredTi
 			}
 		}
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
@@ -861,6 +879,17 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					pkg := ti.Value.(*PackageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
+						// If identifiers is a ShowMacro identifier, first needs to check if
+						// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
+						// error should not be returned, and function call should be removed
+						// from tree.
+						// TODO(Gianluca): add support for "or todo" error when typechecking
+						// with "todosNotAllowed" option.
+						for _, sm := range tc.showMacros {
+							if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
+								return showMacroIgnoredTi
+							}
+						}
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
 					tc.TypeInfo[expr] = v
@@ -1424,6 +1453,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	t := tc.typeof(expr.Func, noEllipses)
 	tc.TypeInfo[expr.Func] = t
+
+	// expr is a ShowMacro expression which is not defined and which has been
+	// marked as "to be ignored" or "to do".
+	if t == showMacroIgnoredTi {
+		return nil, false, false
+	}
 
 	if t.Nil() {
 		panic(tc.errorf(expr, "use of untyped nil"))

@@ -27,6 +27,13 @@ var templateCases = map[string]string{
 	`{% macro M(int) %}{% end %}    {% show M("s") %}`: "cannot use \"s\" (type string) as type int in argument to M",
 
 	// "{% macro M %}{% end %}    {% show M() %}":  ok, // TODO(Gianluca): See issue #136.
+
+	`{% show M %}`:           `undefined: M`,
+	`{% show M or error %}`:  `undefined: M`,
+	`{% show M or ignore %}`: ok,
+
+	// TODO(Gianluca): result of this test depends on typechecking options.
+	// `{% show M or todo %}`: ok,
 }
 
 const ok = ""
@@ -39,7 +46,7 @@ func TestTemplate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
-			_, err = compiler.Typecheck(tree, nil, nil, &compiler.Options{})
+			_, err = compiler.Typecheck(tree, nil, nil, &compiler.Options{IsTemplate: true})
 			switch {
 			case expected == "" && err != nil:
 				t.Fatalf("unexpected error: %q", err)
