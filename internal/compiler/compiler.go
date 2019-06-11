@@ -87,6 +87,10 @@ type Options struct {
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
+
+	// FailOnTODO makes typechecking fail when a ShowMacro statement with "or
+	// todo" option cannot be resolved.
+	FailOnTODO bool
 }
 
 func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (map[string]*PackageInfo, error) {
