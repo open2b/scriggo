@@ -29,7 +29,6 @@ import (
 	"unicode/utf8"
 
 	"scriggo"
-	"scriggo/template"
 	"scriggo/vm"
 )
 
@@ -63,8 +62,6 @@ func Main() *scriggo.Package {
 	return &p
 }
 
-type HTML string
-
 var main = scriggo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
@@ -85,7 +82,7 @@ var main = scriggo.Package{
 		"hasSuffix":   strings.HasSuffix,
 		"hex":         hex,
 		"hmac":        hmac,
-		"html":        reflect.TypeOf(HTML("")),
+		"html":        reflect.TypeOf(scriggo.HTML("")),
 		"index":       index,
 		"indexAny":    indexAny,
 		"itoa":        itoa,
@@ -201,11 +198,11 @@ func errorf(format string, a ...interface{}) {
 }
 
 // escape is the builtin function "escape".
-func escape(env *vm.Env, s interface{}) HTML {
+func escape(env *vm.Env, s interface{}) scriggo.HTML {
 	switch s := s.(type) {
 	case string:
-		return HTML(htmlEscapeString(env, s))
-	case HTML:
+		return htmlEscapeString(env, s)
+	case scriggo.HTML:
 		return s
 	default:
 		panic(fmt.Sprintf("call of escape on %T value", s))
@@ -477,7 +474,7 @@ func sort(slice interface{}) {
 	case nil:
 	case []string:
 		_sort.Strings(s)
-	case []template.HTML:
+	case []scriggo.HTML:
 		_sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []rune:
 		_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
@@ -595,7 +592,8 @@ func withAlloc(env *vm.Env, f func(string) string, s string) string {
 //
 // This is a copy of the homonymous function in package template, with the
 // addition of the env parameter to allocate the memory for the new string.
-func htmlEscapeString(env *vm.Env, s string) string {
+// Also this function returns a scriggo.HTML value instead of a string.
+func htmlEscapeString(env *vm.Env, s string) scriggo.HTML {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		switch c := s[i]; c {
@@ -606,7 +604,7 @@ func htmlEscapeString(env *vm.Env, s string) string {
 		}
 	}
 	if more == 0 {
-		return s
+		return scriggo.HTML(s)
 	}
 	env.Alloc(len(s) + more)
 	b := make([]byte, len(s)+more)
@@ -645,5 +643,5 @@ func htmlEscapeString(env *vm.Env, s string) string {
 			j++
 		}
 	}
-	return string(b)
+	return scriggo.HTML(b)
 }

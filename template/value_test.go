@@ -8,6 +8,8 @@ package template
 
 import (
 	"testing"
+
+	"scriggo"
 )
 
 var htmlContextTests = []struct {
@@ -23,8 +25,8 @@ var htmlContextTests = []struct {
 	{`a`, "&lt;a&gt;", scope{"a": "<a>"}},
 	{`a`, "&#34;ab&#39;cd&#34;", scope{"a": "\"ab'cd\""}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": "<div></div>"}},
-	{`a`, "<a>", scope{"a": HTML("<a>")}},
-	{`d`, "<div></div>", scope{"d": HTML("<div></div>")}},
+	{`a`, "<a>", scope{"a": scriggo.HTML("<a>")}},
+	{`d`, "<div></div>", scope{"d": scriggo.HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -88,9 +90,9 @@ var attributeContextTests = []struct {
 	{`"<div></div>"`, "&lt;div&gt;&lt;/div&gt;", nil},
 	{`a`, "&lt;a&gt;", scope{"a": "<a>"}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": "<div></div>"}},
-	{`a`, "&lt;a&gt;", scope{"a": HTML("<a>")}},
-	{`a`, "&amp;", scope{"a": HTML("&amp;")}},
-	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": HTML("<div></div>")}},
+	{`a`, "&lt;a&gt;", scope{"a": scriggo.HTML("<a>")}},
+	{`a`, "&amp;", scope{"a": scriggo.HTML("&amp;")}},
+	{`d`, "&lt;div&gt;&lt;/div&gt;", scope{"d": scriggo.HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},

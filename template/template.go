@@ -18,8 +18,6 @@ import (
 	"scriggo/vm"
 )
 
-type HTML string
-
 // Context indicates the type of source that has to be rendered and controls
 // how to escape the values to render.
 type Context int

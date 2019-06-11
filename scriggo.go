@@ -25,6 +25,8 @@ const (
 	AllowShebangLine                        // allow shebang line; only for scripts.
 )
 
+type HTML string
+
 type LoadOption int
 
 type Package = compiler.Package
