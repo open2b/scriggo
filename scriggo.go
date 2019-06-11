@@ -54,10 +54,9 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 	}
 
 	opts := compiler.Options{
-		IsProgram: true,
-	}
-	if options&DisallowGoStmt != 0 {
-		opts.DisallowGoStmt = true
+		IsProgram:      true,
+		MemoryLimit:    options&LimitMemorySize != 0,
+		DisallowGoStmt: options&DisallowGoStmt != 0,
 	}
 	tci, err := compiler.Typecheck(tree, predefined, deps, opts)
 	if err != nil {
@@ -69,9 +68,8 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 			typeInfos[node] = ti
 		}
 	}
-	alloc := options&LimitMemorySize != 0
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, alloc)
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, opts)
 
 	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
@@ -140,7 +138,6 @@ type Script struct {
 // LoadScript loads a script from a reader.
 func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Script, error) {
 
-	alloc := options&LimitMemorySize != 0
 	shebang := options&AllowShebangLine != 0
 
 	tree, packages, err := compiler.ParseScript(src, loader, shebang)
@@ -149,17 +146,16 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 	}
 
 	opts := compiler.Options{
-		IsProgram: false,
-	}
-	if options&DisallowGoStmt != 0 {
-		opts.DisallowGoStmt = true
+		IsProgram:      false,
+		MemoryLimit:    options&LimitMemorySize != 0,
+		DisallowGoStmt: options&DisallowGoStmt != 0,
 	}
 	tci, err := compiler.Typecheck(tree, packages, nil, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	mainFn, globals := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, alloc)
+	mainFn, globals := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, opts)
 
 	return &Script{fn: mainFn, globals: globals, options: options}, nil
 }

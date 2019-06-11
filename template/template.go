@@ -63,7 +63,8 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 		return nil, err
 	}
 	opts := compiler.Options{
-		IsTemplate: true,
+		IsTemplate:  true,
+		MemoryLimit: options&LimitMemorySize != 0,
 	}
 	var pkgs scriggo.Packages
 	if main != nil {
@@ -73,7 +74,6 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	if err != nil {
 		return nil, err
 	}
-	alloc := options&LimitMemorySize != 0
 	// TODO(Gianluca): pass "main" and "builtins" to emitter.
 	// main contains user defined variables, while builtins contains template builtins.
 	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
@@ -83,7 +83,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 			typeInfos[node] = ti
 		}
 	}
-	mainFn, globals := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, alloc)
+	mainFn, globals := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts)
 	return &Template{main: main, fn: mainFn, globals: globals}, nil
 }
 
