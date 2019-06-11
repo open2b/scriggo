@@ -14,23 +14,6 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
-func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
-	tc.addScope()
-	err := tc.checkNodesError(nodes)
-	if err != nil {
-		return err
-	}
-	tc.removeCurrentScope()
-	return nil
-}
-
-// checkNodesInNewScope type checks nodes in a new scope.
-func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
-	tc.addScope()
-	tc.checkNodes(nodes)
-	tc.removeCurrentScope()
-}
-
 // templateToPackage extract first-level declarations in tree and appends them
 // to a package, which will be the only node of tree.
 func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
@@ -54,6 +37,24 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	return nil
 }
 
+// checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
+func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
+	tc.addScope()
+	err := tc.checkNodesError(nodes)
+	if err != nil {
+		return err
+	}
+	tc.removeCurrentScope()
+	return nil
+}
+
+// checkNodesInNewScope type checks nodes in a new scope. Panics on error.
+func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
+	tc.addScope()
+	tc.checkNodes(nodes)
+	tc.removeCurrentScope()
+}
+
 // checkNodesError calls checkNodes catching panics and returing their errors as
 // return parameter.
 func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
@@ -72,7 +73,7 @@ func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
 	return err
 }
 
-// checkNodes type checks one or more statements.
+// checkNodes type checks one or more statements. Panics on error.
 //
 // TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and
 // 'tc.CheckNodesInNewScope'
