@@ -136,12 +136,31 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			extends := pkg.Declarations[0].(*ast.Extends)
 			e.fb.EnterScope()
 			e.reserveTemplateRegisters()
+			// Reserves first index of Functions for the function that
+			// initializes package variables. There is no guarantee that such
+			// function will exist: it depends on the presence or the absence of
+			// package variables.
+			var initVarsIndex int8 = 0
+			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
+			e.fb.Call(initVarsIndex, vm.StackShift{}, 0)
 			e.EmitNodes(extends.Tree.Nodes)
 			e.fb.End()
 			e.fb.ExitScope()
 			// Emits extending page as a package.
-			_, _, _ = e.emitPackage(pkg, true)
+			_, _, inits := e.emitPackage(pkg, true)
 			e.fb = mainBuilder
+			// Just one init is supported: the implicit one (the one that
+			// initializes variables).
+			if len(inits) == 1 {
+				e.fb.fn.Functions[0] = inits[0]
+			} else {
+				// If there are no variables to initialize, a nop function is
+				// created because space has already been reserved for it.
+				nopFunction := NewFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
+				nopBuilder := newBuilder(nopFunction)
+				nopBuilder.End()
+				e.fb.fn.Functions[0] = nopFunction
+			}
 			return e.fb.fn, e.globals
 		}
 	}

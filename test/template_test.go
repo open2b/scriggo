@@ -344,13 +344,13 @@ var templateMultiPageCases = map[string]struct {
 		expected: "Local has value 0",
 	},
 
-	// "Extends - Define a variable (with non-zero value) used in macro definition": {
-	// 	sources: map[string]string{
-	// 		"/index.html": `{% extends "/page.html" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
-	// 		"/page.html":  `{% show E1 %}`,
-	// 	},
-	// 	expected: "Local has value 50",
-	// },
+	"Extends - Define a variable (with non-zero value) used in macro definition": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}{% var Local = 50 %}{% macro E1 %}Local has value {{ Local }}{% end %}`,
+			"/page.html":  `{% show E1 %}`,
+		},
+		expected: "Local has value 50",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {
