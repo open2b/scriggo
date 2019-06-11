@@ -83,8 +83,8 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 			typeInfos[node] = ti
 		}
 	}
-	mainFn, globals := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts)
-	return &Template{main: main, fn: mainFn, globals: globals}, nil
+	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts)
+	return &Template{main: main, fn: code.Main, globals: code.Globals}, nil
 }
 
 // A RenderFunc renders value in the context ctx and writes the result to out.

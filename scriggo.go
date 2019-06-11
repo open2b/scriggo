@@ -155,9 +155,9 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 		return nil, err
 	}
 
-	mainFn, globals := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, opts)
+	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, opts)
 
-	return &Script{fn: mainFn, globals: globals, options: options}, nil
+	return &Script{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.

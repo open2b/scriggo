@@ -200,7 +200,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. EmitScript returns a function that is the entry point of the
 // script and the global variables.
-func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) (*vm.Function, []Global) {
+func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(opts.MemoryLimit)
@@ -208,14 +208,14 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
-	return e.fb.fn, e.globals
+	return &Code{Main: e.fb.fn, Globals: e.globals}
 }
 
 // EmitTemplate emits the code for a template given its tree, the type info and
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. EmitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) (*vm.Function, []Global) {
+func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
@@ -269,7 +269,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				nopBuilder.End()
 				e.fb.fn.Functions[0] = nopFunction
 			}
-			return e.fb.fn, e.globals
+			return &Code{Main: e.fb.fn, Globals: e.globals}
 		}
 	}
 
@@ -279,6 +279,6 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.EmitNodes(tree.Nodes)
 	e.fb.ExitScope()
 	e.fb.End()
-	return e.fb.fn, e.globals
+	return &Code{Main: e.fb.fn, Globals: e.globals}
 
 }
