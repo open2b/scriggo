@@ -89,9 +89,12 @@ type Options struct {
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 
-	// FailOnTODO makes typechecking fail when a ShowMacro statement with "or
+	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
 	// todo" option cannot be resolved.
 	FailOnTODO bool
+
+	// MemoryLimit adds Alloc instructions during compilation.
+	MemoryLimit bool
 }
 
 // Typecheck typechecks tree. A map of predefined packages may be provided. deps
@@ -179,8 +182,7 @@ type emittedPackage struct {
 // must be emitted. EmitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
-	e := newEmitter(typeInfos, indirectVars)
-	e.addAllocInstructions = alloc
+	e := newEmitter(typeInfos, indirectVars, Options{MemoryLimit: alloc})
 	funcs, _, _ := e.emitPackage(pkgMain, false)
 	main := e.availableFunctions[pkgMain]["main"]
 	pkg := &emittedPackage{
@@ -196,8 +198,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // emitted. EmitScript returns a function that is the entry point of the
 // script and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
-	e := newEmitter(typeInfos, indirectVars)
-	e.addAllocInstructions = alloc
+	e := newEmitter(typeInfos, indirectVars, Options{MemoryLimit: alloc})
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(alloc)
 	e.fb.EnterScope()
@@ -213,9 +214,8 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 // template and the global variables.
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) (*vm.Function, []Global) {
 
-	e := newEmitter(typeInfos, indirectVars)
+	e := newEmitter(typeInfos, indirectVars, Options{MemoryLimit: alloc})
 	e.pkg = &ast.Package{}
-	e.addAllocInstructions = alloc
 	e.isTemplate = true
 	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 

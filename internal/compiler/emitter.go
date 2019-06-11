@@ -16,13 +16,13 @@ import (
 
 // An emitter emits instructions for the VM.
 type emitter struct {
-	addAllocInstructions bool
-	fb                   *functionBuilder
-	indirectVars         map[*ast.Identifier]bool
-	labels               map[*vm.Function]map[string]uint32
-	pkg                  *ast.Package
-	typeInfos            map[ast.Node]*TypeInfo
-	upvarsNames          map[*vm.Function]map[string]int
+	fb           *functionBuilder
+	indirectVars map[*ast.Identifier]bool
+	labels       map[*vm.Function]map[string]uint32
+	pkg          *ast.Package
+	typeInfos    map[ast.Node]*TypeInfo
+	upvarsNames  map[*vm.Function]map[string]int
+	opts         Options
 
 	isTemplate bool // Reports whether it's a template.
 	template   struct {
@@ -62,15 +62,16 @@ type emitter struct {
 
 // newEmitter returns a new emitter with the given type infos and indirect
 // variables.
-func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
+func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *emitter {
 	c := &emitter{
 		assignedFunctions:  map[*vm.Function]map[*vm.Function]int8{},
 		availableFunctions: map[*ast.Package]map[string]*vm.Function{},
 		indirectVars:       indirectVars,
 		labels:             make(map[*vm.Function]map[string]uint32),
+		opts:               opts,
+		pkgVariables:       map[*ast.Package]map[string]int16{},
 		predefFunIndexes:   map[*vm.Function]map[reflect.Value]int8{},
 		predefVarIndexes:   map[*vm.Function]map[reflect.Value]int16{},
-		pkgVariables:       map[*ast.Package]map[string]int16{},
 		typeInfos:          typeInfos,
 		upvarsNames:        map[*vm.Function]map[string]int{},
 	}
@@ -190,7 +191,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 				e.availableFunctions[e.pkg]["$initvars"] = initVarsFn
 				initVarsFb = newBuilder(initVarsFn)
-				initVarsFb.SetAlloc(e.addAllocInstructions)
+				initVarsFb.SetAlloc(e.opts.MemoryLimit)
 				initVarsFb.EnterScope()
 			}
 			e.fb = initVarsFb
@@ -224,7 +225,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 				fn = e.availableFunctions[e.pkg][n.Ident.Name]
 			}
 			e.fb = newBuilder(fn)
-			e.fb.SetAlloc(e.addAllocInstructions)
+			e.fb.SetAlloc(e.opts.MemoryLimit)
 			e.fb.EnterScope()
 			// If function is "main", variable initialization functions
 			// must be called before everything else inside main's body.
@@ -751,7 +752,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			fb := e.fb
 			e.setClosureRefs(macroFn, expr.Upvars)
 			e.fb = newBuilder(macroFn)
-			e.fb.SetAlloc(e.addAllocInstructions)
+			e.fb.SetAlloc(e.opts.MemoryLimit)
 			e.fb.EnterScope()
 			e.prepareFunctionBodyParameters(expr)
 			e.EmitNodes(expr.Body.Nodes)
@@ -784,7 +785,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.setClosureRefs(fn, expr.Upvars)
 
 		funcLitBuilder := newBuilder(fn)
-		funcLitBuilder.SetAlloc(e.addAllocInstructions)
+		funcLitBuilder.SetAlloc(e.opts.MemoryLimit)
 		currFb := e.fb
 		e.fb = funcLitBuilder
 
