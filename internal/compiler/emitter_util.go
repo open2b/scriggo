@@ -193,7 +193,7 @@ func (e *emitter) predefFuncIndex(funRv reflect.Value, predefPkgName, name strin
 		return index
 	}
 	index = int8(len(e.fb.fn.Predefined))
-	f := NewPredefinedFunction(predefPkgName, name, funRv.Interface())
+	f := newPredefinedFunction(predefPkgName, name, funRv.Interface())
 	if e.predefFunIndexes[e.fb.fn] == nil {
 		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
 	}

@@ -179,9 +179,9 @@ func newFunction(pkg, name string, typ reflect.Type) *vm.Function {
 	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
 }
 
-// NewPredefinedFunction returns a new predefined function with a given
+// newPredefinedFunction returns a new predefined function with a given
 // package, name and implementation. fn must be a function type.
-func NewPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
+func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
 	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
