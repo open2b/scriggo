@@ -60,16 +60,6 @@ type emitter struct {
 	breakLabel *uint32
 }
 
-// Global represents a global variable with a package, name, type (only for
-// not predefined globals) and value (only for predefined globals). Value, if
-// present, must be a pointer to the variable value.
-type Global struct {
-	Pkg   string
-	Name  string
-	Type  reflect.Type
-	Value interface{}
-}
-
 // newEmitter returns a new emitter with the given type infos and indirect
 // variables.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool) *emitter {
@@ -97,30 +87,6 @@ func (e *emitter) reserveTemplateRegisters() {
 	e.fb.GetVar(0, e.template.gA)
 	e.fb.GetVar(1, e.template.gB)
 	e.fb.GetVar(2, e.template.gC)
-}
-
-// emittedPackage is the result of a package emitting process.
-type emittedPackage struct {
-	Globals   []Global
-	Functions map[string]*vm.Function
-	Main      *vm.Function
-}
-
-// EmitPackageMain emits the code for a package main given its ast node, the
-// type info and indirect variables. alloc reports whether Alloc instructions
-// must be emitted. EmitPackageMain returns an emittedPackage instance with
-// the global variables and the main function.
-func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, alloc bool) *emittedPackage {
-	e := newEmitter(typeInfos, indirectVars)
-	e.addAllocInstructions = alloc
-	funcs, _, _ := e.emitPackage(pkgMain, false)
-	main := e.availableFunctions[pkgMain]["main"]
-	pkg := &emittedPackage{
-		Globals:   e.globals,
-		Functions: funcs,
-		Main:      main,
-	}
-	return pkg
 }
 
 // emitPackage emits package pkg returning exported function, exported
