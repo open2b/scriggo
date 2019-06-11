@@ -164,7 +164,7 @@ func abbreviate(env *vm.Env, s string, n int) string {
 	if l := len(s) - 1; l >= 0 && (s[l] == '.' || s[l] == ',') {
 		s = s[:l]
 	}
-	env.Alloc(16 + 3)
+	env.Alloc(3)
 	env.Alloc(len(s))
 	return s + "..."
 }
@@ -182,7 +182,6 @@ func base64(env *vm.Env, s string) string {
 	if s == "" {
 		return s
 	}
-	env.Alloc(16)
 	bytes := _base64.StdEncoding.EncodedLen(len(s))
 	if bytes < 0 {
 		bytes = maxInt
@@ -217,13 +216,13 @@ func hash(env *vm.Env, hasher hasher, s string) string {
 	switch hasher {
 	case _MD5:
 		h = md5.New()
-		env.Alloc(16 + 16)
+		env.Alloc(16)
 	case _SHA1:
 		h = sha1.New()
-		env.Alloc(16 + 28)
+		env.Alloc(28)
 	case _SHA256:
 		h = sha256.New()
-		env.Alloc(16 + 64)
+		env.Alloc(64)
 	default:
 		panic("call of hash with unknown hasher")
 	}
@@ -236,7 +235,6 @@ func hex(env *vm.Env, s string) string {
 	if s == "" {
 		return s
 	}
-	env.Alloc(16)
 	bytes := _hex.EncodedLen(len(s))
 	if bytes < 0 {
 		bytes = maxInt
@@ -251,13 +249,13 @@ func hmac(env *vm.Env, hasher hasher, message, key string) string {
 	switch hasher {
 	case _MD5:
 		h = md5.New
-		env.Alloc(16 + 24)
+		env.Alloc(24)
 	case _SHA1:
 		h = sha1.New
-		env.Alloc(16 + 28)
+		env.Alloc(28)
 	case _SHA256:
 		h = sha256.New
-		env.Alloc(16 + 44)
+		env.Alloc(44)
 	default:
 		panic("call of hmac with unknown hasher")
 	}
@@ -288,14 +286,13 @@ func indexAny(s, chars string) int {
 // itoa is the builtin function "itoa".
 func itoa(env *vm.Env, i int) string {
 	s := strconv.Itoa(i)
-	env.Alloc(16 + len(s))
+	env.Alloc(len(s))
 	return s
 }
 
 // join is the builtin function "join".
 func join(env *vm.Env, a []string, sep string) string {
 	if n := len(a); n > 1 {
-		env.Alloc(16)
 		bytes := (n - 1) * len(sep)
 		if bytes/(n-1) != len(sep) {
 			bytes = maxInt
@@ -384,7 +381,6 @@ func repeat(env *vm.Env, s string, count int) string {
 	if s == "" || count == 0 {
 		return s
 	}
-	env.Alloc(16)
 	bytes := len(s) * count
 	if bytes/count != len(s) {
 		bytes = maxInt
@@ -400,7 +396,6 @@ func replace(env *vm.Env, s, old, new string, n int) string {
 			if n > 0 && c > n {
 				c = n
 			}
-			env.Alloc(16)
 			env.Alloc(len(s))
 			bytes := (len(new) - len(old)) * c
 			if bytes/c != len(new)-len(old) {
@@ -501,7 +496,6 @@ func split(env *vm.Env, s, sep string) []string {
 // splitN is the builtin function "splitN".
 func splitN(env *vm.Env, s, sep string, n int) []string {
 	if n != 0 {
-		env.Alloc(16)
 		if sep == "" {
 			// Invalid UTF-8 sequences are replaced with RuneError.
 			i := 0
@@ -544,7 +538,6 @@ func queryEscape(env *vm.Env, s string) string {
 		}
 	}
 	if alloc {
-		env.Alloc(16)
 		env.Alloc(len(s))
 		if 2*numHex < 0 {
 			env.Alloc(maxInt)
@@ -579,11 +572,9 @@ func toUpper(env *vm.Env, s string) string {
 // guarantees that if the output string is a new allocated string it is not
 // equal to the input string.
 func withAlloc(env *vm.Env, f func(string) string, s string) string {
-	env.Alloc(16)
 	env.Alloc(len(s))
 	t := f(s)
 	if t == s {
-		env.Alloc(-16)
 		env.Alloc(-len(s))
 	} else {
 		env.Alloc(len(t) - len(s))
