@@ -74,6 +74,7 @@ type PackageLoader interface {
 	Load(pkgPath string) (interface{}, error)
 }
 
+// Options represents compilation options.
 type Options struct {
 
 	// AllowImports makes import statements available.
@@ -93,6 +94,10 @@ type Options struct {
 	FailOnTODO bool
 }
 
+// Typecheck typechecks tree. A map of predefined packages may be provided. deps
+// must contain dependencies in case of package initialization (program or
+// template import/extend).
+// tree may be altered during typechecking.
 func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts Options) (map[string]*PackageInfo, error) {
 	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
