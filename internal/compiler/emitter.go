@@ -161,7 +161,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 		// their bodies: order of declaration doesn't matter at package level.
 		for _, dec := range pkg.Declarations {
 			if fun, ok := dec.(*ast.Func); ok {
-				fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+				fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
 				if fun.Ident.Name == "init" {
 					allInits = append(allInits, fn)
 				} else {
@@ -188,7 +188,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 			// defined functions.
 			backupFb := e.fb
 			if initVarsFn == nil {
-				initVarsFn = NewFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
+				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
 				e.availableFunctions[e.pkg]["$initvars"] = initVarsFn
 				initVarsFb = newBuilder(initVarsFn)
 				initVarsFb.SetAlloc(e.opts.MemoryLimit)
@@ -744,7 +744,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 		// Template macro definition.
 		if expr.Ident != nil && e.isTemplate {
-			macroFn := NewFunction("", expr.Ident.Name, expr.Type.Reflect)
+			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
 			if e.availableFunctions[e.pkg] == nil {
 				e.availableFunctions[e.pkg] = map[string]*vm.Function{}
 			}

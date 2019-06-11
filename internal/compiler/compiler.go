@@ -199,7 +199,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // script and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) (*vm.Function, []Global) {
 	e := newEmitter(typeInfos, indirectVars, opts)
-	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(opts.MemoryLimit)
 	e.fb.EnterScope()
 	e.EmitNodes(tree.Nodes)
@@ -217,7 +217,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
 	e.isTemplate = true
-	e.fb = newBuilder(NewFunction("main", "main", reflect.FuncOf(nil, nil, false)))
+	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 
 	// Globals.
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
@@ -233,7 +233,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
-					fn := NewFunction("main", fun.Ident.Name, fun.Type.Reflect)
+					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
 					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
 				}
 			}
@@ -261,7 +261,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			} else {
 				// If there are no variables to initialize, a nop function is
 				// created because space has already been reserved for it.
-				nopFunction := NewFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
+				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
 				nopBuilder := newBuilder(nopFunction)
 				nopBuilder.End()
 				e.fb.fn.Functions[0] = nopFunction

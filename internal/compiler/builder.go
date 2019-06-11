@@ -174,8 +174,8 @@ func (builder *functionBuilder) SetAlloc(alloc bool) {
 	}
 }
 
-// NewFunction returns a new function with a given package, name and type.
-func NewFunction(pkg, name string, typ reflect.Type) *vm.Function {
+// newFunction returns a new function with a given package, name and type.
+func newFunction(pkg, name string, typ reflect.Type) *vm.Function {
 	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
 }
 
