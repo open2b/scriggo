@@ -31,8 +31,8 @@ type emitter struct {
 	}
 
 	// Scriggo functions.
-	availableFunctions map[*ast.Package]map[string]*vm.Function
-	assignedFunctions  map[*vm.Function]map[*vm.Function]int8
+	availableFuncs map[*ast.Package]map[string]*vm.Function
+	assignedFuncs  map[*vm.Function]map[*vm.Function]int8
 
 	// Scriggo variables.
 	pkgVariables map[*ast.Package]map[string]int16
@@ -64,16 +64,16 @@ type emitter struct {
 // variables.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *emitter {
 	c := &emitter{
-		assignedFunctions:  map[*vm.Function]map[*vm.Function]int8{},
-		availableFunctions: map[*ast.Package]map[string]*vm.Function{},
-		indirectVars:       indirectVars,
-		labels:             make(map[*vm.Function]map[string]uint32),
-		opts:               opts,
-		pkgVariables:       map[*ast.Package]map[string]int16{},
-		predefFunIndexes:   map[*vm.Function]map[reflect.Value]int8{},
-		predefVarIndexes:   map[*vm.Function]map[reflect.Value]int16{},
-		typeInfos:          typeInfos,
-		upvarsNames:        map[*vm.Function]map[string]int{},
+		assignedFuncs:    map[*vm.Function]map[*vm.Function]int8{},
+		availableFuncs:   map[*ast.Package]map[string]*vm.Function{},
+		indirectVars:     indirectVars,
+		labels:           make(map[*vm.Function]map[string]uint32),
+		opts:             opts,
+		pkgVariables:     map[*ast.Package]map[string]int16{},
+		predefFunIndexes: map[*vm.Function]map[reflect.Value]int8{},
+		predefVarIndexes: map[*vm.Function]map[reflect.Value]int16{},
+		typeInfos:        typeInfos,
+		upvarsNames:      map[*vm.Function]map[string]int{},
 	}
 	return c
 }
@@ -95,7 +95,7 @@ func (e *emitter) reserveTemplateRegisters() {
 func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[string]*vm.Function, map[string]int16, []*vm.Function) {
 	if !isExtendingPage {
 		e.pkg = pkg
-		e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+		e.availableFuncs[e.pkg] = map[string]*vm.Function{}
 	}
 	if e.pkgVariables[e.pkg] == nil {
 		e.pkgVariables[e.pkg] = map[string]int16{}
@@ -133,9 +133,9 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 				}
 				for name, fn := range funcs {
 					if importName == "" {
-						e.availableFunctions[e.pkg][name] = fn
+						e.availableFuncs[e.pkg][name] = fn
 					} else {
-						e.availableFunctions[e.pkg][importName+"."+name] = fn
+						e.availableFuncs[e.pkg][importName+"."+name] = fn
 					}
 				}
 				for name, v := range vars {
@@ -165,7 +165,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 				if fun.Ident.Name == "init" {
 					allInits = append(allInits, fn)
 				} else {
-					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+					e.availableFuncs[e.pkg][fun.Ident.Name] = fn
 					if isExported(fun.Ident.Name) {
 						exportedFunctions[fun.Ident.Name] = fn
 					}
@@ -189,7 +189,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 			backupFb := e.fb
 			if initVarsFn == nil {
 				initVarsFn = newFunction("main", "$initvars", reflect.FuncOf(nil, nil, false))
-				e.availableFunctions[e.pkg]["$initvars"] = initVarsFn
+				e.availableFuncs[e.pkg]["$initvars"] = initVarsFn
 				initVarsFb = newBuilder(initVarsFn)
 				initVarsFb.SetAlloc(e.opts.MemoryLimit)
 				initVarsFb.EnterScope()
@@ -222,7 +222,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 				fn = allInits[initToBuild]
 				initToBuild++
 			} else {
-				fn = e.availableFunctions[e.pkg][n.Ident.Name]
+				fn = e.availableFuncs[e.pkg][n.Ident.Name]
 			}
 			e.fb = newBuilder(fn)
 			e.fb.SetAlloc(e.opts.MemoryLimit)
@@ -232,7 +232,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 			if n.Ident.Name == "main" {
 				// First: initializes package variables.
 				if initVarsFn != nil {
-					iv := e.availableFunctions[e.pkg]["$initvars"]
+					iv := e.availableFuncs[e.pkg]["$initvars"]
 					index := e.fb.AddFunction(iv)
 					e.fb.Call(int8(index), vm.StackShift{}, 0)
 				}
@@ -414,7 +414,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
 	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !e.fb.IsVariable(ident.Name) {
-		if fun, ok := e.availableFunctions[e.pkg][ident.Name]; ok {
+		if fun, ok := e.availableFuncs[e.pkg][ident.Name]; ok {
 			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 			index := e.functionIndex(fun)
 			e.fb.Call(index, stackShift, call.Pos().Line)
@@ -425,7 +425,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scriggo-defined function (selector).
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
-			if fun, ok := e.availableFunctions[e.pkg][ident.Name+"."+selector.Ident]; ok {
+			if fun, ok := e.availableFuncs[e.pkg][ident.Name+"."+selector.Ident]; ok {
 				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
 				index := e.functionIndex(fun)
 				e.fb.Call(index, stackShift, call.Pos().Line)
@@ -669,7 +669,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 
 		// Scriggo-defined package functions.
-		if sf, ok := e.availableFunctions[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if sf, ok := e.availableFuncs[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -745,10 +745,10 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		// Template macro definition.
 		if expr.Ident != nil && e.isTemplate {
 			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
-			if e.availableFunctions[e.pkg] == nil {
-				e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+			if e.availableFuncs[e.pkg] == nil {
+				e.availableFuncs[e.pkg] = map[string]*vm.Function{}
 			}
-			e.availableFunctions[e.pkg][expr.Ident.Name] = macroFn
+			e.availableFuncs[e.pkg][expr.Ident.Name] = macroFn
 			fb := e.fb
 			e.setClosureRefs(macroFn, expr.Upvars)
 			e.fb = newBuilder(macroFn)
@@ -805,7 +805,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if out, k, ok := e.quickEmitExpr(expr, typ); ok {
 			e.changeRegister(k, out, reg, typ, dstType)
 		} else {
-			if fun, ok := e.availableFunctions[e.pkg][expr.Name]; ok {
+			if fun, ok := e.availableFuncs[e.pkg][expr.Name]; ok {
 				index := e.functionIndex(fun)
 				e.fb.GetFunc(false, index, reg)
 			} else if index, ok := e.upvarsNames[e.fb.fn][expr.Name]; ok {
@@ -1317,9 +1317,9 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 					}
 					for name, fn := range funcs {
 						if importName == "" {
-							e.availableFunctions[e.pkg][name] = fn
+							e.availableFuncs[e.pkg][name] = fn
 						} else {
-							e.availableFunctions[e.pkg][importName+"."+name] = fn
+							e.availableFuncs[e.pkg][importName+"."+name] = fn
 						}
 					}
 					for name, v := range vars {

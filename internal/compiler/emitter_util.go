@@ -75,16 +75,16 @@ func compositeLiteralLen(node *ast.CompositeLiteral) int {
 // functionIndex returns the index of a function inside the current function,
 // creating it if it does not exist.
 func (e *emitter) functionIndex(fun *vm.Function) int8 {
-	i, ok := e.assignedFunctions[e.fb.fn][fun]
+	i, ok := e.assignedFuncs[e.fb.fn][fun]
 	if ok {
 		return i
 	}
 	i = int8(len(e.fb.fn.Functions))
 	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
-	if e.assignedFunctions[e.fb.fn] == nil {
-		e.assignedFunctions[e.fb.fn] = make(map[*vm.Function]int8)
+	if e.assignedFuncs[e.fb.fn] == nil {
+		e.assignedFuncs[e.fb.fn] = make(map[*vm.Function]int8)
 	}
-	e.assignedFunctions[e.fb.fn][fun] = i
+	e.assignedFuncs[e.fb.fn][fun] = i
 	return i
 }
 

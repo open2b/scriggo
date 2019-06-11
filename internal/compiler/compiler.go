@@ -184,7 +184,7 @@ type emittedPackage struct {
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *emittedPackage {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	funcs, _, _ := e.emitPackage(pkgMain, false)
-	main := e.availableFunctions[pkgMain]["main"]
+	main := e.availableFuncs[pkgMain]["main"]
 	pkg := &emittedPackage{
 		Globals:   e.globals,
 		Functions: funcs,
@@ -230,11 +230,11 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by extended page.
-			e.availableFunctions[e.pkg] = map[string]*vm.Function{}
+			e.availableFuncs[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.availableFunctions[e.pkg][fun.Ident.Name] = fn
+					e.availableFuncs[e.pkg][fun.Ident.Name] = fn
 				}
 			}
 			// Emits extended page.
