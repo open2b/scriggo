@@ -351,6 +351,14 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expected: "Local has value 50",
 	},
+
+	"Extends - Extending a file which contains text and shows": {
+		sources: map[string]string{
+			"/index.html": `{% extends "/page.html" %}`,
+			"/page.html":  `I am an {{ "extended" }} file.`,
+		},
+		expected: "I am an extended file.",
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {
