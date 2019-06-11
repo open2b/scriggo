@@ -74,9 +74,6 @@ func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
 }
 
 // checkNodes type checks one or more statements. Panics on error.
-//
-// TODO (Gianluca): check if !nil before calling 'tc.checkNodes' and
-// 'tc.CheckNodesInNewScope'
 func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 	tc.terminating = false
@@ -169,6 +166,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Text:
 
 		case *ast.Include:
+			// TODO(Gianluca): can node.Tree.Nodes be nil?
 			tc.checkNodes(node.Tree.Nodes)
 
 		case *ast.Block:
