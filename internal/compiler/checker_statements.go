@@ -571,7 +571,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if isConversion {
 				panic(tc.errorf(node, "go requires function call, not conversion"))
 			}
-			if tc.disallowGoStmt {
+			if tc.opts.DisallowGoStmt {
 				panic(tc.errorf(node, "\"go\" statement not available"))
 			}
 			tc.terminating = false
@@ -605,7 +605,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
-				if !tc.isScript || !tc.isTemplate || !isLastScriptStatement {
+				if !tc.opts.IsScript || !tc.opts.IsTemplate || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
@@ -629,7 +629,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case ast.Expression:
 			ti := tc.checkExpression(node)
-			if tc.isScript {
+			if tc.opts.IsScript {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
 				switch node := node.(type) {
 				case *ast.Func:
@@ -650,7 +650,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					tc.replaceTypeInfo(node, new)
 					nodes[i] = new
 				}
-			} else if tc.isTemplate {
+			} else if tc.opts.IsTemplate {
 				// TODO(Gianluca): handle expression statements in templates.
 				switch node := node.(type) {
 				case *ast.Func:

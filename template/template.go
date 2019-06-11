@@ -62,7 +62,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	if err != nil {
 		return nil, err
 	}
-	opts := &compiler.Options{
+	opts := compiler.Options{
 		IsTemplate: true,
 	}
 	var pkgs scriggo.Packages

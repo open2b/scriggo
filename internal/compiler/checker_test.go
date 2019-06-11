@@ -446,7 +446,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", false, false, false)
+			tc := newTypechecker("", Options{})
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -528,7 +528,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", false, false, false)
+			tc := newTypechecker("", Options{})
 			tc.Scopes = scopes
 			tc.Universe = universe
 			tc.addScope()
@@ -1252,7 +1252,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", false, false, true)
+			tc := newTypechecker("", Options{DisallowGoStmt: true})
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.Universe = universe
 			tc.addScope()
@@ -1312,7 +1312,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
 	}
-	opts := &Options{
+	opts := Options{
 		AllowImports: true,
 		NotUsedError: true,
 		IsProgram:    true,
@@ -1719,7 +1719,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker("", false, false, false)
+	tc := newTypechecker("", Options{})
 	for src, expected := range cases {
 		tree, _, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -1812,7 +1812,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := newTypechecker("", false, false, false)
+		tc := newTypechecker("", Options{})
 		tc.addScope()
 		tree, _, err := ParseSource([]byte(src), true, false)
 		if err != nil {

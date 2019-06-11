@@ -93,7 +93,7 @@ type Options struct {
 	FailOnTODO bool
 }
 
-func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts *Options) (map[string]*PackageInfo, error) {
+func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsDependencies, opts Options) (map[string]*PackageInfo, error) {
 	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
@@ -102,7 +102,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, deps GlobalsD
 		}
 		return pkgInfos, nil
 	}
-	tc := newTypechecker(tree.Path, opts.IsScript, opts.IsTemplate, opts.DisallowGoStmt)
+	tc := newTypechecker(tree.Path, opts)
 	tc.Universe = universe
 	if main, ok := predefinedPkgs["main"]; ok {
 		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))

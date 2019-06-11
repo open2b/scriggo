@@ -320,7 +320,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 
 	packageNode := pkg
 
-	tc := newTypechecker(path, false, isTemplate, disallowGoStmt)
+	tc := newTypechecker(path, Options{IsTemplate: isTemplate, DisallowGoStmt: disallowGoStmt})
 	tc.Universe = universe
 
 	err := sortDeclarations(packageNode, deps)
@@ -364,7 +364,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 			} else {
 				// Not predefined package.
 				var err error
-				if tc.isTemplate {
+				if tc.opts.IsTemplate {
 					err := tc.templateToPackage(d.Tree)
 					if err != nil {
 						return err
@@ -378,7 +378,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 					return err
 				}
 			}
-			if tc.isTemplate {
+			if tc.opts.IsTemplate {
 				if d.Ident == nil {
 					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {
@@ -463,7 +463,7 @@ func checkPackage(pkg *ast.Package, path string, deps GlobalsDependencies, impor
 	}
 
 	// TODO(Gianluca): should be enabled for templates too?
-	if !tc.isTemplate {
+	if !tc.opts.IsTemplate {
 		for pkg := range tc.unusedImports {
 			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
 		}

@@ -111,9 +111,7 @@ type typechecker struct {
 	unusedImports     map[string][]string
 	TypeInfo          map[ast.Node]*TypeInfo
 	IndirectVars      map[*ast.Identifier]bool
-	isScript          bool
-	isTemplate        bool
-	disallowGoStmt    bool
+	opts              Options
 	iota              int
 	lastConstPosition *ast.Position    // when changes iota is reset.
 	showMacros        []*ast.ShowMacro // list of *ast.ShowMacro nodes.
@@ -126,10 +124,8 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func newTypechecker(path string, isScript, isTemplate, disallowGoStmt bool) *typechecker {
+func newTypechecker(path string, opts Options) *typechecker {
 	return &typechecker{
-		isScript:         isScript,
-		isTemplate:       isTemplate,
 		path:             path,
 		filePackageBlock: TypeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
@@ -138,7 +134,7 @@ func newTypechecker(path string, isScript, isTemplate, disallowGoStmt bool) *typ
 		Universe:         TypeCheckerScope{},
 		unusedImports:    map[string][]string{},
 		IndirectVars:     map[*ast.Identifier]bool{},
-		disallowGoStmt:   disallowGoStmt,
+		opts:             opts,
 		iota:             -1,
 	}
 }
@@ -153,7 +149,7 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
-	if !tc.isScript && !tc.isTemplate {
+	if !tc.opts.IsScript && !tc.opts.IsTemplate {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
