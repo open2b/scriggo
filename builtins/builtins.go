@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	_hash "hash"
+	"html"
 	"io"
 	"math"
 	_rand "math/rand"
@@ -63,6 +64,8 @@ func Main() *scriggo.Package {
 	return &p
 }
 
+type HTML string
+
 var main = scriggo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
@@ -77,11 +80,13 @@ var main = scriggo.Package{
 		"base64":      base64,
 		"contains":    strings.Contains,
 		"errorf":      errorf,
+		"escape":      escape,
 		"hash":        hash,
 		"hasPrefix":   strings.HasPrefix,
 		"hasSuffix":   strings.HasSuffix,
 		"hex":         hex,
 		"hmac":        hmac,
+		"html":        reflect.TypeOf(HTML("")),
 		"index":       index,
 		"indexAny":    indexAny,
 		"itoa":        itoa,
@@ -194,6 +199,19 @@ func base64(env *vm.Env, s string) string {
 func errorf(format string, a ...interface{}) {
 	// TODO(marco): Alloc.
 	panic(fmt.Errorf(format, a...))
+}
+
+// escape is the builtin function "escape".
+func escape(a interface{}) HTML {
+	switch a := a.(type) {
+	case string:
+		// TODO(Gianluca): is this the right implementation? Compare with renderer.
+		return HTML(html.EscapeString(a))
+	case HTML:
+		return a
+	default:
+		panic("not supported") // TODO(Gianluca): review.
+	}
 }
 
 // hash is the builtin function "hash".
