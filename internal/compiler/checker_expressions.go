@@ -64,7 +64,7 @@ var universe = TypeCheckerScope{
 	"bool":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsType}},
 	"complex128":  {t: &TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: PropertyIsType}},
 	"complex64":   {t: &TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: PropertyIsType}},
-	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)), Properties: PropertyIsType}},
+	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType}},
 	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType}},
 	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType}},
 	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: false}},
