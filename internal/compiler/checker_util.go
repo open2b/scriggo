@@ -550,7 +550,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 				Type:       removeEnvArg(method.Type, true),
 				Value:      method.Func,
 				Properties: PropertyIsPredefined,
-				IsMethod:   false, // Receiver is explicit, this is a common function.
+				IsMethod:   false, // Receiver is explicit, this is a regular function.
 			}, true
 		}
 		return nil, false
