@@ -89,6 +89,7 @@ func (vm *VM) Reset() {
 		vm.cases = vm.cases[:0]
 	}
 	vm.done = nil
+	vm.doneCase = reflect.SelectCase{}
 	if vm.panics != nil {
 		vm.panics = vm.panics[:0]
 	}
