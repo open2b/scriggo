@@ -394,6 +394,10 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcTypeInfo := e.typeInfos[call.Func]
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
+		if funcTypeInfo.IsMethod {
+			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
+			call.Args = append([]ast.Expression{rcv}, call.Args...)
+		}
 		regs, types := e.prepareCallParameters(funcType, call.Args, true)
 		var name string
 		switch f := call.Func.(type) {

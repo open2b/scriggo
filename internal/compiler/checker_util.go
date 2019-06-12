@@ -546,7 +546,12 @@ func macroToFunc(macro *ast.Macro) *ast.Func {
 func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 	if t.IsType() {
 		if method, ok := t.Type.MethodByName(name); ok {
-			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
+			return &TypeInfo{
+				Type:       removeEnvArg(method.Type, true),
+				Value:      method.Func,
+				Properties: PropertyIsPredefined,
+				IsMethod:   false, // Receiver is explicit, this is a common function.
+			}, true
 		}
 		return nil, false
 	}
@@ -567,13 +572,25 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
 		return nil, false
 	}
 	method := reflect.Zero(t.Type).MethodByName(name)
+	methodWithoutRcv, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
-		return &TypeInfo{Type: removeEnvArg(method.Type(), false)}, true
+		return &TypeInfo{
+			Type:       removeEnvArg(method.Type(), false),
+			Value:      methodWithoutRcv.Func,
+			Properties: PropertyIsPredefined,
+			IsMethod:   true,
+		}, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
 		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
+		methodWithoutRcv, _ := reflect.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
-			return &TypeInfo{Type: removeEnvArg(method.Type(), false)}, true
+			return &TypeInfo{
+				Type:       removeEnvArg(method.Type(), false),
+				Value:      methodWithoutRcv.Func,
+				Properties: PropertyIsPredefined,
+				IsMethod:   true,
+			}, true
 		}
 	}
 	return nil, false

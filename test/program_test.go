@@ -121,6 +121,55 @@ var stmtTests = []struct {
 	err          interface{} // error.
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Method value (assignment and call)",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+		
+		func main() {
+			b := bytes.NewBuffer([]byte{97, 98, 99})
+			lenMethod := b.Len()
+			l := lenMethod
+			fmt.Print("l is ", l)
+		}
+		`,
+		output: "l is 3",
+	},
+	{
+		name: "Method expression call",
+		src: `package main
+
+		import "testpkg"
+
+		func main() {
+			t := testpkg.NewT(44)
+			testpkg.T.M(t)
+		}
+		`,
+		output: `t is 44`,
+	},
+	{
+		name: "Method call with return value (method defined on pointer, receiver of kind pointer)",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+		
+		func main() {
+			b := bytes.NewBuffer([]byte{97, 98, 99})
+			l := b.Len()
+			fmt.Print(l)
+		}
+		`,
+		output: `3`,
+	},
 	{
 		name: "Converting uint16 -> string",
 		src: `package main
@@ -3695,6 +3744,40 @@ var stmtTests = []struct {
 	//------------------------------------
 	// TODO(Gianluca): disabled tests:
 
+	// {
+	// 	name: "Method (with non-pointer receiver) called on a pointer receiver",
+	// 	src: `package main
+
+	// 	import "testpkg"
+
+	// 	func main() {
+	// 		t := testpkg.NewT(-20)
+	// 		tp := &t
+	// 		testpkg.T.M(tp)
+	// 	}
+	// 	`,
+	// 	output: `t is -20`,
+	// },
+
+	// {
+	// 	name: "Calling a method defined on pointer on a non-pointer value",
+	// 	src: `package main
+
+	// 	import (
+	// 		"bytes"
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		b := *bytes.NewBuffer([]byte{97, 98, 99})
+	// 		fmt.Printf("b has type %T", b)
+	// 		l := b.Len()
+	// 		fmt.Print(", l is ", l)
+	// 	}
+	// 	`,
+	// 	output: `b has type bytes.Buffer, l is 3`,
+	// }
+
 	//{"Out of memory: OpAppend ",
 	//	`package main
 	//
@@ -4212,6 +4295,14 @@ var goPackages = scriggo.Packages{
 			"TestPointInt": reflect.TypeOf(new(TestPointInt)).Elem(),
 			"GetPoint":     GetPoint,
 			"Center":       &TestPointInt{A: 5, B: 42},
+			"NewT":         NewT,
+			"T":            reflect.TypeOf(T(0)),
+		},
+	},
+	"bytes": {
+		Name: "bytes",
+		Declarations: map[string]interface{}{
+			"NewBuffer": bytes.NewBuffer,
 		},
 	},
 }
@@ -4231,4 +4322,13 @@ type TestPointInt struct {
 
 func GetPoint() TestPointInt {
 	return TestPointInt{A: 5, B: 42}
+}
+
+type T int
+
+func NewT(a int) T {
+	return T(a)
+}
+func (t T) M() {
+	fmt.Print("t is ", t)
 }

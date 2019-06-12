@@ -32,6 +32,7 @@ type TypeInfo struct {
 	Properties        Properties   // Properties.
 	Value             interface{}  // Value; for packages has type *Package.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
+	IsMethod          bool         // TODO(Gianluca): put in properties?
 }
 
 // Nil reports whether it is the predeclared nil.
