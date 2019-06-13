@@ -349,7 +349,7 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 	case reflect.String:
 		v.SetString(vm.stringk(r, k))
 	case reflect.Func:
-		v.Set(vm.generalk(r, k).(*callable).reflectValue(vm.env))
+		v.Set(vm.generalk(r, k).(*callable).Value(vm.env))
 	case reflect.Array:
 		slice := reflect.ValueOf(vm.generalk(r, k))
 		array := reflect.New(reflect.ArrayOf(slice.Len(), slice.Type().Elem())).Elem()

@@ -276,7 +276,7 @@ func (vm *VM) run() (uint32, bool) {
 			f := vm.general(a).(*callable)
 			if f.fn == nil {
 				off := vm.fn.Body[vm.pc]
-				vm.callPredefined(f.predefined, c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
+				vm.callPredefined(f.Predefined(), c, StackShift{int8(off.Op), off.A, off.B, off.C}, startPredefinedGoroutine)
 				startPredefinedGoroutine = false
 			} else {
 				fn := f.fn
@@ -744,6 +744,12 @@ func (vm *VM) run() (uint32, bool) {
 				cap = int(vm.intk(next.B, capIsConst))
 			}
 			vm.setGeneral(c, reflect.MakeSlice(typ, len, cap).Interface())
+
+		// MethodValue
+		case OpMethodValue:
+			receiver := vm.general(a)
+			method := vm.stringk(b, true)
+			vm.setGeneral(c, &callable{receiver: receiver, method: method})
 
 		// Move
 		case OpMove, -OpMove:

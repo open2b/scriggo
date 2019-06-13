@@ -487,7 +487,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						vm.fp[2]++
 					case Func:
 						f := vm.general(1).(*callable)
-						args[i].Set(f.reflectValue(vm.env))
+						args[i].Set(f.Value(vm.env))
 						vm.fp[3]++
 					case Environment:
 						args[i].Set(vm.envArg)
@@ -519,7 +519,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 					case reflect.Func:
 						for j := 0; j < int(numVariadic); j++ {
 							f := vm.general(int8(j + 1)).(*callable)
-							slice.Index(j).Set(f.reflectValue(vm.env))
+							slice.Index(j).Set(f.Value(vm.env))
 						}
 					case reflect.String:
 						for j := 0; j < int(numVariadic); j++ {
@@ -680,7 +680,7 @@ func (vm *VM) nextCall() bool {
 			if call.cl.fn != nil {
 				break
 			}
-			vm.callPredefined(call.cl.predefined, call.variadics, StackShift{}, false)
+			vm.callPredefined(call.cl.Predefined(), call.variadics, StackShift{}, false)
 			fallthrough
 		case returned, recovered:
 			// A deferred call is returned. If there is another deferred
@@ -1074,15 +1074,34 @@ type callFrame struct {
 }
 
 type callable struct {
-	fn         *Function           // function.
-	predefined *PredefinedFunction // predefined function.
 	value      reflect.Value       // reflect value.
+	fn         *Function           // function, if it is a Scriggo function.
+	predefined *PredefinedFunction // predefined function.
+	receiver   interface{}         // receiver, if it is a method value.
+	method     string              // method name, if it is a method value.
 	vars       []interface{}       // closure variables, if it is a closure.
 }
 
-// reflectValue returns a Reflect Value of a callable, so it can be called
-// from a predefined code and passed to a predefined code.
-func (c *callable) reflectValue(env *Env) reflect.Value {
+// Predefined returns the predefined function of a callable.
+func (c *callable) Predefined() *PredefinedFunction {
+	if c.predefined != nil {
+		return c.predefined
+	}
+	if !c.value.IsValid() {
+		c.value = reflect.ValueOf(c.receiver).MethodByName(c.method)
+		c.receiver = nil
+		c.method = ""
+	}
+	c.predefined = &PredefinedFunction{
+		Func:  c.value.Interface(),
+		value: c.value,
+	}
+	return c.predefined
+}
+
+// Value returns a reflect Value of a callable, so it can be called from a
+// predefined code and passed to a predefined code.
+func (c *callable) Value(env *Env) reflect.Value {
 	if c.value.IsValid() {
 		return c.value
 	}
@@ -1094,75 +1113,80 @@ func (c *callable) reflectValue(env *Env) reflect.Value {
 		c.value = c.predefined.value
 		return c.value
 	}
-	// It is not a predefined function.
-	fn := c.fn
-	vars := c.vars
-	c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
-		nvm := create(env)
-		nOut := fn.Type.NumOut()
-		results := make([]reflect.Value, nOut)
-		for i := 0; i < nOut; i++ {
-			t := fn.Type.Out(i)
-			results[i] = reflect.New(t).Elem()
-			k := t.Kind()
-			switch k {
-			case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				nvm.fp[0]++
-			case reflect.Float32, reflect.Float64:
-				nvm.fp[1]++
-			case reflect.String:
-				nvm.fp[2]++
-			default:
-				nvm.fp[3]++
+	if c.method == "" {
+		// It is a Scriggo function.
+		fn := c.fn
+		vars := c.vars
+		c.value = reflect.MakeFunc(fn.Type, func(args []reflect.Value) []reflect.Value {
+			nvm := create(env)
+			nOut := fn.Type.NumOut()
+			results := make([]reflect.Value, nOut)
+			for i := 0; i < nOut; i++ {
+				t := fn.Type.Out(i)
+				results[i] = reflect.New(t).Elem()
+				k := t.Kind()
+				switch k {
+				case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					nvm.fp[0]++
+				case reflect.Float32, reflect.Float64:
+					nvm.fp[1]++
+				case reflect.String:
+					nvm.fp[2]++
+				default:
+					nvm.fp[3]++
+				}
 			}
-		}
-		var r int8 = 1
-		for _, arg := range args {
-			k := arg.Kind()
-			switch k {
-			case reflect.Bool:
-				nvm.setBool(r, arg.Bool())
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				nvm.setInt(r, arg.Int())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				nvm.setInt(r, int64(arg.Uint()))
-			case reflect.Float32, reflect.Float64:
-				nvm.setFloat(r, arg.Float())
-			case reflect.String:
-				nvm.setString(r, arg.String())
-			default:
-				nvm.setGeneral(r, arg.Interface())
+			var r int8 = 1
+			for _, arg := range args {
+				k := arg.Kind()
+				switch k {
+				case reflect.Bool:
+					nvm.setBool(r, arg.Bool())
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					nvm.setInt(r, arg.Int())
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					nvm.setInt(r, int64(arg.Uint()))
+				case reflect.Float32, reflect.Float64:
+					nvm.setFloat(r, arg.Float())
+				case reflect.String:
+					nvm.setString(r, arg.String())
+				default:
+					nvm.setGeneral(r, arg.Interface())
+				}
+				r++
 			}
-			r++
-		}
-		nvm.fp[0] = 0
-		nvm.fp[1] = 0
-		nvm.fp[2] = 0
-		nvm.fp[3] = 0
-		nvm.runFunc(fn, vars)
-		r = 1
-		for i, result := range results {
-			t := fn.Type.Out(i)
-			k := t.Kind()
-			switch k {
-			case reflect.Bool:
-				result.SetBool(nvm.bool(r))
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				result.SetInt(nvm.int(r))
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				result.SetUint(uint64(nvm.int(r)))
-			case reflect.Float32, reflect.Float64:
-				result.SetFloat(nvm.float(r))
-			case reflect.String:
-				result.SetString(nvm.string(r))
-			default:
-				result.Set(reflect.ValueOf(nvm.general(r)))
+			nvm.fp[0] = 0
+			nvm.fp[1] = 0
+			nvm.fp[2] = 0
+			nvm.fp[3] = 0
+			nvm.runFunc(fn, vars)
+			r = 1
+			for i, result := range results {
+				t := fn.Type.Out(i)
+				k := t.Kind()
+				switch k {
+				case reflect.Bool:
+					result.SetBool(nvm.bool(r))
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					result.SetInt(nvm.int(r))
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					result.SetUint(uint64(nvm.int(r)))
+				case reflect.Float32, reflect.Float64:
+					result.SetFloat(nvm.float(r))
+				case reflect.String:
+					result.SetString(nvm.string(r))
+				default:
+					result.Set(reflect.ValueOf(nvm.general(r)))
+				}
+				r++
 			}
-			r++
-		}
-		return results
-	})
+			return results
+		})
+	} else {
+		// It is a method value.
+		c.value = reflect.ValueOf(c.receiver).MethodByName(c.method)
+	}
 	return c.value
 }
 
@@ -1386,6 +1410,8 @@ const (
 	OpMakeMap
 
 	OpMakeSlice
+
+	OpMethodValue
 
 	OpMove
 
