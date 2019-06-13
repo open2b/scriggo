@@ -9,7 +9,6 @@ package compiler
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	"scriggo/internal/compiler/ast"
 	"scriggo/vm"
@@ -866,68 +865,61 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if out, k, ok := e.quickEmitExpr(expr, typ); ok {
 			e.changeRegister(k, out, reg, typ, dstType)
 		} else {
-			// TODO(Gianluca): this switch only handles predeclared types.
-			// Add support for defined types.
-			switch v := expr.Val.(type) {
-			case complex64, complex128:
-				panic("TODO(Gianluca): not implemented")
-			case uintptr:
-				panic("TODO(Gianluca): not implemented")
-			case int:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
+			v := reflect.ValueOf(expr.Val)
+			switch v.Kind() {
+			case reflect.Invalid:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Bool:
+				b := int64(0)
+				if v.Bool() {
+					b = 1
+				}
+				c := e.fb.MakeIntConstant(b)
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
-			case int8:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
+			case reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64:
+				c := e.fb.MakeIntConstant(v.Int())
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
-			case int16:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
+			case reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64:
+				c := e.fb.MakeIntConstant(int64(v.Uint()))
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
-			case int32:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
+			case reflect.Uintptr:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Float32,
+				reflect.Float64:
+				c := e.fb.MakeFloatConstant(v.Float())
+				e.fb.LoadNumber(vm.TypeFloat, c, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
-			case int64:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case uint:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case uint8:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case uint16:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case uint32:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case uint64:
-				constant := e.fb.MakeIntConstant(int64(v))
-				e.fb.LoadNumber(vm.TypeInt, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case string:
-				constant := e.fb.MakeStringConstant(v)
-				e.changeRegister(true, constant, reg, typ, dstType)
-			case float32:
-				constant := e.fb.MakeFloatConstant(float64(v))
-				e.fb.LoadNumber(vm.TypeFloat, constant, reg)
-			case float64:
-				constant := e.fb.MakeFloatConstant(v)
-				e.fb.LoadNumber(vm.TypeFloat, constant, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			default:
-				// TODO(Gianluca): time.Duration, which has an underlying int
-				// type, falls here! Add a kind-based switch here.
-				constant := e.fb.MakeGeneralConstant(v)
-				e.changeRegister(true, constant, reg, typ, dstType)
+			case reflect.Complex64:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Complex128:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Interface:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Slice,
+				reflect.Map,
+				reflect.Struct,
+				reflect.Array,
+				reflect.Chan,
+				reflect.Ptr,
+				reflect.Func:
+				c := e.fb.MakeGeneralConstant(v.Interface())
+				e.changeRegister(true, c, reg, typ, dstType)
+			case reflect.String:
+				c := e.fb.MakeStringConstant(v.String())
+				e.changeRegister(true, c, reg, typ, dstType)
+			case reflect.UnsafePointer:
+				panic("not implemented") // TODO(Gianluca).
 			}
 		}
 
@@ -1017,29 +1009,26 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 		}
 		return 0, false, false
 	case *ast.Value:
-		switch v := expr.Val.(type) {
-		case time.Duration: // TODO(Gianluca): remove!
-			if -127 < v && v < 126 {
-				return int8(v), true, true
+		v := reflect.ValueOf(expr.Val)
+		switch v.Kind() {
+		case reflect.Int:
+			i := v.Int()
+			if -127 < i && i < 126 {
+				return int8(i), true, true
 			}
-		case int:
-			if -127 < v && v < 126 {
-				return int8(v), true, true
-			}
-		case bool:
+		case reflect.Bool:
 			b := int8(0)
-			if expr.Val.(bool) {
+			if v.Bool() {
 				b = 1
 			}
 			return b, true, true
-		case float64:
-			if float64(int(v)) == v {
-				if -127 < v && v < 126 {
-					return int8(v), true, true
+		case reflect.Float64:
+			f := v.Float()
+			if float64(int(f)) == f {
+				if -127 < f && f < 126 {
+					return int8(f), true, true
 				}
 			}
-		default:
-			// TODO(Gianluca): handle types by kind!
 		}
 	}
 	return 0, false, false
