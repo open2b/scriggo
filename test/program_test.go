@@ -123,24 +123,6 @@ var stmtTests = []struct {
 }{
 
 	{
-		name: "Method value (assignment and call)",
-		src: `package main
-
-		import (
-			"bytes"
-			"fmt"
-		)
-		
-		func main() {
-			b := bytes.NewBuffer([]byte{97, 98, 99})
-			lenMethod := b.Len()
-			l := lenMethod
-			fmt.Print("l is ", l)
-		}
-		`,
-		output: "l is 3",
-	},
-	{
 		name: "Method expression call",
 		src: `package main
 
@@ -3743,6 +3725,25 @@ var stmtTests = []struct {
 
 	//------------------------------------
 	// TODO(Gianluca): disabled tests:
+
+	// {
+	// 	name: "Method value (assignment and call)",
+	// 	src: `package main
+
+	// 	import (
+	// 		"bytes"
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		b := bytes.NewBuffer([]byte{97, 98, 99})
+	// 		lenMethod := b.Len
+	// 		l := lenMethod()
+	// 		fmt.Print("l is ", l)
+	// 	}
+	// 	`,
+	// 	output: "l is 3",
+	// },
 
 	// {
 	// 	name: "Method (with non-pointer receiver) called on a pointer receiver",
