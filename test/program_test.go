@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 	"text/tabwriter"
+	"time"
 
 	"scriggo"
 	"scriggo/vm"
@@ -123,20 +124,46 @@ var stmtTests = []struct {
 }{
 
 	{
-		name: "Method expression call",
+		name: "Method call on concrete value (T* rcv on T method)",
 		src: `package main
 
-		import "testpkg"
-
+		import (
+			"fmt"
+			"time"
+		)
+		
 		func main() {
-			t := testpkg.NewT(44)
-			testpkg.T.M(t)
+			var d time.Duration
+			d += 7200000000000
+			dp := &d
+			s := dp.Hours()
+			fmt.Print(s)
+		}		
+		`,
+		output: "2",
+	},
+
+	{
+		name: "Method call on concrete value (T rcv on T method)",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			var d time.Duration
+			d += 7200000000000
+			s := d.Hours()
+			fmt.Print(s)
 		}
 		`,
-		output: `t is 44`,
+		output: "2",
 	},
+
 	{
-		name: "Method call with return value (method defined on pointer, receiver of kind pointer)",
+		name: "Method call on concrete value (T rcv on *T method (an implicit & is added)",
 		src: `package main
 
 		import (
@@ -145,13 +172,50 @@ var stmtTests = []struct {
 		)
 		
 		func main() {
-			b := bytes.NewBuffer([]byte{97, 98, 99})
+			var b = *bytes.NewBufferString("content of (indirect) buffer")
+			s := b.String()
+			fmt.Print(s)
+		}
+		`,
+		output: "content of (indirect) buffer",
+	},
+
+	{
+		name: "Method call on concrete value (T* rcv on *T method (explicit &)",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+		
+		func main() {
+			var b = *bytes.NewBufferString("content of buffer")
+			s := (&b).String()
+			fmt.Print(s)
+		}
+		`,
+		output: "content of buffer",
+	},
+
+	{
+		name: "Method call on concrete value (*T rcv on *T method)",
+		src: `package main
+
+		import (
+			"bytes"
+			"fmt"
+		)
+		
+		func main() {
+			b := bytes.NewBuffer([]byte{1, 2, 3, 4, 5})
 			l := b.Len()
 			fmt.Print(l)
 		}
 		`,
-		output: `3`,
+		output: "5",
 	},
+
 	{
 		name: "Converting uint16 -> string",
 		src: `package main
@@ -4038,6 +4102,12 @@ var stmtTests = []struct {
 func TestVM(t *testing.T) {
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r != nil {
+					panic(fmt.Errorf("%s panicked: %s", cas.name, r))
+				}
+			}()
 			regs := cas.registers
 			r := scriggo.MapStringLoader{"main": cas.src}
 			program, err := scriggo.LoadProgram(scriggo.Loaders(r, goPackages), scriggo.LimitMemorySize)
@@ -4303,7 +4373,15 @@ var goPackages = scriggo.Packages{
 	"bytes": {
 		Name: "bytes",
 		Declarations: map[string]interface{}{
-			"NewBuffer": bytes.NewBuffer,
+			"NewBuffer":       bytes.NewBuffer,
+			"NewBufferString": bytes.NewBufferString,
+			"Buffer":          reflect.TypeOf(new(bytes.Buffer)).Elem(),
+		},
+	},
+	"time": {
+		Name: "time",
+		Declarations: map[string]interface{}{
+			"Duration": reflect.TypeOf(new(time.Duration)).Elem(),
 		},
 	},
 }

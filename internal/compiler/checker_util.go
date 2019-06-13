@@ -538,62 +538,91 @@ func macroToFunc(macro *ast.Macro) *ast.Func {
 	return ast.NewFunc(macro.Pos(), macro.Ident, macro.Type, ast.NewBlock(nil, macro.Body))
 }
 
+type receiverTransformation int
+
+const (
+	receiverNoTransform receiverTransformation = iota
+	receiverAddAddress
+	receiverAddIndirect
+)
+
 // methodByName returns a function type that describe the method with that
 // name and a boolean indicating if the method was found.
 //
 // Only for type classes, the returned function type has the method's
 // receiver as first argument.
-func methodByName(t *TypeInfo, name string) (*TypeInfo, bool) {
+func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
+
+	// Method expressions.
 	if t.IsType() {
-		if method, ok := t.Type.MethodByName(name); ok {
-			return &TypeInfo{
-				Type:       removeEnvArg(method.Type, true),
-				Value:      method.Func,
-				Properties: PropertyIsPredefined,
-				IsMethod:   false, // Receiver is explicit, this is a regular function.
-			}, true
+		if t.Type.Kind() == reflect.Interface {
+			panic("not implemented") // TODO(Gianluca): review.
+		} else {
+			if method, ok := t.Type.MethodByName(name); ok {
+				return &TypeInfo{
+					Type:           removeEnvArg(method.Type, true),
+					Value:          method.Func,
+					Properties:     PropertyIsPredefined,
+					NeedsRcvrAsArg: false, // Receiver is explicit, this is a regular function.
+				}, receiverNoTransform, true
+			}
+			return nil, receiverNoTransform, false
 		}
-		return nil, false
 	}
-	// If t represents and interface, Show.MethodByName cannot be called on
-	// it's zero value (it would panic); so, in case of interfaces, the
-	// Type.MethodByName method is used.
+
+	// Method calls and method values on interfaces.
 	if t.Type.Kind() == reflect.Interface {
 		method, ok := t.Type.MethodByName(name)
 		if ok {
-			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
+			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, receiverNoTransform, true
 		}
 		if t.Type.Kind() != reflect.Ptr {
 			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
 			if ok {
-				return &TypeInfo{Type: removeEnvArg(method.Type, true)}, true
+				return &TypeInfo{Type: removeEnvArg(method.Type, true)}, receiverNoTransform, true
 			}
 		}
-		return nil, false
+		return nil, receiverNoTransform, false
 	}
+
+	// Method calls and method values on concrete types.
 	method := reflect.Zero(t.Type).MethodByName(name)
-	methodWithoutRcv, _ := t.Type.MethodByName(name)
+	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
-		return &TypeInfo{
-			Type:       removeEnvArg(method.Type(), false),
-			Value:      methodWithoutRcv.Func,
-			Properties: PropertyIsPredefined,
-			IsMethod:   true,
-		}, true
+		ti := &TypeInfo{
+			Type:           removeEnvArg(method.Type(), false),
+			Value:          methodExplicitRcvr.Func,
+			Properties:     PropertyIsPredefined,
+			NeedsRcvrAsArg: true,
+		}
+		// Checks if pointer is defined on T or *T when called on a *T receiver.
+		if t.Type.Kind() == reflect.Ptr {
+			// TODO(Gianluca): always check first if t has method m, regardless
+			// of whether it's a pointer receiver or not. If m exists, it's
+			// done. Else, if receiver was a pointer, call MethodByName on t
+			// (which is a pointer).
+			if method, methodOnT := t.Type.Elem().MethodByName(name); methodOnT {
+				// Needs indirection: x.m -> (*x).m
+				ti.Type = removeEnvArg(reflect.Zero(t.Type).MethodByName(name).Type(), false)
+				ti.Value = method.Func
+				return ti, receiverAddIndirect, true
+			}
+		}
+		return ti, receiverNoTransform, true
 	}
 	if t.Type.Kind() != reflect.Ptr {
 		method = reflect.Zero(reflect.PtrTo(t.Type)).MethodByName(name)
-		methodWithoutRcv, _ := reflect.PtrTo(t.Type).MethodByName(name)
+		methodExplicitRcvr, _ := reflect.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
-				Type:       removeEnvArg(method.Type(), false),
-				Value:      methodWithoutRcv.Func,
-				Properties: PropertyIsPredefined,
-				IsMethod:   true,
-			}, true
+				Type:           removeEnvArg(method.Type(), false),
+				Value:          methodExplicitRcvr.Func,
+				Properties:     PropertyIsPredefined,
+				NeedsRcvrAsArg: true,
+			}, receiverAddAddress, true
 		}
 	}
-	return nil, false
+	return nil, receiverNoTransform, false
 }
 
 // newInt returns a new big.Int.

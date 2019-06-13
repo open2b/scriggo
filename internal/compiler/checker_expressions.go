@@ -169,29 +169,40 @@ func (tc *typechecker) removeCurrentScope() {
 	tc.nextValidGoto = tc.storedValidGoto
 }
 
-// lookupScopes looks up name in the scopes. Returns the type info of the name or
-// false if the name does not exist. If justCurrentScope is true, lookupScopes
-// looks up only in the current scope.
-func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
+// lookupScopesElem looks up name in the scopes. Returns the declaration of the
+// name or false if the name does not exist. If justCurrentScope is true,
+// lookupScopesElem looks up only in the current scope.
+func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
 	// Iterating over scopes, from inside.
 	for i := len(tc.Scopes) - 1; i >= 0; i-- {
 		elem, ok := tc.Scopes[i][name]
 		if ok {
-			return elem.t, true
+			return elem, true
 		}
 		if justCurrentScope && i == len(tc.Scopes)-1 {
-			return nil, false
+			return scopeElement{}, false
 		}
 	}
 	// Package + file block.
 	if elem, ok := tc.filePackageBlock[name]; ok {
-		return elem.t, true
+		return elem, true
 	}
 	// Universe.
 	if elem, ok := tc.Universe[name]; ok {
-		return elem.t, true
+		return elem, true
 	}
-	return nil, false
+	return scopeElement{}, false
+}
+
+// lookupScopes looks up name in the scopes. Returns the type info of the name or
+// false if the name does not exist. If justCurrentScope is true, lookupScopes
+// looks up only in the current scope.
+func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeInfo, bool) {
+	elem, ok := tc.lookupScopesElem(name, justCurrentScope)
+	if !ok {
+		return nil, false
+	}
+	return elem.t, ok
 }
 
 // assignScope assigns value to name in the last scope. If there are no scopes,
@@ -894,26 +905,46 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		t := tc.typeof(expr.Expr, noEllipses)
 		tc.TypeInfo[expr.Expr] = t
+		// t is a type.
 		if t.IsType() {
-			method, ok := methodByName(t, expr.Ident)
+			method, _, ok := methodByName(t, expr.Ident)
 			if !ok {
 				panic(tc.errorf(expr, "%v undefined (type %s has no method %s)", expr, t, expr.Ident))
 			}
 			return method
 		}
-		if t.Type.Kind() == reflect.Ptr {
-			method, ok := methodByName(t, expr.Ident)
-			if ok {
-				return method
-			}
-			field, ok := fieldByName(t, expr.Ident)
-			if ok {
-				return field
-			}
-			panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
-		}
-		method, ok := methodByName(t, expr.Ident)
+		// TODO(Gianluca): is discriminating pointers necessary?
+		// // t is a pointer.
+		// if t.Type.Kind() == reflect.Ptr {
+		// 	method, _, ok := methodByName(t, expr.Ident)
+		// 	if ok {
+		// 		return method
+		// 	}
+		// 	field, ok := fieldByName(t, expr.Ident)
+		// 	if ok {
+		// 		return field
+		// 	}
+		// 	panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
+		// }
+		// regular case.
+		method, trans, ok := methodByName(t, expr.Ident)
 		if ok {
+			switch trans {
+			case receiverAddAddress:
+				if t.Addressable() {
+					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
+					tc.IndirectVars[elem.decl] = true
+					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
+					tc.TypeInfo[expr.Expr] = &TypeInfo{
+						Type: reflect.PtrTo(t.Type),
+					}
+				}
+			case receiverAddIndirect:
+				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorMultiplication, expr.Expr)
+				tc.TypeInfo[expr.Expr] = &TypeInfo{
+					Type: t.Type.Elem(),
+				}
+			}
 			return method
 		}
 		field, ok := fieldByName(t, expr.Ident)

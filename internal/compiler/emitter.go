@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"scriggo/internal/compiler/ast"
 	"scriggo/vm"
@@ -284,7 +285,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 //
 // While prepareCallParameters is called before calling the function,
 // prepareFunctionBodyParameters is called before emitting the its body.
-func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool) ([]int8, []reflect.Type) {
+func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool, receiverAsArg bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
 	regs := make([]int8, numOut)
@@ -293,6 +294,13 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		typ := funcType.Out(i)
 		regs[i] = e.fb.NewRegister(typ.Kind())
 		types[i] = typ
+	}
+	if receiverAsArg {
+		reg := e.fb.NewRegister(e.typeInfos[args[0]].Type.Kind())
+		e.fb.EnterStack()
+		e.emitExpr(args[0], reg, e.typeInfos[args[0]].Type)
+		e.fb.ExitStack()
+		args = args[1:]
 	}
 	if funcType.IsVariadic() {
 		for i := 0; i < numIn-1; i++ {
@@ -394,11 +402,11 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcTypeInfo := e.typeInfos[call.Func]
 	funcType := funcTypeInfo.Type
 	if funcTypeInfo.IsPredefined() {
-		if funcTypeInfo.IsMethod {
+		if funcTypeInfo.NeedsRcvrAsArg {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
-		regs, types := e.prepareCallParameters(funcType, call.Args, true)
+		regs, types := e.prepareCallParameters(funcType, call.Args, true, funcTypeInfo.NeedsRcvrAsArg)
 		var name string
 		switch f := call.Func.(type) {
 		case *ast.Identifier:
@@ -419,7 +427,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !e.fb.IsVariable(ident.Name) {
 		if fun, ok := e.availableFuncs[e.pkg][ident.Name]; ok {
-			regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
+			regs, types := e.prepareCallParameters(fun.Type, call.Args, false, false)
 			index := e.functionIndex(fun)
 			e.fb.Call(index, stackShift, call.Pos().Line)
 			return regs, types
@@ -430,7 +438,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := e.availableFuncs[e.pkg][ident.Name+"."+selector.Ident]; ok {
-				regs, types := e.prepareCallParameters(fun.Type, call.Args, false)
+				regs, types := e.prepareCallParameters(fun.Type, call.Args, false, false)
 				index := e.functionIndex(fun)
 				e.fb.Call(index, stackShift, call.Pos().Line)
 				return regs, types
@@ -444,7 +452,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		funReg = e.fb.NewRegister(reflect.Func)
 		e.emitExpr(call.Func, funReg, e.typeInfos[call.Func].Type)
 	}
-	regs, types := e.prepareCallParameters(funcType, call.Args, true)
+	regs, types := e.prepareCallParameters(funcType, call.Args, true, false)
 	e.fb.CallIndirect(funReg, 0, stackShift)
 	return regs, types
 }
@@ -916,6 +924,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				e.fb.LoadNumber(vm.TypeFloat, constant, reg)
 				e.changeRegister(false, reg, reg, typ, dstType)
 			default:
+				// TODO(Gianluca): time.Duration, which has an underlying int
+				// type, falls here! Add a kind-based switch here.
 				constant := e.fb.MakeGeneralConstant(v)
 				e.changeRegister(true, constant, reg, typ, dstType)
 			}
@@ -1008,6 +1018,10 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 		return 0, false, false
 	case *ast.Value:
 		switch v := expr.Val.(type) {
+		case time.Duration: // TODO(Gianluca): remove!
+			if -127 < v && v < 126 {
+				return int8(v), true, true
+			}
 		case int:
 			if -127 < v && v < 126 {
 				return int8(v), true, true
@@ -1024,6 +1038,8 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) 
 					return int8(v), true, true
 				}
 			}
+		default:
+			// TODO(Gianluca): handle types by kind!
 		}
 	}
 	return 0, false, false
@@ -1282,7 +1298,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 			// TODO(Gianluca): currently supports only deferring or
 			// starting goroutines of not predefined functions.
 			isPredefined := false
-			e.prepareCallParameters(funType, args, isPredefined)
+			e.prepareCallParameters(funType, args, isPredefined, false)
 			// TODO(Gianluca): currently supports only deferring functions
 			// and starting goroutines with no arguments and no return
 			// parameters.
