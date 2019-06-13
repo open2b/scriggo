@@ -229,7 +229,7 @@ func main() {
 				goOut := runGoAndGetOutput(src)
 				if (scriggoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
 					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+					fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
 					return
 				}
 				if !scriggoOut.isErr() && !goOut.isErr() && (dir.Name() == "errors") {
@@ -244,7 +244,7 @@ func main() {
 						fmt.Println("OK!")
 					}
 				} else {
-					fmt.Printf("\nERROR on %q\n\tGo output:      %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+					fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
 				}
 			}()
 		}
