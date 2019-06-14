@@ -936,13 +936,15 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					tc.IndirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
 					tc.TypeInfo[expr.Expr] = &TypeInfo{
-						Type: reflect.PtrTo(t.Type),
+						Type:       reflect.PtrTo(t.Type),
+						MethodType: t.MethodType,
 					}
 				}
 			case receiverAddIndirect:
 				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorMultiplication, expr.Expr)
 				tc.TypeInfo[expr.Expr] = &TypeInfo{
-					Type: t.Type.Elem(),
+					Type:       t.Type.Elem(),
+					MethodType: t.MethodType,
 				}
 			}
 			return method
@@ -1452,6 +1454,14 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 	}
 
 	t := tc.typeof(expr.Func, noEllipses)
+
+	switch t.MethodType {
+	case MethodValueConcrete:
+		t.MethodType = MethodCallConcrete
+	case MethodValueInterface:
+		t.MethodType = MethodCallInterface
+	}
+
 	tc.TypeInfo[expr.Func] = t
 
 	// expr is a ShowMacro expression which is not defined and which has been

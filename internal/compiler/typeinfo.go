@@ -32,8 +32,24 @@ type TypeInfo struct {
 	Properties        Properties   // Properties.
 	Value             interface{}  // Value; for packages has type *Package.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
-	NeedsRcvrAsArg    bool         // TODO(Gianluca): put in properties?
+	MethodType        MethodType   // TODO(Gianluca): doc.
 }
+
+// TODO(Gianluca): doc.
+type MethodType uint8
+
+// TODO(Gianluca): doc.
+const (
+	NoMethod MethodType = iota
+
+	MethodValueConcrete
+	MethodValueInterface
+
+	MethodCallInterface
+	MethodCallConcrete
+
+	MethodExpressionConcrete
+)
 
 // Nil reports whether it is the predeclared nil.
 func (ti *TypeInfo) Nil() bool {

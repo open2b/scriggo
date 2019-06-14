@@ -401,7 +401,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	funcType := funcTypeInfo.Type
 
 	// Method call on a interface value.
-	if name, ok := funcTypeInfo.Value.(string); ok {
+	if funcTypeInfo.MethodType == MethodCallInterface {
 		rcvrExpr := call.Func.(*ast.Selector).Expr
 		rcvrType := e.typeInfos[rcvrExpr].Type
 		rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
@@ -415,6 +415,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 			panic("not implemented")
 		}
 		method := e.fb.NewRegister(reflect.Func)
+		name := call.Func.(*ast.Selector).Ident
 		e.fb.MethodValue(name, rcvr, method)
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		regs, types := e.prepareCallParameters(funcType, call.Args, true, true)
@@ -424,11 +425,11 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
 	// Predefined function (identifiers, selectors etc...).
 	if funcTypeInfo.IsPredefined() {
-		if funcTypeInfo.NeedsRcvrAsArg {
+		if funcTypeInfo.MethodType == MethodCallConcrete {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
-		regs, types := e.prepareCallParameters(funcType, call.Args, true, funcTypeInfo.NeedsRcvrAsArg)
+		regs, types := e.prepareCallParameters(funcType, call.Args, true, funcTypeInfo.MethodType == MethodCallConcrete)
 		var name string
 		switch f := call.Func.(type) {
 		case *ast.Identifier:

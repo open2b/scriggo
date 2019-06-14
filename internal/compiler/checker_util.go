@@ -560,10 +560,10 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		} else {
 			if method, ok := t.Type.MethodByName(name); ok {
 				return &TypeInfo{
-					Type:           removeEnvArg(method.Type, true),
-					Value:          method.Func,
-					Properties:     PropertyIsPredefined,
-					NeedsRcvrAsArg: false, // Receiver is explicit, this is a regular function.
+					Type:       removeEnvArg(method.Type, true),
+					Value:      method.Func,
+					Properties: PropertyIsPredefined,
+					MethodType: MethodExpressionConcrete,
 				}, receiverNoTransform, true
 			}
 			return nil, receiverNoTransform, false
@@ -578,8 +578,9 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 			// to emitter that a given method call is a method call on an
 			// interface value.
 			ti := &TypeInfo{
-				Type:  removeEnvArg(method.Type, true),
-				Value: name,
+				Type:       removeEnvArg(method.Type, true),
+				Value:      name,
+				MethodType: MethodValueInterface,
 			}
 			return ti, receiverNoTransform, true
 		}
@@ -599,10 +600,10 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 	methodExplicitRcvr, _ := t.Type.MethodByName(name)
 	if method.IsValid() {
 		ti := &TypeInfo{
-			Type:           removeEnvArg(method.Type(), false),
-			Value:          methodExplicitRcvr.Func,
-			Properties:     PropertyIsPredefined,
-			NeedsRcvrAsArg: true,
+			Type:       removeEnvArg(method.Type(), false),
+			Value:      methodExplicitRcvr.Func,
+			Properties: PropertyIsPredefined,
+			MethodType: MethodValueConcrete,
 		}
 		// Checks if pointer is defined on T or *T when called on a *T receiver.
 		if t.Type.Kind() == reflect.Ptr {
@@ -624,10 +625,10 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		methodExplicitRcvr, _ := reflect.PtrTo(t.Type).MethodByName(name)
 		if method.IsValid() {
 			return &TypeInfo{
-				Type:           removeEnvArg(method.Type(), false),
-				Value:          methodExplicitRcvr.Func,
-				Properties:     PropertyIsPredefined,
-				NeedsRcvrAsArg: true,
+				Type:       removeEnvArg(method.Type(), false),
+				Value:      methodExplicitRcvr.Func,
+				Properties: PropertyIsPredefined,
+				MethodType: MethodValueConcrete,
 			}, receiverAddAddress, true
 		}
 	}
