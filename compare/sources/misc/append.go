@@ -4,7 +4,6 @@ package main
 
 import "fmt"
 
-
 func printS(s []int) {
 	fmt.Printf("[len=%d] -> %v\n", len(s), s)
 }
@@ -19,4 +18,3 @@ func main() {
 	s = append(s, 10, 20, 30)
 	printS(s)
 }
-

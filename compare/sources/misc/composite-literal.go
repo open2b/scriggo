@@ -24,12 +24,12 @@ func main() {
 	//fmt.Println(m2["k"][1], m2["k"]["two"])
 
 	s1 := []int{1, 2, 3}
-	// TODO(Gianluca): 
+	// TODO(Gianluca):
 	// s1 = append(s1, s1[0], s1[1])
 	fmt.Println(s1)
 
 	s2 := [][]int{}
-	// TODO(Gianluca): 
+	// TODO(Gianluca):
 	// s2 = append(s2, []int{1, 2})
 	// s2 = append(s2, []int{3, 4})
 	fmt.Println(s2)
@@ -50,7 +50,7 @@ func main() {
 	_ = [...]int{0: 1, 2, 20: 3}
 	_ = [10]int{0: 1, 2, 2: 3}
 
-	// TODO(Gianluca): 
+	// TODO(Gianluca):
 	// fmt.Println([]interface{}{} == nil)
 	// fmt.Println([]byte{} == nil)
 
