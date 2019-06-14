@@ -155,6 +155,7 @@ func renderInText(w strWriter, value interface{}) error {
 		if rv.IsNil() || rv.Len() == 0 {
 			return nil
 		}
+		var err error
 		for i, l := 0, rv.Len(); i < l; i++ {
 			if i > 0 {
 				_, err := w.WriteString(", ")
@@ -162,7 +163,12 @@ func renderInText(w strWriter, value interface{}) error {
 					return err
 				}
 			}
-			err := renderInText(w, rv.Index(i).Interface())
+			v := rv.Index(i).Interface()
+			if e, ok := v.(ValueRenderer); ok {
+				err = e.Render(w, ContextText)
+			} else {
+				err = renderInText(w, v)
+			}
 			if err != nil {
 				return err
 			}
@@ -208,6 +214,7 @@ func renderInHTML(w strWriter, value interface{}) error {
 		if rv.IsNil() || rv.Len() == 0 {
 			return nil
 		}
+		var err error
 		for i, l := 0, rv.Len(); i < l; i++ {
 			if i > 0 {
 				_, err := w.WriteString(", ")
@@ -215,7 +222,12 @@ func renderInHTML(w strWriter, value interface{}) error {
 					return err
 				}
 			}
-			err := renderInHTML(w, rv.Index(i).Interface())
+			v := rv.Index(i).Interface()
+			if e, ok := v.(ValueRenderer); ok {
+				err = e.Render(w, ContextHTML)
+			} else {
+				err = renderInHTML(w, v)
+			}
 			if err != nil {
 				return err
 			}
@@ -285,16 +297,24 @@ func renderInAttribute(w strWriter, value interface{}, quoted bool) error {
 		if rv.IsNil() || rv.Len() == 0 {
 			return nil
 		}
+		var err error
 		for i, l := 0, rv.Len(); i < l; i++ {
-			var err error
 			if i > 0 {
 				if quoted {
 					_, err = w.WriteString(", ")
 				} else {
 					_, err = w.WriteString(",&#32;")
 				}
+				if err != nil {
+					return err
+				}
 			}
-			err = renderInAttribute(w, rv.Index(i).Interface(), quoted)
+			v := rv.Index(i).Interface()
+			if e, ok := v.(ValueRenderer); ok {
+				err = e.Render(w, ContextAttribute)
+			} else {
+				err = renderInAttribute(w, v, quoted)
+			}
 			if err != nil {
 				return err
 			}
@@ -525,7 +545,12 @@ func renderInJavaScript(w strWriter, value interface{}) error {
 						return err
 					}
 				}
-				err = renderInJavaScript(w, rv.Index(i).Interface())
+				v := rv.Index(i).Interface()
+				if e, ok := v.(ValueRenderer); ok {
+					err = e.Render(w, ContextJavaScript)
+				} else {
+					err = renderInJavaScript(w, v)
+				}
 				if err != nil {
 					return err
 				}
