@@ -1025,6 +1025,16 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	}
 }
 
+// MethodValue appends a new "MethodValue" instruction to the function body.
+//
+//     dst = receiver.name
+//
+func (builder *functionBuilder) MethodValue(name string, receiver int8, dst int8) {
+	str := builder.MakeStringConstant(name)
+	fn := builder.fn
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMethodValue, A: receiver, B: str, C: dst})
+}
+
 // Move appends a new "Move" instruction to the function body.
 //
 //     z = x
