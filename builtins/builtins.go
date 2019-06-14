@@ -82,7 +82,6 @@ var main = scriggo.Package{
 		"hasSuffix":   strings.HasSuffix,
 		"hex":         hex,
 		"hmac":        hmac,
-		"html":        reflect.TypeOf(scriggo.HTML("")),
 		"index":       index,
 		"indexAny":    indexAny,
 		"itoa":        itoa,
@@ -197,17 +196,8 @@ func errorf(format string, a ...interface{}) {
 }
 
 // escape is the builtin function "escape".
-func escape(env *vm.Env, s interface{}) scriggo.HTML {
-	switch s := s.(type) {
-	case string:
-		return htmlEscapeString(env, s)
-	case scriggo.HTML:
-		return s
-	default:
-		err := fmt.Sprintf("call of escape on %T value", s)
-		env.Alloc(len(err))
-		panic(err)
-	}
+func escape(env *vm.Env, s string) string {
+	return htmlEscapeString(env, s)
 }
 
 // hash is the builtin function "hash".
@@ -473,8 +463,6 @@ func sort(slice interface{}) {
 	case nil:
 	case []string:
 		_sort.Strings(s)
-	case []scriggo.HTML:
-		_sort.Slice(s, func(i, j int) bool { return string(s[i]) < string(s[j]) })
 	case []rune:
 		_sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
 	case []byte:
@@ -587,8 +575,7 @@ func withAlloc(env *vm.Env, f func(string) string, s string) string {
 //
 // This is a copy of the homonymous function in package template, with the
 // addition of the env parameter to allocate the memory for the new string.
-// Also this function returns a scriggo.HTML value instead of a string.
-func htmlEscapeString(env *vm.Env, s string) scriggo.HTML {
+func htmlEscapeString(env *vm.Env, s string) string {
 	more := 0
 	for i := 0; i < len(s); i++ {
 		switch c := s[i]; c {
@@ -599,7 +586,7 @@ func htmlEscapeString(env *vm.Env, s string) scriggo.HTML {
 		}
 	}
 	if more == 0 {
-		return scriggo.HTML(s)
+		return s
 	}
 	env.Alloc(len(s) + more)
 	b := make([]byte, len(s)+more)
@@ -638,5 +625,5 @@ func htmlEscapeString(env *vm.Env, s string) scriggo.HTML {
 			j++
 		}
 	}
-	return scriggo.HTML(b)
+	return string(b)
 }

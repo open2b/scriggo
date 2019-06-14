@@ -29,8 +29,8 @@ var htmlContextTests = []struct {
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`a`, "&#34;ab&#39;cd&#34;", Vars{"a": "\"ab'cd\""}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
-	{`a`, "<a>", Vars{"a": scriggo.HTML("<a>")}},
-	{`d`, "<div></div>", Vars{"d": scriggo.HTML("<div></div>")}},
+	{`a`, "<a>", Vars{"a": HTML("<a>")}},
+	{`d`, "<div></div>", Vars{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -86,9 +86,9 @@ var attributeContextTests = []struct {
 	{`"<div></div>"`, "&lt;div&gt;&lt;/div&gt;", nil},
 	{`a`, "&lt;a&gt;", Vars{"a": "<a>"}},
 	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": "<div></div>"}},
-	{`a`, "&lt;a&gt;", Vars{"a": scriggo.HTML("<a>")}},
-	{`a`, "&amp;", Vars{"a": scriggo.HTML("&amp;")}},
-	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": scriggo.HTML("<div></div>")}},
+	{`a`, "&lt;a&gt;", Vars{"a": HTML("<a>")}},
+	{`a`, "&amp;", Vars{"a": HTML("&amp;")}},
+	{`d`, "&lt;div&gt;&lt;/div&gt;", Vars{"d": HTML("<div></div>")}},
 	{`0`, "0", nil},
 	{`25`, "25", nil},
 	{`-25`, "-25", nil},
@@ -438,7 +438,7 @@ func mainPackage(vars Vars) *scriggo.Package {
 	main := &scriggo.Package{
 		Name: "main",
 		Declarations: map[string]interface{}{
-			"html": reflect.TypeOf(scriggo.HTML("")),
+			"html": reflect.TypeOf(HTML("")),
 		},
 	}
 	for name, value := range vars {

@@ -9,17 +9,15 @@ package template
 import (
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"reflect"
-	"sort"
+	_sort "sort"
 	"strconv"
 	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo"
 	"scriggo/vm"
 )
 
@@ -149,8 +147,6 @@ func renderInText(w strWriter, value interface{}) error {
 		s = strconv.FormatFloat(v, 'f', -1, 64)
 	case string:
 		s = v
-	case scriggo.HTML:
-		s = string(v)
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
@@ -204,8 +200,6 @@ func renderInHTML(w strWriter, value interface{}) error {
 		s = strconv.FormatFloat(v, 'f', -1, 64)
 	case string:
 		return htmlEscape(w, v)
-	case scriggo.HTML:
-		s = string(v)
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
@@ -283,8 +277,6 @@ func renderInAttribute(w strWriter, value interface{}, quoted bool) error {
 		s = strconv.FormatFloat(v, 'f', -1, 64)
 	case string:
 		return attributeEscape(w, v, quoted)
-	case scriggo.HTML:
-		return attributeEscape(w, html.UnescapeString(string(v)), quoted)
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
@@ -340,8 +332,6 @@ func renderInAttributeURL(w strWriter, value interface{}, inQuery, quoted bool) 
 		s = strconv.FormatFloat(v, 'f', -1, 64)
 	case string:
 		s = v
-	case scriggo.HTML:
-		s = string(v)
 	default:
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() || rv.Kind() != reflect.Slice {
@@ -375,8 +365,6 @@ func renderInAttributeURL(w strWriter, value interface{}, inQuery, quoted bool) 
 				s = strconv.FormatFloat(v, 'f', -1, 64)
 			case string:
 				s += v
-			case scriggo.HTML:
-				s += string(v)
 			default:
 				return ErrNoRenderInContext
 			}
@@ -423,17 +411,6 @@ func renderInCSS(w strWriter, value interface{}) error {
 		}
 		_, err = w.WriteString(`"`)
 		return err
-	case scriggo.HTML:
-		_, err := w.WriteString(`"`)
-		if err != nil {
-			return err
-		}
-		err = cssStringEscape(w, string(v))
-		if err != nil {
-			return err
-		}
-		_, err = w.WriteString(`"`)
-		return err
 	case []byte:
 		return escapeBytes(w, v, false)
 	default:
@@ -465,8 +442,6 @@ func renderInCSSString(w strWriter, value interface{}) error {
 		s = strconv.FormatFloat(v, 'f', -1, 64)
 	case string:
 		return cssStringEscape(w, v)
-	case scriggo.HTML:
-		return cssStringEscape(w, string(v))
 	case []byte:
 		return escapeBytes(w, v, false)
 	default:
@@ -512,17 +487,6 @@ func renderInJavaScript(w strWriter, value interface{}) error {
 			return err
 		}
 		err = javaScriptStringEscape(w, v)
-		if err != nil {
-			return err
-		}
-		_, err = w.WriteString("\"")
-		return err
-	case scriggo.HTML:
-		_, err := w.WriteString("\"")
-		if err != nil {
-			return err
-		}
-		err = javaScriptStringEscape(w, string(v))
 		if err != nil {
 			return err
 		}
@@ -613,9 +577,6 @@ func renderInJavaScriptString(w strWriter, value interface{}) error {
 	case string:
 		err := javaScriptStringEscape(w, v)
 		return err
-	case scriggo.HTML:
-		err := javaScriptStringEscape(w, string(v))
-		return err
 	}
 	return ErrNoRenderInContext
 }
@@ -643,7 +604,7 @@ func renderValueAsJavaScriptObject(w strWriter, rv reflect.Value) error {
 	for name := range keys {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	_sort.Strings(names)
 
 	for i, name := range names {
 		sep := `,"`
@@ -691,7 +652,7 @@ func renderMapAsJavaScriptObject(w strWriter, value map[string]interface{}) erro
 	for name := range value {
 		names = append(names, name)
 	}
-	sort.Strings(names)
+	_sort.Strings(names)
 
 	for i, n := range names {
 		if i > 0 {
@@ -725,9 +686,6 @@ func withConcreteType(v interface{}) interface{} {
 	}
 	typ := reflect.TypeOf(v)
 	if typ.Name() == "" {
-		return v
-	}
-	if _, ok := v.(scriggo.HTML); ok {
 		return v
 	}
 	r := reflect.ValueOf(v)

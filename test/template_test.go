@@ -210,13 +210,13 @@ func TestTemplate(t *testing.T) {
 	for name, cas := range templateCases {
 		t.Run(name, func(t *testing.T) {
 			r := template.MapReader{"/main": []byte(cas.src)}
-			main := builtins.Main()
+			builtins := template.Builtins()
 			if cas.main != nil {
 				for k, v := range cas.main.Declarations {
-					main.Declarations[k] = v
+					builtins.Declarations[k] = v
 				}
 			}
-			templ, err := template.Load("/main", r, main, template.ContextText, template.LoadOption(0))
+			templ, err := template.Load("/main", r, builtins, template.ContextText, template.LoadOption(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
