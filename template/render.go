@@ -54,6 +54,7 @@ func Render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
 			}
 			panic(err)
 		}
+		return
 	}
 
 	w := newStringWriter(out)
