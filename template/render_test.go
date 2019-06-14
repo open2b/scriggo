@@ -441,7 +441,7 @@ func mainPackage(vars Vars) *scriggo.Package {
 		},
 	}
 	for name, value := range vars {
-		main.Declarations[name] = &value
+		main.Declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
 	}
 	return main
 }
