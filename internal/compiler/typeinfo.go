@@ -32,21 +32,19 @@ type TypeInfo struct {
 	Properties        Properties   // Properties.
 	Value             interface{}  // Value; for packages has type *Package.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
-	MethodType        MethodType   // TODO(Gianluca): doc.
+	MethodType        MethodType   // Method type.
 }
 
-// TODO(Gianluca): doc.
+// MethodType represents the type of a method, intended as a combination of a
+// method call/value/expression and a receiver type (concrete or interface).
 type MethodType uint8
 
-// TODO(Gianluca): doc.
 const (
-	NoMethod MethodType = iota
-
-	MethodValueConcrete
-	MethodValueInterface
-
-	MethodCallInterface
-	MethodCallConcrete
+	NoMethod             MethodType = iota // Not a method.
+	MethodValueConcrete                    // Method value on a concrete receiver.
+	MethodValueInterface                   // Method value on an interface receiver.
+	MethodCallConcrete                     // Method call on concrete receiver.
+	MethodCallInterface                    // Method call on interface receiver.
 )
 
 // Nil reports whether it is the predeclared nil.
