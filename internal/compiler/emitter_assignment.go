@@ -77,7 +77,16 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 // assign assigns values to addresses.
 func (e *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
-	if len(addresses) == len(values) {
+	if len(addresses) == 1 && len(values) == 1 {
+		addr := addresses[0]
+		valueType := e.typeInfos[values[0]].Type
+		value, k, ok := e.quickEmitExpr(values[0], valueType)
+		if !ok {
+			value = e.fb.NewRegister(valueType.Kind())
+			e.emitExpr(values[0], value, valueType)
+		}
+		addr.assign(k, value, valueType)
+	} else if len(addresses) == len(values) {
 		valueRegs := make([]int8, len(values))
 		valueTypes := make([]reflect.Type, len(values))
 		valueIsK := make([]bool, len(values))
