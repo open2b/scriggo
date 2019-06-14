@@ -83,6 +83,18 @@ func (builder *functionBuilder) ExitScope() {
 // EnterStack enters a new virtual stack, whose registers will be reused (if
 // necessary) after calling ExitScope.
 // Every EnterStack call must be paired with a corresponding ExitStack call.
+// EnterStack/ExitStack should be called before every temporary register
+// allocation, which will be reused when ExitStack is called.
+//
+// Usage:
+//
+// 		e.fb.EnterStack()
+// 		tmpReg := e.fb.NewRegister(..)
+// 		// use tmpReg in some way
+// 		// move tmpReg content to externally-defined reg
+// 		e.fb.ExitStack()
+//	    // tmpReg location is now available for reusing
+//
 func (builder *functionBuilder) EnterStack() {
 	scopeShift := vm.StackShift{
 		int8(builder.numRegs[reflect.Int]),
@@ -96,6 +108,7 @@ func (builder *functionBuilder) EnterStack() {
 // ExitStack exits current virtual stack, allowing its registers to be reused
 // (if necessary).
 // Every ExitStack call must be paired with a corresponding EnterStack call.
+// See EnterStack documentation for further details and usage.
 func (builder *functionBuilder) ExitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
 	builder.numRegs[reflect.Int] = uint8(shift[0])
