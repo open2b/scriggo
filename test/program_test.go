@@ -124,7 +124,25 @@ var stmtTests = []struct {
 }{
 
 	{
-		name: "Method expression on concrete receiver (defined on value receiver)",
+		name: "Method call on interface receiver (method defined on value receiver)",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			d, _ := time.ParseDuration("10m")
+			s := fmt.Stringer(d)
+			ss := s.String()
+			fmt.Print("s.String() is ", ss)
+		}`,
+		output: "s.String() is 10m0s",
+	},
+
+	{
+		name: "Method expression on concrete receiver (method defined on value receiver)",
 		src: `package main
 
 		import (
@@ -4399,7 +4417,8 @@ var goPackages = scriggo.Packages{
 	"time": {
 		Name: "time",
 		Declarations: map[string]interface{}{
-			"Duration": reflect.TypeOf(new(time.Duration)).Elem(),
+			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
+			"ParseDuration": time.ParseDuration,
 		},
 	},
 }

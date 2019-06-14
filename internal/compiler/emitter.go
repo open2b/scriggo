@@ -397,9 +397,32 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		int8(e.fb.numRegs[reflect.Interface]),
 	}
 
-	// Predefined function (identifiers, selectors etc...).
 	funcTypeInfo := e.typeInfos[call.Func]
 	funcType := funcTypeInfo.Type
+
+	// Method call on a interface value.
+	if name, ok := funcTypeInfo.Value.(string); ok {
+		rcvrExpr := call.Func.(*ast.Selector).Expr
+		rcvrType := e.typeInfos[rcvrExpr].Type
+		rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
+		if !ok || k {
+			rcvr = e.fb.NewRegister(rcvrType.Kind())
+			e.emitExpr(rcvrExpr, rcvr, rcvrType)
+		}
+		// MethodValue reads receiver from general.
+		if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
+			// TODO(Gianluca): put rcvr in general
+			panic("not implemented")
+		}
+		method := e.fb.NewRegister(reflect.Func)
+		e.fb.MethodValue(name, rcvr, method)
+		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
+		regs, types := e.prepareCallParameters(funcType, call.Args, true, true)
+		e.fb.CallIndirect(method, 0, stackShift)
+		return regs, types
+	}
+
+	// Predefined function (identifiers, selectors etc...).
 	if funcTypeInfo.IsPredefined() {
 		if funcTypeInfo.NeedsRcvrAsArg {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?

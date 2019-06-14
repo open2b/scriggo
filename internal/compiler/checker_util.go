@@ -574,9 +574,18 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 	if t.Type.Kind() == reflect.Interface {
 		method, ok := t.Type.MethodByName(name)
 		if ok {
-			return &TypeInfo{Type: removeEnvArg(method.Type, true)}, receiverNoTransform, true
+			// TODO(Gianluca): find a better way to communicate from typechecker
+			// to emitter that a given method call is a method call on an
+			// interface value.
+			ti := &TypeInfo{
+				Type:  removeEnvArg(method.Type, true),
+				Value: name,
+			}
+			return ti, receiverNoTransform, true
 		}
 		if t.Type.Kind() != reflect.Ptr {
+			// TODO(Gianluca): is that possible?
+			panic("needs a review")
 			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
 			if ok {
 				return &TypeInfo{Type: removeEnvArg(method.Type, true)}, receiverNoTransform, true
