@@ -124,6 +124,24 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Method expression on concrete receiver (defined on value receiver)",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			var d time.Duration = 7200000000
+			h := time.Duration.Hours(d)
+			fmt.Print(h)
+		}		
+		`,
+		output: `0.002`,
+	},
+
+	{
 		name: "Method call on concrete value (T* rcv on T method)",
 		src: `package main
 
