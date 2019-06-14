@@ -484,8 +484,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 // the result into the register reg. If reg is zero, instructions are emitted
 // anyway but the result is discarded.
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
-	// TODO (Gianluca): review all "kind" arguments in every emitExpr call.
-	// TODO (Gianluca): use "tmpReg" instead "reg" and move evaluated value to reg only if reg != 0.
+
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -589,31 +588,36 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		if e.typeInfos[expr.Func] == showMacroIgnoredTi {
 			return
 		}
-		e.fb.EnterStack()
+
 		// Builtin call.
 		if e.typeInfos[expr.Func].IsBuiltin() {
 			e.emitBuiltin(expr, reg, dstType)
-			e.fb.ExitStack()
 			return
 		}
 		// Conversion.
 		if val, ok := expr.Func.(*ast.Value); ok {
 			if convertType, ok := val.Val.(reflect.Type); ok {
+				if reg == 0 {
+					// Conversion cannot have side-effects.
+					return
+				}
 				typ := e.typeInfos[expr.Args[0]].Type
 				arg := e.fb.NewRegister(typ.Kind())
 				e.emitExpr(expr.Args[0], arg, typ)
 				if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
 					e.changeRegister(false, arg, reg, typ, convertType)
 				} else {
+					e.fb.EnterStack()
 					tmpReg := e.fb.NewRegister(convertType.Kind())
 					e.changeRegister(false, arg, tmpReg, typ, convertType)
 					e.changeRegister(false, tmpReg, reg, convertType, dstType)
+					e.fb.ExitStack()
 				}
-				e.fb.ExitStack()
 				return
 			}
 		}
 		// Function call.
+		e.fb.EnterStack()
 		regs, types := e.emitCall(expr)
 		if reg != 0 {
 			e.changeRegister(false, regs[0], reg, types[0], dstType)
