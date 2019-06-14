@@ -124,6 +124,21 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Conversion as function call argument with different register kind",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Println(string([]byte{97, 98, 99}))
+		}
+		`,
+		output: "abc\n",
+	},
+
+	{
 		name: "Method expression (call) on interface receiver",
 		src: `package main
 

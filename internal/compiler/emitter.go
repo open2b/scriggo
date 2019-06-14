@@ -602,7 +602,13 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				typ := e.typeInfos[expr.Args[0]].Type
 				arg := e.fb.NewRegister(typ.Kind())
 				e.emitExpr(expr.Args[0], arg, typ)
-				e.changeRegister(false, arg, reg, typ, convertType)
+				if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
+					e.changeRegister(false, arg, reg, typ, convertType)
+				} else {
+					tmpReg := e.fb.NewRegister(convertType.Kind())
+					e.changeRegister(false, arg, tmpReg, typ, convertType)
+					e.changeRegister(false, tmpReg, reg, convertType, dstType)
+				}
 				e.fb.ExitStack()
 				return
 			}
