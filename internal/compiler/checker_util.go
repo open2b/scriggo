@@ -553,43 +553,52 @@ const (
 // receiver as first argument.
 func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, bool) {
 
-	// Method expressions.
 	if t.IsType() {
+		// Method expression on interface type.
 		if t.Type.Kind() == reflect.Interface {
-			panic("not implemented") // TODO(Gianluca): review.
-		} else {
 			if method, ok := t.Type.MethodByName(name); ok {
-				return &TypeInfo{
-					Type:       removeEnvArg(method.Type, true),
-					Value:      method.Func,
+				in := make([]reflect.Type, method.Type.NumIn()+1)
+				in[0] = t.Type
+				for i := 0; i < method.Type.NumIn(); i++ {
+					in[i+1] = method.Type.In(i)
+				}
+				out := make([]reflect.Type, method.Type.NumOut())
+				for i := 0; i < method.Type.NumOut(); i++ {
+					out[i] = method.Type.Out(i)
+				}
+				f := func(args []reflect.Value) []reflect.Value {
+					return args[0].MethodByName(method.Name).Call(args[1:])
+				}
+				methExpr := reflect.MakeFunc(reflect.FuncOf(in, out, method.Type.IsVariadic()), f)
+				ti := &TypeInfo{
+					Type:       removeEnvArg(methExpr.Type(), false),
+					Value:      methExpr,
 					Properties: PropertyIsPredefined,
-				}, receiverNoTransform, true
+				}
+				return ti, receiverNoTransform, true
 			}
-			return nil, receiverNoTransform, false
 		}
+
+		// Method expression on concrete type.
+		if method, ok := t.Type.MethodByName(name); ok {
+			return &TypeInfo{
+				Type:       removeEnvArg(method.Type, true),
+				Value:      method.Func,
+				Properties: PropertyIsPredefined,
+			}, receiverNoTransform, true
+		}
+		return nil, receiverNoTransform, false
 	}
 
 	// Method calls and method values on interfaces.
 	if t.Type.Kind() == reflect.Interface {
-		method, ok := t.Type.MethodByName(name)
-		if ok {
-			// TODO(Gianluca): find a better way to communicate from typechecker
-			// to emitter that a given method call is a method call on an
-			// interface value.
+		if method, ok := t.Type.MethodByName(name); ok {
 			ti := &TypeInfo{
 				Type:       removeEnvArg(method.Type, true),
 				Value:      name,
 				MethodType: MethodValueInterface,
 			}
 			return ti, receiverNoTransform, true
-		}
-		if t.Type.Kind() != reflect.Ptr {
-			// TODO(Gianluca): is that possible?
-			panic("needs a review")
-			method, ok := reflect.PtrTo(t.Type).MethodByName(name)
-			if ok {
-				return &TypeInfo{Type: removeEnvArg(method.Type, true)}, receiverNoTransform, true
-			}
 		}
 		return nil, receiverNoTransform, false
 	}

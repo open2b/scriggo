@@ -124,6 +124,43 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Method expression (call) on interface receiver",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			d, _ := time.ParseDuration("20m42s")
+			s := fmt.Stringer(d)
+			ss := fmt.Stringer.String(s)
+			fmt.Print("s.String() is ", ss)
+		}`,
+		output: "s.String() is 20m42s",
+	},
+
+	{
+		name: "Method expression (value) on interface receiver",
+		src: `package main
+
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			d, _ := time.ParseDuration("20m42s")
+			s := fmt.Stringer(d)
+			m := fmt.Stringer.String
+			ss := m(s)
+			fmt.Print("s.String() is ", ss)
+		}`,
+		output: "s.String() is 20m42s",
+	},
+
+	{
 		name: "Method value on interface receiver",
 		src: `package main
 
