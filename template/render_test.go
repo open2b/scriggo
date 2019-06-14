@@ -54,7 +54,6 @@ var htmlContextTests = []struct {
 
 func TestHTMLContext(t *testing.T) {
 	for _, expr := range htmlContextTests {
-		println(expr.src)
 		r := MapReader{"/index.html": []byte("{{" + expr.src + "}}")}
 		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, LimitMemorySize)
 		if err != nil {
