@@ -27,7 +27,7 @@ var ErrNoRenderInContext = errors.New("cannot render type in context")
 
 // DefaultRenderFunc is the default RenderFunc used by Render method if the
 // option RenderFunc is nil.
-var DefaultRenderFunc = Render
+var DefaultRenderFunc = render
 
 // ValueRenderer is called by the RenderFunc and is implemented by the types
 // that know how to render their values. Render renders the value in the
@@ -40,9 +40,9 @@ type ValueRenderer interface {
 }
 
 // Render renders value in the context ctx and writes to out.
-func Render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
+func render(_ *vm.Env, out io.Writer, value interface{}, ctx Context) {
 
-	// TODO: pass url state to Render.
+	// TODO: pass url state to render.
 
 	if e, ok := value.(ValueRenderer); ok {
 		err := e.Render(out, ctx)
