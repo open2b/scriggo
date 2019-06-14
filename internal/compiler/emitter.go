@@ -585,10 +585,10 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.ExitStack()
 
 	case *ast.Call:
+		// ShowMacro which must be ignored (cannot be resolved).
 		if e.typeInfos[expr.Func] == showMacroIgnoredTi {
 			return
 		}
-
 		// Builtin call.
 		if e.typeInfos[expr.Func].IsBuiltin() {
 			e.emitBuiltin(expr, reg, dstType)
@@ -628,15 +628,18 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
 		case reflect.Slice, reflect.Array:
-			size := int8(compositeLiteralLen(expr))
-			// TODO(Gianluca): incorrect when reg is 0: slice is not
-			// created, but values must be evaluated anyway.
-			if reg != 0 {
-				if typ.Kind() == reflect.Array {
-					typ = reflect.SliceOf(typ.Elem())
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := e.typeInfos[kv.Value].Type
+					e.emitExpr(kv.Value, 0, typ)
 				}
-				e.fb.MakeSlice(true, true, typ, size, size, reg)
+				return
 			}
+			size := int8(compositeLiteralLen(expr))
+			if typ.Kind() == reflect.Array {
+				typ = reflect.SliceOf(typ.Elem())
+			}
+			e.fb.MakeSlice(true, true, typ, size, size, reg)
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
@@ -660,6 +663,13 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		case reflect.Struct:
 			panic("TODO: not implemented")
 		case reflect.Map:
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := e.typeInfos[kv.Value].Type
+					e.emitExpr(kv.Value, 0, typ)
+				}
+				return
+			}
 			// TODO (Gianluca): handle maps with bigger size.
 			size := len(expr.KeyValues)
 			sizeReg := e.fb.MakeIntConstant(int64(size))

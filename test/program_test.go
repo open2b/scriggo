@@ -124,6 +124,28 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Side effect when creating composite literals w/o assigning them",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func f(s string) int {
+			fmt.Print(s, " ", "side-effect, ")
+			return 10
+		}
+		
+		func main() {
+			_ = []int{f("slice"), f("slice"), 5, f("slice")}
+			_ = [...]int{10: f("array")}
+			_ = map[string]int{"f": f("map")}
+		}
+		`,
+		output: "slice side-effect, slice side-effect, slice side-effect, array side-effect, map side-effect, ",
+	},
+
+	{
 		name: "Conversion as function call argument with different register kind",
 		src: `package main
 
