@@ -694,8 +694,15 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			e.emitExpr(expr.Expr, exprReg, typ)
 		}
 		assertType := expr.Type.(*ast.Value).Val.(reflect.Type)
-		e.fb.Assert(exprReg, assertType, reg)
-		e.fb.Nop()
+		if kindToType(assertType.Kind()) == kindToType(dstType.Kind()) {
+			e.fb.Assert(exprReg, assertType, reg)
+			e.fb.Nop()
+		} else {
+			tmpReg := e.fb.NewRegister(assertType.Kind())
+			e.fb.Assert(exprReg, assertType, tmpReg)
+			e.fb.Nop()
+			e.changeRegister(false, tmpReg, reg, assertType, dstType)
+		}
 
 	case *ast.Selector:
 
