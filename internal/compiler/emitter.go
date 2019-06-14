@@ -681,8 +681,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 		ti := e.typeInfos[expr]
 
-		// Method value on concrete value.
-		if ti.MethodType == MethodValueConcrete {
+		// Method value on concrete and interface values.
+		if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
 			rcvrExpr := expr.Expr
 			rcvrType := e.typeInfos[rcvrExpr].Type
 			rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
@@ -705,14 +705,12 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 
 		if ti.IsPredefined() {
-
 			// Predefined function.
 			if ti.Type.Kind() == reflect.Func {
 				index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 				e.fb.GetFunc(true, index, reg)
 				return
 			}
-
 			// Predefined variable.
 			index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 			e.fb.GetVar(int(index), reg)
