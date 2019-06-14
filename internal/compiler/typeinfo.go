@@ -47,8 +47,6 @@ const (
 
 	MethodCallInterface
 	MethodCallConcrete
-
-	MethodExpressionConcrete
 )
 
 // Nil reports whether it is the predeclared nil.

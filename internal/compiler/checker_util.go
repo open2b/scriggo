@@ -563,7 +563,6 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 					Type:       removeEnvArg(method.Type, true),
 					Value:      method.Func,
 					Properties: PropertyIsPredefined,
-					MethodType: MethodExpressionConcrete,
 				}, receiverNoTransform, true
 			}
 			return nil, receiverNoTransform, false
