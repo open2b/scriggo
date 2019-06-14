@@ -14,14 +14,14 @@ const hexchars = "0123456789abcdef"
 
 // TODO(Gianluca): this definition is a copy-paste from "value.go", which has
 // been excluded from building. See "value.go" for further details.
-type stringWriter interface {
+type strWriter interface {
 	Write(b []byte) (int, error)
 	WriteString(s string) (int, error)
 }
 
 // htmlEscape escapes the string s, so it can be placed inside HTML, and
 // writes it on w.
-func htmlEscape(w stringWriter, s string) error {
+func htmlEscape(w strWriter, s string) error {
 	last := 0
 	for i := 0; i < len(s); i++ {
 		var esc string
@@ -115,7 +115,7 @@ func htmlEscapeString(s string) string {
 // attributeEscape escapes the string s, so it can be placed inside an HTML
 // attribute value, and write it to w. quoted reports whether the attribute is
 // quoted.
-func attributeEscape(w stringWriter, s string, quoted bool) error {
+func attributeEscape(w strWriter, s string, quoted bool) error {
 	if quoted {
 		return htmlEscape(w, s)
 	}
@@ -230,7 +230,7 @@ var cssStringEscapes = []string{
 
 // cssStringEscape escapes the string s, so it can be placed inside a CSS
 // string with single or double quotes, and write it to w.
-func cssStringEscape(w stringWriter, s string) error {
+func cssStringEscape(w strWriter, s string) error {
 	last := 0
 	for i := 0; i < len(s); i++ {
 		var esc string
@@ -309,7 +309,7 @@ var javaScriptStringEscapes = []string{
 
 // javaScriptStringEscape escapes the string s so it can be placed inside a
 // JavaScript and JSON string with single or double quotes, and write it to w.
-func javaScriptStringEscape(w stringWriter, s string) error {
+func javaScriptStringEscape(w strWriter, s string) error {
 	last := 0
 	var buf []byte
 	for i, c := range s {
@@ -357,7 +357,7 @@ func javaScriptStringEscape(w stringWriter, s string) error {
 // is quoted.
 //
 // Note that url.PathEscape escapes '/' as '%2F' and ' ' as '%20'.
-func pathEscape(w stringWriter, s string, quoted bool) error {
+func pathEscape(w strWriter, s string, quoted bool) error {
 	last := 0
 	var buf []byte
 	for i := 0; i < len(s); i++ {
@@ -414,7 +414,7 @@ func pathEscape(w stringWriter, s string, quoted bool) error {
 // and write it to w.
 //
 // Note that url.QueryEscape escapes ' ' as '+' and not as '%20'.
-func queryEscape(w stringWriter, s string) error {
+func queryEscape(w strWriter, s string) error {
 	last := 0
 	var buf []byte
 	for i := 0; i < len(s); i++ {
@@ -450,7 +450,7 @@ func queryEscape(w stringWriter, s string) error {
 
 // escapeBytes escapes b as Base64, so it can be placed inside JavaScript and
 // CSS, and write it to w. addQuote indicates whether it should add quotes.
-func escapeBytes(w stringWriter, b []byte, addQuote bool) error {
+func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 	if addQuote {
 		_, err := w.WriteString(`"`)
 		if err != nil {

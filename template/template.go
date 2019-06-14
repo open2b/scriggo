@@ -8,7 +8,6 @@ package template
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"reflect"
 
@@ -23,11 +22,20 @@ import (
 type Context int
 
 const (
-	ContextText       Context = Context(ast.ContextText)
-	ContextHTML       Context = Context(ast.ContextHTML)
-	ContextCSS        Context = Context(ast.ContextCSS)
-	ContextJavaScript Context = Context(ast.ContextJavaScript)
+	ContextText              = Context(ast.ContextText)
+	ContextHTML              = Context(ast.ContextHTML)
+	ContextTag               = Context(ast.ContextTag)
+	ContextAttribute         = Context(ast.ContextAttribute)
+	ContextUnquotedAttribute = Context(ast.ContextUnquotedAttribute)
+	ContextCSS               = Context(ast.ContextCSS)
+	ContextCSSString         = Context(ast.ContextCSSString)
+	ContextJavaScript        = Context(ast.ContextJavaScript)
+	ContextJavaScriptString  = Context(ast.ContextJavaScriptString)
 )
+
+func (ctx Context) String() string {
+	return ast.Context(ctx).String()
+}
 
 type LoadOption int
 
@@ -89,13 +97,6 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 // A RenderFunc is called by the Render method to render the value resulting
 // from the evaluation of an expression between "{{" and "}}".
 type RenderFunc func(env *vm.Env, out io.Writer, value interface{}, ctx Context)
-
-// DefaultRenderFunc is the default RenderFunc used by Render method if the
-// option RenderFunc is nil.
-var DefaultRenderFunc = func(env *vm.Env, w io.Writer, value interface{}, ctx Context) {
-	// TODO(Gianluca): replace with correct function.
-	w.Write([]byte(fmt.Sprintf("%v", value)))
-}
 
 var emptyVars = map[string]interface{}{}
 

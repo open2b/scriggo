@@ -57,7 +57,7 @@ var templateCases = map[string]struct {
 
 	"Template builtin - sort": {
 		src: `{% s := []string{"a", "c", "b"} %}{{ s }} sorted is {% sort(s) %}{{ s }}`,
-		out: `[a c b] sorted is [a b c]`,
+		out: `a, c, b sorted is a, b, c`,
 	},
 
 	"Function call": {
@@ -157,7 +157,7 @@ var templateCases = map[string]struct {
 
 	"Macro definition (with one []int argument) and show-macro": {
 		src: `{% macro M(v []int) %}v is {{ v }}{% end %}{% show M([]int{42}) %}`,
-		out: `v is [42]`,
+		out: `v is 42`,
 	},
 
 	"Two macro definitions": {
