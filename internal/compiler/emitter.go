@@ -1562,7 +1562,7 @@ func (e *emitter) EmitNodes(nodes []ast.Node) {
 		case *ast.Show:
 			// render([implicit *vm.Env,] gD io.Writer, gE interface{}, iA ast.Context)
 			e.emitExpr(node.Expr, e.template.gE, emptyInterfaceType)
-			// TODO(Gianluca): put context in register i1.
+			e.fb.Move(true, int8(node.Context), e.template.iA, reflect.Int)
 			e.fb.Move(false, e.template.gA, e.template.gD, reflect.Interface)
 			e.fb.CallIndirect(e.template.gC, 0, vm.StackShift{e.template.iA - 1, 0, 0, e.template.gC})
 
