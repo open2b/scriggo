@@ -679,7 +679,32 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	case *ast.Selector:
 
-		if ti := e.typeInfos[expr]; ti.IsPredefined() {
+		ti := e.typeInfos[expr]
+
+		// Method value on concrete value.
+		if ti.MethodType == MethodValueConcrete {
+			rcvrExpr := expr.Expr
+			rcvrType := e.typeInfos[rcvrExpr].Type
+			rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
+			if !ok || k {
+				rcvr = e.fb.NewRegister(rcvrType.Kind())
+				e.emitExpr(rcvrExpr, rcvr, rcvrType)
+			}
+			// MethodValue reads receiver from general.
+			if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
+				oldRcvr := rcvr
+				rcvr = e.fb.NewRegister(reflect.Interface)
+				e.fb.Typify(false, rcvrType, oldRcvr, rcvr)
+			}
+			if kindToType(dstType.Kind()) == vm.TypeGeneral {
+				e.fb.MethodValue(expr.Ident, rcvr, reg)
+			} else {
+				panic("not implemented")
+			}
+			return
+		}
+
+		if ti.IsPredefined() {
 
 			// Predefined function.
 			if ti.Type.Kind() == reflect.Func {
