@@ -480,6 +480,73 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	return regs, types
 }
 
+// emitSelector emits selector in register reg.
+func (e *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Type) {
+	ti := e.typeInfos[expr]
+
+	// Method value on concrete and interface values.
+	if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
+		rcvrExpr := expr.Expr
+		rcvrType := e.typeInfos[rcvrExpr].Type
+		rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
+		if !ok || k {
+			rcvr = e.fb.NewRegister(rcvrType.Kind())
+			e.emitExpr(rcvrExpr, rcvr, rcvrType)
+		}
+		// MethodValue reads receiver from general.
+		if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
+			oldRcvr := rcvr
+			rcvr = e.fb.NewRegister(reflect.Interface)
+			e.fb.Typify(false, rcvrType, oldRcvr, rcvr)
+		}
+		if kindToType(dstType.Kind()) == vm.TypeGeneral {
+			e.fb.MethodValue(expr.Ident, rcvr, reg)
+		} else {
+			panic("not implemented")
+		}
+		return
+	}
+
+	if ti.IsPredefined() {
+		// Predefined function.
+		if ti.Type.Kind() == reflect.Func {
+			index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
+			e.fb.GetFunc(true, index, reg)
+			return
+		}
+		// Predefined variable.
+		index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
+		e.fb.GetVar(int(index), reg)
+		return
+	}
+
+	// Scriggo-defined package variables.
+	if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if reg == 0 {
+			return
+		}
+		e.fb.GetVar(int(index), reg) // TODO (Gianluca): to review.
+		return
+	}
+
+	// Scriggo-defined package functions.
+	if sf, ok := e.availableFuncs[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
+		if reg == 0 {
+			return
+		}
+		index := e.functionIndex(sf)
+		e.fb.GetFunc(false, index, reg)
+		return
+	}
+
+	// Selector is emitted a general expression.
+	exprType := e.typeInfos[expr.Expr].Type
+	exprReg := e.fb.NewRegister(exprType.Kind())
+	e.emitExpr(expr.Expr, exprReg, exprType)
+	field := int8(0) // TODO(Gianluca).
+	e.fb.Selector(exprReg, field, reg)
+}
+
 // emitExpr emits the instructions that evaluate the expression expr and put
 // the result into the register reg. If reg is zero, instructions are emitted
 // anyway but the result is discarded.
@@ -705,70 +772,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		}
 
 	case *ast.Selector:
-
-		ti := e.typeInfos[expr]
-
-		// Method value on concrete and interface values.
-		if ti.MethodType == MethodValueConcrete || ti.MethodType == MethodValueInterface {
-			rcvrExpr := expr.Expr
-			rcvrType := e.typeInfos[rcvrExpr].Type
-			rcvr, k, ok := e.quickEmitExpr(rcvrExpr, rcvrType)
-			if !ok || k {
-				rcvr = e.fb.NewRegister(rcvrType.Kind())
-				e.emitExpr(rcvrExpr, rcvr, rcvrType)
-			}
-			// MethodValue reads receiver from general.
-			if kindToType(rcvrType.Kind()) != vm.TypeGeneral {
-				oldRcvr := rcvr
-				rcvr = e.fb.NewRegister(reflect.Interface)
-				e.fb.Typify(false, rcvrType, oldRcvr, rcvr)
-			}
-			if kindToType(dstType.Kind()) == vm.TypeGeneral {
-				e.fb.MethodValue(expr.Ident, rcvr, reg)
-			} else {
-				panic("not implemented")
-			}
-			return
-		}
-
-		if ti.IsPredefined() {
-			// Predefined function.
-			if ti.Type.Kind() == reflect.Func {
-				index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
-				e.fb.GetFunc(true, index, reg)
-				return
-			}
-			// Predefined variable.
-			index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
-			e.fb.GetVar(int(index), reg)
-			return
-		}
-
-		// Scriggo-defined package variables.
-		if index, ok := e.pkgVariables[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-			if reg == 0 {
-				return
-			}
-			e.fb.GetVar(int(index), reg) // TODO (Gianluca): to review.
-			return
-		}
-
-		// Scriggo-defined package functions.
-		if sf, ok := e.availableFuncs[e.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-			if reg == 0 {
-				return
-			}
-			index := e.functionIndex(sf)
-			e.fb.GetFunc(false, index, reg)
-			return
-		}
-
-		// Selector is emitted a general expression.
-		exprType := e.typeInfos[expr.Expr].Type
-		exprReg := e.fb.NewRegister(exprType.Kind())
-		e.emitExpr(expr.Expr, exprReg, exprType)
-		field := int8(0) // TODO(Gianluca).
-		e.fb.Selector(exprReg, field, reg)
+		e.emitSelector(expr, reg, dstType)
 
 	case *ast.UnaryOperator:
 		typ := e.typeInfos[expr.Expr].Type
