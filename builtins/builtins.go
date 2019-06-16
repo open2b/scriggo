@@ -369,7 +369,7 @@ func repeat(env *vm.Env, s string, count int) string {
 		panic("call of repeat with negative count")
 	}
 	if s == "" || count == 0 {
-		return s
+		return ""
 	}
 	bytes := len(s) * count
 	if bytes/count != len(s) {
