@@ -7,7 +7,7 @@
 package template
 
 import (
-	"encoding/base64"
+	_base64 "encoding/base64"
 )
 
 const hexchars = "0123456789abcdef"
@@ -56,60 +56,6 @@ func htmlEscape(w strWriter, s string) error {
 		return err
 	}
 	return nil
-}
-
-// htmlEscapeString escapes the string s so it can be placed inside HTML, and
-// returns the escaped string.
-func htmlEscapeString(s string) string {
-	more := 0
-	for i := 0; i < len(s); i++ {
-		switch c := s[i]; c {
-		case '<', '>':
-			more += 3
-		case '&', '\'', '"':
-			more += 4
-		}
-	}
-	if more == 0 {
-		return s
-	}
-	b := make([]byte, len(s)+more)
-	for i, j := 0, 0; i < len(s); i++ {
-		switch c := s[i]; c {
-		case '<', '>':
-			b[j] = '&'
-			if c == '<' {
-				b[j+1] = 'l'
-			} else {
-				b[j+1] = 'g'
-			}
-			b[j+2] = 't'
-			b[j+3] = ';'
-			j += 4
-		case '&':
-			b[j] = '&'
-			b[j+1] = 'a'
-			b[j+2] = 'm'
-			b[j+3] = 'p'
-			b[j+4] = ';'
-			j += 5
-		case '"', '\'':
-			b[j] = '&'
-			b[j+1] = '#'
-			b[j+2] = '3'
-			if c == '"' {
-				b[j+3] = '4'
-			} else {
-				b[j+3] = '9'
-			}
-			b[j+4] = ';'
-			j += 5
-		default:
-			b[j] = c
-			j++
-		}
-	}
-	return string(b)
 }
 
 // attributeEscape escapes the string s, so it can be placed inside an HTML
@@ -457,7 +403,7 @@ func escapeBytes(w strWriter, b []byte, addQuote bool) error {
 			return err
 		}
 	}
-	encoder := base64.NewEncoder(base64.StdEncoding, w)
+	encoder := _base64.NewEncoder(_base64.StdEncoding, w)
 	_, _ = encoder.Write(b)
 	err := encoder.Close()
 	if addQuote && err == nil {

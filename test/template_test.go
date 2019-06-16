@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"scriggo"
-	"scriggo/builtins"
 	"scriggo/template"
 )
 
@@ -373,7 +372,7 @@ func TestMultiPageTemplate(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			templ, err := template.Load("/index.html", r, builtins.Main(), template.ContextText, template.LoadOption(0))
+			templ, err := template.Load("/index.html", r, template.Builtins(), template.ContextText, template.LoadOption(0))
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}

@@ -184,7 +184,7 @@ func main() {
 	case ".html":
 		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		t, err := template.Load(path, r, builtins.Main(), template.ContextHTML, template.LoadOption(loadOptions))
+		t, err := template.Load(path, r, template.Builtins(), template.ContextHTML, template.LoadOption(loadOptions))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
