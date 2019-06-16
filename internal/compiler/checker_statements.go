@@ -55,8 +55,8 @@ func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
 	tc.removeCurrentScope()
 }
 
-// checkNodesError calls checkNodes catching panics and returing their errors as
-// return parameter.
+// checkNodesError calls checkNodes catching panics and returning their errors
+// as return parameter.
 func (tc *typechecker) checkNodesError(nodes []ast.Node) (err error) {
 	func() {
 		defer func() {
