@@ -1,6 +1,3 @@
 module scriggo
 
-require (
-	github.com/cockroachdb/apd v0.0.0-20181017181144-bced77f817b4
-	github.com/pkg/errors v0.8.1 // indirect
-)
+require golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59
