@@ -539,12 +539,23 @@ func (e *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Typ
 		return
 	}
 
-	// Selector is emitted a general expression.
+	// Struct field.
 	exprType := e.typeInfos[expr.Expr].Type
-	exprReg := e.fb.NewRegister(exprType.Kind())
-	e.emitExpr(expr.Expr, exprReg, exprType)
-	field := int8(0) // TODO(Gianluca).
-	e.fb.Selector(exprReg, field, reg)
+	exprReg, k, ok := e.quickEmitExpr(expr.Expr, exprType)
+	if !ok || k {
+		exprReg = e.fb.NewRegister(exprType.Kind())
+		e.emitExpr(expr.Expr, exprReg, exprType)
+	}
+	field, _ := exprType.FieldByName(expr.Ident)
+	index := e.fb.MakeIntConstant(encodeFieldIndex(field.Index))
+	fieldType := e.typeInfos[expr].Type
+	if kindToType(fieldType.Kind()) == kindToType(dstType.Kind()) {
+		e.fb.Field(exprReg, index, reg)
+		return
+	}
+	tmp := e.fb.NewRegister(fieldType.Kind())
+	e.fb.Field(exprReg, index, tmp)
+	e.changeRegister(false, tmp, reg, fieldType, dstType)
 }
 
 // emitExpr emits the instructions that evaluate the expression expr and put
@@ -728,7 +739,37 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				e.fb.ExitStack()
 			}
 		case reflect.Struct:
-			panic("TODO: not implemented")
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := e.typeInfos[kv.Value].Type
+					e.emitExpr(kv.Value, 0, typ)
+				}
+				return
+			}
+			e.fb.EnterStack()
+			tmpTyp := reflect.PtrTo(typ)
+			tmpReg := e.fb.NewRegister(tmpTyp.Kind())
+			e.fb.New(typ, tmpReg)
+			if len(expr.KeyValues) > 0 {
+				for _, kv := range expr.KeyValues {
+					fieldName := kv.Key.(*ast.Identifier).Name
+					field, _ := typ.FieldByName(fieldName)
+					valueType := e.typeInfos[kv.Value].Type
+					var valueReg int8
+					if kindToType(field.Type.Kind()) == kindToType(valueType.Kind()) {
+						valueReg = e.fb.NewRegister(field.Type.Kind())
+						e.emitExpr(kv.Value, valueReg, valueType)
+					} else {
+						panic("TODO: not implemented") // TODO(Gianluca): to implement.
+					}
+					// TODO(Gianluca): use field "k" of SetField.
+					fieldConstIndex := e.fb.MakeIntConstant(encodeFieldIndex(field.Index))
+					e.fb.SetField(false, -tmpReg, fieldConstIndex, valueReg)
+				}
+			}
+			e.changeRegister(false, -tmpReg, reg, tmpTyp, dstType)
+			e.fb.ExitStack()
+
 		case reflect.Map:
 			if reg == 0 {
 				for _, kv := range expr.KeyValues {

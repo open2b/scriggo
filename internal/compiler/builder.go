@@ -34,6 +34,67 @@ func encodeInt16(v int16) (a, b int8) {
 	return
 }
 
+// encodeFieldIndex encodes a field index slice used by reflect into an int64.
+func encodeFieldIndex(s []int) int64 {
+	if len(s) == 1 {
+		if s[0] > 255 {
+			panic("struct field index #0 > 255")
+		}
+		return int64(s[0])
+	}
+	ss := make([]int, len(s))
+	copy(ss, s)
+	for i := range ss[1:] {
+		if ss[i] > 254 {
+			panic("struct field index > 254")
+		}
+		ss[i]++
+	}
+	fill := 8 - len(ss)
+	for i := 0; i < fill; i++ {
+		ss = append([]int{0}, ss...)
+	}
+	i := int64(0)
+	i += int64(ss[0]) << 0
+	i += int64(ss[1]) << 8
+	i += int64(ss[2]) << 16
+	i += int64(ss[3]) << 24
+	i += int64(ss[4]) << 32
+	i += int64(ss[5]) << 40
+	i += int64(ss[6]) << 48
+	i += int64(ss[7]) << 56
+	return i
+}
+
+// decodeFieldIndex decodes i as a field index slice used by package reflect.
+// Sync with vm.decodeFieldIndex.
+func decodeFieldIndex(i int64) []int {
+	if i <= 255 {
+		return []int{int(i)}
+	}
+	s := []int{
+		int(uint8(i >> 0)),
+		int(uint8(i >> 8)),
+		int(uint8(i >> 16)),
+		int(uint8(i >> 24)),
+		int(uint8(i >> 32)),
+		int(uint8(i >> 40)),
+		int(uint8(i >> 48)),
+		int(uint8(i >> 56)),
+	}
+	ns := []int{}
+	for i := 0; i < len(s); i++ {
+		if i == len(s)-1 {
+			ns = append(ns, s[i])
+		} else {
+			if s[i] > 0 {
+				ns = append(ns, s[i]-1)
+			}
+		}
+	}
+	return ns
+}
+
 func decodeInt16(a, b int8) int16 {
 	return int16(int(a)<<8 | int(uint8(b)))
 }
@@ -744,6 +805,14 @@ func (builder *functionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }
 
+// Field appends a new "Field" instruction to the function body.
+//
+// 	C = A.field
+//
+func (builder *functionBuilder) Field(a, field, c int8) {
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpField, A: a, B: field, C: c})
+}
+
 // Func appends a new "Func" instruction to the function body.
 //
 //     r = func() { ... }
@@ -1197,14 +1266,6 @@ func (builder *functionBuilder) Select() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSelect})
 }
 
-// Selector appends a new "Selector" instruction to the function body.
-//
-// 	C = A.field
-//
-func (builder *functionBuilder) Selector(a, field, c int8) {
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSelector, A: a, B: field, C: c})
-}
-
 // Send appends a new "Send" instruction to the function body.
 //
 //	ch <- v
@@ -1212,6 +1273,18 @@ func (builder *functionBuilder) Selector(a, field, c int8) {
 func (builder *functionBuilder) Send(ch, v int8) {
 	// TODO(Gianluca): how can send know kind/type?
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSend, A: v, C: ch})
+}
+
+// SetField appends a new "SetField" instruction to the function body.
+//
+//     s.field = v
+//
+func (builder *functionBuilder) SetField(k bool, s, field, v int8) {
+	op := vm.OpSetField
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSetField, A: v, B: field, C: s})
 }
 
 // SetVar appends a new "SetVar" instruction to the function body.

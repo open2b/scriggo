@@ -1786,6 +1786,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					tc.replaceTypeInfo(keyValue.Value, new)
 					keyValue.Value = new
 				}
+				keyValue.Key = ast.NewIdentifier(nil, fieldTi.Name)
 			}
 		}
 

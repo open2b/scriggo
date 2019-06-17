@@ -484,8 +484,8 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, vm.Interface, false)
 		}
-	case vm.OpSelector:
-		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
+	case vm.OpField:
+		// TODO(Gianluca).
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
@@ -493,6 +493,8 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += fmt.Sprintf("%d", fn.Body[addr+1].A)
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].B)
+	case vm.OpSetField:
+		// TODO(Gianluca).
 	case vm.OpSetMap:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		if k {
@@ -820,9 +822,11 @@ var operationName = [...]string{
 
 	vm.OpSelect: "Select",
 
-	vm.OpSelector: "Selector",
+	vm.OpField: "Field",
 
 	vm.OpSend: "Send",
+
+	vm.OpSetField: "SetField",
 
 	vm.OpSetMap: "SetMap",
 

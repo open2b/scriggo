@@ -62,7 +62,7 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	case addressMapIndex:
 		a.c.fb.SetMap(k, a.reg1, value, a.reg2, a.staticType)
 	case addressStructSelector:
-		panic("TODO(Gianluca): not implemented")
+		a.c.fb.SetField(k, a.reg1, a.reg2, value)
 	case addressPackageVariable:
 		if k {
 			tmpReg := a.c.fb.NewRegister(valueType.Kind())
@@ -136,6 +136,7 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 
 // emitAssignmentNode emits instructions for an assignment node.
 func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
+	// TODO(Gianluca): add support for recursive assignment expressions (eg. a[4][t].field[0]).
 	switch node.Type {
 	case ast.AssignmentDeclaration:
 		addresses := make([]address, len(node.Variables))
@@ -203,11 +204,20 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			case *ast.Selector:
 				if varIndex, ok := e.pkgVariables[e.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(varIndex), 0)
-				}
-				if ti := e.typeInfos[v]; ti.IsPredefined() {
+				} else if ti := e.typeInfos[v]; ti.IsPredefined() {
 					varRv := ti.Value.(reflect.Value)
 					index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Ident)
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
+				} else {
+					structType := e.typeInfos[v.Expr].Type
+					structReg, k, ok := e.quickEmitExpr(v.Expr, structType)
+					if !ok || k {
+						structReg = e.fb.NewRegister(structType.Kind())
+						e.emitExpr(v.Expr, structReg, structType)
+					}
+					field, _ := structType.FieldByName(v.Ident)
+					index := e.fb.MakeIntConstant(encodeFieldIndex(field.Index))
+					addresses[i] = e.newAddress(addressStructSelector, field.Type, structReg, index)
 				}
 			case *ast.UnaryOperator:
 				if v.Operator() != ast.OperatorMultiplication {

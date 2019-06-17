@@ -453,6 +453,12 @@ func (vm *VM) run() (uint32, bool) {
 		case -OpDivFloat64:
 			vm.setFloat(c, vm.float(a)/float64(b))
 
+		// Field
+		case OpField:
+			i := decodeFieldIndex(vm.fn.Constants.Int[b])
+			v := reflect.ValueOf(vm.general(a)).FieldByIndex(i)
+			vm.setFromReflectValue(c, v)
+
 		// Func
 		case OpFunc:
 			fn := vm.fn.Literals[uint8(b)]
@@ -1277,11 +1283,6 @@ func (vm *VM) run() (uint32, bool) {
 			hasDefaultCase = false
 			vm.cases = vm.cases[:0]
 
-		// Selector
-		case OpSelector:
-			v := reflect.ValueOf(vm.general(a)).Field(int(uint8(b)))
-			vm.setFromReflectValue(c, v)
-
 		// Send
 		case OpSend, -OpSend:
 			k := op < 0
@@ -1354,6 +1355,14 @@ func (vm *VM) run() (uint32, bool) {
 					vm.cases = vm.cases[:0]
 				}
 			}
+
+		// SetField
+		case OpSetField, -OpSetField:
+			i := decodeFieldIndex(vm.fn.Constants.Int[b])
+			v := reflect.New(reflect.TypeOf(vm.general(c))).Elem()
+			vm.getIntoReflectValue(c, v, false)
+			vm.getIntoReflectValue(a, v.FieldByIndex(i), op < 0)
+			vm.setFromReflectValue(c, v)
 
 		// SetMap
 		case OpSetMap, -OpSetMap:

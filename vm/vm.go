@@ -38,6 +38,34 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
+// Sync with compiler.decodeFieldIndex.
+func decodeFieldIndex(i int64) []int {
+	if i <= 255 {
+		return []int{int(i)}
+	}
+	s := []int{
+		int(uint8(i >> 0)),
+		int(uint8(i >> 8)),
+		int(uint8(i >> 16)),
+		int(uint8(i >> 24)),
+		int(uint8(i >> 32)),
+		int(uint8(i >> 40)),
+		int(uint8(i >> 48)),
+		int(uint8(i >> 56)),
+	}
+	ns := []int{}
+	for i := 0; i < len(s); i++ {
+		if i == len(s)-1 {
+			ns = append(ns, s[i])
+		} else {
+			if s[i] > 0 {
+				ns = append(ns, s[i]-1)
+			}
+		}
+	}
+	return ns
+}
+
 type TraceFunc func(fn *Function, pc uint32, regs Registers)
 type PrintFunc func(interface{})
 
@@ -1374,6 +1402,8 @@ const (
 	OpDivFloat32
 	OpDivFloat64
 
+	OpField
+
 	OpFunc
 
 	OpGetFunc
@@ -1454,10 +1484,9 @@ const (
 
 	OpSelect
 
-	OpSelector
-
 	OpSend
 
+	OpSetField
 	OpSetMap
 
 	OpSetSlice

@@ -8,9 +8,11 @@ package test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 	"sync"
@@ -122,6 +124,209 @@ var stmtTests = []struct {
 	err          interface{} // error.
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Struct composite literal - side effects when not assigned",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func s() string {
+			fmt.Print("s()")
+			return ""
+		}
+		
+		func main() {
+			_ = exec.Error{Name: s()}
+		}
+		`,
+		output: `s()`,
+	},
+
+	{
+		name: "Struct composite literal with implicit fields",
+		src: `package main
+
+		import (
+			"errors"
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			e := exec.Error{"errorName", errors.New("error")}
+			fmt.Println(e)
+		}
+		`,
+		output: "{errorName error}\n",
+	},
+
+	{
+		name: "Struct composite literal with two strings and one []string field",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+				Dir:  "/home/user/",
+				Path: "git/prg",
+				Args: []string{"arg1", "arg2", "arg3"},
+			}
+			fmt.Println(c)
+			fmt.Println(c.Dir)
+			fmt.Println(c.Path)
+			fmt.Println(c.Args)
+		}
+		`,
+		output: "{git/prg [arg1 arg2 arg3] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n[arg1 arg2 arg3]\n",
+	},
+
+	{
+		name: "Struct composite literal with two explicit string fields",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+					Dir: "/home/user/",
+					Path: "git/prg",
+			}
+			fmt.Println(c)
+			fmt.Println(c.Dir)
+			fmt.Println(c.Path)
+		}
+		
+		`,
+		output: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
+	},
+
+	{
+		name: "Assignment to (two) struct fields",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{}
+			c.Dir = "/home/user/"
+			c.Path = "git/prg"
+			fmt.Println(c)
+			fmt.Println(c.Dir)
+			fmt.Println(c.Path)
+		}
+		`,
+		output: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
+	},
+
+	{
+		name: "Assignment to struct field",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+				Path: "oldPath",
+			}
+			fmt.Print(c.Path, ",")
+			c.Path = "newPath"
+			fmt.Print(c.Path)
+		}
+		`,
+		output: "oldPath,newPath",
+	},
+
+	{
+		name: "Composite literal with struct type (one string field #3)",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+				Path: "aPath",
+			}
+			fmt.Printf("Path is %q", c.Path)
+		}
+		`,
+		output: `Path is "aPath"`,
+	},
+
+	{
+		name: "Composite literal with struct type (one string field #2)",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+				Path: "aPath",
+			}
+			path := c.Path
+			fmt.Printf("Path is %q", path)
+		}
+		`,
+		output: `Path is "aPath"`,
+	},
+
+	{
+		name: "Composite literal with struct type (one string field #1)",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{
+				Path: "aPath",
+			}
+			fmt.Printf("%+v", c)
+		}
+		`,
+		output: "{Path:aPath Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
+	},
+
+	{
+		name: "Composite literal with struct type (empty)",
+		src: `package main
+
+		import (
+			"fmt"
+			"os/exec"
+		)
+		
+		func main() {
+			c := exec.Cmd{}
+			fmt.Printf("%+v", c)
+		}
+		`,
+		output: "{Path: Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
+	},
 
 	{
 		name: "Side effect when creating composite literals w/o assigning them",
@@ -3959,6 +4164,22 @@ var stmtTests = []struct {
 	// TODO(Gianluca): disabled tests:
 
 	// {
+	// 	name: "x.f convertion to (*x).f",
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 		"os/exec"
+	// 	)
+
+	// 	func main() {
+	// 		e := &exec.Error{Name: "errorName"}
+	// 		fmt.Println(e.Name)
+	// 	}`,
+	// 	output: "errorName\n",
+	// },
+
+	// {
 	// 	name: "Method value (assignment and call)",
 	// 	src: `package main
 
@@ -4551,6 +4772,19 @@ var goPackages = scriggo.Packages{
 		Declarations: map[string]interface{}{
 			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
 			"ParseDuration": time.ParseDuration,
+		},
+	},
+	"os/exec": {
+		Name: "exec",
+		Declarations: map[string]interface{}{
+			"Cmd":   reflect.TypeOf(new(exec.Cmd)).Elem(),
+			"Error": reflect.TypeOf(new(exec.Error)).Elem(),
+		},
+	},
+	"errors": {
+		Name: "errors",
+		Declarations: map[string]interface{}{
+			"New": errors.New,
 		},
 	},
 }
