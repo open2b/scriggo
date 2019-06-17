@@ -20,7 +20,6 @@ import (
 	"io"
 	"math"
 	_rand "math/rand"
-	"net/url"
 	"reflect"
 	_sort "sort"
 	"strconv"
@@ -360,27 +359,47 @@ func escapeHTML(env *vm.Env, s string) HTML {
 
 // escapeQuery is the builtin function "escapeQuery".
 func escapeQuery(env *vm.Env, s string) string {
-	alloc := false
+	last := 0
 	numHex := 0
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if '0' <= c && c <= '9' || 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' ||
-			c == '-' || c == '.' || c == '_' || c == '~' {
+		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
+			c == '-' || c == '.' || c == '_' {
 			continue
 		}
-		alloc = true
-		if c != ' ' {
-			numHex++
-		}
+		last = i + 1
+		numHex++
 	}
-	if alloc {
-		env.Alloc(len(s))
-		if 2*numHex < 0 {
-			env.Alloc(maxInt)
-		}
-		env.Alloc(2 * numHex)
+	if numHex == 0 {
+		return s
 	}
-	return url.QueryEscape(s)
+	// Alloc memory.
+	env.Alloc(len(s))
+	if 2*numHex < 0 {
+		env.Alloc(maxInt)
+	}
+	env.Alloc(2 * numHex)
+	// Fill buffer.
+	j := 0
+	b := make([]byte, len(s)+2*numHex)
+	for i := 0; i < last; i++ {
+		c := s[i]
+		if '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' ||
+			c == '-' || c == '.' || c == '_' {
+			b[j] = c
+		} else {
+			b[j] = '%'
+			j++
+			b[j] = hexchars[c>>4]
+			j++
+			b[j] = hexchars[c&0xF]
+		}
+		j++
+	}
+	if j != len(b) {
+		copy(b[j:], s[last:])
+	}
+	return string(b)
 }
 
 // hash is the builtin function "hash".
