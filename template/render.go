@@ -14,7 +14,6 @@ import (
 	_sort "sort"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -518,10 +517,6 @@ func renderInJavaScript(w strWriter, value interface{}) error {
 		var err error
 		rv := reflect.ValueOf(value)
 		if !rv.IsValid() {
-			_, err = w.WriteString("undefined")
-			if err != nil {
-				return err
-			}
 			return ErrNoRenderInContext
 		}
 		switch rv.Kind() {
@@ -563,22 +558,21 @@ func renderInJavaScript(w strWriter, value interface{}) error {
 				return err
 			}
 			if !rv.Type().ConvertibleTo(mapStringToInterfaceType) {
-				_, err = w.WriteString("undefined")
-				if err != nil {
-					return err
-				}
 				return ErrNoRenderInContext
 			}
 			return renderMapAsJavaScriptObject(w, rv.Convert(mapStringToInterfaceType).Interface().(map[string]interface{}))
-		case reflect.Struct, reflect.Ptr:
+		case reflect.Struct:
 			return renderValueAsJavaScriptObject(w, rv)
+		case reflect.Ptr:
+			rv = reflect.Indirect(rv)
+			if !rv.IsValid() {
+				_, err = w.WriteString("null")
+				return err
+			}
+			return renderInJavaScript(w, rv.Interface())
 		}
 	}
 
-	_, err := w.WriteString("undefined")
-	if err != nil {
-		return err
-	}
 	return ErrNoRenderInContext
 }
 
@@ -610,37 +604,28 @@ func renderInJavaScriptString(w strWriter, value interface{}) error {
 // undefined if it is not possible.
 func renderValueAsJavaScriptObject(w strWriter, rv reflect.Value) error {
 
-	if rv.IsNil() {
-		_, err := w.WriteString("null")
-		return err
-	}
+	var err error
 
-	keys := structKeys(rv)
-	if keys == nil {
-		return ErrNoRenderInContext
-	}
+	typ := rv.Type()
+	n := typ.NumField()
 
-	if len(keys) == 0 {
-		_, err := w.WriteString(`{}`)
-		return err
-	}
+	_, err = w.WriteString(`{`)
 
-	names := make([]string, 0, len(keys))
-	for name := range keys {
-		names = append(names, name)
-	}
-	_sort.Strings(names)
-
-	for i, name := range names {
-		sep := `,"`
-		if i == 0 {
-			sep = `{"`
+	isFirst := true
+	for i := 0; i < n; i++ {
+		t := typ.Field(i)
+		if t.PkgPath != "" {
+			continue
 		}
-		_, err := w.WriteString(sep)
+		if isFirst {
+			_, err = w.WriteString(`"`)
+		} else {
+			_, err = w.WriteString(`,"`)
+		}
 		if err != nil {
 			return err
 		}
-		err = javaScriptStringEscape(w, name)
+		err = javaScriptStringEscape(w, t.Name)
 		if err != nil {
 			return err
 		}
@@ -648,13 +633,14 @@ func renderValueAsJavaScriptObject(w strWriter, rv reflect.Value) error {
 		if err != nil {
 			return err
 		}
-		err = renderInJavaScript(w, keys[name].value(rv))
+		err = renderInJavaScript(w, rv.Field(i).Interface())
 		if err != nil {
 			return err
 		}
+		isFirst = false
 	}
 
-	_, err := w.WriteString(`}`)
+	_, err = w.WriteString(`}`)
 
 	return err
 }
@@ -727,65 +713,4 @@ func withConcreteType(v interface{}) interface{} {
 		return r.String()
 	}
 	return nil
-}
-
-// structs maintains the association between the field names of a struct,
-// as they are called in the template, and the field index in the struct.
-var structs = struct {
-	keys map[reflect.Type]map[string]structKey
-	sync.RWMutex
-}{map[reflect.Type]map[string]structKey{}, sync.RWMutex{}}
-
-// structKey represents the fields of a struct.
-type structKey struct {
-	isMethod bool
-	index    int
-}
-
-func (sk structKey) value(st reflect.Value) interface{} {
-	st = reflect.Indirect(st)
-	if sk.isMethod {
-		return st.Method(sk.index).Interface()
-	}
-	return st.Field(sk.index).Interface()
-}
-
-func structKeys(st reflect.Value) map[string]structKey {
-	st = reflect.Indirect(st)
-	if st.Kind() != reflect.Struct {
-		return nil
-	}
-	structs.RLock()
-	keys, ok := structs.keys[st.Type()]
-	structs.RUnlock()
-	if ok {
-		return keys
-	}
-	typ := st.Type()
-	structs.Lock()
-	keys, ok = structs.keys[st.Type()]
-	if ok {
-		structs.Unlock()
-		return keys
-	}
-	keys = map[string]structKey{}
-	n := typ.NumField()
-	for i := 0; i < n; i++ {
-		fieldType := typ.Field(i)
-		if fieldType.PkgPath != "" {
-			continue
-		}
-		name := fieldType.Name
-		keys[name] = structKey{index: i}
-	}
-	n = typ.NumMethod()
-	for i := 0; i < n; i++ {
-		name := typ.Method(i).Name
-		if _, ok := keys[name]; !ok {
-			keys[name] = structKey{index: i, isMethod: true}
-		}
-	}
-	structs.keys[st.Type()] = keys
-	structs.Unlock()
-	return keys
 }
