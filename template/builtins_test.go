@@ -19,6 +19,13 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	res  string
 	vars Vars
 }{
+	// Hasher
+	{"{% var a Hasher %}{{ a }}", "0", nil},
+
+	// MD%, SHA1, SHA256 TODO: invalid memory address or nil pointer dereference
+	//{"{% var h = MD5 %}{{ h }}", "0", nil},
+	//{"{% var h = SHA1 %}{{ h }}", "1", nil},
+	//{"{% var h = SHA256 %}{{ h }}", "2", nil},
 
 	// Time
 	{"{% var t Time %}{{ t }}", "Mon, 01 Jan 0001 00:00:00 UTC", nil},
@@ -58,6 +65,26 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ contains(`a`, ``) }}", "true", nil},
 	{"{{ contains(`abc`, `b`) }}", "true", nil},
 	{"{{ contains(`abc`, `e`) }}", "false", nil},
+
+	// escapeHTML
+	{"{{ escapeHTML(``) }}", "", nil},
+	{"{{ escapeHTML(`a`) }}", "a", nil},
+	{"{{ escapeHTML(`<a>`) }}", "&lt;a&gt;", nil},
+	{"{{ escapeHTML(a) }}", "&lt;a&gt;", Vars{"a": "<a>"}},
+
+	// escapeQuery
+	{"{{ escapeQuery(``) }}", "", nil},
+	{"{{ escapeQuery(`a`) }}", "a", nil},
+	{"{{ escapeQuery(` `) }}", "%20", nil},
+	{"{{ escapeQuery(`a/b+c?d#`) }}", "a%2fb%2bc%3fd%23", nil},
+
+	// hash TODO: invalid memory address or nil pointer dereference
+	//{"{{ hash(MD5, ``) }}", "d41d8cd98f00b204e9800998ecf8427e", nil},
+	//{"{{ hash(MD5, `hello world!`) }}", "fc3ff98e8c6a0d3087d515c0473f8677", nil},
+	//{"{{ hash(SHA1, ``) }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709", nil},
+	//{"{{ hash(SHA1, `hello world!`) }}", "430ce34d020724ed75a196dfc2ad67c77772d169", nil},
+	//{"{{ hash(SHA256, ``) }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
+	//{"{{ hash(SHA256, `hello world!`) }}", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
 
 	// hasPrefix
 	{"{{ hasPrefix(``, ``) }}", "true", nil},
@@ -128,12 +155,6 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ itoa(1) }}", "1", nil},
 	{"{{ itoa(-1) }}", "-1", nil},
 	{"{{ itoa(523) }}", "523", nil},
-
-	// escapeHTML
-	{"{{ escapeHTML(``) }}", "", nil},
-	{"{{ escapeHTML(`a`) }}", "a", nil},
-	{"{{ escapeHTML(`<a>`) }}", "&lt;a&gt;", nil},
-	{"{{ escapeHTML(a) }}", "&lt;a&gt;", Vars{"a": "<a>"}},
 
 	// join
 	{"{{ join(a, ``) }}", "", Vars{"a": []string(nil)}},
@@ -278,6 +299,53 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ trim(` a b  `, ` `) }}", "a b", nil},
 	{"{{ trim(`a bb`, `b`) }}", "a ", nil},
 	{"{{ trim(`bb a`, `b`) }}", " a", nil},
+
+	// trimLeft
+	{"{{ trimLeft(``, ``) }}", "", nil},
+	{"{{ trimLeft(` `, ``) }}", " ", nil},
+	{"{{ trimLeft(` a`, ` `) }}", "a", nil},
+	{"{{ trimLeft(`a `, ` `) }}", "a ", nil},
+	{"{{ trimLeft(` a `, ` `) }}", "a ", nil},
+	{"{{ trimLeft(` a b  `, ` `) }}", "a b  ", nil},
+	{"{{ trimLeft(`a bb`, `b`) }}", "a bb", nil},
+	{"{{ trimLeft(`bb a`, `b`) }}", " a", nil},
+	{"{{ trimLeft(`a bb`, `b`) }}", "a bb", nil},
+	{"{{ trimLeft(`bb a`, `a`) }}", "bb a", nil},
+
+	// trimPrefix
+	{"{{ trimPrefix(``, ``) }}", "", nil},
+	{"{{ trimPrefix(` `, ``) }}", " ", nil},
+	{"{{ trimPrefix(` a`, ` `) }}", "a", nil},
+	{"{{ trimPrefix(`  a`, ` `) }}", " a", nil},
+	{"{{ trimPrefix(`a `, ` `) }}", "a ", nil},
+	{"{{ trimPrefix(` a `, ` `) }}", "a ", nil},
+	{"{{ trimPrefix(`  a b `, ` `) }}", " a b ", nil},
+	{"{{ trimPrefix(`a bb`, `b`) }}", "a bb", nil},
+	{"{{ trimPrefix(`bb a`, `b`) }}", "b a", nil},
+	{"{{ trimPrefix(`a bb`, `b`) }}", "a bb", nil},
+
+	// trimRight
+	{"{{ trimRight(``, ``) }}", "", nil},
+	{"{{ trimRight(` `, ``) }}", " ", nil},
+	{"{{ trimRight(` a`, ` `) }}", " a", nil},
+	{"{{ trimRight(`a `, ` `) }}", "a", nil},
+	{"{{ trimRight(` a `, ` `) }}", " a", nil},
+	{"{{ trimRight(` a b  `, ` `) }}", " a b", nil},
+	{"{{ trimRight(`a bb`, `b`) }}", "a ", nil},
+	{"{{ trimRight(`bb a`, `b`) }}", "bb a", nil},
+	{"{{ trimRight(`bb a`, `a`) }}", "bb ", nil},
+
+	// trimSuffix
+	{"{{ trimSuffix(``, ``) }}", "", nil},
+	{"{{ trimSuffix(` `, ``) }}", " ", nil},
+	{"{{ trimSuffix(`a `, ` `) }}", "a", nil},
+	{"{{ trimSuffix(`a  `, ` `) }}", "a ", nil},
+	{"{{ trimSuffix(`a `, ` `) }}", "a", nil},
+	{"{{ trimSuffix(` a `, ` `) }}", " a", nil},
+	{"{{ trimSuffix(`  a b `, ` `) }}", "  a b", nil},
+	{"{{ trimSuffix(`a bb`, `b`) }}", "a b", nil},
+	{"{{ trimSuffix(`bb a`, `b`) }}", "bb a", nil},
+	{"{{ trimSuffix(`bb a`, `a`) }}", "bb ", nil},
 }
 
 func TestRenderBuiltinInHTMLContext(t *testing.T) {
@@ -348,6 +416,12 @@ var rendererRandomBuiltinTests = []struct {
 	{"{{ rand(100) }}", 2, "86", nil},
 	{"{{ rand(100) }}", 3, "8", nil},
 	{"{{ rand(100) }}", 4, "29", nil},
+
+	// randFloat
+	{"{{ randFloat() }}", 1, "0.6046602879796196", nil},
+	{"{{ randFloat() }}", 2, "0.9405090880450124", nil},
+	{"{{ randFloat() }}", 3, "0.6645600532184904", nil},
+	{"{{ randFloat() }}", 4, "0.4377141871869802", nil},
 
 	// shuffle
 	{"{% shuffle(s) %}{{ s }}", 1, "", Vars{"s": []int{}}},
