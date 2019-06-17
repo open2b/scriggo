@@ -9,13 +9,23 @@ package template
 import (
 	"bytes"
 	"testing"
+	"time"
 )
+
+var testTime, err = time.Parse(time.RFC3339, "2006-01-02T15:04:05.123456Z")
 
 var rendererBuiltinTestsInHTMLContext = []struct {
 	src  string
 	res  string
 	vars Vars
 }{
+
+	// Time
+	{"{% var t Time %}{{ t }}", "Mon, 01 Jan 0001 00:00:00 UTC", nil},
+	{"{{ t }}", "Mon, 02 Jan 2006 15:04:05 UTC", Vars{"t": Time(testTime)}},
+	{"<div data-time=\"{{ t }}\">", "<div data-time=\"2006-01-02T15:04:05Z\">", Vars{"t": Time(testTime)}},
+	{"<div data-time={{ t }}>", "<div data-time=2006-01-02T15:04:05Z>", Vars{"t": Time(testTime)}},
+
 	// abbreviate
 	{"{{ abbreviate(``,0) }}", "", nil},
 	{"{{ abbreviate(`abc`,0) }}", "", nil},
@@ -274,6 +284,37 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 	for _, expr := range rendererBuiltinTestsInHTMLContext {
 		r := MapReader{"/index.html": []byte(expr.src)}
 		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, LimitMemorySize)
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var b = &bytes.Buffer{}
+		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		if err != nil {
+			t.Errorf("source: %q, %s\n", expr.src, err)
+			continue
+		}
+		var res = b.String()
+		if res != expr.res {
+			t.Errorf("source: %q, unexpected %q, expecting %q\n", expr.src, res, expr.res)
+		}
+	}
+}
+
+var rendererBuiltinTestsInJavaScriptContext = []struct {
+	src  string
+	res  string
+	vars Vars
+}{
+	// Time
+	{"var t = {{ t }};", "var t = new Date(2006, 1, 2, 15, 4, 5, 123);", Vars{"t": Time(testTime)}},
+	{"var t = new Date(\"{{ t }}\");", "var t = new Date(\"2006-01-02T15:04:05.123Z\");", Vars{"t": Time(testTime)}},
+}
+
+func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
+	for _, expr := range rendererBuiltinTestsInJavaScriptContext {
+		r := MapReader{"/index.html": []byte(expr.src)}
+		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextJavaScript, LimitMemorySize)
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

@@ -134,6 +134,59 @@ func (t Time) UTC(env *vm.Env) Time {
 	return Time(time.Time(t).UTC())
 }
 
+func (t Time) Render(out io.Writer, ctx Context) error {
+	var err error
+	switch ctx {
+	case ContextText:
+		w := newStringWriter(out)
+		_, err = w.WriteString(t.Format(time.RFC3339))
+	case ContextHTML:
+		w := newStringWriter(out)
+		_, err = w.WriteString(t.Format(time.RFC1123))
+	case ContextAttribute, ContextUnquotedAttribute:
+		w := newStringWriter(out)
+		//if urlstate == nil {
+		_, err = w.WriteString(t.Format(time.RFC3339))
+		//} else {
+		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
+		//}
+	case ContextJavaScript:
+		tt := time.Time(t)
+		year := tt.Year()
+		if year < 100 {
+			return errors.New("not representable year in JavaScript")
+		}
+		b := make([]byte, 0, 50)
+		b = append(b, "new Date("...)
+		b = strconv.AppendInt(b, int64(year), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Month()), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Day()), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Hour()), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Minute()), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Second()), 10)
+		b = append(b, ',', ' ')
+		b = strconv.AppendInt(b, int64(tt.Nanosecond())/int64(time.Millisecond), 10)
+		b = append(b, ')')
+		_, err = out.Write(b)
+	case ContextJavaScriptString:
+		tt := time.Time(t)
+		year := tt.Year()
+		if year < 0 || year > 9999 {
+			return errors.New("not representable year in JavaScript")
+		}
+		w := newStringWriter(out)
+		_, err = w.WriteString(tt.Format("2006-01-02T15:04:05.000Z07:00"))
+	default:
+		err = ErrNoRenderInContext
+	}
+	return err
+}
+
 var main = scriggo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
