@@ -126,6 +126,22 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Builtin len as function (interface{}) parameter",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(len("hello"))
+			fmt.Print(len([]int{2,3,4}))
+		}				
+		`,
+		output: "53",
+	},
+
+	{
 		name: "Struct composite literal - side effects when not assigned",
 		src: `package main
 

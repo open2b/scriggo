@@ -1196,8 +1196,13 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		typ := e.typeInfos[call.Args[0]].Type
 		s := e.fb.NewRegister(typ.Kind())
 		e.emitExpr(call.Args[0], s, typ)
-		e.fb.Cap(s, reg)
-		e.changeRegister(false, reg, reg, intType, dstType)
+		if kindToType(intType.Kind()) == kindToType(dstType.Kind()) {
+			e.fb.Cap(s, reg)
+			return
+		}
+		tmp := e.fb.NewRegister(intType.Kind())
+		e.fb.Cap(s, tmp)
+		e.changeRegister(false, tmp, reg, intType, dstType)
 	case "close":
 		chanType := e.typeInfos[call.Args[0]].Type
 		chanReg := e.fb.NewRegister(chanType.Kind())
@@ -1234,8 +1239,13 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		typ := e.typeInfos[call.Args[0]].Type
 		s := e.fb.NewRegister(typ.Kind())
 		e.emitExpr(call.Args[0], s, typ)
-		e.fb.Len(s, reg, typ)
-		e.changeRegister(false, reg, reg, intType, dstType)
+		if kindToType(intType.Kind()) == kindToType(dstType.Kind()) {
+			e.fb.Len(s, reg, typ)
+			return
+		}
+		tmp := e.fb.NewRegister(intType.Kind())
+		e.fb.Len(s, tmp, typ)
+		e.changeRegister(false, tmp, reg, intType, dstType)
 	case "make":
 		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
 		switch typ.Kind() {
