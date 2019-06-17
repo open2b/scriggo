@@ -30,7 +30,7 @@ const (
 
 // address represents an element on the left side of an assignment.
 type address struct {
-	c          *emitter
+	e          *emitter
 	addrType   addressType
 	staticType reflect.Type // Type of the addressed element.
 	reg1       int8         // Register containing the main expression.
@@ -39,7 +39,7 @@ type address struct {
 
 // newAddress returns a new address. The meaning of reg1 and reg2 depends on the address type.
 func (e *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
-	return address{c: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
+	return address{e: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
@@ -47,29 +47,29 @@ func (e *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
 	case addressUpVar:
-		a.c.fb.SetVar(k, value, int(a.reg1))
+		a.e.fb.SetVar(k, value, int(a.reg1))
 	case addressBlank:
 		// Nothing to do.
 	case addressRegister:
-		a.c.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.e.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressIndirectDeclaration:
-		a.c.fb.New(a.staticType, -a.reg1)
-		a.c.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.e.fb.New(a.staticType, -a.reg1)
+		a.e.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressPointerIndirection:
-		a.c.changeRegister(k, value, -a.reg1, valueType, a.staticType)
+		a.e.changeRegister(k, value, -a.reg1, valueType, a.staticType)
 	case addressSliceIndex:
-		a.c.fb.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
+		a.e.fb.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
 	case addressMapIndex:
-		a.c.fb.SetMap(k, a.reg1, value, a.reg2, a.staticType)
+		a.e.fb.SetMap(k, a.reg1, value, a.reg2, a.staticType)
 	case addressStructSelector:
-		a.c.fb.SetField(k, a.reg1, a.reg2, value)
+		a.e.fb.SetField(k, a.reg1, a.reg2, value)
 	case addressPackageVariable:
 		if k {
-			tmpReg := a.c.fb.NewRegister(valueType.Kind())
-			a.c.fb.Move(true, value, tmpReg, valueType.Kind())
-			a.c.fb.SetVar(false, tmpReg, int(a.reg1))
+			tmpReg := a.e.fb.NewRegister(valueType.Kind())
+			a.e.fb.Move(true, value, tmpReg, valueType.Kind())
+			a.e.fb.SetVar(false, tmpReg, int(a.reg1))
 		} else {
-			a.c.fb.SetVar(false, value, int(a.reg1))
+			a.e.fb.SetVar(false, value, int(a.reg1))
 		}
 	}
 }
