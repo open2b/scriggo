@@ -1059,7 +1059,13 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			i = e.fb.NewRegister(indexType.Kind())
 			e.emitExpr(expr.Index, i, indexType)
 		}
-		e.fb.Index(ki, exprReg, i, reg, exprType)
+		if kindToType(exprType.Elem().Kind()) == kindToType(dstType.Kind()) {
+			e.fb.Index(ki, exprReg, i, reg, exprType)
+			return
+		}
+		tmp := e.fb.NewRegister(exprType.Elem().Kind())
+		e.fb.Index(ki, exprReg, i, tmp, exprType)
+		e.changeRegister(false, tmp, reg, exprType.Elem(), dstType)
 
 	case *ast.Slicing:
 		exprType := e.typeInfos[expr.Expr].Type
