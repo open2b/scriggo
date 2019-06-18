@@ -1613,6 +1613,12 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			tc.replaceTypeInfo(expr.Args[i], node)
 			expr.Args[i] = node
 		}
+		if a.Nil() {
+			node := ast.NewValue(reflect.Zero(in).Interface())
+			tc.replaceTypeInfo(expr.Args[i], node)
+			expr.Args[i] = node
+			tc.TypeInfo[expr.Args[i]].Type = in
+		}
 	}
 
 	numOut := t.Type.NumOut()

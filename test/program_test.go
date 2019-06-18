@@ -125,6 +125,27 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Predeclared identifier nil as function argument",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func f(s []int) {
+			fmt.Print(s)
+		}
+		
+		func main() {
+			f([]int{1, 2, 3})
+			f(nil)
+			f([]int{})
+		}
+		`,
+		output: `[1 2 3][][]`,
+	},
+
+	{
 		name: "Float exponent as constant",
 		src: `package main
 
