@@ -778,20 +778,39 @@ LOOP:
 			l.column++
 			endLineAsSemicolon = false
 		case '&':
-			if len(l.src) > 1 && l.src[1] == '&' {
-				l.emit(tokenAndAnd, 2)
-				l.column += 2
-			} else if len(l.src) > 1 && l.src[1] == '^' {
-				l.emit(tokenAndNot, 2)
-				l.column += 2
-			} else {
-				l.emit(tokenAnd, 1)
-				l.column++
+			if len(l.src) > 1 {
+				switch l.src[1] {
+				case '&':
+					l.emit(tokenAndAnd, 2)
+					l.column += 2
+					endLineAsSemicolon = false
+					continue LOOP
+				case '^':
+					if len(l.src) > 2 && l.src[2] == '=' {
+						l.emit(tokenAndNotAssignment, 3)
+						l.column += 3
+					} else {
+						l.emit(tokenAndNot, 2)
+						l.column += 2
+					}
+					endLineAsSemicolon = false
+					continue LOOP
+				case '=':
+					l.emit(tokenAndAssignment, 2)
+					l.column += 2
+					endLineAsSemicolon = false
+					continue LOOP
+				}
 			}
+			l.emit(tokenAnd, 1)
+			l.column++
 			endLineAsSemicolon = false
 		case '|':
 			if len(l.src) > 1 && l.src[1] == '|' {
 				l.emit(tokenOrOr, 2)
+				l.column += 2
+			} else if len(l.src) > 1 && l.src[1] == '=' {
+				l.emit(tokenOrAssignment, 2)
 				l.column += 2
 			} else {
 				l.emit(tokenOr, 1)
@@ -815,8 +834,13 @@ LOOP:
 				l.emit(tokenArrow, 2)
 				l.column += 2
 			} else if len(l.src) > 1 && l.src[1] == '<' {
-				l.emit(tokenLeftShift, 2)
-				l.column += 2
+				if len(l.src) > 2 && l.src[2] == '=' {
+					l.emit(tokenLeftShiftAssignment, 3)
+					l.column += 3
+				} else {
+					l.emit(tokenLeftShift, 2)
+					l.column += 2
+				}
 			} else {
 				l.emit(tokenLess, 1)
 				l.column++
@@ -827,8 +851,13 @@ LOOP:
 				l.emit(tokenGreaterOrEqual, 2)
 				l.column += 2
 			} else if len(l.src) > 1 && l.src[1] == '>' {
-				l.emit(tokenRightShift, 2)
-				l.column += 2
+				if len(l.src) > 2 && l.src[2] == '=' {
+					l.emit(tokenRightShiftAssignment, 3)
+					l.column += 3
+				} else {
+					l.emit(tokenRightShift, 2)
+					l.column += 2
+				}
 			} else {
 				l.emit(tokenGreater, 1)
 				l.column++
@@ -870,8 +899,13 @@ LOOP:
 				return l.errorf("unexpected }")
 			}
 		case '^':
-			l.emit(tokenXor, 1)
-			l.column++
+			if len(l.src) > 1 && l.src[1] == '=' {
+				l.emit(tokenXorAssignment, 2)
+				l.column += 2
+			} else {
+				l.emit(tokenXor, 1)
+				l.column++
+			}
 			endLineAsSemicolon = false
 		case ':':
 			if len(l.src) > 1 && l.src[1] == '=' {

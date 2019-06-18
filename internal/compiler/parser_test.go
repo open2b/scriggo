@@ -68,6 +68,12 @@ var goContextTreeTests = []struct {
 	{"a := 1", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
 			ast.AssignmentDeclaration, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextGo)},
+	{"a -= 1", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
+			ast.AssignmentSubtraction, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextGo)},
+	{"a %= 1", ast.NewTree("", []ast.Node{
+		ast.NewAssignment(p(1, 1, 0, 5), []ast.Expression{ast.NewIdentifier(p(1, 1, 0, 0), "a")},
+			ast.AssignmentModulo, []ast.Expression{ast.NewInt(p(1, 6, 5, 5), big.NewInt(1))})}, ast.ContextGo)},
 	{"a.b = 2", ast.NewTree("", []ast.Node{
 		ast.NewAssignment(p(1, 1, 0, 6), []ast.Expression{ast.NewSelector(p(1, 2, 0, 2), ast.NewIdentifier(p(1, 1, 0, 0), "a"), "b")},
 			ast.AssignmentSimple, []ast.Expression{ast.NewInt(p(1, 7, 6, 6), big.NewInt(2))})}, ast.ContextGo)},

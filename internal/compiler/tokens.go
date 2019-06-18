@@ -31,6 +31,12 @@ const (
 	tokenMultiplicationAssignment          // *=
 	tokenDivisionAssignment                // /=
 	tokenModuloAssignment                  // %=
+	tokenAndAssignment                     // &=
+	tokenOrAssignment                      // |=
+	tokenXorAssignment                     // ^=
+	tokenAndNotAssignment                  // &^=
+	tokenLeftShiftAssignment               // <<=
+	tokenRightShiftAssignment              // >>=
 	tokenPackage                           // package
 	tokenFor                               // for
 	tokenIn                                // in
@@ -122,6 +128,12 @@ var tokenString = map[tokenTyp]string{
 	tokenMultiplicationAssignment: "*=",
 	tokenDivisionAssignment:       "/=",
 	tokenModuloAssignment:         "%=",
+	tokenAndAssignment:            "&=",
+	tokenOrAssignment:             "|=",
+	tokenXorAssignment:            "^=",
+	tokenAndNotAssignment:         "&^=",
+	tokenLeftShiftAssignment:      "<<=",
+	tokenRightShiftAssignment:     ">>=",
 	tokenPackage:                  "package",
 	tokenFor:                      "for",
 	tokenIn:                       "in",
@@ -247,6 +259,18 @@ func assignmentType(tok token) (ast.AssignmentType, bool) {
 		return ast.AssignmentDivision, true
 	case tokenModuloAssignment:
 		return ast.AssignmentModulo, true
+	case tokenAndAssignment:
+		return ast.AssignmentModulo, true
+	case tokenOrAssignment:
+		return ast.AssignmentOr, true
+	case tokenXorAssignment:
+		return ast.AssignmentXor, true
+	case tokenAndNotAssignment:
+		return ast.AssignmentAndNot, true
+	case tokenLeftShiftAssignment:
+		return ast.AssignmentLeftShift, true
+	case tokenRightShiftAssignment:
+		return ast.AssignmentRightShift, true
 	case tokenIncrement:
 		return ast.AssignmentIncrement, true
 	case tokenDecrement:
