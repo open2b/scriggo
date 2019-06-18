@@ -125,6 +125,26 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Reserving the right register for a function body with a variadic argument",
+		src: `package main
+
+		import "fmt"
+		
+		func sum(nums ...int) {
+			fmt.Print(nums, " ")
+			nums[0] = -2
+			fmt.Print(nums, " ")
+		}
+		
+		func main() {
+			sum(1, 2)
+			sum(1, 2, 3)
+		}
+		`,
+		output: `[1 2] [-2 2] [1 2 3] [-2 2 3] `,
+	},
+
+	{
 		name: "Make slice with different combinations of len and cap",
 		src: `package main
 

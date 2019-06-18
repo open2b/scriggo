@@ -372,9 +372,12 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	}
 	// Binds function argument names to pre-allocated registers.
 	fillParametersTypes(fun.Type.Parameters)
-	for _, par := range fun.Type.Parameters {
+	for i, par := range fun.Type.Parameters {
 		parType := par.Type.(*ast.Value).Val.(reflect.Type)
 		kind := parType.Kind()
+		if fun.Type.IsVariadic && i == len(fun.Type.Parameters)-1 {
+			kind = reflect.Slice
+		}
 		argReg := e.fb.NewRegister(kind)
 		if par.Ident != nil {
 			e.fb.BindVarReg(par.Ident.Name, argReg)
