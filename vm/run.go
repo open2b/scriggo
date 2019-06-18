@@ -385,8 +385,10 @@ func (vm *VM) run() (uint32, bool) {
 		case OpConvertFloat:
 			t := vm.fn.Types[uint8(b)]
 			switch t.Kind() {
-			case reflect.Int:
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				vm.setInt(c, reflect.ValueOf(vm.float(a)).Convert(t).Int())
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				vm.setInt(c, int64(reflect.ValueOf(vm.float(a)).Convert(t).Uint()))
 			default:
 				vm.setFloat(c, reflect.ValueOf(vm.float(a)).Convert(t).Float())
 			}

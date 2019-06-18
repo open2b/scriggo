@@ -126,6 +126,20 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Converting a float to uint",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+				var f float64 = 1.3
+				u := uint(f)
+				fmt.Println(f, u)
+		}`,
+		output: "1.3 1\n",
+	},
+
+	{
 		name: "Builtin len as function (interface{}) parameter",
 		src: `package main
 
