@@ -1470,20 +1470,6 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 	if !ok {
 		panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting := or = or comma", tok)})
 	}
-	for _, v := range variables {
-		switch v := v.(type) {
-		case *ast.Identifier:
-			continue
-		case *ast.Selector, *ast.Index:
-			if typ != ast.AssignmentDeclaration {
-				continue
-			}
-		case *ast.UnaryOperator:
-			if v.Operator() == ast.OperatorMultiplication { // pointer.
-				continue
-			}
-		}
-	}
 	vp := variables[0].Pos()
 	pos := &ast.Position{Line: vp.Line, Column: vp.Column, Start: vp.Start, End: tok.pos.End}
 	var values []ast.Expression
