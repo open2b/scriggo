@@ -95,7 +95,7 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 										typ = "reflect.TypeOf(" + pkgBase + "." + name.Name + ")"
 									}
 									expression := strconv.Quote(pkgInfo.Types[expr].Value.ExactString())
-									out[name.Name] = fmt.Sprintf("scriggo.Constant(%s, %s)", typ, expression)
+									out[name.Name] = fmt.Sprintf("scriggo.ConstantLiteral(%s, %s)", typ, expression)
 								} else {
 									out[name.Name] = "&" + pkgBase + "." + name.Name
 								}

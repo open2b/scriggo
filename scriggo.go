@@ -29,14 +29,19 @@ type LoadOption int
 
 type Package = compiler.Package
 
-type ConstantValue = compiler.ConstantValue
+type Constant = compiler.Constant
 
-// Constant returns a constant, given its type and value, that can be used as
-// a declaration in a predefined package.
+// ConstantLiteral returns a constant, given its type and its literal
+// representation, that can be used as a declaration in a predefined package.
 //
 // For untyped constants the type is nil.
-func Constant(typ reflect.Type, value interface{}) ConstantValue {
-	return compiler.Constant(typ, value)
+func ConstantLiteral(typ reflect.Type, literal string) Constant {
+	return compiler.ConstantLiteral(typ, literal)
+}
+
+// ConstantValue returns a constant given its value.
+func ConstantValue(v interface{}) Constant {
+	return compiler.ConstantValue(v)
 }
 
 type Program struct {

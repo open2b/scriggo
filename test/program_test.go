@@ -125,6 +125,30 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Predefined constants",
+		src: `package main
+
+		import (
+			"fmt"
+			"math"
+			"time"
+		)
+		
+		func main() {
+			phi := math.Phi
+			fmt.Println("phi:", phi)
+		
+			ansic := time.ANSIC
+			fmt.Println("ansic:", ansic)
+		
+			nanosecond := time.Nanosecond
+			fmt.Println("nanosecond:", nanosecond)
+		}
+		`,
+		output: "phi: 1.618033988749895\nansic: Mon Jan _2 15:04:05 2006\nnanosecond: 1ns\n",
+	},
+
+	{
 		name: "Predeclared identifier nil as function argument",
 		src: `package main
 
@@ -4909,6 +4933,12 @@ var goPackages = scriggo.Packages{
 			"T":            reflect.TypeOf(T(0)),
 		},
 	},
+	"math": {
+		Name: "math",
+		Declarations: map[string]interface{}{
+			"Phi": scriggo.ConstantLiteral(nil, "1.61803398874989484820458683436563811772030917980576286213544862"),
+		},
+	},
 	"bytes": {
 		Name: "bytes",
 		Declarations: map[string]interface{}{
@@ -4922,6 +4952,8 @@ var goPackages = scriggo.Packages{
 		Declarations: map[string]interface{}{
 			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
 			"ParseDuration": time.ParseDuration,
+			"ANSIC":         scriggo.ConstantLiteral(nil, "\"Mon Jan _2 15:04:05 2006\""),
+			"Nanosecond":    scriggo.ConstantLiteral(reflect.TypeOf(new(time.Duration)).Elem(), "1"),
 		},
 	},
 	"os/exec": {

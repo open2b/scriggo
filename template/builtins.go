@@ -190,9 +190,9 @@ var main = scriggo.Package{
 	Name: "main",
 	Declarations: map[string]interface{}{
 		"Hasher":      hasherType,
-		"MD5":         scriggo.Constant(hasherType, _MD5),
-		"SHA1":        scriggo.Constant(hasherType, _SHA1),
-		"SHA256":      scriggo.Constant(hasherType, _SHA256),
+		"MD5":         scriggo.ConstantValue(_MD5),
+		"SHA1":        scriggo.ConstantValue(_SHA1),
+		"SHA256":      scriggo.ConstantValue(_SHA256),
 		"Time":        timeType,
 		"abbreviate":  abbreviate,
 		"abs":         abs,

@@ -51,16 +51,24 @@ type Package struct {
 	Declarations map[string]interface{}
 }
 
-type ConstantValue struct {
-	value interface{}
-	typ   reflect.Type // nil for untyped constants.
+type Constant struct {
+	value   interface{}
+	literal string
+	typ     reflect.Type // nil for untyped constants.
+
 }
 
-// Constant returns a predefined constant given its type and value. Can be
-// used as a declaration of a precompiled package. For untyped constants the
-// type is nil.
-func Constant(typ reflect.Type, value interface{}) ConstantValue {
-	return ConstantValue{value: value, typ: typ}
+// ConstantLiteral returns a constant, given its type and its literal
+// representation, that can be used as a declaration in a predefined package.
+//
+// For untyped constants the type is nil.
+func ConstantLiteral(typ reflect.Type, literal string) Constant {
+	return Constant{literal: literal, typ: typ}
+}
+
+// ConstantValue returns a constant given its value.
+func ConstantValue(v interface{}) Constant {
+	return Constant{value: v}
 }
 
 // PackageLoader is implemented by package loaders. Load returns a predefined

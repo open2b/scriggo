@@ -8,6 +8,8 @@ package compiler
 
 import (
 	"errors"
+	"fmt"
+	"math/big"
 	"reflect"
 
 	"scriggo/internal/compiler/ast"
@@ -45,19 +47,50 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 			}}
 			continue
 		}
-		if c, ok := value.(ConstantValue); ok {
-			// TODO(Gianluca): create a TypeInfo from a ConstantValue.
-			_ = c
+		// Importing a Go constant.
+		if c, ok := value.(Constant); ok {
+			s[ident] = scopeElement{t: checkConstant(c, gp.Name)}
 			continue
 		}
-		// Importing a Go constant.
-		s[ident] = scopeElement{t: &TypeInfo{
-			Value:             value, // TODO (Gianluca): to review.
-			Properties:        PropertyIsConstant | PropertyIsPredefined,
-			PredefPackageName: gp.Name,
-		}}
+		panic(fmt.Errorf("value of type %T used in declaration %q in package %q", value, ident, gp.Name))
 	}
 	return s
+}
+
+// checkConstant returns the TypeInfo associated to the Constant c.
+func checkConstant(c Constant, pkgName string) *TypeInfo {
+	if c.literal == "" {
+		return &TypeInfo{
+			PredefPackageName: pkgName,
+			Properties:        PropertyIsConstant | PropertyIsPredefined,
+			Type:              reflect.TypeOf(c.value),
+			Value:             c.value,
+		}
+	}
+	v := parseConstant(c.literal)
+	var typ reflect.Type
+	if c.typ == nil {
+		switch v.(type) {
+		case rune:
+			typ = runeType
+		case string:
+			typ = stringType
+		case bool:
+			typ = boolType
+		case *big.Float:
+			typ = float64Type
+		case *big.Int:
+			typ = intType
+		}
+	} else {
+		typ = c.typ
+	}
+	return &TypeInfo{
+		PredefPackageName: pkgName,
+		Properties:        PropertyIsConstant | PropertyIsPredefined,
+		Type:              typ,
+		Value:             v,
+	}
 }
 
 type PackageInfo struct {
