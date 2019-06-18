@@ -125,6 +125,20 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Float exponent as constant",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			const d = 3e20
+			fmt.Println(d)
+		}
+		`,
+		output: "3e+20\n",
+	},
+
+	{
 		name: "Reserving the right register for a function body with a variadic argument",
 		src: `package main
 
