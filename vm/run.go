@@ -743,7 +743,7 @@ func (vm *VM) run() (uint32, bool) {
 		case OpMakeSlice:
 			typ := vm.fn.Types[uint8(a)]
 			var len, cap int
-			if b > 1 {
+			if b > 0 {
 				next := vm.fn.Body[vm.pc]
 				vm.pc++
 				lenIsConst := (b & (1 << 1)) != 0

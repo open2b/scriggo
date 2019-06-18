@@ -1070,8 +1070,9 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	t := builder.Type(sliceType)
 	var k int8
 	if len == 0 && cap == 0 {
-		k = 1
+		k = 0
 	} else {
+		k = 1
 		if kLen {
 			k |= 1 << 1
 		}
@@ -1102,7 +1103,7 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 		}
 	}
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: t, B: k, C: dst})
-	if k > 1 {
+	if k > 0 {
 		fn.Body = append(fn.Body, vm.Instruction{A: len, B: cap})
 	}
 }

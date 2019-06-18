@@ -125,6 +125,38 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Make slice with different combinations of len and cap",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var s []int
+			var l, c int
+			s = make([]int, 10)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			s = make([]int, 4, 6)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			s = make([]int, 0, 3)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			l = 2
+			s = make([]int, l)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			c = 5
+			s = make([]int, l, c)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			s = make([]int, l, 20)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+			s = make([]int, 0, c)
+			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
+		}
+		`,
+		output: "[0 0 0 0 0 0 0 0 0 0], len: 10, cap: 10\n[0 0 0 0], len: 4, cap: 6\n[], len: 0, cap: 3\n[0 0], len: 2, cap: 2\n[0 0], len: 2, cap: 5\n[0 0], len: 2, cap: 20\n[], len: 0, cap: 5\n",
+	},
+
+	{
 		name: "Builtin make - len and cap of a slice",
 		src: `package main
 
