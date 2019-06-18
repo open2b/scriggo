@@ -1781,6 +1781,9 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				if !isAssignableTo(valueTi, fieldTi.Type) {
 					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
 				}
+				if !isExported(fieldTi.Name) {
+					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
+				}
 				if valueTi.IsConstant() {
 					new := ast.NewValue(typedValue(valueTi, fieldTi.Type))
 					tc.replaceTypeInfo(keyValue.Value, new)
