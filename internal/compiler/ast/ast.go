@@ -94,7 +94,7 @@ const (
 	AssignmentAndNot                               // &^=
 	AssignmentLeftShift                            // <<=
 	AssignmentRightShift                           // >>=
-	AssignmentIncrement                            // --
+	AssignmentIncrement                            // ++
 	AssignmentDecrement                            // --
 )
 
