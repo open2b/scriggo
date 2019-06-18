@@ -130,6 +130,18 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 			e.fb.Move(true, 0, okReg, reflect.Bool)
 			addresses[0].assign(false, valueReg, valueType)
 			addresses[1].assign(false, okReg, okType)
+		case *ast.TypeAssertion:
+			typ := value.Type.(*ast.Value).Val.(reflect.Type)
+			exprReg := e.fb.NewRegister(reflect.Interface)
+			e.emitExpr(value.Expr, exprReg, emptyInterfaceType)
+			okType := addresses[1].staticType
+			okReg := e.fb.NewRegister(reflect.Bool)
+			e.fb.Move(true, 1, okReg, reflect.Bool)
+			resultReg := e.fb.NewRegister(typ.Kind())
+			e.fb.Assert(exprReg, typ, resultReg)
+			e.fb.Move(true, 0, okReg, reflect.Bool)
+			addresses[0].assign(false, resultReg, typ)
+			addresses[1].assign(false, okReg, okType)
 		}
 	}
 }

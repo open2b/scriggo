@@ -124,6 +124,23 @@ var stmtTests = []struct {
 	err          interface{} // error.
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "Type assertion in assignment",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			var i interface{} = "hello"
+			s := i.(string)
+			s, ok := i.(string)
+			fmt.Println(s, ok)
+		}
+		`,
+		output: "hello true\n",
+	},
 
 	{
 		name: "Converting a float to uint",
