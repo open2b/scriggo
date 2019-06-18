@@ -1044,6 +1044,12 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 	return endLineAsSemicolon
 }
 
+var numberBaseName = map[int]string{
+	2:  "binary",
+	8:  "octal",
+	16: "hexadecimal",
+}
+
 // lexNumber reads a number (integer or float) knowing that src starts with
 // '0'..'9' or '.'.
 func (l *lexer) lexNumber() error {
@@ -1105,8 +1111,11 @@ DIGITS:
 		if p < len(l.src) {
 			switch l.src[p] {
 			case '.':
-				if dot || exponent || base < 10 {
+				if dot || exponent {
 					break
+				}
+				if base < 10 {
+					return l.errorf("invalid radix point in "+numberBaseName[base]+" literal", c)
 				}
 				dot = true
 				p++
@@ -1133,12 +1142,8 @@ DIGITS:
 		}
 	}
 	switch c := l.src[p-1]; c {
-	case 'x', 'X':
-		return l.errorf("hexadecimal literal has no digits")
-	case 'o', 'O':
-		return l.errorf("octal literal has no digits")
-	case 'b', 'B':
-		return l.errorf("binary literal has no digits")
+	case 'x', 'X', 'o', 'O', 'b', 'B':
+		return l.errorf(numberBaseName[base] + " literal has no digits")
 	case '_':
 		return l.errorf("'_' must separate successive digits")
 	case 'e', 'E', 'p', 'P', '+', '-':
