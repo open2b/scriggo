@@ -135,53 +135,62 @@ func (t Time) UTC(env *vm.Env) Time {
 
 func (t Time) Render(out io.Writer, ctx Context) error {
 	var err error
+	w := newStringWriter(out)
 	switch ctx {
 	case ContextText:
-		w := newStringWriter(out)
 		_, err = w.WriteString(t.Format(time.RFC3339))
 	case ContextHTML:
-		w := newStringWriter(out)
 		_, err = w.WriteString(t.Format(time.RFC1123))
 	case ContextAttribute, ContextUnquotedAttribute:
-		w := newStringWriter(out)
 		//if urlstate == nil {
 		_, err = w.WriteString(t.Format(time.RFC3339))
 		//} else {
 		//	err = r.renderInAttributeURL(w, value, node, urlstate, true)
 		//}
 	case ContextJavaScript:
-		tt := time.Time(t)
-		year := tt.Year()
-		if year < 100 {
-			return errors.New("not representable year in JavaScript")
+		_, err = w.WriteString(`new Date("`)
+		if err != nil {
+			return err
 		}
-		b := make([]byte, 0, 50)
-		b = append(b, "new Date("...)
-		b = strconv.AppendInt(b, int64(year), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Month()), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Day()), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Hour()), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Minute()), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Second()), 10)
-		b = append(b, ',', ' ')
-		b = strconv.AppendInt(b, int64(tt.Nanosecond())/int64(time.Millisecond), 10)
-		b = append(b, ')')
-		_, err = out.Write(b)
+		err = t.formatJavaScript(w)
+		if err != nil {
+			return err
+		}
+		_, err = w.WriteString(`")`)
 	case ContextJavaScriptString:
-		tt := time.Time(t)
-		year := tt.Year()
-		if year < 0 || year > 9999 {
-			return errors.New("not representable year in JavaScript")
-		}
-		w := newStringWriter(out)
-		_, err = w.WriteString(tt.Format("2006-01-02T15:04:05.000Z07:00"))
+		err = t.formatJavaScript(w)
 	default:
 		err = ErrNoRenderInContext
+	}
+	return err
+}
+
+func (t Time) formatJavaScript(out io.Writer) error {
+	w := newStringWriter(out)
+	tt := time.Time(t)
+	y := tt.Year()
+	if y < -999999 || y > 999999 {
+		return errors.New("not representable year in JavaScript")
+	}
+	ms := int64(tt.Nanosecond()) / int64(time.Millisecond)
+	var err error
+	if name, offset := tt.Zone(); name == "UTC" {
+		format := "%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ"
+		if y < 0 || y > 9999 {
+			format = "%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3dZ"
+		}
+		_, err = fmt.Fprintf(w, format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms)
+	} else {
+		zone := offset / 60
+		h, m := zone/60, zone%60
+		if m < 0 {
+			m = -m
+		}
+		format := "%0.4d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d"
+		if y < 0 || y > 9999 {
+			format = "%+0.6d-%0.2d-%0.2dT%0.2d:%0.2d:%0.2d.%0.3d%+0.2d:%0.2d"
+		}
+		_, err = fmt.Fprintf(w, format, y, tt.Month(), tt.Day(), tt.Hour(), tt.Minute(), tt.Second(), ms, h, m)
 	}
 	return err
 }
