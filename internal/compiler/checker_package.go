@@ -316,13 +316,23 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) error {
+func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			if rerr, ok := r.(*CheckingError); ok {
+				err = rerr
+			} else {
+				panic(r)
+			}
+		}
+	}()
 
 	packageNode := pkg
 
 	tc := newTypechecker(path, Options{IsTemplate: isTemplate, DisallowGoStmt: disallowGoStmt})
 
-	err := sortDeclarations(packageNode, deps)
+	err = sortDeclarations(packageNode, deps)
 	if err != nil {
 		return err
 	}
