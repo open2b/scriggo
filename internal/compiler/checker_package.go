@@ -45,6 +45,11 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 			}}
 			continue
 		}
+		if c, ok := value.(ConstantValue); ok {
+			// TODO(Gianluca): create a TypeInfo from a ConstantValue.
+			_ = c
+			continue
+		}
 		// Importing a Go constant.
 		s[ident] = scopeElement{t: &TypeInfo{
 			Value:             value, // TODO (Gianluca): to review.
