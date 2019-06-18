@@ -794,7 +794,7 @@ func shiftOp(t1 *TypeInfo, expr *ast.BinaryOperator, t2 *TypeInfo) (*TypeInfo, e
 	if t2.Nil() {
 		return nil, errors.New("cannot convert nil to type uint")
 	}
-	if t2.IsUntypedConstant() && !t2.CanInt64() || !t2.IsUntypedConstant() && !t2.IsUnsignedInteger() {
+	if t2.IsUntypedConstant() && !t2.CanInt64() || !t2.IsUntypedConstant() && !t2.IsInteger() {
 		return nil, fmt.Errorf("invalid operation: %s (shift count type %s, must be unsigned integer)", expr, t2.ShortString())
 	}
 	var s uint

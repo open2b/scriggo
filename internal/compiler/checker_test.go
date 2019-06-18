@@ -831,7 +831,6 @@ var checkerStmts = map[string]string{
 	`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (shift count type int, must be unsigned integer)`,
 	`var a = "s"; _ = 1 << a`:          `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
 	`var a = 1.2; _ = 1 << a`:          `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
-	`var a = -1; _ = 1 << a`:           `invalid operation: 1 << a (shift count type int, must be unsigned integer)`,
 	`_ = nil << 1`:                     `invalid operation: nil << 1 (shift of type nil)`,
 	`_ = "a" << 1`:                     `invalid operation: "a" << 1 (shift of type untyped string)`,
 	`_ = 1.2 << 1`:                     `invalid operation: 1.2 << 1 (shift of type untyped float64)`, // NOTE: gc returns `constant 1.2 truncated to integer`
