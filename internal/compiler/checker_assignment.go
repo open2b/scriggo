@@ -357,9 +357,6 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 
 		if isDeclaration {
 			newValueTi := &TypeInfo{}
-			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
-				return ""
-			}
 			if typ == nil {
 				if valueTi.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
@@ -375,6 +372,9 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				newValueTi.Type = typ.Type
 			}
 			tc.TypeInfo[v] = newValueTi
+			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
+				return ""
+			}
 			if isConst {
 				newValueTi.Value = valueTi.Value
 				newValueTi.Properties = newValueTi.Properties | PropertyIsConstant
