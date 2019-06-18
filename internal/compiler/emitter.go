@@ -283,7 +283,7 @@ func (e *emitter) emitPackage(pkg *ast.Package, isExtendingPage bool) (map[strin
 // reflect types.
 //
 // While prepareCallParameters is called before calling the function,
-// prepareFunctionBodyParameters is called before emitting the its body.
+// prepareFunctionBodyParameters is called before emitting its body.
 func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expression, isPredefined bool, receiverAsArg bool) ([]int8, []reflect.Type) {
 	numOut := funcType.NumOut()
 	numIn := funcType.NumIn()
@@ -357,7 +357,7 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 // emitting its body.
 //
 // While prepareCallParameters is called before calling the function,
-// prepareFunctionBodyParameters is called before emitting the its body.
+// prepareFunctionBodyParameters is called before emitting its body.
 func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 
 	// Reserves space for return parameters.
