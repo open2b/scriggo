@@ -751,8 +751,8 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 			e.fb.EnterStack()
 			tmpTyp := reflect.PtrTo(typ)
-			tmpReg := e.fb.NewRegister(tmpTyp.Kind())
-			e.fb.New(typ, tmpReg)
+			tmpReg := -e.fb.NewRegister(tmpTyp.Kind())
+			e.fb.New(typ, -tmpReg)
 			if len(expr.KeyValues) > 0 {
 				for _, kv := range expr.KeyValues {
 					fieldName := kv.Key.(*ast.Identifier).Name
@@ -767,10 +767,10 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 					}
 					// TODO(Gianluca): use field "k" of SetField.
 					fieldConstIndex := e.fb.MakeIntConstant(encodeFieldIndex(field.Index))
-					e.fb.SetField(false, -tmpReg, fieldConstIndex, valueReg)
+					e.fb.SetField(false, tmpReg, fieldConstIndex, valueReg)
 				}
 			}
-			e.changeRegister(false, -tmpReg, reg, tmpTyp, dstType)
+			e.changeRegister(false, tmpReg, reg, tmpTyp, dstType)
 			e.fb.ExitStack()
 
 		case reflect.Map:
