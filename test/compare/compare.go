@@ -186,6 +186,7 @@ func main() {
 	if !verbose {
 		fmt.Print("comparing Scriggo with gc..")
 	}
+	count := 0
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
 			fatal(fmt.Errorf("%s is not a dir", dir))
@@ -225,6 +226,7 @@ func main() {
 				} else {
 					fmt.Print(".")
 				}
+				count++
 				scriggoOut := runScriggoAndGetOutput(src)
 				goOut := runGoAndGetOutput(src)
 				if (scriggoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
@@ -250,6 +252,6 @@ func main() {
 		}
 	}
 	if !verbose {
-		fmt.Print("done!\n")
+		fmt.Printf("done! (%d tests executed)\n", count)
 	}
 }
