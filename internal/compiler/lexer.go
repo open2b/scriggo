@@ -644,7 +644,10 @@ LOOP:
 				return l.errorf("unexpected EOF")
 			}
 			if '0' <= l.src[1] && l.src[1] <= '9' {
-				l.lexNumber()
+				err := l.lexNumber()
+				if err != nil {
+					return err
+				}
 				endLineAsSemicolon = true
 			} else if l.src[1] == '.' && len(l.src) > 2 && l.src[2] == '.' {
 				l.emit(tokenEllipses, 3)
@@ -656,7 +659,10 @@ LOOP:
 				endLineAsSemicolon = false
 			}
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			l.lexNumber()
+			err := l.lexNumber()
+			if err != nil {
+				return err
+			}
 			endLineAsSemicolon = true
 		case '=':
 			if len(l.src) == 1 || l.src[1] != '=' {
@@ -1040,27 +1046,111 @@ func (l *lexer) lexIdentifierOrKeyword(s int) bool {
 
 // lexNumber reads a number (integer or float) knowing that src starts with
 // '0'..'9' or '.'.
-func (l *lexer) lexNumber() {
+func (l *lexer) lexNumber() error {
 	// Stops only if a character can not be part of the number.
-	hasDot := l.src[0] == '.'
-	p := 1
+	var dot bool
+	var exponent bool
+	p := 0
+	base := 10
+	if c := l.src[0]; c == '0' && len(l.src) > 1 {
+		switch l.src[1] {
+		case '.':
+			dot = true
+			p = 2
+		case 'x', 'X':
+			base = 16
+			p = 2
+		case 'o', 'O', '_':
+			base = 8
+			p = 2
+		case '0', '1', '2', '3', '4', '5', '6', '7':
+			base = 8
+			p = 1
+		case 'b', 'B':
+			base = 2
+			p = 2
+		}
+	} else if c == '.' {
+		dot = true
+		p = 1
+	}
+DIGITS:
 	for p < len(l.src) {
-		if l.src[p] == '.' {
-			if hasDot {
-				break
+		c := l.src[p]
+		switch base {
+		case 10:
+			if !isDecDigit(c) {
+				break DIGITS
 			}
-			hasDot = true
-		} else if l.src[p] < '0' || '9' < l.src[p] {
-			break
+		case 16:
+			if exponent && !isDecDigit(c) || !exponent && !isHexDigit(c) {
+				break DIGITS
+			}
+		case 8:
+			if !isOctDigit(c) {
+				if isHexDigit(c) {
+					return l.errorf("invalid digit '%d' in octal literal", c)
+				}
+				break DIGITS
+			}
+		case 2:
+			if !isBinDigit(c) {
+				if isHexDigit(c) {
+					return l.errorf("invalid digit '%d' in binary literal", c)
+				}
+				break DIGITS
+			}
 		}
 		p++
+		if p < len(l.src) {
+			switch l.src[p] {
+			case '.':
+				if dot || exponent || base < 10 {
+					break
+				}
+				dot = true
+				p++
+			case '_':
+				p++
+			case 'e', 'E':
+				if exponent || base != 10 {
+					break
+				}
+				exponent = true
+				p++
+			case 'p', 'P':
+				if exponent || base != 16 {
+					break
+				}
+				exponent = true
+				p++
+			case '+', '-':
+				if c := l.src[p-1]; c != 'e' && c != 'E' && c != 'p' && c != 'P' {
+					break
+				}
+				p++
+			}
+		}
 	}
-	if hasDot {
+	switch c := l.src[p-1]; c {
+	case 'x', 'X':
+		return l.errorf("hexadecimal literal has no digits")
+	case 'o', 'O':
+		return l.errorf("octal literal has no digits")
+	case 'b', 'B':
+		return l.errorf("binary literal has no digits")
+	case '_':
+		return l.errorf("'_' must separate successive digits")
+	case 'e', 'E', 'p', 'P', '+', '-':
+		return l.errorf("exponent has no digits")
+	}
+	if dot || exponent {
 		l.emit(tokenFloat, p)
 	} else {
 		l.emit(tokenInt, p)
 	}
 	l.column += p
+	return nil
 }
 
 // lexInterpretedString reads a string "..." knowing that src starts with '"'.
@@ -1258,6 +1348,18 @@ func (l *lexer) lexRuneLiteral() error {
 	l.emit(tokenRune, p+1)
 	l.column += p + 1
 	return nil
+}
+
+func isBinDigit(c byte) bool {
+	return c == '0' || c == '1'
+}
+
+func isOctDigit(c byte) bool {
+	return '0' <= c && c <= '7'
+}
+
+func isDecDigit(c byte) bool {
+	return '0' <= c && c <= '9'
 }
 
 func isHexDigit(c byte) bool {
