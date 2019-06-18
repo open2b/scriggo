@@ -125,6 +125,22 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Builtin make - len and cap of a slice",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			s := make([]int, 5, 10)
+			fmt.Println("s:", s)
+			fmt.Println("len:", len(s))
+			fmt.Println("cap:", cap(s))
+		}
+		`,
+		output: "s: [0 0 0 0 0]\nlen: 5\ncap: 10\n",
+	},
+
+	{
 		name: "Type assertion in assignment",
 		src: `package main
 
