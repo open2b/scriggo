@@ -9,6 +9,7 @@ package compiler
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"scriggo/internal/compiler/ast"
@@ -908,4 +909,34 @@ func parseEscapedRune(s []byte) (rune, int) {
 		return rune(r), 3
 	}
 	panic("unexpected escaped rune")
+}
+
+// parseConstant parses s as integer, floating point, rune or string literal.
+func parseConstant(s string) interface{} {
+	switch s[0] {
+	case '\'':
+		if len(s) == 3 {
+			return rune(s[1])
+		} else {
+			r, _ := parseEscapedRune([]byte(s[1:]))
+			return r
+		}
+	case '"':
+		return unquoteString([]byte(s))
+	case 't':
+		return true
+	case 'f':
+		return false
+	default:
+		sl := strings.ToLower(s)
+		if sl[0] == '-' {
+			sl = sl[1:]
+		}
+		if strings.ContainsAny(sl, ".p") || strings.Contains(sl, "e") && !strings.HasPrefix(sl, "0x") {
+			n, _ := newFloat().SetString(s)
+			return n
+		}
+		n, _ := newInt().SetString(s, 0)
+		return n
+	}
 }

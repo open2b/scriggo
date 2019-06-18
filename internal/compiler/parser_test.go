@@ -1468,6 +1468,47 @@ func TestPages(t *testing.T) {
 	// }
 }
 
+var constantsTests = []struct {
+	src   string
+	value interface{}
+}{
+	{`'a'`, 'a'},
+	{`'\n'`, '\n'},
+	{`"a"`, "a"},
+	{`true`, true},
+	{`false`, false},
+	{`0.1`, mustNewFloat("0.1")},
+	{`1e2`, mustNewFloat("1e2")},
+	{`0xbp2`, mustNewFloat("0xbp2")},
+	{`0xbe2`, mustNewInt("0xbe2")},
+	{`5`, mustNewInt("5")},
+}
+
+func mustNewFloat(s string) *big.Float {
+	n, ok := newFloat().SetString(s)
+	if !ok {
+		panic(fmt.Sprintf("unexpected error while parsing %q as float", s))
+	}
+	return n
+}
+
+func mustNewInt(s string) *big.Int {
+	n, ok := newInt().SetString(s, 0)
+	if !ok {
+		panic(fmt.Sprintf("unexpected error while parsing %q as int", s))
+	}
+	return n
+}
+
+func TestParseConstant(t *testing.T) {
+	for _, c := range constantsTests {
+		value := parseConstant(c.src)
+		if !reflect.DeepEqual(value, c.value) {
+			t.Errorf("unexpected %v, expected %v", value, c.value)
+		}
+	}
+}
+
 func equals(n1, n2 ast.Node, p int) error {
 
 	if n1 == nil && n2 == nil {
