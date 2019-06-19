@@ -152,11 +152,11 @@ func (vm *VM) run() (uint32, bool) {
 			}
 
 		// And
-		case OpAnd:
+		case OpAnd, -OpAnd:
 			vm.setInt(c, vm.int(a)&vm.intk(b, op < 0))
 
 		// AndNot
-		case OpAndNot:
+		case OpAndNot, -OpAndNot:
 			vm.setInt(c, vm.int(a)&^vm.intk(b, op < 0))
 
 		// Append
