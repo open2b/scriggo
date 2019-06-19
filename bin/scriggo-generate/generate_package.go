@@ -79,6 +79,9 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 			if strings.HasPrefix(typ, "untyped ") {
 				typ = "nil"
 			} else {
+				if strings.Contains(typ, ".") {
+					typ = pkgBase + filepath.Ext(typ)
+				}
 				typ = fmt.Sprintf("reflect.TypeOf(new(%s)).Elem()", typ)
 			}
 			exact := v.Val().ExactString()
