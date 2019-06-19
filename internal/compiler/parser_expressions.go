@@ -932,6 +932,10 @@ func parseConstant(s string) interface{} {
 		if sl[0] == '-' {
 			sl = sl[1:]
 		}
+		if strings.ContainsAny(sl, "/") {
+			r, _ := newRat().SetString(s)
+			return r
+		}
 		if strings.ContainsAny(sl, ".p") || strings.Contains(sl, "e") && !strings.HasPrefix(sl, "0x") {
 			n, _ := newFloat().SetString(s)
 			return n

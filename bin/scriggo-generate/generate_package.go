@@ -8,15 +8,14 @@ package main
 
 import (
 	"fmt"
-	"go/ast"
+	"go/constant"
 	"go/importer"
-	"go/token"
+	"go/types"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"golang.org/x/tools/go/loader"
 )
@@ -54,9 +53,8 @@ func uniquePackageName(pkgPath string) string {
 // goPackageToDeclarations navigates the package pkgPath and returns a map
 // containing the exported declarations.
 func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
-
+	fmt.Printf("generating package %q...", pkgPath)
 	out := make(map[string]string)
-
 	pkgBase := uniquePackageName(pkgPath)
 	config := loader.Config{}
 	config.Import(pkgPath)
@@ -65,61 +63,45 @@ func goPackageToDeclarations(pkgPath string) (map[string]string, error) {
 		return nil, err
 	}
 	pkgInfo := program.Package(pkgPath)
-	for _, file := range pkgInfo.Files {
-		for _, decl := range file.Decls {
-			if funcDecl, ok := decl.(*ast.FuncDecl); ok {
-				if !isExported(funcDecl.Name.Name) {
-					continue
-				}
-				if funcDecl.Recv != nil { // is a method.
-					continue
-				}
-				out[funcDecl.Name.Name] = pkgBase + "." + funcDecl.Name.Name
-			} else if genDecl, ok := decl.(*ast.GenDecl); ok {
-				switch genDecl.Tok {
-				case token.CONST, token.VAR:
-					for _, spec := range genDecl.Specs {
-						if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-							for i, name := range valueSpec.Names {
-								if !isExported(name.Name) {
-									continue
-								}
-								if i > len(valueSpec.Values)-1 {
-									continue
-								}
-								if genDecl.Tok == token.CONST {
-									expr := valueSpec.Values[i]
-									typ := "nil"
-									isTyped := valueSpec.Type != nil
-									if isTyped {
-										typ = "reflect.TypeOf(" + pkgBase + "." + name.Name + ")"
-									}
-									expression := strconv.Quote(pkgInfo.Types[expr].Value.ExactString())
-									out[name.Name] = fmt.Sprintf("scriggo.ConstantLiteral(%s, %s)", typ, expression)
-								} else {
-									out[name.Name] = "&" + pkgBase + "." + name.Name
-								}
-							}
-						}
-					}
-				case token.TYPE:
-					for _, spec := range genDecl.Specs {
-						spec := spec.(*ast.TypeSpec)
-						if !isExported(spec.Name.Name) {
-							continue
-						}
-						out[spec.Name.Name] = "reflect.TypeOf(new(" + pkgBase + "." + spec.Name.Name + ")).Elem()"
-					}
-				}
+	for _, v := range pkgInfo.Defs {
+		// Include only exported names. It doesn't take into account whether the
+		// object is in a local (function) scope or not.
+		if v == nil || !v.Exported() {
+			continue
+		}
+		// Include only package-level names.
+		if v.Parent() == nil || v.Parent().Parent() != types.Universe {
+			continue
+		}
+		switch v := v.(type) {
+		case *types.Const:
+			typ := v.Type().String()
+			if strings.HasPrefix(typ, "untyped ") {
+				typ = "nil"
+			} else {
+				typ = fmt.Sprintf("reflect.TypeOf(new(%s)).Elem()", typ)
 			}
+			exact := v.Val().ExactString()
+			quoted := strconv.Quote(exact)
+			if v.Val().Kind() == constant.String && len(quoted) == len(exact)+4 {
+				quoted = "`" + exact + "`"
+			}
+			out[v.Name()] = fmt.Sprintf("scriggo.ConstLiteral(%v, %s)", typ, quoted)
+		case *types.Func:
+			if v.Type().(*types.Signature).Recv() == nil {
+				out[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
+			}
+		case *types.Var:
+			if !v.Embedded() && !v.IsField() {
+				out[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
+			}
+		case *types.TypeName:
+			out[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
+
 		}
 	}
-
+	fmt.Printf("done!\n")
 	return out, nil
-}
-
-func isExported(name string) bool {
-	return unicode.Is(unicode.Lu, []rune(name)[0])
 }
 
 var outputSkeleton = `[generatedWarning]

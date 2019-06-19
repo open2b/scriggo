@@ -58,16 +58,16 @@ type Constant struct {
 
 }
 
-// ConstantLiteral returns a constant, given its type and its literal
+// ConstLiteral returns a constant, given its type and its literal
 // representation, that can be used as a declaration in a predefined package.
 //
 // For untyped constants the type is nil.
-func ConstantLiteral(typ reflect.Type, literal string) Constant {
+func ConstLiteral(typ reflect.Type, literal string) Constant {
 	return Constant{literal: literal, typ: typ}
 }
 
-// ConstantValue returns a constant given its value.
-func ConstantValue(v interface{}) Constant {
+// ConstValue returns a constant given its value.
+func ConstValue(v interface{}) Constant {
 	return Constant{value: v}
 }
 

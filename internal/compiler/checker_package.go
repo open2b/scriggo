@@ -81,6 +81,8 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 			typ = float64Type
 		case *big.Int:
 			typ = intType
+		case *big.Rat:
+			typ = float64Type
 		}
 	} else {
 		typ = c.typ

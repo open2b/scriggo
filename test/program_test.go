@@ -4992,7 +4992,7 @@ var goPackages = scriggo.Packages{
 	"math": {
 		Name: "math",
 		Declarations: map[string]interface{}{
-			"Phi": scriggo.ConstantLiteral(nil, "1.61803398874989484820458683436563811772030917980576286213544862"),
+			"Phi": scriggo.ConstLiteral(nil, "1.61803398874989484820458683436563811772030917980576286213544862"),
 		},
 	},
 	"bytes": {
@@ -5008,8 +5008,8 @@ var goPackages = scriggo.Packages{
 		Declarations: map[string]interface{}{
 			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
 			"ParseDuration": time.ParseDuration,
-			"ANSIC":         scriggo.ConstantLiteral(nil, "\"Mon Jan _2 15:04:05 2006\""),
-			"Nanosecond":    scriggo.ConstantLiteral(reflect.TypeOf(new(time.Duration)).Elem(), "1"),
+			"ANSIC":         scriggo.ConstLiteral(nil, "\"Mon Jan _2 15:04:05 2006\""),
+			"Nanosecond":    scriggo.ConstLiteral(reflect.TypeOf(new(time.Duration)).Elem(), "1"),
 		},
 	},
 	"os/exec": {
