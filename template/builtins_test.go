@@ -27,10 +27,10 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	// Hasher
 	{"{% var a Hasher %}{{ a }}", "0", nil},
 
-	// MD%, SHA1, SHA256 TODO: invalid memory address or nil pointer dereference
-	//{"{% var h = MD5 %}{{ h }}", "0", nil},
-	//{"{% var h = SHA1 %}{{ h }}", "1", nil},
-	//{"{% var h = SHA256 %}{{ h }}", "2", nil},
+	// MD5, SHA1, SHA256
+	{"{% var h = MD5 %}{{ h }}", "0", nil},
+	{"{% var h = SHA1 %}{{ h }}", "1", nil},
+	{"{% var h = SHA256 %}{{ h }}", "2", nil},
 
 	// Time
 	{"{% var t Time %}{{ t }}", "Mon, 01 Jan 0001 00:00:00 UTC", nil},
@@ -84,12 +84,12 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ escapeQuery(`a/b+c?d#`) }}", "a%2fb%2bc%3fd%23", nil},
 
 	// hash TODO: invalid memory address or nil pointer dereference
-	//{"{{ hash(MD5, ``) }}", "d41d8cd98f00b204e9800998ecf8427e", nil},
-	//{"{{ hash(MD5, `hello world!`) }}", "fc3ff98e8c6a0d3087d515c0473f8677", nil},
-	//{"{{ hash(SHA1, ``) }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709", nil},
-	//{"{{ hash(SHA1, `hello world!`) }}", "430ce34d020724ed75a196dfc2ad67c77772d169", nil},
-	//{"{{ hash(SHA256, ``) }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
-	//{"{{ hash(SHA256, `hello world!`) }}", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
+	{"{{ hash(MD5, ``) }}", "d41d8cd98f00b204e9800998ecf8427e", nil},
+	{"{{ hash(MD5, `hello world!`) }}", "fc3ff98e8c6a0d3087d515c0473f8677", nil},
+	{"{{ hash(SHA1, ``) }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709", nil},
+	{"{{ hash(SHA1, `hello world!`) }}", "430ce34d020724ed75a196dfc2ad67c77772d169", nil},
+	{"{{ hash(SHA256, ``) }}", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", nil},
+	{"{{ hash(SHA256, `hello world!`) }}", "7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9", nil},
 
 	// hasPrefix
 	{"{{ hasPrefix(``, ``) }}", "true", nil},
@@ -108,18 +108,18 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ hex(`hello world!`) }}", "68656c6c6f20776f726c6421", nil},
 
 	// hmac TODO: invalid memory address or nil pointer dereference
-	//{"{{ hmac(MD5, ``, ``) }}", "dOb3KYqcLRaJNfWMAButiA==", nil},
-	//{"{{ hmac(MD5, `hello world!`, ``) }}", "POUE2/xvWDT8UjcXJ4d/hQ==", nil},
-	//{"{{ hmac(MD5, ``, `secret`) }}", "XI2wPwTOwPQ7ywYAI5FBkA==", nil},
-	//{"{{ hmac(MD5, `hello world!`, `secret`) }}", "CgRh4Q6JUG18MaFFZjvtkw==", nil},
-	//{"{{ hmac(SHA1, ``, ``) }}", "+9sdGxiqbAgyS31ktx+3Y3BpDh0=", nil},
-	//{"{{ hmac(SHA1, `hello world!`, ``) }}", "Cs2Lo6MmqAmr0Qj3JXmz/wJnhDg=", nil},
-	//{"{{ hmac(SHA1, ``, `secret`) }}", "Ja9hdKD87MTTRmgKcrfOZEuaiOg=", nil},
-	//{"{{ hmac(SHA1, `hello world!`, `secret`) }}", "pN9fnSN6sMoyQfBCvPYFmk70kcQ=", nil},
-	//{"{{ hmac(SHA256, ``, ``) }}", "thNnmggU2ex3L5XXeMNfxf8Wl8STcVZTxscSFEKSxa0=", nil},
-	//{"{{ hmac(SHA256, `hello world!`, ``) }}", "7/WCWbmktkh3Gig/DI7JWORlJ0gUpKhebIYJG4iMxJw=", nil},
-	//{"{{ hmac(SHA256, ``, `secret`) }}", "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk=", nil},
-	//{"{{ hmac(SHA256, `hello world!`, `secret`) }}", "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q=", nil},
+	{"{{ hmac(MD5, ``, ``) }}", "dOb3KYqcLRaJNfWMAButiA==", nil},
+	{"{{ hmac(MD5, `hello world!`, ``) }}", "POUE2/xvWDT8UjcXJ4d/hQ==", nil},
+	{"{{ hmac(MD5, ``, `secret`) }}", "XI2wPwTOwPQ7ywYAI5FBkA==", nil},
+	{"{{ hmac(MD5, `hello world!`, `secret`) }}", "CgRh4Q6JUG18MaFFZjvtkw==", nil},
+	{"{{ hmac(SHA1, ``, ``) }}", "+9sdGxiqbAgyS31ktx+3Y3BpDh0=", nil},
+	{"{{ hmac(SHA1, `hello world!`, ``) }}", "Cs2Lo6MmqAmr0Qj3JXmz/wJnhDg=", nil},
+	{"{{ hmac(SHA1, ``, `secret`) }}", "Ja9hdKD87MTTRmgKcrfOZEuaiOg=", nil},
+	{"{{ hmac(SHA1, `hello world!`, `secret`) }}", "pN9fnSN6sMoyQfBCvPYFmk70kcQ=", nil},
+	{"{{ hmac(SHA256, ``, ``) }}", "thNnmggU2ex3L5XXeMNfxf8Wl8STcVZTxscSFEKSxa0=", nil},
+	{"{{ hmac(SHA256, `hello world!`, ``) }}", "7/WCWbmktkh3Gig/DI7JWORlJ0gUpKhebIYJG4iMxJw=", nil},
+	{"{{ hmac(SHA256, ``, `secret`) }}", "+eZuF5tnR65UEI+C+K3os8Jddv0wr95sOVgixTAZYWk=", nil},
+	{"{{ hmac(SHA256, `hello world!`, `secret`) }}", "cgaXMb8pG0Y67LIYvCJ6vOPUA9dtpn+u8tSNPLQ7L1Q=", nil},
 
 	// html
 	{"{{ html(``) }}", "", nil},
@@ -236,7 +236,7 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ round(7.5) }}", "8", nil},
 
 	// sort
-	//{"{% sort(nil) %}", "", nil}, TODO: invalid memory address or nil pointer dereference
+	//{"{% sort(nil) %}", "", nil}, TODO: not implemented
 	{"{% sort(s1) %}{{ s1 }}", "", Vars{"s1": []int{}}},
 	{"{% sort(s2) %}{{ s2 }}", "1", Vars{"s2": []int{1}}},
 	{"{% sort(s3) %}{{ s3 }}", "1, 2", Vars{"s3": []int{1, 2}}},

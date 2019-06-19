@@ -60,16 +60,35 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 // checkConstant returns the TypeInfo associated to the Constant c.
 func checkConstant(c Constant, pkgName string) *TypeInfo {
 	if c.literal == "" {
+		value := c.value
+		typ := reflect.TypeOf(c.value)
+		kind := typ.Kind()
+		switch {
+		case kind == reflect.Bool:
+			value = reflect.ValueOf(value).Bool()
+		case reflect.Int <= kind && kind <= reflect.Int64:
+			value = newInt().SetInt64(reflect.ValueOf(value).Int())
+		case reflect.Uint <= kind && kind <= reflect.Uint64:
+			value = newInt().SetUint64(reflect.ValueOf(value).Uint())
+		case kind == reflect.Float64 || kind == reflect.Float32:
+			value = newFloat().SetFloat64(reflect.ValueOf(value).Float())
+		case kind == reflect.String:
+			value = reflect.ValueOf(value).String()
+		default:
+			panic("scriggo: unexpected constant kind") // TODO.
+		}
 		return &TypeInfo{
 			PredefPackageName: pkgName,
 			Properties:        PropertyIsConstant | PropertyIsPredefined,
-			Type:              reflect.TypeOf(c.value),
-			Value:             c.value,
+			Type:              typ,
+			Value:             value,
 		}
 	}
 	v := parseConstant(c.literal)
 	var typ reflect.Type
+	property := PropertyIsConstant | PropertyIsPredefined
 	if c.typ == nil {
+		property |= PropertyUntyped
 		switch v.(type) {
 		case rune:
 			typ = runeType
@@ -89,7 +108,7 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 	}
 	return &TypeInfo{
 		PredefPackageName: pkgName,
-		Properties:        PropertyIsConstant | PropertyIsPredefined,
+		Properties:        property,
 		Type:              typ,
 		Value:             v,
 	}

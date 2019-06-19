@@ -104,7 +104,7 @@ var attributeContextTests = []struct {
 	{`a`, "0, 1, 2, 3, 4, 5", Vars{"a": []int{0, 1, 2, 3, 4, 5}}},
 	{`a`, "-2, -1, 0, 1, 2", Vars{"a": []int{-2, -1, 0, 1, 2}}},
 	{`a`, "true, false, true", Vars{"a": []bool{true, false, true}}},
-	//{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},  TODO: invalid operation: s["a"] (type interface {} does not support indexing)
+	//{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}}, TODO: unexpected kind "interface"
 }
 
 func TestAttributeContext(t *testing.T) {
@@ -136,7 +136,7 @@ var unquotedAttributeContextTests = []struct {
 	{`a`, "&#32;a&#32;", Vars{"a": " a "}},
 	{`a`, "&#09;&#10;&#13;&#12;&#32;a&#61;&#96;", Vars{"a": "\t\n\r\x0C a=`"}},
 	{`a`, "0,&#32;1,&#32;2", Vars{"a": []int{0, 1, 2}}},
-	//{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}},  TODO: invalid operation: s["a"] (type interface {} does not support indexing)
+	//{`s["a"]`, "", Vars{"s": map[interface{}]interface{}{}}}, TODO: unexpected kind "interface"
 }
 
 func TestUnquotedAttributeContext(t *testing.T) {
@@ -282,7 +282,7 @@ var javaScriptContextTests = []struct {
 		A int
 		B *struct{ C string }
 	}{A: 5, B: &struct{ C string }{C: "C"}}}},
-	//{`s["a"]`, "null", Vars{"s": map[interface{}]interface{}{}}}, TODO: invalid operation: s["a"] (type interface {} does not support indexing)
+	//{`s["a"]`, "null", Vars{"s": map[interface{}]interface{}{}}}, TODO: unexpected kind "interface"
 }
 
 func TestScriptContext(t *testing.T) {
