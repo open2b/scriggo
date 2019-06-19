@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"scriggo/internal/compiler/ast"
 	"scriggo/vm"
 )
 
@@ -550,47 +549,6 @@ func (builder *functionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 		builder.fn.Types = append(builder.fn.Types, typ)
 	}
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(index), C: z})
-}
-
-// BinaryBitOperation appends a new binary bit operation specified by operator
-// to the function body.
-//
-//	dst = x op y
-//
-func (builder *functionBuilder) BinaryBitOperation(operator ast.OperatorType, ky bool, x, y, dst int8, kind reflect.Kind) {
-	// TODO(Gianluca): should builder be dependent from ast? If no, introduce
-	// a new type which describes the operator.
-	var op vm.Operation
-	switch operator {
-	case ast.OperatorAnd:
-		op = vm.OpAnd
-	case ast.OperatorOr:
-		op = vm.OpOr
-	case ast.OperatorXor:
-		op = vm.OpXor
-	case ast.OperatorAndNot:
-		op = vm.OpAndNot
-	case ast.OperatorLeftShift:
-		op = vm.OpLeftShift
-		switch kind {
-		case reflect.Int8, reflect.Uint8:
-			op = vm.OpLeftShift8
-		case reflect.Int16, reflect.Uint16:
-			op = vm.OpLeftShift16
-		case reflect.Int32, reflect.Uint32:
-			op = vm.OpLeftShift32
-		}
-	case ast.OperatorRightShift:
-		op = vm.OpRightShift
-		switch kind {
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			op = vm.OpRightShiftU
-		}
-	}
-	if ky {
-		op = -op
-	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: dst})
 }
 
 // Bind appends a new "Bind" instruction to the function body.

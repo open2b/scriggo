@@ -647,14 +647,27 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				e.fb.If(ky, x, cond, y, xType.Kind())
 				e.fb.Move(true, 0, reg, reflect.Bool)
 			}
-		case op == ast.OperatorOr,
-			op == ast.OperatorAnd,
+		case op == ast.OperatorAnd,
+			op == ast.OperatorOr,
 			op == ast.OperatorXor,
 			op == ast.OperatorAndNot,
 			op == ast.OperatorLeftShift,
 			op == ast.OperatorRightShift:
 			if reg != 0 {
-				e.fb.BinaryBitOperation(op, ky, x, y, reg, xType.Kind())
+				switch op {
+				case ast.OperatorAnd:
+					e.fb.And(ky, x, y, reg, xType.Kind())
+				case ast.OperatorOr:
+					e.fb.Or(ky, x, y, reg, xType.Kind())
+				case ast.OperatorXor:
+					e.fb.Xor(ky, x, y, reg, xType.Kind())
+				case ast.OperatorAndNot:
+					e.fb.AndNot(ky, x, y, reg, xType.Kind())
+				case ast.OperatorLeftShift:
+					e.fb.LeftShift(ky, x, y, reg, xType.Kind())
+				case ast.OperatorRightShift:
+					e.fb.RightShift(ky, x, y, reg, xType.Kind())
+				}
 				if kindToType(xType.Kind()) != kindToType(dstType.Kind()) {
 					e.changeRegister(ky, reg, reg, xType, dstType)
 				}
