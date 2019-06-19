@@ -321,18 +321,18 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				e.fb.Div(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentModulo:
 				e.fb.Rem(false, valueReg, rightOp, valueReg, valueType.Kind())
-			case ast.AssignmentLeftShift:
-				panic("TODO(Gianluca): not implemented")
-			case ast.AssignmentRightShift:
-				panic("TODO(Gianluca): not implemented")
 			case ast.AssignmentAnd:
-				panic("TODO(Gianluca): not implemented")
+				e.fb.And(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentOr:
-				panic("TODO(Gianluca): not implemented")
+				e.fb.Or(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentXor:
-				panic("TODO(Gianluca): not implemented")
+				e.fb.Xor(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentAndNot:
-				panic("TODO(Gianluca): not implemented")
+				e.fb.AndNot(false, valueReg, rightOp, valueReg, valueType.Kind())
+			case ast.AssignmentLeftShift:
+				e.fb.LeftShift(false, valueReg, rightOp, valueReg, valueType.Kind())
+			case ast.AssignmentRightShift:
+				e.fb.RightShift(false, valueReg, rightOp, valueReg, valueType.Kind())
 			}
 		}
 		addr.assign(false, valueReg, valueType)

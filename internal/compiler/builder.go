@@ -482,6 +482,30 @@ func (builder *functionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
+// And appends a new "And" instruction to the function body.
+//
+//     z = x & y
+//
+func (builder *functionBuilder) And(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpAnd
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
+}
+
+// AndNot appends a new "AndNot" instruction to the function body.
+//
+//     z = x &^ y
+//
+func (builder *functionBuilder) AndNot(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpAndNot
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
+}
+
 // Append appends a new "Append" instruction to the function body.
 //
 //     s = append(s, regs[first:first+length]...)
@@ -952,6 +976,26 @@ func (builder *functionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
+// LeftShift appends a new "LeftShift" instruction to the function body.
+//
+//     z = x << y
+//
+func (builder *functionBuilder) LeftShift(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpLeftShift
+	switch kind {
+	case reflect.Int8, reflect.Uint8:
+		op = vm.OpLeftShift8
+	case reflect.Int16, reflect.Uint16:
+		op = vm.OpLeftShift16
+	case reflect.Int32, reflect.Uint32:
+		op = vm.OpLeftShift32
+	}
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
+}
+
 // Len appends a new "len" instruction to the function body.
 //
 //     l = len(s)
@@ -1183,6 +1227,18 @@ func (builder *functionBuilder) Nop() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNone})
 }
 
+// Or appends a new "Or" instruction to the function body.
+//
+//     z = x | y
+//
+func (builder *functionBuilder) Or(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpOr
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
+}
+
 // Panic appends a new "Panic" instruction to the function body.
 //
 //     panic(v)
@@ -1257,6 +1313,22 @@ func (builder *functionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *functionBuilder) Return() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpReturn})
+}
+
+// RightShift appends a new "RightShift" instruction to the function body.
+//
+//     z = x >> y
+//
+func (builder *functionBuilder) RightShift(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpRightShift
+	switch kind {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		op = vm.OpRightShiftU
+	}
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // Select appends a new "Select" instruction to the function body.
@@ -1434,4 +1506,16 @@ func (builder *functionBuilder) TailCall(f int8, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpTailCall, A: f})
 	builder.AddLine(uint32(len(fn.Body)-1), line)
+}
+
+// Xor appends a new "Xor" instruction to the function body.
+//
+//     z = x ^ y
+//
+func (builder *functionBuilder) Xor(k bool, x, y, z int8, kind reflect.Kind) {
+	op := vm.OpOr
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
