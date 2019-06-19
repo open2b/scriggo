@@ -1513,7 +1513,7 @@ func (builder *functionBuilder) TailCall(f int8, line int) {
 //     z = x ^ y
 //
 func (builder *functionBuilder) Xor(k bool, x, y, z int8, kind reflect.Kind) {
-	op := vm.OpOr
+	op := vm.OpXor
 	if k {
 		op = -op
 	}
