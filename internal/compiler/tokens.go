@@ -260,7 +260,7 @@ func assignmentType(tok token) (ast.AssignmentType, bool) {
 	case tokenModuloAssignment:
 		return ast.AssignmentModulo, true
 	case tokenAndAssignment:
-		return ast.AssignmentModulo, true
+		return ast.AssignmentAnd, true
 	case tokenOrAssignment:
 		return ast.AssignmentOr, true
 	case tokenXorAssignment:
