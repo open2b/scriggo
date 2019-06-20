@@ -1092,11 +1092,10 @@ func (l *lexer) lexNumber() error {
 	var exponent bool
 	p := 0
 	base := 10
-	if c := l.src[0]; c == '0' && len(l.src) > 1 {
+	if l.src[0] == '0' && len(l.src) > 1 {
 		switch l.src[1] {
 		case '.':
-			dot = true
-			p = 2
+			p = 1
 		case 'x', 'X':
 			base = 16
 			p = 2
@@ -1110,9 +1109,13 @@ func (l *lexer) lexNumber() error {
 			base = 2
 			p = 2
 		}
-	} else if c == '.' {
+	}
+	if p < len(l.src) && l.src[p] == '.' {
+		if base < 10 {
+			return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
+		}
 		dot = true
-		p = 1
+		p++
 	}
 DIGITS:
 	for p < len(l.src) {
@@ -1124,6 +1127,9 @@ DIGITS:
 			}
 		case 16:
 			if exponent && !isDecDigit(c) || !exponent && !isHexDigit(c) {
+				if dot && !exponent {
+					return l.errorf("hexadecimal mantissa requires a 'p' exponent")
+				}
 				break DIGITS
 			}
 		case 8:
@@ -1149,7 +1155,7 @@ DIGITS:
 					break
 				}
 				if base < 10 {
-					return l.errorf("invalid radix point in "+numberBaseName[base]+" literal", c)
+					return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
 				}
 				dot = true
 				p++
@@ -1175,7 +1181,7 @@ DIGITS:
 			}
 		}
 	}
-	switch c := l.src[p-1]; c {
+	switch l.src[p-1] {
 	case 'x', 'X', 'o', 'O', 'b', 'B':
 		return l.errorf(numberBaseName[base] + " literal has no digits")
 	case '_':
