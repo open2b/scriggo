@@ -42,13 +42,23 @@ func goImports(path string) error {
 }
 
 func usage() string {
-	return "scriggo-generate imports-file variable-name"
+	return "scriggo-generate imports-file variable-name [GOOS[,GOOS[..]]]"
 }
 
 func main() {
+
+	// TODO(Gianluca): check if `go generate` version has the same GOROOT used
+	// in package lookup. If not, panic.
+
 	flag.Parse()
 	args := flag.Args()
-	if len(args) != 2 {
+	var gooss []string
+	switch len(args) {
+	case 2:
+		gooss = []string{os.Getenv("GOOS")}
+	case 3:
+		gooss = strings.Split(args[2], ",")
+	default:
 		printErrorAndQuit(usage())
 	}
 	importsFile := flag.Arg(0)
@@ -65,40 +75,43 @@ func main() {
 		panic(err)
 	}
 
-	packages := []string{}
-	if len(tree.Nodes) != 1 {
-		printErrorAndQuit("imports file must be a package definition")
-	}
-	pkg, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		printErrorAndQuit("imports file must be a package definition")
-	}
-	for _, n := range pkg.Declarations {
-		imp, ok := n.(*ast.Import)
-		if !ok {
-			printErrorAndQuit(fmt.Errorf("only imports are allowed in imports file %s", importsFile))
+	for _, goos := range gooss {
+		packages := []string{}
+		if len(tree.Nodes) != 1 {
+			printErrorAndQuit("imports file must be a package definition")
 		}
-		packages = append(packages, imp.Path)
+		pkg, ok := tree.Nodes[0].(*ast.Package)
+		if !ok {
+			printErrorAndQuit("imports file must be a package definition")
+		}
+		for _, n := range pkg.Declarations {
+			imp, ok := n.(*ast.Import)
+			if !ok {
+				printErrorAndQuit(fmt.Errorf("only imports are allowed in imports file %s", importsFile))
+			}
+			packages = append(packages, imp.Path)
+		}
+
+		out := generatePackages(packages, importsFile, customVariableName, pkg.Name, goos)
+
+		importsFileBase := filepath.Base(importsFile)
+		importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
+		newBase := importsFileBaseWithoutExtension + "_generated" + "_" + goos + filepath.Ext(importsFileBase)
+
+		outPath := filepath.Join(filepath.Dir(importsFile), newBase)
+
+		f, err := os.Create(outPath)
+		if err != nil {
+			printErrorAndQuit(err)
+		}
+		_, err = f.WriteString(out)
+		if err != nil {
+			printErrorAndQuit(err)
+		}
+		err = goImports(outPath)
+		if err != nil {
+			printErrorAndQuit(err)
+		}
 	}
 
-	out := generatePackages(packages, importsFile, customVariableName, pkg.Name)
-
-	importsFileBase := filepath.Base(importsFile)
-	importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
-	newBase := importsFileBaseWithoutExtension + "_generated" + filepath.Ext(importsFileBase)
-
-	outPath := filepath.Join(filepath.Dir(importsFile), newBase)
-
-	f, err := os.Create(outPath)
-	if err != nil {
-		printErrorAndQuit(err)
-	}
-	_, err = f.WriteString(out)
-	if err != nil {
-		printErrorAndQuit(err)
-	}
-	err = goImports(outPath)
-	if err != nil {
-		printErrorAndQuit(err)
-	}
 }

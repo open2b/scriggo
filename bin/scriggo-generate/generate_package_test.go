@@ -4,7 +4,7 @@ import "testing"
 
 func BenchmarkGeneratePackage(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		v, err := goPackageToDeclarations("fmt")
+		v, err := goPackageToDeclarations("fmt", "")
 		if err != nil {
 			b.Fatal(err)
 		}
