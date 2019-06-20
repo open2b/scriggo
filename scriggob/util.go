@@ -52,7 +52,7 @@ func extractImports(filepath string) ([]string, string, error) {
 	return pkgs, pkg.Name, nil
 }
 
-// goImports runs system command "goimports" on path.
+// goImports runs the system command "goimports" on path.
 func goImports(path string) error {
 	_, err := exec.LookPath("goimports")
 	if err != nil {
@@ -64,6 +64,23 @@ func goImports(path string) error {
 	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("goimports: %s", stderr.String())
+	}
+	return nil
+}
+
+// goBuild runs the system command "go build" on path.
+func goBuild(path string) error {
+	_, err := exec.LookPath("go")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("go", "build")
+	cmd.Dir = path
+	stderr := bytes.Buffer{}
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("go build: %s", stderr.String())
 	}
 	return nil
 }

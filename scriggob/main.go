@@ -85,7 +85,7 @@ Options
 		panic("pkg name must be specified by command line")
 	}
 
-	switch flag.Arg(0) {
+	switch mode := flag.Arg(0); mode {
 	case "imports":
 		if *variable == "" {
 			commandLineError("a custom variable name must be specified when using scriggob in \"imports\" mode")
@@ -118,9 +118,9 @@ Options
 				printErrorAndQuit(err)
 			}
 		}
-	case "sources":
+	case "sources", "build":
 		if *outputDir == "" {
-			commandLineError("an output dir must be specified when running in \"sources\" mode")
+			commandLineError(fmt.Sprintf("an output dir must be specified when running in %q mode", mode))
 		}
 		err := os.MkdirAll(*outputDir, dirPerm)
 		if err != nil {
@@ -142,8 +142,12 @@ Options
 		if err != nil {
 			panic(err)
 		}
-	case "build":
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		if mode == "build" {
+			err := goBuild(*outputDir)
+			if err != nil {
+				panic(err)
+			}
+		}
 	default:
 		commandLineError(fmt.Sprintf("mode %q is not valid", flag.Arg(0)))
 	}
