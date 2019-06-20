@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -19,11 +20,6 @@ func printErrorAndQuit(err interface{}) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 	os.Exit(1)
 }
-
-const (
-	dirPerm  = 0775
-	filePerm = 0644
-)
 
 func commandLineError(err string) {
 	fmt.Printf("Command line error: %s\n", err)
@@ -60,7 +56,7 @@ Options
 		flag.PrintDefaults()
 	}
 
-	goossArg := flag.String("", "", "Target GOOSs (separated by commas). Default to current GOOS")
+	goossArg := flag.String("goos", "", "Target GOOSs (separated by commas). Default to current GOOS")
 	variableName := flag.String("variable-name", "cd", "Custom variable name. Only effective when running in \"imports\" mode")
 
 	flag.Parse()
@@ -71,7 +67,10 @@ Options
 
 	var gooss []string
 	if *goossArg == "" {
-		gooss = []string{""}
+		gooss = []string{os.Getenv("GOOS")}
+		if gooss[0] == "" {
+			gooss[0] = runtime.GOOS
+		}
 	} else {
 		gooss = strings.Split(*goossArg, ",")
 	}
@@ -107,11 +106,12 @@ Options
 			importsFileBase := filepath.Base(inputFile)
 			importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
 			var newBase string
-			if goos != "" {
-				newBase = importsFileBaseWithoutExtension + "_generated" + "_" + goos + filepath.Ext(importsFileBase)
-			} else {
-				newBase = importsFileBaseWithoutExtension + "_generated" + filepath.Ext(importsFileBase)
-			}
+			{ // TODO(Gianluca): Remove from here...
+				if goos == "" {
+					panic("bug")
+				}
+			} // ...to here.
+			newBase = importsFileBaseWithoutExtension + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(importsFileBase)
 			outPath := filepath.Join(filepath.Dir(inputFile), newBase)
 			f, err := os.Create(outPath)
 			if err != nil {

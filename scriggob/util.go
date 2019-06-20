@@ -11,10 +11,17 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os/exec"
+	"strconv"
 
 	"scriggo/internal/compiler"
 	"scriggo/internal/compiler/ast"
+)
+
+const (
+	dirPerm  = 0775 // default new directory permission.
+	filePerm = 0644 // default new file permission.
 )
 
 // extractImports returns a list of imports path imported in file filepath. If
@@ -59,4 +66,34 @@ func goImports(path string) error {
 		return fmt.Errorf("goimports: %s", stderr.String())
 	}
 	return nil
+}
+
+// goBaseVersion returns the go base version for v.
+//
+//		1.12.5 -> 1.12
+//
+func goBaseVersion(v string) string {
+	v = v[4:]
+	f, err := strconv.ParseFloat(v, 32)
+	if err != nil {
+		return ""
+	}
+	f = math.Floor(f)
+	next := int(f)
+	return fmt.Sprintf("go1.%d", next)
+}
+
+// nextGoVersion returns the successive go version of v.
+//
+//		1.12.5 -> 1.13
+//
+func nextGoVersion(v string) string {
+	v = v[4:]
+	f, err := strconv.ParseFloat(v, 32)
+	if err != nil {
+		return ""
+	}
+	f = math.Floor(f)
+	next := int(f) + 1
+	return fmt.Sprintf("go1.%d", next)
 }
