@@ -1,4 +1,4 @@
-//go:generate scriggo-generate $GOFILE packages
+//go:generate scriggob --variable-name packages imports $GOFILE
 
 package main
 
