@@ -120,7 +120,7 @@ Options
 
 	var gooss []string
 	if *gooses == "" {
-		gooss = []string{os.Getenv("GOOS")}
+		gooss = []string{""}
 	} else {
 		gooss = strings.Split(*gooses, ",")
 	}
@@ -152,7 +152,12 @@ Options
 			out := generatePackages(packages, importsFile, *variableName, pkgName, goos)
 			importsFileBase := filepath.Base(importsFile)
 			importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
-			newBase := importsFileBaseWithoutExtension + "_generated" + "_" + goos + filepath.Ext(importsFileBase)
+			var newBase string
+			if goos != "" {
+				newBase = importsFileBaseWithoutExtension + "_generated" + "_" + goos + filepath.Ext(importsFileBase)
+			} else {
+				newBase = importsFileBaseWithoutExtension + "_generated" + filepath.Ext(importsFileBase)
+			}
 			outPath := filepath.Join(filepath.Dir(importsFile), newBase)
 			f, err := os.Create(outPath)
 			if err != nil {
