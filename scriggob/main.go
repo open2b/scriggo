@@ -57,7 +57,7 @@ Options
 	}
 
 	goossArg := flag.String("goos", "", "Target GOOSs (separated by commas). Default to current GOOS")
-	variableName := flag.String("variable-name", "cd", "Custom variable name. Only effective when running in \"imports\" mode")
+	variableName := flag.String("variable-name", "", "Custom variable name. Only effective when running in \"imports\" mode")
 
 	flag.Parse()
 
