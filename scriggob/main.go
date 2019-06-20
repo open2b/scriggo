@@ -25,6 +25,11 @@ func printErrorAndQuit(err interface{}) {
 	os.Exit(1)
 }
 
+const (
+	dirPerm  = 0775
+	filePerm = 0644
+)
+
 // goImports runs "goimports" on path.
 func goImports(path string) error {
 	_, err := exec.LookPath("goimports")
@@ -125,6 +130,11 @@ Options
 	}
 	importsFile := flag.Arg(1)
 
+	var outputDir string
+	if len(flag.Args()) == 3 {
+		outputDir = flag.Arg(2)
+	}
+
 	packages, pkgName := extractImportsFromFile(importsFile)
 	if pkgName == "" {
 		panic("pkg name must be specified by command line")
@@ -134,6 +144,9 @@ Options
 	case "imports":
 		if *variableName == "" {
 			commandLineError("a custom variable name must be specified when using scriggob in \"imports\" mode")
+		}
+		if outputDir != "" {
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		for _, goos := range gooss {
 			out := generatePackages(packages, importsFile, *variableName, pkgName, goos)
@@ -155,7 +168,22 @@ Options
 			}
 		}
 	case "sources":
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		if outputDir == "" {
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+		err := os.MkdirAll(outputDir, dirPerm)
+		if err != nil {
+			panic(err)
+		}
+		out := generatePackages(packages, importsFile, "packages", "main", "")
+		err = ioutil.WriteFile(filepath.Join(outputDir, "packages.go"), []byte(out), filePerm)
+		if err != nil {
+			panic(err)
+		}
+		err = ioutil.WriteFile(filepath.Join(outputDir, "main.go"), []byte(skel), filePerm)
+		if err != nil {
+			panic(err)
+		}
 	case "build":
 		panic("TODO: not implemented") // TODO(Gianluca): to implement.
 	default:

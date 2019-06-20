@@ -1,10 +1,12 @@
-//+build ignore
-
 // Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 // https://www.open2b.com
 
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+package main
+
+const skel = `
 
 package main
 
@@ -42,8 +44,8 @@ func (b mainLoader) Load(path string) (interface{}, error) {
 func main() {
 
 	var asm = flag.Bool("S", false, "print assembly listing")
-	var timeout = flag.String("time", "", "`limit` the execution time; zero is no limit")
-	var mem = flag.String("mem", "", "`limit` the allocable memory; zero is no limit")
+	var timeout = flag.String("time", "", "limit the execution time; zero is no limit")
+	var mem = flag.String("mem", "", "limit the allocable memory; zero is no limit")
 	var trace = flag.Bool("trace", false, "print an execution trace")
 
 	flag.Parse()
@@ -207,3 +209,4 @@ func main() {
 	}
 
 }
+`
