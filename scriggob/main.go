@@ -7,17 +7,12 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"scriggo/internal/compiler"
-	"scriggo/internal/compiler/ast"
 )
 
 func printErrorAndQuit(err interface{}) {
@@ -29,50 +24,6 @@ const (
 	dirPerm  = 0775
 	filePerm = 0644
 )
-
-// goImports runs "goimports" on path.
-func goImports(path string) error {
-	_, err := exec.LookPath("goimports")
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command("goimports", "-w", path)
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("goimports: %s", stderr.String())
-	}
-	return nil
-}
-
-func extractImportsFromFile(filepath string) ([]string, string) {
-	src, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		panic(err)
-	}
-	tree, _, err := compiler.ParseSource(src, false, false)
-	if err != nil {
-		panic(err)
-	}
-	packages := []string{}
-	if len(tree.Nodes) != 1 {
-		printErrorAndQuit("imports file must be a package definition")
-	}
-	pkg, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		printErrorAndQuit("imports file must be a package definition")
-	}
-	for _, n := range pkg.Declarations {
-		imp, ok := n.(*ast.Import)
-		if !ok {
-			// TODO(Gianluca):
-			printErrorAndQuit(fmt.Errorf("only imports are allowed in imports file %s", filepath))
-		}
-		packages = append(packages, imp.Path)
-	}
-	return packages, pkg.Name
-}
 
 func commandLineError(err string) {
 	fmt.Printf("Command line error: %s\n", err)
@@ -87,7 +38,7 @@ func main() {
 
 	flag.Usage = func() {
 		u := `
-	Usage:   scriggob [OPTIONS] MODE INPUT
+	Usage:   scriggob [OPTIONS] MODE INPUT_FILE
 
 Available modes
 ---------------
@@ -100,7 +51,7 @@ Available modes
 		sources
 			Populate DIR with an new intepreter source code which can execute code using the same imports as SOURCE
 		build
-			Same as "sources" but also build intepreter
+			Same as "sources" but also build the intepreter
 
 Options
 -------
@@ -109,33 +60,36 @@ Options
 		flag.PrintDefaults()
 	}
 
-	gooses := flag.String("GOOSs", "", "Target GOOSs (separated by commas). Default to current GOOS")
+	goossArg := flag.String("", "", "Target GOOSs (separated by commas). Default to current GOOS")
 	variableName := flag.String("variable-name", "cd", "Custom variable name. Only effective when running in \"imports\" mode")
 
 	flag.Parse()
 
 	if len(flag.Args()) == 0 {
-		commandLineError("a mode must be specified")
+		commandLineError("MODE must be provided as command line argument")
 	}
 
 	var gooss []string
-	if *gooses == "" {
+	if *goossArg == "" {
 		gooss = []string{""}
 	} else {
-		gooss = strings.Split(*gooses, ",")
+		gooss = strings.Split(*goossArg, ",")
 	}
 
 	if len(flag.Args()) == 1 {
-		commandLineError("INPUT has not been passed as argument")
+		commandLineError("INPUT_FILE must be provided as command line argument")
 	}
-	importsFile := flag.Arg(1)
+	inputFile := flag.Arg(1)
 
 	var outputDir string
 	if len(flag.Args()) == 3 {
 		outputDir = flag.Arg(2)
 	}
 
-	packages, pkgName := extractImportsFromFile(importsFile)
+	packages, pkgName, err := extractImports(inputFile)
+	if err != nil {
+		panic(err)
+	}
 	if pkgName == "" {
 		panic("pkg name must be specified by command line")
 	}
@@ -149,8 +103,8 @@ Options
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		for _, goos := range gooss {
-			out := generatePackages(packages, importsFile, *variableName, pkgName, goos)
-			importsFileBase := filepath.Base(importsFile)
+			out := generatePackages(packages, inputFile, *variableName, pkgName, goos)
+			importsFileBase := filepath.Base(inputFile)
 			importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
 			var newBase string
 			if goos != "" {
@@ -158,7 +112,7 @@ Options
 			} else {
 				newBase = importsFileBaseWithoutExtension + "_generated" + filepath.Ext(importsFileBase)
 			}
-			outPath := filepath.Join(filepath.Dir(importsFile), newBase)
+			outPath := filepath.Join(filepath.Dir(inputFile), newBase)
 			f, err := os.Create(outPath)
 			if err != nil {
 				printErrorAndQuit(err)
@@ -180,8 +134,12 @@ Options
 		if err != nil {
 			panic(err)
 		}
-		out := generatePackages(packages, importsFile, "packages", "main", "")
+		out := generatePackages(packages, inputFile, "packages", "main", "")
 		err = ioutil.WriteFile(filepath.Join(outputDir, "packages.go"), []byte(out), filePerm)
+		if err != nil {
+			panic(err)
+		}
+		err = goImports(filepath.Join(outputDir, "packages.go"))
 		if err != nil {
 			panic(err)
 		}
