@@ -23,35 +23,43 @@ func main() {
 
 	flag.Usage = func() {
 		u := `
-	Usage:   scriggob [OPTIONS] MODE INPUT_FILE
+	Usage:   scriggob [options] mode input_file
 
 Available modes
 ---------------
 
-	MODE = "imports" | "sources" | "build"
+	mode = "imports" | "sources" | "build"
 
-		imports
-			Generate import file starting from SOURCE putting result into DIR
-			Require "-variable-name" argument.
-		sources
-			Populate DIR with an new intepreter source code which can execute code using the same imports as SOURCE
-		build
-			Same as "sources" but also build the intepreter
+		imports:
+			Generates a Scriggo package reading imports from SOURCE.
+			Requires the "-variable" argument.
+
+		sources:
+			Populates DIR with an new intepreter source code which can execute code using the same imports as input_file.
+			Requires the "-output" argument.
+
+		build:
+			Same as "sources" but also builds the intepreter generated.
+			Requires the "-output" argument.
 
 Options
 -------
-	`
+`
 		fmt.Fprint(os.Stderr, u)
 		flag.PrintDefaults()
 	}
 
-	goossArg := flag.String("goos", "", "Target GOOSs (separated by commas). Default to current GOOS")
-	variableName := flag.String("variable-name", "", "Custom variable name. Only effective when running in \"imports\" mode")
+	goossArg := flag.String("goos", "", "Target GOOSs (separated by commas). If not provided, tries to set from 1) GOOS environment variable 2) scriggob runtime's GOOS")
+	variable := flag.String("variable", "", "Custom variable name. Only effective when running in \"imports\" mode")
+	outputDir := flag.String("output", "", "Output directory")
 
 	flag.Parse()
 
-	if len(flag.Args()) == 0 {
-		commandLineError("MODE must be provided as command line argument")
+	if len(flag.Args()) < 2 {
+		commandLineError("too few arguments")
+	}
+	if len(flag.Args()) > 2 {
+		commandLineError("too many arguments")
 	}
 
 	var gooss []string
@@ -69,11 +77,6 @@ Options
 	}
 	inputFile := flag.Arg(1)
 
-	var outputDir string
-	if len(flag.Args()) == 3 {
-		outputDir = flag.Arg(2)
-	}
-
 	packages, pkgName, err := extractImports(inputFile)
 	if err != nil {
 		panic(err)
@@ -84,14 +87,14 @@ Options
 
 	switch flag.Arg(0) {
 	case "imports":
-		if *variableName == "" {
+		if *variable == "" {
 			commandLineError("a custom variable name must be specified when using scriggob in \"imports\" mode")
 		}
-		if outputDir != "" {
+		if *outputDir != "" {
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		for _, goos := range gooss {
-			out := generatePackages(packages, inputFile, *variableName, pkgName, goos)
+			out := generatePackages(packages, inputFile, *variable, pkgName, goos)
 			importsFileBase := filepath.Base(inputFile)
 			importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
 			var newBase string
@@ -116,16 +119,16 @@ Options
 			}
 		}
 	case "sources":
-		if outputDir == "" {
+		if *outputDir == "" {
 			commandLineError("an output dir must be specified when running in \"sources\" mode")
 		}
-		err := os.MkdirAll(outputDir, dirPerm)
+		err := os.MkdirAll(*outputDir, dirPerm)
 		if err != nil {
 			panic(err)
 		}
 		for _, goos := range gooss {
 			out := generatePackages(packages, inputFile, "packages", "main", goos)
-			pkgsFile := filepath.Join(outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			pkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(pkgsFile, []byte(out), filePerm)
 			if err != nil {
 				panic(err)
@@ -135,7 +138,7 @@ Options
 				panic(err)
 			}
 		}
-		err = ioutil.WriteFile(filepath.Join(outputDir, "main.go"), []byte(skel), filePerm)
+		err = ioutil.WriteFile(filepath.Join(*outputDir, "main.go"), []byte(skel), filePerm)
 		if err != nil {
 			panic(err)
 		}
@@ -153,7 +156,12 @@ func printErrorAndQuit(err interface{}) {
 }
 
 func commandLineError(err string) {
-	fmt.Printf("Command line error: %s\n", err)
-	fmt.Println("Use -help to get help on scriggb usage")
+	fmt.Printf(ansi_red+"Error: %s"+ansi_reset+"\n", err)
+	flag.Usage()
 	os.Exit(1)
 }
+
+const (
+	ansi_red   = "\033[1;31m"
+	ansi_reset = "\033[0m"
+)
