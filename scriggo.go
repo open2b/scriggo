@@ -246,8 +246,8 @@ func initGlobals(globals []compiler.Global, init map[string]interface{}) []inter
 						values[i] = v.Addr().Interface()
 					} else {
 						rv := reflect.New(global.Type).Elem()
-						rv.Set(reflect.ValueOf(v))
-						values[i] = rv.Interface()
+						rv.Set(reflect.ValueOf(value))
+						values[i] = rv.Addr().Interface()
 					}
 				} else {
 					values[i] = reflect.New(global.Type).Interface()
