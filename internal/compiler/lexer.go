@@ -1108,10 +1108,6 @@ func (l *lexer) lexNumber() error {
 		case 'b', 'B':
 			base = 2
 			p = 2
-		default:
-			l.emit(tokenInt, 1)
-			l.column++
-			return nil
 		}
 	}
 	if p < len(l.src) && l.src[p] == '.' {
