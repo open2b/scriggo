@@ -16,17 +16,6 @@ import (
 	"strings"
 )
 
-func printErrorAndQuit(err interface{}) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
-}
-
-func commandLineError(err string) {
-	fmt.Printf("Command line error: %s\n", err)
-	fmt.Println("Use -help to get help on scriggb usage")
-	os.Exit(1)
-}
-
 func main() {
 
 	// TODO(Gianluca): check if `go generate` version has the same GOROOT used
@@ -128,20 +117,23 @@ Options
 		}
 	case "sources":
 		if outputDir == "" {
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			commandLineError("an output dir must be specified when running in \"sources\" mode")
 		}
 		err := os.MkdirAll(outputDir, dirPerm)
 		if err != nil {
 			panic(err)
 		}
-		out := generatePackages(packages, inputFile, "packages", "main", "")
-		err = ioutil.WriteFile(filepath.Join(outputDir, "packages.go"), []byte(out), filePerm)
-		if err != nil {
-			panic(err)
-		}
-		err = goImports(filepath.Join(outputDir, "packages.go"))
-		if err != nil {
-			panic(err)
+		for _, goos := range gooss {
+			out := generatePackages(packages, inputFile, "packages", "main", goos)
+			pkgsFile := filepath.Join(outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			err = ioutil.WriteFile(pkgsFile, []byte(out), filePerm)
+			if err != nil {
+				panic(err)
+			}
+			err = goImports(pkgsFile)
+			if err != nil {
+				panic(err)
+			}
 		}
 		err = ioutil.WriteFile(filepath.Join(outputDir, "main.go"), []byte(skel), filePerm)
 		if err != nil {
@@ -153,4 +145,15 @@ Options
 		commandLineError(fmt.Sprintf("mode %q is not valid", flag.Arg(0)))
 	}
 
+}
+
+func printErrorAndQuit(err interface{}) {
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	os.Exit(1)
+}
+
+func commandLineError(err string) {
+	fmt.Printf("Command line error: %s\n", err)
+	fmt.Println("Use -help to get help on scriggb usage")
+	os.Exit(1)
 }

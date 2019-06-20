@@ -180,6 +180,7 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 }
 
 var outputSkeleton = `[generatedWarning]
+
 [buildDirectives]
 
 package [pkgName]
