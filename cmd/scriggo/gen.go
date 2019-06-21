@@ -23,7 +23,7 @@ import (
 // renderPackagesAndMain returns two valid Go sources, where the former contains
 // a package loader definition while the latter contains main package
 // declarations.
-func renderPackagesAndMain(pd pkgDef, sourceFile, pkgsVariableName, goos string) string {
+func renderPackages(pd pkgDef, sourceFile, pkgsVariableName, goos string) string {
 
 	// Remove main packages from pd; they must be handled externally.
 	for i, imp := range pd.imports {
