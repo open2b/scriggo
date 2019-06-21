@@ -24,8 +24,9 @@ const (
 )
 
 type pkgDef struct {
-	name    string
-	imports []importDef
+	name     string
+	filepath string
+	imports  []importDef
 }
 
 // containsMain indicates if pkgDef contains a "main" package.

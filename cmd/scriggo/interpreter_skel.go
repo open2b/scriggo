@@ -35,7 +35,8 @@ import (
 
 const usage = "usage: %s [-S] [-mem 250K] [-time 50ms] [-trace] filename\n"
 
-var packages scriggo.Packages
+var packages scriggo.PackageLoader
+var Main *scriggo.Package
 
 type mainLoader []byte
 
@@ -140,7 +141,7 @@ func main() {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scriggo.LoadScript(r, packages, loadOptions|scriggo.AllowShebangLine)
+		script, err := scriggo.LoadScript(r, scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}, loadOptions|scriggo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
@@ -188,7 +189,11 @@ func main() {
 	case ".html":
 		r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
-		t, err := template.Load(path, r, template.Builtins(), template.ContextHTML, template.LoadOption(loadOptions))
+		builtins := template.Builtins()
+		for k, v := range Main.Declarations {
+			builtins.Declarations[k] = v
+		}
+		t, err := template.Load(path, r, builtins, template.ContextHTML, template.LoadOption(loadOptions))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
@@ -214,4 +219,5 @@ func main() {
 		}
 	}
 
-}`
+}
+`

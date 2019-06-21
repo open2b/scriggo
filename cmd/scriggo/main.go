@@ -104,6 +104,7 @@ func scriggoGen() {
 	// Reads informations from inputFile.
 	data, err := ioutil.ReadFile(inputFile)
 	pd, err := parseImports(data)
+	pd.filepath = inputFile
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +117,7 @@ func scriggoGen() {
 			os.Exit(1)
 		}
 		for _, goos := range gooss {
-			data := renderPackages(pd, inputFile, *loaderVarName, goos)
+			data := renderPackages(pd, *loaderVarName, goos)
 			inputFileBase := filepath.Base(inputFile)
 			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
@@ -144,7 +145,8 @@ func scriggoGen() {
 			panic(err)
 		}
 		for _, goos := range gooss {
-			data := renderPackages(pd, inputFile, "packages", goos)
+			pd.name = "main"
+			data := renderPackages(pd, "packages", goos)
 			if pd.containsMain() {
 				main := renderPackageMain(pd, goos)
 				mainFile := filepath.Join(*outputDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
