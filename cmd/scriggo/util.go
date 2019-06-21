@@ -14,6 +14,7 @@ import (
 	"math"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -21,31 +22,108 @@ const (
 	filePerm = 0644 // default new file permission.
 )
 
-type pkgdef struct {
+type pkgDef struct {
 	name    string
-	imports []importdef
+	imports []importDef
 }
 
-type importdef struct {
-	path             string
+type importDef struct {
+	path string
+	commentTag
+}
+
+type commentTag struct {
 	main             bool
 	toLower          bool
 	include, exclude []string
 }
 
-// extractImports returns a list of imports path imported in file filepath. If
+// parseCommentTag parses a comment tag.
+// See function tests for syntax examples.
+func parseCommentTag(c string) (commentTag, error) {
+	ct := commentTag{}
+	c = strings.TrimSpace(c)
+
+	illegal := func(w string) error {
+		return fmt.Errorf("illegal word %s", w)
+	}
+
+	// c must start with "//"".
+	if !strings.HasPrefix(c, "//") {
+		panic("c must start with //")
+	}
+	c = c[len("//"):]
+
+	// If c does not start with "scriggo:", returns: not a Scriggo directive.
+	if !strings.HasPrefix(c, "scriggo:") {
+		return ct, nil
+	}
+	c = c[len("scriggo:"):]
+
+	words := strings.Fields(c)
+
+	// No words after "scriggo:"
+	if len(words) == 0 {
+		return ct, nil
+	}
+
+	// First field can be either 'main' or 'include'/'exclude'.
+	switch words[0] {
+	case "main":
+		ct.main = true
+		words = words[1:]
+	case "include", "exclude":
+		// Do nothing here.
+	default:
+		return commentTag{}, illegal(words[0])
+	}
+
+	// Just one word: returns.
+	if len(words) == 0 {
+		return ct, nil
+	}
+
+	// Second field can be either 'tolower' or 'include'/'exclude'.
+	switch words[0] {
+	case "include", "exclude":
+		// Do nothing here
+	case "tolower":
+		ct.toLower = true
+		words = words[1:]
+	default:
+		return commentTag{}, illegal(words[0])
+	}
+
+	// Two words: returns.
+	if len(words) == 0 {
+		return ct, nil
+	}
+
+	switch words[0] {
+	case "include":
+		ct.include = words[1:]
+	case "exclude":
+		ct.exclude = words[1:]
+	default:
+		// illegal word
+	}
+
+	return ct, nil
+}
+
+// parseImports returns a list of imports path imported in file filepath. If
 // filepath points to a package, the package name is returned, else an empty
 // string is returned.
-func parseImports(src []byte) (pkgdef, error) {
+func parseImports(src []byte) (pkgDef, error) {
 
 	// Parses file.
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", src, parser.ImportsOnly|parser.ParseComments)
 	if err != nil {
-		return pkgdef{}, fmt.Errorf("parsing error: %s", err.Error())
+		return pkgDef{}, fmt.Errorf("parsing error: %s", err.Error())
 	}
 
-	pd := pkgdef{
+	pd := pkgDef{
 		name: file.Name.Name,
 	}
 
@@ -54,20 +132,23 @@ func parseImports(src []byte) (pkgdef, error) {
 
 		// Imports must have name "_".
 		if imp.Name.Name != "_" {
-			return pkgdef{}, fmt.Errorf("import name %q not allowed", imp.Name)
+			return pkgDef{}, fmt.Errorf("import name %q not allowed", imp.Name)
 		}
 
 		// Read import path unquoting it.
-		id := importdef{}
+		id := importDef{}
 		id.path, err = strconv.Unquote(imp.Path.Value)
 		if err != nil {
 			panic(fmt.Errorf("unquoting error: %s", err.Error()))
 		}
 
-		id.main = false         // TODO
-		id.toLower = false      // TODO
-		id.include = []string{} // TODO
-		id.exclude = []string{} // TODO
+		if imp.Comment != nil {
+			it, err := parseCommentTag(imp.Comment.Text())
+			if err != nil {
+				return pkgDef{}, fmt.Errorf("error while parsing comment %s", err.Error())
+			}
+			id.commentTag = it
+		}
 
 		pd.imports = append(pd.imports, id)
 	}

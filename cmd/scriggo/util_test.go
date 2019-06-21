@@ -6,7 +6,52 @@
 
 package main
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
+
+func Test_parseCommentTag(t *testing.T) {
+	tests := map[string]commentTag{
+		"//scriggo:":              commentTag{},
+		"//scriggo: main":         commentTag{main: true},
+		"//scriggo: main tolower": commentTag{main: true, toLower: true},
+		"//scriggo: include Sleep": commentTag{
+			include: []string{"Sleep"},
+		},
+		"//scriggo: main include Sleep": commentTag{
+			main:    true,
+			include: []string{"Sleep"},
+		},
+		"//scriggo: main tolower include Sleep": commentTag{
+			main:    true,
+			toLower: true,
+			include: []string{"Sleep"},
+		},
+		"//scriggo: include Sleep Duration": commentTag{
+			include: []string{"Sleep", "Duration"},
+		},
+		"//scriggo: main tolower exclude Sleep": commentTag{
+			main:    true,
+			toLower: true,
+			exclude: []string{"Sleep"},
+		},
+		"//scriggo: exclude Sleep Duration": commentTag{
+			exclude: []string{"Sleep", "Duration"},
+		},
+	}
+	for comment, want := range tests {
+		t.Run(comment, func(t *testing.T) {
+			got, err := parseCommentTag(comment)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("wanted %+v, got %+v", want, got)
+			}
+		})
+	}
+}
 
 func Test_nextGoVersion(t *testing.T) {
 	tests := []struct {
