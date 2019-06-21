@@ -8,15 +8,12 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io/ioutil"
+	"go/parser"
+	"go/token"
 	"math"
 	"os/exec"
 	"strconv"
-
-	"scriggo/internal/compiler"
-	"scriggo/internal/compiler/ast"
 )
 
 const (
@@ -24,32 +21,58 @@ const (
 	filePerm = 0644 // default new file permission.
 )
 
+type pkgdef struct {
+	name    string
+	imports []importdef
+}
+
+type importdef struct {
+	path             string
+	main             bool
+	toLower          bool
+	include, exclude []string
+}
+
 // extractImports returns a list of imports path imported in file filepath. If
 // filepath points to a package, the package name is returned, else an empty
 // string is returned.
-func extractImports(filepath string) ([]string, string, error) {
-	src, err := ioutil.ReadFile(filepath)
+func parseImports(src []byte) (pkgdef, error) {
+
+	// Parses file.
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "", src, parser.ImportsOnly|parser.ParseComments)
 	if err != nil {
-		panic(err)
+		return pkgdef{}, fmt.Errorf("parsing error: %s", err.Error())
 	}
-	tree, _, err := compiler.ParseSource(src, false, false)
-	if err != nil {
-		panic(err)
+
+	pd := pkgdef{
+		name: file.Name.Name,
 	}
-	pkgs := []string{}
-	if len(tree.Nodes) != 1 {
-		return nil, "", errors.New("imports file must be a package definition")
-	}
-	pkg, ok := tree.Nodes[0].(*ast.Package)
-	if !ok {
-		return nil, "", errors.New("imports file must be a package definition")
-	}
-	for _, n := range pkg.Declarations {
-		if imp, ok := n.(*ast.Import); ok {
-			pkgs = append(pkgs, imp.Path)
+
+	// Iterates over imports.
+	for _, imp := range file.Imports {
+
+		// Imports must have name "_".
+		if imp.Name.Name != "_" {
+			return pkgdef{}, fmt.Errorf("import name %q not allowed", imp.Name)
 		}
+
+		// Read import path unquoting it.
+		id := importdef{}
+		id.path, err = strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			panic(fmt.Errorf("unquoting error: %s", err.Error()))
+		}
+
+		id.main = false         // TODO
+		id.toLower = false      // TODO
+		id.include = []string{} // TODO
+		id.exclude = []string{} // TODO
+
+		pd.imports = append(pd.imports, id)
 	}
-	return pkgs, pkg.Name, nil
+
+	return pd, nil
 }
 
 // goImports runs the system command "goimports" on path.

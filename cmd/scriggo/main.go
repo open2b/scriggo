@@ -104,7 +104,8 @@ func scriggoGen() {
 	gooss := strings.Split(*goossArg, ",")
 
 	// Reads informations from inputFile.
-	packages, pkgName, err := extractImports(inputFile)
+	data, err := ioutil.ReadFile(inputFile)
+	pd, err := parseImports(data)
 	if err != nil {
 		panic(err)
 	}
@@ -112,7 +113,7 @@ func scriggoGen() {
 	// Generates a package loader.
 	if *loader {
 		for _, goos := range gooss {
-			data := generatePackages(packages, inputFile, *loaderVarName, pkgName, goos)
+			data := generatePackages(pd, inputFile, *loaderVarName, goos)
 			inputFileBase := filepath.Base(inputFile)
 			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
@@ -140,7 +141,7 @@ func scriggoGen() {
 			panic(err)
 		}
 		for _, goos := range gooss {
-			data := generatePackages(packages, inputFile, "packages", "main", goos)
+			data := generatePackages(pd, inputFile, "packages", goos)
 			outPkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
