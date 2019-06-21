@@ -16,22 +16,27 @@ import (
 	"strings"
 )
 
+func printErrorAndQuit(err interface{}) {
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	os.Exit(1)
+}
+
 func main() {
 	flag.Usage = func() {
-		fmt.Printf("Scriggo is a tool for managing Scriggo interpreters and loaders\n")
-		fmt.Printf("\n")
-		fmt.Printf("Usage:\n")
-		fmt.Printf("\n")
-		fmt.Printf("\tscriggo <command> [arguments]\n")
-		fmt.Printf("\n")
-		fmt.Printf("The commands are:\n")
-		fmt.Printf("\n")
-		fmt.Printf("\tgen		generate an interpreter or a loader\n")
-		fmt.Printf("\n")
-		fmt.Printf("Use \"scriggo help <command>\" for more information about a command.`)\n")
+		f := fmt.Fprintf
+		f(os.Stderr, "Scriggo is a tool for managing Scriggo interpreters and loaders\n")
+		f(os.Stderr, "\n")
+		f(os.Stderr, "Usage:\n")
+		f(os.Stderr, "\n")
+		f(os.Stderr, "\tscriggo <command> [arguments]\n")
+		f(os.Stderr, "\n")
+		f(os.Stderr, "The commands are:\n")
+		f(os.Stderr, "\n")
+		f(os.Stderr, "\tgen		generate an interpreter or a loader\n")
+		f(os.Stderr, "\n")
+		f(os.Stderr, "Use \"scriggo help <command>\" for more information about a command.`)\n")
 		flag.PrintDefaults()
 	}
-
 	if len(os.Args) == 1 {
 		flag.Usage()
 		os.Exit(0)
@@ -41,8 +46,8 @@ func main() {
 	switch cmd {
 	case "gen":
 		flag.Usage = func() {
-			fmt.Println(`usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename`)
-			fmt.Println(`Run 'scriggo help gen' for details`)
+			fmt.Fprintf(os.Stderr, `usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename`)
+			fmt.Fprintf(os.Stderr, `Run 'scriggo help gen' for details`)
 		}
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
@@ -57,17 +62,17 @@ func main() {
 		outputDir := flag.String("o", "scriggo-interpreter", "Custom variable name")
 		flag.Parse()
 		if !*script && !*template && !*program && !*loader {
-			fmt.Println("no gen type specified")
+			fmt.Fprintf(os.Stderr, "no gen type specified")
 			flag.Usage()
 			os.Exit(1)
 		}
 		if *loader && (*script || *template || *program) {
-			fmt.Println("cannot use -l in conjuction with other gen type (-s, -t or -p)")
+			fmt.Fprintf(os.Stderr, "cannot use -l in conjuction with other gen type (-s, -t or -p)")
 			flag.Usage()
 			os.Exit(1)
 		}
 		if len(flag.Args()) == 0 {
-			fmt.Println("no filename has been specified")
+			fmt.Fprintf(os.Stderr, "no filename has been specified")
 			flag.Usage()
 			os.Exit(1)
 		}
@@ -130,13 +135,8 @@ func main() {
 		fmt.Printf("Scriggo module version:  1.0.5\n")
 		fmt.Printf("Scriggo tool version:    1.0.4\n")
 	default:
-		fmt.Printf("scriggo %s: unknown command\n", cmd)
-		fmt.Println("Run 'scriggo help' for usage.")
+		fmt.Fprintf(os.Stderr, "scriggo %s: unknown command\n", cmd)
+		fmt.Fprintf(os.Stderr, "Run 'scriggo help' for usage.")
 		os.Exit(1)
 	}
-}
-
-func printErrorAndQuit(err interface{}) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
 }
