@@ -1,4 +1,4 @@
-//go:generate scriggob --variable "packages" --goos "windows,linux" imports $GOFILE
+//go:generate scriggo gen --variable "packages" --goos "windows,linux" -l $GOFILE
 
 package main
 
