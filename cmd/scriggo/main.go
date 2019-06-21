@@ -62,17 +62,17 @@ func main() {
 		outputDir := flag.String("o", "scriggo-interpreter", "Custom variable name")
 		flag.Parse()
 		if !*script && !*template && !*program && !*loader {
-			fmt.Fprintf(os.Stderr, "no gen type specified")
+			fmt.Fprintf(os.Stderr, "no gen type specified\n")
 			flag.Usage()
 			os.Exit(1)
 		}
 		if *loader && (*script || *template || *program) {
-			fmt.Fprintf(os.Stderr, "cannot use -l in conjuction with other gen type (-s, -t or -p)")
+			fmt.Fprintf(os.Stderr, "cannot use -l in conjuction with other gen type (-s, -t or -p)\n")
 			flag.Usage()
 			os.Exit(1)
 		}
 		if len(flag.Args()) == 0 {
-			fmt.Fprintf(os.Stderr, "no filename has been specified")
+			fmt.Fprintf(os.Stderr, "no filename has been specified\n")
 			flag.Usage()
 			os.Exit(1)
 		}
@@ -136,7 +136,7 @@ func main() {
 		fmt.Printf("Scriggo tool version:    1.0.4\n")
 	default:
 		fmt.Fprintf(os.Stderr, "scriggo %s: unknown command\n", cmd)
-		fmt.Fprintf(os.Stderr, "Run 'scriggo help' for usage.")
+		fmt.Fprintf(os.Stderr, "Run 'scriggo help' for usage.\n")
 		os.Exit(1)
 	}
 }
