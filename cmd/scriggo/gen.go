@@ -20,38 +20,6 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
-var uniquePackageName_cache = map[string]string{}
-
-// uniquePackageName generates an unique package name for every package path.
-func uniquePackageName(pkgPath string) string {
-
-	// Make a list of reserved go keywords.
-	var goKeywords = []string{
-		"break", "default", "func", "interface", "select", "case", "defer",
-		"go", "map", "struct", "chan", "else", "goto", "package",
-		"switch", "const", "fallthrough", "if", "range",
-		"type", "continue", "for", "import", "return", "var",
-	}
-	pkgName := filepath.Base(pkgPath)
-	done := false
-	for !done {
-		done = true
-		cachePath, ok := uniquePackageName_cache[pkgName]
-		if ok && cachePath != pkgPath {
-			done = false
-			pkgName += "_"
-		}
-	}
-	for _, goKwd := range goKeywords {
-		if goKwd == pkgName {
-			pkgName = "_" + pkgName + "_"
-		}
-	}
-	uniquePackageName_cache[pkgName] = pkgPath
-
-	return pkgName
-}
-
 // renderPackagesAndMain returns two valid Go sources, where the former contains
 // a package loader definition while the latter contains main package
 // declarations.
