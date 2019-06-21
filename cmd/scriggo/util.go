@@ -27,14 +27,24 @@ type pkgDef struct {
 	imports []importDef
 }
 
+// containsMain indicates if pkgDef contains a "main" package.
+func (pd pkgDef) containsMain() bool {
+	for _, imp := range pd.imports {
+		if imp.main {
+			return true
+		}
+	}
+	return false
+}
+
 type importDef struct {
 	path string
 	commentTag
 }
 
 type commentTag struct {
-	main             bool
-	toLower          bool
+	main             bool // declared as "main" package.
+	toLower          bool // exported names must be set to lowercase.
 	include, exclude []string
 }
 

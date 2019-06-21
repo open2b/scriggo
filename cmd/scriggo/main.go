@@ -32,21 +32,24 @@ func main() {
 		f(os.Stderr, "Use \"scriggo help <command>\" for more information about a command.`)\n")
 		flag.PrintDefaults()
 	}
+
+	// No command provided.
 	if len(os.Args) == 1 {
 		flag.Usage()
 		os.Exit(0)
 	}
+
 	cmd := os.Args[1]
 	os.Args = append(os.Args[:1], os.Args[2:]...)
 	switch cmd {
-	case "gen":
+	case "gen": // 'scriggo gen'
 		scriggoGen()
-	case "help":
+	case "help": // 'scriggo help'
 		flag.Usage()
 		os.Exit(0)
-	case "version":
-		fmt.Printf("Scriggo module version:  1.0.5\n")
-		fmt.Printf("Scriggo tool version:    1.0.4\n")
+	case "version": // 'scriggo version'
+		fmt.Printf("Scriggo module version:  1.0.5\n") // TODO(Gianluca): use real version.
+		fmt.Printf("Scriggo tool version:    1.0.4\n") // TODO(Gianluca): use real version.
 	default:
 		fmt.Fprintf(os.Stderr, "scriggo %s: unknown command\n", cmd)
 		fmt.Fprintf(os.Stderr, "Run 'scriggo help' for usage.\n")
@@ -57,7 +60,7 @@ func main() {
 // scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
 
-	// Sets usage.
+	// Sets help string.
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename\n")
 		fmt.Fprintf(os.Stderr, "Run 'scriggo help gen' for details\n")
@@ -107,13 +110,13 @@ func scriggoGen() {
 
 	// Generates a package loader.
 	if *loader {
+		if pd.containsMain() {
+			fmt.Fprintf(os.Stderr, "cannot have a main definition when generating a loader\n")
+			flag.Usage()
+			os.Exit(1)
+		}
 		for _, goos := range gooss {
-			data, main := generatePackages(pd, inputFile, *loaderVarName, goos)
-			if main != "" {
-				fmt.Fprintf(os.Stderr, "cannot have a main definition when generating a loader\n")
-				flag.Usage()
-				os.Exit(1)
-			}
+			data := renderPackagesAndMain(pd, inputFile, *loaderVarName, goos)
 			inputFileBase := filepath.Base(inputFile)
 			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
@@ -141,10 +144,11 @@ func scriggoGen() {
 			panic(err)
 		}
 		for _, goos := range gooss {
-			data, main := generatePackages(pd, inputFile, "packages", goos)
-			if main != "" {
+			data := renderPackagesAndMain(pd, inputFile, "packages", goos)
+			if pd.containsMain() {
+				main := renderPackageMain(pd, goos)
 				mainFile := filepath.Join(*outputDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
-				err = ioutil.WriteFile(mainFile, []byte(data), filePerm)
+				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					panic(err)
 				}

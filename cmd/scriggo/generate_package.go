@@ -20,22 +20,23 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
-var goKeywords = []string{
-	"break", "default", "func", "interface", "select", "case", "defer",
-	"go", "map", "struct", "chan", "else", "goto", "package",
-	"switch", "const", "fallthrough", "if", "range",
-	"type", "continue", "for", "import", "return", "var",
-}
-
-var pkgNamesToPkgPaths = map[string]string{}
+var uniquePackageName_cache = map[string]string{}
 
 // uniquePackageName generates an unique package name for every package path.
 func uniquePackageName(pkgPath string) string {
+
+	// Make a list of reserved go keywords.
+	var goKeywords = []string{
+		"break", "default", "func", "interface", "select", "case", "defer",
+		"go", "map", "struct", "chan", "else", "goto", "package",
+		"switch", "const", "fallthrough", "if", "range",
+		"type", "continue", "for", "import", "return", "var",
+	}
 	pkgName := filepath.Base(pkgPath)
 	done := false
 	for !done {
 		done = true
-		cachePath, ok := pkgNamesToPkgPaths[pkgName]
+		cachePath, ok := uniquePackageName_cache[pkgName]
 		if ok && cachePath != pkgPath {
 			done = false
 			pkgName += "_"
@@ -46,21 +47,20 @@ func uniquePackageName(pkgPath string) string {
 			pkgName = "_" + pkgName + "_"
 		}
 	}
-	pkgNamesToPkgPaths[pkgName] = pkgPath
+	uniquePackageName_cache[pkgName] = pkgPath
+
 	return pkgName
 }
 
-// generatePackages returns two valid Go sources, where the former contains a
-// package loader definition while the latter contains main package
+// renderPackagesAndMain returns two valid Go sources, where the former contains
+// a package loader definition while the latter contains main package
 // declarations.
-func generatePackages(pd pkgDef, sourceFile, pkgsVariableName, goos string) (string, string) {
+func renderPackagesAndMain(pd pkgDef, sourceFile, pkgsVariableName, goos string) string {
 
-	var mains []importDef
+	// Remove main packages from pd; they must be handled externally.
 	for i, imp := range pd.imports {
 		if imp.main {
-			mains = append(mains, imp)
 			pd.imports = append(pd.imports[:i], pd.imports[i+1:]...)
-			break
 		}
 	}
 
@@ -90,13 +90,7 @@ func generatePackages(pd pkgDef, sourceFile, pkgsVariableName, goos string) (str
 	pkgOutput := commonReplacer.Replace(pkgsSkeleton)
 	pkgOutput = pkgsReplacer.Replace(pkgOutput)
 
-	if len(mains) == 0 {
-		return pkgOutput, ""
-	}
-
-	mainOutput := generatePackageMain(mains, goos)
-
-	return pkgOutput, mainOutput
+	return pkgOutput
 }
 
 // generatePackage generates package pkgPath.
@@ -136,9 +130,17 @@ func generatePackage(pkgPath, goos string) string {
 	return repl.Replace(skel)
 }
 
-func generatePackageMain(imps []importDef, goos string) string {
+func renderPackageMain(pd pkgDef, goos string) string {
+	// TODO(Gianluca): add header to package main.
+
+	mains := []importDef{}
+	for _, imp := range pd.imports {
+		if imp.main {
+			mains = append(mains, imp)
+		}
+	}
 	allMainDecls := map[string]string{}
-	for _, imp := range imps {
+	for _, imp := range mains {
 		_, decls, err := goPackageToDeclarations(imp.path, goos)
 		if err != nil {
 			panic(err) // TODO(Gianluca).
@@ -190,12 +192,14 @@ func generatePackageMain(imps []importDef, goos string) string {
 	}
 
 	skel := `
-		"scriggo.Package{
+		package main
+
+		var Main = scriggo.Package{
 			Name: "main",
 			Declarations: map[string]interface{}{
 				[pkgContent]
 			},
-		},`
+		}`
 
 	repl := strings.NewReplacer(
 		"[pkgContent]", pkgContent.String(),
@@ -303,18 +307,3 @@ func init() {
 	}
 }
 `
-
-var mainSkeleton = `[generatedWarning]
-
-[buildDirectives]
-
-package [pkgName]
-
-import (
-	[explicitImports]
-)
-
-import . "scriggo"
-import "reflect"
-
-var mainPkg = [pkgContent]`
