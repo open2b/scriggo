@@ -16,11 +16,6 @@ import (
 	"strings"
 )
 
-func printErrorAndQuit(err interface{}) {
-	fmt.Fprintf(os.Stderr, "error: %v\n", err)
-	os.Exit(1)
-}
-
 func main() {
 	flag.Usage = func() {
 		f := fmt.Fprintf
@@ -125,15 +120,15 @@ func scriggoGen() {
 			out := filepath.Join(filepath.Dir(inputFile), newBase)
 			f, err := os.Create(out)
 			if err != nil {
-				printErrorAndQuit(err)
+				panic(err)
 			}
 			_, err = f.WriteString(data)
 			if err != nil {
-				printErrorAndQuit(err)
+				panic(err)
 			}
 			err = goImports(out)
 			if err != nil {
-				printErrorAndQuit(err)
+				panic(err)
 			}
 		}
 		os.Exit(0)
