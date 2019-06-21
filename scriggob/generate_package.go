@@ -149,12 +149,12 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 		case *types.Const:
 			switch v.Val().Kind() {
 			case constant.String, constant.Bool:
-				out[v.Name()] = fmt.Sprintf("scriggo.ConstValue(%s.%s)", pkgBase, v.Name())
+				out[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 				continue
 			case constant.Int:
 				// Most cases fall here.
 				if len(v.Val().ExactString()) < 7 {
-					out[v.Name()] = fmt.Sprintf("scriggo.ConstValue(%s.%s)", pkgBase, v.Name())
+					out[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 				}
 				continue
 			}
@@ -172,7 +172,7 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 			if v.Val().Kind() == constant.String && len(quoted) == len(exact)+4 {
 				quoted = "`" + exact + "`"
 			}
-			out[v.Name()] = fmt.Sprintf("scriggo.ConstLiteral(%v, %s)", typ, quoted)
+			out[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
 		case *types.Func:
 			if v.Type().(*types.Signature).Recv() == nil {
 				out[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
@@ -200,10 +200,11 @@ import (
 	[explicitImports]
 )
 
-import "scriggo"
+import . "scriggo"
+import "reflect"
 
 func init() {
-	[customVariableName] = scriggo.Packages{
+	[customVariableName] = Packages{
 		[pkgContent]
 	}
 }
