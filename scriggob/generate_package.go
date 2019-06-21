@@ -147,6 +147,17 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 		}
 		switch v := v.(type) {
 		case *types.Const:
+			switch v.Val().Kind() {
+			case constant.String, constant.Bool:
+				out[v.Name()] = fmt.Sprintf("scriggo.ConstValue(%s.%s)", pkgBase, v.Name())
+				continue
+			case constant.Int:
+				// Most cases fall here.
+				if len(v.Val().ExactString()) < 7 {
+					out[v.Name()] = fmt.Sprintf("scriggo.ConstValue(%s.%s)", pkgBase, v.Name())
+				}
+				continue
+			}
 			typ := v.Type().String()
 			if strings.HasPrefix(typ, "untyped ") {
 				typ = "nil"
