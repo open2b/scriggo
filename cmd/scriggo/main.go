@@ -59,22 +59,31 @@ func main() {
 	}
 }
 
+// scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
+
+	// Sets usage.
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename`)
 		fmt.Fprintf(os.Stderr, `Run 'scriggo help gen' for details`)
 	}
+
+	// Finds the default GOOS.
 	defaultGOOS := os.Getenv("GOOS")
 	if defaultGOOS == "" {
 		defaultGOOS = runtime.GOOS
 	}
+
+	// Sets command line variables.
 	script := flag.Bool("s", false, "generate a script interpreter")
 	template := flag.Bool("t", false, "generate a template interpreter")
 	program := flag.Bool("p", false, "generate a program interpreter")
 	loader := flag.Bool("l", false, "generate a package loader")
 	goossArg := flag.String("goos", defaultGOOS, "Target GOOSs (separated by commas). If not provided, tries to set from 1) GOOS environment variable 2) scriggob runtime's GOOS")
-	variable := flag.String("variable", "packages", "Custom variable name")
+	loaderVarName := flag.String("variable", "packages", "Custom variable name")
 	outputDir := flag.String("o", "scriggo-interpreter", "Custom variable name")
+
+	// CLI arguments validation and parsing.
 	flag.Parse()
 	if !*script && !*template && !*program && !*loader {
 		fmt.Fprintf(os.Stderr, "no gen type specified\n")
@@ -93,46 +102,51 @@ func scriggoGen() {
 	}
 	inputFile := flag.Arg(0)
 	gooss := strings.Split(*goossArg, ",")
+
+	// Reads informations from inputFile.
 	packages, pkgName, err := extractImports(inputFile)
 	if err != nil {
 		panic(err)
 	}
+
+	// Generates a package loader.
 	if *loader {
 		for _, goos := range gooss {
-			out := generatePackages(packages, inputFile, *variable, pkgName, goos)
-			importsFileBase := filepath.Base(inputFile)
-			importsFileBaseWithoutExtension := strings.TrimSuffix(importsFileBase, filepath.Ext(importsFileBase))
-			var newBase string
-			newBase = importsFileBaseWithoutExtension + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(importsFileBase)
-			outPath := filepath.Join(filepath.Dir(inputFile), newBase)
-			f, err := os.Create(outPath)
+			data := generatePackages(packages, inputFile, *loaderVarName, pkgName, goos)
+			inputFileBase := filepath.Base(inputFile)
+			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
+			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
+			out := filepath.Join(filepath.Dir(inputFile), newBase)
+			f, err := os.Create(out)
 			if err != nil {
 				printErrorAndQuit(err)
 			}
-			_, err = f.WriteString(out)
+			_, err = f.WriteString(data)
 			if err != nil {
 				printErrorAndQuit(err)
 			}
-			err = goImports(outPath)
+			err = goImports(out)
 			if err != nil {
 				printErrorAndQuit(err)
 			}
 		}
 		os.Exit(0)
 	}
+
+	// Generates sources for a new interpreter.
 	if *template || *script || *program {
 		err := os.MkdirAll(*outputDir, dirPerm)
 		if err != nil {
 			panic(err)
 		}
 		for _, goos := range gooss {
-			out := generatePackages(packages, inputFile, "packages", "main", goos)
-			pkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
-			err = ioutil.WriteFile(pkgsFile, []byte(out), filePerm)
+			data := generatePackages(packages, inputFile, "packages", "main", goos)
+			outPkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
 				panic(err)
 			}
-			err = goImports(pkgsFile)
+			err = goImports(outPkgsFile)
 			if err != nil {
 				panic(err)
 			}
