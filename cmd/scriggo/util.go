@@ -50,7 +50,7 @@ func parseCommentTag(c string) (commentTag, error) {
 
 	// c must start with "//"".
 	if !strings.HasPrefix(c, "//") {
-		panic("c must start with //")
+		panic("comment must start with //")
 	}
 	c = c[len("//"):]
 
@@ -143,7 +143,7 @@ func parseImports(src []byte) (pkgDef, error) {
 		}
 
 		if imp.Comment != nil {
-			it, err := parseCommentTag(imp.Comment.Text())
+			it, err := parseCommentTag("//" + imp.Comment.Text())
 			if err != nil {
 				return pkgDef{}, fmt.Errorf("error while parsing comment %s", err.Error())
 			}

@@ -94,15 +94,7 @@ func generatePackages(pd pkgDef, sourceFile, pkgsVariableName, goos string) (str
 		return pkgOutput, ""
 	}
 
-	explicitImports = ""
-	explicitImports += uniquePackageName(main.path) + ` "` + main.path + `"` + "\n"
-
-	mainReplacer := strings.NewReplacer(
-		"[pkgContent]", generatePackage(main.path, goos),
-	)
-
-	mainOutput := commonReplacer.Replace(mainSkeleton)
-	mainOutput = mainReplacer.Replace(mainOutput)
+	mainOutput := generatePackageMain(mains, goos)
 
 	return pkgOutput, mainOutput
 }

@@ -148,7 +148,15 @@ func scriggoGen() {
 		for _, goos := range gooss {
 			data, main := generatePackages(pd, inputFile, "packages", goos)
 			if main != "" {
-				panic("TODO: not implemented") // TODO(Gianluca): to implement.
+				mainFile := filepath.Join(*outputDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+				err = ioutil.WriteFile(mainFile, []byte(data), filePerm)
+				if err != nil {
+					panic(err)
+				}
+				err = goImports(mainFile)
+				if err != nil {
+					panic(err)
+				}
 			}
 			outPkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
