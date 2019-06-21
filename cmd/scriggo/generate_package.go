@@ -50,17 +50,27 @@ func uniquePackageName(pkgPath string) string {
 	return pkgName
 }
 
-// generatePackages generate all packages imported in sourceFile, creating the
-// package pkgName and storing them in customVariableName.
-func generatePackages(pd pkgDef, sourceFile, customVariableName, goos string) string {
+// generatePackages returns two valid Go sources, where the former contains a
+// package loader definition while the latter contains main package
+// declarations.
+func generatePackages(pd pkgDef, sourceFile, pkgsVariableName, goos string) (string, string) {
+
+	haveMain := false
+	for _, imp := range pd.imports {
+		if imp.main {
+			haveMain = true
+			break
+		}
+	}
+
 	explicitImports := ""
-	for _, p := range pd.imports {
-		explicitImports += uniquePackageName(p.path) + ` "` + p.path + `"` + "\n"
+	for _, imp := range pd.imports {
+		explicitImports += uniquePackageName(imp.path) + ` "` + imp.path + `"` + "\n"
 	}
 
 	pkgContent := strings.Builder{}
-	for _, p := range pd.imports {
-		out := generatePackage(p.path, goos)
+	for _, imp := range pd.imports {
+		out := generatePackage(imp.path, goos)
 		pkgContent.WriteString(out)
 	}
 
@@ -69,10 +79,19 @@ func generatePackages(pd pkgDef, sourceFile, customVariableName, goos string) st
 		"[buildDirectives]", fmt.Sprintf("//+build %s,%s,!%s", goos, goBaseVersion(runtime.Version()), nextGoVersion(runtime.Version())),
 		"[pkgName]", pd.name,
 		"[explicitImports]", explicitImports,
-		"[customVariableName]", customVariableName,
+		"[customVariableName]", pkgsVariableName,
 		"[pkgContent]", pkgContent.String(),
 	)
-	return r.Replace(outputSkeleton)
+
+	pkgOutput := r.Replace(pkgsSkeleton)
+
+	if !haveMain {
+		return pkgOutput, ""
+	}
+
+	mainOutput := r.Replace(mainSkeleton)
+
+	return pkgOutput, mainOutput
 }
 
 // generatePackage generates package pkgPath.
@@ -192,7 +211,7 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 	return pkgInfo.Pkg.Name(), out, nil
 }
 
-var outputSkeleton = `[generatedWarning]
+var pkgsSkeleton = `[generatedWarning]
 
 [buildDirectives]
 
@@ -211,3 +230,18 @@ func init() {
 	}
 }
 `
+
+var mainSkeleton = `[generatedWarning]
+
+[buildDirectives]
+
+package [pkgName]
+
+import (
+	[explicitImports]
+)
+
+import . "scriggo"
+import "reflect"
+
+var mainPkg = [pkgContent]`
