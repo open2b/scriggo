@@ -182,6 +182,10 @@ func goPackageToDeclarations(pkgPath, goos string) (string, map[string]string, e
 				out[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
 			}
 		case *types.TypeName:
+			if ss := strings.Split(v.String(), " "); len(ss) >= 3 && strings.HasPrefix(ss[2], "struct{") {
+				out[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
+				continue
+			}
 			out[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
 
 		}
