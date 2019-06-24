@@ -35,7 +35,7 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 		explicitImports.WriteString((imp.path) + ` "` + imp.path + `"` + "\n")
 	}
 
-	pkgContent := strings.Builder{}
+	pkgs := map[string]string{}
 	for _, imp := range pd.imports {
 		pkgName, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
@@ -65,8 +65,7 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 		}
 
 		// Skeleton for a single package.
-		const singlePkgSkel = `
-		"[pkgPath]": {
+		const singlePkgSkel = `{
 			Name: "[pkg.Name()]",
 			Declarations: map[string]interface{}{
 				[pkgContentLocal]
@@ -84,13 +83,15 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 		}
 
 		repl := strings.NewReplacer(
-			"[pkgPath]", path,
 			"[pkgContentLocal]", pkgContentLocal.String(),
 			"[pkg.Name()]", name,
 		)
 
 		out := repl.Replace(singlePkgSkel)
-		pkgContent.WriteString(out)
+		if _, ok := pkgs[path]; ok {
+			return "", fmt.Errorf("path collision: %q", path)
+		}
+		pkgs[path] = out
 	}
 
 	commonReplacer := strings.NewReplacer(
@@ -99,6 +100,11 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 		"[pkgName]", pd.name,
 		"[explicitImports]", explicitImports.String(),
 	)
+
+	pkgContent := strings.Builder{}
+	for path, content := range pkgs {
+		pkgContent.WriteString(`"` + path + `": ` + "\n" + content)
+	}
 
 	pkgsReplacer := strings.NewReplacer(
 		"[customVariableName]", pkgsVariableName,
