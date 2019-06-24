@@ -73,10 +73,20 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 			},
 		},`
 
+		path := imp.path
+		if imp.newPath != "" {
+			path = imp.newPath
+		}
+
+		name := pkgName
+		if imp.newName != "" {
+			name = imp.newName
+		}
+
 		repl := strings.NewReplacer(
-			"[pkgPath]", imp.path,
+			"[pkgPath]", path,
 			"[pkgContentLocal]", pkgContentLocal.String(),
-			"[pkg.Name()]", pkgName,
+			"[pkg.Name()]", name,
 		)
 
 		out := repl.Replace(singlePkgSkel)
