@@ -29,6 +29,33 @@ type pkgDef struct {
 	imports  []importDef
 }
 
+func filterIncluding(decls map[string]string, include []string) (map[string]string, error) {
+	tmp := map[string]string{}
+	for _, name := range include {
+		decl, ok := decls[name]
+		if !ok {
+			return nil, fmt.Errorf("cannot include declaration %s: doesn't exist.", name)
+		}
+		tmp[name] = decl
+	}
+	return tmp, nil
+}
+
+func filterExcluding(decls map[string]string, exclude []string) (map[string]string, error) {
+	tmp := map[string]string{}
+	for k, v := range decls {
+		tmp[k] = v
+	}
+	for _, name := range exclude {
+		_, ok := tmp[name]
+		if !ok {
+			return nil, fmt.Errorf("cannot exclude declaration %s: doesn't exist.", name)
+		}
+		delete(tmp, name)
+	}
+	return tmp, nil
+}
+
 // containsMain indicates if pkgDef contains a "main" package.
 func (pd pkgDef) containsMain() bool {
 	for _, imp := range pd.imports {
@@ -117,7 +144,7 @@ func parseCommentTag(c string) (commentTag, error) {
 	case "exclude":
 		ct.exclude = words[1:]
 	default:
-		// illegal word
+		return commentTag{}, illegal(words[0])
 	}
 
 	return ct, nil

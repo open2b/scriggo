@@ -21,7 +21,7 @@ import (
 )
 
 // renderPackages renders a package loader.
-func renderPackages(pd pkgDef, pkgsVariableName, goos string) string {
+func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 
 	// Remove main packages from pd; they must be handled externally.
 	for i, imp := range pd.imports {
@@ -41,7 +41,17 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) string {
 		if err != nil {
 			panic(err) // TODO(Gianluca).
 		}
-
+		if imp.include != nil {
+			decls, err = filterIncluding(decls, imp.include)
+			if err != nil {
+				return "", err
+			}
+		} else if imp.exclude != nil {
+			decls, err = filterExcluding(decls, imp.exclude)
+			if err != nil {
+				return "", err
+			}
+		}
 		// Sorts declarations.
 		names := make([]string, 0, len(decls))
 		for name := range decls {
@@ -108,13 +118,14 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) string {
 	pkgOutput := commonReplacer.Replace(pkgsSkeleton)
 	pkgOutput = pkgsReplacer.Replace(pkgOutput)
 
-	return pkgOutput
+	return pkgOutput, nil
 }
 
 // renderPackageMain renders a package main.
-func renderPackageMain(pd pkgDef, goos string) string {
+func renderPackageMain(pd pkgDef, goos string) (string, error) {
 	// TODO(Gianluca): add header to package main.
 
+	// Filters all imports extracting only those that refer to package main.
 	mains := []importDef{}
 	for _, imp := range pd.imports {
 		if imp.main {
@@ -122,30 +133,29 @@ func renderPackageMain(pd pkgDef, goos string) string {
 		}
 	}
 	allMainDecls := map[string]string{}
+
 	for _, imp := range mains {
+
+		// Parses path.
 		_, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
 			panic(err) // TODO(Gianluca).
 		}
+
+		// Checks if only certain declarations must be included or excluded.
 		if imp.include != nil {
-			tmp := map[string]string{}
-			for _, name := range imp.include {
-				decl, ok := decls[name]
-				if !ok {
-					panic("doesnt exists!") // TODO(Gianluca).
-				}
-				tmp[name] = decl
+			decls, err = filterIncluding(decls, imp.include)
+			if err != nil {
+				return "", err
 			}
-			decls = tmp
 		} else if imp.exclude != nil {
-			for _, name := range imp.exclude {
-				_, ok := decls[name]
-				if !ok {
-					panic("doesnt exists!") // TODO(Gianluca).
-				}
-				delete(decls, name)
+			decls, err = filterExcluding(decls, imp.exclude)
+			if err != nil {
+				return "", err
 			}
 		}
+
+		// Converts all declaration name to "unexported" if requested.
 		if imp.toLower {
 			tmp := map[string]string{}
 			for name, decl := range decls {
@@ -153,6 +163,8 @@ func renderPackageMain(pd pkgDef, goos string) string {
 			}
 			decls = tmp
 		}
+
+		// Adds parsed declarations to list of declarations of the package main.
 		for k, v := range decls {
 			_, ok := allMainDecls[k]
 			if ok {
@@ -161,7 +173,8 @@ func renderPackageMain(pd pkgDef, goos string) string {
 			allMainDecls[k] = v
 		}
 	}
-	// Sorts declarations.
+
+	// Sorts declarations in package main.
 	names := make([]string, 0, len(allMainDecls))
 	for name := range allMainDecls {
 		names = append(names, name)
@@ -189,7 +202,7 @@ func renderPackageMain(pd pkgDef, goos string) string {
 		"[pkgContent]", pkgContent.String(),
 	)
 
-	return repl.Replace(skel)
+	return repl.Replace(skel), nil
 }
 
 // parseGoPackage parses pkgPath and returns the package name and a map

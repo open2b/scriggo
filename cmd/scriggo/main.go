@@ -120,7 +120,10 @@ func scriggoGen() {
 			os.Exit(1)
 		}
 		for _, goos := range gooss {
-			data := renderPackages(pd, *loaderVarName, goos)
+			data, err := renderPackages(pd, *loaderVarName, goos)
+			if err != nil {
+				panic(err)
+			}
 			inputFileBase := filepath.Base(inputFile)
 			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
@@ -149,9 +152,15 @@ func scriggoGen() {
 		}
 		for _, goos := range gooss {
 			pd.name = "main"
-			data := renderPackages(pd, "packages", goos)
+			data, err := renderPackages(pd, "packages", goos)
+			if err != nil {
+				panic(err)
+			}
 			if pd.containsMain() {
-				main := renderPackageMain(pd, goos)
+				main, err := renderPackageMain(pd, goos)
+				if err != nil {
+					panic(err)
+				}
 				mainFile := filepath.Join(*outputDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
