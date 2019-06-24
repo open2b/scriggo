@@ -13,31 +13,31 @@ import (
 
 func Test_parseCommentTag(t *testing.T) {
 	tests := map[string]commentTag{
-		"//scriggo:":              commentTag{},
-		"//scriggo: main":         commentTag{main: true},
-		"//scriggo: main tolower": commentTag{main: true, toLower: true},
-		"//scriggo: include Sleep": commentTag{
-			include: []string{"Sleep"},
+		"//scriggo:":                   commentTag{},
+		`//scriggo: main`:              commentTag{main: true},
+		`//scriggo: main uncapitalize`: commentTag{main: true, uncapitalize: true},
+		`//scriggo: export:"Sleep"`: commentTag{
+			export: []string{"Sleep"},
 		},
-		"//scriggo: main include Sleep": commentTag{
-			main:    true,
-			include: []string{"Sleep"},
+		`//scriggo: main export:"Sleep"`: commentTag{
+			main:   true,
+			export: []string{"Sleep"},
 		},
-		"//scriggo: main tolower include Sleep": commentTag{
-			main:    true,
-			toLower: true,
-			include: []string{"Sleep"},
+		`//scriggo: main uncapitalize export:"Sleep"`: commentTag{
+			main:         true,
+			uncapitalize: true,
+			export:       []string{"Sleep"},
 		},
-		"//scriggo: include Sleep Duration": commentTag{
-			include: []string{"Sleep", "Duration"},
+		`//scriggo: export:"Sleep,Duration"`: commentTag{
+			export: []string{"Sleep", "Duration"},
 		},
-		"//scriggo: main tolower exclude Sleep": commentTag{
-			main:    true,
-			toLower: true,
-			exclude: []string{"Sleep"},
+		`//scriggo: main uncapitalize notexport:"Sleep"`: commentTag{
+			main:         true,
+			uncapitalize: true,
+			notexport:    []string{"Sleep"},
 		},
-		"//scriggo: exclude Sleep Duration": commentTag{
-			exclude: []string{"Sleep", "Duration"},
+		`//scriggo: notexport:"Sleep,Duration"`: commentTag{
+			notexport: []string{"Sleep", "Duration"},
 		},
 	}
 	for comment, want := range tests {

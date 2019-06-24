@@ -41,13 +41,13 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 		if err != nil {
 			panic(err) // TODO(Gianluca).
 		}
-		if imp.include != nil {
-			decls, err = filterIncluding(decls, imp.include)
+		if len(imp.export) > 0 {
+			decls, err = filterIncluding(decls, imp.export)
 			if err != nil {
 				return "", err
 			}
-		} else if imp.exclude != nil {
-			decls, err = filterExcluding(decls, imp.exclude)
+		} else if len(imp.notexport) > 0 {
+			decls, err = filterExcluding(decls, imp.notexport)
 			if err != nil {
 				return "", err
 			}
@@ -143,20 +143,20 @@ func renderPackageMain(pd pkgDef, goos string) (string, error) {
 		}
 
 		// Checks if only certain declarations must be included or excluded.
-		if imp.include != nil {
-			decls, err = filterIncluding(decls, imp.include)
+		if len(imp.export) > 0 {
+			decls, err = filterIncluding(decls, imp.export)
 			if err != nil {
 				return "", err
 			}
-		} else if imp.exclude != nil {
-			decls, err = filterExcluding(decls, imp.exclude)
+		} else if len(imp.notexport) > 0 {
+			decls, err = filterExcluding(decls, imp.notexport)
 			if err != nil {
 				return "", err
 			}
 		}
 
 		// Converts all declaration name to "unexported" if requested.
-		if imp.toLower {
+		if imp.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
 				tmp[strings.ToLower(name)] = decl // TODO(Gianluca): use the real "unexporting" function.

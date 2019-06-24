@@ -8,12 +8,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
 	"math"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -45,20 +47,17 @@ type importDef struct {
 }
 
 type commentTag struct {
-	main             bool // declared as "main" package.
-	toLower          bool // exported names must be set to lowercase.
-	include, exclude []string
+	main              bool // declared as "main" package.
+	uncapitalize      bool // exported names must be set to lowercase.
+	export, notexport []string
 }
 
 // parseCommentTag parses a comment tag.
 // See function tests for syntax examples.
 func parseCommentTag(c string) (commentTag, error) {
+
 	ct := commentTag{}
 	c = strings.TrimSpace(c)
-
-	illegal := func(w string) error {
-		return fmt.Errorf("illegal word %s", w)
-	}
 
 	// c must start with "//"".
 	if !strings.HasPrefix(c, "//") {
@@ -71,53 +70,46 @@ func parseCommentTag(c string) (commentTag, error) {
 		return ct, nil
 	}
 	c = c[len("scriggo:"):]
+	c = strings.TrimSpace(c)
 
-	words := strings.Fields(c)
-
-	// No words after "scriggo:"
-	if len(words) == 0 {
+	// Nothing after "scriggo:".
+	if len(c) == 0 {
 		return ct, nil
 	}
 
-	// First field can be either 'main' or 'include'/'exclude'.
-	switch words[0] {
-	case "main":
-		ct.main = true
-		words = words[1:]
-	case "include", "exclude":
-		// Do nothing here.
-	default:
-		return commentTag{}, illegal(words[0])
+	// "main" and "uncapitalize" are the only two words that cannot be handled
+	// as key:"value" pairs; checks if they appear in comment and removes them.
+	fields := strings.Fields(c)
+	newFields := []string{}
+	for _, f := range fields {
+		switch f {
+		case "main":
+			ct.main = true
+		case "uncapitalize":
+			ct.uncapitalize = true
+		default:
+			newFields = append(newFields, f)
+		}
+	}
+	c = strings.Join(newFields, " ")
+	if ct.uncapitalize && !ct.main {
+		return commentTag{}, errors.New("cannot use uncapitalize without main")
 	}
 
-	// Just one word: returns.
-	if len(words) == 0 {
-		return ct, nil
+	// Parses "export" and "notexport" using reflect.StructTag.Get.
+	tag := reflect.StructTag(c)
+	if export := tag.Get("export"); len(strings.TrimSpace(export)) > 0 {
+		for _, e := range strings.Split(export, ",") {
+			ct.export = append(ct.export, strings.TrimSpace(e))
+		}
 	}
-
-	// Second field can be either 'tolower' or 'include'/'exclude'.
-	switch words[0] {
-	case "include", "exclude":
-		// Do nothing here
-	case "tolower":
-		ct.toLower = true
-		words = words[1:]
-	default:
-		return commentTag{}, illegal(words[0])
+	if notexport := tag.Get("notexport"); len(strings.TrimSpace(notexport)) > 0 {
+		for _, ne := range strings.Split(notexport, ",") {
+			ct.notexport = append(ct.notexport, strings.TrimSpace(ne))
+		}
 	}
-
-	// Two words: returns.
-	if len(words) == 0 {
-		return ct, nil
-	}
-
-	switch words[0] {
-	case "include":
-		ct.include = words[1:]
-	case "exclude":
-		ct.exclude = words[1:]
-	default:
-		return commentTag{}, illegal(words[0])
+	if len(ct.export) > 0 && len(ct.notexport) > 0 {
+		return commentTag{}, errors.New("cannot have export and notexport in same import comment")
 	}
 
 	return ct, nil
