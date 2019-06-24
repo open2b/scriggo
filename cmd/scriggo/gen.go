@@ -243,8 +243,8 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 				// Most cases fall here.
 				if len(v.Val().ExactString()) < 7 {
 					out[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+					continue
 				}
-				continue
 			}
 			typ := v.Type().String()
 			if strings.HasPrefix(typ, "untyped ") {
