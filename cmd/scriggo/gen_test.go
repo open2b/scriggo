@@ -120,7 +120,7 @@ func Test_renderPackages(t *testing.T) {
 			if c.pkgsVariableName == "" {
 				c.pkgsVariableName = "packages"
 			}
-			got, err := renderPackages(c.pd, c.pkgsVariableName, c.goos)
+			got, _, err := renderPackages(c.pd, c.pkgsVariableName, c.goos)
 			if err != nil {
 				t.Fatal(err)
 			}

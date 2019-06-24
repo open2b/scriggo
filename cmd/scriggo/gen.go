@@ -19,8 +19,9 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
-// renderPackages renders a package loader.
-func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error) {
+// renderPackages renders a package loader. Also returns a boolean indicating if
+// content contains packages or if it's empty.
+func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool, error) {
 
 	// Remove main packages from pd; they must be handled externally.
 	for i, imp := range pd.imports {
@@ -40,15 +41,19 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error
 		if err != nil {
 			panic(err) // TODO(Gianluca).
 		}
+		// No declarations at path: move on to next import path.
+		if len(decls) == 0 {
+			continue
+		}
 		if len(imp.export) > 0 {
 			decls, err = filterIncluding(decls, imp.export)
 			if err != nil {
-				return "", err
+				return "", false, err
 			}
 		} else if len(imp.notexport) > 0 {
 			decls, err = filterExcluding(decls, imp.notexport)
 			if err != nil {
-				return "", err
+				return "", false, err
 			}
 		}
 		// Sorts declarations.
@@ -73,7 +78,7 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error
 
 		// Check if import path already exists.
 		if _, ok := pkgs[path]; ok {
-			return "", fmt.Errorf("path collision: %q", path)
+			return "", false, fmt.Errorf("path collision: %q", path)
 		}
 
 		// Determines which package name use: default (the one specified in
@@ -92,6 +97,11 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error
 		out = strings.ReplaceAll(out, "[pkg.Name()]", name)
 		out = strings.ReplaceAll(out, "[pkgContent]", pkgContent.String())
 		pkgs[path] = out
+	}
+
+	// If no packages have been declared, just return.
+	if len(pkgs) == 0 {
+		return "", false, nil
 	}
 
 	allPkgsContent := strings.Builder{}
@@ -122,7 +132,7 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
 	pkgOutput = genHeader(pd, goos) + pkgOutput
-	return pkgOutput, nil
+	return pkgOutput, true, nil
 }
 
 // renderPackageMain renders a package main.
@@ -200,7 +210,7 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 				},
 			}
 		}`
-	out = strings.ReplaceAll("[pkgContent]", out, pkgContent.String())
+	out = strings.ReplaceAll(out, "[pkgContent]", pkgContent.String())
 	out = genHeader(pd, goos) + out
 
 	return out, nil

@@ -125,19 +125,20 @@ func scriggoGen() {
 			os.Exit(1)
 		}
 		for _, goos := range gooss {
-			data, err := renderPackages(pd, *loaderVarName, goos)
+			data, hasContent, err := renderPackages(pd, *loaderVarName, goos)
 			if err != nil {
 				panic(err)
+			}
+			// Data has been generated but has no content (only has a
+			// "skeleton"): do not write file.
+			if !hasContent {
+				continue
 			}
 			inputFileBase := filepath.Base(inputFile)
 			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
 			out := filepath.Join(filepath.Dir(inputFile), newBase)
-			f, err := os.Create(out)
-			if err != nil {
-				panic(err)
-			}
-			_, err = f.WriteString(data)
+			ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
 				panic(err)
 			}
@@ -157,10 +158,6 @@ func scriggoGen() {
 		}
 		for _, goos := range gooss {
 			pd.name = "main"
-			data, err := renderPackages(pd, "packages", goos)
-			if err != nil {
-				panic(err)
-			}
 			if pd.containsMain() {
 				main, err := renderPackageMain(pd, goos)
 				if err != nil {
@@ -175,6 +172,16 @@ func scriggoGen() {
 				if err != nil {
 					panic(err)
 				}
+				continue
+			}
+			data, hasContent, err := renderPackages(pd, "packages", goos)
+			if err != nil {
+				panic(err)
+			}
+			// Data has been generated but has no content (only has a
+			// "skeleton"): do not write file.
+			if !hasContent {
+				continue
 			}
 			outPkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
