@@ -39,6 +39,30 @@ func Test_parseCommentTag(t *testing.T) {
 		`//scriggo: notexport:"Sleep,Duration"`: commentTag{
 			notexport: []string{"Sleep", "Duration"},
 		},
+		`//scriggo: main uncapitalize path:"test"`: commentTag{
+			main:         true,
+			uncapitalize: true,
+			path:         "test",
+			pkgName:      "test",
+		},
+		`//scriggo: path:"newpath" export:"Sleep"`: commentTag{
+			export:  []string{"Sleep"},
+			path:    "newpath",
+			pkgName: "newpath",
+		},
+		`//scriggo: main export:"Sleep" path:"path/to/pkg"`: commentTag{
+			main:    true,
+			export:  []string{"Sleep"},
+			path:    "path/to/pkg",
+			pkgName: "pkg",
+		},
+		`//scriggo: main uncapitalize export:"Sleep" path:"path/to/test"`: commentTag{
+			main:         true,
+			uncapitalize: true,
+			export:       []string{"Sleep"},
+			path:         "path/to/test",
+			pkgName:      "test",
+		},
 	}
 	for comment, want := range tests {
 		t.Run(comment, func(t *testing.T) {

@@ -47,8 +47,10 @@ type importDef struct {
 }
 
 type commentTag struct {
-	main              bool // declared as "main" package.
-	uncapitalize      bool // exported names must be set to lowercase.
+	main              bool   // declared as "main" package.
+	uncapitalize      bool   // exported names must be set "uncapitalized".
+	path              string // import as path in Scriggo.
+	pkgName           string // use as pkgName in Scriggo.
 	export, notexport []string
 }
 
@@ -96,8 +98,9 @@ func parseCommentTag(c string) (commentTag, error) {
 		return commentTag{}, errors.New("cannot use uncapitalize without main")
 	}
 
-	// Parses "export" and "notexport" using reflect.StructTag.Get.
 	tag := reflect.StructTag(c)
+
+	// Parses "export" and "notexport" using reflect.StructTag.Get.
 	if export := tag.Get("export"); len(strings.TrimSpace(export)) > 0 {
 		for _, e := range strings.Split(export, ",") {
 			ct.export = append(ct.export, strings.TrimSpace(e))
@@ -110,6 +113,12 @@ func parseCommentTag(c string) (commentTag, error) {
 	}
 	if len(ct.export) > 0 && len(ct.notexport) > 0 {
 		return commentTag{}, errors.New("cannot have export and notexport in same import comment")
+	}
+
+	// Parses "path", setting package path and name.
+	if path := strings.TrimSpace(tag.Get("path")); len(path) > 0 {
+		ct.path = path
+		ct.pkgName = filepath.Base(path)
 	}
 
 	return ct, nil
