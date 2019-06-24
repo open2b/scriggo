@@ -117,6 +117,9 @@ func parseCommentTag(c string) (commentTag, error) {
 
 	// Parses "path", setting package path and name.
 	if path := strings.TrimSpace(tag.Get("path")); len(path) > 0 {
+		if ct.main {
+			return commentTag{}, errors.New("cannot use both main and path")
+		}
 		ct.newPath = path
 		ct.newName = filepath.Base(path)
 	}
