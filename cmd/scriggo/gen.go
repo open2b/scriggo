@@ -20,7 +20,7 @@ import (
 )
 
 // renderPackages renders a package loader.
-func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
+func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, error) {
 
 	// Remove main packages from pd; they must be handled externally.
 	for i, imp := range pd.imports {
@@ -126,7 +126,7 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 }
 
 // renderPackageMain renders a package main.
-func renderPackageMain(pd pkgDef, goos string) (string, error) {
+func renderPackageMain(pd packageDef, goos string) (string, error) {
 
 	// Filters all imports extracting only those that refer to package main.
 	mains := []importDef{}

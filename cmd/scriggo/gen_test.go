@@ -20,13 +20,13 @@ func BenchmarkGeneratePackage(b *testing.B) {
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd               pkgDef
+		pd               packageDef
 		pkgsVariableName string
 		goos             string
 		expected         string
 	}{
 		"Importing fmt simple": {
-			pd: pkgDef{
+			pd: packageDef{
 				name: "test",
 				imports: []importDef{
 					importDef{path: "fmt"},
@@ -77,7 +77,7 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing only Println from fmt": {
-			pd: pkgDef{
+			pd: packageDef{
 				name: "test",
 				imports: []importDef{
 					importDef{
