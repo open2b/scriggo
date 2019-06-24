@@ -100,6 +100,9 @@ func scriggoGen() {
 	}
 	inputFile := flag.Arg(0)
 	gooss := strings.Split(*goossArg, ",")
+	for i := range gooss {
+		gooss[i] = strings.TrimSpace(gooss[i])
+	}
 
 	// Reads informations from inputFile.
 	data, err := ioutil.ReadFile(inputFile)
