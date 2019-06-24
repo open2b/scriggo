@@ -152,7 +152,7 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 		// Parses path.
 		_, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
-			panic(err) // TODO(Gianluca).
+			return "", err
 		}
 
 		// Checks if only certain declarations must be included or excluded.
