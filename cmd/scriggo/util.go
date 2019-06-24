@@ -192,7 +192,7 @@ func parseImports(src []byte) (packageDef, error) {
 		if imp.Comment != nil {
 			it, err := parseCommentTag("//" + imp.Comment.Text())
 			if err != nil {
-				return packageDef{}, fmt.Errorf("error while parsing comment %s", err.Error())
+				return packageDef{}, fmt.Errorf("error on comment %q: %s", imp.Comment.Text(), err.Error())
 			}
 			id.commentTag = it
 		}

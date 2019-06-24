@@ -106,11 +106,16 @@ func scriggoGen() {
 
 	// Reads informations from inputFile.
 	data, err := ioutil.ReadFile(inputFile)
-	pd, err := parseImports(data)
-	pd.filepath = inputFile
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
+	pd, err := parseImports(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error on file %q: %s\n", inputFile, err)
+		os.Exit(1)
+	}
+	pd.filepath = inputFile
 
 	// Generates a package loader.
 	if *loader {
