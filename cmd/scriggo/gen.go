@@ -103,7 +103,7 @@ func renderPackages(pd pkgDef, pkgsVariableName, goos string) (string, error) {
 
 	pkgContent := strings.Builder{}
 	for path, content := range pkgs {
-		pkgContent.WriteString(`"` + path + `": ` + "\n" + content)
+		pkgContent.WriteString(`"` + path + `": ` + "" + content)
 	}
 
 	pkgsReplacer := strings.NewReplacer(
