@@ -49,8 +49,8 @@ type importDef struct {
 type commentTag struct {
 	main              bool   // declared as "main" package.
 	uncapitalize      bool   // exported names must be set "uncapitalized".
-	path              string // import as path in Scriggo.
-	pkgName           string // use as pkgName in Scriggo.
+	newPath           string // import as newPath in Scriggo.
+	newName           string // use as newName in Scriggo.
 	export, notexport []string
 }
 
@@ -117,8 +117,8 @@ func parseCommentTag(c string) (commentTag, error) {
 
 	// Parses "path", setting package path and name.
 	if path := strings.TrimSpace(tag.Get("path")); len(path) > 0 {
-		ct.path = path
-		ct.pkgName = filepath.Base(path)
+		ct.newPath = path
+		ct.newName = filepath.Base(path)
 	}
 
 	return ct, nil
