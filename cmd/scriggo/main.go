@@ -172,7 +172,7 @@ func scriggoGen() {
 	// Generates a package loader.
 	if *loader {
 		if pd.containsMain() {
-			argErr("cannot have a main definition when generating a loader")
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
 		if *loaderVarName == "" {
 			*loaderVarName = "packages"
@@ -215,6 +215,9 @@ func scriggoGen() {
 		for _, goos := range gooss {
 			pd.name = "main"
 			if pd.containsMain() {
+				if !*template && !*script {
+					panic("cannot have main if not making a template or script interpreter") // TODO(Gianluca).
+				}
 				main, err := renderPackageMain(pd, goos)
 				if err != nil {
 					panic(err)
@@ -227,6 +230,12 @@ func scriggoGen() {
 				err = goImports(mainFile)
 				if err != nil {
 					panic(err)
+				}
+			} else { // pd does not contain main, so has packages (or is empty).
+				if len(pd.imports) > 0 {
+					if *template && !*script && !*program {
+						panic("cannot have packages if making a template interpreter") // TODO(Gianluca).
+					}
 				}
 			}
 			data, hasContent, err := renderPackages(pd, "packages", goos)
