@@ -16,22 +16,81 @@ import (
 	"strings"
 )
 
-func main() {
-	flag.Usage = func() {
-		f := fmt.Fprintf
-		f(os.Stderr, "Scriggo is a tool for managing Scriggo interpreters and loaders\n")
-		f(os.Stderr, "\n")
-		f(os.Stderr, "Usage:\n")
-		f(os.Stderr, "\n")
-		f(os.Stderr, "\tscriggo <command> [arguments]\n")
-		f(os.Stderr, "\n")
-		f(os.Stderr, "The commands are:\n")
-		f(os.Stderr, "\n")
-		f(os.Stderr, "\tgen		generate an interpreter or a loader\n")
-		f(os.Stderr, "\n")
-		f(os.Stderr, "Use \"scriggo help <command>\" for more information about a command.`)\n")
-		flag.PrintDefaults()
+func stderr(lines ...string) {
+	for _, l := range lines {
+		fmt.Fprint(os.Stderr, l+"\n")
 	}
+}
+
+var commandsHelp = map[string]func(){
+	"scriggo": func() {
+		stderr(
+			`Scriggo is a tool for managing Scriggo interpreters and loaders`,
+			``,
+			`Usage:`,
+			``,
+			`	   scriggo <command> [arguments]`,
+			``,
+			`The commands are:`,
+			``,
+			`	   bug         start a bug report`,
+			`	   gen         generate an interpreter or a loader`,
+			`	   version     print Scriggo version`,
+			``,
+			`Use "scriggo help <command>" for more information about a command.`,
+		)
+		flag.PrintDefaults()
+	},
+	"bug": func() {
+		stderr(
+			`usage: scriggo bug`,
+			`Bug opens the default browser and starts a new bug report.`,
+			`The report includes useful system information.`,
+		)
+	},
+	"gen": func() {
+		stderr(
+			`usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename`,
+			`Run 'scriggo help gen' for details`,
+		)
+	},
+	"version": func() {
+		stderr(
+			`usage: scriggo version`,
+		)
+	},
+}
+
+var commands = map[string]func(){
+	"bug": func() {
+		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	},
+	"gen": func() {
+		flag.Usage = commandsHelp["gen"]
+		scriggoGen()
+	},
+	"help": func() {
+		if len(os.Args) == 1 {
+			flag.Usage()
+			os.Exit(0)
+		}
+		topic := os.Args[1]
+		help, ok := commandsHelp[topic]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "scriggo help %s: unknown help topic. Run 'scriggo help'.\n", topic)
+			os.Exit(1)
+		}
+		help()
+	},
+	"version": func() {
+		fmt.Printf("Scriggo module version:   (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Scriggo tool version:     (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Scriggo runtime version:  %s\n", runtime.Version())
+	},
+}
+
+func main() {
+	flag.Usage = commandsHelp["scriggo"]
 
 	// No command provided.
 	if len(os.Args) == 1 {
@@ -41,29 +100,24 @@ func main() {
 
 	cmd := os.Args[1]
 	os.Args = append(os.Args[:1], os.Args[2:]...)
-	switch cmd {
-	case "gen": // 'scriggo gen'
-		scriggoGen()
-	case "help": // 'scriggo help'
-		flag.Usage()
-		os.Exit(0)
-	case "version": // 'scriggo version'
-		fmt.Printf("Scriggo module version:  1.0.5\n") // TODO(Gianluca): use real version.
-		fmt.Printf("Scriggo tool version:    1.0.4\n") // TODO(Gianluca): use real version.
-	default:
-		fmt.Fprintf(os.Stderr, "scriggo %s: unknown command\n", cmd)
-		fmt.Fprintf(os.Stderr, "Run 'scriggo help' for usage.\n")
+	command, ok := commands[cmd]
+	if !ok {
+		stderr(
+			`scriggo %s: unknown command`,
+			`Run 'scriggo help' for usage.`,
+		)
 		os.Exit(1)
 	}
+	command()
 }
 
 // scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
 
-	// Sets help string.
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename\n")
-		fmt.Fprintf(os.Stderr, "Run 'scriggo help gen' for details\n")
+	argErr := func(msg string) {
+		fmt.Fprintf(os.Stderr, "%s\n", msg)
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	// Finds the default GOOS.
@@ -78,25 +132,22 @@ func scriggoGen() {
 	program := flag.Bool("p", false, "generate a program interpreter")
 	loader := flag.Bool("l", false, "generate a package loader")
 	goossArg := flag.String("goos", defaultGOOS, "Target GOOSs (separated by commas). If not provided, tries to set from 1) GOOS environment variable 2) scriggob runtime's GOOS")
-	loaderVarName := flag.String("variable", "packages", "Custom variable name")
+	loaderVarName := flag.String("variable", "", "Custom variable name")
 	outputDir := flag.String("o", "", "Custom variable name")
 
 	// CLI arguments validation and parsing.
 	flag.Parse()
 	if !*script && !*template && !*program && !*loader {
-		fmt.Fprintf(os.Stderr, "no gen type specified\n")
-		flag.Usage()
-		os.Exit(1)
+		argErr("no gen type specified")
 	}
 	if *loader && (*script || *template || *program) {
-		fmt.Fprintf(os.Stderr, "cannot use -l in conjuction with other gen type (-s, -t or -p)\n")
-		flag.Usage()
-		os.Exit(1)
+		argErr("cannot use -l with -s, -t or -p")
 	}
 	if len(flag.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "no filename has been specified\n")
-		flag.Usage()
-		os.Exit(1)
+		argErr("no filename has been specified")
+	}
+	if (*script || *template || *program) && *loaderVarName != "" {
+		argErr("cannot use variable option with -s, -t or -p")
 	}
 	inputFile := flag.Arg(0)
 	gooss := strings.Split(*goossArg, ",")
@@ -120,9 +171,10 @@ func scriggoGen() {
 	// Generates a package loader.
 	if *loader {
 		if pd.containsMain() {
-			fmt.Fprintf(os.Stderr, "cannot have a main definition when generating a loader\n")
-			flag.Usage()
-			os.Exit(1)
+			argErr("cannot have a main definition when generating a loader")
+		}
+		if *loaderVarName == "" {
+			*loaderVarName = "packages"
 		}
 		for _, goos := range gooss {
 			data, hasContent, err := renderPackages(pd, *loaderVarName, goos)
