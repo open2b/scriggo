@@ -19,8 +19,8 @@ import (
 	"golang.org/x/tools/go/loader"
 )
 
-// renderPackages renders a package loader. Also returns a boolean indicating if
-// content contains packages or if it's empty.
+// renderPackages renders a package definition. It also returns a boolean
+// indicating if content contains packages or if it's empty.
 func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool, error) {
 
 	// Remove main packages from pd; they must be handled externally.
