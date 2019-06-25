@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -120,21 +121,95 @@ func Test_renderPackages(t *testing.T) {
 			if c.pkgsVariableName == "" {
 				c.pkgsVariableName = "packages"
 			}
-			got, _, err := renderPackages(c.pd, c.pkgsVariableName, c.goos)
+			got, content, err := renderPackages(c.pd, c.pkgsVariableName, c.goos)
 			if err != nil {
 				t.Fatal(err)
 			}
-			clean := func(s string) string {
-				lines := []string{}
-				for _, l := range strings.Split(s, "\n") {
-					l := strings.TrimSpace(l)
-					if l != "" && !strings.HasPrefix(l, "//") && !strings.HasPrefix(l, "import ") {
-						l := strings.Join(strings.Fields(l), " ")
-						lines = append(lines, l)
-					}
-				}
-				return strings.Join(lines, "\n")
+			if !content {
+				t.Fatalf("no content generated")
 			}
+			got = clean(got)
+			c.expected = clean(c.expected)
+			if got != c.expected {
+				if testing.Verbose() {
+					t.Fatalf("expecting:\n\n%s\n\ngot:\n\n%s", c.expected, got)
+				}
+				t.Fatalf("expecting %q, got %q", c.expected, got)
+			}
+		})
+	}
+}
+
+func clean(s string) string {
+	re := regexp.MustCompile(`(?s)import \(.*?\)`)
+	s = re.ReplaceAllString(s, "")
+	lines := []string{}
+	for _, l := range strings.Split(s, "\n") {
+		l := strings.TrimSpace(l)
+		if l != "" && !strings.HasPrefix(l, "//") && !strings.HasPrefix(l, "import ") {
+			l := strings.Join(strings.Fields(l), " ")
+			lines = append(lines, l)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func Test_renderPackageMain(t *testing.T) {
+	// NOTE: these tests ignores whitespaces, imports and comments.
+	cases := map[string]struct {
+		pd               packageDef
+		pkgsVariableName string
+		goos             string
+		expected         string
+	}{
+		"println e print taken from fmt": {
+			pd: packageDef{
+				imports: []importDef{
+					importDef{
+						path: "fmt",
+						commentTag: commentTag{
+							main:         true,
+							uncapitalize: true,
+							export:       []string{"Print", "Println"},
+						},
+					},
+				},
+			},
+			expected: `package main
+
+			import (
+				"fmt"
+				"scriggo"
+			)
+			
+			func init() {
+				Main = &scriggo.Package{
+					Name: "main",
+					Declarations: map[string]interface{}{
+						"print":   fmt.Print,
+						"println": fmt.Println,
+					},
+				}
+			}
+			`,
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			if c.goos == "" {
+				c.goos = os.Getenv("GOOS")
+				if c.goos == "" {
+					c.goos = runtime.GOOS
+				}
+			}
+			if c.pkgsVariableName == "" {
+				c.pkgsVariableName = "packages"
+			}
+			got, err := renderPackageMain(c.pd, c.goos)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			got = clean(got)
 			c.expected = clean(c.expected)
 			if got != c.expected {
