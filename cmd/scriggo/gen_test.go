@@ -73,7 +73,7 @@ func Test_renderPackages(t *testing.T) {
 				imports: []importDef{
 					importDef{
 						path: "fmt",
-						commentTag: commentTag{
+						importComment: importComment{
 							export: []string{"Println"},
 						},
 					},
@@ -143,7 +143,7 @@ func Test_renderPackageMain(t *testing.T) {
 				imports: []importDef{
 					importDef{
 						path: "fmt",
-						commentTag: commentTag{
+						importComment: importComment{
 							main:         true,
 							uncapitalize: true,
 							export:       []string{"Print", "Println"},

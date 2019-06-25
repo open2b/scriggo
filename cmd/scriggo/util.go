@@ -8,17 +8,14 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
 	"math"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
-	"strings"
 	"unicode"
 )
 
@@ -45,10 +42,10 @@ func (pd packageDef) containsMain() bool {
 
 type importDef struct {
 	path string
-	commentTag
+	importComment
 }
 
-type commentTag struct {
+type importComment struct {
 	main              bool   // declared as "main" package.
 	uncapitalize      bool   // exported names must be set "uncapitalized".
 	newPath           string // import as newPath in Scriggo.
@@ -95,79 +92,6 @@ func uncapitalize(n string) string {
 		b.WriteRune(runes[i])
 	}
 	return b.String()
-}
-
-// parseCommentTag parses a comment tag.
-// See function tests for syntax examples.
-func parseCommentTag(c string) (commentTag, error) {
-
-	ct := commentTag{}
-	c = strings.TrimSpace(c)
-
-	// c must start with "//"".
-	if !strings.HasPrefix(c, "//") {
-		panic("comment must start with //")
-	}
-	c = c[len("//"):]
-
-	// If c does not start with "scriggo:", returns: not a Scriggo directive.
-	if !strings.HasPrefix(c, "scriggo:") {
-		return ct, nil
-	}
-	c = c[len("scriggo:"):]
-	c = strings.TrimSpace(c)
-
-	// Nothing after "scriggo:".
-	if len(c) == 0 {
-		return ct, nil
-	}
-
-	switch {
-	case strings.HasPrefix(c, "main"):
-		ct.main = true
-		c = strings.TrimPrefix(c, "main")
-		c = strings.TrimSpace(c)
-	case strings.HasPrefix(c, "uncapitalize"):
-		return commentTag{}, errors.New("cannot use uncapitalize without main")
-	case strings.HasPrefix(c, "export") || strings.HasPrefix(c, "notexport") || strings.HasPrefix(c, "path"):
-	default:
-		return commentTag{}, fmt.Errorf("bad comment tag %s", c)
-	}
-
-	switch {
-	case strings.HasPrefix(c, "uncapitalize"):
-		ct.uncapitalize = true
-		c = strings.TrimPrefix(c, "uncapitalize")
-		c = strings.TrimSpace(c)
-	}
-
-	tag := reflect.StructTag(c)
-
-	// Parses "export" and "notexport" using reflect.StructTag.Get.
-	if export := tag.Get("export"); len(strings.TrimSpace(export)) > 0 {
-		for _, e := range strings.Split(export, ",") {
-			ct.export = append(ct.export, strings.TrimSpace(e))
-		}
-	}
-	if notexport := tag.Get("notexport"); len(strings.TrimSpace(notexport)) > 0 {
-		for _, ne := range strings.Split(notexport, ",") {
-			ct.notexport = append(ct.notexport, strings.TrimSpace(ne))
-		}
-	}
-	if len(ct.export) > 0 && len(ct.notexport) > 0 {
-		return commentTag{}, errors.New("cannot have export and notexport in same import comment")
-	}
-
-	// Parses "path", setting package path and name.
-	if path := strings.TrimSpace(tag.Get("path")); len(path) > 0 {
-		if ct.main {
-			return commentTag{}, errors.New("cannot use both main and path")
-		}
-		ct.newPath = path
-		ct.newName = filepath.Base(path)
-	}
-
-	return ct, nil
 }
 
 // filterIncluding filters decls including only names specified in include.
@@ -232,11 +156,11 @@ func parseImports(src []byte) (packageDef, error) {
 		}
 
 		if imp.Comment != nil {
-			it, err := parseCommentTag("//" + imp.Comment.Text())
+			it, err := parseImportComment("//" + imp.Comment.Text())
 			if err != nil {
 				return packageDef{}, fmt.Errorf("error on comment %q: %s", imp.Comment.Text(), err.Error())
 			}
-			id.commentTag = it
+			id.importComment = it
 		}
 
 		pd.imports = append(pd.imports, id)
