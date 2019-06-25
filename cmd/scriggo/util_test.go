@@ -36,8 +36,25 @@ func Test_uncapitalize(t *testing.T) {
 	}
 }
 
+func Test_parseCommentTag_error(t *testing.T) {
+	cases := map[string]string{
+		"//scriggo: uncapitalize": "cannot use uncapitalize without main",
+	}
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			_, got := parseCommentTag(input)
+			if got == nil {
+				t.Fatalf("%s: expected error %q, got nothing", input, expected)
+			}
+			if got.Error() != expected {
+				t.Fatalf("%s: expected error %q, got %q", input, expected, got.Error())
+			}
+		})
+	}
+}
+
 func Test_parseCommentTag(t *testing.T) {
-	tests := map[string]commentTag{
+	cases := map[string]commentTag{
 		"//scriggo:":                   commentTag{},
 		`//scriggo: main`:              commentTag{main: true},
 		`//scriggo: main uncapitalize`: commentTag{main: true, uncapitalize: true},
@@ -84,14 +101,14 @@ func Test_parseCommentTag(t *testing.T) {
 			newName: "test",
 		},
 	}
-	for comment, want := range tests {
+	for comment, want := range cases {
 		t.Run(comment, func(t *testing.T) {
 			got, err := parseCommentTag(comment)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("wanted %+v, got %+v", want, got)
+				t.Fatalf("comment: %s: wanted %+v, got %+v", comment, want, got)
 			}
 		})
 	}

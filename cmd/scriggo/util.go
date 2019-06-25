@@ -122,23 +122,23 @@ func parseCommentTag(c string) (commentTag, error) {
 		return ct, nil
 	}
 
-	// "main" and "uncapitalize" are the only two words that cannot be handled
-	// as key:"value" pairs; checks if they appear in comment and removes them.
-	fields := strings.Fields(c)
-	newFields := []string{}
-	for _, f := range fields {
-		switch f {
-		case "main":
-			ct.main = true
-		case "uncapitalize":
-			ct.uncapitalize = true
-		default:
-			newFields = append(newFields, f)
-		}
-	}
-	c = strings.Join(newFields, " ")
-	if ct.uncapitalize && !ct.main {
+	switch {
+	case strings.HasPrefix(c, "main"):
+		ct.main = true
+		c = strings.TrimPrefix(c, "main")
+		c = strings.TrimSpace(c)
+	case strings.HasPrefix(c, "uncapitalize"):
 		return commentTag{}, errors.New("cannot use uncapitalize without main")
+	case strings.HasPrefix(c, "export") || strings.HasPrefix(c, "notexport") || strings.HasPrefix(c, "path"):
+	default:
+		return commentTag{}, fmt.Errorf("bad comment tag %s", c)
+	}
+
+	switch {
+	case strings.HasPrefix(c, "uncapitalize"):
+		ct.uncapitalize = true
+		c = strings.TrimPrefix(c, "uncapitalize")
+		c = strings.TrimSpace(c)
 	}
 
 	tag := reflect.StructTag(c)
