@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func Test_parseCommentTag_error(t *testing.T) {
+func Test_parseImportComment_error(t *testing.T) {
 	cases := map[string]string{
 		"//scriggo: uncapitalize": "cannot use option uncapitalize without option main",
 	}
