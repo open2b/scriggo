@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -53,6 +54,47 @@ type commentTag struct {
 	newPath           string // import as newPath in Scriggo.
 	newName           string // use as newName in Scriggo.
 	export, notexport []string
+}
+
+// uncapitalize "uncapitalizes" n.
+//
+// 	Name        ->  name
+//	DoubleWord  ->  doubleWord
+//  AbC         ->  abC
+//
+func uncapitalize(n string) string {
+	isUp := unicode.IsUpper
+	toLow := unicode.ToLower
+	if n == "" {
+		return n
+	}
+	runes := []rune(n)
+	if len(runes) == 1 {
+		return string(toLow(runes[0]))
+	}
+	if !isUp(runes[0]) {
+		return n
+	}
+	b := bytes.Buffer{}
+	b.Grow(len(n))
+	var i int
+	b.WriteRune(toLow(runes[0]))
+	for i = 1; i < len(runes)-1; i++ {
+		if isUp(runes[i]) && isUp(runes[i+1]) {
+			b.WriteRune(toLow(runes[i]))
+		} else {
+			break
+		}
+	}
+	for ; i < len(runes)-1; i++ {
+		b.WriteRune(runes[i])
+	}
+	if isUp(runes[i]) && isUp(runes[i-1]) {
+		b.WriteRune(toLow(runes[i]))
+	} else {
+		b.WriteRune(runes[i])
+	}
+	return b.String()
 }
 
 // parseCommentTag parses a comment tag.

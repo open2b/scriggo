@@ -11,6 +11,31 @@ import (
 	"testing"
 )
 
+func Test_uncapitalize(t *testing.T) {
+	cases := map[string]string{
+		"name":         "name",
+		"Name":         "name",
+		"ADSL":         "adsl",
+		"ADSLAndOther": "adslAndOther",
+		"DoubleWord":   "doubleWord",
+		"X":            "x",
+		"unExported":   "unExported",
+		"AbC":          "abC",
+		"Èident":       "èident",
+		"È":            "è",
+		"ÀÈÈ":          "àèè",
+		"àÀÈÒò":        "àÀÈÒò",
+	}
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			got := uncapitalize(input)
+			if got != expected {
+				t.Fatalf("input: %q, expected %q, got %q", input, expected, got)
+			}
+		})
+	}
+}
+
 func Test_parseCommentTag(t *testing.T) {
 	tests := map[string]commentTag{
 		"//scriggo:":                   commentTag{},

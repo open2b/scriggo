@@ -172,7 +172,7 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 		if imp.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
-				tmp[strings.ToLower(name)] = decl // TODO(Gianluca): use the real "unexporting" function.
+				tmp[uncapitalize(name)] = decl 
 			}
 			decls = tmp
 		}
