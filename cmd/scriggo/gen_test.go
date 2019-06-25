@@ -8,16 +8,6 @@ import (
 	"testing"
 )
 
-func BenchmarkGeneratePackage(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, v, err := parseGoPackage("fmt", "")
-		if err != nil {
-			b.Fatal(err)
-		}
-		_ = v
-	}
-}
-
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
@@ -128,8 +118,8 @@ func Test_renderPackages(t *testing.T) {
 			if !content {
 				t.Fatalf("no content generated")
 			}
-			got = clean(got)
-			c.expected = clean(c.expected)
+			got = _cleanOutput(got)
+			c.expected = _cleanOutput(c.expected)
 			if got != c.expected {
 				if testing.Verbose() {
 					t.Fatalf("expecting:\n\n%s\n\ngot:\n\n%s", c.expected, got)
@@ -138,20 +128,6 @@ func Test_renderPackages(t *testing.T) {
 			}
 		})
 	}
-}
-
-func clean(s string) string {
-	re := regexp.MustCompile(`(?s)import \(.*?\)`)
-	s = re.ReplaceAllString(s, "")
-	lines := []string{}
-	for _, l := range strings.Split(s, "\n") {
-		l := strings.TrimSpace(l)
-		if l != "" && !strings.HasPrefix(l, "//") && !strings.HasPrefix(l, "import ") {
-			l := strings.Join(strings.Fields(l), " ")
-			lines = append(lines, l)
-		}
-	}
-	return strings.Join(lines, "\n")
 }
 
 func Test_renderPackageMain(t *testing.T) {
@@ -210,8 +186,8 @@ func Test_renderPackageMain(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got = clean(got)
-			c.expected = clean(c.expected)
+			got = _cleanOutput(got)
+			c.expected = _cleanOutput(c.expected)
 			if got != c.expected {
 				if testing.Verbose() {
 					t.Fatalf("expecting:\n\n%s\n\ngot:\n\n%s", c.expected, got)
@@ -220,4 +196,18 @@ func Test_renderPackageMain(t *testing.T) {
 			}
 		})
 	}
+}
+
+func _cleanOutput(s string) string {
+	re := regexp.MustCompile(`(?s)import \(.*?\)`)
+	s = re.ReplaceAllString(s, "")
+	lines := []string{}
+	for _, l := range strings.Split(s, "\n") {
+		l := strings.TrimSpace(l)
+		if l != "" && !strings.HasPrefix(l, "//") && !strings.HasPrefix(l, "import ") {
+			l := strings.Join(strings.Fields(l), " ")
+			lines = append(lines, l)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
