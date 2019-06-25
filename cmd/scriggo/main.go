@@ -193,7 +193,12 @@ func scriggoGen() {
 				panic(err)
 			}
 		}
-		err = ioutil.WriteFile(filepath.Join(*outputDir, "main.go"), []byte(skel), filePerm)
+		mainPath := filepath.Join(*outputDir, "main.go")
+		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(*program, *script, *template), filePerm)
+		if err != nil {
+			panic(err)
+		}
+		err = goImports(mainPath)
 		if err != nil {
 			panic(err)
 		}
