@@ -105,9 +105,9 @@ var commands = map[string]func(){
 		help()
 	},
 	"version": func() {
-		fmt.Printf("Scriggo module version:   (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Scriggo tool version:     (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Scriggo runtime version:  %s\n", runtime.Version())
+		fmt.Printf("Scriggo module version:            (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Scriggo tool version:              (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Go version used to build Scriggo:  %s\n", runtime.Version())
 	},
 }
 
