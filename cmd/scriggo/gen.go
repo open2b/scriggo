@@ -73,6 +73,7 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 
 		// Determines which import path use: default (the one specified in
 		// source, used by Go) or a new one, indicated in comment directives.
+		// TODO(Gianluca): check path collision before starting rendering.
 		path := imp.path
 		if imp.newPath != "" {
 			path = imp.newPath
