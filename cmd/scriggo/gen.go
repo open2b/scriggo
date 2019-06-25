@@ -40,7 +40,6 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 		} else {
 			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
 		}
-
 	}
 
 	pkgs := map[string]string{}
