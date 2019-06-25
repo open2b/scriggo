@@ -147,6 +147,11 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 	}
 	allMainDecls := map[string]string{}
 
+	explicitImports := strings.Builder{}
+	for _, imp := range pd.imports {
+		explicitImports.WriteString(uniquePackageName(imp.path) + ` "` + imp.path + `"` + "\n")
+	}
+
 	for _, imp := range mains {
 
 		// Parses path.
@@ -172,7 +177,7 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 		if imp.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
-				tmp[uncapitalize(name)] = decl 
+				tmp[uncapitalize(name)] = decl
 			}
 			decls = tmp
 		}
@@ -202,6 +207,13 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 	out := `
 		package main
 
+		import (
+			[explicitImports]
+		)
+
+		import . "scriggo"
+		import "reflect"
+
 		func init() {
 			Main = &scriggo.Package{
 				Name: "main",
@@ -211,6 +223,7 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 			}
 		}`
 	out = strings.ReplaceAll(out, "[pkgContent]", pkgContent.String())
+	out = strings.ReplaceAll(out, "[explicitImports]", explicitImports.String())
 	out = genHeader(pd, goos) + out
 
 	return out, nil
