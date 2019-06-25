@@ -79,7 +79,7 @@ func scriggoGen() {
 	loader := flag.Bool("l", false, "generate a package loader")
 	goossArg := flag.String("goos", defaultGOOS, "Target GOOSs (separated by commas). If not provided, tries to set from 1) GOOS environment variable 2) scriggob runtime's GOOS")
 	loaderVarName := flag.String("variable", "packages", "Custom variable name")
-	outputDir := flag.String("o", "scriggo-interpreter", "Custom variable name")
+	outputDir := flag.String("o", "", "Custom variable name")
 
 	// CLI arguments validation and parsing.
 	flag.Parse()
@@ -152,6 +152,9 @@ func scriggoGen() {
 
 	// Generates sources for a new interpreter.
 	if *template || *script || *program {
+		if *outputDir == "" {
+			*outputDir = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
+		}
 		err := os.MkdirAll(*outputDir, dirPerm)
 		if err != nil {
 			panic(err)
