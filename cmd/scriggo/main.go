@@ -228,7 +228,6 @@ func scriggoGen() {
 				if err != nil {
 					panic(err)
 				}
-				continue
 			}
 			data, hasContent, err := renderPackages(pd, "packages", goos)
 			if err != nil {
