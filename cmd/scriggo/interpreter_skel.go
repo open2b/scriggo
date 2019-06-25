@@ -32,7 +32,8 @@ func makeInterpreterSkeleton(program, script, template bool) []byte {
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
-		}`
+		}
+		os.Exit(0)`
 	const programSkel = `main, err := ioutil.ReadFile(absFile)
 		if err != nil {
 			panic(err)
@@ -57,7 +58,8 @@ func makeInterpreterSkeleton(program, script, template bool) []byte {
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
-		}`
+		}
+		os.Exit(0)`
 	const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
 		builtins := template.Builtins()
@@ -87,7 +89,8 @@ func makeInterpreterSkeleton(program, script, template bool) []byte {
 				fmt.Println(err)
 				os.Exit(-1)
 			}
-		}`
+		}
+		os.Exit(0)`
 	out := `// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 		// https://www.open2b.com
 
@@ -219,10 +222,16 @@ func makeInterpreterSkeleton(program, script, template bool) []byte {
 			switch ext {
 			case ".sgo":
 				{{ script }}
+				fmt.Println("script support not included in this interpreter. Rebuild using option '-s'")
+				os.Exit(-1)
 			case ".go":
 				{{ program }}
+				fmt.Println("program support not included in this interpreter. Rebuild using option '-p'")
+				os.Exit(-1)
 			case ".html":
 				{{ template }}
+				fmt.Println("template support not included in this interpreter. Rebuild using option '-t'")
+				os.Exit(-1)
 			}
 		}
 	`
