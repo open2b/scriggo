@@ -92,54 +92,54 @@ func Test_parseImportComment(t *testing.T) {
 func Test_parse(t *testing.T) {
 	cases := []struct {
 		str  string
-		opts []Option
-		kvs  []KeyValues
+		opts []option
+		kvs  []keyValues
 	}{
 		{
 			str: "",
 		},
 		{
 			str:  "option",
-			opts: []Option{"option"},
+			opts: []option{"option"},
 		},
 		{
 			str:  "option1 option2",
-			opts: []Option{"option1", "option2"},
+			opts: []option{"option1", "option2"},
 		},
 		{
 			str: "key:value",
-			kvs: []KeyValues{
-				KeyValues{Key: "key", Values: []string{"value"}},
+			kvs: []keyValues{
+				keyValues{Key: "key", Values: []string{"value"}},
 			},
 		},
 		{
 			str: `option key:value option2`,
-			opts: []Option{
+			opts: []option{
 				`option`, `option2`,
 			},
-			kvs: []KeyValues{
-				KeyValues{Key: `key`, Values: []string{"value"}},
+			kvs: []keyValues{
+				keyValues{Key: `key`, Values: []string{"value"}},
 			},
 		},
 		{
 			str: `option key:"value" option2`,
-			opts: []Option{
+			opts: []option{
 				`option`, `option2`,
 			},
-			kvs: []KeyValues{
-				KeyValues{Key: `key`, Values: []string{"value"}},
+			kvs: []keyValues{
+				keyValues{Key: `key`, Values: []string{"value"}},
 			},
 		},
 		{
 			str: `key:value1,value2,value3`,
-			kvs: []KeyValues{
-				KeyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
+			kvs: []keyValues{
+				keyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
 			},
 		},
 		{
 			str: `key:"value1,value2,value3"`,
-			kvs: []KeyValues{
-				KeyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
+			kvs: []keyValues{
+				keyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
 			},
 		},
 	}
@@ -150,16 +150,16 @@ func Test_parse(t *testing.T) {
 				t.Fatal(err)
 			}
 			if len(c.opts) == 0 {
-				c.opts = []Option{}
+				c.opts = []option{}
 			}
 			if len(c.kvs) == 0 {
-				c.kvs = []KeyValues{}
+				c.kvs = []keyValues{}
 			}
 			if len(gotOpts) == 0 {
-				gotOpts = []Option{}
+				gotOpts = []option{}
 			}
 			if len(gotKvs) == 0 {
-				gotKvs = []KeyValues{}
+				gotKvs = []keyValues{}
 			}
 			if !reflect.DeepEqual(gotOpts, c.opts) || !reflect.DeepEqual(gotKvs, c.kvs) {
 				t.Fatalf("input: %q: expected %#v and %#v, got %#v and %#v", c.str, c.opts, c.kvs, gotOpts, gotKvs)

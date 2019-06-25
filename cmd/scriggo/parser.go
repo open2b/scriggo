@@ -13,8 +13,7 @@ import (
 	"strings"
 )
 
-// parseImportComment parses a comment tag.
-// See function tests for syntax examples.
+// parseImportComment parses an import tag.
 func parseImportComment(c string) (importComment, error) {
 
 	// c must start with "//"".
@@ -89,84 +88,19 @@ func parseImportComment(c string) (importComment, error) {
 	}
 
 	return ic, nil
-
-	// ct := importComment{}
-	// c = strings.TrimSpace(c)
-
-	// // c must start with "//"".
-	// if !strings.HasPrefix(c, "//") {
-	// 	panic("comment must start with //")
-	// }
-	// c = c[len("//"):]
-
-	// // If c does not start with "scriggo:", returns: not a Scriggo directive.
-	// if !strings.HasPrefix(c, "scriggo:") {
-	// 	return ct, nil
-	// }
-	// c = c[len("scriggo:"):]
-	// c = strings.TrimSpace(c)
-
-	// // Nothing after "scriggo:".
-	// if len(c) == 0 {
-	// 	return ct, nil
-	// }
-
-	// switch {
-	// case strings.HasPrefix(c, "main"):
-	// 	ct.main = true
-	// 	c = strings.TrimPrefix(c, "main")
-	// 	c = strings.TrimSpace(c)
-	// case strings.HasPrefix(c, "uncapitalize"):
-	// 	return importComment{}, errors.New("cannot use uncapitalize without main")
-	// case strings.HasPrefix(c, "export") || strings.HasPrefix(c, "notexport") || strings.HasPrefix(c, "path"):
-	// default:
-	// 	return importComment{}, fmt.Errorf("bad comment tag %s", c)
-	// }
-
-	// switch {
-	// case strings.HasPrefix(c, "uncapitalize"):
-	// 	ct.uncapitalize = true
-	// 	c = strings.TrimPrefix(c, "uncapitalize")
-	// 	c = strings.TrimSpace(c)
-	// }
-
-	// tag := reflect.StructTag(c)
-
-	// // Parses "export" and "notexport" using reflect.StructTag.Get.
-	// if export := tag.Get("export"); len(strings.TrimSpace(export)) > 0 {
-	// 	for _, e := range strings.Split(export, ",") {
-	// 		ct.export = append(ct.export, strings.TrimSpace(e))
-	// 	}
-	// }
-	// if notexport := tag.Get("notexport"); len(strings.TrimSpace(notexport)) > 0 {
-	// 	for _, ne := range strings.Split(notexport, ",") {
-	// 		ct.notexport = append(ct.notexport, strings.TrimSpace(ne))
-	// 	}
-	// }
-	// if len(ct.export) > 0 && len(ct.notexport) > 0 {
-	// 	return importComment{}, errors.New("cannot have export and notexport in same import comment")
-	// }
-
-	// // Parses "path", setting package path and name.
-	// if path := strings.TrimSpace(tag.Get("path")); len(path) > 0 {
-	// 	if ct.main {
-	// 		return importComment{}, errors.New("cannot use both main and path")
-	// 	}
-	// 	ct.newPath = path
-	// 	ct.newName = filepath.Base(path)
-	// }
-
-	// return ct, nil
 }
 
-type Option string
+// option represents an option in a tag.
+type option string
 
-type KeyValues struct {
+// keyValues represents an key-values pair in a tag.
+type keyValues struct {
 	Key    string
 	Values []string
 }
 
-func parse(str string) ([]Option, []KeyValues, error) {
+// parse parses str returning a list of Options and KeyValues.
+func parse(str string) ([]option, []keyValues, error) {
 	toks, err := tokenize(str)
 	if err != nil {
 		return nil, nil, err
@@ -175,12 +109,12 @@ func parse(str string) ([]Option, []KeyValues, error) {
 		return nil, nil, nil
 	}
 	waitingForValue := false
-	opts := []Option{}
-	kvs := []KeyValues{}
+	opts := []option{}
+	kvs := []keyValues{}
 	for i := 0; i < len(toks); i++ {
 		if i != len(toks)-1 && toks[i+1] == ":" {
 			waitingForValue = true
-			kvs = append(kvs, KeyValues{Key: toks[i]})
+			kvs = append(kvs, keyValues{Key: toks[i]})
 			i++ // jumps colon.
 		} else if waitingForValue {
 			vs := strings.Split(toks[i], ",")
@@ -189,16 +123,17 @@ func parse(str string) ([]Option, []KeyValues, error) {
 			}
 			waitingForValue = false
 		} else {
-			opts = append(opts, Option(toks[i]))
+			opts = append(opts, option(toks[i]))
 		}
 	}
 	return opts, kvs, nil
 }
 
+// tokenize returns the list of token read from str.
 func tokenize(str string) ([]string, error) {
 	tokens := []string{}
 	inQuotes := false
-extern:
+loop:
 	for {
 		tok := ""
 		for _, r := range str {
@@ -219,7 +154,7 @@ extern:
 						tok = ""
 					}
 					str = str[1:]
-					continue extern
+					continue loop
 				}
 			case ':':
 				if len(tok) == 0 {
@@ -234,7 +169,7 @@ extern:
 				if len(str) == 0 {
 					return nil, errors.New("unexpected EOL after colon, expecting quote or word")
 				}
-				continue extern
+				continue loop
 			case '"':
 				if !inQuotes {
 					if len(tok) == 0 && len(tokens) == 0 {
@@ -252,7 +187,7 @@ extern:
 					inQuotes = false
 					tokens = append(tokens, tok)
 					str = str[1:]
-					continue extern
+					continue loop
 				}
 			default:
 				tok += string(r)
