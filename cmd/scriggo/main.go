@@ -16,6 +16,28 @@ import (
 	"strings"
 )
 
+func main() {
+	flag.Usage = commandsHelp["scriggo"]
+
+	// No command provided.
+	if len(os.Args) == 1 {
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	cmd := os.Args[1]
+	os.Args = append(os.Args[:1], os.Args[2:]...)
+	command, ok := commands[cmd]
+	if !ok {
+		stderr(
+			`scriggo %s: unknown command`,
+			`Run 'scriggo help' for usage.`,
+		)
+		os.Exit(1)
+	}
+	command()
+}
+
 func stderr(lines ...string) {
 	for _, l := range lines {
 		fmt.Fprint(os.Stderr, l+"\n")
@@ -89,28 +111,6 @@ var commands = map[string]func(){
 	},
 }
 
-func main() {
-	flag.Usage = commandsHelp["scriggo"]
-
-	// No command provided.
-	if len(os.Args) == 1 {
-		flag.Usage()
-		os.Exit(0)
-	}
-
-	cmd := os.Args[1]
-	os.Args = append(os.Args[:1], os.Args[2:]...)
-	command, ok := commands[cmd]
-	if !ok {
-		stderr(
-			`scriggo %s: unknown command`,
-			`Run 'scriggo help' for usage.`,
-		)
-		os.Exit(1)
-	}
-	command()
-}
-
 // scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
 
@@ -135,7 +135,7 @@ func scriggoGen() {
 	loaderVarName := flag.String("variable", "", "Custom variable name")
 	outputDir := flag.String("o", "", "Custom variable name")
 
-	// CLI arguments validation and parsing.
+	// CLI arguments parsing and validation.
 	flag.Parse()
 	if !*script && !*template && !*program && !*loader {
 		argErr("no gen type specified")
@@ -149,6 +149,7 @@ func scriggoGen() {
 	if (*script || *template || *program) && *loaderVarName != "" {
 		argErr("cannot use variable option with -s, -t or -p")
 	}
+
 	inputFile := flag.Arg(0)
 	gooss := strings.Split(*goossArg, ",")
 	for i := range gooss {
