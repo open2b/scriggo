@@ -34,7 +34,13 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 
 	explicitImports := strings.Builder{}
 	for _, imp := range pd.imports {
-		explicitImports.WriteString(uniquePackageName(imp.path) + ` "` + imp.path + `"` + "\n")
+		uniqueName := uniquePackageName(imp.path)
+		if uniqueName != imp.path {
+			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
+		} else {
+			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
+		}
+
 	}
 
 	pkgs := map[string]string{}
@@ -152,7 +158,13 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 
 	explicitImports := strings.Builder{}
 	for _, imp := range pd.imports {
-		explicitImports.WriteString(uniquePackageName(imp.path) + ` "` + imp.path + `"` + "\n")
+		uniqueName := uniquePackageName(imp.path)
+		if uniqueName != imp.path {
+			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
+		} else {
+			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
+		}
+
 	}
 
 	for _, imp := range mains {
