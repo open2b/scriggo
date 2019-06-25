@@ -30,7 +30,7 @@ func main() {
 	command, ok := commands[cmd]
 	if !ok {
 		stderr(
-			`scriggo %s: unknown command`,
+			fmt.Sprintf("scriggo %s: unknown command", cmd),
 			`Run 'scriggo help' for usage.`,
 		)
 		os.Exit(1)
