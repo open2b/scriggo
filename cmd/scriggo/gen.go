@@ -24,11 +24,13 @@ import (
 func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool, error) {
 
 	// Remove main packages from pd; they must be handled externally.
-	for i, imp := range pd.imports {
-		if imp.main {
-			pd.imports = append(pd.imports[:i], pd.imports[i+1:]...)
+	tmp := []importDef{}
+	for _, imp := range pd.imports {
+		if !imp.main {
+			tmp = append(tmp, imp)
 		}
 	}
+	pd.imports = tmp
 
 	explicitImports := strings.Builder{}
 	for _, imp := range pd.imports {
