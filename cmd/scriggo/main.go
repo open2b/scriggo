@@ -167,7 +167,7 @@ func scriggoGen(install bool) {
 
 	sd, err := parseScriggoDescriptor(data)
 	if err != nil {
-		exit("file %q: %s", inputPath, err)
+		exit("path %q: %s", inputPath, err)
 	}
 	sd.filepath = inputPath
 	if len(sd.comment.goos) == 0 {
@@ -246,10 +246,21 @@ func scriggoGen(install bool) {
 		if sd.comment.output == "" {
 			sd.comment.output = strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + "-interpreter"
 		}
-		err := os.MkdirAll(sd.comment.output, dirPerm)
+
+		// Creates a temporary directory for interpreter sources. If installing,
+		// directory will be lost. If generating sources and no errors occurred,
+		// tmpDir will be moved to the correct path.
+		tmpDir, err := ioutil.TempDir("", "scriggo")
 		if err != nil {
 			exit(err.Error())
 		}
+		tmpDir = filepath.Join(tmpDir, sd.pkgName)
+
+		err = os.MkdirAll(tmpDir, dirPerm)
+		if err != nil {
+			exit(err.Error())
+		}
+
 		for _, goos := range sd.comment.goos {
 			sd.pkgName = "main"
 			if sd.containsMain() {
@@ -260,7 +271,7 @@ func scriggoGen(install bool) {
 				if err != nil {
 					exit("rendering package main: %s", err)
 				}
-				mainFile := filepath.Join(sd.comment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+				mainFile := filepath.Join(tmpDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					exit("writing package main: %s", err)
@@ -286,7 +297,7 @@ func scriggoGen(install bool) {
 			if !hasContent {
 				continue
 			}
-			outPkgsFile := filepath.Join(sd.comment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			outPkgsFile := filepath.Join(tmpDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
 				exit("writing packages file: %s", err)
@@ -298,7 +309,7 @@ func scriggoGen(install bool) {
 		}
 
 		// Write package main on disk and run "goimports" on it.
-		mainPath := filepath.Join(sd.comment.output, "main.go")
+		mainPath := filepath.Join(tmpDir, "main.go")
 		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
 		if err != nil {
 			exit("writing interpreter file: %s", err)
@@ -309,12 +320,22 @@ func scriggoGen(install bool) {
 		}
 
 		if install {
-			err = goInstall(sd.comment.output)
+			err = goInstall(tmpDir)
 			if err != nil {
-				exit("goimports on dir %q: %s", sd.comment.output, err)
+				exit("goimports on dir %q: %s", tmpDir, err)
 			}
+			os.Exit(0)
 		}
 
+		// Move interpeter from tmpDir to correct dir.
+		err = os.Rename(tmpDir, sd.comment.output)
+		if err != nil {
+			// TODO(Gianluca): is not guaranteed that os.Rename will work on every
+			// filesystem/os. In case of error, find another way to move every file
+			// from temporary directory to correct one.
+			exit(err.Error())
+		}
 		os.Exit(0)
+
 	}
 }

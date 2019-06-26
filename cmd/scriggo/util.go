@@ -127,7 +127,7 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 		return nil, err
 	}
 	if len(pkgs) == 0 {
-		return nil, errors.New("no packages found")
+		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
 	}
 	if len(pkgs) > 1 {
 		return nil, errors.New("too many packages matching")
@@ -138,6 +138,11 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 		if base == "scriggo.go" {
 			return ioutil.ReadFile(p)
 		}
+	}
+
+	if pkg.Name == "" {
+		// TODO(Gianluca): why did not previous check catch this error?
+		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
 	}
 
 	fmt.Fprintf(os.Stderr, "package %q does not provide a scriggo.go file, generating a default\n", path)
@@ -159,6 +164,8 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 // parseScriggoDescriptor returns a list of imports path imported in file
 // filepath and the package name specified in src.
 func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
+
+	log.Printf("█ [DEBUG] █ src: %s\n", src) // TODO(Gianluca): remove.
 
 	// Parses file.
 	fset := token.NewFileSet()
