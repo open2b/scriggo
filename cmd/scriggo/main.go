@@ -134,29 +134,6 @@ var commands = map[string]func(){
 	},
 }
 
-// getScriggoDescriptorData reads a Scriggo descriptor from path. If path is a
-// file ending with ".go", reads such file and returns its content. If path is a
-// package path, it reads the file "scriggo.go" located at the root of the
-// package and returns its content. If "scriggo.go" does not exists at the root
-// of the package, a default one is returned, which includes all declarations
-// from package only.
-//
-//		path/to/file.go                         ->  reads path/to/file.go
-//		path/to/package   (with    scriggo.go)  ->  reads path/to/package/scriggo.go
-//		path/to/package   (without scriggo.go)  ->  return a default scriggo.go
-//
-func getScriggoDescriptorData(path string) ([]byte, error) {
-
-	// path points to a file.
-	if strings.HasSuffix(path, ".go") {
-		return ioutil.ReadFile(path)
-	}
-
-	// path points to a package.
-	panic("TODO: not implemented") // TODO(Gianluca): to implement.
-	return nil, nil
-}
-
 // scriggoGen executes command:
 //
 //		scriggo gen

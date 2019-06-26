@@ -12,13 +12,18 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"log"
 	"math"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"unicode"
+
+	"golang.org/x/tools/go/packages"
 )
 
 const (
@@ -96,6 +101,59 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 		delete(tmp, name)
 	}
 	return tmp, nil
+}
+
+// getScriggoDescriptorData reads a Scriggo descriptor from path. If path is a
+// file ending with ".go", reads such file and returns its content. If path is a
+// package path, it reads the file "scriggo.go" located at the root of the
+// package and returns its content. If "scriggo.go" does not exists at the root
+// of the package, a default one is returned, which includes all declarations
+// from package only.
+//
+//		path/to/file.go                         ->  reads path/to/file.go
+//		path/to/package   (with    scriggo.go)  ->  reads path/to/package/scriggo.go
+//		path/to/package   (without scriggo.go)  ->  return a default scriggo.go
+//
+func getScriggoDescriptorData(path string) ([]byte, error) {
+
+	// path points to a file.
+	if strings.HasSuffix(path, ".go") {
+		return ioutil.ReadFile(path)
+	}
+
+	// path points to a package.
+	pkgs, err := packages.Load(nil, path)
+	if err != nil {
+		return nil, err
+	}
+	if len(pkgs) == 0 {
+		return nil, errors.New("no packages found")
+	}
+	if len(pkgs) > 1 {
+		return nil, errors.New("too many packages matching")
+	}
+	pkg := pkgs[0]
+	for _, p := range pkg.GoFiles {
+		base := filepath.Base(p)
+		if base == "scriggo.go" {
+			return ioutil.ReadFile(p)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "package %q does not provide a scriggo.go file, generating a default\n", path)
+
+	out := `//scriggo: interpreters
+	
+	package [pkgName]
+	
+	import (
+		_ "[pkgPath]"
+	)`
+
+	out = strings.ReplaceAll(out, "[pkgName]", pkg.Name)
+	out = strings.ReplaceAll(out, "[pkgPath]", path)
+
+	return []byte(out), nil
 }
 
 // parseScriggoDescriptor returns a list of imports path imported in file
