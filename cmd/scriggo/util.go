@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -109,6 +110,21 @@ func parseImports(src []byte) (scriggoDescriptor, error) {
 
 	pd := scriggoDescriptor{
 		pkgName: file.Name.Name,
+	}
+
+	found := false
+	for _, c := range file.Comments {
+		if _, ok := isScriggoComment("//" + c.Text()); ok {
+			pd.fileComment, err = parseFileComment("//" + c.Text())
+			if err != nil {
+				return scriggoDescriptor{}, err
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		return scriggoDescriptor{}, errors.New("missing Scriggo file comment")
 	}
 
 	// Iterates over imports.

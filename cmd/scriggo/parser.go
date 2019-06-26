@@ -85,6 +85,10 @@ func isScriggoComment(c string) (string, bool) {
 	}
 	c = c[len("//"):]
 
+	if strings.Contains(c[:len(c)-1], "\n") {
+		return "", false
+	}
+
 	// If c does not start with "scriggo:", returns: not a Scriggo comment.
 	if !strings.HasPrefix(c, "scriggo:") {
 		return "", false
@@ -149,13 +153,24 @@ func parseFileComment(c string) (fileComment, error) {
 			if len(kv.Values) != 1 {
 				return fileComment{}, errors.New("expecting one name as variable name")
 			}
+			if kv.Values[0] == "" {
+				return fileComment{}, errors.New("invalid variable name")
+			}
 			fc.embeddedVariable = kv.Values[0]
 		case "output":
 			if len(kv.Values) != 1 {
 				return fileComment{}, errors.New("expecting one path as output")
 			}
+			if kv.Values[0] == "" {
+				return fileComment{}, errors.New("invalid path")
+			}
 			fc.output = kv.Values[0]
 		case "goos":
+			for _, v := range kv.Values {
+				if v == "" {
+					return fileComment{}, errors.New("invalid goos")
+				}
+			}
 			fc.goos = kv.Values
 		default:
 			return fileComment{}, fmt.Errorf("unknown key %s", kv.Key)

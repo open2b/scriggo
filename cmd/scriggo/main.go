@@ -114,47 +114,15 @@ var commands = map[string]func(){
 // scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
 
-	argErr := func(msg string) {
-		fmt.Fprintf(os.Stderr, "%s\n", msg)
-		flag.Usage()
-		os.Exit(1)
-	}
-
 	// Finds the default GOOS.
 	defaultGOOS := os.Getenv("GOOS")
 	if defaultGOOS == "" {
 		defaultGOOS = runtime.GOOS
 	}
 
-	// Sets command line variables.
-	script := flag.Bool("s", false, "generate a script interpreter")
-	template := flag.Bool("t", false, "generate a template interpreter")
-	program := flag.Bool("p", false, "generate a program interpreter")
-	loader := flag.Bool("l", false, "generate a package loader")
-	goossArg := flag.String("goos", defaultGOOS, "Target GOOSs (separated by commas). If not provided, tries to set from 1) GOOS environment variable 2) scriggob runtime's GOOS")
-	loaderVarName := flag.String("variable", "", "Custom variable name")
-	outputDir := flag.String("o", "", "Custom variable name")
-
-	// CLI arguments parsing and validation.
 	flag.Parse()
-	if !*script && !*template && !*program && !*loader {
-		argErr("no gen type specified")
-	}
-	if *loader && (*script || *template || *program) {
-		argErr("cannot use -l with -s, -t or -p")
-	}
-	if len(flag.Args()) == 0 {
-		argErr("no filename has been specified")
-	}
-	if (*script || *template || *program) && *loaderVarName != "" {
-		argErr("cannot use variable option with -s, -t or -p")
-	}
 
 	inputFile := flag.Arg(0)
-	gooss := strings.Split(*goossArg, ",")
-	for i := range gooss {
-		gooss[i] = strings.TrimSpace(gooss[i])
-	}
 
 	// Reads informations from inputFile.
 	data, err := ioutil.ReadFile(inputFile)
@@ -168,17 +136,20 @@ func scriggoGen() {
 		os.Exit(1)
 	}
 	pd.filepath = inputFile
+	if len(pd.fileComment.goos) == 0 {
+		pd.fileComment.goos = []string{defaultGOOS}
+	}
 
 	// Generates a package loader.
-	if *loader {
+	if pd.fileComment.embedded {
 		if pd.containsMain() {
 			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		}
-		if *loaderVarName == "" {
-			*loaderVarName = "packages"
+		if pd.fileComment.embeddedVariable == "" {
+			pd.fileComment.embeddedVariable = "packages"
 		}
-		for _, goos := range gooss {
-			data, hasContent, err := renderPackages(pd, *loaderVarName, goos)
+		for _, goos := range pd.fileComment.goos {
+			data, hasContent, err := renderPackages(pd, pd.fileComment.embeddedVariable, goos)
 			if err != nil {
 				panic(err)
 			}
@@ -204,25 +175,25 @@ func scriggoGen() {
 	}
 
 	// Generates sources for a new interpreter.
-	if *template || *script || *program {
-		if *outputDir == "" {
-			*outputDir = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
+	if pd.fileComment.template || pd.fileComment.script || pd.fileComment.program {
+		if pd.fileComment.output == "" {
+			pd.fileComment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
 		}
-		err := os.MkdirAll(*outputDir, dirPerm)
+		err := os.MkdirAll(pd.fileComment.output, dirPerm)
 		if err != nil {
 			panic(err)
 		}
-		for _, goos := range gooss {
+		for _, goos := range pd.fileComment.goos {
 			pd.pkgName = "main"
 			if pd.containsMain() {
-				if !*template && !*script {
+				if !pd.fileComment.template && !pd.fileComment.script {
 					panic("cannot have main if not making a template or script interpreter") // TODO(Gianluca).
 				}
 				main, err := renderPackageMain(pd, goos)
 				if err != nil {
 					panic(err)
 				}
-				mainFile := filepath.Join(*outputDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+				mainFile := filepath.Join(pd.fileComment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					panic(err)
@@ -233,7 +204,7 @@ func scriggoGen() {
 				}
 			} else { // pd does not contain main, so has packages (or is empty).
 				if len(pd.imports) > 0 {
-					if *template && !*script && !*program {
+					if pd.fileComment.template && !pd.fileComment.script && !pd.fileComment.program {
 						panic("cannot have packages if making a template interpreter") // TODO(Gianluca).
 					}
 				}
@@ -247,7 +218,7 @@ func scriggoGen() {
 			if !hasContent {
 				continue
 			}
-			outPkgsFile := filepath.Join(*outputDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			outPkgsFile := filepath.Join(pd.fileComment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
 				panic(err)
@@ -257,8 +228,8 @@ func scriggoGen() {
 				panic(err)
 			}
 		}
-		mainPath := filepath.Join(*outputDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(*program, *script, *template), filePerm)
+		mainPath := filepath.Join(pd.fileComment.output, "main.go")
+		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(pd.fileComment.program, pd.fileComment.script, pd.fileComment.template), filePerm)
 		if err != nil {
 			panic(err)
 		}
