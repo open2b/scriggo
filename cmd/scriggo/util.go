@@ -165,8 +165,6 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 // filepath and the package name specified in src.
 func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 
-	log.Printf("█ [DEBUG] █ src: %s\n", src) // TODO(Gianluca): remove.
-
 	// Parses file.
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", src, parser.ImportsOnly|parser.ParseComments)
