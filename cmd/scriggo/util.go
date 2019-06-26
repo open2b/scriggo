@@ -199,16 +199,26 @@ func goBuild(path string) error {
 
 var uniquePackageName_cache = map[string]string{}
 
-// uniquePackageName generates an unique package name for every package path.
-func uniquePackageName(pkgPath string) string {
-
-	// Make a list of reserved go keywords.
-	var goKeywords = []string{
+func isGoKeyword(w string) bool {
+	goKeywords := []string{
 		"break", "default", "func", "interface", "select", "case", "defer",
 		"go", "map", "struct", "chan", "else", "goto", "package",
 		"switch", "const", "fallthrough", "if", "range",
 		"type", "continue", "for", "import", "return", "var",
 	}
+	for _, gw := range goKeywords {
+		if w == gw {
+			return true
+		}
+	}
+	return false
+}
+
+// uniquePackageName generates an unique package name for every package path.
+func uniquePackageName(pkgPath string) string {
+
+	// Make a list of reserved go keywords.
+
 	pkgName := filepath.Base(pkgPath)
 	done := false
 	for !done {
@@ -219,10 +229,8 @@ func uniquePackageName(pkgPath string) string {
 			pkgName += "_"
 		}
 	}
-	for _, goKwd := range goKeywords {
-		if goKwd == pkgName {
-			pkgName = "_" + pkgName + "_"
-		}
+	if isGoKeyword(pkgName) {
+		pkgName = "_" + pkgName + "_"
 	}
 	uniquePackageName_cache[pkgName] = pkgPath
 

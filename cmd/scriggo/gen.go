@@ -192,7 +192,11 @@ func renderPackageMain(pd scriggoDescriptor, goos string) (string, error) {
 		if imp.comment.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
-				tmp[uncapitalize(name)] = decl
+				newName := uncapitalize(name)
+				if newName == "main" || newName == "init" || isGoKeyword(newName) {
+					return "", fmt.Errorf("%q is not a valid identifier: remove 'uncapitalize' or change declaration name in %q", newName, imp.path)
+				}
+				tmp[newName] = decl
 			}
 			decls = tmp
 		}
