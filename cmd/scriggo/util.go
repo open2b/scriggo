@@ -123,7 +123,7 @@ func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 				if found {
 					return scriggoDescriptor{}, fmt.Errorf("line: %d: just one Scriggo comment is allowed per file", pos(c.Pos()).Line)
 				}
-				pd.fileComment, err = parseFileComment("//" + c.Text())
+				pd.comment, err = parseFileComment("//" + c.Text())
 				if err != nil {
 					return scriggoDescriptor{}, fmt.Errorf("line %d: %s", pos(c.Pos()).Line, err)
 				}

@@ -16,13 +16,14 @@ import (
 // scriggoDescriptor represents a descriptor of a Scriggo loader or interpreter.
 // A scriggoDescriptor can be read from a file using a parsing function.
 type scriggoDescriptor struct {
-	pkgName     string // name of the package to be generated.
-	filepath    string // filepath of the parsed file.
-	fileComment fileComment
-	imports     []importDescriptor // list of imports defined in file.
+	pkgName  string // name of the package to be generated.
+	filepath string // filepath of the parsed file.
+	comment  fileComment
+	imports  []importDescriptor // list of imports defined in file.
 }
 
 // containsMain indicates if packageDef contains at least one package "main".
+// Ignores all non-main packages contained in pd.
 func (pd scriggoDescriptor) containsMain() bool {
 	for _, imp := range pd.imports {
 		if imp.comment.main {
@@ -62,13 +63,13 @@ type importComment struct {
 //
 // TODO(Gianluca): use output.
 type fileComment struct {
-	embedded         bool     // generating embedded.
-	embeddedVariable string   // variable name for embedded packages.
-	template         bool     // generating template interpreter.
-	script           bool     // generating script interpreter.
-	program          bool     // generating program interpreter.
-	output           string   // output path.
-	goos             []string // target GOOSs.
+	embedded bool     // generating embedded.
+	varName  string   // variable name for embedded packages.
+	template bool     // generating template interpreter.
+	script   bool     // generating script interpreter.
+	program  bool     // generating program interpreter.
+	output   string   // output path.
+	goos     []string // target GOOSs.
 }
 
 // isScriggoComment indicates if c is a valid Scriggo comment, that is starts with:
@@ -156,7 +157,7 @@ func parseFileComment(c string) (fileComment, error) {
 			if kv.Values[0] == "" {
 				return fileComment{}, errors.New("invalid variable name")
 			}
-			fc.embeddedVariable = kv.Values[0]
+			fc.varName = kv.Values[0]
 		case "output":
 			if len(kv.Values) != 1 {
 				return fileComment{}, errors.New("expecting one path as output")
@@ -177,7 +178,7 @@ func parseFileComment(c string) (fileComment, error) {
 		}
 	}
 
-	if fc.embeddedVariable != "" && (fc.template || fc.script || fc.program) {
+	if fc.varName != "" && (fc.template || fc.script || fc.program) {
 		return fileComment{}, fmt.Errorf("cannot use variable with interpreters")
 	}
 

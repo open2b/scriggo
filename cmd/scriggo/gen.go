@@ -21,6 +21,7 @@ import (
 
 // renderPackages renders a package definition. It also returns a boolean
 // indicating if content contains packages or if it's empty.
+// Ignores all main packages contained in pd.
 func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string, bool, error) {
 
 	// Remove main packages from pd; they must be handled externally.

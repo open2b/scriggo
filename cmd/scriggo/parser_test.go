@@ -34,7 +34,7 @@ func Test_parseFileComment(t *testing.T) {
 	cases := map[string]fileComment{
 		`//scriggo: embedded goos:"linux,darwin"`:           fileComment{embedded: true, goos: []string{"linux", "darwin"}},
 		`//scriggo: embedded output:"/path/"`:               fileComment{embedded: true, output: "/path/"},
-		`//scriggo: embedded variable:"pkgs"`:               fileComment{embedded: true, embeddedVariable: "pkgs"},
+		`//scriggo: embedded variable:"pkgs"`:               fileComment{embedded: true, varName: "pkgs"},
 		`//scriggo: embedded`:                               fileComment{embedded: true},
 		`//scriggo: goos:"windows" embedded`:                fileComment{embedded: true, goos: []string{"windows"}},
 		`//scriggo: interpreters:"program"`:                 fileComment{program: true},

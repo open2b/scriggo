@@ -132,10 +132,14 @@ var commands = map[string]func(){
 func scriggoGen() {
 
 	flag.Parse()
+
+	// No arguments provided: this is not an error.
 	if len(flag.Args()) == 0 {
 		flag.Usage()
 		os.Exit(0)
 	}
+
+	// Too many arguments provided.
 	if len(flag.Args()) > 1 {
 		stderr(`bad number of arguments`)
 		flag.Usage()
@@ -154,24 +158,28 @@ func scriggoGen() {
 		exit("file %q: %s", inputFile, err)
 	}
 	sd.filepath = inputFile
-	if len(sd.fileComment.goos) == 0 {
+	if len(sd.comment.goos) == 0 {
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
 			defaultGOOS = runtime.GOOS
 		}
-		sd.fileComment.goos = []string{defaultGOOS}
+		sd.comment.goos = []string{defaultGOOS}
 	}
 
 	// Generates an embeddable loader.
-	if sd.fileComment.embedded {
-		if sd.fileComment.embeddedVariable == "" {
-			sd.fileComment.embeddedVariable = "packages"
+	if sd.comment.embedded {
+		if sd.comment.varName == "" {
+			sd.comment.varName = "packages"
 		}
 		inputFileBase := filepath.Base(inputFile)
-		inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
-		for _, goos := range sd.fileComment.goos {
+		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
+
+		// Iterates over all GOOS.
+		for _, goos := range sd.comment.goos {
+
+			// scriggoDescriptor contains at least one main.
 			if sd.containsMain() {
-				newMainBase := inputFileBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
+				newMainBase := inputBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
 					exit("rendering package main: %s", err)
@@ -186,17 +194,23 @@ func scriggoGen() {
 					exit("goimports on file %q: %s", mainFile, err)
 				}
 			}
-			data, hasContent, err := renderPackages(sd, sd.fileComment.embeddedVariable, goos)
+
+			// Render all packages, ignoring main.
+			data, hasContent, err := renderPackages(sd, sd.comment.varName, goos)
 			if err != nil {
 				panic(err)
 			}
+
 			// Data has been generated but has no content (only has a
 			// "skeleton"): do not write file.
 			if !hasContent {
 				continue
 			}
-			newPackagesBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
-			out := filepath.Join(filepath.Dir(inputFile), newPackagesBase)
+
+			newBase := inputBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
+			out := filepath.Join(filepath.Dir(inputFile), newBase)
+
+			// Writes packages on disk and runs "goimports" on that file.
 			ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
 				exit("writing packages file: %s", err)
@@ -205,30 +219,31 @@ func scriggoGen() {
 			if err != nil {
 				exit("goimports on file %q: %s", out, err)
 			}
+
 		}
 		os.Exit(0)
 	}
 
 	// Generates sources for a new interpreter.
-	if sd.fileComment.template || sd.fileComment.script || sd.fileComment.program {
-		if sd.fileComment.output == "" {
-			sd.fileComment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
+	if sd.comment.template || sd.comment.script || sd.comment.program {
+		if sd.comment.output == "" {
+			sd.comment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
 		}
-		err := os.MkdirAll(sd.fileComment.output, dirPerm)
+		err := os.MkdirAll(sd.comment.output, dirPerm)
 		if err != nil {
-			panic(err)
+			exit(err.Error())
 		}
-		for _, goos := range sd.fileComment.goos {
+		for _, goos := range sd.comment.goos {
 			sd.pkgName = "main"
 			if sd.containsMain() {
-				if !sd.fileComment.template && !sd.fileComment.script {
-					panic("cannot have main if not making a template or script interpreter") // TODO(Gianluca).
+				if !sd.comment.template && !sd.comment.script {
+					exit("cannot have main if not making a template or script interpreter")
 				}
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
 					exit("rendering package main: %s", err)
 				}
-				mainFile := filepath.Join(sd.fileComment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+				mainFile := filepath.Join(sd.comment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					exit("writing package main: %s", err)
@@ -237,13 +252,14 @@ func scriggoGen() {
 				if err != nil {
 					exit("goimports on file %q: %s", mainFile, err)
 				}
-			} else { // pd does not contain main, so has packages (or is empty).
-				if len(sd.imports) > 0 {
-					if sd.fileComment.template && !sd.fileComment.script && !sd.fileComment.program {
-						panic("cannot have packages if making a template interpreter") // TODO(Gianluca).
-					}
-				}
 			}
+
+			// When making an interpreter that reads only template sources, sd
+			// cannot contain only packages.
+			if sd.comment.template && !sd.comment.script && !sd.comment.program && !sd.containsMain() && len(sd.imports) > 0 {
+				exit("cannot have packages if making a template interpreter")
+			}
+
 			data, hasContent, err := renderPackages(sd, "packages", goos)
 			if err != nil {
 				exit("rendering packages: %s", err)
@@ -253,7 +269,7 @@ func scriggoGen() {
 			if !hasContent {
 				continue
 			}
-			outPkgsFile := filepath.Join(sd.fileComment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			outPkgsFile := filepath.Join(sd.comment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
 				exit("writing packages file: %s", err)
@@ -263,8 +279,10 @@ func scriggoGen() {
 				exit("goimports on file %q: %s", outPkgsFile, err)
 			}
 		}
-		mainPath := filepath.Join(sd.fileComment.output, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.fileComment.program, sd.fileComment.script, sd.fileComment.template), filePerm)
+
+		// Write package main on disk and run "goimports" on it.
+		mainPath := filepath.Join(sd.comment.output, "main.go")
+		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
 		if err != nil {
 			exit("writing interpreter file: %s", err)
 		}
@@ -272,6 +290,7 @@ func scriggoGen() {
 		if err != nil {
 			exit("goimports on file %q: %s", mainPath, err)
 		}
+
 		os.Exit(0)
 	}
 }
