@@ -155,11 +155,10 @@ func Test_renderPackageMain(t *testing.T) {
 
 			import (
 				"fmt"
-				"scriggo"
 			)
 			
 			func init() {
-				Main = &scriggo.Package{
+				Main = &Package{
 					Name: "main",
 					Declarations: map[string]interface{}{
 						"print":   fmt.Print,
