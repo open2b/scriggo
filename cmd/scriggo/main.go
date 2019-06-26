@@ -51,6 +51,8 @@ func exit(format string, a ...interface{}) {
 	os.Exit(1)
 }
 
+// commandsHelp maps a command name to a function that prints help for that
+// command.
 var commandsHelp = map[string]func(){
 	"scriggo": func() {
 		stderr(
@@ -90,6 +92,11 @@ var commandsHelp = map[string]func(){
 	},
 }
 
+// commands maps a command name to a function that executes that command.
+// Commands are called by command-line using:
+//
+//		scriggo command
+//
 var commands = map[string]func(){
 	"bug": func() {
 		panic("TODO: not implemented") // TODO(Gianluca): to implement.
@@ -118,7 +125,10 @@ var commands = map[string]func(){
 	},
 }
 
-// scriggoGen handles 'scriggo gen'.
+// scriggoGen executes command:
+//
+//		scriggo gen
+//
 func scriggoGen() {
 
 	flag.Parse()
