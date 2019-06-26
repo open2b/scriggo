@@ -72,7 +72,7 @@ var commandsHelp = map[string]func(){
 	},
 	"gen": func() {
 		stderr(
-			`usage: scriggo gen [-l] [-t] [-s] [-p] [-goos GOOSs] [-variable variable] [-o output] filename`,
+			`usage: scriggo gen filename.go`,
 			`Run 'scriggo help gen' for details`,
 		)
 	},
@@ -114,12 +114,6 @@ var commands = map[string]func(){
 // scriggoGen handles 'scriggo gen'.
 func scriggoGen() {
 
-	// Finds the default GOOS.
-	defaultGOOS := os.Getenv("GOOS")
-	if defaultGOOS == "" {
-		defaultGOOS = runtime.GOOS
-	}
-
 	flag.Parse()
 
 	inputFile := flag.Arg(0)
@@ -130,26 +124,45 @@ func scriggoGen() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-	pd, err := parseImports(data)
+	sd, err := parseImports(data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error on file %q: %s\n", inputFile, err)
 		os.Exit(1)
 	}
-	pd.filepath = inputFile
-	if len(pd.fileComment.goos) == 0 {
-		pd.fileComment.goos = []string{defaultGOOS}
+	sd.filepath = inputFile
+	if len(sd.fileComment.goos) == 0 {
+		defaultGOOS := os.Getenv("GOOS")
+		if defaultGOOS == "" {
+			defaultGOOS = runtime.GOOS
+		}
+		sd.fileComment.goos = []string{defaultGOOS}
 	}
 
-	// Generates a package loader.
-	if pd.fileComment.embedded {
-		if pd.containsMain() {
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	// Generates an embeddable loader.
+	if sd.fileComment.embedded {
+		if sd.fileComment.embeddedVariable == "" {
+			sd.fileComment.embeddedVariable = "packages"
 		}
-		if pd.fileComment.embeddedVariable == "" {
-			pd.fileComment.embeddedVariable = "packages"
-		}
-		for _, goos := range pd.fileComment.goos {
-			data, hasContent, err := renderPackages(pd, pd.fileComment.embeddedVariable, goos)
+		inputFileBase := filepath.Base(inputFile)
+		inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
+		for _, goos := range sd.fileComment.goos {
+			if sd.containsMain() {
+				newMainBase := inputFileBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
+				main, err := renderPackageMain(sd, goos)
+				if err != nil {
+					panic(err)
+				}
+				mainFile := filepath.Join(filepath.Dir(inputFile), newMainBase)
+				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
+				if err != nil {
+					panic(err)
+				}
+				err = goImports(mainFile)
+				if err != nil {
+					panic(err)
+				}
+			}
+			data, hasContent, err := renderPackages(sd, sd.fileComment.embeddedVariable, goos)
 			if err != nil {
 				panic(err)
 			}
@@ -158,10 +171,8 @@ func scriggoGen() {
 			if !hasContent {
 				continue
 			}
-			inputFileBase := filepath.Base(inputFile)
-			inputFileBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
-			newBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
-			out := filepath.Join(filepath.Dir(inputFile), newBase)
+			newPackagesBase := inputFileBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
+			out := filepath.Join(filepath.Dir(inputFile), newPackagesBase)
 			ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
 				panic(err)
@@ -175,25 +186,25 @@ func scriggoGen() {
 	}
 
 	// Generates sources for a new interpreter.
-	if pd.fileComment.template || pd.fileComment.script || pd.fileComment.program {
-		if pd.fileComment.output == "" {
-			pd.fileComment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
+	if sd.fileComment.template || sd.fileComment.script || sd.fileComment.program {
+		if sd.fileComment.output == "" {
+			sd.fileComment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
 		}
-		err := os.MkdirAll(pd.fileComment.output, dirPerm)
+		err := os.MkdirAll(sd.fileComment.output, dirPerm)
 		if err != nil {
 			panic(err)
 		}
-		for _, goos := range pd.fileComment.goos {
-			pd.pkgName = "main"
-			if pd.containsMain() {
-				if !pd.fileComment.template && !pd.fileComment.script {
+		for _, goos := range sd.fileComment.goos {
+			sd.pkgName = "main"
+			if sd.containsMain() {
+				if !sd.fileComment.template && !sd.fileComment.script {
 					panic("cannot have main if not making a template or script interpreter") // TODO(Gianluca).
 				}
-				main, err := renderPackageMain(pd, goos)
+				main, err := renderPackageMain(sd, goos)
 				if err != nil {
 					panic(err)
 				}
-				mainFile := filepath.Join(pd.fileComment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+				mainFile := filepath.Join(sd.fileComment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					panic(err)
@@ -203,13 +214,13 @@ func scriggoGen() {
 					panic(err)
 				}
 			} else { // pd does not contain main, so has packages (or is empty).
-				if len(pd.imports) > 0 {
-					if pd.fileComment.template && !pd.fileComment.script && !pd.fileComment.program {
+				if len(sd.imports) > 0 {
+					if sd.fileComment.template && !sd.fileComment.script && !sd.fileComment.program {
 						panic("cannot have packages if making a template interpreter") // TODO(Gianluca).
 					}
 				}
 			}
-			data, hasContent, err := renderPackages(pd, "packages", goos)
+			data, hasContent, err := renderPackages(sd, "packages", goos)
 			if err != nil {
 				panic(err)
 			}
@@ -218,7 +229,7 @@ func scriggoGen() {
 			if !hasContent {
 				continue
 			}
-			outPkgsFile := filepath.Join(pd.fileComment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
+			outPkgsFile := filepath.Join(sd.fileComment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
 				panic(err)
@@ -228,8 +239,8 @@ func scriggoGen() {
 				panic(err)
 			}
 		}
-		mainPath := filepath.Join(pd.fileComment.output, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(pd.fileComment.program, pd.fileComment.script, pd.fileComment.template), filePerm)
+		mainPath := filepath.Join(sd.fileComment.output, "main.go")
+		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.fileComment.program, sd.fileComment.script, sd.fileComment.template), filePerm)
 		if err != nil {
 			panic(err)
 		}
