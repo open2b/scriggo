@@ -13,8 +13,46 @@ import (
 	"strings"
 )
 
-// parseImportComment parses an import tag.
-func parseImportComment(c string) (importComment, error) {
+type packageDef struct {
+	name     string
+	filepath string
+	imports  []importDef
+}
+
+// containsMain indicates if packageDef contains a "main" package.
+func (pd packageDef) containsMain() bool {
+	for _, imp := range pd.imports {
+		if imp.main {
+			return true
+		}
+	}
+	return false
+}
+
+type importDef struct {
+	path string
+	importComment
+}
+
+type importComment struct {
+	main              bool   // declared as "main" package.
+	uncapitalize      bool   // exported names must be set "uncapitalized".
+	newPath           string // import as newPath in Scriggo.
+	newName           string // use as newName in Scriggo.
+	export, notexport []string
+}
+
+type fileComment struct {
+	embedded         bool
+	template         bool
+	script           bool
+	program          bool
+	embeddedVariable string
+	output           string
+	goos             []string
+}
+
+func cleanScriggoDirective(c string) (string, bool) {
 
 	// c must start with "//"".
 	if !strings.HasPrefix(c, "//") {
@@ -24,10 +62,103 @@ func parseImportComment(c string) (importComment, error) {
 
 	// If c does not start with "scriggo:", returns: not a Scriggo directive.
 	if !strings.HasPrefix(c, "scriggo:") {
-		return importComment{}, nil
+		return "", false
 	}
 	c = c[len("scriggo:"):]
 	c = strings.TrimSpace(c)
+
+	return c, true
+}
+
+func parseFileComment(c string) (fileComment, error) {
+	c, isDirective := cleanScriggoDirective(c)
+	if !isDirective {
+		return fileComment{}, nil
+	}
+
+	fc := fileComment{}
+
+	opts, kvs, err := parse(c)
+	if err != nil {
+		return fileComment{}, err
+	}
+	for i, o := range opts {
+		if o == "embedded" {
+			fc.embedded = true
+			opts = append(opts[:i], opts[i+1:]...)
+			break
+		}
+	}
+
+	for i, o := range opts {
+		if o == "interpreters" {
+			fc.template = true
+			fc.script = true
+			fc.program = true
+			opts = append(opts[:i], opts[i+1:]...)
+			break
+		}
+	}
+
+	if len(opts) > 0 {
+		return fileComment{}, fmt.Errorf("bad option %s", opts[0])
+	}
+
+	for _, kv := range kvs {
+		switch kv.Key {
+		case "interpreters":
+			for _, v := range kv.Values {
+				switch v {
+				case "template":
+					fc.template = true
+				case "script":
+					fc.script = true
+				case "program":
+					fc.program = true
+				default:
+					return fileComment{}, fmt.Errorf("unknown interpreter %q", v)
+				}
+			}
+		case "variable":
+			if len(kv.Values) != 1 {
+				return fileComment{}, errors.New("expecting one name as variable name")
+			}
+			fc.embeddedVariable = kv.Values[0]
+		case "output":
+			if len(kv.Values) != 1 {
+				return fileComment{}, errors.New("expecting one path as output")
+			}
+			fc.output = kv.Values[0]
+		case "goos":
+			fc.goos = kv.Values
+		default:
+			return fileComment{}, fmt.Errorf("unknown key %s", kv.Key)
+		}
+	}
+
+	if fc.embeddedVariable != "" && (fc.template || fc.script || fc.program) {
+		return fileComment{}, fmt.Errorf("cannot use variable with interpreters")
+	}
+
+	if fc.embedded && (fc.template || fc.script || fc.program) {
+		return fileComment{}, fmt.Errorf("cannot use embedded with interpreters")
+	}
+
+	if !(fc.embedded || fc.template || fc.script || fc.program) {
+		return fileComment{}, fmt.Errorf("specify what to do") // TODO(Gianluca).
+	}
+
+	return fc, nil
+
+}
+
+// parseImportComment parses an import tag.
+func parseImportComment(c string) (importComment, error) {
+
+	c, isDirective := cleanScriggoDirective(c)
+	if !isDirective {
+		return importComment{}, nil
+	}
 
 	// Nothing after "scriggo:".
 	if len(c) == 0 {
@@ -63,7 +194,7 @@ func parseImportComment(c string) (importComment, error) {
 	}
 
 	if len(opts) > 0 {
-		return importComment{}, fmt.Errorf("unknown option %s", opts[0])
+		return importComment{}, fmt.Errorf("bad option %s", opts[0])
 	}
 
 	for _, kv := range kvs {

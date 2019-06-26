@@ -24,35 +24,6 @@ const (
 	filePerm = 0644 // default new file permission.
 )
 
-type packageDef struct {
-	name     string
-	filepath string
-	imports  []importDef
-}
-
-// containsMain indicates if packageDef contains a "main" package.
-func (pd packageDef) containsMain() bool {
-	for _, imp := range pd.imports {
-		if imp.main {
-			return true
-		}
-	}
-	return false
-}
-
-type importDef struct {
-	path string
-	importComment
-}
-
-type importComment struct {
-	main              bool   // declared as "main" package.
-	uncapitalize      bool   // exported names must be set "uncapitalized".
-	newPath           string // import as newPath in Scriggo.
-	newName           string // use as newName in Scriggo.
-	export, notexport []string
-}
-
 // uncapitalize "uncapitalizes" n.
 //
 // 	Name        ->  name

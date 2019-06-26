@@ -11,6 +11,52 @@ import (
 	"testing"
 )
 
+func Test_parseFileComment_error(t *testing.T) {
+	cases := map[string]string{
+		`//scriggo:`: `specify what to do`,
+		`//scriggo: interpreters variable:"pkgs"`: `cannot use variable with interpreters`,
+		`//scriggo: interpreters embedded`:        `cannot use embedded with interpreters`,
+	}
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			_, got := parseFileComment(input)
+			if got == nil {
+				t.Fatalf("%s: expected error %q, got nothing", input, expected)
+			}
+			if got.Error() != expected {
+				t.Fatalf("%s: expected error %q, got %q", input, expected, got.Error())
+			}
+		})
+	}
+}
+
+func Test_parseFileComment(t *testing.T) {
+	cases := map[string]fileComment{
+		`//scriggo: embedded goos:"linux,darwin"`:           fileComment{embedded: true, goos: []string{"linux", "darwin"}},
+		`//scriggo: embedded output:"/path/"`:               fileComment{embedded: true, output: "/path/"},
+		`//scriggo: embedded variable:"pkgs"`:               fileComment{embedded: true, embeddedVariable: "pkgs"},
+		`//scriggo: embedded`:                               fileComment{embedded: true},
+		`//scriggo: goos:"windows" embedded`:                fileComment{embedded: true, goos: []string{"windows"}},
+		`//scriggo: interpreters:"program"`:                 fileComment{program: true},
+		`//scriggo: interpreters:"script,program"`:          fileComment{script: true, program: true},
+		`//scriggo: interpreters:"script,template,program"`: fileComment{script: true, program: true, template: true},
+		`//scriggo: interpreters:"script"`:                  fileComment{script: true},
+		`//scriggo: interpreters:"template"`:                fileComment{template: true},
+		`//scriggo: interpreters`:                           fileComment{template: true, script: true, program: true},
+	}
+	for comment, want := range cases {
+		t.Run(comment, func(t *testing.T) {
+			got, err := parseFileComment(comment)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("comment: %s: wanted %#v, got %#v", comment, want, got)
+			}
+		})
+	}
+}
+
 func Test_parseImportComment_error(t *testing.T) {
 	cases := map[string]string{
 		"//scriggo: uncapitalize": "cannot use option uncapitalize without option main",
