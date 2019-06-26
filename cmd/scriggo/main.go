@@ -134,6 +134,29 @@ var commands = map[string]func(){
 	},
 }
 
+// getScriggoDescriptorData reads a Scriggo descriptor from path. If path is a
+// file ending with ".go", reads such file and returns its content. If path is a
+// package path, it reads the file "scriggo.go" located at the root of the
+// package and returns its content. If "scriggo.go" does not exists at the root
+// of the package, a default one is returned, which includes all declarations
+// from package only.
+//
+//		path/to/file.go                         ->  reads path/to/file.go
+//		path/to/package   (with    scriggo.go)  ->  reads path/to/package/scriggo.go
+//		path/to/package   (without scriggo.go)  ->  return a default scriggo.go
+//
+func getScriggoDescriptorData(path string) ([]byte, error) {
+
+	// path points to a file.
+	if strings.HasSuffix(path, ".go") {
+		return ioutil.ReadFile(path)
+	}
+
+	// path points to a package.
+	panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	return nil, nil
+}
+
 // scriggoGen executes command:
 //
 //		scriggo gen
@@ -158,18 +181,18 @@ func scriggoGen(install bool) {
 		os.Exit(1)
 	}
 
-	inputFile := flag.Arg(0)
+	inputPath := flag.Arg(0)
 
-	// Reads informations from inputFile.
-	data, err := ioutil.ReadFile(inputFile)
+	data, err := getScriggoDescriptorData(inputPath)
 	if err != nil {
 		exit(err.Error())
 	}
+
 	sd, err := parseScriggoDescriptor(data)
 	if err != nil {
-		exit("file %q: %s", inputFile, err)
+		exit("file %q: %s", inputPath, err)
 	}
-	sd.filepath = inputFile
+	sd.filepath = inputPath
 	if len(sd.comment.goos) == 0 {
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
@@ -188,7 +211,7 @@ func scriggoGen(install bool) {
 		if sd.comment.varName == "" {
 			sd.comment.varName = "packages"
 		}
-		inputFileBase := filepath.Base(inputFile)
+		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
 		// Iterates over all GOOS.
@@ -201,7 +224,7 @@ func scriggoGen(install bool) {
 				if err != nil {
 					exit("rendering package main: %s", err)
 				}
-				mainFile := filepath.Join(filepath.Dir(inputFile), newMainBase)
+				mainFile := filepath.Join(filepath.Dir(inputPath), newMainBase)
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
 					exit("writing package main: %s", err)
@@ -225,7 +248,7 @@ func scriggoGen(install bool) {
 			}
 
 			newBase := inputBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
-			out := filepath.Join(filepath.Dir(inputFile), newBase)
+			out := filepath.Join(filepath.Dir(inputPath), newBase)
 
 			// Writes packages on disk and runs "goimports" on that file.
 			ioutil.WriteFile(out, []byte(data), filePerm)
@@ -244,7 +267,7 @@ func scriggoGen(install bool) {
 	// Generates sources for a new interpreter.
 	if sd.comment.template || sd.comment.script || sd.comment.program {
 		if sd.comment.output == "" {
-			sd.comment.output = strings.TrimSuffix(inputFile, filepath.Ext(inputFile)) + "-interpreter"
+			sd.comment.output = strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + "-interpreter"
 		}
 		err := os.MkdirAll(sd.comment.output, dirPerm)
 		if err != nil {
