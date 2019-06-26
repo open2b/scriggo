@@ -234,7 +234,7 @@ func renderPackageMain(pd scriggoDescriptor, goos string) (string, error) {
 		import "reflect"
 
 		func init() {
-			Main = &scriggo.Package{
+			Main = &Package{
 				Name: "main",
 				Declarations: map[string]interface{}{
 					[pkgContent]

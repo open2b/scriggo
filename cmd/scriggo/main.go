@@ -85,6 +85,9 @@ var commandsHelp = map[string]func(){
 			`Run 'scriggo help gen' for details`,
 		)
 	},
+	"install": func() {
+		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	},
 	"version": func() {
 		stderr(
 			`usage: scriggo version`,
@@ -99,11 +102,16 @@ var commandsHelp = map[string]func(){
 //
 var commands = map[string]func(){
 	"bug": func() {
+		flag.Usage = commandsHelp["bug"]
 		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+	},
+	"install": func() {
+		flag.Usage = commandsHelp["install"]
+		scriggoGen(true)
 	},
 	"gen": func() {
 		flag.Usage = commandsHelp["gen"]
-		scriggoGen()
+		scriggoGen(false)
 	},
 	"help": func() {
 		if len(os.Args) == 1 {
@@ -119,6 +127,7 @@ var commands = map[string]func(){
 		help()
 	},
 	"version": func() {
+		flag.Usage = commandsHelp["version"]
 		fmt.Printf("Scriggo module version:            (TODO) \n") // TODO(Gianluca): use real version.
 		fmt.Printf("Scriggo tool version:              (TODO) \n") // TODO(Gianluca): use real version.
 		fmt.Printf("Go version used to build Scriggo:  %s\n", runtime.Version())
@@ -128,8 +137,11 @@ var commands = map[string]func(){
 // scriggoGen executes command:
 //
 //		scriggo gen
+//		scriggo install
 //
-func scriggoGen() {
+// If install is set, interpreter will be installed as executable and
+// interpreter sources will be removed.
+func scriggoGen(install bool) {
 
 	flag.Parse()
 
@@ -168,6 +180,11 @@ func scriggoGen() {
 
 	// Generates an embeddable loader.
 	if sd.comment.embedded {
+		if install {
+			stderr(`scriggo install is not compatible with a Scriggo descriptor that generates embedded packages`)
+			flag.Usage()
+			os.Exit(1)
+		}
 		if sd.comment.varName == "" {
 			sd.comment.varName = "packages"
 		}
@@ -289,6 +306,13 @@ func scriggoGen() {
 		err = goImports(mainPath)
 		if err != nil {
 			exit("goimports on file %q: %s", mainPath, err)
+		}
+
+		if install {
+			err = goInstall(sd.comment.output)
+			if err != nil {
+				exit("goimports on dir %q: %s", sd.comment.output, err)
+			}
 		}
 
 		os.Exit(0)

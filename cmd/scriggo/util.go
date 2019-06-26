@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"log"
 	"math"
 	"os/exec"
 	"path/filepath"
@@ -180,7 +181,25 @@ func goImports(path string) error {
 	return nil
 }
 
+func goInstall(dir string) error {
+	log.Printf("█ scriggo install is currently supported only inside GOPATH █") // TODO(Gianluca): remove.
+	_, err := exec.LookPath("go")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("go", "install")
+	cmd.Dir = dir
+	stderr := bytes.Buffer{}
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("go build: %s", stderr.String())
+	}
+	return nil
+}
+
 // goBuild runs the system command "go build" on path.
+// TODO(Gianluca): obsolete, remove.
 func goBuild(path string) error {
 	_, err := exec.LookPath("go")
 	if err != nil {
