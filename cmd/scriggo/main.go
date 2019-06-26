@@ -213,7 +213,7 @@ func scriggoGen() {
 			panic(err)
 		}
 		for _, goos := range gooss {
-			pd.name = "main"
+			pd.pkgName = "main"
 			if pd.containsMain() {
 				if !*template && !*script {
 					panic("cannot have main if not making a template or script interpreter") // TODO(Gianluca).

@@ -11,16 +11,16 @@ import (
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd               packageDef
+		pd               scriggoDescriptor
 		pkgsVariableName string
 		goos             string
 		expected         string
 	}{
 		"Importing fmt simple": {
-			pd: packageDef{
-				name: "test",
-				imports: []importDef{
-					importDef{path: "fmt"},
+			pd: scriggoDescriptor{
+				pkgName: "test",
+				imports: []importDescriptor{
+					importDescriptor{path: "fmt"},
 				},
 			},
 			expected: `package test
@@ -68,12 +68,12 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing only Println from fmt": {
-			pd: packageDef{
-				name: "test",
-				imports: []importDef{
-					importDef{
+			pd: scriggoDescriptor{
+				pkgName: "test",
+				imports: []importDescriptor{
+					importDescriptor{
 						path: "fmt",
-						importComment: importComment{
+						comment: importComment{
 							export: []string{"Println"},
 						},
 					},
@@ -133,17 +133,17 @@ func Test_renderPackages(t *testing.T) {
 func Test_renderPackageMain(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd               packageDef
+		pd               scriggoDescriptor
 		pkgsVariableName string
 		goos             string
 		expected         string
 	}{
 		"println e print taken from fmt": {
-			pd: packageDef{
-				imports: []importDef{
-					importDef{
+			pd: scriggoDescriptor{
+				imports: []importDescriptor{
+					importDescriptor{
 						path: "fmt",
-						importComment: importComment{
+						comment: importComment{
 							main:         true,
 							uncapitalize: true,
 							export:       []string{"Print", "Println"},

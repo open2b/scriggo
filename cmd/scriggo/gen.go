@@ -21,12 +21,12 @@ import (
 
 // renderPackages renders a package definition. It also returns a boolean
 // indicating if content contains packages or if it's empty.
-func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool, error) {
+func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string, bool, error) {
 
 	// Remove main packages from pd; they must be handled externally.
-	tmp := []importDef{}
+	tmp := []importDescriptor{}
 	for _, imp := range pd.imports {
-		if !imp.main {
+		if !imp.comment.main {
 			tmp = append(tmp, imp)
 		}
 	}
@@ -52,13 +52,13 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 		if len(decls) == 0 {
 			continue
 		}
-		if len(imp.export) > 0 {
-			decls, err = filterIncluding(decls, imp.export)
+		if len(imp.comment.export) > 0 {
+			decls, err = filterIncluding(decls, imp.comment.export)
 			if err != nil {
 				return "", false, err
 			}
-		} else if len(imp.notexport) > 0 {
-			decls, err = filterExcluding(decls, imp.notexport)
+		} else if len(imp.comment.notexport) > 0 {
+			decls, err = filterExcluding(decls, imp.comment.notexport)
 			if err != nil {
 				return "", false, err
 			}
@@ -77,11 +77,11 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 		}
 
 		// Determines which import path use: default (the one specified in
-		// source, used by Go) or a new one, indicated in comment directives.
+		// source, used by Go) or a new one, indicated in Scriggo comments.
 		// TODO(Gianluca): check path collision before starting rendering.
 		path := imp.path
-		if imp.newPath != "" {
-			path = imp.newPath
+		if imp.comment.newPath != "" {
+			path = imp.comment.newPath
 		}
 
 		// Check if import path already exists.
@@ -90,10 +90,10 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 		}
 
 		// Determines which package name use: default (the one specified in
-		// source, used by Go) or a new one, indicated in comment directives.
+		// source, used by Go) or a new one, indicated in Scriggo comment.
 		name := pkgName
-		if imp.newName != "" {
-			name = imp.newName
+		if imp.comment.newName != "" {
+			name = imp.comment.newName
 		}
 
 		out := `{
@@ -134,7 +134,7 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 		}`
 
 	pkgOutput := strings.NewReplacer(
-		"[pkgName]", pd.name,
+		"[pkgName]", pd.pkgName,
 		"[explicitImports]", explicitImports.String(),
 		"[customVariableName]", pkgsVariableName,
 		"[pkgContent]", allPkgsContent.String(),
@@ -144,12 +144,12 @@ func renderPackages(pd packageDef, pkgsVariableName, goos string) (string, bool,
 }
 
 // renderPackageMain renders a package main.
-func renderPackageMain(pd packageDef, goos string) (string, error) {
+func renderPackageMain(pd scriggoDescriptor, goos string) (string, error) {
 
 	// Filters all imports extracting only those that refer to package main.
-	mains := []importDef{}
+	mains := []importDescriptor{}
 	for _, imp := range pd.imports {
-		if imp.main {
+		if imp.comment.main {
 			mains = append(mains, imp)
 		}
 	}
@@ -175,20 +175,20 @@ func renderPackageMain(pd packageDef, goos string) (string, error) {
 		}
 
 		// Checks if only certain declarations must be included or excluded.
-		if len(imp.export) > 0 {
-			decls, err = filterIncluding(decls, imp.export)
+		if len(imp.comment.export) > 0 {
+			decls, err = filterIncluding(decls, imp.comment.export)
 			if err != nil {
 				return "", err
 			}
-		} else if len(imp.notexport) > 0 {
-			decls, err = filterExcluding(decls, imp.notexport)
+		} else if len(imp.comment.notexport) > 0 {
+			decls, err = filterExcluding(decls, imp.comment.notexport)
 			if err != nil {
 				return "", err
 			}
 		}
 
 		// Converts all declaration name to "unexported" if requested.
-		if imp.uncapitalize {
+		if imp.comment.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
 				tmp[uncapitalize(name)] = decl

@@ -13,27 +13,40 @@ import (
 	"strings"
 )
 
-type packageDef struct {
-	name     string
-	filepath string
-	imports  []importDef
+// scriggoDescriptor represents a descriptor of a Scriggo loader or interpreter.
+// A scriggoDescriptor can be read from a file using a parsing function.
+type scriggoDescriptor struct {
+	pkgName     string // name of the package to be generated.
+	filepath    string // filepath of the parsed file.
+	fileComment fileComment
+	imports     []importDescriptor // list of imports defined in file.
 }
 
-// containsMain indicates if packageDef contains a "main" package.
-func (pd packageDef) containsMain() bool {
+// containsMain indicates if packageDef contains at least one package "main".
+func (pd scriggoDescriptor) containsMain() bool {
 	for _, imp := range pd.imports {
-		if imp.main {
+		if imp.comment.main {
 			return true
 		}
 	}
 	return false
 }
 
-type importDef struct {
-	path string
-	importComment
+// importDescriptor is a single import descriptor.
+// An example import descriptor is:
+//
+//		import _ "fmt" //scriggo: main uncapitalize export:"Println"
+//
+type importDescriptor struct {
+	path    string
+	comment importComment
 }
 
+// importComment is a comment of an import descriptor. Import comments are built
+// from Scriggo comments, such as:
+//
+//		//scriggo: main uncapitalize export:"Println"
+//
 type importComment struct {
 	main              bool   // declared as "main" package.
 	uncapitalize      bool   // exported names must be set "uncapitalized".
@@ -42,17 +55,29 @@ type importComment struct {
 	export, notexport []string
 }
 
+// fileComment is the comment of a Scriggo descriptor. A file comment can be
+// generated from a line as:
+//
+//  //scriggo: embedded variable:"pkgs" goos:"linux,darwin"
+//
+// TODO(Gianluca): use output.
 type fileComment struct {
-	embedded         bool
-	template         bool
-	script           bool
-	program          bool
-	embeddedVariable string
-	output           string
-	goos             []string
+	embedded         bool     // generating embedded.
+	embeddedVariable string   // variable name for embedded packages.
+	template         bool     // generating template interpreter.
+	script           bool     // generating script interpreter.
+	program          bool     // generating program interpreter.
+	output           string   // output path.
+	goos             []string // target GOOSs.
 }
 
-func cleanScriggoDirective(c string) (string, bool) {
+// isScriggoComment indicates if c is a valid Scriggo comment, that is starts with:
+//
+//   //scriggo:
+//
+// and returns c without "//scriggo:", ready to be parsed.
+//
+func isScriggoComment(c string) (string, bool) {
 
 	// c must start with "//"".
 	if !strings.HasPrefix(c, "//") {
@@ -60,7 +85,7 @@ func cleanScriggoDirective(c string) (string, bool) {
 	}
 	c = c[len("//"):]
 
-	// If c does not start with "scriggo:", returns: not a Scriggo directive.
+	// If c does not start with "scriggo:", returns: not a Scriggo comment.
 	if !strings.HasPrefix(c, "scriggo:") {
 		return "", false
 	}
@@ -70,9 +95,10 @@ func cleanScriggoDirective(c string) (string, bool) {
 	return c, true
 }
 
+// parseFileComment parses a file comment.
 func parseFileComment(c string) (fileComment, error) {
-	c, isDirective := cleanScriggoDirective(c)
-	if !isDirective {
+	c, isScriggoComment := isScriggoComment(c)
+	if !isScriggoComment {
 		return fileComment{}, nil
 	}
 
@@ -152,11 +178,11 @@ func parseFileComment(c string) (fileComment, error) {
 
 }
 
-// parseImportComment parses an import tag.
+// parseImportComment parses an import comment.
 func parseImportComment(c string) (importComment, error) {
 
-	c, isDirective := cleanScriggoDirective(c)
-	if !isDirective {
+	c, isScriggoComment := isScriggoComment(c)
+	if !isScriggoComment {
 		return importComment{}, nil
 	}
 
@@ -221,16 +247,17 @@ func parseImportComment(c string) (importComment, error) {
 	return ic, nil
 }
 
-// option represents an option in a tag.
+// option represents an option in a Scriggo comment.
 type option string
 
-// keyValues represents an key-values pair in a tag.
+// keyValues represents an key-values pair in a Scriggo comment.
 type keyValues struct {
 	Key    string
 	Values []string
 }
 
 // parse parses str returning a list of Options and KeyValues.
+// parse is a low-level parsing function and should not be used directly.
 func parse(str string) ([]option, []keyValues, error) {
 	toks, err := tokenize(str)
 	if err != nil {
@@ -260,7 +287,8 @@ func parse(str string) ([]option, []keyValues, error) {
 	return opts, kvs, nil
 }
 
-// tokenize returns the list of token read from str.
+// tokenize returns the list of token read from str. tokenize is a low-level
+// parsing function and should not be used directly.
 func tokenize(str string) ([]string, error) {
 	tokens := []string{}
 	inQuotes := false
