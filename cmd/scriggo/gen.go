@@ -254,6 +254,7 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 	fmt.Printf("generating package %q (GOOS=%q)...", pkgPath, goos)
 	out := make(map[string]string)
 	pkgBase := uniquePackageName(pkgPath)
+	// TODO(Gianluca): obsolete, replace with: https://godoc.org/golang.org/x/tools/go/packages.
 	config := loader.Config{
 		Build: &build.Default,
 	}
