@@ -93,7 +93,7 @@ func isScriggoComment(c string) (string, bool) {
 	c = c[len("scriggo:"):]
 	c = strings.TrimSpace(c)
 
-	if strings.Contains(c[:len(c)-1], "\n") {
+	if len(c) > 0 && strings.Contains(c[:len(c)-1], "\n") {
 		return "", false
 	}
 
