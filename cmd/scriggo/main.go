@@ -44,6 +44,13 @@ func stderr(lines ...string) {
 	}
 }
 
+// exit prints msg on stderr with a bold red color and exits with status code 1.
+func exit(format string, a ...interface{}) {
+	msg := fmt.Errorf(format, a...)
+	stderr("\033[1;31m"+msg.Error()+"\033[0m", `exit status 1`)
+	os.Exit(1)
+}
+
 var commandsHelp = map[string]func(){
 	"scriggo": func() {
 		stderr(
@@ -115,19 +122,26 @@ var commands = map[string]func(){
 func scriggoGen() {
 
 	flag.Parse()
+	if len(flag.Args()) == 0 {
+		flag.Usage()
+		os.Exit(0)
+	}
+	if len(flag.Args()) > 1 {
+		stderr(`bad number of arguments`)
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	inputFile := flag.Arg(0)
 
 	// Reads informations from inputFile.
 	data, err := ioutil.ReadFile(inputFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		exit(err.Error())
 	}
-	sd, err := parseImports(data)
+	sd, err := parseScriggoDescriptor(data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error on file %q: %s\n", inputFile, err)
-		os.Exit(1)
+		exit("file %q: %s", inputFile, err)
 	}
 	sd.filepath = inputFile
 	if len(sd.fileComment.goos) == 0 {
@@ -150,16 +164,16 @@ func scriggoGen() {
 				newMainBase := inputFileBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
-					panic(err)
+					exit("rendering package main: %s", err)
 				}
 				mainFile := filepath.Join(filepath.Dir(inputFile), newMainBase)
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
-					panic(err)
+					exit("writing package main: %s", err)
 				}
 				err = goImports(mainFile)
 				if err != nil {
-					panic(err)
+					exit("goimports on file %q: %s", mainFile, err)
 				}
 			}
 			data, hasContent, err := renderPackages(sd, sd.fileComment.embeddedVariable, goos)
@@ -175,11 +189,11 @@ func scriggoGen() {
 			out := filepath.Join(filepath.Dir(inputFile), newPackagesBase)
 			ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
-				panic(err)
+				exit("writing packages file: %s", err)
 			}
 			err = goImports(out)
 			if err != nil {
-				panic(err)
+				exit("goimports on file %q: %s", out, err)
 			}
 		}
 		os.Exit(0)
@@ -202,16 +216,16 @@ func scriggoGen() {
 				}
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
-					panic(err)
+					exit("rendering package main: %s", err)
 				}
 				mainFile := filepath.Join(sd.fileComment.output, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
-					panic(err)
+					exit("writing package main: %s", err)
 				}
 				err = goImports(mainFile)
 				if err != nil {
-					panic(err)
+					exit("goimports on file %q: %s", mainFile, err)
 				}
 			} else { // pd does not contain main, so has packages (or is empty).
 				if len(sd.imports) > 0 {
@@ -222,7 +236,7 @@ func scriggoGen() {
 			}
 			data, hasContent, err := renderPackages(sd, "packages", goos)
 			if err != nil {
-				panic(err)
+				exit("rendering packages: %s", err)
 			}
 			// Data has been generated but has no content (only has a
 			// "skeleton"): do not write file.
@@ -232,21 +246,21 @@ func scriggoGen() {
 			outPkgsFile := filepath.Join(sd.fileComment.output, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
-				panic(err)
+				exit("writing packages file: %s", err)
 			}
 			err = goImports(outPkgsFile)
 			if err != nil {
-				panic(err)
+				exit("goimports on file %q: %s", outPkgsFile, err)
 			}
 		}
 		mainPath := filepath.Join(sd.fileComment.output, "main.go")
 		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.fileComment.program, sd.fileComment.script, sd.fileComment.template), filePerm)
 		if err != nil {
-			panic(err)
+			exit("writing interpreter file: %s", err)
 		}
 		err = goImports(mainPath)
 		if err != nil {
-			panic(err)
+			exit("goimports on file %q: %s", mainPath, err)
 		}
 		os.Exit(0)
 	}

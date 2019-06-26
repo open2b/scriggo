@@ -85,16 +85,16 @@ func isScriggoComment(c string) (string, bool) {
 	}
 	c = c[len("//"):]
 
-	if strings.Contains(c[:len(c)-1], "\n") {
-		return "", false
-	}
-
 	// If c does not start with "scriggo:", returns: not a Scriggo comment.
 	if !strings.HasPrefix(c, "scriggo:") {
 		return "", false
 	}
 	c = c[len("scriggo:"):]
 	c = strings.TrimSpace(c)
+
+	if strings.Contains(c[:len(c)-1], "\n") {
+		return "", false
+	}
 
 	return c, true
 }

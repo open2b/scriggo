@@ -97,9 +97,9 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 	return tmp, nil
 }
 
-// parseImports returns a list of imports path imported in file filepath and the
-// package name specified in src.
-func parseImports(src []byte) (scriggoDescriptor, error) {
+// parseScriggoDescriptor returns a list of imports path imported in file
+// filepath and the package name specified in src.
+func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 
 	// Parses file.
 	fset := token.NewFileSet()
@@ -108,19 +108,27 @@ func parseImports(src []byte) (scriggoDescriptor, error) {
 		return scriggoDescriptor{}, fmt.Errorf("parsing error: %s", err.Error())
 	}
 
+	pos := func(pos token.Pos) token.Position {
+		return fset.File(pos).Position(pos)
+	}
+
 	pd := scriggoDescriptor{
 		pkgName: file.Name.Name,
 	}
 
 	found := false
 	for _, c := range file.Comments {
-		if _, ok := isScriggoComment("//" + c.Text()); ok {
-			pd.fileComment, err = parseFileComment("//" + c.Text())
-			if err != nil {
-				return scriggoDescriptor{}, err
+		if pos(c.Pos()).Column == 1 {
+			if _, ok := isScriggoComment("//" + c.Text()); ok {
+				if found {
+					return scriggoDescriptor{}, fmt.Errorf("line: %d: just one Scriggo comment is allowed per file", pos(c.Pos()).Line)
+				}
+				pd.fileComment, err = parseFileComment("//" + c.Text())
+				if err != nil {
+					return scriggoDescriptor{}, fmt.Errorf("line %d: %s", pos(c.Pos()).Line, err)
+				}
+				found = true
 			}
-			found = true
-			break
 		}
 	}
 	if !found {
