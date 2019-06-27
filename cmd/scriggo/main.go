@@ -17,38 +17,63 @@ import (
 )
 
 func main() {
-	flag.Usage = commandsHelp["scriggo"]
-
-	// No command provided.
-	if len(os.Args) == 1 {
-		flag.Usage()
-		os.Exit(0)
-	}
-
-	cmd := os.Args[1]
-	os.Args = append(os.Args[:1], os.Args[2:]...)
-	command, ok := commands[cmd]
-	if !ok {
-		stderr(
-			fmt.Sprintf("scriggo %s: unknown command", cmd),
-			`Run 'scriggo help' for usage.`,
-		)
-		os.Exit(1)
-	}
-	command()
+	scriggo(os.Args...)
 }
 
+// TestEnvironment is true when testing Scriggo, false otherwise.
+var TestEnvironment = false
+
+// exit causes the current program to exit with the given status code. If
+// running in a test environment, every exit call is a no-op.
+func exit(status int) {
+	if !TestEnvironment {
+		os.Exit(status)
+	}
+}
+
+// stderr prints lines on stderr.
 func stderr(lines ...string) {
 	for _, l := range lines {
 		fmt.Fprint(os.Stderr, l+"\n")
 	}
 }
 
-// exit prints msg on stderr with a bold red color and exits with status code 1.
-func exit(format string, a ...interface{}) {
+// exitError prints msg on stderr with a bold red color and exits with status
+// code 1.
+func exitError(format string, a ...interface{}) {
 	msg := fmt.Errorf(format, a...)
 	stderr("\033[1;31m"+msg.Error()+"\033[0m", `exit status 1`)
-	os.Exit(1)
+	exit(1)
+	return
+}
+
+// scriggo runs command 'scriggo' with given args. First argument must be
+// executable name.
+func scriggo(args ...string) {
+	flag.Usage = commandsHelp["scriggo"]
+
+	// No command provided.
+	if len(args) == 1 {
+		flag.Usage()
+		exit(0)
+		return
+	}
+
+	cmdArg := args[1]
+
+	// Used by flag.Parse.
+	os.Args = append(args[:1], args[2:]...)
+
+	cmd, ok := commands[cmdArg]
+	if !ok {
+		stderr(
+			fmt.Sprintf("scriggo %s: unknown command", cmdArg),
+			`Run 'scriggo help' for usage.`,
+		)
+		exit(1)
+		return
+	}
+	cmd()
 }
 
 // commandsHelp maps a command name to a function that prints help for that
@@ -116,13 +141,15 @@ var commands = map[string]func(){
 	"help": func() {
 		if len(os.Args) == 1 {
 			flag.Usage()
-			os.Exit(0)
+			exit(0)
+			return
 		}
 		topic := os.Args[1]
 		help, ok := commandsHelp[topic]
 		if !ok {
 			fmt.Fprintf(os.Stderr, "scriggo help %s: unknown help topic. Run 'scriggo help'.\n", topic)
-			os.Exit(1)
+			exit(1)
+			return
 		}
 		help()
 	},
@@ -148,26 +175,28 @@ func scriggoGen(install bool) {
 	// No arguments provided: this is not an error.
 	if len(flag.Args()) == 0 {
 		flag.Usage()
-		os.Exit(0)
+		exit(0)
+		return
 	}
 
 	// Too many arguments provided.
 	if len(flag.Args()) > 1 {
 		stderr(`bad number of arguments`)
 		flag.Usage()
-		os.Exit(1)
+		exit(1)
+		return
 	}
 
 	inputPath := flag.Arg(0)
 
 	data, err := getScriggoDescriptorData(inputPath)
 	if err != nil {
-		exit(err.Error())
+		exitError(err.Error())
 	}
 
 	sd, err := parseScriggoDescriptor(data)
 	if err != nil {
-		exit("path %q: %s", inputPath, err)
+		exitError("path %q: %s", inputPath, err)
 	}
 	sd.filepath = inputPath
 	if len(sd.comment.goos) == 0 {
@@ -183,7 +212,8 @@ func scriggoGen(install bool) {
 		if install {
 			stderr(`scriggo install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
-			os.Exit(1)
+			exit(1)
+			return
 		}
 		if sd.comment.varName == "" {
 			sd.comment.varName = "packages"
@@ -199,16 +229,16 @@ func scriggoGen(install bool) {
 				newMainBase := inputBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
-					exit("rendering package main: %s", err)
+					exitError("rendering package main: %s", err)
 				}
 				mainFile := filepath.Join(filepath.Dir(inputPath), newMainBase)
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
-					exit("writing package main: %s", err)
+					exitError("writing package main: %s", err)
 				}
 				err = goImports(mainFile)
 				if err != nil {
-					exit("goimports on file %q: %s", mainFile, err)
+					exitError("goimports on file %q: %s", mainFile, err)
 				}
 			}
 
@@ -230,15 +260,16 @@ func scriggoGen(install bool) {
 			// Writes packages on disk and runs "goimports" on that file.
 			ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
-				exit("writing packages file: %s", err)
+				exitError("writing packages file: %s", err)
 			}
 			err = goImports(out)
 			if err != nil {
-				exit("goimports on file %q: %s", out, err)
+				exitError("goimports on file %q: %s", out, err)
 			}
 
 		}
-		os.Exit(0)
+		exit(0)
+		return
 	}
 
 	// Generates sources for a new interpreter.
@@ -252,45 +283,45 @@ func scriggoGen(install bool) {
 		// tmpDir will be moved to the correct path.
 		tmpDir, err := ioutil.TempDir("", "scriggo")
 		if err != nil {
-			exit(err.Error())
+			exitError(err.Error())
 		}
 		tmpDir = filepath.Join(tmpDir, sd.pkgName)
 
 		err = os.MkdirAll(tmpDir, dirPerm)
 		if err != nil {
-			exit(err.Error())
+			exitError(err.Error())
 		}
 
 		for _, goos := range sd.comment.goos {
 			sd.pkgName = "main"
 			if sd.containsMain() {
 				if !sd.comment.template && !sd.comment.script {
-					exit("cannot have main if not making a template or script interpreter")
+					exitError("cannot have main if not making a template or script interpreter")
 				}
 				main, err := renderPackageMain(sd, goos)
 				if err != nil {
-					exit("rendering package main: %s", err)
+					exitError("rendering package main: %s", err)
 				}
 				mainFile := filepath.Join(tmpDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
 				if err != nil {
-					exit("writing package main: %s", err)
+					exitError("writing package main: %s", err)
 				}
 				err = goImports(mainFile)
 				if err != nil {
-					exit("goimports on file %q: %s", mainFile, err)
+					exitError("goimports on file %q: %s", mainFile, err)
 				}
 			}
 
 			// When making an interpreter that reads only template sources, sd
 			// cannot contain only packages.
 			if sd.comment.template && !sd.comment.script && !sd.comment.program && !sd.containsMain() && len(sd.imports) > 0 {
-				exit("cannot have packages if making a template interpreter")
+				exitError("cannot have packages if making a template interpreter")
 			}
 
 			data, hasContent, err := renderPackages(sd, "packages", goos)
 			if err != nil {
-				exit("rendering packages: %s", err)
+				exitError("rendering packages: %s", err)
 			}
 			// Data has been generated but has no content (only has a
 			// "skeleton"): do not write file.
@@ -300,11 +331,11 @@ func scriggoGen(install bool) {
 			outPkgsFile := filepath.Join(tmpDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
 			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
 			if err != nil {
-				exit("writing packages file: %s", err)
+				exitError("writing packages file: %s", err)
 			}
 			err = goImports(outPkgsFile)
 			if err != nil {
-				exit("goimports on file %q: %s", outPkgsFile, err)
+				exitError("goimports on file %q: %s", outPkgsFile, err)
 			}
 		}
 
@@ -312,34 +343,35 @@ func scriggoGen(install bool) {
 		mainPath := filepath.Join(tmpDir, "main.go")
 		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
 		if err != nil {
-			exit("writing interpreter file: %s", err)
+			exitError("writing interpreter file: %s", err)
 		}
 		goModPath := filepath.Join(tmpDir, "go.mod")
 		err = ioutil.WriteFile(goModPath, makeExecutableGoMod(inputPath), filePerm)
 		if err != nil {
-			exit("writing interpreter file: %s", err)
+			exitError("writing interpreter file: %s", err)
 		}
 		err = goImports(mainPath)
 		if err != nil {
-			exit("goimports on file %q: %s", mainPath, err)
+			exitError("goimports on file %q: %s", mainPath, err)
 		}
 
 		if install {
 			err = goInstall(tmpDir)
 			if err != nil {
-				exit("goimports on dir %q: %s", tmpDir, err)
+				exitError("goimports on dir %q: %s", tmpDir, err)
 			}
-			os.Exit(0)
+			exit(0)
+			return
 		}
 
 		// Move interpeter from tmpDir to correct dir.
 		fis, err := ioutil.ReadDir(tmpDir)
 		if err != nil {
-			exit(err.Error())
+			exitError(err.Error())
 		}
 		err = os.MkdirAll(sd.comment.output, dirPerm)
 		if err != nil {
-			exit(err.Error())
+			exitError(err.Error())
 		}
 		for _, fi := range fis {
 			if !fi.IsDir() {
@@ -347,15 +379,15 @@ func scriggoGen(install bool) {
 				newFilePath := filepath.Join(sd.comment.output, fi.Name())
 				data, err := ioutil.ReadFile(filePath)
 				if err != nil {
-					exit(err.Error())
+					exitError(err.Error())
 				}
 				err = ioutil.WriteFile(newFilePath, data, filePerm)
 				if err != nil {
-					exit(err.Error())
+					exitError(err.Error())
 				}
 			}
 		}
-		os.Exit(0)
-
+		exit(0)
+		return
 	}
 }

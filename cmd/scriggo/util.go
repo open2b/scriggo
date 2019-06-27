@@ -49,7 +49,7 @@ func makeExecutableGoMod(path string) []byte {
 	// TODO(Gianluca): executable name must have a prefix like 'scriggo-',
 	// otherwise go refuses to build it. Find the reason and make executable
 	// name '[moduleName]' (without a prefix).
-	fmt.Fprintf(os.Stderr, "installing executable with name 'scriggo-%s' (instead of '%s'. See 'scriggo' code (function makeExecutableGoMod) for further details)\n", inputBaseNoExt, inputBaseNoExt)
+	fmt.Fprintf(os.Stderr, "module name (and executable) is 'scriggo-%s' (instead of '%s'. See 'scriggo' code (function makeExecutableGoMod) for further details)\n", inputBaseNoExt, inputBaseNoExt)
 
 	return []byte(out)
 }
