@@ -16,6 +16,57 @@ func Test_renderPackages(t *testing.T) {
 		goos             string
 		expected         string
 	}{
+		"Importing fmt with an alternative path": {
+			pd: scriggoDescriptor{
+				pkgName: "test",
+				imports: []importDescriptor{
+					importDescriptor{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
+				},
+			},
+			expected: `package test
+
+			import (
+				fmt "fmt"
+			)
+			
+			import . "scriggo"
+			import "reflect"
+			
+			func init() {
+				packages = Packages{
+					"custom/fmt/path": {
+						Name: "fmt",
+						Declarations: map[string]interface{}{
+							"Errorf":     fmt.Errorf,
+							"Formatter":  reflect.TypeOf(fmt.Formatter(nil)),
+							"Fprint":     fmt.Fprint,
+							"Fprintf":    fmt.Fprintf,
+							"Fprintln":   fmt.Fprintln,
+							"Fscan":      fmt.Fscan,
+							"Fscanf":     fmt.Fscanf,
+							"Fscanln":    fmt.Fscanln,
+							"GoStringer": reflect.TypeOf(fmt.GoStringer(nil)),
+							"Print":      fmt.Print,
+							"Printf":     fmt.Printf,
+							"Println":    fmt.Println,
+							"Scan":       fmt.Scan,
+							"ScanState":  reflect.TypeOf(fmt.ScanState(nil)),
+							"Scanf":      fmt.Scanf,
+							"Scanln":     fmt.Scanln,
+							"Scanner":    reflect.TypeOf(fmt.Scanner(nil)),
+							"Sprint":     fmt.Sprint,
+							"Sprintf":    fmt.Sprintf,
+							"Sprintln":   fmt.Sprintln,
+							"Sscan":      fmt.Sscan,
+							"Sscanf":     fmt.Sscanf,
+							"Sscanln":    fmt.Sscanln,
+							"State":      reflect.TypeOf(fmt.State(nil)),
+							"Stringer":   reflect.TypeOf(fmt.Stringer(nil)),
+						},
+					},
+				}
+			}`,
+		},
 		"Importing archive/tar simple": {
 			pd: scriggoDescriptor{
 				pkgName: "test",
