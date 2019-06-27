@@ -13,7 +13,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -30,6 +29,30 @@ const (
 	dirPerm  = 0775 // default new directory permission.
 	filePerm = 0644 // default new file permission.
 )
+
+// makeExecutableGoMod makes a 'go.mod' file for creating and installing an
+// executable.
+func makeExecutableGoMod(path string) []byte {
+	out := `module scriggo-[moduleName]
+	replace scriggo => [scriggoPath]`
+
+	inputFileBase := filepath.Base(path)
+	inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
+	out = strings.ReplaceAll(out, "[moduleName]", inputBaseNoExt)
+	goPath := os.Getenv("GOPATH")
+	if goPath == "" {
+		panic("empty gopath not supported")
+	}
+	scriggoPath := filepath.Join(goPath, "src/scriggo")
+	out = strings.ReplaceAll(out, "[scriggoPath]", scriggoPath)
+
+	// TODO(Gianluca): executable name must have a prefix like 'scriggo-',
+	// otherwise go refuses to build it. Find the reason and make executable
+	// name '[moduleName]' (without a prefix).
+	fmt.Fprintf(os.Stderr, "installing executable with name 'scriggo-%s' (instead of '%s'. See 'scriggo' code (function makeExecutableGoMod) for further details)\n", inputBaseNoExt, inputBaseNoExt)
+
+	return []byte(out)
+}
 
 // uncapitalize "uncapitalizes" n.
 //
@@ -244,8 +267,8 @@ func goImports(path string) error {
 	return nil
 }
 
+// goInstall runs the system command "go install" on dir.
 func goInstall(dir string) error {
-	log.Printf("█ scriggo install is currently supported only inside GOPATH █") // TODO(Gianluca): remove.
 	_, err := exec.LookPath("go")
 	if err != nil {
 		return err

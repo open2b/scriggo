@@ -314,6 +314,11 @@ func scriggoGen(install bool) {
 		if err != nil {
 			exit("writing interpreter file: %s", err)
 		}
+		goModPath := filepath.Join(tmpDir, "go.mod")
+		err = ioutil.WriteFile(goModPath, makeExecutableGoMod(inputPath), filePerm)
+		if err != nil {
+			exit("writing interpreter file: %s", err)
+		}
 		err = goImports(mainPath)
 		if err != nil {
 			exit("goimports on file %q: %s", mainPath, err)
