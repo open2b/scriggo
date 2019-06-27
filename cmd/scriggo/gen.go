@@ -314,9 +314,15 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 				out[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
 			}
 		case *types.TypeName:
-			if ss := strings.Split(v.String(), " "); len(ss) >= 3 && strings.HasPrefix(ss[2], "struct{") {
-				out[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
-				continue
+			if ss := strings.Split(v.String(), " "); len(ss) >= 3 {
+				switch {
+				case strings.HasPrefix(ss[2], "struct{"):
+					out[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
+					continue
+				case strings.HasPrefix(ss[2], "interface{"):
+					out[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s(nil))", pkgBase, v.Name())
+					continue
+				}
 			}
 			out[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
 
