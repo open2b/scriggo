@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -316,4 +317,93 @@ func _cleanOutput(s string) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func Test_parseGoPackage(t *testing.T) {
+	cases := map[string]struct {
+		name  string            // package name.
+		decls map[string]string // package declarations.
+	}{
+		"fmt": {
+			name: "fmt",
+			decls: map[string]string{
+				"Errorf":     "fmt.Errorf",
+				"Formatter":  "reflect.TypeOf(fmt.Formatter(nil))",
+				"Fprint":     "fmt.Fprint",
+				"Fprintf":    "fmt.Fprintf",
+				"Fprintln":   "fmt.Fprintln",
+				"Fscan":      "fmt.Fscan",
+				"Fscanf":     "fmt.Fscanf",
+				"Fscanln":    "fmt.Fscanln",
+				"GoStringer": "reflect.TypeOf(fmt.GoStringer(nil))",
+				"Print":      "fmt.Print",
+				"Printf":     "fmt.Printf",
+				"Println":    "fmt.Println",
+				"Scan":       "fmt.Scan",
+				"ScanState":  "reflect.TypeOf(fmt.ScanState(nil))",
+				"Scanf":      "fmt.Scanf",
+				"Scanln":     "fmt.Scanln",
+				"Scanner":    "reflect.TypeOf(fmt.Scanner(nil))",
+				"Sprint":     "fmt.Sprint",
+				"Sprintf":    "fmt.Sprintf",
+				"Sprintln":   "fmt.Sprintln",
+				"Sscan":      "fmt.Sscan",
+				"Sscanf":     "fmt.Sscanf",
+				"Sscanln":    "fmt.Sscanln",
+				"State":      "reflect.TypeOf(fmt.State(nil))",
+				"Stringer":   "reflect.TypeOf(fmt.Stringer(nil))"},
+		},
+		"archive/tar": {
+			name: "tar",
+			decls: map[string]string{
+				"ErrFieldTooLong":    "&tar.ErrFieldTooLong",
+				"ErrHeader":          "&tar.ErrHeader",
+				"ErrWriteAfterClose": "&tar.ErrWriteAfterClose",
+				"ErrWriteTooLong":    "&tar.ErrWriteTooLong",
+				"FileInfoHeader":     "tar.FileInfoHeader",
+				"Format":             "reflect.TypeOf(new(tar.Format)).Elem()",
+				"FormatGNU":          "ConstValue(tar.FormatGNU)",
+				"FormatPAX":          "ConstValue(tar.FormatPAX)",
+				"FormatUSTAR":        "ConstValue(tar.FormatUSTAR)",
+				"FormatUnknown":      "ConstValue(tar.FormatUnknown)",
+				"Header":             "reflect.TypeOf(tar.Header{})",
+				"NewReader":          "tar.NewReader",
+				"NewWriter":          "tar.NewWriter",
+				"Reader":             "reflect.TypeOf(tar.Reader{})",
+				"TypeBlock":          "ConstValue(tar.TypeBlock)",
+				"TypeChar":           "ConstValue(tar.TypeChar)",
+				"TypeCont":           "ConstValue(tar.TypeCont)",
+				"TypeDir":            "ConstValue(tar.TypeDir)",
+				"TypeFifo":           "ConstValue(tar.TypeFifo)",
+				"TypeGNULongLink":    "ConstValue(tar.TypeGNULongLink)",
+				"TypeGNULongName":    "ConstValue(tar.TypeGNULongName)",
+				"TypeGNUSparse":      "ConstValue(tar.TypeGNUSparse)",
+				"TypeLink":           "ConstValue(tar.TypeLink)",
+				"TypeReg":            "ConstValue(tar.TypeReg)",
+				"TypeRegA":           "ConstValue(tar.TypeRegA)",
+				"TypeSymlink":        "ConstValue(tar.TypeSymlink)",
+				"TypeXGlobalHeader":  "ConstValue(tar.TypeXGlobalHeader)",
+				"TypeXHeader":        "ConstValue(tar.TypeXHeader)",
+				"Writer":             "reflect.TypeOf(tar.Writer{})",
+			},
+		},
+	}
+	goos := "linux" // paths in this test should be OS-independent.
+	for path, expected := range cases {
+		t.Run(path, func(t *testing.T) {
+			gotName, gotDecls, err := parseGoPackage(path, goos)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if gotName != expected.name {
+				t.Fatalf("path %q: expecting name %q, got %q", path, expected.name, gotName)
+			}
+			if len(gotDecls) != len(expected.decls) {
+				t.Fatalf("path %q: expecting %#v, %#v", path, expected.decls, gotDecls)
+			}
+			if !reflect.DeepEqual(gotDecls, expected.decls) {
+				t.Fatalf("path %q: expecting %#v, %#v", path, expected.decls, gotDecls)
+			}
+		})
+	}
 }
