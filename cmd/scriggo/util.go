@@ -304,6 +304,8 @@ func goBuild(path string) error {
 
 var uniquePackageName_cache = map[string]string{}
 
+// isGoKeyword returns true if w is a Go keyword as specified by
+// https://golang.org/ref/spec#Keywords .
 func isGoKeyword(w string) bool {
 	goKeywords := []string{
 		"break", "default", "func", "interface", "select", "case", "defer",
@@ -321,8 +323,6 @@ func isGoKeyword(w string) bool {
 
 // uniquePackageName generates an unique package name for every package path.
 func uniquePackageName(pkgPath string) string {
-
-	// Make a list of reserved go keywords.
 
 	pkgName := filepath.Base(pkgPath)
 	done := false
