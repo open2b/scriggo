@@ -16,6 +16,62 @@ func Test_renderPackages(t *testing.T) {
 		goos             string
 		expected         string
 	}{
+		"Importing archive/tar simple": {
+			pd: scriggoDescriptor{
+				pkgName: "test",
+				imports: []importDescriptor{
+					importDescriptor{path: "archive/tar"},
+				},
+			},
+			expected: `package test
+
+			import (
+				tar "archive/tar"
+			)
+			
+			import . "scriggo"
+			import "reflect"
+			
+			func init() {
+				packages = Packages{
+			
+					"archive/tar": {
+						Name: "tar",
+						Declarations: map[string]interface{}{
+							"ErrFieldTooLong":    &tar.ErrFieldTooLong,
+							"ErrHeader":          &tar.ErrHeader,
+							"ErrWriteAfterClose": &tar.ErrWriteAfterClose,
+							"ErrWriteTooLong":    &tar.ErrWriteTooLong,
+							"FileInfoHeader":     tar.FileInfoHeader,
+							"Format":             reflect.TypeOf(new(tar.Format)).Elem(),
+							"FormatGNU":          ConstValue(tar.FormatGNU),
+							"FormatPAX":          ConstValue(tar.FormatPAX),
+							"FormatUSTAR":        ConstValue(tar.FormatUSTAR),
+							"FormatUnknown":      ConstValue(tar.FormatUnknown),
+							"Header":             reflect.TypeOf(tar.Header{}),
+							"NewReader":          tar.NewReader,
+							"NewWriter":          tar.NewWriter,
+							"Reader":             reflect.TypeOf(tar.Reader{}),
+							"TypeBlock":          ConstValue(tar.TypeBlock),
+							"TypeChar":           ConstValue(tar.TypeChar),
+							"TypeCont":           ConstValue(tar.TypeCont),
+							"TypeDir":            ConstValue(tar.TypeDir),
+							"TypeFifo":           ConstValue(tar.TypeFifo),
+							"TypeGNULongLink":    ConstValue(tar.TypeGNULongLink),
+							"TypeGNULongName":    ConstValue(tar.TypeGNULongName),
+							"TypeGNUSparse":      ConstValue(tar.TypeGNUSparse),
+							"TypeLink":           ConstValue(tar.TypeLink),
+							"TypeReg":            ConstValue(tar.TypeReg),
+							"TypeRegA":           ConstValue(tar.TypeRegA),
+							"TypeSymlink":        ConstValue(tar.TypeSymlink),
+							"TypeXGlobalHeader":  ConstValue(tar.TypeXGlobalHeader),
+							"TypeXHeader":        ConstValue(tar.TypeXHeader),
+							"Writer":             reflect.TypeOf(tar.Writer{}),
+						},
+					},
+				}
+			}`,
+		},
 		"Importing fmt simple": {
 			pd: scriggoDescriptor{
 				pkgName: "test",
