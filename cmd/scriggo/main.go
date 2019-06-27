@@ -341,7 +341,7 @@ func scriggoGen(install bool) {
 
 		// Write package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSkeleton(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
+		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
 		if err != nil {
 			exitError("writing interpreter file: %s", err)
 		}
