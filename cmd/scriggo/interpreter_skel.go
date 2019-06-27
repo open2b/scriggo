@@ -8,6 +8,8 @@ package main
 
 import "strings"
 
+// makeInterpreterSkeleton returns a valid Go source code that interprets a
+// Scriggo program, script or template.
 func makeInterpreterSkeleton(program, script, template bool) []byte {
 	const scriptSkel = `r, err := os.Open(absFile)
 		if err != nil {
