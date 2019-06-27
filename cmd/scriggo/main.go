@@ -244,7 +244,7 @@ func scriggoGen(install bool) {
 	// Generates sources for a new interpreter.
 	if sd.comment.template || sd.comment.script || sd.comment.program {
 		if sd.comment.output == "" {
-			sd.comment.output = strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + "-interpreter"
+			sd.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 		}
 
 		// Creates a temporary directory for interpreter sources. If installing,
@@ -328,12 +328,27 @@ func scriggoGen(install bool) {
 		}
 
 		// Move interpeter from tmpDir to correct dir.
-		err = os.Rename(tmpDir, sd.comment.output)
+		fis, err := ioutil.ReadDir(tmpDir)
 		if err != nil {
-			// TODO(Gianluca): is not guaranteed that os.Rename will work on every
-			// filesystem/os. In case of error, find another way to move every file
-			// from temporary directory to correct one.
 			exit(err.Error())
+		}
+		err = os.MkdirAll(sd.comment.output, dirPerm)
+		if err != nil {
+			exit(err.Error())
+		}
+		for _, fi := range fis {
+			if !fi.IsDir() {
+				filePath := filepath.Join(tmpDir, fi.Name())
+				newFilePath := filepath.Join(sd.comment.output, fi.Name())
+				data, err := ioutil.ReadFile(filePath)
+				if err != nil {
+					exit(err.Error())
+				}
+				err = ioutil.WriteFile(newFilePath, data, filePerm)
+				if err != nil {
+					exit(err.Error())
+				}
+			}
 		}
 		os.Exit(0)
 
