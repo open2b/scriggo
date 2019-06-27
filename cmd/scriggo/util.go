@@ -302,7 +302,7 @@ func goBuild(path string) error {
 	return nil
 }
 
-var uniquePackageName_cache = map[string]string{}
+var uniquePackageNameCache = map[string]string{}
 
 // isGoKeyword returns true if w is a Go keyword as specified by
 // https://golang.org/ref/spec#Keywords .
@@ -328,7 +328,7 @@ func uniquePackageName(pkgPath string) string {
 	done := false
 	for !done {
 		done = true
-		cachePath, ok := uniquePackageName_cache[pkgName]
+		cachePath, ok := uniquePackageNameCache[pkgName]
 		if ok && cachePath != pkgPath {
 			done = false
 			pkgName += "_"
@@ -337,7 +337,7 @@ func uniquePackageName(pkgPath string) string {
 	if isGoKeyword(pkgName) {
 		pkgName = "_" + pkgName + "_"
 	}
-	uniquePackageName_cache[pkgName] = pkgPath
+	uniquePackageNameCache[pkgName] = pkgPath
 
 	return pkgName
 }
