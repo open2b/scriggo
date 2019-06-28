@@ -373,9 +373,6 @@ var scanAttributeTests = []struct {
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, ctx ast.Context) {
 TYPES:
 	for source, types := range test {
-		if source != "{{ 0xABC.Ap-4i }}" {
-			continue
-		}
 		var lex = newLexer([]byte(source), ctx)
 		var i int
 		for tok := range lex.tokens {
