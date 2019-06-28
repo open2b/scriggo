@@ -9,7 +9,6 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"strings"
 	"testing"
@@ -42,8 +41,13 @@ var checkerExprs = []struct {
 	{`""`, tiUntypedStringConst(""), nil},
 	{`"abc"`, tiUntypedStringConst("abc"), nil},
 	{`0`, tiUntypedIntConst("0"), nil},
+	{`7`, tiUntypedIntConst("7"), nil},
 	{`'a'`, tiUntypedRuneConst('a'), nil},
 	{`0.0`, tiUntypedFloatConst("0"), nil},
+	{`123.794`, tiUntypedFloatConst("123.794"), nil},
+	{`0i`, tiUntypedComplexConst("0i"), nil},
+	{`0.0i`, tiUntypedComplexConst("0i"), nil},
+	{`123.794i`, tiUntypedComplexConst("123.794i"), nil},
 
 	// Untyped constants.
 	{`a`, tiUntypedBoolConst(true), map[string]*TypeInfo{"a": tiUntypedBoolConst(true)}},
@@ -52,6 +56,7 @@ var checkerExprs = []struct {
 	{`a`, tiUntypedIntConst("0"), map[string]*TypeInfo{"a": tiUntypedIntConst("0")}},
 	{`a`, tiUntypedRuneConst(0), map[string]*TypeInfo{"a": tiUntypedRuneConst(0)}},
 	{`a`, tiUntypedFloatConst("0.0"), map[string]*TypeInfo{"a": tiUntypedFloatConst("0.0")}},
+	{`a`, tiUntypedComplexConst("0i"), map[string]*TypeInfo{"a": tiUntypedComplexConst("0i")}},
 
 	// Typed constants
 	{`a`, tiBoolConst(true), map[string]*TypeInfo{"a": tiBoolConst(true)}},
@@ -69,15 +74,21 @@ var checkerExprs = []struct {
 	{`a`, tiUint8Const(0), map[string]*TypeInfo{"a": tiUint8Const(0)}},
 	{`a`, tiFloat64Const(0.0), map[string]*TypeInfo{"a": tiFloat64Const(0.0)}},
 	{`a`, tiFloat32Const(0.0), map[string]*TypeInfo{"a": tiFloat32Const(0.0)}},
+	{`a`, tiComplex128Const(0i), map[string]*TypeInfo{"a": tiComplex128Const(0i)}},
+	{`a`, tiComplex64Const(0i), map[string]*TypeInfo{"a": tiComplex64Const(0i)}},
 
 	// Operations ( untyped )
 	{`!true`, tiUntypedBoolConst(false), nil},
 	{`!false`, tiUntypedBoolConst(true), nil},
 	{`+5`, tiUntypedIntConst("5"), nil},
 	{`+5.7`, tiUntypedFloatConst("5.7"), nil},
+	{`+5i`, tiUntypedComplexConst("5i"), nil},
+	{`+5.7i`, tiUntypedComplexConst("5.7i"), nil},
 	{`+'a'`, tiUntypedRuneConst('a'), nil},
 	{`-5`, tiUntypedIntConst("-5"), nil},
 	{`-5.7`, tiUntypedFloatConst("-5.7"), nil},
+	{`-5i`, tiUntypedComplexConst("-5i"), nil},
+	{`-5.7i`, tiUntypedComplexConst("-5.7i"), nil},
 	{`-'a'`, tiUntypedRuneConst(-'a'), nil},
 
 	// Operations ( typed constant )
@@ -86,18 +97,24 @@ var checkerExprs = []struct {
 	{`+a`, tiIntConst(5), map[string]*TypeInfo{"a": tiIntConst(5)}},
 	{`+a`, tiFloat64Const(5.7), map[string]*TypeInfo{"a": tiFloat64Const(5.7)}},
 	{`+a`, tiInt32Const('a'), map[string]*TypeInfo{"a": tiInt32Const('a')}},
+	{`+a`, tiComplex128Const(2 + 5.7i), map[string]*TypeInfo{"a": tiComplex128Const(2 + 5.7i)}},
+	{`+a`, tiComplex64Const(2 + 5.7i), map[string]*TypeInfo{"a": tiComplex64Const(2 + 5.7i)}},
 	{`-a`, tiIntConst(-5), map[string]*TypeInfo{"a": tiIntConst(5)}},
 	{`-a`, tiFloat64Const(-5.7), map[string]*TypeInfo{"a": tiFloat64Const(5.7)}},
 	{`-a`, tiInt32Const(-'a'), map[string]*TypeInfo{"a": tiInt32Const('a')}},
+	{`-a`, tiComplex128Const(-2 - 5.7i), map[string]*TypeInfo{"a": tiComplex128Const(2 + 5.7i)}},
+	{`-a`, tiComplex64Const(2 + 5.7i), map[string]*TypeInfo{"a": tiComplex64Const(-2 - 5.7i)}},
 
 	// Operations ( typed )
 	{`!a`, tiBool(), map[string]*TypeInfo{"a": tiBool()}},
 	{`+a`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
 	{`+a`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
 	{`+a`, tiInt32(), map[string]*TypeInfo{"a": tiInt32()}},
+	{`+a`, tiComplex128(), map[string]*TypeInfo{"a": tiComplex128()}},
 	{`-a`, tiInt(), map[string]*TypeInfo{"a": tiInt()}},
 	{`-a`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
 	{`-a`, tiInt32(), map[string]*TypeInfo{"a": tiInt32()}},
+	{`-a`, tiComplex128(), map[string]*TypeInfo{"a": tiComplex128()}},
 	{`*a`, tiAddrInt(), map[string]*TypeInfo{"a": tiIntPtr()}},
 	{`&a`, tiIntPtr(), map[string]*TypeInfo{"a": tiAddrInt()}},
 	{`&[]int{}`, &TypeInfo{Type: reflect.PtrTo(reflect.SliceOf(intType))}, nil},
@@ -116,6 +133,8 @@ var checkerExprs = []struct {
 	{`1 + 1.2`, tiUntypedFloatConst("2.2"), nil},
 	{`'a' + 1.2`, tiUntypedFloatConst("98.2"), nil},
 	{`1.5 + 1.2`, tiUntypedFloatConst("2.7"), nil},
+	{`1i + 2i`, tiUntypedComplexConst("3i"), nil},
+	{`1.5i + 2.7i`, tiUntypedComplexConst("4.2i"), nil},
 	{`"a" + "b"`, tiUntypedStringConst("ab"), nil},
 	{`12 & 9`, tiUntypedIntConst("8"), nil},
 	{`12 | 9`, tiUntypedIntConst("13"), nil},
@@ -379,8 +398,8 @@ var checkerExprs = []struct {
 	// cap
 	{`cap([]int{})`, tiInt(), nil},
 	{`cap([...]byte{})`, tiIntConst(0), nil},
-	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	// {`cap(new([1]byte))`, tiInt(), nil}, // TODO.
+	{`cap(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
+	//{`cap(new([1]byte))`, tiInt(), nil}, // TODO.
 
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
@@ -388,13 +407,13 @@ var checkerExprs = []struct {
 	{`copy([]int{}, s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 	{`copy(s, []int{})`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
 	{`copy(s1, s2)`, tiInt(), map[string]*TypeInfo{
-		"s1": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})},
-		"s2": &TypeInfo{Type: reflect.TypeOf(definedIntSlice2{})},
+		"s1": {Type: reflect.TypeOf(definedIntSlice{})},
+		"s2": {Type: reflect.TypeOf(definedIntSlice2{})},
 	}},
 	{`copy([]byte{0}, "a")`, tiInt(), nil},
 	{`copy(s1, s2)`, tiInt(), map[string]*TypeInfo{
-		"s1": &TypeInfo{Type: reflect.TypeOf(definedByteSlice{})},
-		"s2": &TypeInfo{Type: reflect.TypeOf(definedStringSlice{})},
+		"s1": {Type: reflect.TypeOf(definedByteSlice{})},
+		"s2": {Type: reflect.TypeOf(definedStringSlice{})},
 	}},
 
 	// new
@@ -407,7 +426,7 @@ var checkerExprs = []struct {
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiIntConst(0), nil},
 	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	// {`len(new([1]byte))`, tiInt(), nil}, // TODO.
+	//{`len(new([1]byte))`, tiInt(), nil}, // TODO.
 
 	// recover
 	{`recover()`, tiInterface(), nil},
@@ -602,17 +621,17 @@ var checkerStmts = map[string]string{
 	`const a = 3.14 / 0.0`:                   `division by zero`,
 	`const _ = uint(-1)`:                     `constant -1 overflows uint`,
 	`const _ = int(3.14)`:                    `constant 3.14 truncated to integer`,
-	// `const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok, // TODO.
-	// `const d = 1 << 3.0`:                         ok, // TODO.
-	// `const e = 1.0 << 3`:                         ok, // TODO.
-	// `const f = int32(1) << 33`:                   `constant 8589934592 overflows int32`, // TODO.
-	// `const g = float64(2) >> 1`:                  `invalid operation: float64(2) >> 1 (shift of type float64)`, // TODO.
-	// `const h = "foo" > "bar"`:                ok, // TODO.
-	// `const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok, // TODO.
-	// `const Huge = 1 << 100`:                               ok, // TODO.
-	// `const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:                     ok, // TODO.
-	// `const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`: ok,  // TODO.
-	// `const Φ = iota*1i - 1/1i`:                   ok, // TODO.
+	//`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok, // TODO.
+	//`const d = 1 << 3.0`:                         ok, // TODO.
+	//`const e = 1.0 << 3`:                         ok, // TODO.
+	//`const f = int32(1) << 33`:                   `constant 8589934592 overflows int32`, // TODO.
+	//`const g = float64(2) >> 1`:                  `invalid operation: float64(2) >> 1 (shift of type float64)`, // TODO.
+	//`const h = "foo" > "bar"`:                ok, // TODO.
+	//`const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok, // TODO.
+	//`const Huge = 1 << 100`:                               ok, // TODO.
+	//`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:                     ok, // TODO.
+	//`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`: ok,  // TODO.
+	//`const Φ = iota*1i - 1/1i`:                   ok, // TODO.
 
 	// Identifiers.
 	`a := 0; a`: evaluatedButNotUsed("a"),
@@ -791,9 +810,9 @@ var checkerStmts = map[string]string{
 	`_ = (&pointInt{0,0}).X`:    ok,
 	`_ = (pointInt{0,0}).X`:     ok,
 	`(&pointInt{0,0}).SetX(10)`: ok,
-	`_ = (&pointInt{0,0}).Z`:    `&compiler.pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	//`_ = (&pointInt{0,0}).Z`:    `&compiler.pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	//`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	//`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 
 	// nil comparison
 	`_ = true == nil`: `cannot convert nil to type bool`,
@@ -832,24 +851,24 @@ var checkerStmts = map[string]string{
 	`var _ *(((map[string]interface{})))`: ok,
 	`var _ map[*int][]*string`:            ok,
 
-	// Shifts.
+	//// Shifts.
 	`_ = 1 << nil`:                     `cannot convert nil to type uint`,
 	`_ = 1 << "s"`:                     `invalid operation: 1 << "s" (shift count type string, must be unsigned integer)`,
-	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (shift count type float64, must be unsigned integer)`, // NOTE: gc returns `constant 1.2 truncated to integer`
+	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (constant 1.2 truncated to integer)`,
 	`_ = 1 << -1`:                      `invalid negative shift count: -1`,
 	`_ = 1 << 512`:                     `shift count too large: 512`,
 	`const a string = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
-	`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (shift count type int, must be unsigned integer)`,
-	`var a = "s"; _ = 1 << a`:          `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
-	`var a = 1.2; _ = 1 << a`:          `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
-	`_ = nil << 1`:                     `invalid operation: nil << 1 (shift of type nil)`,
-	`_ = "a" << 1`:                     `invalid operation: "a" << 1 (shift of type untyped string)`,
-	`_ = 1.2 << 1`:                     `invalid operation: 1.2 << 1 (shift of type untyped float64)`, // NOTE: gc returns `constant 1.2 truncated to integer`
-	`_ = 1 << 1`:                       ok,
-	`_ = 1 << 1.0`:                     ok,
-	`_ = 1 << 511`:                     ok,
-	`_ = -1 << 1`:                      ok,
-	// `_ = 1.0 << 1`:                     ok, TODO(marco)
+	//`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (invalid negative shift count: -1)`, // TODO: go1.13
+	`var a = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
+	`var a = 1.2; _ = 1 << a`: `invalid operation: 1 << a (shift count type float64, must be unsigned integer)`,
+	`_ = nil << 1`:            `invalid operation: nil << 1 (shift of type nil)`,
+	`_ = "a" << 1`:            `invalid operation: "a" << 1 (shift of type untyped string)`,
+	`_ = 1.2 << 1`:            `invalid operation: 1.2 << 1 (constant 1.2 truncated to integer)`,
+	`_ = 1 << 1`:              ok,
+	`_ = 1 << 1.0`:            ok,
+	`_ = 1 << 511`:            ok,
+	`_ = -1 << 1`:             ok,
+	`_ = 1.0 << 1`:            ok,
 
 	// Blocks.
 	`{ a := 1; a = 10; _ = a }`:            ok,
@@ -913,7 +932,7 @@ var checkerStmts = map[string]string{
 	`a := 3; switch a { case a: }`:                     ok,
 	`switch 1 + 2 { case "3": }`:                       `invalid case "3" in switch on 1 + 2 (mismatched types string and int)`,
 	`a := 3; switch a { case a > 2: }`:                 `invalid case a > 2 in switch on a (mismatched types bool and int)`,
-	`a := 3; switch 0.0 { case a: }`:                   `invalid case a in switch on 0 (mismatched types int and float64)`,
+	`a := 3; switch 0.0 { case a: }`:                   `invalid case a in switch on 0.0 (mismatched types int and float64)`, // Note that gc shows "0" and not "0.0".
 	`switch nil { }`:                                   `use of untyped nil`,
 	`switch _ { }`:                                     `cannot use _ as value`,
 	`var t boolType = false; switch t { case false: }`: ok,
@@ -1378,6 +1397,17 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 	if !t1.Addressable() && t2.Addressable() {
 		return fmt.Errorf("unexpected addressable")
 	}
+	if t1.Constant == nil && t2.Constant != nil {
+		return fmt.Errorf("unexpected constant")
+	}
+	if t1.Constant != nil && t2.Constant == nil {
+		return fmt.Errorf("unexpected nil constant")
+	}
+	if t1.Constant != nil {
+		if !t1.Constant.equals(t2.Constant) {
+			return fmt.Errorf("unexpected value %v, expecting %v", t2.Constant, t1.Constant)
+		}
+	}
 	if t1.Value == nil && t2.Value != nil {
 		return fmt.Errorf("unexpected value")
 	}
@@ -1385,72 +1415,9 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 		return fmt.Errorf("unexpected nil value")
 	}
 	if t1.Value != nil {
-		switch v1 := t1.Value.(type) {
-		case int64:
-			switch v2 := t2.Value.(type) {
-			case int64:
-				if v1 != v2 {
-					return fmt.Errorf("unexpected integer %d, expecting %d", v2, v1)
-				}
-				return nil
-			case *big.Int:
-				if v2.Cmp(big.NewInt(v1)) != 0 {
-					return fmt.Errorf("unexpected integer %s, expecting %d", v2, v1)
-				}
-				return nil
-			}
-		case *big.Int:
-			switch v2 := t2.Value.(type) {
-			case int64:
-				if v1.Cmp(big.NewInt(v2)) != 0 {
-					return fmt.Errorf("unexpected integer %d, expecting %s", v2, v1)
-				}
-				return nil
-			case *big.Int:
-				if v1.Cmp(v2) != 0 {
-					return fmt.Errorf("unexpected integer %s, expecting %s", v2, v1)
-				}
-				return nil
-			}
-		case float64:
-			switch v2 := t2.Value.(type) {
-			case float64:
-				if v1 != v2 {
-					return fmt.Errorf("unexpected integer %f, expecting %f", v2, v1)
-				}
-				return nil
-			case *big.Float:
-				if v2.Cmp(big.NewFloat(v1)) != 0 {
-					return fmt.Errorf("unexpected integer %s, expecting %f", v2, v1)
-				}
-				return nil
-			}
-		case *big.Float:
-			switch v2 := t2.Value.(type) {
-			case float64:
-				if v1.Cmp(big.NewFloat(v2)) != 0 {
-					return fmt.Errorf("unexpected floating-point %v, expecting %v", big.NewFloat(v2).Prec(), v1.Prec())
-				}
-				return nil
-			case *big.Float:
-				if v1.Cmp(v2) != 0 {
-					return fmt.Errorf("unexpected floating-point %v, expecting %v",
-						v2.Text('f', 53), v1.Text('f', 53))
-				}
-				return nil
-			}
-		case *big.Rat:
-			v2 := t2.Value.(*big.Rat)
-			if v1.Cmp(v2) != 0 {
-				return fmt.Errorf("unexpected floating-point %v, expecting %v", v2, v1)
-			}
-		default:
-			if t1.Value != t2.Value {
-				return fmt.Errorf("unexpected value %v, expecting %v", t2.Value, t1.Value)
-			}
-			return nil
+		if !reflect.DeepEqual(t1.Value, t2.Value) {
+			return fmt.Errorf("unexpected value %v, expecting %v", t2.Value, t1.Value)
 		}
-		return fmt.Errorf("unexpected value type %T, expecting %T", t2.Value, t1.Value)
 	}
 	return nil
 }
@@ -1479,6 +1446,10 @@ func dumpTypeInfo(ti *TypeInfo) string {
 	if ti.Addressable() {
 		s += " addressable"
 	}
+	s += "\n\tConstant:"
+	if ti.Constant != nil {
+		s += " " + ti.Constant.String()
+	}
 	s += "\n\tValue:"
 	if ti.Value != nil {
 		switch v := ti.Value.(type) {
@@ -1493,7 +1464,7 @@ func dumpTypeInfo(ti *TypeInfo) string {
 
 // bool type infos.
 func tiUntypedBoolConst(b bool) *TypeInfo {
-	return &TypeInfo{Type: boolType, Value: b, Properties: PropertyUntyped | PropertyIsConstant}
+	return &TypeInfo{Type: boolType, Constant: boolConst(b), Properties: PropertyUntyped | PropertyIsConstant}
 }
 
 func tiBool() *TypeInfo { return &TypeInfo{Type: boolType} }
@@ -1503,7 +1474,7 @@ func tiAddrBool() *TypeInfo {
 }
 
 func tiBoolConst(b bool) *TypeInfo {
-	return &TypeInfo{Type: boolType, Value: b, Properties: PropertyIsConstant}
+	return &TypeInfo{Type: boolType, Constant: boolConst(b), Properties: PropertyIsConstant}
 }
 
 func tiUntypedBool() *TypeInfo {
@@ -1513,13 +1484,9 @@ func tiUntypedBool() *TypeInfo {
 // float type infos.
 
 func tiUntypedFloatConst(lit string) *TypeInfo {
-	value, ok := newFloat().SetString(lit)
-	if !ok {
-		panic("invalid floating-point literal value")
-	}
 	return &TypeInfo{
 		Type:       float64Type,
-		Value:      value,
+		Constant:   parseBasicLiteral(ast.FloatLiteral, lit),
 		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
@@ -1536,11 +1503,55 @@ func tiAddrFloat64() *TypeInfo {
 }
 
 func tiFloat32Const(n float32) *TypeInfo {
-	return &TypeInfo{Type: universe["float32"].t.Type, Value: float64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["float32"].t.Type, Constant: float64Const(n), Properties: PropertyIsConstant}
 }
 
 func tiFloat64Const(n float64) *TypeInfo {
-	return &TypeInfo{Type: float64Type, Value: n, Properties: PropertyIsConstant}
+	return &TypeInfo{Type: float64Type, Constant: float64Const(n), Properties: PropertyIsConstant}
+}
+
+// complex type infos.
+
+func tiUntypedComplexConst(lit string) *TypeInfo {
+	var re, im constant
+	if lit[len(lit)-1] == 'i' {
+		s := strings.LastIndexAny(lit, "+-")
+		if s == -1 {
+			s = 0
+		}
+		c := parseBasicLiteral(ast.ImaginaryLiteral, lit[s:])
+		im = c.imag()
+		lit = lit[:s]
+	} else {
+		im = int64Const(0)
+	}
+	if len(lit) > 0 {
+		re = parseBasicLiteral(ast.FloatLiteral, lit)
+	} else {
+		re = int64Const(0)
+	}
+	return &TypeInfo{
+		Type:       complex128Type,
+		Constant:   newComplexConst(re, im),
+		Properties: PropertyUntyped | PropertyIsConstant,
+	}
+}
+
+func tiComplex64() *TypeInfo  { return &TypeInfo{Type: universe["complex64"].t.Type} }
+func tiComplex128() *TypeInfo { return &TypeInfo{Type: complex128Type} }
+
+func tiComplex64Const(n complex64) *TypeInfo {
+	return &TypeInfo{
+		Type:       universe["complex64"].t.Type,
+		Constant:   newComplexConst(float64Const(real(n)), float64Const(imag(n))),
+		Properties: PropertyIsConstant}
+}
+
+func tiComplex128Const(n complex128) *TypeInfo {
+	return &TypeInfo{
+		Type:       float64Type,
+		Constant:   newComplexConst(float64Const(real(n)), float64Const(imag(n))),
+		Properties: PropertyIsConstant}
 }
 
 // rune type infos.
@@ -1548,7 +1559,7 @@ func tiFloat64Const(n float64) *TypeInfo {
 func tiUntypedRuneConst(r rune) *TypeInfo {
 	return &TypeInfo{
 		Type:       int32Type,
-		Value:      (&big.Int{}).SetInt64(int64(r)),
+		Constant:   int64Const(r),
 		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
@@ -1558,7 +1569,7 @@ func tiUntypedRuneConst(r rune) *TypeInfo {
 func tiUntypedStringConst(s string) *TypeInfo {
 	return &TypeInfo{
 		Type:       stringType,
-		Value:      s,
+		Constant:   stringConst(s),
 		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
@@ -1570,19 +1581,19 @@ func tiAddrString() *TypeInfo {
 }
 
 func tiStringConst(s string) *TypeInfo {
-	return &TypeInfo{Type: stringType, Value: s, Properties: PropertyIsConstant}
+	return &TypeInfo{Type: stringType, Constant: stringConst(s), Properties: PropertyIsConstant}
 }
 
 // int type infos.
 
 func tiUntypedIntConst(lit string) *TypeInfo {
-	value, ok := (&big.Int{}).SetString(lit, 0)
-	if !ok {
+	c, typ, err := parseConstant(lit)
+	if err != nil || typ != intType {
 		panic("invalid integer literal value")
 	}
 	return &TypeInfo{
 		Type:       intType,
-		Value:      value,
+		Constant:   c,
 		Properties: PropertyUntyped | PropertyIsConstant,
 	}
 }
@@ -1639,43 +1650,43 @@ func tiAddrUint64() *TypeInfo {
 }
 
 func tiIntConst(n int) *TypeInfo {
-	return &TypeInfo{Type: intType, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: intType, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt8Const(n int8) *TypeInfo {
-	return &TypeInfo{Type: universe["int8"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int8"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt16Const(n int16) *TypeInfo {
-	return &TypeInfo{Type: universe["int16"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int16"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt32Const(n int32) *TypeInfo {
-	return &TypeInfo{Type: universe["int32"].t.Type, Value: big.NewInt(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int32"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiInt64Const(n int64) *TypeInfo {
-	return &TypeInfo{Type: universe["int64"].t.Type, Value: big.NewInt(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int64"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUintConst(n uint) *TypeInfo {
-	return &TypeInfo{Type: universe["uint"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint"].t.Type, Constant: newIntConst(0).setUint64(uint64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint8Const(n uint8) *TypeInfo {
-	return &TypeInfo{Type: universe["uint8"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint16Const(n uint16) *TypeInfo {
-	return &TypeInfo{Type: universe["uint16"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint32Const(n uint32) *TypeInfo {
-	return &TypeInfo{Type: universe["uint32"].t.Type, Value: big.NewInt(0).SetUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
 }
 
 func tiUint64Const(n uint64) *TypeInfo {
-	return &TypeInfo{Type: universe["uint64"].t.Type, Value: big.NewInt(0).SetUint64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n), Properties: PropertyIsConstant}
 }
 
 func tiIntPtr() *TypeInfo {

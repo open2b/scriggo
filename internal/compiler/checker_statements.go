@@ -181,11 +181,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
-			if ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Condition, new)
-				node.Condition = new
-			}
 			tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
@@ -212,11 +207,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				ti := tc.checkExpression(node.Condition)
 				if ti.Type.Kind() != reflect.Bool {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, ti.ShortString()))
-				}
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, ti.Type))
-					tc.replaceTypeInfo(node.Condition, new)
-					node.Condition = new
 				}
 			}
 			if node.Post != nil {
@@ -247,11 +237,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				typ1 = typ.Key()
 				typ2 = typ.Elem()
 			case reflect.String:
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, typ))
-					tc.replaceTypeInfo(node.Assignment.Values[0], new)
-					node.Assignment.Values[0] = new
-				}
 				typ1 = intType
 				typ2 = runeType
 			case reflect.Ptr:
@@ -355,22 +340,19 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOfDefault = cas.Pos()
 				}
-				for i, ex := range cas.Expressions {
+				for _, ex := range cas.Expressions {
 					t := tc.checkExpression(ex)
 					if !isAssignableTo(t, typ) {
 						var ne string
 						if node.Expr != nil {
 							ne = " on " + node.Expr.String()
 						}
-						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
+						panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
 					}
 					if t.IsConstant() {
-						value := typedValue(t, typ)
-						new := ast.NewValue(value)
-						tc.replaceTypeInfo(cas.Expressions[i], new)
-						cas.Expressions[i] = new
 						if typ.Kind() != reflect.Bool {
 							// Check duplicate.
+							value := typedValue(t, typ)
 							if pos, ok := positionOf[value]; ok {
 								panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
 							}
@@ -381,11 +363,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkNodesInNewScope(cas.Body)
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				terminating = terminating && (tc.terminating || hasFallthrough)
-			}
-			if ti != nil && ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Expr, new)
-				node.Expr = new
 			}
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
@@ -435,9 +412,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
-					node := ast.NewValue(t.Type)
-					tc.replaceTypeInfo(cas.Expressions[i], node)
-					cas.Expressions[i] = node
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
 						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
@@ -508,12 +482,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
-			ti := tc.checkExpression(node.Expr)
-			if ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Expr, new)
-				node.Expr = new
-			}
+			tc.checkExpression(node.Expr)
 			tc.terminating = false
 
 		case *ast.ShowMacro:
@@ -595,11 +564,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.ShortString(), elemType))
 			}
-			if tiv.IsConstant() {
-				new := ast.NewValue(typedValue(tiv, elemType))
-				tc.replaceTypeInfo(node.Value, new)
-				node.Value = new
-			}
 
 		case *ast.UnaryOperator:
 			tc.checkExpression(node)
@@ -644,11 +608,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !isLastScriptStatement {
 						panic(tc.errorf(node, "%s evaluated but not used", node))
 					}
-				}
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, ti.Type))
-					tc.replaceTypeInfo(node, new)
-					nodes[i] = new
 				}
 			} else if tc.opts.IsTemplate {
 				// TODO(Gianluca): handle expression statements in templates.
@@ -704,9 +663,6 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	var expectedTypes []reflect.Type
 	for _, exp := range expected {
 		ti := tc.checkType(exp.Type, noEllipses)
-		new := ast.NewValue(ti.Type)
-		tc.replaceTypeInfo(exp.Type, new)
-		exp.Type = new
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 
@@ -761,11 +717,6 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		ti := tc.TypeInfo[x]
 		if !isAssignableTo(ti, typ) {
 			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.TypeInfo[got[i]].ShortString(), expectedTypes[i]))
-		}
-		if ti.IsConstant() {
-			n := ast.NewValue(typedValue(ti, typ))
-			tc.replaceTypeInfo(x, n)
-			node.Values[i] = n
 		}
 	}
 

@@ -7,8 +7,6 @@
 package compiler
 
 import (
-	"math"
-	"math/big"
 	"reflect"
 )
 
@@ -30,6 +28,7 @@ const (
 type TypeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        Properties   // Properties.
+	Constant          constant     // Constant value.
 	Value             interface{}  // Value; for packages has type *Package.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
 	MethodType        MethodType   // Method type.
@@ -157,138 +156,4 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 	}
 	k := ti.Type.Kind()
 	return reflect.Uint <= k && k <= reflect.Uint64
-}
-
-//  CanInt64 reports whether it is safe to call Int64.
-func (ti *TypeInfo) CanInt64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return true
-	case *big.Int:
-		return v.IsInt64()
-	case float64:
-		if -minIntAsFloat64 <= v && v <= minIntAsFloat64 {
-			return true
-		}
-		if _, acc := big.NewFloat(v).Int64(); acc == big.Exact {
-			return true
-		}
-	case *big.Float:
-		if _, acc := v.Int64(); acc == big.Exact {
-			return true
-		}
-	case *big.Rat:
-		return v.IsInt() && v.Num().IsInt64()
-	}
-	return false
-}
-
-//  CanUint64 reports whether it is safe to call Uint64.
-func (ti *TypeInfo) CanUint64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return v >= 0
-	case *big.Int:
-		return v.IsUint64()
-	case float64:
-		if v >= 0 {
-			if v <= minIntAsFloat64 {
-				return true
-			}
-			if _, acc := big.NewFloat(v).Uint64(); acc == big.Exact {
-				return true
-			}
-		}
-	case *big.Float:
-		if _, acc := v.Uint64(); acc == big.Exact {
-			return true
-		}
-	case *big.Rat:
-		return v.IsInt() && v.Num().IsUint64()
-	}
-	return false
-}
-
-//  CanFloat64 reports whether it is safe to call Float64.
-func (ti *TypeInfo) CanFloat64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return true
-	case *big.Int:
-		if v.IsInt64() || v.IsUint64() {
-			return true
-		}
-		f := (&big.Float{}).SetInt(v)
-		if _, acc := f.Float64(); acc == big.Exact {
-			return true
-		}
-	case float64:
-		return true
-	case *big.Float:
-		if f, _ := v.Float64(); !math.IsInf(f, 1) {
-			return true
-		}
-	case *big.Rat:
-		f, _ := v.Float64()
-		return !math.IsInf(f, 0)
-	}
-	return false
-}
-
-// Int64 returns the value as an int64. If the value can not be represented by
-// an int64 the behaviour is undefined.
-func (ti *TypeInfo) Int64() int64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return v
-	case *big.Int:
-		return v.Int64()
-	case float64:
-		return int64(v)
-	case *big.Float:
-		n, _ := v.Int64()
-		return n
-	case *big.Rat:
-		return v.Num().Int64()
-	}
-	return 0
-}
-
-// Uint64 returns the value as an uint64. If the value can not be represented
-// by an uint64 the behaviour is undefined.
-func (ti *TypeInfo) Uint64() uint64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return uint64(v)
-	case *big.Int:
-		return v.Uint64()
-	case float64:
-		return uint64(v)
-	case *big.Float:
-		n, _ := v.Uint64()
-		return n
-	case *big.Rat:
-		return v.Num().Uint64()
-	}
-	return 0
-}
-
-// Float64 returns the value as a float64. If the value can not be represented
-// by a float64 the behaviour is undefined.
-func (ti *TypeInfo) Float64() float64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return float64(v)
-	case *big.Int:
-		return float64(v.Int64())
-	case float64:
-		return v
-	case *big.Float:
-		n, _ := v.Float64()
-		return n
-	case *big.Rat:
-		n, _ := v.Float64()
-		return n
-	}
-	return 0
 }

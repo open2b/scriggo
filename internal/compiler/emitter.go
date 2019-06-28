@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 
 	"scriggo/internal/compiler/ast"
@@ -343,6 +344,8 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		} else {
 			for i := 0; i < numIn; i++ {
 				typ := funcType.In(i)
+				s := typ.String()
+				_ = s
 				reg := e.fb.NewRegister(typ.Kind())
 				e.fb.EnterStack()
 				e.emitExpr(args[i], reg, typ)
@@ -363,7 +366,7 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	// Reserves space for return parameters.
 	fillParametersTypes(fun.Type.Result)
 	for _, res := range fun.Type.Result {
-		resType := res.Type.(*ast.Value).Val.(reflect.Type)
+		resType := e.typeInfos[res.Type].Type
 		kind := resType.Kind()
 		retReg := e.fb.NewRegister(kind)
 		if res.Ident != nil {
@@ -373,7 +376,7 @@ func (e *emitter) prepareFunctionBodyParameters(fun *ast.Func) {
 	// Binds function argument names to pre-allocated registers.
 	fillParametersTypes(fun.Type.Parameters)
 	for i, par := range fun.Type.Parameters {
-		parType := par.Type.(*ast.Value).Val.(reflect.Type)
+		parType := e.typeInfos[par.Type].Type
 		kind := parType.Kind()
 		if fun.Type.IsVariadic && i == len(fun.Type.Parameters)-1 {
 			kind = reflect.Slice
@@ -566,6 +569,100 @@ func (e *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Typ
 // anyway but the result is discarded.
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 
+	if ti, ok := e.typeInfos[expr]; ok {
+		typ := ti.Type
+		if ti.Value != nil && !ti.IsPredefined() {
+			if reg == 0 {
+				return
+			}
+			if out, k, ok := e.quickEmitExpr(expr, typ); ok {
+				e.changeRegister(k, out, reg, typ, dstType)
+				return
+			}
+			v := reflect.ValueOf(e.typeInfos[expr].Value)
+			switch v.Kind() {
+			case reflect.Interface:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Slice,
+				reflect.Map,
+				reflect.Struct,
+				reflect.Array,
+				reflect.Chan,
+				reflect.Ptr,
+				reflect.Func:
+				c := e.fb.MakeGeneralConstant(v.Interface())
+				e.changeRegister(true, c, reg, typ, dstType)
+			case reflect.UnsafePointer:
+				panic("not implemented") // TODO(Gianluca).
+			default:
+				panic(fmt.Errorf("unsupported value type %T for expr %s", e.typeInfos[expr].Value, expr))
+			}
+			return
+		}
+
+		if e.typeInfos[expr].IsConstant() {
+			if reg == 0 {
+				return
+			}
+			if out, k, ok := e.quickEmitExpr(expr, typ); ok {
+				s := typ.String()
+				ds := dstType.String()
+				exprS := expr.String()
+				_ = s
+				_ = ds
+				_ = exprS
+				e.changeRegister(k, out, reg, typ, dstType)
+				return
+			}
+			v := e.typeInfos[expr].Constant
+			switch typ.Kind() {
+			case reflect.Bool:
+				b := int64(0)
+				if v.bool() {
+					b = 1
+				}
+				c := e.fb.MakeIntConstant(b)
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64:
+				c := e.fb.MakeIntConstant(v.int64())
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64:
+				c := e.fb.MakeIntConstant(int64(v.uint64()))
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Uintptr:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Float32,
+				reflect.Float64:
+				c := e.fb.MakeFloatConstant(v.float64())
+				e.fb.LoadNumber(vm.TypeFloat, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Complex64:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Complex128:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.String:
+				c := e.fb.MakeStringConstant(v.string())
+				e.changeRegister(true, c, reg, typ, dstType)
+			default:
+				panic(fmt.Errorf("unsupported constant type %s for expr %v", typ, expr))
+			}
+			return
+		}
+	}
+
+
+
 	switch expr := expr.(type) {
 
 	case *ast.BinaryOperator:
@@ -689,26 +786,25 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 		// Conversion.
-		if val, ok := expr.Func.(*ast.Value); ok {
-			if convertType, ok := val.Val.(reflect.Type); ok {
-				if reg == 0 {
-					// Conversion cannot have side-effects.
-					return
-				}
-				typ := e.typeInfos[expr.Args[0]].Type
-				arg := e.fb.NewRegister(typ.Kind())
-				e.emitExpr(expr.Args[0], arg, typ)
-				if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
-					e.changeRegister(false, arg, reg, typ, convertType)
-				} else {
-					e.fb.EnterStack()
-					tmpReg := e.fb.NewRegister(convertType.Kind())
-					e.changeRegister(false, arg, tmpReg, typ, convertType)
-					e.changeRegister(false, tmpReg, reg, convertType, dstType)
-					e.fb.ExitStack()
-				}
+		if e.typeInfos[expr.Func].IsType() {
+			convertType := e.typeInfos[expr.Func].Type
+			if reg == 0 {
+				// Conversion cannot have side-effects.
 				return
 			}
+			typ := e.typeInfos[expr.Args[0]].Type
+			arg := e.fb.NewRegister(typ.Kind())
+			e.emitExpr(expr.Args[0], arg, typ)
+			if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
+				e.changeRegister(false, arg, reg, typ, convertType)
+			} else {
+				e.fb.EnterStack()
+				tmpReg := e.fb.NewRegister(convertType.Kind())
+				e.changeRegister(false, arg, tmpReg, typ, convertType)
+				e.changeRegister(false, tmpReg, reg, convertType, dstType)
+				e.fb.ExitStack()
+			}
+			return
 		}
 		// Function call.
 		e.fb.EnterStack()
@@ -719,7 +815,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.ExitStack()
 
 	case *ast.CompositeLiteral:
-		typ := expr.Type.(*ast.Value).Val.(reflect.Type)
+		typ := e.typeInfos[expr.Type].Type
 		switch typ.Kind() {
 		case reflect.Slice, reflect.Array:
 			if reg == 0 {
@@ -729,7 +825,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				}
 				return
 			}
-			size := int8(compositeLiteralLen(expr))
+			size := int8(e.compositeLiteralLen(expr))
 			if typ.Kind() == reflect.Array {
 				typ = reflect.SliceOf(typ.Elem())
 			}
@@ -737,7 +833,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			var index int8 = -1
 			for _, kv := range expr.KeyValues {
 				if kv.Key != nil {
-					index = int8(kv.Key.(*ast.Value).Val.(int))
+					index = int8(e.typeInfos[kv.Key].Constant.int64())
 				} else {
 					index++
 				}
@@ -817,7 +913,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			exprReg = e.fb.NewRegister(typ.Kind())
 			e.emitExpr(expr.Expr, exprReg, typ)
 		}
-		assertType := expr.Type.(*ast.Value).Val.(reflect.Type)
+		assertType := e.typeInfos[expr.Type].Type
 		if kindToType(assertType.Kind()) == kindToType(dstType.Kind()) {
 			e.fb.Assert(exprReg, assertType, reg)
 			e.fb.Nop()
@@ -992,72 +1088,6 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 		}
 
-	case *ast.Value:
-		if reg == 0 {
-			return
-		}
-		typ := e.typeInfos[expr].Type
-		if out, k, ok := e.quickEmitExpr(expr, typ); ok {
-			e.changeRegister(k, out, reg, typ, dstType)
-		} else {
-			v := reflect.ValueOf(expr.Val)
-			switch v.Kind() {
-			case reflect.Invalid:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Bool:
-				b := int64(0)
-				if v.Bool() {
-					b = 1
-				}
-				c := e.fb.MakeIntConstant(b)
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Int,
-				reflect.Int8,
-				reflect.Int16,
-				reflect.Int32,
-				reflect.Int64:
-				c := e.fb.MakeIntConstant(v.Int())
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Uint,
-				reflect.Uint8,
-				reflect.Uint16,
-				reflect.Uint32,
-				reflect.Uint64:
-				c := e.fb.MakeIntConstant(int64(v.Uint()))
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Uintptr:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Float32,
-				reflect.Float64:
-				c := e.fb.MakeFloatConstant(v.Float())
-				e.fb.LoadNumber(vm.TypeFloat, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Complex64:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Complex128:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Interface:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Slice,
-				reflect.Map,
-				reflect.Struct,
-				reflect.Array,
-				reflect.Chan,
-				reflect.Ptr,
-				reflect.Func:
-				c := e.fb.MakeGeneralConstant(v.Interface())
-				e.changeRegister(true, c, reg, typ, dstType)
-			case reflect.String:
-				c := e.fb.MakeStringConstant(v.String())
-				e.changeRegister(true, c, reg, typ, dstType)
-			case reflect.UnsafePointer:
-				panic("not implemented") // TODO(Gianluca).
-			}
-		}
-
 	case *ast.Index:
 		exprType := e.typeInfos[expr.Expr].Type
 		indexType := e.typeInfos[expr.Index].Type
@@ -1135,43 +1165,48 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 //
 // If expr is a constant, out is the constant and k is true.
 // if expr is a register, out is the register and k is false.
-func (e *emitter) quickEmitExpr(expr ast.Expression, expectedType reflect.Type) (out int8, k, ok bool) {
+func (e *emitter) quickEmitExpr(expr ast.Expression, typ reflect.Type) (out int8, k, ok bool) {
 	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
 	// not need extra registers for evaluation.
 
+	ti := e.typeInfos[expr]
+
 	// Src kind and dst kind are different, so a Move/Conversion is required.
-	if kindToType(expectedType.Kind()) != kindToType(e.typeInfos[expr].Type.Kind()) {
+	if kindToType(typ.Kind()) != kindToType(ti.Type.Kind()) {
 		return 0, false, false
 	}
-	switch expr := expr.(type) {
-	case *ast.Identifier:
-		if e.fb.IsVariable(expr.Name) {
-			return e.fb.ScopeLookup(expr.Name), false, true
-		}
-		return 0, false, false
-	case *ast.Value:
-		v := reflect.ValueOf(expr.Val)
-		switch v.Kind() {
-		case reflect.Int:
-			i := v.Int()
+
+	if ti.IsConstant() {
+		c := ti.Constant
+		switch ti.Type.Kind() {
+		case reflect.Int,
+			reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Int64:
+			i := c.int64()
 			if -127 < i && i < 126 {
 				return int8(i), true, true
 			}
 		case reflect.Bool:
 			b := int8(0)
-			if v.Bool() {
+			if c.bool() {
 				b = 1
 			}
 			return b, true, true
-		case reflect.Float64:
-			f := v.Float()
-			if float64(int(f)) == f {
-				if -127 < f && f < 126 {
-					return int8(f), true, true
-				}
+		case reflect.Float32, reflect.Float64:
+			f := c.float64()
+			if math.Floor(f) == f && -127 < f && f < 126 {
+				return int8(f), true, true
 			}
 		}
+		return 0, false, false
 	}
+
+	if expr, ok := expr.(*ast.Identifier); ok && e.fb.IsVariable(expr.Name) {
+		return e.fb.ScopeLookup(expr.Name), false, true
+	}
+
 	return 0, false, false
 }
 
@@ -1263,7 +1298,7 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		e.fb.Len(s, tmp, typ)
 		e.changeRegister(false, tmp, reg, intType, dstType)
 	case "make":
-		typ := call.Args[0].(*ast.Value).Val.(reflect.Type)
+		typ := e.typeInfos[call.Args[0]].Type
 		switch typ.Kind() {
 		case reflect.Map:
 			if len(call.Args) == 1 {
@@ -1318,7 +1353,7 @@ func (e *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			panic("bug")
 		}
 	case "new":
-		newType := call.Args[0].(*ast.Value).Val.(reflect.Type)
+		newType := e.typeInfos[call.Args[0]].Type
 		e.fb.New(newType, reg)
 	case "panic":
 		arg := call.Args[0]
@@ -1791,7 +1826,7 @@ func (e *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 			if isNil(caseExpr) {
 				panic("TODO(Gianluca): not implemented")
 			}
-			caseType := caseExpr.(*ast.Value).Val.(reflect.Type)
+			caseType := e.typeInfos[caseExpr].Type
 			e.fb.Assert(expr, caseType, 0)
 			next := e.fb.NewLabel()
 			e.fb.Goto(next)

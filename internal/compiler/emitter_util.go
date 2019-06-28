@@ -58,11 +58,11 @@ func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, ds
 }
 
 // compositeLiteralLen returns the length of a composite literal.
-func compositeLiteralLen(node *ast.CompositeLiteral) int {
+func (e *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 	size := 0
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
-			key := kv.Key.(*ast.Value).Val.(int)
+			key := int(e.typeInfos[kv.Key].Constant.int64())
 			if key > size {
 				size = key
 			}

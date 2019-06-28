@@ -17,6 +17,8 @@ const maxUint24 = 16777215
 
 var intType = reflect.TypeOf(0)
 var float64Type = reflect.TypeOf(0.0)
+var complex128Type = reflect.TypeOf(0i)
+var complex64Type = reflect.TypeOf(complex64(0))
 var stringType = reflect.TypeOf("")
 var emptyInterfaceType = reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 

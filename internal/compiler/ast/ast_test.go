@@ -8,7 +8,6 @@ package ast
 
 import (
 	"fmt"
-	"math/big"
 	"testing"
 )
 
@@ -16,20 +15,20 @@ func init() {
 	expandedPrint = true
 }
 
-var n1 = NewInt(nil, big.NewInt(1))
-var n2 = NewInt(nil, big.NewInt(2))
-var n3 = NewInt(nil, big.NewInt(3))
-var n5 = NewInt(nil, big.NewInt(5))
-var n7 = NewInt(nil, big.NewInt(7))
+var n1 = NewBasicLiteral(nil, IntLiteral, "1")
+var n2 = NewBasicLiteral(nil, IntLiteral, "2")
+var n3 = NewBasicLiteral(nil, IntLiteral, "3")
+var n5 = NewBasicLiteral(nil, IntLiteral, "5")
+var n7 = NewBasicLiteral(nil, IntLiteral, "7")
 
 var expressionStringTests = []struct {
 	str  string
 	expr Expression
 }{
 	{"1", n1},
-	{"3.59", NewFloat(nil, big.NewFloat(3.59))},
-	{`"abc"`, NewString(nil, "abc")},
-	{"\"a\\tb\"", NewString(nil, "a\tb")},
+	{"3.59", NewBasicLiteral(nil, FloatLiteral, "3.59")},
+	{`"abc"`, NewBasicLiteral(nil, StringLiteral, `"abc"`)},
+	{"\"a\\tb\"", NewBasicLiteral(nil, StringLiteral, `"a\tb"`)},
 	{"x", NewIdentifier(nil, "x")},
 	{"-1", NewUnaryOperator(nil, OperatorSubtraction, n1)},
 	{"1 + 2", NewBinaryOperator(nil, OperatorAddition, n1, n2)},
@@ -55,64 +54,64 @@ var expressionStringTests = []struct {
 	{"-a.b", NewUnaryOperator(nil, OperatorSubtraction, NewSelector(nil, NewIdentifier(nil, "a"), "b"))},
 	{"[]int([]int{1, 2, 3})", NewCall(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
 		[]Expression{NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
-			[]KeyValue{{nil, NewInt(nil, big.NewInt(1))}, {nil, NewInt(nil, big.NewInt(2))}, {nil, NewInt(nil, big.NewInt(3))}})}, false)},
+			[]KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "2")}, {nil, NewBasicLiteral(nil, IntLiteral, "3")}})}, false)},
 	{"[]int{1, 2}", NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "int")),
 		[]KeyValue{
-			{nil, NewInt(nil, big.NewInt(1))},
-			{nil, NewInt(nil, big.NewInt(2))},
+			{nil, NewBasicLiteral(nil, IntLiteral, "1")},
+			{nil, NewBasicLiteral(nil, IntLiteral, "2")},
 		})},
 	{"[2][]number{[]number{1, 2}, []number{3, 4, 5}}", NewCompositeLiteral(nil,
-		NewArrayType(nil, NewInt(nil, big.NewInt(2)), NewSliceType(nil, NewIdentifier(nil, "number"))),
+		NewArrayType(nil, NewBasicLiteral(nil, IntLiteral, "2"), NewSliceType(nil, NewIdentifier(nil, "number"))),
 		[]KeyValue{
-			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewInt(nil, big.NewInt(1))}, {nil, NewInt(nil, big.NewInt(2))}})},
-			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewInt(nil, big.NewInt(3))}, {nil, NewInt(nil, big.NewInt(4))}, KeyValue{nil, NewInt(nil, big.NewInt(5))}})},
+			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "2")}})},
+			{nil, NewCompositeLiteral(nil, NewSliceType(nil, NewIdentifier(nil, "number")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "3")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, KeyValue{nil, NewBasicLiteral(nil, IntLiteral, "5")}})},
 		})},
 	{"[...]int{1, 4, 9}",
-		NewCompositeLiteral(nil, NewArrayType(nil, nil, NewIdentifier(nil, "int")), []KeyValue{{nil, NewInt(nil, big.NewInt(1))}, {nil, NewInt(nil, big.NewInt(4))}, KeyValue{nil, NewInt(nil, big.NewInt(9))}})},
+		NewCompositeLiteral(nil, NewArrayType(nil, nil, NewIdentifier(nil, "int")), []KeyValue{{nil, NewBasicLiteral(nil, IntLiteral, "1")}, {nil, NewBasicLiteral(nil, IntLiteral, "4")}, KeyValue{nil, NewBasicLiteral(nil, IntLiteral, "9")}})},
 	{"[]string{0: \"zero\", 1: \"one\"}",
 		NewCompositeLiteral(nil,
 			NewSliceType(nil, NewIdentifier(nil, "string")),
 			[]KeyValue{
-				{NewInt(nil, big.NewInt(0)), NewString(nil, "zero")},
-				{NewInt(nil, big.NewInt(1)), NewString(nil, "one")},
+				{NewBasicLiteral(nil, IntLiteral, "0"), NewBasicLiteral(nil, StringLiteral, `"zero"`)},
+				{NewBasicLiteral(nil, IntLiteral, "1"), NewBasicLiteral(nil, StringLiteral, `"one"`)},
 			})},
 	{"[]int{1: 5, 6, 7: 9}",
 		NewCompositeLiteral(
 			nil,
 			NewSliceType(nil, NewIdentifier(nil, "int")),
 			[]KeyValue{
-				{NewInt(nil, big.NewInt(1)), NewInt(nil, big.NewInt(5))},
-				{nil, NewInt(nil, big.NewInt(6))},
-				{NewInt(nil, big.NewInt(7)), NewInt(nil, big.NewInt(9))},
+				{NewBasicLiteral(nil, IntLiteral, "1"), NewBasicLiteral(nil, IntLiteral, "5")},
+				{nil, NewBasicLiteral(nil, IntLiteral, "6")},
+				{NewBasicLiteral(nil, IntLiteral, "7"), NewBasicLiteral(nil, IntLiteral, "9")},
 			})},
 	{"[]T", NewSliceType(nil, NewIdentifier(nil, "T"))},
 	{"map[int]bool", NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool"))},
 	{"map[int][]int", NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int")))},
 	{"map[int][]int{}", NewCompositeLiteral(nil, NewMapType(nil, NewIdentifier(nil, "int"), NewSliceType(nil, NewIdentifier(nil, "int"))), nil)},
 	{"map[int]bool{3: true, 6: false}", NewCompositeLiteral(nil, NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool")), []KeyValue{
-		{NewInt(nil, big.NewInt(3)), NewIdentifier(nil, "true")},
-		{NewInt(nil, big.NewInt(6)), NewIdentifier(nil, "false")},
+		{NewBasicLiteral(nil, IntLiteral, "3"), NewIdentifier(nil, "true")},
+		{NewBasicLiteral(nil, IntLiteral, "6"), NewIdentifier(nil, "false")},
 	})},
 	{"map[int]bool{3: true, 6: false}[32]", NewIndex(nil, NewCompositeLiteral(nil,
 		NewMapType(nil, NewIdentifier(nil, "int"), NewIdentifier(nil, "bool")), []KeyValue{
-			{NewInt(nil, big.NewInt(3)), NewIdentifier(nil, "true")},
-			{NewInt(nil, big.NewInt(6)), NewIdentifier(nil, "false")},
-		}), NewInt(nil, big.NewInt(32)))},
+			{NewBasicLiteral(nil, IntLiteral, "3"), NewIdentifier(nil, "true")},
+			{NewBasicLiteral(nil, IntLiteral, "6"), NewIdentifier(nil, "false")},
+		}), NewBasicLiteral(nil, IntLiteral, "32"))},
 	{"&x", NewUnaryOperator(nil, OperatorAnd, NewIdentifier(nil, "x"))},
 	{`pkg.Struct{Key1: value1, Key2: "value2", Key3: 33}`,
 		NewCompositeLiteral(nil,
 			NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),
 			[]KeyValue{
 				{NewIdentifier(nil, "Key1"), NewIdentifier(nil, "value1")},
-				{NewIdentifier(nil, "Key2"), NewString(nil, "value2")},
-				{NewIdentifier(nil, "Key3"), NewInt(nil, big.NewInt(33))},
+				{NewIdentifier(nil, "Key2"), NewBasicLiteral(nil, StringLiteral, `"value2"`)},
+				{NewIdentifier(nil, "Key3"), NewBasicLiteral(nil, IntLiteral, "33")},
 			})},
 	{`pkg.Struct{value1, "value2", 33}`, NewCompositeLiteral(nil,
 		NewSelector(nil, NewIdentifier(nil, "pkg"), "Struct"),
 		[]KeyValue{
 			KeyValue{nil, NewIdentifier(nil, "value1")},
-			{nil, NewString(nil, "value2")},
-			{nil, NewInt(nil, big.NewInt(33))},
+			{nil, NewBasicLiteral(nil, StringLiteral, `"value2"`)},
+			{nil, NewBasicLiteral(nil, IntLiteral, "33")},
 		})},
 	{"[]*int", NewSliceType(nil, NewUnaryOperator(
 		nil, OperatorMultiplication, NewIdentifier(nil, "int")),

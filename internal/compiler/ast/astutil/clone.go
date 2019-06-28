@@ -8,7 +8,6 @@ package astutil
 
 import (
 	"fmt"
-	"math/big"
 
 	"scriggo/internal/compiler/ast"
 )
@@ -291,14 +290,8 @@ func CloneExpression(expr ast.Expression) ast.Expression {
 	switch e := expr.(type) {
 	case *ast.Parenthesis:
 		return ast.NewParenthesis(ClonePosition(e.Position), CloneExpression(e.Expr))
-	case *ast.Rune:
-		return ast.NewRune(ClonePosition(e.Position), e.Value)
-	case *ast.Int:
-		return ast.NewInt(ClonePosition(e.Position), new(big.Int).Set(&e.Value))
-	case *ast.Float:
-		return ast.NewFloat(ClonePosition(e.Position), new(big.Float).Set(&e.Value))
-	case *ast.String:
-		return ast.NewString(ClonePosition(e.Position), e.Text)
+	case *ast.BasicLiteral:
+		return ast.NewBasicLiteral(ClonePosition(e.Position), e.Type, e.Value)
 	case *ast.Identifier:
 		return ast.NewIdentifier(ClonePosition(e.Position), e.Name)
 	case *ast.UnaryOperator:

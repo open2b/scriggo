@@ -123,6 +123,17 @@ var typeTests = map[string][]tokenTyp{
 	"{{ 0_123_456 }}":        {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 0x123_456 }}":        {tokenStartValue, tokenInt, tokenEndValue},
 	"{{ 0b10_01_1 }}":        {tokenStartValue, tokenInt, tokenEndValue},
+	"{{ 0i }}":               {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 5i }}":               {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 0.6i }}":             {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 0.6e2i }}":           {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 066i }}":             {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 069i }}":             {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 084i }}":             {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 0.i }}":              {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ .0i }}":              {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 0xABC.Ap-4i }}":      {tokenStartValue, tokenImaginary, tokenEndValue},
+	"{{ 0xABC.Ap+4i }}":      {tokenStartValue, tokenImaginary, tokenEndValue},
 	"{{ 'j' }}":              {tokenStartValue, tokenRune, tokenEndValue},
 	"{{ '\\n' }}":            {tokenStartValue, tokenRune, tokenEndValue},
 	"{{ '\\106' }}":          {tokenStartValue, tokenRune, tokenEndValue},
@@ -362,6 +373,9 @@ var scanAttributeTests = []struct {
 func testLexerTypes(t *testing.T, test map[string][]tokenTyp, ctx ast.Context) {
 TYPES:
 	for source, types := range test {
+		if source != "{{ 0xABC.Ap-4i }}" {
+			continue
+		}
 		var lex = newLexer([]byte(source), ctx)
 		var i int
 		for tok := range lex.tokens {

@@ -78,14 +78,13 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 func (e *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == 1 && len(values) == 1 {
-		addr := addresses[0]
-		valueType := e.typeInfos[values[0]].Type
-		value, k, ok := e.quickEmitExpr(values[0], valueType)
+		typ := e.typeInfos[values[0]].Type
+		value, k, ok := e.quickEmitExpr(values[0], typ)
 		if !ok {
-			value = e.fb.NewRegister(valueType.Kind())
-			e.emitExpr(values[0], value, valueType)
+			value = e.fb.NewRegister(typ.Kind())
+			e.emitExpr(values[0], value, typ)
 		}
-		addr.assign(k, value, valueType)
+		addresses[0].assign(k, value, typ)
 	} else if len(addresses) == len(values) {
 		valueRegs := make([]int8, len(values))
 		valueTypes := make([]reflect.Type, len(values))
@@ -131,7 +130,7 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 			addresses[0].assign(false, valueReg, valueType)
 			addresses[1].assign(false, okReg, okType)
 		case *ast.TypeAssertion:
-			typ := value.Type.(*ast.Value).Val.(reflect.Type)
+			typ := e.typeInfos[value.Type].Type
 			exprReg := e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(value.Expr, exprReg, emptyInterfaceType)
 			okType := addresses[1].staticType
