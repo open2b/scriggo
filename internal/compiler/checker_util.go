@@ -200,23 +200,19 @@ func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
 	if x.Type == t {
 		return true
 	}
+	k := t.Kind()
 	if x.Nil() {
-		switch t.Kind() {
+		switch k {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
 			return true
 		}
 		return false
 	}
-	k := t.Kind()
-	if x.Untyped() {
-		if k == reflect.Interface {
-			return emptyMethodSet(t)
-		}
-		_, err := representedBy(x, t)
-		return err == nil
+	if k == reflect.Interface {
+		return x.Type.Implements(t)
 	}
-	if k == reflect.Interface && x.Type.Implements(t) {
-		return true
+	if x.IsConstant() {
+		return x.Constant.representedBy(k) != nil
 	}
 	// Checks if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
