@@ -1404,7 +1404,7 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 	}
 	if t1.IsConstant() {
 		if !t1.Constant.equals(t2.Constant) {
-			return fmt.Errorf("unexpected value %v, expecting %v", t2.Constant, t1.Constant)
+			return fmt.Errorf("unexpected constant %v, expecting %v", t2.Constant, t1.Constant)
 		}
 	}
 	if t1.Value == nil && t2.Value != nil {
