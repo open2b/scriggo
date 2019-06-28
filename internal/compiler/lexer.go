@@ -434,7 +434,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 		c := l.src[p]
 		if isAlpha(c) {
 			l.column++
-		} else if isDigit(c) {
+		} else if isDecDigit(c) {
 			l.column++
 			if p == s {
 				return "", p + 1
@@ -974,9 +974,20 @@ func isAlpha(s byte) bool {
 	return 'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z'
 }
 
-// isDigit reports whether s is ASCII digit.
-func isDigit(s byte) bool {
-	return '0' <= s && s <= '9'
+func isBinDigit(c byte) bool {
+	return c == '0' || c == '1'
+}
+
+func isOctDigit(c byte) bool {
+	return '0' <= c && c <= '7'
+}
+
+func isDecDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
+func isHexDigit(c byte) bool {
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that src
@@ -1414,20 +1425,4 @@ func (l *lexer) lexRuneLiteral() error {
 	l.emit(tokenRune, p+1)
 	l.column += p + 1
 	return nil
-}
-
-func isBinDigit(c byte) bool {
-	return c == '0' || c == '1'
-}
-
-func isOctDigit(c byte) bool {
-	return '0' <= c && c <= '7'
-}
-
-func isDecDigit(c byte) bool {
-	return '0' <= c && c <= '9'
-}
-
-func isHexDigit(c byte) bool {
-	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }
