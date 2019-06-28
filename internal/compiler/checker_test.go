@@ -1793,7 +1793,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 
 		// «x is a bidirectional channel value, T is a channel type, x's type
 		// V and T have identical element types, and at least one of V or T is
-		// not a defined type.
+		// not a defined type.»
 		{x: tiIntChan(reflect.BothDir), T: intChanType, assignable: true},
 		{x: tiIntChan(reflect.RecvDir), T: intChanType, assignable: false},
 		{x: tiIntChan(reflect.SendDir), T: intChanType, assignable: false},
