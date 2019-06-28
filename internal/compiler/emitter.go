@@ -603,12 +603,6 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				return
 			}
 			if out, k, ok := e.quickEmitExpr(expr, typ); ok {
-				s := typ.String()
-				ds := dstType.String()
-				exprS := expr.String()
-				_ = s
-				_ = ds
-				_ = exprS
 				e.changeRegister(k, out, reg, typ, dstType)
 				return
 			}
