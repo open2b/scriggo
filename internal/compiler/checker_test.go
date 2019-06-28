@@ -1753,6 +1753,7 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 	stringType := universe["string"].t.Type
 	float64Type := universe["float64"].t.Type
 	intSliceType := reflect.TypeOf([]int{})
+	intChanType := reflect.TypeOf(make(chan int))
 	stringSliceType := reflect.TypeOf([]string{})
 	emptyInterfaceType := reflect.TypeOf(&[]interface{}{interface{}(nil)}[0]).Elem()
 	weirdInterfaceType := reflect.TypeOf(&[]interface{ F() }{interface{ F() }(nil)}[0]).Elem()
@@ -1789,6 +1790,13 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		{x: tiInt(), T: weirdInterfaceType, assignable: false},
 		{x: tiString(), T: emptyInterfaceType, assignable: true},
 		{x: tiString(), T: weirdInterfaceType, assignable: false},
+
+		// «x is a bidirectional channel value, T is a channel type, x's type
+		// V and T have identical element types, and at least one of V or T is
+		// not a defined type.
+		{x: tiIntChan(reflect.BothDir), T: intChanType, assignable: true},
+		{x: tiIntChan(reflect.RecvDir), T: intChanType, assignable: false},
+		{x: tiIntChan(reflect.SendDir), T: intChanType, assignable: false},
 
 		// «x is the predeclared identifier nil and T is a pointer, function,
 		// slice, map, channel, or interface type»
