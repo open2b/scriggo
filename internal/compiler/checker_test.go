@@ -23,7 +23,6 @@ func tierr(line, column int, text string) *CheckingError {
 
 type definedBool bool
 type definedString string
-type definedInt int
 type definedIntSlice []int
 type definedIntSlice2 []int
 type definedByteSlice []byte
@@ -1819,14 +1818,14 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 
 func TestFunctionUpvalues(t *testing.T) {
 	cases := map[string][]string{
-		`_ = func() { }`:                              nil,           // no variables.
-		`a := 1; _ = func() { }`:                      nil,           // a declared outside but not used.
-		`a := 1; _ = func() { _ = a }`:                []string{"a"}, // a declared outside and used.
-		`_ = func() { a := 1; _ = a }`:                nil,           // a declared inside and used.
-		`a := 1; _ = a; _ = func() { a := 1; _ = a }`: nil,           // a declared both outside and inside, used.
+		`_ = func() { }`:                              nil,   // no variables.
+		`a := 1; _ = func() { }`:                      nil,   // a declared outside but not used.
+		`a := 1; _ = func() { _ = a }`:                {"a"}, // a declared outside and used.
+		`_ = func() { a := 1; _ = a }`:                nil,   // a declared inside and used.
+		`a := 1; _ = a; _ = func() { a := 1; _ = a }`: nil,   // a declared both outside and inside, used.
 
-		`a, b := 1, 1; _ = a + b; _ = func() { _ = a + b }`:               []string{"a", "b"},
-		`a, b := 1, 1; _ = a + b; _ = func() { b := 1; _ = a + b }`:       []string{"a"},
+		`a, b := 1, 1; _ = a + b; _ = func() { _ = a + b }`:               {"a", "b"},
+		`a, b := 1, 1; _ = a + b; _ = func() { b := 1; _ = a + b }`:       {"a"},
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
