@@ -344,8 +344,6 @@ func (e *emitter) prepareCallParameters(funcType reflect.Type, args []ast.Expres
 		} else {
 			for i := 0; i < numIn; i++ {
 				typ := funcType.In(i)
-				s := typ.String()
-				_ = s
 				reg := e.fb.NewRegister(typ.Kind())
 				e.fb.EnterStack()
 				e.emitExpr(args[i], reg, typ)
@@ -660,8 +658,6 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			return
 		}
 	}
-
-
 
 	switch expr := expr.(type) {
 
