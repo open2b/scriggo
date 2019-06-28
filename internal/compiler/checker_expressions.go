@@ -64,7 +64,7 @@ var universe = TypeCheckerScope{
 	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType}},
 	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType}},
 	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType}},
-	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Constant: boolConst(false)}},
+	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(false)}},
 	"int":         {t: &TypeInfo{Type: intType, Properties: PropertyIsType}},
 	"int16":       {t: &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType}},
 	"int32":       {t: int32TypeInfo},
@@ -73,7 +73,7 @@ var universe = TypeCheckerScope{
 	"interface{}": {t: &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType}},
 	"rune":        {t: int32TypeInfo},
 	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
-	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Constant: boolConst(true)}},
+	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(true)}},
 	"uint":        {t: &TypeInfo{Type: uintType, Properties: PropertyIsType}},
 	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType}},
 	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
@@ -351,7 +351,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 			return &TypeInfo{
 				Constant:   int64Const(tc.iota),
 				Type:       intType,
-				Properties: PropertyUntyped | PropertyIsConstant,
+				Properties: PropertyUntyped,
 			}
 		}
 		// If identifiers is a ShowMacro identifier, first needs to check if
@@ -497,7 +497,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		return &TypeInfo{
 			Type:       typ,
-			Properties: PropertyUntyped | PropertyIsConstant,
+			Properties: PropertyUntyped,
 			Constant:   parseBasicLiteral(expr.Type, expr.Value),
 		}
 
@@ -508,7 +508,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		t := tc.checkExpression(expr.Expr)
 		ti := &TypeInfo{
 			Type:       t.Type,
-			Properties: t.Properties & (PropertyUntyped | PropertyIsConstant),
+			Properties: t.Properties & PropertyUntyped,
 		}
 		var k reflect.Kind
 		if !t.Nil() {
@@ -1107,7 +1107,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			}
 			return nil, err
 		}
-		t := &TypeInfo{Constant: c, Properties: PropertyIsConstant | PropertyUntyped}
+		t := &TypeInfo{Constant: c, Properties: PropertyUntyped}
 		if evalToBoolOperators[op] {
 			t.Type = boolType
 		} else {
@@ -1124,13 +1124,13 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			return nil, err
 		}
-		t1 = &TypeInfo{Type: t2.Type, Properties: PropertyIsConstant, Constant: c}
+		t1 = &TypeInfo{Type: t2.Type, Constant: c}
 	} else if t2.IsUntypedConstant() {
 		c, err := representedBy(t2, t1.Type)
 		if err != nil {
 			return nil, err
 		}
-		t2 = &TypeInfo{Type: t1.Type, Properties: PropertyIsConstant, Constant: c}
+		t2 = &TypeInfo{Type: t1.Type, Constant: c}
 	}
 
 	if t1.IsConstant() && t2.IsConstant() {
@@ -1157,9 +1157,9 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return nil, err
 		}
 		if evalToBoolOperators[op] {
-			return &TypeInfo{Type: boolType, Constant: c, Properties: PropertyIsConstant}, nil
+			return &TypeInfo{Type: boolType, Constant: c}, nil
 		}
-		ti := &TypeInfo{Type: t1.Type, Constant: c, Properties: PropertyIsConstant}
+		ti := &TypeInfo{Type: t1.Type, Constant: c}
 		ti.Constant, err = convert(ti, t1.Type)
 		if err != nil {
 			return nil, fmt.Errorf("constant %v overflows %s", c, t1)
@@ -1299,11 +1299,9 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// https://golang.org/ref/spec#Length_and_capacity).
 		ti := &TypeInfo{Type: intType}
 		if t.Type.Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
 			ti.Constant = int64Const(t.Type.Len())
 		}
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
 			ti.Constant = int64Const(t.Type.Elem().Len())
 		}
 		return []*TypeInfo{ti}
@@ -1344,7 +1342,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			ti = &TypeInfo{
 				Type:       complex128Type,
 				Constant:   newComplexConst(re.Constant, im.Constant),
-				Properties: PropertyIsConstant | PropertyUntyped,
+				Properties: PropertyUntyped,
 			}
 		} else {
 			if re.IsUntypedConstant() && !im.IsUntypedConstant() {
@@ -1352,13 +1350,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				if err != nil {
 					panic(fmt.Errorf("cannot convert %s (type %s) to type %s", re.Constant, re, im))
 				}
-				re = &TypeInfo{Type: im.Type, Properties: PropertyIsConstant, Constant: c}
+				re = &TypeInfo{Type: im.Type, Constant: c}
 			} else if !re.IsUntypedConstant() && im.IsUntypedConstant() {
 				c, err := convert(im, re.Type)
 				if err != nil {
 					panic(fmt.Errorf("cannot convert %s (type %s) to type %s", im.Constant, im, re))
 				}
-				im = &TypeInfo{Type: re.Type, Properties: PropertyIsConstant, Constant: c}
+				im = &TypeInfo{Type: re.Type, Constant: c}
 			} else if reKind != imKind {
 				panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
 			}
@@ -1461,15 +1459,12 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// function calls; in this case s is not evaluated.» (see
 		// https://golang.org/ref/spec#Length_and_capacity).
 		if t.IsConstant() && t.Type.Kind() == reflect.String {
-			ti.Properties = PropertyIsConstant
 			ti.Constant = int64Const(len(t.Constant.string()))
 		}
 		if t.Type.Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
 			ti.Constant = int64Const(t.Type.Len())
 		}
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
 			ti.Constant = int64Const(t.Type.Elem().Len())
 		}
 		return []*TypeInfo{ti}
@@ -1640,12 +1635,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		ti := &TypeInfo{Type: t.Type, Constant: c}
-		if c != nil {
-			// TODO(marco): check if it is correct.
-			ti.Properties = PropertyIsConstant
-		}
-		return []*TypeInfo{ti}, false, true
+		return []*TypeInfo{{Type: t.Type, Constant: c}}, false, true
 	}
 
 	if t.Type.Kind() != reflect.Func {

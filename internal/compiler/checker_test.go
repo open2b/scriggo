@@ -1464,7 +1464,7 @@ func dumpTypeInfo(ti *TypeInfo) string {
 
 // bool type infos.
 func tiUntypedBoolConst(b bool) *TypeInfo {
-	return &TypeInfo{Type: boolType, Constant: boolConst(b), Properties: PropertyUntyped | PropertyIsConstant}
+	return &TypeInfo{Type: boolType, Constant: boolConst(b), Properties: PropertyUntyped}
 }
 
 func tiBool() *TypeInfo { return &TypeInfo{Type: boolType} }
@@ -1474,7 +1474,7 @@ func tiAddrBool() *TypeInfo {
 }
 
 func tiBoolConst(b bool) *TypeInfo {
-	return &TypeInfo{Type: boolType, Constant: boolConst(b), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: boolType, Constant: boolConst(b)}
 }
 
 func tiUntypedBool() *TypeInfo {
@@ -1487,7 +1487,7 @@ func tiUntypedFloatConst(lit string) *TypeInfo {
 	return &TypeInfo{
 		Type:       float64Type,
 		Constant:   parseBasicLiteral(ast.FloatLiteral, lit),
-		Properties: PropertyUntyped | PropertyIsConstant,
+		Properties: PropertyUntyped,
 	}
 }
 
@@ -1503,11 +1503,11 @@ func tiAddrFloat64() *TypeInfo {
 }
 
 func tiFloat32Const(n float32) *TypeInfo {
-	return &TypeInfo{Type: universe["float32"].t.Type, Constant: float64Const(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["float32"].t.Type, Constant: float64Const(n)}
 }
 
 func tiFloat64Const(n float64) *TypeInfo {
-	return &TypeInfo{Type: float64Type, Constant: float64Const(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: float64Type, Constant: float64Const(n)}
 }
 
 // complex type infos.
@@ -1533,7 +1533,7 @@ func tiUntypedComplexConst(lit string) *TypeInfo {
 	return &TypeInfo{
 		Type:       complex128Type,
 		Constant:   newComplexConst(re, im),
-		Properties: PropertyUntyped | PropertyIsConstant,
+		Properties: PropertyUntyped,
 	}
 }
 
@@ -1542,16 +1542,16 @@ func tiComplex128() *TypeInfo { return &TypeInfo{Type: complex128Type} }
 
 func tiComplex64Const(n complex64) *TypeInfo {
 	return &TypeInfo{
-		Type:       universe["complex64"].t.Type,
-		Constant:   newComplexConst(float64Const(real(n)), float64Const(imag(n))),
-		Properties: PropertyIsConstant}
+		Type:     universe["complex64"].t.Type,
+		Constant: newComplexConst(float64Const(real(n)), float64Const(imag(n))),
+	}
 }
 
 func tiComplex128Const(n complex128) *TypeInfo {
 	return &TypeInfo{
-		Type:       float64Type,
-		Constant:   newComplexConst(float64Const(real(n)), float64Const(imag(n))),
-		Properties: PropertyIsConstant}
+		Type:     float64Type,
+		Constant: newComplexConst(float64Const(real(n)), float64Const(imag(n))),
+	}
 }
 
 // rune type infos.
@@ -1560,7 +1560,7 @@ func tiUntypedRuneConst(r rune) *TypeInfo {
 	return &TypeInfo{
 		Type:       int32Type,
 		Constant:   int64Const(r),
-		Properties: PropertyUntyped | PropertyIsConstant,
+		Properties: PropertyUntyped,
 	}
 }
 
@@ -1570,7 +1570,7 @@ func tiUntypedStringConst(s string) *TypeInfo {
 	return &TypeInfo{
 		Type:       stringType,
 		Constant:   stringConst(s),
-		Properties: PropertyUntyped | PropertyIsConstant,
+		Properties: PropertyUntyped,
 	}
 }
 
@@ -1581,7 +1581,7 @@ func tiAddrString() *TypeInfo {
 }
 
 func tiStringConst(s string) *TypeInfo {
-	return &TypeInfo{Type: stringType, Constant: stringConst(s), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: stringType, Constant: stringConst(s)}
 }
 
 // int type infos.
@@ -1594,7 +1594,7 @@ func tiUntypedIntConst(lit string) *TypeInfo {
 	return &TypeInfo{
 		Type:       intType,
 		Constant:   c,
-		Properties: PropertyUntyped | PropertyIsConstant,
+		Properties: PropertyUntyped,
 	}
 }
 
@@ -1650,43 +1650,43 @@ func tiAddrUint64() *TypeInfo {
 }
 
 func tiIntConst(n int) *TypeInfo {
-	return &TypeInfo{Type: intType, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: intType, Constant: int64Const(int64(n))}
 }
 
 func tiInt8Const(n int8) *TypeInfo {
-	return &TypeInfo{Type: universe["int8"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int8"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt16Const(n int16) *TypeInfo {
-	return &TypeInfo{Type: universe["int16"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int16"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt32Const(n int32) *TypeInfo {
-	return &TypeInfo{Type: universe["int32"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int32"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiInt64Const(n int64) *TypeInfo {
-	return &TypeInfo{Type: universe["int64"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["int64"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUintConst(n uint) *TypeInfo {
-	return &TypeInfo{Type: universe["uint"].t.Type, Constant: newIntConst(0).setUint64(uint64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiUint8Const(n uint8) *TypeInfo {
-	return &TypeInfo{Type: universe["uint8"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint8"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint16Const(n uint16) *TypeInfo {
-	return &TypeInfo{Type: universe["uint16"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint16"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint32Const(n uint32) *TypeInfo {
-	return &TypeInfo{Type: universe["uint32"].t.Type, Constant: int64Const(int64(n)), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint32"].t.Type, Constant: int64Const(int64(n))}
 }
 
 func tiUint64Const(n uint64) *TypeInfo {
-	return &TypeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n), Properties: PropertyIsConstant}
+	return &TypeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n)}
 }
 
 func tiIntPtr() *TypeInfo {

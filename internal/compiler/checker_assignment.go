@@ -51,17 +51,17 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			case isNumeric(k):
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyIsConstant | PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyUntyped}
 				}
 			case k == reflect.String:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyIsConstant | PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyUntyped}
 				}
 			case k == reflect.Bool:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyIsConstant | PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyUntyped}
 				}
 			case k == reflect.Interface:
 				for i := range n.Lhs {
@@ -336,7 +336,6 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			}
 			if isConst {
 				newValueTi.Constant = valueTi.Constant
-				newValueTi.Properties = newValueTi.Properties | PropertyIsConstant
 				tc.assignScope(v.Name, newValueTi, nil)
 				return v.Name
 			}

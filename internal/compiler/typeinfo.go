@@ -17,7 +17,6 @@ type Properties uint8
 const (
 	PropertyNil          Properties = 1 << (8 - 1 - iota) // is predeclared nil
 	PropertyUntyped                                       // is untyped
-	PropertyIsConstant                                    // is a constant
 	PropertyIsType                                        // is a type
 	PropertyIsPackage                                     // is a package
 	PropertyIsBuiltin                                     // is a builtin
@@ -58,12 +57,12 @@ func (ti *TypeInfo) Untyped() bool {
 
 // IsConstant reports whether it is a constant.
 func (ti *TypeInfo) IsConstant() bool {
-	return ti.Properties&PropertyIsConstant != 0
+	return ti.Constant != nil
 }
 
 // IsUntypedConstant reports whether it is an untyped constant.
 func (ti *TypeInfo) IsUntypedConstant() bool {
-	return ti.Properties&PropertyUntyped != 0 && ti.Properties&PropertyIsConstant != 0
+	return ti.Properties&PropertyUntyped != 0 && ti.Constant != nil
 }
 
 // IsType reports whether it is a type.

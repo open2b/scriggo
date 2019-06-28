@@ -66,7 +66,7 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 		}
 		return &TypeInfo{
 			PredefPackageName: pkgName,
-			Properties:        PropertyIsConstant | PropertyIsPredefined,
+			Properties:        PropertyIsPredefined,
 			Type:              typ,
 			Constant:          constant,
 		}
@@ -82,14 +82,14 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 		}
 		return &TypeInfo{
 			PredefPackageName: pkgName,
-			Properties:        PropertyIsConstant | PropertyIsPredefined,
+			Properties:        PropertyIsPredefined,
 			Type:              c.typ,
 			Constant:          constant,
 		}
 	}
 	return &TypeInfo{
 		PredefPackageName: pkgName,
-		Properties:        PropertyIsConstant | PropertyUntyped | PropertyIsPredefined,
+		Properties:        PropertyUntyped | PropertyIsPredefined,
 		Type:              typ,
 		Constant:          constant,
 	}
