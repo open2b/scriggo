@@ -266,11 +266,11 @@ var checkerExprs = []struct {
 	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiIntConst(1)}},
 	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiAddrInt()}},
 	{`map[int]int{}[i]`, tiInt(), map[string]*TypeInfo{"i": tiInt()}},
-	{`p[1]`, tiAddrInt(), map[string]*TypeInfo{"p": &TypeInfo{Type: reflect.TypeOf(new([2]int))}}},
+	{`p[1]`, tiAddrInt(), map[string]*TypeInfo{"p": {Type: reflect.TypeOf(new([2]int))}}},
 	{`a[1]`, tiByte(), map[string]*TypeInfo{"a": tiString()}},
-	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf([]int{0, 1}), Properties: PropertyAddressable}}},
-	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf([...]int{0, 1}), Properties: PropertyAddressable}}},
-	{`a[1]`, tiInt(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf(map[int]int(nil)), Properties: PropertyAddressable}}},
+	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": {Type: reflect.TypeOf([]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiAddrInt(), map[string]*TypeInfo{"a": {Type: reflect.TypeOf([...]int{0, 1}), Properties: PropertyAddressable}}},
+	{`a[1]`, tiInt(), map[string]*TypeInfo{"a": {Type: reflect.TypeOf(map[int]int(nil)), Properties: PropertyAddressable}}},
 
 	// Slicing.
 	{`"a"[:]`, tiString(), nil},
@@ -299,7 +299,7 @@ var checkerExprs = []struct {
 	{`new([3]int)[:]`, tiIntSlice(), nil},
 	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": tiIntSlice()}},
 	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": tiIntSlice()}},
-	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": &TypeInfo{Type: reflect.TypeOf(new([3]int))}}},
+	{`a[:]`, tiIntSlice(), map[string]*TypeInfo{"a": {Type: reflect.TypeOf(new([3]int))}}},
 
 	// Conversions ( untyped )
 	{`int(5)`, tiIntConst(5), nil},
@@ -403,8 +403,8 @@ var checkerExprs = []struct {
 	// copy
 	{`copy([]int{}, []int{})`, tiInt(), nil},
 	{`copy([]interface{}{}, []interface{}{})`, tiInt(), nil},
-	{`copy([]int{}, s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
-	{`copy(s, []int{})`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy([]int{}, s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`copy(s, []int{})`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
 	{`copy(s1, s2)`, tiInt(), map[string]*TypeInfo{
 		"s1": {Type: reflect.TypeOf(definedIntSlice{})},
 		"s2": {Type: reflect.TypeOf(definedIntSlice2{})},
@@ -424,7 +424,7 @@ var checkerExprs = []struct {
 	{`len([]int{})`, tiInt(), nil},
 	{`len(map[string]int{})`, tiInt(), nil},
 	{`len([...]byte{})`, tiIntConst(0), nil},
-	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}}},
+	{`len(s)`, tiInt(), map[string]*TypeInfo{"s": {Type: reflect.TypeOf(definedIntSlice{})}}},
 	//{`len(new([1]byte))`, tiInt(), nil}, // TODO.
 
 	// recover
