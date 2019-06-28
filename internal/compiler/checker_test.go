@@ -810,9 +810,9 @@ var checkerStmts = map[string]string{
 	`_ = (&pointInt{0,0}).X`:    ok,
 	`_ = (pointInt{0,0}).X`:     ok,
 	`(&pointInt{0,0}).SetX(10)`: ok,
-	//`_ = (&pointInt{0,0}).Z`:    `&compiler.pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	//`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
-	//`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`_ = (&pointInt{0,0}).Z`:    `&compiler.pointInt literal.Z undefined (type *compiler.pointInt has no field or method Z)`,       // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(&pointInt{0,0}).SetZ(10)`: `&compiler.pointInt literal.SetZ undefined (type *compiler.pointInt has no field or method SetZ)`, // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
+	`(pointInt{0,0}).SetZ(10)`:  `compiler.pointInt literal.SetZ undefined (type compiler.pointInt has no field or method SetZ)`,   // TODO (Gianluca): '&pointInt literal' should be '(&pointInt literal)'
 
 	// nil comparison
 	`_ = true == nil`: `cannot convert nil to type bool`,
