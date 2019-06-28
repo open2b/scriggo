@@ -1536,19 +1536,19 @@ func tiUntypedComplexConst(lit string) *TypeInfo {
 	}
 }
 
-func tiComplex64() *TypeInfo  { return &TypeInfo{Type: universe["complex64"].t.Type} }
+func tiComplex64() *TypeInfo  { return &TypeInfo{Type: complex64Type} }
 func tiComplex128() *TypeInfo { return &TypeInfo{Type: complex128Type} }
 
 func tiComplex64Const(n complex64) *TypeInfo {
 	return &TypeInfo{
-		Type:     universe["complex64"].t.Type,
+		Type:     complex64Type,
 		Constant: newComplexConst(float64Const(real(n)), float64Const(imag(n))),
 	}
 }
 
 func tiComplex128Const(n complex128) *TypeInfo {
 	return &TypeInfo{
-		Type:     float64Type,
+		Type:     complex128Type,
 		Constant: newComplexConst(float64Const(real(n)), float64Const(imag(n))),
 	}
 }
