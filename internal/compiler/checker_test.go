@@ -1396,13 +1396,13 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 	if !t1.Addressable() && t2.Addressable() {
 		return fmt.Errorf("unexpected addressable")
 	}
-	if t1.Constant == nil && t2.Constant != nil {
+	if !t1.IsConstant() && t2.IsConstant() {
 		return fmt.Errorf("unexpected constant")
 	}
-	if t1.Constant != nil && t2.Constant == nil {
+	if t1.IsConstant() && !t2.IsConstant() {
 		return fmt.Errorf("unexpected nil constant")
 	}
-	if t1.Constant != nil {
+	if t1.IsConstant() {
 		if !t1.Constant.equals(t2.Constant) {
 			return fmt.Errorf("unexpected value %v, expecting %v", t2.Constant, t1.Constant)
 		}
