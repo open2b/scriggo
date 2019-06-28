@@ -16,8 +16,6 @@ import (
 
 var errTypeConversion = errors.New("failed type conversion")
 
-const constPrecision = 512
-
 const (
 	maxInt   = int(maxUint >> 1)
 	minInt   = -maxInt - 1
@@ -152,11 +150,6 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 	}
 
 	return nil, errTypeConversion
-}
-
-// emptyMethodSet reports whether an interface has an empty method set.
-func emptyMethodSet(iface reflect.Type) bool {
-	return iface == emptyInterfaceType || boolType.Implements(iface)
 }
 
 // fieldByName returns the struct field with the given name and a boolean
