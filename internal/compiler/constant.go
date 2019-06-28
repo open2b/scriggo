@@ -378,16 +378,13 @@ func (c1 int64Const) imag() constant {
 }
 
 func (c1 int64Const) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case int64Const:
-		return c1 == c2
-	case intConst:
-		return big.NewInt(int64(c1)).Cmp(c2.i) == 0
-	case float64Const, floatConst:
-		n := c2.representedBy(reflect.Int64)
-		return n != nil && c1.equals(n)
+	n1 := c1
+	n2, ok := c2.(int64Const)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
 	}
-	return false
+	return n1 == n2
 }
 
 func (c1 int64Const) asInt() intConst {
@@ -524,13 +521,13 @@ func (c1 intConst) imag() constant {
 }
 
 func (c1 intConst) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case int64Const:
-		return c1.i.Cmp(big.NewInt(int64(c2))) == 0
-	case intConst:
-		return c1.i.Cmp(c2.i) == 0
+	n1 := c1
+	n2, ok := c2.(intConst)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
 	}
-	return false
+	return n1.i.Cmp(n2.i) == 0
 }
 
 func (c1 intConst) setUint64(n uint64) constant { c1.i.SetUint64(n); return c1 }
@@ -662,13 +659,13 @@ func (c1 float64Const) imag() constant {
 }
 
 func (c1 float64Const) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case float64Const:
-		return c1 == c2
-	case floatConst:
-		return big.NewFloat(float64(c1)).Cmp(c2.f) == 0
+	n1 := c1
+	n2, ok := c2.(float64Const)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
 	}
-	return false
+	return n1 == n2
 }
 
 func (c1 float64Const) asFloat() floatConst {
@@ -765,15 +762,13 @@ func (c1 floatConst) imag() constant {
 }
 
 func (c1 floatConst) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case float64Const:
-		return c1.f.Cmp(big.NewFloat(float64(c2))) == 0
-	case floatConst:
-		c1.f.Cmp(c2.f)
-	case ratConst:
-		panic("TODO")
+	n1 := c1
+	n2, ok := c2.(floatConst)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
 	}
-	return false
+	return n1.f.Cmp(n2.f) == 0
 }
 
 func (c1 floatConst) setInt64(x int64) floatConst  { c1.f.SetInt64(x); return c1 }
@@ -876,11 +871,13 @@ func (c1 ratConst) imag() constant {
 }
 
 func (c1 ratConst) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case ratConst:
-		return c1.r.Cmp(c2.r) == 0
+	n1 := c1
+	n2, ok := c2.(ratConst)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
 	}
-	return false
+	return n1.r.Cmp(n2.r) == 0
 }
 
 func (c1 ratConst) setFrac(num, den *big.Int) ratConst { c1.r.SetFrac(num, den); return c1 }
@@ -997,8 +994,13 @@ func (c1 complexConst) imag() constant {
 }
 
 func (c1 complexConst) equals(c2 constant) bool {
-	c, ok := c2.(complexConst)
-	return ok && c1.r.equals(c.r) && c1.i.equals(c.i)
+	n1 := c1
+	n2, ok := c2.(complexConst)
+	if !ok {
+		d1, d2 := toSameConstImpl(c1, c2)
+		return d1.equals(d2)
+	}
+	return n1.r.equals(n2.r) && n1.i.equals(n2.i)
 }
 
 // toSameConstImpl returns the two constants with the same implementation type
