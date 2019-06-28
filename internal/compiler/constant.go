@@ -997,11 +997,8 @@ func (c1 complexConst) imag() constant {
 }
 
 func (c1 complexConst) equals(c2 constant) bool {
-	switch c2 := c2.(type) {
-	case complexConst:
-		return c1.r.equals(c2.r) && c1.i.equals(c2.i)
-	}
-	return false
+	c, ok := c2.(complexConst)
+	return ok && c1.r.equals(c.r) && c1.i.equals(c.i)
 }
 
 // toSameConstImpl returns the two constants with the same implementation type
