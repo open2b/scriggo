@@ -356,9 +356,7 @@ func (c1 int64Const) representedBy(kind reflect.Kind) constant {
 			return c1
 		}
 	case reflect.Float32:
-		if f := float64(c1); -math.MaxFloat32 <= f && f <= math.MaxFloat32 {
-			return float64Const(f)
-		}
+		return float64Const(float32(c1))
 	case reflect.Float64:
 		return float64Const(c1)
 	}
