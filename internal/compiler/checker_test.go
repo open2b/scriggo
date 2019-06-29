@@ -600,6 +600,12 @@ var checkerStmts = map[string]string{
 	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
 	`f := func() (int, int, int) { return 0, 0, 0 }; var a, b, c string = f()`: `cannot assign int to a (type string) in multiple assignment`,
 
+	// Untyped bool assignment.
+	`a := 1; var b = a == 0; _ = b`:          ok,
+	`a := 1; var b bool = a == 0; _ = b`:     ok,
+	`a := 1; var b boolType = a == 1; _ = b`: ok,
+	`a := 1; var b int = a == 0; _ = b`:      `cannot use a == 0 (type bool) as type int in assignment`,
+
 	// Constant declarations.
 	`const a = 2`:     ok,
 	`const a int = 2`: ok,
