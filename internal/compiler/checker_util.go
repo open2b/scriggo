@@ -204,10 +204,10 @@ func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
 	if k == reflect.Interface {
 		return x.Type.Implements(t)
 	}
-	if x.IsConstant() {
-		return x.Constant.representedBy(k) != nil
-	}
 	if x.Untyped() {
+		if x.IsConstant() {
+			return x.Constant.representedBy(k) != nil
+		}
 		return k == reflect.Bool
 	}
 	// Checks if the type of x and t have identical underlying types and at
