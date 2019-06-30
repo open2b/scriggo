@@ -172,6 +172,14 @@ func (c1 stringConst) binaryOp(op ast.OperatorType, c2 constant) (constant, erro
 		return boolConst(s1 == s2), nil
 	case ast.OperatorNotEqual:
 		return boolConst(s1 != s2), nil
+	case ast.OperatorLess:
+		return boolConst(s1 < s2), nil
+	case ast.OperatorLessOrEqual:
+		return boolConst(s1 <= s2), nil
+	case ast.OperatorGreater:
+		return boolConst(s1 > s2), nil
+	case ast.OperatorGreaterOrEqual:
+		return boolConst(s1 >= s2), nil
 	case ast.OperatorAddition:
 		return s1 + s2, nil
 	}
