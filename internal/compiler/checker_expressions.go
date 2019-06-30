@@ -1021,8 +1021,8 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if t2.Nil() {
 			return nil, errors.New("cannot convert nil to type uint")
 		}
-		if t1.IsConstant() {
-			if t1.Untyped() && !t1.IsNumeric() || !t1.Untyped() && !t1.IsInteger() {
+		if t1.IsUntypedConstant() {
+			if !t1.IsNumeric() {
 				return nil, fmt.Errorf("shift of type %s", t1)
 			}
 		} else if !t1.IsInteger() {
