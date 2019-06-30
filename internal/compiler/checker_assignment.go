@@ -336,6 +336,9 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			}
 			if isConst {
 				newValueTi.Constant = valueTi.Constant
+				if valueTi.Untyped() {
+					newValueTi.Properties = PropertyUntyped
+				}
 				tc.assignScope(v.Name, newValueTi, nil)
 				return v.Name
 			}

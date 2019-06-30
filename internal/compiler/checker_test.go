@@ -664,6 +664,7 @@ var checkerStmts = map[string]string{
 	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:     ok,
 	`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`:          ok,
 	//`const Φ = iota*1i - 1/1i`:                   ok, // TODO.
+	`const a = 1; const b int8 = a`: ok,
 
 	// Identifiers.
 	`a := 0; a`: evaluatedButNotUsed("a"),
