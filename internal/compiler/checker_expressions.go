@@ -1321,56 +1321,59 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		default:
 			panic(tc.errorf(expr, "too many arguments to complex - complex(%s, <N>)", expr.Args[0]))
 		}
-		var ti *TypeInfo
 		re := tc.checkExpression(expr.Args[0])
 		im := tc.checkExpression(expr.Args[1])
 		reKind := re.Type.Kind()
 		imKind := im.Type.Kind()
 		if re.IsUntypedConstant() && im.IsUntypedConstant() {
 			if !isNumeric(reKind) || !isNumeric(imKind) {
-				if reKind != imKind {
-					panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
+				if reKind == imKind {
+					panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re))
 				}
-				panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re))
+				panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
 			}
 			if !re.Constant.imag().zero() {
-				panic(tc.errorf(expr, "constant %s truncated to real", expr))
+				panic(tc.errorf(expr, "constant %s truncated to real", expr.Args[0]))
 			}
-			if !re.Constant.imag().zero() {
-				panic(tc.errorf(expr, "constant %s truncated to real", expr))
+			if !im.Constant.imag().zero() {
+				panic(tc.errorf(expr, "constant %s truncated to real", expr.Args[1]))
 			}
-			ti = &TypeInfo{
+			ti := &TypeInfo{
 				Type:       complex128Type,
 				Constant:   newComplexConst(re.Constant, im.Constant),
 				Properties: PropertyUntyped,
 			}
-		} else {
-			if re.IsUntypedConstant() && !im.IsUntypedConstant() {
-				c, err := convert(re, im.Type)
-				if err != nil {
-					panic(fmt.Errorf("cannot convert %s (type %s) to type %s", re.Constant, re, im))
-				}
-				re = &TypeInfo{Type: im.Type, Constant: c}
-			} else if !re.IsUntypedConstant() && im.IsUntypedConstant() {
-				c, err := convert(im, re.Type)
-				if err != nil {
-					panic(fmt.Errorf("cannot convert %s (type %s) to type %s", im.Constant, im, re))
-				}
-				im = &TypeInfo{Type: re.Type, Constant: c}
-			} else if reKind != imKind {
-				panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
-			}
-			ti = &TypeInfo{Constant: newComplexConst(re.Constant, im.Constant)}
-			switch reKind {
-			case reflect.Float32:
-				ti.Type = complex64Type
-			case reflect.Float64:
-				ti.Type = complex64Type
-			default:
-				panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re.Type))
-			}
+			return []*TypeInfo{ti}
 		}
-
+		if re.IsUntypedConstant() {
+			k := im.Type.Kind()
+			_ = k
+			c, err := convert(re, im.Type)
+			if err != nil {
+				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
+			}
+			re = &TypeInfo{Type: im.Type, Constant: c}
+		} else if im.IsUntypedConstant() {
+			c, err := convert(im, re.Type)
+			if err != nil {
+				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
+			}
+			im = &TypeInfo{Type: re.Type, Constant: c}
+		} else if reKind != imKind {
+			panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
+		}
+		ti := &TypeInfo{}
+		switch re.Type.Kind() {
+		case reflect.Float32:
+			ti.Type = complex64Type
+		case reflect.Float64:
+			ti.Type = complex128Type
+		default:
+			panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re.Type))
+		}
+		if re.IsConstant() && im.IsConstant() {
+			ti.Constant = newComplexConst(re.Constant, im.Constant)
+		}
 		return []*TypeInfo{ti}
 
 	case "copy":

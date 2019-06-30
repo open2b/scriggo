@@ -441,6 +441,17 @@ var checkerExprs = []struct {
 
 	// recover
 	{`recover()`, tiInterface(), nil},
+
+	// complex
+	{`complex(0, 0)`, tiUntypedComplexConst("0"), nil},
+	{`complex(1, 0)`, tiUntypedComplexConst("1"), nil},
+	{`complex(1.2, 0)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(1.2, 1)`, tiUntypedComplexConst("1.2+1i"), nil},
+	{`complex(1.2, 1.5)`, tiUntypedComplexConst("1.2+1.5i"), nil},
+	{`complex(1.2, 0i)`, tiUntypedComplexConst("1.2"), nil},
+	{`complex(0i, 2)`, tiUntypedComplexConst("2i"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
+	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -638,7 +649,7 @@ var checkerStmts = map[string]string{
 	`const a = 3.14 / 0.0`:                   `division by zero`,
 	`const _ = uint(-1)`:                     `constant -1 overflows uint`,
 	`const _ = int(3.14)`:                    `constant 3.14 truncated to integer`,
-	//`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok, // TODO.
+	`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok,
 	//`const d = 1 << 3.0`:                         ok, // TODO.
 	//`const e = 1.0 << 3`:                         ok, // TODO.
 	//`const f = int32(1) << 33`:                   `constant 8589934592 overflows int32`, // TODO.
@@ -646,7 +657,7 @@ var checkerStmts = map[string]string{
 	//`const h = "foo" > "bar"`:                ok, // TODO.
 	//`const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok, // TODO.
 	//`const Huge = 1 << 100`:                               ok, // TODO.
-	//`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:                     ok, // TODO.
+	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`: ok,
 	//`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`: ok,  // TODO.
 	//`const Φ = iota*1i - 1/1i`:                   ok, // TODO.
 
@@ -1225,6 +1236,23 @@ var checkerStmts = map[string]string{
 	`recover()`:                 ok,
 	`recover(1)`:                `too many arguments to recover`,
 	`recover := 0; _ = recover`: ok,
+
+	// Builtin function 'complex'.
+	`_ = complex()`:                       `missing argument to complex - complex(<N>, <N>)`,
+	`_ = complex(1)`:                      `invalid operation: complex expects two arguments`,
+	`_ = complex(1, 2)`:                   ok,
+	`_ = complex(1, 2, 3)`:                `too many arguments to complex - complex(1, <N>)`,
+	`_ = complex(true, 5)`:                `invalid operation: complex(true, 5) (mismatched types untyped bool and untyped int)`, // Note: gc returns error `invalid operation: complex(true, 5) (mismatched types untyped bool and untyped number)`
+	`_ = complex(5, true)`:                `invalid operation: complex(5, true) (mismatched types untyped int and untyped bool)`, // Note: gc returns error `invalid operation: complex(5, true) (mismatched types untyped number and untyped bool)`
+	`_ = complex(true, false)`:            `invalid operation: complex(true, false) (arguments have type untyped bool, expected floating-point)`,
+	`_ = complex(boolType(true), 5)`:      `cannot convert 5 (type untyped int) to type compiler.definedBool`, // Note: gc returns error `cannot convert 5 (type untyped number) to type compiler.definedBool`
+	`_ = complex(2i, 0)`:                  `constant 2i truncated to real`,
+	`_ = complex(0, 3i)`:                  `constant 3i truncated to real`,
+	`_ = complex(int(0), float32(0))`:     `invalid operation: complex(int(0), float32(0)) (mismatched types int and float32)`,
+	`_ = complex(int(0), 0)`:              `invalid operation: complex(int(0), 0) (arguments have type int, expected floating-point)`,
+	`_ = complex(0, float32(0))`:          ok,
+	`_ = complex(float32(1), float32(2))`: ok,
+	`_ = complex(float64(1), float64(2))`: ok,
 
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
