@@ -21,12 +21,6 @@ var errInvalidOperation = errors.New("invalid operation")
 var errDivisionByZero = errors.New("division by zero")
 var errComplexDivisionByZero = errors.New("complex division by zero")
 
-const maxExp = 4 << 10
-
-func bigFloat() *big.Float {
-	return new(big.Float).SetPrec(512)
-}
-
 // constant represents boolean, string, integer, floating point and complex
 // constant values.
 type constant interface {
@@ -355,9 +349,9 @@ func (c1 int64Const) representedBy(kind reflect.Kind) constant {
 		if n >= 0 {
 			return c1
 		}
-	case reflect.Float32:
+	case reflect.Float32, reflect.Complex64:
 		return float64Const(float32(c1))
-	case reflect.Float64:
+	case reflect.Float64, reflect.Complex128:
 		return float64Const(c1)
 	}
 	return nil
@@ -501,7 +495,12 @@ func (c1 intConst) representedBy(kind reflect.Kind) constant {
 	if c1.i.IsUint64() {
 		if n := c1.i.Uint64(); n <= math.MaxInt64 {
 			return int64Const(c1.i.Int64()).representedBy(kind)
+		} else if kind == reflect.Uint64 || kind == reflect.Uint32 && n <= math.MaxUint32 {
+			return c1
 		}
+	}
+	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
+		return newFloatConst(0).setInt(c1.i).representedBy(kind)
 	}
 	return nil
 }
@@ -615,31 +614,19 @@ func (c1 float64Const) representedBy(kind reflect.Kind) constant {
 	f := float64(c1)
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if -minIntAsFloat64 <= f && f <= minIntAsFloat64 {
+		if -1<<63-1024 <= f && f <= 1<<63-513 && float64(int64(f)) == f {
 			return int64Const(f).representedBy(kind)
 		}
-		if i64, acc := big.NewFloat(f).Int64(); acc == big.Exact {
-			return int64Const(i64).representedBy(kind)
-		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if f >= 0 {
-			if f <= minIntAsFloat64 {
-				return int64Const(f).representedBy(kind)
-			}
-			if ui64, acc := big.NewFloat(f).Uint64(); acc == big.Exact {
-				return int64Const(ui64).representedBy(kind)
-			}
+		if 0 <= f && f <= 1<<64-1025 && float64(int64(f)) == f {
+			return int64Const(f).representedBy(kind)
 		}
-	case reflect.Float32:
-		return newFloatConst(float64(float32(f)))
-	case reflect.Float64:
+	case reflect.Float32, reflect.Complex64:
+		if f := float32(c1); !math.IsInf(float64(f), 0) {
+			return float64Const(f)
+		}
+	case reflect.Float64, reflect.Complex128:
 		return c1
-	case reflect.Complex64:
-		if -math.MaxFloat32 <= f && f <= math.MaxFloat32 {
-			return newComplexConst(c1, int64Const(0))
-		}
-	case reflect.Complex128:
-		return newComplexConst(c1, int64Const(0))
 	}
 	return nil
 }
@@ -664,6 +651,10 @@ func (c1 float64Const) equals(c2 constant) bool {
 		return d1.equals(d2)
 	}
 	return n1 == n2
+}
+
+func bigFloat() *big.Float {
+	return new(big.Float).SetPrec(512)
 }
 
 func (c1 float64Const) asFloat() floatConst {
@@ -783,7 +774,7 @@ func newRatConst(x, y int64) ratConst {
 }
 
 func (c1 ratConst) String() string {
-	return c1.toFloat().String()
+	return newFloatConst(0).setRat(c1.r).String()
 }
 
 func (c1 ratConst) bool() bool             { return false }
@@ -844,14 +835,11 @@ func (c1 ratConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 }
 
 func (c1 ratConst) representedBy(kind reflect.Kind) constant {
-	if isInteger(kind) {
-		if c1.r.IsInt() {
-			return intConst{i: c1.r.Num()}.representedBy(kind)
-		}
-	} else if f, _ := c1.r.Float64(); !math.IsInf(f, 1) {
-		if kind == reflect.Float32 || kind == reflect.Float64 {
-			return float64Const(f).representedBy(kind)
-		}
+	if c1.r.IsInt() {
+		return intConst{i: c1.r.Num()}.representedBy(kind)
+	}
+	if f, _ := c1.r.Float64(); !math.IsInf(f, 1) {
+		return float64Const(f).representedBy(kind)
 	}
 	return nil
 }
@@ -880,12 +868,6 @@ func (c1 ratConst) equals(c2 constant) bool {
 
 func (c1 ratConst) setFrac(num, den *big.Int) ratConst { c1.r.SetFrac(num, den); return c1 }
 func (c1 ratConst) setFloat64(x float64) ratConst      { c1.r.SetFloat64(x); return c1 }
-
-func (c1 ratConst) toFloat() constant {
-	num := bigFloat().SetInt(c1.r.Num())
-	den := bigFloat().SetInt(c1.r.Denom())
-	return floatConst{f: num.Quo(num, den)}
-}
 
 // complexConst represents a complex constant.
 type complexConst struct {
@@ -975,6 +957,21 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 func (c1 complexConst) representedBy(kind reflect.Kind) constant {
 	if c1.i.zero() {
 		return c1.r.representedBy(kind)
+	}
+	if kind == reflect.Complex64 || kind == reflect.Complex128 {
+		k := reflect.Float32
+		if kind == reflect.Complex128 {
+			k = reflect.Float64
+		}
+		re := c1.r.representedBy(k)
+		if re == nil {
+			return nil
+		}
+		im := c1.i.representedBy(k)
+		if im == nil {
+			return nil
+		}
+		return complexConst{r: re, i: im}
 	}
 	return nil
 }
@@ -1207,6 +1204,7 @@ func parseBasicLiteral(typ ast.LiteralType, s string) constant {
 			return float64Const(f)
 		}
 		if !n.IsInf() {
+			const maxExp = 4 << 10
 			if e := n.MantExp(nil); -maxExp < e && e < maxExp {
 				r, _ := new(big.Rat).SetString(s)
 				return ratConst{r: r}
