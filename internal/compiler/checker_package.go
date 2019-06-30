@@ -76,7 +76,7 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 		panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s", c.literal, pkgName))
 	}
 	if c.typ != nil {
-		constant = constant.representedBy(c.typ.Kind())
+		constant, _ = constant.representedBy(c.typ)
 		if constant == nil {
 			panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s for type %s", c.literal, pkgName, c.typ))
 		}

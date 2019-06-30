@@ -342,12 +342,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				for _, ex := range cas.Expressions {
 					t := tc.checkExpression(ex)
-					if !isAssignableTo(t, typ) {
-						var ne string
-						if node.Expr != nil {
-							ne = " on " + node.Expr.String()
+					if err := isAssignableTo(t, ex, typ); err != nil {
+						if _, ok := err.(invalidTypeInAssignment); ok {
+							var ne string
+							if node.Expr != nil {
+								ne = " on " + node.Expr.String()
+							}
+							panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
 						}
-						panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
+						panic(tc.errorf(cas, "%s", err))
 					}
 					if t.IsConstant() {
 						if typ.Kind() != reflect.Bool {
@@ -555,14 +558,17 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			elemType := tic.Type.Elem()
 			tiv := tc.checkExpression(node.Value)
-			if !isAssignableTo(tiv, elemType) {
-				if tiv.Nil() {
-					panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
+			if err := isAssignableTo(tiv, node.Value, elemType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					if tiv.Nil() {
+						panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
+					}
+					if tiv.Type == stringType {
+						panic(tc.errorf(node, "cannot convert %s (type %s) to type %s", node.Value, tiv, elemType))
+					}
+					panic(tc.errorf(node, "%s in send", err))
 				}
-				if tiv.Type == stringType {
-					panic(tc.errorf(node, "cannot convert %s (type %s) to type %s", node.Value, tiv, elemType))
-				}
-				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.ShortString(), elemType))
+				panic(tc.errorf(node, "%s", err))
 			}
 
 		case *ast.UnaryOperator:
@@ -715,8 +721,11 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	for i, typ := range expectedTypes {
 		x := got[i]
 		ti := tc.TypeInfo[x]
-		if !isAssignableTo(ti, typ) {
-			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.TypeInfo[got[i]].ShortString(), expectedTypes[i]))
+		if err := isAssignableTo(ti, x, typ); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(node, "%s in return argument", err))
+			}
+			panic(tc.errorf(node, "%s", err))
 		}
 	}
 

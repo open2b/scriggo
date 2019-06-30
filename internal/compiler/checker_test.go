@@ -622,6 +622,9 @@ var checkerStmts = map[string]string{
 	`var a int; a = 3; _ = a`:      ok,
 	`var a, b = 1, 2; _, _ = a, b`: ok,
 	`var a int = "s"`:              `cannot use "s" (type string) as type int in assignment`,
+	`var a int = 1.2`:              "constant 1.2 truncated to integer",
+	`var a int8 = 156`:             "constant 156 overflows int8",
+	`var a float64 = 1.2i`:         "constant 1.2i truncated to real",
 	`var a, b = 1`:                 "assignment mismatch: 2 variable but 1 values",
 	`var a, b int = 1, "2"`:        `cannot use "2" (type string) as type int in assignment`,
 	`var a, b, c, d = 1, 2`:        "assignment mismatch: 4 variable but 2 values",
@@ -745,7 +748,7 @@ var checkerStmts = map[string]string{
 	// Send.
 	`aIntChan <- 5`:            ok,
 	`aIntChan <- nil`:          `cannot convert nil to type int`,
-	`aIntChan <- 1.34`:         `cannot use 1.34 (type float64) as type int in send`,
+	`aIntChan <- 1.34`:         `constant 1.34 truncated to integer`,
 	`aIntChan <- "a"`:          `cannot convert "a" (type untyped string) to type int`,
 	`make(<-chan int) <- 5`:    `invalid operation: make(<-chan int) <- 5 (send to receive-only type <-chan int)`,
 	`aSliceChan <- nil`:        ok,
@@ -825,15 +828,15 @@ var checkerStmts = map[string]string{
 	`a, ok := map[int]string{}[0]; var _ string = a; var _ int = ok;`:  `cannot use ok (type bool) as type int in assignment`,
 
 	// Structs.
-	`_ = pointInt{}`:           ok,
-	`_ = pointInt{1,2}`:        ok,
-	`_ = pointInt{1.0,2.0}`:    ok,
-	`_ = pointInt{X: 1, Y: 2}`: ok,
-	`_ = pointInt{_:0, _:1}`:   `invalid field name _ in struct initializer`,
-	`_ = pointInt{"a", "b"}`:   `cannot use "a" (type string) as type int in field value`,
-	`_ = pointInt{1, Y: 2}`:    `mixture of field:value and value initializers`,
-	`_ = pointInt{1,2,3}`:      `too many values in compiler.pointInt literal`,
-	//`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`, // TODO
+	`_ = pointInt{}`:               ok,
+	`_ = pointInt{1,2}`:            ok,
+	`_ = pointInt{1.0,2.0}`:        ok,
+	`_ = pointInt{X: 1, Y: 2}`:     ok,
+	`_ = pointInt{_:0, _:1}`:       `invalid field name _ in struct initializer`,
+	`_ = pointInt{"a", "b"}`:       `cannot use "a" (type string) as type int in field value`,
+	`_ = pointInt{1, Y: 2}`:        `mixture of field:value and value initializers`,
+	`_ = pointInt{1,2,3}`:          `too many values in compiler.pointInt literal`,
+	`_ = pointInt{1.2,2.0}`:        `constant 1.2 truncated to integer`,
 	`_ = pointInt{1}`:              `too few values in compiler.pointInt literal`,
 	`_ = pointInt{X: "a", Y: "b"}`: `cannot use "a" (type string) as type int in field value`,
 	`_ = pointInt{X: 1, 2}`:        `mixture of field:value and value initializers`,
@@ -884,7 +887,7 @@ var checkerStmts = map[string]string{
 	`var _ *(((map[string]interface{})))`: ok,
 	`var _ map[*int][]*string`:            ok,
 
-	//// Shifts.
+	// Shifts.
 	`_ = 1 << nil`:                     `cannot convert nil to type uint`,
 	`_ = 1 << "s"`:                     `invalid operation: 1 << "s" (shift count type string, must be unsigned integer)`,
 	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (constant 1.2 truncated to integer)`,
@@ -1069,7 +1072,7 @@ var checkerStmts = map[string]string{
 	`f := func () (int, int, int) { return 0, 0, 0 }; _ = func() (int, int) { return f() }`: "too many arguments to return\n\thave (int, int, int)\n\twant (int, int)",
 	`f := func () int { return 0 }; _ = func() (int, int) { return f() }`:                   "not enough arguments to return\n\thave (int)\n\twant (int, int)",
 	`f := func () (string, string) { return "", "" }; _ = func() (int, int) { return f() }`: `cannot use f() (type string) as type int in return argument`, // TODO (Gianluca): should be cannot use string as type int in return argument
-	// `var f func () (int, int); _ = func() (int, int) { return f() }`: ok, // TODO (Gianluca): parsing error.
+	`var f func () (int, int); _ = func() (int, int) { return f() }`:                        ok,
 
 	// Function literal calls.
 	`f := func() { }; f()`:                                            ok,
@@ -1084,8 +1087,8 @@ var checkerStmts = map[string]string{
 	`f := func(string, int) { } ; f(0, 0, 0)`:                         "too many arguments in call to f\n\thave (number, number, number)\n\twant (string, int)",
 	`f := func() (a, b int) { return 0, "" }; f()`:                    `cannot use "" (type string) as type int in return argument`,
 	`var _, _ int = func(a, b int) (int, int) { return a, b }("", 0)`: `cannot use "" (type string) as type int in argument to func literal`,
-	// `f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok, // TODO.
-	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO (Gianluca): panics.
+	// `f := func(n ...int) { for _ = range n { } }; f(1,2,3)`:           ok, // TODO: syntax error: unexpected (, expecting name
+	// `func(c int) { _ = c == 0 && c == 0 }(0)`:      ok, // TODO: syntax error: unexpected (, expecting name
 
 	// Function literal calls with function call as argument.
 	`f := func() (int, int) { return 0, 0 } ; g := func(int, int) { } ; g(f())`:         ok,
@@ -1865,12 +1868,12 @@ func TestTypechecker_IsAssignableTo(t *testing.T) {
 		// {x: tiUntypedIntConst("300"), T: byteType, assignable: false},
 	}
 	for _, c := range cases {
-		got := isAssignableTo(c.x, c.T)
-		if c.assignable && !got {
-			t.Errorf("%s should be assignable to %s, but isAssignableTo returned false", c.x, c.T)
+		err := isAssignableTo(c.x, nil, c.T)
+		if c.assignable && err != nil {
+			t.Errorf("%s should be assignable to %s, but isAssignableTo returned error: %s", c.x, c.T, err)
 		}
-		if !c.assignable && got {
-			t.Errorf("%s should not be assignable to %s, but isAssignableTo returned true", c.x, c.T)
+		if !c.assignable && err == nil {
+			t.Errorf("%s should not be assignable to %s, but isAssignableTo not returned errors", c.x, c.T)
 		}
 	}
 }

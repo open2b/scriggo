@@ -8,6 +8,7 @@ package compiler
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"reflect"
@@ -17,6 +18,7 @@ import (
 	"scriggo/internal/compiler/ast"
 )
 
+var errNotRepresentable = errors.New("not representable")
 var errInvalidOperation = errors.New("invalid operation")
 var errDivisionByZero = errors.New("division by zero")
 var errComplexDivisionByZero = errors.New("complex division by zero")
@@ -61,8 +63,10 @@ type constant interface {
 	// not both booleans, strings or numbers, the behaviour is undefined.
 	binaryOp(op ast.OperatorType, c2 constant) (constant, error)
 
-	// representedBy reports whether the constant is representable with a value.
-	representedBy(kind reflect.Kind) constant
+	// representedBy checks if the constant is representable by a value of a
+	// given type and returns a constant representing that value. Otherwise
+	// returns nil and the error.
+	representedBy(typ reflect.Type) (constant, error)
 
 	// equals reports whether the constant is equal to the constant c2.
 	equals(c2 constant) bool
@@ -120,11 +124,11 @@ func (c1 boolConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error)
 	return nil, errInvalidOperation
 }
 
-func (c1 boolConst) representedBy(kind reflect.Kind) constant {
-	if kind == reflect.Bool {
-		return c1
+func (c1 boolConst) representedBy(typ reflect.Type) (constant, error) {
+	if typ.Kind() == reflect.Bool {
+		return c1, nil
 	}
-	return nil
+	return nil, errNotRepresentable
 }
 
 func (c1 boolConst) zero() bool {
@@ -186,11 +190,11 @@ func (c1 stringConst) binaryOp(op ast.OperatorType, c2 constant) (constant, erro
 	return nil, errInvalidOperation
 }
 
-func (c1 stringConst) representedBy(kind reflect.Kind) constant {
-	if kind == reflect.String {
-		return c1
+func (c1 stringConst) representedBy(typ reflect.Type) (constant, error) {
+	if typ.Kind() == reflect.String {
+		return c1, nil
 	}
-	return nil
+	return nil, errNotRepresentable
 }
 
 func (c1 stringConst) zero() bool {
@@ -244,9 +248,20 @@ func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		if err := shiftConstError(c2); err != nil {
+			return nil, err
+		}
+		sc := uint(c2.uint64())
+		if op == ast.OperatorLeftShift {
+			i := big.NewInt(int64(c1))
+			return intConst{i: i.Lsh(i, sc)}, nil
+		}
+		return c1 >> sc, nil
+	}
 	n1 := c1
 	n2, ok := c2.(int64Const)
-	if !ok && op != ast.OperatorLeftShift && op != ast.OperatorRightShift {
+	if !ok {
 		d1, d2 := toSameConstImpl(c1, c2)
 		return d1.binaryOp(op, d2)
 	}
@@ -302,67 +317,59 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 		return n1 ^ n2, nil
 	case ast.OperatorAndNot:
 		return n1 &^ n2, nil
-	case ast.OperatorLeftShift, ast.OperatorRightShift:
-		if err := shiftConstError(c2); err != nil {
-			return nil, err
-		}
-		sc := uint(c2.uint64())
-		if op == ast.OperatorLeftShift {
-			i := big.NewInt(int64(c1))
-			return intConst{i: i.Lsh(i, sc)}, nil
-		}
-		return c1 >> sc, nil
 	}
 	return nil, errInvalidOperation
 }
 
-func (c1 int64Const) representedBy(kind reflect.Kind) constant {
+func (c1 int64Const) representedBy(typ reflect.Type) (constant, error) {
 	n := int64(c1)
-	switch kind {
+	switch typ.Kind() {
 	case reflect.Int:
 		if int64(minInt) <= n && n <= int64(maxInt) {
-			return c1
+			return c1, nil
 		}
 	case reflect.Int8:
 		if -1<<7 <= n && n <= 1<<7-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Int16:
 		if -1<<15 <= n && n <= 1<<15-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Int32:
 		if -1<<31 <= n && n <= 1<<31-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Int64:
-		return c1
+		return c1, nil
 	case reflect.Uint:
 		if 0 <= n && uint64(n) <= uint64(maxUint) {
-			return c1
+			return c1, nil
 		}
 	case reflect.Uint8:
 		if 0 <= n && n <= 1<<8-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Uint16:
 		if 0 <= n && n <= 1<<16-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Uint32:
 		if 0 <= n && n <= 1<<32-1 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Uint64:
 		if n >= 0 {
-			return c1
+			return c1, nil
 		}
 	case reflect.Float32, reflect.Complex64:
-		return float64Const(float32(c1))
+		return float64Const(float32(c1)), nil
 	case reflect.Float64, reflect.Complex128:
-		return float64Const(c1)
+		return float64Const(c1), nil
+	default:
+		return nil, errNotRepresentable
 	}
-	return nil
+	return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
 }
 
 func (c1 int64Const) zero() bool {
@@ -435,9 +442,20 @@ func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		if err := shiftConstError(c2); err != nil {
+			return nil, err
+		}
+		sc := uint(c2.uint64())
+		i := new(big.Int).Set(c1.i)
+		if op == ast.OperatorLeftShift {
+			return intConst{i: i.Lsh(i, sc)}, nil
+		}
+		return intConst{i: i.Rsh(i, sc)}, nil
+	}
 	n1 := c1
 	n2, ok := c2.(intConst)
-	if !ok && op != ast.OperatorLeftShift && op != ast.OperatorRightShift {
+	if !ok {
 		d1, d2 := toSameConstImpl(c1, c2)
 		return d1.binaryOp(op, d2)
 	}
@@ -482,35 +500,29 @@ func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 		return intConst{i: new(big.Int).Xor(n1.i, n2.i)}, nil
 	case ast.OperatorAndNot:
 		return intConst{i: new(big.Int).AndNot(n1.i, n2.i)}, nil
-	case ast.OperatorLeftShift, ast.OperatorRightShift:
-		if err := shiftConstError(c2); err != nil {
-			return nil, err
-		}
-		sc := uint(c2.uint64())
-		i := new(big.Int).Set(c1.i)
-		if op == ast.OperatorLeftShift {
-			return intConst{i: i.Lsh(i, sc)}, nil
-		}
-		return intConst{i: i.Rsh(i, sc)}, nil
 	}
 	return nil, errInvalidOperation
 }
 
-func (c1 intConst) representedBy(kind reflect.Kind) constant {
+func (c1 intConst) representedBy(typ reflect.Type) (constant, error) {
 	if c1.i.IsInt64() {
-		return int64Const(c1.i.Int64()).representedBy(kind)
+		return int64Const(c1.i.Int64()).representedBy(typ)
 	}
+	kind := typ.Kind()
 	if c1.i.IsUint64() {
 		if n := c1.i.Uint64(); n <= math.MaxInt64 {
-			return int64Const(c1.i.Int64()).representedBy(kind)
+			return int64Const(c1.i.Int64()).representedBy(typ)
 		} else if kind == reflect.Uint64 || kind == reflect.Uint32 && n <= math.MaxUint32 {
-			return c1
+			return c1, nil
 		}
 	}
-	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
-		return newFloatConst(0).setInt(c1.i).representedBy(kind)
+	if reflect.Int <= kind && kind <= reflect.Uint64 {
+		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
 	}
-	return nil
+	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
+		return newFloatConst(0).setInt(c1.i).representedBy(typ)
+	}
+	return nil, errNotRepresentable
 }
 
 func (c1 intConst) zero() bool {
@@ -536,6 +548,8 @@ func (c1 intConst) equals(c2 constant) bool {
 }
 
 func (c1 intConst) setUint64(n uint64) constant { c1.i.SetUint64(n); return c1 }
+
+func (c1 intConst) setInt(n *big.Int) constant { c1.i.Set(n); return c1 }
 
 // float64Const represents a floating point constant in the float64 range of
 // values.
@@ -563,6 +577,9 @@ func (c1 float64Const) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 float64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		return newFloatConst(float64(c1)).binaryOp(op, c2)
+	}
 	n1 := c1
 	n2, ok := c2.(float64Const)
 	if !ok {
@@ -618,25 +635,28 @@ func (c1 float64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 	return nil, errInvalidOperation
 }
 
-func (c1 float64Const) representedBy(kind reflect.Kind) constant {
+func (c1 float64Const) representedBy(typ reflect.Type) (constant, error) {
 	f := float64(c1)
-	switch kind {
+	switch typ.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if -1<<63-1024 <= f && f <= 1<<63-513 && float64(int64(f)) == f {
-			return int64Const(f).representedBy(kind)
+			return int64Const(f).representedBy(typ)
 		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if 0 <= f && f <= 1<<64-1025 && float64(int64(f)) == f {
-			return int64Const(f).representedBy(kind)
+			return int64Const(f).representedBy(typ)
 		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	case reflect.Float32, reflect.Complex64:
 		if f := float32(c1); !math.IsInf(float64(f), 0) {
-			return float64Const(f)
+			return float64Const(f), nil
 		}
+		return nil, fmt.Errorf("constant %s overflow %s", c1, typ)
 	case reflect.Float64, reflect.Complex128:
-		return c1
+		return c1, nil
 	}
-	return nil
+	return nil, errNotRepresentable
 }
 
 func (c1 float64Const) zero() bool {
@@ -701,6 +721,13 @@ func (c1 floatConst) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 floatConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		if c1.f.IsInt() {
+			i, _ := c1.f.Int(nil)
+			return newIntConst(0).setInt(i).binaryOp(op, c2)
+		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
 	n1 := c1
 	n2, ok := c2.(floatConst)
 	if !ok {
@@ -739,11 +766,18 @@ func (c1 floatConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 	return nil, errInvalidOperation
 }
 
-func (c1 floatConst) representedBy(kind reflect.Kind) constant {
+func (c1 floatConst) representedBy(typ reflect.Type) (constant, error) {
 	if f, _ := c1.f.Float64(); !math.IsInf(f, 1) {
-		return float64Const(f).representedBy(kind)
+		return float64Const(f).representedBy(typ)
 	}
-	return nil
+	kind := typ.Kind()
+	if reflect.Int <= kind && kind <= reflect.Uint64 {
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
+	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
+		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
+	}
+	return nil, errNotRepresentable
 }
 
 func (c1 floatConst) zero() bool {
@@ -804,6 +838,13 @@ func (c1 ratConst) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 ratConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		if c1.r.IsInt() {
+			num := c1.r.Num()
+			return newIntConst(0).setInt(num).binaryOp(op, c2)
+		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
 	n1 := c1
 	n2, ok := c2.(ratConst)
 	if !ok {
@@ -842,14 +883,21 @@ func (c1 ratConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) 
 	return nil, errInvalidOperation
 }
 
-func (c1 ratConst) representedBy(kind reflect.Kind) constant {
+func (c1 ratConst) representedBy(typ reflect.Type) (constant, error) {
 	if c1.r.IsInt() {
-		return intConst{i: c1.r.Num()}.representedBy(kind)
+		return intConst{i: c1.r.Num()}.representedBy(typ)
 	}
 	if f, _ := c1.r.Float64(); !math.IsInf(f, 1) {
-		return float64Const(f).representedBy(kind)
+		return float64Const(f).representedBy(typ)
 	}
-	return nil
+	kind := typ.Kind()
+	if reflect.Int <= kind && kind <= reflect.Uint64 {
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
+	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
+		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
+	}
+	return nil, errNotRepresentable
 }
 
 func (c1 ratConst) zero() bool {
@@ -895,6 +943,21 @@ func (c1 complexConst) String() string {
 	return "(" + re + im + "i)"
 }
 
+func (c1 complexConst) shortString() string {
+	if c1.r.zero() {
+		return c1.i.String() + "i"
+	}
+	if c1.i.zero() {
+		return c1.r.String()
+	}
+	re := c1.r.String()
+	im := c1.i.String()
+	if im[0] != '-' {
+		im = "+" + im
+	}
+	return re + im + "i"
+}
+
 func (c1 complexConst) bool() bool             { return false }
 func (c1 complexConst) string() string         { return "" }
 func (c1 complexConst) int64() int64           { return c1.r.int64() }
@@ -915,6 +978,12 @@ func (c1 complexConst) unaryOp(op ast.OperatorType) (constant, error) {
 }
 
 func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
+	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
+		if c1.i.zero() {
+			return c1.r.binaryOp(op, c2)
+		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1.shortString())
+	}
 	n1 := c1
 	n2, ok := c2.(complexConst)
 	if !ok {
@@ -962,26 +1031,33 @@ func (c1 complexConst) binaryOp(op ast.OperatorType, c2 constant) (constant, err
 	return nil, errInvalidOperation
 }
 
-func (c1 complexConst) representedBy(kind reflect.Kind) constant {
+func (c1 complexConst) representedBy(typ reflect.Type) (constant, error) {
 	if c1.i.zero() {
-		return c1.r.representedBy(kind)
+		return c1.r.representedBy(typ)
 	}
+	kind := typ.Kind()
 	if kind == reflect.Complex64 || kind == reflect.Complex128 {
-		k := reflect.Float32
+		t := float32Type
 		if kind == reflect.Complex128 {
-			k = reflect.Float64
+			t = float64Type
 		}
-		re := c1.r.representedBy(k)
-		if re == nil {
-			return nil
+		re, err := c1.r.representedBy(t)
+		if err != nil {
+			return nil, err
 		}
-		im := c1.i.representedBy(k)
-		if im == nil {
-			return nil
+		im, err := c1.i.representedBy(t)
+		if err != nil {
+			return nil, err
 		}
-		return complexConst{r: re, i: im}
+		return complexConst{r: re, i: im}, nil
 	}
-	return nil
+	if reflect.Int <= kind && kind <= reflect.Uint64 {
+		return nil, fmt.Errorf("constant %s truncated to integer", c1.shortString())
+	}
+	if kind == reflect.Float32 || kind == reflect.Float64 {
+		return nil, fmt.Errorf("constant %s truncated to real", c1.shortString())
+	}
+	return nil, errNotRepresentable
 }
 
 func (c1 complexConst) zero() bool {
@@ -1067,7 +1143,7 @@ var errShiftCountTruncatedToInteger = errors.New("shift count truncated to integ
 // shiftConstError returns an error that explain why c cannot be used as the
 // right operand in a shift expression. Returns nil if c can be used.
 func shiftConstError(c constant) error {
-	if c := c.representedBy(reflect.Uint); c != nil {
+	if c, _ := c.representedBy(uintType); c != nil {
 		if ok, _ := c.binaryOp(ast.OperatorGreaterOrEqual, int64Const(512)); ok.bool() {
 			return errShiftCountTooLarge
 		}

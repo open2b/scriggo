@@ -131,7 +131,7 @@ func convert(ti *TypeInfo, t2 reflect.Type) (constant, error) {
 		if k2 == reflect.String && isInteger(k1) {
 			// As a special case, an integer constant can be explicitly
 			// converted to a string type.
-			if n := ti.Constant.representedBy(reflect.Int64); n != nil {
+			if n, _ := ti.Constant.representedBy(int64Type); n != nil {
 				return stringConst(n.int64()), nil
 			}
 			return stringConst("\uFFFD"), nil
@@ -187,32 +187,58 @@ func fillParametersTypes(params []*ast.Field) {
 	return
 }
 
+type invalidTypeInAssignment string
+
+func (err invalidTypeInAssignment) Error() string {
+	return string(err)
+}
+
+func newInvalidTypeInAssignment(x *TypeInfo, expr ast.Expression, t reflect.Type) invalidTypeInAssignment {
+	if x.Nil() {
+		return invalidTypeInAssignment(fmt.Sprintf("cannot use nil as type %s", t))
+	}
+	return invalidTypeInAssignment(fmt.Sprintf("cannot use %s (type %s) as type %s", expr, x.Type, t))
+}
+
 // isAssignableTo reports whether x is assignable to type t.
 // See https://golang.org/ref/spec#Assignability for details.
-func isAssignableTo(x *TypeInfo, t reflect.Type) bool {
+func isAssignableTo(x *TypeInfo, expr ast.Expression, t reflect.Type) error {
 	if x.Type == t {
-		return true
+		return nil
 	}
 	k := t.Kind()
 	if x.Nil() {
 		switch k {
 		case reflect.Ptr, reflect.Func, reflect.Slice, reflect.Map, reflect.Chan, reflect.Interface:
-			return true
+			return nil
 		}
-		return false
+		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	if k == reflect.Interface {
-		return x.Type.Implements(t)
+		if !x.Type.Implements(t) {
+			return newInvalidTypeInAssignment(x, expr, t)
+		}
+		return nil
 	}
 	if x.Untyped() {
 		if x.IsConstant() {
-			return x.Constant.representedBy(k) != nil
+			_, err := x.Constant.representedBy(t)
+			if err == errNotRepresentable {
+				err = newInvalidTypeInAssignment(x, expr, t)
+			}
+			return err
 		}
-		return k == reflect.Bool
+		if k == reflect.Bool {
+			return nil
+		}
+		return newInvalidTypeInAssignment(x, expr, t)
 	}
 	// Checks if the type of x and t have identical underlying types and at
 	// least one is not a defined type.
-	return x.Type.AssignableTo(t)
+	if !x.Type.AssignableTo(t) {
+		return newInvalidTypeInAssignment(x, expr, t)
+	}
+	return nil
 }
 
 // isBlankIdentifier reports whether expr is an identifier representing the
@@ -390,21 +416,17 @@ func removeEnvArg(typ reflect.Type, hasReceiver bool) reflect.Type {
 // representedBy returns t1 ( a constant or an untyped boolean value )
 // represented as a value of type t2. t2 can not be an interface.
 func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
-	k := t2.Kind()
 	if t1.IsConstant() {
-		c := t1.Constant.representedBy(k)
-		if c == nil {
-			switch {
-			case reflect.Int <= k && k <= reflect.Int64:
-				return nil, fmt.Errorf("constant %v truncated to integer", t1.Constant)
-			case reflect.Uint <= k && k <= reflect.Uintptr || k == reflect.Float32 || k == reflect.Float64:
-				return nil, fmt.Errorf("constant %v overflows %s", t1.Constant, t2)
+		c, err := t1.Constant.representedBy(t2)
+		if err != nil {
+			if err == errNotRepresentable {
+				err = fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
 			}
-			return nil, fmt.Errorf("cannot convert %v (type %s) to type %s", t1.Constant, t1, t2)
+			return nil, err
 		}
 		return c, nil
 	}
-	if k != reflect.Bool {
+	if t2.Kind() != reflect.Bool {
 		return nil, fmt.Errorf("cannot use unsigned bool as type %s in assignment", t2)
 	}
 	return nil, nil

@@ -799,11 +799,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			return ti
 		case reflect.Map:
 			key := tc.checkExpression(expr.Index)
-			if !isAssignableTo(key, t.Type.Key()) {
-				if key.Nil() {
-					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type.Key()))
+			if err := isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(expr, "%s in map index", err))
 				}
-				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
+				panic(tc.errorf(expr, "%s", err))
 			}
 			return &TypeInfo{Type: t.Type.Elem()}
 		default:
@@ -1025,13 +1025,6 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			if t1.Untyped() && !t1.IsNumeric() || !t1.Untyped() && !t1.IsInteger() {
 				return nil, fmt.Errorf("shift of type %s", t1)
 			}
-			if t1.Untyped() {
-				c, err := representedBy(t1, intType)
-				if err != nil {
-					return nil, err
-				}
-				t1 = &TypeInfo{Type: intType, Constant: c, Properties: PropertyUntyped}
-			}
 		} else if !t1.IsInteger() {
 			return nil, fmt.Errorf("shift of type %s", t1)
 		}
@@ -1179,7 +1172,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 	}
 
 	if isComparison(op) {
-		if !isAssignableTo(t1, t2.Type) && !isAssignableTo(t2, t1.Type) {
+		if isAssignableTo(t1, expr1, t2.Type) != nil && isAssignableTo(t2, expr2, t1.Type) != nil {
 			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 		}
 		if op == ast.OperatorEqual || op == ast.OperatorNotEqual {
@@ -1265,7 +1258,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 			t := tc.checkExpression(expr.Args[1])
 			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-			if !isSpecialCase && !isAssignableTo(t, slice.Type) {
+			if !isSpecialCase && isAssignableTo(t, expr.Args[1], slice.Type) != nil {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
 			}
 		} else if len(expr.Args) > 1 {
@@ -1275,11 +1268,11 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					continue
 				}
 				t := tc.checkExpression(el)
-				if !isAssignableTo(t, elemType) {
-					if t == nil {
-						panic(tc.errorf(expr, "cannot use nil as type %s in append", elemType))
+				if err := isAssignableTo(t, el, elemType); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(expr, "%s in append", err))
 					}
-					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elemType))
+					panic(tc.errorf(expr, "%s", err))
 				}
 			}
 		}
@@ -1434,11 +1427,11 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 		}
 		keyType := t.Type.Key()
-		if !isAssignableTo(key, keyType) {
-			if key.Nil() {
-				panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
+		if err := isAssignableTo(key, expr.Args[1], keyType); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(expr, "%s in delete", err))
 			}
-			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key.ShortString(), t.Type.Key()))
+			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
 			_, err := convert(key, keyType)
@@ -1738,23 +1731,29 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		if isSpecialCase {
 			a := tc.TypeInfo[arg]
-			if !isAssignableTo(a, in) {
-				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
+			if err := isAssignableTo(a, arg, in); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
 			continue
 		}
 		a := tc.checkExpression(arg)
 		if i == lastIn && callIsVariadic {
-			if !isAssignableTo(a, reflect.SliceOf(in)) {
-				panic(tc.errorf(args[i], "cannot use %s (type %s) as type []%s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			if err := isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
 			continue
 		}
-		if !isAssignableTo(a, in) {
-			if a.Nil() {
-				panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+		if err := isAssignableTo(a, arg, in); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 			}
-			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
 			a.Value = reflect.Zero(in).Interface()
@@ -1785,7 +1784,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			currentIndex = -1
 			ti := tc.checkExpression(kv.Key)
 			if ti.IsConstant() {
-				c := ti.Constant.representedBy(reflect.Int)
+				c, _ := ti.Constant.representedBy(intType)
 				if c != nil {
 					currentIndex = int(c.int64())
 				}
@@ -1850,8 +1849,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.checkExpression(keyValue.Value)
-				if !isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(node, "%s in field value", err))
+					}
+					panic(tc.errorf(node, "%s", err))
 				}
 			}
 		case false: // struct with implicit fields.
@@ -1870,8 +1872,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				keyValue := &node.KeyValues[i]
 				valueTi := tc.checkExpression(keyValue.Value)
 				fieldTi := ti.Type.Field(i)
-				if !isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(node, "%s in field value", err))
+					}
+					panic(tc.errorf(node, "%s", err))
 				}
 				if !isExported(fieldTi.Name) {
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
@@ -1904,12 +1909,12 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(elemTi, ti.Type.Elem()) {
-				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
-				} else {
-					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
+			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+				k := ti.Type.Elem().Kind()
+				if _, ok := err.(invalidTypeInAssignment); ok && k == reflect.Slice || k == reflect.Array {
+					panic(tc.errorf(node, "%s in array or slice literal", err))
 				}
+				panic(tc.errorf(node, "%s", err))
 			}
 		}
 
@@ -1937,13 +1942,17 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(elemTi, ti.Type.Elem()) {
-				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
-				} else {
+			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+				k := ti.Type.Elem().Kind()
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					if k == reflect.Slice || k == reflect.Array {
+						panic(tc.errorf(node, "%s in array or slice literal", err))
+					}
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
+				panic(tc.errorf(node, "%s", err))
 			}
+
 		}
 
 	case reflect.Map:
@@ -1959,8 +1968,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				keyTi = tc.checkExpression(kv.Key)
 			}
-			if !isAssignableTo(keyTi, keyType) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), keyType))
+			if err := isAssignableTo(keyTi, kv.Key, keyType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(node, "%s in map key", err))
+				}
+				panic(tc.errorf(node, "%s", err))
 			}
 			if keyTi.IsConstant() {
 				key := typedValue(keyTi, keyType)
@@ -1975,8 +1987,11 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				valueTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(valueTi, elemType) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), elemType))
+			if err := isAssignableTo(valueTi, kv.Value, elemType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(node, "%s in map value", err))
+				}
+				panic(tc.errorf(node, "%s", err))
 			}
 		}
 
