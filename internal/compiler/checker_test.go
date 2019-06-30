@@ -650,15 +650,15 @@ var checkerStmts = map[string]string{
 	`const _ = uint(-1)`:                     `constant -1 overflows uint`,
 	`const _ = int(3.14)`:                    `constant 3.14 truncated to integer`,
 	`const c = 15 / 4.0; const Θ float64 = 3/2; const ic = complex(0, c)`: ok,
-	`const d = 1 << 3.0`: ok,
-	`const e = 1.0 << 3`: ok,
-	//`const f = int32(1) << 33`:                   `constant 8589934592 overflows int32`, // TODO.
-	//`const g = float64(2) >> 1`:                  `invalid operation: float64(2) >> 1 (shift of type float64)`, // TODO.
+	`const d = 1 << 3.0`:        ok,
+	`const e = 1.0 << 3`:        ok,
+	`const f = int32(1) << 33`:  `constant 8589934592 overflows int32`,
+	`const g = float64(2) >> 1`: `invalid operation: float64(2) >> 1 (shift of type float64)`,
 	//`const h = "foo" > "bar"`:                ok, // TODO.
-	//`const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok, // TODO.
-	`const Huge = 1 << 100`:                           ok,
-	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`: ok,
-	`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`:      ok,
+	`const Huge = 1 << 100; const Four int8 = Huge >> 98`: ok,
+	`const Huge = 1 << 100`:                               ok,
+	`const Θ float64 = 3/2; const iΘ = complex(0, Θ)`:     ok,
+	`const Σ = 1 - 0.707i; const Δ = Σ + 2.0e-4`:          ok,
 	//`const Φ = iota*1i - 1/1i`:                   ok, // TODO.
 
 	// Identifiers.

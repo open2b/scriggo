@@ -1022,23 +1022,25 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 			return nil, errors.New("cannot convert nil to type uint")
 		}
 		if t1.IsConstant() {
-			if !t1.IsNumeric() {
+			if t1.Untyped() && !t1.IsNumeric() || !t1.Untyped() && !t1.IsInteger() {
 				return nil, fmt.Errorf("shift of type %s", t1)
 			}
-			c, err := representedBy(t1, intType)
-			if err != nil {
-				return nil, err
+			if t1.Untyped() {
+				c, err := representedBy(t1, intType)
+				if err != nil {
+					return nil, err
+				}
+				t1 = &TypeInfo{Type: intType, Constant: c, Properties: PropertyUntyped}
 			}
-			t1.Constant = c
 		} else if !t1.IsInteger() {
 			return nil, fmt.Errorf("shift of type %s", t1)
 		}
 		var c constant
+		var err error
 		if t2.IsConstant() {
 			if !t2.IsNumeric() {
 				return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
 			}
-			var err error
 			if t1.IsConstant() {
 				c, err = t1.Constant.binaryOp(op, t2.Constant)
 			} else {
@@ -1058,10 +1060,19 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		} else if !t2.IsInteger() {
 			return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
 		}
+		ti := &TypeInfo{Type: t1.Type}
 		if t1.IsConstant() && t2.IsConstant() {
-			return &TypeInfo{Type: t1.Type, Constant: c, Properties: t1.Properties}, nil
+			ti.Constant = c
+			if t1.Untyped() {
+				ti.Properties = PropertyUntyped
+			} else {
+				ti.Constant, err = convert(ti, ti.Type)
+				if err != nil {
+					return nil, fmt.Errorf("constant %v overflows %s", c, t1)
+				}
+			}
 		}
-		return &TypeInfo{Type: t1.Type}, nil
+		return ti, nil
 	}
 
 	if t1.Nil() || t2.Nil() {

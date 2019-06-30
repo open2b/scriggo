@@ -101,9 +101,6 @@ func (ti *TypeInfo) String() string {
 	if ti.Untyped() {
 		s = "untyped "
 	}
-	if ti.IsConstant() && ti.Type == runeType {
-		return s + "rune"
-	}
 	return s + ti.Type.String()
 }
 
