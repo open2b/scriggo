@@ -1340,10 +1340,10 @@ type Operation int8
 const (
 	OpNone Operation = iota
 
-	OpAddInt
 	OpAddInt8
 	OpAddInt16
 	OpAddInt32
+	OpAddInt64
 	OpAddFloat32
 	OpAddFloat64
 
@@ -1391,10 +1391,10 @@ const (
 
 	OpDelete
 
-	OpDivInt
 	OpDivInt8
 	OpDivInt16
 	OpDivInt32
+	OpDivInt64
 	OpDivUint8
 	OpDivUint16
 	OpDivUint32
@@ -1445,10 +1445,10 @@ const (
 
 	OpMove
 
-	OpMulInt
 	OpMulInt8
 	OpMulInt16
 	OpMulInt32
+	OpMulInt64
 	OpMulFloat32
 	OpMulFloat64
 
@@ -1468,10 +1468,10 @@ const (
 
 	OpRecover
 
-	OpRemInt
 	OpRemInt8
 	OpRemInt16
 	OpRemInt32
+	OpRemInt64
 	OpRemUint8
 	OpRemUint16
 	OpRemUint32
@@ -1499,17 +1499,17 @@ const (
 
 	OpStringIndex
 
-	OpSubInt
 	OpSubInt8
 	OpSubInt16
 	OpSubInt32
+	OpSubInt64
 	OpSubFloat32
 	OpSubFloat64
 
-	OpSubInvInt
 	OpSubInvInt8
 	OpSubInvInt16
 	OpSubInvInt32
+	OpSubInvInt64
 	OpSubInvFloat32
 	OpSubInvFloat64
 

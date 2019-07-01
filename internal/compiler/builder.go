@@ -461,7 +461,7 @@ func (builder *functionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = vm.OpAddInt
+		op = vm.OpAddInt64
 	case reflect.Int32, reflect.Uint32:
 		op = vm.OpAddInt32
 	case reflect.Int16, reflect.Uint16:
@@ -731,7 +731,7 @@ func (builder *functionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
-		op = vm.OpDivInt
+		op = vm.OpDivInt64
 	case reflect.Int32:
 		op = vm.OpDivInt32
 	case reflect.Int16:
@@ -1140,7 +1140,7 @@ func (builder *functionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = vm.OpMulInt
+		op = vm.OpMulInt64
 	case reflect.Int32, reflect.Uint32:
 		op = vm.OpMulInt32
 	case reflect.Int16, reflect.Uint16:
@@ -1241,7 +1241,7 @@ func (builder *functionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64:
-		op = vm.OpRemInt
+		op = vm.OpRemInt64
 	case reflect.Int32:
 		op = vm.OpRemInt32
 	case reflect.Int16:
@@ -1398,7 +1398,7 @@ func (builder *functionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = vm.OpSubInt
+		op = vm.OpSubInt64
 	case reflect.Int32, reflect.Uint32:
 		op = vm.OpSubInt32
 	case reflect.Int16, reflect.Uint16:
@@ -1426,7 +1426,7 @@ func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-		op = vm.OpSubInvInt
+		op = vm.OpSubInvInt64
 	case reflect.Int32, reflect.Uint32:
 		op = vm.OpSubInvInt32
 	case reflect.Int16, reflect.Uint16:
