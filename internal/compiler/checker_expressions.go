@@ -1561,7 +1561,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// TODO(Gianluca): add SetValue.
 		switch len(expr.Args) {
 		case 0:
-			panic(tc.errorf(expr, "missing argument to real: %s()", ident.Name))
+			panic(tc.errorf(expr, "missing argument to %s: %s()", ident.Name, ident.Name))
 		case 1:
 		default:
 			panic(tc.errorf(expr, "too many arguments to %s: %s", ident.Name, expr))
@@ -1570,7 +1570,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		ti := &TypeInfo{Type: float64Type}
 		if t.IsUntypedConstant() {
 			if !isNumeric(t.Type.Kind()) {
-				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr, t.Type, ident.Name))
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr.Args[0], t, ident.Name))
 			}
 			ti.Properties = PropertyUntyped
 		} else {

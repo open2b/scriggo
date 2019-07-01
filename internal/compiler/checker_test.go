@@ -1289,7 +1289,7 @@ var checkerStmts = map[string]string{
 	`_ = real(true)`:                    `invalid argument true (type untyped bool) for real`,
 	`_ = real(float32(3.7))`:            `invalid argument float32(3.7) (type float32) for real`,
 	`a := 5i; _ = real(a)`:              ok,
-	`a := complex64(3, 2); _ = real(a)`: ok,
+	`a := complex64(3+2i); _ = real(a)`: ok,
 
 	// Builtin function 'imag'.
 	`_ = imag()`:                        `missing argument to imag: imag()`,
@@ -1298,7 +1298,7 @@ var checkerStmts = map[string]string{
 	`_ = imag(true)`:                    `invalid argument true (type untyped bool) for imag`,
 	`_ = imag(float32(3.7))`:            `invalid argument float32(3.7) (type float32) for imag`,
 	`a := 5i; _ = imag(a)`:              ok,
-	`a := complex64(3, 2); _ = imag(a)`: ok,
+	`a := complex64(3+2i); _ = imag(a)`: ok,
 
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
