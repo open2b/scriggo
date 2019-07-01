@@ -153,3 +153,38 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 	k := ti.Type.Kind()
 	return reflect.Uint <= k && k <= reflect.Uint64
 }
+
+// SetValue sets ti value, whenever possibile.
+// TODO(Gianluca): review this doc.
+func (ti *TypeInfo) SetValue(t reflect.Type) {
+	if ti.IsConstant() {
+		typ := t
+		if t == nil || t.Kind() == reflect.Interface {
+			typ = ti.Type
+		}
+		v := reflect.New(typ).Elem()
+		switch typ.Kind() {
+		case reflect.Bool:
+			v.SetBool(ti.Constant.bool())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			v.SetInt(ti.Constant.int64())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			v.SetUint(ti.Constant.uint64())
+		case reflect.Float32, reflect.Float64:
+			v.SetFloat(ti.Constant.float64())
+		case reflect.Complex64, reflect.Complex128:
+			v.SetComplex(ti.Constant.complex128())
+		case reflect.String:
+			v.SetString(ti.Constant.string())
+		}
+		ti.value = v.Interface()
+		return
+	}
+	if ti.Nil() {
+		if t.Kind() != reflect.Interface {
+			v := reflect.New(t).Elem()
+			ti.value = v.Interface()
+			return
+		}
+	}
+}

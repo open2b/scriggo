@@ -181,6 +181,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
+			ti.SetValue(nil)
 			tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
@@ -208,6 +209,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if ti.Type.Kind() != reflect.Bool {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, ti.ShortString()))
 				}
+				ti.SetValue(nil)
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
@@ -226,6 +228,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if ti.Nil() {
 				panic(tc.errorf(node, "cannot range over nil"))
 			}
+			ti.SetValue(nil)
 			maxVars := 2
 			vars := node.Assignment.Variables
 			var typ1, typ2 reflect.Type
@@ -326,6 +329,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if ti.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
+				ti.SetValue(nil)
 				typ = ti.Type
 			}
 			// Checks the cases.
@@ -362,6 +366,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 							positionOf[value] = ex.Pos()
 						}
 					}
+					t.SetValue(typ)
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				hasFallthrough = hasFallthrough || cas.Fallthrough
@@ -486,7 +491,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
-			tc.checkExpression(node.Expr)
+			ti := tc.checkExpression(node.Expr)
+			ti.SetValue(nil)
 			tc.terminating = false
 
 		case *ast.ShowMacro:
@@ -571,15 +577,17 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
+			tiv.SetValue(elemType)
 
 		case *ast.UnaryOperator:
-			tc.checkExpression(node)
+			ti := tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
 				if !tc.opts.IsScript || !tc.opts.IsTemplate || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
+			ti.SetValue(nil)
 
 		case *ast.Goto:
 			tc.gotos = append(tc.gotos, node.Label.Name)
@@ -728,6 +736,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			}
 			panic(tc.errorf(node, "%s", err))
 		}
+		ti.SetValue(typ)
 	}
 
 	return

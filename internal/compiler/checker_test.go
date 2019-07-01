@@ -1499,17 +1499,18 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 			return fmt.Errorf("unexpected constant %v, expecting %v", t2.Constant, t1.Constant)
 		}
 	}
-	if t1.value == nil && t2.value != nil {
-		return fmt.Errorf("unexpected value")
-	}
-	if t1.value != nil && t2.value == nil {
-		return fmt.Errorf("unexpected nil value")
-	}
-	if t1.value != nil {
-		if !reflect.DeepEqual(t1.value, t2.value) {
-			return fmt.Errorf("unexpected value %v, expecting %v", t2.value, t1.value)
-		}
-	}
+	// TODO(Gianluca): value is an internal field, should we test it?
+	// if t1.value == nil && t2.value != nil {
+	// 	return fmt.Errorf("unexpected value")
+	// }
+	// if t1.value != nil && t2.value == nil {
+	// 	return fmt.Errorf("unexpected nil value")
+	// }
+	// if t1.value != nil {
+	// 	if !reflect.DeepEqual(t1.value, t2.value) {
+	// 		return fmt.Errorf("unexpected value %v, expecting %v", t2.value, t1.value)
+	// 	}
+	// }
 	return nil
 }
 

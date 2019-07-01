@@ -52,26 +52,31 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]].SetValue(typ.Type)
 				}
 			case k == reflect.String:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]].SetValue(typ.Type)
 				}
 			case k == reflect.Bool:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyUntyped}
+					tc.TypeInfo[n.Rhs[i]].SetValue(typ.Type)
 				}
 			case k == reflect.Interface:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type}
+					tc.TypeInfo[n.Rhs[i]].SetValue(typ.Type)
 				}
 			default:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
 					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
+					tc.TypeInfo[n.Rhs[i]].SetValue(typ.Type)
 				}
 			}
 			return
@@ -306,6 +311,9 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			}
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
+		valueTi.SetValue(typ.Type)
+	} else {
+		valueTi.SetValue(nil)
 	}
 
 	switch v := variable.(type) {
@@ -363,6 +371,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
 			panic(tc.errorf(value, "%s in assignment", err))
 		}
+		valueTi.SetValue(variableTi.Type)
 		tc.TypeInfo[v] = variableTi
 
 	case *ast.Index:
@@ -382,6 +391,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
+		valueTi.SetValue(variableTi.Type)
 		return ""
 
 	case *ast.Selector:
@@ -397,6 +407,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
+		valueTi.SetValue(variableTi.Type)
 		return ""
 
 	case *ast.UnaryOperator:
@@ -409,6 +420,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
 				panic(tc.errorf(node, "%s in assignment", err))
 			}
+			valueTi.SetValue(variableTi.Type)
 			return ""
 		}
 		panic(tc.errorf(node, "cannot assign to %v", variable))

@@ -568,8 +568,8 @@ func (e *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Typ
 func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 
 	if ti, ok := e.typeInfos[expr]; ok {
-		typ := ti.Type
 		if ti.value != nil && !ti.IsPredefined() {
+			typ := reflect.TypeOf(ti.value)
 			if reg == 0 {
 				return
 			}
@@ -579,6 +579,44 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 			v := reflect.ValueOf(e.typeInfos[expr].value)
 			switch v.Kind() {
+			case reflect.Bool:
+				b := int64(0)
+				if v.Bool() {
+					b = 1
+				}
+				c := e.fb.MakeIntConstant(b)
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Int,
+				reflect.Int8,
+				reflect.Int16,
+				reflect.Int32,
+				reflect.Int64:
+				c := e.fb.MakeIntConstant(v.Int())
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Uint,
+				reflect.Uint8,
+				reflect.Uint16,
+				reflect.Uint32,
+				reflect.Uint64:
+				c := e.fb.MakeIntConstant(int64(v.Uint()))
+				e.fb.LoadNumber(vm.TypeInt, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Uintptr:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Float32,
+				reflect.Float64:
+				c := e.fb.MakeFloatConstant(v.Float())
+				e.fb.LoadNumber(vm.TypeFloat, c, reg)
+				e.changeRegister(false, reg, reg, typ, dstType)
+			case reflect.Complex64:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.Complex128:
+				panic("not implemented") // TODO(Gianluca).
+			case reflect.String:
+				c := e.fb.MakeStringConstant(v.String())
+				e.changeRegister(true, c, reg, typ, dstType)
 			case reflect.Interface:
 				panic("not implemented") // TODO(Gianluca).
 			case reflect.Slice,
@@ -594,60 +632,6 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				panic("not implemented") // TODO(Gianluca).
 			default:
 				panic(fmt.Errorf("unsupported value type %T for expr %s", e.typeInfos[expr].value, expr))
-			}
-			return
-		}
-
-		if e.typeInfos[expr].IsConstant() {
-			if reg == 0 {
-				return
-			}
-			if out, k, ok := e.quickEmitExpr(expr, typ); ok {
-				e.changeRegister(k, out, reg, typ, dstType)
-				return
-			}
-			v := e.typeInfos[expr].Constant
-			switch typ.Kind() {
-			case reflect.Bool:
-				b := int64(0)
-				if v.bool() {
-					b = 1
-				}
-				c := e.fb.MakeIntConstant(b)
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Int,
-				reflect.Int8,
-				reflect.Int16,
-				reflect.Int32,
-				reflect.Int64:
-				c := e.fb.MakeIntConstant(v.int64())
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Uint,
-				reflect.Uint8,
-				reflect.Uint16,
-				reflect.Uint32,
-				reflect.Uint64:
-				c := e.fb.MakeIntConstant(int64(v.uint64()))
-				e.fb.LoadNumber(vm.TypeInt, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Uintptr:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Float32,
-				reflect.Float64:
-				c := e.fb.MakeFloatConstant(v.float64())
-				e.fb.LoadNumber(vm.TypeFloat, c, reg)
-				e.changeRegister(false, reg, reg, typ, dstType)
-			case reflect.Complex64:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.Complex128:
-				panic("not implemented") // TODO(Gianluca).
-			case reflect.String:
-				c := e.fb.MakeStringConstant(v.string())
-				e.changeRegister(true, c, reg, typ, dstType)
-			default:
-				panic(fmt.Errorf("unsupported constant type %s for expr %v", typ, expr))
 			}
 			return
 		}
@@ -1144,7 +1128,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 		e.fb.Slice(klow, khigh, kmax, src, reg, low, high, max)
 
 	default:
-		panic(fmt.Sprintf("emitExpr currently does not support %T nodes", expr))
+		panic(fmt.Sprintf("emitExpr currently does not support %T nodes (expr: %s)", expr, expr))
 
 	}
 
