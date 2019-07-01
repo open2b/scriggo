@@ -258,7 +258,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		vm.OpRemInt64, vm.OpRemInt8, vm.OpRemInt16, vm.OpRemInt32, vm.OpRemUint8, vm.OpRemUint16, vm.OpRemUint32, vm.OpRemUint64,
 		vm.OpSubInt64, vm.OpSubInt8, vm.OpSubInt16, vm.OpSubInt32,
 		vm.OpSubInvInt64, vm.OpSubInvInt8, vm.OpSubInvInt16, vm.OpSubInvInt32,
-		vm.OpLeftShift, vm.OpLeftShift8, vm.OpLeftShift16, vm.OpLeftShift32,
+		vm.OpLeftShift64, vm.OpLeftShift8, vm.OpLeftShift16, vm.OpLeftShift32,
 		vm.OpRightShift, vm.OpRightShiftU:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -762,7 +762,7 @@ var operationName = [...]string{
 
 	vm.OpIndex: "Index",
 
-	vm.OpLeftShift:   "LeftShift",
+	vm.OpLeftShift64: "LeftShift",
 	vm.OpLeftShift8:  "LeftShift8",
 	vm.OpLeftShift16: "LeftShift16",
 	vm.OpLeftShift32: "LeftShift32",

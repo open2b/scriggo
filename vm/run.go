@@ -639,14 +639,14 @@ func (vm *VM) run() (uint32, bool) {
 			vm.setFromReflectValue(c, v)
 
 		// LeftShift
-		case OpLeftShift, -OpLeftShift:
-			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
 		case OpLeftShift8, -OpLeftShift8:
 			vm.setInt(c, int64(int8(vm.int(a))<<uint(vm.intk(b, op < 0))))
 		case OpLeftShift16, -OpLeftShift16:
 			vm.setInt(c, int64(int16(vm.int(a))<<uint(vm.intk(b, op < 0))))
 		case OpLeftShift32, -OpLeftShift32:
 			vm.setInt(c, int64(int32(vm.int(a))<<uint(vm.intk(b, op < 0))))
+		case OpLeftShift64, -OpLeftShift64:
+			vm.setInt(c, vm.int(a)<<uint(vm.intk(b, op < 0)))
 
 		// Len
 		case OpLen:

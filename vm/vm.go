@@ -1422,10 +1422,10 @@ const (
 
 	OpIndex
 
-	OpLeftShift
 	OpLeftShift8
 	OpLeftShift16
 	OpLeftShift32
+	OpLeftShift64
 
 	OpLen
 
