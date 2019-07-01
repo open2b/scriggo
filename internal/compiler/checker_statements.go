@@ -96,7 +96,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				importedPkg.Name = predefinedPkg.Name
 				if node.Ident == nil {
-					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
 				} else {
 					switch node.Ident.Name {
@@ -108,7 +108,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[node.Ident.Name] = nil
 					}
 				}
@@ -153,7 +153,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						default:
 							tc.filePackageBlock[node.Ident.Name] = scopeElement{
 								t: &TypeInfo{
-									Value:      importedPkg,
+									value:      importedPkg,
 									Properties: PropertyIsPackage,
 								},
 							}

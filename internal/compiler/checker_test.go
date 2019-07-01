@@ -1461,15 +1461,15 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 			return fmt.Errorf("unexpected constant %v, expecting %v", t2.Constant, t1.Constant)
 		}
 	}
-	if t1.Value == nil && t2.Value != nil {
+	if t1.value == nil && t2.value != nil {
 		return fmt.Errorf("unexpected value")
 	}
-	if t1.Value != nil && t2.Value == nil {
+	if t1.value != nil && t2.value == nil {
 		return fmt.Errorf("unexpected nil value")
 	}
-	if t1.Value != nil {
-		if !reflect.DeepEqual(t1.Value, t2.Value) {
-			return fmt.Errorf("unexpected value %v, expecting %v", t2.Value, t1.Value)
+	if t1.value != nil {
+		if !reflect.DeepEqual(t1.value, t2.value) {
+			return fmt.Errorf("unexpected value %v, expecting %v", t2.value, t1.value)
 		}
 	}
 	return nil
@@ -1504,12 +1504,12 @@ func dumpTypeInfo(ti *TypeInfo) string {
 		s += " " + ti.Constant.String()
 	}
 	s += "\n\tValue:"
-	if ti.Value != nil {
-		switch v := ti.Value.(type) {
+	if ti.value != nil {
+		switch v := ti.value.(type) {
 		case *ast.Package:
 			s += fmt.Sprintf(" %s (package)", v.Name)
 		default:
-			s += fmt.Sprintf(" %v (%T)", ti.Value, ti.Value)
+			s += fmt.Sprintf(" %v (%T)", ti.value, ti.value)
 		}
 	}
 	return s

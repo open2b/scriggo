@@ -877,7 +877,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 					}
-					pkg := ti.Value.(*PackageInfo)
+					pkg := ti.value.(*PackageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
 						// If identifiers is a ShowMacro identifier, first needs to check if
@@ -1756,7 +1756,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			a.Value = reflect.Zero(in).Interface()
+			a.value = reflect.Zero(in).Interface()
 			tc.TypeInfo[expr.Args[i]].Type = in
 		}
 	}

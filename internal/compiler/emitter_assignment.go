@@ -185,7 +185,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else if ti := e.typeInfos[v]; ti.IsPredefined() {
-						index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, v.Name)
+						index := e.predefVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else {
 						reg := e.fb.ScopeLookup(v.Name)
@@ -216,7 +216,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				if varIndex, ok := e.pkgVariables[e.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(varIndex), 0)
 				} else if ti := e.typeInfos[v]; ti.IsPredefined() {
-					varRv := ti.Value.(reflect.Value)
+					varRv := ti.value.(reflect.Value)
 					index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Ident)
 					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
 				} else {
@@ -260,7 +260,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			staticType := e.typeInfos[v].Type
 			// TODO(Gianluca): support predefined variables in other cases.
 			if ti := e.typeInfos[v]; ti.IsPredefined() {
-				varRv := ti.Value.(reflect.Value)
+				varRv := ti.value.(reflect.Value)
 				index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Name)
 				addr = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
 				valueType = ti.Type

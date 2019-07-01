@@ -28,9 +28,9 @@ type TypeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        Properties   // Properties.
 	Constant          constant     // Constant value.
-	Value             interface{}  // Value; for packages has type *Package.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
 	MethodType        MethodType   // Method type.
+	value             interface{}  // value; for packages has type *Package.
 }
 
 // MethodType represents the type of a method, intended as a combination of a

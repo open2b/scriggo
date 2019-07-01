@@ -313,7 +313,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 				methExpr := reflect.MakeFunc(reflect.FuncOf(in, out, method.Type.IsVariadic()), f)
 				ti := &TypeInfo{
 					Type:       removeEnvArg(methExpr.Type(), false),
-					Value:      methExpr,
+					value:      methExpr,
 					Properties: PropertyIsPredefined,
 				}
 				return ti, receiverNoTransform, true
@@ -324,7 +324,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		if method, ok := t.Type.MethodByName(name); ok {
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type, true),
-				Value:      method.Func,
+				value:      method.Func,
 				Properties: PropertyIsPredefined,
 			}, receiverNoTransform, true
 		}
@@ -336,7 +336,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		if method, ok := t.Type.MethodByName(name); ok {
 			ti := &TypeInfo{
 				Type:       removeEnvArg(method.Type, true),
-				Value:      name,
+				value:      name,
 				MethodType: MethodValueInterface,
 			}
 			return ti, receiverNoTransform, true
@@ -350,7 +350,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 	if method.IsValid() {
 		ti := &TypeInfo{
 			Type:       removeEnvArg(method.Type(), false),
-			Value:      methodExplicitRcvr.Func,
+			value:      methodExplicitRcvr.Func,
 			Properties: PropertyIsPredefined,
 			MethodType: MethodValueConcrete,
 		}
@@ -363,7 +363,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 			if method, methodOnT := t.Type.Elem().MethodByName(name); methodOnT {
 				// Needs indirection: x.m -> (*x).m
 				ti.Type = removeEnvArg(reflect.Zero(t.Type).MethodByName(name).Type(), false)
-				ti.Value = method.Func
+				ti.value = method.Func
 				return ti, receiverAddIndirect, true
 			}
 		}
@@ -375,7 +375,7 @@ func methodByName(t *TypeInfo, name string) (*TypeInfo, receiverTransformation, 
 		if method.IsValid() {
 			return &TypeInfo{
 				Type:       removeEnvArg(method.Type(), false),
-				Value:      methodExplicitRcvr.Func,
+				value:      methodExplicitRcvr.Func,
 				Properties: PropertyIsPredefined,
 				MethodType: MethodValueConcrete,
 			}, receiverAddAddress, true

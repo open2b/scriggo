@@ -441,7 +441,7 @@ func (e *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		case *ast.Selector:
 			name = f.Ident
 		}
-		index := e.predefFuncIndex(funcTypeInfo.Value.(reflect.Value), funcTypeInfo.PredefPackageName, name)
+		index := e.predefFuncIndex(funcTypeInfo.value.(reflect.Value), funcTypeInfo.PredefPackageName, name)
 		if funcType.IsVariadic() {
 			numVar := len(call.Args) - (funcType.NumIn() - 1)
 			e.fb.CallPredefined(index, int8(numVar), stackShift)
@@ -514,12 +514,12 @@ func (e *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Typ
 	if ti.IsPredefined() {
 		// Predefined function.
 		if ti.Type.Kind() == reflect.Func {
-			index := e.predefFuncIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
+			index := e.predefFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 			e.fb.GetFunc(true, index, reg)
 			return
 		}
 		// Predefined variable.
-		index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Ident)
+		index := e.predefVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 		e.fb.GetVar(int(index), reg)
 		return
 	}
@@ -569,7 +569,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 
 	if ti, ok := e.typeInfos[expr]; ok {
 		typ := ti.Type
-		if ti.Value != nil && !ti.IsPredefined() {
+		if ti.value != nil && !ti.IsPredefined() {
 			if reg == 0 {
 				return
 			}
@@ -577,7 +577,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 				e.changeRegister(k, out, reg, typ, dstType)
 				return
 			}
-			v := reflect.ValueOf(e.typeInfos[expr].Value)
+			v := reflect.ValueOf(e.typeInfos[expr].value)
 			switch v.Kind() {
 			case reflect.Interface:
 				panic("not implemented") // TODO(Gianluca).
@@ -593,7 +593,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			case reflect.UnsafePointer:
 				panic("not implemented") // TODO(Gianluca).
 			default:
-				panic(fmt.Errorf("unsupported value type %T for expr %s", e.typeInfos[expr].Value, expr))
+				panic(fmt.Errorf("unsupported value type %T for expr %s", e.typeInfos[expr].value, expr))
 			}
 			return
 		}
@@ -1064,7 +1064,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			} else {
 				// Predefined variable.
 				if ti := e.typeInfos[expr]; ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
-					index := e.predefVarIndex(ti.Value.(reflect.Value), ti.PredefPackageName, expr.Name)
+					index := e.predefVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
 					if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
 						e.fb.GetVar(int(index), reg)
 					} else {

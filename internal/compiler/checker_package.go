@@ -30,7 +30,7 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
-				Value:             reflect.ValueOf(value),
+				value:             reflect.ValueOf(value),
 				Properties:        PropertyAddressable | PropertyIsPredefined,
 				PredefPackageName: gp.Name,
 			}}
@@ -40,7 +40,7 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              removeEnvArg(typ, false),
-				Value:             reflect.ValueOf(value),
+				value:             reflect.ValueOf(value),
 				Properties:        PropertyIsPredefined,
 				PredefPackageName: gp.Name,
 			}}
@@ -444,13 +444,13 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}
 			} else {
 				if d.Ident == nil {
-					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
 				} else {
 					switch d.Ident.Name {
@@ -462,7 +462,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}

@@ -71,7 +71,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			default:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Value: reflect.Zero(typ.Type).Interface()}
+					tc.TypeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
 				}
 			}
 			return
