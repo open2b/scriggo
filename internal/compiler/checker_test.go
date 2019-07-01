@@ -317,6 +317,7 @@ var checkerExprs = []struct {
 	{`uint32(5)`, tiUint32Const(5), nil},
 	{`uint64(5)`, tiUint64Const(5), nil},
 	{`uint64(9223372036854775808)`, tiUint64Const(9223372036854775808), nil},
+	{`uint(9223372036854775807/2)`, tiUintConst(9223372036854775807 / 2), nil},
 	{`float32(5)`, tiFloat32Const(float32(5)), nil},
 	{`float32(5.3)`, tiFloat32Const(float32(5.3)), nil},
 	{`float32(9223372036854775295)`, tiFloat32Const(float32(9223372036854775295)), nil},

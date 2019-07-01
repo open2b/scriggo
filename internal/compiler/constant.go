@@ -767,12 +767,24 @@ func (c1 floatConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 }
 
 func (c1 floatConst) representedBy(typ reflect.Type) (constant, error) {
+	kind := typ.Kind()
+	if reflect.Int <= kind && kind <= reflect.Int64 {
+		if n, acc := c1.f.Int64(); acc == big.Exact {
+			return int64Const(n).representedBy(typ)
+		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
+	if reflect.Uint <= kind && kind <= reflect.Uint64 {
+		if n, acc := c1.f.Uint64(); acc == big.Exact {
+			if n <= maxInt64 {
+				return int64Const(n).representedBy(typ)
+			}
+			return newIntConst(0).setUint64(n).representedBy(typ)
+		}
+		return nil, fmt.Errorf("constant %s truncated to integer", c1)
+	}
 	if f, _ := c1.f.Float64(); !math.IsInf(f, 1) {
 		return float64Const(f).representedBy(typ)
-	}
-	kind := typ.Kind()
-	if reflect.Int <= kind && kind <= reflect.Uint64 {
-		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	}
 	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
 		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
@@ -887,17 +899,10 @@ func (c1 ratConst) representedBy(typ reflect.Type) (constant, error) {
 	if c1.r.IsInt() {
 		return intConst{i: c1.r.Num()}.representedBy(typ)
 	}
-	if f, _ := c1.r.Float64(); !math.IsInf(f, 1) {
+	if f, ok := c1.r.Float64(); ok {
 		return float64Const(f).representedBy(typ)
 	}
-	kind := typ.Kind()
-	if reflect.Int <= kind && kind <= reflect.Uint64 {
-		return nil, fmt.Errorf("constant %s truncated to integer", c1)
-	}
-	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
-		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
-	}
-	return nil, errNotRepresentable
+	return newFloatConst(0).setRat(c1.r).representedBy(typ)
 }
 
 func (c1 ratConst) zero() bool {
