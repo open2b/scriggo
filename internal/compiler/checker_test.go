@@ -456,6 +456,26 @@ var checkerExprs = []struct {
 	{`complex(0i, 2)`, tiUntypedComplexConst("2i"), nil},
 	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
 	{`complex(0.0i, 0.0i)`, tiUntypedComplexConst("0"), nil},
+
+	// real
+	{`real(0)`, tiUntypedFloatConst("0"), nil},
+	{`real(289)`, tiUntypedFloatConst("289"), nil},
+	{`real(1i)`, tiUntypedFloatConst("0"), nil},
+	{`real(3+5i)`, tiUntypedFloatConst("3"), nil},
+	{`real(complex128(3+5i))`, tiFloat64Const(3), nil},
+	{`real(complex64(3+5i))`, tiFloat32Const(3), nil},
+	{`imag(c)`, tiFloat64(), map[string]*TypeInfo{"c": tiAddrComplex128()}},
+	{`imag(c)`, tiFloat32(), map[string]*TypeInfo{"c": tiAddrComplex64()}},
+
+	// imag
+	{`imag(0)`, tiUntypedFloatConst("0"), nil},
+	{`imag(289)`, tiUntypedFloatConst("0"), nil},
+	{`imag(1i)`, tiUntypedFloatConst("1"), nil},
+	{`imag(3+5i)`, tiUntypedFloatConst("5"), nil},
+	{`imag(complex128(3+5i))`, tiFloat64Const(5), nil},
+	{`imag(complex64(3+5i))`, tiFloat32Const(5), nil},
+	{`imag(c)`, tiFloat64(), map[string]*TypeInfo{"c": tiAddrComplex128()}},
+	{`imag(c)`, tiFloat32(), map[string]*TypeInfo{"c": tiAddrComplex64()}},
 }
 
 func TestCheckerExpressions(t *testing.T) {
@@ -1262,6 +1282,24 @@ var checkerStmts = map[string]string{
 	`_ = complex(float32(1), float32(2))`: ok,
 	`_ = complex(float64(1), float64(2))`: ok,
 
+	// Builtin function 'real'.
+	`_ = real()`:                        `missing argument to real: real()`,
+	`_ = real(1)`:                       ok,
+	`_ = real(1, 2)`:                    `too many arguments to real: real(1, 2)`,
+	`_ = real(true)`:                    `invalid argument true (type untyped bool) for real`,
+	`_ = real(float32(3.7))`:            `invalid argument float32(3.7) (type float32) for real`,
+	`a := 5i; _ = real(a)`:              ok,
+	`a := complex64(3, 2); _ = real(a)`: ok,
+
+	// Builtin function 'imag'.
+	`_ = imag()`:                        `missing argument to imag: imag()`,
+	`_ = imag(1)`:                       ok,
+	`_ = imag(1, 2)`:                    `too many arguments to imag: imag(1, 2)`,
+	`_ = imag(true)`:                    `invalid argument true (type untyped bool) for imag`,
+	`_ = imag(float32(3.7))`:            `invalid argument float32(3.7) (type float32) for imag`,
+	`a := 5i; _ = imag(a)`:              ok,
+	`a := complex64(3, 2); _ = imag(a)`: ok,
+
 	// Type definitions.
 	`type  ( T1 int ; T2 string; T3 map[T1]T2 ) ; _ = T3{0:"a"}`: ok,
 	`type T int            ; var _ T = T(0)`:                     ok,
@@ -1592,6 +1630,14 @@ func tiUntypedComplexConst(lit string) *TypeInfo {
 
 func tiComplex64() *TypeInfo  { return &TypeInfo{Type: complex64Type} }
 func tiComplex128() *TypeInfo { return &TypeInfo{Type: complex128Type} }
+
+func tiAddrComplex128() *TypeInfo {
+	return &TypeInfo{Type: complex128Type, Properties: PropertyAddressable}
+}
+
+func tiAddrComplex64() *TypeInfo {
+	return &TypeInfo{Type: complex64Type, Properties: PropertyAddressable}
+}
 
 func tiComplex64Const(n complex64) *TypeInfo {
 	return &TypeInfo{

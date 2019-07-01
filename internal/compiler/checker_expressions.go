@@ -1554,29 +1554,27 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		default:
 			panic(tc.errorf(expr, "too many arguments to %s: %s", ident.Name, expr))
 		}
-		var ti *TypeInfo
 		t := tc.checkExpression(expr.Args[0])
-		var c constant
-		if t.IsConstant() {
-			if ident.Name == "real" {
-				c = t.Constant.real()
-			} else {
-				c = t.Constant.imag()
-			}
-		}
+		ti := &TypeInfo{Type: float64Type}
 		if t.IsUntypedConstant() {
 			if !isNumeric(t.Type.Kind()) {
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr, t.Type, ident.Name))
 			}
-			ti = &TypeInfo{Type: complex128Type, Constant: c, Properties: ti.Properties}
+			ti.Properties = PropertyUntyped
 		} else {
 			switch t.Type.Kind() {
 			case reflect.Complex64:
-				ti = &TypeInfo{Type: complex128Type, Constant: c, Properties: ti.Properties}
+				ti.Type = float32Type
 			case reflect.Complex128:
-				ti = &TypeInfo{Type: complex64Type, Constant: c, Properties: ti.Properties}
 			default:
 				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr.Args[0], t.Type, ident.Name))
+			}
+		}
+		if t.IsConstant() {
+			if ident.Name == "real" {
+				ti.Constant = t.Constant.real()
+			} else {
+				ti.Constant = t.Constant.imag()
 			}
 		}
 		return []*TypeInfo{ti}
