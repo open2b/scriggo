@@ -1223,13 +1223,13 @@ func parseConstant(s string) (constant, reflect.Type, error) {
 		if err == nil && tail == "'" {
 			return int64Const(r), int32Type, nil
 		}
-	case '/':
-		r, ok := new(big.Rat).SetString(s)
-		if ok {
-			return ratConst{r: r}, float64Type, nil
-		}
 	default:
-		if s[len(s)-1] == 'i' {
+		if strings.Contains(s, "/") {
+			r, ok := new(big.Rat).SetString(s)
+			if ok {
+				return ratConst{r: r}, float64Type, nil
+			}
+		} else if s[len(s)-1] == 'i' {
 			if strings.ContainsAny(s, ".eEpP") {
 				i, _, err := parseConstant(s[:len(s)-1])
 				if err == nil {
