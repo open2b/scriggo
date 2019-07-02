@@ -574,7 +574,7 @@ func disassembleVarRef(fn *vm.Function, globals []Global, ref int16) string {
 func reflectToRegisterKind(kind reflect.Kind) vm.Kind {
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return vm.Int
 	case reflect.Bool:
 		return vm.Bool
@@ -590,7 +590,7 @@ func reflectToRegisterKind(kind reflect.Kind) vm.Kind {
 func registerKindToLabel(kind vm.Kind) string {
 	switch kind {
 	case vm.Bool, vm.Int, vm.Int8, vm.Int16, vm.Int32, vm.Int64,
-		vm.Uint, vm.Uint8, vm.Uint16, vm.Uint32, vm.Uint64:
+		vm.Uint, vm.Uint8, vm.Uint16, vm.Uint32, vm.Uint64, vm.Uintptr:
 		return "i"
 	case vm.Float32, vm.Float64:
 		return "f"
@@ -604,7 +604,7 @@ func registerKindToLabel(kind vm.Kind) string {
 func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) string {
 	if constant {
 		switch {
-		case vm.Int <= kind && kind <= vm.Uint64:
+		case vm.Int <= kind && kind <= vm.Uintptr:
 			return strconv.Itoa(int(op))
 		case kind == vm.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)

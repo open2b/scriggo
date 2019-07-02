@@ -536,7 +536,7 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetInt(vm.int(int8(j + 1)))
 						}
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 						for j := 0; j < int(numVariadic); j++ {
 							slice.Index(j).SetUint(uint64(vm.int(int8(j + 1))))
 						}
@@ -877,6 +877,7 @@ const (
 	Uint16      = Kind(reflect.Uint16)
 	Uint32      = Kind(reflect.Uint32)
 	Uint64      = Kind(reflect.Uint64)
+	Uintptr     = Kind(reflect.Uintptr)
 	Float32     = Kind(reflect.Float32)
 	Float64     = Kind(reflect.Float64)
 	String      = Kind(reflect.String)
@@ -1030,7 +1031,7 @@ func (fn *PredefinedFunction) slow() {
 			fn.in[i] = Bool
 		case reflect.Int <= k && k <= reflect.Int64:
 			fn.in[i] = Int
-		case reflect.Uint <= k && k <= reflect.Uint64:
+		case reflect.Uint <= k && k <= reflect.Uintptr:
 			fn.in[i] = Uint
 		case k == reflect.Float64 || k == reflect.Float32:
 			fn.in[i] = Float64
@@ -1057,7 +1058,7 @@ func (fn *PredefinedFunction) slow() {
 		case reflect.Int <= k && k <= reflect.Int64:
 			fn.out[i] = Int
 			fn.outOff[0]++
-		case reflect.Uint <= k && k <= reflect.Uint64:
+		case reflect.Uint <= k && k <= reflect.Uintptr:
 			fn.out[i] = Uint
 			fn.outOff[0]++
 		case k == reflect.Float64 || k == reflect.Float32:
@@ -1155,7 +1156,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 				k := t.Kind()
 				switch k {
 				case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 					nvm.fp[0]++
 				case reflect.Float32, reflect.Float64:
 					nvm.fp[1]++
@@ -1173,7 +1174,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 					nvm.setBool(r, arg.Bool())
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					nvm.setInt(r, arg.Int())
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 					nvm.setInt(r, int64(arg.Uint()))
 				case reflect.Float32, reflect.Float64:
 					nvm.setFloat(r, arg.Float())
@@ -1198,7 +1199,7 @@ func (c *callable) Value(env *Env) reflect.Value {
 					result.SetBool(nvm.bool(r))
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					result.SetInt(nvm.int(r))
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 					result.SetUint(uint64(nvm.int(r)))
 				case reflect.Float32, reflect.Float64:
 					result.SetFloat(nvm.float(r))

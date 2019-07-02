@@ -123,7 +123,7 @@ func kindToType(k reflect.Kind) vm.Type {
 		return vm.TypeInt
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return vm.TypeInt
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return vm.TypeInt
 	case reflect.Float32, reflect.Float64:
 		return vm.TypeFloat

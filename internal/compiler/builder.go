@@ -401,7 +401,7 @@ func (builder *functionBuilder) End() {
 	builder.gotos = nil
 	for kind, num := range builder.maxRegs {
 		switch {
-		case reflect.Int <= kind && kind <= reflect.Uint64:
+		case reflect.Int <= kind && kind <= reflect.Uintptr:
 			if num > fn.RegNum[0] {
 				fn.RegNum[0] = num
 			}
@@ -465,7 +465,7 @@ func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 func (builder *functionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int, reflect.Uint, reflect.Uintptr:
 		op = vm.OpAddInt64
 		if strconv.IntSize == 32 {
 			op = vm.OpAddInt32
@@ -753,7 +753,7 @@ func (builder *functionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 		op = vm.OpDivInt16
 	case reflect.Int8:
 		op = vm.OpDivInt8
-	case reflect.Uint:
+	case reflect.Uint, reflect.Uintptr:
 		op = vm.OpDivUint64
 		if strconv.IntSize == 32 {
 			op = vm.OpDivUint32
@@ -961,7 +961,7 @@ func (builder *functionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 func (builder *functionBuilder) LeftShift(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int, reflect.Uint, reflect.Uintptr:
 		op = vm.OpLeftShift64
 		if strconv.IntSize == 32 {
 			op = vm.OpLeftShift32
@@ -1166,7 +1166,7 @@ func (builder *functionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 func (builder *functionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int, reflect.Uint, reflect.Uintptr:
 		op = vm.OpMulInt64
 		if strconv.IntSize == 32 {
 			op = vm.OpMulInt32
@@ -1285,7 +1285,7 @@ func (builder *functionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 		op = vm.OpRemInt16
 	case reflect.Int8:
 		op = vm.OpRemInt8
-	case reflect.Uint:
+	case reflect.Uint, reflect.Uintptr:
 		op = vm.OpRemUint64
 		if strconv.IntSize == 32 {
 			op = vm.OpRemUint32
@@ -1439,7 +1439,7 @@ func (builder *functionBuilder) Slice(klow, khigh, kmax bool, src, dst, low, hig
 func (builder *functionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int, reflect.Uint, reflect.Uintptr:
 		op = vm.OpSubInt64
 		if strconv.IntSize == 32 {
 			op = vm.OpSubInt32
@@ -1472,7 +1472,7 @@ func (builder *functionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int, reflect.Uint, reflect.Uintptr:
 		op = vm.OpSubInvInt64
 		if strconv.IntSize == 32 {
 			op = vm.OpSubInvInt32

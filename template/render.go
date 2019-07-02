@@ -705,7 +705,7 @@ func withConcreteType(v interface{}) interface{} {
 		return r.Bool()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return r.Int()
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return r.Uint()
 	case reflect.Float32, reflect.Float64:
 		return r.Float()

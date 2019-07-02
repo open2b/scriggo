@@ -210,7 +210,7 @@ func (vm *VM) run() (uint32, bool) {
 						n = v.Int()
 					}
 					vm.setInt(c, n)
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 					var n int64
 					if ok {
 						n = int64(v.Uint())
@@ -387,7 +387,7 @@ func (vm *VM) run() (uint32, bool) {
 			switch t.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				vm.setInt(c, reflect.ValueOf(vm.float(a)).Convert(t).Int())
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 				vm.setInt(c, int64(reflect.ValueOf(vm.float(a)).Convert(t).Uint()))
 			default:
 				vm.setFloat(c, reflect.ValueOf(vm.float(a)).Convert(t).Float())

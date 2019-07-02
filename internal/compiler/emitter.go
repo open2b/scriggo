@@ -610,8 +610,6 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 			}
 			v := reflect.ValueOf(e.ti(expr).value)
 			switch v.Kind() {
-			case reflect.Uintptr:
-				panic("not implemented") // TODO(Gianluca).
 			case reflect.Complex64:
 				panic("not implemented") // TODO(Gianluca).
 			case reflect.Complex128:
@@ -2003,7 +2001,7 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 		if expr1Type.Kind() == expr2Type.Kind() {
 			switch kind := expr1Type.Kind(); kind {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 				reflect.Float32, reflect.Float64,
 				reflect.String:
 				expr1Type := e.ti(cond.Expr1).Type
@@ -2033,7 +2031,7 @@ func (e *emitter) emitCondition(cond ast.Expression) {
 				case ast.OperatorGreaterOrEqual:
 					condType = vm.ConditionGreaterOrEqual
 				}
-				if reflect.Uint <= kind && kind <= reflect.Uint64 {
+				if reflect.Uint <= kind && kind <= reflect.Uintptr {
 					// Equality and not equality checks are not
 					// optimized for uints.
 					if condType == vm.ConditionEqual || condType == vm.ConditionNotEqual {

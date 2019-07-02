@@ -102,6 +102,7 @@ var operatorsOfKind = [...][21]bool{
 	reflect.Uint16:    intOperators,
 	reflect.Uint32:    intOperators,
 	reflect.Uint64:    intOperators,
+	reflect.Uintptr:   intOperators,
 	reflect.Float32:   floatOperators,
 	reflect.Float64:   floatOperators,
 	reflect.String:    stringOperators,
@@ -260,7 +261,7 @@ func isComplex(k reflect.Kind) bool {
 
 // isInteger reports whether a reflect kind is integer.
 func isInteger(k reflect.Kind) bool {
-	return reflect.Int <= k && k <= reflect.Uint64
+	return reflect.Int <= k && k <= reflect.Uintptr
 }
 
 // isNumeric reports whether a reflect kind is numeric.
@@ -468,6 +469,8 @@ func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 			return uint32(c.uint64())
 		case reflect.Uint64:
 			return c.uint64()
+		case reflect.Uintptr:
+			return uintptr(c.uint64())
 		case reflect.Float32:
 			return float32(c.float64())
 		case reflect.Float64:
@@ -488,7 +491,7 @@ func typedValue(ti *TypeInfo, t reflect.Type) interface{} {
 		nv.SetString(c.string())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		nv.SetInt(c.int64())
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		nv.SetUint(c.uint64())
 	case reflect.Float32, reflect.Float64:
 		nv.SetFloat(c.float64())
