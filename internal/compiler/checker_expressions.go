@@ -1219,6 +1219,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 		}
 		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, got))
 	}
+	size.SetValue(intType)
 	if size.IsConstant() {
 		c, err := convert(size, intType)
 		if err != nil {
