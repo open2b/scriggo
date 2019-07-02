@@ -96,7 +96,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				importedPkg.Name = predefinedPkg.Name
 				if node.Ident == nil {
-					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
 				} else {
 					switch node.Ident.Name {
@@ -108,7 +108,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[node.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[node.Ident.Name] = nil
 					}
 				}
@@ -153,7 +153,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						default:
 							tc.filePackageBlock[node.Ident.Name] = scopeElement{
 								t: &TypeInfo{
-									Value:      importedPkg,
+									value:      importedPkg,
 									Properties: PropertyIsPackage,
 								},
 							}
@@ -181,11 +181,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
-			if ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Condition, new)
-				node.Condition = new
-			}
+			ti.setValue(nil)
 			tc.checkNodesInNewScope(node.Then.Nodes)
 			terminating := tc.terminating
 			if node.Else == nil {
@@ -213,11 +209,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if ti.Type.Kind() != reflect.Bool {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, ti.ShortString()))
 				}
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, ti.Type))
-					tc.replaceTypeInfo(node.Condition, new)
-					node.Condition = new
-				}
+				ti.setValue(nil)
 			}
 			if node.Post != nil {
 				tc.checkAssignment(node.Post)
@@ -236,6 +228,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if ti.Nil() {
 				panic(tc.errorf(node, "cannot range over nil"))
 			}
+			ti.setValue(nil)
 			maxVars := 2
 			vars := node.Assignment.Variables
 			var typ1, typ2 reflect.Type
@@ -247,11 +240,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				typ1 = typ.Key()
 				typ2 = typ.Elem()
 			case reflect.String:
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, typ))
-					tc.replaceTypeInfo(node.Assignment.Values[0], new)
-					node.Assignment.Values[0] = new
-				}
 				typ1 = intType
 				typ2 = runeType
 			case reflect.Ptr:
@@ -341,6 +329,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if ti.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
+				ti.setValue(nil)
 				typ = ti.Type
 			}
 			// Checks the cases.
@@ -355,37 +344,33 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOfDefault = cas.Pos()
 				}
-				for i, ex := range cas.Expressions {
+				for _, ex := range cas.Expressions {
 					t := tc.checkExpression(ex)
-					if !isAssignableTo(t, typ) {
-						var ne string
-						if node.Expr != nil {
-							ne = " on " + node.Expr.String()
+					if err := isAssignableTo(t, ex, typ); err != nil {
+						if _, ok := err.(invalidTypeInAssignment); ok {
+							var ne string
+							if node.Expr != nil {
+								ne = " on " + node.Expr.String()
+							}
+							panic(tc.errorf(cas, "invalid case %s in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
 						}
-						panic(tc.errorf(cas, "invalid case %v in switch%s (mismatched types %s and %s)", ex, ne, t.ShortString(), typ))
+						panic(tc.errorf(cas, "%s", err))
 					}
 					if t.IsConstant() {
-						value := typedValue(t, typ)
-						new := ast.NewValue(value)
-						tc.replaceTypeInfo(cas.Expressions[i], new)
-						cas.Expressions[i] = new
 						if typ.Kind() != reflect.Bool {
 							// Check duplicate.
+							value := typedValue(t, typ)
 							if pos, ok := positionOf[value]; ok {
 								panic(tc.errorf(cas, "duplicate case %v in switch\n\tprevious case at %s", ex, pos))
 							}
 							positionOf[value] = ex.Pos()
 						}
 					}
+					t.setValue(typ)
 				}
 				tc.checkNodesInNewScope(cas.Body)
 				hasFallthrough = hasFallthrough || cas.Fallthrough
 				terminating = terminating && (tc.terminating || hasFallthrough)
-			}
-			if ti != nil && ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Expr, new)
-				node.Expr = new
 			}
 			tc.removeLastAncestor()
 			tc.removeCurrentScope()
@@ -435,9 +420,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
-					node := ast.NewValue(t.Type)
-					tc.replaceTypeInfo(cas.Expressions[i], node)
-					cas.Expressions[i] = node
+					tc.TypeInfo[expr] = t
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
 						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
@@ -509,11 +492,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 			ti := tc.checkExpression(node.Expr)
-			if ti.IsConstant() {
-				new := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(node.Expr, new)
-				node.Expr = new
-			}
+			ti.setValue(nil)
 			tc.terminating = false
 
 		case *ast.ShowMacro:
@@ -586,29 +565,29 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			}
 			elemType := tic.Type.Elem()
 			tiv := tc.checkExpression(node.Value)
-			if !isAssignableTo(tiv, elemType) {
-				if tiv.Nil() {
-					panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
+			if err := isAssignableTo(tiv, node.Value, elemType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					if tiv.Nil() {
+						panic(tc.errorf(node, "cannot convert nil to type %s", elemType))
+					}
+					if tiv.Type == stringType {
+						panic(tc.errorf(node, "cannot convert %s (type %s) to type %s", node.Value, tiv, elemType))
+					}
+					panic(tc.errorf(node, "%s in send", err))
 				}
-				if tiv.Type == stringType {
-					panic(tc.errorf(node, "cannot convert %s (type %s) to type %s", node.Value, tiv, elemType))
-				}
-				panic(tc.errorf(node, "cannot use %s (type %s) as type %s in send", node.Value, tiv.ShortString(), elemType))
+				panic(tc.errorf(node, "%s", err))
 			}
-			if tiv.IsConstant() {
-				new := ast.NewValue(typedValue(tiv, elemType))
-				tc.replaceTypeInfo(node.Value, new)
-				node.Value = new
-			}
+			tiv.setValue(elemType)
 
 		case *ast.UnaryOperator:
-			tc.checkExpression(node)
+			ti := tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
 				if !tc.opts.IsScript || !tc.opts.IsTemplate || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
+			ti.setValue(nil)
 
 		case *ast.Goto:
 			tc.gotos = append(tc.gotos, node.Label.Name)
@@ -644,11 +623,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !isLastScriptStatement {
 						panic(tc.errorf(node, "%s evaluated but not used", node))
 					}
-				}
-				if ti.IsConstant() {
-					new := ast.NewValue(typedValue(ti, ti.Type))
-					tc.replaceTypeInfo(node, new)
-					nodes[i] = new
 				}
 			} else if tc.opts.IsTemplate {
 				// TODO(Gianluca): handle expression statements in templates.
@@ -704,9 +678,6 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	var expectedTypes []reflect.Type
 	for _, exp := range expected {
 		ti := tc.checkType(exp.Type, noEllipses)
-		new := ast.NewValue(ti.Type)
-		tc.replaceTypeInfo(exp.Type, new)
-		exp.Type = new
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 
@@ -759,14 +730,13 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	for i, typ := range expectedTypes {
 		x := got[i]
 		ti := tc.TypeInfo[x]
-		if !isAssignableTo(ti, typ) {
-			panic(tc.errorf(node, "cannot use %v (type %v) as type %v in return argument", got[i], tc.TypeInfo[got[i]].ShortString(), expectedTypes[i]))
+		if err := isAssignableTo(ti, x, typ); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(node, "%s in return argument", err))
+			}
+			panic(tc.errorf(node, "%s", err))
 		}
-		if ti.IsConstant() {
-			n := ast.NewValue(typedValue(ti, typ))
-			tc.replaceTypeInfo(x, n)
-			node.Values[i] = n
-		}
+		ti.setValue(typ)
 	}
 
 	return

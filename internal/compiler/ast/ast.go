@@ -42,7 +42,6 @@ package ast
 
 import (
 	"fmt"
-	"math/big"
 	"reflect"
 	"strconv"
 )
@@ -144,6 +143,16 @@ func (ctx Context) String() string {
 	}
 	panic("invalid context")
 }
+
+type LiteralType int
+
+const (
+	StringLiteral LiteralType = iota
+	RuneLiteral
+	IntLiteral
+	FloatLiteral
+	ImaginaryLiteral
+)
 
 type ChanDirection int
 
@@ -716,65 +725,19 @@ func (n *Parenthesis) String() string {
 	return "(" + n.Expr.String() + ")"
 }
 
-// Rune node represents a rune constant.
-type Rune struct {
+type BasicLiteral struct {
 	expression
-	*Position      // position in the source.
-	Value     rune // value.
+	*Position             // position in the source.
+	Type      LiteralType // type.
+	Value     string      // value.
 }
 
-func NewRune(pos *Position, value rune) *Rune {
-	return &Rune{expression{}, pos, value}
+func NewBasicLiteral(pos *Position, typ LiteralType, value string) *BasicLiteral {
+	return &BasicLiteral{expression{}, pos, typ, value}
 }
 
-func (n *Rune) Rune() string {
-	return strconv.QuoteRuneToASCII(n.Value)
-}
-
-// Int node represents an integer constant.
-type Int struct {
-	expression
-	*Position         // position in the source.
-	Value     big.Int // value.
-}
-
-func NewInt(pos *Position, value *big.Int) *Int {
-	return &Int{expression{}, pos, *value}
-}
-
-func (n *Int) String() string {
-	return n.Value.String()
-}
-
-// Float node represents a float constant.
-type Float struct {
-	expression
-	*Position           // position in the source.
-	Value     big.Float // value.
-}
-
-func NewFloat(pos *Position, value *big.Float) *Float {
-	return &Float{expression{}, pos, *value}
-}
-
-func (n *Float) String() string {
-	return n.Value.String()
-}
-
-// String node represents a string expression, a sequence of UTF8 encoded
-// characters.
-type String struct {
-	expression
-	*Position        // position in the source.
-	Text      string // text.
-}
-
-func NewString(pos *Position, text string) *String {
-	return &String{expression{}, pos, text}
-}
-
-func (n *String) String() string {
-	return strconv.Quote(n.Text)
+func (n *BasicLiteral) String() string {
+	return n.Value
 }
 
 // Identifier node represents an identifier expression.
@@ -1226,7 +1189,7 @@ func (n *ChanType) String() string {
 	}
 	s += "chan"
 	if n.Direction == SendDirection {
-		s = "<-"
+		s += "<-"
 	}
 	return s + " " + n.ElementType.String()
 }
@@ -1266,19 +1229,14 @@ func (n *TypeAssertion) String() string {
 	return n.Expr.String() + ".(" + n.Type.String() + ")"
 }
 
-// Value node represent a special node with an associated value.
-type Value struct {
+// Placeholder node represent a special placeholder node.
+type Placeholder struct {
 	expression
-	*Position             // position in the source.
-	Val       interface{} // associated value.
+	*Position // position in the source.
 }
 
-func NewValue(val interface{}) *Value {
-	return &Value{expression{}, nil, val}
-}
-
-func (n *Value) String() string {
-	return fmt.Sprintf("%v", n.Val)
+func NewPlaceholder() *Placeholder {
+	return &Placeholder{expression{}, nil}
 }
 
 // Send node represents a send statement.

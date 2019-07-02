@@ -273,11 +273,8 @@ func Walk(v Visitor, node ast.Node) {
 	// Nothing to do, visiting the expanded tree is done
 	// by the Visit function if necessary.
 
-	case *ast.Rune:
-	case *ast.Int:
-	case *ast.Float:
+	case *ast.BasicLiteral:
 	case *ast.Identifier:
-	case *ast.String:
 	case *ast.ShowMacro:
 	case *ast.Comment:
 	case *ast.Text:

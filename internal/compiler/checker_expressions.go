@@ -9,15 +9,12 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 	"unicode"
 
 	"scriggo/internal/compiler/ast"
 	"scriggo/vm"
 )
-
-var errDivisionByZero = errors.New("division by zero")
 
 const noEllipses = -1
 
@@ -62,12 +59,12 @@ var universe = TypeCheckerScope{
 	"recover":     {t: builtinTypeInfo},
 	"byte":        {t: uint8TypeInfo},
 	"bool":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsType}},
-	"complex128":  {t: &TypeInfo{Type: reflect.TypeOf(complex128(0)), Properties: PropertyIsType}},
-	"complex64":   {t: &TypeInfo{Type: reflect.TypeOf(complex64(0)), Properties: PropertyIsType}},
+	"complex128":  {t: &TypeInfo{Type: complex128Type, Properties: PropertyIsType}},
+	"complex64":   {t: &TypeInfo{Type: complex64Type, Properties: PropertyIsType}},
 	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType}},
 	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType}},
 	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType}},
-	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: false}},
+	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(false)}},
 	"int":         {t: &TypeInfo{Type: intType, Properties: PropertyIsType}},
 	"int16":       {t: &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType}},
 	"int32":       {t: int32TypeInfo},
@@ -76,7 +73,7 @@ var universe = TypeCheckerScope{
 	"interface{}": {t: &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType}},
 	"rune":        {t: int32TypeInfo},
 	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
-	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsConstant | PropertyUntyped, Value: true}},
+	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(true)}},
 	"uint":        {t: &TypeInfo{Type: uintType, Properties: PropertyIsType}},
 	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType}},
 	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
@@ -255,27 +252,6 @@ func (tc *typechecker) isUpValue(name string) bool {
 	return false
 }
 
-// replaceTypeInfo replaces the type info of node old with a new created type
-// info for node new.
-func (tc *typechecker) replaceTypeInfo(old ast.Node, new *ast.Value) {
-	oldTi, ok := tc.TypeInfo[old]
-	if ok && oldTi.IsType() {
-		tc.TypeInfo[new] = &TypeInfo{
-			Type:       oldTi.Type,
-			Properties: PropertyIsType,
-			Value:      nil,
-		}
-		delete(tc.TypeInfo, old)
-		return
-	}
-	tc.TypeInfo[new] = &TypeInfo{
-		Type:       reflect.TypeOf(new.Val),
-		Properties: 0,
-		Value:      nil,
-	}
-	delete(tc.TypeInfo, old)
-}
-
 // getScopeLevel returns the scope level in which name is declared, and a
 // boolean which reports whether has been imported from another package/page
 // or not.
@@ -373,9 +349,9 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 	if !ok {
 		if ident.Name == "iota" && tc.iota >= 0 {
 			return &TypeInfo{
-				Value:      int64(tc.iota),
+				Constant:   int64Const(tc.iota),
 				Type:       intType,
-				Properties: PropertyUntyped | PropertyIsConstant,
+				Properties: PropertyUntyped,
 			}
 		}
 		// If identifiers is a ShowMacro identifier, first needs to check if
@@ -505,62 +481,110 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	switch expr := expr.(type) {
 
-	case *ast.String:
-		return &TypeInfo{
-			Type:       stringType,
-			Properties: PropertyUntyped | PropertyIsConstant,
-			Value:      expr.Text,
+	case *ast.BasicLiteral:
+		var typ reflect.Type
+		switch expr.Type {
+		case ast.StringLiteral:
+			typ = stringType
+		case ast.RuneLiteral:
+			typ = runeType
+		case ast.IntLiteral:
+			typ = intType
+		case ast.FloatLiteral:
+			typ = float64Type
+		case ast.ImaginaryLiteral:
+			typ = complex128Type
 		}
-
-	case *ast.Int:
 		return &TypeInfo{
-			Type:       intType,
-			Properties: PropertyUntyped | PropertyIsConstant,
-			Value:      &expr.Value,
-		}
-
-	case *ast.Rune:
-		return &TypeInfo{
-			Type:       int32Type,
-			Properties: PropertyUntyped | PropertyIsConstant,
-			Value:      big.NewInt(int64(expr.Value)),
-		}
-
-	case *ast.Float:
-		return &TypeInfo{
-			Type:       float64Type,
-			Properties: PropertyUntyped | PropertyIsConstant,
-			Value:      &expr.Value,
+			Type:       typ,
+			Properties: PropertyUntyped,
+			Constant:   parseBasicLiteral(expr.Type, expr.Value),
 		}
 
 	case *ast.Parenthesis:
 		panic("unexpected parenthesis")
 
 	case *ast.UnaryOperator:
-		_ = tc.checkExpression(expr.Expr)
-		t, err := tc.unaryOp(tc.TypeInfo[expr.Expr], expr)
-		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
+		t := tc.checkExpression(expr.Expr)
+		ti := &TypeInfo{
+			Type:       t.Type,
+			Properties: t.Properties & PropertyUntyped,
 		}
-		return t
+		var k reflect.Kind
+		if !t.Nil() {
+			k = t.Type.Kind()
+		}
+		switch expr.Op {
+		case ast.OperatorNot:
+			if t.Nil() || k != reflect.Bool {
+				panic(tc.errorf(expr, "invalid operation: ! %s", t))
+			}
+			if t.IsConstant() {
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorNot)
+			}
+		case ast.OperatorAddition:
+			if t.Nil() || !isNumeric(k) {
+				panic(tc.errorf(expr, "invalid operation: + %s", t))
+			}
+			if t.IsConstant() {
+				ti.Constant = t.Constant
+			}
+		case ast.OperatorSubtraction:
+			if t.Nil() || !isNumeric(k) {
+				panic(tc.errorf(expr, "invalid operation: - %s", t))
+			}
+			if t.IsConstant() {
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorSubtraction)
+			}
+		case ast.OperatorMultiplication:
+			if t.Nil() {
+				panic(tc.errorf(expr, "invalid indirect of nil"))
+			}
+			if k != reflect.Ptr {
+				panic(tc.errorf(expr, "invalid indirect of %s (type %s)", expr.Expr, t))
+			}
+			ti.Type = t.Type.Elem()
+			ti.Properties = ti.Properties | PropertyAddressable
+		case ast.OperatorAnd:
+			if _, ok := expr.Expr.(*ast.CompositeLiteral); !ok && !t.Addressable() {
+				panic(tc.errorf(expr, "cannot take the address of %s", expr.Expr))
+			}
+			ti.Type = reflect.PtrTo(t.Type)
+			// When taking the address of a variable, such variable must be
+			// marked as "indirect".
+			if ident, ok := expr.Expr.(*ast.Identifier); ok {
+			scopesLoop:
+				for i := len(tc.Scopes) - 1; i >= 0; i-- {
+					for n := range tc.Scopes[i] {
+						if n == ident.Name {
+							tc.IndirectVars[tc.Scopes[i][n].decl] = true
+							break scopesLoop
+						}
+					}
+				}
+			}
+		case ast.OperatorXor:
+			if t.Nil() || !isInteger(k) {
+				panic(tc.errorf(expr, "invalid operation: ^ %s", t))
+			}
+			if t.IsConstant() {
+				ti.Constant, _ = t.Constant.unaryOp(ast.OperatorXor)
+			}
+		case ast.OperatorReceive:
+			if t.Nil() {
+				panic(tc.errorf(expr, "use of untyped nil"))
+			}
+			if k != reflect.Chan {
+				panic(tc.errorf(expr, "invalid operation: %s (receive from non-chan type %s)", expr.Expr, t.Type))
+			}
+			ti.Type = t.Type.Elem()
+		}
+		return ti
 
 	case *ast.BinaryOperator:
-		t, err := tc.binaryOp(expr)
+		t, err := tc.binaryOp(expr.Expr1, expr.Op, expr.Expr2)
 		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
-		}
-		if !t.IsConstant() {
-			t1 := tc.TypeInfo[expr.Expr1]
-			t2 := tc.TypeInfo[expr.Expr2]
-			if t2.IsConstant() {
-				node := ast.NewValue(typedValue(t2, t1.Type))
-				tc.replaceTypeInfo(expr.Expr2, node)
-				expr.Expr2 = node
-			} else if t1.IsConstant() {
-				node := ast.NewValue(typedValue(t1, t2.Type))
-				tc.replaceTypeInfo(expr.Expr1, node)
-				expr.Expr1 = node
-			}
+			panic(tc.errorf(expr, "invalid operation: %v (%s)", expr, err))
 		}
 		return t
 
@@ -630,16 +654,16 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		if !ti.IsConstant() {
 			panic(tc.errorf(expr, "non-constant array bound %s", expr.Len))
 		}
-		n, err := representedBy(ti, intType)
+		c, err := convert(ti, intType)
 		if err != nil {
-			panic(tc.errorf(expr, err.Error()))
+			panic(tc.errorf(expr, "%s", err))
 		}
-		b := int(n.(int64))
+		b := int(c.int64())
 		if b < 0 {
 			panic(tc.errorf(expr, "array bound must be non-negative"))
 		}
 		if b < length {
-			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, n))
+			panic(tc.errorf(expr, "array index %d out of bounds [0:%d]", length-1, b))
 		}
 		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(b, elem.Type)}
 
@@ -702,9 +726,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		isVariadic := expr.Type.IsVariadic
 		for i, f := range expr.Type.Parameters {
 			t := tc.checkType(f.Type, noEllipses)
-			new := ast.NewValue(t.Type)
-			tc.replaceTypeInfo(f.Type, new)
-			f.Type = new
 			if f.Ident != nil {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
 					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
@@ -717,9 +738,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		fillParametersTypes(expr.Type.Result)
 		for _, f := range expr.Type.Result {
 			t := tc.checkType(f.Type, noEllipses)
-			new := ast.NewValue(t.Type)
-			tc.replaceTypeInfo(f.Type, new)
-			f.Type = new
 			if f.Ident != nil {
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
@@ -764,11 +782,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					panic(tc.errorf(expr, "invalid operation: %v (type %s does not support indexing)", expr, t))
 				}
 			}
-			if i := tc.checkIndex(expr.Index, t, false); i != -1 {
-				node := ast.NewValue(i)
-				tc.replaceTypeInfo(expr.Index, node)
-				expr.Index = node
-			}
+			tc.checkIndex(expr.Index, t, false)
 			var typ reflect.Type
 			switch kind {
 			case reflect.String:
@@ -785,19 +799,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			return ti
 		case reflect.Map:
 			key := tc.checkExpression(expr.Index)
-			if !isAssignableTo(key, t.Type.Key()) {
-				if key.Nil() {
-					panic(tc.errorf(expr, "cannot convert nil to type %s", t.Type.Key()))
+			if err := isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(expr, "%s in map index", err))
 				}
-				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in map index", expr.Index, key.ShortString(), t.Type.Key()))
+				panic(tc.errorf(expr, "%s", err))
 			}
-			if key.IsConstant() {
-				ti := &TypeInfo{Type: t.Type.Key(), Value: key.Value, Properties: PropertyIsConstant}
-				value := typedValue(ti, emptyInterfaceType)
-				node := ast.NewValue(value)
-				tc.replaceTypeInfo(expr.Index, node)
-				expr.Index = node
-			}
+			key.setValue(t.Type.Key())
 			return &TypeInfo{Type: t.Type.Elem()}
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
@@ -830,39 +838,27 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				panic(tc.errorf(expr, "cannot slice %s (type %s)", expr.Expr, t.ShortString()))
 			}
 		}
-		lv, hv, mv := -1, -1, -1
+		var lv, hv, mv constant
 		if expr.Low != nil {
-			if lv = tc.checkIndex(expr.Low, t, true); lv != -1 {
-				node := ast.NewValue(lv)
-				tc.replaceTypeInfo(expr.Low, node)
-				expr.Low = node
-			}
+			lv = tc.checkIndex(expr.Low, t, true)
 		}
 		if expr.High != nil {
-			if hv = tc.checkIndex(expr.High, t, true); hv != -1 {
-				node := ast.NewValue(hv)
-				tc.replaceTypeInfo(expr.High, node)
-				expr.High = node
-			}
+			hv = tc.checkIndex(expr.High, t, true)
 		} else if expr.IsFull {
 			panic(tc.errorf(expr, "middle index required in 3-index slice"))
 		}
 		if expr.Max != nil {
-			if mv = tc.checkIndex(expr.Max, t, true); mv != -1 {
-				node := ast.NewValue(mv)
-				tc.replaceTypeInfo(expr.Max, node)
-				expr.Max = node
-			}
+			mv = tc.checkIndex(expr.Max, t, true)
 		} else if expr.IsFull {
 			panic(tc.errorf(expr, "final index required in 3-index slice"))
 		}
-		if lv != -1 && hv != -1 && lv > hv {
+		if lv != nil && hv != nil && lv.int64() > hv.int64() {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, hv))
 		}
-		if lv != -1 && mv != -1 && lv > mv {
+		if lv != nil && mv != nil && lv.int64() > mv.int64() {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", lv, mv))
 		}
-		if hv != -1 && mv != -1 && hv > mv {
+		if hv != nil && mv != nil && hv.int64() > mv.int64() {
 			panic(tc.errorf(expr, "invalid slice index: %d > %d", hv, mv))
 		}
 		switch kind {
@@ -882,7 +878,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					if !unicode.Is(unicode.Lu, []rune(expr.Ident)[0]) {
 						panic(tc.errorf(expr, "cannot refer to unexported name %s", expr))
 					}
-					pkg := ti.Value.(*PackageInfo)
+					pkg := ti.value.(*PackageInfo)
 					v, ok := pkg.Declarations[expr.Ident]
 					if !ok {
 						// If identifiers is a ShowMacro identifier, first needs to check if
@@ -961,9 +957,6 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
 		typ := tc.checkType(expr.Type, noEllipses)
-		newNode := ast.NewValue(typ.Type)
-		tc.replaceTypeInfo(expr.Type, newNode)
-		expr.Type = newNode
 		return &TypeInfo{
 			Type:       typ.Type,
 			Properties: t.Properties & PropertyAddressable,
@@ -977,7 +970,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 // checkIndex checks the type of expr as an index in a index or slice
 // expression. If it is a constant returns the integer value, otherwise
 // returns -1.
-func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool) int {
+func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool) constant {
 	typ := t.Type
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
@@ -989,13 +982,13 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 		}
 		panic(tc.errorf(expr, "non-integer %s index %s", typ.Kind(), expr))
 	}
-	i := -1
+	index.setValue(intType)
 	if index.IsConstant() {
-		n, err := representedBy(index, intType)
+		c, err := convert(index, intType)
 		if err != nil {
-			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+			panic(tc.errorf(expr, "%s", err))
 		}
-		i = int(n.(int64))
+		i := int(c.int64())
 		if i < 0 {
 			panic(tc.errorf(expr, "invalid %s index %s (index must be non-negative)", typ.Kind(), expr))
 		}
@@ -1004,7 +997,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 			j--
 		}
 		if t.IsConstant() {
-			if s := t.Value.(string); j >= len(s) {
+			if s := t.Constant.string(); j >= len(s) {
 				what := typ.Kind().String()
 				if isSlice {
 					what = "slice"
@@ -1014,26 +1007,72 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 		} else if typ.Kind() == reflect.Array && j > typ.Len() {
 			panic(tc.errorf(expr, "invalid array index %s (out of bounds for %d-element array)", expr, typ.Len()))
 		}
+		return c
 	}
-	return i
+	return nil
 }
 
 // binaryOp executes the binary expression t1 op t2 and returns its result.
 // Returns an error if the operation can not be executed.
-func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
+func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression) (*TypeInfo, error) {
 
-	t1 := tc.checkExpression(expr.Expr1)
-	t2 := tc.checkExpression(expr.Expr2)
-
-	op := expr.Op
+	t1 := tc.checkExpression(expr1)
+	t2 := tc.checkExpression(expr2)
 
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-		return shiftOp(t1, expr, t2)
+		if t2.Nil() {
+			return nil, errors.New("cannot convert nil to type uint")
+		}
+		if t1.IsUntypedConstant() {
+			if !t1.IsNumeric() {
+				return nil, fmt.Errorf("shift of type %s", t1)
+			}
+		} else if !t1.IsInteger() {
+			return nil, fmt.Errorf("shift of type %s", t1)
+		}
+		var c constant
+		var err error
+		if t2.IsConstant() {
+			if !t2.IsNumeric() {
+				return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
+			}
+			if t1.IsConstant() {
+				c, err = t1.Constant.binaryOp(op, t2.Constant)
+			} else {
+				_, err = newIntConst(0).binaryOp(op, t2.Constant)
+			}
+			if err != nil {
+				switch err {
+				case errNegativeShiftCount:
+					err = fmt.Errorf("invalid negative shift count: %s", t2.Constant)
+				case errShiftCountTooLarge:
+					err = fmt.Errorf("shift count too large: %s", t2.Constant)
+				case errShiftCountTruncatedToInteger:
+					err = fmt.Errorf("constant %s truncated to integer", t2.Constant)
+				}
+				return nil, err
+			}
+		} else if !t2.IsInteger() {
+			return nil, fmt.Errorf("shift count type %s, must be unsigned integer", t2.ShortString())
+		}
+		ti := &TypeInfo{Type: t1.Type}
+		if t1.IsConstant() && t2.IsConstant() {
+			ti.Constant = c
+			if t1.Untyped() {
+				ti.Properties = PropertyUntyped
+			} else {
+				ti.Constant, err = convert(ti, ti.Type)
+				if err != nil {
+					return nil, fmt.Errorf("constant %v overflows %s", c, t1)
+				}
+			}
+		}
+		return ti, nil
 	}
 
 	if t1.Nil() || t2.Nil() {
 		if t1.Nil() && t2.Nil() {
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on nil)", expr, op)
+			return nil, fmt.Errorf("operator %s not defined on nil", op)
 		}
 		t := t1
 		if t.Nil() {
@@ -1044,54 +1083,119 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 			return nil, fmt.Errorf("cannot convert nil to type %s", t.ShortString())
 		}
 		if op != ast.OperatorEqual && op != ast.OperatorNotEqual {
-			return nil, fmt.Errorf("invalid operation: %v (operator %s not defined on %s)", expr, op, k)
+			return nil, fmt.Errorf("operator %s not defined on %s", op, k)
 		}
 		return untypedBoolTypeInfo, nil
 	}
 
 	if t1.IsUntypedConstant() && t2.IsUntypedConstant() {
-		return uBinaryOp(t1, expr, t2)
+		k1 := t1.Type.Kind()
+		k2 := t2.Type.Kind()
+		if !(k1 == k2 || isNumeric(k1) && isNumeric(k2)) {
+			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
+		}
+		c, err := t1.Constant.binaryOp(op, t2.Constant)
+		if err != nil {
+			if err == errInvalidOperation {
+				switch op {
+				case ast.OperatorModulo:
+					if isComplex(t1.Type.Kind()) {
+						return nil, errors.New("complex % operation")
+					}
+					return nil, errors.New("floating-point % operation")
+				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
+					if isComplex(t1.Type.Kind()) {
+						return nil, fmt.Errorf("operator %s not defined on untyped complex", op)
+					}
+					return nil, fmt.Errorf("operator %s not defined on untyped float", op)
+				}
+				return nil, fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
+			}
+			return nil, err
+		}
+		t := &TypeInfo{Constant: c, Properties: PropertyUntyped}
+		if evalToBoolOperators[op] {
+			t.Type = boolType
+		} else {
+			t.Type = t1.Type
+			if k2 > k1 {
+				t.Type = t2.Type
+			}
+		}
+		return t, nil
 	}
 
 	if t1.IsUntypedConstant() {
-		v, err := representedBy(t1, t2.Type)
+		c, err := representedBy(t1, t2.Type)
 		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
+			return nil, err
 		}
-		t1 = &TypeInfo{Type: t2.Type, Properties: PropertyIsConstant, Value: v}
+		t1.setValue(t2.Type)
+		t1 = &TypeInfo{Type: t2.Type, Constant: c}
 	} else if t2.IsUntypedConstant() {
-		v, err := representedBy(t2, t1.Type)
+		c, err := representedBy(t2, t1.Type)
 		if err != nil {
-			panic(tc.errorf(expr, "%s", err))
+			return nil, err
 		}
-		t2 = &TypeInfo{Type: t1.Type, Properties: PropertyIsConstant, Value: v}
+		t2.setValue(t1.Type)
+		t2 = &TypeInfo{Type: t1.Type, Constant: c}
 	}
 
 	if t1.IsConstant() && t2.IsConstant() {
-		return tBinaryOp(t1, expr, t2)
+		if t1.Type != t2.Type {
+			return nil, fmt.Errorf("mismatched types %s and %s", t1, t2)
+		}
+		c, err := t1.Constant.binaryOp(op, t2.Constant)
+		if err != nil {
+			if err == errInvalidOperation {
+				switch op {
+				case ast.OperatorModulo:
+					if isComplex(t1.Type.Kind()) {
+						return nil, errors.New("complex % operation")
+					}
+					return nil, errors.New("floating-point % operation")
+				case ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor:
+					if isComplex(t1.Type.Kind()) {
+						return nil, fmt.Errorf("operator %s not defined on untyped complex", op)
+					}
+					return nil, fmt.Errorf("operator %s not defined on untyped float", op)
+				}
+				return nil, fmt.Errorf("operator %s not defined on %s", op, t1.ShortString())
+			}
+			return nil, err
+		}
+		if evalToBoolOperators[op] {
+			return &TypeInfo{Type: boolType, Constant: c}, nil
+		}
+		ti := &TypeInfo{Type: t1.Type, Constant: c}
+		ti.Constant, err = convert(ti, t1.Type)
+		if err != nil {
+			return nil, fmt.Errorf("constant %v overflows %s", c, t1)
+		}
+		return ti, nil
 	}
 
-	if isComparison(expr.Op) {
-		if !isAssignableTo(t1, t2.Type) && !isAssignableTo(t2, t1.Type) {
-			panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
+	if isComparison(op) {
+		if isAssignableTo(t1, expr1, t2.Type) != nil && isAssignableTo(t2, expr2, t1.Type) != nil {
+			return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 		}
-		if expr.Op == ast.OperatorEqual || expr.Op == ast.OperatorNotEqual {
+		if op == ast.OperatorEqual || op == ast.OperatorNotEqual {
 			if !t1.Type.Comparable() {
 				// TODO(marco) explain in the error message why they are not comparable.
-				panic(tc.errorf(expr, "invalid operation: %v (%s cannot be compared)", expr, t1.Type))
+				return nil, fmt.Errorf("%s cannot be compared", t1.Type)
 			}
 		} else if !isOrdered(t1) {
-			panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, t1.Type.Kind()))
+			return nil, fmt.Errorf("operator %s not defined on %s", op, t1.Type.Kind())
 		}
 		return &TypeInfo{Type: boolType, Properties: PropertyUntyped}, nil
 	}
 
 	if t1.Type != t2.Type {
-		panic(tc.errorf(expr, "invalid operation: %v (mismatched types %s and %s)", expr, t1.ShortString(), t2.ShortString()))
+		return nil, fmt.Errorf("mismatched types %s and %s", t1.ShortString(), t2.ShortString())
 	}
 
-	if kind := t1.Type.Kind(); !operatorsOfKind[kind][expr.Op] {
-		panic(tc.errorf(expr, "invalid operation: %v (operator %s not defined on %s)", expr, expr.Op, kind))
+	if kind := t1.Type.Kind(); !operatorsOfKind[kind][op] {
+		return nil, fmt.Errorf("operator %s not defined on %s)", op, kind)
 	}
 
 	if t1.IsConstant() {
@@ -1103,7 +1207,7 @@ func (tc *typechecker) binaryOp(expr *ast.BinaryOperator) (*TypeInfo, error) {
 
 // checkSize checks the type of expr as a make size parameter.
 // If it is a constant returns the integer value, otherwise returns -1.
-func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name string) int {
+func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name string) constant {
 	size := tc.checkExpression(expr)
 	if size.Untyped() && !size.IsNumeric() || !size.Untyped() && !size.IsInteger() {
 		got := size.String()
@@ -1115,17 +1219,18 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 		}
 		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, got))
 	}
-	s := -1
+	size.setValue(intType)
 	if size.IsConstant() {
-		n, err := representedBy(size, intType)
+		c, err := convert(size, intType)
 		if err != nil {
-			panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+			panic(tc.errorf(expr, "%s", err))
 		}
-		if s = int(n.(int64)); s < 0 {
+		if c.int64() < 0 {
 			panic(tc.errorf(expr, "negative %s argument in make(%s)", name, typ))
 		}
+		return c
 	}
-	return s
+	return nil
 }
 
 // checkBuiltinCall checks the builtin call expr, returning the list of results.
@@ -1158,7 +1263,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 			t := tc.checkExpression(expr.Args[1])
 			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
-			if !isSpecialCase && !isAssignableTo(t, slice.Type) {
+			if !isSpecialCase && isAssignableTo(t, expr.Args[1], slice.Type) != nil {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
 			}
 		} else if len(expr.Args) > 1 {
@@ -1168,17 +1273,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					continue
 				}
 				t := tc.checkExpression(el)
-				if !isAssignableTo(t, elemType) {
-					if t == nil {
-						panic(tc.errorf(expr, "cannot use nil as type %s in append", elemType))
+				if err := isAssignableTo(t, el, elemType); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(expr, "%s in append", err))
 					}
-					panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", el, t.ShortString(), elemType))
+					panic(tc.errorf(expr, "%s", err))
 				}
-				if t.IsConstant() {
-					node := ast.NewValue(typedValue(t, elemType))
-					tc.replaceTypeInfo(expr.Args[i], node)
-					expr.Args[i] = node
-				}
+				t.setValue(elemType)
 			}
 		}
 		return []*TypeInfo{{Type: slice.Type}}
@@ -1208,12 +1309,10 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// https://golang.org/ref/spec#Length_and_capacity).
 		ti := &TypeInfo{Type: intType}
 		if t.Type.Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
-			ti.Value = int64(t.Type.Len())
+			ti.Constant = int64Const(t.Type.Len())
 		}
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
-			ti.Value = int64(t.Type.Elem().Len())
+			ti.Constant = int64Const(t.Type.Elem().Len())
 		}
 		return []*TypeInfo{ti}
 
@@ -1221,6 +1320,72 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// TODO(Gianluca): add specific "close" errors.
 		tc.checkExpression(expr.Args[0])
 		return []*TypeInfo{}
+
+	case "complex":
+		// TODO(Gianluca): add SetValue.
+		switch len(expr.Args) {
+		case 0:
+			panic(tc.errorf(expr, "missing argument to complex - complex(<N>, <N>)"))
+		case 1:
+			panic(tc.errorf(expr, "invalid operation: complex expects two arguments"))
+		case 2:
+		default:
+			panic(tc.errorf(expr, "too many arguments to complex - complex(%s, <N>)", expr.Args[0]))
+		}
+		re := tc.checkExpression(expr.Args[0])
+		im := tc.checkExpression(expr.Args[1])
+		reKind := re.Type.Kind()
+		imKind := im.Type.Kind()
+		if re.IsUntypedConstant() && im.IsUntypedConstant() {
+			if !isNumeric(reKind) || !isNumeric(imKind) {
+				if reKind == imKind {
+					panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re))
+				}
+				panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
+			}
+			if !re.Constant.imag().zero() {
+				panic(tc.errorf(expr, "constant %s truncated to real", expr.Args[0]))
+			}
+			if !im.Constant.imag().zero() {
+				panic(tc.errorf(expr, "constant %s truncated to real", expr.Args[1]))
+			}
+			ti := &TypeInfo{
+				Type:       complex128Type,
+				Constant:   newComplexConst(re.Constant, im.Constant),
+				Properties: PropertyUntyped,
+			}
+			return []*TypeInfo{ti}
+		}
+		if re.IsUntypedConstant() {
+			k := im.Type.Kind()
+			_ = k
+			c, err := convert(re, im.Type)
+			if err != nil {
+				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", re.Constant, re, im))
+			}
+			re = &TypeInfo{Type: im.Type, Constant: c}
+		} else if im.IsUntypedConstant() {
+			c, err := convert(im, re.Type)
+			if err != nil {
+				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", im.Constant, im, re))
+			}
+			im = &TypeInfo{Type: re.Type, Constant: c}
+		} else if reKind != imKind {
+			panic(tc.errorf(expr, "invalid operation: %s (mismatched types %s and %s)", expr, re, im))
+		}
+		ti := &TypeInfo{}
+		switch re.Type.Kind() {
+		case reflect.Float32:
+			ti.Type = complex64Type
+		case reflect.Float64:
+			ti.Type = complex128Type
+		default:
+			panic(tc.errorf(expr, "invalid operation: %s (arguments have type %s, expected floating-point)", expr, re.Type))
+		}
+		if re.IsConstant() && im.IsConstant() {
+			ti.Constant = newComplexConst(re.Constant, im.Constant)
+		}
+		return []*TypeInfo{ti}
 
 	case "copy":
 		if len(expr.Args) < 2 {
@@ -1269,21 +1434,19 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "first argument to delete must be map; have %s", t))
 		}
 		keyType := t.Type.Key()
-		if !isAssignableTo(key, keyType) {
-			if key.Nil() {
-				panic(tc.errorf(expr, "cannot use nil as type %s in delete", t.Type.Key()))
+		if err := isAssignableTo(key, expr.Args[1], keyType); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(expr, "%s in delete", err))
 			}
-			panic(tc.errorf(expr, "cannot use %v (type %s) as type %s in delete", expr.Args[1], key.ShortString(), t.Type.Key()))
+			panic(tc.errorf(expr, "%s", err))
 		}
 		if key.IsConstant() {
-			v, err := representedBy(key, keyType)
+			_, err := convert(key, keyType)
 			if err != nil {
-				panic(tc.errorf(expr, fmt.Sprintf("%s", err)))
+				panic(tc.errorf(expr, "%s", err))
 			}
-			node := ast.NewValue(v)
-			tc.replaceTypeInfo(expr.Args[1], node)
-			expr.Args[1] = node
 		}
+		key.setValue(keyType)
 		return nil
 
 	case "len":
@@ -1297,6 +1460,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
+		t.setValue(nil)
 		switch k := t.Type.Kind(); k {
 		case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
 		default:
@@ -1311,17 +1475,15 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		// function calls; in this case s is not evaluated.» (see
 		// https://golang.org/ref/spec#Length_and_capacity).
 		if t.IsConstant() && t.Type.Kind() == reflect.String {
-			ti.Properties = PropertyIsConstant
-			ti.Value = int64(len(t.Value.(string)))
+			ti.Constant = int64Const(len(t.Constant.string()))
 		}
 		if t.Type.Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
-			ti.Value = int64(t.Type.Len())
+			ti.Constant = int64Const(t.Type.Len())
 		}
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
-			ti.Properties = PropertyIsConstant
-			ti.Value = int64(t.Type.Elem().Len())
+			ti.Constant = int64Const(t.Type.Elem().Len())
 		}
+		ti.setValue(nil)
 		return []*TypeInfo{ti}
 
 	case "make":
@@ -1330,9 +1492,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "missing argument to make"))
 		}
 		t := tc.checkType(expr.Args[0], noEllipses)
-		new := ast.NewValue(t.Type)
-		tc.replaceTypeInfo(expr.Args[0], new)
-		expr.Args[0] = new
 		switch t.Type.Kind() {
 		case reflect.Slice:
 			if numArgs == 1 {
@@ -1340,20 +1499,12 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			}
 			if numArgs > 1 {
 				l := tc.checkSize(expr.Args[1], t.Type, "len")
-				if l != -1 {
-					node := ast.NewValue(l)
-					tc.replaceTypeInfo(expr.Args[1], node)
-					expr.Args[1] = node
-				}
 				if numArgs > 2 {
 					c := tc.checkSize(expr.Args[2], t.Type, "cap")
-					if c != -1 {
-						if l != -1 && l > c {
+					if c != nil {
+						if l != nil && l.int64() > c.int64() {
 							panic(tc.errorf(expr, "len larger than cap in make(%s)", t.Type))
 						}
-						node := ast.NewValue(c)
-						tc.replaceTypeInfo(expr.Args[2], node)
-						expr.Args[2] = node
 					}
 				}
 			}
@@ -1365,24 +1516,14 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
 			}
 			if numArgs == 2 {
-				s := tc.checkSize(expr.Args[1], t.Type, "size")
-				if s != -1 {
-					node := ast.NewValue(s)
-					tc.replaceTypeInfo(expr.Args[1], node)
-					expr.Args[1] = node
-				}
+				tc.checkSize(expr.Args[1], t.Type, "size")
 			}
 		case reflect.Chan:
 			if numArgs > 2 {
 				panic(tc.errorf(expr, "too many arguments to make(%s)", expr.Args[0]))
 			}
 			if numArgs == 2 {
-				s := tc.checkSize(expr.Args[1], t.Type, "buffer")
-				if s != -1 {
-					node := ast.NewValue(s)
-					tc.replaceTypeInfo(expr.Args[1], node)
-					expr.Args[1] = node
-				}
+				tc.checkSize(expr.Args[1], t.Type, "buffer")
 			}
 		default:
 			panic(tc.errorf(expr, "cannot make type %s", t))
@@ -1394,9 +1535,6 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "missing argument to new"))
 		}
 		t := tc.checkType(expr.Args[0], noEllipses)
-		new := ast.NewValue(t.Type)
-		tc.replaceTypeInfo(expr.Args[0], new)
-		expr.Args[0] = new
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
@@ -1410,23 +1548,49 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 		}
 		ti := tc.checkExpression(expr.Args[0])
-		if ti.IsConstant() {
-			node := ast.NewValue(typedValue(ti, ti.Type))
-			tc.replaceTypeInfo(expr.Args[0], node)
-			expr.Args[0] = node
-		}
+		ti.setValue(nil)
 		return nil
 
 	case "print", "println":
-		for i, arg := range expr.Args {
-			ti := tc.checkExpression(arg)
-			if ti.IsConstant() {
-				node := ast.NewValue(typedValue(ti, ti.Type))
-				tc.replaceTypeInfo(expr.Args[i], node)
-				expr.Args[i] = node
-			}
+		for _, arg := range expr.Args {
+			tc.checkExpression(arg)
+			tc.TypeInfo[arg].setValue(nil)
 		}
 		return nil
+
+	case "real", "imag":
+		// TODO(Gianluca): add SetValue.
+		switch len(expr.Args) {
+		case 0:
+			panic(tc.errorf(expr, "missing argument to %s: %s()", ident.Name, ident.Name))
+		case 1:
+		default:
+			panic(tc.errorf(expr, "too many arguments to %s: %s", ident.Name, expr))
+		}
+		t := tc.checkExpression(expr.Args[0])
+		ti := &TypeInfo{Type: float64Type}
+		if t.IsUntypedConstant() {
+			if !isNumeric(t.Type.Kind()) {
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr.Args[0], t, ident.Name))
+			}
+			ti.Properties = PropertyUntyped
+		} else {
+			switch t.Type.Kind() {
+			case reflect.Complex64:
+				ti.Type = float32Type
+			case reflect.Complex128:
+			default:
+				panic(tc.errorf(expr, "invalid argument %s (type %s) for %s", expr.Args[0], t.Type, ident.Name))
+			}
+		}
+		if t.IsConstant() {
+			if ident.Name == "real" {
+				ti.Constant = t.Constant.real()
+			} else {
+				ti.Constant = t.Constant.imag()
+			}
+		}
+		return []*TypeInfo{ti}
 
 	case "recover":
 		if len(expr.Args) > 0 {
@@ -1482,26 +1646,15 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
 		arg := tc.checkExpression(expr.Args[0])
-		value, err := convert(arg, t.Type)
+		c, err := convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
 				panic(tc.errorf(expr, "cannot convert %s (type %s) to type %s", expr.Args[0], arg.Type, t.Type))
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		if arg.IsConstant() {
-			node := ast.NewValue(typedValue(arg, arg.Type))
-			tc.replaceTypeInfo(expr.Args[0], node)
-			expr.Args[0] = node
-		}
-		ti := &TypeInfo{Type: t.Type, Value: value}
-		if value != nil {
-			ti.Properties = PropertyIsConstant
-		}
-		new := ast.NewValue(t.Type)
-		tc.replaceTypeInfo(expr.Func, new)
-		expr.Func = new
-		return []*TypeInfo{ti}, false, true
+		arg.setValue(t.Type)
+		return []*TypeInfo{{Type: t.Type, Constant: c}}, false, true
 	}
 
 	if t.Type.Kind() != reflect.Func {
@@ -1590,35 +1743,35 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		if isSpecialCase {
 			a := tc.TypeInfo[arg]
-			if !isAssignableTo(a, in) {
-				panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
+			if err := isAssignableTo(a, arg, in); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
 			continue
 		}
 		a := tc.checkExpression(arg)
 		if i == lastIn && callIsVariadic {
-			if !isAssignableTo(a, reflect.SliceOf(in)) {
-				panic(tc.errorf(args[i], "cannot use %s (type %s) as type []%s in argument to %s", args[i], a.ShortString(), in, expr.Func))
+			if err := isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
+				}
+				panic(tc.errorf(expr, "%s", err))
 			}
 			continue
 		}
-		if !isAssignableTo(a, in) {
-			if a.Nil() {
-				panic(tc.errorf(args[i], "cannot use nil as type %s in argument to %s", in, expr.Func))
+		if err := isAssignableTo(a, arg, in); err != nil {
+			if _, ok := err.(invalidTypeInAssignment); ok {
+				panic(tc.errorf(expr, "%s in argument to %s", err, expr.Func))
 			}
-			panic(tc.errorf(args[i], "cannot use %s (type %s) as type %s in argument to %s", args[i], a.ShortString(), in, expr.Func))
-		}
-		if a.IsConstant() {
-			node := ast.NewValue(typedValue(a, in))
-			tc.replaceTypeInfo(expr.Args[i], node)
-			expr.Args[i] = node
+			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			node := ast.NewValue(reflect.Zero(in).Interface())
-			tc.replaceTypeInfo(expr.Args[i], node)
-			expr.Args[i] = node
+			a.value = reflect.Zero(in).Interface()
 			tc.TypeInfo[expr.Args[i]].Type = in
 		}
+		a.setValue(in)
 	}
 
 	numOut := t.Type.NumOut()
@@ -1633,12 +1786,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 // maxIndex returns the maximum element index in the composite literal node.
 func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	if len(node.KeyValues) == 0 {
-		return noEllipses
-	}
-	switch node.Type.(type) {
-	case *ast.ArrayType, *ast.SliceType:
-	default:
-		return noEllipses
+		return -1
 	}
 	maxIndex := 0
 	currentIndex := -1
@@ -1649,9 +1797,9 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			currentIndex = -1
 			ti := tc.checkExpression(kv.Key)
 			if ti.IsConstant() {
-				n, err := representedBy(ti, intType)
-				if err == nil {
-					currentIndex = int(n.(int64))
+				c, _ := ti.Constant.representedBy(intType)
+				if c != nil {
+					currentIndex = int(c.int64())
 				}
 			}
 			if currentIndex < 0 {
@@ -1665,66 +1813,17 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 	return maxIndex
 }
 
-// checkKeysDuplicates checks that node does not contains duplicates keys.
-func (tc *typechecker) checkKeysDuplicates(node *ast.CompositeLiteral, kind reflect.Kind) {
-	found := []interface{}{}
-	for _, kv := range node.KeyValues {
-		if kv.Key == nil {
-			continue
-		}
-		var value interface{}
-		if kind == reflect.Struct {
-			ident, ok := kv.Key.(*ast.Identifier)
-			if !ok {
-				panic(tc.errorf(kv.Key, "invalid field name composite literal in struct initializer"))
-			}
-			value = ident.Name
-		} else {
-			ti := tc.checkExpression(kv.Key)
-			if !ti.IsConstant() {
-				continue
-			}
-			value = ti.Value
-		}
-		for _, f := range found {
-			var areEqual bool
-			// TODO(marco): to review
-			va, vb := toSameType(value, f)
-			switch v1 := va.(type) {
-			case *big.Int:
-				v2 := vb.(*big.Int)
-				areEqual = v1.Cmp(v2) == 0
-			case *big.Float:
-				v2 := vb.(*big.Float)
-				areEqual = v1.Cmp(v2) == 0
-			default:
-				areEqual = va == vb
-			}
-			if areEqual {
-				switch kind {
-				case reflect.Struct:
-					panic(tc.errorf(node, "duplicate field name in struct literal: %s", kv.Key))
-				case reflect.Array, reflect.Slice:
-					panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
-				case reflect.Map:
-					panic(tc.errorf(node, "duplicate key %s in map literal", kv.Key))
-				}
-			}
-		}
-		found = append(found, value)
-	}
-}
-
 // checkCompositeLiteral type checks a composite literal. typ is the type of
 // the composite literal.
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ reflect.Type) *TypeInfo {
 
-	maxIndex := tc.maxIndex(node)
-	ti := tc.checkType(node.Type, maxIndex+1)
+	maxIndex := -1
+	switch node.Type.(type) {
+	case *ast.ArrayType, *ast.SliceType:
+		maxIndex = tc.maxIndex(node)
+	}
 
-	newType := ast.NewValue(ti.Type)
-	tc.replaceTypeInfo(node.Type, newType)
-	node.Type = newType
+	ti := tc.checkType(node.Type, maxIndex+1)
 
 	switch ti.Type.Kind() {
 
@@ -1747,27 +1846,30 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		}
 		switch declType == 1 {
 		case true: // struct with explicit fields.
+			hasField := map[string]struct{}{}
 			for i := range node.KeyValues {
 				keyValue := &node.KeyValues[i]
 				ident, ok := keyValue.Key.(*ast.Identifier)
 				if !ok || ident.Name == "_" {
 					panic(tc.errorf(node, "invalid field name %s in struct initializer", keyValue.Key))
 				}
+				if _, ok := hasField[ident.Name]; ok {
+					panic(tc.errorf(node, "duplicate field name in struct literal: %s", keyValue.Key))
+				}
+				hasField[ident.Name] = struct{}{}
 				fieldTi, ok := ti.Type.FieldByName(ident.Name)
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
 				valueTi := tc.checkExpression(keyValue.Value)
-				if !isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(node, "%s in field value", err))
+					}
+					panic(tc.errorf(node, "%s", err))
 				}
-				if valueTi.IsConstant() {
-					new := ast.NewValue(typedValue(valueTi, fieldTi.Type))
-					tc.replaceTypeInfo(keyValue.Value, new)
-					keyValue.Value = new
-				}
+				valueTi.setValue(fieldTi.Type)
 			}
-			tc.checkKeysDuplicates(node, reflect.Struct)
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				ti := &TypeInfo{Type: ti.Type}
@@ -1775,44 +1877,45 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				return ti
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
-				panic(tc.errorf(node, "too few values in %s literal", node.Type))
+				panic(tc.errorf(node, "too few values in %s literal", ti))
 			}
 			if len(node.KeyValues) > ti.Type.NumField() {
-				panic(tc.errorf(node, "too many values in %s literal", node.Type))
+				panic(tc.errorf(node, "too many values in %s literal", ti))
 			}
 			for i := range node.KeyValues {
 				keyValue := &node.KeyValues[i]
 				valueTi := tc.checkExpression(keyValue.Value)
 				fieldTi := ti.Type.Field(i)
-				if !isAssignableTo(valueTi, fieldTi.Type) {
-					panic(tc.errorf(node, "cannot use %v (type %v) as type %v in field value", keyValue.Value, valueTi.ShortString(), fieldTi.Type))
+				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
+					if _, ok := err.(invalidTypeInAssignment); ok {
+						panic(tc.errorf(node, "%s in field value", err))
+					}
+					panic(tc.errorf(node, "%s", err))
 				}
 				if !isExported(fieldTi.Name) {
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
 				}
-				if valueTi.IsConstant() {
-					new := ast.NewValue(typedValue(valueTi, fieldTi.Type))
-					tc.replaceTypeInfo(keyValue.Value, new)
-					keyValue.Value = new
-				}
 				keyValue.Key = ast.NewIdentifier(nil, fieldTi.Name)
+				valueTi.setValue(fieldTi.Type)
 			}
 		}
 
 	case reflect.Array:
 
-		tc.checkKeysDuplicates(node, reflect.Array)
+		hasIndex := map[int]struct{}{}
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
 				keyTi := tc.checkExpression(kv.Key)
-				if keyTi.Value == nil {
+				if keyTi.Constant == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 				if keyTi.IsConstant() {
-					new := ast.NewValue(typedValue(keyTi, intType))
-					tc.replaceTypeInfo(kv.Key, new)
-					kv.Key = new
+					index := int(keyTi.Constant.int64())
+					if _, ok := hasIndex[index]; ok {
+						panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
+					}
+					hasIndex[index] = struct{}{}
 				}
 			}
 			var elemTi *TypeInfo
@@ -1821,34 +1924,32 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(elemTi, ti.Type.Elem()) {
-				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
-				} else {
-					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
+			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+				k := ti.Type.Elem().Kind()
+				if _, ok := err.(invalidTypeInAssignment); ok && k == reflect.Slice || k == reflect.Array {
+					panic(tc.errorf(node, "%s in array or slice literal", err))
 				}
+				panic(tc.errorf(node, "%s", err))
 			}
-			if elemTi.IsConstant() {
-				new := ast.NewValue(typedValue(elemTi, ti.Type.Elem()))
-				tc.replaceTypeInfo(kv.Value, new)
-				kv.Value = new
-			}
+			elemTi.setValue(ti.Type.Elem())
 		}
 
 	case reflect.Slice:
 
-		tc.checkKeysDuplicates(node, reflect.Slice)
+		hasIndex := map[int]struct{}{}
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
 				keyTi := tc.checkExpression(kv.Key)
-				if keyTi.Value == nil {
+				if keyTi.Constant == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
 				if keyTi.IsConstant() {
-					new := ast.NewValue(typedValue(keyTi, intType))
-					tc.replaceTypeInfo(kv.Key, new)
-					kv.Key = new
+					index := int(keyTi.Constant.int64())
+					if _, ok := hasIndex[index]; ok {
+						panic(tc.errorf(node, "duplicate index in array literal: %s", kv.Key))
+					}
+					hasIndex[index] = struct{}{}
 				}
 			}
 			var elemTi *TypeInfo
@@ -1857,23 +1958,22 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				elemTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(elemTi, ti.Type.Elem()) {
-				if ti.Type.Elem().Kind() == reflect.Slice || ti.Type.Elem().Kind() == reflect.Array {
-					panic(tc.errorf(node, "cannot use %s (type %s) as type %v in array or slice literal", kv.Value, elemTi, ti.Type.Elem()))
-				} else {
+			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
+				k := ti.Type.Elem().Kind()
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					if k == reflect.Slice || k == reflect.Array {
+						panic(tc.errorf(node, "%s in array or slice literal", err))
+					}
 					panic(tc.errorf(node, "cannot convert %s (type %s) to type %v", kv.Value, elemTi, ti.Type.Elem()))
 				}
+				panic(tc.errorf(node, "%s", err))
 			}
-			if elemTi.IsConstant() {
-				new := ast.NewValue(typedValue(elemTi, ti.Type.Elem()))
-				tc.replaceTypeInfo(kv.Value, new)
-				kv.Value = new
-			}
+			elemTi.setValue(ti.Type.Elem())
 		}
 
 	case reflect.Map:
 
-		tc.checkKeysDuplicates(node, reflect.Map)
+		hasKey := map[interface{}]struct{}{}
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			keyType := ti.Type.Key()
@@ -1884,32 +1984,39 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			} else {
 				keyTi = tc.checkExpression(kv.Key)
 			}
-			if !isAssignableTo(keyTi, keyType) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map key", kv.Key, keyTi.ShortString(), keyType))
+			if err := isAssignableTo(keyTi, kv.Key, keyType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(node, "%s in map key", err))
+				}
+				panic(tc.errorf(node, "%s", err))
 			}
 			if keyTi.IsConstant() {
-				new := ast.NewValue(typedValue(keyTi, keyType))
-				tc.replaceTypeInfo(kv.Key, new)
-				kv.Key = new
+				key := typedValue(keyTi, keyType)
+				if _, ok := hasKey[key]; ok {
+					panic(tc.errorf(node, "duplicate key %s in map literal", kv.Key))
+				}
+				hasKey[key] = struct{}{}
 			}
+			keyTi.setValue(keyType)
 			var valueTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, elemType)
 			} else {
 				valueTi = tc.checkExpression(kv.Value)
 			}
-			if !isAssignableTo(valueTi, elemType) {
-				panic(tc.errorf(node, "cannot use %s (type %v) as type %v in map value", kv.Value, valueTi.ShortString(), elemType))
+			if err := isAssignableTo(valueTi, kv.Value, elemType); err != nil {
+				if _, ok := err.(invalidTypeInAssignment); ok {
+					panic(tc.errorf(node, "%s in map value", err))
+				}
+				panic(tc.errorf(node, "%s", err))
 			}
-			if valueTi.IsConstant() {
-				new := ast.NewValue(typedValue(valueTi, elemType))
-				tc.replaceTypeInfo(kv.Value, new)
-				kv.Value = new
-			}
+			valueTi.setValue(elemType)
 		}
+
 	}
 
 	nodeTi := &TypeInfo{Type: ti.Type}
 	tc.TypeInfo[node] = nodeTi
+
 	return nodeTi
 }

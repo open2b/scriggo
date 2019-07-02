@@ -7,8 +7,6 @@
 package compiler
 
 import (
-	"math"
-	"math/big"
 	"reflect"
 )
 
@@ -19,7 +17,6 @@ type Properties uint8
 const (
 	PropertyNil          Properties = 1 << (8 - 1 - iota) // is predeclared nil
 	PropertyUntyped                                       // is untyped
-	PropertyIsConstant                                    // is a constant
 	PropertyIsType                                        // is a type
 	PropertyIsPackage                                     // is a package
 	PropertyIsBuiltin                                     // is a builtin
@@ -30,9 +27,11 @@ const (
 type TypeInfo struct {
 	Type              reflect.Type // Type.
 	Properties        Properties   // Properties.
-	Value             interface{}  // Value; for packages has type *Package.
+	Constant          constant     // Constant value.
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
 	MethodType        MethodType   // Method type.
+	value             interface{}  // value; for packages has type *Package.
+	valueType         reflect.Type // When value is a predeclared type holds the original type of value.
 }
 
 // MethodType represents the type of a method, intended as a combination of a
@@ -59,12 +58,12 @@ func (ti *TypeInfo) Untyped() bool {
 
 // IsConstant reports whether it is a constant.
 func (ti *TypeInfo) IsConstant() bool {
-	return ti.Properties&PropertyIsConstant != 0
+	return ti.Constant != nil
 }
 
 // IsUntypedConstant reports whether it is an untyped constant.
 func (ti *TypeInfo) IsUntypedConstant() bool {
-	return ti.Properties&PropertyUntyped != 0 && ti.Properties&PropertyIsConstant != 0
+	return ti.Properties&PropertyUntyped != 0 && ti.Constant != nil
 }
 
 // IsType reports whether it is a type.
@@ -102,9 +101,6 @@ func (ti *TypeInfo) String() string {
 	var s string
 	if ti.Untyped() {
 		s = "untyped "
-	}
-	if ti.IsConstant() && ti.Type == runeType {
-		return s + "rune"
 	}
 	return s + ti.Type.String()
 }
@@ -159,136 +155,41 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 	return reflect.Uint <= k && k <= reflect.Uint64
 }
 
-//  CanInt64 reports whether it is safe to call Int64.
-func (ti *TypeInfo) CanInt64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return true
-	case *big.Int:
-		return v.IsInt64()
-	case float64:
-		if -minIntAsFloat64 <= v && v <= minIntAsFloat64 {
-			return true
+// setValue sets ti value, whenever possibile.
+// TODO(Gianluca): review this doc.
+func (ti *TypeInfo) setValue(t reflect.Type) {
+	if ti.IsConstant() {
+		typ := t
+		if t == nil || t.Kind() == reflect.Interface {
+			typ = ti.Type
 		}
-		if _, acc := big.NewFloat(v).Int64(); acc == big.Exact {
-			return true
-		}
-	case *big.Float:
-		if _, acc := v.Int64(); acc == big.Exact {
-			return true
-		}
-	case *big.Rat:
-		return v.IsInt() && v.Num().IsInt64()
-	}
-	return false
-}
-
-//  CanUint64 reports whether it is safe to call Uint64.
-func (ti *TypeInfo) CanUint64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return v >= 0
-	case *big.Int:
-		return v.IsUint64()
-	case float64:
-		if v >= 0 {
-			if v <= minIntAsFloat64 {
-				return true
+		switch typ.Kind() {
+		case reflect.Bool:
+			if ti.Constant.bool() {
+				ti.value = int64(1)
+			} else {
+				ti.value = int64(0)
 			}
-			if _, acc := big.NewFloat(v).Uint64(); acc == big.Exact {
-				return true
-			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			ti.value = ti.Constant.int64()
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			ti.value = int64(ti.Constant.uint64())
+		case reflect.Float32, reflect.Float64:
+			ti.value = ti.Constant.float64()
+		case reflect.Complex64, reflect.Complex128:
+			// TODO(Gianluca): to implement.
+		case reflect.String:
+			ti.value = ti.Constant.string()
 		}
-	case *big.Float:
-		if _, acc := v.Uint64(); acc == big.Exact {
-			return true
+		ti.valueType = typ
+		return
+	}
+	if ti.Nil() {
+		if t.Kind() != reflect.Interface {
+			v := reflect.New(t).Elem()
+			ti.value = v.Interface()
+			ti.valueType = t
+			return
 		}
-	case *big.Rat:
-		return v.IsInt() && v.Num().IsUint64()
 	}
-	return false
-}
-
-//  CanFloat64 reports whether it is safe to call Float64.
-func (ti *TypeInfo) CanFloat64() bool {
-	switch v := ti.Value.(type) {
-	case int64:
-		return true
-	case *big.Int:
-		if v.IsInt64() || v.IsUint64() {
-			return true
-		}
-		f := (&big.Float{}).SetInt(v)
-		if _, acc := f.Float64(); acc == big.Exact {
-			return true
-		}
-	case float64:
-		return true
-	case *big.Float:
-		if f, _ := v.Float64(); !math.IsInf(f, 1) {
-			return true
-		}
-	case *big.Rat:
-		f, _ := v.Float64()
-		return !math.IsInf(f, 0)
-	}
-	return false
-}
-
-// Int64 returns the value as an int64. If the value can not be represented by
-// an int64 the behaviour is undefined.
-func (ti *TypeInfo) Int64() int64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return v
-	case *big.Int:
-		return v.Int64()
-	case float64:
-		return int64(v)
-	case *big.Float:
-		n, _ := v.Int64()
-		return n
-	case *big.Rat:
-		return v.Num().Int64()
-	}
-	return 0
-}
-
-// Uint64 returns the value as an uint64. If the value can not be represented
-// by an uint64 the behaviour is undefined.
-func (ti *TypeInfo) Uint64() uint64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return uint64(v)
-	case *big.Int:
-		return v.Uint64()
-	case float64:
-		return uint64(v)
-	case *big.Float:
-		n, _ := v.Uint64()
-		return n
-	case *big.Rat:
-		return v.Num().Uint64()
-	}
-	return 0
-}
-
-// Float64 returns the value as a float64. If the value can not be represented
-// by a float64 the behaviour is undefined.
-func (ti *TypeInfo) Float64() float64 {
-	switch v := ti.Value.(type) {
-	case int64:
-		return float64(v)
-	case *big.Int:
-		return float64(v.Int64())
-	case float64:
-		return v
-	case *big.Float:
-		n, _ := v.Float64()
-		return n
-	case *big.Rat:
-		n, _ := v.Float64()
-		return n
-	}
-	return 0
 }

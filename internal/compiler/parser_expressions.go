@@ -9,7 +9,6 @@ package compiler
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"unicode/utf8"
 
 	"scriggo/internal/compiler/ast"
@@ -142,8 +141,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 
 	// TODO (Gianluca): document.
 	var mustBeSwitchGuard bool
-
-	var ok bool
 
 	if tok.txt == nil {
 		tok = next(p.lex)
@@ -299,28 +296,18 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			tokenAnd:            // &e
 			operator = ast.NewUnaryOperator(tok.pos, operatorType(tok.typ), nil)
 		case
-			tokenRune,  // '\x3c'
-			tokenInt,   // 18
-			tokenFloat: // 12.895
-			// If the number is preceded by the unary operator "-", the sign
-			// of the number is changed and the operator is removed from the
-			// tree.
-			var pos *ast.Position
-			if len(path) > 0 {
-				var op *ast.UnaryOperator
-				if op, ok = path[len(path)-1].(*ast.UnaryOperator); ok && op.Op == ast.OperatorSubtraction {
-					pos = op.Pos()
-					path = path[:len(path)-1]
-				}
-			}
-			operand = parseNumberNode(tok, pos)
+			tokenRune,      // '\x3c'
+			tokenInt,       // 18
+			tokenFloat,     // 12.895
+			tokenImaginary: // 7.2i
+			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case
 			tokenInterpretedString, // ""
 			tokenRawString:         // ``
 			if mustBeType {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected literal %q, expecting type", tok.txt)})
 			}
-			operand = parseStringNode(tok)
+			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case tokenIdentifier: // a
 			ident := p.parseIdentifierNode(tok)
 			// TODO (Gianluca): this check must be done during type-checking.
@@ -730,6 +717,24 @@ func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMust
 	}
 }
 
+// literalType returns a literal type from a token type.
+func literalType(typ tokenTyp) ast.LiteralType {
+	switch typ {
+	case tokenRawString, tokenInterpretedString:
+		return ast.StringLiteral
+	case tokenRune:
+		return ast.RuneLiteral
+	case tokenInt:
+		return ast.IntLiteral
+	case tokenFloat:
+		return ast.FloatLiteral
+	case tokenImaginary:
+		return ast.ImaginaryLiteral
+	default:
+		panic("invalid token type")
+	}
+}
+
 // operatorType returns a operator type from a token type.
 func operatorType(typ tokenTyp) ast.OperatorType {
 	switch typ {
@@ -785,47 +790,6 @@ func (p *parsing) parseIdentifierNode(tok token) *ast.Identifier {
 	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
 	p.deps.identifier(ident)
 	return ident
-}
-
-// parseNumberNode returns an Expression node from an integer, float or rune
-// literal token possibly preceded by an unary operator "-" with neg position.
-func parseNumberNode(tok token, neg *ast.Position) ast.Expression {
-	p := tok.pos
-	if neg != nil {
-		p = neg
-		p.End = tok.pos.End
-	}
-	switch tok.typ {
-	case tokenRune:
-		var r rune
-		if len(tok.txt) == 3 {
-			r = rune(tok.txt[1])
-		} else {
-			r, _ = parseEscapedRune(tok.txt[1:])
-		}
-		if neg != nil {
-			r = -r
-		}
-		return ast.NewRune(p, r)
-	case tokenInt:
-		n, _ := newInt().SetString(string(tok.txt), 0)
-		if neg != nil {
-			_ = n.Neg(n)
-		}
-		return ast.NewInt(p, n)
-	case tokenFloat:
-		n, _ := newFloat().SetString(string(tok.txt))
-		if neg != nil {
-			_ = n.Neg(n)
-		}
-		return ast.NewFloat(p, n)
-	}
-	panic("unexpected token")
-}
-
-// parseStringNode returns a String node from a token.
-func parseStringNode(tok token) *ast.String {
-	return ast.NewString(tok.pos, unquoteString(tok.txt))
 }
 
 // unquoteString returns the characters in s unquoted as string.
@@ -909,38 +873,4 @@ func parseEscapedRune(s []byte) (rune, int) {
 		return rune(r), 3
 	}
 	panic("unexpected escaped rune")
-}
-
-// parseConstant parses s as integer, floating point, rune or string literal.
-func parseConstant(s string) interface{} {
-	switch s[0] {
-	case '\'':
-		if len(s) == 3 {
-			return rune(s[1])
-		} else {
-			r, _ := parseEscapedRune([]byte(s[1:]))
-			return r
-		}
-	case '"':
-		return unquoteString([]byte(s))
-	case 't':
-		return true
-	case 'f':
-		return false
-	default:
-		sl := strings.ToLower(s)
-		if sl[0] == '-' {
-			sl = sl[1:]
-		}
-		if strings.ContainsAny(sl, "/") {
-			r, _ := newRat().SetString(s)
-			return r
-		}
-		if strings.ContainsAny(sl, ".p") || strings.Contains(sl, "e") && !strings.HasPrefix(sl, "0x") {
-			n, _ := newFloat().SetString(s)
-			return n
-		}
-		n, _ := newInt().SetString(s, 0)
-		return n
-	}
 }

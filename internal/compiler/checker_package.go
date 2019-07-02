@@ -9,7 +9,6 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 
 	"scriggo/internal/compiler/ast"
@@ -31,7 +30,7 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 		if reflect.TypeOf(value).Kind() == reflect.Ptr {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              reflect.TypeOf(value).Elem(),
-				Value:             reflect.ValueOf(value),
+				value:             reflect.ValueOf(value),
 				Properties:        PropertyAddressable | PropertyIsPredefined,
 				PredefPackageName: gp.Name,
 			}}
@@ -41,7 +40,7 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 		if typ := reflect.TypeOf(value); typ.Kind() == reflect.Func {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              removeEnvArg(typ, false),
-				Value:             reflect.ValueOf(value),
+				value:             reflect.ValueOf(value),
 				Properties:        PropertyIsPredefined,
 				PredefPackageName: gp.Name,
 			}}
@@ -57,60 +56,40 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 	return s
 }
 
-// checkConstant returns the TypeInfo associated to the Constant c.
+// checkConstant returns the TypeInfo of the constant c.
 func checkConstant(c Constant, pkgName string) *TypeInfo {
-	if c.literal == "" {
-		value := c.value
+	if c.value != nil {
 		typ := reflect.TypeOf(c.value)
-		kind := typ.Kind()
-		switch {
-		case kind == reflect.Bool:
-			value = reflect.ValueOf(value).Bool()
-		case reflect.Int <= kind && kind <= reflect.Int64:
-			value = newInt().SetInt64(reflect.ValueOf(value).Int())
-		case reflect.Uint <= kind && kind <= reflect.Uint64:
-			value = newInt().SetUint64(reflect.ValueOf(value).Uint())
-		case kind == reflect.Float64 || kind == reflect.Float32:
-			value = newFloat().SetFloat64(reflect.ValueOf(value).Float())
-		case kind == reflect.String:
-			value = reflect.ValueOf(value).String()
-		default:
-			panic("scriggo: unexpected constant kind") // TODO.
+		constant := convertToConstant(c.value)
+		if constant == nil {
+			panic(fmt.Errorf("scriggo: invalid constant value %v in package %s", c.value, pkgName))
 		}
 		return &TypeInfo{
 			PredefPackageName: pkgName,
-			Properties:        PropertyIsConstant | PropertyIsPredefined,
 			Type:              typ,
-			Value:             value,
+			Constant:          constant,
 		}
 	}
-	v := parseConstant(c.literal)
-	var typ reflect.Type
-	property := PropertyIsConstant | PropertyIsPredefined
-	if c.typ == nil {
-		property |= PropertyUntyped
-		switch v.(type) {
-		case rune:
-			typ = runeType
-		case string:
-			typ = stringType
-		case bool:
-			typ = boolType
-		case *big.Float:
-			typ = float64Type
-		case *big.Int:
-			typ = intType
-		case *big.Rat:
-			typ = float64Type
+	constant, typ, err := parseConstant(c.literal)
+	if err != nil {
+		panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s", c.literal, pkgName))
+	}
+	if c.typ != nil {
+		constant, _ = constant.representedBy(c.typ)
+		if constant == nil {
+			panic(fmt.Errorf("scriggo: invalid constant literal %q in package %s for type %s", c.literal, pkgName, c.typ))
 		}
-	} else {
-		typ = c.typ
+		return &TypeInfo{
+			PredefPackageName: pkgName,
+			Type:              c.typ,
+			Constant:          constant,
+		}
 	}
 	return &TypeInfo{
 		PredefPackageName: pkgName,
-		Properties:        property,
+		Properties:        PropertyUntyped,
 		Type:              typ,
-		Value:             v,
+		Constant:          constant,
 	}
 }
 
@@ -463,13 +442,13 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}
 			} else {
 				if d.Ident == nil {
-					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
 				} else {
 					switch d.Ident.Name {
@@ -481,7 +460,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 							tc.filePackageBlock[ident] = scopeElement{t: ti}
 						}
 					default:
-						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{Value: importedPkg, Properties: PropertyIsPackage}}
+						tc.filePackageBlock[d.Ident.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 						tc.unusedImports[d.Ident.Name] = nil
 					}
 				}
@@ -495,9 +474,6 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			isVariadic := d.Type.IsVariadic
 			for i, param := range d.Type.Parameters {
 				t := tc.checkType(param.Type, noEllipses)
-				new := ast.NewValue(t.Type)
-				tc.replaceTypeInfo(param.Type, new)
-				param.Type = new
 				if param.Ident != nil {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
@@ -510,9 +486,6 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			fillParametersTypes(d.Type.Result)
 			for _, ret := range d.Type.Result {
 				t := tc.checkType(ret.Type, noEllipses)
-				new := ast.NewValue(t.Type)
-				tc.replaceTypeInfo(ret.Type, new)
-				ret.Type = new
 				if ret.Ident != nil {
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
