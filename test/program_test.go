@@ -576,26 +576,25 @@ var stmtTests = []struct {
 		output: "s.String() is 20m42s",
 	},
 
-	// TODO(Gianluca):
-	// {
-	// 	name: "Method value on interface receiver",
-	// 	src: `package main
+	{
+		name: "Method value on interface receiver",
+		src: `package main
 
-	// 	import (
-	// 		"fmt"
-	// 		"time"
-	// 	)
-
-	// 	func main() {
-	// 		d, _ := time.ParseDuration("20m42s")
-	// 		s := fmt.Stringer(d)
-	// 		m := s.String
-	// 		ss := m()
-	// 		fmt.Println(ss)
-	// 	}
-	// 	`,
-	// 	output: "s.String() is 20m42s",
-	// },
+		import (
+			"fmt"
+			"time"
+		)
+		
+		func main() {
+			d, _ := time.ParseDuration("20m42s")
+			s := fmt.Stringer(d)
+			m := s.String
+			ss := m()
+			fmt.Print("s.String() is ", ss)
+		}
+		`,
+		output: "s.String() is 20m42s",
+	},
 
 	{
 		name: "Method value on concrete receiver",
@@ -2549,8 +2548,6 @@ var stmtTests = []struct {
 			)
 		}`,
 		nil, nil, "4", nil, 0},
-
-	// TODO(Gianluca):
 
 	// {"Named return parameters",
 	// 	`package main
