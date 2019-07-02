@@ -349,6 +349,17 @@ func (vm *VM) run() (uint32, bool) {
 		case OpClose:
 			reflect.ValueOf(vm.general(a)).Close()
 
+		// OpComplex
+		case OpComplex:
+			var re, im float64
+			if a > 0 {
+				re = vm.float(a)
+			}
+			if b > 0 {
+				im = vm.float(b)
+			}
+			vm.setGeneral(c, complex(re, im))
+
 		// Continue
 		case OpContinue:
 			return decodeUint24(a, b, c), false
@@ -1085,6 +1096,26 @@ func (vm *VM) run() (uint32, bool) {
 			}
 			if !breakOut {
 				vm.pc = rangeAddress + 1
+			}
+
+		// OpRealImag
+		case OpRealImag, -OpRealImag:
+			v := vm.generalk(a, op < 0)
+			var re, im float64
+			switch v := v.(type) {
+			case complex64:
+				re, im = float64(real(v)), float64(imag(v))
+			case complex128:
+				re, im = real(v), imag(v)
+			default:
+				rv := reflect.ValueOf(v).Complex()
+				re, im = real(rv), imag(rv)
+			}
+			if b > 0 {
+				vm.setFloat(b, re)
+			}
+			if c > 0 {
+				vm.setFloat(c, im)
 			}
 
 		// Receive
