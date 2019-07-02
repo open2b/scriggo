@@ -1902,6 +1902,20 @@ func (e *emitter) emitSwitch(node *ast.Switch) {
 // emitted is always the "If" instruction
 func (e *emitter) emitCondition(cond ast.Expression) {
 
+	if ti, ok := e.typeInfos[cond]; ok {
+		condType := ti.Type
+		x, k, ok := e.quickEmitExpr(cond, condType)
+		if !ok || k {
+			x = e.fb.NewRegister(condType.Kind())
+			e.emitExpr(cond, x, condType)
+		}
+		yConst := e.fb.MakeIntConstant(1)
+		y := e.fb.NewRegister(reflect.Bool)
+		e.fb.LoadNumber(vm.TypeInt, yConst, y)
+		e.fb.If(false, x, vm.ConditionEqual, y, reflect.Bool)
+		return
+	}
+
 	switch cond := cond.(type) {
 
 	case *ast.BinaryOperator:
