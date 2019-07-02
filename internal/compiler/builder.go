@@ -959,14 +959,21 @@ func (builder *functionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 //     z = x << y
 //
 func (builder *functionBuilder) LeftShift(k bool, x, y, z int8, kind reflect.Kind) {
-	op := vm.OpLeftShift64
+	var op vm.Operation
 	switch kind {
+	case reflect.Int, reflect.Uint:
+		op = vm.OpLeftShift64
+		if strconv.IntSize == 32 {
+			op = vm.OpLeftShift32
+		}
 	case reflect.Int8, reflect.Uint8:
 		op = vm.OpLeftShift8
 	case reflect.Int16, reflect.Uint16:
 		op = vm.OpLeftShift16
 	case reflect.Int32, reflect.Uint32:
 		op = vm.OpLeftShift32
+	case reflect.Int64, reflect.Uint64:
+		op = vm.OpLeftShift64
 	}
 	if k {
 		op = -op
