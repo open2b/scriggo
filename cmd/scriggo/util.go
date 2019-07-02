@@ -251,6 +251,11 @@ func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 	return pd, nil
 }
 
+func txtToHelp(s string) {
+	s = strings.TrimSpace(s)
+	stderr(strings.Split(s, "\n")...)
+}
+
 // goImports runs the system command "goimports" on path.
 func goImports(path string) error {
 	_, err := exec.LookPath("goimports")
