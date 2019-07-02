@@ -10,8 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strconv"
@@ -23,47 +21,6 @@ import (
 func packageName(pkg string) string {
 	i := strings.LastIndex(pkg, "/")
 	return pkg[i+1:]
-}
-
-func DisassembleDir(dir string, main *vm.Function, globals []Global) (err error) {
-
-	packages, err := Disassemble(main, globals)
-	if err != nil {
-		return err
-	}
-
-	var fi *os.File
-	defer func() {
-		if fi != nil {
-			err2 := fi.Close()
-			if err == nil {
-				err = err2
-			}
-		}
-	}()
-
-	for path, source := range packages {
-		pkgDir, file := filepath.Split(path)
-		fullDir := filepath.Join(dir, pkgDir)
-		err = os.MkdirAll(fullDir, 0775)
-		if err != nil {
-			return err
-		}
-		fi, err = os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
-			return err
-		}
-		_, err = fi.WriteString(source)
-		if err != nil {
-			return err
-		}
-		err = fi.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func Disassemble(main *vm.Function, globals []Global) (assembler map[string]string, err error) {
