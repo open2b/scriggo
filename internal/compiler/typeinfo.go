@@ -155,9 +155,9 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 	return reflect.Uint <= k && k <= reflect.Uint64
 }
 
-// SetValue sets ti value, whenever possibile.
+// setValue sets ti value, whenever possibile.
 // TODO(Gianluca): review this doc.
-func (ti *TypeInfo) SetValue(t reflect.Type) {
+func (ti *TypeInfo) setValue(t reflect.Type) {
 	if ti.IsConstant() {
 		typ := t
 		if t == nil || t.Kind() == reflect.Interface {

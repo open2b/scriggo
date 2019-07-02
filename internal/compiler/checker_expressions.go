@@ -805,7 +805,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				}
 				panic(tc.errorf(expr, "%s", err))
 			}
-			key.SetValue(t.Type.Key())
+			key.setValue(t.Type.Key())
 			return &TypeInfo{Type: t.Type.Elem()}
 		default:
 			panic(tc.errorf(expr, "invalid operation: %s (type %s does not support indexing)", expr, t.ShortString()))
@@ -982,7 +982,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 		}
 		panic(tc.errorf(expr, "non-integer %s index %s", typ.Kind(), expr))
 	}
-	index.SetValue(intType)
+	index.setValue(intType)
 	if index.IsConstant() {
 		c, err := convert(index, intType)
 		if err != nil {
@@ -1130,14 +1130,14 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 		if err != nil {
 			return nil, err
 		}
-		t1.SetValue(t2.Type)
+		t1.setValue(t2.Type)
 		t1 = &TypeInfo{Type: t2.Type, Constant: c}
 	} else if t2.IsUntypedConstant() {
 		c, err := representedBy(t2, t1.Type)
 		if err != nil {
 			return nil, err
 		}
-		t2.SetValue(t1.Type)
+		t2.setValue(t1.Type)
 		t2 = &TypeInfo{Type: t1.Type, Constant: c}
 	}
 
@@ -1219,7 +1219,7 @@ func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name str
 		}
 		panic(tc.errorf(expr, "non-integer %s argument in make(%s) - %s", name, typ, got))
 	}
-	size.SetValue(intType)
+	size.setValue(intType)
 	if size.IsConstant() {
 		c, err := convert(size, intType)
 		if err != nil {
@@ -1279,7 +1279,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 					}
 					panic(tc.errorf(expr, "%s", err))
 				}
-				t.SetValue(elemType)
+				t.setValue(elemType)
 			}
 		}
 		return []*TypeInfo{{Type: slice.Type}}
@@ -1446,7 +1446,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				panic(tc.errorf(expr, "%s", err))
 			}
 		}
-		key.SetValue(keyType)
+		key.setValue(keyType)
 		return nil
 
 	case "len":
@@ -1460,7 +1460,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
-		t.SetValue(nil)
+		t.setValue(nil)
 		switch k := t.Type.Kind(); k {
 		case reflect.String, reflect.Slice, reflect.Map, reflect.Array, reflect.Chan:
 		default:
@@ -1483,7 +1483,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if t.Type.Kind() == reflect.Ptr && t.Type.Elem().Kind() == reflect.Array {
 			ti.Constant = int64Const(t.Type.Elem().Len())
 		}
-		ti.SetValue(nil)
+		ti.setValue(nil)
 		return []*TypeInfo{ti}
 
 	case "make":
@@ -1548,13 +1548,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 		}
 		ti := tc.checkExpression(expr.Args[0])
-		ti.SetValue(nil)
+		ti.setValue(nil)
 		return nil
 
 	case "print", "println":
 		for _, arg := range expr.Args {
 			tc.checkExpression(arg)
-			tc.TypeInfo[arg].SetValue(nil)
+			tc.TypeInfo[arg].setValue(nil)
 		}
 		return nil
 
@@ -1653,7 +1653,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		arg.SetValue(t.Type)
+		arg.setValue(t.Type)
 		return []*TypeInfo{{Type: t.Type, Constant: c}}, false, true
 	}
 
@@ -1771,7 +1771,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			a.value = reflect.Zero(in).Interface()
 			tc.TypeInfo[expr.Args[i]].Type = in
 		}
-		a.SetValue(in)
+		a.setValue(in)
 	}
 
 	numOut := t.Type.NumOut()
@@ -1868,7 +1868,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					}
 					panic(tc.errorf(node, "%s", err))
 				}
-				valueTi.SetValue(fieldTi.Type)
+				valueTi.setValue(fieldTi.Type)
 			}
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
@@ -1896,7 +1896,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 					panic(tc.errorf(node, "implicit assignment of unexported field '%s' in %v", fieldTi.Name, node))
 				}
 				keyValue.Key = ast.NewIdentifier(nil, fieldTi.Name)
-				valueTi.SetValue(fieldTi.Type)
+				valueTi.setValue(fieldTi.Type)
 			}
 		}
 
@@ -1931,7 +1931,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			elemTi.SetValue(ti.Type.Elem())
+			elemTi.setValue(ti.Type.Elem())
 		}
 
 	case reflect.Slice:
@@ -1968,7 +1968,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			elemTi.SetValue(ti.Type.Elem())
+			elemTi.setValue(ti.Type.Elem())
 		}
 
 	case reflect.Map:
@@ -1997,7 +1997,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				hasKey[key] = struct{}{}
 			}
-			keyTi.SetValue(keyType)
+			keyTi.setValue(keyType)
 			var valueTi *TypeInfo
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, elemType)
@@ -2010,7 +2010,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				}
 				panic(tc.errorf(node, "%s", err))
 			}
-			valueTi.SetValue(elemType)
+			valueTi.setValue(elemType)
 		}
 
 	}
