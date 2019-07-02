@@ -40,6 +40,9 @@ func makeExecutableGoMod(path string) []byte {
 	inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 	out = strings.ReplaceAll(out, "[moduleName]", inputBaseNoExt)
 	goPath := filepath.Clean(os.Getenv("GOPATH"))
+	if strings.HasSuffix(goPath, ";") {
+		goPath = strings.TrimSuffix(goPath, ";")
+	}
 	if goPath == "" {
 		panic("empty gopath not supported")
 	}
