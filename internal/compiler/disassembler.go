@@ -682,13 +682,13 @@ var operationName = [...]string{
 	vm.OpConvertFloat:   "Convert",
 	vm.OpConvertString:  "Convert",
 
-	vm.OpConcat: "concat",
+	vm.OpConcat: "Concat",
 
 	vm.OpCopy: "Copy",
 
 	vm.OpDefer: "Defer",
 
-	vm.OpDelete: "delete",
+	vm.OpDelete: "Delete",
 
 	vm.OpDivInt64:   "Div",
 	vm.OpDivInt8:    "Div8",
