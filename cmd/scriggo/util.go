@@ -39,14 +39,11 @@ func makeExecutableGoMod(path string) []byte {
 	inputFileBase := filepath.Base(path)
 	inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 	out = strings.ReplaceAll(out, "[moduleName]", inputBaseNoExt)
-	goPath := filepath.Clean(os.Getenv("GOPATH"))
-	if strings.HasSuffix(goPath, ";") {
-		goPath = strings.TrimSuffix(goPath, ";")
-	}
-	if goPath == "" {
+	goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
+	if len(goPaths) == 0 {
 		panic("empty gopath not supported")
 	}
-	scriggoPath := filepath.Join(goPath, "src/scriggo")
+	scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
 	out = strings.ReplaceAll(out, "[scriggoPath]", scriggoPath)
 
 	// TODO(Gianluca): executable name must have a prefix like 'scriggo-',
