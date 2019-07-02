@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"go/constant"
 	"go/types"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -260,7 +259,8 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 		Mode: 1023,
 	}
 	if goos != "" {
-		conf.Env = append(os.Environ(), "GOOS=", goos)
+		// TODO(Gianluca): enable support for different GOOSes.
+		// conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
 
 	pkgs, err := packages.Load(conf, pkgPath)
