@@ -42,7 +42,11 @@ func stderr(lines ...string) {
 // code 1.
 func exitError(format string, a ...interface{}) {
 	msg := fmt.Errorf(format, a...)
-	stderr("\033[1;31m"+msg.Error()+"\033[0m", `exit status 1`)
+	if runtime.GOOS == "linux" {
+		stderr("\033[1;31m"+msg.Error()+"\033[0m", `exit status 1`)
+	} else {
+		stderr(msg.Error(), `exit status 1`)
+	}
 	exit(1)
 	return
 }
