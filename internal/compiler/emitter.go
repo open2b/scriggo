@@ -1140,6 +1140,7 @@ func (e *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) 
 // If expr is a constant, out is the constant and k is true.
 // if expr is a register, out is the register and k is false.
 func (e *emitter) quickEmitExpr(expr ast.Expression, typ reflect.Type) (out int8, k, ok bool) {
+
 	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
 	// not need extra registers for evaluation.
 
@@ -1150,26 +1151,26 @@ func (e *emitter) quickEmitExpr(expr ast.Expression, typ reflect.Type) (out int8
 		return 0, false, false
 	}
 
-	if ti.IsConstant() {
-		c := ti.Constant
-		switch ti.Type.Kind() {
+	if ti.value != nil && !ti.IsPredefined() {
+		rv := reflect.ValueOf(ti.value)
+		switch rv.Kind() {
 		case reflect.Int,
 			reflect.Int8,
 			reflect.Int16,
 			reflect.Int32,
 			reflect.Int64:
-			i := c.int64()
+			i := rv.Int()
 			if -127 < i && i < 126 {
 				return int8(i), true, true
 			}
 		case reflect.Bool:
 			b := int8(0)
-			if c.bool() {
+			if rv.Bool() {
 				b = 1
 			}
 			return b, true, true
 		case reflect.Float32, reflect.Float64:
-			f := c.float64()
+			f := rv.Float()
 			if math.Floor(f) == f && -127 < f && f < 126 {
 				return int8(f), true, true
 			}
