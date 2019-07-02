@@ -61,14 +61,14 @@ func ExampleDump() {
 	// │    Show (1:1) {{ (4 + 5) * value() }}
 	// │    │    BinaryOperator (1:12) (4 + 5) * value()
 	// │    │    │    BinaryOperator (1:7) 4 + 5
-	// │    │    │    │    Int (1:5) 4
-	// │    │    │    │    Int (1:9) 5
+	// │    │    │    │    BasicLiteral (1:5) 4
+	// │    │    │    │    BasicLiteral (1:9) 5
 	// │    │    │    Call (1:19) value()
 	//
 	// Tree: "":1:1
 	// │    Var (1:1) var x = 10
 	// │    │    Identifier (1:8) x
-	// │    │    Int (1:12) 10
+	// │    │    BasicLiteral (1:12) 10
 	//
 	// Tree: "":1:1
 	// │    ForRange (1:1) 1:1
@@ -92,30 +92,30 @@ func ExampleDump() {
 	// Tree: "":1:1
 	// │    Show (1:1) {{ 5 + 6 }}
 	// │    │    BinaryOperator (1:4) 5 + 6
-	// │    │    │    Int (1:3) 5
-	// │    │    │    Int (1:5) 6
+	// │    │    │    BasicLiteral (1:3) 5
+	// │    │    │    BasicLiteral (1:5) 6
 	//
 	// Tree: "":1:1
 	// │    Var (1:1) var x = 10
 	// │    │    Identifier (1:8) x
-	// │    │    Int (1:12) 10
+	// │    │    BasicLiteral (1:12) 10
 	//
 	// Tree: "":1:1
 	// │    Assignment (1:1) y = 10
 	// │    │    Identifier (1:4) y
-	// │    │    Int (1:8) 10
+	// │    │    BasicLiteral (1:8) 10
 	//
 	// Tree: "":1:1
 	// │    Assignment (1:1) y = 4 + 5
 	// │    │    Identifier (1:4) y
 	// │    │    BinaryOperator (1:11) 4 + 5
-	// │    │    │    Int (1:9) 4
-	// │    │    │    Int (1:13) 5
+	// │    │    │    BasicLiteral (1:9) 4
+	// │    │    │    BasicLiteral (1:13) 5
 	//
 	// Tree: "":1:1
 	// │    BinaryOperator (1:3) 5 + 6
-	// │    │    Int (1:1) 5
-	// │    │    Int (1:5) 6
+	// │    │    BasicLiteral (1:1) 5
+	// │    │    BasicLiteral (1:5) 6
 	//
 	// Tree: "":1:1
 	// │    MapType (1:1) map[string][]interface{}

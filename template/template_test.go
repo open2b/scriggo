@@ -30,7 +30,7 @@ var rendererExprTests = []struct {
 	{"-3.50", "-3.5", nil},
 	{"3.0", "3", nil},
 	{"0.0", "0", nil},
-	{"-0.0", "0", nil},
+	// {"-0.0", "0", nil}, // TODO(Gianluca).
 	{"true", "true", nil},
 	{"false", "false", nil},
 	// {"true", "_true_", Vars{"true": "_true_"}},

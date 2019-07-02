@@ -85,6 +85,7 @@ const (
 	tokenEllipses                          // ...
 	tokenFloat                             // 12.895
 	tokenInt                               // 18
+	tokenImaginary                         // 12.895i
 	tokenEqual                             // ==
 	tokenNotEqual                          // !=
 	tokenNot                               // !
@@ -182,6 +183,7 @@ var tokenString = map[tokenTyp]string{
 	tokenEllipses:                 "...",
 	tokenFloat:                    "float",
 	tokenInt:                      "int",
+	tokenImaginary:                "imaginary",
 	tokenEqual:                    "==",
 	tokenNotEqual:                 "!=",
 	tokenNot:                      "!",

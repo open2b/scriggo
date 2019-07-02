@@ -27,8 +27,8 @@ func (tv *TestVisitor) Visit(node ast.Node) astutil.Visitor {
 	}
 	tv.Positions = append(tv.Positions, pos.Start)
 	_, isIdentifier := node.(*ast.Identifier)
-	_, isString := node.(*ast.String)
-	if isIdentifier || isString {
+	lit, isBasicLiteral := node.(*ast.BasicLiteral)
+	if isIdentifier || isBasicLiteral && lit.Type == ast.StringLiteral {
 		return nil
 	}
 	return tv
@@ -55,10 +55,10 @@ func TestWalk(t *testing.T) {
 		{`{% y = !x %}`, []int{0, 0, 3, 7, 8}},
 		{`{% y = !(true || false) %}`, []int{0, 0, 3, 7, 8, 9, 17}},
 		{`{% y = split("a b c d", " ") %}`, []int{0, 0, 3, 7, 13, 24}},
-		{`{% x := -5 %}`, []int{0, 0, 3, 8}},
+		{`{% x := -5 %}`, []int{0, 0, 3, 8, 9}},
 		{`{% x := mystruct.field %}`, []int{0, 0, 3, 8, 8}},
 		{`{% x := (getStruct()).field %}`, []int{0, 0, 3, 8, 8}},
-		{`{% x := -5.189 %}`, []int{0, 0, 3, 8}},
+		{`{% x := -5.189 %}`, []int{0, 0, 3, 8, 9}},
 		{`{% x := vect[3:54] %}`, []int{0, 0, 3, 8, 8, 13, 15}},
 	}
 

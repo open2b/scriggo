@@ -434,7 +434,7 @@ func (l *lexer) scanTag(p int) (string, int) {
 		c := l.src[p]
 		if isAlpha(c) {
 			l.column++
-		} else if isDigit(c) {
+		} else if isDecDigit(c) {
 			l.column++
 			if p == s {
 				return "", p + 1
@@ -974,9 +974,20 @@ func isAlpha(s byte) bool {
 	return 'a' <= s && s <= 'z' || 'A' <= s && s <= 'Z'
 }
 
-// isDigit reports whether s is ASCII digit.
-func isDigit(s byte) bool {
-	return '0' <= s && s <= '9'
+func isBinDigit(c byte) bool {
+	return c == '0' || c == '1'
+}
+
+func isOctDigit(c byte) bool {
+	return '0' <= c && c <= '7'
+}
+
+func isDecDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
+func isHexDigit(c byte) bool {
+	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }
 
 // lexIdentifierOrKeyword reads an identifier or keyword knowing that src
@@ -1084,8 +1095,8 @@ var numberBaseName = map[int]string{
 	16: "hexadecimal",
 }
 
-// lexNumber reads a number (integer or float) knowing that src starts with
-// '0'..'9' or '.'.
+// lexNumber reads a number (integer, float or imaginary) knowing that src
+// starts with '0'..'9' or '.'.
 func (l *lexer) lexNumber() error {
 	// Stops only if a character can not be part of the number.
 	var dot bool
@@ -1099,12 +1110,16 @@ func (l *lexer) lexNumber() error {
 		case 'x', 'X':
 			base = 16
 			p = 2
-		case 'o', 'O', '_':
+		case 'o', 'O':
 			base = 8
 			p = 2
 		case '0', '1', '2', '3', '4', '5', '6', '7':
 			base = 8
 			p = 1
+		case '8', '9':
+			p = 1
+		case '_':
+			p = 2
 		case 'b', 'B':
 			base = 2
 			p = 2
@@ -1134,10 +1149,14 @@ DIGITS:
 			}
 		case 8:
 			if !isOctDigit(c) {
-				if isHexDigit(c) {
+				if (c == '8' || c == '9') && l.src[0] == '0' && l.src[1] != 'o' && l.src[1] != 'O' {
+					// It could be an imaginary literal.
+					base = 10
+				} else if isHexDigit(c) {
 					return l.errorf("invalid digit '%d' in octal literal", c)
+				} else {
+					break DIGITS
 				}
-				break DIGITS
 			}
 		case 2:
 			if !isBinDigit(c) {
@@ -1167,17 +1186,18 @@ DIGITS:
 				}
 				exponent = true
 				p++
+				if p < len(l.src) && (l.src[p] == '+' || l.src[p] == '-') {
+					p++
+				}
 			case 'p', 'P':
 				if exponent || base != 16 {
 					break
 				}
 				exponent = true
 				p++
-			case '+', '-':
-				if c := l.src[p-1]; c != 'e' && c != 'E' && c != 'p' && c != 'P' {
-					break
+				if p < len(l.src) && (l.src[p] == '+' || l.src[p] == '-') {
+					p++
 				}
-				p++
 			}
 		}
 	}
@@ -1189,7 +1209,19 @@ DIGITS:
 	case 'e', 'E', 'p', 'P', '+', '-':
 		return l.errorf("exponent has no digits")
 	}
-	if dot || exponent {
+	imaginary := p < len(l.src) && l.src[p] == 'i'
+	if imaginary {
+		p++
+	} else if p > 0 && base == 10 && l.src[0] == '0' {
+		for _, c := range l.src[1:p] {
+			if c == '8' || c == '9' {
+				return l.errorf("invalid digit '%d' in octal literal", c)
+			}
+		}
+	}
+	if imaginary {
+		l.emit(tokenImaginary, p)
+	} else if dot || exponent {
 		l.emit(tokenFloat, p)
 	} else {
 		l.emit(tokenInt, p)
@@ -1393,20 +1425,4 @@ func (l *lexer) lexRuneLiteral() error {
 	l.emit(tokenRune, p+1)
 	l.column += p + 1
 	return nil
-}
-
-func isBinDigit(c byte) bool {
-	return c == '0' || c == '1'
-}
-
-func isOctDigit(c byte) bool {
-	return '0' <= c && c <= '7'
-}
-
-func isDecDigit(c byte) bool {
-	return '0' <= c && c <= '9'
-}
-
-func isHexDigit(c byte) bool {
-	return '0' <= c && c <= '9' || 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F'
 }

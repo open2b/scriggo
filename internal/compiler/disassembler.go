@@ -251,14 +251,14 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	}
 	s := operationName[op]
 	switch op {
-	case vm.OpAddInt, vm.OpAddInt8, vm.OpAddInt16, vm.OpAddInt32,
+	case vm.OpAddInt64, vm.OpAddInt8, vm.OpAddInt16, vm.OpAddInt32,
 		vm.OpAnd, vm.OpAndNot, vm.OpOr, vm.OpXor,
-		vm.OpDivInt, vm.OpDivInt8, vm.OpDivInt16, vm.OpDivInt32, vm.OpDivUint8, vm.OpDivUint16, vm.OpDivUint32, vm.OpDivUint64,
-		vm.OpMulInt, vm.OpMulInt8, vm.OpMulInt16, vm.OpMulInt32,
-		vm.OpRemInt, vm.OpRemInt8, vm.OpRemInt16, vm.OpRemInt32, vm.OpRemUint8, vm.OpRemUint16, vm.OpRemUint32, vm.OpRemUint64,
-		vm.OpSubInt, vm.OpSubInt8, vm.OpSubInt16, vm.OpSubInt32,
-		vm.OpSubInvInt, vm.OpSubInvInt8, vm.OpSubInvInt16, vm.OpSubInvInt32,
-		vm.OpLeftShift, vm.OpLeftShift8, vm.OpLeftShift16, vm.OpLeftShift32,
+		vm.OpDivInt64, vm.OpDivInt8, vm.OpDivInt16, vm.OpDivInt32, vm.OpDivUint8, vm.OpDivUint16, vm.OpDivUint32, vm.OpDivUint64,
+		vm.OpMulInt64, vm.OpMulInt8, vm.OpMulInt16, vm.OpMulInt32,
+		vm.OpRemInt64, vm.OpRemInt8, vm.OpRemInt16, vm.OpRemInt32, vm.OpRemUint8, vm.OpRemUint16, vm.OpRemUint32, vm.OpRemUint64,
+		vm.OpSubInt64, vm.OpSubInt8, vm.OpSubInt16, vm.OpSubInt32,
+		vm.OpSubInvInt64, vm.OpSubInvInt8, vm.OpSubInvInt16, vm.OpSubInvInt32,
+		vm.OpLeftShift64, vm.OpLeftShift8, vm.OpLeftShift16, vm.OpLeftShift32,
 		vm.OpRightShift, vm.OpRightShiftU:
 		s += " " + disassembleOperand(fn, a, vm.Int, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
@@ -682,7 +682,7 @@ var operationName = [...]string{
 
 	vm.OpNone: "Nop", // TODO(Gianluca): review.
 
-	vm.OpAddInt:     "Add",
+	vm.OpAddInt64:   "Add",
 	vm.OpAddInt8:    "Add8",
 	vm.OpAddInt16:   "Add16",
 	vm.OpAddInt32:   "Add32",
@@ -733,7 +733,7 @@ var operationName = [...]string{
 
 	vm.OpDelete: "delete",
 
-	vm.OpDivInt:     "Div",
+	vm.OpDivInt64:   "Div",
 	vm.OpDivInt8:    "Div8",
 	vm.OpDivInt16:   "Div16",
 	vm.OpDivInt32:   "Div32",
@@ -762,7 +762,7 @@ var operationName = [...]string{
 
 	vm.OpIndex: "Index",
 
-	vm.OpLeftShift:   "LeftShift",
+	vm.OpLeftShift64: "LeftShift",
 	vm.OpLeftShift8:  "LeftShift8",
 	vm.OpLeftShift16: "LeftShift16",
 	vm.OpLeftShift32: "LeftShift32",
@@ -783,7 +783,7 @@ var operationName = [...]string{
 
 	vm.OpMove: "Move",
 
-	vm.OpMulInt:     "Mul",
+	vm.OpMulInt64:   "Mul",
 	vm.OpMulInt8:    "Mul8",
 	vm.OpMulInt16:   "Mul16",
 	vm.OpMulInt32:   "Mul32",
@@ -806,7 +806,7 @@ var operationName = [...]string{
 
 	vm.OpRecover: "Recover",
 
-	vm.OpRemInt:    "Rem",
+	vm.OpRemInt64:  "Rem",
 	vm.OpRemInt8:   "Rem8",
 	vm.OpRemInt16:  "Rem16",
 	vm.OpRemInt32:  "Rem32",
@@ -840,14 +840,14 @@ var operationName = [...]string{
 
 	vm.OpStringIndex: "StringIndex",
 
-	vm.OpSubInt:     "Sub",
+	vm.OpSubInt64:   "Sub",
 	vm.OpSubInt8:    "Sub8",
 	vm.OpSubInt16:   "Sub16",
 	vm.OpSubInt32:   "Sub32",
 	vm.OpSubFloat32: "Sub32",
 	vm.OpSubFloat64: "Sub",
 
-	vm.OpSubInvInt:     "SubInv",
+	vm.OpSubInvInt64:   "SubInv",
 	vm.OpSubInvInt8:    "SubInv8",
 	vm.OpSubInvInt16:   "SubInv16",
 	vm.OpSubInvInt32:   "SubInv32",

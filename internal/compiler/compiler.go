@@ -55,7 +55,6 @@ type Constant struct {
 	value   interface{}
 	literal string
 	typ     reflect.Type // nil for untyped constants.
-
 }
 
 // ConstLiteral returns a constant, given its type and its literal
