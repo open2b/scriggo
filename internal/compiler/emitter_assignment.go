@@ -78,7 +78,7 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 func (e *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == 1 && len(values) == 1 {
-		typ := e.typeInfos[values[0]].Type
+		typ := e.ti(values[0]).Type
 		value, k, ok := e.quickEmitExpr(values[0], typ)
 		if !ok {
 			value = e.fb.NewRegister(typ.Kind())
@@ -90,7 +90,7 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 		valueTypes := make([]reflect.Type, len(values))
 		valueIsK := make([]bool, len(values))
 		for i := range values {
-			valueTypes[i] = e.typeInfos[values[i]].Type
+			valueTypes[i] = e.ti(values[i]).Type
 			valueRegs[i], valueIsK[i], _ = e.quickEmitExpr(values[i], valueTypes[i])
 			if !valueIsK[i] {
 				valueRegs[i] = e.fb.NewRegister(valueTypes[i].Kind())
@@ -109,11 +109,11 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 			}
 		case *ast.Index: // map index.
 			mapExpr := value.Expr
-			mapType := e.typeInfos[mapExpr].Type
+			mapType := e.ti(mapExpr).Type
 			mapReg := e.fb.NewRegister(mapType.Kind())
 			e.emitExpr(mapExpr, mapReg, mapType)
 			keyExpr := value.Index
-			keyType := e.typeInfos[keyExpr].Type
+			keyType := e.ti(keyExpr).Type
 			keyReg, kKeyReg, ok := e.quickEmitExpr(keyExpr, keyType)
 			if !ok {
 				keyReg = e.fb.NewRegister(keyType.Kind())
@@ -130,7 +130,7 @@ func (e *emitter) assign(addresses []address, values []ast.Expression) {
 			addresses[0].assign(false, valueReg, valueType)
 			addresses[1].assign(false, okReg, okType)
 		case *ast.TypeAssertion:
-			typ := e.typeInfos[value.Type].Type
+			typ := e.ti(value.Type).Type
 			exprReg := e.fb.NewRegister(reflect.Interface)
 			e.emitExpr(value.Expr, exprReg, emptyInterfaceType)
 			okType := addresses[1].staticType
@@ -156,7 +156,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 			} else {
 				v := v.(*ast.Identifier)
-				staticType := e.typeInfos[v].Type
+				staticType := e.ti(v).Type
 				if e.indirectVars[v] {
 					varReg := -e.fb.NewRegister(reflect.Interface)
 					e.fb.BindVarReg(v.Name, varReg)
@@ -175,7 +175,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 			switch v := v.(type) {
 			case *ast.Identifier:
 				if !isBlankIdentifier(v) {
-					staticType := e.typeInfos[v].Type
+					staticType := e.ti(v).Type
 					if reg, ok := e.upvarsNames[e.fb.fn][v.Name]; ok {
 						// TODO(Gianluca): reg is converted into an
 						// int8; should we change address to store
@@ -184,7 +184,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 					} else if index, ok := e.pkgVariables[e.pkg][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
-					} else if ti := e.typeInfos[v]; ti.IsPredefined() {
+					} else if ti := e.ti(v); ti.IsPredefined() {
 						index := e.predefVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
 						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else {
@@ -195,13 +195,13 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 					addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 				}
 			case *ast.Index:
-				exprType := e.typeInfos[v.Expr].Type
+				exprType := e.ti(v.Expr).Type
 				expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
 				if !ok || k {
 					expr = e.fb.NewRegister(exprType.Kind())
 					e.emitExpr(v.Expr, expr, exprType)
 				}
-				indexType := e.typeInfos[v.Index].Type
+				indexType := e.ti(v.Index).Type
 				index, k, ok := e.quickEmitExpr(v.Index, indexType)
 				if !ok || k {
 					index = e.fb.NewRegister(indexType.Kind())
@@ -214,13 +214,13 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = e.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
 				if varIndex, ok := e.pkgVariables[e.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
-					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(varIndex), 0)
-				} else if ti := e.typeInfos[v]; ti.IsPredefined() {
+					addresses[i] = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(varIndex), 0)
+				} else if ti := e.ti(v); ti.IsPredefined() {
 					varRv := ti.value.(reflect.Value)
 					index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Ident)
-					addresses[i] = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
+					addresses[i] = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(index), 0)
 				} else {
-					structType := e.typeInfos[v.Expr].Type
+					structType := e.ti(v.Expr).Type
 					structReg, k, ok := e.quickEmitExpr(v.Expr, structType)
 					if !ok || k {
 						structReg = e.fb.NewRegister(structType.Kind())
@@ -238,7 +238,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				case *ast.Identifier:
 					if e.fb.IsVariable(expr.Name) {
 						varReg := e.fb.ScopeLookup(expr.Name)
-						exprType := e.typeInfos[expr].Type
+						exprType := e.ti(expr).Type
 						addresses[i] = e.newAddress(addressPointerIndirection, exprType, varReg, 0)
 					} else {
 						panic("TODO(Gianluca): not implemented")
@@ -257,12 +257,12 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 		var valueType reflect.Type
 		switch v := node.Variables[0].(type) {
 		case *ast.Identifier:
-			staticType := e.typeInfos[v].Type
+			staticType := e.ti(v).Type
 			// TODO(Gianluca): support predefined variables in other cases.
-			if ti := e.typeInfos[v]; ti.IsPredefined() {
+			if ti := e.ti(v); ti.IsPredefined() {
 				varRv := ti.value.(reflect.Value)
 				index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Name)
-				addr = e.newAddress(addressPackageVariable, e.typeInfos[v].Type, int8(index), 0)
+				addr = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(index), 0)
 				valueType = ti.Type
 				valueReg = e.fb.NewRegister(staticType.Kind())
 				e.emitExpr(v, valueReg, valueType)
@@ -273,13 +273,13 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				valueType = staticType
 			}
 		case *ast.Index:
-			exprType := e.typeInfos[v.Expr].Type
+			exprType := e.ti(v.Expr).Type
 			expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
 			if !ok || k {
 				expr = e.fb.NewRegister(exprType.Kind())
 				e.emitExpr(v.Expr, expr, exprType)
 			}
-			indexType := e.typeInfos[v.Index].Type
+			indexType := e.ti(v.Index).Type
 			index, k, ok := e.quickEmitExpr(v.Index, indexType)
 			if !ok || k {
 				index = e.fb.NewRegister(indexType.Kind())
@@ -302,7 +302,7 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case ast.AssignmentDecrement:
 			e.fb.Sub(true, valueReg, 1, valueReg, valueType.Kind())
 		default:
-			rightOpType := e.typeInfos[node.Values[0]].Type
+			rightOpType := e.ti(node.Values[0]).Type
 			rightOp := e.fb.NewRegister(rightOpType.Kind())
 			e.emitExpr(node.Values[0], rightOp, rightOpType)
 			switch node.Type {

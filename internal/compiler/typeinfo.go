@@ -31,6 +31,7 @@ type TypeInfo struct {
 	PredefPackageName string       // Name of the package. Empty string if not predefined.
 	MethodType        MethodType   // Method type.
 	value             interface{}  // value; for packages has type *Package.
+	valueType         reflect.Type // When value is a predeclared type holds the original type of value.
 }
 
 // MethodType represents the type of a method, intended as a combination of a
@@ -162,28 +163,32 @@ func (ti *TypeInfo) SetValue(t reflect.Type) {
 		if t == nil || t.Kind() == reflect.Interface {
 			typ = ti.Type
 		}
-		v := reflect.New(typ).Elem()
 		switch typ.Kind() {
 		case reflect.Bool:
-			v.SetBool(ti.Constant.bool())
+			if ti.Constant.bool() {
+				ti.value = int64(1)
+			} else {
+				ti.value = int64(0)
+			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			v.SetInt(ti.Constant.int64())
+			ti.value = ti.Constant.int64()
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			v.SetUint(ti.Constant.uint64())
+			ti.value = int64(ti.Constant.uint64())
 		case reflect.Float32, reflect.Float64:
-			v.SetFloat(ti.Constant.float64())
+			ti.value = ti.Constant.float64()
 		case reflect.Complex64, reflect.Complex128:
-			v.SetComplex(ti.Constant.complex128())
+			// TODO(Gianluca): to implement.
 		case reflect.String:
-			v.SetString(ti.Constant.string())
+			ti.value = ti.Constant.string()
 		}
-		ti.value = v.Interface()
+		ti.valueType = typ
 		return
 	}
 	if ti.Nil() {
 		if t.Kind() != reflect.Interface {
 			v := reflect.New(t).Elem()
 			ti.value = v.Interface()
+			ti.valueType = t
 			return
 		}
 	}

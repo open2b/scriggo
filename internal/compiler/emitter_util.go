@@ -62,7 +62,7 @@ func (e *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 	size := 0
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
-			key := int(e.typeInfos[kv.Key].Constant.int64())
+			key := int(e.ti(kv.Key).Constant.int64())
 			if key > size {
 				size = key
 			}
@@ -97,7 +97,7 @@ func isExported(name string) bool {
 // isLenBuiltinCall reports whether expr is a call to the builtin "len".
 func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := e.typeInfos[call]; ti.IsBuiltin() {
+		if ti := e.ti(call); ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
