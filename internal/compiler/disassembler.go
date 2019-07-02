@@ -296,10 +296,6 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		}
 	case vm.OpClose, vm.OpPanic, vm.OpPrint:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-	case vm.OpCopy:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Interface, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpConcat:
 		s += " " + disassembleOperand(fn, a, vm.String, false)
 		s += " " + disassembleOperand(fn, b, vm.String, k)
@@ -324,6 +320,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
+	case vm.OpCopy:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpDelete:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
@@ -682,9 +682,9 @@ var operationName = [...]string{
 	vm.OpConvertFloat:   "Convert",
 	vm.OpConvertString:  "Convert",
 
-	vm.OpCopy: "Copy",
-
 	vm.OpConcat: "concat",
+
+	vm.OpCopy: "Copy",
 
 	vm.OpDefer: "Defer",
 
