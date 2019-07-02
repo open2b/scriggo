@@ -53,6 +53,18 @@ func Test_nextGoVersion(t *testing.T) {
 			current: "go1.20.1",
 			want:    "go1.21",
 		},
+		{
+			current: "go1.1000",
+			want:    "go1.1001",
+		},
+		{
+			current: "go1.1000beta2",
+			want:    "go1.1001",
+		},
+		{
+			current: "go1.13beta1",
+			want:    "go1.14",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.current, func(t *testing.T) {
@@ -79,6 +91,18 @@ func Test_goBaseVersion(t *testing.T) {
 		{
 			current: "go1.20.1",
 			want:    "go1.20",
+		},
+		{
+			current: "go1.13beta1",
+			want:    "go1.13",
+		},
+		{
+			current: "go1.1000",
+			want:    "go1.1000",
+		},
+		{
+			current: "go1.1000beta5",
+			want:    "go1.1000",
 		},
 	}
 	for _, tt := range tests {

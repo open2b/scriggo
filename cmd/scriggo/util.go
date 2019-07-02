@@ -356,10 +356,13 @@ func genHeader(pd scriggoDescriptor, goos string) string {
 //		1.12.5 -> 1.12
 //
 func goBaseVersion(v string) string {
+	if i := strings.Index(v, "beta"); i >= 0 {
+		v = v[:i]
+	}
 	v = v[4:]
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
-		return ""
+		panic(err)
 	}
 	f = math.Floor(f)
 	next := int(f)
@@ -371,10 +374,10 @@ func goBaseVersion(v string) string {
 //		1.12.5 -> 1.13
 //
 func nextGoVersion(v string) string {
-	v = v[4:]
+	v = goBaseVersion(v)[4:]
 	f, err := strconv.ParseFloat(v, 32)
 	if err != nil {
-		return ""
+		panic(err)
 	}
 	f = math.Floor(f)
 	next := int(f) + 1
