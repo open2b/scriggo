@@ -510,13 +510,11 @@ func (c1 intConst) representedBy(typ reflect.Type) (constant, error) {
 	}
 	kind := typ.Kind()
 	if c1.i.IsUint64() {
-		if n := c1.i.Uint64(); n <= math.MaxInt64 {
-			return int64Const(c1.i.Int64()).representedBy(typ)
-		} else if kind == reflect.Uint64 || kind == reflect.Uint32 && n <= math.MaxUint32 {
+		if kind == reflect.Uint64 || kind == reflect.Uint && strconv.IntSize == 64 {
 			return c1, nil
 		}
 	}
-	if reflect.Int <= kind && kind <= reflect.Uint64 {
+	if reflect.Int <= kind && kind <= reflect.Uintptr {
 		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
 	}
 	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
