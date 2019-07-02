@@ -91,6 +91,7 @@ var commandsHelp = map[string]func(){
 			``,
 			`	   bug         start a bug report`,
 			`	   gen         generate an interpreter or a loader`,
+			`	   install     install an interpreter`,
 			`	   version     print Scriggo version`,
 			``,
 			`Use "scriggo help <command>" for more information about a command.`,
@@ -106,12 +107,15 @@ var commandsHelp = map[string]func(){
 	},
 	"gen": func() {
 		stderr(
-			`usage: scriggo gen filename.go`,
-			`Run 'scriggo help gen' for details`,
+			`usage: scriggo gen [target]`,
+			`Gen generates a directory containing source code for a new interpreter`,
 		)
 	},
 	"install": func() {
-		panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		stderr(
+			`usage: scriggo install [target]`,
+			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
+		)
 	},
 	"version": func() {
 		stderr(
