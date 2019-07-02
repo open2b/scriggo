@@ -7,16 +7,17 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"go/build"
 	"go/constant"
 	"go/types"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
-	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/packages"
 )
 
 // renderPackages renders a package definition. It also returns a boolean
@@ -254,19 +255,38 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 	fmt.Printf("generating package %q (GOOS=%q)...", pkgPath, goos)
 	out := make(map[string]string)
 	pkgBase := uniquePackageName(pkgPath)
-	// TODO(Gianluca): obsolete, replace with: https://godoc.org/golang.org/x/tools/go/packages.
-	config := loader.Config{
-		Build: &build.Default,
+
+	conf := &packages.Config{
+		Mode: 1023,
 	}
 	if goos != "" {
-		config.Build.GOOS = goos
+		conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
-	config.Import(pkgPath)
-	program, err := config.Load()
+
+	pkgs, err := packages.Load(conf, pkgPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("(GOOS=%q): %s", goos, err)
+		return "", nil, err
 	}
-	pkgInfo := program.Package(pkgPath)
+
+	if packages.PrintErrors(pkgs) > 0 {
+		return "", nil, errors.New("error")
+	}
+
+	if len(pkgs) > 1 {
+		return "", nil, errors.New("package query returned more than one package")
+	}
+
+	if len(pkgs) != 1 {
+		panic("bug")
+	}
+
+	pkg := pkgs[0]
+
+	if len(pkg.Errors) > 0 {
+		packages.PrintErrors(pkgs)
+	}
+
+	pkgInfo := pkg.TypesInfo
 	for _, v := range pkgInfo.Defs {
 		// Include only exported names. It doesn't take into account whether the
 		// object is in a local (function) scope or not.
@@ -329,5 +349,5 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 		}
 	}
 	fmt.Printf("done!\n")
-	return pkgInfo.Pkg.Name(), out, nil
+	return pkg.Name, out, nil
 }
