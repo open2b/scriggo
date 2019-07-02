@@ -39,7 +39,7 @@ func makeExecutableGoMod(path string) []byte {
 	inputFileBase := filepath.Base(path)
 	inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 	out = strings.ReplaceAll(out, "[moduleName]", inputBaseNoExt)
-	goPath := os.Getenv("GOPATH")
+	goPath := filepath.Clean(os.Getenv("GOPATH"))
 	if goPath == "" {
 		panic("empty gopath not supported")
 	}
@@ -260,6 +260,7 @@ func txtToHelp(s string) {
 func goImports(path string) error {
 	_, err := exec.LookPath("goimports")
 	if err != nil {
+		stderr("Use 'go get golang.org/x/tools/cmd/goimports' to install 'goimports' on your system")
 		return err
 	}
 	cmd := exec.Command("goimports", "-w", path)
