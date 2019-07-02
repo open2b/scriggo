@@ -401,6 +401,10 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setString(c, reflect.ValueOf(vm.string(a)).Convert(t).String())
 			}
 
+		// Concat
+		case OpConcat:
+			vm.setString(c, vm.string(a)+vm.string(b))
+
 		// Copy
 		case OpCopy:
 			src := reflect.ValueOf(vm.general(a))
@@ -409,10 +413,6 @@ func (vm *VM) run() (uint32, bool) {
 			if b != 0 {
 				vm.setInt(b, int64(n))
 			}
-
-		// Concat
-		case OpConcat:
-			vm.setString(c, vm.string(a)+vm.string(b))
 
 		// Defer
 		case OpDefer:

@@ -1384,9 +1384,9 @@ const (
 	OpConvertFloat
 	OpConvertString
 
-	OpCopy
-
 	OpConcat
+
+	OpCopy
 
 	OpDefer
 
