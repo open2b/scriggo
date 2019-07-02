@@ -1376,6 +1376,8 @@ const (
 
 	OpClose
 
+	OpComplex
+
 	OpContinue
 
 	OpConvertGeneral
@@ -1464,6 +1466,8 @@ const (
 	OpRange
 
 	OpRangeString
+
+	OpRealImag
 
 	OpReceive
 
