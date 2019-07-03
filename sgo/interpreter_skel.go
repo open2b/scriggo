@@ -16,7 +16,13 @@ func makeInterpreterSource(program, script, template bool) []byte {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		script, err := scriggo.LoadScript(r, scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}, loadOptions|scriggo.AllowShebangLine)
+		var loaders scriggo.PackageLoader
+		if Main != nil {
+			loaders = scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}
+		} else {
+			loaders = scriggo.CombinedLoaders{packages}
+		}
+		script, err := scriggo.LoadScript(r, loaders, loadOptions|scriggo.AllowShebangLine)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
