@@ -107,6 +107,75 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
+func negComplex(c interface{}) interface{} {
+	switch c := c.(type) {
+	case complex64:
+		return -c
+	case complex128:
+		return -c
+	}
+	v := reflect.ValueOf(c)
+	v2 := reflect.New(v.Type()).Elem()
+	v2.SetComplex(-v.Complex())
+	return v2.Interface()
+}
+
+func addComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 + c2.(complex64)
+	case complex128:
+		return c1 + c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() + v2.Complex())
+	return v3.Interface()
+}
+
+func subComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 - c2.(complex64)
+	case complex128:
+		return c1 - c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() - v2.Complex())
+	return v3.Interface()
+}
+
+func mulComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 * c2.(complex64)
+	case complex128:
+		return c1 * c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() * v2.Complex())
+	return v3.Interface()
+}
+
+func divComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 / c2.(complex64)
+	case complex128:
+		return c1 / c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() / v2.Complex())
+	return v3.Interface()
+}
+
 type functionBuilder struct {
 	fn          *vm.Function
 	labels      []uint32
