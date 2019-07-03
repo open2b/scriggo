@@ -219,7 +219,7 @@ func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 		}
 	}
 	if !found {
-		return scriggoDescriptor{}, errors.New("missing Scriggo file comment")
+		return scriggoDescriptor{}, errors.New("missing Scriggo file comment (must be a line starting with '//scriggo:' preceded and followed by a newline")
 	}
 
 	// Iterates over imports.
