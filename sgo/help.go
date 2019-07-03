@@ -47,11 +47,11 @@ Each import statement should have a name _, which prevents tools like goimports 
 
 Options available in the Scriggo file comment are:
 
-	interpreters[:targets]  describe an interpreter for targets. Valid targets are "template, "script" and "program".
-                            If not targets are specified, it's assumed by default all available interpreters.
-	embedded                describe an embedded packages declaration
-	output                  select output file/directory
-	goos:GOOSs              force GOOS to the specified value. More than one value can be provided
+	interpreters:targets  describe an interpreter for targets. Valid targets are "template, "script" and "program"
+	interpreter           generate all kinds of interpreters
+	embedded              describe an embedded packages declaration
+	output                select output file/directory
+	goos:GOOSs            force GOOS to the specified value. More than one value can be provided
 
 Options available as Scriggo import comments are:
 

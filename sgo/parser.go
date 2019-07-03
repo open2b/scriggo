@@ -122,12 +122,18 @@ func parseFileComment(c string) (fileComment, error) {
 	}
 
 	for i, o := range opts {
-		if o == "interpreters" {
+		if o == "interpreter" {
 			fc.template = true
 			fc.script = true
 			fc.program = true
 			opts = append(opts[:i], opts[i+1:]...)
 			break
+		}
+	}
+
+	for _, o := range opts {
+		if o == "interpreters" {
+			return fileComment{}, fmt.Errorf("interpreters must have at least one value; use 'interpreter' for generating a default interpreter")
 		}
 	}
 
@@ -137,7 +143,12 @@ func parseFileComment(c string) (fileComment, error) {
 
 	for _, kv := range kvs {
 		switch kv.Key {
+		case "interpreter":
+			return fileComment{}, fmt.Errorf("cannot specify values for interpreters: use 'interpreters' instead")
 		case "interpreters":
+			if fc.template || fc.script || fc.program {
+				return fileComment{}, fmt.Errorf("cannot use interpreter with interpreters")
+			}
 			for _, v := range kv.Values {
 				switch v {
 				case "template":

@@ -170,7 +170,7 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 
 	fmt.Fprintf(os.Stderr, "package %q does not provide a scriggo.go file, generating a default\n", path)
 
-	out := `//scriggo: interpreters
+	out := `//scriggo: interpreter
 	
 	package [pkgName]
 	

@@ -13,9 +13,12 @@ import (
 
 func Test_parseFileComment_error(t *testing.T) {
 	cases := map[string]string{
-		`//scriggo:`: `specify what to do`,
-		`//scriggo: interpreters variable:"pkgs"`: `cannot use variable with interpreters`,
-		`//scriggo: interpreters embedded`:        `cannot use embedded with interpreters`,
+		`//scriggo:`:                                     `specify what to do`,
+		`//scriggo: interpreter variable:"pkgs"`:         `cannot use variable with interpreters`,
+		`//scriggo: interpreter embedded`:                `cannot use embedded with interpreters`,
+		`//scriggo: interpreter:"template"`:              `cannot specify values for interpreters: use 'interpreters' instead`,
+		`//scriggo: interpreters`:                        `interpreters must have at least one value; use 'interpreter' for generating a default interpreter`,
+		`//scriggo: interpreter interpreters:"template"`: `cannot use interpreter with interpreters`,
 	}
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
@@ -42,7 +45,7 @@ func Test_parseFileComment(t *testing.T) {
 		`//scriggo: interpreters:"script,template,program"`: fileComment{script: true, program: true, template: true},
 		`//scriggo: interpreters:"script"`:                  fileComment{script: true},
 		`//scriggo: interpreters:"template"`:                fileComment{template: true},
-		`//scriggo: interpreters`:                           fileComment{template: true, script: true, program: true},
+		`//scriggo: interpreter`:                            fileComment{template: true, script: true, program: true},
 	}
 	for comment, want := range cases {
 		t.Run(comment, func(t *testing.T) {
