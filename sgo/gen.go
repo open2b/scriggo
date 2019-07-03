@@ -113,8 +113,16 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		return "", false, nil
 	}
 
+	// Sorts packages.
+	paths := make([]string, 0, len(pkgs))
+	for name := range pkgs {
+		paths = append(paths, name)
+	}
+	sort.Strings(paths)
+
 	allPkgsContent := strings.Builder{}
-	for path, content := range pkgs {
+	for _, path := range paths {
+		content := pkgs[path]
 		allPkgsContent.WriteString("\n" + `"` + path + `": ` + "" + content)
 	}
 
