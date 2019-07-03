@@ -4410,6 +4410,22 @@ var stmtTests = []struct {
 	// TODO(Gianluca): disabled tests:
 
 	// {
+	// 	name: "Nil: declaring a nil empty interface with var and explicitly assigning interface{}(nil) to it",
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		var i interface{} = interface{}(nil)
+	// 		fmt.Printf("i: %v, type(i): %T", i, i)
+	// 	}
+	// 	`,
+	// 	output: `i: <nil>, type(i): <nil>`,
+	// },
+
+	// {
 	// 	name: "x.f convertion to (*x).f",
 	// 	src: `package main
 
