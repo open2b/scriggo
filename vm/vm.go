@@ -1380,7 +1380,8 @@ const (
 
 	OpClose
 
-	OpComplex
+	OpComplex64
+	OpComplex128
 
 	OpContinue
 

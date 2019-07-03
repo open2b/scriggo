@@ -350,7 +350,16 @@ func (vm *VM) run() (uint32, bool) {
 			reflect.ValueOf(vm.general(a)).Close()
 
 		// OpComplex
-		case OpComplex:
+		case OpComplex64:
+			var re, im float32
+			if a > 0 {
+				re = float32(vm.float(a))
+			}
+			if b > 0 {
+				im = float32(vm.float(b))
+			}
+			vm.setGeneral(c, complex(re, im))
+		case OpComplex128:
 			var re, im float64
 			if a > 0 {
 				re = vm.float(a)
