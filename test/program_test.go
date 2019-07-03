@@ -125,6 +125,21 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Nil: declaring a nil slice with var and explicitly assigning 'nil' to it",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var s []int = nil
+			fmt.Print("s: ", s, ", len(s): ", len(s))
+		}
+		`,
+		output: `s: [], len(s): 0`,
+	},
+	{
 		name: "Predefined constants",
 		src: `package main
 
