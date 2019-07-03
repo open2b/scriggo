@@ -13,8 +13,8 @@ import (
 	"testing"
 )
 
-// Test_sgo_gen_fmt tests command 'sgo gen fmt'
-func Test_sgo_gen_fmt(t *testing.T) {
+// Test_sgo_generate_fmt tests command 'sgo generate fmt'
+func Test_sgo_generate_fmt(t *testing.T) {
 	TestEnvironment = true
 	tmpDir, err := ioutil.TempDir("", "sgo_test")
 	if err != nil {
@@ -24,7 +24,7 @@ func Test_sgo_gen_fmt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sgo("sgo", "gen", "fmt")
+	sgo("sgo", "generate", "fmt")
 
 	for _, fileName := range []string{"main.go", "go.mod"} {
 		data, err := ioutil.ReadFile(filepath.Join(tmpDir, "fmt", fileName))

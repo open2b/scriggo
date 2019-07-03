@@ -94,7 +94,7 @@ var commandsHelp = map[string]func(){
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
-			`	gen            generate an interpreter or a loader`,
+			`	generate       generate an interpreter or a loader`,
 			`	install        install an interpreter`,
 			`	version        print sgo/Scriggo version`,
 			``,
@@ -119,10 +119,10 @@ var commandsHelp = map[string]func(){
 			`The report includes useful system information.`,
 		)
 	},
-	"gen": func() {
+	"generate": func() {
 		stderr(
-			`usage: sgo gen [target]`,
-			`Gen generates a directory containing source code for a new interpreter`,
+			`usage: sgo generate [target]`,
+			`Generate generates a directory containing source code for a new interpreter`,
 		)
 	},
 	"install": func() {
@@ -150,11 +150,11 @@ var commands = map[string]func(){
 	},
 	"install": func() {
 		flag.Usage = commandsHelp["install"]
-		gen(true)
+		generate(true)
 	},
-	"gen": func() {
-		flag.Usage = commandsHelp["gen"]
-		gen(false)
+	"generate": func() {
+		flag.Usage = commandsHelp["generate"]
+		generate(false)
 	},
 	"help": func() {
 		if len(os.Args) == 1 {
@@ -179,14 +179,14 @@ var commands = map[string]func(){
 	},
 }
 
-// gen executes command:
+// generate executes command:
 //
-//		sgo gen
+//		sgo generate
 //		sgo install
 //
 // If install is set, interpreter will be installed as executable and
 // interpreter sources will be removed.
-func gen(install bool) {
+func generate(install bool) {
 
 	flag.Parse()
 
