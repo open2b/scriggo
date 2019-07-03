@@ -42,14 +42,18 @@ Options available as Scriggo import comments are:
 Example import comments
 
 Default. Makes "fmt" available in Scriggo as would be available in Go:
+
 	import _ "fmt" //scriggo:
 
 Import all declarations from "fmt" in package main, making them accessible without a selector:
+
 	import _ "fmt" //scriggo: main
 
 Import all declarations from "fmt" in package main with uncapitalized names, making them accessible without a selector:
+
 	import _ "fmt" //scriggo: main uncapitalize
 
 Import all declarations from "fmt" excluding "Print" and Println":
+
 	import _ "fmt" //scriggo: noexport:"Print,Println"
 `
