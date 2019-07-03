@@ -89,7 +89,7 @@ var commandsHelp = map[string]func(){
 			``,
 			`Usage:`,
 			``,
-			`	   sgo <command> [arguments]`,
+			`	sgo <command> [arguments]`,
 			``,
 			`The commands are:`,
 			``,
