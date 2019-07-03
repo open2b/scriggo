@@ -312,12 +312,15 @@ var checkerExprs = []struct {
 	{`int32(5)`, tiInt32Const(5), nil},
 	{`int64(5)`, tiInt64Const(5), nil},
 	{`uint(5)`, tiUintConst(5), nil},
+	{`uint(18446744073709551616-1)`, tiUintConst(18446744073709551616 - 1), nil},
+	{`uintptr(18446744073709551616-1)`, tiUintptrConst(18446744073709551616 - 1), nil},
 	{`uint8(5)`, tiUint8Const(5), nil},
 	{`uint16(5)`, tiUint16Const(5), nil},
 	{`uint32(5)`, tiUint32Const(5), nil},
 	{`uint64(5)`, tiUint64Const(5), nil},
 	{`uint64(9223372036854775808)`, tiUint64Const(9223372036854775808), nil},
 	{`uint(9223372036854775807/2)`, tiUintConst(9223372036854775807 / 2), nil},
+	{`uintptr(5)`, tiUintptrConst(5), nil},
 	{`float32(5)`, tiFloat32Const(float32(5)), nil},
 	{`float32(5.3)`, tiFloat32Const(float32(5.3)), nil},
 	{`float32(9223372036854775295)`, tiFloat32Const(float32(9223372036854775295)), nil},
@@ -349,6 +352,7 @@ var checkerExprs = []struct {
 	{`uint16(a)`, tiUint16Const(5), map[string]*TypeInfo{"a": tiUint16Const(5)}},
 	{`uint32(a)`, tiUint32Const(5), map[string]*TypeInfo{"a": tiUint32Const(5)}},
 	{`uint64(a)`, tiUint64Const(5), map[string]*TypeInfo{"a": tiUint64Const(5)}},
+	{`uintptr(a)`, tiUintptrConst(5), map[string]*TypeInfo{"a": tiUintptrConst(5)}},
 	{`float32(a)`, tiFloat32Const(5.3), map[string]*TypeInfo{"a": tiFloat32Const(5.3)}},
 	{`float64(a)`, tiFloat64Const(5.3), map[string]*TypeInfo{"a": tiFloat64Const(5.3)}},
 	{`float64(a)`, tiFloat64Const(float64(float32(5.3))), map[string]*TypeInfo{"a": tiFloat32Const(5.3)}},
@@ -368,6 +372,7 @@ var checkerExprs = []struct {
 	{`uint16(a)`, tiUint16(), map[string]*TypeInfo{"a": tiUint16()}},
 	{`uint32(a)`, tiUint32(), map[string]*TypeInfo{"a": tiUint32()}},
 	{`uint64(a)`, tiUint64(), map[string]*TypeInfo{"a": tiUint64()}},
+	{`uintptr(a)`, tiUintptr(), map[string]*TypeInfo{"a": tiUintptr()}},
 	{`float32(a)`, tiFloat32(), map[string]*TypeInfo{"a": tiFloat32()}},
 	{`float64(a)`, tiFloat64(), map[string]*TypeInfo{"a": tiFloat64()}},
 	{`float32(a)`, tiFloat32(), map[string]*TypeInfo{"a": tiFloat64()}},
@@ -1699,16 +1704,17 @@ func tiUntypedIntConst(lit string) *TypeInfo {
 	}
 }
 
-func tiInt() *TypeInfo    { return &TypeInfo{Type: intType} }
-func tiInt8() *TypeInfo   { return &TypeInfo{Type: universe["int8"].t.Type} }
-func tiInt16() *TypeInfo  { return &TypeInfo{Type: universe["int16"].t.Type} }
-func tiInt32() *TypeInfo  { return &TypeInfo{Type: universe["int32"].t.Type} }
-func tiInt64() *TypeInfo  { return &TypeInfo{Type: universe["int64"].t.Type} }
-func tiUint() *TypeInfo   { return &TypeInfo{Type: universe["uint"].t.Type} }
-func tiUint8() *TypeInfo  { return &TypeInfo{Type: universe["uint8"].t.Type} }
-func tiUint16() *TypeInfo { return &TypeInfo{Type: universe["uint16"].t.Type} }
-func tiUint32() *TypeInfo { return &TypeInfo{Type: universe["uint32"].t.Type} }
-func tiUint64() *TypeInfo { return &TypeInfo{Type: universe["uint64"].t.Type} }
+func tiInt() *TypeInfo     { return &TypeInfo{Type: intType} }
+func tiInt8() *TypeInfo    { return &TypeInfo{Type: universe["int8"].t.Type} }
+func tiInt16() *TypeInfo   { return &TypeInfo{Type: universe["int16"].t.Type} }
+func tiInt32() *TypeInfo   { return &TypeInfo{Type: universe["int32"].t.Type} }
+func tiInt64() *TypeInfo   { return &TypeInfo{Type: universe["int64"].t.Type} }
+func tiUint() *TypeInfo    { return &TypeInfo{Type: universe["uint"].t.Type} }
+func tiUint8() *TypeInfo   { return &TypeInfo{Type: universe["uint8"].t.Type} }
+func tiUint16() *TypeInfo  { return &TypeInfo{Type: universe["uint16"].t.Type} }
+func tiUint32() *TypeInfo  { return &TypeInfo{Type: universe["uint32"].t.Type} }
+func tiUint64() *TypeInfo  { return &TypeInfo{Type: universe["uint64"].t.Type} }
+func tiUintptr() *TypeInfo { return &TypeInfo{Type: universe["uintptr"].t.Type} }
 
 func tiAddrInt() *TypeInfo {
 	return &TypeInfo{Type: intType, Properties: PropertyAddressable}
@@ -1788,6 +1794,10 @@ func tiUint32Const(n uint32) *TypeInfo {
 
 func tiUint64Const(n uint64) *TypeInfo {
 	return &TypeInfo{Type: universe["uint64"].t.Type, Constant: newIntConst(0).setUint64(n)}
+}
+
+func tiUintptrConst(n uint) *TypeInfo {
+	return &TypeInfo{Type: universe["uintptr"].t.Type, Constant: newIntConst(0).setUint64(uint64(n))}
 }
 
 func tiIntPtr() *TypeInfo {

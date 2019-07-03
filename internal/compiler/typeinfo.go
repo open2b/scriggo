@@ -10,8 +10,6 @@ import (
 	"reflect"
 )
 
-const minIntAsFloat64 = 1 << 53
-
 type Properties uint8
 
 const (
@@ -39,11 +37,10 @@ type TypeInfo struct {
 type MethodType uint8
 
 const (
-	NoMethod             MethodType = iota // Not a method.
-	MethodValueConcrete                    // Method value on a concrete receiver.
-	MethodValueInterface                   // Method value on an interface receiver.
-	MethodCallConcrete                     // Method call on concrete receiver.
-	MethodCallInterface                    // Method call on interface receiver.
+	MethodValueConcrete  MethodType = iota + 1 // Method value on a concrete receiver.
+	MethodValueInterface                       // Method value on an interface receiver.
+	MethodCallConcrete                         // Method call on concrete receiver.
+	MethodCallInterface                        // Method call on interface receiver.
 )
 
 // Nil reports whether it is the predeclared nil.
@@ -152,10 +149,10 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 		return false
 	}
 	k := ti.Type.Kind()
-	return reflect.Uint <= k && k <= reflect.Uint64
+	return reflect.Uint <= k && k <= reflect.Uintptr
 }
 
-// setValue sets ti value, whenever possibile.
+// setValue sets ti value, whenever possible.
 // TODO(Gianluca): review this doc.
 func (ti *TypeInfo) setValue(t reflect.Type) {
 	if ti.IsConstant() {
@@ -172,7 +169,7 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			ti.value = ti.Constant.int64()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			ti.value = int64(ti.Constant.uint64())
 		case reflect.Float32, reflect.Float64:
 			ti.value = ti.Constant.float64()

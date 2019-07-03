@@ -342,7 +342,7 @@ func (c1 int64Const) representedBy(typ reflect.Type) (constant, error) {
 		}
 	case reflect.Int64:
 		return c1, nil
-	case reflect.Uint:
+	case reflect.Uint, reflect.Uintptr:
 		if 0 <= n && uint64(n) <= uint64(maxUint) {
 			return c1, nil
 		}
@@ -508,18 +508,16 @@ func (c1 intConst) representedBy(typ reflect.Type) (constant, error) {
 	if c1.i.IsInt64() {
 		return int64Const(c1.i.Int64()).representedBy(typ)
 	}
-	kind := typ.Kind()
+	k := typ.Kind()
 	if c1.i.IsUint64() {
-		if n := c1.i.Uint64(); n <= math.MaxInt64 {
-			return int64Const(c1.i.Int64()).representedBy(typ)
-		} else if kind == reflect.Uint64 || kind == reflect.Uint32 && n <= math.MaxUint32 {
+		if k == reflect.Uint64 || (k == reflect.Uint || k == reflect.Uintptr) && strconv.IntSize == 64 {
 			return c1, nil
 		}
 	}
-	if reflect.Int <= kind && kind <= reflect.Uint64 {
+	if reflect.Int <= k && k <= reflect.Uintptr {
 		return nil, fmt.Errorf("constant %s overflows %s", c1, typ)
 	}
-	if reflect.Float32 <= kind && kind <= reflect.Complex128 {
+	if reflect.Float32 <= k && k <= reflect.Complex128 {
 		return newFloatConst(0).setInt(c1.i).representedBy(typ)
 	}
 	return nil, errNotRepresentable
@@ -643,7 +641,7 @@ func (c1 float64Const) representedBy(typ reflect.Type) (constant, error) {
 			return int64Const(f).representedBy(typ)
 		}
 		return nil, fmt.Errorf("constant %s truncated to integer", c1)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		if 0 <= f && f <= 1<<64-1025 && float64(int64(f)) == f {
 			return int64Const(f).representedBy(typ)
 		}
@@ -774,7 +772,7 @@ func (c1 floatConst) representedBy(typ reflect.Type) (constant, error) {
 		}
 		return nil, fmt.Errorf("constant %s truncated to integer", c1)
 	}
-	if reflect.Uint <= kind && kind <= reflect.Uint64 {
+	if reflect.Uint <= kind && kind <= reflect.Uintptr {
 		if n, acc := c1.f.Uint64(); acc == big.Exact {
 			if n <= maxInt64 {
 				return int64Const(n).representedBy(typ)
@@ -1056,7 +1054,7 @@ func (c1 complexConst) representedBy(typ reflect.Type) (constant, error) {
 		}
 		return complexConst{r: re, i: im}, nil
 	}
-	if reflect.Int <= kind && kind <= reflect.Uint64 {
+	if reflect.Int <= kind && kind <= reflect.Uintptr {
 		return nil, fmt.Errorf("constant %s truncated to integer", c1.shortString())
 	}
 	if kind == reflect.Float32 || kind == reflect.Float64 {
@@ -1178,7 +1176,7 @@ func convertToConstant(value interface{}) constant {
 		return boolConst(v.Bool())
 	case reflect.Int <= k && k <= reflect.Int64:
 		return int64Const(v.Int())
-	case reflect.Uint <= k && k <= reflect.Uint64:
+	case reflect.Uint <= k && k <= reflect.Uintptr:
 		n := v.Uint()
 		if n <= maxInt64 {
 			return int64Const(n)

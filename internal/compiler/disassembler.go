@@ -10,8 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strconv"
@@ -23,47 +21,6 @@ import (
 func packageName(pkg string) string {
 	i := strings.LastIndex(pkg, "/")
 	return pkg[i+1:]
-}
-
-func DisassembleDir(dir string, main *vm.Function, globals []Global) (err error) {
-
-	packages, err := Disassemble(main, globals)
-	if err != nil {
-		return err
-	}
-
-	var fi *os.File
-	defer func() {
-		if fi != nil {
-			err2 := fi.Close()
-			if err == nil {
-				err = err2
-			}
-		}
-	}()
-
-	for path, source := range packages {
-		pkgDir, file := filepath.Split(path)
-		fullDir := filepath.Join(dir, pkgDir)
-		err = os.MkdirAll(fullDir, 0775)
-		if err != nil {
-			return err
-		}
-		fi, err = os.OpenFile(filepath.Join(fullDir, file+".s"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0664)
-		if err != nil {
-			return err
-		}
-		_, err = fi.WriteString(source)
-		if err != nil {
-			return err
-		}
-		err = fi.Close()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func Disassemble(main *vm.Function, globals []Global) (assembler map[string]string, err error) {
@@ -339,10 +296,6 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		}
 	case vm.OpClose, vm.OpPanic, vm.OpPrint:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-	case vm.OpCopy:
-		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Interface, false)
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpConcat:
 		s += " " + disassembleOperand(fn, a, vm.String, false)
 		s += " " + disassembleOperand(fn, b, vm.String, k)
@@ -367,6 +320,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		typ := fn.Types[int(uint(b))]
 		s += " " + typ.String()
 		s += " " + disassembleOperand(fn, c, vm.Kind(typ.Kind()), false)
+	case vm.OpCopy:
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+		s += " " + disassembleOperand(fn, b, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpDelete:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Interface, false)
@@ -617,7 +574,7 @@ func disassembleVarRef(fn *vm.Function, globals []Global, ref int16) string {
 func reflectToRegisterKind(kind reflect.Kind) vm.Kind {
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return vm.Int
 	case reflect.Bool:
 		return vm.Bool
@@ -633,7 +590,7 @@ func reflectToRegisterKind(kind reflect.Kind) vm.Kind {
 func registerKindToLabel(kind vm.Kind) string {
 	switch kind {
 	case vm.Bool, vm.Int, vm.Int8, vm.Int16, vm.Int32, vm.Int64,
-		vm.Uint, vm.Uint8, vm.Uint16, vm.Uint32, vm.Uint64:
+		vm.Uint, vm.Uint8, vm.Uint16, vm.Uint32, vm.Uint64, vm.Uintptr:
 		return "i"
 	case vm.Float32, vm.Float64:
 		return "f"
@@ -647,7 +604,7 @@ func registerKindToLabel(kind vm.Kind) string {
 func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) string {
 	if constant {
 		switch {
-		case vm.Int <= kind && kind <= vm.Uint64:
+		case vm.Int <= kind && kind <= vm.Uintptr:
 			return strconv.Itoa(int(op))
 		case kind == vm.Float64:
 			return strconv.FormatFloat(float64(op), 'f', -1, 64)
@@ -725,13 +682,13 @@ var operationName = [...]string{
 	vm.OpConvertFloat:   "Convert",
 	vm.OpConvertString:  "Convert",
 
-	vm.OpCopy: "Copy",
+	vm.OpConcat: "Concat",
 
-	vm.OpConcat: "concat",
+	vm.OpCopy: "Copy",
 
 	vm.OpDefer: "Defer",
 
-	vm.OpDelete: "delete",
+	vm.OpDelete: "Delete",
 
 	vm.OpDivInt64:   "Div",
 	vm.OpDivInt8:    "Div8",

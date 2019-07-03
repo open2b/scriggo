@@ -21,7 +21,7 @@ func (vm *VM) set(r int8, v reflect.Value) {
 	k := v.Kind()
 	if reflect.Int <= k && k <= reflect.Int64 {
 		vm.setInt(r, v.Int())
-	} else if reflect.Uint <= k && k <= reflect.Uint64 {
+	} else if reflect.Uint <= k && k <= reflect.Uintptr {
 		vm.setInt(r, int64(v.Uint()))
 	} else if k == reflect.String {
 		vm.setString(r, v.String())
@@ -342,7 +342,7 @@ func (vm *VM) getIntoReflectValue(r int8, v reflect.Value, k bool) {
 		v.SetBool(vm.boolk(r, k))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v.SetInt(vm.intk(r, k))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		v.SetUint(uint64(vm.intk(r, k)))
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(vm.floatk(r, k))
@@ -366,7 +366,7 @@ func (vm *VM) setFromReflectValue(r int8, v reflect.Value) {
 		vm.setBool(r, v.Bool())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vm.setInt(r, v.Int())
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		vm.setInt(r, int64(v.Uint()))
 	case reflect.Float32, reflect.Float64:
 		vm.setFloat(r, v.Float())
@@ -500,7 +500,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetInt(regs[i])
 			}
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 			regs := vm.regs.int[vm.fp[0]+uint32(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
 				s.Index(j).SetUint(uint64(regs[i]))
