@@ -243,24 +243,6 @@ func generate(install bool) {
 		// Iterates over all GOOS.
 		for _, goos := range sd.comment.goos {
 
-			// scriggoDescriptor contains at least one main.
-			if sd.containsMain() {
-				newMainBase := inputBaseNoExt + "_main_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
-				main, err := renderPackageMain(sd, goos)
-				if err != nil {
-					exitError("rendering package main: %s", err)
-				}
-				mainFile := filepath.Join(filepath.Dir(inputPath), newMainBase)
-				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
-				if err != nil {
-					exitError("writing package main: %s", err)
-				}
-				err = goImports(mainFile)
-				if err != nil {
-					exitError("goimports on file %q: %s", mainFile, err)
-				}
-			}
-
 			// Render all packages, ignoring main.
 			data, hasContent, err := renderPackages(sd, sd.comment.varName, goos)
 			if err != nil {
@@ -313,24 +295,6 @@ func generate(install bool) {
 
 		for _, goos := range sd.comment.goos {
 			sd.pkgName = "main"
-			if sd.containsMain() {
-				if !sd.comment.template && !sd.comment.script {
-					exitError("cannot have main if not making a template or script interpreter")
-				}
-				main, err := renderPackageMain(sd, goos)
-				if err != nil {
-					exitError("rendering package main: %s", err)
-				}
-				mainFile := filepath.Join(tmpDir, "main_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
-				err = ioutil.WriteFile(mainFile, []byte(main), filePerm)
-				if err != nil {
-					exitError("writing package main: %s", err)
-				}
-				err = goImports(mainFile)
-				if err != nil {
-					exitError("goimports on file %q: %s", mainFile, err)
-				}
-			}
 
 			// When making an interpreter that reads only template sources, sd
 			// cannot contain only packages.

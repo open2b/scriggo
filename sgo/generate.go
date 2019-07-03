@@ -24,14 +24,10 @@ import (
 // Ignores all main packages contained in pd.
 func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string, bool, error) {
 
-	// Remove main packages from pd; they must be handled externally.
-	tmp := []importDescriptor{}
-	for _, imp := range pd.imports {
-		if !imp.comment.main {
-			tmp = append(tmp, imp)
-		}
+	type packageType struct {
+		name string
+		decl map[string]string
 	}
-	pd.imports = tmp
 
 	explicitImports := strings.Builder{}
 	for _, imp := range pd.imports {
@@ -43,7 +39,7 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		}
 	}
 
-	pkgs := map[string]string{}
+	pkgs := map[string]*packageType{}
 	for _, imp := range pd.imports {
 		pkgName, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
@@ -64,48 +60,61 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 				return "", false, err
 			}
 		}
-		// Sorts declarations.
-		names := make([]string, 0, len(decls))
-		for name := range decls {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-
-		// Writes all declarations.
-		pkgContent := strings.Builder{}
-		for _, name := range names {
-			pkgContent.WriteString(`"` + name + `": ` + decls[name] + ",\n")
+		// Converts all declaration name to "unexported" if requested.
+		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
+		// return an error. Note that the builtin functions 'print' and
+		// 'println' should be handled as special case: if their sign is the
+		// same of Go 'print' and 'println', shadowing is allowed.
+		if imp.comment.uncapitalize {
+			tmp := map[string]string{}
+			for name, decl := range decls {
+				newName := uncapitalize(name)
+				if newName == "main" || newName == "init" || isGoKeyword(newName) {
+					return "", false, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalize' or change declaration name in package %q", newName, imp.path)
+				}
+				tmp[newName] = decl
+			}
+			decls = tmp
 		}
 
 		// Determines which import path use: default (the one specified in
 		// source, used by Go) or a new one, indicated in Scriggo comments.
-		// TODO(Gianluca): check path collision before starting rendering.
 		path := imp.path
 		if imp.comment.newPath != "" {
+			// TODO(Gianluca): if newPath points to standard lib, return error.
+			// Else, package mixing is allowed.
 			path = imp.comment.newPath
 		}
 
-		// Check if import path already exists.
-		if _, ok := pkgs[path]; ok {
-			return "", false, fmt.Errorf("path collision: %q", path)
+		switch imp.comment.main {
+		case true: // Adds read declarations to package main as builtins.
+			if pkgs["main"] == nil {
+				pkgs["main"] = &packageType{"main", map[string]string{}}
+			}
+			for name, decl := range decls {
+				if _, ok := pkgs["main"].decl[name]; ok {
+					return "", false, fmt.Errorf("declaration name collision in package main: %q", name)
+				}
+				pkgs["main"].decl[name] = decl
+			}
+		case false: // Adds read declarations to the specified package.
+			if pkgs[path] == nil {
+				pkgs[path] = &packageType{
+					decl: map[string]string{},
+				}
+			}
+			for name, decl := range decls {
+				if _, ok := pkgs[path].decl[name]; ok {
+					return "", false, fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
+				}
+				pkgs[path].decl[name] = decl
+				pkgs[path].name = pkgName
+				if imp.comment.newName != "" {
+					name = imp.comment.newName
+				}
+			}
 		}
 
-		// Determines which package name use: default (the one specified in
-		// source, used by Go) or a new one, indicated in Scriggo comment.
-		name := pkgName
-		if imp.comment.newName != "" {
-			name = imp.comment.newName
-		}
-
-		out := `{
-			Name: "[pkg.Name()]",
-			Declarations: map[string]interface{}{
-				[pkgContent]
-			},
-		},`
-		out = strings.ReplaceAll(out, "[pkg.Name()]", name)
-		out = strings.ReplaceAll(out, "[pkgContent]", pkgContent.String())
-		pkgs[path] = out
 	}
 
 	// If no packages have been declared, just return.
@@ -113,18 +122,47 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		return "", false, nil
 	}
 
-	// Sorts packages.
+	// Renders package content.
+	allPkgsContent := strings.Builder{}
 	paths := make([]string, 0, len(pkgs))
-	for name := range pkgs {
-		paths = append(paths, name)
+	hasMain := false
+	for path := range pkgs {
+		if path == "main" {
+			hasMain = true
+			continue
+		}
+		paths = append(paths, path)
 	}
 	sort.Strings(paths)
-
-	allPkgsContent := strings.Builder{}
-	for _, path := range paths {
-		content := pkgs[path]
-		allPkgsContent.WriteString("\n" + `"` + path + `": ` + "" + content)
+	if hasMain {
+		paths = append([]string{"main"}, paths...)
 	}
+	for _, path := range paths {
+		pkg := pkgs[path]
+		declarations := strings.Builder{}
+		names := make([]string, 0, len(pkg.decl))
+		for name := range pkg.decl {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			decl := pkg.decl[name]
+			declarations.WriteString(strconv.Quote(name) + ": " + decl + ",\n")
+		}
+		out := `[path]: {
+			Name: [pkgName],
+			Declarations: map[string]interface{}{
+				[declarations]
+			},
+		},
+		`
+		out = strings.Replace(out, "[path]", strconv.Quote(path), 1)
+		out = strings.Replace(out, "[pkgName]", strconv.Quote(pkg.name), 1)
+		out = strings.Replace(out, "[declarations]", declarations.String(), 1)
+		allPkgsContent.WriteString(out)
+	}
+
+	// TODO(Gianluca): package main must be first.
 
 	// Skeleton for a package group.
 	const pkgsSkeleton = `package [pkgName]
@@ -150,114 +188,6 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 	).Replace(pkgsSkeleton)
 	pkgOutput = genHeader(pd, goos) + pkgOutput
 	return pkgOutput, true, nil
-}
-
-// renderPackageMain renders a package main.
-func renderPackageMain(pd scriggoDescriptor, goos string) (string, error) {
-
-	// Filters all imports extracting only those that refer to package main.
-	mains := []importDescriptor{}
-	for _, imp := range pd.imports {
-		if imp.comment.main {
-			mains = append(mains, imp)
-		}
-	}
-	allMainDecls := map[string]string{}
-
-	explicitImports := strings.Builder{}
-	for _, imp := range pd.imports {
-		uniqueName := uniquePackageName(imp.path)
-		if uniqueName != imp.path {
-			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
-		} else {
-			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
-		}
-
-	}
-
-	for _, imp := range mains {
-
-		// Parses path.
-		_, decls, err := parseGoPackage(imp.path, goos)
-		if err != nil {
-			return "", err
-		}
-
-		// Checks if only certain declarations must be included or excluded.
-		if len(imp.comment.export) > 0 {
-			decls, err = filterIncluding(decls, imp.comment.export)
-			if err != nil {
-				return "", err
-			}
-		} else if len(imp.comment.notexport) > 0 {
-			decls, err = filterExcluding(decls, imp.comment.notexport)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		// Converts all declaration name to "unexported" if requested.
-		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
-		// return an error. Note that the builtin functions 'print' and
-		// 'println' should be handled as special case: if their sign is the
-		// same of Go 'print' and 'println', shadowing is allowed.
-		if imp.comment.uncapitalize {
-			tmp := map[string]string{}
-			for name, decl := range decls {
-				newName := uncapitalize(name)
-				if newName == "main" || newName == "init" || isGoKeyword(newName) {
-					return "", fmt.Errorf("%q is not a valid identifier: remove 'uncapitalize' or change declaration name in %q", newName, imp.path)
-				}
-				tmp[newName] = decl
-			}
-			decls = tmp
-		}
-
-		// Adds parsed declarations to list of declarations of the package main.
-		for k, v := range decls {
-			_, ok := allMainDecls[k]
-			if ok {
-				panic("already defined!") // TODO(Gianluca).
-			}
-			allMainDecls[k] = v
-		}
-	}
-
-	// Sorts declarations in package main.
-	names := make([]string, 0, len(allMainDecls))
-	for name := range allMainDecls {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	pkgContent := strings.Builder{}
-	for _, name := range names {
-		pkgContent.WriteString(`"` + name + `": ` + allMainDecls[name] + ",\n")
-	}
-
-	out := `
-		package main
-
-		import (
-			[explicitImports]
-		)
-
-		import . "scriggo"
-		import "reflect"
-
-		func init() {
-			Main = &Package{
-				Name: "main",
-				Declarations: map[string]interface{}{
-					[pkgContent]
-				},
-			}
-		}`
-	out = strings.ReplaceAll(out, "[pkgContent]", pkgContent.String())
-	out = strings.ReplaceAll(out, "[explicitImports]", explicitImports.String())
-	out = genHeader(pd, goos) + out
-
-	return out, nil
 }
 
 // parseGoPackage parses pkgPath and returns the package name and a map

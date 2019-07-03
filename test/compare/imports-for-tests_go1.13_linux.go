@@ -27,7 +27,6 @@ import "reflect"
 
 func init() {
 	packages = Packages{
-
 		"bufio": {
 			Name: "bufio",
 			Declarations: map[string]interface{}{
