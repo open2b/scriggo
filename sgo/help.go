@@ -6,8 +6,27 @@
 
 package main
 
+const helpGenerate = `
+usage: sgo generate [target]
+Generate generates a directory containing source code for a new interpreter.
+
+Target can be:
+
+	- a Scriggo file descriptor
+	- a Go package
+
+A Scriggo file descriptor is a file containing Go source code which must contain:
+	1. a Scriggo file comment
+	2. a package declaration
+	3. one or more imports
+see 'sgo help descriptor' for more informations about Scriggo file descriptor.
+
+When target is a Go package, the package resolution method is the same used by Go tools.
+`
+
 const helpDescriptor = `
-A Scriggo descriptor file consits of a valid Go package source code containing one Scriggo file comment and one or more imports, which may in turn have a Scriggo import comment
+A Scriggo descriptor file consits of a valid Go package source code containing one
+Scriggo file comment and one or more imports, which may in turn have a Scriggo import comment
 
 An example Scriggo descriptor is:
 
@@ -20,13 +39,16 @@ An example Scriggo descriptor is:
 		_ "math" //scriggo: main uncapitalize
 	)
 
-This Scriggo descriptor describes a Scriggo interpreter provides package "fmt" (available through an import statement) and package "math" as "builtin", with all names "uncapitalized".
+This Scriggo descriptor describes a Scriggo interpreter provides package "fmt"
+(available through an import statement) and package "math" as "builtin", with
+all names "uncapitalized".
 
 Each import statement should have a name _, which prevents tools like goimports from removing import.
 
 Options available in the Scriggo file comment are:
 
-	interpreters[:targets]  describe an interpreter for targets. Valid targets are "template, "script" and "program". If not targets are specified, it's assumed by default all available interpreters.
+	interpreters[:targets]  describe an interpreter for targets. Valid targets are "template, "script" and "program".
+                            If not targets are specified, it's assumed by default all available interpreters.
 	embedded                describe an embedded packages declaration
 	output                  select output file/directory
 	goos:GOOSs              force GOOS to the specified value. More than one value can be provided
@@ -35,7 +57,7 @@ Options available as Scriggo import comments are:
 
 	main                    import as package main. Only available in scripts an templates
 	uncapitalize            declarations imported as main are "uncapitalized"
-	path                    force an alternative path for import
+	path                    change Scrigo import path
 	export:names            only export names
 	noexport:names          export everything excluding names
 
@@ -45,11 +67,13 @@ Default. Makes "fmt" available in Scriggo as would be available in Go:
 
 	import _ "fmt" //scriggo:
 
-Import all declarations from "fmt" in package main, making them accessible without a selector:
+Import all declarations from "fmt" in package main, making them accessible
+without a selector:
 
 	import _ "fmt" //scriggo: main
 
-Import all declarations from "fmt" in package main with uncapitalized names, making them accessible without a selector:
+Import all declarations from "fmt" in package main with uncapitalized names,
+making them accessible without a selector:
 
 	import _ "fmt" //scriggo: main uncapitalize
 

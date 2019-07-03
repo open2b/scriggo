@@ -121,15 +121,14 @@ var commandsHelp = map[string]func(){
 		)
 	},
 	"generate": func() {
-		stderr(
-			`usage: sgo generate [target]`,
-			`Generate generates a directory containing source code for a new interpreter`,
-		)
+		txtToHelp(helpGenerate)
 	},
 	"install": func() {
 		stderr(
 			`usage: sgo install [target]`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
+			``,
+			`See also: sgo generate`,
 		)
 	},
 	"version": func() {
