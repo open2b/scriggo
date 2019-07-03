@@ -189,6 +189,10 @@ func renderPackageMain(pd scriggoDescriptor, goos string) (string, error) {
 		}
 
 		// Converts all declaration name to "unexported" if requested.
+		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
+		// return an error. Note that the builtin functions 'print' and
+		// 'println' should be handled as special case: if their sign is the
+		// same of Go 'print' and 'println', shadowing is allowed.
 		if imp.comment.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
