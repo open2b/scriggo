@@ -17,10 +17,10 @@ import (
 )
 
 func main() {
-	scriggo(os.Args...)
+	sgo(os.Args...)
 }
 
-// TestEnvironment is true when testing Scriggo, false otherwise.
+// TestEnvironment is true when testing sgo, false otherwise.
 var TestEnvironment = false
 
 // exit causes the current program to exit with the given status code. If
@@ -51,10 +51,10 @@ func exitError(format string, a ...interface{}) {
 	return
 }
 
-// scriggo runs command 'scriggo' with given args. First argument must be
-// executable name.
-func scriggo(args ...string) {
-	flag.Usage = commandsHelp["scriggo"]
+// sgo runs command 'sgo' with given args. First argument must be executable
+// name.
+func sgo(args ...string) {
+	flag.Usage = commandsHelp["sgo"]
 
 	// No command provided.
 	if len(args) == 1 {
@@ -71,8 +71,8 @@ func scriggo(args ...string) {
 	cmd, ok := commands[cmdArg]
 	if !ok {
 		stderr(
-			fmt.Sprintf("scriggo %s: unknown command", cmdArg),
-			`Run 'scriggo help' for usage.`,
+			fmt.Sprintf("sgo %s: unknown command", cmdArg),
+			`Run 'sgo help' for usage.`,
 		)
 		exit(1)
 		return
@@ -83,22 +83,22 @@ func scriggo(args ...string) {
 // commandsHelp maps a command name to a function that prints help for that
 // command.
 var commandsHelp = map[string]func(){
-	"scriggo": func() {
+	"sgo": func() {
 		stderr(
-			`Scriggo is a tool for managing Scriggo interpreters and loaders`,
+			`sgo is a tool for managing Scriggo interpreters and loaders`,
 			``,
 			`Usage:`,
 			``,
-			`	   scriggo <command> [arguments]`,
+			`	   sgo <command> [arguments]`,
 			``,
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
 			`	gen            generate an interpreter or a loader`,
 			`	install        install an interpreter`,
-			`	version        print Scriggo version`,
+			`	version        print sgo/Scriggo version`,
 			``,
-			`Use "scriggo help <command>" for more information about a command.`,
+			`Use "sgo help <command>" for more information about a command.`,
 			``,
 			`Additional help topics:`,
 			``,
@@ -114,26 +114,26 @@ var commandsHelp = map[string]func(){
 	// Commands helps.
 	"bug": func() {
 		stderr(
-			`usage: scriggo bug`,
+			`usage: sgo bug`,
 			`Bug opens the default browser and starts a new bug report.`,
 			`The report includes useful system information.`,
 		)
 	},
 	"gen": func() {
 		stderr(
-			`usage: scriggo gen [target]`,
+			`usage: sgo gen [target]`,
 			`Gen generates a directory containing source code for a new interpreter`,
 		)
 	},
 	"install": func() {
 		stderr(
-			`usage: scriggo install [target]`,
+			`usage: sgo install [target]`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
 		)
 	},
 	"version": func() {
 		stderr(
-			`usage: scriggo version`,
+			`usage: sgo version`,
 		)
 	},
 }
@@ -141,7 +141,7 @@ var commandsHelp = map[string]func(){
 // commands maps a command name to a function that executes that command.
 // Commands are called by command-line using:
 //
-//		scriggo command
+//		sgo command
 //
 var commands = map[string]func(){
 	"bug": func() {
@@ -150,11 +150,11 @@ var commands = map[string]func(){
 	},
 	"install": func() {
 		flag.Usage = commandsHelp["install"]
-		scriggoGen(true)
+		gen(true)
 	},
 	"gen": func() {
 		flag.Usage = commandsHelp["gen"]
-		scriggoGen(false)
+		gen(false)
 	},
 	"help": func() {
 		if len(os.Args) == 1 {
@@ -165,7 +165,7 @@ var commands = map[string]func(){
 		topic := os.Args[1]
 		help, ok := commandsHelp[topic]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "scriggo help %s: unknown help topic. Run 'scriggo help'.\n", topic)
+			fmt.Fprintf(os.Stderr, "sgo help %s: unknown help topic. Run 'sgo help'.\n", topic)
 			exit(1)
 			return
 		}
@@ -174,19 +174,19 @@ var commands = map[string]func(){
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
 		fmt.Printf("Scriggo module version:            (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Scriggo tool version:              (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Go version used to build Scriggo:  %s\n", runtime.Version())
+		fmt.Printf("sgo tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Go version used to build sgo:      %s\n", runtime.Version())
 	},
 }
 
-// scriggoGen executes command:
+// gen executes command:
 //
-//		scriggo gen
-//		scriggo install
+//		sgo gen
+//		sgo install
 //
 // If install is set, interpreter will be installed as executable and
 // interpreter sources will be removed.
-func scriggoGen(install bool) {
+func gen(install bool) {
 
 	flag.Parse()
 
@@ -228,7 +228,7 @@ func scriggoGen(install bool) {
 	// Generates an embeddable loader.
 	if sd.comment.embedded {
 		if install {
-			stderr(`scriggo install is not compatible with a Scriggo descriptor that generates embedded packages`)
+			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
 			exit(1)
 			return
@@ -299,7 +299,7 @@ func scriggoGen(install bool) {
 		// Creates a temporary directory for interpreter sources. If installing,
 		// directory will be lost. If generating sources and no errors occurred,
 		// tmpDir will be moved to the correct path.
-		tmpDir, err := ioutil.TempDir("", "scriggo")
+		tmpDir, err := ioutil.TempDir("", "sgo")
 		if err != nil {
 			exitError(err.Error())
 		}

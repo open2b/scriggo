@@ -13,10 +13,10 @@ import (
 	"testing"
 )
 
-// Test_scriggo_gen_fmt tests command 'scriggo gen fmt'
-func Test_scriggo_gen_fmt(t *testing.T) {
+// Test_sgo_gen_fmt tests command 'sgo gen fmt'
+func Test_sgo_gen_fmt(t *testing.T) {
 	TestEnvironment = true
-	tmpDir, err := ioutil.TempDir("", "scriggo_test")
+	tmpDir, err := ioutil.TempDir("", "sgo_test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func Test_scriggo_gen_fmt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scriggo("scriggo", "gen", "fmt")
+	sgo("sgo", "gen", "fmt")
 
 	for _, fileName := range []string{"main.go", "go.mod"} {
 		data, err := ioutil.ReadFile(filepath.Join(tmpDir, "fmt", fileName))
