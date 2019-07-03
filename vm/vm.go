@@ -477,6 +477,10 @@ func (vm *VM) callPredefined(fn *PredefinedFunction, numVariadic int8, shift Sta
 				vm.setInt(1, int64(f(vm.general(1).([]byte), vm.general(2).([]byte))))
 			case func([]byte, []byte) bool:
 				vm.setBool(1, f(vm.general(1).([]byte), vm.general(2).([]byte)))
+			case func(interface{}, interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2), vm.general(3)))
+			case func(interface{}) interface{}:
+				vm.setGeneral(1, f(vm.general(2)))
 			default:
 				fn.slow()
 			}
