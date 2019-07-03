@@ -286,10 +286,6 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 
 	pkg := pkgs[0]
 
-	if len(pkg.Errors) > 0 {
-		packages.PrintErrors(pkgs)
-	}
-
 	pkgInfo := pkg.TypesInfo
 	for _, v := range pkgInfo.Defs {
 		// Include only exported names. It doesn't take into account whether the
