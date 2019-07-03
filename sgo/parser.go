@@ -226,9 +226,6 @@ func parseImportComment(c string) (importComment, error) {
 	// Looks for option "capitalize".
 	for i, o := range opts {
 		if o == "uncapitalize" {
-			if !ic.main {
-				return importComment{}, errors.New("cannot use option uncapitalize without option main")
-			}
 			ic.uncapitalize = true
 			opts = append(opts[:i], opts[i+1:]...)
 			break
@@ -258,6 +255,9 @@ func parseImportComment(c string) (importComment, error) {
 
 	if len(ic.export) > 0 && len(ic.notexport) > 0 {
 		return importComment{}, errors.New("cannot have export and notexport in same import comment")
+	}
+	if ic.uncapitalize && !ic.main {
+		return importComment{}, errors.New("cannot use option uncapitalize without option main")
 	}
 
 	return ic, nil

@@ -59,7 +59,8 @@ func Test_parseFileComment(t *testing.T) {
 
 func Test_parseImportComment_error(t *testing.T) {
 	cases := map[string]string{
-		"//scriggo: uncapitalize": "cannot use option uncapitalize without option main",
+		"//scriggo: uncapitalize":       "cannot use option uncapitalize without option main",
+		"//scriggo: main, uncapitalize": "bad option main,",
 	}
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
