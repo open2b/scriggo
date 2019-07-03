@@ -63,14 +63,25 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		// Converts all declaration name to "unexported" if requested.
 		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
 		// return an error. Note that the builtin functions 'print' and
-		// 'println' should be handled as special case: if their sign is the
-		// same of Go 'print' and 'println', shadowing is allowed.
+		// 'println' should be handled as special case:
 		if imp.comment.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
 				newName := uncapitalize(name)
-				if newName == "main" || newName == "init" || isGoKeyword(newName) {
+				if newName == "main" || newName == "init" {
 					return "", false, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalize' or change declaration name in package %q", newName, imp.path)
+				}
+				if isGoKeyword(newName) {
+					return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalize' or change declaration name in package %q", newName, newName, imp.path)
+				}
+				if isPredeclaredIdentifier(newName) {
+					if newName == "print" || newName == "println" {
+						// TODO(Gianluca): If the signature is the same of Go
+						// 'print' and 'println', shadowing is allowed. Else, an
+						// error must be returned.
+					} else {
+						return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalize' or change declaration name in package %q", newName, newName, imp.path)
+					}
 				}
 				tmp[newName] = decl
 			}

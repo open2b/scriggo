@@ -246,7 +246,7 @@ func generate(install bool) {
 			// Render all packages, ignoring main.
 			data, hasContent, err := renderPackages(sd, sd.comment.varName, goos)
 			if err != nil {
-				panic(err)
+				exitError("%s", err)
 			}
 
 			// Data has been generated but has no content (only has a
