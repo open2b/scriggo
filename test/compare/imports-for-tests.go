@@ -1,4 +1,6 @@
-//go:generate scriggo gen --variable "packages" --goos "windows,linux" -l $GOFILE
+//go:generate sgo gen $GOFILE
+
+//scriggo: embedded variable:"packages"
 
 package main
 
