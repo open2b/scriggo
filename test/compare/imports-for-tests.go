@@ -1,4 +1,6 @@
-//go:generate scriggo-generate $GOFILE packages
+//go:generate sgo generate $GOFILE
+
+//scriggo: embedded variable:"packages"
 
 package main
 
