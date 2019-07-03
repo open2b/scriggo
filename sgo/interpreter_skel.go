@@ -230,16 +230,10 @@ func makeInterpreterSource(program, script, template bool) []byte {
 			switch ext {
 			case ".sgo":
 				{{ script }}
-				fmt.Println("script support not included in this interpreter. Rebuild using option '-s'")
-				os.Exit(-1)
 			case ".go":
 				{{ program }}
-				fmt.Println("program support not included in this interpreter. Rebuild using option '-p'")
-				os.Exit(-1)
 			case ".html":
 				{{ template }}
-				fmt.Println("template support not included in this interpreter. Rebuild using option '-t'")
-				os.Exit(-1)
 			}
 		}
 	`
@@ -247,17 +241,20 @@ func makeInterpreterSource(program, script, template bool) []byte {
 	if script {
 		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
 	} else {
-		out = strings.Replace(out, "{{ script }}", "", 1)
+		out = strings.Replace(out, "{{ script }}", `fmt.Println("script support not included in this interpreter.")
+		os.Exit(-1)`, 1)
 	}
 	if template {
 		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
 	} else {
-		out = strings.Replace(out, "{{ template }}", "", 1)
+		out = strings.Replace(out, "{{ template }}", `fmt.Println("program support not included in this interpreter.")
+		os.Exit(-1)`, 1)
 	}
 	if program {
 		out = strings.Replace(out, "{{ program }}", programSkel, 1)
 	} else {
-		out = strings.Replace(out, "{{ program }}", "", 1)
+		out = strings.Replace(out, "{{ program }}", `fmt.Println("template support not included in this interpreter.")
+		os.Exit(-1)`, 1)
 	}
 
 	return []byte(out)
