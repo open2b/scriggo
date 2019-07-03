@@ -103,6 +103,7 @@ var commandsHelp = map[string]func(){
 			`Additional help topics:`,
 			``,
 			`	descriptor     syntax of descriptor file`,
+			``,
 		)
 		flag.PrintDefaults()
 	},
