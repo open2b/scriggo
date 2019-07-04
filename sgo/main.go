@@ -17,7 +17,31 @@ import (
 )
 
 func main() {
-	sgo(os.Args...)
+
+	flag.Usage = commandsHelp["sgo"]
+
+	// No command provided.
+	if len(os.Args) == 1 {
+		flag.Usage()
+		exit(0)
+		return
+	}
+
+	cmdArg := os.Args[1]
+
+	// Used by flag.Parse.
+	os.Args = append(os.Args[:1], os.Args[2:]...)
+
+	cmd, ok := commands[cmdArg]
+	if !ok {
+		stderr(
+			fmt.Sprintf("sgo %s: unknown command", cmdArg),
+			`Run 'sgo help' for usage.`,
+		)
+		exit(1)
+		return
+	}
+	cmd()
 }
 
 // TestEnvironment is true when testing sgo, false otherwise.
@@ -49,35 +73,6 @@ func exitError(format string, a ...interface{}) {
 	}
 	exit(1)
 	return
-}
-
-// sgo runs command 'sgo' with given args. First argument must be executable
-// name.
-func sgo(args ...string) {
-	flag.Usage = commandsHelp["sgo"]
-
-	// No command provided.
-	if len(args) == 1 {
-		flag.Usage()
-		exit(0)
-		return
-	}
-
-	cmdArg := args[1]
-
-	// Used by flag.Parse.
-	os.Args = append(args[:1], args[2:]...)
-
-	cmd, ok := commands[cmdArg]
-	if !ok {
-		stderr(
-			fmt.Sprintf("sgo %s: unknown command", cmdArg),
-			`Run 'sgo help' for usage.`,
-		)
-		exit(1)
-		return
-	}
-	cmd()
 }
 
 // commandsHelp maps a command name to a function that prints help for that
