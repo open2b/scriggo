@@ -76,7 +76,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	if main != nil {
 		pkgs = scriggo.Packages{"main": main}
 	}
-	tci, err := compiler.Typecheck(tree, pkgs, nil, opts)
+	tci, err := compiler.Typecheck(tree, pkgs, opts)
 	if err != nil {
 		return nil, err
 	}

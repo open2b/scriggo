@@ -53,7 +53,7 @@ type Program struct {
 // LoadProgram loads a program, reading package "main" from packages.
 func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 
-	tree, deps, predefined, err := compiler.ParseProgram(packages)
+	tree, predefined, err := compiler.ParseProgram(packages)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 		MemoryLimit:    options&LimitMemorySize != 0,
 		DisallowGoStmt: options&DisallowGoStmt != 0,
 	}
-	tci, err := compiler.Typecheck(tree, predefined, deps, opts)
+	tci, err := compiler.Typecheck(tree, predefined, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 		MemoryLimit:    options&LimitMemorySize != 0,
 		DisallowGoStmt: options&DisallowGoStmt != 0,
 	}
-	tci, err := compiler.Typecheck(tree, packages, nil, opts)
+	tci, err := compiler.Typecheck(tree, packages, opts)
 	if err != nil {
 		return nil, err
 	}

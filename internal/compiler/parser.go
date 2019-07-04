@@ -118,9 +118,6 @@ type parsing struct {
 
 	// Position of the last fallthrough token, used for error messages.
 	lastFallthroughTokenPos ast.Position
-
-	// deps stores the state of the dependency analysis on packages.
-	deps *dependencies
 }
 
 // ParseSource parses a program or script. isScript reports whether it is a
@@ -130,10 +127,10 @@ type parsing struct {
 // Returns the AST tree and, only if it is a program, the dependencies for the
 // type checker.
 // TODO(Gianluca): path validation must be moved to parser.
-func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
+func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error) {
 
 	if shebang && !isScript {
-		return nil, nil, errors.New("scriggo/parser: shebang can be true only for scripts")
+		return nil, errors.New("scriggo/parser: shebang can be true only for scripts")
 	}
 
 	tree = ast.NewTree("", nil, ast.ContextGo)
@@ -142,10 +139,6 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Packa
 		lex:       newLexer(src, ast.ContextGo),
 		ctx:       ast.ContextGo,
 		ancestors: []ast.Node{tree},
-	}
-
-	if !isScript {
-		p.deps = &dependencies{}
 	}
 
 	defer func() {
@@ -165,7 +158,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Packa
 		switch tok.typ {
 		case tokenShebangLine:
 			if !shebang {
-				return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
+				return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("illegal character U+0023 '#'")}
 			}
 			continue
 		default:
@@ -175,10 +168,10 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Packa
 				switch p.ancestors[1].(type) {
 				case *ast.Package:
 				case *ast.Label:
-					return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
+					return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("missing statement after label")}
 				default:
 					if len(p.ancestors) > 2 {
-						return nil, nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
+						return nil, &SyntaxError{"", *tok.pos, fmt.Errorf("unexpected EOF, expecting }")}
 					}
 				}
 			}
@@ -186,10 +179,10 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, deps Packa
 	}
 
 	if p.lex.err != nil {
-		return nil, nil, p.lex.err
+		return nil, p.lex.err
 	}
 
-	return tree, p.deps.result(), nil
+	return tree, nil
 }
 
 // ParseTemplateSource parses src in the context ctx and returns the parsed
@@ -209,7 +202,6 @@ func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps Pack
 		lex:        newLexer(src, ctx),
 		ctx:        ctx,
 		ancestors:  []ast.Node{tree},
-		deps:       &dependencies{},
 		isTemplate: true,
 	}
 
@@ -457,12 +449,10 @@ LABEL:
 			if expr == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			p.deps.declare([]*ast.Identifier{ident})
 			assignment := ast.NewAssignment(&ast.Position{ipos.Line, ipos.Column, ipos.Start, expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
-			p.deps.enterScope()
 		case tokenLeftBraces, tokenEndStatement:
 			if (p.ctx == ast.ContextGo) != (tok.typ == tokenLeftBraces) {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression or %%}", tok)})
@@ -477,7 +467,6 @@ LABEL:
 			}
 			pos.End = tok.pos.End
 			node = ast.NewFor(pos, nil, condition, nil, nil)
-			p.deps.enterScope()
 		case tokenRange:
 			// Parses "for range expr".
 			if len(variables) > 0 {
@@ -493,7 +482,6 @@ LABEL:
 			assignment := ast.NewAssignment(tpos, nil, ast.AssignmentSimple, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
-			p.deps.enterScope()
 		case tokenSimpleAssignment, tokenDeclaration, tokenIncrement, tokenDecrement:
 			if len(variables) == 0 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
@@ -516,20 +504,10 @@ LABEL:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
 				vpos := variables[0].Pos()
-				if assignmentType == ast.AssignmentDeclaration {
-					for _, left := range variables {
-						if ident, ok := left.(*ast.Identifier); ok {
-							if (p.ctx == ast.ContextGo && len(p.ancestors) > 2) || (p.ctx != ast.ContextGo && len(p.ancestors) > 1) {
-								p.deps.declare([]*ast.Identifier{ident})
-							}
-						}
-					}
-				}
 				assignment := ast.NewAssignment(&ast.Position{vpos.Line, vpos.Column, vpos.Start, expr.Pos().End},
 					variables, assignmentType, []ast.Expression{expr})
 				pos.End = tok.pos.End
 				node = ast.NewForRange(pos, assignment, nil)
-				p.deps.enterScope()
 			} else {
 				// Parses statement "for [init]; [condition]; [post]".
 				// Parses the condition expression.
@@ -553,7 +531,6 @@ LABEL:
 				}
 				pos.End = tok.pos.End
 				node = ast.NewFor(pos, init, condition, post, nil)
-				p.deps.enterScope()
 			}
 		}
 		if node == nil {
@@ -693,7 +670,6 @@ LABEL:
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
-		p.deps.enterScope()
 
 	// {
 	case tokenLeftBraces:
@@ -701,7 +677,6 @@ LABEL:
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting statement", tok)})
 		}
 		node = ast.NewBlock(tok.pos, nil)
-		p.deps.enterScope()
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node)
 		p.cutSpacesToken = true
@@ -717,10 +692,6 @@ LABEL:
 		if _, ok := parent.(*ast.Label); ok {
 			p.ancestors = p.ancestors[:len(p.ancestors)-1]
 			parent = p.ancestors[len(p.ancestors)-1]
-		}
-		switch parent.(type) {
-		case *ast.Block, *ast.If, *ast.For, *ast.ForRange, *ast.TypeSwitch, *ast.Switch, *ast.Select:
-			p.deps.exitScope()
 		}
 		bracesEnd := tok.pos.End
 		parent.Pos().End = bracesEnd
@@ -769,7 +740,6 @@ LABEL:
 			}
 			elseBlock := ast.NewBlock(blockPos, nil)
 			p.addChild(elseBlock)
-			p.deps.enterScope()
 			p.ancestors = append(p.ancestors, elseBlock)
 			return
 		}
@@ -812,7 +782,6 @@ LABEL:
 			ifPos = pos
 		}
 		node = ast.NewIf(ifPos, assignment, expr, then, nil)
-		p.deps.enterScope()
 		p.addChild(node)
 		p.ancestors = append(p.ancestors, node, then)
 		p.cutSpacesToken = true
@@ -1370,11 +1339,6 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 	case tokenSimpleAssignment:
 		// var/const  a     = ...
 		// var/const  a, b  = ...
-		if len(p.ancestors) == 2 {
-			p.deps.declare(idents)
-		} else {
-			p.deps.declare(idents)
-		}
 		exprs, tok = p.parseExprList(token{}, false, false, false, false)
 		if len(exprs) == 0 {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
@@ -1387,9 +1351,6 @@ func (p *parsing) parseVarOrConst(tok token, nodePos *ast.Position, decType toke
 		typ, tok = p.parseExpr(tok, false, false, true, false)
 		if tok.typ != tokenSimpleAssignment && decType == tokenConst {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
-		}
-		if len(p.ancestors) == 2 {
-			p.deps.declare(idents)
 		}
 		if tok.typ == tokenSimpleAssignment {
 			// var/const  a     int  =  ...
@@ -1489,13 +1450,6 @@ func (p *parsing) parseAssignment(variables []ast.Expression, tok token, canBeSw
 		} else {
 			values = make([]ast.Expression, 1)
 			values[0], tok = p.parseExpr(token{}, false, false, false, false)
-		}
-	}
-	if typ == ast.AssignmentDeclaration {
-		for _, left := range variables {
-			if ident, ok := left.(*ast.Identifier); ok {
-				p.deps.declare([]*ast.Identifier{ident})
-			}
 		}
 	}
 	return ast.NewAssignment(pos, variables, typ, values), tok

@@ -15,11 +15,10 @@ import (
 )
 
 // ParseProgram parses a program reading its sources from loaders.
-func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[string]*Package, error) {
+func ParseProgram(packages PackageLoader) (*ast.Tree, map[string]*Package, error) {
 
 	trees := map[string]*ast.Tree{}
 	predefined := map[string]*Package{}
-	dependencies := PackageDeclsDeps{}
 
 	main := ast.NewImport(nil, nil, "main", ast.ContextGo)
 
@@ -44,10 +43,10 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 		// Load the package.
 		pkg, err := packages.Load(n.Path)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		if pkg == nil {
-			return nil, nil, nil, &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package %q", n.Path)}
+			return nil, nil, &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package %q", n.Path)}
 		}
 
 		switch pkg := pkg.(type) {
@@ -59,12 +58,11 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 				_ = r.Close()
 			}
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
-			var deps PackageDeclsDeps
-			n.Tree, deps, err = ParseSource(src, false, false)
+			n.Tree, err = ParseSource(src, false, false)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, err
 			}
 			n.Tree.Path = n.Path
 			trees[n.Path] = n.Tree
@@ -88,7 +86,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 								err += imp.Path
 							}
 							err += "\n\timports " + p.Path
-							return nil, nil, nil, cycleError(err)
+							return nil, nil, cycleError(err)
 						}
 					}
 					imp.Tree = tree
@@ -98,9 +96,9 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 					// Check if the path is a package path (path is already a valid path).
 					if err := validPackagePath(n.Path); err != nil {
 						if err == ErrNotCanonicalImportPath {
-							return nil, nil, nil, fmt.Errorf("non-canonical import path %q (should be %q)", n.Path, cleanPath(n.Path))
+							return nil, nil, fmt.Errorf("non-canonical import path %q (should be %q)", n.Path, cleanPath(n.Path))
 						}
-						return nil, nil, nil, fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+						return nil, nil, fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 					}
 					// Append the imports in reverse order.
 					if last == len(imports)-1 {
@@ -112,9 +110,6 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 					}
 				}
 			}
-			for k, v := range deps {
-				dependencies[k] = v
-			}
 		default:
 			panic("scriggo: unexpected type from package loader")
 		}
@@ -125,7 +120,7 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, PackageDeclsDeps, map[stri
 
 	}
 
-	return main.Tree, dependencies, predefined, nil
+	return main.Tree, predefined, nil
 }
 
 // ParseScript parses a script reading its source from src and the imported
@@ -157,7 +152,7 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 	if err != nil {
 		return nil, nil, err
 	}
-	tree, _, err := ParseSource(buf, true, shebang)
+	tree, err := ParseSource(buf, true, shebang)
 	if err != nil {
 		return nil, nil, err
 	}
