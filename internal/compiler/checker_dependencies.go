@@ -244,18 +244,26 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Extends:
 		return nil
 	case *ast.For:
+		scopes = enterScope(scopes)
 		deps := nodeDeps(n.Init, scopes)
 		deps = append(deps, nodeDeps(n.Condition, scopes)...)
 		deps = append(deps, nodeDeps(n.Post, scopes)...)
+		scopes = enterScope(scopes)
 		for _, node := range n.Body {
 			deps = append(deps, nodeDeps(node, scopes)...)
 		}
+		scopes = exitScope(scopes)
+		scopes = exitScope(scopes)
 		return deps
 	case *ast.ForRange:
+		scopes = enterScope(scopes)
 		deps := nodeDeps(n.Assignment, scopes)
+		scopes = enterScope(scopes)
 		for _, node := range n.Body {
 			deps = append(deps, nodeDeps(node, scopes)...)
 		}
+		scopes = exitScope(scopes)
+		scopes = exitScope(scopes)
 		return deps
 	case *ast.Func:
 		deps := nodeDeps(n.Type, scopes)
