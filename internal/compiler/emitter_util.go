@@ -9,60 +9,63 @@ package compiler
 import (
 	"reflect"
 	"unicode"
+	"unicode/utf8"
 
 	"scriggo/internal/compiler/ast"
 	"scriggo/vm"
 )
 
-// changeRegister moves src content into dst, making a conversion if necessary.
-func (e *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
+// changeRegister emits the code that move the content of register src to
+// register dst, making a conversion if necessary.
+func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, dstType reflect.Type) {
 
 	// dst is indirect, so value must be "typed" to its true (original) type
 	// before putting it into general.
 	if dst < 0 {
-		e.fb.Typify(k, srcType, src, dst)
+		em.fb.Typify(k, srcType, src, dst)
 		return
 	}
 
 	// When moving a value from general to general, value's type must be
 	// updated.
 	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
-		e.fb.Move(k, src, dst, srcType.Kind())
+		em.fb.Move(k, src, dst, srcType.Kind())
 		return
 	}
 
 	// When moving a value from int, float or string to general, value's type
 	// must be "typed" to its true (original) type.
 	if dstType.Kind() == reflect.Interface {
-		e.fb.Typify(k, srcType, src, dst)
+		em.fb.Typify(k, srcType, src, dst)
 		return
 	}
 
-	// Source register is different than destination register: a convertion is
+	// Source register is different than destination register: a conversion is
 	// needed.
 	if dstType.Kind() != srcType.Kind() {
 		if k {
-			e.fb.EnterScope()
-			tmpReg := e.fb.NewRegister(srcType.Kind())
-			e.fb.Move(true, src, tmpReg, srcType.Kind())
-			e.fb.Convert(tmpReg, dstType, dst, srcType.Kind())
-			e.fb.ExitScope()
+			em.fb.EnterScope()
+			tmpReg := em.fb.NewRegister(srcType.Kind())
+			em.fb.Move(true, src, tmpReg, srcType.Kind())
+			em.fb.Convert(tmpReg, dstType, dst, srcType.Kind())
+			em.fb.ExitScope()
 		}
-		e.fb.Convert(src, dstType, dst, srcType.Kind())
+		em.fb.Convert(src, dstType, dst, srcType.Kind())
 		return
 	}
 
 	if k || src != dst {
-		e.fb.Move(k, src, dst, srcType.Kind())
+		em.fb.Move(k, src, dst, srcType.Kind())
 	}
+
 }
 
 // compositeLiteralLen returns the length of a composite literal.
-func (e *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
+func (em *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 	size := 0
 	for _, kv := range node.KeyValues {
 		if kv.Key != nil {
-			key := int(e.ti(kv.Key).Constant.int64())
+			key := int(em.ti(kv.Key).Constant.int64())
 			if key > size {
 				size = key
 			}
@@ -74,30 +77,31 @@ func (e *emitter) compositeLiteralLen(node *ast.CompositeLiteral) int {
 
 // functionIndex returns the index of a function inside the current function,
 // creating it if it does not exist.
-func (e *emitter) functionIndex(fun *vm.Function) int8 {
-	i, ok := e.assignedFuncs[e.fb.fn][fun]
+func (em *emitter) functionIndex(fun *vm.Function) int8 {
+	i, ok := em.funcIndexes[em.fb.fn][fun]
 	if ok {
 		return i
 	}
-	i = int8(len(e.fb.fn.Functions))
-	e.fb.fn.Functions = append(e.fb.fn.Functions, fun)
-	if e.assignedFuncs[e.fb.fn] == nil {
-		e.assignedFuncs[e.fb.fn] = make(map[*vm.Function]int8)
+	i = int8(len(em.fb.fn.Functions))
+	em.fb.fn.Functions = append(em.fb.fn.Functions, fun)
+	if em.funcIndexes[em.fb.fn] == nil {
+		em.funcIndexes[em.fb.fn] = make(map[*vm.Function]int8)
 	}
-	e.assignedFuncs[e.fb.fn][fun] = i
+	em.funcIndexes[em.fb.fn][fun] = i
 	return i
 }
 
 // isExported reports whether name is exported, according to
 // https://golang.org/ref/spec#Exported_identifiers.
 func isExported(name string) bool {
-	return unicode.Is(unicode.Lu, []rune(name)[0])
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.Is(unicode.Lu, r)
 }
 
 // isLenBuiltinCall reports whether expr is a call to the builtin "len".
-func (e *emitter) isLenBuiltinCall(expr ast.Expression) bool {
+func (em *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := e.ti(call); ti.IsBuiltin() {
+		if ti := em.ti(call); ti.IsBuiltin() {
 			if name := call.Func.(*ast.Identifier).Name; name == "len" {
 				return true
 			}
@@ -168,66 +172,66 @@ func mayHaveDependencies(variables, values []ast.Expression) bool {
 	return !allDifferentIdentifiers()
 }
 
-// predefVarIndex returns the index of a global variable in globals, adding it
+// predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
-func (e *emitter) predefVarIndex(varRv reflect.Value, predefPkgName, name string) int16 {
-	index, ok := e.predefVarIndexes[e.fb.fn][varRv]
+func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16 {
+	index, ok := em.predVarIndexes[em.fb.fn][v]
 	if ok {
 		return index
 	}
-	index = int16(len(e.globals))
-	g := Global{Pkg: predefPkgName, Name: name, Value: varRv.Interface(), Type: varRv.Type().Elem()}
-	if e.predefVarIndexes[e.fb.fn] == nil {
-		e.predefVarIndexes[e.fb.fn] = make(map[reflect.Value]int16)
+	index = int16(len(em.globals))
+	g := Global{Pkg: predPkgName, Name: name, Value: v.Interface(), Type: v.Type().Elem()}
+	if em.predVarIndexes[em.fb.fn] == nil {
+		em.predVarIndexes[em.fb.fn] = make(map[reflect.Value]int16)
 	}
-	e.globals = append(e.globals, g)
-	e.predefVarIndexes[e.fb.fn][varRv] = index
+	em.globals = append(em.globals, g)
+	em.predVarIndexes[em.fb.fn][v] = index
 	return index
 }
 
-// predefFuncIndex returns the index of a predefined function in the current
+// predFuncIndex returns the index of a predefined function in the current
 // function, adding it if it does not exist.
-func (e *emitter) predefFuncIndex(funRv reflect.Value, predefPkgName, name string) int8 {
-	index, ok := e.predefFunIndexes[e.fb.fn][funRv]
+func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int8 {
+	index, ok := em.predFunIndexes[em.fb.fn][fn]
 	if ok {
 		return index
 	}
-	index = int8(len(e.fb.fn.Predefined))
-	f := newPredefinedFunction(predefPkgName, name, funRv.Interface())
-	if e.predefFunIndexes[e.fb.fn] == nil {
-		e.predefFunIndexes[e.fb.fn] = make(map[reflect.Value]int8)
+	index = int8(len(em.fb.fn.Predefined))
+	f := newPredefinedFunction(predPkgName, name, fn.Interface())
+	if em.predFunIndexes[em.fb.fn] == nil {
+		em.predFunIndexes[em.fb.fn] = map[reflect.Value]int8{}
 	}
-	e.fb.fn.Predefined = append(e.fb.fn.Predefined, f)
-	e.predefFunIndexes[e.fb.fn][funRv] = index
+	em.fb.fn.Predefined = append(em.fb.fn.Predefined, f)
+	em.predFunIndexes[em.fb.fn][fn] = index
 	return index
 }
 
 // setClosureRefs sets the closure refs of a function. setClosureRefs operates
 // on current function builder, so shall be called before changing or saving
 // it.
-func (e *emitter) setClosureRefs(fn *vm.Function, upvars []ast.Upvar) {
+func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
 
-	// First: updates indexes of declarations that are found at the same level
-	// of fn with appropriate register indexes.
-	for i := range upvars {
-		uv := &upvars[i]
-		if uv.Index == -1 {
-			name := uv.Declaration.(*ast.Identifier).Name
-			reg := e.fb.ScopeLookup(name)
-			uv.Index = int16(reg)
+	// First: update the indexes of the declarations that are found at the
+	// same level of fn with appropriate register indexes.
+	for i := range closureVars {
+		v := &closureVars[i]
+		if v.Index == -1 {
+			name := v.Declaration.(*ast.Identifier).Name
+			reg := em.fb.ScopeLookup(name)
+			v.Index = int16(reg)
 		}
 	}
 
-	// Second: updates upvarNames with external-defined names.
-	closureRefs := make([]int16, len(upvars))
-	e.upvarsNames[fn] = make(map[string]int)
-	if e.isTemplate {
+	// Second: update closureVarRefs with external-defined names.
+	closureRefs := make([]int16, len(closureVars))
+	em.closureVarRefs[fn] = make(map[string]int)
+	if em.isTemplate {
 		// If it's a template, adds reserved global variables.
 		closureRefs = append(closureRefs, 0, 1, 2)
 	}
-	for i, uv := range upvars {
-		e.upvarsNames[fn][uv.Declaration.(*ast.Identifier).Name] = i
-		closureRefs[i] = uv.Index
+	for i, v := range closureVars {
+		em.closureVarRefs[fn][v.Declaration.(*ast.Identifier).Name] = i
+		closureRefs[i] = v.Index
 	}
 
 	// Third: var refs of current function are updated.
