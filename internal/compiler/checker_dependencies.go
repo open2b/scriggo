@@ -175,6 +175,9 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			return nil
 		}
 		deps := []*ast.Identifier{}
+		for _, right := range n.Values {
+			deps = append(deps, nodeDeps(right, scopes)...)
+		}
 		if n.Type == ast.AssignmentDeclaration {
 			for _, left := range n.Variables {
 				if ident, ok := left.(*ast.Identifier); ok {
@@ -185,9 +188,6 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			for _, left := range n.Variables {
 				deps = append(deps, nodeDeps(left, scopes)...)
 			}
-		}
-		for _, right := range n.Values {
-			deps = append(deps, nodeDeps(right, scopes)...)
 		}
 		return deps
 	case *ast.BasicLiteral:
@@ -230,11 +230,11 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return deps
 	case *ast.Const:
 		deps := []*ast.Identifier{}
-		for i := range n.Lhs {
-			scopes = declareLocally(scopes, n.Lhs[i].Name)
-			if i < len(n.Rhs) {
-				deps = append(deps, nodeDeps(n.Rhs[i], scopes)...)
-			}
+		for _, right := range n.Lhs {
+			deps = append(deps, nodeDeps(right, scopes)...)
+		}
+		for _, left := range n.Lhs {
+			scopes = declareLocally(scopes, left.Name)
 		}
 		return append(deps, nodeDeps(n.Type, scopes)...)
 	case *ast.Continue:
@@ -380,12 +380,12 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		return deps
 	case *ast.Var:
 		deps := []*ast.Identifier{}
-		for _, left := range n.Lhs {
-			scopes = declareLocally(scopes, left.Name)
-		}
 		deps = append(deps, nodeDeps(n.Type, scopes)...)
 		for _, right := range n.Rhs {
 			deps = append(deps, nodeDeps(right, scopes)...)
+		}
+		for _, left := range n.Lhs {
+			scopes = declareLocally(scopes, left.Name)
 		}
 		return deps
 	default:

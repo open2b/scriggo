@@ -413,6 +413,52 @@ var cases = map[string]struct {
 			"main": {"int"},
 		},
 	},
+
+	"local variable with same name as package variable (var A = A)": {
+		`package main
+
+		var A = 1
+		
+		func main() {
+			var A = A // <- this A is not local!
+			_ = A
+		}
+		`,
+		map[string][]string{
+			"A":    {},
+			"main": {"A"},
+		},
+	},
+
+	"local variable with same name as package variable (A := A)": {
+		`package main
+
+		var A = 1
+		
+		func main() {
+			A := A // <- this A is not local!
+			_ = A
+		}
+		`,
+		map[string][]string{
+			"A":    {},
+			"main": {"A"},
+		},
+	},
+
+	"local constant with same name as package constant (const C = C)": {
+		`package main
+
+		const C = 1
+		
+		func main() {
+			const C = C // <- this C is not local!
+		}`,
+		map[string][]string{
+			"C":    {},
+			"main": {"C"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {
