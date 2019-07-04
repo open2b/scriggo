@@ -1971,16 +1971,16 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 			}
 			if em.ti(lenArg).Type.Kind() == reflect.String { // len is optimized for strings only.
 				lenArgType := em.ti(lenArg).Type
-				x, k, ok := em.quickEmitExpr(lenArg, lenArgType)
-				if !ok || k {
-					x = em.fb.NewRegister(lenArgType.Kind())
-					em.emitExpr(lenArg, x, lenArgType)
+				v1, k1, ok := em.quickEmitExpr(lenArg, lenArgType)
+				if !ok || k1 {
+					v1 = em.fb.NewRegister(lenArgType.Kind())
+					em.emitExpr(lenArg, v1, lenArgType)
 				}
 				typ := em.ti(expr).Type
-				y, ky, ok := em.quickEmitExpr(expr, typ)
+				v2, k2, ok := em.quickEmitExpr(expr, typ)
 				if !ok {
-					y = em.fb.NewRegister(typ.Kind())
-					em.emitExpr(expr, y, typ)
+					v2 = em.fb.NewRegister(typ.Kind())
+					em.emitExpr(expr, v2, typ)
 				}
 				var condType vm.Condition
 				switch cond.Operator() {
@@ -1997,7 +1997,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				case ast.OperatorGreaterOrEqual:
 					condType = vm.ConditionGreaterOrEqualLen
 				}
-				em.fb.If(ky, x, condType, y, reflect.String)
+				em.fb.If(k2, v1, condType, v2, reflect.String)
 				return
 			}
 		}
@@ -2016,15 +2016,15 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 				reflect.Float32, reflect.Float64,
 				reflect.String:
-				x, k, ok := em.quickEmitExpr(cond.Expr1, t1)
-				if !ok || k {
-					x = em.fb.NewRegister(t1.Kind())
-					em.emitExpr(cond.Expr1, x, t1)
+				v1, k1, ok := em.quickEmitExpr(cond.Expr1, t1)
+				if !ok || k1 {
+					v1 = em.fb.NewRegister(t1.Kind())
+					em.emitExpr(cond.Expr1, v1, t1)
 				}
-				y, ky, ok := em.quickEmitExpr(cond.Expr2, t2)
+				v2, k2, ok := em.quickEmitExpr(cond.Expr2, t2)
 				if !ok {
-					y = em.fb.NewRegister(t2.Kind())
-					em.emitExpr(cond.Expr2, y, t2)
+					v2 = em.fb.NewRegister(t2.Kind())
+					em.emitExpr(cond.Expr2, v2, t2)
 				}
 				var condType vm.Condition
 				switch cond.Operator() {
@@ -2047,7 +2047,7 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 						kind = reflect.Int
 					}
 				}
-				em.fb.If(ky, x, condType, y, kind)
+				em.fb.If(k2, v1, condType, v2, kind)
 				return
 			}
 		}
