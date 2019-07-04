@@ -256,6 +256,9 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			deps = append(deps, nodeDeps(node, scopes)...)
 		}
 		return deps
+	case *ast.Func:
+		deps := nodeDeps(n.Type, scopes)
+		return append(deps, nodeDeps(n.Body, scopes)...)
 	case *ast.FuncType:
 		deps := []*ast.Identifier{}
 		for _, in := range n.Parameters {
@@ -313,6 +316,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 	case *ast.Send:
 		deps := nodeDeps(n.Channel, scopes)
 		return append(deps, nodeDeps(n.Value, scopes)...)
+	case *ast.Show:
+		return nodeDeps(n.Expr, scopes)
 	case *ast.ShowMacro:
 		deps := nodeDeps(n.Macro, scopes)
 		for _, arg := range n.Args {
@@ -341,6 +346,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		}
 		scopes = exitScope(scopes)
 		return deps
+	case *ast.Text:
+		return nil
 	case *ast.TypeAssertion:
 		deps := nodeDeps(n.Expr, scopes)
 		deps = append(deps, nodeDeps(n.Type, scopes)...)
