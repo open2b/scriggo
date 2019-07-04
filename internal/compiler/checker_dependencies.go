@@ -20,6 +20,14 @@ type PackageDeclsDeps map[*ast.Identifier][]*ast.Identifier
 type dependencies struct {
 }
 
-func depsAnalysis(t *ast.Tree) PackageDeclsDeps {
+func depsAnalysis(t *ast.Tree, opts Options) PackageDeclsDeps {
+	for _, n := range t.Nodes {
+		switch n := n.(type) {
+		case *ast.Var:
+			_ = n
+		default:
+
+		}
+	}
 	return nil
 }

@@ -42,10 +42,11 @@ func TestInitializationLoop(t *testing.T) {
 	}
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			tree, deps, err := ParseSource([]byte(cas.src), false, false)
+			tree, err := ParseSource([]byte(cas.src), false, false)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
+			deps := depsAnalysis(tree, Options{IsProgram: true})
 			pkg := tree.Nodes[0].(*ast.Package)
 			vars := []*ast.Var{}
 			consts := []*ast.Const{}
@@ -211,7 +212,8 @@ func TestPackageOrdering(t *testing.T) {
 	}
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			tree, deps, err := ParseSource([]byte(cas.src), false, false)
+			tree, err := ParseSource([]byte(cas.src), false, false)
+			deps := depsAnalysis(tree, Options{IsProgram: true})
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
