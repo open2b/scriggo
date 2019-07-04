@@ -48,8 +48,8 @@ func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node) {
 	}
 }
 
-// analyzeVar analyzes a var declaration.
-func (d deps) analyzeVar(n *ast.Var) {
+// analyzeGlobalVar analyzes a global var declaration.
+func (d deps) analyzeGlobalVar(n *ast.Var) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
 			d.addDepsToGlobal(n.Lhs[i], n.Type)
@@ -65,15 +65,16 @@ func (d deps) analyzeVar(n *ast.Var) {
 	}
 }
 
-// analyzeConst analyzes a constant declaration.
-func (d deps) analyzeConst(n *ast.Const) {
+// analyzeGlobalConst analyzes a global constant declaration.
+func (d deps) analyzeGlobalConst(n *ast.Const) {
 	for i := range n.Lhs {
 		d.addDepsToGlobal(n.Lhs[i], n.Type)
 		d.addDepsToGlobal(n.Lhs[i], n.Rhs[i])
 	}
 }
 
-func (d deps) analyzeAssignmentDeclaration(n *ast.Assignment) {
+// analyzeGlobalDeclarationAssignment analyzes a global global declaration assignment.
+func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
 	for i := range n.Variables {
 		if ident, ok := n.Variables[i].(*ast.Identifier); ok {
 			d.addDepsToGlobal(ident, n.Values[i])
@@ -81,14 +82,14 @@ func (d deps) analyzeAssignmentDeclaration(n *ast.Assignment) {
 	}
 }
 
-// analyzeFunc analyzes a function declaration.
-func (d deps) analyzeFunc(n *ast.Func) {
+// analyzeGlobalFunc analyzes a global function declaration.
+func (d deps) analyzeGlobalFunc(n *ast.Func) {
 	d.addDepsToGlobal(n.Ident, n.Type)
 	d.addDepsToGlobal(n.Ident, n.Body)
 }
 
-// analyzeMacro analyzes a macro declaration.
-func (d deps) analyzeMacro(n *ast.Macro) {
+// analyzeGlobalMacro analyzes a global macro declaration.
+func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 	d.addDepsToGlobal(n.Ident, n.Type)
 	for _, node := range n.Body {
 		d.addDepsToGlobal(n.Ident, node)
@@ -105,25 +106,25 @@ func AnalyzeTree(tree *ast.Tree, opts Options) PackageDeclsDeps {
 		for _, n := range pkg.Declarations {
 			switch n := n.(type) {
 			case *ast.Var:
-				d.analyzeVar(n)
+				d.analyzeGlobalVar(n)
 			case *ast.Const:
-				d.analyzeConst(n)
+				d.analyzeGlobalConst(n)
 			case *ast.Func:
-				d.analyzeFunc(n)
+				d.analyzeGlobalFunc(n)
 			}
 		}
 	case opts.IsTemplate:
 		for _, n := range tree.Nodes {
 			switch n := n.(type) {
 			case *ast.Var:
-				d.analyzeVar(n)
+				d.analyzeGlobalVar(n)
 			case *ast.Const:
-				d.analyzeConst(n)
+				d.analyzeGlobalConst(n)
 			case *ast.Macro:
-				d.analyzeMacro(n)
+				d.analyzeGlobalMacro(n)
 			case *ast.Assignment:
 				if n.Type == ast.AssignmentDeclaration {
-					d.analyzeAssignmentDeclaration(n)
+					d.analyzeGlobalDeclarationAssignment(n)
 				}
 			}
 		}
