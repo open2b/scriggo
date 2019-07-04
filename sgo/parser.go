@@ -22,10 +22,10 @@ type scriggoDescriptor struct {
 	imports  []importDescriptor // list of imports defined in file.
 }
 
-// containsMain indicates if packageDef contains at least one package "main".
-// Ignores all non-main packages contained in pd.
-func (pd scriggoDescriptor) containsMain() bool {
-	for _, imp := range pd.imports {
+// containsMain reports whether a descriptor contains at least one package
+// "main". It ignores all non-main packages contained in the descriptor.
+func (descriptor scriggoDescriptor) containsMain() bool {
+	for _, imp := range descriptor.imports {
 		if imp.comment.main {
 			return true
 		}
@@ -43,8 +43,8 @@ type importDescriptor struct {
 	comment importComment
 }
 
-// importComment is a comment of an import descriptor. Import comments are built
-// from Scriggo comments, such as:
+// importComment is a comment of an import descriptor. Import comments are
+// built from Scriggo comments, such as:
 //
 //		//scriggo: main uncapitalize export:"Println"
 //
@@ -72,11 +72,12 @@ type fileComment struct {
 	goos     []string // target GOOSs.
 }
 
-// isScriggoComment indicates if c is a valid Scriggo comment, that is starts with:
+// isScriggoComment reports whether c is a valid Scriggo comment, that is
+// starts with:
 //
 //   //scriggo:
 //
-// and returns c without "//scriggo:", ready to be parsed.
+// and returns the comment without "//scriggo:", ready to be parsed.
 //
 func isScriggoComment(c string) (string, bool) {
 
@@ -102,6 +103,7 @@ func isScriggoComment(c string) (string, bool) {
 
 // parseFileComment parses a file comment.
 func parseFileComment(c string) (fileComment, error) {
+
 	c, isScriggoComment := isScriggoComment(c)
 	if !isScriggoComment {
 		return fileComment{}, nil
@@ -225,7 +227,7 @@ func parseImportComment(c string) (importComment, error) {
 		return importComment{}, err
 	}
 
-	// Looks for option "main".
+	// Look for option "main".
 	for i, o := range opts {
 		if o == "main" {
 			ic.main = true
@@ -234,7 +236,7 @@ func parseImportComment(c string) (importComment, error) {
 		}
 	}
 
-	// Looks for option "capitalize".
+	// Look for option "capitalize".
 	for i, o := range opts {
 		if o == "uncapitalize" {
 			ic.uncapitalize = true

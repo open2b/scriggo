@@ -35,17 +35,17 @@ func Test_parseFileComment_error(t *testing.T) {
 
 func Test_parseFileComment(t *testing.T) {
 	cases := map[string]fileComment{
-		`//scriggo: embedded goos:"linux,darwin"`:           fileComment{embedded: true, goos: []string{"linux", "darwin"}},
-		`//scriggo: embedded output:"/path/"`:               fileComment{embedded: true, output: "/path/"},
-		`//scriggo: embedded variable:"pkgs"`:               fileComment{embedded: true, varName: "pkgs"},
-		`//scriggo: embedded`:                               fileComment{embedded: true},
-		`//scriggo: goos:"windows" embedded`:                fileComment{embedded: true, goos: []string{"windows"}},
-		`//scriggo: interpreters:"program"`:                 fileComment{program: true},
-		`//scriggo: interpreters:"script,program"`:          fileComment{script: true, program: true},
-		`//scriggo: interpreters:"script,template,program"`: fileComment{script: true, program: true, template: true},
-		`//scriggo: interpreters:"script"`:                  fileComment{script: true},
-		`//scriggo: interpreters:"template"`:                fileComment{template: true},
-		`//scriggo: interpreter`:                            fileComment{template: true, script: true, program: true},
+		`//scriggo: embedded goos:"linux,darwin"`:           {embedded: true, goos: []string{"linux", "darwin"}},
+		`//scriggo: embedded output:"/path/"`:               {embedded: true, output: "/path/"},
+		`//scriggo: embedded variable:"pkgs"`:               {embedded: true, varName: "pkgs"},
+		`//scriggo: embedded`:                               {embedded: true},
+		`//scriggo: goos:"windows" embedded`:                {embedded: true, goos: []string{"windows"}},
+		`//scriggo: interpreters:"program"`:                 {program: true},
+		`//scriggo: interpreters:"script,program"`:          {script: true, program: true},
+		`//scriggo: interpreters:"script,template,program"`: {script: true, program: true, template: true},
+		`//scriggo: interpreters:"script"`:                  {script: true},
+		`//scriggo: interpreters:"template"`:                {template: true},
+		`//scriggo: interpreter`:                            {template: true, script: true, program: true},
 	}
 	for comment, want := range cases {
 		t.Run(comment, func(t *testing.T) {
@@ -80,47 +80,47 @@ func Test_parseImportComment_error(t *testing.T) {
 
 func Test_parseImportComment(t *testing.T) {
 	cases := map[string]importComment{
-		"//scriggo:":                   importComment{},
-		`//scriggo: main`:              importComment{main: true},
-		`//scriggo: main uncapitalize`: importComment{main: true, uncapitalize: true},
-		`//scriggo: export:"Sleep"`: importComment{
+		"//scriggo:":                   {},
+		`//scriggo: main`:              {main: true},
+		`//scriggo: main uncapitalize`: {main: true, uncapitalize: true},
+		`//scriggo: export:"Sleep"`: {
 			export: []string{"Sleep"},
 		},
-		`//scriggo: main export:"Sleep"`: importComment{
+		`//scriggo: main export:"Sleep"`: {
 			main:   true,
 			export: []string{"Sleep"},
 		},
-		`//scriggo: main uncapitalize export:"Sleep"`: importComment{
+		`//scriggo: main uncapitalize export:"Sleep"`: {
 			main:         true,
 			uncapitalize: true,
 			export:       []string{"Sleep"},
 		},
-		`//scriggo: export:"Sleep,Duration"`: importComment{
+		`//scriggo: export:"Sleep,Duration"`: {
 			export: []string{"Sleep", "Duration"},
 		},
-		`//scriggo: main uncapitalize notexport:"Sleep"`: importComment{
+		`//scriggo: main uncapitalize notexport:"Sleep"`: {
 			main:         true,
 			uncapitalize: true,
 			notexport:    []string{"Sleep"},
 		},
-		`//scriggo: notexport:"Sleep,Duration"`: importComment{
+		`//scriggo: notexport:"Sleep,Duration"`: {
 			notexport: []string{"Sleep", "Duration"},
 		},
-		`//scriggo: path:"test"`: importComment{
+		`//scriggo: path:"test"`: {
 			newPath: "test",
 			newName: "test",
 		},
-		`//scriggo: path:"newpath" export:"Sleep"`: importComment{
+		`//scriggo: path:"newpath" export:"Sleep"`: {
 			export:  []string{"Sleep"},
 			newPath: "newpath",
 			newName: "newpath",
 		},
-		`//scriggo: export:"Sleep" path:"path/to/pkg"`: importComment{
+		`//scriggo: export:"Sleep" path:"path/to/pkg"`: {
 			export:  []string{"Sleep"},
 			newPath: "path/to/pkg",
 			newName: "pkg",
 		},
-		`//scriggo: export:"Sleep" path:"path/to/test"`: importComment{
+		`//scriggo: export:"Sleep" path:"path/to/test"`: {
 			export:  []string{"Sleep"},
 			newPath: "path/to/test",
 			newName: "test",
