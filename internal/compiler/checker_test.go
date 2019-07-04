@@ -2069,7 +2069,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			deps := depsAnalysis(tree, Options{IsProgram: true})
+			deps := AnalyzeTree(tree, Options{IsProgram: true})
 			pkgInfos := map[string]*PackageInfo{}
 			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, false, false)
 			switch {
