@@ -215,7 +215,7 @@ func TestTemplate(t *testing.T) {
 					builtins.Declarations[k] = v
 				}
 			}
-			templ, err := template.Load("/main", r, builtins, template.ContextText, template.LoadOptions{})
+			templ, err := template.Load("/main", r, builtins, template.ContextText, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
@@ -372,7 +372,7 @@ func TestMultiPageTemplate(t *testing.T) {
 			for p, src := range cas.sources {
 				r[p] = []byte(src)
 			}
-			templ, err := template.Load("/index.html", r, template.Builtins(), template.ContextText, template.LoadOptions{})
+			templ, err := template.Load("/index.html", r, template.Builtins(), template.ContextText, nil)
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}

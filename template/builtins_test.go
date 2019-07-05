@@ -356,7 +356,7 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 func TestRenderBuiltinInHTMLContext(t *testing.T) {
 	for _, expr := range rendererBuiltinTestsInHTMLContext {
 		r := MapReader{"/index.html": []byte(expr.src)}
-		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -393,7 +393,7 @@ var rendererBuiltinTestsInJavaScriptContext = []struct {
 func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
 	for _, expr := range rendererBuiltinTestsInJavaScriptContext {
 		r := MapReader{"/index.html": []byte(expr.src)}
-		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextJavaScript, LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextJavaScript, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -450,7 +450,7 @@ var rendererRandomBuiltinTests = []struct {
 func TestRenderRandomBuiltin(t *testing.T) {
 	for _, expr := range rendererRandomBuiltinTests {
 		r := MapReader{"/index.html": []byte(expr.src)}
-		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, LoadOptions{LimitMemorySize: true})
+		tmpl, err := Load("/index.html", r, mainPackage(expr.vars), ContextHTML, &LoadOptions{LimitMemorySize: true})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
