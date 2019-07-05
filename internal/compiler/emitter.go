@@ -211,17 +211,21 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 			em.fb = initVarsFb
 			addresses := make([]address, len(n.Lhs))
 			for i, v := range n.Lhs {
-				staticType := em.ti(v).Type
-				varReg := -em.fb.NewRegister(reflect.Interface)
-				em.fb.BindVarReg(v.Name, varReg)
-				addresses[i] = em.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
-				// Store the variable register. It will be used later to store
-				// initialized value inside the proper global index during
-				// the building of $initvars.
-				pkgVarRegs[v.Name] = varReg
-				em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
-				em.varIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
-				vars[v.Name] = int16(len(em.globals) - 1)
+				if isBlankIdentifier(v) {
+					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+				} else {
+					staticType := em.ti(v).Type
+					varReg := -em.fb.NewRegister(reflect.Interface)
+					em.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = em.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
+					// Store the variable register. It will be used later to store
+					// initialized value inside the proper global index during
+					// the building of $initvars.
+					pkgVarRegs[v.Name] = varReg
+					em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
+					em.varIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
+					vars[v.Name] = int16(len(em.globals) - 1)
+				}
 			}
 			em.assign(addresses, n.Rhs)
 			em.fb = backupFb

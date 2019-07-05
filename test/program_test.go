@@ -125,6 +125,24 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "blank identifier as global variable",
+		src: `package main
+
+		import "fmt"
+		
+		var _ = f()
+		
+		func f() int {
+			fmt.Println("f called!")
+			return 0
+		}
+		
+		func main() {
+		}
+		`,
+		output: "f called!\n",
+	},
+	{
 		name: "Nil: predeclared nil as function parameter",
 		src: `package main
 
