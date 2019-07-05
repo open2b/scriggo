@@ -592,6 +592,15 @@ var cases = map[string]struct {
 			"main":                 {},
 		},
 	},
+	"single global variable with type": {
+		`
+		package pkg
+		
+		var A int`,
+		map[string][]string{
+			"A": {"int"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {
