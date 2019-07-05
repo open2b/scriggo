@@ -75,7 +75,7 @@ func makeInterpreterSource(program, script, template bool) []byte {
 		for k, v := range Main.Declarations {
 			builtins.Declarations[k] = v
 		}
-		t, err := template.Load(path, r, builtins, template.ContextHTML, template.LoadOption(0))
+		t, err := template.Load(path, r, builtins, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
@@ -150,7 +150,7 @@ func makeInterpreterSource(program, script, template bool) []byte {
 
 			flag.Parse()
 
-			var loadOptions = scriggo.LoadOptions{}
+			var loadOptions = &scriggo.LoadOptions{}
 			var runOptions scriggo.RunOptions
 
 			if *timeout != "" {
