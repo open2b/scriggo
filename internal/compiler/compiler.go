@@ -33,7 +33,7 @@ package compiler
 import (
 	"reflect"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 	"scriggo/vm"
 )
 

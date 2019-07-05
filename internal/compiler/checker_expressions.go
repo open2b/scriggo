@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"unicode"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 	"scriggo/vm"
 )
 

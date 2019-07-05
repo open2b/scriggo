@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 var errNotRepresentable = errors.New("not representable")

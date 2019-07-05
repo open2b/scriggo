@@ -9,7 +9,7 @@ package compiler
 import (
 	"fmt"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 // Token type.

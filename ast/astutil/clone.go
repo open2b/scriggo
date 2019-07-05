@@ -9,7 +9,7 @@ package astutil
 import (
 	"fmt"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 // CloneTree returns a complete copy of tree.

@@ -9,7 +9,7 @@ package compiler
 import (
 	"testing"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 func TestInitializationLoop(t *testing.T) {

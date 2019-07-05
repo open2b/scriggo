@@ -9,7 +9,7 @@ package astutil
 import (
 	"fmt"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 // Visitor's visit method is invoked for every node encountered by Walk.

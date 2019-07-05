@@ -12,7 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 var cdataStart = []byte("<![CDATA[")

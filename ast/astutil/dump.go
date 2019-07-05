@@ -13,7 +13,7 @@ import (
 	"io"
 	"strconv"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 type dumper struct {

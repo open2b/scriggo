@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 	"scriggo/vm"
 )
 

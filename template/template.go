@@ -13,7 +13,7 @@ import (
 
 	"scriggo"
 	"scriggo/internal/compiler"
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 	"scriggo/vm"
 )
 

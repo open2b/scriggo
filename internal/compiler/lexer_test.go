@@ -9,7 +9,7 @@ package compiler
 import (
 	"testing"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 var typeTests = map[string][]tokenTyp{

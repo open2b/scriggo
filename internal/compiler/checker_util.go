@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 var errTypeConversion = errors.New("failed type conversion")

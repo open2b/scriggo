@@ -1,11 +1,12 @@
 package compiler_test
 
 import (
-	"scriggo/internal/compiler"
-	"scriggo/internal/compiler/ast"
-	"scriggo/template"
 	"strings"
 	"testing"
+
+	"scriggo/ast"
+	"scriggo/internal/compiler"
+	"scriggo/template"
 )
 
 var templateCases = map[string]string{

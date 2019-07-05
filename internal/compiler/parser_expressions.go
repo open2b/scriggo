@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 // The result of the parsing of an expression is a tree whose intermediate

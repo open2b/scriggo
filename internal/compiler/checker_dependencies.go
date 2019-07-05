@@ -8,7 +8,8 @@ package compiler
 
 import (
 	"fmt"
-	"scriggo/internal/compiler/ast"
+
+	"scriggo/ast"
 )
 
 // Makes a dependency analysis after parsing before type-checking. See

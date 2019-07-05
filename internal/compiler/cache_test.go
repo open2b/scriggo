@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"scriggo/internal/compiler/ast"
+	"scriggo/ast"
 )
 
 func TestCache(t *testing.T) {
