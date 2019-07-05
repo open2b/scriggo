@@ -39,6 +39,7 @@ func (ctx Context) String() string {
 
 type LoadOptions struct {
 	LimitMemorySize bool
+	TreeTransformer func(*ast.Tree) error // if not nil transforms tree after parsing.
 }
 
 type RenderOptions struct {
@@ -76,6 +77,12 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	var pkgs scriggo.Packages
 	if main != nil {
 		pkgs = scriggo.Packages{"main": main}
+	}
+	if options.TreeTransformer != nil {
+		err := options.TreeTransformer(tree)
+		if err != nil {
+			return nil, err
+		}
 	}
 	tci, err := compiler.Typecheck(tree, pkgs, opts)
 	if err != nil {
