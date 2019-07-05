@@ -20,9 +20,10 @@ import (
 )
 
 type LoadOptions struct {
-	LimitMemorySize  bool // limit allocable memory size.
-	DisallowGoStmt   bool // disallow "go" statement.
-	AllowShebangLine bool // allow shebang line; only for scripts.
+	LimitMemorySize  bool                  // limit allocable memory size.
+	DisallowGoStmt   bool                  // disallow "go" statement.
+	AllowShebangLine bool                  // allow shebang line; only for scripts.
+	TreeTransformer  func(*ast.Tree) error // if not nil transforms tree after parsing.
 }
 
 type Package = compiler.Package
@@ -64,6 +65,14 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		MemoryLimit:    options.LimitMemorySize,
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
+
+	if options.TreeTransformer != nil {
+		err := options.TreeTransformer(tree)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	tci, err := compiler.Typecheck(tree, predefined, opts)
 	if err != nil {
 		return nil, err
@@ -153,6 +162,13 @@ func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Scr
 	tree, packages, err := compiler.ParseScript(src, loader, shebang)
 	if err != nil {
 		return nil, err
+	}
+
+	if options.TreeTransformer != nil {
+		err := options.TreeTransformer(tree)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	opts := compiler.Options{
