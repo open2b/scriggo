@@ -244,7 +244,7 @@ func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
 	for _, imp := range file.Imports {
 
 		// Imports must have name "_".
-		if imp.Name.Name != "_" {
+		if imp.Name != nil && imp.Name.Name != "_" {
 			return scriggoDescriptor{}, fmt.Errorf("import name %q not allowed", imp.Name)
 		}
 
