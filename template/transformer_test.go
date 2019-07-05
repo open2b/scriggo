@@ -7,9 +7,10 @@
 package template
 
 import (
-	"scriggo/ast"
 	"strings"
 	"testing"
+
+	"scriggo/ast"
 )
 
 func Test_treeTransformer(t *testing.T) {

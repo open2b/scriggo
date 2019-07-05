@@ -8,10 +8,11 @@ package test
 
 import (
 	"fmt"
-	"scriggo"
-	"scriggo/ast"
 	"strings"
 	"testing"
+
+	"scriggo"
+	"scriggo/ast"
 )
 
 func Test_treeTransformer(t *testing.T) {
