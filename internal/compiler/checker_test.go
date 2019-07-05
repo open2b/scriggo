@@ -1371,7 +1371,7 @@ func TestCheckerStatements(t *testing.T) {
 					}
 				}
 			}()
-			tree, _, err := ParseSource([]byte(src), true, false)
+			tree, err := ParseSource([]byte(src), true, false)
 			if err != nil {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
@@ -1430,7 +1430,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.EnvVar(1,2,3,4,5)
 	}`
 	predefined := predefinedPackages{"p": p}
-	tree, deps, _, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
+	tree, _, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
@@ -1440,7 +1440,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		NotUsedError: true,
 		IsProgram:    true,
 	}
-	_, err = Typecheck(tree, predefined, deps, opts)
+	_, err = Typecheck(tree, predefined, opts)
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return
@@ -1850,7 +1850,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 	}
 	tc := newTypechecker("", Options{})
 	for src, expected := range cases {
-		tree, _, err := ParseSource([]byte(src), true, false)
+		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1951,7 +1951,7 @@ func TestFunctionUpvalues(t *testing.T) {
 	for src, expected := range cases {
 		tc := newTypechecker("", Options{})
 		tc.addScope()
-		tree, _, err := ParseSource([]byte(src), true, false)
+		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
 			t.Error(err)
 		}
@@ -2064,11 +2064,12 @@ func TestGotoLabels(t *testing.T) {
 	}
 	for _, cas := range cases {
 		t.Run(cas.name, func(t *testing.T) {
-			tree, deps, err := ParseSource([]byte(cas.src), false, false)
+			tree, err := ParseSource([]byte(cas.src), false, false)
 			if err != nil {
 				t.Error(err)
 				return
 			}
+			deps := AnalyzeTree(tree, Options{IsProgram: true})
 			pkgInfos := map[string]*PackageInfo{}
 			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, false, false)
 			switch {

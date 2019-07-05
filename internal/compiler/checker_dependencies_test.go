@@ -28,10 +28,19 @@ var cases = map[string]struct {
 		},
 	},
 
+	"variable with a type and a value": {
+		`package pkg
+		
+		var A int = 20`,
+		map[string][]string{
+			"A": {"int"},
+		},
+	},
+
 	"triple var assignment with no dependencies": {
 		`package pkg
 
-		var A, B, C = 1, 2, 3`,
+			var A, B, C = 1, 2, 3`,
 		map[string][]string{
 			"A": {},
 			"B": {},
@@ -42,8 +51,8 @@ var cases = map[string]struct {
 	"triple var assignment with dependency from another var": {
 		`package pkg
 
-		var C = 10
-		var A, B, C = 1, C, 3`,
+			var C = 10
+			var A, B, C = 1, C, 3`,
 		map[string][]string{
 			"A": {},
 			"B": {"C"},
@@ -51,11 +60,11 @@ var cases = map[string]struct {
 		},
 	},
 
-	"two variables where second depends on first": {
+	"two variables where the second depends on first": {
 		`package pkg
 
-		var A = 10
-		var B = A`,
+			var A = 10
+			var B = A`,
 		map[string][]string{
 			"A": {},
 			"B": {"A"},
@@ -65,8 +74,8 @@ var cases = map[string]struct {
 	"two variables initialization loop": {
 		`package pkg
 
-		var A = B
-		var B = A`,
+			var A = B
+			var B = A`,
 		map[string][]string{
 			"A": {"B"},
 			"B": {"A"},
@@ -76,9 +85,9 @@ var cases = map[string]struct {
 	"three variables initialization loop": {
 		`package pkg
 
-		var A = B
-		var B = C
-		var C = A`,
+			var A = B
+			var B = C
+			var C = A`,
 		map[string][]string{
 			"A": {"B"},
 			"B": {"C"},
@@ -89,9 +98,9 @@ var cases = map[string]struct {
 	"three variables": {
 		`package pkg
 
-		var A = B + C
-		var B = 4 + 12
-		var C = B`,
+			var A = B + C
+			var B = 4 + 12
+			var C = B`,
 		map[string][]string{
 			"A": {"B", "C"},
 			"B": {},
@@ -102,8 +111,8 @@ var cases = map[string]struct {
 	"two independent constants": {
 		`package pkg
 
-		const C1 = 80
-		const C2 = 100`,
+			const C1 = 80
+			const C2 = 100`,
 		map[string][]string{
 			"C1": {},
 			"C2": {},
@@ -113,8 +122,8 @@ var cases = map[string]struct {
 	"two constants where second depends on first": {
 		`package pkg
 
-		var C1 = "str"
-		var C2 = C1`,
+			var C1 = "str"
+			var C2 = C1`,
 		map[string][]string{
 			"C1": {},
 			"C2": {"C1"},
@@ -124,8 +133,8 @@ var cases = map[string]struct {
 	"two constants initialization loop": {
 		`package pkg
 
-		var C1 = C2
-		var C2 = C1`,
+			var C1 = C2
+			var C2 = C1`,
 		map[string][]string{
 			"C1": {"C2"},
 			"C2": {"C1"},
@@ -135,7 +144,7 @@ var cases = map[string]struct {
 	"variable depending on undefined symbol": {
 		`package pkg
 
-		var A = undef`,
+			var A = undef`,
 		map[string][]string{
 			"A": {"undef"},
 		},
@@ -144,9 +153,9 @@ var cases = map[string]struct {
 	"variable depending on function": {
 		`package pkg
 
-		var A = F()
+			var A = F()
 
-		func F() int { return 0 }`,
+			func F() int { return 0 }`,
 		map[string][]string{
 			"A": {"F"},
 			"F": {"int"},
@@ -156,11 +165,11 @@ var cases = map[string]struct {
 	"function depending on a variable": {
 		`package pkg
 
-		var A = 20
+			var A = 20
 
-		func F() {
-			_ = A
-		}`,
+			func F() {
+				_ = A
+			}`,
 		map[string][]string{
 			"A": {},
 			"F": {"A"},
@@ -170,10 +179,10 @@ var cases = map[string]struct {
 	"function depending on a variable depending on a function - initialization loop": {
 		`package main
 
-		var A = F()
-		func F() int {
-			return A
-		}`,
+			var A = F()
+			func F() int {
+				return A
+			}`,
 		map[string][]string{
 			"A": {"F"},
 			"F": {"int", "A"},
@@ -183,9 +192,9 @@ var cases = map[string]struct {
 	"two variables depending on the same constant": {
 		`package main
 
-		const C1 = 10
-		var A = C1
-		var B = C1`,
+			const C1 = 10
+			var A = C1
+			var B = C1`,
 		map[string][]string{
 			"C1": {},
 			"A":  {"C1"},
@@ -196,13 +205,13 @@ var cases = map[string]struct {
 	"two functions referencing each other": {
 		`package main
 
-		func F() {
-			G()
-		}
+			func F() {
+				G()
+			}
 
-		func G() {
-			F()
-		}`,
+			func G() {
+				F()
+			}`,
 		map[string][]string{
 			"F": {"G"},
 			"G": {"F"},
@@ -211,9 +220,9 @@ var cases = map[string]struct {
 
 	"variable referenced more than once": {
 		`package main
-		
-		var A = B + B * B
-		var B = 20`,
+
+			var A = B + B * B
+			var B = 20`,
 		map[string][]string{
 			"A": {"B"},
 			"B": {},
@@ -223,10 +232,10 @@ var cases = map[string]struct {
 	"function with a local variable (so has no depencencies)": {
 		`package main
 
-		func F() {
-			var A = 20
-			_ = A
-		}`,
+			func F() {
+				var A = 20
+				_ = A
+			}`,
 		map[string][]string{
 			"F": {},
 		},
@@ -235,15 +244,15 @@ var cases = map[string]struct {
 	"function with a local variable which goes out of scope (so depends on a global variable)": {
 		`package main
 
-		var A = 10
+			var A = 10
 
-		func F() {
-			{
-				var A = 20
+			func F() {
+				{
+					var A = 20
+					_ = A
+				}
 				_ = A
-			}
-			_ = A
-		}`,
+			}`,
 		map[string][]string{
 			"A": {},
 			"F": {"A"},
@@ -252,20 +261,20 @@ var cases = map[string]struct {
 
 	"function with if statement": {
 		`package main
-		
-		var A = 10
-		var B = 20
 
-		func F() {
-			_ = A
-			if true {
-				B := 20
-				var C = 30
+			var A = 10
+			var B = 20
+
+			func F() {
+				_ = A
+				if true {
+					B := 20
+					var C = 30
+					_ = B
+					_ = C
+				}
 				_ = B
-				_ = C
-			}
-			_ = B
-		}`,
+			}`,
 		map[string][]string{
 			"A": {},
 			"B": {},
@@ -275,12 +284,12 @@ var cases = map[string]struct {
 
 	"multiple assignment with function: var a, b, c = f()": {
 		`package main
-		
-		var a, b, c = f()
-		
-		func f() (int, int, string) {
-			return 0, 1, "str"
-		}`,
+
+			var a, b, c = f()
+
+			func f() (int, int, string) {
+				return 0, 1, "str"
+			}`,
 		map[string][]string{
 			"a": {"f"},
 			"b": {"f"},
@@ -291,18 +300,18 @@ var cases = map[string]struct {
 
 	"example from https://golang.org/ref/spec#Package_initialization": {
 		`package pkg
-		
-		var (
-			a = c + b
-			b = f()
-			c = f()
-			d = 3
-		)
-		
-		func f() int {
-			d++
-			return d
-		}`,
+
+			var (
+				a = c + b
+				b = f()
+				c = f()
+				d = 3
+			)
+
+			func f() int {
+				d++
+				return d
+			}`,
 		map[string][]string{
 			"a": {"c", "b"},
 			"b": {"f"},
@@ -314,15 +323,15 @@ var cases = map[string]struct {
 
 	"function uses both global and local variable with same name": {
 		`
-		package pkg
+			package pkg
 
-		var A = 20
+			var A = 20
 
-		func F() {
-			_ = A 
-			A := 10
-			_ = A
-		}`,
+			func F() {
+				_ = A
+				A := 10
+				_ = A
+			}`,
 		map[string][]string{
 			"A": {},
 			"F": {"A"},
@@ -332,26 +341,26 @@ var cases = map[string]struct {
 	"complex test #1": {
 		`package main
 
-		import (
-			"fmt"
-		)
-		
-		var m = map[string]int{"20": 12}
-		var notOk = !ok
-		var doubleValue = value * 2
-		var value, ok = m[k()]
-		
-		func k() string {
-			a := 20
-			return fmt.Sprintf("%d", a)
-		}
-		
-		func main() {
-			fmt.Println(m)
-			fmt.Println(notOk)
-			fmt.Println(doubleValue)
-		}
-		`,
+			import (
+				"fmt"
+			)
+
+			var m = map[string]int{"20": 12}
+			var notOk = !ok
+			var doubleValue = value * 2
+			var value, ok = m[k()]
+
+			func k() string {
+				a := 20
+				return fmt.Sprintf("%d", a)
+			}
+
+			func main() {
+				fmt.Println(m)
+				fmt.Println(notOk)
+				fmt.Println(doubleValue)
+			}
+			`,
 		map[string][]string{
 			"m":           {"string", "int"},
 			"notOk":       {"ok"},
@@ -362,15 +371,128 @@ var cases = map[string]struct {
 			"main":        {"fmt", "m", "notOk", "doubleValue"},
 		},
 	},
+
+	"complex test #2": {
+		`package main
+
+		import "fmt"
+		
+		var A = B
+		var B = 100
+		var i string
+		
+		func main() {
+			switch A {
+			case B:
+			case 200:
+				for i := 0; i < 10; i++ {
+					fmt.Println(i)
+				}
+			}
+		}
+		`,
+		map[string][]string{
+			"A":    {"B"},
+			"B":    {},
+			"i":    {"string"},
+			"main": {"A", "B", "fmt"},
+		},
+	},
+
+	"type switch in function main": {
+		`package main
+
+		func main() {
+			var i = interface{}(10)
+			switch i.(type) {
+			case int:
+			}
+		}
+		`,
+		map[string][]string{
+			"main": {"int"},
+		},
+	},
+
+	"local variable with same name as package variable (var A = A)": {
+		`package main
+
+		var A = 1
+		
+		func main() {
+			var A = A // <- this A is not local!
+			_ = A
+		}
+		`,
+		map[string][]string{
+			"A":    {},
+			"main": {"A"},
+		},
+	},
+
+	"local variable with same name as package variable (A := A)": {
+		`package main
+
+		var A = 1
+		
+		func main() {
+			A := A // <- this A is not local!
+			_ = A
+		}
+		`,
+		map[string][]string{
+			"A":    {},
+			"main": {"A"},
+		},
+	},
+
+	"local constant with same name as package constant (const C = C)": {
+		`package main
+
+		const C = 1
+		
+		func main() {
+			const C = C // <- this C is not local!
+		}`,
+		map[string][]string{
+			"C":    {},
+			"main": {"C"},
+		},
+	},
+
+	"complex test #3": {
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A []int
+		var m map[string]interface{} = map[string]interface{}{
+			"a": 4,
+			"b": -20,
+		}
+		
+		func main() {
+			fmt.Println(m)
+		}
+		`,
+		map[string][]string{
+			"A":    {"int"},
+			"m":    {"string"},
+			"main": {"fmt", "m"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, got, err := ParseSource([]byte(cas.src), false, false)
+			tree, err := ParseSource([]byte(cas.src), false, false)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}
+			got := AnalyzeTree(tree, Options{IsProgram: true})
 			gotIdentifiers := map[string][]string{}
 			for symbol, deps := range got {
 				gotIdentifiers[symbol.Name] = []string{}

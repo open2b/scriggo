@@ -697,20 +697,11 @@ func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMust
 	var elements = []ast.Expression{}
 	for {
 		element, tok2 := p.parseExpr(tok, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
-		if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
-			p.deps.end()
-		}
 		if element == nil {
-			if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
-				p.deps.endList()
-			}
 			return elements, tok2
 		}
 		elements = append(elements, element)
 		if tok2.typ != tokenComma {
-			if (p.ctx == ast.ContextGo && len(p.ancestors) == 2) || (p.ctx != ast.ContextGo && len(p.ancestors) == 1) {
-				p.deps.endList()
-			}
 			return elements, tok2
 		}
 		tok = token{}
@@ -788,7 +779,6 @@ func operatorType(typ tokenTyp) ast.OperatorType {
 // parseIdentifierNode returns an Identifier node from a token.
 func (p *parsing) parseIdentifierNode(tok token) *ast.Identifier {
 	ident := ast.NewIdentifier(tok.pos, string(tok.txt))
-	p.deps.identifier(ident)
 	return ident
 }
 
