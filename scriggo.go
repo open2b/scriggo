@@ -19,7 +19,7 @@ import (
 	"scriggo/vm"
 )
 
-type LoadOption struct {
+type LoadOptions struct {
 	LimitMemorySize  bool // limit allocable memory size.
 	DisallowGoStmt   bool // disallow "go" statement.
 	AllowShebangLine bool // allow shebang line; only for scripts.
@@ -45,11 +45,11 @@ func ConstValue(v interface{}) Constant {
 type Program struct {
 	fn      *vm.Function
 	globals []compiler.Global
-	options LoadOption
+	options LoadOptions
 }
 
 // LoadProgram loads a program, reading package "main" from packages.
-func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
+func LoadProgram(packages PackageLoader, options LoadOptions) (*Program, error) {
 
 	tree, predefined, err := compiler.ParseProgram(packages)
 	if err != nil {
@@ -78,7 +78,7 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 }
 
 // Options returns the options with which the program has been loaded.
-func (p *Program) Options() LoadOption {
+func (p *Program) Options() LoadOptions {
 	return p.options
 }
 
@@ -135,11 +135,11 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 type Script struct {
 	fn      *vm.Function
 	globals []compiler.Global
-	options LoadOption
+	options LoadOptions
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Script, error) {
+func LoadScript(src io.Reader, loader PackageLoader, options LoadOptions) (*Script, error) {
 
 	shebang := options.AllowShebangLine
 
@@ -164,7 +164,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 }
 
 // Options returns the options with which the script has been loaded.
-func (s *Script) Options() LoadOption {
+func (s *Script) Options() LoadOptions {
 	return s.options
 }
 
