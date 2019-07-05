@@ -12,16 +12,16 @@ import (
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd               scriggoDescriptor
-		pkgsVariableName string
-		goos             string
-		expected         string
+		pd           scriggoDescriptor
+		pkgsVariable string
+		goos         string
+		expected     string
 	}{
 		"Importing fmt with an alternative path": {
 			pd: scriggoDescriptor{
 				pkgName: "test",
 				imports: []importDescriptor{
-					importDescriptor{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
+					{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
 				},
 			},
 			expected: `package test
@@ -71,9 +71,7 @@ func Test_renderPackages(t *testing.T) {
 		"Importing archive/tar simple": {
 			pd: scriggoDescriptor{
 				pkgName: "test",
-				imports: []importDescriptor{
-					importDescriptor{path: "archive/tar"},
-				},
+				imports: []importDescriptor{{path: "archive/tar"}},
 			},
 			expected: `package test
 
@@ -127,9 +125,7 @@ func Test_renderPackages(t *testing.T) {
 		"Importing fmt simple": {
 			pd: scriggoDescriptor{
 				pkgName: "test",
-				imports: []importDescriptor{
-					importDescriptor{path: "fmt"},
-				},
+				imports: []importDescriptor{{path: "fmt"}},
 			},
 			expected: `package test
 
@@ -179,7 +175,7 @@ func Test_renderPackages(t *testing.T) {
 			pd: scriggoDescriptor{
 				pkgName: "test",
 				imports: []importDescriptor{
-					importDescriptor{
+					{
 						path: "fmt",
 						comment: importComment{
 							export: []string{"Println"},
@@ -216,10 +212,10 @@ func Test_renderPackages(t *testing.T) {
 					c.goos = runtime.GOOS
 				}
 			}
-			if c.pkgsVariableName == "" {
-				c.pkgsVariableName = "packages"
+			if c.pkgsVariable == "" {
+				c.pkgsVariable = "packages"
 			}
-			got, content, err := renderPackages(c.pd, c.pkgsVariableName, c.goos)
+			got, content, err := renderPackages(c.pd, c.pkgsVariable, c.goos)
 			if err != nil {
 				t.Fatal(err)
 			}

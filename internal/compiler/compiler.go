@@ -194,11 +194,11 @@ type Code struct {
 // the global variables and the main function.
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
-	funcs, _, _ := e.emitPackage(pkgMain, false)
-	main := e.availableFuncs[pkgMain]["main"]
+	functions, _, _ := e.emitPackage(pkgMain, false)
+	main := e.functions[pkgMain]["main"]
 	pkg := &Code{
 		Globals:   e.globals,
-		Functions: funcs,
+		Functions: functions,
 		Main:      main,
 	}
 	return pkg
@@ -241,11 +241,11 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
 			// Macro declarations in extending page must be accessed by extended page.
-			e.availableFuncs[e.pkg] = map[string]*vm.Function{}
+			e.functions[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
 					fn := newFunction("main", fun.Ident.Name, fun.Type.Reflect)
-					e.availableFuncs[e.pkg][fun.Ident.Name] = fn
+					e.functions[e.pkg][fun.Ident.Name] = fn
 				}
 			}
 			// Emits extended page.

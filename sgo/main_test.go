@@ -24,7 +24,8 @@ func Test_sgo_generate_fmt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sgo("sgo", "generate", "fmt")
+	os.Args = []string{"sgo", "generate", "fmt"}
+	main()
 
 	for _, fileName := range []string{"main.go", "go.mod"} {
 		data, err := ioutil.ReadFile(filepath.Join(tmpDir, "fmt", fileName))

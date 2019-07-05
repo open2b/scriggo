@@ -19,10 +19,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// renderPackages renders a package definition. It also returns a boolean
-// indicating if content contains packages or if it's empty.
-// Ignores all main packages contained in pd.
-func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string, bool, error) {
+// renderPackages renders a Scriggo descriptor. It also returns a boolean
+// indicating if the content contains packages. Ignores all main packages
+// contained in the descriptor.
+func renderPackages(descriptor scriggoDescriptor, pkgsVariable, goos string) (string, bool, error) {
 
 	type packageType struct {
 		name string
@@ -30,7 +30,7 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 	}
 
 	explicitImports := strings.Builder{}
-	for _, imp := range pd.imports {
+	for _, imp := range descriptor.imports {
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path {
 			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
@@ -40,7 +40,7 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 	}
 
 	pkgs := map[string]*packageType{}
-	for _, imp := range pd.imports {
+	for _, imp := range descriptor.imports {
 		pkgName, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
 			panic(err) // TODO(Gianluca).
@@ -60,10 +60,10 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 				return "", false, err
 			}
 		}
-		// Converts all declaration name to "unexported" if requested.
+		// Convert all declaration name to "unexported" if requested.
 		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
-		// return an error. Note that the builtin functions 'print' and
-		// 'println' should be handled as special case:
+		//  return an error. Note that the builtin functions 'print' and
+		//  'println' should be handled as special case:
 		if imp.comment.uncapitalize {
 			tmp := map[string]string{}
 			for name, decl := range decls {
@@ -77,8 +77,8 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 				if isPredeclaredIdentifier(newName) {
 					if newName == "print" || newName == "println" {
 						// TODO(Gianluca): If the signature is the same of Go
-						// 'print' and 'println', shadowing is allowed. Else, an
-						// error must be returned.
+						//  'print' and 'println', shadowing is allowed. Else, an
+						//  error must be returned.
 					} else {
 						return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalize' or change declaration name in package %q", newName, newName, imp.path)
 					}
@@ -88,17 +88,17 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 			decls = tmp
 		}
 
-		// Determines which import path use: default (the one specified in
-		// source, used by Go) or a new one, indicated in Scriggo comments.
+		// Determine which import path use: the default (the one specified in
+		// source, used by Go) or a new one indicated in Scriggo comments.
 		path := imp.path
 		if imp.comment.newPath != "" {
 			// TODO(Gianluca): if newPath points to standard lib, return error.
-			// Else, package mixing is allowed.
+			//  Else, package mixing is allowed.
 			path = imp.comment.newPath
 		}
 
 		switch imp.comment.main {
-		case true: // Adds read declarations to package main as builtins.
+		case true: // Add read declarations to package main as builtins.
 			if pkgs["main"] == nil {
 				pkgs["main"] = &packageType{"main", map[string]string{}}
 			}
@@ -108,7 +108,7 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 				}
 				pkgs["main"].decl[name] = decl
 			}
-		case false: // Adds read declarations to the specified package.
+		case false: // Add read declarations to the specified package.
 			if pkgs[path] == nil {
 				pkgs[path] = &packageType{
 					decl: map[string]string{},
@@ -133,7 +133,7 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		return "", false, nil
 	}
 
-	// Renders package content.
+	// Render package content.
 	allPkgsContent := strings.Builder{}
 	paths := make([]string, 0, len(pkgs))
 	hasMain := false
@@ -192,19 +192,22 @@ func renderPackages(pd scriggoDescriptor, pkgsVariableName, goos string) (string
 		}`
 
 	pkgOutput := strings.NewReplacer(
-		"[pkgName]", pd.pkgName,
+		"[pkgName]", descriptor.pkgName,
 		"[explicitImports]", explicitImports.String(),
-		"[customVariableName]", pkgsVariableName,
+		"[customVariableName]", pkgsVariable,
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
-	pkgOutput = genHeader(pd, goos) + pkgOutput
+	pkgOutput = genHeader(descriptor, goos) + pkgOutput
+
 	return pkgOutput, true, nil
 }
 
-// parseGoPackage parses pkgPath and returns the package name and a map
-// containing the exported declarations.
+// parseGoPackage parses a package path and returns the package name and a map
+// containing the exported declarations in that package.
 func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
+
 	fmt.Printf("generating package %q (GOOS=%q)...", pkgPath, goos)
+
 	out := make(map[string]string)
 	pkgBase := uniquePackageName(pkgPath)
 
@@ -213,7 +216,7 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 	}
 	if goos != "" {
 		// TODO(Gianluca): enable support for different GOOSes.
-		// conf.Env = append(os.Environ(), "GOOS=", goos)
+		//  conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
 
 	pkgs, err := packages.Load(conf, pkgPath)
@@ -237,7 +240,7 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 
 	pkgInfo := pkg.TypesInfo
 	for _, v := range pkgInfo.Defs {
-		// Include only exported names. It doesn't take into account whether the
+		// Include only exported names. Do not take into account whether the
 		// object is in a local (function) scope or not.
 		if v == nil || !v.Exported() {
 			continue
@@ -293,6 +296,8 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 
 		}
 	}
+
 	fmt.Printf("done!\n")
+
 	return pkg.Name, out, nil
 }

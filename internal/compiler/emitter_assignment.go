@@ -13,7 +13,7 @@ import (
 	"scriggo/vm"
 )
 
-// addressType is the type of an element on the left side of and assignment.
+// addressType is the type of the element on the left side of an assignment.
 type addressType int8
 
 const (
@@ -25,210 +25,209 @@ const (
 	addressSliceIndex                             // Slice and array index assignments.
 	addressMapIndex                               // Map index assignments.
 	addressStructSelector                         // Struct selector assignments.
-	addressUpVar
+	addressClosureVariable                        // Closure variable assignments.
 )
 
 // address represents an element on the left side of an assignment.
 type address struct {
-	e          *emitter
+	em         *emitter
 	addrType   addressType
 	staticType reflect.Type // Type of the addressed element.
 	reg1       int8         // Register containing the main expression.
 	reg2       int8         // Auxiliary register used in slice, map, array and selector assignments.
 }
 
-// newAddress returns a new address. The meaning of reg1 and reg2 depends on the address type.
-func (e *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
-	return address{e: e, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
+// newAddress returns a new address. The meaning of reg1 and reg2 depends on
+// the address type.
+func (em *emitter) newAddress(addrType addressType, staticType reflect.Type, reg1, reg2 int8) address {
+	return address{em: em, addrType: addrType, staticType: staticType, reg1: reg1, reg2: reg2}
 }
 
 // assign assigns value, with type valueType, to the address. If k is true
 // value is a constant otherwise is a register.
 func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	switch a.addrType {
-	case addressUpVar:
-		a.e.fb.SetVar(k, value, int(a.reg1))
+	case addressClosureVariable:
+		a.em.fb.SetVar(k, value, int(a.reg1))
 	case addressBlank:
 		// Nothing to do.
 	case addressRegister:
-		a.e.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.em.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressIndirectDeclaration:
-		a.e.fb.New(a.staticType, -a.reg1)
-		a.e.changeRegister(k, value, a.reg1, valueType, a.staticType)
+		a.em.fb.New(a.staticType, -a.reg1)
+		a.em.changeRegister(k, value, a.reg1, valueType, a.staticType)
 	case addressPointerIndirection:
-		a.e.changeRegister(k, value, -a.reg1, valueType, a.staticType)
+		a.em.changeRegister(k, value, -a.reg1, valueType, a.staticType)
 	case addressSliceIndex:
-		a.e.fb.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
+		a.em.fb.SetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
 	case addressMapIndex:
-		a.e.fb.SetMap(k, a.reg1, value, a.reg2, a.staticType)
+		a.em.fb.SetMap(k, a.reg1, value, a.reg2, a.staticType)
 	case addressStructSelector:
-		a.e.fb.SetField(k, a.reg1, a.reg2, value)
+		a.em.fb.SetField(k, a.reg1, a.reg2, value)
 	case addressPackageVariable:
 		if k {
-			tmpReg := a.e.fb.NewRegister(valueType.Kind())
-			a.e.fb.Move(true, value, tmpReg, valueType.Kind())
-			a.e.fb.SetVar(false, tmpReg, int(a.reg1))
+			tmpReg := a.em.fb.NewRegister(valueType.Kind())
+			a.em.fb.Move(true, value, tmpReg, valueType.Kind())
+			a.em.fb.SetVar(false, tmpReg, int(a.reg1))
 		} else {
-			a.e.fb.SetVar(false, value, int(a.reg1))
+			a.em.fb.SetVar(false, value, int(a.reg1))
 		}
 	}
 }
 
 // assign assigns values to addresses.
-func (e *emitter) assign(addresses []address, values []ast.Expression) {
+func (em *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == 1 && len(values) == 1 {
-		typ := e.ti(values[0]).Type
-		value, k, ok := e.quickEmitExpr(values[0], typ)
+		t := em.ti(values[0]).Type
+		v, k, ok := em.quickEmitExpr(values[0], t)
 		if !ok {
-			value = e.fb.NewRegister(typ.Kind())
-			e.emitExpr(values[0], value, typ)
+			v = em.fb.NewRegister(t.Kind())
+			em.emitExpr(values[0], v, t)
 		}
-		addresses[0].assign(k, value, typ)
+		addresses[0].assign(k, v, t)
 	} else if len(addresses) == len(values) {
-		valueRegs := make([]int8, len(values))
-		valueTypes := make([]reflect.Type, len(values))
-		valueIsK := make([]bool, len(values))
+		regs := make([]int8, len(values))
+		types := make([]reflect.Type, len(values))
+		ks := make([]bool, len(values))
 		for i := range values {
-			valueTypes[i] = e.ti(values[i]).Type
-			valueRegs[i], valueIsK[i], _ = e.quickEmitExpr(values[i], valueTypes[i])
-			if !valueIsK[i] {
-				valueRegs[i] = e.fb.NewRegister(valueTypes[i].Kind())
-				e.emitExpr(values[i], valueRegs[i], valueTypes[i])
+			types[i] = em.ti(values[i]).Type
+			regs[i], ks[i], _ = em.quickEmitExpr(values[i], types[i])
+			if !ks[i] {
+				regs[i] = em.fb.NewRegister(types[i].Kind())
+				em.emitExpr(values[i], regs[i], types[i])
 			}
 		}
 		for i, addr := range addresses {
-			addr.assign(valueIsK[i], valueRegs[i], valueTypes[i])
+			addr.assign(ks[i], regs[i], types[i])
 		}
 	} else {
 		switch value := values[0].(type) {
 		case *ast.Call:
-			retRegs, retTypes := e.emitCall(value)
+			regs, retTypes := em.emitCall(value)
 			for i, addr := range addresses {
-				addr.assign(false, retRegs[i], retTypes[i])
+				addr.assign(false, regs[i], retTypes[i])
 			}
 		case *ast.Index: // map index.
-			mapExpr := value.Expr
-			mapType := e.ti(mapExpr).Type
-			mapReg := e.fb.NewRegister(mapType.Kind())
-			e.emitExpr(mapExpr, mapReg, mapType)
-			keyExpr := value.Index
-			keyType := e.ti(keyExpr).Type
-			keyReg, kKeyReg, ok := e.quickEmitExpr(keyExpr, keyType)
+			mapType := em.ti(value.Expr).Type
+			mapReg := em.fb.NewRegister(mapType.Kind())
+			em.emitExpr(value.Expr, mapReg, mapType)
+			keyType := em.ti(value.Index).Type
+			keyReg, kKeyReg, ok := em.quickEmitExpr(value.Index, keyType)
 			if !ok {
-				keyReg = e.fb.NewRegister(keyType.Kind())
-				e.emitExpr(keyExpr, keyReg, keyType)
+				keyReg = em.fb.NewRegister(keyType.Kind())
+				em.emitExpr(value.Index, keyReg, keyType)
 			}
 			valueType := mapType.Elem()
-			valueReg := e.fb.NewRegister(valueType.Kind())
+			valueReg := em.fb.NewRegister(valueType.Kind())
 			okType := addresses[1].staticType
-			okReg := e.fb.NewRegister(reflect.Bool)
-			e.fb.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
-			e.fb.Move(true, 1, okReg, reflect.Bool)
-			e.fb.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
-			e.fb.Move(true, 0, okReg, reflect.Bool)
+			okReg := em.fb.NewRegister(reflect.Bool)
+			em.fb.Index(kKeyReg, mapReg, keyReg, valueReg, mapType)
+			em.fb.Move(true, 1, okReg, reflect.Bool)
+			em.fb.If(false, 0, vm.ConditionOK, 0, reflect.Interface)
+			em.fb.Move(true, 0, okReg, reflect.Bool)
 			addresses[0].assign(false, valueReg, valueType)
 			addresses[1].assign(false, okReg, okType)
 		case *ast.TypeAssertion:
-			typ := e.ti(value.Type).Type
-			exprReg := e.fb.NewRegister(reflect.Interface)
-			e.emitExpr(value.Expr, exprReg, emptyInterfaceType)
+			typ := em.ti(value.Type).Type
+			exprReg := em.fb.NewRegister(reflect.Interface)
+			em.emitExpr(value.Expr, exprReg, emptyInterfaceType)
 			okType := addresses[1].staticType
-			okReg := e.fb.NewRegister(reflect.Bool)
-			e.fb.Move(true, 1, okReg, reflect.Bool)
-			resultReg := e.fb.NewRegister(typ.Kind())
-			e.fb.Assert(exprReg, typ, resultReg)
-			e.fb.Move(true, 0, okReg, reflect.Bool)
+			okReg := em.fb.NewRegister(reflect.Bool)
+			em.fb.Move(true, 1, okReg, reflect.Bool)
+			resultReg := em.fb.NewRegister(typ.Kind())
+			em.fb.Assert(exprReg, typ, resultReg)
+			em.fb.Move(true, 0, okReg, reflect.Bool)
 			addresses[0].assign(false, resultReg, typ)
 			addresses[1].assign(false, okReg, okType)
 		}
 	}
 }
 
-// emitAssignmentNode emits instructions for an assignment node.
-func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
+// emitAssignmentNode emits the instructions for an assignment node.
+func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 	// TODO(Gianluca): add support for recursive assignment expressions (eg. a[4][t].field[0]).
 	switch node.Type {
 	case ast.AssignmentDeclaration:
 		addresses := make([]address, len(node.Variables))
 		for i, v := range node.Variables {
 			if isBlankIdentifier(v) {
-				addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+				addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 			} else {
 				v := v.(*ast.Identifier)
-				staticType := e.ti(v).Type
-				if e.indirectVars[v] {
-					varReg := -e.fb.NewRegister(reflect.Interface)
-					e.fb.BindVarReg(v.Name, varReg)
-					addresses[i] = e.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
+				staticType := em.ti(v).Type
+				if em.indirectVars[v] {
+					varReg := -em.fb.NewRegister(reflect.Interface)
+					em.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = em.newAddress(addressIndirectDeclaration, staticType, varReg, 0)
 				} else {
-					varReg := e.fb.NewRegister(staticType.Kind())
-					e.fb.BindVarReg(v.Name, varReg)
-					addresses[i] = e.newAddress(addressRegister, staticType, varReg, 0)
+					varReg := em.fb.NewRegister(staticType.Kind())
+					em.fb.BindVarReg(v.Name, varReg)
+					addresses[i] = em.newAddress(addressRegister, staticType, varReg, 0)
 				}
 			}
 		}
-		e.assign(addresses, node.Values)
+		em.assign(addresses, node.Values)
 	case ast.AssignmentSimple:
 		addresses := make([]address, len(node.Variables))
 		for i, v := range node.Variables {
 			switch v := v.(type) {
 			case *ast.Identifier:
 				if !isBlankIdentifier(v) {
-					staticType := e.ti(v).Type
-					if reg, ok := e.upvarsNames[e.fb.fn][v.Name]; ok {
+					staticType := em.ti(v).Type
+					if reg, ok := em.closureVarRefs[em.fb.fn][v.Name]; ok {
 						// TODO(Gianluca): reg is converted into an
 						// int8; should we change address to store
 						// int32/64?
-						addresses[i] = e.newAddress(addressUpVar, staticType, int8(reg), 0)
-					} else if index, ok := e.pkgVariables[e.pkg][v.Name]; ok {
+						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(reg), 0)
+					} else if index, ok := em.varIndexes[em.pkg][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
-						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
-					} else if ti := e.ti(v); ti.IsPredefined() {
-						index := e.predefVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
-						addresses[i] = e.newAddress(addressPackageVariable, staticType, int8(index), 0)
+						addresses[i] = em.newAddress(addressPackageVariable, staticType, int8(index), 0)
+					} else if ti := em.ti(v); ti.IsPredefined() {
+						index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, v.Name)
+						addresses[i] = em.newAddress(addressPackageVariable, staticType, int8(index), 0)
 					} else {
-						reg := e.fb.ScopeLookup(v.Name)
-						addresses[i] = e.newAddress(addressRegister, staticType, reg, 0)
+						reg := em.fb.ScopeLookup(v.Name)
+						addresses[i] = em.newAddress(addressRegister, staticType, reg, 0)
 					}
 				} else {
-					addresses[i] = e.newAddress(addressBlank, reflect.Type(nil), 0, 0)
+					addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 				}
 			case *ast.Index:
-				exprType := e.ti(v.Expr).Type
-				expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
+				exprType := em.ti(v.Expr).Type
+				expr, k, ok := em.quickEmitExpr(v.Expr, exprType)
 				if !ok || k {
-					expr = e.fb.NewRegister(exprType.Kind())
-					e.emitExpr(v.Expr, expr, exprType)
+					expr = em.fb.NewRegister(exprType.Kind())
+					em.emitExpr(v.Expr, expr, exprType)
 				}
-				indexType := e.ti(v.Index).Type
-				index, k, ok := e.quickEmitExpr(v.Index, indexType)
+				indexType := em.ti(v.Index).Type
+				index, k, ok := em.quickEmitExpr(v.Index, indexType)
 				if !ok || k {
-					index = e.fb.NewRegister(indexType.Kind())
-					e.emitExpr(v.Index, index, indexType)
+					index = em.fb.NewRegister(indexType.Kind())
+					em.emitExpr(v.Index, index, indexType)
 				}
 				addrType := addressSliceIndex
 				if exprType.Kind() == reflect.Map {
 					addrType = addressMapIndex
 				}
-				addresses[i] = e.newAddress(addrType, exprType, expr, index)
+				addresses[i] = em.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
-				if varIndex, ok := e.pkgVariables[e.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
-					addresses[i] = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(varIndex), 0)
-				} else if ti := e.ti(v); ti.IsPredefined() {
-					varRv := ti.value.(reflect.Value)
-					index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Ident)
-					addresses[i] = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(index), 0)
+				if varIndex, ok := em.varIndexes[em.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
+					addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(varIndex), 0)
+				} else if ti := em.ti(v); ti.IsPredefined() {
+					rv := ti.value.(reflect.Value)
+					index := em.predVarIndex(rv, ti.PredefPackageName, v.Ident)
+					addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(index), 0)
 				} else {
-					structType := e.ti(v.Expr).Type
-					structReg, k, ok := e.quickEmitExpr(v.Expr, structType)
+					typ := em.ti(v.Expr).Type
+					reg, k, ok := em.quickEmitExpr(v.Expr, typ)
 					if !ok || k {
-						structReg = e.fb.NewRegister(structType.Kind())
-						e.emitExpr(v.Expr, structReg, structType)
+						reg = em.fb.NewRegister(typ.Kind())
+						em.emitExpr(v.Expr, reg, typ)
 					}
-					field, _ := structType.FieldByName(v.Ident)
-					index := e.fb.MakeIntConstant(encodeFieldIndex(field.Index))
-					addresses[i] = e.newAddress(addressStructSelector, field.Type, structReg, index)
+					field, _ := typ.FieldByName(v.Ident)
+					index := em.fb.MakeIntConstant(encodeFieldIndex(field.Index))
+					addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
 				}
 			case *ast.UnaryOperator:
 				if v.Operator() != ast.OperatorMultiplication {
@@ -236,10 +235,10 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				switch expr := v.Expr.(type) {
 				case *ast.Identifier:
-					if e.fb.IsVariable(expr.Name) {
-						varReg := e.fb.ScopeLookup(expr.Name)
-						exprType := e.ti(expr).Type
-						addresses[i] = e.newAddress(addressPointerIndirection, exprType, varReg, 0)
+					if em.fb.IsVariable(expr.Name) {
+						reg := em.fb.ScopeLookup(expr.Name)
+						typ := em.ti(expr).Type
+						addresses[i] = em.newAddress(addressPointerIndirection, typ, reg, 0)
 					} else {
 						panic("TODO(Gianluca): not implemented")
 					}
@@ -250,88 +249,87 @@ func (e *emitter) emitAssignmentNode(node *ast.Assignment) {
 				panic("TODO(Gianluca): not implemented")
 			}
 		}
-		e.assign(addresses, node.Values)
+		em.assign(addresses, node.Values)
 	default:
 		var addr address
 		var valueReg int8
 		var valueType reflect.Type
 		switch v := node.Variables[0].(type) {
 		case *ast.Identifier:
-			staticType := e.ti(v).Type
 			// TODO(Gianluca): support predefined variables in other cases.
-			if ti := e.ti(v); ti.IsPredefined() {
-				varRv := ti.value.(reflect.Value)
-				index := e.predefVarIndex(varRv, ti.PredefPackageName, v.Name)
-				addr = e.newAddress(addressPackageVariable, e.ti(v).Type, int8(index), 0)
+			if ti := em.ti(v); ti.IsPredefined() {
+				rv := ti.value.(reflect.Value)
+				index := em.predVarIndex(rv, ti.PredefPackageName, v.Name)
+				addr = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(index), 0)
+				staticType := em.ti(v).Type
 				valueType = ti.Type
-				valueReg = e.fb.NewRegister(staticType.Kind())
-				e.emitExpr(v, valueReg, valueType)
+				valueReg = em.fb.NewRegister(staticType.Kind())
+				em.emitExpr(v, valueReg, valueType)
 			} else {
-				reg := e.fb.ScopeLookup(v.Name)
-				addr = e.newAddress(addressRegister, staticType, reg, 0)
-				valueReg = reg
-				valueType = staticType
+				valueType = em.ti(v).Type
+				valueReg = em.fb.ScopeLookup(v.Name)
+				addr = em.newAddress(addressRegister, valueType, valueReg, 0)
 			}
 		case *ast.Index:
-			exprType := e.ti(v.Expr).Type
-			expr, k, ok := e.quickEmitExpr(v.Expr, exprType)
+			exprType := em.ti(v.Expr).Type
+			expr, k, ok := em.quickEmitExpr(v.Expr, exprType)
 			if !ok || k {
-				expr = e.fb.NewRegister(exprType.Kind())
-				e.emitExpr(v.Expr, expr, exprType)
+				expr = em.fb.NewRegister(exprType.Kind())
+				em.emitExpr(v.Expr, expr, exprType)
 			}
-			indexType := e.ti(v.Index).Type
-			index, k, ok := e.quickEmitExpr(v.Index, indexType)
+			indexType := em.ti(v.Index).Type
+			index, k, ok := em.quickEmitExpr(v.Index, indexType)
 			if !ok || k {
-				index = e.fb.NewRegister(indexType.Kind())
-				e.emitExpr(v.Index, index, indexType)
+				index = em.fb.NewRegister(indexType.Kind())
+				em.emitExpr(v.Index, index, indexType)
 			}
 			addrType := addressSliceIndex
 			if exprType.Kind() == reflect.Map {
 				addrType = addressMapIndex
 			}
-			addr = e.newAddress(addrType, exprType, expr, index)
+			addr = em.newAddress(addrType, exprType, expr, index)
 			valueType = exprType.Elem()
-			valueReg = e.fb.NewRegister(valueType.Kind())
-			e.fb.Index(false, expr, index, valueReg, exprType)
+			valueReg = em.fb.NewRegister(valueType.Kind())
+			em.fb.Index(false, expr, index, valueReg, exprType)
 		default:
 			panic("TODO(Gianluca): not implemented")
 		}
 		switch node.Type {
 		case ast.AssignmentIncrement:
-			e.fb.Add(true, valueReg, 1, valueReg, valueType.Kind())
+			em.fb.Add(true, valueReg, 1, valueReg, valueType.Kind())
 		case ast.AssignmentDecrement:
-			e.fb.Sub(true, valueReg, 1, valueReg, valueType.Kind())
+			em.fb.Sub(true, valueReg, 1, valueReg, valueType.Kind())
 		default:
-			rightOpType := e.ti(node.Values[0]).Type
-			rightOp := e.fb.NewRegister(rightOpType.Kind())
-			e.emitExpr(node.Values[0], rightOp, rightOpType)
+			rightOpType := em.ti(node.Values[0]).Type
+			rightOp := em.fb.NewRegister(rightOpType.Kind())
+			em.emitExpr(node.Values[0], rightOp, rightOpType)
 			switch node.Type {
 			case ast.AssignmentAddition:
 				if valueType.Kind() == reflect.String {
-					e.fb.Concat(valueReg, rightOp, valueReg)
+					em.fb.Concat(valueReg, rightOp, valueReg)
 				} else {
-					e.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
+					em.fb.Add(false, valueReg, rightOp, valueReg, valueType.Kind())
 				}
 			case ast.AssignmentSubtraction:
-				e.fb.Sub(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Sub(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentMultiplication:
-				e.fb.Mul(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Mul(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentDivision:
-				e.fb.Div(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Div(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentModulo:
-				e.fb.Rem(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Rem(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentAnd:
-				e.fb.And(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.And(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentOr:
-				e.fb.Or(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Or(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentXor:
-				e.fb.Xor(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.Xor(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentAndNot:
-				e.fb.AndNot(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.AndNot(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentLeftShift:
-				e.fb.LeftShift(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.LeftShift(false, valueReg, rightOp, valueReg, valueType.Kind())
 			case ast.AssignmentRightShift:
-				e.fb.RightShift(false, valueReg, rightOp, valueReg, valueType.Kind())
+				em.fb.RightShift(false, valueReg, rightOp, valueReg, valueType.Kind())
 			}
 		}
 		addr.assign(false, valueReg, valueType)

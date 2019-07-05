@@ -17,7 +17,31 @@ import (
 )
 
 func main() {
-	sgo(os.Args...)
+
+	flag.Usage = commandsHelp["sgo"]
+
+	// No command provided.
+	if len(os.Args) == 1 {
+		flag.Usage()
+		exit(0)
+		return
+	}
+
+	cmdArg := os.Args[1]
+
+	// Used by flag.Parse.
+	os.Args = append(os.Args[:1], os.Args[2:]...)
+
+	cmd, ok := commands[cmdArg]
+	if !ok {
+		stderr(
+			fmt.Sprintf("sgo %s: unknown command", cmdArg),
+			`Run 'sgo help' for usage.`,
+		)
+		exit(1)
+		return
+	}
+	cmd()
 }
 
 // TestEnvironment is true when testing sgo, false otherwise.
@@ -34,12 +58,12 @@ func exit(status int) {
 // stderr prints lines on stderr.
 func stderr(lines ...string) {
 	for _, l := range lines {
-		fmt.Fprint(os.Stderr, l+"\n")
+		_, _ = fmt.Fprint(os.Stderr, l+"\n")
 	}
 }
 
-// exitError prints msg on stderr with a bold red color and exits with status
-// code 1.
+// exitError prints an error message on stderr with a bold red color and exits
+// with status code 1.
 func exitError(format string, a ...interface{}) {
 	msg := fmt.Errorf(format, a...)
 	if runtime.GOOS == "linux" {
@@ -51,37 +75,8 @@ func exitError(format string, a ...interface{}) {
 	return
 }
 
-// sgo runs command 'sgo' with given args. First argument must be executable
-// name.
-func sgo(args ...string) {
-	flag.Usage = commandsHelp["sgo"]
-
-	// No command provided.
-	if len(args) == 1 {
-		flag.Usage()
-		exit(0)
-		return
-	}
-
-	cmdArg := args[1]
-
-	// Used by flag.Parse.
-	os.Args = append(args[:1], args[2:]...)
-
-	cmd, ok := commands[cmdArg]
-	if !ok {
-		stderr(
-			fmt.Sprintf("sgo %s: unknown command", cmdArg),
-			`Run 'sgo help' for usage.`,
-		)
-		exit(1)
-		return
-	}
-	cmd()
-}
-
-// commandsHelp maps a command name to a function that prints help for that
-// command.
+// commandsHelp maps a command name to a function that prints the help for
+// that command.
 var commandsHelp = map[string]func(){
 	"sgo": func() {
 		stderr(
@@ -165,7 +160,7 @@ var commands = map[string]func(){
 		topic := os.Args[1]
 		help, ok := commandsHelp[topic]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "sgo help %s: unknown help topic. Run 'sgo help'.\n", topic)
+			_, _ = fmt.Fprintf(os.Stderr, "sgo help %s: unknown help topic. Run 'sgo help'.\n", topic)
 			exit(1)
 			return
 		}
@@ -179,13 +174,13 @@ var commands = map[string]func(){
 	},
 }
 
-// generate executes command:
+// generate executes the sub commands "generate" and "install":
 //
 //		sgo generate
 //		sgo install
 //
-// If install is set, interpreter will be installed as executable and
-// interpreter sources will be removed.
+// If install is set, the interpreter will be installed as executable and
+// the interpreter sources will be removed.
 func generate(install bool) {
 
 	flag.Parse()
@@ -225,7 +220,7 @@ func generate(install bool) {
 		sd.comment.goos = []string{defaultGOOS}
 	}
 
-	// Generates an embeddable loader.
+	// Generate an embeddable loader.
 	if sd.comment.embedded {
 		if install {
 			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
@@ -239,7 +234,7 @@ func generate(install bool) {
 		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
-		// Iterates over all GOOS.
+		// Iterate over all GOOS.
 		for _, goos := range sd.comment.goos {
 
 			// Render all packages, ignoring main.
@@ -257,8 +252,8 @@ func generate(install bool) {
 			newBase := inputBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
 			out := filepath.Join(filepath.Dir(inputPath), newBase)
 
-			// Writes packages on disk and runs "goimports" on that file.
-			ioutil.WriteFile(out, []byte(data), filePerm)
+			// Write the packages on a file and run "goimports" on that file.
+			err = ioutil.WriteFile(out, []byte(data), filePerm)
 			if err != nil {
 				exitError("writing packages file: %s", err)
 			}
@@ -268,17 +263,20 @@ func generate(install bool) {
 			}
 
 		}
+
 		exit(0)
+
 		return
 	}
 
-	// Generates sources for a new interpreter.
+	// Generate the sources for a new interpreter.
 	if sd.comment.template || sd.comment.script || sd.comment.program {
+
 		if sd.comment.output == "" {
 			sd.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 		}
 
-		// Creates a temporary directory for interpreter sources. If installing,
+		// Create a temporary directory for interpreter sources. If installing,
 		// directory will be lost. If generating sources and no errors occurred,
 		// tmpDir will be moved to the correct path.
 		tmpDir, err := ioutil.TempDir("", "sgo")
@@ -293,6 +291,7 @@ func generate(install bool) {
 		}
 
 		for _, goos := range sd.comment.goos {
+
 			sd.pkgName = "main"
 
 			// When making an interpreter that reads only template sources, sd
@@ -319,9 +318,10 @@ func generate(install bool) {
 			if err != nil {
 				exitError("goimports on file %q: %s", outPkgsFile, err)
 			}
+
 		}
 
-		// Write package main on disk and run "goimports" on it.
+		// Write the package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
 		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
 		if err != nil {
@@ -346,7 +346,7 @@ func generate(install bool) {
 			return
 		}
 
-		// Move interpeter from tmpDir to correct dir.
+		// Move the interpreter from tmpDir to the correct dir.
 		fis, err := ioutil.ReadDir(tmpDir)
 		if err != nil {
 			exitError(err.Error())
@@ -370,6 +370,7 @@ func generate(install bool) {
 			}
 		}
 		exit(0)
-		return
 	}
+
+	return
 }
