@@ -281,7 +281,7 @@ func TestRenderExpressions(t *testing.T) {
 	for _, cas := range rendererExprTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"/index.html": []byte("{{" + cas.src + "}}")}
-			templ, err := Load("/index.html", r, nil, ContextText, LoadOption(0))
+			templ, err := Load("/index.html", r, nil, ContextText, LoadOption{})
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}
@@ -501,7 +501,7 @@ func TestRenderStatements(t *testing.T) {
 	for _, cas := range rendererStmtTests {
 		t.Run(cas.src, func(t *testing.T) {
 			r := MapReader{"/index.html": []byte(cas.src)}
-			templ, err := Load("/index.html", r, nil, ContextText, LoadOption(0))
+			templ, err := Load("/index.html", r, nil, ContextText, LoadOption{})
 			if err != nil {
 				t.Fatalf("source %q: loading error: %s", cas.src, err)
 			}

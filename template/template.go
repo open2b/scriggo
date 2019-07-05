@@ -37,11 +37,9 @@ func (ctx Context) String() string {
 	return ast.Context(ctx).String()
 }
 
-type LoadOption int
-
-const (
-	LimitMemorySize LoadOption = 1 << iota
-)
+type LoadOption struct {
+	LimitMemorySize bool
+}
 
 type RenderOptions struct {
 	Context       context.Context
@@ -70,7 +68,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 	}
 	opts := compiler.Options{
 		IsTemplate:  true,
-		MemoryLimit: options&LimitMemorySize != 0,
+		MemoryLimit: options.LimitMemorySize,
 	}
 	var pkgs scriggo.Packages
 	if main != nil {
@@ -103,7 +101,7 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
-	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
 		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
 	render := DefaultRenderFunc
@@ -126,7 +124,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 // out, and returns its virtual machine execution environment. vars contains
 // the values for the variables of the main package.
 func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, options RenderOptions) *vm.Env {
-	if options.MaxMemorySize > 0 && t.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
 		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
 	render := DefaultRenderFunc
