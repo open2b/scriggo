@@ -142,7 +142,11 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, loader PackageLoader, options LoadOptions) (*Script, error) {
+func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Script, error) {
+
+	if options == nil {
+		options = &LoadOptions{}
+	}
 
 	shebang := options.AllowShebangLine
 
@@ -163,7 +167,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOptions) (*Scri
 
 	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, opts)
 
-	return &Script{fn: code.Main, globals: code.Globals, options: options}, nil
+	return &Script{fn: code.Main, globals: code.Globals, options: *options}, nil
 }
 
 // Options returns the options with which the script has been loaded.
