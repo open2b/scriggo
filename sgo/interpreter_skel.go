@@ -22,7 +22,8 @@ func makeInterpreterSource(program, script, template bool) []byte {
 		} else {
 			loaders = scriggo.CombinedLoaders{packages}
 		}
-		script, err := scriggo.LoadScript(r, loaders, loadOptions|scriggo.AllowShebangLine)
+		loadOptions.AllowShebangLine = true
+		script, err := scriggo.LoadScript(r, loaders, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
@@ -74,7 +75,7 @@ func makeInterpreterSource(program, script, template bool) []byte {
 		for k, v := range Main.Declarations {
 			builtins.Declarations[k] = v
 		}
-		t, err := template.Load(path, r, builtins, template.ContextHTML, template.LoadOption(loadOptions))
+		t, err := template.Load(path, r, builtins, template.ContextHTML, template.LoadOption(0))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
@@ -149,7 +150,7 @@ func makeInterpreterSource(program, script, template bool) []byte {
 
 			flag.Parse()
 
-			var loadOptions scriggo.LoadOption
+			var loadOptions = scriggo.LoadOptions{}
 			var runOptions scriggo.RunOptions
 
 			if *timeout != "" {
@@ -167,7 +168,7 @@ func makeInterpreterSource(program, script, template bool) []byte {
 			}
 
 			if *mem != "" {
-				loadOptions = scriggo.LimitMemorySize
+				loadOptions.LimitMemorySize = true
 				var unit = (*mem)[len(*mem)-1]
 				if unit > 'Z' {
 					unit -= 'z' - 'Z'
