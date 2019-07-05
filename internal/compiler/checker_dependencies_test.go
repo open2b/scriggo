@@ -483,6 +483,97 @@ var cases = map[string]struct {
 			"main": {"fmt", "m"},
 		},
 	},
+
+	"Local functions that don't depend on package variables": {
+		`package main
+
+		var A int
+		var B int
+		
+		func main() {
+			F := func(A int) {
+				_ = A
+			}
+			_ = F
+			G := func() (B int) {
+				B = 100
+				return 0
+			}
+			_ = G
+		}
+		`,
+		map[string][]string{
+			"A":    {"int"},
+			"B":    {"int"},
+			"main": {"int"},
+		},
+	},
+
+	"Function that has parameters with same name as package variables": {
+		`package main
+
+		var A int
+		var B int
+		
+		func F(A int) {
+		}
+		
+		func G() (B int) {
+			return 0
+		}
+		
+		func H(a int) {
+			A = a
+		}
+		
+		func I() (b int) {
+			B = b
+			return 0
+		}
+		
+		func main() {}
+		`,
+		map[string][]string{
+			"A":    {"int"},
+			"B":    {"int"},
+			"F":    {"int"},
+			"G":    {"int"},
+			"H":    {"int", "A"},
+			"I":    {"int", "B"},
+			"main": {},
+		},
+	},
+
+	"https://github.com/golang/go/issues/22326": {
+		`package main
+
+		var (
+			_ = d
+			_ = f("_", c, b)
+			a = f("a")
+			b = f("b")
+			c = f("c")
+			d = f("d")
+		)
+		
+		func f(s string, rest ...int) int {
+			print(s)
+			return 0
+		}
+		
+		func main() {
+			println()
+		}
+		`,
+		map[string][]string{
+			"a":    {"f"},
+			"b":    {"f"},
+			"c":    {"f"},
+			"d":    {"f"},
+			"f":    {"string", "int", "print"},
+			"main": {"println"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {

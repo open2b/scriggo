@@ -21,11 +21,17 @@ type deps PackageDeclsDeps
 
 // addDepsToGlobal adds all identifiers that appear in node and in its children
 // as dependency of the global identifier ident.
-func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node) {
+func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depScopes) {
+	if scopes == nil {
+		scopes = depScopes{map[string]struct{}{}}
+	}
+	if ident.Name == "_" {
+		return
+	}
 	if d[ident] == nil {
 		d[ident] = []*ast.Identifier{}
 	}
-	for _, dep := range nodeDeps(node, depScopes{map[string]struct{}{}}) {
+	for _, dep := range nodeDeps(node, scopes) {
 		if dep.Name == "_" {
 			continue
 		}
@@ -52,14 +58,14 @@ func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node) {
 func (d deps) analyzeGlobalVar(n *ast.Var) {
 	if len(n.Lhs) == len(n.Rhs) {
 		for i := range n.Lhs {
-			d.addDepsToGlobal(n.Lhs[i], n.Type)
-			d.addDepsToGlobal(n.Lhs[i], n.Rhs[i])
+			d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
+			d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
 		}
 	} else {
 		for _, left := range n.Lhs {
-			d.addDepsToGlobal(left, n.Type)
+			d.addDepsToGlobal(left, n.Type, nil)
 			for _, right := range n.Rhs {
-				d.addDepsToGlobal(left, right)
+				d.addDepsToGlobal(left, right, nil)
 			}
 		}
 	}
@@ -68,8 +74,8 @@ func (d deps) analyzeGlobalVar(n *ast.Var) {
 // analyzeGlobalConst analyzes a global constant declaration.
 func (d deps) analyzeGlobalConst(n *ast.Const) {
 	for i := range n.Lhs {
-		d.addDepsToGlobal(n.Lhs[i], n.Type)
-		d.addDepsToGlobal(n.Lhs[i], n.Rhs[i])
+		d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
+		d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
 	}
 }
 
@@ -77,22 +83,34 @@ func (d deps) analyzeGlobalConst(n *ast.Const) {
 func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
 	for i := range n.Variables {
 		if ident, ok := n.Variables[i].(*ast.Identifier); ok {
-			d.addDepsToGlobal(ident, n.Values[i])
+			d.addDepsToGlobal(ident, n.Values[i], nil)
 		}
 	}
 }
 
 // analyzeGlobalFunc analyzes a global function declaration.
 func (d deps) analyzeGlobalFunc(n *ast.Func) {
-	d.addDepsToGlobal(n.Ident, n.Type)
-	d.addDepsToGlobal(n.Ident, n.Body)
+	scopes := depScopes{map[string]struct{}{}}
+	for _, f := range n.Type.Parameters {
+		if f.Ident != nil {
+			scopes = declareLocally(scopes, f.Ident.Name)
+		}
+	}
+	for _, f := range n.Type.Result {
+		if f.Ident != nil {
+			scopes = declareLocally(scopes, f.Ident.Name)
+		}
+	}
+	d.addDepsToGlobal(n.Ident, n.Type, scopes)
+	d.addDepsToGlobal(n.Ident, n.Body, scopes)
 }
 
 // analyzeGlobalMacro analyzes a global macro declaration.
 func (d deps) analyzeGlobalMacro(n *ast.Macro) {
-	d.addDepsToGlobal(n.Ident, n.Type)
+	// TODO(Gianluca): macro arguments should be declared locally.
+	d.addDepsToGlobal(n.Ident, n.Type, nil)
 	for _, node := range n.Body {
-		d.addDepsToGlobal(n.Ident, node)
+		d.addDepsToGlobal(n.Ident, node, nil)
 	}
 }
 
@@ -266,6 +284,16 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		scopes = exitScope(scopes)
 		return deps
 	case *ast.Func:
+		for _, f := range n.Type.Parameters {
+			if f.Ident != nil {
+				scopes = declareLocally(scopes, f.Ident.Name)
+			}
+		}
+		for _, f := range n.Type.Result {
+			if f.Ident != nil {
+				scopes = declareLocally(scopes, f.Ident.Name)
+			}
+		}
 		deps := nodeDeps(n.Type, scopes)
 		return append(deps, nodeDeps(n.Body, scopes)...)
 	case *ast.FuncType:
