@@ -25,9 +25,6 @@ func (d deps) addDepsToGlobal(ident *ast.Identifier, node ast.Node, scopes depSc
 	if scopes == nil {
 		scopes = depScopes{map[string]struct{}{}}
 	}
-	if ident.Name == "_" {
-		return
-	}
 	if d[ident] == nil {
 		d[ident] = []*ast.Identifier{}
 	}

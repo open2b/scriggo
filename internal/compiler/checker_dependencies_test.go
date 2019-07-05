@@ -566,12 +566,30 @@ var cases = map[string]struct {
 		}
 		`,
 		map[string][]string{
-			"a":    {"f"},
-			"b":    {"f"},
-			"c":    {"f"},
-			"d":    {"f"},
-			"f":    {"string", "int", "print"},
-			"main": {"println"},
+			"underscore_at_line_4": {"d"},
+			"underscore_at_line_5": {"f", "c", "b"},
+			"a":                    {"f"},
+			"b":                    {"f"},
+			"c":                    {"f"},
+			"d":                    {"f"},
+			"f":                    {"string", "int", "print"},
+			"main":                 {"println"},
+		},
+	},
+	"two blank identifiers": {
+		`package main
+
+		var _ = A
+		var _ = 10
+		var A = 20
+		
+		func main() {}
+		`,
+		map[string][]string{
+			"underscore_at_line_3": {"A"},
+			"underscore_at_line_4": {},
+			"A":                    {},
+			"main":                 {},
 		},
 	},
 }
@@ -586,6 +604,9 @@ func TestDependencies(t *testing.T) {
 			got := AnalyzeTree(tree, Options{IsProgram: true})
 			gotIdentifiers := map[string][]string{}
 			for symbol, deps := range got {
+				if symbol.Name == "_" {
+					symbol.Name = "underscore_at_line_" + strconv.Itoa(symbol.Pos().Line)
+				}
 				gotIdentifiers[symbol.Name] = []string{}
 				for _, dep := range deps {
 					gotIdentifiers[symbol.Name] = append(gotIdentifiers[symbol.Name], dep.Name)

@@ -209,6 +209,16 @@ func TestPackageOrdering(t *testing.T) {
 				fmt.Println(B)
 			}`, "B,A,main,",
 		},
+		"two blank identifiers": {
+			`package main
+
+			var _ = A
+			var _ = 10
+			var A = 20
+			
+			func main() {}
+			`, "_,A,_,main,",
+		},
 	}
 	for name, cas := range cases {
 		t.Run(name, func(t *testing.T) {
