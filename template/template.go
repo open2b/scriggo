@@ -12,8 +12,8 @@ import (
 	"reflect"
 
 	"scriggo"
-	"scriggo/internal/compiler"
 	"scriggo/ast"
+	"scriggo/internal/compiler"
 	"scriggo/vm"
 )
 
