@@ -49,13 +49,16 @@ type Program struct {
 }
 
 // LoadProgram loads a program, reading package "main" from packages.
-func LoadProgram(packages PackageLoader, options LoadOptions) (*Program, error) {
+func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error) {
 
 	tree, predefined, err := compiler.ParseProgram(packages)
 	if err != nil {
 		return nil, err
 	}
 
+	if options == nil {
+		options = &LoadOptions{}
+	}
 	opts := compiler.Options{
 		IsProgram:      true,
 		MemoryLimit:    options.LimitMemorySize,
@@ -74,7 +77,7 @@ func LoadProgram(packages PackageLoader, options LoadOptions) (*Program, error) 
 
 	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, opts)
 
-	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
+	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: *options}, nil
 }
 
 // Options returns the options with which the program has been loaded.
