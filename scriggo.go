@@ -14,18 +14,16 @@ import (
 	"reflect"
 	"strings"
 
-	"scriggo/internal/compiler"
 	"scriggo/ast"
+	"scriggo/internal/compiler"
 	"scriggo/vm"
 )
 
-const (
-	LimitMemorySize  LoadOption = 1 << iota // limit allocable memory size.
-	DisallowGoStmt                          // disallow "go" statement.
-	AllowShebangLine                        // allow shebang line; only for scripts.
-)
-
-type LoadOption int
+type LoadOption struct {
+	LimitMemorySize  bool // limit allocable memory size.
+	DisallowGoStmt   bool // disallow "go" statement.
+	AllowShebangLine bool // allow shebang line; only for scripts.
+}
 
 type Package = compiler.Package
 
@@ -60,8 +58,8 @@ func LoadProgram(packages PackageLoader, options LoadOption) (*Program, error) {
 
 	opts := compiler.Options{
 		IsProgram:      true,
-		MemoryLimit:    options&LimitMemorySize != 0,
-		DisallowGoStmt: options&DisallowGoStmt != 0,
+		MemoryLimit:    options.LimitMemorySize,
+		DisallowGoStmt: options.DisallowGoStmt,
 	}
 	tci, err := compiler.Typecheck(tree, predefined, opts)
 	if err != nil {
@@ -97,7 +95,7 @@ type RunOptions struct {
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
 func (p *Program) Run(options RunOptions) error {
-	if options.MaxMemorySize > 0 && p.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
 	vmm := newVM(options)
@@ -111,7 +109,7 @@ func (p *Program) Run(options RunOptions) error {
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
 func (p *Program) Start(options RunOptions) *vm.Env {
-	if options.MaxMemorySize > 0 && p.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
 	vmm := newVM(options)
@@ -143,7 +141,7 @@ type Script struct {
 // LoadScript loads a script from a reader.
 func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Script, error) {
 
-	shebang := options&AllowShebangLine != 0
+	shebang := options.AllowShebangLine
 
 	tree, packages, err := compiler.ParseScript(src, loader, shebang)
 	if err != nil {
@@ -152,8 +150,8 @@ func LoadScript(src io.Reader, loader PackageLoader, options LoadOption) (*Scrip
 
 	opts := compiler.Options{
 		IsProgram:      false,
-		MemoryLimit:    options&LimitMemorySize != 0,
-		DisallowGoStmt: options&DisallowGoStmt != 0,
+		MemoryLimit:    options.LimitMemorySize,
+		DisallowGoStmt: options.DisallowGoStmt,
 	}
 	tci, err := compiler.Typecheck(tree, packages, opts)
 	if err != nil {
@@ -178,7 +176,7 @@ var emptyInit = map[string]interface{}{}
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
 func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
-	if options.MaxMemorySize > 0 && s.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
 	if init == nil {
@@ -196,7 +194,7 @@ func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
 func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env {
-	if options.MaxMemorySize > 0 && s.options&LimitMemorySize == 0 {
+	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
 	vmm := newVM(options)

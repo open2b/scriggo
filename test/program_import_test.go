@@ -92,7 +92,7 @@ func TestProgramImport(t *testing.T) {
 	}
 	for name, loader := range cases {
 		t.Run(name, func(t *testing.T) {
-			program, err := scriggo.LoadProgram(loader, scriggo.LimitMemorySize)
+			program, err := scriggo.LoadProgram(loader, scriggo.LoadOption{LimitMemorySize: true})
 			if err != nil {
 				t.Errorf("compiling error: %s", err)
 				return

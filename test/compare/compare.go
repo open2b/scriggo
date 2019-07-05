@@ -106,7 +106,7 @@ func runScriggoAndGetOutput(src []byte) output {
 	}()
 	wg.Wait()
 
-	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), scriggo.LimitMemorySize)
+	program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(src), packages), scriggo.LoadOption{LimitMemorySize: true})
 
 	if err != nil {
 		return makeOutput(err.Error())
