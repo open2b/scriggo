@@ -37,7 +37,7 @@ func (ctx Context) String() string {
 	return ast.Context(ctx).String()
 }
 
-type LoadOption struct {
+type LoadOptions struct {
 	LimitMemorySize bool
 }
 
@@ -53,7 +53,7 @@ type RenderOptions struct {
 type Template struct {
 	main    *scriggo.Package
 	fn      *vm.Function
-	options LoadOption
+	options LoadOptions
 	globals []compiler.Global
 }
 
@@ -61,7 +61,7 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
-func Load(path string, reader Reader, main *scriggo.Package, ctx Context, options LoadOption) (*Template, error) {
+func Load(path string, reader Reader, main *scriggo.Package, ctx Context, options LoadOptions) (*Template, error) {
 	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, optio
 }
 
 // Options returns the options with which the template has been loaded.
-func (t *Template) Options() LoadOption {
+func (t *Template) Options() LoadOptions {
 	return t.options
 }
 
