@@ -125,6 +125,59 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Function literal call (1 in, 1 out)",
+		src: `package main
+
+		import "fmt"
+
+		func main() {
+			a := 41
+			fmt.Print(a)
+			inc := func(a int) int {
+				fmt.Print("inc:", a)
+				b := a
+				b++
+				fmt.Print("inc:", b)
+				return b
+			}
+			a = inc(a)
+			fmt.Print(a)
+			return
+		}
+		`,
+		output: "41inc:41inc:4242",
+	},
+	{
+		name: "(Predefined) struct composite literal (empty)",
+		src: `package main
+
+		import (
+			"fmt"
+			"testpkg"
+		)
+
+		func main() {
+			t1 := testpkg.TestPointInt{}
+			fmt.Println(t1)
+		}
+		`,
+		output: "{0 0}\n",
+	},
+	{
+		name: "Reading an int variable",
+		src: `package main
+
+		import "fmt"
+
+		var A int = 40
+
+		func main() {
+			fmt.Println("A is", A)
+		}
+		`,
+		output: "A is 40\n",
+	},
+	{
 		name: "blank identifier as global variable",
 		src: `package main
 
@@ -4655,12 +4708,9 @@ var stmtTests = []struct {
 	// 	}
 	// 	`, nil, nil, "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
 
-	//------------------------------------
-
-	// TODO (Gianluca):
-	// {"Operator address (&)",
-	// 	`
-	// 	package main
+	// {
+	// 	name: "Operator address (&)",
+	// 	src: `package main
 
 	// 	import "fmt"
 
@@ -4669,25 +4719,9 @@ var stmtTests = []struct {
 	// 		b := &a
 	// 		c := &a
 	// 		fmt.Println(b == c)
-	// 	}
-	// 	`, nil, nil, ""},
-
-	//------------------------------------
-
-	// TODO(Gianluca):
-	// {"Reading an int variable",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	var A int = 40
-
-	// 	func main() {
-	// 		fmt.Println("A is ", A)
-	// 	}
-	// 	`,
-	// 	nil, nil,
-	// 	"A is 40\n"},
+	// 	}`,
+	// 	output: "",
+	// },
 
 	//------------------------------------
 
@@ -4723,30 +4757,6 @@ var stmtTests = []struct {
 
 	//------------------------------------
 
-	// TODO(Gianluca): index out of range.
-	// {"Function literal call (1 in, 1 out)",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		a := 41
-	// 		fmt.Print(a)
-	// 		inc := func(a int) int {
-	// 			fmt.Print("inc:", a)
-	// 			b := a
-	// 			b++
-	// 			fmt.Print("inc:", b)
-	// 			return b
-	// 		}
-	// 		a = inc(a)
-	// 		fmt.Print(a)
-	// 		return
-	// 	}
-	// 	`, nil, nil, "41inc:41inc:4242"},
-
-	//------------------------------------
-
 	// TODO(Gianluca): conversion always puts result into "general", so this
 	// test cannot pass.
 	// {"Type assertion as expression (single value context)",
@@ -4765,26 +4775,6 @@ var stmtTests = []struct {
 	// 	"5, 12",
 	// },
 
-	//------------------------------------
-
-	// TODO (Gianluca):
-	// {"(Predefined) struct composite literal (empty)",
-	// 	`package main
-
-	// 	import (
-	// 		"fmt"
-	// 		"testpkg"
-	// 	)
-
-	// 	func main() {
-	// 		t1 := testpkg.TestPointInt{}
-	// 		fmt.Println(t1)
-	// 	}
-	// 	`,
-	// 	nil,
-	// 	nil,
-	// 	"",
-	// },
 }
 
 func TestVM(t *testing.T) {
