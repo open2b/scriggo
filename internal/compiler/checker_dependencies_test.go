@@ -459,6 +459,30 @@ var cases = map[string]struct {
 			"main": {"C"},
 		},
 	},
+
+	"complex test #3": {
+		`package main
+
+		import (
+			"fmt"
+		)
+		
+		var A []int
+		var m map[string]interface{} = map[string]interface{}{
+			"a": 4,
+			"b": -20,
+		}
+		
+		func main() {
+			fmt.Println(m)
+		}
+		`,
+		map[string][]string{
+			"A":    {"int"},
+			"m":    {"string"},
+			"main": {"fmt", "m"},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {
