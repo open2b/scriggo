@@ -167,15 +167,9 @@ func getScriggofile(path string) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
 	}
 
-	fmt.Fprintf(os.Stderr, "package %q does not provide a scriggo.go file, generating a default\n", path)
+	fmt.Fprintf(os.Stderr, "package %q does not provide a Scriggofile, generating a default\n", path)
 
-	out := `
-INTERPRETER
-	
-PACKAGE [pkgName]
-	
-IMPORT [pkgPath]
-`
+	out := "\nINTERPRETER\n\nPACKAGE [pkgName]\n\nIMPORT [pkgPath]\n"
 
 	out = strings.ReplaceAll(out, "[pkgName]", pkg.Name)
 	out = strings.ReplaceAll(out, "[pkgPath]", path)
