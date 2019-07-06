@@ -213,33 +213,33 @@ func generate(install bool) {
 		exitError("path %q: %s", inputPath, err)
 	}
 	sf.filepath = inputPath
-	if len(sf.comment.goos) == 0 {
+	if len(sf.goos) == 0 {
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
 			defaultGOOS = runtime.GOOS
 		}
-		sf.comment.goos = []string{defaultGOOS}
+		sf.goos = []string{defaultGOOS}
 	}
 
 	// Generate an embeddable loader.
-	if sf.comment.embedded {
+	if sf.embedded {
 		if install {
 			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
 			exit(1)
 			return
 		}
-		if sf.comment.varName == "" {
-			sf.comment.varName = "packages"
+		if sf.variable == "" {
+			sf.variable = "packages"
 		}
 		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
 		// Iterate over all GOOS.
-		for _, goos := range sf.comment.goos {
+		for _, goos := range sf.goos {
 
 			// Render all packages, ignoring main.
-			data, hasContent, err := renderPackages(sf, sf.comment.varName, goos)
+			data, hasContent, err := renderPackages(sf, sf.variable, goos)
 			if err != nil {
 				exitError("%s", err)
 			}
@@ -271,10 +271,10 @@ func generate(install bool) {
 	}
 
 	// Generate the sources for a new interpreter.
-	if sf.comment.template || sf.comment.script || sf.comment.program {
+	if sf.template || sf.script || sf.program {
 
-		if sf.comment.output == "" {
-			sf.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
+		if sf.output == "" {
+			sf.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 		}
 
 		// Create a temporary directory for interpreter sources. If installing,
@@ -291,13 +291,13 @@ func generate(install bool) {
 			exitError(err.Error())
 		}
 
-		for _, goos := range sf.comment.goos {
+		for _, goos := range sf.goos {
 
 			sf.pkgName = "main"
 
 			// When making an interpreter that reads only template sources, sf
 			// cannot contain only packages.
-			if sf.comment.template && !sf.comment.script && !sf.comment.program && !sf.containsMain() && len(sf.imports) > 0 {
+			if sf.template && !sf.script && !sf.program && !sf.containsMain() && len(sf.imports) > 0 {
 				exitError("cannot have packages if making a template interpreter")
 			}
 
@@ -324,7 +324,7 @@ func generate(install bool) {
 
 		// Write the package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.comment.program, sf.comment.script, sf.comment.template), filePerm)
+		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.program, sf.script, sf.template), filePerm)
 		if err != nil {
 			exitError("writing interpreter file: %s", err)
 		}
@@ -352,14 +352,14 @@ func generate(install bool) {
 		if err != nil {
 			exitError(err.Error())
 		}
-		err = os.MkdirAll(sf.comment.output, dirPerm)
+		err = os.MkdirAll(sf.output, dirPerm)
 		if err != nil {
 			exitError(err.Error())
 		}
 		for _, fi := range fis {
 			if !fi.IsDir() {
 				filePath := filepath.Join(tmpDir, fi.Name())
-				newFilePath := filepath.Join(sf.comment.output, fi.Name())
+				newFilePath := filepath.Join(sf.output, fi.Name())
 				data, err := ioutil.ReadFile(filePath)
 				if err != nil {
 					exitError(err.Error())

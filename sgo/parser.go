@@ -11,80 +11,46 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
-// scriggofile represents a descriptor of a Scriggo loader or interpreter.
-// A scriggofile can be read from a file using a parsing function.
+// scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
-	pkgName  string // name of the package to be generated.
-	filepath string // filepath of the parsed file.
-	comment  fileComment
-	imports  []importDescriptor // list of imports defined in file.
+	pkgName  string              // name of the package to be generated.
+	filepath string              // filepath of the parsed file.
+	embedded bool                // generating embedded.
+	program  bool                // generating program interpreter.
+	template bool                // generating template interpreter.
+	script   bool                // generating script interpreter.
+	variable string              // variable name for embedded packages.
+	output   string              // output path.
+	goos     []string            // target GOOSs.
+	imports  []importInstruction // list of imports defined in file.
 }
 
 // containsMain reports whether a descriptor contains at least one package
 // "main". It ignores all non-main packages contained in the descriptor.
 func (file scriggofile) containsMain() bool {
 	for _, imp := range file.imports {
-		if imp.comment.main {
+		if imp.asPath == "main" {
 			return true
 		}
 	}
 	return false
 }
 
-// importDescriptor is a single import descriptor.
-// An example import descriptor is:
-//
-//		import _ "fmt" //scriggo: main uncapitalize export:"Println"
-//
-type importDescriptor struct {
-	path    string
-	comment importComment
+// importInstruction represents an IMPORT instruction in a Scriggofile.
+type importInstruction struct {
+	path          string
+	asPath        string // import asPath asPath in Scriggo.
+	uncapitalized bool   // exported names must be set "uncapitalized".
+	export        []string
+	notExport     []string
 }
 
-// importComment is a comment of an import descriptor. Import comments are
-// built from Scriggo comments, such as:
-//
-//		//scriggo: main uncapitalize export:"Println"
-//
-type importComment struct {
-	main              bool   // declared as "main" package.
-	uncapitalize      bool   // exported names must be set "uncapitalized".
-	newPath           string // import as newPath in Scriggo.
-	newName           string // use as newName in Scriggo.
-	export, notexport []string
-}
-
-// fileComment is the comment of a Scriggo descriptor. A file comment can be
-// generated from a line as:
-//
-//  //scriggo: embedded variable:"pkgs" goos:"linux,darwin"
-//
-// TODO(Gianluca): use output.
-type fileComment struct {
-	embedded bool     // generating embedded.
-	varName  string   // variable name for embedded packages.
-	template bool     // generating template interpreter.
-	script   bool     // generating script interpreter.
-	program  bool     // generating program interpreter.
-	output   string   // output path.
-	goos     []string // target GOOSs.
-}
-
-// option represents an option in a Scriggo comment.
-type option string
-
-// keyValues represents an key-values pair in a Scriggo comment.
-type keyValues struct {
-	Key    string
-	Values []string
-}
-
+// parseScriggofile parses a Scriggofile and returns its instructions.
 func parseScriggofile(src io.Reader) (*scriggofile, error) {
 
 	parsed := map[string]bool{
@@ -131,7 +97,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if len(tokens) > 1 {
 				return nil, fmt.Errorf("unknown %q after EMBEDDED", tokens[1])
 			}
-			sf.comment.embedded = true
+			sf.embedded = true
 		case "INTERPRETER":
 			if parsed["EMBEDDED"] {
 				return nil, fmt.Errorf("cannot use both INTERPRETER and EMBEDDED")
@@ -141,19 +107,19 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					typ := strings.ToUpper(tok)
 					switch typ {
 					case "PROGRAM":
-						sf.comment.program = true
+						sf.program = true
 					case "SCRIPT":
-						sf.comment.script = true
+						sf.script = true
 					case "TEMPLATE":
-						sf.comment.template = true
+						sf.template = true
 					default:
 						return nil, fmt.Errorf("unexpected option %s for INTERPRETER", tok)
 					}
 				}
 			} else {
-				sf.comment.program = true
-				sf.comment.script = true
-				sf.comment.template = true
+				sf.program = true
+				sf.script = true
+				sf.template = true
 			}
 		case "PACKAGE":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
@@ -175,7 +141,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
 				return nil, fmt.Errorf("missing EMBEDDED before %s", tokens[0])
 			}
-			if !sf.comment.embedded {
+			if !sf.embedded {
 				return nil, fmt.Errorf("cannot use variable with interpreters")
 			}
 			if len(tokens) == 1 {
@@ -189,7 +155,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if err != nil {
 				return nil, err
 			}
-			sf.comment.varName = varName
+			sf.variable = varName
 		case "GOOS":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
 				return nil, fmt.Errorf("missing INTERPRETER or EMBEDDED before %s", tokens[0])
@@ -197,14 +163,14 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("missing os")
 			}
-			sf.comment.goos = make([]string, len(tokens)-1)
+			sf.goos = make([]string, len(tokens)-1)
 			for i, tok := range tokens[1:] {
 				os := string(tok)
 				err := checkGOOS(os)
 				if err != nil {
 					return nil, err
 				}
-				sf.comment.goos[i] = os
+				sf.goos[i] = os
 			}
 		case "IMPORT":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
@@ -218,7 +184,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if err != nil {
 				return nil, err
 			}
-			imp := importDescriptor{path: path}
+			imp := importInstruction{path: path}
 			parsedAs := false
 			tokens = tokens[2:]
 			for len(tokens) > 0 {
@@ -235,32 +201,27 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					if err != nil {
 						return nil, err
 					}
-					if path == "main" {
-						imp.comment.main = true
-					} else {
-						imp.comment.newPath = path
-						imp.comment.newName = filepath.Base(path)
-					}
+					imp.asPath = path
 					parsedAs = true
 					tokens = tokens[2:]
 				case "UNCAPITALIZED":
-					if !imp.comment.main {
+					if imp.asPath != "main" {
 						return nil, fmt.Errorf("%s can appear only after 'AS main'", option)
 					}
-					imp.comment.uncapitalize = true
+					imp.uncapitalized = true
 					tokens = tokens[1:]
 				case "EXPORTING":
 					if len(tokens) == 1 {
 						return nil, fmt.Errorf("missing export names after EXPORTING")
 					}
-					imp.comment.export = make([]string, len(tokens)-1)
+					imp.export = make([]string, len(tokens)-1)
 					for i, tok := range tokens[1:] {
 						name := string(tok)
 						err := checkExportedName(name)
 						if err != nil {
 							return nil, err
 						}
-						imp.comment.export[i] = name
+						imp.export[i] = name
 					}
 					tokens = nil
 				case "NOT":
@@ -273,14 +234,14 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					if len(tokens) == 2 {
 						return nil, fmt.Errorf("missing export names after NOT EXPORTING")
 					}
-					imp.comment.notexport = make([]string, len(tokens)-2)
+					imp.notExport = make([]string, len(tokens)-2)
 					for i, tok := range tokens[2:] {
 						name := string(tok)
 						err := checkExportedName(name)
 						if err != nil {
 							return nil, err
 						}
-						imp.comment.notexport[i] = name
+						imp.notExport[i] = name
 					}
 					tokens = nil
 				default:
@@ -299,6 +260,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 	return &sf, nil
 }
 
+// checkIdentifierName checks that name is a valid not blank identifier name.
 func checkIdentifierName(name string) error {
 	if name == "_" {
 		return fmt.Errorf("cannot use the blank identifier")
@@ -319,6 +281,7 @@ func checkIdentifierName(name string) error {
 	return nil
 }
 
+// checkGOOS checks that os is a valid GOOS value.
 func checkGOOS(os string) error {
 	switch os {
 	case "darwin", "dragonfly", "js", "linux", "android", "solaris",
@@ -352,6 +315,7 @@ func checkPackagePath(path string) error {
 	return nil
 }
 
+// checkExportedName checks that name is a valid exported identifier name.
 func checkExportedName(name string) error {
 	err := checkIdentifierName(name)
 	if err != nil {

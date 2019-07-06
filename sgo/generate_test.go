@@ -20,8 +20,8 @@ func Test_renderPackages(t *testing.T) {
 		"Importing fmt with an alternative path": {
 			pd: &scriggofile{
 				pkgName: "test",
-				imports: []importDescriptor{
-					{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
+				imports: []importInstruction{
+					{path: "fmt", asPath: "custom/fmt/path"},
 				},
 			},
 			expected: `package test
@@ -71,7 +71,7 @@ func Test_renderPackages(t *testing.T) {
 		"Importing archive/tar simple": {
 			pd: &scriggofile{
 				pkgName: "test",
-				imports: []importDescriptor{{path: "archive/tar"}},
+				imports: []importInstruction{{path: "archive/tar"}},
 			},
 			expected: `package test
 
@@ -125,7 +125,7 @@ func Test_renderPackages(t *testing.T) {
 		"Importing fmt simple": {
 			pd: &scriggofile{
 				pkgName: "test",
-				imports: []importDescriptor{{path: "fmt"}},
+				imports: []importInstruction{{path: "fmt"}},
 			},
 			expected: `package test
 
@@ -174,12 +174,10 @@ func Test_renderPackages(t *testing.T) {
 		"Importing only Println from fmt": {
 			pd: &scriggofile{
 				pkgName: "test",
-				imports: []importDescriptor{
+				imports: []importInstruction{
 					{
-						path: "fmt",
-						comment: importComment{
-							export: []string{"Println"},
-						},
+						path:   "fmt",
+						export: []string{"Println"},
 					},
 				},
 			},

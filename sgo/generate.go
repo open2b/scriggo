@@ -49,13 +49,13 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 		if len(decls) == 0 {
 			continue
 		}
-		if len(imp.comment.export) > 0 {
-			decls, err = filterIncluding(decls, imp.comment.export)
+		if len(imp.export) > 0 {
+			decls, err = filterIncluding(decls, imp.export)
 			if err != nil {
 				return "", false, err
 			}
-		} else if len(imp.comment.notexport) > 0 {
-			decls, err = filterExcluding(decls, imp.comment.notexport)
+		} else if len(imp.notExport) > 0 {
+			decls, err = filterExcluding(decls, imp.notExport)
 			if err != nil {
 				return "", false, err
 			}
@@ -64,15 +64,15 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
 		//  return an error. Note that the builtin functions 'print' and
 		//  'println' should be handled as special case:
-		if imp.comment.uncapitalize {
+		if imp.uncapitalized {
 			tmp := map[string]string{}
 			for name, decl := range decls {
 				newName := uncapitalize(name)
 				if newName == "main" || newName == "init" {
-					return "", false, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalize' or change declaration name in package %q", newName, imp.path)
+					return "", false, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalized' or change declaration name in package %q", newName, imp.path)
 				}
 				if isGoKeyword(newName) {
-					return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalize' or change declaration name in package %q", newName, newName, imp.path)
+					return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 				}
 				if isPredeclaredIdentifier(newName) {
 					if newName == "print" || newName == "println" {
@@ -80,7 +80,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 						//  'print' and 'println', shadowing is allowed. Else, an
 						//  error must be returned.
 					} else {
-						return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalize' or change declaration name in package %q", newName, newName, imp.path)
+						return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 					}
 				}
 				tmp[newName] = decl
@@ -91,14 +91,14 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 		// Determine which import path use: the default (the one specified in
 		// source, used by Go) or a new one indicated in Scriggo comments.
 		path := imp.path
-		if imp.comment.newPath != "" {
-			// TODO(Gianluca): if newPath points to standard lib, return error.
+		if imp.asPath != "" {
+			// TODO(Gianluca): if asPath points to standard lib, return error.
 			//  Else, package mixing is allowed.
-			path = imp.comment.newPath
+			path = imp.asPath
 		}
 
-		switch imp.comment.main {
-		case true: // Add read declarations to package main as builtins.
+		switch imp.asPath {
+		case "main": // Add read declarations to package main as builtins.
 			if pkgs["main"] == nil {
 				pkgs["main"] = &packageType{"main", map[string]string{}}
 			}
@@ -108,7 +108,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 				}
 				pkgs["main"].decl[name] = decl
 			}
-		case false: // Add read declarations to the specified package.
+		default: // Add read declarations to the specified package.
 			if pkgs[path] == nil {
 				pkgs[path] = &packageType{
 					decl: map[string]string{},
@@ -120,9 +120,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 				}
 				pkgs[path].decl[name] = decl
 				pkgs[path].name = pkgName
-				if imp.comment.newName != "" {
-					name = imp.comment.newName
-				}
+				name = filepath.Base(path)
 			}
 		}
 
