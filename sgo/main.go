@@ -202,43 +202,44 @@ func generate(install bool) {
 
 	inputPath := flag.Arg(0)
 
-	data, err := getScriggoDescriptorData(inputPath)
+	r, err := getScriggofile(inputPath)
 	if err != nil {
 		exitError(err.Error())
 	}
+	defer r.Close()
 
-	sd, err := parseScriggoDescriptor(data)
+	sf, err := parseScriggofile(r)
 	if err != nil {
 		exitError("path %q: %s", inputPath, err)
 	}
-	sd.filepath = inputPath
-	if len(sd.comment.goos) == 0 {
+	sf.filepath = inputPath
+	if len(sf.comment.goos) == 0 {
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
 			defaultGOOS = runtime.GOOS
 		}
-		sd.comment.goos = []string{defaultGOOS}
+		sf.comment.goos = []string{defaultGOOS}
 	}
 
 	// Generate an embeddable loader.
-	if sd.comment.embedded {
+	if sf.comment.embedded {
 		if install {
 			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
 			exit(1)
 			return
 		}
-		if sd.comment.varName == "" {
-			sd.comment.varName = "packages"
+		if sf.comment.varName == "" {
+			sf.comment.varName = "packages"
 		}
 		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
 		// Iterate over all GOOS.
-		for _, goos := range sd.comment.goos {
+		for _, goos := range sf.comment.goos {
 
 			// Render all packages, ignoring main.
-			data, hasContent, err := renderPackages(sd, sd.comment.varName, goos)
+			data, hasContent, err := renderPackages(sf, sf.comment.varName, goos)
 			if err != nil {
 				exitError("%s", err)
 			}
@@ -270,10 +271,10 @@ func generate(install bool) {
 	}
 
 	// Generate the sources for a new interpreter.
-	if sd.comment.template || sd.comment.script || sd.comment.program {
+	if sf.comment.template || sf.comment.script || sf.comment.program {
 
-		if sd.comment.output == "" {
-			sd.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
+		if sf.comment.output == "" {
+			sf.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 		}
 
 		// Create a temporary directory for interpreter sources. If installing,
@@ -283,24 +284,24 @@ func generate(install bool) {
 		if err != nil {
 			exitError(err.Error())
 		}
-		tmpDir = filepath.Join(tmpDir, sd.pkgName)
+		tmpDir = filepath.Join(tmpDir, sf.pkgName)
 
 		err = os.MkdirAll(tmpDir, dirPerm)
 		if err != nil {
 			exitError(err.Error())
 		}
 
-		for _, goos := range sd.comment.goos {
+		for _, goos := range sf.comment.goos {
 
-			sd.pkgName = "main"
+			sf.pkgName = "main"
 
-			// When making an interpreter that reads only template sources, sd
+			// When making an interpreter that reads only template sources, sf
 			// cannot contain only packages.
-			if sd.comment.template && !sd.comment.script && !sd.comment.program && !sd.containsMain() && len(sd.imports) > 0 {
+			if sf.comment.template && !sf.comment.script && !sf.comment.program && !sf.containsMain() && len(sf.imports) > 0 {
 				exitError("cannot have packages if making a template interpreter")
 			}
 
-			data, hasContent, err := renderPackages(sd, "packages", goos)
+			data, hasContent, err := renderPackages(sf, "packages", goos)
 			if err != nil {
 				exitError("rendering packages: %s", err)
 			}
@@ -323,7 +324,7 @@ func generate(install bool) {
 
 		// Write the package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
+		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.comment.program, sf.comment.script, sf.comment.template), filePerm)
 		if err != nil {
 			exitError("writing interpreter file: %s", err)
 		}
@@ -351,14 +352,14 @@ func generate(install bool) {
 		if err != nil {
 			exitError(err.Error())
 		}
-		err = os.MkdirAll(sd.comment.output, dirPerm)
+		err = os.MkdirAll(sf.comment.output, dirPerm)
 		if err != nil {
 			exitError(err.Error())
 		}
 		for _, fi := range fis {
 			if !fi.IsDir() {
 				filePath := filepath.Join(tmpDir, fi.Name())
-				newFilePath := filepath.Join(sd.comment.output, fi.Name())
+				newFilePath := filepath.Join(sf.comment.output, fi.Name())
 				data, err := ioutil.ReadFile(filePath)
 				if err != nil {
 					exitError(err.Error())

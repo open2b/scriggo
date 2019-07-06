@@ -12,13 +12,13 @@ import (
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd           scriggoDescriptor
+		pd           *scriggofile
 		pkgsVariable string
 		goos         string
 		expected     string
 	}{
 		"Importing fmt with an alternative path": {
-			pd: scriggoDescriptor{
+			pd: &scriggofile{
 				pkgName: "test",
 				imports: []importDescriptor{
 					{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
@@ -69,7 +69,7 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing archive/tar simple": {
-			pd: scriggoDescriptor{
+			pd: &scriggofile{
 				pkgName: "test",
 				imports: []importDescriptor{{path: "archive/tar"}},
 			},
@@ -123,7 +123,7 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing fmt simple": {
-			pd: scriggoDescriptor{
+			pd: &scriggofile{
 				pkgName: "test",
 				imports: []importDescriptor{{path: "fmt"}},
 			},
@@ -172,7 +172,7 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing only Println from fmt": {
-			pd: scriggoDescriptor{
+			pd: &scriggofile{
 				pkgName: "test",
 				imports: []importDescriptor{
 					{

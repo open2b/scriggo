@@ -22,7 +22,7 @@ import (
 // renderPackages renders a Scriggo descriptor. It also returns a boolean
 // indicating if the content contains packages. Ignores all main packages
 // contained in the descriptor.
-func renderPackages(descriptor scriggoDescriptor, pkgsVariable, goos string) (string, bool, error) {
+func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string, bool, error) {
 
 	type packageType struct {
 		name string

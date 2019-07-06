@@ -8,21 +8,21 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
-func Test_parseFileComment_error(t *testing.T) {
+func TestParseErrors(t *testing.T) {
 	cases := map[string]string{
-		`//scriggo:`:                                     `specify what to do`,
-		`//scriggo: interpreter variable:"pkgs"`:         `cannot use variable with interpreters`,
-		`//scriggo: interpreter embedded`:                `cannot use embedded with interpreters`,
-		`//scriggo: interpreter:"template"`:              `cannot specify values for interpreters: use 'interpreters' instead`,
-		`//scriggo: interpreters`:                        `interpreters must have at least one value; use 'interpreter' for generating a default interpreter`,
-		`//scriggo: interpreter interpreters:"template"`: `cannot use interpreter with interpreters`,
+		"INTERPRETER\nVARIABLE a":             `cannot use variable with interpreters`,
+		"INTERPRETER\nEMBEDDED":               `cannot use both INTERPRETER and EMBEDDED`,
+		"EMBEDDED\nINTERPRETER":               `cannot use both INTERPRETER and EMBEDDED`,
+		"INTERPRETER plugin":                  `unexpected option plugin for INTERPRETER`,
+		"INTERPRETER\nIMPORT a UNCAPITALIZED": `UNCAPITALIZED can appear only after 'AS main'`,
 	}
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
-			_, got := parseFileComment(input)
+			_, got := parseScriggofile(strings.NewReader(input))
 			if got == nil {
 				t.Fatalf("%s: expected error %q, got nothing", input, expected)
 			}
@@ -33,237 +33,39 @@ func Test_parseFileComment_error(t *testing.T) {
 	}
 }
 
-func Test_parseFileComment(t *testing.T) {
-	cases := map[string]fileComment{
-		`//scriggo: embedded goos:"linux,darwin"`:           {embedded: true, goos: []string{"linux", "darwin"}},
-		`//scriggo: embedded output:"/path/"`:               {embedded: true, output: "/path/"},
-		`//scriggo: embedded variable:"pkgs"`:               {embedded: true, varName: "pkgs"},
-		`//scriggo: embedded`:                               {embedded: true},
-		`//scriggo: goos:"windows" embedded`:                {embedded: true, goos: []string{"windows"}},
-		`//scriggo: interpreters:"program"`:                 {program: true},
-		`//scriggo: interpreters:"script,program"`:          {script: true, program: true},
-		`//scriggo: interpreters:"script,template,program"`: {script: true, program: true, template: true},
-		`//scriggo: interpreters:"script"`:                  {script: true},
-		`//scriggo: interpreters:"template"`:                {template: true},
-		`//scriggo: interpreter`:                            {template: true, script: true, program: true},
+func TestParse(t *testing.T) {
+	cases := map[string]*scriggofile{
+		"EMBEDDED":                                                     {comment: fileComment{embedded: true}},
+		"EMBEDDED\nGOOS linux darwin":                                  {comment: fileComment{embedded: true, goos: []string{"linux", "darwin"}}},
+		"EMBEDDED\nVARIABLE pkgs":                                      {comment: fileComment{embedded: true, varName: "pkgs"}},
+		"INTERPRETER":                                                  {comment: fileComment{template: true, script: true, program: true}},
+		"INTERPRETER PROGRAM":                                          {comment: fileComment{program: true}},
+		"INTERPRETER SCRIPT PROGRAM":                                   {comment: fileComment{script: true, program: true}},
+		"INTERPRETER SCRIPT TEMPLATE PROGRAM":                          {comment: fileComment{script: true, program: true, template: true}},
+		"INTERPRETER SCRIPT":                                           {comment: fileComment{script: true}},
+		"INTERPRETER TEMPLATE":                                         {comment: fileComment{template: true}},
+		"EMBEDDED\nIMPORT a":                                           {comment: fileComment{embedded: true}, imports: []importDescriptor{{path: "a"}}},
+		"EMBEDDED\nIMPORT a AS main":                                   {comment: fileComment{embedded: true}, imports: []importDescriptor{{path: "a", comment: importComment{main: true}}}},
+		"EMBEDDED\nIMPORT a AS main UNCAPITALIZED":                     {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{main: true, uncapitalize: true}}}},
+		"EMBEDDED\nIMPORT a EXPORTING Sleep":                           {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{export: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a AS main EXPORTING Sleep":                   {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{main: true, export: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a AS main UNCAPITALIZED EXPORTING Sleep":     {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{main: true, uncapitalize: true, export: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a EXPORTING Sleep Duration":                  {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{export: []string{"Sleep", "Duration"}}}}},
+		"EMBEDDED\nIMPORT a AS main UNCAPITALIZED NOT EXPORTING Sleep": {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{main: true, uncapitalize: true, notexport: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a AS test":                                   {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{newPath: "test", newName: "test"}}}},
+		"EMBEDDED\nIMPORT a AS newpath EXPORTING Sleep":                {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{newPath: "newpath", newName: "newpath", export: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a AS path/to/pkg EXPORTING Sleep":            {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{newPath: "path/to/pkg", newName: "pkg", export: []string{"Sleep"}}}}},
+		"EMBEDDED\nIMPORT a AS path/to/test EXPORTING Sleep":           {comment: fileComment{embedded: true}, imports: []importDescriptor{{"a", importComment{newPath: "path/to/test", newName: "test", export: []string{"Sleep"}}}}},
 	}
-	for comment, want := range cases {
-		t.Run(comment, func(t *testing.T) {
-			got, err := parseFileComment(comment)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("comment: %s: wanted %#v, got %#v", comment, want, got)
-			}
-		})
-	}
-}
-
-func Test_parseImportComment_error(t *testing.T) {
-	cases := map[string]string{
-		"//scriggo: uncapitalize":       "cannot use option uncapitalize without option main",
-		"//scriggo: main, uncapitalize": "bad option main,",
-	}
-	for input, expected := range cases {
+	for input, want := range cases {
 		t.Run(input, func(t *testing.T) {
-			_, got := parseImportComment(input)
-			if got == nil {
-				t.Fatalf("%s: expected error %q, got nothing", input, expected)
-			}
-			if got.Error() != expected {
-				t.Fatalf("%s: expected error %q, got %q", input, expected, got.Error())
-			}
-		})
-	}
-}
-
-func Test_parseImportComment(t *testing.T) {
-	cases := map[string]importComment{
-		"//scriggo:":                   {},
-		`//scriggo: main`:              {main: true},
-		`//scriggo: main uncapitalize`: {main: true, uncapitalize: true},
-		`//scriggo: export:"Sleep"`: {
-			export: []string{"Sleep"},
-		},
-		`//scriggo: main export:"Sleep"`: {
-			main:   true,
-			export: []string{"Sleep"},
-		},
-		`//scriggo: main uncapitalize export:"Sleep"`: {
-			main:         true,
-			uncapitalize: true,
-			export:       []string{"Sleep"},
-		},
-		`//scriggo: export:"Sleep,Duration"`: {
-			export: []string{"Sleep", "Duration"},
-		},
-		`//scriggo: main uncapitalize notexport:"Sleep"`: {
-			main:         true,
-			uncapitalize: true,
-			notexport:    []string{"Sleep"},
-		},
-		`//scriggo: notexport:"Sleep,Duration"`: {
-			notexport: []string{"Sleep", "Duration"},
-		},
-		`//scriggo: path:"test"`: {
-			newPath: "test",
-			newName: "test",
-		},
-		`//scriggo: path:"newpath" export:"Sleep"`: {
-			export:  []string{"Sleep"},
-			newPath: "newpath",
-			newName: "newpath",
-		},
-		`//scriggo: export:"Sleep" path:"path/to/pkg"`: {
-			export:  []string{"Sleep"},
-			newPath: "path/to/pkg",
-			newName: "pkg",
-		},
-		`//scriggo: export:"Sleep" path:"path/to/test"`: {
-			export:  []string{"Sleep"},
-			newPath: "path/to/test",
-			newName: "test",
-		},
-	}
-	for comment, want := range cases {
-		t.Run(comment, func(t *testing.T) {
-			got, err := parseImportComment(comment)
+			got, err := parseScriggofile(strings.NewReader(input))
 			if err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(got, want) {
-				t.Fatalf("comment: %s: wanted %#v, got %#v", comment, want, got)
+				t.Fatalf("input: %s:\nwanted\t%#v\ngot\t\t%#v", input, want, got)
 			}
 		})
-	}
-}
-
-func Test_parse(t *testing.T) {
-	cases := []struct {
-		str  string
-		opts []option
-		kvs  []keyValues
-	}{
-		{
-			str: "",
-		},
-		{
-			str:  "option",
-			opts: []option{"option"},
-		},
-		{
-			str:  "option1 option2",
-			opts: []option{"option1", "option2"},
-		},
-		{
-			str: "key:value",
-			kvs: []keyValues{
-				keyValues{Key: "key", Values: []string{"value"}},
-			},
-		},
-		{
-			str: `option key:value option2`,
-			opts: []option{
-				`option`, `option2`,
-			},
-			kvs: []keyValues{
-				keyValues{Key: `key`, Values: []string{"value"}},
-			},
-		},
-		{
-			str: `option key:"value" option2`,
-			opts: []option{
-				`option`, `option2`,
-			},
-			kvs: []keyValues{
-				keyValues{Key: `key`, Values: []string{"value"}},
-			},
-		},
-		{
-			str: `key:value1,value2,value3`,
-			kvs: []keyValues{
-				keyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
-			},
-		},
-		{
-			str: `key:"value1,value2,value3"`,
-			kvs: []keyValues{
-				keyValues{Key: `key`, Values: []string{`value1`, `value2`, `value3`}},
-			},
-		},
-	}
-	for _, c := range cases {
-		t.Run(c.str, func(t *testing.T) {
-			gotOpts, gotKvs, err := parse(c.str)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(c.opts) == 0 {
-				c.opts = []option{}
-			}
-			if len(c.kvs) == 0 {
-				c.kvs = []keyValues{}
-			}
-			if len(gotOpts) == 0 {
-				gotOpts = []option{}
-			}
-			if len(gotKvs) == 0 {
-				gotKvs = []keyValues{}
-			}
-			if !reflect.DeepEqual(gotOpts, c.opts) || !reflect.DeepEqual(gotKvs, c.kvs) {
-				t.Fatalf("input: %q: expected %#v and %#v, got %#v and %#v", c.str, c.opts, c.kvs, gotOpts, gotKvs)
-			}
-		})
-	}
-}
-
-func Test_tokenize(t *testing.T) {
-	cases := map[string][]string{
-		``:                                       []string{},
-		`   `:                                    []string{},
-		`word`:                                   []string{`word`},
-		`word1 word2`:                            []string{`word1`, `word2`},
-		`word1     word2`:                        []string{`word1`, `word2`},
-		`key:value`:                              []string{`key`, `:`, `value`},
-		`key:value1,value2`:                      []string{`key`, `:`, `value1,value2`},
-		`key:"value1,value2"`:                    []string{`key`, `:`, `value1,value2`},
-		`key:value1, word1`:                      []string{`key`, `:`, `value1,`, `word1`},
-		`  key:value1,       word1  `:            []string{`key`, `:`, `value1,`, `word1`},
-		`key:"value1, value2"`:                   []string{`key`, `:`, `value1, value2`},
-		`word key:value`:                         []string{`word`, `key`, `:`, `value`},
-		`word key:value1,value2 word2 key:value`: []string{`word`, `key`, `:`, `value1,value2`, `word2`, `key`, `:`, `value`},
-		`word key:"value1,value2" word2 key:value`: []string{`word`, `key`, `:`, `value1,value2`, `word2`, `key`, `:`, `value`},
-	}
-	for input, expected := range cases {
-		got, err := tokenize(input)
-		if err != nil {
-			t.Errorf("input: %q: %s", input, err.Error())
-			continue
-		}
-		if !reflect.DeepEqual(expected, got) {
-			t.Errorf("input: %q, expected: %#v, got %#v", input, expected, got)
-		}
-	}
-}
-
-func Test_tokenize_error(t *testing.T) {
-	cases := map[string]string{
-		`word:`:            `unexpected EOL after colon, expecting quote or word`,
-		`word"`:            `unexpected quote after word`,
-		`word1 "word2`:     `unexpected quote after word1`,
-		`word1 key:"word2`: `unexpected EOL, expecting quote`,
-		`:`:                `unexpected colon at beginning of line, expecting word or space`,
-		`key: value`:       `unexpected space after colon`,
-	}
-	for input, expected := range cases {
-		_, got := tokenize(input)
-		if got == nil {
-			t.Errorf("input: '%s': expecting error '%s', got nothing", input, expected)
-			continue
-		}
-		if got.Error() != expected {
-			t.Errorf("input: '%s': expecting error '%s', got '%s'", input, expected, got)
-		}
 	}
 }
