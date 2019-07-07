@@ -1,0 +1,7 @@
+# To install the Scriggo interpreter use the command: sgo install scriggo
+
+# Build an interpreter
+INTERPRETER
+
+# Make all the packages of the Go standard library importable
+IMPORT STANDARD LIBRARY
