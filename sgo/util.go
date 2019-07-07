@@ -182,18 +182,19 @@ func getScriggofile(path string) (io.ReadCloser, error) {
 	return ioutil.NopCloser(strings.NewReader(out)), nil
 }
 
-// isPredeclaredIdentifier indicates if name is a Go predeclared identifier or
-// not.
+var predeclaredIdentifier = []string{
+	"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
+	"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",
+	"uint16", "uint32", "uint64", "uintptr", "true", "false", "iota",
+	"nil", "append", "cap", "close", "complex", "copy", "delete", "imag",
+	"len", "make", "new", "panic", "print", "println", "real", "recover",
+}
+
+// isPredeclaredIdentifier reports whether name is a Go predeclared
+// identifier.
 func isPredeclaredIdentifier(name string) bool {
-	list := []string{
-		"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
-		"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",
-		"uint16", "uint32", "uint64", "uintptr", "true", "false", "iota",
-		"nil", "append", "cap", "close", "complex", "copy", "delete", "imag",
-		"len", "make", "new", "panic", "print", "println", "real", "recover",
-	}
-	for _, pred := range list {
-		if pred == name {
+	for _, pred := range predeclaredIdentifier {
+		if name == pred {
 			return true
 		}
 	}
