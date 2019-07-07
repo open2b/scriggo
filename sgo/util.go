@@ -265,11 +265,10 @@ var goKeywords = []string{
 	"package", "range", "return", "struct", "select", "switch", "type", "var",
 }
 
-// isGoKeyword returns true if w is a Go keyword as specified by
-// https://golang.org/ref/spec#Keywords .
-func isGoKeyword(w string) bool {
-	for _, gw := range goKeywords {
-		if w == gw {
+// isGoKeyword reports whether a string is a Go keyword.
+func isGoKeyword(s string) bool {
+	for _, k := range goKeywords {
+		if s == k {
 			return true
 		}
 	}
