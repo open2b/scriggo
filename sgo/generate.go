@@ -19,10 +19,10 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// renderPackages renders a Scriggo descriptor. It also returns a boolean
-// indicating if the content contains packages. Ignores all main packages
-// contained in the descriptor.
-func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string, bool, error) {
+// renderPackages renders a Scriggofile. It also returns a boolean indicating
+// if the content contains packages. Ignores all main packages contained in
+// the Scriggofile.
+func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error) {
 
 	type packageType struct {
 		name string
@@ -32,7 +32,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 	importReflect := false
 
 	explicitImports := strings.Builder{}
-	for _, imp := range descriptor.imports {
+	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path {
 			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
@@ -45,7 +45,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 	}
 
 	pkgs := map[string]*packageType{}
-	for _, imp := range descriptor.imports {
+	for _, imp := range sf.imports {
 		pkgName, decls, err := parseGoPackage(imp.path, goos)
 		if err != nil {
 			panic(err) // TODO(Gianluca).
@@ -200,13 +200,13 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 	}
 
 	pkgOutput := strings.NewReplacer(
-		"[pkgName]", descriptor.pkgName,
+		"[pkgName]", sf.pkgName,
 		"[explicitImports]", explicitImports.String(),
 		"[reflectImport]", reflectImport,
-		"[customVariableName]", pkgsVariable,
+		"[customVariableName]", variable,
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
-	pkgOutput = genHeader(descriptor, goos) + pkgOutput
+	pkgOutput = genHeader(sf, goos) + pkgOutput
 
 	return pkgOutput, true, nil
 }
