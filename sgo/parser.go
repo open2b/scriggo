@@ -30,17 +30,6 @@ type scriggofile struct {
 	imports   []*importInstruction // list of imports defined in file.
 }
 
-// containsMain reports whether a descriptor contains at least one package
-// "main". It ignores all non-main packages contained in the descriptor.
-func (file scriggofile) containsMain() bool {
-	for _, imp := range file.imports {
-		if imp.asPath == "main" {
-			return true
-		}
-	}
-	return false
-}
-
 // importInstruction represents an IMPORT instruction in a Scriggofile.
 type importInstruction struct {
 	stdlib         bool

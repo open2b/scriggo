@@ -310,8 +310,12 @@ func generate(install bool) {
 
 			// When making an interpreter that reads only template sources, sf
 			// cannot contain only packages.
-			if sf.templates && !sf.scripts && !sf.programs && !sf.containsMain() && len(sf.imports) > 0 {
-				exitError("cannot have packages if making a template interpreter")
+			if len(sf.imports) > 0 && sf.templates && !sf.scripts && !sf.programs {
+				for _, imp := range sf.imports {
+					if imp.asPath != "main" {
+						exitError("cannot have packages if making a template interpreter")
+					}
+				}
 			}
 
 			data, hasContent, err := renderPackages(sf, "packages", goos)
