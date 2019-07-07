@@ -37,8 +37,8 @@ func TestParseErrors(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	cases := map[string]*scriggofile{
-		"MAKE EMBEDDED":                                                   {embedded: true},
-		"MAKE EMBEDDED\nGOOS linux darwin":                                {embedded: true, goos: []string{"linux", "darwin"}},
+		"MAKE EMBEDDED": {embedded: true},
+		"MAKE EMBEDDED\nREQUIRE GOOS linux darwin":                        {embedded: true, goos: []string{"linux", "darwin"}},
 		"MAKE EMBEDDED\nSET VARIABLE pkgs":                                {embedded: true, variable: "pkgs"},
 		"MAKE INTERPRETER":                                                {templates: true, scripts: true, programs: true},
 		"MAKE INTERPRETER FOR PROGRAMS":                                   {programs: true},

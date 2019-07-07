@@ -168,21 +168,29 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE",
 					tokens[0], tokens[1], tokens[0], tokens[0])
 			}
-		case "GOOS":
+		case "REQUIRE":
 			if !hasMake {
 				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
 			}
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("missing os")
+				return nil, fmt.Errorf("expected GOOS after %s", tokens[0])
 			}
-			sf.goos = make([]string, len(tokens)-1)
-			for i, tok := range tokens[1:] {
+			if !strings.EqualFold(tokens[1], "GOOS") {
+				return nil, fmt.Errorf("unexpected %s %q, expected %s GOOS", tokens[0], tokens[1], tokens[0])
+			}
+			if len(tokens) == 2 {
+				return nil, fmt.Errorf("missing os after %s %s", tokens[0], tokens[1])
+			}
+			if sf.goos == nil {
+				sf.goos = make([]string, 0, len(tokens)-2)
+			}
+			for _, tok := range tokens[2:] {
 				os := string(tok)
 				err := checkGOOS(os)
 				if err != nil {
 					return nil, err
 				}
-				sf.goos[i] = os
+				sf.goos = append(sf.goos, os)
 			}
 		case "IMPORT":
 			if !hasMake {
