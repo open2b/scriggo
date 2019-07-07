@@ -18,16 +18,16 @@ import (
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
-	pkgName  string              // name of the package to be generated.
-	filepath string              // filepath of the parsed file.
-	embedded bool                // generating embedded.
-	program  bool                // generating program interpreter.
-	template bool                // generating template interpreter.
-	script   bool                // generating script interpreter.
-	variable string              // variable name for embedded packages.
-	output   string              // output path.
-	goos     []string            // target GOOSs.
-	imports  []importInstruction // list of imports defined in file.
+	pkgName  string               // name of the package to be generated.
+	filepath string               // filepath of the parsed file.
+	embedded bool                 // generating embedded.
+	program  bool                 // generating program interpreter.
+	template bool                 // generating template interpreter.
+	script   bool                 // generating script interpreter.
+	variable string               // variable name for embedded packages.
+	output   string               // output path.
+	goos     []string             // target GOOSs.
+	imports  []*importInstruction // list of imports defined in file.
 }
 
 // containsMain reports whether a descriptor contains at least one package
@@ -250,7 +250,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					return nil, fmt.Errorf("unexpected option %s for IMPORT", option)
 				}
 			}
-			sf.imports = append(sf.imports, imp)
+			sf.imports = append(sf.imports, &imp)
 		}
 
 	}
