@@ -106,7 +106,17 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				return nil, fmt.Errorf("cannot use both INTERPRETER and EMBEDDED")
 			}
 			if len(tokens) > 1 {
-				for _, tok := range tokens[1:] {
+				if tok := strings.ToUpper(tokens[1]); tok != "FOR" {
+					switch tok {
+					case "PROGRAM", "SCRIPT", "TEMPLATE":
+						return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR %s", tokens[0], tokens[1], tokens[0], tokens[1])
+					}
+					return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR", tokens[0], tokens[1], tokens[0])
+				}
+				if len(tokens) == 2 {
+					return nil, fmt.Errorf("expecting PROGRAM, SCRIPT or TEMPLATE AFTER %s %s", tokens[0], tokens[1])
+				}
+				for _, tok := range tokens[2:] {
 					typ := strings.ToUpper(tok)
 					switch typ {
 					case "PROGRAM":
@@ -116,7 +126,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					case "TEMPLATE":
 						sf.template = true
 					default:
-						return nil, fmt.Errorf("unexpected option %s for INTERPRETER", tok)
+						return nil, fmt.Errorf("unexpected %s after %s %s", tok, tokens[0], tokens[1])
 					}
 				}
 			} else {
