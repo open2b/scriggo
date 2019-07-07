@@ -259,15 +259,15 @@ func goBuild(path string) error {
 
 var uniquePackageNameCache = map[string]string{}
 
+var goKeywords = []string{
+	"break", "case", "chan", "const", "continue", "default", "defer", "else",
+	"fallthrough", "for", "func", "go", "goto", "if", "import", "interface", "map",
+	"package", "range", "return", "struct", "select", "switch", "type", "var",
+}
+
 // isGoKeyword returns true if w is a Go keyword as specified by
 // https://golang.org/ref/spec#Keywords .
 func isGoKeyword(w string) bool {
-	goKeywords := []string{
-		"break", "default", "func", "interface", "select", "case", "defer",
-		"go", "map", "struct", "chan", "else", "goto", "package",
-		"switch", "const", "fallthrough", "if", "range",
-		"type", "continue", "for", "import", "return", "var",
-	}
 	for _, gw := range goKeywords {
 		if w == gw {
 			return true
