@@ -176,8 +176,8 @@ func Test_renderPackages(t *testing.T) {
 				pkgName: "test",
 				imports: []*importInstruction{
 					{
-						path:   "fmt",
-						export: []string{"Println"},
+						path:      "fmt",
+						including: []string{"Println"},
 					},
 				},
 			},

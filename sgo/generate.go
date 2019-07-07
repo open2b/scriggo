@@ -54,13 +54,13 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		if len(decls) == 0 {
 			continue
 		}
-		if len(imp.export) > 0 {
-			decls, err = filterIncluding(decls, imp.export)
+		if len(imp.including) > 0 {
+			decls, err = filterIncluding(decls, imp.including)
 			if err != nil {
 				return "", false, err
 			}
-		} else if len(imp.notExport) > 0 {
-			decls, err = filterExcluding(decls, imp.notExport)
+		} else if len(imp.excluding) > 0 {
+			decls, err = filterExcluding(decls, imp.excluding)
 			if err != nil {
 				return "", false, err
 			}

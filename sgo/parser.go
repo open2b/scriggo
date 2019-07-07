@@ -47,8 +47,8 @@ type importInstruction struct {
 	path           string
 	asPath         string // import asPath asPath in Scriggo.
 	notCapitalized bool   // exported names must not be capitalized.
-	export         []string
-	notExport      []string
+	including      []string
+	excluding      []string
 }
 
 // parseScriggofile parses a Scriggofile and returns its instructions.
@@ -220,51 +220,52 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					imp.asPath = path
 					parsedAs = true
 					tokens = tokens[2:]
-				case "EXPORTING":
+				case "INCLUDING":
 					if len(tokens) == 1 {
-						return nil, fmt.Errorf("missing export names after EXPORTING")
+						return nil, fmt.Errorf("missing names after INCLUDING")
 					}
-					imp.export = make([]string, len(tokens)-1)
+					imp.including = make([]string, len(tokens)-1)
 					for i, tok := range tokens[1:] {
 						name := string(tok)
 						err := checkExportedName(name)
 						if err != nil {
 							return nil, err
 						}
-						imp.export[i] = name
+						imp.including[i] = name
+					}
+					tokens = nil
+				case "EXCLUDING":
+					if len(tokens) == 1 {
+						return nil, fmt.Errorf("missing names after EXCLUDING")
+					}
+					imp.excluding = make([]string, len(tokens)-1)
+					for i, tok := range tokens[1:] {
+						name := string(tok)
+						err := checkExportedName(name)
+						if err != nil {
+							return nil, err
+						}
+						imp.excluding[i] = name
 					}
 					tokens = nil
 				case "NOT":
 					if len(tokens) == 1 {
 						if imp.asPath == "main" {
-							return nil, fmt.Errorf("unexpected NOT, expecting NOT CAPITALIZED or NOT EXPORTING")
+							return nil, fmt.Errorf("unexpected %s, expecting %s CAPITALIZED", tok, tok)
 						}
-						return nil, fmt.Errorf("unexpected NOT, expecting NOT EXPORTING")
+						return nil, fmt.Errorf("unexpected %s", tok)
 					}
-					switch strings.ToUpper(tokens[1]) {
-					case "CAPITALIZED":
-						if imp.asPath != "main" {
-							return nil, fmt.Errorf("%s %s can appear only after 'AS main'", tok, tokens[1])
+					if strings.ToUpper(tokens[1]) != "CAPITALIZED" {
+						if imp.asPath == "main" {
+							return nil, fmt.Errorf("unexpected %s %s, expecting %s CAPITALIZED", tok, tokens[1], tok)
 						}
-						imp.notCapitalized = true
-						tokens = tokens[2:]
-					case "EXPORTING":
-						if len(tokens) == 2 {
-							return nil, fmt.Errorf("missing export names after NOT EXPORTING")
-						}
-						imp.notExport = make([]string, len(tokens)-2)
-						for i, tok := range tokens[2:] {
-							name := string(tok)
-							err := checkExportedName(name)
-							if err != nil {
-								return nil, err
-							}
-							imp.notExport[i] = name
-						}
-						tokens = nil
-					default:
-						return nil, fmt.Errorf("unexpected NOT %s, expecting NOT EXPORTING", tokens[1])
+						return nil, fmt.Errorf("unexpected %s", tok)
 					}
+					if imp.asPath != "main" {
+						return nil, fmt.Errorf("%s %s can appear only after 'AS main'", tok, tokens[1])
+					}
+					imp.notCapitalized = true
+					tokens = tokens[2:]
 				default:
 					return nil, fmt.Errorf("unexpected option %s for IMPORT", tok)
 				}
