@@ -284,7 +284,7 @@ func generate(install bool) {
 	}
 
 	// Generate the sources for a new interpreter.
-	if sf.template || sf.script || sf.program {
+	if sf.templates || sf.scripts || sf.programs {
 
 		if sf.output == "" {
 			sf.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
@@ -310,7 +310,7 @@ func generate(install bool) {
 
 			// When making an interpreter that reads only template sources, sf
 			// cannot contain only packages.
-			if sf.template && !sf.script && !sf.program && !sf.containsMain() && len(sf.imports) > 0 {
+			if sf.templates && !sf.scripts && !sf.programs && !sf.containsMain() && len(sf.imports) > 0 {
 				exitError("cannot have packages if making a template interpreter")
 			}
 
@@ -337,7 +337,7 @@ func generate(install bool) {
 
 		// Write the package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.program, sf.script, sf.template), filePerm)
+		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.programs, sf.scripts, sf.templates), filePerm)
 		if err != nil {
 			exitError("writing interpreter file: %s", err)
 		}

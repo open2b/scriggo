@@ -18,16 +18,16 @@ import (
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
-	pkgName  string               // name of the package to be generated.
-	filepath string               // filepath of the parsed file.
-	embedded bool                 // generating embedded.
-	program  bool                 // generating program interpreter.
-	template bool                 // generating template interpreter.
-	script   bool                 // generating script interpreter.
-	variable string               // variable name for embedded packages.
-	output   string               // output path.
-	goos     []string             // target GOOSs.
-	imports  []*importInstruction // list of imports defined in file.
+	pkgName   string               // name of the package to be generated.
+	filepath  string               // filepath of the parsed file.
+	embedded  bool                 // generating embedded.
+	programs  bool                 // generating program interpreter.
+	templates bool                 // generating template interpreter.
+	scripts   bool                 // generating script interpreter.
+	variable  string               // variable name for embedded packages.
+	output    string               // output path.
+	goos      []string             // target GOOSs.
+	imports   []*importInstruction // list of imports defined in file.
 }
 
 // containsMain reports whether a descriptor contains at least one package
@@ -108,31 +108,31 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if len(tokens) > 1 {
 				if tok := strings.ToUpper(tokens[1]); tok != "FOR" {
 					switch tok {
-					case "PROGRAM", "SCRIPT", "TEMPLATE":
+					case "PROGRAMS", "SCRIPTS", "TEMPLATES":
 						return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR %s", tokens[0], tokens[1], tokens[0], tokens[1])
 					}
 					return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR", tokens[0], tokens[1], tokens[0])
 				}
 				if len(tokens) == 2 {
-					return nil, fmt.Errorf("expecting PROGRAM, SCRIPT or TEMPLATE AFTER %s %s", tokens[0], tokens[1])
+					return nil, fmt.Errorf("expecting PROGRAMS, SCRIPTS or TEMPLATES AFTER %s %s", tokens[0], tokens[1])
 				}
 				for _, tok := range tokens[2:] {
 					typ := strings.ToUpper(tok)
 					switch typ {
-					case "PROGRAM":
-						sf.program = true
-					case "SCRIPT":
-						sf.script = true
-					case "TEMPLATE":
-						sf.template = true
+					case "PROGRAMS":
+						sf.programs = true
+					case "SCRIPTS":
+						sf.scripts = true
+					case "TEMPLATES":
+						sf.templates = true
 					default:
 						return nil, fmt.Errorf("unexpected %s after %s %s", tok, tokens[0], tokens[1])
 					}
 				}
 			} else {
-				sf.program = true
-				sf.script = true
-				sf.template = true
+				sf.programs = true
+				sf.scripts = true
+				sf.templates = true
 			}
 		case "PACKAGE":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
