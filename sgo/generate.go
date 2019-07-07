@@ -27,7 +27,7 @@ const (
 // renderPackages renders a Scriggofile. It also returns a boolean indicating
 // if the content contains packages. Ignores all main packages contained in
 // the Scriggofile.
-func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error) {
+func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 
 	type packageType struct {
 		name string
@@ -194,7 +194,7 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		[reflectImport]
 
 		func init() {
-			[customVariableName] = Packages{
+			[variable] = Packages{
 				[pkgContent]
 			}
 		}`
@@ -208,7 +208,7 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		"[pkgName]", sf.pkgName,
 		"[explicitImports]", explicitImports.String(),
 		"[reflectImport]", reflectImport,
-		"[customVariableName]", variable,
+		"[variable]", sf.variable,
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
 	pkgOutput = genHeader(sf, goos) + pkgOutput

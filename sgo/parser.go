@@ -40,7 +40,10 @@ type importCommand struct {
 // parseScriggofile parses a Scriggofile and returns its commands.
 func parseScriggofile(src io.Reader) (*scriggofile, error) {
 
-	sf := scriggofile{}
+	sf := scriggofile{
+		variable: "packages",
+	}
+
 	scanner := bufio.NewScanner(src)
 	ln := 0
 
@@ -131,12 +134,12 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				if len(tokens) > 3 {
 					return nil, fmt.Errorf("too many variable names")
 				}
-				varName := string(tokens[2])
-				err := checkIdentifierName(varName)
+				variable := string(tokens[2])
+				err := checkIdentifierName(variable)
 				if err != nil {
 					return nil, err
 				}
-				sf.variable = varName
+				sf.variable = variable
 			case "PACKAGE":
 				if len(tokens) == 2 {
 					return nil, fmt.Errorf("missing package name")

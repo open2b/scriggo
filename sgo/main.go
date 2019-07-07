@@ -242,9 +242,6 @@ func generate(install bool) {
 			exit(1)
 			return
 		}
-		if sf.variable == "" {
-			sf.variable = "packages"
-		}
 		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
@@ -252,7 +249,7 @@ func generate(install bool) {
 		for _, goos := range sf.goos {
 
 			// Render all packages, ignoring main.
-			data, hasContent, err := renderPackages(sf, sf.variable, goos)
+			data, hasContent, err := renderPackages(sf, goos)
 			if err != nil {
 				exitError("%s", err)
 			}
@@ -318,7 +315,7 @@ func generate(install bool) {
 				}
 			}
 
-			data, hasContent, err := renderPackages(sf, "packages", goos)
+			data, hasContent, err := renderPackages(sf, goos)
 			if err != nil {
 				exitError("rendering packages: %s", err)
 			}

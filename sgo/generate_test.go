@@ -12,14 +12,14 @@ import (
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		sf           *scriggofile
-		pkgsVariable string
-		goos         string
-		expected     string
+		sf       *scriggofile
+		goos     string
+		expected string
 	}{
 		"Importing fmt with an alternative path": {
 			sf: &scriggofile{
-				pkgName: "test",
+				pkgName:  "test",
+				variable: "packages",
 				imports: []*importCommand{
 					{path: "fmt", asPath: "custom/fmt/path"},
 				},
@@ -70,8 +70,9 @@ func Test_renderPackages(t *testing.T) {
 		},
 		"Importing archive/tar simple": {
 			sf: &scriggofile{
-				pkgName: "test",
-				imports: []*importCommand{{path: "archive/tar"}},
+				pkgName:  "test",
+				variable: "packages",
+				imports:  []*importCommand{{path: "archive/tar"}},
 			},
 			expected: `package test
 
@@ -124,8 +125,9 @@ func Test_renderPackages(t *testing.T) {
 		},
 		"Importing fmt simple": {
 			sf: &scriggofile{
-				pkgName: "test",
-				imports: []*importCommand{{path: "fmt"}},
+				pkgName:  "test",
+				variable: "packages",
+				imports:  []*importCommand{{path: "fmt"}},
 			},
 			expected: `package test
 
@@ -173,7 +175,8 @@ func Test_renderPackages(t *testing.T) {
 		},
 		"Importing only Println from fmt": {
 			sf: &scriggofile{
-				pkgName: "test",
+				pkgName:  "test",
+				variable: "packages",
 				imports: []*importCommand{
 					{
 						path:      "fmt",
@@ -210,10 +213,7 @@ func Test_renderPackages(t *testing.T) {
 					c.goos = runtime.GOOS
 				}
 			}
-			if c.pkgsVariable == "" {
-				c.pkgsVariable = "packages"
-			}
-			got, content, err := renderPackages(c.sf, c.pkgsVariable, c.goos)
+			got, content, err := renderPackages(c.sf, c.goos)
 			if err != nil {
 				t.Fatal(err)
 			}
