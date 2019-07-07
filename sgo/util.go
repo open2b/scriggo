@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -341,4 +342,90 @@ func nextGoVersion(v string) string {
 	f = math.Floor(f)
 	next := int(f) + 1
 	return fmt.Sprintf("go1.%d", next)
+}
+
+// checkIdentifierName checks that name is a valid not blank identifier name.
+func checkIdentifierName(name string) error {
+	if name == "_" {
+		return fmt.Errorf("cannot use the blank identifier")
+	}
+	if isGoKeyword(name) {
+		return fmt.Errorf("invalid variable name")
+	}
+	first := true
+	for _, r := range name {
+		if !unicode.IsLetter(r) && (first || !unicode.IsDigit(r)) {
+			return fmt.Errorf("invalid identifier name")
+		}
+		first = false
+	}
+	return nil
+}
+
+// checkGOOS checks that os is a valid GOOS value.
+func checkGOOS(os string) error {
+	switch os {
+	case "darwin", "dragonfly", "js", "linux", "android", "solaris",
+		"freebsd", "nacl", "netbsd", "openbsd", "plan9", "windows", "aix":
+		return nil
+	}
+	return fmt.Errorf("unkown os %q", os)
+}
+
+// checkPackagePath checks that a given package path is valid.
+//
+// This function must be in sync with the function validPackagePath in the
+// file "scriggo/internal/compiler/path".
+func checkPackagePath(path string) error {
+	if path == "main" {
+		return nil
+	}
+	for _, r := range path {
+		if !unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.P, unicode.S) {
+			return fmt.Errorf("invalid path path %q", path)
+		}
+		switch r {
+		case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', ':', ';', '<',
+			'=', '>', '?', '[', '\\', ']', '^', '`', '{', '|', '}', '\uFFFD':
+			return fmt.Errorf("invalid path path %q", path)
+		}
+	}
+	if cleaned := cleanPath(path); path != cleaned {
+		return fmt.Errorf("invalid path path %q", path)
+	}
+	return nil
+}
+
+// checkExportedName checks that name is a valid exported identifier name.
+func checkExportedName(name string) error {
+	err := checkIdentifierName(name)
+	if err != nil {
+		return err
+	}
+	if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+		return fmt.Errorf("cannot refer to unexported name %s", name)
+	}
+	return nil
+}
+
+// cleanPath cleans a path and returns the path in its canonical form.
+// path must be already a valid path.
+//
+// This function must be in sync with the function cleanPath in the file
+// "scriggo/internal/compiler/path".
+func cleanPath(path string) string {
+	if !strings.Contains(path, "..") {
+		return path
+	}
+	var b = []byte(path)
+	for i := 0; i < len(b); i++ {
+		if b[i] == '/' {
+			if b[i+1] == '.' && b[i+2] == '.' {
+				s := bytes.LastIndexByte(b[:i], '/')
+				b = append(b[:s+1], b[i+4:]...)
+				i = s - 1
+			}
+		}
+	}
+	return string(b)
 }
