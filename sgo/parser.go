@@ -306,10 +306,7 @@ func checkIdentifierName(name string) error {
 	if name == "_" {
 		return fmt.Errorf("cannot use the blank identifier")
 	}
-	switch name {
-	case "break", "case", "chan", "const", "continue", "default", "defer", "else",
-		"fallthrough", "for", "func", "go", "goto", "if", "import", "interface", "map",
-		"package", "range", "return", "struct", "select", "switch", "type", "var":
+	if isGoKeyword(name) {
 		return fmt.Errorf("invalid variable name")
 	}
 	first := true
