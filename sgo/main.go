@@ -224,10 +224,10 @@ func generate(install bool) {
 	// Import the packages of the Go standard library.
 	for i, imp := range sf.imports {
 		if imp.stdlib {
-			imports := make([]*importInstruction, len(sf.imports)+len(stdlib)-1)
+			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
 			copy(imports[:i], sf.imports[:i])
 			for j, path := range stdlib {
-				imports[i+j] = &importInstruction{path: path}
+				imports[i+j] = &importCommand{path: path}
 			}
 			copy(imports[i+len(stdlib):], sf.imports[i+1:])
 			sf.imports = imports

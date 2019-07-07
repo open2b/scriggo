@@ -18,20 +18,20 @@ import (
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
-	pkgName   string               // name of the package to be generated.
-	filepath  string               // filepath of the parsed file.
-	embedded  bool                 // generating embedded.
-	programs  bool                 // generating program interpreter.
-	templates bool                 // generating template interpreter.
-	scripts   bool                 // generating script interpreter.
-	variable  string               // variable name for embedded packages.
-	output    string               // output path.
-	goos      []string             // target GOOSs.
-	imports   []*importInstruction // list of imports defined in file.
+	pkgName   string           // name of the package to be generated.
+	filepath  string           // filepath of the parsed file.
+	embedded  bool             // generating embedded.
+	programs  bool             // generating program interpreter.
+	templates bool             // generating template interpreter.
+	scripts   bool             // generating script interpreter.
+	variable  string           // variable name for embedded packages.
+	output    string           // output path.
+	goos      []string         // target GOOSs.
+	imports   []*importCommand // list of imports defined in file.
 }
 
-// importInstruction represents an IMPORT instruction in a Scriggofile.
-type importInstruction struct {
+// importCommand represents an IMPORT command in a Scriggofile.
+type importCommand struct {
 	stdlib         bool
 	path           string
 	asPath         string // import asPath asPath in Scriggo.
@@ -40,7 +40,7 @@ type importInstruction struct {
 	excluding      []string
 }
 
-// parseScriggofile parses a Scriggofile and returns its instructions.
+// parseScriggofile parses a Scriggofile and returns its commands.
 func parseScriggofile(src io.Reader) (*scriggofile, error) {
 
 	sf := scriggofile{}
@@ -192,13 +192,13 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			if len(tokens) > 2 && strings.EqualFold(path, "STANDARD") && strings.EqualFold(tokens[2], "LIBRARY") {
 				for _, imp := range sf.imports {
 					if imp.stdlib {
-						return nil, fmt.Errorf("instruction %s %s %s repeated", tokens[0], tokens[1], tokens[2])
+						return nil, fmt.Errorf("command %s %s %s is repeated", tokens[0], tokens[1], tokens[2])
 					}
 				}
 				if len(tokens) > 3 {
 					return nil, fmt.Errorf("unexpected %q after %s %s %s", tokens[3], tokens[0], tokens[1], tokens[2])
 				}
-				sf.imports = append(sf.imports, &importInstruction{stdlib: true})
+				sf.imports = append(sf.imports, &importCommand{stdlib: true})
 				continue
 			} else {
 				err := checkPackagePath(path)
@@ -206,7 +206,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					return nil, err
 				}
 			}
-			imp := importInstruction{path: path}
+			imp := importCommand{path: path}
 			parsedAs := false
 			tokens = tokens[2:]
 			for len(tokens) > 0 {
