@@ -155,11 +155,16 @@ func getScriggofile(path string) (io.ReadCloser, error) {
 		return nil, errors.New("too many packages matching")
 	}
 	pkg := pkgs[0]
-	for _, p := range pkg.GoFiles {
-		base := filepath.Base(p)
-		if base == "Scriggofile" {
-			return os.Open(p)
-		}
+	if len(pkg.GoFiles) == 0 {
+		return nil, fmt.Errorf("package %s does not contain Go files", pkg.Name)
+	}
+	scriggofilePath := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "Scriggofile")
+	fi, err := os.Open(scriggofilePath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if err == nil {
+		return fi, nil
 	}
 
 	if pkg.Name == "" {
