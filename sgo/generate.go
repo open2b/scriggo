@@ -29,6 +29,8 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 		decl map[string]string
 	}
 
+	importReflect := false
+
 	explicitImports := strings.Builder{}
 	for _, imp := range descriptor.imports {
 		uniqueName := uniquePackageName(imp.path)
@@ -36,6 +38,9 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
 		} else {
 			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
+		}
+		if imp.path == "reflect" {
+			importReflect = true
 		}
 	}
 
@@ -181,7 +186,7 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 		)
 
 		import . "scriggo"
-		import "reflect"
+		[reflectImport]
 
 		func init() {
 			[customVariableName] = Packages{
@@ -189,9 +194,15 @@ func renderPackages(descriptor *scriggofile, pkgsVariable, goos string) (string,
 			}
 		}`
 
+	var reflectImport string
+	if !importReflect {
+		reflectImport = `import "reflect"`
+	}
+
 	pkgOutput := strings.NewReplacer(
 		"[pkgName]", descriptor.pkgName,
 		"[explicitImports]", explicitImports.String(),
+		"[reflectImport]", reflectImport,
 		"[customVariableName]", pkgsVariable,
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
