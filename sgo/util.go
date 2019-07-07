@@ -174,7 +174,7 @@ func getScriggofile(path string) (io.ReadCloser, error) {
 
 	fmt.Fprintf(os.Stderr, "package %q does not provide a Scriggofile, generating a default\n", path)
 
-	out := "\nINTERPRETER\n\nPACKAGE [pkgName]\n\nIMPORT [pkgPath]\n"
+	out := "\nMAKE INTERPRETER\n\nSET PACKAGE [pkgName]\n\nIMPORT [pkgPath]\n"
 
 	out = strings.ReplaceAll(out, "[pkgName]", pkg.Name)
 	out = strings.ReplaceAll(out, "[pkgPath]", path)

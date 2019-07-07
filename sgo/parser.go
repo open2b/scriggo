@@ -54,15 +54,11 @@ type importInstruction struct {
 // parseScriggofile parses a Scriggofile and returns its instructions.
 func parseScriggofile(src io.Reader) (*scriggofile, error) {
 
-	parsed := map[string]bool{
-		"EMBEDDED":    false,
-		"INTERPRETER": false,
-		"GOOS":        false,
-	}
-
 	sf := scriggofile{}
 	scanner := bufio.NewScanner(src)
 	ln := 0
+
+	hasMake := false
 
 	for scanner.Scan() {
 
@@ -81,59 +77,58 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			continue
 		}
 
-		instr := strings.ToUpper(tokens[0])
-		if isParsed, ok := parsed[instr]; ok {
-			if isParsed {
-				return nil, fmt.Errorf("instruction %s repeated", tokens[0])
-			} else {
-				parsed[instr] = true
+		switch strings.ToUpper(tokens[0]) {
+		case "MAKE":
+			if hasMake {
+				return nil, fmt.Errorf("repeated command MAKE")
 			}
-		}
-
-		switch instr {
-		case "EMBEDDED":
-			if parsed["INTERPRETER"] {
-				return nil, fmt.Errorf("cannot use both INTERPRETER and EMBEDDED")
+			if len(tokens) == 1 {
+				return nil, fmt.Errorf("expecting EMBEDDED or INTERPRETER after %s", tokens[0])
 			}
-			if len(tokens) > 1 {
-				return nil, fmt.Errorf("unknown %q after EMBEDDED", tokens[1])
-			}
-			sf.embedded = true
-		case "INTERPRETER":
-			if parsed["EMBEDDED"] {
-				return nil, fmt.Errorf("cannot use both INTERPRETER and EMBEDDED")
-			}
-			if len(tokens) > 1 {
-				if tok := strings.ToUpper(tokens[1]); tok != "FOR" {
-					switch tok {
-					case "PROGRAMS", "SCRIPTS", "TEMPLATES":
-						return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR %s", tokens[0], tokens[1], tokens[0], tokens[1])
+			switch strings.ToUpper(tokens[1]) {
+			case "EMBEDDED":
+				if len(tokens) > 2 {
+					return nil, fmt.Errorf("unknown %q after %s %s", tokens[0], tokens[1], tokens[1])
+				}
+				sf.embedded = true
+			case "INTERPRETER":
+				if len(tokens) > 2 {
+					if tok := strings.ToUpper(tokens[2]); tok != "FOR" {
+						switch tok {
+						case "PROGRAMS", "SCRIPTS", "TEMPLATES":
+							return nil, fmt.Errorf("unexpected %s %s %s, expecting %s %s FOR %s",
+								tokens[0], tokens[1], tokens[2], tokens[0], tokens[1], tokens[2])
+						}
+						return nil, fmt.Errorf("unexpected %s %s %q, expecting %s %s FOR",
+							tokens[0], tokens[1], tokens[2], tokens[0], tokens[1])
 					}
-					return nil, fmt.Errorf("unexpected %s %s, expecting %s FOR", tokens[0], tokens[1], tokens[0])
-				}
-				if len(tokens) == 2 {
-					return nil, fmt.Errorf("expecting PROGRAMS, SCRIPTS or TEMPLATES AFTER %s %s", tokens[0], tokens[1])
-				}
-				for _, tok := range tokens[2:] {
-					typ := strings.ToUpper(tok)
-					switch typ {
-					case "PROGRAMS":
-						sf.programs = true
-					case "SCRIPTS":
-						sf.scripts = true
-					case "TEMPLATES":
-						sf.templates = true
-					default:
-						return nil, fmt.Errorf("unexpected %s after %s %s", tok, tokens[0], tokens[1])
+					if len(tokens) == 3 {
+						return nil, fmt.Errorf("expecting PROGRAMS, SCRIPTS or TEMPLATES AFTER %s %s %s",
+							tokens[0], tokens[1], tokens[2])
 					}
+					for _, tok := range tokens[3:] {
+						typ := strings.ToUpper(tok)
+						switch typ {
+						case "PROGRAMS":
+							sf.programs = true
+						case "SCRIPTS":
+							sf.scripts = true
+						case "TEMPLATES":
+							sf.templates = true
+						default:
+							return nil, fmt.Errorf("unexpected %q after %s %s %s",
+								tok, tokens[0], tokens[1], tokens[2])
+						}
+					}
+				} else {
+					sf.programs = true
+					sf.scripts = true
+					sf.templates = true
 				}
-			} else {
-				sf.programs = true
-				sf.scripts = true
-				sf.templates = true
 			}
+			hasMake = true
 		case "SET":
-			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
+			if !hasMake {
 				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
 			}
 			if len(tokens) == 1 {
@@ -174,8 +169,8 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					tokens[0], tokens[1], tokens[0], tokens[0])
 			}
 		case "GOOS":
-			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
-				return nil, fmt.Errorf("missing INTERPRETER or EMBEDDED before %s", tokens[0])
+			if !hasMake {
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
 			}
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("missing os")
@@ -190,8 +185,8 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				sf.goos[i] = os
 			}
 		case "IMPORT":
-			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
-				return nil, fmt.Errorf("missing INTERPRETER or EMBEDDED before %s", tokens[0])
+			if !hasMake {
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
 			}
 			if len(tokens) == 1 {
 				return nil, fmt.Errorf("missing package path")
@@ -285,6 +280,8 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				}
 			}
 			sf.imports = append(sf.imports, &imp)
+		default:
+			return nil, fmt.Errorf("unknown command %s", tokens[0])
 		}
 
 	}

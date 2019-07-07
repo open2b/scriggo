@@ -14,13 +14,13 @@ import (
 
 func TestParseErrors(t *testing.T) {
 	cases := map[string]string{
-		"INTERPRETER\nSET VARIABLE a":           `cannot use SET VARIABLE with interpreters`,
-		"INTERPRETER\nEMBEDDED":                 `cannot use both INTERPRETER and EMBEDDED`,
-		"EMBEDDED\nINTERPRETER":                 `cannot use both INTERPRETER and EMBEDDED`,
-		"INTERPRETER PROGRAMS":                  `unexpected INTERPRETER PROGRAMS, expecting INTERPRETER FOR PROGRAMS`,
-		"INTERPRETER plugin":                    `unexpected INTERPRETER plugin, expecting INTERPRETER FOR`,
-		"INTERPRETER FOR plugin":                `unexpected plugin after INTERPRETER FOR`,
-		"INTERPRETER\nIMPORT a NOT CAPITALIZED": `NOT CAPITALIZED can appear only after 'AS main'`,
+		"MAKE INTERPRETER\nSET VARIABLE a":           `cannot use SET VARIABLE with interpreters`,
+		"MAKE INTERPRETER\nMAKE EMBEDDED":            `repeated command MAKE`,
+		"MAKE EMBEDDED\nMAKE INTERPRETER":            `repeated command MAKE`,
+		"MAKE INTERPRETER PROGRAMS":                  `unexpected MAKE INTERPRETER PROGRAMS, expecting MAKE INTERPRETER FOR PROGRAMS`,
+		"MAKE INTERPRETER plugin":                    `unexpected MAKE INTERPRETER "plugin", expecting MAKE INTERPRETER FOR`,
+		"MAKE INTERPRETER FOR plugin":                `unexpected "plugin" after MAKE INTERPRETER FOR`,
+		"MAKE INTERPRETER\nIMPORT a NOT CAPITALIZED": `NOT CAPITALIZED can appear only after 'AS main'`,
 	}
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
@@ -37,28 +37,28 @@ func TestParseErrors(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	cases := map[string]*scriggofile{
-		"EMBEDDED":                                                   {embedded: true},
-		"EMBEDDED\nGOOS linux darwin":                                {embedded: true, goos: []string{"linux", "darwin"}},
-		"EMBEDDED\nSET VARIABLE pkgs":                                {embedded: true, variable: "pkgs"},
-		"INTERPRETER":                                                {templates: true, scripts: true, programs: true},
-		"INTERPRETER FOR PROGRAMS":                                   {programs: true},
-		"INTERPRETER FOR SCRIPTS PROGRAMS":                           {scripts: true, programs: true},
-		"INTERPRETER FOR SCRIPTS TEMPLATES PROGRAMS":                 {scripts: true, programs: true, templates: true},
-		"INTERPRETER FOR SCRIPTS":                                    {scripts: true},
-		"INTERPRETER FOR TEMPLATES":                                  {templates: true},
-		"EMBEDDED\nIMPORT a":                                         {embedded: true, imports: []*importInstruction{{path: "a"}}},
-		"EMBEDDED\nIMPORT a AS main":                                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main"}}},
-		"EMBEDDED\nIMPORT a AS main NOT CAPITALIZED":                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true}}},
-		"EMBEDDED\nIMPORT a INCLUDING Sleep":                         {embedded: true, imports: []*importInstruction{{path: "a", including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a AS main INCLUDING Sleep":                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a AS main NOT CAPITALIZED INCLUDING Sleep": {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true, including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a INCLUDING Sleep Duration":                {embedded: true, imports: []*importInstruction{{path: "a", including: []string{"Sleep", "Duration"}}}},
-		"EMBEDDED\nIMPORT a AS main NOT CAPITALIZED EXCLUDING Sleep": {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true, excluding: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a AS test":                                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "test"}}},
-		"EMBEDDED\nIMPORT a AS newpath INCLUDING Sleep":              {embedded: true, imports: []*importInstruction{{path: "a", asPath: "newpath", including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a AS path/to/pkg INCLUDING Sleep":          {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/pkg", including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT a AS path/to/test INCLUDING Sleep":         {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/test", including: []string{"Sleep"}}}},
-		"EMBEDDED\nIMPORT STANDARD LIBRARY":                          {embedded: true, imports: []*importInstruction{{stdlib: true}}},
+		"MAKE EMBEDDED":                                                   {embedded: true},
+		"MAKE EMBEDDED\nGOOS linux darwin":                                {embedded: true, goos: []string{"linux", "darwin"}},
+		"MAKE EMBEDDED\nSET VARIABLE pkgs":                                {embedded: true, variable: "pkgs"},
+		"MAKE INTERPRETER":                                                {templates: true, scripts: true, programs: true},
+		"MAKE INTERPRETER FOR PROGRAMS":                                   {programs: true},
+		"MAKE INTERPRETER FOR SCRIPTS PROGRAMS":                           {scripts: true, programs: true},
+		"MAKE INTERPRETER FOR SCRIPTS TEMPLATES PROGRAMS":                 {scripts: true, programs: true, templates: true},
+		"MAKE INTERPRETER FOR SCRIPTS":                                    {scripts: true},
+		"MAKE INTERPRETER FOR TEMPLATES":                                  {templates: true},
+		"MAKE EMBEDDED\nIMPORT a":                                         {embedded: true, imports: []*importInstruction{{path: "a"}}},
+		"MAKE EMBEDDED\nIMPORT a AS main":                                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main"}}},
+		"MAKE EMBEDDED\nIMPORT a AS main NOT CAPITALIZED":                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true}}},
+		"MAKE EMBEDDED\nIMPORT a INCLUDING Sleep":                         {embedded: true, imports: []*importInstruction{{path: "a", including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS main INCLUDING Sleep":                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS main NOT CAPITALIZED INCLUDING Sleep": {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true, including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a INCLUDING Sleep Duration":                {embedded: true, imports: []*importInstruction{{path: "a", including: []string{"Sleep", "Duration"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS main NOT CAPITALIZED EXCLUDING Sleep": {embedded: true, imports: []*importInstruction{{path: "a", asPath: "main", notCapitalized: true, excluding: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS test":                                 {embedded: true, imports: []*importInstruction{{path: "a", asPath: "test"}}},
+		"MAKE EMBEDDED\nIMPORT a AS newpath INCLUDING Sleep":              {embedded: true, imports: []*importInstruction{{path: "a", asPath: "newpath", including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS path/to/pkg INCLUDING Sleep":          {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/pkg", including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT a AS path/to/test INCLUDING Sleep":         {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/test", including: []string{"Sleep"}}}},
+		"MAKE EMBEDDED\nIMPORT STANDARD LIBRARY":                          {embedded: true, imports: []*importInstruction{{stdlib: true}}},
 	}
 	for input, want := range cases {
 		t.Run(input, func(t *testing.T) {
