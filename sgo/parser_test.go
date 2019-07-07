@@ -56,6 +56,7 @@ func TestParse(t *testing.T) {
 		"EMBEDDED\nIMPORT a AS newpath EXPORTING Sleep":                {embedded: true, imports: []*importInstruction{{path: "a", asPath: "newpath", export: []string{"Sleep"}}}},
 		"EMBEDDED\nIMPORT a AS path/to/pkg EXPORTING Sleep":            {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/pkg", export: []string{"Sleep"}}}},
 		"EMBEDDED\nIMPORT a AS path/to/test EXPORTING Sleep":           {embedded: true, imports: []*importInstruction{{path: "a", asPath: "path/to/test", export: []string{"Sleep"}}}},
+		"EMBEDDED\nIMPORT STANDARD LIBRARY":                            {embedded: true, imports: []*importInstruction{{stdlib: true}}},
 	}
 	for input, want := range cases {
 		t.Run(input, func(t *testing.T) {

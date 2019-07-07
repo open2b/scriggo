@@ -43,6 +43,7 @@ func (file scriggofile) containsMain() bool {
 
 // importInstruction represents an IMPORT instruction in a Scriggofile.
 type importInstruction struct {
+	stdlib        bool
 	path          string
 	asPath        string // import asPath asPath in Scriggo.
 	uncapitalized bool   // exported names must be set "uncapitalized".
@@ -182,9 +183,22 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				return nil, fmt.Errorf("missing package path")
 			}
 			path := string(tokens[1])
-			err := checkPackagePath(path)
-			if err != nil {
-				return nil, err
+			if len(tokens) > 2 && strings.EqualFold(path, "STANDARD") && strings.EqualFold(tokens[2], "LIBRARY") {
+				for _, imp := range sf.imports {
+					if imp.stdlib {
+						return nil, fmt.Errorf("instruction %s %s %s repeated", tokens[0], tokens[1], tokens[2])
+					}
+				}
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("unexpected %q after %s %s %s", tokens[3], tokens[0], tokens[1], tokens[2])
+				}
+				sf.imports = append(sf.imports, &importInstruction{stdlib: true})
+				continue
+			} else {
+				err := checkPackagePath(path)
+				if err != nil {
+					return nil, err
+				}
 			}
 			imp := importInstruction{path: path}
 			parsedAs := false
