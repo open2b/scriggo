@@ -83,10 +83,12 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 		}
 
 		instr := strings.ToUpper(tokens[0])
-		if parsed[instr] {
-			return nil, fmt.Errorf("instruction %s repeated", tokens[0])
-		} else {
-			parsed[instr] = true
+		if isParsed, ok := parsed[instr]; ok {
+			if isParsed {
+				return nil, fmt.Errorf("instruction %s repeated", tokens[0])
+			} else {
+				parsed[instr] = true
+			}
 		}
 
 		switch instr {
