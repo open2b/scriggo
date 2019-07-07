@@ -57,8 +57,6 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 	parsed := map[string]bool{
 		"EMBEDDED":    false,
 		"INTERPRETER": false,
-		"PACKAGE":     false,
-		"VARIABLE":    false,
 		"GOOS":        false,
 	}
 
@@ -134,41 +132,47 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				sf.scripts = true
 				sf.templates = true
 			}
-		case "PACKAGE":
+		case "SET":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
-				return nil, fmt.Errorf("missing INTERPRETER or EMBEDDED before %s", tokens[0])
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
 			}
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("missing package name")
+				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s", tokens[0])
 			}
-			if len(tokens) > 2 {
-				return nil, fmt.Errorf("too many packages names")
+			switch strings.ToUpper(tokens[1]) {
+			case "VARIABLE":
+				if !sf.embedded {
+					return nil, fmt.Errorf("cannot use SET VARIABLE with interpreters")
+				}
+				if len(tokens) == 2 {
+					return nil, fmt.Errorf("missing variable name")
+				}
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("too many variable names")
+				}
+				varName := string(tokens[2])
+				err := checkIdentifierName(varName)
+				if err != nil {
+					return nil, err
+				}
+				sf.variable = varName
+			case "PACKAGE":
+				if len(tokens) == 2 {
+					return nil, fmt.Errorf("missing package name")
+				}
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("too many packages names")
+				}
+				pkgName := string(tokens[1])
+				err := checkIdentifierName(pkgName)
+				if err != nil {
+					return nil, err
+				}
+				sf.pkgName = pkgName
+			default:
+				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE",
+					tokens[0], tokens[1], tokens[0], tokens[0])
 			}
-			pkgName := string(tokens[1])
-			err := checkIdentifierName(pkgName)
-			if err != nil {
-				return nil, err
-			}
-			sf.pkgName = pkgName
-		case "VARIABLE":
-			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
-				return nil, fmt.Errorf("missing EMBEDDED before %s", tokens[0])
-			}
-			if !sf.embedded {
-				return nil, fmt.Errorf("cannot use variable with interpreters")
-			}
-			if len(tokens) == 1 {
-				return nil, fmt.Errorf("missing variable name")
-			}
-			if len(tokens) > 2 {
-				return nil, fmt.Errorf("too many variable names")
-			}
-			varName := string(tokens[1])
-			err := checkIdentifierName(varName)
-			if err != nil {
-				return nil, err
-			}
-			sf.variable = varName
 		case "GOOS":
 			if !parsed["INTERPRETER"] && !parsed["EMBEDDED"] {
 				return nil, fmt.Errorf("missing INTERPRETER or EMBEDDED before %s", tokens[0])

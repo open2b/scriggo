@@ -14,7 +14,7 @@ import (
 
 func TestParseErrors(t *testing.T) {
 	cases := map[string]string{
-		"INTERPRETER\nVARIABLE a":               `cannot use variable with interpreters`,
+		"INTERPRETER\nSET VARIABLE a":           `cannot use SET VARIABLE with interpreters`,
 		"INTERPRETER\nEMBEDDED":                 `cannot use both INTERPRETER and EMBEDDED`,
 		"EMBEDDED\nINTERPRETER":                 `cannot use both INTERPRETER and EMBEDDED`,
 		"INTERPRETER PROGRAMS":                  `unexpected INTERPRETER PROGRAMS, expecting INTERPRETER FOR PROGRAMS`,
@@ -39,7 +39,7 @@ func TestParse(t *testing.T) {
 	cases := map[string]*scriggofile{
 		"EMBEDDED":                                                   {embedded: true},
 		"EMBEDDED\nGOOS linux darwin":                                {embedded: true, goos: []string{"linux", "darwin"}},
-		"EMBEDDED\nVARIABLE pkgs":                                    {embedded: true, variable: "pkgs"},
+		"EMBEDDED\nSET VARIABLE pkgs":                                {embedded: true, variable: "pkgs"},
 		"INTERPRETER":                                                {templates: true, scripts: true, programs: true},
 		"INTERPRETER FOR PROGRAMS":                                   {programs: true},
 		"INTERPRETER FOR SCRIPTS PROGRAMS":                           {scripts: true, programs: true},
