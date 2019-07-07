@@ -69,7 +69,7 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
 		//  return an error. Note that the builtin functions 'print' and
 		//  'println' should be handled as special case:
-		if imp.uncapitalized {
+		if imp.notCapitalized {
 			tmp := map[string]string{}
 			for name, decl := range decls {
 				newName := uncapitalize(name)
