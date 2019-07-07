@@ -8,99 +8,7 @@ package main
 
 import "strings"
 
-// makeInterpreterSource returns a valid Go source code that interprets a
-// Scriggo program, script or template.
-func makeInterpreterSource(program, script, template bool) []byte {
-	const scriptSkel = `r, err := os.Open(absFile)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		var loaders scriggo.PackageLoader
-		if Main != nil {
-			loaders = scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}
-		} else {
-			loaders = scriggo.CombinedLoaders{packages}
-		}
-		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, loaders, loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		_ = r.Close()
-		if *asm {
-			_, err := script.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = script.Run(nil, runOptions)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)`
-	const programSkel = `main, err := ioutil.ReadFile(absFile)
-		if err != nil {
-			panic(err)
-		}
-		program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(main), packages), loadOptions)
-		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-			os.Exit(2)
-		}
-		if *asm {
-			_, err := program.Disassemble(os.Stdout, "main")
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		} else {
-			err = program.Run(runOptions)
-			if err != nil {
-				if err == context.DeadlineExceeded {
-					err = errors.New("process took too long")
-				}
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-		}
-		os.Exit(0)`
-	const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
-		path := "/" + filepath.Base(absFile)
-		builtins := template.Builtins()
-		for k, v := range Main.Declarations {
-			builtins.Declarations[k] = v
-		}
-		t, err := template.Load(path, r, builtins, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
-		}
-		if *asm {
-			_, err := t.Disassemble(os.Stdout)
-			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
-				os.Exit(2)
-			}
-
-		} else {
-			options := template.RenderOptions{
-				Context:       runOptions.Context,
-				MaxMemorySize: runOptions.MaxMemorySize,
-				TraceFunc:     runOptions.TraceFunc,
-			}
-			err = t.Render(os.Stdout, nil, options)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(-1)
-			}
-		}
-		os.Exit(0)`
-	out := `// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
+const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights reserved.
 		// https://www.open2b.com
 
 		// Use of this source code is governed by a BSD-style
@@ -238,6 +146,104 @@ func makeInterpreterSource(program, script, template bool) []byte {
 			}
 		}
 	`
+
+const programSkel = `main, err := ioutil.ReadFile(absFile)
+		if err != nil {
+			panic(err)
+		}
+		program, err := scriggo.LoadProgram(scriggo.Loaders(mainLoader(main), packages), loadOptions)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(2)
+		}
+		if *asm {
+			_, err := program.Disassemble(os.Stdout, "main")
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			err = program.Run(runOptions)
+			if err != nil {
+				if err == context.DeadlineExceeded {
+					err = errors.New("process took too long")
+				}
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		}
+		os.Exit(0)`
+
+const scriptSkel = `r, err := os.Open(absFile)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(2)
+		}
+		var loaders scriggo.PackageLoader
+		if Main != nil {
+			loaders = scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}
+		} else {
+			loaders = scriggo.CombinedLoaders{packages}
+		}
+		loadOptions.AllowShebangLine = true
+		script, err := scriggo.LoadScript(r, loaders, loadOptions)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+			os.Exit(2)
+		}
+		_ = r.Close()
+		if *asm {
+			_, err := script.Disassemble(os.Stdout)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		} else {
+			err = script.Run(nil, runOptions)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+		}
+		os.Exit(0)`
+
+const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
+		path := "/" + filepath.Base(absFile)
+		builtins := template.Builtins()
+		for k, v := range Main.Declarations {
+			builtins.Declarations[k] = v
+		}
+		t, err := template.Load(path, r, builtins, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+		if *asm {
+			_, err := t.Disassemble(os.Stdout)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
+				os.Exit(2)
+			}
+
+		} else {
+			options := template.RenderOptions{
+				Context:       runOptions.Context,
+				MaxMemorySize: runOptions.MaxMemorySize,
+				TraceFunc:     runOptions.TraceFunc,
+			}
+			err = t.Render(os.Stdout, nil, options)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(-1)
+			}
+		}
+		os.Exit(0)`
+
+// makeInterpreterSource returns a Go source code that interprets a Scriggo
+// program, script or template.
+func makeInterpreterSource(program, script, template bool) []byte {
+
+	out := interpreterSkel
 
 	if script {
 		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
