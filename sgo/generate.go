@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/tools/go/packages"
+	pkgs "golang.org/x/tools/go/packages"
 )
 
 const (
@@ -49,9 +49,9 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		}
 	}
 
-	pkgs := map[string]*packageType{}
+	packages := map[string]*packageType{}
 	for _, imp := range sf.imports {
-		pkgName, decls, err := parseGoPackage(imp.path, goos)
+		pkgName, decls, err := loadGoPackage(imp.path, goos)
 		if err != nil {
 			panic(err) // TODO(Gianluca).
 		}
@@ -109,27 +109,27 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 
 		switch imp.asPath {
 		case "main": // Add read declarations to package main as builtins.
-			if pkgs["main"] == nil {
-				pkgs["main"] = &packageType{"main", map[string]string{}}
+			if packages["main"] == nil {
+				packages["main"] = &packageType{"main", map[string]string{}}
 			}
 			for name, decl := range decls {
-				if _, ok := pkgs["main"].decl[name]; ok {
+				if _, ok := packages["main"].decl[name]; ok {
 					return "", false, fmt.Errorf("declaration name collision in package main: %q", name)
 				}
-				pkgs["main"].decl[name] = decl
+				packages["main"].decl[name] = decl
 			}
 		default: // Add read declarations to the specified package.
-			if pkgs[path] == nil {
-				pkgs[path] = &packageType{
+			if packages[path] == nil {
+				packages[path] = &packageType{
 					decl: map[string]string{},
 				}
 			}
 			for name, decl := range decls {
-				if _, ok := pkgs[path].decl[name]; ok {
+				if _, ok := packages[path].decl[name]; ok {
 					return "", false, fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
 				}
-				pkgs[path].decl[name] = decl
-				pkgs[path].name = pkgName
+				packages[path].decl[name] = decl
+				packages[path].name = pkgName
 				name = filepath.Base(path)
 			}
 		}
@@ -137,15 +137,15 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 	}
 
 	// If no packages have been declared, just return.
-	if len(pkgs) == 0 {
+	if len(packages) == 0 {
 		return "", false, nil
 	}
 
 	// Render package content.
 	allPkgsContent := strings.Builder{}
-	paths := make([]string, 0, len(pkgs))
+	paths := make([]string, 0, len(packages))
 	hasMain := false
-	for path := range pkgs {
+	for path := range packages {
 		if path == "main" {
 			hasMain = true
 			continue
@@ -157,7 +157,7 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 		paths = append([]string{"main"}, paths...)
 	}
 	for _, path := range paths {
-		pkg := pkgs[path]
+		pkg := packages[path]
 		declarations := strings.Builder{}
 		names := make([]string, 0, len(pkg.decl))
 		for name := range pkg.decl {
@@ -216,16 +216,17 @@ func renderPackages(sf *scriggofile, variable, goos string) (string, bool, error
 	return pkgOutput, true, nil
 }
 
-// parseGoPackage parses a package path and returns the package name and a map
-// containing the exported declarations in that package.
-func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
+// loadGoPackage loads the Go package with the given path and returns its name
+// and its exported declarations.
+func loadGoPackage(path, goos string) (string, map[string]string, error) {
 
-	fmt.Printf("generating package %q (GOOS=%q)...", pkgPath, goos)
+	fmt.Printf("generating package %q (GOOS=%q)...", path, goos)
 
-	out := make(map[string]string)
-	pkgBase := uniquePackageName(pkgPath)
+	declarations := map[string]string{}
+	// TODO(marco): remove the global cache of package names.
+	pkgBase := uniquePackageName(path)
 
-	conf := &packages.Config{
+	conf := &pkgs.Config{
 		Mode: 1023,
 	}
 	if goos != "" {
@@ -233,27 +234,26 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 		//  conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
 
-	pkgs, err := packages.Load(conf, pkgPath)
+	packages, err := pkgs.Load(conf, path)
 	if err != nil {
 		return "", nil, err
 	}
 
-	if packages.PrintErrors(pkgs) > 0 {
+	if pkgs.PrintErrors(packages) > 0 {
 		return "", nil, errors.New("error")
 	}
 
-	if len(pkgs) > 1 {
+	if len(packages) > 1 {
 		return "", nil, errors.New("package query returned more than one package")
 	}
 
-	if len(pkgs) != 1 {
+	if len(packages) != 1 {
 		panic("bug")
 	}
 
-	pkg := pkgs[0]
+	name := packages[0].Name
 
-	pkgInfo := pkg.TypesInfo
-	for _, v := range pkgInfo.Defs {
+	for _, v := range packages[0].TypesInfo.Defs {
 		// Include only exported names. Do not take into account whether the
 		// object is in a local (function) scope or not.
 		if v == nil || !v.Exported() {
@@ -267,12 +267,12 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 		case *types.Const:
 			switch v.Val().Kind() {
 			case constant.String, constant.Bool:
-				out[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+				declarations[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 				continue
 			case constant.Int:
 				// Most cases fall here.
 				if len(v.Val().ExactString()) < 7 {
-					out[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+					declarations[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 					continue
 				}
 			}
@@ -290,28 +290,27 @@ func parseGoPackage(pkgPath, goos string) (string, map[string]string, error) {
 			if v.Val().Kind() == constant.String && len(quoted) == len(exact)+4 {
 				quoted = "`" + exact + "`"
 			}
-			out[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
+			declarations[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
 		case *types.Func:
 			if v.Type().(*types.Signature).Recv() == nil {
-				out[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
+				declarations[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
 			}
 		case *types.Var:
 			if !v.Embedded() && !v.IsField() {
-				out[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
+				declarations[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
 			}
 		case *types.TypeName:
-			if ss := strings.Split(v.String(), " "); len(ss) >= 3 {
-				if strings.HasPrefix(ss[2], "struct{") {
-					out[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
+			if parts := strings.Split(v.String(), " "); len(parts) >= 3 {
+				if strings.HasPrefix(parts[2], "struct{") {
+					declarations[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
 					continue
 				}
 			}
-			out[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
-
+			declarations[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
 		}
 	}
 
 	fmt.Printf("done!\n")
 
-	return pkg.Name, out, nil
+	return name, declarations, nil
 }
