@@ -139,7 +139,7 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 func getScriggofile(path string) (io.ReadCloser, error) {
 
 	// path points to a file.
-	if strings.HasPrefix(path, "Scriggofile") {
+	if strings.HasSuffix(path, "Scriggofile") {
 		return os.Open(path)
 	}
 
