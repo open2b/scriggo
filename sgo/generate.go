@@ -19,6 +19,11 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+const (
+	dirPerm  = 0775 // default new directory permission.
+	filePerm = 0644 // default new file permission.
+)
+
 // renderPackages renders a Scriggofile. It also returns a boolean indicating
 // if the content contains packages. Ignores all main packages contained in
 // the Scriggofile.

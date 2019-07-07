@@ -25,11 +25,6 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const (
-	dirPerm  = 0775 // default new directory permission.
-	filePerm = 0644 // default new file permission.
-)
-
 // makeExecutableGoMod makes a 'go.mod' file for creating and installing an
 // executable.
 func makeExecutableGoMod(path string) []byte {
