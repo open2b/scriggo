@@ -7,7 +7,7 @@
 package main
 
 const helpGenerate = `
-usage: sgo generate [target]
+usage: sgc generate [target]
 Generate generates a directory containing source code for a new interpreter.
 
 Target can be:
@@ -19,7 +19,7 @@ A Scriggo file descriptor is a file containing Go source code which must contain
 	1. a Scriggo file comment
 	2. a package declaration
 	3. one or more imports
-see 'sgo help descriptor' for more informations about Scriggo file descriptor.
+see 'sgc help descriptor' for more informations about Scriggo file descriptor.
 
 When target is a Go package, the package resolution method is the same used by Go tools.
 `

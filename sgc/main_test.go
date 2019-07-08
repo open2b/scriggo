@@ -13,10 +13,10 @@ import (
 	"testing"
 )
 
-// Test_sgo_generate_fmt tests command 'sgo generate fmt'
-func Test_sgo_generate_fmt(t *testing.T) {
+// Test_sgc_generate_fmt tests command 'sgc generate fmt'
+func Test_sgc_generate_fmt(t *testing.T) {
 	TestEnvironment = true
-	tmpDir, err := ioutil.TempDir("", "sgo_test")
+	tmpDir, err := ioutil.TempDir("", "sgc_test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func Test_sgo_generate_fmt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	os.Args = []string{"sgo", "generate", "fmt"}
+	os.Args = []string{"sgc", "generate", "fmt"}
 	main()
 
 	for _, fileName := range []string{"main.go", "go.mod"} {

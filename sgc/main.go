@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	flag.Usage = commandsHelp["sgo"]
+	flag.Usage = commandsHelp["sgc"]
 
 	// No command provided.
 	if len(os.Args) == 1 {
@@ -35,8 +35,8 @@ func main() {
 	cmd, ok := commands[cmdArg]
 	if !ok {
 		stderr(
-			fmt.Sprintf("sgo %s: unknown command", cmdArg),
-			`Run 'sgo help' for usage.`,
+			fmt.Sprintf("sgc %s: unknown command", cmdArg),
+			`Run 'sgc help' for usage.`,
 		)
 		exit(1)
 		return
@@ -44,7 +44,7 @@ func main() {
 	cmd()
 }
 
-// TestEnvironment is true when testing sgo, false otherwise.
+// TestEnvironment is true when testing sgc, false otherwise.
 var TestEnvironment = false
 
 // exit causes the current program to exit with the given status code. If
@@ -78,22 +78,22 @@ func exitError(format string, a ...interface{}) {
 // commandsHelp maps a command name to a function that prints the help for
 // that command.
 var commandsHelp = map[string]func(){
-	"sgo": func() {
+	"sgc": func() {
 		stderr(
-			`sgo is a tool for managing Scriggo interpreters and loaders`,
+			`sgc is a tool for managing Scriggo interpreters and loaders`,
 			``,
 			`Usage:`,
 			``,
-			`	sgo <command> [arguments]`,
+			`	sgc <command> [arguments]`,
 			``,
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
 			`	generate       generate an interpreter or a loader`,
 			`	install        install an interpreter`,
-			`	version        print sgo/Scriggo version`,
+			`	version        print sgc/Scriggo version`,
 			``,
-			`Use "sgo help <command>" for more information about a command.`,
+			`Use "sgc help <command>" for more information about a command.`,
 			``,
 			`Additional help topics:`,
 			``,
@@ -110,7 +110,7 @@ var commandsHelp = map[string]func(){
 	// Commands helps.
 	"bug": func() {
 		stderr(
-			`usage: sgo bug`,
+			`usage: sgc bug`,
 			`Bug opens the default browser and starts a new bug report.`,
 			`The report includes useful system information.`,
 		)
@@ -120,15 +120,15 @@ var commandsHelp = map[string]func(){
 	},
 	"install": func() {
 		stderr(
-			`usage: sgo install [target]`,
+			`usage: sgc install [target]`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
 			``,
-			`See also: sgo generate`,
+			`See also: sgc generate`,
 		)
 	},
 	"version": func() {
 		stderr(
-			`usage: sgo version`,
+			`usage: sgc version`,
 		)
 	},
 }
@@ -136,7 +136,7 @@ var commandsHelp = map[string]func(){
 // commands maps a command name to a function that executes that command.
 // Commands are called by command-line using:
 //
-//		sgo command
+//		sgc command
 //
 var commands = map[string]func(){
 	"bug": func() {
@@ -160,7 +160,7 @@ var commands = map[string]func(){
 		topic := os.Args[1]
 		help, ok := commandsHelp[topic]
 		if !ok {
-			_, _ = fmt.Fprintf(os.Stderr, "sgo help %s: unknown help topic. Run 'sgo help'.\n", topic)
+			_, _ = fmt.Fprintf(os.Stderr, "sgc help %s: unknown help topic. Run 'sgc help'.\n", topic)
 			exit(1)
 			return
 		}
@@ -169,15 +169,15 @@ var commands = map[string]func(){
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
 		fmt.Printf("Scriggo module version:            (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("sgo tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Go version used to build sgo:      %s\n", runtime.Version())
+		fmt.Printf("sgc tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Go version used to build sgc:      %s\n", runtime.Version())
 	},
 }
 
 // generate executes the sub commands "generate" and "install":
 //
-//		sgo generate
-//		sgo install
+//		sgc generate
+//		sgc install
 //
 // If install is set, the interpreter will be installed as executable and
 // the interpreter sources will be removed.
@@ -237,7 +237,7 @@ func generate(install bool) {
 	// Generate an embeddable loader.
 	if sf.embedded {
 		if install {
-			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
+			stderr(`sgc install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
 			exit(1)
 			return
@@ -290,7 +290,7 @@ func generate(install bool) {
 		// Create a temporary directory for interpreter sources. If installing,
 		// directory will be lost. If generating sources and no errors occurred,
 		// tmpDir will be moved to the correct path.
-		tmpDir, err := ioutil.TempDir("", "sgo")
+		tmpDir, err := ioutil.TempDir("", "sgc")
 		if err != nil {
 			exitError(err.Error())
 		}
