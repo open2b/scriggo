@@ -10,8 +10,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"go/parser"
-	"go/token"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -21,13 +20,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/tools/go/packages"
-)
-
-const (
-	dirPerm  = 0775 // default new directory permission.
-	filePerm = 0644 // default new file permission.
 )
 
 // makeExecutableGoMod makes a 'go.mod' file for creating and installing an
@@ -126,7 +121,7 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 	return tmp, nil
 }
 
-// getScriggoDescriptorData reads a Scriggo descriptor from path. If path is a
+// getScriggofile reads a Scriggo descriptor from path. If path is a
 // file ending with ".go", reads such file and returns its content. If path is a
 // package path, it reads the file "scriggo.go" located at the root of the
 // package and returns its content. If "scriggo.go" does not exists at the root
@@ -137,11 +132,11 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 //		path/to/package   (with    scriggo.go)  ->  reads path/to/package/scriggo.go
 //		path/to/package   (without scriggo.go)  ->  return a default scriggo.go
 //
-func getScriggoDescriptorData(path string) ([]byte, error) {
+func getScriggofile(path string) (io.ReadCloser, error) {
 
 	// path points to a file.
-	if strings.HasSuffix(path, ".go") {
-		return ioutil.ReadFile(path)
+	if strings.HasSuffix(path, "Scriggofile") {
+		return os.Open(path)
 	}
 
 	// path points to a package.
@@ -156,11 +151,16 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 		return nil, errors.New("too many packages matching")
 	}
 	pkg := pkgs[0]
-	for _, p := range pkg.GoFiles {
-		base := filepath.Base(p)
-		if base == "scriggo.go" {
-			return ioutil.ReadFile(p)
-		}
+	if len(pkg.GoFiles) == 0 {
+		return nil, fmt.Errorf("package %s does not contain Go files", pkg.Name)
+	}
+	scriggofilePath := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "Scriggofile")
+	fi, err := os.Open(scriggofilePath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if err == nil {
+		return fi, nil
 	}
 
 	if pkg.Name == "" {
@@ -168,105 +168,33 @@ func getScriggoDescriptorData(path string) ([]byte, error) {
 		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
 	}
 
-	fmt.Fprintf(os.Stderr, "package %q does not provide a scriggo.go file, generating a default\n", path)
+	fmt.Fprintf(os.Stderr, "package %q does not provide a Scriggofile, generating a default\n", path)
 
-	out := `//scriggo: interpreter
-	
-	package [pkgName]
-	
-	import (
-		_ "[pkgPath]"
-	)`
+	out := "\nMAKE INTERPRETER\n\nSET PACKAGE [pkgName]\n\nIMPORT [pkgPath]\n"
 
 	out = strings.ReplaceAll(out, "[pkgName]", pkg.Name)
 	out = strings.ReplaceAll(out, "[pkgPath]", path)
 
-	return []byte(out), nil
+	return ioutil.NopCloser(strings.NewReader(out)), nil
 }
 
-// isPredeclaredIdentifier indicates if name is a Go predeclared identifier or
-// not.
+var predeclaredIdentifier = []string{
+	"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
+	"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",
+	"uint16", "uint32", "uint64", "uintptr", "true", "false", "iota",
+	"nil", "append", "cap", "close", "complex", "copy", "delete", "imag",
+	"len", "make", "new", "panic", "print", "println", "real", "recover",
+}
+
+// isPredeclaredIdentifier reports whether name is a Go predeclared
+// identifier.
 func isPredeclaredIdentifier(name string) bool {
-	list := []string{
-		"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
-		"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",
-		"uint16", "uint32", "uint64", "uintptr", "true", "false", "iota",
-		"nil", "append", "cap", "close", "complex", "copy", "delete", "imag",
-		"len", "make", "new", "panic", "print", "println", "real", "recover",
-	}
-	for _, pred := range list {
-		if pred == name {
+	for _, pred := range predeclaredIdentifier {
+		if name == pred {
 			return true
 		}
 	}
 	return false
-}
-
-// parseScriggoDescriptor returns a list of imports path imported in file
-// filepath and the package name specified in src.
-func parseScriggoDescriptor(src []byte) (scriggoDescriptor, error) {
-
-	// Parses file.
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "", src, parser.ImportsOnly|parser.ParseComments)
-	if err != nil {
-		return scriggoDescriptor{}, fmt.Errorf("parsing error: %s", err.Error())
-	}
-
-	pos := func(pos token.Pos) token.Position {
-		return fset.File(pos).Position(pos)
-	}
-
-	pd := scriggoDescriptor{
-		pkgName: file.Name.Name,
-	}
-
-	found := false
-	for _, c := range file.Comments {
-		if pos(c.Pos()).Column == 1 {
-			if _, ok := isScriggoComment("//" + c.Text()); ok {
-				if found {
-					return scriggoDescriptor{}, fmt.Errorf("line: %d: cannot have more than one Scriggo file comment", pos(c.Pos()).Line)
-				}
-				pd.comment, err = parseFileComment("//" + c.Text())
-				if err != nil {
-					return scriggoDescriptor{}, fmt.Errorf("line %d: %s", pos(c.Pos()).Line, err)
-				}
-				found = true
-			}
-		}
-	}
-	if !found {
-		return scriggoDescriptor{}, errors.New("missing Scriggo file comment (must be a line starting with '//scriggo:' preceded and followed by a newline)")
-	}
-
-	// Iterates over imports.
-	for _, imp := range file.Imports {
-
-		// Imports must have name "_".
-		if imp.Name != nil && imp.Name.Name != "_" {
-			return scriggoDescriptor{}, fmt.Errorf("import name %q not allowed", imp.Name)
-		}
-
-		// Read import path unquoting it.
-		id := importDescriptor{}
-		id.path, err = strconv.Unquote(imp.Path.Value)
-		if err != nil {
-			panic(fmt.Errorf("unquoting error: %s", err.Error()))
-		}
-
-		if imp.Comment != nil {
-			it, err := parseImportComment("//" + imp.Comment.Text())
-			if err != nil {
-				return scriggoDescriptor{}, fmt.Errorf("error on comment %q: %s", imp.Comment.Text(), err.Error())
-			}
-			id.comment = it
-		}
-
-		pd.imports = append(pd.imports, id)
-	}
-
-	return pd, nil
 }
 
 func txtToHelp(s string) {
@@ -328,17 +256,16 @@ func goBuild(path string) error {
 
 var uniquePackageNameCache = map[string]string{}
 
-// isGoKeyword returns true if w is a Go keyword as specified by
-// https://golang.org/ref/spec#Keywords .
-func isGoKeyword(w string) bool {
-	goKeywords := []string{
-		"break", "default", "func", "interface", "select", "case", "defer",
-		"go", "map", "struct", "chan", "else", "goto", "package",
-		"switch", "const", "fallthrough", "if", "range",
-		"type", "continue", "for", "import", "return", "var",
-	}
-	for _, gw := range goKeywords {
-		if w == gw {
+var goKeywords = []string{
+	"break", "case", "chan", "const", "continue", "default", "defer", "else",
+	"fallthrough", "for", "func", "go", "goto", "if", "import", "interface", "map",
+	"package", "range", "return", "struct", "select", "switch", "type", "var",
+}
+
+// isGoKeyword reports whether a string is a Go keyword.
+func isGoKeyword(s string) bool {
+	for _, k := range goKeywords {
+		if s == k {
 			return true
 		}
 	}
@@ -370,12 +297,12 @@ func uniquePackageName(pkgPath string) string {
 //
 // BUG(Gianluca): devel "gc" versions are currently not supported.
 //
-// TODO(Gianluca): pd.filepath must be validated before being inserted in a
+// TODO(Gianluca): sf.filepath must be validated before being inserted in a
 // comment: 1) check that contains only valid unicode characters 2) check that
 // does not contain any "newline" characters.
 //
-func genHeader(pd scriggoDescriptor, goos string) string {
-	return "// Code generated by Scriggo sgo command, based on file \"" + pd.filepath + "\". DO NOT EDIT.\n" +
+func genHeader(sf *scriggofile, goos string) string {
+	return "// Code generated by Scriggo sgo command, based on file \"" + sf.filepath + "\". DO NOT EDIT.\n" +
 		fmt.Sprintf("//+build %s,%s,!%s\n\n", goos, goBaseVersion(runtime.Version()), nextGoVersion(runtime.Version()))
 }
 
@@ -410,4 +337,90 @@ func nextGoVersion(v string) string {
 	f = math.Floor(f)
 	next := int(f) + 1
 	return fmt.Sprintf("go1.%d", next)
+}
+
+// checkIdentifierName checks that name is a valid not blank identifier name.
+func checkIdentifierName(name string) error {
+	if name == "_" {
+		return fmt.Errorf("cannot use the blank identifier")
+	}
+	if isGoKeyword(name) {
+		return fmt.Errorf("invalid variable name")
+	}
+	first := true
+	for _, r := range name {
+		if !unicode.IsLetter(r) && (first || !unicode.IsDigit(r)) {
+			return fmt.Errorf("invalid identifier name")
+		}
+		first = false
+	}
+	return nil
+}
+
+// checkGOOS checks that os is a valid GOOS value.
+func checkGOOS(os string) error {
+	switch os {
+	case "darwin", "dragonfly", "js", "linux", "android", "solaris",
+		"freebsd", "nacl", "netbsd", "openbsd", "plan9", "windows", "aix":
+		return nil
+	}
+	return fmt.Errorf("unkown os %q", os)
+}
+
+// checkPackagePath checks that a given package path is valid.
+//
+// This function must be in sync with the function validPackagePath in the
+// file "scriggo/internal/compiler/path".
+func checkPackagePath(path string) error {
+	if path == "main" {
+		return nil
+	}
+	for _, r := range path {
+		if !unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.P, unicode.S) {
+			return fmt.Errorf("invalid path path %q", path)
+		}
+		switch r {
+		case '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', ':', ';', '<',
+			'=', '>', '?', '[', '\\', ']', '^', '`', '{', '|', '}', '\uFFFD':
+			return fmt.Errorf("invalid path path %q", path)
+		}
+	}
+	if cleaned := cleanPath(path); path != cleaned {
+		return fmt.Errorf("invalid path path %q", path)
+	}
+	return nil
+}
+
+// checkExportedName checks that name is a valid exported identifier name.
+func checkExportedName(name string) error {
+	err := checkIdentifierName(name)
+	if err != nil {
+		return err
+	}
+	if fc, _ := utf8.DecodeRuneInString(name); !unicode.Is(unicode.Lu, fc) {
+		return fmt.Errorf("cannot refer to unexported name %s", name)
+	}
+	return nil
+}
+
+// cleanPath cleans a path and returns the path in its canonical form.
+// path must be already a valid path.
+//
+// This function must be in sync with the function cleanPath in the file
+// "scriggo/internal/compiler/path".
+func cleanPath(path string) string {
+	if !strings.Contains(path, "..") {
+		return path
+	}
+	var b = []byte(path)
+	for i := 0; i < len(b); i++ {
+		if b[i] == '/' {
+			if b[i+1] == '.' && b[i+2] == '.' {
+				s := bytes.LastIndexByte(b[:i], '/')
+				b = append(b[:s+1], b[i+4:]...)
+				i = s - 1
+			}
+		}
+	}
+	return string(b)
 }

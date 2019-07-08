@@ -12,16 +12,16 @@ import (
 func Test_renderPackages(t *testing.T) {
 	// NOTE: these tests ignores whitespaces, imports and comments.
 	cases := map[string]struct {
-		pd           scriggoDescriptor
-		pkgsVariable string
-		goos         string
-		expected     string
+		sf       *scriggofile
+		goos     string
+		expected string
 	}{
 		"Importing fmt with an alternative path": {
-			pd: scriggoDescriptor{
-				pkgName: "test",
-				imports: []importDescriptor{
-					{path: "fmt", comment: importComment{newPath: "custom/fmt/path"}},
+			sf: &scriggofile{
+				pkgName:  "test",
+				variable: "packages",
+				imports: []*importCommand{
+					{path: "fmt", asPath: "custom/fmt/path"},
 				},
 			},
 			expected: `package test
@@ -69,9 +69,10 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing archive/tar simple": {
-			pd: scriggoDescriptor{
-				pkgName: "test",
-				imports: []importDescriptor{{path: "archive/tar"}},
+			sf: &scriggofile{
+				pkgName:  "test",
+				variable: "packages",
+				imports:  []*importCommand{{path: "archive/tar"}},
 			},
 			expected: `package test
 
@@ -123,9 +124,10 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing fmt simple": {
-			pd: scriggoDescriptor{
-				pkgName: "test",
-				imports: []importDescriptor{{path: "fmt"}},
+			sf: &scriggofile{
+				pkgName:  "test",
+				variable: "packages",
+				imports:  []*importCommand{{path: "fmt"}},
 			},
 			expected: `package test
 
@@ -172,14 +174,13 @@ func Test_renderPackages(t *testing.T) {
 			}`,
 		},
 		"Importing only Println from fmt": {
-			pd: scriggoDescriptor{
-				pkgName: "test",
-				imports: []importDescriptor{
+			sf: &scriggofile{
+				pkgName:  "test",
+				variable: "packages",
+				imports: []*importCommand{
 					{
-						path: "fmt",
-						comment: importComment{
-							export: []string{"Println"},
-						},
+						path:      "fmt",
+						including: []string{"Println"},
 					},
 				},
 			},
@@ -212,10 +213,7 @@ func Test_renderPackages(t *testing.T) {
 					c.goos = runtime.GOOS
 				}
 			}
-			if c.pkgsVariable == "" {
-				c.pkgsVariable = "packages"
-			}
-			got, content, err := renderPackages(c.pd, c.pkgsVariable, c.goos)
+			got, content, err := renderPackages(c.sf, c.goos)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -320,7 +318,7 @@ func Test_parseGoPackage(t *testing.T) {
 	goos := "linux" // paths in this test should be OS-independent.
 	for path, expected := range cases {
 		t.Run(path, func(t *testing.T) {
-			gotName, gotDecls, err := parseGoPackage(path, goos)
+			gotName, gotDecls, err := loadGoPackage(path, goos)
 			if err != nil {
 				t.Fatal(err)
 			}

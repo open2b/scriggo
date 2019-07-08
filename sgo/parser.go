@@ -7,388 +7,285 @@
 package main
 
 import (
-	"errors"
+	"bufio"
 	"fmt"
-	"path/filepath"
+	"io"
 	"strings"
 )
 
-// scriggoDescriptor represents a descriptor of a Scriggo loader or interpreter.
-// A scriggoDescriptor can be read from a file using a parsing function.
-type scriggoDescriptor struct {
-	pkgName  string // name of the package to be generated.
-	filepath string // filepath of the parsed file.
-	comment  fileComment
-	imports  []importDescriptor // list of imports defined in file.
+// scriggofile represents the content of a Scriggofile.
+type scriggofile struct {
+	pkgName   string           // name of the package to be generated.
+	filepath  string           // filepath of the parsed file.
+	embedded  bool             // generating embedded.
+	programs  bool             // generating program interpreter.
+	templates bool             // generating template interpreter.
+	scripts   bool             // generating script interpreter.
+	variable  string           // variable name for embedded packages.
+	output    string           // output path.
+	goos      []string         // target GOOSs.
+	imports   []*importCommand // list of imports defined in file.
 }
 
-// containsMain reports whether a descriptor contains at least one package
-// "main". It ignores all non-main packages contained in the descriptor.
-func (descriptor scriggoDescriptor) containsMain() bool {
-	for _, imp := range descriptor.imports {
-		if imp.comment.main {
-			return true
+// importCommand represents an IMPORT command in a Scriggofile.
+type importCommand struct {
+	stdlib         bool
+	path           string
+	asPath         string // import asPath asPath in Scriggo.
+	notCapitalized bool   // exported names must not be capitalized.
+	including      []string
+	excluding      []string
+}
+
+// parseScriggofile parses a Scriggofile and returns its commands.
+func parseScriggofile(src io.Reader) (*scriggofile, error) {
+
+	sf := scriggofile{
+		variable: "packages",
+	}
+
+	scanner := bufio.NewScanner(src)
+	ln := 0
+
+	hasMake := false
+
+	for scanner.Scan() {
+
+		line := scanner.Text()
+		if ln == 0 {
+			// Remove UTF-8 BOM.
+			line = strings.TrimPrefix(line, "0xEF0xBB0xBF")
 		}
-	}
-	return false
-}
-
-// importDescriptor is a single import descriptor.
-// An example import descriptor is:
-//
-//		import _ "fmt" //scriggo: main uncapitalize export:"Println"
-//
-type importDescriptor struct {
-	path    string
-	comment importComment
-}
-
-// importComment is a comment of an import descriptor. Import comments are
-// built from Scriggo comments, such as:
-//
-//		//scriggo: main uncapitalize export:"Println"
-//
-type importComment struct {
-	main              bool   // declared as "main" package.
-	uncapitalize      bool   // exported names must be set "uncapitalized".
-	newPath           string // import as newPath in Scriggo.
-	newName           string // use as newName in Scriggo.
-	export, notexport []string
-}
-
-// fileComment is the comment of a Scriggo descriptor. A file comment can be
-// generated from a line as:
-//
-//  //scriggo: embedded variable:"pkgs" goos:"linux,darwin"
-//
-// TODO(Gianluca): use output.
-type fileComment struct {
-	embedded bool     // generating embedded.
-	varName  string   // variable name for embedded packages.
-	template bool     // generating template interpreter.
-	script   bool     // generating script interpreter.
-	program  bool     // generating program interpreter.
-	output   string   // output path.
-	goos     []string // target GOOSs.
-}
-
-// isScriggoComment reports whether c is a valid Scriggo comment, that is
-// starts with:
-//
-//   //scriggo:
-//
-// and returns the comment without "//scriggo:", ready to be parsed.
-//
-func isScriggoComment(c string) (string, bool) {
-
-	// c must start with "//"".
-	if !strings.HasPrefix(c, "//") {
-		panic("comment must start with //")
-	}
-	c = c[len("//"):]
-
-	// If c does not start with "scriggo:", returns: not a Scriggo comment.
-	if !strings.HasPrefix(c, "scriggo:") {
-		return "", false
-	}
-	c = c[len("scriggo:"):]
-	c = strings.TrimSpace(c)
-
-	if len(c) > 0 && strings.Contains(c[:len(c)-1], "\n") {
-		return "", false
-	}
-
-	return c, true
-}
-
-// parseFileComment parses a file comment.
-func parseFileComment(c string) (fileComment, error) {
-
-	c, isScriggoComment := isScriggoComment(c)
-	if !isScriggoComment {
-		return fileComment{}, nil
-	}
-
-	fc := fileComment{}
-
-	opts, kvs, err := parse(c)
-	if err != nil {
-		return fileComment{}, err
-	}
-	for i, o := range opts {
-		if o == "embedded" {
-			fc.embedded = true
-			opts = append(opts[:i], opts[i+1:]...)
-			break
+		ln++
+		line = strings.TrimSpace(line)
+		if len(line) == 0 || line[0] == '#' {
+			continue
 		}
-	}
-
-	for i, o := range opts {
-		if o == "interpreter" {
-			fc.template = true
-			fc.script = true
-			fc.program = true
-			opts = append(opts[:i], opts[i+1:]...)
-			break
+		tokens := strings.Fields(line)
+		if len(tokens) == 0 {
+			continue
 		}
-	}
 
-	for _, o := range opts {
-		if o == "interpreters" {
-			return fileComment{}, fmt.Errorf("interpreters must have at least one value; use 'interpreter' for generating a default interpreter")
-		}
-	}
-
-	if len(opts) > 0 {
-		return fileComment{}, fmt.Errorf("bad option %s", opts[0])
-	}
-
-	for _, kv := range kvs {
-		switch kv.Key {
-		case "interpreter":
-			return fileComment{}, fmt.Errorf("cannot specify values for interpreters: use 'interpreters' instead")
-		case "interpreters":
-			if fc.template || fc.script || fc.program {
-				return fileComment{}, fmt.Errorf("cannot use interpreter with interpreters")
+		switch strings.ToUpper(tokens[0]) {
+		case "MAKE":
+			if hasMake {
+				return nil, fmt.Errorf("repeated command MAKE")
 			}
-			for _, v := range kv.Values {
-				switch v {
-				case "template":
-					fc.template = true
-				case "script":
-					fc.script = true
-				case "program":
-					fc.program = true
-				default:
-					return fileComment{}, fmt.Errorf("unknown interpreter %q", v)
+			if len(tokens) == 1 {
+				return nil, fmt.Errorf("expecting EMBEDDED or INTERPRETER after %s", tokens[0])
+			}
+			switch strings.ToUpper(tokens[1]) {
+			case "EMBEDDED":
+				if len(tokens) > 2 {
+					return nil, fmt.Errorf("unknown %q after %s %s", tokens[0], tokens[1], tokens[1])
 				}
-			}
-		case "variable":
-			if len(kv.Values) != 1 {
-				return fileComment{}, errors.New("expecting one name as variable name")
-			}
-			if kv.Values[0] == "" {
-				return fileComment{}, errors.New("invalid variable name")
-			}
-			fc.varName = kv.Values[0]
-		case "output":
-			if len(kv.Values) != 1 {
-				return fileComment{}, errors.New("expecting one path as output")
-			}
-			if kv.Values[0] == "" {
-				return fileComment{}, errors.New("invalid path")
-			}
-			fc.output = kv.Values[0]
-		case "goos":
-			for _, v := range kv.Values {
-				if v == "" {
-					return fileComment{}, errors.New("invalid goos")
-				}
-			}
-			fc.goos = kv.Values
-		default:
-			return fileComment{}, fmt.Errorf("unknown key %s", kv.Key)
-		}
-	}
-
-	if fc.varName != "" && (fc.template || fc.script || fc.program) {
-		return fileComment{}, fmt.Errorf("cannot use variable with interpreters")
-	}
-
-	if fc.embedded && (fc.template || fc.script || fc.program) {
-		return fileComment{}, fmt.Errorf("cannot use embedded with interpreters")
-	}
-
-	if !(fc.embedded || fc.template || fc.script || fc.program) {
-		return fileComment{}, fmt.Errorf("specify what to do") // TODO(Gianluca).
-	}
-
-	return fc, nil
-
-}
-
-// parseImportComment parses an import comment.
-func parseImportComment(c string) (importComment, error) {
-
-	c, isScriggoComment := isScriggoComment(c)
-	if !isScriggoComment {
-		return importComment{}, nil
-	}
-
-	// Nothing after "scriggo:".
-	if len(c) == 0 {
-		return importComment{}, nil
-	}
-
-	ic := importComment{}
-
-	opts, kvs, err := parse(c)
-	if err != nil {
-		return importComment{}, err
-	}
-
-	// Look for option "main".
-	for i, o := range opts {
-		if o == "main" {
-			ic.main = true
-			opts = append(opts[:i], opts[i+1:]...)
-			break
-		}
-	}
-
-	// Look for option "capitalize".
-	for i, o := range opts {
-		if o == "uncapitalize" {
-			ic.uncapitalize = true
-			opts = append(opts[:i], opts[i+1:]...)
-			break
-		}
-	}
-
-	if len(opts) > 0 {
-		return importComment{}, fmt.Errorf("bad option %s", opts[0])
-	}
-
-	for _, kv := range kvs {
-		switch kv.Key {
-		case "export":
-			ic.export = kv.Values
-		case "notexport":
-			ic.notexport = kv.Values
-		case "path":
-			if len(kv.Values) != 1 {
-				return importComment{}, errors.New("expecting one path as value for key path")
-			}
-			ic.newPath = kv.Values[0]
-			ic.newName = filepath.Base(kv.Values[0])
-		default:
-			return importComment{}, fmt.Errorf("unknown key %s", kv.Key)
-		}
-	}
-
-	if len(ic.export) > 0 && len(ic.notexport) > 0 {
-		return importComment{}, errors.New("cannot have export and notexport in same import comment")
-	}
-	if ic.uncapitalize && !ic.main {
-		return importComment{}, errors.New("cannot use option uncapitalize without option main")
-	}
-
-	return ic, nil
-}
-
-// option represents an option in a Scriggo comment.
-type option string
-
-// keyValues represents an key-values pair in a Scriggo comment.
-type keyValues struct {
-	Key    string
-	Values []string
-}
-
-// parse parses str returning a list of Options and KeyValues.
-// parse is a low-level parsing function and should not be used directly.
-func parse(str string) ([]option, []keyValues, error) {
-	toks, err := tokenize(str)
-	if err != nil {
-		return nil, nil, err
-	}
-	if len(toks) == 0 {
-		return nil, nil, nil
-	}
-	waitingForValue := false
-	opts := []option{}
-	kvs := []keyValues{}
-	for i := 0; i < len(toks); i++ {
-		if i != len(toks)-1 && toks[i+1] == ":" {
-			waitingForValue = true
-			kvs = append(kvs, keyValues{Key: toks[i]})
-			i++ // jumps colon.
-		} else if waitingForValue {
-			vs := strings.Split(toks[i], ",")
-			for _, v := range vs {
-				kvs[len(kvs)-1].Values = append(kvs[len(kvs)-1].Values, strings.TrimSpace(v))
-			}
-			waitingForValue = false
-		} else {
-			opts = append(opts, option(toks[i]))
-		}
-	}
-	return opts, kvs, nil
-}
-
-// tokenize returns the list of token read from str. tokenize is a low-level
-// parsing function and should not be used directly.
-func tokenize(str string) ([]string, error) {
-	tokens := []string{}
-	inQuotes := false
-loop:
-	for {
-		tok := ""
-		for _, r := range str {
-			switch r {
-			case ' ':
-				if inQuotes {
-					tok += " "
-					str = str[1:]
-					if len(str) == 0 {
-						tokens = append(tokens, tok)
+				sf.embedded = true
+			case "INTERPRETER":
+				if len(tokens) > 2 {
+					if tok := strings.ToUpper(tokens[2]); tok != "FOR" {
+						switch tok {
+						case "PROGRAMS", "SCRIPTS", "TEMPLATES":
+							return nil, fmt.Errorf("unexpected %s %s %s, expecting %s %s FOR %s",
+								tokens[0], tokens[1], tokens[2], tokens[0], tokens[1], tokens[2])
+						}
+						return nil, fmt.Errorf("unexpected %s %s %q, expecting %s %s FOR",
+							tokens[0], tokens[1], tokens[2], tokens[0], tokens[1])
+					}
+					if len(tokens) == 3 {
+						return nil, fmt.Errorf("expecting PROGRAMS, SCRIPTS or TEMPLATES AFTER %s %s %s",
+							tokens[0], tokens[1], tokens[2])
+					}
+					for _, tok := range tokens[3:] {
+						typ := strings.ToUpper(tok)
+						switch typ {
+						case "PROGRAMS":
+							sf.programs = true
+						case "SCRIPTS":
+							sf.scripts = true
+						case "TEMPLATES":
+							sf.templates = true
+						default:
+							return nil, fmt.Errorf("unexpected %q after %s %s %s",
+								tok, tokens[0], tokens[1], tokens[2])
+						}
 					}
 				} else {
-					if len(tok) == 0 && len(tokens) > 0 && tokens[len(tokens)-1] == ":" {
-						return nil, errors.New("unexpected space after colon")
-					}
-					if tok != "" {
-						tokens = append(tokens, tok)
-						tok = ""
-					}
-					str = str[1:]
-					continue loop
+					sf.programs = true
+					sf.scripts = true
+					sf.templates = true
 				}
-			case ':':
-				if len(tok) == 0 {
-					return nil, errors.New("unexpected colon at beginning of line, expecting word or space")
+			}
+			hasMake = true
+		case "SET":
+			if !hasMake {
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
+			}
+			if len(tokens) == 1 {
+				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s", tokens[0])
+			}
+			switch strings.ToUpper(tokens[1]) {
+			case "VARIABLE":
+				if !sf.embedded {
+					return nil, fmt.Errorf("cannot use SET VARIABLE with interpreters")
 				}
-				if len(tokens) > 0 && tokens[len(tokens)-1] == `"` {
-					return nil, errors.New("unexpected colon after quote, expecting word")
+				if len(tokens) == 2 {
+					return nil, fmt.Errorf("missing variable name")
 				}
-				tokens = append(tokens, tok)
-				tokens = append(tokens, ":")
-				str = str[1:]
-				if len(str) == 0 {
-					return nil, errors.New("unexpected EOL after colon, expecting quote or word")
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("too many variable names")
 				}
-				continue loop
-			case '"':
-				if !inQuotes {
-					if len(tok) == 0 && len(tokens) == 0 {
-						return nil, errors.New("unexpected quote at beginning of line, expecting word or space")
-					}
-					if len(tok) > 0 {
-						return nil, fmt.Errorf("unexpected quote after %s", tok)
-					}
-					if len(tokens) > 0 && tokens[len(tokens)-1] != ":" {
-						return nil, fmt.Errorf("unexpected quote after %s", tokens[len(tokens)-1])
-					}
-					str = str[1:]
-					inQuotes = true
-				} else {
-					inQuotes = false
-					tokens = append(tokens, tok)
-					str = str[1:]
-					continue loop
+				variable := string(tokens[2])
+				err := checkIdentifierName(variable)
+				if err != nil {
+					return nil, err
 				}
+				sf.variable = variable
+			case "PACKAGE":
+				if len(tokens) == 2 {
+					return nil, fmt.Errorf("missing package name")
+				}
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("too many packages names")
+				}
+				pkgName := string(tokens[1])
+				err := checkIdentifierName(pkgName)
+				if err != nil {
+					return nil, err
+				}
+				sf.pkgName = pkgName
 			default:
-				tok += string(r)
-				str = str[1:]
-				if len(str) == 0 {
-					tokens = append(tokens, tok)
+				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE",
+					tokens[0], tokens[1], tokens[0], tokens[0])
+			}
+		case "REQUIRE":
+			if !hasMake {
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
+			}
+			if len(tokens) == 1 {
+				return nil, fmt.Errorf("expected GOOS after %s", tokens[0])
+			}
+			if !strings.EqualFold(tokens[1], "GOOS") {
+				return nil, fmt.Errorf("unexpected %s %q, expected %s GOOS", tokens[0], tokens[1], tokens[0])
+			}
+			if len(tokens) == 2 {
+				return nil, fmt.Errorf("missing os after %s %s", tokens[0], tokens[1])
+			}
+			if sf.goos == nil {
+				sf.goos = make([]string, 0, len(tokens)-2)
+			}
+			for _, tok := range tokens[2:] {
+				os := string(tok)
+				err := checkGOOS(os)
+				if err != nil {
+					return nil, err
+				}
+				sf.goos = append(sf.goos, os)
+			}
+		case "IMPORT":
+			if !hasMake {
+				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
+			}
+			if len(tokens) == 1 {
+				return nil, fmt.Errorf("missing package path")
+			}
+			path := string(tokens[1])
+			if len(tokens) > 2 && strings.EqualFold(path, "STANDARD") && strings.EqualFold(tokens[2], "LIBRARY") {
+				for _, imp := range sf.imports {
+					if imp.stdlib {
+						return nil, fmt.Errorf("command %s %s %s is repeated", tokens[0], tokens[1], tokens[2])
+					}
+				}
+				if len(tokens) > 3 {
+					return nil, fmt.Errorf("unexpected %q after %s %s %s", tokens[3], tokens[0], tokens[1], tokens[2])
+				}
+				sf.imports = append(sf.imports, &importCommand{stdlib: true})
+				continue
+			} else {
+				err := checkPackagePath(path)
+				if err != nil {
+					return nil, err
 				}
 			}
+			imp := importCommand{path: path}
+			parsedAs := false
+			tokens = tokens[2:]
+			for len(tokens) > 0 {
+				switch tok := strings.ToUpper(tokens[0]); tok {
+				case "AS":
+					if parsedAs {
+						return nil, fmt.Errorf("repeated option %s", tok)
+					}
+					if len(tokens) == 1 {
+						return nil, fmt.Errorf("missing package path after AS")
+					}
+					path := string(tokens[1])
+					err := checkPackagePath(path)
+					if err != nil {
+						return nil, err
+					}
+					imp.asPath = path
+					parsedAs = true
+					tokens = tokens[2:]
+				case "INCLUDING":
+					if len(tokens) == 1 {
+						return nil, fmt.Errorf("missing names after INCLUDING")
+					}
+					imp.including = make([]string, len(tokens)-1)
+					for i, tok := range tokens[1:] {
+						name := string(tok)
+						err := checkExportedName(name)
+						if err != nil {
+							return nil, err
+						}
+						imp.including[i] = name
+					}
+					tokens = nil
+				case "EXCLUDING":
+					if len(tokens) == 1 {
+						return nil, fmt.Errorf("missing names after EXCLUDING")
+					}
+					imp.excluding = make([]string, len(tokens)-1)
+					for i, tok := range tokens[1:] {
+						name := string(tok)
+						err := checkExportedName(name)
+						if err != nil {
+							return nil, err
+						}
+						imp.excluding[i] = name
+					}
+					tokens = nil
+				case "NOT":
+					if len(tokens) == 1 {
+						if imp.asPath == "main" {
+							return nil, fmt.Errorf("unexpected %s, expecting %s CAPITALIZED", tok, tok)
+						}
+						return nil, fmt.Errorf("unexpected %s", tok)
+					}
+					if strings.ToUpper(tokens[1]) != "CAPITALIZED" {
+						if imp.asPath == "main" {
+							return nil, fmt.Errorf("unexpected %s %s, expecting %s CAPITALIZED", tok, tokens[1], tok)
+						}
+						return nil, fmt.Errorf("unexpected %s", tok)
+					}
+					if imp.asPath != "main" {
+						return nil, fmt.Errorf("%s %s can appear only after 'AS main'", tok, tokens[1])
+					}
+					imp.notCapitalized = true
+					tokens = tokens[2:]
+				default:
+					return nil, fmt.Errorf("unexpected option %s for IMPORT", tok)
+				}
+			}
+			sf.imports = append(sf.imports, &imp)
+		default:
+			return nil, fmt.Errorf("unknown command %s", tokens[0])
 		}
-		if inQuotes {
-			return nil, errors.New("unexpected EOL, expecting quote")
-		}
-		break
+
 	}
-	return tokens, nil
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return &sf, nil
 }

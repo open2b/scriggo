@@ -202,43 +202,54 @@ func generate(install bool) {
 
 	inputPath := flag.Arg(0)
 
-	data, err := getScriggoDescriptorData(inputPath)
+	r, err := getScriggofile(inputPath)
 	if err != nil {
 		exitError(err.Error())
 	}
+	defer r.Close()
 
-	sd, err := parseScriggoDescriptor(data)
+	sf, err := parseScriggofile(r)
 	if err != nil {
 		exitError("path %q: %s", inputPath, err)
 	}
-	sd.filepath = inputPath
-	if len(sd.comment.goos) == 0 {
+	sf.filepath = inputPath
+	if len(sf.goos) == 0 {
 		defaultGOOS := os.Getenv("GOOS")
 		if defaultGOOS == "" {
 			defaultGOOS = runtime.GOOS
 		}
-		sd.comment.goos = []string{defaultGOOS}
+		sf.goos = []string{defaultGOOS}
+	}
+
+	// Import the packages of the Go standard library.
+	for i, imp := range sf.imports {
+		if imp.stdlib {
+			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
+			copy(imports[:i], sf.imports[:i])
+			for j, path := range stdlib {
+				imports[i+j] = &importCommand{path: path}
+			}
+			copy(imports[i+len(stdlib):], sf.imports[i+1:])
+			sf.imports = imports
+		}
 	}
 
 	// Generate an embeddable loader.
-	if sd.comment.embedded {
+	if sf.embedded {
 		if install {
 			stderr(`sgo install is not compatible with a Scriggo descriptor that generates embedded packages`)
 			flag.Usage()
 			exit(1)
 			return
 		}
-		if sd.comment.varName == "" {
-			sd.comment.varName = "packages"
-		}
 		inputFileBase := filepath.Base(inputPath)
 		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
 
 		// Iterate over all GOOS.
-		for _, goos := range sd.comment.goos {
+		for _, goos := range sf.goos {
 
 			// Render all packages, ignoring main.
-			data, hasContent, err := renderPackages(sd, sd.comment.varName, goos)
+			data, hasContent, err := renderPackages(sf, goos)
 			if err != nil {
 				exitError("%s", err)
 			}
@@ -270,10 +281,10 @@ func generate(install bool) {
 	}
 
 	// Generate the sources for a new interpreter.
-	if sd.comment.template || sd.comment.script || sd.comment.program {
+	if sf.templates || sf.scripts || sf.programs {
 
-		if sd.comment.output == "" {
-			sd.comment.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
+		if sf.output == "" {
+			sf.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 		}
 
 		// Create a temporary directory for interpreter sources. If installing,
@@ -283,24 +294,28 @@ func generate(install bool) {
 		if err != nil {
 			exitError(err.Error())
 		}
-		tmpDir = filepath.Join(tmpDir, sd.pkgName)
+		tmpDir = filepath.Join(tmpDir, sf.pkgName)
 
 		err = os.MkdirAll(tmpDir, dirPerm)
 		if err != nil {
 			exitError(err.Error())
 		}
 
-		for _, goos := range sd.comment.goos {
+		for _, goos := range sf.goos {
 
-			sd.pkgName = "main"
+			sf.pkgName = "main"
 
-			// When making an interpreter that reads only template sources, sd
+			// When making an interpreter that reads only template sources, sf
 			// cannot contain only packages.
-			if sd.comment.template && !sd.comment.script && !sd.comment.program && !sd.containsMain() && len(sd.imports) > 0 {
-				exitError("cannot have packages if making a template interpreter")
+			if len(sf.imports) > 0 && sf.templates && !sf.scripts && !sf.programs {
+				for _, imp := range sf.imports {
+					if imp.asPath != "main" {
+						exitError("cannot have packages if making a template interpreter")
+					}
+				}
 			}
 
-			data, hasContent, err := renderPackages(sd, "packages", goos)
+			data, hasContent, err := renderPackages(sf, goos)
 			if err != nil {
 				exitError("rendering packages: %s", err)
 			}
@@ -323,7 +338,7 @@ func generate(install bool) {
 
 		// Write the package main on disk and run "goimports" on it.
 		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sd.comment.program, sd.comment.script, sd.comment.template), filePerm)
+		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.programs, sf.scripts, sf.templates), filePerm)
 		if err != nil {
 			exitError("writing interpreter file: %s", err)
 		}
@@ -351,14 +366,14 @@ func generate(install bool) {
 		if err != nil {
 			exitError(err.Error())
 		}
-		err = os.MkdirAll(sd.comment.output, dirPerm)
+		err = os.MkdirAll(sf.output, dirPerm)
 		if err != nil {
 			exitError(err.Error())
 		}
 		for _, fi := range fis {
 			if !fi.IsDir() {
 				filePath := filepath.Join(tmpDir, fi.Name())
-				newFilePath := filepath.Join(sd.comment.output, fi.Name())
+				newFilePath := filepath.Join(sf.output, fi.Name())
 				data, err := ioutil.ReadFile(filePath)
 				if err != nil {
 					exitError(err.Error())
@@ -373,4 +388,144 @@ func generate(install bool) {
 	}
 
 	return
+}
+
+// stdlib contains the paths of the packages of the Go standard library except
+// the packages "database", "plugin", "testing", "runtime/cgo", "syscall",
+// "unsafe" and their sub packages.
+var stdlib = []string{
+	"archive/tar",
+	"archive/zip",
+	"bufio",
+	"bytes",
+	"compress/bzip2",
+	"compress/flate",
+	"compress/gzip",
+	"compress/lzw",
+	"compress/zlib",
+	"container/heap",
+	"container/list",
+	"container/ring",
+	"context",
+	"crypto",
+	"crypto/aes",
+	"crypto/cipher",
+	"crypto/des",
+	"crypto/dsa",
+	"crypto/ecdsa",
+	"crypto/elliptic",
+	"crypto/hmac",
+	"crypto/md5",
+	"crypto/rand",
+	"crypto/rc4",
+	"crypto/rsa",
+	"crypto/sha1",
+	"crypto/sha256",
+	"crypto/sha512",
+	"crypto/subtle",
+	"crypto/tls",
+	"crypto/x509",
+	"crypto/x509/pkix",
+	"debug/dwarf",
+	"debug/elf",
+	"debug/gosym",
+	"debug/macho",
+	"debug/pe",
+	"debug/plan9obj",
+	"encoding",
+	"encoding/ascii85",
+	"encoding/asn1",
+	"encoding/base32",
+	"encoding/base64",
+	"encoding/binary",
+	"encoding/csv",
+	"encoding/gob",
+	"encoding/hex",
+	"encoding/json",
+	"encoding/pem",
+	"encoding/xml",
+	"errors",
+	"expvar",
+	"flag",
+	"fmt",
+	"go/ast",
+	"go/build",
+	"go/constant",
+	"go/doc",
+	"go/format",
+	"go/importer",
+	"go/parser",
+	"go/printer",
+	"go/scanner",
+	"go/token",
+	"go/types",
+	"hash",
+	"hash/adler32",
+	"hash/crc32",
+	"hash/crc64",
+	"hash/fnv",
+	"html",
+	"html/template",
+	"image",
+	"image/color",
+	"image/color/palette",
+	"image/draw",
+	"image/gif",
+	"image/jpeg",
+	"image/png",
+	"index/suffixarray",
+	"io",
+	"io/ioutil",
+	"log",
+	"log/syslog",
+	"math",
+	"math/big",
+	"math/bits",
+	"math/cmplx",
+	"math/rand",
+	"mime",
+	"mime/multipart",
+	"mime/quotedprintable",
+	"net",
+	"net/http",
+	"net/http/cgi",
+	"net/http/cookiejar",
+	"net/http/fcgi",
+	"net/http/httptest",
+	"net/http/httptrace",
+	"net/http/httputil",
+	"net/http/pprof",
+	"net/mail",
+	"net/rpc",
+	"net/rpc/jsonrpc",
+	"net/smtp",
+	"net/textproto",
+	"net/url",
+	"os",
+	"os/exec",
+	"os/signal",
+	"os/user",
+	"path",
+	"path/filepath",
+	"reflect",
+	"regexp",
+	"regexp/syntax",
+	"runtime",
+	"runtime/debug",
+	"runtime/pprof",
+	"runtime/race",
+	"runtime/trace",
+	"sort",
+	"strconv",
+	"strings",
+	"sync",
+	"sync/atomic",
+	"text/scanner",
+	"text/tabwriter",
+	"text/template",
+	"text/template/parse",
+	"time",
+	"unicode",
+	"unicode/utf16",
+	"unicode/utf8",
 }
