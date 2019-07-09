@@ -7,13 +7,19 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	pkgs "golang.org/x/tools/go/packages"
 )
 
 func main() {
@@ -89,7 +95,7 @@ var commandsHelp = map[string]func(){
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
-			`	generate       generate an interpreter or a loader`,
+			`	install       install an interpreter or a loader`,
 			`	install        install an interpreter`,
 			`	version        print sgc/Scriggo version`,
 			``,
@@ -115,15 +121,12 @@ var commandsHelp = map[string]func(){
 			`The report includes useful system information.`,
 		)
 	},
-	"generate": func() {
-		txtToHelp(helpGenerate)
-	},
 	"install": func() {
 		stderr(
 			`usage: sgc install [target]`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
 			``,
-			`See also: sgc generate`,
+			`See also: sgc install`,
 		)
 	},
 	"version": func() {
@@ -145,11 +148,42 @@ var commands = map[string]func(){
 	},
 	"install": func() {
 		flag.Usage = commandsHelp["install"]
-		generate(true)
+		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
+		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		flag.Parse()
+		if len(flag.Args()) == 0 {
+			// No arguments provided: this is not an error.
+			flag.Usage()
+			return
+		}
+		if len(flag.Args()) > 1 {
+			flag.Usage()
+			exitError(`bad number of arguments`)
+		}
+		err := install(*work, *verbose)
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
 	},
-	"generate": func() {
-		flag.Usage = commandsHelp["generate"]
-		generate(false)
+	"embed": func() {
+		flag.Usage = commandsHelp["embed"]
+		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		flag.Parse()
+		if len(flag.Args()) == 0 {
+			// No arguments provided: this is not an error.
+			flag.Usage()
+			return
+		}
+		if len(flag.Args()) > 1 {
+			flag.Usage()
+			exitError(`bad number of arguments`)
+		}
+		err := embed(flag.Arg(0), *verbose)
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
 	},
 	"help": func() {
 		if len(os.Args) == 1 {
@@ -174,51 +208,35 @@ var commands = map[string]func(){
 	},
 }
 
-// generate executes the sub commands "generate" and "install":
+// embed executes the sub commands "embed":
 //
-//		sgc generate
-//		sgc install
+//		sgc embed
 //
-// If install is set, the interpreter will be installed as executable and
-// the interpreter sources will be removed.
-func generate(install bool) {
+func embed(path string, verbose bool) error {
 
-	flag.Parse()
-
-	// No arguments provided: this is not an error.
-	if len(flag.Args()) == 0 {
-		flag.Usage()
-		exit(0)
-		return
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		goos = runtime.GOOS
 	}
 
-	// Too many arguments provided.
-	if len(flag.Args()) > 1 {
-		stderr(`bad number of arguments`)
-		flag.Usage()
-		exit(1)
-		return
-	}
-
-	inputPath := flag.Arg(0)
-
-	r, err := getScriggofile(inputPath)
+	// Read the Scriggofile.
+	content, err := os.Open(path)
 	if err != nil {
-		exitError(err.Error())
-	}
-	defer r.Close()
-
-	sf, err := parseScriggofile(r)
-	if err != nil {
-		exitError("path %q: %s", inputPath, err)
-	}
-	sf.filepath = inputPath
-	if len(sf.goos) == 0 {
-		defaultGOOS := os.Getenv("GOOS")
-		if defaultGOOS == "" {
-			defaultGOOS = runtime.GOOS
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file %q does not exists", path)
 		}
-		sf.goos = []string{defaultGOOS}
+		return err
+	}
+	defer content.Close()
+
+	// Parse the Scriggofile.
+	sf, err := parseScriggofile(content, goos)
+	if err != nil {
+		return fmt.Errorf("path %q: %s", path, err)
+	}
+	err = content.Close()
+	if err != nil {
+		return err
 	}
 
 	// Import the packages of the Go standard library.
@@ -234,160 +252,154 @@ func generate(install bool) {
 		}
 	}
 
-	// Generate an embeddable loader.
-	if sf.embedded {
-		if install {
-			stderr(`sgc install is not compatible with a Scriggo descriptor that generates embedded packages`)
-			flag.Usage()
-			exit(1)
-			return
-		}
-		inputFileBase := filepath.Base(inputPath)
-		inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
+	_, err = renderPackages(os.Stdout, sf, goos, verbose)
 
-		// Iterate over all GOOS.
-		for _, goos := range sf.goos {
+	return err
+}
 
-			// Render all packages, ignoring main.
-			data, hasContent, err := renderPackages(sf, goos)
-			if err != nil {
-				exitError("%s", err)
-			}
+// install executes the sub command "install".
+func install(work bool, verbose bool) error {
 
-			// Data has been generated but has no content (only has a
-			// "skeleton"): do not write file.
-			if !hasContent {
-				continue
-			}
-
-			newBase := inputBaseNoExt + "_" + goBaseVersion(runtime.Version()) + "_" + goos + filepath.Ext(inputFileBase)
-			out := filepath.Join(filepath.Dir(inputPath), newBase)
-
-			// Write the packages on a file and run "goimports" on that file.
-			err = ioutil.WriteFile(out, []byte(data), filePerm)
-			if err != nil {
-				exitError("writing packages file: %s", err)
-			}
-			err = goImports(out)
-			if err != nil {
-				exitError("goimports on file %q: %s", out, err)
-			}
-
-		}
-
-		exit(0)
-
-		return
+	_, err := exec.LookPath("go")
+	if err != nil {
+		return err
 	}
 
-	// Generate the sources for a new interpreter.
-	if sf.templates || sf.scripts || sf.programs {
-
-		if sf.output == "" {
-			sf.output = strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
-		}
-
-		// Create a temporary directory for interpreter sources. If installing,
-		// directory will be lost. If generating sources and no errors occurred,
-		// tmpDir will be moved to the correct path.
-		tmpDir, err := ioutil.TempDir("", "sgc")
-		if err != nil {
-			exitError(err.Error())
-		}
-		tmpDir = filepath.Join(tmpDir, sf.pkgName)
-
-		err = os.MkdirAll(tmpDir, dirPerm)
-		if err != nil {
-			exitError(err.Error())
-		}
-
-		for _, goos := range sf.goos {
-
-			sf.pkgName = "main"
-
-			// When making an interpreter that reads only template sources, sf
-			// cannot contain only packages.
-			if len(sf.imports) > 0 && sf.templates && !sf.scripts && !sf.programs {
-				for _, imp := range sf.imports {
-					if imp.asPath != "main" {
-						exitError("cannot have packages if making a template interpreter")
-					}
-				}
-			}
-
-			data, hasContent, err := renderPackages(sf, goos)
-			if err != nil {
-				exitError("rendering packages: %s", err)
-			}
-			// Data has been generated but has no content (only has a
-			// "skeleton"): do not write file.
-			if !hasContent {
-				continue
-			}
-			outPkgsFile := filepath.Join(tmpDir, "pkgs_"+goBaseVersion(runtime.Version())+"_"+goos+".go")
-			err = ioutil.WriteFile(outPkgsFile, []byte(data), filePerm)
-			if err != nil {
-				exitError("writing packages file: %s", err)
-			}
-			err = goImports(outPkgsFile)
-			if err != nil {
-				exitError("goimports on file %q: %s", outPkgsFile, err)
-			}
-
-		}
-
-		// Write the package main on disk and run "goimports" on it.
-		mainPath := filepath.Join(tmpDir, "main.go")
-		err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.programs, sf.scripts, sf.templates), filePerm)
-		if err != nil {
-			exitError("writing interpreter file: %s", err)
-		}
-		goModPath := filepath.Join(tmpDir, "go.mod")
-		err = ioutil.WriteFile(goModPath, makeExecutableGoMod(inputPath), filePerm)
-		if err != nil {
-			exitError("writing interpreter file: %s", err)
-		}
-		err = goImports(mainPath)
-		if err != nil {
-			exitError("goimports on file %q: %s", mainPath, err)
-		}
-
-		if install {
-			err = goInstall(tmpDir)
-			if err != nil {
-				exitError("goimports on dir %q: %s", tmpDir, err)
-			}
-			exit(0)
-			return
-		}
-
-		// Move the interpreter from tmpDir to the correct dir.
-		fis, err := ioutil.ReadDir(tmpDir)
-		if err != nil {
-			exitError(err.Error())
-		}
-		err = os.MkdirAll(sf.output, dirPerm)
-		if err != nil {
-			exitError(err.Error())
-		}
-		for _, fi := range fis {
-			if !fi.IsDir() {
-				filePath := filepath.Join(tmpDir, fi.Name())
-				newFilePath := filepath.Join(sf.output, fi.Name())
-				data, err := ioutil.ReadFile(filePath)
-				if err != nil {
-					exitError(err.Error())
-				}
-				err = ioutil.WriteFile(newFilePath, data, filePerm)
-				if err != nil {
-					exitError(err.Error())
-				}
-			}
-		}
-		exit(0)
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		goos = runtime.GOOS
 	}
 
-	return
+	path := flag.Arg(0)
+	base := filepath.Base(path)
+
+	var content io.ReadCloser
+
+	// Read the Scriggofile.
+	if ext := filepath.Ext(base); ext == "" {
+		// path is a package path.
+		packages, err := pkgs.Load(nil, path)
+		if err != nil {
+			return err
+		}
+		if len(packages) == 0 {
+			return fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
+		}
+		if len(packages) > 1 {
+			return errors.New("too many packages matching")
+		}
+		pkg := packages[0]
+		if len(pkg.GoFiles) == 0 {
+			return fmt.Errorf("package %s does not contain Go files", path)
+		}
+		filePath := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "Scriggofile")
+		content, err = os.Open(filePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("package %s does not contain a Scriggofile", path)
+			}
+			return err
+		}
+	} else {
+		// path is a file path.
+		base = strings.TrimSuffix(base, ext)
+		content, err = os.Open(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("file %s does exist", path)
+			}
+			return err
+		}
+	}
+	defer content.Close()
+
+	// Parse the Scriggofile.
+	sf, err := parseScriggofile(content, goos)
+	if err != nil {
+		return err
+	}
+	err = content.Close()
+	if err != nil {
+		return err
+	}
+
+	// Import the packages of the Go standard library.
+	for i, imp := range sf.imports {
+		if imp.stdlib {
+			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
+			copy(imports[:i], sf.imports[:i])
+			for j, path := range stdlib {
+				imports[i+j] = &importCommand{path: path}
+			}
+			copy(imports[i+len(stdlib):], sf.imports[i+1:])
+			sf.imports = imports
+		}
+	}
+
+	// Create a temporary work directory with the sources of the interpreter.
+	// If the options "work" is given, the work directory name will be printed
+	// and it will not be deleted after the installation.
+	workDir, err := ioutil.TempDir("", "sgc-install")
+	if err != nil {
+		return err
+	}
+	if work {
+		_, _ = fmt.Fprintf(os.Stderr, "WORK=%s\n", workDir)
+	} else {
+		defer func() {
+			err = os.RemoveAll(workDir)
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "cannot delete the temporary work directory: %s", err)
+			}
+		}()
+	}
+
+	dir := filepath.Join(workDir, base)
+
+	err = os.MkdirAll(dir, dirPerm)
+	if err != nil {
+		return err
+	}
+
+	// Create the package declarations file.
+	packagesPath := filepath.Join(dir, "packages.go")
+	fi, err := os.OpenFile(packagesPath, os.O_CREATE, filePerm)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	_, err = renderPackages(fi, sf, goos, verbose)
+	if err != nil {
+		return fmt.Errorf("rendering packages: %s", err)
+	}
+	err = fi.Close()
+	if err != nil {
+		return fmt.Errorf("rendering packages: %s", err)
+	}
+
+	// Create the other installer files main file.
+	mainPath := filepath.Join(dir, "main.go")
+	err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.target), filePerm)
+	if err != nil {
+		return fmt.Errorf("writing interpreter file: %s", err)
+	}
+	goModPath := filepath.Join(dir, "go.mod")
+	err = ioutil.WriteFile(goModPath, makeExecutableGoMod(base), filePerm)
+	if err != nil {
+		return fmt.Errorf("writing interpreter file: %s", err)
+	}
+
+	// Install the package.
+	cmd := exec.Command("go", "install")
+	cmd.Dir = dir
+	stderr := bytes.Buffer{}
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("go build: %s", &stderr)
+	}
+
+	return nil
 }
 
 // stdlib contains the paths of the packages of the Go standard library except

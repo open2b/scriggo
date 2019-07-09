@@ -7,7 +7,7 @@
 package main
 
 const helpGenerate = `
-usage: sgc generate [target]
+usage: sgc install [target]
 Generate generates a directory containing source code for a new interpreter.
 
 Target can be:
@@ -48,7 +48,7 @@ Each import statement should have a name _, which prevents tools like goimports 
 Options available in the Scriggo file comment are:
 
 	interpreters:targets  describe an interpreter for targets. Valid targets are "template, "script" and "program"
-	interpreter           generate all kinds of interpreters
+	interpreter           install all kinds of interpreters
 	embedded              describe an embedded packages declaration
 	output                select output file/directory
 	goos:GOOSs            force GOOS to the specified value. More than one value can be provided

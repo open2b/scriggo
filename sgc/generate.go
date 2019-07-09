@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"go/constant"
 	"go/types"
+	"io"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -27,7 +29,7 @@ const (
 // renderPackages renders a Scriggofile. It also returns a boolean indicating
 // if the content contains packages. Ignores all main packages contained in
 // the Scriggofile.
-func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
+func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (int, error) {
 
 	type packageType struct {
 		name string
@@ -51,9 +53,12 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 
 	packages := map[string]*packageType{}
 	for _, imp := range sf.imports {
+		if verbose {
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
+		}
 		pkgName, decls, err := loadGoPackage(imp.path, goos)
 		if err != nil {
-			panic(err) // TODO(Gianluca).
+			return 0, err
 		}
 		// No declarations at path: move on to next import path.
 		if len(decls) == 0 {
@@ -62,12 +67,12 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 		if len(imp.including) > 0 {
 			decls, err = filterIncluding(decls, imp.including)
 			if err != nil {
-				return "", false, err
+				return 0, err
 			}
 		} else if len(imp.excluding) > 0 {
 			decls, err = filterExcluding(decls, imp.excluding)
 			if err != nil {
-				return "", false, err
+				return 0, err
 			}
 		}
 		// Convert all declaration name to "unexported" if requested.
@@ -79,10 +84,10 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 			for name, decl := range decls {
 				newName := uncapitalize(name)
 				if newName == "main" || newName == "init" {
-					return "", false, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalized' or change declaration name in package %q", newName, imp.path)
+					return 0, fmt.Errorf("%q is not a valid identifier: remove 'uncapitalized' or change declaration name in package %q", newName, imp.path)
 				}
 				if isGoKeyword(newName) {
-					return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
+					return 0, fmt.Errorf("%q is not a valid identifier as it conflicts with Go keyword %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 				}
 				if isPredeclaredIdentifier(newName) {
 					if newName == "print" || newName == "println" {
@@ -90,7 +95,7 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 						//  'print' and 'println', shadowing is allowed. Else, an
 						//  error must be returned.
 					} else {
-						return "", false, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
+						return 0, fmt.Errorf("%q is not a valid identifier as it conflicts with Go predeclared identifier %q: remove 'uncapitalized' or change declaration name in package %q", newName, newName, imp.path)
 					}
 				}
 				tmp[newName] = decl
@@ -114,7 +119,7 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 			}
 			for name, decl := range decls {
 				if _, ok := packages["main"].decl[name]; ok {
-					return "", false, fmt.Errorf("declaration name collision in package main: %q", name)
+					return 0, fmt.Errorf("declaration name collision in package main: %q", name)
 				}
 				packages["main"].decl[name] = decl
 			}
@@ -126,7 +131,7 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 			}
 			for name, decl := range decls {
 				if _, ok := packages[path].decl[name]; ok {
-					return "", false, fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
+					return 0, fmt.Errorf("declaration name collision: %q in package %q", name, imp.path)
 				}
 				packages[path].decl[name] = decl
 				packages[path].name = pkgName
@@ -138,7 +143,7 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 
 	// If no packages have been declared, just return.
 	if len(packages) == 0 {
-		return "", false, nil
+		return 0, nil
 	}
 
 	// Render package content.
@@ -213,14 +218,12 @@ func renderPackages(sf *scriggofile, goos string) (string, bool, error) {
 	).Replace(pkgsSkeleton)
 	pkgOutput = genHeader(sf, goos) + pkgOutput
 
-	return pkgOutput, true, nil
+	return io.WriteString(w, pkgOutput)
 }
 
 // loadGoPackage loads the Go package with the given path and returns its name
 // and its exported declarations.
 func loadGoPackage(path, goos string) (string, map[string]string, error) {
-
-	fmt.Printf("generating package %q (GOOS=%q)...", path, goos)
 
 	declarations := map[string]string{}
 	// TODO(marco): remove the global cache of package names.
@@ -309,8 +312,6 @@ func loadGoPackage(path, goos string) (string, map[string]string, error) {
 			declarations[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
 		}
 	}
-
-	fmt.Printf("done!\n")
 
 	return name, declarations, nil
 }

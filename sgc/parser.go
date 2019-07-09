@@ -11,20 +11,36 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 )
+
+type Command int
+
+const (
+	commandEmbed Command = iota
+	commandGenerate
+	commandInstall
+)
+
+type Target int
+
+const (
+	targetPrograms Target = 1 << (3 - 1 - iota)
+	targetScripts
+	targetTemplates
+)
+
+const targetAll = targetPrograms | targetScripts | targetTemplates
 
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
-	pkgName   string           // name of the package to be generated.
-	filepath  string           // filepath of the parsed file.
-	embedded  bool             // generating embedded.
-	programs  bool             // generating program interpreter.
-	templates bool             // generating template interpreter.
-	scripts   bool             // generating script interpreter.
-	variable  string           // variable name for embedded packages.
-	output    string           // output path.
-	goos      []string         // target GOOSs.
-	imports   []*importCommand // list of imports defined in file.
+	pkgName  string           // name of the package to be generated.
+	filepath string           // filepath of the parsed file.
+	target   Target           // target.
+	variable string           // variable name for embedded packages.
+	output   string           // output path.
+	goos     []string         // target GOOSs.
+	imports  []*importCommand // list of imports defined in file.
 }
 
 // importCommand represents an IMPORT command in a Scriggofile.
@@ -38,16 +54,15 @@ type importCommand struct {
 }
 
 // parseScriggofile parses a Scriggofile and returns its commands.
-func parseScriggofile(src io.Reader) (*scriggofile, error) {
+func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 
 	sf := scriggofile{
+		pkgName:  "main",
 		variable: "packages",
 	}
 
 	scanner := bufio.NewScanner(src)
 	ln := 0
-
-	hasMake := false
 
 	for scanner.Scan() {
 
@@ -57,6 +72,10 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 			line = strings.TrimPrefix(line, "0xEF0xBB0xBF")
 		}
 		ln++
+		if !utf8.ValidString(line) {
+			return nil, fmt.Errorf("invalid UTF-8 character at line %d", ln)
+		}
+
 		line = strings.TrimSpace(line)
 		if len(line) == 0 || line[0] == '#' {
 			continue
@@ -67,72 +86,43 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 		}
 
 		switch strings.ToUpper(tokens[0]) {
-		case "MAKE":
-			if hasMake {
-				return nil, fmt.Errorf("repeated command MAKE")
-			}
+		case "TARGET":
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("expecting EMBEDDED or INTERPRETER after %s", tokens[0])
+				return nil, fmt.Errorf("after %s expecting PROGRAMS, SCRIPTS or TEMPLATES at line %d", tokens[0], ln)
 			}
-			switch strings.ToUpper(tokens[1]) {
-			case "EMBEDDED":
-				if len(tokens) > 2 {
-					return nil, fmt.Errorf("unknown %q after %s %s", tokens[0], tokens[1], tokens[1])
-				}
-				sf.embedded = true
-			case "INTERPRETER":
-				if len(tokens) > 2 {
-					if tok := strings.ToUpper(tokens[2]); tok != "FOR" {
-						switch tok {
-						case "PROGRAMS", "SCRIPTS", "TEMPLATES":
-							return nil, fmt.Errorf("unexpected %s %s %s, expecting %s %s FOR %s",
-								tokens[0], tokens[1], tokens[2], tokens[0], tokens[1], tokens[2])
-						}
-						return nil, fmt.Errorf("unexpected %s %s %q, expecting %s %s FOR",
-							tokens[0], tokens[1], tokens[2], tokens[0], tokens[1])
+			for _, tok := range tokens[1:] {
+				target := strings.ToUpper(tok)
+				switch target {
+				case "PROGRAMS":
+					if sf.target&targetPrograms != 0 {
+						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
-					if len(tokens) == 3 {
-						return nil, fmt.Errorf("expecting PROGRAMS, SCRIPTS or TEMPLATES AFTER %s %s %s",
-							tokens[0], tokens[1], tokens[2])
+					sf.target |= targetPrograms
+				case "SCRIPTS":
+					if sf.target&targetScripts != 0 {
+						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
-					for _, tok := range tokens[3:] {
-						typ := strings.ToUpper(tok)
-						switch typ {
-						case "PROGRAMS":
-							sf.programs = true
-						case "SCRIPTS":
-							sf.scripts = true
-						case "TEMPLATES":
-							sf.templates = true
-						default:
-							return nil, fmt.Errorf("unexpected %q after %s %s %s",
-								tok, tokens[0], tokens[1], tokens[2])
-						}
+					sf.target |= targetScripts
+				case "TEMPLATES":
+					if sf.target&targetTemplates != 0 {
+						return nil, fmt.Errorf("repeated target %s at line %d", target, ln)
 					}
-				} else {
-					sf.programs = true
-					sf.scripts = true
-					sf.templates = true
+					sf.target |= targetTemplates
+				default:
+					return nil, fmt.Errorf("unexpected %q as TARGET at line %d", tok, ln)
 				}
 			}
-			hasMake = true
 		case "SET":
-			if !hasMake {
-				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
-			}
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s", tokens[0])
+				return nil, fmt.Errorf("expecting VARIABLE or PACKAGE after %s at line %d", tokens[0], ln)
 			}
 			switch strings.ToUpper(tokens[1]) {
 			case "VARIABLE":
-				if !sf.embedded {
-					return nil, fmt.Errorf("cannot use SET VARIABLE with interpreters")
-				}
 				if len(tokens) == 2 {
-					return nil, fmt.Errorf("missing variable name")
+					return nil, fmt.Errorf("missing variable name at line %d", ln)
 				}
 				if len(tokens) > 3 {
-					return nil, fmt.Errorf("too many variable names")
+					return nil, fmt.Errorf("too many variable names at line %d", ln)
 				}
 				variable := string(tokens[2])
 				err := checkIdentifierName(variable)
@@ -142,10 +132,10 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				sf.variable = variable
 			case "PACKAGE":
 				if len(tokens) == 2 {
-					return nil, fmt.Errorf("missing package name")
+					return nil, fmt.Errorf("missing package name at line %d", ln)
 				}
 				if len(tokens) > 3 {
-					return nil, fmt.Errorf("too many packages names")
+					return nil, fmt.Errorf("too many packages names at line %d", ln)
 				}
 				pkgName := string(tokens[1])
 				err := checkIdentifierName(pkgName)
@@ -154,21 +144,18 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				}
 				sf.pkgName = pkgName
 			default:
-				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE",
-					tokens[0], tokens[1], tokens[0], tokens[0])
+				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE at line %d",
+					tokens[0], tokens[1], tokens[0], tokens[0], ln)
 			}
 		case "REQUIRE":
-			if !hasMake {
-				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
-			}
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("expected GOOS after %s", tokens[0])
+				return nil, fmt.Errorf("expected GOOS after %s at line %d", tokens[0], ln)
 			}
 			if !strings.EqualFold(tokens[1], "GOOS") {
-				return nil, fmt.Errorf("unexpected %s %q, expected %s GOOS", tokens[0], tokens[1], tokens[0])
+				return nil, fmt.Errorf("unexpected %s %q, expected %s GOOS at line %d", tokens[0], tokens[1], tokens[0], ln)
 			}
 			if len(tokens) == 2 {
-				return nil, fmt.Errorf("missing os after %s %s", tokens[0], tokens[1])
+				return nil, fmt.Errorf("missing os after %s %s at line %d", tokens[0], tokens[1], ln)
 			}
 			if sf.goos == nil {
 				sf.goos = make([]string, 0, len(tokens)-2)
@@ -182,21 +169,18 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				sf.goos = append(sf.goos, os)
 			}
 		case "IMPORT":
-			if !hasMake {
-				return nil, fmt.Errorf("missing MAKE before %s", tokens[0])
-			}
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("missing package path")
+				return nil, fmt.Errorf("missing package path at line %d", ln)
 			}
 			path := string(tokens[1])
 			if len(tokens) > 2 && strings.EqualFold(path, "STANDARD") && strings.EqualFold(tokens[2], "LIBRARY") {
 				for _, imp := range sf.imports {
 					if imp.stdlib {
-						return nil, fmt.Errorf("command %s %s %s is repeated", tokens[0], tokens[1], tokens[2])
+						return nil, fmt.Errorf("command %s %s %s is repeated at line %d", tokens[0], tokens[1], tokens[2], ln)
 					}
 				}
 				if len(tokens) > 3 {
-					return nil, fmt.Errorf("unexpected %q after %s %s %s", tokens[3], tokens[0], tokens[1], tokens[2])
+					return nil, fmt.Errorf("unexpected %q after %s %s %s at line %d", tokens[3], tokens[0], tokens[1], tokens[2], ln)
 				}
 				sf.imports = append(sf.imports, &importCommand{stdlib: true})
 				continue
@@ -213,10 +197,10 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				switch tok := strings.ToUpper(tokens[0]); tok {
 				case "AS":
 					if parsedAs {
-						return nil, fmt.Errorf("repeated option %s", tok)
+						return nil, fmt.Errorf("repeated option %s at line %d", tok, ln)
 					}
 					if len(tokens) == 1 {
-						return nil, fmt.Errorf("missing package path after AS")
+						return nil, fmt.Errorf("missing package path after AS at line %d", ln)
 					}
 					path := string(tokens[1])
 					err := checkPackagePath(path)
@@ -228,7 +212,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					tokens = tokens[2:]
 				case "INCLUDING":
 					if len(tokens) == 1 {
-						return nil, fmt.Errorf("missing names after INCLUDING")
+						return nil, fmt.Errorf("missing names after INCLUDING at line %d", ln)
 					}
 					imp.including = make([]string, len(tokens)-1)
 					for i, tok := range tokens[1:] {
@@ -242,7 +226,7 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 					tokens = nil
 				case "EXCLUDING":
 					if len(tokens) == 1 {
-						return nil, fmt.Errorf("missing names after EXCLUDING")
+						return nil, fmt.Errorf("missing names after EXCLUDING at line %d", ln)
 					}
 					imp.excluding = make([]string, len(tokens)-1)
 					for i, tok := range tokens[1:] {
@@ -257,34 +241,61 @@ func parseScriggofile(src io.Reader) (*scriggofile, error) {
 				case "NOT":
 					if len(tokens) == 1 {
 						if imp.asPath == "main" {
-							return nil, fmt.Errorf("unexpected %s, expecting %s CAPITALIZED", tok, tok)
+							return nil, fmt.Errorf("unexpected %s, expecting %s CAPITALIZED at line %d", tok, tok, ln)
 						}
-						return nil, fmt.Errorf("unexpected %s", tok)
+						return nil, fmt.Errorf("unexpected %s at line %d", tok, ln)
 					}
 					if strings.ToUpper(tokens[1]) != "CAPITALIZED" {
 						if imp.asPath == "main" {
-							return nil, fmt.Errorf("unexpected %s %s, expecting %s CAPITALIZED", tok, tokens[1], tok)
+							return nil, fmt.Errorf("unexpected %s %s, expecting %s CAPITALIZED at line %d", tok, tokens[1], tok, ln)
 						}
 						return nil, fmt.Errorf("unexpected %s", tok)
 					}
 					if imp.asPath != "main" {
-						return nil, fmt.Errorf("%s %s can appear only after 'AS main'", tok, tokens[1])
+						return nil, fmt.Errorf("%s %s can appear only after 'AS main' at line %d", tok, tokens[1], ln)
 					}
 					imp.notCapitalized = true
 					tokens = tokens[2:]
 				default:
-					return nil, fmt.Errorf("unexpected option %s for IMPORT", tok)
+					return nil, fmt.Errorf("unexpected option %s for IMPORT at line %d", tok, ln)
 				}
 			}
 			sf.imports = append(sf.imports, &imp)
 		default:
-			return nil, fmt.Errorf("unknown command %s", tokens[0])
+			return nil, fmt.Errorf("unknown command %s at line %d", tokens[0], ln)
 		}
 
 	}
 
 	if err := scanner.Err(); err != nil {
 		return nil, err
+	}
+
+	if len(sf.goos) > 0 {
+		found := false
+		for _, os := range sf.goos {
+			if os == goos {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("GOOS %s not supported in Scriggofile", goos)
+		}
+	}
+
+	// When making an interpreter that reads only template sources, sf
+	// cannot contain only packages.
+	if sf.target == targetTemplates && len(sf.imports) > 0 {
+		for _, imp := range sf.imports {
+			if imp.asPath != "main" {
+				return nil, fmt.Errorf("cannot have packages if making a template interpreter")
+			}
+		}
+	}
+
+	if sf.target == 0 {
+		sf.target = targetAll
 	}
 
 	return &sf, nil

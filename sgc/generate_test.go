@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"reflect"
 	"regexp"
@@ -213,14 +214,15 @@ func Test_renderPackages(t *testing.T) {
 					c.goos = runtime.GOOS
 				}
 			}
-			got, content, err := renderPackages(c.sf, c.goos)
+			b := bytes.Buffer{}
+			n, err := renderPackages(&b, c.sf, c.goos, false)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !content {
+			if n == 0 {
 				t.Fatalf("no content generated")
 			}
-			got = _cleanOutput(got)
+			got := _cleanOutput(b.String())
 			c.expected = _cleanOutput(c.expected)
 			if got != c.expected {
 				if testing.Verbose() {

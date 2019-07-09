@@ -241,23 +241,23 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 
 // makeInterpreterSource returns a Go source code that interprets a Scriggo
 // program, script or template.
-func makeInterpreterSource(program, script, template bool) []byte {
+func makeInterpreterSource(targets Target) []byte {
 
 	out := interpreterSkel
 
-	if script {
+	if targets&targetScripts != 0 {
 		out = strings.Replace(out, "{{ script }}", scriptSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ script }}", `fmt.Println("script support not included in this interpreter.")
 		os.Exit(-1)`, 1)
 	}
-	if template {
+	if targets&targetTemplates != 0 {
 		out = strings.Replace(out, "{{ template }}", templateSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ template }}", `fmt.Println("program support not included in this interpreter.")
 		os.Exit(-1)`, 1)
 	}
-	if program {
+	if targets&targetPrograms != 0 {
 		out = strings.Replace(out, "{{ program }}", programSkel, 1)
 	} else {
 		out = strings.Replace(out, "{{ program }}", `fmt.Println("template support not included in this interpreter.")

@@ -8,43 +8,30 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"golang.org/x/tools/go/packages"
 )
 
 // makeExecutableGoMod makes a 'go.mod' file for creating and installing an
 // executable.
-func makeExecutableGoMod(path string) []byte {
-	out := `module scriggo-[moduleName]
+func makeExecutableGoMod(name string) []byte {
+	out := `module sgc/[moduleName]
 	replace scriggo => [scriggoPath]`
 
-	inputFileBase := filepath.Base(path)
-	inputBaseNoExt := strings.TrimSuffix(inputFileBase, filepath.Ext(inputFileBase))
-	out = strings.ReplaceAll(out, "[moduleName]", inputBaseNoExt)
+	out = strings.ReplaceAll(out, "[moduleName]", name)
 	goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
 	if len(goPaths) == 0 {
 		panic("empty gopath not supported")
 	}
 	scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
 	out = strings.ReplaceAll(out, "[scriggoPath]", scriggoPath)
-
-	// TODO(Gianluca): executable name must have a prefix like 'scriggo-',
-	// otherwise go refuses to build it. Find the reason and make executable
-	// name '[moduleName]' (without a prefix).
-	fmt.Fprintf(os.Stderr, "module name (and executable) is 'scriggo-%s' (instead of '%s'. See 'scriggo' code (function makeExecutableGoMod) for further details)\n", inputBaseNoExt, inputBaseNoExt)
 
 	return []byte(out)
 }
@@ -121,63 +108,6 @@ func filterExcluding(decls map[string]string, exclude []string) (map[string]stri
 	return tmp, nil
 }
 
-// getScriggofile reads a Scriggo descriptor from path. If path is a
-// file ending with ".go", reads such file and returns its content. If path is a
-// package path, it reads the file "scriggo.go" located at the root of the
-// package and returns its content. If "scriggo.go" does not exists at the root
-// of the package, a default one is returned, which includes all declarations
-// from package only.
-//
-//		path/to/file.go                         ->  reads path/to/file.go
-//		path/to/package   (with    scriggo.go)  ->  reads path/to/package/scriggo.go
-//		path/to/package   (without scriggo.go)  ->  return a default scriggo.go
-//
-func getScriggofile(path string) (io.ReadCloser, error) {
-
-	// path points to a file.
-	if strings.HasSuffix(path, "Scriggofile") {
-		return os.Open(path)
-	}
-
-	// path points to a package.
-	pkgs, err := packages.Load(nil, path)
-	if err != nil {
-		return nil, err
-	}
-	if len(pkgs) == 0 {
-		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
-	}
-	if len(pkgs) > 1 {
-		return nil, errors.New("too many packages matching")
-	}
-	pkg := pkgs[0]
-	if len(pkg.GoFiles) == 0 {
-		return nil, fmt.Errorf("package %s does not contain Go files", pkg.Name)
-	}
-	scriggofilePath := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "Scriggofile")
-	fi, err := os.Open(scriggofilePath)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	if err == nil {
-		return fi, nil
-	}
-
-	if pkg.Name == "" {
-		// TODO(Gianluca): why did not previous check catch this error?
-		return nil, fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
-	}
-
-	fmt.Fprintf(os.Stderr, "package %q does not provide a Scriggofile, generating a default\n", path)
-
-	out := "\nMAKE INTERPRETER\n\nSET PACKAGE [pkgName]\n\nIMPORT [pkgPath]\n"
-
-	out = strings.ReplaceAll(out, "[pkgName]", pkg.Name)
-	out = strings.ReplaceAll(out, "[pkgPath]", path)
-
-	return ioutil.NopCloser(strings.NewReader(out)), nil
-}
-
 var predeclaredIdentifier = []string{
 	"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
 	"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",
@@ -200,58 +130,6 @@ func isPredeclaredIdentifier(name string) bool {
 func txtToHelp(s string) {
 	s = strings.TrimSpace(s)
 	stderr(strings.Split(s, "\n")...)
-}
-
-// goImports runs the system command "goimports" on path.
-func goImports(path string) error {
-	_, err := exec.LookPath("goimports")
-	if err != nil {
-		stderr("Use 'go get golang.org/x/tools/cmd/goimports' to install 'goimports' on your system")
-		return err
-	}
-	cmd := exec.Command("goimports", "-w", path)
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("goimports: %s", stderr.String())
-	}
-	return nil
-}
-
-// goInstall runs the system command "go install" on dir.
-func goInstall(dir string) error {
-	_, err := exec.LookPath("go")
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command("go", "install")
-	cmd.Dir = dir
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("go build: %s", stderr.String())
-	}
-	return nil
-}
-
-// goBuild runs the system command "go build" on path.
-// TODO(Gianluca): obsolete, remove.
-func goBuild(path string) error {
-	_, err := exec.LookPath("go")
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command("go", "build")
-	cmd.Dir = path
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("go build: %s", stderr.String())
-	}
-	return nil
 }
 
 var uniquePackageNameCache = map[string]string{}
