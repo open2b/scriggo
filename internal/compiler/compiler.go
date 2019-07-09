@@ -240,7 +240,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	if len(tree.Nodes) == 1 {
 		if pkg, ok := tree.Nodes[0].(*ast.Package); ok {
 			mainBuilder := e.fb
-			// Macro declarations in extending page must be accessed by extended page.
+			// Macro declarations in extending page must be accessed by the extended page.
 			e.functions[e.pkg] = map[string]*vm.Function{}
 			for _, dec := range pkg.Declarations {
 				if fun, ok := dec.(*ast.Func); ok {
