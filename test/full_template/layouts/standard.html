@@ -1,12 +1,5 @@
-{% import "/includes/banners.html" %}
-{% import "/includes/menu.html" %}
 <!DOCTYPE html>
-<html class="{# page #}-html">
-<head itemscope itemtype="http://schema.org/WebSite">
-  <title itemprop="name">{# pageTitle #}</title>
-  {# canonical #}
-  {# alternate #}
-  {# metaTags #}
+<head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="initial-scale=1.0, width=device-width, user-scalable=no">
   {% show Head %}
@@ -18,8 +11,6 @@
 {% include "/includes/header.html" %}
 
 {% include "/includes/navigation.html" %}
-
-{% show Banner(0, true, "6000/500") %}
 
 <div class="main" role="main">
     {% show Main %}
