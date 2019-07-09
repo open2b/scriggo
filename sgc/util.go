@@ -9,6 +9,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -18,6 +19,34 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
+
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error {
+	return nil
+}
+
+func getOutputFlag(output string) (io.WriteCloser, error) {
+	if output == "" {
+		return nopCloser{os.Stdout}, nil
+	}
+	if output == os.DevNull {
+		return nil, nil
+	}
+	dir, file := filepath.Split(output)
+	if file == "" {
+		exitError("%q cannot be a directory", output)
+	}
+	if dir != "" {
+		err := os.MkdirAll(dir, 0777)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return os.OpenFile(output, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+}
 
 // makeExecutableGoMod makes a 'go.mod' file for creating and installing an
 // executable.

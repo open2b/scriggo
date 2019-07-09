@@ -141,6 +141,10 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 
 	}
 
+	if w == nil {
+		return 0, nil
+	}
+
 	// If no packages have been declared, just return.
 	if len(packages) == 0 {
 		return 0, nil

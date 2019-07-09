@@ -168,7 +168,9 @@ var commands = map[string]func(){
 	},
 	"embed": func() {
 		flag.Usage = commandsHelp["embed"]
-		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		output := flag.String("o", "", "write the source to the named file instead of stdout.")
+		verbose := flag.Bool("v", false, "print the names of packages as they are imported.")
+		fmt.Println(*output)
 		flag.Parse()
 		if len(flag.Args()) == 0 {
 			// No arguments provided: this is not an error.
@@ -179,7 +181,18 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := embed(flag.Arg(0), *verbose)
+		out, err := getOutputFlag(*output)
+		if err != nil {
+			exitError("%s", err)
+		}
+		if out != nil {
+			defer func() {
+				if err := out.Close(); err != nil {
+					exitError("%s", err)
+				}
+			}()
+		}
+		err = embed(out, flag.Arg(0), *verbose)
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -212,7 +225,7 @@ var commands = map[string]func(){
 //
 //		sgc embed
 //
-func embed(path string, verbose bool) error {
+func embed(out io.Writer, path string, verbose bool) error {
 
 	goos := os.Getenv("GOOS")
 	if goos == "" {
@@ -252,7 +265,7 @@ func embed(path string, verbose bool) error {
 		}
 	}
 
-	_, err = renderPackages(os.Stdout, sf, goos, verbose)
+	_, err = renderPackages(out, sf, goos, verbose)
 
 	return err
 }
