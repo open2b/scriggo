@@ -29,7 +29,7 @@ func Test_treeTransformer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = template.Render(stdout, nil, RenderOptions{})
+	err = template.Render(stdout, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -362,7 +362,7 @@ func TestRenderBuiltinInHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -399,7 +399,7 @@ func TestRenderBuiltinInJavaScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -457,7 +457,7 @@ func TestRenderRandomBuiltin(t *testing.T) {
 		}
 		var b = &bytes.Buffer{}
 		testSeed = expr.seed
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue

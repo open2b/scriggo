@@ -61,7 +61,7 @@ func TestHTMLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -116,7 +116,7 @@ func TestAttributeContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -148,7 +148,7 @@ func TestUnquotedAttributeContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -218,7 +218,7 @@ func TestURLContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -294,7 +294,7 @@ func TestScriptContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -337,7 +337,7 @@ func TestJavaScriptStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+			err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue
@@ -373,7 +373,7 @@ func TestCSSContext(t *testing.T) {
 			continue
 		}
 		var b = &bytes.Buffer{}
-		err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+		err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 		if err != nil {
 			t.Errorf("source: %q, %s\n", expr.src, err)
 			continue
@@ -420,7 +420,7 @@ func TestCSSStringContext(t *testing.T) {
 				continue
 			}
 			var b = &bytes.Buffer{}
-			err = tmpl.Render(b, expr.vars, RenderOptions{MaxMemorySize: 1000})
+			err = tmpl.Render(b, expr.vars, &RenderOptions{MaxMemorySize: 1000})
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
 				continue

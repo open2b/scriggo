@@ -110,7 +110,10 @@ var emptyVars = map[string]interface{}{}
 
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
-func (t *Template) Render(out io.Writer, vars map[string]interface{}, options RenderOptions) error {
+func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
+	if options == nil {
+		options = &RenderOptions{}
+	}
 	if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
 		panic("scrigoo: template not loaded with LimitMemorySize option")
 	}
@@ -125,7 +128,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options Re
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(options)
+	vmm := newVM(*options)
 	_, err := vmm.Run(t.fn, initGlobals(t.globals, vars))
 	return err
 }

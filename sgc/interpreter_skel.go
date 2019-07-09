@@ -226,7 +226,7 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 			}
 
 		} else {
-			options := template.RenderOptions{
+			options := &template.RenderOptions{
 				Context:       runOptions.Context,
 				MaxMemorySize: runOptions.MaxMemorySize,
 				TraceFunc:     runOptions.TraceFunc,

@@ -236,7 +236,7 @@ func TestTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			err = templ.Render(w, cas.vars, template.RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
+			err = templ.Render(w, cas.vars, &template.RenderOptions{PrintFunc: scriggo.PrintFunc(w)})
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
@@ -432,7 +432,7 @@ func TestMultiPageTemplate(t *testing.T) {
 				t.Fatalf("loading error: %s", err)
 			}
 			w := &bytes.Buffer{}
-			err = templ.Render(w, nil, template.RenderOptions{})
+			err = templ.Render(w, nil, nil)
 			if err != nil {
 				t.Fatalf("rendering error: %s", err)
 			}
