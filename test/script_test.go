@@ -162,7 +162,7 @@ func TestScript(t *testing.T) {
 			if err != nil {
 				t.Fatalf("loading error: %s", err)
 			}
-			err = script.Run(cas.init, scriggo.RunOptions{})
+			err = script.Run(cas.init, nil)
 			if err != nil {
 				t.Fatalf("execution error: %s", err)
 			}
@@ -191,7 +191,7 @@ func TestScriptSum(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script: %s", err)
 	}
-	err = script.Run(init, scriggo.RunOptions{})
+	err = script.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
@@ -221,14 +221,14 @@ func TestScriptChainMessages(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to load script 2: %s", err)
 	}
-	err = script1.Run(init, scriggo.RunOptions{})
+	err = script1.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}
 	if Message != "external,script1," {
 		t.Fatalf("Message should be %q, got %q", "external,script1,", Message)
 	}
-	err = script2.Run(init, scriggo.RunOptions{})
+	err = script2.Run(init, nil)
 	if err != nil {
 		t.Fatalf("run: %s", err)
 	}

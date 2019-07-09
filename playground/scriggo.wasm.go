@@ -24,7 +24,7 @@ func main() {
 			window.Call("alert", err.Error())
 			return nil
 		}
-		err = program.Run(scriggo.RunOptions{})
+		err = program.Run(nil)
 		if err != nil {
 			window.Call("alert", err.Error())
 			return nil

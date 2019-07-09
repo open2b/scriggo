@@ -98,11 +98,14 @@ type RunOptions struct {
 //
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
-func (p *Program) Run(options RunOptions) error {
+func (p *Program) Run(options *RunOptions) error {
+	if options == nil {
+		options = &RunOptions{}
+	}
 	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(options)
+	vmm := newVM(*options)
 	_, err := vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return err
 }
@@ -112,11 +115,14 @@ func (p *Program) Run(options RunOptions) error {
 //
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
-func (p *Program) Start(options RunOptions) *vm.Env {
+func (p *Program) Start(options *RunOptions) *vm.Env {
+	if options == nil {
+		options = &RunOptions{}
+	}
 	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(options)
+	vmm := newVM(*options)
 	go vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return vmm.Env()
 }
@@ -183,14 +189,17 @@ var emptyInit = map[string]interface{}{}
 //
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
-func (s *Script) Run(init map[string]interface{}, options RunOptions) error {
+func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
+	if options == nil {
+		options = &RunOptions{}
+	}
 	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
 	if init == nil {
 		init = emptyInit
 	}
-	vmm := newVM(options)
+	vmm := newVM(*options)
 	_, err := vmm.Run(s.fn, initGlobals(s.globals, init))
 	return err
 }

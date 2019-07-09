@@ -59,7 +59,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			flag.Parse()
 
 			var loadOptions = &scriggo.LoadOptions{}
-			var runOptions scriggo.RunOptions
+			var runOptions = &scriggo.RunOptions{}
 
 			if *timeout != "" {
 				d, err := time.ParseDuration(*timeout)
