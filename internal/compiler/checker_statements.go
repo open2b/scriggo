@@ -15,8 +15,15 @@ import (
 )
 
 // templateToPackage extract first-level declarations in tree and appends them
-// to a package, which will be the only node of tree.
+// to a package, which will be the only node of tree. If tree is already a
+// package, templateToPackage does nothing.
 func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
+	// tree is already a package: do nothing and return.
+	if len(tree.Nodes) == 1 {
+		if _, ok := tree.Nodes[0].(*ast.Package); ok {
+			return nil
+		}
+	}
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {

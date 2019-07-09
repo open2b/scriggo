@@ -410,6 +410,14 @@ var templateMultiPageCases = map[string]struct {
 		},
 		expected: "I am an extended file.",
 	},
+
+	"File imported twice": {
+		sources: map[string]string{
+			"/index.html": `{% import "/a.html" %}{% import "/b.html" %}`,
+			"/a.html":     `{% import "/b.html" %}`,
+			"/b.html":     `{% macro M %}I'm b{% end %}`,
+		},
+	},
 }
 
 func TestMultiPageTemplate(t *testing.T) {

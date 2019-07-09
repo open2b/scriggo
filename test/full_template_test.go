@@ -32,6 +32,4 @@ func TestFullTemplate(t *testing.T) {
 	}
 }
 
-const expectedOutput = `
-<!DOCTYPE html>
-`
+const expectedOutput = "\n\n\n\n<!DOCTYPE html>\n<div class=\"body-content\">\n\n\n  \n\n\n"
