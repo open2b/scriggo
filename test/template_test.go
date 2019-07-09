@@ -338,6 +338,29 @@ var templateMultiPageCases = map[string]struct {
 		expected: "E's body",
 	},
 
+	"Extending an empty page": {
+		sources: map[string]string{
+			"/index.html":    `{% extends "extended.html" %}`,
+			"/extended.html": ``,
+		},
+	},
+
+	"Extending a page that imports another file": {
+		sources: map[string]string{
+			"/index.html":    `{% extends "/extended.html" %}`,
+			"/extended.html": `{% import "/imported.html" %}`,
+			"/imported.html": `{% macro Imported %}Imported macro{% end macro %}`,
+		},
+	},
+
+	"Extending a page (that imports another file) while declaring a macro": {
+		sources: map[string]string{
+			"/index.html":    `{% extends "/extended.html" %}{% macro Index %}{% end macro %}`,
+			"/extended.html": `{% import "/imported.html" %}`,
+			"/imported.html": `{% macro Imported %}Imported macro{% end macro %}`,
+		},
+	},
+
 	"Extends - Extending a page that calls two macros defined on current page": {
 		sources: map[string]string{
 			"/index.html": `{% extends "/page.html" %}{% macro E1 %}E1's body{% end %}{% macro E2 %}E2's body{% end %}`,

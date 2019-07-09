@@ -1471,6 +1471,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 					// collateral effects.
 				} else {
 					backupBuilder := em.fb
+					backupPkg := em.pkg
 					functions, vars, inits := em.emitPackage(node.Tree.Nodes[0].(*ast.Package), false)
 					var importName string
 					if node.Ident == nil {
@@ -1486,24 +1487,31 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 							importName = node.Ident.Name
 						}
 					}
+					if em.functions[backupPkg] == nil {
+						em.functions[backupPkg] = map[string]*vm.Function{}
+					}
 					for name, fn := range functions {
 						if importName == "" {
-							em.functions[em.pkg][name] = fn
+							em.functions[backupPkg][name] = fn
 						} else {
-							em.functions[em.pkg][importName+"."+name] = fn
+							em.functions[backupPkg][importName+"."+name] = fn
 						}
+					}
+					if em.varIndexes[backupPkg] == nil {
+						em.varIndexes[backupPkg] = map[string]int16{}
 					}
 					for name, v := range vars {
 						if importName == "" {
-							em.varIndexes[em.pkg][name] = v
+							em.varIndexes[backupPkg][name] = v
 						} else {
-							em.varIndexes[em.pkg][importName+"."+name] = v
+							em.varIndexes[backupPkg][importName+"."+name] = v
 						}
 					}
 					if len(inits) > 0 {
 						panic("have inits!") // TODO(Gianluca): review.
 					}
 					em.fb = backupBuilder
+					em.pkg = backupPkg
 				}
 			}
 
