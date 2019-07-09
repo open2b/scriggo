@@ -271,6 +271,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 			// TODO(Gianluca): add missing nodes.
 			// Nothing to do.
 
+		case *ast.Comment:
+
 		// TODO: to remove.
 		default:
 

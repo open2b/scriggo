@@ -25,6 +25,16 @@ var templateCases = map[string]struct {
 		out: `Hello, world!`,
 	},
 
+	"Template comments": {
+		src: `{# this is a comment #}`,
+		out: ``,
+	},
+
+	"Template comments with text": {
+		src: `Text before comment{# comment #} text after comment{# another comment #}`,
+		out: `Text before comment text after comment`,
+	},
+
 	"'Show' node only": {
 		src: `{{ "i am a show" }}`,
 		out: `i am a show`,
@@ -318,6 +328,14 @@ var templateMultiPageCases = map[string]struct {
 		sources: map[string]string{
 			"/index.html": `{% import pg "/page.html" %}{% show pg.M %}{% show pg.M %}`,
 			"/page.html":  `{% macro M %}macro!{% end %}`,
+		},
+		expected: "macro!macro!",
+	},
+
+	"Import/Macro - Importing a macro using an import statement with identifier (with comments)": {
+		sources: map[string]string{
+			"/index.html": `{# a comment #}{% import pg "/page.html" %}{# a comment #}{% show pg.M %}{# a comment #}{% show pg.M %}{# a comment #}`,
+			"/page.html":  `{# a comment #}{% macro M %}{# a comment #}macro!{# a comment #}{% end %}{# a comment #}`,
 		},
 		expected: "macro!macro!",
 	},

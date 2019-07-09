@@ -1762,6 +1762,8 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			em.assign(addresses, node.Rhs)
 
+		case *ast.Comment:
+
 		case ast.Expression:
 			// TODO (Gianluca): use 0 (which is no longer a valid register)
 			//  and handle it as a special case in emitExpr.

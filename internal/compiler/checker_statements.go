@@ -20,6 +20,7 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
+		case *ast.Comment:
 		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import, *ast.Extends:
 			nodes = append(nodes, n)
 		default:
@@ -605,6 +606,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Statement != nil {
 				tc.checkNodes([]ast.Node{node.Statement})
 			}
+
+		case *ast.Comment:
 
 		case ast.Expression:
 			ti := tc.checkExpression(node)

@@ -991,7 +991,7 @@ LABEL:
 				switch p.Nodes[i].(type) {
 				case *ast.Extends, *ast.Import:
 					break
-				case *ast.Text:
+				case *ast.Text, *ast.Comment:
 				default:
 					outOfOrder = true
 					break
