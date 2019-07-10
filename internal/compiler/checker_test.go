@@ -1436,7 +1436,6 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		return
 	}
 	opts := Options{
-		AllowImports: true,
 		NotUsedError: true,
 		IsProgram:    true,
 	}

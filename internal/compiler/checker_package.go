@@ -398,6 +398,9 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 	for _, d := range packageNode.Declarations {
 		switch d := d.(type) {
 		case *ast.Import:
+			if tc.opts.DisallowImports {
+				return tc.errorf(d, "\"import\" statement not available")
+			}
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
 				// Predefined package.

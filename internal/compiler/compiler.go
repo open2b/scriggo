@@ -118,8 +118,8 @@ type PackageLoader interface {
 // Options represents compilation options.
 type Options struct {
 
-	// AllowImports makes import statements available.
-	AllowImports bool
+	// DisallowImports disables the "import" statement.
+	DisallowImports bool
 
 	// NotUsedError returns a checking error if a variable is declared and not
 	// used or a package is imported and not used.
