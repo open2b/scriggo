@@ -86,7 +86,8 @@ func exitError(format string, a ...interface{}) {
 var commandsHelp = map[string]func(){
 	"sgc": func() {
 		stderr(
-			`sgc is a tool for managing Scriggo interpreters and loaders`,
+			`sgc is the Scriggo compiler. sgc compiles a Scriggofile to an executable`,
+			`interpreter or to a Go file that with Scriggo can be embedded in a Go program.`,
 			``,
 			`Usage:`,
 			``,
@@ -95,22 +96,22 @@ var commandsHelp = map[string]func(){
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
-			`	install       install an interpreter or a loader`,
-			`	install        install an interpreter`,
-			`	version        print sgc/Scriggo version`,
+			`	embed          create a file defining the packages to embed in a Go program`,
+			`	install        install an interpreter from a package or Scriggofile`,
+			`	version        print Scriggo and sgc version`,
 			``,
 			`Use "sgc help <command>" for more information about a command.`,
 			``,
 			`Additional help topics:`,
 			``,
-			`	descriptor     syntax of descriptor file`,
+			`	Scriggofile     syntax of the Scriggofile`,
 			``,
 		)
 		flag.PrintDefaults()
 	},
 	// Help topics.
-	"descriptor": func() {
-		txtToHelp(helpDescriptor)
+	"Scriggofile": func() {
+		txtToHelp(helpScriggofile)
 	},
 
 	// Commands helps.
@@ -121,13 +122,16 @@ var commandsHelp = map[string]func(){
 			`The report includes useful system information.`,
 		)
 	},
-	"install": func() {
+	"embed": func() {
 		stderr(
-			`usage: sgc install [target]`,
+			`usage: sgc embed file`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
 			``,
 			`See also: sgc install`,
 		)
+	},
+	"install": func() {
+		txtToHelp(helpInstall)
 	},
 	"version": func() {
 		stderr(

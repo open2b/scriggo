@@ -6,25 +6,41 @@
 
 package main
 
-const helpGenerate = `
-usage: sgc install [target]
-Generate generates a directory containing source code for a new interpreter.
+const helpInstall = `
+usage: sgc install [-v] [-work] [ package | file ]
+Install compiles and installs an interpreter for Scriggo programs, scripts
+and templates from a package or single file.
 
-Target can be:
+Executables are installed in the directory GOBIN as for the go install
+command.
 
-	- a Scriggo file descriptor
-	- a Go package
+For more about the GOBIN directory, see 'go help install'.
 
-A Scriggo file descriptor is a file containing Go source code which must contain:
-	1. a Scriggo file comment
-	2. a package declaration
-	3. one or more imports
-see 'sgc help descriptor' for more informations about Scriggo file descriptor.
+If a package has a file named "Scriggofile" in its directory, an interpreter
+is build and installed from the instructions in this file according to a
+specific format. For example:
 
-When target is a Go package, the package resolution method is the same used by Go tools.
+sgc install github.com/organization/example
+
+will install an interpreter named "example" (or "example.exe") from the commands
+in the file "github.com/organization/example/Scriggofile".
+
+For more about the Scriggofile specific format, see 'sgc help Scriggofile'.
+
+If a file is given, instead of a package, the file must contains the commands
+to build the interpreter. The name of the executable is the same of the file
+without the file extension. For example if the file is "example.Scriggofile"
+the executable will be named "example" (or "example.exe").
+
+The -v flag prints the imported packages as defined in the Scriggofile.
+
+The -work flag prints the name of the temporary work directory of a package
+used to build and install the interpreter. The directory will not be deleted.
+
+See also: sgc embed.
 `
 
-const helpDescriptor = `
+const helpScriggofile = `
 A Scriggo descriptor file consits of a valid Go package source code containing one
 Scriggo file comment and one or more imports, which may in turn have a Scriggo import comment
 
