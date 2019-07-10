@@ -356,7 +356,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts Options) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -370,7 +370,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 
 	packageNode := pkg
 
-	tc := newTypechecker(path, Options{IsTemplate: isTemplate, DisallowGoStmt: disallowGoStmt})
+	tc := newTypechecker(path, opts)
 
 	err = sortDeclarations(packageNode, deps)
 	if err != nil {
@@ -423,9 +423,9 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 					if err != nil {
 						return err
 					}
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, true, disallowGoStmt) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				} else {
-					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, false, disallowGoStmt) // TODO(Gianluca): where are deps?
+					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				}
 				importedPkg = pkgInfos[d.Tree.Path]
 				if err != nil {
@@ -510,8 +510,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 		}
 	}
 
-	// TODO(Gianluca): should be enabled for templates too?
-	if !tc.opts.IsTemplate {
+	if !tc.opts.AllowNotUsed {
 		for pkg := range tc.unusedImports {
 			return tc.errorf(new(ast.Position), "imported and not used: \"%s\"", pkg) // TODO (Gianluca): position is not correct.
 		}

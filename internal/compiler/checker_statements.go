@@ -138,7 +138,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						panic(err)
 					}
 					pkgInfos := map[string]*PackageInfo{}
-					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, true, true)
+					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, tc.opts)
 					if err != nil {
 						panic(err)
 					}

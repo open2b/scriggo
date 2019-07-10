@@ -1436,8 +1436,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		return
 	}
 	opts := Options{
-		NotUsedError: true,
-		IsProgram:    true,
+		IsProgram: true,
 	}
 	_, err = Typecheck(tree, predefined, opts)
 	if err != nil {
@@ -2068,9 +2067,10 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			deps := AnalyzeTree(tree, Options{IsProgram: true})
+			opts := Options{IsProgram: true}
+			deps := AnalyzeTree(tree, opts)
 			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, false, false)
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

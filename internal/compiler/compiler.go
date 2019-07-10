@@ -121,9 +121,9 @@ type Options struct {
 	// DisallowImports disables the "import" statement.
 	DisallowImports bool
 
-	// NotUsedError returns a checking error if a variable is declared and not
-	// used or a package is imported and not used.
-	NotUsedError bool
+	// AllowNotUsed does not return a checking error if a variable is declared
+	// and not used or a package is imported and not used.
+	AllowNotUsed bool
 
 	IsProgram, IsTemplate, IsScript bool
 
@@ -146,7 +146,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string
 	deps := AnalyzeTree(tree, opts)
 	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +182,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string
 				return nil, err
 			}
 			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, true, true)
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
 			if err != nil {
 				return nil, err
 			}
