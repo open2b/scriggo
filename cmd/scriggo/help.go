@@ -59,8 +59,8 @@ specific format. For example:
 
 scriggo install github.com/organization/example
 
-will install an interpreter named "example" (or "example.exe") from the commands
-in the file "github.com/organization/example/Scriggofile".
+will install an interpreter named "example" (or "example.exe") from the
+commands in the file "github.com/organization/example/Scriggofile".
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
@@ -94,7 +94,8 @@ the Scriggofile:
 SET VARIABLE decl
 
 The name of the package in the Go source is by default 'main', to give a
-different name to the package use the instruction SET PACKAGE in the Scriggofile:
+different name to the package use the instruction SET PACKAGE in the
+Scriggofile:
 
 SET PACKAGE example
 
@@ -103,59 +104,78 @@ For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 `
 
 const helpScriggofile = `
-A Scriggo descriptor file consits of a valid Go package source code containing one
-Scriggo file comment and one or more imports, which may in turn have a Scriggo import comment
+A Scriggofile is a file with a specific format used by the scriggo command.
+The scriggo command uses the instructions in a Scriggofile to build an
+interpreter or a Go source file used in an application that embeds Scriggo.
 
-An example Scriggo descriptor is:
+A Scriggofile defines which packages an interpreted program or script can
+import, what exported declarations in a package are accessible and so on.
 
-	//scriggo: interpreters:"script"
-	
-	package x
-	
-	import (
-		_ "fmt"
-		_ "math" //scriggo: main uncapitalize
-	)
+It is a plain text file with encoding UTF-8 with an instruction per line. It
+should be named 'Scriggofile' or with the extension '.Scriggofile' as in
+'example.Scriggofile'.
 
-This Scriggo descriptor describes a Scriggo interpreter provides package "fmt"
-(available through an import statement) and package "math" as "builtin", with
-all names "uncapitalized".
+The instructions are:
 
-Each import statement should have a name _, which prevents tools like goimports from removing import.
+    IMPORT STANDARD LIBRARY 
 
-Options available in the Scriggo file comment are:
+        Makes the packages in the Go standard library (almost all) importable
+        in a program or script executed by the interpreter.  
 
-	interpreters:targets  describe an interpreter for targets. Valid targets are "template, "script" and "program"
-	interpreter           install all kinds of interpreters
-	embedded              describe an embedded packages declaration
-	output                select output file/directory
-	goos:GOOSs            force GOOS to the specified value. More than one value can be provided
+    IMPORT <package>
 
-Options available as Scriggo import comments are:
+        Make the package with path <package> importable. 
 
-	main                    import as package main. Only available in scripts an templates
-	uncapitalize            declarations imported as main are "uncapitalized"
-	path                    change Scrigo import path
-	export:names            only export names
-	noexport:names          export everything excluding names
+    IMPORT <package> INCLUDING <A> <B> <C>
 
-Example import comments
+        As for 'IMPORT <package>' but only the exported names <A>, <B> and <C>
+        are imported.
 
-Default. Makes "fmt" available in Scriggo as would be available in Go:
+    IMPORT <package> EXCLUDING <A> <B> <C>
 
-	import _ "fmt" //scriggo:
+        As for 'IMPORT <package>' but the exported names <A>, <B> and <C> are
+        not imported.  
 
-Import all declarations from "fmt" in package main, making them accessible
-without a selector:
+    IMPORT <package> AS <as>
 
-	import _ "fmt" //scriggo: main
+        As for 'IMPORT <package>' but the path with which it can be imported
+        is named <as>. INCLUDING and EXCLUDING can be used as for the other
+        forms of IMPORT at the end of the instruction.
+    
+    IMPORT <package> AS main
 
-Import all declarations from "fmt" in package main with uncapitalized names,
-making them accessible without a selector:
+        Make the package with path <package> imported as the main package in a
+        script or template. It is the same as writing 'import . "<package>"'
+        in a Go program. INCLUDING and EXCLUDING can be used as for the other
+        forms of IMPORT at the end of the instruction.
 
-	import _ "fmt" //scriggo: main uncapitalize
+    IMPORT <package> AS main NOT CAPITALIZED
 
-Import all declarations from "fmt" excluding "Print" and Println":
+        As for 'IMPORT <package> AS main' but the exported names in the package
+        will be imported not capitalized. For example a name 'FooFoo' declared
+        in the package will be imported in the script or template as 'fooFoo'.
 
-	import _ "fmt" //scriggo: noexport:"Print,Println"
+    TARGET PROGRAMS SCRIPTS TEMPLATES
+
+        Indicates witch are the targets of the interpreter. It will be able to
+        execute only the type of sources listed in the TARGET instruction. This
+        instruction is only read by the 'build' and 'install' commands.
+
+    SET VARIABLE <name> 
+
+        Set the name of the variable to witch is assigned the value of type
+        scriggo.PackageLoader with the packages to import. By default the name
+        is 'packages'. This instruction is only read by the 'embed' command. 
+
+    SET PACKAGE <name>
+
+        Set the name of the package of the generated Go source file. By default
+        the name of the package is 'main'. This instruction is read only by the
+        command 'scriggo embed'.
+
+    REQUIRE GOOS <os> <os>
+
+        Specifies the GOOS that are required by the interpreter. If the GOOS at
+        the time the Scriggo file is parsed is not in the required GOOS the
+        command fails.
 `
