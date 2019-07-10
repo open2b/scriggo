@@ -43,7 +43,7 @@ func TestTemplate(t *testing.T) {
 	for src, expected := range templateCases {
 		t.Run(src, func(t *testing.T) {
 			r := template.MapReader{"/index.html": []byte(src)}
-			tree, err := compiler.ParseTemplate("/index.html", r, nil, ast.ContextText)
+			tree, err := compiler.ParseTemplate("/index.html", r, ast.ContextText)
 			if err != nil {
 				t.Fatalf("parsing error: %s", err)
 			}

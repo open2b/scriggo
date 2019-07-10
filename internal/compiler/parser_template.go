@@ -14,12 +14,12 @@ import (
 )
 
 // ParseTemplate parses the template with the given path, reading the template
-// files from the reader, in context ctx. main is the main package.
+// files from the reader, in context ctx.
 //
 // ParseTemplate expands the nodes Extends, Import and Include parsing the
 // relative trees. The parsed trees are cached so only one call per
 // combination of path and context is made to the reader.
-func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (*ast.Tree, error) {
+func ParseTemplate(path string, reader Reader, ctx ast.Context) (*ast.Tree, error) {
 
 	// Path must be absolute.
 	if path == "" {
@@ -35,10 +35,9 @@ func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (
 	}
 
 	pp := &templateExpansion{
-		reader:   reader,
-		trees:    &cache{},
-		packages: map[string]*Package{"main": main},
-		paths:    []string{},
+		reader: reader,
+		trees:  &cache{},
+		paths:  []string{},
 	}
 
 	tree, err := pp.parsePath(path, ctx)
@@ -60,10 +59,9 @@ func ParseTemplate(path string, reader Reader, main *Package, ctx ast.Context) (
 
 // templateExpansion represents the state of a template expansion.
 type templateExpansion struct {
-	reader   Reader
-	trees    *cache
-	packages map[string]*Package
-	paths    []string
+	reader Reader
+	trees  *cache
+	paths  []string
 }
 
 // abs returns path as absolute.

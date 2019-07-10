@@ -63,7 +63,7 @@ type Template struct {
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
 func Load(path string, reader Reader, main *scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
-	tree, err := compiler.ParseTemplate(path, reader, main, ast.Context(ctx))
+	tree, err := compiler.ParseTemplate(path, reader, ast.Context(ctx))
 	if err != nil {
 		return nil, err
 	}
