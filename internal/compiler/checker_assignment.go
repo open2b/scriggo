@@ -160,8 +160,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if isBlankIdentifier(n.Variables[0]) {
 				panic(tc.errorf(n.Variables[0], "cannot use _ as value"))
 			}
-			// TODO (Gianluca): check if operation can be done before
-			// calling binaryOp.
 			_, err := tc.binaryOp(n.Variables[0], opType, n.Values[0])
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
