@@ -416,7 +416,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 				// Not predefined package.
 				var err error
 				if tc.opts.IsTemplate {
-					err := tc.templateToPackage(d.Tree)
+					err := tc.templateToPackage(d.Tree, d.Path)
 					if err != nil {
 						return err
 					}

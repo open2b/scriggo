@@ -170,11 +170,14 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string
 					tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
 				}
 			}
+			currentPath := tc.path
+			tc.path = extends.Tree.Path
 			err := tc.checkNodesInNewScopeError(extends.Tree.Nodes)
 			if err != nil {
 				return nil, err
 			}
-			err = tc.templateToPackage(tree)
+			tc.path = currentPath
+			err = tc.templateToPackage(tree, tree.Path)
 			if err != nil {
 				return nil, err
 			}

@@ -17,13 +17,15 @@ import (
 // templateToPackage extract first-level declarations in tree and appends them
 // to a package, which will be the only node of tree. If tree is already a
 // package, templateToPackage does nothing.
-func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
+func (tc *typechecker) templateToPackage(tree *ast.Tree, path string) error {
 	// tree is already a package: do nothing and return.
 	if len(tree.Nodes) == 1 {
 		if _, ok := tree.Nodes[0].(*ast.Package); ok {
 			return nil
 		}
 	}
+	currentPath := tc.path
+	tc.path = path
 	nodes := []ast.Node{}
 	for _, n := range tree.Nodes {
 		switch n := n.(type) {
@@ -42,6 +44,7 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree) error {
 	tree.Nodes = []ast.Node{
 		ast.NewPackage(tree.Pos(), "", nodes),
 	}
+	tc.path = currentPath
 	return nil
 }
 
@@ -127,7 +130,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				if node.Ident != nil && node.Ident.Name == "_" {
 					// Nothing to do.
 				} else {
-					err := tc.templateToPackage(node.Tree)
+					err := tc.templateToPackage(node.Tree, node.Path)
 					if err != nil {
 						panic(err)
 					}
