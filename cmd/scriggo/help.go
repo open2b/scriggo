@@ -6,8 +6,45 @@
 
 package main
 
+const helpBuild = `
+usage: scriggo build [-v] [-work] package
+       scriggo build [-v] [-work] file
+
+Build compiles an interpreter for Scriggo programs, scripts and templates from
+a package or single file.
+
+Executables are created in the current directory. To install the executables in
+the directory GOBIN, see the command: scriggo install.
+
+If a package has a file named "Scriggofile" in its directory, an interpreter
+is build and installed from the instructions in this file according to a
+specific format. For example:
+
+scriggo build github.com/organization/example
+
+will an interpreter named "example" (or "example.exe") from the commands in the
+file "github.com/organization/example/Scriggofile".
+
+For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
+
+If a file is given, instead of a package, the file must contains the commands
+to build the interpreter. The name of the executable is the same of the file
+without the file extension. For example if the file is "example.Scriggofile"
+the executable will be named "example" (or "example.exe").
+
+The -v flag prints the imported packages as defined in the Scriggofile.
+
+The -work flag prints the name of a temporary directory containing a work
+package used to build the interpreter. The directory will not be deleted
+after the build.
+
+See also: scriggo install and scriggo embed.
+`
+
 const helpInstall = `
-usage: sgc install [-v] [-work] [ package | file ]
+usage: scriggo install [-v] package
+       scriggo install [-v] file
+
 Install compiles and installs an interpreter for Scriggo programs, scripts
 and templates from a package or single file.
 
@@ -20,12 +57,12 @@ If a package has a file named "Scriggofile" in its directory, an interpreter
 is build and installed from the instructions in this file according to a
 specific format. For example:
 
-sgc install github.com/organization/example
+scriggo install github.com/organization/example
 
 will install an interpreter named "example" (or "example.exe") from the commands
 in the file "github.com/organization/example/Scriggofile".
 
-For more about the Scriggofile specific format, see 'sgc help Scriggofile'.
+For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
 If a file is given, instead of a package, the file must contains the commands
 to build the interpreter. The name of the executable is the same of the file
@@ -34,10 +71,7 @@ the executable will be named "example" (or "example.exe").
 
 The -v flag prints the imported packages as defined in the Scriggofile.
 
-The -work flag prints the name of the temporary work directory of a package
-used to build and install the interpreter. The directory will not be deleted.
-
-See also: sgc embed.
+See also: scriggo build and scriggo embed.
 `
 
 const helpScriggofile = `

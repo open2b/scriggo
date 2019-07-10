@@ -22,7 +22,7 @@ import (
 	"scriggo"
 )
 
-//go:generate sgc embed -o packages.go Scriggofile
+//go:generate scriggo embed -o packages.go Scriggofile
 var packages scriggo.Packages
 
 type output struct {

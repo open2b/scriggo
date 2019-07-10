@@ -24,7 +24,7 @@ import (
 
 func main() {
 
-	flag.Usage = commandsHelp["sgc"]
+	flag.Usage = commandsHelp["scriggo"]
 
 	// No command provided.
 	if len(os.Args) == 1 {
@@ -41,8 +41,8 @@ func main() {
 	cmd, ok := commands[cmdArg]
 	if !ok {
 		stderr(
-			fmt.Sprintf("sgc %s: unknown command", cmdArg),
-			`Run 'sgc help' for usage.`,
+			fmt.Sprintf("scriggo %s: unknown command", cmdArg),
+			`Run 'scriggo help' for usage.`,
 		)
 		exit(1)
 		return
@@ -50,7 +50,7 @@ func main() {
 	cmd()
 }
 
-// TestEnvironment is true when testing sgc, false otherwise.
+// TestEnvironment is true when testing the scriggo command, false otherwise.
 var TestEnvironment = false
 
 // exit causes the current program to exit with the given status code. If
@@ -84,23 +84,23 @@ func exitError(format string, a ...interface{}) {
 // commandsHelp maps a command name to a function that prints the help for
 // that command.
 var commandsHelp = map[string]func(){
-	"sgc": func() {
+	"scriggo": func() {
 		stderr(
-			`sgc is the Scriggo compiler. sgc compiles a Scriggofile to an executable`,
+			`scriggo is the Scriggo compiler. scriggo compiles a Scriggofile to an executable`,
 			`interpreter or to a Go file that with Scriggo can be embedded in a Go program.`,
 			``,
 			`Usage:`,
 			``,
-			`	sgc <command> [arguments]`,
+			`	scriggo <command> [arguments]`,
 			``,
 			`The commands are:`,
 			``,
 			`	bug            start a bug report`,
 			`	embed          create a file defining the packages to embed in a Go program`,
 			`	install        install an interpreter from a package or Scriggofile`,
-			`	version        print Scriggo and sgc version`,
+			`	version        print Scriggo and scriggo version`,
 			``,
-			`Use "sgc help <command>" for more information about a command.`,
+			`Use "scriggo help <command>" for more information about a command.`,
 			``,
 			`Additional help topics:`,
 			``,
@@ -117,25 +117,28 @@ var commandsHelp = map[string]func(){
 	// Commands helps.
 	"bug": func() {
 		stderr(
-			`usage: sgc bug`,
+			`usage: scriggo bug`,
 			`Bug opens the default browser and starts a new bug report.`,
 			`The report includes useful system information.`,
 		)
 	},
 	"embed": func() {
 		stderr(
-			`usage: sgc embed file`,
+			`usage: scriggo embed file`,
 			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
 			``,
-			`See also: sgc install`,
+			`See also: scriggo install`,
 		)
+	},
+	"build": func() {
+		txtToHelp(helpBuild)
 	},
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
 	"version": func() {
 		stderr(
-			`usage: sgc version`,
+			`usage: scriggo version`,
 		)
 	},
 }
@@ -143,14 +146,14 @@ var commandsHelp = map[string]func(){
 // commands maps a command name to a function that executes that command.
 // Commands are called by command-line using:
 //
-//		sgc command
+//		scriggo command
 //
 var commands = map[string]func(){
 	"bug": func() {
 		flag.Usage = commandsHelp["bug"]
 		panic("TODO: not implemented") // TODO(Gianluca): to implement.
 	},
-	"install": func() {
+	"build": func() {
 		flag.Usage = commandsHelp["install"]
 		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
 		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
@@ -164,7 +167,26 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := install(*work, *verbose)
+		err := build(false, *work, *verbose)
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
+	},
+	"install": func() {
+		flag.Usage = commandsHelp["install"]
+		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		flag.Parse()
+		if len(flag.Args()) == 0 {
+			// No arguments provided: this is not an error.
+			flag.Usage()
+			return
+		}
+		if len(flag.Args()) > 1 {
+			flag.Usage()
+			exitError(`bad number of arguments`)
+		}
+		err := build(true, false, *verbose)
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -210,7 +232,7 @@ var commands = map[string]func(){
 		topic := os.Args[1]
 		help, ok := commandsHelp[topic]
 		if !ok {
-			_, _ = fmt.Fprintf(os.Stderr, "sgc help %s: unknown help topic. Run 'sgc help'.\n", topic)
+			_, _ = fmt.Fprintf(os.Stderr, "scriggo help %s: unknown help topic. Run 'scriggo help'.\n", topic)
 			exit(1)
 			return
 		}
@@ -218,15 +240,15 @@ var commands = map[string]func(){
 	},
 	"version": func() {
 		flag.Usage = commandsHelp["version"]
-		fmt.Printf("Scriggo module version:            (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("sgc tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
-		fmt.Printf("Go version used to build sgc:      %s\n", runtime.Version())
+		fmt.Printf("Scriggo module version:            (TODO) \n")     // TODO(Gianluca): use real version.
+		fmt.Printf("scriggo tool version:                  (TODO) \n") // TODO(Gianluca): use real version.
+		fmt.Printf("Go version used to build scriggo:      %s\n", runtime.Version())
 	},
 }
 
 // embed executes the sub commands "embed":
 //
-//		sgc embed
+//		scriggo embed
 //
 func embed(out io.Writer, path string, verbose bool) error {
 
@@ -260,8 +282,8 @@ func embed(out io.Writer, path string, verbose bool) error {
 	return err
 }
 
-// install executes the sub command "install".
-func install(work bool, verbose bool) error {
+// build executes the commands "build" and "install".
+func build(install bool, work bool, verbose bool) error {
 
 	_, err := exec.LookPath("go")
 	if err != nil {
@@ -329,7 +351,7 @@ func install(work bool, verbose bool) error {
 	// Create a temporary work directory with the sources of the interpreter.
 	// If the options "work" is given, the work directory name will be printed
 	// and it will not be deleted after the installation.
-	workDir, err := ioutil.TempDir("", "sgc-install")
+	workDir, err := ioutil.TempDir("", "scriggo-install")
 	if err != nil {
 		return err
 	}
@@ -379,14 +401,18 @@ func install(work bool, verbose bool) error {
 		return fmt.Errorf("writing interpreter file: %s", err)
 	}
 
-	// Install the package.
-	cmd := exec.Command("go", "install")
+	// Build or install the package.
+	command := "build"
+	if install {
+		command = "install"
+	}
+	cmd := exec.Command("go", command)
 	cmd.Dir = dir
 	stderr := bytes.Buffer{}
 	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("go build: %s", &stderr)
+		return fmt.Errorf("go %s: %s", command, &stderr)
 	}
 
 	return nil
