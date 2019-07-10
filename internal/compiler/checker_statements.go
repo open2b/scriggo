@@ -641,6 +641,8 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				switch node := node.(type) {
 				case *ast.Func:
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
+				default:
+					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			} else {
 				panic(tc.errorf(node, "%s evaluated but not used", node))

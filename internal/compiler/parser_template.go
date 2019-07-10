@@ -271,6 +271,8 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 
 		case *ast.Comment:
 
+		case *ast.Identifier:
+
 		// TODO: to remove.
 		default:
 

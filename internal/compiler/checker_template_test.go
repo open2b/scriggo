@@ -33,6 +33,8 @@ var templateCases = map[string]string{
 	`{% show M or error %}`:  `undefined: M`,
 	`{% show M or ignore %}`: ok,
 
+	`{% a := 10 %}{% a %}`: `a evaluated but not used`,
+
 	// TODO(Gianluca): result of this test depends on typechecking options.
 	// `{% show M or todo %}`: ok,
 }
