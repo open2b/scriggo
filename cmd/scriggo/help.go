@@ -6,6 +6,46 @@
 
 package main
 
+const helpScriggo = `
+Scriggo is an embeddable Go interpreter. The scriggo command is a tool that
+can be used to build and install stand alone interpreters and to generate Go
+source files useful to embed Scriggo in an application.
+
+The scriggo tool is not required to embed Scriggo in an application but it is
+useful to generate the code for a package loader used by the Scriggo Load
+functions to load the packages that can be imported during the execution of a
+program, script or template.
+
+For more about the use of the scriggo command to embed Scriggo in an
+application, see 'scriggo help embed'.
+
+The scriggo command is also able to build and install stand alone interpreters
+without having to write any line of Go. 
+
+For more about to build interpreters, see 'scriggo help build' and
+'scriggo help install'.
+
+The commands are:
+
+    embed       make a Go file with the source of a package loader useful when
+                embedding Scriggo in an application
+
+    build       build an interpreter starting from a Scriggofile     
+
+    install     build and install an interpreter in the GOBIN directory
+
+    version     print Scriggo and scriggo version
+
+    stdlib      print the packages imported by the instruction
+                'IMPORT STANDARD LIBRARY' in the Scriggofile
+
+Use 'scriggo help <command>' for more information about a command.
+
+Additional help topics:
+
+    Scriggofile     syntax of the Scriggofile
+`
+
 const helpBuild = `
 usage: scriggo build [-v] [-work] package
        scriggo build [-v] [-work] file

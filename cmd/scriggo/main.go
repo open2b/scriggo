@@ -85,28 +85,7 @@ func exitError(format string, a ...interface{}) {
 // that command.
 var commandsHelp = map[string]func(){
 	"scriggo": func() {
-		stderr(
-			`scriggo is the Scriggo compiler. scriggo compiles a Scriggofile to an executable`,
-			`interpreter or to a Go file that with Scriggo can be embedded in a Go program.`,
-			``,
-			`Usage:`,
-			``,
-			`	scriggo <command> [arguments]`,
-			``,
-			`The commands are:`,
-			``,
-			`	bug            start a bug report`,
-			`	embed          create a file defining the packages to embed in a Go program`,
-			`	install        install an interpreter from a package or Scriggofile`,
-			`	version        print Scriggo and scriggo version`,
-			``,
-			`Use "scriggo help <command>" for more information about a command.`,
-			``,
-			`Additional help topics:`,
-			``,
-			`	Scriggofile     syntax of the Scriggofile`,
-			``,
-		)
+		txtToHelp(helpScriggo)
 		flag.PrintDefaults()
 	},
 	// Help topics.
