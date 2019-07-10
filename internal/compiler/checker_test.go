@@ -1403,7 +1403,7 @@ func (t T) Env2(env *vm.Env, a, b int)   {}
 func (t T) EnvVar(env *vm.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
-	p := &Package{
+	p := &pkg{
 		PkgName: "p",
 		Declarations: map[string]interface{}{
 			"T":      reflect.TypeOf(T(0)),
@@ -1449,6 +1449,29 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		t.Errorf("TestCheckerRemoveEnv returned type check error: %s", err)
 		return
 	}
+}
+
+type pkg struct {
+	// Package name.
+	PkgName string
+	// Package declarations.
+	Declarations map[string]interface{}
+}
+
+func (p *pkg) Name() string {
+	return p.PkgName
+}
+
+func (p *pkg) Lookup(declName string) interface{} {
+	return p.Declarations[declName]
+}
+
+func (p *pkg) DeclarationNames() []string {
+	declarations := make([]string, 0, len(p.Declarations))
+	for name := range p.Declarations {
+		declarations = append(declarations, name)
+	}
+	return declarations
 }
 
 // tiEquals checks that t1 and t2 are identical.

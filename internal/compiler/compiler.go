@@ -55,36 +55,7 @@ type predefinedPackage interface {
 	DeclarationNames() []string
 }
 
-// Package represents a predefined package.
-// A package can contain a function, a variable, a constant or a type.
-//
-//		Function: assign function value to Declarations as is.
-//		Variable: assign the address of value to Declarations.
-//		Constant: TODO(Gianluca).
-//		Type:     assign the reflect.TypeOf of type to Declarations.
-//
-type Package struct {
-	// Package name.
-	PkgName string
-	// Package declarations.
-	Declarations map[string]interface{}
-}
 
-func (p *Package) Name() string {
-	return p.PkgName
-}
-
-func (p *Package) Lookup(declName string) interface{} {
-	return p.Declarations[declName]
-}
-
-func (p *Package) DeclarationNames() []string {
-	declarations := make([]string, 0, len(p.Declarations))
-	for name := range p.Declarations {
-		declarations = append(declarations, name)
-	}
-	return declarations
-}
 
 type Constant struct {
 	value   interface{}
