@@ -116,7 +116,7 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 // informations.
 func AnalyzeTree(tree *ast.Tree, opts Options) PackageDeclsDeps {
 	d := deps{}
-	switch opts.SourceType {
+	switch opts.SyntaxType {
 	case ProgramSyntax:
 		pkg := tree.Nodes[0].(*ast.Package)
 		for _, n := range pkg.Declarations {

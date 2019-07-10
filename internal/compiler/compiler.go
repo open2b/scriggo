@@ -137,7 +137,7 @@ type Options struct {
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
 
-	SourceType SyntaxType
+	SyntaxType SyntaxType
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
@@ -156,7 +156,7 @@ type Options struct {
 // tree may be altered during typechecking.
 func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
 	deps := AnalyzeTree(tree, opts)
-	if opts.SourceType == ProgramSyntax {
+	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
 		if err != nil {
@@ -174,7 +174,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string
 			tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main.(predefinedPackage)))
 		}
 	}
-	if opts.SourceType == TemplateSyntax {
+	if opts.SyntaxType == TemplateSyntax {
 		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
 			for _, d := range tree.Nodes[1:] {
 				if m, ok := d.(*ast.Macro); ok {

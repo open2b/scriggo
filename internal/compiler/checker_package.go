@@ -418,7 +418,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			} else {
 				// Not predefined package.
 				var err error
-				if tc.opts.SourceType == TemplateSyntax {
+				if tc.opts.SyntaxType == TemplateSyntax {
 					err := tc.templateToPackage(d.Tree, d.Path)
 					if err != nil {
 						return err
@@ -432,7 +432,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 					return err
 				}
 			}
-			if tc.opts.SourceType == TemplateSyntax {
+			if tc.opts.SyntaxType == TemplateSyntax {
 				if d.Ident == nil {
 					tc.unusedImports[importedPkg.Name] = nil
 					for ident, ti := range importedPkg.Declarations {

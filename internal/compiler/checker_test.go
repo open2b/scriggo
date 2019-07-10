@@ -1382,7 +1382,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", Options{DisallowGoStmt: true, SourceType: ScriptSyntax})
+			tc := newTypechecker("", Options{DisallowGoStmt: true, SyntaxType: ScriptSyntax})
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.addScope()
 			tc.checkNodes(tree.Nodes)
@@ -1442,7 +1442,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		return
 	}
 	opts := Options{
-		SourceType: ProgramSyntax,
+		SyntaxType: ProgramSyntax,
 	}
 	_, err = Typecheck(tree, predefined, opts)
 	if err != nil {
@@ -2073,7 +2073,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			opts := Options{SourceType: ProgramSyntax}
+			opts := Options{SyntaxType: ProgramSyntax}
 			deps := AnalyzeTree(tree, opts)
 			pkgInfos := map[string]*PackageInfo{}
 			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)

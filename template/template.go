@@ -70,7 +70,7 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 		options = &LoadOptions{}
 	}
 	opts := compiler.Options{
-		SourceType:   compiler.TemplateSyntax,
+		SyntaxType:   compiler.TemplateSyntax,
 		AllowNotUsed: true,
 		MemoryLimit:  options.LimitMemorySize,
 	}

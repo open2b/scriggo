@@ -76,7 +76,7 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		options = &LoadOptions{}
 	}
 	opts := compiler.Options{
-		SourceType:     compiler.ProgramSyntax,
+		SyntaxType:     compiler.ProgramSyntax,
 		MemoryLimit:    options.LimitMemorySize,
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
@@ -179,7 +179,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*S
 	}
 
 	opts := compiler.Options{
-		SourceType:     compiler.ScriptSyntax,
+		SyntaxType:     compiler.ScriptSyntax,
 		MemoryLimit:    options.LimitMemorySize,
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
