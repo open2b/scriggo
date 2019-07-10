@@ -128,7 +128,9 @@ The instructions are:
     IMPORT STANDARD LIBRARY 
 
         Makes the packages in the Go standard library (almost all) importable
-        in a program or script executed by the interpreter.  
+        in a program or script executed by the interpreter.
+
+        To view all packages imported run 'scriggo stdlib'.
 
     IMPORT <package>
 

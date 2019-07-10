@@ -131,6 +131,15 @@ var commandsHelp = map[string]func(){
 	"install": func() {
 		txtToHelp(helpInstall)
 	},
+	"stdlib": func() {
+		stderr(
+			`usage: scriggo stdlib`,
+			``,
+			`Stdlib prints to the standard output the paths of the packages of the Go`,
+			`standard library imported by the instruction 'IMPORT STANDARD LIBRARY' in the`,
+			`Scriggofile.`)
+
+	},
 	"version": func() {
 		stderr(
 			`usage: scriggo version`,
@@ -213,6 +222,19 @@ var commands = map[string]func(){
 			}()
 		}
 		err = embed(out, flag.Arg(0), *verbose)
+		if err != nil {
+			exitError("%s", err)
+		}
+		exit(0)
+	},
+	"stdlib": func() {
+		flag.Usage = commandsHelp["stdlib"]
+		flag.Parse()
+		if len(flag.Args()) > 0 {
+			flag.Usage()
+			exitError(`bad number of arguments`)
+		}
+		err := stdlib()
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -413,10 +435,20 @@ func build(install bool, work bool, verbose bool) error {
 	return nil
 }
 
-// stdlib contains the paths of the packages of the Go standard library except
-// the packages "database", "plugin", "testing", "runtime/cgo", "syscall",
-// "unsafe" and their sub packages.
-var stdlib = []string{
+func stdlib() (err error) {
+	for _, path := range stdlibPaths {
+		_, err = fmt.Println(path)
+		if err != nil {
+			break
+		}
+	}
+	return err
+}
+
+// stdlibPaths contains the paths of the packages of the Go standard library
+// except the packages "database", "plugin", "testing", "runtime/cgo",
+// "syscall", "unsafe" and their sub packages.
+var stdlibPaths = []string{
 	"archive/tar",
 	"archive/zip",
 	"bufio",
