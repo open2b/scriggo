@@ -174,7 +174,6 @@ var commands = map[string]func(){
 		flag.Usage = commandsHelp["embed"]
 		output := flag.String("o", "", "write the source to the named file instead of stdout.")
 		verbose := flag.Bool("v", false, "print the names of packages as they are imported.")
-		fmt.Println(*output)
 		flag.Parse()
 		if len(flag.Args()) == 0 {
 			// No arguments provided: this is not an error.
@@ -256,7 +255,7 @@ func embed(out io.Writer, path string, verbose bool) error {
 		return err
 	}
 
-	_, err = renderPackages(os.Stdout, sf, goos, verbose)
+	_, err = renderPackages(out, sf, goos, verbose)
 
 	return err
 }
