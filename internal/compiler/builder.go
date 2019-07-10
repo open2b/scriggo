@@ -333,7 +333,7 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunct
 }
 
 // addType adds a type to the builder's function.
-func (builder *functionBuilder) addType(typ reflect.Type) uint8 {
+func (builder *functionBuilder) addType(typ reflect.Type) int8 {
 	fn := builder.fn
 	index := len(fn.Types)
 	if index > 255 {
@@ -341,11 +341,11 @@ func (builder *functionBuilder) addType(typ reflect.Type) uint8 {
 	}
 	for i, t := range fn.Types {
 		if t == typ {
-			return uint8(i)
+			return int8(i)
 		}
 	}
 	fn.Types = append(fn.Types, typ)
-	return uint8(index)
+	return int8(index)
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
@@ -434,27 +434,6 @@ func (builder *functionBuilder) newLabel() uint32 {
 // setLabelAddr sets label's address as builder's current address.
 func (builder *functionBuilder) setLabelAddr(label uint32) {
 	builder.labels[label-1] = builder.currentAddr()
-}
-
-// typ returns typ's index, creating it if necessary.
-func (builder *functionBuilder) typ(typ reflect.Type) int8 {
-	var tr int8
-	var found bool
-	types := builder.fn.Types
-	for i, t := range types {
-		if t == typ {
-			tr = int8(i)
-			found = true
-		}
-	}
-	if !found {
-		if len(types) == 256 {
-			panic("types limit reached")
-		}
-		tr = int8(len(types))
-		builder.fn.Types = append(types, typ)
-	}
-	return tr
 }
 
 func (builder *functionBuilder) end() {
@@ -743,7 +722,7 @@ func (builder *functionBuilder) Continue(label uint32) {
 //
 func (builder *functionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	fn := builder.fn
-	regType := builder.typ(typ)
+	regType := builder.addType(typ)
 	var op vm.Operation
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
@@ -1106,7 +1085,7 @@ func (builder *functionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
 //
 func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
 	fn := builder.fn
-	t := builder.typ(typ)
+	t := builder.addType(typ)
 	op := vm.OpMakeChan
 	if kCapacity {
 		op = -op
@@ -1142,7 +1121,7 @@ func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capac
 //
 func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := builder.fn
-	t := builder.typ(typ)
+	t := builder.addType(typ)
 	op := vm.OpMakeMap
 	if kSize {
 		op = -op
@@ -1165,7 +1144,7 @@ func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8,
 //
 func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
 	fn := builder.fn
-	t := builder.typ(sliceType)
+	t := builder.addType(sliceType)
 	var k int8
 	if len == 0 && cap == 0 {
 		k = 0
@@ -1569,7 +1548,7 @@ func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 
 // Typify appends a new "Typify" instruction to the function body.
 func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
-	t := builder.typ(typ)
+	t := builder.addType(typ)
 	op := vm.OpTypify
 	if k {
 		op = -op
