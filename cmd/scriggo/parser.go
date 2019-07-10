@@ -147,20 +147,14 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 				return nil, fmt.Errorf("unexpected %s %s, expecteding %s VARIABLE or %s PACKAGE at line %d",
 					tokens[0], tokens[1], tokens[0], tokens[0], ln)
 			}
-		case "REQUIRE":
+		case "GOOS":
 			if len(tokens) == 1 {
-				return nil, fmt.Errorf("expected GOOS after %s at line %d", tokens[0], ln)
-			}
-			if !strings.EqualFold(tokens[1], "GOOS") {
-				return nil, fmt.Errorf("unexpected %s %q, expected %s GOOS at line %d", tokens[0], tokens[1], tokens[0], ln)
-			}
-			if len(tokens) == 2 {
-				return nil, fmt.Errorf("missing os after %s %s at line %d", tokens[0], tokens[1], ln)
+				return nil, fmt.Errorf("missing os after %s at line %d", tokens[0], ln)
 			}
 			if sf.goos == nil {
-				sf.goos = make([]string, 0, len(tokens)-2)
+				sf.goos = make([]string, 0, len(tokens)-1)
 			}
-			for _, tok := range tokens[2:] {
+			for _, tok := range tokens[1:] {
 				os := string(tok)
 				err := checkGOOS(os)
 				if err != nil {

@@ -19,7 +19,7 @@ func TestParseErrors(t *testing.T) {
 		want string
 	}{
 		{commandInstall, "TARGET plugin", `unexpected "plugin" as TARGET at line 1`},
-		{commandInstall, "REQUIRE GOOS linux", `GOOS windows not supported in Scriggofile`},
+		{commandInstall, "GOOS linux", `GOOS windows not supported in Scriggofile`},
 		{commandInstall, "IMPORT a NOT CAPITALIZED", `NOT CAPITALIZED can appear only after 'AS main' at line 1`},
 	}
 	for _, cas := range cases {
@@ -42,7 +42,7 @@ func TestParse(t *testing.T) {
 		want *scriggofile
 	}{
 		{commandEmbed, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
-		{commandEmbed, "REQUIRE GOOS linux darwin", &scriggofile{pkgName: "main", target: targetAll, goos: []string{"linux", "darwin"}, variable: "packages"}},
+		{commandEmbed, "GOOS linux darwin", &scriggofile{pkgName: "main", target: targetAll, goos: []string{"linux", "darwin"}, variable: "packages"}},
 		{commandEmbed, "SET VARIABLE pkgs", &scriggofile{pkgName: "main", target: targetAll, variable: "pkgs"}},
 		{commandInstall, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
 		{commandGenerate, "TARGET PROGRAMS", &scriggofile{pkgName: "main", target: targetPrograms, variable: "packages"}},

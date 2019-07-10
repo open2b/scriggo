@@ -173,9 +173,13 @@ The instructions are:
         the name of the package is 'main'. This instruction is read only by the
         command 'scriggo embed'.
 
-    REQUIRE GOOS <os> <os>
+    GOOS <linux> <windows>
 
-        Specifies the GOOS that are required by the interpreter. If the GOOS at
-        the time the Scriggo file is parsed is not in the required GOOS the
-        command fails.
+        Specifies the operating systems that will be supported by the built
+        interpreter. If the GOOS at the time the Scriggofile is parsed is not
+        listed in the GOOS instruction, the 'build' and 'install' commands
+        fail. If there is no GOOS instruction, all the operating systems are
+        supported. 
+
+        To view possible GOOS values run 'go tool dist list'.
 `
