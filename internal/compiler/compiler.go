@@ -271,10 +271,10 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(opts.MemoryLimit)
-	e.fb.EnterScope()
+	e.fb.enterScope()
 	e.EmitNodes(tree.Nodes)
-	e.fb.ExitScope()
-	e.fb.End()
+	e.fb.exitScope()
+	e.fb.end()
 	return &Code{Main: e.fb.fn, Globals: e.globals}
 }
 
@@ -314,7 +314,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			}
 			// Emits extended page.
 			extends := pkg.Declarations[0].(*ast.Extends)
-			e.fb.EnterScope()
+			e.fb.enterScope()
 			e.reserveTemplateRegisters()
 			// Reserves first index of Functions for the function that
 			// initializes package variables. There is no guarantee that such
@@ -324,8 +324,8 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
 			e.fb.Call(initVarsIndex, vm.StackShift{}, 0)
 			e.EmitNodes(extends.Tree.Nodes)
-			e.fb.End()
-			e.fb.ExitScope()
+			e.fb.end()
+			e.fb.exitScope()
 			// Emits extending page as a package.
 			_, _, inits := e.emitPackage(pkg, true)
 			e.fb = mainBuilder
@@ -338,7 +338,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 				// created because space has already been reserved for it.
 				nopFunction := newFunction("main", "$nop", reflect.FuncOf(nil, nil, false))
 				nopBuilder := newBuilder(nopFunction)
-				nopBuilder.End()
+				nopBuilder.end()
 				e.fb.fn.Functions[0] = nopFunction
 			}
 			return &Code{Main: e.fb.fn, Globals: e.globals}
@@ -346,11 +346,11 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	}
 
 	// Default case: tree is a generic template page.
-	e.fb.EnterScope()
+	e.fb.enterScope()
 	e.reserveTemplateRegisters()
 	e.EmitNodes(tree.Nodes)
-	e.fb.ExitScope()
-	e.fb.End()
+	e.fb.exitScope()
+	e.fb.end()
 	return &Code{Main: e.fb.fn, Globals: e.globals}
 
 }

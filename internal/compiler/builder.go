@@ -200,36 +200,36 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	return builder
 }
 
-// EnterScope enters a new scope.
-// Every EnterScope call must be paired with a corresponding ExitScope call.
-func (builder *functionBuilder) EnterScope() {
+// enterScope enters a new scope.
+// Every enterScope call must be paired with a corresponding exitScope call.
+func (builder *functionBuilder) enterScope() {
 	builder.scopes = append(builder.scopes, map[string]int8{})
-	builder.EnterStack()
+	builder.enterStack()
 }
 
-// ExitScope exits last scope.
-// Every ExitScope call must be paired with a corresponding EnterScope call.
-func (builder *functionBuilder) ExitScope() {
+// exitScope exits last scope.
+// Every exitScope call must be paired with a corresponding enterScope call.
+func (builder *functionBuilder) exitScope() {
 	builder.scopes = builder.scopes[:len(builder.scopes)-1]
-	builder.ExitStack()
+	builder.exitStack()
 }
 
-// EnterStack enters a new virtual stack, whose registers will be reused (if
-// necessary) after calling ExitScope.
-// Every EnterStack call must be paired with a corresponding ExitStack call.
-// EnterStack/ExitStack should be called before every temporary register
-// allocation, which will be reused when ExitStack is called.
+// enterStack enters a new virtual stack, whose registers will be reused (if
+// necessary) after calling exitScope.
+// Every enterStack call must be paired with a corresponding exitStack call.
+// enterStack/exitStack should be called before every temporary register
+// allocation, which will be reused when exitStack is called.
 //
 // Usage:
 //
-// 		e.fb.EnterStack()
-// 		tmpReg := e.fb.NewRegister(..)
+// 		e.fb.enterStack()
+// 		tmpReg := e.fb.newRegister(..)
 // 		// use tmpReg in some way
 // 		// move tmpReg content to externally-defined reg
-// 		e.fb.ExitStack()
+// 		e.fb.exitStack()
 //	    // tmpReg location is now available for reusing
 //
-func (builder *functionBuilder) EnterStack() {
+func (builder *functionBuilder) enterStack() {
 	scopeShift := vm.StackShift{
 		int8(builder.numRegs[reflect.Int]),
 		int8(builder.numRegs[reflect.Float64]),
@@ -239,11 +239,11 @@ func (builder *functionBuilder) EnterStack() {
 	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
 }
 
-// ExitStack exits current virtual stack, allowing its registers to be reused
+// exitStack exits current virtual stack, allowing its registers to be reused
 // (if necessary).
-// Every ExitStack call must be paired with a corresponding EnterStack call.
-// See EnterStack documentation for further details and usage.
-func (builder *functionBuilder) ExitStack() {
+// Every exitStack call must be paired with a corresponding enterStack call.
+// See enterStack documentation for further details and usage.
+func (builder *functionBuilder) exitStack() {
 	shift := builder.scopeShifts[len(builder.scopeShifts)-1]
 	builder.numRegs[reflect.Int] = uint8(shift[0])
 	builder.numRegs[reflect.Float64] = uint8(shift[1])
@@ -252,8 +252,8 @@ func (builder *functionBuilder) ExitStack() {
 	builder.scopeShifts = builder.scopeShifts[:len(builder.scopeShifts)-1]
 }
 
-// NewRegister makes a new register of a given kind.
-func (builder *functionBuilder) NewRegister(kind reflect.Kind) int8 {
+// newRegister makes a new register of a given kind.
+func (builder *functionBuilder) newRegister(kind reflect.Kind) int8 {
 	switch kindToType(kind) {
 	case vm.TypeInt:
 		kind = reflect.Int
@@ -269,15 +269,15 @@ func (builder *functionBuilder) NewRegister(kind reflect.Kind) int8 {
 	return reg
 }
 
-// BindVarReg binds name with register reg. To create a new variable, use
-// VariableRegister in conjunction with BindVarReg.
-func (builder *functionBuilder) BindVarReg(name string, reg int8) {
+// bindVarReg binds name with register reg. To create a new variable, use
+// VariableRegister in conjunction with bindVarReg.
+func (builder *functionBuilder) bindVarReg(name string, reg int8) {
 	builder.scopes[len(builder.scopes)-1][name] = reg
 }
 
-// IsVariable reports whether n is a variable (i.e. is a name defined in some
+// isVariable reports whether n is a variable (i.e. is a name defined in some
 // of the current scopes).
-func (builder *functionBuilder) IsVariable(n string) bool {
+func (builder *functionBuilder) isVariable(n string) bool {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
 		_, ok := builder.scopes[i][n]
 		if ok {
@@ -287,8 +287,8 @@ func (builder *functionBuilder) IsVariable(n string) bool {
 	return false
 }
 
-// ScopeLookup returns n's register.
-func (builder *functionBuilder) ScopeLookup(n string) int8 {
+// scopeLookup returns n's register.
+func (builder *functionBuilder) scopeLookup(n string) int8 {
 	for i := len(builder.scopes) - 1; i >= 0; i-- {
 		reg, ok := builder.scopes[i][n]
 		if ok {
@@ -298,7 +298,7 @@ func (builder *functionBuilder) ScopeLookup(n string) int8 {
 	panic(fmt.Sprintf("bug: %s not found", n))
 }
 
-func (builder *functionBuilder) AddLine(pc uint32, line int) {
+func (builder *functionBuilder) addLine(pc uint32, line int) {
 	if builder.fn.Lines == nil {
 		builder.fn.Lines = map[uint32]int{pc: line}
 	} else {
@@ -306,8 +306,8 @@ func (builder *functionBuilder) AddLine(pc uint32, line int) {
 	}
 }
 
-// SetFileLine sets the file name and line number of the Scriggo function.
-func (builder *functionBuilder) SetFileLine(file string, line int) {
+// setFileLine sets the file name and line number of the Scriggo function.
+func (builder *functionBuilder) setFileLine(file string, line int) {
 	builder.fn.File = file
 	builder.fn.Line = line
 }
@@ -332,8 +332,8 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunct
 	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
-// AddType adds a type to the builder's function.
-func (builder *functionBuilder) AddType(typ reflect.Type) uint8 {
+// addType adds a type to the builder's function.
+func (builder *functionBuilder) addType(typ reflect.Type) uint8 {
 	fn := builder.fn
 	index := len(fn.Types)
 	if index > 255 {
@@ -348,8 +348,8 @@ func (builder *functionBuilder) AddType(typ reflect.Type) uint8 {
 	return uint8(index)
 }
 
-// AddPredefinedFunction adds a predefined function to the builder's function.
-func (builder *functionBuilder) AddPredefinedFunction(f *vm.PredefinedFunction) uint8 {
+// addPredefinedFunction adds a predefined function to the builder's function.
+func (builder *functionBuilder) addPredefinedFunction(f *vm.PredefinedFunction) uint8 {
 	fn := builder.fn
 	r := len(fn.Predefined)
 	if r > 255 {
@@ -359,8 +359,8 @@ func (builder *functionBuilder) AddPredefinedFunction(f *vm.PredefinedFunction) 
 	return uint8(r)
 }
 
-// AddFunction adds a function to the builder's function.
-func (builder *functionBuilder) AddFunction(f *vm.Function) uint8 {
+// addFunction adds a function to the builder's function.
+func (builder *functionBuilder) addFunction(f *vm.Function) uint8 {
 	fn := builder.fn
 	r := len(fn.Functions)
 	if r > 255 {
@@ -370,8 +370,8 @@ func (builder *functionBuilder) AddFunction(f *vm.Function) uint8 {
 	return uint8(r)
 }
 
-// MakeStringConstant makes a new string constant, returning it's index.
-func (builder *functionBuilder) MakeStringConstant(c string) int8 {
+// makeStringConstant makes a new string constant, returning it's index.
+func (builder *functionBuilder) makeStringConstant(c string) int8 {
 	r := len(builder.fn.Constants.String)
 	if r > 255 {
 		panic("string refs limit reached")
@@ -380,8 +380,8 @@ func (builder *functionBuilder) MakeStringConstant(c string) int8 {
 	return int8(r)
 }
 
-// MakeGeneralConstant makes a new general constant, returning it's index.
-func (builder *functionBuilder) MakeGeneralConstant(v interface{}) int8 {
+// makeGeneralConstant makes a new general constant, returning it's index.
+func (builder *functionBuilder) makeGeneralConstant(v interface{}) int8 {
 	r := len(builder.fn.Constants.General)
 	if r > 255 {
 		panic("general refs limit reached")
@@ -390,8 +390,8 @@ func (builder *functionBuilder) MakeGeneralConstant(v interface{}) int8 {
 	return int8(r)
 }
 
-// MakeFloatConstant makes a new float constant, returning it's index.
-func (builder *functionBuilder) MakeFloatConstant(c float64) int8 {
+// makeFloatConstant makes a new float constant, returning it's index.
+func (builder *functionBuilder) makeFloatConstant(c float64) int8 {
 	r := len(builder.fn.Constants.Float)
 	if r > 255 {
 		panic("float refs limit reached")
@@ -400,8 +400,8 @@ func (builder *functionBuilder) MakeFloatConstant(c float64) int8 {
 	return int8(r)
 }
 
-// MakeIntConstant makes a new int constant, returning it's index.
-func (builder *functionBuilder) MakeIntConstant(c int64) int8 {
+// makeIntConstant makes a new int constant, returning it's index.
+func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 	r := len(builder.fn.Constants.Int)
 	if r > 255 {
 		panic("int refs limit reached")
@@ -410,7 +410,7 @@ func (builder *functionBuilder) MakeIntConstant(c int64) int8 {
 	return int8(r)
 }
 
-func (builder *functionBuilder) MakeInterfaceConstant(c interface{}) int8 {
+func (builder *functionBuilder) makeInterfaceConstant(c interface{}) int8 {
 	r := -len(builder.fn.Constants.General) - 1
 	if r == -129 {
 		panic("interface refs limit reached")
@@ -419,25 +419,25 @@ func (builder *functionBuilder) MakeInterfaceConstant(c interface{}) int8 {
 	return int8(r)
 }
 
-// CurrentAddr returns builder's current address.
-func (builder *functionBuilder) CurrentAddr() uint32 {
+// currentAddr returns builder's current address.
+func (builder *functionBuilder) currentAddr() uint32 {
 	return uint32(len(builder.fn.Body))
 }
 
-// NewLabel creates a new empty label. Use SetLabelAddr to associate an
+// newLabel creates a new empty label. Use setLabelAddr to associate an
 // address to it.
-func (builder *functionBuilder) NewLabel() uint32 {
+func (builder *functionBuilder) newLabel() uint32 {
 	builder.labels = append(builder.labels, uint32(0))
 	return uint32(len(builder.labels))
 }
 
-// SetLabelAddr sets label's address as builder's current address.
-func (builder *functionBuilder) SetLabelAddr(label uint32) {
-	builder.labels[label-1] = builder.CurrentAddr()
+// setLabelAddr sets label's address as builder's current address.
+func (builder *functionBuilder) setLabelAddr(label uint32) {
+	builder.labels[label-1] = builder.currentAddr()
 }
 
-// Type returns typ's index, creating it if necessary.
-func (builder *functionBuilder) Type(typ reflect.Type) int8 {
+// typ returns typ's index, creating it if necessary.
+func (builder *functionBuilder) typ(typ reflect.Type) int8 {
 	var tr int8
 	var found bool
 	types := builder.fn.Types
@@ -457,7 +457,7 @@ func (builder *functionBuilder) Type(typ reflect.Type) int8 {
 	return tr
 }
 
-func (builder *functionBuilder) End() {
+func (builder *functionBuilder) end() {
 	fn := builder.fn
 	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
 		builder.Return()
@@ -659,7 +659,7 @@ func (builder *functionBuilder) Call(f int8, shift vm.StackShift, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCall, A: f})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
-	builder.AddLine(uint32(len(fn.Body)-2), line)
+	builder.addLine(uint32(len(fn.Body)-2), line)
 }
 
 // CallPredefined appends a new "CallPredefined" instruction to the function body.
@@ -743,7 +743,7 @@ func (builder *functionBuilder) Continue(label uint32) {
 //
 func (builder *functionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	fn := builder.fn
-	regType := builder.Type(typ)
+	regType := builder.typ(typ)
 	var op vm.Operation
 	switch kindToType(srcKind) {
 	case vm.TypeGeneral:
@@ -951,7 +951,7 @@ func (builder *functionBuilder) Goto(label uint32) {
 		}
 		addr := builder.labels[label-1]
 		if addr == 0 {
-			builder.gotos[builder.CurrentAddr()] = label
+			builder.gotos[builder.currentAddr()] = label
 		} else {
 			in.A, in.B, in.C = encodeUint24(addr)
 		}
@@ -1106,7 +1106,7 @@ func (builder *functionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
 //
 func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
 	fn := builder.fn
-	t := builder.Type(typ)
+	t := builder.typ(typ)
 	op := vm.OpMakeChan
 	if kCapacity {
 		op = -op
@@ -1142,7 +1142,7 @@ func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capac
 //
 func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := builder.fn
-	t := builder.Type(typ)
+	t := builder.typ(typ)
 	op := vm.OpMakeMap
 	if kSize {
 		op = -op
@@ -1165,7 +1165,7 @@ func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8,
 //
 func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
 	fn := builder.fn
-	t := builder.Type(sliceType)
+	t := builder.typ(sliceType)
 	var k int8
 	if len == 0 && cap == 0 {
 		k = 0
@@ -1211,7 +1211,7 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 //     dst = receiver.name
 //
 func (builder *functionBuilder) MethodValue(name string, receiver int8, dst int8) {
-	str := builder.MakeStringConstant(name)
+	str := builder.makeStringConstant(name)
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMethodValue, A: receiver, B: str, C: dst})
 }
@@ -1267,7 +1267,7 @@ func (builder *functionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 //
 func (builder *functionBuilder) New(typ reflect.Type, z int8) {
 	fn := builder.fn
-	b := builder.AddType(typ)
+	b := builder.addType(typ)
 	if builder.allocs != nil {
 		bytes := int(typ.Size())
 		if bytes <= maxUint24 {
@@ -1305,7 +1305,7 @@ func (builder *functionBuilder) Or(k bool, x, y, z int8, kind reflect.Kind) {
 func (builder *functionBuilder) Panic(v int8, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpPanic, A: v})
-	builder.AddLine(uint32(len(fn.Body)-1), line)
+	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
 // Print appends a new "Print" instruction to the function body.
@@ -1569,7 +1569,7 @@ func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 
 // Typify appends a new "Typify" instruction to the function body.
 func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
-	t := builder.Type(typ)
+	t := builder.typ(typ)
 	op := vm.OpTypify
 	if k {
 		op = -op
@@ -1584,7 +1584,7 @@ func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 func (builder *functionBuilder) TailCall(f int8, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpTailCall, A: f})
-	builder.AddLine(uint32(len(fn.Body)-1), line)
+	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
 // Xor appends a new "Xor" instruction to the function body.

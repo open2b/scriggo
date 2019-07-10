@@ -44,11 +44,11 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// needed.
 	if dstType.Kind() != srcType.Kind() {
 		if k {
-			em.fb.EnterScope()
-			tmpReg := em.fb.NewRegister(srcType.Kind())
+			em.fb.enterScope()
+			tmpReg := em.fb.newRegister(srcType.Kind())
 			em.fb.Move(true, src, tmpReg, srcType.Kind())
 			em.fb.Convert(tmpReg, dstType, dst, srcType.Kind())
-			em.fb.ExitScope()
+			em.fb.exitScope()
 		}
 		em.fb.Convert(src, dstType, dst, srcType.Kind())
 		return
@@ -217,7 +217,7 @@ func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
 		v := &closureVars[i]
 		if v.Index == -1 {
 			name := v.Declaration.(*ast.Identifier).Name
-			reg := em.fb.ScopeLookup(name)
+			reg := em.fb.scopeLookup(name)
 			v.Index = int16(reg)
 		}
 	}
