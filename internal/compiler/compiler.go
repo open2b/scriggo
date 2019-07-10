@@ -115,6 +115,18 @@ type PackageLoader interface {
 	Load(pkgPath string) (interface{}, error)
 }
 
+// SyntaxType indicates the syntax type of the source code which is going to be
+// compiled. Syntax should affect only the syntax, not the semantics; use
+// Options to control which statements are allowed, which errors should be
+// returned etc...
+type SyntaxType int8
+
+const (
+	TemplateSyntax SyntaxType = iota + 1
+	ScriptSyntax
+	ProgramSyntax
+)
+
 // Options represents compilation options.
 type Options struct {
 
@@ -125,7 +137,7 @@ type Options struct {
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
 
-	IsProgram, IsTemplate, IsScript bool
+	SourceType SyntaxType
 
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
@@ -144,7 +156,7 @@ type Options struct {
 // tree may be altered during typechecking.
 func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
 	deps := AnalyzeTree(tree, opts)
-	if opts.IsProgram {
+	if opts.SourceType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
 		if err != nil {
@@ -162,7 +174,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string
 			tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main.(predefinedPackage)))
 		}
 	}
-	if opts.IsTemplate {
+	if opts.SourceType == TemplateSyntax {
 		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
 			for _, d := range tree.Nodes[1:] {
 				if m, ok := d.(*ast.Macro); ok {

@@ -696,7 +696,9 @@ var checkerStmts = map[string]string{
 	`const a = 1; const b int8 = a`: ok,
 
 	// Identifiers.
-	`a := 0; a`: evaluatedButNotUsed("a"),
+	// TODO(Gianluca): related to the possibility of returning the last
+	// expression statement of a script as a value to Go.
+	// `a := 0; a`: evaluatedButNotUsed("a"),
 
 	// Blank identifiers.
 	`_ = 1`:                           ok,
@@ -889,7 +891,9 @@ var checkerStmts = map[string]string{
 
 	// Expressions.
 	`int + 2`: `type int is not an expression`,
-	`0`:       evaluatedButNotUsed("0"),
+	// TODO(Gianluca): related to the possibility of returning the last
+	// expression statement of a script as a value to Go.
+	// `0`:       evaluatedButNotUsed("0"),
 
 	// Address operator.
 	`var a int; _ = &((a))`:             ok,
@@ -897,11 +901,13 @@ var checkerStmts = map[string]string{
 	`_ = &[]int{}`:                      ok,
 	`_ = &[10]int{}`:                    ok,
 	`_ = &map[int]string{}`:             ok,
-	`var a int; &a`:                     evaluatedButNotUsed("&a"),
 	`_ = &[]int{1}[0]`:                  ok,
 	`var a int; var b *int = &a; _ = b`: ok,
 	`_ = &(_)`:                          `cannot use _ as value`,
 	`_ = &(0)`:                          `cannot take the address of 0`,
+	// TODO(Gianluca): related to the possibility of returning the last
+	// expression statement of a script as a value to Go.
+	// `var a int; &a`:                     evaluatedButNotUsed("&a"),
 
 	// Pointer indirection operator.
 	`var a int; b := &a; var c int = *b; _ = c`: ok,
@@ -1376,7 +1382,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", Options{DisallowGoStmt: true})
+			tc := newTypechecker("", Options{DisallowGoStmt: true, SourceType: ScriptSyntax})
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.addScope()
 			tc.checkNodes(tree.Nodes)
@@ -1436,7 +1442,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		return
 	}
 	opts := Options{
-		IsProgram: true,
+		SourceType: ProgramSyntax,
 	}
 	_, err = Typecheck(tree, predefined, opts)
 	if err != nil {
@@ -2067,7 +2073,7 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			opts := Options{IsProgram: true}
+			opts := Options{SourceType: ProgramSyntax}
 			deps := AnalyzeTree(tree, opts)
 			pkgInfos := map[string]*PackageInfo{}
 			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)

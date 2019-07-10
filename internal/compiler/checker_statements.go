@@ -599,7 +599,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			ti := tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
-				if !tc.opts.IsScript || !tc.opts.IsTemplate || !isLastScriptStatement {
+				if tc.opts.SourceType == ProgramSyntax || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
 			}
@@ -626,7 +626,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case ast.Expression:
 			ti := tc.checkExpression(node)
-			if tc.opts.IsScript {
+			if tc.opts.SourceType == ScriptSyntax {
 				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
 				switch node := node.(type) {
 				case *ast.Func:
@@ -642,7 +642,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						panic(tc.errorf(node, "%s evaluated but not used", node))
 					}
 				}
-			} else if tc.opts.IsTemplate {
+			} else if tc.opts.SourceType == TemplateSyntax {
 				// TODO(Gianluca): handle expression statements in templates.
 				switch node := node.(type) {
 				case *ast.Func:

@@ -116,8 +116,8 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 // informations.
 func AnalyzeTree(tree *ast.Tree, opts Options) PackageDeclsDeps {
 	d := deps{}
-	switch {
-	case opts.IsProgram:
+	switch opts.SourceType {
+	case ProgramSyntax:
 		pkg := tree.Nodes[0].(*ast.Package)
 		for _, n := range pkg.Declarations {
 			switch n := n.(type) {
@@ -129,7 +129,7 @@ func AnalyzeTree(tree *ast.Tree, opts Options) PackageDeclsDeps {
 				d.analyzeGlobalFunc(n)
 			}
 		}
-	case opts.IsTemplate:
+	case TemplateSyntax:
 		for _, n := range tree.Nodes {
 			switch n := n.(type) {
 			case *ast.Var:

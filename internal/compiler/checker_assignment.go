@@ -354,7 +354,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 			}
 			newValueTi.Properties |= PropertyAddressable
 			tc.assignScope(v.Name, newValueTi, v)
-			if !tc.opts.IsScript {
+			if !tc.opts.AllowNotUsed {
 				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 					ident:      v.Name,
 					scopeLevel: len(tc.Scopes) - 1,
