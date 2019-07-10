@@ -150,11 +150,20 @@ type Options struct {
 	MemoryLimit bool
 }
 
+// validate validates options, panicking if these are not valid (i.e. contain
+// some inconsistency).
+func (o *Options) validate() {
+	if o.SyntaxType == 0 {
+		panic("syntax type not specified")
+	}
+}
+
 // Typecheck typechecks tree. A map of predefined packages may be provided. deps
 // must contain dependencies in case of package initialization (program or
 // template import/extend).
 // tree may be altered during typechecking.
 func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
+	opts.validate()
 	deps := AnalyzeTree(tree, opts)
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
@@ -248,6 +257,10 @@ type Code struct {
 // must be emitted. EmitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
 func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
+	opts.validate()
+	if opts.SyntaxType != ProgramSyntax {
+		panic("expecting a script syntax")
+	}
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false)
 	main := e.functions[pkgMain]["main"]
@@ -264,6 +277,10 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // emitted. EmitScript returns a function that is the entry point of the
 // script and the global variables.
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
+	opts.validate()
+	if opts.SyntaxType != ScriptSyntax {
+		panic("expecting a script syntax")
+	}
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(opts.MemoryLimit)
@@ -279,6 +296,11 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 // emitted. EmitTemplate returns a function that is the entry point of the
 // template and the global variables.
 func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
+
+	opts.validate()
+	if opts.SyntaxType != TemplateSyntax {
+		panic("expecting a template syntax")
+	}
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
