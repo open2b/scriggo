@@ -52,7 +52,6 @@ type RenderOptions struct {
 }
 
 type Template struct {
-	main    *scriggo.Package
 	fn      *vm.Function
 	options LoadOptions
 	globals []compiler.Global
@@ -62,7 +61,7 @@ type Template struct {
 // to read the files of the template. Package main declares constants, types,
 // variables and functions that are accessible from the code in the template.
 // Context is the context in which the code is executed.
-func Load(path string, reader Reader, main *scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
+func Load(path string, reader Reader, main scriggo.Package, ctx Context, options *LoadOptions) (*Template, error) {
 	tree, err := compiler.ParseTemplate(path, reader, ast.Context(ctx))
 	if err != nil {
 		return nil, err
@@ -98,7 +97,7 @@ func Load(path string, reader Reader, main *scriggo.Package, ctx Context, option
 		}
 	}
 	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts)
-	return &Template{main: main, fn: code.Main, globals: code.Globals, options: *options}, nil
+	return &Template{fn: code.Main, globals: code.Globals, options: *options}, nil
 }
 
 // A RenderFunc renders value in the context ctx and writes the result to out.

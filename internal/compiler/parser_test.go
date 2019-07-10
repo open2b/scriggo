@@ -46,7 +46,7 @@ func (r mapStringLoader) Load(path string) (interface{}, error) {
 	return nil, nil
 }
 
-type predefinedPackages map[string]*Package
+type predefinedPackages map[string]predefinedPackage
 
 func (pp predefinedPackages) Load(path string) (interface{}, error) {
 	p := pp[path]

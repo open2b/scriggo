@@ -4978,8 +4978,8 @@ func tabsToSpaces(s string) string {
 // }
 
 var goPackages = scriggo.Packages{
-	"fmt": {
-		Name: "fmt",
+	"fmt": &scriggo.MapPackage{
+		PkgName: "fmt",
 		Declarations: map[string]interface{}{
 			"Errorf":     fmt.Errorf,
 			"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
@@ -5008,8 +5008,8 @@ var goPackages = scriggo.Packages{
 			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
 		},
 	},
-	"testpkg": {
-		Name: "testpkg",
+	"testpkg": &scriggo.MapPackage{
+		PkgName: "testpkg",
 		Declarations: map[string]interface{}{
 			"F00": func() {},
 			"F01": func() int { return 40 },
@@ -5048,22 +5048,22 @@ var goPackages = scriggo.Packages{
 			"T":            reflect.TypeOf(T(0)),
 		},
 	},
-	"math": {
-		Name: "math",
+	"math": &scriggo.MapPackage{
+		PkgName: "math",
 		Declarations: map[string]interface{}{
 			"Phi": scriggo.ConstLiteral(nil, "1.61803398874989484820458683436563811772030917980576286213544862"),
 		},
 	},
-	"bytes": {
-		Name: "bytes",
+	"bytes": &scriggo.MapPackage{
+		PkgName: "bytes",
 		Declarations: map[string]interface{}{
 			"NewBuffer":       bytes.NewBuffer,
 			"NewBufferString": bytes.NewBufferString,
 			"Buffer":          reflect.TypeOf(new(bytes.Buffer)).Elem(),
 		},
 	},
-	"time": {
-		Name: "time",
+	"time": &scriggo.MapPackage{
+		PkgName: "time",
 		Declarations: map[string]interface{}{
 			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
 			"ParseDuration": time.ParseDuration,
@@ -5071,15 +5071,15 @@ var goPackages = scriggo.Packages{
 			"Nanosecond":    scriggo.ConstLiteral(reflect.TypeOf(new(time.Duration)).Elem(), "1"),
 		},
 	},
-	"os/exec": {
-		Name: "exec",
+	"os/exec": &scriggo.MapPackage{
+		PkgName: "exec",
 		Declarations: map[string]interface{}{
 			"Cmd":   reflect.TypeOf(new(exec.Cmd)).Elem(),
 			"Error": reflect.TypeOf(new(exec.Error)).Elem(),
 		},
 	},
-	"errors": {
-		Name: "errors",
+	"errors": &scriggo.MapPackage{
+		PkgName: "errors",
 		Declarations: map[string]interface{}{
 			"New": errors.New,
 		},

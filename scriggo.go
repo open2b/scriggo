@@ -25,7 +25,23 @@ type LoadOptions struct {
 	AllowShebangLine bool // allow shebang line; only for scripts.
 }
 
-type Package = compiler.Package
+// Package represents a predefined package.
+type Package interface {
+
+	// Name returns the package's name.
+	Name() string
+
+	// Lookup searches for an exported declaration, named declName, in the
+	// package. If the declaration does not exist, it returns nil.
+	//
+	// For a variable returns a pointer to the variable, for a function
+	// returns the function, for a type returns the reflect.Type and for a
+	// constant returns its value or a Constant.
+	Lookup(declName string) interface{}
+
+	// DeclarationNames returns the exported declaration names in the package.
+	DeclarationNames() []string
+}
 
 type Constant = compiler.Constant
 
@@ -51,7 +67,7 @@ type Program struct {
 // LoadProgram loads a program, reading package "main" from packages.
 func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error) {
 
-	tree, predefined, err := compiler.ParseProgram(packages)
+	tree, err := compiler.ParseProgram(packages)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +81,7 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
 
-	tci, err := compiler.Typecheck(tree, predefined, opts)
+	tci, err := compiler.Typecheck(tree, packages, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +165,7 @@ type Script struct {
 }
 
 // LoadScript loads a script from a reader.
-func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Script, error) {
+func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*Script, error) {
 
 	if options == nil {
 		options = &LoadOptions{}
@@ -157,7 +173,7 @@ func LoadScript(src io.Reader, loader PackageLoader, options *LoadOptions) (*Scr
 
 	shebang := options.AllowShebangLine
 
-	tree, packages, err := compiler.ParseScript(src, loader, shebang)
+	tree, err := compiler.ParseScript(src, packages, shebang)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +343,7 @@ func Loaders(loaders ...PackageLoader) PackageLoader {
 
 // Packages is a Loader that load packages from a map where the key is a
 // package path and the value is a *Package value.
-type Packages map[string]*Package
+type Packages map[string]Package
 
 func (pp Packages) Load(path string) (interface{}, error) {
 	if p, ok := pp[path]; ok {
@@ -363,4 +379,27 @@ func PrintFunc(w io.Writer) vm.PrintFunc {
 			_, _ = fmt.Fprint(w, r.String())
 		}
 	}
+}
+
+type MapPackage struct {
+	// Package name.
+	PkgName string
+	// Package declarations.
+	Declarations map[string]interface{}
+}
+
+func (p *MapPackage) Name() string {
+	return p.PkgName
+}
+
+func (p *MapPackage) Lookup(declName string) interface{} {
+	return p.Declarations[declName]
+}
+
+func (p *MapPackage) DeclarationNames() []string {
+	declarations := make([]string, 0, len(p.Declarations))
+	for name := range p.Declarations {
+		declarations = append(declarations, name)
+	}
+	return declarations
 }

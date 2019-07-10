@@ -37,6 +37,24 @@ import (
 	"scriggo/vm"
 )
 
+// predefinedPackage represents a predefined package.
+type predefinedPackage interface {
+
+	// Name returns the package's name.
+	Name() string
+
+	// Lookup searches for an exported declaration, named declName, in the
+	// package. If the declaration does not exist, it returns nil.
+	//
+	// For a variable returns a pointer to the variable, for a function
+	// returns the function, for a type returns the reflect.Type and for a
+	// constant returns its value or a Constant.
+	Lookup(declName string) interface{}
+
+	// DeclarationNames returns the exported declaration names in the package.
+	DeclarationNames() []string
+}
+
 // Package represents a predefined package.
 // A package can contain a function, a variable, a constant or a type.
 //
@@ -46,9 +64,25 @@ import (
 //		Type:     assign the reflect.TypeOf of type to Declarations.
 type Package struct {
 	// Package name.
-	Name string
+	PkgName string
 	// Package declarations.
 	Declarations map[string]interface{}
+}
+
+func (p *Package) Name() string {
+	return p.PkgName
+}
+
+func (p *Package) Lookup(declName string) interface{} {
+	return p.Declarations[declName]
+}
+
+func (p *Package) DeclarationNames() []string {
+	declarations := make([]string, 0, len(p.Declarations))
+	for name := range p.Declarations {
+		declarations = append(declarations, name)
+	}
+	return declarations
 }
 
 type Constant struct {
@@ -108,19 +142,25 @@ type Options struct {
 // must contain dependencies in case of package initialization (program or
 // template import/extend).
 // tree may be altered during typechecking.
-func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, opts Options) (map[string]*PackageInfo, error) {
+func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
 	deps := AnalyzeTree(tree, opts)
 	if opts.IsProgram {
 		pkgInfos := map[string]*PackageInfo{}
-		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, predefinedPkgs, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
+		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts.IsTemplate, opts.DisallowGoStmt)
 		if err != nil {
 			return nil, err
 		}
 		return pkgInfos, nil
 	}
 	tc := newTypechecker(tree.Path, opts)
-	if main, ok := predefinedPkgs["main"]; ok {
-		tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main))
+	if packages != nil {
+		main, err := packages.Load("main")
+		if err != nil {
+			return nil, err
+		}
+		if main != nil {
+			tc.Scopes = append(tc.Scopes, ToTypeCheckerScope(main.(predefinedPackage)))
+		}
 	}
 	if opts.IsTemplate {
 		if extends, ok := tree.Nodes[0].(*ast.Extends); ok {
@@ -157,7 +197,7 @@ func Typecheck(tree *ast.Tree, predefinedPkgs map[string]*Package, opts Options)
 			return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 		}
 	}
-	tc.predefinedPkgs = predefinedPkgs
+	tc.predefinedPkgs = packages
 	err := tc.checkNodesInNewScopeError(tree.Nodes)
 	if err != nil {
 		return nil, err

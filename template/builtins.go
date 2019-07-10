@@ -51,15 +51,8 @@ var errNoSlice = errors.New("no slice")
 
 const spaces = " \n\r\t\f" // https://infra.spec.whatwg.org/#ascii-whitespace
 
-func Builtins() *scriggo.Package {
-	p := scriggo.Package{
-		Name:         "main",
-		Declarations: map[string]interface{}{},
-	}
-	for name, value := range main.Declarations {
-		p.Declarations[name] = value
-	}
-	return &p
+func Builtins() scriggo.Package {
+	return main
 }
 
 type HTML string
@@ -195,8 +188,8 @@ func (t Time) formatJavaScript(out io.Writer) error {
 	return err
 }
 
-var main = scriggo.Package{
-	Name: "main",
+var main = &scriggo.MapPackage{
+	PkgName: "main",
 	Declarations: map[string]interface{}{
 		"Hasher":      hasherType,
 		"MD5":         scriggo.ConstValue(_MD5),

@@ -190,8 +190,8 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 			decl := pkg.decl[name]
 			declarations.WriteString(strconv.Quote(name) + ": " + decl + ",\n")
 		}
-		out := `[path]: {
-			Name: [pkgName],
+		out := `[path]: &MapPackage{
+			PkgName: [pkgName],
 			Declarations: map[string]interface{}{
 				[declarations]
 			},

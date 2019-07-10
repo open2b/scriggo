@@ -15,10 +15,10 @@ import (
 )
 
 // ParseProgram parses a program reading its sources from loaders.
-func ParseProgram(packages PackageLoader) (*ast.Tree, map[string]*Package, error) {
+func ParseProgram(packages PackageLoader) (*ast.Tree, error) {
 
 	trees := map[string]*ast.Tree{}
-	predefined := map[string]*Package{}
+	predefined := map[string]bool{}
 
 	main := ast.NewImport(nil, nil, "main", ast.ContextGo)
 
@@ -43,26 +43,26 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, map[string]*Package, error
 		// Load the package.
 		pkg, err := packages.Load(n.Path)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if pkg == nil {
-			return nil, nil, &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package %q", n.Path)}
+			return nil, &SyntaxError{"", *(n.Pos()), fmt.Errorf("cannot find package %q", n.Path)}
 		}
 
 		switch pkg := pkg.(type) {
-		case *Package:
-			predefined[n.Path] = pkg
+		case predefinedPackage:
+			predefined[n.Path] = true
 		case io.Reader:
 			src, err := ioutil.ReadAll(pkg)
 			if r, ok := pkg.(io.Closer); ok {
 				_ = r.Close()
 			}
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			n.Tree, err = ParseSource(src, false, false)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			n.Tree.Path = n.Path
 			trees[n.Path] = n.Tree
@@ -86,19 +86,19 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, map[string]*Package, error
 								err += imp.Path
 							}
 							err += "\n\timports " + p.Path
-							return nil, nil, cycleError(err)
+							return nil, cycleError(err)
 						}
 					}
 					imp.Tree = tree
-				} else if _, ok := predefined[imp.Path]; ok {
+				} else if predefined[imp.Path] {
 					// Skip.
 				} else {
 					// Check if the path is a package path (path is already a valid path).
 					if err := validPackagePath(n.Path); err != nil {
 						if err == ErrNotCanonicalImportPath {
-							return nil, nil, fmt.Errorf("non-canonical import path %q (should be %q)", n.Path, cleanPath(n.Path))
+							return nil, fmt.Errorf("non-canonical import path %q (should be %q)", n.Path, cleanPath(n.Path))
 						}
-						return nil, nil, fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
+						return nil, fmt.Errorf("invalid path %q at %s", n.Path, n.Pos())
 					}
 					// Append the imports in reverse order.
 					if last == len(imports)-1 {
@@ -120,28 +120,25 @@ func ParseProgram(packages PackageLoader) (*ast.Tree, map[string]*Package, error
 
 	}
 
-	return main.Tree, predefined, nil
+	return main.Tree, nil
 }
 
 // ParseScript parses a script reading its source from src and the imported
 // packages form the loader. shebang reports whether the script can have the
 // shebang as first line.
-func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, map[string]*Package, error) {
+func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, error) {
 
-	packages := map[string]*Package{}
+	packages := map[string]bool{}
 
 	// Load package main.
 	main, err := loader.Load("main")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	switch main := main.(type) {
-	case *Package:
-		packages["main"] = main
-	case nil:
-		packages["main"] = &Package{Name: "main"}
+	switch main.(type) {
+	case nil, predefinedPackage:
 	default:
-		return nil, nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
+		return nil, fmt.Errorf("scriggo: unexpected type %T for package \"main\"", main)
 	}
 
 	// Parse the source.
@@ -150,11 +147,11 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		_ = r.Close()
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	tree, err := ParseSource(buf, true, shebang)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Parse the import declarations in the tree.
@@ -166,24 +163,24 @@ func ParseScript(src io.Reader, loader PackageLoader, shebang bool) (*ast.Tree, 
 		// Check if the path is a package path (path is already a valid path).
 		if err := validPackagePath(imp.Path); err != nil {
 			if err == ErrNotCanonicalImportPath {
-				return nil, nil, fmt.Errorf("non-canonical import path %q (should be %q)", imp.Path, cleanPath(imp.Path))
+				return nil, fmt.Errorf("non-canonical import path %q (should be %q)", imp.Path, cleanPath(imp.Path))
 			}
-			return nil, nil, fmt.Errorf("invalid path %q at %s", imp.Path, imp.Pos())
+			return nil, fmt.Errorf("invalid path %q at %s", imp.Path, imp.Pos())
 		}
 		// Load the package.
 		pkg, err := loader.Load(imp.Path)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		switch pkg := pkg.(type) {
-		case *Package:
-			packages[imp.Path] = pkg
+		case predefinedPackage:
+			packages[imp.Path] = true
 		case nil:
-			return nil, nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
+			return nil, &SyntaxError{"", *(imp.Pos()), fmt.Errorf("cannot find package %q", imp.Path)}
 		default:
-			return nil, nil, fmt.Errorf("scriggo: unexpected type %T package loader", pkg)
+			return nil, fmt.Errorf("scriggo: unexpected type %T package loader", pkg)
 		}
 	}
 
-	return tree, packages, nil
+	return tree, nil
 }

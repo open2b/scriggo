@@ -433,10 +433,16 @@ func TestCSSStringContext(t *testing.T) {
 	}
 }
 
-func mainPackage(vars Vars) *scriggo.Package {
-	main := Builtins()
-	for name, value := range vars {
-		main.Declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
+func mainPackage(vars Vars) scriggo.Package {
+	p := scriggo.MapPackage{
+		PkgName:      "main",
+		Declarations: map[string]interface{}{},
 	}
-	return main
+	for _, name := range main.DeclarationNames() {
+		p.Declarations[name] = main.Lookup(name)
+	}
+	for name, value := range vars {
+		p.Declarations[name] = reflect.Zero(reflect.PtrTo(reflect.TypeOf(value))).Interface()
+	}
+	return &p
 }

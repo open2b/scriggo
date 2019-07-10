@@ -1398,7 +1398,7 @@ func (t T) EnvVar(env *vm.Env, a ...int) {}
 
 func TestCheckerRemoveEnv(t *testing.T) {
 	p := &Package{
-		Name: "p",
+		PkgName: "p",
 		Declarations: map[string]interface{}{
 			"T":      reflect.TypeOf(T(0)),
 			"F0":     func() {},
@@ -1430,7 +1430,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		p.EnvVar(1,2,3,4,5)
 	}`
 	predefined := predefinedPackages{"p": p}
-	tree, _, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
+	tree, err := ParseProgram(loaders(mapStringLoader{"main": main}, predefined))
 	if err != nil {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return

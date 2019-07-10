@@ -17,7 +17,7 @@ import (
 var templateCases = map[string]struct {
 	src  string
 	out  string
-	main *scriggo.Package
+	main *scriggo.MapPackage
 	vars map[string]interface{}
 }{
 	"Text only": {
@@ -107,8 +107,8 @@ var templateCases = map[string]struct {
 
 	"Using a function declared in main": {
 		src: `calling f: {{ f() }}, done!`,
-		main: &scriggo.Package{
-			Name: "main",
+		main: &scriggo.MapPackage{
+			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"f": func() string { return "i'm f!" },
 			},
@@ -118,8 +118,8 @@ var templateCases = map[string]struct {
 
 	"Reading a variable declared in main": {
 		src: `{{ mainVar }}`,
-		main: &scriggo.Package{
-			Name: "main",
+		main: &scriggo.MapPackage{
+			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"mainVar": (*int)(nil),
 			},
@@ -129,8 +129,8 @@ var templateCases = map[string]struct {
 
 	"Reading a variable declared in main and initialized with vars": {
 		src: `{{ initMainVar }}`,
-		main: &scriggo.Package{
-			Name: "main",
+		main: &scriggo.MapPackage{
+			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"initMainVar": (*int)(nil),
 			},
@@ -227,9 +227,17 @@ func TestTemplate(t *testing.T) {
 			r := template.MapReader{"/main": []byte(cas.src)}
 			builtins := template.Builtins()
 			if cas.main != nil {
-				for k, v := range cas.main.Declarations {
-					builtins.Declarations[k] = v
+				b := scriggo.MapPackage{
+					PkgName:      "main",
+					Declarations: map[string]interface{}{},
 				}
+				for _, name := range builtins.DeclarationNames() {
+					b.Declarations[name] = builtins.Lookup(name)
+				}
+				for k, v := range cas.main.Declarations {
+					b.Declarations[k] = v
+				}
+				builtins = &b
 			}
 			templ, err := template.Load("/main", r, builtins, template.ContextText, nil)
 			if err != nil {

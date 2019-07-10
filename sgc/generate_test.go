@@ -30,14 +30,14 @@ func Test_renderPackages(t *testing.T) {
 			import (
 				fmt "fmt"
 			)
-			
+
 			import . "scriggo"
 			import "reflect"
-			
+
 			func init() {
 				packages = Packages{
-					"custom/fmt/path": {
-						Name: "fmt",
+					"custom/fmt/path": &MapPackage{
+						PkgName: "fmt",
 						Declarations: map[string]interface{}{
 							"Errorf":     fmt.Errorf,
 							"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
@@ -80,15 +80,15 @@ func Test_renderPackages(t *testing.T) {
 			import (
 				tar "archive/tar"
 			)
-			
+
 			import . "scriggo"
 			import "reflect"
-			
+
 			func init() {
 				packages = Packages{
-			
-					"archive/tar": {
-						Name: "tar",
+
+					"archive/tar": &MapPackage{
+						PkgName: "tar",
 						Declarations: map[string]interface{}{
 							"ErrFieldTooLong":    &tar.ErrFieldTooLong,
 							"ErrHeader":          &tar.ErrHeader,
@@ -135,14 +135,14 @@ func Test_renderPackages(t *testing.T) {
 			import (
 				fmt "fmt"
 			)
-			
+
 			import . "scriggo"
 			import "reflect"
-			
+
 			func init() {
 				packages = Packages{
-					"fmt": {
-						Name: "fmt",
+					"fmt": &MapPackage{
+						PkgName: "fmt",
 						Declarations: map[string]interface{}{
 							"Errorf":     fmt.Errorf,
 							"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
@@ -190,13 +190,13 @@ func Test_renderPackages(t *testing.T) {
 			import (
 				fmt "fmt"
 			)
-			
+
 			import . "scriggo"
-			
+
 			func init() {
 				packages = Packages{
-					"fmt": {
-						Name: "fmt",
+					"fmt": &MapPackage{
+						PkgName: "fmt",
 						Declarations: map[string]interface{}{
 							"Println": fmt.Println,
 						},

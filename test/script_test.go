@@ -16,8 +16,6 @@ import (
 	"scriggo"
 )
 
-var scriptTestA = 0
-
 var scriptCases = map[string]struct {
 	src  string
 	pkgs scriggo.Packages
@@ -49,8 +47,8 @@ var scriptCases = map[string]struct {
 			pkg.F()
 		`,
 		pkgs: scriggo.Packages{
-			"pkg": {
-				Name: "pkg",
+			"pkg": &scriggo.MapPackage{
+				PkgName: "pkg",
 				Declarations: map[string]interface{}{
 					"F": func() {
 						scriptStdout.WriteString("pkg.F called!")
@@ -67,8 +65,8 @@ var scriptCases = map[string]struct {
 		`,
 		out: "A is 0",
 		pkgs: scriggo.Packages{
-			"main": {
-				Name: "main",
+			"main": &scriggo.MapPackage{
+				PkgName: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
 				},
@@ -84,8 +82,8 @@ var scriptCases = map[string]struct {
 		`,
 		out: "default: 0, new: 20",
 		pkgs: scriggo.Packages{
-			"main": {
-				Name: "main",
+			"main": &scriggo.MapPackage{
+				PkgName: "main",
 				Declarations: map[string]interface{}{
 					"A": (*int)(nil),
 				},
@@ -119,8 +117,8 @@ var scriptCases = map[string]struct {
 			Print(Sum)
 		`,
 		pkgs: scriggo.Packages{
-			"main": {
-				Name: "main",
+			"main": &scriggo.MapPackage{
+				PkgName: "main",
 				Declarations: map[string]interface{}{
 					"Sum": (*int)(nil),
 				},
@@ -150,10 +148,9 @@ func TestScript(t *testing.T) {
 				cas.pkgs = scriggo.Packages{}
 			}
 			if _, ok := cas.pkgs["main"]; !ok {
-				cas.pkgs["main"] = &scriggo.Package{}
-				cas.pkgs["main"].Declarations = make(map[string]interface{})
+				cas.pkgs["main"] = &scriggo.MapPackage{Declarations: make(map[string]interface{})}
 			}
-			cas.pkgs["main"].Declarations["Print"] = func(args ...interface{}) {
+			cas.pkgs["main"].(*scriggo.MapPackage).Declarations["Print"] = func(args ...interface{}) {
 				for _, a := range args {
 					scriptStdout.WriteString(fmt.Sprint(a))
 				}
@@ -179,8 +176,8 @@ func TestScriptSum(t *testing.T) {
 	src := `for i := 0; i < 10; i++ { Sum += i }`
 	Sum := 0
 	pkgs := scriggo.Packages{
-		"main": &scriggo.Package{
-			Name: "main",
+		"main": &scriggo.MapPackage{
+			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"Sum": (*int)(nil),
 			},
@@ -205,8 +202,8 @@ func TestScriptChainMessages(t *testing.T) {
 	src2 := `Message = Message + "script2"`
 	Message := "external,"
 	pkgs := scriggo.Packages{
-		"main": &scriggo.Package{
-			Name: "main",
+		"main": &scriggo.MapPackage{
+			PkgName: "main",
 			Declarations: map[string]interface{}{
 				"Message": (*string)(nil),
 			},

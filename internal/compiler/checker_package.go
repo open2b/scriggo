@@ -14,15 +14,17 @@ import (
 	"scriggo/ast"
 )
 
-func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
-	s := make(TypeCheckerScope, len(gp.Declarations))
-	for ident, value := range gp.Declarations {
+func ToTypeCheckerScope(gp predefinedPackage) TypeCheckerScope {
+	declarations := gp.DeclarationNames()
+	s := make(TypeCheckerScope, len(declarations))
+	for _, ident := range declarations {
+		value := gp.Lookup(ident)
 		// Importing a Go type.
 		if t, ok := value.(reflect.Type); ok {
 			s[ident] = scopeElement{t: &TypeInfo{
 				Type:              t,
 				Properties:        PropertyIsType | PropertyIsPredefined,
-				PredefPackageName: gp.Name,
+				PredefPackageName: gp.Name(),
 			}}
 			continue
 		}
@@ -32,7 +34,7 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 				Type:              reflect.TypeOf(value).Elem(),
 				value:             reflect.ValueOf(value),
 				Properties:        PropertyAddressable | PropertyIsPredefined,
-				PredefPackageName: gp.Name,
+				PredefPackageName: gp.Name(),
 			}}
 			continue
 		}
@@ -42,16 +44,16 @@ func ToTypeCheckerScope(gp *Package) TypeCheckerScope {
 				Type:              removeEnvArg(typ, false),
 				value:             reflect.ValueOf(value),
 				Properties:        PropertyIsPredefined,
-				PredefPackageName: gp.Name,
+				PredefPackageName: gp.Name(),
 			}}
 			continue
 		}
 		// Importing a Go constant.
 		if c, ok := value.(Constant); ok {
-			s[ident] = scopeElement{t: checkConstant(c, gp.Name)}
+			s[ident] = scopeElement{t: checkConstant(c, gp.Name())}
 			continue
 		}
-		panic(fmt.Errorf("value of type %T used in declaration %q in package %q", value, ident, gp.Name))
+		panic(fmt.Errorf("value of type %T used in declaration %q in package %q", value, ident, gp.Name()))
 	}
 	return s
 }
@@ -354,7 +356,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports map[string]*Package, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, isTemplate, disallowGoStmt bool) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -399,15 +401,17 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			importedPkg := &PackageInfo{}
 			if d.Tree == nil {
 				// Predefined package.
-				predefinedPkg, ok := imports[d.Path]
-				if !ok {
-					return tc.errorf(d, "cannot find package %q", d.Path)
+				pkg, err := imports.Load(d.Path)
+				if err != nil {
+					return tc.errorf(d, "%s", err)
 				}
-				importedPkg.Declarations = make(map[string]*TypeInfo, len(predefinedPkg.Declarations))
+				predefinedPkg := pkg.(predefinedPackage)
+				declarations := predefinedPkg.DeclarationNames()
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
 				for n, d := range ToTypeCheckerScope(predefinedPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
-				importedPkg.Name = predefinedPkg.Name
+				importedPkg.Name = predefinedPkg.Name()
 			} else {
 				// Not predefined package.
 				var err error

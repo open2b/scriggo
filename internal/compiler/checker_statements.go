@@ -93,16 +93,18 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Import:
 			if node.Tree == nil {
 				// Import statement in script.
-				predefinedPkg, ok := tc.predefinedPkgs[node.Path]
-				if !ok {
-					panic(tc.errorf(node, "cannot find package %q", node.Path))
+				pkg, err := tc.predefinedPkgs.Load(node.Path)
+				if err != nil {
+					panic(tc.errorf(node, "%s", err))
 				}
+				predefinedPkg := pkg.(predefinedPackage)
+				declarations := predefinedPkg.DeclarationNames()
 				importedPkg := &PackageInfo{}
-				importedPkg.Declarations = make(map[string]*TypeInfo, len(predefinedPkg.Declarations))
+				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
 				for n, d := range ToTypeCheckerScope(predefinedPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
-				importedPkg.Name = predefinedPkg.Name
+				importedPkg.Name = predefinedPkg.Name()
 				if node.Ident == nil {
 					tc.filePackageBlock[importedPkg.Name] = scopeElement{t: &TypeInfo{value: importedPkg, Properties: PropertyIsPackage}}
 					tc.unusedImports[importedPkg.Name] = nil
