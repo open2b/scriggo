@@ -107,73 +107,15 @@ func decodeUint24(a, b, c int8) uint32 {
 	return uint32(uint8(a))<<16 | uint32(uint8(b))<<8 | uint32(uint8(c))
 }
 
-func negComplex(c interface{}) interface{} {
-	switch c := c.(type) {
-	case complex64:
-		return -c
-	case complex128:
-		return -c
-	}
-	v := reflect.ValueOf(c)
-	v2 := reflect.New(v.Type()).Elem()
-	v2.SetComplex(-v.Complex())
-	return v2.Interface()
+// newFunction returns a new function with a given package, name and type.
+func newFunction(pkg, name string, typ reflect.Type) *vm.Function {
+	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
 }
 
-func addComplex(c1, c2 interface{}) interface{} {
-	switch c1 := c1.(type) {
-	case complex64:
-		return c1 + c2.(complex64)
-	case complex128:
-		return c1 + c2.(complex128)
-	}
-	v1 := reflect.ValueOf(c1)
-	v2 := reflect.ValueOf(c2)
-	v3 := reflect.New(v1.Type()).Elem()
-	v3.SetComplex(v1.Complex() + v2.Complex())
-	return v3.Interface()
-}
-
-func subComplex(c1, c2 interface{}) interface{} {
-	switch c1 := c1.(type) {
-	case complex64:
-		return c1 - c2.(complex64)
-	case complex128:
-		return c1 - c2.(complex128)
-	}
-	v1 := reflect.ValueOf(c1)
-	v2 := reflect.ValueOf(c2)
-	v3 := reflect.New(v1.Type()).Elem()
-	v3.SetComplex(v1.Complex() - v2.Complex())
-	return v3.Interface()
-}
-
-func mulComplex(c1, c2 interface{}) interface{} {
-	switch c1 := c1.(type) {
-	case complex64:
-		return c1 * c2.(complex64)
-	case complex128:
-		return c1 * c2.(complex128)
-	}
-	v1 := reflect.ValueOf(c1)
-	v2 := reflect.ValueOf(c2)
-	v3 := reflect.New(v1.Type()).Elem()
-	v3.SetComplex(v1.Complex() * v2.Complex())
-	return v3.Interface()
-}
-
-func divComplex(c1, c2 interface{}) interface{} {
-	switch c1 := c1.(type) {
-	case complex64:
-		return c1 / c2.(complex64)
-	case complex128:
-		return c1 / c2.(complex128)
-	}
-	v1 := reflect.ValueOf(c1)
-	v2 := reflect.ValueOf(c2)
-	v3 := reflect.New(v1.Type()).Elem()
-	v3.SetComplex(v1.Complex() / v2.Complex())
-	return v3.Interface()
+// newPredefinedFunction returns a new predefined function with a given
+// package, name and implementation. fn must be a function type.
+func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
+	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
 type functionBuilder struct {
@@ -199,6 +141,10 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	}
 	return builder
 }
+
+//-----------------------------------------------------------------------------
+// Support methods
+//-----------------------------------------------------------------------------
 
 // enterScope enters a new scope.
 // Every enterScope call must be paired with a corresponding exitScope call.
@@ -310,26 +256,6 @@ func (builder *functionBuilder) addLine(pc uint32, line int) {
 func (builder *functionBuilder) setFileLine(file string, line int) {
 	builder.fn.File = file
 	builder.fn.Line = line
-}
-
-// SetAlloc sets the alloc property. If true, an Alloc instruction will be
-// inserted where necessary.
-func (builder *functionBuilder) SetAlloc(alloc bool) {
-	if alloc && builder.allocs == nil {
-		builder.allocs = append(builder.allocs, 0)
-		builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAlloc})
-	}
-}
-
-// newFunction returns a new function with a given package, name and type.
-func newFunction(pkg, name string, typ reflect.Type) *vm.Function {
-	return &vm.Function{Pkg: pkg, Name: name, Type: typ}
-}
-
-// newPredefinedFunction returns a new predefined function with a given
-// package, name and implementation. fn must be a function type.
-func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunction {
-	return &vm.PredefinedFunction{Pkg: pkg, Name: name, Func: fn}
 }
 
 // addType adds a type to the builder's function.
@@ -505,6 +431,83 @@ func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 		}
 	}
 }
+
+//-----------------------------------------------------------------------------
+// Functions that handle complex numbers
+//-----------------------------------------------------------------------------
+
+func negComplex(c interface{}) interface{} {
+	switch c := c.(type) {
+	case complex64:
+		return -c
+	case complex128:
+		return -c
+	}
+	v := reflect.ValueOf(c)
+	v2 := reflect.New(v.Type()).Elem()
+	v2.SetComplex(-v.Complex())
+	return v2.Interface()
+}
+
+func addComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 + c2.(complex64)
+	case complex128:
+		return c1 + c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() + v2.Complex())
+	return v3.Interface()
+}
+
+func subComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 - c2.(complex64)
+	case complex128:
+		return c1 - c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() - v2.Complex())
+	return v3.Interface()
+}
+
+func mulComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 * c2.(complex64)
+	case complex128:
+		return c1 * c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() * v2.Complex())
+	return v3.Interface()
+}
+
+func divComplex(c1, c2 interface{}) interface{} {
+	switch c1 := c1.(type) {
+	case complex64:
+		return c1 / c2.(complex64)
+	case complex128:
+		return c1 / c2.(complex128)
+	}
+	v1 := reflect.ValueOf(c1)
+	v2 := reflect.ValueOf(c2)
+	v3 := reflect.New(v1.Type()).Elem()
+	v3.SetComplex(v1.Complex() / v2.Complex())
+	return v3.Interface()
+}
+
+//-----------------------------------------------------------------------------
+// Methods that emit instructions
+//-----------------------------------------------------------------------------
 
 // Add appends a new "add" instruction to the function body.
 //
@@ -1394,6 +1397,15 @@ func (builder *functionBuilder) Select() {
 func (builder *functionBuilder) Send(ch, v int8) {
 	// TODO(Gianluca): how can send know kind/type?
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSend, A: v, C: ch})
+}
+
+// SetAlloc sets the alloc property. If true, an Alloc instruction will be
+// inserted where necessary.
+func (builder *functionBuilder) SetAlloc(alloc bool) {
+	if alloc && builder.allocs == nil {
+		builder.allocs = append(builder.allocs, 0)
+		builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAlloc})
+	}
 }
 
 // SetField appends a new "SetField" instruction to the function body.
