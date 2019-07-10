@@ -12,7 +12,7 @@ import (
 	"scriggo/ast"
 )
 
-// Makes a dependency analysis after parsing before type-checking. See
+// Makes a dependency analysis after parsing and before typechecking. See
 // https://golang.org/ref/spec#Package_initialization for further informations.
 
 // PackageDeclsDeps is the result of a dependency analysis performed on a tree.

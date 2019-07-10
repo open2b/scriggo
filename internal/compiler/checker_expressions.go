@@ -93,7 +93,7 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
-// typechecker represents the state of a type checking.
+// typechecker represents the state of a typechecking.
 type typechecker struct {
 	path              string
 	predefinedPkgs    PackageLoader

@@ -629,7 +629,7 @@ func evaluatedButNotUsed(v string) string {
 }
 
 // checkerStmts contains some Scriggo snippets with expected type-checker error
-// (or empty string if type-checking is valid). Error messages are based upon Go
+// (or empty string if typechecking is valid). Error messages are based upon Go
 // 1.12. Tests are subdivided for categories. Each category has a title
 // (indicated by a comment), and it's split in two parts: correct source codes
 // (which goes first) and bad ones. Correct source codes and bad source codes
