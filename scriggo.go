@@ -58,6 +58,13 @@ func ConstValue(v interface{}) Constant {
 	return compiler.ConstValue(v)
 }
 
+// A SyntaxError is returned when the source code is syntactically invalid.
+type SyntaxError = compiler.SyntaxError
+
+// A CheckingError is returnd when a script, template or program is invalid for
+// the typechecker.
+type CheckingError = compiler.CheckingError
+
 type Program struct {
 	fn      *vm.Function
 	globals []compiler.Global

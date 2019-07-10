@@ -31,6 +31,7 @@
 package compiler
 
 import (
+	"fmt"
 	"reflect"
 
 	"scriggo/ast"
@@ -130,6 +131,18 @@ func (o *Options) validate() {
 	if o.SyntaxType == 0 {
 		panic("syntax type not specified")
 	}
+}
+
+// CheckingError records a typechecking error with the path and the position where the
+// error occurred.
+type CheckingError struct {
+	Path string
+	Pos  ast.Position
+	Err  error
+}
+
+func (e *CheckingError) Error() string {
+	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
 // Typecheck typechecks tree. A map of predefined packages may be provided. deps
