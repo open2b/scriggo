@@ -62,6 +62,7 @@ type predefinedPackage interface {
 //		Variable: assign the address of value to Declarations.
 //		Constant: TODO(Gianluca).
 //		Type:     assign the reflect.TypeOf of type to Declarations.
+//
 type Package struct {
 	// Package name.
 	PkgName string
@@ -116,7 +117,7 @@ type PackageLoader interface {
 }
 
 // SyntaxType indicates the syntax type of the source code which is going to be
-// compiled. Syntax should affect only the syntax, not the semantics; use
+// compiled. SyntaxType should affect only the syntax, not the semantics; use
 // Options to control which statements are allowed, which errors should be
 // returned etc...
 type SyntaxType int8
@@ -130,17 +131,21 @@ const (
 // Options represents compilation options.
 type Options struct {
 
+	// SyntaxType indicates the syntax type of the source code which is going to
+	// be compiled. SyntaxType should affect only the syntax, not the semantics;
+	// use the other fields of Options to control which statements are allowed,
+	// which errors should be returned etc...
+	SyntaxType SyntaxType
+
 	// DisallowImports disables the "import" statement.
 	DisallowImports bool
+
+	// DisallowGoStmt disables the "go" statement.
+	DisallowGoStmt bool
 
 	// AllowNotUsed does not return a checking error if a variable is declared
 	// and not used or a package is imported and not used.
 	AllowNotUsed bool
-
-	SyntaxType SyntaxType
-
-	// DisallowGoStmt disables the "go" statement.
-	DisallowGoStmt bool
 
 	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
 	// todo" option cannot be resolved.
