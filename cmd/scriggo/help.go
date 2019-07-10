@@ -111,9 +111,17 @@ interpreter or a Go source file used in an application that embeds Scriggo.
 A Scriggofile defines which packages an interpreted program or script can
 import, what exported declarations in a package are accessible and so on.
 
-It is a plain text file with encoding UTF-8 with an instruction per line. It
-should be named 'Scriggofile' or with the extension '.Scriggofile' as in
-'example.Scriggofile'.
+The format of the Scriggofile is:
+
+    # A comment
+    INSTRUCTION arguments
+
+A line starting with '#' is a comment, and the instructions are case
+insensitive but for convention are written in uppercase (the syntax recalls
+that used by Dockerfile). 
+
+A Scriggofile must be encoded as UTF-8 and it should be named 'Scriggofile'
+or with the extension '.Scriggofile' as for 'example.Scriggofile'.
 
 The instructions are:
 
