@@ -256,20 +256,7 @@ func embed(out io.Writer, path string, verbose bool) error {
 		return err
 	}
 
-	// Import the packages of the Go standard library.
-	for i, imp := range sf.imports {
-		if imp.stdlib {
-			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
-			copy(imports[:i], sf.imports[:i])
-			for j, path := range stdlib {
-				imports[i+j] = &importCommand{path: path}
-			}
-			copy(imports[i+len(stdlib):], sf.imports[i+1:])
-			sf.imports = imports
-		}
-	}
-
-	_, err = renderPackages(out, sf, goos, verbose)
+	_, err = renderPackages(os.Stdout, sf, goos, verbose)
 
 	return err
 }
@@ -338,19 +325,6 @@ func install(work bool, verbose bool) error {
 	err = content.Close()
 	if err != nil {
 		return err
-	}
-
-	// Import the packages of the Go standard library.
-	for i, imp := range sf.imports {
-		if imp.stdlib {
-			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
-			copy(imports[:i], sf.imports[:i])
-			for j, path := range stdlib {
-				imports[i+j] = &importCommand{path: path}
-			}
-			copy(imports[i+len(stdlib):], sf.imports[i+1:])
-			sf.imports = imports
-		}
 	}
 
 	// Create a temporary work directory with the sources of the interpreter.

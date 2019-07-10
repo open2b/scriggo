@@ -36,12 +36,25 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 		decl map[string]string
 	}
 
+	// Import the packages of the Go standard library.
+	for i, imp := range sf.imports {
+		if imp.stdlib {
+			imports := make([]*importCommand, len(sf.imports)+len(stdlib)-1)
+			copy(imports[:i], sf.imports[:i])
+			for j, path := range stdlib {
+				imports[i+j] = &importCommand{path: path}
+			}
+			copy(imports[i+len(stdlib):], sf.imports[i+1:])
+			sf.imports = imports
+		}
+	}
+
 	importReflect := false
 
 	explicitImports := strings.Builder{}
 	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
-		if uniqueName != imp.path {
+		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
 			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
 		} else {
 			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
