@@ -55,8 +55,6 @@ type predefinedPackage interface {
 	DeclarationNames() []string
 }
 
-
-
 type Constant struct {
 	value   interface{}
 	literal string
