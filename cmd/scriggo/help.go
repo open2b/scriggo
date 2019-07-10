@@ -74,6 +74,34 @@ The -v flag prints the imported packages as defined in the Scriggofile.
 See also: scriggo build and scriggo embed.
 `
 
+const helpEmbed = `
+usage: scriggo embed [-o output] file
+
+Embed makes a Go source file from a Scriggofile containing the exported
+declarations of the packages imported in the Scriggofile. The generated
+file is useful when embedding Scriggo in an application.
+
+Embed prints the generated source to the standard output. Use the flag -o
+to redirect the source to a file.
+
+The declarations in the Go source have type scriggo.PackageLoader and are
+assigned to a variable names 'packages'. The variable can be used as argument
+to the Load functions in the scriggo package.
+
+To give to the variable a different name use the instruction SET VARIABLE in
+the Scriggofile:
+
+SET VARIABLE decl
+
+The name of the package in the Go source is by default 'main', to give a
+different name to the package use the instruction SET PACKAGE in the Scriggofile:
+
+SET PACKAGE example
+
+For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
+
+`
+
 const helpScriggofile = `
 A Scriggo descriptor file consits of a valid Go package source code containing one
 Scriggo file comment and one or more imports, which may in turn have a Scriggo import comment

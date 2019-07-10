@@ -123,12 +123,7 @@ var commandsHelp = map[string]func(){
 		)
 	},
 	"embed": func() {
-		stderr(
-			`usage: scriggo embed file`,
-			`Install installs an executable Scriggo interpreter on system. Output directory is the same used by 'go install' (see 'go help install' for details)`,
-			``,
-			`See also: scriggo install`,
-		)
+		txtToHelp(helpEmbed)
 	},
 	"build": func() {
 		txtToHelp(helpBuild)
