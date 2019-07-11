@@ -105,15 +105,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		tc.lastConstPosition = node.Pos()
 
-		// TODO(Gianluca): optimization has been disabled. Re-enable or remove?
-		// if len(n.Identifiers) == 1 && len(values) == 1 {
-		// 	newConst := tc.assignSingle(node, n.Identifiers[0], values[0], nil, typ, true, true)
-		// 	if newConst == "" && !isBlankIdentifier(n.Identifiers[0]) {
-		// 		panic(tc.errorf(node, "%s redeclared in this block", n.Identifiers[0]))
-		// 	}
-		// 	return
-		// }
-
 		if len(n.Lhs) > len(values) {
 			panic(tc.errorf(node, "missing value in const declaration"))
 		}
