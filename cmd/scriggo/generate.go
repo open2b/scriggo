@@ -52,12 +52,15 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 	importReflect := false
 
 	explicitImports := strings.Builder{}
-	for _, imp := range sf.imports {
+	for i, imp := range sf.imports {
+		if i > 0 {
+			explicitImports.WriteString("\n\t")
+		}
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
-			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"` + "\n")
+			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"`)
 		} else {
-			explicitImports.WriteString(`"` + imp.path + `"` + "\n")
+			explicitImports.WriteString(`"` + imp.path + `"`)
 		}
 		if imp.path == "reflect" {
 			importReflect = true
@@ -175,25 +178,45 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 	if hasMain {
 		paths = append([]string{"main"}, paths...)
 	}
-	for _, path := range paths {
+	const spaces = "                              "
+	for i, path := range paths {
+		var out string
+		if i > 0 {
+			out = "\n\t\t"
+		}
 		pkg := packages[path]
 		declarations := strings.Builder{}
 		names := make([]string, 0, len(pkg.decl))
+		var maxLen int
 		for name := range pkg.decl {
 			names = append(names, name)
+			if l := len(name); l > maxLen {
+				maxLen = l
+			}
 		}
 		sort.Strings(names)
-		for _, name := range names {
+		for j, name := range names {
+			if j > 0 {
+				declarations.WriteString("\n\t\t\t\t")
+			}
 			decl := pkg.decl[name]
-			declarations.WriteString(strconv.Quote(name) + ": " + decl + ",\n")
+			declarations.WriteByte('"')
+			declarations.WriteString(name)
+			declarations.WriteString("\":")
+			if n := maxLen - len(name) + 1; n <= len(spaces) {
+				declarations.WriteString(spaces[:n])
+			} else {
+				declarations.WriteString(strings.Repeat(" ", n))
+			}
+			declarations.WriteString(decl)
+			declarations.WriteString(",")
 		}
-		out := `[path]: &MapPackage{
+		out += `[path]: &MapPackage{
 			PkgName: [pkgName],
 			Declarations: map[string]interface{}{
 				[declarations]
 			},
-		},
-		`
+		},`
 		out = strings.Replace(out, "[path]", strconv.Quote(path), 1)
 		out = strings.Replace(out, "[pkgName]", strconv.Quote(pkg.name), 1)
 		out = strings.Replace(out, "[declarations]", declarations.String(), 1)
@@ -205,18 +228,19 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 	// Skeleton for a package group.
 	const pkgsSkeleton = `package [pkgName]
 
-		import (
-			[explicitImports]
-		)
+import (
+	[explicitImports]
+)
 
-		import . "scriggo"
-		[reflectImport]
+import . "scriggo"
+[reflectImport]
 
-		func init() {
-			[variable] = Packages{
-				[pkgContent]
-			}
-		}`
+func init() {
+	[variable] = Packages{
+		[pkgContent]
+	}
+}
+`
 
 	var reflectImport string
 	if !importReflect {
