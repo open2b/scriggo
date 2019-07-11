@@ -264,20 +264,6 @@ func (pp *templateExpansion) expand(nodes []ast.Node, ctx ast.Context) error {
 				return err
 			}
 
-		case *ast.Show, *ast.Var, *ast.Text, *ast.Assignment, *ast.Call, *ast.Break, *ast.Continue, *ast.ShowMacro:
-
-			// TODO(Gianluca): add missing nodes.
-			// Nothing to do.
-
-		case *ast.Comment:
-
-		case ast.Expression:
-
-		// TODO: to remove.
-		default:
-
-			panic(fmt.Errorf("unexpected node %s (type %T)", node, node))
-
 		}
 
 	}
