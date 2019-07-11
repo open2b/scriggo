@@ -298,9 +298,6 @@ var goContextTreeTests = []struct {
 				ast.NewIdentifier(p(3, 1, 15, 15), "B"),
 			},
 			nil,
-			// TODO(Gianluca): this is the first time that parser changes
-			// the tree. The constant B has no value, but according to
-			// implicit repetition it gets the value of A.
 			[]ast.Expression{
 				ast.NewBasicLiteral(p(2, 5, 12, 13), ast.IntLiteral, "42"),
 			},
