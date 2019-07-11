@@ -137,7 +137,7 @@ const interpreterSkel = `// Copyright (c) 2019 Open2b Software Snc. All rights r
 			}
 
 			switch ext {
-			case ".scriggo":
+			case ".sgo":
 				{{ script }}
 			case ".go":
 				{{ program }}
