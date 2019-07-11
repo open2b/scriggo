@@ -347,7 +347,7 @@ func build(install bool, work bool, verbose bool) error {
 	// Create a temporary work directory with the sources of the interpreter.
 	// If the options "work" is given, the work directory name will be printed
 	// and it will not be deleted after the installation.
-	workDir, err := ioutil.TempDir("", "scriggo-install")
+	workDir, err := ioutil.TempDir("", "scriggo-build")
 	if err != nil {
 		return err
 	}
