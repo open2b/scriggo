@@ -19,7 +19,7 @@ func Test_treeTransformer(t *testing.T) {
 	loadOpts := &LoadOptions{
 		TreeTransformer: func(tree *ast.Tree) error {
 			assignment := tree.Nodes[0].(*ast.Assignment)
-			assignment.Values[0].(*ast.BasicLiteral).Value = `"hello, "`
+			assignment.Rhs[0].(*ast.BasicLiteral).Value = `"hello, "`
 			text := tree.Nodes[2].(*ast.Text)
 			text.Text = []byte("scriggo!")
 			return nil

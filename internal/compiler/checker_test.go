@@ -1983,7 +1983,7 @@ func TestFunctionUpvalues(t *testing.T) {
 			t.Error(err)
 		}
 		tc.checkNodes(tree.Nodes)
-		got := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Values[0].(*ast.Func).Upvalues
+		got := tree.Nodes[len(tree.Nodes)-1].(*ast.Assignment).Rhs[0].(*ast.Func).Upvalues
 		if len(got) != len(expected) {
 			t.Errorf("bad upvalues for src: '%s': expected: %s, got: %s", src, expected, got)
 			continue

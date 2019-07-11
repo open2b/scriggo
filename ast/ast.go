@@ -279,18 +279,18 @@ func NewPackage(pos *Position, name string, nodes []Node) *Package {
 // Assignment node represents an assignment statement.
 type Assignment struct {
 	*Position                // position in the source.
-	Variables []Expression   // left hand variables.
+	Lhs       []Expression   // left hand variables.
 	Type      AssignmentType // type.
-	Values    []Expression   // assigned values (nil for increment and decrement).
+	Rhs       []Expression   // assigned values (nil for increment and decrement).
 }
 
-func NewAssignment(pos *Position, variables []Expression, typ AssignmentType, values []Expression) *Assignment {
-	return &Assignment{pos, variables, typ, values}
+func NewAssignment(pos *Position, lhs []Expression, typ AssignmentType, rhs []Expression) *Assignment {
+	return &Assignment{pos, lhs, typ, rhs}
 }
 
 func (a *Assignment) String() string {
 	var s string
-	for i, v := range a.Variables {
+	for i, v := range a.Lhs {
 		if i > 0 {
 			s += ", "
 		}
@@ -316,8 +316,8 @@ func (a *Assignment) String() string {
 	case AssignmentDecrement:
 		s += "--"
 	}
-	if a.Values != nil {
-		for i, value := range a.Values {
+	if a.Rhs != nil {
+		for i, value := range a.Rhs {
 			if i > 0 {
 				s += ", "
 			}

@@ -78,10 +78,10 @@ func Walk(v Visitor, node ast.Node) {
 		}
 
 	case *ast.Assignment:
-		for _, child := range n.Variables {
+		for _, child := range n.Lhs {
 			Walk(v, child)
 		}
-		for _, child := range n.Values {
+		for _, child := range n.Rhs {
 			Walk(v, child)
 		}
 

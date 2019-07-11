@@ -79,9 +79,9 @@ func (d deps) analyzeGlobalConst(n *ast.Const) {
 
 // analyzeGlobalDeclarationAssignment analyzes a global global declaration assignment.
 func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
-	for i := range n.Variables {
-		if ident, ok := n.Variables[i].(*ast.Identifier); ok {
-			d.addDepsToGlobal(ident, n.Values[i], nil)
+	for i := range n.Lhs {
+		if ident, ok := n.Lhs[i].(*ast.Identifier); ok {
+			d.addDepsToGlobal(ident, n.Rhs[i], nil)
 		}
 	}
 }
@@ -191,17 +191,17 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 			return nil
 		}
 		deps := []*ast.Identifier{}
-		for _, right := range n.Values {
+		for _, right := range n.Rhs {
 			deps = append(deps, nodeDeps(right, scopes)...)
 		}
 		if n.Type == ast.AssignmentDeclaration {
-			for _, left := range n.Variables {
+			for _, left := range n.Lhs {
 				if ident, ok := left.(*ast.Identifier); ok {
 					scopes = declareLocally(scopes, ident.Name)
 				}
 			}
 		} else {
-			for _, left := range n.Variables {
+			for _, left := range n.Lhs {
 				deps = append(deps, nodeDeps(left, scopes)...)
 			}
 		}

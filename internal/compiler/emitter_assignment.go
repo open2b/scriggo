@@ -149,8 +149,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 	// TODO(Gianluca): add support for recursive assignment expressions (eg. a[4][t].field[0]).
 	switch node.Type {
 	case ast.AssignmentDeclaration:
-		addresses := make([]address, len(node.Variables))
-		for i, v := range node.Variables {
+		addresses := make([]address, len(node.Lhs))
+		for i, v := range node.Lhs {
 			if isBlankIdentifier(v) {
 				addresses[i] = em.newAddress(addressBlank, reflect.Type(nil), 0, 0)
 			} else {
@@ -167,10 +167,10 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 			}
 		}
-		em.assign(addresses, node.Values)
+		em.assign(addresses, node.Rhs)
 	case ast.AssignmentSimple:
-		addresses := make([]address, len(node.Variables))
-		for i, v := range node.Variables {
+		addresses := make([]address, len(node.Lhs))
+		for i, v := range node.Lhs {
 			switch v := v.(type) {
 			case *ast.Identifier:
 				if !isBlankIdentifier(v) {
@@ -249,12 +249,12 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				panic("TODO(Gianluca): not implemented")
 			}
 		}
-		em.assign(addresses, node.Values)
+		em.assign(addresses, node.Rhs)
 	default:
 		var addr address
 		var valueReg int8
 		var valueType reflect.Type
-		switch v := node.Variables[0].(type) {
+		switch v := node.Lhs[0].(type) {
 		case *ast.Identifier:
 			// TODO(Gianluca): support predefined variables in other cases.
 			if ti := em.ti(v); ti.IsPredefined() {
@@ -300,9 +300,9 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case ast.AssignmentDecrement:
 			em.fb.emitSub(true, valueReg, 1, valueReg, valueType.Kind())
 		default:
-			rightOpType := em.ti(node.Values[0]).Type
+			rightOpType := em.ti(node.Rhs[0]).Type
 			rightOp := em.fb.newRegister(rightOpType.Kind())
-			em.emitExpr(node.Values[0], rightOp, rightOpType)
+			em.emitExpr(node.Rhs[0], rightOp, rightOpType)
 			switch node.Type {
 			case ast.AssignmentAddition:
 				if valueType.Kind() == reflect.String {

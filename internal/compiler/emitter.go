@@ -1554,7 +1554,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 
 		case *ast.ForRange:
 			em.fb.enterScope()
-			vars := node.Assignment.Variables
+			vars := node.Assignment.Lhs
 			indexReg := int8(0)
 			if len(vars) >= 1 && !isBlankIdentifier(vars[0]) {
 				name := vars[0].(*ast.Identifier).Name
@@ -1576,7 +1576,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 					elemReg = em.fb.scopeLookup(name)
 				}
 			}
-			expr := node.Assignment.Values[0]
+			expr := node.Assignment.Rhs[0]
 			exprType := em.ti(expr).Type
 			exprReg, kExpr, ok := em.quickEmitExpr(expr, exprType)
 			if !ok || exprType.Kind() != reflect.String {
@@ -1657,8 +1657,8 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 
 		case *ast.Return:
 			// TODO(Gianluca): complete implementation of tail call optimization.
-			// if len(node.Values) == 1 {
-			// 	if call, ok := node.Values[0].(*ast.Call); ok {
+			// if len(node.Rhs) == 1 {
+			// 	if call, ok := node.Rhs[0].(*ast.Call); ok {
 			// 		tmpRegs := make([]int8, len(call.Args))
 			// 		paramPosition := make([]int8, len(call.Args))
 			// 		tmpTypes := make([]reflect.Type, len(call.Args))
@@ -1786,15 +1786,15 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		em.EmitNodes([]ast.Node{node.Init})
 	}
 
-	typAssertion := node.Assignment.Values[0].(*ast.TypeAssertion)
+	typAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 	typ := em.ti(typAssertion.Expr).Type
 	expr := em.fb.newRegister(typ.Kind())
 	em.emitExpr(typAssertion.Expr, expr, typ)
 
-	if len(node.Assignment.Variables) == 1 {
+	if len(node.Assignment.Lhs) == 1 {
 		n := ast.NewAssignment(
 			node.Assignment.Pos(),
-			[]ast.Expression{node.Assignment.Variables[0]},
+			[]ast.Expression{node.Assignment.Lhs[0]},
 			node.Assignment.Type,
 			[]ast.Expression{typAssertion.Expr},
 		)

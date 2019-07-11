@@ -234,14 +234,14 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.addScope()
 			tc.addToAncestors(node)
 			// Check range expression.
-			expr := node.Assignment.Values[0]
+			expr := node.Assignment.Rhs[0]
 			ti := tc.checkExpression(expr)
 			if ti.Nil() {
 				panic(tc.errorf(node, "cannot range over nil"))
 			}
 			ti.setValue(nil)
 			maxVars := 2
-			vars := node.Assignment.Variables
+			vars := node.Assignment.Lhs
 			var typ1, typ2 reflect.Type
 			switch typ := ti.Type; typ.Kind() {
 			case reflect.Array, reflect.Slice:
@@ -261,12 +261,12 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				typ2 = typ.Elem().Elem()
 			case reflect.Chan:
 				if dir := typ.ChanDir(); dir == reflect.SendDir {
-					panic(tc.errorf(node.Assignment.Values[0], "invalid operation: range %s (receive from send-only type %s)", expr, ti.String()))
+					panic(tc.errorf(node.Assignment.Rhs[0], "invalid operation: range %s (receive from send-only type %s)", expr, ti.String()))
 				}
 				typ1 = typ.Elem()
 				maxVars = 1
 			default:
-				panic(tc.errorf(node.Assignment.Values[0], "cannot range over %s (type %s)", expr, ti))
+				panic(tc.errorf(node.Assignment.Rhs[0], "cannot range over %s (type %s)", expr, ti))
 			}
 			// Check variables.
 			if vars != nil {
@@ -394,15 +394,15 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
 			}
-			ta := node.Assignment.Values[0].(*ast.TypeAssertion)
+			ta := node.Assignment.Rhs[0].(*ast.TypeAssertion)
 			t := tc.checkExpression(ta.Expr)
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
-			if len(node.Assignment.Variables) == 1 {
+			if len(node.Assignment.Lhs) == 1 {
 				n := ast.NewAssignment(
 					node.Assignment.Pos(),
-					[]ast.Expression{node.Assignment.Variables[0]},
+					[]ast.Expression{node.Assignment.Lhs[0]},
 					node.Assignment.Type,
 					[]ast.Expression{ta.Expr},
 				)
@@ -468,7 +468,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if comm.Type != ast.AssignmentSimple && comm.Type != ast.AssignmentDeclaration {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
-					if recv, ok := comm.Values[0].(*ast.UnaryOperator); !ok || recv.Op != ast.OperatorReceive {
+					if recv, ok := comm.Rhs[0].(*ast.UnaryOperator); !ok || recv.Op != ast.OperatorReceive {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
 				case *ast.Send:

@@ -121,7 +121,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		switch n.Type {
 		case ast.AssignmentIncrement, ast.AssignmentDecrement:
-			v := n.Variables[0]
+			v := n.Lhs[0]
 			if isBlankIdentifier(v) {
 				panic(tc.errorf(v, "cannot use _ as value"))
 			}
@@ -148,19 +148,19 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			case ast.AssignmentModulo:
 				opType = ast.OperatorModulo
 			}
-			if isBlankIdentifier(n.Variables[0]) {
-				panic(tc.errorf(n.Variables[0], "cannot use _ as value"))
+			if isBlankIdentifier(n.Lhs[0]) {
+				panic(tc.errorf(n.Lhs[0], "cannot use _ as value"))
 			}
-			_, err := tc.binaryOp(n.Variables[0], opType, n.Values[0])
+			_, err := tc.binaryOp(n.Lhs[0], opType, n.Rhs[0])
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
-			tc.assignSingle(node, n.Variables[0], n.Values[0], nil, nil, false, false)
+			tc.assignSingle(node, n.Lhs[0], n.Rhs[0], nil, nil, false, false)
 			return
 		}
 
-		vars = n.Variables
-		values = n.Values
+		vars = n.Lhs
+		values = n.Rhs
 		isDecl = n.Type == ast.AssignmentDeclaration
 
 		if len(vars) == 1 && len(values) == 1 {

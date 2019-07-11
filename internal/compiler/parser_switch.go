@@ -17,10 +17,10 @@ import (
 func isTypeGuard(node ast.Node) bool {
 	switch v := node.(type) {
 	case *ast.Assignment:
-		if len(v.Values) != 1 {
+		if len(v.Rhs) != 1 {
 			return false
 		}
-		if ta, ok := v.Values[0].(*ast.TypeAssertion); ok {
+		if ta, ok := v.Rhs[0].(*ast.TypeAssertion); ok {
 			return ta.Type == nil
 		}
 	case *ast.TypeAssertion:
@@ -136,7 +136,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 				// before and after the semicolon token:
 				//     switch x := 2; x = y.(type) {
 				assignment, tok = p.parseAssignment(expressions, tok, true, true)
-				ta, ok := assignment.Values[0].(*ast.TypeAssertion)
+				ta, ok := assignment.Rhs[0].(*ast.TypeAssertion)
 				// TODO (Gianluca): should error contain the position of the
 				// expression which caused the error instead of the token (as Go
 				// does)?
@@ -146,7 +146,7 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 				if ta.Type != nil {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 				}
-				if len(assignment.Variables) != 1 {
+				if len(assignment.Lhs) != 1 {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 				}
 				afterSemicolon = assignment
@@ -168,13 +168,13 @@ func (p *parsing) parseSwitch(pos *ast.Position) ast.Node {
 		case end:
 			// switch x = y.(type) {
 			// switch x := y.(type) {
-			if len(assignment.Values) != 1 {
+			if len(assignment.Rhs) != 1 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %%}, expecting expression")})
 			}
-			if len(assignment.Variables) != 1 {
+			if len(assignment.Lhs) != 1 {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("%s used as value", assignment)})
 			}
-			ta, ok := assignment.Values[0].(*ast.TypeAssertion)
+			ta, ok := assignment.Rhs[0].(*ast.TypeAssertion)
 			if !ok {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("assignment %s used as value", assignment)})
 			}

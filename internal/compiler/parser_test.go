@@ -1857,11 +1857,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		if len(nn1.Variables) != len(nn2.Variables) {
-			return fmt.Errorf("unexpected variables len %d, expecting %d", len(nn1.Variables), len(nn2.Variables))
+		if len(nn1.Lhs) != len(nn2.Lhs) {
+			return fmt.Errorf("unexpected variables len %d, expecting %d", len(nn1.Lhs), len(nn2.Lhs))
 		}
-		for i, v := range nn1.Variables {
-			err := equals(v, nn2.Variables[i], p)
+		for i, v := range nn1.Lhs {
+			err := equals(v, nn2.Lhs[i], p)
 			if err != nil {
 				return err
 			}
@@ -1869,11 +1869,11 @@ func equals(n1, n2 ast.Node, p int) error {
 		if nn1.Type != nn2.Type {
 			return fmt.Errorf("unexpected assignment type %d, expecting %d", nn1.Type, nn2.Type)
 		}
-		if len(nn1.Values) != len(nn2.Values) {
-			return fmt.Errorf("unexpected values len %d, expecting %d", len(nn1.Values), len(nn2.Values))
+		if len(nn1.Rhs) != len(nn2.Rhs) {
+			return fmt.Errorf("unexpected values len %d, expecting %d", len(nn1.Rhs), len(nn2.Rhs))
 		}
-		for i, v := range nn1.Values {
-			err := equals(v, nn2.Values[i], p)
+		for i, v := range nn1.Rhs {
+			err := equals(v, nn2.Rhs[i], p)
 			if err != nil {
 				return err
 			}
