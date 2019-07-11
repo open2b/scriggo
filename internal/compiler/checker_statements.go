@@ -94,9 +94,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		switch node := node.(type) {
 
 		case *ast.Import:
-			if tc.opts.DisallowImports {
-				panic(tc.errorf(node, "\"import\" statement not available"))
-			}
 			if node.Tree == nil {
 				// Import statement in script.
 				pkg, err := tc.predefinedPkgs.Load(node.Path)

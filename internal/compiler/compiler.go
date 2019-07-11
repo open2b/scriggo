@@ -107,9 +107,6 @@ type Options struct {
 	// which errors should be returned etc...
 	SyntaxType SyntaxType
 
-	// DisallowImports disables the "import" statement.
-	DisallowImports bool
-
 	// DisallowGoStmt disables the "go" statement.
 	DisallowGoStmt bool
 
