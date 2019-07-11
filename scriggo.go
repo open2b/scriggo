@@ -82,13 +82,12 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 	if options == nil {
 		options = &LoadOptions{}
 	}
-	opts := compiler.Options{
+	checkerOpts := compiler.CheckerOptions{
 		SyntaxType:     compiler.ProgramSyntax,
-		MemoryLimit:    options.LimitMemorySize,
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
 
-	tci, err := compiler.Typecheck(tree, packages, opts)
+	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +98,11 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		}
 	}
 
-	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, opts)
+	emitterOpts := compiler.EmitterOptions{
+		MemoryLimit: options.LimitMemorySize,
+	}
+
+	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 
 	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: *options}, nil
 }
@@ -185,17 +188,19 @@ func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*S
 		return nil, err
 	}
 
-	opts := compiler.Options{
+	checkerOpts := compiler.CheckerOptions{
 		SyntaxType:     compiler.ScriptSyntax,
-		MemoryLimit:    options.LimitMemorySize,
 		DisallowGoStmt: options.DisallowGoStmt,
 	}
-	tci, err := compiler.Typecheck(tree, packages, opts)
+	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, opts)
+	emitterOpts := compiler.EmitterOptions{
+		MemoryLimit: options.LimitMemorySize,
+	}
+	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, emitterOpts)
 
 	return &Script{fn: code.Main, globals: code.Globals, options: *options}, nil
 }

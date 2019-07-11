@@ -356,7 +356,7 @@ varsLoop:
 }
 
 // checkPackage type checks a package.
-func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts Options) (err error) {
+func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports PackageLoader, pkgInfos map[string]*PackageInfo, opts CheckerOptions) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {

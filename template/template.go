@@ -69,10 +69,9 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 	if options == nil {
 		options = &LoadOptions{}
 	}
-	opts := compiler.Options{
+	checkerOpts := compiler.CheckerOptions{
 		SyntaxType:   compiler.TemplateSyntax,
 		AllowNotUsed: true,
-		MemoryLimit:  options.LimitMemorySize,
 	}
 	var pkgs scriggo.Packages
 	if main != nil {
@@ -84,7 +83,7 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 			return nil, err
 		}
 	}
-	tci, err := compiler.Typecheck(tree, pkgs, opts)
+	tci, err := compiler.Typecheck(tree, pkgs, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +96,10 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 			typeInfos[node] = ti
 		}
 	}
-	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, opts)
+	emitterOpts := compiler.EmitterOptions{
+		MemoryLimit: options.LimitMemorySize,
+	}
+	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
 	return &Template{fn: code.Main, globals: code.Globals, options: *options}, nil
 }
 

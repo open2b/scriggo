@@ -23,7 +23,7 @@ type emitter struct {
 	pkg            *ast.Package
 	typeInfos      map[ast.Node]*TypeInfo
 	closureVarRefs map[*vm.Function]map[string]int // Index in the Function VarRefs field for each closure variable.
-	options        Options
+	options        EmitterOptions
 
 	isTemplate   bool // Reports whether it's a template.
 	templateRegs struct {
@@ -74,7 +74,7 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 
 // newEmitter returns a new emitter with the given type infos, indirect
 // variables and options.
-func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *emitter {
+func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
 		funcIndexes:    map[*vm.Function]map[*vm.Function]int8{},
 		functions:      map[*ast.Package]map[string]*vm.Function{},

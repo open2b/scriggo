@@ -114,9 +114,9 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 
 // AnalyzeTree analyzes tree returning a data structure holding all dependencies
 // informations.
-func AnalyzeTree(tree *ast.Tree, opts Options) PackageDeclsDeps {
+func AnalyzeTree(tree *ast.Tree, syntaxType SyntaxType) PackageDeclsDeps {
 	d := deps{}
-	switch opts.SyntaxType {
+	switch syntaxType {
 	case ProgramSyntax:
 		pkg := tree.Nodes[0].(*ast.Package)
 		for _, n := range pkg.Declarations {

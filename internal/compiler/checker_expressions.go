@@ -107,7 +107,7 @@ type typechecker struct {
 	unusedImports     map[string][]string
 	TypeInfo          map[ast.Node]*TypeInfo
 	IndirectVars      map[*ast.Identifier]bool
-	opts              Options
+	opts              CheckerOptions
 	iota              int
 	lastConstPosition *ast.Position    // when changes iota is reset.
 	showMacros        []*ast.ShowMacro // list of *ast.ShowMacro nodes.
@@ -120,7 +120,7 @@ type typechecker struct {
 	labels          [][]string
 }
 
-func newTypechecker(path string, opts Options) *typechecker {
+func newTypechecker(path string, opts CheckerOptions) *typechecker {
 	return &typechecker{
 		path:             path,
 		filePackageBlock: TypeCheckerScope{},

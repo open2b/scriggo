@@ -517,7 +517,7 @@ func TestCheckerExpressions(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", Options{})
+			tc := newTypechecker("", CheckerOptions{})
 			tc.Scopes = scopes
 			tc.addScope()
 			ti := tc.checkExpression(node)
@@ -598,7 +598,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			} else {
 				scopes = []TypeCheckerScope{scope}
 			}
-			tc := newTypechecker("", Options{})
+			tc := newTypechecker("", CheckerOptions{})
 			tc.Scopes = scopes
 			tc.addScope()
 			ti := tc.checkExpression(node)
@@ -1382,7 +1382,7 @@ func TestCheckerStatements(t *testing.T) {
 				t.Errorf("source: %s returned parser error: %s", src, err.Error())
 				return
 			}
-			tc := newTypechecker("", Options{DisallowGoStmt: true, SyntaxType: ScriptSyntax})
+			tc := newTypechecker("", CheckerOptions{DisallowGoStmt: true, SyntaxType: ScriptSyntax})
 			tc.Scopes = append(tc.Scopes, scope)
 			tc.addScope()
 			tc.checkNodes(tree.Nodes)
@@ -1441,7 +1441,7 @@ func TestCheckerRemoveEnv(t *testing.T) {
 		t.Errorf("TestCheckerRemoveEnv returned parser error: %s", err)
 		return
 	}
-	opts := Options{
+	opts := CheckerOptions{
 		SyntaxType: ProgramSyntax,
 	}
 	_, err = Typecheck(tree, predefined, opts)
@@ -1875,7 +1875,7 @@ func TestTypechecker_MaxIndex(t *testing.T) {
 		"[]T{x, x, x, 9: x}": 9,
 		"[]T{x, 9: x, x, x}": 11,
 	}
-	tc := newTypechecker("", Options{})
+	tc := newTypechecker("", CheckerOptions{})
 	for src, expected := range cases {
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -1976,7 +1976,7 @@ func TestFunctionUpvalues(t *testing.T) {
 		`a, b := 1, 1; _ = a + b; _ = func() { a, b := 1, 1; _ = a + b }`: nil,
 	}
 	for src, expected := range cases {
-		tc := newTypechecker("", Options{})
+		tc := newTypechecker("", CheckerOptions{})
 		tc.addScope()
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
@@ -2096,10 +2096,9 @@ func TestGotoLabels(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			opts := Options{SyntaxType: ProgramSyntax}
-			deps := AnalyzeTree(tree, opts)
+			deps := AnalyzeTree(tree, ProgramSyntax)
 			pkgInfos := map[string]*PackageInfo{}
-			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, opts)
+			err = checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, nil, pkgInfos, CheckerOptions{SyntaxType: ProgramSyntax})
 			switch {
 			case err == nil && cas.errorMsg == "":
 				// Ok.

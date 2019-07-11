@@ -86,10 +86,6 @@ type PackageLoader interface {
 	Load(pkgPath string) (interface{}, error)
 }
 
-// SyntaxType indicates the syntax type of the source code which is going to be
-// compiled. SyntaxType should affect only the syntax, not the semantics; use
-// Options to control which statements are allowed, which errors should be
-// returned etc...
 type SyntaxType int8
 
 const (
@@ -98,13 +94,10 @@ const (
 	ProgramSyntax
 )
 
-// Options represents compilation options.
-type Options struct {
+// CheckerOptions contains the options for the type checker.
+type CheckerOptions struct {
 
-	// SyntaxType indicates the syntax type of the source code which is going to
-	// be compiled. SyntaxType should affect only the syntax, not the semantics;
-	// use the other fields of Options to control which statements are allowed,
-	// which errors should be returned etc...
+	// TODO(Gianluca): change name and add doc.
 	SyntaxType SyntaxType
 
 	// DisallowGoStmt disables the "go" statement.
@@ -117,17 +110,13 @@ type Options struct {
 	// FailOnTODO makes compilation fail when a ShowMacro statement with "or
 	// todo" option cannot be resolved.
 	FailOnTODO bool
+}
+
+// EmitterOptions contains the options for the emitter.
+type EmitterOptions struct {
 
 	// MemoryLimit adds Alloc instructions during compilation.
 	MemoryLimit bool
-}
-
-// validate validates options, panicking if these are not valid (i.e. contain
-// some inconsistency).
-func (o *Options) validate() {
-	if o.SyntaxType == 0 {
-		panic("syntax type not specified")
-	}
 }
 
 // CheckingError records a type checking error with the path and the position
@@ -146,9 +135,11 @@ func (e *CheckingError) Error() string {
 // provided. deps must contain dependencies in case of package initialization
 // (program or template import/extend).
 // tree may be altered during the type checking.
-func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
-	opts.validate()
-	deps := AnalyzeTree(tree, opts)
+func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map[string]*PackageInfo, error) {
+	if opts.SyntaxType == 0 {
+		panic("unspecified syntax type")
+	}
+	deps := AnalyzeTree(tree, opts.SyntaxType)
 	if opts.SyntaxType == ProgramSyntax {
 		pkgInfos := map[string]*PackageInfo{}
 		err := checkPackage(tree.Nodes[0].(*ast.Package), tree.Path, deps, packages, pkgInfos, opts)
@@ -240,11 +231,7 @@ type Code struct {
 // type info and indirect variables. alloc reports whether Alloc instructions
 // must be emitted. EmitPackageMain returns an emittedPackage instance with
 // the global variables and the main function.
-func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
-	opts.validate()
-	if opts.SyntaxType != ProgramSyntax {
-		panic("expecting a script syntax")
-	}
+func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	functions, _, _ := e.emitPackage(pkgMain, false)
 	main := e.functions[pkgMain]["main"]
@@ -260,11 +247,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. EmitScript returns a function that is the entry point of the
 // script and the global variables.
-func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
-	opts.validate()
-	if opts.SyntaxType != ScriptSyntax {
-		panic("expecting a script syntax")
-	}
+func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.SetAlloc(opts.MemoryLimit)
@@ -279,12 +262,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 // indirect variables. alloc reports whether Alloc instructions must be
 // emitted. EmitTemplate returns a function that is the entry point of the
 // template and the global variables.
-func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts Options) *Code {
-
-	opts.validate()
-	if opts.SyntaxType != TemplateSyntax {
-		panic("expecting a template syntax")
-	}
+func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.pkg = &ast.Package{}
