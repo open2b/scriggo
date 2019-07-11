@@ -68,7 +68,7 @@ type CheckingError = compiler.CheckingError
 type Program struct {
 	fn      *vm.Function
 	globals []compiler.Global
-	options LoadOptions
+	options *LoadOptions
 }
 
 // LoadProgram loads a program, reading package "main" from packages.
@@ -79,12 +79,11 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		return nil, err
 	}
 
-	if options == nil {
-		options = &LoadOptions{}
-	}
-	checkerOpts := compiler.CheckerOptions{
-		SyntaxType:     compiler.ProgramSyntax,
-		DisallowGoStmt: options.DisallowGoStmt,
+	checkerOpts := compiler.CheckerOptions{SyntaxType: compiler.ProgramSyntax}
+	emitterOpts := compiler.EmitterOptions{}
+	if options != nil {
+		checkerOpts.DisallowGoStmt = options.DisallowGoStmt
+		emitterOpts.MemoryLimit = options.LimitMemorySize
 	}
 
 	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
@@ -98,17 +97,13 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 		}
 	}
 
-	emitterOpts := compiler.EmitterOptions{
-		MemoryLimit: options.LimitMemorySize,
-	}
-
 	pkgMain := compiler.EmitPackageMain(tree.Nodes[0].(*ast.Package), typeInfos, tci["main"].IndirectVars, emitterOpts)
 
-	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: *options}, nil
+	return &Program{fn: pkgMain.Main, globals: pkgMain.Globals, options: options}, nil
 }
 
 // Options returns the options with which the program has been loaded.
-func (p *Program) Options() LoadOptions {
+func (p *Program) Options() *LoadOptions {
 	return p.options
 }
 
@@ -125,13 +120,10 @@ type RunOptions struct {
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
 func (p *Program) Run(options *RunOptions) error {
-	if options == nil {
-		options = &RunOptions{}
-	}
-	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
+	if options != nil && options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(*options)
+	vmm := newVM(options)
 	_, err := vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return err
 }
@@ -142,13 +134,10 @@ func (p *Program) Run(options *RunOptions) error {
 // Panics if the option MaxMemorySize is greater than zero but the program has
 // not been loaded with option LimitMemorySize.
 func (p *Program) Start(options *RunOptions) *vm.Env {
-	if options == nil {
-		options = &RunOptions{}
-	}
-	if options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
+	if options != nil && options.MaxMemorySize > 0 && !p.options.LimitMemorySize {
 		panic("scriggo: program not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(*options)
+	vmm := newVM(options)
 	go vmm.Run(p.fn, initGlobals(p.globals, nil))
 	return vmm.Env()
 }
@@ -171,42 +160,40 @@ func (p *Program) Disassemble(w io.Writer, pkgPath string) (int64, error) {
 type Script struct {
 	fn      *vm.Function
 	globals []compiler.Global
-	options LoadOptions
+	options *LoadOptions
 }
 
 // LoadScript loads a script from a reader.
 func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*Script, error) {
 
-	if options == nil {
-		options = &LoadOptions{}
+	checkerOpts := compiler.CheckerOptions{
+		SyntaxType: compiler.ScriptSyntax,
 	}
-
-	shebang := options.AllowShebangLine
+	emitterOpts := compiler.EmitterOptions{}
+	shebang := false
+	if options != nil {
+		shebang = options.AllowShebangLine
+		checkerOpts.DisallowGoStmt = options.DisallowGoStmt
+		emitterOpts.MemoryLimit = options.LimitMemorySize
+	}
 
 	tree, err := compiler.ParseScript(src, packages, shebang)
 	if err != nil {
 		return nil, err
 	}
 
-	checkerOpts := compiler.CheckerOptions{
-		SyntaxType:     compiler.ScriptSyntax,
-		DisallowGoStmt: options.DisallowGoStmt,
-	}
 	tci, err := compiler.Typecheck(tree, packages, checkerOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	emitterOpts := compiler.EmitterOptions{
-		MemoryLimit: options.LimitMemorySize,
-	}
 	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, emitterOpts)
 
-	return &Script{fn: code.Main, globals: code.Globals, options: *options}, nil
+	return &Script{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
 // Options returns the options with which the script has been loaded.
-func (s *Script) Options() LoadOptions {
+func (s *Script) Options() *LoadOptions {
 	return s.options
 }
 
@@ -218,16 +205,13 @@ var emptyInit = map[string]interface{}{}
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
 func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
-	if options == nil {
-		options = &RunOptions{}
-	}
-	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
+	if options != nil && options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
 	if init == nil {
 		init = emptyInit
 	}
-	vmm := newVM(*options)
+	vmm := newVM(options)
 	_, err := vmm.Run(s.fn, initGlobals(s.globals, init))
 	return err
 }
@@ -239,34 +223,33 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
 func (s *Script) Start(init map[string]interface{}, options *RunOptions) *vm.Env {
-	if options == nil {
-		options = &RunOptions{}
-	}
-	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
+	if options != nil && options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(*options)
+	vmm := newVM(options)
 	go vmm.Run(s.fn, initGlobals(s.globals, init))
 	return vmm.Env()
 }
 
 // newVM returns a new vm with the given options.
-func newVM(options RunOptions) *vm.VM {
+func newVM(options *RunOptions) *vm.VM {
 	vmm := vm.New()
-	if options.Context != nil {
-		vmm.SetContext(options.Context)
-	}
-	if options.MaxMemorySize > 0 {
-		vmm.SetMaxMemory(options.MaxMemorySize)
-	}
-	if options.DontPanic {
-		vmm.SetDontPanic(true)
-	}
-	if options.PrintFunc != nil {
-		vmm.SetPrint(options.PrintFunc)
-	}
-	if options.TraceFunc != nil {
-		vmm.SetTraceFunc(options.TraceFunc)
+	if options != nil {
+		if options.Context != nil {
+			vmm.SetContext(options.Context)
+		}
+		if options.MaxMemorySize > 0 {
+			vmm.SetMaxMemory(options.MaxMemorySize)
+		}
+		if options.DontPanic {
+			vmm.SetDontPanic(true)
+		}
+		if options.PrintFunc != nil {
+			vmm.SetPrint(options.PrintFunc)
+		}
+		if options.TraceFunc != nil {
+			vmm.SetTraceFunc(options.TraceFunc)
+		}
 	}
 	return vmm
 }

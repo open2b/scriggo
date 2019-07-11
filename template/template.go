@@ -53,7 +53,7 @@ type RenderOptions struct {
 
 type Template struct {
 	fn      *vm.Function
-	options LoadOptions
+	options *LoadOptions
 	globals []compiler.Global
 }
 
@@ -97,7 +97,7 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 		MemoryLimit: options.LimitMemorySize,
 	}
 	code := compiler.EmitTemplate(tree, typeInfos, tci["main"].IndirectVars, emitterOpts)
-	return &Template{fn: code.Main, globals: code.Globals, options: *options}, nil
+	return &Template{fn: code.Main, globals: code.Globals, options: options}, nil
 }
 
 // A RenderFunc renders value in the context ctx and writes the result to out.
@@ -110,15 +110,14 @@ var emptyVars = map[string]interface{}{}
 // Render renders the template and write the output to out. vars contains the values for the
 // variables of the main package.
 func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *RenderOptions) error {
-	if options == nil {
-		options = &RenderOptions{}
-	}
-	if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
-		panic("scrigoo: template not loaded with LimitMemorySize option")
-	}
 	render := DefaultRenderFunc
-	if options.RenderFunc != nil {
-		render = options.RenderFunc
+	if options != nil {
+		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
+			panic("scrigoo: template not loaded with LimitMemorySize option")
+		}
+		if options.RenderFunc != nil {
+			render = options.RenderFunc
+		}
 	}
 	write := out.Write
 	t.globals[0].Value = &out
@@ -127,7 +126,7 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 	if vars == nil {
 		vars = emptyVars
 	}
-	vmm := newVM(*options)
+	vmm := newVM(options)
 	_, err := vmm.Run(t.fn, initGlobals(t.globals, vars))
 	return err
 }
@@ -135,13 +134,15 @@ func (t *Template) Render(out io.Writer, vars map[string]interface{}, options *R
 // StartRender renders the template in a new goroutine, writing the output to
 // out, and returns its virtual machine execution environment. vars contains
 // the values for the variables of the main package.
-func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, options RenderOptions) *vm.Env {
-	if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
-		panic("scrigoo: template not loaded with LimitMemorySize option")
-	}
+func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, options *RenderOptions) *vm.Env {
 	render := DefaultRenderFunc
-	if options.RenderFunc != nil {
-		render = options.RenderFunc
+	if options != nil {
+		if options.MaxMemorySize > 0 && !t.options.LimitMemorySize {
+			panic("scrigoo: template not loaded with LimitMemorySize option")
+		}
+		if options.RenderFunc != nil {
+			render = options.RenderFunc
+		}
 	}
 	write := out.Write
 	t.globals[0].Value = &out
@@ -156,7 +157,7 @@ func (t *Template) StartRender(out io.Writer, vars map[string]interface{}, optio
 }
 
 // Options returns the options with which the template has been loaded.
-func (t *Template) Options() LoadOptions {
+func (t *Template) Options() *LoadOptions {
 	return t.options
 }
 
@@ -166,22 +167,24 @@ func (t *Template) Disassemble(w io.Writer) (int64, error) {
 }
 
 // newVM returns a new vm with the given options.
-func newVM(options RenderOptions) *vm.VM {
+func newVM(options *RenderOptions) *vm.VM {
 	vmm := vm.New()
-	if options.Context != nil {
-		vmm.SetContext(options.Context)
-	}
-	if options.MaxMemorySize > 0 {
-		vmm.SetMaxMemory(options.MaxMemorySize)
-	}
-	if options.DontPanic {
-		vmm.SetDontPanic(true)
-	}
-	if options.PrintFunc != nil {
-		vmm.SetPrint(options.PrintFunc)
-	}
-	if options.TraceFunc != nil {
-		vmm.SetTraceFunc(options.TraceFunc)
+	if options != nil {
+		if options.Context != nil {
+			vmm.SetContext(options.Context)
+		}
+		if options.MaxMemorySize > 0 {
+			vmm.SetMaxMemory(options.MaxMemorySize)
+		}
+		if options.DontPanic {
+			vmm.SetDontPanic(true)
+		}
+		if options.PrintFunc != nil {
+			vmm.SetPrint(options.PrintFunc)
+		}
+		if options.TraceFunc != nil {
+			vmm.SetTraceFunc(options.TraceFunc)
+		}
 	}
 	return vmm
 }
