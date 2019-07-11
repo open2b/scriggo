@@ -179,14 +179,8 @@ const scriptSkel = `r, err := os.Open(absFile)
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
 		}
-		var loaders scriggo.PackageLoader
-		if Main != nil {
-			loaders = scriggo.CombinedLoaders{packages, scriggo.Packages{"main": Main}}
-		} else {
-			loaders = scriggo.CombinedLoaders{packages}
-		}
 		loadOptions.AllowShebangLine = true
-		script, err := scriggo.LoadScript(r, loaders, loadOptions)
+		script, err := scriggo.LoadScript(r, packages, loadOptions)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 			os.Exit(2)
@@ -210,10 +204,25 @@ const scriptSkel = `r, err := os.Open(absFile)
 const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 		path := "/" + filepath.Base(absFile)
 		builtins := template.Builtins()
-		for k, v := range Main.Declarations {
-			builtins.Declarations[k] = v
+		loadedMain, err := packages.Load("main")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
 		}
-		t, err := template.Load(path, r, builtins, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
+		var main scriggo.Package
+		if loadedMain == nil {
+			main = builtins
+		} else {
+			mp := &scriggo.MapPackage{PkgName: "main", Declarations: map[string]interface{}{}}
+			for _, name := range builtins.DeclarationNames() {
+				mp.Declarations[name] = builtins.Lookup(name)
+			}
+			for _, name := range loadedMain.(scriggo.Package).DeclarationNames() {
+				mp.Declarations[name] = builtins.Lookup(name)
+			}
+			main = mp
+		}
+		t, err := template.Load(path, r, main, template.ContextHTML, &template.LoadOptions{LimitMemorySize: loadOptions.LimitMemorySize})
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)
@@ -224,7 +233,6 @@ const templateSkel = `r := template.DirReader(filepath.Dir(absFile))
 				_, _ = fmt.Fprintf(os.Stderr, "scriggo: %s\n", err)
 				os.Exit(2)
 			}
-
 		} else {
 			options := &template.RenderOptions{
 				Context:       runOptions.Context,
