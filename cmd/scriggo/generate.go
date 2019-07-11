@@ -116,8 +116,9 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 		// source, used by Go) or a new one indicated in Scriggo comments.
 		path := imp.path
 		if imp.asPath != "" {
-			// TODO(Gianluca): if asPath points to standard lib, return error.
-			//  Else, package mixing is allowed.
+			if isGoStdlibPath(imp.asPath) {
+				return 0, fmt.Errorf("%q is not a valid path as it conflicts with Go standard library path %q", imp.asPath, imp.asPath)
+			}
 			path = imp.asPath
 		}
 
