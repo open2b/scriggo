@@ -33,12 +33,10 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree, path string) error {
 		case *ast.Macro, *ast.Var, *ast.TypeDeclaration, *ast.Const, *ast.Import, *ast.Extends:
 			nodes = append(nodes, n)
 		default:
-			// TODO(Gianluca): review error.
 			if txt, ok := n.(*ast.Text); ok && len(strings.TrimSpace(string(txt.Text))) == 0 {
-				// Nothing to do
-			} else {
-				return tc.errorf(n, "unexpected %T node as top-level declaration in template", n)
+				continue
 			}
+			return tc.errorf(n, "template declarations can only contain extends, import or declaration statements")
 		}
 	}
 	tree.Nodes = []ast.Node{
