@@ -371,7 +371,7 @@ func build(install bool, work bool, verbose bool) error {
 
 	// Create the package declarations file.
 	packagesPath := filepath.Join(dir, "packages.go")
-	fi, err := os.OpenFile(packagesPath, os.O_CREATE, filePerm)
+	fi, err := os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, filePerm)
 	if err != nil {
 		return err
 	}
