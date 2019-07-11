@@ -99,8 +99,11 @@ func (pp *templateExpansion) parsePath(path string, ctx ast.Context) (*ast.Tree,
 		return nil, err
 	}
 
-	tree, _, err := ParseTemplateSource(src, path, ctx)
+	tree, _, err := ParseTemplateSource(src, ctx)
 	if err != nil {
+		if se, ok := err.(*SyntaxError); ok {
+			se.Path = path
+		}
 		return nil, err
 	}
 	tree.Path = path

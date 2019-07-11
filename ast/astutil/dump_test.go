@@ -41,7 +41,7 @@ func ExampleDump() {
 			if ctx == ast.ContextGo {
 				tree, err = compiler.ParseSource([]byte(c), true, false)
 			} else {
-				tree, _, err = compiler.ParseTemplateSource([]byte(c), "", ctx)
+				tree, _, err = compiler.ParseTemplateSource([]byte(c), ctx)
 			}
 			if err != nil {
 				panic(err)

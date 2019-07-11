@@ -187,7 +187,7 @@ func ParseSource(src []byte, isScript, shebang bool) (tree *ast.Tree, err error)
 
 // ParseTemplateSource parses src in the context ctx and returns the parsed
 // tree. Nodes Extends, Import and Include are not be expanded.
-func ParseTemplateSource(src []byte, path string, ctx ast.Context) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
+func ParseTemplateSource(src []byte, ctx ast.Context) (tree *ast.Tree, deps PackageDeclsDeps, err error) {
 
 	switch ctx {
 	case ast.ContextText, ast.ContextHTML, ast.ContextCSS, ast.ContextJavaScript:
@@ -196,7 +196,7 @@ func ParseTemplateSource(src []byte, path string, ctx ast.Context) (tree *ast.Tr
 	}
 
 	// Tree result of the expansion.
-	tree = ast.NewTree(path, nil, ctx)
+	tree = ast.NewTree("", nil, ctx)
 
 	var p = &parsing{
 		lex:        newLexer(src, ctx),
@@ -209,7 +209,6 @@ func ParseTemplateSource(src []byte, path string, ctx ast.Context) (tree *ast.Tr
 		p.lex.drain()
 		if r := recover(); r != nil {
 			if e, ok := r.(*SyntaxError); ok {
-				e.Path = path
 				tree = nil
 				err = e
 			} else {
