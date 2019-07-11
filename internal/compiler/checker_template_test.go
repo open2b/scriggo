@@ -35,7 +35,7 @@ var templateCases = map[string]string{
 
 	`{% a := 10 %}{% a %}`: `a evaluated but not used`,
 
-	// TODO(Gianluca): result of this test depends on typechecking options.
+	// TODO(Gianluca): result of this test depends on the type checking options.
 	// `{% show M or todo %}`: ok,
 }
 

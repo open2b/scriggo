@@ -133,8 +133,8 @@ func (o *Options) validate() {
 	}
 }
 
-// CheckingError records a typechecking error with the path and the position where the
-// error occurred.
+// CheckingError records a type checking error with the path and the position
+// where the error occurred.
 type CheckingError struct {
 	Path string
 	Pos  ast.Position
@@ -145,10 +145,10 @@ func (e *CheckingError) Error() string {
 	return fmt.Sprintf("%s:%s: %s", e.Path, e.Pos, e.Err)
 }
 
-// Typecheck typechecks tree. A map of predefined packages may be provided. deps
-// must contain dependencies in case of package initialization (program or
-// template import/extend).
-// tree may be altered during typechecking.
+// Typecheck makes a type check on tree. A map of predefined packages may be
+// provided. deps must contain dependencies in case of package initialization
+// (program or template import/extend).
+// tree may be altered during the type checking.
 func Typecheck(tree *ast.Tree, packages PackageLoader, opts Options) (map[string]*PackageInfo, error) {
 	opts.validate()
 	deps := AnalyzeTree(tree, opts)

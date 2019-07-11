@@ -268,9 +268,9 @@ constsLoop:
 			}
 		}
 		if loop {
-			// All remaining constants are added as "sorted"; a later
-			// stage of typechecking will report the error (usually a not
-			// defined symbol).
+			// All remaining constants are added as "sorted"; a later stage of
+			// the type checking will report the error (usually a not defined
+			// symbol).
 			sortedConsts = append(sortedConsts, consts...)
 		}
 	}
@@ -326,8 +326,8 @@ varsLoop:
 			}
 		}
 		if loop {
-			// All remaining vars are added as "sorted"; a later stage of
-			// typechecking will report the error (usually a not defined
+			// All remaining vars are added as "sorted"; a later stage of the
+			// type checking will report the error (usually a not defined
 			// symbol).
 			sortedVars = append(sortedVars, vars...)
 		}

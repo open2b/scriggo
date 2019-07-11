@@ -93,7 +93,7 @@ type scopeVariable struct {
 	node       ast.Node
 }
 
-// typechecker represents the state of a typechecking.
+// typechecker represents the state of the type checking.
 type typechecker struct {
 	path              string
 	predefinedPkgs    PackageLoader
@@ -356,8 +356,8 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
 		// error should not be returned, and function call should be removed
 		// from tree.
-		// TODO(Gianluca): add support for "or todo" error when typechecking
-		// with "todosNotAllowed" option.
+		// TODO(Gianluca): add support for "or todo" error when making a type
+		// checking with "todosNotAllowed" option.
 		for _, sm := range tc.showMacros {
 			if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
 				return showMacroIgnoredTi
@@ -871,8 +871,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 						// ShowMacro contains a "or ignore" or "or todo" option. In such cases,
 						// error should not be returned, and function call should be removed
 						// from tree.
-						// TODO(Gianluca): add support for "or todo" error when typechecking
-						// with "todosNotAllowed" option.
+						// TODO(Gianluca): add support for "or todo" error when
+						// making a type checking with "todosNotAllowed" option.
 						for _, sm := range tc.showMacros {
 							if sm.Macro == ident && (sm.Or == ast.ShowMacroOrIgnore || sm.Or == ast.ShowMacroOrTodo) {
 								return showMacroIgnoredTi

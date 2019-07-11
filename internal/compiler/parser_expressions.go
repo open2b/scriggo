@@ -310,7 +310,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case tokenIdentifier: // a
 			ident := p.parseIdentifierNode(tok)
-			// TODO (Gianluca): this check must be done during typechecking.
+			// TODO (Gianluca): this check must be done during the type checking.
 			// if ident.Name == "_" {
 			// 	if !canBeBlank {
 			// 		panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
