@@ -238,11 +238,14 @@ func (s *Script) Run(init map[string]interface{}, options *RunOptions) error {
 //
 // Panics if the option MaxMemorySize is greater than zero but the script has
 // not been loaded with option LimitMemorySize.
-func (s *Script) Start(init map[string]interface{}, options RunOptions) *vm.Env {
+func (s *Script) Start(init map[string]interface{}, options *RunOptions) *vm.Env {
+	if options == nil {
+		options = &RunOptions{}
+	}
 	if options.MaxMemorySize > 0 && !s.options.LimitMemorySize {
 		panic("scriggo: script not loaded with LimitMemorySize option")
 	}
-	vmm := newVM(options)
+	vmm := newVM(*options)
 	go vmm.Run(s.fn, initGlobals(s.globals, init))
 	return vmm.Env()
 }
