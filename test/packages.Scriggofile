@@ -1,0 +1,11 @@
+SET VARIABLE goPackages
+SET PACKAGE  test
+
+IMPORT scriggo/test/testpkg AS testpkg
+
+IMPORT fmt
+IMPORT errors
+IMPORT bytes
+IMPORT math
+IMPORT os/exec
+IMPORT time

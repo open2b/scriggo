@@ -8,17 +8,14 @@ package test
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"text/tabwriter"
-	"time"
 
 	"scriggo"
 	"scriggo/vm"
@@ -70,6 +67,9 @@ var exprTests = map[string]interface{}{
 }
 
 func TestVMExpressions(t *testing.T) {
+	if goPackages == nil {
+		panic("goPackages declared but not initialized. Run 'go generate scriggo/test' with the latest version of scriggo installed to create the package declaration file.")
+	}
 	for src, expected := range exprTests {
 		t.Run(src, func(t *testing.T) {
 			r := scriggo.MapStringLoader{"main": "package main; func main() { a := " + src + "; _ = a }"}
@@ -4777,7 +4777,13 @@ var stmtTests = []struct {
 
 }
 
+//go:generate scriggo embed -v -o packages.go packages.Scriggofile
+var goPackages scriggo.PackageLoader
+
 func TestVM(t *testing.T) {
+	if goPackages == nil {
+		panic("goPackages declared but not initialized. Run 'go generate scriggo/test' with the latest version of scriggo installed to create the package declaration file.")
+	}
 	for _, cas := range stmtTests {
 		t.Run(cas.name, func(t *testing.T) {
 			defer func() {
@@ -4976,138 +4982,3 @@ func tabsToSpaces(s string) string {
 // 	}
 // 	t.Error(out.String())
 // }
-
-var goPackages = scriggo.Packages{
-	"fmt": &scriggo.MapPackage{
-		PkgName: "fmt",
-		Declarations: map[string]interface{}{
-			"Errorf":     fmt.Errorf,
-			"Formatter":  reflect.TypeOf(new(fmt.Formatter)).Elem(),
-			"Fprint":     fmt.Fprint,
-			"Fprintf":    fmt.Fprintf,
-			"Fprintln":   fmt.Fprintln,
-			"Fscan":      fmt.Fscan,
-			"Fscanf":     fmt.Fscanf,
-			"Fscanln":    fmt.Fscanln,
-			"GoStringer": reflect.TypeOf(new(fmt.GoStringer)).Elem(),
-			"Print":      fmt.Print,
-			"Printf":     fmt.Printf,
-			"Println":    fmt.Println,
-			"Scan":       fmt.Scan,
-			"ScanState":  reflect.TypeOf(new(fmt.ScanState)).Elem(),
-			"Scanf":      fmt.Scanf,
-			"Scanln":     fmt.Scanln,
-			"Scanner":    reflect.TypeOf(new(fmt.Scanner)).Elem(),
-			"Sprint":     fmt.Sprint,
-			"Sprintf":    fmt.Sprintf,
-			"Sprintln":   fmt.Sprintln,
-			"Sscan":      fmt.Sscan,
-			"Sscanf":     fmt.Sscanf,
-			"Sscanln":    fmt.Sscanln,
-			"State":      reflect.TypeOf(new(fmt.State)).Elem(),
-			"Stringer":   reflect.TypeOf(new(fmt.Stringer)).Elem(),
-		},
-	},
-	"testpkg": &scriggo.MapPackage{
-		PkgName: "testpkg",
-		Declarations: map[string]interface{}{
-			"F00": func() {},
-			"F01": func() int { return 40 },
-			"F10": func(a int) {},
-			"F11": func(a int) int { return a + 33 },
-			"Sum": func(a, b int) int {
-				return a + b
-			},
-			"StringLen": func(s string) int {
-				return len(s)
-			},
-			"Pair": func() (int, int) {
-				return 42, 33
-			},
-			"Inc": func(a int) int {
-				return a + 1
-			},
-			"Dec": func(a int) int {
-				return a - 1
-			},
-			"Swap": func(a int, b string) (string, int) {
-				return b, a
-			},
-			"PrintString": func(s string) {
-				fmt.Print(s)
-			},
-			"PrintInt": func(i int) {
-				fmt.Print(i)
-			},
-			"A":            &A,
-			"B":            &B,
-			"TestPointInt": reflect.TypeOf(new(TestPointInt)).Elem(),
-			"GetPoint":     GetPoint,
-			"Center":       &TestPointInt{A: 5, B: 42},
-			"NewT":         NewT,
-			"T":            reflect.TypeOf(T(0)),
-		},
-	},
-	"math": &scriggo.MapPackage{
-		PkgName: "math",
-		Declarations: map[string]interface{}{
-			"Phi": scriggo.ConstLiteral(nil, "1.61803398874989484820458683436563811772030917980576286213544862"),
-		},
-	},
-	"bytes": &scriggo.MapPackage{
-		PkgName: "bytes",
-		Declarations: map[string]interface{}{
-			"NewBuffer":       bytes.NewBuffer,
-			"NewBufferString": bytes.NewBufferString,
-			"Buffer":          reflect.TypeOf(new(bytes.Buffer)).Elem(),
-		},
-	},
-	"time": &scriggo.MapPackage{
-		PkgName: "time",
-		Declarations: map[string]interface{}{
-			"Duration":      reflect.TypeOf(new(time.Duration)).Elem(),
-			"ParseDuration": time.ParseDuration,
-			"ANSIC":         scriggo.ConstLiteral(nil, "\"Mon Jan _2 15:04:05 2006\""),
-			"Nanosecond":    scriggo.ConstLiteral(reflect.TypeOf(new(time.Duration)).Elem(), "1"),
-		},
-	},
-	"os/exec": &scriggo.MapPackage{
-		PkgName: "exec",
-		Declarations: map[string]interface{}{
-			"Cmd":   reflect.TypeOf(new(exec.Cmd)).Elem(),
-			"Error": reflect.TypeOf(new(exec.Error)).Elem(),
-		},
-	},
-	"errors": &scriggo.MapPackage{
-		PkgName: "errors",
-		Declarations: map[string]interface{}{
-			"New": errors.New,
-		},
-	},
-}
-
-// Used in tests.
-var A int
-var B int
-
-func init() {
-	A = 20
-	B = 42
-}
-
-type TestPointInt struct {
-	A, B int
-}
-
-func GetPoint() TestPointInt {
-	return TestPointInt{A: 5, B: 42}
-}
-
-type T int
-
-func NewT(a int) T {
-	return T(a)
-}
-func (t T) M() {
-	fmt.Print("t is ", t)
-}
