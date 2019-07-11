@@ -142,10 +142,6 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	return builder
 }
 
-//-----------------------------------------------------------------------------
-// Support methods
-//-----------------------------------------------------------------------------
-
 // enterScope enters a new scope.
 // Every enterScope call must be paired with a corresponding exitScope call.
 func (builder *functionBuilder) enterScope() {
@@ -432,10 +428,6 @@ func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Functions that handle complex numbers
-//-----------------------------------------------------------------------------
-
 func negComplex(c interface{}) interface{} {
 	switch c := c.(type) {
 	case complex64:
@@ -504,10 +496,6 @@ func divComplex(c1, c2 interface{}) interface{} {
 	v3.SetComplex(v1.Complex() / v2.Complex())
 	return v3.Interface()
 }
-
-//-----------------------------------------------------------------------------
-// Methods that emit instructions
-//-----------------------------------------------------------------------------
 
 // Add appends a new "add" instruction to the function body.
 //
