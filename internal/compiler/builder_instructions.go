@@ -256,7 +256,7 @@ func (builder *functionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	case vm.TypeFloat:
 		op = vm.OpConvertFloat
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: src, B: regType, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: src, B: int8(regType), C: dst})
 }
 
 // Copy appends a new "Copy" instruction to the function body.
@@ -618,7 +618,7 @@ func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capac
 			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 		}
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: t, B: capacity, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: int8(t), B: capacity, C: dst})
 }
 
 // MakeMap appends a new "MakeMap" instruction to the function body.
@@ -641,7 +641,7 @@ func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8,
 			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 		}
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: t, B: size, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: int8(t), B: size, C: dst})
 }
 
 // MakeSlice appends a new "MakeSlice" instruction to the function body.
@@ -685,7 +685,7 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 			fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
 		}
 	}
-	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: t, B: k, C: dst})
+	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMakeSlice, A: int8(t), B: k, C: dst})
 	if k > 0 {
 		fn.Body = append(fn.Body, vm.Instruction{A: len, B: cap})
 	}
@@ -1068,7 +1068,7 @@ func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 	if k {
 		op = -op
 	}
-	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: t, B: x, C: z})
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(t), B: x, C: z})
 }
 
 // TailCall appends a new "TailCall" instruction to the function body.

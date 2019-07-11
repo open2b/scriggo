@@ -253,20 +253,20 @@ func (builder *functionBuilder) setFileLine(file string, line int) {
 	builder.fn.Line = line
 }
 
-// addType adds a type to the builder's function.
-func (builder *functionBuilder) addType(typ reflect.Type) int8 {
+// addType adds a type to the builder's function, creating it if necessary.
+func (builder *functionBuilder) addType(typ reflect.Type) int {
 	fn := builder.fn
+	for i, t := range fn.Types {
+		if t == typ {
+			return i
+		}
+	}
 	index := len(fn.Types)
 	if index > 255 {
 		panic("types limit reached")
 	}
-	for i, t := range fn.Types {
-		if t == typ {
-			return int8(i)
-		}
-	}
 	fn.Types = append(fn.Types, typ)
-	return int8(index)
+	return index
 }
 
 // addPredefinedFunction adds a predefined function to the builder's function.
