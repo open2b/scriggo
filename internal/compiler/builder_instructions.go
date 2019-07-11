@@ -12,11 +12,11 @@ import (
 	"strconv"
 )
 
-// Add appends a new "add" instruction to the function body.
+// emitAdd appends a new "Add" instruction to the function body.
 //
 //     z = x + y
 //
-func (builder *functionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitAdd(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Uint, reflect.Uintptr:
@@ -45,11 +45,11 @@ func (builder *functionBuilder) Add(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// And appends a new "And" instruction to the function body.
+// emitAnd appends a new "And" instruction to the function body.
 //
 //     z = x & y
 //
-func (builder *functionBuilder) And(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitAnd(k bool, x, y, z int8, kind reflect.Kind) {
 	op := vm.OpAnd
 	if k {
 		op = -op
@@ -57,11 +57,11 @@ func (builder *functionBuilder) And(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// AndNot appends a new "AndNot" instruction to the function body.
+// emitAndNot appends a new "AndNot" instruction to the function body.
 //
 //     z = x &^ y
 //
-func (builder *functionBuilder) AndNot(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitAndNot(k bool, x, y, z int8, kind reflect.Kind) {
 	op := vm.OpAndNot
 	if k {
 		op = -op
@@ -69,11 +69,11 @@ func (builder *functionBuilder) AndNot(k bool, x, y, z int8, kind reflect.Kind) 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Append appends a new "Append" instruction to the function body.
+// emitAppend appends a new "Append" instruction to the function body.
 //
 //     s = append(s, regs[first:first+length]...)
 //
-func (builder *functionBuilder) Append(first, length, s int8) {
+func (builder *functionBuilder) emitAppend(first, length, s int8) {
 	fn := builder.fn
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
@@ -81,11 +81,11 @@ func (builder *functionBuilder) Append(first, length, s int8) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppend, A: first, B: length, C: s})
 }
 
-// AppendSlice appends a new "AppendSlice" instruction to the function body.
+// emitAppendSlice appends a new "AppendSlice" instruction to the function body.
 //
 //     s = append(s, t)
 //
-func (builder *functionBuilder) AppendSlice(t, s int8) {
+func (builder *functionBuilder) emitAppendSlice(t, s int8) {
 	fn := builder.fn
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
@@ -93,11 +93,11 @@ func (builder *functionBuilder) AppendSlice(t, s int8) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAppendSlice, A: t, C: s})
 }
 
-// Assert appends a new "assert" instruction to the function body.
+// emitAssert appends a new "assert" instruction to the function body.
 //
 //     z = e.(t)
 //
-func (builder *functionBuilder) Assert(e int8, typ reflect.Type, z int8) {
+func (builder *functionBuilder) emitAssert(e int8, typ reflect.Type, z int8) {
 	index := -1
 	for i, t := range builder.fn.Types {
 		if t == typ {
@@ -115,19 +115,19 @@ func (builder *functionBuilder) Assert(e int8, typ reflect.Type, z int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAssert, A: e, B: int8(index), C: z})
 }
 
-// Bind appends a new "Bind" instruction to the function body.
+// emitBind appends a new "Bind" instruction to the function body.
 //
 //     r = v
 //
-func (builder *functionBuilder) Bind(v int, r int8) {
+func (builder *functionBuilder) emitBind(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBind, A: int8(v >> 8), B: int8(v), C: r})
 }
 
-// Break appends a new "Break" instruction to the function body.
+// emitBreak appends a new "Break" instruction to the function body.
 //
 //     break addr
 //
-func (builder *functionBuilder) Break(label uint32) {
+func (builder *functionBuilder) emitBreak(label uint32) {
 	addr := builder.labels[label-1]
 	if builder.allocs != nil {
 		addr += 1
@@ -136,32 +136,32 @@ func (builder *functionBuilder) Break(label uint32) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpBreak, A: a, B: b, C: c})
 }
 
-// Call appends a new "Call" instruction to the function body.
+// emitCall appends a new "Call" instruction to the function body.
 //
 //     p.f()
 //
-func (builder *functionBuilder) Call(f int8, shift vm.StackShift, line int) {
+func (builder *functionBuilder) emitCall(f int8, shift vm.StackShift, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCall, A: f})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 	builder.addLine(uint32(len(fn.Body)-2), line)
 }
 
-// CallPredefined appends a new "CallPredefined" instruction to the function body.
+// emitCallPredefined appends a new "CallPredefined" instruction to the function body.
 //
 //     p.F()
 //
-func (builder *functionBuilder) CallPredefined(f int8, numVariadic int8, shift vm.StackShift) {
+func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shift vm.StackShift) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallPredefined, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// CallIndirect appends a new "CallIndirect" instruction to the function body.
+// emitcCallIndirect appends a new "cCallIndirect" instruction to the function body.
 //
 //     f()
 //
-func (builder *functionBuilder) CallIndirect(f int8, numVariadic int8, shift vm.StackShift) {
+func (builder *functionBuilder) emitcCallIndirect(f int8, numVariadic int8, shift vm.StackShift) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
@@ -171,17 +171,17 @@ func (builder *functionBuilder) CallIndirect(f int8, numVariadic int8, shift vm.
 //
 //     z = cap(s)
 //
-func (builder *functionBuilder) Cap(s, z int8) {
+func (builder *functionBuilder) emitCap(s, z int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpCap, A: s, C: z})
 }
 
-// Case appends a new "Case" instruction to the function body.
+// emitCase appends a new "Case" instruction to the function body.
 //
 //     case ch <- value
 //     case value = <-ch
 //     default
 //
-func (builder *functionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, ch int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitCase(kvalue bool, dir reflect.SelectDir, value, ch int8, kind reflect.Kind) {
 	op := vm.OpCase
 	if kvalue {
 		op = -op
@@ -189,19 +189,19 @@ func (builder *functionBuilder) Case(kvalue bool, dir reflect.SelectDir, value, 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(dir), B: value, C: ch})
 }
 
-// Close appends a new "Close" instruction to the function body.
+// emitClose appends a new "Close" instruction to the function body.
 //
 //     close(ch)
 //
-func (builder *functionBuilder) Close(ch int8) {
+func (builder *functionBuilder) emitClose(ch int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpClose, A: ch})
 }
 
-// Concat appends a new "concat" instruction to the function body.
+// emitConcat appends a new "concat" instruction to the function body.
 //
 //     z = concat(s, t)
 //
-func (builder *functionBuilder) Concat(s, t, z int8) {
+func (builder *functionBuilder) emitConcat(s, t, z int8) {
 	fn := builder.fn
 	if builder.allocs != nil {
 		fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpAlloc})
@@ -209,11 +209,11 @@ func (builder *functionBuilder) Concat(s, t, z int8) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpConcat, A: s, B: t, C: z})
 }
 
-// Continue appends a new "Continue" instruction to the function body.
+// emitContinue appends a new "Continue" instruction to the function body.
 //
 //     continue addr
 //
-func (builder *functionBuilder) Continue(label uint32) {
+func (builder *functionBuilder) emitContinue(label uint32) {
 	addr := builder.labels[label-1]
 	if builder.allocs != nil {
 		addr += 1
@@ -222,11 +222,11 @@ func (builder *functionBuilder) Continue(label uint32) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpContinue, A: a, B: b, C: c})
 }
 
-// Convert appends a new "Convert" instruction to the function body.
+// emitConvert appends a new "Convert" instruction to the function body.
 //
 // 	 dst = typ(src)
 //
-func (builder *functionBuilder) Convert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
+func (builder *functionBuilder) emitConvert(src int8, typ reflect.Type, dst int8, srcKind reflect.Kind) {
 	fn := builder.fn
 	regType := builder.addType(typ)
 	var op vm.Operation
@@ -259,39 +259,39 @@ func (builder *functionBuilder) Convert(src int8, typ reflect.Type, dst int8, sr
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: src, B: int8(regType), C: dst})
 }
 
-// Copy appends a new "Copy" instruction to the function body.
+// emitCopy appends a new "Copy" instruction to the function body.
 //
 //     n == 0:   copy(dst, src)
 // 	 n != 0:   n := copy(dst, src)
 //
-func (builder *functionBuilder) Copy(dst, src, n int8) {
+func (builder *functionBuilder) emitCopy(dst, src, n int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpCopy, A: src, B: n, C: dst})
 }
 
-// Defer appends a new "Defer" instruction to the function body.
+// emitDefer appends a new "Defer" instruction to the function body.
 //
 //     defer
 //
-func (builder *functionBuilder) Defer(f int8, numVariadic int8, off, arg vm.StackShift) {
+func (builder *functionBuilder) emitDefer(f int8, numVariadic int8, off, arg vm.StackShift) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpDefer, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(off[0]), A: off[1], B: off[2], C: off[3]})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(arg[0]), A: arg[1], B: arg[2], C: arg[3]})
 }
 
-// Delete appends a new "delete" instruction to the function body.
+// emitDelete appends a new "delete" instruction to the function body.
 //
 //     delete(m, k)
 //
-func (builder *functionBuilder) Delete(m, k int8) {
+func (builder *functionBuilder) emitDelete(m, k int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpDelete, A: m, B: k})
 }
 
-// Div appends a new "div" instruction to the function body.
+// emitDiv appends a new "div" instruction to the function body.
 //
 //     z = x / y
 //
-func (builder *functionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitDiv(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int:
@@ -333,11 +333,11 @@ func (builder *functionBuilder) Div(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Range appends a new "Range" instruction to the function body.
+// emitRange appends a new "Range" instruction to the function body.
 //
 //	for i, e := range s
 //
-func (builder *functionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kind) {
 	fn := builder.fn
 	var op vm.Operation
 	switch kind {
@@ -361,19 +361,19 @@ func (builder *functionBuilder) Range(k bool, s, i, e int8, kind reflect.Kind) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: s, B: i, C: e})
 }
 
-// Field appends a new "Field" instruction to the function body.
+// emitField appends a new "Field" instruction to the function body.
 //
 // 	C = A.field
 //
-func (builder *functionBuilder) Field(a, field, c int8) {
+func (builder *functionBuilder) emitField(a, field, c int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpField, A: a, B: field, C: c})
 }
 
-// Func appends a new "Func" instruction to the function body.
+// emitFunc appends a new "Func" instruction to the function body.
 //
 //     r = func() { ... }
 //
-func (builder *functionBuilder) Func(r int8, typ reflect.Type) *vm.Function {
+func (builder *functionBuilder) emitFunc(r int8, typ reflect.Type) *vm.Function {
 	fn := builder.fn
 	b := len(fn.Literals)
 	if b == 256 {
@@ -392,11 +392,11 @@ func (builder *functionBuilder) Func(r int8, typ reflect.Type) *vm.Function {
 	return scriggoFunc
 }
 
-// GetFunc appends a new "GetFunc" instruction to the function body.
+// emitGetFunc appends a new "GetFunc" instruction to the function body.
 //
 //     z = p.f
 //
-func (builder *functionBuilder) GetFunc(predefined bool, f int8, z int8) {
+func (builder *functionBuilder) emitGetFunc(predefined bool, f int8, z int8) {
 	fn := builder.fn
 	var a int8
 	if predefined {
@@ -408,27 +408,27 @@ func (builder *functionBuilder) GetFunc(predefined bool, f int8, z int8) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpGetFunc, A: a, B: f, C: z})
 }
 
-// GetVar appends a new "GetVar" instruction to the function body.
+// emitGetVar appends a new "GetVar" instruction to the function body.
 //
 //     r = v
 //
-func (builder *functionBuilder) GetVar(v int, r int8) {
+func (builder *functionBuilder) emitGetVar(v int, r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGetVar, A: int8(v >> 8), B: int8(v), C: r})
 }
 
-// Go appends a new "Go" instruction to the function body.
+// emitGo appends a new "Go" instruction to the function body.
 //
 //     go
 //
-func (builder *functionBuilder) Go() {
+func (builder *functionBuilder) emitGo() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpGo})
 }
 
-// Goto appends a new "goto" instruction to the function body.
+// emitGoto appends a new "goto" instruction to the function body.
 //
 //     goto label
 //
-func (builder *functionBuilder) Goto(label uint32) {
+func (builder *functionBuilder) emitGoto(label uint32) {
 	in := vm.Instruction{Op: vm.OpGoto}
 	if label > 0 {
 		if label > uint32(len(builder.labels)) {
@@ -444,7 +444,7 @@ func (builder *functionBuilder) Goto(label uint32) {
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
-// If appends a new "If" instruction to the function body.
+// emitIf appends a new "If" instruction to the function body.
 //
 //     x
 //     !x
@@ -463,7 +463,7 @@ func (builder *functionBuilder) Goto(label uint32) {
 //     len(x) >  y
 //     len(x) >= y
 //
-func (builder *functionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitIf(k bool, x int8, o vm.Condition, y int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kindToType(kind) {
 	case vm.TypeInt:
@@ -481,11 +481,11 @@ func (builder *functionBuilder) If(k bool, x int8, o vm.Condition, y int8, kind 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: int8(o), C: y})
 }
 
-// Index appends a new "index" instruction to the function body
+// emitIndex appends a new "index" instruction to the function body
 //
 //	dst = expr[i]
 //
-func (builder *functionBuilder) Index(ki bool, expr, i, dst int8, exprType reflect.Type) {
+func (builder *functionBuilder) emitIndex(ki bool, expr, i, dst int8, exprType reflect.Type) {
 	fn := builder.fn
 	kind := exprType.Kind()
 	var op vm.Operation
@@ -508,11 +508,11 @@ func (builder *functionBuilder) Index(ki bool, expr, i, dst int8, exprType refle
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: expr, B: i, C: dst})
 }
 
-// LeftShift appends a new "LeftShift" instruction to the function body.
+// emitLeftShift appends a new "LeftShift" instruction to the function body.
 //
 //     z = x << y
 //
-func (builder *functionBuilder) LeftShift(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Uint, reflect.Uintptr:
@@ -535,11 +535,11 @@ func (builder *functionBuilder) LeftShift(k bool, x, y, z int8, kind reflect.Kin
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Len appends a new "len" instruction to the function body.
+// emitLen appends a new "len" instruction to the function body.
 //
 //     l = len(s)
 //
-func (builder *functionBuilder) Len(s, l int8, t reflect.Type) {
+func (builder *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 	var a int8
 	switch t {
 	case reflect.TypeOf(""):
@@ -565,14 +565,14 @@ func (builder *functionBuilder) Len(s, l int8, t reflect.Type) {
 }
 
 // Load data appends a new "LoadData" instruction to the function body.
-func (builder *functionBuilder) LoadData(i int16, dst int8) {
+func (builder *functionBuilder) emitLoadData(i int16, dst int8) {
 	a, b := encodeInt16(i)
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLoadData, A: a, B: b, C: dst})
 }
 
-// LoadNumber appends a new "LoadNumber" instruction to the function body.
+// emitLoadNumber appends a new "LoadNumber" instruction to the function body.
 //
-func (builder *functionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
+func (builder *functionBuilder) emitLoadNumber(typ vm.Type, index, dst int8) {
 	var a int8
 	switch typ {
 	case vm.TypeInt:
@@ -585,11 +585,11 @@ func (builder *functionBuilder) LoadNumber(typ vm.Type, index, dst int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLoadNumber, A: a, B: index, C: dst})
 }
 
-// MakeChan appends a new "MakeChan" instruction to the function body.
+// emitMakeChan appends a new "MakeChan" instruction to the function body.
 //
 //     dst = make(typ, capacity)
 //
-func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
+func (builder *functionBuilder) emitMakeChan(typ reflect.Type, kCapacity bool, capacity int8, dst int8) {
 	fn := builder.fn
 	t := builder.addType(typ)
 	op := vm.OpMakeChan
@@ -621,11 +621,11 @@ func (builder *functionBuilder) MakeChan(typ reflect.Type, kCapacity bool, capac
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: int8(t), B: capacity, C: dst})
 }
 
-// MakeMap appends a new "MakeMap" instruction to the function body.
+// emitMakeMap appends a new "MakeMap" instruction to the function body.
 //
 //     dst = make(typ, size)
 //
-func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
+func (builder *functionBuilder) emitMakeMap(typ reflect.Type, kSize bool, size int8, dst int8) {
 	fn := builder.fn
 	t := builder.addType(typ)
 	op := vm.OpMakeMap
@@ -644,11 +644,11 @@ func (builder *functionBuilder) MakeMap(typ reflect.Type, kSize bool, size int8,
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: int8(t), B: size, C: dst})
 }
 
-// MakeSlice appends a new "MakeSlice" instruction to the function body.
+// emitMakeSlice appends a new "MakeSlice" instruction to the function body.
 //
 //     make(sliceType, len, cap)
 //
-func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
+func (builder *functionBuilder) emitMakeSlice(kLen, kCap bool, sliceType reflect.Type, len, cap, dst int8) {
 	fn := builder.fn
 	t := builder.addType(sliceType)
 	var k int8
@@ -691,21 +691,21 @@ func (builder *functionBuilder) MakeSlice(kLen, kCap bool, sliceType reflect.Typ
 	}
 }
 
-// MethodValue appends a new "MethodValue" instruction to the function body.
+// emitMethodValue appends a new "MethodValue" instruction to the function body.
 //
 //     dst = receiver.name
 //
-func (builder *functionBuilder) MethodValue(name string, receiver int8, dst int8) {
+func (builder *functionBuilder) emitMethodValue(name string, receiver int8, dst int8) {
 	str := builder.makeStringConstant(name)
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpMethodValue, A: receiver, B: str, C: dst})
 }
 
-// Move appends a new "Move" instruction to the function body.
+// emitMove appends a new "Move" instruction to the function body.
 //
 //     z = x
 //
-func (builder *functionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitMove(k bool, x, z int8, kind reflect.Kind) {
 	op := vm.OpMove
 	if k {
 		op = -op
@@ -713,11 +713,11 @@ func (builder *functionBuilder) Move(k bool, x, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(kindToType(kind)), B: x, C: z})
 }
 
-// Mul appends a new "mul" instruction to the function body.
+// emitMul appends a new "mul" instruction to the function body.
 //
 //     z = x * y
 //
-func (builder *functionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitMul(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Uint, reflect.Uintptr:
@@ -746,11 +746,11 @@ func (builder *functionBuilder) Mul(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// New appends a new "new" instruction to the function body.
+// emitNew appends a new "new" instruction to the function body.
 //
 //     z = new(t)
 //
-func (builder *functionBuilder) New(typ reflect.Type, z int8) {
+func (builder *functionBuilder) emitNew(typ reflect.Type, z int8) {
 	fn := builder.fn
 	b := builder.addType(typ)
 	if builder.allocs != nil {
@@ -765,9 +765,9 @@ func (builder *functionBuilder) New(typ reflect.Type, z int8) {
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpNew, B: int8(b), C: z})
 }
 
-// Nop appends a new "Nop" instruction to the function body.
+// emitNop appends a new "Nop" instruction to the function body.
 //
-func (builder *functionBuilder) Nop() {
+func (builder *functionBuilder) emitNop() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNone})
 }
 
@@ -783,47 +783,47 @@ func (builder *functionBuilder) Or(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Panic appends a new "Panic" instruction to the function body.
+// emitPanic appends a new "Panic" instruction to the function body.
 //
 //     panic(v)
 //
-func (builder *functionBuilder) Panic(v int8, line int) {
+func (builder *functionBuilder) emitPanic(v int8, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpPanic, A: v})
 	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
-// Print appends a new "Print" instruction to the function body.
+// emitPrint appends a new "Print" instruction to the function body.
 //
 //     print(arg)
 //
-func (builder *functionBuilder) Print(arg int8) {
+func (builder *functionBuilder) emitPrint(arg int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpPrint, A: arg})
 }
 
-// Receive appends a new "Receive" instruction to the function body.
+// emitReceive appends a new "Receive" instruction to the function body.
 //
 //	dst = <- ch
 //
 //	dst, ok = <- ch
 //
-func (builder *functionBuilder) Receive(ch, ok, dst int8) {
+func (builder *functionBuilder) emitReceive(ch, ok, dst int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpReceive, A: ch, B: ok, C: dst})
 }
 
-// Recover appends a new "Recover" instruction to the function body.
+// emitRecover appends a new "Recover" instruction to the function body.
 //
 //     recover()
 //
-func (builder *functionBuilder) Recover(r int8) {
+func (builder *functionBuilder) emitRecover(r int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpRecover, C: r})
 }
 
-// Rem appends a new "rem" instruction to the function body.
+// emitRem appends a new "rem" instruction to the function body.
 //
 //     z = x % y
 //
-func (builder *functionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitRem(ky bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int:
@@ -861,19 +861,19 @@ func (builder *functionBuilder) Rem(ky bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Return appends a new "return" instruction to the function body.
+// emitReturn appends a new "return" instruction to the function body.
 //
 //     return
 //
-func (builder *functionBuilder) Return() {
+func (builder *functionBuilder) emitReturn() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpReturn})
 }
 
-// RightShift appends a new "RightShift" instruction to the function body.
+// emitRightShift appends a new "RightShift" instruction to the function body.
 //
 //     z = x >> y
 //
-func (builder *functionBuilder) RightShift(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitRightShift(k bool, x, y, z int8, kind reflect.Kind) {
 	op := vm.OpRightShift
 	switch kind {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -885,37 +885,37 @@ func (builder *functionBuilder) RightShift(k bool, x, y, z int8, kind reflect.Ki
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Select appends a new "Select" instruction to the function body.
+// emitSelect appends a new "Select" instruction to the function body.
 //
 //     select
 //
-func (builder *functionBuilder) Select() {
+func (builder *functionBuilder) emitSelect() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSelect})
 }
 
-// Send appends a new "Send" instruction to the function body.
+// emitSend appends a new "Send" instruction to the function body.
 //
 //	ch <- v
 //
-func (builder *functionBuilder) Send(ch, v int8) {
+func (builder *functionBuilder) emitSend(ch, v int8) {
 	// TODO(Gianluca): how can send know kind/type?
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSend, A: v, C: ch})
 }
 
-// SetAlloc sets the alloc property. If true, an Alloc instruction will be
+// emitSetAlloc sets the alloc property. If true, an Alloc instruction will be
 // inserted where necessary.
-func (builder *functionBuilder) SetAlloc(alloc bool) {
+func (builder *functionBuilder) emitSetAlloc(alloc bool) {
 	if alloc && builder.allocs == nil {
 		builder.allocs = append(builder.allocs, 0)
 		builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpAlloc})
 	}
 }
 
-// SetField appends a new "SetField" instruction to the function body.
+// emitSetField appends a new "SetField" instruction to the function body.
 //
 //     s.field = v
 //
-func (builder *functionBuilder) SetField(k bool, s, field, v int8) {
+func (builder *functionBuilder) emitSetField(k bool, s, field, v int8) {
 	op := vm.OpSetField
 	if k {
 		op = -op
@@ -923,11 +923,11 @@ func (builder *functionBuilder) SetField(k bool, s, field, v int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSetField, A: v, B: field, C: s})
 }
 
-// SetVar appends a new "SetVar" instruction to the function body.
+// emitSetVar appends a new "SetVar" instruction to the function body.
 //
 //     v = r
 //
-func (builder *functionBuilder) SetVar(k bool, r int8, v int) {
+func (builder *functionBuilder) emitSetVar(k bool, r int8, v int) {
 	op := vm.OpSetVar
 	if k {
 		op = -op
@@ -935,11 +935,11 @@ func (builder *functionBuilder) SetVar(k bool, r int8, v int) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: r, B: int8(v >> 8), C: int8(v)})
 }
 
-// SetMap appends a new "SetMap" instruction to the function body.
+// emitSetMap appends a new "SetMap" instruction to the function body.
 //
 //	m[key] = value
 //
-func (builder *functionBuilder) SetMap(k bool, m, value, key int8, typ reflect.Type) {
+func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, typ reflect.Type) {
 	fn := builder.fn
 	op := vm.OpSetMap
 	if k {
@@ -962,11 +962,11 @@ func (builder *functionBuilder) SetMap(k bool, m, value, key int8, typ reflect.T
 	fn.Body = append(fn.Body, vm.Instruction{Op: op, A: m, B: value, C: key})
 }
 
-// SetSlice appends a new "SetSlice" instruction to the function body.
+// emitSetSlice appends a new "SetSlice" instruction to the function body.
 //
 //	slice[index] = value
 //
-func (builder *functionBuilder) SetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
+func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
 	_ = elemKind // TODO(Gianluca): remove.
 	in := vm.Instruction{Op: vm.OpSetSlice, A: slice, B: value, C: index}
 	if k {
@@ -975,11 +975,11 @@ func (builder *functionBuilder) SetSlice(k bool, slice, value, index int8, elemK
 	builder.fn.Body = append(builder.fn.Body, in)
 }
 
-// Slice appends a new "Slice" instruction to the function body.
+// emitSlice appends a new "Slice" instruction to the function body.
 //
 //	slice[low:high:max]
 //
-func (builder *functionBuilder) Slice(klow, khigh, kmax bool, src, dst, low, high, max int8) {
+func (builder *functionBuilder) emitSlice(klow, khigh, kmax bool, src, dst, low, high, max int8) {
 	fn := builder.fn
 	var b int8
 	if klow {
@@ -995,11 +995,11 @@ func (builder *functionBuilder) Slice(klow, khigh, kmax bool, src, dst, low, hig
 	fn.Body = append(fn.Body, vm.Instruction{A: low, B: high, C: max})
 }
 
-// Sub appends a new "Sub" instruction to the function body.
+// emitSub appends a new "Sub" instruction to the function body.
 //
 //     z = x - y
 //
-func (builder *functionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitSub(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Uint, reflect.Uintptr:
@@ -1028,11 +1028,11 @@ func (builder *functionBuilder) Sub(k bool, x, y, z int8, kind reflect.Kind) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// SubInv appends a new "SubInv" instruction to the function body.
+// emitSubInv appends a new "SubInv" instruction to the function body.
 //
 //     z = y - x
 //
-func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitSubInv(k bool, x, y, z int8, kind reflect.Kind) {
 	var op vm.Operation
 	switch kind {
 	case reflect.Int, reflect.Uint, reflect.Uintptr:
@@ -1061,8 +1061,8 @@ func (builder *functionBuilder) SubInv(k bool, x, y, z int8, kind reflect.Kind) 
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
-// Typify appends a new "Typify" instruction to the function body.
-func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
+// emitTypify appends a new "Typify" instruction to the function body.
+func (builder *functionBuilder) emitTypify(k bool, typ reflect.Type, x, z int8) {
 	t := builder.addType(typ)
 	op := vm.OpTypify
 	if k {
@@ -1071,21 +1071,21 @@ func (builder *functionBuilder) Typify(k bool, typ reflect.Type, x, z int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: int8(t), B: x, C: z})
 }
 
-// TailCall appends a new "TailCall" instruction to the function body.
+// emitTailCall appends a new "TailCall" instruction to the function body.
 //
 //     f()
 //
-func (builder *functionBuilder) TailCall(f int8, line int) {
+func (builder *functionBuilder) emitTailCall(f int8, line int) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpTailCall, A: f})
 	builder.addLine(uint32(len(fn.Body)-1), line)
 }
 
-// Xor appends a new "Xor" instruction to the function body.
+// emitXor appends a new "Xor" instruction to the function body.
 //
 //     z = x ^ y
 //
-func (builder *functionBuilder) Xor(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitXor(k bool, x, y, z int8, kind reflect.Kind) {
 	op := vm.OpXor
 	if k {
 		op = -op

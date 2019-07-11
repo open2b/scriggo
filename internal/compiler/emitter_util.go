@@ -22,21 +22,21 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 	// dst is indirect, so value must be "typed" to its true (original) type
 	// before putting it into general.
 	if dst < 0 {
-		em.fb.Typify(k, srcType, src, dst)
+		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}
 
 	// When moving a value from general to general, value's type must be
 	// updated.
 	if dstType.Kind() == reflect.Interface && srcType.Kind() == reflect.Interface {
-		em.fb.Move(k, src, dst, srcType.Kind())
+		em.fb.emitMove(k, src, dst, srcType.Kind())
 		return
 	}
 
 	// When moving a value from int, float or string to general, value's type
 	// must be "typed" to its true (original) type.
 	if dstType.Kind() == reflect.Interface {
-		em.fb.Typify(k, srcType, src, dst)
+		em.fb.emitTypify(k, srcType, src, dst)
 		return
 	}
 
@@ -46,16 +46,16 @@ func (em *emitter) changeRegister(k bool, src, dst int8, srcType reflect.Type, d
 		if k {
 			em.fb.enterScope()
 			tmpReg := em.fb.newRegister(srcType.Kind())
-			em.fb.Move(true, src, tmpReg, srcType.Kind())
-			em.fb.Convert(tmpReg, dstType, dst, srcType.Kind())
+			em.fb.emitMove(true, src, tmpReg, srcType.Kind())
+			em.fb.emitConvert(tmpReg, dstType, dst, srcType.Kind())
 			em.fb.exitScope()
 		}
-		em.fb.Convert(src, dstType, dst, srcType.Kind())
+		em.fb.emitConvert(src, dstType, dst, srcType.Kind())
 		return
 	}
 
 	if k || src != dst {
-		em.fb.Move(k, src, dst, srcType.Kind())
+		em.fb.emitMove(k, src, dst, srcType.Kind())
 	}
 
 }

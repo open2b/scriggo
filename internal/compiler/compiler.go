@@ -250,7 +250,7 @@ func EmitPackageMain(pkgMain *ast.Package, typeInfos map[ast.Node]*TypeInfo, ind
 func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *Code {
 	e := newEmitter(typeInfos, indirectVars, opts)
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
-	e.fb.SetAlloc(opts.MemoryLimit)
+	e.fb.emitSetAlloc(opts.MemoryLimit)
 	e.fb.enterScope()
 	e.EmitNodes(tree.Nodes)
 	e.fb.exitScope()
@@ -273,7 +273,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$io.Writer", Type: emptyInterfaceType})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Write", Type: reflect.FuncOf(nil, nil, false)})
 	e.globals = append(e.globals, Global{Pkg: "$template", Name: "$Render", Type: reflect.FuncOf(nil, nil, false)})
-	e.fb.SetAlloc(opts.MemoryLimit)
+	e.fb.emitSetAlloc(opts.MemoryLimit)
 
 	// If page is a package, then page extends another page.
 	if len(tree.Nodes) == 1 {
@@ -297,7 +297,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			// package variables.
 			var initVarsIndex int8 = 0
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
-			e.fb.Call(initVarsIndex, vm.StackShift{}, 0)
+			e.fb.emitCall(initVarsIndex, vm.StackShift{}, 0)
 			e.EmitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()

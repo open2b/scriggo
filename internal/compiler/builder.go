@@ -360,7 +360,7 @@ func (builder *functionBuilder) setLabelAddr(label uint32) {
 func (builder *functionBuilder) end() {
 	fn := builder.fn
 	if len(fn.Body) == 0 || fn.Body[len(fn.Body)-1].Op != vm.OpReturn {
-		builder.Return()
+		builder.emitReturn()
 	}
 	for addr, label := range builder.gotos {
 		i := fn.Body[addr]
