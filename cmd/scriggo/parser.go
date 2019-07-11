@@ -137,7 +137,7 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 				if len(tokens) > 3 {
 					return nil, fmt.Errorf("too many packages names at line %d", ln)
 				}
-				pkgName := string(tokens[1])
+				pkgName := string(tokens[2])
 				err := checkIdentifierName(pkgName)
 				if err != nil {
 					return nil, err

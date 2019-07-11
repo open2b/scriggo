@@ -44,6 +44,7 @@ func TestParse(t *testing.T) {
 		{commandEmbed, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
 		{commandEmbed, "GOOS linux darwin", &scriggofile{pkgName: "main", target: targetAll, goos: []string{"linux", "darwin"}, variable: "packages"}},
 		{commandEmbed, "SET VARIABLE pkgs", &scriggofile{pkgName: "main", target: targetAll, variable: "pkgs"}},
+		{commandEmbed, "SET PACKAGE pkg", &scriggofile{pkgName: "pkg", target: targetAll, variable: "packages"}},
 		{commandInstall, "", &scriggofile{pkgName: "main", target: targetAll, variable: "packages"}},
 		{commandGenerate, "TARGET PROGRAMS", &scriggofile{pkgName: "main", target: targetPrograms, variable: "packages"}},
 		{commandInstall, "TARGET SCRIPTS PROGRAMS", &scriggofile{pkgName: "main", target: targetPrograms | targetScripts, variable: "packages"}},
