@@ -125,6 +125,25 @@ var stmtTests = []struct {
 	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Variable declaration with 'var'",
+		src: `package main
+
+		import "fmt"
+
+		func pair() (int, string) {
+			return 10, "zzz"
+		}
+
+		func main() {
+			var a, b = 1, 2
+			var c, d int
+			var e, f = pair()
+			fmt.Print(a, b, c, d, e, f)
+		}
+		`,
+		output: "1 2 0 0 10zzz",
+	},
+	{
 		name: "Function literal call (1 in, 1 out)",
 		src: `package main
 
@@ -4616,25 +4635,7 @@ var stmtTests = []struct {
 	// 	output: "10 23.41 34.27505190311419",
 	// },
 
-	// {"Variable declaration with 'var'",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func pair() (int, string) {
-	// 		return 10, "zzz"
-	// 	}
-
-	// 	func main() {
-	// 		var a, b = 1, 2
-	// 		var c, d int
-	// 		var e, f = pair()
-	// 		fmt.Print(a, b, c, d, e, f)
-	// 	}
-	// 	`,
-	// 	nil,
-	// 	nil,
-	// 	"1 2 0 0 10zzz"},
+	
 
 	//------------------------------------
 
