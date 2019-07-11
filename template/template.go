@@ -87,9 +87,6 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 	if err != nil {
 		return nil, err
 	}
-	// TODO(Gianluca): pass "main" and "builtins" to emitter.
-	// main contains user defined variables, while builtins contains template builtins.
-	// // define something like "emitterBuiltins" in order to avoid converting at every compilation.
 	typeInfos := map[ast.Node]*compiler.TypeInfo{}
 	for _, pkgInfos := range tci {
 		for node, ti := range pkgInfos.TypeInfo {
