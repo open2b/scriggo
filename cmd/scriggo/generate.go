@@ -88,10 +88,6 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 				return 0, err
 			}
 		}
-		// Convert all declaration name to "unexported" if requested.
-		// TODO(Gianluca): if uncapitalized name conflicts with a Go builtin
-		//  return an error. Note that the builtin functions 'print' and
-		//  'println' should be handled as special case:
 		if imp.notCapitalized {
 			tmp := map[string]string{}
 			for name, decl := range decls {
