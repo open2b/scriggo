@@ -144,7 +144,7 @@ var stmtTests = []struct {
 	// },
 
 	{
-		name: "Binary boolean operators put in an empty interface context",
+		name: "Binary boolean operator puts result in an empty interface context",
 		src: `package main
 
 		import (
