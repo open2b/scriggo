@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Type assertion on empty interface containing an int value",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			i := interface{}(5)
+			a := 7 + i.(int)
+			fmt.Print(i, ", ", a)
+			return
+		}
+		`,
+		out: "5, 12",
+	},
+	{
 		name: "Variable declaration with 'var'",
 		src: `package main
 
@@ -4844,26 +4859,6 @@ var stmtTests = []struct {
 	// 	`,
 	// output:
 	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
-
-	//------------------------------------
-
-	// TODO(Gianluca): conversion always puts result into "general", so this
-	// test cannot pass.
-	// {"Type assertion as expression (single value context)",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		i := interface{}(int64(5))
-	// 		a := 7 + i.(int64)
-	// 		fmt.Print(i, ", ", a)
-	// 		return
-	// 	}
-	// 	`,
-	// 	output:
-	// 	"5, 12",
-	// },
 
 }
 
