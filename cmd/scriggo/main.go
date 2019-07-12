@@ -303,13 +303,13 @@ func build(install bool, work bool, verbose bool) error {
 		if err != nil {
 			return err
 		}
+		if len(packages) == 0 || packages[0].Name == "" {
+			return fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
+		}
 		if len(packages) > 1 {
 			return errors.New("too many packages matching")
 		}
 		pkg := packages[0]
-		if pkg.Name == "" {
-			return fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
-		}
 		if len(pkg.GoFiles) == 0 {
 			return fmt.Errorf("package %s does not contain Go files", path)
 		}
