@@ -144,6 +144,25 @@ var stmtTests = []struct {
 	// },
 
 	{
+		name: "Conversions assigning values to variables of different kind",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			i64 := int64(100)
+			i := int(i64)
+			interf := interface{}(i64)
+			fmt.Print(i64, i, interf)
+			fmt.Printf("%T %T %T", i64, i, interf)
+		}
+		`,
+		out: "100 100 100int64 int int64",
+	},
+
+	{
 		name: "Binary boolean operator puts result in an empty interface context",
 		src: `package main
 

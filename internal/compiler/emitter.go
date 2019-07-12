@@ -765,16 +765,18 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		if em.ti(expr.Func) == showMacroIgnoredTi {
 			return
 		}
+
 		// Builtin call.
 		if em.ti(expr.Func).IsBuiltin() {
 			em.emitBuiltin(expr, reg, dstType)
 			return
 		}
+
 		// Conversion.
 		if em.ti(expr.Func).IsType() {
 			convertType := em.ti(expr.Func).Type
+			// A conversion cannot have side-effects.
 			if reg == 0 {
-				// Conversion cannot have side-effects.
 				return
 			}
 			typ := em.ti(expr.Args[0]).Type
@@ -782,15 +784,16 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			em.emitExpr(expr.Args[0], arg, typ)
 			if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
 				em.changeRegister(false, arg, reg, typ, convertType)
-			} else {
-				em.fb.enterStack()
-				tmpReg := em.fb.newRegister(convertType.Kind())
-				em.changeRegister(false, arg, tmpReg, typ, convertType)
-				em.changeRegister(false, tmpReg, reg, convertType, dstType)
-				em.fb.exitStack()
+				return
 			}
+			em.fb.enterStack()
+			tmpReg := em.fb.newRegister(convertType.Kind())
+			em.changeRegister(false, arg, tmpReg, typ, convertType)
+			em.changeRegister(false, tmpReg, reg, convertType, dstType)
+			em.fb.exitStack()
 			return
 		}
+
 		// Function call.
 		em.fb.enterStack()
 		regs, types := em.emitCall(expr)
