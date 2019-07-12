@@ -4635,8 +4635,6 @@ var stmtTests = []struct {
 	// 	output: "10 23.41 34.27505190311419",
 	// },
 
-	
-
 	//------------------------------------
 
 	// {"Defer",
@@ -4940,46 +4938,3 @@ func equal(expected, got []string) int {
 func tabsToSpaces(s string) string {
 	return strings.ReplaceAll(s, "\t", "    ")
 }
-
-// NoTestMakeExpressionTests renders the list of tests.
-//
-// Usage:
-//
-//   1) Be sure TestVM passes 100%
-//   2) Rename this test removing "No" from it's name
-//   3) Run this test and copy result from stdout
-//   4) Paste it in this file
-//   5) Use your diff tool to discard unwanted changes (eg. registers overwriting)
-//
-// TODO (Gianluca):
-// func NoTestMakeExpressionTests(t *testing.T) {
-// 	out := strings.Builder{}
-// 	out.WriteString("\n")
-// 	for _, cas := range stmtTests {
-// 		r := parser.MapReader{"/test.go": []byte(cas.src)}
-// 		comp := NewCompiler(r, goPackages)
-// 		pkg, err := comp.CompileFunction()
-// 		if err != nil {
-// 			panic(fmt.Errorf("unexpected error: source: %q, compiler error: %s", oneLine(cas.src), err))
-// 		}
-// 		got := &bytes.Buffer{}
-// 		_, err = DisassembleFunction(got, pkg)
-// 		if err != nil {
-// 			panic(fmt.Errorf("unexpected error: source: %q, disassemble error: %s", oneLine(cas.src), err))
-// 		}
-
-// 		out.WriteString("{\n")
-// 		out.WriteString("\t\"" + cas.name + "\",\n")
-// 		out.WriteString("\t`" + cas.src + "`,\n")
-// 		out.WriteString("\t[]string{\n")
-// 		for _, line := range strings.Split(strings.TrimSpace(got.String()), "\n") {
-// 			out.WriteString("\t\t`" + line + "`,\n")
-// 		}
-// 		out.WriteString("\t},\n")
-// 		out.WriteString("\t[]reg{\n")
-// 		out.WriteString("\t\t// Registers overwritten (use your diff tool to restore original ones)\n")
-// 		out.WriteString("\t},\n")
-// 		out.WriteString("},\n")
-// 	}
-// 	t.Error(out.String())
-// }
