@@ -201,6 +201,9 @@ func parseScriggofile(src io.Reader, goos string) (*scriggofile, error) {
 					if err != nil {
 						return nil, err
 					}
+					if hasStdlibPrefix(path) {
+						return nil, fmt.Errorf("invalid path %q (prefix conflicts with Go standard library)", path)
+					}
 					imp.asPath = path
 					parsedAs = true
 					tokens = tokens[2:]

@@ -217,3 +217,54 @@ func Test_filterExcluding(t *testing.T) {
 		}
 	}
 }
+
+func Test_checkPackagePath(t *testing.T) {
+	cases := map[string]string{
+		`main`:          ``,
+		`internal`:      `use of internal package "internal" not allowed`,
+		`internal/pkg`:  `use of internal package "internal/pkg" not allowed`,
+		`internal/main`: `use of internal package "internal/main" not allowed`,
+		`fmt`:           ``,
+		`?`:             `invalid path path "?"`,
+	}
+	for path, want := range cases {
+		t.Run(path, func(t *testing.T) {
+			got := checkPackagePath(path)
+			switch {
+			case want == "" && got == nil:
+				// Ok.
+			case want == "" && got != nil:
+				t.Fatalf("path '%s': no error expected, got '%s'", path, got)
+			case want != "" && got == nil:
+				t.Fatalf("path '%s': error '%s' expected, got nothing", path, want)
+			case want != "" && got != nil:
+				if want == got.Error() {
+					// Ok
+				} else {
+					t.Fatalf("path: '%s': expecting error '%s', got '%s'", path, want, got)
+				}
+			}
+		})
+	}
+}
+
+func Test_hasStdlibPrefix(t *testing.T) {
+	cases := map[string]bool{
+		`main`:         false,
+		`fmt`:          true,
+		`archive`:      true,
+		`archiv`:       false,
+		`archive/tar`:  true,
+		`testing`:      true,
+		`path/to/pkg`:  true,
+		`path/to/test`: true,
+	}
+	for path, want := range cases {
+		t.Run(path, func(t *testing.T) {
+			got := hasStdlibPrefix(path)
+			if got != want {
+				t.Fatalf("path '%s': expecting %t, got %t", path, want, got)
+			}
+		})
+	}
+}
