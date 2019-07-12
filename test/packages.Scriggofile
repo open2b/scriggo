@@ -3,9 +3,11 @@ SET PACKAGE  test
 
 IMPORT scriggo/test/testpkg AS testpkg
 
-IMPORT fmt
-IMPORT errors
 IMPORT bytes
+IMPORT errors
+IMPORT fmt
 IMPORT math
 IMPORT os/exec
+IMPORT strings
 IMPORT time
+IMPORT unicode

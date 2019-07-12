@@ -121,6 +121,27 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+	// TODO(Gianluca):
+	// {
+	// 	name: "Go calling a function literal defined in Scriggo",
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 		"strings"
+	// 		"unicode"
+	// 	)
+
+	// 	func main() {
+	// 		f := func(c rune) bool {
+	// 			return unicode.Is(unicode.Han, c)
+	// 		}
+	// 		fmt.Print(strings.IndexFunc("Hello, 世界\n", f))
+	// 		fmt.Print(strings.IndexFunc("Hello, world\n", f))
+	// 	}
+	// 	`,
+	// 	out: "7-1",
+	// },
 	{
 		name: "Type assertion on empty interface containing an int value",
 		src: `package main
