@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"text/tabwriter"
 
 	"scriggo"
 	"scriggo/vm"
@@ -116,13 +115,11 @@ type reg struct {
 }
 
 var stmtTests = []struct {
-	name         string      // name of the test.
-	src          string      // source code which must be executed.
-	disassembled []string    // expected disassembler output. Can be nil.
-	registers    []reg       // list of expected registers. Can be nil.
-	output       string      // expected stdout/stderr output.
-	err          interface{} // error.
-	freeMemory   int         // free memory in bytes, set to zero if there is no limit.
+	name       string      // name of the test.
+	src        string      // source code which must be executed.
+	out        string      // expected stdout/stderr output.
+	err        interface{} // error.
+	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
 		name: "Variable declaration with 'var'",
@@ -141,7 +138,7 @@ var stmtTests = []struct {
 			fmt.Print(a, b, c, d, e, f)
 		}
 		`,
-		output: "1 2 0 0 10zzz",
+		out: "1 2 0 0 10zzz",
 	},
 	{
 		name: "Function literal call (1 in, 1 out)",
@@ -164,7 +161,7 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		output: "41inc:41inc:4242",
+		out: "41inc:41inc:4242",
 	},
 	{
 		name: "(Predefined) struct composite literal (empty)",
@@ -180,7 +177,7 @@ var stmtTests = []struct {
 			fmt.Println(t1)
 		}
 		`,
-		output: "{0 0}\n",
+		out: "{0 0}\n",
 	},
 	{
 		name: "Reading an int variable",
@@ -194,7 +191,7 @@ var stmtTests = []struct {
 			fmt.Println("A is", A)
 		}
 		`,
-		output: "A is 40\n",
+		out: "A is 40\n",
 	},
 	{
 		name: "blank identifier as global variable",
@@ -212,7 +209,7 @@ var stmtTests = []struct {
 		func main() {
 		}
 		`,
-		output: "f called!\n",
+		out: "f called!\n",
 	},
 	{
 		name: "Nil: predeclared nil as function parameter",
@@ -231,7 +228,7 @@ var stmtTests = []struct {
 			f(nil)
 		}
 		`,
-		output: "s: [10 20 30], len(s): 3, type(s): []int\ns: [], len(s): 0, type(s): []int\n",
+		out: "s: [10 20 30], len(s): 3, type(s): []int\ns: [], len(s): 0, type(s): []int\n",
 	},
 	{
 		name: "Nil: declaring a nil slice with var and explicitly assigning 'nil' to it",
@@ -246,7 +243,7 @@ var stmtTests = []struct {
 			fmt.Print("s: ", s, ", len(s): ", len(s))
 		}
 		`,
-		output: `s: [], len(s): 0`,
+		out: `s: [], len(s): 0`,
 	},
 	{
 		name: "Predefined constants",
@@ -269,7 +266,7 @@ var stmtTests = []struct {
 			fmt.Println("nanosecond:", nanosecond)
 		}
 		`,
-		output: "phi: 1.618033988749895\nansic: Mon Jan _2 15:04:05 2006\nnanosecond: 1ns\n",
+		out: "phi: 1.618033988749895\nansic: Mon Jan _2 15:04:05 2006\nnanosecond: 1ns\n",
 	},
 
 	{
@@ -290,7 +287,7 @@ var stmtTests = []struct {
 			f([]int{})
 		}
 		`,
-		output: `[1 2 3][][]`,
+		out: `[1 2 3][][]`,
 	},
 
 	{
@@ -304,7 +301,7 @@ var stmtTests = []struct {
 			fmt.Println(d)
 		}
 		`,
-		output: "3e+20\n",
+		out: "3e+20\n",
 	},
 
 	{
@@ -324,7 +321,7 @@ var stmtTests = []struct {
 			sum(1, 2, 3)
 		}
 		`,
-		output: `[1 2] [-2 2] [1 2 3] [-2 2 3] `,
+		out: `[1 2] [-2 2] [1 2 3] [-2 2 3] `,
 	},
 
 	{
@@ -356,7 +353,7 @@ var stmtTests = []struct {
 			fmt.Printf("%v, len: %d, cap: %d\n", s, len(s), cap(s))
 		}
 		`,
-		output: "[0 0 0 0 0 0 0 0 0 0], len: 10, cap: 10\n[0 0 0 0], len: 4, cap: 6\n[], len: 0, cap: 3\n[0 0], len: 2, cap: 2\n[0 0], len: 2, cap: 5\n[0 0], len: 2, cap: 20\n[], len: 0, cap: 5\n",
+		out: "[0 0 0 0 0 0 0 0 0 0], len: 10, cap: 10\n[0 0 0 0], len: 4, cap: 6\n[], len: 0, cap: 3\n[0 0], len: 2, cap: 2\n[0 0], len: 2, cap: 5\n[0 0], len: 2, cap: 20\n[], len: 0, cap: 5\n",
 	},
 
 	{
@@ -372,7 +369,7 @@ var stmtTests = []struct {
 			fmt.Println("cap:", cap(s))
 		}
 		`,
-		output: "s: [0 0 0 0 0]\nlen: 5\ncap: 10\n",
+		out: "s: [0 0 0 0 0]\nlen: 5\ncap: 10\n",
 	},
 
 	{
@@ -390,7 +387,7 @@ var stmtTests = []struct {
 			fmt.Println(s, ok)
 		}
 		`,
-		output: "hello true\n",
+		out: "hello true\n",
 	},
 
 	{
@@ -404,7 +401,7 @@ var stmtTests = []struct {
 				u := uint(f)
 				fmt.Println(f, u)
 		}`,
-		output: "1.3 1\n",
+		out: "1.3 1\n",
 	},
 
 	{
@@ -420,7 +417,7 @@ var stmtTests = []struct {
 			fmt.Print(len([]int{2,3,4}))
 		}				
 		`,
-		output: "53",
+		out: "53",
 	},
 
 	{
@@ -441,7 +438,7 @@ var stmtTests = []struct {
 			_ = exec.Error{Name: s()}
 		}
 		`,
-		output: `s()`,
+		out: `s()`,
 	},
 
 	{
@@ -459,7 +456,7 @@ var stmtTests = []struct {
 			fmt.Println(e)
 		}
 		`,
-		output: "{errorName error}\n",
+		out: "{errorName error}\n",
 	},
 
 	{
@@ -483,7 +480,7 @@ var stmtTests = []struct {
 			fmt.Println(c.Args)
 		}
 		`,
-		output: "{git/prg [arg1 arg2 arg3] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n[arg1 arg2 arg3]\n",
+		out: "{git/prg [arg1 arg2 arg3] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n[arg1 arg2 arg3]\n",
 	},
 
 	{
@@ -506,7 +503,7 @@ var stmtTests = []struct {
 		}
 		
 		`,
-		output: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
+		out: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
 	},
 
 	{
@@ -527,7 +524,7 @@ var stmtTests = []struct {
 			fmt.Println(c.Path)
 		}
 		`,
-		output: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
+		out: "{git/prg [] [] /home/user/ <nil> <nil> <nil> [] <nil> <nil> <nil> <nil> <nil> false [] [] [] [] <nil> <nil>}\n/home/user/\ngit/prg\n",
 	},
 
 	{
@@ -548,7 +545,7 @@ var stmtTests = []struct {
 			fmt.Print(c.Path)
 		}
 		`,
-		output: "oldPath,newPath",
+		out: "oldPath,newPath",
 	},
 
 	{
@@ -567,7 +564,7 @@ var stmtTests = []struct {
 			fmt.Printf("Path is %q", c.Path)
 		}
 		`,
-		output: `Path is "aPath"`,
+		out: `Path is "aPath"`,
 	},
 
 	{
@@ -587,7 +584,7 @@ var stmtTests = []struct {
 			fmt.Printf("Path is %q", path)
 		}
 		`,
-		output: `Path is "aPath"`,
+		out: `Path is "aPath"`,
 	},
 
 	{
@@ -606,7 +603,7 @@ var stmtTests = []struct {
 			fmt.Printf("%+v", c)
 		}
 		`,
-		output: "{Path:aPath Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
+		out: "{Path:aPath Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
 	},
 
 	{
@@ -623,7 +620,7 @@ var stmtTests = []struct {
 			fmt.Printf("%+v", c)
 		}
 		`,
-		output: "{Path: Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
+		out: "{Path: Args:[] Env:[] Dir: Stdin:<nil> Stdout:<nil> Stderr:<nil> ExtraFiles:[] SysProcAttr:<nil> Process:<nil> ProcessState:<nil> ctx:<nil> lookPathErr:<nil> finished:false childFiles:[] closeAfterStart:[] closeAfterWait:[] goroutine:[] errch:<nil> waitDone:<nil>}",
 	},
 
 	{
@@ -645,7 +642,7 @@ var stmtTests = []struct {
 			_ = map[string]int{"f": f("map")}
 		}
 		`,
-		output: "slice side-effect, slice side-effect, slice side-effect, array side-effect, map side-effect, ",
+		out: "slice side-effect, slice side-effect, slice side-effect, array side-effect, map side-effect, ",
 	},
 
 	{
@@ -660,7 +657,7 @@ var stmtTests = []struct {
 			fmt.Println(string([]byte{97, 98, 99}))
 		}
 		`,
-		output: "abc\n",
+		out: "abc\n",
 	},
 
 	{
@@ -678,7 +675,7 @@ var stmtTests = []struct {
 			ss := fmt.Stringer.String(s)
 			fmt.Print("s.String() is ", ss)
 		}`,
-		output: "s.String() is 20m42s",
+		out: "s.String() is 20m42s",
 	},
 
 	{
@@ -697,7 +694,7 @@ var stmtTests = []struct {
 			ss := m(s)
 			fmt.Print("s.String() is ", ss)
 		}`,
-		output: "s.String() is 20m42s",
+		out: "s.String() is 20m42s",
 	},
 
 	{
@@ -717,7 +714,7 @@ var stmtTests = []struct {
 			fmt.Print("s.String() is ", ss)
 		}
 		`,
-		output: "s.String() is 20m42s",
+		out: "s.String() is 20m42s",
 	},
 
 	{
@@ -736,7 +733,7 @@ var stmtTests = []struct {
 			s := mv()
 			fmt.Print(s)
 		}`,
-		output: `2`,
+		out: `2`,
 	},
 
 	{
@@ -754,7 +751,7 @@ var stmtTests = []struct {
 			ss := s.String()
 			fmt.Print("s.String() is ", ss)
 		}`,
-		output: "s.String() is 10m0s",
+		out: "s.String() is 10m0s",
 	},
 
 	{
@@ -773,7 +770,7 @@ var stmtTests = []struct {
 			fmt.Print(h)
 		}
 		`,
-		output: "0.002",
+		out: "0.002",
 	},
 
 	{
@@ -791,7 +788,7 @@ var stmtTests = []struct {
 			fmt.Print(h)
 		}		
 		`,
-		output: `0.002`,
+		out: `0.002`,
 	},
 
 	{
@@ -811,7 +808,7 @@ var stmtTests = []struct {
 			fmt.Print(s)
 		}		
 		`,
-		output: "2",
+		out: "2",
 	},
 
 	{
@@ -830,7 +827,7 @@ var stmtTests = []struct {
 			fmt.Print(s)
 		}
 		`,
-		output: "2",
+		out: "2",
 	},
 
 	{
@@ -848,7 +845,7 @@ var stmtTests = []struct {
 			fmt.Print(s)
 		}
 		`,
-		output: "content of (indirect) buffer",
+		out: "content of (indirect) buffer",
 	},
 
 	{
@@ -866,7 +863,7 @@ var stmtTests = []struct {
 			fmt.Print(s)
 		}
 		`,
-		output: "content of buffer",
+		out: "content of buffer",
 	},
 
 	{
@@ -884,7 +881,7 @@ var stmtTests = []struct {
 			fmt.Print(l)
 		}
 		`,
-		output: "5",
+		out: "5",
 	},
 
 	// TODO(Gianluca):
@@ -917,7 +914,7 @@ var stmtTests = []struct {
 			fmt.Print(f, i)
 		}
 		`,
-		output: "60.001 60",
+		out: "60.001 60",
 	},
 	{
 		name: "Converting int -> float64",
@@ -933,7 +930,7 @@ var stmtTests = []struct {
 			fmt.Print(i, f)
 		}
 		`,
-		output: "10 10",
+		out: "10 10",
 	},
 	{
 		name: "Converting float64 -> float32",
@@ -949,7 +946,7 @@ var stmtTests = []struct {
 			fmt.Print(f64, f32)
 		}
 		`,
-		output: "1.2345678998765321e+08 1.2345679e+08",
+		out: "1.2345678998765321e+08 1.2345679e+08",
 	},
 	{
 		name: "Converting string -> []byte",
@@ -965,7 +962,7 @@ var stmtTests = []struct {
 			fmt.Print("str: ", str, ", slice: ", slice)
 		}
 		`,
-		output: `str: hello!, slice: [104 101 108 108 111 33]`,
+		out: `str: hello!, slice: [104 101 108 108 111 33]`,
 	},
 	{
 		name: "Converting []byte -> string",
@@ -980,7 +977,7 @@ var stmtTests = []struct {
 			var c string = string(s)
 			fmt.Print("s: ", s, ", c: ", c)
 		}`,
-		output: `s: [97 98 99], c: abc`,
+		out: `s: [97 98 99], c: abc`,
 	},
 	{
 		name: "Converting int -> string",
@@ -996,7 +993,7 @@ var stmtTests = []struct {
 			fmt.Print("i: ", i, ", c: ", c)
 		}
 		`,
-		output: "i: 97, c: a",
+		out: "i: 97, c: a",
 	},
 	{
 		name: "Converting int -> int8 -> int (truncating result)",
@@ -1013,7 +1010,7 @@ var stmtTests = []struct {
 			fmt.Print(a, b, c)
 		}
 		`,
-		output: "400 -112 -112",
+		out: "400 -112 -112",
 	},
 	{
 		name: "Slice expressions",
@@ -1044,7 +1041,7 @@ var stmtTests = []struct {
 				fmt.Print(slice, len(slice), cap(slice), "\t")
 			}
 		}`,
-		output: "[1 2 3 4 5] 5 5\t[] 0 5\t[] 0 5\t[1 2 3] 3 5\t[1 2 3] 3 5\t[1 2 3 4 5] 5 5\t[3 4 5] 3 3\t[3 4] 2 3\t[] 0 3\t[] 0 0\t[1] 1 2\t[3] 1 3\t[] 0 0\t",
+		out: "[1 2 3 4 5] 5 5\t[] 0 5\t[] 0 5\t[1 2 3] 3 5\t[1 2 3] 3 5\t[1 2 3 4 5] 5 5\t[3 4 5] 3 3\t[3 4] 2 3\t[] 0 3\t[] 0 0\t[1] 1 2\t[3] 1 3\t[] 0 0\t",
 	},
 	{
 		name: "Passing a function to Go",
@@ -1058,7 +1055,7 @@ var stmtTests = []struct {
 			f := func() {}
 			fmt.Printf("%T", f)
 		}`,
-		output: "func()",
+		out: "func()",
 	},
 	{
 		name: "Issue #130",
@@ -1075,7 +1072,7 @@ var stmtTests = []struct {
 			fmt.Println(a)
 		}
 		`,
-		output: "hello world!\n",
+		out: "hello world!\n",
 	},
 	{
 		name: "If statement inside function literal",
@@ -1096,7 +1093,7 @@ var stmtTests = []struct {
 			f()
 		}
 		`,
-		output: "ok",
+		out: "ok",
 	},
 	{
 		name: "Implicit repetition on global declaration using iota",
@@ -1119,7 +1116,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "0 0 1",
+		out: "0 0 1",
 	},
 	{
 		name: "Implicit repetition on local declaration using iota (multiple iota on same line)",
@@ -1138,7 +1135,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "10 13 16",
+		out: "10 13 16",
 	},
 	{
 		name: "Implicit repetition on local declaration using iota",
@@ -1157,7 +1154,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "2 4 8",
+		out: "2 4 8",
 	},
 	{
 		name: "Implicit repetition on local declaration",
@@ -1175,7 +1172,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B)
 		}
 		`,
-		output: "10 10",
+		out: "10 10",
 	},
 	{
 		name: "Implicit repetition on global declaration",
@@ -1194,7 +1191,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B)
 		}	
 		`,
-		output: "10 10",
+		out: "10 10",
 	},
 	{
 		name: "Iota - local constant in math expression",
@@ -1213,7 +1210,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "0 2 10",
+		out: "0 2 10",
 	},
 	{
 		name: "Iota - global constant in math expression",
@@ -1233,7 +1230,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "0 2 10",
+		out: "0 2 10",
 	},
 	{
 		name: "Iota - local constant",
@@ -1253,7 +1250,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C, D)
 		}
 		`,
-		output: "0 0 0 1",
+		out: "0 0 0 1",
 	},
 	{
 		name: "Iota - global constant",
@@ -1271,7 +1268,7 @@ var stmtTests = []struct {
 			fmt.Print(A, B, C)
 		}
 		`,
-		output: "0 1 2",
+		out: "0 1 2",
 	},
 	{
 		name: "Identifiers",
@@ -1289,7 +1286,7 @@ var stmtTests = []struct {
 			fmt.Print(a, _x9, ThisVariableIsExported, αβ)
 		}
 		`,
-		output: "1 2 3 4",
+		out: "1 2 3 4",
 	},
 	{
 		name: "Comment inside string",
@@ -1304,7 +1301,7 @@ var stmtTests = []struct {
 			fmt.Print(s)
 		}
 		`,
-		output: "/* not a comment */",
+		out: "/* not a comment */",
 	},
 	{
 		name: "Issue #57",
@@ -1320,7 +1317,7 @@ var stmtTests = []struct {
 			}
 		}
 		`,
-		output: "3\n",
+		out: "3\n",
 	},
 	{
 		name: "Builtin append - single element",
@@ -1337,7 +1334,7 @@ var stmtTests = []struct {
 				fmt.Print(s1, s2, s3)
 			}
 			`,
-		output: "[10 20 30] [10 20 30 40] [10 20 30 50]",
+		out: "[10 20 30] [10 20 30 40] [10 20 30 50]",
 	},
 	{
 		name: "Builtin append on slice (variadic)",
@@ -1353,11 +1350,12 @@ var stmtTests = []struct {
 			s3 := append(s1, s2...)
 			fmt.Print(s1,s2,s3)
 		}`,
-		output: "[1 2 3] [4 5 6] [1 2 3 4 5 6]",
+		out: "[1 2 3] [4 5 6] [1 2 3 4 5 6]",
 	},
 
-	{"Binary operation on global expression",
-		`package main
+	{
+		name: "Binary operation on global expression",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1369,10 +1367,12 @@ var stmtTests = []struct {
 		
 		func main() {
 			fmt.Print(A, B, OR)
-		}`, nil, nil, "true false true", nil, 0},
+		}`,
+		out: "true false true"},
 
-	{"Issue #113",
-		`package main
+	{
+		name: "Issue #113",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1392,10 +1392,12 @@ var stmtTests = []struct {
 			fmt.Println(m)
 			fmt.Println(notOk)
 			fmt.Println(doubleValue)
-		}`, nil, nil, "map[20:12]\nfalse\n24\n", nil, 0},
+		}`,
+		out: "map[20:12]\nfalse\n24\n"},
 
-	{"Boolean global variables",
-		`package main
+	{
+		name: "Boolean global variables",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1408,10 +1410,12 @@ var stmtTests = []struct {
 		func main() {
 			fmt.Print(A, B, C)
 		}
-		`, nil, nil, "true false true", nil, 0},
+		`,
+		out: "true false true"},
 
-	{"Double pointer indirection",
-		`package main
+	{
+		name: "Double pointer indirection",
+		src: `package main
 
 		import "fmt"
 		
@@ -1421,10 +1425,12 @@ var stmtTests = []struct {
 			c := &b
 			fmt.Print(**c)
 		}
-		`, nil, nil, "hello", nil, 0},
+		`,
+		out: "hello"},
 
-	{"Break statement in type-switch statements",
-		`package main
+	{
+		name: "Break statement in type-switch statements",
+		src: `package main
 
 		import (
 			  "fmt"
@@ -1441,10 +1447,12 @@ var stmtTests = []struct {
 				    fmt.Print("???")
 			  }
 			  fmt.Print("done")
-		}`, nil, nil, "switch,case string,done", nil, 0},
+		}`,
+		out: "switch,case string,done"},
 
-	{"Break statement in switch statements",
-		`package main
+	{
+		name: "Break statement in switch statements",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1462,10 +1470,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print("done")
 		}
-		`, nil, nil, "switch,case true,done", nil, 0},
+		`,
+		out: "switch,case true,done"},
 
-	{"Break statement in for statements",
-		`package main
+	{
+		name: "Break statement in for statements",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1480,30 +1490,36 @@ var stmtTests = []struct {
 			}
 			fmt.Printf("c")
 		}
-		`, nil, nil, "abc", nil, 0},
+		`,
+		out: "abc"},
 
-	{"Const declaration inside function body",
-		`package main
+	{
+		name: "Const declaration inside function body",
+		src: `package main
 
 		import "fmt"
 		
 		func main() {
 			const A = 10
 			fmt.Println(A)
-		}`, nil, nil, "10\n", nil, 0},
+		}`,
+		out: "10\n"},
 
-	{"Issue #78",
-		`package main
+	{
+		name: "Issue #78",
+		src: `package main
 
 		func main() {
 			a := 0
 			f := func() { _ = a }
 			_ = f
 		}
-		`, nil, nil, "", nil, 0},
+		`,
+		out: ""},
 
-	{"Counter based on gotos/labels",
-		`package main
+	{
+		name: "Counter based on gotos/labels",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1521,10 +1537,12 @@ var stmtTests = []struct {
 			goto loop
 		end:
 		}
-		`, nil, nil, ",0,1,2,3,4,5,6,7,8,9,", nil, 0},
+		`,
+		out: ",0,1,2,3,4,5,6,7,8,9,"},
 
-	{"Goto label - Forward jump out of scope",
-		`package main
+	{
+		name: "Goto label - Forward jump out of scope",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1540,10 +1558,12 @@ var stmtTests = []struct {
 			out:
 			fmt.Print("out2")
 		}
-		`, nil, nil, "out1,goto,out2", nil, 0},
+		`,
+		out: "out1,goto,out2"},
 
-	{"Goto label - Simple forwaring goto",
-		`package main
+	{
+		name: "Goto label - Simple forwaring goto",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1556,10 +1576,12 @@ var stmtTests = []struct {
 		L:
 			fmt.Print("b")
 		}
-		`, nil, nil, "ab", nil, 0},
+		`,
+		out: "ab"},
 
-	{"Goto label - Simple one-step forwarding goto",
-		`package main
+	{
+		name: "Goto label - Simple one-step forwarding goto",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1571,10 +1593,12 @@ var stmtTests = []struct {
 		L:
 			fmt.Print("b")
 		}
-		`, nil, nil, "ab", nil, 0},
+		`,
+		out: "ab"},
 
-	{"Package variable shadowing in closure body",
-		`package main
+	{
+		name: "Package variable shadowing in closure body",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1591,10 +1615,12 @@ var stmtTests = []struct {
 			}()
 			fmt.Print(A)
 		}
-		`, nil, nil, "11201", nil, 0},
+		`,
+		out: "11201"},
 
-	{"Package variable in closure",
-		`package main
+	{
+		name: "Package variable in closure",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1618,10 +1644,12 @@ var stmtTests = []struct {
 			}()
 			fmt.Print(A)
 		}
-		`, nil, nil, "123344", nil, 0},
+		`,
+		out: "123344"},
 
-	{"Package with both predefined and not predefined variables",
-		`package main
+	{
+		name: "Package with both predefined and not predefined variables",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1636,10 +1664,12 @@ var stmtTests = []struct {
 			c := Center
 			fmt.Println(c)
 		}
-		`, nil, nil, "{5 42}\nmsg\n", nil, 0},
+		`,
+		out: "{5 42}\nmsg\n"},
 
-	{"Function literal call",
-		`package main
+	{
+		name: "Function literal call",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1652,10 +1682,12 @@ var stmtTests = []struct {
 			}()
 			fmt.Print("end")
 		}
-		`, nil, nil, "start,f,end", nil, 0},
+		`,
+		out: "start,f,end"},
 
-	{"Builtin close",
-		`package main
+	{
+		name: "Builtin close",
+		src: `package main
 
 		import "fmt"
 		
@@ -1665,10 +1697,12 @@ var stmtTests = []struct {
 			close(c)
 			fmt.Print("ok")
 		}
-		`, nil, nil, "closing: ok", nil, 0},
+		`,
+		out: "closing: ok"},
 
-	{"Builtin make - with and w/o cap argument",
-		`package main
+	{
+		name: "Builtin make - with and w/o cap argument",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1680,10 +1714,12 @@ var stmtTests = []struct {
 			s2 := make([]int, 2, 5)
 			fmt.Print("/s2: ", len(s2), cap(s2))
 		}
-		`, nil, nil, "s1: 2 2/s2: 2 5", nil, 0},
+		`,
+		out: "s1: 2 2/s2: 2 5"},
 
-	{"Switch without expression",
-		`package main
+	{
+		name: "Switch without expression",
+		src: `package main
 
 		import "fmt"
 		
@@ -1697,10 +1733,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(".")
 		}
-		`, nil, nil, "switch: true.", nil, 0},
+		`,
+		out: "switch: true."},
 
-	{"Package variable - call to a predefined function with package variable as argument",
-		`package main
+	{
+		name: "Package variable - call to a predefined function with package variable as argument",
+		src: `package main
 
 		import "fmt"
 		
@@ -1709,10 +1747,12 @@ var stmtTests = []struct {
 		func main() {
 			fmt.Print(A)
 		}
-		`, nil, nil, "3", nil, 0},
+		`,
+		out: "3"},
 
-	{"Package variable - int variable set by a package function",
-		`package main
+	{
+		name: "Package variable - int variable set by a package function",
+		src: `package main
 
 		import "fmt"
 		
@@ -1729,10 +1769,12 @@ var stmtTests = []struct {
 			a = A
 			fmt.Print(a)
 		}
-		`, nil, nil, "34", nil, 0},
+		`,
+		out: "34"},
 
-	{"Package variable - int variable with math expression as value",
-		`package main
+	{
+		name: "Package variable - int variable with math expression as value",
+		src: `package main
 
 		import "fmt"
 		
@@ -1746,10 +1788,12 @@ var stmtTests = []struct {
 			a := A
 			fmt.Print(a)
 		}
-		`, nil, nil, "129", nil, 0},
+		`,
+		out: "129"},
 
-	{"Package variable - int variable with package function as value",
-		`package main
+	{
+		name: "Package variable - int variable with package function as value",
+		src: `package main
 
 		import "fmt"
 		
@@ -1763,10 +1807,12 @@ var stmtTests = []struct {
 			a := A
 			fmt.Print(a)
 		}
-		`, nil, nil, "42", nil, 0},
+		`,
+		out: "42"},
 
-	{"Package variable - int variable and string variable",
-		`package main
+	{
+		name: "Package variable - int variable and string variable",
+		src: `package main
 
 		import "fmt"
 		
@@ -1780,10 +1826,12 @@ var stmtTests = []struct {
 			fmt.Print(b)
 		
 		}
-		`, nil, nil, "3hey!", nil, 0},
+		`,
+		out: "3hey!"},
 
-	{"Package variable - one int variable",
-		`package main
+	{
+		name: "Package variable - one int variable",
+		src: `package main
 
 		import "fmt"
 		
@@ -1795,10 +1843,12 @@ var stmtTests = []struct {
 			fmt.Print(a)
 		
 		}
-		`, nil, nil, "3", nil, 0},
+		`,
+		out: "3"},
 
-	{"Break - For range (no label)",
-		`package main
+	{
+		name: "Break - For range (no label)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1816,10 +1866,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print("end")
 		}
-		`, nil, nil, "start, v: 1, no break, v: 2, break, end", nil, 0},
+		`,
+		out: "start, v: 1, no break, v: 2, break, end"},
 
-	{"Continue - For range (no label)",
-		`package main
+	{
+		name: "Continue - For range (no label)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1836,10 +1888,12 @@ var stmtTests = []struct {
 				fmt.Print("no!")
 			}
 		}
-		`, nil, nil, "1:cont?no!2:cont?yes!3:cont?no!", nil, 0},
+		`,
+		out: "1:cont?no!2:cont?yes!3:cont?no!"},
 
-	{"Init function with package variables",
-		`package main
+	{
+		name: "Init function with package variables",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1859,10 +1913,12 @@ var stmtTests = []struct {
 		func main() {
 			fmt.Print("main!")
 		}
-		`, nil, nil, "F!init1!main!", nil, 0},
+		`,
+		out: "F!init1!main!"},
 
-	{"Init function - one",
-		`package main
+	{
+		name: "Init function - one",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1875,10 +1931,12 @@ var stmtTests = []struct {
 		func main() {
 			fmt.Print("main!")
 		}
-		`, nil, nil, "init!main!", nil, 0},
+		`,
+		out: "init!main!"},
 
-	{"Init function - three",
-		`package main
+	{
+		name: "Init function - three",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1899,10 +1957,12 @@ var stmtTests = []struct {
 		func init() {
 			fmt.Print("init3!")
 		}
-		`, nil, nil, "init1!init2!init3!main!", nil, 0},
+		`,
+		out: "init1!init2!init3!main!"},
 
-	{"Package variables initialization",
-		`package main
+	{
+		name: "Package variables initialization",
+		src: `package main
 
 		import "fmt"
 		
@@ -1916,10 +1976,12 @@ var stmtTests = []struct {
 		func main() {
 			fmt.Print("main!")
 		}
-		`, nil, nil, "F has been called!main!", nil, 0},
+		`,
+		out: "F has been called!main!"},
 
-	{"Closure - complex tests (multiple clojures)",
-		`package main
+	{
+		name: "Closure - complex tests (multiple clojures)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1944,10 +2006,12 @@ var stmtTests = []struct {
 			f2()
 			f3()
 		}
-		`, nil, nil, "102042", nil, 0},
+		`,
+		out: "102042"},
 
-	{"Closure - one level and two levels variable writing (int)",
-		`package main
+	{
+		name: "Closure - one level and two levels variable writing (int)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1972,10 +2036,12 @@ var stmtTests = []struct {
 			f()
 			fmt.Print(", main:", A)
 		}
-		`, nil, nil, "main:5, main:5, f:5, f:20, g:20, g:30, f:30, main:30", nil, 0},
+		`,
+		out: "main:5, main:5, f:5, f:20, g:20, g:30, f:30, main:30"},
 
-	{"Closure - one level variable writing (int)",
-		`package main
+	{
+		name: "Closure - one level variable writing (int)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -1993,10 +2059,12 @@ var stmtTests = []struct {
 			f()
 			fmt.Print(", main:", A)
 		}
-		`, nil, nil, "main:5, main:5, f:5, f:20, main:20", nil, 0},
+		`,
+		out: "main:5, main:5, f:5, f:20, main:20"},
 
-	{"Closure - one level and two levels variable reading (int)",
-		`package main
+	{
+		name: "Closure - one level and two levels variable reading (int)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2012,10 +2080,12 @@ var stmtTests = []struct {
 				g()
 			}
 			f()
-		}`, nil, nil, "f: 10, g: 10", nil, 0},
+		}`,
+		out: "f: 10, g: 10"},
 
-	{"Closure - one level variable reading (int and string)",
-		`package main
+	{
+		name: "Closure - one level variable reading (int and string)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2032,10 +2102,12 @@ var stmtTests = []struct {
 			}
 			f()
 		}
-		`, nil, nil, "f: 10,f: hey", nil, 0},
+		`,
+		out: "f: 10,f: hey"},
 
-	{"Closure - one level variable reading (int)",
-		`package main
+	{
+		name: "Closure - one level variable reading (int)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2049,10 +2121,12 @@ var stmtTests = []struct {
 			}
 			f()
 		}
-		`, nil, nil, "f: 10", nil, 0},
+		`,
+		out: "f: 10"},
 
-	{"For range on interface{} slice",
-		`package main
+	{
+		name: "For range on interface{} slice",
+		src: `package main
 
 		import "fmt"
 		
@@ -2064,10 +2138,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "0 3,1hey,2 5.6,3 2,", nil, 0},
+		`,
+		out: "0 3,1hey,2 5.6,3 2,"},
 
-	{"For range on empty int slice",
-		`package main
+	{
+		name: "For range on empty int slice",
+		src: `package main
 
 		import "fmt"
 		
@@ -2080,10 +2156,12 @@ var stmtTests = []struct {
 			fmt.Printf("-end")
 		
 		}
-		`, nil, nil, "start--end", nil, 0},
+		`,
+		out: "start--end"},
 
-	{"For range on int slice, taking only values",
-		`package main
+	{
+		name: "For range on int slice, taking only values",
+		src: `package main
 
 		import "fmt"
 		
@@ -2094,10 +2172,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "345", nil, 0},
+		`,
+		out: "345"},
 
-	{"For range on int slice, taking only indexes",
-		`package main
+	{
+		name: "For range on int slice, taking only indexes",
+		src: `package main
 
 		import "fmt"
 		
@@ -2108,10 +2188,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "012", nil, 0},
+		`,
+		out: "012"},
 
-	{"For range with simple assignment (no declaration)",
-		`package main
+	{
+		name: "For range with simple assignment (no declaration)",
+		src: `package main
 
 		import "fmt"
 		
@@ -2123,10 +2205,12 @@ var stmtTests = []struct {
 				fmt.Print(i, e, ",")
 			}
 		}
-		`, nil, nil, "0 3,1 4,2 5,", nil, 0},
+		`,
+		out: "0 3,1 4,2 5,"},
 
-	{"For range with no assignments",
-		`package main
+	{
+		name: "For range with no assignments",
+		src: `package main
 
 		import "fmt"
 		
@@ -2136,10 +2220,12 @@ var stmtTests = []struct {
 				fmt.Print("?")
 			}
 		}
-		`, nil, nil, "???", nil, 0},
+		`,
+		out: "???"},
 
-	{"For range on map[string]int",
-		`package main
+	{
+		name: "For range on map[string]int",
+		src: `package main
 
 		import "fmt"
 		
@@ -2151,10 +2237,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "twelve is 12,", nil, 0},
+		`,
+		out: "twelve is 12,"},
 
-	{"For range on int slice",
-		`package main
+	{
+		name: "For range on int slice",
+		src: `package main
 
 		import "fmt"
 		
@@ -2165,10 +2253,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "0 4,1 5,2 6,", nil, 0},
+		`,
+		out: "0 4,1 5,2 6,"},
 
-	{"For range on string",
-		`package main
+	{
+		name: "For range on string",
+		src: `package main
 
 		import "fmt"
 		
@@ -2179,10 +2269,12 @@ var stmtTests = []struct {
 			}
 		
 		}
-		`, nil, nil, "0 72,1 101,2 108,3 108,4 111,", nil, 0},
+		`,
+		out: "0 72,1 101,2 108,3 108,4 111,"},
 
-	{"Issue #92",
-		`package main
+	{
+		name: "Issue #92",
+		src: `package main
 
 		import "fmt"
 		
@@ -2191,10 +2283,12 @@ var stmtTests = []struct {
 			fmt.Println("a", 10)
 			fmt.Println("b", 2.5)
 		
-		}`, nil, nil, "a 10\nb 2.5\n", nil, 0},
+		}`,
+		out: "a 10\nb 2.5\n"},
 
-	{"Builtin len on maps",
-		`package main
+	{
+		name: "Builtin len on maps",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2214,10 +2308,12 @@ var stmtTests = []struct {
 			m["five"] = 4
 			fmt.Print(len(m))
 		}
-		`, nil, nil, "0114", nil, 0},
+		`,
+		out: "0114"},
 
-	{"Builtin function calls can be used directly as function arguments",
-		`package main
+	{
+		name: "Builtin function calls can be used directly as function arguments",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2227,10 +2323,12 @@ var stmtTests = []struct {
 			fmt.Print(len([]int{1,2,3}))
 			fmt.Print(cap(make([]int, 1, 10)))
 		}
-		`, nil, nil, "310", nil, 0},
+		`,
+		out: "310"},
 
-	{"Checking if map has keys",
-		`package main
+	{
+		name: "Checking if map has keys",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2244,10 +2342,12 @@ var stmtTests = []struct {
 			fmt.Print(v1, v2, v3, ",")
 			fmt.Print(ok1, ok2, ok3)
 		}
-		`, nil, nil, "1 0 0,true false true", nil, 0},
+		`,
+		out: "1 0 0,true false true"},
 
-	{"Map index assignment",
-		`package main
+	{
+		name: "Map index assignment",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2262,10 +2362,12 @@ var stmtTests = []struct {
 			m["one"] = 10
 			fmt.Print(m)
 		}
-		`, nil, nil, "map[],map[four:4 one:1],map[four:4 one:10]", nil, 0},
+		`,
+		out: "map[],map[four:4 one:1],map[four:4 one:10]"},
 
-	{"Builtin delete",
-		`package main
+	{
+		name: "Builtin delete",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2277,10 +2379,12 @@ var stmtTests = []struct {
 			delete(m, "key")
 			fmt.Print(m)
 		}
-		`, nil, nil, "map[key:value key2:value2],map[key2:value2]", nil, 0},
+		`,
+		out: "map[key:value key2:value2],map[key2:value2]"},
 
-	{"Multiple assignment with blank identifier",
-		`package main
+	{
+		name: "Multiple assignment with blank identifier",
+		src: `package main
 
 		import "fmt"
 		
@@ -2290,10 +2394,12 @@ var stmtTests = []struct {
 			fmt.Println(a)
 		
 		}
-		`, nil, nil, "2\n", nil, 0},
+		`,
+		out: "2\n"},
 
-	{"Builtin make - Map with no size",
-		`package main
+	{
+		name: "Builtin make - Map with no size",
+		src: `package main
 
 		import "fmt"
 		
@@ -2302,10 +2408,12 @@ var stmtTests = []struct {
 			m := make(map[string]int)
 			fmt.Printf("%v (%T)", m, m)
 		}
-		`, nil, nil, "map[] (map[string]int)", nil, 0},
+		`,
+		out: "map[] (map[string]int)"},
 
-	{"Builtin new - creating a string pointer and updating it's value",
-		`package main
+	{
+		name: "Builtin new - creating a string pointer and updating it's value",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2318,10 +2426,12 @@ var stmtTests = []struct {
 			*pi = "newv"
 			pv = *pi
 			fmt.Print("*pi:", pv)
-		}`, nil, nil, "*pi:,*pi:newv", nil, 0},
+		}`,
+		out: "*pi:,*pi:newv"},
 
-	{"Builtin new - creating two int pointers and comparing their values",
-		`package main
+	{
+		name: "Builtin new - creating two int pointers and comparing their values",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2335,10 +2445,12 @@ var stmtTests = []struct {
 			equal := pi == pi2
 			fmt.Print("equal?", equal)
 		}
-		`, nil, nil, "pi: *int,equal?true", nil, 0},
+		`,
+		out: "pi: *int,equal?true"},
 
-	{"Builtin new - creating an int pointer",
-		`package main
+	{
+		name: "Builtin new - creating an int pointer",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2348,10 +2460,12 @@ var stmtTests = []struct {
 			pi := new(int)
 			fmt.Printf("pi: %T", pi)
 		}
-		`, nil, nil, "pi: *int", nil, 0},
+		`,
+		out: "pi: *int"},
 
-	{"Pointer indirection as expression",
-		`package main
+	{
+		name: "Pointer indirection as expression",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2363,10 +2477,12 @@ var stmtTests = []struct {
 			c := *b
 			fmt.Print(c)
 		}
-		`, nil, nil, "a", nil, 0},
+		`,
+		out: "a"},
 
-	{"Pointer indirection assignment",
-		`package main
+	{
+		name: "Pointer indirection assignment",
+		src: `package main
 
 		import "fmt"
 		
@@ -2380,10 +2496,12 @@ var stmtTests = []struct {
 			*pb = "newb"
 		
 			fmt.Print(a, b, c)
-		}`, nil, nil, "anewbc", nil, 0},
+		}`,
+		out: "anewbc"},
 
-	{"Address operator on strings declared with 'var'",
-		`package main
+	{
+		name: "Address operator on strings declared with 'var'",
+		src: `package main
 
 		import "fmt"
 		
@@ -2402,10 +2520,12 @@ var stmtTests = []struct {
 			fmt.Println(c3)
 		
 		}
-		`, nil, nil, "true\nfalse\nfalse\n", nil, 0},
+		`,
+		out: "true\nfalse\nfalse\n"},
 
-	{"Address operator on strings declared with ':='",
-		`package main
+	{
+		name: "Address operator on strings declared with ':='",
+		src: `package main
 
 		import "fmt"
 
@@ -2424,10 +2544,12 @@ var stmtTests = []struct {
 			fmt.Println(c3)
 
 		}
-		`, nil, nil, "true\nfalse\nfalse\n", nil, 0},
+		`,
+		out: "true\nfalse\nfalse\n"},
 
-	{"Switch with non-immediate expression in a case",
-		`package main
+	{
+		name: "Switch with non-immediate expression in a case",
+		src: `package main
 
 		import "fmt"
 		
@@ -2441,10 +2563,12 @@ var stmtTests = []struct {
 				fmt.Print("default")
 			}
 		}
-		`, nil, nil, "a * b", nil, 0},
+		`,
+		out: "a * b"},
 
-	{"Issue #86",
-		`package main
+	{
+		name: "Issue #86",
+		src: `package main
 
 		import "fmt"
 		
@@ -2458,10 +2582,12 @@ var stmtTests = []struct {
 			}
 			fmt.Println(a)
 		
-		}`, nil, nil, "3\ninternal\next\n", nil, 0},
+		}`,
+		out: "3\ninternal\next\n"},
 
-	{"Builtin 'cap'",
-		`package main
+	{
+		name: "Builtin 'cap'",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2475,7 +2601,8 @@ var stmtTests = []struct {
 			c2 := cap(s2)
 			fmt.Print(c2)
 		}
-		`, nil, nil, "10,3", nil, 0},
+		`,
+		out: "10,3"},
 
 	// {"Package function calling a post-declared package function",
 	// 	`package main
@@ -2485,16 +2612,20 @@ var stmtTests = []struct {
 	// 	func g() { }
 
 	// 	func main() { }
-	// 	`, nil, nil, "", nil, 0},
+	// 	`,
+	// output: ""},
 
-	{"Function literal assigned to underscore",
-		`package main
+	{
+		name: "Function literal assigned to underscore",
+		src: `package main
 		
 		func main() {
 			_ = func() { }
-		}`, nil, nil, "", nil, 0},
-	{"Return register is determined by function type, not value type",
-		`package main
+		}`,
+		out: ""},
+	{
+		name: "Return register is determined by function type, not value type",
+		src: `package main
 
 		import (
 			  "fmt"
@@ -2507,10 +2638,12 @@ var stmtTests = []struct {
 		func main() {
 			  a := f()
 			  fmt.Println(a)
-		}`, nil, nil, "hey\n", nil, 0},
+		}`,
+		out: "hey\n"},
 
-	{"Package function with many return values (different types)",
-		`
+	{
+		name: "Package function with many return values (different types)",
+		src: `
 		package main
 
 		import "fmt"
@@ -2526,10 +2659,12 @@ var stmtTests = []struct {
 			fmt.Print(a, b, c, d, e)
 			return
 		}
-		`, nil, nil, "2 42 33 11 12", nil, 0},
+		`,
+		out: "2 42 33 11 12"},
 
-	{"Correct order in assignments",
-		`package main
+	{
+		name: "Correct order in assignments",
+		src: `package main
 
 		import "fmt"
 
@@ -2546,10 +2681,12 @@ var stmtTests = []struct {
 		func main() {
 			f()[1] = g()
 		}
-		`, nil, nil, "fg", nil, 0},
+		`,
+		out: "fg"},
 
-	{"Issue #76",
-		`package main
+	{
+		name: "Issue #76",
+		src: `package main
 
 		import "fmt"
 
@@ -2580,10 +2717,11 @@ var stmtTests = []struct {
 				fmt.Println(b, typeof(b))
 			}
 		}`,
-		nil, nil, "[]int[]uint8[] []int\n[] []uint8\n", nil, 0},
+		out: "[]int[]uint8[] []int\n[] []uint8\n"},
 
-	{"Increment assignment should evaluate expression only once",
-		`package main
+	{
+		name: "Increment assignment should evaluate expression only once",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2600,10 +2738,11 @@ var stmtTests = []struct {
 			fmt.Println(s)
 		}
 		`,
-		nil, nil, "i()[6 2 3]\n", nil, 0},
+		out: "i()[6 2 3]\n"},
 
-	{"Package function with many return values (same type)",
-		`package main
+	{
+		name: "Package function with many return values (same type)",
+		src: `package main
 
 		import "fmt"
 
@@ -2618,10 +2757,12 @@ var stmtTests = []struct {
 			fmt.Print(a + b + c + d + e)
 			return
 		}
-		`, nil, nil, "100", nil, 0},
+		`,
+		out: "100"},
 
-	{"Issue #67",
-		`package main
+	{
+		name: "Issue #67",
+		src: `package main
 
 		func f() {
 			f := "hi!"
@@ -2630,10 +2771,12 @@ var stmtTests = []struct {
 		
 		func main() {
 		
-		}`, nil, nil, "", nil, 0},
+		}`,
+		out: ""},
 
-	{"Issue #75",
-		`package main
+	{
+		name: "Issue #75",
+		src: `package main
 
 		import "fmt"
 		
@@ -2648,10 +2791,12 @@ var stmtTests = []struct {
 		func main() {
 			f(true)
 			f(false)
-		}`, nil, nil, "flag is true\nflag is false\n", nil, 0},
+		}`,
+		out: "flag is true\nflag is false\n"},
 
-	{"Functions with strings as input/output arguments",
-		`package main
+	{
+		name: "Functions with strings as input/output arguments",
+		src: `package main
 
 		import "fmt"
 		
@@ -2671,7 +2816,7 @@ var stmtTests = []struct {
 				),
 			)
 		}`,
-		nil, nil, "4", nil, 0},
+		out: "4"},
 
 	// {"Named return parameters",
 	// 	`package main
@@ -2713,10 +2858,12 @@ var stmtTests = []struct {
 	// 		fmt.Println(v41, v42, v43)
 	// 		fmt.Println(v51, v52, v53)
 	// 	}
-	// 	`, nil, nil, "10 20\n30 40\n70 80 str2\n70 80 str2\n90 0 100\n", nil, 0},
+	// 	`,
+	// output: "10 20\n30 40\n70 80 str2\n70 80 str2\n90 0 100\n"},
 
-	{"Anonymous function arguments",
-		`package main
+	{
+		name: "Anonymous function arguments",
+		src: `package main
 
 		import "fmt"
 		
@@ -2731,10 +2878,12 @@ var stmtTests = []struct {
 			v := g("a", "b")
 			fmt.Println(v)
 		}
-		`, nil, nil, "10\n", nil, 0},
+		`,
+		out: "10\n"},
 
-	{"Bit operators & (And) and | (Or)",
-		`package main
+	{
+		name: "Bit operators & (And) and | (Or)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2747,10 +2896,12 @@ var stmtTests = []struct {
 			and := a & b
 			fmt.Println(or, and)
 		}
-		`, nil, nil, "15 1\n", nil, 0},
+		`,
+		out: "15 1\n"},
 
-	{"Bit operators ^ (Xor) and &^ (bit clear = and not)",
-		`package main
+	{
+		name: "Bit operators ^ (Xor) and &^ (bit clear = and not)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2763,10 +2914,12 @@ var stmtTests = []struct {
 			bitclear := a &^ b
 			fmt.Println(xor, bitclear)
 		}
-		`, nil, nil, "14 4\n", nil, 0},
+		`,
+		out: "14 4\n"},
 
-	{"Channels - Reading and writing",
-		`package main
+	{
+		name: "Channels - Reading and writing",
+		src: `package main
 
 		import "fmt"
 		
@@ -2776,10 +2929,12 @@ var stmtTests = []struct {
 			v := <-ch
 			fmt.Print(v)
 		}
-		`, nil, nil, "5", nil, 0},
+		`,
+		out: "5"},
 
-	{"Variable swapping",
-		`package main
+	{
+		name: "Variable swapping",
+		src: `package main
 
 		import "fmt"
 
@@ -2794,12 +2949,11 @@ var stmtTests = []struct {
 			b, a = a, b
 			fmt.Println(a, b)
 		}`,
-		nil,
-		nil,
-		"10 20\n10 20\n20 10\n10 20\n", nil, 0},
+		out: "10 20\n10 20\n20 10\n10 20\n"},
 
-	{"Some maths",
-		`package main
+	{
+		name: "Some maths",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2822,11 +2976,12 @@ var stmtTests = []struct {
 			eval(a - b - b + a*b)
 			eval(a/3 + b/10)
 		}
-		`, nil, nil,
-		"75,-9,1386,0,33,1797,1377,1335,15,", nil, 0},
+		`,
+		out: "75,-9,1386,0,33,1797,1377,1335,15,"},
 
-	{"Selector (predefined struct)",
-		`package main
+	{
+		name: "Selector (predefined struct)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -2837,9 +2992,11 @@ var stmtTests = []struct {
 			center := testpkg.Center
 			fmt.Println(center)
 		}
-		`, nil, nil, "{5 42}\n", nil, 0},
-	{"Implicit return",
-		`package main
+		`,
+		out: "{5 42}\n"},
+	{
+		name: "Implicit return",
+		src: `package main
 
 		import "fmt"
 
@@ -2855,20 +3012,23 @@ var stmtTests = []struct {
 			f()
 			g()
 		}`,
-		nil, nil, "fg", nil, 0},
+		out: "fg"},
 
-	{"Recover",
-		`package main
+	{
+		name: "Recover",
+		src: `package main
 		
 		func main() {
 			recover()
 			v := recover()
 			_ = v
 		}
-		`, nil, nil, "", nil, 0},
+		`,
+		out: ""},
 
-	{"Defer - Calling f ang g (package level functions)",
-		`package main
+	{
+		name: "Defer - Calling f ang g (package level functions)",
+		src: `package main
 
 		import "fmt"
 		
@@ -2884,32 +3044,33 @@ var stmtTests = []struct {
 			defer f()
 			defer g()
 		}`,
-		nil,
-		nil,
-		"g\nf\n", nil, 0},
+		out: "g\nf\n"},
 
-	{"Dot import (predefined)",
-		`package main
+	{
+		name: "Dot import (predefined)",
+		src: `package main
 		
 		import . "fmt"
 		
 		func main() {
 			Println("hey")
 		}`,
-		nil, nil, "hey\n", nil, 0},
+		out: "hey\n"},
 
-	{"Import (predefined) with explicit package name",
-		`package main
+	{
+		name: "Import (predefined) with explicit package name",
+		src: `package main
 		
 		import f "fmt"
 		
 		func main() {
 			f.Println("hey")
 		}`,
-		nil, nil, "hey\n", nil, 0},
+		out: "hey\n"},
 
-	{"Import (predefined) with explicit package name (two packages)",
-		`package main
+	{
+		name: "Import (predefined) with explicit package name (two packages)",
+		src: `package main
 		
 		import f "fmt"
 		import f2 "fmt"
@@ -2918,10 +3079,11 @@ var stmtTests = []struct {
 			f.Println("hey")
 			f2.Println("oh!")
 		}`,
-		nil, nil, "hey\noh!\n", nil, 0},
+		out: "hey\noh!\n"},
 
-	{"Recycling of registers",
-		`
+	{
+		name: "Recycling of registers",
+		src: `
 		package main
 
 		import "fmt"
@@ -2933,13 +3095,11 @@ var stmtTests = []struct {
 			fmt.Println(a, b, c)
 		}
 		`,
-		nil,
-		// TODO(Gianluca): add a register test.
-		nil,
-		"10 42 88\n", nil, 0},
+		out: "10 42 88\n"},
 
-	{"Assignment to _ evaluates expression",
-		`
+	{
+		name: "Assignment to _ evaluates expression",
+		src: `
 		package main
 
 		import "fmt"
@@ -2957,12 +3117,11 @@ var stmtTests = []struct {
 			_ = -f()
 		}
 		`,
-		nil,
-		nil,
-		"ffffff", nil, 0},
+		out: "ffffff"},
 
-	{"Order of evaluation - Composite literal values",
-		`
+	{
+		name: "Order of evaluation - Composite literal values",
+		src: `
 		package main
 
 		import (
@@ -2995,11 +3154,12 @@ var stmtTests = []struct {
 			s := []int{a(), b(), c(), d(), e()}
 			_ = s
 		}
-		`, nil, nil,
-		"abcde", nil, 0},
+		`,
+		out: "abcde"},
 
-	{"Single assignment",
-		`
+	{
+		name: "Single assignment",
+		src: `
 		package main
 
 		import "fmt"
@@ -3013,10 +3173,12 @@ var stmtTests = []struct {
 
 			fmt.Print(a, c)
 		}
-		`, nil, nil, "10hi", nil, 0},
+		`,
+		out: "10hi"},
 
-	{"Multiple assignment",
-		`package main
+	{
+		name: "Multiple assignment",
+		src: `package main
 
 		import "fmt"
 		
@@ -3025,29 +3187,24 @@ var stmtTests = []struct {
 			fmt.Print(a, b)
 		}
 		`,
-		nil, nil, "6 7", nil, 0},
+		out: "6 7"},
 
-	{"Assignment with constant int value (addition)",
-		`
-		package main
+	{
+		name: "Assignment with constant int value (addition)",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
-			a := 4 + 5;
-			_ = a
-			return
+			a := 4 + 5
+			fmt.Print(a)
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`	// regs(1,0,0,0)`,
-			`	MoveInt 9 R1`,
-			`	Return`,
-		}, nil, "", nil, 0},
+		out: "9"},
 
-	{"Assignment with addition value (non constant)",
-		`package main
+	{
+		name: "Assignment with addition value (non constant)",
+		src: `package main
 
 		import "fmt"
 		
@@ -3057,10 +3214,11 @@ var stmtTests = []struct {
 			c := a + 2 + b + 30
 			fmt.Print(c)
 		}`,
-		nil, nil, "47", nil, 0},
+		out: "47"},
 
-	{"Assignment with math expression (non constant)",
-		`
+	{
+		name: "Assignment with math expression (non constant)",
+		src: `
 		package main
 
 		func main() {
@@ -3074,11 +3232,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		nil, "", nil, 0},
+		out: ""},
 
-	{"Function call assignment (2 to 1) - Predefined function with two return values",
-		`
+	{
+		name: "Function call assignment (2 to 1) - Predefined function with two return values",
+		src: `
 		package main
 
 		import (
@@ -3092,9 +3250,11 @@ var stmtTests = []struct {
 			fmt.Println(a, b, c)
 			return
 		}
-		`, nil, nil, "5 42 33\n", nil, 0},
-	{"Type assertion assignment",
-		`
+		`,
+		out: "5 42 33\n"},
+	{
+		name: "Type assertion assignment",
+		src: `
 		package main
 
 		func main() {
@@ -3106,52 +3266,34 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{}, "", nil, 0},
-	{"Addition (+=) and subtraction (-=) assignments",
-		`
-		package main
+		out: ""},
+	{
+		name: "Addition (+=) and subtraction (-=) assignments",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
 			var a, b, c, d int
-
+			fmt.Print(a, b, c, d)
 			a = 10
 			b = a
+			fmt.Print(a, b)
 			a += 40
+			fmt.Print(a)
 			c = a
+			fmt.Print(a, b, c)
 			a -= 5
+			fmt.Print(a)
 			d = a
-
-			_ = b
-			_ = c
-			_ = d
+			fmt.Print(a, b, c, d)
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(4,0,0,0)`,
-			`		MoveInt 0 R1`,
-			`		MoveInt 0 R2`,
-			`		MoveInt 0 R3`,
-			`		MoveInt 0 R4`,
-			`		MoveInt 10 R1`,
-			`		MoveInt R1 R2`,
-			`		AddInt R1 40 R1`,
-			`		MoveInt R1 R3`,
-			`		SubInt R1 5 R1`,
-			`		MoveInt R1 R4`,
-		},
-		[]reg{
-			// {vmp.TypeInt, 1, int64(45)}, // a
-			// {vmp.TypeInt, 2, int64(10)}, // b
-			// {vmp.TypeInt, 3, int64(50)}, // c
-			// {vmp.TypeInt, 4, int64(45)}, // d
-		}, "", nil, 0},
+		out: "0 0 0 010 105050 10 504545 10 50 45"},
 
-	{"Other forms of assignment",
-		`
+	{
+		name: "Other forms of assignment",
+		src: `
 		package main
 
 		import "fmt"
@@ -3204,10 +3346,11 @@ var stmtTests = []struct {
 
 		}
 		`,
-		nil, nil, "27,162,54,6,2,23,184,11,-,5,8,6,36,12,4,7,6,24,12,", nil, 0},
+		out: "27,162,54,6,2,23,184,11,-,5,8,6,36,12,4,7,6,24,12,"},
 
-	{"Slice index assignment",
-		`
+	{
+		name: "Slice index assignment",
+		src: `
 		package main
 
 		import "fmt"
@@ -3226,11 +3369,12 @@ var stmtTests = []struct {
 			fmt.Println(s2)
 			return
 		}
-		`, nil, nil,
-		"[2 2 3]\n[a b d d]\n", nil, 0},
+		`,
+		out: "[2 2 3]\n[a b d d]\n"},
 
-	{"Arrays - Composite literal, len",
-		`
+	{
+		name: "Arrays - Composite literal, len",
+		src: `
 		package main
 
 		import (
@@ -3243,10 +3387,12 @@ var stmtTests = []struct {
 			fmt.Println(a, b)
 			fmt.Print(len(a), len(b))
 		}
-		`, nil, nil, "[1 2 3] [a b c d]\n3 4", nil, 0},
+		`,
+		out: "[1 2 3] [a b c d]\n3 4"},
 
-	{"Empty int slice composite literal",
-		`
+	{
+		name: "Empty int slice composite literal",
+		src: `
 		package main
 
 		import "fmt"
@@ -3256,13 +3402,11 @@ var stmtTests = []struct {
 			fmt.Println(a)
 		}
 		`,
-		nil,
-		[]reg{
-			// {TypeGeneral, 1, []int{}}, // a
-		}, "[]\n", nil, 0},
+		out: "[]\n"},
 
-	{"Empty string slice composite literal",
-		`
+	{
+		name: "Empty string slice composite literal",
+		src: `
 		package main
 
 		func main() {
@@ -3270,13 +3414,11 @@ var stmtTests = []struct {
 			_ = a
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeGeneral, 1, []string{}}, // a
-		}, "", nil, 0},
+		out: ""},
 
-	{"Empty byte slice composite literal",
-		`
+	{
+		name: "Empty byte slice composite literal",
+		src: `
 		package main
 
 		import "fmt"
@@ -3292,10 +3434,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil, nil, "[] []", nil, 0},
+		out: "[] []"},
 
-	{"Empty map composite literal",
-		`
+	{
+		name: "Empty map composite literal",
+		src: `
 		package main
 
 		func main() {
@@ -3303,13 +3446,11 @@ var stmtTests = []struct {
 			_ = m
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeGeneral, 1, map[string]int{}},
-		}, "", nil, 0},
+		out: ""},
 
-	{"Function literal definition - (0 in, 0 out)",
-		`
+	{
+		name: "Function literal definition - (0 in, 0 out)",
+		src: `
 		package main
 
 		func main() {
@@ -3324,71 +3465,45 @@ var stmtTests = []struct {
 			_ = f
 		} 
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(2,0,0,2)`,
-			`		MoveInt 10 R1`,
-			`		Func R2 ()`,
-			`			// regs(0,0,0,0)`,
-			`			MoveInt 10 R1`,
-			`		Move R2 R1`,
-			`		MoveInt 20 R2`,
-		}, nil, "", nil, 0},
+		out: ""},
 
-	{"Function literal definition - (0 in, 1 out)",
-		`
-		package main
+	{
+		name: "Function literal definition - (0 in, 1 out)",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
 			f := func() int {
 				a := 20
+				fmt.Print("f called")
 				return a
 			}
 			_ = f
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(0,0,0,2)`,
-			`		Func R2 () (1 int)`,
-			`			// regs(0,0,0,0)`,
-			`			MoveInt 20 R2`,
-			`			MoveInt R2 R1`,
-			`			Return`,
-			`		Move R2 R1`,
-		}, nil, "", nil, 0},
+		out: ""},
 
-	{"Function literal definition - (1 in, 0 out)",
-		`
-		package main
+	{
+		name: "Function literal definition - (1 in, 0 out)",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
 			f := func(a int) {
+				fmt.Print("f called")
 				b := a + 20
 				_ = b
 			}
 			_ = f
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(0,0,0,2)`,
-			`		Func R2 (1 int)`,
-			`			// regs(0,0,0,0)`,
-			`			MoveInt R1 R4`,
-			`			AddInt R4 20 R3`,
-			`			MoveInt R3 R2`,
-			`		Move R2 R1`,
-		}, nil, "", nil, 0},
+		out: ""},
 
-	{"Converting from int to string",
-		`
+	{
+		name: "Converting from int to string",
+		src: `
 		package main
 
 		func main() {
@@ -3402,15 +3517,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// TODO (Gianluca):
-			// {TypeInt, 1, int64(97)}, // a
-			// {TypeString, 1, "a"},    // b
-		}, "", nil, 0},
+		out: ""},
 
-	{"Converting from int to interface{}",
-		`
+	{
+		name: "Converting from int to interface{}",
+		src: `
 		package main
 
 		func main() {
@@ -3420,48 +3531,31 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeGeneral, 1, int64(97)},
-		}, "", nil, 0},
+		out: ""},
 
-	{"Constant boolean",
-		`
-		package main
+	{
+		name: "Constant boolean",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
 			var a, b int
 			var c, d bool
+			fmt.Print(a, b, c, d)
 			a = 1
 			b = 2
+			fmt.Print(a, b, c, d)
 			c = false
 			d = 4 < 5
-			_ = a
-			_ = b
-			_ = c
-			_ = d
-			return
+			fmt.Print(a, b, c, d)
 		}
-
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`		// regs(4,0,0,0)`,
-			`           MoveInt 0 R1`,
-			`           MoveInt 0 R2`,
-			`           MoveInt 0 R3`,
-			`           MoveInt 0 R4`,
-			`           MoveInt 1 R1`,
-			`           MoveInt 2 R2`,
-			`           MoveInt 0 R3`,
-			`           MoveInt 1 R4`,
-			`		Return`,
-		}, nil, "", nil, 0},
+		out: "0 0 false false1 2 false false1 2 false true"},
 
-	{"Comparison operators",
-		`package main
+	{
+		name: "Comparison operators",
+		src: `package main
 
 		import "fmt"
 		
@@ -3486,11 +3580,11 @@ var stmtTests = []struct {
 			fmt.Print(e)
 			fmt.Print(ne)
 		}`,
-		nil, nil,
-		"truefalsetruefalsefalsetrue", nil, 0},
+		out: "truefalsetruefalsefalsetrue"},
 
-	{"Logic AND and OR operators",
-		`
+	{
+		name: "Logic AND and OR operators",
+		src: `
 		package main
 
 		func main() {
@@ -3519,13 +3613,11 @@ var stmtTests = []struct {
 			_ = h
 		}
 		`,
-		nil,
-		nil,
-		// TODO(Gianluca): test output.
-		"", nil, 0},
+		out: ""},
 
-	{"Short-circuit evaluation",
-		`
+	{
+		name: "Short-circuit evaluation",
+		src: `
 		package main
 
 		func p() bool {
@@ -3548,10 +3640,12 @@ var stmtTests = []struct {
 
 			_ = v
 		}
-		`, nil, nil, "", nil, 0},
+		`,
+		out: ""},
 
-	{"Operator ! (not)",
-		`
+	{
+		name: "Operator ! (not)",
+		src: `
 		package main
 
 		func main() {
@@ -3572,13 +3666,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		// TODO(Gianluca): test output.
-		nil,
-		"", nil, 0},
+		out: ""},
 
-	{"Number negation (unary operator '-')",
-		`
+	{
+		name: "Number negation (unary operator '-')",
+		src: `
 		package main
 
 		import "fmt"
@@ -3593,15 +3685,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeInt, 1, int64(45)},  // a
-			// {vmp.TypeInt, 2, int64(-45)}, // b
-		},
-		"-45", nil, 0},
+		out: "-45"},
 
-	{"Go functions as expressions",
-		`
+	{
+		name: "Go functions as expressions",
+		src: `
 		package main
 
 		import "fmt"
@@ -3610,10 +3698,12 @@ var stmtTests = []struct {
 			f := fmt.Println
 			print(f)
 		}
-		`, nil, nil, "", nil, 0},
+		`,
+		out: ""},
 
-	{"String concatenation (constant)",
-		`
+	{
+		name: "String concatenation (constant)",
+		src: `
 		package main
 
 		import "fmt"
@@ -3626,12 +3716,11 @@ var stmtTests = []struct {
 			fmt.Print(b)
 		}
 		`,
-		nil,
-		nil,
-		"s\neeff", nil, 0},
+		out: "s\neeff"},
 
-	{"String concatenation (non constant)",
-		`
+	{
+		name: "String concatenation (non constant)",
+		src: `
 		package main
 
 		import "fmt"
@@ -3645,10 +3734,11 @@ var stmtTests = []struct {
 			fmt.Print(s3)
 		}
 		`,
-		nil, nil, "hello world", nil, 0},
+		out: "hello world"},
 
-	{"Indexing",
-		`package main
+	{
+		name: "Indexing",
+		src: `package main
 
 		import "fmt"
 
@@ -3656,9 +3746,11 @@ var stmtTests = []struct {
 			s := []int{1, 42, 3}
 			second := s[1]
 			fmt.Println(second)
-		}`, nil, nil, "42\n", nil, 0},
-	{"If statement with else",
-		`package main
+		}`,
+		out: "42\n"},
+	{
+		name: "If statement with else",
+		src: `package main
 
 		import "fmt"
 		
@@ -3674,10 +3766,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print("c=", c)
 		}
-		`, nil, nil, "thenc=1", nil, 0},
+		`,
+		out: "thenc=1"},
 
-	{"If statement with else",
-		`package main
+	{
+		name: "If statement with else",
+		src: `package main
 
 		import "fmt"
 		
@@ -3693,10 +3787,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(c)
 		}
-		`, nil, nil, "else20", nil, 0},
+		`,
+		out: "else20"},
 
-	{"If with init assignment",
-		`package main
+	{
+		name: "If with init assignment",
+		src: `package main
 
 		import "fmt"
 		
@@ -3712,10 +3808,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(c)
 		}
-		`, nil, nil, "thenx is 11", nil, 0},
+		`,
+		out: "thenx is 11"},
 
-	{"For statement",
-		`package main
+	{
+		name: "For statement",
+		src: `package main
 
 		import "fmt"
 		
@@ -3728,10 +3826,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print("sum=",sum)
 		}
-		`, nil, nil, "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20", nil, 0},
+		`,
+		out: "i=0,i=1,i=2,i=3,i=4,i=5,i=6,i=7,i=8,i=9,sum=20"},
 
-	{"Switch statement",
-		`package main
+	{
+		name: "Switch statement",
+		src: `package main
 
 		import "fmt"
 		
@@ -3751,10 +3851,12 @@ var stmtTests = []struct {
 			fmt.Print("a=", a)
 			_ = a
 		}
-		`, nil, nil, "case 1a=20", nil, 0},
+		`,
+		out: "case 1a=20"},
 
-	{"Switch statement with fallthrough",
-		`package main
+	{
+		name: "Switch statement with fallthrough",
+		src: `package main
 
 		import "fmt"
 		
@@ -3774,10 +3876,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(a)
 		}
-		`, nil, nil, "case 2case 330", nil, 0},
+		`,
+		out: "case 2case 330"},
 
-	{"Switch statement with default",
-		`package main
+	{
+		name: "Switch statement with default",
+		src: `package main
 
 		import "fmt"
 		
@@ -3799,10 +3903,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(a)
 		}
-		`, nil, nil, "default80", nil, 0},
+		`,
+		out: "default80"},
 
-	{"Switch statement with default and fallthrough",
-		`package main
+	{
+		name: "Switch statement with default and fallthrough",
+		src: `package main
 
 		import "fmt"
 		
@@ -3829,10 +3935,12 @@ var stmtTests = []struct {
 			}
 			fmt.Print(a)
 		}
-		`, nil, nil, "defaultcase 2case 330", nil, 0},
+		`,
+		out: "defaultcase 2case 330"},
 
-	{"Type switch statement",
-		`
+	{
+		name: "Type switch statement",
+		src: `
 		package main
 
 		import "fmt"
@@ -3852,30 +3960,25 @@ var stmtTests = []struct {
 			fmt.Print(v)
 			return
 		}
-		`, nil, nil, "20", nil, 0},
+		`,
+		out: "20"},
 
-	{"Function literal call (0 in, 0 out)",
-		`
-		package main
+	{
+		name: "Function literal call (0 in, 0 out)",
+		src: `package main
 
+		import "fmt"
+		
 		func main() {
-			f := func() {}
+			f := func() { fmt.Print("f called") }
 			f()
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`	// regs(0,0,0,2)`,
-			`	Func R2 ()`,
-			`		// regs(0,0,0,0)`,
-			`	Move R2 R1`,
-			`	CallIndirect R1    // Stack shift: 0, 0, 0, 2`,
-		}, nil, "", nil, 0},
+		out: "f called"},
 
-	{"Function literal call (0 in, 1 out)",
-		`
+	{
+		name: "Function literal call (0 in, 1 out)",
+		src: `
 		package main
 
 		import "fmt"
@@ -3891,10 +3994,12 @@ var stmtTests = []struct {
 			fmt.Print(a)
 			return
 		}
-		`, nil, nil, "25", nil, 0},
+		`,
+		out: "25"},
 
-	{"Function literal call - Shadowing package level function",
-		// TODO(Gianluca): test output.
+	{
+		name: "Function literal call - Shadowing package level function",
+		src: // TODO(Gianluca): test output.
 		`
 		package main
 
@@ -3909,10 +4014,12 @@ var stmtTests = []struct {
 			f()
 			return
 		}
-		`, nil, nil, "", nil, 0},
+		`,
+		out: ""},
 
-	{"Package function call",
-		`
+	{
+		name: "Package function call",
+		src: `
 		package main
 
 		import "fmt"
@@ -3926,10 +4033,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil, nil, "a", nil, 0},
+		out: "a"},
 
-	{"Package function 'inc'",
-		`package main
+	{
+		name: "Package function 'inc'",
+		src: `package main
 
 		import "fmt"
 		
@@ -3948,10 +4056,12 @@ var stmtTests = []struct {
 			fmt.Print(c)
 			return
 		}
-		`, nil, nil, "21", nil, 0},
+		`,
+		out: "21"},
 
-	{"Package function with one return value",
-		`package main
+	{
+		name: "Package function with one return value",
+		src: `package main
 
 		import "fmt"
 
@@ -3962,10 +4072,12 @@ var stmtTests = []struct {
 		func main() {
 			a := five()
 			fmt.Print(a)
-		}`, nil, nil, "5", nil, 0},
+		}`,
+		out: "5"},
 
-	{"Package function - 'floats'",
-		`package main
+	{
+		name: "Package function - 'floats'",
+		src: `package main
 
 		import (
 			"fmt"
@@ -3981,9 +4093,10 @@ var stmtTests = []struct {
 			f1, f2 := floats()
 			fmt.Println(f1, f2)
 		}`,
-		nil, nil, "5.6 -432.12\n", nil, 0},
-	{"Package function with one parameter (not used)",
-		`
+		out: "5.6 -432.12\n"},
+	{
+		name: "Package function with one parameter (not used)",
+		src: `
 		package main
 
 		import "fmt"
@@ -4000,10 +4113,12 @@ var stmtTests = []struct {
 			fmt.Print(c)
 			return
 		}
-		`, nil, nil, "12", nil, 0},
+		`,
+		out: "12"},
 
-	{"Package function with arguments that need evaluation",
-		`
+	{
+		name: "Package function with arguments that need evaluation",
+		src: `
 		package main
 
 		import "fmt"
@@ -4026,11 +4141,12 @@ var stmtTests = []struct {
 			f(a, (b*2)+a-a, c)
 			g([]int{a,b,c})
 		}
-		`, nil, nil,
-		"a, b, c:  3 4 5\n[3 2 5] has len 3\n", nil, 0},
+		`,
+		out: "a, b, c:  3 4 5\n[3 2 5] has len 3\n"},
 
-	{"Builtin len (with a constant argument)",
-		`
+	{
+		name: "Builtin len (with a constant argument)",
+		src: `
 		package main
 
 		import "fmt"
@@ -4039,10 +4155,12 @@ var stmtTests = []struct {
 			a := len("abc");
 			fmt.Println(a)
 		}
-		`, nil, nil, "3\n", nil, 0},
+		`,
+		out: "3\n"},
 
-	{"Builtin len",
-		`package main
+	{
+		name: "Builtin len",
+		src: `package main
 
 		import "fmt"
 		
@@ -4058,10 +4176,11 @@ var stmtTests = []struct {
 			fmt.Print(l3)
 		}
 		`,
-		nil, nil, "534", nil, 0},
+		out: "534"},
 
-	{"Builtin print",
-		`
+	{
+		name: "Builtin print",
+		src: `
 		package main
 
 		func main() {
@@ -4071,23 +4190,11 @@ var stmtTests = []struct {
 			print(a)
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Func main()`,
-			`    // regs(3,0,2,3)`,
-			`    Move fromInt 42 R1`,
-			`    Print R1`,
-			`    MoveString "hello" R1`,
-			`    Move fromString R1 R2`,
-			`    Print R2`,
-			`    MoveInt 10 R2`,
-			`    Move fromInt R2 R3`,
-			`    Print R3`,
-		}, nil, "", nil, 0},
+		out: ""},
 
-	{"Builtin make - map",
-		`
+	{
+		name: "Builtin make - map",
+		src: `
 		package main
 
 		func main() {
@@ -4096,13 +4203,11 @@ var stmtTests = []struct {
 			_ = m
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeGeneral, 3, map[string]int{}},
-		}, "", nil, 0},
+		out: ""},
 
-	{"Builtin copy",
-		`package main
+	{
+		name: "Builtin copy",
+		src: `package main
 
 		import "fmt"
 		
@@ -4115,9 +4220,11 @@ var stmtTests = []struct {
 			copy(dst2, src)
 			fmt.Println("dst2:", dst2)
 		}
-		`, nil, nil, "dst: [10 20 30] n: 3\ndst2: [10 20]\n", nil, 0},
-	{"Function which calls both predefined and not predefined functions",
-		`package main
+		`,
+		out: "dst: [10 20 30] n: 3\ndst2: [10 20]\n"},
+	{
+		name: "Function which calls both predefined and not predefined functions",
+		src: `package main
 
 		import "fmt"
 		
@@ -4129,11 +4236,10 @@ var stmtTests = []struct {
 			scriggoFunc()
 			fmt.Println("main()")
 		}`,
-		nil,
-		nil,
-		"scriggoFunc()\nmain()\n", nil, 0},
-	{"Predefined function call (0 in, 0 out)",
-		`
+		out: "scriggoFunc()\nmain()\n"},
+	{
+		name: "Predefined function call (0 in, 0 out)",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4143,20 +4249,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		[]string{
-			`Package main`,
-			``,
-			`Import "testpkg"`,
-			``,
-			`Func main()`,
-			`	// regs(0,0,0,0)`,
-			`	CallFunc testpkg.F00    // Stack shift: 0, 0, 0, 0`,
-			`     Return`,
-		},
-		nil, "", nil, 0},
+		out: ""},
 
-	{"Predefined function call (0 in, 1 out)",
-		`
+	{
+		name: "Predefined function call (0 in, 1 out)",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4167,13 +4264,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeInt, 1, int64(40)},
-		}, "", nil, 0},
+		out: ""},
 
-	{"Predefined function call (1 in, 0 out)",
-		`
+	{
+		name: "Predefined function call (1 in, 0 out)",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4182,10 +4277,11 @@ var stmtTests = []struct {
 			testpkg.F10(50)
 			return
 		}`,
-		nil, nil, "", nil, 0},
+		out: ""},
 
-	{"Predefined function call (1 in, 1 out)",
-		`
+	{
+		name: "Predefined function call (1 in, 1 out)",
+		src: `
 		package main
 
 		import (
@@ -4199,10 +4295,12 @@ var stmtTests = []struct {
 			fmt.Print(a)
 			return
 		}
-		`, nil, nil, "42", nil, 0},
+		`,
+		out: "42"},
 
-	{"Predefined function call (2 in, 1 out) (with surrounding variables)",
-		`
+	{
+		name: "Predefined function call (2 in, 1 out) (with surrounding variables)",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4221,17 +4319,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeInt, 1, int64(3)},  // a
-			// {vmp.TypeInt, 2, int64(13)}, // b
-			// {vmp.TypeInt, 3, int64(4)},  // e
-			// {vmp.TypeInt, 4, int64(16)}, // c
-			// {vmp.TypeInt, 5, int64(16)}, // d // TODO (Gianluca): d should be allocated in register 5, which is no longer used by function call.
-		}, "", nil, 0},
+		out: ""},
 
-	{"Predefined function call of StringLen",
-		`
+	{
+		name: "Predefined function call of StringLen",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4241,13 +4333,11 @@ var stmtTests = []struct {
 			_ = a
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeInt, 1, int64(3)},
-		}, "", nil, 0},
+		out: ""},
 
-	{"Predefined function call of fmt.Println",
-		`
+	{
+		name: "Predefined function call of fmt.Println",
+		src: `
 		package main
 
 		import "fmt"
@@ -4260,10 +4350,12 @@ var stmtTests = []struct {
 			fmt.Println(1, 2, 3)
 			fmt.Println(a, a, []int{3,4,5})
 		}
-		`, nil, nil, "hello, world!\n42\nhi!\n1 2 3\nhi! hi! [3 4 5]\n", nil, 0},
+		`,
+		out: "hello, world!\n42\nhi!\n1 2 3\nhi! hi! [3 4 5]\n"},
 
-	{"Predefined function call f(g())",
-		`package main
+	{
+		name: "Predefined function call f(g())",
+		src: `package main
 
 		import (
 			"fmt"
@@ -4282,11 +4374,11 @@ var stmtTests = []struct {
 			f(g())
 		}
 		`,
-		nil, nil,
-		"a is 42 and b is 33\n", nil, 0},
+		out: "a is 42 and b is 33\n"},
 
-	{"Reading a predefined int variable",
-		`
+	{
+		name: "Reading a predefined int variable",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4295,11 +4387,12 @@ var stmtTests = []struct {
 			a := testpkg.A
 			testpkg.PrintInt(a)
 		}
-		`, nil, nil,
-		"20", nil, 0},
+		`,
+		out: "20"},
 
-	{"Writing a predefined int variable",
-		`
+	{
+		name: "Writing a predefined int variable",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4310,11 +4403,12 @@ var stmtTests = []struct {
 			testpkg.PrintString("->")
 			testpkg.PrintInt(testpkg.B)
 		}
-		`, nil, nil,
-		"42->7", nil, 0},
+		`,
+		out: "42->7"},
 
-	{"Pointer declaration (nil int pointer)",
-		`package main
+	{
+		name: "Pointer declaration (nil int pointer)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -4324,10 +4418,12 @@ var stmtTests = []struct {
 			var a *int
 			fmt.Print(a)
 		}
-		`, nil, nil, "<nil>", nil, 0},
+		`,
+		out: "<nil>"},
 
-	{"Scriggo function 'repeat(string, int) string'",
-		`
+	{
+		name: "Scriggo function 'repeat(string, int) string'",
+		src: `
 		package main
 
 		func repeat(s string, n int) string {
@@ -4352,10 +4448,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil, nil, "", nil, 0},
+		out: ""},
 
-	{"Slice of int slices assignment",
-		`
+	{
+		name: "Slice of int slices assignment",
+		src: `
 		package main
 
 		func main() {
@@ -4372,14 +4469,11 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeGeneral, 3, [][]int{[]int{10, 20}, []int{25, 26}, []int{30, 40, 50}}},
-		},
-		"", nil, 0},
+		out: ""},
 
-	{"Multiple predefined function calls",
-		`
+	{
+		name: "Multiple predefined function calls",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4394,15 +4488,11 @@ var stmtTests = []struct {
 			_, _, _ = a, b, c
 		}
 		`,
-		nil,
-		[]reg{
-			// {vmp.TypeInt, 1, int64(6)}, // a
-			// {vmp.TypeInt, 2, int64(5)}, // b
-			// {vmp.TypeInt, 3, int64(3)}, // c
-		}, "", nil, 0},
+		out: ""},
 
-	{"Predefined function 'Swap'",
-		`
+	{
+		name: "Predefined function 'Swap'",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4420,10 +4510,12 @@ var stmtTests = []struct {
 
 			fmt.Print(s1, s2, i1, i2)
 		}
-		`, nil, nil, "heyhey3 3", nil, 0},
+		`,
+		out: "heyhey3 3"},
 
-	{"Many Scriggo functions (swap, sum, fact)",
-		`
+	{
+		name: "Many Scriggo functions (swap, sum, fact)",
+		src: `
 		package main
 
 		import "testpkg"
@@ -4490,11 +4582,10 @@ var stmtTests = []struct {
 			return
 		}
 		`,
-		nil,
-		nil,
-		"a:6,b:2,c:2,d:6,e:16,f:40330,", nil, 0},
-	{"f(g()) call (advanced test)",
-		`package main
+		out: "a:6,b:2,c:2,d:6,e:16,f:40330,"},
+	{
+		name: "f(g()) call (advanced test)",
+		src: `package main
 
 		import (
 			"fmt"
@@ -4511,9 +4602,7 @@ var stmtTests = []struct {
 		func main() {
 			f(g("a string!"))
 		}`,
-		nil,
-		nil,
-		"a is 9 and b is 144\n", nil, 0},
+		out: "a is 9 and b is 144\n"},
 
 	//------------------------------------
 	// TODO(Gianluca): disabled tests:
@@ -4613,7 +4702,7 @@ var stmtTests = []struct {
 	//	}`,
 	//	nil,
 	//	nil,
-	//	"a is 9 and b is 144\n", nil, 0},
+	//	"a is 9 and b is 144\n"},
 
 	// {
 	// 	name: "Iota - local constant in math expression (with float numbers)",
@@ -4685,7 +4774,7 @@ var stmtTests = []struct {
 	// 		mark("ret main")
 	// 	}
 	// 	`,
-	// 	nil, nil, "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
+	// 	output: "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
 
 	//------------------------------------
 
@@ -4705,7 +4794,8 @@ var stmtTests = []struct {
 	// 		is[0], ss[1], ss[0] = triplet()
 	// 		fmt.Println(ss, is)
 	// 	}
-	// 	`, nil, nil, "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
+	// 	`,
+	// output: "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
 
 	// {
 	// 	name: "Operator address (&)",
@@ -4751,7 +4841,8 @@ var stmtTests = []struct {
 	// 		g("x", "y", 3, 23, 11, 12)
 	// 		fmt.Println("h:", h("a", "b", "c", "d"))
 	// 	}
-	// 	`, nil, nil,
+	// 	`,
+	// output:
 	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
 
 	//------------------------------------
@@ -4770,7 +4861,7 @@ var stmtTests = []struct {
 	// 		return
 	// 	}
 	// 	`,
-	// 	nil, nil,
+	// 	output:
 	// 	"5, 12",
 	// },
 
@@ -4784,6 +4875,9 @@ func TestVM(t *testing.T) {
 		panic("goPackages declared but not initialized. Run 'go generate scriggo/test' with the latest version of scriggo installed to create the package declaration file.")
 	}
 	for _, cas := range stmtTests {
+		if cas.name == "" {
+			cas.name = fmt.Sprintf("(unnamed test with source %q)", cas.src)
+		}
 		t.Run(cas.name, func(t *testing.T) {
 			defer func() {
 				r := recover()
@@ -4791,7 +4885,6 @@ func TestVM(t *testing.T) {
 					panic(fmt.Errorf("%s panicked: %s", cas.name, r))
 				}
 			}()
-			regs := cas.registers
 			r := scriggo.MapStringLoader{"main": cas.src}
 			program, err := scriggo.LoadProgram(scriggo.Loaders(r, goPackages), &scriggo.LoadOptions{LimitMemorySize: true})
 			if err != nil {
@@ -4823,11 +4916,7 @@ func TestVM(t *testing.T) {
 				out <- buf.String()
 			}()
 			wg.Wait()
-			var registers vm.Registers
-			tf := func(_ *vm.Function, _ uint32, regs vm.Registers) {
-				registers = regs
-			}
-			err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000, TraceFunc: tf})
+			err = program.Run(&scriggo.RunOptions{MaxMemorySize: 1000000})
 			if err == nil {
 				if cas.err != nil {
 					t.Errorf("test %q, expecting error %#v, got not error", cas.name, cas.err)
@@ -4844,76 +4933,9 @@ func TestVM(t *testing.T) {
 
 			output := <-out
 
-			// Tests if disassembler output matches.
-
-			// TODO (Gianluca): to review.
-			if false && cas.disassembled != nil {
-				asm := strings.Builder{}
-				_, err := program.Disassemble(&asm, "main")
-				if err != nil {
-					t.Errorf("test %q, disassemble error: %s", cas.name, err)
-					return
-				}
-				got := asm.String()
-				gotLines := strings.Split(strings.TrimSpace(got), "\n")
-				if diff := equal(cas.disassembled, gotLines); diff >= 0 {
-					if !testing.Verbose() {
-						t.Errorf("disassembler output doesn't match for test %q (run tests in verbose mode for further details)", cas.name)
-					} else {
-						out := &bytes.Buffer{}
-						const padding = 3
-						w := tabwriter.NewWriter(out, 0, 0, padding, ' ', tabwriter.Debug)
-						fmt.Fprintf(w, "expected\t  got\t\n")
-						fmt.Fprintf(w, "--------\t  ---\t\n")
-						longest := len(cas.disassembled)
-						if len(gotLines) > longest {
-							longest = len(gotLines)
-						}
-						for i := 0; i < longest; i++ {
-							e := " "
-							g := " "
-							if i <= len(cas.disassembled)-1 {
-								e = cas.disassembled[i]
-							}
-							if i <= len(gotLines)-1 {
-								g = gotLines[i]
-							}
-							e = tabsToSpaces(e)
-							g = tabsToSpaces(g)
-							if diff == i+1 {
-								fmt.Fprintf(w, "%s\t  %s\t <<< difference here\n", e, g)
-							} else {
-								fmt.Fprintf(w, "%s\t  %s\t\n", e, g)
-							}
-						}
-						w.Flush()
-						t.Errorf("test %q:\n%s", cas.name, out.String())
-					}
-				}
-			}
-
-			// Tests if registers match.
-
-			for _, reg := range regs {
-				var got interface{}
-				switch reg.typ {
-				case vm.TypeFloat:
-					got = registers.Float[reg.r-1]
-				case vm.TypeGeneral:
-					got = registers.General[reg.r-1]
-				case vm.TypeInt:
-					got = registers.Int[reg.r-1]
-				case vm.TypeString:
-					got = registers.String[reg.r-1]
-				}
-				if !reflect.DeepEqual(reg.value, got) {
-					t.Errorf("test %q, register %s[%d]: expecting %#v (type %T), got %#v (type %T)", cas.name, reg.typ, reg.r, reg.value, reg.value, got, got)
-				}
-			}
-
 			// // Tests if output matches.
-			if cas.output != output {
-				t.Errorf("test %q: expecting output %q, got %q", cas.name, cas.output, output)
+			if cas.out != output {
+				t.Errorf("test %q: expecting output %q, got %q", cas.name, cas.out, output)
 			}
 		})
 	}
