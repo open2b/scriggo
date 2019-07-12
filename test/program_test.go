@@ -142,6 +142,27 @@ var stmtTests = []struct {
 	// 	`,
 	// 	out: "7-1",
 	// },
+
+	{
+		name: "Binary boolean operators put in an empty interface context",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+
+		func main() {
+			fmt.Print(true && false)
+			a := true
+			b := true
+			fmt.Print(a && b)
+			var i interface{} = true
+			fmt.Print(i)
+		}
+		`,
+		out: `falsetruetrue`,
+	},
+
 	{
 		name: "Type assertion on empty interface containing an int value",
 		src: `package main
