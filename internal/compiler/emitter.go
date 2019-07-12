@@ -1018,54 +1018,63 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 	case *ast.Identifier:
 
-		// TODO(Gianluca): review this case.
+		// An identifier evaluation cannot have side effects.
 		if reg == 0 {
 			return
 		}
+
 		typ := em.ti(expr).Type
+
+		// Identifier can be quick-emitted.
 		if out, k, ok := em.quickEmitExpr(expr, typ); ok {
 			em.changeRegister(k, out, reg, typ, dstType)
-		} else {
-			if fun, ok := em.functions[em.pkg][expr.Name]; ok {
-				index := em.functionIndex(fun)
-				em.fb.emitGetFunc(false, index, reg)
-			} else if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
-				// TODO(Gianluca): this is an experimental handling of
-				// emitting an expression into a register of a different
-				// type. If this is correct, apply this solution to all
-				// other expression emitting cases or generalize in some
-				// way.
-				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
-					em.fb.emitGetVar(index, reg)
-				} else {
-					tmpReg := em.fb.newRegister(typ.Kind())
-					em.fb.emitGetVar(index, tmpReg)
-					em.changeRegister(false, tmpReg, reg, typ, dstType)
-				}
-			} else if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
-				if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
-					em.fb.emitGetVar(int(index), reg)
-				} else {
-					tmpReg := em.fb.newRegister(typ.Kind())
-					em.fb.emitGetVar(int(index), tmpReg)
-					em.changeRegister(false, tmpReg, reg, typ, dstType)
-				}
-			} else {
-				// Predefined variable.
-				if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
-					index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
-					if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
-						em.fb.emitGetVar(int(index), reg)
-					} else {
-						tmpReg := em.fb.newRegister(ti.Type.Kind())
-						em.fb.emitGetVar(int(index), tmpReg)
-						em.changeRegister(false, tmpReg, reg, ti.Type, dstType)
-					}
-				} else {
-					panic("bug")
-				}
-			}
+			return
 		}
+
+		// Identifier represents a function.
+		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
+			em.fb.emitGetFunc(false, em.functionIndex(fun), reg)
+			return
+		}
+
+		// Clojure variable.
+		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
+			if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+				em.fb.emitGetVar(index, reg)
+				return
+			}
+			tmpReg := em.fb.newRegister(typ.Kind())
+			em.fb.emitGetVar(index, tmpReg)
+			em.changeRegister(false, tmpReg, reg, typ, dstType)
+			return
+		}
+
+		// Scriggo variable.
+		if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
+			if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return
+			}
+			tmpReg := em.fb.newRegister(typ.Kind())
+			em.fb.emitGetVar(int(index), tmpReg)
+			em.changeRegister(false, tmpReg, reg, typ, dstType)
+			return
+		}
+
+		// Predefined variable.
+		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
+			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
+			if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return
+			}
+			tmpReg := em.fb.newRegister(ti.Type.Kind())
+			em.fb.emitGetVar(int(index), tmpReg)
+			em.changeRegister(false, tmpReg, reg, ti.Type, dstType)
+			return
+		}
+
+		panic(fmt.Errorf("bug: none of the previous conditions matched identifier %v", expr))
 
 	case *ast.Index:
 
