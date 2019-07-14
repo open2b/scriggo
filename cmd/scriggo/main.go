@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,7 +20,7 @@ import (
 	"runtime"
 	"strings"
 
-	pkgs "golang.org/x/tools/go/packages"
+	"github.com/rogpeppe/go-internal/modfile"
 )
 
 func main() {
@@ -72,11 +73,7 @@ func stderr(lines ...string) {
 // with status code 1.
 func exitError(format string, a ...interface{}) {
 	msg := fmt.Errorf(format, a...)
-	if runtime.GOOS == "linux" {
-		stderr("\033[1;31m"+msg.Error()+"\033[0m", `exit status 1`)
-	} else {
-		stderr(msg.Error(), `exit status 1`)
-	}
+	stderr(msg.Error())
 	exit(1)
 	return
 }
@@ -278,12 +275,21 @@ func embed(out io.Writer, path string, verbose bool) error {
 	return err
 }
 
+//func moduleAwareMode() bool {
+//	s := os.Getenv("GO111MODULE")
+//	if s != "auto" {
+//		return s == "on"
+//	}
+//
+//}
+
 // build executes the commands "build" and "install".
 func build(install bool, work bool, verbose bool) error {
 
 	_, err := exec.LookPath("go")
 	if err != nil {
-		return err
+		return fmt.Errorf("scriggo: \"go\" executable file not found in $PATH\nIf not installed, " +
+			"download and install Go: https://golang.org/dl/\n")
 	}
 
 	goos := os.Getenv("GOOS")
@@ -292,54 +298,74 @@ func build(install bool, work bool, verbose bool) error {
 	}
 
 	path := flag.Arg(0)
-	base := filepath.Base(path)
 
-	var content io.ReadCloser
+	// isFile reports whether path is a regular file.
+	var isFile bool
 
-	// Read the Scriggofile.
-	if ext := filepath.Ext(base); ext == "" {
-		// path is a package path.
-		packages, err := pkgs.Load(nil, path)
-		if err != nil {
+	if modfile.IsDirectoryPath(path) {
+		fi, err := os.Stat(path)
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
-		if len(packages) == 0 || packages[0].Name == "" {
-			return fmt.Errorf("package not found. Install it in some way (eg. 'go get %q')", path)
-		}
-		if len(packages) > 1 {
-			return errors.New("too many packages matching")
-		}
-		pkg := packages[0]
-		if len(pkg.GoFiles) == 0 {
-			return fmt.Errorf("package %s does not contain Go files", path)
-		}
-		filePath := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "Scriggofile")
-		content, err = os.Open(filePath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("package %s does not contain a Scriggofile", path)
-			}
-			return err
-		}
-	} else {
-		// path is a file path.
-		base = strings.TrimSuffix(base, ext)
-		content, err = os.Open(path)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("file %s does exist", path)
-			}
-			return err
-		}
+		isFile = fi != nil && fi.Mode().IsRegular()
 	}
-	defer content.Close()
+
+	// Read the Scriggofile and the go.mod file.
+	var scriggofile io.ReadCloser
+	var gomod *modfile.File
+	var base string
+
+	if isFile {
+		scriggofile, err = os.Open(path)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
+		}
+		gomod = &modfile.File{}
+		base = strings.TrimSuffix(path, filepath.Ext(path))
+	} else {
+		// path is a package path.
+		pkgDir, modDir, err := packageDirs(path)
+		if err != nil {
+			return err
+		}
+		// Read the Scriggofile.
+		file := filepath.Join(pkgDir, "Scriggofile")
+		scriggofile, err = os.Open(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("scriggo: can't load package %s: no Scriggofile in %s", path, pkgDir)
+			}
+			return err
+		}
+		// Read the go.mod file.
+		file = filepath.Join(modDir, "go.mod")
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("scriggo: cannot find main module; see 'go help modules'")
+			}
+			return err
+		}
+		gomod, err = modfile.ParseLax(file, data, nil)
+		if err != nil {
+			return err
+		}
+		// Make absolute the relative rewrite paths.
+		for _, replace := range gomod.Replace {
+			if p := replace.New.Path; modfile.IsDirectoryPath(p) && !filepath.IsAbs(p) {
+				filepath.Join(modDir, replace.New.Path)
+			}
+		}
+		base = filepath.Base(pkgDir)
+	}
+	defer scriggofile.Close()
 
 	// Parse the Scriggofile.
-	sf, err := parseScriggofile(content, goos)
+	sf, err := parseScriggofile(scriggofile, goos)
 	if err != nil {
 		return err
 	}
-	err = content.Close()
+	err = scriggofile.Close()
 	if err != nil {
 		return err
 	}
@@ -357,7 +383,7 @@ func build(install bool, work bool, verbose bool) error {
 		defer func() {
 			err = os.RemoveAll(workDir)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "cannot delete the temporary work directory: %s", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: can't delete the temporary work directory: %s", err)
 			}
 		}()
 	}
@@ -366,7 +392,12 @@ func build(install bool, work bool, verbose bool) error {
 
 	err = os.MkdirAll(dir, dirPerm)
 	if err != nil {
-		return err
+		return fmt.Errorf("scriggo: can't make work directory: %s", err)
+	}
+
+	// Run in module-aware mode.
+	if err = os.Setenv("GO111MODULE", "on"); err != nil {
+		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
 	}
 
 	// Create the package declarations file.
@@ -378,23 +409,41 @@ func build(install bool, work bool, verbose bool) error {
 	defer fi.Close()
 	_, err = renderPackages(fi, sf, goos, verbose)
 	if err != nil {
-		return fmt.Errorf("rendering packages: %s", err)
+		return fmt.Errorf("scriggo: can't render packages: %s", err)
 	}
 	err = fi.Close()
 	if err != nil {
-		return fmt.Errorf("rendering packages: %s", err)
+		return fmt.Errorf("scriggo: can't render packages: %s", err)
+	}
+
+	// Create the go.mod file.
+	gomod.AddModuleStmt("open2b.scriggo/" + base)
+	{
+		// TODO(marco): to remove.
+		goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
+		if len(goPaths) == 0 {
+			panic("scriggo: empty gopath not supported")
+		}
+		scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
+		err = gomod.AddReplace("scriggo", "", scriggoPath, "")
+		if err != nil {
+			panic("scriggo: can't create go.mod: %s")
+		}
+	}
+	data, err := gomod.Format()
+	if err != nil {
+		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
+	}
+	err = ioutil.WriteFile(filepath.Join(dir, "go.mod"), data, filePerm)
+	if err != nil {
+		return fmt.Errorf("scriggo: %s", err)
 	}
 
 	// Create the other installer files main file.
 	mainPath := filepath.Join(dir, "main.go")
 	err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.target), filePerm)
 	if err != nil {
-		return fmt.Errorf("writing interpreter file: %s", err)
-	}
-	goModPath := filepath.Join(dir, "go.mod")
-	err = ioutil.WriteFile(goModPath, makeExecutableGoMod(base), filePerm)
-	if err != nil {
-		return fmt.Errorf("writing interpreter file: %s", err)
+		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
 	}
 
 	// Build or install the package.
@@ -422,6 +471,88 @@ func stdlib() (err error) {
 		}
 	}
 	return err
+}
+
+func packageDirs(path string) (string, string, error) {
+	type jsonPackage struct {
+		Dir        string
+		ImportPath string
+		Incomplete bool
+	}
+	// Read package dir.
+	cmd := exec.Command("go", "list", "-e", "-json", "-find=true", path)
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return "", "", errors.New(stderr.String())
+		}
+		return "", "", err
+	}
+	var packages []*jsonPackage
+	for dec := json.NewDecoder(stdout); dec.More(); {
+		pkg := &jsonPackage{}
+		err := dec.Decode(pkg)
+		if err != nil {
+			return "", "", fmt.Errorf("can't read packages from go list: %v", err)
+		}
+		packages = append(packages, pkg)
+	}
+	if len(packages) == 0 || packages[0].Incomplete {
+		// Try
+		// Call go build to get the error message.
+		cmd = exec.Command("go", "build", "-n", path)
+		stderr := &bytes.Buffer{}
+		cmd.Stderr = stderr
+		_ = cmd.Run()
+		return "", "", errors.New(stderr.String())
+	}
+	if len(packages) > 1 {
+		err := fmt.Sprintf("too many packages for %q:", path)
+		for _, p := range packages {
+			err += "\n        " + p.ImportPath
+		}
+		return "", "", errors.New(err)
+	}
+	pkg := packages[0]
+	stdout.Reset()
+	stderr.Reset()
+	// Read module dir.
+	cmd = exec.Command("go", "list", "-m", "-json")
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	env := os.Environ()
+	for i, ev := range env {
+		if strings.HasPrefix(ev, "GO111MODULE=") {
+			cmd.Env = env
+			cmd.Env[i] = "GO111MODULE=on"
+			break
+		}
+	}
+	if cmd.Env == nil {
+		cmd.Env = append(env, "GO111MODULE=on")
+	}
+	cmd.Dir = pkg.Dir
+	err = cmd.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return "", "", errors.New(stderr.String())
+		}
+		return "", "", err
+	}
+	type jsonModule struct {
+		Dir string
+	}
+	dec := json.NewDecoder(stdout)
+	mod := &jsonModule{}
+	err = dec.Decode(mod)
+	if err != nil {
+		return "", "", fmt.Errorf("can't read module from go list: %v", err)
+	}
+	return pkg.Dir, mod.Dir, nil
 }
 
 // stdlibPaths contains the paths of the packages of the Go standard library
