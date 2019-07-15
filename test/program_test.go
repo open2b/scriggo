@@ -122,6 +122,22 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 
+	// {
+	// 	name: "Assigning a predefined function to a variable and calling it",
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		p := fmt.Print
+	// 		p("hello")
+	// 	}
+	// 	`,
+	// 	out: "hello",
+	// },
+
 	{
 		name: "Binary operators && and ||",
 		src: `package main
