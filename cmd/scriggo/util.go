@@ -48,23 +48,6 @@ func getOutputFlag(output string) (io.WriteCloser, error) {
 	return os.OpenFile(output, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 }
 
-// makeExecutableGoMod makes a 'go.mod' file for creating and installing an
-// executable.
-func makeExecutableGoMod(name string) []byte {
-	out := `module cmd/[moduleName]
-	replace scriggo => [scriggoPath]`
-
-	out = strings.ReplaceAll(out, "[moduleName]", name)
-	goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
-	if len(goPaths) == 0 {
-		panic("empty gopath not supported")
-	}
-	scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
-	out = strings.ReplaceAll(out, "[scriggoPath]", scriggoPath)
-
-	return []byte(out)
-}
-
 // uncapitalize "uncapitalizes" n.
 //
 // 	Name        ->  name
