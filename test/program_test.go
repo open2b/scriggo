@@ -122,6 +122,26 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 
+	// {
+	// 	src: `package main
+
+	// 	import (
+	// 		"fmt"
+	// 	)
+
+	// 	func main() {
+	// 		var a int = 20
+	// 		fmt.Print(a << 2)
+	// 		fmt.Print(a >> 1)
+	// 		var b int8 = 12
+	// 		fmt.Print(b << 3)
+	// 		fmt.Print(b >> 1)
+	// 		fmt.Print((b << 5) >> 5)
+	// 	}
+	// 	`,
+	// 	out: `8010966-4`,
+	// },
+
 	{
 		name: "Binary operator",
 		src: `package main
