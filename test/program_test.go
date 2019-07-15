@@ -121,6 +121,58 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Binary operator",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			a := 1
+			b := 20
+			fmt.Print(a == b)
+			fmt.Print(bool(a == b))
+			fmt.Print(bool(a != b))
+			fmt.Print(a + b)
+			fmt.Print(int(a) + int(b))
+		}`,
+		out: `falsefalsetrue2121`,
+	},
+
+	{
+		name: "References equality (w/o an intermediate variable)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			a := 1
+			b := &a
+			c := &a
+			fmt.Println(b == c)
+		}
+		`,
+		out: "true\n",
+	},
+
+	{
+		name: "References equality (assigning to an intermediate variable)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			a := 1
+			b := &a
+			c := &a
+			equal := b == c
+			fmt.Println(equal)
+		}
+		`,
+		out: "true\n",
+	},
+
 	{
 		name: "Multiplication of two constant integers with value = 0",
 		src: `package main

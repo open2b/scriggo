@@ -696,94 +696,85 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			em.fb.exitStack()
 			return
 		}
-
-		em.fb.enterStack()
-
+		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
+		exprType := em.ti(expr).Type
 		t1 := em.ti(expr.Expr1).Type
+		t2 := em.ti(expr.Expr2).Type
 		v1 := em.emitExprInNewReg(expr.Expr1, t1)
-
-		v2, k, ok := em.quickEmitExpr(expr.Expr2, t1)
+		v2, k, ok := em.quickEmitExpr(expr.Expr2, t2)
 		if !ok {
-			v2 = em.emitExprInNewReg(expr.Expr2, t1)
+			v2 = em.emitExprInNewReg(expr.Expr2, t2)
 		}
-
-		res := em.fb.newRegister(t1.Kind())
-
-		switch op := expr.Operator(); {
-		case op == ast.OperatorAddition && t1.Kind() == reflect.String && reg != 0:
+		if reg == 0 {
+			return
+		}
+		// String concatenation.
+		if expr.Operator() == ast.OperatorAddition && t1.Kind() == reflect.String {
 			if k {
-				v2 = em.emitExprInNewReg(expr.Expr2, t1)
+				v2 = em.emitExprInNewReg(expr.Expr2, t2)
 			}
-			em.fb.emitConcat(v1, v2, reg)
-		case op == ast.OperatorAddition && reg != 0:
-			em.fb.emitAdd(k, v1, v2, res, t1.Kind())
-			em.changeRegister(false, res, reg, t1, dstType)
-		case op == ast.OperatorSubtraction && reg != 0:
-			em.fb.emitSub(k, v1, v2, res, t1.Kind())
-			em.changeRegister(false, res, reg, t1, dstType)
-		case op == ast.OperatorMultiplication && reg != 0:
-			em.fb.emitMul(k, v1, v2, res, t1.Kind())
-			em.changeRegister(false, res, reg, t1, dstType)
-		case op == ast.OperatorDivision && reg != 0:
-			em.fb.emitDiv(k, v1, v2, res, t1.Kind())
-			em.changeRegister(false, res, reg, t1, dstType)
-		case op == ast.OperatorDivision && reg == 0:
-			dummyReg := em.fb.newRegister(t1.Kind())
-			em.fb.emitDiv(k, v1, v2, dummyReg, t1.Kind()) // produce division by zero.
-		case op == ast.OperatorModulo && reg != 0:
-			em.fb.emitRem(k, v1, v2, res, t1.Kind())
-			em.changeRegister(false, res, reg, t1, dstType)
-		case ast.OperatorEqual <= op && op <= ast.OperatorGreaterOrEqual:
-			var cond vm.Condition
-			switch op {
-			case ast.OperatorEqual:
-				cond = vm.ConditionEqual
-			case ast.OperatorNotEqual:
-				cond = vm.ConditionNotEqual
-			case ast.OperatorLess:
-				cond = vm.ConditionLess
-			case ast.OperatorLessOrEqual:
-				cond = vm.ConditionLessOrEqual
-			case ast.OperatorGreater:
-				cond = vm.ConditionGreater
-			case ast.OperatorGreaterOrEqual:
-				cond = vm.ConditionGreaterOrEqual
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				em.fb.emitConcat(v1, v2, reg)
+				return
 			}
-			if reg != 0 {
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			em.fb.emitConcat(v1, v2, tmp)
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+			return
+		}
+		switch expr.Operator() {
+		case ast.OperatorAddition, ast.OperatorSubtraction, ast.OperatorMultiplication, ast.OperatorDivision,
+			ast.OperatorModulo, ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor, ast.OperatorAndNot,
+			ast.OperatorLeftShift, ast.OperatorRightShift:
+			emitFn := map[ast.OperatorType]func(bool, int8, int8, int8, reflect.Kind){
+				ast.OperatorAddition:       em.fb.emitAdd,
+				ast.OperatorSubtraction:    em.fb.emitSub,
+				ast.OperatorMultiplication: em.fb.emitMul,
+				ast.OperatorDivision:       em.fb.emitDiv,
+				ast.OperatorModulo:         em.fb.emitRem,
+				ast.OperatorAnd:            em.fb.emitAnd,
+				ast.OperatorOr:             em.fb.Or,
+				ast.OperatorXor:            em.fb.emitXor,
+				ast.OperatorAndNot:         em.fb.emitAndNot,
+				ast.OperatorLeftShift:      em.fb.emitLeftShift,
+				ast.OperatorRightShift:     em.fb.emitRightShift,
+			}[expr.Operator()]
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				emitFn(k, v1, v2, reg, exprType.Kind())
+				return
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			emitFn(k, v1, v2, tmp, exprType.Kind())
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+			return
+		case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
+			ast.OperatorGreaterOrEqual, ast.OperatorGreater:
+			cond := map[ast.OperatorType]vm.Condition{
+				ast.OperatorEqual:          vm.ConditionEqual,
+				ast.OperatorNotEqual:       vm.ConditionNotEqual,
+				ast.OperatorLess:           vm.ConditionLess,
+				ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
+				ast.OperatorGreater:        vm.ConditionGreater,
+				ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+			}[expr.Operator()]
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
 				em.fb.emitMove(true, 1, reg, reflect.Bool)
 				em.fb.emitIf(k, v1, cond, v2, t1.Kind())
 				em.fb.emitMove(true, 0, reg, reflect.Bool)
+				return
 			}
-		case op == ast.OperatorAnd,
-			op == ast.OperatorOr,
-			op == ast.OperatorXor,
-			op == ast.OperatorAndNot,
-			op == ast.OperatorLeftShift,
-			op == ast.OperatorRightShift:
-			if reg != 0 {
-				switch op {
-				case ast.OperatorAnd:
-					em.fb.emitAnd(k, v1, v2, reg, t1.Kind())
-				case ast.OperatorOr:
-					em.fb.Or(k, v1, v2, reg, t1.Kind())
-				case ast.OperatorXor:
-					em.fb.emitXor(k, v1, v2, reg, t1.Kind())
-				case ast.OperatorAndNot:
-					em.fb.emitAndNot(k, v1, v2, reg, t1.Kind())
-				case ast.OperatorLeftShift:
-					em.fb.emitLeftShift(k, v1, v2, reg, t1.Kind())
-				case ast.OperatorRightShift:
-					em.fb.emitRightShift(k, v1, v2, reg, t1.Kind())
-				}
-				if kindToType(t1.Kind()) != kindToType(dstType.Kind()) {
-					em.changeRegister(k, reg, reg, t1, dstType)
-				}
-			}
-		default:
-			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			em.fb.emitMove(true, 1, tmp, reflect.Bool)
+			em.fb.emitIf(k, v1, cond, v2, t1.Kind())
+			em.fb.emitMove(true, 0, tmp, reflect.Bool)
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
 		}
-
-		em.fb.exitStack()
 
 	case *ast.Call:
 
