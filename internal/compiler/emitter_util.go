@@ -206,6 +206,12 @@ func (em *emitter) predFuncIndex(fn reflect.Value, predPkgName, name string) int
 	return index
 }
 
+// sameRegType reports whether k1 and k2 have the same type of register in
+// current implementation of the VM.
+func sameRegType(k1, k2 reflect.Kind) bool {
+	return kindToType(k1) == kindToType(k2)
+}
+
 // setClosureRefs sets the closure refs of a function. setClosureRefs operates
 // on current function builder, so shall be called before changing or saving
 // it.

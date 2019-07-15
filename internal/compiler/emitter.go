@@ -550,7 +550,13 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		if reg == 0 {
 			return
 		}
-		em.fb.emitGetVar(int(index), reg) // TODO (Gianluca): to review.
+		if sameRegType(ti.Type.Kind(), dstType.Kind()) {
+			em.fb.emitGetVar(int(index), reg)
+			return
+		}
+		tmpReg := em.fb.newRegister(ti.Type.Kind())
+		em.fb.emitGetVar(int(index), tmpReg)
+		em.changeRegister(false, tmpReg, reg, ti.Type, dstType)
 		return
 	}
 
