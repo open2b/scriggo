@@ -5069,21 +5069,6 @@ var stmtTests = []struct {
 	// 	`,
 	// output: "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
 
-	// {
-	// 	name: "Operator address (&)",
-	// 	src: `package main
-
-	// 	import "fmt"
-
-	// 	func main() {
-	// 		a := 1
-	// 		b := &a
-	// 		c := &a
-	// 		fmt.Println(b == c)
-	// 	}`,
-	// 	output: "",
-	// },
-
 	//------------------------------------
 
 	// {"Variadic package functions",
