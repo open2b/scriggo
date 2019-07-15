@@ -66,9 +66,9 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 		a.em.fb.emitSetField(k, a.reg1, a.reg2, value)
 	case addressPackageVariable:
 		if k {
-			tmpReg := a.em.fb.newRegister(valueType.Kind())
-			a.em.fb.emitMove(true, value, tmpReg, valueType.Kind())
-			a.em.fb.emitSetVar(false, tmpReg, int(a.reg1))
+			tmp := a.em.fb.newRegister(valueType.Kind())
+			a.em.fb.emitMove(true, value, tmp, valueType.Kind())
+			a.em.fb.emitSetVar(false, tmp, int(a.reg1))
 		} else {
 			a.em.fb.emitSetVar(false, value, int(a.reg1))
 		}

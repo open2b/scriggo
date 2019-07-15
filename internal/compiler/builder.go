@@ -164,11 +164,11 @@ func (builder *functionBuilder) exitScope() {
 // Usage:
 //
 // 		e.fb.enterStack()
-// 		tmpReg := e.fb.newRegister(..)
-// 		// use tmpReg in some way
-// 		// move tmpReg content to externally-defined reg
+// 		tmp := e.fb.newRegister(..)
+// 		// use tmp in some way
+// 		// move tmp content to externally-defined reg
 // 		e.fb.exitStack()
-//	    // tmpReg location is now available for reusing
+//	    // tmp location is now available for reusing
 //
 func (builder *functionBuilder) enterStack() {
 	scopeShift := vm.StackShift{
