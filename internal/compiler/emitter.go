@@ -616,13 +616,25 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		switch v := ti.value.(type) {
 		case int64:
 			c := em.fb.makeIntConstant(v)
-			em.fb.emitLoadNumber(vm.TypeInt, c, reg)
-			em.changeRegister(false, reg, reg, typ, dstType)
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitLoadNumber(vm.TypeInt, c, reg)
+				em.changeRegister(false, reg, reg, typ, dstType)
+				return
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitLoadNumber(vm.TypeInt, c, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
 			return
 		case float64:
 			c := em.fb.makeFloatConstant(v)
-			em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
-			em.changeRegister(false, reg, reg, typ, dstType)
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
+				em.changeRegister(false, reg, reg, typ, dstType)
+				return
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitLoadNumber(vm.TypeFloat, c, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
 			return
 		case string:
 			c := em.fb.makeStringConstant(v)

@@ -122,6 +122,25 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Constants assigned to an interface type",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(10)
+			fmt.Print(34.51)
+			fmt.Print("hello")
+			i := interface{}(20)
+			fmt.Print(i)
+		}
+		`,
+		out: `1034.51hello20`,
+	},
+
+	{
 		name: "Unary operator *",
 		src: `package main
 
