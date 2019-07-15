@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Multiplication of two constant integers with value = 0",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(0 * 0)
+		}
+		`,
+		out: "0",
+	},
+
+	{
 		name: "Constants assigned to an interface type",
 		src: `package main
 
@@ -4889,25 +4904,25 @@ var stmtTests = []struct {
 	//	nil,
 	//	"a is 9 and b is 144\n"},
 
-	// {
-	// 	name: "Iota - local constant in math expression (with float numbers)",
-	// 	src: `package main
+	{
+		name: "Iota - local constant in math expression (with float numbers)",
+		src: `package main
 
-	// 	import (
-	// 		"fmt"
-	// 	)
+		import (
+			"fmt"
+		)
 
-	// 	func main() {
-	// 		const (
-	// 			A = (iota * iota) + 10
-	// 			B = A * (iota * 2.341)
-	// 			C = A + B + iota / 2.312
-	// 		)
-	// 		fmt.Print(A, B, C)
-	// 	}
-	// 	`,
-	// 	output: "10 23.41 34.27505190311419",
-	// },
+		func main() {
+			const (
+				A = (iota * iota) + 10
+				B = A * (iota * 2.341)
+				C = A + B + iota / 2.312
+			)
+			fmt.Print(A, B, C)
+		}
+		`,
+		out: "10 23.41 34.27505190311419",
+	},
 
 	//------------------------------------
 

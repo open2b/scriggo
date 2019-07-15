@@ -291,6 +291,9 @@ func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error
 		}
 		return n, nil
 	case ast.OperatorMultiplication:
+		if n1 == 0 || n2 == 0 {
+			return int64Const(0), nil
+		}
 		n := n1 * n2
 		if (n < 0) != ((n1 < 0) != (n2 < 0)) || n/n2 != n1 {
 			return n1.asInt().binaryOp(op, n2.asInt())
