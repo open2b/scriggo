@@ -1069,22 +1069,22 @@ var stmtTests = []struct {
 		out: "5",
 	},
 
-	// TODO(Gianluca):
-	// {
-	// 	name: "Converting uint16 -> string",
-	// 	src: `package main
+	{
+		name: "Converting uint16 -> string",
+		src: `package main
 
-	// 	import (
-	// 		"fmt"
-	// 	)
+		import (
+			"fmt"
+		)
 
-	// 	func main() {
-	// 		var f uint16 = 99
-	// 		var s string = string(f)
-	// 		fmt.Print(f, ", ", s)
-	// 	}`,
-	// 	output: "99, c",
-	// },
+		func main() {
+			var f uint16 = 99
+			var s string = string(f)
+			fmt.Print(f, ", ", s)
+		}`,
+		out: "99, c",
+	},
+
 	{
 		name: "Converting float64 -> int (truncating)",
 		src: `package main
