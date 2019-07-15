@@ -157,11 +157,11 @@ func (builder *functionBuilder) emitCallPredefined(f int8, numVariadic int8, shi
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})
 }
 
-// emitcCallIndirect appends a new "cCallIndirect" instruction to the function body.
+// emitCallIndirect appends a new "cCallIndirect" instruction to the function body.
 //
 //     f()
 //
-func (builder *functionBuilder) emitcCallIndirect(f int8, numVariadic int8, shift vm.StackShift) {
+func (builder *functionBuilder) emitCallIndirect(f int8, numVariadic int8, shift vm.StackShift) {
 	fn := builder.fn
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.OpCallIndirect, A: f, C: numVariadic})
 	fn.Body = append(fn.Body, vm.Instruction{Op: vm.Operation(shift[0]), A: shift[1], B: shift[2], C: shift[3]})

@@ -441,7 +441,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		em.fb.emitMethodValue(name, rcvr, method)
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
 		regs, types := em.prepareCallParameters(typ, call.Args, true, true)
-		em.fb.emitcCallIndirect(method, 0, stackShift)
+		em.fb.emitCallIndirect(method, 0, stackShift)
 		return regs, types
 	}
 
@@ -497,7 +497,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		reg = em.emitExprInNewReg(call.Func, em.ti(call.Func).Type)
 	}
 	regs, types := em.prepareCallParameters(typ, call.Args, true, false)
-	em.fb.emitcCallIndirect(reg, 0, stackShift)
+	em.fb.emitCallIndirect(reg, 0, stackShift)
 
 	return regs, types
 }
@@ -1760,7 +1760,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			em.emitExpr(node.Expr, em.templateRegs.gE, emptyInterfaceType)
 			em.fb.emitMove(true, int8(node.Context), em.templateRegs.iA, reflect.Int)
 			em.fb.emitMove(false, em.templateRegs.gA, em.templateRegs.gD, reflect.Interface)
-			em.fb.emitcCallIndirect(em.templateRegs.gC, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			em.fb.emitCallIndirect(em.templateRegs.gC, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.Switch:
 			currentBreakable := em.breakable
@@ -1779,7 +1779,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			index := len(em.fb.fn.Data)
 			em.fb.fn.Data = append(em.fb.fn.Data, node.Text) // TODO(Gianluca): cut text.
 			em.fb.emitLoadData(int16(index), em.templateRegs.gE)
-			em.fb.emitcCallIndirect(em.templateRegs.gB, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
+			em.fb.emitCallIndirect(em.templateRegs.gB, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
 		case *ast.TypeSwitch:
 			currentBreakable := em.breakable
