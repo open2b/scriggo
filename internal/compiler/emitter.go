@@ -735,7 +735,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 				ast.OperatorDivision:       em.fb.emitDiv,
 				ast.OperatorModulo:         em.fb.emitRem,
 				ast.OperatorAnd:            em.fb.emitAnd,
-				ast.OperatorOr:             em.fb.Or,
+				ast.OperatorOr:             em.fb.emitOr,
 				ast.OperatorXor:            em.fb.emitXor,
 				ast.OperatorAndNot:         em.fb.emitAndNot,
 				ast.OperatorLeftShift:      em.fb.emitLeftShift,

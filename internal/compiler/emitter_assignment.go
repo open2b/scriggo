@@ -308,7 +308,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			case ast.AssignmentAnd:
 				em.fb.emitAnd(false, value, rightOp, value, valueType.Kind())
 			case ast.AssignmentOr:
-				em.fb.Or(false, value, rightOp, value, valueType.Kind())
+				em.fb.emitOr(false, value, rightOp, value, valueType.Kind())
 			case ast.AssignmentXor:
 				em.fb.emitXor(false, value, rightOp, value, valueType.Kind())
 			case ast.AssignmentAndNot:

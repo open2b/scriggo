@@ -771,11 +771,11 @@ func (builder *functionBuilder) emitNop() {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpNone})
 }
 
-// Or appends a new "Or" instruction to the function body.
+// emitOr appends a new "Or" instruction to the function body.
 //
 //     z = x | y
 //
-func (builder *functionBuilder) Or(k bool, x, y, z int8, kind reflect.Kind) {
+func (builder *functionBuilder) emitOr(k bool, x, y, z int8, kind reflect.Kind) {
 	op := vm.OpOr
 	if k {
 		op = -op
