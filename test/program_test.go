@@ -5102,7 +5102,7 @@ var stmtTests = []struct {
 //go:generate scriggo embed -v -o packages.go ./packages.Scriggofile
 var goPackages scriggo.PackageLoader
 
-func TestVM(t *testing.T) {
+func TestProgram(t *testing.T) {
 	if goPackages == nil {
 		panic("goPackages declared but not initialized. Run 'go generate scriggo/test' with the latest version of scriggo installed to create the package declaration file.")
 	}
