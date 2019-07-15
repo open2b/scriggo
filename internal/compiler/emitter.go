@@ -660,7 +660,6 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			if op == ast.OperatorAndAnd {
 				cmp = 1
 			}
-			em.fb.enterStack()
 			if sameRegType(dstType.Kind(), reflect.Bool) {
 				em.emitExpr(expr.Expr1, reg, dstType)
 				endIf := em.fb.newLabel()
@@ -668,16 +667,17 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 				em.fb.emitGoto(endIf)
 				em.emitExpr(expr.Expr2, reg, dstType)
 				em.fb.setLabelAddr(endIf)
-			} else {
-				tmpReg := em.fb.newRegister(reflect.Bool)
-				em.emitExpr(expr.Expr1, tmpReg, boolType)
-				endIf := em.fb.newLabel()
-				em.fb.emitIf(true, tmpReg, vm.ConditionEqual, cmp, reflect.Int)
-				em.fb.emitGoto(endIf)
-				em.emitExpr(expr.Expr2, tmpReg, boolType)
-				em.fb.setLabelAddr(endIf)
-				em.changeRegister(false, tmpReg, reg, boolType, dstType)
+				return
 			}
+			em.fb.enterStack()
+			tmpReg := em.fb.newRegister(reflect.Bool)
+			em.emitExpr(expr.Expr1, tmpReg, boolType)
+			endIf := em.fb.newLabel()
+			em.fb.emitIf(true, tmpReg, vm.ConditionEqual, cmp, reflect.Int)
+			em.fb.emitGoto(endIf)
+			em.emitExpr(expr.Expr2, tmpReg, boolType)
+			em.fb.setLabelAddr(endIf)
+			em.changeRegister(false, tmpReg, reg, boolType, dstType)
 			em.fb.exitStack()
 			return
 		}

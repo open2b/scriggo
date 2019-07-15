@@ -123,6 +123,25 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Binary operators && and ||",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			t := true
+			f := false
+			fmt.Print(t && f)
+			fmt.Print(t && f || f && t)
+			fmt.Print(t || f)
+		}
+		`,
+		out: "falsefalsetrue",
+	},
+
+	{
 		name: "Builtin copy",
 		src: `package main
 
