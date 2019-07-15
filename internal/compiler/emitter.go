@@ -580,7 +580,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	field, _ := exprType.FieldByName(expr.Ident)
 	index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 	fieldType := em.ti(expr).Type
-	if kindToType(fieldType.Kind()) == kindToType(dstType.Kind()) {
+	if sameRegType(fieldType.Kind(), dstType.Kind()) {
 		em.fb.emitField(exprReg, index, reg)
 		return
 	}
@@ -653,7 +653,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 				cmp = 1
 			}
 			em.fb.enterStack()
-			if kindToType(dstType.Kind()) == kindToType(reflect.Bool) {
+			if sameRegType(dstType.Kind(), reflect.Bool) {
 				em.emitExpr(expr.Expr1, reg, dstType)
 				endIf := em.fb.newLabel()
 				em.fb.emitIf(true, reg, vm.ConditionEqual, cmp, reflect.Int)
@@ -788,7 +788,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			typ := em.ti(expr.Args[0]).Type
 			arg := em.fb.newRegister(typ.Kind())
 			em.emitExpr(expr.Args[0], arg, typ)
-			if kindToType(convertType.Kind()) == kindToType(dstType.Kind()) {
+			if sameRegType(convertType.Kind(), dstType.Kind()) {
 				em.changeRegister(false, arg, reg, typ, convertType)
 				return
 			}
@@ -863,7 +863,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 					field, _ := typ.FieldByName(name)
 					valueType := em.ti(kv.Value).Type
 					var valueReg int8
-					if kindToType(field.Type.Kind()) == kindToType(valueType.Kind()) {
+					if sameRegType(field.Type.Kind(), valueType.Kind()) {
 						valueReg = em.fb.newRegister(field.Type.Kind())
 						em.emitExpr(kv.Value, valueReg, valueType)
 					} else {
@@ -910,7 +910,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			em.emitExpr(expr.Expr, exprReg, typ)
 		}
 		assertType := em.ti(expr.Type).Type
-		if kindToType(assertType.Kind()) == kindToType(dstType.Kind()) {
+		if sameRegType(assertType.Kind(), dstType.Kind()) {
 			em.fb.emitAssert(exprReg, assertType, reg)
 			em.fb.emitNop()
 		} else {
@@ -1059,7 +1059,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 		// Clojure variable.
 		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
-			if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+			if sameRegType(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(index, reg)
 				return
 			}
@@ -1071,7 +1071,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 		// Scriggo variable.
 		if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
-			if kindToType(typ.Kind()) == kindToType(dstType.Kind()) {
+			if sameRegType(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(int(index), reg)
 				return
 			}
@@ -1084,7 +1084,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		// Predefined variable.
 		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
 			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
-			if kindToType(ti.Type.Kind()) == kindToType(dstType.Kind()) {
+			if sameRegType(ti.Type.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(int(index), reg)
 				return
 			}
@@ -1114,7 +1114,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			i = em.fb.newRegister(indexType.Kind())
 			em.emitExpr(expr.Index, i, indexType)
 		}
-		if kindToType(exprType.Elem().Kind()) == kindToType(dstType.Kind()) {
+		if sameRegType(exprType.Elem().Kind(), dstType.Kind()) {
 			em.fb.emitIndex(ki, exprReg, i, reg, exprType)
 			return
 		}
@@ -1254,7 +1254,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		typ := em.ti(call.Args[0]).Type
 		s := em.fb.newRegister(typ.Kind())
 		em.emitExpr(call.Args[0], s, typ)
-		if kindToType(intType.Kind()) == kindToType(dstType.Kind()) {
+		if sameRegType(intType.Kind(), dstType.Kind()) {
 			em.fb.emitCap(s, reg)
 			return
 		}
@@ -1295,7 +1295,7 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		typ := em.ti(call.Args[0]).Type
 		s := em.fb.newRegister(typ.Kind())
 		em.emitExpr(call.Args[0], s, typ)
-		if kindToType(intType.Kind()) == kindToType(dstType.Kind()) {
+		if sameRegType(intType.Kind(), dstType.Kind()) {
 			em.fb.emitLen(s, reg, typ)
 			return
 		}
