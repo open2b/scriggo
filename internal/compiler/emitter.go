@@ -794,9 +794,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 				return
 			}
 			typ := em.ti(expr.Args[0]).Type
-
 			arg := em.emitExprInNewReg(expr.Args[0], typ)
-
 			if sameRegType(convertType.Kind(), dstType.Kind()) {
 				em.changeRegister(false, arg, reg, typ, convertType)
 				return
@@ -910,10 +908,10 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 	case *ast.TypeAssertion:
 
-		typ := em.ti(expr.Expr).Type
-		exprReg, k, ok := em.quickEmitExpr(expr.Expr, typ)
+		exprType := em.ti(expr.Expr).Type
+		exprReg, k, ok := em.quickEmitExpr(expr.Expr, exprType)
 		if !ok || k {
-			exprReg = em.emitExprInNewReg(expr.Expr, typ)
+			exprReg = em.emitExprInNewReg(expr.Expr, exprType)
 		}
 		assertType := em.ti(expr.Type).Type
 		if sameRegType(assertType.Kind(), dstType.Kind()) {
