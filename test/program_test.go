@@ -121,6 +121,41 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "Unary operator *",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			a := "message"
+			b := &a
+			fmt.Print("*b: ", *b)
+			c := *b
+			fmt.Print(", c: ", c)
+		}`,
+		out: "*b: message, c: message",
+	},
+
+	{
+		name: "Unary operator !",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(true)
+			fmt.Print(!true)
+			v := !false
+			fmt.Print(v)
+		}
+		`,
+		out: `truefalsetrue`,
+	},
 
 	// {
 	// 	name: "Assigning a predefined function to a variable and calling it",

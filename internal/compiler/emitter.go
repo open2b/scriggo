@@ -936,23 +936,41 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 	case *ast.UnaryOperator:
 
-		typ := em.ti(expr.Expr).Type
-		var tmpReg int8
-		if reg != 0 {
-			tmpReg = em.fb.newRegister(typ.Kind())
-		}
-		em.emitExpr(expr.Expr, tmpReg, typ)
-		if reg == 0 {
-			return
-		}
+		exprType := em.ti(expr.Expr).Type
+		typ := em.ti(expr).Type
 		switch expr.Operator() {
 		case ast.OperatorNot:
-			em.fb.emitSubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
-			if reg != 0 {
-				em.changeRegister(false, tmpReg, reg, typ, dstType)
+			if reg == 0 {
+				em.emitExpr(expr.Expr, 0, exprType)
+				return
 			}
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.emitExpr(expr.Expr, reg, exprType)
+				em.fb.emitSubInv(true, reg, int8(1), reg, reflect.Int)
+				return
+			}
+			em.fb.enterScope()
+			tmpReg := em.fb.newRegister(exprType.Kind())
+			em.emitExpr(expr.Expr, tmpReg, exprType)
+			em.fb.emitSubInv(true, tmpReg, int8(1), tmpReg, reflect.Int)
+			em.changeRegister(false, tmpReg, reg, exprType, dstType)
+			em.fb.exitScope()
 		case ast.OperatorMultiplication:
-			em.changeRegister(false, -tmpReg, reg, typ.Elem(), dstType)
+			if reg == 0 {
+				em.emitExpr(expr.Expr, 0, exprType)
+				return
+			}
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				exprReg := em.fb.newRegister(exprType.Kind())
+				em.emitExpr(expr.Expr, exprReg, exprType)
+				em.changeRegister(false, -exprReg, reg, exprType.Elem(), dstType)
+				return
+			}
+			exprReg := em.fb.newRegister(exprType.Kind())
+			em.emitExpr(expr.Expr, exprReg, exprType)
+			tmpReg := em.fb.newRegister(exprType.Elem().Kind())
+			em.changeRegister(false, -exprReg, tmpReg, exprType.Elem(), exprType.Elem())
+			em.changeRegister(false, tmpReg, reg, exprType.Elem(), dstType)
 		case ast.OperatorAnd:
 			switch expr := expr.Expr.(type) {
 			case *ast.Identifier:
@@ -980,12 +998,25 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		case ast.OperatorAddition:
 			// Do nothing.
 		case ast.OperatorSubtraction:
-			em.fb.emitSubInv(true, tmpReg, 0, tmpReg, dstType.Kind())
-			if reg != 0 {
-				em.changeRegister(false, tmpReg, reg, typ, dstType)
+			if reg == 0 {
+				em.emitExpr(expr.Expr, 0, exprType)
+				return
 			}
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				exprReg := em.fb.newRegister(exprType.Kind())
+				em.emitExpr(expr.Expr, exprReg, dstType)
+				em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
+				return
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		case ast.OperatorReceive:
-			em.fb.emitReceive(tmpReg, 0, reg)
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				chanReg := em.fb.newRegister(exprType.Kind())
+				em.emitExpr(expr.Expr, chanReg, exprType)
+				em.fb.emitReceive(chanReg, 0, reg)
+				return
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
 		default:
 			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
 		}
