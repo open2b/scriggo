@@ -1312,13 +1312,15 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		typ := em.ti(call.Args[0]).Type
 		s := em.fb.newRegister(typ.Kind())
 		em.emitExpr(call.Args[0], s, typ)
-		if sameRegType(intType.Kind(), dstType.Kind()) {
+		if sameRegType(reflect.Int, dstType.Kind()) {
 			em.fb.emitLen(s, reg, typ)
 			return
 		}
-		tmp := em.fb.newRegister(intType.Kind())
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(reflect.Int)
 		em.fb.emitLen(s, tmp, typ)
 		em.changeRegister(false, tmp, reg, intType, dstType)
+		em.fb.exitStack()
 	case "make":
 		typ := em.ti(call.Args[0]).Type
 		switch typ.Kind() {
