@@ -47,32 +47,34 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-v] [-work] package
-       scriggo build [-v] [-work] file
+usage: scriggo build [-v] [-x] [-work] module
+       scriggo build [-v] [-x] [-work] file
 
 Build compiles an interpreter for Scriggo programs, scripts and templates from
-a package or single file.
+a module or single file.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
 
-If a package has a file named "Scriggofile" in its directory, an interpreter
-is build and installed from the instructions in this file according to a
-specific format. For example:
+If a module has a file named "Scriggofile" in its directory, an interpreter is
+build and installed from the instructions in this file according to a specific
+format. For example:
 
 scriggo build github.com/organization/example
 
-will an interpreter named "example" (or "example.exe") from the commands in the
+will an interpreter named "example" or "example.exe" from the commands in the
 file "github.com/organization/example/Scriggofile".
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-If a file is given, instead of a package, the file must contains the commands
+If a file is given, instead of a module, the file must contains the commands
 to build the interpreter. The name of the executable is the same of the file
 without the file extension. For example if the file is "example.Scriggofile"
-the executable will be named "example" (or "example.exe").
+the executable will be named "example" or "example.exe".
 
 The -v flag prints the imported packages as defined in the Scriggofile.
+
+The -x flag prints the executed commands.
 
 The -work flag prints the name of a temporary directory containing a work
 package used to build the interpreter. The directory will not be deleted
@@ -82,44 +84,50 @@ See also: scriggo install and scriggo embed.
 `
 
 const helpInstall = `
-usage: scriggo install [-v] package
-       scriggo install [-v] file
+usage: scriggo install [-v] [-x] [-work] module
+       scriggo install [-v] [-x] [-work] file
 
 Install compiles and installs an interpreter for Scriggo programs, scripts
-and templates from a package or single file.
+and templates from a module or single file.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
 
 For more about the GOBIN directory, see 'go help install'.
 
-If a package has a file named "Scriggofile" in its directory, an interpreter
-is build and installed from the instructions in this file according to a
-specific format. For example:
+If a module has a file named "Scriggofile" in its directory, an interpreter is
+build and installed from the instructions in this file according to a specific
+format. For example:
 
 scriggo install github.com/organization/example
 
-will install an interpreter named "example" (or "example.exe") from the
-commands in the file "github.com/organization/example/Scriggofile".
+will install an interpreter named "example" or "example.exe" from the commands
+in the file "github.com/organization/example/Scriggofile".
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-If a file is given, instead of a package, the file must contains the commands
+If a file is given, instead of a module, the file must contains the commands
 to build the interpreter. The name of the executable is the same of the file
 without the file extension. For example if the file is "example.Scriggofile"
-the executable will be named "example" (or "example.exe").
+the executable will be named "example" or "example.exe".
 
 The -v flag prints the imported packages as defined in the Scriggofile.
+
+The -x flag prints the executed commands.
+
+The -work flag prints the name of a temporary directory containing a work
+package used to build the interpreter. The directory will not be deleted
+after the build.
 
 See also: scriggo build and scriggo embed.
 `
 
 const helpEmbed = `
-usage: scriggo embed [-o output] file
+usage: scriggo embed [-v] [-x] [-o output] module
 
-Embed makes a Go source file from a Scriggofile containing the exported
-declarations of the packages imported in the Scriggofile. The generated
-file is useful when embedding Scriggo in an application.
+Embed makes a Go source file from a Scriggofile in a module containing the
+exported declarations of the packages imported in the Scriggofile. The
+generated file is useful when embedding Scriggo in an application.
 
 Embed prints the generated source to the standard output. Use the flag -o
 to redirect the source to a file.
@@ -138,6 +146,10 @@ different name to the package use the instruction SET PACKAGE in the
 Scriggofile:
 
 SET PACKAGE example
+
+The -v flag prints the imported packages as defined in the Scriggofile.
+
+The -x flag prints the executed commands.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 

@@ -21,15 +21,10 @@ import (
 	pkgs "golang.org/x/tools/go/packages"
 )
 
-const (
-	dirPerm  = 0775 // default new directory permission.
-	filePerm = 0644 // default new file permission.
-)
-
 // renderPackages renders a Scriggofile. It also returns a boolean indicating
 // if the content contains packages. Ignores all main packages contained in
 // the Scriggofile.
-func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (int, error) {
+func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags buildFlags) (int, error) {
 
 	type packageType struct {
 		name string
@@ -69,10 +64,10 @@ func renderPackages(w io.Writer, sf *scriggofile, goos string, verbose bool) (in
 
 	packages := map[string]*packageType{}
 	for _, imp := range sf.imports {
-		if verbose {
+		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
-		pkgName, decls, err := loadGoPackage(imp.path, goos)
+		pkgName, decls, err := loadGoPackage(imp.path, dir, goos, flags)
 		if err != nil {
 			return 0, err
 		}
@@ -258,9 +253,9 @@ func init() {
 
 // loadGoPackage loads the Go package with the given path and returns its name
 // and its exported declarations.
-func loadGoPackage(path, goos string) (string, map[string]string, error) {
+func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl map[string]string, err error) {
 
-	declarations := map[string]string{}
+	decl = map[string]string{}
 	// TODO(marco): remove the global cache of package names.
 	pkgBase := uniquePackageName(path)
 
@@ -272,6 +267,27 @@ func loadGoPackage(path, goos string) (string, map[string]string, error) {
 		//  conf.Env = append(os.Environ(), "GOOS=", goos)
 	}
 
+	if flags.x {
+		_, _ = fmt.Fprintf(os.Stderr, "go list -json -find %s\n", path)
+	}
+	if dir != "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", nil, fmt.Errorf("scriggo: can't get current directory: %s", err)
+		}
+		err = os.Chdir(dir)
+		if err != nil {
+			return "", nil, fmt.Errorf("scriggo: can't change current directory: %s", err)
+		}
+		defer func() {
+			err = os.Chdir(cwd)
+			if err != nil {
+				name = ""
+				decl = nil
+				err = fmt.Errorf("scriggo: can't change current directory: %s", err)
+			}
+		}()
+	}
 	packages, err := pkgs.Load(conf, path)
 	if err != nil {
 		return "", nil, err
@@ -289,7 +305,7 @@ func loadGoPackage(path, goos string) (string, map[string]string, error) {
 		panic("bug")
 	}
 
-	name := packages[0].Name
+	name = packages[0].Name
 
 	for _, v := range packages[0].TypesInfo.Defs {
 		// Include only exported names. Do not take into account whether the
@@ -305,12 +321,12 @@ func loadGoPackage(path, goos string) (string, map[string]string, error) {
 		case *types.Const:
 			switch v.Val().Kind() {
 			case constant.String, constant.Bool:
-				declarations[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+				decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 				continue
 			case constant.Int:
 				// Most cases fall here.
 				if len(v.Val().ExactString()) < 7 {
-					declarations[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+					decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
 					continue
 				}
 			}
@@ -328,25 +344,25 @@ func loadGoPackage(path, goos string) (string, map[string]string, error) {
 			if v.Val().Kind() == constant.String && len(quoted) == len(exact)+4 {
 				quoted = "`" + exact + "`"
 			}
-			declarations[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
+			decl[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
 		case *types.Func:
 			if v.Type().(*types.Signature).Recv() == nil {
-				declarations[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
+				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
 			}
 		case *types.Var:
 			if !v.Embedded() && !v.IsField() {
-				declarations[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
+				decl[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
 			}
 		case *types.TypeName:
 			if parts := strings.Split(v.String(), " "); len(parts) >= 3 {
 				if strings.HasPrefix(parts[2], "struct{") {
-					declarations[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
+					decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
 					continue
 				}
 			}
-			declarations[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
+			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
 		}
 	}
 
-	return name, declarations, nil
+	return name, decl, nil
 }

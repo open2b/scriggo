@@ -9,7 +9,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -19,8 +18,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	_path "path"
 
 	"github.com/rogpeppe/go-internal/modfile"
+	"github.com/rogpeppe/go-internal/module"
+	"github.com/rogpeppe/go-internal/semver"
 )
 
 func main() {
@@ -136,18 +138,20 @@ var commands = map[string]func(){
 	"build": func() {
 		flag.Usage = commandsHelp["install"]
 		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
-		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		v := flag.Bool("v", false, "print the names of packages as the are imported.")
+		x := flag.Bool("x", false, "print the commands.")
+		o := flag.String("o", "", "output file.")
 		flag.Parse()
-		if len(flag.Args()) == 0 {
-			// No arguments provided: this is not an error.
-			flag.Usage()
-			return
-		}
-		if len(flag.Args()) > 1 {
+		var path string
+		switch n := len(flag.Args()); n {
+		case 0:
+		case 1:
+			path = flag.Arg(0)
+		default:
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build(false, *work, *verbose)
+		err := build("build", path, buildFlags{work: *work, v: *v, x: *x, o: *o})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -155,18 +159,20 @@ var commands = map[string]func(){
 	},
 	"install": func() {
 		flag.Usage = commandsHelp["install"]
-		verbose := flag.Bool("v", false, "print the names of packages as the are imported.")
+		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
+		v := flag.Bool("v", false, "print the names of packages as the are imported.")
+		x := flag.Bool("x", false, "print the commands.")
 		flag.Parse()
-		if len(flag.Args()) == 0 {
-			// No arguments provided: this is not an error.
-			flag.Usage()
-			return
-		}
-		if len(flag.Args()) > 1 {
+		var path string
+		switch n := len(flag.Args()); n {
+		case 0:
+		case 1:
+			path = flag.Arg(0)
+		default:
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build(true, false, *verbose)
+		err := build("install", path, buildFlags{work: *work, v: *v, x: *x})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -174,30 +180,20 @@ var commands = map[string]func(){
 	},
 	"embed": func() {
 		flag.Usage = commandsHelp["embed"]
-		output := flag.String("o", "", "write the source to the named file instead of stdout.")
-		verbose := flag.Bool("v", false, "print the names of packages as they are imported.")
+		v := flag.Bool("v", false, "print the names of packages as the are imported.")
+		x := flag.Bool("x", false, "print the commands.")
+		o := flag.String("o", "", "write the source to the named file instead of stdout.")
 		flag.Parse()
-		if len(flag.Args()) == 0 {
-			// No arguments provided: this is not an error.
-			flag.Usage()
-			return
-		}
-		if len(flag.Args()) > 1 {
+		var path string
+		switch n := len(flag.Args()); n {
+		case 0:
+		case 1:
+			path = flag.Arg(0)
+		default:
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		out, err := getOutputFlag(*output)
-		if err != nil {
-			exitError("%s", err)
-		}
-		if out != nil {
-			defer func() {
-				if err := out.Close(); err != nil {
-					exitError("%s", err)
-				}
-			}()
-		}
-		err = embed(out, flag.Arg(0), *verbose)
+		err := embed(path, buildFlags{v: *v, x: *x, o: *o})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -243,50 +239,9 @@ var commands = map[string]func(){
 //
 //		scriggo embed
 //
-func embed(out io.Writer, path string, verbose bool) error {
+func embed(path string, flags buildFlags) (err error) {
 
-	goos := os.Getenv("GOOS")
-	if goos == "" {
-		goos = runtime.GOOS
-	}
-
-	// Read the Scriggofile.
-	content, err := os.Open(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("file %q does not exists", path)
-		}
-		return err
-	}
-	defer content.Close()
-
-	// Parse the Scriggofile.
-	sf, err := parseScriggofile(content, goos)
-	if err != nil {
-		return fmt.Errorf("path %q: %s", path, err)
-	}
-	err = content.Close()
-	if err != nil {
-		return err
-	}
-
-	_, err = renderPackages(out, sf, goos, verbose)
-
-	return err
-}
-
-//func moduleAwareMode() bool {
-//	s := os.Getenv("GO111MODULE")
-//	if s != "auto" {
-//		return s == "on"
-//	}
-//
-//}
-
-// build executes the commands "build" and "install".
-func build(install bool, work bool, verbose bool) error {
-
-	_, err := exec.LookPath("go")
+	_, err = exec.LookPath("go")
 	if err != nil {
 		return fmt.Errorf("scriggo: \"go\" executable file not found in $PATH\nIf not installed, " +
 			"download and install Go: https://golang.org/dl/\n")
@@ -297,66 +252,60 @@ func build(install bool, work bool, verbose bool) error {
 		goos = runtime.GOOS
 	}
 
-	path := flag.Arg(0)
-
-	// isFile reports whether path is a regular file.
-	var isFile bool
-
-	if modfile.IsDirectoryPath(path) {
-		fi, err := os.Stat(path)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		isFile = fi != nil && fi.Mode().IsRegular()
+	// Run in module-aware mode.
+	if flags.x {
+		_, _ = fmt.Fprintln(os.Stderr,"export GO111MODULE=on")
+	}
+	if err := os.Setenv("GO111MODULE", "on"); err != nil {
+		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
 	}
 
-	// Read the Scriggofile and the go.mod file.
-	var scriggofile io.ReadCloser
-	var gomod *modfile.File
-	var base string
+	var modDir string
+	var file string
 
-	if isFile {
-		scriggofile, err = os.Open(path)
+	if path == "" {
+		modDir, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
+			return fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
-		gomod = &modfile.File{}
-		base = strings.TrimSuffix(path, filepath.Ext(path))
+	} else if modfile.IsDirectoryPath(path) {
+		fi, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				err = fmt.Errorf("scriggo: can't find path:\n\t%s", path)
+			}
+			return err
+		}
+		if fi.Mode().IsDir() {
+			modDir, err = filepath.Abs(path)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+			}
+		} else {
+			file, err = filepath.Abs(path)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+			}
+		}
 	} else {
-		// path is a package path.
-		pkgDir, modDir, err := packageDirs(path)
-		if err != nil {
-			return err
+		return fmt.Errorf("scriggo: path, if not empty, must be rooted or must start with '.%c' or '..%c'",
+			os.PathSeparator, os.PathSeparator)
+	}
+
+	switch {
+	case file == "":
+		file = filepath.Join(modDir, "Scriggofile")
+	case modDir == "":
+		modDir = filepath.Dir(file)
+	}
+
+	// Read the Scriggofile.
+	scriggofile, err := os.Open(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("scriggo: no Scriggofile in:\n\t%s", file)
 		}
-		// Read the Scriggofile.
-		file := filepath.Join(pkgDir, "Scriggofile")
-		scriggofile, err = os.Open(file)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("scriggo: can't load package %s: no Scriggofile in %s", path, pkgDir)
-			}
-			return err
-		}
-		// Read the go.mod file.
-		file = filepath.Join(modDir, "go.mod")
-		data, err := ioutil.ReadFile(file)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("scriggo: cannot find main module; see 'go help modules'")
-			}
-			return err
-		}
-		gomod, err = modfile.ParseLax(file, data, nil)
-		if err != nil {
-			return err
-		}
-		// Make absolute the relative rewrite paths.
-		for _, replace := range gomod.Replace {
-			if p := replace.New.Path; modfile.IsDirectoryPath(p) && !filepath.IsAbs(p) {
-				filepath.Join(modDir, replace.New.Path)
-			}
-		}
-		base = filepath.Base(pkgDir)
+		return err
 	}
 	defer scriggofile.Close()
 
@@ -370,6 +319,40 @@ func build(install bool, work bool, verbose bool) error {
 		return err
 	}
 
+	// Create the package declarations file.
+	out, err := getOutputFlag(flags.o)
+	if err != nil {
+		return err
+	}
+	if out != nil {
+		defer func() {
+			err = out.Close()
+		}()
+	}
+	_, err = renderPackages(out, modDir, sf, goos, flags)
+
+	return err
+}
+
+type buildFlags struct {
+	work, v, x bool
+	o string
+}
+
+// build executes the commands "build" and "install".
+func build(cmd string, path string, flags buildFlags) error {
+
+	_, err := exec.LookPath("go")
+	if err != nil {
+		return fmt.Errorf("scriggo: \"go\" executable file not found in $PATH\nIf not installed, " +
+			"download and install Go: https://golang.org/dl/\n")
+	}
+
+	goos := os.Getenv("GOOS")
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+
 	// Create a temporary work directory with the sources of the interpreter.
 	// If the options "work" is given, the work directory name will be printed
 	// and it will not be deleted after the installation.
@@ -377,49 +360,179 @@ func build(install bool, work bool, verbose bool) error {
 	if err != nil {
 		return err
 	}
-	if work {
+	if flags.work || flags.x {
 		_, _ = fmt.Fprintf(os.Stderr, "WORK=%s\n", workDir)
-	} else {
+	}
+	if !flags.work {
 		defer func() {
 			err = os.RemoveAll(workDir)
 			if err != nil {
-				_, _ = fmt.Fprintf(os.Stderr, "scriggo: can't delete the temporary work directory: %s", err)
+				_, _ = fmt.Fprintf(os.Stderr, "scriggo: can't delete the temporary work directory:\n\t%s", err)
 			}
 		}()
 	}
 
-	dir := filepath.Join(workDir, base)
-
-	err = os.MkdirAll(dir, dirPerm)
-	if err != nil {
-		return fmt.Errorf("scriggo: can't make work directory: %s", err)
-	}
-
 	// Run in module-aware mode.
-	if err = os.Setenv("GO111MODULE", "on"); err != nil {
+	if flags.x {
+		_, _ = fmt.Fprintln(os.Stderr,"export GO111MODULE=on")
+	}
+	if err := os.Setenv("GO111MODULE", "on"); err != nil {
 		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
 	}
 
-	// Create the package declarations file.
-	packagesPath := filepath.Join(dir, "packages.go")
-	fi, err := os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, filePerm)
+	// Read the Scriggofile and the go.mod file.
+	var scriggofile io.ReadCloser
+	var gomod *modfile.File
+	var base string
+	var cache bool
+
+	var modPath string
+	var modVer string
+	var modDir string
+
+	if path == "" || modfile.IsDirectoryPath(path) {
+		var fi os.FileInfo
+		if path != "" {
+			fi, err = os.Stat(path)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+		if fi != nil && fi.Mode().IsRegular() {
+			// path is a regular file.
+			scriggofile, err = os.Open(path)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
+			}
+			gomod = &modfile.File{}
+			base = filepath.Base(path)
+			base = strings.TrimSuffix(base, filepath.Ext(base))
+		} else {
+			// path is a directory.
+			if path == "" {
+				modDir, err = os.Getwd()
+				if err != nil {
+					return fmt.Errorf("scriggo: can't get current directory: %s", err)
+				}
+			} else {
+				modDir, err = filepath.Abs(path)
+				if err != nil {
+					return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+				}
+			}
+			fi, err = os.Stat(modDir)
+			if err != nil {
+				if os.IsNotExist(err) {
+					err = fmt.Errorf("scriggo: can't find module %s in:\n\t%s", path, modDir)
+				}
+				return err
+			}
+			if !fi.IsDir() {
+				return fmt.Errorf("scriggo: %s is not a directory or regular file", path)
+			}
+			base = filepath.Base(modDir)
+		}
+	} else {
+		// path is a module path.
+		parts := strings.SplitN(path, "@", 2)
+		if err := module.CheckPath(parts[0]); err != nil {
+			return fmt.Errorf("scriggo: %s", err)
+		}
+		modPath = parts[0]
+		version := "latest"
+		if len(parts) == 2 {
+			if !semver.IsValid(parts[1]) {
+				return fmt.Errorf("scriggo: invalid module version %s", parts[1])
+			}
+			version = parts[1]
+		}
+		// Download the module.
+		modDir, modVer, err = downloadModule(modPath, version, workDir, flags)
+		if err != nil {
+			return err
+		}
+		base = filepath.Base(path)
+		cache = true
+	}
+
+	if gomod == nil {
+		// Read the Scriggofile.
+		file := filepath.Join(modDir, "Scriggofile")
+		scriggofile, err = os.Open(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("scriggo: no Scriggofile in module %s", path)
+			}
+			return err
+		}
+		// Read the go.mod file.
+		file = filepath.Join(modDir, "go.mod")
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		gomod, err = modfile.Parse(file, data, nil)
+		if err != nil {
+			return err
+		}
+		// Make the replace paths as absolute paths.
+		for _, replace := range gomod.Replace {
+			if newPath := replace.New.Path; modfile.IsDirectoryPath(newPath) && !filepath.IsAbs(newPath) {
+				old := replace.Old
+				err = gomod.DropReplace(old.Path, old.Version)
+				if err != nil {
+					return fmt.Errorf("scriggo: can't remove rewrite from go.mod: %s", err)
+				}
+				var p string
+				if cache {
+					p = _path.Join(modPath, newPath)
+				} else {
+					p = filepath.Join(modDir, newPath)
+				}
+				err = gomod.AddReplace(old.Path, old.Version, p, modVer)
+				if err != nil {
+					return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
+				}
+			}
+		}
+		if !cache {
+			// Add a replace for the main module.
+			mod := gomod.Module.Mod
+			err = gomod.AddReplace(mod.Path, mod.Version, modDir, "")
+			if err != nil {
+				return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
+			}
+		}
+		gomod.Cleanup()
+	}
+
+	defer scriggofile.Close()
+
+	// Parse the Scriggofile.
+	sf, err := parseScriggofile(scriggofile, goos)
 	if err != nil {
 		return err
 	}
-	defer fi.Close()
-	_, err = renderPackages(fi, sf, goos, verbose)
+	err = scriggofile.Close()
 	if err != nil {
-		return fmt.Errorf("scriggo: can't render packages: %s", err)
+		return err
 	}
-	err = fi.Close()
+
+	dir := filepath.Join(workDir, base)
+
+	if flags.x {
+		_, _ = fmt.Fprintf(os.Stderr,"mkdir $WORK%c%s\n", os.PathSeparator, base)
+		_, _ = fmt.Fprintf(os.Stderr,"chdir $WORK%c%s\n", os.PathSeparator, base)
+	}
+	err = os.Mkdir(dir, 0777)
 	if err != nil {
-		return fmt.Errorf("scriggo: can't render packages: %s", err)
+		return fmt.Errorf("scriggo: can't make directory %s: %s", dir, err)
 	}
 
 	// Create the go.mod file.
 	gomod.AddModuleStmt("open2b.scriggo/" + base)
 	{
-		// TODO(marco): to remove.
+		// TODO(marco): remove this block when Scriggo has the definitive path.
 		goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
 		if len(goPaths) == 0 {
 			panic("scriggo: empty gopath not supported")
@@ -434,30 +547,65 @@ func build(install bool, work bool, verbose bool) error {
 	if err != nil {
 		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
 	}
-	err = ioutil.WriteFile(filepath.Join(dir, "go.mod"), data, filePerm)
+	err = ioutil.WriteFile(filepath.Join(dir, "go.mod"), data, 0666)
 	if err != nil {
 		return fmt.Errorf("scriggo: %s", err)
 	}
 
+	// Create the package declarations file.
+	packagesPath := filepath.Join(dir, "packages.go")
+	fi, err := os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+	_, err = renderPackages(fi, dir, sf, goos, flags)
+	if err != nil {
+		return fmt.Errorf("scriggo: can't render packages: %s", err)
+	}
+	err = fi.Close()
+	if err != nil {
+		return fmt.Errorf("scriggo: can't render packages: %s", err)
+	}
+
 	// Create the other installer files main file.
 	mainPath := filepath.Join(dir, "main.go")
-	err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.target), filePerm)
+	err = ioutil.WriteFile(mainPath, makeInterpreterSource(sf.target), 0666)
 	if err != nil {
 		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
 	}
 
 	// Build or install the package.
-	command := "build"
-	if install {
-		command = "install"
+	var args []string
+	if cmd == "build" {
+		args = []string{"build", "-o", ""}
+		if flags.o == "" {
+			args[2], err = filepath.Abs(base)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", base, err)
+			}
+			if runtime.GOOS == "windows" {
+				args[2] += ".exe"
+			}
+		} else {
+			args[2], err = filepath.Abs(flags.o)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", flags.o, err)
+			}
+		}
+	} else {
+		args = []string{"install"}
 	}
-	cmd := exec.Command("go", command)
-	cmd.Dir = dir
-	stderr := bytes.Buffer{}
-	cmd.Stderr = &stderr
-	err = cmd.Run()
+	if flags.x {
+		_, _ = fmt.Fprint(os.Stderr, "go")
+		for _, arg := range args {
+			_, _ = fmt.Fprint(os.Stderr, " ", arg)
+		}
+		_, _ = fmt.Fprintln(os.Stderr)
+	}
+	_, err = execGoCommand(dir, args...)
 	if err != nil {
-		return fmt.Errorf("go %s: %s", command, &stderr)
+		return fmt.Errorf("go %s: %s", cmd, err)
 	}
 
 	return nil
@@ -473,86 +621,92 @@ func stdlib() (err error) {
 	return err
 }
 
-func packageDirs(path string) (string, string, error) {
-	type jsonPackage struct {
-		Dir        string
-		ImportPath string
-		Incomplete bool
+// downloadModule downloads a module, if not cached, given path and version
+// and returns the local directory of its source and the version. workDir is
+// the working directory and flags are the command flags.
+func downloadModule(path, version, workDir string, flags buildFlags) (string, string, error) {
+
+	// Create the go.mod file for 'go download'.
+	dir := filepath.Join(workDir, "download")
+	sep := string(os.PathSeparator)
+	if flags.x {
+		_, _ = fmt.Fprintf(os.Stderr, "mkdir -p $WORK%sdownload\n", sep)
 	}
-	// Read package dir.
-	cmd := exec.Command("go", "list", "-e", "-json", "-find=true", path)
+	err := os.Mkdir(dir, 0777)
+	if err != nil {
+		return "", "", fmt.Errorf("scriggo: can't make diretory %s: %s", dir, err)
+	}
+	goModPath := filepath.Join(dir, "go.mod")
+	goModData := "module scriggo.download\nrequire " + path + " " + version
+	if flags.x {
+		_, _ = fmt.Fprintf(os.Stderr,"cat >$WORK%sdownload%sgo.mod << 'EOF'\n%s\nEOF\n", sep, sep, goModData)
+	}
+	err = ioutil.WriteFile(goModPath, []byte(goModData), 0666)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Download the module.
+	type jsonModule struct {
+		Version string
+		Dir string
+	}
+	if flags.x {
+		_, _ = fmt.Fprintf(os.Stderr,"chdir $WORK%sdownload\n", sep)
+		_, _ = fmt.Fprintln(os.Stderr,"go mod download -json")
+	}
+	out, err := execGoCommand(dir, "mod", "download", "-json")
+	if err != nil {
+		if e, ok := err.(stdError); ok {
+			s := e.Error()
+			if strings.Contains(s, "go: errors parsing go.mod:\n") {
+				if strings.Contains(s, "invalid module version \"latest\":") {
+					return "", "", fmt.Errorf("scriggo: can't find module %s", path)
+				} else if strings.Contains(s, "invalid module version \"" + version + "\":") {
+					return "", "", fmt.Errorf("scriggo: can't find version %s of module %s", version, path)
+				}
+			}
+		}
+		return "", "", err
+	}
+
+	// Read the module's directory.
+	dec := json.NewDecoder(out)
+	mod := &jsonModule{}
+	err = dec.Decode(mod)
+	if err != nil {
+		return "", "", fmt.Errorf("scriggo: can't read response from 'go mod download': %v", err)
+	}
+
+	return mod.Dir, mod.Version, nil
+}
+
+type stdError string
+
+func (e stdError) Error() string {
+	return string(e)
+}
+
+// execGoCommand executes the command 'go' with dir as current directory and
+// args as arguments. Returns the standard output if no error occurs.
+func execGoCommand(dir string, args ...string) (out io.Reader, err error) {
+	if os.Getenv("GO111MODULE") != "on" {
+		panic("GO111MODULE must be 'on'")
+	}
+	cmd := exec.Command("go", args...)
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	err := cmd.Run()
-	if err != nil {
-		if _, ok := err.(*exec.ExitError); ok {
-			return "", "", errors.New(stderr.String())
-		}
-		return "", "", err
-	}
-	var packages []*jsonPackage
-	for dec := json.NewDecoder(stdout); dec.More(); {
-		pkg := &jsonPackage{}
-		err := dec.Decode(pkg)
-		if err != nil {
-			return "", "", fmt.Errorf("can't read packages from go list: %v", err)
-		}
-		packages = append(packages, pkg)
-	}
-	if len(packages) == 0 || packages[0].Incomplete {
-		// Try
-		// Call go build to get the error message.
-		cmd = exec.Command("go", "build", "-n", path)
-		stderr := &bytes.Buffer{}
-		cmd.Stderr = stderr
-		_ = cmd.Run()
-		return "", "", errors.New(stderr.String())
-	}
-	if len(packages) > 1 {
-		err := fmt.Sprintf("too many packages for %q:", path)
-		for _, p := range packages {
-			err += "\n        " + p.ImportPath
-		}
-		return "", "", errors.New(err)
-	}
-	pkg := packages[0]
-	stdout.Reset()
-	stderr.Reset()
-	// Read module dir.
-	cmd = exec.Command("go", "list", "-m", "-json")
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	env := os.Environ()
-	for i, ev := range env {
-		if strings.HasPrefix(ev, "GO111MODULE=") {
-			cmd.Env = env
-			cmd.Env[i] = "GO111MODULE=on"
-			break
-		}
-	}
-	if cmd.Env == nil {
-		cmd.Env = append(env, "GO111MODULE=on")
-	}
-	cmd.Dir = pkg.Dir
+	cmd.Dir = dir
 	err = cmd.Run()
 	if err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
-			return "", "", errors.New(stderr.String())
+			return nil, stdError(stderr.String())
 		}
-		return "", "", err
+		return nil, err
 	}
-	type jsonModule struct {
-		Dir string
-	}
-	dec := json.NewDecoder(stdout)
-	mod := &jsonModule{}
-	err = dec.Decode(mod)
-	if err != nil {
-		return "", "", fmt.Errorf("can't read module from go list: %v", err)
-	}
-	return pkg.Dir, mod.Dir, nil
+	return stdout, nil
 }
 
 // stdlibPaths contains the paths of the packages of the Go standard library
