@@ -2414,6 +2414,24 @@ var stmtTests = []struct {
 		out: "f: 10"},
 
 	{
+		name: "Closure - one level variable reading (interface{})",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			A := interface{}(5)
+			f := func() {
+				fmt.Printf("%v (%T)", A, A)
+			}
+			f()
+		}
+		`,
+		out: "5 (int)"},
+
+	{
 		name: "For range on interface{} slice",
 		src: `package main
 
