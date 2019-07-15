@@ -596,6 +596,14 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 // anyway but the result is discarded.
 func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type) {
 
+	// If the instructions that emit expr put result in a register type
+	// different than the register type of dstType, use an intermediate
+	// temporary register. Consider that this is not always necessary to check
+	// this: for example if expr is a function, dstType must be a function or an
+	// interface (this is guaranteed by the type checker) and in the current
+	// implementation of the VM functions and interfaces use the same register
+	// type.
+
 	if ti := em.ti(expr); ti != nil && ti.value != nil && !ti.IsPredefined() {
 		typ := ti.Type
 		if reg == 0 {
