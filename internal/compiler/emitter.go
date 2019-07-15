@@ -921,12 +921,14 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		if sameRegType(assertType.Kind(), dstType.Kind()) {
 			em.fb.emitAssert(exprReg, assertType, reg)
 			em.fb.emitNop()
-		} else {
-			tmpReg := em.fb.newRegister(assertType.Kind())
-			em.fb.emitAssert(exprReg, assertType, tmpReg)
-			em.fb.emitNop()
-			em.changeRegister(false, tmpReg, reg, assertType, dstType)
+			return
 		}
+		em.fb.enterScope()
+		tmpReg := em.fb.newRegister(assertType.Kind())
+		em.fb.emitAssert(exprReg, assertType, tmpReg)
+		em.fb.emitNop()
+		em.changeRegister(false, tmpReg, reg, assertType, dstType)
+		em.fb.exitScope()
 
 	case *ast.Selector:
 
