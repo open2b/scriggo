@@ -121,6 +121,26 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Builtin copy",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			src := []int{1, 2, 3}
+			dst := []int{0, 0, 0}
+			n := copy(dst, src)
+			fmt.Print("n is ", n)
+			fmt.Print(", n is now ", copy(dst, src))
+		}
+		`,
+		out: `n is 3, n is now 3`,
+	},
+
 	// TODO(Gianluca):
 	// {
 	// 	name: "Go calling a function literal defined in Scriggo",

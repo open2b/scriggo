@@ -1287,10 +1287,19 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			src = em.fb.newRegister(reflect.Slice)
 			em.emitExpr(call.Args[0], src, em.ti(call.Args[0]).Type)
 		}
-		em.fb.emitCopy(dst, src, reg)
-		if reg != 0 {
-			em.changeRegister(false, reg, reg, intType, dstType)
+		if reg == 0 {
+			em.fb.emitCopy(dst, src, 0)
+			return
 		}
+		if sameRegType(reflect.Int, dstType.Kind()) {
+			em.fb.emitCopy(dst, src, reg)
+			return
+		}
+		em.fb.enterStack()
+		tmpReg := em.fb.newRegister(reflect.Int)
+		em.fb.emitCopy(dst, src, tmpReg)
+		em.changeRegister(false, tmpReg, reg, intType, dstType)
+		em.fb.exitStack()
 	case "delete":
 		mapp := em.fb.newRegister(reflect.Interface)
 		em.emitExpr(call.Args[0], mapp, emptyInterfaceType)
