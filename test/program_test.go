@@ -141,6 +141,23 @@ var stmtTests = []struct {
 	// 	`,
 	// 	out: `8010966-4`,
 	// },
+	{
+		name: "Assignment to index of slice index",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			s := [][]int{[]int{0, 1}, []int{2, 3}}
+			fmt.Print(s, ", ")
+			s[0][0] = 5
+			fmt.Print(s)
+		}
+		`,
+		out: `[[0 1] [2 3]], [[5 1] [2 3]]`,
+	},
 
 	{
 		name: "Binary operator",
