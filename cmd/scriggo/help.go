@@ -47,30 +47,49 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-v] [-x] [-work] module
-       scriggo build [-v] [-x] [-work] file
+usage: scriggo build [-v] [-x] [-work] [-o output] module
+       scriggo build [-v] [-x] [-work] [-o output] scriggofile
 
 Build compiles an interpreter for Scriggo programs, scripts and templates from
-a module or single file.
+a Scriggofile in a module.
 
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
 
-If a module has a file named "Scriggofile" in its directory, an interpreter is
-build and installed from the instructions in this file according to a specific
-format. For example:
+If an argument is given, it can be a module path or a local filesystem path.
+A filesystem path must be rooted or must begin with a . or .. element.
 
-scriggo build github.com/organization/example
+If the argument is a module path, it is downloaded from its repository and the
+build command looks for a Scriggofile named 'Scriggofile' in its root. A module
+argument can have a version as in 'foo.boo@v2.1.0'. If no version is given the
+latest version of the module is downloaded.
 
-will an interpreter named "example" or "example.exe" from the commands in the
-file "github.com/organization/example/Scriggofile".
+If the argument is a local directory, it must be a module root directory and
+the build command looks for a Scriggofile named 'Scriggofile' in that
+directory.
+
+If the argument is a regular file, it is interpreted as a Scriggofile and it
+must be in the root of a module.
+
+If no argument is given, the action apply to the current directory.
+
+The compiler is build from the instructions in the Scriggofile. For example:
+
+scriggo build github.com/example/foo
+
+will build an interpreter named "foo" or "foo.exe" from the instructions in
+the file at "github.com/example/foo/Scriggofile".
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-If a file is given, instead of a module, the file must contains the commands
-to build the interpreter. The name of the executable is the same of the file
-without the file extension. For example if the file is "example.Scriggofile"
-the executable will be named "example" or "example.exe".
+The name of the executable, if no -o flag is given, is the same of the
+Scriggofile without the file extension. For example if the file is named
+"example.Scriggofile" the executable will be named "example" or "example.exe".
+
+If the name of the Scriggofile is 'Scriggofile', like when the argument is a
+module path or directory, the name of the executable is the last element of
+the module's path. For example if the module's path is 'boo/foo' the name of
+the executable will be 'foo' or 'foo.exe'.
 
 The -v flag prints the imported packages as defined in the Scriggofile.
 
@@ -79,58 +98,49 @@ The -x flag prints the executed commands.
 The -work flag prints the name of a temporary directory containing a work
 package used to build the interpreter. The directory will not be deleted
 after the build.
+
+The -o flag forces build to write the resulting executable to the named output
+file, instead in the current directory.
 
 See also: scriggo install and scriggo embed.
 `
 
 const helpInstall = `
 usage: scriggo install [-v] [-x] [-work] module
-       scriggo install [-v] [-x] [-work] file
+       scriggo install [-v] [-x] [-work] scriggofile
 
 Install compiles and installs an interpreter for Scriggo programs, scripts
-and templates from a module or single file.
+and templates from a Scriggofile in a module.
 
 Executables are installed in the directory GOBIN as for the go install
 command.
 
 For more about the GOBIN directory, see 'go help install'.
 
-If a module has a file named "Scriggofile" in its directory, an interpreter is
-build and installed from the instructions in this file according to a specific
-format. For example:
-
-scriggo install github.com/organization/example
-
-will install an interpreter named "example" or "example.exe" from the commands
-in the file "github.com/organization/example/Scriggofile".
-
-For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
-
-If a file is given, instead of a module, the file must contains the commands
-to build the interpreter. The name of the executable is the same of the file
-without the file extension. For example if the file is "example.Scriggofile"
-the executable will be named "example" or "example.exe".
-
-The -v flag prints the imported packages as defined in the Scriggofile.
-
-The -x flag prints the executed commands.
-
-The -work flag prints the name of a temporary directory containing a work
-package used to build the interpreter. The directory will not be deleted
-after the build.
+With the exception of the flag -o, install has the same arguments of build.
+For more about the parameters, see 'scriggo help build'.
 
 See also: scriggo build and scriggo embed.
 `
 
 const helpEmbed = `
 usage: scriggo embed [-v] [-x] [-o output] module
+       scriggo embed [-v] [-x] [-o output] scriggofile
 
-Embed makes a Go source file from a Scriggofile in a module containing the
+Embed makes a Go source file from a Scriggofile in a module, containing the
 exported declarations of the packages imported in the Scriggofile. The
 generated file is useful when embedding Scriggo in an application.
 
 Embed prints the generated source to the standard output. Use the flag -o
 to redirect the source to a file.
+
+If an argument is given, it must be a local rooted path or must begin with
+a . or .. element. If it is a directory it must be a module root directory,
+and embed looks for a Scriggofile named 'Scriggofile' in that directory.
+If it a regular file, it is interpreted as a Scriggofile and it must be in
+the root of a module.
+
+If no argument is given, the action apply to the current directory.
 
 The declarations in the Go source have type scriggo.PackageLoader and are
 assigned to a variable names 'packages'. The variable can be used as argument
