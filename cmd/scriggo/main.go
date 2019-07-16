@@ -380,15 +380,10 @@ func build(cmd string, path string, flags buildFlags) error {
 		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
 	}
 
-	// Read the Scriggofile and the go.mod file.
-	var scriggofile io.ReadCloser
-	var gomod *modfile.File
-	var base string
-	var cache bool
-
-	var modPath string
-	var modVer string
-	var modDir string
+	var sfPath string  // sfPath is the absolute Scriggofile's path.
+	var modPath string // modPath is the module's path, it is empty it is local.
+	var modVer string  // modVer is the module's version.
+	var modDir string  // modDir is the directory of the module's sources.
 
 	if path == "" || modfile.IsDirectoryPath(path) {
 		var fi os.FileInfo
@@ -400,13 +395,11 @@ func build(cmd string, path string, flags buildFlags) error {
 		}
 		if fi != nil && fi.Mode().IsRegular() {
 			// path is a regular file.
-			scriggofile, err = os.Open(path)
+			sfPath, err = filepath.Abs(path)
 			if err != nil {
-				return fmt.Errorf("scriggo: can't open file %s: %s", path, err)
+				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
 			}
-			gomod = &modfile.File{}
-			base = filepath.Base(path)
-			base = strings.TrimSuffix(base, filepath.Ext(base))
+			modDir = filepath.Dir(sfPath)
 		} else {
 			// path is a directory.
 			if path == "" {
@@ -430,7 +423,7 @@ func build(cmd string, path string, flags buildFlags) error {
 			if !fi.IsDir() {
 				return fmt.Errorf("scriggo: %s is not a directory or regular file", path)
 			}
-			base = filepath.Base(modDir)
+			sfPath = filepath.Join(modDir, "Scriggofile")
 		}
 	} else {
 		// path is a module path.
@@ -451,71 +444,73 @@ func build(cmd string, path string, flags buildFlags) error {
 		if err != nil {
 			return err
 		}
-		base = filepath.Base(path)
-		cache = true
+		sfPath = filepath.Join(modDir, "Scriggofile")
 	}
 
-	if gomod == nil {
-		// Read the Scriggofile.
-		file := filepath.Join(modDir, "Scriggofile")
-		scriggofile, err = os.Open(file)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return fmt.Errorf("scriggo: no Scriggofile in module %s", path)
+	// Parse the Scriggofile.
+	fi, err := os.Open(sfPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("scriggo: can't find Scriggofile at:\n\t%s", sfPath)
+		}
+		return err
+	}
+	defer fi.Close()
+	sf, err := parseScriggofile(fi, goos)
+	if err != nil {
+		return err
+	}
+	_ = fi.Close()
+
+	// Parse the go.mod file.
+	file := filepath.Join(modDir, "go.mod")
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	goMod, err := modfile.Parse(file, data, nil)
+	if err != nil {
+		return err
+	}
+	// Make the replace paths as absolute paths.
+	for _, replace := range goMod.Replace {
+		if newPath := replace.New.Path; modfile.IsDirectoryPath(newPath) && !filepath.IsAbs(newPath) {
+			old := replace.Old
+			err = goMod.DropReplace(old.Path, old.Version)
+			if err != nil {
+				return fmt.Errorf("scriggo: can't remove rewrite from go.mod: %s", err)
 			}
-			return err
-		}
-		// Read the go.mod file.
-		file = filepath.Join(modDir, "go.mod")
-		data, err := ioutil.ReadFile(file)
-		if err != nil {
-			return err
-		}
-		gomod, err = modfile.Parse(file, data, nil)
-		if err != nil {
-			return err
-		}
-		// Make the replace paths as absolute paths.
-		for _, replace := range gomod.Replace {
-			if newPath := replace.New.Path; modfile.IsDirectoryPath(newPath) && !filepath.IsAbs(newPath) {
-				old := replace.Old
-				err = gomod.DropReplace(old.Path, old.Version)
-				if err != nil {
-					return fmt.Errorf("scriggo: can't remove rewrite from go.mod: %s", err)
-				}
-				var p string
-				if cache {
-					p = _path.Join(modPath, newPath)
-				} else {
-					p = filepath.Join(modDir, newPath)
-				}
-				err = gomod.AddReplace(old.Path, old.Version, p, modVer)
-				if err != nil {
-					return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
-				}
+			var p string
+			if modPath == "" {
+				p = filepath.Join(modDir, newPath)
+			} else {
+				p = _path.Join(modPath, newPath)
 			}
-		}
-		if !cache {
-			// Add a replace for the main module.
-			mod := gomod.Module.Mod
-			err = gomod.AddReplace(mod.Path, mod.Version, modDir, "")
+			err = goMod.AddReplace(old.Path, old.Version, p, modVer)
 			if err != nil {
 				return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
 			}
 		}
-		gomod.Cleanup()
 	}
-
-	defer scriggofile.Close()
-
-	// Parse the Scriggofile.
-	sf, err := parseScriggofile(scriggofile, goos)
-	if err != nil {
-		return err
+	if modPath == "" {
+		// Add a replace for the main module.
+		mod := goMod.Module.Mod
+		err = goMod.AddReplace(mod.Path, mod.Version, modDir, "")
+		if err != nil {
+			return fmt.Errorf("scriggo: can't add rewrite to go.mod: %s", err)
+		}
 	}
-	err = scriggofile.Close()
-	if err != nil {
-		return err
+	goMod.Cleanup()
+
+	base := filepath.Base(sfPath)
+	if base == "Scriggofile" {
+		if modPath == "" {
+			base = filepath.Base(modDir)
+		} else {
+			base = filepath.Base(modPath)
+		}
+	} else {
+		base = strings.TrimSuffix(base, filepath.Ext(base))
 	}
 
 	dir := filepath.Join(workDir, base)
@@ -530,7 +525,7 @@ func build(cmd string, path string, flags buildFlags) error {
 	}
 
 	// Create the go.mod file.
-	gomod.AddModuleStmt("open2b.scriggo/" + base)
+	goMod.AddModuleStmt("open2b.scriggo/" + base)
 	{
 		// TODO(marco): remove this block when Scriggo has the definitive path.
 		goPaths := strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator))
@@ -538,12 +533,12 @@ func build(cmd string, path string, flags buildFlags) error {
 			panic("scriggo: empty gopath not supported")
 		}
 		scriggoPath := filepath.Join(goPaths[0], "src/scriggo")
-		err = gomod.AddReplace("scriggo", "", scriggoPath, "")
+		err = goMod.AddReplace("scriggo", "", scriggoPath, "")
 		if err != nil {
 			panic("scriggo: can't create go.mod: %s")
 		}
 	}
-	data, err := gomod.Format()
+	data, err = goMod.Format()
 	if err != nil {
 		return fmt.Errorf("scriggo: can't create go.mod: %s", err)
 	}
@@ -554,7 +549,7 @@ func build(cmd string, path string, flags buildFlags) error {
 
 	// Create the package declarations file.
 	packagesPath := filepath.Join(dir, "packages.go")
-	fi, err := os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
+	fi, err = os.OpenFile(packagesPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0666)
 	if err != nil {
 		return err
 	}
