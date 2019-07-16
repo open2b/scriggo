@@ -15,10 +15,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	_path "path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	_path "path"
 
 	"github.com/rogpeppe/go-internal/modfile"
 	"github.com/rogpeppe/go-internal/module"
@@ -254,7 +254,7 @@ func embed(path string, flags buildFlags) (err error) {
 
 	// Run in module-aware mode.
 	if flags.x {
-		_, _ = fmt.Fprintln(os.Stderr,"export GO111MODULE=on")
+		_, _ = fmt.Fprintln(os.Stderr, "export GO111MODULE=on")
 	}
 	if err := os.Setenv("GO111MODULE", "on"); err != nil {
 		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
@@ -336,7 +336,7 @@ func embed(path string, flags buildFlags) (err error) {
 
 type buildFlags struct {
 	work, v, x bool
-	o string
+	o          string
 }
 
 // build executes the commands "build" and "install".
@@ -374,7 +374,7 @@ func build(cmd string, path string, flags buildFlags) error {
 
 	// Run in module-aware mode.
 	if flags.x {
-		_, _ = fmt.Fprintln(os.Stderr,"export GO111MODULE=on")
+		_, _ = fmt.Fprintln(os.Stderr, "export GO111MODULE=on")
 	}
 	if err := os.Setenv("GO111MODULE", "on"); err != nil {
 		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
@@ -521,8 +521,8 @@ func build(cmd string, path string, flags buildFlags) error {
 	dir := filepath.Join(workDir, base)
 
 	if flags.x {
-		_, _ = fmt.Fprintf(os.Stderr,"mkdir $WORK%c%s\n", os.PathSeparator, base)
-		_, _ = fmt.Fprintf(os.Stderr,"chdir $WORK%c%s\n", os.PathSeparator, base)
+		_, _ = fmt.Fprintf(os.Stderr, "mkdir $WORK%c%s\n", os.PathSeparator, base)
+		_, _ = fmt.Fprintf(os.Stderr, "chdir $WORK%c%s\n", os.PathSeparator, base)
 	}
 	err = os.Mkdir(dir, 0777)
 	if err != nil {
@@ -639,7 +639,7 @@ func downloadModule(path, version, workDir string, flags buildFlags) (string, st
 	goModPath := filepath.Join(dir, "go.mod")
 	goModData := "module scriggo.download\nrequire " + path + " " + version
 	if flags.x {
-		_, _ = fmt.Fprintf(os.Stderr,"cat >$WORK%sdownload%sgo.mod << 'EOF'\n%s\nEOF\n", sep, sep, goModData)
+		_, _ = fmt.Fprintf(os.Stderr, "cat >$WORK%sdownload%sgo.mod << 'EOF'\n%s\nEOF\n", sep, sep, goModData)
 	}
 	err = ioutil.WriteFile(goModPath, []byte(goModData), 0666)
 	if err != nil {
@@ -649,11 +649,11 @@ func downloadModule(path, version, workDir string, flags buildFlags) (string, st
 	// Download the module.
 	type jsonModule struct {
 		Version string
-		Dir string
+		Dir     string
 	}
 	if flags.x {
-		_, _ = fmt.Fprintf(os.Stderr,"chdir $WORK%sdownload\n", sep)
-		_, _ = fmt.Fprintln(os.Stderr,"go mod download -json")
+		_, _ = fmt.Fprintf(os.Stderr, "chdir $WORK%sdownload\n", sep)
+		_, _ = fmt.Fprintln(os.Stderr, "go mod download -json")
 	}
 	out, err := execGoCommand(dir, "mod", "download", "-json")
 	if err != nil {
@@ -662,7 +662,7 @@ func downloadModule(path, version, workDir string, flags buildFlags) (string, st
 			if strings.Contains(s, "go: errors parsing go.mod:\n") {
 				if strings.Contains(s, "invalid module version \"latest\":") {
 					return "", "", fmt.Errorf("scriggo: can't find module %s", path)
-				} else if strings.Contains(s, "invalid module version \"" + version + "\":") {
+				} else if strings.Contains(s, "invalid module version \""+version+"\":") {
 					return "", "", fmt.Errorf("scriggo: can't find version %s of module %s", version, path)
 				}
 			}
