@@ -59,13 +59,13 @@ the directory GOBIN, see the command: scriggo install.
 If an argument is given, it can be a module path or a local filesystem path.
 A filesystem path must be rooted or must begin with a . or .. element.
 
-If the argument is a module path, it is downloaded from its repository and the
-build command looks for a Scriggofile named 'Scriggofile' in its root. A module
-argument can have a version as in 'foo.boo@v2.1.0'. If no version is given the
-latest version of the module is downloaded.
+If the argument is a module path, the module is downloaded from its repository
+and the build command looks for a Scriggofile named 'Scriggofile' in its root.
+A module argument can have a version as in 'foo.boo@v2.1.0'. If no version is
+given the latest version of the module is downloaded.
 
-If the argument is a local directory, it must be a module root directory and
-the build command looks for a Scriggofile named 'Scriggofile' in that
+If the argument is a local directory, it must be the root directory of a
+module. The build command looks for a Scriggofile named 'Scriggofile' in that
 directory.
 
 If the argument is a regular file, it is interpreted as a Scriggofile and it
@@ -75,28 +75,35 @@ If no argument is given, the action apply to the current directory.
 
 The compiler is build from the instructions in the Scriggofile. For example:
 
-scriggo build github.com/example/foo
+    scriggo build github.com/example/foo
 
-will build an interpreter named "foo" or "foo.exe" from the instructions in
-the file at "github.com/example/foo/Scriggofile".
+will build an interpreter named 'foo' or 'foo.exe' from the instructions in
+the file at 'github.com/example/foo/Scriggofile'.
+
+In this other example:
+
+	scriggo build ./boo.Scriggofile
+
+the command will build an interpreter named 'boo' or 'boo.exe' from the
+instructions in the file 'boo.Scriggofile'.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
 The name of the executable, if no -o flag is given, is the same of the
 Scriggofile without the file extension. For example if the file is named
-"example.Scriggofile" the executable will be named "example" or "example.exe".
+'example.Scriggofile' the executable will be named 'example' or 'example.exe'.
 
 If the name of the Scriggofile is 'Scriggofile', like when the argument is a
 module path or directory, the name of the executable is the last element of
-the module's path. For example if the module's path is 'boo/foo' the name of
-the executable will be 'foo' or 'foo.exe'.
+the module's path or directory path. For example if the module's path is
+'boo/foo' the name of the executable will be 'foo' or 'foo.exe'.
 
 The -v flag prints the imported packages as defined in the Scriggofile.
 
 The -x flag prints the executed commands.
 
 The -work flag prints the name of a temporary directory containing a work
-package used to build the interpreter. The directory will not be deleted
+module used to build the interpreter. The directory will not be deleted
 after the build.
 
 The -o flag forces build to write the resulting executable to the named output
@@ -117,7 +124,7 @@ command.
 
 For more about the GOBIN directory, see 'go help install'.
 
-With the exception of the flag -o, install has the same arguments of build.
+With the exception of the flag -o, install has the same parameters as build.
 For more about the parameters, see 'scriggo help build'.
 
 See also: scriggo build and scriggo embed.
@@ -132,7 +139,7 @@ exported declarations of the packages imported in the Scriggofile. The
 generated file is useful when embedding Scriggo in an application.
 
 Embed prints the generated source to the standard output. Use the flag -o
-to redirect the source to a file.
+to redirect the source to a named output file.
 
 If an argument is given, it must be a local rooted path or must begin with
 a . or .. element. If it is a directory it must be a module root directory,
@@ -142,24 +149,27 @@ the root of a module.
 
 If no argument is given, the action apply to the current directory.
 
-The declarations in the Go source have type scriggo.PackageLoader and are
-assigned to a variable names 'packages'. The variable can be used as argument
-to the Load functions in the scriggo package.
+The declarations in the generated Go file have type scriggo.PackageLoader and
+they are assigned to a variable named 'packages'. The variable can be used as
+an argument to the Load functions in the scriggo package.
 
-To give to the variable a different name use the instruction SET VARIABLE in
+To give a different name to the variable use the instruction SET VARIABLE in
 the Scriggofile:
 
-SET VARIABLE decl
+    SET VARIABLE foo
 
-The name of the package in the Go source is by default 'main', to give a
-different name to the package use the instruction SET PACKAGE in the
+The package name in the generated Go file is by default 'main', to give
+a different name to the package use the instruction SET PACKAGE in the
 Scriggofile:
 
-SET PACKAGE example
+    SET PACKAGE boo
 
 The -v flag prints the imported packages as defined in the Scriggofile.
 
 The -x flag prints the executed commands.
+
+The -o flag writes the generated Go file to the named output file, instead to
+the standard output.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
