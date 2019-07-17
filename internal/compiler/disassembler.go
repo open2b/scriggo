@@ -296,6 +296,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		}
 	case vm.OpClose, vm.OpPanic, vm.OpPrint:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
+	case vm.OpComplex64, vm.OpComplex128:
+		s += " " + disassembleOperand(fn, a, vm.Float64, false)
+		s += " " + disassembleOperand(fn, b, vm.Float64, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpConcat:
 		s += " " + disassembleOperand(fn, a, vm.String, false)
 		s += " " + disassembleOperand(fn, b, vm.String, k)
@@ -441,6 +445,10 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		if c != 0 {
 			s += " " + disassembleOperand(fn, c, vm.Interface, false)
 		}
+	case vm.OpRealImag:
+		s += " " + disassembleOperand(fn, a, vm.Interface, k)
+		s += " " + disassembleOperand(fn, b, vm.Float64, false)
+		s += " " + disassembleOperand(fn, c, vm.Float64, false)
 	case vm.OpField:
 		// TODO(Gianluca).
 	case vm.OpMakeSlice:
@@ -674,6 +682,9 @@ var operationName = [...]string{
 
 	vm.OpClose: "Close",
 
+	vm.OpComplex64:  "Complex64",
+	vm.OpComplex128: "Complex128",
+
 	vm.OpContinue: "Continue",
 
 	vm.OpConvertGeneral: "Convert",
@@ -758,6 +769,8 @@ var operationName = [...]string{
 	vm.OpRange: "Range",
 
 	vm.OpRangeString: "Range",
+
+	vm.OpRealImag: "RealImag",
 
 	vm.OpReceive: "Receive",
 

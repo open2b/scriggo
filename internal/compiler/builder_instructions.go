@@ -197,6 +197,18 @@ func (builder *functionBuilder) emitClose(ch int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpClose, A: ch})
 }
 
+// emitComplex appends a new "Complex" instruction to the function body.
+//
+//	z = complex(x, y)
+//
+func (builder *functionBuilder) emitComplex(x, y, z int8, kind reflect.Kind) {
+	op := vm.OpComplex128
+	if kind == reflect.Complex64 {
+		op = vm.OpComplex64
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
+}
+
 // emitConcat appends a new "concat" instruction to the function body.
 //
 //     z = concat(s, t)
@@ -799,6 +811,18 @@ func (builder *functionBuilder) emitPanic(v int8, line int) {
 //
 func (builder *functionBuilder) emitPrint(arg int8) {
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpPrint, A: arg})
+}
+
+// emitRealImag appends a new "RealImag" instruction to the function body.
+//
+//	x, y = real(x), imag(x)
+//
+func (builder *functionBuilder) emitRealImag(k bool, x, y, z int8) {
+	op := vm.OpRealImag
+	if k {
+		op = -op
+	}
+	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: op, A: x, B: y, C: z})
 }
 
 // emitReceive appends a new "Receive" instruction to the function body.
