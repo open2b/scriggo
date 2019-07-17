@@ -121,6 +121,21 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "Indexing operation with a constant expression",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c0 := "variable"[0]
+			fmt.Print(c0, "inline"[1])
+		}
+		`,
+		out: `118 110`,
+	},
 
 	{
 		name: "Shift operators on constants",

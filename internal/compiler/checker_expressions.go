@@ -756,6 +756,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
+		t.setValue(nil)
 		kind := t.Type.Kind()
 		switch kind {
 		case reflect.Slice, reflect.String, reflect.Array, reflect.Ptr:
