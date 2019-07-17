@@ -1641,8 +1641,13 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
-		arg.setValue(t.Type)
-		return []*TypeInfo{{Type: t.Type, Constant: c}}, false, true
+		converted := &TypeInfo{Type: t.Type, Constant: c}
+		if c == nil {
+			arg.setValue(t.Type)
+		} else {
+			converted.setValue(t.Type)
+		}
+		return []*TypeInfo{converted}, false, true
 	}
 
 	if t.Type.Kind() != reflect.Func {

@@ -121,6 +121,68 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+	{
+		name: "Floating point constant converted to interface{}",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			const d = 20.0
+			fmt.Printf("%T", d)
+			i := interface{}(d)
+			fmt.Printf("%T", d)
+			fmt.Print(i)
+		}
+		`,
+		out: `float64float6420`,
+	},
+
+	{
+		name: "Integer constant converted to interface{}",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			i := interface{}(20)
+			fmt.Print(i)
+		}
+		`,
+		out: `20`,
+	},
+
+	{
+		name: "Issue #179 - Part one",
+		src: `package main
+
+		import "fmt"
+
+		func main() {
+			const d = 3e20 / 500000000
+			fmt.Printf("d has type %T", d)
+			// _ = int64(d)
+		}`,
+		out: `d has type float64`,
+	},
+
+	{
+		name: "Issue #179 - Part two",
+		src: `package main
+
+		import "fmt"
+
+		func main() {
+			const d = 3e20 / 500000000
+			fmt.Printf("d has type %T", d)
+			_ = int64(d)
+		}`,
+		out: `d has type float64`,
+	},
 
 	{
 		name: "For statements with break",
