@@ -143,6 +143,234 @@ var stmtTests = []struct {
 	// },
 
 	{
+		src: `package main
+
+		import (
+			"fmt"
+			"testpkg"
+		)
+		
+		func main() {
+			c1 := testpkg.Complex128(1 + 2i)
+			c2 := testpkg.Complex128(3281 - 12 - 32i + 1.43i)
+			c3 := c1 + c2
+			c4 := c1 - c2
+			c5 := -(c1 * c2)
+			fmt.Printf("%v %T, ", c3, c3)
+			fmt.Printf("%v %T, ", c4, c4)
+			fmt.Printf("%v %T", c5, c5)
+		}
+		`,
+		out: `(3270-28.57i) testpkg.Complex128, (-3268+32.57i) testpkg.Complex128, (-3330.14-6507.43i) testpkg.Complex128`,
+	},
+
+	{
+		name: "Complex defined type",
+		src: `package main
+
+		import (
+			"fmt"
+			"testpkg"
+		)
+		
+		func main() {
+			c1 := testpkg.Complex128(1 + 2i)
+			fmt.Print(c1)
+			fmt.Printf("%T", c1)
+		}
+		`,
+		out: "(1+2i)testpkg.Complex128",
+	},
+
+	{
+		name: "Binary operator on complex which are returned by a function call",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func doubleComplex(c complex128) complex128 {
+			return 2 * c
+		}
+		
+		func main() {
+			fmt.Print(3+8i + doubleComplex(-2+0.2i))
+			fmt.Print(doubleComplex(3+8i) + doubleComplex(-2+0.2i))
+		}
+		`,
+		out: `(-1+8.4i)(2+16.4i)`,
+	},
+
+	{
+		name: "Complex numbers declared with var",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var x complex128 = complex(1, 2)
+			var y complex128 = complex(3, 4)
+			fmt.Print(x * y)
+		}
+		`,
+		out: `(-5+10i)`,
+	},
+
+	{
+		name: "Many complex operations",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			fmt.Print(3 + 3i)
+			c1 := 3 + 3 + 19 - 3i - 120i
+			fmt.Print(c1)
+			fmt.Print(-c1)
+			fmt.Print(c1 * c1)
+			c2 := 321.43 + 3i - 32.129i
+			fmt.Print(c2)
+			fmt.Print(-c2)
+			fmt.Print(c2 * c2)
+			fmt.Print(c1 * c2)
+		}
+		`,
+		out: `(3+3i)(25-123i)(-25+123i)(-14504-6150i)(321.43-29.129i)(-321.43+29.129i)(102468.746259-18725.86894i)(4452.883-40264.115i)`,
+	},
+
+	{
+		name: "Negation of a complex number",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			nc1 := -c1
+			fmt.Print(c1, nc1)
+		}
+		`,
+		out: `(5+6i) (-5-6i)`,
+	},
+
+	{
+		name: "Complex number multiplied by an integer and by a float",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			fmt.Print(c1)
+			fmt.Print(10 * c1)
+			fmt.Print(c1 * 0.4)
+		}
+		`,
+		out: `(5+6i)(50+60i)(2+2.4000000000000004i)`,
+	},
+
+	{
+		name: "Complex numbers operations assigned directly to interface{}",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -4 + 2i
+			fmt.Print(c1 + c2)
+			fmt.Print(c1 - c2)
+			fmt.Print(c1 * c2)
+			fmt.Print(c1 / c2)
+		}
+		`,
+		out: `(1+8i)(9+4i)(-32-14i)(-0.4-1.7i)`,
+	},
+
+	{
+		name: "Division of complex numbers",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -4 + 2i
+			c3 := c1 / c2
+			fmt.Print(c1, c2, c3)
+		}
+		`,
+		out: `(5+6i) (-4+2i) (-0.4-1.7i)`,
+	},
+
+	{
+		name: "Multiplication of complex numbers",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -4 + 2i
+			c3 := c1 * c2
+			fmt.Print(c1, c2, c3)
+		}
+		`,
+		out: `(5+6i) (-4+2i) (-32-14i)`,
+	},
+
+	{
+		name: "Subtraction of complex numbers",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -4 + 2i
+			c3 := c1 - c2
+			fmt.Print(c1, c2, c3)
+		}
+		`,
+		out: `(5+6i) (-4+2i) (9+4i)`,
+	},
+
+	{
+		name: "Addition of complex numbers",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -4 + 2i
+			c3 := c1 + c2
+			fmt.Print(c1, c2, c3)
+		}
+		`,
+		out: `(5+6i) (-4+2i) (1+8i)`,
+	},
+
+	{
 		name: "Complex number constants",
 		src: `package main
 

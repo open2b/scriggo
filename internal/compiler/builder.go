@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"scriggo/ast"
 	"scriggo/vm"
 )
 
@@ -118,25 +119,29 @@ func newPredefinedFunction(pkg, name string, fn interface{}) *vm.PredefinedFunct
 }
 
 type functionBuilder struct {
-	fn          *vm.Function
-	labels      []uint32
-	gotos       map[uint32]uint32
-	maxRegs     map[reflect.Kind]uint8 // max number of registers allocated at the same time.
-	numRegs     map[reflect.Kind]uint8
-	scopes      []map[string]int8
-	scopeShifts []vm.StackShift
-	allocs      []uint32
+	fn                     *vm.Function
+	labels                 []uint32
+	gotos                  map[uint32]uint32
+	maxRegs                map[reflect.Kind]uint8 // max number of registers allocated at the same time.
+	numRegs                map[reflect.Kind]uint8
+	scopes                 []map[string]int8
+	scopeShifts            []vm.StackShift
+	allocs                 []uint32
+	complexBinaryOpIndexes map[ast.OperatorType]int8 // indexes of complex binary op. functions.
+	complexUnaryOpIndex    int8                      // index of complex negation function.
 }
 
 // newBuilder returns a new function builder for the function fn.
 func newBuilder(fn *vm.Function) *functionBuilder {
 	fn.Body = nil
 	builder := &functionBuilder{
-		fn:      fn,
-		gotos:   map[uint32]uint32{},
-		maxRegs: map[reflect.Kind]uint8{},
-		numRegs: map[reflect.Kind]uint8{},
-		scopes:  []map[string]int8{},
+		fn:                     fn,
+		gotos:                  map[uint32]uint32{},
+		maxRegs:                map[reflect.Kind]uint8{},
+		numRegs:                map[reflect.Kind]uint8{},
+		scopes:                 []map[string]int8{},
+		complexBinaryOpIndexes: map[ast.OperatorType]int8{},
+		complexUnaryOpIndex:    -1,
 	}
 	return builder
 }
@@ -425,6 +430,44 @@ func (builder *functionBuilder) allocRegister(kind reflect.Kind, reg int8) {
 			builder.numRegs[kind] = uint8(reg)
 		}
 	}
+}
+
+// complexOperationIndex returns the index of the function which performs the
+// binary or unary operation specified by op.
+func (builder *functionBuilder) complexOperationIndex(op ast.OperatorType, unary bool) int8 {
+	if unary {
+		if builder.complexUnaryOpIndex != -1 {
+			return builder.complexUnaryOpIndex
+		}
+		fn := newPredefinedFunction("scriggo.complex", "neg", negComplex)
+		index := int8(builder.addPredefinedFunction(fn))
+		builder.complexUnaryOpIndex = index
+		return index
+	}
+	if index, ok := builder.complexBinaryOpIndexes[op]; ok {
+		return index
+	}
+	var f interface{}
+	var n string
+	switch op {
+	case ast.OperatorAddition:
+		f = addComplex
+		n = "add"
+	case ast.OperatorSubtraction:
+		f = subComplex
+		n = "sub"
+	case ast.OperatorMultiplication:
+		f = mulComplex
+		n = "mul"
+	case ast.OperatorDivision:
+		f = divComplex
+		n = "div"
+	}
+	_ = n
+	fn := newPredefinedFunction("scriggo.complex", n, f)
+	index := int8(builder.addPredefinedFunction(fn))
+	builder.complexBinaryOpIndexes[op] = index
+	return index
 }
 
 func negComplex(c interface{}) interface{} {

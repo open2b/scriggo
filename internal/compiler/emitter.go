@@ -668,6 +668,31 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 	case *ast.BinaryOperator:
 
+		// Binary operations on complex numbers.
+		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+			stackShift := vm.StackShift{
+				int8(em.fb.numRegs[reflect.Int]),
+				int8(em.fb.numRegs[reflect.Float64]),
+				int8(em.fb.numRegs[reflect.String]),
+				int8(em.fb.numRegs[reflect.Interface]),
+			}
+			em.fb.enterScope()
+			index := em.fb.complexOperationIndex(expr.Operator(), false)
+			ret := em.fb.newRegister(reflect.Complex128)
+			c1 := em.fb.newRegister(reflect.Complex128)
+			c2 := em.fb.newRegister(reflect.Complex128)
+			em.fb.enterScope()
+			em.emitExpr(expr.Expr1, c1, exprType)
+			em.fb.exitScope()
+			em.fb.enterScope()
+			em.emitExpr(expr.Expr2, c2, exprType)
+			em.fb.exitScope()
+			em.fb.emitCallPredefined(index, 0, stackShift)
+			em.changeRegister(false, ret, reg, exprType, dstType)
+			em.fb.exitScope()
+			return
+		}
+
 		// Binary && and ||.
 		if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
 			cmp := int8(0)
@@ -932,6 +957,30 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		em.emitSelector(expr, reg, dstType)
 
 	case *ast.UnaryOperator:
+
+		// Unary operation (negation) on a complex number.
+		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+			if expr.Operator() != ast.OperatorSubtraction {
+				panic("bug: expected operator subtraction")
+			}
+			stackShift := vm.StackShift{
+				int8(em.fb.numRegs[reflect.Int]),
+				int8(em.fb.numRegs[reflect.Float64]),
+				int8(em.fb.numRegs[reflect.String]),
+				int8(em.fb.numRegs[reflect.Interface]),
+			}
+			em.fb.enterScope()
+			index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
+			ret := em.fb.newRegister(reflect.Complex128)
+			arg := em.fb.newRegister(reflect.Complex128)
+			em.fb.enterScope()
+			em.emitExpr(expr.Expr, arg, exprType)
+			em.fb.exitScope()
+			em.fb.emitCallPredefined(index, 0, stackShift)
+			em.changeRegister(false, ret, reg, exprType, dstType)
+			em.fb.exitScope()
+			return
+		}
 
 		exprType := em.ti(expr.Expr).Type
 		typ := em.ti(expr).Type
