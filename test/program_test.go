@@ -121,6 +121,78 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "For statements with break",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			for {
+				fmt.Print("a")
+				break
+			}
+			for i := 0; ; i = i + 2 {
+				fmt.Print("b")
+				if i > 10 {
+					break
+				}
+			}
+			for {
+				fmt.Print("c1")
+				for {
+					fmt.Print("c2")
+					break
+					panic("")
+				}
+				break
+				panic("")
+			}
+		}
+		`,
+		out: `abbbbbbbc1c2`,
+	},
+
+	{
+		name: "For statements",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			for i := 0; i < 5; i++ {
+				fmt.Print(i)
+			}
+			fmt.Print(",")
+			for i := 0; i < 5; {
+				fmt.Print(i)
+				i++
+			}
+			fmt.Print(",")
+			for i := 0; i < 5; {
+				i++
+				fmt.Print(i)
+			}
+			fmt.Print(",")
+			i := 0
+			for ; i < 5; i++ {
+				fmt.Print(i)
+			}
+			fmt.Print(",")
+			for i := 0; i < 5; i++ {
+				i++
+				fmt.Print(i)
+			}
+		}
+		`,
+		out: `01234,01234,12345,01234,135`,
+	},
+
 	{
 		name: "Indexing operation with a constant expression",
 		src: `package main
