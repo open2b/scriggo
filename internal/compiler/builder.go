@@ -336,15 +336,6 @@ func (builder *functionBuilder) makeIntConstant(c int64) int8 {
 	return int8(r)
 }
 
-func (builder *functionBuilder) makeInterfaceConstant(c interface{}) int8 {
-	r := -len(builder.fn.Constants.General) - 1
-	if r == -129 {
-		panic("interface refs limit reached")
-	}
-	builder.fn.Constants.General = append(builder.fn.Constants.General, c)
-	return int8(r)
-}
-
 // currentAddr returns builder's current address.
 func (builder *functionBuilder) currentAddr() uint32 {
 	return uint32(len(builder.fn.Body))
