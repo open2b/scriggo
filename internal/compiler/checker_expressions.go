@@ -1026,6 +1026,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 				c, err = t1.Constant.binaryOp(op, t2.Constant)
 			} else {
 				_, err = newIntConst(0).binaryOp(op, t2.Constant)
+				t2.setValue(intType)
 			}
 			if err != nil {
 				switch err {
