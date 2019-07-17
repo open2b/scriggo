@@ -643,10 +643,6 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		}
 		v := reflect.ValueOf(em.ti(expr).value)
 		switch v.Kind() {
-		case reflect.Complex64:
-			panic("not implemented") // TODO(Gianluca).
-		case reflect.Complex128:
-			panic("not implemented") // TODO(Gianluca).
 		case reflect.Interface:
 			panic("not implemented") // TODO(Gianluca).
 		case reflect.Slice,
@@ -655,7 +651,9 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			reflect.Array,
 			reflect.Chan,
 			reflect.Ptr,
-			reflect.Func:
+			reflect.Func,
+			reflect.Complex64,
+			reflect.Complex128:
 			c := em.fb.makeGeneralConstant(v.Interface())
 			em.changeRegister(true, c, reg, typ, dstType)
 		case reflect.UnsafePointer:

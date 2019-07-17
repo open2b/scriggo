@@ -143,6 +143,40 @@ var stmtTests = []struct {
 	// },
 
 	{
+		name: "Complex number constants",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			c2 := -2 - 2 - 1i
+			c3 := c1
+			fmt.Print(c1, c2, c3)
+		}
+		`,
+		out: `(5+6i) (-4-1i) (5+6i)`,
+	},
+
+	{
+		name: "Complex number constant",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			c1 := 5 + 6i
+			fmt.Print(c1)
+		}
+		`,
+		out: `(5+6i)`,
+	},
+
+	{
 		name: "Issue #171",
 		src: `package main
 
