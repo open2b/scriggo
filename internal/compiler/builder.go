@@ -146,6 +146,16 @@ func newBuilder(fn *vm.Function) *functionBuilder {
 	return builder
 }
 
+// currentStackShift returns the current stack shift.
+func (builder *functionBuilder) currentStackShift() vm.StackShift {
+	return vm.StackShift{
+		int8(builder.numRegs[reflect.Int]),
+		int8(builder.numRegs[reflect.Float64]),
+		int8(builder.numRegs[reflect.String]),
+		int8(builder.numRegs[reflect.Interface]),
+	}
+}
+
 // enterScope enters a new scope.
 // Every enterScope call must be paired with a corresponding exitScope call.
 func (builder *functionBuilder) enterScope() {
@@ -176,12 +186,7 @@ func (builder *functionBuilder) exitScope() {
 //	    // tmp location is now available for reusing
 //
 func (builder *functionBuilder) enterStack() {
-	scopeShift := vm.StackShift{
-		int8(builder.numRegs[reflect.Int]),
-		int8(builder.numRegs[reflect.Float64]),
-		int8(builder.numRegs[reflect.String]),
-		int8(builder.numRegs[reflect.Interface]),
-	}
+	scopeShift := builder.currentStackShift()
 	builder.scopeShifts = append(builder.scopeShifts, scopeShift)
 }
 

@@ -413,12 +413,7 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 // and the reflect types of the returned values.
 func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
-	stackShift := vm.StackShift{
-		int8(em.fb.numRegs[reflect.Int]),
-		int8(em.fb.numRegs[reflect.Float64]),
-		int8(em.fb.numRegs[reflect.String]),
-		int8(em.fb.numRegs[reflect.Interface]),
-	}
+	stackShift := em.fb.currentStackShift()
 
 	ti := em.ti(call.Func)
 	typ := ti.Type
@@ -670,12 +665,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 		// Binary operations on complex numbers.
 		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-			stackShift := vm.StackShift{
-				int8(em.fb.numRegs[reflect.Int]),
-				int8(em.fb.numRegs[reflect.Float64]),
-				int8(em.fb.numRegs[reflect.String]),
-				int8(em.fb.numRegs[reflect.Interface]),
-			}
+			stackShift := em.fb.currentStackShift()
 			em.fb.enterScope()
 			index := em.fb.complexOperationIndex(expr.Operator(), false)
 			ret := em.fb.newRegister(reflect.Complex128)
@@ -963,12 +953,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			if expr.Operator() != ast.OperatorSubtraction {
 				panic("bug: expected operator subtraction")
 			}
-			stackShift := vm.StackShift{
-				int8(em.fb.numRegs[reflect.Int]),
-				int8(em.fb.numRegs[reflect.Float64]),
-				int8(em.fb.numRegs[reflect.String]),
-				int8(em.fb.numRegs[reflect.Interface]),
-			}
+			stackShift := em.fb.currentStackShift()
 			em.fb.enterScope()
 			index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
 			ret := em.fb.newRegister(reflect.Complex128)
@@ -1551,12 +1536,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			funType := em.ti(fnNode).Type
 			em.emitExpr(fnNode, fun, em.ti(fnNode).Type)
-			offset := vm.StackShift{
-				int8(em.fb.numRegs[reflect.Int]),
-				int8(em.fb.numRegs[reflect.Float64]),
-				int8(em.fb.numRegs[reflect.String]),
-				int8(em.fb.numRegs[reflect.Interface]),
-			}
+			offset := em.fb.currentStackShift()
 			// TODO(Gianluca): currently supports only deferring or
 			// starting goroutines of not predefined functions.
 			isPredefined := false
