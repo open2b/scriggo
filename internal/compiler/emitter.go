@@ -1291,10 +1291,11 @@ func (em *emitter) quickEmitExpr(expr ast.Expression, typ reflect.Type) (out int
 // emitBuiltin emits instructions for a builtin call, writing the result, if
 // necessary, into the register reg.
 func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
+	args := call.Args
 	switch call.Func.(*ast.Identifier).Name {
 	case "append":
-		sliceType := em.ti(call.Args[0]).Type
-		slice := em.emitExprInNewReg(call.Args[0], sliceType)
+		sliceType := em.ti(args[0]).Type
+		slice := em.emitExprInNewReg(args[0], sliceType)
 		tmp := em.fb.newRegister(sliceType.Kind())
 		// TODO(Gianluca): moving to a different register is not always
 		// necessary. For instance, in case of `s = append(s, t)` moving can
@@ -1303,22 +1304,22 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		// parameter of Append.
 		em.fb.emitMove(false, slice, tmp, sliceType.Kind())
 		if call.IsVariadic {
-			arg := em.emitExprInNewReg(call.Args[1], em.ti(call.Args[1]).Type)
+			arg := em.emitExprInNewReg(args[1], em.ti(args[1]).Type)
 			em.fb.emitAppendSlice(arg, tmp)
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
 		} else {
-			for i := range call.Args {
+			for i := range args {
 				if i == 0 {
 					continue
 				}
-				arg := em.emitExprInNewReg(call.Args[i], em.ti(call.Args[i]).Type)
+				arg := em.emitExprInNewReg(args[i], em.ti(args[i]).Type)
 				em.fb.emitAppend(arg, 1, tmp)
 			}
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
 		}
 	case "cap":
-		typ := em.ti(call.Args[0]).Type
-		s := em.emitExprInNewReg(call.Args[0], typ)
+		typ := em.ti(args[0]).Type
+		s := em.emitExprInNewReg(args[0], typ)
 		if sameRegType(intType.Kind(), dstType.Kind()) {
 			em.fb.emitCap(s, reg)
 			return
@@ -1327,18 +1328,18 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.fb.emitCap(s, tmp)
 		em.changeRegister(false, tmp, reg, intType, dstType)
 	case "close":
-		chann := em.emitExprInNewReg(call.Args[0], em.ti(call.Args[0]).Type)
+		chann := em.emitExprInNewReg(args[0], em.ti(args[0]).Type)
 		em.fb.emitClose(chann)
 	case "complex":
 		panic("TODO: not implemented")
 	case "copy":
-		dst, k, ok := em.quickEmitExpr(call.Args[0], em.ti(call.Args[0]).Type)
+		dst, k, ok := em.quickEmitExpr(args[0], em.ti(args[0]).Type)
 		if !ok || k {
-			dst = em.emitExprInNewReg(call.Args[0], em.ti(call.Args[0]).Type)
+			dst = em.emitExprInNewReg(args[0], em.ti(args[0]).Type)
 		}
-		src, k, ok := em.quickEmitExpr(call.Args[1], em.ti(call.Args[1]).Type)
+		src, k, ok := em.quickEmitExpr(args[1], em.ti(args[1]).Type)
 		if !ok || k {
-			src = em.emitExprInNewReg(call.Args[0], em.ti(call.Args[0]).Type)
+			src = em.emitExprInNewReg(args[0], em.ti(args[0]).Type)
 		}
 		if reg == 0 {
 			em.fb.emitCopy(dst, src, 0)
@@ -1354,14 +1355,14 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(false, tmp, reg, intType, dstType)
 		em.fb.exitStack()
 	case "delete":
-		mapp := em.emitExprInNewReg(call.Args[0], emptyInterfaceType)
-		key := em.emitExprInNewReg(call.Args[1], emptyInterfaceType)
+		mapp := em.emitExprInNewReg(args[0], emptyInterfaceType)
+		key := em.emitExprInNewReg(args[1], emptyInterfaceType)
 		em.fb.emitDelete(mapp, key)
 	case "imag":
 		panic("TODO: not implemented")
 	case "len":
-		typ := em.ti(call.Args[0]).Type
-		s := em.emitExprInNewReg(call.Args[0], typ)
+		typ := em.ti(args[0]).Type
+		s := em.emitExprInNewReg(args[0], typ)
 		if sameRegType(reflect.Int, dstType.Kind()) {
 			em.fb.emitLen(s, reg, typ)
 			return
@@ -1372,20 +1373,20 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		em.changeRegister(false, tmp, reg, intType, dstType)
 		em.fb.exitStack()
 	case "make":
-		typ := em.ti(call.Args[0]).Type
+		typ := em.ti(args[0]).Type
 		switch typ.Kind() {
 		case reflect.Map:
-			if len(call.Args) == 1 {
+			if len(args) == 1 {
 				em.fb.emitMakeMap(typ, true, 0, reg)
 			} else {
-				size, kSize, ok := em.quickEmitExpr(call.Args[1], intType)
+				size, kSize, ok := em.quickEmitExpr(args[1], intType)
 				if !ok {
-					size = em.emitExprInNewReg(call.Args[1], em.ti(call.Args[1]).Type)
+					size = em.emitExprInNewReg(args[1], em.ti(args[1]).Type)
 				}
 				em.fb.emitMakeMap(typ, kSize, size, reg)
 			}
 		case reflect.Slice:
-			lenExpr := call.Args[1]
+			lenExpr := args[1]
 			lenn, kLen, ok := em.quickEmitExpr(lenExpr, intType)
 			if !ok {
 				lenn = em.fb.newRegister(reflect.Int)
@@ -1393,8 +1394,8 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			}
 			var kCap bool
 			var capp int8
-			if len(call.Args) == 3 {
-				capArg := call.Args[2]
+			if len(args) == 3 {
+				capArg := args[2]
 				var ok bool
 				capp, kCap, ok = em.quickEmitExpr(capArg, intType)
 				if !ok {
@@ -1406,17 +1407,17 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			}
 			em.fb.emitMakeSlice(kLen, kCap, typ, lenn, capp, reg)
 		case reflect.Chan:
-			chanType := em.ti(call.Args[0]).Type
+			chanType := em.ti(args[0]).Type
 			var kCapacity bool
 			var capacity int8
-			if len(call.Args) == 1 {
+			if len(args) == 1 {
 				capacity = 0
 				kCapacity = true
 			} else {
 				var ok bool
-				capacity, kCapacity, ok = em.quickEmitExpr(call.Args[1], intType)
+				capacity, kCapacity, ok = em.quickEmitExpr(args[1], intType)
 				if !ok {
-					capacity = em.emitExprInNewReg(call.Args[1], intType)
+					capacity = em.emitExprInNewReg(args[1], intType)
 				}
 			}
 			em.fb.emitMakeChan(chanType, kCapacity, capacity, reg)
@@ -1424,22 +1425,22 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 			panic("bug")
 		}
 	case "new":
-		newType := em.ti(call.Args[0]).Type
+		newType := em.ti(args[0]).Type
 		em.fb.emitNew(newType, reg)
 	case "panic":
-		arg, k, ok := em.quickEmitExpr(call.Args[0], emptyInterfaceType)
+		arg, k, ok := em.quickEmitExpr(args[0], emptyInterfaceType)
 		if !ok || k {
-			arg = em.emitExprInNewReg(call.Args[0], emptyInterfaceType)
+			arg = em.emitExprInNewReg(args[0], emptyInterfaceType)
 		}
 		em.fb.emitPanic(arg, call.Pos().Line)
 	case "print":
-		for _, argExpr := range call.Args {
+		for _, argExpr := range args {
 			arg := em.emitExprInNewReg(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
 		}
 	case "println":
-		last := len(call.Args) - 1
-		for i, argExpr := range call.Args {
+		last := len(args) - 1
+		for i, argExpr := range args {
 			arg := em.emitExprInNewReg(argExpr, emptyInterfaceType)
 			em.fb.emitPrint(arg)
 			var str int8
