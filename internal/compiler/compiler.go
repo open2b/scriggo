@@ -252,7 +252,7 @@ func EmitScript(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars m
 	e.fb = newBuilder(newFunction("main", "main", reflect.FuncOf(nil, nil, false)))
 	e.fb.emitSetAlloc(opts.MemoryLimit)
 	e.fb.enterScope()
-	e.EmitNodes(tree.Nodes)
+	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
 	return &Code{Main: e.fb.fn, Globals: e.globals}
@@ -298,7 +298,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 			var initVarsIndex int8 = 0
 			e.fb.fn.Functions = append(e.fb.fn.Functions, nil)
 			e.fb.emitCall(initVarsIndex, vm.StackShift{}, 0)
-			e.EmitNodes(extends.Tree.Nodes)
+			e.emitNodes(extends.Tree.Nodes)
 			e.fb.end()
 			e.fb.exitScope()
 			// Emits extending page as a package.
@@ -323,7 +323,7 @@ func EmitTemplate(tree *ast.Tree, typeInfos map[ast.Node]*TypeInfo, indirectVars
 	// Default case: tree is a generic template page.
 	e.fb.enterScope()
 	e.reserveTemplateRegisters()
-	e.EmitNodes(tree.Nodes)
+	e.emitNodes(tree.Nodes)
 	e.fb.exitScope()
 	e.fb.end()
 	return &Code{Main: e.fb.fn, Globals: e.globals}

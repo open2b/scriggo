@@ -261,7 +261,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 				}
 			}
 			em.prepareFunctionBodyParameters(n)
-			em.EmitNodes(n.Body.Nodes)
+			em.emitNodes(n.Body.Nodes)
 			em.fb.end()
 			em.fb.exitScope()
 		}
@@ -1062,7 +1062,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 			em.fb.emitSetAlloc(em.options.MemoryLimit)
 			em.fb.enterScope()
 			em.prepareFunctionBodyParameters(expr)
-			em.EmitNodes(expr.Body.Nodes)
+			em.emitNodes(expr.Body.Nodes)
 			em.fb.end()
 			em.fb.exitScope()
 			em.fb = fb
@@ -1098,7 +1098,7 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 
 		em.fb.enterScope()
 		em.prepareFunctionBodyParameters(expr)
-		em.EmitNodes(expr.Body.Nodes)
+		em.emitNodes(expr.Body.Nodes)
 		em.fb.exitScope()
 		em.fb.end()
 		em.fb = currFB
@@ -1461,8 +1461,8 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	}
 }
 
-// EmitNodes emits instructions for nodes.
-func (em *emitter) EmitNodes(nodes []ast.Node) {
+// emitNodes emits instructions for nodes.
+func (em *emitter) emitNodes(nodes []ast.Node) {
 
 	for _, node := range nodes {
 		switch node := node.(type) {
@@ -1472,7 +1472,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 
 		case *ast.Block:
 			em.fb.enterScope()
-			em.EmitNodes(node.Nodes)
+			em.emitNodes(node.Nodes)
 			em.fb.exitScope()
 
 		case *ast.Break:
@@ -1611,7 +1611,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			em.breakLabel = nil
 			em.fb.enterScope()
 			if node.Init != nil {
-				em.EmitNodes([]ast.Node{node.Init})
+				em.emitNodes([]ast.Node{node.Init})
 			}
 			if node.Condition != nil {
 				forLabel := em.fb.newLabel()
@@ -1619,18 +1619,18 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 				em.emitCondition(node.Condition)
 				endForLabel := em.fb.newLabel()
 				em.fb.emitGoto(endForLabel)
-				em.EmitNodes(node.Body)
+				em.emitNodes(node.Body)
 				if node.Post != nil {
-					em.EmitNodes([]ast.Node{node.Post})
+					em.emitNodes([]ast.Node{node.Post})
 				}
 				em.fb.emitGoto(forLabel)
 				em.fb.setLabelAddr(endForLabel)
 			} else {
 				forLabel := em.fb.newLabel()
 				em.fb.setLabelAddr(forLabel)
-				em.EmitNodes(node.Body)
+				em.emitNodes(node.Body)
 				if node.Post != nil {
-					em.EmitNodes([]ast.Node{node.Post})
+					em.emitNodes([]ast.Node{node.Post})
 				}
 				em.fb.emitGoto(forLabel)
 			}
@@ -1679,7 +1679,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			em.fb.emitRange(kExpr, exprReg, indexReg, elem, exprType.Kind())
 			em.fb.emitGoto(endRange)
 			em.fb.enterScope()
-			em.EmitNodes(node.Body)
+			em.emitNodes(node.Body)
 			em.fb.emitContinue(rangeLabel)
 			em.fb.setLabelAddr(endRange)
 			em.rangeLabels = em.rangeLabels[:len(em.rangeLabels)-1]
@@ -1701,27 +1701,27 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 		case *ast.If:
 			em.fb.enterScope()
 			if node.Assignment != nil {
-				em.EmitNodes([]ast.Node{node.Assignment})
+				em.emitNodes([]ast.Node{node.Assignment})
 			}
 			em.emitCondition(node.Condition)
 			if node.Else == nil { // TODO (Gianluca): can "then" and "else" be unified in some way?
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
-				em.EmitNodes(node.Then.Nodes)
+				em.emitNodes(node.Then.Nodes)
 				em.fb.setLabelAddr(endIfLabel)
 			} else {
 				elseLabel := em.fb.newLabel()
 				em.fb.emitGoto(elseLabel)
-				em.EmitNodes(node.Then.Nodes)
+				em.emitNodes(node.Then.Nodes)
 				endIfLabel := em.fb.newLabel()
 				em.fb.emitGoto(endIfLabel)
 				em.fb.setLabelAddr(elseLabel)
 				if node.Else != nil {
 					switch els := node.Else.(type) {
 					case *ast.If:
-						em.EmitNodes([]ast.Node{els})
+						em.emitNodes([]ast.Node{els})
 					case *ast.Block:
-						em.EmitNodes(els.Nodes)
+						em.emitNodes(els.Nodes)
 					}
 				}
 				em.fb.setLabelAddr(endIfLabel)
@@ -1729,7 +1729,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			em.fb.exitScope()
 
 		case *ast.Include:
-			em.EmitNodes(node.Tree.Nodes)
+			em.emitNodes(node.Tree.Nodes)
 
 		case *ast.Label:
 			if _, found := em.labels[em.fb.fn][node.Name.Name]; !found {
@@ -1740,7 +1740,7 @@ func (em *emitter) EmitNodes(nodes []ast.Node) {
 			}
 			em.fb.setLabelAddr(em.labels[em.fb.fn][node.Name.Name])
 			if node.Statement != nil {
-				em.EmitNodes([]ast.Node{node.Statement})
+				em.emitNodes([]ast.Node{node.Statement})
 			}
 
 		case *ast.Return:
@@ -1868,7 +1868,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 	em.fb.enterScope()
 
 	if node.Init != nil {
-		em.EmitNodes([]ast.Node{node.Init})
+		em.emitNodes([]ast.Node{node.Init})
 	}
 
 	typeAssertion := node.Assignment.Rhs[0].(*ast.TypeAssertion)
@@ -1881,7 +1881,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 			node.Assignment.Type,
 			[]ast.Expression{typeAssertion.Expr},
 		)
-		em.EmitNodes([]ast.Node{n})
+		em.emitNodes([]ast.Node{n})
 	}
 
 	bodyLabels := make([]uint32, len(node.Cases))
@@ -1919,7 +1919,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		}
 		em.fb.setLabelAddr(bodyLabels[i])
 		em.fb.enterScope()
-		em.EmitNodes(cas.Body)
+		em.emitNodes(cas.Body)
 		em.fb.exitScope()
 		em.fb.emitGoto(endSwitchLabel)
 	}
@@ -1936,7 +1936,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 	em.fb.enterScope()
 
 	if node.Init != nil {
-		em.EmitNodes([]ast.Node{node.Init})
+		em.emitNodes([]ast.Node{node.Init})
 	}
 
 	var expr int8
@@ -1983,7 +1983,7 @@ func (em *emitter) emitSwitch(node *ast.Switch) {
 		}
 		em.fb.setLabelAddr(bodyLabels[i])
 		em.fb.enterScope()
-		em.EmitNodes(cas.Body)
+		em.emitNodes(cas.Body)
 		if !cas.Fallthrough {
 			em.fb.emitGoto(endSwitchLabel)
 		}
