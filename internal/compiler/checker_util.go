@@ -64,6 +64,15 @@ var floatOperators = [21]bool{
 	ast.OperatorDivision:       true,
 }
 
+var complexOperators = [21]bool{
+	ast.OperatorEqual:          true,
+	ast.OperatorNotEqual:       true,
+	ast.OperatorAddition:       true,
+	ast.OperatorSubtraction:    true,
+	ast.OperatorMultiplication: true,
+	ast.OperatorDivision:       true,
+}
+
 var stringOperators = [21]bool{
 	ast.OperatorEqual:          true,
 	ast.OperatorNotEqual:       true,
@@ -91,22 +100,24 @@ var evalToBoolOperators = [21]bool{
 }
 
 var operatorsOfKind = [...][21]bool{
-	reflect.Bool:      boolOperators,
-	reflect.Int:       intOperators,
-	reflect.Int8:      intOperators,
-	reflect.Int16:     intOperators,
-	reflect.Int32:     intOperators,
-	reflect.Int64:     intOperators,
-	reflect.Uint:      intOperators,
-	reflect.Uint8:     intOperators,
-	reflect.Uint16:    intOperators,
-	reflect.Uint32:    intOperators,
-	reflect.Uint64:    intOperators,
-	reflect.Uintptr:   intOperators,
-	reflect.Float32:   floatOperators,
-	reflect.Float64:   floatOperators,
-	reflect.String:    stringOperators,
-	reflect.Interface: interfaceOperators,
+	reflect.Bool:       boolOperators,
+	reflect.Int:        intOperators,
+	reflect.Int8:       intOperators,
+	reflect.Int16:      intOperators,
+	reflect.Int32:      intOperators,
+	reflect.Int64:      intOperators,
+	reflect.Uint:       intOperators,
+	reflect.Uint8:      intOperators,
+	reflect.Uint16:     intOperators,
+	reflect.Uint32:     intOperators,
+	reflect.Uint64:     intOperators,
+	reflect.Uintptr:    intOperators,
+	reflect.Float32:    floatOperators,
+	reflect.Float64:    floatOperators,
+	reflect.Complex64:  complexOperators,
+	reflect.Complex128: complexOperators,
+	reflect.String:     stringOperators,
+	reflect.Interface:  interfaceOperators,
 }
 
 // convert converts a value explicitly. If the converted value is a constant,
