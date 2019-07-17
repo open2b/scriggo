@@ -1134,27 +1134,35 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 	case *ast.Index:
 
 		exprType := em.ti(expr.Expr).Type
-		indexType := em.ti(expr.Index).Type
-		var exprReg int8
-		if out, k, ok := em.quickEmitExpr(expr.Expr, exprType); ok && !k {
-			exprReg = out
-		} else {
-			exprReg = em.fb.newRegister(exprType.Kind())
+		exprReg, kexpr, ok := em.quickEmitExpr(expr.Expr, exprType)
+		if !ok || kexpr {
+			exprReg = em.emitExprInNewReg(expr.Expr, exprType)
 		}
-		var i int8
-		out, ki, ok := em.quickEmitExpr(expr.Index, indexType)
-		if ok {
-			i = out
+		var indexType reflect.Type
+		if exprType.Kind() == reflect.Map {
+			indexType = exprType.Key()
 		} else {
-			i = em.emitExprInNewReg(expr.Index, indexType)
+			indexType = intType
 		}
-		if sameRegType(exprType.Elem().Kind(), dstType.Kind()) {
-			em.fb.emitIndex(ki, exprReg, i, reg, exprType)
+		index, kindex, ok := em.quickEmitExpr(expr.Index, indexType)
+		if !ok {
+			index = em.emitExprInNewReg(expr.Index, indexType)
+		}
+		var elemType reflect.Type
+		if exprType.Kind() == reflect.String {
+			elemType = uint8Type
+		} else {
+			elemType = exprType.Elem()
+		}
+		if sameRegType(elemType.Kind(), dstType.Kind()) {
+			em.fb.emitIndex(kindex, exprReg, index, reg, exprType)
 			return
 		}
-		tmp := em.fb.newRegister(exprType.Elem().Kind())
-		em.fb.emitIndex(ki, exprReg, i, tmp, exprType)
-		em.changeRegister(false, tmp, reg, exprType.Elem(), dstType)
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(elemType.Kind())
+		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType)
+		em.changeRegister(false, tmp, reg, elemType, dstType)
+		em.fb.exitStack()
 
 	case *ast.Slicing:
 

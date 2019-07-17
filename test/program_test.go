@@ -141,6 +141,38 @@ var stmtTests = []struct {
 	// 	`,
 	// 	out: `8010966-4`,
 	// },
+
+	{
+		name: "Issue #171",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			slice := []string{"abc", "def", "ghi"}
+			fmt.Print(slice[0][1])
+			fmt.Print(slice[0])
+			fmt.Print(slice[1])
+			out := slice[1][2]
+			fmt.Print(out)
+		}`,
+		out: `98abcdef102`,
+	},
+
+	{
+		name: "Issue #155",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			s := [][]int{[]int{1, 2, 3}, []int{4, 5, 6}, []int{7, 8, 9}}
+			fmt.Print(s)
+			fmt.Print(s[1][2])
+		}`,
+		out: `[[1 2 3] [4 5 6] [7 8 9]]6`,
+	},
+
 	{
 		name: "Assignment to index of slice index",
 		src: `package main
