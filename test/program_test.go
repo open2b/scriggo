@@ -5220,107 +5220,8 @@ var stmtTests = []struct {
 		func main() {
 			f(g("a string!"))
 		}`,
-		out: "a is 9 and b is 144\n"},
-
-	//------------------------------------
-	// TODO(Gianluca): disabled tests:
-
-	// {
-	// 	name: "Nil: declaring a nil empty interface with var and explicitly assigning interface{}(nil) to it",
-	// 	src: `package main
-
-	// 	import (
-	// 		"fmt"
-	// 	)
-
-	// 	func main() {
-	// 		var i interface{} = interface{}(nil)
-	// 		fmt.Printf("i: %v, type(i): %T", i, i)
-	// 	}
-	// 	`,
-	// 	output: `i: <nil>, type(i): <nil>`,
-	// },
-
-	// {
-	// 	name: "x.f convertion to (*x).f",
-	// 	src: `package main
-
-	// 	import (
-	// 		"fmt"
-	// 		"os/exec"
-	// 	)
-
-	// 	func main() {
-	// 		e := &exec.Error{Name: "errorName"}
-	// 		fmt.Println(e.Name)
-	// 	}`,
-	// 	output: "errorName\n",
-	// },
-
-	// {
-	// 	name: "Method value (assignment and call)",
-	// 	src: `package main
-
-	// 	import (
-	// 		"bytes"
-	// 		"fmt"
-	// 	)
-
-	// 	func main() {
-	// 		b := bytes.NewBuffer([]byte{97, 98, 99})
-	// 		lenMethod := b.Len
-	// 		l := lenMethod()
-	// 		fmt.Print("l is ", l)
-	// 	}
-	// 	`,
-	// 	output: "l is 3",
-	// },
-
-	// {
-	// 	name: "Method (with non-pointer receiver) called on a pointer receiver",
-	// 	src: `package main
-
-	// 	import "testpkg"
-
-	// 	func main() {
-	// 		t := testpkg.NewT(-20)
-	// 		tp := &t
-	// 		testpkg.T.M(tp)
-	// 	}
-	// 	`,
-	// 	output: `t is -20`,
-	// },
-
-	// {
-	// 	name: "Calling a method defined on pointer on a non-pointer value",
-	// 	src: `package main
-
-	// 	import (
-	// 		"bytes"
-	// 		"fmt"
-	// 	)
-
-	// 	func main() {
-	// 		b := *bytes.NewBuffer([]byte{97, 98, 99})
-	// 		fmt.Printf("b has type %T", b)
-	// 		l := b.Len()
-	// 		fmt.Print(", l is ", l)
-	// 	}
-	// 	`,
-	// 	output: `b has type bytes.Buffer, l is 3`,
-	// }
-
-	//{"Out of memory: OpAppend ",
-	//	`package main
-	//
-	//	import "fmt"
-	//
-	//	func main() {
-	//		fmt.Println("12345678901234567890" + "12345678901234567890")
-	//	}`,
-	//	nil,
-	//	nil,
-	//	"a is 9 and b is 144\n"},
+		out: "a is 9 and b is 144\n",
+	},
 
 	{
 		name: "Iota - local constant in math expression (with float numbers)",
@@ -5342,112 +5243,38 @@ var stmtTests = []struct {
 		out: "10 23.41 34.27505190311419",
 	},
 
-	//------------------------------------
+	{
+		name: "Out of memory: OpAppend ",
+		src: `package main
+	
+		import "fmt"
+	
+		func main() {
+			fmt.Println("12345678901234567890" + "12345678901234567890")
+		}`,
+		out: "1234567890123456789012345678901234567890\n",
+	},
 
-	// {"Defer",
-	// 	`
-	// 	package main
+	{
+		name: "Multiple assignment to slices",
+		src: `package main
 
-	// 	import "fmt"
+		import "fmt"
 
-	// 	func mark(m string) {
-	// 		fmt.Print(m + ",")
-	// 	}
+		func triplet() (int, string, string) {
+			return 20, "new1", "new2"
+		}
 
-	// 	func f() {
-	// 		mark("f")
-	// 		defer func() {
-	// 			mark("f.1")
-	// 			defer func() {
-
-	// 			}()
-	// 		}()
-	// 		defer func() {
-	// 			mark("f.2")
-	// 			defer func() {
-	// 				mark("f.2.1")
-	// 			}()
-	// 			h()
-	// 		}()
-	// 		g()
-	// 		mark("ret f")
-	// 	}
-
-	// 	func g() {
-	// 		mark("g")
-	// 	}
-
-	// 	func h() {
-	// 		mark("h")
-	// 	}
-
-	// 	func main() {
-	// 		mark("main")
-	// 		defer func() {
-	// 			mark("main.1")
-	// 			h()
-	// 			mark("main.1")
-	// 		}()
-	// 		f()
-	// 		mark("ret main")
-	// 	}
-	// 	`,
-	// 	output: "main,f,g,ret f,f.2,h,f.2.1,f.1,ret main,main.1,h,main.1,"},
-
-	//------------------------------------
-
-	// {"Multiple assignment to slices",
-	// 	`package main
-
-	// 	import "fmt"
-
-	// 	func triplet() (int, string, string) {
-	// 		return 20, "new1", "new2"
-	// 	}
-
-	// 	func main() {
-	// 		ss := []string{"old1", "old2", "old3"}
-	// 		is := []int{1,2,3}
-	// 		fmt.Println(ss, is)
-	// 		is[0], ss[1], ss[0] = triplet()
-	// 		fmt.Println(ss, is)
-	// 	}
-	// 	`,
-	// output: "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n"},
-
-	//------------------------------------
-
-	// {"Variadic package functions",
-	// 	`
-	// 	package main
-
-	// 	import "fmt"
-
-	// 	func f(a ...int) {
-	// 		fmt.Println("variadic:", a)
-	// 		return
-	// 	}
-
-	// 	func g(a, b string, c... int) {
-	// 		fmt.Println("strings:", a, b)
-	// 		fmt.Println("variadic:", c)
-	// 		return
-	// 	}
-
-	// 	func h(a string, b... string) int {
-	// 		fmt.Println("a:", a)
-	// 		return len(b)
-	// 	}
-
-	// 	func main() {
-	// 		f(1, 2, 3)
-	// 		g("x", "y", 3, 23, 11, 12)
-	// 		fmt.Println("h:", h("a", "b", "c", "d"))
-	// 	}
-	// 	`,
-	// output:
-	// 	"variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n"},
-
+		func main() {
+			ss := []string{"old1", "old2", "old3"}
+			is := []int{1,2,3}
+			fmt.Println(ss, is)
+			is[0], ss[1], ss[0] = triplet()
+			fmt.Println(ss, is)
+		}
+		`,
+		out: "[old1 old2 old3] [1 2 3]\n[new2 new1 old3] [20 2 3]\n",
+	},
 }
 
 //go:generate scriggo embed -v -o packages.go ./packages.Scriggofile
