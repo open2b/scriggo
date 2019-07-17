@@ -89,37 +89,6 @@ func uncapitalize(n string) string {
 	return b.String()
 }
 
-// filterIncluding filters decls including only names specified in include.
-// Returns a copy of the map.
-func filterIncluding(decls map[string]string, include []string) (map[string]string, error) {
-	tmp := map[string]string{}
-	for _, name := range include {
-		decl, ok := decls[name]
-		if !ok {
-			return nil, fmt.Errorf("cannot include declaration %s: doesn't exist.", name)
-		}
-		tmp[name] = decl
-	}
-	return tmp, nil
-}
-
-// filterExcluding filters decls excluding all names specified in include.
-// Returns a copy of the map.
-func filterExcluding(decls map[string]string, exclude []string) (map[string]string, error) {
-	tmp := map[string]string{}
-	for k, v := range decls {
-		tmp[k] = v
-	}
-	for _, name := range exclude {
-		_, ok := tmp[name]
-		if !ok {
-			return nil, fmt.Errorf("cannot exclude declaration %s: doesn't exist.", name)
-		}
-		delete(tmp, name)
-	}
-	return tmp, nil
-}
-
 var predeclaredIdentifier = []string{
 	"bool", "byte", "complex64", "complex128", "error", "float32", "float64",
 	"int", "int8", "int16", "int32", "int64", "rune", "string", "uint", "uint8",

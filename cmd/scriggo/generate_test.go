@@ -320,7 +320,7 @@ func Test_parseGoPackage(t *testing.T) {
 	goos := "linux" // paths in this test should be OS-independent.
 	for path, expected := range cases {
 		t.Run(path, func(t *testing.T) {
-			gotName, gotDecls, err := loadGoPackage(path, "", goos, buildFlags{})
+			gotName, gotDecls, _, err := loadGoPackage(path, "", goos, buildFlags{}, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

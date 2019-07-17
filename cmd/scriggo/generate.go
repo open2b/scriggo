@@ -46,16 +46,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 
 	importReflect := false
 
-	explicitImports := strings.Builder{}
-	for i, imp := range sf.imports {
-		if i > 0 {
-			explicitImports.WriteString("\n\t")
-		}
+	explicitImports := [][2]string{} // first element is the import name, second is import path..
+	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
-			explicitImports.WriteString(uniqueName + ` "` + imp.path + `"`)
+			explicitImports = append(explicitImports, [2]string{uniqueName, imp.path})
 		} else {
-			explicitImports.WriteString(`"` + imp.path + `"`)
+			explicitImports = append(explicitImports, [2]string{"", imp.path})
 		}
 		if imp.path == "reflect" {
 			importReflect = true
@@ -67,24 +64,16 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 		if flags.v {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", imp.path)
 		}
-		pkgName, decls, err := loadGoPackage(imp.path, dir, goos, flags)
+		pkgName, decls, refToImport, err := loadGoPackage(imp.path, dir, goos, flags, imp.including, imp.excluding)
 		if err != nil {
 			return 0, err
+		}
+		if !refToImport {
+			explicitImports[len(explicitImports)-1][0] = "_"
 		}
 		// No declarations at path: move on to next import path.
 		if len(decls) == 0 {
 			continue
-		}
-		if len(imp.including) > 0 {
-			decls, err = filterIncluding(decls, imp.including)
-			if err != nil {
-				return 0, err
-			}
-		} else if len(imp.excluding) > 0 {
-			decls, err = filterExcluding(decls, imp.excluding)
-			if err != nil {
-				return 0, err
-			}
 		}
 		if imp.notCapitalized {
 			tmp := map[string]string{}
@@ -239,9 +228,23 @@ func init() {
 		reflectImport = `import "reflect"`
 	}
 
+	explicitImportsString := ""
+	for i, imp := range explicitImports {
+		if i > 0 {
+			explicitImportsString = "\n\t"
+		}
+		name := imp[0]
+		path := imp[1]
+		if name == "" {
+			explicitImportsString += `"` + path + `"`
+		} else {
+			explicitImportsString += name + ` "` + path + `"`
+		}
+	}
+
 	pkgOutput := strings.NewReplacer(
 		"[pkgName]", sf.pkgName,
-		"[explicitImports]", explicitImports.String(),
+		"[explicitImports]", explicitImportsString,
 		"[reflectImport]", reflectImport,
 		"[variable]", sf.variable,
 		"[pkgContent]", allPkgsContent.String(),
@@ -253,7 +256,32 @@ func init() {
 
 // loadGoPackage loads the Go package with the given path and returns its name
 // and its exported declarations.
-func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl map[string]string, err error) {
+//
+// refToImport reports whether at least one declaration refers to the import
+// path directly; for example when loading a package with no declarations or
+// where all declarations are constant literals refToImport is false.
+//
+func loadGoPackage(path, dir, goos string, flags buildFlags, including, excluding []string) (name string, decl map[string]string, refToImport bool, err error) {
+
+	allowed := func(n string) bool {
+		if len(including) > 0 {
+			for _, inc := range including {
+				if inc == n {
+					return true
+				}
+			}
+			return false
+		}
+		if len(excluding) > 0 {
+			for _, exc := range excluding {
+				if exc == n {
+					return false
+				}
+			}
+			return true
+		}
+		return true
+	}
 
 	decl = map[string]string{}
 	// TODO(marco): remove the global cache of package names.
@@ -273,11 +301,11 @@ func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl 
 	if dir != "" {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return "", nil, fmt.Errorf("scriggo: can't get current directory: %s", err)
+			return "", nil, false, fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
 		err = os.Chdir(dir)
 		if err != nil {
-			return "", nil, fmt.Errorf("scriggo: can't change current directory: %s", err)
+			return "", nil, false, fmt.Errorf("scriggo: can't change current directory: %s", err)
 		}
 		defer func() {
 			err = os.Chdir(cwd)
@@ -290,15 +318,15 @@ func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl 
 	}
 	packages, err := pkgs.Load(conf, path)
 	if err != nil {
-		return "", nil, err
+		return "", nil, false, err
 	}
 
 	if pkgs.PrintErrors(packages) > 0 {
-		return "", nil, errors.New("error")
+		return "", nil, false, errors.New("error")
 	}
 
 	if len(packages) > 1 {
-		return "", nil, errors.New("package query returned more than one package")
+		return "", nil, false, errors.New("package query returned more than one package")
 	}
 
 	if len(packages) != 1 {
@@ -319,14 +347,19 @@ func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl 
 		}
 		switch v := v.(type) {
 		case *types.Const:
+			if !allowed(v.Name()) {
+				continue
+			}
 			switch v.Val().Kind() {
 			case constant.String, constant.Bool:
 				decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+				refToImport = true
 				continue
 			case constant.Int:
 				// Most cases fall here.
 				if len(v.Val().ExactString()) < 7 {
 					decl[v.Name()] = fmt.Sprintf("ConstValue(%s.%s)", pkgBase, v.Name())
+					refToImport = true
 					continue
 				}
 			}
@@ -336,6 +369,7 @@ func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl 
 			} else {
 				if strings.Contains(typ, ".") {
 					typ = pkgBase + filepath.Ext(typ)
+					refToImport = true
 				}
 				typ = fmt.Sprintf("reflect.TypeOf(new(%s)).Elem()", typ)
 			}
@@ -346,23 +380,36 @@ func loadGoPackage(path, dir, goos string, flags buildFlags) (name string, decl 
 			}
 			decl[v.Name()] = fmt.Sprintf("ConstLiteral(%v, %s)", typ, quoted)
 		case *types.Func:
+			if !allowed(v.Name()) {
+				continue
+			}
 			if v.Type().(*types.Signature).Recv() == nil {
 				decl[v.Name()] = fmt.Sprintf("%s.%s", pkgBase, v.Name())
+				refToImport = true
 			}
 		case *types.Var:
+			if !allowed(v.Name()) {
+				continue
+			}
 			if !v.Embedded() && !v.IsField() {
 				decl[v.Name()] = fmt.Sprintf("&%s.%s", pkgBase, v.Name())
+				refToImport = true
 			}
 		case *types.TypeName:
+			if !allowed(v.Name()) {
+				continue
+			}
 			if parts := strings.Split(v.String(), " "); len(parts) >= 3 {
 				if strings.HasPrefix(parts[2], "struct{") {
 					decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(%s.%s{})", pkgBase, v.Name())
+					refToImport = true
 					continue
 				}
 			}
 			decl[v.Name()] = fmt.Sprintf("reflect.TypeOf(new(%s.%s)).Elem()", pkgBase, v.Name())
+			refToImport = true
 		}
 	}
 
-	return name, decl, nil
+	return name, decl, refToImport, nil
 }
