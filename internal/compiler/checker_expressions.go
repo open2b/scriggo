@@ -1305,8 +1305,22 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		return []*TypeInfo{ti}
 
 	case "close":
-		// TODO(Gianluca): add specific "close" errors.
-		tc.checkExpression(expr.Args[0])
+		if len(expr.Args) == 0 {
+			panic(tc.errorf(expr, "missing argument to close: %s", expr))
+		}
+		if len(expr.Args) > 1 {
+			panic(tc.errorf(expr, "too many arguments to close: %s", expr))
+		}
+		arg := tc.checkExpression(expr.Args[0])
+		if arg.Nil() {
+			panic(tc.errorf(expr, "use of untyped nil"))
+		}
+		if arg.Type.Kind() != reflect.Chan {
+			panic(tc.errorf(expr, "invalid operation: %s (non-chan type %s)", expr, arg))
+		}
+		if arg.Type.ChanDir() == reflect.RecvDir {
+			panic(tc.errorf(expr, "invalid operation: %s (cannot close receive-only channel)", expr))
+		}
 		return []*TypeInfo{}
 
 	case "complex":

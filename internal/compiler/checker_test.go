@@ -1211,6 +1211,21 @@ var checkerStmts = map[string]string{
 	`copy(0,[]int{})`:                `first argument to copy should be slice; have int`,
 	`copy(0,0)`:                      `arguments to copy must be slices; have int, int`,
 
+	// Builtin function 'close'.
+	//
+	// TODO(Gianluca): re-enable when channel types will be full implemented in
+	// parser.
+	//
+	// `var c chan <- int; close(c)`: ok,
+	// `var c chan int; close(c)`:    ok,
+	// `close()`:                     `missing argument to close: close()`,
+	// `close(chan int)`:             `type chan int is not an expression`,
+	// `close(nil)`:                  `use of untyped nil`,
+	// `var c <- chan int; close(c)`: `invalid operation: close(c) (cannot close receive-only channel)`,
+	// `var c chan int; close(c, c)`: `too many arguments to close: close(c, c)`,
+	// `var i int; close(i, i)`:      `too many arguments to close: close(i, i)`,
+	// `var i int; close(i)`:         `invalid operation: close(i) (non-chan type int)`,
+
 	// Builtin function 'delete'.
 	`delete(aStringMap, "a")`:                  ok,
 	`delete(map[string]string{}, "a")`:         ok,
