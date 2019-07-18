@@ -318,7 +318,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 
 	if tc.isUpValue(ident.Name) || tc.isPackageVariable(ident.Name) {
 		decl := tc.getDeclarationNode(ident.Name)
-		upvar := ast.Upvar{decl, -1}
+		upvar := ast.Upvar{Declaration: decl, Index: -1}
 		chain := tc.funcChain(ident.Name)
 		for _, f := range chain {
 			contains := false

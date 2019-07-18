@@ -442,14 +442,14 @@ LABEL:
 				panic(&SyntaxError{"", *(ident.Pos()), fmt.Errorf("cannot use _ as value")})
 			}
 			ipos := ident.Pos()
-			blank := ast.NewIdentifier(&ast.Position{ipos.Line, ipos.Column, ipos.Start, ipos.Start}, "_")
+			blank := ast.NewIdentifier(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: ipos.Start}, "_")
 			// Parses the slice expression.
 			// TODO (Gianluca): nextIsBlockOpen should be true?
 			expr, tok = p.parseExpr(token{}, false, false, false, false)
 			if expr == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
-			assignment := ast.NewAssignment(&ast.Position{ipos.Line, ipos.Column, ipos.Start, expr.Pos().End},
+			assignment := ast.NewAssignment(&ast.Position{Line: ipos.Line, Column: ipos.Column, Start: ipos.Start, End: expr.Pos().End},
 				[]ast.Expression{blank, ident}, ast.AssignmentDeclaration, []ast.Expression{expr})
 			pos.End = tok.pos.End
 			node = ast.NewForRange(pos, assignment, nil)
@@ -504,7 +504,7 @@ LABEL:
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 				}
 				vpos := variables[0].Pos()
-				assignment := ast.NewAssignment(&ast.Position{vpos.Line, vpos.Column, vpos.Start, expr.Pos().End},
+				assignment := ast.NewAssignment(&ast.Position{Line: vpos.Line, Column: vpos.Column, Start: vpos.Start, End: expr.Pos().End},
 					variables, assignmentType, []ast.Expression{expr})
 				pos.End = tok.pos.End
 				node = ast.NewForRange(pos, assignment, nil)
@@ -1232,7 +1232,7 @@ LABEL:
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("expecting expression")})
 			}
 			p.parseEndStatement(tok, tokenSemicolon)
-			assignment.Position = &ast.Position{pos.Line, pos.Column, pos.Start, pos.End}
+			assignment.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: pos.End}
 			assignment.Position.End = tok.pos.End
 			p.addChild(assignment)
 			p.cutSpacesToken = true
@@ -1246,7 +1246,7 @@ LABEL:
 			}
 			p.parseEndStatement(tok, tokenSemicolon)
 			node := ast.NewSend(pos, channel, value)
-			node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, value.Pos().End}
+			node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: value.Pos().End}
 			p.addChild(node)
 			p.cutSpacesToken = true
 		} else {
@@ -1259,7 +1259,7 @@ LABEL:
 					}
 				}
 				node := ast.NewLabel(pos, ident, nil)
-				node.Position = &ast.Position{pos.Line, pos.Column, pos.Start, tok.pos.End}
+				node.Position = &ast.Position{Line: pos.Line, Column: pos.Column, Start: pos.Start, End: tok.pos.End}
 				p.addChild(node)
 				p.ancestors = append(p.ancestors, node)
 				p.cutSpacesToken = true
