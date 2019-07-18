@@ -632,7 +632,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 				}
 			} else if tc.opts.SyntaxType == TemplateSyntax {
-				// TODO(Gianluca): handle expression statements in templates.
 				switch node := node.(type) {
 				case *ast.Func:
 					tc.assignScope(node.Ident.Name, ti, node.Ident)
