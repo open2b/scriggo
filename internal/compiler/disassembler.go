@@ -648,7 +648,7 @@ func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) s
 
 var operationName = [...]string{
 
-	vm.OpNone: "Nop", // TODO(Gianluca): review.
+	vm.OpNone: "Nop",
 
 	vm.OpAddInt64:   "Add",
 	vm.OpAddInt8:    "Add8",
