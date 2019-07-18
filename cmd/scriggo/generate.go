@@ -46,13 +46,13 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 
 	importReflect := false
 
-	explicitImports := [][2]string{} // first element is the import name, second is import path..
+	explicitImports := []struct{ name, path string }{}
 	for _, imp := range sf.imports {
 		uniqueName := uniquePackageName(imp.path)
 		if uniqueName != imp.path { // TODO: uniqueName should be compared to the package name and not to the package path.
-			explicitImports = append(explicitImports, [2]string{uniqueName, imp.path})
+			explicitImports = append(explicitImports, struct{ name, path string }{uniqueName, imp.path})
 		} else {
-			explicitImports = append(explicitImports, [2]string{"", imp.path})
+			explicitImports = append(explicitImports, struct{ name, path string }{"", imp.path})
 		}
 		if imp.path == "reflect" {
 			importReflect = true
@@ -69,7 +69,7 @@ func renderPackages(w io.Writer, dir string, sf *scriggofile, goos string, flags
 			return 0, err
 		}
 		if !refToImport {
-			explicitImports[len(explicitImports)-1][0] = "_"
+			explicitImports[len(explicitImports)-1].name = "_"
 		}
 		// No declarations at path: move on to next import path.
 		if len(decls) == 0 {
@@ -233,12 +233,10 @@ func init() {
 		if i > 0 {
 			explicitImportsString = "\n\t"
 		}
-		name := imp[0]
-		path := imp[1]
-		if name == "" {
-			explicitImportsString += `"` + path + `"`
+		if imp.name == "" {
+			explicitImportsString += `"` + imp.path + `"`
 		} else {
-			explicitImportsString += name + ` "` + path + `"`
+			explicitImportsString += imp.name + ` "` + imp.path + `"`
 		}
 	}
 
