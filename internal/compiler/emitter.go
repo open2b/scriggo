@@ -570,632 +570,6 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	return
 }
 
-// emitExpr_old emits the instructions that evaluate the expression expr and put
-// the result into the register reg. If reg is zero, instructions are emitted
-// anyway but the result is discarded.
-//
-// TODO(Gianluca): this method is obsolete and should be removed.
-//
-func (em *emitter) emitExpr_old(expr ast.Expression, reg int8, dstType reflect.Type) {
-
-	// If the instructions that emit expr put result in a register type
-	// different than the register type of dstType, use an intermediate
-	// temporary register. Consider that this is not always necessary to check
-	// this: for example if expr is a function, dstType must be a function or an
-	// interface (this is guaranteed by the type checker) and in the current
-	// implementation of the VM functions and interfaces use the same register
-	// type.
-
-	if ti := em.ti(expr); ti != nil && ti.value != nil && !ti.IsPredefined() {
-		typ := ti.Type
-		if reg == 0 {
-			return
-		}
-		switch v := ti.value.(type) {
-		case int64:
-			c := em.fb.makeIntConstant(v)
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(vm.TypeInt, c, reg)
-				em.changeRegister(false, reg, reg, typ, dstType)
-				return
-			}
-			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(vm.TypeInt, c, tmp)
-			em.changeRegister(false, tmp, reg, typ, dstType)
-			return
-		case float64:
-			c := em.fb.makeFloatConstant(v)
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
-				em.changeRegister(false, reg, reg, typ, dstType)
-				return
-			}
-			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitLoadNumber(vm.TypeFloat, c, tmp)
-			em.changeRegister(false, tmp, reg, typ, dstType)
-			return
-		case string:
-			c := em.fb.makeStringConstant(v)
-			em.changeRegister(true, c, reg, typ, dstType)
-			return
-		}
-		v := reflect.ValueOf(em.ti(expr).value)
-		switch v.Kind() {
-		case reflect.Interface:
-			panic("not implemented") // TODO(Gianluca).
-		case reflect.Slice,
-			reflect.Complex64,
-			reflect.Complex128,
-			reflect.Array,
-			reflect.Chan,
-			reflect.Func,
-			reflect.Map,
-			reflect.Ptr,
-			reflect.Struct:
-			c := em.fb.makeGeneralConstant(v.Interface())
-			em.changeRegister(true, c, reg, typ, dstType)
-		case reflect.UnsafePointer:
-			panic("not implemented") // TODO(Gianluca).
-		default:
-			panic(fmt.Errorf("unsupported value type %T (expr: %s)", em.ti(expr).value, expr))
-		}
-		return
-	}
-
-	switch expr := expr.(type) {
-
-	case *ast.BinaryOperator:
-
-		// Binary operations on complex numbers.
-		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-			stackShift := em.fb.currentStackShift()
-			em.fb.enterScope()
-			index := em.fb.complexOperationIndex(expr.Operator(), false)
-			ret := em.fb.newRegister(reflect.Complex128)
-			c1 := em.fb.newRegister(reflect.Complex128)
-			c2 := em.fb.newRegister(reflect.Complex128)
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr1, exprType, c1)
-			em.fb.exitScope()
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr2, exprType, c2)
-			em.fb.exitScope()
-			em.fb.emitCallPredefined(index, 0, stackShift)
-			em.changeRegister(false, ret, reg, exprType, dstType)
-			em.fb.exitScope()
-			return
-		}
-
-		// Binary && and ||.
-		if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
-			cmp := int8(0)
-			if op == ast.OperatorAndAnd {
-				cmp = 1
-			}
-			if sameRegType(dstType.Kind(), reflect.Bool) {
-				em.emitExprR(expr.Expr1, dstType, reg)
-				endIf := em.fb.newLabel()
-				em.fb.emitIf(true, reg, vm.ConditionEqual, cmp, reflect.Int)
-				em.fb.emitGoto(endIf)
-				em.emitExprR(expr.Expr2, dstType, reg)
-				em.fb.setLabelAddr(endIf)
-				return
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(reflect.Bool)
-			em.emitExprR(expr.Expr1, boolType, tmp)
-			endIf := em.fb.newLabel()
-			em.fb.emitIf(true, tmp, vm.ConditionEqual, cmp, reflect.Int)
-			em.fb.emitGoto(endIf)
-			em.emitExprR(expr.Expr2, boolType, tmp)
-			em.fb.setLabelAddr(endIf)
-			em.changeRegister(false, tmp, reg, boolType, dstType)
-			em.fb.exitStack()
-			return
-		}
-		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
-		exprType := em.ti(expr).Type
-		t1 := em.ti(expr.Expr1).Type
-		t2 := em.ti(expr.Expr2).Type
-		v1 := em.emitExpr(expr.Expr1, t1)
-		v2, k := em.emitExprK(expr.Expr2, t2)
-		if reg == 0 {
-			return
-		}
-		// String concatenation.
-		if expr.Operator() == ast.OperatorAddition && t1.Kind() == reflect.String {
-			if k {
-				v2 = em.emitExpr(expr.Expr2, t2)
-			}
-			if sameRegType(exprType.Kind(), dstType.Kind()) {
-				em.fb.emitConcat(v1, v2, reg)
-				return
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(exprType.Kind())
-			em.fb.emitConcat(v1, v2, tmp)
-			em.changeRegister(false, tmp, reg, exprType, dstType)
-			em.fb.exitStack()
-			return
-		}
-		switch expr.Operator() {
-		case ast.OperatorAddition, ast.OperatorSubtraction, ast.OperatorMultiplication, ast.OperatorDivision,
-			ast.OperatorModulo, ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor, ast.OperatorAndNot,
-			ast.OperatorLeftShift, ast.OperatorRightShift:
-			emitFn := map[ast.OperatorType]func(bool, int8, int8, int8, reflect.Kind){
-				ast.OperatorAddition:       em.fb.emitAdd,
-				ast.OperatorSubtraction:    em.fb.emitSub,
-				ast.OperatorMultiplication: em.fb.emitMul,
-				ast.OperatorDivision:       em.fb.emitDiv,
-				ast.OperatorModulo:         em.fb.emitRem,
-				ast.OperatorAnd:            em.fb.emitAnd,
-				ast.OperatorOr:             em.fb.emitOr,
-				ast.OperatorXor:            em.fb.emitXor,
-				ast.OperatorAndNot:         em.fb.emitAndNot,
-				ast.OperatorLeftShift:      em.fb.emitLeftShift,
-				ast.OperatorRightShift:     em.fb.emitRightShift,
-			}[expr.Operator()]
-			if sameRegType(exprType.Kind(), dstType.Kind()) {
-				emitFn(k, v1, v2, reg, exprType.Kind())
-				return
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(exprType.Kind())
-			emitFn(k, v1, v2, tmp, exprType.Kind())
-			em.changeRegister(false, tmp, reg, exprType, dstType)
-			em.fb.exitStack()
-			return
-		case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
-			ast.OperatorGreaterOrEqual, ast.OperatorGreater:
-			cond := map[ast.OperatorType]vm.Condition{
-				ast.OperatorEqual:          vm.ConditionEqual,
-				ast.OperatorNotEqual:       vm.ConditionNotEqual,
-				ast.OperatorLess:           vm.ConditionLess,
-				ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
-				ast.OperatorGreater:        vm.ConditionGreater,
-				ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
-			}[expr.Operator()]
-			if sameRegType(exprType.Kind(), dstType.Kind()) {
-				em.fb.emitMove(true, 1, reg, reflect.Bool)
-				em.fb.emitIf(k, v1, cond, v2, t1.Kind())
-				em.fb.emitMove(true, 0, reg, reflect.Bool)
-				return
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(exprType.Kind())
-			em.fb.emitMove(true, 1, tmp, reflect.Bool)
-			em.fb.emitIf(k, v1, cond, v2, t1.Kind())
-			em.fb.emitMove(true, 0, tmp, reflect.Bool)
-			em.changeRegister(false, tmp, reg, exprType, dstType)
-			em.fb.exitStack()
-		}
-
-	case *ast.Call:
-
-		// ShowMacro which must be ignored (cannot be resolved).
-		if em.ti(expr.Func) == showMacroIgnoredTi {
-			return
-		}
-
-		// Builtin call.
-		if em.ti(expr.Func).IsBuiltin() {
-			em.emitBuiltin(expr, reg, dstType)
-			return
-		}
-
-		// Conversion.
-		if em.ti(expr.Func).IsType() {
-			convertType := em.ti(expr.Func).Type
-			// A conversion cannot have side-effects.
-			if reg == 0 {
-				return
-			}
-			typ := em.ti(expr.Args[0]).Type
-			arg := em.emitExpr(expr.Args[0], typ)
-			if sameRegType(convertType.Kind(), dstType.Kind()) {
-				em.changeRegister(false, arg, reg, typ, convertType)
-				return
-			}
-			em.fb.enterStack()
-			tmp := em.fb.newRegister(convertType.Kind())
-			em.changeRegister(false, arg, tmp, typ, convertType)
-			em.changeRegister(false, tmp, reg, convertType, dstType)
-			em.fb.exitStack()
-			return
-		}
-
-		// Function call.
-		em.fb.enterStack()
-		regs, types := em.emitCall(expr)
-		if reg != 0 {
-			em.changeRegister(false, regs[0], reg, types[0], dstType)
-		}
-		em.fb.exitStack()
-
-	case *ast.CompositeLiteral:
-
-		typ := em.ti(expr.Type).Type
-		switch typ.Kind() {
-		case reflect.Slice, reflect.Array:
-			if reg == 0 {
-				for _, kv := range expr.KeyValues {
-					typ := em.ti(kv.Value).Type
-					em.emitExprR(kv.Value, typ, 0)
-				}
-				return
-			}
-			length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
-			if typ.Kind() == reflect.Array {
-				typ = reflect.SliceOf(typ.Elem())
-			}
-			em.fb.emitMakeSlice(true, true, typ, length, length, reg)
-			var index int8 = -1
-			for _, kv := range expr.KeyValues {
-				if kv.Key != nil {
-					index = int8(em.ti(kv.Key).Constant.int64())
-				} else {
-					index++
-				}
-				em.fb.enterStack()
-				indexReg := em.fb.newRegister(reflect.Int)
-				em.fb.emitMove(true, index, indexReg, reflect.Int)
-				elem, k := em.emitExprK(kv.Value, typ.Elem())
-				if reg != 0 {
-					em.fb.emitSetSlice(k, reg, elem, indexReg, typ.Elem().Kind())
-				}
-				em.fb.exitStack()
-			}
-		case reflect.Struct:
-			if reg == 0 {
-				for _, kv := range expr.KeyValues {
-					typ := em.ti(kv.Value).Type
-					em.emitExprR(kv.Value, typ, 0)
-				}
-				return
-			}
-			em.fb.enterStack()
-			tmpTyp := reflect.PtrTo(typ)
-			tmp := -em.fb.newRegister(tmpTyp.Kind())
-			em.fb.emitNew(typ, -tmp)
-			if len(expr.KeyValues) > 0 {
-				for _, kv := range expr.KeyValues {
-					name := kv.Key.(*ast.Identifier).Name
-					field, _ := typ.FieldByName(name)
-					valueType := em.ti(kv.Value).Type
-					var value int8
-					if sameRegType(field.Type.Kind(), valueType.Kind()) {
-						value = em.emitExpr(kv.Value, valueType)
-					} else {
-						panic("TODO: not implemented") // TODO(Gianluca): to implement.
-					}
-					// TODO(Gianluca): use field "k" of SetField.
-					fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-					em.fb.emitSetField(false, tmp, fieldConstIndex, value)
-				}
-			}
-			em.changeRegister(false, tmp, reg, tmpTyp, dstType)
-			em.fb.exitStack()
-
-		case reflect.Map:
-			if reg == 0 {
-				for _, kv := range expr.KeyValues {
-					typ := em.ti(kv.Value).Type
-					em.emitExprR(kv.Value, typ, 0)
-				}
-				return
-			}
-			// TODO (Gianluca): handle maps with bigger size.
-			size := len(expr.KeyValues)
-			sizeReg := em.fb.makeIntConstant(int64(size))
-			em.fb.emitMakeMap(typ, true, sizeReg, reg)
-			for _, kv := range expr.KeyValues {
-				key := em.fb.newRegister(typ.Key().Kind())
-				value := em.fb.newRegister(typ.Elem().Kind())
-				em.fb.enterStack()
-				em.emitExprR(kv.Key, typ.Key(), key)
-				k := false // TODO(Gianluca).
-				em.emitExprR(kv.Value, typ.Elem(), value)
-				em.fb.exitStack()
-				em.fb.emitSetMap(k, reg, value, key, typ)
-			}
-		}
-
-	case *ast.TypeAssertion:
-
-		exprType := em.ti(expr.Expr).Type
-		exprReg := em.emitExpr(expr.Expr, exprType)
-		assertType := em.ti(expr.Type).Type
-		if sameRegType(assertType.Kind(), dstType.Kind()) {
-			em.fb.emitAssert(exprReg, assertType, reg)
-			em.fb.emitNop()
-			return
-		}
-		em.fb.enterScope()
-		tmp := em.fb.newRegister(assertType.Kind())
-		em.fb.emitAssert(exprReg, assertType, tmp)
-		em.fb.emitNop()
-		em.changeRegister(false, tmp, reg, assertType, dstType)
-		em.fb.exitScope()
-
-	case *ast.Selector:
-
-		em.emitSelector(expr, reg, dstType)
-
-	case *ast.UnaryOperator:
-
-		// Unary operation (negation) on a complex number.
-		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
-			if expr.Operator() != ast.OperatorSubtraction {
-				panic("bug: expected operator subtraction")
-			}
-			stackShift := em.fb.currentStackShift()
-			em.fb.enterScope()
-			index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
-			ret := em.fb.newRegister(reflect.Complex128)
-			arg := em.fb.newRegister(reflect.Complex128)
-			em.fb.enterScope()
-			em.emitExprR(expr.Expr, exprType, arg)
-			em.fb.exitScope()
-			em.fb.emitCallPredefined(index, 0, stackShift)
-			em.changeRegister(false, ret, reg, exprType, dstType)
-			em.fb.exitScope()
-			return
-		}
-
-		exprType := em.ti(expr.Expr).Type
-		typ := em.ti(expr).Type
-		switch expr.Operator() {
-		case ast.OperatorNot:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
-				return
-			}
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				em.emitExprR(expr.Expr, exprType, reg)
-				em.fb.emitSubInv(true, reg, int8(1), reg, reflect.Int)
-				return
-			}
-			em.fb.enterScope()
-			exprReg := em.emitExpr(expr.Expr, exprType)
-			em.fb.emitSubInv(true, exprReg, int8(1), exprReg, reflect.Int)
-			em.changeRegister(false, exprReg, reg, exprType, dstType)
-			em.fb.exitScope()
-		case ast.OperatorMultiplication:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
-				return
-			}
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				exprReg := em.emitExpr(expr.Expr, exprType)
-				em.changeRegister(false, -exprReg, reg, exprType.Elem(), dstType)
-				return
-			}
-			exprReg := em.emitExpr(expr.Expr, exprType)
-			tmp := em.fb.newRegister(exprType.Elem().Kind())
-			em.changeRegister(false, -exprReg, tmp, exprType.Elem(), exprType.Elem())
-			em.changeRegister(false, tmp, reg, exprType.Elem(), dstType)
-		case ast.OperatorAnd:
-			switch expr := expr.Expr.(type) {
-			case *ast.Identifier:
-				if em.fb.isVariable(expr.Name) {
-					varr := em.fb.scopeLookup(expr.Name)
-					em.fb.emitNew(reflect.PtrTo(typ), reg)
-					em.fb.emitMove(false, -varr, reg, dstType.Kind())
-				} else {
-					panic("TODO(Gianluca): not implemented")
-				}
-			case *ast.UnaryOperator:
-				if expr.Operator() != ast.OperatorMultiplication {
-					panic("bug") // TODO(Gianluca): to review.
-				}
-				panic("TODO(Gianluca): not implemented")
-			case *ast.Index:
-				panic("TODO(Gianluca): not implemented")
-			case *ast.Selector:
-				panic("TODO(Gianluca): not implemented")
-			case *ast.CompositeLiteral:
-				panic("TODO(Gianluca): not implemented")
-			default:
-				panic("TODO(Gianluca): not implemented")
-			}
-		case ast.OperatorAddition:
-			// Do nothing.
-		case ast.OperatorSubtraction:
-			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
-				return
-			}
-			if sameRegType(exprType.Kind(), dstType.Kind()) {
-				exprReg := em.emitExpr(expr.Expr, dstType)
-				em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
-				return
-			}
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
-		case ast.OperatorReceive:
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				chann := em.emitExpr(expr.Expr, exprType)
-				em.fb.emitReceive(chann, 0, reg)
-				return
-			}
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
-		default:
-			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
-		}
-
-	case *ast.Func:
-
-		// Template macro definition.
-		if expr.Ident != nil && em.isTemplate {
-			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
-			if em.functions[em.pkg] == nil {
-				em.functions[em.pkg] = map[string]*vm.Function{}
-			}
-			em.functions[em.pkg][expr.Ident.Name] = macroFn
-			fb := em.fb
-			em.setClosureRefs(macroFn, expr.Upvars)
-			em.fb = newBuilder(macroFn)
-			em.fb.emitSetAlloc(em.options.MemoryLimit)
-			em.fb.enterScope()
-			em.prepareFunctionBodyParameters(expr)
-			em.emitNodes(expr.Body.Nodes)
-			em.fb.end()
-			em.fb.exitScope()
-			em.fb = fb
-			return
-		}
-
-		// Script function definition.
-		if expr.Ident != nil && !em.isTemplate {
-			varr := em.fb.newRegister(reflect.Func)
-			em.fb.bindVarReg(expr.Ident.Name, varr)
-			ident := expr.Ident
-			expr.Ident = nil // avoids recursive calls.
-			funcType := em.ti(expr).Type
-			if em.isTemplate {
-				addr := em.newAddress(addressRegister, funcType, varr, 0)
-				em.assign([]address{addr}, []ast.Expression{expr})
-			}
-			expr.Ident = ident
-			return
-		}
-
-		if reg == 0 {
-			return
-		}
-
-		fn := em.fb.emitFunc(reg, em.ti(expr).Type)
-		em.setClosureRefs(fn, expr.Upvars)
-
-		funcLitBuilder := newBuilder(fn)
-		funcLitBuilder.emitSetAlloc(em.options.MemoryLimit)
-		currFB := em.fb
-		em.fb = funcLitBuilder
-
-		em.fb.enterScope()
-		em.prepareFunctionBodyParameters(expr)
-		em.emitNodes(expr.Body.Nodes)
-		em.fb.exitScope()
-		em.fb.end()
-		em.fb = currFB
-
-	case *ast.Identifier:
-
-		// An identifier evaluation cannot have side effects.
-		if reg == 0 {
-			return
-		}
-
-		typ := em.ti(expr).Type
-
-		if em.fb.isVariable(expr.Name) {
-			ident := em.fb.scopeLookup(expr.Name)
-			em.changeRegister(false, ident, reg, typ, dstType)
-			return
-		}
-
-		// Identifier represents a function.
-		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
-			em.fb.emitGetFunc(false, em.functionIndex(fun), reg)
-			return
-		}
-
-		// Clojure variable.
-		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(index, reg)
-				return
-			}
-			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitGetVar(index, tmp)
-			em.changeRegister(false, tmp, reg, typ, dstType)
-			return
-		}
-
-		// Scriggo variable.
-		if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
-			if sameRegType(typ.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
-				return
-			}
-			tmp := em.fb.newRegister(typ.Kind())
-			em.fb.emitGetVar(int(index), tmp)
-			em.changeRegister(false, tmp, reg, typ, dstType)
-			return
-		}
-
-		// Predefined variable.
-		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
-			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
-			if sameRegType(ti.Type.Kind(), dstType.Kind()) {
-				em.fb.emitGetVar(int(index), reg)
-				return
-			}
-			tmp := em.fb.newRegister(ti.Type.Kind())
-			em.fb.emitGetVar(int(index), tmp)
-			em.changeRegister(false, tmp, reg, ti.Type, dstType)
-			return
-		}
-
-		panic(fmt.Errorf("bug: none of the previous conditions matched identifier %v", expr))
-
-	case *ast.Index:
-
-		exprType := em.ti(expr.Expr).Type
-		exprReg := em.emitExpr(expr.Expr, exprType)
-		var indexType reflect.Type
-		if exprType.Kind() == reflect.Map {
-			indexType = exprType.Key()
-		} else {
-			indexType = intType
-		}
-		index, kindex := em.emitExprK(expr.Index, indexType)
-		var elemType reflect.Type
-		if exprType.Kind() == reflect.String {
-			elemType = uint8Type
-		} else {
-			elemType = exprType.Elem()
-		}
-		if sameRegType(elemType.Kind(), dstType.Kind()) {
-			em.fb.emitIndex(kindex, exprReg, index, reg, exprType)
-			return
-		}
-		em.fb.enterStack()
-		tmp := em.fb.newRegister(elemType.Kind())
-		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType)
-		em.changeRegister(false, tmp, reg, elemType, dstType)
-		em.fb.exitStack()
-
-	case *ast.Slicing:
-
-		src := em.emitExpr(expr.Expr, em.ti(expr.Expr).Type)
-		var low, high, max int8 = 0, -1, -1
-		var kLow, kHigh, kMax = true, true, true
-		// emit low
-		if expr.Low != nil {
-			typ := em.ti(expr.Low).Type
-			low, kLow = em.emitExprK(expr.Low, typ)
-		}
-		// emit high
-		if expr.High != nil {
-			typ := em.ti(expr.High).Type
-			high, kHigh = em.emitExprK(expr.High, typ)
-		}
-		// emit max
-		if expr.Max != nil {
-			typ := em.ti(expr.Max).Type
-			max, kMax = em.emitExprK(expr.Max, typ)
-		}
-		em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max)
-
-	default:
-
-		panic(fmt.Sprintf("emitExpr currently does not support %T nodes (expr: %s)", expr, expr))
-
-	}
-
-	return
-}
-
 // emitBuiltin emits instructions for a builtin call, writing the result, if
 // necessary, into the register reg.
 func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
@@ -1803,20 +1177,628 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return em.fb.scopeLookup(expr.Name), false
 		}
 	}
-	if allowK {
+
+	if !useGivenReg {
+		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
+			return em.fb.scopeLookup(expr.Name), false
+		}
 		reg = em.fb.newRegister(dstType.Kind())
-		em.emitExpr_old(expr, reg, dstType)
+	}
+
+	// If the instructions that emit expr put result in a register type
+	// different than the register type of dstType, use an intermediate
+	// temporary register. Consider that this is not always necessary to check
+	// this: for example if expr is a function, dstType must be a function or an
+	// interface (this is guaranteed by the type checker) and in the current
+	// implementation of the VM functions and interfaces use the same register
+	// type.
+
+	if ti := em.ti(expr); ti != nil && ti.value != nil && !ti.IsPredefined() {
+		typ := ti.Type
+		if reg == 0 {
+			return reg, false
+		}
+		switch v := ti.value.(type) {
+		case int64:
+			c := em.fb.makeIntConstant(v)
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitLoadNumber(vm.TypeInt, c, reg)
+				em.changeRegister(false, reg, reg, typ, dstType)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitLoadNumber(vm.TypeInt, c, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
+			return reg, false
+		case float64:
+			c := em.fb.makeFloatConstant(v)
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitLoadNumber(vm.TypeFloat, c, reg)
+				em.changeRegister(false, reg, reg, typ, dstType)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitLoadNumber(vm.TypeFloat, c, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
+			return reg, false
+		case string:
+			c := em.fb.makeStringConstant(v)
+			em.changeRegister(true, c, reg, typ, dstType)
+			return reg, false
+		}
+		v := reflect.ValueOf(em.ti(expr).value)
+		switch v.Kind() {
+		case reflect.Interface:
+			panic("not implemented") // TODO(Gianluca).
+		case reflect.Slice,
+			reflect.Complex64,
+			reflect.Complex128,
+			reflect.Array,
+			reflect.Chan,
+			reflect.Func,
+			reflect.Map,
+			reflect.Ptr,
+			reflect.Struct:
+			c := em.fb.makeGeneralConstant(v.Interface())
+			em.changeRegister(true, c, reg, typ, dstType)
+		case reflect.UnsafePointer:
+			panic("not implemented") // TODO(Gianluca).
+		default:
+			panic(fmt.Errorf("unsupported value type %T (expr: %s)", em.ti(expr).value, expr))
+		}
 		return reg, false
 	}
-	if useGivenReg {
-		em.emitExpr_old(expr, reg, dstType)
-		return 0, false
+	switch expr := expr.(type) {
+
+	case *ast.BinaryOperator:
+
+		// Binary operations on complex numbers.
+		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+			stackShift := em.fb.currentStackShift()
+			em.fb.enterScope()
+			index := em.fb.complexOperationIndex(expr.Operator(), false)
+			ret := em.fb.newRegister(reflect.Complex128)
+			c1 := em.fb.newRegister(reflect.Complex128)
+			c2 := em.fb.newRegister(reflect.Complex128)
+			em.fb.enterScope()
+			em.emitExprR(expr.Expr1, exprType, c1)
+			em.fb.exitScope()
+			em.fb.enterScope()
+			em.emitExprR(expr.Expr2, exprType, c2)
+			em.fb.exitScope()
+			em.fb.emitCallPredefined(index, 0, stackShift)
+			em.changeRegister(false, ret, reg, exprType, dstType)
+			em.fb.exitScope()
+			return reg, false
+		}
+
+		// Binary && and ||.
+		if op := expr.Operator(); op == ast.OperatorAndAnd || op == ast.OperatorOrOr {
+			cmp := int8(0)
+			if op == ast.OperatorAndAnd {
+				cmp = 1
+			}
+			if sameRegType(dstType.Kind(), reflect.Bool) {
+				em.emitExprR(expr.Expr1, dstType, reg)
+				endIf := em.fb.newLabel()
+				em.fb.emitIf(true, reg, vm.ConditionEqual, cmp, reflect.Int)
+				em.fb.emitGoto(endIf)
+				em.emitExprR(expr.Expr2, dstType, reg)
+				em.fb.setLabelAddr(endIf)
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(reflect.Bool)
+			em.emitExprR(expr.Expr1, boolType, tmp)
+			endIf := em.fb.newLabel()
+			em.fb.emitIf(true, tmp, vm.ConditionEqual, cmp, reflect.Int)
+			em.fb.emitGoto(endIf)
+			em.emitExprR(expr.Expr2, boolType, tmp)
+			em.fb.setLabelAddr(endIf)
+			em.changeRegister(false, tmp, reg, boolType, dstType)
+			em.fb.exitStack()
+			return reg, false
+		}
+		// ==, !=, <, <=, >=, >, &&, ||, +, -, *, /, %, ^, &^, <<, >>.
+		exprType := em.ti(expr).Type
+		t1 := em.ti(expr.Expr1).Type
+		t2 := em.ti(expr.Expr2).Type
+		v1 := em.emitExpr(expr.Expr1, t1)
+		v2, k := em.emitExprK(expr.Expr2, t2)
+		if reg == 0 {
+			return reg, false
+		}
+		// String concatenation.
+		if expr.Operator() == ast.OperatorAddition && t1.Kind() == reflect.String {
+			if k {
+				v2 = em.emitExpr(expr.Expr2, t2)
+			}
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				em.fb.emitConcat(v1, v2, reg)
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			em.fb.emitConcat(v1, v2, tmp)
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+			return reg, false
+		}
+		switch expr.Operator() {
+		case ast.OperatorAddition, ast.OperatorSubtraction, ast.OperatorMultiplication, ast.OperatorDivision,
+			ast.OperatorModulo, ast.OperatorAnd, ast.OperatorOr, ast.OperatorXor, ast.OperatorAndNot,
+			ast.OperatorLeftShift, ast.OperatorRightShift:
+			emitFn := map[ast.OperatorType]func(bool, int8, int8, int8, reflect.Kind){
+				ast.OperatorAddition:       em.fb.emitAdd,
+				ast.OperatorSubtraction:    em.fb.emitSub,
+				ast.OperatorMultiplication: em.fb.emitMul,
+				ast.OperatorDivision:       em.fb.emitDiv,
+				ast.OperatorModulo:         em.fb.emitRem,
+				ast.OperatorAnd:            em.fb.emitAnd,
+				ast.OperatorOr:             em.fb.emitOr,
+				ast.OperatorXor:            em.fb.emitXor,
+				ast.OperatorAndNot:         em.fb.emitAndNot,
+				ast.OperatorLeftShift:      em.fb.emitLeftShift,
+				ast.OperatorRightShift:     em.fb.emitRightShift,
+			}[expr.Operator()]
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				emitFn(k, v1, v2, reg, exprType.Kind())
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			emitFn(k, v1, v2, tmp, exprType.Kind())
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+			return reg, false
+		case ast.OperatorEqual, ast.OperatorNotEqual, ast.OperatorLess, ast.OperatorLessOrEqual,
+			ast.OperatorGreaterOrEqual, ast.OperatorGreater:
+			cond := map[ast.OperatorType]vm.Condition{
+				ast.OperatorEqual:          vm.ConditionEqual,
+				ast.OperatorNotEqual:       vm.ConditionNotEqual,
+				ast.OperatorLess:           vm.ConditionLess,
+				ast.OperatorLessOrEqual:    vm.ConditionLessOrEqual,
+				ast.OperatorGreater:        vm.ConditionGreater,
+				ast.OperatorGreaterOrEqual: vm.ConditionGreaterOrEqual,
+			}[expr.Operator()]
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				em.fb.emitMove(true, 1, reg, reflect.Bool)
+				em.fb.emitIf(k, v1, cond, v2, t1.Kind())
+				em.fb.emitMove(true, 0, reg, reflect.Bool)
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			em.fb.emitMove(true, 1, tmp, reflect.Bool)
+			em.fb.emitIf(k, v1, cond, v2, t1.Kind())
+			em.fb.emitMove(true, 0, tmp, reflect.Bool)
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+		}
+
+	case *ast.Call:
+
+		// ShowMacro which must be ignored (cannot be resolved).
+		if em.ti(expr.Func) == showMacroIgnoredTi {
+			return reg, false
+		}
+
+		// Builtin call.
+		if em.ti(expr.Func).IsBuiltin() {
+			em.emitBuiltin(expr, reg, dstType)
+			return reg, false
+		}
+
+		// Conversion.
+		if em.ti(expr.Func).IsType() {
+			convertType := em.ti(expr.Func).Type
+			// A conversion cannot have side-effects.
+			if reg == 0 {
+				return reg, false
+			}
+			typ := em.ti(expr.Args[0]).Type
+			arg := em.emitExpr(expr.Args[0], typ)
+			if sameRegType(convertType.Kind(), dstType.Kind()) {
+				em.changeRegister(false, arg, reg, typ, convertType)
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(convertType.Kind())
+			em.changeRegister(false, arg, tmp, typ, convertType)
+			em.changeRegister(false, tmp, reg, convertType, dstType)
+			em.fb.exitStack()
+			return reg, false
+		}
+
+		// Function call.
+		em.fb.enterStack()
+		regs, types := em.emitCall(expr)
+		if reg != 0 {
+			em.changeRegister(false, regs[0], reg, types[0], dstType)
+		}
+		em.fb.exitStack()
+
+	case *ast.CompositeLiteral:
+
+		typ := em.ti(expr.Type).Type
+		switch typ.Kind() {
+		case reflect.Slice, reflect.Array:
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := em.ti(kv.Value).Type
+					em.emitExprR(kv.Value, typ, 0)
+				}
+				return reg, false
+			}
+			length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
+			if typ.Kind() == reflect.Array {
+				typ = reflect.SliceOf(typ.Elem())
+			}
+			em.fb.emitMakeSlice(true, true, typ, length, length, reg)
+			var index int8 = -1
+			for _, kv := range expr.KeyValues {
+				if kv.Key != nil {
+					index = int8(em.ti(kv.Key).Constant.int64())
+				} else {
+					index++
+				}
+				em.fb.enterStack()
+				indexReg := em.fb.newRegister(reflect.Int)
+				em.fb.emitMove(true, index, indexReg, reflect.Int)
+				elem, k := em.emitExprK(kv.Value, typ.Elem())
+				if reg != 0 {
+					em.fb.emitSetSlice(k, reg, elem, indexReg, typ.Elem().Kind())
+				}
+				em.fb.exitStack()
+			}
+		case reflect.Struct:
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := em.ti(kv.Value).Type
+					em.emitExprR(kv.Value, typ, 0)
+				}
+				return reg, false
+			}
+			em.fb.enterStack()
+			tmpTyp := reflect.PtrTo(typ)
+			tmp := -em.fb.newRegister(tmpTyp.Kind())
+			em.fb.emitNew(typ, -tmp)
+			if len(expr.KeyValues) > 0 {
+				for _, kv := range expr.KeyValues {
+					name := kv.Key.(*ast.Identifier).Name
+					field, _ := typ.FieldByName(name)
+					valueType := em.ti(kv.Value).Type
+					var value int8
+					if sameRegType(field.Type.Kind(), valueType.Kind()) {
+						value = em.emitExpr(kv.Value, valueType)
+					} else {
+						panic("TODO: not implemented") // TODO(Gianluca): to implement.
+					}
+					// TODO(Gianluca): use field "k" of SetField.
+					fieldConstIndex := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+					em.fb.emitSetField(false, tmp, fieldConstIndex, value)
+				}
+			}
+			em.changeRegister(false, tmp, reg, tmpTyp, dstType)
+			em.fb.exitStack()
+
+		case reflect.Map:
+			if reg == 0 {
+				for _, kv := range expr.KeyValues {
+					typ := em.ti(kv.Value).Type
+					em.emitExprR(kv.Value, typ, 0)
+				}
+				return reg, false
+			}
+			// TODO (Gianluca): handle maps with bigger size.
+			size := len(expr.KeyValues)
+			sizeReg := em.fb.makeIntConstant(int64(size))
+			em.fb.emitMakeMap(typ, true, sizeReg, reg)
+			for _, kv := range expr.KeyValues {
+				key := em.fb.newRegister(typ.Key().Kind())
+				value := em.fb.newRegister(typ.Elem().Kind())
+				em.fb.enterStack()
+				em.emitExprR(kv.Key, typ.Key(), key)
+				k := false // TODO(Gianluca).
+				em.emitExprR(kv.Value, typ.Elem(), value)
+				em.fb.exitStack()
+				em.fb.emitSetMap(k, reg, value, key, typ)
+			}
+		}
+
+	case *ast.TypeAssertion:
+
+		exprType := em.ti(expr.Expr).Type
+		exprReg := em.emitExpr(expr.Expr, exprType)
+		assertType := em.ti(expr.Type).Type
+		if sameRegType(assertType.Kind(), dstType.Kind()) {
+			em.fb.emitAssert(exprReg, assertType, reg)
+			em.fb.emitNop()
+			return reg, false
+		}
+		em.fb.enterScope()
+		tmp := em.fb.newRegister(assertType.Kind())
+		em.fb.emitAssert(exprReg, assertType, tmp)
+		em.fb.emitNop()
+		em.changeRegister(false, tmp, reg, assertType, dstType)
+		em.fb.exitScope()
+
+	case *ast.Selector:
+
+		em.emitSelector(expr, reg, dstType)
+
+	case *ast.UnaryOperator:
+
+		// Unary operation (negation) on a complex number.
+		if exprType := em.ti(expr).Type; exprType.Kind() == reflect.Complex64 || exprType.Kind() == reflect.Complex128 {
+			if expr.Operator() != ast.OperatorSubtraction {
+				panic("bug: expected operator subtraction")
+			}
+			stackShift := em.fb.currentStackShift()
+			em.fb.enterScope()
+			index := em.fb.complexOperationIndex(ast.OperatorSubtraction, true)
+			ret := em.fb.newRegister(reflect.Complex128)
+			arg := em.fb.newRegister(reflect.Complex128)
+			em.fb.enterScope()
+			em.emitExprR(expr.Expr, exprType, arg)
+			em.fb.exitScope()
+			em.fb.emitCallPredefined(index, 0, stackShift)
+			em.changeRegister(false, ret, reg, exprType, dstType)
+			em.fb.exitScope()
+			return reg, false
+		}
+
+		exprType := em.ti(expr.Expr).Type
+		typ := em.ti(expr).Type
+		switch expr.Operator() {
+		case ast.OperatorNot:
+			if reg == 0 {
+				em.emitExprR(expr.Expr, exprType, 0)
+				return reg, false
+			}
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.emitExprR(expr.Expr, exprType, reg)
+				em.fb.emitSubInv(true, reg, int8(1), reg, reflect.Int)
+				return reg, false
+			}
+			em.fb.enterScope()
+			exprReg := em.emitExpr(expr.Expr, exprType)
+			em.fb.emitSubInv(true, exprReg, int8(1), exprReg, reflect.Int)
+			em.changeRegister(false, exprReg, reg, exprType, dstType)
+			em.fb.exitScope()
+		case ast.OperatorMultiplication:
+			if reg == 0 {
+				em.emitExprR(expr.Expr, exprType, 0)
+				return reg, false
+			}
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				exprReg := em.emitExpr(expr.Expr, exprType)
+				em.changeRegister(false, -exprReg, reg, exprType.Elem(), dstType)
+				return reg, false
+			}
+			exprReg := em.emitExpr(expr.Expr, exprType)
+			tmp := em.fb.newRegister(exprType.Elem().Kind())
+			em.changeRegister(false, -exprReg, tmp, exprType.Elem(), exprType.Elem())
+			em.changeRegister(false, tmp, reg, exprType.Elem(), dstType)
+		case ast.OperatorAnd:
+			switch expr := expr.Expr.(type) {
+			case *ast.Identifier:
+				if em.fb.isVariable(expr.Name) {
+					varr := em.fb.scopeLookup(expr.Name)
+					em.fb.emitNew(reflect.PtrTo(typ), reg)
+					em.fb.emitMove(false, -varr, reg, dstType.Kind())
+				} else {
+					panic("TODO(Gianluca): not implemented")
+				}
+			case *ast.UnaryOperator:
+				if expr.Operator() != ast.OperatorMultiplication {
+					panic("bug") // TODO(Gianluca): to review.
+				}
+				panic("TODO(Gianluca): not implemented")
+			case *ast.Index:
+				panic("TODO(Gianluca): not implemented")
+			case *ast.Selector:
+				panic("TODO(Gianluca): not implemented")
+			case *ast.CompositeLiteral:
+				panic("TODO(Gianluca): not implemented")
+			default:
+				panic("TODO(Gianluca): not implemented")
+			}
+		case ast.OperatorAddition:
+			// Do nothing.
+		case ast.OperatorSubtraction:
+			if reg == 0 {
+				em.emitExprR(expr.Expr, exprType, 0)
+				return reg, false
+			}
+			if sameRegType(exprType.Kind(), dstType.Kind()) {
+				exprReg := em.emitExpr(expr.Expr, dstType)
+				em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
+				return reg, false
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		case ast.OperatorReceive:
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				chann := em.emitExpr(expr.Expr, exprType)
+				em.fb.emitReceive(chann, 0, reg)
+				return reg, false
+			}
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		default:
+			panic(fmt.Errorf("TODO: not implemented operator %s", expr.Operator()))
+		}
+
+	case *ast.Func:
+
+		// Template macro definition.
+		if expr.Ident != nil && em.isTemplate {
+			macroFn := newFunction("", expr.Ident.Name, expr.Type.Reflect)
+			if em.functions[em.pkg] == nil {
+				em.functions[em.pkg] = map[string]*vm.Function{}
+			}
+			em.functions[em.pkg][expr.Ident.Name] = macroFn
+			fb := em.fb
+			em.setClosureRefs(macroFn, expr.Upvars)
+			em.fb = newBuilder(macroFn)
+			em.fb.emitSetAlloc(em.options.MemoryLimit)
+			em.fb.enterScope()
+			em.prepareFunctionBodyParameters(expr)
+			em.emitNodes(expr.Body.Nodes)
+			em.fb.end()
+			em.fb.exitScope()
+			em.fb = fb
+			return reg, false
+		}
+
+		// Script function definition.
+		if expr.Ident != nil && !em.isTemplate {
+			varr := em.fb.newRegister(reflect.Func)
+			em.fb.bindVarReg(expr.Ident.Name, varr)
+			ident := expr.Ident
+			expr.Ident = nil // avoids recursive calls.
+			funcType := em.ti(expr).Type
+			if em.isTemplate {
+				addr := em.newAddress(addressRegister, funcType, varr, 0)
+				em.assign([]address{addr}, []ast.Expression{expr})
+			}
+			expr.Ident = ident
+			return reg, false
+		}
+
+		if reg == 0 {
+			return reg, false
+		}
+
+		fn := em.fb.emitFunc(reg, em.ti(expr).Type)
+		em.setClosureRefs(fn, expr.Upvars)
+
+		funcLitBuilder := newBuilder(fn)
+		funcLitBuilder.emitSetAlloc(em.options.MemoryLimit)
+		currFB := em.fb
+		em.fb = funcLitBuilder
+
+		em.fb.enterScope()
+		em.prepareFunctionBodyParameters(expr)
+		em.emitNodes(expr.Body.Nodes)
+		em.fb.exitScope()
+		em.fb.end()
+		em.fb = currFB
+
+	case *ast.Identifier:
+
+		// An identifier evaluation cannot have side effects.
+		if reg == 0 {
+			return reg, false
+		}
+
+		typ := em.ti(expr).Type
+
+		if em.fb.isVariable(expr.Name) {
+			ident := em.fb.scopeLookup(expr.Name)
+			em.changeRegister(false, ident, reg, typ, dstType)
+			return reg, false
+		}
+
+		// Identifier represents a function.
+		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
+			em.fb.emitGetFunc(false, em.functionIndex(fun), reg)
+			return reg, false
+		}
+
+		// Clojure variable.
+		if index, ok := em.closureVarRefs[em.fb.fn][expr.Name]; ok {
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitGetVar(index, reg)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitGetVar(index, tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
+			return reg, false
+		}
+
+		// Scriggo variable.
+		if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
+			if sameRegType(typ.Kind(), dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(typ.Kind())
+			em.fb.emitGetVar(int(index), tmp)
+			em.changeRegister(false, tmp, reg, typ, dstType)
+			return reg, false
+		}
+
+		// Predefined variable.
+		if ti := em.ti(expr); ti.IsPredefined() && ti.Type.Kind() != reflect.Func {
+			index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Name)
+			if sameRegType(ti.Type.Kind(), dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return reg, false
+			}
+			tmp := em.fb.newRegister(ti.Type.Kind())
+			em.fb.emitGetVar(int(index), tmp)
+			em.changeRegister(false, tmp, reg, ti.Type, dstType)
+			return reg, false
+		}
+
+		panic(fmt.Errorf("bug: none of the previous conditions matched identifier %v", expr))
+
+	case *ast.Index:
+
+		exprType := em.ti(expr.Expr).Type
+		exprReg := em.emitExpr(expr.Expr, exprType)
+		var indexType reflect.Type
+		if exprType.Kind() == reflect.Map {
+			indexType = exprType.Key()
+		} else {
+			indexType = intType
+		}
+		index, kindex := em.emitExprK(expr.Index, indexType)
+		var elemType reflect.Type
+		if exprType.Kind() == reflect.String {
+			elemType = uint8Type
+		} else {
+			elemType = exprType.Elem()
+		}
+		if sameRegType(elemType.Kind(), dstType.Kind()) {
+			em.fb.emitIndex(kindex, exprReg, index, reg, exprType)
+			return reg, false
+		}
+		em.fb.enterStack()
+		tmp := em.fb.newRegister(elemType.Kind())
+		em.fb.emitIndex(kindex, exprReg, index, tmp, exprType)
+		em.changeRegister(false, tmp, reg, elemType, dstType)
+		em.fb.exitStack()
+
+	case *ast.Slicing:
+
+		src := em.emitExpr(expr.Expr, em.ti(expr.Expr).Type)
+		var low, high, max int8 = 0, -1, -1
+		var kLow, kHigh, kMax = true, true, true
+		// emit low
+		if expr.Low != nil {
+			typ := em.ti(expr.Low).Type
+			low, kLow = em.emitExprK(expr.Low, typ)
+		}
+		// emit high
+		if expr.High != nil {
+			typ := em.ti(expr.High).Type
+			high, kHigh = em.emitExprK(expr.High, typ)
+		}
+		// emit max
+		if expr.Max != nil {
+			typ := em.ti(expr.Max).Type
+			max, kMax = em.emitExprK(expr.Max, typ)
+		}
+		em.fb.emitSlice(kLow, kHigh, kMax, src, reg, low, high, max)
+
+	default:
+
+		panic(fmt.Sprintf("emitExpr currently does not support %T nodes (expr: %s)", expr, expr))
+
 	}
-	if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-		return em.fb.scopeLookup(expr.Name), false
-	}
-	reg = em.fb.newRegister(dstType.Kind())
-	em.emitExpr_old(expr, reg, dstType)
+
 	return reg, false
 }
 
