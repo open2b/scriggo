@@ -292,8 +292,8 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		panic(tc.errorf(node, "const initializer %s is not a constant", value))
 	}
 
-	// TODO (Gianluca): not clear.
 	if typ != nil {
+		// Type is explicit, so must check assignability.
 		if err := isAssignableTo(valueTi, value, typ.Type); err != nil {
 			if value == nil {
 				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
@@ -302,6 +302,7 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		}
 		valueTi.setValue(typ.Type)
 	} else {
+		// Type is not explicit, so is deducted by value.
 		valueTi.setValue(nil)
 	}
 
