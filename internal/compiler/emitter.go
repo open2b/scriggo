@@ -1501,11 +1501,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			for _, kv := range expr.KeyValues {
 				key := em.fb.newRegister(typ.Key().Kind())
-				value := em.fb.newRegister(typ.Elem().Kind())
 				em.fb.enterStack()
 				em.emitExprR(kv.Key, typ.Key(), key)
-				k := false // TODO(Gianluca).
-				em.emitExprR(kv.Value, typ.Elem(), value)
+				value, k := em.emitExprK(kv.Value, typ.Elem())
 				em.fb.exitStack()
 				em.fb.emitSetMap(k, reg, value, key, typ)
 			}
