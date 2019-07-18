@@ -425,16 +425,14 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 		case 0:
 			panic(tc.errorf(node, "%s used as value", variable))
 		case 1:
-			if !tis[0].Addressable() {
-				panic(tc.errorf(node, "cannot assign to %v", variable))
-			}
+			panic(tc.errorf(node, "cannot assign to %v", variable))
 		default:
 			panic(tc.errorf(node, "multiple-value %s in single-value context", variable))
 		}
 
 	default:
 
-		panic("bug/not implemented")
+		panic(tc.errorf(node, "cannot assign to %v", variable))
 	}
 
 	return ""
