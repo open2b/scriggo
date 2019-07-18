@@ -906,7 +906,11 @@ LABEL:
 		}
 		p.parseEndStatement(tok, tokenEndStatement)
 		pos.End = tok.pos.End
-		node = ast.NewShowMacro(pos, impor, macro, args, isVariadic, or, tok.ctx)
+		if impor == nil {
+			node = ast.NewShowMacro(pos, macro, args, isVariadic, or, tok.ctx)
+		} else {
+			node = ast.NewShowMacro(pos, ast.NewSelector(macro.Pos(), impor, macro.Name), args, isVariadic, or, tok.ctx)
+		}
 		p.addChild(node)
 		p.cutSpacesToken = true
 

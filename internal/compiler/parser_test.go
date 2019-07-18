@@ -1194,21 +1194,21 @@ var treeTests = []struct {
 		ast.NewAssignment(p(1, 1, 0, 11), []ast.Expression{ast.NewIdentifier(p(1, 4, 3, 3), "a")},
 			ast.AssignmentModulo, []ast.Expression{ast.NewBasicLiteral(p(1, 9, 8, 8), ast.IntLiteral, "1")})}, ast.ContextHTML)},
 	{"{% show a %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 11), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, false, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
+		ast.NewShowMacro(p(1, 1, 0, 11), ast.NewIdentifier(p(1, 9, 8, 8), "a"), nil, false, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show a(b,c) %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 16), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
+		ast.NewShowMacro(p(1, 1, 0, 16), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, false, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show a(b,c...) %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 19), nil, ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
+		ast.NewShowMacro(p(1, 1, 0, 19), ast.NewIdentifier(p(1, 9, 8, 8), "a"), []ast.Expression{
 			ast.NewIdentifier(p(1, 11, 10, 10), "b"), ast.NewIdentifier(p(1, 13, 12, 12), "c")}, true, ast.ShowMacroOrError, ast.ContextHTML)}, ast.ContextHTML)},
 	{"{% show M or todo %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 19), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
+		ast.NewShowMacro(p(1, 1, 0, 19), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrTodo, ast.ContextHTML),
 	}, ast.ContextHTML)},
 	{"{% show M    or  ignore    %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 28), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
+		ast.NewShowMacro(p(1, 1, 0, 28), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrIgnore, ast.ContextHTML),
 	}, ast.ContextHTML)},
 	{"{% show M  or  error %}", ast.NewTree("", []ast.Node{
-		ast.NewShowMacro(p(1, 1, 0, 22), nil, ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
+		ast.NewShowMacro(p(1, 1, 0, 22), ast.NewIdentifier(p(1, 9, 8, 8), "M"), nil, false, ast.ShowMacroOrError, ast.ContextHTML),
 	}, ast.ContextHTML)},
 	{"{% for v in e %}b{% end for %}", ast.NewTree("", []ast.Node{
 		ast.NewForRange(p(1, 1, 0, 29), ast.NewAssignment(p(1, 8, 7, 12), []ast.Expression{
@@ -2398,11 +2398,7 @@ func equals(n1, n2 ast.Node, p int) error {
 		if !ok {
 			return fmt.Errorf("unexpected %#v, expecting %#v", n1, n2)
 		}
-		err := equals(nn1.Import, nn2.Import, p)
-		if err != nil {
-			return err
-		}
-		err = equals(nn1.Macro, nn2.Macro, p)
+		err := equals(nn1.Macro, nn2.Macro, p)
 		if err != nil {
 			return err
 		}

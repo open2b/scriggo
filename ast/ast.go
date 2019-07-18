@@ -622,18 +622,16 @@ func (s ShowMacroOr) String() string {
 
 // ShowMacro node represents a statement {% show <macro> %}.
 type ShowMacro struct {
-	*Position // position in the source.
-	// TODO(Gianluca): unify Import and Macro.
-	Import     *Identifier  // name of the import.
-	Macro      *Identifier  // name of the macro.
+	*Position               // position in the source.
+	Macro      Expression   // macro.
 	Args       []Expression // arguments.
 	IsVariadic bool         // reports whether it is variadic.
 	Or         ShowMacroOr  // when macro is not defined.
 	Context    Context      // context.
 }
 
-func NewShowMacro(pos *Position, impor, macro *Identifier, args []Expression, isVariadic bool, or ShowMacroOr, ctx Context) *ShowMacro {
-	return &ShowMacro{Position: pos, Import: impor, Macro: macro, Args: args, IsVariadic: isVariadic, Or: or, Context: ctx}
+func NewShowMacro(pos *Position, macro Expression, args []Expression, isVariadic bool, or ShowMacroOr, ctx Context) *ShowMacro {
+	return &ShowMacro{Position: pos, Macro: macro, Args: args, IsVariadic: isVariadic, Or: or, Context: ctx}
 }
 
 // Include node represents a statement {% include <path> %}.

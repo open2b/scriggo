@@ -508,13 +508,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.ShowMacro:
 			tc.showMacros = append(tc.showMacros, node)
-			var fun ast.Expression
-			if node.Import != nil {
-				fun = ast.NewSelector(node.Import.Pos(), node.Import, node.Macro.Name)
-			} else {
-				fun = node.Macro
-			}
-			nodes[i] = ast.NewCall(node.Pos(), fun, node.Args, node.IsVariadic)
+			nodes[i] = ast.NewCall(node.Pos(), node.Macro, node.Args, node.IsVariadic)
 			tc.checkNodes(nodes[i : i+1])
 
 		case *ast.Macro:
