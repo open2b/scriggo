@@ -553,25 +553,25 @@ func (builder *functionBuilder) emitLeftShift(k bool, x, y, z int8, kind reflect
 //
 func (builder *functionBuilder) emitLen(s, l int8, t reflect.Type) {
 	var a int8
-	switch t {
-	case reflect.TypeOf(""):
-		// TODO(Gianluca): this case catches string types only, not defined
-		// types with underlying type string.
+	if t.Kind() == reflect.String {
 		a = 0
-	default:
-		a = 1
-	case reflect.TypeOf([]byte{}):
-		a = 2
-	case reflect.TypeOf([]string{}):
-		a = 4
-	case reflect.TypeOf([]interface{}{}):
-		a = 5
-	case reflect.TypeOf(map[string]string{}):
-		a = 6
-	case reflect.TypeOf(map[string]int{}):
-		a = 7
-	case reflect.TypeOf(map[string]interface{}{}):
-		a = 8
+	} else {
+		switch t {
+		default:
+			a = 1
+		case reflect.TypeOf([]byte{}):
+			a = 2
+		case reflect.TypeOf([]string{}):
+			a = 4
+		case reflect.TypeOf([]interface{}{}):
+			a = 5
+		case reflect.TypeOf(map[string]string{}):
+			a = 6
+		case reflect.TypeOf(map[string]int{}):
+			a = 7
+		case reflect.TypeOf(map[string]interface{}{}):
+			a = 8
+		}
 	}
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpLen, A: a, B: s, C: l})
 }
