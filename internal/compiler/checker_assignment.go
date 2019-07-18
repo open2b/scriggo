@@ -17,7 +17,7 @@ import (
 // and fills the scope, if necessary.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
-	var vars, values []ast.Expression
+	var leftExprs, rightExprs []ast.Expression
 	var typ *TypeInfo
 	var isDecl, isConst, isVar bool
 
@@ -29,14 +29,14 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	case *ast.Var:
 
-		values = n.Rhs
+		rightExprs = n.Rhs
 		isDecl = true
 		isVar = true
 		if n.Type != nil {
 			typ = tc.checkType(n.Type, noEllipses)
 		}
 
-		if len(values) == 0 {
+		if len(rightExprs) == 0 {
 			for i := range n.Lhs {
 				zero := &TypeInfo{Type: typ.Type}
 				newVar := tc.assignSingle(node, n.Lhs[i], nil, zero, typ, true, false)
@@ -82,22 +82,22 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			return
 		}
 
-		if len(n.Lhs) == 1 && len(values) == 1 {
-			newVar := tc.assignSingle(node, n.Lhs[0], values[0], nil, typ, true, false)
+		if len(n.Lhs) == 1 && len(rightExprs) == 1 {
+			newVar := tc.assignSingle(node, n.Lhs[0], rightExprs[0], nil, typ, true, false)
 			if !isBlankIdentifier(n.Lhs[0]) && newVar == "" {
 				panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[0]))
 			}
 			return
 		}
 
-		vars = make([]ast.Expression, len(n.Lhs))
+		leftExprs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
-			vars[i] = ident
+			leftExprs[i] = ident
 		}
 
 	case *ast.Const:
 
-		values = n.Rhs
+		rightExprs = n.Rhs
 		isDecl = true
 		isConst = true
 		if n.Type != nil {
@@ -105,16 +105,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		tc.lastConstPosition = node.Pos()
 
-		if len(n.Lhs) > len(values) {
+		if len(n.Lhs) > len(rightExprs) {
 			panic(tc.errorf(node, "missing value in const declaration"))
 		}
-		if len(n.Lhs) < len(values) {
+		if len(n.Lhs) < len(rightExprs) {
 			panic(tc.errorf(node, "extra expression in const declaration"))
 		}
 
-		vars = make([]ast.Expression, len(n.Lhs))
+		leftExprs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
-			vars[i] = ident
+			leftExprs[i] = ident
 		}
 
 	case *ast.Assignment:
@@ -159,12 +159,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			return
 		}
 
-		vars = n.Lhs
-		values = n.Rhs
+		leftExprs = n.Lhs
+		rightExprs = n.Rhs
 		isDecl = n.Type == ast.AssignmentDeclaration
 
-		if len(vars) == 1 && len(values) == 1 {
-			newVar := tc.assignSingle(node, vars[0], values[0], nil, typ, isDecl, false)
+		if len(leftExprs) == 1 && len(rightExprs) == 1 {
+			newVar := tc.assignSingle(node, leftExprs[0], rightExprs[0], nil, typ, isDecl, false)
 			if newVar == "" && isDecl {
 				panic(tc.errorf(node, "no new variables on left side of :="))
 			}
@@ -177,75 +177,75 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 	}
 
-	if len(vars) >= 2 && len(values) == 1 {
-		call, ok := values[0].(*ast.Call)
+	if len(leftExprs) >= 2 && len(rightExprs) == 1 {
+		call, ok := rightExprs[0].(*ast.Call)
 		if ok {
 			tis, isBuiltin, _ := tc.checkCallExpression(call, false)
-			if len(vars) != len(tis) {
+			if len(leftExprs) != len(tis) {
 				if isBuiltin {
-					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
+					panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(leftExprs), len(rightExprs)))
 				}
-				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(vars), call, len(values)))
+				panic(tc.errorf(node, "assignment mismatch: %d variables but %v returns %d values", len(leftExprs), call, len(rightExprs)))
 			}
-			values = nil
+			rightExprs = nil
 			for _, ti := range tis {
 				newCall := ast.NewCall(call.Pos(), call.Func, call.Args, false)
 				tc.TypeInfo[newCall] = ti
-				values = append(values, newCall)
+				rightExprs = append(rightExprs, newCall)
 			}
 		}
 	}
 
-	if len(vars) == 2 && len(values) == 1 {
-		switch v := values[0].(type) {
+	if len(leftExprs) == 2 && len(rightExprs) == 1 {
+		switch v := rightExprs[0].(type) {
 
 		case *ast.TypeAssertion:
 
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			ti := tc.checkExpression(values[0])
+			ti := tc.checkExpression(rightExprs[0])
 			tc.TypeInfo[v1] = &TypeInfo{Type: ti.Type}
 			tc.TypeInfo[v2] = untypedBoolTypeInfo
-			values = []ast.Expression{v1, v2}
+			rightExprs = []ast.Expression{v1, v2}
 
 		case *ast.Index:
 
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			ti := tc.checkExpression(values[0])
+			ti := tc.checkExpression(rightExprs[0])
 			tc.TypeInfo[v1] = &TypeInfo{Type: ti.Type}
 			tc.TypeInfo[v2] = untypedBoolTypeInfo
-			values = []ast.Expression{v1, v2}
+			rightExprs = []ast.Expression{v1, v2}
 
 		case *ast.UnaryOperator:
 
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-				ti := tc.checkExpression(values[0])
+				ti := tc.checkExpression(rightExprs[0])
 				tc.TypeInfo[v1] = &TypeInfo{Type: ti.Type}
 				tc.TypeInfo[v2] = untypedBoolTypeInfo
-				values = []ast.Expression{v1, v2}
+				rightExprs = []ast.Expression{v1, v2}
 			}
 
 		}
 	}
 
-	if len(vars) != len(values) {
-		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(vars), len(values)))
+	if len(leftExprs) != len(rightExprs) {
+		panic(tc.errorf(node, "assignment mismatch: %d variable but %d values", len(leftExprs), len(rightExprs)))
 	}
 
 	newVars := []string{}
 	tmpScope := TypeCheckerScope{}
-	for i := range vars {
+	for i := range leftExprs {
 		if isConst {
 			tc.iota++
 		}
 		var newVar string
-		if valueTi := tc.TypeInfo[values[i]]; valueTi == nil {
-			newVar = tc.assignSingle(node, vars[i], values[i], nil, typ, isDecl, isConst)
+		if valueTi := tc.TypeInfo[rightExprs[i]]; valueTi == nil {
+			newVar = tc.assignSingle(node, leftExprs[i], rightExprs[i], nil, typ, isDecl, isConst)
 		} else {
-			newVar = tc.assignSingle(node, vars[i], nil, valueTi, typ, isDecl, isConst)
+			newVar = tc.assignSingle(node, leftExprs[i], nil, valueTi, typ, isDecl, isConst)
 		}
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
@@ -256,12 +256,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				delete(tc.filePackageBlock, newVar)
 			}
 		}
-		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(vars[i]) {
-			panic(tc.errorf(node, "%s redeclared in this block", vars[i]))
+		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(leftExprs[i]) {
+			panic(tc.errorf(node, "%s redeclared in this block", leftExprs[i]))
 		}
 		for _, v := range newVars {
 			if newVar == v {
-				panic(tc.errorf(node, "%s repeated on left side of :=", vars[i]))
+				panic(tc.errorf(node, "%s repeated on left side of :=", leftExprs[i]))
 			}
 		}
 		if newVar != "" {
