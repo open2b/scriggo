@@ -139,7 +139,8 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 	// first token is "_".
 	var mustBeBlank bool
 
-	// TODO (Gianluca): document.
+	// mustBeSwitchGuard reports wheter the parsed expression must be a type
+	// switch guard, that is `expr.(type)`.
 	var mustBeSwitchGuard bool
 
 	if tok.txt == nil {
