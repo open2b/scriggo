@@ -282,42 +282,42 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // nil). typ is the type specified in the declaration, if any. If assignment
 // is a declaration and the scope has been updated, returns the identifier of
 // the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expression, valueTi *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
+func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
 
-	if valueTi == nil {
-		valueTi = tc.checkExpression(value)
+	if right == nil {
+		right = tc.checkExpression(rightExpr)
 	}
 
-	if isConst && !valueTi.IsConstant() {
-		panic(tc.errorf(node, "const initializer %s is not a constant", value))
+	if isConst && !right.IsConstant() {
+		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
 	}
 
 	if typ != nil {
 		// Type is explicit, so must check assignability.
-		if err := isAssignableTo(valueTi, value, typ.Type); err != nil {
-			if value == nil {
-				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", valueTi.ShortString(), variable, typ))
+		if err := isAssignableTo(right, rightExpr, typ.Type); err != nil {
+			if rightExpr == nil {
+				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right.ShortString(), leftExpr, typ))
 			}
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
-		valueTi.setValue(typ.Type)
+		right.setValue(typ.Type)
 	} else {
 		// Type is not explicit, so is deducted by value.
-		valueTi.setValue(nil)
+		right.setValue(nil)
 	}
 
-	switch v := variable.(type) {
+	switch leftExpr := leftExpr.(type) {
 
 	case *ast.Identifier:
 
-		if v.Name == "_" {
+		if leftExpr.Name == "_" {
 			return ""
 		}
 
 		if isDeclaration {
-			newValueTi := &TypeInfo{}
+			newRight := &TypeInfo{}
 			if typ == nil {
-				if valueTi.Nil() {
+				if right.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
 				//  «[if no types are presents], each variable is given the type
@@ -326,113 +326,113 @@ func (tc *typechecker) assignSingle(node ast.Node, variable, value ast.Expressio
 				//
 				// «If that value is an untyped constant, it is first
 				// implicitly converted to its default type.»
-				newValueTi.Type = valueTi.Type
+				newRight.Type = right.Type
 			} else {
-				newValueTi.Type = typ.Type
+				newRight.Type = typ.Type
 			}
-			tc.TypeInfo[v] = newValueTi
-			if _, alreadyInCurrentScope := tc.lookupScopes(v.Name, true); alreadyInCurrentScope {
+			tc.TypeInfo[leftExpr] = newRight
+			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
 			if isConst {
-				newValueTi.Constant = valueTi.Constant
-				if valueTi.Untyped() {
-					newValueTi.Properties = PropertyUntyped
+				newRight.Constant = right.Constant
+				if right.Untyped() {
+					newRight.Properties = PropertyUntyped
 				}
-				tc.assignScope(v.Name, newValueTi, nil)
-				return v.Name
+				tc.assignScope(leftExpr.Name, newRight, nil)
+				return leftExpr.Name
 			}
-			newValueTi.Properties |= PropertyAddressable
-			tc.assignScope(v.Name, newValueTi, v)
+			newRight.Properties |= PropertyAddressable
+			tc.assignScope(leftExpr.Name, newRight, leftExpr)
 			if !tc.opts.AllowNotUsed {
 				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
-					ident:      v.Name,
+					ident:      leftExpr.Name,
 					scopeLevel: len(tc.Scopes) - 1,
 					node:       node,
 				})
 			}
-			return v.Name
+			return leftExpr.Name
 		}
 
-		variableTi := tc.checkIdentifier(v, false)
-		if !variableTi.Addressable() {
-			panic(tc.errorf(variable, "cannot assign to %v", variable))
+		left := tc.checkIdentifier(leftExpr, false)
+		if !left.Addressable() {
+			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
 		}
-		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
-			panic(tc.errorf(value, "%s in assignment", err))
+		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
+			panic(tc.errorf(rightExpr, "%s in assignment", err))
 		}
-		valueTi.setValue(variableTi.Type)
-		tc.TypeInfo[v] = variableTi
+		right.setValue(left.Type)
+		tc.TypeInfo[leftExpr] = left
 
 	case *ast.Index:
 
 		if isDeclaration {
-			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
-		variableTi := tc.checkExpression(variable)
-		switch variableTi.Type.Kind() {
+		left := tc.checkExpression(leftExpr)
+		switch left.Type.Kind() {
 		case reflect.Slice, reflect.Map:
 			// Always addressable when used in indexing operation.
 		case reflect.Array:
-			if !variableTi.Addressable() {
-				panic(tc.errorf(node, "cannot assign to %v", variable))
+			if !left.Addressable() {
+				panic(tc.errorf(node, "cannot assign to %v", leftExpr))
 			}
 		}
-		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
+		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
-		valueTi.setValue(variableTi.Type)
+		right.setValue(left.Type)
 		return ""
 
 	case *ast.Selector:
 
 		if isDeclaration {
-			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
-		variableTi := tc.checkExpression(variable)
+		left := tc.checkExpression(leftExpr)
 		// TODO(Gianluca): investigate: this always fails.
-		// if !variableTi.Addressable() {
-		// 	panic(tc.errorf(node, "cannot assign to %v", variable))
+		// if !left.Addressable() {
+		// 	panic(tc.errorf(node, "cannot assign to %v", left))
 		// }
-		if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
+		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
-		valueTi.setValue(variableTi.Type)
+		right.setValue(left.Type)
 		return ""
 
 	case *ast.UnaryOperator:
 
 		if isDeclaration {
-			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
-		if v.Operator() == ast.OperatorMultiplication { // pointer indirection.
-			variableTi := tc.checkExpression(variable)
-			if err := isAssignableTo(valueTi, value, variableTi.Type); err != nil {
+		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
+			left := tc.checkExpression(leftExpr)
+			if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 				panic(tc.errorf(node, "%s in assignment", err))
 			}
-			valueTi.setValue(variableTi.Type)
+			right.setValue(left.Type)
 			return ""
 		}
-		panic(tc.errorf(node, "cannot assign to %v", variable))
+		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
 
-	case *ast.Call:
+	case *ast.Call: // call on left side of assignment: f() = 10 .
 
 		if isDeclaration {
-			panic(tc.errorf(node, "non name %s on left side of :=", variable))
+			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
-		tis, _, _ := tc.checkCallExpression(v, false)
-		switch len(tis) {
+		retValues, _, _ := tc.checkCallExpression(leftExpr, false)
+		switch len(retValues) {
 		case 0:
-			panic(tc.errorf(node, "%s used as value", variable))
+			panic(tc.errorf(node, "%s used as value", leftExpr))
 		case 1:
-			panic(tc.errorf(node, "cannot assign to %v", variable))
+			panic(tc.errorf(node, "cannot assign to %v", leftExpr))
 		default:
-			panic(tc.errorf(node, "multiple-value %s in single-value context", variable))
+			panic(tc.errorf(node, "multiple-value %s in single-value context", leftExpr))
 		}
 
 	default:
 
-		panic(tc.errorf(node, "cannot assign to %v", variable))
+		panic(tc.errorf(node, "cannot assign to %v", leftExpr))
 	}
 
 	return ""
