@@ -80,10 +80,7 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 	// TODO(Gianluca): use mayHaveDependencies.
 	if len(addresses) == 1 && len(values) == 1 {
 		t := em.ti(values[0]).Type
-		v, k, ok := em.quickEmitExpr(values[0], t)
-		if !ok {
-			v = em.emitExprInNewReg(values[0], t)
-		}
+		v, k := em.emitExprK(values[0], t)
 		addresses[0].assign(k, v, t)
 	} else if len(addresses) == len(values) {
 		regs := make([]int8, len(values))
@@ -91,9 +88,10 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 		ks := make([]bool, len(values))
 		for i := range values {
 			types[i] = em.ti(values[i]).Type
-			regs[i], ks[i], _ = em.quickEmitExpr(values[i], types[i])
+			regs[i], ks[i], _ = em.quickEmitExpr_old(values[i], types[i])
 			if !ks[i] {
-				regs[i] = em.emitExprInNewReg(values[i], types[i])
+				regs[i] = em.fb.newRegister(types[i].Kind())
+				em.emitExprR(values[i], types[i], regs[i])
 			}
 		}
 		for i, addr := range addresses {
@@ -108,12 +106,9 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 			}
 		case *ast.Index: // map index.
 			mapType := em.ti(valueExpr.Expr).Type
-			mapp := em.emitExprInNewReg(valueExpr.Expr, mapType)
+			mapp := em.emitExpr(valueExpr.Expr, mapType)
 			keyType := em.ti(valueExpr.Index).Type
-			key, kKey, ok := em.quickEmitExpr(valueExpr.Index, keyType)
-			if !ok {
-				key = em.emitExprInNewReg(valueExpr.Index, keyType)
-			}
+			key, kKey := em.emitExprK(valueExpr.Index, keyType)
 			valueType := mapType.Elem()
 			value := em.fb.newRegister(valueType.Kind())
 			okType := addresses[1].staticType
@@ -126,7 +121,7 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 			addresses[1].assign(false, okReg, okType)
 		case *ast.TypeAssertion:
 			typ := em.ti(valueExpr.Type).Type
-			expr := em.emitExprInNewReg(valueExpr.Expr, emptyInterfaceType)
+			expr := em.emitExpr(valueExpr.Expr, emptyInterfaceType)
 			okType := addresses[1].staticType
 			ok := em.fb.newRegister(reflect.Bool)
 			em.fb.emitMove(true, 1, ok, reflect.Bool)
@@ -190,15 +185,9 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 			case *ast.Index:
 				exprType := em.ti(v.Expr).Type
-				expr, k, ok := em.quickEmitExpr(v.Expr, exprType)
-				if !ok || k {
-					expr = em.emitExprInNewReg(v.Expr, exprType)
-				}
+				expr := em.emitExpr(v.Expr, exprType)
 				indexType := em.ti(v.Index).Type
-				index, k, ok := em.quickEmitExpr(v.Index, indexType)
-				if !ok || k {
-					index = em.emitExprInNewReg(v.Index, indexType)
-				}
+				index := em.emitExpr(v.Index, indexType)
 				addrType := addressSliceIndex
 				if exprType.Kind() == reflect.Map {
 					addrType = addressMapIndex
@@ -213,10 +202,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 					addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(index), 0)
 				} else {
 					typ := em.ti(v.Expr).Type
-					reg, k, ok := em.quickEmitExpr(v.Expr, typ)
-					if !ok || k {
-						reg = em.emitExprInNewReg(v.Expr, typ)
-					}
+					reg := em.emitExpr(v.Expr, typ)
 					field, _ := typ.FieldByName(v.Ident)
 					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
 					addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
@@ -255,7 +241,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addr = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(index), 0)
 				staticType := em.ti(v).Type
 				valueType = ti.Type
-				value = em.emitExprInNewReg(v, staticType)
+				value = em.emitExpr(v, staticType)
 			} else {
 				valueType = em.ti(v).Type
 				value = em.fb.scopeLookup(v.Name)
@@ -263,15 +249,8 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 			}
 		case *ast.Index:
 			exprType := em.ti(v.Expr).Type
-			expr, k, ok := em.quickEmitExpr(v.Expr, exprType)
-			if !ok || k {
-				expr = em.emitExprInNewReg(v.Expr, exprType)
-			}
-			indexType := em.ti(v.Index).Type
-			index, k, ok := em.quickEmitExpr(v.Index, indexType)
-			if !ok || k {
-				index = em.emitExprInNewReg(v.Index, indexType)
-			}
+			expr := em.emitExpr(v.Expr, exprType)
+			index := em.emitExpr(v.Index, em.ti(v.Index).Type)
 			addrType := addressSliceIndex
 			if exprType.Kind() == reflect.Map {
 				addrType = addressMapIndex
@@ -289,7 +268,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		case ast.AssignmentDecrement:
 			em.fb.emitSub(true, value, 1, value, valueType.Kind())
 		default:
-			rightOp := em.emitExprInNewReg(node.Rhs[0], em.ti(node.Rhs[0]).Type)
+			rightOp := em.emitExpr(node.Rhs[0], em.ti(node.Rhs[0]).Type)
 			switch node.Type {
 			case ast.AssignmentAddition:
 				if valueType.Kind() == reflect.String {
