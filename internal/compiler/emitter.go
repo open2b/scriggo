@@ -641,14 +641,14 @@ func (em *emitter) emitExpr(expr ast.Expression, reg int8, dstType reflect.Type)
 		case reflect.Interface:
 			panic("not implemented") // TODO(Gianluca).
 		case reflect.Slice,
-			reflect.Map,
-			reflect.Struct,
+			reflect.Complex64,
+			reflect.Complex128,
 			reflect.Array,
 			reflect.Chan,
-			reflect.Ptr,
 			reflect.Func,
-			reflect.Complex64,
-			reflect.Complex128:
+			reflect.Map,
+			reflect.Ptr,
+			reflect.Struct:
 			c := em.fb.makeGeneralConstant(v.Interface())
 			em.changeRegister(true, c, reg, typ, dstType)
 		case reflect.UnsafePointer:
