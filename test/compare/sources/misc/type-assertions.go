@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -38,7 +39,6 @@ func main() {
 		fmt.Println(f, ok)
 	}
 	{
-		// TODO (Gianluca): see https://github.com/open2b/scriggo/issues/64
-		// _ = interface{}(errors.New("test")).(error)
+		_ = interface{}(errors.New("test")).(error)
 	}
 }

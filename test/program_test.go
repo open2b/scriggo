@@ -4923,8 +4923,7 @@ var stmtTests = []struct {
 		}
 
 		func g(slice []int) {
-			l := len(slice) // TODO (Gianluca): move inline inside fmt.Println
-			fmt.Println(slice, "has len", l)
+			fmt.Println(slice, "has len", len(slice))
 			return
 		}
 
