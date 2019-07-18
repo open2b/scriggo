@@ -576,6 +576,9 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 // emitExpr_old emits the instructions that evaluate the expression expr and put
 // the result into the register reg. If reg is zero, instructions are emitted
 // anyway but the result is discarded.
+//
+// TODO(Gianluca): this method is obsolete and should be removed.
+//
 func (em *emitter) emitExpr_old(expr ast.Expression, reg int8, dstType reflect.Type) {
 
 	// If the instructions that emit expr put result in a register type
@@ -1201,6 +1204,9 @@ func (em *emitter) emitExpr_old(expr ast.Expression, reg int8, dstType reflect.T
 //
 // If expr is a constant, out is the constant and k is true.
 // if expr is a register, out is the register and k is false.
+//
+// TODO(Gianluca): this method is obsolete and should be removed.
+//
 func (em *emitter) quickEmitExpr_old(expr ast.Expression, typ reflect.Type) (out int8, k, ok bool) {
 
 	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
