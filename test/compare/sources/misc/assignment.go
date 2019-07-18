@@ -1,4 +1,4 @@
-//+build
+//+build ignore
 
 package main
 
@@ -21,12 +21,11 @@ func main() {
 
 	x[1], x[2] = 4, 5
 
-	// TODO(Gianluca):
-	// v := 10
-	// fmt.Println(v)
-	// ref := &v
-	// *ref = 2
-	// fmt.Println(v)
+	v := 10
+	fmt.Println(v)
+	ref := &v
+	*ref = 2
+	fmt.Println(v)
 
 	i = 2
 	x = []int{3, 5, 7}
@@ -40,9 +39,8 @@ func main() {
 		var i, j int = 1, 2
 		k := 3
 		fmt.Println(i, j, k)
-		// TODO (Gianluca):
-		// a, b, c := true, false, "a string"
-		// fmt.Println(i, j, k, a, b, c)
+		a, b, c := true, false, "a string"
+		fmt.Println(i, j, k, a, b, c)
 	}
 
 	var a2 int

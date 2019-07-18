@@ -28,20 +28,20 @@ func main() {
 	}
 	fmt.Println(a)
 
-	// TODO(Gianluca):
-	// if true {
-	if 0 == 0 {
-		{
+	if true {
+		if 0 == 0 {
 			{
 				{
+					{
+					}
+					{
+						fmt.Println("inner")
+					}
 				}
 				{
-					fmt.Println("inner")
 				}
-			}
-			{
 			}
 		}
+		f()
 	}
-	f()
 }
