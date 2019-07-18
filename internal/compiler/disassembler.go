@@ -450,7 +450,8 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, b, vm.Float64, false)
 		s += " " + disassembleOperand(fn, c, vm.Float64, false)
 	case vm.OpField:
-		// TODO(Gianluca).
+		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
+		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 	case vm.OpMakeSlice:
 		s += " " + fn.Types[int(uint(a))].String()
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
@@ -459,7 +460,9 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += ", cap: "
 		s += fmt.Sprintf("%d", fn.Body[addr+1].B)
 	case vm.OpSetField:
-		// TODO(Gianluca).
+		s += " " + disassembleOperand(fn, a, vm.Interface, k)
+		s += " " + fmt.Sprintf("%v", decodeFieldIndex(fn.Constants.Int[b]))
+		s += " " + disassembleOperand(fn, c, vm.Interface, k)
 	case vm.OpSetMap:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		if k {
