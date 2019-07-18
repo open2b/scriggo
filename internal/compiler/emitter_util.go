@@ -111,13 +111,8 @@ func (em *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 }
 
 // isNil reports whether expr is the nil identifier.
-func isNil(expr ast.Expression) bool {
-	// TODO(Gianluca): this implementation is wrong: nil can be shadowed. Use
-	// typeinfo informations instead.
-	if ident, ok := expr.(*ast.Identifier); ok {
-		return ident.Name == "nil"
-	}
-	return false
+func (em *emitter) isNil(expr ast.Expression) bool {
+	return em.ti(expr).Nil()
 }
 
 // kindToType returns the internal register type of a reflect kind.
