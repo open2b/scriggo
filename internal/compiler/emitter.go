@@ -1492,10 +1492,13 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				return reg, false
 			}
-			// TODO (Gianluca): handle maps with bigger size.
 			size := len(expr.KeyValues)
-			sizeReg := em.fb.makeIntConstant(int64(size))
-			em.fb.emitMakeMap(typ, true, sizeReg, reg)
+			if 0 <= size && size < 126 {
+				em.fb.emitMakeMap(typ, true, int8(size), reg)
+			} else {
+				sizeReg := em.fb.makeIntConstant(int64(size))
+				em.fb.emitMakeMap(typ, false, sizeReg, reg)
+			}
 			for _, kv := range expr.KeyValues {
 				key := em.fb.newRegister(typ.Key().Kind())
 				value := em.fb.newRegister(typ.Elem().Kind())
