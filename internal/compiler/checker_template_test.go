@@ -27,7 +27,7 @@ var templateCases = map[string]string{
 	`{% macro M %}{% end %}         {% show M(1) %}`:   "too many arguments in call to M\n\thave (number)\n\twant ()",
 	`{% macro M(int) %}{% end %}    {% show M("s") %}`: "cannot use \"s\" (type string) as type int in argument to M",
 
-	// "{% macro M %}{% end %}    {% show M() %}":  ok, // TODO(Gianluca): See issue #136.
+	"{% macro M %}{% end %}    {% show M() %}": ok,
 
 	`{% show M %}`:           `undefined: M`,
 	`{% show M or error %}`:  `undefined: M`,
