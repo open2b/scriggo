@@ -88,7 +88,7 @@ func (em *emitter) assign(addresses []address, values []ast.Expression) {
 		ks := make([]bool, len(values))
 		for i := range values {
 			types[i] = em.ti(values[i]).Type
-			regs[i], ks[i], _ = em.quickEmitExpr_old(values[i], types[i])
+			regs[i], ks[i] = em.emitExprK(values[i], types[i])
 			if !ks[i] {
 				regs[i] = em.fb.newRegister(types[i].Kind())
 				em.emitExprR(values[i], types[i], regs[i])

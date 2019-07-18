@@ -484,10 +484,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	}
 
 	// Indirect function.
-	reg, k, ok := em.quickEmitExpr_old(call.Func, em.ti(call.Func).Type)
-	if !ok || k {
-		reg = em.emitExpr(call.Func, em.ti(call.Func).Type)
-	}
+	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
 	regs, types := em.prepareCallParameters(typ, call.Args, true, false)
 	em.fb.emitCallIndirect(reg, 0, stackShift)
 
@@ -1090,9 +1087,9 @@ func (em *emitter) emitExpr_old(expr ast.Expression, reg int8, dstType reflect.T
 
 		typ := em.ti(expr).Type
 
-		// Identifier can be quick-emitted.
-		if out, k, ok := em.quickEmitExpr_old(expr, typ); ok {
-			em.changeRegister(k, out, reg, typ, dstType)
+		if em.fb.isVariable(expr.Name) {
+			ident := em.fb.scopeLookup(expr.Name)
+			em.changeRegister(false, ident, reg, typ, dstType)
 			return
 		}
 
@@ -1199,54 +1196,6 @@ func (em *emitter) emitExpr_old(expr ast.Expression, reg int8, dstType reflect.T
 	return
 }
 
-// quickEmitExpr_old try to evaluate expr as a constant or a register without
-// emitting code, in this case ok is true otherwise is false.
-//
-// If expr is a constant, out is the constant and k is true.
-// if expr is a register, out is the register and k is false.
-//
-// TODO(Gianluca): this method is obsolete and should be removed.
-//
-func (em *emitter) quickEmitExpr_old(expr ast.Expression, typ reflect.Type) (out int8, k, ok bool) {
-
-	// TODO (Gianluca): quickEmitExpr must evaluate only expression which does
-	// not need extra registers for evaluation.
-
-	ti := em.ti(expr)
-
-	// Src kind and dst kind are different, so a Move/Conversion is required.
-	if kindToType(typ.Kind()) != kindToType(ti.Type.Kind()) {
-		return 0, false, false
-	}
-
-	if ti.value != nil && !ti.IsPredefined() {
-
-		switch v := ti.value.(type) {
-		case int64:
-			if kindToType(typ.Kind()) != vm.TypeInt {
-				return 0, false, false
-			}
-			if -127 < v && v < 126 {
-				return int8(v), true, true
-			}
-		case float64:
-			if kindToType(typ.Kind()) != vm.TypeFloat {
-				return 0, false, false
-			}
-			if math.Floor(v) == v && -127 < v && v < 126 {
-				return int8(v), true, true
-			}
-		}
-		return 0, false, false
-	}
-
-	if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-		return em.fb.scopeLookup(expr.Name), false, true
-	}
-
-	return 0, false, false
-}
-
 // emitBuiltin emits instructions for a builtin call, writing the result, if
 // necessary, into the register reg.
 func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
@@ -1292,14 +1241,8 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "complex":
 		panic("TODO: not implemented")
 	case "copy":
-		dst, k, ok := em.quickEmitExpr_old(args[0], em.ti(args[0]).Type)
-		if !ok || k {
-			dst = em.emitExpr(args[0], em.ti(args[0]).Type)
-		}
-		src, k, ok := em.quickEmitExpr_old(args[1], em.ti(args[1]).Type)
-		if !ok || k {
-			src = em.emitExpr(args[0], em.ti(args[0]).Type)
-		}
+		dst := em.emitExpr(args[0], em.ti(args[0]).Type)
+		src := em.emitExpr(args[1], em.ti(args[1]).Type)
 		if reg == 0 {
 			em.fb.emitCopy(dst, src, 0)
 			return
@@ -1609,8 +1552,8 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			}
 			expr := node.Assignment.Rhs[0]
 			exprType := em.ti(expr).Type
-			exprReg, kExpr, ok := em.quickEmitExpr_old(expr, exprType)
-			if !ok || exprType.Kind() != reflect.String {
+			exprReg, kExpr := em.emitExprK(expr, exprType)
+			if exprType.Kind() != reflect.String && kExpr {
 				kExpr = false
 				exprReg = em.emitExpr(expr, exprType)
 			}
@@ -1836,24 +1779,41 @@ func (em *emitter) emitExprR(expr ast.Expression, dstType reflect.Type, reg int8
 // _emitExpr is an internal support method, and should be called by emitExpr,
 // emitExprK and emitExprR exclusively.
 //
-func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, putInReg bool, allowK bool) (int8, bool) {
+func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8, useGivenReg bool, allowK bool) (int8, bool) {
 
-	if allowK {
-		out, k, ok := em.quickEmitExpr_old(expr, dstType)
-		if ok {
-			return out, k
+	if allowK && !useGivenReg {
+		ti := em.ti(expr)
+		if ti.value != nil && !ti.IsPredefined() {
+			switch v := ti.value.(type) {
+			case int64:
+				if kindToType(dstType.Kind()) == vm.TypeInt {
+					if -127 < v && v < 126 {
+						return int8(v), true
+					}
+				}
+			case float64:
+				if kindToType(dstType.Kind()) == vm.TypeFloat {
+					if math.Floor(v) == v && -127 < v && v < 126 {
+						return int8(v), true
+					}
+				}
+			}
 		}
+		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
+			return em.fb.scopeLookup(expr.Name), false
+		}
+	}
+	if allowK {
 		reg = em.fb.newRegister(dstType.Kind())
 		em.emitExpr_old(expr, reg, dstType)
 		return reg, false
 	}
-	if putInReg {
+	if useGivenReg {
 		em.emitExpr_old(expr, reg, dstType)
 		return 0, false
 	}
-	out, k, ok := em.quickEmitExpr_old(expr, dstType)
-	if ok && k == false {
-		return out, false
+	if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
+		return em.fb.scopeLookup(expr.Name), false
 	}
 	reg = em.fb.newRegister(dstType.Kind())
 	em.emitExpr_old(expr, reg, dstType)
