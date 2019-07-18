@@ -173,20 +173,15 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 			ti.value = int64(ti.Constant.uint64())
 		case reflect.Float32, reflect.Float64:
 			ti.value = ti.Constant.float64()
-		case reflect.Complex64:
-			if typ == complex64Type {
-				ti.value = complex64(ti.Constant.complex128())
-			} else {
+		case reflect.Complex64, reflect.Complex128:
+			switch c := ti.Constant.complex128(); typ {
+			case complex64Type:
+				ti.value = complex64(c)
+			case complex128Type:
+				ti.value = c
+			default:
 				rv := reflect.New(typ).Elem()
-				rv.SetComplex(ti.Constant.complex128())
-				ti.value = rv.Interface()
-			}
-		case reflect.Complex128:
-			if typ == complex128Type {
-				ti.value = complex128(ti.Constant.complex128())
-			} else {
-				rv := reflect.New(typ).Elem()
-				rv.SetComplex(ti.Constant.complex128())
+				rv.SetComplex(c)
 				ti.value = rv.Interface()
 			}
 		case reflect.String:
