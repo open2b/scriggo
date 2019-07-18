@@ -1608,15 +1608,20 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			// Do nothing.
 		case ast.OperatorSubtraction:
 			if reg == 0 {
-				em.emitExprR(expr.Expr, exprType, 0)
+				em.emitExprR(expr.Expr, dstType, 0)
 				return reg, false
 			}
+			exprReg := em.emitExpr(expr.Expr, dstType)
 			if sameRegType(exprType.Kind(), dstType.Kind()) {
-				exprReg := em.emitExpr(expr.Expr, dstType)
 				em.fb.emitSubInv(true, exprReg, 0, reg, dstType.Kind())
 				return reg, false
 			}
-			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+			em.fb.enterStack()
+			tmp := em.fb.newRegister(exprType.Kind())
+			em.fb.emitSubInv(true, exprReg, 0, tmp, exprType.Kind())
+			em.changeRegister(false, tmp, reg, exprType, dstType)
+			em.fb.exitStack()
+
 		case ast.OperatorReceive:
 			if sameRegType(typ.Kind(), dstType.Kind()) {
 				chann := em.emitExpr(expr.Expr, exprType)

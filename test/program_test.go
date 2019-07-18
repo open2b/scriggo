@@ -122,6 +122,33 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Unary operator -",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+		
+			// Constants.
+			var i interface{} = -4
+			fmt.Print(i)
+			fmt.Print(-329)
+			a := -43
+			fmt.Print(a)
+		
+			// Non constants.
+			var i2 = 4
+			var interf interface{} = -i2
+			fmt.Print(interf)
+			var b = 329
+			fmt.Print(-b)
+		}`,
+		out: `-4-329-43-4-329`,
+	},
+
+	{
 		name: "Floating point constant converted to interface{}",
 		src: `package main
 
