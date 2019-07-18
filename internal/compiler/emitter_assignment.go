@@ -194,19 +194,24 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				}
 				addresses[i] = em.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
-				if varIndex, ok := em.varIndexes[em.pkg][v.Expr.(*ast.Identifier).Name+"."+v.Ident]; ok {
-					addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(varIndex), 0)
-				} else if ti := em.ti(v); ti.IsPredefined() {
+				if ident, ok := v.Expr.(*ast.Identifier); ok {
+					if varIndex, ok := em.varIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
+						addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(varIndex), 0)
+						break
+					}
+				}
+				if ti := em.ti(v); ti.IsPredefined() {
 					rv := ti.value.(reflect.Value)
 					index := em.predVarIndex(rv, ti.PredefPackageName, v.Ident)
 					addresses[i] = em.newAddress(addressPackageVariable, em.ti(v).Type, int8(index), 0)
-				} else {
-					typ := em.ti(v.Expr).Type
-					reg := em.emitExpr(v.Expr, typ)
-					field, _ := typ.FieldByName(v.Ident)
-					index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
-					addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
+					break
 				}
+				typ := em.ti(v.Expr).Type
+				reg := em.emitExpr(v.Expr, typ)
+				field, _ := typ.FieldByName(v.Ident)
+				index := em.fb.makeIntConstant(encodeFieldIndex(field.Index))
+				addresses[i] = em.newAddress(addressStructSelector, field.Type, reg, index)
+				break
 			case *ast.UnaryOperator:
 				if v.Operator() != ast.OperatorMultiplication {
 					panic("bug: v.Operator() != ast.OperatorMultiplication") // TODO(Gianluca): remove.

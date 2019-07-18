@@ -529,28 +529,30 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 	}
 
 	// Scriggo-defined package variables.
-	if index, ok := em.varIndexes[em.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-		if reg == 0 {
+	if ident, ok := expr.Expr.(*ast.Identifier); ok {
+		if index, ok := em.varIndexes[em.pkg][ident.Name+"."+expr.Ident]; ok {
+			if reg == 0 {
+				return
+			}
+			if sameRegType(ti.Type.Kind(), dstType.Kind()) {
+				em.fb.emitGetVar(int(index), reg)
+				return
+			}
+			tmp := em.fb.newRegister(ti.Type.Kind())
+			em.fb.emitGetVar(int(index), tmp)
+			em.changeRegister(false, tmp, reg, ti.Type, dstType)
 			return
 		}
-		if sameRegType(ti.Type.Kind(), dstType.Kind()) {
-			em.fb.emitGetVar(int(index), reg)
-			return
-		}
-		tmp := em.fb.newRegister(ti.Type.Kind())
-		em.fb.emitGetVar(int(index), tmp)
-		em.changeRegister(false, tmp, reg, ti.Type, dstType)
-		return
-	}
 
-	// Scriggo-defined package functions.
-	if sf, ok := em.functions[em.pkg][expr.Expr.(*ast.Identifier).Name+"."+expr.Ident]; ok {
-		if reg == 0 {
+		// Scriggo-defined package functions.
+		if sf, ok := em.functions[em.pkg][ident.Name+"."+expr.Ident]; ok {
+			if reg == 0 {
+				return
+			}
+			index := em.functionIndex(sf)
+			em.fb.emitGetFunc(false, index, reg)
 			return
 		}
-		index := em.functionIndex(sf)
-		em.fb.emitGetFunc(false, index, reg)
-		return
 	}
 
 	// Struct field.
