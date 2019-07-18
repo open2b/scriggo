@@ -231,7 +231,7 @@ func init() {
 	explicitImportsString := ""
 	for i, imp := range explicitImports {
 		if i > 0 {
-			explicitImportsString = "\n\t"
+			explicitImportsString += "\n\t"
 		}
 		if imp.name == "" {
 			explicitImportsString += `"` + imp.path + `"`
