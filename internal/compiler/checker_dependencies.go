@@ -79,9 +79,17 @@ func (d deps) analyzeGlobalConst(n *ast.Const) {
 
 // analyzeGlobalDeclarationAssignment analyzes a global global declaration assignment.
 func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
-	for i := range n.Lhs {
-		if ident, ok := n.Lhs[i].(*ast.Identifier); ok {
-			d.addDepsToGlobal(ident, n.Rhs[i], nil)
+	if len(n.Lhs) == len(n.Rhs) {
+		for i := range n.Lhs {
+			if ident, ok := n.Lhs[i].(*ast.Identifier); ok {
+				d.addDepsToGlobal(ident, n.Rhs[i], nil)
+			}
+		}
+	} else {
+		for _, left := range n.Lhs {
+			for _, right := range n.Rhs {
+				d.addDepsToGlobal(left.(*ast.Identifier), right, nil)
+			}
 		}
 	}
 }
