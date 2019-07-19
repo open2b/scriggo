@@ -249,7 +249,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
-			tmpScope[newVar] = scopeElement{t: ti}
+			tmpScope[newVar] = scopeElement{t: ti, decl: leftExprs[i].(*ast.Identifier)}
 			if len(tc.Scopes) > 0 {
 				delete(tc.Scopes[len(tc.Scopes)-1], newVar)
 			} else {
@@ -272,7 +272,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
-		tc.assignScope(d, ti.t, nil)
+		tc.assignScope(d, ti.t, ti.decl)
 	}
 	return
 

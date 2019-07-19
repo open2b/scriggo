@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Upvars referring to a multiple assignment",
+		src: `package main
+
+		func main() {
+			a, b := 1, 1
+			_ = a + b
+			_ = func() {
+				_ = a + b
+			}
+		}
+		`,
+		out: "",
+	},
+
+	{
 		name: "Issue #185 (3)",
 		src: `package main
 
