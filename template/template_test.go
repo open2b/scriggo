@@ -200,7 +200,7 @@ var rendererExprTests = []struct {
 	// {`a != "<b>"`, "false", Vars{"a": "<b>"}},
 	// {`a != "<b>"`, "false", Vars{"a": HTML("<b>")}},
 
-	// TODO (Gianluca): see issue https://github.com/open2b/scriggo/issues/63.
+	// TODO (Gianluca): see issue https://github.com/open2b/scriggo/issues/177.
 	// {"[]interface{}{} == nil", "false", nil},
 	// {"[]byte{} == nil", "false", nil},
 
