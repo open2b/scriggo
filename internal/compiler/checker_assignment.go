@@ -390,10 +390,9 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
 		left := tc.checkExpression(leftExpr)
-		// TODO(Gianluca): investigate: this always fails.
-		// if !left.Addressable() {
-		// 	panic(tc.errorf(node, "cannot assign to %v", left))
-		// }
+		if !left.Addressable() {
+			panic(tc.errorf(node, "cannot assign to %v", left))
+		}
 		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}

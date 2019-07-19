@@ -934,6 +934,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 		field, ok := fieldByName(t, expr.Ident)
 		if ok {
+			field.Properties |= PropertyAddressable
 			return field
 		}
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
