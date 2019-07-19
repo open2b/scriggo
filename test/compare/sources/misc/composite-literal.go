@@ -48,7 +48,7 @@ func main() {
 	_ = [...]int{0: 1, 2, 20: 3}
 	_ = [10]int{0: 1, 2, 2: 3}
 
-	// TODO(Gianluca):
+	// TODO(Gianluca): see issue #177 and #100.
 	// fmt.Println([]interface{}{} == nil)
 	// fmt.Println([]byte{} == nil)
 
