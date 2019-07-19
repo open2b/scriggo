@@ -110,11 +110,6 @@ func (em *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	return false
 }
 
-// isNil reports whether expr is the nil identifier.
-func (em *emitter) isNil(expr ast.Expression) bool {
-	return em.ti(expr).Nil()
-}
-
 // kindToType returns the internal register type of a reflect kind.
 func kindToType(k reflect.Kind) vm.Type {
 	switch k {

@@ -1843,7 +1843,7 @@ func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
 		bodyLabels[i] = em.fb.newLabel()
 		hasDefault = hasDefault || cas.Expressions == nil
 		for _, caseExpr := range cas.Expressions {
-			if em.isNil(caseExpr) {
+			if em.ti(caseExpr).Nil() {
 				panic("TODO(Gianluca): not implemented")
 			}
 			caseType := em.ti(caseExpr).Type
@@ -1964,9 +1964,9 @@ func (em *emitter) emitCondition(cond ast.Expression) {
 		// if v   != nil
 		// if nil == v
 		// if nil != v
-		if em.isNil(cond.Expr1) != em.isNil(cond.Expr2) {
+		if em.ti(cond.Expr1).Nil() != em.ti(cond.Expr2).Nil() {
 			expr := cond.Expr1
-			if em.isNil(cond.Expr1) {
+			if em.ti(cond.Expr1).Nil() {
 				expr = cond.Expr2
 			}
 			typ := em.ti(expr).Type
