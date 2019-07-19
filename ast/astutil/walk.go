@@ -42,8 +42,6 @@ func Walk(v Visitor, node ast.Node) {
 	// If the child is a concrete type, it leaves it under management at
 	// the Visit, otherwise he manages it here on the Walk.
 
-	// TODO (Gianluca): add cases for new ast nodes.
-
 	case *ast.Tree:
 		for _, child := range n.Nodes {
 			Walk(v, child)
@@ -273,11 +271,12 @@ func Walk(v Visitor, node ast.Node) {
 	// Nothing to do, visiting the expanded tree is done
 	// by the Visit function if necessary.
 
-	case *ast.BasicLiteral:
-	case *ast.Identifier:
-	case *ast.ShowMacro:
-	case *ast.Comment:
-	case *ast.Text:
+	case *ast.BasicLiteral,
+		*ast.Identifier,
+		*ast.ShowMacro,
+		*ast.Comment,
+		*ast.Text,
+		*ast.Placeholder:
 		// Nothing to do
 
 	default:
