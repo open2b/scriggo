@@ -1250,11 +1250,13 @@ var checkerStmts = map[string]string{
 	`_ = cap([]int{})`:          ok,
 	`const _ = cap([...]int{})`: ok,
 	`const _ = cap([2]int{})`:   ok,
+	`_ = cap(new([1]byte))`:     ok,
 	`cap()`:                     `missing argument to cap: cap()`,
 	`cap(0)`:                    `invalid argument 0 (type int) for cap`,
 	`cap(nil)`:                  `use of untyped nil`,
 	`cap([]int{})`:              evaluatedButNotUsed("cap([]int literal)"),
 	`const _ = cap([]int{})`:    `const initializer cap([]int literal) is not a constant`,
+	// `const _ = cap(new([1]byte))`: `const initializer cap(new([1]byte)) is not a constant`, // TODO.
 
 	// Builtin function 'make'.
 	`_ = make(map[int]int)`:   ok,
