@@ -919,7 +919,6 @@ func (builder *functionBuilder) emitSelect() {
 //	ch <- v
 //
 func (builder *functionBuilder) emitSend(ch, v int8) {
-	// TODO(Gianluca): how can send know kind/type?
 	builder.fn.Body = append(builder.fn.Body, vm.Instruction{Op: vm.OpSend, A: v, C: ch})
 }
 
