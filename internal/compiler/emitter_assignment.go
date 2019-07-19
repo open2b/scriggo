@@ -59,7 +59,7 @@ func (a address) assign(k bool, value int8, valueType reflect.Type) {
 	case addressPointerIndirection:
 		a.em.changeRegister(k, value, -a.reg1, valueType, a.staticType)
 	case addressSliceIndex:
-		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2, a.staticType.Elem().Kind())
+		a.em.fb.emitSetSlice(k, a.reg1, value, a.reg2)
 	case addressMapIndex:
 		a.em.fb.emitSetMap(k, a.reg1, value, a.reg2, a.staticType)
 	case addressStructSelector:

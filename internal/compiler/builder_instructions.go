@@ -986,8 +986,7 @@ func (builder *functionBuilder) emitSetMap(k bool, m, value, key int8, typ refle
 //
 //	slice[index] = value
 //
-func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8, elemKind reflect.Kind) {
-	_ = elemKind // TODO(Gianluca): remove.
+func (builder *functionBuilder) emitSetSlice(k bool, slice, value, index int8) {
 	in := vm.Instruction{Op: vm.OpSetSlice, A: slice, B: value, C: index}
 	if k {
 		in.Op = -in.Op

@@ -346,7 +346,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 					em.fb.exitStack()
 					index := em.fb.newRegister(reflect.Int)
 					em.fb.emitMove(true, int8(i), index, reflect.Int)
-					em.fb.emitSetSlice(false, slice, tmp, index, t.Kind())
+					em.fb.emitSetSlice(false, slice, tmp, index)
 				}
 			}
 		}
@@ -1449,7 +1449,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				em.fb.emitMove(true, index, indexReg, reflect.Int)
 				elem, k := em.emitExprK(kv.Value, typ.Elem())
 				if reg != 0 {
-					em.fb.emitSetSlice(k, reg, elem, indexReg, typ.Elem().Kind())
+					em.fb.emitSetSlice(k, reg, elem, indexReg)
 				}
 				em.fb.exitStack()
 			}

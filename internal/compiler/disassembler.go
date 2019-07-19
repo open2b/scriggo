@@ -472,7 +472,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpSetSlice:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " " + disassembleOperand(fn, b, vm.Int, k)
+		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpSetVar:
 		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
