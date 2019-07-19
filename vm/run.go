@@ -1532,7 +1532,7 @@ func (vm *VM) run() (uint32, bool) {
 			case []interface{}:
 				vm.setGeneral(c, v[i])
 			default:
-				vm.setGeneral(c, reflect.ValueOf(v).Index(i).Interface())
+				vm.setFromReflectValue(c, reflect.ValueOf(v).Index(i))
 			}
 
 		// StringIndex

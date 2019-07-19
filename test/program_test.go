@@ -122,6 +122,50 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Issue #185 (3)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var s = make([]func(int) int, 1)
+			s[0] = func(x int) int { return x + 1 }
+			res := s[0](3)
+			fmt.Println(res)
+		}`,
+		out: "4\n",
+	},
+
+	{
+		name: "Issue #185 (2)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var s = make([]func() int, 1)
+			s[0] = func() int { return 10 }
+			res := s[0]()
+			fmt.Println(res)
+		}`,
+		out: "10\n",
+	},
+
+	{
+		name: "Issue #185",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var s = make([]func(), 1)
+			s[0] = func() { fmt.Println("called") }
+			s[0]()
+		}`,
+		out: "called\n",
+	},
+
+	{
 		name: "Unary operator -",
 		src: `package main
 
