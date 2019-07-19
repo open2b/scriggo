@@ -122,6 +122,21 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "Function call with function call as argument",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			fmt.Print(int(0))
+			fmt.Print(int(int(1)))
+			fmt.Print(int(2), int(-3))
+		}
+		`,
+		out: `012 -3`,
+	},
+	
+	{
 		name: "local alias declaration which shadowes package alias declaration",
 		src: `package main
 

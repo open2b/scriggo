@@ -1681,6 +1681,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			isSpecialCase = true
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c, false)
+			if len(tis) == 1 {
+				tc.TypeInfo[c] = tis[0]
+			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				tc.TypeInfo[v] = ti
@@ -1691,6 +1694,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if c, ok := args[0].(*ast.Call); ok {
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c, false)
+			if len(tis) == 1 {
+				tc.TypeInfo[c] = tis[0]
+			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
 				tc.TypeInfo[v] = ti
