@@ -4852,23 +4852,24 @@ var stmtTests = []struct {
 
 	{
 		name: "Function literal call - Shadowing package level function",
-		src: // TODO(Gianluca): test output.
-		`
-		package main
+		src: `package main
 
+		import "fmt"
+		
 		func f() {
 			panic("")
 		}
-
+		
 		func main() {
 			f := func() {
+				fmt.Print("local function")
 				// No panic.
 			}
 			f()
 			return
 		}
 		`,
-		out: ""},
+		out: "local function"},
 
 	{
 		name: "Package function call",
