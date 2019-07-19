@@ -334,7 +334,7 @@ var rendererStmtTests = []struct {
 	// {"{% b := map[interface{}]interface{}{5.2: true} %}{% if a, ok := b[5.2]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% b := map[interface{}]interface{}{5: true} %}{% if a, ok := b[5]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% b := map[interface{}]interface{}{true: true} %}{% if a, ok := b[true]; ok %}ok{% else %}no{% end %}", "ok", nil},
-	// TODO (Gianluca): fails with error: reflect: call of reflect.Value.SetMapIndex on zero Value
+	// TODO (Gianluca): see issue #100.
 	// {"{% b := map[interface{}]interface{}{nil: true} %}{% if a, ok := b[nil]; ok %}ok{% else %}no{% end %}", "ok", nil},
 	// {"{% a := 5 %}{% if true %}{% a = 7 %}{{ a }}{% end %}", "7", nil},
 	// {"{% a := 5 %}{% if true %}{% a := 7 %}{{ a }}{% end %}", "7", nil},
