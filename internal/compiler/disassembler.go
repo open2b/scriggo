@@ -499,7 +499,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		//s += " " + disassembleOperand(scriggo, c, vm.Interface, false)
+		s += " " + disassembleOperand(fn, c, vm.Interface, false) // TODO: not always interface.
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
