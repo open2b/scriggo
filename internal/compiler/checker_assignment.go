@@ -292,7 +292,10 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
 	}
 
-	if typ != nil {
+	if typ == nil {
+		// Type is not explicit, so is deducted by value.
+		right.setValue(nil)
+	} else {
 		// Type is explicit, so must check assignability.
 		if err := isAssignableTo(right, rightExpr, typ.Type); err != nil {
 			if rightExpr == nil {
@@ -301,9 +304,6 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
 		right.setValue(typ.Type)
-	} else {
-		// Type is not explicit, so is deducted by value.
-		right.setValue(nil)
 	}
 
 	switch leftExpr := leftExpr.(type) {
