@@ -94,8 +94,6 @@ import (
 //
 // TODO (Gianluca): update doc. including type parsing.
 //
-// TODO (Gianluca): use allMustBeTypes in switch cases properly
-//
 // TODO (Gianluca): mustBeType ritorna quando ha finito di parsare un tipo.
 // Devono però essere aggiunti i controlli che verifichino che effettivamente
 // ciò che è stato parsato sia un tipo.
@@ -104,7 +102,10 @@ import (
 //
 func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
 
-	// TODO (Gianluca): to doc.
+	// reuseLastToken reports whether the second part of parseExpr should reuse
+	// the last read token or should read a new one. This is necessary in all
+	// cases when the next token is necessary to determine the type of the
+	// expression but it's not part of it.
 	reuseLastToken := false
 
 	// canCompositeLiteral reports whether the currently parsed expression can
