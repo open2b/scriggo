@@ -232,8 +232,8 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 	return nil, 0
 }
 
-// isUpValue checks if name is an upvalue.
-func (tc *typechecker) isUpValue(name string) bool {
+// isUpVar checks if name is an upvar.
+func (tc *typechecker) isUpVar(name string) bool {
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.Scopes) - 1; i >= 0; i-- {
 		for n := range tc.Scopes[i] {
@@ -283,9 +283,9 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	panic(fmt.Sprintf("trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // TODO(Gianluca): to review.
 }
 
-// funcChain returns a list of ordered functions from the brother of name's
+// getNestedFuncs returns a list of ordered functions from the brother of name's
 // declaration to the innermost.
-func (tc *typechecker) funcChain(name string) []*ast.Func {
+func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	declLevel, imported := tc.getScopeLevel(name)
 	// If name has been imported, function chain does not exist.
 	if imported {
@@ -316,30 +316,25 @@ var showMacroIgnoredTi = &TypeInfo{}
 // from scope. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
-	if tc.isUpValue(ident.Name) || tc.isPackageVariable(ident.Name) {
-		decl := tc.getDeclarationNode(ident.Name)
-		upvar := ast.Upvar{Declaration: decl, Index: -1}
-		chain := tc.funcChain(ident.Name)
-		for _, f := range chain {
-			contains := false
-			for i, uv := range f.Upvars {
+	// If ident is an upvar, add it as upvar for all nested functions.
+	if tc.isUpVar(ident.Name) || tc.isPackageVariable(ident.Name) {
+		upvar := ast.Upvar{
+			Declaration: tc.getDeclarationNode(ident.Name),
+			Index:       -1,
+		}
+		for _, fn := range tc.getNestedFuncs(ident.Name) {
+			add := true
+			for i, uv := range fn.Upvars {
 				if uv.Declaration == upvar.Declaration {
-					contains = true
 					upvar.Index = int16(i)
+					add = false
 					break
 				}
 			}
-			if !contains {
-				f.Upvars = append(f.Upvars, upvar)
-				upvar.Index = int16(len(f.Upvars) - 1)
+			if add {
+				fn.Upvars = append(fn.Upvars, upvar)
+				upvar.Index = int16(len(fn.Upvars) - 1)
 			}
-		}
-	}
-
-	// Looks for upvalues.
-	if fun, _ := tc.currentFunction(); fun != nil {
-		if tc.isUpValue(ident.Name) {
-			fun.Upvalues = append(fun.Upvalues, ident.Name)
 		}
 	}
 
