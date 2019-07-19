@@ -122,6 +122,117 @@ var stmtTests = []struct {
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
 	{
+		name: "local alias declaration which shadowes package alias declaration",
+		src: `package main
+
+		import "fmt"
+		
+		type T = int
+		
+		var v1 T = 10
+		
+		func main() {
+			fmt.Printf("%v-%T", v1, v1)
+			var v2 T = 20
+			fmt.Printf("%v-%T", v2, v2)
+			type T = string
+			var v3 T = "hey"
+			fmt.Printf("%v-%T", v3, v3)
+		}
+		`,
+		out: `10-int20-inthey-string`,
+	},
+
+	{
+		name: "local alias declaration",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			type Int = int
+			var i Int = 20
+			fmt.Print(i)
+		}
+		`,
+		out: `20`,
+	},
+
+	{
+		name: "alias declaration used in function declaration",
+		src: `package main
+
+		import "fmt"
+		
+		type Int = int
+		
+		func zero() Int {
+			var z int
+			return z
+		}
+		
+		func main() {
+			fmt.Print(zero())
+			var z1 Int = zero()
+			var z2 int = zero()
+			fmt.Print(z1, z2)
+		}
+		`,
+		out: `00 0`,
+	},
+
+	{
+		name: "alias declaration where first alias depends on second",
+		src: `package main
+
+		import "fmt"
+		
+		type Int2 = Int1
+		type Int1 = int
+		
+		func main() {
+			var i1 Int1 = Int1(10)
+			var i2 Int2 = Int2(30)
+			fmt.Print(i1, i2)
+		}
+		`,
+		out: `10 30`,
+	},
+
+	{
+		name: "alias declaration used in a composite literal",
+		src: `package main
+
+		import "fmt"
+		
+		type SliceInt = []int
+		
+		func main() {
+			si := SliceInt{10, 20, 30}
+			fmt.Print(len(si))
+			fmt.Print(si)
+		}
+		`,
+		out: `3[10 20 30]`,
+	},
+
+	{
+		name: "alias declaration",
+		src: `package main
+
+		import "fmt"
+		
+		type Int = int
+		
+		func main() {
+			var i Int = 10
+			fmt.Print(i)
+		}
+		`,
+		out: `10`,
+	},
+
+	{
 		name: "Upvars referring to a multiple assignment",
 		src: `package main
 

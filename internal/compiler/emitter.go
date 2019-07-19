@@ -1080,6 +1080,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 			em.fb.emitLoadData(int16(index), em.templateRegs.gE)
 			em.fb.emitCallIndirect(em.templateRegs.gB, 0, vm.StackShift{em.templateRegs.iA - 1, 0, 0, em.templateRegs.gC})
 
+		case *ast.TypeDeclaration:
+			// Nothing to do.
+
 		case *ast.TypeSwitch:
 			currentBreakable := em.breakable
 			currentBreakLabel := em.breakLabel

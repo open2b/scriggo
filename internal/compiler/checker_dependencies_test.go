@@ -601,6 +601,89 @@ var cases = map[string]struct {
 			"A": {"int"},
 		},
 	},
+	"one alias declarations": {
+		`package pkg
+		
+		type Int = int`,
+		map[string][]string{
+			"Int": {"int"},
+		},
+	},
+	"two independent alias declarations": {
+		`package pkg
+		
+		type Int = int
+		type String = string`,
+		map[string][]string{
+			"Int":    {"int"},
+			"String": {"string"},
+		},
+	},
+	"two alias declarations where second depends on first": {
+		`package pkg
+		
+		type A = int
+		type B = A`,
+		map[string][]string{
+			"A": {"int"},
+			"B": {"A"},
+		},
+	},
+	"two alias declarations where second depends on first (more complex)": {
+		`package pkg
+		
+		type A = int
+		type B = map[A][]string`,
+		map[string][]string{
+			"A": {"int"},
+			"B": {"A", "string"},
+		},
+	},
+	"function declaration referring to a type declaration": {
+		`package pkg
+		
+		type Int = int
+		type String = string
+		type Mix = map[Int]String
+		
+		func F(i Int, s String) Mix {
+			return Mix{}
+		}`,
+		map[string][]string{
+			"Int":    {"int"},
+			"String": {"string"},
+			"Mix":    {"Int", "String"},
+			"F":      {"Int", "String", "Mix"},
+		},
+	},
+	"alias declarations, constants, variables and functions": {
+		`package main
+
+		type A = int
+		type B = A
+
+		const C A = 10
+		const C2 B = C
+
+		var V1 A
+		var V2 B
+
+		func F(a, b, c A) B {
+			return B(0)
+		}
+
+		func main() {}`,
+		map[string][]string{
+			"A":    {"int"},
+			"B":    {"A"},
+			"C":    {"A"},
+			"C2":   {"B", "C"},
+			"V1":   {"A"},
+			"V2":   {"B"},
+			"F":    {"A", "B"},
+			"main": {},
+		},
+	},
 }
 
 func TestDependencies(t *testing.T) {

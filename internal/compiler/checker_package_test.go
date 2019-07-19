@@ -200,10 +200,10 @@ func TestPackageOrdering(t *testing.T) {
 			`package main
 
 			import "fmt"
-			
+
 			const A = B
 			const B = 20
-			
+
 			func main() {
 				fmt.Println(A)
 				fmt.Println(B)
@@ -215,9 +215,75 @@ func TestPackageOrdering(t *testing.T) {
 			var _ = A
 			var _ = 10
 			var A = 20
-			
+
 			func main() {}
 			`, "_,A,_,main,",
+		},
+		"one alias declaration": {
+			`package main
+
+			type A = int
+
+			func main() {}`,
+			"A,main,",
+		},
+		"two alias declarations": {
+			`package main
+
+			type A = int
+			type B = string
+
+			func main() {}`,
+			"A,B,main,",
+		},
+		"two (dependent) alias declarations": {
+			`package main
+
+			type A = int
+			type B = A
+
+			func main() {}`,
+			"A,B,main,",
+		},
+		"two (dependent) alias declarations where first depends on second": {
+			`package main
+
+			type B = A
+			type A = int
+
+			func main() {}`,
+			"A,B,main,",
+		},
+		"alias declarations with funcs, vars and consts": {
+			`package main
+
+			type A = int
+			type B = A
+
+			const C A = 10
+			const C2 B = C
+
+			var V1 A
+			var V2 B
+
+			func F(a, b, c A) B {
+				return B(0)
+			}
+
+			func main() {}`,
+			"A,B,C,C2,V1,V2,F,main,",
+		},
+		"package variable with a type alias declaration as type": {
+			`package main
+
+			type T = int
+
+			var v1 T = 10
+
+			func main() {
+			}
+			`,
+			"T,v1,main,",
 		},
 	}
 	for name, cas := range cases {
@@ -240,6 +306,8 @@ func TestPackageOrdering(t *testing.T) {
 					got += d.Lhs[0].Name + ","
 				case *ast.Func:
 					got += d.Ident.Name + ","
+				case *ast.TypeDeclaration:
+					got += d.Identifier.Name + ","
 				}
 			}
 			if cas.expected != got {

@@ -162,8 +162,27 @@ func detectVarsLoop(vars []*ast.Var, deps PackageDeclsDeps) error {
 	return nil
 }
 
+func detectTypeLoop(types []*ast.TypeDeclaration, deps PackageDeclsDeps) error {
+	for _, t := range types {
+		if !t.IsAliasDeclaration {
+			panic("TODO: not implemented") // TODO(Gianluca): to implement.
+		}
+		path := []*ast.Identifier{t.Identifier}
+		loopPath := checkDepsPath(path, deps)
+		if loopPath != nil {
+			msg := "invalid recursive type alias " + t.String() + "\n"
+			for _, p := range loopPath {
+				msg += "\t" + p.Pos().String() + ": " + p.String() + "\n"
+			}
+			return errors.New(msg)
+		}
+	}
+	return nil
+}
+
 func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 	var extends *ast.Extends
+	types := []*ast.TypeDeclaration{}
 	consts := []*ast.Const{}
 	vars := []*ast.Var{}
 	imports := []*ast.Import{}
@@ -190,6 +209,8 @@ func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 					consts = append(consts, ast.NewConst(decl.Pos(), decl.Lhs[i:i+1], decl.Type, decl.Rhs[i:i+1]))
 				}
 			}
+		case *ast.TypeDeclaration:
+			types = append(types, decl)
 		case *ast.Var:
 			if len(decl.Lhs) == len(decl.Rhs) {
 				for i := range decl.Lhs {
@@ -208,6 +229,11 @@ func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 			// Is d a global identifier?
 			for _, c := range consts {
 				if c.Lhs[0].Name == d.Name {
+					newDs = append(newDs, d)
+				}
+			}
+			for _, t := range types {
+				if t.Identifier.Name == d.Name {
 					newDs = append(newDs, d)
 				}
 			}
@@ -235,6 +261,49 @@ func sortDeclarations(pkg *ast.Package, deps PackageDeclsDeps) error {
 	if err != nil {
 		return err
 	}
+	err = detectTypeLoop(types, deps)
+	if err != nil {
+		return err
+	}
+
+	// Sort types declarations.
+	sortedTypes := []*ast.TypeDeclaration{}
+typesLoop:
+	for len(types) > 0 {
+		loop := true
+		// Searches for next type declaration with resolved deps.
+		for i, t := range types {
+			depsOk := true
+			for _, dep := range deps[t.Identifier] {
+				found := false
+				for _, resolvedT := range sortedTypes {
+					if dep.Name == resolvedT.Identifier.Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
+				if !found {
+					// A dependency of t cannot be found.
+					depsOk = false
+					break
+				}
+			}
+			if depsOk {
+				// All dependencies of types are resolved.
+				sortedTypes = append(sortedTypes, t)
+				types = append(types[:i], types[i+1:]...)
+				continue typesLoop
+			}
+		}
+		if loop {
+			// All remaining constants are added as "sorted"; a later stage of
+			// the type checking will report the error (usually a not defined
+			// symbol).
+			sortedTypes = append(sortedTypes, types...)
+		}
+	}
 
 	// Sorts constants.
 	sortedConsts := []*ast.Const{}
@@ -248,6 +317,14 @@ constsLoop:
 				found := false
 				for _, resolvedC := range sortedConsts {
 					if dep.Name == resolvedC.Lhs[0].Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
+				for _, t := range sortedTypes {
+					if dep.Name == t.Identifier.Name {
 						// This dependency has been resolved: move
 						// on checking for next one.
 						found = true
@@ -312,6 +389,14 @@ varsLoop:
 						break
 					}
 				}
+				for _, t := range sortedTypes {
+					if dep.Name == t.Identifier.Name {
+						// This dependency has been resolved: move
+						// on checking for next one.
+						found = true
+						break
+					}
+				}
 				if !found {
 					// A dependency of v cannot be found.
 					depsOk = false
@@ -339,6 +424,9 @@ varsLoop:
 	}
 	for _, imp := range imports {
 		sorted = append(sorted, imp)
+	}
+	for _, t := range sortedTypes {
+		sorted = append(sorted, t)
 	}
 	for _, c := range sortedConsts {
 		sorted = append(sorted, c)
@@ -377,8 +465,23 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 		return err
 	}
 
+	// First: check all type declarations.
+	for _, d := range packageNode.Declarations {
+		if td, ok := d.(*ast.TypeDeclaration); ok {
+			if !td.IsAliasDeclaration {
+				panic(tc.errorf(d, "type definition is not supported in this release of Scriggo"))
+			}
+			typ := tc.checkType(td.Type, noEllipses)
+			tc.assignScope(td.Identifier.Name, typ, td.Identifier)
+		}
+	}
+
 	// Defines functions in file/package block before checking all
 	// declarations.
+	//
+	// TODO(Gianluca): what happens if a function parameter type refer to an
+	// imported type? Consider checking all imports before checking functions.
+	//
 	for _, d := range packageNode.Declarations {
 		if f, ok := d.(*ast.Func); ok {
 			if f.Ident.Name == "init" || f.Ident.Name == "main" {

@@ -120,6 +120,11 @@ func (d deps) analyzeGlobalMacro(n *ast.Macro) {
 	}
 }
 
+// analyzeGlobalTypeDeclaration analyzes a global type declaration.
+func (d deps) analyzeGlobalTypeDeclaration(td *ast.TypeDeclaration) {
+	d.addDepsToGlobal(td.Identifier, td.Type, nil)
+}
+
 // AnalyzeTree analyzes tree returning a data structure holding all dependencies
 // informations.
 func AnalyzeTree(tree *ast.Tree, syntaxType SyntaxType) PackageDeclsDeps {
@@ -135,6 +140,8 @@ func AnalyzeTree(tree *ast.Tree, syntaxType SyntaxType) PackageDeclsDeps {
 				d.analyzeGlobalConst(n)
 			case *ast.Func:
 				d.analyzeGlobalFunc(n)
+			case *ast.TypeDeclaration:
+				d.analyzeGlobalTypeDeclaration(n)
 			}
 		}
 	case TemplateSyntax:
@@ -395,6 +402,8 @@ func nodeDeps(n ast.Node, scopes depScopes) []*ast.Identifier {
 		deps := nodeDeps(n.Expr, scopes)
 		deps = append(deps, nodeDeps(n.Type, scopes)...)
 		return deps
+	case *ast.TypeDeclaration:
+		return nodeDeps(n.Type, scopes)
 	case *ast.TypeSwitch:
 		scopes = enterScope(scopes)
 		deps := nodeDeps(n.Init, scopes)

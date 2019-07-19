@@ -491,9 +491,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.TypeDeclaration:
-			// TODO (Gianluca): it currently evaluates every type
-			// declaration as alias declaration, cause defining new types
-			// is currently not supported.
+			if !node.IsAliasDeclaration {
+				panic(tc.errorf(node, "type definition is not supported in this release of Scriggo"))
+			}
 			if isBlankIdentifier(node.Identifier) {
 				continue
 			}
