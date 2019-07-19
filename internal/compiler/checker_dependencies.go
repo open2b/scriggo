@@ -59,12 +59,12 @@ func (d deps) analyzeGlobalVar(n *ast.Var) {
 			d.addDepsToGlobal(n.Lhs[i], n.Type, nil)
 			d.addDepsToGlobal(n.Lhs[i], n.Rhs[i], nil)
 		}
-	} else {
-		for _, left := range n.Lhs {
-			d.addDepsToGlobal(left, n.Type, nil)
-			for _, right := range n.Rhs {
-				d.addDepsToGlobal(left, right, nil)
-			}
+		return
+	}
+	for _, left := range n.Lhs {
+		d.addDepsToGlobal(left, n.Type, nil)
+		for _, right := range n.Rhs {
+			d.addDepsToGlobal(left, right, nil)
 		}
 	}
 }
@@ -85,11 +85,11 @@ func (d deps) analyzeGlobalDeclarationAssignment(n *ast.Assignment) {
 				d.addDepsToGlobal(ident, n.Rhs[i], nil)
 			}
 		}
-	} else {
-		for _, left := range n.Lhs {
-			for _, right := range n.Rhs {
-				d.addDepsToGlobal(left.(*ast.Identifier), right, nil)
-			}
+		return
+	}
+	for _, left := range n.Lhs {
+		for _, right := range n.Rhs {
+			d.addDepsToGlobal(left.(*ast.Identifier), right, nil)
 		}
 	}
 }
