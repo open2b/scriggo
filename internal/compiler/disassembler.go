@@ -247,8 +247,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, c, kind, false)
 	case vm.OpBind, vm.OpGetVar:
 		s += " " + disassembleVarRef(fn, globals, int16(int(a)<<8|int(uint8(b))))
-		// TODO(Gianluca): add correct register type, not 'vm.Int'.
-		s += " " + disassembleOperand(fn, c, vm.Int, false)
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpBreak, vm.OpContinue, vm.OpGoto:
 		s += " " + strconv.Itoa(int(decodeUint24(a, b, c)))
 	case vm.OpCall, vm.OpCallIndirect, vm.OpCallPredefined, vm.OpTailCall, vm.OpDefer:
@@ -499,7 +498,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 	case vm.OpSliceIndex:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
 		s += " " + disassembleOperand(fn, b, vm.Int, k)
-		s += " " + disassembleOperand(fn, c, vm.Interface, false) // TODO: not always interface.
+		s += " " + disassembleOperand(fn, c, vm.Unknown, false)
 	case vm.OpTypify:
 		typ := fn.Types[int(uint(a))]
 		s += " " + typ.String()
@@ -607,6 +606,8 @@ func registerKindToLabel(kind vm.Kind) string {
 		return "f"
 	case vm.String:
 		return "s"
+	case vm.Unknown:
+		return "r"
 	default:
 		return "g"
 	}
@@ -628,6 +629,8 @@ func disassembleOperand(fn *vm.Function, op int8, kind vm.Kind, constant bool) s
 			return "true"
 		case kind == vm.String:
 			return strconv.Quote(fn.Constants.String[uint8(op)])
+		case kind == vm.Unknown:
+			return "(unkown constant)"
 		default:
 			v := fn.Constants.General[uint8(op)]
 			if v == nil {

@@ -887,6 +887,7 @@ const (
 	String      = Kind(reflect.String)
 	Func        = Kind(reflect.Func)
 	Interface   = Kind(reflect.Interface)
+	Unknown     = 254
 	Environment = 255
 )
 
