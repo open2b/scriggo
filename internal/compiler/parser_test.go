@@ -54,7 +54,7 @@ func (pp predefinedPackages) Load(path string) (interface{}, error) {
 }
 
 func p(line, column, start, end int) *ast.Position {
-	return &ast.Position{line, column, start, end}
+	return &ast.Position{Line: line, Column: column, Start: start, End: end}
 }
 
 var goContextTreeTests = []struct {
