@@ -53,7 +53,7 @@ func (p *parsing) parseFunc(tok token, kind funcKindToParse) (ast.Node, token) {
 		pos.End = endPos.End
 		tok = next(p.lex)
 	case tokenLeftBrackets, tokenFunc, tokenIdentifier, tokenInterface, tokenMap, tokenMultiplication, tokenStruct:
-		expr, tok = p.parseExpr(tok, false, false, true, true)
+		expr, tok = p.parseExpr(tok, false, true, true)
 		pos.End = tok.pos.End
 		result = []*ast.Field{ast.NewField(nil, expr)}
 	}
@@ -119,7 +119,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 			field.Type = p.parseIdentifierNode(tok)
 			tok = next(p.lex)
 		} else {
-			field.Type, tok = p.parseExpr(tok, true, false, true, false)
+			field.Type, tok = p.parseExpr(tok, false, true, false)
 		}
 		if tok.typ == tokenRightParenthesis {
 			if field.Type != nil {
@@ -142,7 +142,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 		} else if field.Type == nil {
 			panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
 		}
-		expr, tok = p.parseExpr(tok, false, false, true, false)
+		expr, tok = p.parseExpr(tok, false, true, false)
 		if expr == nil {
 			if isVariadic {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("final argument in variadic function missing type")})

@@ -88,8 +88,7 @@ import (
 
 // parseExpr parses an expression and returns its tree and the last read token
 // that does not belong to the expression. tok, if initialized, is the first
-// token of the expression. canBeBlank reports whether the parsed expression
-// can be the blank identifier. canBeSwitchGuard reports whether the parsed
+// token of the expression. canBeSwitchGuard reports whether the parsed
 // expression can be a type switch guard, as x.(type). It panics on error.
 //
 // TODO (Gianluca): update doc. including type parsing.
@@ -100,7 +99,7 @@ import (
 //
 // TODO (Gianluca): nextIsBlockOpen should have a better name.
 //
-func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
+func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlockOpen bool) (ast.Expression, token) {
 
 	// reuseLastToken reports whether the second part of parseExpr should reuse
 	// the last read token or should read a new one. This is necessary in all
@@ -135,11 +134,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 	// "-", "a *", "b *", "c ()", "<", "d ||", "!", "e".
 	//
 
-	// mustBeBlank reports whether the parsed expression must be the blank
-	// identifier. It must be if it can be the blank identifier and the
-	// first token is "_".
-	var mustBeBlank bool
-
 	// mustBeSwitchGuard reports wheter the parsed expression must be a type
 	// switch guard, that is `expr.(type)`.
 	var mustBeSwitchGuard bool
@@ -160,7 +154,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			// The parenthesis will be omitted from the expression tree.
 			pos := tok.pos
 			var expr ast.Expression
-			expr, tok = p.parseExpr(token{}, false, false, mustBeType, false)
+			expr, tok = p.parseExpr(token{}, false, mustBeType, false)
 			if expr == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -180,12 +174,12 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting [", tok)})
 			}
 			var typ ast.Expression
-			typ, tok = p.parseExpr(token{}, false, false, true, false)
+			typ, tok = p.parseExpr(token{}, false, true, false)
 			if tok.typ != tokenRightBrackets {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting %s", tok, tokenRightBraces)})
 			}
 			mapType.KeyType = typ
-			typ, tok = p.parseExpr(token{}, false, false, true, false)
+			typ, tok = p.parseExpr(token{}, false, true, false)
 			if typ == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting type", tok)})
 			}
@@ -206,7 +200,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					fieldDecl := ast.NewFieldDecl(nil, nil, nil)
 					var exprs []ast.Expression
 					var typ ast.Expression
-					exprs, tok = p.parseExprList(tok, true, false, true, false)
+					exprs, tok = p.parseExprList(tok, false, true, false)
 					if tok.typ == tokenSemicolon {
 						// Implicit field declaration.
 						if len(exprs) != 1 {
@@ -216,7 +210,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 						tok = next(p.lex)
 					} else {
 						// Explicit field declaration.
-						typ, tok = p.parseExpr(tok, false, false, true, false)
+						typ, tok = p.parseExpr(tok, false, true, false)
 						if tok.typ != tokenSemicolon {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting semicolon", tok)})
 						}
@@ -281,7 +275,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					tok = next(p.lex)
 				}
 				var elemType ast.Expression
-				elemType, tok = p.parseExpr(tok, false, false, true, false)
+				elemType, tok = p.parseExpr(tok, false, true, false)
 				if elemType == nil {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("missing channel element type")})
 				}
@@ -312,13 +306,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			operand = ast.NewBasicLiteral(tok.pos, literalType(tok.typ), string(tok.txt))
 		case tokenIdentifier: // a
 			ident := p.parseIdentifierNode(tok)
-			// TODO (Gianluca): this check must be done during the type checking.
-			// if ident.Name == "_" {
-			// 	if !canBeBlank {
-			// 		panic(&Error{"", *tok.pos, fmt.Errorf("cannot use _ as value")})
-			// 	}
-			// 	mustBeBlank = true
-			// }
 			operand = ident
 			if mustBeType {
 				tok = next(p.lex)
@@ -346,7 +333,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			case tokenRightBrackets:
 			default:
 				oldTok := tok
-				expr, tok = p.parseExpr(tok, false, false, false, false)
+				expr, tok = p.parseExpr(tok, false, false, false)
 				if expr == nil {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", oldTok)})
 				}
@@ -356,7 +343,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
 			}
 			var typ ast.Expression
-			typ, tok = p.parseExpr(token{}, false, false, true, false)
+			typ, tok = p.parseExpr(token{}, false, true, false)
 			if typ == nil {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 			}
@@ -391,8 +378,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			}
 		}
 
-		canBeBlank = false
-
 		for operator == nil {
 
 			if !reuseLastToken {
@@ -417,14 +402,14 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				var keyValues []ast.KeyValue
 				var expr ast.Expression
 				for {
-					expr, tok = p.parseExpr(token{}, false, false, false, false)
+					expr, tok = p.parseExpr(token{}, false, false, false)
 					if expr == nil {
 						break
 					}
 					switch tok.typ {
 					case tokenColon:
 						var value ast.Expression
-						value, tok = p.parseExpr(token{}, false, false, false, false)
+						value, tok = p.parseExpr(token{}, false, false, false)
 						if value == nil {
 							panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting expression", tok)})
 						}
@@ -446,7 +431,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 			case tokenLeftParenthesis: // e(...)
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
-				args, tok := p.parseExprList(token{}, false, false, false, false)
+				args, tok := p.parseExprList(token{}, false, false, false)
 				var isVariadic bool
 				if tok.typ == tokenEllipses {
 					if len(args) == 0 {
@@ -465,15 +450,15 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 				pos := tok.pos
 				pos.Start = operand.Pos().Start
 				var index ast.Expression
-				index, tok = p.parseExpr(token{}, false, false, false, false)
+				index, tok = p.parseExpr(token{}, false, false, false)
 				if tok.typ == tokenColon {
 					low := index
 					isFull := false
 					var high, max ast.Expression
-					high, tok = p.parseExpr(token{}, false, false, false, false)
+					high, tok = p.parseExpr(token{}, false, false, false)
 					if tok.typ == tokenColon {
 						isFull = true
-						max, tok = p.parseExpr(token{}, false, false, false, false)
+						max, tok = p.parseExpr(token{}, false, false, false)
 					}
 					if tok.typ != tokenRightBrackets {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting ]", tok)})
@@ -523,7 +508,7 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 						}
 						fallthrough
 					default:
-						typ, tok = p.parseExpr(tok, false, true, true, false)
+						typ, tok = p.parseExpr(tok, true, true, false)
 					}
 					if tok.typ != tokenRightParenthesis {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected %s, expecting )", tok)})
@@ -575,11 +560,6 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 					}
 					// The operand is the the root of the expression tree.
 					operand = path[0]
-				}
-				if mustBeBlank {
-					if ident, ok := operand.(*ast.Identifier); !ok || ident.Name != "_" {
-						panic(&SyntaxError{"", *ident.Position, fmt.Errorf("cannot use _ as value")})
-					}
 				}
 				if mustBeSwitchGuard && !isTypeGuard(operand) {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("use of .(type) outside type switch")})
@@ -688,17 +668,16 @@ func (p *parsing) parseExpr(tok token, canBeBlank, canBeSwitchGuard, mustBeType,
 
 // parseExprList parses a list of expressions separated by a comma and returns
 // the list and the last token read that can not be part of the last expression.
-// tok, if initialized, is the first token of the expression. canBeBlank
-// reports whether a parsed expression can be the blank identifier.
+// tok, if initialized, is the first token of the expression.
 // allowSwitchGuard reports whether a parsed expression can contain a type
 // switch guard. It panics on error.
 //
 // TODO (Gianluca): nextIsBlockOpen should have a better name
 //
-func (p *parsing) parseExprList(tok token, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
+func (p *parsing) parseExprList(tok token, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen bool) ([]ast.Expression, token) {
 	var elements = []ast.Expression{}
 	for {
-		element, tok2 := p.parseExpr(tok, allowBlank, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
+		element, tok2 := p.parseExpr(tok, allowSwitchGuard, allMustBeTypes, nextIsBlockOpen)
 		if element == nil {
 			return elements, tok2
 		}
