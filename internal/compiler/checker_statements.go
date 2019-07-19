@@ -503,6 +503,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.Show:
 			ti := tc.checkExpression(node.Expr)
+			if ti.Nil() {
+				panic(tc.errorf(node, "use of untyped nil"))
+			}
 			ti.setValue(nil)
 			tc.terminating = false
 

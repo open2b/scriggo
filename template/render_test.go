@@ -21,7 +21,6 @@ var htmlContextTests = []struct {
 	res  string
 	vars Vars
 }{
-	//{`nil`, "", nil}, TODO: runtime error: invalid memory address or nil pointer dereference
 	{`""`, "", nil},
 	{`"a"`, "a", nil},
 	{`"<a>"`, "&lt;a&gt;", nil},
