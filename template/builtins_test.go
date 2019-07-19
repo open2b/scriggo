@@ -83,7 +83,7 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ escapeQuery(` `) }}", "%20", nil},
 	{"{{ escapeQuery(`a/b+c?d#`) }}", "a%2fb%2bc%3fd%23", nil},
 
-	// hash TODO: invalid memory address or nil pointer dereference
+	// hash
 	{"{{ hash(MD5, ``) }}", "d41d8cd98f00b204e9800998ecf8427e", nil},
 	{"{{ hash(MD5, `hello world!`) }}", "fc3ff98e8c6a0d3087d515c0473f8677", nil},
 	{"{{ hash(SHA1, ``) }}", "da39a3ee5e6b4b0d3255bfef95601890afd80709", nil},
@@ -107,7 +107,7 @@ var rendererBuiltinTestsInHTMLContext = []struct {
 	{"{{ hex(``) }}", "", nil},
 	{"{{ hex(`hello world!`) }}", "68656c6c6f20776f726c6421", nil},
 
-	// hmac TODO: invalid memory address or nil pointer dereference
+	// hmac
 	{"{{ hmac(MD5, ``, ``) }}", "dOb3KYqcLRaJNfWMAButiA==", nil},
 	{"{{ hmac(MD5, `hello world!`, ``) }}", "POUE2/xvWDT8UjcXJ4d/hQ==", nil},
 	{"{{ hmac(MD5, ``, `secret`) }}", "XI2wPwTOwPQ7ywYAI5FBkA==", nil},
