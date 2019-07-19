@@ -360,10 +360,7 @@ func (builder *functionBuilder) emitRange(k bool, s, i, e int8, kind reflect.Kin
 		}
 	default:
 		if k {
-			// TODO(Gianluca):  if Range is called with k == true but kind
-			// is not reflect.String, s (which is a constant) is threated
-			// as non-constant by builder and VM.
-			panic("bug!")
+			panic("bug on emitter: emitRange with k = true is compatible only with kind == reflect.String")
 		}
 		op = vm.OpRange
 	}
