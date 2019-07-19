@@ -578,7 +578,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	case *ast.StructType:
 		fields := []reflect.StructField{}
-		for _, fd := range expr.FieldDecl {
+		for i, fd := range expr.FieldDecl {
 			typ := tc.checkType(fd.Type, noEllipses).Type
 			if fd.IdentifierList == nil {
 				// Implicit field declaration.
@@ -596,11 +596,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				for _, ident := range fd.IdentifierList {
 					fields = append(fields, reflect.StructField{
 						Name:      ident.Name,
-						PkgPath:   "", // TODO (Gianluca): to review.
+						PkgPath:   "",
 						Type:      typ,
-						Tag:       "",  // TODO (Gianluca): to review.
-						Offset:    0,   // TODO (Gianluca): to review.
-						Index:     nil, // TODO (Gianluca): to review.
+						Tag:       "", // TODO(Gianluca): to implement.
+						Index:     []int{i},
 						Anonymous: false,
 					})
 				}
