@@ -284,14 +284,14 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 }
 
 // funcChain returns a list of ordered functions from the brother of name's
-// declaration to the inner one.
+// declaration to the innermost.
 func (tc *typechecker) funcChain(name string) []*ast.Func {
-	funcs := []*ast.Func{}
 	declLevel, imported := tc.getScopeLevel(name)
 	// If name has been imported, function chain does not exist.
 	if imported {
 		return nil
 	}
+	funcs := []*ast.Func{}
 	for _, anc := range tc.ancestors {
 		if fun, ok := anc.node.(*ast.Func); ok {
 			if declLevel < anc.scopeLevel {
