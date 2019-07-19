@@ -8,10 +8,12 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -157,37 +159,18 @@ func fatal(a interface{}) {
 }
 
 func main() {
-	verbose := false
-	veryVerbose := false
-	mustRecover := true
-	pattern := ""
-	for i, arg := range os.Args {
-		if arg == "-v" || arg == "--verbose" {
-			verbose = true
-		}
-		if arg == "-n" || arg == "--no-recover" {
-			mustRecover = false
-		}
-		if arg == "-V" || arg == "--veryVerbose" {
-			veryVerbose = true
-			verbose = true
-		}
-		if arg == "-h" || arg == "--help" {
-			fmt.Printf("Usage: %s [--no-recover|-n] [--verbose|-v] [--veryVerbose|-V] [--help|-h] [--pattern|-p PATTERN]\n", os.Args[0])
-			os.Exit(0)
-		}
-		if arg == "-p" || arg == "--pattern" {
-			pattern = os.Args[i+1]
-		}
-	}
+
+	verbose := flag.Bool("v", false, "enable verbose output")
+	veryVerbose := flag.Bool("vv", false, "enable very verbose output")
+	mustRecover := flag.Bool("n", false, "disable recovering")
+	pattern := flag.String("p", "", "only execute path that match pattern")
+	flag.Parse()
 	testDirs, err := ioutil.ReadDir(testsDir)
 	if err != nil {
 		fatal(err)
 	}
-	if !verbose {
-		fmt.Print("comparing Scriggo with gc..")
-	}
 	count := 0
+	filepaths := []string{}
 	for _, dir := range testDirs {
 		if !dir.IsDir() {
 			fatal(fmt.Errorf("%s is not a dir", dir))
@@ -197,62 +180,68 @@ func main() {
 			fatal(err)
 		}
 		for _, f := range files {
-			func() {
-				defer func() {
-					if mustRecover {
-						if r := recover(); r != nil {
-							fmt.Printf("!!! PANIC !!!: %v\n", r)
-						}
-					}
-				}()
-				if !strings.HasSuffix(f.Name(), ".go") {
-					return
+			if !strings.HasSuffix(f.Name(), ".go") {
+				continue
+			}
+			path := filepath.Join(testsDir, dir.Name(), f.Name())
+			if strings.Contains(path, "_ignore_") {
+				continue
+			}
+			if *pattern != "" {
+				if !strings.Contains(path, *pattern) {
+					continue
 				}
-				path := filepath.Join(testsDir, dir.Name(), f.Name())
-				if strings.Contains(path, "_ignore_") {
-					return
-				}
-				if pattern != "" {
-					if !strings.Contains(path, pattern) {
-						return
-					}
-				}
-				src, err := ioutil.ReadFile(path)
-				if err != nil {
-					fatal(err)
-				}
-				if verbose {
-					fmt.Printf("---------------------------------------------------\n")
-					fmt.Print(path + "...")
-				} else {
-					fmt.Print(".")
-				}
-				count++
-				scriggoOut := runScriggoAndGetOutput(src)
-				goOut := runGoAndGetOutput(src)
-				if (scriggoOut.isErr() || goOut.isErr()) && (dir.Name() != "errors") {
-					fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
-					fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
-					return
-				}
-				if !scriggoOut.isErr() && !goOut.isErr() && (dir.Name() == "errors") {
-					fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
-					return
-				}
-				if scriggoOut.match(goOut) {
-					if veryVerbose {
-						fmt.Printf("\noutput:\n%s\n", scriggoOut)
-					}
-					if verbose {
-						fmt.Println("OK!")
-					}
-				} else {
-					fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
-				}
-			}()
+			}
+			filepaths = append(filepaths, path)
 		}
 	}
-	if !verbose {
+
+	for _, path := range filepaths {
+		func() {
+			defer func() {
+				if *mustRecover {
+					if r := recover(); r != nil {
+						fmt.Printf("!!! PANIC !!!: %v\n", r)
+					}
+				}
+			}()
+			src, err := ioutil.ReadFile(path)
+			if err != nil {
+				fatal(err)
+			}
+			count++
+			if *verbose {
+				fmt.Printf("---------------------------------------------------\n")
+				fmt.Print(path + "...")
+			} else {
+				fmt.Printf("\r%d%% ", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			}
+			scriggoOut := runScriggoAndGetOutput(src)
+			goOut := runGoAndGetOutput(src)
+			if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
+				fmt.Printf("\nTest %q returned an error, but source is not inside 'errors' directory\n", path)
+				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+				return
+			}
+			if !scriggoOut.isErr() && !goOut.isErr() && strings.Contains(path, "errors") {
+				fmt.Printf("\nTest %q should return error (is inside 'errors' dir), but it doesn't\n", path)
+				return
+			}
+			if scriggoOut.match(goOut) {
+				if *veryVerbose {
+					fmt.Printf("\noutput:\n%s\n", scriggoOut)
+				}
+				if *verbose {
+					fmt.Println("OK!")
+				}
+			} else {
+				fmt.Printf("\nERROR on %q\n\tgc output:       %q\n\tScriggo output:  %q\n", path, goOut, scriggoOut)
+			}
+		}()
+	}
+
+	if !*verbose {
 		fmt.Printf("done! (%d tests executed)\n", count)
 	}
+
 }
