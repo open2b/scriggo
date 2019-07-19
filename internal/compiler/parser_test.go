@@ -658,6 +658,30 @@ var goContextTreeTests = []struct {
 	{"select {\n\tdefault:\n}\n", ast.NewTree("", []ast.Node{
 		ast.NewSelect(p(1, 1, 0, 19), nil, []*ast.SelectCase{
 			ast.NewSelectCase(p(2, 2, 10, 17), nil, nil)})}, ast.ContextGo)},
+	{"chan int", ast.NewTree("", []ast.Node{
+		ast.NewChanType(p(1, 1, 0, 7), ast.NoDirection, ast.NewIdentifier(p(1, 6, 5, 7), "int")),
+	}, ast.ContextGo)},
+	{"chan <- int", ast.NewTree("", []ast.Node{
+		ast.NewChanType(p(1, 1, 0, 10), ast.SendDirection, ast.NewIdentifier(p(1, 9, 8, 10), "int")),
+	}, ast.ContextGo)},
+	{"<- chan int", ast.NewTree("", []ast.Node{
+		ast.NewChanType(p(1, 1, 0, 10), ast.ReceiveDirection, ast.NewIdentifier(p(1, 9, 8, 10), "int")),
+	}, ast.ContextGo)},
+	{"var c chan int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 13),
+		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
+		ast.NewChanType(p(1, 7, 6, 13), ast.NoDirection, ast.NewIdentifier(p(1, 12, 11, 13), "int")),
+		nil,
+	)}, ast.ContextGo)},
+	{"var c <- chan int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 16),
+		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
+		ast.NewChanType(p(1, 7, 6, 16), ast.ReceiveDirection, ast.NewIdentifier(p(1, 15, 14, 16), "int")),
+		nil,
+	)}, ast.ContextGo)},
+	{"var c chan <- int", ast.NewTree("", []ast.Node{ast.NewVar(p(1, 1, 0, 16),
+		[]*ast.Identifier{ast.NewIdentifier(p(1, 5, 4, 4), "c")},
+		ast.NewChanType(p(1, 7, 6, 16), ast.SendDirection, ast.NewIdentifier(p(1, 15, 14, 16), "int")),
+		nil,
+	)}, ast.ContextGo)},
 
 	// TODO (Gianluca):
 	// {"f = func() { println(a) }", ast.NewTree("", []ast.Node{
