@@ -47,8 +47,7 @@ Additional help topics:
 `
 
 const helpBuild = `
-usage: scriggo build [-v] [-x] [-work] [-o output] module
-       scriggo build [-v] [-x] [-work] [-o output] scriggofile
+usage: scriggo build [-f Scriggofile] [-v] [-x] [-work] [-o output] module
 
 Build compiles an interpreter for Scriggo programs, scripts and templates from
 a Scriggofile in a module.
@@ -56,22 +55,22 @@ a Scriggofile in a module.
 Executables are created in the current directory. To install the executables in
 the directory GOBIN, see the command: scriggo install.
 
-If an argument is given, it can be a module path or a local filesystem path.
-A filesystem path must be rooted or must begin with a . or .. element.
+If an argument is given, it can be a module path or a directory path.
 
 If the argument is a module path, the module is downloaded from its repository
 and the build command looks for a Scriggofile named 'Scriggofile' in its root.
 A module argument can have a version as in 'foo.boo@v2.1.0'. If no version is
 given the latest version of the module is downloaded.
 
-If the argument is a local directory, it must be the root directory of a
-module. The build command looks for a Scriggofile named 'Scriggofile' in that
-directory.
-
-If the argument is a regular file, it is interpreted as a Scriggofile and it
-must be in the root of a module.
+If the argument is a directory path, it must be rooted or must begin with
+a . or .. element and the directory must be the root of a module. The build
+command looks for a Scriggofile named 'Scriggofile' in that directory.
 
 If no argument is given, the action apply to the current directory.
+
+The name of the executable is the last element of the module's path or
+directory path. For example if the module's path is 'boo/foo' the name of the
+executable will be 'foo' or 'foo.exe'.
 
 The compiler is build from the instructions in the Scriggofile. For example:
 
@@ -82,21 +81,20 @@ the file at 'github.com/example/foo/Scriggofile'.
 
 In this other example:
 
-	scriggo build ./boo.Scriggofile
+	scriggo build ./boo
 
 the command will build an interpreter named 'boo' or 'boo.exe' from the
-instructions in the file 'boo.Scriggofile'.
+instructions in the Scriggofile './boo/Scriggofile'.
 
 For more about the Scriggofile specific format, see 'scriggo help Scriggofile'.
 
-The name of the executable, if no -o flag is given, is the same of the
-Scriggofile without the file extension. For example if the file is named
-'example.Scriggofile' the executable will be named 'example' or 'example.exe'.
+The -f flag forces build to read the given Scriggofile instead of the
+Scriggofile of the module. For example:
 
-If the name of the Scriggofile is 'Scriggofile', like when the argument is a
-module path or directory, the name of the executable is the last element of
-the module's path or directory path. For example if the module's path is
-'boo/foo' the name of the executable will be 'foo' or 'foo.exe'.
+    scriggo build -f boo.Scriggofile github.com/example/foo
+
+will build an interpreter named 'foo' or 'foo.exe' from the instructions in
+the file at 'boo.Scriggofile'.
 
 The -v flag prints the imported packages as defined in the Scriggofile.
 
@@ -113,8 +111,7 @@ See also: scriggo install and scriggo embed.
 `
 
 const helpInstall = `
-usage: scriggo install [-v] [-x] [-work] module
-       scriggo install [-v] [-x] [-work] scriggofile
+usage: scriggo install [-f Scriggofile] [-v] [-x] [-work] module
 
 Install compiles and installs an interpreter for Scriggo programs, scripts
 and templates from a Scriggofile in a module.
@@ -131,8 +128,7 @@ See also: scriggo build and scriggo embed.
 `
 
 const helpEmbed = `
-usage: scriggo embed [-v] [-x] [-o output] module
-       scriggo embed [-v] [-x] [-o output] scriggofile
+usage: scriggo embed [-f Scriggofile] [-v] [-x] [-o output] module
 
 Embed makes a Go source file from a Scriggofile in a module, containing the
 exported declarations of the packages imported in the Scriggofile. The
@@ -142,12 +138,13 @@ Embed prints the generated source to the standard output. Use the flag -o
 to redirect the source to a named output file.
 
 If an argument is given, it must be a local rooted path or must begin with
-a . or .. element. If it is a directory it must be a module root directory,
-and embed looks for a Scriggofile named 'Scriggofile' in that directory.
-If it a regular file, it is interpreted as a Scriggofile and it must be in
-the root of a module.
+a . or .. element and it must be a module root directory. embed looks for
+a Scriggofile named 'Scriggofile' in that directory.
 
 If no argument is given, the action apply to the current directory.
+
+The -f flag forces embed to read the given Scriggofile instead of the
+Scriggofile of the module.
 
 The declarations in the generated Go file have type scriggo.PackageLoader and
 they are assigned to a variable named 'packages'. The variable can be used as

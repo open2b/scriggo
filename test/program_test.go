@@ -5638,7 +5638,7 @@ var stmtTests = []struct {
 	},
 }
 
-//go:generate scriggo embed -v -o packages_test.go ./packages.Scriggofile
+//go:generate scriggo embed -f ./packages.Scriggofile -v -o packages_test.go
 var goPackages scriggo.PackageLoader
 
 func TestProgram(t *testing.T) {

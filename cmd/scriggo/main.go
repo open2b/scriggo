@@ -138,6 +138,7 @@ var commands = map[string]func(){
 	"build": func() {
 		flag.Usage = commandsHelp["install"]
 		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
+		f := flag.String("f", "", "path of the Scriggofile.")
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
 		o := flag.String("o", "", "output file.")
@@ -151,7 +152,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("build", path, buildFlags{work: *work, v: *v, x: *x, o: *o})
+		err := build("build", path, buildFlags{f: *f, work: *work, v: *v, x: *x, o: *o})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -160,6 +161,7 @@ var commands = map[string]func(){
 	"install": func() {
 		flag.Usage = commandsHelp["install"]
 		work := flag.Bool("work", false, "print the name of the temporary work directory and do not delete it when exiting.")
+		f := flag.String("f", "", "path of the Scriggofile.")
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
 		flag.Parse()
@@ -172,7 +174,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := build("install", path, buildFlags{work: *work, v: *v, x: *x})
+		err := build("install", path, buildFlags{f: *f, work: *work, v: *v, x: *x})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -180,6 +182,7 @@ var commands = map[string]func(){
 	},
 	"embed": func() {
 		flag.Usage = commandsHelp["embed"]
+		f := flag.String("f", "", "path of the Scriggofile.")
 		v := flag.Bool("v", false, "print the names of packages as the are imported.")
 		x := flag.Bool("x", false, "print the commands.")
 		o := flag.String("o", "", "write the source to the named file instead of stdout.")
@@ -193,7 +196,7 @@ var commands = map[string]func(){
 			flag.Usage()
 			exitError(`bad number of arguments`)
 		}
-		err := embed(path, buildFlags{v: *v, x: *x, o: *o})
+		err := embed(path, buildFlags{f: *f, v: *v, x: *x, o: *o})
 		if err != nil {
 			exitError("%s", err)
 		}
@@ -261,49 +264,50 @@ func embed(path string, flags buildFlags) (err error) {
 	}
 
 	var modDir string
-	var file string
 
 	if path == "" {
+		// path is current directory.
 		modDir, err = os.Getwd()
 		if err != nil {
 			return fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
 	} else if modfile.IsDirectoryPath(path) {
+		// path is a local path.
 		fi, err := os.Stat(path)
 		if err != nil {
 			if os.IsNotExist(err) {
-				err = fmt.Errorf("scriggo: can't find path:\n\t%s", path)
+				err = fmt.Errorf("scriggo: directory %s does not exist in:\n\t%s", path, modDir)
 			}
 			return err
 		}
-		if fi.Mode().IsDir() {
-			modDir, err = filepath.Abs(path)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
-			}
-		} else {
-			file, err = filepath.Abs(path)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
-			}
+		modDir, err = filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+		}
+		if !fi.IsDir() {
+			return fmt.Errorf("scriggo: %s is not a directory:\n\t%s", path, modDir)
 		}
 	} else {
 		return fmt.Errorf("scriggo: path, if not empty, must be rooted or must start with '.%c' or '..%c'",
 			os.PathSeparator, os.PathSeparator)
 	}
 
-	switch {
-	case file == "":
-		file = filepath.Join(modDir, "Scriggofile")
-	case modDir == "":
-		modDir = filepath.Dir(file)
+	// Get the absolute Scriggofile's path.
+	var sfPath string
+	if flags.f == "" {
+		sfPath = filepath.Join(modDir, "Scriggofile")
+	} else {
+		sfPath, err = filepath.Abs(flags.f)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't get absolute path of %s: %s", flags.f, err)
+		}
 	}
 
 	// Read the Scriggofile.
-	scriggofile, err := os.Open(file)
+	scriggofile, err := os.Open(sfPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("scriggo: no Scriggofile in:\n\t%s", file)
+			return fmt.Errorf("scriggo: no Scriggofile in:\n\t%s", sfPath)
 		}
 		return err
 	}
@@ -336,7 +340,7 @@ func embed(path string, flags buildFlags) (err error) {
 
 type buildFlags struct {
 	work, v, x bool
-	o          string
+	f, o       string
 }
 
 // build executes the commands "build" and "install".
@@ -380,50 +384,31 @@ func build(cmd string, path string, flags buildFlags) error {
 		return fmt.Errorf("scriggo: can't set environment variable \"GO111MODULE\" to \"on\": %s", err)
 	}
 
-	var sfPath string  // sfPath is the absolute Scriggofile's path.
 	var modPath string // modPath is the module's path, it is empty it is local.
 	var modVer string  // modVer is the module's version.
 	var modDir string  // modDir is the directory of the module's sources.
 
-	if path == "" || modfile.IsDirectoryPath(path) {
-		var fi os.FileInfo
-		if path != "" {
-			fi, err = os.Stat(path)
-			if err != nil && !os.IsNotExist(err) {
-				return err
-			}
+	if path == "" {
+		// path is current directory.
+		modDir, err = os.Getwd()
+		if err != nil {
+			return fmt.Errorf("scriggo: can't get current directory: %s", err)
 		}
-		if fi != nil && fi.Mode().IsRegular() {
-			// path is a regular file.
-			sfPath, err = filepath.Abs(path)
-			if err != nil {
-				return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+	} else if modfile.IsDirectoryPath(path) {
+		// path is a local path.
+		fi, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				err = fmt.Errorf("scriggo: directory %s does not exist in:\n\t%s", path, modDir)
 			}
-			modDir = filepath.Dir(sfPath)
-		} else {
-			// path is a directory.
-			if path == "" {
-				modDir, err = os.Getwd()
-				if err != nil {
-					return fmt.Errorf("scriggo: can't get current directory: %s", err)
-				}
-			} else {
-				modDir, err = filepath.Abs(path)
-				if err != nil {
-					return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
-				}
-			}
-			fi, err = os.Stat(modDir)
-			if err != nil {
-				if os.IsNotExist(err) {
-					err = fmt.Errorf("scriggo: can't find module %s in:\n\t%s", path, modDir)
-				}
-				return err
-			}
-			if !fi.IsDir() {
-				return fmt.Errorf("scriggo: %s is not a directory or regular file", path)
-			}
-			sfPath = filepath.Join(modDir, "Scriggofile")
+			return err
+		}
+		modDir, err = filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't get absolute path of %s: %s", path, err)
+		}
+		if !fi.IsDir() {
+			return fmt.Errorf("scriggo: %s is not a directory:\n\t%s", path, modDir)
 		}
 	} else {
 		// path is a module path.
@@ -444,14 +429,24 @@ func build(cmd string, path string, flags buildFlags) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Get the absolute Scriggofile's path.
+	var sfPath string
+	if flags.f == "" {
 		sfPath = filepath.Join(modDir, "Scriggofile")
+	} else {
+		sfPath, err = filepath.Abs(flags.f)
+		if err != nil {
+			return fmt.Errorf("scriggo: can't get absolute path of %s: %s", flags.f, err)
+		}
 	}
 
 	// Parse the Scriggofile.
 	fi, err := os.Open(sfPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("scriggo: can't find Scriggofile at:\n\t%s", sfPath)
+			err = fmt.Errorf("scriggo: can't find Scriggofile at:\n\t%s", sfPath)
 		}
 		return err
 	}
@@ -502,15 +497,11 @@ func build(cmd string, path string, flags buildFlags) error {
 	}
 	goMod.Cleanup()
 
-	base := filepath.Base(sfPath)
-	if base == "Scriggofile" {
-		if modPath == "" {
-			base = filepath.Base(modDir)
-		} else {
-			base = filepath.Base(modPath)
-		}
+	var base string
+	if modPath == "" {
+		base = filepath.Base(modDir)
 	} else {
-		base = strings.TrimSuffix(base, filepath.Ext(base))
+		base = filepath.Base(modPath)
 	}
 
 	dir := filepath.Join(workDir, base)
