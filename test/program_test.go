@@ -135,7 +135,7 @@ var stmtTests = []struct {
 		`,
 		out: `012 -3`,
 	},
-	
+
 	{
 		name: "local alias declaration which shadowes package alias declaration",
 		src: `package main
@@ -5638,7 +5638,7 @@ var stmtTests = []struct {
 	},
 }
 
-//go:generate scriggo embed -v -o packages.go ./packages.Scriggofile
+//go:generate scriggo embed -v -o packages_test.go ./packages.Scriggofile
 var goPackages scriggo.PackageLoader
 
 func TestProgram(t *testing.T) {
