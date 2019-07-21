@@ -35,7 +35,6 @@ const targetAll = targetPrograms | targetScripts | targetTemplates
 // scriggofile represents the content of a Scriggofile.
 type scriggofile struct {
 	pkgName  string           // name of the package to be generated.
-	filepath string           // filepath of the parsed file.
 	target   Target           // target.
 	variable string           // variable name for embedded packages.
 	output   string           // output path.

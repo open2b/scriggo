@@ -247,7 +247,7 @@ func init() {
 		"[variable]", sf.variable,
 		"[pkgContent]", allPkgsContent.String(),
 	).Replace(pkgsSkeleton)
-	pkgOutput = genHeader(sf, goos) + pkgOutput
+	pkgOutput = genHeader(goos) + pkgOutput
 
 	return io.WriteString(w, pkgOutput)
 }
