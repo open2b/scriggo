@@ -37,7 +37,6 @@ type scriggofile struct {
 	pkgName  string           // name of the package to be generated.
 	target   Target           // target.
 	variable string           // variable name for embedded packages.
-	output   string           // output path.
 	goos     []string         // target GOOSs.
 	imports  []*importCommand // list of imports defined in file.
 }
