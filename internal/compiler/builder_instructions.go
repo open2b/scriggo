@@ -812,7 +812,7 @@ func (builder *functionBuilder) emitPrint(arg int8) {
 
 // emitRealImag appends a new "RealImag" instruction to the function body.
 //
-//	x, y = real(x), imag(x)
+//	y, z = real(x), imag(x)
 //
 func (builder *functionBuilder) emitRealImag(k bool, x, y, z int8) {
 	op := vm.OpRealImag
