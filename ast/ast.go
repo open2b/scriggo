@@ -398,9 +398,42 @@ type Func struct {
 }
 
 // Upvar represents a variable defined outside function body.
+// Package level variables are considered upvars of package level functions.
 type Upvar struct {
+
+	// Declaration is the ast node where Upvar is defined.
 	Declaration Node
-	Index       int16
+
+	// Index indexes the Upvars slice of the function where this function is
+	// declared.
+	// As a special case, when Index is -1 the Upvar is declared in
+	// the same function as this.
+	//
+	// Consider this example:
+	//
+	// 		var A
+	// 		func g() {
+	// 			func f() {
+	// 				_ = A
+	// 			}
+	// 		}
+	//
+	// g has one upvar (A) with index -1 (A is declared as "brother" of g)
+	// f has one upvar (A) with index 0, which is the index of A in the Upvars slice of g.
+	//
+	// Another example:
+	//
+	// 		func g() {
+	// 			var A
+	// 			func f() {
+	// 				_ = A
+	// 			}
+	// 		}
+	//
+	// g has no upvars
+	// f has one upvar (A) with index -1
+	//
+	Index int16
 }
 
 func NewFunc(pos *Position, name *Identifier, typ *FuncType, body *Block) *Func {
