@@ -518,6 +518,9 @@ func disassembleFunctionCall(fn *vm.Function, index int8, isPredefined bool, sta
 		funcType = fn.Functions[index].Type
 		funcName = fn.Functions[index].Name
 	}
+	if funcName == "$initvars" {
+		return "package vars init"
+	}
 	print := func(t reflect.Type) string {
 		str := ""
 		switch kindToType(t.Kind()) {
