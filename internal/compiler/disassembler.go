@@ -475,7 +475,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, b, vm.Unknown, k)
 		s += " " + disassembleOperand(fn, c, vm.Int, false)
 	case vm.OpSetVar:
-		s += " " + disassembleOperand(fn, a, vm.Int, op < 0)
+		s += " " + disassembleOperand(fn, a, vm.Unknown, op < 0)
 		s += " " + disassembleVarRef(fn, globals, int16(int(b)<<8|int(uint8(c))))
 	case vm.OpSlice:
 		khigh := b&2 != 0
