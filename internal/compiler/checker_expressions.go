@@ -232,8 +232,15 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 	return nil, 0
 }
 
-// isUpVar checks if name is an upvar.
+// isUpVar checks if name is an upvar, that is a variable declared outside
+// current function.
 func (tc *typechecker) isUpVar(name string) bool {
+	// Check if name is a package variable.
+	if _, ok := tc.filePackageBlock[name]; ok {
+		return true
+	}
+	// name is not a package variable; check if has been declared outside
+	// current function.
 	_, funcBound := tc.currentFunction()
 	for i := len(tc.Scopes) - 1; i >= 0; i-- {
 		for n := range tc.Scopes[i] {
@@ -306,12 +313,6 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	return funcs
 }
 
-// isPackageVariable reports whether name is a package variable.
-func (tc *typechecker) isPackageVariable(name string) bool {
-	_, ok := tc.filePackageBlock[name]
-	return ok
-}
-
 // showMacroIgnoredTi is the TypeInfo of a ShowMacro identifier which is
 // undefined but has been marked as to be ignored or "todo".
 var showMacroIgnoredTi = &TypeInfo{}
@@ -321,7 +322,7 @@ var showMacroIgnoredTi = &TypeInfo{}
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
 	// If ident is an upvar, add it as upvar for all nested functions.
-	if tc.isUpVar(ident.Name) || tc.isPackageVariable(ident.Name) {
+	if tc.isUpVar(ident.Name) {
 		upvar := ast.Upvar{
 			Declaration: tc.getDeclarationNode(ident.Name),
 			Index:       -1,
