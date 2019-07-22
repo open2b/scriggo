@@ -123,6 +123,21 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #181",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			ss := [][]int{}
+			ss = append(ss, []int{10, 20, 30})
+			fmt.Print(ss)
+		}
+		`,
+		out: `[[10 20 30]]`,
+	},
+
+	{
 		name: "Builtin append (non variadic)",
 		src: `package main
 

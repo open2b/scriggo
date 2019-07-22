@@ -489,7 +489,7 @@ func (vm *VM) appendSlice(first int8, length int, slice interface{}) interface{}
 				reflect.Copy(s, old)
 			}
 		}
-		switch s.Elem().Type().Kind() {
+		switch s.Type().Elem().Kind() {
 		case reflect.Bool:
 			regs := vm.regs.int[vm.fp[0]+uint32(first):]
 			for i, j := 0, ol; i < length; i, j = i+1, j+1 {
