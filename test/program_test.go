@@ -123,6 +123,49 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Builtin append (non variadic)",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			s := []int{}
+			fmt.Print(s)
+			s = append(s, 1)
+			fmt.Print(s)
+			s = append(s, 2, 3)
+			fmt.Print(s)
+			s = append(s)
+			fmt.Print(s)
+		}
+		`,
+		out: `[][1][1 2 3][1 2 3]`,
+	},
+
+	{
+		name: "Appending a slice to a slice (variadic call to builtin append)",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			s := []int{}
+			fmt.Print(s)
+			s = append(s, []int{1, 2, 3}...)
+			fmt.Print(s)
+			ns := []int{4, 5, 6}
+			s = append(s, ns...)
+			fmt.Print(s)
+		}
+		`,
+		out: `[][1 2 3][1 2 3 4 5 6]`,
+	},
+
+	{
 		name: "Issue #174 (2)",
 		src: `package main
 
