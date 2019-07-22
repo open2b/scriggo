@@ -123,6 +123,23 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "appending to a new slice every iteration",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			for i := range []int{1, 2} {
+				s := []int(nil)
+				s = append(s, 1)
+				fmt.Printf("iteration #%d: s = %v\n", i, s)
+			}
+		}
+		`,
+		out: "iteration #0: s = [1]\niteration #1: s = [1]\n",
+	},
+
+	{
 		name: "Issue #188",
 		src: `package main
 
