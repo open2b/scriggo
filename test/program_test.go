@@ -121,6 +121,32 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Issue #132",
+		src: `package main
+
+		import "fmt"
+		
+		var (
+			_ = d
+			_ = f("_", c, b)
+			a = f("a", 0, 0)
+			b = f("b", 0, 0)
+			c = f("c", 0, 0)
+			d = f("d", 0, 0)
+		)
+		
+		func f(s string, a int, b int) int {
+			fmt.Print(s, a, b)
+			return 0
+		}
+		
+		func main() {}
+		`,
+		out: `a0 0b0 0c0 0_0 0d0 0`,
+	},
+
 	{
 		name: "Function call with function call as argument",
 		src: `package main
