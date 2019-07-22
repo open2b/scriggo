@@ -123,6 +123,21 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #188",
+		src: `package main
+
+		import "fmt"
+		
+		var p = fmt.Println
+		
+		func main() {
+			p("hello, world")
+		}
+		`,
+		out: "hello, world\n",
+	},
+
+	{
 		name: "Issue #112",
 		src: `package main
 

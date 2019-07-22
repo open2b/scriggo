@@ -413,8 +413,6 @@ func (em *emitter) prepareFunctionBodyParameters(fn *ast.Func) {
 // and the reflect types of the returned values.
 func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
-	stackShift := em.fb.currentStackShift()
-
 	ti := em.ti(call.Func)
 	typ := ti.Type
 
@@ -432,7 +430,9 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 		name := call.Func.(*ast.Selector).Ident
 		em.fb.emitMethodValue(name, rcvr, method)
 		call.Args = append([]ast.Expression{rcvrExpr}, call.Args...)
+		stackShift := em.fb.currentStackShift()
 		regs, types := em.prepareCallParameters(typ, call.Args, true, true)
+		// TODO(Gianluca): handle variadic method calls.
 		em.fb.emitCallIndirect(method, 0, stackShift)
 		return regs, types
 	}
@@ -443,6 +443,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 			rcv := call.Func.(*ast.Selector).Expr // TODO(Gianluca): is this correct?
 			call.Args = append([]ast.Expression{rcv}, call.Args...)
 		}
+		stackShift := em.fb.currentStackShift()
 		regs, types := em.prepareCallParameters(typ, call.Args, true, ti.MethodType == MethodCallConcrete)
 		var name string
 		switch f := call.Func.(type) {
@@ -464,6 +465,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	// Scriggo-defined function (identifier).
 	if ident, ok := call.Func.(*ast.Identifier); ok && !em.fb.isVariable(ident.Name) {
 		if fn, ok := em.functions[em.pkg][ident.Name]; ok {
+			stackShift := em.fb.currentStackShift()
 			regs, types := em.prepareCallParameters(fn.Type, call.Args, false, false)
 			index := em.functionIndex(fn)
 			em.fb.emitCall(index, stackShift, call.Pos().Line)
@@ -475,6 +477,7 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 	if selector, ok := call.Func.(*ast.Selector); ok {
 		if ident, ok := selector.Expr.(*ast.Identifier); ok {
 			if fun, ok := em.functions[em.pkg][ident.Name+"."+selector.Ident]; ok {
+				stackShift := em.fb.currentStackShift()
 				regs, types := em.prepareCallParameters(fun.Type, call.Args, false, false)
 				index := em.functionIndex(fun)
 				em.fb.emitCall(index, stackShift, call.Pos().Line)
@@ -485,8 +488,13 @@ func (em *emitter) emitCall(call *ast.Call) ([]int8, []reflect.Type) {
 
 	// Indirect function.
 	reg := em.emitExpr(call.Func, em.ti(call.Func).Type)
+	stackShift := em.fb.currentStackShift()
 	regs, types := em.prepareCallParameters(typ, call.Args, true, false)
-	em.fb.emitCallIndirect(reg, 0, stackShift)
+	numVar := vm.NoVariadic
+	if typ.IsVariadic() {
+		numVar = len(call.Args) - (typ.NumIn() - 1)
+	}
+	em.fb.emitCallIndirect(reg, int8(numVar), stackShift)
 
 	return regs, types
 }
