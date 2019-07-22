@@ -592,18 +592,23 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 		// necessary. For instance, in case of `s = append(s, t)` moving can be
 		// avoided. The problem is that now is too late to check for left-hand
 		// symbol which receives the return value of the appending.
+		em.fb.enterStack()
 		tmp := em.fb.newRegister(sliceType.Kind())
 		em.changeRegister(false, slice, tmp, sliceType, sliceType)
-		for i := range args {
-			if i == 0 {
-				continue
-			}
-			arg := em.emitExpr(args[i], em.ti(args[i]).Type)
-			// TODO(Gianluca): in case of append(s, e1, e2, e3) use the length
-			// parameter of Append.
-			em.fb.emitAppend(arg, 1, tmp)
+		elems := []int8{}
+		for _, argExpr := range args[1:] {
+			elem := em.fb.newRegister(sliceType.Elem().Kind())
+			em.fb.enterStack()
+			em.emitExprR(argExpr, sliceType.Elem(), elem)
+			em.fb.exitStack()
+			elems = append(elems, elem)
+		}
+		// TODO(Gianluca): if len(appendArgs) > 255 split in blocks
+		if len(elems) > 0 {
+			em.fb.emitAppend(elems[0], int8(len(elems)), tmp)
 		}
 		em.changeRegister(false, tmp, reg, sliceType, dstType)
+		em.fb.exitStack()
 	case "cap":
 		typ := em.ti(args[0]).Type
 		s := em.emitExpr(args[0], typ)
