@@ -580,27 +580,30 @@ func (em *emitter) emitBuiltin(call *ast.Call, reg int8, dstType reflect.Type) {
 	case "append":
 		sliceType := em.ti(args[0]).Type
 		slice := em.emitExpr(args[0], sliceType)
-		tmp := em.fb.newRegister(sliceType.Kind())
-		// TODO(Gianluca): moving to a different register is not always
-		// necessary. For instance, in case of `s = append(s, t)` moving can
-		// be avoided.
-		// TODO(Gianluca): in case of append(s, e1, e2, e3) use the length
-		// parameter of Append.
-		em.fb.emitMove(false, slice, tmp, sliceType.Kind())
 		if call.IsVariadic {
+			tmp := em.fb.newRegister(sliceType.Kind())
+			em.fb.emitMove(false, slice, tmp, sliceType.Kind())
 			arg := em.emitExpr(args[1], em.ti(args[1]).Type)
 			em.fb.emitAppendSlice(arg, tmp)
 			em.changeRegister(false, tmp, reg, sliceType, dstType)
-		} else {
-			for i := range args {
-				if i == 0 {
-					continue
-				}
-				arg := em.emitExpr(args[i], em.ti(args[i]).Type)
-				em.fb.emitAppend(arg, 1, tmp)
-			}
-			em.changeRegister(false, tmp, reg, sliceType, dstType)
+			return
 		}
+		// TODO(Gianluca): moving to a different register is not always
+		// necessary. For instance, in case of `s = append(s, t)` moving can be
+		// avoided. The problem is that now is too late to check for left-hand
+		// symbol which receives the return value of the appending.
+		tmp := em.fb.newRegister(sliceType.Kind())
+		em.changeRegister(false, slice, tmp, sliceType, sliceType)
+		for i := range args {
+			if i == 0 {
+				continue
+			}
+			arg := em.emitExpr(args[i], em.ti(args[i]).Type)
+			// TODO(Gianluca): in case of append(s, e1, e2, e3) use the length
+			// parameter of Append.
+			em.fb.emitAppend(arg, 1, tmp)
+		}
+		em.changeRegister(false, tmp, reg, sliceType, dstType)
 	case "cap":
 		typ := em.ti(args[0]).Type
 		s := em.emitExpr(args[0], typ)
