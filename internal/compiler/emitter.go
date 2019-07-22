@@ -323,9 +323,9 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 		for i := 0; i < numIn-1; i++ {
 			t := typ.In(i)
 			reg := em.fb.newRegister(t.Kind())
-			em.fb.enterScope()
+			em.fb.enterStack()
 			em.emitExprR(args[i], t, reg)
-			em.fb.exitScope()
+			em.fb.exitStack()
 		}
 		if varArgs := len(args) - (numIn - 1); varArgs > 0 {
 			t := typ.In(numIn - 1).Elem()
@@ -337,7 +337,7 @@ func (em *emitter) prepareCallParameters(typ reflect.Type, args []ast.Expression
 					em.fb.exitStack()
 				}
 			} else {
-				slice := int8(numIn)
+				slice := em.fb.newRegister(reflect.Slice)
 				em.fb.emitMakeSlice(true, true, typ.In(numIn-1), int8(varArgs), int8(varArgs), slice)
 				for i := 0; i < varArgs; i++ {
 					tmp := em.fb.newRegister(t.Kind())

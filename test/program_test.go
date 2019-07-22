@@ -123,6 +123,55 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #174 (2)",
+		src: `package main
+
+		import "fmt"
+
+		func f(a ...int) {
+			fmt.Println("variadic:", a)
+			return
+		}
+
+		func g(a, b string, c... int) {
+			fmt.Println("strings:", a, b)
+			fmt.Println("variadic:", c)
+			return
+		}
+
+		func h(a string, b... string) int {
+			fmt.Println("a:", a)
+			return len(b)
+		}
+
+		func main() {
+			f(1, 2, 3)
+			g("x", "y", 3, 23, 11, 12)
+			fmt.Println("h:", h("a", "b", "c", "d"))
+		}
+		`,
+		out: "variadic: [1 2 3]\nstrings: x y\nvariadic: [3 23 11 12]\na: a\nh: 3\n",
+	},
+
+	{
+		name: "Issue #174",
+		src: `package main
+
+		import "fmt"
+		
+		func f(a string, slice ...int) {
+			fmt.Print(slice)
+			return
+		}
+		
+		func main() {
+			f("a", 10, 20, 30)
+		}
+		`,
+		out: `[10 20 30]`,
+	},
+
+	{
 		name: "Issue #132",
 		src: `package main
 
