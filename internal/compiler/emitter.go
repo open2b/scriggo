@@ -1205,6 +1205,12 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 	// interface (this is guaranteed by the type checker) and in the current
 	// implementation of the VM functions and interfaces use the same register
 	// type.
+	//
+	// Not that this does not imply that method 'changeRegister' doesn't have to
+	// be called: in case when internal representation is different than the
+	// external one (for example arrays and functions), the calls to
+	// 'changeRegister' may emit a Typify instruction to ensure that values are
+	// correctly converted.
 
 	if ti := em.ti(expr); ti != nil && ti.value != nil && !ti.IsPredefined() {
 		typ := ti.Type
@@ -1465,6 +1471,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 				}
 				em.fb.exitStack()
 			}
+			em.changeRegister(false, reg, reg, em.ti(expr.Type).Type, dstType)
 		case reflect.Struct:
 			if reg == 0 {
 				for _, kv := range expr.KeyValues {

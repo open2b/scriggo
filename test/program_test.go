@@ -123,6 +123,21 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #112",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			fmt.Printf("%#v ", [3]int{1, 2, 3})
+			a := [4]string{"a", "b", "c", "d"}
+			fmt.Printf("%#v", a)
+		}
+		`,
+		out: `[3]int{1, 2, 3} [4]string{"a", "b", "c", "d"}`,
+	},
+
+	{
 		name: "Issue #186",
 		src: `package main
 
