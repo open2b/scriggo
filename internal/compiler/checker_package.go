@@ -509,6 +509,9 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 					return tc.errorf(d, "%s", err)
 				}
 				predefinedPkg := pkg.(predefinedPackage)
+				if err := tc.checkNotProgram(d, predefinedPkg.Name()); err != nil {
+					return err
+				}
 				declarations := predefinedPkg.DeclarationNames()
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
 				for n, d := range ToTypeCheckerScope(predefinedPkg) {
@@ -523,8 +526,14 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 					if err != nil {
 						return err
 					}
+					if err := tc.checkNotProgram(d, d.Tree.Nodes[0].(*ast.Package).Name); err != nil {
+						return err
+					}
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				} else {
+					if err := tc.checkNotProgram(d, d.Tree.Nodes[0].(*ast.Package).Name); err != nil {
+						return err
+					}
 					err = checkPackage(d.Tree.Nodes[0].(*ast.Package), d.Tree.Path, nil, nil, pkgInfos, opts) // TODO(Gianluca): where are deps?
 				}
 				importedPkg = pkgInfos[d.Tree.Path]

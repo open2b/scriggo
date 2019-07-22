@@ -99,6 +99,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					panic(tc.errorf(node, "%s", err))
 				}
 				predefinedPkg := pkg.(predefinedPackage)
+				if err := tc.checkNotProgram(node, predefinedPkg.Name()); err != nil {
+					panic(err)
+				}
 				declarations := predefinedPkg.DeclarationNames()
 				importedPkg := &PackageInfo{}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
@@ -133,6 +136,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 						panic(err)
 					}
 					pkgInfos := map[string]*PackageInfo{}
+					if err := tc.checkNotProgram(node, node.Tree.Nodes[0].(*ast.Package).Name); err != nil {
+						panic(err)
+					}
 					err = checkPackage(node.Tree.Nodes[0].(*ast.Package), node.Path, nil, nil, pkgInfos, tc.opts)
 					if err != nil {
 						panic(err)
