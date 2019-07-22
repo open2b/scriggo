@@ -520,6 +520,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 		if ti.Type.Kind() == reflect.Func {
 			index := em.predFuncIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 			em.fb.emitGetFunc(true, index, reg)
+			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return
 		}
 		// Predefined variable.
@@ -551,6 +552,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			}
 			index := em.functionIndex(sf)
 			em.fb.emitGetFunc(false, index, reg)
+			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return
 		}
 	}
@@ -1729,6 +1731,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		// Identifier represents a function.
 		if fun, ok := em.functions[em.pkg][expr.Name]; ok {
 			em.fb.emitGetFunc(false, em.functionIndex(fun), reg)
+			em.changeRegister(false, reg, reg, em.ti(expr).Type, dstType)
 			return reg, false
 		}
 
