@@ -33,10 +33,10 @@ var exprTests = map[string]interface{}{
 	`"abc"`: "abc",
 
 	// Composite literals - arrays.
-	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
-	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},  // Internally, arrays are stored as slices.
-	`[3]string{}`:         []string{},         // Internally, arrays are stored as slices.
-	`[3]string{"a", "b"}`: []string{"a", "b"}, // Internally, arrays are stored as slices.
+	`[4]int{1,2,3,4}`:     []int{1, 2, 3, 4},      // Internally, arrays are stored as slices.
+	`[...]int{1,2,3,4}`:   []int{1, 2, 3, 4},      // Internally, arrays are stored as slices.
+	`[3]string{}`:         []string{"", "", ""},   // Internally, arrays are stored as slices.
+	`[3]string{"a", "b"}`: []string{"a", "b", ""}, // Internally, arrays are stored as slices.
 
 	// Composite literals - slices.
 	`[]int{}`:                   []int{},
@@ -121,6 +121,21 @@ var stmtTests = []struct {
 	err        interface{} // error.
 	freeMemory int         // free memory in bytes, set to zero if there is no limit.
 }{
+
+	{
+		name: "Issue #186",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			fmt.Printf("%v ", [3]int{1, 2, 3})
+			a := [10]string{"a", "b", "c"}
+			fmt.Printf("%v", a)
+		}
+		`,
+		out: `[1 2 3] [a b c       ]`,
+	},
 
 	{
 		name: "Issue #181",

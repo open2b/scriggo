@@ -1445,6 +1445,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			}
 			length := int8(em.compositeLiteralLen(expr)) // TODO(Gianluca): length is int
 			if typ.Kind() == reflect.Array {
+				length = int8(typ.Len())
 				typ = reflect.SliceOf(typ.Elem())
 			}
 			em.fb.emitMakeSlice(true, true, typ, length, length, reg)
