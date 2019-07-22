@@ -283,13 +283,8 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	panic(fmt.Sprintf("trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // TODO(Gianluca): to review.
 }
 
-// checkNotProgram returns an error if the import path in an import statement
-// points to a program.
-func (tc *typechecker) checkNotProgram(imp *ast.Import, pkgName string) error {
-	if pkgName == "main" {
-		return tc.errorf(imp, "import \"%s\" is a program, not a in importable package", imp.Path)
-	}
-	return nil
+func (tc *typechecker) programImportError(imp *ast.Import) error {
+	return tc.errorf(imp, "import \"%s\" is a program, not a in importable package", imp.Path)
 }
 
 // getNestedFuncs returns a list of ordered functions from the brother of name's
