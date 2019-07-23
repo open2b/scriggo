@@ -426,7 +426,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				for i, ex := range cas.Expressions {
 					expr := cas.Expressions[i]
-					t := tc.typeof(expr, noEllipsis)
+					t := tc.typeof(expr)
 					if t.Nil() {
 						if positionOfNil != nil {
 							panic(tc.errorf(cas, "multiple nil cases in type switch (first at %s)", positionOfNil))
@@ -504,7 +504,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				continue
 			}
 			name := node.Identifier.Name
-			typ := tc.checkType(node.Type, noEllipsis)
+			typ := tc.checkType(node.Type)
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
@@ -694,7 +694,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	var expectedTypes []reflect.Type
 	for _, exp := range expected {
-		ti := tc.checkType(exp.Type, noEllipsis)
+		ti := tc.checkType(exp.Type)
 		expectedTypes = append(expectedTypes, ti.Type)
 	}
 

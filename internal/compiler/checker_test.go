@@ -1891,7 +1891,7 @@ func tiInterface() *TypeInfo { return &TypeInfo{Type: universe["interface{}"].t.
 
 func TestTypechecker_MaxIndex(t *testing.T) {
 	cases := map[string]int{
-		"[]T{}":              noEllipsis,
+		"[]T{}":              -1,
 		"[]T{x}":             0,
 		"[]T{x, x}":          1,
 		"[]T{4:x}":           4,
