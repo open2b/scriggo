@@ -164,7 +164,12 @@ func (tc *typechecker) addScope() {
 
 // removeCurrentScope removes the current scope from the type checker.
 func (tc *typechecker) removeCurrentScope() {
+	// Check if some variables declared in the closing scope are still unused.
 	if !tc.opts.AllowNotUsed {
+		unused := []struct {
+			node  ast.Node
+			ident string
+		}{}
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
@@ -172,9 +177,15 @@ func (tc *typechecker) removeCurrentScope() {
 				break
 			}
 			if v.node != nil {
-				panic(tc.errorf(v.node, "%s declared and not used", v.ident))
+				unused = append(unused, struct {
+					node  ast.Node
+					ident string
+				}{v.node, v.ident})
 			}
 			cut = i
+		}
+		if len(unused) > 0 {
+			panic(tc.errorf(unused[len(unused)-1].node, "%s declared and not used", unused[len(unused)-1].ident))
 		}
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
@@ -947,7 +958,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 					// TODO(Gianluca): type assertion should not be necessary,
 					// as predefined package variables should always be
 					// reflect.Value. Investigate.
-					if rv, ok := v.value.(reflect.Value); v.Addressable() && ok { 
+					if rv, ok := v.value.(reflect.Value); v.Addressable() && ok {
 						upvar := ast.Upvar{
 							PredefinedName:  expr.Ident,
 							PredefinedPkg:   ident.Name,
