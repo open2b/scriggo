@@ -299,12 +299,6 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 				if right.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
-				//  «[if no types are presents], each variable is given the type
-				//  of the corresponding initialization value in the
-				//  assignment.»
-				//
-				// «If that value is an untyped constant, it is first
-				// implicitly converted to its default type.»
 				newRight.Type = right.Type
 			} else {
 				newRight.Type = typ.Type
