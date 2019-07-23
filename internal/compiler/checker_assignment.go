@@ -115,7 +115,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		case ast.AssignmentIncrement, ast.AssignmentDecrement:
 			v := n.Lhs[0]
 			tc.cantBeBlank(v)
-			exprTi := tc.checkExpression(v)
+			exprTi := tc.checkExpr(v)
 			if !isNumeric(exprTi.Type.Kind()) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
@@ -178,7 +178,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
-			ti := tc.checkExpression(rhs[0])
+			ti := tc.checkExpr(rhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhs = []ast.Expression{v1, v2}
@@ -187,7 +187,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
-			ti := tc.checkExpression(rhs[0])
+			ti := tc.checkExpr(rhs[0])
 			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rhs = []ast.Expression{v1, v2}
@@ -197,7 +197,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if v.Op == ast.OperatorReceive {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
-				ti := tc.checkExpression(rhs[0])
+				ti := tc.checkExpr(rhs[0])
 				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
 				tc.typeInfos[v2] = untypedBoolTypeInfo
 				rhs = []ast.Expression{v1, v2}
@@ -260,7 +260,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isVarDecl, isConstDecl bool) string {
 
 	if right == nil {
-		right = tc.checkExpression(rightExpr)
+		right = tc.checkExpr(rightExpr)
 	}
 
 	if isConstDecl && !right.IsConstant() {
@@ -352,7 +352,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Index:
 
-		left := tc.checkExpression(leftExpr)
+		left := tc.checkExpr(leftExpr)
 		switch left.Type.Kind() {
 		case reflect.Slice, reflect.Map:
 			// Always addressable when used in indexing operation.
@@ -367,7 +367,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Selector:
 
-		left := tc.checkExpression(leftExpr)
+		left := tc.checkExpr(leftExpr)
 		tc.mustBeAddressable(leftExpr)
 		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
@@ -378,7 +378,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	case *ast.UnaryOperator:
 
 		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
-			left := tc.checkExpression(leftExpr)
+			left := tc.checkExpr(leftExpr)
 			if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 				panic(tc.errorf(node, "%s in assignment", err))
 			}

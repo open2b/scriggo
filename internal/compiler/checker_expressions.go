@@ -444,7 +444,7 @@ func (tc *typechecker) checkArrayType(array *ast.ArrayType, length int) *TypeInf
 		tc.typeInfos[array] = &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		return tc.typeInfos[array]
 	}
-	len := tc.checkExpression(array.Len)
+	len := tc.checkExpr(array.Len)
 	if !len.IsConstant() {
 		panic(tc.errorf(array, "non-constant array bound %s", array.Len))
 	}
@@ -487,9 +487,9 @@ func (tc *typechecker) errorf(nodeOrPos interface{}, format string, args ...inte
 	return err
 }
 
-// checkExpression returns the type info of expr. Returns an error if expr is
-// a type or a package.
-func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
+// checkExpr returns the type info of expr. Returns an error if expr is a type
+// or a package.
+func (tc *typechecker) checkExpr(expr ast.Expression) *TypeInfo {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
@@ -560,7 +560,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		panic("unexpected parenthesis")
 
 	case *ast.UnaryOperator:
-		t := tc.checkExpression(expr.Expr)
+		t := tc.checkExpr(expr.Expr)
 		ti := &TypeInfo{
 			Type:       t.Type,
 			Properties: t.Properties & PropertyUntyped,
@@ -801,7 +801,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		return types[0]
 
 	case *ast.Index:
-		t := tc.checkExpression(expr.Expr)
+		t := tc.checkExpr(expr.Expr)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -834,7 +834,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 			}
 			return ti
 		case reflect.Map:
-			key := tc.checkExpression(expr.Index)
+			key := tc.checkExpr(expr.Index)
 			if err := isAssignableTo(key, expr.Index, t.Type.Key()); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(expr, "%s in map index", err))
@@ -848,7 +848,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		}
 
 	case *ast.Slicing:
-		t := tc.checkExpression(expr.Expr)
+		t := tc.checkExpr(expr.Expr)
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -989,7 +989,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		panic(tc.errorf(expr, "%v undefined (type %s has no field or method %s)", expr, t, expr.Ident))
 
 	case *ast.TypeAssertion:
-		t := tc.checkExpression(expr.Expr)
+		t := tc.checkExpr(expr.Expr)
 		if t.Type.Kind() != reflect.Interface {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
@@ -1012,7 +1012,7 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
-	index := tc.checkExpression(expr)
+	index := tc.checkExpr(expr)
 	if index.Untyped() && !index.IsNumeric() || !index.Untyped() && !index.IsInteger() {
 		if isSlice {
 			panic(tc.errorf(expr, "invalid slice index %s (type %s)", expr, index))
@@ -1053,8 +1053,8 @@ func (tc *typechecker) checkIndex(expr ast.Expression, t *TypeInfo, isSlice bool
 // Returns an error if the operation can not be executed.
 func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2 ast.Expression) (*TypeInfo, error) {
 
-	t1 := tc.checkExpression(expr1)
-	t2 := tc.checkExpression(expr2)
+	t1 := tc.checkExpr(expr1)
+	t2 := tc.checkExpr(expr2)
 
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
 		if t2.Nil() {
@@ -1246,7 +1246,7 @@ func (tc *typechecker) binaryOp(expr1 ast.Expression, op ast.OperatorType, expr2
 // checkSize checks the type of expr as a make size parameter.
 // If it is a constant returns the integer value, otherwise returns -1.
 func (tc *typechecker) checkSize(expr ast.Expression, typ reflect.Type, name string) constant {
-	size := tc.checkExpression(expr)
+	size := tc.checkExpr(expr)
 	if size.Untyped() && !size.IsNumeric() || !size.Untyped() && !size.IsInteger() {
 		got := size.String()
 		if name == "size" || name == "buffer" {
@@ -1286,7 +1286,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) == 0 {
 			panic(tc.errorf(expr, "missing arguments to append"))
 		}
-		slice := tc.checkExpression(expr.Args[0])
+		slice := tc.checkExpr(expr.Args[0])
 		if slice.Nil() {
 			panic(tc.errorf(expr, "first argument to append must be typed slice; have untyped nil"))
 		}
@@ -1299,7 +1299,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 			} else if len(expr.Args) > 2 {
 				panic(tc.errorf(expr, "too many arguments to append"))
 			}
-			t := tc.checkExpression(expr.Args[1])
+			t := tc.checkExpr(expr.Args[1])
 			isSpecialCase := t.Type.Kind() == reflect.String && slice.Type.Elem() == uint8Type
 			if !isSpecialCase && isAssignableTo(t, expr.Args[1], slice.Type) != nil {
 				panic(tc.errorf(expr, "cannot use %s (type %s) as type %s in append", expr.Args[1], t, slice.Type))
@@ -1310,7 +1310,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 				if i == 0 {
 					continue
 				}
-				t := tc.checkExpression(el)
+				t := tc.checkExpr(el)
 				if err := isAssignableTo(t, el, elemType); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
 						panic(tc.errorf(expr, "%s in append", err))
@@ -1329,7 +1329,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to cap: %s", expr))
 		}
-		t := tc.checkExpression(expr.Args[0])
+		t := tc.checkExpr(expr.Args[0])
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -1361,7 +1361,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to close: %s", expr))
 		}
-		arg := tc.checkExpression(expr.Args[0])
+		arg := tc.checkExpr(expr.Args[0])
 		if arg.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -1384,8 +1384,8 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		default:
 			panic(tc.errorf(expr, "too many arguments to complex - complex(%s, <N>)", expr.Args[0]))
 		}
-		re := tc.checkExpression(expr.Args[0])
-		im := tc.checkExpression(expr.Args[1])
+		re := tc.checkExpr(expr.Args[0])
+		im := tc.checkExpr(expr.Args[1])
 		reKind := re.Type.Kind()
 		imKind := im.Type.Kind()
 		if re.IsUntypedConstant() && im.IsUntypedConstant() {
@@ -1446,8 +1446,8 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 2 {
 			panic(tc.errorf(expr, "too many arguments to copy: %s", expr))
 		}
-		dst := tc.checkExpression(expr.Args[0])
-		src := tc.checkExpression(expr.Args[1])
+		dst := tc.checkExpr(expr.Args[0])
+		src := tc.checkExpr(expr.Args[1])
 		if dst.Nil() || src.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -1477,8 +1477,8 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		default:
 			panic(tc.errorf(expr, "too many arguments to delete"))
 		}
-		t := tc.checkExpression(expr.Args[0])
-		key := tc.checkExpression(expr.Args[1])
+		t := tc.checkExpr(expr.Args[0])
+		key := tc.checkExpr(expr.Args[1])
 		if t.Nil() {
 			panic(tc.errorf(expr, "first argument to delete must be map; have nil"))
 		}
@@ -1508,7 +1508,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to len: %s", expr))
 		}
-		t := tc.checkExpression(expr.Args[0])
+		t := tc.checkExpr(expr.Args[0])
 		if t.Nil() {
 			panic(tc.errorf(expr, "use of untyped nil"))
 		}
@@ -1599,13 +1599,13 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to panic: %s", expr))
 		}
-		ti := tc.checkExpression(expr.Args[0])
+		ti := tc.checkExpr(expr.Args[0])
 		ti.setValue(nil)
 		return nil
 
 	case "print", "println":
 		for _, arg := range expr.Args {
-			tc.checkExpression(arg)
+			tc.checkExpr(arg)
 			tc.typeInfos[arg].setValue(nil)
 		}
 		return nil
@@ -1619,7 +1619,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		default:
 			panic(tc.errorf(expr, "too many arguments to %s: %s", ident.Name, expr))
 		}
-		t := tc.checkExpression(expr.Args[0])
+		t := tc.checkExpr(expr.Args[0])
 		ti := &TypeInfo{Type: float64Type}
 		if t.IsUntypedConstant() {
 			if !isNumeric(t.Type.Kind()) {
@@ -1697,7 +1697,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to conversion to %s: %s", t, expr))
 		}
-		arg := tc.checkExpression(expr.Args[0])
+		arg := tc.checkExpr(expr.Args[0])
 		c, err := convert(arg, t.Type)
 		if err != nil {
 			if err == errTypeConversion {
@@ -1767,7 +1767,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			c := tc.typeInfos[arg]
 			if c == nil {
-				c = tc.checkExpression(arg)
+				c = tc.checkExpr(arg)
 			}
 			if c == nil {
 				have += "nil"
@@ -1814,7 +1814,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			continue
 		}
-		a := tc.checkExpression(arg)
+		a := tc.checkExpr(arg)
 		if i == lastIn && callIsVariadic {
 			if err := isAssignableTo(a, arg, reflect.SliceOf(in)); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
@@ -1858,7 +1858,7 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 			currentIndex++
 		} else {
 			currentIndex = -1
-			ti := tc.checkExpression(kv.Key)
+			ti := tc.checkExpr(kv.Key)
 			if ti.IsConstant() {
 				c, _ := ti.Constant.representedBy(intType)
 				if c != nil {
@@ -1933,7 +1933,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 				if !ok {
 					panic(tc.errorf(node, "unknown field '%s' in struct literal of type %s", keyValue.Key, ti))
 				}
-				valueTi := tc.checkExpression(keyValue.Value)
+				valueTi := tc.checkExpr(keyValue.Value)
 				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
 						panic(tc.errorf(node, "%s in field value", err))
@@ -1956,7 +1956,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			}
 			for i := range node.KeyValues {
 				keyValue := &node.KeyValues[i]
-				valueTi := tc.checkExpression(keyValue.Value)
+				valueTi := tc.checkExpr(keyValue.Value)
 				fieldTi := ti.Type.Field(i)
 				if err := isAssignableTo(valueTi, keyValue.Value, fieldTi.Type); err != nil {
 					if _, ok := err.(invalidTypeInAssignment); ok {
@@ -1978,7 +1978,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
-				keyTi := tc.checkExpression(kv.Key)
+				keyTi := tc.checkExpr(kv.Key)
 				if keyTi.Constant == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
@@ -1994,7 +1994,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
-				elemTi = tc.checkExpression(kv.Value)
+				elemTi = tc.checkExpr(kv.Value)
 			}
 			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
 				k := ti.Type.Elem().Kind()
@@ -2012,7 +2012,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		for i := range node.KeyValues {
 			kv := &node.KeyValues[i]
 			if kv.Key != nil {
-				keyTi := tc.checkExpression(kv.Key)
+				keyTi := tc.checkExpr(kv.Key)
 				if keyTi.Constant == nil {
 					panic(tc.errorf(node, "index must be non-negative integer constant"))
 				}
@@ -2028,7 +2028,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				elemTi = tc.checkCompositeLiteral(cl, ti.Type.Elem())
 			} else {
-				elemTi = tc.checkExpression(kv.Value)
+				elemTi = tc.checkExpr(kv.Value)
 			}
 			if err := isAssignableTo(elemTi, kv.Value, ti.Type.Elem()); err != nil {
 				k := ti.Type.Elem().Kind()
@@ -2054,7 +2054,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if compLit, ok := kv.Key.(*ast.CompositeLiteral); ok {
 				keyTi = tc.checkCompositeLiteral(compLit, keyType)
 			} else {
-				keyTi = tc.checkExpression(kv.Key)
+				keyTi = tc.checkExpr(kv.Key)
 			}
 			if err := isAssignableTo(keyTi, kv.Key, keyType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
@@ -2074,7 +2074,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 			if cl, ok := kv.Value.(*ast.CompositeLiteral); ok {
 				valueTi = tc.checkCompositeLiteral(cl, elemType)
 			} else {
-				valueTi = tc.checkExpression(kv.Value)
+				valueTi = tc.checkExpr(kv.Value)
 			}
 			if err := isAssignableTo(valueTi, kv.Value, elemType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {

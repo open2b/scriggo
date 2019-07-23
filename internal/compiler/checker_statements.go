@@ -194,7 +194,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
 			}
-			ti := tc.checkExpression(node.Condition)
+			ti := tc.checkExpr(node.Condition)
 			if ti.Type.Kind() != reflect.Bool {
 				panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as if condition", node.Condition, ti.ShortString()))
 			}
@@ -222,7 +222,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node.Init)
 			}
 			if node.Condition != nil {
-				ti := tc.checkExpression(node.Condition)
+				ti := tc.checkExpr(node.Condition)
 				if ti.Type.Kind() != reflect.Bool {
 					panic(tc.errorf(node.Condition, "non-bool %s (type %v) used as for condition", node.Condition, ti.ShortString()))
 				}
@@ -241,7 +241,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.addToAncestors(node)
 			// Check range expression.
 			expr := node.Assignment.Rhs[0]
-			ti := tc.checkExpression(expr)
+			ti := tc.checkExpr(expr)
 			if ti.Nil() {
 				panic(tc.errorf(node, "cannot range over nil"))
 			}
@@ -342,7 +342,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			typ := boolType
 			var ti *TypeInfo
 			if node.Expr != nil {
-				ti = tc.checkExpression(node.Expr)
+				ti = tc.checkExpr(node.Expr)
 				if ti.Nil() {
 					panic(tc.errorf(node, "use of untyped nil"))
 				}
@@ -362,7 +362,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					positionOfDefault = cas.Pos()
 				}
 				for _, ex := range cas.Expressions {
-					t := tc.checkExpression(ex)
+					t := tc.checkExpr(ex)
 					if err := isAssignableTo(t, ex, typ); err != nil {
 						if _, ok := err.(invalidTypeInAssignment); ok {
 							var ne string
@@ -401,7 +401,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				tc.checkAssignment(node.Init)
 			}
 			ta := node.Assignment.Rhs[0].(*ast.TypeAssertion)
-			t := tc.checkExpression(ta.Expr)
+			t := tc.checkExpr(ta.Expr)
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
@@ -465,7 +465,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOfDefault = cas.Pos()
 				case ast.Expression:
-					_ = tc.checkExpression(comm)
+					_ = tc.checkExpr(comm)
 					if recv, ok := comm.(*ast.UnaryOperator); !ok || recv.Op != ast.OperatorReceive {
 						panic(tc.errorf(node, "select case must be receive, send or assign recv"))
 					}
@@ -508,7 +508,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.assignScope(name, typ, node.Identifier)
 
 		case *ast.Show:
-			ti := tc.checkExpression(node.Expr)
+			ti := tc.checkExpr(node.Expr)
 			if ti.Nil() {
 				panic(tc.errorf(node, "use of untyped nil"))
 			}
@@ -570,7 +570,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = false
 
 		case *ast.Send:
-			tic := tc.checkExpression(node.Channel)
+			tic := tc.checkExpr(node.Channel)
 			if tic.Type.Kind() != reflect.Chan {
 				panic(tc.errorf(node, "invalid operation: %s (send to non-chan type %s)", node, tic.ShortString()))
 			}
@@ -578,7 +578,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				panic(tc.errorf(node, "invalid operation: %s (send to receive-only type %s)", node, tic.ShortString()))
 			}
 			elemType := tic.Type.Elem()
-			tiv := tc.checkExpression(node.Value)
+			tiv := tc.checkExpr(node.Value)
 			if err := isAssignableTo(tiv, node.Value, elemType); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					if tiv.Nil() {
@@ -594,7 +594,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tiv.setValue(elemType)
 
 		case *ast.UnaryOperator:
-			ti := tc.checkExpression(node)
+			ti := tc.checkExpr(node)
 			if node.Op != ast.OperatorReceive {
 				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
 				if tc.opts.SyntaxType == ProgramSyntax || !isLastScriptStatement {
@@ -623,7 +623,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.Comment:
 
 		case ast.Expression:
-			ti := tc.checkExpression(node)
+			ti := tc.checkExpr(node)
 			if tc.opts.SyntaxType == ScriptSyntax {
 				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
 				switch node := node.(type) {
@@ -714,7 +714,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	if needsCheck {
 		for _, g := range got {
-			_ = tc.checkExpression(g)
+			_ = tc.checkExpr(g)
 		}
 	}
 

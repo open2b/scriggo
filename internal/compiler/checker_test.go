@@ -520,7 +520,7 @@ func TestCheckerExpressions(t *testing.T) {
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
 			tc.addScope()
-			ti := tc.checkExpression(node)
+			ti := tc.checkExpr(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
 				t.Errorf("source: %q, %s\n", expr.src, err)
@@ -601,7 +601,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
 			tc.addScope()
-			ti := tc.checkExpression(node)
+			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
 	}
