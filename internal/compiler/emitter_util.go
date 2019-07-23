@@ -165,18 +165,17 @@ func mayHaveDependencies(variables, values []ast.Expression) bool {
 // predVarIndex returns the index of a global variable in globals, adding it
 // if it does not exist.
 func (em *emitter) predVarIndex(v reflect.Value, predPkgName, name string) int16 {
-	index, ok := em.predVarIndexes[em.fb.fn][v]
-	if ok {
-		return index
+	if index, ok := em.predefinedVarRefs[em.fb.fn][v]; ok {
+		return int16(index)
 	}
-	index = int16(len(em.globals))
+	index := len(em.globals)
 	g := Global{Pkg: predPkgName, Name: name, Value: v.Interface(), Type: v.Type().Elem()}
-	if em.predVarIndexes[em.fb.fn] == nil {
-		em.predVarIndexes[em.fb.fn] = make(map[reflect.Value]int16)
+	if em.predefinedVarRefs[em.fb.fn] == nil {
+		em.predefinedVarRefs[em.fb.fn] = make(map[reflect.Value]int)
 	}
 	em.globals = append(em.globals, g)
-	em.predVarIndexes[em.fb.fn][v] = index
-	return index
+	em.predefinedVarRefs[em.fb.fn][v] = index
+	return int16(index)
 }
 
 // predFuncIndex returns the index of a predefined function in the current

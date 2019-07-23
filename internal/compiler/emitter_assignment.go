@@ -167,7 +167,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 						// int8; should we change address to store
 						// int32/64?
 						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(reg), 0)
-					} else if index, ok := em.varIndexes[em.pkg][v.Name]; ok {
+					} else if index, ok := em.availableVarIndexes[em.pkg][v.Name]; ok {
 						// TODO(Gianluca): split index in 2 bytes, assigning first to reg1 and second to reg2.
 						addresses[i] = em.newAddress(addressClosureVariable, staticType, int8(index), 0)
 					} else if ti := em.ti(v); ti.IsPredefined() {
@@ -192,7 +192,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 				addresses[i] = em.newAddress(addrType, exprType, expr, index)
 			case *ast.Selector:
 				if ident, ok := v.Expr.(*ast.Identifier); ok {
-					if varIndex, ok := em.varIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
+					if varIndex, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+v.Ident]; ok {
 						addresses[i] = em.newAddress(addressClosureVariable, em.ti(v).Type, int8(varIndex), 0)
 						break
 					}

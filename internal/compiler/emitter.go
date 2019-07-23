@@ -41,7 +41,8 @@ type emitter struct {
 	// Should be accessed using method 'ti'.
 	typeInfos map[ast.Node]*TypeInfo
 
-	closureVarRefs map[*vm.Function]map[string]int // Index in the Function VarRefs field for each closure variable.
+	// Index in the Function VarRefs field for each closure variable.
+	closureVarRefs map[*vm.Function]map[string]int
 	options        EmitterOptions
 
 	isTemplate   bool // Reports whether it's a template.
@@ -55,13 +56,10 @@ type emitter struct {
 	funcIndexes map[*vm.Function]map[*vm.Function]int8
 
 	// Scriggo variables.
-	varIndexes map[*ast.Package]map[string]int16
+	availableVarIndexes map[*ast.Package]map[string]int16
 
 	// Predefined functions.
 	predFunIndexes map[*vm.Function]map[reflect.Value]int8
-
-	// Predefined variables.
-	predVarIndexes map[*vm.Function]map[reflect.Value]int16
 
 	// Holds all Scriggo-defined and pre-predefined global variables.
 	globals []Global
@@ -95,17 +93,16 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
-		funcIndexes:       map[*vm.Function]map[*vm.Function]int8{},
-		functions:         map[*ast.Package]map[string]*vm.Function{},
-		indirectVars:      indirectVars,
-		labels:            make(map[*vm.Function]map[string]uint32),
-		options:           opts,
-		varIndexes:        map[*ast.Package]map[string]int16{},
-		predFunIndexes:    map[*vm.Function]map[reflect.Value]int8{},
-		predVarIndexes:    map[*vm.Function]map[reflect.Value]int16{},
-		typeInfos:         typeInfos,
-		closureVarRefs:    map[*vm.Function]map[string]int{},
-		predefinedVarRefs: map[*vm.Function]map[reflect.Value]int{},
+		funcIndexes:         map[*vm.Function]map[*vm.Function]int8{},
+		functions:           map[*ast.Package]map[string]*vm.Function{},
+		indirectVars:        indirectVars,
+		labels:              make(map[*vm.Function]map[string]uint32),
+		options:             opts,
+		availableVarIndexes: map[*ast.Package]map[string]int16{},
+		predFunIndexes:      map[*vm.Function]map[reflect.Value]int8{},
+		typeInfos:           typeInfos,
+		closureVarRefs:      map[*vm.Function]map[string]int{},
+		predefinedVarRefs:   map[*vm.Function]map[reflect.Value]int{},
 	}
 }
 
@@ -131,8 +128,8 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 		em.pkg = pkg
 		em.functions[em.pkg] = map[string]*vm.Function{}
 	}
-	if em.varIndexes[em.pkg] == nil {
-		em.varIndexes[em.pkg] = map[string]int16{}
+	if em.availableVarIndexes[em.pkg] == nil {
+		em.availableVarIndexes[em.pkg] = map[string]int16{}
 	}
 
 	// TODO(Gianluca): if a package is imported more than once, its init
@@ -174,9 +171,9 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 				}
 				for name, v := range vars {
 					if importName == "" {
-						em.varIndexes[em.pkg][name] = v
+						em.availableVarIndexes[em.pkg][name] = v
 					} else {
-						em.varIndexes[em.pkg][importName+"."+name] = v
+						em.availableVarIndexes[em.pkg][importName+"."+name] = v
 					}
 				}
 			}
@@ -243,7 +240,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 					// the building of $initvars.
 					pkgVarRegs[v.Name] = varr
 					em.globals = append(em.globals, Global{Pkg: "main", Name: v.Name, Type: staticType})
-					em.varIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
+					em.availableVarIndexes[em.pkg][v.Name] = int16(len(em.globals) - 1)
 					vars[v.Name] = int16(len(em.globals) - 1)
 				}
 			}
@@ -294,7 +291,7 @@ func (em *emitter) emitPackage(pkg *ast.Package, extendingPage bool) (map[string
 		backupFb := em.fb
 		em.fb = initVarsFb
 		for name, reg := range pkgVarRegs {
-			index := em.varIndexes[em.pkg][name]
+			index := em.availableVarIndexes[em.pkg][name]
 			em.fb.emitSetVar(false, reg, int(index))
 		}
 		em.fb = backupFb
@@ -567,7 +564,7 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 
 	// Scriggo-defined package variables.
 	if ident, ok := expr.Expr.(*ast.Identifier); ok {
-		if index, ok := em.varIndexes[em.pkg][ident.Name+"."+expr.Ident]; ok {
+		if index, ok := em.availableVarIndexes[em.pkg][ident.Name+"."+expr.Ident]; ok {
 			if reg == 0 {
 				return
 			}
@@ -893,14 +890,14 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 							em.functions[backupPkg][importName+"."+name] = fn
 						}
 					}
-					if em.varIndexes[backupPkg] == nil {
-						em.varIndexes[backupPkg] = map[string]int16{}
+					if em.availableVarIndexes[backupPkg] == nil {
+						em.availableVarIndexes[backupPkg] = map[string]int16{}
 					}
 					for name, v := range vars {
 						if importName == "" {
-							em.varIndexes[backupPkg][name] = v
+							em.availableVarIndexes[backupPkg][name] = v
 						} else {
-							em.varIndexes[backupPkg][importName+"."+name] = v
+							em.availableVarIndexes[backupPkg][importName+"."+name] = v
 						}
 					}
 					if len(inits) > 0 {
@@ -1784,7 +1781,7 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 		}
 
 		// Scriggo variable.
-		if index, ok := em.varIndexes[em.pkg][expr.Name]; ok {
+		if index, ok := em.availableVarIndexes[em.pkg][expr.Name]; ok {
 			if sameRegType(typ.Kind(), dstType.Kind()) {
 				em.fb.emitGetVar(int(index), reg)
 				return reg, false
