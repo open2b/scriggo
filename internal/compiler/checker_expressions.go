@@ -97,7 +97,7 @@ type scopeVariable struct {
 type typechecker struct {
 	path             string
 	predefinedPkgs   PackageLoader
-	Universe         TypeCheckerScope
+	universe         TypeCheckerScope
 	filePackageBlock TypeCheckerScope
 	Scopes           []TypeCheckerScope
 	ancestors        []*ancestor
@@ -148,7 +148,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 		filePackageBlock: TypeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
 		TypeInfo:         map[ast.Node]*TypeInfo{},
-		Universe:         universe,
+		universe:         universe,
 		unusedImports:    map[string][]string{},
 		IndirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
@@ -205,7 +205,7 @@ func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (sco
 		return elem, true
 	}
 	// Universe.
-	if elem, ok := tc.Universe[name]; ok {
+	if elem, ok := tc.universe[name]; ok {
 		return elem, true
 	}
 	return scopeElement{}, false
@@ -311,7 +311,7 @@ func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 		return elem.decl
 	}
 	// Universe.
-	if elem, ok := tc.Universe[name]; ok {
+	if elem, ok := tc.universe[name]; ok {
 		return elem.decl
 	}
 	panic(fmt.Sprintf("trying to get scope level of %s, but any scope, package block, file block or universe contains it", name)) // TODO(Gianluca): to review.
