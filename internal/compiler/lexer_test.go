@@ -66,7 +66,7 @@ var typeTests = map[string][]tokenTyp{
 	"{% extends \"\" %}":           {tokenStartStatement, tokenExtends, tokenInterpretedString, tokenEndStatement},
 	"{% macro a %}":                {tokenStartStatement, tokenMacro, tokenIdentifier, tokenEndStatement},
 	"{% macro a(b) %}":             {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenRightParenthesis, tokenEndStatement},
-	"{% macro a(b...) %}":          {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenEllipses, tokenRightParenthesis, tokenEndStatement},
+	"{% macro a(b...) %}":          {tokenStartStatement, tokenMacro, tokenIdentifier, tokenLeftParenthesis, tokenIdentifier, tokenEllipsis, tokenRightParenthesis, tokenEndStatement},
 	"{% include \"\" %}":           {tokenStartStatement, tokenInclude, tokenInterpretedString, tokenEndStatement},
 	"{# comment #}":                {tokenComment},
 	`a{{b}}c`:                      {tokenText, tokenStartValue, tokenIdentifier, tokenEndValue, tokenText},

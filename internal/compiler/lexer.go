@@ -650,7 +650,7 @@ LOOP:
 				}
 				endLineAsSemicolon = true
 			} else if l.src[1] == '.' && len(l.src) > 2 && l.src[2] == '.' {
-				l.emit(tokenEllipses, 3)
+				l.emit(tokenEllipsis, 3)
 				l.column += 3
 				endLineAsSemicolon = false
 			} else {

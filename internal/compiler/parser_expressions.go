@@ -327,7 +327,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			isEllipses := false
 			tok = next(p.lex)
 			switch tok.typ {
-			case tokenEllipses:
+			case tokenEllipsis:
 				isEllipses = true
 				tok = next(p.lex)
 			case tokenRightBrackets:
@@ -433,7 +433,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 				pos.Start = operand.Pos().Start
 				args, tok := p.parseExprList(token{}, false, false, false)
 				var isVariadic bool
-				if tok.typ == tokenEllipses {
+				if tok.typ == tokenEllipsis {
 					if len(args) == 0 {
 						panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
 					}

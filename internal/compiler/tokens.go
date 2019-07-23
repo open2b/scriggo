@@ -82,7 +82,7 @@ const (
 	tokenColon                             // :
 	tokenComma                             // ,
 	tokenSemicolon                         // ;
-	tokenEllipses                          // ...
+	tokenEllipsis                          // ...
 	tokenFloat                             // 12.895
 	tokenInt                               // 18
 	tokenImaginary                         // 12.895i
@@ -180,7 +180,7 @@ var tokenString = map[tokenTyp]string{
 	tokenColon:                    ":",
 	tokenComma:                    "comma",
 	tokenSemicolon:                "semicolon",
-	tokenEllipses:                 "...",
+	tokenEllipsis:                 "...",
 	tokenFloat:                    "float",
 	tokenInt:                      "int",
 	tokenImaginary:                "imaginary",

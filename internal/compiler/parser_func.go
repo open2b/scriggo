@@ -127,7 +127,7 @@ func (p *parsing) parseFuncFields(tok token, names map[string]struct{}, isResult
 			}
 			break
 		}
-		if tok.typ == tokenEllipses {
+		if tok.typ == tokenEllipsis {
 			if isResult {
 				panic(&SyntaxError{"", *tok.pos, fmt.Errorf("cannot use ... in receiver or result parameter list")})
 			}

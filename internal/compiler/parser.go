@@ -875,7 +875,7 @@ LABEL:
 		var isVariadic bool
 		if tok.typ == tokenLeftParenthesis {
 			args, tok = p.parseExprList(token{}, false, false, false)
-			if tok.typ == tokenEllipses {
+			if tok.typ == tokenEllipsis {
 				if len(args) == 0 {
 					panic(&SyntaxError{"", *tok.pos, fmt.Errorf("unexpected ..., expecting expression")})
 				}
