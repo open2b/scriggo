@@ -105,7 +105,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				declarations := predefinedPkg.DeclarationNames()
 				importedPkg := &PackageInfo{}
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
-				for n, d := range ToTypeCheckerScope(predefinedPkg) {
+				for n, d := range toTypeCheckerScope(predefinedPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = predefinedPkg.Name()

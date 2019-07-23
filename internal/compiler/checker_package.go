@@ -14,7 +14,7 @@ import (
 	"scriggo/ast"
 )
 
-func ToTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
+func toTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 	declarations := gp.DeclarationNames()
 	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
@@ -513,7 +513,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 				}
 				declarations := predefinedPkg.DeclarationNames()
 				importedPkg.Declarations = make(map[string]*TypeInfo, len(declarations))
-				for n, d := range ToTypeCheckerScope(predefinedPkg) {
+				for n, d := range toTypeCheckerScope(predefinedPkg) {
 					importedPkg.Declarations[n] = d.t
 				}
 				importedPkg.Name = predefinedPkg.Name()

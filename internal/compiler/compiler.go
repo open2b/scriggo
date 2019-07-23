@@ -155,7 +155,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 			return nil, err
 		}
 		if main != nil {
-			tc.scopes = append(tc.scopes, ToTypeCheckerScope(main.(predefinedPackage)))
+			tc.scopes = append(tc.scopes, toTypeCheckerScope(main.(predefinedPackage)))
 		}
 	}
 	if opts.SyntaxType == TemplateSyntax {
