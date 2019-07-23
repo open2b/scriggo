@@ -119,9 +119,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if !isNumeric(exprTi.Type.Kind()) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
-			if !exprTi.Addressable() {
-				panic(tc.errorf(node, "cannot assign to %s", node))
-			}
+			tc.mustBeAddressable(v)
 			return
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
 			ast.AssignmentDivision, ast.AssignmentModulo:
@@ -345,9 +343,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		}
 
 		left := tc.checkIdentifier(leftExpr, false)
-		if !left.Addressable() {
-			panic(tc.errorf(leftExpr, "cannot assign to %v", leftExpr))
-		}
+		tc.mustBeAddressable(leftExpr)
 		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(rightExpr, "%s in assignment", err))
 		}
@@ -361,9 +357,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		case reflect.Slice, reflect.Map:
 			// Always addressable when used in indexing operation.
 		case reflect.Array:
-			if !left.Addressable() {
-				panic(tc.errorf(node, "cannot assign to %v", leftExpr))
-			}
+			tc.mustBeAddressable(leftExpr)
 		}
 		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
@@ -374,9 +368,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	case *ast.Selector:
 
 		left := tc.checkExpression(leftExpr)
-		if !left.Addressable() {
-			panic(tc.errorf(node, "cannot assign to %v", left))
-		}
+		tc.mustBeAddressable(leftExpr)
 		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
 			panic(tc.errorf(node, "%s in assignment", err))
 		}
@@ -419,5 +411,13 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 func (tc *typechecker) cantBeBlank(expr ast.Expression) {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
+	}
+}
+
+// mustBeAddressable panics if ti is not addressable.
+func (tc *typechecker) mustBeAddressable(expr ast.Expression) {
+	ti := tc.typeInfos[expr]
+	if !ti.Addressable() {
+		panic(tc.errorf(expr, "cannot assign to %v", expr))
 	}
 }

@@ -431,6 +431,7 @@ unusedLoop:
 		}
 	}
 
+	tc.typeInfos[ident] = i
 	return i
 }
 
