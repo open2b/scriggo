@@ -38,7 +38,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if len(rhs) == 0 {
 			for i := range n.Lhs {
 				zero := &TypeInfo{Type: typ.Type}
-				newVar := tc.assignSingle(node, n.Lhs[i], nil, zero, typ, true, false)
+				newVar := tc.assign(node, n.Lhs[i], nil, zero, typ, true, false)
 				if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 				}
@@ -146,7 +146,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
-			tc.assignSingle(node, n.Lhs[0], n.Rhs[0], nil, nil, false, false)
+			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, nil, false, false)
 			return
 		}
 
@@ -222,9 +222,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assignSingle(node, lhs[i], rhs[i], nil, typ, isDecl, isConst)
+			newVar = tc.assign(node, lhs[i], rhs[i], nil, typ, isDecl, isConst)
 		} else {
-			newVar = tc.assignSingle(node, lhs[i], nil, valueTi, typ, isDecl, isConst)
+			newVar = tc.assign(node, lhs[i], nil, valueTi, typ, isDecl, isConst)
 		}
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
@@ -257,11 +257,11 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 }
 
-// assignSingle assigns value to variable (or valueTi to variable if value is
+// assign assigns value to variable (or valueTi to variable if value is
 // nil). typ is the type specified in the declaration, if any. If assignment
 // is a declaration and the scope has been updated, returns the identifier of
 // the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
+func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
 
 	if right == nil {
 		right = tc.checkExpression(rightExpr)

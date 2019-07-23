@@ -281,9 +281,9 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				ti1 := &TypeInfo{Type: typ1, Properties: PropertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
-				tc.assignSingle(node.Assignment, vars[0], nil, ti1, nil, declaration, false)
+				tc.assign(node.Assignment, vars[0], nil, ti1, nil, declaration, false)
 				if len(vars) == 2 {
-					tc.assignSingle(node.Assignment, vars[1], nil, &TypeInfo{Type: typ2}, nil, declaration, false)
+					tc.assign(node.Assignment, vars[1], nil, &TypeInfo{Type: typ2}, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
