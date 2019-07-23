@@ -96,11 +96,10 @@ func checkConstant(c Constant, pkgName string) *TypeInfo {
 }
 
 type PackageInfo struct {
-	Name                 string
-	Declarations         map[string]*TypeInfo
-	ConstantsExpressions map[ast.Node]interface{} // expressions of constants.
-	IndirectVars         map[*ast.Identifier]bool
-	TypeInfo             map[ast.Node]*TypeInfo
+	Name         string
+	Declarations map[string]*TypeInfo
+	IndirectVars map[*ast.Identifier]bool
+	TypeInfo     map[ast.Node]*TypeInfo
 }
 
 func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
