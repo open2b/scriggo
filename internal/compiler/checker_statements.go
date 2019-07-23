@@ -146,7 +146,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					// TypeInfos of imported packages in templates are
 					// "manually" added to the map of typeinfos of typechecker.
 					for k, v := range pkgInfos[node.Path].TypeInfo {
-						tc.TypeInfo[k] = v
+						tc.typeInfo[k] = v
 					}
 					importedPkg, ok := pkgInfos[node.Path]
 					if !ok {
@@ -437,7 +437,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					if !t.IsType() {
 						panic(tc.errorf(cas, "%v (type %s) is not a type", expr, t.StringWithNumber(true)))
 					}
-					tc.TypeInfo[expr] = t
+					tc.typeInfo[expr] = t
 					// Check duplicate.
 					if pos, ok := positionOf[t.Type]; ok {
 						panic(tc.errorf(cas, "duplicate case %v in type switch\n\tprevious case at %s", ex, pos))
@@ -705,7 +705,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 			got = nil
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.TypeInfo[v] = ti
+				tc.typeInfo[v] = ti
 				got = append(got, v)
 				needsCheck = false
 			}
@@ -728,7 +728,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 		}
 		msg += "\n\thave ("
 		for i, x := range got {
-			msg += tc.TypeInfo[x].StringWithNumber(false)
+			msg += tc.typeInfo[x].StringWithNumber(false)
 			if i != len(got)-1 {
 				msg += ", "
 			}
@@ -746,7 +746,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 
 	for i, typ := range expectedTypes {
 		x := got[i]
-		ti := tc.TypeInfo[x]
+		ti := tc.typeInfo[x]
 		if err := isAssignableTo(ti, x, typ); err != nil {
 			if _, ok := err.(invalidTypeInAssignment); ok {
 				panic(tc.errorf(node, "%s in return argument", err))

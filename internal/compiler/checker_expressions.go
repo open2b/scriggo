@@ -113,7 +113,7 @@ type typechecker struct {
 
 	unusedVars    []*scopeVariable
 	unusedImports map[string][]string
-	TypeInfo      map[ast.Node]*TypeInfo
+	typeInfo      map[ast.Node]*TypeInfo
 
 	// IndirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
@@ -147,7 +147,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 		path:             path,
 		filePackageBlock: TypeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
-		TypeInfo:         map[ast.Node]*TypeInfo{},
+		typeInfo:         map[ast.Node]*TypeInfo{},
 		universe:         universe,
 		unusedImports:    map[string][]string{},
 		IndirectVars:     map[*ast.Identifier]bool{},
@@ -470,7 +470,7 @@ func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
-	tc.TypeInfo[expr] = ti
+	tc.typeInfo[expr] = ti
 	return ti
 }
 
@@ -486,14 +486,14 @@ func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 			panic(tc.errorf(expr, "%s is not a type", expr))
 		}
 		newTi := &TypeInfo{Properties: PropertyIsType, Type: reflect.PtrTo(ti.Type)}
-		tc.TypeInfo[expr] = newTi
+		tc.typeInfo[expr] = newTi
 		return newTi
 	}
 	ti := tc.typeof(expr, length)
 	if !ti.IsType() {
 		panic(tc.errorf(expr, "%s is not a type", expr))
 	}
-	tc.TypeInfo[expr] = ti
+	tc.typeInfo[expr] = ti
 	return ti
 }
 
@@ -502,7 +502,7 @@ func (tc *typechecker) checkType(expr ast.Expression, length int) *TypeInfo {
 func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	// TODO: remove double type check
-	ti := tc.TypeInfo[expr]
+	ti := tc.typeInfo[expr]
 	if ti != nil {
 		return ti
 	}
@@ -922,13 +922,13 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 						}
 						panic(tc.errorf(expr, "undefined: %v", expr))
 					}
-					tc.TypeInfo[expr] = v
+					tc.typeInfo[expr] = v
 					return v
 				}
 			}
 		}
 		t := tc.typeof(expr.Expr, noEllipses)
-		tc.TypeInfo[expr.Expr] = t
+		tc.typeInfo[expr.Expr] = t
 		// t is a type.
 		if t.IsType() {
 			method, _, ok := methodByName(t, expr.Ident)
@@ -959,14 +959,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
 					tc.IndirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
-					tc.TypeInfo[expr.Expr] = &TypeInfo{
+					tc.typeInfo[expr.Expr] = &TypeInfo{
 						Type:       reflect.PtrTo(t.Type),
 						MethodType: t.MethodType,
 					}
 				}
 			case receiverAddIndirect:
 				expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorMultiplication, expr.Expr)
-				tc.TypeInfo[expr.Expr] = &TypeInfo{
+				tc.typeInfo[expr.Expr] = &TypeInfo{
 					Type:       t.Type.Elem(),
 					MethodType: t.MethodType,
 				}
@@ -1598,7 +1598,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 	case "print", "println":
 		for _, arg := range expr.Args {
 			tc.checkExpression(arg)
-			tc.TypeInfo[arg].setValue(nil)
+			tc.typeInfo[arg].setValue(nil)
 		}
 		return nil
 
@@ -1656,7 +1656,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
 		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
-			tc.TypeInfo[expr.Func] = t
+			tc.typeInfo[expr.Func] = t
 			return tc.checkBuiltinCall(expr), true, false
 		}
 	}
@@ -1670,7 +1670,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		t.MethodType = MethodCallInterface
 	}
 
-	tc.TypeInfo[expr.Func] = t
+	tc.typeInfo[expr.Func] = t
 
 	// expr is a ShowMacro expression which is not defined and which has been
 	// marked as "to be ignored" or "to do".
@@ -1728,11 +1728,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c, false)
 			if len(tis) == 1 {
-				tc.TypeInfo[c] = tis[0]
+				tc.typeInfo[c] = tis[0]
 			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.TypeInfo[v] = ti
+				tc.typeInfo[v] = ti
 				args = append(args, v)
 			}
 		}
@@ -1741,11 +1741,11 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			args = nil
 			tis, _, _ := tc.checkCallExpression(c, false)
 			if len(tis) == 1 {
-				tc.TypeInfo[c] = tis[0]
+				tc.typeInfo[c] = tis[0]
 			}
 			for _, ti := range tis {
 				v := ast.NewCall(c.Pos(), c.Func, c.Args, false)
-				tc.TypeInfo[v] = ti
+				tc.typeInfo[v] = ti
 				args = append(args, v)
 			}
 		}
@@ -1757,7 +1757,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			if i > 0 {
 				have += ", "
 			}
-			c := tc.TypeInfo[arg]
+			c := tc.typeInfo[arg]
 			if c == nil {
 				c = tc.checkExpression(arg)
 			}
@@ -1797,7 +1797,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			in = t.Type.In(lastIn).Elem()
 		}
 		if isSpecialCase {
-			a := tc.TypeInfo[arg]
+			a := tc.typeInfo[arg]
 			if err := isAssignableTo(a, arg, in); err != nil {
 				if _, ok := err.(invalidTypeInAssignment); ok {
 					panic(tc.errorf(args[i], "cannot use %s as type %s in argument to %s", a, in, expr.Func))
@@ -1824,7 +1824,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 		if a.Nil() {
 			a.value = reflect.Zero(in).Interface()
-			tc.TypeInfo[expr.Args[i]].Type = in
+			tc.typeInfo[expr.Args[i]].Type = in
 		}
 		a.setValue(in)
 	}
@@ -1928,7 +1928,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 		case false: // struct with implicit fields.
 			if len(node.KeyValues) == 0 {
 				ti := &TypeInfo{Type: ti.Type}
-				tc.TypeInfo[node] = ti
+				tc.typeInfo[node] = ti
 				return ti
 			}
 			if len(node.KeyValues) < ti.Type.NumField() {
@@ -2071,7 +2071,7 @@ func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ ref
 	}
 
 	nodeTi := &TypeInfo{Type: ti.Type}
-	tc.TypeInfo[node] = nodeTi
+	tc.typeInfo[node] = nodeTi
 
 	return nodeTi
 }
