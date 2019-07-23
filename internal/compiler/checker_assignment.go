@@ -344,11 +344,10 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			return leftExpr.Name
 		}
 
+		// Simple assignment.
 		left := tc.checkIdentifier(leftExpr, false)
 		tc.mustBeAddressable(leftExpr)
-		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
-			panic(tc.errorf(rightExpr, "%s in assignment", err))
-		}
+		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)
 		tc.typeInfos[leftExpr] = left
 
@@ -361,9 +360,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		case reflect.Array:
 			tc.mustBeAddressable(leftExpr)
 		}
-		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
+		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)
 		return ""
 
@@ -371,9 +368,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 		left := tc.checkExpr(leftExpr)
 		tc.mustBeAddressable(leftExpr)
-		if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
-			panic(tc.errorf(node, "%s in assignment", err))
-		}
+		tc.mustBeAssignableTo(rightExpr, left.Type)
 		right.setValue(left.Type)
 		return ""
 
@@ -381,9 +376,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
 			left := tc.checkExpr(leftExpr)
-			if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
-				panic(tc.errorf(node, "%s in assignment", err))
-			}
+			tc.mustBeAssignableTo(rightExpr, left.Type)
 			right.setValue(left.Type)
 			return ""
 		}
@@ -421,5 +414,13 @@ func (tc *typechecker) mustBeAddressable(expr ast.Expression) {
 	ti := tc.typeInfos[expr]
 	if !ti.Addressable() {
 		panic(tc.errorf(expr, "cannot assign to %v", expr))
+	}
+}
+
+// mustBeAssignableTo panics if right is not assignable to leftType.
+func (tc *typechecker) mustBeAssignableTo(right ast.Expression, leftType reflect.Type) {
+	ti := tc.typeInfos[right]
+	if err := isAssignableTo(ti, right, leftType); err != nil {
+		panic(tc.errorf(right, "%s in assignment", err))
 	}
 }
