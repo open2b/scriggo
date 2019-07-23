@@ -644,7 +644,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 	for ident, ti := range tc.filePackageBlock {
 		pkgInfo.Declarations[ident] = ti.t
 	}
-	pkgInfo.IndirectVars = tc.IndirectVars
+	pkgInfo.IndirectVars = tc.indirectVars
 
 	pkgInfos[path] = pkgInfo
 

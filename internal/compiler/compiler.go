@@ -183,7 +183,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 				return nil, err
 			}
 			mainPkgInfo := &PackageInfo{}
-			mainPkgInfo.IndirectVars = tc.IndirectVars
+			mainPkgInfo.IndirectVars = tc.indirectVars
 			mainPkgInfo.TypeInfo = tc.typeInfo
 			for _, pkgInfo := range pkgInfos {
 				for k, v := range pkgInfo.TypeInfo {
@@ -202,7 +202,7 @@ func Typecheck(tree *ast.Tree, packages PackageLoader, opts CheckerOptions) (map
 		return nil, err
 	}
 	mainPkgInfo := &PackageInfo{}
-	mainPkgInfo.IndirectVars = tc.IndirectVars
+	mainPkgInfo.IndirectVars = tc.indirectVars
 	mainPkgInfo.TypeInfo = tc.typeInfo
 	return map[string]*PackageInfo{"main": mainPkgInfo}, nil
 }

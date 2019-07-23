@@ -115,9 +115,9 @@ type typechecker struct {
 	unusedImports map[string][]string
 	typeInfo      map[ast.Node]*TypeInfo
 
-	// IndirectVars contains the list of all declarations of variables which
+	// indirectVars contains the list of all declarations of variables which
 	// must be emitted as "indirect".
-	IndirectVars map[*ast.Identifier]bool
+	indirectVars map[*ast.Identifier]bool
 
 	opts CheckerOptions
 
@@ -150,7 +150,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 		typeInfo:         map[ast.Node]*TypeInfo{},
 		universe:         universe,
 		unusedImports:    map[string][]string{},
-		IndirectVars:     map[*ast.Identifier]bool{},
+		indirectVars:     map[*ast.Identifier]bool{},
 		opts:             opts,
 		iota:             -1,
 	}
@@ -274,7 +274,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.IndirectVars[tc.scopes[i][n].decl] = true
+				tc.indirectVars[tc.scopes[i][n].decl] = true
 				return true
 			}
 			return false
@@ -585,7 +585,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				for i := len(tc.scopes) - 1; i >= 0; i-- {
 					for n := range tc.scopes[i] {
 						if n == ident.Name {
-							tc.IndirectVars[tc.scopes[i][n].decl] = true
+							tc.indirectVars[tc.scopes[i][n].decl] = true
 							break scopesLoop
 						}
 					}
@@ -957,7 +957,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			case receiverAddAddress:
 				if t.Addressable() {
 					elem, _ := tc.lookupScopesElem(expr.Expr.(*ast.Identifier).Name, false)
-					tc.IndirectVars[elem.decl] = true
+					tc.indirectVars[elem.decl] = true
 					expr.Expr = ast.NewUnaryOperator(expr.Pos(), ast.OperatorAnd, expr.Expr)
 					tc.typeInfo[expr.Expr] = &TypeInfo{
 						Type:       reflect.PtrTo(t.Type),
