@@ -95,22 +95,44 @@ type scopeVariable struct {
 
 // typechecker represents the state of the type checking.
 type typechecker struct {
-	path              string
-	predefinedPkgs    PackageLoader
-	Universe          TypeCheckerScope
-	filePackageBlock  TypeCheckerScope
-	Scopes            []TypeCheckerScope
-	ancestors         []*ancestor
-	terminating       bool // https://golang.org/ref/spec#Terminating_statements
-	hasBreak          map[ast.Node]bool
-	unusedVars        []*scopeVariable
-	unusedImports     map[string][]string
-	TypeInfo          map[ast.Node]*TypeInfo
-	IndirectVars      map[*ast.Identifier]bool
-	opts              CheckerOptions
-	iota              int
-	lastConstPosition *ast.Position    // when changes iota is reset.
-	showMacros        []*ast.ShowMacro // list of *ast.ShowMacro nodes.
+	path             string
+	predefinedPkgs   PackageLoader
+	Universe         TypeCheckerScope
+	filePackageBlock TypeCheckerScope
+	Scopes           []TypeCheckerScope
+	ancestors        []*ancestor
+
+	// terminating reports whether current statement is terminating. For further
+	// details see https://golang.org/ref/spec#Terminating_statements.
+	terminating bool
+
+	// hasBreak reports whether a given statement node has a 'break' that refers
+	// to it. This is necessary to determine if a 'breakable' statement (for,
+	// switch or select) can be terminating or not.
+	hasBreak map[ast.Node]bool
+
+	unusedVars    []*scopeVariable
+	unusedImports map[string][]string
+	TypeInfo      map[ast.Node]*TypeInfo
+
+	// IndirectVars contains the list of all declarations of variables which
+	// must be emitted as "indirect".
+	IndirectVars map[*ast.Identifier]bool
+
+	opts CheckerOptions
+
+	// iota holds the current iota value.
+	iota int
+
+	// lastConstPosition is the position of the last constant declaration
+	// encountered. When it changes, iota is reset.
+	lastConstPosition *ast.Position
+
+	// showMacros is the list of all ast.ShowMacro nodes. This is needed because
+	// the ast.ShowMacro nodes are handled in a special way: if an ast.ShowMacro
+	// node points to a not-defined macro, an error will be retured depending on
+	// its 'Or' field.
+	showMacros []*ast.ShowMacro
 
 	// Data structures for Goto and Labels checking.
 	gotos           []string
@@ -213,10 +235,12 @@ func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.I
 	}
 }
 
+// addToAncestors adds a node as ancestor.
 func (tc *typechecker) addToAncestors(n ast.Node) {
 	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), n})
 }
 
+// removeLastAncestor removes current ancestor node.
 func (tc *typechecker) removeLastAncestor() {
 	tc.ancestors = tc.ancestors[:len(tc.ancestors)-1]
 }
@@ -235,10 +259,12 @@ func (tc *typechecker) currentFunction() (*ast.Func, int) {
 // isUpVar checks if name is an upvar, that is a variable declared outside
 // current function.
 func (tc *typechecker) isUpVar(name string) bool {
+
 	// Check if name is a package variable.
 	if _, ok := tc.filePackageBlock[name]; ok {
 		return true
 	}
+
 	// name is not a package variable; check if has been declared outside
 	// current function.
 	_, funcBound := tc.currentFunction()
@@ -254,6 +280,7 @@ func (tc *typechecker) isUpVar(name string) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -294,8 +321,22 @@ func (tc *typechecker) programImportError(imp *ast.Import) error {
 	return tc.errorf(imp, "import \"%s\" is a program, not a in importable package", imp.Path)
 }
 
-// getNestedFuncs returns a list of ordered functions from the brother of name's
-// declaration to the innermost.
+// getNestedFuncs returns an ordered list of all nested functions, starting from
+// the function declaration that is a sibling of name declaration to the
+// innermost function, which is the current.
+//
+// For example, given the source code:
+//
+// 		func f() {
+// 			A := 10
+// 			func g() {
+// 				func h() {
+// 					_ = A
+// 				}
+// 			}
+// 		}
+// calling getNestedFuncs("A") returns [G, H].
+//
 func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	declLevel, imported := tc.getScopeLevel(name)
 	// If name has been imported, function chain does not exist.
@@ -317,11 +358,11 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 // undefined but has been marked as to be ignored or "todo".
 var showMacroIgnoredTi = &TypeInfo{}
 
-// checkIdentifier checks identifier ident, returning it's typeinfo retrieved
-// from scope. If using, ident is marked as "used".
+// checkIdentifier checks an identifier. If using, ident is marked as "used".
 func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeInfo {
 
-	// If ident is an upvar, add it as upvar for all nested functions.
+	// If ident is an upvar, add it as upvar for current function and for all
+	// nested functions and update all indexes.
 	if tc.isUpVar(ident.Name) {
 		upvar := ast.Upvar{
 			Declaration: tc.getDeclarationNode(ident.Name),
@@ -370,6 +411,7 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
 	}
 
+	// Mark identifier as "used".
 	if using {
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
