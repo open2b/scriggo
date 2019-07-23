@@ -14,9 +14,9 @@ import (
 	"scriggo/ast"
 )
 
-func ToTypeCheckerScope(gp predefinedPackage) TypeCheckerScope {
+func ToTypeCheckerScope(gp predefinedPackage) typeCheckerScope {
 	declarations := gp.DeclarationNames()
-	s := make(TypeCheckerScope, len(declarations))
+	s := make(typeCheckerScope, len(declarations))
 	for _, ident := range declarations {
 		value := gp.Lookup(ident)
 		// Importing a Go type.

@@ -23,7 +23,7 @@ type scopeElement struct {
 	decl *ast.Identifier
 }
 
-type TypeCheckerScope map[string]scopeElement
+type typeCheckerScope map[string]scopeElement
 
 type HTML string
 
@@ -40,7 +40,7 @@ var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
 var envType = reflect.TypeOf(&vm.Env{})
 
-var universe = TypeCheckerScope{
+var universe = typeCheckerScope{
 	"append":      {t: builtinTypeInfo},
 	"cap":         {t: builtinTypeInfo},
 	"close":       {t: builtinTypeInfo},
@@ -97,9 +97,9 @@ type scopeVariable struct {
 type typechecker struct {
 	path             string
 	predefinedPkgs   PackageLoader
-	universe         TypeCheckerScope
-	filePackageBlock TypeCheckerScope
-	scopes           []TypeCheckerScope
+	universe         typeCheckerScope
+	filePackageBlock typeCheckerScope
+	scopes           []typeCheckerScope
 	ancestors        []*ancestor
 
 	// terminating reports whether current statement is terminating. For further
@@ -145,7 +145,7 @@ type typechecker struct {
 func newTypechecker(path string, opts CheckerOptions) *typechecker {
 	return &typechecker{
 		path:             path,
-		filePackageBlock: TypeCheckerScope{},
+		filePackageBlock: typeCheckerScope{},
 		hasBreak:         map[ast.Node]bool{},
 		typeInfos:        map[ast.Node]*TypeInfo{},
 		universe:         universe,
@@ -158,7 +158,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 
 // addScope adds a new empty scope to the type checker.
 func (tc *typechecker) addScope() {
-	tc.scopes = append(tc.scopes, TypeCheckerScope{})
+	tc.scopes = append(tc.scopes, typeCheckerScope{})
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}

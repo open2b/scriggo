@@ -236,7 +236,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	}
 
 	newVars := []string{}
-	tmpScope := TypeCheckerScope{}
+	tmpScope := typeCheckerScope{}
 	for i := range leftExprs {
 		if isConst {
 			tc.iota++

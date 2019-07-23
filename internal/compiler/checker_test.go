@@ -507,15 +507,15 @@ func TestCheckerExpressions(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting expression\n", expr.src, tok)
 				return
 			}
-			scope := make(TypeCheckerScope, len(expr.scope))
+			scope := make(typeCheckerScope, len(expr.scope))
 			for k, v := range expr.scope {
 				scope[k] = scopeElement{t: v}
 			}
-			var scopes []TypeCheckerScope
+			var scopes []typeCheckerScope
 			if expr.scope == nil {
-				scopes = []TypeCheckerScope{}
+				scopes = []typeCheckerScope{}
 			} else {
-				scopes = []TypeCheckerScope{scope}
+				scopes = []typeCheckerScope{scope}
 			}
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
@@ -588,15 +588,15 @@ func TestCheckerExpressionErrors(t *testing.T) {
 				t.Errorf("source: %q, unexpected %s, expecting error %q\n", expr.src, tok, expr.err)
 				return
 			}
-			scope := make(TypeCheckerScope, len(expr.scope))
+			scope := make(typeCheckerScope, len(expr.scope))
 			for k, v := range expr.scope {
 				scope[k] = scopeElement{t: v}
 			}
-			var scopes []TypeCheckerScope
+			var scopes []typeCheckerScope
 			if expr.scope == nil {
-				scopes = []TypeCheckerScope{}
+				scopes = []typeCheckerScope{}
 			} else {
-				scopes = []TypeCheckerScope{scope}
+				scopes = []typeCheckerScope{scope}
 			}
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
@@ -1372,7 +1372,7 @@ func (p *pointInt) SetX(newX int) {
 }
 
 func TestCheckerStatements(t *testing.T) {
-	scope := TypeCheckerScope{
+	scope := typeCheckerScope{
 		"boolType":    {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedBool(false))}},
 		"aString":     {t: &TypeInfo{Type: reflect.TypeOf(definedString(""))}},
 		"stringType":  {t: &TypeInfo{Properties: PropertyIsType, Type: reflect.TypeOf(definedString(""))}},
