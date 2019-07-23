@@ -36,7 +36,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if n.Type != nil {
 			declType = tc.checkType(n.Type)
 		}
-
 		if len(rhs) == 0 {
 			for i := range n.Lhs {
 				zero := &TypeInfo{Type: declType.Type}
@@ -84,7 +83,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			}
 			return
 		}
-
 		lhs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
 			lhs[i] = ident
@@ -98,14 +96,12 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			declType = tc.checkType(n.Type)
 		}
 		tc.lastConstPosition = node.Pos()
-
 		if len(n.Lhs) > len(rhs) {
 			panic(tc.errorf(node, "missing value in const declaration"))
 		}
 		if len(n.Lhs) < len(rhs) {
 			panic(tc.errorf(node, "extra expression in const declaration"))
 		}
-
 		lhs = make([]ast.Expression, len(n.Lhs))
 		for i, ident := range n.Lhs {
 			lhs[i] = ident
@@ -146,7 +142,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
 			return
 		}
-
 		lhs = n.Lhs
 		rhs = n.Rhs
 		isVarDecl = n.Type == ast.AssignmentDeclaration
