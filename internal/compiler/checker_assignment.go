@@ -40,7 +40,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if len(rhs) == 0 {
 			for i := range n.Lhs {
 				zero := &TypeInfo{Type: declType.Type}
-				newVar := tc.assign(node, n.Lhs[i], nil, zero, declType, true, false)
+				zeroExpr := ast.NewPlaceholder()
+				tc.typeInfos[zeroExpr] = zero
+				newVar := tc.assign(node, n.Lhs[i], zeroExpr, declType, true, false)
 				if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 				}
@@ -141,7 +143,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
-			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, nil, false, false)
+			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
 			return
 		}
 
@@ -218,9 +220,11 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], nil, declType, isVarDecl, isConstDecl)
+			newVar = tc.assign(node, lhs[i], rhs[i], declType, isVarDecl, isConstDecl)
 		} else {
-			newVar = tc.assign(node, lhs[i], nil, valueTi, declType, isVarDecl, isConstDecl)
+			ph := ast.NewPlaceholder()
+			tc.typeInfos[ph] = valueTi
+			newVar = tc.assign(node, lhs[i], ph, declType, isVarDecl, isConstDecl)
 		}
 		if isVarDecl || isConstDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
@@ -257,11 +261,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // instead of rightExpr. typ is the type specified in the declaration, if any.
 // If assignment is a declaration and the scope has been updated, returns the
 // identifier of the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isVarDecl, isConstDecl bool) string {
+func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVarDecl, isConstDecl bool) string {
 
-	if right == nil {
-		right = tc.checkExpr(rightExpr)
-	}
+	right := tc.checkExpr(rightExpr)
 
 	if isConstDecl && !right.IsConstant() {
 		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
@@ -273,7 +275,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	} else {
 		// Type is explicit, so must check assignability.
 		if err := isAssignableTo(right, rightExpr, typ.Type); err != nil {
-			if rightExpr == nil {
+			if _, isPlaceholder := rightExpr.(*ast.Placeholder); isPlaceholder || rightExpr == nil {
 				panic(tc.errorf(node, "cannot assign %s to %s (type %s) in multiple assignment", right.ShortString(), leftExpr, typ))
 			}
 			panic(tc.errorf(node, "%s in assignment", err))

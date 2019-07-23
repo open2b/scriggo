@@ -281,9 +281,13 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 				}
 				ti1 := &TypeInfo{Type: typ1, Properties: PropertyAddressable}
 				declaration := node.Assignment.Type == ast.AssignmentDeclaration
-				tc.assign(node.Assignment, vars[0], nil, ti1, nil, declaration, false)
+				indexPh := ast.NewPlaceholder()
+				tc.typeInfos[indexPh] = ti1
+				tc.assign(node.Assignment, vars[0], indexPh, nil, declaration, false)
 				if len(vars) == 2 {
-					tc.assign(node.Assignment, vars[1], nil, &TypeInfo{Type: typ2}, nil, declaration, false)
+					valuePh := ast.NewPlaceholder()
+					tc.typeInfos[valuePh] = &TypeInfo{Type: typ2}
+					tc.assign(node.Assignment, vars[1], valuePh, nil, declaration, false)
 				}
 			}
 			tc.checkNodesInNewScope(node.Body)
