@@ -114,9 +114,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		switch n.Type {
 		case ast.AssignmentIncrement, ast.AssignmentDecrement:
 			v := n.Lhs[0]
-			if isBlankIdentifier(v) {
-				panic(tc.errorf(v, "cannot use _ as value"))
-			}
+			tc.cantBeBlank(v)
 			exprTi := tc.checkExpression(v)
 			if !isNumeric(exprTi.Type.Kind()) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
@@ -140,9 +138,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			case ast.AssignmentModulo:
 				opType = ast.OperatorModulo
 			}
-			if isBlankIdentifier(n.Lhs[0]) {
-				panic(tc.errorf(n.Lhs[0], "cannot use _ as value"))
-			}
+			tc.cantBeBlank(n.Lhs[0])
 			_, err := tc.binaryOp(n.Lhs[0], opType, n.Rhs[0])
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
@@ -378,6 +374,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		if isVarDecl {
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
+
 		left := tc.checkExpression(leftExpr)
 		if !left.Addressable() {
 			panic(tc.errorf(node, "cannot assign to %v", left))
@@ -424,4 +421,11 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	}
 
 	return ""
+}
+
+// cantBeBlank panics if expr is the blank identifier.
+func (tc *typechecker) cantBeBlank(expr ast.Expression) {
+	if isBlankIdentifier(expr) {
+		panic(tc.errorf(expr, "cannot use _ as value"))
+	}
 }
