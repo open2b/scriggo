@@ -89,7 +89,7 @@ func Load(path string, reader Reader, main scriggo.Package, ctx Context, options
 	}
 	typeInfos := map[ast.Node]*compiler.TypeInfo{}
 	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfo {
+		for node, ti := range pkgInfos.TypeInfos {
 			typeInfos[node] = ti
 		}
 	}

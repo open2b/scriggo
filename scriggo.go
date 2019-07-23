@@ -85,7 +85,7 @@ func LoadProgram(packages PackageLoader, options *LoadOptions) (*Program, error)
 	}
 	typeInfos := map[ast.Node]*compiler.TypeInfo{}
 	for _, pkgInfos := range tci {
-		for node, ti := range pkgInfos.TypeInfo {
+		for node, ti := range pkgInfos.TypeInfos {
 			typeInfos[node] = ti
 		}
 	}
@@ -180,7 +180,7 @@ func LoadScript(src io.Reader, packages PackageLoader, options *LoadOptions) (*S
 		return nil, err
 	}
 
-	code := compiler.EmitScript(tree, tci["main"].TypeInfo, tci["main"].IndirectVars, emitterOpts)
+	code := compiler.EmitScript(tree, tci["main"].TypeInfos, tci["main"].IndirectVars, emitterOpts)
 
 	return &Script{fn: code.Main, globals: code.Globals, options: options}, nil
 }

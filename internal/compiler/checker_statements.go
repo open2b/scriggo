@@ -145,7 +145,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					// TypeInfos of imported packages in templates are
 					// "manually" added to the map of typeinfos of typechecker.
-					for k, v := range pkgInfos[node.Path].TypeInfo {
+					for k, v := range pkgInfos[node.Path].TypeInfos {
 						tc.typeInfos[k] = v
 					}
 					importedPkg, ok := pkgInfos[node.Path]

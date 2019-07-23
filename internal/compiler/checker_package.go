@@ -99,7 +99,7 @@ type PackageInfo struct {
 	Name         string
 	Declarations map[string]*TypeInfo
 	IndirectVars map[*ast.Identifier]bool
-	TypeInfo     map[ast.Node]*TypeInfo
+	TypeInfos    map[ast.Node]*TypeInfo
 }
 
 func depsOf(name string, deps PackageDeclsDeps) []*ast.Identifier {
@@ -637,7 +637,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 	pkgInfo := &PackageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
-		TypeInfo:     tc.typeInfos,
+		TypeInfos:    tc.typeInfos,
 	}
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {
