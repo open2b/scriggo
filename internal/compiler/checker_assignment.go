@@ -250,8 +250,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		if isDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
 			tmpScope[newVar] = scopeElement{t: ti, decl: leftExprs[i].(*ast.Identifier)}
-			if len(tc.Scopes) > 0 {
-				delete(tc.Scopes[len(tc.Scopes)-1], newVar)
+			if len(tc.scopes) > 0 {
+				delete(tc.scopes[len(tc.scopes)-1], newVar)
 			} else {
 				delete(tc.filePackageBlock, newVar)
 			}
@@ -347,7 +347,7 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 			if !tc.opts.AllowNotUsed {
 				tc.unusedVars = append(tc.unusedVars, &scopeVariable{
 					ident:      leftExpr.Name,
-					scopeLevel: len(tc.Scopes) - 1,
+					scopeLevel: len(tc.scopes) - 1,
 					node:       node,
 				})
 			}

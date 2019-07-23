@@ -596,7 +596,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case *ast.UnaryOperator:
 			ti := tc.checkExpression(node)
 			if node.Op != ast.OperatorReceive {
-				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
+				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
 				if tc.opts.SyntaxType == ProgramSyntax || !isLastScriptStatement {
 					panic(tc.errorf(node, "%s evaluated but not used", node))
 				}
@@ -625,7 +625,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 		case ast.Expression:
 			ti := tc.checkExpression(node)
 			if tc.opts.SyntaxType == ScriptSyntax {
-				isLastScriptStatement := len(tc.Scopes) == 2 && i == len(nodes)-1
+				isLastScriptStatement := len(tc.scopes) == 2 && i == len(nodes)-1
 				switch node := node.(type) {
 				case *ast.Func:
 					if node.Ident == nil {
@@ -680,7 +680,7 @@ func (tc *typechecker) checkReturn(node *ast.Return) {
 	// shadowed.
 	if len(expected) > 0 && expected[0].Ident != nil && len(got) == 0 {
 		// If "return" belongs to an inner scope (not the function scope).
-		if len(tc.Scopes) > funcBound {
+		if len(tc.scopes) > funcBound {
 			for _, e := range expected {
 				name := e.Ident.Name
 				_, ok := tc.lookupScopes(name, true)

@@ -99,7 +99,7 @@ type typechecker struct {
 	predefinedPkgs   PackageLoader
 	universe         TypeCheckerScope
 	filePackageBlock TypeCheckerScope
-	Scopes           []TypeCheckerScope
+	scopes           []TypeCheckerScope
 	ancestors        []*ancestor
 
 	// terminating reports whether current statement is terminating. For further
@@ -158,7 +158,7 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 
 // addScope adds a new empty scope to the type checker.
 func (tc *typechecker) addScope() {
-	tc.Scopes = append(tc.Scopes, TypeCheckerScope{})
+	tc.scopes = append(tc.scopes, TypeCheckerScope{})
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
 	tc.gotos = []string{}
@@ -170,7 +170,7 @@ func (tc *typechecker) removeCurrentScope() {
 		cut := len(tc.unusedVars)
 		for i := len(tc.unusedVars) - 1; i >= 0; i-- {
 			v := tc.unusedVars[i]
-			if v.scopeLevel < len(tc.Scopes)-1 {
+			if v.scopeLevel < len(tc.scopes)-1 {
 				break
 			}
 			if v.node != nil {
@@ -180,7 +180,7 @@ func (tc *typechecker) removeCurrentScope() {
 		}
 		tc.unusedVars = tc.unusedVars[:cut]
 	}
-	tc.Scopes = tc.Scopes[:len(tc.Scopes)-1]
+	tc.scopes = tc.scopes[:len(tc.scopes)-1]
 	tc.labels = tc.labels[:len(tc.labels)-1]
 	tc.gotos = append(tc.storedGotos, tc.gotos...)
 	tc.nextValidGoto = tc.storedValidGoto
@@ -191,12 +191,12 @@ func (tc *typechecker) removeCurrentScope() {
 // lookupScopesElem looks up only in the current scope.
 func (tc *typechecker) lookupScopesElem(name string, justCurrentScope bool) (scopeElement, bool) {
 	// Iterating over scopes, from inside.
-	for i := len(tc.Scopes) - 1; i >= 0; i-- {
-		elem, ok := tc.Scopes[i][name]
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		elem, ok := tc.scopes[i][name]
 		if ok {
 			return elem, true
 		}
-		if justCurrentScope && i == len(tc.Scopes)-1 {
+		if justCurrentScope && i == len(tc.scopes)-1 {
 			return scopeElement{}, false
 		}
 	}
@@ -225,19 +225,19 @@ func (tc *typechecker) lookupScopes(name string, justCurrentScope bool) (*TypeIn
 // assignScope assigns value to name in the last scope. If there are no scopes,
 // value is assigned in file/package block.
 func (tc *typechecker) assignScope(name string, value *TypeInfo, declNode *ast.Identifier) {
-	if len(tc.Scopes) == 0 {
+	if len(tc.scopes) == 0 {
 		if _, ok := tc.filePackageBlock[name]; ok {
 			panic("redeclared in this block...") // TODO(Gianluca): to review.
 		}
 		tc.filePackageBlock[name] = scopeElement{t: value, decl: declNode}
 	} else {
-		tc.Scopes[len(tc.Scopes)-1][name] = scopeElement{t: value, decl: declNode}
+		tc.scopes[len(tc.scopes)-1][name] = scopeElement{t: value, decl: declNode}
 	}
 }
 
 // addToAncestors adds a node as ancestor.
 func (tc *typechecker) addToAncestors(n ast.Node) {
-	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), n})
+	tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), n})
 }
 
 // removeLastAncestor removes current ancestor node.
@@ -268,13 +268,13 @@ func (tc *typechecker) isUpVar(name string) bool {
 	// name is not a package variable; check if has been declared outside
 	// current function.
 	_, funcBound := tc.currentFunction()
-	for i := len(tc.Scopes) - 1; i >= 0; i-- {
-		for n := range tc.Scopes[i] {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		for n := range tc.scopes[i] {
 			if n != name {
 				continue
 			}
 			if i < funcBound-1 { // out of current function scope.
-				tc.IndirectVars[tc.Scopes[i][n].decl] = true
+				tc.IndirectVars[tc.scopes[i][n].decl] = true
 				return true
 			}
 			return false
@@ -289,8 +289,8 @@ func (tc *typechecker) isUpVar(name string) bool {
 // or not.
 func (tc *typechecker) getScopeLevel(name string) (int, bool) {
 	// Iterating over scopes, from inside.
-	for i := len(tc.Scopes) - 1; i >= 0; i-- {
-		if _, ok := tc.Scopes[i][name]; ok {
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		if _, ok := tc.scopes[i][name]; ok {
 			return i + 1, false // TODO(Gianluca): to review.
 		}
 	}
@@ -300,8 +300,8 @@ func (tc *typechecker) getScopeLevel(name string) (int, bool) {
 // getDeclarationNode returns the declaration node which declares name.
 func (tc *typechecker) getDeclarationNode(name string) ast.Node {
 	// Iterating over scopes, from inside.
-	for i := len(tc.Scopes) - 1; i >= 0; i-- {
-		elem, ok := tc.Scopes[i][name]
+	for i := len(tc.scopes) - 1; i >= 0; i-- {
+		elem, ok := tc.scopes[i][name]
 		if ok {
 			return elem.decl
 		}
@@ -582,10 +582,10 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			// marked as "indirect".
 			if ident, ok := expr.Expr.(*ast.Identifier); ok {
 			scopesLoop:
-				for i := len(tc.Scopes) - 1; i >= 0; i-- {
-					for n := range tc.Scopes[i] {
+				for i := len(tc.scopes) - 1; i >= 0; i-- {
+					for n := range tc.scopes[i] {
 						if n == ident.Name {
-							tc.IndirectVars[tc.Scopes[i][n].decl] = true
+							tc.IndirectVars[tc.scopes[i][n].decl] = true
 							break scopesLoop
 						}
 					}
@@ -747,7 +747,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		tc.addScope()
 		t := tc.checkType(expr.Type, noEllipses)
 		expr.Type.Reflect = t.Type
-		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.Scopes), expr})
+		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
 		fillParametersTypes(expr.Type.Parameters)
 		isVariadic := expr.Type.IsVariadic
