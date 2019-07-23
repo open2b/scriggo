@@ -123,6 +123,43 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #176 (2)",
+		src: `package main
+
+		import (
+			"fmt"
+			"unicode"
+		)
+		
+		func main() {
+			f := func() {
+				fmt.Println(unicode.Cc)
+			}
+			f()
+		}
+		`,
+		out: "&{[{0 31 1} {127 159 1}] [] 2}\n",
+	},
+
+	{
+		name: "Issue #176",
+		src: `package main
+
+		import (
+			"unicode"
+		)
+		
+		func main() {
+			f := func() {
+				_ = unicode.Cc
+			}
+			_ = f
+		}
+		`,
+		out: "",
+	},
+
+	{
 		name: "appending to a new slice every iteration",
 		src: `package main
 

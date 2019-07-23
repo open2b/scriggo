@@ -397,11 +397,26 @@ type Func struct {
 	Upvars []Upvar     // Upvars of func.
 }
 
-// Upvar represents a variable defined outside function body.
-// Package level variables are considered upvars of package level functions.
+// Upvar represents a variable defined outside function body. Even package level
+// variables (predefined or not) are considered upvars.
 type Upvar struct {
 
-	// Declaration is the ast node where Upvar is defined.
+	// PredefinedPkg is the name of the predefined package which holds a
+	// predefined Upvar. If Upvar is not a predefined Upvar then PredefinedName
+	// is an empty string.
+	PredefinedPkg string
+
+	// PredefinedName is the name of the predefined declaration of a predefined
+	// Upvar. If Upvar is not a predefined Upvar then PredefinedName is an empty
+	// string.
+	PredefinedName string
+
+	// PredefinedValue is the value of the predefined variable Upvar. If Upvar
+	// is not a predefined then Upvar is nil.
+	PredefinedValue reflect.Value
+
+	// Declaration is the ast node where Upvar is defined. If Upvar is a
+	// predefined var then Declaration is nil.
 	Declaration Node
 
 	// Index indexes the Upvars slice of the parent function.

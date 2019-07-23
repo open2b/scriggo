@@ -212,9 +212,13 @@ func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
 	for i := range closureVars {
 		v := &closureVars[i]
 		if v.Index == -1 {
-			name := v.Declaration.(*ast.Identifier).Name
-			reg := em.fb.scopeLookup(name)
-			v.Index = int16(reg)
+			if v.Declaration != nil {
+				name := v.Declaration.(*ast.Identifier).Name
+				reg := em.fb.scopeLookup(name)
+				v.Index = int16(reg)
+			} else {
+				v.Index = em.predVarIndex(v.PredefinedValue, v.PredefinedPkg, v.PredefinedName)
+			}
 		}
 	}
 
@@ -226,7 +230,14 @@ func (em *emitter) setClosureRefs(fn *vm.Function, closureVars []ast.Upvar) {
 		closureRefs = append(closureRefs, 0, 1, 2)
 	}
 	for i, v := range closureVars {
-		em.closureVarRefs[fn][v.Declaration.(*ast.Identifier).Name] = i
+		if v.Declaration != nil {
+			em.closureVarRefs[fn][v.Declaration.(*ast.Identifier).Name] = i
+		} else {
+			if em.predefinedVarRefs[fn] == nil {
+				em.predefinedVarRefs[fn] = map[reflect.Value]int{}
+			}
+			em.predefinedVarRefs[fn][v.PredefinedValue] = i
+		}
 		closureRefs[i] = v.Index
 	}
 

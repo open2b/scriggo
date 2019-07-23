@@ -352,6 +352,19 @@ func (tc *typechecker) getNestedFuncs(name string) []*ast.Func {
 	return funcs
 }
 
+// getAllNestedFuncs returns an ordered list of all nested functions, starting
+// from the outermost function declaration to the innermost function, which is
+// the current.
+func (tc *typechecker) getAllNestedFuncs() []*ast.Func {
+	funcs := []*ast.Func{}
+	for _, anc := range tc.ancestors {
+		if fun, ok := anc.node.(*ast.Func); ok {
+			funcs = append(funcs, fun)
+		}
+	}
+	return funcs
+}
+
 // showMacroIgnoredTi is the TypeInfo of a ShowMacro identifier which is
 // undefined but has been marked as to be ignored or "todo".
 var showMacroIgnoredTi = &TypeInfo{}
@@ -929,6 +942,32 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 							}
 						}
 						panic(tc.errorf(expr, "undefined: %v", expr))
+					}
+					// v is a predefined variable.
+					// TODO(Gianluca): type assertion should not be necessary,
+					// as predefined package variables should always be
+					// reflect.Value. Investigate.
+					if rv, ok := v.value.(reflect.Value); v.Addressable() && ok { 
+						upvar := ast.Upvar{
+							PredefinedName:  expr.Ident,
+							PredefinedPkg:   ident.Name,
+							PredefinedValue: rv,
+							Index:           -1,
+						}
+						for _, fn := range tc.getAllNestedFuncs() {
+							add := true
+							for i, uv := range fn.Upvars {
+								if uv.PredefinedValue == upvar.PredefinedValue {
+									upvar.Index = int16(i)
+									add = false
+									break
+								}
+							}
+							if add {
+								upvar.Index = int16(len(fn.Upvars) - 1)
+								fn.Upvars = append(fn.Upvars, upvar)
+							}
+						}
 					}
 					tc.typeInfos[expr] = v
 					return v

@@ -18,6 +18,12 @@ import (
 // An emitter emits instructions for the VM.
 type emitter struct {
 
+	// Index in the Function VarRefs field for each predefined variable.
+	// TODO(Gianluca): this is the new way of accessing predefined vars.
+	// Incrementally integrate into Scriggo, then remove the other (unused)
+	// fields.
+	predefinedVarRefs map[*vm.Function]map[reflect.Value]int
+
 	// fb is the current function builder.
 	fb *functionBuilder
 
@@ -89,16 +95,17 @@ func (em *emitter) ti(n ast.Node) *TypeInfo {
 // variables and options.
 func newEmitter(typeInfos map[ast.Node]*TypeInfo, indirectVars map[*ast.Identifier]bool, opts EmitterOptions) *emitter {
 	return &emitter{
-		funcIndexes:    map[*vm.Function]map[*vm.Function]int8{},
-		functions:      map[*ast.Package]map[string]*vm.Function{},
-		indirectVars:   indirectVars,
-		labels:         make(map[*vm.Function]map[string]uint32),
-		options:        opts,
-		varIndexes:     map[*ast.Package]map[string]int16{},
-		predFunIndexes: map[*vm.Function]map[reflect.Value]int8{},
-		predVarIndexes: map[*vm.Function]map[reflect.Value]int16{},
-		typeInfos:      typeInfos,
-		closureVarRefs: map[*vm.Function]map[string]int{},
+		funcIndexes:       map[*vm.Function]map[*vm.Function]int8{},
+		functions:         map[*ast.Package]map[string]*vm.Function{},
+		indirectVars:      indirectVars,
+		labels:            make(map[*vm.Function]map[string]uint32),
+		options:           opts,
+		varIndexes:        map[*ast.Package]map[string]int16{},
+		predFunIndexes:    map[*vm.Function]map[reflect.Value]int8{},
+		predVarIndexes:    map[*vm.Function]map[reflect.Value]int16{},
+		typeInfos:         typeInfos,
+		closureVarRefs:    map[*vm.Function]map[string]int{},
+		predefinedVarRefs: map[*vm.Function]map[reflect.Value]int{},
 	}
 }
 
@@ -544,6 +551,14 @@ func (em *emitter) emitSelector(expr *ast.Selector, reg int8, dstType reflect.Ty
 			em.changeRegister(false, reg, reg, ti.Type, dstType)
 			return
 		}
+
+		// TODO(Gianluca): this is the new way of accessing predefined vars.
+		// Incrementally integrate into Scriggo, then remove the other checks.
+		if index, ok := em.predefinedVarRefs[em.fb.fn][ti.value.(reflect.Value)]; ok {
+			em.fb.emitGetVar(int(index), reg)
+			return
+		}
+
 		// Predefined variable.
 		index := em.predVarIndex(ti.value.(reflect.Value), ti.PredefPackageName, expr.Ident)
 		em.fb.emitGetVar(int(index), reg)
