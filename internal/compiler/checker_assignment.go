@@ -283,6 +283,11 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 		right.setValue(typ.Type)
 	}
 
+	// When declaring a variable, left side must be a name.
+	if _, isIdent := leftExpr.(*ast.Identifier); isVarDecl && !isIdent {
+		panic(tc.errorf(node, "non-name %s on left side of :=", leftExpr))
+	}
+
 	switch leftExpr := leftExpr.(type) {
 
 	case *ast.Identifier:
@@ -351,9 +356,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Index:
 
-		if isVarDecl {
-			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
-		}
 		left := tc.checkExpression(leftExpr)
 		switch left.Type.Kind() {
 		case reflect.Slice, reflect.Map:
@@ -371,10 +373,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Selector:
 
-		if isVarDecl {
-			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
-		}
-
 		left := tc.checkExpression(leftExpr)
 		if !left.Addressable() {
 			panic(tc.errorf(node, "cannot assign to %v", left))
@@ -387,9 +385,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.UnaryOperator:
 
-		if isVarDecl {
-			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
-		}
 		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
 			left := tc.checkExpression(leftExpr)
 			if err := isAssignableTo(right, rightExpr, left.Type); err != nil {
@@ -402,9 +397,6 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Call: // call on left side of assignment: f() = 10 .
 
-		if isVarDecl {
-			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
-		}
 		retValues, _, _ := tc.checkCallExpression(leftExpr, false)
 		switch len(retValues) {
 		case 0:

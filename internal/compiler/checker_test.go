@@ -739,7 +739,7 @@ var checkerStmts = map[string]string{
 	//`v := 1; v &^= 2`:                                             ok,
 	//`v := 1; v <<= 2`:                                             ok,
 	//`v := 1; v >>= 2`:                                             ok,
-	`[]int{1,2,3} := 3`:         `cannot assign to []int literal`,
+	`[]int{1,2,3} := 3`:         `non-name []int literal on left side of :=`,
 	`a := 0; *a = 1`:            `invalid indirect of a (type int)`,
 	`a := 0; b := &a; b[0] = 2`: `invalid operation: b[0] (type *int does not support indexing)`,
 	`a := 1; a, a = 1, 2`:       declaredNotUsed("a"),
