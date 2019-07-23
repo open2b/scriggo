@@ -7,7 +7,6 @@
 package compiler
 
 import (
-	"fmt"
 	"reflect"
 
 	"scriggo/ast"
@@ -78,14 +77,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
 					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
-			}
-			return
-		}
-
-		if len(n.Lhs) == 1 && len(rightExprs) == 1 {
-			newVar := tc.assignSingle(node, n.Lhs[0], rightExprs[0], nil, typ, true, false)
-			if !isBlankIdentifier(n.Lhs[0]) && newVar == "" {
-				panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[0]))
 			}
 			return
 		}
@@ -162,18 +153,6 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		leftExprs = n.Lhs
 		rightExprs = n.Rhs
 		isDecl = n.Type == ast.AssignmentDeclaration
-
-		if len(leftExprs) == 1 && len(rightExprs) == 1 {
-			newVar := tc.assignSingle(node, leftExprs[0], rightExprs[0], nil, typ, isDecl, false)
-			if newVar == "" && isDecl {
-				panic(tc.errorf(node, "no new variables on left side of :="))
-			}
-			return
-		}
-
-	default:
-
-		panic(fmt.Errorf("bug: unexpected node %T", node))
 
 	}
 
