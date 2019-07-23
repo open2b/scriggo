@@ -404,10 +404,9 @@ type Upvar struct {
 	// Declaration is the ast node where Upvar is defined.
 	Declaration Node
 
-	// Index indexes the Upvars slice of the function where this function is
-	// declared.
-	// As a special case, when Index is -1 the Upvar is declared in
-	// the same function as this.
+	// Index indexes the Upvars slice of the parent function.
+	// As a special case, Index is -1 when the Upvar declaration node is a
+	// sibling of the function declaration node.
 	//
 	// Consider this example:
 	//
@@ -418,7 +417,8 @@ type Upvar struct {
 	// 			}
 	// 		}
 	//
-	// g has one upvar (A) with index -1 (A is declared as "brother" of g)
+	// g has one upvar (A) with index -1 (node which declares A is a sibling of
+	// the declaration of g)
 	// f has one upvar (A) with index 0, which is the index of A in the Upvars slice of g.
 	//
 	// Another example:
@@ -431,7 +431,8 @@ type Upvar struct {
 	// 		}
 	//
 	// g has no upvars
-	// f has one upvar (A) with index -1
+	// f has one upvar (A) with index -1 (declaration of A is a sibling of
+	// declaration of f)
 	//
 	Index int16
 }
