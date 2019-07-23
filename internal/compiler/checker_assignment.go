@@ -16,9 +16,12 @@ import (
 // and fills the scope, if necessary.
 func (tc *typechecker) checkAssignment(node ast.Node) {
 
-	var lhs, rhs []ast.Expression
-	var typ *TypeInfo
-	var isDecl, isConst, isVar bool
+	lhs := []ast.Expression{}
+	rhs := []ast.Expression{}
+	declType := (*TypeInfo)(nil)
+	isVarDecl := false
+	isConstDecl := false
+	isAssignmentNode := false
 
 	if tc.lastConstPosition != node.Pos() {
 		tc.iota = -1
@@ -29,53 +32,52 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	case *ast.Var:
 
 		rhs = n.Rhs
-		isDecl = true
-		isVar = true
+		isVarDecl = true
 		if n.Type != nil {
-			typ = tc.checkType(n.Type)
+			declType = tc.checkType(n.Type)
 		}
 
 		if len(rhs) == 0 {
 			for i := range n.Lhs {
-				zero := &TypeInfo{Type: typ.Type}
-				newVar := tc.assign(node, n.Lhs[i], nil, zero, typ, true, false)
+				zero := &TypeInfo{Type: declType.Type}
+				newVar := tc.assign(node, n.Lhs[i], nil, zero, declType, true, false)
 				if newVar == "" && !isBlankIdentifier(n.Lhs[i]) {
 					panic(tc.errorf(node, "%s redeclared in this block", n.Lhs[i]))
 				}
 			}
 			// Replaces the type node with a value holding a reflect.Type.
-			k := typ.Type.Kind()
+			k := declType.Type.Kind()
 			n.Rhs = make([]ast.Expression, len(n.Lhs))
 			switch {
 			case isNumeric(k):
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: int64Const(0), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
 			case k == reflect.String:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: stringConst(""), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
 			case k == reflect.Bool:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyUntyped}
-					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, Constant: boolConst(false), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
 			case k == reflect.Interface:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type}
-					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type}
+					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
 			default:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
-					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: declType.Type, value: reflect.Zero(declType.Type).Interface()}
+					tc.typeInfos[n.Rhs[i]].setValue(declType.Type)
 				}
 			}
 			return
@@ -89,10 +91,9 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	case *ast.Const:
 
 		rhs = n.Rhs
-		isDecl = true
-		isConst = true
+		isConstDecl = true
 		if n.Type != nil {
-			typ = tc.checkType(n.Type)
+			declType = tc.checkType(n.Type)
 		}
 		tc.lastConstPosition = node.Pos()
 
@@ -152,7 +153,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 		lhs = n.Lhs
 		rhs = n.Rhs
-		isDecl = n.Type == ast.AssignmentDeclaration
+		isVarDecl = n.Type == ast.AssignmentDeclaration
+		isAssignmentNode = true
 
 	}
 
@@ -217,16 +219,16 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	newVars := []string{}
 	tmpScope := typeCheckerScope{}
 	for i := range lhs {
-		if isConst {
+		if isConstDecl {
 			tc.iota++
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], nil, typ, isDecl, isConst)
+			newVar = tc.assign(node, lhs[i], rhs[i], nil, declType, isVarDecl, isConstDecl)
 		} else {
-			newVar = tc.assign(node, lhs[i], nil, valueTi, typ, isDecl, isConst)
+			newVar = tc.assign(node, lhs[i], nil, valueTi, declType, isVarDecl, isConstDecl)
 		}
-		if isDecl {
+		if isVarDecl || isConstDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
 			tmpScope[newVar] = scopeElement{t: ti, decl: lhs[i].(*ast.Identifier)}
 			if len(tc.scopes) > 0 {
@@ -235,7 +237,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				delete(tc.filePackageBlock, newVar)
 			}
 		}
-		if (isVar || isConst) && newVar == "" && !isBlankIdentifier(lhs[i]) {
+		if (isVarDecl || isConstDecl) && !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
 			panic(tc.errorf(node, "%s redeclared in this block", lhs[i]))
 		}
 		for _, v := range newVars {
@@ -247,7 +249,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVars = append(newVars, newVar)
 		}
 	}
-	if len(newVars) == 0 && isDecl && !isVar && !isConst {
+	if len(newVars) == 0 && isVarDecl && isAssignmentNode {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
