@@ -638,7 +638,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 	pkgInfo := &PackageInfo{
 		Name:         packageNode.Name,
 		Declarations: make(map[string]*TypeInfo, len(packageNode.Declarations)),
-		TypeInfo:     tc.typeInfo,
+		TypeInfo:     tc.typeInfos,
 	}
 	pkgInfo.Declarations = make(map[string]*TypeInfo)
 	for ident, ti := range tc.filePackageBlock {

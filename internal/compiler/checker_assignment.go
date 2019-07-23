@@ -51,32 +51,32 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			case isNumeric(k):
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyUntyped}
-					tc.typeInfo[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: int64Const(0), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
 			case k == reflect.String:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyUntyped}
-					tc.typeInfo[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: stringConst(""), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
 			case k == reflect.Bool:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyUntyped}
-					tc.typeInfo[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, Constant: boolConst(false), Properties: PropertyUntyped}
+					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
 			case k == reflect.Interface:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type}
-					tc.typeInfo[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type}
+					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
 			default:
 				for i := range n.Lhs {
 					n.Rhs[i] = ast.NewPlaceholder()
-					tc.typeInfo[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
-					tc.typeInfo[n.Rhs[i]].setValue(typ.Type)
+					tc.typeInfos[n.Rhs[i]] = &TypeInfo{Type: typ.Type, value: reflect.Zero(typ.Type).Interface()}
+					tc.typeInfos[n.Rhs[i]].setValue(typ.Type)
 				}
 			}
 			return
@@ -190,7 +190,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			rightExprs = nil
 			for _, ti := range tis {
 				newCall := ast.NewCall(call.Pos(), call.Func, call.Args, false)
-				tc.typeInfo[newCall] = ti
+				tc.typeInfos[newCall] = ti
 				rightExprs = append(rightExprs, newCall)
 			}
 		}
@@ -204,8 +204,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			v1 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			v2 := ast.NewTypeAssertion(v.Pos(), v.Expr, v.Type)
 			ti := tc.checkExpression(rightExprs[0])
-			tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
-			tc.typeInfo[v2] = untypedBoolTypeInfo
+			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rightExprs = []ast.Expression{v1, v2}
 
 		case *ast.Index:
@@ -213,8 +213,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			v1 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			v2 := ast.NewIndex(v.Pos(), v.Expr, v.Index)
 			ti := tc.checkExpression(rightExprs[0])
-			tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
-			tc.typeInfo[v2] = untypedBoolTypeInfo
+			tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+			tc.typeInfos[v2] = untypedBoolTypeInfo
 			rightExprs = []ast.Expression{v1, v2}
 
 		case *ast.UnaryOperator:
@@ -223,8 +223,8 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				v1 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				v2 := ast.NewUnaryOperator(v.Pos(), ast.OperatorReceive, v.Expr)
 				ti := tc.checkExpression(rightExprs[0])
-				tc.typeInfo[v1] = &TypeInfo{Type: ti.Type}
-				tc.typeInfo[v2] = untypedBoolTypeInfo
+				tc.typeInfos[v1] = &TypeInfo{Type: ti.Type}
+				tc.typeInfos[v2] = untypedBoolTypeInfo
 				rightExprs = []ast.Expression{v1, v2}
 			}
 
@@ -242,7 +242,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			tc.iota++
 		}
 		var newVar string
-		if valueTi := tc.typeInfo[rightExprs[i]]; valueTi == nil {
+		if valueTi := tc.typeInfos[rightExprs[i]]; valueTi == nil {
 			newVar = tc.assignSingle(node, leftExprs[i], rightExprs[i], nil, typ, isDecl, isConst)
 		} else {
 			newVar = tc.assignSingle(node, leftExprs[i], nil, valueTi, typ, isDecl, isConst)
@@ -330,7 +330,7 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 			} else {
 				newRight.Type = typ.Type
 			}
-			tc.typeInfo[leftExpr] = newRight
+			tc.typeInfos[leftExpr] = newRight
 			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
@@ -362,7 +362,7 @@ func (tc *typechecker) assignSingle(node ast.Node, leftExpr, rightExpr ast.Expre
 			panic(tc.errorf(rightExpr, "%s in assignment", err))
 		}
 		right.setValue(left.Type)
-		tc.typeInfo[leftExpr] = left
+		tc.typeInfos[leftExpr] = left
 
 	case *ast.Index:
 
