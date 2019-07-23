@@ -123,6 +123,20 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #175",
+		src: `package main
+
+		func main() {
+			switch u := interface{}(2).(type) {
+			case int:
+				_ = u * 2
+			}
+		}
+		`,
+		out: ``,
+	},
+
+	{
 		name: "Issue #176 (2)",
 		src: `package main
 

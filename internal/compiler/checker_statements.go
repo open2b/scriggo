@@ -409,15 +409,6 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			if t.Type.Kind() != reflect.Interface {
 				panic(tc.errorf(node, "cannot type switch on non-interface value %v (type %s)", ta.Expr, t.ShortString()))
 			}
-			if len(node.Assignment.Lhs) == 1 {
-				n := ast.NewAssignment(
-					node.Assignment.Pos(),
-					[]ast.Expression{node.Assignment.Lhs[0]},
-					node.Assignment.Type,
-					[]ast.Expression{ta.Expr},
-				)
-				tc.checkAssignment(n)
-			}
 			var positionOfDefault *ast.Position
 			var positionOfNil *ast.Position
 			positionOf := map[reflect.Type]*ast.Position{}
@@ -448,7 +439,38 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOf[t.Type] = ex.Pos()
 				}
-				tc.checkNodesInNewScope(cas.Body)
+				tc.addScope()
+				// Case has only one expression (one type), so in its body the
+				// type switch variable has the same type of the case type.
+				if len(cas.Expressions) == 1 {
+					if ti := tc.typeInfos[cas.Expressions[0]]; !ti.Nil() {
+						if len(node.Assignment.Lhs) == 1 {
+							n := ast.NewAssignment(
+								node.Assignment.Pos(),
+								[]ast.Expression{node.Assignment.Lhs[0]},
+								node.Assignment.Type,
+								[]ast.Expression{
+									ast.NewTypeAssertion(ta.Pos(), ta.Expr, cas.Expressions[0]),
+								},
+							)
+							tc.checkAssignment(n)
+						}
+					}
+				} else {
+					if len(node.Assignment.Lhs) == 1 {
+						n := ast.NewAssignment(
+							node.Assignment.Pos(),
+							[]ast.Expression{node.Assignment.Lhs[0]},
+							node.Assignment.Type,
+							[]ast.Expression{
+								ta.Expr,
+							},
+						)
+						tc.checkAssignment(n)
+					}
+				}
+				tc.checkNodes(cas.Body)
+				tc.removeCurrentScope()
 				terminating = terminating && tc.terminating
 			}
 			tc.removeLastAncestor()
