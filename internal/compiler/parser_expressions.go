@@ -324,11 +324,11 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			canCompositeLiteral = true
 			var expr, length ast.Expression
 			pos := tok.pos
-			isEllipses := false
+			isEllipsis := false
 			tok = next(p.lex)
 			switch tok.typ {
 			case tokenEllipsis:
-				isEllipses = true
+				isEllipsis = true
 				tok = next(p.lex)
 			case tokenRightBrackets:
 			default:
@@ -349,7 +349,7 @@ func (p *parsing) parseExpr(tok token, canBeSwitchGuard, mustBeType, nextIsBlock
 			}
 			pos.End = typ.Pos().End
 			switch {
-			case isEllipses:
+			case isEllipsis:
 				operand = ast.NewArrayType(pos, nil, typ)
 			case length == nil:
 				operand = ast.NewSliceType(pos, typ)
