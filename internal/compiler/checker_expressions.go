@@ -16,7 +16,7 @@ import (
 	"scriggo/vm"
 )
 
-const noEllipses = -1
+const noEllipsis = -1
 
 type scopeElement struct {
 	t    *TypeInfo
@@ -466,7 +466,7 @@ func (tc *typechecker) checkExpression(expr ast.Expression) *TypeInfo {
 	if isBlankIdentifier(expr) {
 		panic(tc.errorf(expr, "cannot use _ as value"))
 	}
-	ti := tc.typeof(expr, noEllipses)
+	ti := tc.typeof(expr, noEllipsis)
 	if ti.IsType() {
 		panic(tc.errorf(expr, "type %s is not an expression", ti))
 	}
@@ -626,7 +626,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 	case *ast.StructType:
 		fields := []reflect.StructField{}
 		for i, fd := range expr.FieldDecl {
-			typ := tc.checkType(fd.Type, noEllipses).Type
+			typ := tc.checkType(fd.Type, noEllipsis).Type
 			if fd.IdentifierList == nil {
 				// Implicit field declaration.
 				fields = append(fields, reflect.StructField{
@@ -659,8 +659,8 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		}
 
 	case *ast.MapType:
-		key := tc.checkType(expr.KeyType, noEllipses)
-		value := tc.checkType(expr.ValueType, noEllipses)
+		key := tc.checkType(expr.KeyType, noEllipsis)
+		value := tc.checkType(expr.ValueType, noEllipsis)
 		defer func() {
 			if rec := recover(); rec != nil {
 				panic(tc.errorf(expr, "invalid map key type %s", key))
@@ -669,11 +669,11 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		return &TypeInfo{Properties: PropertyIsType, Type: reflect.MapOf(key.Type, value.Type)}
 
 	case *ast.SliceType:
-		elem := tc.checkType(expr.ElementType, noEllipses)
+		elem := tc.checkType(expr.ElementType, noEllipsis)
 		return &TypeInfo{Properties: PropertyIsType, Type: reflect.SliceOf(elem.Type)}
 
 	case *ast.ArrayType:
-		elem := tc.checkType(expr.ElementType, noEllipses)
+		elem := tc.checkType(expr.ElementType, noEllipsis)
 		if expr.Len == nil { // ellipsis.
 			return &TypeInfo{Properties: PropertyIsType, Type: reflect.ArrayOf(length, elem.Type)}
 		}
@@ -704,7 +704,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		case ast.SendDirection:
 			dir = reflect.SendDir
 		}
-		elem := tc.checkType(expr.ElementType, noEllipses)
+		elem := tc.checkType(expr.ElementType, noEllipsis)
 		return &TypeInfo{Properties: PropertyIsType, Type: reflect.ChanOf(dir, elem.Type)}
 
 	case *ast.CompositeLiteral:
@@ -720,7 +720,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			if param.Type == nil {
 				in[i] = in[i+1]
 			} else {
-				t := tc.checkType(param.Type, noEllipses)
+				t := tc.checkType(param.Type, noEllipsis)
 				if variadic && i == numIn-1 {
 					in[i] = reflect.SliceOf(t.Type)
 				} else {
@@ -736,7 +736,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 			if res.Type == nil {
 				out[i] = out[i+1]
 			} else {
-				c := tc.checkType(res.Type, noEllipses)
+				c := tc.checkType(res.Type, noEllipsis)
 				out[i] = c.Type
 			}
 		}
@@ -745,14 +745,14 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 
 	case *ast.Func:
 		tc.addScope()
-		t := tc.checkType(expr.Type, noEllipses)
+		t := tc.checkType(expr.Type, noEllipsis)
 		expr.Type.Reflect = t.Type
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})
 		// Adds parameters to the function body scope.
 		fillParametersTypes(expr.Type.Parameters)
 		isVariadic := expr.Type.IsVariadic
 		for i, f := range expr.Type.Parameters {
-			t := tc.checkType(f.Type, noEllipses)
+			t := tc.checkType(f.Type, noEllipsis)
 			if f.Ident != nil {
 				if isVariadic && i == len(expr.Type.Parameters)-1 {
 					tc.assignScope(f.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
@@ -764,7 +764,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		// Adds named return values to the function body scope.
 		fillParametersTypes(expr.Type.Result)
 		for _, f := range expr.Type.Result {
-			t := tc.checkType(f.Type, noEllipses)
+			t := tc.checkType(f.Type, noEllipsis)
 			if f.Ident != nil {
 				tc.assignScope(f.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 			}
@@ -927,7 +927,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 				}
 			}
 		}
-		t := tc.typeof(expr.Expr, noEllipses)
+		t := tc.typeof(expr.Expr, noEllipsis)
 		tc.typeInfos[expr.Expr] = t
 		// t is a type.
 		if t.IsType() {
@@ -985,7 +985,7 @@ func (tc *typechecker) typeof(expr ast.Expression, length int) *TypeInfo {
 		if t.Type.Kind() != reflect.Interface {
 			panic(tc.errorf(expr, "invalid type assertion: %v (non-interface type %s on left)", expr, t))
 		}
-		typ := tc.checkType(expr.Type, noEllipses)
+		typ := tc.checkType(expr.Type, noEllipsis)
 		return &TypeInfo{
 			Type:       typ.Type,
 			Properties: t.Properties & PropertyAddressable,
@@ -1535,7 +1535,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if numArgs == 0 {
 			panic(tc.errorf(expr, "missing argument to make"))
 		}
-		t := tc.checkType(expr.Args[0], noEllipses)
+		t := tc.checkType(expr.Args[0], noEllipsis)
 		switch t.Type.Kind() {
 		case reflect.Slice:
 			if numArgs == 1 {
@@ -1578,7 +1578,7 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 		if len(expr.Args) == 0 {
 			panic(tc.errorf(expr, "missing argument to new"))
 		}
-		t := tc.checkType(expr.Args[0], noEllipses)
+		t := tc.checkType(expr.Args[0], noEllipsis)
 		if len(expr.Args) > 1 {
 			panic(tc.errorf(expr, "too many arguments to new(%s)", expr.Args[0]))
 		}
@@ -1661,7 +1661,7 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 		}
 	}
 
-	t := tc.typeof(expr.Func, noEllipses)
+	t := tc.typeof(expr.Func, noEllipsis)
 
 	switch t.MethodType {
 	case MethodValueConcrete:

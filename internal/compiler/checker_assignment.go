@@ -33,7 +33,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		isDecl = true
 		isVar = true
 		if n.Type != nil {
-			typ = tc.checkType(n.Type, noEllipses)
+			typ = tc.checkType(n.Type, noEllipsis)
 		}
 
 		if len(rightExprs) == 0 {
@@ -101,7 +101,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		isDecl = true
 		isConst = true
 		if n.Type != nil {
-			typ = tc.checkType(n.Type, noEllipses)
+			typ = tc.checkType(n.Type, noEllipsis)
 		}
 		tc.lastConstPosition = node.Pos()
 

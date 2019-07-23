@@ -471,7 +471,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			if !td.IsAliasDeclaration {
 				panic(tc.errorf(d, "type definition is not supported in this release of Scriggo"))
 			}
-			typ := tc.checkType(td.Type, noEllipses)
+			typ := tc.checkType(td.Type, noEllipsis)
 			tc.assignScope(td.Identifier.Name, typ, td.Identifier)
 		}
 	}
@@ -493,7 +493,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 				if _, ok := tc.filePackageBlock[f.Ident.Name]; ok {
 					return tc.errorf(f.Ident, "%s redeclared in this block", f.Ident.Name)
 				}
-				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipses).Type}}
+				tc.filePackageBlock[f.Ident.Name] = scopeElement{t: &TypeInfo{Type: tc.typeof(f.Type, noEllipsis).Type}}
 			}
 		}
 	}
@@ -589,7 +589,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			fillParametersTypes(d.Type.Parameters)
 			isVariadic := d.Type.IsVariadic
 			for i, param := range d.Type.Parameters {
-				t := tc.checkType(param.Type, noEllipses)
+				t := tc.checkType(param.Type, noEllipsis)
 				if param.Ident != nil {
 					if isVariadic && i == len(d.Type.Parameters)-1 {
 						tc.assignScope(param.Ident.Name, &TypeInfo{Type: reflect.SliceOf(t.Type), Properties: PropertyAddressable}, nil)
@@ -601,7 +601,7 @@ func checkPackage(pkg *ast.Package, path string, deps PackageDeclsDeps, imports 
 			// Adds named return values to the function body scope.
 			fillParametersTypes(d.Type.Result)
 			for _, ret := range d.Type.Result {
-				t := tc.checkType(ret.Type, noEllipses)
+				t := tc.checkType(ret.Type, noEllipsis)
 				if ret.Ident != nil {
 					tc.assignScope(ret.Ident.Name, &TypeInfo{Type: t.Type, Properties: PropertyAddressable}, nil)
 				}
