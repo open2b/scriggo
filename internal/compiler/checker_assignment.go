@@ -144,7 +144,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		lhs = n.Lhs
 		rhs = n.Rhs
-		isVarDecl = n.Type == ast.AssignmentDeclaration
+		isVarDecl = n.Type == ast.AssignmentDeclaration // TODO(Gianluca): this is wrong.
 		isAssignmentNode = true
 
 	}
