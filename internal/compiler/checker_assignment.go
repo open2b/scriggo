@@ -19,7 +19,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	lhs := []ast.Expression{}
 	rhs := []ast.Expression{}
 	declType := (*TypeInfo)(nil)
-	isVarDecl := false
+	isVariableDecl := false
 	isConstDecl := false
 	isAssignmentNode := false
 
@@ -32,7 +32,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 	case *ast.Var:
 
 		rhs = n.Rhs
-		isVarDecl = true
+		isVariableDecl = true
 		if n.Type != nil {
 			declType = tc.checkType(n.Type)
 		}
@@ -144,7 +144,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		lhs = n.Lhs
 		rhs = n.Rhs
-		isVarDecl = n.Type == ast.AssignmentDeclaration // TODO(Gianluca): this is wrong.
+		isVariableDecl = n.Type == ast.AssignmentDeclaration
 		isAssignmentNode = true
 
 	}
@@ -215,13 +215,13 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 		}
 		var newVar string
 		if valueTi := tc.typeInfos[rhs[i]]; valueTi == nil {
-			newVar = tc.assign(node, lhs[i], rhs[i], declType, isVarDecl, isConstDecl)
+			newVar = tc.assign(node, lhs[i], rhs[i], declType, isVariableDecl, isConstDecl)
 		} else {
 			ph := ast.NewPlaceholder()
 			tc.typeInfos[ph] = valueTi
-			newVar = tc.assign(node, lhs[i], ph, declType, isVarDecl, isConstDecl)
+			newVar = tc.assign(node, lhs[i], ph, declType, isVariableDecl, isConstDecl)
 		}
-		if isVarDecl || isConstDecl {
+		if isVariableDecl || isConstDecl {
 			ti, _ := tc.lookupScopes(newVar, true)
 			tmpScope[newVar] = scopeElement{t: ti, decl: lhs[i].(*ast.Identifier)}
 			if len(tc.scopes) > 0 {
@@ -230,7 +230,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				delete(tc.filePackageBlock, newVar)
 			}
 		}
-		if (isVarDecl || isConstDecl) && !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
+		if (isVariableDecl || isConstDecl) && !isAssignmentNode && newVar == "" && !isBlankIdentifier(lhs[i]) {
 			panic(tc.errorf(node, "%s redeclared in this block", lhs[i]))
 		}
 		for _, v := range newVars {
@@ -242,7 +242,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 			newVars = append(newVars, newVar)
 		}
 	}
-	if len(newVars) == 0 && isVarDecl && isAssignmentNode {
+	if len(newVars) == 0 && isVariableDecl && isAssignmentNode {
 		panic(tc.errorf(node, "no new variables on left side of :="))
 	}
 	for d, ti := range tmpScope {
