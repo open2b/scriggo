@@ -3,6 +3,7 @@ IMPORT bufio
 IMPORT bytes
 IMPORT crypto/sha1
 IMPORT encoding/base64
+IMPORT errors
 IMPORT fmt
 IMPORT io/ioutil
 IMPORT math
