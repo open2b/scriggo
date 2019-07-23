@@ -259,17 +259,17 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 
 }
 
-// assign assigns value to variable (or valueTi to variable if value is
-// nil). typ is the type specified in the declaration, if any. If assignment
-// is a declaration and the scope has been updated, returns the identifier of
-// the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isDeclaration, isConst bool) string {
+// assign assigns rightExpr to leftExpr. If right is not nil, then is used
+// instead of rightExpr. typ is the type specified in the declaration, if any.
+// If assignment is a declaration and the scope has been updated, returns the
+// identifier of the new scope element; otherwise returns an empty string.
+func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, right *TypeInfo, typ *TypeInfo, isVarDecl, isConstDecl bool) string {
 
 	if right == nil {
 		right = tc.checkExpression(rightExpr)
 	}
 
-	if isConst && !right.IsConstant() {
+	if isConstDecl && !right.IsConstant() {
 		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
 	}
 
@@ -295,7 +295,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			return ""
 		}
 
-		if isDeclaration {
+		if isConstDecl {
 			newRight := &TypeInfo{}
 			if typ == nil {
 				if right.Nil() {
@@ -309,13 +309,27 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
 				return ""
 			}
-			if isConst {
-				newRight.Constant = right.Constant
-				if right.Untyped() {
-					newRight.Properties = PropertyUntyped
+			newRight.Constant = right.Constant
+			if right.Untyped() {
+				newRight.Properties = PropertyUntyped
+			}
+			tc.assignScope(leftExpr.Name, newRight, nil)
+			return leftExpr.Name
+		}
+
+		if isVarDecl {
+			newRight := &TypeInfo{}
+			if typ == nil {
+				if right.Nil() {
+					panic(tc.errorf(node, "use of untyped nil"))
 				}
-				tc.assignScope(leftExpr.Name, newRight, nil)
-				return leftExpr.Name
+				newRight.Type = right.Type
+			} else {
+				newRight.Type = typ.Type
+			}
+			tc.typeInfos[leftExpr] = newRight
+			if _, alreadyInCurrentScope := tc.lookupScopes(leftExpr.Name, true); alreadyInCurrentScope {
+				return ""
 			}
 			newRight.Properties |= PropertyAddressable
 			tc.assignScope(leftExpr.Name, newRight, leftExpr)
@@ -341,7 +355,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Index:
 
-		if isDeclaration {
+		if isVarDecl {
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
 		left := tc.checkExpression(leftExpr)
@@ -361,7 +375,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Selector:
 
-		if isDeclaration {
+		if isVarDecl {
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
 		left := tc.checkExpression(leftExpr)
@@ -376,7 +390,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.UnaryOperator:
 
-		if isDeclaration {
+		if isVarDecl {
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
 		if leftExpr.Operator() == ast.OperatorMultiplication { // pointer indirection.
@@ -391,7 +405,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	case *ast.Call: // call on left side of assignment: f() = 10 .
 
-		if isDeclaration {
+		if isVarDecl {
 			panic(tc.errorf(node, "non name %s on left side of :=", leftExpr))
 		}
 		retValues, _, _ := tc.checkCallExpression(leftExpr, false)
