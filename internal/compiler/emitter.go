@@ -871,13 +871,9 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 						// Imports without identifiers are handled as 'import . "path"'.
 						importName = ""
 					} else {
-						switch node.Ident.Name {
-						case "_":
-							panic("TODO(Gianluca): not implemented")
-						case ".":
+						importName = node.Ident.Name
+						if node.Ident.Name == "." {
 							importName = ""
-						default:
-							importName = node.Ident.Name
 						}
 					}
 					if em.functions[backupPkg] == nil {
