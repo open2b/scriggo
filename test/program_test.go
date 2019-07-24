@@ -123,6 +123,34 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #99 (partial) (2)",
+		src: `package main
+
+		import "fmt"
+		
+		var f = func() { fmt.Print("called") }
+		
+		func main() {
+			f()
+		}
+		`,
+		out: `called`,
+	},
+
+	{
+		name: "Issue #99 (partial)",
+		src: `package main
+
+		var f = func() {}
+		
+		func main() {
+		
+		}
+		`,
+		out: ``,
+	},
+
+	{
 		name: "Predefined variable inside nested function literal",
 		src: `package main
 
