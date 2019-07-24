@@ -241,7 +241,7 @@ func disassembleInstruction(fn *vm.Function, globals []Global, addr uint32) stri
 		s += " " + disassembleOperand(fn, c, vm.Interface, false)
 	case vm.OpAssert:
 		s += " " + disassembleOperand(fn, a, vm.Interface, false)
-		s += " type(" + fn.Types[b].String() + ")"
+		s += " " + fn.Types[b].String()
 		t := fn.Types[int(uint(b))]
 		var kind = reflectToRegisterKind(t.Kind())
 		s += " " + disassembleOperand(fn, c, kind, false)
