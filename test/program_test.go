@@ -123,6 +123,45 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Predefined variable inside nested function literal",
+		src: `package main
+
+		import (
+			"fmt"
+			"unicode"
+		)
+		
+		func main() {
+			func() {
+				func() {
+					fmt.Print(unicode.Cc)
+				}()
+			}()
+		}
+		`,
+		out: `&{[{0 31 1} {127 159 1}] [] 2}`,
+	},
+
+	{
+		name: "Predefined function call inside nested function literal",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			func() {
+				func() {
+					fmt.Print("called")
+				}()
+			}()
+		}
+		`,
+		out: `called`,
+	},
+
+	{
 		name: "Type assertions",
 		src: `package main
 
