@@ -1867,7 +1867,6 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 // emitTypeSwitch emits instructions for a type switch node.
 func (em *emitter) emitTypeSwitch(node *ast.TypeSwitch) {
-	// TODO (Gianluca): a type-checker bug does not replace type switch type with proper value.
 
 	em.fb.enterScope()
 
