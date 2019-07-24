@@ -1224,7 +1224,9 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 
 	if !useGivenReg {
 		if expr, ok := expr.(*ast.Identifier); ok && em.fb.isVariable(expr.Name) {
-			return em.fb.scopeLookup(expr.Name), false
+			if sameRegType(em.ti(expr).Type.Kind(), dstType.Kind()) {
+				return em.fb.scopeLookup(expr.Name), false
+			}
 		}
 		reg = em.fb.newRegister(dstType.Kind())
 	}
