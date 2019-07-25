@@ -49,7 +49,7 @@ var universe = typeCheckerScope{
 	"len":         {t: builtinTypeInfo},
 	"make":        {t: builtinTypeInfo},
 	"new":         {t: builtinTypeInfo},
-	"nil":         {t: &TypeInfo{Properties: PropertyNil}},
+	"nil":         {t: &TypeInfo{Properties: PropertyNil | PropertyUntyped}},
 	"panic":       {t: builtinTypeInfo},
 	"print":       {t: builtinTypeInfo},
 	"println":     {t: builtinTypeInfo},

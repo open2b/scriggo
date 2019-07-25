@@ -155,11 +155,11 @@ func (ti *TypeInfo) IsUnsignedInteger() bool {
 // setValue sets ti value, whenever possible.
 // TODO(Gianluca): review this doc.
 func (ti *TypeInfo) setValue(t reflect.Type) {
+	typ := t
+	if t == nil || t.Kind() == reflect.Interface {
+		typ = ti.Type
+	}
 	if ti.IsConstant() {
-		typ := t
-		if t == nil || t.Kind() == reflect.Interface {
-			typ = ti.Type
-		}
 		switch typ.Kind() {
 		case reflect.Bool:
 			if ti.Constant.bool() {
@@ -191,10 +191,10 @@ func (ti *TypeInfo) setValue(t reflect.Type) {
 		return
 	}
 	if ti.Nil() {
-		if t.Kind() != reflect.Interface {
-			v := reflect.New(t).Elem()
+		if typ.Kind() != reflect.Interface {
+			v := reflect.New(typ).Elem()
 			ti.value = v.Interface()
-			ti.valueType = t
+			ti.valueType = typ
 			return
 		}
 	}

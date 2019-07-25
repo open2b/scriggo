@@ -123,6 +123,33 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Issue #215 (2)",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var i *int = nil
+			fmt.Print(i)
+		}`,
+		out: `<nil>`,
+	},
+
+	{
+		name: "Issue #215",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			var i *int
+			i = nil
+			fmt.Print(i)
+		}`,
+		out: `<nil>`,
+	},
+
+	{
 		name: "Issue #99 (partial) (2)",
 		src: `package main
 

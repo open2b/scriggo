@@ -260,6 +260,12 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	right := tc.checkExpr(rightExpr)
 
+	// If assigning "nil" to a variable, nil must be typed before proceed.
+	if !isVariableDecl && !isConstDecl && right.Untyped() && right.Nil() {
+		left := tc.checkExpr(leftExpr)
+		right.Type = left.Type
+	}
+
 	if isConstDecl && !right.IsConstant() {
 		panic(tc.errorf(node, "const initializer %s is not a constant", rightExpr))
 	}
