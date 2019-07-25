@@ -256,7 +256,7 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 // instead of rightExpr. typ is the type specified in the declaration, if any.
 // If assignment is a declaration and the scope has been updated, returns the
 // identifier of the new scope element; otherwise returns an empty string.
-func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVarDecl, isConstDecl bool) string {
+func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression, typ *TypeInfo, isVariableDecl, isConstDecl bool) string {
 
 	right := tc.checkExpr(rightExpr)
 
@@ -279,7 +279,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 	}
 
 	// When declaring a variable, left side must be a name.
-	if _, isIdent := leftExpr.(*ast.Identifier); isVarDecl && !isIdent {
+	if _, isIdent := leftExpr.(*ast.Identifier); isVariableDecl && !isIdent {
 		panic(tc.errorf(node, "non-name %s on left side of :=", leftExpr))
 	}
 
@@ -313,7 +313,7 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 			return leftExpr.Name
 		}
 
-		if isVarDecl {
+		if isVariableDecl {
 			newRight := &TypeInfo{}
 			if typ == nil {
 				if right.Nil() {
