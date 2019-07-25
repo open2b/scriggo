@@ -805,7 +805,7 @@ func (em *emitter) emitNodes(nodes []ast.Node) {
 
 		case *ast.Defer, *ast.Go:
 			if def, ok := node.(*ast.Defer); ok {
-				if em.ti(def.Call.Func).IsBuiltin() {
+				if em.isPredeclaredBuiltinFunc(def.Call.Func) {
 					ident := def.Call.Func.(*ast.Identifier)
 					if ident.Name == "recover" {
 						continue
@@ -1435,8 +1435,8 @@ func (em *emitter) _emitExpr(expr ast.Expression, dstType reflect.Type, reg int8
 			return reg, false
 		}
 
-		// Builtin call.
-		if em.ti(expr.Func).IsBuiltin() {
+		// Predeclared built-in function call.
+		if em.isPredeclaredBuiltinFunc(expr.Func) {
 			em.emitBuiltin(expr, reg, dstType)
 			return reg, false
 		}

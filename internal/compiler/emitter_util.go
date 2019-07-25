@@ -98,13 +98,35 @@ func isExported(name string) bool {
 	return unicode.Is(unicode.Lu, r)
 }
 
+// isPredeclaredBuiltinFunc reports whether fun is a predeclared built-in
+// function call.
+func (em *emitter) isPredeclaredBuiltinFunc(fun ast.Expression) bool {
+	ti := em.ti(fun)
+	if !ti.IsPredeclared() {
+		return false
+	}
+	ident, ok := fun.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	builtinFuncs := []string{"append", "cap", "close", "complex", "copy", "delete", "imag", "len",
+		"make", "new", "panic", "print", "println", "real", "recover"}
+	for _, bf := range builtinFuncs {
+		if ident.Name == bf {
+			return true
+		}
+	}
+	return false
+}
+
 // isLenBuiltinCall reports whether expr is a call to the builtin "len".
 func (em *emitter) isLenBuiltinCall(expr ast.Expression) bool {
 	if call, ok := expr.(*ast.Call); ok {
-		if ti := em.ti(call); ti.IsBuiltin() {
-			if name := call.Func.(*ast.Identifier).Name; name == "len" {
-				return true
-			}
+		if !em.isPredeclaredBuiltinFunc(call) {
+			return false
+		}
+		if name := call.Func.(*ast.Identifier).Name; name == "len" {
+			return true
 		}
 	}
 	return false

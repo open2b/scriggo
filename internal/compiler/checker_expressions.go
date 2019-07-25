@@ -30,54 +30,53 @@ var uintType = reflect.TypeOf(uint(0))
 var uint8Type = reflect.TypeOf(uint8(0))
 var int32Type = reflect.TypeOf(int32(0))
 
-var builtinTypeInfo = &TypeInfo{Properties: PropertyIsBuiltin}
-var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType}
-var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType}
+var uint8TypeInfo = &TypeInfo{Type: uint8Type, Properties: PropertyIsType | PropertyIsPredeclared}
+var int32TypeInfo = &TypeInfo{Type: int32Type, Properties: PropertyIsType | PropertyIsPredeclared}
 
 var untypedBoolTypeInfo = &TypeInfo{Type: boolType, Properties: PropertyUntyped}
 
 var envType = reflect.TypeOf(&vm.Env{})
 
 var universe = typeCheckerScope{
-	"append":      {t: builtinTypeInfo},
-	"cap":         {t: builtinTypeInfo},
-	"close":       {t: builtinTypeInfo},
-	"complex":     {t: builtinTypeInfo},
-	"copy":        {t: builtinTypeInfo},
-	"delete":      {t: builtinTypeInfo},
-	"imag":        {t: builtinTypeInfo},
-	"len":         {t: builtinTypeInfo},
-	"make":        {t: builtinTypeInfo},
-	"new":         {t: builtinTypeInfo},
-	"nil":         {t: &TypeInfo{Properties: PropertyNil | PropertyUntyped}},
-	"panic":       {t: builtinTypeInfo},
-	"print":       {t: builtinTypeInfo},
-	"println":     {t: builtinTypeInfo},
-	"real":        {t: builtinTypeInfo},
-	"recover":     {t: builtinTypeInfo},
+	"append":      {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"cap":         {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"close":       {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"complex":     {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"copy":        {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"delete":      {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"imag":        {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"len":         {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"make":        {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"new":         {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"nil":         {t: &TypeInfo{Properties: PropertyNil | PropertyUntyped | PropertyIsPredeclared}},
+	"panic":       {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"print":       {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"println":     {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"real":        {t: &TypeInfo{Properties: PropertyIsPredeclared}},
+	"recover":     {t: &TypeInfo{Properties: PropertyIsPredeclared}},
 	"byte":        {t: uint8TypeInfo},
-	"bool":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsType}},
-	"complex128":  {t: &TypeInfo{Type: complex128Type, Properties: PropertyIsType}},
-	"complex64":   {t: &TypeInfo{Type: complex64Type, Properties: PropertyIsType}},
-	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType}},
-	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType}},
-	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType}},
+	"bool":        {t: &TypeInfo{Type: boolType, Properties: PropertyIsType | PropertyIsPredeclared}},
+	"complex128":  {t: &TypeInfo{Type: complex128Type, Properties: PropertyIsType | PropertyIsPredeclared}},
+	"complex64":   {t: &TypeInfo{Type: complex64Type, Properties: PropertyIsType | PropertyIsPredeclared}},
+	"error":       {t: &TypeInfo{Type: reflect.TypeOf((*error)(nil)).Elem(), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"float32":     {t: &TypeInfo{Type: reflect.TypeOf(float32(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"float64":     {t: &TypeInfo{Type: float64Type, Properties: PropertyIsType | PropertyIsPredeclared}},
 	"false":       {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(false)}},
-	"int":         {t: &TypeInfo{Type: intType, Properties: PropertyIsType}},
-	"int16":       {t: &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType}},
+	"int":         {t: &TypeInfo{Type: intType, Properties: PropertyIsType | PropertyIsPredeclared}},
+	"int16":       {t: &TypeInfo{Type: reflect.TypeOf(int16(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
 	"int32":       {t: int32TypeInfo},
-	"int64":       {t: &TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType}},
-	"int8":        {t: &TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType}},
-	"interface{}": {t: &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType}},
+	"int64":       {t: &TypeInfo{Type: reflect.TypeOf(int64(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"int8":        {t: &TypeInfo{Type: reflect.TypeOf(int8(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"interface{}": {t: &TypeInfo{Type: emptyInterfaceType, Properties: PropertyIsType | PropertyIsPredeclared}},
 	"rune":        {t: int32TypeInfo},
-	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType}},
+	"string":      {t: &TypeInfo{Type: stringType, Properties: PropertyIsType | PropertyIsPredeclared}},
 	"true":        {t: &TypeInfo{Type: boolType, Properties: PropertyUntyped, Constant: boolConst(true)}},
-	"uint":        {t: &TypeInfo{Type: uintType, Properties: PropertyIsType}},
-	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType}},
-	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType}},
-	"uint64":      {t: &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType}},
+	"uint":        {t: &TypeInfo{Type: uintType, Properties: PropertyIsType | PropertyIsPredeclared}},
+	"uint16":      {t: &TypeInfo{Type: reflect.TypeOf(uint16(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"uint32":      {t: &TypeInfo{Type: reflect.TypeOf(uint32(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
+	"uint64":      {t: &TypeInfo{Type: reflect.TypeOf(uint64(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
 	"uint8":       {t: uint8TypeInfo},
-	"uintptr":     {t: &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType}},
+	"uintptr":     {t: &TypeInfo{Type: reflect.TypeOf(uintptr(0)), Properties: PropertyIsType | PropertyIsPredeclared}},
 }
 
 type ancestor struct {
@@ -429,8 +428,14 @@ func (tc *typechecker) checkIdentifier(ident *ast.Identifier, using bool) *TypeI
 		panic(tc.errorf(ident, "undefined: %s", ident.Name))
 	}
 
-	if i == builtinTypeInfo {
-		panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
+	if i.IsPredeclared() {
+		builtinFuncs := []string{"append", "cap", "close", "complex", "copy", "delete", "imag", "len",
+			"make", "new", "panic", "print", "println", "real", "recover"}
+		for _, bf := range builtinFuncs {
+			if ident.Name == bf {
+				panic(tc.errorf(ident, "use of builtin %s not in function call", ident.Name))
+			}
+		}
 	}
 
 	// Mark identifier as "used".
@@ -1712,10 +1717,17 @@ func (tc *typechecker) checkBuiltinCall(expr *ast.Call) []*TypeInfo {
 // expr is a builtin call or a conversion.
 func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*TypeInfo, bool, bool) {
 
+	// Check a builtin function call.
 	if ident, ok := expr.Func.(*ast.Identifier); ok {
-		if t, ok := tc.lookupScopes(ident.Name, false); ok && t == builtinTypeInfo {
-			tc.typeInfos[expr.Func] = t
-			return tc.checkBuiltinCall(expr), true, false
+		if t, ok := tc.lookupScopes(ident.Name, false); ok && t.IsPredeclared() {
+			builtinFuncs := []string{"append", "cap", "close", "complex", "copy", "delete", "imag", "len",
+				"make", "new", "panic", "print", "println", "real", "recover"}
+			for _, bf := range builtinFuncs {
+				if ident.Name == bf {
+					tc.typeInfos[expr.Func] = t
+					return tc.checkBuiltinCall(expr), true, false
+				}
+			}
 		}
 	}
 

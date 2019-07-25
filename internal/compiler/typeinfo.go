@@ -13,13 +13,13 @@ import (
 type Properties uint8
 
 const (
-	PropertyNil          Properties = 1 << (8 - 1 - iota) // is predeclared nil
-	PropertyUntyped                                       // is untyped
-	PropertyIsType                                        // is a type
-	PropertyIsPackage                                     // is a package
-	PropertyIsBuiltin                                     // is a builtin
-	PropertyAddressable                                   // is addressable
-	PropertyIsPredefined                                  // is predefined
+	PropertyNil           Properties = 1 << iota // is predeclared nil
+	PropertyUntyped                              // is untyped
+	PropertyIsType                               // is a type
+	PropertyIsPackage                            // is a package
+	PropertyIsPredeclared                        // is a predeclared identifier
+	PropertyAddressable                          // is addressable
+	PropertyIsPredefined                         // is predefined
 )
 
 type TypeInfo struct {
@@ -73,9 +73,9 @@ func (ti *TypeInfo) IsPackage() bool {
 	return ti.Properties&PropertyIsPackage != 0
 }
 
-// IsBuiltin reports whether it is a builtin.
-func (ti *TypeInfo) IsBuiltin() bool {
-	return ti.Properties&PropertyIsBuiltin != 0
+// IsPredeclared reports whether it is a predeclared identifier.
+func (ti *TypeInfo) IsPredeclared() bool {
+	return ti.Properties&PropertyIsPredeclared != 0
 }
 
 // Addressable reports whether it is addressable.
