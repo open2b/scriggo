@@ -128,11 +128,10 @@ func main() {
 	var f08 float32 = -1e10
 	var f09 float32 = 1e-10
 	var f10 float32 = 1e+10
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/213
-	// var f11 float32 = 1.e-10
-	// var f12 float32 = 1.e+10
+	var f11 float32 = 1.e-10
+	var f12 float32 = 1.e+10
 	var f13 float32 = .1e-10
-	// var f14 float32 = .1e+10
+	var f14 float32 = .1e+10
 	var f15 float32 = 1.1e-10
 	var f16 float32 = 1.1e+10
 	assert(f01 == -f00, "f01")
@@ -142,11 +141,10 @@ func main() {
 	assert(f05 == f06, "f05")
 	assert(f07 == -f08, "f07")
 	assert(equal(f09, 1/f10), "f09")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/213
-	// assert(f11 == f09, "f11")
-	// assert(f12 == f10, "f12")
+	assert(f11 == f09, "f11")
+	assert(f12 == f10, "f12")
 	assert(equal(f13, f09/10.0), "f13")
-	// assert(equal(f14, f12/10.0), "f14")
+	assert(equal(f14, f12/10.0), "f14")
 	assert(equal(f15, f16/1e20), "f15")
 
 	// character
@@ -158,7 +156,7 @@ func main() {
 	var c5 uint8 = '\n'
 	var c6 uint8 = '\r'
 	var c7 uint8 = '\t'
-	// var c8 uint8 = '\v'
+	var c8 uint8 = '\v'
 	// var c9 uint8 = '本' // correctly caught as error
 	var c9 uint16 = '本'
 	assert(c0 == 0x61, "c0")
@@ -169,9 +167,8 @@ func main() {
 	assert(c5 == 0x0a, "c4")
 	assert(c6 == 0x0d, "c6")
 	assert(c7 == 0x09, "c7")
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/211
-	// assert(c8 == 0x0b, "c8")
-	// assert(c9 == 0x672c, "c9")
+	assert(c8 == 0x0b, "c8")
+	assert(c9 == 0x672c, "c9")
 
 	// var c00 uint8 = '\000'
 	// var c01 uint8 = '\007'

@@ -1169,17 +1169,23 @@ DIGITS:
 		p++
 		if p < len(l.src) {
 			switch l.src[p] {
+			case '_':
+				p++
+				continue DIGITS
 			case '.':
 				if dot || exponent {
-					break
+					break DIGITS
 				}
 				if base < 10 {
 					return l.errorf("invalid radix point in " + numberBaseName[base] + " literal")
 				}
 				dot = true
 				p++
-			case '_':
-				p++
+				if p == len(l.src) {
+					break DIGITS
+				}
+			}
+			switch l.src[p] {
 			case 'e', 'E':
 				if exponent || base != 10 {
 					break
@@ -1203,7 +1209,9 @@ DIGITS:
 	}
 	switch l.src[p-1] {
 	case 'x', 'X', 'o', 'O', 'b', 'B':
-		return l.errorf(numberBaseName[base] + " literal has no digits")
+		if p == 2 {
+			return l.errorf(numberBaseName[base] + " literal has no digits")
+		}
 	case '_':
 		return l.errorf("'_' must separate successive digits")
 	case 'e', 'E', 'p', 'P', '+', '-':
