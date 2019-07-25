@@ -123,6 +123,23 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Implicit assignment of 'nil'",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			var a []int
+			var b []string
+			fmt.Printf("%T %T", a, b)
+		}
+		`,
+		out: `[]int []string`,
+	},
+
+	{
 		name: "Convertion from int to uint",
 		src: `package main
 

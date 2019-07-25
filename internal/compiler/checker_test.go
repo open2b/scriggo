@@ -1860,7 +1860,7 @@ var tiDefinedIntSlice = &TypeInfo{Type: reflect.TypeOf(definedIntSlice{})}
 
 // nil type info.
 
-func tiNil() *TypeInfo { return &TypeInfo{Properties: PropertyNil} }
+func tiNil() *TypeInfo { return universe["nil"].t }
 
 // byte type info.
 

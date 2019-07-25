@@ -13,8 +13,7 @@ import (
 type Properties uint8
 
 const (
-	PropertyNil           Properties = 1 << iota // is predeclared nil
-	PropertyUntyped                              // is untyped
+	PropertyUntyped       Properties = 1 << iota // is untyped
 	PropertyIsType                               // is a type
 	PropertyIsPackage                            // is a package
 	PropertyIsPredeclared                        // is a predeclared identifier
@@ -45,7 +44,7 @@ const (
 
 // Nil reports whether it is the predeclared nil.
 func (ti *TypeInfo) Nil() bool {
-	return ti.Properties&PropertyNil != 0
+	return ti.IsPredeclared() && ti.Untyped() && ti.Type == nil
 }
 
 // Untyped reports whether it is untyped.

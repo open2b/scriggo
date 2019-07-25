@@ -260,10 +260,23 @@ func (tc *typechecker) assign(node ast.Node, leftExpr, rightExpr ast.Expression,
 
 	right := tc.checkExpr(rightExpr)
 
-	// If assigning "nil" to a variable, nil must be typed before proceed.
-	if !isVariableDecl && !isConstDecl && right.Untyped() && right.Nil() {
+	// Assignment using '=' with 'nil' as right value.
+	//
+	//	s = nil // where s has type []int
+	//
+	if !isVariableDecl && !isConstDecl && right.Nil() {
 		left := tc.checkExpr(leftExpr)
-		right.Type = left.Type
+		right = typedNil(left.Type)
+		tc.typeInfos[rightExpr] = right
+	}
+
+	// Variable declaration using 'var' with an explicit type and 'nil' as right value.
+	//
+	//	var a []int = nil
+	//
+	if isVariableDecl && typ != nil && right.Nil() {
+		right = typedNil(typ.Type)
+		tc.typeInfos[rightExpr] = right
 	}
 
 	if isConstDecl && !right.IsConstant() {

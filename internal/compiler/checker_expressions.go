@@ -48,7 +48,7 @@ var universe = typeCheckerScope{
 	"len":         {t: &TypeInfo{Properties: PropertyIsPredeclared}},
 	"make":        {t: &TypeInfo{Properties: PropertyIsPredeclared}},
 	"new":         {t: &TypeInfo{Properties: PropertyIsPredeclared}},
-	"nil":         {t: &TypeInfo{Properties: PropertyNil | PropertyUntyped | PropertyIsPredeclared}},
+	"nil":         {t: &TypeInfo{Properties: PropertyUntyped | PropertyIsPredeclared}},
 	"panic":       {t: &TypeInfo{Properties: PropertyIsPredeclared}},
 	"print":       {t: &TypeInfo{Properties: PropertyIsPredeclared}},
 	"println":     {t: &TypeInfo{Properties: PropertyIsPredeclared}},
@@ -1767,6 +1767,9 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			}
 			panic(tc.errorf(expr, "%s", err))
 		}
+		if arg.Nil() {
+			return []*TypeInfo{typedNil(t.Type)}, false, true
+		}
 		converted := &TypeInfo{Type: t.Type, Constant: c}
 		if c == nil {
 			arg.setValue(t.Type)
@@ -1893,8 +1896,8 @@ func (tc *typechecker) checkCallExpression(expr *ast.Call, statement bool) ([]*T
 			panic(tc.errorf(expr, "%s", err))
 		}
 		if a.Nil() {
-			a.value = reflect.Zero(in).Interface()
-			tc.typeInfos[expr.Args[i]].Type = in
+			a := typedNil(in)
+			tc.typeInfos[expr.Args[i]] = a
 		}
 		a.setValue(in)
 	}
