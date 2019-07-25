@@ -195,6 +195,11 @@ func main() {
 		}
 	}
 
+	if len(filepaths) == 0 {
+		fmt.Printf("warning: no matches for pattern %q\n", *pattern)
+		os.Exit(0)
+	}
+
 	for _, path := range filepaths {
 		count++
 		src, err := ioutil.ReadFile(path)
@@ -214,7 +219,7 @@ func main() {
 			fmt.Printf(" ok   %v", end.Sub(start))
 			fmt.Printf(" [%d%%]\n", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
 		} else {
-			fmt.Printf("\r%d%%", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
+			fmt.Printf("\r%d%% ", int(math.Floor(float64(count)/float64(len(filepaths))*100)))
 		}
 		goOut := runGoAndGetOutput(src)
 		if (scriggoOut.isErr() || goOut.isErr()) && !strings.Contains(path, "errors") {
@@ -231,8 +236,13 @@ func main() {
 		}
 	}
 
-	if !*verbose {
-		fmt.Printf("done! (%d tests executed)\n", count)
+	fmt.Print("done! (")
+	switch count {
+	case 1:
+		fmt.Print("1 test executed")
+	default:
+		fmt.Printf("%d tests executed", count)
 	}
+	fmt.Print(")\n")
 
 }
