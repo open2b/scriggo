@@ -102,7 +102,7 @@ func isExported(name string) bool {
 // function call.
 func (em *emitter) isPredeclaredBuiltinFunc(fun ast.Expression) bool {
 	ti := em.ti(fun)
-	if !ti.IsPredeclared() {
+	if !ti.Predeclared() {
 		return false
 	}
 	ident, ok := fun.(*ast.Identifier)

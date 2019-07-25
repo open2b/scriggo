@@ -450,7 +450,7 @@ func representedBy(t1 *TypeInfo, t2 reflect.Type) (constant, error) {
 func typedNil(t reflect.Type) *TypeInfo {
 	if t.Kind() == reflect.Interface {
 		return &TypeInfo{
-			Properties: PropertyIsPredeclared | PropertyUntyped,
+			Properties: PropertyPredeclared | PropertyUntyped,
 		}
 	}
 	return &TypeInfo{

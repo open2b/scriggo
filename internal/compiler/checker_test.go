@@ -1534,10 +1534,10 @@ func equalTypeInfo(t1, t2 *TypeInfo) error {
 	if !t1.IsType() && t2.IsType() {
 		return fmt.Errorf("unexpected type")
 	}
-	if t1.IsPredeclared() && !t2.IsPredeclared() {
+	if t1.Predeclared() && !t2.Predeclared() {
 		return fmt.Errorf("unexpected non-predeclared")
 	}
-	if !t1.IsPredeclared() && t2.IsPredeclared() {
+	if !t1.Predeclared() && t2.Predeclared() {
 		return fmt.Errorf("unexpected predeclared")
 	}
 	if t1.Addressable() && !t2.Addressable() {
@@ -1590,7 +1590,7 @@ func dumpTypeInfo(ti *TypeInfo) string {
 	if ti.IsType() {
 		s += " isType"
 	}
-	if ti.IsPredeclared() {
+	if ti.Predeclared() {
 		s += " isPredeclared"
 	}
 	if ti.Addressable() {
