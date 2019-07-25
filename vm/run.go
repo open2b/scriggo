@@ -389,6 +389,8 @@ func (vm *VM) run() (uint32, bool) {
 				vm.setString(c, reflect.ValueOf(vm.int(a)).Convert(t).String())
 			case reflect.Float64, reflect.Float32:
 				vm.setFloat(c, reflect.ValueOf(vm.int(a)).Convert(t).Float())
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				vm.setInt(c, int64(reflect.ValueOf(vm.int(a)).Convert(t).Uint()))
 			default:
 				vm.setInt(c, reflect.ValueOf(vm.int(a)).Convert(t).Int())
 			}

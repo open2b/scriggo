@@ -123,6 +123,41 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "Convertion from int to uint",
+		src: `package main
+
+		import (
+			"fmt"
+		)
+		
+		func main() {
+			i1 := 0
+			u1 := uint8(i1)
+			i2 := 300
+			u2 := uint8(i2)
+			i3 := -20
+			u3 := uint8(i3)
+			fmt.Print(i1, u1, i2, u2, i3, u3)
+		}
+		`,
+		out: `0 0 300 44 -20 236`,
+	},
+
+	{
+		name: "Issue #210",
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			i := 10
+			s := []byte{byte(i)}
+			fmt.Print(s)
+		}`,
+		out: `[10]`,
+	},
+
+	{
 		name: "Issue #215 (2)",
 		src: `package main
 

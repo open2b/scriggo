@@ -15,7 +15,6 @@ import (
 )
 
 func testbasic() {
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/210
 	// // Test a map literal.
 	// mlit := map[string]int{"0": 0, "1": 1, "2": 2, "3": 3, "4": 4}
 	// for i := 0; i < len(mlit); i++ {
