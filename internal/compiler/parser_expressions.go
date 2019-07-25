@@ -778,7 +778,7 @@ func unquoteString(s []byte) string {
 	for i := 1; i < len(s)-1; i++ {
 		if s[i] == '\\' {
 			r, n := parseEscapedRune(s[i:])
-			if r < utf8.RuneSelf {
+			if n == 3 || r < utf8.RuneSelf {
 				cc = append(cc, byte(r))
 			} else {
 				p := [4]byte{}

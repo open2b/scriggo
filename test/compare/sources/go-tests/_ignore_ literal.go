@@ -170,26 +170,26 @@ func main() {
 	assert(c8 == 0x0b, "c8")
 	assert(c9 == 0x672c, "c9")
 
-	// var c00 uint8 = '\000'
-	// var c01 uint8 = '\007'
-	// var c02 uint8 = '\177'
-	// var c03 uint8 = '\377'
-	// assert(c00 == 0, "c00")
-	// assert(c01 == 7, "c01")
-	// assert(c02 == 127, "c02")
-	// assert(c03 == 255, "c03")
+	var c00 uint8 = '\000'
+	var c01 uint8 = '\007'
+	var c02 uint8 = '\177'
+	var c03 uint8 = '\377'
+	assert(c00 == 0, "c00")
+	assert(c01 == 7, "c01")
+	assert(c02 == 127, "c02")
+	assert(c03 == 255, "c03")
 
-	// var cx0 uint8 = '\x00'
-	// var cx1 uint8 = '\x0f'
-	// var cx2 uint8 = '\xff'
-	// assert(cx0 == 0, "cx0")
-	// assert(cx1 == 15, "cx1")
-	// assert(cx2 == 255, "cx2")
+	var cx0 uint8 = '\x00'
+	var cx1 uint8 = '\x0f'
+	var cx2 uint8 = '\xff'
+	assert(cx0 == 0, "cx0")
+	assert(cx1 == 15, "cx1")
+	assert(cx2 == 255, "cx2")
 
-	// var cu0 uint16 = '\u1234'
-	// var cu1 uint32 = '\U00101234'
-	// assert(cu0 == 0x1234, "cu0")
-	// assert(cu1 == 0x101234, "cu1")
+	var cu0 uint16 = '\u1234'
+	var cu1 uint32 = '\U00101234'
+	assert(cu0 == 0x1234, "cu0")
+	assert(cu1 == 0x101234, "cu1")
 
 	// string
 	var s0 string = ""
@@ -200,20 +200,19 @@ func main() {
 	var s2 string = "\a\b\f\n\r\t\v"
 	_, _ = s0, s2
 
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/212
-	// var s00 string = "\000"
-	// var s01 string = "\007"
-	// var s02 string = "\377"
-	// assert(s00[0] == 0, "s00")
-	// assert(s01[0] == 7, "s01")
-	// assert(s02[0] == 255, "s02")
+	var s00 string = "\000"
+	var s01 string = "\007"
+	var s02 string = "\377"
+	assert(s00[0] == 0, "s00")
+	assert(s01[0] == 7, "s01")
+	assert(s02[0] == 255, "s02")
 
-	// var x00 string = "\x00"
-	// var x01 string = "\x0f"
-	// var x02 string = "\xff"
-	// assert(x00[0] == 0, "x00")
-	// assert(x01[0] == 15, "x01")
-	// assert(x02[0] == 255, "x02")
+	var x00 string = "\x00"
+	var x01 string = "\x0f"
+	var x02 string = "\xff"
+	assert(x00[0] == 0, "x00")
+	assert(x01[0] == 15, "x01")
+	assert(x02[0] == 255, "x02")
 
 	// these are all the same string
 	var sj0 string = "日本語"

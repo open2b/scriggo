@@ -1290,6 +1290,40 @@ LOOP:
 			case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '"':
 				p += 2
 				cols += 2
+			case 'x':
+				for i := 0; i < 2; i++ {
+					if p+2+i == len(l.src) {
+						l.src = l.src[p:]
+						return l.errorf("non-hex character in escape sequence: ")
+					}
+					if c := l.src[p+2+i]; !isHexDigit(c) {
+						l.src = l.src[p:]
+						return l.errorf("non-hex character in escape sequence: %s", string(c))
+					}
+				}
+				p += 4
+				cols += 4
+			case '0', '1', '2', '3', '4', '5', '6', '7':
+				r := rune(c - '0')
+				for i := 0; i < 2; i++ {
+					if p+2+i == len(l.src) {
+						l.src = l.src[p:]
+						return l.errorf("non-octal character in escape sequence: ")
+					}
+					r = r * 8
+					c = l.src[p+2+i]
+					if c < '0' || c > '7' {
+						l.src = l.src[p:]
+						return l.errorf("non-octal character in escape sequence: %s", string(c))
+					}
+					r += rune(c - '0')
+				}
+				if r > 255 {
+					l.src = l.src[p:]
+					return l.errorf("octal escape value > 255: %d", r)
+				}
+				p += 4
+				cols += 4
 			default:
 				l.src = l.src[p:]
 				return l.errorf("invalid escape in string literal")
