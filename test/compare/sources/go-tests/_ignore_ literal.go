@@ -160,8 +160,7 @@ func main() {
 	var c7 uint8 = '\t'
 	// var c8 uint8 = '\v'
 	// var c9 uint8 = '本' // correctly caught as error
-	// TODO(Gianluca): https://github.com/open2b/scriggo/issues/214
-	// var c9 uint16 = '本'
+	var c9 uint16 = '本'
 	assert(c0 == 0x61, "c0")
 	assert(c1 == 0xe4, "c1")
 	assert(c2 == 0x07, "c2")

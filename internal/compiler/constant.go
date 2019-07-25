@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"scriggo/ast"
 )
@@ -1276,10 +1277,14 @@ func parseBasicLiteral(typ ast.LiteralType, s string) constant {
 	case ast.StringLiteral:
 		return stringConst(unquoteString([]byte(s)))
 	case ast.RuneLiteral:
+		if s[1] == '\\' {
+			r, _ := parseEscapedRune([]byte(s[1:]))
+			return int64Const(r)
+		}
 		if len(s) == 3 {
 			return int64Const(s[1])
 		}
-		r, _ := parseEscapedRune([]byte(s[1:]))
+		r, _ := utf8.DecodeRuneInString(s[1:])
 		return int64Const(r)
 	case ast.IntLiteral:
 		n, _ := new(big.Int).SetString(s, 0)
