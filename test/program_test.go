@@ -123,6 +123,52 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: "https://github.com/open2b/scriggo/issues/143",
+		src: `package main
+
+		import "fmt"
+		
+		var a = 0
+		
+		func main() {
+			a++
+			fmt.Print(a)
+		}`,
+		out: `1`,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/143",
+		src: `package main
+
+		var a int
+		
+		func f() {
+			a = 30
+		}
+		
+		func main() {
+		}`,
+		out: ``,
+	},
+
+	{
+		name: "https://github.com/open2b/scriggo/issues/143",
+		src: `package main
+
+		var a = -1
+		
+		func f(s string) int {
+			a++
+			return 0
+		}
+		
+		func main() {
+		}`,
+		out: ``,
+	},
+
+	{
 		name: `https://github.com/open2b/scriggo/issues/198`,
 		src: `package main
 
@@ -4248,28 +4294,6 @@ var stmtTests = []struct {
 			}
 		}`,
 		out: "[]int[]uint8[] []int\n[] []uint8\n"},
-
-	// TODO(Gianluca).
-	// {
-	// 	name: "Increment assignment should evaluate expression only once",
-	// 	src: `package main
-
-	// 	import (
-	// 		"fmt"
-	// 	)
-
-	// 	func i() int {
-	// 		fmt.Print("i()")
-	// 		return 0
-	// 	}
-
-	// 	func main() {
-	// 		s := []int{1,2,3}
-	// 		s[i()] += 5
-	// 		fmt.Println(s)
-	// 	}
-	// 	`,
-	// 	out: "i()[6 2 3]\n"},
 
 	{
 		name: "Package function with many return values (same type)",
