@@ -1948,6 +1948,11 @@ func (tc *typechecker) maxIndex(node *ast.CompositeLiteral) int {
 // the composite literal.
 func (tc *typechecker) checkCompositeLiteral(node *ast.CompositeLiteral, typ reflect.Type) *TypeInfo {
 
+	// Handle composite literal nodes with implicit type.
+	if node.Type == nil {
+		tc.typeInfos[node.Type] = &TypeInfo{Properties: PropertyIsType, Type: typ}
+	}
+
 	maxIndex := -1
 	switch node.Type.(type) {
 	case *ast.ArrayType, *ast.SliceType:

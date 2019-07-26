@@ -123,6 +123,51 @@ var stmtTests = []struct {
 }{
 
 	{
+		name: `https://github.com/open2b/scriggo/issues/198`,
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			s1 := []string{"a", "b", "c"}
+			s2 := []string{"c", "d"}
+			a := [][]string{s1, s2}
+			fmt.Print(a)
+		}`,
+		out: `[[a b c] [c d]]`,
+	},
+
+	{
+		name: `https://github.com/open2b/scriggo/issues/198`,
+		src: `package main
+
+		import "fmt"
+		
+		func main() {
+			a := [][]string{
+				[]string{"a", "b", "c"},
+				[]string{"c", "d"},
+			}
+			fmt.Print(a)
+		}`,
+		out: `[[a b c] [c d]]`,
+	},
+
+	{
+		name: `https://github.com/open2b/scriggo/issues/198`,
+		src: `package main
+
+		func main() {
+			a := [][]string{
+				{"a", "b", "c"},
+				{"d", "e", "f"},
+			}
+			_ = a
+		}`,
+		out: ``,
+	},
+
+	{
 		name: "https://github.com/open2b/scriggo/issues/216",
 		src: `package main
 
