@@ -926,6 +926,7 @@ var checkerStmts = map[string]string{
 	`_ = 1 << 1.2`:                     `invalid operation: 1 << 1.2 (constant 1.2 truncated to integer)`,
 	`_ = 1 << -1`:                      `invalid negative shift count: -1`,
 	`_ = 1 << 512`:                     `shift count too large: 512`,
+	`_ = 1 >> 1000`:                    ok,
 	`const a string = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,
 	//`const a int = -1; _ = 1 << a`:     `invalid operation: 1 << a (invalid negative shift count: -1)`, // TODO: go1.13
 	`var a = "s"; _ = 1 << a`: `invalid operation: 1 << a (shift count type string, must be unsigned integer)`,

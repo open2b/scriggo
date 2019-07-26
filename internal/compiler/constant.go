@@ -250,7 +250,7 @@ func (c1 int64Const) unaryOp(op ast.OperatorType) (constant, error) {
 
 func (c1 int64Const) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-		if err := shiftConstError(c2); err != nil {
+		if err := shiftConstError(op, c2); err != nil {
 			return nil, err
 		}
 		sc := uint(c2.uint64())
@@ -447,7 +447,7 @@ func (c1 intConst) unaryOp(op ast.OperatorType) (constant, error) {
 
 func (c1 intConst) binaryOp(op ast.OperatorType, c2 constant) (constant, error) {
 	if op == ast.OperatorLeftShift || op == ast.OperatorRightShift {
-		if err := shiftConstError(c2); err != nil {
+		if err := shiftConstError(op, c2); err != nil {
 			return nil, err
 		}
 		sc := uint(c2.uint64())
@@ -1148,11 +1148,13 @@ var errShiftCountTooLarge = errors.New("shift count too large")
 var errShiftCountTruncatedToInteger = errors.New("shift count truncated to integer")
 
 // shiftConstError returns an error that explain why c cannot be used as the
-// right operand in a shift expression. Returns nil if c can be used.
-func shiftConstError(c constant) error {
+// right operand in the shift expression op. Returns nil if c can be used.
+func shiftConstError(op ast.OperatorType, c constant) error {
 	if c, _ := c.representedBy(uintType); c != nil {
-		if ok, _ := c.binaryOp(ast.OperatorGreaterOrEqual, int64Const(512)); ok.bool() {
-			return errShiftCountTooLarge
+		if op == ast.OperatorLeftShift {
+			if ok, _ := c.binaryOp(ast.OperatorGreaterOrEqual, int64Const(512)); ok.bool() {
+				return errShiftCountTooLarge
+			}
 		}
 		return nil
 	}
