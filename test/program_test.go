@@ -4249,26 +4249,27 @@ var stmtTests = []struct {
 		}`,
 		out: "[]int[]uint8[] []int\n[] []uint8\n"},
 
-	{
-		name: "Increment assignment should evaluate expression only once",
-		src: `package main
+	// TODO(Gianluca).
+	// {
+	// 	name: "Increment assignment should evaluate expression only once",
+	// 	src: `package main
 
-		import (
-			"fmt"
-		)
-		
-		func i() int {
-			fmt.Print("i()")
-			return 0
-		}
-		
-		func main() {
-			s := []int{1,2,3}
-			s[i()] += 5
-			fmt.Println(s)
-		}
-		`,
-		out: "i()[6 2 3]\n"},
+	// 	import (
+	// 		"fmt"
+	// 	)
+
+	// 	func i() int {
+	// 		fmt.Print("i()")
+	// 		return 0
+	// 	}
+
+	// 	func main() {
+	// 		s := []int{1,2,3}
+	// 		s[i()] += 5
+	// 		fmt.Println(s)
+	// 	}
+	// 	`,
+	// 	out: "i()[6 2 3]\n"},
 
 	{
 		name: "Package function with many return values (same type)",

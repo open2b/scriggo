@@ -231,6 +231,7 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		}
 		em.assign(addresses, node.Rhs)
 	default:
+		panic("deprecated")
 		var addr address
 		var value int8
 		var valueType reflect.Type
@@ -264,41 +265,34 @@ func (em *emitter) emitAssignmentNode(node *ast.Assignment) {
 		default:
 			panic("TODO(Gianluca): not implemented")
 		}
+		rightOp := em.emitExpr(node.Rhs[0], em.ti(node.Rhs[0]).Type)
 		switch node.Type {
-		case ast.AssignmentIncrement:
-			em.fb.emitAdd(true, value, 1, value, valueType.Kind())
-		case ast.AssignmentDecrement:
-			em.fb.emitSub(true, value, 1, value, valueType.Kind())
-		default:
-			rightOp := em.emitExpr(node.Rhs[0], em.ti(node.Rhs[0]).Type)
-			switch node.Type {
-			case ast.AssignmentAddition:
-				if valueType.Kind() == reflect.String {
-					em.fb.emitConcat(value, rightOp, value)
-				} else {
-					em.fb.emitAdd(false, value, rightOp, value, valueType.Kind())
-				}
-			case ast.AssignmentSubtraction:
-				em.fb.emitSub(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentMultiplication:
-				em.fb.emitMul(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentDivision:
-				em.fb.emitDiv(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentModulo:
-				em.fb.emitRem(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentAnd:
-				em.fb.emitAnd(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentOr:
-				em.fb.emitOr(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentXor:
-				em.fb.emitXor(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentAndNot:
-				em.fb.emitAndNot(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentLeftShift:
-				em.fb.emitLeftShift(false, value, rightOp, value, valueType.Kind())
-			case ast.AssignmentRightShift:
-				em.fb.emitRightShift(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentAddition:
+			if valueType.Kind() == reflect.String {
+				em.fb.emitConcat(value, rightOp, value)
+			} else {
+				em.fb.emitAdd(false, value, rightOp, value, valueType.Kind())
 			}
+		case ast.AssignmentSubtraction:
+			em.fb.emitSub(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentMultiplication:
+			em.fb.emitMul(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentDivision:
+			em.fb.emitDiv(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentModulo:
+			em.fb.emitRem(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentAnd:
+			em.fb.emitAnd(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentOr:
+			em.fb.emitOr(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentXor:
+			em.fb.emitXor(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentAndNot:
+			em.fb.emitAndNot(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentLeftShift:
+			em.fb.emitLeftShift(false, value, rightOp, value, valueType.Kind())
+		case ast.AssignmentRightShift:
+			em.fb.emitRightShift(false, value, rightOp, value, valueType.Kind())
 		}
 		addr.assign(false, value, valueType)
 	}

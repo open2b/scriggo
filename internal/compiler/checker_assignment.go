@@ -118,28 +118,62 @@ func (tc *typechecker) checkAssignment(node ast.Node) {
 				panic(tc.errorf(node, "invalid operation: %v (non-numeric type %s)", node, exprTi))
 			}
 			tc.mustBeAddressable(v)
+			// Convert the assignment node from ++ and -- to a simple
+			// assignment. This change has no effects on type checking but
+			// simplifies the emitting of assignment nodes.
+			// a++ is semantically equivalent to a += 1, which is semantically
+			// equivalent to a = a + 1.
+			op := ast.OperatorAddition
+			if n.Type == ast.AssignmentDecrement {
+				op = ast.OperatorSubtraction
+			}
+			n.Type = ast.AssignmentSimple
+			right := ast.NewBinaryOperator(nil, op, n.Lhs[0], ast.NewBasicLiteral(nil, ast.IntLiteral, "1"))
+			tc.checkExpr(right)
+			n.Rhs = []ast.Expression{right}
 			return
 		case ast.AssignmentAddition, ast.AssignmentSubtraction, ast.AssignmentMultiplication,
-			ast.AssignmentDivision, ast.AssignmentModulo:
-			var opType ast.OperatorType
+			ast.AssignmentDivision, ast.AssignmentModulo, ast.AssignmentAnd, ast.AssignmentOr,
+			ast.AssignmentXor, ast.AssignmentAndNot, ast.AssignmentLeftShift, ast.AssignmentRightShift:
+			var op ast.OperatorType
 			switch n.Type {
 			case ast.AssignmentAddition:
-				opType = ast.OperatorAddition
+				op = ast.OperatorAddition
 			case ast.AssignmentSubtraction:
-				opType = ast.OperatorSubtraction
+				op = ast.OperatorSubtraction
 			case ast.AssignmentMultiplication:
-				opType = ast.OperatorMultiplication
+				op = ast.OperatorMultiplication
 			case ast.AssignmentDivision:
-				opType = ast.OperatorDivision
+				op = ast.OperatorDivision
 			case ast.AssignmentModulo:
-				opType = ast.OperatorModulo
+				op = ast.OperatorModulo
+			case ast.AssignmentAnd:
+				op = ast.OperatorAnd
+			case ast.AssignmentOr:
+				op = ast.OperatorOr
+			case ast.AssignmentXor:
+				op = ast.OperatorXor
+			case ast.AssignmentAndNot:
+				op = ast.OperatorAndNot
+			case ast.AssignmentLeftShift:
+				op = ast.OperatorLeftShift
+			case ast.AssignmentRightShift:
+				op = ast.OperatorRightShift
 			}
 			tc.cantBeBlank(n.Lhs[0])
-			_, err := tc.binaryOp(n.Lhs[0], opType, n.Rhs[0])
+			_, err := tc.binaryOp(n.Lhs[0], op, n.Rhs[0])
 			if err != nil {
 				panic(tc.errorf(n, "invalid operation: %v (%s)", n, err))
 			}
 			tc.assign(node, n.Lhs[0], n.Rhs[0], nil, false, false)
+			// Convert the assignment node from l op= r to a simple assignment.
+			// This change has no effects on type checking but simplifies the
+			// emitting of assignment nodes. a += 1 is semantically equivalent
+			// to a = a + 1.
+			right := ast.NewBinaryOperator(nil, op, n.Lhs[0], n.Rhs[0])
+			tc.checkExpr(right)
+			n.Rhs = []ast.Expression{right}
+			n.Type = ast.AssignmentSimple
 			return
 		}
 		lhs = n.Lhs
