@@ -519,7 +519,7 @@ func TestCheckerExpressions(t *testing.T) {
 			}
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
-			tc.addScope()
+			tc.enterScope()
 			ti := tc.checkExpr(node)
 			err := equalTypeInfo(expr.ti, ti)
 			if err != nil {
@@ -600,7 +600,7 @@ func TestCheckerExpressionErrors(t *testing.T) {
 			}
 			tc := newTypechecker("", CheckerOptions{})
 			tc.scopes = scopes
-			tc.addScope()
+			tc.enterScope()
 			ti := tc.checkExpr(node)
 			t.Errorf("source: %s, unexpected %s, expecting error %q\n", expr.src, ti, expr.err)
 		}()
@@ -1409,7 +1409,7 @@ func TestCheckerStatements(t *testing.T) {
 			}
 			tc := newTypechecker("", CheckerOptions{DisallowGoStmt: true, SyntaxType: ScriptSyntax})
 			tc.scopes = append(tc.scopes, scope)
-			tc.addScope()
+			tc.enterScope()
 			tc.checkNodes(tree.Nodes)
 			tc.removeCurrentScope()
 		}()
@@ -2002,7 +2002,7 @@ func TestFunctionUpVars(t *testing.T) {
 	}
 	for src, expected := range cases {
 		tc := newTypechecker("", CheckerOptions{})
-		tc.addScope()
+		tc.enterScope()
 		tree, err := ParseSource([]byte(src), true, false)
 		if err != nil {
 			t.Error(err)

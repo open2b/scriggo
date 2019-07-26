@@ -153,8 +153,8 @@ func newTypechecker(path string, opts CheckerOptions) *typechecker {
 	}
 }
 
-// addScope adds a new empty scope to the type checker.
-func (tc *typechecker) addScope() {
+// enterScope adds a new empty scope to the type checker.
+func (tc *typechecker) enterScope() {
 	tc.scopes = append(tc.scopes, typeCheckerScope{})
 	tc.labels = append(tc.labels, []string{})
 	tc.storedGotos = tc.gotos
@@ -781,7 +781,7 @@ func (tc *typechecker) typeof(expr ast.Expression) *TypeInfo {
 		return &TypeInfo{Type: expr.Reflect, Properties: PropertyIsType}
 
 	case *ast.Func:
-		tc.addScope()
+		tc.enterScope()
 		t := tc.checkType(expr.Type)
 		expr.Type.Reflect = t.Type
 		tc.ancestors = append(tc.ancestors, &ancestor{len(tc.scopes), expr})

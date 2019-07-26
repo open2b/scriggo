@@ -48,7 +48,7 @@ func (tc *typechecker) templateToPackage(tree *ast.Tree, path string) error {
 
 // checkNodesInNewScopeError calls checkNodesInNewScope returning checking errors.
 func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
-	tc.addScope()
+	tc.enterScope()
 	err := tc.checkNodesError(nodes)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (tc *typechecker) checkNodesInNewScopeError(nodes []ast.Node) error {
 
 // checkNodesInNewScope type checks nodes in a new scope. Panics on error.
 func (tc *typechecker) checkNodesInNewScope(nodes []ast.Node) {
-	tc.addScope()
+	tc.enterScope()
 	tc.checkNodes(nodes)
 	tc.removeCurrentScope()
 }
@@ -190,7 +190,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.checkNodesInNewScope(node.Nodes)
 
 		case *ast.If:
-			tc.addScope()
+			tc.enterScope()
 			if node.Assignment != nil {
 				tc.checkAssignment(node.Assignment)
 			}
@@ -216,7 +216,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = terminating
 
 		case *ast.For:
-			tc.addScope()
+			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
@@ -237,7 +237,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = node.Condition == nil && !tc.hasBreak[node]
 
 		case *ast.ForRange:
-			tc.addScope()
+			tc.enterScope()
 			tc.addToAncestors(node)
 			// Check range expression.
 			expr := node.Assignment.Rhs[0]
@@ -336,7 +336,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = true
 
 		case *ast.Switch:
-			tc.addScope()
+			tc.enterScope()
 			tc.addToAncestors(node)
 			// Checks the init.
 			if node.Init != nil {
@@ -399,7 +399,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 
 		case *ast.TypeSwitch:
 			terminating := true
-			tc.addScope()
+			tc.enterScope()
 			tc.addToAncestors(node)
 			if node.Init != nil {
 				tc.checkAssignment(node.Init)
@@ -439,7 +439,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 					}
 					positionOf[t.Type] = ex.Pos()
 				}
-				tc.addScope()
+				tc.enterScope()
 				// Case has only one expression (one type), so in its body the
 				// type switch variable has the same type of the case type.
 				if len(cas.Expressions) == 1 {
@@ -478,7 +478,7 @@ func (tc *typechecker) checkNodes(nodes []ast.Node) {
 			tc.terminating = terminating && !tc.hasBreak[node] && positionOfDefault != nil
 
 		case *ast.Select:
-			tc.addScope()
+			tc.enterScope()
 			tc.addToAncestors(node)
 			// Check the cases.
 			terminating := true
